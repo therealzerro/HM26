@@ -1,0 +1,191 @@
+
+ZK6 ENGINE — IMPLEMENTATION PROMPT (NO CODE)
+Audience: New AI Mobile App Engineer (starting from zero)
+Goal: Rebuild HitMaster with the evolved ZK6 engine, role-aware UI/UX, Admin-only ingestion, and Supabase-backed data.
+
+
+0) ORIENTATION — WHAT THIS APP DOES
+HitMaster is a decision-support app that turns lottery history into explainable “heat” and ranked K‑slates. It ingests four kinds of inputs:
+• BOX & PAIR DATASETS = history imports (training baselines)
+• DAILY INPUT DATASETS = rescoring deltas (only the combos that actually hit today)
+• LEDGER DATA = authoritative straight results stream (Midday/Evening/All‑Day), used for recency logic and pair derivations
+
+Minimum viable data: 11 classes each with a 1‑year horizon (H01Y): 1×Box class + 10×Pair classes. The slate MUST run on H01Y‑only and automatically improve as H02Y…H10Y arrive per class.
+
+
+1) DATA ROLES & EXAMPLES — READ CAREFULLY
+A) BOX (history) — unordered digit‑sets {A,B,C}
+Columns: Combo (or ComboSet), TimesDrawn, Expected, LastSeen (ET date), DrawsSince (non‑negative int)
+Example rows:
+  000  28  26.49  Aug 3, 2025   3545
+  001  65  79.47  Sep 11, 2025   705
+  002  68  79.47  Sep 18, 2025   185
+
+B) PAIRS (history; 10 pair classes share this shape)
+Columns: Pair (00–99), TimesDrawn, LastSeen, DrawsSince
+Example rows:
+  00  678  Sep 20, 2025  19
+  01  1348 Sep 20, 2025  18
+  02  1443 Sep 20, 2025  59
+
+C) DAILY INPUT (rescoring delta; same shape as BOX; only sets that hit today)
+Columns: Combo, TimesDrawn, Expected, LastSeen, DrawsSince
+Example rows:
+  006  1  0.22  Sep 20, 2025  61
+  008  1  0.22  Sep 20, 2025  19
+
+D) LEDGER (results; authoritative)
+Columns: Game, DrawDate, Results (straight digits), Session (Midday/Evening) by jurisdiction
+Example rows:
+  Arizona  Pick 3      Sat, Sep 20, 2025   2-8-4
+  Arkansas Cash 3 Mid  Sat, Sep 20, 2025   3-2-2
+  Arkansas Cash 3 Eve  Sat, Sep 20, 2025   4-3-0
+  California Daily 3 Mid Sat, Sep 20, 2025 3-0-2
+(Use uploaded “Drawing Times” as guidance for session scheduling.)
+
+E) TEN PAIR TYPES (classes)
+Use the uploaded “Pair Classes” guide to define classes:
+  1) Front Pair Straight (AB)
+  2) Back Pair Straight (BC)
+  3) Split Pair Straight (AC)
+  4) Front Pair Box (unordered {A,B})
+  5) Back Pair Box (unordered {B,C})
+  6) Split Pair Box (unordered {A,C})
+  7) Front Pair from Box Combination (AB after box‑sort)
+  8) Back Pair from Box Combination (BC after box‑sort)
+  9) Split Pair from Box Combination (AC after box‑sort)
+ 10) Any Position Box (all unordered pairs {A,B},{A,C},{B,C} in each draw)
+
+
+2) SUPABASE DATA MODEL (CONCEPTUAL — NO SQL HERE)
+Tables (intent only; implement later via migrations):
+• users(id, role ∈ {free,premium,admin}, created_at)
+• imports(id, type ∈ {box_history,pair_history,daily_input,ledger}, class_id, horizon_label(H01Y..H10Y), scope ∈ {midday,evening,allday}, file_meta, counts, status, created_by, created_at)
+• datasets_box(class_id=1, horizon_label, scope, key_box, ds_raw, times_drawn, last_seen, updated_at)
+• datasets_pair(class_id∈{2..11}, horizon_label, scope, key_pair, ds_raw, times_drawn, last_seen, updated_at)
+• slate_snapshots(id, scope, horizons_present_json, weights_json, top_k_straights_json, top_k_boxes_json, updated_at_et)
+• ledger(id, jurisdiction, date_et, session, result_digits, comboset_sorted, created_at)
+• audit_logs(id, actor_id, action, target, payload_meta, created_at)
+Policies intent (RLS): Only Admins write to imports/datasets/ledger/slate_snapshots; Free/Premium are read‑only on snapshots and glossary.
+
+
+3) PERMISSIONS & PAYWALL (APP LOGIC)
+• Only Admin users can import BOX/PAIR histories, ingest DAILY INPUT, and ingest LEDGER entries or trigger regeneration/materialization.
+• Free & Premium users cannot access complex configuration; they only consume the published slates, Explore, and Recent (subject to plan gating).
+• Plans:
+  – Free: yesterday’s slate, limited Explore (metered), delayed Ledger.
+  – Pro: today’s slate + unlimited Explore + live Ledger.
+  – Studio: all Pro + Admin read‑only + export PNG/PDF with watermark.
+
+
+4) INGESTION WORKFLOWS (ADMIN‑ONLY; IDEMPOTENT)
+A) HISTORY IMPORTS (Box + Pair classes; H01Y…H10Y, one year per file)
+   1. Validate required columns & types; DrawsSince ≥ 0; LastSeen parseable (YYYY‑MM‑DD).
+   2. Normalize keys: zero‑pad pairs “7”→“07”; sort box digits; strip commas; uppercase jurisdictions.
+   3. Deduplicate by (class_id,horizon,scope,key,source); newest file wins.
+   4. Persist rows into datasets_box / datasets_pair.
+   5. Compute & store per‑class per‑horizon percentiles for ds_raw; winsorize at P99.
+
+B) DAILY INPUT (rescoring deltas)
+   1. Same schema as BOX; rows are today’s hits only.
+   2. For each Combo ABC: reset DS=0 for its box set in active horizons; increment DS+1 for all other sets; emit pair events (see PAIR INTERPOLATION).
+
+C) LEDGER (authoritative results)
+   1. Upsert each jurisdiction’s {date_et, session, result_digits}; derive ComboSet (sorted).
+   2. Advance the draw clock: DS+1 globally for non‑hit keys inside the active window.
+   3. Emit pair events per result (Front AB, Back BC, Split AC, and AnyPos unordered pairs).
+
+Watermarks/idempotency: hash (jurisdiction|date_et|session|result_digits) and ignore duplicates.
+
+
+5) PAIR INTERPOLATION (KEEP PAIRS “LIVE” DAILY)
+Every time a result lands (from DAILY INPUT or LEDGER):
+• Fire events:
+  – Front(AB), Back(BC), Split(AC)
+  – AnyPos unordered pairs {A,B},{A,C},{B,C}
+• For pairs that fired: set DS=0; for all others in that class: DS+=1 within active horizons.
+• Maintain per‑class winsorized DS percentiles; update incrementally after each batch (nightly full refresh OK).
+Outcome: Pair classes reflect today’s movement between yearly imports.
+
+
+6) NORMALIZATION & HORIZON BLENDING
+Per class × scope × horizon (H01Y…H10Y):
+• Winsorize ds_raw at P99 to cap outliers.
+• Normalize to [0,1] using percentile ranks (preferred). Store maps for reuse.
+• If multiple horizons exist for a class, blend with short‑heavier geometric weights; weights sum to 1.
+• If only H01Y exists, use that normalized value directly.
+• Missing classes/horizons contribute 0 and are labeled “partial data” in UI.
+
+
+7) ZK6 SCORING (BOX‑FIRST, PAIR‑ASSISTED)
+Compute for each straight combo ABC (after normalization and blending):
+• BOX*  = percentile DS for ComboSet {A,B,C}
+• PBURST* = best‑order average of Front*(AB), Back*(BC), Split*(AC)
+• CO*   = AnyPos unordered pair pressure average over {A,B},{A,C},{B,C}
+Suggested weights to start (tuneable in Admin “Scoring Lab”):
+• BOX 0.40, PBURST 0.40, CO 0.20   (alternate conservative: 0.85/0.10/0.05)
+Indicator(ABC) = 0.40*BOX* + 0.40*PBURST* + 0.20*CO*
+
+Rails (composition & safety):
+• Same‑day exclusion: remove any straight or box that hit today (from Ledger).
+• Quotas for K6: Singles=4, Doubles=2 (Triples off by default or gated).
+• Pair repetition cap: max 2 items sharing the same TopPair in K6.
+• Recency rules: exclude last‑24h global hits; apply Mid→Eve / Eve→Mid same‑day safeguards.
+
+
+8) SLATE ASSEMBLY & TEMPERATURE
+• Compute Indicator for all eligible combos; sort desc; fill K6 with quotas and pair caps; produce a 10‑item backfill.
+• Convert Indicator to Temp 0–100 using distribution cut‑points (e.g., p10→0, p90→100, clipped).
+• UI micro‑bars on each card: BOX / PBURST / CO (0–100). Show “BestOrder” and “TopPair” chips.
+• Winners in Recent get a ✅ tag and are excluded from new slates that day.
+
+
+9) REGENERATION TRIGGERS
+Regenerate K‑slates when:
+• An Admin imports a new horizon (any class, any year) → recompute that class’s blend and publish.
+• An Admin ingests a new Ledger batch for a scope (Midday/Evening) → apply DS updates, exclusions, publish.
+• Admin taps “Re‑Generate Slate”. Each publish stores a slate_snapshot with ET timestamp and horizons_present map.
+
+
+10) UI/UX SYSTEM (ROLE‑AWARE; NOVICE‑FRIENDLY)
+Tabs: Home (Today’s Slate), Explore, Results (Ledger), (Admin) Import & Health, Account/Paywall.
+• Persistent scope switcher: Midday | Evening | All‑Day.
+• Status ribbon: “Box H01Y ✓ • Pair 1–10 H01Y ✓ (H02Y–H10Y ⌛) • Last re‑gen ET • Norm: percentile • Winsor: p99”
+• Long‑press a slate row → show raw H01Y numbers and any blended years.
+• Explore: search any set; show heat breakdown, pair pressures, recency flags; compare up to 3 sets.
+• Admin Import: two lanes (History horizons vs Daily ledger) with preview & commit; defaults ON for “Re‑materialize” and “Auto re‑gen”.
+• Free/Premium: no config; see a friendly explainer of how data updates.
+Accessibility: tabular numerals, high contrast, reduced‑motion fallback.
+
+
+11) STEP‑BY‑STEP IMPLEMENTATION CHECKLIST (NO CODE)
+1. Add roles & routing: gate Admin tab; add global scope state.
+2. Scaffold Supabase tables (concept above) and RLS intent; don’t store secrets in client.
+3. Build Admin Import Hub: History (H01Y) for Box + 10 Pair classes; Daily ledger lane; parse & validate; write datasets_* and ledger.
+4. Implement percentile baselines & P99 winsor caps per class×horizon×scope; persist maps.
+5. Implement horizon blending layer (short‑heavier) per class; return normalized stacks.
+6. Implement ZK6 components (BOX*, PBURST*, CO*); compute Indicator; apply rails (quotas, pair cap, exclusions).
+7. Assemble K6 + backfill; map Indicator→Temp; render cards with three micro‑bars + BestOrder + TopPair chip.
+8. Wire Ledger to do DS updates (+1 non‑hits; 0 for hits) and emit pair events; regenerate slates on each session.
+9. Progressive horizons: when H0nY arrives for a class, recompute only that class blend; republish snapshot; update coverage chips.
+10. Health & diagnostics: show winsorized counts, pctl freshness, missing coverage; audit every import/regen.
+11. Paywall: enforce plan entitlements; blur premium metrics for Free; meter Explore; soft paywall at threshold.
+12. Determinism: same inputs → identical slate_snapshot payloads; store a content hash.
+
+
+12) ACCEPTANCE CRITERIA
+• H01Y‑only across all 11 classes → slates generate for all scopes, with status chips and exclusions.
+• Adding H02Y…H10Y for any class → automatic improvement via blended horizons; others remain H01Y.
+• Daily ledger ingestion updates DS, interpolates pairs, excludes same‑day hits, republishes K‑slates.
+• Free/Premium have read‑only access; Admins control imports & re‑gen.
+• Deterministic snapshots & good performance (smooth scrolling, quick re‑gens).
+
+
+NOTES & GUARDRAILS
+• Heuristic, not odds; drawings are IID.
+• Validate DrawsSince as non‑negative integer; infer from LastSeen only when safe.
+• Strict keying: pairs must match digits/positions; unordered pairs stored sorted.
+• Weight by draws (not days) when aggregating jurisdictions with different draw counts.
+• If a class/horizon is absent, treat its contribution as 0 and surface a “partial data” banner.
+• Use uploaded “Drawing Times” to schedule Midday/Evening ingest windows; All‑Day combines both in order.
+• Use the Pair Classes image to drive correct class semantics and labels in UI.

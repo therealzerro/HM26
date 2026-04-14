@@ -1,0 +1,157 @@
+
+HITMASTER — ZK6 FULL IMPLEMENTATION PROMPT (NO CODE)
+Audience: AI Mobile App Engineer
+Premise: Supabase environment variables are now set. Implement the ZK6 engine end‑to‑end with enhanced logic, admin‑only ingestion, deterministic snapshotting, and role‑aware UI. No secrets in client; all writes gated by Admin and RLS.
+
+0) GOLDEN RULES & DATA ROLES
+• Box & Pair datasets = HISTORY IMPORTS (training baselines), one file per year horizon per class (H01Y…H10Y), per scope (Midday/Evening/All‑Day).
+• Daily Input datasets = RESCORING DELTAS (only combos that hit “today”; same columns as Box).
+• Ledger = AUTHORITATIVE RESULTS by jurisdiction and session; drives DS resets, pair events, and same‑day exclusions.
+• ZK6 MUST run on H01Y‑only minimum for all 11 classes (1×Box + 10×Pair) and auto‑improve as higher horizons arrive.
+
+1) SUPABASE CONNECTION (READ/WRITE SURFACES)
+Use the existing envs (read‑only here; do not hardcode anywhere):
+• EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY (client read only)
+• Server/Edge Functions use SERVICE ROLE (never in client)
+Client reads:
+• slate_snapshots (public view) — read only
+• glossary/static metadata — read only
+• limited “results” feed (if exposed as a public view)
+Admin‑only writes (via Edge Functions/Policies):
+• imports, datasets_box, datasets_pair, ledger, snapshot materialization endpoints
+Network hygiene:
+• All client mutations go through signed Admin session and RLS‑enforced RPC/Functions (no direct table writes from client).
+
+2) SCHEMA & TABLE INTENT (CONFIRM/MIGRATE; NO SQL HERE)
+• users(id, role ∈ {free,premium,admin}, created_at)
+• imports(id, type ∈ {box_history,pair_history,daily_input,ledger}, class_id, horizon_label(H01Y..H10Y), scope ∈ {midday,evening,allday}, file_meta, counts, status, created_by, created_at)
+• datasets_box(class_id=1, horizon_label, scope, key_box, ds_raw, times_drawn, expected?, last_seen, updated_at)
+• datasets_pair(class_id∈{2..11}, horizon_label, scope, key_pair, ds_raw, times_drawn, last_seen, updated_at)
+• percentile_maps(class_id, scope, horizon_label, p99_cap, map_blob, updated_at) — flattened or JSON bins for DS→[0,1]
+• horizon_blends(class_id, scope, weights_json, horizons_present, updated_at) — cached weight sets
+• ledger(id, jurisdiction, date_et, session, result_digits, comboset_sorted, created_at)
+• slate_snapshots(id, scope, horizons_present_json, weights_json, top_k_straights_json, top_k_boxes_json, updated_at_et, hash)
+• audit_logs(id, actor_id, action, target, payload_meta, created_at)
+Policies (intent): Admin only can write to imports/datasets/ledger/percentile_maps/horizon_blends/slate_snapshots; reads for snapshots are public or authenticated non‑admin.
+
+3) INGESTION — HISTORY (ADMIN ONLY)
+Goal: Persist validated annual history for Box and each Pair class; compute percentiles and update coverage.
+Input formats:
+• BOX: { Combo|ComboSet, TimesDrawn, Expected?, LastSeen(YYYY‑MM‑DD), DrawsSince(int≥0) }
+• PAIR: { Pair("00"…"99"), TimesDrawn, LastSeen(YYYY‑MM‑DD), DrawsSince(int≥0) } with class_id 2..11
+Validation & normalization:
+• DrawsSince ≥ 0; LastSeen parseable; strip numeric commas.
+• Keys: pairs zero‑padded; box digits sorted ascending inside braces.
+Persistence steps:
+1) Write import record with counts + status=“validating”; fail fast on schema errors (line refs).
+2) Upsert rows into datasets_box / datasets_pair for (class_id, scope, horizon_label, key_*).
+3) Compute p99 cap for ds_raw within the set; winsorize; compute percentile map DS→[0,1]; upsert into percentile_maps.
+4) Update horizon_blends coverage for the class (append new horizon label). Mark import status=“committed” and log to audit_logs.
+UI/UX:
+• History lane shows accepted/rejected/fixed counts; p99 value; first/last dates; keys normalized examples.
+
+4) INGESTION — DAILY INPUT (ADMIN ONLY)
+Goal: Apply same‑day deltas from the official feed; these are Box‑shaped rows for combos that hit today.
+Process:
+1) Validate as Box shape; resolve to comboset_sorted.
+2) For each combo ABC in the payload: set DS=0 for {A,B,C} across active horizons within scope; increment DS+1 for all other sets in scope.
+3) Emit pair events for ordered pairs (AB, BC, AC) and unordered any‑pos pairs ({A,B},{A,C},{B,C}) for all 10 pair classes (based on class semantics). Update their DS similarly.
+4) Update percentile maps incrementally or mark for nightly refresh (OK).
+
+5) INGESTION — LEDGER (ADMIN ONLY; AUTHORITATIVE)
+Goal: Persist actual results with session & jurisdiction to power DS updates and exclusions.
+Process:
+1) Upsert each row by composite key (jurisdiction|date_et|session|result_digits). Reject duplicates.
+2) Derive comboset_sorted and ordered/unordered pairs.
+3) Run the same DS updates as Daily Input (reset hitters to 0; others +1) within the scope affected.
+4) Mark same‑day exclusion flags for straight combos and their box sets for that date+scope.
+5) Log to audit_logs with counts and duration.
+
+6) NORMALIZATION & P99 WINSORIZATION (CLASS×SCOPE×HORIZON)
+• For each (class_id, scope, horizon_label):
+  – Compute p99 cap for ds_raw; clip values.
+  – Convert to percentile rank in [0,1] (ties allowed; mid‑rank preferred).
+• Persist p99 and map into percentile_maps; expose read RPC (no private internals).
+• Refresh cadence: on import commit; nightly batch safe for rebalancing.
+Guardrail: Winsorize BEFORE percentile mapping to prevent dominance by long tails.
+
+7) HORIZON BLENDING (SHORT‑HEAVIER)
+• For each class, assemble available horizons (H01Y…H10Y) and compute a geometric short‑heavier weight vector (example pattern acceptable as long as it sums to 1 and decays with age).
+• Blend normalized values across horizons to produce a single class score component per key (BOX set or PAIR key).
+• Cache blend weights and horizons_present in horizon_blends. Recompute only when a new horizon arrives.
+
+8) ZK6 COMPONENTS (ALL NORMALIZED)
+For each straight combo ABC:
+• BOX*  — percentile DS for comboset {A,B,C} after horizon blend for the Box class.
+• PBURST* — take the best permutation (x,y,z) of ABC maximizing mean(Front*(xy), Back*(yz), Split*(xz)), where * indicates the class‑blended, percentile‑normalized value for the corresponding pair classes.
+• CO* — any‑position unordered pair pressure = mean(percentile of {A,B}, {A,C}, {B,C} across appropriate classes).
+Multiplicity prior (optional):
+• Singles +0.00, Doubles −0.02, Triples −0.04 to smooth extreme cluster dominance.
+
+9) RAILS (CONSTRAINTS & EXCLUSIONS)
+• Same‑day exclusion: remove any straight or box set that hit today in the active scope (from ledger).
+• Quotas for K6 slate: Singles ≤ 4, Doubles ≤ 2 (Triples off or gated).
+• Pair‑repetition cap: ≤ 2 items sharing the same TopPair across K6.
+• Mid↔Eve recency guard: apply scope‑local rules to avoid echoing within the same calendar day.
+• If mandatory H01Y is missing for any class: class contribution = 0 and flag “partial data” in the status ribbon.
+
+10) INDICATOR & TEMPERATURE
+Indicator(ABC) = w1*BOX* + w2*PBURST* + w3*CO* + multiplicityPrior
+• Default weights: 0.40 / 0.40 / 0.20 (Admin can later tune in Scoring Lab)
+• Conservative alt: 0.85 / 0.10 / 0.05
+Temperature 0–100:
+• Map Indicator through distribution cut‑points (p10→0, p90→100), with clipping outside range.
+
+11) SLATE ASSEMBLY & SNAPSHOTS
+Process:
+1) Score all eligible combos in scope.
+2) Apply rails (exclusions, quotas, pair cap) and sort by Indicator desc with deterministic tie‑breakers (Box DS at longest horizon, then lexicographic).
+3) Produce K6 + backfill list; compute Temperature for display.
+4) Persist slate_snapshot with:
+   – updated_at_et (server in ET), horizons_present (per class), weights_json, top_k_straights_json, top_k_boxes_json (optional), and a hash over content for determinism.
+5) Keep a rolling window of N snapshots per scope. Expose a read‑only view for clients.
+
+12) UI WIRING (ROLE‑AWARE)
+Home (Today’s Slate):
+• Render Temperature badge and three micro‑bars (BOX/PBURST/CO), BestOrder chip, TopPair chip; long‑press to reveal raw H01Y and blended horizons present.
+• Same‑day winners marked ✅ and excluded from new slates with a tooltip “Excluded due to today’s hit (ledger).”
+Explore:
+• Search any combo/set; show component breakdowns and horizon coverage with per‑class availability (H01Y ✓, H0nY ✓/⌛).
+Results (Ledger):
+• Group by jurisdiction + session; tap a row to reveal emitted pair events and which slate items moved.
+Admin (Import & Health):
+• History lane and Daily lane with preview→commit flow; show p99 and percentile summaries, normalized key previews.
+• Health panel: last percentile refresh per class, winsorized entity counts, missing horizons, recent errors.
+Paywall/Account:
+• Enforce plan entitlements; Free/Premium read‑only; Admin full tools.
+
+13) OBSERVABILITY & AUDIT
+• Audit logs for every import, ledger ingest, percentile refresh, blend recompute, and slate generation (actor, scope, counts, duration, warnings).
+• Determinism check endpoint (Admin): re‑run last inputs → return content hash to compare with last snapshot.
+• Status ribbon should always show: coverage chips, last re‑gen ET, normalization (“percentile”), winsor (“p99”), backend status “Online”.
+
+14) ACCEPTANCE CRITERIA (MUST PASS)
+• With H01Y present for all 11 classes, app produces deterministic K‑slates for Midday, Evening, and All‑Day scopes.
+• Importing any H0nY for a class auto‑recomputes that class’s blend and republishes slates; other classes untouched.
+• Ledger ingestion resets hitter DS to 0, increments others, emits pair events, enforces same‑day exclusion, and regenerates slates deterministically.
+• Snapshots persist with ET timestamps, horizons_present, weights, Top‑K payloads, and a stable hash; identical inputs → identical hash.
+• Role gating enforced: Admin can ingest & regenerate; Free/Premium cannot.
+• Health panel reflects latest percentile refresh time, winsor counts, and coverage.
+
+15) RISK CONTROLS & FOOTGUNS
+• ALWAYS winsorize before percentile mapping.
+• Ensure pair keys are zero‑padded; box sets sorted asc; scope isolation on DS updates (Midday vs Evening do not leak).
+• Do not allow client to write directly to tables; only via Edge Functions/RPC with RLS enforcing Admin role.
+• If a class/horizon is missing or empty, contribute 0 and show “partial data” in the ribbon.
+
+16) TASK CHECKLIST (DO IN THIS ORDER)
+[ ] Wire Supabase client (read‑only for snapshots in client); configure Admin‑only RPC for writes.
+[ ] Implement History ingestion endpoints: validate → upsert → p99/percentiles → blends → audit.
+[ ] Implement Daily Input and Ledger ingestion endpoints: DS updates, pair emission, exclusion flags, audit.
+[ ] Implement normalization service (percentile_maps) and blend cache (horizon_blends).
+[ ] Implement ZK6 components and Indicator; rails; deterministic sorter; K6 assembler.
+[ ] Implement slate_snapshot publisher + public view; ribbon + Home wiring to Temperature and micro‑bars.
+[ ] Implement Health metrics; determinism check action.
+[ ] Final acceptance pass on three scopes with H01Y‑only; then add H02Y sample to confirm auto‑improve behavior.
+
+END OF PROMPT — Implement the ZK6 engine with all enhancements above. No code required in this document; follow the steps, wire the endpoints, enforce Admin‑only writes, and keep everything deterministic and explainable.

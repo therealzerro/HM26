@@ -1,0 +1,211 @@
+// ZK6 v3 Scoring + Selection Layer (TypeScript Rewrite)
+
+// TYPES
+type HorizonKey = 'H01Y' | 'H02Y' | 'H03Y' | 'H05Y' | 'H10Y';
+type Combo = string;
+
+type FeatureVector = {
+  combo: Combo;
+  p_ds: number;
+  p_uoi: number;
+  pairAlign: number;
+  digitPressure: number;
+  consensus: number;
+  permCoherence: number;
+  score: number;
+};
+
+type RankedCombo = FeatureVector;
+
+type EngineContext = {
+  horizons: Record<HorizonKey, any>;
+  pairScores: Map<string, number>;
+  digitStats: {
+    drawsSince: Record<number, number>;
+    uoi: Record<number, number>;
+  };
+  adaptiveWeights?: Record<HorizonKey, number>;
+};
+
+type K6Result = {
+  tierA: RankedCombo[];
+  tierB: RankedCombo[];
+};
+
+// HELPERS
+function percentile(value: number, distribution: number[]): number {
+  let count = 0;
+  for (const v of distribution) {
+    if (v <= value) count++;
+  }
+  return count / distribution.length;
+}
+
+function computeDigitPressure(combo: Combo, digitStats: any): number {
+  const digits = combo.split('').map(Number);
+  const pressures = digits.map(d => {
+    const ds = digitStats.drawsSince[d];
+    const uoi = digitStats.uoi[d];
+    return 0.6 * ds + 0.4 * uoi;
+  });
+  return pressures.reduce((a, b) => a + b, 0) / pressures.length;
+}
+
+function computePairAlignment(combo: Combo, pairScores: Map<string, number>): number {
+  const [a, b, c] = combo.split('');
+  const front = pairScores.get(`${a}${b}`) ?? 0;
+  const back  = pairScores.get(`${b}${c}`) ?? 0;
+  const outer = pairScores.get(`${a}${c}`) ?? 0;
+
+  const minEdge = Math.min(front, back);
+  const synergy = (front > 0.75 && back > 0.75 && outer > 0.75) ? 1 : 0;
+
+  return 0.7 * minEdge + 0.3 * synergy;
+}
+
+function permute(combo: string): string[] {
+  const [a,b,c] = combo.split('');
+  return [
+    a+b+c, a+c+b,
+    b+a+c, b+c+a,
+    c+a+b, c+b+a
+  ];
+}
+
+function permutationCoherence(combo: Combo, baseScores: Map<Combo, number>): number {
+  const perms = permute(combo);
+  const scores = perms.map(p => baseScores.get(p) ?? 0).sort((a,b)=>b-a);
+  const top = scores[0];
+  const second = scores[1] ?? 0;
+  return 0.7 * top + 0.3 * second;
+}
+
+function computeConsensus(combo: Combo, horizonRanks: Record<HorizonKey, Set<Combo>>): number {
+  let hits = 0;
+  const total = Object.keys(horizonRanks).length;
+  for (const h of Object.keys(horizonRanks) as HorizonKey[]) {
+    if (horizonRanks[h].has(combo)) hits++;
+  }
+  return hits / total;
+}
+
+// SCORING
+export function scoreCombos(combos: Combo[], ctx: EngineContext): RankedCombo[] {
+  const { horizons, pairScores, digitStats } = ctx;
+
+  const horizonWeights = ctx.adaptiveWeights ?? {
+    H01Y: 0.35,
+    H02Y: 0.25,
+    H03Y: 0.20,
+    H05Y: 0.12,
+    H10Y: 0.08,
+  };
+
+  const dsDist: number[] = [];
+  const uoiDist: number[] = [];
+
+  for (const h of Object.values(horizons)) {
+    for (const c of Object.values(h.combos)) {
+      dsDist.push(c.drawsSince);
+      uoiDist.push(c.uoi);
+    }
+  }
+
+  const horizonRanks: Record<HorizonKey, Set<Combo>> = {} as any;
+
+  for (const [hKey, hData] of Object.entries(horizons) as any) {
+    const sorted = Object.entries(hData.combos)
+      .sort((a:any, b:any) => b[1].drawsSince - a[1].drawsSince)
+      .slice(0, 100)
+      .map(([c]) => c);
+
+    horizonRanks[hKey] = new Set(sorted);
+  }
+
+  const baseScoreMap = new Map<Combo, number>();
+  const results: RankedCombo[] = [];
+
+  for (const combo of combos) {
+    let p_ds = 0;
+    let p_uoi = 0;
+
+    for (const [hKey, hData] of Object.entries(horizons) as any) {
+      const data = hData.combos[combo];
+      if (!data) continue;
+
+      const w = horizonWeights[hKey];
+      p_ds += w * percentile(data.drawsSince, dsDist);
+      p_uoi += w * percentile(data.uoi, uoiDist);
+    }
+
+    const pairAlign = computePairAlignment(combo, pairScores);
+    const digitPressure = computeDigitPressure(combo, digitStats);
+    const consensus = computeConsensus(combo, horizonRanks);
+
+    const baseScore =
+      0.35 * p_ds +
+      0.20 * p_uoi +
+      0.20 * pairAlign +
+      0.15 * digitPressure +
+      0.10 * consensus;
+
+    baseScoreMap.set(combo, baseScore);
+  }
+
+  for (const combo of combos) {
+    const base = baseScoreMap.get(combo)!;
+    const permCoherence = permutationCoherence(combo, baseScoreMap);
+
+    const finalScore =
+      0.80 * base +
+      0.20 * permCoherence;
+
+    results.push({
+      combo,
+      p_ds: 0,
+      p_uoi: 0,
+      pairAlign: 0,
+      digitPressure: 0,
+      consensus: 0,
+      permCoherence,
+      score: finalScore
+    });
+  }
+
+  return results.sort((a, b) => b.score - a.score);
+}
+
+// SELECTION
+function similarity(a: Combo, b: Combo): number {
+  const setA = new Set(a.split(''));
+  const setB = new Set(b.split(''));
+
+  let overlap = 0;
+  for (const d of setA) if (setB.has(d)) overlap++;
+
+  return overlap / 3;
+}
+
+export function selectK6(ranked: RankedCombo[]): K6Result {
+  const selected: RankedCombo[] = [];
+
+  for (const candidate of ranked) {
+    let penalty = 0;
+
+    for (const s of selected) {
+      penalty += similarity(candidate.combo, s.combo);
+    }
+
+    const adjustedScore = candidate.score - 0.15 * penalty;
+    if (adjustedScore < 0.2) continue;
+
+    selected.push({ ...candidate, score: adjustedScore });
+
+    if (selected.length === 6) break;
+  }
+
+  return {
+    tierA: selected.slice(0, 3),
+    tierB: selected.slice(3, 6)
+  };
+}

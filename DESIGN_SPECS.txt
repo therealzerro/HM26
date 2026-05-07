@@ -1,0 +1,867 @@
+================================================================================
+HITMASTER — COMPLETE DESIGN SPECIFICATIONS
+Source: /workspaces/HM26  (true project root)
+Last updated: 2026-04-24
+================================================================================
+
+
+────────────────────────────────────────────────────────────────────────────────
+1. DESIGN LANGUAGE
+────────────────────────────────────────────────────────────────────────────────
+
+Theme name:   Cosmic Light
+Platform:     React Native (Expo) — iOS + Android
+Font stack:   System (SF Pro / Roboto)  +  Courier (monospaced / digit display)
+
+
+────────────────────────────────────────────────────────────────────────────────
+2. COLOR TOKENS  (constants/theme.ts)
+────────────────────────────────────────────────────────────────────────────────
+
+--- Backgrounds ---
+background          #FAF7FF     Screen base / page fill
+surface             #FFFFFF     Card, modal, sheet fill
+surfaceLight        #F0EBFF     Inner chip, section fills, soft backgrounds
+surfaceMuted        #E4DAFB     Drag handles, disabled fill
+cosmicLight         #F5F3FF     Subtle gradient start, hero backgrounds
+
+--- Strokes ---
+border              #DDD6FE     Default 1pt stroke
+borderMed           #C4B5FD     Medium-emphasis stroke
+
+--- Text ---
+text                #1E1B4B     Primary body copy
+textSecondary       #4C3D8F     Supporting labels, descriptions
+textTertiary        #8B7EC8     Meta labels, captions, hints
+
+--- Primary (Indigo / Violet) ---
+primary             #7C3AED     CTA, active states, interactive accent
+primaryLight        #EDE9FE     Primary tint fill
+primaryDark         #5B21B6     Pressed / hover state
+cosmic              #4C1D95     Deepest CTA gradient, paywall button
+
+--- Gold (Oracle / Divine) ---
+gold                #D97706     #1 rank, Oracle premium, important labels
+goldLight           #FEF3C7     Gold tint fill
+starGold            #FCD34D     Star icon, crown icon
+orange              #EA580C     Heat tier: HOT
+orangeLight         #FFF7ED     Orange tint fill
+
+--- Semantic / Signal ---
+success             #059669     Positive signal, fresh hit, confirmed
+successLight        #ECFDF5     Success tint fill
+error               #DC2626     Heat tier: BLAZING / ON FIRE, danger
+errorLight          #FEF2F2     Error tint fill
+warning             #D97706     (alias of gold) caution states
+rose                #BE185D     Momentum signal (PBURST)
+roseLight           #FDF2F8     Rose tint fill
+teal                #0D9488     Pattern signal (CO), horizon depth
+tealLight           #F0FDFA     Teal tint fill
+
+--- Tier Colors ---
+free                #6B7280     FREE tier badge
+premium             #D97706     PRO tier badge
+admin               #7C3AED     PLUS / admin tier badge
+
+--- Data / Chart Colors ---
+dataBlue            #3B82F6
+dataGreen           #059669
+dataYellow          #D97706
+dataPurple          #7C3AED
+dataRed             #DC2626
+
+--- Special ---
+glow                #7C3AED40   Primary glow shadow (40 = hex alpha ~25%)
+hotGlow             #DC2626     Hot card glow color
+
+
+────────────────────────────────────────────────────────────────────────────────
+3. SPACING SCALE  (constants/theme.ts)
+────────────────────────────────────────────────────────────────────────────────
+
+xs      4 pt
+sm      8 pt
+md      16 pt
+lg      24 pt
+xl      32 pt
+xxl     48 pt
+
+
+────────────────────────────────────────────────────────────────────────────────
+4. BORDER RADIUS SCALE  (constants/theme.ts)
+────────────────────────────────────────────────────────────────────────────────
+
+sm      6 pt
+md      10 pt
+lg      14 pt
+xl      18 pt
+xxl     22 pt
+xxxl    28 pt
+full    9999 pt  (pill shape)
+
+
+────────────────────────────────────────────────────────────────────────────────
+5. TYPOGRAPHY SCALE  (constants/theme.ts)
+────────────────────────────────────────────────────────────────────────────────
+
+Scale   Size    Typical usage
+xs      11 pt   Legal text, micro labels, status chips
+sm      13 pt   Body small, list items, subtitles
+md      15 pt   Body default, button text
+lg      17 pt   Section titles, rank numbers
+xl      22 pt   Screen headlines, plan prices
+xxl     28 pt   Display numbers
+xxxl    36 pt   Hero metrics
+
+Font families:
+  Regular / UI copy:   System  (SF Pro on iOS, Roboto on Android)
+  Monospaced / digits: Courier
+
+Common font weights used:  500 · 600 · 700 · 800 · 900
+
+
+────────────────────────────────────────────────────────────────────────────────
+6. SHADOWS / ELEVATION  (constants/theme.ts)
+────────────────────────────────────────────────────────────────────────────────
+
+soft
+  shadowColor    #1E1B4B
+  offset         (0, 2)
+  opacity        0.06
+  radius         8
+  elevation      3
+
+medium
+  shadowColor    #1E1B4B
+  offset         (0, 4)
+  opacity        0.10
+  radius         14
+  elevation      6
+
+glow  (primary violet glow — used on hot cards, CTA buttons)
+  shadowColor    #7C3AED
+  offset         (0, 0)
+  opacity        0.35
+  radius         12
+  elevation      8
+
+
+────────────────────────────────────────────────────────────────────────────────
+7. ANIMATION DURATIONS  (constants/theme.ts)
+────────────────────────────────────────────────────────────────────────────────
+
+fast      150 ms
+medium    250 ms
+slow      350 ms
+
+Additional animation values used in components:
+  Glow pulse (hot PickCard)        900 ms per leg, loop
+  LIVE dot pulse                   700 ms per leg, loop
+  Live results ticker scroll       items.length × 1000 ms, loop
+  Modal slide-up                   iOS system spring (animationType="slide")
+  Paywall fade backdrop            250 ms
+
+
+────────────────────────────────────────────────────────────────────────────────
+8. NAVIGATION SHELL  (app/(tabs)/_layout.tsx)
+────────────────────────────────────────────────────────────────────────────────
+
+Type:             Bottom Tab Bar (expo-router Tabs)
+Background:       surface (#FFFFFF)
+Top border:       1 pt  border (#DDD6FE)
+Active tint:      primary (#7C3AED)
+Inactive tint:    textTertiary (#8B7EC8)
+Label font:       11 pt / weight 600
+
+Visible tabs:
+  Tab 1  🏠  Home          (index)
+  Tab 2  ⚡  Slates        (explore)
+  Tab 3  📋  Results       (results)
+  Tab 4  📖  Number Book   (book)
+  Tab 5  🎓  Learn         (learn)
+  Tab 6  ♛   Profile       (account)
+
+Hidden tabs (no href — admin-only access via triple-tap on logo):
+  admin
+  admin-imports
+  coverage
+  intelligence
+
+Header:           hidden (headerShown: false) — screens manage their own headers
+
+
+────────────────────────────────────────────────────────────────────────────────
+9. COMPONENT SPECS
+────────────────────────────────────────────────────────────────────────────────
+
+
+━━━ 9.1  Button  (components/Button.tsx) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Base
+  border-radius:   lg (14 pt)
+  min-height:      44 pt
+  align:           center / center
+
+Variants:
+  primary     fill primary (#7C3AED)  ·  text: background (#FAF7FF)
+  secondary   fill surfaceLight  ·  border 1 pt border  ·  text: text (#1E1B4B)
+  danger      fill error (#DC2626)  ·  text: text
+
+Sizes:
+  small    padding 8 v / 16 h
+  medium   padding 16 v / 24 h
+  large    padding 24 v / 32 h
+
+Text:  md (15 pt) / weight 600
+Disabled state:  opacity 0.5
+Loading state:   ActivityIndicator replaces text label
+
+
+━━━ 9.2  TierBadge  (components/TierBadge.tsx) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Shape:    pill (radius full = 9999 pt)
+Border:   1 pt  tier color
+Layout:   row · gap 4 · Crown icon (Lucide) for PRO/PLUS only
+
+Tiers:
+  FREE    fill #6B728020  ·  border #6B7280  ·  text #6B7280  ·  no icon
+  PRO     fill #D9770620  ·  border #D97706  ·  text #D97706  ·  Crown icon
+  PLUS    fill #7C3AED20  ·  border #7C3AED  ·  text #7C3AED  ·  Crown icon
+
+Sizes:
+  small    padding 4 v / 8 h   ·  font xs (11 pt)  ·  icon 12 pt
+  medium   padding 6 v / 12 h  ·  font sm (13 pt)  ·  icon 14 pt
+  large    padding 8 v / 16 h  ·  font md (15 pt)  ·  icon 16 pt
+
+ComingSoonBadge:
+  fill #D9770620  ·  border #D97706  ·  text #D97706  ·  "Coming {date}"
+
+
+━━━ 9.3  ScopeSwitcher  (components/ScopeSwitcher.tsx) ━━━━━━━━━━━━━━━━━━━━━━━
+
+Container
+  fill surfaceLight  ·  radius lg (14 pt)  ·  padding 4 pt
+  margin horizontal md (16 pt)  ·  margin vertical sm (8 pt)
+
+Buttons  (flex row, equal width)
+  icon:   16 pt emoji
+  label:  sm (13 pt) / weight 600 / textSecondary
+
+Active button
+  fill primary (#7C3AED)
+  label color: background (#FAF7FF)
+
+Inactive button
+  fill transparent
+  label color: textSecondary
+
+
+━━━ 9.4  StatusRibbon  (components/StatusRibbon.tsx) ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Container
+  fill surface  ·  padding vertical sm (8 pt)
+  border bottom 1 pt border
+
+Scroll
+  horizontal ScrollView  ·  padding horizontal md (16 pt)  ·  gap sm (8 pt)
+
+Chip
+  row · align center · gap xs (4 pt)
+  padding 4 v / sm (8 pt) h
+  radius full  ·  border 1 pt chip.color  ·  fill background
+  text: xs (11 pt) / weight 600 / monospace / chip.color
+
+Chip types displayed:
+  Clock icon   primary       Last update timestamp
+  Database     dataYellow    Horizon coverage diff (H01Y / H02Y / H06Y)
+  Database     success       Box horizons loaded
+  Database     success       Pair classes loaded
+  Clock        warning       Pending horizons
+  TrendingUp   dataBlue      Normalization: percentile
+  TrendingUp   dataPurple    Winsorization: p99
+  Database     dataGreen     Box entry count
+  Database     dataYellow    Pair entry count
+  Wifi/WifiOff success/warn  Backend: Online / Fallback
+
+
+━━━ 9.5  SignalBar  (components/SignalBar.tsx) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Row layout:  flexDirection row  ·  align center  ·  gap 6  ·  marginBottom 4
+
+  Label     width 60 pt  ·  text-align right  ·  9 pt / Courier / textTertiary
+  Track     flex 1  ·  height 4 pt  ·  fill surfaceLight  ·  radius 2  ·  overflow hidden
+  Fill bar  height 4 pt  ·  radius 3  ·  fill = signal color
+  Value     width 22 pt  ·  9 pt / weight 700 / Courier  ·  color = signal color
+
+Signal colors:
+  Frequency (BOX)    primary (#7C3AED)
+  Momentum (PBURST)  rose (#BE185D)
+  Pattern (CO)       teal (#0D9488)
+
+
+━━━ 9.6  EnergyMeter  (components/EnergyMeter.tsx) ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Default size: 80 pt  (configurable via size prop)
+
+Outer ring
+  width/height:   size  ·  radius: size/2
+  border:         2 pt  energyColor + "40"  (25% alpha)
+  fill:           energyColor + "12"  (7% alpha)
+
+Inner ring
+  width/height:   size × 0.7  ·  radius: (size×0.7)/2
+  border:         1.5 pt  energyColor + "66"  (40% alpha)
+
+Center content:
+  Number:   size × 0.28 pt  ·  weight 900  ·  Courier
+  Emoji:    size × 0.22 pt
+
+Label (absolute, bottom: 4):
+  size × 0.10 pt  ·  weight 800  ·  letterSpacing 0.5
+
+Heat thresholds:
+  >= 80   error   (#DC2626)   BLAZING  🔥
+  >= 65   orange  (#EA580C)   HOT      ⚡
+  >= 45   gold    (#D97706)   WARM     ✦
+  <  45   textTertiary        COOL     ❄
+
+
+━━━ 9.7  DrawTicker  (components/DrawTicker.tsx) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Container
+  fill surface  ·  radius lg (14 pt)  ·  border 1 pt border
+  padding 10 pt  ·  gap 6  ·  shadow: soft
+
+Main row  (flexDirection row, align center, gap 10)
+  Session icon:   22 pt emoji  ☀️ midday / 🌙 evening
+  Center column (flex 1):
+    "NEXT DRAW"   8 pt / weight 800 / textTertiary / letterSpacing 1.5
+    Draw name     13 pt / weight 800 / text  ·  single line
+    Draw time     10 pt / weight 600 / textSecondary  ·  marginTop 1
+  Countdown box:
+    fill surfaceLight  ·  radius 8  ·  border 1 pt border
+    padding 6 v / 10 h
+    Countdown text:  12 pt / weight 900 / text / Courier / letterSpacing 2
+
+UP NEXT row  (flexDirection row, flexWrap wrap, align center)
+  "UP NEXT"    8 pt / weight 800 / textTertiary / letterSpacing 1.5
+  Items        9 pt / weight 600 / textSecondary
+               format:  {emoji} {label} {time}  ·  separator "  ·  "
+
+
+━━━ 9.8  LiveResultsTicker  (app/(tabs)/index.tsx — LiveResultsTicker fn) ━━━━━
+
+Container
+  height 70 pt  ·  fill #000000
+  border top + bottom: 2 pt #FFD700
+  radius lg (14 pt)  ·  overflow hidden
+  layout: flexDirection row  ·  align center
+
+LIVE label box  (left pinned, width 42 pt, height 100%)
+  fill #FF0000  ·  border right 1 pt #FF000055
+  Dot:   7×7 pt  ·  radius 4  ·  fill #DC2626
+         opacity loops 0.35 → 1.0 → 0.35  (700 ms per leg)
+  Text:  "LIVE"  8 pt / weight 900 / white / letterSpacing 1
+
+Track  (flex 1, overflow hidden)
+  Animated row scrolls left  ·  gap 4  ·  padding horizontal 6
+  Animation:  items.length × 1000 ms  ·  linear loop
+
+Result chip  (minWidth 88 pt)
+  layout: row · align center · gap 5
+  fill rgba(255,255,255,0.06)  ·  radius 8
+  border 1 pt rgba(255,255,255,0.10)
+  padding 5 v / 6 h
+  Matched chip:  fill #FFD70033  ·  border #FFD70066
+
+  State tag  (28×28 pt, radius 6):
+    Midday:   fill #FFD700  ·  text #000000
+    Evening:  fill #7C3AED  ·  text #FFFFFF
+    Text:     10 pt / weight 900 / Courier
+
+  Digit text  (flex 1):
+    12 pt / weight 900 / Courier / letterSpacing 4
+    Default:  #FFFFFF
+    Midday:   #FFD700
+    Matched:  #FF6B00  +  ⭐ prefix
+
+  Session dot  (trailing, 6×6 pt, radius 3):
+    Midday: #FFD700  ·  Evening: #7C3AED
+
+
+━━━ 9.9  SlateCard  (components/SlateCard.tsx) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Container
+  fill surface  ·  radius lg (14 pt)  ·  border 1 pt border
+  padding md (16 pt)  ·  marginBottom sm (8 pt)
+  layout: row
+
+Rank container  (width 40 pt, centered)
+  Rank text:  lg (17 pt) / bold / primary / monospace
+
+Content  (flex 1, marginLeft md)
+  Combo row:
+    Combo:     xl (22 pt) / bold / text / monospace / letterSpacing 2
+    ComboSet:  md (15 pt) / textSecondary / monospace
+    gap md (16 pt)
+
+  Signal component bars (row, gap md):
+    Label:    xs (11 pt) / weight 600 / textTertiary
+    Bar fill: height 8 pt / radius sm (6 pt)
+      BOX signal:     primary (#7C3AED)
+      PBURST signal:  dataGreen (#059669)
+      CO signal:      dataPurple (#7C3AED)
+    Value:    xs (11 pt) / weight 600 / textTertiary / monospace  ·  width 20
+
+  Badge row (row, align center, gap sm):
+    Temperature badge:
+      fill surfaceLight  ·  radius sm  ·  border 1 pt (dynamic temp color)
+      Text: xs / weight 600 / monospace / temp color
+      Color thresholds:  >=80 error  ·  >=60 warning  ·  >=40 success  ·  else textTertiary
+
+    Multiplicity chip:
+      fill primary + "20"  ·  radius sm
+      Text: xs / weight 600 / primary
+
+    Top pair chip:
+      fill dataPurple + "20"  ·  radius sm
+      Text: xs / primary
+
+    Trend icon  (Lucide 16 pt):
+      >=70  TrendingUp   success
+      >=30  Minus        warning
+      <30   TrendingUp   error (rotated 180°)
+
+
+━━━ 9.10  PickCard  (components/PickCard.tsx) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Card container
+  fill surface  ·  radius xl (18 pt)  ·  border 1 pt border
+  padding 14 pt  ·  marginBottom 9 pt  ·  shadow: soft
+  Hot card (energy >=80):  border 1.5 pt heat.color  +  animated glow shadow
+
+HOT STREAK banner  (energy >=85 only)
+  fill #DC262615  ·  radius 8  ·  border 1 pt #DC262640
+  padding 5 v / 10 h  ·  marginBottom 10  ·  centered
+  Text: 11 pt / weight 800 / error / letterSpacing 0.5
+
+Main content row  (row, align flex-start, gap 12)
+
+Rank badge  (37×37 pt, radius 10)
+  #1   fill gold (#D97706)         emoji 🥇 at 18 pt
+  #2   fill #C0C0C0                emoji 🥈 at 18 pt
+  #3   fill #CD7F32                emoji 🥉 at 18 pt
+  4+   fill surfaceLight           text "#N"  12 pt / weight 900 / Courier
+
+Body column  (flex 1)
+
+  Best Straight section:
+    "⚡ Best Straight" label:   8 pt / weight 900 / gold / letterSpacing 1.5
+    Digits display:             26 pt / weight 900 / gold / Courier / letterSpacing 3 / lineHeight 31
+                                format: "D - D - D"
+    "Box: {set}":               10 pt / textSecondary / Courier  ·  marginTop 2
+    Generated timestamp:        9 pt / textTertiary  ·  marginTop 3
+
+  WHY THIS PICK banner:
+    fill primaryLight  ·  radius 8  ·  border 1 pt #7C3AED25
+    padding 6 v / 10 h  ·  marginBottom 8
+    Label:  8 pt / weight 900 / primary / letterSpacing 1
+    Text:   10 pt / text / lineHeight 14
+
+  Signal convergence dots  (BOX · MB · CO)
+    row · gap 5 · marginBottom 8
+    Active:   fill signal color  ·  text #fff
+    Inactive: fill border  ·  text textTertiary
+    Dot padding: 3 v / 6 h  ·  radius 6
+    Label: 8 pt / weight 800 / letterSpacing 0.5
+    Hint:  "{N}/3 signals converging"  9 pt / textTertiary
+
+  Quick stats row:
+    fill surfaceLight  ·  radius 8  ·  padding 6 v / 10 h
+    3 columns (flex 1 each), centered
+    Stat number:  14 pt / weight 900 / text / Courier
+    Stat label:   8 pt / textTertiary / weight 600
+
+  Tags row  (row, gap 5, flexWrap wrap)
+    Tag pill:  radius 99  ·  padding 2 v / 7 h
+    Tag text:  9 pt / weight 700
+    Multiplicity: color at 18% fill  (primary / teal / rose)
+    Pair tag: fill primaryLight / text primary
+    Limited data: fill surfaceLight / text textTertiary
+
+  Signal bars:  see component 9.5
+
+  Pressure indicator:
+    Dot: 5×5 pt / radius 3 / pressure color
+    Text: 10 pt / weight 700 / pressure color
+
+Energy badge  (right column, 43×43 pt, radius 11)
+  fill: heat.color + "15"  ·  border 1.5 pt heat.color + "40"
+  Number: 12 pt / weight 900 / Courier / lineHeight 14
+  Emoji: 12 pt
+  Heat label (below): 8 pt / weight 800 / letterSpacing 0.5 / heat.color
+  Tap hint: 8 pt / textTertiary
+
+Bottom bar
+  marginTop 10  ·  paddingTop 8  ·  border top 1 pt border
+  row · space-between
+  Last seen:  10 pt / textTertiary
+  Share btn:  fill surfaceLight  ·  border 1 pt border  ·  radius 8  ·  padding 5 v / 10 h
+              text: "📤 Share"  10 pt / weight 700 / textSecondary
+
+Locked card overlay
+  fill surface + "EE" (~93% opacity)  ·  radius xl (18 pt)
+  🏆 emoji 20 pt
+  Title: 12 pt / weight 800 / text
+  UNLOCK badge:
+    fill goldLight  ·  border 1 pt gold + "40"  ·  radius 99  ·  padding 4 v / 12 h
+    text: "UNLOCK ♛"  10 pt / weight 800 / gold
+
+Heat color thresholds:
+  energy >= 90   error   "ON FIRE"   🔥
+  energy >= 80   error   "BLAZING"   ⚡
+  energy >= 65   orange  "HOT"       ✦
+  energy >= 45   gold    "WARM"      ◈
+  energy <  45   textTertiary "COOL" ❄
+
+Pressure states:
+  drawsSince < 30      success   "Fresh hit"
+  drawsSince > 200     orange    "Overdue by {N}d"
+  else                 gold      "Building pressure"
+
+
+━━━ 9.11  PickDetailModal  (components/PickDetailModal.tsx) ━━━━━━━━━━━━━━━━━━━
+
+Backdrop
+  fill #1E1B4B55  ·  full screen
+  tap outside to dismiss
+
+Sheet
+  position: absolute  ·  bottom 0  ·  left/right 0
+  fill surface  ·  radius top-left + top-right 22 pt
+  border 1 pt border  ·  maxHeight 92%  ·  overflow hidden
+
+Drag handle
+  36×4 pt  ·  radius 2  ·  fill surfaceMuted  ·  centered  ·  marginTop 12
+
+ScrollView
+  flex 1  (fills bounded sheet height — critical for scroll on mobile)
+  contentContainerStyle: paddingBottom 52
+
+HERO section  (LinearGradient: energyColor+"22" → energyColor+"06")
+  padding 20  ·  radius top 22
+  Header row: medal emoji 24 pt  ·  "PICK #N" 11 pt / weight 800 / textTertiary
+  Close button: 32×32 pt  ·  radius 10  ·  fill surfaceLight
+  Scope/version badge: 10 pt / weight 600 / textSecondary  ·  fill rgba(0,0,0,0.08)
+  "OPTIMAL STRAIGHT" label: 9 pt / weight 900 / gold / letterSpacing 2
+  Digit badges (3×):
+    46×46 pt  ·  radius 11  ·  border 2 pt energyColor
+    Digit: 22 pt / weight 900 / Courier / energyColor
+    Position label: 8 pt / textTertiary / weight 600
+  Hero digits: 52 pt / weight 900 / Courier / letterSpacing 2 / lineHeight 58
+  WHY THIS ORDER card:
+    fill surface+"BB"  ·  radius 10  ·  border 1 pt energyColor+"33"
+    padding 10  ·  margin vertical 8
+    Label: 8 pt / weight 900 / energyColor / letterSpacing 1
+    Lines: 10 pt / textSecondary / lineHeight 15
+  Box play label + text:  10 pt / textTertiary  ·  11 pt / textSecondary / Courier
+  Energy circle: 58×58 pt  ·  radius 29  ·  border 2.5 pt energyColor
+    Number: 20 pt / weight 900 / Courier / energyColor
+    Emoji: 11 pt
+
+SIGNAL BREAKDOWN section
+  3 signal cards side-by-side (flex 1 each)
+  Card: fill surface  ·  radius 10  ·  border 1 pt signalColor+"33"  ·  padding 10
+    Label:    7 pt / weight 900 / signalColor / letterSpacing 1
+    Percent:  22 pt / weight 900 / Courier / signalColor
+    Bar:      height 4 / fill surfaceLight / radius 2 (filled with signalColor)
+    Desc:     8 pt / textTertiary / lineHeight 11
+
+PRESSURE ANALYSIS section  (only when timesDrawn > 0)
+  Pressure timeline bar: height 8  ·  radius 4  ·  position marker (2 pt wide)
+  Stats row: 3 columns (flex 1) — Last Hit · Draws Since · Expected Every
+    Stat num:  11 pt / weight 900 / Courier
+    Stat lbl:  8 pt / textTertiary / weight 600
+  Verdict row: border 1 pt  ·  radius 10  ·  padding 8  ·  row gap 8
+    Emoji 18 pt  +  text 13 pt / weight 900 / letterSpacing 0.5
+
+PAIR INTELLIGENCE  (PRO only)
+  3 pairs: Front · Back · Split
+  Each: label row (11 pt weight 700)  +  bar (primary fill)
+  Locked state: opacity 0.12 blur + overlay with 🏆 PRO Feature message
+
+HORIZON DEPTH  (PRO only, when horizonRows present)
+  Score bars per horizon label (teal fill)
+  Trend label: Strengthening ↑ / Declining ↓ / Stable →
+
+HOW TO PLAY section
+  Straight play block + Box play block
+  Separated by 1 pt border top  ·  padding top 12
+  Labels: 11 pt / weight 800 / gold or primary
+  Text: 11 pt / textSecondary / lineHeight 17
+
+STATE CONFIDENCE section
+  5 top states for current scope
+  Each: label row (12 pt / weight 700 / Courier)  +  teal bar
+
+ACTIONS section  (gap 8)
+  All action buttons: row · align center · gap 10
+    radius 13  ·  padding 12 v / 16 h  ·  border 1 pt
+  Save to Number Book:  fill goldLight   ·  border gold+"44"  ·  text gold
+  Heat Check:           fill primaryLight ·  border primary+"44"  ·  text primary
+  Share:                fill surfaceLight ·  border border  ·  text text
+  Close:                fill surfaceLight ·  border border  ·  text textSecondary (centered)
+  Button text: 13 pt / weight 700
+
+Section title style (all sections):
+  9 pt / weight 900 / textTertiary / letterSpacing 1.5  ·  marginBottom 8
+
+Card style (standard sections):
+  fill surface  ·  radius lg (14 pt)  ·  border 1 pt border  ·  padding 14
+
+
+━━━ 9.12  Paywall / Bottom Sheet  (components/Paywall.tsx) ━━━━━━━━━━━━━━━━━━━
+
+Backdrop:  fill #1E1B4B66  ·  full screen  ·  justifyContent flex-end
+
+Sheet
+  fill surface  ·  radius top-left + top-right 24 pt
+  border 1 pt border  ·  maxHeight 92%
+
+Drag handle:  36×4 pt  ·  radius 2  ·  fill surfaceMuted  ·  marginTop 12
+
+Body: padding 20  ·  paddingBottom 40
+
+Header (centered):
+  Emoji 32 pt  ·  marginBottom 6
+  Title:    22 pt / weight 900 / text  ·  marginBottom 4
+  Subtitle: 13 pt / textSecondary / centered  ·  marginBottom 18
+
+Benefits list
+  fill surfaceLight  ·  radius lg (14 pt)  ·  padding 14  ·  marginBottom 16  ·  gap 6
+  Item text: 13 pt / weight 500 / text
+
+Plans row  (row · gap 8 · marginBottom 16)
+
+Plan card  (flex 1)
+  fill surfaceLight  ·  radius lg (14 pt)  ·  border 2 pt border
+  padding 10  ·  centered  ·  gap 2
+  Selected:       border 2 pt primary  ·  fill primaryLight
+  Popular (gold): border 2 pt gold
+  Popular badge:  fill gold  ·  radius 99  ·  padding 2 v / 6 h
+                  text 8 pt / weight 800 / #fff
+  Price:    16 pt / weight 900 / Courier
+  Period:   9 pt / textTertiary
+  Non-highlight badge:  8 pt / weight 700 / textTertiary
+
+Plans available:
+  5-Day Trial       $4.99   5 days      badge: "TRY IT"
+  Oracle+ Monthly   $9.99   per month   badge: "POPULAR"  (highlighted/gold border)
+  Oracle+ Annual    $89.99  per year    badge: "BEST VALUE"
+
+Pro benefits listed (8 items):
+  ⚡ All 6 K6 Slate picks daily
+  ✦ Optimal straight per pick
+  🔥 Unlimited Heat Checks
+  📊 Full pattern depth analytics
+  💰 Budget Pick tool
+  📖 Number Book (unlimited lists)
+  📋 Full hit history & stats
+  🔔 Live slate update alerts
+
+CTA button
+  fill cosmic (#4C1D95)  ·  radius 14  ·  padding 15  ·  marginBottom 10
+  shadow: glow
+  text: "♛ Start Oracle+ Now"  16 pt / weight 900 / #fff
+
+Restore link:  12 pt / textSecondary / centered  ·  padding 8
+Legal text:    10 pt / textTertiary / centered / lineHeight 16 / marginTop 8
+
+
+━━━ 9.13  HeatCheckModal  (components/HeatCheckModal.tsx) ━━━━━━━━━━━━━━━━━━━━
+
+Pattern: bottom sheet (same shell as Paywall — backdrop + sheet + handle)
+Input:   3-digit combo text field  ·  Courier monospace
+Content: energy score ring + signal bars + pressure analysis for any entered combo
+
+
+━━━ 9.14  EmptyState  (components/EmptyState.tsx) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Centered layout, padding lg (24 pt)
+Emoji icon (large)  ·  title (xl / weight 700)  ·  description (sm / textSecondary / centered)
+Optional CTA button (primary variant)
+
+
+────────────────────────────────────────────────────────────────────────────────
+10. SCREEN LAYOUTS
+────────────────────────────────────────────────────────────────────────────────
+
+
+━━━ 10.1  Home / Today  (app/(tabs)/index.tsx) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Root:  View (flex 1, fill background, paddingTop = safeAreaInsets.top)
+  ScrollView (flex 1)  ·  contentContainerStyle paddingBottom 32
+
+  LinearGradient header  [cosmicLight → primaryLight]
+    padding 20  ·  paddingBottom 16  ·  gap 12
+    Header top row:
+      Title: 24 pt / weight 900 / text / lineHeight 28
+             "Today's Slates ⚡" — "Slates" in primary
+      Subtitle: 12 pt / textSecondary / marginTop 2
+      Right column: TierBadge pill  +  streak badge
+    Streak badge: fill error+"18"  ·  border error+"30"  ·  radius 99
+                  "🔥 {N}d streak"  10 pt / weight 800 / error
+    Scope switcher (inline pill group):
+      container: fill surface+"BB"  ·  radius 12  ·  padding 3  ·  gap 2
+      Active pill: fill surface  ·  shadow soft
+      Text active: primary / weight 700 / 12 pt
+      Text inactive: textSecondary / 12 pt
+    Mode switcher row  (gap 6):
+      Each pill: flex 1  ·  padding vertical 6  ·  radius 10
+                 border 1.5 pt border  ·  fill surface+"88"
+      Active: border primary  ·  fill primaryLight
+      Text active: primary / 10 pt / weight 700
+      Text inactive: textTertiary / 10 pt / weight 700
+
+  EngineStatusBar  (marginHorizontal 16, marginTop 6)
+    Pill: radius 8  ·  border 1 pt  ·  padding 5 v / 10 h
+    Live:    fill tealLight+"CC"   ·  border teal+"44"
+    Warning: fill goldLight+"CC"   ·  border gold+"44"
+    Demo:    fill orangeLight+"CC" ·  border orange+"44"
+    Text: 9 pt / weight 700 / textSecondary / Courier
+
+  Ticker group  (paddingHorizontal 16, marginTop 14, gap 8)
+    DrawTicker
+    LiveResultsTicker
+    Heat Check button:
+      row centered  ·  gap 8  ·  padding 8 v / 14 h
+      fill surfaceLight  ·  radius 10  ·  border 1 pt border
+      🔍 icon 16 pt  +  "Heat Check Any Combo" 13 pt / weight 700 / text
+
+  Hit Streak Banner  (conditional, margin 16, marginTop 10)
+    fill successLight  ·  radius lg  ·  border 1.5 pt success+"44"  ·  padding 12
+    🔥 emoji 22 pt
+    Title: 13 pt / weight 800 / success
+    Sub:   11 pt / success+"CC" / marginTop 2
+
+  Today's Hits section  (conditional, margin 16)
+    fill goldLight+"CC"  ·  radius lg  ·  border 1.5 pt gold+"44"  ·  padding 12
+    Section title: 12 pt / weight 900 / gold / letterSpacing 0.5
+    Hit row: row · align center · gap 8
+      Type badge: STRAIGHT (gold) or BOX (teal) — 9 pt / weight 900
+      Combo: 20 pt / weight 900 / Courier / letterSpacing 4 / flex 1
+      Meta: 10 pt / textSecondary / weight 600
+
+  Energy Summary card  (margin 16, marginTop 14)
+    fill surface  ·  radius xl (18 pt)  ·  border 1 pt border  ·  padding 18  ·  shadow soft
+    row · align center · gap 20
+    Left: AVG ENERGY large number (38 pt / weight 900 / Courier / energyColor)
+          "AVG ENERGY" 9 pt / textTertiary / weight 800 / letterSpacing 1.5
+    Right (flex 1, gap 8): Oracle summary
+          "✦ ORACLE SUMMARY" 9 pt / textTertiary / weight 800 / letterSpacing 2
+          Stats: 13 pt / textSecondary
+
+  K6 Slate section  (paddingHorizontal 16)
+    Section header row:
+      "K6 Slate" title: 16 pt / weight 900 / text / letterSpacing 0.5
+                        "Slate" in primary
+      Generate button (when no data): primary fill · radius lg · row gap 6
+        RefreshCw icon 14 pt + "Generate" 12 pt / weight 700 / #fff
+    PickCard × 6 (or loading card)
+    Pro gate block (FREE tier only): cosmicLight→goldLight gradient
+
+  Responsible Play section  (marginHorizontal 16, marginTop 4)
+    fill surfaceLight  ·  border 1 pt border  ·  radius lg  ·  padding 14
+    11 pt / textSecondary / lineHeight 18
+
+  Spacer: height 40
+
+  Modals (rendered outside ScrollView):
+    Regen modal (simple centered card)
+    PickDetailModal
+    Paywall
+    HeatCheckModal
+    OnboardingModal
+
+
+━━━ 10.2  Results  (app/(tabs)/results.tsx) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SafeArea + LinearGradient header
+Date tabs (Today / Yesterday)  ·  Session filter (Midday | Evening | Both)
+Result card list (ScrollView + RefreshControl)
+Search / filter TextInput
+
+Result card:
+  fill surface  ·  radius lg  ·  border 1 pt border  ·  shadow soft
+  State tag (2-letter abbrev + session badge)
+  Winning digits:  28 pt / Courier / bold
+  Draw time label: textTertiary / sm
+  Matched card:    border gold  ·  left accent 3 pt gold
+
+
+━━━ 10.3  Number Book  (app/(tabs)/book.tsx) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Saved picks list with star/delete actions
+Add custom entry with combo + note fields
+Scroll view with SwipeableRow or action buttons
+
+
+━━━ 10.4  Learn  (app/(tabs)/learn.tsx) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Educational content about ZK6 signals
+Expandable sections / accordion cards
+Static copy, no real-time data
+
+
+━━━ 10.5  Account / Profile  (app/(tabs)/account.tsx) ━━━━━━━━━━━━━━━━━━━━━━━━
+
+Avatar placeholder (48×48 circle)  +  email  +  TierBadge
+Subscription section with current plan + upgrade CTA
+Settings rows: 15 pt / weight 500 / text  ·  border bottom 1 pt border  ·  padding 14 v / 16 h
+Sign out button: error color
+Tier badge sizes per row context:  medium default
+
+
+────────────────────────────────────────────────────────────────────────────────
+11. ICONOGRAPHY
+────────────────────────────────────────────────────────────────────────────────
+
+All icons are inline Unicode emoji (fontSize-sized) or Lucide React Native icons.
+
+Emoji icon map:
+  Session       ☀️ midday   🌙 evening
+  Heat tiers    🔥 ON FIRE (>=90)  ⚡ BLAZING (>=80)  ✦ HOT (>=65)  ◈ WARM (>=45)  ❄ COOL
+  Ranks         🥇 #1   🥈 #2   🥉 #3
+  Tier crown    ♛ Oracle+ / PLUS
+  Match star    ⭐
+  Signal        ✦ active  ◈ warm
+  Hit type      ⭐ STRAIGHT   🎯 BOX
+  Tabs          🏠 🎓 📋 📖 ♛ ⚡
+
+Lucide icons used:
+  RefreshCw        Regenerate Slate button
+  Crown            TierBadge PRO/PLUS
+  TrendingUp       SlateCard trend
+  Minus            SlateCard neutral trend
+  Clock            StatusRibbon last update, pending horizons
+  Database         StatusRibbon data counts
+  Wifi / WifiOff   StatusRibbon backend status
+
+
+────────────────────────────────────────────────────────────────────────────────
+12. INTERACTION PATTERNS
+────────────────────────────────────────────────────────────────────────────────
+
+Tap pick card          → opens PickDetailModal (slide-up sheet)
+Tap locked card        → opens Paywall
+Tap scope pill         → switches scope + auto-regenerates slate
+Tap mode pill          → switches mode + auto-regenerates slate
+Tap Heat Check button  → opens HeatCheckModal (empty input)
+Triple-tap logo        → unlocks admin tabs (hidden from tab bar)
+Pull-to-refresh        → refreshes results screen data
+Scroll ticker          → auto-scrolls left on loop (no touch needed)
+
+
+================================================================================
+END OF DESIGN SPECIFICATIONS
+================================================================================

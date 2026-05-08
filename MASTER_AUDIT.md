@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-05-08  
+**Last updated:** 2026-05-20  
 **Maintained by:** therealzerro + Claude Code
 
 > **USAGE:** This is the single source of truth for all known issues, fixes, and technical debt.  
@@ -15,6 +15,7 @@
 |-------|-------|
 | ✅ Fixed | 11 |
 | ℹ️ By design / False positive | 6 |
+| 🎨 UX Improvements Applied | 15 |
 | 🔴 Open — Critical | 0 |
 | 🟠 Open — High | 2 |
 | 🟡 Open — Medium | 3 |
@@ -123,18 +124,64 @@ Fixes applied before the 2026-05-08 audit that informed the audit findings.
 
 ## Quality Scorecard
 
-| Dimension | Before Audit | After 2026-05-08 Fixes | Target |
-|-----------|-------------|------------------------|--------|
-| Type Safety | ⚠️ Medium | ✅ Good | ✅ Good |
-| Error Handling | ⚠️ Medium | ✅ Good | ✅ Good |
-| Concurrency Safety | 🔴 Risk | ✅ Good | ✅ Good |
-| Performance | ⚠️ Medium | ✅ Good | ✅ Good |
-| Security (auth/roles) | 🔴 Risk | ✅ Good | ✅ Good |
-| Security (RLS) | 🔴 Risk | 🔴 Risk (BUG-20) | ✅ Good |
-| Data Consistency | ⚠️ Medium | ⚠️ Medium (BUG-18/19 open) | ✅ Good |
-| Test Coverage | ❓ None | ❓ None | ⚠️ Medium |
-| Documentation | ✅ Good | ✅ Good | ✅ Good |
-| Maintainability | ⚠️ Medium | ⚠️ Medium (ARCH-01–04 open) | ✅ Good |
+| Dimension | Before Audit | After 2026-05-08 Fixes | After 2026-05-20 UX Pass | Target |
+|-----------|-------------|------------------------|--------------------------|--------|
+| Type Safety | ⚠️ Medium | ✅ Good | ✅ Good | ✅ Good |
+| Error Handling | ⚠️ Medium | ✅ Good | ✅ Good | ✅ Good |
+| Concurrency Safety | 🔴 Risk | ✅ Good | ✅ Good | ✅ Good |
+| Performance | ⚠️ Medium | ✅ Good | ✅ Good | ✅ Good |
+| Security (auth/roles) | 🔴 Risk | ✅ Good | ✅ Good | ✅ Good |
+| Security (RLS) | 🔴 Risk | 🔴 Risk (BUG-20) | 🔴 Risk (BUG-20) | ✅ Good |
+| Data Consistency | ⚠️ Medium | ⚠️ Medium (BUG-18/19 open) | ⚠️ Medium (BUG-18/19 open) | ✅ Good |
+| Test Coverage | ❓ None | ❓ None | ❓ None | ⚠️ Medium |
+| Documentation | ✅ Good | ✅ Good | ✅ Good | ✅ Good |
+| Maintainability | ⚠️ Medium | ⚠️ Medium (ARCH-01–04 open) | ⚠️ Medium (ARCH-01–04 open) | ✅ Good |
+| User Experience | ⚠️ Medium | ⚠️ Medium | ✅ Good | ✅ Good |
+| Accessibility | 🔴 Risk | 🔴 Risk | ✅ Good | ✅ Good |
+
+---
+
+## UX Improvement Log — 2026-05-20
+
+15-point subscriber experience overhaul. All items sourced from deep UI/UX audit.
+
+| ID | Tier | Area | Change |
+|----|------|------|--------|
+| UX-01 | Conversion | Global | New `Toast.tsx` component — success/error/info/warning slide-up notifications |
+| UX-02 | Conversion | Global | New `InfoTooltip.tsx` component — tappable "?" modal for inline jargon definitions |
+| UX-03 | Conversion | Global | Tier naming unified: Free→**Seeker**, Premium→**Oracle+**, Admin→**Mystic** across all screens |
+| UX-04 | Conversion | Home | Pro gate rewritten: "Picks #3–6 hidden" + specific value prop + trial detail |
+| UX-05 | Conversion | Home / Slates | Regen success/failure replaced modal with toast notification |
+| UX-06 | Conversion | Home | Mode buttons (Balanced/Conservative/Aggressive) now show sub-label explanation |
+| UX-07 | Engagement | Home | Energy stat strip has InfoTooltip with 🔥⚡✦❄ scale definition |
+| UX-08 | Engagement | Home | Demo status bar message rewritten from jargon to plain English |
+| UX-09 | Engagement | Home | Hit banner "Box Win ✓" clarified to "Box Win ✓ (matched any order)" |
+| UX-10 | Engagement | Slates | Yesterday toggle: full "Yesterday" label, amber-tinted, clearly discoverable |
+| UX-11 | Engagement | Slates | Credits shown as "2/3 regens" with tooltip explaining daily reset |
+| UX-12 | Engagement | Slates | Filter/sort labels expanded: S→Singles, D→Doubles, Nrg→Energy, Frq→Freq, ≡/⊞→List/Grid |
+| UX-13 | Engagement | Slates | Yesterday pending state includes direct "Import Results →" button |
+| UX-14 | Engagement | Intelligence | No-data empty state: emoji, better copy, "Go to Slates ⚡" CTA |
+| UX-15 | Engagement | Intelligence | Slate empty state: "Generate Slate ⚡" navigation button |
+| UX-16 | Engagement | Intelligence | Loading state shows "X of ~2,000 picks" progress |
+| UX-17 | Engagement | Intelligence | Analysis header has InfoTooltip explaining the screen purpose |
+| UX-18 | Engagement | Intelligence | "Apply to Engine Config" clarified to "Apply · Regenerate slates to see effect" |
+| UX-19 | Engagement | Account | Notification toggles show toast confirmation on each change |
+| UX-20 | Engagement | Account | Trial button: "then $9.99/mo, cancel anytime" added |
+| UX-21 | Engagement | Account | Active subscription note: renewal guidance + Manage link |
+| UX-22 | Engagement | Account | Glossary "▼" expand arrow changed to "›" (more intuitive) |
+| UX-23 | Engagement | Ledger Import | Skipped-line errors translated from raw parser output to plain English |
+| UX-24 | Engagement | Ledger Import | Preview row count: "Showing first 30 of N rows · scroll right…" |
+| UX-25 | Engagement | Ledger Import | Success card includes next-step guidance for user |
+| UX-26 | Polish | Pick Card | Locked card: larger title font, "Tap to unlock all 6 picks" sub-text |
+| UX-27 | Polish | Pick Card | Pressure indicator adds descriptive sub-text: "Hit 12 draws ago" / "45 draws without a hit" |
+| UX-28 | Polish | Pick Detail | Gauge label "MATCH" → "ENERGY" |
+| UX-29 | Polish | Pick Detail | All-caps section titles → Title Case (Signal Breakdown, Pair Intelligence, Why This Order) |
+| UX-30 | Polish | Pick Detail | Signal Breakdown gets subtitle: "% = signal strength (higher = stronger indicator)" |
+| UX-31 | Polish | Pick Detail | Pair Intelligence subtitle explains cyan ≥ 70% = strong threshold |
+| UX-32 | Polish | Pick Detail | WhyOrder descriptions use plain English (no more "surge vector", "pattern alignment", "signal sync") |
+| UX-33 | Polish | Pick Detail | Box play payout shown (~$80); Straight payout (~$500) explained below |
+| UX-34 | Accessibility | Tab Bar | All tab icons now have `accessibilityLabel` for screen readers |
+| UX-35 | Accessibility | Global | `ToastProvider` added to root layout, wraps entire app |
 
 ---
 
@@ -146,3 +193,4 @@ Fixes applied before the 2026-05-08 audit that informed the audit findings.
 | 2026-05-08 | BUG-01 through BUG-17 resolved/triaged; BUG-18 through BUG-22 identified as open | Claude Code |
 | 2026-05-08 | BUG-07 fully resolved — cursor-based pagination on Intelligence tab | Claude Code |
 | 2026-05-08 | BUG-08 resolved by design — "National" label added to explore status strip | Claude Code |
+| 2026-05-20 | 15-point UX overhaul (UX-01 through UX-35) — see UX Improvement Log above | Claude Code |

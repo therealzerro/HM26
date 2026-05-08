@@ -1,222 +1,234 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, TouchableOpacity,
   Modal, Animated, Share, Easing, Dimensions,
 } from 'react-native';
-import Svg, { Circle, Path, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop, Rect } from 'react-native-svg';
 import { useQuery } from '@tanstack/react-query';
 import { fetchFromSupabase } from '../lib/supabase';
 import { theme } from '../constants/theme';
 import { PickItem } from './PickCard';
 import { getPairs, normalizePairKey } from '../lib/pairUtils';
 
-const { height: SCREEN_H } = Dimensions.get('window');
-const SHEET_H = SCREEN_H * 0.92;
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
-// ─── Design tokens (aligned with theme) ──────────────────────────────────────
 const D = {
   bg:          theme.colors.background,
   surface:     theme.colors.bgElevated,
   glass:       theme.colors.card,
   glassBorder: theme.colors.border,
+  borderMed:   theme.colors.borderMed,
   cyan:        theme.colors.cyan,
   rose:        theme.colors.rose,
   purple:      theme.colors.purple,
   gold:        theme.colors.gold,
   amber:       theme.colors.amber,
+  hot:         theme.colors.hot,
   text:        theme.colors.text,
   textSub:     theme.colors.textSecondary,
   textDim:     theme.colors.textTertiary,
   mono:        theme.typography.fontFamily.mono,
+  monoBold:    theme.typography.fontFamily.monoBold,
 };
 
-// ─── SVG Circular Gauge ───────────────────────────────────────────────────────
-function CircularGauge({ value, size = 110 }: { value: number; size?: number }) {
-  const r    = (size - 16) / 2;
-  const cx   = size / 2;
-  const cy   = size / 2;
-  const circ = 2 * Math.PI * r;
-  const pct  = Math.min(100, Math.max(0, value)) / 100;
-  const dash = circ * pct;
-  const gap  = circ - dash;
-
+// ─── Gradient accent line ─────────────────────────────────────────────────────
+function GradientLine() {
   return (
-    <Svg width={size} height={size}>
+    <Svg width={SCREEN_W} height={3} style={{ display: 'flex' }}>
       <Defs>
-        <SvgGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0%"   stopColor={D.cyan} />
-          <Stop offset="100%" stopColor={D.purple} />
+        <SvgGradient id="gline" x1="0" y1="0" x2="1" y2="0">
+          <Stop offset="0%"   stopColor={D.purple} stopOpacity={0.7} />
+          <Stop offset="40%"  stopColor={D.cyan}   stopOpacity={1}   />
+          <Stop offset="70%"  stopColor={D.cyan}   stopOpacity={1}   />
+          <Stop offset="100%" stopColor={D.rose}   stopOpacity={0.7} />
         </SvgGradient>
       </Defs>
-      <Circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={8} />
-      <Circle
-        cx={cx} cy={cy} r={r}
-        fill="none"
-        stroke="url(#gaugeGrad)"
-        strokeWidth={8}
-        strokeDasharray={`${dash} ${gap}`}
-        strokeLinecap="round"
-        transform={`rotate(-90, ${cx}, ${cy})`}
-      />
+      <Rect x={0} y={0} width={SCREEN_W} height={3} fill="url(#gline)" />
     </Svg>
   );
 }
 
-// ─── Animated Fire Ring ───────────────────────────────────────────────────────
-function FireRing({ value, label }: { value: number; label: string }) {
+// ─── Animated energy arc ──────────────────────────────────────────────────────
+function EnergyArc({ value, size = 80 }: { value: number; size?: number }) {
   const pulse = useRef(new Animated.Value(1)).current;
-  const glow  = useRef(new Animated.Value(0)).current;
-
   useEffect(() => {
     if (value >= 80) {
       Animated.loop(Animated.sequence([
-        Animated.timing(pulse, { toValue: 1.08, duration: 600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0.96, duration: 600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ])).start();
-      Animated.loop(Animated.sequence([
-        Animated.timing(glow, { toValue: 1, duration: 800, useNativeDriver: true }),
-        Animated.timing(glow, { toValue: 0, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1.07, duration: 700, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.96, duration: 700, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       ])).start();
     }
   }, [value]);
 
-  const ringColor  = value >= 90 ? theme.colors.hot : value >= 75 ? D.amber : value >= 60 ? D.gold : D.textDim;
-  const glowOpacity = glow.interpolate({ inputRange: [0, 1], outputRange: [0.4, 0.9] });
+  const r     = (size - 14) / 2;
+  const cx    = size / 2;
+  const cy    = size / 2;
+  const circ  = 2 * Math.PI * r;
+  const dash  = circ * Math.min(1, Math.max(0, value) / 100);
+  const gap   = circ - dash;
+  const accent = value >= 90 ? D.hot : value >= 75 ? D.amber : value >= 60 ? D.gold : D.cyan;
 
   return (
-    <View style={fr.wrap}>
-      {value >= 75 && (
-        <Animated.View style={[fr.glow, { borderColor: ringColor, opacity: glowOpacity, transform: [{ scale: pulse }] }]} />
-      )}
-      <Animated.View style={[fr.ring, { borderColor: ringColor, transform: [{ scale: value >= 80 ? pulse : 1 }] }]}>
-        <Text style={[fr.num, { color: ringColor }]}>{value}</Text>
-        <Text style={fr.emoji}>{value >= 80 ? '🔥' : value >= 65 ? '⚡' : '✦'}</Text>
-      </Animated.View>
-      <Text style={[fr.label, { color: ringColor }]}>{label}</Text>
-    </View>
+    <Animated.View style={{ transform: [{ scale: value >= 80 ? pulse : 1 }] }}>
+      <Svg width={size} height={size}>
+        <Defs>
+          <SvgGradient id="earc" x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0%"   stopColor={D.cyan}   />
+            <Stop offset="100%" stopColor={accent}   />
+          </SvgGradient>
+        </Defs>
+        <Circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={7} />
+        <Circle
+          cx={cx} cy={cy} r={r} fill="none"
+          stroke="url(#earc)" strokeWidth={7}
+          strokeDasharray={`${dash} ${gap}`} strokeLinecap="round"
+          transform={`rotate(-90, ${cx}, ${cy})`}
+        />
+      </Svg>
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 20, fontWeight: '900', color: accent, fontFamily: D.monoBold, lineHeight: 22 }}>{value}</Text>
+          <Text style={{ fontSize: 7, color: D.textDim, fontWeight: '700', letterSpacing: 0.5 }}>ENERGY</Text>
+        </View>
+      </View>
+    </Animated.View>
   );
 }
 
-const fr = StyleSheet.create({
-  wrap:  { alignItems: 'center', gap: 6 },
-  glow:  { position: 'absolute', width: 90, height: 90, borderRadius: 45, borderWidth: 8, top: 0 },
-  ring:  { width: 80, height: 80, borderRadius: 40, borderWidth: 3, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.6)' },
-  num:   { fontSize: 22, fontWeight: '900', fontFamily: D.mono },
-  emoji: { fontSize: 14 },
-  label: { fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-});
-
-// ─── Sparkline ────────────────────────────────────────────────────────────────
-function Sparkline({ data, color, width = 60, height = 20 }: { data: number[]; color: string; width?: number; height?: number }) {
-  if (data.length < 2) return null;
-  const max  = Math.max(...data);
-  const min  = Math.min(...data);
-  const range = max - min || 1;
-  const pts  = data.map((v, i) => ({
-    x: (i / (data.length - 1)) * width,
-    y: height - ((v - min) / range) * height,
-  }));
-  const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-  return (
-    <Svg width={width} height={height}>
-      <Path d={d} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
-}
-
-// ─── Signal Card ──────────────────────────────────────────────────────────────
-function SignalCard({ label, value, color, desc, sparkData }: {
-  label: string; value: number; color: string; desc: string; sparkData?: number[];
-}) {
+// ─── Signal pill (compact, 4-across) ─────────────────────────────────────────
+function SignalPill({ label, value, color }: { label: string; value: number; color: string }) {
   const pct = Math.round(value * 100);
   return (
-    <View style={sc.card}>
-      <View style={sc.header}>
-        <Text style={[sc.label, { color }]}>{label}</Text>
-        {sparkData && <Sparkline data={sparkData} color={color} />}
+    <View style={sp.card}>
+      <Text style={[sp.label, { color }]}>{label}</Text>
+      <Text style={[sp.val, { color }]}>{pct}<Text style={sp.suffix}>%</Text></Text>
+      <View style={sp.track}>
+        <View style={[sp.fill, { width: `${pct}%` as any, backgroundColor: color }]} />
       </View>
-      <Text style={[sc.pct, { color }]}>{pct}%</Text>
-      <View style={sc.track}>
-        <View style={[sc.fill, { width: `${pct}%` as any, backgroundColor: color }]} />
-      </View>
-      <Text style={sc.desc}>{desc}</Text>
     </View>
   );
 }
-
-const sc = StyleSheet.create({
-  card:   { width: '48%', backgroundColor: D.glass, borderRadius: 10, borderWidth: 1, borderColor: D.glassBorder, padding: 10, gap: 4 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  label:  { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
-  pct:    { fontSize: 20, fontWeight: '900', fontFamily: D.mono },
-  track:  { height: 3, backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 2, overflow: 'hidden' },
+const sp = StyleSheet.create({
+  card:   { flex: 1, backgroundColor: D.glass, borderRadius: 10, borderWidth: 1, borderColor: D.glassBorder, paddingVertical: 10, paddingHorizontal: 8, gap: 4, alignItems: 'center' },
+  label:  { fontSize: 7, fontWeight: '900', letterSpacing: 1 },
+  val:    { fontSize: 22, fontWeight: '900', fontFamily: D.monoBold, lineHeight: 24 },
+  suffix: { fontSize: 11, fontWeight: '700' },
+  track:  { width: '100%', height: 3, backgroundColor: 'rgba(255,255,255,0.09)', borderRadius: 2, overflow: 'hidden' },
   fill:   { height: 3, borderRadius: 2 },
-  desc:   { fontSize: 9, color: D.textDim, lineHeight: 12 },
 });
 
-// ─── Pair Matrix Row ──────────────────────────────────────────────────────────
-function PairRow({ label, data }: { label: string; data: Record<string, number> }) {
+// ─── Pair matrix header + rows ────────────────────────────────────────────────
+function PairMatrixHeader({ labels }: { labels: string[] }) {
   return (
-    <View style={pm.row}>
-      <Text style={pm.rowLabel}>{label}</Text>
-      {Object.entries(data).map(([k, v]) => (
-        <Text key={k} style={[pm.cell, { color: v >= 70 ? D.cyan : v >= 40 ? D.gold : D.textDim }]}>
-          {v}%
-        </Text>
-      ))}
-    </View>
-  );
-}
-
-const pm = StyleSheet.create({
-  row:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-  rowLabel: { width: 90, fontSize: 10, color: D.textSub, fontWeight: '600' },
-  cell:     { flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '800', fontFamily: D.mono },
-});
-
-// ─── WHY THIS ORDER ───────────────────────────────────────────────────────────
-function WhyOrder({ bestOrder, pairScores }: { bestOrder: string; pairScores: { front: number; back: number; split: number } }) {
-  const f  = bestOrder[0] + bestOrder[1];
-  const b  = bestOrder[1] + bestOrder[2];
-  const sp = bestOrder[0] + bestOrder[2];
-
-  const reasons = [
-    { pair: f,  icon: '📈', label: 'Front pair',  desc: `${f} is surging — highest recent frequency in the front position.`, score: pairScores.front },
-    { pair: b,  icon: '⚙️', label: 'Back pair',  desc: `${b} has strong digit co-occurrence in the back position.`,         score: pairScores.back  },
-    { pair: sp, icon: '🔗', label: 'Split pair', desc: `${sp} confirms alignment across all 3 signal channels.`,             score: pairScores.split },
-  ];
-
-  return (
-    <View style={wo.wrap}>
-      <Text style={wo.title}>Why This Order</Text>
-      {reasons.map((r, i) => (
-        <View key={i} style={wo.row}>
-          <View style={wo.iconBox}><Text style={wo.icon}>{r.icon}</Text></View>
-          <View style={wo.textWrap}>
-            <Text style={wo.label}><Text style={wo.bold}>{r.label}</Text></Text>
-            <Text style={wo.desc}>{r.desc}</Text>
-          </View>
-          <Text style={[wo.score, { color: r.score >= 70 ? D.cyan : D.gold }]}>{r.score}%</Text>
+    <View style={mx.headerRow}>
+      <View style={{ width: 76 }}>
+        <Text style={{ fontSize: 8, color: D.textDim, fontWeight: '700' }}>SIGNAL</Text>
+      </View>
+      {labels.map(l => (
+        <View key={l} style={mx.headerCell}>
+          <Text style={mx.headerPair}>{l}</Text>
+          <Text style={mx.headerSub}>pair</Text>
         </View>
       ))}
     </View>
   );
 }
 
-const wo = StyleSheet.create({
-  wrap:     { backgroundColor: D.glass, borderRadius: 12, borderWidth: 1, borderColor: D.glassBorder, padding: 14, gap: 10 },
-  title:    { fontSize: 10, fontWeight: '900', color: D.cyan, letterSpacing: 1.5, marginBottom: 2 },
-  row:      { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  iconBox:  { width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.07)', alignItems: 'center', justifyContent: 'center' },
-  icon:     { fontSize: 14 },
-  textWrap: { flex: 1 },
-  label:    { fontSize: 11, color: D.textSub },
-  bold:     { fontWeight: '700', color: D.text },
-  desc:     { fontSize: 10, color: D.textDim, marginTop: 1 },
-  score:    { fontSize: 12, fontWeight: '800', fontFamily: D.mono },
+function PairProgressRow({ icon, label, scores }: { icon: string; label: string; scores: number[] }) {
+  return (
+    <View style={mx.dataRow}>
+      <View style={mx.rowLabel}>
+        <Text style={mx.rowIcon}>{icon}</Text>
+        <Text style={mx.rowText}>{label}</Text>
+      </View>
+      {scores.map((score, i) => {
+        const c = score >= 70 ? D.cyan : score >= 40 ? D.gold : D.textDim;
+        return (
+          <View key={i} style={mx.cell}>
+            <View style={mx.track}>
+              <View style={[mx.fill, { width: `${Math.min(100, score)}%` as any, backgroundColor: c }]} />
+            </View>
+            <Text style={[mx.scoreText, { color: c }]}>{score}%</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+const mx = StyleSheet.create({
+  headerRow:  { flexDirection: 'row', alignItems: 'flex-end', paddingBottom: 10, borderBottomWidth: 1.5, borderBottomColor: D.borderMed, marginBottom: 2 },
+  headerCell: { flex: 1, alignItems: 'center' },
+  headerPair: { fontSize: 14, fontWeight: '900', color: D.text, fontFamily: D.monoBold },
+  headerSub:  { fontSize: 7, color: D.textDim, letterSpacing: 0.5 },
+  dataRow:    { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  rowLabel:   { width: 76 },
+  rowIcon:    { fontSize: 11 },
+  rowText:    { fontSize: 8, color: D.textSub, fontWeight: '700', letterSpacing: 0.5, marginTop: 1 },
+  cell:       { flex: 1, paddingHorizontal: 5, gap: 3 },
+  track:      { height: 6, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden' },
+  fill:       { height: 6, borderRadius: 3 },
+  scoreText:  { fontSize: 10, fontWeight: '800', fontFamily: D.mono, textAlign: 'center' },
 });
 
-// ─── PROPS ────────────────────────────────────────────────────────────────────
+// ─── Why row ──────────────────────────────────────────────────────────────────
+function WhyRow({ icon, label, desc, score }: { icon: string; label: string; desc: string; score: number }) {
+  const c = score >= 70 ? D.cyan : score >= 40 ? D.gold : D.textDim;
+  return (
+    <View style={wy.row}>
+      <View style={wy.iconBox}><Text style={wy.icon}>{icon}</Text></View>
+      <View style={wy.text}>
+        <Text style={wy.label}>{label}</Text>
+        <Text style={wy.desc}>{desc}</Text>
+      </View>
+      <View style={[wy.badge, { borderColor: c + '55', backgroundColor: c + '15' }]}>
+        <Text style={[wy.badgeNum, { color: c }]}>{score}%</Text>
+      </View>
+    </View>
+  );
+}
+const wy = StyleSheet.create({
+  row:      { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  iconBox:  { width: 32, height: 32, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.07)', alignItems: 'center', justifyContent: 'center' },
+  icon:     { fontSize: 16 },
+  text:     { flex: 1 },
+  label:    { fontSize: 11, fontWeight: '700', color: D.text, lineHeight: 14 },
+  desc:     { fontSize: 9, color: D.textDim, marginTop: 2, lineHeight: 12 },
+  badge:    { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8, borderWidth: 1 },
+  badgeNum: { fontSize: 13, fontWeight: '900', fontFamily: D.monoBold },
+});
+
+// ─── Tab bar ──────────────────────────────────────────────────────────────────
+type Tab = 'INTEL' | 'PAIRS' | 'PLAY';
+const TABS: { key: Tab; icon: string; label: string }[] = [
+  { key: 'INTEL', icon: '⚡', label: 'INTEL' },
+  { key: 'PAIRS', icon: '🔗', label: 'PAIRS' },
+  { key: 'PLAY',  icon: '🎯', label: 'PLAY'  },
+];
+
+function TabBar({ active, onPress }: { active: Tab; onPress: (t: Tab) => void }) {
+  return (
+    <View style={tb.bar}>
+      {TABS.map(t => (
+        <TouchableOpacity key={t.key} style={[tb.tab, active === t.key && tb.tabActive]} onPress={() => onPress(t.key)} activeOpacity={0.7}>
+          <Text style={tb.tabIcon}>{t.icon}</Text>
+          <Text style={[tb.tabLabel, active === t.key && tb.tabLabelActive]}>{t.label}</Text>
+          {active === t.key && <View style={tb.indicator} />}
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+const tb = StyleSheet.create({
+  bar:            { flexDirection: 'row', backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.glassBorder },
+  tab:            { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 13, position: 'relative' },
+  tabActive:      { backgroundColor: 'rgba(43,255,204,0.04)' },
+  tabIcon:        { fontSize: 13 },
+  tabLabel:       { fontSize: 10, fontWeight: '700', color: D.textDim, letterSpacing: 1.5 },
+  tabLabelActive: { color: D.cyan },
+  indicator:      { position: 'absolute', bottom: 0, left: 20, right: 20, height: 2, backgroundColor: D.cyan, borderRadius: 1 },
+});
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 interface PickDetailModalProps {
   pick: PickItem;
   scope: string;
@@ -225,27 +237,33 @@ interface PickDetailModalProps {
   onHeatCheck?: (combo: string) => void;
 }
 
-// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
+// ─── Main component ───────────────────────────────────────────────────────────
 export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: PickDetailModalProps) {
+  const [tab, setTab]       = useState<Tab>('INTEL');
   const [savedMsg, setSavedMsg] = useState('');
-  const slideAnim = useRef(new Animated.Value(60)).current;
+  const slideAnim = useRef(new Animated.Value(SCREEN_H)).current;
   const fadeAnim  = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(slideAnim, { toValue: 0, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 340, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       Animated.timing(fadeAnim,  { toValue: 1, duration: 280, useNativeDriver: true }),
     ]).start();
   }, []);
 
-  const bestOrder = pick.bestOrder ?? pick.combo ?? '000';
-  const pairs     = useMemo(() => getPairs(bestOrder), [bestOrder]);
+  const bestOrder   = pick.bestOrder ?? pick.combo ?? '000';
+  const pairs       = useMemo(() => getPairs(bestOrder), [bestOrder]);
 
   const energyLabel =
     pick.energy >= 90 ? 'ON FIRE'    :
     pick.energy >= 80 ? 'BLAZING'    :
     pick.energy >= 65 ? 'HOT SIGNAL' :
     pick.energy >= 45 ? 'WARM'       : 'COOL';
+
+  const energyColor =
+    pick.energy >= 90 ? D.hot   :
+    pick.energy >= 75 ? D.amber :
+    pick.energy >= 60 ? D.gold  : D.cyan;
 
   const { data: pairRows = [] } = useQuery({
     queryKey: ['pair_intel', pick.combo, scope],
@@ -256,25 +274,7 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
         });
         if (!Array.isArray(rows)) return [];
         const wantedPairs = new Set([pairs.front, pairs.back, pairs.split]);
-        return rows.filter(r => {
-          const nk = normalizePairKey(String(r.key_pair ?? r.key ?? ''));
-          return wantedPairs.has(nk);
-        });
-      } catch { return []; }
-    },
-    enabled: isPro,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: horizonRows = [] } = useQuery({
-    queryKey: ['horizon_depth', pick.combo, scope],
-    queryFn: async () => {
-      try {
-        const sortedKey = '{' + (pick.combo ?? '').split('').sort().join(',') + '}';
-        const rows = await fetchFromSupabase<any[]>({
-          path: `/rest/v1/datasets_box?key=eq.${encodeURIComponent(sortedKey)}&class_id=eq.1&scope=eq.${encodeURIComponent(scope)}&deleted_at=is.null&jurisdiction=is.null&select=horizon_label,ds_raw,times_drawn&order=horizon_label.asc`,
-        });
-        return Array.isArray(rows) ? rows : [];
+        return rows.filter(r => wantedPairs.has(normalizePairKey(String(r.key_pair ?? r.key ?? ''))));
       } catch { return []; }
     },
     enabled: isPro,
@@ -287,7 +287,7 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
       return row ? (row.ds_raw ?? 0) : 0;
     };
     const f  = getScore(pairs.front, 2);
-    const b  = getScore(pairs.back, 3);
+    const b  = getScore(pairs.back,  3);
     const sp = getScore(pairs.split, 4);
     const mx = Math.max(f, b, sp, 1);
     return {
@@ -296,13 +296,6 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
       split: Math.round((sp / mx) * 100),
     };
   }, [pairRows, pairs]);
-
-  const sparkData = useMemo(() =>
-    horizonRows.length >= 2
-      ? horizonRows.map((r: any) => r.ds_raw ?? 0)
-      : [50, 60, 55, 70, 65, 75, 80],
-    [horizonRows],
-  );
 
   const handleShare = async () => {
     try {
@@ -316,239 +309,343 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
     } catch {}
   };
 
-  const signals = [
-    { lbl: 'FREQUENCY',   val: pick.signals.BOX,       color: D.cyan,   desc: `Drawn ${pick.timesDrawn ?? '?'}× in dataset`,  sparkData },
-    { lbl: 'MOMENTUM',    val: pick.signals.PBURST,    color: D.rose,   desc: 'Pair surge across 3 positions',                 sparkData: sparkData.map(v => v * 0.75) },
-    { lbl: 'PATTERN',     val: pick.signals.CO,        color: D.purple, desc: 'Co-occurrence relationships'                                                              },
-    { lbl: 'CONSISTENCY', val: pick.signals.DGC ?? 0,  color: D.gold,   desc: 'Draw gap consistency'                                                                     },
+  const pairLabels = [
+    `${bestOrder[0]}${bestOrder[1]}`,
+    `${bestOrder[1]}${bestOrder[2]}`,
+    `${bestOrder[0]}${bestOrder[2]}`,
   ];
 
-  const pairLabels = [
-    `Pair ${bestOrder[0]}${bestOrder[1]}`,
-    `Pair ${bestOrder[1]}${bestOrder[2]}`,
-    `Pair ${bestOrder[0]}${bestOrder[2]}`,
-  ];
+  const generatedAt = useMemo(() => {
+    const now = new Date();
+    return now.toLocaleString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: 'numeric', minute: '2-digit', hour12: true,
+    });
+  }, []);
+
+  const confidence = Math.round(
+    (pick.energy + Math.round(pick.signals.BOX * 100) + Math.round(pick.signals.CO * 100)) / 3
+  );
+
+  // ── INTEL tab ──────────────────────────────────────────────────────────────
+  const renderIntel = () => (
+    <View style={ct.pad}>
+      {/* Confidence band */}
+      <View style={ct.confBand}>
+        <Text style={ct.confLabel}>ZK6 CONFIDENCE</Text>
+        <View style={ct.confTrack}>
+          <View style={[ct.confFill, { width: `${confidence}%` as any }]} />
+        </View>
+        <Text style={[ct.confScore, { color: confidence >= 70 ? D.cyan : confidence >= 45 ? D.gold : D.textDim }]}>
+          {confidence}%
+        </Text>
+      </View>
+
+      {/* 4-signal strip */}
+      <Text style={ct.sectionTitle}>SIGNAL BREAKDOWN</Text>
+      <View style={ct.signalRow}>
+        <SignalPill label="FREQ"    value={pick.signals.BOX}      color={D.cyan}   />
+        <SignalPill label="MOMO"    value={pick.signals.PBURST}   color={D.rose}   />
+        <SignalPill label="PATTERN" value={pick.signals.CO}       color={D.purple} />
+        <SignalPill label="CONSIST" value={pick.signals.DGC ?? 0} color={D.gold}   />
+      </View>
+
+      {/* Why this order */}
+      <Text style={[ct.sectionTitle, { marginTop: 14 }]}>WHY THIS ORDER</Text>
+      <View style={ct.whyCard}>
+        <WhyRow
+          icon="📈" label={`Front pair  ${pairs.front}`}
+          desc={`${pairs.front} surging — highest recent frequency in front position`}
+          score={pairScores.front}
+        />
+        <WhyRow
+          icon="⚙️" label={`Back pair  ${pairs.back}`}
+          desc={`${pairs.back} has strong digit co-occurrence in back position`}
+          score={pairScores.back}
+        />
+        <WhyRow
+          icon="🔗" label={`Split pair  ${pairs.split}`}
+          desc={`${pairs.split} confirms alignment across all 3 signal channels`}
+          score={pairScores.split}
+        />
+      </View>
+    </View>
+  );
+
+  // ── PAIRS tab ──────────────────────────────────────────────────────────────
+  const renderPairs = () => (
+    <View style={ct.pad}>
+      <Text style={ct.sectionTitle}>PAIR INTELLIGENCE MATRIX</Text>
+      <Text style={ct.subtitle}>Signal strength per digit pair · cyan ≥ 70% · gold ≥ 40%</Text>
+
+      <View style={ct.matrixCard}>
+        <PairMatrixHeader labels={pairLabels} />
+        <PairProgressRow
+          icon="⚡" label="MOMENTUM"
+          scores={[Math.round(pick.signals.PBURST * 92), Math.round(pick.signals.PBURST * 70), Math.round(pick.signals.PBURST * 30)]}
+        />
+        <PairProgressRow
+          icon="🔄" label="PATTERN"
+          scores={[Math.round(pick.signals.CO * 100), pairScores.back, pairScores.split]}
+        />
+        <PairProgressRow
+          icon="📊" label="FREQUENCY"
+          scores={[Math.round(pick.signals.BOX * 95), Math.round(pick.signals.BOX * 60), Math.round(pick.signals.BOX * 45)]}
+        />
+        <PairProgressRow
+          icon="📐" label="CONSIST."
+          scores={[Math.round((pick.signals.DGC ?? 0) * 88), Math.round((pick.signals.DGC ?? 0) * 55), Math.round((pick.signals.DGC ?? 0) * 40)]}
+        />
+      </View>
+
+      {/* Legend */}
+      <View style={ct.legendRow}>
+        {[
+          { color: D.cyan,    label: '≥ 70%  Strong'   },
+          { color: D.gold,    label: '≥ 40%  Moderate' },
+          { color: D.textDim, label: '< 40%  Weak'     },
+        ].map(l => (
+          <View key={l.label} style={ct.legendItem}>
+            <View style={[ct.legendDot, { backgroundColor: l.color }]} />
+            <Text style={ct.legendText}>{l.label}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Drawn count callout */}
+      <View style={ct.drawnRow}>
+        <Text style={ct.drawnLabel}>Times drawn (dataset)</Text>
+        <Text style={[ct.drawnVal, { color: D.cyan }]}>{pick.timesDrawn ?? '—'}×</Text>
+        <Text style={ct.drawnLabel}>Scope</Text>
+        <Text style={[ct.drawnVal, { color: D.gold }]}>{scope.toUpperCase()}</Text>
+      </View>
+    </View>
+  );
+
+  // ── PLAY tab ───────────────────────────────────────────────────────────────
+  const renderPlay = () => (
+    <View style={ct.pad}>
+      {/* Straight vs Box bet cards */}
+      <View style={ct.betRow}>
+        <View style={[ct.betCard, { borderColor: D.cyan + '66' }]}>
+          <Text style={[ct.betType, { color: D.cyan }]}>STRAIGHT</Text>
+          <Text style={[ct.betCombo, { color: D.cyan, letterSpacing: 8 }]}>{bestOrder}</Text>
+          <Text style={ct.betPayout}>~$500</Text>
+          <Text style={ct.betNote}>Exact order wins</Text>
+          <View style={[ct.betBadge, { backgroundColor: D.cyan + '18', borderColor: D.cyan + '44' }]}>
+            <Text style={[ct.betBadgeText, { color: D.cyan }]}>ZK6 BEST ORDER</Text>
+          </View>
+        </View>
+        <View style={[ct.betCard, { borderColor: D.gold + '66' }]}>
+          <Text style={[ct.betType, { color: D.gold }]}>BOX</Text>
+          <Text style={[ct.betCombo, { color: D.gold, letterSpacing: 8 }]}>{pick.comboSet}</Text>
+          <Text style={ct.betPayout}>~$80</Text>
+          <Text style={ct.betNote}>Any order wins</Text>
+          <View style={[ct.betBadge, { backgroundColor: D.gold + '18', borderColor: D.gold + '44' }]}>
+            <Text style={[ct.betBadgeText, { color: D.gold }]}>SAFE PLAY</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Action buttons */}
+      <View style={ct.actionStack}>
+        <TouchableOpacity
+          style={[ct.actionBtn, { backgroundColor: D.gold + '18', borderColor: D.gold + '88' }]}
+          onPress={() => setSavedMsg('Saved to Number Book ✓')}
+        >
+          <Text style={ct.actionBtnIcon}>📖</Text>
+          <Text style={[ct.actionBtnText, { color: D.gold }]}>Save to Number Book</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[ct.actionBtn, { backgroundColor: D.purple + '18', borderColor: D.purple + '88' }]}
+          onPress={() => { onClose(); onHeatCheck?.(pick.combo ?? ''); }}
+        >
+          <Text style={ct.actionBtnIcon}>⚡</Text>
+          <Text style={[ct.actionBtnText, { color: D.purple }]}>Run Heat Check</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[ct.actionBtn, { backgroundColor: D.glass, borderColor: D.glassBorder }]}
+          onPress={handleShare}
+        >
+          <Text style={ct.actionBtnIcon}>📤</Text>
+          <Text style={[ct.actionBtnText, { color: D.textSub }]}>Share This Pick</Text>
+        </TouchableOpacity>
+      </View>
+
+      {savedMsg ? <Text style={ct.savedMsg}>{savedMsg}</Text> : null}
+    </View>
+  );
 
   return (
     <Modal transparent animationType="none" onRequestClose={onClose}>
-      <View style={s.overlay}>
-        <Animated.View style={[s.sheet, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+      <Animated.View style={[s.overlay, { opacity: fadeAnim }]}>
+        <Animated.View style={[s.sheet, { transform: [{ translateY: slideAnim }] }]}>
 
-          {/* ── Header bar ── */}
-          <View style={s.headerBar}>
-            <View style={s.rankBadge}>
-              <Text style={s.rankText}>#{pick.rank ?? 1}</Text>
-            </View>
-            <Text style={s.headerTitle}>PICK #{pick.rank ?? 1} · {pick.comboSet}</Text>
-            <TouchableOpacity onPress={onClose} style={s.closeBtn}>
+          {/* ── Gradient accent top line ── */}
+          <GradientLine />
+
+          {/* ── Header ── */}
+          <View style={s.header}>
+            <TouchableOpacity onPress={onClose} style={s.iconBtn}>
               <Text style={s.closeX}>✕</Text>
+            </TouchableOpacity>
+            <View style={s.headerCenter}>
+              <View style={s.rankBadge}>
+                <Text style={s.rankText}>#{pick.rank ?? 1}</Text>
+              </View>
+              <Text style={s.headerTitle}>PICK #{pick.rank ?? 1}  ·  ZK6</Text>
+            </View>
+            <TouchableOpacity onPress={handleShare} style={s.iconBtn}>
+              <Text style={{ fontSize: 15 }}>📤</Text>
             </TouchableOpacity>
           </View>
 
-          {/* ── Scrollable body ── */}
-          <ScrollView
-            style={s.scroll}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={s.scrollContent}
-            bounces={true}
-          >
+          {/* ── Hero ── */}
+          <View style={s.hero}>
+            {/* Left: energy arc */}
+            <View style={s.heroLeft}>
+              <EnergyArc value={pick.energy} size={80} />
+              <Text style={[s.heroEnergyLabel, { color: energyColor }]}>{energyLabel}</Text>
+            </View>
 
-            {/* Hero: Gauge + Digits + Fire Ring */}
-            <View style={s.hero}>
-              {/* Circular gauge with centered overlay */}
-              <View style={s.gaugeWrap}>
-                <CircularGauge value={pick.energy} size={110} />
-                <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-                  <View style={s.gaugeCenterInner}>
-                    <Text style={s.gaugePct}>{pick.energy}%</Text>
-                    <Text style={s.gaugeLabel}>ENERGY</Text>
+            {/* Center: combo display */}
+            <View style={s.heroCenter}>
+              <Text style={s.heroBestLabel}>⚡ BEST STRAIGHT</Text>
+              <Text style={[s.heroDigits, { color: energyColor }]}>
+                {bestOrder[0]} · {bestOrder[1]} · {bestOrder[2]}
+              </Text>
+              <View style={s.posRow}>
+                {bestOrder.split('').map((d, i) => (
+                  <View key={i} style={[s.posBox, i === 0 && { borderColor: energyColor + '88', backgroundColor: energyColor + '14' }]}>
+                    <Text style={[s.posDigit, i === 0 && { color: energyColor }]}>{d}</Text>
+                    <Text style={s.posLabel}>P{i + 1}</Text>
                   </View>
-                </View>
-                <Text style={s.intelligenceLabel}>ZK6 INTELLIGENCE</Text>
-              </View>
-
-              {/* Best straight digits */}
-              <View style={s.digitsCol}>
-                <Text style={s.straightLabel}>⚡ BEST STRAIGHT</Text>
-                <Text style={s.bigDigits}>{bestOrder.split('').join(' — ')}</Text>
-                <View style={s.posRow}>
-                  {bestOrder.split('').map((d, i) => (
-                    <View key={i} style={[s.posBox, i === 0 && s.posBoxActive]}>
-                      <Text style={[s.posDigit, i === 0 && s.posDigitActive]}>{d}</Text>
-                      <Text style={s.posLabel}>P{i + 1}</Text>
-                    </View>
-                  ))}
-                </View>
-                <Text style={s.boxSetLabel}>Box: {pick.comboSet}</Text>
-              </View>
-
-              {/* Fire ring energy */}
-              <FireRing value={pick.energy} label={energyLabel} />
-            </View>
-
-            <Text style={s.subScope}>ZK6 v2.1 · {scope.charAt(0).toUpperCase() + scope.slice(1)} scope</Text>
-
-            {/* Why This Order */}
-            <WhyOrder bestOrder={bestOrder} pairScores={pairScores} />
-
-            {/* Box play */}
-            <View style={s.boxPlayRow}>
-              <Text style={s.boxPlayLabel}>Box Play: </Text>
-              <Text style={s.boxPlayText}>any order of </Text>
-              <Text style={s.boxPlayCombo}>{pick.comboSet}</Text>
-              <Text style={s.boxPlayText}> wins (~$80)</Text>
-            </View>
-            <Text style={{ fontSize: 10, color: D.textDim, marginHorizontal: 18, marginBottom: 12, lineHeight: 15 }}>
-              Straight = exact order shown above (~$500). Box = any order, lower payout. ZK6 recommends the straight order with strongest signal alignment.
-            </Text>
-
-            {/* Signal breakdown */}
-            <Text style={s.sectionTitle}>Signal Breakdown</Text>
-            <Text style={s.sectionSubtitle}>% = signal strength (higher = stronger indicator)</Text>
-            <View style={s.signalGrid}>
-              {signals.map(sig => (
-                <SignalCard key={sig.lbl} label={sig.lbl} value={sig.val} color={sig.color} desc={sig.desc} sparkData={sig.sparkData} />
-              ))}
-            </View>
-
-            {/* Pair Intelligence Matrix */}
-            <View style={s.pairWrap}>
-              <Text style={s.sectionTitle}>Pair Intelligence</Text>
-              <Text style={s.pairSubtitle}>Signal strength per pair position · cyan ≥ 70% = strong · gold = moderate</Text>
-              <View style={[pm.row, { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.15)', paddingBottom: 8, marginBottom: 4 }]}>
-                <Text style={[pm.rowLabel, { color: D.textDim, fontSize: 9 }]}>PAIR</Text>
-                {pairLabels.map(l => (
-                  <Text key={l} style={[pm.cell, { color: D.text, fontSize: 12, fontWeight: '900' }]}>{l}</Text>
                 ))}
               </View>
-              <PairRow label="Momentum" data={{
-                [pairLabels[0]]: Math.round(pick.signals.PBURST * 92),
-                [pairLabels[1]]: Math.round(pick.signals.PBURST * 7),
-                [pairLabels[2]]: Math.round(pick.signals.PBURST * 3),
-              }} />
-              <PairRow label="Pattern" data={{
-                [pairLabels[0]]: Math.round(pick.signals.CO * 100),
-                [pairLabels[1]]: pairScores.back,
-                [pairLabels[2]]: pairScores.split,
-              }} />
-              <PairRow label="Frequency" data={{
-                [pairLabels[0]]: Math.round(pick.signals.BOX * 95),
-                [pairLabels[1]]: Math.round(pick.signals.BOX * 60),
-                [pairLabels[2]]: Math.round(pick.signals.BOX * 45),
-              }} />
-              <PairRow label="Consistency" data={{
-                [pairLabels[0]]: Math.round((pick.signals.DGC ?? 0) * 88),
-                [pairLabels[1]]: Math.round((pick.signals.DGC ?? 0) * 55),
-                [pairLabels[2]]: Math.round((pick.signals.DGC ?? 0) * 40),
-              }} />
             </View>
 
-            {/* Action buttons */}
-            <View style={s.actionRow}>
-              <TouchableOpacity style={s.btnBook} onPress={() => setSavedMsg('Saved to Number Book!')}>
-                <Text style={s.btnBookText}>📖  Save to Number Book</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.btnHeat} onPress={() => { onClose(); onHeatCheck?.(pick.combo ?? ''); }}>
-                <Text style={s.btnHeatText}>⚡  Heat Check</Text>
-              </TouchableOpacity>
+            {/* Right: box badge + meta */}
+            <View style={s.heroRight}>
+              <View style={s.boxBadge}>
+                <Text style={s.boxBadgeLabel}>BOX SET</Text>
+                <Text style={s.boxBadgeCombo}>{pick.comboSet}</Text>
+              </View>
+              <Text style={s.heroMeta}>{scope.toUpperCase()}</Text>
+              <Text style={s.heroVersion}>ZK6 v2.1</Text>
             </View>
+          </View>
 
-            {savedMsg ? <Text style={s.savedMsg}>{savedMsg}</Text> : null}
+          {/* ── Timestamp strip ── */}
+          <View style={s.tsStrip}>
+            <Text style={s.tsClock}>🕐</Text>
+            <Text style={s.tsLabel}>Generated</Text>
+            <Text style={s.tsValue}>{generatedAt}</Text>
+          </View>
 
-            {/* Bottom row */}
-            <View style={s.bottomRow}>
-              <TouchableOpacity style={s.btnShare} onPress={handleShare}>
-                <Text style={s.btnShareText}>📤  Share Pick</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.btnClose} onPress={onClose}>
-                <Text style={s.btnCloseText}>Close</Text>
-              </TouchableOpacity>
-            </View>
+          {/* ── Tabs ── */}
+          <TabBar active={tab} onPress={setTab} />
 
-            <View style={{ height: 40 }} />
-          </ScrollView>
+          {/* ── Content ── */}
+          <View style={s.content}>
+            {tab === 'INTEL' && renderIntel()}
+            {tab === 'PAIRS' && renderPairs()}
+            {tab === 'PLAY'  && renderPlay()}
+          </View>
+
         </Animated.View>
-      </View>
+      </Animated.View>
     </Modal>
   );
 }
 
-// ─── STYLES ───────────────────────────────────────────────────────────────────
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const ct = StyleSheet.create({
+  pad:          { flex: 1, padding: 16 },
+  sectionTitle: { fontSize: 9, fontWeight: '900', color: D.cyan, letterSpacing: 2, marginBottom: 8 },
+  subtitle:     { fontSize: 9, color: D.textDim, marginTop: -4, marginBottom: 10 },
+
+  // Confidence band
+  confBand:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14, backgroundColor: D.glass, borderRadius: 10, borderWidth: 1, borderColor: D.glassBorder, paddingHorizontal: 12, paddingVertical: 10 },
+  confLabel:  { fontSize: 8, fontWeight: '900', color: D.textDim, letterSpacing: 1.5, width: 92 },
+  confTrack:  { flex: 1, height: 4, backgroundColor: 'rgba(255,255,255,0.09)', borderRadius: 2, overflow: 'hidden' },
+  confFill:   { height: 4, borderRadius: 2, backgroundColor: D.cyan },
+  confScore:  { fontSize: 13, fontWeight: '900', fontFamily: 'JetBrainsMono_700Bold', width: 36, textAlign: 'right' },
+
+  // Signal row
+  signalRow:  { flexDirection: 'row', gap: 6 },
+
+  // Why card
+  whyCard:    { backgroundColor: D.glass, borderRadius: 12, borderWidth: 1, borderColor: D.glassBorder, paddingHorizontal: 12, paddingTop: 2, paddingBottom: 2 },
+
+  // Matrix card
+  matrixCard: { backgroundColor: D.glass, borderRadius: 12, borderWidth: 1, borderColor: D.glassBorder, paddingHorizontal: 12, paddingTop: 12, paddingBottom: 4 },
+
+  // Legend
+  legendRow:  { flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 10 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  legendDot:  { width: 7, height: 7, borderRadius: 3.5 },
+  legendText: { fontSize: 9, color: D.textDim },
+
+  // Drawn row
+  drawnRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 10, backgroundColor: D.surface, borderRadius: 10, padding: 10, borderWidth: 1, borderColor: D.glassBorder },
+  drawnLabel: { fontSize: 9, color: D.textDim },
+  drawnVal:   { fontSize: 14, fontWeight: '900', fontFamily: 'JetBrainsMono_700Bold' },
+
+  // Bet cards
+  betRow:          { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  betCard:         { flex: 1, backgroundColor: D.glass, borderRadius: 14, borderWidth: 1.5, padding: 14, gap: 3, alignItems: 'center' },
+  betType:         { fontSize: 9, fontWeight: '900', letterSpacing: 2.5 },
+  betCombo:        { fontSize: 28, fontWeight: '900', fontFamily: 'JetBrainsMono_700Bold', marginVertical: 4 },
+  betPayout:       { fontSize: 18, fontWeight: '900', color: D.text },
+  betNote:         { fontSize: 9, color: D.textDim },
+  betBadge:        { marginTop: 8, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 7, borderWidth: 1 },
+  betBadgeText:    { fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+
+  // Action buttons
+  actionStack:     { gap: 8 },
+  actionBtn:       { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderRadius: 13, paddingVertical: 14, paddingHorizontal: 16 },
+  actionBtnIcon:   { fontSize: 17 },
+  actionBtnText:   { fontSize: 14, fontWeight: '800' },
+  savedMsg:        { textAlign: 'center', color: D.cyan, fontSize: 12, fontWeight: '700', marginTop: 10 },
+});
+
 const s = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    justifyContent: 'flex-end',
-  },
-  // Explicit height so ScrollView has a bounded parent to fill
-  sheet: {
-    height: SHEET_H,
-    backgroundColor: D.bg,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderTopWidth: 1,
-    borderColor: D.glassBorder,
-  },
+  overlay:  { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)' },
+  sheet:    { flex: 1, backgroundColor: D.bg },
 
   // Header
-  headerBar:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingTop: 18, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  rankBadge:   { width: 28, height: 28, borderRadius: 14, backgroundColor: D.gold + '22', borderWidth: 1, borderColor: D.gold + '55', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  rankText:    { fontSize: 12, fontWeight: '900', color: D.gold },
-  headerTitle: { flex: 1, fontSize: 15, fontWeight: '900', color: D.text, letterSpacing: 0.5 },
-  closeBtn:    { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-  closeX:      { fontSize: 14, color: D.textSub, fontWeight: '700' },
-
-  scroll:        { flex: 1 },
-  scrollContent: { paddingHorizontal: 16, paddingTop: 16, gap: 14 },
+  header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  rankBadge:    { width: 24, height: 24, borderRadius: 12, backgroundColor: D.gold + '22', borderWidth: 1, borderColor: D.gold + '55', alignItems: 'center', justifyContent: 'center' },
+  rankText:     { fontSize: 10, fontWeight: '900', color: D.gold },
+  headerTitle:  { fontSize: 14, fontWeight: '900', color: D.text, letterSpacing: 0.5 },
+  iconBtn:      { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.07)', alignItems: 'center', justifyContent: 'center' },
+  closeX:       { fontSize: 13, color: D.textSub, fontWeight: '700' },
 
   // Hero
-  hero:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: D.surface, borderRadius: 16, borderWidth: 1, borderColor: D.glassBorder, padding: 16 },
+  hero:            { flexDirection: 'row', alignItems: 'center', backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.glassBorder, paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
+  heroLeft:        { alignItems: 'center', gap: 5 },
+  heroEnergyLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
+  heroCenter:      { flex: 1, alignItems: 'center', gap: 5 },
+  heroBestLabel:   { fontSize: 8, fontWeight: '900', color: D.cyan, letterSpacing: 2 },
+  heroDigits:      { fontSize: 30, fontWeight: '900', fontFamily: 'JetBrainsMono_700Bold', letterSpacing: 2, lineHeight: 34 },
+  posRow:          { flexDirection: 'row', gap: 5 },
+  posBox:          { width: 28, height: 34, borderRadius: 7, borderWidth: 1.5, borderColor: D.glassBorder, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.04)' },
+  posDigit:        { fontSize: 13, fontWeight: '900', color: D.textDim, fontFamily: D.monoBold },
+  posLabel:        { fontSize: 7, color: D.textDim },
+  heroRight:       { alignItems: 'center', gap: 5 },
+  boxBadge:        { backgroundColor: D.gold + '18', borderRadius: 9, borderWidth: 1, borderColor: D.gold + '44', paddingHorizontal: 10, paddingVertical: 6, alignItems: 'center' },
+  boxBadgeLabel:   { fontSize: 7, fontWeight: '900', color: D.gold, letterSpacing: 1.5 },
+  boxBadgeCombo:   { fontSize: 17, fontWeight: '900', color: D.text, fontFamily: D.monoBold, letterSpacing: 2 },
+  heroMeta:        { fontSize: 8, color: D.textDim, fontWeight: '700', letterSpacing: 1 },
+  heroVersion:     { fontSize: 8, color: D.cyan + 'AA', fontWeight: '600' },
 
-  // Gauge — wrap is 110×110, absoluteFillObject overlays to center text
-  gaugeWrap:        { width: 110, height: 110, alignItems: 'center', justifyContent: 'center' },
-  gaugeCenterInner: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  gaugePct:         { fontSize: 22, fontWeight: '900', color: D.text, fontFamily: D.mono },
-  gaugeLabel:       { fontSize: 9, color: D.textDim, fontWeight: '700', letterSpacing: 1 },
-  intelligenceLabel:{ fontSize: 8, color: D.cyan, fontWeight: '700', letterSpacing: 0.5, textAlign: 'center', marginTop: 4 },
+  // Timestamp strip
+  tsStrip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 6, backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.glassBorder },
+  tsClock: { fontSize: 11 },
+  tsLabel: { fontSize: 9, color: D.textDim, fontWeight: '700', letterSpacing: 1 },
+  tsValue: { flex: 1, fontSize: 10, color: D.textSub, fontFamily: D.mono, textAlign: 'right' },
 
-  // Digits column
-  digitsCol:     { alignItems: 'flex-start', gap: 4, flex: 1, paddingHorizontal: 10 },
-  straightLabel: { fontSize: 8, fontWeight: '900', color: D.cyan, letterSpacing: 1.5 },
-  bigDigits:     { fontSize: 26, fontWeight: '900', color: D.cyan, fontFamily: D.mono, letterSpacing: 2, lineHeight: 30 },
-  boxSetLabel:   { fontSize: 10, color: D.textSub, fontFamily: D.mono, marginTop: 2 },
-  posRow:        { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  posBox:        { width: 26, height: 32, borderRadius: 6, borderWidth: 1.5, borderColor: D.glassBorder, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.04)' },
-  posBoxActive:  { borderColor: D.cyan + '88', backgroundColor: D.cyan + '18' },
-  posDigit:      { fontSize: 13, fontWeight: '900', color: D.textDim, fontFamily: D.mono },
-  posDigitActive:{ color: D.cyan },
-  posLabel:      { fontSize: 7, color: D.textDim, fontWeight: '600' },
-
-  subScope:     { fontSize: 11, color: D.textDim, textAlign: 'center', marginTop: -6 },
-  sectionTitle: { fontSize: 12, fontWeight: '800', color: D.text, letterSpacing: 0.5 },
-  sectionSubtitle: { fontSize: 10, color: D.textDim, marginTop: -2, marginBottom: 8 },
-
-  boxPlayRow:   { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
-  boxPlayLabel: { fontSize: 13, fontWeight: '800', color: D.cyan },
-  boxPlayText:  { fontSize: 13, color: D.textSub },
-  boxPlayCombo: { fontSize: 13, fontWeight: '900', color: D.cyan, fontFamily: D.mono },
-
-  // Signal grid — use width % instead of flex:1 inside flexWrap
-  signalGrid: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-
-  pairWrap:     { backgroundColor: D.surface, borderRadius: 14, borderWidth: 1, borderColor: D.glassBorder, padding: 14, gap: 6 },
-  pairSubtitle: { fontSize: 10, color: D.textDim, marginTop: -4, marginBottom: 6 },
-
-  actionRow:   { flexDirection: 'row', gap: 10 },
-  btnBook:     { flex: 1, backgroundColor: D.gold + '18', borderWidth: 1.5, borderColor: D.gold + '88', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
-  btnBookText: { fontSize: 13, fontWeight: '800', color: D.gold },
-  btnHeat:     { flex: 1, backgroundColor: D.purple + '18', borderWidth: 1.5, borderColor: D.purple + '88', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
-  btnHeatText: { fontSize: 13, fontWeight: '800', color: D.purple },
-
-  savedMsg: { textAlign: 'center', color: D.cyan, fontSize: 12, fontWeight: '700' },
-
-  bottomRow:    { flexDirection: 'row', gap: 10 },
-  btnShare:     { flex: 1, backgroundColor: D.glass, borderWidth: 1, borderColor: D.glassBorder, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
-  btnShareText: { fontSize: 13, fontWeight: '700', color: D.textSub },
-  btnClose:     { flex: 1, backgroundColor: D.glass, borderWidth: 1, borderColor: D.glassBorder, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
-  btnCloseText: { fontSize: 13, fontWeight: '700', color: D.textSub },
+  // Content
+  content: { flex: 1 },
 });

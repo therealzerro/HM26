@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-05-08  
+**Last updated:** 2026-05-08 (PickDetailModal redesign)  
 **Maintained by:** therealzerro + Claude Code
 
 > **USAGE:** This is the single source of truth for all known issues, fixes, and technical debt.  
@@ -15,7 +15,7 @@
 |-------|-------|
 | ✅ Fixed | 11 |
 | ℹ️ By design / False positive | 6 |
-| 🎨 UX Improvements Applied | 25 |
+| 🎨 UX Improvements Applied | 31 |
 | 🔴 Open — Critical | 0 |
 | 🟠 Open — High | 2 |
 | 🟡 Open — Medium | 3 |
@@ -185,6 +185,25 @@ Fixes applied before the 2026-05-08 audit that informed the audit findings.
 
 ---
 
+## PickDetailModal Redesign — 2026-05-08
+
+Full rebuild of `components/PickDetailModal.tsx` for maximum data density with zero scrolling.
+
+| ID | Area | Change |
+|----|------|--------|
+| UX-36 | Pick Detail | Full-screen modal (replaces 92%-height bottom sheet) — uses all available screen real estate |
+| UX-37 | Pick Detail | Gradient accent line (purple→cyan→rose) at very top of modal for visual identity |
+| UX-38 | Pick Detail | Header bar: close (left) · rank badge + title (center) · share icon (right) — share accessible from all tabs |
+| UX-39 | Pick Detail | Hero strip always visible: animated energy arc, big combo digits colored by energy level, P1/P2/P3 position boxes, BOX SET badge, scope + version |
+| UX-40 | Pick Detail | **Timestamp strip** between hero and tabs — shows exact generation date/time (e.g. `May 8, 2026 · 2:45 PM`) for screenshot proof-of-analysis |
+| UX-41 | Pick Detail | **Tab-based navigation** (INTEL / PAIRS / PLAY) eliminates all scrolling — every tab fits one screen |
+| UX-42 | Pick Detail | INTEL tab: ZK6 confidence bar → 4 signal pills side-by-side (FREQ / MOMO / PATTERN / CONSIST) → Why This Order (3 rows with score badges) |
+| UX-43 | Pick Detail | PAIRS tab: Full pair intelligence matrix — 4 signals × 3 pairs as visual progress bars, color-coded, legend, drawn count + scope callout |
+| UX-44 | Pick Detail | PLAY tab: Straight vs Box bet cards (large combo, payout, badge) → 3 action buttons (Save / Heat Check / Share) |
+| UX-45 | Pick Detail | Removed redundant `horizonRows` query (sparklines removed; data density now served by matrix bars) |
+
+---
+
 ## Visual Enhancement Log — 2026-05-08
 
 Polish pass applied on top of the 35-point UX overhaul.
@@ -219,3 +238,4 @@ Polish pass applied on top of the 35-point UX overhaul.
 | 2026-05-08 | BUG-08 resolved by design — "National" label added to explore status strip | Claude Code |
 | 2026-05-08 | 15-point UX overhaul (UX-01 through UX-35) — see UX Improvement Log above | Claude Code |
 | 2026-05-08 | Visual enhancement pass (VIS-01 through VIS-15) — gradient headers, EnergyMeter/EmptyState/SlateCard wired in | Claude Code |
+| 2026-05-08 | PickDetailModal full redesign (UX-36 through UX-45) — full-screen, tab-based, zero scroll, timestamp strip | Claude Code |

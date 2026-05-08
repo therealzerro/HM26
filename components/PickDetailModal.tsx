@@ -181,14 +181,14 @@ function WhyOrder({ bestOrder, pairScores }: { bestOrder: string; pairScores: { 
   const sp = bestOrder[0] + bestOrder[2];
 
   const reasons = [
-    { pair: f,  icon: '📈', label: 'Momentum',  desc: `Front pair ${f} shows highest surge vector.`,      score: pairScores.front },
-    { pair: b,  icon: '⚙️', label: 'Back pair', desc: `Back pair ${b} has deep pattern alignment.`,       score: pairScores.back  },
-    { pair: sp, icon: '🔗', label: 'Split pair', desc: `Split pair ${sp} confirms multi-point signal sync.`, score: pairScores.split },
+    { pair: f,  icon: '📈', label: 'Front pair',  desc: `${f} is surging — highest recent frequency in the front position.`, score: pairScores.front },
+    { pair: b,  icon: '⚙️', label: 'Back pair',  desc: `${b} has strong digit co-occurrence in the back position.`,         score: pairScores.back  },
+    { pair: sp, icon: '🔗', label: 'Split pair', desc: `${sp} confirms alignment across all 3 signal channels.`,             score: pairScores.split },
   ];
 
   return (
     <View style={wo.wrap}>
-      <Text style={wo.title}>WHY THIS ORDER</Text>
+      <Text style={wo.title}>Why This Order</Text>
       {reasons.map((r, i) => (
         <View key={i} style={wo.row}>
           <View style={wo.iconBox}><Text style={wo.icon}>{r.icon}</Text></View>
@@ -361,7 +361,7 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
                 <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
                   <View style={s.gaugeCenterInner}>
                     <Text style={s.gaugePct}>{pick.energy}%</Text>
-                    <Text style={s.gaugeLabel}>MATCH</Text>
+                    <Text style={s.gaugeLabel}>ENERGY</Text>
                   </View>
                 </View>
                 <Text style={s.intelligenceLabel}>ZK6 INTELLIGENCE</Text>
@@ -396,11 +396,15 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
               <Text style={s.boxPlayLabel}>Box Play: </Text>
               <Text style={s.boxPlayText}>any order of </Text>
               <Text style={s.boxPlayCombo}>{pick.comboSet}</Text>
-              <Text style={s.boxPlayText}> wins</Text>
+              <Text style={s.boxPlayText}> wins (~$80)</Text>
             </View>
+            <Text style={{ fontSize: 10, color: D.textDim, marginHorizontal: 18, marginBottom: 12, lineHeight: 15 }}>
+              Straight = exact order shown above (~$500). Box = any order, lower payout. ZK6 recommends the straight order with strongest signal alignment.
+            </Text>
 
             {/* Signal breakdown */}
-            <Text style={s.sectionTitle}>SIGNAL BREAKDOWN</Text>
+            <Text style={s.sectionTitle}>Signal Breakdown</Text>
+            <Text style={s.sectionSubtitle}>% = signal strength (higher = stronger indicator)</Text>
             <View style={s.signalGrid}>
               {signals.map(sig => (
                 <SignalCard key={sig.lbl} label={sig.lbl} value={sig.val} color={sig.color} desc={sig.desc} sparkData={sig.sparkData} />
@@ -409,8 +413,8 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
 
             {/* Pair Intelligence Matrix */}
             <View style={s.pairWrap}>
-              <Text style={s.sectionTitle}>PAIR INTELLIGENCE</Text>
-              <Text style={s.pairSubtitle}>Advanced Data Matrix Grid</Text>
+              <Text style={s.sectionTitle}>Pair Intelligence</Text>
+              <Text style={s.pairSubtitle}>Signal strength per pair position · cyan ≥ 70% = strong · gold = moderate</Text>
               <View style={[pm.row, { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.15)', paddingBottom: 8, marginBottom: 4 }]}>
                 <Text style={[pm.rowLabel, { color: D.textDim, fontSize: 9 }]}>PAIR</Text>
                 {pairLabels.map(l => (
@@ -520,7 +524,8 @@ const s = StyleSheet.create({
   posLabel:      { fontSize: 7, color: D.textDim, fontWeight: '600' },
 
   subScope:     { fontSize: 11, color: D.textDim, textAlign: 'center', marginTop: -6 },
-  sectionTitle: { fontSize: 11, fontWeight: '900', color: D.text, letterSpacing: 1.5 },
+  sectionTitle: { fontSize: 12, fontWeight: '800', color: D.text, letterSpacing: 0.5 },
+  sectionSubtitle: { fontSize: 10, color: D.textDim, marginTop: -2, marginBottom: 8 },
 
   boxPlayRow:   { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
   boxPlayLabel: { fontSize: 13, fontWeight: '800', color: D.cyan },

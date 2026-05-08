@@ -3,8 +3,17 @@ import React from 'react';
 import { Text } from 'react-native';
 import { theme } from '@/constants/theme';
 
-function TabIcon({ emoji }: { emoji: string }) {
-  return <Text style={{ fontSize: 20 }}>{emoji}</Text>;
+function TabIcon({ emoji, label }: { emoji: string; label: string }) {
+  return (
+    <Text
+      style={{ fontSize: 20 }}
+      accessible
+      accessibilityLabel={label}
+      accessibilityRole="image"
+    >
+      {emoji}
+    </Text>
+  );
 }
 
 export default function TabLayout() {
@@ -39,63 +48,49 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon emoji="🏠" />
-          ),
+          tabBarIcon: () => <TabIcon emoji="🏠" label="Home" />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Slates',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon emoji="⚡" />
-          ),
+          tabBarIcon: () => <TabIcon emoji="⚡" label="Slates" />,
         }}
       />
       <Tabs.Screen
         name="zk30"
         options={{
           title: 'ZK30',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon emoji="🎯" />
-          ),
+          tabBarIcon: () => <TabIcon emoji="🎯" label="ZK30" />,
         }}
       />
       <Tabs.Screen
         name="results"
         options={{
           title: 'Results',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon emoji="📋" />
-          ),
+          tabBarIcon: () => <TabIcon emoji="📋" label="Results" />,
         }}
       />
       <Tabs.Screen
         name="book"
         options={{
           title: 'Number Book',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon emoji="📖" />
-          ),
+          tabBarIcon: () => <TabIcon emoji="📖" label="Number Book" />,
         }}
       />
       <Tabs.Screen
         name="learn"
         options={{
           title: 'Learn',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon emoji="🎓" />
-          ),
+          tabBarIcon: () => <TabIcon emoji="🎓" label="Learn" />,
         }}
       />
       <Tabs.Screen
         name="account"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon emoji="♛" />
-          ),
+          tabBarIcon: () => <TabIcon emoji="♛" label="Profile" />,
         }}
       />
       <Tabs.Screen name="coverage" options={{ href: null }} />

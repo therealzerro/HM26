@@ -114,7 +114,7 @@ export default function LedgerImportScreen() {
         {/* ── Header ── */}
         <View style={s.header}>
           <Text style={s.title}>📋 Ledger Import</Text>
-          <Text style={s.subtitle}>Paste results from lotterypost.com</Text>
+          <Text style={s.subtitle}>Paste results from lotterypost.com to power ZK6 hit tracking</Text>
         </View>
 
         {/* ── Input stage ── */}
@@ -185,7 +185,7 @@ export default function LedgerImportScreen() {
                       </View>
                     ))}
                     {parsed.length > 30 && (
-                      <Text style={s.moreRows}>…and {parsed.length - 30} more rows</Text>
+                      <Text style={s.moreRows}>Showing first 30 of {parsed.length} rows · scroll right to see all columns</Text>
                     )}
                   </View>
                 </ScrollView>
@@ -197,13 +197,17 @@ export default function LedgerImportScreen() {
               <View style={s.skippedBox}>
                 <View style={s.skippedHeader}>
                   <AlertCircle size={14} color={theme.colors.orange} />
-                  <Text style={s.skippedTitle}>{skipped.length} line{skipped.length !== 1 ? 's' : ''} skipped</Text>
+                  <Text style={s.skippedTitle}>{skipped.length} line{skipped.length !== 1 ? 's' : ''} skipped — these won't be imported</Text>
                 </View>
                 {skipped.slice(0, 10).map((msg, i) => (
-                  <Text key={i} style={s.skippedLine}>• {msg}</Text>
+                  <Text key={i} style={s.skippedLine}>
+                    • {msg.replace(/Invalid date format: '([^']+)'/, 'Unrecognized date "$1" — use YYYY-MM-DD or "Mon, Apr 14, 2026"')
+                          .replace(/Missing result_digits/, 'No draw result found on this line')
+                          .replace(/Missing jurisdiction/, 'No state name found — make sure state names are on their own line')}
+                  </Text>
                 ))}
                 {skipped.length > 10 && (
-                  <Text style={s.skippedLine}>…and {skipped.length - 10} more</Text>
+                  <Text style={s.skippedLine}>…and {skipped.length - 10} more skipped lines</Text>
                 )}
               </View>
             )}
@@ -239,8 +243,11 @@ export default function LedgerImportScreen() {
           <View style={s.section}>
             <View style={s.successCard}>
               <CheckCircle size={28} color={theme.colors.success} />
-              <Text style={s.successTitle}>Import Complete</Text>
+              <Text style={s.successTitle}>Import Complete ✓</Text>
               <Text style={s.successMsg}>{commitMsg}</Text>
+              <Text style={{ fontSize: 11, color: theme.colors.textTertiary, marginTop: 8, textAlign: 'center', lineHeight: 17 }}>
+                Your results are now active. ZK6 will use this data on the next slate generation. View Results to see hit tracking.
+              </Text>
               {commitError ? (
                 <Text style={s.errorMsg}>{commitError}</Text>
               ) : null}
@@ -249,7 +256,7 @@ export default function LedgerImportScreen() {
             <View style={s.actionRow}>
               <Button title="Import More" onPress={handleReset} variant="secondary" />
               <Button
-                title="View Results"
+                title="View Results →"
                 onPress={() => router.replace('/(tabs)/results' as any)}
               />
             </View>

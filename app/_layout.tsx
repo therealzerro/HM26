@@ -11,6 +11,7 @@ import { SnapshotProvider } from "@/hooks/useSnapshot";
 import { CoverageProvider } from "@/hooks/useCoverage";
 import { DataIngestionProvider } from "@/hooks/useDataIngestion";
 import { AppModeProvider } from "@/context/AppModeContext";
+import { ToastProvider } from "@/components/Toast";
 import { theme } from "@/constants/theme";
 import { useFonts } from "expo-font";
 import {
@@ -147,15 +148,17 @@ function AppContent() {
   return (
     <ErrorBoundary>
       <AppModeProvider>
-        <ScopeProvider>
-          <SnapshotProvider>
-            <CoverageProvider>
-              <DataIngestionProvider>
-                <RootLayoutNav />
-              </DataIngestionProvider>
-            </CoverageProvider>
-          </SnapshotProvider>
-        </ScopeProvider>
+        <ToastProvider>
+          <ScopeProvider>
+            <SnapshotProvider>
+              <CoverageProvider>
+                <DataIngestionProvider>
+                  <RootLayoutNav />
+                </DataIngestionProvider>
+              </CoverageProvider>
+            </SnapshotProvider>
+          </ScopeProvider>
+        </ToastProvider>
       </AppModeProvider>
     </ErrorBoundary>
   );

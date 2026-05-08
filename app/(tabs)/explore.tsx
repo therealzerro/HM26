@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RefreshCw } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
@@ -20,6 +21,8 @@ import { fetchFromSupabase } from '@/lib/supabase';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
 import { RegenConfirmationModal } from '@/components/RegenConfirmationModal';
+import { InfoTooltip } from '@/components/InfoTooltip';
+import { useToast } from '@/components/Toast';
 
 function toComboSet(combo: string) {
   return '{' + combo.split('').sort().join(',') + '}';
@@ -63,6 +66,7 @@ export default function SlatesScreen() {
   const isFree = user?.role === 'free';
   const isAdmin = user?.role === 'admin';
   const isPro = user?.role === 'premium';
+  const { showToast } = useToast();
   const isPlus = isAdmin;
   const PRO_DAILY_CREDITS = 3;
   const creditsRemaining = Math.max(0, PRO_DAILY_CREDITS - creditsUsed);
@@ -188,8 +192,12 @@ export default function SlatesScreen() {
       setRegenMsg(res.message);
       setRegenOpen(true);
       if (res.status === 'success') {
+        showToast('✓ Slate regenerated successfully', 'success');
         queryClient.removeQueries({ queryKey: ['snapshot'] });
         await refreshSnapshot();
+      } else {
+        setRegenMsg(res.message);
+        setRegenOpen(true);
       }
 
       // Deduct credit for PRO users
@@ -207,12 +215,11 @@ export default function SlatesScreen() {
         }).catch(() => {/* non-fatal */});
       }
     } catch {
-      setRegenMsg('Failed to trigger regeneration');
-      setRegenOpen(true);
+      showToast('Failed to regenerate slate. Try again.', 'error');
     } finally {
       setIsRegenLoading(false);
     }
-  }, [regenerateSlate, scope, wKey, refreshSnapshot, queryClient, isPro, creditsUsed, user?.id]);
+  }, [regenerateSlate, scope, wKey, refreshSnapshot, queryClient, isPro, creditsUsed, user?.id, showToast]);
 
   const rawItems = useMemo((): PickItem[] => {
     // Use activePicks (non-hit picks) from useSnapshot
@@ -321,8 +328,17 @@ export default function SlatesScreen() {
       {/* ── Header ── */}
       <View style={s.header}>
         <Text style={s.title}>K6 <Text style={{ color: theme.colors.cyan }}>Slates</Text></Text>
-        {isPro && creditsRemaining > 0 && (
-          <Text style={s.creditsText}>{creditsRemaining} cr</Text>
+        {isPro && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Text style={[s.creditsText, creditsRemaining === 0 && { color: theme.colors.error }]}>
+              {creditsRemaining}/{PRO_DAILY_CREDITS} regens
+            </Text>
+            <InfoTooltip
+              term="Daily Regenerations"
+              definition={`Oracle+ members get ${PRO_DAILY_CREDITS} free slate regenerations per day. Your count resets at midnight ET.\n\nUpgrade to Mystic for unlimited regenerations.`}
+              size={13}
+            />
+          </View>
         )}
         <View style={{ flex: 1 }} />
         <TouchableOpacity
@@ -365,10 +381,12 @@ export default function SlatesScreen() {
             </TouchableOpacity>
           ))}
           <TouchableOpacity
-            style={[s.scopeBtn, showYesterday && s.scopeBtnYest]}
+            style={[s.scopeBtn, s.yesterdayBtn, showYesterday && s.scopeBtnYest]}
             onPress={() => setShowYesterday(v => !v)}
           >
-            <Text style={[s.scopeBtnText, showYesterday && { color: theme.colors.gold, fontWeight: '700' }]}>📅 Yest</Text>
+            <Text style={[s.scopeBtnText, { color: showYesterday ? theme.colors.gold : theme.colors.amber }, showYesterday && { fontWeight: '800' }]}>
+              📅 Yesterday
+            </Text>
           </TouchableOpacity>
         </View>
         <View style={s.scopeDivider} />
@@ -384,9 +402,10 @@ export default function SlatesScreen() {
       {/* ── PRO banner (free only, compact) ── */}
       {isFree && (
         <TouchableOpacity style={s.proBanner} onPress={() => setPaywallOpen(true)} activeOpacity={0.85}>
-          <Text style={s.proBannerTitle}>Unlock all 6 picks</Text>
+          <Text style={s.proBannerTitle}>Picks #3–6 are hidden</Text>
+          <Text style={s.proBannerSub}>Oracle+ members see all 6 + optimal straights</Text>
           <View style={{ flex: 1 }} />
-          <View style={s.proBannerBtn}><Text style={s.proBannerBtnText}>Oracle+ ♛</Text></View>
+          <View style={s.proBannerBtn}><Text style={s.proBannerBtnText}>Unlock ♛</Text></View>
         </TouchableOpacity>
       )}
 
@@ -395,20 +414,20 @@ export default function SlatesScreen() {
         {(['all', 'singles', 'doubles'] as const).map(m => (
           <TouchableOpacity key={m} style={[s.ctrlChip, fMult === m && s.ctrlChipOnCyan]} onPress={() => setFMult(m)}>
             <Text style={[s.ctrlText, fMult === m && s.ctrlTextCyan]}>
-              {m === 'all' ? 'All' : m === 'singles' ? 'S' : 'D'}
+              {m === 'all' ? 'All' : m === 'singles' ? 'Singles' : 'Doubles'}
             </Text>
           </TouchableOpacity>
         ))}
         <View style={s.ctrlDiv} />
-        {([['rank', 'Rank'], ['energy', 'Nrg'], ['freq', 'Frq']] as const).map(([id, lbl]) => (
+        {([['rank', 'Rank'], ['energy', 'Energy'], ['freq', 'Freq']] as const).map(([id, lbl]) => (
           <TouchableOpacity key={id} style={[s.ctrlChip, sort === id && s.ctrlChipOnPurple]} onPress={() => setSort(id)}>
             <Text style={[s.ctrlText, sort === id && s.ctrlTextPurple]}>{lbl}</Text>
           </TouchableOpacity>
         ))}
         <View style={{ flex: 1 }} />
-        {!showYesterday && ([['list', '≡'], ['compact', '⊞']] as const).map(([vm, icon]) => (
+        {!showYesterday && ([['list', 'List'], ['compact', 'Grid']] as const).map(([vm, lbl]) => (
           <TouchableOpacity key={vm} style={[s.ctrlChip, viewMode === vm && s.ctrlChipOnPurple]} onPress={() => setViewMode(vm as any)}>
-            <Text style={[s.ctrlText, viewMode === vm && s.ctrlTextPurple]}>{icon}</Text>
+            <Text style={[s.ctrlText, viewMode === vm && s.ctrlTextPurple]}>{lbl}</Text>
           </TouchableOpacity>
         ))}
         {!isFree && (
@@ -437,7 +456,15 @@ export default function SlatesScreen() {
             ) : !yesterdayHasFullResults ? (
               <View style={{ padding: 20, backgroundColor: 'rgba(255,217,61,0.08)', borderRadius: 14, borderWidth: 1, borderColor: theme.colors.gold + '55', marginBottom: 16 }}>
                 <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.gold, marginBottom: 4 }}>⏳ Yesterday's performance pending</Text>
-                <Text style={{ fontSize: 11, color: theme.colors.textSecondary, lineHeight: 17 }}>Import full results ledger to see hit tracking ({(yesterdayResults?.length ?? 0)} jurisdictions imported, need 20+)</Text>
+                <Text style={{ fontSize: 11, color: theme.colors.textSecondary, lineHeight: 17, marginBottom: 12 }}>
+                  Only {yesterdayResults?.length ?? 0} of 20+ states imported. Import the full results ledger to unlock hit tracking.
+                </Text>
+                <TouchableOpacity
+                  style={{ backgroundColor: theme.colors.gold + '22', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.colors.gold + '55', alignSelf: 'flex-start' }}
+                  onPress={() => router.push('/ledger-import' as any)}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: theme.colors.gold }}>Import Results →</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <>
@@ -643,11 +670,13 @@ const s = StyleSheet.create({
   modeBtnText: { fontSize: 10, fontWeight: '600', color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
   modeBtnTextOn: { color: theme.colors.purple },
 
-  // PRO banner — compact single line
-  proBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.colors.purple + '12', borderBottomWidth: 1, borderBottomColor: theme.colors.purple + '33', paddingHorizontal: 14, paddingVertical: 7 },
-  proBannerTitle: { fontSize: 11, fontWeight: '700', color: theme.colors.textSecondary },
-  proBannerBtn: { backgroundColor: theme.colors.purple, paddingHorizontal: 10, paddingVertical: 4, borderRadius: theme.borderRadius.chip },
-  proBannerBtnText: { fontSize: 10, fontWeight: '800', color: '#fff', fontFamily: theme.typography.fontFamily.mono },
+  // PRO banner — compact
+  proBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.colors.purple + '18', borderBottomWidth: 1, borderBottomColor: theme.colors.purple + '44', paddingHorizontal: 14, paddingVertical: 9, minHeight: 48 },
+  proBannerTitle: { fontSize: 12, fontWeight: '800', color: theme.colors.text },
+  proBannerSub: { fontSize: 10, color: theme.colors.textSecondary, marginTop: 1 },
+  proBannerBtn: { backgroundColor: theme.colors.purple, paddingHorizontal: 12, paddingVertical: 6, borderRadius: theme.borderRadius.chip },
+  proBannerBtnText: { fontSize: 11, fontWeight: '800', color: '#fff', fontFamily: theme.typography.fontFamily.mono },
+  yesterdayBtn: { borderWidth: 1, borderColor: theme.colors.amber + '55', backgroundColor: theme.colors.amber + '10' },
 
   // Control strip — filters + sort + view + save in one 30px row
   ctrlStrip: { flexDirection: 'row', alignItems: 'center', gap: 1, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: theme.colors.background, borderBottomWidth: 1, borderBottomColor: theme.colors.border },

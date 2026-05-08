@@ -60,11 +60,11 @@ function whySummary(pick: PickItem): string {
 }
 
 // ─── Pressure ─────────────────────────────────────────────────────────────────
-function pressureInfo(ds?: number, td?: number): { label: string; color: string } | null {
+function pressureInfo(ds?: number, td?: number): { label: string; sub: string; color: string } | null {
   if (ds == null || td === 0 || ds >= 500) return null;
-  if (ds < 30)   return { label: `Fresh hit`,           color: theme.colors.success };
-  if (ds > 200)  return { label: `Overdue by ${ds}d`,   color: theme.colors.orange };
-  return           { label: 'Building pressure',         color: theme.colors.gold };
+  if (ds < 30)  return { label: `Fresh hit ✓`,          sub: `Hit ${ds} draws ago`,       color: theme.colors.success };
+  if (ds > 200) return { label: `Overdue ⚠`,            sub: `${ds} draws without a hit`, color: theme.colors.orange };
+  return               { label: 'Building pressure',     sub: `${ds} draws since last hit`, color: theme.colors.gold };
 }
 
 // ─── Signal description ───────────────────────────────────────────────────────
@@ -154,19 +154,20 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
   if (pick.locked) {
     return (
       <View style={[s.card, { overflow: 'hidden' }]}>
-        <View style={{ opacity: 0.25, flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
+        <View style={{ opacity: 0.2, flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
           <View style={[s.rankBadge, { backgroundColor: theme.colors.surfaceLight }]}>
             <Text style={[s.rankText, { color: theme.colors.textTertiary }]}>#{pick.rank}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[s.combo, { color: theme.colors.textTertiary }]}>•••</Text>
+            <Text style={[s.combo, { color: theme.colors.textTertiary }]}>•  •  •</Text>
           </View>
         </View>
         <TouchableOpacity style={s.lockOverlay} activeOpacity={0.85} onPress={handleUnlock}>
-          <Text style={{ fontSize: 20 }}>🏆</Text>
-          <Text style={s.lockTitle}>Slate #{pick.rank} — Oracle Only</Text>
+          <Text style={{ fontSize: 20 }}>♛</Text>
+          <Text style={s.lockTitle}>Pick #{pick.rank} — Oracle+ Only</Text>
+          <Text style={s.lockSub}>Tap to unlock all 6 picks</Text>
           <View style={s.lockBadge}>
-            <Text style={s.lockBadgeText}>UNLOCK ♛</Text>
+            <Text style={s.lockBadgeText}>UPGRADE TO ORACLE+</Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -316,6 +317,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
               <View style={s.pressureRow}>
                 <View style={[s.pressureDot, { backgroundColor: pressure.color }]} />
                 <Text style={[s.pressureText, { color: pressure.color }]}>{pressure.label}</Text>
+                <Text style={s.pressureSub}>{pressure.sub}</Text>
               </View>
             )}
           </View>
@@ -442,6 +444,7 @@ const s = StyleSheet.create({
   },
   pressureDot: { width: 5, height: 5, borderRadius: 3 },
   pressureText: { fontSize: 10, fontWeight: '700' },
+  pressureSub: { fontSize: 9, color: theme.colors.textTertiary, marginLeft: 2 },
   bottomRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginTop: 10, paddingTop: 8,
@@ -460,7 +463,8 @@ const s = StyleSheet.create({
     backgroundColor: theme.colors.bgElevated + 'EE',
     borderRadius: theme.borderRadius.card, gap: 4,
   },
-  lockTitle: { fontSize: 12, fontWeight: '800', color: theme.colors.text },
+  lockTitle: { fontSize: 14, fontWeight: '800', color: theme.colors.text },
+  lockSub: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 3, marginBottom: 6 },
   lockBadge: {
     backgroundColor: theme.colors.goldLight, paddingHorizontal: 12, paddingVertical: 4,
     borderRadius: 99, borderWidth: 1, borderColor: theme.colors.gold + '40',

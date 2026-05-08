@@ -4,10 +4,12 @@ import {
   ActivityIndicator, Alert, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { theme } from '@/constants/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { backfillIntelHits, BackfillProgress } from '@/lib/backfillIntelHits';
 import { getTodayET } from '@/lib/dateUtils';
+import { InfoTooltip } from '@/components/InfoTooltip';
 
 
 interface IntelRow {
@@ -285,7 +287,7 @@ function SuggestionCard({
       <Text style={s.suggBody}>{body}</Text>
       <View style={s.suggButtons}>
         <TouchableOpacity style={s.applyBtn} onPress={onApply}>
-          <Text style={s.applyBtnText}>Apply to Engine Config</Text>
+          <Text style={s.applyBtnText}>Apply · Regenerate slates to see effect</Text>
         </TouchableOpacity>
         <TouchableOpacity style={s.dismissBtn} onPress={onDismiss}>
           <Text style={s.dismissBtnText}>Dismiss</Text>
@@ -461,9 +463,14 @@ export default function IntelligenceScreen() {
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={s.loadingText}>
             {loadingRows > 0
-              ? `Loading… ${loadingRows.toLocaleString()} rows`
+              ? `Loading… ${loadingRows.toLocaleString()} of ~2,000 picks`
               : 'Loading Pattern Intelligence…'}
           </Text>
+          {loadingRows > 0 && (
+            <Text style={{ fontSize: 11, color: theme.colors.textTertiary, marginTop: 4 }}>
+              Analyzing signal patterns across all draws…
+            </Text>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -486,12 +493,21 @@ export default function IntelligenceScreen() {
     return (
       <SafeAreaView style={s.container}>
         <ScrollView contentContainerStyle={s.emptyContainer}>
-          <Text style={s.emptyTitle}>No Intelligence Data</Text>
-          <Text style={s.emptyBody}>Run hit detection first or backfill existing picks to populate analysis.</Text>
+          <Text style={{ fontSize: 36, marginBottom: 12 }}>📊</Text>
+          <Text style={s.emptyTitle}>No Intelligence Data Yet</Text>
+          <Text style={s.emptyBody}>
+            Intelligence learns from your slate hit history. Generate slates and import draw results, then backfill to populate analysis.
+          </Text>
           <TouchableOpacity style={s.backfillBtn} onPress={handleBackfill} disabled={backfilling}>
             {backfilling ? <ActivityIndicator color="#fff" /> : <Text style={s.backfillBtnText}>Backfill Hit Data</Text>}
           </TouchableOpacity>
           {!!backfillStatus && <Text style={s.backfillStatus}>{backfillStatus}</Text>}
+          <TouchableOpacity
+            style={[s.backfillBtn, { backgroundColor: theme.colors.bgElevated, marginTop: 8, borderWidth: 1, borderColor: theme.colors.border }]}
+            onPress={() => router.push('/(tabs)/explore')}
+          >
+            <Text style={[s.backfillBtnText, { color: theme.colors.cyan }]}>Go to Slates ⚡</Text>
+          </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
     );
@@ -596,7 +612,13 @@ export default function IntelligenceScreen() {
             <View style={ss.emptySlate}>
               <Text style={ss.emptySlateIcon}>📭</Text>
               <Text style={ss.emptySlateTitle}>No slate for today yet</Text>
-              <Text style={ss.emptySlateBody}>Generate a slate from the Explore tab first.</Text>
+              <Text style={ss.emptySlateBody}>Generate a slate first to see today's hidden picks here.</Text>
+              <TouchableOpacity
+                style={{ marginTop: 16, backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius.md, paddingVertical: 12, paddingHorizontal: 24 }}
+                onPress={() => router.push('/(tabs)/explore')}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Generate Slate ⚡</Text>
+              </TouchableOpacity>
             </View>
           ) : (
             slateRows.map((row, i) => <SlateRow key={row.id ?? i} row={row} />)
@@ -614,7 +636,14 @@ export default function IntelligenceScreen() {
 
         {/* Header */}
         <View style={s.header}>
-          <Text style={s.headerTitle}>Pattern Intelligence</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={s.headerTitle}>Pattern Intelligence</Text>
+            <InfoTooltip
+              term="Pattern Intelligence"
+              definition={"Analyzes your entire slate history to show which signals, ranks, and energy levels actually hit.\n\nUse the suggestions below to tune the ZK6 engine based on what has been working for your data."}
+              size={16}
+            />
+          </View>
           <Text style={s.headerSub}>{d.total.toLocaleString()} picks tracked</Text>
           <TouchableOpacity style={s.reloadBtn} onPress={load}>
             <Text style={s.reloadBtnText}>↺ Refresh</Text>

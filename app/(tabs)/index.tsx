@@ -19,6 +19,8 @@ import { PickCard, PickItem } from '@/components/PickCard';
 import { PickDetailModal } from '@/components/PickDetailModal';
 import { Paywall } from '@/components/Paywall';
 import { HeatCheckModal } from '@/components/HeatCheckModal';
+import { InfoTooltip } from '@/components/InfoTooltip';
+import { useToast } from '@/components/Toast';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { storage } from '@/lib/storage';
 import { getTodayET } from '@/lib/dateUtils';
@@ -48,9 +50,9 @@ const SCOPE_LABELS: Record<string, string> = {
 };
 
 const MODE_OPTIONS = [
-  { key: 'balanced', label: 'Balanced' },
-  { key: 'conservative', label: 'Conservative' },
-  { key: 'aggressive', label: 'Aggressive' },
+  { key: 'balanced',     label: 'Balanced',     sub: 'Equal weight' },
+  { key: 'conservative', label: 'Conservative', sub: 'History focus' },
+  { key: 'aggressive',   label: 'Aggressive',   sub: 'Momentum focus' },
 ];
 
 // ─── Live Results Ticker ──────────────────────────────────────────────────────
@@ -286,7 +288,7 @@ function EngineStatusBar({ snapshot }: { snapshot: ReturnType<typeof useSnapshot
   if (boxRows === 0) {
     return (
       <View style={[esb.bar, esb.demo]}>
-        <Text style={esb.text}>🔶 Demo mode · Import box history to activate ZK6</Text>
+        <Text style={esb.text}>🔶 Sample data only — import real draw history from the Results tab to power live ZK6 analysis</Text>
       </View>
     );
   }
@@ -294,7 +296,7 @@ function EngineStatusBar({ snapshot }: { snapshot: ReturnType<typeof useSnapshot
     return (
       <View style={[esb.bar, esb.warning]}>
         <Text style={esb.text}>
-          {'⚠️ ZK6 ' + version + ' · Using allday fallback · Import ' + snapshot.scope + ' data for scope-specific picks'}
+          {'⚠️ ZK6 ' + version + ' · Showing All Day data (not enough ' + snapshot.scope + ' draws) · Import ' + snapshot.scope + ' results to improve accuracy'}
         </Text>
       </View>
     );
@@ -352,6 +354,7 @@ export default function HomeScreen() {
 
   const currentTier = user?.role === 'admin' ? 'PLUS' : user?.role === 'premium' ? 'PRO' : 'FREE';
   const isFree = currentTier === 'FREE';
+  const { showToast } = useToast();
 
   // ── Daily streak + onboarding init ──
   useEffect(() => {
@@ -428,9 +431,13 @@ export default function HomeScreen() {
       setIsRegenLoading(true);
       const canonScope = (scope.toLowerCase().replace(/[-\s_]/g, '') || 'allday') as typeof scope;
       const res = await regenerateSlate(canonScope, mode, force === true);
-      setRegenMsg(res.message);
-      setRegenOpen(true);
-      if (res.status === 'success') await refreshSnapshot();
+      if (res.status === 'success') {
+        showToast('✓ Slate regenerated successfully', 'success');
+        await refreshSnapshot();
+      } else {
+        setRegenMsg(res.message);
+        setRegenOpen(true);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setRegenMsg(`Error: ${msg}`);
@@ -438,7 +445,7 @@ export default function HomeScreen() {
     } finally {
       setIsRegenLoading(false);
     }
-  }, [regenerateSlate, scope, mode, refreshSnapshot]);
+  }, [regenerateSlate, scope, mode, refreshSnapshot, showToast]);
 
   const handleModeChange = useCallback((newMode: typeof mode) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -563,7 +570,7 @@ export default function HomeScreen() {
                 { backgroundColor: currentTier === 'FREE' ? theme.colors.free : currentTier === 'PRO' ? theme.colors.premium : theme.colors.admin },
               ]}>
                 <Text style={s.tierText}>
-                  {currentTier === 'FREE' ? 'FREE' : currentTier === 'PRO' ? 'Pro ♛' : 'Plus ♛'}
+                  {currentTier === 'FREE' ? 'Seeker' : currentTier === 'PRO' ? 'Oracle+ ♛' : 'Mystic ♛'}
                 </Text>
               </View>
               {dailyStreak > 0 && (
@@ -596,6 +603,7 @@ export default function HomeScreen() {
                 onPress={() => handleModeChange(opt.key as any)}
               >
                 <Text style={[s.modeBtnText, mode === opt.key && s.modeBtnTextOn]}>{opt.label}</Text>
+                <Text style={[s.modeBtnSub, mode === opt.key && { color: theme.colors.purple + 'AA' }]}>{opt.sub}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -624,7 +632,7 @@ export default function HomeScreen() {
             <View style={{ flex: 1 }}>
               <Text style={s.hitBannerTitle}>ZK6 HIT TODAY! {hitBanner.digits} landed in {hitBanner.jurisdiction}</Text>
               <Text style={s.hitBannerSub}>
-                {hitBanner.jurisdiction} · {hitBanner.session === 'midday' ? '☀️ Midday' : '🌙 Evening'} · Box Win ✓
+                {hitBanner.jurisdiction} · {hitBanner.session === 'midday' ? '☀️ Midday' : '🌙 Evening'} · Box Win ✓ (matched any order)
               </Text>
             </View>
           </View>
@@ -654,6 +662,11 @@ export default function HomeScreen() {
         <View style={s.statStrip}>
           <Text style={[s.statStripNum, { color: avgColor }]}>{avgEnergy}</Text>
           <Text style={s.statStripLabel}>AVG ENERGY</Text>
+          <InfoTooltip
+            term="Energy Score"
+            definition={'0–100 signal strength for your slate.\n\n🔥 BLAZING (80+) — Exceptional convergence\n⚡ HOT (65–79) — Strong signal\n✦ WARM (45–64) — Moderate signal\n❄ COOL (below 45) — Weak signal\n\nHigher = more signals agree this combo is due.'}
+            size={14}
+          />
           <View style={s.statStripDiv} />
           <Text style={s.statStripVal}>{isFree ? 2 : 6} picks</Text>
           <Text style={s.statStripSep}>·</Text>
@@ -712,13 +725,14 @@ export default function HomeScreen() {
           {isFree && !snapshotLoading && (
             <View style={s.proGate}>
               <Text style={{ fontSize: 28, marginBottom: 6 }}>🏆</Text>
-              <Text style={s.proGateTitle}>Unlock your full K6 Slate</Text>
+              <Text style={s.proGateTitle}>See all 6 picks — Oracle+ members do</Text>
               <Text style={s.proGateDesc}>
-                All 6 K6 picks · Optimal straights · Energy analysis · 76 draws
+                Picks #3–6 are hidden. Oracle+ unlocks all 6 K6 picks, the optimal straight order for each, unlimited Heat Checks, and deep pattern analytics.
               </Text>
               <TouchableOpacity style={s.proGateBtn} onPress={() => setPaywallOpen(true)}>
                 <Text style={s.proGateBtnText}>Upgrade to Oracle+ · $9.99/mo ♛</Text>
               </TouchableOpacity>
+              <Text style={{ fontSize: 10, color: theme.colors.textTertiary, textAlign: 'center', marginTop: 6 }}>Try 5 days for $4.99 · Cancel anytime</Text>
             </View>
           )}
         </View>
@@ -808,6 +822,7 @@ const s = StyleSheet.create({
   modeBtnOn: { borderColor: theme.colors.purple + '88', backgroundColor: theme.colors.purple + '18' },
   modeBtnText: { fontSize: 10, fontWeight: '600', color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
   modeBtnTextOn: { color: theme.colors.purple },
+  modeBtnSub: { fontSize: 8, color: theme.colors.textTertiary + '88', marginTop: 1 },
 
   hitBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 10,

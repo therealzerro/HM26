@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useToast } from '@/components/Toast';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
@@ -61,8 +62,14 @@ const tog = StyleSheet.create({
 
 export default function AccountScreen() {
   const { user, setRole } = useAuth();
+  const { showToast } = useToast();
   const [glossOpen, setGlossOpen] = useState<number | null>(null);
   const [notifPrefs, setNotifPrefs] = useState({ nextDraw: true, slateReady: true, hits: true, promo: false });
+
+  const handleNotifChange = (key: keyof typeof notifPrefs, value: boolean) => {
+    setNotifPrefs(p => ({ ...p, [key]: value }));
+    showToast(`${value ? 'Enabled' : 'Disabled'}: ${key === 'nextDraw' ? 'Next Draw Alert' : key === 'slateReady' ? 'Slate Ready' : key === 'hits' ? 'Slate Hit Alert' : 'Promotions'}`, 'info');
+  };
   const [memberDays, setMemberDays] = useState(0);
 
   // Triple-tap on avatar → admin
@@ -179,7 +186,7 @@ export default function AccountScreen() {
                 <Text style={s.upgradeBtnText}>Upgrade to Oracle+ · $9.99/mo</Text>
               </TouchableOpacity>
               <TouchableOpacity style={s.trialBtn} onPress={() => router.push('/paywall')}>
-                <Text style={s.trialBtnText}>Try 5 days for $4.99 →</Text>
+                <Text style={s.trialBtnText}>Try 5 days for $4.99 → then $9.99/mo, cancel anytime</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -200,7 +207,10 @@ export default function AccountScreen() {
                 </View>
               ))}
               <View style={[s.divider, { marginTop: 14 }]} />
-              <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
+              <Text style={{ fontSize: 11, color: theme.colors.textTertiary, marginTop: 10, marginBottom: 8 }}>
+                Subscription renews automatically. Manage or cancel in your App Store account settings.
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
                 <TouchableOpacity style={s.outlineBtn}>
                   <Text style={s.outlineBtnText}>Manage Subscription</Text>
                 </TouchableOpacity>
@@ -216,10 +226,10 @@ export default function AccountScreen() {
         <View style={s.section}>
           <Text style={s.sectionLabel}>NOTIFICATIONS</Text>
           <View style={s.card}>
-            <Toggle on={notifPrefs.nextDraw} onChange={v => setNotifPrefs(p => ({ ...p, nextDraw: v }))} label="Next Draw Alert" sub="15 min before each draw" />
-            <Toggle on={notifPrefs.slateReady} onChange={v => setNotifPrefs(p => ({ ...p, slateReady: v }))} label="Slate Ready" sub="When ZK6 generates your daily slate" />
-            <Toggle on={notifPrefs.hits} onChange={v => setNotifPrefs(p => ({ ...p, hits: v }))} label="Slate Hit Alert" sub="When your picks match draw results" />
-            <Toggle on={notifPrefs.promo} onChange={v => setNotifPrefs(p => ({ ...p, promo: v }))} label="Promotions & New Features" sub="Special offers and announcements" />
+            <Toggle on={notifPrefs.nextDraw}   onChange={v => handleNotifChange('nextDraw', v)}   label="Next Draw Alert"          sub="15 min before each draw" />
+            <Toggle on={notifPrefs.slateReady} onChange={v => handleNotifChange('slateReady', v)} label="Slate Ready"               sub="When ZK6 generates your daily slate" />
+            <Toggle on={notifPrefs.hits}       onChange={v => handleNotifChange('hits', v)}       label="Slate Hit Alert"           sub="When your picks match draw results" />
+            <Toggle on={notifPrefs.promo}      onChange={v => handleNotifChange('promo', v)}      label="Promotions & New Features" sub="Special offers and announcements" />
           </View>
         </View>
 
@@ -238,7 +248,9 @@ export default function AccountScreen() {
                   activeOpacity={0.7}
                 >
                   <Text style={[s.glossTerm, glossOpen === i && { color: theme.colors.cyan }]}>{g.term}</Text>
-                  <Text style={s.glossArrow}>{glossOpen === i ? '▲' : '▼'}</Text>
+                  <Text style={[s.glossArrow, { color: glossOpen === i ? theme.colors.cyan : theme.colors.purple }]}>
+                    {glossOpen === i ? '▲' : '›'}
+                  </Text>
                 </TouchableOpacity>
                 {glossOpen === i && <Text style={s.glossDef}>{g.def}</Text>}
               </View>

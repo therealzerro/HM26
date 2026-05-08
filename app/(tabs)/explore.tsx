@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { TopKStraightRow } from '@/types/core';
 import { PickCard, PickItem } from '@/components/PickCard';
 import { PickDetailModal } from '@/components/PickDetailModal';
+import { SlateCard } from '@/components/SlateCard';
 import { Paywall } from '@/components/Paywall';
 import { HeatCheckModal } from '@/components/HeatCheckModal';
 import { storage } from '@/lib/storage';
@@ -535,40 +536,24 @@ export default function SlatesScreen() {
           />
         ))}
 
-        {!showYesterday && viewMode === 'compact' && (
-          <View style={{ backgroundColor: theme.colors.card, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border, overflow: 'hidden', marginBottom: 12, ...theme.shadows.soft }}>
-            {filtered.map((pick, i) => {
-              const heatColor = pick.energy >= 80 ? theme.colors.hot : pick.energy >= 65 ? theme.colors.amber : pick.energy >= 45 ? theme.colors.gold : theme.colors.textTertiary;
-              const heatEmoji = pick.energy >= 90 ? '🔥' : pick.energy >= 80 ? '⚡' : pick.energy >= 65 ? '✦' : pick.energy >= 45 ? '◈' : '❄';
-              const MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
-              const medal = MEDAL[pick.rank] ?? `#${pick.rank}`;
-              const bestStr = (pick.bestOrder ?? pick.combo).split('').join('-');
-              return (
-                <View key={`compact-${pick.rank}-${pick.combo}`} style={{ height: 52, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 10, borderBottomWidth: i < filtered.length - 1 ? 1 : 0, borderBottomColor: theme.colors.border }}>
-                  <Text style={{ fontSize: pick.rank <= 3 ? 18 : 13, width: 28, textAlign: 'center', fontWeight: '900', color: theme.colors.textTertiary }}>{medal}</Text>
-                  <Text style={{ fontSize: 20, fontWeight: '900', fontFamily: theme.typography.fontFamily.mono, letterSpacing: 3, color: pick.locked ? theme.colors.textTertiary : theme.colors.text, flex: 1 }}>
-                    {pick.locked ? '•••' : pick.combo}
-                  </Text>
-                  {!pick.locked && (
-                    <Text style={{ fontSize: 11, color: theme.colors.gold, fontFamily: theme.typography.fontFamily.mono, fontWeight: '700' }}>→ {bestStr}</Text>
-                  )}
-                  <View style={{ backgroundColor: heatColor + '20', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, borderWidth: 1, borderColor: heatColor + '40', alignItems: 'center', minWidth: 46 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: heatColor, fontFamily: theme.typography.fontFamily.mono, lineHeight: 14 }}>{pick.energy}</Text>
-                    <Text style={{ fontSize: 9, lineHeight: 11 }}>{heatEmoji}</Text>
-                  </View>
-                  <TouchableOpacity
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    onPress={() => pick.locked ? setPaywallOpen(true) : setDetail(pick)}
-                  >
-                    <Text style={{ fontSize: 16, color: pick.locked ? theme.colors.textTertiary : theme.colors.cyan }}>
-                      {pick.locked ? '🔒' : '▶'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
-          </View>
-        )}
+        {!showYesterday && viewMode === 'compact' && filtered.map((pick) => (
+          <TouchableOpacity
+            key={`compact-${pick.rank}-${pick.combo}`}
+            activeOpacity={0.8}
+            onPress={() => pick.locked ? setPaywallOpen(true) : setDetail(pick)}
+          >
+            <SlateCard
+              rank={pick.rank}
+              combo={pick.locked ? '•••' : pick.combo}
+              comboSet={pick.comboSet}
+              placeholder={pick.locked}
+              temperature={pick.energy}
+              components={pick.signals}
+              multiplicity={pick.multiplicity as 'singles' | 'doubles' | 'triples' | undefined}
+              topPair={pick.topPair}
+            />
+          </TouchableOpacity>
+        ))}
 
         {isFree && (
           <View style={s.upsellCard}>

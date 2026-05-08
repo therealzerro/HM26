@@ -8,6 +8,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { theme } from '@/constants/theme';
+import { Calendar } from 'lucide-react-native';
+import { EmptyState } from '@/components/EmptyState';
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
 
@@ -436,10 +438,11 @@ export default function ResultsScreen() {
             />
           }
           ListEmptyComponent={
-            <View style={s.emptyWrap}>
-              <Text style={s.emptyIcon}>📭</Text>
-              <Text style={s.emptyText}>No draws found for this date.</Text>
-            </View>
+            <EmptyState
+              icon={Calendar}
+              title="No draws found"
+              message="No draws recorded for this date. Import results to see the ledger."
+            />
           }
         />
       )}
@@ -502,10 +505,6 @@ const s = StyleSheet.create({
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   loadingText: { fontSize: 13, color: D.textDim },
   list:        { paddingBottom: 40 },
-  emptyWrap:   { alignItems: 'center', marginTop: 60, gap: 10 },
-  emptyIcon:   { fontSize: 36 },
-  emptyText:   { fontSize: 14, color: D.textDim, textAlign: 'center' },
-
   // Card
   card:      { flexDirection: 'row', backgroundColor: D.surface2, marginHorizontal: 12, marginBottom: 8, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: D.border, overflow: 'hidden' },
   cardHit:   { backgroundColor: theme.colors.cyan + '0d', borderColor: theme.colors.cyan + '55' },

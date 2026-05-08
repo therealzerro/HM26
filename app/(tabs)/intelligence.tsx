@@ -10,6 +10,8 @@ import { fetchFromSupabase } from '@/lib/supabase';
 import { backfillIntelHits, BackfillProgress } from '@/lib/backfillIntelHits';
 import { getTodayET } from '@/lib/dateUtils';
 import { InfoTooltip } from '@/components/InfoTooltip';
+import { EmptyState } from '@/components/EmptyState';
+import { BarChart2, Zap } from 'lucide-react-native';
 
 
 interface IntelRow {
@@ -492,23 +494,25 @@ export default function IntelligenceScreen() {
   if (!data || data.total === 0) {
     return (
       <SafeAreaView style={s.container}>
-        <ScrollView contentContainerStyle={s.emptyContainer}>
-          <Text style={{ fontSize: 36, marginBottom: 12 }}>📊</Text>
-          <Text style={s.emptyTitle}>No Intelligence Data Yet</Text>
-          <Text style={s.emptyBody}>
-            Intelligence learns from your slate hit history. Generate slates and import draw results, then backfill to populate analysis.
-          </Text>
-          <TouchableOpacity style={s.backfillBtn} onPress={handleBackfill} disabled={backfilling}>
-            {backfilling ? <ActivityIndicator color="#fff" /> : <Text style={s.backfillBtnText}>Backfill Hit Data</Text>}
-          </TouchableOpacity>
-          {!!backfillStatus && <Text style={s.backfillStatus}>{backfillStatus}</Text>}
-          <TouchableOpacity
-            style={[s.backfillBtn, { backgroundColor: theme.colors.bgElevated, marginTop: 8, borderWidth: 1, borderColor: theme.colors.border }]}
-            onPress={() => router.push('/(tabs)/explore')}
-          >
-            <Text style={[s.backfillBtnText, { color: theme.colors.cyan }]}>Go to Slates ⚡</Text>
-          </TouchableOpacity>
-        </ScrollView>
+        <EmptyState
+          icon={BarChart2}
+          title="No Intelligence Data Yet"
+          message="Intelligence learns from your slate hit history. Generate slates and import draw results, then backfill to populate analysis."
+          action={
+            <View style={{ gap: 8, alignItems: 'center' }}>
+              <TouchableOpacity style={s.backfillBtn} onPress={handleBackfill} disabled={backfilling}>
+                {backfilling ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.backfillBtnText}>Backfill Hit Data</Text>}
+              </TouchableOpacity>
+              {!!backfillStatus && <Text style={s.backfillStatus}>{backfillStatus}</Text>}
+              <TouchableOpacity
+                style={[s.backfillBtn, { backgroundColor: theme.colors.bgElevated, borderWidth: 1, borderColor: theme.colors.border }]}
+                onPress={() => router.push('/(tabs)/explore')}
+              >
+                <Text style={[s.backfillBtnText, { color: theme.colors.cyan }]}>Go to Slates ⚡</Text>
+              </TouchableOpacity>
+            </View>
+          }
+        />
       </SafeAreaView>
     );
   }
@@ -609,17 +613,19 @@ export default function IntelligenceScreen() {
               <Text style={s.loadingText}>Loading slate…</Text>
             </View>
           ) : slateRows.length === 0 ? (
-            <View style={ss.emptySlate}>
-              <Text style={ss.emptySlateIcon}>📭</Text>
-              <Text style={ss.emptySlateTitle}>No slate for today yet</Text>
-              <Text style={ss.emptySlateBody}>Generate a slate first to see today's hidden picks here.</Text>
-              <TouchableOpacity
-                style={{ marginTop: 16, backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius.md, paddingVertical: 12, paddingHorizontal: 24 }}
-                onPress={() => router.push('/(tabs)/explore')}
-              >
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Generate Slate ⚡</Text>
-              </TouchableOpacity>
-            </View>
+            <EmptyState
+              icon={Zap}
+              title="No slate for today yet"
+              message="Generate a slate first to see today's hidden picks here."
+              action={
+                <TouchableOpacity
+                  style={{ backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius.md, paddingVertical: 12, paddingHorizontal: 24 }}
+                  onPress={() => router.push('/(tabs)/explore')}
+                >
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Generate Slate ⚡</Text>
+                </TouchableOpacity>
+              }
+            />
           ) : (
             slateRows.map((row, i) => <SlateRow key={row.id ?? i} row={row} />)
           )}
@@ -865,9 +871,6 @@ const s = StyleSheet.create({
   headerSub: { fontSize: 13, color: theme.colors.textTertiary, marginTop: 2 },
   loadingText: { marginTop: 12, color: theme.colors.textSecondary, fontSize: 14 },
   errorText: { color: theme.colors.error, textAlign: 'center', fontSize: 14, marginBottom: 16 },
-  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.text, marginBottom: 8 },
-  emptyBody: { fontSize: 13, color: theme.colors.textTertiary, textAlign: 'center', marginBottom: 20 },
   sectionHeader: { fontSize: 13, fontWeight: '800', color: theme.colors.primary, marginTop: 20, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.8 },
   card: { backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.lg, padding: theme.spacing.md, marginBottom: 4, borderWidth: 1, borderColor: theme.colors.border, ...theme.shadows.soft },
   statRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
@@ -986,8 +989,4 @@ const ss = StyleSheet.create({
   energyLbl: { fontSize: 7, fontWeight: '800', letterSpacing: 0.3 },
 
   // Empty state
-  emptySlate: { alignItems: 'center', paddingVertical: 48, gap: 8 },
-  emptySlateIcon: { fontSize: 36 },
-  emptySlateTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.text },
-  emptySlateBody: { fontSize: 12, color: theme.colors.textTertiary, textAlign: 'center' },
 });

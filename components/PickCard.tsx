@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Share, Animated, Platform } f
 import * as Haptics from 'expo-haptics';
 import { theme } from '@/constants/theme';
 import { SignalBar } from './SignalBar';
+import { EnergyMeter } from './EnergyMeter';
 
 export interface PickItem {
   rank: number;
@@ -323,12 +324,8 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
           </View>
 
           {/* Energy badge */}
-          <View style={{ alignItems: 'center', gap: 4 }}>
-            <View style={[s.energyBadge, { backgroundColor: heat.color + '15', borderColor: heat.color + '40' }]}>
-              <Text style={[s.energyNum, { color: heat.color }]}>{pick.energy}</Text>
-              <Text style={{ fontSize: 12 }}>{heat.emoji}</Text>
-            </View>
-            <Text style={[s.energyLabel, { color: heat.color }]}>{heat.label}</Text>
+          <View style={{ alignItems: 'center' }}>
+            <EnergyMeter value={pick.energy} size={52} />
             {onTap && <Text style={s.tapHint}>tap ↗</Text>}
           </View>
         </View>
@@ -431,13 +428,6 @@ const s = StyleSheet.create({
   },
   tag: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 99 },
   tagText: { fontSize: 9, fontWeight: '700' },
-  energyBadge: {
-    width: 43, height: 43, borderRadius: 11,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, gap: 1,
-  },
-  energyNum: { fontSize: 12, fontWeight: '900', fontFamily: theme.typography.fontFamily.mono, lineHeight: 14 },
-  energyLabel: { fontSize: 8, fontWeight: '800', letterSpacing: 0.5 },
   tapHint: { fontSize: 8, color: theme.colors.textTertiary },
   pressureRow: {
     flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 7,

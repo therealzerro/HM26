@@ -4,6 +4,7 @@ import {
   TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { theme } from '@/constants/theme';
@@ -16,12 +17,11 @@ const D = {
   surface2: theme.colors.card,
   border:   theme.colors.border,
   purple:   theme.colors.purple,
-  teal:     theme.colors.cyan,
-  green:    theme.colors.cyan,
-  orange:   theme.colors.amber,
-  amber:    theme.colors.gold,
-  violet:   theme.colors.purple,
-  indigo:   theme.colors.blue,
+  teal:     theme.colors.cyan,   // BOX / Frequency / Hits
+  orange:   theme.colors.amber,  // Morning / warm
+  amber:    theme.colors.gold,   // Midday / consistency
+  violet:   theme.colors.purple, // Evening
+  indigo:   theme.colors.blue,   // Night
   text:     theme.colors.text,
   textSub:  theme.colors.textSecondary,
   textDim:  theme.colors.textTertiary,
@@ -217,20 +217,20 @@ export default function ResultsScreen() {
     const hasHit       = row.hits.length > 0;
     const sessionColor = SESSION_COLORS[row.session] ?? D.purple;
     const sessionIcon  = SESSION_ICONS[row.session]  ?? '•';
-    const stripColor   = hasHit ? D.green : sessionColor + '80';
-    const digitColor   = hasHit ? D.green : sessionColor;
+    const stripColor   = hasHit ? D.teal : sessionColor + '80';
+    const digitColor   = hasHit ? D.teal : sessionColor;
     const hit          = row.hits[0];
 
     return (
-      <View style={s.card}>
+      <View style={[s.card, hasHit && s.cardHit]}>
         {/* Left glow strip */}
         <View style={[s.strip, { backgroundColor: stripColor }]} />
 
         <View style={s.cardInner}>
           {/* Row 1: state pill + game info + F/B/S */}
           <View style={s.cardHeader}>
-            <View style={[s.statePill, { borderColor: hasHit ? D.green : sessionColor + '70' }]}>
-              <Text style={[s.stateText, { color: hasHit ? D.green : sessionColor }]}>
+            <View style={[s.statePill, { borderColor: hasHit ? D.teal : sessionColor + '70' }]}>
+              <Text style={[s.stateText, { color: hasHit ? D.teal : sessionColor }]}>
                 {row.jurisdiction}
               </Text>
             </View>
@@ -307,13 +307,18 @@ export default function ResultsScreen() {
     <SafeAreaView style={s.container} edges={['top']}>
 
       {/* Header */}
-      <View style={s.header}>
+      <LinearGradient
+        colors={theme.gradients.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={s.header}
+      >
         <Text style={s.headerTitle}>
           <Text style={s.headerWhite}>Results </Text>
           <Text style={s.headerPurple}>Ledger</Text>
         </Text>
         <Text style={s.headerSub}>{formatDisplayDate(selectedDate)} · {stats.total} draws</Text>
-      </View>
+      </LinearGradient>
 
       {/* Date tabs */}
       <ScrollView
@@ -393,7 +398,7 @@ export default function ResultsScreen() {
           { num: stats.eve,   label: 'Eve',     color: D.violet  },
           { num: stats.night, label: 'Night',   color: D.indigo  },
           { num: stats.total, label: 'Total',   color: D.text    },
-          { num: stats.hits,  label: '🎯 Hits', color: D.green   },
+          { num: stats.hits,  label: '🎯 Hits', color: D.teal   },
         ].map((item, i, arr) => (
           <React.Fragment key={item.label}>
             <View style={s.statItem}>
@@ -503,7 +508,8 @@ const s = StyleSheet.create({
 
   // Card
   card:      { flexDirection: 'row', backgroundColor: D.surface2, marginHorizontal: 12, marginBottom: 8, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: D.border, overflow: 'hidden' },
-  strip:     { width: 4 },
+  cardHit:   { backgroundColor: theme.colors.cyan + '0d', borderColor: theme.colors.cyan + '55' },
+  strip:     { width: 6 },
   cardInner: { flex: 1, padding: 12 },
 
   // Card header row
@@ -528,5 +534,5 @@ const s = StyleSheet.create({
   sessionRow:  { flexDirection: 'row', alignItems: 'center', gap: 5 },
   sessionIcon: { fontSize: 13 },
   sessionText: { fontSize: 11, fontWeight: '600' },
-  resultDigits:{ fontSize: 30, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 6 },
+  resultDigits:{ fontSize: 30, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 8 },
 });

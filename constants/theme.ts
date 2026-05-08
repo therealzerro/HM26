@@ -44,6 +44,9 @@ export const theme = {
     premium: '#ffd93d',
     admin:   '#9b5bff',
 
+    // Depth layers
+    surface2:     '#0d0820',   // intermediate depth between background and surface
+
     // Legacy compat — map to new palette
     primary:      '#9b5bff',
     primaryLight: 'rgba(155,91,255,0.12)',
@@ -139,6 +142,18 @@ export const theme = {
     fast:   150,
     medium: 250,
     slow:   350,
+    pulse:  900,
+  },
+
+  gradients: {
+    purpleRose:  ['#9b5bff', '#ff3d9a'] as [string, string],
+    cyanPurple:  ['#2bffcc', '#9b5bff'] as [string, string],
+    goldAmber:   ['#ffd93d', '#ff6a2b'] as [string, string],
+    header:      ['#120a1f', '#0a0613'] as [string, string],
+    hotEnergy:   ['#ff3b30', '#ff6a2b'] as [string, string],
+    warmEnergy:  ['#ff6a2b', '#ffd93d'] as [string, string],
+    mildEnergy:  ['#ffd93d', '#2bffcc'] as [string, string],
+    coolEnergy:  ['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.08)'] as [string, string],
   },
 
   shadows: {

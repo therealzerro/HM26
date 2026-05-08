@@ -136,6 +136,13 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.md,
     fontFamily: theme.typography.fontFamily.monoBold,
     color: theme.colors.purple,
+    backgroundColor: theme.colors.purple + '18',
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: theme.colors.purple + '40',
   },
   content: {
     flex: 1,
@@ -151,7 +158,7 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.xl,
     fontFamily: theme.typography.fontFamily.monoBold,
     color: theme.colors.text,
-    letterSpacing: 3,
+    letterSpacing: 6,
   },
   comboSet: {
     fontSize: theme.typography.fontSize.sm,

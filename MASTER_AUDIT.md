@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-05-20  
+**Last updated:** 2026-05-08  
 **Maintained by:** therealzerro + Claude Code
 
 > **USAGE:** This is the single source of truth for all known issues, fixes, and technical debt.  
@@ -124,7 +124,7 @@ Fixes applied before the 2026-05-08 audit that informed the audit findings.
 
 ## Quality Scorecard
 
-| Dimension | Before Audit | After 2026-05-08 Fixes | After 2026-05-20 UX Pass | Target |
+| Dimension | Before Audit | After 2026-05-08 Fixes | After 2026-05-08 UX Pass | Target |
 |-----------|-------------|------------------------|--------------------------|--------|
 | Type Safety | ⚠️ Medium | ✅ Good | ✅ Good | ✅ Good |
 | Error Handling | ⚠️ Medium | ✅ Good | ✅ Good | ✅ Good |
@@ -141,7 +141,7 @@ Fixes applied before the 2026-05-08 audit that informed the audit findings.
 
 ---
 
-## UX Improvement Log — 2026-05-20
+## UX Improvement Log — 2026-05-08
 
 15-point subscriber experience overhaul. All items sourced from deep UI/UX audit.
 
@@ -193,4 +193,4 @@ Fixes applied before the 2026-05-08 audit that informed the audit findings.
 | 2026-05-08 | BUG-01 through BUG-17 resolved/triaged; BUG-18 through BUG-22 identified as open | Claude Code |
 | 2026-05-08 | BUG-07 fully resolved — cursor-based pagination on Intelligence tab | Claude Code |
 | 2026-05-08 | BUG-08 resolved by design — "National" label added to explore status strip | Claude Code |
-| 2026-05-20 | 15-point UX overhaul (UX-01 through UX-35) — see UX Improvement Log above | Claude Code |
+| 2026-05-08 | 15-point UX overhaul (UX-01 through UX-35) — see UX Improvement Log above | Claude Code |

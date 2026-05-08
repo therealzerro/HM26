@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useToast } from '@/components/Toast';
 import { useQuery } from '@tanstack/react-query';
@@ -121,7 +122,12 @@ export default function AccountScreen() {
       <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
 
         {/* ── Hero ── */}
-        <View style={s.hero}>
+        <LinearGradient
+          colors={['#1a0d35', '#120a1f'] as [string, string]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={s.hero}
+        >
           <TouchableOpacity style={s.avatar} onPress={handleLogoTap} activeOpacity={0.85}>
             <Text style={{ fontSize: 30 }}>🏆</Text>
           </TouchableOpacity>
@@ -137,7 +143,7 @@ export default function AccountScreen() {
               </Text>
             </View>
           </View>
-        </View>
+        </LinearGradient>
 
         {/* ── Stats ── */}
         <View style={s.section}>
@@ -328,7 +334,6 @@ const s = StyleSheet.create({
     margin: 16, borderRadius: theme.borderRadius.xl,
     padding: 24, alignItems: 'center',
     borderWidth: 1, borderColor: theme.colors.border,
-    backgroundColor: theme.colors.bgElevated,
     ...theme.shadows.soft,
   },
   avatar: {

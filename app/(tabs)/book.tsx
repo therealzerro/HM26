@@ -8,6 +8,8 @@ import { router } from 'expo-router';
 import { theme } from '@/constants/theme';
 import { storage } from '@/lib/storage';
 import { HeatCheckModal } from '@/components/HeatCheckModal';
+import { EmptyState } from '@/components/EmptyState';
+import { BookOpen } from 'lucide-react-native';
 
 function toSet(combo: string) {
   return '{' + combo.split('').sort().join(',') + '}';
@@ -366,13 +368,16 @@ export default function NumberBookScreen() {
               </View>
 
               {activeList.combos.length === 0 ? (
-                <View style={s.emptyState}>
-                  <Text style={{ fontSize: 36, marginBottom: 8 }}>🔢</Text>
-                  <Text style={s.emptyTitle}>No numbers saved yet</Text>
-                  <TouchableOpacity style={s.addBtnOutline} onPress={() => setShowAdd(true)}>
-                    <Text style={s.addBtnOutlineText}>Add your first number</Text>
-                  </TouchableOpacity>
-                </View>
+                <EmptyState
+                  icon={BookOpen}
+                  title="No numbers saved yet"
+                  message="Add combos you want to track and check against your daily slate."
+                  action={
+                    <TouchableOpacity style={s.addBtnOutline} onPress={() => setShowAdd(true)}>
+                      <Text style={s.addBtnOutlineText}>Add your first number</Text>
+                    </TouchableOpacity>
+                  }
+                />
               ) : (
                 activeList.combos.map(item => (
                   <View key={item.combo} style={s.comboRow}>

@@ -6,6 +6,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { fetchFromSupabase } from '@/lib/supabase';
+import { EmptyState } from '@/components/EmptyState';
+import { Layers } from 'lucide-react-native';
 
 const BLUE = '#0ea5e9';
 const BLUE_DARK = '#0284c7';
@@ -118,10 +120,11 @@ export default function ZK30Screen() {
           </TouchableOpacity>
         </View>
       ) : !snapshot ? (
-        <View style={c.center}>
-          <Text style={c.emptyText}>No ZK30 snapshot found for {SCOPE_LABELS[scope]}</Text>
-          <Text style={c.emptyHint}>Generate a slate from the Admin screen to populate this view.</Text>
-        </View>
+        <EmptyState
+          icon={Layers}
+          title={`No ZK30 snapshot — ${SCOPE_LABELS[scope]}`}
+          message="Generate a slate from the Admin screen to populate this view."
+        />
       ) : (
         <ScrollView style={c.scroll} contentContainerStyle={c.scrollContent}>
           <View style={c.metaRow}>

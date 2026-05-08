@@ -556,7 +556,12 @@ export default function HomeScreen() {
         >
 
         {/* ── Header ── */}
-        <View style={s.header}>
+        <LinearGradient
+          colors={theme.gradients.header}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={s.header}
+        >
           <View style={s.headerTop}>
             <View style={{ flex: 1 }}>
               <Text style={s.title}>
@@ -607,7 +612,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
+        </LinearGradient>
 
         {/* ── Engine Status Bar ── */}
         <EngineStatusBar snapshot={snapshot} />
@@ -790,7 +795,7 @@ const s = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 32 },
 
-  header: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, gap: 10, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  header: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, gap: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   headerTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   title: { fontSize: 22, fontWeight: '900', color: theme.colors.text, lineHeight: 26, fontFamily: theme.typography.fontFamily.bold },
   subtitle: { fontSize: 11, color: theme.colors.textTertiary, marginTop: 2, fontFamily: theme.typography.fontFamily.mono },

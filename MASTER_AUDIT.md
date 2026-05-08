@@ -15,7 +15,7 @@
 |-------|-------|
 | ✅ Fixed | 11 |
 | ℹ️ By design / False positive | 6 |
-| 🎨 UX Improvements Applied | 15 |
+| 🎨 UX Improvements Applied | 25 |
 | 🔴 Open — Critical | 0 |
 | 🟠 Open — High | 2 |
 | 🟡 Open — Medium | 3 |
@@ -185,6 +185,30 @@ Fixes applied before the 2026-05-08 audit that informed the audit findings.
 
 ---
 
+## Visual Enhancement Log — 2026-05-08
+
+Polish pass applied on top of the 35-point UX overhaul.
+
+| ID | Area | Change |
+|----|------|--------|
+| VIS-01 | Global / Theme | `gradients` map added to `theme.ts` (header, hotEnergy, warmEnergy, mildEnergy, coolEnergy, purpleRose, cyanPurple, goldAmber) |
+| VIS-02 | Global / Theme | `surface2` depth layer + `pulse: 900` animation duration added to theme |
+| VIS-03 | EnergyMeter | Upgraded from flat border ring to `LinearGradient` ring + animated pulse halo (≥80 energy) |
+| VIS-04 | EmptyState | Replaced bare icon with 3-ring cosmic orbit illustration (outer/mid/inner rings + icon center) |
+| VIS-05 | SlateCard | Pick rank pill: background fill + border; digit letter-spacing widened to 6 |
+| VIS-06 | Results | `LinearGradient` header; hit cards get teal highlight bg + border; strip width 6; digits letter-spacing 8 |
+| VIS-07 | PickCard | Inline energy badge replaced with `EnergyMeter` (gradient ring, pulse halo on hot picks) |
+| VIS-08 | Explore | Compact/Grid view now renders `SlateCard` per pick (signal bars, pill rank, temp badge) instead of inline rows |
+| VIS-09 | Results | `EmptyState` (Calendar icon) replaces inline "No draws found" text in `ListEmptyComponent` |
+| VIS-10 | Intelligence | `EmptyState` (BarChart2 icon) replaces inline no-data state with action buttons preserved |
+| VIS-11 | Intelligence | `EmptyState` (Zap icon) replaces inline no-slate state with "Generate Slate ⚡" CTA preserved |
+| VIS-12 | Home | `LinearGradient` header replaces plain `bgElevated` View |
+| VIS-13 | Account | `LinearGradient` hero card replaces plain `bgElevated` View |
+| VIS-14 | Number Book | `EmptyState` (BookOpen icon) replaces inline "No numbers saved yet" state |
+| VIS-15 | ZK30 | `EmptyState` (Layers icon) replaces inline "No ZK30 snapshot found" text |
+
+---
+
 ## Changelog
 
 | Date | Change | By |
@@ -194,3 +218,4 @@ Fixes applied before the 2026-05-08 audit that informed the audit findings.
 | 2026-05-08 | BUG-07 fully resolved — cursor-based pagination on Intelligence tab | Claude Code |
 | 2026-05-08 | BUG-08 resolved by design — "National" label added to explore status strip | Claude Code |
 | 2026-05-08 | 15-point UX overhaul (UX-01 through UX-35) — see UX Improvement Log above | Claude Code |
+| 2026-05-08 | Visual enhancement pass (VIS-01 through VIS-15) — gradient headers, EnergyMeter/EmptyState/SlateCard wired in | Claude Code |

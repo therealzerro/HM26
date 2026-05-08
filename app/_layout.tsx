@@ -3,7 +3,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, ActivityIndicator, StyleSheet, ImageBackground } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ScopeProvider } from "@/hooks/useScope";
@@ -168,9 +168,17 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={styles.container}>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
+        <ImageBackground
+          source={require('../assets/background.png')}
+          style={styles.container}
+          resizeMode="cover"
+        >
+          <View style={styles.overlay}>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </View>
+        </ImageBackground>
       </GestureHandlerRootView>
     </QueryClientProvider>
   );
@@ -179,6 +187,10 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
   },
   loadingContainer: {
     flex: 1,

@@ -258,6 +258,7 @@ function DashboardView({ setView, imports, healthMetrics, regenerateSlate, check
       setDetectProgress('');
       if (totalHits > 0 || totalSupplements > 0) {
         queryClient.invalidateQueries({ queryKey: ['snapshot'] });
+        queryClient.invalidateQueries({ queryKey: ['daily_intelligence_hits'] });
       }
     } catch (e) {
       console.warn('[dashboard] hit detection error:', e);

@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-05-08 (card glow fix; background image deferred)  
+**Last updated:** 2026-05-08 (BUG-26/27 fixed — hits now refresh on results + intelligence)  
 **Maintained by:** therealzerro + Claude Code
 
 > **USAGE:** This is the single source of truth for all known issues, fixes, and technical debt.  
@@ -13,7 +13,7 @@
 
 | State | Count |
 |-------|-------|
-| ✅ Fixed | 13 |
+| ✅ Fixed | 15 |
 | ℹ️ By design / False positive | 6 |
 | 🎨 UX Improvements Applied | 31 |
 | 🔴 Open — Critical | 0 |
@@ -86,6 +86,18 @@ _Source: SYSTEM_AUDIT_REPORT_2026-05-08.md §4.2_
 - **Problem:** When scope data is sparse, ZK6 silently falls back to `allday`. User sees midday picks but they're actually allday picks.  
 - **Fix:** Set a flag in the snapshot metadata (already has `_source` in `EngineMetadata`). Explore screen reads this flag and shows a "Fallback: allday data" label when `_source !== scope`.  
 - **Status:** Open  
+
+**BUG-26 — Results Screen: Hits Not Refreshed After Hit Detection**
+- **Files:** `app/(tabs)/admin.tsx`, `app/(tabs)/results.tsx`
+- **Problem:** After hit detection runs from the Admin dashboard, only the `['snapshot']` React Query key is invalidated. The results screen's `['daily_intelligence_hits', date]` cache stays stale, so it displays zero hits until the user manually pulls to refresh (30s staleTime). Hits ARE written to `daily_intelligence` by `updateDailyIntelligenceHit`, but the UI doesn't know to re-fetch.
+- **Fix:** In `admin.tsx`, also call `queryClient.invalidateQueries({ queryKey: ['daily_intelligence_hits'] })` after hit detection succeeds.
+- **Status:** ✅ Fixed — `app/(tabs)/admin.tsx` | 2026-05-08
+
+**BUG-27 — Intelligence Top 30 Slate: No Hit Badge on SlateRow**
+- **Files:** `app/(tabs)/intelligence.tsx` (`SlateRow` component)
+- **Problem:** `SlateRow` renders combo, signals, and energy but ignores `row.hit_box` / `row.hit_straight` entirely. Hits are stored in `daily_intelligence` and fetched via `select=*`, but the component never displays them.
+- **Fix:** Add a hit badge to `SlateRow` when `row.hit_box || row.hit_straight` is true.
+- **Status:** ✅ Fixed — ⭐ STRAIGHT (gold) / 🎯 BOX (cyan) badges added to `SlateRow` | 2026-05-08
 
 **BUG-22 — `excludedCombos` Not Cleared Between Regen Calls**  
 _Source: AUDIT_2026-05-08.md §3 hooks_  

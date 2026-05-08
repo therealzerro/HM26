@@ -340,6 +340,12 @@ function SlateRow({ row }: { row: IntelRow }) {
               <Text style={ss.multText}>{row.multiplicity}</Text>
             </View>
           )}
+          {row.hit_straight && (
+            <View style={ss.hitBadge}><Text style={ss.hitBadgeText}>⭐ STRAIGHT</Text></View>
+          )}
+          {!row.hit_straight && row.hit_box && (
+            <View style={[ss.hitBadge, ss.hitBadgeBox]}><Text style={[ss.hitBadgeText, ss.hitBadgeBoxText]}>🎯 BOX</Text></View>
+          )}
         </View>
         <View style={ss.sigRow}>
           <SigDot label="BOX"  value={row.signal_box    ?? 0} color={theme.colors.cyan}   />
@@ -969,6 +975,10 @@ const ss = StyleSheet.create({
   k6BadgeText: { fontSize: 9, fontWeight: '900', color: theme.colors.gold, letterSpacing: 0.5 },
   multBadge: { backgroundColor: theme.colors.primaryLight, borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
   multText: { fontSize: 9, fontWeight: '700', color: theme.colors.primary },
+  hitBadge: { backgroundColor: theme.colors.gold + '22', borderWidth: 1, borderColor: theme.colors.gold + '66', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  hitBadgeText: { fontSize: 9, fontWeight: '900', color: theme.colors.gold, letterSpacing: 0.5 },
+  hitBadgeBox: { backgroundColor: theme.colors.cyan + '22', borderColor: theme.colors.cyan + '66' },
+  hitBadgeBoxText: { color: theme.colors.cyan },
 
   // Signal dots
   sigRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },

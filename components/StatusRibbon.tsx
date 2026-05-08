@@ -147,7 +147,7 @@ export function StatusRibbon() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.bgElevated,
     paddingVertical: theme.spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
@@ -162,13 +162,13 @@ const styles = StyleSheet.create({
     gap: theme.spacing.xs,
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: 4,
-    borderRadius: theme.borderRadius.full,
+    borderRadius: theme.borderRadius.pill,
     borderWidth: 1,
     backgroundColor: theme.colors.background,
   },
   chipText: {
     fontSize: theme.typography.fontSize.xs,
     fontWeight: '600',
-    fontFamily: 'monospace',
+    fontFamily: theme.typography.fontFamily.mono,
   },
 });

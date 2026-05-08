@@ -28,22 +28,15 @@ export const [AuthProvider, useAuth] = createContextHook<AuthState>(() => {
       const stored = await AsyncStorage.getItem('user');
       if (stored) {
         const parsedUser = JSON.parse(stored);
-        // The 'default' local user is always admin — don't let a stale
-        // stored role downgrade access.
-        if (!parsedUser.id || parsedUser.id === 'default') {
-          parsedUser.role = 'admin';
-        }
         setUser(parsedUser);
       } else {
-        // Default to admin user
         const defaultUser = { id: 'default', role: 'admin' as UserRole };
         setUser(defaultUser);
         AsyncStorage.setItem('user', JSON.stringify(defaultUser)).catch(console.error);
       }
     } catch (error) {
       console.error('Failed to load user:', error);
-      // Ensure we have a default user even on error
-      const defaultUser = { id: 'default', role: 'admin' as UserRole };
+      const defaultUser = { id: 'default', role: 'free' as UserRole };
       setUser(defaultUser);
     } finally {
       setIsLoading(false);
@@ -57,7 +50,7 @@ export const [AuthProvider, useAuth] = createContextHook<AuthState>(() => {
   }, [user]);
 
   const signOut = useCallback(async () => {
-    const defaultUser = { id: 'default', role: 'admin' as UserRole };
+    const defaultUser = { id: 'default', role: 'free' as UserRole };
     setUser(defaultUser);
     await AsyncStorage.setItem('user', JSON.stringify(defaultUser));
   }, []);

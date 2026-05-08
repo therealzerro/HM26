@@ -1,127 +1,183 @@
 export const theme = {
   colors: {
-    // Cosmic backgrounds (light theme)
-    background: '#FAF7FF',
-    surface: '#FFFFFF',
-    surfaceLight: '#F0EBFF',
-    surfaceMuted: '#E4DAFB',
-    border: '#DDD6FE',
-    borderMed: '#C4B5FD',
+    // Surfaces
+    background:   '#0a0613',
+    bgElevated:   '#120a1f',
+    card:         'rgba(20,12,38,0.72)',
+    border:       'rgba(255,255,255,0.08)',
+    borderMed:    'rgba(255,255,255,0.16)',
 
     // Text
-    text: '#1E1B4B',
-    textSecondary: '#4C3D8F',
-    textTertiary: '#8B7EC8',
+    text:          '#ffffff',
+    textSecondary: 'rgba(255,255,255,0.72)',
+    textTertiary:  'rgba(255,255,255,0.45)',
 
-    // Primary — deep indigo/violet
-    primary: '#7C3AED',
-    primaryLight: '#EDE9FE',
-    primaryDark: '#5B21B6',
+    // Signal channels
+    cyan:   '#2bffcc',   // Frequency / Hits
+    rose:   '#ff3d9a',   // Momentum / Pburst
+    amber:  '#ff6a2b',   // Hot streak
+    gold:   '#ffd93d',   // Consistency / DGC
+    purple: '#9b5bff',   // Pattern / CO / Brand
+    blue:   '#22a3ff',
 
-    // Gold — oracle/divine
-    gold: '#D97706',
-    goldLight: '#FEF3C7',
-    starGold: '#FCD34D',
-    orange: '#EA580C',
-    orangeLight: '#FFF7ED',
+    // Channel map (semantic aliases)
+    BOX:    '#2bffcc',
+    PBURST: '#ff3d9a',
+    CO:     '#9b5bff',
+    DGC:    '#ffd93d',
 
-    // Signal colors
-    success: '#059669',
-    successLight: '#ECFDF5',
-    error: '#DC2626',
-    errorLight: '#FEF2F2',
-    warning: '#D97706',
+    // Temperature
+    hot:  '#ff3b30',
+    warm: '#ffcc00',
+    mild: '#34c759',
+    cold: '#666666',
 
-    rose: '#BE185D',
-    roseLight: '#FDF2F8',
-    teal: '#0D9488',
-    tealLight: '#F0FDFA',
-
-    // Cosmic special
-    cosmic: '#4C1D95',
-    cosmicLight: '#F5F3FF',
+    // State / feedback
+    success:      '#34c759',
+    successLight: 'rgba(52,199,89,0.12)',
+    error:        '#ff3b30',
+    errorLight:   'rgba(255,59,48,0.12)',
+    warning:      '#ffcc00',
 
     // Tier colors
-    free: '#6B7280',
-    premium: '#D97706',   // PRO tier
-    admin: '#7C3AED',     // PLUS/admin tier
+    free:    '#666666',
+    premium: '#ffd93d',
+    admin:   '#9b5bff',
 
-    // Legacy compat
-    crownGold: '#FCD34D',
-    crownYellow: '#D97706',
-    crownPurple: '#7C3AED',
-    dataBlue: '#3B82F6',
-    dataGreen: '#059669',
-    dataYellow: '#D97706',
-    dataPurple: '#7C3AED',
-    dataRed: '#DC2626',
-    glow: '#7C3AED40',
-    hotGlow: '#DC2626',
+    // Legacy compat — map to new palette
+    primary:      '#9b5bff',
+    primaryLight: 'rgba(155,91,255,0.12)',
+    primaryDark:  '#7a3de8',
+    surface:      '#120a1f',
+    surfaceLight: 'rgba(255,255,255,0.06)',
+    surfaceMuted: 'rgba(255,255,255,0.04)',
+    crownGold:    '#ffd93d',
+    crownYellow:  '#ffd93d',
+    crownPurple:  '#9b5bff',
+    dataBlue:     '#22a3ff',
+    dataGreen:    '#34c759',
+    dataYellow:   '#ffd93d',
+    dataPurple:   '#9b5bff',
+    dataRed:      '#ff3b30',
+    glow:         'rgba(155,91,255,0.35)',
+    hotGlow:      'rgba(255,59,48,0.35)',
+    orange:       '#ff6a2b',
+    orangeLight:  'rgba(255,106,43,0.12)',
+    teal:         '#2bffcc',
+    tealLight:    'rgba(43,255,204,0.12)',
+    cosmic:       '#9b5bff',
+    cosmicLight:  'rgba(155,91,255,0.12)',
+    starGold:     '#ffd93d',
+    goldLight:    'rgba(255,217,61,0.12)',
+    roseLight:    'rgba(255,61,154,0.12)',
   },
 
   spacing: {
-    xs: 4,
-    sm: 8,
-    md: 16,
-    lg: 24,
-    xl: 32,
+    xs:  4,
+    sm:  8,
+    md:  16,
+    lg:  24,
+    xl:  32,
     xxl: 48,
+    // token aliases
+    s1:  4,
+    s2:  8,
+    s3:  12,
+    s4:  16,
+    s5:  20,
+    s6:  24,
+    s8:  32,
   },
 
   borderRadius: {
-    sm: 6,
-    md: 10,
-    lg: 14,
-    xl: 18,
-    xxl: 22,
+    sm:   6,
+    md:   10,
+    lg:   14,
+    xl:   18,
+    xxl:  22,
     xxxl: 28,
     full: 9999,
+    // token aliases
+    pill:   999,
+    card:   16,
+    tile:   12,
+    chip:   10,
+    bar:    2,
+    banner: 8,
   },
 
   typography: {
     fontFamily: {
-      regular: 'System',
-      mono: 'Courier',
-      tabular: 'System',
+      regular: 'Inter_400Regular',
+      medium:  'Inter_500Medium',
+      semibold:'Inter_600SemiBold',
+      bold:    'Inter_700Bold',
+      mono:    'JetBrainsMono_400Regular',
+      monoBold:'JetBrainsMono_700Bold',
+      tabular: 'JetBrainsMono_400Regular',
     },
     fontSize: {
-      xs: 11,
-      sm: 13,
-      md: 15,
-      lg: 17,
-      xl: 22,
-      xxl: 28,
-      xxxl: 36,
+      eyebrow: 10,
+      xs:      11,
+      sm:      13,
+      body:    13,
+      md:      15,
+      card:    16,
+      h2:      18,
+      lg:      17,
+      h1:      24,
+      xl:      22,
+      stat:    32,
+      xxl:     28,
+      combo:   38,
+      xxxl:    36,
+      hero:    72,
     },
   },
 
   animation: {
-    fast: 150,
+    fast:   150,
     medium: 250,
-    slow: 350,
+    slow:   350,
   },
 
   shadows: {
     soft: {
-      shadowColor: '#1E1B4B',
+      shadowColor: '#000000',
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.06,
+      shadowOpacity: 0.4,
       shadowRadius: 8,
-      elevation: 3,
+      elevation: 4,
     },
     medium: {
-      shadowColor: '#1E1B4B',
+      shadowColor: '#000000',
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.10,
-      shadowRadius: 14,
-      elevation: 6,
+      shadowOpacity: 0.5,
+      shadowRadius: 16,
+      elevation: 8,
     },
     glow: {
-      shadowColor: '#7C3AED',
+      shadowColor: '#9b5bff',
       shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.35,
+      shadowOpacity: 0.6,
+      shadowRadius: 16,
+      elevation: 10,
+    },
+    cyan: {
+      shadowColor: '#2bffcc',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.5,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    rose: {
+      shadowColor: '#ff3d9a',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.5,
       shadowRadius: 12,
       elevation: 8,
     },
   },
 } as const;
+
+export type ThemeColors = keyof typeof theme.colors;

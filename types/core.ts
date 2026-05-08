@@ -117,6 +117,16 @@ export interface TopKStraightRow {
   lastSeen?: string;
 }
 
+export interface EngineMetadata {
+  [horizon: string]: boolean | string | number | SlateDataStats | undefined;
+  _engineVersion?: string;
+  _mode?: string;
+  _confidence?: number;
+  _dataStats?: SlateDataStats;
+  _source?: string;
+  _is_supplement?: boolean;
+}
+
 export interface SlateDataStats {
   boxRowsUsed: number;
   pairRowsUsed: number;
@@ -127,8 +137,8 @@ export interface SlateDataStats {
 export interface SlateSnapshot {
   id: string;
   scope: Scope;
-  horizons_present_json: Record<string, any>;
-  weights_json?: Record<string, any>;
+  horizons_present_json: EngineMetadata;
+  weights_json?: Record<string, number | string>;
   top_k_straights_json?: TopKStraightRow[] | string[];
   top_k_boxes_json?: Record<string, unknown>[] | string[];
   components_json?: {

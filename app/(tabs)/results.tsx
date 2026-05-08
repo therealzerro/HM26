@@ -6,24 +6,25 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { fetchFromSupabase } from '@/lib/supabase';
+import { theme } from '@/constants/theme';
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
 
 const D = {
-  bg:       '#0D0D1A',
-  surface:  '#13141F',
-  surface2: '#1A1B2E',
-  border:   'rgba(255,255,255,0.08)',
-  purple:   '#7C3AED',
-  teal:     '#14B8A6',
-  green:    '#10B981',
-  orange:   '#F97316',
-  amber:    '#EAB308',
-  violet:   '#8B5CF6',
-  indigo:   '#6366F1',
-  text:     '#FFFFFF',
-  textSub:  'rgba(255,255,255,0.55)',
-  textDim:  'rgba(255,255,255,0.28)',
+  bg:       theme.colors.background,
+  surface:  theme.colors.bgElevated,
+  surface2: theme.colors.card,
+  border:   theme.colors.border,
+  purple:   theme.colors.purple,
+  teal:     theme.colors.cyan,
+  green:    theme.colors.cyan,
+  orange:   theme.colors.amber,
+  amber:    theme.colors.gold,
+  violet:   theme.colors.purple,
+  indigo:   theme.colors.blue,
+  text:     theme.colors.text,
+  textSub:  theme.colors.textSecondary,
+  textDim:  theme.colors.textTertiary,
 };
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
@@ -66,10 +67,10 @@ const SESSION_ICONS: Record<string, string> = {
 };
 
 const SESSION_COLORS: Record<string, string> = {
-  morning: '#F97316',
-  midday:  '#EAB308',
-  evening: '#8B5CF6',
-  night:   '#6366F1',
+  morning: theme.colors.amber,
+  midday:  theme.colors.gold,
+  evening: theme.colors.purple,
+  night:   theme.colors.blue,
 };
 
 function getTodayET(): string {
@@ -107,7 +108,7 @@ function formatDisplayDate(dateStr: string): string {
 
 export default function ResultsScreen() {
   const recentDates = getRecentDates();
-  const [selectedDate, setSelectedDate] = useState(recentDates[1]);
+  const [selectedDate, setSelectedDate] = useState(recentDates[0]);
   const [sessionFilter, setSessionFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -127,7 +128,7 @@ export default function ResultsScreen() {
     queryKey: ['daily_intelligence_hits', selectedDate],
     queryFn: async () => {
       const res = await fetchFromSupabase<HitRow[]>({
-        path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,best_order,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=eq.${selectedDate}&or=(hit_box.eq.true,hit_straight.eq.true)&mode=neq.zk30&order=rank.asc&limit=500`,
+        path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,best_order,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=eq.${selectedDate}&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&order=rank.asc&limit=500`,
         method: 'GET',
       });
       return Array.isArray(res) ? res : [];
@@ -255,29 +256,29 @@ export default function ResultsScreen() {
               {hasHit && hit ? (
                 <>
                   <View style={s.signalItem}>
-                    <Text style={[s.signalKey, { color: D.purple }]}>F</Text>
-                    <Text style={[s.signalVal, { color: D.purple }]}>
+                    <Text style={[s.signalKey, { color: theme.colors.cyan }]}>F</Text>
+                    <Text style={[s.signalVal, { color: theme.colors.cyan }]}>
                       {Math.round((hit.signal_box ?? 0) * 100)}
                     </Text>
                   </View>
                   <View style={s.signalItem}>
-                    <Text style={[s.signalKey, { color: D.teal }]}>B</Text>
-                    <Text style={[s.signalVal, { color: D.teal }]}>
+                    <Text style={[s.signalKey, { color: theme.colors.rose }]}>B</Text>
+                    <Text style={[s.signalVal, { color: theme.colors.rose }]}>
                       {Math.round((hit.signal_pburst ?? 0) * 100)}
                     </Text>
                   </View>
                   <View style={s.signalItem}>
-                    <Text style={[s.signalKey, { color: D.amber }]}>S</Text>
-                    <Text style={[s.signalVal, { color: D.amber }]}>
+                    <Text style={[s.signalKey, { color: theme.colors.gold }]}>S</Text>
+                    <Text style={[s.signalVal, { color: theme.colors.gold }]}>
                       {Math.round((hit.signal_dgc ?? 0) * 100)}
                     </Text>
                   </View>
                 </>
               ) : (
                 <>
-                  <Text style={[s.signalKey, { color: D.purple + '60' }]}>F</Text>
-                  <Text style={[s.signalKey, { color: D.teal   + '60' }]}>B</Text>
-                  <Text style={[s.signalKey, { color: D.amber  + '60' }]}>S</Text>
+                  <Text style={[s.signalKey, { color: theme.colors.cyan + '40' }]}>F</Text>
+                  <Text style={[s.signalKey, { color: theme.colors.rose  + '40' }]}>B</Text>
+                  <Text style={[s.signalKey, { color: theme.colors.gold  + '40' }]}>S</Text>
                 </>
               )}
             </View>
@@ -308,7 +309,6 @@ export default function ResultsScreen() {
       {/* Header */}
       <View style={s.header}>
         <Text style={s.headerTitle}>
-          {'📋 '}
           <Text style={s.headerWhite}>Results </Text>
           <Text style={s.headerPurple}>Ledger</Text>
         </Text>
@@ -448,49 +448,49 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: D.bg },
 
   // Header
-  header:       { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 6 },
-  headerTitle:  { fontSize: 26, fontWeight: '900', color: D.text },
+  header:       { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  headerTitle:  { fontSize: 22, fontWeight: '900', color: D.text, fontFamily: theme.typography.fontFamily.bold },
   headerWhite:  { color: D.text },
-  headerPurple: { color: D.purple },
-  headerSub:    { fontSize: 12, color: D.textDim, marginTop: 2 },
+  headerPurple: { color: theme.colors.cyan },
+  headerSub:    { fontSize: 11, color: D.textDim, marginTop: 3, fontFamily: theme.typography.fontFamily.mono },
 
   // Date tabs
-  dateTabs:        { flexShrink: 0, maxHeight: 46 },
+  dateTabs:        { flexShrink: 0, maxHeight: 46, backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.border },
   dateTabsContent: { paddingHorizontal: 12, paddingVertical: 6, gap: 8 },
-  dateTab:         { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20, backgroundColor: D.surface2, borderWidth: 1, borderColor: D.border },
-  dateTabActive:   { backgroundColor: D.purple, borderColor: D.purple },
-  dateTabText:     { fontSize: 13, fontWeight: '600', color: D.textSub },
-  dateTabTextActive: { color: '#fff', fontWeight: '700' },
+  dateTab:         { paddingHorizontal: 16, paddingVertical: 7, borderRadius: theme.borderRadius.pill, backgroundColor: D.surface2, borderWidth: 1, borderColor: D.border },
+  dateTabActive:   { backgroundColor: theme.colors.purple + '22', borderColor: theme.colors.purple + '88' },
+  dateTabText:     { fontSize: 12, fontWeight: '600', color: D.textSub, fontFamily: theme.typography.fontFamily.mono },
+  dateTabTextActive: { color: theme.colors.purple, fontWeight: '700' },
 
   // Search
-  searchRow:   { flexDirection: 'row', alignItems: 'center', marginHorizontal: 12, marginVertical: 8, backgroundColor: D.surface, borderRadius: 12, paddingHorizontal: 12, borderWidth: 1, borderColor: D.border },
-  searchIcon:  { fontSize: 15, marginRight: 8 },
-  searchInput: { flex: 1, paddingVertical: 10, fontSize: 14, color: D.text },
-  searchClear: { fontSize: 14, color: D.textDim, paddingLeft: 8 },
+  searchRow:   { flexDirection: 'row', alignItems: 'center', marginHorizontal: 12, marginVertical: 8, backgroundColor: D.surface2, borderRadius: theme.borderRadius.card, paddingHorizontal: 12, borderWidth: 1, borderColor: D.border },
+  searchIcon:  { fontSize: 14, marginRight: 8 },
+  searchInput: { flex: 1, paddingVertical: 10, fontSize: 13, color: D.text, fontFamily: theme.typography.fontFamily.mono },
+  searchClear: { fontSize: 13, color: D.textDim, paddingLeft: 8 },
 
   // Filter pills
-  filterSection:    { flexDirection: 'row', alignItems: 'center', paddingRight: 12, marginBottom: 2 },
+  filterSection:    { flexDirection: 'row', alignItems: 'center', paddingRight: 12, marginBottom: 2, backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.border },
   filterRow:        { flex: 1, flexShrink: 0, maxHeight: 40 },
   filterRowContent: { paddingHorizontal: 12, gap: 6, alignItems: 'center' },
-  filterBtn:        { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: D.surface2, borderWidth: 1, borderColor: D.border },
-  filterBtnActive:  { backgroundColor: D.purple + '22', borderColor: D.purple },
-  filterText:       { fontSize: 12, fontWeight: '600', color: D.textSub },
-  filterTextActive: { color: D.purple, fontWeight: '700' },
-  drawCount:        { fontSize: 12, color: D.textDim, fontWeight: '700', marginLeft: 8, flexShrink: 0 },
+  filterBtn:        { paddingHorizontal: 12, paddingVertical: 5, borderRadius: theme.borderRadius.pill, backgroundColor: 'transparent', borderWidth: 1, borderColor: D.border },
+  filterBtnActive:  { backgroundColor: theme.colors.cyan + '18', borderColor: theme.colors.cyan + '66' },
+  filterText:       { fontSize: 11, fontWeight: '600', color: D.textSub, fontFamily: theme.typography.fontFamily.mono },
+  filterTextActive: { color: theme.colors.cyan, fontWeight: '700' },
+  drawCount:        { fontSize: 11, color: D.textDim, fontFamily: theme.typography.fontFamily.mono, fontWeight: '700', marginLeft: 8, flexShrink: 0 },
 
   // Stats row
-  statsRow:    { flexDirection: 'row', alignItems: 'center', backgroundColor: D.surface, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 4, borderTopWidth: 1, borderBottomWidth: 1, borderColor: D.border },
+  statsRow:    { flexDirection: 'row', alignItems: 'center', backgroundColor: D.surface, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 4, borderBottomWidth: 1, borderColor: D.border },
   statItem:    { flex: 1, alignItems: 'center' },
-  statNum:     { fontSize: 16, fontWeight: '800' },
-  statLabel:   { fontSize: 9, color: D.textDim, fontWeight: '600', marginTop: 1 },
+  statNum:     { fontSize: 16, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '800' },
+  statLabel:   { fontSize: 9, color: D.textDim, fontFamily: theme.typography.fontFamily.mono, fontWeight: '600', marginTop: 1, letterSpacing: 0.5 },
   statDivider: { width: 1, height: 22, backgroundColor: D.border },
 
   // Section headers
   sectionHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, gap: 6 },
-  dot:           { fontSize: 8 },
-  sectionIcon:   { fontSize: 15 },
-  sectionText:   { fontSize: 11, fontWeight: '800', letterSpacing: 0.8 },
-  sectionCount:  { fontSize: 11, color: D.textDim, fontWeight: '500' },
+  dot:           { fontSize: 7 },
+  sectionIcon:   { fontSize: 14 },
+  sectionText:   { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.mono },
+  sectionCount:  { fontSize: 10, color: D.textDim, fontFamily: theme.typography.fontFamily.mono },
 
   // List / loading
   flatList:    { flex: 1 },
@@ -502,7 +502,7 @@ const s = StyleSheet.create({
   emptyText:   { fontSize: 14, color: D.textDim, textAlign: 'center' },
 
   // Card
-  card:      { flexDirection: 'row', backgroundColor: D.surface, marginHorizontal: 12, marginBottom: 8, borderRadius: 14, borderWidth: 1, borderColor: D.border, overflow: 'hidden' },
+  card:      { flexDirection: 'row', backgroundColor: D.surface2, marginHorizontal: 12, marginBottom: 8, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: D.border, overflow: 'hidden' },
   strip:     { width: 4 },
   cardInner: { flex: 1, padding: 12 },
 
@@ -511,22 +511,22 @@ const s = StyleSheet.create({
   statePill:  { width: 38, height: 38, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', backgroundColor: D.bg, marginRight: 8 },
   stateText:  { fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
   gameInfo:   { flex: 1 },
-  gameName:   { fontSize: 14, fontWeight: '700', color: D.text },
+  gameName:   { fontSize: 13, fontWeight: '700', color: D.text, fontFamily: theme.typography.fontFamily.medium },
 
   // ZK6 hit badge
-  hitBadge:     { marginTop: 4, alignSelf: 'flex-start', backgroundColor: D.green + '18', borderWidth: 1, borderColor: D.green + '50', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
-  hitBadgeText: { fontSize: 10, fontWeight: '700', color: D.green },
+  hitBadge:     { marginTop: 4, alignSelf: 'flex-start', backgroundColor: theme.colors.cyan + '18', borderWidth: 1, borderColor: theme.colors.cyan + '55', borderRadius: theme.borderRadius.pill, paddingHorizontal: 8, paddingVertical: 3 },
+  hitBadgeText: { fontSize: 9, fontWeight: '900', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 0.5 },
 
   // F/B/S signals
   signalCol:  { flexDirection: 'row', gap: 6, alignItems: 'center', marginLeft: 6 },
   signalItem: { alignItems: 'center', gap: 1 },
-  signalKey:  { fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
-  signalVal:  { fontSize: 11, fontWeight: '900', fontFamily: 'Courier' },
+  signalKey:  { fontSize: 9, fontWeight: '900', letterSpacing: 0.5, fontFamily: theme.typography.fontFamily.mono },
+  signalVal:  { fontSize: 11, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
 
   // Result row
   resultRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sessionRow:  { flexDirection: 'row', alignItems: 'center', gap: 5 },
   sessionIcon: { fontSize: 13 },
   sessionText: { fontSize: 11, fontWeight: '600' },
-  resultDigits:{ fontSize: 30, fontWeight: '900', fontFamily: 'Courier', letterSpacing: 6 },
+  resultDigits:{ fontSize: 30, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 6 },
 });

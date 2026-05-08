@@ -157,6 +157,6 @@ const styles = StyleSheet.create({
   },
   text: {
     fontWeight: 'bold',
-    fontFamily: theme.typography.fontFamily.tabular,
+    fontFamily: theme.typography.fontFamily.mono,
   },
 });

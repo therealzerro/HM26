@@ -24,7 +24,7 @@ interface DataIngestionState {
   healthMetrics: HealthMetrics | null;
   refreshHealth: () => Promise<void>;
   checkSlateLock: (scope: Scope, date?: string) => Promise<boolean>;
-  regenerateSlate: (scope: Scope, weightsKey?: 'balanced' | 'conservative' | 'aggressive', force?: boolean) => Promise<RegenerateResult>;
+  regenerateSlate: (scope: Scope, weightsKey?: 'balanced' | 'conservative' | 'aggressive', force?: boolean, date?: string) => Promise<RegenerateResult>;
   lastImportSummary: ImportSummary | null;
   runHitDetectionAndRefresh: (dates?: string[]) => Promise<HitDetectionResult>;
 }
@@ -620,17 +620,35 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
         return { totalHits: 0, scopeResults: {}, ran: true };
       }
 
+      // For historical date imports, find the snapshot that was generated on that date.
+      // updated_at_et is stored in UTC; upper bound is next day at 09:00Z (~5am ET),
+      // covering late-evening ET slate generation. Falls back to latest if not found.
+      const checkDate = checkDates[0] ?? today;
+      const isHistorical = checkDate !== today;
+      const fetchSnapForScope = async (sc: string): Promise<any[] | null> => {
+        if (isHistorical) {
+          const nextDay = new Date(checkDate + 'T12:00:00');
+          nextDay.setDate(nextDay.getDate() + 1);
+          const nextDayStr = nextDay.toISOString().split('T')[0];
+          const historical = await fetchFromSupabase<any[]>({
+            path: `/rest/v1/slate_snapshots?scope=eq.${sc}&deleted_at=is.null&updated_at_et=gte.${checkDate}&updated_at_et=lt.${nextDayStr}T09:00:00&order=updated_at_et.desc&limit=1&select=id,scope,top_k_straights_json,updated_at_et,horizons_present_json`,
+          });
+          if (Array.isArray(historical) && historical[0]) return historical;
+        }
+        return fetchFromSupabase<any[]>({
+          path: `/rest/v1/slate_snapshots?scope=eq.${sc}&deleted_at=is.null&order=updated_at_et.desc&limit=1&select=id,scope,top_k_straights_json,updated_at_et,horizons_present_json`,
+        });
+      };
+
       for (const sc of scopes) {
         scopeResults[sc] = 0;
         try {
-          const snaps = await fetchFromSupabase<any[]>({
-            path: `/rest/v1/slate_snapshots?scope=eq.${sc}&deleted_at=is.null&order=updated_at_et.desc&limit=1&select=id,scope,top_k_straights_json,updated_at_et,horizons_present_json`,
-          });
+          const snaps = await fetchSnapForScope(sc);
           if (!Array.isArray(snaps) || !snaps[0]) continue;
           const snap = snaps[0];
           const picks: any[] = Array.isArray(snap.top_k_straights_json) ? snap.top_k_straights_json : [];
           if (picks.length === 0) continue;
-          const slateDate = snap.updated_at_et?.split('T')[0] ?? today;
+          const slateDate = checkDates[0] ?? snap.updated_at_et?.split('T')[0] ?? today;
 
           interface HitRecordInner { pick: any; pickSet: string; result: any; hitBox: boolean; hitStraight: boolean; }
           const hitRecords: HitRecordInner[] = [];
@@ -726,7 +744,6 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
                       hit_straight: hitStraight,
                       hit_state: result.jurisdiction,
                       hit_session: result.session,
-                      hit_result: result.result_digits,
                     }),
                   }
                 );
@@ -801,15 +818,10 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
       const errors: string[] = [];
       
       try {
+        const validEntries: any[] = [];
+        const seenDates = new Set<string>();
+
         for (const entry of data.entries) {
-          console.log('[importLedger] Processing entry:', {
-            jurisdiction: entry.jurisdiction,
-            game: entry.game,
-            date_et: entry.date_et,
-            session: entry.session,
-            result_digits: entry.result_digits
-          });
-          
           // Validate entry has required fields
           if (!entry.jurisdiction || !entry.game || !entry.date_et || !entry.session || !entry.result_digits) {
             console.warn('[importLedger] Skipping entry with missing fields:', entry);
@@ -828,49 +840,44 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
           
           const dateEt = safeDateOrNull(entry.date_et);
           if (!dateEt) {
-            console.error('[importLedger] Date parsing failed for entry:', entry);
-            console.error('[importLedger] Raw date_et value:', entry.date_et);
-            console.error('[importLedger] Type of date_et:', typeof entry.date_et);
-            
             rejected++;
-            errors.push(`Invalid date format: "${entry.date_et}". Expected formats: "Fri, Sep 26, 2025" or "Sep 26, 2025" or "2025-09-26"`);
+            errors.push(`Invalid date format: "${entry.date_et}"`);
             continue;
           }
           
-          console.log('[importLedger] Date parsing successful:', {
-            original: entry.date_et,
-            parsed: dateEt
+          seenDates.add(dateEt);
+          validEntries.push({
+            jurisdiction: entry.jurisdiction,
+            game: entry.game,
+            date_et: dateEt,
+            session: entry.session === 'morning' ? 'midday' : entry.session === 'night' ? 'evening' : entry.session,
+            result_digits: entry.result_digits,
+            comboset_sorted: `{${entry.result_digits.split('').sort().join(',')}}`
           });
-          
+        }
+
+        // Batch insert in chunks of 50
+        const BATCH_SIZE = 50;
+        for (let i = 0; i < validEntries.length; i += BATCH_SIZE) {
+          const chunk = validEntries.slice(i, i + BATCH_SIZE);
           try {
             await fetchFromSupabase({
               path: '/rest/v1/histories?on_conflict=jurisdiction,game,date_et,session',
               method: 'POST',
-              headers: { 'Prefer': 'resolution=merge-duplicates' },
-              body: {
-                jurisdiction: entry.jurisdiction,
-                game: entry.game,
-                date_et: dateEt,
-                session: entry.session === 'morning' ? 'midday' : entry.session === 'night' ? 'evening' : entry.session,
-                result_digits: entry.result_digits,
-                comboset_sorted: `{${entry.result_digits.split('').sort().join(',')}}`
-              }
+              headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+              body: chunk
             });
-            accepted++;
-            console.log('[importLedger] Successfully inserted entry:', entry.jurisdiction, entry.game, dateEt, entry.session, entry.result_digits);
+            accepted += chunk.length;
           } catch (insertError) {
-            console.error('[importLedger] Failed to insert entry:', entry, insertError);
-            rejected++;
-            errors.push(`Failed to insert entry: ${String(insertError)}`);
+            console.error('[importLedger] Batch insert failed:', insertError);
+            rejected += chunk.length;
+            errors.push(`Batch insert failed: ${String(insertError)}`);
           }
         }
+
         await fetchFromSupabase({ path: `/rest/v1/imports?id=eq.${importRecId}`, method: 'PATCH', body: { status: 'completed' } });
-        const importedDates = [...new Set(
-          data.entries.map(e => {
-            const d = String(e.date_et ?? '');
-            return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null;
-          }).filter(Boolean)
-        )] as string[];
+        
+        const importedDates = Array.from(seenDates);
         const summary: ImportSummary = {
           id: importRecId,
           type: 'ledger',
@@ -939,13 +946,13 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
     }
   }, []);
 
-  const regenerateMutation = useMutation<RegenerateResult, Error, { scope: Scope; weightsKey?: string; force?: boolean }>({
-    mutationFn: async ({ scope: _rawScope, weightsKey = 'balanced', force = false }): Promise<RegenerateResult> => {
+  const regenerateMutation = useMutation<RegenerateResult, Error, { scope: Scope; weightsKey?: string; force?: boolean; date?: string }>({
+    mutationFn: async ({ scope: _rawScope, weightsKey = 'balanced', force = false, date }): Promise<RegenerateResult> => {
       // Normalize scope to DB canonical form (allday/midday/evening) before any query
       const scope: Scope = (_rawScope.toLowerCase().replace(/[-\s_]/g, '') || 'allday') as Scope;
       if (!isAdmin) return { status: 'error', message: 'Admin access required', scope };
       
-      const today = getTodayET();
+      const today = date || getTodayET();
       if (!force) {
         const isLocked = await checkSlateLock(scope, today);
         if (isLocked) {
@@ -1066,6 +1073,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
         const snapshot = await computeSlate({
           scope,
           weightsKey: weightsKey as any,
+          targetDate: date,
           excludedCombos: excluded,
           excludeComboSets: [...excludedComboSets],
           skipHistoriesExclusion: true,  // caller already populated excluded sets
@@ -1165,9 +1173,9 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
   const importHistory = (data: HistoryImportData) => importHistoryMutation.mutateAsync(data);
   const importDailyInput = (data: DailyInputData) => importDailyMutation.mutateAsync(data);
   const importLedger = (data: LedgerImportData) => importLedgerMutation.mutateAsync(data);
-  const regenerateSlate = async (scope: Scope, weightsKey?: 'balanced' | 'conservative' | 'aggressive', force?: boolean): Promise<RegenerateResult> => {
+  const regenerateSlate = async (scope: Scope, weightsKey?: 'balanced' | 'conservative' | 'aggressive', force?: boolean, date?: string): Promise<RegenerateResult> => {
     try {
-      return await regenerateMutation.mutateAsync({ scope, weightsKey, force });
+      return await regenerateMutation.mutateAsync({ scope, weightsKey, force, date });
     } catch (e) {
       // mutateAsync re-throws when mutationFn rejects — convert to a result so
       // the UI always gets a RegenerateResult instead of an unhandled exception.

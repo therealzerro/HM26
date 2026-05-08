@@ -3,7 +3,6 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
@@ -43,7 +42,7 @@ function Toggle({ on, onChange, label, sub }: { on: boolean; onChange: (v: boole
       <Switch
         value={on}
         onValueChange={onChange}
-        trackColor={{ false: theme.colors.surfaceMuted, true: theme.colors.primary }}
+        trackColor={{ false: theme.colors.border, true: theme.colors.purple }}
         thumbColor="#fff"
       />
     </View>
@@ -115,10 +114,7 @@ export default function AccountScreen() {
       <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
 
         {/* ── Hero ── */}
-        <LinearGradient
-          colors={[theme.colors.cosmicLight, theme.colors.surface]}
-          style={s.hero}
-        >
+        <View style={s.hero}>
           <TouchableOpacity style={s.avatar} onPress={handleLogoTap} activeOpacity={0.85}>
             <Text style={{ fontSize: 30 }}>🏆</Text>
           </TouchableOpacity>
@@ -128,26 +124,26 @@ export default function AccountScreen() {
             <View style={[s.pill, { backgroundColor: tierColor + '20', borderColor: tierColor + '44' }]}>
               <Text style={[s.pillText, { color: tierColor }]}>♛ {tierLabel}</Text>
             </View>
-            <View style={[s.pill, { backgroundColor: theme.colors.surfaceLight, borderColor: theme.colors.border }]}>
+            <View style={[s.pill, { backgroundColor: theme.colors.bgElevated, borderColor: theme.colors.borderMed }]}>
               <Text style={[s.pillText, { color: theme.colors.textTertiary }]}>
                 {memberDays > 0 ? `${memberDays}d member` : 'New member'}
               </Text>
             </View>
           </View>
-        </LinearGradient>
+        </View>
 
         {/* ── Stats ── */}
         <View style={s.section}>
           <Text style={s.sectionLabel}>ACTIVITY</Text>
           <View style={s.statsGrid}>
             <View style={s.statCard}>
-              <Text style={[s.statNum, { color: theme.colors.primary }]}>
+              <Text style={[s.statNum, { color: theme.colors.cyan }]}>
                 {historiesStats?.totalDraws ? historiesStats.totalDraws.toLocaleString() : '—'}
               </Text>
               <Text style={s.statLabel}>Draws Tracked</Text>
             </View>
             <View style={s.statCard}>
-              <Text style={[s.statNum, { color: theme.colors.teal }]}>
+              <Text style={[s.statNum, { color: theme.colors.amber }]}>
                 {historiesStats?.activeStates ?? '—'}
               </Text>
               <Text style={s.statLabel}>States Active</Text>
@@ -241,7 +237,7 @@ export default function AccountScreen() {
                   onPress={() => setGlossOpen(glossOpen === i ? null : i)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[s.glossTerm, glossOpen === i && { color: theme.colors.primary }]}>{g.term}</Text>
+                  <Text style={[s.glossTerm, glossOpen === i && { color: theme.colors.cyan }]}>{g.term}</Text>
                   <Text style={s.glossArrow}>{glossOpen === i ? '▲' : '▼'}</Text>
                 </TouchableOpacity>
                 {glossOpen === i && <Text style={s.glossDef}>{g.def}</Text>}
@@ -301,7 +297,7 @@ export default function AccountScreen() {
 
         {/* ── Footer ── */}
         <View style={s.footer}>
-          <Text style={s.footerLogo}>HIT<Text style={{ color: theme.colors.primary }}>MASTER</Text></Text>
+          <Text style={s.footerLogo}>HIT<Text style={{ color: theme.colors.cyan }}>MASTER</Text></Text>
           <Text style={s.footerSub}>Powered by ZK6™ Intelligence Engine</Text>
           <Text style={s.footerLegal}>© 2026 HitMaster · For entertainment only · Not financial advice</Text>
         </View>
@@ -320,6 +316,7 @@ const s = StyleSheet.create({
     margin: 16, borderRadius: theme.borderRadius.xl,
     padding: 24, alignItems: 'center',
     borderWidth: 1, borderColor: theme.colors.border,
+    backgroundColor: theme.colors.bgElevated,
     ...theme.shadows.soft,
   },
   avatar: {
@@ -327,23 +324,25 @@ const s = StyleSheet.create({
     backgroundColor: theme.colors.primaryLight,
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 12,
-    borderWidth: 2, borderColor: theme.colors.primary + '30',
+    borderWidth: 2, borderColor: theme.colors.purple + '55',
   },
-  heroTitle: { fontSize: 20, fontWeight: '900', color: theme.colors.text, marginBottom: 4 },
-  heroSub: { fontSize: 12, color: theme.colors.textTertiary, fontFamily: 'Courier', letterSpacing: 1, marginBottom: 12 },
+  heroTitle: { fontSize: 18, fontWeight: '900', color: theme.colors.text, marginBottom: 4, fontFamily: theme.typography.fontFamily.bold },
+  heroSub: { fontSize: 11, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 1.5, marginBottom: 12 },
   heroPills: { flexDirection: 'row', gap: 8 },
   pill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, borderWidth: 1 },
   pillText: { fontSize: 11, fontWeight: '700' },
 
   section: { paddingHorizontal: 16, marginBottom: 24 },
   sectionLabel: {
-    fontSize: 10, fontWeight: '800',
-    color: theme.colors.textTertiary, letterSpacing: 2,
+    fontSize: 10, fontWeight: '900',
+    color: theme.colors.cyan,
+    fontFamily: theme.typography.fontFamily.mono,
+    letterSpacing: 1.5,
     marginBottom: 10,
   },
   card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.xl,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.card,
     borderWidth: 1, borderColor: theme.colors.border,
     overflow: 'hidden',
     ...theme.shadows.soft,
@@ -352,22 +351,22 @@ const s = StyleSheet.create({
   statsGrid: { flexDirection: 'row', gap: 8 },
   statCard: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.bgElevated,
+    borderRadius: theme.borderRadius.tile,
     borderWidth: 1, borderColor: theme.colors.border,
     paddingVertical: 14, paddingHorizontal: 8,
     alignItems: 'center',
     ...theme.shadows.soft,
   },
-  statNum: { fontSize: 16, fontWeight: '900', fontFamily: 'Courier', marginBottom: 4 },
+  statNum: { fontSize: 16, fontWeight: '900', fontFamily: theme.typography.fontFamily.mono, marginBottom: 4 },
   statLabel: { fontSize: 9, color: theme.colors.textTertiary, fontWeight: '700', letterSpacing: 0.3, textAlign: 'center' },
 
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.border },
 
   planFreeCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.xl,
-    borderWidth: 1.5, borderColor: theme.colors.primary + '33',
+    backgroundColor: theme.colors.bgElevated,
+    borderRadius: theme.borderRadius.card,
+    borderWidth: 1.5, borderColor: theme.colors.purple + '44',
     padding: 18,
     ...theme.shadows.soft,
   },
@@ -376,17 +375,17 @@ const s = StyleSheet.create({
   planFreeSub: { fontSize: 12, color: theme.colors.textSecondary },
   planFreeTeaser: { fontSize: 12, color: theme.colors.textSecondary, lineHeight: 18, marginVertical: 14 },
   upgradeBtn: {
-    backgroundColor: theme.colors.cosmic,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.purple,
+    borderRadius: theme.borderRadius.tile,
     paddingVertical: 13, alignItems: 'center', marginBottom: 8,
   },
-  upgradeBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  upgradeBtnText: { color: theme.colors.text, fontWeight: '700', fontSize: 14 },
   trialBtn: { alignItems: 'center', paddingVertical: 6 },
-  trialBtnText: { fontSize: 12, color: theme.colors.primary, fontWeight: '600' },
+  trialBtnText: { fontSize: 12, color: theme.colors.cyan, fontWeight: '600' },
 
   planActiveCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.xl,
+    backgroundColor: theme.colors.bgElevated,
+    borderRadius: theme.borderRadius.card,
     borderWidth: 1, borderColor: theme.colors.border,
     padding: 18,
     ...theme.shadows.soft,
@@ -394,16 +393,16 @@ const s = StyleSheet.create({
   planActiveTitle: { fontSize: 15, fontWeight: '800', color: theme.colors.text, marginBottom: 2 },
   planActiveStatus: { fontSize: 12, fontWeight: '600' },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
-  featureCheck: { fontSize: 12, color: theme.colors.success, fontWeight: '800', width: 16 },
+  featureCheck: { fontSize: 12, color: theme.colors.cyan, fontWeight: '800', width: 16, fontFamily: theme.typography.fontFamily.mono },
   featureText: { fontSize: 13, color: theme.colors.textSecondary },
   outlineBtn: {
-    flex: 1, borderWidth: 1.5, borderColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.md, paddingVertical: 8, alignItems: 'center',
+    flex: 1, borderWidth: 1.5, borderColor: theme.colors.purple,
+    borderRadius: theme.borderRadius.chip, paddingVertical: 8, alignItems: 'center',
   },
-  outlineBtnText: { fontSize: 12, color: theme.colors.primary, fontWeight: '600' },
+  outlineBtnText: { fontSize: 12, color: theme.colors.purple, fontWeight: '600' },
   ghostBtn: {
-    flex: 1, backgroundColor: theme.colors.surfaceLight,
-    borderRadius: theme.borderRadius.md, paddingVertical: 8, alignItems: 'center',
+    flex: 1, backgroundColor: theme.colors.bgElevated,
+    borderRadius: theme.borderRadius.chip, paddingVertical: 8, alignItems: 'center',
     borderWidth: 1, borderColor: theme.colors.border,
   },
   ghostBtnText: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: '600' },
@@ -429,11 +428,11 @@ const s = StyleSheet.create({
 
   roleBtn: {
     paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.surfaceLight,
+    borderRadius: theme.borderRadius.chip,
+    backgroundColor: theme.colors.bgElevated,
     borderWidth: 1, borderColor: theme.colors.border,
   },
-  roleBtnOn: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+  roleBtnOn: { backgroundColor: theme.colors.purple, borderColor: theme.colors.purple },
   roleBtnText: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: '600' },
   roleBtnTextOn: { color: '#fff', fontWeight: '700' },
 

@@ -8,8 +8,8 @@ interface EnergyMeterProps {
 }
 
 function energyColor(e: number) {
-  if (e >= 80) return theme.colors.error;
-  if (e >= 65) return theme.colors.orange;
+  if (e >= 80) return theme.colors.hot;
+  if (e >= 65) return theme.colors.amber;
   if (e >= 45) return theme.colors.gold;
   return theme.colors.textTertiary;
 }
@@ -21,13 +21,6 @@ function energyLabel(e: number) {
   return 'COOL';
 }
 
-function energyEmoji(e: number) {
-  if (e >= 80) return '🔥';
-  if (e >= 65) return '⚡';
-  if (e >= 45) return '✦';
-  return '❄';
-}
-
 export function EnergyMeter({ value, size = 80 }: EnergyMeterProps) {
   const col = energyColor(value);
   const inner = size * 0.7;
@@ -36,9 +29,8 @@ export function EnergyMeter({ value, size = 80 }: EnergyMeterProps) {
     <View style={[s.outer, { width: size, height: size, borderRadius: size / 2, borderColor: col + '40', backgroundColor: col + '12' }]}>
       <View style={[s.inner, { width: inner, height: inner, borderRadius: inner / 2, borderColor: col + '66' }]}>
         <Text style={[s.num, { color: col, fontSize: size * 0.28 }]}>{value}</Text>
-        <Text style={{ fontSize: size * 0.22 }}>{energyEmoji(value)}</Text>
       </View>
-      <Text style={[s.label, { color: col, fontSize: size * 0.1 }]}>{energyLabel(value)}</Text>
+      <Text style={[s.label, { color: col, fontSize: size * 0.11 }]}>{energyLabel(value)}</Text>
     </View>
   );
 }
@@ -56,6 +48,14 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'transparent',
   },
-  num: { fontWeight: '900', fontFamily: 'Courier', lineHeight: undefined },
-  label: { fontWeight: '800', letterSpacing: 0.5, position: 'absolute', bottom: 4 },
+  num: {
+    fontFamily: theme.typography.fontFamily.monoBold,
+    lineHeight: undefined,
+  },
+  label: {
+    fontFamily: theme.typography.fontFamily.mono,
+    letterSpacing: 0.8,
+    position: 'absolute',
+    bottom: 4,
+  },
 });

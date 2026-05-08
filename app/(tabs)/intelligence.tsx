@@ -1,12 +1,13 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '@/constants/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { backfillIntelHits, BackfillProgress } from '@/lib/backfillIntelHits';
+import { getTodayET } from '@/lib/dateUtils';
 
 
 interface IntelRow {
@@ -29,6 +30,8 @@ interface IntelRow {
   hit_state?: string;
   hit_session?: string;
   hit_result?: string;
+  on_slate?: boolean;
+  mode?: string;
 }
 
 interface SynergyCombo {
@@ -292,23 +295,104 @@ function SuggestionCard({
   );
 }
 
+function SigDot({ label, value, color }: { label: string; value: number; color: string }) {
+  const on = value >= 0.6;
+  return (
+    <View style={[ss.sigDot, { backgroundColor: on ? color + '25' : theme.colors.surfaceMuted, borderColor: on ? color + '55' : 'transparent' }]}>
+      <Text style={[ss.sigLabel, { color: on ? color : theme.colors.textTertiary }]}>{label}</Text>
+    </View>
+  );
+}
+
+function SlateRow({ row }: { row: IntelRow }) {
+  const isK6 = row.on_slate === true;
+  const energy = Math.round(row.energy_score ?? 0);
+  const eColor = energy >= 80 ? theme.colors.error
+    : energy >= 65 ? theme.colors.orange
+    : energy >= 45 ? theme.colors.gold
+    : theme.colors.textTertiary;
+
+  return (
+    <View style={[ss.row, isK6 && ss.rowK6]}>
+      {/* Rank badge */}
+      <View style={[ss.rankBadge, isK6 && ss.rankBadgeK6]}>
+        {isK6
+          ? <Text style={ss.rankCrown}>♛</Text>
+          : <Text style={ss.rankNum}>#{row.rank}</Text>
+        }
+      </View>
+
+      {/* Combo + signals */}
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+          <Text style={[ss.combo, isK6 && { color: theme.colors.gold }]}>
+            {row.combo.split('').join(' ')}
+          </Text>
+          {isK6 && (
+            <View style={ss.k6Badge}><Text style={ss.k6BadgeText}>K6</Text></View>
+          )}
+          {row.multiplicity && (
+            <View style={ss.multBadge}>
+              <Text style={ss.multText}>{row.multiplicity}</Text>
+            </View>
+          )}
+        </View>
+        <View style={ss.sigRow}>
+          <SigDot label="BOX"  value={row.signal_box    ?? 0} color={theme.colors.cyan}   />
+          <SigDot label="MB"   value={row.signal_pburst ?? 0} color={theme.colors.rose}   />
+          <SigDot label="CO"   value={row.signal_co     ?? 0} color={theme.colors.purple} />
+          <SigDot label="DGC"  value={row.signal_dgc    ?? 0} color={theme.colors.gold}   />
+          {row.draws_since != null && (
+            <Text style={ss.drawsSince}>{row.draws_since}d ago</Text>
+          )}
+        </View>
+      </View>
+
+      {/* Energy */}
+      <View style={[ss.energyBadge, { borderColor: eColor + '55' }]}>
+        <Text style={[ss.energyNum, { color: eColor }]}>{energy}</Text>
+        <Text style={[ss.energyLbl, { color: eColor }]}>nrg</Text>
+      </View>
+    </View>
+  );
+}
+
 // ─── Main Screen ───────────────────────────────────────────────────────────────
 
 export default function IntelligenceScreen() {
+  const [view, setView] = useState<'analysis' | 'slate'>('analysis');
+
+  // Analysis view state
   const [loading, setLoading] = useState(true);
+  const [loadingRows, setLoadingRows] = useState(0);
   const [data, setData] = useState<AnalysisData | null>(null);
   const [error, setError] = useState('');
   const [backfilling, setBackfilling] = useState(false);
   const [backfillStatus, setBackfillStatus] = useState('');
   const [dismissed, setDismissed] = useState<Record<string, boolean>>({});
 
+  // Slate view state
+  const [slateScope, setSlateScope] = useState<'midday' | 'evening' | 'allday'>('midday');
+  const [slateRows, setSlateRows] = useState<IntelRow[]>([]);
+  const [slateLoading, setSlateLoading] = useState(false);
+
   const load = useCallback(async () => {
-    setLoading(true); setError('');
+    setLoading(true); setError(''); setLoadingRows(0);
     try {
-      const rows = await fetchFromSupabase<IntelRow[]>({
-        path: '/rest/v1/daily_intelligence?select=*&order=slate_date.desc&limit=2000&mode=neq.zk30',
-      });
-      setData(computeAnalysis(Array.isArray(rows) ? rows : []));
+      const PAGE = 500;
+      const allRows: IntelRow[] = [];
+      let offset = 0;
+      while (true) {
+        const batch = await fetchFromSupabase<IntelRow[]>({
+          path: `/rest/v1/daily_intelligence?select=*&order=slate_date.desc&limit=${PAGE}&offset=${offset}&mode=neq.zk30`,
+        });
+        const rows = Array.isArray(batch) ? batch : [];
+        allRows.push(...rows);
+        setLoadingRows(allRows.length);
+        if (rows.length < PAGE) break;
+        offset += PAGE;
+      }
+      setData(computeAnalysis(allRows));
     } catch (e: any) {
       setError(e.message ?? 'Load failed');
     } finally {
@@ -317,6 +401,25 @@ export default function IntelligenceScreen() {
   }, []);
 
   useEffect(() => { load(); }, []);
+
+  const loadSlate = useCallback(async (scope: string) => {
+    setSlateLoading(true);
+    try {
+      const today = getTodayET();
+      const rows = await fetchFromSupabase<IntelRow[]>({
+        path: `/rest/v1/daily_intelligence?select=*&slate_date=eq.${today}&mode=neq.zk30&scope=eq.${scope}&order=rank.asc&limit=30`,
+      });
+      setSlateRows(Array.isArray(rows) ? rows : []);
+    } catch {
+      setSlateRows([]);
+    } finally {
+      setSlateLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (view === 'slate') loadSlate(slateScope);
+  }, [view, slateScope]);
 
   const handleBackfill = useCallback(async () => {
     setBackfilling(true);
@@ -356,7 +459,11 @@ export default function IntelligenceScreen() {
       <SafeAreaView style={s.container}>
         <View style={s.center}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={s.loadingText}>Loading Pattern Intelligence...</Text>
+          <Text style={s.loadingText}>
+            {loadingRows > 0
+              ? `Loading… ${loadingRows.toLocaleString()} rows`
+              : 'Loading Pattern Intelligence…'}
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -418,7 +525,92 @@ export default function IntelligenceScreen() {
 
   return (
     <SafeAreaView style={s.container}>
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+
+      {/* ── Tab switcher ── */}
+      <View style={s.tabRow}>
+        <TouchableOpacity
+          style={[s.tab, view === 'analysis' && s.tabOn]}
+          onPress={() => setView('analysis')}
+        >
+          <Text style={[s.tabText, view === 'analysis' && s.tabTextOn]}>Analysis</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[s.tab, view === 'slate' && s.tabOn]}
+          onPress={() => setView('slate')}
+        >
+          <Text style={[s.tabText, view === 'slate' && s.tabTextOn]}>Top 30 Slate</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Slate view ── */}
+      {view === 'slate' && (
+        <ScrollView
+          contentContainerStyle={s.scroll}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={slateLoading} onRefresh={() => loadSlate(slateScope)} tintColor={theme.colors.primary} />}
+        >
+          {/* Scope selector */}
+          <View style={ss.scopeRow}>
+            {(['midday', 'evening', 'allday'] as const).map(sc => (
+              <TouchableOpacity
+                key={sc}
+                style={[ss.scopeBtn, slateScope === sc && ss.scopeBtnOn]}
+                onPress={() => setSlateScope(sc)}
+              >
+                <Text style={[ss.scopeText, slateScope === sc && ss.scopeTextOn]}>
+                  {sc === 'midday' ? 'Midday' : sc === 'evening' ? 'Evening' : 'All Day'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Header row */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 }}>
+            <Text style={s.headerTitle}>Today's Hidden 30</Text>
+            <View style={{ flex: 1 }} />
+            {slateRows.length > 0 && (
+              <Text style={{ fontSize: 11, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono }}>
+                {getTodayET()} · {slateRows.length} picks
+              </Text>
+            )}
+          </View>
+
+          {/* K6 legend */}
+          <View style={ss.legend}>
+            <View style={ss.legendItem}>
+              <View style={[ss.legendDot, { backgroundColor: theme.colors.gold }]} />
+              <Text style={ss.legendText}>♛ K6 final pick (on_slate)</Text>
+            </View>
+            <View style={ss.legendItem}>
+              <View style={[ss.legendDot, { backgroundColor: theme.colors.surfaceMuted }]} />
+              <Text style={ss.legendText}>Ranked but not selected</Text>
+            </View>
+          </View>
+
+          {slateLoading ? (
+            <View style={s.center}>
+              <ActivityIndicator color={theme.colors.primary} />
+              <Text style={s.loadingText}>Loading slate…</Text>
+            </View>
+          ) : slateRows.length === 0 ? (
+            <View style={ss.emptySlate}>
+              <Text style={ss.emptySlateIcon}>📭</Text>
+              <Text style={ss.emptySlateTitle}>No slate for today yet</Text>
+              <Text style={ss.emptySlateBody}>Generate a slate from the Explore tab first.</Text>
+            </View>
+          ) : (
+            slateRows.map((row, i) => <SlateRow key={row.id ?? i} row={row} />)
+          )}
+          <View style={{ height: 60 }} />
+        </ScrollView>
+      )}
+
+      {/* ── Analysis view ── */}
+      {view === 'analysis' && <ScrollView
+        contentContainerStyle={s.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={theme.colors.primary} />}
+      >
 
         {/* Header */}
         <View style={s.header}>
@@ -624,7 +816,8 @@ export default function IntelligenceScreen() {
         </View>
 
         <View style={{ height: 60 }} />
-      </ScrollView>
+      </ScrollView>}
+
     </SafeAreaView>
   );
 }
@@ -634,6 +827,11 @@ const s = StyleSheet.create({
   scroll: { padding: theme.spacing.md },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   header: { marginBottom: theme.spacing.lg },
+  tabRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  tab: { flex: 1, paddingVertical: 11, alignItems: 'center' },
+  tabOn: { borderBottomWidth: 2, borderBottomColor: theme.colors.primary },
+  tabText: { fontSize: 13, fontWeight: '600', color: theme.colors.textSecondary },
+  tabTextOn: { color: theme.colors.primary, fontWeight: '800' },
   headerTitle: { fontSize: 22, fontWeight: '800', color: theme.colors.text },
   headerSub: { fontSize: 13, color: theme.colors.textTertiary, marginTop: 2 },
   loadingText: { marginTop: 12, color: theme.colors.textSecondary, fontSize: 14 },
@@ -685,4 +883,82 @@ const s = StyleSheet.create({
   backfillStatus: { fontSize: 12, color: theme.colors.success, marginTop: 10, textAlign: 'center', fontWeight: '600' },
   reloadBtn: { marginTop: 10, backgroundColor: theme.colors.primaryLight, borderRadius: theme.borderRadius.md, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'flex-start' },
   reloadBtnText: { color: theme.colors.primary, fontSize: 13, fontWeight: '700' },
+});
+
+const ss = StyleSheet.create({
+  // Scope selector
+  scopeRow: { flexDirection: 'row', gap: 6, marginBottom: 16 },
+  scopeBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center', backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border },
+  scopeBtnOn: { backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary },
+  scopeText: { fontSize: 12, fontWeight: '600', color: theme.colors.textSecondary },
+  scopeTextOn: { color: theme.colors.primary, fontWeight: '800' },
+
+  // Legend
+  legend: { flexDirection: 'row', gap: 16, marginBottom: 14, paddingHorizontal: 2 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontSize: 10, color: theme.colors.textTertiary },
+
+  // Slate row
+  row: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: theme.colors.surface, borderRadius: 12,
+    borderWidth: 1, borderColor: theme.colors.border,
+    paddingHorizontal: 12, paddingVertical: 10, marginBottom: 6,
+    ...theme.shadows.soft,
+  },
+  rowK6: {
+    borderColor: theme.colors.gold + '66',
+    backgroundColor: theme.colors.goldLight ?? (theme.colors.gold + '0A'),
+  },
+
+  // Rank badge
+  rankBadge: {
+    width: 34, height: 34, borderRadius: 9,
+    backgroundColor: theme.colors.surfaceLight,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  rankBadgeK6: { backgroundColor: theme.colors.gold + '22' },
+  rankNum: { fontSize: 11, fontWeight: '900', color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
+  rankCrown: { fontSize: 16, color: theme.colors.gold },
+
+  // Combo
+  combo: {
+    fontSize: 22, fontWeight: '900', color: theme.colors.text,
+    letterSpacing: 4, fontFamily: theme.typography.fontFamily.mono,
+  },
+
+  // Badges
+  k6Badge: {
+    backgroundColor: theme.colors.gold + '25', borderRadius: 6,
+    paddingHorizontal: 6, paddingVertical: 2,
+    borderWidth: 1, borderColor: theme.colors.gold + '55',
+  },
+  k6BadgeText: { fontSize: 9, fontWeight: '900', color: theme.colors.gold, letterSpacing: 0.5 },
+  multBadge: { backgroundColor: theme.colors.primaryLight, borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
+  multText: { fontSize: 9, fontWeight: '700', color: theme.colors.primary },
+
+  // Signal dots
+  sigRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  sigDot: {
+    paddingHorizontal: 5, paddingVertical: 2, borderRadius: 5,
+    borderWidth: 1, borderColor: 'transparent',
+  },
+  sigLabel: { fontSize: 8, fontWeight: '800', letterSpacing: 0.3 },
+  drawsSince: { fontSize: 9, color: theme.colors.textTertiary, marginLeft: 3, fontFamily: theme.typography.fontFamily.mono },
+
+  // Energy badge
+  energyBadge: {
+    width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, backgroundColor: theme.colors.bgElevated,
+  },
+  energyNum: { fontSize: 12, fontWeight: '900', fontFamily: theme.typography.fontFamily.mono, lineHeight: 14 },
+  energyLbl: { fontSize: 7, fontWeight: '800', letterSpacing: 0.3 },
+
+  // Empty state
+  emptySlate: { alignItems: 'center', paddingVertical: 48, gap: 8 },
+  emptySlateIcon: { fontSize: 36 },
+  emptySlateTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.text },
+  emptySlateBody: { fontSize: 12, color: theme.colors.textTertiary, textAlign: 'center' },
 });

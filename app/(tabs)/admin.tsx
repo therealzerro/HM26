@@ -15,7 +15,7 @@ import { useScope } from '@/hooks/useScope';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { parseRawLedgerData } from '@/lib/parseLedger';
 import { runHitDetectionAllScopes, runHitDetectionAndRefresh, HitDetectionResult } from '@/lib/hitDetection';
-import { getTodayET } from '@/lib/dateUtils';
+import { getTodayET, getTomorrowET } from '@/lib/dateUtils';
 import { computeZK30Slate } from '@/engines/zk30';
 import { RegenConfirmationModal } from '@/components/RegenConfirmationModal';
 
@@ -142,6 +142,7 @@ function DashboardView({ setView, imports, healthMetrics, regenerateSlate, check
   const [regenProgress, setRegenProgress] = useState<string>('');
   const [isRegening, setIsRegening] = useState(false);
   const [regeningScopeMap, setRegeningScopeMap] = useState<Record<string, boolean>>({});
+  const [targetDateOption, setTargetDateOption] = useState<'today' | 'tomorrow'>('today');
 
   // Hit Detection state
   const [isDetecting, setIsDetecting] = useState(false);
@@ -179,14 +180,15 @@ function DashboardView({ setView, imports, healthMetrics, regenerateSlate, check
   const handleRegenAll = useCallback(async (force?: boolean) => {
     setRegenConfirm({ visible: false, scope: '', isLocked: false });
     setIsRegening(true);
-    setRegenProgress(`${force ? 'FORCE ' : ''}Regenerating all slates in parallel…`);
+    const date = targetDateOption === 'today' ? getTodayET() : getTomorrowET();
+    setRegenProgress(`${force ? 'FORCE ' : ''}Regenerating all slates for ${date}…`);
     const scopes: Array<'midday' | 'evening' | 'allday'> = ['midday', 'evening', 'allday'];
     
     try {
       const results = await Promise.all(
         scopes.map(async (sc) => {
           try {
-            const res = await regenerateSlate(sc, 'balanced', force);
+            const res = await regenerateSlate(sc, 'balanced', force, date);
             return `${sc}: ${res.status === 'success' ? '✓' : res.status}`;
           } catch (e) {
             return `${sc}: error`;
@@ -201,19 +203,20 @@ function DashboardView({ setView, imports, healthMetrics, regenerateSlate, check
       // Invalidate snapshot cache so the slate page picks up the new data immediately
       queryClient.invalidateQueries({ queryKey: ['snapshot'] });
     }
-  }, [regenerateSlate, queryClient]);
+  }, [regenerateSlate, queryClient, targetDateOption]);
 
   const handleRegenScope = useCallback(async (sc: 'midday' | 'evening' | 'allday', force?: boolean) => {
     setRegenConfirm({ visible: false, scope: '', isLocked: false });
     setRegeningScopeMap(m => ({ ...m, [sc]: true }));
+    const date = targetDateOption === 'today' ? getTodayET() : getTomorrowET();
     try { 
-      const res = await regenerateSlate(sc, 'balanced', force);
+      const res = await regenerateSlate(sc, 'balanced', force, date);
       if (res.status !== 'success') {
         Alert.alert('Regeneration Failed', res.message);
       }
     } catch {}
     setRegeningScopeMap(m => ({ ...m, [sc]: false }));
-  }, [regenerateSlate]);
+  }, [regenerateSlate, targetDateOption]);
 
   const requestRegen = async (sc: string) => {
     const isLocked = await checkSlateLock(sc as any);
@@ -339,6 +342,23 @@ function DashboardView({ setView, imports, healthMetrics, regenerateSlate, check
         );
       })()}
       <Card style={{ padding: 16, marginBottom: 4 }}>
+        <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12, backgroundColor: theme.colors.background, padding: 2, borderRadius: 10 }}>
+          {(['today', 'tomorrow'] as const).map(d => (
+            <TouchableOpacity 
+              key={d} 
+              onPress={() => setTargetDateOption(d)}
+              style={{ 
+                flex: 1, paddingVertical: 6, borderRadius: 8, alignItems: 'center',
+                backgroundColor: targetDateOption === d ? theme.colors.bgElevated : 'transparent',
+                borderWidth: 1, borderColor: targetDateOption === d ? theme.colors.primary + '88' : 'transparent'
+              }}
+            >
+              <Text style={{ fontSize: 10, fontWeight: '700', color: targetDateOption === d ? theme.colors.primary : theme.colors.textTertiary }}>
+                {d.toUpperCase()} ({d === 'today' ? getTodayET().slice(5) : getTomorrowET().slice(5)})
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
           <View>
             <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text }}>ZK6 Slates</Text>

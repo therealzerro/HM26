@@ -11,7 +11,7 @@
  *  - bestOrder computed from blended pair data across all horizons
  */
 
-import { Scope, SlateSnapshot, SlateDataStats } from '@/types/core';
+import { Scope, SlateSnapshot, SlateDataStats, EngineMetadata } from '@/types/core';
 import { getTodayET } from '@/lib/dateUtils';
 import {
   HORIZON_WEIGHTS,
@@ -28,6 +28,7 @@ const ENGINE_VERSION = 'v2.1';
 export interface ComputeSlateParams {
   scope: Scope;
   weightsKey?: 'balanced' | 'conservative' | 'aggressive';
+  targetDate?: string;
   /** Pre-built exclusion set from caller. When provided, internal histories
    *  query is skipped unless skipHistoriesExclusion = false is explicit. */
   excludedCombos?: Set<string>;
@@ -130,7 +131,7 @@ async function fetchRaw(scopeEnc: string): Promise<{ boxRows: any[]; pairRows: a
     fetchFromSupabase<any[]>({
       path: `/rest/v1/datasets_box?class_id=eq.1&scope=eq.${scopeEnc}` +
             `&horizon_label=eq.${h}&deleted_at=is.null&jurisdiction=is.null` +
-            `&select=key,ds_raw,times_drawn,draws_since,last_seen,horizon_label&limit=1100`,
+            `&select=key,ds_raw,times_drawn,last_seen,horizon_label&limit=1100`,
     }).then(rows => Array.isArray(rows) ? rows : []),
   );
 
@@ -139,7 +140,7 @@ async function fetchRaw(scopeEnc: string): Promise<{ boxRows: any[]; pairRows: a
     fetchFromSupabase<any[]>({
       // NO horizon_label filter — fetch ALL horizons, ALL classes (2-11)
       path: `/rest/v1/datasets_pair?scope=eq.${scopeEnc}&deleted_at=is.null&jurisdiction=is.null` +
-            `&select=key,key_pair,class_id,ds_raw,times_drawn,draws_since,horizon_label&limit=50000`,
+            `&select=key,key_pair,class_id,ds_raw,times_drawn,horizon_label&limit=50000`,
     }),
   ]);
 
@@ -186,19 +187,28 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
     const h = String(row.horizon_label ?? 'H01Y');
     const normKey = normalizeBoxKey(row.key);
     const rawDs: number =
-      typeof row.draws_since === 'number' ? row.draws_since :
       typeof row.ds_raw === 'number' ? row.ds_raw : 0;
 
     if (!boxByHorizon.has(h)) boxByHorizon.set(h, new Map());
     boxByHorizon.get(h)!.set(normKey, rawDs);
 
-    // Prefer H01Y for metadata; otherwise use first seen horizon
+    // Always take MAX timesDrawn across all rows for this normKey — multiple raw-combo
+    // permutations (e.g. "398", "839", "983") all map to the same comboset "{3,8,9}".
+    // Only one permutation gets updated with real data; the others remain 0. Using MAX
+    // ensures the real value wins regardless of row ordering.
+    if (row.times_drawn != null && row.times_drawn > (timesDrawnMap.get(normKey) ?? 0)) {
+      timesDrawnMap.set(normKey, row.times_drawn);
+    }
+
+    // Prefer H01Y for drawsSince/dsRaw metadata; within H01Y prefer non-zero over zero.
+    const dsRawVal = typeof row.ds_raw === 'number' ? row.ds_raw : 0;
     if (h === 'H01Y' || !drawsSinceMap.has(normKey)) {
-      drawsSinceMap.set(normKey, rawDs);
-      const dsRawVal = typeof row.ds_raw === 'number' ? row.ds_raw : 0;
-      dsRawMap.set(normKey, dsRawVal);
-      if (row.times_drawn != null) timesDrawnMap.set(normKey, row.times_drawn);
-      if (row.last_seen) lastSeenMap.set(normKey, row.last_seen);
+      const existingDs = dsRawMap.get(normKey) ?? 0;
+      if (existingDs === 0 || dsRawVal > 0) {
+        drawsSinceMap.set(normKey, rawDs);
+        dsRawMap.set(normKey, dsRawVal);
+      }
+      if (row.last_seen && !lastSeenMap.has(normKey)) lastSeenMap.set(normKey, row.last_seen);
     }
   }
 
@@ -229,7 +239,7 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
       if (!pairMetaMap.has(pairKey)) pairMetaMap.set(pairKey, new Map());
       pairMetaMap.get(pairKey)!.set(row.class_id, {
         dsRaw: typeof row.ds_raw === 'number' ? row.ds_raw : 0,
-        drawsSince: typeof row.draws_since === 'number' ? row.draws_since : 500,
+        drawsSince: typeof row.ds_raw === 'number' ? row.ds_raw : 500,
         timesDrawn: typeof row.times_drawn === 'number' ? row.times_drawn : 0,
       });
     }
@@ -376,7 +386,8 @@ async function fetchHistoryOverrides(scope: Scope): Promise<{
 const DGC_REF_STD_DEV = 10;
 
 function computeDGC(dayOffsets: number[]): number {
-  if (dayOffsets.length < 2) return 0;
+  if (dayOffsets.length === 0) return 0;
+  if (dayOffsets.length === 1) return 0.3;
   const sorted = dayOffsets.slice().sort((a, b) => a - b);
   const gaps: number[] = [];
   for (let i = 1; i < sorted.length; i++) gaps.push(sorted[i] - sorted[i - 1]);
@@ -537,12 +548,15 @@ async function saveSlateSnapshot(snapshot: SlateSnapshot, extraFields?: Record<s
   })();
   if (!isSupplementSave) {
     try {
-      const todayStart = new Date();
-      todayStart.setUTCHours(0, 0, 0, 0);
-      const tomorrowStart = new Date(todayStart);
-      tomorrowStart.setUTCDate(tomorrowStart.getUTCDate() + 1);
+      // Anchor to ET day (UTC-4 in EDT, UTC-5 in EST) to avoid soft-deleting yesterday's
+      // late-evening slate (which carries a next-UTC-day timestamp).
+      // 4am UTC is the safe lower bound — covers up to midnight ET in both DST states.
+      const etOffsetMs = 4 * 60 * 60 * 1000; // 4h, safe for both EDT(-4) and EST(-5)
+      const etDayStart = new Date(getTodayET() + 'T00:00:00');
+      const todayStart = new Date(etDayStart.getTime() + etOffsetMs);
+      const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
       await fetchFromSupabase<any>({
-        path: `/rest/v1/slate_snapshots?scope=eq.${encodeURIComponent(snapshot.scope)}&updated_at_et=gte.${todayStart.toISOString()}&updated_at_et=lt.${tomorrowStart.toISOString()}&deleted_at=is.null&jurisdiction=is.null`,
+        path: `/rest/v1/slate_snapshots?scope=eq.${encodeURIComponent(snapshot.scope)}&updated_at_et=gte.${todayStart.toISOString()}&updated_at_et=lt.${tomorrowStart.toISOString()}&deleted_at=is.null`,
         method: 'PATCH',
         headers: { 'Prefer': 'return=minimal' },
         body: { deleted_at: new Date().toISOString() },
@@ -578,6 +592,7 @@ async function saveSlateSnapshot(snapshot: SlateSnapshot, extraFields?: Record<s
 export async function computeSlate({
   scope: rawScope,
   weightsKey = 'balanced',
+  targetDate,
   excludedCombos = new Set<string>(),
   skipHistoriesExclusion = false,
   excludeComboSets = [],
@@ -585,6 +600,9 @@ export async function computeSlate({
 }: ComputeSlateParams): Promise<SlateSnapshot> {
   const scope: Scope = normalizeScope(rawScope);
   const now = new Date().toISOString();
+  const todayEt = getTodayET();
+  const effectiveDate = targetDate || todayEt;
+
   const { presets: weightPresets, rails, pressureThreshold, minEnergyThreshold, recentHitCooldown, synergyOn, synergyWeight } = await loadEngineConfig();
   const weights = weightPresets[weightsKey] ?? weightPresets.balanced;
   const universe = buildUniverse();
@@ -704,7 +722,7 @@ export async function computeSlate({
     const timesDrawnVal = ds.timesDrawnMap.get(normKey) ?? 0;
     if (timesDrawnVal > 0) {
       const freqScore  = maxTimesDrawn > 0 ? timesDrawnVal / maxTimesDrawn : 0;
-      const dsVal      = ds.drawsSinceMap.get(normKey) ?? 0;
+      const dsVal      = ds.dsRawMap.get(normKey) ?? 0;
       const ptSpan     = Math.max(pressureThreshold - 100, 1);
       const pressureScore =
         dsVal >= 100 && dsVal <= pressureThreshold
@@ -808,8 +826,8 @@ export async function computeSlate({
       : universe[a].localeCompare(universe[b]),
   );
   placeholderIdx.sort((a, b) =>
-    normPburst[b] !== normPburst[a]
-      ? normPburst[b] - normPburst[a]
+    finalScores[b] !== finalScores[a]
+      ? finalScores[b] - finalScores[a]
       : universe[a].localeCompare(universe[b]),
   );
 
@@ -862,7 +880,7 @@ export async function computeSlate({
 
   const excludeComboSetsSet = new Set(excludeComboSets);
 
-  const tryAdd = (idx: number): boolean => {
+  const tryAdd = (idx: number, relaxExcludeComboSets = false): boolean => {
     if (k6.length >= 6) return false;
     const combo = universe[idx];
     if (effectiveExcluded.has(combo)) {
@@ -870,7 +888,7 @@ export async function computeSlate({
     const normKey = toComboSet(combo);
     if (selectedComboSets.has(normKey)) {
       console.log('[RAIL] duplicate comboSet:', combo, normKey); return false; }
-    if (excludeComboSetsSet.size > 0 && excludeComboSetsSet.has(normKey)) {
+    if (!relaxExcludeComboSets && excludeComboSetsSet.size > 0 && excludeComboSetsSet.has(normKey)) {
       console.log('[RAIL] excludeComboSets:', combo); return false; }
     if (todayHitComboSets.size > 0 && todayHitComboSets.has(normKey)) {
       console.log('[RAIL] today hit:', combo); return false; }
@@ -922,13 +940,22 @@ export async function computeSlate({
     }
   }
 
+  // Pass 3: relax excludeComboSets (yesterday's draws) — keeps todayHit, mult caps, pairRepCap
+  if (k6.length < 6) {
+    console.log('[zk6v2] Pass 2 yielded', k6.length, 'picks — pass 3: relaxing excludeComboSets');
+    for (const idx of [...realIdx, ...placeholderIdx]) {
+      if (k6.length >= 6) break;
+      tryAdd(idx, true);
+    }
+  }
+
   console.log('[zk6v2] K6 after rails:', k6.map(x => `${x.combo}(e=${x.energy})`));
 
   // Data quality verification log — ZK6 multi-signal component scores
   const top3 = k6.slice(0, 3).map(x => ({
     combo: x.combo,
     times_drawn: ds.timesDrawnMap.get(x.normKey) ?? 0,
-    draws_since: ds.drawsSinceMap.get(x.normKey) ?? 0,
+    ds_raw: ds.dsRawMap.get(x.normKey) ?? 0,
     freqScore: x.freqS.toFixed(3),
     pressureScore: x.pressureS.toFixed(3),
     boxSignal: x.boxS.toFixed(3),
@@ -980,24 +1007,23 @@ export async function computeSlate({
       rank: idx + 1,
       bestOrder: bestOrderFor(x.combo, ds.pairData),
       confidence: Math.round(scopeConfidence * 100),
-      drawsSince: ds.drawsSinceMap.get(x.normKey) ?? boxRow?.draws_since ?? null,
+      drawsSince: ds.dsRawMap.get(x.normKey) ?? boxRow?.ds_raw ?? null,
       timesDrawn: boxRow?.times_drawn ?? ds.timesDrawnMap.get(x.normKey) ?? 0,
       dsRaw: boxRow?.ds_raw ?? ds.dsRawMap.get(x.normKey) ?? 0,
       lastSeen: ds.lastSeenMap.get(x.normKey) ?? boxRow?.last_seen ?? null,
     };
   });
 
-  // Hash for snapshot dedup
+  // Hash for snapshot dedup — unsigned djb2 (always positive, includes mode)
   const hashInput = JSON.stringify({
-    scope, weightsKey,
+    scope, mode: weightsKey,
     topCombos: k6.map(x => x.combo),
     horizons: ds.horizonsPresent,
     ts: Date.now(),
   });
-  const hash = hashInput.split('').reduce((acc, ch) => {
-    const h = ((acc << 5) - acc) + ch.charCodeAt(0);
-    return h & h;
-  }, 0).toString(16).toUpperCase();
+  const hash = (hashInput.split('').reduce((acc, ch) => {
+    return (((acc << 5) + acc) ^ ch.charCodeAt(0)) >>> 0;
+  }, 5381) >>> 0).toString(16).toUpperCase();
 
   const dataStats: SlateDataStats = {
     boxRowsUsed: ds.boxRowCount,
@@ -1006,8 +1032,7 @@ export async function computeSlate({
     usingFallback: ds.usingFallback,
   };
 
-  // Embed metadata into existing JSONB columns so the DB stores it
-  const horizonsMeta: Record<string, any> = {
+  const horizonsMeta: EngineMetadata = {
     ...ds.horizonsPresent,
     _engineVersion: ENGINE_VERSION,
     _mode: weightsKey,
@@ -1068,46 +1093,58 @@ export async function computeSlate({
     snapshot.id = savedId;
   }
 
-  // Write top 30 pre-rail picks to daily_intelligence
-  try {
-    const todayEt = getTodayET();
-    const diRows = top30PreRail.map((pick, idx) => ({
-      slate_date: todayEt,
-      scope,
-      mode: weightsKey,
-      rank: idx + 1,
-      combo: pick.combo,
-      combo_set: pick.comboSet,
-      multiplicity: pick.mult,
-      top_pair: pick.topPair,
-      signal_box: pick.signals.BOX,
-      signal_pburst: pick.signals.PBURST,
-      signal_co: pick.signals.CO,
-      signal_dgc: pick.signals.DGC,
-      energy_score: pick.energy,
-      draws_since: pick.drawsSince,
-      times_drawn: pick.timesDrawn,
-      best_order: bestOrderFor(pick.combo, ds.pairData),
-      hit_box: false,
-      hit_straight: false,
-    }));
-    // Delete today's existing rows for this scope+mode first to avoid unique
-    // constraint 409s — upsert via on_conflict requires knowing the exact
-    // constraint columns which may vary across DB migrations.
-    await fetchFromSupabase({
-      path: `/rest/v1/daily_intelligence?slate_date=eq.${todayEt}&scope=eq.${encodeURIComponent(scope)}&mode=eq.${encodeURIComponent(weightsKey)}`,
-      method: 'DELETE',
-      headers: { 'Prefer': 'return=minimal' },
-    }).catch(() => {/* non-fatal: no rows yet */});
-    await fetchFromSupabase({
-      path: '/rest/v1/daily_intelligence',
-      method: 'POST',
-      headers: { 'Prefer': 'return=minimal' },
-      body: diRows,
-    });
-    console.log('[zk6v2] daily_intelligence: wrote top 30 for scope:', scope);
-  } catch (e) {
-    console.log('[zk6v2] daily_intelligence write warn (non-fatal):', e);
+  // Write top 30 pre-rail picks to daily_intelligence.
+  // Skip for supplemental slates — they use post-hit-exclusion picks which
+  // would overwrite the original intelligence data with incomplete signal data.
+  if (!is_supplement) {
+    try {
+      const diRows = top30PreRail.map((pick, idx) => ({
+        slate_date: effectiveDate,
+        scope,
+        mode: weightsKey,
+        rank: idx + 1,
+        combo: pick.combo,
+        combo_set: pick.comboSet,
+        multiplicity: pick.mult,
+        top_pair: pick.topPair,
+        signal_box: pick.signals.BOX,
+        signal_pburst: pick.signals.PBURST,
+        signal_co: pick.signals.CO,
+        signal_dgc: pick.signals.DGC,
+        energy_score: pick.energy,
+        draws_since: pick.drawsSince,
+        times_drawn: pick.timesDrawn,
+        best_order: bestOrderFor(pick.combo, ds.pairData),
+        hit_box: false,
+        hit_straight: false,
+      }));
+      // Delete existing rows for this date/scope/mode first to avoid unique constraint 409s.
+      // Log DELETE errors so silent failures surface in console.
+      const delErr = await fetchFromSupabase({
+        path: `/rest/v1/daily_intelligence?slate_date=eq.${effectiveDate}&scope=eq.${encodeURIComponent(scope)}&mode=eq.${encodeURIComponent(weightsKey)}&hit_box=eq.false&hit_straight=eq.false`,
+        method: 'DELETE',
+        headers: { 'Prefer': 'return=minimal' },
+      }).then(() => null).catch((e: unknown) => e);
+      if (delErr) {
+        console.warn('[zk6v2] daily_intelligence DELETE failed (rows may already be absent):', String(delErr));
+      }
+      await fetchFromSupabase({
+        path: '/rest/v1/daily_intelligence',
+        method: 'POST',
+        headers: { 'Prefer': 'return=minimal' },
+        body: diRows,
+      });
+      console.log('[zk6v2] daily_intelligence: wrote top 30 for scope:', scope, 'date:', effectiveDate);
+      const slateCombos = k6.map(x => x.combo).join(',');
+      await fetchFromSupabase({
+        path: `/rest/v1/daily_intelligence?slate_date=eq.${effectiveDate}&scope=eq.${encodeURIComponent(scope)}&mode=eq.${encodeURIComponent(weightsKey)}&combo=in.(${slateCombos})`,
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=minimal' },
+        body: { on_slate: true },
+      });
+    } catch (e) {
+      console.error('[zk6v2] daily_intelligence write FAILED — date will not increment:', String(e));
+    }
   }
 
   return snapshot;

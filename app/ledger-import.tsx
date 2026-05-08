@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AlertCircle, CheckCircle } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
 import { Button } from '@/components/Button';
-import { fetchFromSupabase } from '@/lib/supabase';
+import { useDataIngestion } from '@/hooks/useDataIngestion';
 import { parseRawLedgerData, ParsedLedgerRow } from '@/lib/parseLedger';
 import { useRouter } from 'expo-router';
 
@@ -21,52 +21,13 @@ function uniqueDates(rows: ParsedLedgerRow[]): string[] {
   return [...new Set(rows.map(r => r.date_et))];
 }
 
-async function batchInsert(rows: ParsedLedgerRow[]): Promise<{ accepted: number; rejected: number; error?: string }> {
-  // Deduplicate by conflict key before batching — Postgres throws if the same
-  // row appears twice in one ON CONFLICT DO UPDATE statement.
-  const seen = new Set<string>();
-  const deduped = rows.filter(r => {
-    const k = `${r.jurisdiction}|${r.game}|${r.date_et}|${r.session}`;
-    if (seen.has(k)) return false;
-    seen.add(k);
-    return true;
-  });
-
-  const BATCH = 50;
-  let accepted = 0;
-  let lastError = '';
-
-  for (let i = 0; i < deduped.length; i += BATCH) {
-    const chunk = deduped.slice(i, i + BATCH);
-    try {
-      await fetchFromSupabase({
-        path: '/rest/v1/histories?on_conflict=jurisdiction,game,date_et,session',
-        method: 'POST',
-        headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-        body: chunk.map(r => ({
-          jurisdiction:    r.jurisdiction,
-          game:            r.game,
-          date_et:         r.date_et,
-          session:         r.session,
-          result_digits:   r.result_digits,
-          comboset_sorted: r.comboset_sorted,
-        })),
-      });
-      accepted += chunk.length;
-    } catch (e) {
-      lastError = e instanceof Error ? e.message : String(e);
-    }
-  }
-
-  return { accepted, rejected: rows.length - accepted, error: lastError || undefined };
-}
-
 // ─── component ───────────────────────────────────────────────────────────────
 
 type Stage = 'input' | 'validated' | 'committed';
 
 export default function LedgerImportScreen() {
   const router = useRouter();
+  const { importLedger } = useDataIngestion();
 
   const [rawData, setRawData]             = useState('');
   const [stage, setStage]                 = useState<Stage>('input');
@@ -94,7 +55,19 @@ export default function LedgerImportScreen() {
     setCommitting(true);
     setCommitError('');
     try {
-      const { accepted, rejected, error } = await batchInsert(parsed);
+      const summary = await importLedger({
+        scope: 'allday', // Ledger imports usually cover multiple scopes implicitly
+        entries: parsed.map(r => ({
+          jurisdiction: r.jurisdiction,
+          game: r.game,
+          date_et: r.date_et,
+          session: r.session,
+          result_digits: r.result_digits,
+        })),
+      });
+
+      const accepted = summary.accepted;
+      const rejected = summary.rejected;
       const states = uniqueStates(parsed);
       const dates  = uniqueDates(parsed);
       const dateLabel = dates.length === 1
@@ -106,14 +79,13 @@ export default function LedgerImportScreen() {
         `${states.length} state${states.length !== 1 ? 's' : ''} for ${dateLabel}.` +
         (rejected > 0 ? ` (${rejected} rows failed)` : '')
       );
-      if (error) setCommitError(`Last batch error: ${error}`);
       setStage('committed');
     } catch (e) {
       setCommitError(e instanceof Error ? e.message : String(e));
     } finally {
       setCommitting(false);
     }
-  }, [parsed]);
+  }, [parsed, importLedger]);
 
   // ── Reset ─────────────────────────────────────────────────────────────────
 

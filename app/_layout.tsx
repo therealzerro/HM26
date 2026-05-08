@@ -12,6 +12,17 @@ import { CoverageProvider } from "@/hooks/useCoverage";
 import { DataIngestionProvider } from "@/hooks/useDataIngestion";
 import { AppModeProvider } from "@/context/AppModeContext";
 import { theme } from "@/constants/theme";
+import { useFonts } from "expo-font";
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from "@expo-google-fonts/inter";
+import {
+  JetBrainsMono_400Regular,
+  JetBrainsMono_700Bold,
+} from "@expo-google-fonts/jetbrains-mono";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -36,12 +47,12 @@ const queryClient = new QueryClient({
 
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ 
+    <Stack screenOptions={{
       headerBackTitle: "Back",
       headerStyle: {
-        backgroundColor: '#141824',
+        backgroundColor: theme.colors.bgElevated,
       },
-      headerTintColor: '#FFFFFF',
+      headerTintColor: theme.colors.text,
     }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen 
@@ -83,12 +94,20 @@ function AppContent() {
   const [isReady, setIsReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
 
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    JetBrainsMono_400Regular,
+    JetBrainsMono_700Bold,
+  });
+
   useEffect(() => {
     let mounted = true;
-    
+
     const initApp = async () => {
       try {
-        // Add a small delay to prevent hydration timeout
         await new Promise(resolve => setTimeout(resolve, 100));
 
         if (mounted) {
@@ -105,12 +124,12 @@ function AppContent() {
       }
     };
 
-    initApp();
-    
+    if (fontsLoaded) initApp();
+
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [fontsLoaded]);
 
   if (initError) {
     return (
@@ -121,7 +140,7 @@ function AppContent() {
     );
   }
 
-  if (!isReady || isLoading) {
+  if (!fontsLoaded || !isReady || isLoading) {
     return <LoadingScreen />;
   }
 

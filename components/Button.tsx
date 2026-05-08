@@ -53,18 +53,18 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.borderRadius.tile,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 44,
   },
   primary: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.purple,
   },
   secondary: {
-    backgroundColor: theme.colors.surfaceLight,
+    backgroundColor: theme.colors.bgElevated,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.borderMed,
   },
   danger: {
     backgroundColor: theme.colors.error,
@@ -82,17 +82,18 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.lg,
   },
   disabled: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
   text: {
     fontSize: theme.typography.fontSize.md,
     fontWeight: '600',
+    fontFamily: theme.typography.fontFamily.semibold,
   },
   primaryText: {
-    color: theme.colors.background,
+    color: theme.colors.text,
   },
   secondaryText: {
-    color: theme.colors.text,
+    color: theme.colors.textSecondary,
   },
   dangerText: {
     color: theme.colors.text,

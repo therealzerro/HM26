@@ -36,11 +36,13 @@ export function ScopeSwitcher() {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surfaceLight,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.bgElevated,
+    borderRadius: theme.borderRadius.tile,
     padding: 4,
     marginHorizontal: theme.spacing.md,
     marginVertical: theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   button: {
     flex: 1,
@@ -49,10 +51,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: theme.spacing.xs,
     paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.borderRadius.chip,
   },
   buttonActive: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.purple,
   },
   icon: {
     fontSize: 16,
@@ -61,8 +63,9 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.sm,
     fontWeight: '600',
     color: theme.colors.textSecondary,
+    fontFamily: theme.typography.fontFamily.medium,
   },
   labelActive: {
-    color: theme.colors.background,
+    color: theme.colors.text,
   },
 });

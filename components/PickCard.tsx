@@ -96,8 +96,8 @@ export function formatLastSeen(lastSeen?: string): string {
 }
 
 function multColor(m?: string) {
-  if (m === 'singles') return theme.colors.primary;
-  if (m === 'doubles') return theme.colors.teal;
+  if (m === 'singles') return theme.colors.cyan;
+  if (m === 'doubles') return theme.colors.amber;
   return theme.colors.rose;
 }
 
@@ -174,10 +174,10 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
   }
 
   const convergingSignals = [
-    { key: 'BOX', color: theme.colors.primary, on: pick.signals.BOX >= 0.65 },
-    { key: 'MB',  color: theme.colors.rose,    on: pick.signals.PBURST >= 0.65 },
-    { key: 'CO',  color: theme.colors.teal,    on: pick.signals.CO >= 0.65 },
-    { key: 'DGC', color: theme.colors.gold,    on: (pick.signals.DGC ?? 0) >= 0.65 },
+    { key: 'BOX', color: theme.colors.cyan,   on: pick.signals.BOX >= 0.65 },
+    { key: 'MB',  color: theme.colors.rose,   on: pick.signals.PBURST >= 0.65 },
+    { key: 'CO',  color: theme.colors.purple, on: pick.signals.CO >= 0.65 },
+    { key: 'DGC', color: theme.colors.gold,   on: (pick.signals.DGC ?? 0) >= 0.65 },
   ];
 
   return (
@@ -307,9 +307,9 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
               )}
             </View>
 
-            <SignalBar label="Frequency"   value={pick.signals.BOX}          color={theme.colors.primary} />
+            <SignalBar label="Frequency"   value={pick.signals.BOX}          color={theme.colors.cyan} />
             <SignalBar label="Momentum"    value={pick.signals.PBURST}        color={theme.colors.rose} />
-            <SignalBar label="Pattern"     value={pick.signals.CO}            color={theme.colors.teal} />
+            <SignalBar label="Pattern"     value={pick.signals.CO}            color={theme.colors.purple} />
             <SignalBar label="Consistency" value={pick.signals.DGC ?? 0}      color={theme.colors.gold} />
 
             {pressure && (
@@ -347,8 +347,8 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
 
 const s = StyleSheet.create({
   card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.xl,
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.borderRadius.card,
     borderWidth: 1,
     borderColor: theme.colors.border,
     padding: 14,
@@ -367,15 +367,15 @@ const s = StyleSheet.create({
   },
   hotStreakText: { fontSize: 11, fontWeight: '800', color: theme.colors.error, letterSpacing: 0.5 },
   whyBanner: {
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: theme.colors.bgElevated,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: theme.colors.primary + '25',
+    borderColor: theme.colors.purple + '40',
   },
-  whyLabel: { fontSize: 8, fontWeight: '900', color: theme.colors.primary, letterSpacing: 1, marginBottom: 2 },
+  whyLabel: { fontSize: 8, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1, marginBottom: 2 },
   whyText: { fontSize: 10, color: theme.colors.text, lineHeight: 14 },
   signalDots: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8 },
   sigDot: {
@@ -386,26 +386,27 @@ const s = StyleSheet.create({
   sigDotHint: { fontSize: 9, color: theme.colors.textTertiary, flex: 1 },
   quickStats: {
     flexDirection: 'row', gap: 10, marginBottom: 8,
-    backgroundColor: theme.colors.surfaceLight, borderRadius: 8,
+    backgroundColor: theme.colors.bgElevated, borderRadius: 8,
     paddingHorizontal: 10, paddingVertical: 6,
+    borderWidth: 1, borderColor: theme.colors.border,
   },
   qStat: { alignItems: 'center', flex: 1 },
-  qStatNum: { fontSize: 14, fontWeight: '900', color: theme.colors.text, fontFamily: 'Courier' },
+  qStatNum: { fontSize: 14, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.mono },
   qStatLabel: { fontSize: 8, color: theme.colors.textTertiary, fontWeight: '600' },
   rankBadge: {
     width: 37, height: 37, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  rankText: { fontSize: 12, fontWeight: '900', fontFamily: 'Courier' },
-  bestStraightLabel: { fontSize: 8, fontWeight: '900', color: theme.colors.gold, letterSpacing: 1.5, marginBottom: 2 },
-  bestStraightDigits: { fontSize: 26, fontWeight: '900', color: theme.colors.gold, fontFamily: 'Courier', letterSpacing: 3, lineHeight: 31 },
+  rankText: { fontSize: 12, fontWeight: '900', fontFamily: theme.typography.fontFamily.mono },
+  bestStraightLabel: { fontSize: 8, fontWeight: '900', color: theme.colors.cyan, letterSpacing: 1.5, marginBottom: 2 },
+  bestStraightDigits: { fontSize: 26, fontWeight: '900', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 3, lineHeight: 31 },
   genTimestamp: { fontSize: 9, color: theme.colors.textTertiary, marginTop: 3 },
-  boxSetSecondary: { fontSize: 10, color: theme.colors.textSecondary, fontFamily: 'Courier', marginTop: 2 },
+  boxSetSecondary: { fontSize: 10, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, marginTop: 2 },
   combo: {
     fontSize: 32, fontWeight: '900', color: theme.colors.text,
-    letterSpacing: 4, fontFamily: 'Courier',
+    letterSpacing: 4, fontFamily: theme.typography.fontFamily.mono,
   },
-  comboSet: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: 'Courier' },
+  comboSet: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
   straightRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
   straightRowGold: {
     backgroundColor: theme.colors.goldLight, borderRadius: 8,
@@ -414,7 +415,7 @@ const s = StyleSheet.create({
   straightLabel: { fontSize: 9, color: theme.colors.textTertiary, fontWeight: '700' },
   straightVal: {
     fontSize: 12, fontWeight: '900', color: theme.colors.primary,
-    fontFamily: 'Courier', letterSpacing: 2,
+    fontFamily: theme.typography.fontFamily.mono, letterSpacing: 2,
   },
   straightBadge: {
     backgroundColor: theme.colors.gold + '25', borderRadius: 99,
@@ -433,7 +434,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1.5, gap: 1,
   },
-  energyNum: { fontSize: 12, fontWeight: '900', fontFamily: 'Courier', lineHeight: 14 },
+  energyNum: { fontSize: 12, fontWeight: '900', fontFamily: theme.typography.fontFamily.mono, lineHeight: 14 },
   energyLabel: { fontSize: 8, fontWeight: '800', letterSpacing: 0.5 },
   tapHint: { fontSize: 8, color: theme.colors.textTertiary },
   pressureRow: {
@@ -448,16 +449,16 @@ const s = StyleSheet.create({
   },
   lastSeenText: { fontSize: 10, color: theme.colors.textTertiary, flex: 1 },
   shareBtn: {
-    backgroundColor: theme.colors.surfaceLight, borderRadius: 8,
+    backgroundColor: theme.colors.bgElevated, borderRadius: 8,
     paddingHorizontal: 10, paddingVertical: 5,
-    borderWidth: 1, borderColor: theme.colors.border,
+    borderWidth: 1, borderColor: theme.colors.borderMed,
   },
   shareBtnText: { fontSize: 10, color: theme.colors.textSecondary, fontWeight: '700' },
   lockOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: theme.colors.surface + 'EE',
-    borderRadius: theme.borderRadius.xl, gap: 4,
+    backgroundColor: theme.colors.bgElevated + 'EE',
+    borderRadius: theme.borderRadius.card, gap: 4,
   },
   lockTitle: { fontSize: 12, fontWeight: '800', color: theme.colors.text },
   lockBadge: {

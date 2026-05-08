@@ -29,8 +29,8 @@ function toComboSet(combo: string): string {
   return '{' + combo.split('').sort().join(',') + '}';
 }
 function energyColor(e: number) {
-  if (e >= 80) return theme.colors.error;
-  if (e >= 65) return theme.colors.orange;
+  if (e >= 80) return theme.colors.hot;
+  if (e >= 65) return theme.colors.amber;
   if (e >= 45) return theme.colors.gold;
   return theme.colors.textTertiary;
 }
@@ -141,13 +141,13 @@ function LiveResultsTicker({ currentPickSets }: { currentPickSets?: Set<string> 
               const matched = isMatch(item);
               return (
                 <View key={i} style={[tk.chip, matched && tk.chipMatch]}>
-                  <View style={[tk.stateTag, { backgroundColor: isMid ? '#FFD700' : '#7C3AED' }]}>
-                    <Text style={[tk.stateText, { color: isMid ? '#000000' : '#FFFFFF' }]}>{stateAbbr(item.jurisdiction)}</Text>
+                  <View style={[tk.stateTag, { backgroundColor: isMid ? theme.colors.gold : theme.colors.purple }]}>
+                    <Text style={[tk.stateText, { color: '#000000' }]}>{stateAbbr(item.jurisdiction)}</Text>
                   </View>
-                  <Text numberOfLines={1} style={[tk.chipText, { color: matched ? '#FF6B00' : isMid ? '#FFD700' : '#FFFFFF' }]}>
+                  <Text numberOfLines={1} style={[tk.chipText, { color: matched ? theme.colors.amber : isMid ? theme.colors.gold : theme.colors.text }]}>
                     {matched ? '🎯' : ''}{item.result_digits}
                   </Text>
-                  <View style={[tk.sessionDot, { backgroundColor: isMid ? '#FFD700' : '#7C3AED' }]} />
+                  <View style={[tk.sessionDot, { backgroundColor: isMid ? theme.colors.gold : theme.colors.purple }]} />
                 </View>
               );
             })}
@@ -190,8 +190,8 @@ const tk = StyleSheet.create({
     width: 28, height: 28, borderRadius: 6,
     alignItems: 'center', justifyContent: 'center',
   },
-  stateText: { fontSize: 10, fontWeight: '900', fontFamily: 'Courier' },
-  chipText: { fontSize: 12, fontWeight: '900', color: '#fff', fontFamily: 'Courier', letterSpacing: 2, flex: 1 },
+  stateText: { fontSize: 10, fontWeight: '900', fontFamily: theme.typography.fontFamily.mono },
+  chipText: { fontSize: 12, fontWeight: '900', color: '#fff', fontFamily: theme.typography.fontFamily.mono, letterSpacing: 2, flex: 1 },
   awaitingText: { fontSize: 10, color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' },
 });
 
@@ -233,7 +233,7 @@ function OnboardingModal({ visible, onDone }: { visible: boolean; onDone: () => 
   return (
     <Modal transparent visible={visible} animationType="fade">
       <View style={ob.backdrop}>
-        <LinearGradient colors={[theme.colors.surface, theme.colors.cosmicLight]} style={ob.card}>
+        <LinearGradient colors={[theme.colors.bgElevated, theme.colors.background]} style={ob.card}>
           <Text style={{ fontSize: 48, marginBottom: 16 }}>{screen.emoji}</Text>
           <Text style={ob.title}>{screen.title}</Text>
           <Text style={ob.body}>{screen.body}</Text>
@@ -260,14 +260,14 @@ const ob = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: '#0009', alignItems: 'center', justifyContent: 'center', padding: 28 },
   card: {
     width: '100%', maxWidth: 380, borderRadius: 22, padding: 28,
-    alignItems: 'center', borderWidth: 1.5, borderColor: theme.colors.primary + '33',
+    alignItems: 'center', borderWidth: 1.5, borderColor: theme.colors.purple + '44',
   },
   title: { fontSize: 20, fontWeight: '900', color: theme.colors.text, textAlign: 'center', marginBottom: 12 },
   body: { fontSize: 14, color: theme.colors.textSecondary, textAlign: 'center', lineHeight: 21, marginBottom: 20 },
   dots: { flexDirection: 'row', gap: 6, marginBottom: 20 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.surfaceMuted },
-  dotActive: { backgroundColor: theme.colors.primary, width: 18 },
-  btn: { backgroundColor: theme.colors.primary, borderRadius: 13, paddingHorizontal: 28, paddingVertical: 13, width: '100%', alignItems: 'center' },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.border },
+  dotActive: { backgroundColor: theme.colors.purple, width: 18 },
+  btn: { backgroundColor: theme.colors.purple, borderRadius: 13, paddingHorizontal: 28, paddingVertical: 13, width: '100%', alignItems: 'center' },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });
 
@@ -316,10 +316,10 @@ const esb = StyleSheet.create({
     marginHorizontal: 16, marginTop: 6, paddingHorizontal: 10, paddingVertical: 5,
     borderRadius: 8, borderWidth: 1,
   },
-  live: { backgroundColor: theme.colors.tealLight + 'CC', borderColor: theme.colors.teal + '44' },
-  warning: { backgroundColor: theme.colors.goldLight + 'CC', borderColor: theme.colors.gold + '44' },
-  demo: { backgroundColor: theme.colors.orangeLight + 'CC', borderColor: theme.colors.orange + '44' },
-  text: { fontSize: 9, fontWeight: '700', color: theme.colors.textSecondary, fontFamily: 'Courier' },
+  live: { backgroundColor: 'rgba(43,255,204,0.08)', borderColor: theme.colors.cyan + '55' },
+  warning: { backgroundColor: 'rgba(255,217,61,0.08)', borderColor: theme.colors.gold + '55' },
+  demo: { backgroundColor: 'rgba(255,106,43,0.08)', borderColor: theme.colors.amber + '55' },
+  text: { fontSize: 9, fontWeight: '700', color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
 });
 
 // ─── Home Screen ──────────────────────────────────────────────────────────────
@@ -409,6 +409,8 @@ export default function HomeScreen() {
     setIsRefreshing(true);
     try {
       await refreshSnapshot();
+    } catch (err) {
+      console.warn('[Home] Pull-refresh failed:', err instanceof Error ? err.message : String(err));
     } finally {
       setIsRefreshing(false);
     }
@@ -468,7 +470,7 @@ export default function HomeScreen() {
       if (typeof row === 'string') {
         combo = row;
         const cd = Array.isArray(components) ? components.find((c: any) => c?.combo === combo) : null;
-        if (cd) { energy = cd.temperature ?? 0; signals = cd.components ?? signals; multiplicity = cd.multiplicity; topPair = cd.topPair; }
+        if (cd) { energy = cd.temperature ?? 0; signals = { ...signals, ...(cd.components ?? {}) }; multiplicity = cd.multiplicity; topPair = cd.topPair; }
       } else {
         const r = row as any;
         combo = r.combo ?? '---';
@@ -547,11 +549,11 @@ export default function HomeScreen() {
         >
 
         {/* ── Header ── */}
-        <LinearGradient colors={[theme.colors.cosmicLight, theme.colors.primaryLight]} style={s.header}>
+        <View style={s.header}>
           <View style={s.headerTop}>
             <View style={{ flex: 1 }}>
               <Text style={s.title}>
-                Today's <Text style={{ color: theme.colors.primary }}>Slates</Text> ⚡
+                Today's <Text style={{ color: theme.colors.cyan }}>Slates</Text> ⚡
               </Text>
               <Text style={s.subtitle}>Your daily slates, powered by ZK6 Engine</Text>
             </View>
@@ -597,7 +599,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             ))}
           </View>
-        </LinearGradient>
+        </View>
 
         {/* ── Engine Status Bar ── */}
         <EngineStatusBar snapshot={snapshot} />
@@ -608,7 +610,7 @@ export default function HomeScreen() {
           <LiveResultsTicker currentPickSets={new Set(items.filter(p => !p.locked && p.combo !== '---' && p.combo !== '•••').map(p => p.comboSet))} />
           <TouchableOpacity
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setHeatCheckCombo(''); setHeatCheckOpen(true); }}
-            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 14, backgroundColor: theme.colors.surfaceLight, borderRadius: 10, borderWidth: 1, borderColor: theme.colors.border }}
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 14, backgroundColor: theme.colors.bgElevated, borderRadius: 10, borderWidth: 1, borderColor: theme.colors.borderMed }}
           >
             <Text style={{ fontSize: 16 }}>🔍</Text>
             <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text }}>Heat Check Any Combo</Text>
@@ -634,8 +636,8 @@ export default function HomeScreen() {
             <Text style={s.hitsSectionTitle}>🎯 Today's Hits</Text>
             {hitItems.map((pick, i) => (
               <View key={i} style={s.hitRow}>
-                <View style={[s.hitTypeBadge, { backgroundColor: pick.hitType === 'straight' ? theme.colors.gold + '22' : theme.colors.teal + '22', borderColor: pick.hitType === 'straight' ? theme.colors.gold + '66' : theme.colors.teal + '66' }]}>
-                  <Text style={[s.hitTypeBadgeText, { color: pick.hitType === 'straight' ? theme.colors.gold : theme.colors.teal }]}>
+                <View style={[s.hitTypeBadge, { backgroundColor: pick.hitType === 'straight' ? theme.colors.gold + '22' : theme.colors.cyan + '22', borderColor: pick.hitType === 'straight' ? theme.colors.gold + '66' : theme.colors.cyan + '66' }]}>
+                  <Text style={[s.hitTypeBadgeText, { color: pick.hitType === 'straight' ? theme.colors.gold : theme.colors.cyan }]}>
                     {pick.hitType === 'straight' ? '⭐ STRAIGHT' : '🎯 BOX'}
                   </Text>
                 </View>
@@ -648,51 +650,37 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* ── Energy Summary ── */}
-        <View style={s.energySection}>
-          <View style={s.energySummary}>
-            <View style={{ alignItems: 'center', gap: 4 }}>
-              <Text style={[s.energyBig, { color: avgColor }]}>{avgEnergy}</Text>
-              <Text style={s.energyBigLabel}>AVG ENERGY</Text>
-              <Text style={{ fontSize: 20 }}>{energyEmoji(avgEnergy)}</Text>
-            </View>
-            <View style={{ flex: 1, gap: 8 }}>
-              <Text style={s.oracleSummaryLabel}>✦ ORACLE SUMMARY</Text>
-              <Text style={s.oracleLine}>
-                <Text style={{ fontWeight: '700', color: theme.colors.text }}>{isFree ? 2 : 6}</Text>
-                {' '}slate picks visible
-              </Text>
-              <Text style={s.oracleLine}>
-                Scope:{' '}
-                <Text style={{ fontWeight: '700', color: theme.colors.primary }}>
-                  {SCOPE_LABELS[scope] ?? scope}
-                </Text>
-              </Text>
-              <Text style={s.oracleLine}>
-                Draws tracked:{' '}
-                <Text style={{ fontWeight: '700', color: theme.colors.primary }}>
-                  {historiesStats?.totalDraws?.toLocaleString() ?? '—'}
-                </Text>
-              </Text>
-              <Text style={s.oracleLine}>
-                Active states:{' '}
-                <Text style={{ fontWeight: '700', color: theme.colors.primary }}>
-                  {historiesStats?.activeStates ?? '—'}
-                </Text>
-              </Text>
-            </View>
-          </View>
+        {/* ── Energy stat strip ── */}
+        <View style={s.statStrip}>
+          <Text style={[s.statStripNum, { color: avgColor }]}>{avgEnergy}</Text>
+          <Text style={s.statStripLabel}>AVG ENERGY</Text>
+          <View style={s.statStripDiv} />
+          <Text style={s.statStripVal}>{isFree ? 2 : 6} picks</Text>
+          <Text style={s.statStripSep}>·</Text>
+          <Text style={[s.statStripVal, { color: theme.colors.cyan }]}>{SCOPE_LABELS[scope] ?? scope}</Text>
+          {historiesStats?.totalDraws ? (
+            <>
+              <Text style={s.statStripSep}>·</Text>
+              <Text style={s.statStripVal}>{historiesStats.totalDraws.toLocaleString()} draws</Text>
+            </>
+          ) : null}
+          {historiesStats?.activeStates ? (
+            <>
+              <Text style={s.statStripSep}>·</Text>
+              <Text style={[s.statStripVal, { color: theme.colors.cyan }]}>{historiesStats.activeStates} states</Text>
+            </>
+          ) : null}
         </View>
 
         {/* ── K6 Slate ── */}
         <View style={s.slateSection}>
           <View style={s.slateSectionHdr}>
             <Text style={s.slateSectionTitle}>
-              K6 <Text style={{ color: theme.colors.primary }}>Slate</Text>
+              K6 <Text style={{ color: theme.colors.cyan }}>Slate</Text>
             </Text>
             {(!hasData || snapshotLoading) && (
               <TouchableOpacity style={s.generateBtn} onPress={handleRequestRegen} disabled={isRegenLoading}>
-                <RefreshCw size={14} color={theme.colors.surface} />
+                <RefreshCw size={14} color={theme.colors.text} />
                 <Text style={s.generateBtnText}>{isRegenLoading ? 'Generating…' : 'Generate'}</Text>
               </TouchableOpacity>
             )}
@@ -722,10 +710,7 @@ export default function HomeScreen() {
           )}
 
           {isFree && !snapshotLoading && (
-            <LinearGradient
-              colors={[theme.colors.cosmicLight, theme.colors.goldLight]}
-              style={s.proGate}
-            >
+            <View style={s.proGate}>
               <Text style={{ fontSize: 28, marginBottom: 6 }}>🏆</Text>
               <Text style={s.proGateTitle}>Unlock your full K6 Slate</Text>
               <Text style={s.proGateDesc}>
@@ -734,7 +719,7 @@ export default function HomeScreen() {
               <TouchableOpacity style={s.proGateBtn} onPress={() => setPaywallOpen(true)}>
                 <Text style={s.proGateBtnText}>Upgrade to Oracle+ · $9.99/mo ♛</Text>
               </TouchableOpacity>
-            </LinearGradient>
+            </View>
           )}
         </View>
 
@@ -791,113 +776,116 @@ const s = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 32 },
 
-  header: { padding: 20, paddingBottom: 16, gap: 12 },
+  header: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, gap: 10, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   headerTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  title: { fontSize: 24, fontWeight: '900', color: theme.colors.text, lineHeight: 28 },
-  subtitle: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
+  title: { fontSize: 22, fontWeight: '900', color: theme.colors.text, lineHeight: 26, fontFamily: theme.typography.fontFamily.bold },
+  subtitle: { fontSize: 11, color: theme.colors.textTertiary, marginTop: 2, fontFamily: theme.typography.fontFamily.mono },
   tierBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99 },
   tierText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
   streakBadge: {
-    backgroundColor: theme.colors.error + '18', borderRadius: 99,
-    paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: theme.colors.error + '30',
+    backgroundColor: theme.colors.amber + '18', borderRadius: 99,
+    paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: theme.colors.amber + '55',
   },
-  streakText: { fontSize: 10, fontWeight: '800', color: theme.colors.error },
+  streakText: { fontSize: 10, fontWeight: '800', color: theme.colors.amber, fontFamily: theme.typography.fontFamily.mono },
 
   scopeRow: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface + 'BB',
-    borderRadius: 12, padding: 3, gap: 2,
+    backgroundColor: theme.colors.background,
+    borderRadius: 10, padding: 2, gap: 1,
+    borderWidth: 1, borderColor: theme.colors.border,
   },
-  scopeBtn: { flex: 1, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 9, alignItems: 'center' },
-  scopeBtnOn: { backgroundColor: theme.colors.surface, ...theme.shadows.soft },
-  scopeBtnText: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: '500' },
-  scopeBtnTextOn: { color: theme.colors.primary, fontWeight: '700' },
+  scopeBtn: { flex: 1, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, alignItems: 'center' },
+  scopeBtnOn: { backgroundColor: theme.colors.bgElevated },
+  scopeBtnText: { fontSize: 11, color: theme.colors.textSecondary, fontWeight: '500' },
+  scopeBtnTextOn: { color: theme.colors.cyan, fontWeight: '700' },
 
-  modeRow: { flexDirection: 'row', gap: 6 },
+  modeRow: { flexDirection: 'row', gap: 5 },
   modeBtn: {
-    flex: 1, paddingVertical: 6, borderRadius: 10,
-    borderWidth: 1.5, borderColor: theme.colors.border,
-    alignItems: 'center', backgroundColor: theme.colors.surface + '88',
+    flex: 1, paddingVertical: 5, borderRadius: 8,
+    borderWidth: 1, borderColor: theme.colors.border,
+    alignItems: 'center', backgroundColor: theme.colors.bgElevated,
   },
-  modeBtnOn: { borderColor: theme.colors.primary, backgroundColor: theme.colors.primaryLight },
-  modeBtnText: { fontSize: 10, fontWeight: '700', color: theme.colors.textTertiary },
-  modeBtnTextOn: { color: theme.colors.primary },
+  modeBtnOn: { borderColor: theme.colors.purple + '88', backgroundColor: theme.colors.purple + '18' },
+  modeBtnText: { fontSize: 10, fontWeight: '600', color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
+  modeBtnTextOn: { color: theme.colors.purple },
 
   hitBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     marginHorizontal: 16, marginTop: 10,
-    backgroundColor: theme.colors.successLight, borderRadius: theme.borderRadius.lg,
-    borderWidth: 1.5, borderColor: theme.colors.success + '44', padding: 12,
+    backgroundColor: theme.colors.cyan + '18', borderRadius: theme.borderRadius.lg,
+    borderWidth: 1.5, borderColor: theme.colors.cyan + '55', padding: 12,
   },
-  hitBannerTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.success },
-  hitBannerSub: { fontSize: 11, color: theme.colors.success + 'CC', marginTop: 2 },
+  hitBannerTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.mono },
+  hitBannerSub: { fontSize: 11, color: theme.colors.cyan + 'AA', marginTop: 2 },
 
   hitsSection: {
     marginHorizontal: 16, marginTop: 12,
-    backgroundColor: theme.colors.goldLight + 'CC',
-    borderRadius: theme.borderRadius.lg,
-    borderWidth: 1.5, borderColor: theme.colors.gold + '44', padding: 12,
+    backgroundColor: 'rgba(255,217,61,0.08)',
+    borderRadius: theme.borderRadius.tile,
+    borderWidth: 1.5, borderColor: theme.colors.gold + '55', padding: 12,
     gap: 8,
   },
-  hitsSectionTitle: { fontSize: 12, fontWeight: '900', color: theme.colors.gold, marginBottom: 4, letterSpacing: 0.5 },
+  hitsSectionTitle: { fontSize: 10, fontWeight: '900', color: theme.colors.gold, marginBottom: 4, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.mono },
   hitRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   hitTypeBadge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
   hitTypeBadgeText: { fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
-  hitCombo: { fontSize: 20, fontWeight: '900', fontFamily: 'Courier', color: theme.colors.text, letterSpacing: 4, flex: 1 },
+  hitCombo: { fontSize: 20, fontWeight: '900', fontFamily: theme.typography.fontFamily.mono, color: theme.colors.text, letterSpacing: 4, flex: 1 },
   hitMeta: { fontSize: 10, color: theme.colors.textSecondary, fontWeight: '600' },
 
-  energySection: {
-    margin: 16, marginTop: 14,
-    backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.xl,
-    borderWidth: 1, borderColor: theme.colors.border, padding: 18,
-    ...theme.shadows.soft,
+  statStrip: {
+    flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6,
+    marginHorizontal: 16, marginTop: 12, marginBottom: 2,
+    backgroundColor: theme.colors.bgElevated, borderRadius: theme.borderRadius.tile,
+    borderWidth: 1, borderColor: theme.colors.border,
+    paddingHorizontal: 14, paddingVertical: 8,
   },
-  energySummary: { flexDirection: 'row', alignItems: 'center', gap: 20 },
-  energyBig: { fontSize: 38, fontWeight: '900', fontFamily: 'Courier', lineHeight: 40 },
-  energyBigLabel: { fontSize: 9, color: theme.colors.textTertiary, fontWeight: '800', letterSpacing: 1.5 },
-  oracleSummaryLabel: { fontSize: 9, color: theme.colors.textTertiary, fontWeight: '800', letterSpacing: 2 },
-  oracleLine: { fontSize: 13, color: theme.colors.textSecondary },
+  statStripNum: { fontSize: 22, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '900', lineHeight: 24 },
+  statStripLabel: { fontSize: 9, color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.mono, fontWeight: '800', letterSpacing: 1.5 },
+  statStripDiv: { width: 1, height: 16, backgroundColor: theme.colors.border, marginHorizontal: 2 },
+  statStripVal: { fontSize: 11, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
+  statStripSep: { fontSize: 10, color: theme.colors.textTertiary },
 
   slateSection: { paddingHorizontal: 16 },
   slateSectionHdr: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  slateSectionTitle: { fontSize: 16, fontWeight: '900', color: theme.colors.text, letterSpacing: 0.5 },
+  slateSectionTitle: { fontSize: 11, fontWeight: '900', color: theme.colors.text, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.mono },
   generateBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: theme.colors.primary, paddingHorizontal: 12, paddingVertical: 7, borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.purple, paddingHorizontal: 12, paddingVertical: 7, borderRadius: theme.borderRadius.tile,
   },
   generateBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
 
   loadingCard: {
-    backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.xl, padding: 24,
+    backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.card, padding: 24,
     alignItems: 'center', borderWidth: 1, borderColor: theme.colors.border,
   },
   loadingText: { fontSize: 13, color: theme.colors.textTertiary },
 
   proGate: {
-    borderRadius: theme.borderRadius.xl, padding: 22, alignItems: 'center',
-    borderWidth: 1.5, borderColor: theme.colors.primary + '33', marginTop: 4, marginBottom: 16,
+    borderRadius: theme.borderRadius.card, padding: 22, alignItems: 'center',
+    borderWidth: 1.5, borderColor: theme.colors.purple + '66', marginTop: 4, marginBottom: 16,
+    backgroundColor: theme.colors.purple + '12',
   },
   proGateTitle: { fontSize: 15, fontWeight: '800', color: theme.colors.text, marginBottom: 6 },
   proGateDesc: { fontSize: 12, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 14, lineHeight: 18 },
-  proGateBtn: { backgroundColor: theme.colors.cosmic, paddingHorizontal: 24, paddingVertical: 11, borderRadius: 13 },
+  proGateBtn: { backgroundColor: theme.colors.purple, paddingHorizontal: 24, paddingVertical: 11, borderRadius: 13 },
   proGateBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 
   respSection: {
-    marginHorizontal: 16, padding: 14, borderRadius: theme.borderRadius.lg,
-    borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surfaceLight, marginTop: 4,
+    marginHorizontal: 16, padding: 14, borderRadius: theme.borderRadius.tile,
+    borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.bgElevated, marginTop: 4,
   },
   respText: { fontSize: 11, color: theme.colors.textSecondary, lineHeight: 18 },
 
-  modalBackdrop: { flex: 1, backgroundColor: '#0009', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', justifyContent: 'center', padding: 20 },
   modalCard: {
-    width: '100%', maxWidth: 400, backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: theme.colors.border, padding: 20,
+    width: '100%', maxWidth: 400, backgroundColor: theme.colors.bgElevated,
+    borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: theme.colors.border, padding: 20,
   },
   modalTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.text, marginBottom: 8 },
   modalBody: { fontSize: 14, color: theme.colors.textSecondary, marginBottom: 16 },
   modalBtn: {
-    backgroundColor: theme.colors.surfaceLight, borderWidth: 1, borderColor: theme.colors.border,
-    paddingVertical: 10, paddingHorizontal: 16, borderRadius: theme.borderRadius.md, alignItems: 'center',
+    backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.borderMed,
+    paddingVertical: 10, paddingHorizontal: 16, borderRadius: theme.borderRadius.chip, alignItems: 'center',
   },
   modalBtnText: { color: theme.colors.text, fontWeight: '600' },
 });

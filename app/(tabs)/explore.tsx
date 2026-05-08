@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -43,7 +43,6 @@ export default function SlatesScreen() {
   const queryClient = useQueryClient();
 
   const [wKey, setWKey] = useState<'balanced' | 'conservative' | 'aggressive'>('balanced');
-  const [search, setSearch] = useState('');
   const [fMult, setFMult] = useState<'all' | 'singles' | 'doubles'>('all');
   const [sort, setSort] = useState<'rank' | 'energy' | 'freq'>('rank');
   const [detail, setDetail] = useState<PickItem | null>(null);
@@ -76,9 +75,12 @@ export default function SlatesScreen() {
   const { data: yesterdaySnap, isLoading: ysLoading } = useQuery({
     queryKey: ['yesterday_snap', scope, yesterdayStr],
     queryFn: async () => {
+      // Upper bound is todayStr+09:00Z (~5am ET) to capture slates generated
+      // late evening ET (which land on the next UTC day).
+      // No deleted_at filter — late-ET slates can be soft-deleted by next-day regen.
       const rows = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/slate_snapshots?scope=eq.${scope}&deleted_at=is.null` +
-              `&updated_at_et=gte.${yesterdayStr}T00:00:00&updated_at_et=lt.${todayStr}T00:00:00` +
+        path: `/rest/v1/slate_snapshots?scope=eq.${scope}` +
+              `&updated_at_et=gte.${yesterdayStr}T00:00:00&updated_at_et=lt.${todayStr}T09:00:00` +
               `&order=updated_at_et.desc&limit=1&select=id,scope,top_k_straights_json`,
       });
       return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
@@ -275,51 +277,69 @@ export default function SlatesScreen() {
     }));
   }, [hitPicks]);
 
+  const handleSaveSlate = useCallback(async () => {
+    if (savingSlate || rawItems.every(p => p.combo === '---')) return;
+    setSavingSlate(true);
+    try {
+      const today = new Date();
+      const dateLabel = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const SLABELS: Record<string, string> = { midday: 'Mid Day', evening: 'Evening', allday: 'All Day' };
+      const getLabel = (e: number) => e >= 90 ? 'ON FIRE' : e >= 80 ? 'BLAZING' : e >= 65 ? 'HOT' : e >= 45 ? 'WARM' : 'COOL';
+      const entry = {
+        id: 'slate_' + Date.now(), name: `K6 Slate · ${SLABELS[scope] ?? scope} · ${dateLabel}`,
+        scope, type: 'saved_slate', savedAt: today.toISOString(),
+        combos: rawItems.filter(p => p.combo !== '---').map(p => ({ combo: p.combo, note: `Energy ${p.energy} · ${getLabel(p.energy)}`, starred: false, energy: p.energy })),
+      };
+      const existing = await storage.getItem('saved_slates');
+      const slates = existing ? JSON.parse(existing) : [];
+      slates.unshift(entry);
+      await storage.setItem('saved_slates', JSON.stringify(slates));
+      setSlateSavedMsg('Saved!');
+      setTimeout(() => setSlateSavedMsg(''), 2500);
+    } catch { /* ignore */ }
+    setSavingSlate(false);
+  }, [savingSlate, rawItems, scope]);
+
   const filtered = useMemo(() => {
     let p = [...rawItems];
-    if (search) p = p.filter(x => x.combo.includes(search) || x.comboSet.includes(search));
     if (fMult !== 'all') p = p.filter(x => x.multiplicity === fMult);
     if (sort === 'energy') p.sort((a, b) => b.energy - a.energy);
     else if (sort === 'freq') p.sort((a, b) => b.signals.BOX - a.signals.BOX);
     else p.sort((a, b) => a.rank - b.rank);
     return p;
-  }, [rawItems, search, fMult, sort]);
+  }, [rawItems, fMult, sort]);
 
   return (
     <SafeAreaView style={s.container} edges={['left', 'right', 'bottom']}>
-      {/* Status bar */}
-      <LinearGradient colors={[theme.colors.cosmic, theme.colors.primary]} style={s.statusBar}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <View style={s.liveDot} />
-          <Text style={s.statusLive}>✦ Oracle Live</Text>
-        </View>
-        <Text style={s.statusTime}>{getETTime()}</Text>
-        {snapshot?.hash && (
-          <Text style={s.statusHash}>…{snapshot.hash.slice(-6)}</Text>
-        )}
-      </LinearGradient>
+      {/* ── Status strip ── */}
+      <View style={s.statusStrip}>
+        <View style={s.liveDot} />
+        <Text style={s.stripText}>Oracle Live · {getETTime()} · National</Text>
+        {snapshot?.hash && <Text style={s.stripHash}>#{snapshot.hash.slice(-6)}</Text>}
+      </View>
 
-      {/* Header */}
+      {/* ── Header ── */}
       <View style={s.header}>
-        <View style={{ flex: 1 }}>
-          <Text style={s.title}>⚡ K6 <Text style={{ color: theme.colors.primary }}>Slates</Text></Text>
-          <Text style={s.subtitle}>
-            {isFree
-              ? '📅 Official slate · Updated twice daily by ZK6 Admin'
-              : isPro
-              ? `⚡ Live slate · ${creditsRemaining} credit${creditsRemaining !== 1 ? 's' : ''} remaining`
-              : '✦ Live slate · Unlimited regenerations'}
-          </Text>
-        </View>
-        {isFree ? null : (
+        <Text style={s.title}>K6 <Text style={{ color: theme.colors.cyan }}>Slates</Text></Text>
+        {isPro && creditsRemaining > 0 && (
+          <Text style={s.creditsText}>{creditsRemaining} cr</Text>
+        )}
+        <View style={{ flex: 1 }} />
+        <TouchableOpacity
+          style={s.headerIconBtn}
+          onPress={() => { setHeatCheckCombo(''); setHeatCheckOpen(true); }}
+        >
+          <Text style={s.headerIconText}>🔍</Text>
+        </TouchableOpacity>
+        {!isFree && (
           <TouchableOpacity
-            style={[s.generateBtn, isPro && creditsRemaining === 0 && { backgroundColor: theme.colors.surfaceMuted }]}
+            style={[s.generateBtn, isPro && creditsRemaining === 0 && { opacity: 0.4 }]}
             onPress={handleRequestRegen}
             disabled={isRegenLoading || (isPro && creditsRemaining <= 0)}
           >
-            <RefreshCw size={14} color={isPro && creditsRemaining === 0 ? theme.colors.textTertiary : '#fff'} />
-            <Text style={[s.generateBtnText, isPro && creditsRemaining === 0 && { color: theme.colors.textTertiary }]}>
-              {isRegenLoading ? 'Generating…' : isPro ? `Generate (${creditsRemaining})` : 'Generate'}
+            <RefreshCw size={12} color="#fff" />
+            <Text style={s.generateBtnText}>
+              {isRegenLoading ? '…' : 'Generate'}
             </Text>
           </TouchableOpacity>
         )}
@@ -333,164 +353,70 @@ export default function SlatesScreen() {
         onConfirm={handleGenerate}
       />
 
-      {/* Scope + Mode */}
-      <View style={s.scopeRow}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={{ flexDirection: 'row', gap: 4 }}>
-            <View style={s.scopeGroup}>
-              {(['midday', 'evening', 'allday'] as const).map(sc => (
-                <TouchableOpacity
-                  key={sc} style={[s.scopeBtn, scope === sc && !showYesterday && s.scopeBtnOn]}
-                  onPress={() => { setScope(sc); setShowYesterday(false); }}
-                >
-                  <Text style={[s.scopeBtnText, scope === sc && !showYesterday && s.scopeBtnTextOn]}>{SCOPE_LABELS[sc]}</Text>
-                </TouchableOpacity>
-              ))}
-              <TouchableOpacity
-                style={[s.scopeBtn, showYesterday && s.scopeBtnYest]}
-                onPress={() => setShowYesterday(v => !v)}
-              >
-                <Text style={[s.scopeBtnText, showYesterday && { color: theme.colors.gold, fontWeight: '700' }]}>📅 Yesterday</Text>
-              </TouchableOpacity>
-            </View>
-            {MODE_LABELS.map(k => (
-              <TouchableOpacity
-                key={k}
-                style={[s.modeBtn, wKey === k && s.modeBtnOn]}
-                onPress={() => setWKey(k as any)}
-              >
-                <Text style={[s.modeBtnText, wKey === k && s.modeBtnTextOn]}>
-                  {k.charAt(0).toUpperCase() + k.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
-      </View>
+      {/* ── Scope + Mode (one compact row) ── */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.scopeRow} contentContainerStyle={s.scopeRowContent}>
+        <View style={s.scopeGroup}>
+          {(['midday', 'evening', 'allday'] as const).map(sc => (
+            <TouchableOpacity
+              key={sc} style={[s.scopeBtn, scope === sc && !showYesterday && s.scopeBtnOn]}
+              onPress={() => { setScope(sc); setShowYesterday(false); }}
+            >
+              <Text style={[s.scopeBtnText, scope === sc && !showYesterday && s.scopeBtnTextOn]}>{SCOPE_LABELS[sc]}</Text>
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity
+            style={[s.scopeBtn, showYesterday && s.scopeBtnYest]}
+            onPress={() => setShowYesterday(v => !v)}
+          >
+            <Text style={[s.scopeBtnText, showYesterday && { color: theme.colors.gold, fontWeight: '700' }]}>📅 Yest</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={s.scopeDivider} />
+        {MODE_LABELS.map(k => (
+          <TouchableOpacity key={k} style={[s.modeBtn, wKey === k && s.modeBtnOn]} onPress={() => setWKey(k as any)}>
+            <Text style={[s.modeBtnText, wKey === k && s.modeBtnTextOn]}>
+              {k.charAt(0).toUpperCase() + k.slice(1)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
-      {/* Heat Check button */}
-      <TouchableOpacity
-        onPress={() => { setHeatCheckCombo(''); setHeatCheckOpen(true); }}
-        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginHorizontal: 16, marginVertical: 6, paddingVertical: 8, backgroundColor: theme.colors.surfaceLight, borderRadius: 10, borderWidth: 1, borderColor: theme.colors.border }}
-      >
-        <Text style={{ fontSize: 14 }}>🔍</Text>
-        <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text }}>Heat Check Any Combo</Text>
-      </TouchableOpacity>
-
-      {/* PRO upgrade banner */}
+      {/* ── PRO banner (free only, compact) ── */}
       {isFree && (
         <TouchableOpacity style={s.proBanner} onPress={() => setPaywallOpen(true)} activeOpacity={0.85}>
-          <Text style={{ fontSize: 18 }}>🏆</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={s.proBannerTitle}>See all 6 K6 Slate picks</Text>
-            <Text style={s.proBannerSub}>Join <Text style={{ color: theme.colors.gold, fontWeight: '700' }}>2,400+ players</Text> on Pro slates.</Text>
-          </View>
-          <View style={s.proBannerBtn}>
-            <Text style={s.proBannerBtnText}>Unlock ♛</Text>
-          </View>
+          <Text style={s.proBannerTitle}>Unlock all 6 picks</Text>
+          <View style={{ flex: 1 }} />
+          <View style={s.proBannerBtn}><Text style={s.proBannerBtnText}>Oracle+ ♛</Text></View>
         </TouchableOpacity>
       )}
 
-      {/* Search + Filters */}
-      <View style={s.filterBar}>
-        <View style={s.searchBox}>
-          <Text style={{ color: theme.colors.textTertiary, fontSize: 12 }}>🔍</Text>
-          <TextInput
-            style={s.searchInput}
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search number…"
-            placeholderTextColor={theme.colors.textTertiary}
-          />
-        </View>
-        <View style={{ flexDirection: 'row', gap: 4 }}>
-          {(['all', 'singles', 'doubles'] as const).map(m => (
-            <TouchableOpacity
-              key={m}
-              style={[s.filterChip, fMult === m && s.filterChipOn]}
-              onPress={() => setFMult(m)}
-            >
-              <Text style={[s.filterChipText, fMult === m && s.filterChipTextOn]}>
-                {m.charAt(0).toUpperCase() + m.slice(1)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
-          <Text style={{ fontSize: 9, color: theme.colors.textTertiary, fontWeight: '800', letterSpacing: 1 }}>SORT</Text>
-          {([['rank', 'Rank'], ['energy', 'Energy'], ['freq', 'Freq']] as const).map(([id, lbl]) => (
-            <TouchableOpacity
-              key={id}
-              style={[s.sortChip, sort === id && s.sortChipOn]}
-              onPress={() => setSort(id)}
-            >
-              <Text style={[s.filterChipText, sort === id && { color: '#fff' }]}>{lbl}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {/* Save Slate button row */}
-      {!isFree && (
-        <View style={{ backgroundColor: theme.colors.surface, borderBottomWidth: 1, borderBottomColor: theme.colors.border, paddingHorizontal: 12, paddingVertical: 8 }}>
-          <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.colors.goldLight, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: theme.colors.gold + '44', opacity: savingSlate ? 0.6 : 1 }}
-            onPress={async () => {
-              if (savingSlate || rawItems.every(p => p.combo === '---')) return;
-              setSavingSlate(true);
-              try {
-                const today = new Date();
-                const dateLabel = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                const SCOPE_LABELS: Record<string, string> = { midday: 'Mid Day', evening: 'Evening', allday: 'All Day' };
-                const listName = `K6 Slate · ${SCOPE_LABELS[scope] ?? scope} · ${dateLabel}`;
-                const energyLabels = ['ON FIRE','BLAZING','HOT','WARM','COOL'];
-                const getEnergyLabel = (e: number) => e >= 90 ? 'ON FIRE' : e >= 80 ? 'BLAZING' : e >= 65 ? 'HOT' : e >= 45 ? 'WARM' : 'COOL';
-                const savedEntry = {
-                  id: 'slate_' + Date.now(),
-                  name: listName,
-                  scope,
-                  type: 'saved_slate',
-                  savedAt: today.toISOString(),
-                  combos: rawItems.filter(p => p.combo !== '---').map(p => ({
-                    combo: p.combo,
-                    note: `Energy ${p.energy} · ${getEnergyLabel(p.energy)}`,
-                    starred: false,
-                    energy: p.energy,
-                  })),
-                };
-                const existing = await storage.getItem('saved_slates');
-                const slates = existing ? JSON.parse(existing) : [];
-                slates.unshift(savedEntry);
-                await storage.setItem('saved_slates', JSON.stringify(slates));
-                setSlateSavedMsg('Slate saved to Number Book!');
-                setTimeout(() => setSlateSavedMsg(''), 3000);
-              } catch { /* ignore */ }
-              setSavingSlate(false);
-            }}
-            disabled={savingSlate}
-          >
-            <Text style={{ fontSize: 16 }}>📖</Text>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: theme.colors.gold }}>
-              {savingSlate ? 'Saving…' : slateSavedMsg || 'Save This Slate to Number Book'}
+      {/* ── Control strip: filter · sort · view · save — ONE ROW ── */}
+      <View style={s.ctrlStrip}>
+        {(['all', 'singles', 'doubles'] as const).map(m => (
+          <TouchableOpacity key={m} style={[s.ctrlChip, fMult === m && s.ctrlChipOnCyan]} onPress={() => setFMult(m)}>
+            <Text style={[s.ctrlText, fMult === m && s.ctrlTextCyan]}>
+              {m === 'all' ? 'All' : m === 'singles' ? 'S' : 'D'}
             </Text>
           </TouchableOpacity>
-        </View>
-      )}
-
-      {/* View toggle */}
-      {!showYesterday && (
-        <View style={{ flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: theme.colors.surface, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-          {([['list', '≡ List'], ['compact', '⊞ Compact']] as const).map(([mode, label]) => (
-            <TouchableOpacity
-              key={mode}
-              style={{ paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8, backgroundColor: viewMode === mode ? theme.colors.primary : theme.colors.surfaceLight, borderWidth: 1, borderColor: viewMode === mode ? theme.colors.primary : theme.colors.border }}
-              onPress={() => setViewMode(mode)}
-            >
-              <Text style={{ fontSize: 12, fontWeight: '700', color: viewMode === mode ? '#fff' : theme.colors.textSecondary }}>{label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
+        ))}
+        <View style={s.ctrlDiv} />
+        {([['rank', 'Rank'], ['energy', 'Nrg'], ['freq', 'Frq']] as const).map(([id, lbl]) => (
+          <TouchableOpacity key={id} style={[s.ctrlChip, sort === id && s.ctrlChipOnPurple]} onPress={() => setSort(id)}>
+            <Text style={[s.ctrlText, sort === id && s.ctrlTextPurple]}>{lbl}</Text>
+          </TouchableOpacity>
+        ))}
+        <View style={{ flex: 1 }} />
+        {!showYesterday && ([['list', '≡'], ['compact', '⊞']] as const).map(([vm, icon]) => (
+          <TouchableOpacity key={vm} style={[s.ctrlChip, viewMode === vm && s.ctrlChipOnPurple]} onPress={() => setViewMode(vm as any)}>
+            <Text style={[s.ctrlText, viewMode === vm && s.ctrlTextPurple]}>{icon}</Text>
+          </TouchableOpacity>
+        ))}
+        {!isFree && (
+          <TouchableOpacity style={s.ctrlSaveBtn} onPress={handleSaveSlate} disabled={savingSlate}>
+            <Text style={s.ctrlSaveText}>{slateSavedMsg ? '✓' : savingSlate ? '…' : '📖'}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* Pick list */}
       <ScrollView style={s.content} contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
@@ -499,17 +425,17 @@ export default function SlatesScreen() {
           <View>
             {ysLoading ? (
               <View style={{ alignItems: 'center', paddingVertical: 32 }}>
-                <ActivityIndicator color={theme.colors.primary} />
+                <ActivityIndicator color={theme.colors.cyan} />
                 <Text style={{ marginTop: 8, fontSize: 12, color: theme.colors.textSecondary }}>Loading yesterday's slate…</Text>
               </View>
             ) : !yesterdaySnap ? (
-              <View style={{ padding: 20, backgroundColor: theme.colors.surfaceLight, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border, alignItems: 'center', marginBottom: 16 }}>
+              <View style={{ padding: 20, backgroundColor: theme.colors.bgElevated, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border, alignItems: 'center', marginBottom: 16 }}>
                 <Text style={{ fontSize: 32, marginBottom: 10 }}>📅</Text>
                 <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.text, marginBottom: 6 }}>No yesterday's slate found</Text>
                 <Text style={{ fontSize: 11, color: theme.colors.textSecondary, textAlign: 'center' }}>Yesterday's slate snapshot is not available for this scope.</Text>
               </View>
             ) : !yesterdayHasFullResults ? (
-              <View style={{ padding: 20, backgroundColor: theme.colors.goldLight, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.gold + '44', marginBottom: 16 }}>
+              <View style={{ padding: 20, backgroundColor: 'rgba(255,217,61,0.08)', borderRadius: 14, borderWidth: 1, borderColor: theme.colors.gold + '55', marginBottom: 16 }}>
                 <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.gold, marginBottom: 4 }}>⏳ Yesterday's performance pending</Text>
                 <Text style={{ fontSize: 11, color: theme.colors.textSecondary, lineHeight: 17 }}>Import full results ledger to see hit tracking ({(yesterdayResults?.length ?? 0)} jurisdictions imported, need 20+)</Text>
               </View>
@@ -521,7 +447,7 @@ export default function SlatesScreen() {
                   const boxes = yesterdayItems.filter((p: any) => p.hitBox && !p.hitStraight);
                   const straights = yesterdayItems.filter((p: any) => p.hitStraight);
                   return (
-                    <View style={{ backgroundColor: hits.length > 0 ? theme.colors.successLight : theme.colors.surfaceLight, borderRadius: 12, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: hits.length > 0 ? theme.colors.success + '44' : theme.colors.border }}>
+                    <View style={{ backgroundColor: hits.length > 0 ? theme.colors.successLight : theme.colors.bgElevated, borderRadius: 12, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: hits.length > 0 ? theme.colors.success + '55' : theme.colors.border }}>
                       <Text style={{ fontSize: 14, fontWeight: '800', color: hits.length > 0 ? theme.colors.success : theme.colors.text }}>
                         {hits.length > 0 ? `🎯 ZK6 went ${hits.length} for 6 yesterday` : '❌ ZK6 went 0 for 6 yesterday'}
                       </Text>
@@ -555,17 +481,17 @@ export default function SlatesScreen() {
 
         {/* ── Today's Hits ── */}
         {!showYesterday && slateHitItems.length > 0 && (
-          <View style={{ backgroundColor: '#FFD70018', borderRadius: 12, borderWidth: 1.5, borderColor: '#FFD70044', padding: 12, marginBottom: 12, gap: 6 }}>
-            <Text style={{ fontSize: 11, fontWeight: '900', color: '#B8860B', letterSpacing: 0.5, marginBottom: 4 }}>🎯 TODAY'S HITS — Removed from Active Slate</Text>
+          <View style={{ backgroundColor: theme.colors.gold + '18', borderRadius: 12, borderWidth: 1.5, borderColor: theme.colors.gold + '55', padding: 12, marginBottom: 12, gap: 6 }}>
+            <Text style={{ fontSize: 10, fontWeight: '900', color: theme.colors.gold, letterSpacing: 1.5, marginBottom: 4, fontFamily: theme.typography.fontFamily.mono }}>TODAY'S HITS — REMOVED FROM ACTIVE SLATE</Text>
             {slateHitItems.map((pick, i) => (
               <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1, backgroundColor: pick.hitType === 'straight' ? '#FFD70022' : '#00808022', borderColor: pick.hitType === 'straight' ? '#FFD70066' : '#00808066' }}>
-                  <Text style={{ fontSize: 9, fontWeight: '900', color: pick.hitType === 'straight' ? '#B8860B' : '#008080' }}>
-                    {pick.hitType === 'straight' ? '⭐ STRAIGHT' : '🎯 BOX'}
+                <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1, backgroundColor: pick.hitType === 'straight' ? theme.colors.gold + '22' : theme.colors.cyan + '22', borderColor: pick.hitType === 'straight' ? theme.colors.gold + '66' : theme.colors.cyan + '66' }}>
+                  <Text style={{ fontSize: 9, fontWeight: '900', color: pick.hitType === 'straight' ? theme.colors.gold : theme.colors.cyan, fontFamily: theme.typography.fontFamily.mono }}>
+                    {pick.hitType === 'straight' ? 'STRAIGHT' : 'BOX'}
                   </Text>
                 </View>
-                <Text style={{ fontSize: 20, fontWeight: '900', fontFamily: 'Courier', letterSpacing: 4, flex: 1 }}>{pick.combo}</Text>
-                <Text style={{ fontSize: 10, color: '#6b7280', fontWeight: '600' }}>
+                <Text style={{ fontSize: 20, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 4, color: theme.colors.text, flex: 1 }}>{pick.combo}</Text>
+                <Text style={{ fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono }}>
                   {pick.hitState}{pick.hitSession ? ` · ${pick.hitSession === 'midday' ? '☀️' : '🌙'}` : ''}
                 </Text>
               </View>
@@ -583,9 +509,9 @@ export default function SlatesScreen() {
         ))}
 
         {!showYesterday && viewMode === 'compact' && (
-          <View style={{ backgroundColor: theme.colors.surface, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border, overflow: 'hidden', marginBottom: 12, ...theme.shadows.soft }}>
+          <View style={{ backgroundColor: theme.colors.card, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border, overflow: 'hidden', marginBottom: 12, ...theme.shadows.soft }}>
             {filtered.map((pick, i) => {
-              const heatColor = pick.energy >= 80 ? theme.colors.error : pick.energy >= 65 ? theme.colors.orange : pick.energy >= 45 ? theme.colors.gold : theme.colors.textTertiary;
+              const heatColor = pick.energy >= 80 ? theme.colors.hot : pick.energy >= 65 ? theme.colors.amber : pick.energy >= 45 ? theme.colors.gold : theme.colors.textTertiary;
               const heatEmoji = pick.energy >= 90 ? '🔥' : pick.energy >= 80 ? '⚡' : pick.energy >= 65 ? '✦' : pick.energy >= 45 ? '◈' : '❄';
               const MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
               const medal = MEDAL[pick.rank] ?? `#${pick.rank}`;
@@ -593,21 +519,21 @@ export default function SlatesScreen() {
               return (
                 <View key={`compact-${pick.rank}-${pick.combo}`} style={{ height: 52, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, gap: 10, borderBottomWidth: i < filtered.length - 1 ? 1 : 0, borderBottomColor: theme.colors.border }}>
                   <Text style={{ fontSize: pick.rank <= 3 ? 18 : 13, width: 28, textAlign: 'center', fontWeight: '900', color: theme.colors.textTertiary }}>{medal}</Text>
-                  <Text style={{ fontSize: 20, fontWeight: '900', fontFamily: 'Courier', letterSpacing: 3, color: pick.locked ? theme.colors.textTertiary : theme.colors.text, flex: 1 }}>
+                  <Text style={{ fontSize: 20, fontWeight: '900', fontFamily: theme.typography.fontFamily.mono, letterSpacing: 3, color: pick.locked ? theme.colors.textTertiary : theme.colors.text, flex: 1 }}>
                     {pick.locked ? '•••' : pick.combo}
                   </Text>
                   {!pick.locked && (
-                    <Text style={{ fontSize: 11, color: theme.colors.gold, fontFamily: 'Courier', fontWeight: '700' }}>→ {bestStr}</Text>
+                    <Text style={{ fontSize: 11, color: theme.colors.gold, fontFamily: theme.typography.fontFamily.mono, fontWeight: '700' }}>→ {bestStr}</Text>
                   )}
                   <View style={{ backgroundColor: heatColor + '20', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, borderWidth: 1, borderColor: heatColor + '40', alignItems: 'center', minWidth: 46 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: heatColor, fontFamily: 'Courier', lineHeight: 14 }}>{pick.energy}</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: heatColor, fontFamily: theme.typography.fontFamily.mono, lineHeight: 14 }}>{pick.energy}</Text>
                     <Text style={{ fontSize: 9, lineHeight: 11 }}>{heatEmoji}</Text>
                   </View>
                   <TouchableOpacity
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     onPress={() => pick.locked ? setPaywallOpen(true) : setDetail(pick)}
                   >
-                    <Text style={{ fontSize: 16, color: pick.locked ? theme.colors.textTertiary : theme.colors.primary }}>
+                    <Text style={{ fontSize: 16, color: pick.locked ? theme.colors.textTertiary : theme.colors.cyan }}>
                       {pick.locked ? '🔒' : '▶'}
                     </Text>
                   </TouchableOpacity>
@@ -618,16 +544,13 @@ export default function SlatesScreen() {
         )}
 
         {isFree && (
-          <LinearGradient
-            colors={[theme.colors.primaryLight, theme.colors.cosmicLight]}
-            style={s.upsellCard}
-          >
+          <View style={s.upsellCard}>
             <Text style={s.upsellTitle}>♛ Unlock your full K6 Slate</Text>
             <Text style={s.upsellDesc}>Pro unlocks all 6 picks, optimal straights, pattern analysis — across 76 daily draws.</Text>
             <TouchableOpacity style={s.upsellBtn} onPress={() => setPaywallOpen(true)}>
               <Text style={s.upsellBtnText}>♛ Begin Pro Trial · $4.99</Text>
             </TouchableOpacity>
-          </LinearGradient>
+          </View>
         )}
       </ScrollView>
 
@@ -664,7 +587,7 @@ export default function SlatesScreen() {
               You've viewed the K6 Slate 3 times. Oracle+ members see all 6 picks, optimal straights, and deep signal analytics.
             </Text>
             <TouchableOpacity
-              style={[s.modalBtn, { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary, marginBottom: 8, width: '100%' }]}
+              style={[s.modalBtn, { backgroundColor: theme.colors.purple, borderColor: theme.colors.purple, marginBottom: 8, width: '100%' }]}
               onPress={() => { setSoftUpgradeOpen(false); setPaywallOpen(true); }}
             >
               <Text style={[s.modalBtnText, { color: '#fff', fontWeight: '700' }]}>Upgrade to Oracle+ ♛</Text>
@@ -689,51 +612,64 @@ export default function SlatesScreen() {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
-  statusBar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 8 },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.success, shadowColor: theme.colors.success, shadowOpacity: 0.8, shadowRadius: 4, elevation: 2 },
-  statusLive: { fontSize: 11, fontWeight: '700', color: theme.colors.success },
-  statusTime: { fontSize: 11, color: 'rgba(255,255,255,0.8)', fontFamily: 'Courier', fontWeight: '700' },
-  statusHash: { fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: 'Courier', marginLeft: 'auto' },
-  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: theme.colors.surface, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
-  title: { fontSize: 22, fontWeight: '900', color: theme.colors.text, marginBottom: 2 },
-  subtitle: { fontSize: 11, color: theme.colors.textTertiary },
-  generateBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.primary, paddingHorizontal: 12, paddingVertical: 7, borderRadius: theme.borderRadius.lg },
-  generateBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
-  scopeRow: { backgroundColor: theme.colors.surface, borderBottomWidth: 1, borderBottomColor: theme.colors.border, paddingHorizontal: 12, paddingVertical: 8 },
-  scopeGroup: { flexDirection: 'row', backgroundColor: theme.colors.surfaceLight, borderRadius: 11, padding: 3, gap: 2, marginRight: 8 },
-  scopeBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-  scopeBtnOn: { backgroundColor: theme.colors.surface, ...theme.shadows.soft },
-  scopeBtnYest: { backgroundColor: theme.colors.goldLight, borderWidth: 1, borderColor: theme.colors.gold + '44' },
-  scopeBtnText: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: '500' },
-  scopeBtnTextOn: { color: theme.colors.primary, fontWeight: '700' },
-  modeBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, borderWidth: 1.5, borderColor: theme.colors.border },
-  modeBtnOn: { borderColor: theme.colors.primary, backgroundColor: theme.colors.primaryLight },
-  modeBtnText: { fontSize: 10, fontWeight: '700', color: theme.colors.textTertiary },
-  modeBtnTextOn: { color: theme.colors.primary },
-  proBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.colors.cosmicLight, borderBottomWidth: 1, borderBottomColor: theme.colors.primary + '33', paddingHorizontal: 16, paddingVertical: 10 },
-  proBannerTitle: { fontSize: 12, fontWeight: '800', color: theme.colors.text, marginBottom: 2 },
-  proBannerSub: { fontSize: 11, color: theme.colors.textSecondary },
-  proBannerBtn: { backgroundColor: theme.colors.gold, paddingHorizontal: 12, paddingVertical: 6, borderRadius: theme.borderRadius.md },
-  proBannerBtnText: { fontSize: 11, fontWeight: '800', color: '#fff' },
-  filterBar: { backgroundColor: theme.colors.surface, borderBottomWidth: 1, borderBottomColor: theme.colors.border, paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
-  searchBox: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.surfaceLight, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: theme.colors.border },
-  searchInput: { flex: 1, fontSize: 12, color: theme.colors.text },
-  filterChip: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8, backgroundColor: theme.colors.surfaceLight },
-  filterChipOn: { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border },
-  filterChipText: { fontSize: 11, fontWeight: '500', color: theme.colors.textSecondary },
-  filterChipTextOn: { color: theme.colors.text, fontWeight: '700' },
-  sortChip: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8, backgroundColor: theme.colors.surfaceLight },
-  sortChipOn: { backgroundColor: theme.colors.primary },
+
+  // Status strip — single thin line
+  statusStrip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 5, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  liveDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: theme.colors.cyan },
+  stripText: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
+  stripHash: { fontSize: 10, color: 'rgba(255,255,255,0.25)', fontFamily: theme.typography.fontFamily.mono, marginLeft: 'auto' },
+
+  // Header — compact, everything in one row
+  header: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  title: { fontSize: 18, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.bold },
+  creditsText: { fontSize: 10, color: theme.colors.purple, fontFamily: theme.typography.fontFamily.mono, fontWeight: '700' },
+  headerIconBtn: { width: 30, height: 30, borderRadius: 8, backgroundColor: theme.colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.border },
+  headerIconText: { fontSize: 13 },
+  generateBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: theme.colors.purple, paddingHorizontal: 10, paddingVertical: 6, borderRadius: theme.borderRadius.chip },
+  generateBtnText: { color: '#fff', fontWeight: '700', fontSize: 11, fontFamily: theme.typography.fontFamily.mono },
+
+  // Scope + mode — single scrollable row
+  scopeRow: { backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: theme.colors.border, maxHeight: 38 },
+  scopeRowContent: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4 },
+  scopeGroup: { flexDirection: 'row', backgroundColor: theme.colors.background, borderRadius: 8, padding: 2, gap: 1, borderWidth: 1, borderColor: theme.colors.border },
+  scopeBtn: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6 },
+  scopeBtnOn: { backgroundColor: theme.colors.bgElevated },
+  scopeBtnYest: { backgroundColor: theme.colors.gold + '18', borderWidth: 1, borderColor: theme.colors.gold + '44' },
+  scopeBtnText: { fontSize: 11, color: theme.colors.textSecondary, fontWeight: '500' },
+  scopeBtnTextOn: { color: theme.colors.cyan, fontWeight: '700' },
+  scopeDivider: { width: 1, height: 16, backgroundColor: theme.colors.border, marginHorizontal: 4 },
+  modeBtn: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 99, borderWidth: 1, borderColor: theme.colors.border },
+  modeBtnOn: { borderColor: theme.colors.purple + '88', backgroundColor: theme.colors.purple + '18' },
+  modeBtnText: { fontSize: 10, fontWeight: '600', color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
+  modeBtnTextOn: { color: theme.colors.purple },
+
+  // PRO banner — compact single line
+  proBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.colors.purple + '12', borderBottomWidth: 1, borderBottomColor: theme.colors.purple + '33', paddingHorizontal: 14, paddingVertical: 7 },
+  proBannerTitle: { fontSize: 11, fontWeight: '700', color: theme.colors.textSecondary },
+  proBannerBtn: { backgroundColor: theme.colors.purple, paddingHorizontal: 10, paddingVertical: 4, borderRadius: theme.borderRadius.chip },
+  proBannerBtnText: { fontSize: 10, fontWeight: '800', color: '#fff', fontFamily: theme.typography.fontFamily.mono },
+
+  // Control strip — filters + sort + view + save in one 30px row
+  ctrlStrip: { flexDirection: 'row', alignItems: 'center', gap: 1, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: theme.colors.background, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  ctrlChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5 },
+  ctrlChipOnCyan: { backgroundColor: theme.colors.cyan + '15', borderWidth: 1, borderColor: theme.colors.cyan + '44' },
+  ctrlChipOnPurple: { backgroundColor: theme.colors.purple + '20', borderWidth: 1, borderColor: theme.colors.purple + '55' },
+  ctrlText: { fontSize: 10, fontFamily: theme.typography.fontFamily.mono, color: theme.colors.textTertiary, fontWeight: '700' },
+  ctrlTextCyan: { color: theme.colors.cyan },
+  ctrlTextPurple: { color: theme.colors.purple },
+  ctrlDiv: { width: 1, height: 12, backgroundColor: theme.colors.border, marginHorizontal: 6 },
+  ctrlSaveBtn: { width: 26, height: 26, borderRadius: 6, backgroundColor: theme.colors.gold + '18', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.gold + '44', marginLeft: 6 },
+  ctrlSaveText: { fontSize: 12 },
   content: { flex: 1 },
-  upsellCard: { borderRadius: theme.borderRadius.xl, padding: 20, alignItems: 'center', borderWidth: 1.5, borderColor: theme.colors.primary + '33', marginBottom: 16 },
+  upsellCard: { borderRadius: theme.borderRadius.card, padding: 20, alignItems: 'center', borderWidth: 1.5, borderColor: theme.colors.purple + '66', marginBottom: 16, backgroundColor: theme.colors.purple + '12' },
   upsellTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.text, marginBottom: 4 },
   upsellDesc: { fontSize: 12, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 12, lineHeight: 18 },
-  upsellBtn: { backgroundColor: theme.colors.cosmic, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 11 },
-  upsellBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  modalBackdrop: { flex: 1, backgroundColor: '#0009', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  modalCard: { width: '100%', maxWidth: 400, backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: theme.colors.border, padding: 20 },
+  upsellBtn: { backgroundColor: theme.colors.purple, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 11 },
+  upsellBtnText: { color: theme.colors.text, fontWeight: '700', fontSize: 13 },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  modalCard: { width: '100%', maxWidth: 400, backgroundColor: theme.colors.bgElevated, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: theme.colors.border, padding: 20 },
   modalTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.text, marginBottom: 8 },
   modalBody: { fontSize: 14, color: theme.colors.textSecondary, marginBottom: 16 },
-  modalBtn: { backgroundColor: theme.colors.surfaceLight, borderWidth: 1, borderColor: theme.colors.border, paddingVertical: 10, borderRadius: theme.borderRadius.md, alignItems: 'center' },
+  modalBtn: { backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.borderMed, paddingVertical: 10, borderRadius: theme.borderRadius.chip, alignItems: 'center' },
   modalBtnText: { color: theme.colors.text, fontWeight: '600' },
 });

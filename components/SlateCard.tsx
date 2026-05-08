@@ -126,6 +126,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
     borderWidth: 1,
     borderColor: theme.colors.border,
+    ...theme.shadows.glow,
   },
   rankContainer: {
     width: 36,

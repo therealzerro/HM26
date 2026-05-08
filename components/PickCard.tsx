@@ -352,7 +352,7 @@ const s = StyleSheet.create({
     borderColor: theme.colors.border,
     padding: 14,
     marginBottom: 9,
-    ...theme.shadows.soft,
+    ...theme.shadows.glow,
   },
   hotStreakBanner: {
     backgroundColor: theme.colors.error + '15',

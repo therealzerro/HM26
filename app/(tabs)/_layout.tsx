@@ -20,6 +20,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      sceneContainerStyle={{ backgroundColor: theme.colors.background }}
       screenOptions={{
         tabBarActiveTintColor: theme.colors.cyan,
         tabBarInactiveTintColor: theme.colors.textTertiary,

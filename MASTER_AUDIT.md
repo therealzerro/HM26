@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-05-08 (background.png case fix)  
+**Last updated:** 2026-05-08 (card glow fix; background image deferred)  
 **Maintained by:** therealzerro + Claude Code
 
 > **USAGE:** This is the single source of truth for all known issues, fixes, and technical debt.  
@@ -13,12 +13,12 @@
 
 | State | Count |
 |-------|-------|
-| ✅ Fixed | 12 |
+| ✅ Fixed | 13 |
 | ℹ️ By design / False positive | 6 |
 | 🎨 UX Improvements Applied | 31 |
 | 🔴 Open — Critical | 0 |
 | 🟠 Open — High | 2 |
-| 🟡 Open — Medium | 3 |
+| 🟡 Open — Medium | 4 |
 | 🔵 Open — Low | 0 |
 | 🏗️ Architecture Debt | 4 |
 
@@ -48,6 +48,8 @@
 | BUG-16 | 🔵 Low | Loose TypeScript `any` in snapshot fields | ✅ Fixed — `EngineMetadata` interface added; `horizons_present_json` and `weights_json` tightened | `types/core.ts`, `engines/zk6.ts`, `engines/zk30.ts` | 2026-05-08 |
 | BUG-17 | 🔵 Low | No error boundary on pull-to-refresh in Home screen | ✅ Fixed — `handlePullRefresh` wrapped in try/catch; `finally` clears `isRefreshing` | `app/(tabs)/index.tsx` | 2026-05-08 |
 | BUG-23 | 🔴 Critical | `background.PNG` uppercase extension — Metro only resolves lowercase `png`; app failed to load on web (Linux case-sensitive FS) | ✅ Fixed — renamed to `background.png`; updated `require` path in `_layout.tsx`; cleared Metro cache | `assets/background.png`, `app/_layout.tsx` | 2026-05-08 |
+| BUG-24 | 🟡 Medium | `background.png` covered by solid opaque screen containers — `ImageBackground` in `_layout.tsx` hidden by `theme.colors.background` (`#0a0613`) on every tab screen container | 🏗️ Deferred — `ImageBackground` removed; requires making all screen containers transparent + tuning overlay opacity. Track in ARCH/UX backlog. | `app/_layout.tsx`, all `app/(tabs)/*.tsx` containers | 2026-05-08 |
+| BUG-25 | 🟡 Medium | `PickCard` and `SlateCard` using black `theme.shadows.soft` — colored glow lost | ✅ Fixed — both cards now use `theme.shadows.glow` (purple `#9b5bff`, radius 16); hot cards (energy ≥ 80) retain animated colored border glow | `components/PickCard.tsx`, `components/SlateCard.tsx` | 2026-05-08 |
 
 ---
 

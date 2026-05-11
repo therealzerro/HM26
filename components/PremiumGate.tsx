@@ -48,7 +48,7 @@ export function PremiumGate({
   
   if (variant === 'inline') {
     return (
-      <View style={[styles.container, theme.shadows.soft]} testID="premium-gate">
+      <View style={[styles.container, theme.shadows.glow]} testID="premium-gate">
         <View style={styles.iconContainer}>
           <View style={styles.lockBackground}>
             <Lock size={24} color={theme.colors.text} />

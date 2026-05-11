@@ -80,7 +80,7 @@ export function SectionTitle({ children }: { children: string }) {
   return <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, marginTop: 20 }}>{children}</Text>;
 }
 export function Card({ children, style }: { children: React.ReactNode; style?: object }) {
-  return <View style={[{ backgroundColor: theme.colors.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border, ...theme.shadows.soft }, style]}>{children}</View>;
+  return <View style={[{ backgroundColor: theme.colors.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border, ...theme.shadows.glow }, style]}>{children}</View>;
 }
 export function timeAgo(dateStr: string): string {
   const ms = Date.now() - new Date(dateStr).getTime();

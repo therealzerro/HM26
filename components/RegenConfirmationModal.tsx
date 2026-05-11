@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     padding: 24,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    ...theme.shadows.soft,
+    ...theme.shadows.glow,
   },
   title: {
     fontSize: 18,

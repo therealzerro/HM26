@@ -16,7 +16,7 @@ import { EmptyState } from '@/components/EmptyState';
 const D = {
   bg:       theme.colors.background,
   surface:  theme.colors.bgElevated,
-  surface2: theme.colors.card,
+  surface2: theme.colors.surface2,
   border:   theme.colors.border,
   purple:   theme.colors.purple,
   teal:     theme.colors.cyan,   // BOX / Frequency / Hits

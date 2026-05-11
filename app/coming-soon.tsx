@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
     marginBottom: theme.spacing.md,
-    ...theme.shadows.soft,
+    ...theme.shadows.glow,
   },
   featureHeader: {
     flexDirection: 'row',

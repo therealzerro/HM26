@@ -16,7 +16,7 @@ interface AuthState {
 }
 
 export const [AuthProvider, useAuth] = createContextHook<AuthState>(() => {
-  const [user, setUser] = useState<AuthState['user']>({ id: 'default', role: 'admin' });
+  const [user, setUser] = useState<AuthState['user']>({ id: 'default', role: 'free' });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export const [AuthProvider, useAuth] = createContextHook<AuthState>(() => {
         const parsedUser = JSON.parse(stored);
         setUser(parsedUser);
       } else {
-        const defaultUser = { id: 'default', role: 'admin' as UserRole };
+        const defaultUser = { id: 'default', role: 'free' as UserRole };
         setUser(defaultUser);
         AsyncStorage.setItem('user', JSON.stringify(defaultUser)).catch(console.error);
       }

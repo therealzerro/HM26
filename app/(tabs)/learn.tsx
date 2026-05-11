@@ -221,7 +221,7 @@ const s = StyleSheet.create({
   welcomeTitle: { fontSize: 22, fontWeight: '900', color: theme.colors.text, marginBottom: 8 },
   welcomeDesc: { fontSize: 13, color: theme.colors.textSecondary, textAlign: 'center', maxWidth: 380, lineHeight: 20 },
   modulesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
-  moduleCard: { flex: 1, minWidth: 140, backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: theme.colors.border, padding: 14, ...theme.shadows.soft },
+  moduleCard: { flex: 1, minWidth: 140, backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: theme.colors.border, padding: 14, ...theme.shadows.glow },
   moduleCardTitle: { fontSize: 13, fontWeight: '700', color: theme.colors.text, marginBottom: 4 },
   moduleCardSummary: { fontSize: 11, color: theme.colors.textSecondary, lineHeight: 16 },
   ctaCard: { borderRadius: theme.borderRadius.xl, padding: 18, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.primary + '33' },
@@ -238,7 +238,7 @@ const s = StyleSheet.create({
   moduleTitleLg: { fontSize: 20, fontWeight: '900', color: theme.colors.text, marginBottom: 4 },
   moduleSummaryLg: { fontSize: 13, color: theme.colors.textSecondary },
 
-  sectionCard: { backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: theme.colors.border, marginBottom: 10, overflow: 'hidden', ...theme.shadows.soft },
+  sectionCard: { backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: theme.colors.border, marginBottom: 10, overflow: 'hidden', ...theme.shadows.glow },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
   sectionTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.text, flex: 1 },
   sectionArrow: { fontSize: 11, color: theme.colors.textTertiary },

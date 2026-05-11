@@ -5,6 +5,13 @@ import { theme } from '@/constants/theme';
 import { SignalBar } from './SignalBar';
 import { EnergyMeter } from './EnergyMeter';
 
+const SIGNAL_COLORS = {
+  BOX:    theme.colors.cyan,
+  PBURST: theme.colors.rose,
+  CO:     theme.colors.purple,
+  DGC:    theme.colors.gold,
+} as const;
+
 export interface PickItem {
   rank: number;
   combo: string;
@@ -176,10 +183,10 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
   }
 
   const convergingSignals = [
-    { key: 'BOX', color: theme.colors.cyan,   on: pick.signals.BOX >= 0.65 },
-    { key: 'MB',  color: theme.colors.rose,   on: pick.signals.PBURST >= 0.65 },
-    { key: 'CO',  color: theme.colors.purple, on: pick.signals.CO >= 0.65 },
-    { key: 'DGC', color: theme.colors.gold,   on: (pick.signals.DGC ?? 0) >= 0.65 },
+    { key: 'BOX', color: SIGNAL_COLORS.BOX,   on: pick.signals.BOX >= 0.65 },
+    { key: 'MB',  color: SIGNAL_COLORS.PBURST, on: pick.signals.PBURST >= 0.65 },
+    { key: 'CO',  color: SIGNAL_COLORS.CO,     on: pick.signals.CO >= 0.65 },
+    { key: 'DGC', color: SIGNAL_COLORS.DGC,    on: (pick.signals.DGC ?? 0) >= 0.65 },
   ];
 
   return (
@@ -309,10 +316,10 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
               )}
             </View>
 
-            <SignalBar label="Frequency"   value={pick.signals.BOX}          color={theme.colors.cyan} />
-            <SignalBar label="Momentum"    value={pick.signals.PBURST}        color={theme.colors.rose} />
-            <SignalBar label="Pattern"     value={pick.signals.CO}            color={theme.colors.purple} />
-            <SignalBar label="Consistency" value={pick.signals.DGC ?? 0}      color={theme.colors.gold} />
+            <SignalBar label="Frequency"   value={pick.signals.BOX}          color={SIGNAL_COLORS.BOX} />
+            <SignalBar label="Momentum"    value={pick.signals.PBURST}        color={SIGNAL_COLORS.PBURST} />
+            <SignalBar label="Pattern"     value={pick.signals.CO}            color={SIGNAL_COLORS.CO} />
+            <SignalBar label="Consistency" value={pick.signals.DGC ?? 0}      color={SIGNAL_COLORS.DGC} />
 
             {pressure && (
               <View style={s.pressureRow}>

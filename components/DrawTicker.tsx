@@ -173,7 +173,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
     padding: 10,
-    ...theme.shadows.soft,
+    ...theme.shadows.glow,
     gap: 6,
   },
   main: {

@@ -7,6 +7,7 @@ import { Import } from '@/types/core';
 import { Stack } from 'expo-router';
 import { Button } from '@/components/Button';
 import { AlertTriangle, Database, Activity as ActivityIcon, Layers, Clock3 } from 'lucide-react-native';
+import { EmptyState } from '@/components/EmptyState';
 
 import { useSnapshot } from '@/hooks/useSnapshot';
 import { useCoverage } from '@/hooks/useCoverage';
@@ -193,10 +194,11 @@ export default function AdminImportsScreen() {
             </View>
           </View>
           {sorted.length === 0 ? (
-            <View style={styles.empty}> 
-              <AlertTriangle size={20} color={theme.colors.textSecondary} />
-              <Text style={styles.emptyText}>No imports yet</Text>
-            </View>
+            <EmptyState
+              icon={Layers}
+              title="No Imports Yet"
+              message="Import box history, pair history, or daily data to get started."
+            />
           ) : (
             <FlatList
               data={sorted}
@@ -246,8 +248,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   content: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { marginTop: theme.spacing.xl, alignItems: 'center', gap: theme.spacing.sm },
-  emptyText: { color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.sm },
   listPad: { padding: theme.spacing.md },
   sep: { height: 8 },
   row: { backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.md, padding: theme.spacing.md, borderWidth: 1, borderColor: theme.colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

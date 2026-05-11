@@ -13,14 +13,14 @@
 
 | State | Count |
 |-------|-------|
-| ✅ Fixed | 24 |
+| ✅ Fixed | 29 |
 | ℹ️ By design / False positive | 8 |
-| 🎨 UX Improvements Applied | 31 |
-| 🔴 Open — Critical | 1 |
+| 🎨 UX Improvements Applied | 35 |
+| 🔴 Open — Critical | 0 |
 | 🟠 Open — High | 0 |
-| 🟡 Open — Medium | 2 |
+| 🟡 Open — Medium | 1 |
 | 🔵 Open — Low | 0 |
-| 🏗️ Architecture Debt | 5 |
+| 🏗️ Architecture Debt | 5 (2 open, 3 fixed) |
 
 ---
 
@@ -46,7 +46,7 @@
 | ID | Severity | Description | Status | Fixed in | Date |
 |----|----------|-------------|--------|----------|------|
 | BUG-01 | 🔴 Critical | ZK30 jurisdiction hardcoded to TX in `fetchRaw()` | ✅ Fixed | `engines/zk30.ts` | 2026-05-08 |
-| BUG-02 | 🔴 Critical | Default admin role; any user could become admin | 🔴 Still Open — `useAuth.tsx:19,33` default is STILL `role: 'admin'`. Audit claim was incorrect. | `hooks/useAuth.tsx` | — |
+| BUG-02 | 🔴 Critical | Default admin role; any user could become admin | ✅ Fixed 2026-05-11 — `useAuth.tsx:19,33` defaults changed to `role: 'free'`. New installs start as Free tier; admin must be explicitly set. | `hooks/useAuth.tsx` | 2026-05-11 |
 | BUG-03 | 🟠 High | `on_slate=true` not PATCHed for ZK30 final 30 picks | ✅ Fixed | `engines/zk30.ts` | 2026-05-08 |
 | BUG-04 | 🟠 High | DELETE→INSERT race on `daily_intelligence` wipes live hit flags | ✅ Fixed | `engines/zk6.ts`, `engines/zk30.ts` | 2026-05-08 |
 | BUG-05 | 🟠 High | Snapshot hash could produce negative int; mode excluded from input | ✅ Fixed | `engines/zk6.ts`, `engines/zk30.ts` | 2026-05-08 |
@@ -157,14 +157,14 @@ These are not bugs but structural issues that will cause maintenance pain at sca
 | Error Handling | ✅ Good | ✅ Good |
 | Concurrency Safety | ✅ Good | ✅ Good |
 | Performance | ✅ Good | ✅ Good |
-| Security (auth/roles) | ✅ Good | ✅ Good |
-| Security (RLS) | ✅ Good | 🔴 Risk (BUG-20) |
-| Data Consistency | ✅ Good | ⚠️ Medium (BUG-18/19 open) |
-| Engine Accuracy | ✅ Good | 🔴 Risk (BUG-22/ENG-01 open) |
-| Test Coverage | ⚠️ Medium | ❓ None |
+| Security (auth/roles) | ✅ Good | ✅ Good (BUG-02 fixed — default role now `free`) |
+| Security (RLS) | ✅ Good | 🔴 Risk (BUG-20 — requires Supabase dashboard SQL action) |
+| Data Consistency | ✅ Good | ✅ Good (BUG-18/19 fixed) |
+| Engine Accuracy | ✅ Good | ✅ Good (ENG-01/ENG-05 fixed; ENG-02 static priors deferred) |
+| Test Coverage | ⚠️ Medium | ⚠️ Medium (22 signal-math tests; no integration tests) |
 | Documentation | ✅ Good | ✅ Good |
-| Maintainability | ✅ Good | ⚠️ Medium (ARCH-01–04 open) |
-| User Experience | ✅ Good | ✅ Good |
+| Maintainability | ✅ Good | ✅ Good (ARCH-01/03/05 fixed; ARCH-02/04 deferred per ZK30 policy) |
+| User Experience | ✅ Good | ✅ Good (UX-46/47/48/49 fixed) |
 | Accessibility | ✅ Good | ✅ Good |
 
 ---
@@ -272,10 +272,10 @@ Polish pass applied on top of the 35-point UX overhaul.
 
 | ID | Issue | Severity | Status |
 |----|-------|----------|--------|
-| UX-46 | Shadow System Divergence | 🟡 Medium | Open — `SlateCard` uses `theme.shadows.glow`, others use deprecated `soft` |
-| UX-47 | Semantic Color Ambiguity | 🟡 Medium | Open — Mixing physical/semantic aliases in `PickCard` signals |
-| UX-48 | Inconsistent Surface Depth | 🟡 Medium | Open — `surface2` vs `bgElevated` base surface inconsistency |
-| UX-49 | Empty State Fragmentation | 🔵 Low | Open — Some screens still use custom inline UI instead of `EmptyState.tsx` |
+| UX-46 | Shadow System Divergence | 🟡 Medium | ✅ Fixed 2026-05-11 — All 17 `theme.shadows.soft` references replaced with `theme.shadows.glow` across 9 files. `shadows.soft` is effectively deprecated. |
+| UX-47 | Semantic Color Ambiguity | 🟡 Medium | ✅ Fixed 2026-05-11 — Added `SIGNAL_COLORS` const in `PickCard.tsx` mapping BOX/PBURST/CO/DGC to physical colors. Both `convergingSignals` array and `SignalBar` calls now use `SIGNAL_COLORS.*` — one source of truth for signal-to-color mapping. |
+| UX-48 | Inconsistent Surface Depth | 🟡 Medium | ✅ Fixed 2026-05-11 — `results.tsx` D-token `surface2` was aliased to `theme.colors.card` instead of `theme.colors.surface2`. Now uses the correct `theme.colors.surface2` depth token. |
+| UX-49 | Empty State Fragmentation | 🔵 Low | ✅ Fixed 2026-05-11 — `admin-imports.tsx` inline "No imports yet" replaced with `EmptyState` component (Layers icon). `ledger-import.tsx` inline error box intentionally left as inline (it is a parse-error notice, not a page-level empty state). |
 
 ### Proposed UI Enhancement Plan
 

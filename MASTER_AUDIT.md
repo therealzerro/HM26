@@ -13,12 +13,12 @@
 
 | State | Count |
 |-------|-------|
-| ✅ Fixed | 18 |
-| ℹ️ By design / False positive | 6 |
+| ✅ Fixed | 21 |
+| ℹ️ By design / False positive | 8 |
 | 🎨 UX Improvements Applied | 31 |
 | 🔴 Open — Critical | 1 |
-| 🟠 Open — High | 2 |
-| 🟡 Open — Medium | 3 |
+| 🟠 Open — High | 0 |
+| 🟡 Open — Medium | 2 |
 | 🔵 Open — Low | 0 |
 | 🏗️ Architecture Debt | 5 |
 
@@ -75,12 +75,9 @@
 #### 🟠 High
 
 **BUG-18 — Date Tagging Paradox (Late-Night Regen)** _Source: SYSTEM_AUDIT_REPORT_2026-05-08.md §3.3_  
-- **Files:** `engines/zk6.ts`, `engines/zk30.ts`, all callers of `computeSlate()`  
-- **Problem:** Engines tag `slate_date` using `getTodayET()` at generation time. A midday slate generated Friday night gets tagged Friday. Hit detection on Saturday looks for Saturday slates and finds nothing — the hit is missed.  
-- **Fix Plan:** 1. **Phase 1 (Schema):** Ensure `slate_date` (DATE) column exists in `slate_snapshots` and create composite index `(slate_date, scope)`.
-  2. **Phase 2 (Engine):** Refactor `computeSlate` to accept optional `targetPlayDate` (defaulting to current ET date). Include `target_play_date` in `SlateSnapshot` object.
-  3. **Phase 3 (Ingestion):** Update `useDataIngestion.tsx` to pass play-date parameters explicitly from admin controls.
-- **Status:** Open — Verification: Pending implementation of engine parameters and snapshot indexing.
+- **Files:** `engines/zk6.ts`, `engines/zk30.ts`, `lib/hitDetection.ts`  
+- **Problem:** Engines tag `slate_date` in `daily_intelligence` using `getTodayET()` at generation time. A slate generated Friday night is tagged with `slate_date=Friday`. When hit detection runs for Saturday's results, `updateDailyIntelligenceHit` patched `slate_date=Saturday` — missing the Friday-tagged row, so intelligence hit flags were silently not updated.
+- **Status:** ✅ **Partially Fixed 2026-05-11** — `updateDailyIntelligenceHit` in `lib/hitDetection.ts` now uses `slate_date=in.(date,prevDay)` so late-night slate intelligence rows are found and updated. Snapshot-based hit detection was already handled by BUG-19 fix. Full schema solution (adding `slate_date` column to `slate_snapshots`) deferred — requires DB migration.
 
 **BUG-19 — Snapshot Window Too Narrow for Hit Detection** _Source: SYSTEM_AUDIT_REPORT_2026-05-08.md §4.1_  
 - **Files:** `lib/hitDetection.ts`, `hooks/useDataIngestion.tsx`  
@@ -96,10 +93,9 @@
 - **Status:** Open — Verification: SQL policies confirm broad access remains for non-service roles.
 
 **BUG-21 — Data Sparsity Fallback Not Surfaced in UI** _Source: SYSTEM_AUDIT_REPORT_2026-05-08.md §4.2_  
-- **Files:** `engines/zk6.ts` (fallback to `allday` if < 50 rows), explore screen  
+- **Files:** `engines/zk6.ts` (fallback to `allday` if < 50 rows), `app/(tabs)/explore.tsx`, `components/StatusRibbon.tsx`  
 - **Problem:** When scope data is sparse, ZK6 silently falls back to `allday`. User sees midday picks but they're actually allday picks.  
-- **Fix:** Set a flag in the snapshot metadata (already has `_source` in `EngineMetadata`). Explore screen reads this flag and shows a "Fallback: allday data" label when `_source !== scope`.  
-- **Status:** Open — Verification: Fallback logic remains silent; no UI metadata propagation implemented.
+- **Status:** ✅ **Fixed 2026-05-11** — `horizons_present_json._dataStats.usingFallback` flag was already stored in snapshots. `explore.tsx` status strip now reads this flag and shows `⚠ allday fallback` in amber when true and scope ≠ allday. `StatusRibbon.tsx` horizon filter also fixed to only include `H0XY` keys (was incorrectly including `_dataStats`, `_engineVersion`, etc.) and now shows a dedicated fallback chip.
 
 **BUG-22 — `excludedCombos` Not Cleared Between Regen Calls** _Source: AUDIT_2026-05-08.md §3 hooks_  
 - **Files:** `hooks/useDataIngestion.tsx`  
@@ -148,7 +144,7 @@ These are not bugs but structural issues that will cause maintenance pain at sca
 | ENG-05 | Pair Signal freqScore Anti-Correlation | ✅ Fixed 2026-05-11 | `getPairSignal()` was using `dsRaw/maxPairDsRaw` (staleness) as freqScore — gave highest scores to most-stale pairs, inversely correlated with hits. Fixed to `timesDrawn/maxPairTimesDrawn` (historical frequency), matching BOX signal logic. |
 | ENG-06 | Incomplete K6 Slate (5 picks) | ✅ Fixed 2026-05-11 | Added Pass 4 (relax pairRepCap) and Pass 5 (relax cooldown) to guarantee full 6-pick slate. pairRepCap deadlock was blocking 6th slot after ENG-01 normalization change shifted pick clustering. |
 | ENG-02 | Static Multiplicity Priors | 🟡 Medium | `MULTIPLICITY_PRIORS` are static and do not adjust to shifts in historical draw trends. |
-| ENG-03 | Placeholder Pick Transparency | 🔵 Low | Placeholder picks are not clearly distinguished from real-data picks in the final slate. |
+| ENG-03 | Placeholder Pick Transparency | ℹ️ False Positive — Already handled | `PickCard` shows "Limited data" tag when `timesDrawn === 0`. No additional changes needed. |
 | ENG-04 | Deterministic Hash Collision/Failure | ✅ Fixed 2026-05-11 | `ts: Date.now()` removed from hash input in both `engines/zk6.ts` and `engines/zk30.ts`. Hash is now fully deterministic. |
 
 ---
@@ -305,3 +301,6 @@ Polish pass applied on top of the 35-point UX overhaul.
 | 2026-05-11 | Full independent code verification: BUG-02 still open (default admin), BUG-22 false positive (already fixed), ENG-01/ENG-04 fixed in zk6+zk30, BUG-19 fixed, ARCH-05/NEW-28 documented | Claude Code |
 | 2026-05-11 | ENG-05 fixed: pair signal freqScore was using dsRaw (staleness) — corrected to timesDrawn (frequency) in zk6+zk30. Root cause of PBURST/CO being anti-correlated with hits. | Claude Code |
 | 2026-05-11 | ENG-06 fixed: added Pass 4+5 to K6 selection to guarantee full 6-pick slate when pairRepCap/cooldown deadlock occurs. | Claude Code |
+| 2026-05-11 | BUG-21 fixed: explore.tsx status strip now shows ⚠ allday fallback when engine falls back to allday data. StatusRibbon horizon filter corrected (was including _dataStats/_engineVersion as fake horizon keys). | Claude Code |
+| 2026-05-11 | BUG-18 partially fixed: updateDailyIntelligenceHit now uses slate_date=in.(date,prevDay) — late-night slates tagged with yesterday's date are now hit-updated correctly. | Claude Code |
+| 2026-05-11 | ENG-03 confirmed false positive: PickCard already shows "Limited data" tag for timesDrawn===0 picks. No additional changes needed. | Claude Code |

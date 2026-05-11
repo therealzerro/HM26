@@ -323,6 +323,18 @@ export default function SlatesScreen() {
       <View style={s.statusStrip}>
         <View style={s.liveDot} />
         <Text style={s.stripText}>Oracle Live · {getETTime()} · National</Text>
+        {(() => {
+          const meta = snapshot?.horizons_present_json as any;
+          const usingFallback = meta?._dataStats?.usingFallback === true;
+          if (usingFallback && scope !== 'allday') {
+            return (
+              <Text style={{ fontSize: 10, color: theme.colors.amber, fontFamily: theme.typography.fontFamily.mono, marginLeft: 6 }}>
+                ⚠ allday fallback
+              </Text>
+            );
+          }
+          return null;
+        })()}
         {snapshot?.hash && <Text style={s.stripHash}>#{snapshot.hash.slice(-6)}</Text>}
       </View>
 

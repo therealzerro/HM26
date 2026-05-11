@@ -14,30 +14,30 @@ export function StatusRibbon() {
   // Generate coverage chips based on horizons present
   const horizonChips = [];
   if (snapshot?.horizons_present_json) {
+    const meta = snapshot.horizons_present_json as any;
+    // Only consider H0XY keys — the object also contains _engineVersion, _dataStats, etc.
     const present = Object.entries(snapshot.horizons_present_json)
-      .filter(([_, isPresent]) => isPresent)
+      .filter(([k, isPresent]) => /^H\d+Y$/.test(k) && isPresent)
       .map(([horizon]) => horizon);
-    
+
     if (present.length > 0) {
       horizonChips.push({
         icon: <Database size={14} color={theme.colors.success} />,
         label: `Box ${present.join(',')} ✓`,
         color: theme.colors.success,
       });
-      
-      // Show pair classes coverage (live data)
+
       horizonChips.push({
         icon: <Database size={14} color={theme.colors.success} />,
         label: `Pair 1-10 ${present.slice(0,2).join(',')} ✓`,
         color: theme.colors.success,
       });
-      
-      // Show pending horizons
+
       const pending = Object.entries(snapshot.horizons_present_json)
-        .filter(([_, isPresent]) => !isPresent)
+        .filter(([k, isPresent]) => /^H\d+Y$/.test(k) && !isPresent)
         .map(([horizon]) => horizon)
-        .slice(0, 3); // Show first 3 pending
-        
+        .slice(0, 3);
+
       if (pending.length > 0) {
         horizonChips.push({
           icon: <Clock size={14} color={theme.colors.warning} />,
@@ -45,6 +45,14 @@ export function StatusRibbon() {
           color: theme.colors.warning,
         });
       }
+    }
+
+    if (meta?._dataStats?.usingFallback === true) {
+      horizonChips.push({
+        icon: <WifiOff size={14} color={theme.colors.amber} />,
+        label: 'Data: allday fallback',
+        color: theme.colors.amber,
+      });
     }
   }
 

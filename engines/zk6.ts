@@ -883,44 +883,41 @@ export async function computeSlate({
 
   const excludeComboSetsSet = new Set(excludeComboSets);
 
-  // relaxExcludeComboSets: allow yesterday's combo sets back
-  // relaxPairRepCap: ignore pairRepCap diversity rail
-  // relaxCooldown: ignore recentHitCooldown (recent-hit suppression)
+  // Rail relaxation flags (applied progressively across passes):
+  // relaxExcludeComboSets — allow yesterday's combo sets back
+  // relaxPairRepCap       — ignore pairRepCap diversity cap
+  // relaxCooldown         — ignore recentHitCooldown suppression
+  // relaxMultCaps         — ignore singles/doubles/triples quotas (last resort)
+  // Hard blocks never relaxed: selectedComboSets (no dupe picks) + todayHitComboSets (today's winners)
   const tryAdd = (
     idx: number,
     relaxExcludeComboSets = false,
     relaxPairRepCap = false,
     relaxCooldown = false,
+    relaxMultCaps = false,
   ): boolean => {
     if (k6.length >= 6) return false;
     const combo = universe[idx];
-    if (effectiveExcluded.has(combo)) {
-      console.log('[RAIL] excluded:', combo); return false; }
     const normKey = toComboSet(combo);
-    if (selectedComboSets.has(normKey)) {
-      console.log('[RAIL] duplicate comboSet:', combo, normKey); return false; }
-    if (!relaxExcludeComboSets && excludeComboSetsSet.size > 0 && excludeComboSetsSet.has(normKey)) {
-      console.log('[RAIL] excludeComboSets:', combo); return false; }
-    if (todayHitComboSets.size > 0 && todayHitComboSets.has(normKey)) {
-      console.log('[RAIL] today hit:', combo); return false; }
+    if (selectedComboSets.has(normKey)) return false;
+    if (todayHitComboSets.size > 0 && todayHitComboSets.has(normKey)) return false;
+    if (!relaxExcludeComboSets && effectiveExcluded.has(combo)) return false;
+    if (!relaxExcludeComboSets && excludeComboSetsSet.size > 0 && excludeComboSetsSet.has(normKey)) return false;
     const mult = multiplicityOf(combo);
-    if (mult === 'singles' && singles >= rails.singlesMax) {
-      console.log('[RAIL] singles cap:', combo, singles, '>=', rails.singlesMax); return false; }
-    if (mult === 'doubles' && doubles >= rails.doublesMax) {
-      console.log('[RAIL] doubles cap:', combo); return false; }
-    if (mult === 'triples' && !rails.triplesOn) {
-      console.log('[RAIL] triples off:', combo); return false; }
+    if (!relaxMultCaps) {
+      if (mult === 'singles' && singles >= rails.singlesMax) return false;
+      if (mult === 'doubles' && doubles >= rails.doublesMax) return false;
+      if (mult === 'triples' && !rails.triplesOn) return false;
+    }
     const tp = topPairOf(combo);
-    if (!relaxPairRepCap && (pairCounts[tp] ?? 0) >= rails.pairRepCap) {
-      console.log('[RAIL] pairRepCap:', combo, 'pair:', tp); return false; }
+    if (!relaxPairRepCap && (pairCounts[tp] ?? 0) >= rails.pairRepCap) return false;
     const energy = percentileRankOf(finalScores[idx], scorePoolForEnergy);
     if (minEnergyThreshold > 0 &&
-      (ds.timesDrawnMap.get(toComboSet(combo)) ?? 0) > 0 &&
-      energy < minEnergyThreshold) {
-      console.log('[RAIL] energy below threshold:', combo, energy, '<', minEnergyThreshold); return false; }
+      (ds.timesDrawnMap.get(normKey) ?? 0) > 0 &&
+      energy < minEnergyThreshold) return false;
     const recentDs = ds.drawsSinceMap.get(normKey) ?? 999;
-    if (!relaxCooldown && recentHitCooldown > 0 && dsOverride.has(normKey) && (ds.timesDrawnMap.get(normKey) ?? 0) > 0 && recentDs < recentHitCooldown) {
-      console.log('[RAIL] cooldown:', combo, 'ds:', recentDs, '<', recentHitCooldown); return false; }
+    if (!relaxCooldown && recentHitCooldown > 0 && dsOverride.has(normKey) &&
+      (ds.timesDrawnMap.get(normKey) ?? 0) > 0 && recentDs < recentHitCooldown) return false;
     k6.push({
       combo, normKey,
       indicator: finalScores[idx],
@@ -944,39 +941,50 @@ export async function computeSlate({
     tryAdd(idx);
   }
 
-  // Pass 2: fill remaining slots with placeholder combos if real data insufficient
+  // Pass 2: fill remaining slots with placeholder combos
   if (k6.length < 6) {
-    console.log('[zk6v2] Pass 1 yielded', k6.length, 'real picks — filling', 6 - k6.length, 'from placeholders');
+    console.log('[zk6v2] Pass 1 yielded', k6.length, '— filling from placeholders');
     for (const idx of placeholderIdx) {
       if (k6.length >= 6) break;
       tryAdd(idx);
     }
   }
 
-  // Pass 3: relax excludeComboSets (yesterday's draws) — keeps pairRepCap + cooldown
+  // Pass 3: relax yesterday-exclusion
   if (k6.length < 6) {
-    console.log('[zk6v2] Pass 2 yielded', k6.length, 'picks — pass 3: relaxing excludeComboSets');
+    console.log('[zk6v2] Pass 2 yielded', k6.length, '— pass 3: relax excludeComboSets');
     for (const idx of allIdx) {
       if (k6.length >= 6) break;
       tryAdd(idx, true);
     }
   }
 
-  // Pass 4: also relax pairRepCap diversity rail — guarantees 6 picks when pairs cluster
+  // Pass 4: also relax pairRepCap
   if (k6.length < 6) {
-    console.log('[zk6v2] Pass 3 yielded', k6.length, 'picks — pass 4: relaxing pairRepCap');
+    console.log('[zk6v2] Pass 3 yielded', k6.length, '— pass 4: relax pairRepCap');
     for (const idx of allIdx) {
       if (k6.length >= 6) break;
       tryAdd(idx, true, true);
     }
   }
 
-  // Pass 5: last resort — also relax cooldown; today-hit exclusion is the only hard block
+  // Pass 5: also relax cooldown
   if (k6.length < 6) {
-    console.log('[zk6v2] Pass 4 yielded', k6.length, 'picks — pass 5: relaxing cooldown');
+    console.log('[zk6v2] Pass 4 yielded', k6.length, '— pass 5: relax cooldown');
     for (const idx of allIdx) {
       if (k6.length >= 6) break;
       tryAdd(idx, true, true, true);
+    }
+  }
+
+  // Pass 6: relax singles/doubles/triples quotas — if DB config caps sum < 6,
+  // this guarantees we always deliver exactly 6 picks scored by the engine.
+  // Only hard blocks remaining: no duplicate comboSets + no today's winners.
+  if (k6.length < 6) {
+    console.log('[zk6v2] Pass 5 yielded', k6.length, '— pass 6: relax mult caps (DB quota < 6)');
+    for (const idx of allIdx) {
+      if (k6.length >= 6) break;
+      tryAdd(idx, true, true, true, true);
     }
   }
 

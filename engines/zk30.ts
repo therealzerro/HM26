@@ -822,21 +822,19 @@ export async function computeZK30Slate({
   //      get a proper 0-1 spread. Placeholder combos (timesDrawn=0) stay at 0.
   const rawBoxArr = Array.from(rawBox);
   const realBoxVals = rawBoxArr.filter((_, i) => (ds.timesDrawnMap.get(toComboSet(universe[i])) ?? 0) > 0);
+  // Use max-norm (same method as PBURST/CO/DGC) for consistent cross-signal comparison.
+  const realBoxMax = realBoxVals.length > 0 ? Math.max(...realBoxVals) : 0;
   console.log('[ZK6-DIAG2]',
     'realBoxVals.length:', realBoxVals.length,
-    'realBoxMin:', realBoxVals.length > 0 ? Math.min(...realBoxVals) : 'N/A',
-    'realBoxMax:', realBoxVals.length > 0 ? Math.max(...realBoxVals) : 'N/A',
+    'realBoxMax:', realBoxMax,
     'timesDrawnMap sample key:',
       JSON.stringify(Array.from(ds.timesDrawnMap.keys()).slice(0,3)),
     'universe[0] toComboSet:', toComboSet(universe[0]),
     'universe[100] toComboSet:', toComboSet(universe[100])
   )
-  const realBoxMin = realBoxVals.length > 0 ? Math.min(...realBoxVals) : 0;
-  const realBoxMax = realBoxVals.length > 0 ? Math.max(...realBoxVals) : 0;
-  const realBoxRange = realBoxMax - realBoxMin;
   const normBox = rawBoxArr.map((v, i) => {
     if ((ds.timesDrawnMap.get(toComboSet(universe[i])) ?? 0) === 0) return 0;
-    return realBoxRange > 1e-12 ? (v - realBoxMin) / realBoxRange : 0.5;
+    return realBoxMax > 1e-12 ? v / realBoxMax : 0;
   });
 
   const rawPburstArr = Array.from(rawPburst);
@@ -1061,11 +1059,11 @@ export async function computeZK30Slate({
 
   // Hash for snapshot dedup
   // Hash for snapshot dedup — unsigned djb2 (always positive, includes mode)
+  // Deterministic hash — ts: Date.now() removed to allow proper dedup.
   const hashInput = JSON.stringify({
     scope, mode: 'zk30',
     topCombos: k6.map(x => x.combo),
     horizons: ds.horizonsPresent,
-    ts: Date.now(),
   });
   const hash = (hashInput.split('').reduce((acc, ch) => {
     return (((acc << 5) + acc) ^ ch.charCodeAt(0)) >>> 0;

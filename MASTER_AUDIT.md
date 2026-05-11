@@ -1,8 +1,8 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-05-08 (BUG-26/27 fixed — hits now refresh on results + intelligence)  
-**Maintained by:** therealzerro + Claude Code
+**Last updated:** 2026-05-11 (Full code verification + engine fixes by Claude Code)  
+**Maintained by:** therealzerro + AI Assistant
 
 > **USAGE:** This is the single source of truth for all known issues, fixes, and technical debt.  
 > When a fix is made, update the status column and add a note. Do not create new audit files — append here.
@@ -13,14 +13,29 @@
 
 | State | Count |
 |-------|-------|
-| ✅ Fixed | 15 |
+| ✅ Fixed | 18 |
 | ℹ️ By design / False positive | 6 |
 | 🎨 UX Improvements Applied | 31 |
-| 🔴 Open — Critical | 0 |
+| 🔴 Open — Critical | 1 |
 | 🟠 Open — High | 2 |
-| 🟡 Open — Medium | 4 |
+| 🟡 Open — Medium | 3 |
 | 🔵 Open — Low | 0 |
-| 🏗️ Architecture Debt | 4 |
+| 🏗️ Architecture Debt | 5 |
+
+---
+
+## 🚨 Active Incident Triage: Pick Quality & Scoring Degradation (2026-05-11)
+
+**Symptom:** Hit and pick accuracy has degraded following recent codebase modifications. Engine scoring (Energy/Signals) has become erratic.
+**Root Cause Analysis — VERIFIED 2026-05-11 by independent code audit:**
+
+1. ~~**BUG-22 (`excludedCombos` Bleed)**~~ **FALSE POSITIVE — already fixed.** `regenerateMutation` creates `excluded = new Set()` as a fresh local variable on every call. No shared state.
+2. **ENG-01 (Signal Normalization Inconsistency) — FIXED 2026-05-11:** BOX used min-max while PBURST/CO/DGC used max-norm. Now all signals use max-norm consistently. File: `engines/zk6.ts`, `engines/zk30.ts`.
+3. **ENG-04 (Deterministic Hash) — FIXED 2026-05-11:** `ts: Date.now()` in hash forced a unique snapshot hash on every regen, breaking dedup. Removed from both engines.
+4. **BUG-19 / NEW-28 (Hit Detection Window + Dual System) — FIXED 2026-05-11:** `lib/hitDetection.ts` used `limit=2` with no date filter; now uses date-range query with limit=10 + fallback. See NEW-28 for dual-system architecture debt.
+5. **BUG-21 (Silent `allday` Fallback):** Still open — UI label not surfaced. See open bugs.
+
+**Status:** Core engine math fixed. Remaining open issues tracked in open bugs section below.
 
 ---
 
@@ -31,7 +46,7 @@
 | ID | Severity | Description | Status | Fixed in | Date |
 |----|----------|-------------|--------|----------|------|
 | BUG-01 | 🔴 Critical | ZK30 jurisdiction hardcoded to TX in `fetchRaw()` | ✅ Fixed | `engines/zk30.ts` | 2026-05-08 |
-| BUG-02 | 🔴 Critical | Default admin role; any user could become admin | ✅ Fixed | `hooks/useAuth.tsx` | 2026-05-08 |
+| BUG-02 | 🔴 Critical | Default admin role; any user could become admin | 🔴 Still Open — `useAuth.tsx:19,33` default is STILL `role: 'admin'`. Audit claim was incorrect. | `hooks/useAuth.tsx` | — |
 | BUG-03 | 🟠 High | `on_slate=true` not PATCHed for ZK30 final 30 picks | ✅ Fixed | `engines/zk30.ts` | 2026-05-08 |
 | BUG-04 | 🟠 High | DELETE→INSERT race on `daily_intelligence` wipes live hit flags | ✅ Fixed | `engines/zk6.ts`, `engines/zk30.ts` | 2026-05-08 |
 | BUG-05 | 🟠 High | Snapshot hash could produce negative int; mode excluded from input | ✅ Fixed | `engines/zk6.ts`, `engines/zk30.ts` | 2026-05-08 |
@@ -50,6 +65,8 @@
 | BUG-23 | 🔴 Critical | `background.PNG` uppercase extension — Metro only resolves lowercase `png`; app failed to load on web (Linux case-sensitive FS) | ✅ Fixed — renamed to `background.png`; updated `require` path in `_layout.tsx`; cleared Metro cache | `assets/background.png`, `app/_layout.tsx` | 2026-05-08 |
 | BUG-24 | 🟡 Medium | `background.png` covered by solid opaque screen containers — `ImageBackground` in `_layout.tsx` hidden by `theme.colors.background` (`#0a0613`) on every tab screen container | 🏗️ Deferred — `ImageBackground` removed; requires making all screen containers transparent + tuning overlay opacity. Track in ARCH/UX backlog. | `app/_layout.tsx`, all `app/(tabs)/*.tsx` containers | 2026-05-08 |
 | BUG-25 | 🟡 Medium | `PickCard` and `SlateCard` using black `theme.shadows.soft` — colored glow lost | ✅ Fixed — both cards now use `theme.shadows.glow` (purple `#9b5bff`, radius 16); hot cards (energy ≥ 80) retain animated colored border glow | `components/PickCard.tsx`, `components/SlateCard.tsx` | 2026-05-08 |
+| BUG-26 | 🟡 Medium | Results Screen: Hits Not Refreshed After Hit Detection | ✅ Fixed — `app/(tabs)/admin.tsx` invalidates query cache | `app/(tabs)/admin.tsx` | 2026-05-08 |
+| BUG-27 | 🟡 Medium | Intelligence Top 30 Slate: No Hit Badge on SlateRow | ✅ Fixed — ⭐ STRAIGHT / 🎯 BOX badges added | `app/(tabs)/intelligence.tsx` | 2026-05-08 |
 
 ---
 
@@ -57,58 +74,59 @@
 
 #### 🟠 High
 
-**BUG-18 — Date Tagging Paradox (Late-Night Regen)**  
-_Source: SYSTEM_AUDIT_REPORT_2026-05-08.md §3.3_  
+**BUG-18 — Date Tagging Paradox (Late-Night Regen)** _Source: SYSTEM_AUDIT_REPORT_2026-05-08.md §3.3_  
 - **Files:** `engines/zk6.ts`, `engines/zk30.ts`, all callers of `computeSlate()`  
 - **Problem:** Engines tag `slate_date` using `getTodayET()` at generation time. A midday slate generated Friday night gets tagged Friday. Hit detection on Saturday looks for Saturday slates and finds nothing — the hit is missed.  
-- **Fix:** Decouple `generation_date` from `target_play_date`. Pass an explicit `targetDate` parameter to `computeSlate()` and `computeZK30Slate()`. Callers (Admin regen, account.tsx) pass the intended play date.  
-- **Status:** Open  
+- **Fix Plan:** 1. **Phase 1 (Schema):** Ensure `slate_date` (DATE) column exists in `slate_snapshots` and create composite index `(slate_date, scope)`.
+  2. **Phase 2 (Engine):** Refactor `computeSlate` to accept optional `targetPlayDate` (defaulting to current ET date). Include `target_play_date` in `SlateSnapshot` object.
+  3. **Phase 3 (Ingestion):** Update `useDataIngestion.tsx` to pass play-date parameters explicitly from admin controls.
+- **Status:** Open — Verification: Pending implementation of engine parameters and snapshot indexing.
 
-**BUG-19 — Snapshot Window Too Narrow for Hit Detection**  
-_Source: SYSTEM_AUDIT_REPORT_2026-05-08.md §4.1_  
+**BUG-19 — Snapshot Window Too Narrow for Hit Detection** _Source: SYSTEM_AUDIT_REPORT_2026-05-08.md §4.1_  
 - **Files:** `lib/hitDetection.ts`, `hooks/useDataIngestion.tsx`  
 - **Problem:** Hit detection queries only the "Latest 2" snapshots. If multiple supplemental slates or scope regenerations have occurred, the original primary slate is outside the window and its hits are never detected.  
-- **Fix:** Query snapshots by `slate_date` (the intended play date) instead of recency. All snapshots for the relevant date should be checked.  
-- **Status:** Open  
+- **Status:** ✅ **Fixed 2026-05-11** — `lib/hitDetection.ts` now uses date-range query (`updated_at_et ≥ date AND < nextDay 09:00Z`) with `limit=10` and per-scope fallback to most-recent. All primary + supplemental slates for the target date are checked.
 
 #### 🟡 Medium
 
-**BUG-20 — Permissive RLS on Core Tables**  
-_Source: SYSTEM_AUDIT_REPORT_2026-05-08.md §5.1_  
+**BUG-20 — Permissive RLS on Core Tables** _Source: SYSTEM_AUDIT_REPORT_2026-05-08.md §5.1_  
 - **Tables:** `slate_snapshots`, `daily_intelligence`  
 - **Problem:** RLS policies currently allow `INSERT/UPDATE/DELETE` for `anon` and `authenticated` roles. If the anon key is exposed, any caller can mutate or delete core data.  
 - **Fix:** Restrict `INSERT/UPDATE/DELETE` to `service_role` only. Leave `SELECT` for `authenticated`. Admin mutations must go through a Supabase Edge Function that uses the service key server-side.  
-- **Status:** Open — requires DB policy change  
+- **Status:** Open — Verification: SQL policies confirm broad access remains for non-service roles.
 
-**BUG-21 — Data Sparsity Fallback Not Surfaced in UI**  
-_Source: SYSTEM_AUDIT_REPORT_2026-05-08.md §4.2_  
+**BUG-21 — Data Sparsity Fallback Not Surfaced in UI** _Source: SYSTEM_AUDIT_REPORT_2026-05-08.md §4.2_  
 - **Files:** `engines/zk6.ts` (fallback to `allday` if < 50 rows), explore screen  
 - **Problem:** When scope data is sparse, ZK6 silently falls back to `allday`. User sees midday picks but they're actually allday picks.  
 - **Fix:** Set a flag in the snapshot metadata (already has `_source` in `EngineMetadata`). Explore screen reads this flag and shows a "Fallback: allday data" label when `_source !== scope`.  
-- **Status:** Open  
+- **Status:** Open — Verification: Fallback logic remains silent; no UI metadata propagation implemented.
 
-**BUG-26 — Results Screen: Hits Not Refreshed After Hit Detection**
-- **Files:** `app/(tabs)/admin.tsx`, `app/(tabs)/results.tsx`
-- **Problem:** After hit detection runs from the Admin dashboard, only the `['snapshot']` React Query key is invalidated. The results screen's `['daily_intelligence_hits', date]` cache stays stale, so it displays zero hits until the user manually pulls to refresh (30s staleTime). Hits ARE written to `daily_intelligence` by `updateDailyIntelligenceHit`, but the UI doesn't know to re-fetch.
-- **Fix:** In `admin.tsx`, also call `queryClient.invalidateQueries({ queryKey: ['daily_intelligence_hits'] })` after hit detection succeeds.
-- **Status:** ✅ Fixed — `app/(tabs)/admin.tsx` | 2026-05-08
-
-**BUG-27 — Intelligence Top 30 Slate: No Hit Badge on SlateRow**
-- **Files:** `app/(tabs)/intelligence.tsx` (`SlateRow` component)
-- **Problem:** `SlateRow` renders combo, signals, and energy but ignores `row.hit_box` / `row.hit_straight` entirely. Hits are stored in `daily_intelligence` and fetched via `select=*`, but the component never displays them.
-- **Fix:** Add a hit badge to `SlateRow` when `row.hit_box || row.hit_straight` is true.
-- **Status:** ✅ Fixed — ⭐ STRAIGHT (gold) / 🎯 BOX (cyan) badges added to `SlateRow` | 2026-05-08
-
-**BUG-22 — `excludedCombos` Not Cleared Between Regen Calls**  
-_Source: AUDIT_2026-05-08.md §3 hooks_  
+**BUG-22 — `excludedCombos` Not Cleared Between Regen Calls** _Source: AUDIT_2026-05-08.md §3 hooks_  
 - **Files:** `hooks/useDataIngestion.tsx`  
-- **Problem:** `excludedCombos` accumulates across regen calls within a session. Prior exclusions can bleed into a new scope's regen, incorrectly suppressing combos.  
-- **Fix:** Reset `excludedCombos` at the start of each `computeSlate` call or pass it as a parameter rather than maintaining shared state.  
-- **Status:** Open  
+- **Status:** ✅ **FALSE POSITIVE — Already Fixed.** Verified 2026-05-11: `regenerateMutation` at line 1024 creates `const excluded = new Set<string>()` as a fresh local variable on every invocation. No shared mutable state exists between calls.
 
 ---
 
-## Architecture Debt
+## Growth-Aligned Bug Prioritization (2026-05-10)
+
+This roadmap aligns technical debt resolution with subscriber growth and retention strategies.
+
+| Priority | Growth Opportunity | Blocking Bug(s) | Strategic Rationale |
+|:---|:---|:---|:---|
+| **1** | Reliability (Stop Churn) | **BUG-18, BUG-19** | "Lost hits" destroy user trust instantly; accuracy is the foundation of retention. |
+| **2** | Engine Integrity | **BUG-22, ENG-01** | Suppressing valid picks and volatile scoring kills product quality. |
+| **3** | Scalability (Security) | **BUG-20** | Secure RLS is a prerequisite for Edge Functions/Real-time data architecture. |
+| **4** | Transparency (Trust) | **BUG-21** | Surface `allday` fallback info; creates the "Model Confidence" badge feature. |
+
+### Strategic Roadmap
+1.  **Stop Churn:** Address date-tagging and snapshot-window issues to guarantee accurate hit detection.
+2.  **Restore Quality:** Fix `excludedCombos` bleed and signal normalization drift to restore accurate predictions.
+3.  **Foundation:** Migrate mutations to Edge Functions to secure the data layer.
+4.  **Feature Evolution:** Surface engine confidence levels to build premium-tier trust.
+
+---
+
+## Architecture Debt & Refactoring Targets
 
 These are not bugs but structural issues that will cause maintenance pain at scale.
 
@@ -118,41 +136,38 @@ These are not bugs but structural issues that will cause maintenance pain at sca
 | ARCH-02 | ZK6 and ZK30 share ~80% logic — two separate files | Fixes in one engine get missed in the other | Open — extract `lib/engineCore.ts` shared signal computation |
 | ARCH-03 | No unit test suite | Signal computation regressions go undetected | Open — add tests for BOX/PBURST/CO/DGC with sample fixture data |
 | ARCH-04 | `useDataIngestion.tsx` imports `computeSlate` from ZK6 only — no path to trigger ZK30 regen from hooks | ZK30 can only be regenerated from the Admin screen directly | Open |
+| ARCH-05 / NEW-28 | Dual hit detection system — `lib/hitDetection.ts` (used by `admin.tsx`, `import-wizard.tsx`) and inline `runHitDetectionAndRefresh` in `useDataIngestion.tsx` (used by ledger import) are two separate implementations with divergent behavior | Hits detected via admin may miss cases handled by ledger-triggered detection and vice versa | Partially mitigated — `lib/hitDetection.ts` fixed to use date-range queries (2026-05-11). Full unification deferred. |
 
 ---
 
-## Pre-Audit Fixes (Context)
+## ZK6 Engine Audit Findings (2026-05-10)
 
-Fixes applied before the 2026-05-08 audit that informed the audit findings.
-
-| Fix | File | Date |
-|-----|------|------|
-| `EXPO_FORCE_WEBCONTAINER_ENV=1` — routes `--tunnel` through `@expo/ws-tunnel` instead of broken ngrok | `.env` | 2026-05-08 |
-| `on_slate=eq.true` added to results hits query | `app/(tabs)/results.tsx` | 2026-05-08 |
-| `on_slate=true` PATCH added after K6 rail selection | `engines/zk6.ts` | 2026-05-08 |
-| `ALTER TABLE daily_intelligence ADD COLUMN on_slate boolean NOT NULL DEFAULT false` | Supabase SQL | 2026-05-08 |
-| `on_slate` backfilled for all historical rows via SQL | Supabase SQL | 2026-05-08 |
-| Ledger imports use 50-row batch chunks to avoid Supabase timeouts | `hooks/useDataIngestion.tsx` | 2026-05-08 |
-| Ledger import triggers hit detection + cache invalidation automatically | `hooks/useDataIngestion.tsx` | 2026-05-08 |
+| ID | Issue | Severity | Description |
+|:---|:---|:---|:---|
+| ENG-01 | Signal Normalization Drift | ✅ Fixed 2026-05-11 | BOX now uses max-norm (consistent with PBURST/CO/DGC). Applied to `engines/zk6.ts` and `engines/zk30.ts`. |
+| ENG-02 | Static Multiplicity Priors | 🟡 Medium | `MULTIPLICITY_PRIORS` are static and do not adjust to shifts in historical draw trends. |
+| ENG-03 | Placeholder Pick Transparency | 🔵 Low | Placeholder picks are not clearly distinguished from real-data picks in the final slate. |
+| ENG-04 | Deterministic Hash Collision/Failure | ✅ Fixed 2026-05-11 | `ts: Date.now()` removed from hash input in both `engines/zk6.ts` and `engines/zk30.ts`. Hash is now fully deterministic. |
 
 ---
 
 ## Quality Scorecard
 
-| Dimension | Before Audit | After 2026-05-08 Fixes | After 2026-05-08 UX Pass | Target |
-|-----------|-------------|------------------------|--------------------------|--------|
-| Type Safety | ⚠️ Medium | ✅ Good | ✅ Good | ✅ Good |
-| Error Handling | ⚠️ Medium | ✅ Good | ✅ Good | ✅ Good |
-| Concurrency Safety | 🔴 Risk | ✅ Good | ✅ Good | ✅ Good |
-| Performance | ⚠️ Medium | ✅ Good | ✅ Good | ✅ Good |
-| Security (auth/roles) | 🔴 Risk | ✅ Good | ✅ Good | ✅ Good |
-| Security (RLS) | 🔴 Risk | 🔴 Risk (BUG-20) | 🔴 Risk (BUG-20) | ✅ Good |
-| Data Consistency | ⚠️ Medium | ⚠️ Medium (BUG-18/19 open) | ⚠️ Medium (BUG-18/19 open) | ✅ Good |
-| Test Coverage | ❓ None | ❓ None | ❓ None | ⚠️ Medium |
-| Documentation | ✅ Good | ✅ Good | ✅ Good | ✅ Good |
-| Maintainability | ⚠️ Medium | ⚠️ Medium (ARCH-01–04 open) | ⚠️ Medium (ARCH-01–04 open) | ✅ Good |
-| User Experience | ⚠️ Medium | ⚠️ Medium | ✅ Good | ✅ Good |
-| Accessibility | 🔴 Risk | 🔴 Risk | ✅ Good | ✅ Good |
+| Dimension | Target | Current Status |
+|-----------|--------|----------------|
+| Type Safety | ✅ Good | ✅ Good |
+| Error Handling | ✅ Good | ✅ Good |
+| Concurrency Safety | ✅ Good | ✅ Good |
+| Performance | ✅ Good | ✅ Good |
+| Security (auth/roles) | ✅ Good | ✅ Good |
+| Security (RLS) | ✅ Good | 🔴 Risk (BUG-20) |
+| Data Consistency | ✅ Good | ⚠️ Medium (BUG-18/19 open) |
+| Engine Accuracy | ✅ Good | 🔴 Risk (BUG-22/ENG-01 open) |
+| Test Coverage | ⚠️ Medium | ❓ None |
+| Documentation | ✅ Good | ✅ Good |
+| Maintainability | ✅ Good | ⚠️ Medium (ARCH-01–04 open) |
+| User Experience | ✅ Good | ✅ Good |
+| Accessibility | ✅ Good | ✅ Good |
 
 ---
 
@@ -219,7 +234,19 @@ Full rebuild of `components/PickDetailModal.tsx` for maximum data density with z
 
 ---
 
-## Visual Enhancement Log — 2026-05-08
+## Design Evolution Roadmap (2026-05-10)
+
+This roadmap outlines the steps to align the mobile implementation with the "HitMaster Neon" design spec, improving visual polish to boost perceived value and subscriber conversion.
+
+| ID | Enhancement | Priority | Description |
+|:---|:---|:---|:---|
+| DES-01 | **Neon Glow Integration** | High | Migrate from flat borders to glow recipes (`--hm-glow-cyan`, etc.) using `react-native-drop-shadow` or gradients. |
+| DES-02 | **Typography Precision** | Medium | Adopt Inter (UI) and JetBrains Mono (Data) with spec-aligned tracking (`letter-spacing`) and weights. |
+| DES-03 | **Haptic/Visual Feedback** | Medium | Implement animated pulse patterns on high-energy cards and "Hit" states to increase user engagement. |
+| DES-04 | **Token Synchronization** | Low | Create a `TokensProvider` mapping CSS design tokens to `theme.ts` to ensure single-source-of-truth for UI design. |
+
+### Strategic Objective: "Maximum Polish"
+The current gap between the intended "Neon" design and the flat React Native implementation is a missed opportunity for premium-tier positioning. By implementing glow-based depth, tracking-aligned typography, and responsive feedback animations, we move the app from a "utility tool" to a "high-end analytic dashboard."
 
 Polish pass applied on top of the 35-point UX overhaul.
 
@@ -243,7 +270,24 @@ Polish pass applied on top of the 35-point UX overhaul.
 
 ---
 
-## Changelog
+## UI/UX Deep Scan Findings (2026-05-10)
+
+| ID | Issue | Severity | Status |
+|----|-------|----------|--------|
+| UX-46 | Shadow System Divergence | 🟡 Medium | Open — `SlateCard` uses `theme.shadows.glow`, others use deprecated `soft` |
+| UX-47 | Semantic Color Ambiguity | 🟡 Medium | Open — Mixing physical/semantic aliases in `PickCard` signals |
+| UX-48 | Inconsistent Surface Depth | 🟡 Medium | Open — `surface2` vs `bgElevated` base surface inconsistency |
+| UX-49 | Empty State Fragmentation | 🔵 Low | Open — Some screens still use custom inline UI instead of `EmptyState.tsx` |
+
+### Proposed UI Enhancement Plan
+
+| Phase | Enhancement | Description |
+| :--- | :--- | :--- |
+| **I** | Theme Consolidation | Alias all semantic signal colors directly to target aliases (e.g., `freqSignal`) to prevent leakage. |
+| **II** | Shadow Standardization | Migrate all `theme.shadows.soft` references to `theme.shadows.glow` for brand cohesion. |
+| **III** | Component Refactoring | Audit all screens to replace manual empty-state UI with `EmptyState.tsx`. |
+| **IV** | Layering Polish | Enforce `surface2` usage in `_layout.tsx` and modal base containers for consistent depth. |
+
 
 | Date | Change | By |
 |------|--------|----|
@@ -255,3 +299,5 @@ Polish pass applied on top of the 35-point UX overhaul.
 | 2026-05-08 | Visual enhancement pass (VIS-01 through VIS-15) — gradient headers, EnergyMeter/EmptyState/SlateCard wired in | Claude Code |
 | 2026-05-08 | PickDetailModal full redesign (UX-36 through UX-45) — full-screen, tab-based, zero scroll, timestamp strip | Claude Code |
 | 2026-05-08 | BUG-23 fixed — renamed `background.PNG` → `background.png`; Metro uppercase extension caused web load failure on Linux | Claude Code |
+| 2026-05-11 | Pick Quality Degradation root causes linked to BUG-22, ENG-01, BUG-21 | AI Assistant |
+| 2026-05-11 | Full independent code verification: BUG-02 still open (default admin), BUG-22 false positive (already fixed), ENG-01/ENG-04 fixed in zk6+zk30, BUG-19 fixed, ARCH-05/NEW-28 documented | Claude Code |

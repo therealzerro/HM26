@@ -107,24 +107,36 @@ export async function runHitDetectionAndRefresh(
   let totalHits = 0;
   let supplementsGenerated = 0;
 
-  // Fetch the most recent non-supplemental snapshot for EACH scope explicitly.
-  // Using limit=3 on a single query risks cutting off allday when 3+ midday
-  // snapshots exist — fetching per-scope guarantees all 3 are always checked.
+  // Fetch snapshots for the target date (and the next day's window to catch late-night ET slates).
+  // Using date-range filtering ensures we find the correct primary slate even when
+  // multiple supplemental slates exist for the same scope.
+  const nextDay = new Date(date + 'T12:00:00');
+  nextDay.setDate(nextDay.getDate() + 1);
+  const nextDayStr = nextDay.toISOString().split('T')[0];
+
   const [middaySnaps, eveningSnaps, alldaySnaps] = await Promise.all([
-    fetchFromSupabase<any[]>({ path: '/rest/v1/slate_snapshots?scope=eq.midday&deleted_at=is.null&order=updated_at_et.desc&limit=2', method: 'GET' }),
-    fetchFromSupabase<any[]>({ path: '/rest/v1/slate_snapshots?scope=eq.evening&deleted_at=is.null&order=updated_at_et.desc&limit=2', method: 'GET' }),
-    fetchFromSupabase<any[]>({ path: '/rest/v1/slate_snapshots?scope=eq.allday&deleted_at=is.null&order=updated_at_et.desc&limit=2', method: 'GET' }),
+    fetchFromSupabase<any[]>({ path: `/rest/v1/slate_snapshots?scope=eq.midday&deleted_at=is.null&updated_at_et=gte.${date}&updated_at_et=lt.${nextDayStr}T09:00:00&order=updated_at_et.asc&limit=10`, method: 'GET' }),
+    fetchFromSupabase<any[]>({ path: `/rest/v1/slate_snapshots?scope=eq.evening&deleted_at=is.null&updated_at_et=gte.${date}&updated_at_et=lt.${nextDayStr}T09:00:00&order=updated_at_et.asc&limit=10`, method: 'GET' }),
+    fetchFromSupabase<any[]>({ path: `/rest/v1/slate_snapshots?scope=eq.allday&deleted_at=is.null&updated_at_et=gte.${date}&updated_at_et=lt.${nextDayStr}T09:00:00&order=updated_at_et.asc&limit=10`, method: 'GET' }),
   ]);
-  const snapshots = [
-    ...(Array.isArray(middaySnaps) ? middaySnaps : []),
-    ...(Array.isArray(eveningSnaps) ? eveningSnaps : []),
-    ...(Array.isArray(alldaySnaps) ? alldaySnaps : []),
-  ];
+  // If no date-range snapshots found for a scope, fall back to the most recent snapshot for that scope.
+  const resolveSnaps = async (dateSnaps: any[] | null, scope: string): Promise<any[]> => {
+    if (Array.isArray(dateSnaps) && dateSnaps.length > 0) return dateSnaps;
+    const fallback = await fetchFromSupabase<any[]>({ path: `/rest/v1/slate_snapshots?scope=eq.${scope}&deleted_at=is.null&order=updated_at_et.desc&limit=3`, method: 'GET' });
+    return Array.isArray(fallback) ? fallback : [];
+  };
+  const [resolvedMidday, resolvedEvening, resolvedAllday] = await Promise.all([
+    resolveSnaps(middaySnaps, 'midday'),
+    resolveSnaps(eveningSnaps, 'evening'),
+    resolveSnaps(alldaySnaps, 'allday'),
+  ]);
+
+  const snapshots = [...resolvedMidday, ...resolvedEvening, ...resolvedAllday];
 
   console.log('[hitDetection] Snapshots per scope:', {
-    midday: Array.isArray(middaySnaps) ? middaySnaps.length : 0,
-    evening: Array.isArray(eveningSnaps) ? eveningSnaps.length : 0,
-    allday: Array.isArray(alldaySnaps) ? alldaySnaps.length : 0,
+    midday: resolvedMidday.length,
+    evening: resolvedEvening.length,
+    allday: resolvedAllday.length,
   });
 
   if (snapshots.length === 0) {

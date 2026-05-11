@@ -145,6 +145,8 @@ These are not bugs but structural issues that will cause maintenance pain at sca
 | ID | Issue | Severity | Description |
 |:---|:---|:---|:---|
 | ENG-01 | Signal Normalization Drift | ✅ Fixed 2026-05-11 | BOX now uses max-norm (consistent with PBURST/CO/DGC). Applied to `engines/zk6.ts` and `engines/zk30.ts`. |
+| ENG-05 | Pair Signal freqScore Anti-Correlation | ✅ Fixed 2026-05-11 | `getPairSignal()` was using `dsRaw/maxPairDsRaw` (staleness) as freqScore — gave highest scores to most-stale pairs, inversely correlated with hits. Fixed to `timesDrawn/maxPairTimesDrawn` (historical frequency), matching BOX signal logic. |
+| ENG-06 | Incomplete K6 Slate (5 picks) | ✅ Fixed 2026-05-11 | Added Pass 4 (relax pairRepCap) and Pass 5 (relax cooldown) to guarantee full 6-pick slate. pairRepCap deadlock was blocking 6th slot after ENG-01 normalization change shifted pick clustering. |
 | ENG-02 | Static Multiplicity Priors | 🟡 Medium | `MULTIPLICITY_PRIORS` are static and do not adjust to shifts in historical draw trends. |
 | ENG-03 | Placeholder Pick Transparency | 🔵 Low | Placeholder picks are not clearly distinguished from real-data picks in the final slate. |
 | ENG-04 | Deterministic Hash Collision/Failure | ✅ Fixed 2026-05-11 | `ts: Date.now()` removed from hash input in both `engines/zk6.ts` and `engines/zk30.ts`. Hash is now fully deterministic. |
@@ -301,3 +303,5 @@ Polish pass applied on top of the 35-point UX overhaul.
 | 2026-05-08 | BUG-23 fixed — renamed `background.PNG` → `background.png`; Metro uppercase extension caused web load failure on Linux | Claude Code |
 | 2026-05-11 | Pick Quality Degradation root causes linked to BUG-22, ENG-01, BUG-21 | AI Assistant |
 | 2026-05-11 | Full independent code verification: BUG-02 still open (default admin), BUG-22 false positive (already fixed), ENG-01/ENG-04 fixed in zk6+zk30, BUG-19 fixed, ARCH-05/NEW-28 documented | Claude Code |
+| 2026-05-11 | ENG-05 fixed: pair signal freqScore was using dsRaw (staleness) — corrected to timesDrawn (frequency) in zk6+zk30. Root cause of PBURST/CO being anti-correlated with hits. | Claude Code |
+| 2026-05-11 | ENG-06 fixed: added Pass 4+5 to K6 selection to guarantee full 6-pick slate when pairRepCap/cooldown deadlock occurs. | Claude Code |

@@ -48,6 +48,10 @@ async function updateDailyIntelligenceHit(pick: any, result: any, date: string) 
 async function recordHitInAdaptiveTracking(pick: any, result: any, snapshot: any, date: string) {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
   const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  const boxS = pick.box ?? pick.signals?.BOX ?? 0;
+  const pburstS = pick.pburst ?? pick.signals?.PBURST ?? 0;
+  const coS = pick.co ?? pick.signals?.CO ?? 0;
+  const dominantSignal = boxS > pburstS && boxS > coS ? 'BOX' : pburstS > coS ? 'PBURST' : 'CO';
   try {
     await fetch(url + '/rest/v1/adaptive_tracking', {
       method: 'POST',
@@ -64,9 +68,9 @@ async function recordHitInAdaptiveTracking(pick: any, result: any, snapshot: any
         rank: pick.rank,
         combo: pick.combo,
         combo_set: pick.comboSet ?? pick.normKey,
-        signal_box: pick.box ?? pick.signals?.BOX ?? 0,
-        signal_pburst: pick.pburst ?? pick.signals?.PBURST ?? 0,
-        signal_co: pick.co ?? pick.signals?.CO ?? 0,
+        signal_box: boxS,
+        signal_pburst: pburstS,
+        signal_co: coS,
         energy_score: pick.temperature ?? pick.energy ?? 0,
         mode: snapshot.mode || 'balanced',
         hit_box: result.comboset_sorted === (pick.comboSet ?? pick.normKey),
@@ -75,6 +79,7 @@ async function recordHitInAdaptiveTracking(pick: any, result: any, snapshot: any
         actual_set: result.comboset_sorted,
         matched_state: result.jurisdiction,
         matched_session: result.session,
+        dominant_signal: dominantSignal,
         result_at: new Date().toISOString(),
       }),
     });
@@ -252,4 +257,24 @@ export async function runHitDetectionAndRefresh(
 
 export async function runHitDetectionAllScopes(date: string): Promise<HitDetectionResult> {
   return runHitDetectionAndRefresh(null, date);
+}
+
+// Multi-date wrapper used by the ledger import flow.
+// Returns the legacy { totalHits, scopeResults, ran } shape expected by useDataIngestion.
+export async function runHitDetectionForDates(
+  dates: string[],
+): Promise<{ totalHits: number; scopeResults: Record<string, number>; ran: boolean }> {
+  const scopeResults: Record<string, number> = {};
+  let totalHits = 0;
+  try {
+    for (const date of dates) {
+      const res = await runHitDetectionAndRefresh(null, date);
+      totalHits += res.hitsFound;
+      scopeResults[date] = res.hitsFound;
+    }
+    return { totalHits, scopeResults, ran: true };
+  } catch (e) {
+    console.warn('[hitDetection] runHitDetectionForDates failed:', e);
+    return { totalHits: 0, scopeResults: {}, ran: false };
+  }
 }

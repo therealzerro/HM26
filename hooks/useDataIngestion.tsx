@@ -3,7 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
-import { Scope, HorizonLabel, Import, AuditLog, ImportSummary, RegenerateResult, HitDetectionResult } from '@/types/core';
+import { Scope, HorizonLabel, Import, AuditLog, ImportSummary, RegenerateResult } from '@/types/core';
+import { runHitDetectionForDates } from '@/lib/hitDetection';
+// HitDetectionResult from lib: { totalHits, scopeResults, ran }
+type HitDetectionResult = { totalHits: number; scopeResults: Record<string, number>; ran: boolean };
 import { useScope } from '@/hooks/useScope';
 import { computeSlate } from '@/engines/zk6';
 import { HORIZON_WEIGHTS } from '@/constants/zk6';
@@ -601,166 +604,21 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
   });
 
   // ── runHitDetectionAndRefresh ─────────────────────────────────────────────────
-  // Defined here (before importLedgerMutation) so onSuccess can reference it
+  // Delegates to lib/hitDetection.ts for the core hit/snapshot/intelligence logic.
+  // The ledger-specific pair draws_since RPC is kept here since it is only relevant
+  // to the ledger import flow and not to admin-triggered hit detection.
   const runHitDetectionAndRefresh = useCallback(async (dates?: string[]): Promise<HitDetectionResult> => {
     const today = getTodayET();
     const checkDates = (dates && dates.length > 0) ? dates : [today];
-    const scopes: Scope[] = ['midday', 'evening', 'allday'];
-    const scopeResults: Record<string, number> = {};
-    let totalHits = 0;
-
     try {
-      const dateFilter = checkDates.length === 1
-        ? `date_et=eq.${checkDates[0]}`
-        : `date_et=in.(${checkDates.join(',')})`;
-      const results = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/histories?${dateFilter}&select=result_digits,comboset_sorted,jurisdiction,session&limit=500&jurisdiction=not.in.(ME,NH,VT,PR,MD,MS2)`,
-      });
-      if (!Array.isArray(results) || results.length === 0) {
-        return { totalHits: 0, scopeResults: {}, ran: true };
-      }
+      const result = await runHitDetectionForDates(checkDates);
 
-      // For historical date imports, find the snapshot that was generated on that date.
-      // updated_at_et is stored in UTC; upper bound is next day at 09:00Z (~5am ET),
-      // covering late-evening ET slate generation. Falls back to latest if not found.
-      const checkDate = checkDates[0] ?? today;
-      const isHistorical = checkDate !== today;
-      const fetchSnapForScope = async (sc: string): Promise<any[] | null> => {
-        if (isHistorical) {
-          const nextDay = new Date(checkDate + 'T12:00:00');
-          nextDay.setDate(nextDay.getDate() + 1);
-          const nextDayStr = nextDay.toISOString().split('T')[0];
-          const historical = await fetchFromSupabase<any[]>({
-            path: `/rest/v1/slate_snapshots?scope=eq.${sc}&deleted_at=is.null&updated_at_et=gte.${checkDate}&updated_at_et=lt.${nextDayStr}T09:00:00&order=updated_at_et.desc&limit=1&select=id,scope,top_k_straights_json,updated_at_et,horizons_present_json`,
-          });
-          if (Array.isArray(historical) && historical[0]) return historical;
-        }
-        return fetchFromSupabase<any[]>({
-          path: `/rest/v1/slate_snapshots?scope=eq.${sc}&deleted_at=is.null&order=updated_at_et.desc&limit=1&select=id,scope,top_k_straights_json,updated_at_et,horizons_present_json`,
-        });
-      };
-
-      for (const sc of scopes) {
-        scopeResults[sc] = 0;
-        try {
-          const snaps = await fetchSnapForScope(sc);
-          if (!Array.isArray(snaps) || !snaps[0]) continue;
-          const snap = snaps[0];
-          const picks: any[] = Array.isArray(snap.top_k_straights_json) ? snap.top_k_straights_json : [];
-          if (picks.length === 0) continue;
-          const slateDate = checkDates[0] ?? snap.updated_at_et?.split('T')[0] ?? today;
-
-          interface HitRecordInner { pick: any; pickSet: string; result: any; hitBox: boolean; hitStraight: boolean; }
-          const hitRecords: HitRecordInner[] = [];
-          const updatedPicks = picks.map(pick => {
-            if (pick.hitType) return pick;
-            const pickSet = pick.comboSet ?? pick.comboset_sorted ??
-              ('{' + (pick.combo ?? '').split('').sort().join(',') + '}');
-            for (const result of results) {
-              if (sc !== 'allday' && result.session !== sc) continue;
-              const resultSet = result.comboset_sorted ??
-                ('{' + result.result_digits?.split('').sort().join(',') + '}');
-              const hitBox = pickSet === resultSet;
-              const hitStraight = pick.bestOrder === result.result_digits || pick.combo === result.result_digits;
-              if (!hitBox && !hitStraight) continue;
-              hitRecords.push({ pick, pickSet, result, hitBox, hitStraight });
-              return {
-                ...pick,
-                hitType: hitStraight ? 'straight' : 'box',
-                hitState: result.jurisdiction,
-                hitSession: result.session,
-                hitDate: result.date_et ?? today,
-                hitResult: result.result_digits,
-              };
-            }
-            return pick;
-          });
-
-          const hitsFound = hitRecords.length;
-          scopeResults[sc] = hitsFound;
-          totalHits += hitsFound;
-
-          for (const { pick, pickSet, result, hitBox, hitStraight } of hitRecords) {
-            try {
-              const resultSet = result.comboset_sorted ?? ('{' + result.result_digits?.split('').sort().join(',') + '}');
-              const dominantSignal = pick.box > pick.pburst && pick.box > pick.co ? 'BOX' : pick.pburst > pick.co ? 'PBURST' : 'CO';
-              await fetchFromSupabase({
-                path: '/rest/v1/adaptive_tracking?on_conflict=slate_date,scope,combo',
-                method: 'POST',
-                headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-                body: {
-                  slate_date: slateDate, scope: sc,
-                  slate_hash: snap.horizons_present_json?._hash ?? null,
-                  rank: pick.rank ?? null, combo: pick.combo ?? '', combo_set: pickSet,
-                  signal_box: pick.box ?? 0, signal_pburst: pick.pburst ?? 0, signal_co: pick.co ?? 0,
-                  energy_score: pick.energy ?? pick.temperature ?? 0,
-                  mode: snap.horizons_present_json?._mode ?? 'balanced',
-                  hit_box: hitBox, hit_straight: hitStraight,
-                  actual_result: result.result_digits, actual_set: resultSet,
-                  matched_state: result.jurisdiction, matched_session: result.session,
-                  dominant_signal: dominantSignal, result_at: new Date().toISOString(),
-                },
-              });
-            } catch { /* table may not exist */ }
-          }
-
-          if (hitsFound > 0) {
-            try {
-              await fetchFromSupabase({
-                path: `/rest/v1/slate_snapshots?id=eq.${snap.id}`,
-                method: 'PATCH',
-                body: { top_k_straights_json: updatedPicks },
-              });
-            } catch (e) { console.log('[hitDetect] patch warn:', e); }
-            try {
-              const alreadyUsedSets = new Set<string>(
-                picks.map(p => p.comboSet ?? ('{' + (p.combo ?? '').split('').sort().join(',') + '}'))
-              );
-              const hitCombos = new Set<string>(results.map(r => r.result_digits).filter(Boolean));
-              const excluded = new Set<string>([...hitCombos]);
-              alreadyUsedSets.forEach(s => {
-                const digits = (s.match(/\d/g) ?? []).join('');
-                if (digits.length === 3) excluded.add(digits);
-              });
-              await computeSlate({ scope: sc, weightsKey: 'balanced', excludedCombos: excluded, skipHistoriesExclusion: false, is_supplement: true });
-            } catch (e) { console.log('[hitDetect] supplemental warn:', e); }
-            // Update daily_intelligence hit flags for matched picks
-            const diUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-            const diKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-            const diPatchHeaders: Record<string, string> = {
-              'apikey': diKey ?? '',
-              'Authorization': 'Bearer ' + (diKey ?? ''),
-              'Content-Type': 'application/json',
-            };
-            for (const { pick, result, hitBox, hitStraight } of hitRecords) {
-              try {
-                await fetch(
-                  (diUrl ?? '') + `/rest/v1/daily_intelligence?slate_date=eq.${slateDate}&scope=eq.${sc}&combo=eq.${encodeURIComponent(pick.combo ?? '')}`,
-                  {
-                    method: 'PATCH',
-                    headers: diPatchHeaders,
-                    body: JSON.stringify({
-                      hit_box: hitBox,
-                      hit_straight: hitStraight,
-                      hit_state: result.jurisdiction,
-                      hit_session: result.session,
-                    }),
-                  }
-                );
-              } catch (e) {
-                console.log('[hitDetect] daily_intelligence update warn:', e);
-              }
-            }
-          }
-        } catch (scopeErr) { console.log('[hitDetect] scope error:', sc, scopeErr); }
-      }
-
-      if (totalHits > 0) {
+      if (result.totalHits > 0) {
         queryClient.invalidateQueries({ queryKey: ['snapshot'] });
         queryClient.invalidateQueries({ queryKey: ['daily_intelligence_hits'] });
       }
 
-      // Update pair draws_since from results for all imported dates and scopes
+      // Update pair draws_since from results — ledger-import only side effect.
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
       const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
       const pairHeaders: Record<string, string> = {
@@ -773,11 +631,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
           try {
             const res = await fetch(
               (supabaseUrl ?? '') + '/rest/v1/rpc/update_pair_draws_since_from_results',
-              {
-                method: 'POST',
-                headers: pairHeaders,
-                body: JSON.stringify({ p_scope: sc, p_date_et: importedDate }),
-              }
+              { method: 'POST', headers: pairHeaders, body: JSON.stringify({ p_scope: sc, p_date_et: importedDate }) },
             );
             const data = await res.json();
             console.log('Pair update ' + sc + ' ' + importedDate + ':', data);
@@ -786,11 +640,12 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
           }
         }
       }
+
+      return result;
     } catch (e) {
       console.log('[hitDetect] error:', e);
       return { totalHits: 0, scopeResults: {}, ran: false };
     }
-    return { totalHits, scopeResults, ran: true };
   }, [queryClient]);
 
   const importLedgerMutation = useMutation<ImportSummary, Error, LedgerImportData>({

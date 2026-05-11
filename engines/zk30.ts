@@ -932,7 +932,12 @@ export async function computeZK30Slate({
 
   const excludeComboSetsSet = new Set(excludeComboSets);
 
-  const tryAdd = (idx: number): boolean => {
+  const tryAdd = (
+    idx: number,
+    relaxExcludeComboSets = false,
+    relaxPairRepCap = false,
+    relaxCooldown = false,
+  ): boolean => {
     if (k6.length >= 30) return false;
     const combo = universe[idx];
     if (effectiveExcluded.has(combo)) {
@@ -940,7 +945,7 @@ export async function computeZK30Slate({
     const normKey = toComboSet(combo);
     if (selectedComboSets.has(normKey)) {
       console.log('[RAIL] duplicate comboSet:', combo, normKey); return false; }
-    if (excludeComboSetsSet.size > 0 && excludeComboSetsSet.has(normKey)) {
+    if (!relaxExcludeComboSets && excludeComboSetsSet.size > 0 && excludeComboSetsSet.has(normKey)) {
       console.log('[RAIL] excludeComboSets:', combo); return false; }
     if (todayHitComboSets.size > 0 && todayHitComboSets.has(normKey)) {
       console.log('[RAIL] today hit:', combo); return false; }
@@ -952,7 +957,7 @@ export async function computeZK30Slate({
     if (mult === 'triples' && !rails.triplesOn) {
       console.log('[RAIL] triples off:', combo); return false; }
     const tp = topPairOf(combo);
-    if ((pairCounts[tp] ?? 0) >= rails.pairRepCap) {
+    if (!relaxPairRepCap && (pairCounts[tp] ?? 0) >= rails.pairRepCap) {
       console.log('[RAIL] pairRepCap:', combo, 'pair:', tp); return false; }
     const energy = percentileRankOf(finalScores[idx], scorePoolForEnergy);
     if (minEnergyThreshold > 0 &&
@@ -960,7 +965,7 @@ export async function computeZK30Slate({
       energy < minEnergyThreshold) {
       console.log('[RAIL] energy below threshold:', combo, energy, '<', minEnergyThreshold); return false; }
     const recentDs = ds.drawsSinceMap.get(normKey) ?? 999;
-    if (recentHitCooldown > 0 && dsOverride.has(normKey) && (ds.timesDrawnMap.get(normKey) ?? 0) > 0 && recentDs < recentHitCooldown) {
+    if (!relaxCooldown && recentHitCooldown > 0 && dsOverride.has(normKey) && (ds.timesDrawnMap.get(normKey) ?? 0) > 0 && recentDs < recentHitCooldown) {
       console.log('[RAIL] cooldown:', combo, 'ds:', recentDs, '<', recentHitCooldown); return false; }
     k6.push({
       combo, normKey,
@@ -977,18 +982,47 @@ export async function computeZK30Slate({
     return true;
   };
 
-  // Pass 1: real data only
+  const allIdx = [...realIdx, ...placeholderIdx];
+
+  // Pass 1: real data only, all rails enforced
   for (const idx of realIdx) {
     if (k6.length >= 30) break;
     tryAdd(idx);
   }
 
-  // Pass 2: fill remaining slots with placeholder combos if real data insufficient
+  // Pass 2: fill remaining slots with placeholder combos
   if (k6.length < 30) {
     console.log('[zk30] Pass 1 yielded', k6.length, 'real picks — filling', 30 - k6.length, 'from placeholders');
     for (const idx of placeholderIdx) {
       if (k6.length >= 30) break;
       tryAdd(idx);
+    }
+  }
+
+  // Pass 3: relax excludeComboSets (yesterday's draws)
+  if (k6.length < 30) {
+    console.log('[zk30] Pass 2 yielded', k6.length, 'picks — pass 3: relaxing excludeComboSets');
+    for (const idx of allIdx) {
+      if (k6.length >= 30) break;
+      tryAdd(idx, true);
+    }
+  }
+
+  // Pass 4: also relax pairRepCap
+  if (k6.length < 30) {
+    console.log('[zk30] Pass 3 yielded', k6.length, 'picks — pass 4: relaxing pairRepCap');
+    for (const idx of allIdx) {
+      if (k6.length >= 30) break;
+      tryAdd(idx, true, true);
+    }
+  }
+
+  // Pass 5: last resort — also relax cooldown
+  if (k6.length < 30) {
+    console.log('[zk30] Pass 4 yielded', k6.length, 'picks — pass 5: relaxing cooldown');
+    for (const idx of allIdx) {
+      if (k6.length >= 30) break;
+      tryAdd(idx, true, true, true);
     }
   }
 

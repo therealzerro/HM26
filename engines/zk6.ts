@@ -879,7 +879,15 @@ export async function computeSlate({
 
   const excludeComboSetsSet = new Set(excludeComboSets);
 
-  const tryAdd = (idx: number, relaxExcludeComboSets = false): boolean => {
+  // relaxExcludeComboSets: allow yesterday's combo sets back
+  // relaxPairRepCap: ignore pairRepCap diversity rail
+  // relaxCooldown: ignore recentHitCooldown (recent-hit suppression)
+  const tryAdd = (
+    idx: number,
+    relaxExcludeComboSets = false,
+    relaxPairRepCap = false,
+    relaxCooldown = false,
+  ): boolean => {
     if (k6.length >= 6) return false;
     const combo = universe[idx];
     if (effectiveExcluded.has(combo)) {
@@ -899,7 +907,7 @@ export async function computeSlate({
     if (mult === 'triples' && !rails.triplesOn) {
       console.log('[RAIL] triples off:', combo); return false; }
     const tp = topPairOf(combo);
-    if ((pairCounts[tp] ?? 0) >= rails.pairRepCap) {
+    if (!relaxPairRepCap && (pairCounts[tp] ?? 0) >= rails.pairRepCap) {
       console.log('[RAIL] pairRepCap:', combo, 'pair:', tp); return false; }
     const energy = percentileRankOf(finalScores[idx], scorePoolForEnergy);
     if (minEnergyThreshold > 0 &&
@@ -907,7 +915,7 @@ export async function computeSlate({
       energy < minEnergyThreshold) {
       console.log('[RAIL] energy below threshold:', combo, energy, '<', minEnergyThreshold); return false; }
     const recentDs = ds.drawsSinceMap.get(normKey) ?? 999;
-    if (recentHitCooldown > 0 && dsOverride.has(normKey) && (ds.timesDrawnMap.get(normKey) ?? 0) > 0 && recentDs < recentHitCooldown) {
+    if (!relaxCooldown && recentHitCooldown > 0 && dsOverride.has(normKey) && (ds.timesDrawnMap.get(normKey) ?? 0) > 0 && recentDs < recentHitCooldown) {
       console.log('[RAIL] cooldown:', combo, 'ds:', recentDs, '<', recentHitCooldown); return false; }
     k6.push({
       combo, normKey,
@@ -924,7 +932,9 @@ export async function computeSlate({
     return true;
   };
 
-  // Pass 1: real data only
+  const allIdx = [...realIdx, ...placeholderIdx];
+
+  // Pass 1: real data only, all rails enforced
   for (const idx of realIdx) {
     if (k6.length >= 6) break;
     tryAdd(idx);
@@ -939,12 +949,30 @@ export async function computeSlate({
     }
   }
 
-  // Pass 3: relax excludeComboSets (yesterday's draws) — keeps todayHit, mult caps, pairRepCap
+  // Pass 3: relax excludeComboSets (yesterday's draws) — keeps pairRepCap + cooldown
   if (k6.length < 6) {
     console.log('[zk6v2] Pass 2 yielded', k6.length, 'picks — pass 3: relaxing excludeComboSets');
-    for (const idx of [...realIdx, ...placeholderIdx]) {
+    for (const idx of allIdx) {
       if (k6.length >= 6) break;
       tryAdd(idx, true);
+    }
+  }
+
+  // Pass 4: also relax pairRepCap diversity rail — guarantees 6 picks when pairs cluster
+  if (k6.length < 6) {
+    console.log('[zk6v2] Pass 3 yielded', k6.length, 'picks — pass 4: relaxing pairRepCap');
+    for (const idx of allIdx) {
+      if (k6.length >= 6) break;
+      tryAdd(idx, true, true);
+    }
+  }
+
+  // Pass 5: last resort — also relax cooldown; today-hit exclusion is the only hard block
+  if (k6.length < 6) {
+    console.log('[zk6v2] Pass 4 yielded', k6.length, 'picks — pass 5: relaxing cooldown');
+    for (const idx of allIdx) {
+      if (k6.length >= 6) break;
+      tryAdd(idx, true, true, true);
     }
   }
 

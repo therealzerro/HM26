@@ -735,21 +735,21 @@ export async function computeZK30Slate({
   }
   console.log('[ZK6-DIAG2] maxTimesDrawn after prepass:', maxTimesDrawn, '| sample key check:', toComboSet('742'), '=', ds.timesDrawnMap.get(toComboSet('742')) ?? 'MISS');
 
-  // Pre-pass: find maxDsRaw across all pair rows for pairSignal freq normalization
-  let maxPairDsRaw = 0;
+  // Pre-pass: find maxTimesDrawn across all pair rows for frequency normalization.
+  // Bug fix: previously used dsRaw (staleness) as freqScore — inversely correlated with hits.
+  let maxPairTimesDrawn = 0;
   for (const classMap of ds.pairMetaMap.values()) {
     for (const meta of classMap.values()) {
-      if (meta.dsRaw > maxPairDsRaw) maxPairDsRaw = meta.dsRaw;
+      if (meta.timesDrawn > maxPairTimesDrawn) maxPairTimesDrawn = meta.timesDrawn;
     }
   }
 
   const getPairSignal = (pairKey: string, classId: number): number => {
     const meta = ds.pairMetaMap.get(pairKey)?.get(classId);
     if (!meta) return 0;
-    const dsRaw = meta.dsRaw || 0;
     const drawsSince = meta.drawsSince || 500;
     const timesDrawn = meta.timesDrawn || 0;
-    const freqScore = maxPairDsRaw > 0 ? dsRaw / maxPairDsRaw : 0;
+    const freqScore = maxPairTimesDrawn > 0 ? timesDrawn / maxPairTimesDrawn : 0;
     const pressureScore = (timesDrawn > 0 && drawsSince < 500)
       ? Math.min(drawsSince / 182, 1.0)
       : 0;

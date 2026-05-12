@@ -298,8 +298,11 @@ export default function SlatesScreen() {
   }, [regenerateSlate, scope, wKey, refreshSnapshot, queryClient, showToast]);
 
   const rawItems = useMemo((): PickItem[] => {
+    // If active (non-hit) picks exist, show those. Otherwise fall back to the full
+    // snapshot including hit picks — so the slate never shows empty placeholder rows
+    // just because all picks already hit (e.g. yesterday's slate after hit detection ran).
     const list = activePicks.length > 0 ? activePicks
-      : (Array.isArray(snapshot?.top_k_straights_json) ? (snapshot!.top_k_straights_json as any[]).filter((p: any) => !p?.hitType) : []);
+      : (Array.isArray(snapshot?.top_k_straights_json) ? (snapshot!.top_k_straights_json as any[]) : []);
     if (!Array.isArray(list) || list.length === 0) {
       return Array.from({ length: 6 }).map((_, i) => ({
         rank: i + 1, combo: '---', comboSet: '{-,-,-}', energy: 0,

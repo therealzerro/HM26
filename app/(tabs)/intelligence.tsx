@@ -9,7 +9,7 @@ import { router } from 'expo-router';
 import { theme } from '@/constants/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { backfillIntelHits, BackfillProgress } from '@/lib/backfillIntelHits';
-import { getTodayET } from '@/lib/dateUtils';
+import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
 import { useScope } from '@/hooks/useScope';
 import { useDataIngestion } from '@/hooks/useDataIngestion';
 import { InfoTooltip } from '@/components/InfoTooltip';
@@ -427,7 +427,16 @@ export default function IntelligenceScreen() {
       const rows = await fetchFromSupabase<IntelRow[]>({
         path: `/rest/v1/daily_intelligence?select=*&slate_date=eq.${today}&mode=neq.zk30&scope=eq.${scope}&order=rank.asc&limit=30`,
       });
-      setSlateRows(Array.isArray(rows) ? rows : []);
+      if (Array.isArray(rows) && rows.length > 0) {
+        setSlateRows(rows);
+        return;
+      }
+      // Today's intelligence hasn't been generated yet — fall back to yesterday
+      const yesterday = getYesterdayET();
+      const fallback = await fetchFromSupabase<IntelRow[]>({
+        path: `/rest/v1/daily_intelligence?select=*&slate_date=eq.${yesterday}&mode=neq.zk30&scope=eq.${scope}&order=rank.asc&limit=30`,
+      });
+      setSlateRows(Array.isArray(fallback) ? fallback : []);
     } catch {
       setSlateRows([]);
     } finally {

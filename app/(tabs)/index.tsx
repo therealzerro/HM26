@@ -316,14 +316,22 @@ export default function HomeScreen() {
     });
   }, [activePicks, snapshot, isFree]);
 
-  const hitItems = useMemo((): PickItem[] => hitPicks.map((row: any, idx) => ({
-    rank: row.rank ?? (idx + 1),
-    combo: row.combo ?? '---', comboSet: row.comboSet ?? toComboSet(row.combo ?? ''),
-    energy: row.energy ?? 0,
-    signals: { BOX: Number(row.box ?? 0), PBURST: Number(row.pburst ?? 0), CO: Number(row.co ?? 0), DGC: Number(row.signals?.DGC ?? 0) },
-    locked: false,
-    hitType: row.hitType as 'straight' | 'box', hitState: row.hitState, hitSession: row.hitSession, hitResult: row.hitResult,
-  })), [hitPicks]);
+  const hitItems = useMemo((): PickItem[] => {
+    // Only show hits that are confirmed against today's actual draw results.
+    // Prevents yesterday's snapshot hit-markers from appearing as "TODAY'S HITS".
+    if (!todayResults || todayResults.length === 0) return [];
+    const todaySets = new Set(todayResults.map(r => toComboSet(r.result_digits)));
+    return hitPicks
+      .filter((row: any) => todaySets.has(toComboSet(row.combo ?? '')))
+      .map((row: any, idx) => ({
+        rank: row.rank ?? (idx + 1),
+        combo: row.combo ?? '---', comboSet: row.comboSet ?? toComboSet(row.combo ?? ''),
+        energy: row.energy ?? 0,
+        signals: { BOX: Number(row.box ?? 0), PBURST: Number(row.pburst ?? 0), CO: Number(row.co ?? 0), DGC: Number(row.signals?.DGC ?? 0) },
+        locked: false,
+        hitType: row.hitType as 'straight' | 'box', hitState: row.hitState, hitSession: row.hitSession, hitResult: row.hitResult,
+      }));
+  }, [hitPicks, todayResults]);
 
   const hitBanner = useMemo(() => {
     if (!todayResults || !Array.isArray(todayResults) || todayResults.length === 0) return null;

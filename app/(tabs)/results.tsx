@@ -20,7 +20,7 @@
                 card rendering are preserved — only the chrome layout changes.
    ============================================================================ */
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput,
   TouchableOpacity, ScrollView, ActivityIndicator, Modal, Pressable,
@@ -69,6 +69,9 @@ const SESSION_COLORS: Record<string, string> = {
 
 function getTodayET(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+}
+function toComboSet(digits: string): string {
+  return '{' + digits.split('').sort().join(',') + '}';
 }
 function getDateLabel(dateStr: string): string {
   const today = getTodayET();
@@ -199,20 +202,64 @@ export default function ResultsScreen() {
     staleTime: 30000,
   });
 
-  const handleRefresh = async () => { await Promise.all([refetchLedger(), refetchHits()]); };
+  // All on-slate picks for selectedDate — used for client-side hit detection
+  // when daily_intelligence.hit_box/hit_straight haven't been backfilled yet.
+  const { data: onSlatePicks, refetch: refetchOnSlatePicks } = useQuery<HitRow[]>({
+    queryKey: ['daily_intelligence_on_slate', selectedDate],
+    queryFn: async () => {
+      const res = await fetchFromSupabase<HitRow[]>({
+        path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,best_order,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=eq.${selectedDate}&on_slate=eq.true&mode=in.(balanced,conservative,aggressive)&order=rank.asc&limit=500`,
+        method: 'GET',
+      });
+      return Array.isArray(res) ? res : [];
+    },
+    staleTime: 30000,
+  });
+
+  // When today has no draw results yet, auto-select yesterday so the screen
+  // is never blank on first load (draws typically land around noon/7:30pm ET).
+  useEffect(() => {
+    if (!ledgerLoading && ledger !== undefined && ledger.length === 0 && selectedDate === recentDates[0]) {
+      setSelectedDate(recentDates[1]);
+    }
+  }, [ledger, ledgerLoading]);
+
+  const handleRefresh = async () => { await Promise.all([refetchLedger(), refetchHits(), refetchOnSlatePicks()]); };
 
   const processed = useMemo<ProcessedEntry[]>(() => {
     if (!ledger) return [];
+
+    // Build combo-set → pick map for O(1) client-side lookups
+    const csMap = new Map<string, HitRow[]>();
+    for (const h of (onSlatePicks || [])) {
+      const cs = toComboSet(h.combo ?? '');
+      if (!csMap.has(cs)) csMap.set(cs, []);
+      csMap.get(cs)!.push(h);
+    }
+
     return ledger.map(row => {
       const rowDate = row.date_et?.split('T')[0];
-      const matchingHits = (hits || []).filter(h => {
+      const rowSet  = toComboSet(row.result_digits ?? '');
+
+      // Prefer DB-confirmed hits (backfill already ran for this date)
+      const dbHits = (hits || []).filter(h => {
         const hDate = h.slate_date?.split('T')[0];
         return h.hit_state === row.jurisdiction && hDate === rowDate
           && h.hit_session?.toLowerCase() === row.session?.toLowerCase();
       });
-      return { ...row, hits: matchingHits };
+      if (dbHits.length > 0) return { ...row, hits: dbHits };
+
+      // Client-side fallback: box-match on-slate combos against draw result
+      const clientHits = (csMap.get(rowSet) || []).map(h => ({
+        ...h,
+        hit_box: true,
+        hit_straight: h.combo === row.result_digits || h.best_order === row.result_digits,
+        hit_state: row.jurisdiction,
+        hit_session: row.session,
+      }));
+      return { ...row, hits: clientHits };
     });
-  }, [ledger, hits]);
+  }, [ledger, hits, onSlatePicks]);
 
   const filtered = useMemo(() => {
     let rows = processed;

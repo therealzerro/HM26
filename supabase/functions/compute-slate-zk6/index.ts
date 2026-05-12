@@ -508,14 +508,14 @@ async function computeSlate(params: {
         slate_date: effectiveDate, scope, mode: weightsKey, rank: i + 1,
         combo: p.combo, combo_set: p.comboSet, multiplicity: p.mult, top_pair: p.topPair,
         signal_box: p.signals.BOX, signal_pburst: p.signals.PBURST, signal_co: p.signals.CO, signal_dgc: p.signals.DGC,
-        indicator: p.finalScore, energy: p.energy, times_drawn: p.timesDrawn,
+        energy_score: p.energy,
         on_slate: false, hit_box: false, hit_straight: false,
       }));
       const slateCombos = k6.map(x => x.combo).join(',');
       await sbDelete(`/rest/v1/daily_intelligence?slate_date=eq.${effectiveDate}&scope=eq.${encodeURIComponent(scope)}&mode=eq.${encodeURIComponent(weightsKey)}&hit_box=eq.false&hit_straight=eq.false`);
       await sbPost('/rest/v1/daily_intelligence', diRows, 'resolution=merge-duplicates,return=minimal');
       await sbPatch(`/rest/v1/daily_intelligence?slate_date=eq.${effectiveDate}&scope=eq.${encodeURIComponent(scope)}&mode=eq.${encodeURIComponent(weightsKey)}&combo=in.(${slateCombos})`, { on_slate: true });
-    } catch (e) { console.error('[edge-zk6] daily_intelligence write failed (non-fatal):', String(e)); }
+    } catch (e) { console.error('[edge-zk6] daily_intelligence write FAILED:', String(e)); }
   }
 
   return {

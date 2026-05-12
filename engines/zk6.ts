@@ -13,13 +13,26 @@
 
 import { Scope, SlateSnapshot, SlateDataStats, EngineMetadata } from '@/types/core';
 import { getTodayET } from '@/lib/dateUtils';
+import { K6_QUOTAS, PAIR_REPETITION_CAP } from '@/constants/zk6';
+import { fetchFromSupabase } from '@/lib/supabase';
 import {
+  H_ALL,
   HORIZON_WEIGHTS,
   MULTIPLICITY_PRIORS,
-  K6_QUOTAS,
-  PAIR_REPETITION_CAP,
-} from '@/constants/zk6';
-import { fetchFromSupabase } from '@/lib/supabase';
+  toComboSet,
+  sortedPair,
+  multiplicityOf,
+  topPairOf,
+  buildUniverse,
+  normalizeBoxKey,
+  normalizePairKey,
+  DGC_REF_STD_DEV,
+  computeDGC,
+  percentileRankOf,
+  maxNorm,
+  computeSlateHash,
+  computeConfidenceScore,
+} from '@/lib/engineCore';
 
 const ENGINE_VERSION = 'v2.1';
 
@@ -77,49 +90,6 @@ export function normalizeScope(s: string): Scope {
 
 export let lastScopeFallback: string | null = null;
 
-function toComboSet(combo: string): string {
-  return '{' + combo.split('').sort().join(',') + '}';
-}
-
-function sortedPair(a: string, b: string): string {
-  return a <= b ? a + b : b + a;
-}
-
-function multiplicityOf(combo: string): 'singles' | 'doubles' | 'triples' {
-  const a = combo[0], b = combo[1], c = combo[2];
-  if (a === b && b === c) return 'triples';
-  if (a === b || b === c || a === c) return 'doubles';
-  return 'singles';
-}
-
-function topPairOf(combo: string): string {
-  const ab = sortedPair(combo[0], combo[1]);
-  const bc = sortedPair(combo[1], combo[2]);
-  const ac = sortedPair(combo[0], combo[2]);
-  return [ab, bc, ac].sort()[0];
-}
-
-function buildUniverse(): string[] {
-  return Array.from({ length: 1000 }, (_, i) => i.toString().padStart(3, '0'));
-}
-
-// Normalize a key from DB format ("742" or "{2,4,7}") → comboSet "{2,4,7}"
-function normalizeBoxKey(raw: string): string {
-  const digits = (raw.match(/\d/g) ?? []).join('').slice(0, 3);
-  return digits.length === 3 ? toComboSet(digits) : raw;
-}
-
-// Normalize a pair key from DB format → sorted 2-char string "24"
-function normalizePairKey(raw: string): string {
-  const digits = (raw.match(/\d/g) ?? []).join('').slice(0, 2);
-  if (digits.length !== 2) return raw;
-  return digits[0] <= digits[1] ? digits : digits[1] + digits[0];
-}
-
-const H_ALL = [
-  'H01Y', 'H02Y', 'H03Y', 'H04Y', 'H05Y',
-  'H06Y', 'H07Y', 'H08Y', 'H09Y', 'H10Y',
-] as const;
 
 // ─── Data Fetch ───────────────────────────────────────────────────────────────
 
@@ -324,25 +294,6 @@ function bestOrderFor(combo: string, pairData: PairTree): string {
   return best;
 }
 
-// ─── Normalization helpers ────────────────────────────────────────────────────
-
-function normalizeToUnit(values: number[]): number[] {
-  const max = Math.max(...values);
-  const min = Math.min(...values);
-  const range = max - min;
-  if (range < 1e-12) return values.map(() => 0.5);
-  return values.map(v => (v - min) / range);
-}
-
-function percentileRankOf(value: number, sorted: number[]): number {
-  if (sorted.length === 0) return 50;
-  let lo = 0, hi = sorted.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >>> 1;
-    if (sorted[mid] < value) lo = mid + 1; else hi = mid;
-  }
-  return Math.round((lo / sorted.length) * 100);
-}
 
 // ─── History overrides ────────────────────────────────────────────────────────
 // datasets_box.draws_since / last_seen are only updated on file imports, not from
@@ -383,18 +334,6 @@ async function fetchHistoryOverrides(scope: Scope): Promise<{
   }
 }
 
-const DGC_REF_STD_DEV = 10;
-
-function computeDGC(dayOffsets: number[]): number {
-  if (dayOffsets.length === 0) return 0;
-  if (dayOffsets.length === 1) return 0.3;
-  const sorted = dayOffsets.slice().sort((a, b) => a - b);
-  const gaps: number[] = [];
-  for (let i = 1; i < sorted.length; i++) gaps.push(sorted[i] - sorted[i - 1]);
-  const mean = gaps.reduce((s, g) => s + g, 0) / gaps.length;
-  const variance = gaps.reduce((s, g) => s + (g - mean) ** 2, 0) / gaps.length;
-  return Math.max(0, 1 - Math.sqrt(variance) / DGC_REF_STD_DEV);
-}
 
 // ─── Dynamic config loading from app_config ───────────────────────────────────
 
@@ -513,6 +452,7 @@ async function saveSlateSnapshot(snapshot: SlateSnapshot, extraFields?: Record<s
     top_k_boxes_json: snapshot.top_k_boxes_json,
     components_json: snapshot.components_json,
     updated_at_et: snapshot.updated_at_et,
+    slate_date: snapshot.slate_date ?? null,
     snapshot_hash: snapshot.hash ?? null,
     hash: snapshot.hash ?? null,
     admin_published: true,
@@ -598,6 +538,19 @@ export async function computeSlate({
   excludeComboSets = [],
   is_supplement = false,
 }: ComputeSlateParams): Promise<SlateSnapshot> {
+  // Feature flag: delegate to Edge Function when enabled.
+  // Flip EXPO_PUBLIC_USE_EDGE_ZK6=true after parity verification (Step 6).
+  if (process.env.EXPO_PUBLIC_USE_EDGE_ZK6 === 'true') {
+    console.log('[zk6v2] Edge Function mode — delegating to compute-slate-zk6');
+    const result = await fetchFromSupabase<SlateSnapshot>({
+      path: '/functions/v1/compute-slate-zk6',
+      method: 'POST',
+      body: { scope: rawScope, weightsKey, targetDate, excludeComboSets, is_supplement },
+      timeoutMs: 60000,
+    });
+    return result;
+  }
+
   const scope: Scope = normalizeScope(rawScope);
   const now = new Date().toISOString();
   const todayEt = getTodayET();
@@ -765,36 +718,17 @@ export async function computeSlate({
   }
 
   // ── 4. Normalize each signal to 0–1 ──────────────────────────────────────────
-  // BOX: normalize only among combos where timesDrawn > 0 so the 220 real combos
-  //      get a proper 0-1 spread. Placeholder combos (timesDrawn=0) stay at 0.
+  // BOX: only real combos (timesDrawn > 0) participate in the max; placeholders stay 0.
   const rawBoxArr = Array.from(rawBox);
-  const realBoxVals = rawBoxArr.filter((_, i) => (ds.timesDrawnMap.get(toComboSet(universe[i])) ?? 0) > 0);
-  // Use max-norm (same method as PBURST/CO/DGC) for consistent cross-signal comparison.
-  // Min-max was amplifying score differences artificially and zeroing out the lowest valid combos.
-  const realBoxMax = realBoxVals.length > 0 ? Math.max(...realBoxVals) : 0;
-  console.log('[ZK6-DIAG2]',
-    'realBoxVals.length:', realBoxVals.length,
-    'realBoxMax:', realBoxMax,
-    'timesDrawnMap sample key:',
-      JSON.stringify(Array.from(ds.timesDrawnMap.keys()).slice(0,3)),
-    'universe[0] toComboSet:', toComboSet(universe[0]),
-    'universe[100] toComboSet:', toComboSet(universe[100])
-  )
-  const normBox = rawBoxArr.map((v, i) => {
-    if ((ds.timesDrawnMap.get(toComboSet(universe[i])) ?? 0) === 0) return 0;
-    return realBoxMax > 1e-12 ? v / realBoxMax : 0;
-  });
+  const realBoxMasked = rawBoxArr.map((v, i) =>
+    (ds.timesDrawnMap.get(toComboSet(universe[i])) ?? 0) > 0 ? v : 0);
+  const normBoxRaw = maxNorm(realBoxMasked, true);
+  const normBox = normBoxRaw.map((v, i) =>
+    (ds.timesDrawnMap.get(toComboSet(universe[i])) ?? 0) === 0 ? 0 : v);
 
-  const rawPburstArr = Array.from(rawPburst);
-  const rawCoArr     = Array.from(rawCo);
-  const pburstNonZeroMax = Math.max(...rawPburstArr.filter(v => v > 0), 0);
-  const coNonZeroMax     = Math.max(...rawCoArr.filter(v => v > 0), 0);
-  const normPburst = rawPburstArr.map(v => pburstNonZeroMax > 0 ? v / pburstNonZeroMax : 0);
-  const normCo     = rawCoArr.map(v => coNonZeroMax > 0 ? v / coNonZeroMax : 0);
-
-  const rawDgcArr = Array.from(rawDgc);
-  const dgcNonZeroMax = Math.max(...rawDgcArr.filter(v => v > 0), 0);
-  const normDgc = rawDgcArr.map(v => dgcNonZeroMax > 0 ? v / dgcNonZeroMax : 0);
+  const normPburst = maxNorm(Array.from(rawPburst), true);
+  const normCo     = maxNorm(Array.from(rawCo), true);
+  const normDgc    = maxNorm(Array.from(rawDgc), true);
 
   // ── 5. Final scores ───────────────────────────────────────────────────────────
   const finalScores = new Float64Array(1000);
@@ -1010,13 +944,7 @@ export async function computeSlate({
   }
 
   // ── 7. Confidence score ───────────────────────────────────────────────────────
-  const hCount = ds.horizonsLoaded.length;
-  const boxDensity = ds.boxRowCount > 0 ? Math.min(ds.boxRowCount / 1000, 1.0) : 0;
-  // Scale to 10 horizons (full dataset); capped at 1.0
-  const scopeConfidence = Math.min(
-    (hCount / 10) * 0.60 + boxDensity * 0.40,
-    1.0,
-  );
+  const scopeConfidence = computeConfidenceScore(ds.horizonsLoaded.length, ds.boxRowCount);
 
   // ── 8. Build output ───────────────────────────────────────────────────────────
   const sortedComboKey = (combo: string) =>
@@ -1055,15 +983,7 @@ export async function computeSlate({
 
   // Hash for snapshot dedup — unsigned djb2 (always positive, includes mode)
   // Hash is deterministic: same scope+mode+picks+horizons → same hash.
-  // ts: Date.now() was removed — it forced a unique hash every regen, breaking dedup.
-  const hashInput = JSON.stringify({
-    scope, mode: weightsKey,
-    topCombos: k6.map(x => x.combo),
-    horizons: ds.horizonsPresent,
-  });
-  const hash = (hashInput.split('').reduce((acc, ch) => {
-    return (((acc << 5) + acc) ^ ch.charCodeAt(0)) >>> 0;
-  }, 5381) >>> 0).toString(16).toUpperCase();
+  const hash = computeSlateHash(scope, weightsKey, k6.map(x => x.combo), ds.horizonsPresent);
 
   const dataStats: SlateDataStats = {
     boxRowsUsed: ds.boxRowCount,
@@ -1099,6 +1019,7 @@ export async function computeSlate({
       energy: x.energy,
     })),
     updated_at_et: now,
+    slate_date: effectiveDate,
     hash,
     // In-memory extended fields
     mode: weightsKey,

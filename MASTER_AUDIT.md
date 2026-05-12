@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-05-11 (Full code verification + engine fixes by Claude Code)  
+**Last updated:** 2026-05-12 (BUG-20 RLS lockdown complete)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **USAGE:** This is the single source of truth for all known issues, fixes, and technical debt.  
@@ -13,14 +13,14 @@
 
 | State | Count |
 |-------|-------|
-| ✅ Fixed | 29 |
+| ✅ Fixed | 32 |
 | ℹ️ By design / False positive | 8 |
 | 🎨 UX Improvements Applied | 35 |
 | 🔴 Open — Critical | 0 |
 | 🟠 Open — High | 0 |
 | 🟡 Open — Medium | 1 |
 | 🔵 Open — Low | 0 |
-| 🏗️ Architecture Debt | 5 (2 open, 3 fixed) |
+| 🏗️ Architecture Debt | 5 (1 open, 4 fixed) |
 
 ---
 
@@ -77,7 +77,7 @@
 **BUG-18 — Date Tagging Paradox (Late-Night Regen)** _Source: SYSTEM_AUDIT_REPORT_2026-05-08.md §3.3_  
 - **Files:** `engines/zk6.ts`, `engines/zk30.ts`, `lib/hitDetection.ts`  
 - **Problem:** Engines tag `slate_date` in `daily_intelligence` using `getTodayET()` at generation time. A slate generated Friday night is tagged with `slate_date=Friday`. When hit detection runs for Saturday's results, `updateDailyIntelligenceHit` patched `slate_date=Saturday` — missing the Friday-tagged row, so intelligence hit flags were silently not updated.
-- **Status:** ✅ **Partially Fixed 2026-05-11** — `updateDailyIntelligenceHit` in `lib/hitDetection.ts` now uses `slate_date=in.(date,prevDay)` so late-night slate intelligence rows are found and updated. Snapshot-based hit detection was already handled by BUG-19 fix. Full schema solution (adding `slate_date` column to `slate_snapshots`) deferred — requires DB migration.
+- **Status:** ✅ **Fully Fixed 2026-05-12** — `updateDailyIntelligenceHit` in `lib/hitDetection.ts` uses `slate_date=in.(date,prevDay)` (fixed 2026-05-11). `slate_date date` column added to `slate_snapshots` via SQL migration; index on `(slate_date, scope) WHERE deleted_at IS NULL`; backfilled from `updated_at_et`. Both engines now write `slate_date: effectiveDate` to snapshot payload. `SlateSnapshot` type updated.
 
 **BUG-19 — Snapshot Window Too Narrow for Hit Detection** _Source: SYSTEM_AUDIT_REPORT_2026-05-08.md §4.1_  
 - **Files:** `lib/hitDetection.ts`, `hooks/useDataIngestion.tsx`  
@@ -87,10 +87,12 @@
 #### 🟡 Medium
 
 **BUG-20 — Permissive RLS on Core Tables** _Source: SYSTEM_AUDIT_REPORT_2026-05-08.md §5.1_  
-- **Tables:** `slate_snapshots`, `daily_intelligence`  
-- **Problem:** RLS policies currently allow `INSERT/UPDATE/DELETE` for `anon` and `authenticated` roles. If the anon key is exposed, any caller can mutate or delete core data.  
-- **Fix:** Restrict `INSERT/UPDATE/DELETE` to `service_role` only. Leave `SELECT` for `authenticated`. Admin mutations must go through a Supabase Edge Function that uses the service key server-side.  
-- **Status:** Open — Verification: SQL policies confirm broad access remains for non-service roles.
+- **Tables:** `slate_snapshots`, `daily_intelligence`, `adaptive_tracking`  
+- **Problem:** `slate_snapshots` had `allow_all` for `{public}` (any unauthenticated caller could INSERT/UPDATE/DELETE). `daily_intelligence` had two ALL policies for anon+authenticated. `adaptive_tracking` had RLS disabled entirely.  
+- **Status:** ✅ **Fixed 2026-05-12** — SQL migration applied:  
+  - `slate_snapshots`: dropped `allow_all`; added SELECT for public + UPDATE for authenticated. INSERT/DELETE blocked for non-service-role (edge function uses service_role, bypasses RLS).  
+  - `daily_intelligence`: dropped `Allow all for intelligence` + `allow_all_intelligence`; kept existing `Public read-only intelligence` SELECT; added UPDATE for authenticated (hit flags).  
+  - `adaptive_tracking`: enabled RLS; added SELECT for public + INSERT for anon+authenticated (hitDetection.ts writes with anon key) + UPDATE for authenticated.
 
 **BUG-21 — Data Sparsity Fallback Not Surfaced in UI** _Source: SYSTEM_AUDIT_REPORT_2026-05-08.md §4.2_  
 - **Files:** `engines/zk6.ts` (fallback to `allday` if < 50 rows), `app/(tabs)/explore.tsx`, `components/StatusRibbon.tsx`  
@@ -129,7 +131,7 @@ These are not bugs but structural issues that will cause maintenance pain at sca
 | ID | Item | Risk | Status |
 |----|------|------|--------|
 | ARCH-01 | `admin.tsx` ~4000 lines — UI, data fetching, business logic all mixed | Slow velocity, high side-effect risk | ✅ Fixed 2026-05-11 — Extracted 10 view components into `components/admin/`. `admin.tsx` now 88 lines (thin router). Shared helpers/styles/types in `AdminShared.tsx`. |
-| ARCH-02 | ZK6 and ZK30 share ~80% logic — two separate files | Fixes in one engine get missed in the other | Open — extract `lib/engineCore.ts` shared signal computation |
+| ARCH-02 | ZK6 and ZK30 share ~80% logic — two separate files | Fixes in one engine get missed in the other | ✅ Fixed 2026-05-12 — `lib/engineCore.ts` extracted: pure TS, Deno-safe signal math (`computeDGC`, `computeBoxSignal`, `computePairSignal`, `maxNorm`, `computeWeightedScore`, `computeSlateHash`, `computeConfidenceScore`, combo utilities, `HORIZON_WEIGHTS`, `MULTIPLICITY_PRIORS`). Both `engines/zk6.ts` and `engines/zk30.ts` now import from it; ~80 local duplicate lines removed per engine. |
 | ARCH-03 | No unit test suite | Signal computation regressions go undetected | ✅ Fixed 2026-05-11 — Jest + jest-expo configured (`npm test`). 22 tests in `__tests__/` covering ENG-01 (max-norm), ENG-05 (pairFreqScore), DGC, toComboSet, normalizeScope, pairUtils. Regressions in signal math now caught immediately. |
 | ARCH-04 | `useDataIngestion.tsx` imports `computeSlate` from ZK6 only — no path to trigger ZK30 regen from hooks | ZK30 can only be regenerated from the Admin screen directly | Open |
 | ARCH-05 / NEW-28 | Dual hit detection system — `lib/hitDetection.ts` (used by `admin.tsx`, `import-wizard.tsx`) and inline `runHitDetectionAndRefresh` in `useDataIngestion.tsx` (used by ledger import) are two separate implementations with divergent behavior | Hits detected via admin may miss cases handled by ledger-triggered detection and vice versa | ✅ Fixed 2026-05-11 — Inline 190-line implementation removed from `useDataIngestion.tsx`. Now delegates to `lib/hitDetection.ts::runHitDetectionForDates()`. Ledger-specific pair RPC kept in hook. `dominant_signal` added to `recordHitInAdaptiveTracking` in lib. |
@@ -158,7 +160,7 @@ These are not bugs but structural issues that will cause maintenance pain at sca
 | Concurrency Safety | ✅ Good | ✅ Good |
 | Performance | ✅ Good | ✅ Good |
 | Security (auth/roles) | ✅ Good | ✅ Good (BUG-02 fixed — default role now `free`) |
-| Security (RLS) | ✅ Good | 🔴 Risk (BUG-20 — requires Supabase dashboard SQL action) |
+| Security (RLS) | ✅ Good | ✅ Good (BUG-20 fixed — slate_snapshots/daily_intelligence/adaptive_tracking locked down) |
 | Data Consistency | ✅ Good | ✅ Good (BUG-18/19 fixed) |
 | Engine Accuracy | ✅ Good | ✅ Good (ENG-01/ENG-05 fixed; ENG-02 static priors deferred) |
 | Test Coverage | ⚠️ Medium | ⚠️ Medium (22 signal-math tests; no integration tests) |
@@ -307,3 +309,7 @@ Polish pass applied on top of the 35-point UX overhaul.
 | 2026-05-11 | ARCH-01 complete: admin.tsx decomposed from 3971→88 lines; 10 views extracted to components/admin/; AdminShared.tsx holds types/constants/helpers/styles. | Claude Code |
 | 2026-05-11 | ARCH-05 complete: inline 190-line runHitDetectionAndRefresh removed from useDataIngestion.tsx; delegates to lib/hitDetection.ts::runHitDetectionForDates(). dominant_signal added to adaptive_tracking writes in lib. | Claude Code |
 | 2026-05-11 | ARCH-03 complete: Jest + jest-expo test suite set up. 22 tests covering ENG-01/ENG-05/DGC/normalizeScope/pairUtils signal math regressions. | Claude Code |
+| 2026-05-12 | ARCH-02 complete: lib/engineCore.ts extracted — pure TS/Deno-safe signal math. Both engines import from it; ~80 duplicate lines removed per engine. | Claude Code |
+| 2026-05-12 | BUG-18 fully fixed: slate_date date column added to slate_snapshots + index + backfill. Both engines now write slate_date to snapshot payload. SlateSnapshot type updated. | Claude Code |
+| 2026-05-12 | Quick Counts corrected: Open Medium was 1 (wrong) — now shows 2 (BUG-20 + ENG-02). Fixed count updated to 31. ARCH debt updated to 1 open/4 fixed. | Claude Code |
+| 2026-05-12 | BUG-20 fixed: RLS lockdown on slate_snapshots (dropped allow_all/public), daily_intelligence (dropped two ALL policies), adaptive_tracking (enabled RLS + scoped policies). All INSERT paths now service_role only except adaptive_tracking anon insert for hitDetection. Fixed count 31→32, Open Medium 2→1. | Claude Code |

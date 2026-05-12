@@ -14,3 +14,4 @@ expo-env.d.ts
 # Build artifacts
 dist/
 web-build/
+.aider*

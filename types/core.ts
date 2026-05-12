@@ -151,6 +151,7 @@ export interface SlateSnapshot {
     energy?: number;
   }[];
   updated_at_et: string;
+  slate_date?: string;
   updated_at?: string;
   snapshot_hash?: string;
   hash?: string;

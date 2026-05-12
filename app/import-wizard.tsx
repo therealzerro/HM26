@@ -282,12 +282,12 @@ export default function ImportWizardScreen() {
       const usMatch = trimmed.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
       if (usMatch) return `${usMatch[3]}-${usMatch[1].padStart(2, '0')}-${usMatch[2].padStart(2, '0')}`;
 
-      // 4. Fallback to native Date but use local components to avoid UTC shifts
+      // 4. Fallback to native Date — use UTC components to avoid local-tz off-by-one
       const d = new Date(trimmed);
       if (!isNaN(d.getTime())) {
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
+        const y = d.getUTCFullYear();
+        const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(d.getUTCDate()).padStart(2, '0');
         return `${y}-${m}-${day}`;
       }
     } catch {
@@ -454,7 +454,7 @@ export default function ImportWizardScreen() {
         }
       }
     },
-    staleTime: 3000,
+    staleTime: 60_000,
   });
 
   const validateData = () => {
@@ -761,8 +761,6 @@ export default function ImportWizardScreen() {
             });
           }
         }
-        
-        setShowSummary(true);
       } catch (error) {
         const msg = String(error instanceof Error ? error.message : String(error));
         setRestErrorText(msg);
@@ -817,11 +815,7 @@ export default function ImportWizardScreen() {
                   importType === type && styles.typeCardActive,
                 ]}
                 onPress={() => {
-                  if (type === 'ledger') {
-                    router.push('/ledger-import' as any);
-                  } else {
-                    setImportType(type);
-                  }
+                  setImportType(type);
                 }}
               >
                 <Text style={[

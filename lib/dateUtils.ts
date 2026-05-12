@@ -3,15 +3,11 @@ export function getTodayET(): string {
 }
 
 export function getYesterdayET(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  return new Date(Date.now() - 86400000).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 }
 
 export function getTomorrowET(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  return new Date(Date.now() + 86400000).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 }
 
 export function getETHour(): number {

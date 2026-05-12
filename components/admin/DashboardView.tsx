@@ -50,12 +50,12 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
   const [guideOpen, setGuideOpen] = useState(false);
 
   // ZK30 Single State state
-  const [zk30Jurisdiction] = useState<string>('TX');
+  const [zk30Jurisdiction, setZk30Jurisdiction] = useState<string>('TX');
   const [zk30BusyMap, setZk30BusyMap] = useState<Record<string, boolean>>({});
   const [zk30StatusMap, setZk30StatusMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    const todayStart = getTodayET() + 'T00:00:00.000Z';
+    const todayStart = new Date(getTodayET() + 'T05:00:00.000Z').toISOString();
     Promise.all([
       fetchFromSupabase<any[]>({
         path: `/rest/v1/imports?created_at=gte.${encodeURIComponent(todayStart)}&status=eq.completed&deleted_at=is.null&select=type,scope,counts,created_at&order=created_at.desc`,
@@ -170,7 +170,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
       await fetchFromSupabase({
         path: `/rest/v1/daily_intelligence?slate_date=eq.${date}`,
         method: 'PATCH',
-        body: { on_slate: false },
+        body: { on_slate: false, hit_box: false, hit_straight: false },
       });
       setClearIntelResult(`Cleared Top 30 rows for ${date}`);
       queryClient.invalidateQueries({ queryKey: ['daily_intelligence_hits'] });
@@ -403,7 +403,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
 
       <SectionTitle>ZK30 — SINGLE STATE MODE</SectionTitle>
       <Card style={{ padding: 16, marginBottom: 4 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <View>
             <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text }}>ZK30 Slates</Text>
             <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginTop: 2 }}>Single-state · jurisdiction-filtered histories</Text>
@@ -412,9 +412,22 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
             <Text style={{ fontSize: 10, color: theme.colors.textTertiary, fontWeight: '600' }}>State:</Text>
             <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1,
                            borderColor: theme.colors.teal + '55', backgroundColor: theme.colors.teal + '12' }}>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: theme.colors.teal }}>TX</Text>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: theme.colors.teal }}>{zk30Jurisdiction}</Text>
             </View>
           </View>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 5, flexWrap: 'wrap', marginBottom: 10 }}>
+          {['TX', 'FL', 'CA', 'NY', 'OH', 'PA', 'GA', 'MI'].map(st => (
+            <TouchableOpacity
+              key={st}
+              onPress={() => setZk30Jurisdiction(st)}
+              style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, borderWidth: 1,
+                       borderColor: zk30Jurisdiction === st ? theme.colors.teal + '88' : theme.colors.border,
+                       backgroundColor: zk30Jurisdiction === st ? theme.colors.teal + '18' : theme.colors.surfaceLight }}
+            >
+              <Text style={{ fontSize: 10, fontWeight: '700', color: zk30Jurisdiction === st ? theme.colors.teal : theme.colors.textSecondary }}>{st}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {([
@@ -451,7 +464,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
           </View>
           <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1,
                          borderColor: theme.colors.teal + '55', backgroundColor: theme.colors.teal + '12' }}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: theme.colors.teal }}>TX</Text>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: theme.colors.teal }}>{zk30Jurisdiction}</Text>
           </View>
         </View>
         <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -461,7 +474,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
                      alignItems: 'center', justifyContent: 'center' }}
             onPress={() => onOpenZK30Import('box_history')}
           >
-            <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.teal }}>📦 Import TX Box History</Text>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.teal }}>📦 Import {zk30Jurisdiction} Box History</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={{ flex: 1, padding: 8, borderRadius: 8, borderWidth: 1,
@@ -469,7 +482,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
                      alignItems: 'center', justifyContent: 'center' }}
             onPress={() => onOpenZK30Import('pair_history')}
           >
-            <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.teal }}>🔗 Import TX Pair History</Text>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.teal }}>🔗 Import {zk30Jurisdiction} Pair History</Text>
           </TouchableOpacity>
         </View>
       </Card>

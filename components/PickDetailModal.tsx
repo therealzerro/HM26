@@ -346,9 +346,7 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
     });
   }, [pick.generatedAt]);
 
-  const confidence = Math.round(
-    (pick.energy + Math.round(pick.signals.BOX * 100) + Math.round(pick.signals.CO * 100)) / 3
-  );
+  const confidence = pick.energy;
 
   // ── INTEL tab ──────────────────────────────────────────────────────────────
   const renderIntel = () => (

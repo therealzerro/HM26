@@ -9,8 +9,6 @@ export interface HitDetectionResult {
 }
 
 async function updateDailyIntelligenceHit(pick: any, result: any, date: string) {
-  const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-  const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
   const comboSet = pick.comboSet ?? pick.normKey ?? '';
   const isBox = result.comboset_sorted === comboSet;
   const isStraight = result.result_digits === pick.combo;
@@ -23,47 +21,34 @@ async function updateDailyIntelligenceHit(pick: any, result: any, date: string) 
   const nextDayStr = next.toISOString().split('T')[0];
   const dateFilter = `slate_date=in.(${date},${prevDayStr},${nextDayStr})`;
   try {
-    await fetch(
-      `${url}/rest/v1/daily_intelligence?${dateFilter}&combo=eq.${encodeURIComponent(pick.combo)}`,
-      {
-        method: 'PATCH',
-        headers: {
-          'apikey': key!,
-          'Authorization': 'Bearer ' + key,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal',
-        },
-        body: JSON.stringify({
-          hit_box: isBox,
-          hit_straight: isStraight,
-          hit_state: result.jurisdiction,
-          hit_session: result.session,
-          hit_result: result.result_digits,
-        }),
+    await fetchFromSupabase({
+      path: `/rest/v1/daily_intelligence?${dateFilter}&combo=eq.${encodeURIComponent(pick.combo)}`,
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=minimal' },
+      body: {
+        hit_box: isBox,
+        hit_straight: isStraight,
+        hit_state: result.jurisdiction,
+        hit_session: result.session,
+        hit_result: result.result_digits,
       },
-    );
+    });
   } catch (e) {
     console.warn('[hitDetection] daily_intelligence PATCH failed:', e);
   }
 }
 
 async function recordHitInAdaptiveTracking(pick: any, result: any, snapshot: any, date: string) {
-  const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-  const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
   const boxS = pick.box ?? pick.signals?.BOX ?? 0;
   const pburstS = pick.pburst ?? pick.signals?.PBURST ?? 0;
   const coS = pick.co ?? pick.signals?.CO ?? 0;
   const dominantSignal = boxS > pburstS && boxS > coS ? 'BOX' : pburstS > coS ? 'PBURST' : 'CO';
   try {
-    await fetch(url + '/rest/v1/adaptive_tracking', {
+    await fetchFromSupabase({
+      path: '/rest/v1/adaptive_tracking',
       method: 'POST',
-      headers: {
-        'apikey': key!,
-        'Authorization': 'Bearer ' + key,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates',
-      },
-      body: JSON.stringify({
+      headers: { 'Prefer': 'resolution=merge-duplicates' },
+      body: {
         slate_date: date,
         scope: snapshot.scope,
         slate_hash: snapshot.hash,
@@ -83,7 +68,7 @@ async function recordHitInAdaptiveTracking(pick: any, result: any, snapshot: any
         matched_session: result.session,
         dominant_signal: dominantSignal,
         result_at: new Date().toISOString(),
-      }),
+      },
     });
   } catch (e) {
     console.warn('[hitDetection] recordHit failed:', e);

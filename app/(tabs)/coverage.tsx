@@ -38,7 +38,7 @@ export default function CoverageScreen() {
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.title}>Coverage Matrix</Text>
-            <Text style={styles.subtitle}>ZK6 minimum (H01Y): {coveragePctH01Y}% • Scope: {SCOPES[scope as keyof typeof SCOPES]?.label || scope}</Text>
+            <Text style={styles.subtitle}>ZK6 minimum (H01Y): {coveragePctH01Y}% • All scopes</Text>
           </View>
           <TouchableOpacity 
             style={styles.refreshBtn} 

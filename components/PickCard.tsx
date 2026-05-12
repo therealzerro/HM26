@@ -55,10 +55,7 @@ function heatInfo(e: number): { label: string; emoji: string; color: string } {
 }
 
 function tempColorFor(energy: number): string {
-  if (energy >= 80) return theme.colors.hot;    // #ff3b30
-  if (energy >= 60) return theme.colors.amber;  // #ff6a2b
-  if (energy >= 40) return theme.colors.gold;   // #ffd93d
-  return                   theme.colors.cyan;   // #2bffcc — cool, still legible
+  return heatInfo(energy).color;
 }
 
 // ─── WHY THIS PICK summary ────────────────────────────────────────────────────
@@ -218,9 +215,9 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
     <Animated.View
       style={[
         s.card,
-        isHit && { borderColor: hitColor, borderWidth: 1.5, shadowColor: hitColor, shadowOpacity: hitAnim as any, shadowRadius: 14, elevation: 10 },
+        isHit && { borderColor: hitColor, borderWidth: 1.5, shadowColor: hitColor, shadowOpacity: hitAnim as unknown as number, shadowRadius: 14, elevation: 10 },
         !isHit && isHot && { borderColor: heat.color, borderWidth: 1.5 },
-        !isHit && isHot && { shadowColor: heat.color, shadowOpacity: glowAnim as any, shadowRadius: 12, elevation: 8 },
+        !isHit && isHot && { shadowColor: heat.color, shadowOpacity: glowAnim as unknown as number, shadowRadius: 12, elevation: 8 },
       ]}
     >
       <TouchableOpacity onPress={handleTap} activeOpacity={0.85}>

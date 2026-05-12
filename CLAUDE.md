@@ -61,7 +61,7 @@ Key invariants:
 ### Data Hooks
 - `hooks/useSnapshot.tsx` — fetches and caches slate snapshots per scope.
 - `hooks/useDataIngestion.tsx` — handles all import flows (box history, pair history, daily input, ledger). Also contains an inline `runHitDetectionAndRefresh` used only for ledger imports.
-- `hooks/useAuth.tsx` — role-based access (`free | premium | admin`). Currently defaults to `admin` (BUG-02, low priority for single-admin app).
+- `hooks/useAuth.tsx` — role-based access (`free | premium | admin`). Defaults to `free`; admin must be set explicitly via the triple-tap easter egg.
 - `hooks/useScope.tsx` — global scope state (`midday | evening | allday`).
 
 ### Hit Detection

@@ -27,13 +27,13 @@ export default function AdaptiveLearningView() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Compute stats
-  const totalPicks    = rows.length;
+  // Compute stats — only count rows where hit_box/hit_straight has been evaluated (not null)
+  const evaluatedRows = rows.filter(r => r.hit_box !== null || r.hit_straight !== null);
   const boxHits       = rows.filter(r => r.hit_box || r.hit_straight);
   const straightHits  = rows.filter(r => r.hit_straight);
   const totalBoxHits  = boxHits.length;
   const totalStraight = straightHits.length;
-  const boxHitRate    = totalPicks > 0 ? ((totalBoxHits / totalPicks) * 100).toFixed(1) : '0.0';
+  const boxHitRate    = evaluatedRows.length > 0 ? ((totalBoxHits / evaluatedRows.length) * 100).toFixed(1) : '0.0';
   const avgEnergy     = boxHits.length > 0
     ? Math.round(boxHits.reduce((s, r) => s + (r.energy_score ?? 0), 0) / boxHits.length)
     : 0;
@@ -99,7 +99,7 @@ export default function AdaptiveLearningView() {
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
             {[
               { l: 'Box Hit Rate', v: boxHitRate + '%', c: theme.colors.success },
-              { l: 'Best Day (hits)', v: String(bestDay) + '/6', c: theme.colors.gold },
+              { l: 'Best Day (hits)', v: String(bestDay), c: theme.colors.gold },
               { l: 'Total Box Hits', v: String(totalBoxHits), c: theme.colors.primary },
               { l: 'Straight Hits', v: String(totalStraight), c: theme.colors.teal },
               { l: 'States Where ZK6 Hit', v: statesSet.size > 0 ? String(statesSet.size) : '—', c: theme.colors.rose },

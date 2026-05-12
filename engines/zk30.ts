@@ -15,6 +15,8 @@ import { Scope, SlateSnapshot, SlateDataStats, EngineMetadata, HorizonLabel } fr
 import { getTodayET } from '@/lib/dateUtils';
 import { K6_QUOTAS, PAIR_REPETITION_CAP } from '@/constants/zk6';
 import { fetchFromSupabase } from '@/lib/supabase';
+
+const zk30Log = (...args: any[]) => { if (__DEV__) zk30Log(...args); };
 import {
   H_ALL,
   HORIZON_WEIGHTS,
@@ -130,13 +132,13 @@ async function fetchDatasets(scope: Scope, jurisdiction: string): Promise<Datase
     setTimeout(() => r(new Error('ZK6 fetch timeout (20s)')), 20000),
   );
 
-  console.log('[zk30] Fetching all horizons for scope:', normalized, 'jurisdiction:', jurisdiction);
+  zk30Log('[zk30] Fetching all horizons for scope:', normalized, 'jurisdiction:', jurisdiction);
 
   let { boxRows, pairRows } = await Promise.race([fetchRaw(enc, jEnc), timeout]);
   let usingFallback = false;
 
   if (boxRows.length < 50 && normalized !== 'allday') {
-    console.log('[zk30] Sparse data for', normalized, '(', boxRows.length, 'rows) — falling back to allday');
+    zk30Log('[zk30] Sparse data for', normalized, '(', boxRows.length, 'rows) — falling back to allday');
     lastScopeFallback = normalized;
     usingFallback = true;
     const fb = await Promise.race([fetchRaw(encodeURIComponent('allday'), jEnc), timeout]);
@@ -146,7 +148,7 @@ async function fetchDatasets(scope: Scope, jurisdiction: string): Promise<Datase
     lastScopeFallback = null;
   }
 
-  console.log('[zk30] Raw fetched:', { boxRows: boxRows.length, pairRows: pairRows.length });
+  zk30Log('[zk30] Raw fetched:', { boxRows: boxRows.length, pairRows: pairRows.length });
 
   // ── Build boxByHorizon ────────────────────────────────────────────────────────
   const boxByHorizon: BoxByHorizon = new Map();
@@ -185,7 +187,7 @@ async function fetchDatasets(scope: Scope, jurisdiction: string): Promise<Datase
     }
   }
 
-  console.log('[ZK6-DIAG] timesDrawnMap.size:',
+  zk30Log('[ZK6-DIAG] timesDrawnMap.size:',
     timesDrawnMap.size,
     'sample:',
     JSON.stringify(Array.from(timesDrawnMap.entries()).slice(0,3))
@@ -233,7 +235,7 @@ async function fetchDatasets(scope: Scope, jurisdiction: string): Promise<Datase
     // Already complete — no change needed
   }
 
-  console.log('[zk30] Datasets loaded:', {
+  zk30Log('[zk30] Datasets loaded:', {
     horizonsLoaded,
     boxTotalRows: boxRows.length,
     pairTotalRows: pairRows.length,
@@ -281,7 +283,7 @@ async function fetchZK30Datasets(scope: Scope, jurisdiction: string): Promise<Da
     });
   }
 
-  console.log('[zk30] fetchZK30Datasets:', {
+  zk30Log('[zk30] fetchZK30Datasets:', {
     jurisdiction, scope,
     historyRows: Array.isArray(rows) ? rows.length : 0,
     combosFound: drawsSinceMap.size,
@@ -446,7 +448,7 @@ async function loadEngineConfig(): Promise<EngineConfig> {
   try {
     const rows = await fetchFromSupabase<any[]>({
       path: '/rest/v1/app_config' +
-        '?key=in.(engine_weights_balanced,engine_weights_conservative,engine_weights_aggressive,k6_triples_on,pressure_threshold,min_energy_threshold,recent_hit_cooldown)' +
+        '?key=in.(engine_weights_balanced,engine_weights_conservative,engine_weights_aggressive,k6_singles_max,k6_doubles_max,k6_triples_on,pair_rep_cap,pressure_threshold,min_energy_threshold,recent_hit_cooldown)' +
         '&select=key,value',
     });
     if (!Array.isArray(rows) || rows.length === 0) return DEFAULT_ENGINE_CONFIG;
@@ -463,6 +465,9 @@ async function loadEngineConfig(): Promise<EngineConfig> {
 
     for (const row of rows) {
       try {
+        if (row.key === 'k6_singles_max')       { const v = parseInt(row.value, 10); if (!isNaN(v) && v >= 0) rails.singlesMax = v; continue; }
+        if (row.key === 'k6_doubles_max')       { const v = parseInt(row.value, 10); if (!isNaN(v) && v >= 0) rails.doublesMax = v; continue; }
+        if (row.key === 'pair_rep_cap')         { const v = parseInt(row.value, 10); if (!isNaN(v) && v >= 0) rails.pairRepCap = v; continue; }
         if (row.key === 'k6_triples_on')        { rails.triplesOn = row.value === 'true'; continue; }
         if (row.key === 'pressure_threshold')   { const v = parseInt(row.value, 10); if (!isNaN(v) && v >= 50) pressureThreshold = v; continue; }
         if (row.key === 'min_energy_threshold') { const v = parseInt(row.value, 10); if (!isNaN(v) && v >= 0) minEnergyThreshold = v; continue; }
@@ -492,7 +497,7 @@ async function loadEngineConfig(): Promise<EngineConfig> {
 // ─── saveSlateSnapshot ────────────────────────────────────────────────────────
 
 async function saveSlateSnapshot(snapshot: SlateSnapshot, extraFields?: Record<string, unknown>): Promise<string> {
-  console.log('[zk30] Saving snapshot:', {
+  zk30Log('[zk30] Saving snapshot:', {
     id: snapshot.id, scope: snapshot.scope,
     hash: snapshot.hash?.slice(0, 8),
     topK: Array.isArray(snapshot.top_k_straights_json)
@@ -527,9 +532,9 @@ async function saveSlateSnapshot(snapshot: SlateSnapshot, extraFields?: Record<s
           payload_meta: { reason, snapshot: payload },
         },
       });
-      console.log('[zk30] Snapshot stored in audit_logs (RLS fallback).');
+      zk30Log('[zk30] Snapshot stored in audit_logs (RLS fallback).');
     } catch (e) {
-      console.log('[zk30] audit_logs fallback also failed:', String(e));
+      zk30Log('[zk30] audit_logs fallback also failed:', String(e));
     }
   };
 
@@ -544,10 +549,8 @@ async function saveSlateSnapshot(snapshot: SlateSnapshot, extraFields?: Record<s
   })();
   if (!isSupplementSave) {
     try {
-      const todayStart = new Date();
-      todayStart.setUTCHours(0, 0, 0, 0);
-      const tomorrowStart = new Date(todayStart);
-      tomorrowStart.setUTCDate(tomorrowStart.getUTCDate() + 1);
+      const todayStart = new Date(getTodayET() + 'T05:00:00.000Z');
+      const tomorrowStart = new Date(todayStart.getTime() + 86400000);
       await fetchFromSupabase<any>({
         path: `/rest/v1/slate_snapshots?scope=eq.${encodeURIComponent(snapshot.scope)}&updated_at_et=gte.${todayStart.toISOString()}&updated_at_et=lt.${tomorrowStart.toISOString()}&deleted_at=is.null&mode=eq.zk30`,
         method: 'PATCH',
@@ -567,15 +570,15 @@ async function saveSlateSnapshot(snapshot: SlateSnapshot, extraFields?: Record<s
       headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
       body: payload,
     });
-    console.log('[zk30] POST slate_snapshots raw response:', JSON.stringify(res));
+    zk30Log('[zk30] POST slate_snapshots raw response:', JSON.stringify(res));
     const dbId = Array.isArray(res) && res.length > 0
       ? (res[0]?.id as string | undefined) : undefined;
-    console.log('[zk30] Snapshot saved:', { scope: snapshot.scope, dbId });
+    zk30Log('[zk30] Snapshot saved:', { scope: snapshot.scope, dbId });
     return dbId ?? snapshot.id;
   } catch (err) {
     const msg = String(err instanceof Error ? err.message : err);
     const isRls = /42501|row-level security|RLS|violates row-level security/i.test(msg);
-    console.log('[zk30] Save error:', { msg: msg.slice(0, 200), isRls });
+    zk30Log('[zk30] Save error:', { msg: msg.slice(0, 200), isRls });
     if (isRls) { await saveToAuditFallback(msg); return snapshot.id; }
     throw err instanceof Error ? err : new Error('Failed to save slate snapshot');
   }
@@ -602,10 +605,10 @@ export async function computeZK30Slate({
   const weights = weightPresets[weightsKey] ?? weightPresets.balanced;
   const universe = buildUniverse();
 
-  console.log('[zk30] computeSlate:', { scope, weightsKey, jurisdiction });
-  console.log('[zk30] using weights: BOX=' + weights.BOX + ' PBURST=' + weights.PBURST + ' CO=' + weights.CO);
-  console.log('[zk30] K6 rails: singles≤' + rails.singlesMax + ' doubles≤' + rails.doublesMax + ' triples=' + rails.triplesOn + ' pairRepCap=' + rails.pairRepCap);
-  console.log('[zk30] intelligence config: pressureThreshold=' + pressureThreshold + ' minEnergyThreshold=' + minEnergyThreshold + ' recentHitCooldown=' + recentHitCooldown);
+  zk30Log('[zk30] computeSlate:', { scope, weightsKey, jurisdiction });
+  zk30Log('[zk30] using weights: BOX=' + weights.BOX + ' PBURST=' + weights.PBURST + ' CO=' + weights.CO);
+  zk30Log('[zk30] K6 rails: singles≤' + rails.singlesMax + ' doubles≤' + rails.doublesMax + ' triples=' + rails.triplesOn + ' pairRepCap=' + rails.pairRepCap);
+  zk30Log('[zk30] intelligence config: pressureThreshold=' + pressureThreshold + ' minEnergyThreshold=' + minEnergyThreshold + ' recentHitCooldown=' + recentHitCooldown);
 
   // ── 1. Fetch all horizons + live history overrides ───────────────────────────
   const [ds, { dsOverride, lsOverride, hitDatesMap }] = await Promise.all([
@@ -626,7 +629,7 @@ export async function computeZK30Slate({
     const staleLs = ds.lastSeenMap.get(cs);
     if (!staleLs || actualLs > staleLs) ds.lastSeenMap.set(cs, actualLs);
   }
-  console.log('[zk30] History overrides applied — corrected draws_since for', dsOverride.size, 'combos');
+  zk30Log('[zk30] History overrides applied — corrected draws_since for', dsOverride.size, 'combos');
 
   const dgcMap = new Map<string, number>();
   for (const [cs, dates] of hitDatesMap) {
@@ -659,24 +662,24 @@ export async function computeZK30Slate({
         }
       });
     }
-    console.log('[zk30] Today hit exclusion:', {
+    zk30Log('[zk30] Today hit exclusion:', {
       todayEt, scope,
       hitSets: Array.from(todayHitComboSets),
       totalStraights: effectiveExcluded.size,
     });
   } catch (e) {
-    console.log('[zk30] Today hit fetch warn (non-fatal):', e);
+    zk30Log('[zk30] Today hit fetch warn (non-fatal):', e);
   }
 
   // ── 3. First pass — raw signal scores for all 1000 combos ────────────────────
   // Pre-pass: find maxTimesDrawn so frequency can be normalised 0-1
   let maxTimesDrawn = 0;
-  console.log('[ZK6-DIAG] timesDrawnMap size:', ds.timesDrawnMap.size, 'maxTimesDrawn will be:', Array.from(ds.timesDrawnMap.values()).reduce((a,b) => Math.max(a,b), 0))
+  zk30Log('[ZK6-DIAG] timesDrawnMap size:', ds.timesDrawnMap.size, 'maxTimesDrawn will be:', Array.from(ds.timesDrawnMap.values()).reduce((a,b) => Math.max(a,b), 0))
   for (let i = 0; i < 1000; i++) {
     const td = ds.timesDrawnMap.get(toComboSet(universe[i])) ?? 0;
     if (td > maxTimesDrawn) maxTimesDrawn = td;
   }
-  console.log('[ZK6-DIAG2] maxTimesDrawn after prepass:', maxTimesDrawn, '| sample key check:', toComboSet('742'), '=', ds.timesDrawnMap.get(toComboSet('742')) ?? 'MISS');
+  zk30Log('[ZK6-DIAG2] maxTimesDrawn after prepass:', maxTimesDrawn, '| sample key check:', toComboSet('742'), '=', ds.timesDrawnMap.get(toComboSet('742')) ?? 'MISS');
 
   // Pre-pass: find maxTimesDrawn across all pair rows for frequency normalization.
   // Bug fix: previously used dsRaw (staleness) as freqScore — inversely correlated with hits.
@@ -839,8 +842,8 @@ export async function computeZK30Slate({
       score: finalScores[i].toFixed(4),
     };
   });
-  console.log('[zk30] Key diagnostics (top 5 real):', JSON.stringify(keyDiag));
-  console.log('[zk30] Pool sizes — real:', realIdx.length, 'placeholder:', placeholderIdx.length);
+  zk30Log('[zk30] Key diagnostics (top 5 real):', JSON.stringify(keyDiag));
+  zk30Log('[zk30] Pool sizes — real:', realIdx.length, 'placeholder:', placeholderIdx.length);
 
   interface K6Item {
     combo: string; normKey: string;
@@ -866,32 +869,32 @@ export async function computeZK30Slate({
     if (k6.length >= 30) return false;
     const combo = universe[idx];
     if (effectiveExcluded.has(combo)) {
-      console.log('[RAIL] excluded:', combo); return false; }
+      zk30Log('[RAIL] excluded:', combo); return false; }
     const normKey = toComboSet(combo);
     if (selectedComboSets.has(normKey)) {
-      console.log('[RAIL] duplicate comboSet:', combo, normKey); return false; }
+      zk30Log('[RAIL] duplicate comboSet:', combo, normKey); return false; }
     if (!relaxExcludeComboSets && excludeComboSetsSet.size > 0 && excludeComboSetsSet.has(normKey)) {
-      console.log('[RAIL] excludeComboSets:', combo); return false; }
+      zk30Log('[RAIL] excludeComboSets:', combo); return false; }
     if (todayHitComboSets.size > 0 && todayHitComboSets.has(normKey)) {
-      console.log('[RAIL] today hit:', combo); return false; }
+      zk30Log('[RAIL] today hit:', combo); return false; }
     const mult = multiplicityOf(combo);
     if (mult === 'singles' && singles >= rails.singlesMax) {
-      console.log('[RAIL] singles cap:', combo, singles, '>=', rails.singlesMax); return false; }
+      zk30Log('[RAIL] singles cap:', combo, singles, '>=', rails.singlesMax); return false; }
     if (mult === 'doubles' && doubles >= rails.doublesMax) {
-      console.log('[RAIL] doubles cap:', combo); return false; }
+      zk30Log('[RAIL] doubles cap:', combo); return false; }
     if (mult === 'triples' && !rails.triplesOn) {
-      console.log('[RAIL] triples off:', combo); return false; }
+      zk30Log('[RAIL] triples off:', combo); return false; }
     const tp = topPairOf(combo);
     if (!relaxPairRepCap && (pairCounts[tp] ?? 0) >= rails.pairRepCap) {
-      console.log('[RAIL] pairRepCap:', combo, 'pair:', tp); return false; }
+      zk30Log('[RAIL] pairRepCap:', combo, 'pair:', tp); return false; }
     const energy = percentileRankOf(finalScores[idx], scorePoolForEnergy);
     if (minEnergyThreshold > 0 &&
       (ds.timesDrawnMap.get(toComboSet(combo)) ?? 0) > 0 &&
       energy < minEnergyThreshold) {
-      console.log('[RAIL] energy below threshold:', combo, energy, '<', minEnergyThreshold); return false; }
+      zk30Log('[RAIL] energy below threshold:', combo, energy, '<', minEnergyThreshold); return false; }
     const recentDs = ds.drawsSinceMap.get(normKey) ?? 999;
     if (!relaxCooldown && recentHitCooldown > 0 && dsOverride.has(normKey) && (ds.timesDrawnMap.get(normKey) ?? 0) > 0 && recentDs < recentHitCooldown) {
-      console.log('[RAIL] cooldown:', combo, 'ds:', recentDs, '<', recentHitCooldown); return false; }
+      zk30Log('[RAIL] cooldown:', combo, 'ds:', recentDs, '<', recentHitCooldown); return false; }
     k6.push({
       combo, normKey,
       indicator: finalScores[idx],
@@ -917,7 +920,7 @@ export async function computeZK30Slate({
 
   // Pass 2: fill remaining slots with placeholder combos
   if (k6.length < 30) {
-    console.log('[zk30] Pass 1 yielded', k6.length, 'real picks — filling', 30 - k6.length, 'from placeholders');
+    zk30Log('[zk30] Pass 1 yielded', k6.length, 'real picks — filling', 30 - k6.length, 'from placeholders');
     for (const idx of placeholderIdx) {
       if (k6.length >= 30) break;
       tryAdd(idx);
@@ -926,7 +929,7 @@ export async function computeZK30Slate({
 
   // Pass 3: relax excludeComboSets (yesterday's draws)
   if (k6.length < 30) {
-    console.log('[zk30] Pass 2 yielded', k6.length, 'picks — pass 3: relaxing excludeComboSets');
+    zk30Log('[zk30] Pass 2 yielded', k6.length, 'picks — pass 3: relaxing excludeComboSets');
     for (const idx of allIdx) {
       if (k6.length >= 30) break;
       tryAdd(idx, true);
@@ -935,7 +938,7 @@ export async function computeZK30Slate({
 
   // Pass 4: also relax pairRepCap
   if (k6.length < 30) {
-    console.log('[zk30] Pass 3 yielded', k6.length, 'picks — pass 4: relaxing pairRepCap');
+    zk30Log('[zk30] Pass 3 yielded', k6.length, 'picks — pass 4: relaxing pairRepCap');
     for (const idx of allIdx) {
       if (k6.length >= 30) break;
       tryAdd(idx, true, true);
@@ -944,14 +947,14 @@ export async function computeZK30Slate({
 
   // Pass 5: last resort — also relax cooldown
   if (k6.length < 30) {
-    console.log('[zk30] Pass 4 yielded', k6.length, 'picks — pass 5: relaxing cooldown');
+    zk30Log('[zk30] Pass 4 yielded', k6.length, 'picks — pass 5: relaxing cooldown');
     for (const idx of allIdx) {
       if (k6.length >= 30) break;
       tryAdd(idx, true, true, true);
     }
   }
 
-  console.log('[zk30] K30 after rails:', k6.map(x => `${x.combo}(e=${x.energy})`));
+  zk30Log('[zk30] K30 after rails:', k6.map(x => `${x.combo}(e=${x.energy})`));
 
   // Data quality verification log — ZK30 multi-signal component scores
   const top3 = k6.slice(0, 3).map(x => ({
@@ -967,7 +970,7 @@ export async function computeZK30Slate({
     energy: x.energy,
     isReal: (ds.timesDrawnMap.get(x.normKey) ?? 0) > 0,
   }));
-  console.log('[zk30] Top-3 data quality check:', JSON.stringify(top3, null, 2));
+  zk30Log('[zk30] Top-3 data quality check:', JSON.stringify(top3, null, 2));
   if (top3.some(x => !x.isReal)) {
     console.warn('[zk30] WARNING: placeholder in top 3 — only', realIdx.length, 'real-data combos available');
   }
@@ -1056,7 +1059,7 @@ export async function computeZK30Slate({
     dataStats,
   };
 
-  console.log('[zk30] Slate computed:', {
+  zk30Log('[zk30] Slate computed:', {
     scope, weightsKey, jurisdiction,
     k6Count: k6.length,
     horizonsLoaded: ds.horizonsLoaded,
@@ -1117,7 +1120,7 @@ export async function computeZK30Slate({
       headers: { 'Prefer': 'return=minimal' },
       body: diRows,
     });
-    console.log('[zk30] daily_intelligence: wrote top 30 for scope:', scope, 'date:', effectiveDate);
+    zk30Log('[zk30] daily_intelligence: wrote top 30 for scope:', scope, 'date:', effectiveDate);
     const slateCombos = k6.map(x => x.combo).join(',');
     await fetchFromSupabase({
       path: `/rest/v1/daily_intelligence?slate_date=eq.${effectiveDate}&scope=eq.${encodeURIComponent(scope)}&mode=eq.zk30&combo=in.(${slateCombos})`,
@@ -1126,7 +1129,7 @@ export async function computeZK30Slate({
       body: { on_slate: true },
     });
   } catch (e) {
-    console.log('[zk30] daily_intelligence write warn (non-fatal):', e);
+    zk30Log('[zk30] daily_intelligence write warn (non-fatal):', e);
   }
 
   return snapshot;

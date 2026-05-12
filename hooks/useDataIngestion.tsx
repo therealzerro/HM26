@@ -143,14 +143,11 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
   };
 
   const importsQuery = useQuery<Import[]>({
-    queryKey: ['imports', isAdmin, selectedScope],
+    queryKey: ['imports', isAdmin],
     queryFn: async () => {
       if (!isAdmin) return [];
       try {
-        const scopeFilter = `eq.${encodeURIComponent(selectedScope)}`;
-        const url = `/rest/v1/imports?select=*` +
-          `&scope=${scopeFilter}` +
-          `&order=created_at.desc&limit=100`;
+        const url = `/rest/v1/imports?select=*&order=created_at.desc&limit=100`;
         const timeoutPromise = new Promise<never>((_, reject) => {
           setTimeout(() => reject(new Error('Imports fetch timeout')), 2000);
         });
@@ -701,6 +698,11 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
           }
           
           seenDates.add(dateEt);
+          if (entry.session === 'morning') {
+            console.warn('[importLedger] Coercing session "morning" → "midday" for entry:', entry.date_et, entry.jurisdiction);
+          } else if (entry.session === 'night') {
+            console.warn('[importLedger] Coercing session "night" → "evening" for entry:', entry.date_et, entry.jurisdiction);
+          }
           validEntries.push({
             jurisdiction: entry.jurisdiction,
             game: entry.game,
@@ -891,7 +893,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
         });
         
         const winners = await fetchFromSupabase<any[]>({
-          path: `/rest/v1/histories?select=result_digits,comboset_sorted,date_et,jurisdiction,session&date_et=gte.${yesterdayStr}&date_et=lte.${todayStr}&limit=500&jurisdiction=not.in.(ME,NH,VT,PR,MD,MS2)`
+          path: `/rest/v1/histories?select=result_digits,comboset_sorted,date_et,jurisdiction,session&date_et=gte.${yesterdayStr}&date_et=lte.${todayStr}&limit=500&jurisdiction=not.in.(ME,NH,VT,MS,PR,MD,MS2)`
         });
 
         if (Array.isArray(winners)) {
@@ -1045,12 +1047,11 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
 
   const softDeleteImport = useCallback(async (id: string) => {
     const nowIso = new Date().toISOString();
-    const opts = { useServiceKey: true } as const;
-    try { await fetchFromSupabase({ path: `/rest/v1/datasets_box?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: nowIso }, ...opts }); } catch {}
-    try { await fetchFromSupabase({ path: `/rest/v1/datasets_pair?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: nowIso }, ...opts }); } catch {}
-    try { await fetchFromSupabase({ path: `/rest/v1/percentile_maps?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: nowIso }, ...opts }); } catch {}
-    try { await fetchFromSupabase({ path: `/rest/v1/horizon_blends?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: nowIso }, ...opts }); } catch {}
-    await fetchFromSupabase({ path: `/rest/v1/imports?id=eq.${id}`, method: 'PATCH', body: { status: 'deleted', deleted_at: nowIso }, ...opts });
+    try { await fetchFromSupabase({ path: `/rest/v1/datasets_box?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: nowIso } }); } catch {}
+    try { await fetchFromSupabase({ path: `/rest/v1/datasets_pair?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: nowIso } }); } catch {}
+    try { await fetchFromSupabase({ path: `/rest/v1/percentile_maps?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: nowIso } }); } catch {}
+    try { await fetchFromSupabase({ path: `/rest/v1/horizon_blends?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: nowIso } }); } catch {}
+    await fetchFromSupabase({ path: `/rest/v1/imports?id=eq.${id}`, method: 'PATCH', body: { status: 'deleted', deleted_at: nowIso } });
     try { await fetchFromSupabase({ path: `/rest/v1/audit_logs`, method: 'POST', body: { actor_id: getActorId(), action: 'SoftDelete', target: id } }); } catch {}
     queryClient.invalidateQueries({ queryKey: ['imports'] });
     queryClient.invalidateQueries({ queryKey: ['health_metrics'] });
@@ -1060,12 +1061,11 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
   }, [queryClient]);
 
   const undoSoftDeleteImport = useCallback(async (id: string) => {
-    const opts = { useServiceKey: true } as const;
-    try { await fetchFromSupabase({ path: `/rest/v1/datasets_box?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: null }, ...opts }); } catch {}
-    try { await fetchFromSupabase({ path: `/rest/v1/datasets_pair?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: null }, ...opts }); } catch {}
-    try { await fetchFromSupabase({ path: `/rest/v1/percentile_maps?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: null }, ...opts }); } catch {}
-    try { await fetchFromSupabase({ path: `/rest/v1/horizon_blends?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: null }, ...opts }); } catch {}
-    await fetchFromSupabase({ path: `/rest/v1/imports?id=eq.${id}`, method: 'PATCH', body: { status: 'completed', deleted_at: null }, ...opts });
+    try { await fetchFromSupabase({ path: `/rest/v1/datasets_box?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: null } }); } catch {}
+    try { await fetchFromSupabase({ path: `/rest/v1/datasets_pair?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: null } }); } catch {}
+    try { await fetchFromSupabase({ path: `/rest/v1/percentile_maps?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: null } }); } catch {}
+    try { await fetchFromSupabase({ path: `/rest/v1/horizon_blends?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: null } }); } catch {}
+    await fetchFromSupabase({ path: `/rest/v1/imports?id=eq.${id}`, method: 'PATCH', body: { status: 'completed', deleted_at: null } });
     try { await fetchFromSupabase({ path: `/rest/v1/audit_logs`, method: 'POST', body: { actor_id: getActorId(), action: 'UndoSoftDelete', target: id } }); } catch {}
     queryClient.invalidateQueries({ queryKey: ['imports'] });
     queryClient.invalidateQueries({ queryKey: ['health_metrics'] });

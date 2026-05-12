@@ -52,36 +52,23 @@ function PerformanceRow({
     if (expandedData?.loaded) return;
     setLoadingDetail(true);
     try {
-      const diUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-      const diKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
-      const diHdrs = { 'apikey': diKey, 'Authorization': 'Bearer ' + diKey };
-
       let picks: any[] = [];
       let resolvedSnapshotId: string | null = row.snapshotId ?? null;
 
-
       if (resolvedSnapshotId) {
-        const res = await fetch(
-          diUrl + '/rest/v1/slate_snapshots?id=eq.' + resolvedSnapshotId +
-          '&select=id,scope,mode,top_k_straights_json,updated_at_et',
-          { headers: diHdrs }
-        );
-        const snapData = await res.json();
+        const snapData = await fetchFromSupabase<any[]>({
+          path: `/rest/v1/slate_snapshots?id=eq.${resolvedSnapshotId}&select=id,scope,mode,top_k_straights_json,updated_at_et`,
+        });
         try {
-          const raw = snapData[0]?.top_k_straights_json;
+          const raw = Array.isArray(snapData) ? snapData[0]?.top_k_straights_json : undefined;
           if (typeof raw === 'string') picks = JSON.parse(raw);
           else if (Array.isArray(raw)) picks = raw;
-        } catch (e) {
-        }
+        } catch {}
       } else {
         // Fallback: search by scope + date
-        const res = await fetch(
-          diUrl + '/rest/v1/slate_snapshots?scope=eq.' + row.scope +
-          '&deleted_at=is.null&order=updated_at_et.desc&limit=30' +
-          '&select=id,scope,top_k_straights_json,updated_at_et',
-          { headers: diHdrs }
-        );
-        const snaps = await res.json();
+        const snaps = await fetchFromSupabase<any[]>({
+          path: `/rest/v1/slate_snapshots?scope=eq.${row.scope}&deleted_at=is.null&order=updated_at_et.desc&limit=30&select=id,scope,top_k_straights_json,updated_at_et`,
+        });
         const scopeSnap = Array.isArray(snaps)
           ? (snaps.find((s: any) => (s.updated_at_et?.split('T')[0] ?? '') === row.slate_date) ?? snaps[0])
           : null;
@@ -91,7 +78,7 @@ function PerformanceRow({
             const raw = scopeSnap.top_k_straights_json;
             if (typeof raw === 'string') picks = JSON.parse(raw);
             else if (Array.isArray(raw)) picks = raw;
-          } catch (_e) { /* ignore parse error */ }
+          } catch {}
         }
       }
 
@@ -152,15 +139,9 @@ function PerformanceRow({
       // If no pre-matched ID, look it up now by scope + date
       if (!snapshotId && row.slate_date && row.scope) {
         try {
-          const res = await fetch(
-            url + '/rest/v1/slate_snapshots' +
-            '?scope=eq.' + encodeURIComponent(row.scope) +
-            '&deleted_at=is.null' +
-            '&select=id,updated_at_et' +
-            '&order=updated_at_et.desc&limit=10',
-            { headers: { apikey: key, Authorization: 'Bearer ' + key } }
-          );
-          const snaps = await res.json();
+          const snaps = await fetchFromSupabase<any[]>({
+            path: `/rest/v1/slate_snapshots?scope=eq.${encodeURIComponent(row.scope)}&deleted_at=is.null&select=id,updated_at_et&order=updated_at_et.desc&limit=10`,
+          });
           if (Array.isArray(snaps)) {
             const match = snaps.find((s: any) =>
               (s.updated_at_et?.split('T')[0] ?? '') === row.slate_date
@@ -474,21 +455,39 @@ export default function HitTrackingView() {
   const load = useCallback(async () => {
     setLoading(true); setFetchError(null);
     try {
-      const [rows, snaps] = await Promise.all([
-        fetchFromSupabase<any[]>({
+      const snaps = await fetchFromSupabase<any[]>({
+        path: '/rest/v1/slate_snapshots?deleted_at=is.null&select=id,scope,updated_at_et&order=updated_at_et.desc&limit=200',
+        method: 'GET',
+      });
+      const snapList = Array.isArray(snaps) ? snaps : [];
+
+      let hitRows: any[] = [];
+      try {
+        const rpcRows = await fetchFromSupabase<any[]>({
           path: '/rest/v1/rpc/calculate_hit_rates',
           method: 'POST',
           body: {},
-        }),
-        fetchFromSupabase<any[]>({
-          path: '/rest/v1/slate_snapshots?deleted_at=is.null&select=id,scope,updated_at_et&order=updated_at_et.desc&limit=200',
-          method: 'GET',
-        }),
-      ]);
-      const snapList = Array.isArray(snaps) ? snaps : [];
-      const hitRows = Array.isArray(rows) ? rows : [];
-      // Merge snapshot ID into each performance row so delete + picks fetch have a real ID
+        });
+        hitRows = Array.isArray(rpcRows) ? rpcRows : [];
+      } catch (rpcErr) {
+        console.warn('[HitTrackingView] calculate_hit_rates RPC failed, showing snapshots only:', rpcErr);
+        // Fallback: synthesize rows from snapshots with null hit rates
+        hitRows = snapList.map((s: any) => ({
+          slate_date: (s.updated_at_et ?? '').split('T')[0],
+          scope: s.scope,
+          mode: s.mode ?? 'balanced',
+          total_picks: 6,
+          box_hits: null,
+          straight_hits: null,
+          box_hit_rate: null,
+          straight_hit_rate: null,
+          snapshotId: s.id,
+        }));
+      }
+
+      // Merge snapshot ID into each performance row
       const merged = hitRows.map((row: any) => {
+        if (row.snapshotId) return row;
         const match = snapList.find((s: any) =>
           s.scope === row.scope &&
           (s.updated_at_et?.split('T')[0] ?? '') === row.slate_date

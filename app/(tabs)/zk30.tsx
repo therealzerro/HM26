@@ -75,7 +75,7 @@ export default function ZK30Screen() {
       fetchFromSupabase<any[]>({
         path: `/rest/v1/slate_snapshots?mode=eq.zk30&scope=eq.${encodeURIComponent(scope)}&deleted_at=is.null&order=updated_at_et.desc.nullslast&limit=1&select=*`,
       }).then(rows => (Array.isArray(rows) && rows.length > 0 ? rows[0] : null)),
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000,
     refetchOnMount: 'always',
   });
 
@@ -89,7 +89,7 @@ export default function ZK30Screen() {
       {/* Header */}
       <View style={c.header}>
         <Text style={c.title}>ZK30</Text>
-        <Text style={c.subtitle}>Texas 🤠</Text>
+        <Text style={c.subtitle}>{SCOPE_LABELS[scope]} · ZK30</Text>
       </View>
 
       {/* Scope selector */}

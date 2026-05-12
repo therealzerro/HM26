@@ -119,6 +119,7 @@ export interface TopKStraightRow {
   hitResult?: string;
   hitState?: string;
   hitDate?: string;
+  hitSession?: string;
 }
 
 export interface EngineMetadata {

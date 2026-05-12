@@ -378,7 +378,7 @@ async function computeSlate(params: {
   for (let i = 0; i < 1000; i++) {
     const multAdj = MULTIPLICITY_PRIORS[multiplicityOf(universe[i])];
     finalScores[i] = weights.BOX * normBox[i] + weights.PBURST * normPburst[i] + weights.CO * normCo[i] + weights.DGC * normDgc[i] + multAdj;
-    if (synergyOn && normBox[i] >= 0.65 && normPburst[i] >= 0.65 && normCo[i] >= 0.65 && normDgc[i] >= 0.65)
+    if (synergyOn && [normBox[i], normPburst[i], normCo[i], normDgc[i]].filter(v => v >= 0.65).length >= 2)
       finalScores[i] *= (1 + synergyWeight);
   }
 

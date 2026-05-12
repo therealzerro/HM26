@@ -209,7 +209,7 @@ export const [SnapshotProvider, useSnapshot] = createContextHook<SnapshotState>(
         return null;
       }
     },
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000,
     gcTime: 60 * 1000,
     retry: 3,
     refetchOnMount: 'always',

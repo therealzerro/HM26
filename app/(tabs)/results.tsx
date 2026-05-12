@@ -20,7 +20,7 @@
                 card rendering are preserved — only the chrome layout changes.
    ============================================================================ */
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput,
   TouchableOpacity, ScrollView, ActivityIndicator, Modal, Pressable,
@@ -29,6 +29,7 @@ import { NeonRefreshControl as RefreshControl } from '@/components/NeonRefreshCo
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
+import { getYesterdayET } from '@/lib/dateUtils';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { theme } from '@/constants/theme';
 import { Calendar, MoreHorizontal, Search, X } from 'lucide-react-native';
@@ -80,8 +81,7 @@ function toComboSet(digits: string): string {
 }
 function getDateLabel(dateStr: string): string {
   const today = getTodayET();
-  const y = new Date(); y.setDate(y.getDate() - 1);
-  const yStr = y.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const yStr = getYesterdayET();
   if (dateStr === today) return 'Today';
   if (dateStr === yStr)  return 'Yesterday';
   const d = new Date(dateStr + 'T12:00:00');
@@ -176,7 +176,7 @@ const ss = StyleSheet.create({
 
 // ─── main screen ───────────────────────────────────────────────────────
 export default function ResultsScreen() {
-  const recentDates = getRecentDates();
+  const recentDates = useMemo(() => getRecentDates(), []);
   const [selectedDate,  setSelectedDate]  = useState(recentDates[0]);
   const [sessionFilter, setSessionFilter] = useState<string>('all');
   const [searchQuery,   setSearchQuery]   = useState('');
@@ -263,7 +263,7 @@ export default function ResultsScreen() {
     if (!ledgerLoading && ledger !== undefined && ledger.length === 0 && selectedDate === recentDates[0]) {
       setSelectedDate(recentDates[1]);
     }
-  }, [ledger, ledgerLoading]);
+  }, [ledger, ledgerLoading, recentDates]);
 
   const handleRefresh = async () => {
     await Promise.all([refetchLedger(), refetchHits(), refetchOnSlatePicks()]);

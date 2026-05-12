@@ -68,9 +68,9 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
       if (cfg.synergy_boost_on)      setSynergyOn(cfg.synergy_boost_on === 'true');
       if (cfg.synergy_boost_weight)  setSynergyWeight(parseFloat(cfg.synergy_boost_weight) || 0.15);
       if (cfg.k6_triples_on)         setTriplesOn(cfg.k6_triples_on === 'true');
-      if (cfg.k6_singles_max)        setSinglesMax(parseInt(cfg.k6_singles_max, 10) || 4);
-      if (cfg.k6_doubles_max)        setDoublesMax(parseInt(cfg.k6_doubles_max, 10) || 2);  // 0 is valid
-      if (cfg.pair_rep_cap)          setPairRepCap(parseInt(cfg.pair_rep_cap, 10) || 2);
+      if (cfg.k6_singles_max)        { const v = parseInt(cfg.k6_singles_max, 10); setSinglesMax(Number.isNaN(v) ? 4 : v); }
+      if (cfg.k6_doubles_max !== undefined) { const v = parseInt(cfg.k6_doubles_max, 10); setDoublesMax(Number.isNaN(v) ? 2 : v); }
+      if (cfg.pair_rep_cap)          { const v = parseInt(cfg.pair_rep_cap, 10); setPairRepCap(Number.isNaN(v) ? 2 : v); }
       if (cfg.default_scope)         setDefaultScope(cfg.default_scope);
       if (cfg.pressure_threshold)    setPressureThreshold(parseInt(cfg.pressure_threshold, 10) || 200);
       if (cfg.pressure_bonus_weight) setPressureBonusWeight(parseInt(cfg.pressure_bonus_weight, 10) || 10);
@@ -132,7 +132,8 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
       };
 
       // Use PATCH per key — rows already exist, INSERT would violate RLS
-      await Promise.all(
+      const keys = Object.keys(entries);
+      const results = await Promise.allSettled(
         Object.entries(entries).map(([k, v]) =>
           fetchFromSupabase({
             path: `/rest/v1/app_config?key=eq.${encodeURIComponent(k)}`,
@@ -142,9 +143,16 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
           })
         )
       );
-      setSavedOk(true);
-      setSavedAt(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
-      setTimeout(() => setSavedOk(false), 2500);
+      const failures = results
+        .map((r, i) => r.status === 'rejected' ? keys[i] : null)
+        .filter(Boolean) as string[];
+      if (failures.length > 0) {
+        setSaveError(`${failures.length} key(s) failed: ${failures.join(', ')}`);
+      } else {
+        setSavedOk(true);
+        setSavedAt(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+        setTimeout(() => setSavedOk(false), 2500);
+      }
     } catch (e) {
       setSaveError(String(e instanceof Error ? e.message : e));
     } finally {
@@ -508,17 +516,17 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
         </TouchableOpacity>
       )}
 
-      {/* Preview Engine Output button */}
+      {/* About Engine Config button */}
       <TouchableOpacity
         style={[st.btnGhost, { borderWidth: 1.5, borderColor: theme.colors.primary + '44', backgroundColor: theme.colors.primaryLight, marginTop: 10 }]}
         onPress={() => setPreviewModal(true)}
       >
         <Text style={[st.btnGhostText, { color: theme.colors.primary, fontWeight: '700' }]}>
-          🔮 Preview Engine Output
+          ℹ️ About Engine Config
         </Text>
       </TouchableOpacity>
       <Text style={{ fontSize: 10, color: theme.colors.textTertiary, textAlign: 'center', marginTop: 6, marginBottom: 20 }}>
-        Runs computeSlate with current settings and shows K6 picks
+        View current config summary and guidance
       </Text>
       {savedAt && (
         <Text style={{ fontSize: 10, color: theme.colors.success, textAlign: 'center', marginTop: -14, marginBottom: 16 }}>
@@ -532,14 +540,14 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
           <TouchableOpacity style={{ flex: 1, backgroundColor: '#1E1B4B55' }} activeOpacity={1} onPress={() => setPreviewModal(false)}>
             <TouchableOpacity activeOpacity={1} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: theme.colors.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 1, borderColor: theme.colors.border, padding: 20, maxHeight: '70%' }} onPress={() => {}}>
               <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: theme.colors.surfaceMuted, alignSelf: 'center', marginBottom: 16 }} />
-              <Text style={{ fontSize: 15, fontWeight: '800', color: theme.colors.text, marginBottom: 4 }}>🔮 Engine Preview</Text>
+              <Text style={{ fontSize: 15, fontWeight: '800', color: theme.colors.text, marginBottom: 4 }}>ℹ️ About Engine Config</Text>
               <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginBottom: 16 }}>
                 Current config: {wPreset} preset · {singlesMax} singles max · {doublesMax} doubles max · scope: {defaultScope}
               </Text>
               <Card style={{ padding: 14, backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary + '28', marginBottom: 16 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: theme.colors.primary, marginBottom: 8 }}>Preview Engine Output</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: theme.colors.primary, marginBottom: 8 }}>Engine Configuration</Text>
                 <Text style={{ fontSize: 11, color: theme.colors.textSecondary, lineHeight: 18 }}>
-                  To preview engine output with current settings, save your config first then use Regen All Slates on the Dashboard. Live engine preview requires the full Supabase dataset to be loaded.
+                  Save your config first, then use Regen All Slates on the Dashboard to apply settings. Changes take effect on the next slate generation — they do not retroactively modify existing snapshots.
                 </Text>
               </Card>
               <TouchableOpacity style={st.btnPrimary} onPress={() => setPreviewModal(false)}>

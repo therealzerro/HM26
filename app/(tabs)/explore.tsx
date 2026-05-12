@@ -228,6 +228,7 @@ export default function SlatesScreen() {
   const [regenMsg, setRegenMsg] = useState('');
   const [isRegenLoading, setIsRegenLoading] = useState(false);
   const [creditsUsed, setCreditsUsed] = useState(0);
+  const [creditsError, setCreditsError] = useState(false);
   const [savingSlate, setSavingSlate] = useState(false);
   const [slateSavedMsg, setSlateSavedMsg] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'compact'>('list');
@@ -269,7 +270,7 @@ export default function SlatesScreen() {
           path: `/rest/v1/slate_credits?session_token=eq.${encodeURIComponent(token)}&date_et=eq.${today}&select=credits_used`,
         });
         if (Array.isArray(rows) && rows.length > 0) setCreditsUsed(rows[0].credits_used ?? 0);
-      } catch { /* ignore */ }
+      } catch { setCreditsError(true); }
     })();
   }, [isPro, user?.id]);
 
@@ -353,11 +354,11 @@ export default function SlatesScreen() {
     if (savingSlate || rawItems.every(p => p.combo === '---')) return;
     setSavingSlate(true);
     try {
-      const today = new Date();
+      const todayEt = getTodayET();
       const entry = {
         id: 'slate_' + Date.now(),
-        name: `K6 Slate · ${SCOPE_LABELS[scope]} · ${today.toLocaleDateString()}`,
-        scope, type: 'saved_slate', savedAt: today.toISOString(),
+        name: `K6 Slate · ${SCOPE_LABELS[scope]} · ${todayEt}`,
+        scope, type: 'saved_slate', savedAt: new Date().toISOString(),
         combos: rawItems.filter(p => p.combo !== '---').map(p => ({ combo: p.combo, energy: p.energy })),
       };
       const existing = await storage.getItem('saved_slates');
@@ -519,7 +520,7 @@ export default function SlatesScreen() {
             <View style={s.statRow}>
               <Text style={s.statLabel}>Daily regenerations</Text>
               <Text style={[s.statValue, creditsRemaining === 0 && { color: theme.colors.error }]}>
-                {creditsRemaining}/{PRO_DAILY_CREDITS}
+                {creditsError ? 'Credits unavailable' : `${creditsRemaining}/${PRO_DAILY_CREDITS}`}
               </Text>
               <InfoTooltip term="Daily Regenerations" definition={`Oracle+ gets ${PRO_DAILY_CREDITS} regens/day. Resets at midnight ET.`} size={13} />
             </View>

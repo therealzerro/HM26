@@ -737,7 +737,7 @@ export async function computeSlate({
       weights.CO     * normCo[i] +
       weights.DGC    * normDgc[i] +
       multAdj;
-    if (synergyOn && normBox[i] >= 0.65 && normPburst[i] >= 0.65 && normCo[i] >= 0.65 && normDgc[i] >= 0.65) {
+    if (synergyOn && [normBox[i], normPburst[i], normCo[i], normDgc[i]].filter(v => v >= 0.65).length >= 2) {
       finalScores[i] *= (1 + synergyWeight);
     }
   }
@@ -871,9 +871,9 @@ export async function computeSlate({
     tryAdd(idx);
   }
 
-  // Pass 2: fill remaining slots with placeholder combos
+  // Pass 2: fill remaining slots with placeholder combos (zero-history — data gap)
   if (k6.length < 6) {
-    console.log('[zk6v2] Pass 1 yielded', k6.length, '— filling from placeholders');
+    console.warn('[zk6v2] Pass 1 yielded only', k6.length, 'picks — filling with zero-history combos (import data may be incomplete)');
     for (const idx of placeholderIdx) {
       if (k6.length >= 6) break;
       tryAdd(idx);

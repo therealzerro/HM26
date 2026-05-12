@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -182,8 +182,13 @@ export default function NumberBookScreen() {
   }, []);
 
   const handleDelete = useCallback((id: string) => {
-    setLists(l => l.filter(x => x.id !== id));
-    setActiveId(a => a === id ? null : a);
+    Alert.alert('Delete list?', 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => {
+        setLists(l => l.filter(x => x.id !== id));
+        setActiveId(a => a === id ? null : a);
+      }},
+    ]);
   }, []);
 
   const handleAddCombo = useCallback((combo: string, note: string) => {

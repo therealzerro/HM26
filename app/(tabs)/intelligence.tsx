@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Alert,
@@ -45,6 +45,7 @@ interface SynergyCombo {
   name: string;
   rate: number;
   count: number;
+  signals?: string[];
 }
 
 interface AnalysisData {
@@ -392,9 +393,14 @@ export default function IntelligenceScreen() {
   );
   const [slateRows, setSlateRows] = useState<IntelRow[]>([]);
   const [slateLoading, setSlateLoading] = useState(false);
+  const [isYesterdayFallback, setIsYesterdayFallback] = useState(false);
   const [regenLoading, setRegenLoading] = useState(false);
 
-  const load = useCallback(async () => {
+  const lastFetchRef = useRef<number>(0);
+  const INTEL_STALE_MS = 2 * 60 * 1000;
+
+  const load = useCallback(async (force = false) => {
+    if (!force && data !== null && Date.now() - lastFetchRef.current < INTEL_STALE_MS) return;
     setLoading(true); setError(''); setLoadingRows(0);
     try {
       const PAGE = 500;
@@ -411,17 +417,19 @@ export default function IntelligenceScreen() {
         offset += PAGE;
       }
       setData(computeAnalysis(allRows));
+      lastFetchRef.current = Date.now();
     } catch (e: any) {
       setError(e.message ?? 'Load failed');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [data]);
 
   useEffect(() => { load(); }, []);
 
   const loadSlate = useCallback(async (scope: string) => {
     setSlateLoading(true);
+    setIsYesterdayFallback(false);
     try {
       const today = getTodayET();
       const rows = await fetchFromSupabase<IntelRow[]>({
@@ -436,7 +444,9 @@ export default function IntelligenceScreen() {
       const fallback = await fetchFromSupabase<IntelRow[]>({
         path: `/rest/v1/daily_intelligence?select=*&slate_date=eq.${yesterday}&mode=neq.zk30&scope=eq.${scope}&order=rank.asc&limit=30`,
       });
-      setSlateRows(Array.isArray(fallback) ? fallback : []);
+      const fallbackRows = Array.isArray(fallback) ? fallback : [];
+      setSlateRows(fallbackRows);
+      if (fallbackRows.length > 0) setIsYesterdayFallback(true);
     } catch {
       setSlateRows([]);
     } finally {
@@ -478,7 +488,7 @@ export default function IntelligenceScreen() {
         setBackfillStatus(`${p.phase} (${p.datesDone}/${p.datesTotal} dates, ${p.hitsFound} hits)`);
       });
       setBackfillStatus(`Done — ${hitsFound} hits found across ${datesProcessed} dates`);
-      await load();
+      await load(true);
     } catch (e: any) {
       setBackfillStatus('Error: ' + (e.message ?? 'Unknown'));
     } finally {
@@ -663,6 +673,12 @@ export default function IntelligenceScreen() {
             </View>
           )}
 
+          {isYesterdayFallback && !slateLoading && (
+            <View style={{ backgroundColor: theme.colors.amber + '22', borderRadius: 8, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: theme.colors.amber + '55' }}>
+              <Text style={{ fontSize: 11, color: theme.colors.amber, fontWeight: '700' }}>⚠ Showing yesterday's data — no slate generated for today yet</Text>
+            </View>
+          )}
+
           {slateLoading ? (
             <View style={s.center}>
               <ActivityIndicator color={theme.colors.primary} />
@@ -785,7 +801,7 @@ export default function IntelligenceScreen() {
       {view === 'analysis' && <ScrollView
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={theme.colors.primary} />}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={() => load(true)} tintColor={theme.colors.primary} />}
       >
 
         {/* Header */}

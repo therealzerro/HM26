@@ -244,7 +244,7 @@ export default function HomeScreen() {
       const currentStreak = parseInt(streakStr || '0', 10);
       let newStreak = 1;
       if (lastOpenDate) {
-        const diffDays = Math.round((new Date(today).getTime() - new Date(lastOpenDate).getTime()) / 86400000);
+        const diffDays = Math.round((new Date(today + 'T12:00:00').getTime() - new Date(lastOpenDate + 'T12:00:00').getTime()) / 86400000);
         if (diffDays === 0) newStreak = Math.max(currentStreak, 1);
         else if (diffDays === 1) newStreak = currentStreak + 1;
       }
@@ -284,7 +284,7 @@ export default function HomeScreen() {
       const res = await regenerateSlate(canonScope, mode, force === true);
       if (res.status === 'success') {
         showToast('✓ Slate regenerated', 'success');
-        queryClient.removeQueries({ queryKey: ['snapshot', scope] });
+        queryClient.removeQueries({ queryKey: ['snapshot'] });
         await refreshSnapshot();
       } else { setRegenMsg(res.message); setRegenOpen(true); }
     } catch (err) {

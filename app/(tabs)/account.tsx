@@ -62,7 +62,7 @@ const tog = StyleSheet.create({
 });
 
 export default function AccountScreen() {
-  const { user, setRole } = useAuth();
+  const { user, setRole, purchaseSubscription, restorePurchases } = useAuth();
   const { showToast } = useToast();
   const [glossOpen, setGlossOpen] = useState<number | null>(null);
   const [notifPrefs, setNotifPrefs] = useState({ nextDraw: true, slateReady: true, hits: true, promo: false });
@@ -102,7 +102,7 @@ export default function AccountScreen() {
     queryKey: ['account_histories_stats'],
     queryFn: async () => {
       const rows = await fetchFromSupabase<{ jurisdiction: string }[]>({
-        path: '/rest/v1/histories?select=jurisdiction&limit=10000&jurisdiction=not.in.(ME,NH,VT,MS,PR,MD,MS2)',
+        path: '/rest/v1/histories?select=jurisdiction&limit=2000&jurisdiction=not.in.(ME,NH,VT,MS,PR,MD,MS2)',
       });
       return {
         totalDraws: rows.length,
@@ -235,10 +235,10 @@ export default function AccountScreen() {
                 Subscription renews automatically. Manage or cancel in your App Store account settings.
               </Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity style={s.outlineBtn}>
+                <TouchableOpacity style={s.outlineBtn} onPress={() => purchaseSubscription('monthly')}>
                   <Text style={s.outlineBtnText}>Manage Subscription</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={s.ghostBtn}>
+                <TouchableOpacity style={s.ghostBtn} onPress={() => restorePurchases()}>
                   <Text style={s.ghostBtnText}>Restore Purchase</Text>
                 </TouchableOpacity>
               </View>

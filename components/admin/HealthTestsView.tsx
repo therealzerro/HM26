@@ -102,10 +102,7 @@ export default function HealthTestsView() {
 
   const runAll = useCallback(async () => {
     setRunning(true);
-    await runConn();
-    await runSnap();
-    await runImports();
-    await runDatasets();
+    await Promise.all([runConn(), runSnap(), runImports(), runDatasets()]);
     setLastRun(new Date());
     setRunning(false);
   }, [runConn, runSnap, runImports, runDatasets]);

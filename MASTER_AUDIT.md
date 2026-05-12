@@ -23,6 +23,16 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
+### Backtest Reliability Window (2026-05-09 → 2026-05-12)
+
+Hit-rate measurements for slates dated 2026-05-09 through 2026-05-12 are **NOT reliable as a baseline** for engine performance. All of the following were active during this window:
+
+- CONFIG-01 (Gemini CLI destruction) ran 2026-05-09 12:00 ET → 2026-05-12 ~14:00 ET — aggressive weights + relaxed cooldown + minEnergyThreshold=97 produced degraded picks.
+- 2026-05-11: rapid code changes (ENG-01, ENG-04, ENG-05, ENG-06 fixes; BUG-40 fix) altered scoring math mid-stream.
+- 2026-05-12: BUG-31 (edge function INSERT columns), BUG-124 (hit-annotation bleed), BUG-125 (edge function yesterday-block port), BUG-126/127/128 (top30 + on_slate + display order) — at least one fix landed every few hours.
+
+**Implication:** the existing 5/11 slate and any retrospective hit rates computed for 5/11–5/12 reflect a moving target of code + config, not a steady-state engine. Any future engine-tuning baseline must use data from 2026-05-13 onward (first full post-stabilization day). The "code-changes era 33.3% [9.7–70.0%] (n=6)" line in the 2026-05-12 baseline measurement entry should be read as "unreliable, mark for re-measurement after stabilization."
+
 ### CONFIG-01 — Gemini CLI Config Destruction (2026-05-09 ~12:00 ET)
 
 External AI tool (Gemini CLI) overwrote engine config with untested aggressive tuning. No audit entry at the time. Surfaced 2026-05-12 forensic investigation, reverted same day via SQL. Permanent test fixture in `scripts/backtest/configs.ts` as the `destroyed` preset.

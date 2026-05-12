@@ -42,6 +42,23 @@ async function _fetchOnce<T>(url: string, method: string, finalHeaders: Record<s
   }
 }
 
+export async function countFromSupabase(path: string): Promise<number> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new Error('Supabase configuration missing');
+  const url = `${SUPABASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'Prefer': 'count=exact',
+      'Range': '0-0',
+    },
+  });
+  const contentRange = res.headers.get('Content-Range') ?? res.headers.get('content-range') ?? '';
+  const total = contentRange.split('/')[1];
+  return (total && total !== '*') ? parseInt(total, 10) : 0;
+}
+
 export async function fetchFromSupabase<T>({ path, method = 'GET', headers = {}, body, timeoutMs = DEFAULT_TIMEOUT_MS }: SupabaseFetchParams): Promise<T> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new Error('Supabase configuration missing in app.config.ts extra');

@@ -10,7 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { UserRole } from '@/types/core';
-import { fetchFromSupabase } from '@/lib/supabase';
+import { fetchFromSupabase, countFromSupabase } from '@/lib/supabase';
 import { storage } from '@/lib/storage';
 
 const GLOSSARY = [
@@ -101,12 +101,15 @@ export default function AccountScreen() {
   const { data: historiesStats } = useQuery({
     queryKey: ['account_histories_stats'],
     queryFn: async () => {
-      const rows = await fetchFromSupabase<{ jurisdiction: string }[]>({
-        path: '/rest/v1/histories?select=jurisdiction&limit=2000&jurisdiction=not.in.(ME,NH,VT,MS,PR,MD,MS2)',
-      });
+      const [totalDraws, stateRows] = await Promise.all([
+        countFromSupabase('/rest/v1/histories?jurisdiction=not.in.(ME,NH,VT,MS,PR,MD,MS2)'),
+        fetchFromSupabase<{ jurisdiction: string }[]>({
+          path: '/rest/v1/histories?select=jurisdiction&jurisdiction=not.in.(ME,NH,VT,MS,PR,MD,MS2)&limit=500',
+        }),
+      ]);
       return {
-        totalDraws: rows.length,
-        activeStates: new Set(rows.map(r => r.jurisdiction)).size,
+        totalDraws,
+        activeStates: new Set((Array.isArray(stateRows) ? stateRows : []).map(r => r.jurisdiction)).size,
       };
     },
     staleTime: 10 * 60 * 1000,

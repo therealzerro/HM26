@@ -202,10 +202,14 @@ export default function NumberBookScreen() {
       <View style={s.layout}>
         {/* ── Left Sidebar ── */}
         <View style={s.sidebar}>
-          <View style={s.sidebarHeader}>
+          <LinearGradient
+            colors={['#1a0d35', theme.colors.surface] as [string, string]}
+            start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+            style={s.sidebarHeader}
+          >
             <Text style={s.sidebarTitle}>📖 Number <Text style={{ color: theme.colors.primary }}>Book</Text></Text>
             <Text style={s.sidebarSub}>Your personal number collection</Text>
-          </View>
+          </LinearGradient>
 
           <ScrollView style={s.sidebarList}>
             <Text style={s.listSectionLabel}>MY LISTS</Text>

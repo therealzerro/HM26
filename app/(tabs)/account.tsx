@@ -185,9 +185,27 @@ export default function AccountScreen() {
                 <Text style={{ fontSize: 28 }}>🏆</Text>
               </View>
               <View style={s.divider} />
-              <Text style={s.planFreeTeaser}>
-                Unlock all 6 picks · Optimal straights · Unlimited heat checks
-              </Text>
+              {/* FREE vs PRO comparison */}
+              <View style={s.compareGrid}>
+                <View style={[s.compareRow, { backgroundColor: 'rgba(255,255,255,0.04)' }]}>
+                  <Text style={[s.compareFeature, { fontSize: 9, color: theme.colors.textTertiary, letterSpacing: 1.2 }]}>FEATURE</Text>
+                  <Text style={[s.compareFreeTxt, { fontWeight: '800', color: theme.colors.textSecondary }]}>FREE</Text>
+                  <Text style={[s.compareProTxt, { color: theme.colors.purple, fontWeight: '800' }]}>ORACLE+</Text>
+                </View>
+                {([
+                  ['K6 Picks',       '2 of 6',  'All 6 ✓'],
+                  ['Best Straight',  '✗',        '✓'],
+                  ['Heat Checks',    '✗',        'Unlimited ✓'],
+                  ['Deep Analytics', '✗',        '✓'],
+                  ['Hit History',    '✗',        '✓'],
+                ] as [string, string, string][]).map(([feature, freeVal, proVal]) => (
+                  <View key={feature} style={s.compareRow}>
+                    <Text style={s.compareFeature}>{feature}</Text>
+                    <Text style={s.compareFreeTxt}>{freeVal}</Text>
+                    <Text style={s.compareProTxt}>{proVal}</Text>
+                  </View>
+                ))}
+              </View>
               <TouchableOpacity style={s.upgradeBtn} onPress={() => router.push('/paywall')}>
                 <Text style={s.upgradeBtnText}>Upgrade to Oracle+ · $9.99/mo</Text>
               </TouchableOpacity>
@@ -391,6 +409,11 @@ const s = StyleSheet.create({
   planFreeTitle: { fontSize: 15, fontWeight: '800', color: theme.colors.text, marginBottom: 3 },
   planFreeSub: { fontSize: 12, color: theme.colors.textSecondary },
   planFreeTeaser: { fontSize: 12, color: theme.colors.textSecondary, lineHeight: 18, marginVertical: 14 },
+  compareGrid: { borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.border, marginVertical: 12 },
+  compareRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
+  compareFeature: { flex: 2, fontSize: 12, color: theme.colors.text, fontWeight: '600' },
+  compareFreeTxt: { flex: 1, fontSize: 11, color: theme.colors.textTertiary, textAlign: 'center' },
+  compareProTxt:  { flex: 1.5, fontSize: 11, color: theme.colors.success, textAlign: 'center', fontWeight: '700' },
   upgradeBtn: {
     backgroundColor: theme.colors.purple,
     borderRadius: theme.borderRadius.tile,

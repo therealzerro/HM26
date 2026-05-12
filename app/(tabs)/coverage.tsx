@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Stack } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { RefreshCw } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
 import { HORIZONS, PAIR_CLASSES, SCOPES } from '@/constants/pairClasses';
@@ -29,7 +30,11 @@ export default function CoverageScreen() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: 'Coverage' }} />
-      <View style={styles.header}>
+      <LinearGradient
+        colors={['#0d1b2a', theme.colors.background] as [string, string]}
+        start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+        style={styles.header}
+      >
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.title}>Coverage Matrix</Text>
@@ -48,7 +53,7 @@ export default function CoverageScreen() {
             )}
           </TouchableOpacity>
         </View>
-      </View>
+      </LinearGradient>
       <ScrollView horizontal contentContainerStyle={{ paddingHorizontal: theme.spacing.md }}>
         <View>
           <View style={styles.rowHeader}>

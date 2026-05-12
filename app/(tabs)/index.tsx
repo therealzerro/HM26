@@ -66,6 +66,36 @@ const MODE_OPTIONS = [
   { key: 'aggressive', label: 'Aggressive', sub: 'Momentum focus' },
 ];
 
+function useDrawCountdown(scope: string): string {
+  const [text, setText] = React.useState('');
+  React.useEffect(() => {
+    const targets: [number, number][] =
+      scope === 'midday'  ? [[12, 0]]  :
+      scope === 'evening' ? [[19, 30]] :
+      [[12, 0], [19, 30]];
+    const tick = () => {
+      const nowET = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+      let closest = Infinity;
+      for (const [h, m] of targets) {
+        const t = new Date(nowET);
+        t.setHours(h, m, 0, 0);
+        if (t <= nowET) t.setDate(t.getDate() + 1);
+        const diff = t.getTime() - nowET.getTime();
+        if (diff < closest) closest = diff;
+      }
+      if (!isFinite(closest)) { setText(''); return; }
+      const hr = Math.floor(closest / 3_600_000);
+      const mn = Math.floor((closest % 3_600_000) / 60_000);
+      const sc = Math.floor((closest % 60_000) / 1_000);
+      setText(hr > 0 ? `${hr}h ${mn}m` : `${mn}m ${sc}s`);
+    };
+    tick();
+    const id = setInterval(tick, 1_000);
+    return () => clearInterval(id);
+  }, [scope]);
+  return text;
+}
+
 // ─── Onboarding (unchanged from v5) ─────────────────────────────────────
 const ONBOARDING_SCREENS = [
   { emoji: '🏆', title: 'Welcome to HitMaster', body: 'Your daily Pick 3 intelligence system. The ZK6™ Engine analyzes years of draw history to surface your highest-signal plays.', btn: 'Next →' },
@@ -319,6 +349,7 @@ export default function HomeScreen() {
 
   const hasData = Array.isArray(snapshot?.top_k_straights_json) && (snapshot?.top_k_straights_json?.length ?? 0) > 0;
   const avgColor = energyColor(avgEnergy);
+  const nextDrawIn = useDrawCountdown(scope);
 
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
@@ -357,10 +388,16 @@ export default function HomeScreen() {
         {/* ── Single big AVG ENERGY value ── */}
         <View style={s.heroStat}>
           <Text style={[s.heroStatNum, { color: avgColor }]}>{avgEnergy}</Text>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={s.heroStatLabel}>AVG ENERGY</Text>
             <Text style={s.heroStatMeta}>{isFree ? '2 of 6' : '6 picks'} · {SCOPE_LABELS[scope] ?? scope}</Text>
           </View>
+          {nextDrawIn ? (
+            <View style={s.countdownBox}>
+              <Text style={s.countdownLabel}>NEXT DRAW</Text>
+              <Text style={s.countdownTime}>{nextDrawIn}</Text>
+            </View>
+          ) : null}
         </View>
 
         {/* ── Hit Streak Banner (high-signal, keep above slate) ── */}
@@ -484,6 +521,10 @@ const s = StyleSheet.create({
   heroStatNum: { fontSize: 48, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, lineHeight: 50, letterSpacing: -1 },
   heroStatLabel: { fontSize: 10, fontWeight: '900', color: theme.colors.cyan, letterSpacing: 2, fontFamily: theme.typography.fontFamily.monoBold },
   heroStatMeta: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
+
+  countdownBox: { alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.purple + '18', borderRadius: 10, borderWidth: 1, borderColor: theme.colors.purple + '44', paddingHorizontal: 10, paddingVertical: 8, minWidth: 72 },
+  countdownLabel: { fontSize: 7, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
+  countdownTime: { fontSize: 15, fontWeight: '900', color: theme.colors.purple, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 2 },
 
   hitBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginTop: 12, backgroundColor: theme.colors.cyan + '18', borderRadius: 14, borderWidth: 1.5, borderColor: theme.colors.cyan + '55', padding: 12 },
   hitBannerTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold },

@@ -302,13 +302,29 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
 
   const handleShare = async () => {
     try {
-      await Share.share({
-        message:
-          `🎯 HITMASTER ZK6 Pick: ${bestOrder} (Box: ${pick.comboSet})\n` +
-          `Energy ${pick.energy}/100 | ${energyLabel}\n` +
-          `Freq ${Math.round(pick.signals.BOX * 100)}% · Mom ${Math.round(pick.signals.PBURST * 100)}% · Pat ${Math.round(pick.signals.CO * 100)}% · DGC ${Math.round((pick.signals.DGC ?? 0) * 100)}%\n` +
-          `Intelligence is your edge. ⚡`,
-      });
+      const drawsInfo = pick.drawsSince != null && pick.drawsSince < 500
+        ? `  Pressure  ${pick.drawsSince} draws since last hit`
+        : null;
+      const hitsInfo = pick.timesDrawn != null && pick.timesDrawn > 0
+        ? `  All-time  ${pick.timesDrawn}× hits`
+        : null;
+      const lines = [
+        `━━━━━ HITMASTER ZK6 ━━━━━`,
+        `  ${bestOrder[0]} · ${bestOrder[1]} · ${bestOrder[2]}  ◀ ${energyLabel}`,
+        `  Box: ${pick.comboSet}   Scope: ${scope.toUpperCase()}`,
+        ``,
+        `  Energy    ${pick.energy}/100`,
+        `  Freq      ${Math.round(pick.signals.BOX * 100)}%`,
+        `  Momentum  ${Math.round(pick.signals.PBURST * 100)}%`,
+        `  Pattern   ${Math.round(pick.signals.CO * 100)}%`,
+        `  Consist.  ${Math.round((pick.signals.DGC ?? 0) * 100)}%`,
+        drawsInfo,
+        hitsInfo,
+        ``,
+        `⚡ Intelligence is your edge.`,
+        `📲 hitmaster.app  #ZK6 #Pick3`,
+      ].filter(Boolean).join('\n');
+      await Share.share({ message: lines });
     } catch {}
   };
 

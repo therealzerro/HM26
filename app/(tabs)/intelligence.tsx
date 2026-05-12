@@ -373,7 +373,7 @@ function SlateRow({ row }: { row: IntelRow }) {
 // ─── Main Screen ───────────────────────────────────────────────────────────────
 
 export default function IntelligenceScreen() {
-  const [view, setView] = useState<'analysis' | 'slate'>('analysis');
+  const [view, setView] = useState<'today' | 'analysis' | 'slate'>('today');
   const { scope: globalScope } = useScope();
   const { regenerateSlate, checkSlateLock } = useDataIngestion();
 
@@ -436,7 +436,7 @@ export default function IntelligenceScreen() {
   }, []);
 
   useEffect(() => {
-    if (view === 'slate') loadSlate(slateScope);
+    if (view === 'slate' || view === 'today') loadSlate(slateScope);
   }, [view, slateScope]);
 
   const handleRegen = useCallback(async () => {
@@ -584,6 +584,12 @@ export default function IntelligenceScreen() {
       {/* ── Tab switcher ── */}
       <View style={s.tabRow}>
         <TouchableOpacity
+          style={[s.tab, view === 'today' && s.tabOn]}
+          onPress={() => setView('today')}
+        >
+          <Text style={[s.tabText, view === 'today' && s.tabTextOn]}>Today</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={[s.tab, view === 'analysis' && s.tabOn]}
           onPress={() => setView('analysis')}
         >
@@ -593,9 +599,103 @@ export default function IntelligenceScreen() {
           style={[s.tab, view === 'slate' && s.tabOn]}
           onPress={() => setView('slate')}
         >
-          <Text style={[s.tabText, view === 'slate' && s.tabTextOn]}>Top 30 Slate</Text>
+          <Text style={[s.tabText, view === 'slate' && s.tabTextOn]}>Top 30</Text>
         </TouchableOpacity>
       </View>
+
+      {/* ── Today view ── */}
+      {view === 'today' && (
+        <ScrollView
+          contentContainerStyle={s.scroll}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={slateLoading} onRefresh={() => loadSlate(slateScope)} tintColor={theme.colors.primary} />}
+        >
+          <View style={s.todayHeader}>
+            <Text style={s.todayDate}>{getTodayET()}</Text>
+            <Text style={s.todayTitle}>Today's Intelligence</Text>
+          </View>
+
+          <View style={ss.scopeRow}>
+            {(['midday', 'evening', 'allday'] as const).map(sc => (
+              <TouchableOpacity
+                key={sc}
+                style={[ss.scopeBtn, slateScope === sc && ss.scopeBtnOn]}
+                onPress={() => setSlateScope(sc)}
+              >
+                <Text style={[ss.scopeText, slateScope === sc && ss.scopeTextOn]}>
+                  {sc === 'midday' ? '☀️ Midday' : sc === 'evening' ? '🌙 Evening' : '◈ All Day'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {slateRows.length > 0 && (
+            <View style={s.todayStats}>
+              <View style={s.todayChip}>
+                <Text style={[s.todayChipNum, { color: theme.colors.gold }]}>
+                  {slateRows.filter(r => r.on_slate).length}
+                </Text>
+                <Text style={s.todayChipLabel}>K6 Picks</Text>
+              </View>
+              <View style={s.todayChip}>
+                <Text style={[s.todayChipNum, { color: theme.colors.success }]}>
+                  {slateRows.filter(r => r.hit_box || r.hit_straight).length}
+                </Text>
+                <Text style={s.todayChipLabel}>Hits Today</Text>
+              </View>
+              <View style={s.todayChip}>
+                <Text style={[s.todayChipNum, { color: theme.colors.cyan }]}>
+                  {slateRows.length > 0
+                    ? Math.round(slateRows.reduce((a, r) => a + (r.energy_score ?? 0), 0) / slateRows.length)
+                    : 0}
+                </Text>
+                <Text style={s.todayChipLabel}>Avg Energy</Text>
+              </View>
+            </View>
+          )}
+
+          {slateLoading ? (
+            <View style={s.center}>
+              <ActivityIndicator color={theme.colors.primary} />
+              <Text style={s.loadingText}>Loading today's picks…</Text>
+            </View>
+          ) : slateRows.length === 0 ? (
+            <EmptyState
+              icon={Zap}
+              title="No slate for today yet"
+              message="Generate a slate to see today's picks here."
+              action={
+                <TouchableOpacity
+                  style={{ backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius.md, paddingVertical: 12, paddingHorizontal: 24, opacity: regenLoading ? 0.6 : 1 }}
+                  onPress={handleRegen}
+                  disabled={regenLoading}
+                >
+                  {regenLoading
+                    ? <ActivityIndicator color="#fff" size="small" />
+                    : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Generate Slate ⚡</Text>
+                  }
+                </TouchableOpacity>
+              }
+            />
+          ) : (
+            <>
+              {slateRows.filter(r => r.on_slate).length > 0 && (
+                <>
+                  <Text style={s.todaySection}>♛ K6 SLATE PICKS</Text>
+                  {slateRows.filter(r => r.on_slate).map((row, i) => <SlateRow key={row.id ?? i} row={row} />)}
+                </>
+              )}
+              {slateRows.filter(r => !r.on_slate).length > 0 && (
+                <>
+                  <Text style={s.todaySection}>WATCH LIST</Text>
+                  {slateRows.filter(r => !r.on_slate).map((row, i) => <SlateRow key={row.id ?? i} row={row} />)}
+                </>
+              )}
+            </>
+          )}
+          <View style={{ height: 60 }} />
+        </ScrollView>
+      )}
 
       {/* ── Slate view ── */}
       {view === 'slate' && (
@@ -954,6 +1054,15 @@ const s = StyleSheet.create({
   backfillStatus: { fontSize: 12, color: theme.colors.success, marginTop: 10, textAlign: 'center', fontWeight: '600' },
   reloadBtn: { marginTop: 10, backgroundColor: theme.colors.primaryLight, borderRadius: theme.borderRadius.md, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'flex-start' },
   reloadBtnText: { color: theme.colors.primary, fontSize: 13, fontWeight: '700' },
+
+  todayHeader: { marginBottom: 12 },
+  todayDate: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 1, marginBottom: 2 },
+  todayTitle: { fontSize: 22, fontWeight: '900', color: theme.colors.text },
+  todayStats: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  todayChip: { flex: 1, backgroundColor: theme.colors.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border, padding: 10, alignItems: 'center', ...theme.shadows.glow },
+  todayChipNum: { fontSize: 24, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
+  todayChipLabel: { fontSize: 9, color: theme.colors.textTertiary, fontWeight: '700', marginTop: 2 },
+  todaySection: { fontSize: 10, fontWeight: '900', color: theme.colors.textTertiary, letterSpacing: 2, marginTop: 12, marginBottom: 8 },
 });
 
 const ss = StyleSheet.create({

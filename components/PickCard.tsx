@@ -364,11 +364,35 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
             <SignalBar label="CO"     value={pick.signals.CO}         color={SIGNAL_COLORS.CO} />
             <SignalBar label="DGC"    value={pick.signals.DGC ?? 0}   color={SIGNAL_COLORS.DGC} />
 
-            {pressure && (
-              <View style={s.pressureRow}>
-                <View style={[s.pressureDot, { backgroundColor: pressure.color }]} />
-                <Text style={[s.pressureText, { color: pressure.color }]}>{pressure.label}</Text>
-                <Text style={s.pressureSub}>{pressure.sub}</Text>
+            {(pressure || (pick.timesDrawn != null && pick.timesDrawn > 0)) && (
+              <View style={s.pressureBlock}>
+                {pressure && (
+                  <View style={s.pressureRow}>
+                    <View style={[s.pressureDot, { backgroundColor: pressure.color }]} />
+                    <Text style={[s.pressureText, { color: pressure.color }]}>{pressure.label}</Text>
+                    <Text style={s.pressureSub}>{pressure.sub}</Text>
+                  </View>
+                )}
+                {pick.drawsSince != null && pick.drawsSince < 500 && (
+                  <View style={s.timelineRow}>
+                    <View style={s.timelineTrack}>
+                      <View style={[s.timelineFill, {
+                        width: `${Math.min(100, Math.round((pick.drawsSince / 365) * 100))}%` as any,
+                        backgroundColor: pressure?.color ?? theme.colors.gold,
+                      }]} />
+                    </View>
+                    {pick.timesDrawn != null && pick.timesDrawn > 0 && (
+                      <View style={s.hitDots}>
+                        {Array.from({ length: Math.min(5, pick.timesDrawn) }).map((_, i) => (
+                          <View key={i} style={[s.hitDot, { backgroundColor: pressure?.color ?? theme.colors.gold }]} />
+                        ))}
+                        {pick.timesDrawn > 5 && (
+                          <Text style={[s.hitDotMore, { color: pressure?.color ?? theme.colors.gold }]}>+{pick.timesDrawn - 5}</Text>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                )}
               </View>
             )}
           </View>
@@ -488,12 +512,19 @@ const s = StyleSheet.create({
   tag: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 99 },
   tagText: { fontSize: 9, fontWeight: '700' },
   tapHint: { fontSize: 8, color: theme.colors.textTertiary },
+  pressureBlock: { marginTop: 7, gap: 4 },
   pressureRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 7,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
   },
   pressureDot: { width: 5, height: 5, borderRadius: 3 },
   pressureText: { fontSize: 10, fontWeight: '700' },
   pressureSub: { fontSize: 9, color: theme.colors.textTertiary, marginLeft: 2 },
+  timelineRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  timelineTrack: { flex: 1, height: 3, backgroundColor: theme.colors.border, borderRadius: 2, overflow: 'hidden' },
+  timelineFill: { height: 3, borderRadius: 2 },
+  hitDots: { flexDirection: 'row', gap: 3, alignItems: 'center' },
+  hitDot: { width: 6, height: 6, borderRadius: 3 },
+  hitDotMore: { fontSize: 8, fontWeight: '800' },
   bottomRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginTop: 10, paddingTop: 8,

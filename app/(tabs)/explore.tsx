@@ -422,8 +422,13 @@ export default function SlatesScreen() {
         </TouchableOpacity>
       )}
 
-      {/* ── Control strip: filter · sort · view · save — ONE ROW ── */}
-      <View style={s.ctrlStrip}>
+      {/* ── Control strip: filter · sort · view · save — scrollable row ── */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={s.ctrlStripOuter}
+        contentContainerStyle={s.ctrlStrip}
+      >
         {(['all', 'singles', 'doubles'] as const).map(m => (
           <TouchableOpacity key={m} style={[s.ctrlChip, fMult === m && s.ctrlChipOnCyan]} onPress={() => setFMult(m)}>
             <Text style={[s.ctrlText, fMult === m && s.ctrlTextCyan]}>
@@ -437,18 +442,22 @@ export default function SlatesScreen() {
             <Text style={[s.ctrlText, sort === id && s.ctrlTextPurple]}>{lbl}</Text>
           </TouchableOpacity>
         ))}
-        <View style={{ flex: 1 }} />
-        {!showYesterday && ([['list', 'List'], ['compact', 'Grid']] as const).map(([vm, lbl]) => (
-          <TouchableOpacity key={vm} style={[s.ctrlChip, viewMode === vm && s.ctrlChipOnPurple]} onPress={() => setViewMode(vm as any)}>
-            <Text style={[s.ctrlText, viewMode === vm && s.ctrlTextPurple]}>{lbl}</Text>
-          </TouchableOpacity>
-        ))}
+        {!showYesterday && (
+          <>
+            <View style={s.ctrlDiv} />
+            {([['list', 'List'], ['compact', 'Grid']] as const).map(([vm, lbl]) => (
+              <TouchableOpacity key={vm} style={[s.ctrlChip, viewMode === vm && s.ctrlChipOnPurple]} onPress={() => setViewMode(vm as any)}>
+                <Text style={[s.ctrlText, viewMode === vm && s.ctrlTextPurple]}>{lbl}</Text>
+              </TouchableOpacity>
+            ))}
+          </>
+        )}
         {!isFree && (
           <TouchableOpacity style={s.ctrlSaveBtn} onPress={handleSaveSlate} disabled={savingSlate}>
             <Text style={s.ctrlSaveText}>{slateSavedMsg ? '✓' : savingSlate ? '…' : '📖'}</Text>
           </TouchableOpacity>
         )}
-      </View>
+      </ScrollView>
 
       {/* Pick list */}
       <ScrollView style={s.content} contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
@@ -675,8 +684,9 @@ const s = StyleSheet.create({
   proBannerBtnText: { fontSize: 11, fontWeight: '800', color: '#fff', fontFamily: theme.typography.fontFamily.monoBold },
   yesterdayBtn: { borderWidth: 1, borderColor: theme.colors.amber + '55', backgroundColor: theme.colors.amber + '10' },
 
-  // Control strip — filters + sort + view + save in one 30px row
-  ctrlStrip: { flexDirection: 'row', alignItems: 'center', gap: 1, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: theme.colors.background, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  // Control strip — scrollable row (prevents overflow on narrow iOS screens)
+  ctrlStripOuter: { backgroundColor: theme.colors.background, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  ctrlStrip: { flexDirection: 'row', alignItems: 'center', gap: 1, paddingHorizontal: 10, paddingVertical: 5, minHeight: 36 },
   ctrlChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5 },
   ctrlChipOnCyan: { backgroundColor: theme.colors.cyan + '15', borderWidth: 1, borderColor: theme.colors.cyan + '44' },
   ctrlChipOnPurple: { backgroundColor: theme.colors.purple + '20', borderWidth: 1, borderColor: theme.colors.purple + '55' },

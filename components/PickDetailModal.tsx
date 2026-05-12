@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Modal, Animated, Share, Easing, Dimensions,
+  Modal, Animated, Share, Easing, Dimensions, ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop, Rect } from 'react-native-svg';
 import { useQuery } from '@tanstack/react-query';
 import { fetchFromSupabase } from '../lib/supabase';
@@ -243,6 +244,7 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
   const [savedMsg, setSavedMsg] = useState('');
   const slideAnim = useRef(new Animated.Value(SCREEN_H)).current;
   const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const insets    = useSafeAreaInsets();
 
   useEffect(() => {
     Animated.parallel([
@@ -481,13 +483,25 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
       <Animated.View style={[s.overlay, { opacity: fadeAnim }]}>
         <Animated.View style={[s.sheet, { transform: [{ translateY: slideAnim }] }]}>
 
+          {/* ── Safe area spacer + drag handle ── */}
+          <View style={[s.topArea, { paddingTop: insets.top || 14 }]}>
+            <View style={s.dragHandle} />
+          </View>
+
           {/* ── Gradient accent top line ── */}
           <GradientLine />
 
           {/* ── Header ── */}
           <View style={s.header}>
-            <TouchableOpacity onPress={onClose} style={s.iconBtn}>
-              <Text style={s.closeX}>✕</Text>
+            <TouchableOpacity
+              onPress={onClose}
+              style={s.closeBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              activeOpacity={0.7}
+            >
+              <View style={s.closeBtnInner}>
+                <Text style={s.closeX}>✕</Text>
+              </View>
             </TouchableOpacity>
             <View style={s.headerCenter}>
               <View style={s.rankBadge}>
@@ -495,8 +509,15 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
               </View>
               <Text style={s.headerTitle}>PICK #{pick.rank ?? 1}  ·  ZK6</Text>
             </View>
-            <TouchableOpacity onPress={handleShare} style={s.iconBtn}>
-              <Text style={{ fontSize: 15 }}>📤</Text>
+            <TouchableOpacity
+              onPress={handleShare}
+              style={s.closeBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              activeOpacity={0.7}
+            >
+              <View style={s.closeBtnInner}>
+                <Text style={{ fontSize: 16 }}>📤</Text>
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -546,11 +567,16 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
           <TabBar active={tab} onPress={setTab} />
 
           {/* ── Content ── */}
-          <View style={s.content}>
+          <ScrollView
+            style={s.content}
+            contentContainerStyle={{ paddingBottom: (insets.bottom || 0) + 24 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             {tab === 'INTEL' && renderIntel()}
             {tab === 'PAIRS' && renderPairs()}
             {tab === 'PLAY'  && renderPlay()}
-          </View>
+          </ScrollView>
 
         </Animated.View>
       </Animated.View>
@@ -560,7 +586,7 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const ct = StyleSheet.create({
-  pad:          { flex: 1, padding: 16 },
+  pad:          { padding: 16 },
   sectionTitle: { fontSize: 9, fontWeight: '900', color: D.cyan, letterSpacing: 2, marginBottom: 8 },
   subtitle:     { fontSize: 9, color: D.textDim, marginTop: -4, marginBottom: 10 },
 
@@ -613,14 +639,20 @@ const s = StyleSheet.create({
   overlay:  { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)' },
   sheet:    { flex: 1, backgroundColor: D.bg },
 
+  // Safe area top + drag handle
+  topArea:      { backgroundColor: D.bg, alignItems: 'center', paddingBottom: 8 },
+  dragHandle:   { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)' },
+
   // Header
-  header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   rankBadge:    { width: 24, height: 24, borderRadius: 12, backgroundColor: D.gold + '22', borderWidth: 1, borderColor: D.gold + '55', alignItems: 'center', justifyContent: 'center' },
   rankText:     { fontSize: 10, fontWeight: '900', color: D.gold },
   headerTitle:  { fontSize: 14, fontWeight: '900', color: D.text, letterSpacing: 0.5 },
-  iconBtn:      { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.07)', alignItems: 'center', justifyContent: 'center' },
-  closeX:       { fontSize: 13, color: D.textSub, fontWeight: '700' },
+  // Close / share buttons — 44×44 touch area with visible inner circle
+  closeBtn:     { padding: 4 },
+  closeBtnInner:{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
+  closeX:       { fontSize: 15, color: D.text, fontWeight: '800' },
 
   // Hero
   hero:            { flexDirection: 'row', alignItems: 'center', backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.glassBorder, paddingHorizontal: 16, paddingVertical: 14, gap: 10 },

@@ -18,6 +18,10 @@ export interface EngineConfig {
   recentHitCooldown: number;
   synergyOn: boolean;
   synergyWeight: number;
+  // Yesterday-hit hard block. true = exclude yesterday's winners (current local engine).
+  // false = match the pre-port edge function which only blocked today's winners.
+  // Defaults to true when omitted.
+  excludeYesterdayHits?: boolean;
 }
 
 export interface ReplayPick {

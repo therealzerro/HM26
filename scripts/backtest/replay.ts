@@ -270,11 +270,12 @@ export async function computeSlateAsOf(
   const scopeEnc = encodeURIComponent(scope);
   const weights = config.presets[mode];
 
+  const excludeYesterday = config.excludeYesterdayHits !== false; // default true
   const [boxRows, pairRows, historyRows, todayHitComboSets] = await Promise.all([
     fetchBoxRows(scopeEnc),
     fetchPairRows(scopeEnc),
     fetchHistoryRows(date, scope),
-    fetchYesterdayResults(date),
+    excludeYesterday ? fetchYesterdayResults(date) : Promise.resolve(new Set<string>()),
   ]);
 
   const { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap } = buildDatasets(boxRows, pairRows);

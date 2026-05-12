@@ -419,23 +419,23 @@ export default function ResultsScreen() {
               {hasHit && hit ? (
                 <>
                   <View style={s.signalItem}>
-                    <Text style={[s.signalKey, { color: theme.colors.cyan }]}>F</Text>
+                    <Text style={[s.signalKey, { color: theme.colors.cyan }]}>BOX</Text>
                     <Text style={[s.signalVal, { color: theme.colors.cyan }]}>{Math.round((hit.signal_box ?? 0) * 100)}</Text>
                   </View>
                   <View style={s.signalItem}>
-                    <Text style={[s.signalKey, { color: theme.colors.rose }]}>B</Text>
+                    <Text style={[s.signalKey, { color: theme.colors.rose }]}>PBR</Text>
                     <Text style={[s.signalVal, { color: theme.colors.rose }]}>{Math.round((hit.signal_pburst ?? 0) * 100)}</Text>
                   </View>
                   <View style={s.signalItem}>
-                    <Text style={[s.signalKey, { color: theme.colors.gold }]}>S</Text>
+                    <Text style={[s.signalKey, { color: theme.colors.gold }]}>DGC</Text>
                     <Text style={[s.signalVal, { color: theme.colors.gold }]}>{Math.round((hit.signal_dgc ?? 0) * 100)}</Text>
                   </View>
                 </>
               ) : (
                 <>
-                  <Text style={[s.signalKey, { color: theme.colors.cyan + '40' }]}>F</Text>
-                  <Text style={[s.signalKey, { color: theme.colors.rose  + '40' }]}>B</Text>
-                  <Text style={[s.signalKey, { color: theme.colors.gold  + '40' }]}>S</Text>
+                  <Text style={[s.signalKey, { color: theme.colors.cyan + '40' }]}>BOX</Text>
+                  <Text style={[s.signalKey, { color: theme.colors.rose  + '40' }]}>PBR</Text>
+                  <Text style={[s.signalKey, { color: theme.colors.gold  + '40' }]}>DGC</Text>
                 </>
               )}
             </View>

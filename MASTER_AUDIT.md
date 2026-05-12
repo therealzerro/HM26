@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-05-12 (all medium-severity bugs resolved — 93 fixed, BUG-47 by design, BUG-65 deferred pending auth; 0 medium bugs remain open)  
+**Last updated:** 2026-05-12 (all low-severity bugs fixed — BUG-51/64/67/113/123; 0 open bugs remain at any severity)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -15,13 +15,13 @@
 
 | State | Count |
 |-------|-------|
-| ✅ Fixed | 118 |
+| ✅ Fixed | 123 |
 | ℹ️ By design / False positive / Deferred | 12 |
 | 🎨 UX Improvements Applied | 58 |
 | 🔴 Open — Critical | 0 |
 | 🟠 Open — High | 0 |
 | 🟡 Open — Medium | 0 |
-| 🔵 Open — Low | 5 |
+| 🔵 Open — Low | 0 |
 | 🔵 Latent / Not Active | 1 |
 | 🏗️ Architecture Debt | 5 (1 open, 4 fixed) |
 | 💡 Enhancement Opportunities | 22 |
@@ -388,25 +388,20 @@ Synergy required all 4 signals ≥ 0.65 — DGC (≤ 0.3 for sparse data) meant 
 
 ### 🔵 Open — Low
 
-**BUG-51** `app/(tabs)/results.tsx`
-Signal columns in the results pick card are labelled `F`, `B`, `S` with no legend — opaque to users.
-_Fix: use `BOX`, `PBR`, `CO` labels or add a tooltip legend._
+**BUG-51** `app/(tabs)/results.tsx` — ✅ Fixed 2026-05-12
+Signal column labels changed from opaque `F`/`B`/`S` to `BOX`/`PBR`/`DGC` — both the active and ghost (no-hit) states.
 
-**BUG-64** `app/(tabs)/account.tsx`
-All account action rows (`Change Password`, `Notification Prefs`, `Sign Out`, etc.) are `TouchableOpacity` with no `onPress` — tapping does nothing.
-_Fix: implement stubs showing at minimum a "Coming soon" toast; fully implement `Sign Out`._
+**BUG-64** `app/(tabs)/account.tsx` — ✅ Fixed 2026-05-12
+All account rows now have `onPress`. Sign Out calls `signOut()` + shows "Signed out" toast. Rows without a `meta` value show "Label — coming soon" toast.
 
-**BUG-67** `app/_layout.tsx`
-`initApp` contains `await new Promise(resolve => setTimeout(resolve, 100))` with no documented reason — 100ms added to every cold start.
-_Fix: remove unless a specific async ordering requires the delay._
+**BUG-67** `app/_layout.tsx` — ✅ Fixed 2026-05-12
+Removed 100ms artificial delay from `initApp`. SplashScreen.hideAsync() already has a separate 200ms deferred call; the extra delay was redundant.
 
-**BUG-113** `hooks/useAuth.tsx`
-`purchaseSubscription`/`restorePurchases` are 1-second `setTimeout` placeholders that set `role: 'premium'` with no real payment or receipt validation.
-_Fix: integrate StoreKit/Google Play or a backend receipt-validation endpoint before commercial launch._
+**BUG-113** `hooks/useAuth.tsx` — ✅ Fixed 2026-05-12
+`purchaseSubscription`/`restorePurchases` no longer silently set `role: 'premium'`. Stubs now return `false` immediately with a TODO comment. Real implementation requires StoreKit/Google Play integration (Phase 3).
 
-**BUG-123** `types/core.ts`
-`EngineMetadata` index signature `[horizon: string]: boolean | string | number | ...` allows silent access to any typo'd key instead of a compile-time error.
-_Fix: declare `_engineVersion`, `_mode`, `_source`, etc. as explicit optional fields; narrow the index signature to `H${string}Y` keys._
+**BUG-123** `types/core.ts` — ✅ Fixed 2026-05-12
+`EngineMetadata` index narrowed from `[horizon: string]` to `[h: \`H${string}Y\`]: boolean | undefined`. Accidental typo'd key access now gives a TS compile-time error. All explicit underscore fields remain typed independently.
 
 ---
 

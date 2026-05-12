@@ -62,7 +62,7 @@ const tog = StyleSheet.create({
 });
 
 export default function AccountScreen() {
-  const { user, setRole, purchaseSubscription, restorePurchases } = useAuth();
+  const { user, setRole, purchaseSubscription, restorePurchases, signOut } = useAuth();
   const { showToast } = useToast();
   const [glossOpen, setGlossOpen] = useState<number | null>(null);
   const [notifPrefs, setNotifPrefs] = useState({ nextDraw: true, slateReady: true, hits: true, promo: false });
@@ -303,6 +303,14 @@ export default function AccountScreen() {
                 key={i}
                 style={[s.accountRow, i < arr.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border }]}
                 activeOpacity={0.7}
+                onPress={() => {
+                  if (label === 'Sign Out') {
+                    signOut();
+                    showToast('Signed out', 'info');
+                  } else if (!meta) {
+                    showToast(`${label} — coming soon`, 'info');
+                  }
+                }}
               >
                 <Text style={s.accountIcon}>{icon}</Text>
                 <Text style={[s.accountLabel, isDanger && { color: theme.colors.error }]}>{label}</Text>

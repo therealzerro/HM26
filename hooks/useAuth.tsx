@@ -55,30 +55,14 @@ export const [AuthProvider, useAuth] = createContextHook<AuthState>(() => {
     await AsyncStorage.setItem('user', JSON.stringify(defaultUser));
   }, []);
 
-  const purchaseSubscription = useCallback(async (plan: string): Promise<boolean> => {
-    console.log('[useAuth] Purchasing subscription:', plan);
-    try {
-      // Phase 3: Live subscription purchase (placeholder)
-      await new Promise<void>(resolve => setTimeout(resolve, 1000));
-      await setRole('premium');
-      return true;
-    } catch (error) {
-      console.log('[useAuth] Purchase failed:', error);
-      return false;
-    }
-  }, [setRole]);
+  const purchaseSubscription = useCallback(async (_plan: string): Promise<boolean> => {
+    // TODO Phase 3: integrate StoreKit/Google Play receipt validation before commercial launch
+    return false;
+  }, []);
 
   const restorePurchases = useCallback(async (): Promise<boolean> => {
-    console.log('[useAuth] Restoring purchases');
-    try {
-      // Phase 3: Live restore purchases (placeholder)
-      await new Promise<void>(resolve => setTimeout(resolve, 1000));
-      await setRole('premium');
-      return true;
-    } catch (error) {
-      console.log('[useAuth] Restore failed:', error);
-      return false;
-    }
+    // TODO Phase 3: integrate StoreKit/Google Play receipt validation before commercial launch
+    return false;
   }, [setRole]);
 
   return useMemo(() => ({ 

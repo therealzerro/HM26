@@ -109,8 +109,6 @@ function AppContent() {
 
     const initApp = async () => {
       try {
-        await new Promise(resolve => setTimeout(resolve, 100));
-
         if (mounted) {
           setIsReady(true);
           setTimeout(() => {

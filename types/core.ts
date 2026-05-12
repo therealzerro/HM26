@@ -123,7 +123,7 @@ export interface TopKStraightRow {
 }
 
 export interface EngineMetadata {
-  [horizon: string]: boolean | string | number | SlateDataStats | undefined;
+  [h: `H${string}Y`]: boolean | undefined;
   _engineVersion?: string;
   _mode?: string;
   _confidence?: number;

@@ -79,6 +79,7 @@ interface AnalysisData {
   minEnergyWithHits: number;
   // Tier 4 additions
   synergyCombos: SynergyCombo[];
+  daysWithHit: number;
 }
 
 function weightedAvg(values: number[], weights: number[]) {
@@ -108,6 +109,8 @@ function computeAnalysis(rows: IntelRow[]): AnalysisData {
 
   const boxHitsCount = rows.filter(r => r.hit_box).length;
   const straightHitsCount = rows.filter(r => r.hit_straight).length;
+  const last30Dates = new Set(rows.filter(r => r.hit_box || r.hit_straight).map(r => r.slate_date));
+  const daysWithHit = last30Dates.size;
 
   const avgBoxHits    = weightedAvg(hits.map(r => r.signal_box    ?? 0), hits.map(r => r.weight));
   const avgBoxMiss    = weightedAvg(misses.map(r => r.signal_box   ?? 0), misses.map(r => r.weight));
@@ -224,6 +227,7 @@ function computeAnalysis(rows: IntelRow[]): AnalysisData {
     energyRanges, bestEnergyMin,
     minEnergyWithHits: isFinite(minEnergyWithHits) ? Math.round(minEnergyWithHits) : 0,
     synergyCombos,
+    daysWithHit,
   };
 }
 
@@ -827,6 +831,9 @@ export default function IntelligenceScreen() {
           <StatCard label="Box Hit Rate" value={`${d.boxHitRate.toFixed(1)}%`} color={theme.colors.success} />
           <StatCard label="Straight Rate" value={`${d.straightHitRate.toFixed(1)}%`} color={theme.colors.primary} />
           <StatCard label="Best Rank" value={`#${d.bestRank}`} color={theme.colors.gold} />
+        </View>
+        <View style={s.statRow}>
+          <StatCard label="Days With Hit" value={`${d.daysWithHit}`} color={theme.colors.teal} />
         </View>
 
         {/* Section B — Signal Analysis */}

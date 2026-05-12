@@ -39,6 +39,10 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
   const [detectProgress, setDetectProgress] = useState('');
   const [detectResult, setDetectResult] = useState<HitDetectionResult | null>(null);
 
+  // Full Daily Workflow state
+  const [isRunningWorkflow, setIsRunningWorkflow] = useState(false);
+  const [workflowProgress, setWorkflowProgress] = useState('');
+
   // Clear Top 30 state
   const [clearingIntel, setClearingIntel] = useState<string | null>(null);
   const [clearIntelResult, setClearIntelResult] = useState<string | null>(null);
@@ -129,6 +133,38 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
       setZk30BusyMap(m => ({ ...m, [scope]: false }));
     }
   }, [zk30Jurisdiction]);
+
+  const handleFullWorkflow = useCallback(async () => {
+    setIsRunningWorkflow(true);
+    setWorkflowProgress('Step 1/2: Running hit detection…');
+    try {
+      const yesterday = getYesterdayET();
+      const today = getTodayET();
+      let totalHits = 0;
+      for (const date of [yesterday, today]) {
+        const res = await runHitDetectionAllScopes(date);
+        totalHits += res.hitsFound;
+      }
+      setWorkflowProgress(`Hit detection done (${totalHits} hit${totalHits !== 1 ? 's' : ''}) · Step 2/2: Regenerating all slates…`);
+      const date = targetDateOption === 'today' ? getTodayET() : getTomorrowET();
+      const scopes: Array<'midday' | 'evening' | 'allday'> = ['midday', 'evening', 'allday'];
+      const results = await Promise.all(
+        scopes.map(async (sc) => {
+          try {
+            const res = await regenerateSlate(sc, 'balanced', false, date);
+            return res.status === 'success' ? '✓' : res.status;
+          } catch { return 'error'; }
+        })
+      );
+      queryClient.invalidateQueries({ queryKey: ['snapshot'] });
+      queryClient.invalidateQueries({ queryKey: ['daily_intelligence_hits'] });
+      setWorkflowProgress(`Done · Hits detected · Slates: ${results.join(' / ')}`);
+    } catch (e) {
+      setWorkflowProgress('Workflow error — check logs');
+    } finally {
+      setIsRunningWorkflow(false);
+    }
+  }, [targetDateOption, regenerateSlate, queryClient]);
 
   const handleDetectHits = useCallback(async () => {
     setIsDetecting(true);
@@ -331,6 +367,26 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
         />
 
         <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.border, paddingTop: 12 }}>
+          <TouchableOpacity
+            onPress={handleFullWorkflow}
+            disabled={isRunningWorkflow || isDetecting || isRegening}
+            style={{
+              flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+              backgroundColor: isRunningWorkflow ? theme.colors.surfaceLight : theme.colors.primary + '18',
+              borderWidth: 1.5, borderColor: theme.colors.primary + '55',
+              paddingVertical: 11, borderRadius: 10, marginBottom: 8,
+            }}
+          >
+            {isRunningWorkflow && <ActivityIndicator size="small" color={theme.colors.primary} />}
+            <Text style={{ fontSize: 12, fontWeight: '800', color: isRunningWorkflow ? theme.colors.textSecondary : theme.colors.primary }}>
+              {isRunningWorkflow ? workflowProgress : '⚡ Full Daily Workflow'}
+            </Text>
+          </TouchableOpacity>
+          {!isRunningWorkflow && workflowProgress ? (
+            <View style={{ backgroundColor: theme.colors.surfaceLight, borderRadius: 8, padding: 8, marginBottom: 8 }}>
+              <Text style={{ fontSize: 10, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, textAlign: 'center' }}>{workflowProgress}</Text>
+            </View>
+          ) : null}
           <TouchableOpacity
             onPress={handleDetectHits}
             disabled={isDetecting}

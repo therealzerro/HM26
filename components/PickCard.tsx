@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Share, Animated, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { theme } from '@/constants/theme';
 import { SignalBar } from './SignalBar';
 import { EnergyMeter } from './EnergyMeter';
+import { storage } from '@/lib/storage';
 
 const SIGNAL_COLORS = {
   BOX:    theme.colors.cyan,
@@ -169,6 +170,24 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
     onUnlock?.();
   };
 
+  const handleLongPress = useCallback(async () => {
+    if (pick.locked) return;
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const raw = await storage.getItem('number_book_lists');
+      const lists: Array<{ id: string; name: string; scope: string; states: string[]; combos: Array<{ combo: string; note: string; starred: boolean; energy?: number }>; type?: string }> = raw ? JSON.parse(raw) : [];
+      const target = lists.find(l => l.type !== 'saved_slate') ?? null;
+      if (!target) {
+        const newList = { id: String(Date.now()), name: 'My Numbers', scope: 'allday', states: [], combos: [], type: 'custom' as const };
+        lists.unshift(newList);
+      }
+      const list = lists.find(l => l.type !== 'saved_slate')!;
+      if (list.combos.some(c => c.combo === pick.combo)) return;
+      list.combos.unshift({ combo: pick.combo, note: `ZK6 Pick #${pick.rank}`, starred: false, energy: pick.energy });
+      await storage.setItem('number_book_lists', JSON.stringify(lists));
+    } catch { /* ignore */ }
+  }, [pick]);
+
   const handleShare = async () => {
     try {
       await Share.share({
@@ -220,7 +239,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
         !isHit && isHot && { shadowColor: heat.color, shadowOpacity: glowAnim as unknown as number, shadowRadius: 12, elevation: 8 },
       ]}
     >
-      <TouchableOpacity onPress={handleTap} activeOpacity={0.85}>
+      <TouchableOpacity onPress={handleTap} onLongPress={handleLongPress} delayLongPress={600} activeOpacity={0.85}>
         {/* ── HIT banner ── */}
         {isHit && (
           <View style={[s.hitBanner, { backgroundColor: hitColor + '18', borderColor: hitColor + '50' }]}>

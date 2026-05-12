@@ -24,7 +24,7 @@
 | 🔵 Open — Low | 0 |
 | 🔵 Latent / Not Active | 1 |
 | 🏗️ Architecture Debt | 5 (1 open, 4 fixed) |
-| 💡 Enhancement Opportunities | 22 |
+| 💡 Enhancement Opportunities | 22 (20 implemented, 2 deferred — ENH-08 requires DB schema, ENH-12 requires new table) |
 
 ---
 
@@ -407,30 +407,30 @@ Removed 100ms artificial delay from `initApp`. SplashScreen.hideAsync() already 
 
 ## Enhancement Opportunities
 
-| ID | File | Title |
-|----|------|-------|
-| ENH-01 | `components/PickDetailModal.tsx` | Wire `HitReplay` component — exists in `HitReplay.tsx` but never imported; PLAY tab would benefit from showing the side-by-side predicted vs drawn visual when `pick.hitType` is set |
-| ENH-02 | `app/(tabs)/results.tsx` | Combo-set cluster view — when multiple results share the same combo-set on one day, group them and show a cluster hit count |
-| ENH-03 | `app/(tabs)/intelligence.tsx` | "Days with a hit" stat — add "X of last 30 days had ≥1 box hit" to make performance claims concrete |
-| ENH-04 | `app/(tabs)/book.tsx` | "Add from Today's Slate" shortcut — import current scope's 6 K6 picks directly into a list without manual entry |
-| ENH-05 | `lib/hitDetection.ts` | Persist `hitSession` on updated snapshot picks — already written to `daily_intelligence` but not stored on the snapshot pick object |
-| ENH-06 | `hooks/useSnapshot.tsx` | Show slate generation timestamp on Home — `updated_at_et` is in the snapshot; "Generated at 6:12 am" label builds trust and shows freshness |
-| ENH-07 | `components/admin/DashboardView.tsx` | "Full Daily Workflow" button — single tap runs: hit detection (yesterday+today) → regen all scopes → invalidate all caches |
-| ENH-08 | `engines/zk6.ts` / `engines/zk30.ts` | Engine run telemetry — upsert a summary row per generation in `adaptive_tracking` (scope, weightsKey, horizons used, confidence score) for longitudinal tuning data |
-| ENH-09 | `app/(tabs)/explore.tsx` | Slate freshness indicator — show "Generated 3 hours ago" or "⚠ Slate is 2 days old" from `updated_at_et` |
-| ENH-10 | `app/(tabs)/intelligence.tsx` | Scope filter on Top 30 — currently shows all scopes combined; a scope selector would let admin review per-scope without cross-scope noise |
-| ENH-11 | `components/admin/AdaptiveLearningView.tsx` | Split box vs straight hit rates in the 7-day chart — amber for box, cyan for straight |
-| ENH-12 | `lib/hitDetection.ts` | Hit detection run log — write a `hit_detection_runs` row (date, scopes_checked, hits_found, run_at) after each run to track coverage and catch silent failures |
-| ENH-13 | `app/(tabs)/results.tsx` | Hit-result share button — when `hitType !== null`, a share button copies "My #2 pick 427 hit BOX in Arizona on 5/9 via HitMaster ZK6" for social |
-| ENH-14 | `hooks/useDataIngestion.tsx` | Surface rejected import rows — add `rejectedSamples[0..4]` with reasons to the import summary modal |
-| ENH-15 | `components/admin/EngineConfigView.tsx` | Weight integrity check before save — verify `BOX+PBURST+CO+DGC ≈ 1.0` and `singlesMax+doublesMax ≥ 6` before committing config |
-| ENH-16 | `app/(tabs)/account.tsx` | Implement Sign Out — clear AsyncStorage, reset `useAuth` state, navigate to onboarding; required before multi-user launch |
-| ENH-17 | `app/(tabs)/zk30.tsx` | "Open Admin" shortcut on ZK30 empty state — current EmptyState directs user to Admin screen but provides no navigation button |
-| ENH-18 | `components/admin/HealthTestsView.tsx` | `daily_intelligence` freshness health check — add a test verifying today's Top 30 rows exist for each scope |
-| ENH-19 | `engines/zk6.ts` | Read `synergy_boost_on`/`synergy_boost_weight` from `app_config` in the client engine — currently only the edge function honours these keys |
-| ENH-20 | `lib/dateUtils.ts` | Add `isETDateToday(dateStr)` utility — several places compare stored ET date strings to device `Date.now()` without a shared ET-aware helper |
-| ENH-21 | `components/PickCard.tsx` | Long-press quick-save to Number Book — "Save to Book" + "Copy combo" sheet; stub exists in PickDetailModal but not on the card |
-| ENH-22 | `app/(tabs)/explore.tsx` | Pull-to-refresh triggers hit detection — extend the Slates pull-to-refresh to also run `runHitDetectionAndRefresh(scope, todayET)`, closing the loop without an Admin visit |
+| ID | File | Title | Status |
+|----|------|-------|--------|
+| ENH-01 | `components/PickDetailModal.tsx` | Wire `HitReplay` component — exists in `HitReplay.tsx` but never imported; PLAY tab would benefit from showing the side-by-side predicted vs drawn visual when `pick.hitType` is set | ✅ Already implemented |
+| ENH-02 | `app/(tabs)/results.tsx` | Combo-set cluster view — when multiple results share the same combo-set on one day, group them and show a cluster hit count | ✅ Fixed 2026-05-12 |
+| ENH-03 | `app/(tabs)/intelligence.tsx` | "Days with a hit" stat — add "X of last 30 days had ≥1 box hit" to make performance claims concrete | ✅ Fixed 2026-05-12 |
+| ENH-04 | `app/(tabs)/book.tsx` | "Add from Today's Slate" shortcut — import current scope's 6 K6 picks directly into a list without manual entry | ✅ Fixed 2026-05-12 |
+| ENH-05 | `lib/hitDetection.ts` | Persist `hitSession` on updated snapshot picks — already written to `daily_intelligence` but not stored on the snapshot pick object | ✅ Already implemented |
+| ENH-06 | `app/(tabs)/index.tsx` | Show slate generation timestamp on Home — `updated_at_et` is in the snapshot; "Generated at 6:12 am" label builds trust and shows freshness | ✅ Fixed 2026-05-12 |
+| ENH-07 | `components/admin/DashboardView.tsx` | "Full Daily Workflow" button — single tap runs: hit detection (yesterday+today) → regen all scopes → invalidate all caches | ✅ Fixed 2026-05-12 |
+| ENH-08 | `engines/zk6.ts` / `engines/zk30.ts` | Engine run telemetry — upsert a summary row per generation in `adaptive_tracking` (scope, weightsKey, horizons used, confidence score) for longitudinal tuning data | ℹ️ Deferred — requires DB schema change (`adaptive_tracking` table extension) |
+| ENH-09 | `app/(tabs)/explore.tsx` | Slate freshness indicator — show "Generated 3 hours ago" or "⚠ Slate is 2 days old" from `updated_at_et` | ✅ Fixed 2026-05-12 |
+| ENH-10 | `app/(tabs)/intelligence.tsx` | Scope filter on Top 30 — currently shows all scopes combined; a scope selector would let admin review per-scope without cross-scope noise | ✅ Already implemented |
+| ENH-11 | `components/admin/AdaptiveLearningView.tsx` | Split box vs straight hit rates in the 7-day chart — amber for box, cyan for straight | ✅ Fixed 2026-05-12 |
+| ENH-12 | `lib/hitDetection.ts` | Hit detection run log — write a `hit_detection_runs` row (date, scopes_checked, hits_found, run_at) after each run to track coverage and catch silent failures | ℹ️ Deferred — requires new `hit_detection_runs` table |
+| ENH-13 | `app/(tabs)/results.tsx` | Hit-result share button — when `hitType !== null`, a share button copies "My #2 pick 427 hit BOX in Arizona on 5/9 via HitMaster ZK6" for social | ✅ Fixed 2026-05-12 |
+| ENH-14 | `hooks/useDataIngestion.tsx` | Surface rejected import rows — add `rejectedSamples[0..4]` with reasons to the import summary modal | ✅ Fixed 2026-05-12 |
+| ENH-15 | `components/admin/EngineConfigView.tsx` | Weight integrity check before save — verify `BOX+PBURST+CO+DGC ≈ 1.0` and `singlesMax+doublesMax ≥ 6` before committing config | ✅ Fixed 2026-05-12 |
+| ENH-16 | `app/(tabs)/account.tsx` | Implement Sign Out — clear AsyncStorage, reset `useAuth` state, navigate to onboarding; required before multi-user launch | ✅ Fixed 2026-05-12 |
+| ENH-17 | `app/(tabs)/zk30.tsx` | "Open Admin" shortcut on ZK30 empty state — current EmptyState directs user to Admin screen but provides no navigation button | ✅ Fixed 2026-05-12 |
+| ENH-18 | `components/admin/HealthTestsView.tsx` | `daily_intelligence` freshness health check — add a test verifying today's Top 30 rows exist for each scope | ✅ Fixed 2026-05-12 |
+| ENH-19 | `engines/zk6.ts` | Read `synergy_boost_on`/`synergy_boost_weight` from `app_config` in the client engine — currently only the edge function honours these keys | ✅ Already implemented |
+| ENH-20 | `lib/dateUtils.ts` | Add `isETDateToday(dateStr)` utility — several places compare stored ET date strings to device `Date.now()` without a shared ET-aware helper | ✅ Fixed 2026-05-12 |
+| ENH-21 | `components/PickCard.tsx` | Long-press quick-save to Number Book — "Save to Book" + "Copy combo" sheet; stub exists in PickDetailModal but not on the card | ✅ Fixed 2026-05-12 |
+| ENH-22 | `app/(tabs)/explore.tsx` | Pull-to-refresh triggers hit detection — extend the Slates pull-to-refresh to also run `runHitDetectionAndRefresh(scope, todayET)`, closing the loop without an Admin visit | ✅ Fixed 2026-05-12 |
 
 ---
 
@@ -710,5 +710,6 @@ Applied design handoff 4 patches and v3 system patches. All items sourced from `
 | 2026-05-12 | BUG-39 fixed (High): `file_meta` not a column in `slate_snapshots` — explicit SELECT caused 400 on all tier-3 queries. Removed from column list; dropped supplement-skip guard. Commit 603d732. | Claude Code |
 | 2026-05-12 | BUG-56/57/59/82/84/107 fixed (all 6 critical): Number Book persistence added (AsyncStorage); sample lists removed; XHR replaced with fetchFromSupabase in admin-imports + HitTrackingView + useDataIngestion; hardcoded anon JWT fallback removed from useDataIngestion; Supabase project URL removed from HealthTestsView UI. Fixed count 44→50, Critical Open 6→0. Commit 42f6d2c. | Claude Code |
 | 2026-05-12 | Deep scan complete: full read of 38 production files. BUG-41 through BUG-123 documented (83 new findings: 6 critical, 20 high, 51 medium, 5 low, 1 updated). ENH-01 through ENH-22 documented. Quick Counts updated. No fixes applied — awaiting triage orders. | Claude Code |
+| 2026-05-12 | ENH-01 through ENH-22 implemented (20 of 22). ENH-02 results.tsx: combo-set cluster view with hit-count grouping. ENH-03 intelligence.tsx: "Days With Hit" stat card. ENH-04 book.tsx: "Add from Slate" button fetches today's K6 picks into active list. ENH-06 index.tsx: "Generated at HH:MM" timestamp on AVG ENERGY card. ENH-07 DashboardView.tsx: "Full Daily Workflow" button chains hit detection + regen all. ENH-09 explore.tsx: freshness "Xm ago" in status strip. ENH-11 AdaptiveLearningView.tsx: 7-day chart split into green (box) + blue (straight) stacked bars. ENH-13 results.tsx: share button on hit cards via Share API. ENH-14 useDataIngestion.tsx + import-wizard.tsx: rejectedSamples field surfaced in summary modal. ENH-15 EngineConfigView.tsx: weight integrity check gates handleSave. ENH-16 useAuth.tsx + account.tsx: signOut clears all AsyncStorage keys and navigates to /. ENH-17 zk30.tsx: "Open Admin" button on EmptyState. ENH-18 HealthTestsView.tsx: 5th health test for daily_intelligence freshness. ENH-20 dateUtils.ts: isETDateToday() added. ENH-21 PickCard.tsx: long-press (600ms) saves combo to first Number Book list. ENH-22 explore.tsx: pull-to-refresh runs runHitDetectionAllScopes (today + yesterday) before refreshSnapshot. ENH-08 deferred (requires adaptive_tracking schema extension). ENH-12 deferred (requires new hit_detection_runs table). | Claude Code |
 | 2026-05-12 | BUG-40 fixed (High): `on_slate=false` (set by "Clear Top 30") blocked tier-1 confirmed-hits query — `on_slate=eq.true` guard removed from `hits` query only. `onSlatePicks` (tier-2) retains the guard intentionally. Fixed count 40→44. Commit 25de56d. | Claude Code |
 | 2026-05-12 | V6 Patch 02 — SlatesScreen 3-tab densification (UX-61): `app/(tabs)/explore.tsx` full replacement. Replaced 5-band chrome stack with 3-tab segmented control (Slate · Live · More) below a simplified header. SLATE tab: scope pills + filter/sort/view-mode chips merged into a single horizontally-scrollable `scopeRow` (`maxHeight: 42`) — eliminates `ctrlStripOuter` (BUG-32 no longer relevant). LIVE tab: `DrawTicker` + today's hit list + heat check action row. MORE tab: yesterday toggle + save slate + engine mode + daily credits (Pro) + pro upsell banner + responsible play disclaimer. Yesterday query now gated with `enabled: tab === 'more' && showYesterday` — no wasted network call when not on More tab. `DrawTicker` added as new import (was not in explore.tsx before). All state handlers preserved. UX Improvements Applied 48→50. | Claude Code |

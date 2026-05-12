@@ -52,13 +52,14 @@ export default function AdaptiveLearningView() {
   const allDates = [...new Set(rows.map(r => r.slate_date))].slice(0, 7).reverse();
   const day7Data = allDates.map(date => {
     const dayRows = rows.filter(r => r.slate_date === date);
-    const dayHits = dayRows.filter(r => r.hit_box || r.hit_straight).length;
-    const rate    = dayRows.length > 0 ? (dayHits / dayRows.length) * 100 : 0;
+    const boxHits = dayRows.filter(r => r.hit_box).length;
+    const strHits = dayRows.filter(r => r.hit_straight).length;
     const label   = date.slice(5); // MM-DD
-    return { date, label, rate, hits: dayHits, total: dayRows.length };
+    const total   = dayRows.length;
+    return { date, label, boxRate: total > 0 ? (boxHits / total) * 100 : 0, strRate: total > 0 ? (strHits / total) * 100 : 0, total };
   });
 
-  const maxRate = Math.max(...day7Data.map(d => d.rate), 1);
+  const maxRate = Math.max(...day7Data.map(d => d.boxRate + d.strRate), 1);
 
   const isEmpty = !loading && !error && totalPicks === 0;
 
@@ -119,22 +120,35 @@ export default function AdaptiveLearningView() {
               <Card style={{ padding: 14, marginBottom: 14 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 80, marginBottom: 8 }}>
                   {day7Data.map(d => {
-                    const barH = Math.max(4, Math.round((d.rate / maxRate) * 70));
-                    const isGood = d.rate >= 16;
+                    const combinedRate = d.boxRate + d.strRate;
+                    const totalH = Math.max(4, Math.round((combinedRate / maxRate) * 70));
+                    const boxH   = totalH > 0 && combinedRate > 0 ? Math.round((d.boxRate / combinedRate) * totalH) : 0;
+                    const strH   = totalH - boxH;
                     return (
                       <View key={d.date} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: 80 }}>
-                        <Text style={{ fontSize: 9, color: isGood ? theme.colors.success : theme.colors.textTertiary, fontWeight: '700', marginBottom: 3 }}>
-                          {d.rate.toFixed(0)}%
+                        <Text style={{ fontSize: 9, color: combinedRate >= 16 ? theme.colors.success : theme.colors.textTertiary, fontWeight: '700', marginBottom: 3 }}>
+                          {combinedRate.toFixed(0)}%
                         </Text>
-                        <View style={{ width: '80%', height: barH, borderRadius: 3, backgroundColor: isGood ? theme.colors.success : theme.colors.surfaceMuted }} />
+                        <View style={{ width: '80%', alignItems: 'center' }}>
+                          {strH > 0 && <View style={{ width: '100%', height: strH, borderRadius: 3, backgroundColor: theme.colors.primary }} />}
+                          {boxH > 0 && <View style={{ width: '100%', height: boxH, borderRadius: 3, backgroundColor: theme.colors.success, marginTop: strH > 0 ? 1 : 0 }} />}
+                          {boxH === 0 && strH === 0 && <View style={{ width: '100%', height: 4, borderRadius: 3, backgroundColor: theme.colors.surfaceMuted }} />}
+                        </View>
                         <Text style={{ fontSize: 8, color: theme.colors.textTertiary, marginTop: 4 }}>{d.label}</Text>
                       </View>
                     );
                   })}
                 </View>
-                <Text style={{ fontSize: 10, color: theme.colors.textTertiary, textAlign: 'center', marginTop: 4 }}>
-                  Green bars = hit rate ≥16% (1+ box hit per 6 picks)
-                </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 14, marginTop: 4 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: theme.colors.success }} />
+                    <Text style={{ fontSize: 9, color: theme.colors.textTertiary }}>Box</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: theme.colors.primary }} />
+                    <Text style={{ fontSize: 9, color: theme.colors.textTertiary }}>Straight</Text>
+                  </View>
+                </View>
               </Card>
             </>
           )}

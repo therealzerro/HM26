@@ -399,6 +399,9 @@ export default function HomeScreen() {
           <View style={{ flex: 1 }}>
             <Text style={s.heroStatLabel}>AVG ENERGY</Text>
             <Text style={s.heroStatMeta}>{isFree ? '2 of 6' : '6 picks'} · {SCOPE_LABELS[scope] ?? scope}</Text>
+            {snapshot?.updated_at_et ? (
+              <Text style={s.heroStatGenAt}>Generated {new Date(snapshot.updated_at_et).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</Text>
+            ) : null}
           </View>
           {nextDrawIn ? (
             <View style={s.countdownBox}>
@@ -529,6 +532,7 @@ const s = StyleSheet.create({
   heroStatNum: { fontSize: 48, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, lineHeight: 50, letterSpacing: -1 },
   heroStatLabel: { fontSize: 10, fontWeight: '900', color: theme.colors.cyan, letterSpacing: 2, fontFamily: theme.typography.fontFamily.monoBold },
   heroStatMeta: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
+  heroStatGenAt: { fontSize: 10, color: theme.colors.textTertiary, marginTop: 1 },
 
   countdownBox: { alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.purple + '18', borderRadius: 10, borderWidth: 1, borderColor: theme.colors.purple + '44', paddingHorizontal: 10, paddingVertical: 8, minWidth: 72 },
   countdownLabel: { fontSize: 7, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },

@@ -60,6 +60,10 @@ export function isAdmin(tier: string | undefined | null): boolean {
 
 // ─── Date array helpers ───────────────────────────────────────────────────────
 
+export function isETDateToday(dateStr: string): boolean {
+  return dateStr === getTodayET();
+}
+
 export function getLast30DaysET(): string[] {
   const today = getTodayET();
   const days: string[] = [];

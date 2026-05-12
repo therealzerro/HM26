@@ -15,6 +15,7 @@ export default function HealthTestsView() {
     snap:     idle('Query v_latest_slate_snapshots'),
     imports:  idle('Query v_import_health'),
     datasets: idle('Check datasets_box for rows'),
+    intel:    idle('Check daily_intelligence freshness'),
   });
   const [running, setRunning] = useState(false);
   const [lastRun, setLastRun] = useState<Date | null>(null);
@@ -100,18 +101,38 @@ export default function HealthTestsView() {
     }
   }, [setT]);
 
+  const runIntel = useCallback(async () => {
+    setT('intel', { s: 'running', msg: 'Checking daily_intelligence freshness…', ms: null });
+    const t0 = Date.now();
+    try {
+      const today = getTodayET();
+      const rows = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/daily_intelligence?slate_date=eq.${today}&on_slate=eq.true&select=id&limit=1`,
+      });
+      const ms = Date.now() - t0;
+      if (Array.isArray(rows) && rows.length > 0) {
+        setT('intel', { s: 'success', msg: `Top 30 present for ${today}`, ms });
+      } else {
+        setT('intel', { s: 'error', msg: `No Top 30 on_slate rows for ${today} — regenerate slate`, ms });
+      }
+    } catch (e) {
+      setT('intel', { s: 'error', msg: String(e instanceof Error ? e.message : e), ms: Date.now() - t0 });
+    }
+  }, [setT]);
+
   const runAll = useCallback(async () => {
     setRunning(true);
-    await Promise.all([runConn(), runSnap(), runImports(), runDatasets()]);
+    await Promise.all([runConn(), runSnap(), runImports(), runDatasets(), runIntel()]);
     setLastRun(new Date());
     setRunning(false);
-  }, [runConn, runSnap, runImports, runDatasets]);
+  }, [runConn, runSnap, runImports, runDatasets, runIntel]);
 
   const SUITE: { k: string; l: string; h: string; fn: () => Promise<void> }[] = [
-    { k: 'conn',     l: 'Connection Test',  h: 'GET /rest/v1/app_config?limit=1',              fn: runConn },
-    { k: 'snap',     l: 'Snapshot Read',    h: 'GET /rest/v1/v_latest_slate_snapshots',         fn: runSnap },
-    { k: 'imports',  l: 'Import Health',    h: 'GET /rest/v1/v_import_health',                  fn: runImports },
-    { k: 'datasets', l: 'Datasets Check',   h: 'GET /rest/v1/datasets_box?select=id&limit=1',  fn: runDatasets },
+    { k: 'conn',     l: 'Connection Test',      h: 'GET /rest/v1/app_config?limit=1',              fn: runConn },
+    { k: 'snap',     l: 'Snapshot Read',        h: 'GET /rest/v1/v_latest_slate_snapshots',         fn: runSnap },
+    { k: 'imports',  l: 'Import Health',        h: 'GET /rest/v1/v_import_health',                  fn: runImports },
+    { k: 'datasets', l: 'Datasets Check',       h: 'GET /rest/v1/datasets_box?select=id&limit=1',  fn: runDatasets },
+    { k: 'intel',    l: 'Top 30 Freshness',     h: 'GET /rest/v1/daily_intelligence?today',        fn: runIntel },
   ];
 
   const dotColor = (s: string) =>

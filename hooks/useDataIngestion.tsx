@@ -668,6 +668,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
       let accepted = 0;
       let rejected = 0;
       const errors: string[] = [];
+      const rejectedSamples: string[] = [];
       
       try {
         const validEntries: any[] = [];
@@ -679,21 +680,24 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
             console.warn('[importLedger] Skipping entry with missing fields:', entry);
             rejected++;
             errors.push(`Missing required fields: ${JSON.stringify(entry)}`);
+            if (rejectedSamples.length < 3) rejectedSamples.push(`Row missing fields: ${JSON.stringify(entry)}`);
             continue;
           }
-          
+
           // Validate result_digits is exactly 3 digits
           if (!/^\d{3}$/.test(entry.result_digits)) {
             console.warn('[importLedger] Skipping entry with invalid result_digits:', entry.result_digits);
             rejected++;
             errors.push(`Invalid result_digits "${entry.result_digits}" - must be exactly 3 digits`);
+            if (rejectedSamples.length < 3) rejectedSamples.push(`Bad digits "${entry.result_digits}" (${entry.date_et})`);
             continue;
           }
-          
+
           const dateEt = safeDateOrNull(entry.date_et);
           if (!dateEt) {
             rejected++;
             errors.push(`Invalid date format: "${entry.date_et}"`);
+            if (rejectedSamples.length < 3) rejectedSamples.push(`Bad date "${entry.date_et}"`);
             continue;
           }
           
@@ -743,6 +747,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
           fixed: 0,
           warnings: errors.slice(0, 10),
           importedDates,
+          rejectedSamples: rejectedSamples.length > 0 ? rejectedSamples : undefined,
         } as ImportSummary;
         await fetchFromSupabase({ 
           path: '/rest/v1/audit_logs', 

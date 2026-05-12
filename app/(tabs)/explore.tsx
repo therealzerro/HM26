@@ -47,6 +47,8 @@ import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
 import { RegenConfirmationModal } from '@/components/RegenConfirmationModal';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { useToast } from '@/components/Toast';
+import { NeonRefreshControl } from '@/components/NeonRefreshControl';
+import { runHitDetectionAllScopes } from '@/lib/hitDetection';
 
 function toComboSet(combo: string) { return '{' + combo.split('').sort().join(',') + '}'; }
 function tempColorForEnergy(e: number): string {
@@ -215,6 +217,7 @@ export default function SlatesScreen() {
 
   // tabs
   const [tab, setTab] = useState<Tab>('slate');
+  const [isPullRefreshing, setIsPullRefreshing] = useState(false);
 
   // existing state preserved
   const [wKey, setWKey] = useState<'balanced' | 'conservative' | 'aggressive'>('balanced');
@@ -298,6 +301,21 @@ export default function SlatesScreen() {
     finally { setIsRegenLoading(false); }
   }, [regenerateSlate, scope, wKey, refreshSnapshot, queryClient, showToast]);
 
+  const handlePullRefresh = useCallback(async () => {
+    setIsPullRefreshing(true);
+    try {
+      const today = getTodayET();
+      const yesterday = getYesterdayET();
+      await Promise.all([
+        runHitDetectionAllScopes(today).catch(() => null),
+        runHitDetectionAllScopes(yesterday).catch(() => null),
+      ]);
+      await refreshSnapshot();
+      queryClient.invalidateQueries({ queryKey: ['snapshot'] });
+    } catch { /* ignore */ }
+    setIsPullRefreshing(false);
+  }, [refreshSnapshot, queryClient]);
+
   const rawItems = useMemo((): PickItem[] => {
     // If active (non-hit) picks exist, show those. Otherwise fall back to the full
     // snapshot including hit picks — so the slate never shows empty placeholder rows
@@ -377,6 +395,14 @@ export default function SlatesScreen() {
       <View style={s.statusStrip}>
         <View style={s.liveDot} />
         <Text style={s.stripText}>Oracle Live · {getETTime()} · National</Text>
+        {snapshot?.updated_at_et && (
+          <Text style={s.stripFreshness}>
+            {(() => {
+              const mins = Math.floor((Date.now() - new Date(snapshot.updated_at_et).getTime()) / 60000);
+              return mins < 60 ? `${mins}m ago` : `${Math.floor(mins / 60)}h ago`;
+            })()}
+          </Text>
+        )}
         {snapshot?.hash && <Text style={s.stripHash}>#{snapshot.hash.slice(-6)}</Text>}
       </View>
 
@@ -458,7 +484,11 @@ export default function SlatesScreen() {
               </View>
             </View>
           ) : (
-            <ScrollView style={s.content} contentContainerStyle={s.listContent}>
+            <ScrollView
+              style={s.content}
+              contentContainerStyle={s.listContent}
+              refreshControl={<NeonRefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} tintColor={theme.colors.primary} />}
+            >
               {filtered.map((pick, i) => (
                 <PickCard
                   key={`${pick.rank}-${pick.combo}-${i}`} pick={pick}
@@ -601,6 +631,7 @@ const s = StyleSheet.create({
   statusStrip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 5, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
   liveDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: theme.colors.cyan },
   stripText: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
+  stripFreshness: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, opacity: 0.7 },
   stripHash: { fontSize: 10, color: 'rgba(255,255,255,0.25)', fontFamily: theme.typography.fontFamily.mono, marginLeft: 'auto' },
 
   header: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },

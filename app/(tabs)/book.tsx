@@ -10,6 +10,8 @@ import { storage } from '@/lib/storage';
 import { HeatCheckModal } from '@/components/HeatCheckModal';
 import { EmptyState } from '@/components/EmptyState';
 import { BookOpen } from 'lucide-react-native';
+import { fetchFromSupabase } from '@/lib/supabase';
+import { getTodayET } from '@/lib/dateUtils';
 
 function toSet(combo: string) {
   return '{' + combo.split('').sort().join(',') + '}';
@@ -214,6 +216,33 @@ export default function NumberBookScreen() {
       : x));
   }, [activeList]);
 
+  const handleAddFromSlate = useCallback(async () => {
+    if (!activeList) return;
+    const scope = activeList.scope === 'midday' || activeList.scope === 'evening' ? activeList.scope : 'allday';
+    try {
+      const today = getTodayET();
+      const rows = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/slate_snapshots?scope=eq.${scope}&slate_date=eq.${today}&deleted_at=is.null&mode=neq.zk30&order=updated_at_et.desc.nullslast&limit=1&select=top_k_straights_json`,
+      });
+      const picks: any[] = Array.isArray(rows?.[0]?.top_k_straights_json) ? rows![0].top_k_straights_json.slice(0, 6) : [];
+      if (picks.length === 0) {
+        Alert.alert('No Slate', `No ${scope} slate found for today. Generate a slate first.`);
+        return;
+      }
+      const existing = new Set(activeList.combos.map((c: ComboItem) => c.combo));
+      const toAdd: ComboItem[] = picks
+        .filter((p: any) => p?.combo && !existing.has(p.combo))
+        .map((p: any) => ({ combo: p.combo, note: `ZK6 #${p.rank ?? ''}`, starred: false, energy: p.energy }));
+      if (toAdd.length === 0) {
+        Alert.alert('Already Added', "All of today's picks are already in this list.");
+        return;
+      }
+      setLists(l => l.map(x => x.id === activeList!.id ? { ...x, combos: [...x.combos, ...toAdd] } : x));
+    } catch {
+      Alert.alert('Error', 'Failed to load today\'s slate. Please try again.');
+    }
+  }, [activeList]);
+
   return (
     <SafeAreaView style={s.container} edges={['left', 'right', 'bottom']}>
       <View style={s.layout}>
@@ -383,9 +412,17 @@ export default function NumberBookScreen() {
                     )}
                   </View>
                 </View>
-                <TouchableOpacity style={s.addBtn} onPress={() => setShowAdd(true)}>
-                  <Text style={s.addBtnText}>＋ Add Number</Text>
-                </TouchableOpacity>
+                <View style={{ gap: 6 }}>
+                  <TouchableOpacity style={s.addBtn} onPress={() => setShowAdd(true)}>
+                    <Text style={s.addBtnText}>＋ Add Number</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[s.addBtn, { backgroundColor: theme.colors.teal + '18', borderColor: theme.colors.teal + '55', borderWidth: 1 }]}
+                    onPress={handleAddFromSlate}
+                  >
+                    <Text style={[s.addBtnText, { color: theme.colors.teal }]}>⚡ Add from Slate</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {activeList.combos.length === 0 ? (

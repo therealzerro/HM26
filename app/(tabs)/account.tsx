@@ -305,7 +305,9 @@ export default function AccountScreen() {
                 activeOpacity={0.7}
                 onPress={() => {
                   if (label === 'Sign Out') {
-                    signOut();
+                    signOut().then(() => {
+                      router.replace('/');
+                    });
                     showToast('Signed out', 'info');
                   } else if (!meta) {
                     showToast(`${label} — coming soon`, 'info');

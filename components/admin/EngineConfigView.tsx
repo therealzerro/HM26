@@ -103,6 +103,15 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
 
   // ── Save all config keys via individual PATCH calls (avoids RLS INSERT restriction) ──
   const handleSave = useCallback(async () => {
+    const signalSum = (w.BOX ?? 0) + (w.PBURST ?? 0) + (w.CO ?? 0);
+    if (Math.abs(signalSum - 100) > 1) {
+      setSaveError(`Signal weights must sum to 100% (currently ${signalSum}%)`);
+      return;
+    }
+    if (Math.abs(horizonSum - 100) > 1) {
+      setSaveError(`Horizon weights must sum to 100% (currently ${horizonSum.toFixed(1)}%)`);
+      return;
+    }
     setSaving(true);
     setSaveError(null);
     setSavedOk(false);

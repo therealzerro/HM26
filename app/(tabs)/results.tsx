@@ -23,7 +23,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput,
-  TouchableOpacity, ScrollView, ActivityIndicator, Modal, Pressable,
+  TouchableOpacity, ScrollView, ActivityIndicator, Modal, Pressable, Share,
 } from 'react-native';
 import { NeonRefreshControl as RefreshControl } from '@/components/NeonRefreshControl';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -53,7 +53,7 @@ const D = {
 };
 
 interface LedgerRow {
-  jurisdiction: string; game: string; date_et: string; session: string; result_digits: string;
+  jurisdiction: string; game: string; date_et: string; session: string; result_digits: string; comboset_sorted?: string;
 }
 interface HitRow {
   slate_date: string; scope: string; mode: string; rank: number; combo: string;
@@ -182,12 +182,13 @@ export default function ResultsScreen() {
   const [searchQuery,   setSearchQuery]   = useState('');
   const [searchOpen,    setSearchOpen]    = useState(false);
   const [statsOpen,     setStatsOpen]     = useState(false);
+  const [clusterView,   setClusterView]   = useState(false);
 
   const { data: ledger, isLoading: ledgerLoading, refetch: refetchLedger, isRefetching } = useQuery<LedgerRow[]>({
     queryKey: ['v_recent_ledger', selectedDate],
     queryFn: async () => {
       const res = await fetchFromSupabase<LedgerRow[]>({
-        path: `/rest/v1/histories?select=jurisdiction,game,date_et,session,result_digits&date_et=eq.${selectedDate}&order=session.asc,jurisdiction.asc&limit=500`,
+        path: `/rest/v1/histories?select=jurisdiction,game,date_et,session,result_digits,comboset_sorted&date_et=eq.${selectedDate}&order=session.asc,jurisdiction.asc&limit=500`,
         method: 'GET',
       });
       return Array.isArray(res) ? res : [];
@@ -370,6 +371,19 @@ export default function ResultsScreen() {
     return result;
   }, [filtered]);
 
+  const clustered = useMemo(() => {
+    const map = new Map<string, { comboSet: string; drawCount: number; hitCount: number; digits: string[] }>();
+    for (const row of filtered) {
+      const cs = row.comboset_sorted ?? `{${row.result_digits.split('').sort().join(',')}}`;
+      if (!map.has(cs)) map.set(cs, { comboSet: cs, drawCount: 0, hitCount: 0, digits: [] });
+      const entry = map.get(cs)!;
+      entry.drawCount++;
+      if (row.hits.length > 0) entry.hitCount++;
+      if (!entry.digits.includes(row.result_digits)) entry.digits.push(row.result_digits);
+    }
+    return [...map.values()].sort((a, b) => b.hitCount - a.hitCount || b.drawCount - a.drawCount);
+  }, [filtered]);
+
   const renderItem = ({ item }: { item: typeof grouped[0] }) => {
     if (item.type === 'header') {
       const color = SESSION_COLORS[item.session] ?? D.purple;
@@ -403,15 +417,25 @@ export default function ResultsScreen() {
             <View style={s.gameInfo}>
               <Text style={s.gameName}>{row.jurisdiction} · {row.game || 'Pick 3'}</Text>
               {hasHit && (
-                <View style={s.hitBadge}>
-                  <Text style={s.hitBadgeText}>
-                    {'🎯 ZK6 HIT · '}
-                    {row.hits.map(h => {
-                      const type  = h.hit_straight ? 'Straight' : 'Box';
-                      const scope = h.scope.charAt(0).toUpperCase() + h.scope.slice(1);
-                      return `${scope} Pick #${h.rank} · ${type}`;
-                    }).join('  ')}
-                  </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <View style={[s.hitBadge, { flex: 1 }]}>
+                    <Text style={s.hitBadgeText}>
+                      {'🎯 ZK6 HIT · '}
+                      {row.hits.map(h => {
+                        const type  = h.hit_straight ? 'Straight' : 'Box';
+                        const scope = h.scope.charAt(0).toUpperCase() + h.scope.slice(1);
+                        return `${scope} Pick #${h.rank} · ${type}`;
+                      }).join('  ')}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => Share.share({
+                      message: `🎯 ZK6 HIT! ${row.result_digits} — ${row.hits.map(h => h.hit_straight ? 'Straight' : 'Box').join(' & ')} hit on ${row.date_et ?? ''} (${row.jurisdiction})`,
+                    })}
+                    style={s.shareBtn}
+                  >
+                    <Text style={s.shareBtnText}>↑</Text>
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
@@ -526,6 +550,12 @@ export default function ResultsScreen() {
             })}
           </ScrollView>
           <Text style={s.drawCount}>{filtered.length}</Text>
+          <TouchableOpacity
+            onPress={() => setClusterView(v => !v)}
+            style={[s.filterBtn, clusterView && s.filterBtnActive]}
+          >
+            <Text style={[s.filterText, clusterView && s.filterTextActive]}>Clusters</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -535,6 +565,35 @@ export default function ResultsScreen() {
           <ActivityIndicator color={D.purple} size="large" />
           <Text style={s.loadingText}>Loading draws…</Text>
         </View>
+      ) : clusterView ? (
+        <ScrollView style={s.flatList} contentContainerStyle={s.list}>
+          {clustered.length === 0 ? (
+            <View style={{ padding: 32, alignItems: 'center' }}>
+              <Text style={{ color: D.textDim, fontSize: 13 }}>No draws to cluster</Text>
+            </View>
+          ) : clustered.map(c => (
+            <View key={c.comboSet} style={[s.card, c.hitCount > 0 && s.cardHit]}>
+              <View style={[s.strip, { backgroundColor: c.hitCount > 0 ? D.teal : D.surface }]} />
+              <View style={s.cardInner}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '900', color: D.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 2 }}>
+                    {c.comboSet}
+                  </Text>
+                  <View style={{ flex: 1 }} />
+                  {c.hitCount > 0 && (
+                    <View style={{ backgroundColor: D.teal + '22', borderWidth: 1, borderColor: D.teal + '55', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                      <Text style={{ fontSize: 10, fontWeight: '900', color: D.teal }}>🎯 {c.hitCount} HIT{c.hitCount > 1 ? 'S' : ''}</Text>
+                    </View>
+                  )}
+                  <Text style={{ fontSize: 11, color: D.textDim }}>{c.drawCount} draw{c.drawCount > 1 ? 's' : ''}</Text>
+                </View>
+                <Text style={{ fontSize: 11, color: D.textDim, marginTop: 4 }}>
+                  Perms: {c.digits.join(' · ')}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
       ) : (
         <FlatList
           style={s.flatList} data={grouped}
@@ -618,8 +677,10 @@ const s = StyleSheet.create({
   stateText: { fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
   gameInfo: { flex: 1 },
   gameName: { fontSize: 13, fontWeight: '700', color: D.text, fontFamily: theme.typography.fontFamily.medium },
-  hitBadge: { marginTop: 4, alignSelf: 'flex-start', backgroundColor: theme.colors.cyan + '18', borderWidth: 1, borderColor: theme.colors.cyan + '55', borderRadius: theme.borderRadius.pill, paddingHorizontal: 8, paddingVertical: 3 },
+  hitBadge: { marginTop: 4, backgroundColor: theme.colors.cyan + '18', borderWidth: 1, borderColor: theme.colors.cyan + '55', borderRadius: theme.borderRadius.pill, paddingHorizontal: 8, paddingVertical: 3 },
   hitBadgeText: { fontSize: 9, fontWeight: '900', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.5 },
+  shareBtn: { marginTop: 4, backgroundColor: theme.colors.cyan + '22', borderWidth: 1, borderColor: theme.colors.cyan + '55', borderRadius: 8, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  shareBtnText: { fontSize: 13, fontWeight: '900', color: theme.colors.cyan },
   signalCol: { flexDirection: 'row', gap: 6, alignItems: 'center', marginLeft: 6 },
   signalItem: { alignItems: 'center', gap: 1 },
   signalKey: { fontSize: 9, fontWeight: '900', letterSpacing: 0.5, fontFamily: theme.typography.fontFamily.monoBold },

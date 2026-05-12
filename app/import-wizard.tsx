@@ -1022,6 +1022,14 @@ export default function ImportWizardScreen() {
                 {Array.isArray(lastImportSummary.warnings) && lastImportSummary.warnings.length > 0 && (
                   <Text style={styles.summaryRow}>Warnings: {lastImportSummary.warnings.join(', ')}</Text>
                 )}
+                {Array.isArray(lastImportSummary.rejectedSamples) && lastImportSummary.rejectedSamples.length > 0 && (
+                  <View style={{ marginTop: 8, padding: 8, backgroundColor: theme.colors.errorLight, borderRadius: 8 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.error, marginBottom: 4 }}>Rejected samples:</Text>
+                    {lastImportSummary.rejectedSamples.map((s, i) => (
+                      <Text key={i} style={{ fontSize: 10, color: theme.colors.error }}>{s}</Text>
+                    ))}
+                  </View>
+                )}
               </View>
             ) : (
               <Text style={styles.summaryRow}>Summary not available</Text>

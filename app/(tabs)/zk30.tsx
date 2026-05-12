@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, ActivityIndicator,
 } from 'react-native';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { fetchFromSupabase } from '@/lib/supabase';
@@ -120,11 +121,16 @@ export default function ZK30Screen() {
           </TouchableOpacity>
         </View>
       ) : !snapshot ? (
-        <EmptyState
-          icon={Layers}
-          title={`No ZK30 snapshot — ${SCOPE_LABELS[scope]}`}
-          message="Generate a slate from the Admin screen to populate this view."
-        />
+        <View style={c.center}>
+          <EmptyState
+            icon={Layers}
+            title={`No ZK30 snapshot — ${SCOPE_LABELS[scope]}`}
+            message="Generate a slate from the Admin screen to populate this view."
+          />
+          <TouchableOpacity style={c.adminBtn} onPress={() => router.push('/(tabs)/admin')}>
+            <Text style={c.adminBtnText}>Open Admin</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <ScrollView style={c.scroll} contentContainerStyle={c.scrollContent}>
           <View style={c.metaRow}>
@@ -175,6 +181,8 @@ const c = StyleSheet.create({
   retryBtnText: { color: '#fff', fontWeight: '700' },
   emptyText: { fontSize: 15, color: '#0369a1', fontWeight: '700', textAlign: 'center' },
   emptyHint: { fontSize: 12, color: '#0284c7', textAlign: 'center', lineHeight: 18 },
+  adminBtn: { marginTop: 16, backgroundColor: BLUE, paddingHorizontal: 24, paddingVertical: 11, borderRadius: 12 },
+  adminBtnText: { color: '#fff', fontWeight: '800', fontSize: 13 },
 
   scroll: { flex: 1 },
   scrollContent: { padding: 16, gap: 10 },

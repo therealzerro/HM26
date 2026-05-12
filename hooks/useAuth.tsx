@@ -52,7 +52,18 @@ export const [AuthProvider, useAuth] = createContextHook<AuthState>(() => {
   const signOut = useCallback(async () => {
     const defaultUser = { id: 'default', role: 'free' as UserRole };
     setUser(defaultUser);
-    await AsyncStorage.setItem('user', JSON.stringify(defaultUser));
+    try {
+      const allKeys = await AsyncStorage.getAllKeys();
+      const appKeys = allKeys.filter(k =>
+        k !== 'user' &&
+        !k.startsWith('@react-navigation') &&
+        !k.startsWith('expo-')
+      );
+      if (appKeys.length > 0) await AsyncStorage.multiRemove(appKeys);
+      await AsyncStorage.setItem('user', JSON.stringify(defaultUser));
+    } catch {
+      await AsyncStorage.setItem('user', JSON.stringify(defaultUser));
+    }
   }, []);
 
   const purchaseSubscription = useCallback(async (_plan: string): Promise<boolean> => {

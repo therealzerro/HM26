@@ -25,6 +25,7 @@ export interface ImportSummary {
   first_seen?: string;
   last_seen?: string;
   importedDates?: string[];
+  rejectedSamples?: string[];
 }
 
 export interface HitDetectionResult {

@@ -12,7 +12,7 @@
  */
 
 import { Scope, SlateSnapshot, SlateDataStats, EngineMetadata } from '@/types/core';
-import { getTodayET } from '@/lib/dateUtils';
+import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
 import { K6_QUOTAS, PAIR_REPETITION_CAP } from '@/constants/zk6';
 import { fetchFromSupabase } from '@/lib/supabase';
 import {
@@ -590,34 +590,61 @@ export async function computeSlate({
     throw new Error(`No BOX data available for scope: ${label}`);
   }
 
-  // ── 2. Today's draws — ALWAYS excluded, unconditionally ──────────────────────
+  // ── 2. Recent draws (today + yesterday) — ALWAYS excluded, unconditionally ───
   // This runs regardless of skipHistoriesExclusion or any caller-supplied sets.
-  // ComboSets are computed here from result_digits (not the DB column) so the
-  // exclusion is correct even when comboset_sorted is null in older rows.
+  // Two independent sources are checked so the block works even when only one
+  // has been updated: (A) histories table (raw imported draw results) and
+  // (B) daily_intelligence table (hit flags set by hit detection flow).
+  // Yesterday is a hard block because Pass 5 would otherwise relax the cooldown
+  // and allow recently-hit combos back into the slate.
   const todayHitComboSets = new Set<string>();
   const effectiveExcluded = new Set<string>(excludedCombos);
 
+  const yesterdayEt = getYesterdayET();
+
+  // Source A: histories table (raw draw results from imports)
   try {
-    const todayEt = getTodayET();
-    const todayWinners = await fetchFromSupabase<any[]>({
-      path: `/rest/v1/histories?date_et=eq.${todayEt}&select=result_digits&limit=500`,
+    const recentWinners = await fetchFromSupabase<any[]>({
+      path: `/rest/v1/histories?date_et=gte.${yesterdayEt}&date_et=lte.${todayEt}&select=result_digits&limit=1000`,
     });
-    if (Array.isArray(todayWinners)) {
-      todayWinners.forEach(w => {
+    if (Array.isArray(recentWinners)) {
+      recentWinners.forEach(w => {
         if (typeof w?.result_digits === 'string' && /^\d{3}$/.test(w.result_digits)) {
           todayHitComboSets.add(toComboSet(w.result_digits));
           effectiveExcluded.add(w.result_digits);
         }
       });
     }
-    console.log('[zk6v2] Today hit exclusion:', {
-      todayEt, scope,
-      hitSets: Array.from(todayHitComboSets),
-      totalStraights: effectiveExcluded.size,
-    });
   } catch (e) {
-    console.log('[zk6v2] Today hit fetch warn (non-fatal):', e);
+    console.log('[zk6v2] histories exclusion fetch warn (non-fatal):', e);
   }
+
+  // Source B: daily_intelligence hit flags (set by hit detection, works even when
+  // histories hasn't been imported yet for the most recent draw date)
+  try {
+    const diHits = await fetchFromSupabase<any[]>({
+      path: `/rest/v1/daily_intelligence?slate_date=gte.${yesterdayEt}&or=(hit_box.eq.true,hit_straight.eq.true)&select=combo_set,hit_result&limit=500`,
+    });
+    if (Array.isArray(diHits)) {
+      diHits.forEach(row => {
+        if (typeof row?.combo_set === 'string' && row.combo_set) {
+          todayHitComboSets.add(row.combo_set);
+        }
+        if (typeof row?.hit_result === 'string' && /^\d{3}$/.test(row.hit_result)) {
+          todayHitComboSets.add(toComboSet(row.hit_result));
+          effectiveExcluded.add(row.hit_result);
+        }
+      });
+    }
+  } catch (e) {
+    console.log('[zk6v2] daily_intelligence exclusion fetch warn (non-fatal):', e);
+  }
+
+  console.log('[zk6v2] Recent hit exclusion (today + yesterday, both sources):', {
+    todayEt, yesterdayEt, scope,
+    hardBlockSets: todayHitComboSets.size,
+    totalStraights: effectiveExcluded.size,
+  });
 
   // ── 3. First pass — raw signal scores for all 1000 combos ────────────────────
   // Pre-pass: find maxTimesDrawn so frequency can be normalised 0-1
@@ -818,7 +845,7 @@ export async function computeSlate({
   // relaxPairRepCap       — ignore pairRepCap diversity cap
   // relaxCooldown         — ignore recentHitCooldown suppression
   // relaxMultCaps         — ignore singles/doubles/triples quotas (last resort)
-  // Hard blocks never relaxed: selectedComboSets (no dupe picks) + todayHitComboSets (today's winners)
+  // Hard blocks never relaxed: selectedComboSets (no dupe picks) + todayHitComboSets (today + yesterday winners)
   const tryAdd = (
     idx: number,
     relaxExcludeComboSets = false,
@@ -909,7 +936,7 @@ export async function computeSlate({
 
   // Pass 6: relax singles/doubles/triples quotas — if DB config caps sum < 6,
   // this guarantees we always deliver exactly 6 picks scored by the engine.
-  // Only hard blocks remaining: no duplicate comboSets + no today's winners.
+  // Only hard blocks remaining: no duplicate comboSets + no recent winners (today/yesterday).
   if (k6.length < 6) {
     console.log('[zk6v2] Pass 5 yielded', k6.length, '— pass 6: relax mult caps (DB quota < 6)');
     for (const idx of allIdx) {

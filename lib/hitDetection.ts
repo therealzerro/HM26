@@ -13,13 +13,13 @@ async function updateDailyIntelligenceHit(pick: any, result: any, date: string) 
   const isBox = result.comboset_sorted === comboSet;
   const isStraight = result.result_digits === pick.combo;
   if (!isBox && !isStraight) return;
-  // Include prev and next day: prev catches slates tagged with yesterday's date,
-  // next catches slates regenerated after midnight ET (tagged tomorrow's date).
+  // Include prev day: catches slates tagged with yesterday's date.
+  // next-day inclusion removed — engines tag late-night regens with the current ET
+  // date (not tomorrow's), so nextDayStr was causing today's daily_intelligence rows
+  // to receive hit flags from yesterday's draws (BUG-32).
   const prev = new Date(date + 'T12:00:00'); prev.setDate(prev.getDate() - 1);
-  const next = new Date(date + 'T12:00:00'); next.setDate(next.getDate() + 1);
   const prevDayStr = prev.toISOString().split('T')[0];
-  const nextDayStr = next.toISOString().split('T')[0];
-  const dateFilter = `slate_date=in.(${date},${prevDayStr},${nextDayStr})`;
+  const dateFilter = `slate_date=in.(${date},${prevDayStr})`;
   try {
     await fetchFromSupabase({
       path: `/rest/v1/daily_intelligence?${dateFilter}&combo=eq.${encodeURIComponent(pick.combo)}`,
@@ -124,7 +124,7 @@ export async function runHitDetectionAndRefresh(
   // If no date-range snapshots found for a scope, fall back to the most recent snapshot for that scope.
   const resolveSnaps = async (dateSnaps: any[] | null, scope: string): Promise<any[]> => {
     if (Array.isArray(dateSnaps) && dateSnaps.length > 0) return dateSnaps;
-    const fallback = await fetchFromSupabase<any[]>({ path: `/rest/v1/slate_snapshots?scope=eq.${scope}&deleted_at=is.null&order=updated_at_et.desc&limit=3`, method: 'GET' });
+    const fallback = await fetchFromSupabase<any[]>({ path: `/rest/v1/slate_snapshots?scope=eq.${scope}&deleted_at=is.null&slate_date=lte.${date}&order=updated_at_et.desc&limit=3`, method: 'GET' });
     return Array.isArray(fallback) ? fallback : [];
   };
   const [resolvedMidday, resolvedEvening, resolvedAllday] = await Promise.all([

@@ -10,6 +10,7 @@ import { fetchFromSupabase } from '@/lib/supabase';
 import { backfillIntelHits, BackfillProgress } from '@/lib/backfillIntelHits';
 import { getTodayET } from '@/lib/dateUtils';
 import { useScope } from '@/hooks/useScope';
+import { useDataIngestion } from '@/hooks/useDataIngestion';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { EmptyState } from '@/components/EmptyState';
 import { BarChart2, Zap } from 'lucide-react-native';
@@ -373,6 +374,7 @@ function SlateRow({ row }: { row: IntelRow }) {
 export default function IntelligenceScreen() {
   const [view, setView] = useState<'analysis' | 'slate'>('analysis');
   const { scope: globalScope } = useScope();
+  const { regenerateSlate, checkSlateLock } = useDataIngestion();
 
   // Analysis view state
   const [loading, setLoading] = useState(true);
@@ -389,6 +391,7 @@ export default function IntelligenceScreen() {
   );
   const [slateRows, setSlateRows] = useState<IntelRow[]>([]);
   const [slateLoading, setSlateLoading] = useState(false);
+  const [regenLoading, setRegenLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true); setError(''); setLoadingRows(0);
@@ -434,6 +437,27 @@ export default function IntelligenceScreen() {
   useEffect(() => {
     if (view === 'slate') loadSlate(slateScope);
   }, [view, slateScope]);
+
+  const handleRegen = useCallback(async () => {
+    setRegenLoading(true);
+    try {
+      const isLocked = await checkSlateLock(slateScope as any);
+      if (isLocked) {
+        Alert.alert('Slate Locked', 'A slate was already generated recently. Pull down to refresh instead.');
+        return;
+      }
+      const res = await regenerateSlate(slateScope as any, 'balanced', false);
+      if (res.status === 'success') {
+        await loadSlate(slateScope);
+      } else {
+        Alert.alert('Regen Failed', res.message ?? 'Unknown error');
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e.message ?? 'Regen failed');
+    } finally {
+      setRegenLoading(false);
+    }
+  }, [slateScope, regenerateSlate, checkSlateLock, loadSlate]);
 
   const handleBackfill = useCallback(async () => {
     setBackfilling(true);
@@ -516,9 +540,9 @@ export default function IntelligenceScreen() {
               {!!backfillStatus && <Text style={s.backfillStatus}>{backfillStatus}</Text>}
               <TouchableOpacity
                 style={[s.backfillBtn, { backgroundColor: theme.colors.bgElevated, borderWidth: 1, borderColor: theme.colors.border }]}
-                onPress={() => router.navigate('/(tabs)/explore')}
+                onPress={() => { setView('slate'); }}
               >
-                <Text style={[s.backfillBtnText, { color: theme.colors.cyan }]}>Go to Slates ⚡</Text>
+                <Text style={[s.backfillBtnText, { color: theme.colors.cyan }]}>Go to Top 30 Slate →</Text>
               </TouchableOpacity>
             </View>
           }
@@ -626,13 +650,17 @@ export default function IntelligenceScreen() {
             <EmptyState
               icon={Zap}
               title="No slate for today yet"
-              message="Generate a slate first to see today's hidden picks here."
+              message="Generate a slate to see today's hidden picks here."
               action={
                 <TouchableOpacity
-                  style={{ backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius.md, paddingVertical: 12, paddingHorizontal: 24 }}
-                  onPress={() => router.navigate('/(tabs)/explore')}
+                  style={{ backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius.md, paddingVertical: 12, paddingHorizontal: 24, opacity: regenLoading ? 0.6 : 1 }}
+                  onPress={handleRegen}
+                  disabled={regenLoading}
                 >
-                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Generate Slate ⚡</Text>
+                  {regenLoading
+                    ? <ActivityIndicator color="#fff" size="small" />
+                    : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Generate Slate ⚡</Text>
+                  }
                 </TouchableOpacity>
               }
             />

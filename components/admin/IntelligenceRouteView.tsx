@@ -14,7 +14,7 @@ export default function IntelligenceRouteView() {
       </Text>
       <TouchableOpacity
         style={{ backgroundColor: theme.colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, marginTop: 8 }}
-        onPress={() => router.push('/(tabs)/intelligence')}
+        onPress={() => router.navigate('/(tabs)/intelligence')}
       >
         <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Open Intelligence Screen →</Text>
       </TouchableOpacity>

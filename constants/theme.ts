@@ -26,6 +26,16 @@ export const theme = {
     CO:     '#9b5bff',
     DGC:    '#ffd93d',
 
+    // Semantic signal aliases (Phase I — UI Enhancement Plan)
+    freqSignal:    '#2bffcc',   // frequency / BOX
+    momoSignal:    '#ff3d9a',   // momentum / PBURST
+    patternSignal: '#9b5bff',   // pattern / CO
+    consistSignal: '#ffd93d',   // consistency / DGC
+    hotStreak:     '#ff6a2b',   // hot streak banner / amber accents
+    brand:         '#9b5bff',   // primary brand color (was `primary`)
+    neutralCool:   'rgba(43,255,204,0.12)',
+    neutralWarm:   'rgba(255,106,43,0.12)',
+
     // Temperature
     hot:  '#ff3b30',
     warm: '#ffcc00',

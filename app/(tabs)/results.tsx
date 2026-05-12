@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput,
-  TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl,
+  TouchableOpacity, ScrollView, ActivityIndicator,
 } from 'react-native';
+import { NeonRefreshControl as RefreshControl } from '@/components/NeonRefreshControl';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';

@@ -47,36 +47,35 @@ const queryClient = new QueryClient({
 });
 
 function RootLayoutNav() {
+  // PHASE IV: modal screens use surface2 so they read as one layer above
+  // the underlying tab content. Tab content keeps `background` (deepest).
+  const modalScreenOptions = {
+    presentation: "modal" as const,
+    contentStyle: { backgroundColor: theme.colors.surface2 },
+    headerStyle: { backgroundColor: theme.colors.surface2 },
+  };
+
   return (
-    <Stack screenOptions={{
-      headerBackTitle: "Back",
-      headerStyle: {
-        backgroundColor: theme.colors.bgElevated,
-      },
-      headerTintColor: theme.colors.text,
-      contentStyle: { backgroundColor: theme.colors.background },
-    }}>
+    <Stack
+      screenOptions={{
+        headerBackTitle: "Back",
+        headerStyle: { backgroundColor: theme.colors.bgElevated },
+        headerTintColor: theme.colors.text,
+        contentStyle: { backgroundColor: theme.colors.background },
+      }}
+    >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen 
-        name="import-wizard" 
-        options={{ 
-          title: "Import Data",
-          presentation: "modal" 
-        }} 
+      <Stack.Screen
+        name="import-wizard"
+        options={{ title: "Import Data", ...modalScreenOptions }}
       />
-      <Stack.Screen 
-        name="paywall" 
-        options={{ 
-          title: "Premium",
-          presentation: "modal" 
-        }} 
+      <Stack.Screen
+        name="paywall"
+        options={{ title: "Premium", ...modalScreenOptions }}
       />
-      <Stack.Screen 
-        name="coming-soon" 
-        options={{ 
-          title: "Coming Soon",
-          presentation: "modal" 
-        }} 
+      <Stack.Screen
+        name="coming-soon"
+        options={{ title: "Coming Soon", ...modalScreenOptions }}
       />
     </Stack>
   );

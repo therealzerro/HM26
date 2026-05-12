@@ -1,8 +1,9 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import {
   ScrollView, View, Text, StyleSheet, TouchableOpacity,
-  Modal, Animated, Platform, RefreshControl,
+  Modal, Animated, Platform,
 } from 'react-native';
+import { NeonRefreshControl as RefreshControl } from '@/components/NeonRefreshControl';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

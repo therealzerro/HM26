@@ -50,10 +50,17 @@ import { useToast } from '@/components/Toast';
 
 function toComboSet(combo: string) { return '{' + combo.split('').sort().join(',') + '}'; }
 function tempColorForEnergy(e: number): string {
-  if (e >= 80) return theme.colors.hot;
-  if (e >= 60) return theme.colors.amber;
-  if (e >= 40) return theme.colors.gold;
-  return theme.colors.cyan;
+  if (e >= 80) return theme.colors.hot;    // #ff3b30
+  if (e >= 60) return theme.colors.warm;   // #ffcc00
+  if (e >= 40) return theme.colors.mild;   // #34c759
+  return theme.colors.cold;                 // #666666
+}
+
+function tempLabel(e: number): string {
+  if (e >= 80) return 'HOT';
+  if (e >= 60) return 'WARM';
+  if (e >= 40) return 'MILD';
+  return 'COLD';
 }
 function getETTime() {
   return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York' }) + ' ET';
@@ -64,50 +71,138 @@ const MODE_LABELS = ['balanced', 'conservative', 'aggressive'];
 
 type Tab = 'slate' | 'live' | 'more';
 
-// ─── Grid tile (unchanged from v5) ─────────────────────────────────────
+// ─── Grid tile (v8 — temp badge + signal labels/values + glow) ────────────
 function GridTile({ pick, onPress }: { pick: PickItem; onPress: () => void }) {
-  const tc = tempColorForEnergy(pick.energy);
-  const digits = pick.locked ? '• • •' : (pick.bestOrder ?? pick.combo).split('').join(' ');
-  const signals = [
-    { v: pick.signals.BOX, c: theme.colors.cyan },
-    { v: pick.signals.PBURST, c: theme.colors.rose },
-    { v: pick.signals.CO, c: theme.colors.purple },
-    { v: pick.signals.DGC ?? 0, c: theme.colors.gold },
+  const tc       = tempColorForEnergy(pick.energy);
+  const tLabel   = tempLabel(pick.energy);
+  const isLocked = pick.locked;
+  const digits   = isLocked ? '•••' : (pick.bestOrder ?? pick.combo);
+
+  const channels = [
+    { k: 'B', v: pick.signals.BOX,      c: theme.colors.cyan   },
+    { k: 'P', v: pick.signals.PBURST,   c: theme.colors.rose   },
+    { k: 'C', v: pick.signals.CO,       c: theme.colors.purple },
+    { k: 'D', v: pick.signals.DGC ?? 0, c: theme.colors.gold   },
   ];
+
   return (
-    <TouchableOpacity style={[gt.card, { borderColor: tc + '55' }]} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity
+      style={[gt.card, { borderColor: tc + '66', shadowColor: tc }]}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
+      {/* Top: rank chip + temp badge */}
       <View style={gt.topRow}>
-        <View style={[gt.rankChip, { borderColor: tc + '66', backgroundColor: tc + '18' }]}>
+        <View style={[gt.rankChip, { borderColor: tc + '66', backgroundColor: tc + '14' }]}>
           <Text style={[gt.rankNum, { color: tc }]}>#{pick.rank}</Text>
         </View>
         <View style={{ flex: 1 }} />
-        <Text style={[gt.energyNum, { color: tc }]}>{pick.energy}</Text>
+        <View style={[gt.tempBadge, { borderColor: tc, shadowColor: tc }]}>
+          <Text style={[gt.tempLabel, { color: tc }]}>{tLabel}</Text>
+          <Text style={[gt.tempNum,   { color: tc }]}>{pick.energy}°</Text>
+        </View>
       </View>
-      <Text style={[gt.digits, { color: tc }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{digits}</Text>
-      <Text style={gt.comboSet} numberOfLines={1}>{pick.locked ? '{•,•,•}' : pick.comboSet}</Text>
-      {!pick.locked && (
-        <View style={gt.barRow}>
-          {signals.map((sig, i) => (
-            <View key={i} style={gt.barTrack}>
-              <View style={[gt.barFill, { width: `${Math.round(sig.v * 100)}%` as any, backgroundColor: sig.c }]} />
-            </View>
-          ))}
+
+      {/* Combo digits — sized to fit */}
+      <Text
+        style={[gt.digits, { color: tc, textShadowColor: tc + 'aa' }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.5}
+      >
+        {digits.split('').join(' ')}
+      </Text>
+
+      {/* comboSet · multiplicity */}
+      <View style={gt.metaRow}>
+        <Text style={gt.comboSet} numberOfLines={1}>
+          {isLocked ? '{•,•,•}' : pick.comboSet}
+        </Text>
+        {pick.multiplicity && !isLocked && (
+          <Text style={[gt.mult, { color: tc }]}>
+            {pick.multiplicity === 'doubles' ? 'DBL' : 'SGL'}
+          </Text>
+        )}
+      </View>
+
+      {/* Signal grid — 4 mini-bars w/ label + value */}
+      {!isLocked && (
+        <View style={gt.signalGrid}>
+          {channels.map(ch => {
+            const pct = Math.max(0, Math.min(1, ch.v));
+            return (
+              <View key={ch.k} style={gt.signalCell}>
+                <View style={gt.signalHead}>
+                  <Text style={[gt.signalKey, { color: ch.c }]}>{ch.k}</Text>
+                  <Text style={[gt.signalVal, { color: ch.c }]}>{Math.round(pct * 100)}</Text>
+                </View>
+                <View style={gt.barTrack}>
+                  <View style={[gt.barFill, { width: (pct * 100) + '%' as any, backgroundColor: ch.c, shadowColor: ch.c }]} />
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+      {isLocked && (
+        <View style={gt.lockedRow}>
+          <Text style={gt.lockedText}>🔒 Pro</Text>
         </View>
       )}
     </TouchableOpacity>
   );
 }
 const gt = StyleSheet.create({
-  card: { flex: 1, backgroundColor: theme.colors.card, borderRadius: 14, borderWidth: 1.5, padding: 10, gap: 5 },
-  topRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  card: {
+    flex: 1,
+    backgroundColor: theme.colors.card,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    padding: 10,
+    gap: 6,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  topRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rankChip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 7, borderWidth: 1 },
-  rankNum: { fontSize: 11, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
-  energyNum: { fontSize: 20, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, lineHeight: 22 },
-  digits: { fontSize: 26, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 4, lineHeight: 30 },
-  comboSet: { fontSize: 9, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
-  barRow: { flexDirection: 'row', gap: 3, marginTop: 2 },
-  barTrack: { flex: 1, height: 3, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' },
-  barFill: { height: 3, borderRadius: 2 },
+  rankNum: { fontSize: 11, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.3 },
+  tempBadge: {
+    flexDirection: 'row', alignItems: 'baseline', gap: 4,
+    paddingHorizontal: 7, paddingVertical: 2,
+    borderRadius: 999, borderWidth: 1,
+    backgroundColor: 'rgba(20,12,38,0.55)',
+    shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 6,
+  },
+  tempLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 1, fontFamily: theme.typography.fontFamily.monoBold },
+  tempNum:   { fontSize: 10, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
+
+  digits: {
+    fontSize: 32, fontWeight: '900',
+    fontFamily: theme.typography.fontFamily.monoBold,
+    letterSpacing: 2, lineHeight: 34,
+    textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 10,
+  },
+
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  comboSet: { flex: 1, fontSize: 10, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
+  mult: { fontSize: 8, fontWeight: '900', letterSpacing: 1, fontFamily: theme.typography.fontFamily.monoBold },
+
+  signalGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 2 },
+  signalCell: { width: '48%', gap: 2 },
+  signalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  signalKey: { fontSize: 9, fontWeight: '900', letterSpacing: 0.5, fontFamily: theme.typography.fontFamily.monoBold },
+  signalVal: { fontSize: 10, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
+  barTrack: { height: 3, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' },
+  barFill: {
+    height: 3, borderRadius: 2,
+    shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 4,
+  },
+
+  lockedRow: { marginTop: 4, alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)' },
+  lockedText: { fontSize: 10, color: theme.colors.textTertiary, fontWeight: '700' },
 });
 
 export default function SlatesScreen() {

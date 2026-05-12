@@ -808,7 +808,11 @@ export async function computeSlate({
       drawsSince: ds.drawsSinceMap.get(normKey) ?? null,
       timesDrawn: ds.timesDrawnMap.get(normKey) ?? 0,
     };
-  }).sort((a, b) => b.finalScore - a.finalScore).slice(0, 30);
+  })
+    // top30 must respect the same yesterday-hit hard block as K6 selection so
+    // daily_intelligence and the slate stay aligned (see compute-slate-zk6/index.ts)
+    .filter(p => !(todayHitComboSets.size > 0 && todayHitComboSets.has(p.comboSet)))
+    .sort((a, b) => b.finalScore - a.finalScore).slice(0, 30);
 
   // Key-matching diagnostics — log first 5 real combos to verify normKey lookups
   const keyDiag = realIdx.slice(0, 5).map(i => {
@@ -944,6 +948,11 @@ export async function computeSlate({
       tryAdd(idx, true, true, true, true);
     }
   }
+
+  // Sort by indicator desc so position 1 is the highest-conviction pick (selection
+  // happens pass-by-pass and can place low-indicator pass-1 picks ahead of higher-
+  // indicator pass-5 picks). Same set of 6 combos, just reordered for display.
+  k6.sort((a, b) => b.indicator - a.indicator);
 
   console.log('[zk6v2] K6 after rails:', k6.map(x => `${x.combo}(e=${x.energy})`));
 
@@ -1082,7 +1091,13 @@ export async function computeSlate({
   // would overwrite the original intelligence data with incomplete signal data.
   if (!is_supplement) {
     try {
-      const diRows = top30PreRail.map((pick, idx) => ({
+      // on_slate is embedded in the INSERT. Any K6 combo that didn't make top30 (pass-5
+      // cooldown relaxation can pick combos outside top30) gets appended past rank 30 so
+      // the Intelligence screen still finds it.
+      const k6ComboSet = new Set(k6.map(x => x.combo));
+      const top30Combos = new Set(top30PreRail.map(p => p.combo));
+
+      const top30Rows = top30PreRail.map((pick, idx) => ({
         slate_date: effectiveDate,
         scope,
         mode: weightsKey,
@@ -1099,11 +1114,36 @@ export async function computeSlate({
         draws_since: pick.drawsSince,
         times_drawn: pick.timesDrawn,
         best_order: bestOrderFor(pick.combo, ds.pairData),
+        on_slate: k6ComboSet.has(pick.combo),
         hit_box: false,
         hit_straight: false,
       }));
-      // Delete existing rows for this date/scope/mode first to avoid unique constraint 409s.
-      // Log DELETE errors so silent failures surface in console.
+
+      const extraK6Rows = k6
+        .filter(x => !top30Combos.has(x.combo))
+        .map((x, i) => ({
+          slate_date: effectiveDate,
+          scope,
+          mode: weightsKey,
+          rank: 30 + i + 1,
+          combo: x.combo,
+          combo_set: x.normKey,
+          multiplicity: x.multiplicity,
+          top_pair: x.topPair,
+          signal_box: x.boxS,
+          signal_pburst: x.pburstS,
+          signal_co: x.coS,
+          signal_dgc: x.dgcS,
+          energy_score: x.energy,
+          draws_since: ds.drawsSinceMap.get(x.normKey) ?? null,
+          times_drawn: ds.timesDrawnMap.get(x.normKey) ?? 0,
+          best_order: bestOrderFor(x.combo, ds.pairData),
+          on_slate: true,
+          hit_box: false,
+          hit_straight: false,
+        }));
+
+      const diRows = [...top30Rows, ...extraK6Rows];
       const delErr = await fetchFromSupabase({
         path: `/rest/v1/daily_intelligence?slate_date=eq.${effectiveDate}&scope=eq.${encodeURIComponent(scope)}&mode=eq.${encodeURIComponent(weightsKey)}&hit_box=eq.false&hit_straight=eq.false`,
         method: 'DELETE',
@@ -1118,14 +1158,7 @@ export async function computeSlate({
         headers: { 'Prefer': 'resolution=ignore-duplicates,return=minimal' },
         body: diRows,
       });
-      console.log('[zk6v2] daily_intelligence: wrote top 30 for scope:', scope, 'date:', effectiveDate);
-      const slateCombos = k6.map(x => x.combo).join(',');
-      await fetchFromSupabase({
-        path: `/rest/v1/daily_intelligence?slate_date=eq.${effectiveDate}&scope=eq.${encodeURIComponent(scope)}&mode=eq.${encodeURIComponent(weightsKey)}&combo=in.(${slateCombos})`,
-        method: 'PATCH',
-        headers: { 'Prefer': 'return=minimal' },
-        body: { on_slate: true },
-      });
+      console.log('[zk6v2] daily_intelligence: wrote', diRows.length, 'rows for scope:', scope, 'date:', effectiveDate);
     } catch (e) {
       console.error('[zk6v2] daily_intelligence write FAILED — date will not increment:', String(e));
     }

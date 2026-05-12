@@ -417,6 +417,9 @@ async function computeSlate(params: {
   realIdx.sort(sortFn); placeholderIdx.sort(sortFn);
   const scorePool = Array.from(finalScores).sort((a, b) => a - b);
 
+  // top30 must respect the same yesterday-hit hard block as K6 selection — otherwise
+  // daily_intelligence shows recently-drawn box-sets as "top picks" while the slate
+  // (correctly) excludes them, and the on_slate marker fails to land on K6 combos.
   const top30PreRail = Array.from({ length: 1000 }, (_, i) => {
     const combo = universe[i], nk = toComboSet(combo);
     return { combo, comboSet: nk, finalScore: finalScores[i],
@@ -424,7 +427,8 @@ async function computeSlate(params: {
       signals: { BOX: normBox[i], PBURST: normPburst[i], CO: normCo[i], DGC: normDgc[i] },
       energy: percentileRankOf(finalScores[i], scorePool),
       timesDrawn: ds.timesDrawnMap.get(nk) ?? 0 };
-  }).sort((a, b) => b.finalScore - a.finalScore).slice(0, 30);
+  }).filter(p => !(todayHitComboSets.size > 0 && todayHitComboSets.has(p.comboSet)))
+    .sort((a, b) => b.finalScore - a.finalScore).slice(0, 30);
 
   const k6: K6Item[] = [];
   let singles = 0, doubles = 0, triples = 0;
@@ -468,6 +472,12 @@ async function computeSlate(params: {
   if (k6.length < 6) for (const i of all) { if (k6.length >= 6) break; tryAdd(i, true, true); }
   if (k6.length < 6) for (const i of all) { if (k6.length >= 6) break; tryAdd(i, true, true, true); }
   if (k6.length < 6) for (const i of all) { if (k6.length >= 6) break; tryAdd(i, true, true, true, true); }
+
+  // Sort final K6 by indicator desc — selection happens pass-by-pass, so the array
+  // can interleave low-indicator pass-1 picks ahead of higher-indicator pass-5 picks
+  // (e.g. when cooldown relaxes). Indicator-desc gives the user the highest-conviction
+  // pick at position 1 without changing which 6 combos are selected.
+  k6.sort((a, b) => b.indicator - a.indicator);
 
   // 7. Build output
   const scopeConfidence = computeConfidenceScore(ds.horizonsLoaded.length, ds.boxRowCount);
@@ -532,20 +542,36 @@ async function computeSlate(params: {
   const res = await sbPost('/rest/v1/slate_snapshots', payload) as any[];
   const savedId = Array.isArray(res) && res.length > 0 ? String(res[0]?.id ?? '') : `zk6-${scope}-${Date.now()}`;
 
-  // Write daily_intelligence (non-supplement only)
+  // Write daily_intelligence (non-supplement only). on_slate is embedded in the
+  // INSERT — no separate PATCH needed. Any K6 combo that didn't make top30 (because
+  // pass-5 cooldown relaxation can pick combos outside the top30) gets appended as
+  // an extra row past rank 30 so the Intelligence screen still finds it.
   if (!is_supplement) {
     try {
-      const diRows = top30PreRail.map((p, i) => ({
+      const k6ComboSet = new Set(k6.map(x => x.combo));
+      const top30Combos = new Set(top30PreRail.map(p => p.combo));
+
+      const top30Rows = top30PreRail.map((p, i) => ({
         slate_date: effectiveDate, scope, mode: weightsKey, rank: i + 1,
         combo: p.combo, combo_set: p.comboSet, multiplicity: p.mult, top_pair: p.topPair,
         signal_box: p.signals.BOX, signal_pburst: p.signals.PBURST, signal_co: p.signals.CO, signal_dgc: p.signals.DGC,
         energy_score: p.energy,
-        on_slate: false, hit_box: false, hit_straight: false,
+        on_slate: k6ComboSet.has(p.combo), hit_box: false, hit_straight: false,
       }));
-      const slateCombos = k6.map(x => x.combo).join(',');
+
+      const extraK6Rows = k6
+        .filter(x => !top30Combos.has(x.combo))
+        .map((x, i) => ({
+          slate_date: effectiveDate, scope, mode: weightsKey, rank: 30 + i + 1,
+          combo: x.combo, combo_set: x.normKey, multiplicity: x.multiplicity, top_pair: x.topPair,
+          signal_box: x.boxS, signal_pburst: x.pburstS, signal_co: x.coS, signal_dgc: x.dgcS,
+          energy_score: x.energy,
+          on_slate: true, hit_box: false, hit_straight: false,
+        }));
+
+      const diRows = [...top30Rows, ...extraK6Rows];
       await sbDelete(`/rest/v1/daily_intelligence?slate_date=eq.${effectiveDate}&scope=eq.${encodeURIComponent(scope)}&mode=eq.${encodeURIComponent(weightsKey)}&hit_box=eq.false&hit_straight=eq.false`);
       await sbPost('/rest/v1/daily_intelligence', diRows, 'resolution=merge-duplicates,return=minimal');
-      await sbPatch(`/rest/v1/daily_intelligence?slate_date=eq.${effectiveDate}&scope=eq.${encodeURIComponent(scope)}&mode=eq.${encodeURIComponent(weightsKey)}&combo=in.(${slateCombos})`, { on_slate: true });
     } catch (e) { console.error('[edge-zk6] daily_intelligence write FAILED:', String(e)); }
   }
 

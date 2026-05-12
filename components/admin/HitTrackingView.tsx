@@ -127,29 +127,21 @@ function PerformanceRow({
   }, [expanded, loadDetail]);
 
   const handleDelete = useCallback(() => {
-    const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-    const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
-
-    const softDeleteById = (id: string) => {
+    const softDeleteById = async (id: string) => {
       setDeleting(true);
-      const xhr = new XMLHttpRequest();
-      xhr.open('PATCH', url + '/rest/v1/slate_snapshots?id=eq.' + id, true);
-      xhr.setRequestHeader('apikey', key);
-      xhr.setRequestHeader('Authorization', 'Bearer ' + key);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.setRequestHeader('Prefer', 'return=minimal');
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4) {
-          setDeleting(false);
-          if (xhr.status >= 200 && xhr.status < 300) {
-            Alert.alert('Deleted', 'Slate removed.');
-            onDeleted?.();
-          } else {
-            Alert.alert('Failed', xhr.status + ': ' + xhr.responseText);
-          }
-        }
-      };
-      xhr.send(JSON.stringify({ deleted_at: new Date().toISOString() }));
+      try {
+        await fetchFromSupabase({
+          path: `/rest/v1/slate_snapshots?id=eq.${id}`,
+          method: 'PATCH',
+          body: { deleted_at: new Date().toISOString() },
+        });
+        Alert.alert('Deleted', 'Slate removed.');
+        onDeleted?.();
+      } catch (e) {
+        Alert.alert('Failed', String(e));
+      } finally {
+        setDeleting(false);
+      }
     };
 
     const doDelete = async () => {

@@ -1075,46 +1075,33 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
   }, [queryClient]);
 
   const hardDeleteImport = useCallback(async (id: string, importType?: string): Promise<string> => {
-    const _url = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://tgagarhwqbdcwoqhpapi.supabase.co';
-    const _key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnYWdhcmh3cWJkY3dvcWhwYXBpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc4NjM4NDYsImV4cCI6MjA3MzQzOTg0Nn0.n78k9_hxxk8EjYpvzPaHxeiEMueZy_ZSkE4zsq2gmXM';
-
-    const xhrDelete = (path: string): Promise<void> => new Promise((resolve) => {
-      try {
-        const xhr = new XMLHttpRequest();
-        xhr.open('DELETE', _url + path);
-        xhr.setRequestHeader('apikey', _key);
-        xhr.setRequestHeader('Authorization', 'Bearer ' + _key);
-        xhr.onload = () => resolve();
-        xhr.onerror = () => resolve();
-        xhr.send();
-      } catch { resolve(); }
-    });
+    const del = (path: string) => fetchFromSupabase({ path, method: 'DELETE' });
 
     let msg = '';
     if (importType === 'box_history') {
-      await xhrDelete(`/rest/v1/datasets_box?import_id=eq.${id}`);
-      await xhrDelete(`/rest/v1/percentile_maps?import_id=eq.${id}`);
-      await xhrDelete(`/rest/v1/horizon_blends?import_id=eq.${id}`);
+      await del(`/rest/v1/datasets_box?import_id=eq.${id}`);
+      await del(`/rest/v1/percentile_maps?import_id=eq.${id}`);
+      await del(`/rest/v1/horizon_blends?import_id=eq.${id}`);
       msg = 'Deleted box dataset rows and associated aggregates.';
     } else if (importType === 'pair_history') {
-      await xhrDelete(`/rest/v1/datasets_pair?import_id=eq.${id}`);
-      await xhrDelete(`/rest/v1/percentile_maps?import_id=eq.${id}`);
-      await xhrDelete(`/rest/v1/horizon_blends?import_id=eq.${id}`);
+      await del(`/rest/v1/datasets_pair?import_id=eq.${id}`);
+      await del(`/rest/v1/percentile_maps?import_id=eq.${id}`);
+      await del(`/rest/v1/horizon_blends?import_id=eq.${id}`);
       msg = 'Deleted pair dataset rows and associated aggregates.';
     } else if (importType === 'ledger') {
-      await xhrDelete(`/rest/v1/histories?import_id=eq.${id}`);
+      await del(`/rest/v1/histories?import_id=eq.${id}`);
       msg = 'Deleted ledger result entries.';
     } else if (importType === 'daily_input') {
       msg = 'Daily input data is embedded in draws_since values and cannot be individually deleted. Re-import box history to reset. Import record removed.';
     } else {
-      await xhrDelete(`/rest/v1/datasets_box?import_id=eq.${id}`);
-      await xhrDelete(`/rest/v1/datasets_pair?import_id=eq.${id}`);
-      await xhrDelete(`/rest/v1/percentile_maps?import_id=eq.${id}`);
-      await xhrDelete(`/rest/v1/horizon_blends?import_id=eq.${id}`);
+      await del(`/rest/v1/datasets_box?import_id=eq.${id}`);
+      await del(`/rest/v1/datasets_pair?import_id=eq.${id}`);
+      await del(`/rest/v1/percentile_maps?import_id=eq.${id}`);
+      await del(`/rest/v1/horizon_blends?import_id=eq.${id}`);
       msg = 'Deleted import and all associated dataset rows.';
     }
 
-    await xhrDelete(`/rest/v1/imports?id=eq.${id}`);
+    await del(`/rest/v1/imports?id=eq.${id}`);
     try { await fetchFromSupabase({ path: `/rest/v1/audit_logs`, method: 'POST', body: { actor_id: getActorId(), action: 'HardDelete', target: id } }); } catch {}
     queryClient.invalidateQueries({ queryKey: ['imports'] });
     queryClient.invalidateQueries({ queryKey: ['health_metrics'] });

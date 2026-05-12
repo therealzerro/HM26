@@ -134,31 +134,43 @@ const m = StyleSheet.create({
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function NumberBookScreen() {
-  const [lists, setLists] = useState<BookList[]>([
-    { id: '1', name: 'My Lucky Numbers', scope: 'allday', states: [], type: 'custom', combos: [{ combo: '742', note: 'Always warm ✦', starred: true }, { combo: '319', note: 'Hit twice last month', starred: false }] },
-    { id: '2', name: 'NY Evening Picks', scope: 'evening', states: ['NY'], type: 'custom', combos: [{ combo: '881', note: 'Doubles pressure', starred: false }] },
-    { id: '3', name: 'Ohio Midday', scope: 'midday', states: ['OH'], type: 'custom', combos: [] },
-  ]);
-  const [activeId, setActiveId] = useState<string | null>('1');
+  const [lists, setLists] = useState<BookList[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [listsLoaded, setListsLoaded] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [heatCheckOpen, setHeatCheckOpen] = useState(false);
   const [heatCheckCombo, setHeatCheckCombo] = useState('');
 
-  // Load saved slates from storage (Task 7)
+  // Load custom lists + saved slates from storage on mount
   useEffect(() => {
-    storage.getItem('saved_slates').then(raw => {
-      if (!raw) return;
+    (async () => {
+      let custom: BookList[] = [];
+      let saved: BookList[] = [];
       try {
-        const slates: BookList[] = JSON.parse(raw);
-        setLists(prev => {
-          const existingIds = new Set(prev.map(l => l.id));
-          const newSlates = slates.filter(s => !existingIds.has(s.id));
-          return [...prev, ...newSlates];
-        });
-      } catch { /* ignore */ }
-    });
+        const raw = await storage.getItem('number_book_lists');
+        if (raw) custom = JSON.parse(raw);
+      } catch {}
+      try {
+        const raw = await storage.getItem('saved_slates');
+        if (raw) saved = JSON.parse(raw);
+      } catch {}
+      const existingIds = new Set(custom.map((l: BookList) => l.id));
+      const merged = [...custom, ...saved.filter((s: BookList) => !existingIds.has(s.id))];
+      if (merged.length > 0) {
+        setLists(merged);
+        setActiveId(merged[0].id);
+      }
+      setListsLoaded(true);
+    })();
   }, []);
+
+  // Persist custom lists to storage whenever they change (skip during initial load)
+  useEffect(() => {
+    if (!listsLoaded) return;
+    const custom = lists.filter(l => l.type !== 'saved_slate');
+    storage.setItem('number_book_lists', JSON.stringify(custom)).catch(() => {});
+  }, [lists, listsLoaded]);
 
   const activeList = lists.find(l => l.id === activeId) ?? null;
 

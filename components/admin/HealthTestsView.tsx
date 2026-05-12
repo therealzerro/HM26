@@ -179,7 +179,7 @@ export default function HealthTestsView() {
       })}
       <Card style={{ padding: 12, marginTop: 8 }}>
         <Text style={{ fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, lineHeight: 16 }}>
-          tgagarhwqbdcwoqhpapi.supabase.co · ZK6 Engine v2
+          Connected · ZK6 Engine v2
         </Text>
       </Card>
     </ScrollView>

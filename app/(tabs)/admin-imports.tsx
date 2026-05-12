@@ -2,6 +2,7 @@ import React, { useMemo, useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useDataIngestion } from '@/hooks/useDataIngestion';
+import { fetchFromSupabase } from '@/lib/supabase';
 import { theme } from '@/constants/theme';
 import { Import } from '@/types/core';
 import { Stack } from 'expo-router';
@@ -98,35 +99,14 @@ export default function AdminImportsScreen() {
 
   const hardDeleteImport = (imp: Import) => {
     const confirmDelete = () => {
-      const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-      const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-
-      const xhrDelete = (path: string) => new Promise<number>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('DELETE', url + path, true);
-        xhr.setRequestHeader('apikey', key!);
-        xhr.setRequestHeader('Authorization', 'Bearer ' + key);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.onreadystatechange = function() {
-          if (xhr.readyState === 4) {
-            console.log('XHR DELETE', path, 'status:', xhr.status);
-            if (xhr.status >= 200 && xhr.status < 300) {
-              resolve(xhr.status);
-            } else {
-              reject(new Error(xhr.status + ': ' + xhr.responseText));
-            }
-          }
-        };
-        xhr.onerror = () => reject(new Error('Network error'));
-        xhr.send(null);
-      });
+      const del = (path: string) => fetchFromSupabase({ path, method: 'DELETE' });
 
       const run = async () => {
         try {
           if (imp.type === 'box_history') {
-            await xhrDelete('/rest/v1/datasets_box?import_id=eq.' + imp.id);
+            await del('/rest/v1/datasets_box?import_id=eq.' + imp.id);
             if (imp.scope && imp.horizon_label) {
-              await xhrDelete(
+              await del(
                 '/rest/v1/datasets_box' +
                 '?scope=eq.' + imp.scope +
                 '&horizon_label=eq.' + imp.horizon_label +
@@ -135,9 +115,9 @@ export default function AdminImportsScreen() {
               );
             }
           } else if (imp.type === 'pair_history') {
-            await xhrDelete('/rest/v1/datasets_pair?import_id=eq.' + imp.id);
+            await del('/rest/v1/datasets_pair?import_id=eq.' + imp.id);
             if (imp.scope && imp.horizon_label) {
-              await xhrDelete(
+              await del(
                 '/rest/v1/datasets_pair' +
                 '?scope=eq.' + imp.scope +
                 '&horizon_label=eq.' + imp.horizon_label +
@@ -145,10 +125,10 @@ export default function AdminImportsScreen() {
               );
             }
           } else if (imp.type === 'ledger') {
-            await xhrDelete('/rest/v1/histories?import_id=eq.' + imp.id);
+            await del('/rest/v1/histories?import_id=eq.' + imp.id);
           }
 
-          await xhrDelete('/rest/v1/imports?id=eq.' + imp.id);
+          await del('/rest/v1/imports?id=eq.' + imp.id);
 
           Alert.alert('Success', 'Import deleted.');
           loadImports();

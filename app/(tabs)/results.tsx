@@ -30,6 +30,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
 import { fetchFromSupabase } from '@/lib/supabase';
+import { useSnapshot } from '@/hooks/useSnapshot';
 import { theme } from '@/constants/theme';
 import { Calendar, MoreHorizontal, Search, X } from 'lucide-react-native';
 import { EmptyState } from '@/components/EmptyState';
@@ -225,22 +226,9 @@ export default function ResultsScreen() {
     staleTime: 30000,
   });
 
-  // Last-resort: fetch the most-recent snapshots (no date filter).
-  // hitDetection.ts finds snapshots the same way — date-range on updated_at_et
-  // often misses late-regen slates, so it falls back to "most recent". Each
-  // hit pick has hitDate set to the actual draw date by hitDetection.ts, so
-  // we filter by hitDate===selectedDate in processed to scope correctly.
-  const { data: snapshotRows, refetch: refetchSnapshotRows } = useQuery<any[]>({
-    queryKey: ['slate_snapshots_recent'],
-    queryFn: async () => {
-      const res = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/slate_snapshots?select=scope,top_k_straights_json&deleted_at=is.null&mode=neq.zk30&order=updated_at_et.desc.nullslast&limit=10`,
-        method: 'GET',
-      });
-      return Array.isArray(res) ? res : [];
-    },
-    staleTime: 60000,
-  });
+  // Tier-3 source: hitPicks from the live snapshot context — exactly what
+  // the Home performance section uses. Avoids all DB query date issues.
+  const { hitPicks: snapshotHitPicks } = useSnapshot();
 
   // When today has no draw results yet, auto-select yesterday so the screen
   // is never blank on first load (draws typically land around noon/7:30pm ET).
@@ -251,7 +239,7 @@ export default function ResultsScreen() {
   }, [ledger, ledgerLoading]);
 
   const handleRefresh = async () => {
-    await Promise.all([refetchLedger(), refetchHits(), refetchOnSlatePicks(), refetchSnapshotRows()]);
+    await Promise.all([refetchLedger(), refetchHits(), refetchOnSlatePicks()]);
   };
 
   const processed = useMemo<ProcessedEntry[]>(() => {
@@ -265,39 +253,30 @@ export default function ResultsScreen() {
       csMap.get(cs)!.push(h);
     }
 
-    // Tier 3: slate_snapshots hitType-confirmed picks — same source as Home
-    // screen. Only confirmed hits (hitType set) to avoid false positives.
+    // Tier 3: hitPicks from useSnapshot — the identical source the Home
+    // performance section reads. hitDate on each pick (set by hitDetection.ts)
+    // scopes to the correct draw date even when the snapshot is tagged today.
     const snapMap = new Map<string, HitRow[]>();
-    for (const snap of (snapshotRows || [])) {
-      let picks: any[] = [];
-      try {
-        picks = Array.isArray(snap.top_k_straights_json)
-          ? snap.top_k_straights_json
-          : JSON.parse(snap.top_k_straights_json ?? '[]');
-      } catch {}
-      for (const p of picks) {
-        // Only confirmed hits for the exact draw date being viewed.
-        // hitDetection.ts writes hitDate: drawDate on every hit pick.
-        if (!p?.hitType) continue;
-        if (p.hitDate && p.hitDate !== selectedDate) continue;
-        const cs = toComboSet(p.combo ?? '');
-        if (!snapMap.has(cs)) snapMap.set(cs, []);
-        snapMap.get(cs)!.push({
-          slate_date: selectedDate,
-          scope: snap.scope ?? '',
-          mode: 'balanced',
-          rank: p.rank ?? 0,
-          combo: p.combo ?? '',
-          best_order: p.best_order ?? p.combo ?? '',
-          hit_state: '',
-          hit_session: '',
-          hit_box: true,
-          hit_straight: p.hitType === 'straight',
-          signal_box:    p.signals?.BOX    ?? p.box    ?? undefined,
-          signal_pburst: p.signals?.PBURST ?? p.pburst ?? undefined,
-          signal_dgc:    p.signals?.DGC    ?? p.dgc    ?? undefined,
-        });
-      }
+    for (const p of (snapshotHitPicks as any[])) {
+      if (!p?.hitType) continue;
+      if (p.hitDate && p.hitDate !== selectedDate) continue;
+      const cs = toComboSet(p.combo ?? '');
+      if (!snapMap.has(cs)) snapMap.set(cs, []);
+      snapMap.get(cs)!.push({
+        slate_date: selectedDate,
+        scope: p.scope ?? '',
+        mode: 'balanced',
+        rank: p.rank ?? 0,
+        combo: p.combo ?? '',
+        best_order: p.best_order ?? p.combo ?? '',
+        hit_state: '',
+        hit_session: '',
+        hit_box: true,
+        hit_straight: p.hitType === 'straight',
+        signal_box:    p.signals?.BOX    ?? p.box    ?? undefined,
+        signal_pburst: p.signals?.PBURST ?? p.pburst ?? undefined,
+        signal_dgc:    p.signals?.DGC    ?? p.dgc    ?? undefined,
+      });
     }
 
     return ledger.map(row => {
@@ -330,7 +309,7 @@ export default function ResultsScreen() {
       }));
       return { ...row, hits: snapHits };
     });
-  }, [ledger, hits, onSlatePicks, snapshotRows]);
+  }, [ledger, hits, onSlatePicks, snapshotHitPicks, selectedDate]);
 
   const filtered = useMemo(() => {
     let rows = processed;

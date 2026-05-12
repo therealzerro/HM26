@@ -111,10 +111,10 @@ async function generateSupplementalSlate(
 }
 
 export async function runHitDetectionAndRefresh(
-  _scope: Scope | null,
+  scope: Scope | null,
   date: string,
 ): Promise<HitDetectionResult> {
-  console.log('[hitDetection] runHitDetectionAndRefresh called:', { scope: _scope ?? 'all', date });
+  console.log('[hitDetection] runHitDetectionAndRefresh called:', { scope: scope ?? 'all', date });
 
   let totalHits = 0;
   let supplementsGenerated = 0;
@@ -126,10 +126,15 @@ export async function runHitDetectionAndRefresh(
   nextDay.setDate(nextDay.getDate() + 1);
   const nextDayStr = nextDay.toISOString().split('T')[0];
 
+  const fetchScope = async (s: string) =>
+    fetchFromSupabase<any[]>({ path: `/rest/v1/slate_snapshots?scope=eq.${s}&deleted_at=is.null&updated_at_et=gte.${date}&updated_at_et=lt.${nextDayStr}T09:00:00&order=updated_at_et.asc&limit=10`, method: 'GET' });
+  const skipMidday  = scope !== null && scope !== 'midday';
+  const skipEvening = scope !== null && scope !== 'evening';
+  const skipAllday  = scope !== null && scope !== 'allday';
   const [middaySnaps, eveningSnaps, alldaySnaps] = await Promise.all([
-    fetchFromSupabase<any[]>({ path: `/rest/v1/slate_snapshots?scope=eq.midday&deleted_at=is.null&updated_at_et=gte.${date}&updated_at_et=lt.${nextDayStr}T09:00:00&order=updated_at_et.asc&limit=10`, method: 'GET' }),
-    fetchFromSupabase<any[]>({ path: `/rest/v1/slate_snapshots?scope=eq.evening&deleted_at=is.null&updated_at_et=gte.${date}&updated_at_et=lt.${nextDayStr}T09:00:00&order=updated_at_et.asc&limit=10`, method: 'GET' }),
-    fetchFromSupabase<any[]>({ path: `/rest/v1/slate_snapshots?scope=eq.allday&deleted_at=is.null&updated_at_et=gte.${date}&updated_at_et=lt.${nextDayStr}T09:00:00&order=updated_at_et.asc&limit=10`, method: 'GET' }),
+    skipMidday  ? Promise.resolve([]) : fetchScope('midday'),
+    skipEvening ? Promise.resolve([]) : fetchScope('evening'),
+    skipAllday  ? Promise.resolve([]) : fetchScope('allday'),
   ]);
   // If no date-range snapshots found for a scope, fall back to the most recent snapshot for that scope.
   const resolveSnaps = async (dateSnaps: any[] | null, scope: string): Promise<any[]> => {
@@ -239,10 +244,7 @@ export async function runHitDetectionAndRefresh(
         .filter((p: any) => p.hitType)
         .map((p: any) => p.comboSet ?? p.normKey)
         .filter(Boolean);
-      const allComboSets = updatedPicks
-        .map((p: any) => p.comboSet ?? p.normKey)
-        .filter(Boolean);
-      const excludeList = [...new Set([...hitComboSets, ...allComboSets])];
+      const excludeList = [...new Set(hitComboSets)];
 
       const snapshotScope = (snapshot.scope ?? 'allday') as Scope;
       const snapshotMode = (['balanced', 'conservative', 'aggressive'].includes(snapshot.mode)

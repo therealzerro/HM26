@@ -745,12 +745,15 @@ export default function ImportWizardScreen() {
             setShowSummary(true);
             await refetchCoverage();
 
-            // Run hit detection after successful ledger import
-            const importedDate = entries[0]?.date_et ?? new Date().toISOString().slice(0, 10);
+            // Run hit detection for all unique dates in the imported ledger
+            const uniqueDates = [...new Set(entries.map((e: any) => e.date_et).filter(Boolean))];
+            const datesForDetection = uniqueDates.length > 0 ? uniqueDates : [new Date().toISOString().slice(0, 10)];
             setHitDetectionStatus('running');
             setHitDetectionResult(null);
-            runHitDetectionAndRefresh(scope as any, importedDate).then(res => {
-              setHitDetectionResult(res);
+            Promise.all(datesForDetection.map((d: string) => runHitDetectionAndRefresh(null, d))).then(results => {
+              const combined: HitDetectionResult = { hitsFound: 0, scopesChecked: 0, supplementsGenerated: 0 };
+              results.forEach(r => { combined.hitsFound += r.hitsFound; combined.scopesChecked += r.scopesChecked; combined.supplementsGenerated += r.supplementsGenerated; });
+              setHitDetectionResult(combined);
               setHitDetectionStatus('done');
             }).catch(e => {
               console.warn('[import-wizard] hit detection failed:', e);

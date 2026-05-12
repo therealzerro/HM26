@@ -248,7 +248,7 @@ export default function SlatesScreen() {
     queryKey: ['yesterday_snap', scope, yesterdayStr],
     queryFn: async () => {
       const rows = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/slate_snapshots?scope=eq.${scope}&updated_at_et=gte.${yesterdayStr}T00:00:00&updated_at_et=lt.${todayStr}T09:00:00&order=updated_at_et.desc&limit=1&select=id,scope,top_k_straights_json`,
+        path: `/rest/v1/slate_snapshots?scope=eq.${scope}&updated_at_et=gte.${yesterdayStr}T00:00:00&updated_at_et=lt.${todayStr}T00:00:00&order=updated_at_et.desc&limit=1&select=id,scope,top_k_straights_json`,
       });
       return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
     },

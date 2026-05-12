@@ -342,7 +342,7 @@ export default function HomeScreen() {
       const resultSet = toComboSet(result.result_digits);
       for (const pick of items.filter(p => !p.locked && p.combo !== '---' && p.combo !== '•••')) {
         if (pick.comboSet === resultSet) {
-          return { rank: pick.rank, jurisdiction: result.jurisdiction, session: result.session, digits: result.result_digits };
+          return { rank: pick.rank, jurisdiction: result.jurisdiction, session: result.session, digits: result.result_digits, hitType: pick.hitType as 'straight' | 'box' | undefined };
         }
       }
     }
@@ -414,7 +414,7 @@ export default function HomeScreen() {
             <Text style={{ fontSize: 22 }}>🔥</Text>
             <View style={{ flex: 1 }}>
               <Text style={s.hitBannerTitle}>ZK6 HIT TODAY · {hitBanner.digits} in {hitBanner.jurisdiction}</Text>
-              <Text style={s.hitBannerSub}>{hitBanner.session === 'midday' ? '☀️ Midday' : '🌙 Evening'} · Box win ✓</Text>
+              <Text style={s.hitBannerSub}>{hitBanner.session === 'midday' ? '☀️ Midday' : '🌙 Evening'} · {hitBanner.hitType === 'straight' ? 'Straight hit ✓' : 'Box hit ✓'}</Text>
             </View>
           </View>
         )}

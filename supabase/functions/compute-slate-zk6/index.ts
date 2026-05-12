@@ -246,10 +246,16 @@ async function fetchHistoryOverrides(scope: Scope) {
     const dsOverride  = new Map<string, number>();
     const lsOverride  = new Map<string, string>();
     const hitDatesMap = new Map<string, number[]>();
-    rows.forEach((row, idx) => {
+    const todayMs = new Date(getTodayET() + 'T00:00:00').getTime();
+    rows.forEach((row) => {
       if (typeof row?.result_digits !== 'string' || !/^\d{3}$/.test(row.result_digits)) return;
       const cs = toComboSet(row.result_digits);
-      if (!dsOverride.has(cs)) { dsOverride.set(cs, idx); lsOverride.set(cs, String(row.date_et)); }
+      if (!dsOverride.has(cs)) {
+        const rowMs = row.date_et ? new Date(String(row.date_et)).getTime() : 0;
+        const actualDs = rowMs > 0 ? Math.max(0, Math.round((todayMs - rowMs) / 86400000)) : 999;
+        dsOverride.set(cs, actualDs);
+        lsOverride.set(cs, String(row.date_et));
+      }
       if (row.date_et) {
         const d = Math.floor(new Date(String(row.date_et)).getTime() / 86400000);
         const arr = hitDatesMap.get(cs) ?? []; arr.push(d); hitDatesMap.set(cs, arr);

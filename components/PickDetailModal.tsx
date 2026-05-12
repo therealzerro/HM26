@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   Modal, Animated, Share, Easing, Dimensions, ScrollView,
 } from 'react-native';
+import { storage } from '../lib/storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop, Rect } from 'react-native-svg';
 import { useQuery } from '@tanstack/react-query';
@@ -287,7 +288,7 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
   const pairScores = useMemo(() => {
     const getScore = (pairKey: string, classId: number) => {
       const row = pairRows.find(r => normalizePairKey(String(r.key_pair ?? r.key ?? '')) === pairKey && r.class_id === classId);
-      return row ? (row.ds_raw ?? 0) : 0;
+      return row ? (row.times_drawn ?? 0) : 0;
     };
     const f  = getScore(pairs.front, 2);
     const b  = getScore(pairs.back,  3);
@@ -335,12 +336,15 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
   ];
 
   const generatedAt = useMemo(() => {
-    const now = new Date();
-    return now.toLocaleString('en-US', {
+    const src = pick.generatedAt;
+    const d = src ? new Date(src) : null;
+    if (!d || isNaN(d.getTime())) return '—';
+    return d.toLocaleString('en-US', {
+      timeZone: 'America/New_York',
       month: 'short', day: 'numeric', year: 'numeric',
       hour: 'numeric', minute: '2-digit', hour12: true,
     });
-  }, []);
+  }, [pick.generatedAt]);
 
   const confidence = Math.round(
     (pick.energy + Math.round(pick.signals.BOX * 100) + Math.round(pick.signals.CO * 100)) / 3
@@ -474,7 +478,23 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
       <View style={ct.actionStack}>
         <TouchableOpacity
           style={[ct.actionBtn, { backgroundColor: D.gold + '18', borderColor: D.gold + '88' }]}
-          onPress={() => setSavedMsg('Saved to Number Book ✓')}
+          onPress={async () => {
+            try {
+              const raw = await storage.getItem('number_book_lists');
+              const lists: Array<{ id: string; name: string; picks: string[]; createdAt: string }> =
+                raw ? JSON.parse(raw) : [];
+              const combo = pick.combo ?? '';
+              if (lists.length === 0) {
+                lists.push({ id: Date.now().toString(), name: 'My Picks', picks: [combo], createdAt: new Date().toISOString() });
+              } else if (!lists[0].picks.includes(combo)) {
+                lists[0].picks = [...lists[0].picks, combo];
+              }
+              await storage.setItem('number_book_lists', JSON.stringify(lists));
+              setSavedMsg('Saved to Number Book ✓');
+            } catch {
+              setSavedMsg('Save failed — try again');
+            }
+          }}
         >
           <Text style={ct.actionBtnIcon}>📖</Text>
           <Text style={[ct.actionBtnText, { color: D.gold }]}>Save to Number Book</Text>

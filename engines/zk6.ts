@@ -314,11 +314,14 @@ async function fetchHistoryOverrides(scope: Scope): Promise<{
     const dsOverride = new Map<string, number>();
     const lsOverride = new Map<string, string>();
     const hitDatesMap = new Map<string, number[]>();
-    rows.forEach((row, idx) => {
+    const todayDays = Math.floor(Date.now() / 86400000);
+    rows.forEach((row) => {
       if (typeof row?.result_digits !== 'string' || !/^\d{3}$/.test(row.result_digits)) return;
       const cs = toComboSet(row.result_digits);
       if (!dsOverride.has(cs)) {
-        dsOverride.set(cs, idx);
+        const rowMs = row.date_et ? new Date(String(row.date_et)).getTime() : 0;
+        const actualDs = rowMs > 0 ? Math.max(0, todayDays - Math.floor(rowMs / 86400000)) : 999;
+        dsOverride.set(cs, actualDs);
         lsOverride.set(cs, String(row.date_et));
       }
       if (row.date_et) {
@@ -488,22 +491,15 @@ async function saveSlateSnapshot(snapshot: SlateSnapshot, extraFields?: Record<s
   })();
   if (!isSupplementSave) {
     try {
-      // Anchor to ET day (UTC-4 in EDT, UTC-5 in EST) to avoid soft-deleting yesterday's
-      // late-evening slate (which carries a next-UTC-day timestamp).
-      // 4am UTC is the safe lower bound — covers up to midnight ET in both DST states.
-      const etOffsetMs = 4 * 60 * 60 * 1000; // 4h, safe for both EDT(-4) and EST(-5)
-      const etDayStart = new Date(getTodayET() + 'T00:00:00');
-      const todayStart = new Date(etDayStart.getTime() + etOffsetMs);
-      const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+      const effectiveSd = snapshot.slate_date ?? getTodayET();
       await fetchFromSupabase<any>({
-        path: `/rest/v1/slate_snapshots?scope=eq.${encodeURIComponent(snapshot.scope)}&updated_at_et=gte.${todayStart.toISOString()}&updated_at_et=lt.${tomorrowStart.toISOString()}&deleted_at=is.null`,
+        path: `/rest/v1/slate_snapshots?scope=eq.${encodeURIComponent(snapshot.scope)}&slate_date=eq.${effectiveSd}&deleted_at=is.null`,
         method: 'PATCH',
         headers: { 'Prefer': 'return=minimal' },
         body: { deleted_at: new Date().toISOString() },
       });
     } catch (patchErr) {
       console.warn('[zk6v2] soft-delete prior snapshots warn:', String(patchErr));
-      // Non-fatal — proceed with insert
     }
   }
 
@@ -1092,7 +1088,7 @@ export async function computeSlate({
       await fetchFromSupabase({
         path: '/rest/v1/daily_intelligence',
         method: 'POST',
-        headers: { 'Prefer': 'return=minimal' },
+        headers: { 'Prefer': 'resolution=ignore-duplicates,return=minimal' },
         body: diRows,
       });
       console.log('[zk6v2] daily_intelligence: wrote top 30 for scope:', scope, 'date:', effectiveDate);

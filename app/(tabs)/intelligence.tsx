@@ -92,7 +92,7 @@ function weightedAvg(values: number[], weights: number[]) {
 }
 
 function computeAnalysis(rows: IntelRow[]): AnalysisData {
-  const today = new Date();
+  const today = new Date(getTodayET() + 'T12:00:00');
   const rowsWithWeights = rows.map(r => {
     const d = new Date(r.slate_date + 'T12:00:00');
     const diffDays = Math.max(0, (today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));

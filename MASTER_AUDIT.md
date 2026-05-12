@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-05-12 (deep scan — BUG-41 through BUG-123, ENH-01 through ENH-22 added; awaiting triage)  
+**Last updated:** 2026-05-12 (all 20 high-severity bugs BUG-41–BUG-118 fixed; BUG-117 accepted as design risk)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -15,11 +15,11 @@
 
 | State | Count |
 |-------|-------|
-| ✅ Fixed | 50 |
-| ℹ️ By design / False positive | 8 |
+| ✅ Fixed | 69 |
+| ℹ️ By design / False positive | 9 |
 | 🎨 UX Improvements Applied | 58 |
 | 🔴 Open — Critical | 0 |
-| 🟠 Open — High | 20 |
+| 🟠 Open — High | 0 |
 | 🟡 Open — Medium | 52 |
 | 🔵 Open — Low | 5 |
 | 🔵 Latent / Not Active | 1 |
@@ -162,87 +162,67 @@ Full Supabase anon JWT hardcoded as a fallback in `hardDeleteImport`. Fixed: rem
 
 ---
 
-### 🟠 Open — High
+### 🟠 High (All fixed 2026-05-12)
 
-**BUG-41** `app/(tabs)/index.tsx`
-Hit banner subtitle always reads "Box win ✓" regardless of hit type. `hitType` field exists on the pick.
-_Fix: `pick.hitType === 'straight' ? 'Straight hit ✓' : 'Box hit ✓'`._
+**BUG-41** `app/(tabs)/index.tsx` — ✅ Fixed 2026-05-12
+Hit banner subtitle now uses `hitBanner.hitType` to show "Straight hit ✓" or "Box hit ✓". Also added `hitType` to the hitBanner memo return object.
 
-**BUG-45** `app/(tabs)/explore.tsx`
-Yesterday snapshot query filters `updated_at_et=lt.${todayStr}T09:00:00` — slates generated after 9 am ET yesterday are silently missed.
-_Fix: use `T00:00:00` (UTC midnight) or filter by `slate_date=eq.${yesterdayStr}`._
+**BUG-45** `app/(tabs)/explore.tsx` — ✅ Fixed 2026-05-12
+Yesterday snapshot query filtered `updated_at_et=lt.${todayStr}T09:00:00` — slates after 9 am ET yesterday were missed. Fixed: changed upper bound to `T00:00:00` (UTC midnight).
 
-**BUG-52** `app/(tabs)/intelligence.tsx`
-`computeAnalysis` weight-decay uses device `new Date()` as reference. Intelligence timestamps are in ET; device offset mismatch over- or under-decays recent data.
-_Fix: use `new Date(getTodayET() + 'T12:00:00')` as reference._
+**BUG-52** `app/(tabs)/intelligence.tsx` — ✅ Fixed 2026-05-12
+`computeAnalysis` weight-decay used device `new Date()` as reference, causing ET mismatch. Fixed: changed to `new Date(getTodayET() + 'T12:00:00')` to anchor to ET noon.
 
-**BUG-69** `app/import-wizard.tsx`
-After ledger import, hit detection fires only for `entries[0].date_et` — the first entry's date. Multi-day imports (e.g. a week of results) only check day one.
-_Fix: collect unique dates from `entries` and call `runHitDetectionForDates(uniqueDates)`._
+**BUG-69** `app/import-wizard.tsx` — ✅ Fixed 2026-05-12
+After ledger import, hit detection fired only for `entries[0].date_et`. Fixed: collects unique dates from all entries; calls `runHitDetectionAndRefresh` for each date via `Promise.all`, then aggregates `HitDetectionResult` totals.
 
-**BUG-75** `components/admin/DashboardView.tsx`
-`handleDetectHits` calls `runHitDetectionAndRefresh(sc, date)` per-scope (3 scopes × 2 dates = 6 calls), but `_scope` is ignored inside the function — all scopes are always checked. Each call redundantly re-checks all three scopes; total work is 6× instead of 2×.
-_Fix: call `runHitDetectionAllScopes(date)` once per date, removing the scope loop._
+**BUG-75** `components/admin/DashboardView.tsx` — ✅ Fixed 2026-05-12
+`handleDetectHits` called `runHitDetectionAndRefresh(sc, date)` per-scope (3 × 2 dates = 6 calls) but `_scope` was ignored — redundant 6× work. Fixed: removed scope loop; calls `runHitDetectionAllScopes(date)` once per date.
 
-**BUG-85** `components/admin/HitTrackingView.tsx`
-The "View Results" quick-action button has `onPress={() => {}}` — it is a complete no-op with no feedback.
-_Fix: `router.push('/(tabs)/results')` with the relevant date as a param._
+**BUG-85** `components/admin/HitTrackingView.tsx` — ✅ Fixed 2026-05-12
+"View Results" quick-action button had `onPress={() => {}}` — a complete no-op. Fixed: `router.push('/(tabs)/results')` added.
 
-**BUG-88** `components/PickDetailModal.tsx` — PAIRS tab
-Pair score is `ds_raw / maxDsRaw` (staleness ratio) — higher = staler = weaker pair. The display treats staleness as a positive signal, inverting the meaning shown to the user.
-_Fix: use `timesDrawn / maxTimesDrawn` (frequency), consistent with engine pair logic._
+**BUG-88** `components/PickDetailModal.tsx` — ✅ Fixed 2026-05-12
+Pair score displayed `ds_raw / maxDsRaw` (staleness ratio), treating staleness as a positive signal. Fixed: changed `getScore` to return `row.times_drawn ?? 0` (frequency), consistent with engine pair logic.
 
-**BUG-89** `components/PickDetailModal.tsx`
-`generatedAt` is `new Date().toLocaleString()` at render time — always shows when the modal was opened, never when the slate was generated.
-_Fix: use `pick.generatedAt ?? snapshot.updated_at_et` and format as ET._
+**BUG-89** `components/PickDetailModal.tsx` — ✅ Fixed 2026-05-12
+`generatedAt` showed current render time, never slate generation time. Fixed: uses `pick.generatedAt` (already set to `snapshot.updated_at_et` by `explore.tsx`), formatted as ET.
 
-**BUG-90** `components/PickDetailModal.tsx`
-"Save to Number Book" button fires a toast message but performs no actual save — no AsyncStorage write, no state mutation, no Supabase insert.
-_Fix: implement via a shared `addToNumberBook(combo)` helper that persists to AsyncStorage._
+**BUG-90** `components/PickDetailModal.tsx` — ✅ Fixed 2026-05-12
+"Save to Number Book" button showed a toast but performed no actual save. Fixed: reads `number_book_lists` from AsyncStorage, appends combo to the first list (or creates one if empty), writes back.
 
-**BUG-94** `engines/zk6.ts`
-Prior-snapshot soft-delete uses a hardcoded ET offset of `4h` (`etOffsetMs = 4 * 60 * 60 * 1000`). During EST (UTC-5), ET midnight is UTC 05:00 but the window starts at UTC 04:00 — one hour early. Pre-1am ET slates in winter are not soft-deleted before regen.
-_Fix: dynamically compute ET offset (−5h EST / −4h EDT) or use `slate_date` column filter._
+**BUG-94** `engines/zk6.ts` — ✅ Fixed 2026-05-12
+Prior-snapshot soft-delete used hardcoded 4h ET offset, missing pre-1am EST slates. Fixed: uses `slate_date` column filter (`slate_date=eq.${effectiveSd}`) instead of UTC-offset arithmetic.
 
-**BUG-95** `engines/zk6.ts`
-`fetchHistoryOverrides` sets `dsOverride = idx` (array index 0, 1, 2…) as draws-since proxy. In a multi-state dataset the first combo in the result has `dsOverride=0` even if it drew yesterday; the 50th has `dsOverride=49` even if it drew the same day. True draws-since can be 10× higher.
-_Fix: compute draws-since as calendar-day delta from `row.date_et` to today, as done in `zk30.ts`._
+**BUG-95** `engines/zk6.ts` — ✅ Fixed 2026-05-12
+`fetchHistoryOverrides` set `dsOverride = idx` (array row index) — completely wrong draws-since values. Fixed: computes actual calendar-day delta from `row.date_et` (`Math.floor(Date.now() / 86400000) - Math.floor(rowMs / 86400000)`).
 
-**BUG-97** `engines/zk6.ts`
-`daily_intelligence DELETE` filters `hit_box=eq.false&hit_straight=eq.false`, leaving already-hit rows in place. The subsequent POST with `resolution=merge-duplicates` may silently overwrite the preserved `hit_box=true` flags if the merge direction is wrong.
-_Fix: DELETE all rows for `(slate_date, scope, mode)` and re-insert with hit flags preserved, or use a true upsert ON CONFLICT that preserves hit columns._
+**BUG-97** `engines/zk6.ts` — ✅ Fixed 2026-05-12
+`daily_intelligence` POST used `resolution=merge-duplicates` (UPSERT), which could silently overwrite preserved `hit_box=true` flags. Fixed: changed to `resolution=ignore-duplicates` (ON CONFLICT DO NOTHING).
 
-**BUG-99** `lib/hitDetection.ts`
-`runHitDetectionAndRefresh(_scope, date)` accepts a scope parameter but always fetches all three scopes unconditionally. Every scoped call from `DashboardView` checks midday+evening+allday regardless of which scope was passed.
-_Fix: honour `_scope` (filter snapshot query when non-null) or remove the parameter and update all callers._
+**BUG-99** `lib/hitDetection.ts` — ✅ Fixed 2026-05-12
+`runHitDetectionAndRefresh` accepted a `_scope` parameter but always fetched all three scopes unconditionally. Fixed: renamed `_scope` to `scope`; scope-specific calls now skip non-matching fetches.
 
-**BUG-100** `lib/hitDetection.ts`
-`generateSupplementalSlate` is called with `excludeList = [...hitComboSets, ...allComboSets]` — every combo from the original slate (hit or not) is excluded. If 1 of 6 picks hits, the other 5 valid combos are unnecessarily banned from the supplement.
-_Fix: pass only `hitComboSets` to `generateSupplementalSlate`._
+**BUG-100** `lib/hitDetection.ts` — ✅ Fixed 2026-05-12
+`generateSupplementalSlate` excluded all original slate combos (hit or not) — unnecessarily banning non-hit picks from the supplement. Fixed: `excludeList` now contains only `hitComboSets`.
 
-**BUG-104** `hooks/useSnapshot.tsx`
-`coveragePercentage` denominator counts ALL keys in `horizons_present_json` including `_engineVersion`, `_mode`, `_confidence`, `_dataStats`, `_source`. A snapshot with 10 horizon keys and 5 metadata keys shows 67% instead of 100%.
-_Fix: filter denominator keys to the `H\d{2}Y` pattern only._
+**BUG-104** `hooks/useSnapshot.tsx` — ✅ Fixed 2026-05-12
+`coveragePercentage` denominator counted all keys in `horizons_present_json` including metadata keys (`_engineVersion`, `_mode`, etc.), inflating denominator. Fixed: filtered to `/^H\d{2}Y$/` pattern only.
 
-**BUG-105** `hooks/useSnapshot.tsx`
-AsyncStorage cache evicts valid snapshots older than 2 hours by comparing `updated_at_et` to `Date.now() - 2h`. A slate generated at 6 am becomes stale at 8 am; on a spotty connection after 8 am, the user sees an error instead of the still-valid cached slate.
-_Fix: evict based on `slate_date` equality (evict only when today's ET date differs from the cached snapshot's `slate_date`)._
+**BUG-105** `hooks/useSnapshot.tsx` — ✅ Fixed 2026-05-12
+AsyncStorage cache evicted valid snapshots older than 2 hours — stale on spotty connections. Fixed: eviction now checks `slate_date` equality against `getTodayET()`; cache cleared only when the stored snapshot belongs to a different ET date.
 
-**BUG-110** `hooks/useDataIngestion.tsx`
-`importDailyMutation` builds a row with `draws_since: numberify(...)` but the DB column is named `ds_raw`. Supabase silently drops the unknown key — `ds_raw` is always `null` in newly imported daily input rows.
-_Fix: rename key to `ds_raw`._
+**BUG-110** `hooks/useDataIngestion.tsx` — ✅ Fixed 2026-05-12
+`importDailyMutation` built rows with `draws_since` key but DB column is `ds_raw`. PostgREST silently dropped the unknown key, leaving `ds_raw` always null. Fixed: renamed to `ds_raw` in both the row builder and the chunk mapper.
 
-**BUG-115** `supabase/functions/compute-slate-zk6/index.ts`
-Same `dsOverride = idx` (row ordinal index) bug as BUG-95 — present in the production edge function that actually generates slates.
-_Fix: compute actual calendar-day draws-since from `row.date_et`._
+**BUG-115** `supabase/functions/compute-slate-zk6/index.ts` — ✅ Fixed 2026-05-12
+Same `dsOverride = idx` (row ordinal index) bug as BUG-95 — present in the production edge function. Fixed: computes actual calendar-day delta from `row.date_et`, consistent with BUG-95.
 
-**BUG-117** `supabase/functions/compute-slate-zk6/index.ts`
-CORS header is `'Access-Control-Allow-Origin': '*'`. This edge function uses the service role key for writes; an open CORS policy permits arbitrary origins to invoke it with a stolen JWT.
-_Fix: restrict to the Expo app origin or enforce `Authorization: Bearer <service-key>` that is not client-accessible._
+**BUG-117** `supabase/functions/compute-slate-zk6/index.ts` — ℹ️ Accepted as design risk 2026-05-12
+CORS `*` header noted but accepted: service role key is server-side only; mobile app not browser-CORS-constrained; single-admin context. No code change.
 
-**BUG-118** `engines/zk30.ts`
-Same `drawsSince = idx` (row ordinal index) bug as BUG-95/BUG-115 in `fetchZK30Datasets`. For a 10,000-row history the draws-since value can be orders of magnitude larger than the true recency.
-_Fix: compute draws-since as calendar-day delta from `row.date_et`._
+**BUG-118** `engines/zk30.ts` — ✅ Fixed 2026-05-12
+Same `drawsSince = idx` (row ordinal index) bug as BUG-95/BUG-115 in `fetchZK30Datasets`. Fixed: computes actual calendar-day delta from `row.date_et`, consistent with other engine fixes.
 
 ---
 

@@ -266,12 +266,15 @@ async function fetchZK30Datasets(scope: Scope, jurisdiction: string): Promise<Da
   const lastSeenMap   = new Map<string, string>();
 
   if (Array.isArray(rows)) {
-    rows.forEach((row, idx) => {
+    const todayDays = Math.floor(Date.now() / 86400000);
+    rows.forEach((row) => {
       if (typeof row?.result_digits !== 'string' || !/^\d{3}$/.test(row.result_digits)) return;
       const cs = toComboSet(row.result_digits);
       if (!drawsSinceMap.has(cs)) {
-        drawsSinceMap.set(cs, idx);
-        dsRawMap.set(cs, idx);
+        const rowMs = row.date_et ? new Date(String(row.date_et)).getTime() : 0;
+        const actualDs = rowMs > 0 ? Math.max(0, todayDays - Math.floor(rowMs / 86400000)) : 999;
+        drawsSinceMap.set(cs, actualDs);
+        dsRawMap.set(cs, actualDs);
         if (row.date_et) lastSeenMap.set(cs, String(row.date_et));
       }
       timesDrawnMap.set(cs, (timesDrawnMap.get(cs) ?? 0) + 1);

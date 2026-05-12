@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 import { theme } from '@/constants/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { getTodayET } from '@/lib/dateUtils';
@@ -21,6 +22,7 @@ function PerformanceRow({
   avgBox,
   onDeleted,
 }: { row: any; allData: any[]; avgBox: number; onDeleted?: () => void }) {
+  const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [expandedData, setExpandedData] = useState<ExpandedRowData | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -449,7 +451,7 @@ function PerformanceRow({
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <TouchableOpacity
                   style={{ flex: 1, padding: 8, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.primary + '44', backgroundColor: theme.colors.primaryLight, alignItems: 'center' }}
-                  onPress={() => {}}
+                  onPress={() => router.push('/(tabs)/results')}
                 >
                   <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.primary }}>View Results</Text>
                 </TouchableOpacity>

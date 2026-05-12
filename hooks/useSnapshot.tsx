@@ -6,6 +6,7 @@ import { SlateSnapshot, Scope, TopKStraightRow } from '@/types/core';
 import { useScope } from '@/hooks/useScope';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { storage } from '@/lib/storage';
+import { getTodayET } from '@/lib/dateUtils';
 
 interface SnapshotState {
   snapshot: SlateSnapshot | null;
@@ -163,13 +164,13 @@ export const [SnapshotProvider, useSnapshot] = createContextHook<SnapshotState>(
     queryFn: async () => {
       console.log('[useSnapshot] Fetching snapshot for scope:', scope);
       try {
-        // Clear storage cache if the stored snapshot is older than 5 minutes
+        // Evict cache when the stored snapshot is from a previous ET date
         try {
           const storedSnap = await storage.getItem(`snapshot-${scope}`);
           if (storedSnap) {
             const parsed = JSON.parse(storedSnap);
-            const age = Date.now() - new Date(parsed.updated_at_et).getTime();
-            if (age > 5 * 60 * 1000) {
+            const cachedDate = parsed.slate_date ?? parsed.updated_at_et?.split('T')[0];
+            if (cachedDate && cachedDate !== getTodayET()) {
               await storage.removeItem(`snapshot-${scope}`);
               await storage.removeItem(`lastSnapshotId-${scope}`);
               console.log('[useSnapshot] Cleared stale storage cache for scope:', scope);
@@ -285,8 +286,9 @@ export const [SnapshotProvider, useSnapshot] = createContextHook<SnapshotState>(
 
   const coveragePercentage = useMemo(() => {
     if (!snapshot?.horizons_present_json) return 0;
-    const totalHorizons = Object.keys(snapshot.horizons_present_json).length;
-    const presentHorizons = Object.values(snapshot.horizons_present_json).filter(Boolean).length;
+    const horizonKeys = Object.keys(snapshot.horizons_present_json).filter(k => /^H\d{2}Y$/.test(k));
+    const totalHorizons = horizonKeys.length;
+    const presentHorizons = horizonKeys.filter(k => (snapshot.horizons_present_json as Record<string, boolean>)[k]).length;
     return totalHorizons > 0 ? Math.round((presentHorizons / totalHorizons) * 100) : 0;
   }, [snapshot]);
 

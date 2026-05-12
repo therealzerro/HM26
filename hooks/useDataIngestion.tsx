@@ -536,7 +536,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
             const currentDs = row.draws_since ?? row.ds_raw ?? 0;
             return {
               key: row.key,
-              draws_since: isHit ? 0 : currentDs + 1,
+              ds_raw: isHit ? 0 : currentDs + 1,
             };
           });
 
@@ -548,7 +548,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
               scope: data.scope,
               horizon_label: 'H01Y',
               key: r.key,
-              draws_since: r.draws_since,
+              ds_raw: r.ds_raw,
             }));
             try {
               await fetchFromSupabase({

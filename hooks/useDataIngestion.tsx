@@ -566,8 +566,12 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
 
   // ── runHitDetectionAndRefresh ─────────────────────────────────────────────────
   // Delegates to lib/hitDetection.ts for the core hit/snapshot/intelligence logic.
-  // The ledger-specific pair draws_since RPC is kept here since it is only relevant
-  // to the ledger import flow and not to admin-triggered hit detection.
+  // BUG-131 (2026-05-12): the `update_pair_draws_since_from_results` RPC was
+  // mutating `datasets_pair.draws_since` across ALL horizons / classes /
+  // jurisdictions in one undifferentiated sweep, with no idempotency check.
+  // Engine math reads `ds_raw` (untouched), so this was cosmetic — but the
+  // RPC is also neutered server-side. Call site removed here so we don't
+  // continue to fire a known-broken function.
   const runHitDetectionAndRefresh = useCallback(async (dates?: string[]): Promise<HitDetectionResult> => {
     const today = getTodayET();
     const checkDates = (dates && dates.length > 0) ? dates : [today];
@@ -577,29 +581,6 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
       if (result.totalHits > 0) {
         queryClient.invalidateQueries({ queryKey: ['snapshot'] });
         queryClient.invalidateQueries({ queryKey: ['daily_intelligence_hits'] });
-      }
-
-      // Update pair draws_since from results — ledger-import only side effect.
-      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-      const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-      const pairHeaders: Record<string, string> = {
-        'apikey': supabaseKey ?? '',
-        'Authorization': 'Bearer ' + (supabaseKey ?? ''),
-        'Content-Type': 'application/json',
-      };
-      for (const importedDate of checkDates) {
-        for (const sc of ['midday', 'evening', 'allday']) {
-          try {
-            const res = await fetch(
-              (supabaseUrl ?? '') + '/rest/v1/rpc/update_pair_draws_since_from_results',
-              { method: 'POST', headers: pairHeaders, body: JSON.stringify({ p_scope: sc, p_date_et: importedDate }) },
-            );
-            const data = await res.json();
-            console.log('Pair update ' + sc + ' ' + importedDate + ':', data);
-          } catch (e) {
-            console.log('Pair update failed for ' + sc + ' ' + importedDate + ':', e);
-          }
-        }
       }
 
       return result;

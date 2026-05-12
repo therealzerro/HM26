@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-05-12 (Audit cleanup: Phase 3 logged retroactively, BUG-20 downgraded to ⚠️ Partial, BUG-28 closed, BUG-29 latent ZK30 added)  
+**Last updated:** 2026-05-12 (BUG-30 + BUG-31 closed: intelligence screen wiring + edge function daily_intelligence column mismatch; component patch pass applied)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -15,7 +15,7 @@
 
 | State | Count |
 |-------|-------|
-| ✅ Fixed | 33 |
+| ✅ Fixed | 35 |
 | ℹ️ By design / False positive | 8 |
 | 🎨 UX Improvements Applied | 35 |
 | 🔴 Open — Critical | 0 |
@@ -71,6 +71,8 @@
 | BUG-26 | 🟡 Medium | Results Screen: Hits Not Refreshed After Hit Detection | ✅ Fixed — `app/(tabs)/admin.tsx` invalidates query cache | `app/(tabs)/admin.tsx` | 2026-05-08 |
 | BUG-27 | 🟡 Medium | Intelligence Top 30 Slate: No Hit Badge on SlateRow | ✅ Fixed — ⭐ STRAIGHT / 🎯 BOX badges added | `app/(tabs)/intelligence.tsx` | 2026-05-08 |
 | BUG-28 | 🟠 High | Hit detection PATCHes (`daily_intelligence` + `slate_snapshots`) silently failing under BUG-20 lockdown — anon key writes blocked by `authenticated`-only UPDATE policies; app never produces JWTs. `hit_box`/`hit_straight` flags not persisted, snapshot enrichment not surviving session. Discovered 2026-05-12 by forensic investigation of BUG-20 write paths. | ✅ Fixed — `intelligence_update_anon` + `snapshots_update_anon` policies added; mirrors anon write pattern on `adaptive_tracking`. Permanent fix queued in Phase 3.5 (hit-detection Edge Function). | `lib/hitDetection.ts` (no code change; RLS only) | 2026-05-12 |
+| BUG-30 | 🟠 High | Intelligence screen — three wiring failures: (1) `slateScope` initialized to hardcoded `'midday'` ignoring global `useScope()` → Top 30 queried wrong scope for every non-midday user. (2) "Generate Slate" and "Go to Slates" buttons used `router.push('/(tabs)/explore')` from a hidden tab; `push` stacks on top of admin context → navigation resolved to home tab instead of explore. (3) `IntelligenceRouteView` used `router.push('/(tabs)/intelligence')` to open the screen, compounding the push-stack problem. (4) Home screen regen (`index.tsx`) did not call `queryClient.removeQueries` before `refreshSnapshot()` — stale cache served the old snapshot after regen. | ✅ Fixed — (1) Import `useScope`, init `slateScope` from `globalScope`. (2) "Generate Slate" replaced with inline `regenerateSlate()` call; "Go to Slates" switches internal view tab. (3) `router.push` → `router.navigate` in `IntelligenceRouteView.tsx`. (4) `useQueryClient` + `removeQueries` added to `index.tsx` `handleGenerate`. | `app/(tabs)/intelligence.tsx`, `components/admin/IntelligenceRouteView.tsx`, `app/(tabs)/index.tsx` | 2026-05-12 |
+| BUG-31 | 🔴 Critical | `daily_intelligence` always empty after regen — edge function INSERT used wrong column names: `energy` (DB: `energy_score`), `indicator` (column does not exist), `times_drawn` (column does not exist). PostgREST returned 400 on every INSERT. Error silently swallowed by `catch` block — client always saw `regen ok`, snapshot was written, but all 30 `daily_intelligence` rows were discarded every time. Top 30 Slate was permanently empty. | ✅ Fixed — corrected INSERT to `energy_score: p.energy`; removed `indicator` and `times_drawn` fields. Edge function redeployed. | `supabase/functions/compute-slate-zk6/index.ts` | 2026-05-12 |
 
 ---
 
@@ -340,3 +342,6 @@ Polish pass applied on top of the 35-point UX overhaul.
 | 2026-05-12 | BUG-29 identified (Low): DB functions calculate_hit_rates() and get_todays_hits() use updated_at_et date instead of slate_date column — latent boundary bug when slates are generated late-night ET. | Claude Code |
 | 2026-05-12 | BUG-30 identified (Medium): ZK30 snapshots not persisted post-BUG-20 — no edge function path, anon INSERT blocked. Silent fallback to audit_logs on every ZK30 regen. | Claude Code |
 | 2026-05-12 | Audit cleanup: retroactively logged Phase 3 ZK6 Edge Function deploy (commit d92fd99); downgraded BUG-20 to ⚠️ Partial with explicit scope breakdown; added BUG-28 to Closed Bugs (fix: anon UPDATE policies applied 2026-05-12); dropped BUG-29 (DB analytics `updated_at_et` issue — low-priority, no active users affected); removed BUG-30 (ZK30 non-functional framing superseded); added BUG-29 (ZK30 latent persistence failure, not active in production); updated Quality Scorecard Security (RLS) → ⚠️ Partial and Data Consistency note; added Phase 3.5 / 3.6 to Edge Function Migration Roadmap; added process note on audit-as-definition-of-done. | Claude Code |
+| 2026-05-12 | Component patch pass applied (design handoff): `SignalBar.tsx` full replacement (fixed 60px track, iOS glow shadow); `SlateCard.tsx` full replacement (12h/8v padding, 32px rank container, canonical hot/warm/mild/cold temperature tokens); `PickCard.tsx` 3 surgical edits (`heatInfo` thresholds corrected, `tempColorFor()` helper + temperature-tinted bestStraight digits, signal bar labels BOX/PBURST/CO/DGC). | Claude Code |
+| 2026-05-12 | BUG-30 fixed (High): Intelligence screen scope/navigation/cache wiring — `slateScope` now initialized from `globalScope`; `router.push` → `router.navigate` in `IntelligenceRouteView`; inline `regenerateSlate` replaces navigation button in empty state; `queryClient.removeQueries` added to home regen path. Commits 036d3c4 + 6dd8769. | Claude Code |
+| 2026-05-12 | BUG-31 fixed (Critical): `daily_intelligence` permanently empty — edge function wrote `energy`/`indicator`/`times_drawn` (none exist in DB); PostgREST 400 silently swallowed by catch block. Fixed to `energy_score`; removed `indicator` and `times_drawn`. Edge function redeployed. Commit 89883f5. Fixed count 33→35. | Claude Code |

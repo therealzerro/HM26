@@ -229,7 +229,12 @@ function runK6Selection(
     }
 
     const recentDs = drawsSinceMap.get(normKey) ?? 999;
-    if (!relaxCooldown && recentHitCooldown > 0 && (timesDrawnMap.get(normKey) ?? 0) > 0 && recentDs < recentHitCooldown) {
+    // ENH-F: per-multiplicity cooldown overrides the flat value when present
+    const cdMap = config.cooldownByMultiplicity;
+    const effectiveCooldown = cdMap
+      ? (mult === 'singles' ? cdMap.singles : mult === 'doubles' ? cdMap.doubles : cdMap.triples)
+      : recentHitCooldown;
+    if (!relaxCooldown && effectiveCooldown > 0 && (timesDrawnMap.get(normKey) ?? 0) > 0 && recentDs < effectiveCooldown) {
       return false;
     }
 

@@ -22,6 +22,10 @@ export interface EngineConfig {
   // false = match the pre-port edge function which only blocked today's winners.
   // Defaults to true when omitted.
   excludeYesterdayHits?: boolean;
+  // ENH-F: per-multiplicity cooldown. Doubles draw less often than singles, so a flat
+  // 20-day cooldown is too aggressive for them. When set, overrides `recentHitCooldown`
+  // based on the candidate's multiplicity.
+  cooldownByMultiplicity?: { singles: number; doubles: number; triples: number };
 }
 
 export interface ReplayPick {

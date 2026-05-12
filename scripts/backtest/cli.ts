@@ -34,10 +34,11 @@ function parseArgs(argv: string[]): Record<string, string> {
   return args;
 }
 
-function dateRange(days: number): string[] {
+function dateRange(days: number, endDate?: string): string[] {
   const dates: string[] = [];
+  const anchor = endDate ? new Date(endDate + 'T00:00:00Z') : new Date();
   for (let i = days - 1; i >= 0; i--) {
-    const d = new Date();
+    const d = new Date(anchor);
     d.setUTCDate(d.getUTCDate() - i);
     dates.push(d.toISOString().split('T')[0]);
   }
@@ -91,7 +92,7 @@ async function modeReplay(args: Record<string, string>) {
     ? [...MODES]
     : [(modeArg as typeof MODES[number])];
 
-  const dates = dateRange(days);
+  const dates = dateRange(days, args['end-date']);
   console.log(`[backtest] Replay mode — ${days} days, configs: [${configNames.join(', ')}], modes: [${modes.join(', ')}]`);
   console.log(`[backtest] Dates: ${dates[0]} → ${dates[dates.length - 1]}`);
 

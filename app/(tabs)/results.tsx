@@ -70,6 +70,11 @@ const SESSION_COLORS: Record<string, string> = {
 function getTodayET(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 }
+function getNextDay(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() + 1);
+  return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+}
 function toComboSet(digits: string): string {
   return '{' + digits.split('').sort().join(',') + '}';
 }
@@ -190,11 +195,16 @@ export default function ResultsScreen() {
     staleTime: 30000,
   });
 
+  // Slates can be tagged with selectedDate OR the next calendar day if the
+  // slate was regenerated after midnight ET (BUG-18 late-regen scenario).
+  // All three hit-detection queries use in.(selectedDate,nextDay).
+  const nextDay = getNextDay(selectedDate);
+
   const { data: hits, refetch: refetchHits } = useQuery<HitRow[]>({
     queryKey: ['daily_intelligence_hits', selectedDate],
     queryFn: async () => {
       const res = await fetchFromSupabase<HitRow[]>({
-        path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,best_order,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=eq.${selectedDate}&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&order=rank.asc&limit=500`,
+        path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,best_order,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=in.(${selectedDate},${nextDay})&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&order=rank.asc&limit=500`,
         method: 'GET',
       });
       return Array.isArray(res) ? res : [];
@@ -202,13 +212,12 @@ export default function ResultsScreen() {
     staleTime: 30000,
   });
 
-  // All on-slate picks for selectedDate — used for client-side hit detection
-  // when daily_intelligence.hit_box/hit_straight haven't been backfilled yet.
+  // All on-slate picks — client-side hit detection when backfill hasn't run.
   const { data: onSlatePicks, refetch: refetchOnSlatePicks } = useQuery<HitRow[]>({
     queryKey: ['daily_intelligence_on_slate', selectedDate],
     queryFn: async () => {
       const res = await fetchFromSupabase<HitRow[]>({
-        path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,best_order,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=eq.${selectedDate}&on_slate=eq.true&mode=in.(balanced,conservative,aggressive)&order=rank.asc&limit=500`,
+        path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,best_order,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=in.(${selectedDate},${nextDay})&on_slate=eq.true&mode=in.(balanced,conservative,aggressive)&order=rank.asc&limit=500`,
         method: 'GET',
       });
       return Array.isArray(res) ? res : [];
@@ -216,16 +225,14 @@ export default function ResultsScreen() {
     staleTime: 30000,
   });
 
-  // Last-resort: fetch slate_snapshots directly for selectedDate.
-  // daily_intelligence rows may have the wrong slate_date if the slate was
-  // regenerated after midnight ET (BUG-18 scenario), making tiers 1 and 2
-  // miss. slate_snapshots.top_k_straights_json has hitType already set by
-  // lib/hitDetection.ts — same source the Home performance screen uses.
+  // Last-resort: fetch slate_snapshots directly.
+  // daily_intelligence rows may have wrong slate_date; slate_snapshots.
+  // top_k_straights_json has hitType already set — same source as Home screen.
   const { data: snapshotRows, refetch: refetchSnapshotRows } = useQuery<any[]>({
     queryKey: ['slate_snapshots_for_results', selectedDate],
     queryFn: async () => {
       const res = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/slate_snapshots?select=scope,top_k_straights_json&slate_date=eq.${selectedDate}&deleted_at=is.null&mode=neq.zk30&order=updated_at_et.desc.nullslast&limit=10`,
+        path: `/rest/v1/slate_snapshots?select=scope,top_k_straights_json&slate_date=in.(${selectedDate},${nextDay})&deleted_at=is.null&mode=neq.zk30&order=updated_at_et.desc.nullslast&limit=10`,
         method: 'GET',
       });
       return Array.isArray(res) ? res : [];

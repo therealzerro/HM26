@@ -376,7 +376,7 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
                 return (
                   <View key={d} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 3, paddingHorizontal: 2, backgroundColor: isToday ? theme.colors.primaryLight + '55' : 'transparent', borderRadius: 6 }}>
                     <View style={{ width: 84 }}>
-                      <Text style={{ fontSize: 10, color: isToday ? theme.colors.primary : isYday ? theme.colors.gold : theme.colors.textSecondary, fontWeight: (isToday || isYday) ? '700' : '400', fontFamily: 'Courier' }}>
+                      <Text style={{ fontSize: 10, color: isToday ? theme.colors.primary : isYday ? theme.colors.gold : theme.colors.textSecondary, fontWeight: (isToday || isYday) ? '700' : '400', fontFamily: theme.typography.fontFamily.mono }}>
                         {isToday ? 'Today' : isYday ? 'Yesterday' : formatDateShort(d)}
                       </Text>
                     </View>
@@ -445,7 +445,7 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
                 return (
                   <View key={d} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 3, paddingHorizontal: 2, backgroundColor: isToday ? theme.colors.primaryLight + '44' : 'transparent', borderRadius: 6 }}>
                     <View style={{ width: 84 }}>
-                      <Text style={{ fontSize: 10, color: isToday ? theme.colors.primary : isYday ? theme.colors.gold : theme.colors.textSecondary, fontWeight: (isToday || isYday) ? '700' : '400', fontFamily: 'Courier' }}>
+                      <Text style={{ fontSize: 10, color: isToday ? theme.colors.primary : isYday ? theme.colors.gold : theme.colors.textSecondary, fontWeight: (isToday || isYday) ? '700' : '400', fontFamily: theme.typography.fontFamily.mono }}>
                         {isToday ? 'Today' : isYday ? 'Yesterday' : formatDateShort(d)}
                       </Text>
                     </View>

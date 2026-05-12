@@ -106,7 +106,7 @@ export default function AdaptiveLearningView() {
               { l: 'Avg Energy on Hits', v: avgEnergy > 0 ? String(avgEnergy) : '—', c: theme.colors.primary },
             ].map(s => (
               <Card key={s.l} style={{ width: '47%', padding: 12, alignItems: 'center' }}>
-                <Text style={{ fontSize: 20, fontWeight: '900', color: s.c, fontFamily: 'Courier' }}>{s.v}</Text>
+                <Text style={{ fontSize: 20, fontWeight: '900', color: s.c, fontFamily: theme.typography.fontFamily.monoBold }}>{s.v}</Text>
                 <Text style={{ fontSize: 9, color: theme.colors.textTertiary, fontWeight: '700', textAlign: 'center', marginTop: 3 }}>{s.l}</Text>
               </Card>
             ))}

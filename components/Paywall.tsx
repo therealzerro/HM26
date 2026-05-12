@@ -184,7 +184,7 @@ const s = StyleSheet.create({
     marginBottom: 4,
   },
   popularBadgeText: { fontSize: 8, fontWeight: '800', color: '#fff' },
-  planPrice: { fontSize: 16, fontWeight: '900', color: theme.colors.text, fontFamily: 'Courier' },
+  planPrice: { fontSize: 16, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold },
   planPeriod: { fontSize: 9, color: theme.colors.textTertiary },
   planBadge: { fontSize: 8, fontWeight: '700', color: theme.colors.textTertiary, marginTop: 2 },
   cta: {

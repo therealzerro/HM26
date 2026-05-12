@@ -38,7 +38,7 @@ export default function NationwideAdminView() {
       <SectionTitle>SERVICE URL</SectionTitle>
       <Card style={{ padding: 14, marginBottom: 14 }}>
         <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.textTertiary, letterSpacing: 1, marginBottom: 6, textTransform: 'uppercase' }}>Nationwide Play URL</Text>
-        <TextInput style={[st.csvInput, { height: 44, fontFamily: 'Courier', fontSize: 12, color: theme.colors.primary, textAlignVertical: 'center' }]} value={url} onChangeText={setUrl} />
+        <TextInput style={[st.csvInput, { height: 44, fontFamily: theme.typography.fontFamily.mono, fontSize: 12, color: theme.colors.primary, textAlignVertical: 'center' }]} value={url} onChangeText={setUrl} />
         <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.textTertiary, letterSpacing: 1, marginBottom: 6, marginTop: 10, textTransform: 'uppercase' }}>Description for Pro users</Text>
         <TextInput style={[st.csvInput, { height: 72 }]} value={note} onChangeText={setNote} multiline textAlignVertical="top" />
       </Card>

@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   },
   metaValue: {
     fontSize: theme.typography.fontSize.md,
-    fontFamily: 'monospace',
+    fontFamily: theme.typography.fontFamily.mono,
     color: theme.colors.text,
   },
   timeRow: {

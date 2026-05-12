@@ -143,6 +143,17 @@ export const theme = {
     medium: 250,
     slow:   350,
     pulse:  900,
+    hit:    1400,
+  },
+
+  letterSpacing: {
+    tight:  -0.3,
+    normal:  0,
+    wide:    0.5,
+    wider:   1,
+    widest:  1.5,
+    combo:   3,    // 3-digit pick combos
+    comboLg: 6,    // large combo inputs / displays
   },
 
   gradients: {

@@ -17,7 +17,7 @@ export class ErrorBoundary extends Component<
           <Text style={{ fontSize: 15, fontWeight: '800', color: '#ef4444', marginBottom: 8, textAlign: 'center' }}>
             {this.props.fallback ?? 'Something went wrong'}
           </Text>
-          <Text style={{ fontSize: 11, color: '#6b7280', textAlign: 'center', fontFamily: 'Courier' }}>
+          <Text style={{ fontSize: 11, color: '#6b7280', textAlign: 'center', fontFamily: theme.typography.fontFamily.mono }}>
             {this.state.error.message}
           </Text>
           <TouchableOpacity
@@ -108,5 +108,5 @@ export const st = StyleSheet.create({
   filterBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: 'transparent' },
   filterBtnOn: { backgroundColor: theme.colors.primary },
   filterBtnText: { fontSize: 11, fontWeight: '500', color: theme.colors.textSecondary },
-  csvInput: { borderWidth: 1.5, borderColor: theme.colors.border, borderRadius: 10, padding: 12, fontSize: 11, color: theme.colors.text, backgroundColor: theme.colors.surface, height: 160, fontFamily: 'Courier' },
+  csvInput: { borderWidth: 1.5, borderColor: theme.colors.border, borderRadius: 10, padding: 12, fontSize: 11, color: theme.colors.text, backgroundColor: theme.colors.surface, height: 160, fontFamily: theme.typography.fontFamily.mono },
 });

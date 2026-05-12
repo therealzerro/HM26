@@ -522,11 +522,11 @@ export default function SlatesScreen() {
         {/* ── Today's Hits ── */}
         {!showYesterday && slateHitItems.length > 0 && (
           <View style={{ backgroundColor: theme.colors.gold + '18', borderRadius: 12, borderWidth: 1.5, borderColor: theme.colors.gold + '55', padding: 12, marginBottom: 12, gap: 6 }}>
-            <Text style={{ fontSize: 10, fontWeight: '900', color: theme.colors.gold, letterSpacing: 1.5, marginBottom: 4, fontFamily: theme.typography.fontFamily.mono }}>TODAY'S HITS — REMOVED FROM ACTIVE SLATE</Text>
+            <Text style={{ fontSize: 10, fontWeight: '900', color: theme.colors.gold, letterSpacing: 1.5, marginBottom: 4, fontFamily: theme.typography.fontFamily.monoBold }}>TODAY'S HITS — REMOVED FROM ACTIVE SLATE</Text>
             {slateHitItems.map((pick, i) => (
               <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1, backgroundColor: pick.hitType === 'straight' ? theme.colors.gold + '22' : theme.colors.cyan + '22', borderColor: pick.hitType === 'straight' ? theme.colors.gold + '66' : theme.colors.cyan + '66' }}>
-                  <Text style={{ fontSize: 9, fontWeight: '900', color: pick.hitType === 'straight' ? theme.colors.gold : theme.colors.cyan, fontFamily: theme.typography.fontFamily.mono }}>
+                  <Text style={{ fontSize: 9, fontWeight: '900', color: pick.hitType === 'straight' ? theme.colors.gold : theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold }}>
                     {pick.hitType === 'straight' ? 'STRAIGHT' : 'BOX'}
                   </Text>
                 </View>
@@ -646,11 +646,11 @@ const s = StyleSheet.create({
   // Header — compact, everything in one row
   header: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   title: { fontSize: 18, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.bold },
-  creditsText: { fontSize: 10, color: theme.colors.purple, fontFamily: theme.typography.fontFamily.mono, fontWeight: '700' },
+  creditsText: { fontSize: 10, color: theme.colors.purple, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700' },
   headerIconBtn: { width: 30, height: 30, borderRadius: 8, backgroundColor: theme.colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.border },
   headerIconText: { fontSize: 13 },
   generateBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: theme.colors.purple, paddingHorizontal: 10, paddingVertical: 6, borderRadius: theme.borderRadius.chip },
-  generateBtnText: { color: '#fff', fontWeight: '700', fontSize: 11, fontFamily: theme.typography.fontFamily.mono },
+  generateBtnText: { color: '#fff', fontWeight: '700', fontSize: 11, fontFamily: theme.typography.fontFamily.monoBold },
 
   // Scope + mode — single scrollable row
   scopeRow: { backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: theme.colors.border, maxHeight: 38 },
@@ -672,7 +672,7 @@ const s = StyleSheet.create({
   proBannerTitle: { fontSize: 12, fontWeight: '800', color: theme.colors.text },
   proBannerSub: { fontSize: 10, color: theme.colors.textSecondary, marginTop: 1 },
   proBannerBtn: { backgroundColor: theme.colors.purple, paddingHorizontal: 12, paddingVertical: 6, borderRadius: theme.borderRadius.chip },
-  proBannerBtnText: { fontSize: 11, fontWeight: '800', color: '#fff', fontFamily: theme.typography.fontFamily.mono },
+  proBannerBtnText: { fontSize: 11, fontWeight: '800', color: '#fff', fontFamily: theme.typography.fontFamily.monoBold },
   yesterdayBtn: { borderWidth: 1, borderColor: theme.colors.amber + '55', backgroundColor: theme.colors.amber + '10' },
 
   // Control strip — filters + sort + view + save in one 30px row
@@ -680,7 +680,7 @@ const s = StyleSheet.create({
   ctrlChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5 },
   ctrlChipOnCyan: { backgroundColor: theme.colors.cyan + '15', borderWidth: 1, borderColor: theme.colors.cyan + '44' },
   ctrlChipOnPurple: { backgroundColor: theme.colors.purple + '20', borderWidth: 1, borderColor: theme.colors.purple + '55' },
-  ctrlText: { fontSize: 10, fontFamily: theme.typography.fontFamily.mono, color: theme.colors.textTertiary, fontWeight: '700' },
+  ctrlText: { fontSize: 10, fontFamily: theme.typography.fontFamily.monoBold, color: theme.colors.textTertiary, fontWeight: '700' },
   ctrlTextCyan: { color: theme.colors.cyan },
   ctrlTextPurple: { color: theme.colors.purple },
   ctrlDiv: { width: 1, height: 12, backgroundColor: theme.colors.border, marginHorizontal: 6 },

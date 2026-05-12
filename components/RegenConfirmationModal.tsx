@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, TouchableOpacity, View, Text, TextInput, StyleSheet, Platform } from 'react-native';
+import { Modal, TouchableOpacity, View, Text, TextInput, StyleSheet } from 'react-native';
 import { theme } from '@/constants/theme';
 
 interface RegenConfirmationModalProps {
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     color: theme.colors.text,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontFamily: theme.typography.fontFamily.mono,
   },
   btnRow: {
     flexDirection: 'row',

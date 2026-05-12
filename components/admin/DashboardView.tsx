@@ -185,7 +185,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
         ].map(stat => (
           <Card key={stat.l} style={{ flex: 1, minWidth: 120, padding: 14, alignItems: 'center' }}>
             <Text style={{ fontSize: 20, marginBottom: 4 }}>{stat.i}</Text>
-            <Text style={{ fontSize: 18, fontWeight: '900', color: stat.c, fontFamily: 'Courier', lineHeight: 20, marginBottom: 2 }}>{stat.v}</Text>
+            <Text style={{ fontSize: 18, fontWeight: '900', color: stat.c, fontFamily: theme.typography.fontFamily.monoBold, lineHeight: 20, marginBottom: 2 }}>{stat.v}</Text>
             <Text style={{ fontSize: 9, color: theme.colors.textTertiary, fontWeight: '700', textAlign: 'center' }}>{stat.l}</Text>
           </Card>
         ))}
@@ -273,7 +273,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
         </View>
         {regenProgress ? (
           <View style={{ backgroundColor: theme.colors.surfaceLight, borderRadius: 8, padding: 10, borderWidth: 1, borderColor: theme.colors.border }}>
-            <Text style={{ fontSize: 11, color: theme.colors.textSecondary, fontFamily: 'Courier' }}>{regenProgress}</Text>
+            <Text style={{ fontSize: 11, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>{regenProgress}</Text>
           </View>
         ) : null}
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
@@ -326,7 +326,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
           </TouchableOpacity>
           {detectResult && (
             <View style={{ marginTop: 8, backgroundColor: theme.colors.surfaceLight, borderRadius: 8, padding: 10 }}>
-              <Text style={{ fontSize: 11, color: detectResult.hitsFound > 0 ? theme.colors.gold : theme.colors.textSecondary, fontFamily: 'Courier', textAlign: 'center' }}>
+              <Text style={{ fontSize: 11, color: detectResult.hitsFound > 0 ? theme.colors.gold : theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, textAlign: 'center' }}>
                 {detectResult.hitsFound > 0
                   ? `Found ${detectResult.hitsFound} hit${detectResult.hitsFound !== 1 ? 's' : ''} across ${detectResult.scopesChecked} scope${detectResult.scopesChecked !== 1 ? 's' : ''}`
                   : 'No hits found for today\'s slate'}
@@ -534,7 +534,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
                 <Text style={{ fontSize: 10, color: theme.colors.textTertiary }}>{imp.scope} · {new Date(imp.created_at).toLocaleDateString()}</Text>
               </View>
               <Pill label={imp.status} color={sc} />
-              <Text style={{ fontSize: 12, color: theme.colors.success, fontFamily: 'Courier' }}>+{imp.accepted}</Text>
+              <Text style={{ fontSize: 12, color: theme.colors.success, fontFamily: theme.typography.fontFamily.mono }}>+{imp.accepted}</Text>
             </View>
           );
         })}

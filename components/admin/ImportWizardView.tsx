@@ -616,7 +616,7 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
 
             <Card style={{ padding: 12, marginBottom: 18 }}>
               <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.text, marginBottom: 4 }}>Import will create:</Text>
-              <Text style={{ fontSize: 12, color: theme.colors.textSecondary, fontFamily: 'Courier' }}>
+              <Text style={{ fontSize: 12, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>
                 {importType === 'box_history' ? 'Box Class (1)' : importType === 'pair_history' ? 'Pair Class (' + config.class_id + ')' : ''}{config.horizon ? ' · ' + config.horizon : ''} · Scope: {config.scope}{(importType === 'daily_input' || importType === 'ledger') ? ' · Date: ' + config.import_date : ''}
               </Text>
             </Card>
@@ -665,7 +665,7 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
               {[{ l:'Accepted', v: parsed.accepted, c: theme.colors.success }, { l:'Rejected', v: parsed.rejected, c: theme.colors.error }, { l:'Fixed', v: parsed.fixed, c: theme.colors.gold }, { l:'Total', v: parsed.totalRows, c: theme.colors.primary }].map(s => (
                 <Card key={s.l} style={{ flex: 1, minWidth: 70, padding: 10, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 20, fontWeight: '900', color: s.c, fontFamily: 'Courier' }}>{s.v}</Text>
+                  <Text style={{ fontSize: 20, fontWeight: '900', color: s.c, fontFamily: theme.typography.fontFamily.monoBold }}>{s.v}</Text>
                   <Text style={{ fontSize: 9, color: theme.colors.textTertiary, fontWeight: '700' }}>{s.l}</Text>
                 </Card>
               ))}
@@ -673,19 +673,19 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
             {parsed.warnings?.length > 0 && (
               <Card style={{ padding: 12, marginBottom: 10, backgroundColor: theme.colors.goldLight, borderColor: theme.colors.gold + '44' }}>
                 <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.gold, marginBottom: 4 }}>⚠️ Warnings</Text>
-                {parsed.warnings.map((w: string, i: number) => <Text key={i} style={{ fontSize: 11, color: theme.colors.textSecondary, fontFamily: 'Courier' }}>{w}</Text>)}
+                {parsed.warnings.map((w: string, i: number) => <Text key={i} style={{ fontSize: 11, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>{w}</Text>)}
               </Card>
             )}
             <Card style={{ padding: 12, marginBottom: 14, backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary + '28' }}>
               <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.primary, marginBottom: 4 }}>Import Configuration</Text>
-              <Text style={{ fontSize: 12, color: theme.colors.textSecondary, fontFamily: 'Courier' }}>
+              <Text style={{ fontSize: 12, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>
                 Type: {importType}{importType === 'pair_history' ? ' · Class ' + config.class_id : importType === 'box_history' ? ' · Class 1' : ''}{config.horizon && (importType === 'box_history' || importType === 'pair_history') ? ' · ' + config.horizon : ''} · Scope: {config.scope}
               </Text>
             </Card>
             {commitError && (
               <Card style={{ padding: 12, marginBottom: 10, backgroundColor: theme.colors.errorLight, borderColor: theme.colors.error + '44' }}>
                 <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.error, marginBottom: 4 }}>✗ Import Failed</Text>
-                <Text style={{ fontSize: 11, color: theme.colors.textSecondary, fontFamily: 'Courier' }}>{commitError}</Text>
+                <Text style={{ fontSize: 11, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>{commitError}</Text>
               </Card>
             )}
             <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -703,12 +703,12 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
             <View style={{ alignItems: 'center', marginBottom: 20 }}>
               <Text style={{ fontSize: 48, marginBottom: 8 }}>✅</Text>
               <Text style={{ fontSize: 20, fontWeight: '800', color: theme.colors.success, marginBottom: 4 }}>Import Committed</Text>
-              <Text style={{ fontSize: 11, color: theme.colors.textTertiary, fontFamily: 'Courier' }} numberOfLines={1}>ID: {result.id}</Text>
+              <Text style={{ fontSize: 11, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono }} numberOfLines={1}>ID: {result.id}</Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
               {[{ l:'Accepted', v: result.accepted, c: theme.colors.success }, { l:'Rejected', v: result.rejected, c: theme.colors.error }, { l:'Fixed', v: result.fixed ?? 0, c: theme.colors.gold }].map(s => (
                 <Card key={s.l} style={{ flex: 1, padding: 12, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 20, fontWeight: '900', color: s.c, fontFamily: 'Courier' }}>{s.v}</Text>
+                  <Text style={{ fontSize: 20, fontWeight: '900', color: s.c, fontFamily: theme.typography.fontFamily.monoBold }}>{s.v}</Text>
                   <Text style={{ fontSize: 9, color: theme.colors.textTertiary, fontWeight: '700' }}>{s.l}</Text>
                 </Card>
               ))}
@@ -716,7 +716,7 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
             {result.warnings?.length > 0 && (
               <Card style={{ padding: 12, marginBottom: 10, backgroundColor: theme.colors.goldLight, borderColor: theme.colors.gold + '44' }}>
                 <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.gold, marginBottom: 4 }}>⚠️ Warnings</Text>
-                {result.warnings.slice(0, 5).map((w: string, i: number) => <Text key={i} style={{ fontSize: 11, color: theme.colors.textSecondary, fontFamily: 'Courier' }}>{w}</Text>)}
+                {result.warnings.slice(0, 5).map((w: string, i: number) => <Text key={i} style={{ fontSize: 11, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>{w}</Text>)}
               </Card>
             )}
             <Card style={{ padding: 14, marginBottom: 14, backgroundColor: theme.colors.successLight, borderColor: theme.colors.success + '33' }}>

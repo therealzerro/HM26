@@ -315,7 +315,7 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
                       <View>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
                           <Text style={{ fontSize: 10, color: theme.colors.textSecondary }}>BOX</Text>
-                          <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.text, fontFamily: 'Courier' }}>{(result.signalBox * 100).toFixed(1)}%</Text>
+                          <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>{(result.signalBox * 100).toFixed(1)}%</Text>
                         </View>
                         <View style={{ height: 6, backgroundColor: theme.colors.border, borderRadius: 3 }}>
                           <View style={{ height: 6, borderRadius: 3, backgroundColor: theme.colors.primary, width: `${Math.min(100, result.signalBox * 100).toFixed(1)}%` as any }} />
@@ -324,7 +324,7 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
                     ) : (
                       <View style={{ flexDirection: 'row', gap: 12 }}>
                         <Text style={{ fontSize: 11, color: theme.colors.textSecondary }}>
-                          ds_raw: <Text style={{ fontWeight: '800', color: theme.colors.text, fontFamily: 'Courier' }}>{result.dsRaw}</Text>
+                          ds_raw: <Text style={{ fontWeight: '800', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>{result.dsRaw}</Text>
                         </Text>
                         <Text style={{ fontSize: 11, color: theme.colors.textSecondary }}>
                           scope: <Text style={{ fontWeight: '700', color: theme.colors.text }}>allday</Text>
@@ -344,7 +344,7 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
                           <View>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
                               <Text style={{ fontSize: 10, color: theme.colors.textSecondary }}>PBURST</Text>
-                              <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.text, fontFamily: 'Courier' }}>{(result.signalPburst * 100).toFixed(1)}%</Text>
+                              <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>{(result.signalPburst * 100).toFixed(1)}%</Text>
                             </View>
                             <View style={{ height: 6, backgroundColor: theme.colors.border, borderRadius: 3 }}>
                               <View style={{ height: 6, borderRadius: 3, backgroundColor: theme.colors.gold, width: `${Math.min(100, result.signalPburst * 100).toFixed(1)}%` as any }} />
@@ -355,7 +355,7 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
                           <View>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
                               <Text style={{ fontSize: 10, color: theme.colors.textSecondary }}>CO</Text>
-                              <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.text, fontFamily: 'Courier' }}>{(result.signalCo * 100).toFixed(1)}%</Text>
+                              <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>{(result.signalCo * 100).toFixed(1)}%</Text>
                             </View>
                             <View style={{ height: 6, backgroundColor: theme.colors.border, borderRadius: 3 }}>
                               <View style={{ height: 6, borderRadius: 3, backgroundColor: theme.colors.orange, width: `${Math.min(100, result.signalCo * 100).toFixed(1)}%` as any }} />
@@ -366,7 +366,7 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
                     ) : (
                       result.pairRows.slice(0, 6).map((pr: any, i: number) => (
                         <View key={i} style={{ flexDirection: 'row', gap: 8, marginBottom: 2 }}>
-                          <Text style={{ fontSize: 10, fontFamily: 'Courier', color: theme.colors.text, fontWeight: '700', width: 28 }}>{pr.key}</Text>
+                          <Text style={{ fontSize: 10, fontFamily: theme.typography.fontFamily.monoBold, color: theme.colors.text, fontWeight: '700', width: 28 }}>{pr.key}</Text>
                           <Text style={{ fontSize: 10, color: theme.colors.textSecondary }}>class {pr.class_id}</Text>
                           <Text style={{ fontSize: 10, color: theme.colors.textSecondary }}>ds_raw: <Text style={{ fontWeight: '700', color: theme.colors.text }}>{pr.ds_raw}</Text></Text>
                         </View>
@@ -382,7 +382,7 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
                     <View>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
                         <Text style={{ fontSize: 10, color: theme.colors.textSecondary }}>DGC</Text>
-                        <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.text, fontFamily: 'Courier' }}>{((result.signalDgc ?? 0) * 100).toFixed(1)}%</Text>
+                        <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>{((result.signalDgc ?? 0) * 100).toFixed(1)}%</Text>
                       </View>
                       <View style={{ height: 6, backgroundColor: theme.colors.border, borderRadius: 3 }}>
                         <View style={{ height: 6, borderRadius: 3, backgroundColor: theme.colors.gold, width: `${Math.min(100, (result.signalDgc ?? 0) * 100).toFixed(1)}%` as any }} />
@@ -427,8 +427,8 @@ const s = StyleSheet.create({
   input: {
     flex: 1, height: 48, borderWidth: 1.5, borderColor: theme.colors.border,
     borderRadius: 10, paddingHorizontal: 14,
-    fontSize: 22, fontWeight: '900', color: theme.colors.text,
-    fontFamily: 'Courier', letterSpacing: 6,
+    fontSize: 22, color: theme.colors.text,
+    fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 6,
     backgroundColor: theme.colors.background, textAlign: 'center',
   },
   checkBtn: {
@@ -452,20 +452,20 @@ const s = StyleSheet.create({
   },
   resultHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   resultCombo: {
-    fontSize: 36, fontWeight: '900', color: theme.colors.text,
-    fontFamily: 'Courier', letterSpacing: 6,
+    fontSize: 36, color: theme.colors.text,
+    fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 6,
   },
-  resultComboSet: { flex: 1, fontSize: 10, color: theme.colors.textTertiary, fontFamily: 'Courier' },
+  resultComboSet: { flex: 1, fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
   energyPill: {
     alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6,
     borderRadius: 10, borderWidth: 1.5,
   },
-  energyPillNum: { fontSize: 18, fontWeight: '900', fontFamily: 'Courier' },
+  energyPillNum: { fontSize: 18, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
   energyPillLbl: { fontSize: 8, fontWeight: '700', letterSpacing: 0.5 },
   verdict: { fontSize: 13, fontWeight: '700', marginBottom: 10, lineHeight: 18 },
   statsRow: { flexDirection: 'row', gap: 0 },
   stat: { flex: 1, alignItems: 'center', paddingVertical: 6 },
-  statNum: { fontSize: 14, fontWeight: '900', color: theme.colors.text, fontFamily: 'Courier' },
+  statNum: { fontSize: 14, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold },
   statLbl: { fontSize: 9, color: theme.colors.textTertiary, fontWeight: '600', marginTop: 1 },
   noDataText: { fontSize: 11, color: theme.colors.textSecondary, fontStyle: 'italic', marginTop: 6 },
 });

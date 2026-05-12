@@ -213,14 +213,14 @@ function PerformanceRow({
         }}
       >
         <View style={{ width: 62 }}>
-          <Text style={{ fontSize: 10, fontFamily: 'Courier', color: theme.colors.text, fontWeight: '700' }}>{formatDate(row.slate_date)}</Text>
+          <Text style={{ fontSize: 10, fontFamily: theme.typography.fontFamily.monoBold, color: theme.colors.text, fontWeight: '700' }}>{formatDate(row.slate_date)}</Text>
         </View>
         <View style={{ width: 52 }}>
           <Text style={{ fontSize: 9, fontWeight: '700', color: scopeColor }}>{scopeLabel}</Text>
           {row.mode && <Text style={{ fontSize: 8, color: theme.colors.textTertiary }}>{row.mode}</Text>}
         </View>
         <View style={{ width: 36 }}>
-          <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.textSecondary, fontFamily: 'Courier' }}>{boxHits}/{totalPicks || 6}</Text>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.monoBold }}>{boxHits}/{totalPicks || 6}</Text>
         </View>
         <View style={{ flex: 1, marginHorizontal: 8 }}>
           <View style={{ height: 6, backgroundColor: theme.colors.border, borderRadius: 3, overflow: 'hidden' }}>
@@ -313,7 +313,7 @@ function PerformanceRow({
                           }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
                               <Text style={{ fontSize: 13, marginRight: 6 }}>{rankMedal(rank)}</Text>
-                              <Text style={{ fontSize: 18, fontWeight: '900', fontFamily: 'Courier', color: theme.colors.text, flex: 1 }}>{digits}</Text>
+                              <Text style={{ fontSize: 18, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, color: theme.colors.text, flex: 1 }}>{digits}</Text>
                               <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: energyColor + '22' }}>
                                 <Text style={{ fontSize: 9, fontWeight: '800', color: energyColor }}>E{energy}</Text>
                               </View>
@@ -400,7 +400,7 @@ function PerformanceRow({
                       return (
                         <View key={ri} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 }}>
                           <Text style={{ fontSize: 10, width: 80, color: theme.colors.textSecondary }}>{res.jurisdiction?.slice(0, 10) ?? '?'}</Text>
-                          <Text style={{ fontSize: 10, fontFamily: 'Courier', fontWeight: '700', color: theme.colors.text, width: 30 }}>{res.result_digits}</Text>
+                          <Text style={{ fontSize: 10, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700', color: theme.colors.text, width: 30 }}>{res.result_digits}</Text>
                           <Text style={{ fontSize: 10, color: matched ? theme.colors.success : theme.colors.textTertiary, flex: 1 }}>
                             {matched ? `✓ ${matchedPick.hitType} hit · Pick #${matchedPick.rank ?? '?'}` : '✗ Miss'}
                           </Text>
@@ -638,7 +638,7 @@ export default function HitTrackingView() {
               ].map(s => (
                 <Card key={s.l} style={{ flex: 1, minWidth: 72, padding: 10, alignItems: 'center' }}>
                   <Text style={{ fontSize: 13, marginBottom: 2 }}>{s.i}</Text>
-                  <Text style={{ fontSize: 13, fontWeight: '900', color: s.c, fontFamily: 'Courier', textAlign: 'center' }}>{s.v}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '900', color: s.c, fontFamily: theme.typography.fontFamily.monoBold, textAlign: 'center' }}>{s.v}</Text>
                   <Text style={{ fontSize: 8, color: theme.colors.textTertiary, fontWeight: '700', textAlign: 'center', marginTop: 2 }}>{s.l}</Text>
                 </Card>
               ))}

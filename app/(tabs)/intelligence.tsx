@@ -957,13 +957,13 @@ const ss = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   rankBadgeK6: { backgroundColor: theme.colors.gold + '22' },
-  rankNum: { fontSize: 11, fontWeight: '900', color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
+  rankNum: { fontSize: 11, fontWeight: '900', color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold },
   rankCrown: { fontSize: 16, color: theme.colors.gold },
 
   // Combo
   combo: {
-    fontSize: 22, fontWeight: '900', color: theme.colors.text,
-    letterSpacing: 4, fontFamily: theme.typography.fontFamily.mono,
+    fontSize: 22, color: theme.colors.text,
+    letterSpacing: 4, fontFamily: theme.typography.fontFamily.monoBold,
   },
 
   // Badges
@@ -995,7 +995,7 @@ const ss = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1.5, backgroundColor: theme.colors.bgElevated,
   },
-  energyNum: { fontSize: 12, fontWeight: '900', fontFamily: theme.typography.fontFamily.mono, lineHeight: 14 },
+  energyNum: { fontSize: 12, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, lineHeight: 14 },
   energyLbl: { fontSize: 7, fontWeight: '800', letterSpacing: 0.3 },
 
   // Empty state

@@ -159,12 +159,12 @@ export default function HealthTestsView() {
                 <Text style={{ fontSize: 10, color: theme.colors.textTertiary }}>{state.s === 'idle' ? t.h : state.msg}</Text>
               </View>
               {state.ms != null && state.s !== 'running' && (
-                <Text style={{ fontSize: 10, color: state.s === 'success' ? theme.colors.success : theme.colors.textTertiary, fontFamily: 'Courier' }}>
+                <Text style={{ fontSize: 10, color: state.s === 'success' ? theme.colors.success : theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono }}>
                   {state.ms}ms
                 </Text>
               )}
               {state.detail && (
-                <Text style={{ fontSize: 10, color: theme.colors.primary, fontFamily: 'Courier' }}>…{state.detail}</Text>
+                <Text style={{ fontSize: 10, color: theme.colors.primary, fontFamily: theme.typography.fontFamily.mono }}>…{state.detail}</Text>
               )}
               <TouchableOpacity
                 style={[st.btnGhost, { paddingHorizontal: 10, paddingVertical: 5, opacity: state.s === 'running' ? 0.4 : 1 }]}
@@ -178,7 +178,7 @@ export default function HealthTestsView() {
         );
       })}
       <Card style={{ padding: 12, marginTop: 8 }}>
-        <Text style={{ fontSize: 10, color: theme.colors.textTertiary, fontFamily: 'Courier', lineHeight: 16 }}>
+        <Text style={{ fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, lineHeight: 16 }}>
           tgagarhwqbdcwoqhpapi.supabase.co · ZK6 Engine v2
         </Text>
       </Card>

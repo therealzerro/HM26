@@ -211,9 +211,8 @@ const s = StyleSheet.create({
   },
   countdownText: {
     fontSize: 20,
-    fontWeight: '900',
     color: theme.colors.text,
-    fontFamily: 'Courier',
+    fontFamily: theme.typography.fontFamily.monoBold,
     letterSpacing: 2,
   },
   upNextRow: {

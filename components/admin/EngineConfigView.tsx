@@ -229,7 +229,7 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
           {[{ l: 'BOX', c: theme.colors.primary }, { l: 'PBURST', c: theme.colors.rose }, { l: 'CO', c: theme.colors.teal }].map(s => (
             <View key={s.l} style={{ flex: 1, backgroundColor: theme.colors.surfaceLight, borderRadius: 10, padding: 10, alignItems: 'center' }}>
               <Text style={{ fontSize: 9, color: theme.colors.textTertiary, fontWeight: '800', letterSpacing: 1, marginBottom: 3 }}>{s.l}</Text>
-              <Text style={{ fontSize: 20, fontWeight: '900', color: s.c, fontFamily: 'Courier' }}>{(w as any)[s.l]}%</Text>
+              <Text style={{ fontSize: 20, fontWeight: '900', color: s.c, fontFamily: theme.typography.fontFamily.monoBold }}>{(w as any)[s.l]}%</Text>
             </View>
           ))}
         </View>
@@ -244,7 +244,7 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
         <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
             <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>Max Singles in K6</Text>
-            <Text style={{ fontSize: 14, fontWeight: '900', color: theme.colors.primary, fontFamily: 'Courier' }}>{singlesMax}</Text>
+            <Text style={{ fontSize: 14, fontWeight: '900', color: theme.colors.primary, fontFamily: theme.typography.fontFamily.monoBold }}>{singlesMax}</Text>
           </View>
           <View style={{ height: 4, backgroundColor: theme.colors.surfaceLight, borderRadius: 2, overflow: 'hidden' }}>
             <View style={{ width: `${(singlesMax / 6) * 100}%`, height: '100%', backgroundColor: theme.colors.primary, borderRadius: 2 }} />
@@ -261,7 +261,7 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
         <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
             <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>Max Doubles in K6</Text>
-            <Text style={{ fontSize: 14, fontWeight: '900', color: theme.colors.teal, fontFamily: 'Courier' }}>{doublesMax}</Text>
+            <Text style={{ fontSize: 14, fontWeight: '900', color: theme.colors.teal, fontFamily: theme.typography.fontFamily.monoBold }}>{doublesMax}</Text>
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             {[0,1,2,3,4].map(v => (
@@ -275,7 +275,7 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
         <View style={{ paddingVertical: 10 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
             <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>Pair Repetition Cap</Text>
-            <Text style={{ fontSize: 14, fontWeight: '900', color: theme.colors.gold, fontFamily: 'Courier' }}>{pairRepCap}</Text>
+            <Text style={{ fontSize: 14, fontWeight: '900', color: theme.colors.gold, fontFamily: theme.typography.fontFamily.monoBold }}>{pairRepCap}</Text>
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             {[1,2,3,4].map(v => (
@@ -303,7 +303,7 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
               <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>Boost Weight</Text>
               <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginTop: 2 }}>Bonus score added when 2+ signals are {'>'} 0.70</Text>
             </View>
-            <Text style={{ fontSize: 16, fontWeight: '900', color: theme.colors.primary, fontFamily: 'Courier' }}>+{synergyWeight.toFixed(2)}</Text>
+            <Text style={{ fontSize: 16, fontWeight: '900', color: theme.colors.primary, fontFamily: theme.typography.fontFamily.monoBold }}>+{synergyWeight.toFixed(2)}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 6 }}>
             {[0.05, 0.10, 0.15, 0.20, 0.25].map(v => (
@@ -332,7 +332,7 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
       <Card style={{ padding: 14, marginBottom: 16 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
           <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>Horizon Blend Weights</Text>
-          <Text style={{ fontSize: 11, fontWeight: '700', color: Math.abs(horizonSum - 100) < 0.5 ? theme.colors.success : theme.colors.error, fontFamily: 'Courier' }}>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: Math.abs(horizonSum - 100) < 0.5 ? theme.colors.success : theme.colors.error, fontFamily: theme.typography.fontFamily.monoBold }}>
             Sum: {horizonSum.toFixed(1)}%
           </Text>
         </View>
@@ -341,11 +341,11 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
           const val = horizonWeights[h] ?? 0;
           return (
             <View key={h} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.primary, width: 40, fontFamily: 'Courier' }}>{h}</Text>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.primary, width: 40, fontFamily: theme.typography.fontFamily.monoBold }}>{h}</Text>
               <View style={{ flex: 1, height: 6, backgroundColor: theme.colors.surfaceLight, borderRadius: 3, overflow: 'hidden' }}>
                 <View style={{ width: `${Math.min(val, 100)}%`, height: '100%', backgroundColor: theme.colors.primary, borderRadius: 3 }} />
               </View>
-              <Text style={{ fontSize: 11, fontWeight: '900', color: theme.colors.primary, fontFamily: 'Courier', width: 36 }}>{val}%</Text>
+              <Text style={{ fontSize: 11, fontWeight: '900', color: theme.colors.primary, fontFamily: theme.typography.fontFamily.monoBold, width: 36 }}>{val}%</Text>
               <View style={{ flexDirection: 'row', gap: 3 }}>
                 <TouchableOpacity
                   onPress={() => setHorizonWeights(w => ({ ...w, [h]: Math.max(0, (w[h] ?? 0) - 0.5) }))}
@@ -374,7 +374,7 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
               <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>Pressure Threshold</Text>
               <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginTop: 2 }}>Combos overdue by more than X draws get a pressure bonus</Text>
             </View>
-            <Text style={{ fontSize: 16, fontWeight: '900', color: theme.colors.rose, fontFamily: 'Courier' }}>{pressureThreshold}</Text>
+            <Text style={{ fontSize: 16, fontWeight: '900', color: theme.colors.rose, fontFamily: theme.typography.fontFamily.monoBold }}>{pressureThreshold}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 6 }}>
             {[50, 100, 150, 200, 300, 500].map(v => (
@@ -390,7 +390,7 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
               <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>Pressure Bonus Weight</Text>
               <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginTop: 2 }}>How much the pressure bonus affects final score</Text>
             </View>
-            <Text style={{ fontSize: 16, fontWeight: '900', color: theme.colors.rose, fontFamily: 'Courier' }}>{pressureBonusWeight}%</Text>
+            <Text style={{ fontSize: 16, fontWeight: '900', color: theme.colors.rose, fontFamily: theme.typography.fontFamily.monoBold }}>{pressureBonusWeight}%</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 6 }}>
             {[5, 10, 15, 20, 25].map(v => (
@@ -411,7 +411,7 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
               <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>Min Energy Threshold</Text>
               <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginTop: 2 }}>Only include picks with energy score above this threshold</Text>
             </View>
-            <Text style={{ fontSize: 16, fontWeight: '900', color: theme.colors.primary, fontFamily: 'Courier' }}>{minEnergyThreshold}</Text>
+            <Text style={{ fontSize: 16, fontWeight: '900', color: theme.colors.primary, fontFamily: theme.typography.fontFamily.monoBold }}>{minEnergyThreshold}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 6 }}>
             {[0, 10, 20, 30, 40, 50].map(v => (
@@ -427,7 +427,7 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
               <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>🚫 Recent Hit Cooldown</Text>
               <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginTop: 1 }}>Exclude combos that hit within last N draws (0 = off)</Text>
             </View>
-            <Text style={{ fontSize: 14, fontWeight: '900', color: theme.colors.teal, fontFamily: 'Courier' }}>{recentHitCooldown === 0 ? 'Off' : `${recentHitCooldown}d`}</Text>
+            <Text style={{ fontSize: 14, fontWeight: '900', color: theme.colors.teal, fontFamily: theme.typography.fontFamily.monoBold }}>{recentHitCooldown === 0 ? 'Off' : `${recentHitCooldown}d`}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
             {[0, 5, 10, 15, 20, 25, 30].map(v => (

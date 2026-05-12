@@ -192,8 +192,8 @@ const tk = StyleSheet.create({
     width: 28, height: 28, borderRadius: 6,
     alignItems: 'center', justifyContent: 'center',
   },
-  stateText: { fontSize: 10, fontWeight: '900', fontFamily: theme.typography.fontFamily.mono },
-  chipText: { fontSize: 12, fontWeight: '900', color: '#fff', fontFamily: theme.typography.fontFamily.mono, letterSpacing: 2, flex: 1 },
+  stateText: { fontSize: 10, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
+  chipText: { fontSize: 12, fontWeight: '900', color: '#fff', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 2, flex: 1 },
   awaitingText: { fontSize: 10, color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' },
 });
 
@@ -321,7 +321,7 @@ const esb = StyleSheet.create({
   live: { backgroundColor: 'rgba(43,255,204,0.08)', borderColor: theme.colors.cyan + '55' },
   warning: { backgroundColor: 'rgba(255,217,61,0.08)', borderColor: theme.colors.gold + '55' },
   demo: { backgroundColor: 'rgba(255,106,43,0.08)', borderColor: theme.colors.amber + '55' },
-  text: { fontSize: 9, fontWeight: '700', color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
+  text: { fontSize: 9, fontWeight: '700', color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.monoBold },
 });
 
 // ─── Home Screen ──────────────────────────────────────────────────────────────
@@ -805,7 +805,7 @@ const s = StyleSheet.create({
     backgroundColor: theme.colors.amber + '18', borderRadius: 99,
     paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: theme.colors.amber + '55',
   },
-  streakText: { fontSize: 10, fontWeight: '800', color: theme.colors.amber, fontFamily: theme.typography.fontFamily.mono },
+  streakText: { fontSize: 10, fontWeight: '800', color: theme.colors.amber, fontFamily: theme.typography.fontFamily.monoBold },
 
   scopeRow: {
     flexDirection: 'row',
@@ -835,7 +835,7 @@ const s = StyleSheet.create({
     backgroundColor: theme.colors.cyan + '18', borderRadius: theme.borderRadius.lg,
     borderWidth: 1.5, borderColor: theme.colors.cyan + '55', padding: 12,
   },
-  hitBannerTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.mono },
+  hitBannerTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold },
   hitBannerSub: { fontSize: 11, color: theme.colors.cyan + 'AA', marginTop: 2 },
 
   hitsSection: {
@@ -845,11 +845,11 @@ const s = StyleSheet.create({
     borderWidth: 1.5, borderColor: theme.colors.gold + '55', padding: 12,
     gap: 8,
   },
-  hitsSectionTitle: { fontSize: 10, fontWeight: '900', color: theme.colors.gold, marginBottom: 4, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.mono },
+  hitsSectionTitle: { fontSize: 10, fontWeight: '900', color: theme.colors.gold, marginBottom: 4, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
   hitRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   hitTypeBadge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
   hitTypeBadgeText: { fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
-  hitCombo: { fontSize: 20, fontWeight: '900', fontFamily: theme.typography.fontFamily.mono, color: theme.colors.text, letterSpacing: 4, flex: 1 },
+  hitCombo: { fontSize: 20, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, color: theme.colors.text, letterSpacing: 4, flex: 1 },
   hitMeta: { fontSize: 10, color: theme.colors.textSecondary, fontWeight: '600' },
 
   statStrip: {
@@ -860,14 +860,14 @@ const s = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 8,
   },
   statStripNum: { fontSize: 22, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '900', lineHeight: 24 },
-  statStripLabel: { fontSize: 9, color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.mono, fontWeight: '800', letterSpacing: 1.5 },
+  statStripLabel: { fontSize: 9, color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '800', letterSpacing: 1.5 },
   statStripDiv: { width: 1, height: 16, backgroundColor: theme.colors.border, marginHorizontal: 2 },
   statStripVal: { fontSize: 11, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
   statStripSep: { fontSize: 10, color: theme.colors.textTertiary },
 
   slateSection: { paddingHorizontal: 16 },
   slateSectionHdr: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  slateSectionTitle: { fontSize: 11, fontWeight: '900', color: theme.colors.text, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.mono },
+  slateSectionTitle: { fontSize: 11, fontWeight: '900', color: theme.colors.text, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
   generateBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: theme.colors.purple, paddingHorizontal: 12, paddingVertical: 7, borderRadius: theme.borderRadius.tile,

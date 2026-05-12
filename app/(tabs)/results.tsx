@@ -484,7 +484,7 @@ const s = StyleSheet.create({
   filterBtnActive:  { backgroundColor: theme.colors.cyan + '18', borderColor: theme.colors.cyan + '66' },
   filterText:       { fontSize: 11, fontWeight: '600', color: D.textSub, fontFamily: theme.typography.fontFamily.mono },
   filterTextActive: { color: theme.colors.cyan, fontWeight: '700' },
-  drawCount:        { fontSize: 11, color: D.textDim, fontFamily: theme.typography.fontFamily.mono, fontWeight: '700', marginLeft: 8, flexShrink: 0 },
+  drawCount:        { fontSize: 11, color: D.textDim, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700', marginLeft: 8, flexShrink: 0 },
 
   // Stats row
   statsRow:    { flexDirection: 'row', alignItems: 'center', backgroundColor: D.surface, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 4, borderBottomWidth: 1, borderColor: D.border },
@@ -497,7 +497,7 @@ const s = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, gap: 6 },
   dot:           { fontSize: 7 },
   sectionIcon:   { fontSize: 14 },
-  sectionText:   { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.mono },
+  sectionText:   { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
   sectionCount:  { fontSize: 10, color: D.textDim, fontFamily: theme.typography.fontFamily.mono },
 
   // List / loading
@@ -520,12 +520,12 @@ const s = StyleSheet.create({
 
   // ZK6 hit badge
   hitBadge:     { marginTop: 4, alignSelf: 'flex-start', backgroundColor: theme.colors.cyan + '18', borderWidth: 1, borderColor: theme.colors.cyan + '55', borderRadius: theme.borderRadius.pill, paddingHorizontal: 8, paddingVertical: 3 },
-  hitBadgeText: { fontSize: 9, fontWeight: '900', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 0.5 },
+  hitBadgeText: { fontSize: 9, fontWeight: '900', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.5 },
 
   // F/B/S signals
   signalCol:  { flexDirection: 'row', gap: 6, alignItems: 'center', marginLeft: 6 },
   signalItem: { alignItems: 'center', gap: 1 },
-  signalKey:  { fontSize: 9, fontWeight: '900', letterSpacing: 0.5, fontFamily: theme.typography.fontFamily.mono },
+  signalKey:  { fontSize: 9, fontWeight: '900', letterSpacing: 0.5, fontFamily: theme.typography.fontFamily.monoBold },
   signalVal:  { fontSize: 11, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
 
   // Result row

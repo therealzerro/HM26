@@ -122,8 +122,13 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
   const pressure = pressureInfo(pick.drawsSince, pick.timesDrawn);
   const isHot = pick.energy >= 80;
   const isHotStreak = pick.energy >= 85;
+  const isHit = !!pick.hitType;
+  const hitColor = pick.hitType === 'straight' ? theme.colors.gold : theme.colors.cyan;
+
   const glowAnim = useRef(new Animated.Value(0.3)).current;
   const glowRef = useRef<Animated.CompositeAnimation | null>(null);
+  const hitAnim = useRef(new Animated.Value(0.4)).current;
+  const hitRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
     if (!isHot) return;
@@ -136,6 +141,18 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
     glowRef.current.start();
     return () => glowRef.current?.stop();
   }, [isHot]);
+
+  useEffect(() => {
+    if (!isHit) return;
+    hitRef.current = Animated.loop(
+      Animated.sequence([
+        Animated.timing(hitAnim, { toValue: 1, duration: 1400, useNativeDriver: false }),
+        Animated.timing(hitAnim, { toValue: 0.4, duration: 1400, useNativeDriver: false }),
+      ])
+    );
+    hitRef.current.start();
+    return () => hitRef.current?.stop();
+  }, [isHit]);
 
   const handleTap = () => {
     Haptics.impactAsync(isHot ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light);
@@ -193,13 +210,23 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
     <Animated.View
       style={[
         s.card,
-        isHot && { borderColor: heat.color, borderWidth: 1.5 },
-        isHot && { shadowColor: heat.color, shadowOpacity: glowAnim as any, shadowRadius: 12, elevation: 8 },
+        isHit && { borderColor: hitColor, borderWidth: 1.5, shadowColor: hitColor, shadowOpacity: hitAnim as any, shadowRadius: 14, elevation: 10 },
+        !isHit && isHot && { borderColor: heat.color, borderWidth: 1.5 },
+        !isHit && isHot && { shadowColor: heat.color, shadowOpacity: glowAnim as any, shadowRadius: 12, elevation: 8 },
       ]}
     >
       <TouchableOpacity onPress={handleTap} activeOpacity={0.85}>
+        {/* ── HIT banner ── */}
+        {isHit && (
+          <View style={[s.hitBanner, { backgroundColor: hitColor + '18', borderColor: hitColor + '50' }]}>
+            <Text style={[s.hitBannerText, { color: hitColor }]}>
+              {pick.hitType === 'straight' ? '⭐ STRAIGHT HIT' : '🎯 BOX HIT'}
+              {pick.hitResult ? ` — ${pick.hitResult}` : ''}
+            </Text>
+          </View>
+        )}
         {/* ── HOT STREAK banner ── */}
-        {isHotStreak && (
+        {isHotStreak && !isHit && (
           <View style={s.hotStreakBanner}>
             <Text style={s.hotStreakText}>🔥 HOT STREAK — Energy {pick.energy}/100</Text>
           </View>
@@ -356,11 +383,20 @@ const s = StyleSheet.create({
     backgroundColor: theme.colors.card,
     borderRadius: theme.borderRadius.card,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.purple + '28',
     padding: 14,
     marginBottom: 9,
     ...theme.shadows.glow,
   },
+  hitBanner: {
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginBottom: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  hitBannerText: { fontSize: 11, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.5 },
   hotStreakBanner: {
     backgroundColor: theme.colors.error + '15',
     borderRadius: 8,
@@ -397,20 +433,20 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: theme.colors.border,
   },
   qStat: { alignItems: 'center', flex: 1 },
-  qStatNum: { fontSize: 14, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.mono },
+  qStatNum: { fontSize: 14, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold },
   qStatLabel: { fontSize: 8, color: theme.colors.textTertiary, fontWeight: '600' },
   rankBadge: {
     width: 37, height: 37, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  rankText: { fontSize: 12, fontWeight: '900', fontFamily: theme.typography.fontFamily.mono },
+  rankText: { fontSize: 12, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
   bestStraightLabel: { fontSize: 8, fontWeight: '900', color: theme.colors.cyan, letterSpacing: 1.5, marginBottom: 2 },
-  bestStraightDigits: { fontSize: 26, fontWeight: '900', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 3, lineHeight: 31 },
+  bestStraightDigits: { fontSize: 26, fontWeight: '900', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 3, lineHeight: 31 },
   genTimestamp: { fontSize: 9, color: theme.colors.textTertiary, marginTop: 3 },
   boxSetSecondary: { fontSize: 10, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, marginTop: 2 },
   combo: {
-    fontSize: 32, fontWeight: '900', color: theme.colors.text,
-    letterSpacing: 4, fontFamily: theme.typography.fontFamily.mono,
+    fontSize: 32, color: theme.colors.text,
+    letterSpacing: 4, fontFamily: theme.typography.fontFamily.monoBold,
   },
   comboSet: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
   straightRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
@@ -420,8 +456,8 @@ const s = StyleSheet.create({
   },
   straightLabel: { fontSize: 9, color: theme.colors.textTertiary, fontWeight: '700' },
   straightVal: {
-    fontSize: 12, fontWeight: '900', color: theme.colors.primary,
-    fontFamily: theme.typography.fontFamily.mono, letterSpacing: 2,
+    fontSize: 12, color: theme.colors.primary,
+    fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 2,
   },
   straightBadge: {
     backgroundColor: theme.colors.gold + '25', borderRadius: 99,

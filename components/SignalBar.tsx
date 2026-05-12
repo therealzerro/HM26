@@ -38,5 +38,5 @@ const s = StyleSheet.create({
     overflow: 'hidden',
   },
   fill: { height: '100%', borderRadius: 3 },
-  val: { fontSize: 9, width: 22, fontFamily: theme.typography.fontFamily.mono, fontWeight: '700' },
+  val: { fontSize: 9, width: 22, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700' },
 });

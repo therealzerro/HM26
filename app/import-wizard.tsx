@@ -1226,7 +1226,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontSize: theme.typography.fontSize.sm,
     minHeight: 200,
-    fontFamily: 'Courier',
+    fontFamily: theme.typography.fontFamily.mono,
   },
   errorContainer: {
     margin: theme.spacing.md,
@@ -1252,7 +1252,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   errorTextMono: {
-    fontFamily: 'Courier',
+    fontFamily: theme.typography.fontFamily.mono,
     fontSize: theme.typography.fontSize.xs,
     color: theme.colors.error,
   },
@@ -1390,7 +1390,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.lg,
   },
   previewText: {
-    fontFamily: 'Courier',
+    fontFamily: theme.typography.fontFamily.mono,
     fontSize: theme.typography.fontSize.xs,
     color: theme.colors.textSecondary,
     marginBottom: theme.spacing.xs,

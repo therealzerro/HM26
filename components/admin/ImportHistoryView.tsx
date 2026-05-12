@@ -286,7 +286,7 @@ export default function ImportHistoryView() {
                     ] as ([string, string] | null)[]).filter(Boolean).map((row) => (
                       <View key={row![0]} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: theme.colors.border + '55' }}>
                         <Text style={{ fontSize: 11, color: theme.colors.textTertiary, width: 80 }}>{row![0]}</Text>
-                        <Text style={{ fontSize: 11, color: theme.colors.text, fontFamily: 'Courier', fontWeight: '600', flex: 1, textAlign: 'right' }} numberOfLines={2}>{row![1]}</Text>
+                        <Text style={{ fontSize: 11, color: theme.colors.text, fontFamily: theme.typography.fontFamily.mono, fontWeight: '600', flex: 1, textAlign: 'right' }} numberOfLines={2}>{row![1]}</Text>
                       </View>
                     ))}
 

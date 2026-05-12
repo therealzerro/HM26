@@ -375,7 +375,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     ...theme.shadows.glow,
   },
-  statNum: { fontSize: 16, fontWeight: '900', fontFamily: theme.typography.fontFamily.mono, marginBottom: 4 },
+  statNum: { fontSize: 16, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 4 },
   statLabel: { fontSize: 9, color: theme.colors.textTertiary, fontWeight: '700', letterSpacing: 0.3, textAlign: 'center' },
 
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.border },
@@ -410,7 +410,7 @@ const s = StyleSheet.create({
   planActiveTitle: { fontSize: 15, fontWeight: '800', color: theme.colors.text, marginBottom: 2 },
   planActiveStatus: { fontSize: 12, fontWeight: '600' },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
-  featureCheck: { fontSize: 12, color: theme.colors.cyan, fontWeight: '800', width: 16, fontFamily: theme.typography.fontFamily.mono },
+  featureCheck: { fontSize: 12, color: theme.colors.cyan, fontWeight: '800', width: 16, fontFamily: theme.typography.fontFamily.monoBold },
   featureText: { fontSize: 13, color: theme.colors.textSecondary },
   outlineBtn: {
     flex: 1, borderWidth: 1.5, borderColor: theme.colors.purple,

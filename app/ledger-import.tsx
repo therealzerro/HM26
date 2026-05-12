@@ -180,8 +180,8 @@ export default function LedgerImportScreen() {
                         <Text style={[s.tableCell, colWidth('Session'), { color: row.session === 'midday' ? theme.colors.gold : theme.colors.primary }]}>
                           {row.session === 'midday' ? '☀️ Mid' : '🌙 Eve'}
                         </Text>
-                        <Text style={[s.tableCell, colWidth('Result'), { fontFamily: 'Courier', fontWeight: '700' }]}>{row.result_digits}</Text>
-                        <Text style={[s.tableCell, colWidth('ComboSet'), { fontFamily: 'Courier' }]}>{row.comboset_sorted}</Text>
+                        <Text style={[s.tableCell, colWidth('Result'), { fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700' }]}>{row.result_digits}</Text>
+                        <Text style={[s.tableCell, colWidth('ComboSet'), { fontFamily: theme.typography.fontFamily.mono }]}>{row.comboset_sorted}</Text>
                       </View>
                     ))}
                     {parsed.length > 30 && (
@@ -304,7 +304,7 @@ const s = StyleSheet.create({
     padding: 14,
     color: theme.colors.text,
     fontSize: 12,
-    fontFamily: 'Courier',
+    fontFamily: theme.typography.fontFamily.mono,
     minHeight: 280,
     textAlignVertical: 'top',
   },
@@ -359,7 +359,7 @@ const s = StyleSheet.create({
   },
   skippedHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
   skippedTitle:  { fontSize: 12, fontWeight: '700', color: theme.colors.orange },
-  skippedLine:   { fontSize: 11, color: theme.colors.textSecondary, marginBottom: 2, fontFamily: 'Courier' },
+  skippedLine:   { fontSize: 11, color: theme.colors.textSecondary, marginBottom: 2, fontFamily: theme.typography.fontFamily.mono },
 
   emptyBox: {
     marginHorizontal: 16, marginTop: 12,

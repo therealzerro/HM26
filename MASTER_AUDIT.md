@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-05-12 (BUG-20 RLS lockdown complete)  
+**Last updated:** 2026-05-12 (Design pass DES-01–04 complete)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **USAGE:** This is the single source of truth for all known issues, fixes, and technical debt.  
@@ -240,10 +240,10 @@ This roadmap outlines the steps to align the mobile implementation with the "Hit
 
 | ID | Enhancement | Priority | Description |
 |:---|:---|:---|:---|
-| DES-01 | **Neon Glow Integration** | High | Migrate from flat borders to glow recipes (`--hm-glow-cyan`, etc.) using `react-native-drop-shadow` or gradients. |
-| DES-02 | **Typography Precision** | Medium | Adopt Inter (UI) and JetBrains Mono (Data) with spec-aligned tracking (`letter-spacing`) and weights. |
-| DES-03 | **Haptic/Visual Feedback** | Medium | Implement animated pulse patterns on high-energy cards and "Hit" states to increase user engagement. |
-| DES-04 | **Token Synchronization** | Low | Create a `TokensProvider` mapping CSS design tokens to `theme.ts` to ensure single-source-of-truth for UI design. |
+| DES-01 | **Neon Glow Integration** | High | ✅ Fixed 2026-05-12 — PickCard and SlateCard default border changed from flat white (`border`) to purple-tinted (`purple+'28'`), matching existing `theme.shadows.glow`. Hit cards get animated gold/cyan glow border pulsing at 1400ms. |
+| DES-02 | **Typography Precision** | Medium | ✅ Fixed 2026-05-12 — All 60+ raw `fontFamily: 'Courier'` / `'monospace'` references replaced with `theme.typography.fontFamily.mono` across 19 files. Heavy-weight (700–900) mono text upgraded to `monoBold` (JetBrainsMono_700Bold). `Platform.OS` conditional removed from RegenConfirmationModal. |
+| DES-03 | **Haptic/Visual Feedback** | Medium | ✅ Fixed 2026-05-12 — PickCard now renders hit-state banner (⭐ STRAIGHT HIT / 🎯 BOX HIT) with animated glow pulse when `pick.hitType` is set. Existing hot-energy pulse (≥80) preserved; hit pulse uses slower 1400ms cycle. |
+| DES-04 | **Token Synchronization** | Low | ✅ Fixed 2026-05-12 — `theme.letterSpacing` token map added (tight/normal/wide/wider/widest/combo/comboLg) + `theme.animation.hit: 1400` for hit pulse duration. Single source of truth for spacing and animation constants. |
 
 ### Strategic Objective: "Maximum Polish"
 The current gap between the intended "Neon" design and the flat React Native implementation is a missed opportunity for premium-tier positioning. By implementing glow-based depth, tracking-aligned typography, and responsive feedback animations, we move the app from a "utility tool" to a "high-end analytic dashboard."

@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { EmptyState } from '@/components/EmptyState';
 import { Layers } from 'lucide-react-native';
+import { theme } from '@/constants/theme';
 
 const BLUE = '#0ea5e9';
 const BLUE_DARK = '#0284c7';
@@ -201,8 +202,8 @@ const c = StyleSheet.create({
     borderRadius: 10, paddingVertical: 10,
   },
   comboText: {
-    fontSize: 22, fontWeight: '900',
-    fontFamily: 'Courier', color: '#0c4a6e',
+    fontSize: 22,
+    fontFamily: theme.typography.fontFamily.monoBold, color: '#0c4a6e',
     letterSpacing: 3,
   },
   energyBadge: {

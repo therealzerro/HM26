@@ -1,271 +1,208 @@
-// components/SlateCard.tsx
-// ───────────────────────────────────────────────────────────
-// Drop-in replacement. Matches HITMASTER_UI_DATA_SPECS.md:
-//   • Container padding 12h / 8v (was 16 all-sides)
-//   • Rank container 32×, paddingRight 8 (was 36)
-//   • Canonical temperature scale (hot/warm/mild/cold tokens)
-//   • Bar fill = value × 60px, radius 2px (was inconsistent)
-// ───────────────────────────────────────────────────────────
+/* ──────────────────────────────────────────────────────────────────────────
+   v5 PATCH 01 — SlateCard v2 (real-data aware)
+   Replaces: components/SlateCard.tsx
+
+   WHAT CHANGED vs current SlateCard
+     • Renders 3 OR 4 signal bars based on what's present
+       — your engine only emits DGC on 122/563 picks, so DGC is opt-in
+     • New surfaced fields: drawsSince, lastSeen (both first-class)
+     • Optional hit-result footer when pick.hitType is set
+         shows "DREW → 827  CT · 2026-04-26"
+     • Container padding & rank metrics already match data spec
+       (12h / 8v, rank 32px width, gap 8px)
+
+   ─── INTEGRATION ────────────────────────────────────────────────────────────
+   1) Replace components/SlateCard.tsx with this file.
+   2) No call-site changes needed — the new props (drawsSince, lastSeen,
+      hitType, hitResult, hitState, hitDate) all already exist on your
+      pick objects in slate_snapshots. If your TypeScript Pick type
+      doesn't include them, add them as optional in types/core.ts.
+   ────────────────────────────────────────────────────────────────────────── */
+
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { theme } from '@/constants/theme';
-import { TrendingUp, Minus } from 'lucide-react-native';
+import { SignalBar } from '@/components/SignalBar';
 
-interface SlateCardProps {
-  rank: number;
-  combo: string;
-  comboSet: string;
-  placeholder?: boolean;
-  temperature?: number;
-  components?: {
-    BOX: number;
-    PBURST: number;
-    CO: number;
-    DGC?: number;
+type Signals = Partial<{ BOX: number; PBURST: number; CO: number; DGC: number }>;
+
+interface Props {
+  pick: {
+    rank: number;
+    combo: string;
+    comboSet?: string;
+    topPair?: string;
+    temperature: number;
+    energy?: number;
+    multiplicity?: 'singles' | 'doubles' | 'triples';
+    drawsSince?: number;
+    lastSeen?: string;
+    signals: Signals;
+    // optional hit-realized fields
+    hitType?: 'box' | 'straight' | null;
+    hitResult?: string;
+    hitState?: string;
+    hitDate?: string;
   };
-  multiplicity?: 'singles' | 'doubles' | 'triples';
-  topPair?: string;
+  onPress?: () => void;
 }
 
-const BAR_MAX = 60;   // spec
-
-// Canonical temperature → color (matches theme.colors.{hot,warm,mild,cold})
-function tempColor(t: number): string {
-  if (t >= 80) return theme.colors.hot;    // #ff3b30
-  if (t >= 60) return theme.colors.warm;   // #ffcc00
-  if (t >= 40) return theme.colors.mild;   // #34c759
-  return         theme.colors.cold;        // #666666
+function tempColor(t: number) {
+  if (t >= 80) return theme.colors.hot;
+  if (t >= 60) return theme.colors.warm;
+  if (t >= 40) return theme.colors.mild;
+  return theme.colors.cold;
 }
 
-export function SlateCard({
-  rank,
-  combo,
-  comboSet,
-  placeholder = false,
-  temperature,
-  components,
-  multiplicity,
-  topPair,
-}: SlateCardProps) {
+const CHANNEL_META: { key: keyof Signals; color: string }[] = [
+  { key: 'BOX',    color: theme.colors.cyan   },
+  { key: 'PBURST', color: theme.colors.rose   },
+  { key: 'CO',     color: theme.colors.purple },
+  { key: 'DGC',    color: theme.colors.gold   },
+];
 
-  const getTrendIcon = () => {
-    if (placeholder) return <Minus size={14} color={theme.colors.textTertiary} />;
-    const t = temperature ?? 50;
-    if (t >= 70) return <TrendingUp size={14} color={theme.colors.cyan} />;
-    if (t >= 30) return <Minus       size={14} color={theme.colors.gold} />;
-    return <TrendingUp size={14} color={theme.colors.rose} style={{ transform: [{ rotate: '180deg' }] } as const} />;
-  };
+export function SlateCard({ pick, onPress }: Props) {
+  const tc = tempColor(pick.temperature);
+  const isHit = !!pick.hitType;
 
-  const multLabel = (m?: string) => m ? m.charAt(0).toUpperCase() + m.slice(1) : 'Singles';
-
-  const renderBar = (label: string, value: number, color: string) => {
-    const pct = Math.min(Math.max(value, 0), 1);
-    return (
-      <View style={styles.componentBar} key={label}>
-        <Text style={styles.componentLabel}>{label}</Text>
-        <View style={styles.componentBarTrack}>
-          <View style={[
-            styles.componentBarFill,
-            {
-              width: pct * BAR_MAX,
-              backgroundColor: color,
-              shadowColor: color,
-              shadowOpacity: 0.6,
-              shadowRadius: 5,
-            },
-          ]}/>
-        </View>
-        <Text style={[styles.componentValue, { color }]}>{Math.round(pct * 100)}</Text>
-      </View>
-    );
-  };
-
-  const t = temperature ?? 50;
-  const tc = tempColor(t);
+  const channels = CHANNEL_META.filter(c => typeof pick.signals[c.key] === 'number');
 
   return (
-    <View style={styles.container} testID={`slate-card-${rank}`}>
-      <View style={styles.rankContainer}>
-        <Text style={[styles.rank, { color: tc, borderColor: tc + '55', backgroundColor: tc + '14' }]}>#{rank}</Text>
-      </View>
-
-      <View style={styles.content}>
-        <View style={styles.comboRow}>
-          <Text style={styles.combo}>{combo}</Text>
-          <Text style={styles.comboSet}>{comboSet}</Text>
+    <View style={[
+      s.card,
+      { borderColor: isHit ? tc : theme.colors.border,
+        shadowColor: tc,
+        shadowOpacity: isHit ? 0.45 : 0.18 },
+    ]}>
+      {isHit && (
+        <View style={[s.hitBadge, { backgroundColor: tc, shadowColor: tc }]}>
+          <Text style={s.hitBadgeText}>⭐ {pick.hitType!.toUpperCase()} HIT</Text>
         </View>
+      )}
 
-        {placeholder ? (
-          <View style={styles.placeholderContainer}>
-            <View style={styles.componentBars}>
-              {(['BOX', 'PB', 'CO'] as const).map((l, i) => (
-                <View style={styles.componentBar} key={l}>
-                  <Text style={styles.componentLabel}>{l}</Text>
-                  <View style={[styles.placeholderBar, { width: 40 - i * 5 }]} />
-                </View>
-              ))}
-            </View>
-            <View style={styles.badgeRow}>
-              <View style={styles.tempBadge}><Text style={styles.tempText}>--°</Text></View>
-              <View style={styles.chip}><Text style={styles.chipText}>—</Text></View>
-            </View>
-          </View>
-        ) : (
-          <View style={styles.liveDataContainer}>
-            {components && (
-              <View style={styles.componentBars}>
-                {renderBar('BOX',    components.BOX,            theme.colors.cyan)}
-                {renderBar('PBURST', components.PBURST,         theme.colors.rose)}
-                {renderBar('CO',     components.CO,             theme.colors.purple)}
-                {renderBar('DGC',    components.DGC ?? 0,       theme.colors.gold)}
-              </View>
-            )}
-            <View style={styles.badgeRow}>
-              <View style={[styles.tempBadge, { borderColor: tc }]}>
-                <Text style={[styles.tempText, { color: tc }]}>
-                  {temperature != null ? `${Math.round(temperature)}°` : '--°'}
-                </Text>
-              </View>
-              <View style={styles.chip}>
-                <Text style={styles.chipText}>{multLabel(multiplicity)}</Text>
-              </View>
-              {topPair && (
-                <View style={[styles.chip, { backgroundColor: theme.colors.purple + '20' }]}>
-                  <Text style={[styles.chipText, { color: theme.colors.purple }]}>{topPair}</Text>
-                </View>
-              )}
-              {getTrendIcon()}
-            </View>
-          </View>
-        )}
+      {/* Header — rank · meta · temp */}
+      <View style={s.row}>
+        <View style={s.rankBox}>
+          <Text style={[s.rank, { color: tc, textShadowColor: tc }]}>#{pick.rank}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={s.eyebrow}>
+            {pick.multiplicity ?? 'singles'}
+            {pick.drawsSince !== undefined ? ` · ${pick.drawsSince}↓ DRAWS SINCE` : ''}
+          </Text>
+          {pick.lastSeen && (
+            <Text style={s.metaMono}>last · {pick.lastSeen}</Text>
+          )}
+        </View>
+        <View style={[s.tempBadge, { borderColor: tc, shadowColor: tc }]}>
+          <Text style={[s.tempText, { color: tc }]}>
+            {pick.temperature >= 80 ? 'HOT' :
+             pick.temperature >= 60 ? 'WARM' :
+             pick.temperature >= 40 ? 'MILD' : 'COLD'} {pick.temperature}°
+          </Text>
+        </View>
       </View>
+
+      {/* Combo digits */}
+      <View style={s.comboRow}>
+        {pick.combo.split('').map((d, i) => (
+          <Text key={i} style={[s.digit, { textShadowColor: tc }]}>{d}</Text>
+        ))}
+        <View style={{ marginLeft: 'auto', alignItems: 'flex-end' }}>
+          {pick.comboSet && <Text style={s.metaMono}>{pick.comboSet}</Text>}
+          {pick.topPair && (
+            <Text style={[s.metaMono, { color: tc }]}>top · {pick.topPair}</Text>
+          )}
+        </View>
+      </View>
+
+      {/* Signal bars — 3 or 4 depending on what's in the data */}
+      <View style={s.signals}>
+        {channels.map(ch => (
+          <SignalBar
+            key={ch.key as string}
+            channel={ch.key as string}
+            value={pick.signals[ch.key] as number}
+            color={ch.color}
+          />
+        ))}
+      </View>
+
+      {/* Hit-result footer */}
+      {isHit && pick.hitResult && (
+        <View style={[s.hitFooter, { borderTopColor: tc + '55' }]}>
+          <Text style={s.eyebrow}>DREW →</Text>
+          <Text style={[s.hitResult, { color: tc, textShadowColor: tc }]}>
+            {pick.hitResult}
+          </Text>
+          {(pick.hitState || pick.hitDate) && (
+            <Text style={s.metaMono}>
+              {[pick.hitState, pick.hitDate].filter(Boolean).join(' · ')}
+            </Text>
+          )}
+        </View>
+      )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.borderRadius.card,
-    paddingHorizontal: 12,      // ← spec
-    paddingVertical: 8,         // ← spec
-    marginBottom: theme.spacing.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.purple + '28',
-    ...theme.shadows.glow,
+const s = StyleSheet.create({
+  card: {
+    backgroundColor: theme.colors.surface2 ?? 'rgba(20,12,38,0.72)',
+    borderRadius: 16, borderWidth: 1,
+    paddingHorizontal: 12, paddingVertical: 8, gap: 8,
+    shadowOffset: { width: 0, height: 0 }, shadowRadius: 18, elevation: 4,
   },
-  rankContainer: {
-    width: 32,                  // ← spec (was 36)
-    paddingRight: 8,            // ← spec
-    alignItems: 'center',
-    justifyContent: 'center',
+  hitBadge: {
+    position: 'absolute', top: -10, right: 12,
+    paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999,
+    shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 10,
   },
+  hitBadgeText: {
+    color: '#0a0613', fontSize: 9, letterSpacing: 1.4,
+    fontFamily: theme.typography.fontFamily.monoBold,
+  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  rankBox: { width: 32, paddingRight: 8 },
   rank: {
-    fontSize: theme.typography.fontSize.md,
+    fontSize: 14,
     fontFamily: theme.typography.fontFamily.monoBold,
-    borderRadius: 8,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    overflow: 'hidden',
-    borderWidth: 1,
+    textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8,
   },
-  content: {
-    flex: 1,
-    marginLeft: theme.spacing.sm,
-    gap: 8,                     // ← spec: 8px vertical gap
-  },
-  comboRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: theme.spacing.sm,
-  },
-  combo: {
-    fontSize: theme.typography.fontSize.xl,
-    fontFamily: theme.typography.fontFamily.monoBold,
-    color: theme.colors.text,
-    letterSpacing: 6,
-  },
-  comboSet: {
-    fontSize: theme.typography.fontSize.sm,
-    fontFamily: theme.typography.fontFamily.mono,
-    color: theme.colors.textSecondary,
-  },
-  placeholderContainer: { gap: theme.spacing.sm },
-  liveDataContainer:    { gap: 6 },
-  componentBars: {
-    flexDirection: 'row',
-    gap: theme.spacing.sm,
-    flexWrap: 'wrap',
-  },
-  componentBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,                     // ← spec
-  },
-  componentLabel: {
-    width: 60,                  // ← spec (was minWidth 28)
-    fontSize: 9,                // ← spec (was xs token = 11)
-    textAlign: 'right',
+  eyebrow: {
+    fontSize: 9, letterSpacing: 1.4, textTransform: 'uppercase',
     color: theme.colors.textTertiary,
-    fontFamily: theme.typography.fontFamily.mono,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontFamily: theme.typography.fontFamily.bold,
   },
-  componentBarTrack: {
-    width: BAR_MAX,             // ← fixed track
-    height: 4,                  // ← spec
-    backgroundColor: theme.colors.surfaceLight,
-    borderRadius: 2,            // ← spec
-    overflow: 'hidden',
-  },
-  placeholderBar: {
-    height: 4,
-    backgroundColor: theme.colors.border,
-    borderRadius: 2,
-  },
-  componentBarFill: {
-    height: '100%',
-    borderRadius: 2,            // ← spec (matches track)
-  },
-  componentValue: {
-    width: 22,                  // ← spec
-    fontSize: 9,
-    fontFamily: theme.typography.fontFamily.monoBold,
-    fontWeight: '700',
-    textAlign: 'right',
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-    flexWrap: 'wrap',
+  metaMono: {
+    fontSize: 11, color: theme.colors.textSecondary,
+    fontFamily: theme.typography.fontFamily.monoBold, marginTop: 2,
   },
   tempBadge: {
-    backgroundColor: theme.colors.surfaceLight,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,           // ← pill (matches mock)
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
+    borderWidth: 1, backgroundColor: 'rgba(20,12,38,0.6)',
+    shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 10,
   },
   tempText: {
-    fontSize: 10,
+    fontSize: 11, letterSpacing: 1,
     fontFamily: theme.typography.fontFamily.monoBold,
-    fontWeight: '800',
-    color: theme.colors.textTertiary,
-    letterSpacing: 0.5,
   },
-  chip: {
-    backgroundColor: theme.colors.cyan + '18',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: theme.borderRadius.chip,
+  comboRow: { flexDirection: 'row', alignItems: 'baseline', gap: 14, paddingLeft: 32 },
+  digit: {
+    fontSize: 40, lineHeight: 42, letterSpacing: -1, color: '#fff',
+    fontFamily: theme.typography.fontFamily.monoBold,
+    textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 14,
   },
-  chipText: {
-    fontSize: 10,
-    fontFamily: theme.typography.fontFamily.mono,
-    fontWeight: '700',
-    color: theme.colors.cyan,
+  signals: { paddingLeft: 32, gap: 5 },
+  hitFooter: {
+    marginTop: 2, paddingTop: 6, paddingLeft: 32,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+  },
+  hitResult: {
+    fontSize: 18, fontFamily: theme.typography.fontFamily.monoBold,
+    textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8,
   },
 });
+
+export default SlateCard;

@@ -20,6 +20,7 @@ import HitTrackingView from '@/components/admin/HitTrackingView';
 import NationwideAdminView from '@/components/admin/NationwideAdminView';
 import AdaptiveLearningView from '@/components/admin/AdaptiveLearningView';
 import IntelligenceRouteView from '@/components/admin/IntelligenceRouteView';
+import FingerprintView from '@/components/admin/FingerprintView';
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
 const NAV = [
@@ -33,6 +34,7 @@ const NAV = [
   { id:'nationwide', icon:'🌎', label:'Nationwide' },
   { id:'adaptive', icon:'🧠', label:'Learning' },
   { id:'intelligence', icon:'🔬', label:'Intelligence' },
+  { id:'fingerprint',  icon:'🧬', label:'Fingerprint'  },
 ];
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
@@ -82,6 +84,7 @@ export default function AdminScreen() {
         {view === 'nationwide' && <NationwideAdminView />}
         {view === 'adaptive' && <AdaptiveLearningView />}
         {view === 'intelligence' && <IntelligenceRouteView />}
+        {view === 'fingerprint'  && <FingerprintView />}
       </View>
     </SafeAreaView>
   );

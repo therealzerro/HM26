@@ -17,7 +17,7 @@
 |-------|-------|
 | ✅ Fixed | 36 |
 | ℹ️ By design / False positive | 8 |
-| 🎨 UX Improvements Applied | 45 |
+| 🎨 UX Improvements Applied | 48 |
 | 🔴 Open — Critical | 0 |
 | 🟠 Open — High | 0 |
 | 🟡 Open — Medium | 1 |
@@ -386,4 +386,7 @@ Applied design handoff 4 patches and v3 system patches. All items sourced from `
 | 2026-05-12 | V3 Patch 03 — Neon tab bar: app/(tabs)/_layout.tsx full replacement — TabIcon takes focused prop, active tab renders cyan pill halo with glow, bar uses surface2 bg + 1.5px purple border-top, height 64, uppercase labels. | Claude Code |
 | 2026-05-12 | V3 Patch 04 — NeonSkeleton: new components/NeonSkeleton.tsx shimmer loading placeholder; 5 variants (card/row/combo/text/splash); opacity 0.35→0.75 loop at 900ms. | Claude Code |
 | 2026-05-12 | V3 Patch 05 — NeonRefreshControl: new components/NeonRefreshControl.tsx themed pull-to-refresh; RefreshControl swapped to NeonRefreshControl alias in index.tsx, results.tsx, intelligence.tsx. | Claude Code |
+| 2026-05-12 | V5 Patch 01 — SlateCard v2: replaced components/SlateCard.tsx with data-aware version. Renders 3 or 4 signal channels based on what is present (DGC is optional — only 122/563 picks have it). Surfaces drawsSince and lastSeen as first-class fields. Hit-result footer: "DREW → 827 CT · 2026-04-26" when hitType is set. hitType/hitResult/hitState/hitDate optional fields added to TopKStraightRow in types/core.ts. | Claude Code |
+| 2026-05-12 | V5 Patch 02 — HitReplay: new components/HitReplay.tsx — side-by-side predicted vs drawn digit visual (ghost cells for picked digits, solid cells for drawn result). Wired into PickDetailModal.tsx PLAY tab at top when pick.hitType and pick.hitResult are set. Bridges PickItem.energy → temperature for HitReplay prop. | Claude Code |
+| 2026-05-12 | V5 Patch 03 — EngineFingerprint: new screens/EngineFingerprintScreen.tsx — full-screen engine analytics dashboard (hit rate, scope count, singles share, hot-pick share KPI tiles; temperature distribution stacked bar; average channel strength bars for BOX/PBURST/CO/DGC). Includes computeFingerprint() helper that parses slate_snapshots rows. Wired into admin tab as new Fingerprint (🧬) tab via components/admin/FingerprintView.tsx (fetches 100 recent snapshots, computes stats, renders screen). UX Improvements Applied 45 → 48. | Claude Code |
 | 2026-05-12 | BUG-32 fixed (Medium): Slates grid flex chain regression — `ctrlStripOuter` horizontal ScrollView (line 785, explore.tsx) had no height constraint, unlike `scopeRow` (same pattern, `maxHeight: 38`). On iOS the unconstrained ScrollView claimed flex space from the SafeAreaView column, leaving `gridContainer`'s `flex: 1` with insufficient remaining height; tiles rendered at natural content height near the bottom of the compressed space. Fix: added `maxHeight: 46` to `ctrlStripOuter` style (single property). Restores design intent of GridTile 2×3 redesign — grid now fills screen height instead of bunching. | Claude Code |

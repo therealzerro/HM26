@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchFromSupabase } from '../lib/supabase';
 import { theme } from '../constants/theme';
 import { PickItem } from './PickCard';
+import { HitReplay } from './HitReplay';
 import { getPairs, normalizePairKey } from '../lib/pairUtils';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
@@ -427,6 +428,10 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
   // ── PLAY tab ───────────────────────────────────────────────────────────────
   const renderPlay = () => (
     <View style={ct.pad}>
+      {/* Hit replay — shown when this pick has already hit */}
+      {pick.hitType && pick.hitResult && (
+        <HitReplay pick={{ ...pick, temperature: pick.energy }} />
+      )}
       {/* Straight vs Box bet cards */}
       <View style={ct.betRow}>
         <View style={[ct.betCard, { borderColor: D.cyan + '66' }]}>

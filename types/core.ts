@@ -115,6 +115,10 @@ export interface TopKStraightRow {
   timesDrawn?: number;
   dsRaw?: number;
   lastSeen?: string;
+  hitType?: 'straight' | 'box';
+  hitResult?: string;
+  hitState?: string;
+  hitDate?: string;
 }
 
 export interface EngineMetadata {

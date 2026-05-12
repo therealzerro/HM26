@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-05-12 (Design Polish Sprint: design handoff 4 applied — EnergyMeter/TierBadge upgrades; iOS ctrlStrip overflow fixed; PickDetailModal safe-area + 44pt buttons + drag handle; GridTile 2×3 screenshot layout; V3 patches 01–05 — semantic theme aliases, modal surface2, neon tab bar, NeonSkeleton, NeonRefreshControl)  
+**Last updated:** 2026-05-12 (V6 screen composition patches applied — HomeScreen stripped to 2 above-fold bands with OverflowSheet; SlatesScreen 3-tab densification Slate·Live·More)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -17,7 +17,7 @@
 |-------|-------|
 | ✅ Fixed | 36 |
 | ℹ️ By design / False positive | 8 |
-| 🎨 UX Improvements Applied | 48 |
+| 🎨 UX Improvements Applied | 50 |
 | 🔴 Open — Critical | 0 |
 | 🟠 Open — High | 0 |
 | 🟡 Open — Medium | 1 |
@@ -390,3 +390,5 @@ Applied design handoff 4 patches and v3 system patches. All items sourced from `
 | 2026-05-12 | V5 Patch 02 — HitReplay: new components/HitReplay.tsx — side-by-side predicted vs drawn digit visual (ghost cells for picked digits, solid cells for drawn result). Wired into PickDetailModal.tsx PLAY tab at top when pick.hitType and pick.hitResult are set. Bridges PickItem.energy → temperature for HitReplay prop. | Claude Code |
 | 2026-05-12 | V5 Patch 03 — EngineFingerprint: new screens/EngineFingerprintScreen.tsx — full-screen engine analytics dashboard (hit rate, scope count, singles share, hot-pick share KPI tiles; temperature distribution stacked bar; average channel strength bars for BOX/PBURST/CO/DGC). Includes computeFingerprint() helper that parses slate_snapshots rows. Wired into admin tab as new Fingerprint (🧬) tab via components/admin/FingerprintView.tsx (fetches 100 recent snapshots, computes stats, renders screen). UX Improvements Applied 45 → 48. | Claude Code |
 | 2026-05-12 | BUG-32 fixed (Medium): Slates grid flex chain regression — `ctrlStripOuter` horizontal ScrollView (line 785, explore.tsx) had no height constraint, unlike `scopeRow` (same pattern, `maxHeight: 38`). On iOS the unconstrained ScrollView claimed flex space from the SafeAreaView column, leaving `gridContainer`'s `flex: 1` with insufficient remaining height; tiles rendered at natural content height near the bottom of the compressed space. Fix: added `maxHeight: 46` to `ctrlStripOuter` style (single property). Restores design intent of GridTile 2×3 redesign — grid now fills screen height instead of bunching. | Claude Code |
+| 2026-05-12 | V6 Patch 01 — HomeScreen aggressive cleanup (UX-60): `app/(tabs)/index.tsx` full replacement. Above-the-fold chrome reduced from 9 bands to 2 (header + scope row). Mode switcher, EngineStatusBar, DrawTicker, LiveResultsTicker, heat check button, responsible play disclaimer moved into `OverflowSheet` bottom modal (triggered by ⋯ `MoreHorizontal` button in header). Inline stat strip (5 values) replaced with single `heroStat` widget showing AVG ENERGY as a large number colored by energy tier. Root container changed from `SafeAreaView` to `View` with `paddingTop: insets.top` (avoids double-inset on scroll). Hit banner and today's hits sections retained above K6 Slate hero — both are high-signal content. Onboarding, daily streak, generate flow, PickDetailModal, Paywall all preserved unchanged. | Claude Code |
+| 2026-05-12 | V6 Patch 02 — SlatesScreen 3-tab densification (UX-61): `app/(tabs)/explore.tsx` full replacement. Replaced 5-band chrome stack with 3-tab segmented control (Slate · Live · More) below a simplified header. SLATE tab: scope pills + filter/sort/view-mode chips merged into a single horizontally-scrollable `scopeRow` (`maxHeight: 42`) — eliminates `ctrlStripOuter` (BUG-32 no longer relevant). LIVE tab: `DrawTicker` + today's hit list + heat check action row. MORE tab: yesterday toggle + save slate + engine mode + daily credits (Pro) + pro upsell banner + responsible play disclaimer. Yesterday query now gated with `enabled: tab === 'more' && showYesterday` — no wasted network call when not on More tab. `DrawTicker` added as new import (was not in explore.tsx before). All state handlers preserved. UX Improvements Applied 48→50. | Claude Code |

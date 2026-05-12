@@ -12,7 +12,8 @@
     "test": "jest --testPathPattern='__tests__'",
     "backtest:report": "tsx scripts/backtest/cli.ts report",
     "backtest:replay": "tsx scripts/backtest/cli.ts replay",
-    "intel:propose": "tsx scripts/intel-tuning/cli.ts"
+    "intel:propose": "tsx scripts/intel-tuning/cli.ts",
+    "rebuild:datasets": "tsx scripts/intel-tuning/rebuild-datasets.ts"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

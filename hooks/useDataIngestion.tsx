@@ -511,55 +511,19 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
       if (!importId) throw new Error('Import creation did not return an ID');
 
       try {
-        // Build set of hit combosets from today's draws (sorted digits form)
-        const hitSets = new Set<string>(
-          data.combos.map(c => '{' + c.split('').sort().join(',') + '}')
+        // BUG-130 (2026-05-12): Old logic treated `data.combos` as a "today's hits"
+        // flag list and incremented ds_raw by +1 for every non-matched box row.
+        // The CSV's explicit `DrawsSince` column was discarded, so values drifted
+        // hundreds of days off from reality. Fix: this mutation is a no-op for now.
+        // ds_raw is rebuilt directly from histories via `npm run rebuild:datasets`.
+        // The import record (created above) is still useful as an audit trail of
+        // when daily_input CSVs were uploaded, and the CSV file itself is preserved
+        // in case we later redesign this path to use DrawsSince correctly.
+        console.log(
+          '[importDaily] CSV received with', data.combos.length, 'combos for scope',
+          data.scope, '— ds_raw updates suppressed (BUG-130). Run',
+          '`npm run rebuild:datasets -- --apply` to refresh from histories.',
         );
-        // Also store plain 3-digit forms for flexible matching
-        const hitCombos = new Set<string>(data.combos.map(c => c.replace(/\D/g, '').slice(0, 3)));
-
-        // Fetch all box rows for this scope (H01Y only — the active horizon)
-        const enc = encodeURIComponent(data.scope);
-        const boxRows = await fetchFromSupabase<Array<{ key: string; draws_since?: number; ds_raw?: number }>>({
-          path: `/rest/v1/datasets_box?class_id=eq.1&scope=eq.${enc}&horizon_label=eq.H01Y&deleted_at=is.null&select=key,draws_since,ds_raw&limit=10000`,
-        });
-
-        if (Array.isArray(boxRows) && boxRows.length > 0) {
-          // Compute updated draws_since for each row
-          const updated = boxRows.map(row => {
-            const keyDigits = (row.key.match(/\d/g) ?? []).join('').slice(0, 3);
-            const keySet = keyDigits.length === 3 ? '{' + keyDigits.split('').sort().join(',') + '}' : row.key;
-            const isHit = hitSets.has(keySet) || hitCombos.has(keyDigits);
-            const currentDs = row.draws_since ?? row.ds_raw ?? 0;
-            return {
-              key: row.key,
-              ds_raw: isHit ? 0 : currentDs + 1,
-            };
-          });
-
-          // Batch upsert in chunks of 500
-          const BATCH = 500;
-          for (let i = 0; i < updated.length; i += BATCH) {
-            const chunk = updated.slice(i, i + BATCH).map(r => ({
-              class_id: 1,
-              scope: data.scope,
-              horizon_label: 'H01Y',
-              key: r.key,
-              ds_raw: r.ds_raw,
-            }));
-            try {
-              await fetchFromSupabase({
-                path: '/rest/v1/datasets_box?on_conflict=class_id,scope,horizon_label,key',
-                method: 'POST',
-                headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-                body: chunk,
-              });
-            } catch (batchErr) {
-              console.log('[importDaily] batch upsert warn:', batchErr);
-            }
-          }
-          console.log('[importDaily] Updated draws_since for', updated.length, 'box rows');
-        }
 
         await fetchFromSupabase({ path: `/rest/v1/imports?id=eq.${importId}`, method: 'PATCH', body: { status: 'completed' } });
         await fetchFromSupabase({

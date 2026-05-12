@@ -56,7 +56,7 @@ interface LedgerRow {
   jurisdiction: string; game: string; date_et: string; session: string; result_digits: string;
 }
 interface HitRow {
-  slate_date: string; scope: string; mode: string; rank: number; combo: string; best_order: string;
+  slate_date: string; scope: string; mode: string; rank: number; combo: string;
   hit_state: string; hit_session: string; hit_box: boolean; hit_straight: boolean;
   signal_box?: number; signal_pburst?: number; signal_dgc?: number;
 }
@@ -205,7 +205,7 @@ export default function ResultsScreen() {
     queryKey: ['daily_intelligence_hits', selectedDate],
     queryFn: async () => {
       const res = await fetchFromSupabase<HitRow[]>({
-        path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,best_order,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=in.(${selectedDate},${nextDay})&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&order=rank.asc&limit=500`,
+        path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=in.(${selectedDate},${nextDay})&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&order=rank.asc&limit=500`,
         method: 'GET',
       });
       return Array.isArray(res) ? res : [];
@@ -218,7 +218,7 @@ export default function ResultsScreen() {
     queryKey: ['daily_intelligence_on_slate', selectedDate],
     queryFn: async () => {
       const res = await fetchFromSupabase<HitRow[]>({
-        path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,best_order,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=in.(${selectedDate},${nextDay})&on_slate=eq.true&mode=in.(balanced,conservative,aggressive)&order=rank.asc&limit=500`,
+        path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=in.(${selectedDate},${nextDay})&on_slate=eq.true&mode=in.(balanced,conservative,aggressive)&order=rank.asc&limit=500`,
         method: 'GET',
       });
       return Array.isArray(res) ? res : [];
@@ -295,7 +295,7 @@ export default function ResultsScreen() {
       const diHits = (csMap.get(rowSet) || []).map(h => ({
         ...h,
         hit_box: true,
-        hit_straight: h.combo === row.result_digits || h.best_order === row.result_digits,
+        hit_straight: h.combo === row.result_digits,
         hit_state: row.jurisdiction,
         hit_session: row.session,
       }));

@@ -7,7 +7,7 @@ import { useSnapshot } from '@/hooks/useSnapshot';
 import { useDataIngestion } from '@/hooks/useDataIngestion';
 import { useScope } from '@/hooks/useScope';
 import { fetchFromSupabase } from '@/lib/supabase';
-import { getTodayET, getTomorrowET } from '@/lib/dateUtils';
+import { getTodayET, getTomorrowET, getYesterdayET } from '@/lib/dateUtils';
 import { runHitDetectionAllScopes, runHitDetectionAndRefresh, HitDetectionResult } from '@/lib/hitDetection';
 import { RegenConfirmationModal } from '@/components/RegenConfirmationModal';
 import { computeZK30Slate } from '@/engines/zk30';
@@ -38,6 +38,10 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
   const [isDetecting, setIsDetecting] = useState(false);
   const [detectProgress, setDetectProgress] = useState('');
   const [detectResult, setDetectResult] = useState<HitDetectionResult | null>(null);
+
+  // Clear Top 30 state
+  const [clearingIntel, setClearingIntel] = useState<string | null>(null);
+  const [clearIntelResult, setClearIntelResult] = useState<string | null>(null);
 
   // Today's Import Checklist state
   const [todayImports, setTodayImports] = useState<any[]>([]);
@@ -156,6 +160,25 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
       setDetectProgress('');
     } finally {
       setIsDetecting(false);
+    }
+  }, [queryClient]);
+
+  const handleClearIntel = useCallback(async (date: string) => {
+    setClearingIntel(date);
+    setClearIntelResult(null);
+    try {
+      await fetchFromSupabase({
+        path: `/rest/v1/daily_intelligence?slate_date=eq.${date}`,
+        method: 'PATCH',
+        body: { on_slate: false },
+      });
+      setClearIntelResult(`Cleared Top 30 rows for ${date}`);
+      queryClient.invalidateQueries({ queryKey: ['daily_intelligence_hits'] });
+      queryClient.invalidateQueries({ queryKey: ['daily_intelligence_on_slate'] });
+    } catch (e) {
+      setClearIntelResult('Clear failed — check RLS policy');
+    } finally {
+      setClearingIntel(null);
     }
   }, [queryClient]);
 
@@ -334,6 +357,48 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
             </View>
           )}
         </View>
+      </Card>
+
+      <SectionTitle>DATA CLEANUP</SectionTitle>
+      <Card style={{ padding: 16, marginBottom: 16 }}>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: theme.colors.text, marginBottom: 4 }}>Clear Top 30 Picks</Text>
+        <Text style={{ fontSize: 11, color: theme.colors.textTertiary, marginBottom: 12 }}>
+          Sets on_slate=false for all daily_intelligence rows on a date. Use to remove stale test slates before regenerating.
+        </Text>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {[
+            { label: 'Clear Today',     date: getTodayET(),      color: theme.colors.amber },
+            { label: 'Clear Yesterday', date: getYesterdayET(),  color: theme.colors.rose  },
+          ].map(({ label, date, color }) => {
+            const busy = clearingIntel === date;
+            return (
+              <TouchableOpacity
+                key={date}
+                disabled={!!clearingIntel}
+                onPress={() => {
+                  Alert.alert('Clear Top 30', `Remove on_slate rows for ${date}?`, [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Clear', style: 'destructive', onPress: () => handleClearIntel(date) },
+                  ]);
+                }}
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  paddingVertical: 10, borderRadius: 10, borderWidth: 1,
+                  borderColor: color + '55', backgroundColor: color + '12' }}
+              >
+                {busy && <ActivityIndicator size="small" color={color} />}
+                <Text style={{ fontSize: 11, fontWeight: '700', color: busy ? theme.colors.textSecondary : color }}>
+                  {busy ? 'Clearing…' : label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        {clearIntelResult && (
+          <Text style={{ marginTop: 8, fontSize: 11, color: theme.colors.textSecondary,
+            fontFamily: theme.typography.fontFamily.mono, textAlign: 'center' }}>
+            {clearIntelResult}
+          </Text>
+        )}
       </Card>
 
       <SectionTitle>ZK30 — SINGLE STATE MODE</SectionTitle>

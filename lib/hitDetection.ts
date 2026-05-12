@@ -15,11 +15,13 @@ async function updateDailyIntelligenceHit(pick: any, result: any, date: string) 
   const isBox = result.comboset_sorted === comboSet;
   const isStraight = result.result_digits === pick.combo;
   if (!isBox && !isStraight) return;
-  // Include the previous day so late-night slates (tagged with yesterday's ET date) are updated.
-  const prevDay = new Date(date + 'T12:00:00');
-  prevDay.setDate(prevDay.getDate() - 1);
-  const prevDayStr = prevDay.toISOString().split('T')[0];
-  const dateFilter = `slate_date=in.(${date},${prevDayStr})`;
+  // Include prev and next day: prev catches slates tagged with yesterday's date,
+  // next catches slates regenerated after midnight ET (tagged tomorrow's date).
+  const prev = new Date(date + 'T12:00:00'); prev.setDate(prev.getDate() - 1);
+  const next = new Date(date + 'T12:00:00'); next.setDate(next.getDate() + 1);
+  const prevDayStr = prev.toISOString().split('T')[0];
+  const nextDayStr = next.toISOString().split('T')[0];
+  const dateFilter = `slate_date=in.(${date},${prevDayStr},${nextDayStr})`;
   try {
     await fetch(
       `${url}/rest/v1/daily_intelligence?${dateFilter}&combo=eq.${encodeURIComponent(pick.combo)}`,

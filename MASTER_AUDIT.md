@@ -11,6 +11,42 @@
 
 ---
 
+## Configuration Change Tracking
+
+Engine behavior is determined by TWO inputs: code (`engines/*.ts`, `lib/engineCore.ts`, `supabase/functions/compute-slate-*/`, `constants/zk6.ts`) AND configuration (`app_config` table rows). Code changes have been tracked in this audit. Configuration changes were NOT — which allowed the 2026-05-09 Gemini CLI config destruction to go undocumented for 3 days until forensic investigation surfaced it.
+
+Going forward, every change to `app_config` keys affecting engine behavior gets a **CONFIG-XX** entry with:
+- Date and time (ET), actor (user / Claude Code / other tool — name explicitly)
+- Each key: old → new value
+- Reason
+- Backtest result confirming improvement, OR explicit "untested, applying for empirical observation" with planned review date
+
+Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
+
+### CONFIG-01 — Gemini CLI Config Destruction (2026-05-09 ~12:00 ET)
+
+External AI tool (Gemini CLI) overwrote engine config with untested aggressive tuning. No audit entry at the time. Surfaced 2026-05-12 forensic investigation, reverted same day via SQL. Permanent test fixture in `scripts/backtest/configs.ts` as the `destroyed` preset.
+
+| Key | Pre-incident (default) | Destroyed | Reverted |
+|---|---|---|---|
+| engine_weights_balanced | BOX:49.5 PBURST:27 CO:13.5 DGC:10 | BOX:43 PBURST:25 CO:17 DGC:15 | BOX:49.5 PBURST:27 CO:13.5 DGC:10 |
+| engine_weights_conservative | BOX:67.5 PBURST:13.5 CO:9 DGC:10 | BOX:75 PBURST:15 CO:10 DGC:10 | BOX:67.5 PBURST:13.5 CO:9 DGC:10 |
+| engine_weights_aggressive | BOX:40.5 PBURST:31.5 CO:18 DGC:10 | BOX:45 PBURST:35 CO:20 DGC:10 | BOX:40.5 PBURST:31.5 CO:18 DGC:10 |
+| pressure_threshold | 250 | 365 | 250 |
+| recent_hit_cooldown | 20 | 1 | 20 |
+| min_energy_threshold | 0 | 97 | 0 |
+| pair_rep_cap | 2 | 3 | 2 |
+| k6_singles_max | 4 | 5 | 4 |
+| k6_doubles_max | 2 | 3 | 2 |
+| synergy_boost_on | false | true | false |
+| synergy_boost_weight | 0.15 | 0.05 | 0.15 |
+
+**Effect:** Top 30 `daily_intelligence` hit count steady ~10/scope/day through 2026-05-10, collapsed to ~1/scope/day on 2026-05-11 — concurrent with both this config and the May 11 ENG-01/04/05/06 code changes. The backtest harness built 2026-05-12 (`scripts/backtest/`) disentangles the contributions empirically.
+
+**Resolution:** Config reverted to defaults via SQL 2026-05-12. Backtest harness built same day; `destroyed` preset preserved as permanent test fixture.
+
+---
+
 ## Quick Counts
 
 | State | Count |
@@ -715,4 +751,5 @@ Applied design handoff 4 patches and v3 system patches. All items sourced from `
 | 2026-05-12 | BUG-40 fixed (High): `on_slate=false` (set by "Clear Top 30") blocked tier-1 confirmed-hits query — `on_slate=eq.true` guard removed from `hits` query only. `onSlatePicks` (tier-2) retains the guard intentionally. Fixed count 40→44. Commit 25de56d. | Claude Code |
 | 2026-05-12 | BUG-124 fixed (High, preventive): hit-annotation bleed onto today's slate. Two surgical edits to `lib/hitDetection.ts`: (1) `resolveSnaps` fallback now adds `slate_date=lte.${date}` constraint — prevents today's freshly-generated snapshot from being selected when processing yesterday's draw results. (2) `updateDailyIntelligenceHit` removed `nextDayStr` from `slate_date IN (...)` filter — engines tag late-night regens with current ET date, not tomorrow's; `nextDayStr` was causing today's `daily_intelligence` rows to receive yesterday's hit flags. Bug pattern verified in code; live snapshots already clean at investigation time (overwritten by 17:53 UTC regen). No cleanup SQL required. Fixed count 123→124. | Claude Code |
 | 2026-05-12 | Audit drift: changelog entries at lines 692 and 701 reference "new GridTile component" as if a standalone file (`components/GridTile.tsx`), but GridTile is an inline function defined at `app/(tabs)/explore.tsx:77`. No separate file was ever created. Reconciliation (update audit language to reflect inline definition) deferred to next audit-cleanup pass. | Claude Code |
+| 2026-05-12 | Backtest harness built: `scripts/backtest/cli.ts` with `report` and `replay` modes; `npm run backtest:report` and `npm run backtest:replay` wired in package.json; `configs.ts` ships `default`/`destroyed`/`legacy` presets; `data.ts` Node-native read-only Supabase client (service role, GET only); `replay.ts` implements `computeSlateAsOf()` using engineCore math (no reimplementation); `score.ts` cross-jurisdiction hit detection; `output.ts` CSV + Wilson-CI console summaries. CONFIG-01 documented retroactively. Config-tracking process (CONFIG-XX) and engine-change empirical validation requirement added to MASTER_AUDIT.md and CLAUDE.md. **Baseline measurements (2026-05-12, metric = % slates with ≥1 hit, 95% Wilson CI):** REPORT (60d, n=73 historical snapshots): overall 67.1% [55.7–76.8%]; pre-destruction 70.5% [58.1–80.4%] (n=61); destroyed-config era 66.7% [30.0–90.3%] (n=6); code-changes era 33.3% [9.7–70.0%] (n=6, edge source only). By scope: midday 50.0%, evening 79.2%, allday 72.0%. REPLAY (30d, 3 configs, n=87 slates each): `default` 73.6% [63.4–81.7%], `destroyed` 62.1% [51.6–71.5%] (−11.5pp vs default), `legacy` (no DGC) 73.6% [63.4–81.7%] (identical to default overall; DGC adds evening pick quality but no aggregate lift). Destroyed config CIs are non-overlapping with default — degradation is real. Output metric bug fixed: `output.ts` previously used totalPickHits/slates (could exceed 100%); corrected to binary slate-level hit rate throughout. | Claude Code |
 | 2026-05-12 | V6 Patch 02 — SlatesScreen 3-tab densification (UX-61): `app/(tabs)/explore.tsx` full replacement. Replaced 5-band chrome stack with 3-tab segmented control (Slate · Live · More) below a simplified header. SLATE tab: scope pills + filter/sort/view-mode chips merged into a single horizontally-scrollable `scopeRow` (`maxHeight: 42`) — eliminates `ctrlStripOuter` (BUG-32 no longer relevant). LIVE tab: `DrawTicker` + today's hit list + heat check action row. MORE tab: yesterday toggle + save slate + engine mode + daily credits (Pro) + pro upsell banner + responsible play disclaimer. Yesterday query now gated with `enabled: tab === 'more' && showYesterday` — no wasted network call when not on More tab. `DrawTicker` added as new import (was not in explore.tsx before). All state handlers preserved. UX Improvements Applied 48→50. | Claude Code |

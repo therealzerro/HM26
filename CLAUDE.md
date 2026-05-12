@@ -25,6 +25,26 @@ npm run lint
 
 There is no automated test suite (see ARCH-03 in MASTER_AUDIT.md).
 
+## Engine Changes — Empirical Validation Required (Code AND Config)
+
+Any change to files matching `engines/*.ts`, `lib/engineCore.ts`, `supabase/functions/compute-slate-*/`, `constants/zk6.ts`, OR rows in `app_config` affecting engine behavior, **MUST** be preceded by:
+
+1. Backtest with existing math/config over last 30 days → **BASELINE** recorded in audit
+2. Backtest with proposed math/config over SAME 30 days → **CANDIDATE** recorded in audit
+3. Merge only if CANDIDATE ≥ BASELINE on overall hit rate, OR explicit user override with stated reason and planned review date
+
+```bash
+# Run baseline before any engine/config change:
+npm run backtest:replay -- --days 30 --config default
+
+# Run candidate after proposing the change:
+npm run backtest:replay -- --days 30 --config <new-preset-name>
+```
+
+Config changes are tracked with **CONFIG-XX** entries in `MASTER_AUDIT.md` (parallel to BUG-XX). The 2026-05-09 Gemini CLI incident (CONFIG-01) is the canonical example of what happens without this process — 3 days of degraded picks, no audit trail, required forensic recovery.
+
+**No engine change ships without a hit-rate number attached.**
+
 ## Architecture Overview
 
 ### Stack

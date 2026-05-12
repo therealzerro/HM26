@@ -16,4 +16,6 @@ dist/
 web-build/
 .aider*
 supabase/.temp/
-(Date
+# Backtest harness
+.env.backtest
+scripts/backtest/output/

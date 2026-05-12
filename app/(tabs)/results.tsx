@@ -233,7 +233,7 @@ export default function ResultsScreen() {
     queryFn: async () => {
       const twoDaysOut = getNextDay(nextDay);
       const res = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/slate_snapshots?select=scope,top_k_straights_json,file_meta&deleted_at=is.null&updated_at_et=gte.${selectedDate}&updated_at_et=lt.${twoDaysOut}T09:00:00&mode=neq.zk30&order=updated_at_et.desc.nullslast&limit=20`,
+        path: `/rest/v1/slate_snapshots?select=scope,top_k_straights_json&deleted_at=is.null&updated_at_et=gte.${selectedDate}&updated_at_et=lt.${twoDaysOut}T09:00:00&mode=neq.zk30&order=updated_at_et.desc.nullslast&limit=20`,
         method: 'GET',
       });
       return Array.isArray(res) ? res : [];
@@ -244,10 +244,6 @@ export default function ResultsScreen() {
     if (!snapshotRows) return [];
     const out: any[] = [];
     for (const row of snapshotRows) {
-      try {
-        const meta = typeof row.file_meta === 'string' ? JSON.parse(row.file_meta) : row.file_meta;
-        if (meta?.is_supplement) continue;
-      } catch {}
       let picks: any[] = [];
       try {
         picks = typeof row.top_k_straights_json === 'string'

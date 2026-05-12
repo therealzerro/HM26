@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQueryClient } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
@@ -102,7 +102,6 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
     try {
       const res = await regenerateSlate(sc, 'balanced', force, date);
       if (res.status !== 'success') {
-        const { Alert } = require('react-native');
         Alert.alert('Regeneration Failed', res.message);
       }
     } catch {}

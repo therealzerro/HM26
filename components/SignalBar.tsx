@@ -1,5 +1,13 @@
+// components/SignalBar.tsx
+// ───────────────────────────────────────────────────────────
+// Drop-in replacement. Matches HITMASTER_UI_DATA_SPECS.md
+//   • Track width is fixed at 60px (the max fill width)
+//   • Fill width = value × 60px (no flex stretch)
+//   • Fill border-radius matches the track (2px)
+//   • Native glow under fill via shadow props
+// ───────────────────────────────────────────────────────────
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { theme } from '@/constants/theme';
 
 interface SignalBarProps {
@@ -8,13 +16,32 @@ interface SignalBarProps {
   color: string;
 }
 
+const BAR_MAX = 60;   // spec — max fill width in px
+
 export function SignalBar({ label, value, color }: SignalBarProps) {
   const pct = Math.min(Math.max(value, 0), 1);
+  const fillW = pct * BAR_MAX;
+
   return (
     <View style={s.row}>
       <Text style={s.label}>{label}</Text>
       <View style={s.track}>
-        <View style={[s.fill, { width: `${pct * 100}%` as any, backgroundColor: color }]} />
+        <View
+          style={[
+            s.fill,
+            {
+              width: fillW,
+              backgroundColor: color,
+              // iOS-friendly glow
+              shadowColor: color,
+              shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: 0.7,
+              shadowRadius: 6,
+              // Android — elevation only renders on opaque, so use a subtle one
+              ...(Platform.OS === 'android' ? { elevation: 2 } : null),
+            },
+          ]}
+        />
       </View>
       <Text style={[s.val, { color }]}>{Math.round(pct * 100)}</Text>
     </View>
@@ -22,21 +49,36 @@ export function SignalBar({ label, value, color }: SignalBarProps) {
 }
 
 const s = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
   label: {
-    fontSize: 9,
-    color: theme.colors.textTertiary,
     width: 60,
+    fontSize: 9,
     textAlign: 'right',
+    color: theme.colors.textTertiary,
     fontFamily: theme.typography.fontFamily.mono,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   track: {
-    flex: 1,
+    width: BAR_MAX,         // ← fixed; was flex:1
     height: 4,
     backgroundColor: theme.colors.surfaceLight,
     borderRadius: 2,
     overflow: 'hidden',
   },
-  fill: { height: '100%', borderRadius: 3 },
-  val: { fontSize: 9, width: 22, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700' },
+  fill: {
+    height: '100%',
+    borderRadius: 2,         // ← was 3; matches track
+  },
+  val: {
+    width: 22,
+    fontSize: 9,
+    fontWeight: '700',
+    fontFamily: theme.typography.fontFamily.monoBold,
+  },
 });

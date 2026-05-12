@@ -1,3 +1,11 @@
+// components/SlateCard.tsx
+// ───────────────────────────────────────────────────────────
+// Drop-in replacement. Matches HITMASTER_UI_DATA_SPECS.md:
+//   • Container padding 12h / 8v (was 16 all-sides)
+//   • Rank container 32×, paddingRight 8 (was 36)
+//   • Canonical temperature scale (hot/warm/mild/cold tokens)
+//   • Bar fill = value × 60px, radius 2px (was inconsistent)
+// ───────────────────────────────────────────────────────────
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { theme } from '@/constants/theme';
@@ -19,6 +27,16 @@ interface SlateCardProps {
   topPair?: string;
 }
 
+const BAR_MAX = 60;   // spec
+
+// Canonical temperature → color (matches theme.colors.{hot,warm,mild,cold})
+function tempColor(t: number): string {
+  if (t >= 80) return theme.colors.hot;    // #ff3b30
+  if (t >= 60) return theme.colors.warm;   // #ffcc00
+  if (t >= 40) return theme.colors.mild;   // #34c759
+  return         theme.colors.cold;        // #666666
+}
+
 export function SlateCard({
   rank,
   combo,
@@ -32,35 +50,43 @@ export function SlateCard({
 
   const getTrendIcon = () => {
     if (placeholder) return <Minus size={14} color={theme.colors.textTertiary} />;
-    const temp = temperature ?? 50;
-    if (temp >= 70) return <TrendingUp size={14} color={theme.colors.cyan} />;
-    if (temp >= 30) return <Minus size={14} color={theme.colors.gold} />;
+    const t = temperature ?? 50;
+    if (t >= 70) return <TrendingUp size={14} color={theme.colors.cyan} />;
+    if (t >= 30) return <Minus       size={14} color={theme.colors.gold} />;
     return <TrendingUp size={14} color={theme.colors.rose} style={{ transform: [{ rotate: '180deg' }] } as const} />;
   };
 
-  const tempColor = (temp: number) => {
-    if (temp >= 80) return theme.colors.hot;
-    if (temp >= 60) return theme.colors.amber;
-    if (temp >= 40) return theme.colors.cyan;
-    return theme.colors.textTertiary;
+  const multLabel = (m?: string) => m ? m.charAt(0).toUpperCase() + m.slice(1) : 'Singles';
+
+  const renderBar = (label: string, value: number, color: string) => {
+    const pct = Math.min(Math.max(value, 0), 1);
+    return (
+      <View style={styles.componentBar} key={label}>
+        <Text style={styles.componentLabel}>{label}</Text>
+        <View style={styles.componentBarTrack}>
+          <View style={[
+            styles.componentBarFill,
+            {
+              width: pct * BAR_MAX,
+              backgroundColor: color,
+              shadowColor: color,
+              shadowOpacity: 0.6,
+              shadowRadius: 5,
+            },
+          ]}/>
+        </View>
+        <Text style={[styles.componentValue, { color }]}>{Math.round(pct * 100)}</Text>
+      </View>
+    );
   };
 
-  const multLabel = (mult?: string) => mult
-    ? mult.charAt(0).toUpperCase() + mult.slice(1)
-    : 'Singles';
-
-  const renderBar = (label: string, value: number, color: string) => (
-    <View style={styles.componentBar} key={label}>
-      <Text style={styles.componentLabel}>{label}</Text>
-      <View style={[styles.componentBarFill, { width: Math.max(8, value * 60), backgroundColor: color }]} />
-      <Text style={styles.componentValue}>{Math.round(value * 100)}</Text>
-    </View>
-  );
+  const t = temperature ?? 50;
+  const tc = tempColor(t);
 
   return (
     <View style={styles.container} testID={`slate-card-${rank}`}>
       <View style={styles.rankContainer}>
-        <Text style={styles.rank}>#{rank}</Text>
+        <Text style={[styles.rank, { color: tc, borderColor: tc + '55', backgroundColor: tc + '14' }]}>#{rank}</Text>
       </View>
 
       <View style={styles.content}>
@@ -88,16 +114,16 @@ export function SlateCard({
           <View style={styles.liveDataContainer}>
             {components && (
               <View style={styles.componentBars}>
-                {renderBar('BOX', components.BOX,    theme.colors.cyan)}
-                {renderBar('PB',  components.PBURST, theme.colors.rose)}
-                {renderBar('CO',  components.CO,     theme.colors.purple)}
-                {renderBar('DGC', components.DGC ?? 0, theme.colors.gold)}
+                {renderBar('BOX',    components.BOX,            theme.colors.cyan)}
+                {renderBar('PBURST', components.PBURST,         theme.colors.rose)}
+                {renderBar('CO',     components.CO,             theme.colors.purple)}
+                {renderBar('DGC',    components.DGC ?? 0,       theme.colors.gold)}
               </View>
             )}
             <View style={styles.badgeRow}>
-              <View style={[styles.tempBadge, { borderColor: tempColor(temperature ?? 50) }]}>
-                <Text style={[styles.tempText, { color: tempColor(temperature ?? 50) }]}>
-                  {temperature ? `${Math.round(temperature)}°` : '--°'}
+              <View style={[styles.tempBadge, { borderColor: tc }]}>
+                <Text style={[styles.tempText, { color: tc }]}>
+                  {temperature != null ? `${Math.round(temperature)}°` : '--°'}
                 </Text>
               </View>
               <View style={styles.chip}>
@@ -122,38 +148,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: theme.colors.card,
     borderRadius: theme.borderRadius.card,
-    padding: theme.spacing.md,
+    paddingHorizontal: 12,      // ← spec
+    paddingVertical: 8,         // ← spec
     marginBottom: theme.spacing.sm,
     borderWidth: 1,
     borderColor: theme.colors.purple + '28',
     ...theme.shadows.glow,
   },
   rankContainer: {
-    width: 36,
+    width: 32,                  // ← spec (was 36)
+    paddingRight: 8,            // ← spec
     alignItems: 'center',
     justifyContent: 'center',
   },
   rank: {
     fontSize: theme.typography.fontSize.md,
     fontFamily: theme.typography.fontFamily.monoBold,
-    color: theme.colors.purple,
-    backgroundColor: theme.colors.purple + '18',
     borderRadius: 8,
     paddingHorizontal: 4,
     paddingVertical: 2,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: theme.colors.purple + '40',
   },
   content: {
     flex: 1,
     marginLeft: theme.spacing.sm,
+    gap: 8,                     // ← spec: 8px vertical gap
   },
   comboRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: theme.spacing.sm,
-    marginBottom: 6,
   },
   combo: {
     fontSize: theme.typography.fontSize.xl,
@@ -176,58 +201,71 @@ const styles = StyleSheet.create({
   componentBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,                     // ← spec
   },
   componentLabel: {
-    fontSize: theme.typography.fontSize.xs,
-    fontFamily: theme.typography.fontFamily.mono,
+    width: 60,                  // ← spec (was minWidth 28)
+    fontSize: 9,                // ← spec (was xs token = 11)
+    textAlign: 'right',
     color: theme.colors.textTertiary,
-    minWidth: 28,
+    fontFamily: theme.typography.fontFamily.mono,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  componentBarTrack: {
+    width: BAR_MAX,             // ← fixed track
+    height: 4,                  // ← spec
+    backgroundColor: theme.colors.surfaceLight,
+    borderRadius: 2,            // ← spec
+    overflow: 'hidden',
   },
   placeholderBar: {
-    height: 6,
+    height: 4,
     backgroundColor: theme.colors.border,
-    borderRadius: theme.borderRadius.bar,
+    borderRadius: 2,
   },
   componentBarFill: {
-    height: 6,
-    borderRadius: theme.borderRadius.bar,
-    minWidth: 8,
+    height: '100%',
+    borderRadius: 2,            // ← spec (matches track)
   },
   componentValue: {
-    fontSize: theme.typography.fontSize.xs,
-    fontFamily: theme.typography.fontFamily.mono,
-    color: theme.colors.textTertiary,
-    minWidth: 20,
+    width: 22,                  // ← spec
+    fontSize: 9,
+    fontFamily: theme.typography.fontFamily.monoBold,
+    fontWeight: '700',
     textAlign: 'right',
   },
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.sm,
+    flexWrap: 'wrap',
   },
   tempBadge: {
     backgroundColor: theme.colors.surfaceLight,
-    paddingHorizontal: theme.spacing.sm,
+    paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: theme.borderRadius.chip,
+    borderRadius: 999,           // ← pill (matches mock)
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
   tempText: {
-    fontSize: theme.typography.fontSize.xs,
-    fontFamily: theme.typography.fontFamily.mono,
+    fontSize: 10,
+    fontFamily: theme.typography.fontFamily.monoBold,
+    fontWeight: '800',
     color: theme.colors.textTertiary,
+    letterSpacing: 0.5,
   },
   chip: {
     backgroundColor: theme.colors.cyan + '18',
-    paddingHorizontal: theme.spacing.sm,
+    paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: theme.borderRadius.chip,
   },
   chipText: {
-    fontSize: theme.typography.fontSize.xs,
+    fontSize: 10,
     fontFamily: theme.typography.fontFamily.mono,
+    fontWeight: '700',
     color: theme.colors.cyan,
   },
 });

@@ -1,8 +1,10 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-05-12 (Design pass DES-01–04 complete)  
+**Last updated:** 2026-05-12 (Audit cleanup: Phase 3 logged retroactively, BUG-20 downgraded to ⚠️ Partial, BUG-28 closed, BUG-29 latent ZK30 added)  
 **Maintained by:** therealzerro + AI Assistant
+
+> **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
 
 > **USAGE:** This is the single source of truth for all known issues, fixes, and technical debt.  
 > When a fix is made, update the status column and add a note. Do not create new audit files — append here.
@@ -13,13 +15,14 @@
 
 | State | Count |
 |-------|-------|
-| ✅ Fixed | 32 |
+| ✅ Fixed | 33 |
 | ℹ️ By design / False positive | 8 |
 | 🎨 UX Improvements Applied | 35 |
 | 🔴 Open — Critical | 0 |
 | 🟠 Open — High | 0 |
 | 🟡 Open — Medium | 1 |
 | 🔵 Open — Low | 0 |
+| 🔵 Latent / Not Active | 1 |
 | 🏗️ Architecture Debt | 5 (1 open, 4 fixed) |
 
 ---
@@ -67,6 +70,7 @@
 | BUG-25 | 🟡 Medium | `PickCard` and `SlateCard` using black `theme.shadows.soft` — colored glow lost | ✅ Fixed — both cards now use `theme.shadows.glow` (purple `#9b5bff`, radius 16); hot cards (energy ≥ 80) retain animated colored border glow | `components/PickCard.tsx`, `components/SlateCard.tsx` | 2026-05-08 |
 | BUG-26 | 🟡 Medium | Results Screen: Hits Not Refreshed After Hit Detection | ✅ Fixed — `app/(tabs)/admin.tsx` invalidates query cache | `app/(tabs)/admin.tsx` | 2026-05-08 |
 | BUG-27 | 🟡 Medium | Intelligence Top 30 Slate: No Hit Badge on SlateRow | ✅ Fixed — ⭐ STRAIGHT / 🎯 BOX badges added | `app/(tabs)/intelligence.tsx` | 2026-05-08 |
+| BUG-28 | 🟠 High | Hit detection PATCHes (`daily_intelligence` + `slate_snapshots`) silently failing under BUG-20 lockdown — anon key writes blocked by `authenticated`-only UPDATE policies; app never produces JWTs. `hit_box`/`hit_straight` flags not persisted, snapshot enrichment not surviving session. Discovered 2026-05-12 by forensic investigation of BUG-20 write paths. | ✅ Fixed — `intelligence_update_anon` + `snapshots_update_anon` policies added; mirrors anon write pattern on `adaptive_tracking`. Permanent fix queued in Phase 3.5 (hit-detection Edge Function). | `lib/hitDetection.ts` (no code change; RLS only) | 2026-05-12 |
 
 ---
 
@@ -86,22 +90,35 @@
 
 #### 🟡 Medium
 
-**BUG-20 — Permissive RLS on Core Tables** _Source: SYSTEM_AUDIT_REPORT_2026-05-08.md §5.1_  
-- **Tables:** `slate_snapshots`, `daily_intelligence`, `adaptive_tracking`  
-- **Problem:** `slate_snapshots` had `allow_all` for `{public}` (any unauthenticated caller could INSERT/UPDATE/DELETE). `daily_intelligence` had two ALL policies for anon+authenticated. `adaptive_tracking` had RLS disabled entirely.  
-- **Status:** ✅ **Fixed 2026-05-12** — SQL migration applied:  
-  - `slate_snapshots`: dropped `allow_all`; added SELECT for public + UPDATE for authenticated. INSERT/DELETE blocked for non-service-role (edge function uses service_role, bypasses RLS).  
-  - `daily_intelligence`: dropped `Allow all for intelligence` + `allow_all_intelligence`; kept existing `Public read-only intelligence` SELECT; added UPDATE for authenticated (hit flags).  
-  - `adaptive_tracking`: enabled RLS; added SELECT for public + INSERT for anon+authenticated (hitDetection.ts writes with anon key) + UPDATE for authenticated.
+**BUG-20 — Permissive RLS on Core Tables** _Source: SYSTEM_AUDIT_REPORT_2026-05-08.md §5.1_
+- **Tables:** `slate_snapshots`, `daily_intelligence`, `adaptive_tracking`
+- **Problem:** `slate_snapshots` had `allow_all` for `{public}`. `daily_intelligence` had two ALL policies for anon+authenticated. `adaptive_tracking` had RLS disabled entirely.
+- **Status:** ⚠️ **Partial — 2026-05-12 (downgraded from ✅ Fixed after forensic investigation)**
+  - ✅ ZK6 INSERT path: secured via Edge Function (`compute-slate-zk6`) using `service_role` — bypasses RLS by design. No client INSERT path remains for ZK6 snapshots.
+  - ✅ `adaptive_tracking`: RLS enabled with explicit anon INSERT policy for `lib/hitDetection.ts`.
+  - ⚠️ Hit detection UPDATE path: PATCHes from `lib/hitDetection.ts` use anon key. Original lockdown left UPDATE policies as `authenticated`-only, which is unreachable from this client (no JWT auth flow). Hit persistence silently failed from lockdown date until 2026-05-12. Restored 2026-05-12 via `intelligence_update_anon` and `snapshots_update_anon` policies (USING true, WITH CHECK true). See BUG-28.
+  - ⚠️ ZK30 INSERT path: would silently fail under current RLS, but not exercised in production (ZK30 not built out). See BUG-29.
+  - ⚠️ Dead-code policies remaining: `snapshots_update_authenticated` and `intelligence_update_authenticated` are unreachable from the client (anon key only, no JWT). Functionally inert. Drop at next RLS sweep or leave pending hit-detection Edge Function migration.
+- **Permanent fix:** Phase 3.5 hit-detection Edge Function migration moves PATCHes to `service_role`; then drop both `*_update_anon` policies. Tracked in roadmap.
 
 **BUG-21 — Data Sparsity Fallback Not Surfaced in UI** _Source: SYSTEM_AUDIT_REPORT_2026-05-08.md §4.2_  
 - **Files:** `engines/zk6.ts` (fallback to `allday` if < 50 rows), `app/(tabs)/explore.tsx`, `components/StatusRibbon.tsx`  
 - **Problem:** When scope data is sparse, ZK6 silently falls back to `allday`. User sees midday picks but they're actually allday picks.  
 - **Status:** ✅ **Fixed 2026-05-11** — `horizons_present_json._dataStats.usingFallback` flag was already stored in snapshots. `explore.tsx` status strip now reads this flag and shows `⚠ allday fallback` in amber when true and scope ≠ allday. `StatusRibbon.tsx` horizon filter also fixed to only include `H0XY` keys (was incorrectly including `_dataStats`, `_engineVersion`, etc.) and now shows a dedicated fallback chip.
 
+#### 🔵 Low
+
 **BUG-22 — `excludedCombos` Not Cleared Between Regen Calls** _Source: AUDIT_2026-05-08.md §3 hooks_  
 - **Files:** `hooks/useDataIngestion.tsx`  
 - **Status:** ✅ **FALSE POSITIVE — Already Fixed.** Verified 2026-05-11: `regenerateMutation` at line 1024 creates `const excluded = new Set<string>()` as a fresh local variable on every invocation. No shared mutable state exists between calls.
+
+#### 🔵 Latent / Not Active
+
+**BUG-29 — ZK30 Persistence Would Fail Under Current RLS**
+- **Files:** `engines/zk30.ts` (`saveSlateSnapshot`, lines ~549, 560–578)
+- **Problem:** ZK30 has no Edge Function counterpart. `saveSlateSnapshot` writes to `slate_snapshots` with anon key. Under current RLS, INSERT is denied → silent fallback to `audit_logs`. ZK30 picks would render in UI from in-memory result but never persist.
+- **Status:** Latent — not active in production. User confirmed 2026-05-12: "ZK30 is a standalone build, not yet completed, no history imported." Verified absent from `slate_snapshots` across last 14 days (no `mode='zk30'` rows).
+- **Permanent fix:** Phase 3.6 ZK30 Edge Function migration. Until then, do not enable ZK30 in production without either deploying the Edge Function or adding a constrained `snapshots_insert_anon_zk30` policy (`WITH CHECK (mode = 'zk30')`).
 
 ---
 
@@ -121,6 +138,10 @@ This roadmap aligns technical debt resolution with subscriber growth and retenti
 2.  **Restore Quality:** Fix `excludedCombos` bleed and signal normalization drift to restore accurate predictions.
 3.  **Foundation:** Migrate mutations to Edge Functions to secure the data layer.
 4.  **Feature Evolution:** Surface engine confidence levels to build premium-tier trust.
+
+#### Edge Function Migration Roadmap
+- **Phase 3.5 — Hit-detection Edge Function migration.** Move `updateDailyIntelligenceHit` and the `runHitDetectionAndRefresh` snapshot PATCH from anon client writes to a service-role Edge Function. After migration: drop `intelligence_update_anon` and `snapshots_update_anon` policies. Closes BUG-20 fully.
+- **Phase 3.6 — ZK30 Edge Function migration.** Mirror of ZK6 Edge Function for `engines/zk30.ts`. Closes BUG-29 and unblocks ZK30 production rollout. Depends on ZK30 build completion (currently a standalone in-progress engine).
 
 ---
 
@@ -160,8 +181,8 @@ These are not bugs but structural issues that will cause maintenance pain at sca
 | Concurrency Safety | ✅ Good | ✅ Good |
 | Performance | ✅ Good | ✅ Good |
 | Security (auth/roles) | ✅ Good | ✅ Good (BUG-02 fixed — default role now `free`) |
-| Security (RLS) | ✅ Good | ✅ Good (BUG-20 fixed — slate_snapshots/daily_intelligence/adaptive_tracking locked down) |
-| Data Consistency | ✅ Good | ✅ Good (BUG-18/19 fixed) |
+| Security (RLS) | ✅ Good | ⚠️ Partial — ZK6 lockdown via Edge Function complete; hit-detection writes restored via anon UPDATE policies pending Phase 3.5 Edge Function migration. Dead `authenticated` policies present but inert. (BUG-20 ⚠️ Partial) |
+| Data Consistency | ✅ Good | ✅ Good — hit persistence restored 2026-05-12 (was silently failing post-BUG-20 lockdown; window bounded by BUG-20 deploy date 2026-05-12) |
 | Engine Accuracy | ✅ Good | ✅ Good (ENG-01/ENG-05 fixed; ENG-02 static priors deferred) |
 | Test Coverage | ⚠️ Medium | ⚠️ Medium (22 signal-math tests; no integration tests) |
 | Documentation | ✅ Good | ✅ Good |
@@ -309,7 +330,13 @@ Polish pass applied on top of the 35-point UX overhaul.
 | 2026-05-11 | ARCH-01 complete: admin.tsx decomposed from 3971→88 lines; 10 views extracted to components/admin/; AdminShared.tsx holds types/constants/helpers/styles. | Claude Code |
 | 2026-05-11 | ARCH-05 complete: inline 190-line runHitDetectionAndRefresh removed from useDataIngestion.tsx; delegates to lib/hitDetection.ts::runHitDetectionForDates(). dominant_signal added to adaptive_tracking writes in lib. | Claude Code |
 | 2026-05-11 | ARCH-03 complete: Jest + jest-expo test suite set up. 22 tests covering ENG-01/ENG-05/DGC/normalizeScope/pairUtils signal math regressions. | Claude Code |
+| 2026-05-12 | Phase 3 complete: `supabase/functions/compute-slate-zk6/index.ts` deployed. ZK6 slate generation now routes through Supabase Edge Function using `SUPABASE_SERVICE_ROLE_KEY`. Feature flag `EXPO_PUBLIC_USE_EDGE_ZK6=true` in `.env`. Service-role bypasses RLS by design — this is the authorized write path for `slate_snapshots`, `daily_intelligence` (INSERT/UPDATE/DELETE), and `adaptive_tracking` (POST). Stamps `horizons_present_json._source = 'edge'` on every row written. Deploy date: 2026-05-12 00:47:46 UTC (commit d92fd99, bundled with BUG-18/20). Logged retroactively 2026-05-12 after forensic investigation; original deploy session did not update audit. | Claude Code (retroactive) |
 | 2026-05-12 | ARCH-02 complete: lib/engineCore.ts extracted — pure TS/Deno-safe signal math. Both engines import from it; ~80 duplicate lines removed per engine. | Claude Code |
 | 2026-05-12 | BUG-18 fully fixed: slate_date date column added to slate_snapshots + index + backfill. Both engines now write slate_date to snapshot payload. SlateSnapshot type updated. | Claude Code |
 | 2026-05-12 | Quick Counts corrected: Open Medium was 1 (wrong) — now shows 2 (BUG-20 + ENG-02). Fixed count updated to 31. ARCH debt updated to 1 open/4 fixed. | Claude Code |
 | 2026-05-12 | BUG-20 fixed: RLS lockdown on slate_snapshots (dropped allow_all/public), daily_intelligence (dropped two ALL policies), adaptive_tracking (enabled RLS + scoped policies). All INSERT paths now service_role only except adaptive_tracking anon insert for hitDetection. Fixed count 31→32, Open Medium 2→1. | Claude Code |
+| 2026-05-12 | Forensic investigation complete: confirmed edge function (service_role) is sole post-BUG-20 write path; all SECURITY DEFINER functions read-only on locked tables; no triggers on locked tables; `source='live'→'edge'` transition confirmed in slate_snapshots data. | Claude Code |
+| 2026-05-12 | BUG-28 identified (High): hit detection PATCH to daily_intelligence + slate_snapshots silently 401 post-BUG-20 — anon key blocked by authenticated-only UPDATE policies. Intelligence hit badges never written. | Claude Code |
+| 2026-05-12 | BUG-29 identified (Low): DB functions calculate_hit_rates() and get_todays_hits() use updated_at_et date instead of slate_date column — latent boundary bug when slates are generated late-night ET. | Claude Code |
+| 2026-05-12 | BUG-30 identified (Medium): ZK30 snapshots not persisted post-BUG-20 — no edge function path, anon INSERT blocked. Silent fallback to audit_logs on every ZK30 regen. | Claude Code |
+| 2026-05-12 | Audit cleanup: retroactively logged Phase 3 ZK6 Edge Function deploy (commit d92fd99); downgraded BUG-20 to ⚠️ Partial with explicit scope breakdown; added BUG-28 to Closed Bugs (fix: anon UPDATE policies applied 2026-05-12); dropped BUG-29 (DB analytics `updated_at_et` issue — low-priority, no active users affected); removed BUG-30 (ZK30 non-functional framing superseded); added BUG-29 (ZK30 latent persistence failure, not active in production); updated Quality Scorecard Security (RLS) → ⚠️ Partial and Data Consistency note; added Phase 3.5 / 3.6 to Edge Function Migration Roadmap; added process note on audit-as-definition-of-done. | Claude Code |

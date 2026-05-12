@@ -47,11 +47,18 @@ const SCOPE_LABELS: Record<string, string> = { midday: 'Midday', evening: 'Eveni
 
 // ─── Heat rating ──────────────────────────────────────────────────────────────
 function heatInfo(e: number): { label: string; emoji: string; color: string } {
-  if (e >= 90) return { label: 'ON FIRE',  emoji: '🔥', color: theme.colors.error };
-  if (e >= 80) return { label: 'BLAZING',  emoji: '⚡', color: theme.colors.error };
+  if (e >= 90) return { label: 'ON FIRE',  emoji: '🔥', color: theme.colors.hot    };
+  if (e >= 80) return { label: 'BLAZING',  emoji: '⚡', color: theme.colors.amber  };
   if (e >= 65) return { label: 'HOT',      emoji: '✦',  color: theme.colors.orange };
-  if (e >= 45) return { label: 'WARM',     emoji: '◈',  color: theme.colors.gold };
+  if (e >= 45) return { label: 'WARM',     emoji: '◈',  color: theme.colors.gold   };
   return         { label: 'COOL',     emoji: '❄',  color: theme.colors.textTertiary };
+}
+
+function tempColorFor(energy: number): string {
+  if (energy >= 80) return theme.colors.hot;    // #ff3b30
+  if (energy >= 60) return theme.colors.amber;  // #ff6a2b
+  if (energy >= 40) return theme.colors.gold;   // #ffd93d
+  return                   theme.colors.cyan;   // #2bffcc — cool, still legible
 }
 
 // ─── WHY THIS PICK summary ────────────────────────────────────────────────────
@@ -123,6 +130,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
   const isHot = pick.energy >= 80;
   const isHotStreak = pick.energy >= 85;
   const isHit = !!pick.hitType;
+  const tempC = tempColorFor(pick.energy);
   const hitColor = pick.hitType === 'straight' ? theme.colors.gold : theme.colors.cyan;
 
   const glowAnim = useRef(new Animated.Value(0.3)).current;
@@ -254,8 +262,16 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
           <View style={{ flex: 1 }}>
             {/* Best Straight — primary */}
             <View style={{ marginBottom: 6 }}>
-              <Text style={s.bestStraightLabel}>⚡ Best Straight</Text>
-              <Text style={s.bestStraightDigits}>
+              <Text style={[s.bestStraightLabel, { color: tempC }]}>⚡ Best Straight</Text>
+              <Text style={[
+                s.bestStraightDigits,
+                {
+                  color: tempC,
+                  textShadowColor: tempC,
+                  textShadowRadius: 14,
+                  textShadowOffset: { width: 0, height: 0 },
+                },
+              ]}>
                 {(pick.bestOrder ?? pick.combo).split('').join(' - ')}
               </Text>
               <Text style={s.boxSetSecondary}>Box: {pick.comboSet}</Text>
@@ -343,10 +359,10 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
               )}
             </View>
 
-            <SignalBar label="Frequency"   value={pick.signals.BOX}          color={SIGNAL_COLORS.BOX} />
-            <SignalBar label="Momentum"    value={pick.signals.PBURST}        color={SIGNAL_COLORS.PBURST} />
-            <SignalBar label="Pattern"     value={pick.signals.CO}            color={SIGNAL_COLORS.CO} />
-            <SignalBar label="Consistency" value={pick.signals.DGC ?? 0}      color={SIGNAL_COLORS.DGC} />
+            <SignalBar label="BOX"    value={pick.signals.BOX}        color={SIGNAL_COLORS.BOX} />
+            <SignalBar label="PBURST" value={pick.signals.PBURST}     color={SIGNAL_COLORS.PBURST} />
+            <SignalBar label="CO"     value={pick.signals.CO}         color={SIGNAL_COLORS.CO} />
+            <SignalBar label="DGC"    value={pick.signals.DGC ?? 0}   color={SIGNAL_COLORS.DGC} />
 
             {pressure && (
               <View style={s.pressureRow}>
@@ -440,8 +456,8 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   rankText: { fontSize: 12, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
-  bestStraightLabel: { fontSize: 8, fontWeight: '900', color: theme.colors.cyan, letterSpacing: 1.5, marginBottom: 2 },
-  bestStraightDigits: { fontSize: 26, fontWeight: '900', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 3, lineHeight: 31 },
+  bestStraightLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 1.5, marginBottom: 2 },
+  bestStraightDigits: { fontSize: 26, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 3, lineHeight: 31 },
   genTimestamp: { fontSize: 9, color: theme.colors.textTertiary, marginTop: 3 },
   boxSetSecondary: { fontSize: 10, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, marginTop: 2 },
   combo: {

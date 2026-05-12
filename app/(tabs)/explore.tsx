@@ -782,7 +782,7 @@ const s = StyleSheet.create({
   yesterdayBtn: { borderWidth: 1, borderColor: theme.colors.amber + '55', backgroundColor: theme.colors.amber + '10' },
 
   // Control strip — scrollable row (prevents overflow on narrow iOS screens)
-  ctrlStripOuter: { backgroundColor: theme.colors.background, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  ctrlStripOuter: { backgroundColor: theme.colors.background, borderBottomWidth: 1, borderBottomColor: theme.colors.border, maxHeight: 46 },
   ctrlStrip: { flexDirection: 'row', alignItems: 'center', gap: 1, paddingHorizontal: 10, paddingVertical: 5, minHeight: 36 },
   ctrlChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5 },
   ctrlChipOnCyan: { backgroundColor: theme.colors.cyan + '15', borderWidth: 1, borderColor: theme.colors.cyan + '44' },

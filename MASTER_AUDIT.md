@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-05-12 (BUG-30 + BUG-31 closed: intelligence screen wiring + edge function daily_intelligence column mismatch; component patch pass applied)  
+**Last updated:** 2026-05-12 (Design Polish Sprint: design handoff 4 applied — EnergyMeter/TierBadge upgrades; iOS ctrlStrip overflow fixed; PickDetailModal safe-area + 44pt buttons + drag handle; GridTile 2×3 screenshot layout; V3 patches 01–05 — semantic theme aliases, modal surface2, neon tab bar, NeonSkeleton, NeonRefreshControl)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -15,9 +15,9 @@
 
 | State | Count |
 |-------|-------|
-| ✅ Fixed | 35 |
+| ✅ Fixed | 36 |
 | ℹ️ By design / False positive | 8 |
-| 🎨 UX Improvements Applied | 35 |
+| 🎨 UX Improvements Applied | 45 |
 | 🔴 Open — Critical | 0 |
 | 🟠 Open — High | 0 |
 | 🟡 Open — Medium | 1 |
@@ -72,6 +72,7 @@
 | BUG-27 | 🟡 Medium | Intelligence Top 30 Slate: No Hit Badge on SlateRow | ✅ Fixed — ⭐ STRAIGHT / 🎯 BOX badges added | `app/(tabs)/intelligence.tsx` | 2026-05-08 |
 | BUG-28 | 🟠 High | Hit detection PATCHes (`daily_intelligence` + `slate_snapshots`) silently failing under BUG-20 lockdown — anon key writes blocked by `authenticated`-only UPDATE policies; app never produces JWTs. `hit_box`/`hit_straight` flags not persisted, snapshot enrichment not surviving session. Discovered 2026-05-12 by forensic investigation of BUG-20 write paths. | ✅ Fixed — `intelligence_update_anon` + `snapshots_update_anon` policies added; mirrors anon write pattern on `adaptive_tracking`. Permanent fix queued in Phase 3.5 (hit-detection Edge Function). | `lib/hitDetection.ts` (no code change; RLS only) | 2026-05-12 |
 | BUG-30 | 🟠 High | Intelligence screen — three wiring failures: (1) `slateScope` initialized to hardcoded `'midday'` ignoring global `useScope()` → Top 30 queried wrong scope for every non-midday user. (2) "Generate Slate" and "Go to Slates" buttons used `router.push('/(tabs)/explore')` from a hidden tab; `push` stacks on top of admin context → navigation resolved to home tab instead of explore. (3) `IntelligenceRouteView` used `router.push('/(tabs)/intelligence')` to open the screen, compounding the push-stack problem. (4) Home screen regen (`index.tsx`) did not call `queryClient.removeQueries` before `refreshSnapshot()` — stale cache served the old snapshot after regen. | ✅ Fixed — (1) Import `useScope`, init `slateScope` from `globalScope`. (2) "Generate Slate" replaced with inline `regenerateSlate()` call; "Go to Slates" switches internal view tab. (3) `router.push` → `router.navigate` in `IntelligenceRouteView.tsx`. (4) `useQueryClient` + `removeQueries` added to `index.tsx` `handleGenerate`. | `app/(tabs)/intelligence.tsx`, `components/admin/IntelligenceRouteView.tsx`, `app/(tabs)/index.tsx` | 2026-05-12 |
+| BUG-32 | 🟡 Medium | Slates grid view not filling screen height (regression from ctrlStrip ScrollView change) — `ctrlStripOuter` horizontal ScrollView had no `maxHeight` constraint; claimed flex space from SafeAreaView column on iOS, leaving `gridContainer` (flex:1) with insufficient remaining height. Tiles rendered at natural height near bottom of compressed space instead of distributing across full screen. | ✅ Fixed — added `maxHeight: 46` to `ctrlStripOuter` style in `explore.tsx`. Mirrors `maxHeight: 38` pattern on `scopeRow`. | `app/(tabs)/explore.tsx` | 2026-05-12 |
 | BUG-31 | 🔴 Critical | `daily_intelligence` always empty after regen — edge function INSERT used wrong column names: `energy` (DB: `energy_score`), `indicator` (column does not exist), `times_drawn` (column does not exist). PostgREST returned 400 on every INSERT. Error silently swallowed by `catch` block — client always saw `regen ok`, snapshot was written, but all 30 `daily_intelligence` rows were discarded every time. Top 30 Slate was permanently empty. | ✅ Fixed — corrected INSERT to `energy_score: p.energy`; removed `indicator` and `times_drawn` fields. Edge function redeployed. | `supabase/functions/compute-slate-zk6/index.ts` | 2026-05-12 |
 
 ---
@@ -306,11 +307,42 @@ Polish pass applied on top of the 35-point UX overhaul.
 
 | Phase | Enhancement | Description |
 | :--- | :--- | :--- |
-| **I** | Theme Consolidation | Alias all semantic signal colors directly to target aliases (e.g., `freqSignal`) to prevent leakage. |
-| **II** | Shadow Standardization | Migrate all `theme.shadows.soft` references to `theme.shadows.glow` for brand cohesion. |
-| **III** | Component Refactoring | Audit all screens to replace manual empty-state UI with `EmptyState.tsx`. |
-| **IV** | Layering Polish | Enforce `surface2` usage in `_layout.tsx` and modal base containers for consistent depth. |
+| **I** | Theme Consolidation | ✅ Fixed 2026-05-12 — Semantic signal color aliases added: `freqSignal`, `momoSignal`, `patternSignal`, `consistSignal`, `hotStreak`, `brand`, `neutralCool`, `neutralWarm` (Patch 01). |
+| **II** | Shadow Standardization | ✅ Fixed 2026-05-11 — All `theme.shadows.soft` references migrated to `theme.shadows.glow`. |
+| **III** | Component Refactoring | ✅ Fixed 2026-05-11 — All inline empty states replaced with `EmptyState.tsx`. |
+| **IV** | Layering Polish | ✅ Fixed 2026-05-12 — `_layout.tsx` modal screens (`import-wizard`, `paywall`, `coming-soon`) now use `surface2` as `contentStyle` and `headerStyle` background, creating depth separation from base `background` (Patch 02). |
 
+
+---
+
+## Design Polish Sprint — 2026-05-12
+
+Applied design handoff 4 patches and v3 system patches. All items sourced from `design handoff/design_handoff_hitmaster 4/` and `design handoff/patches/v3/`.
+
+| ID | Area | Change |
+|----|------|--------|
+| UX-50 | EnergyMeter | Full replacement — 4-tier gradient scale (≥90 hot/amber, ≥80 amber/gold, ≥65 orange/gold, ≥45 gold/cyan, else cyan/purple); cool gradient now visible; baseline ring glow on all energies (`shadowOpacity: 0.55`); `fontWeight: '700'` on label |
+| UX-51 | TierBadge | Full replacement — `tierPalette()` function: FREE gets surfaceLight/borderMed/textTertiary (no fake glow), PRO/PLUS get `shadowOpacity: 0.45, shadowRadius: 6`; `fontWeight: '800'`, `fontFamily: monoBold`, `letterSpacing: 0.6`; `ComingSoonBadge` gets glow; `sizeMetrics()` with `padX/padY/iconSize` |
+| UX-52 | Slates ctrlStrip (iOS) | ctrlStrip row (filter/sort/view-mode chips + save button) was a `View` with `flex:1` spacer — right-side buttons overflowed off-screen on iOS. Fixed to horizontal `ScrollView` with `showsHorizontalScrollIndicator={false}`; all chips now reachable |
+| UX-53 | PickDetailModal — Safe Area | Added `useSafeAreaInsets` from `react-native-safe-area-context`; header `paddingTop: insets.top || 14` clears the Dynamic Island / notch on all iOS hardware |
+| UX-54 | PickDetailModal — Buttons | Close/minimize buttons were 32×32 (below iOS 44pt minimum tap target). Upgraded to `closeBtnInner: { width: 44, height: 44, borderRadius: 22 }` pill buttons with frosted `rgba(255,255,255,0.1)` background and 1px white border; `hitSlop: { top:10, bottom:10, left:10, right:10 }` |
+| UX-55 | PickDetailModal — Drag Handle | Drag handle indicator added at top of modal header (`width: 36, height: 4, borderRadius: 2, rgba(255,255,255,0.2)`) for system-familiar gesture affordance |
+| UX-56 | PickDetailModal — Content Scroll | Tab content area changed from `View` to `ScrollView` with `paddingBottom: insets.bottom + 24`; prevents content clipping on tall INTEL/PAIRS tab payloads |
+| UX-57 | Slates GridTile — Screenshot Mode | Compact/grid view fully rewritten for screenshot use case: `ScrollView` bypassed, `flex:1` chain `gridContainer → gridArea → gridRow → GridTile` fills exact screen height without scrolling; 2×3 grid shows all 6 picks simultaneously; `GridTile` has rank chip (temp-colored), energy score, big combo digits with `adjustsFontSizeToFit`, comboSet label, 4 micro signal bars (3px height) |
+| UX-58 | NeonSkeleton | New `components/NeonSkeleton.tsx` — animated shimmer loading placeholder (opacity 0.35→0.75 at 900ms loop). Variants: `card` (full pick-card with rank/combo/4 bars), `row`, `combo` (3 big digit slots), `text`, `splash`. Block color `rgba(155,91,255,0.18)` |
+| UX-59 | NeonRefreshControl | New `components/NeonRefreshControl.tsx` — themed pull-to-refresh wrapper: iOS `tintColor: cyan`, Android `colors: [cyan, purple, rose]` spinner, `progressBackgroundColor: surface2`. Drop-in replacement for `RefreshControl` in `index.tsx`, `results.tsx`, `intelligence.tsx` |
+
+### V3 System Patches
+
+| Patch | File | Change |
+|-------|------|--------|
+| 01 — Semantic Aliases | `constants/theme.ts` | Added `freqSignal`, `momoSignal`, `patternSignal`, `consistSignal`, `hotStreak`, `brand`, `neutralCool`, `neutralWarm` color tokens. Closes Phase I of Enhancement Plan. |
+| 02 — Modal Surface2 | `app/_layout.tsx` | `import-wizard`, `paywall`, `coming-soon` Stack screens now use `surface2` for `contentStyle` and `headerStyle` backgrounds. Closes Phase IV of Enhancement Plan. |
+| 03 — Neon Tab Bar | `app/(tabs)/_layout.tsx` | `TabIcon` takes `focused` prop; active tab renders cyan pill halo (`rgba(43,255,204,0.12)` bg, `rgba(43,255,204,0.45)` border, cyan shadow glow); bar background `surface2`, 1.5px purple border-top, height 64; label `fontWeight: '700'`, `letterSpacing: 0.4`, `textTransform: 'uppercase'`, `fontSize: 10` |
+| 04 — NeonSkeleton | `components/NeonSkeleton.tsx` | New shimmer loading placeholder component (see UX-58) |
+| 05 — NeonRefreshControl | `components/NeonRefreshControl.tsx` + 3 screens | New themed RefreshControl wrapper (see UX-59); swapped in `index.tsx`, `results.tsx`, `intelligence.tsx` |
+
+---
 
 | Date | Change | By |
 |------|--------|----|
@@ -345,3 +377,13 @@ Polish pass applied on top of the 35-point UX overhaul.
 | 2026-05-12 | Component patch pass applied (design handoff): `SignalBar.tsx` full replacement (fixed 60px track, iOS glow shadow); `SlateCard.tsx` full replacement (12h/8v padding, 32px rank container, canonical hot/warm/mild/cold temperature tokens); `PickCard.tsx` 3 surgical edits (`heatInfo` thresholds corrected, `tempColorFor()` helper + temperature-tinted bestStraight digits, signal bar labels BOX/PBURST/CO/DGC). | Claude Code |
 | 2026-05-12 | BUG-30 fixed (High): Intelligence screen scope/navigation/cache wiring — `slateScope` now initialized from `globalScope`; `router.push` → `router.navigate` in `IntelligenceRouteView`; inline `regenerateSlate` replaces navigation button in empty state; `queryClient.removeQueries` added to home regen path. Commits 036d3c4 + 6dd8769. | Claude Code |
 | 2026-05-12 | BUG-31 fixed (Critical): `daily_intelligence` permanently empty — edge function wrote `energy`/`indicator`/`times_drawn` (none exist in DB); PostgREST 400 silently swallowed by catch block. Fixed to `energy_score`; removed `indicator` and `times_drawn`. Edge function redeployed. Commit 89883f5. Fixed count 33→35. | Claude Code |
+| 2026-05-12 | Design handoff 4 applied: `EnergyMeter.tsx` full replacement — 4-tier gradient (hot/amber/orange/gold/cyan/purple), cool gradient readable, baseline ring glow on all tiers. `TierBadge.tsx` full replacement — tierPalette(), FREE no-glow, PRO/PLUS shadowRadius 6, monoBold 800 weight, letterSpacing 0.6. | Claude Code |
+| 2026-05-12 | iOS ctrlStrip overflow fixed (`explore.tsx`): filter/sort/view-mode row was a View with flex:1 spacer — right-side buttons clipped off screen. Changed to horizontal ScrollView; all chips now accessible. | Claude Code |
+| 2026-05-12 | PickDetailModal accessibility pass: (1) useSafeAreaInsets — header paddingTop clears Dynamic Island on all iOS; (2) close/minimize buttons upgraded 32→44pt (iOS minimum tap target), frosted pill style with hitSlop; (3) drag handle indicator added at top; (4) tab content area changed View→ScrollView with insets.bottom padding to prevent clipping. | Claude Code |
+| 2026-05-12 | Slates grid view redesigned for screenshot mode: ScrollView bypassed in compact mode entirely; flex:1 chain gridContainer→gridArea→gridRow fills exact screen height; new GridTile component (2×3 layout) renders rank chip, energy score, big adjustsFontSizeToFit combo digits, comboSet, and 4 micro signal bars — all 6 picks visible simultaneously without scrolling. UX Improvements Applied 35→45. | Claude Code |
+| 2026-05-12 | V3 Patch 01 — Semantic theme aliases: freqSignal/momoSignal/patternSignal/consistSignal/hotStreak/brand/neutralCool/neutralWarm added to constants/theme.ts. Closes Enhancement Plan Phase I. | Claude Code |
+| 2026-05-12 | V3 Patch 02 — Modal surface2 depth: import-wizard, paywall, coming-soon Stack screens now use surface2 for contentStyle+headerStyle in app/_layout.tsx. Closes Enhancement Plan Phase IV. | Claude Code |
+| 2026-05-12 | V3 Patch 03 — Neon tab bar: app/(tabs)/_layout.tsx full replacement — TabIcon takes focused prop, active tab renders cyan pill halo with glow, bar uses surface2 bg + 1.5px purple border-top, height 64, uppercase labels. | Claude Code |
+| 2026-05-12 | V3 Patch 04 — NeonSkeleton: new components/NeonSkeleton.tsx shimmer loading placeholder; 5 variants (card/row/combo/text/splash); opacity 0.35→0.75 loop at 900ms. | Claude Code |
+| 2026-05-12 | V3 Patch 05 — NeonRefreshControl: new components/NeonRefreshControl.tsx themed pull-to-refresh; RefreshControl swapped to NeonRefreshControl alias in index.tsx, results.tsx, intelligence.tsx. | Claude Code |
+| 2026-05-12 | BUG-32 fixed (Medium): Slates grid flex chain regression — `ctrlStripOuter` horizontal ScrollView (line 785, explore.tsx) had no height constraint, unlike `scopeRow` (same pattern, `maxHeight: 38`). On iOS the unconstrained ScrollView claimed flex space from the SafeAreaView column, leaving `gridContainer`'s `flex: 1` with insufficient remaining height; tiles rendered at natural content height near the bottom of the compressed space. Fix: added `maxHeight: 46` to `ctrlStripOuter` style (single property). Restores design intent of GridTile 2×3 redesign — grid now fills screen height instead of bunching. | Claude Code |

@@ -9,6 +9,7 @@ import { theme } from '@/constants/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { backfillIntelHits, BackfillProgress } from '@/lib/backfillIntelHits';
 import { getTodayET } from '@/lib/dateUtils';
+import { useScope } from '@/hooks/useScope';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { EmptyState } from '@/components/EmptyState';
 import { BarChart2, Zap } from 'lucide-react-native';
@@ -371,6 +372,7 @@ function SlateRow({ row }: { row: IntelRow }) {
 
 export default function IntelligenceScreen() {
   const [view, setView] = useState<'analysis' | 'slate'>('analysis');
+  const { scope: globalScope } = useScope();
 
   // Analysis view state
   const [loading, setLoading] = useState(true);
@@ -381,8 +383,10 @@ export default function IntelligenceScreen() {
   const [backfillStatus, setBackfillStatus] = useState('');
   const [dismissed, setDismissed] = useState<Record<string, boolean>>({});
 
-  // Slate view state
-  const [slateScope, setSlateScope] = useState<'midday' | 'evening' | 'allday'>('midday');
+  // Slate view state — initialize from global scope so it matches the active session
+  const [slateScope, setSlateScope] = useState<'midday' | 'evening' | 'allday'>(
+    (globalScope as 'midday' | 'evening' | 'allday') ?? 'midday'
+  );
   const [slateRows, setSlateRows] = useState<IntelRow[]>([]);
   const [slateLoading, setSlateLoading] = useState(false);
 
@@ -512,7 +516,7 @@ export default function IntelligenceScreen() {
               {!!backfillStatus && <Text style={s.backfillStatus}>{backfillStatus}</Text>}
               <TouchableOpacity
                 style={[s.backfillBtn, { backgroundColor: theme.colors.bgElevated, borderWidth: 1, borderColor: theme.colors.border }]}
-                onPress={() => router.push('/(tabs)/explore')}
+                onPress={() => router.navigate('/(tabs)/explore')}
               >
                 <Text style={[s.backfillBtnText, { color: theme.colors.cyan }]}>Go to Slates ⚡</Text>
               </TouchableOpacity>
@@ -626,7 +630,7 @@ export default function IntelligenceScreen() {
               action={
                 <TouchableOpacity
                   style={{ backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius.md, paddingVertical: 12, paddingHorizontal: 24 }}
-                  onPress={() => router.push('/(tabs)/explore')}
+                  onPress={() => router.navigate('/(tabs)/explore')}
                 >
                   <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Generate Slate ⚡</Text>
                 </TouchableOpacity>

@@ -7,7 +7,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RefreshCw } from 'lucide-react-native';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
 import { useSnapshot } from '@/hooks/useSnapshot';
 import { useDataIngestion } from '@/hooks/useDataIngestion';
@@ -327,6 +327,7 @@ const esb = StyleSheet.create({
 // ─── Home Screen ──────────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const { snapshot, refreshSnapshot, isLoading: snapshotLoading, hitPicks, activePicks } = useSnapshot();
+  const queryClient = useQueryClient();
 
   const { user } = useAuth();
   const { scope, setScope: setScopeRaw } = useScope();
@@ -433,6 +434,7 @@ export default function HomeScreen() {
       const res = await regenerateSlate(canonScope, mode, force === true);
       if (res.status === 'success') {
         showToast('✓ Slate regenerated successfully', 'success');
+        queryClient.removeQueries({ queryKey: ['snapshot', scope] });
         await refreshSnapshot();
       } else {
         setRegenMsg(res.message);

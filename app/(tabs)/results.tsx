@@ -1,7 +1,29 @@
+/* ============================================================================
+   v7 PATCH — Results Ledger screen (Option A — aggressive cleanup)
+   ============================================================================
+   FILE:        app/(tabs)/results.tsx
+   STRATEGY:    Strip 5 bands of chrome down to 3. The list is the product —
+                everything else should be tappable on demand, not stacked.
+
+                BEFORE                          AFTER
+                ─────────                       ──────────
+                Header (title + meta)           Header (title + ⋯)
+                Date tabs                       Date tabs
+                Search bar (full row)           ───
+                Session filter pills            One compact controls strip:
+                Stats row (6 numbers)             [🔍] [All|🌅|☀️|🌙|🌑] [count]
+                LIST                            LIST
+                                                (stats moved → overflow sheet)
+                                                (search expands inline on tap)
+
+   REPLACES:    Full file replacement. All hooks, queries, processed data, and
+                card rendering are preserved — only the chrome layout changes.
+   ============================================================================ */
+
 import React, { useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput,
-  TouchableOpacity, ScrollView, ActivityIndicator,
+  TouchableOpacity, ScrollView, ActivityIndicator, Modal, Pressable,
 } from 'react-native';
 import { NeonRefreshControl as RefreshControl } from '@/components/NeonRefreshControl';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,111 +31,149 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { theme } from '@/constants/theme';
-import { Calendar } from 'lucide-react-native';
+import { Calendar, MoreHorizontal, Search, X } from 'lucide-react-native';
 import { EmptyState } from '@/components/EmptyState';
 
-// ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
-
+// ─── tokens ─────────────────────────────────────────────────────────────
 const D = {
   bg:       theme.colors.background,
   surface:  theme.colors.bgElevated,
   surface2: theme.colors.surface2,
   border:   theme.colors.border,
   purple:   theme.colors.purple,
-  teal:     theme.colors.cyan,   // BOX / Frequency / Hits
-  orange:   theme.colors.amber,  // Morning / warm
-  amber:    theme.colors.gold,   // Midday / consistency
-  violet:   theme.colors.purple, // Evening
-  indigo:   theme.colors.blue,   // Night
+  teal:     theme.colors.cyan,
+  amber:    theme.colors.gold,
+  orange:   theme.colors.amber,
+  violet:   theme.colors.purple,
+  indigo:   theme.colors.blue,
   text:     theme.colors.text,
   textSub:  theme.colors.textSecondary,
   textDim:  theme.colors.textTertiary,
 };
 
-// ─── TYPES ───────────────────────────────────────────────────────────────────
-
 interface LedgerRow {
-  jurisdiction: string;
-  game: string;
-  date_et: string;
-  session: string;
-  result_digits: string;
+  jurisdiction: string; game: string; date_et: string; session: string; result_digits: string;
 }
-
 interface HitRow {
-  slate_date: string;
-  scope: string;
-  mode: string;
-  rank: number;
-  combo: string;
-  best_order: string;
-  hit_state: string;
-  hit_session: string;
-  hit_box: boolean;
-  hit_straight: boolean;
-  signal_box?: number;
-  signal_pburst?: number;
-  signal_dgc?: number;
+  slate_date: string; scope: string; mode: string; rank: number; combo: string; best_order: string;
+  hit_state: string; hit_session: string; hit_box: boolean; hit_straight: boolean;
+  signal_box?: number; signal_pburst?: number; signal_dgc?: number;
 }
+interface ProcessedEntry extends LedgerRow { hits: HitRow[] }
 
-interface ProcessedEntry extends LedgerRow {
-  hits: HitRow[];
-}
-
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
-
-const SESSION_ICONS: Record<string, string> = {
-  morning: '🌅',
-  midday:  '☀️',
-  evening: '🌙',
-  night:   '🌑',
-};
-
+const SESSION_ICONS:  Record<string, string> = { morning: '🌅', midday: '☀️', evening: '🌙', night: '🌑' };
 const SESSION_COLORS: Record<string, string> = {
-  morning: theme.colors.amber,
-  midday:  theme.colors.gold,
-  evening: theme.colors.purple,
-  night:   theme.colors.blue,
+  morning: theme.colors.amber, midday: theme.colors.gold,
+  evening: theme.colors.purple, night: theme.colors.blue,
 };
 
 function getTodayET(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 }
-
 function getDateLabel(dateStr: string): string {
   const today = getTodayET();
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yStr = yesterday.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  const yStr = y.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   if (dateStr === today) return 'Today';
-  if (dateStr === yStr) return 'Yesterday';
+  if (dateStr === yStr)  return 'Yesterday';
   const d = new Date(dateStr + 'T12:00:00');
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
-
 function getRecentDates(): string[] {
-  const dates: string[] = [];
+  const out: string[] = [];
   const now = new Date();
   for (let i = 0; i < 7; i++) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    dates.push(d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }));
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    out.push(d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }));
   }
-  return dates;
+  return out;
 }
-
 function formatDisplayDate(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00');
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' });
 }
 
-// ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
+// ─── stats overflow sheet ──────────────────────────────────────────────
+function StatsSheet({ visible, onClose, stats, selectedDate }: {
+  visible: boolean; onClose: () => void; selectedDate: string;
+  stats: { morn: number; mid: number; eve: number; night: number; total: number; hits: number };
+}) {
+  return (
+    <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
+      <Pressable style={ss.backdrop} onPress={onClose}>
+        <Pressable style={ss.sheet} onPress={e => e.stopPropagation()}>
+          <View style={ss.handle} />
+          <View style={ss.headerRow}>
+            <Text style={ss.heading}>{formatDisplayDate(selectedDate)}</Text>
+            <TouchableOpacity onPress={onClose}><X size={20} color={theme.colors.textSecondary} /></TouchableOpacity>
+          </View>
 
+          <Text style={ss.sectionTitle}>Session breakdown</Text>
+          <View style={ss.grid}>
+            <Stat n={stats.morn}  label="🌅 Morning" c={D.orange} />
+            <Stat n={stats.mid}   label="☀️ Midday"  c={D.amber}  />
+            <Stat n={stats.eve}   label="🌙 Evening" c={D.violet} />
+            <Stat n={stats.night} label="🌑 Night"   c={D.indigo} />
+          </View>
+
+          <Text style={ss.sectionTitle}>Totals</Text>
+          <View style={ss.bigRow}>
+            <View style={ss.bigStat}>
+              <Text style={[ss.bigNum, { color: D.text }]}>{stats.total}</Text>
+              <Text style={ss.bigLabel}>Total draws</Text>
+            </View>
+            <View style={ss.divider} />
+            <View style={ss.bigStat}>
+              <Text style={[ss.bigNum, { color: D.teal }]}>{stats.hits}</Text>
+              <Text style={ss.bigLabel}>🎯 ZK6 hits</Text>
+            </View>
+            <View style={ss.divider} />
+            <View style={ss.bigStat}>
+              <Text style={[ss.bigNum, { color: D.amber }]}>
+                {stats.total > 0 ? Math.round((stats.hits / stats.total) * 100) : 0}%
+              </Text>
+              <Text style={ss.bigLabel}>Hit rate</Text>
+            </View>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+function Stat({ n, label, c }: { n: number; label: string; c: string }) {
+  return (
+    <View style={ss.cell}>
+      <Text style={[ss.cellNum, { color: c }]}>{n}</Text>
+      <Text style={ss.cellLabel}>{label}</Text>
+    </View>
+  );
+}
+const ss = StyleSheet.create({
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  sheet: { backgroundColor: theme.colors.bgElevated, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, paddingBottom: 36, gap: 12, borderTopWidth: 1.5, borderColor: theme.colors.purple + '44' },
+  handle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: theme.colors.border, marginBottom: 6 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  heading: { fontSize: 18, fontWeight: '900', color: theme.colors.text },
+  sectionTitle: { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 6 },
+  grid: { flexDirection: 'row', gap: 6 },
+  cell: { flex: 1, paddingVertical: 12, alignItems: 'center', backgroundColor: theme.colors.card, borderRadius: 10, borderWidth: 1, borderColor: theme.colors.border },
+  cellNum: { fontSize: 22, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '900' },
+  cellLabel: { fontSize: 10, color: theme.colors.textSecondary, marginTop: 4 },
+  bigRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.card, borderRadius: 10, borderWidth: 1, borderColor: theme.colors.border, paddingVertical: 14 },
+  bigStat: { flex: 1, alignItems: 'center' },
+  bigNum: { fontSize: 26, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '900' },
+  bigLabel: { fontSize: 10, color: theme.colors.textTertiary, marginTop: 4 },
+  divider: { width: 1, height: 30, backgroundColor: theme.colors.border },
+});
+
+// ─── main screen ───────────────────────────────────────────────────────
 export default function ResultsScreen() {
   const recentDates = getRecentDates();
-  const [selectedDate, setSelectedDate] = useState(recentDates[0]);
+  const [selectedDate,  setSelectedDate]  = useState(recentDates[0]);
   const [sessionFilter, setSessionFilter] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery,   setSearchQuery]   = useState('');
+  const [searchOpen,    setSearchOpen]    = useState(false);
+  const [statsOpen,     setStatsOpen]     = useState(false);
 
   const { data: ledger, isLoading: ledgerLoading, refetch: refetchLedger, isRefetching } = useQuery<LedgerRow[]>({
     queryKey: ['v_recent_ledger', selectedDate],
@@ -139,9 +199,7 @@ export default function ResultsScreen() {
     staleTime: 30000,
   });
 
-  const handleRefresh = async () => {
-    await Promise.all([refetchLedger(), refetchHits()]);
-  };
+  const handleRefresh = async () => { await Promise.all([refetchLedger(), refetchHits()]); };
 
   const processed = useMemo<ProcessedEntry[]>(() => {
     if (!ledger) return [];
@@ -149,9 +207,8 @@ export default function ResultsScreen() {
       const rowDate = row.date_et?.split('T')[0];
       const matchingHits = (hits || []).filter(h => {
         const hDate = h.slate_date?.split('T')[0];
-        return h.hit_state === row.jurisdiction &&
-          hDate === rowDate &&
-          h.hit_session?.toLowerCase() === row.session?.toLowerCase();
+        return h.hit_state === row.jurisdiction && hDate === rowDate
+          && h.hit_session?.toLowerCase() === row.session?.toLowerCase();
       });
       return { ...row, hits: matchingHits };
     });
@@ -159,9 +216,7 @@ export default function ResultsScreen() {
 
   const filtered = useMemo(() => {
     let rows = processed;
-    if (sessionFilter !== 'all') {
-      rows = rows.filter(r => r.session?.toLowerCase() === sessionFilter);
-    }
+    if (sessionFilter !== 'all') rows = rows.filter(r => r.session?.toLowerCase() === sessionFilter);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       rows = rows.filter(r =>
@@ -173,17 +228,14 @@ export default function ResultsScreen() {
     return rows;
   }, [processed, sessionFilter, searchQuery]);
 
-  const stats = useMemo(() => {
-    const all = processed;
-    return {
-      morn:  all.filter(r => r.session === 'morning').length,
-      mid:   all.filter(r => r.session === 'midday').length,
-      eve:   all.filter(r => r.session === 'evening').length,
-      night: all.filter(r => r.session === 'night').length,
-      total: all.length,
-      hits:  all.filter(r => r.hits.length > 0).length,
-    };
-  }, [processed]);
+  const stats = useMemo(() => ({
+    morn:  processed.filter(r => r.session === 'morning').length,
+    mid:   processed.filter(r => r.session === 'midday').length,
+    eve:   processed.filter(r => r.session === 'evening').length,
+    night: processed.filter(r => r.session === 'night').length,
+    total: processed.length,
+    hits:  processed.filter(r => r.hits.length > 0).length,
+  }), [processed]);
 
   const grouped = useMemo(() => {
     const sessions = ['morning', 'midday', 'evening', 'night'];
@@ -197,8 +249,6 @@ export default function ResultsScreen() {
     return result;
   }, [filtered]);
 
-  // ─── RENDERERS ───────────────────────────────────────────────────────────
-
   const renderItem = ({ item }: { item: typeof grouped[0] }) => {
     if (item.type === 'header') {
       const color = SESSION_COLORS[item.session] ?? D.purple;
@@ -208,16 +258,13 @@ export default function ResultsScreen() {
         <View style={s.sectionHeader}>
           <Text style={[s.dot, { color }]}>●</Text>
           <Text style={s.sectionIcon}>{icon}</Text>
-          <Text style={[s.sectionText, { color }]}>
-            {label.toUpperCase()} DRAWS
-          </Text>
+          <Text style={[s.sectionText, { color }]}>{label.toUpperCase()} DRAWS</Text>
           <Text style={s.sectionCount}>— {item.count} results</Text>
         </View>
       );
     }
-
-    const row          = item.data;
-    const hasHit       = row.hits.length > 0;
+    const row = item.data;
+    const hasHit = row.hits.length > 0;
     const sessionColor = SESSION_COLORS[row.session] ?? D.purple;
     const sessionIcon  = SESSION_ICONS[row.session]  ?? '•';
     const stripColor   = hasHit ? D.teal : sessionColor + '80';
@@ -226,18 +273,12 @@ export default function ResultsScreen() {
 
     return (
       <View style={[s.card, hasHit && s.cardHit]}>
-        {/* Left glow strip */}
         <View style={[s.strip, { backgroundColor: stripColor }]} />
-
         <View style={s.cardInner}>
-          {/* Row 1: state pill + game info + F/B/S */}
           <View style={s.cardHeader}>
             <View style={[s.statePill, { borderColor: hasHit ? D.teal : sessionColor + '70' }]}>
-              <Text style={[s.stateText, { color: hasHit ? D.teal : sessionColor }]}>
-                {row.jurisdiction}
-              </Text>
+              <Text style={[s.stateText, { color: hasHit ? D.teal : sessionColor }]}>{row.jurisdiction}</Text>
             </View>
-
             <View style={s.gameInfo}>
               <Text style={s.gameName}>{row.jurisdiction} · {row.game || 'Pick 3'}</Text>
               {hasHit && (
@@ -245,7 +286,7 @@ export default function ResultsScreen() {
                   <Text style={s.hitBadgeText}>
                     {'🎯 ZK6 HIT · '}
                     {row.hits.map(h => {
-                      const type = h.hit_straight ? 'Straight' : 'Box';
+                      const type  = h.hit_straight ? 'Straight' : 'Box';
                       const scope = h.scope.charAt(0).toUpperCase() + h.scope.slice(1);
                       return `${scope} Pick #${h.rank} · ${type}`;
                     }).join('  ')}
@@ -253,28 +294,20 @@ export default function ResultsScreen() {
                 </View>
               )}
             </View>
-
-            {/* F / B / S signals */}
             <View style={s.signalCol}>
               {hasHit && hit ? (
                 <>
                   <View style={s.signalItem}>
                     <Text style={[s.signalKey, { color: theme.colors.cyan }]}>F</Text>
-                    <Text style={[s.signalVal, { color: theme.colors.cyan }]}>
-                      {Math.round((hit.signal_box ?? 0) * 100)}
-                    </Text>
+                    <Text style={[s.signalVal, { color: theme.colors.cyan }]}>{Math.round((hit.signal_box ?? 0) * 100)}</Text>
                   </View>
                   <View style={s.signalItem}>
                     <Text style={[s.signalKey, { color: theme.colors.rose }]}>B</Text>
-                    <Text style={[s.signalVal, { color: theme.colors.rose }]}>
-                      {Math.round((hit.signal_pburst ?? 0) * 100)}
-                    </Text>
+                    <Text style={[s.signalVal, { color: theme.colors.rose }]}>{Math.round((hit.signal_pburst ?? 0) * 100)}</Text>
                   </View>
                   <View style={s.signalItem}>
                     <Text style={[s.signalKey, { color: theme.colors.gold }]}>S</Text>
-                    <Text style={[s.signalVal, { color: theme.colors.gold }]}>
-                      {Math.round((hit.signal_dgc ?? 0) * 100)}
-                    </Text>
+                    <Text style={[s.signalVal, { color: theme.colors.gold }]}>{Math.round((hit.signal_dgc ?? 0) * 100)}</Text>
                   </View>
                 </>
               ) : (
@@ -286,8 +319,6 @@ export default function ResultsScreen() {
               )}
             </View>
           </View>
-
-          {/* Row 2: session label + result digits */}
           <View style={s.resultRow}>
             <View style={s.sessionRow}>
               <Text style={s.sessionIcon}>{sessionIcon}</Text>
@@ -295,125 +326,89 @@ export default function ResultsScreen() {
                 {row.session.charAt(0).toUpperCase() + row.session.slice(1)}
               </Text>
             </View>
-            <Text style={[s.resultDigits, { color: digitColor }]}>
-              {row.result_digits}
-            </Text>
+            <Text style={[s.resultDigits, { color: digitColor }]}>{row.result_digits}</Text>
           </View>
         </View>
       </View>
     );
   };
 
-  // ─── RENDER ──────────────────────────────────────────────────────────────
-
   return (
     <SafeAreaView style={s.container} edges={['top']}>
-
-      {/* Header */}
-      <LinearGradient
-        colors={theme.gradients.header}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={s.header}
-      >
-        <Text style={s.headerTitle}>
-          <Text style={s.headerWhite}>Results </Text>
-          <Text style={s.headerPurple}>Ledger</Text>
-        </Text>
-        <Text style={s.headerSub}>{formatDisplayDate(selectedDate)} · {stats.total} draws</Text>
+      {/* ── Header ── */}
+      <LinearGradient colors={theme.gradients.header} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={s.header}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.headerTitle}>
+            <Text style={s.headerWhite}>Results </Text>
+            <Text style={s.headerCyan}>Ledger</Text>
+          </Text>
+          <Text style={s.headerSub}>
+            {formatDisplayDate(selectedDate)} · {stats.total} draws
+            {stats.hits > 0 && <Text style={{ color: D.teal }}> · {stats.hits} 🎯</Text>}
+          </Text>
+        </View>
+        <TouchableOpacity onPress={() => setStatsOpen(true)} style={s.overflowBtn}>
+          <MoreHorizontal size={20} color={theme.colors.textSecondary} />
+        </TouchableOpacity>
       </LinearGradient>
 
-      {/* Date tabs */}
+      {/* ── Date tabs ── */}
       <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={s.dateTabs}
-        contentContainerStyle={s.dateTabsContent}
+        horizontal showsHorizontalScrollIndicator={false}
+        style={s.dateTabs} contentContainerStyle={s.dateTabsContent}
       >
         {recentDates.map(date => {
           const isActive = date === selectedDate;
           return (
-            <TouchableOpacity
-              key={date}
-              onPress={() => setSelectedDate(date)}
-              style={[s.dateTab, isActive && s.dateTabActive]}
-            >
-              <Text style={[s.dateTabText, isActive && s.dateTabTextActive]}>
-                {getDateLabel(date)}
-              </Text>
+            <TouchableOpacity key={date} onPress={() => setSelectedDate(date)} style={[s.dateTab, isActive && s.dateTabActive]}>
+              <Text style={[s.dateTabText, isActive && s.dateTabTextActive]}>{getDateLabel(date)}</Text>
             </TouchableOpacity>
           );
         })}
       </ScrollView>
 
-      {/* Search */}
-      <View style={s.searchRow}>
-        <Text style={s.searchIcon}>🔍</Text>
-        <TextInput
-          style={s.searchInput}
-          placeholder="Search state, game, or digits…"
-          placeholderTextColor={D.textDim}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Text style={s.searchClear}>✕</Text>
+      {/* ── Compact controls strip — search icon + session pills + count ── */}
+      {searchOpen ? (
+        <View style={s.searchRow}>
+          <Search size={14} color={D.textDim} />
+          <TextInput
+            style={s.searchInput} placeholder="Search state, game, or digits…"
+            placeholderTextColor={D.textDim} value={searchQuery} onChangeText={setSearchQuery} autoFocus
+          />
+          <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchOpen(false); }}>
+            <X size={16} color={D.textDim} />
           </TouchableOpacity>
-        )}
-      </View>
+        </View>
+      ) : (
+        <View style={s.controlsRow}>
+          <TouchableOpacity onPress={() => setSearchOpen(true)} style={s.searchTrigger}>
+            <Search size={14} color={searchQuery ? D.teal : D.textDim} />
+            {searchQuery ? <Text style={s.searchActiveText}>{searchQuery}</Text> : null}
+          </TouchableOpacity>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}
+            style={s.filterRow} contentContainerStyle={s.filterRowContent}>
+            {[
+              { key: 'all',     label: 'All',     icon: '⚡' },
+              { key: 'morning', label: 'Morn',    icon: '🌅' },
+              { key: 'midday',  label: 'Mid',     icon: '☀️' },
+              { key: 'evening', label: 'Eve',     icon: '🌙' },
+              { key: 'night',   label: 'Night',   icon: '🌑' },
+            ].map(f => {
+              const active = sessionFilter === f.key;
+              return (
+                <TouchableOpacity key={f.key} onPress={() => setSessionFilter(f.key)}
+                  style={[s.filterBtn, active && s.filterBtnActive]}>
+                  <Text style={s.filterIcon}>{f.icon}</Text>
+                  <Text style={[s.filterText, active && s.filterTextActive]}>{f.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          <Text style={s.drawCount}>{filtered.length}</Text>
+        </View>
+      )}
 
-      {/* Session filter pills + draw count */}
-      <View style={s.filterSection}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={s.filterRow}
-          contentContainerStyle={s.filterRowContent}
-        >
-          {[
-            { key: 'all',     label: '⚡ All'       },
-            { key: 'morning', label: '🌅 Morning'   },
-            { key: 'midday',  label: '☀️ Midday'    },
-            { key: 'evening', label: '🌙 Evening'   },
-            { key: 'night',   label: '🌑 Night'     },
-          ].map(f => {
-            const active = sessionFilter === f.key;
-            return (
-              <TouchableOpacity
-                key={f.key}
-                onPress={() => setSessionFilter(f.key)}
-                style={[s.filterBtn, active && s.filterBtnActive]}
-              >
-                <Text style={[s.filterText, active && s.filterTextActive]}>{f.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-        <Text style={s.drawCount}>{filtered.length}</Text>
-      </View>
-
-      {/* Stats row */}
-      <View style={s.statsRow}>
-        {[
-          { num: stats.morn,  label: 'Morn',    color: D.orange  },
-          { num: stats.mid,   label: 'Mid',     color: D.amber   },
-          { num: stats.eve,   label: 'Eve',     color: D.violet  },
-          { num: stats.night, label: 'Night',   color: D.indigo  },
-          { num: stats.total, label: 'Total',   color: D.text    },
-          { num: stats.hits,  label: '🎯 Hits', color: D.teal   },
-        ].map((item, i, arr) => (
-          <React.Fragment key={item.label}>
-            <View style={s.statItem}>
-              <Text style={[s.statNum, { color: item.color }]}>{item.num}</Text>
-              <Text style={s.statLabel}>{item.label}</Text>
-            </View>
-            {i < arr.length - 1 && <View style={s.statDivider} />}
-          </React.Fragment>
-        ))}
-      </View>
-
-      {/* List */}
+      {/* ── List (the hero) ── */}
       {ledgerLoading ? (
         <View style={s.loadingWrap}>
           <ActivityIndicator color={D.purple} size="large" />
@@ -421,118 +416,96 @@ export default function ResultsScreen() {
         </View>
       ) : (
         <FlatList
-          style={s.flatList}
-          data={grouped}
+          style={s.flatList} data={grouped}
           keyExtractor={(item, idx) =>
-            item.type === 'header'
-              ? `h-${item.session}`
-              : `r-${item.data.jurisdiction}-${item.data.date_et}-${item.data.session}-${idx}`
-          }
+            item.type === 'header' ? `h-${item.session}`
+            : `r-${item.data.jurisdiction}-${item.data.date_et}-${item.data.session}-${idx}`}
           renderItem={renderItem}
           contentContainerStyle={s.list}
           refreshControl={
-            <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={handleRefresh}
-              tintColor={D.purple}
-              colors={[D.purple]}
-            />
+            <RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor={D.purple} colors={[D.purple]} />
           }
           ListEmptyComponent={
-            <EmptyState
-              icon={Calendar}
-              title="No draws found"
-              message="No draws recorded for this date. Import results to see the ledger."
-            />
+            <EmptyState icon={Calendar} title="No draws found"
+              message="No draws recorded for this date. Import results to see the ledger." />
           }
         />
       )}
+
+      <StatsSheet visible={statsOpen} onClose={() => setStatsOpen(false)} stats={stats} selectedDate={selectedDate} />
     </SafeAreaView>
   );
 }
 
-// ─── STYLES ──────────────────────────────────────────────────────────────────
-
+// ─── styles ────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: D.bg },
 
-  // Header
-  header:       { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  headerTitle:  { fontSize: 22, fontWeight: '900', color: D.text, fontFamily: theme.typography.fontFamily.bold },
-  headerWhite:  { color: D.text },
-  headerPurple: { color: theme.colors.cyan },
-  headerSub:    { fontSize: 11, color: D.textDim, marginTop: 3, fontFamily: theme.typography.fontFamily.mono },
+  // header
+  header: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  headerTitle: { fontSize: 22, fontWeight: '900', color: D.text, fontFamily: theme.typography.fontFamily.bold },
+  headerWhite: { color: D.text },
+  headerCyan:  { color: theme.colors.cyan },
+  headerSub:   { fontSize: 11, color: D.textDim, marginTop: 3, fontFamily: theme.typography.fontFamily.mono },
+  overflowBtn: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: D.border, backgroundColor: D.bg },
 
-  // Date tabs
-  dateTabs:        { flexShrink: 0, maxHeight: 46, backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.border },
+  // date tabs
+  dateTabs: { flexShrink: 0, maxHeight: 46, backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.border },
   dateTabsContent: { paddingHorizontal: 12, paddingVertical: 6, gap: 8 },
-  dateTab:         { paddingHorizontal: 16, paddingVertical: 7, borderRadius: theme.borderRadius.pill, backgroundColor: D.surface2, borderWidth: 1, borderColor: D.border },
-  dateTabActive:   { backgroundColor: theme.colors.purple + '22', borderColor: theme.colors.purple + '88' },
-  dateTabText:     { fontSize: 12, fontWeight: '600', color: D.textSub, fontFamily: theme.typography.fontFamily.mono },
+  dateTab: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: theme.borderRadius.pill, backgroundColor: D.surface2, borderWidth: 1, borderColor: D.border },
+  dateTabActive: { backgroundColor: theme.colors.purple + '22', borderColor: theme.colors.purple + '88' },
+  dateTabText: { fontSize: 12, fontWeight: '600', color: D.textSub, fontFamily: theme.typography.fontFamily.mono },
   dateTabTextActive: { color: theme.colors.purple, fontWeight: '700' },
 
-  // Search
-  searchRow:   { flexDirection: 'row', alignItems: 'center', marginHorizontal: 12, marginVertical: 8, backgroundColor: D.surface2, borderRadius: theme.borderRadius.card, paddingHorizontal: 12, borderWidth: 1, borderColor: D.border },
-  searchIcon:  { fontSize: 14, marginRight: 8 },
-  searchInput: { flex: 1, paddingVertical: 10, fontSize: 13, color: D.text, fontFamily: theme.typography.fontFamily.mono },
-  searchClear: { fontSize: 13, color: D.textDim, paddingLeft: 8 },
-
-  // Filter pills
-  filterSection:    { flexDirection: 'row', alignItems: 'center', paddingRight: 12, marginBottom: 2, backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.border },
-  filterRow:        { flex: 1, flexShrink: 0, maxHeight: 40 },
-  filterRowContent: { paddingHorizontal: 12, gap: 6, alignItems: 'center' },
-  filterBtn:        { paddingHorizontal: 12, paddingVertical: 5, borderRadius: theme.borderRadius.pill, backgroundColor: 'transparent', borderWidth: 1, borderColor: D.border },
-  filterBtnActive:  { backgroundColor: theme.colors.cyan + '18', borderColor: theme.colors.cyan + '66' },
-  filterText:       { fontSize: 11, fontWeight: '600', color: D.textSub, fontFamily: theme.typography.fontFamily.mono },
+  // controls strip (collapsed default)
+  controlsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.border },
+  searchTrigger: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: theme.borderRadius.pill, backgroundColor: D.surface2, borderWidth: 1, borderColor: D.border, maxWidth: 120 },
+  searchActiveText: { fontSize: 11, color: D.teal, fontFamily: theme.typography.fontFamily.mono, maxWidth: 80 },
+  filterRow: { flex: 1, flexShrink: 0, maxHeight: 32 },
+  filterRowContent: { gap: 4, alignItems: 'center' },
+  filterBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 9, paddingVertical: 5, borderRadius: theme.borderRadius.pill, backgroundColor: 'transparent', borderWidth: 1, borderColor: D.border },
+  filterBtnActive: { backgroundColor: theme.colors.cyan + '18', borderColor: theme.colors.cyan + '66' },
+  filterIcon: { fontSize: 11 },
+  filterText: { fontSize: 10, fontWeight: '600', color: D.textSub, fontFamily: theme.typography.fontFamily.mono },
   filterTextActive: { color: theme.colors.cyan, fontWeight: '700' },
-  drawCount:        { fontSize: 11, color: D.textDim, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700', marginLeft: 8, flexShrink: 0 },
+  drawCount: { fontSize: 11, color: D.textDim, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700', flexShrink: 0 },
 
-  // Stats row
-  statsRow:    { flexDirection: 'row', alignItems: 'center', backgroundColor: D.surface, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 4, borderBottomWidth: 1, borderColor: D.border },
-  statItem:    { flex: 1, alignItems: 'center' },
-  statNum:     { fontSize: 16, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '800' },
-  statLabel:   { fontSize: 9, color: D.textDim, fontFamily: theme.typography.fontFamily.mono, fontWeight: '600', marginTop: 1, letterSpacing: 0.5 },
-  statDivider: { width: 1, height: 22, backgroundColor: D.border },
+  // search expanded
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 12, marginVertical: 8, backgroundColor: D.surface2, borderRadius: theme.borderRadius.card, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.colors.cyan + '55' },
+  searchInput: { flex: 1, paddingVertical: 10, fontSize: 13, color: D.text, fontFamily: theme.typography.fontFamily.mono },
 
-  // Section headers
+  // section header in list
   sectionHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, gap: 6 },
-  dot:           { fontSize: 7 },
-  sectionIcon:   { fontSize: 14 },
-  sectionText:   { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
-  sectionCount:  { fontSize: 10, color: D.textDim, fontFamily: theme.typography.fontFamily.mono },
+  dot: { fontSize: 7 },
+  sectionIcon: { fontSize: 14 },
+  sectionText: { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
+  sectionCount: { fontSize: 10, color: D.textDim, fontFamily: theme.typography.fontFamily.mono },
 
-  // List / loading
-  flatList:    { flex: 1 },
+  // list/loading
+  flatList: { flex: 1 },
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   loadingText: { fontSize: 13, color: D.textDim },
-  list:        { paddingBottom: 40 },
-  // Card
-  card:      { flexDirection: 'row', backgroundColor: D.surface2, marginHorizontal: 12, marginBottom: 8, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: D.border, overflow: 'hidden' },
-  cardHit:   { backgroundColor: theme.colors.cyan + '0d', borderColor: theme.colors.cyan + '55' },
-  strip:     { width: 6 },
+  list: { paddingBottom: 40 },
+
+  // card
+  card: { flexDirection: 'row', backgroundColor: D.surface2, marginHorizontal: 12, marginBottom: 8, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: D.border, overflow: 'hidden' },
+  cardHit: { backgroundColor: theme.colors.cyan + '0d', borderColor: theme.colors.cyan + '55' },
+  strip: { width: 6 },
   cardInner: { flex: 1, padding: 12 },
-
-  // Card header row
   cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 },
-  statePill:  { width: 38, height: 38, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', backgroundColor: D.bg, marginRight: 8 },
-  stateText:  { fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
-  gameInfo:   { flex: 1 },
-  gameName:   { fontSize: 13, fontWeight: '700', color: D.text, fontFamily: theme.typography.fontFamily.medium },
-
-  // ZK6 hit badge
-  hitBadge:     { marginTop: 4, alignSelf: 'flex-start', backgroundColor: theme.colors.cyan + '18', borderWidth: 1, borderColor: theme.colors.cyan + '55', borderRadius: theme.borderRadius.pill, paddingHorizontal: 8, paddingVertical: 3 },
+  statePill: { width: 38, height: 38, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', backgroundColor: D.bg, marginRight: 8 },
+  stateText: { fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
+  gameInfo: { flex: 1 },
+  gameName: { fontSize: 13, fontWeight: '700', color: D.text, fontFamily: theme.typography.fontFamily.medium },
+  hitBadge: { marginTop: 4, alignSelf: 'flex-start', backgroundColor: theme.colors.cyan + '18', borderWidth: 1, borderColor: theme.colors.cyan + '55', borderRadius: theme.borderRadius.pill, paddingHorizontal: 8, paddingVertical: 3 },
   hitBadgeText: { fontSize: 9, fontWeight: '900', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.5 },
-
-  // F/B/S signals
-  signalCol:  { flexDirection: 'row', gap: 6, alignItems: 'center', marginLeft: 6 },
+  signalCol: { flexDirection: 'row', gap: 6, alignItems: 'center', marginLeft: 6 },
   signalItem: { alignItems: 'center', gap: 1 },
-  signalKey:  { fontSize: 9, fontWeight: '900', letterSpacing: 0.5, fontFamily: theme.typography.fontFamily.monoBold },
-  signalVal:  { fontSize: 11, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
-
-  // Result row
-  resultRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  sessionRow:  { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  signalKey: { fontSize: 9, fontWeight: '900', letterSpacing: 0.5, fontFamily: theme.typography.fontFamily.monoBold },
+  signalVal: { fontSize: 11, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
+  resultRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sessionRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   sessionIcon: { fontSize: 13 },
   sessionText: { fontSize: 11, fontWeight: '600' },
-  resultDigits:{ fontSize: 30, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 8 },
+  resultDigits: { fontSize: 30, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 8 },
 });

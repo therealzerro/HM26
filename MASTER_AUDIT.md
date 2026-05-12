@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-05-12 (hit detection wiring fixes — admin scope, results tier-3 scope limit, on_slate filter blocking confirmed hits, file_meta 400)  
+**Last updated:** 2026-05-12 (deep scan — BUG-41 through BUG-123, ENH-01 through ENH-22 added; awaiting triage)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -18,12 +18,13 @@
 | ✅ Fixed | 44 |
 | ℹ️ By design / False positive | 8 |
 | 🎨 UX Improvements Applied | 58 |
-| 🔴 Open — Critical | 0 |
-| 🟠 Open — High | 0 |
-| 🟡 Open — Medium | 1 |
-| 🔵 Open — Low | 0 |
+| 🔴 Open — Critical | 6 |
+| 🟠 Open — High | 20 |
+| 🟡 Open — Medium | 52 |
+| 🔵 Open — Low | 5 |
 | 🔵 Latent / Not Active | 1 |
 | 🏗️ Architecture Debt | 5 (1 open, 4 fixed) |
+| 💡 Enhancement Opportunities | 22 |
 
 ---
 
@@ -130,6 +131,389 @@
 - **Problem:** ZK30 has no Edge Function counterpart. `saveSlateSnapshot` writes to `slate_snapshots` with anon key. Under current RLS, INSERT is denied → silent fallback to `audit_logs`. ZK30 picks would render in UI from in-memory result but never persist.
 - **Status:** Latent — not active in production. User confirmed 2026-05-12: "ZK30 is a standalone build, not yet completed, no history imported." Verified absent from `slate_snapshots` across last 14 days (no `mode='zk30'` rows).
 - **Permanent fix:** Phase 3.6 ZK30 Edge Function migration. Until then, do not enable ZK30 in production without either deploying the Edge Function or adding a constrained `snapshots_insert_anon_zk30` policy (`WITH CHECK (mode = 'zk30')`).
+
+---
+
+## Deep Scan Findings — 2026-05-12
+
+Full read of every production file. 83 new findings (BUG-41–BUG-123) + 22 enhancement opportunities. None fixed yet — awaiting triage orders.
+
+---
+
+### 🔴 Open — Critical
+
+**BUG-56** `app/(tabs)/book.tsx`
+Number Book initializes with three hardcoded sample lists (`My Lucky Numbers`, `NY Evening Picks`, `Ohio Midday`). Every new user sees phantom lists they didn't create with no way to distinguish them from real saved data.
+_Fix: initialize `lists` to `[]`; move sample data to a first-launch demo flag._
+
+**BUG-57** `app/(tabs)/book.tsx`
+All custom lists and saved combos exist only in React component state — no AsyncStorage, no Supabase write. Closing the app destroys everything the user saved.
+_Fix: persist `lists` to AsyncStorage via `useEffect` on every mutation; load on mount._
+
+**BUG-59** `app/(tabs)/admin-imports.tsx`
+The full Supabase anon JWT is hardcoded as a fallback string in source: `const _key = process.env... || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'`. If the repo is or was ever public the key is leaked.
+_Fix: remove fallback string; throw if env var is missing. Rotate key if repo was ever public._
+
+**BUG-82** `components/admin/HealthTestsView.tsx` line ~182
+The health footer card renders `tgagarhwqbdcwoqhpapi.supabase.co` as visible plaintext UI on the health screen — any user who reaches admin can read the project ref.
+_Fix: replace with a generic "Connected · ZK6 Engine v2" label._
+
+**BUG-84** `components/admin/HitTrackingView.tsx`
+`handleDelete` in `PerformanceRow` uses raw `new XMLHttpRequest()` with inline auth headers — bypasses `fetchFromSupabase` entirely. A key rotation or header change will silently break row deletion.
+_Fix: replace with `fetchFromSupabase({ path: ..., method: 'DELETE' })`._
+
+**BUG-107** `hooks/useDataIngestion.tsx` line ~1079
+Full Supabase anon JWT hardcoded as a fallback: `const _key = process.env... || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'`. Same leak risk as BUG-59.
+_Fix: remove fallback string; rotate key if repo was public._
+
+---
+
+### 🟠 Open — High
+
+**BUG-41** `app/(tabs)/index.tsx`
+Hit banner subtitle always reads "Box win ✓" regardless of hit type. `hitType` field exists on the pick.
+_Fix: `pick.hitType === 'straight' ? 'Straight hit ✓' : 'Box hit ✓'`._
+
+**BUG-45** `app/(tabs)/explore.tsx`
+Yesterday snapshot query filters `updated_at_et=lt.${todayStr}T09:00:00` — slates generated after 9 am ET yesterday are silently missed.
+_Fix: use `T00:00:00` (UTC midnight) or filter by `slate_date=eq.${yesterdayStr}`._
+
+**BUG-52** `app/(tabs)/intelligence.tsx`
+`computeAnalysis` weight-decay uses device `new Date()` as reference. Intelligence timestamps are in ET; device offset mismatch over- or under-decays recent data.
+_Fix: use `new Date(getTodayET() + 'T12:00:00')` as reference._
+
+**BUG-69** `app/import-wizard.tsx`
+After ledger import, hit detection fires only for `entries[0].date_et` — the first entry's date. Multi-day imports (e.g. a week of results) only check day one.
+_Fix: collect unique dates from `entries` and call `runHitDetectionForDates(uniqueDates)`._
+
+**BUG-75** `components/admin/DashboardView.tsx`
+`handleDetectHits` calls `runHitDetectionAndRefresh(sc, date)` per-scope (3 scopes × 2 dates = 6 calls), but `_scope` is ignored inside the function — all scopes are always checked. Each call redundantly re-checks all three scopes; total work is 6× instead of 2×.
+_Fix: call `runHitDetectionAllScopes(date)` once per date, removing the scope loop._
+
+**BUG-85** `components/admin/HitTrackingView.tsx`
+The "View Results" quick-action button has `onPress={() => {}}` — it is a complete no-op with no feedback.
+_Fix: `router.push('/(tabs)/results')` with the relevant date as a param._
+
+**BUG-88** `components/PickDetailModal.tsx` — PAIRS tab
+Pair score is `ds_raw / maxDsRaw` (staleness ratio) — higher = staler = weaker pair. The display treats staleness as a positive signal, inverting the meaning shown to the user.
+_Fix: use `timesDrawn / maxTimesDrawn` (frequency), consistent with engine pair logic._
+
+**BUG-89** `components/PickDetailModal.tsx`
+`generatedAt` is `new Date().toLocaleString()` at render time — always shows when the modal was opened, never when the slate was generated.
+_Fix: use `pick.generatedAt ?? snapshot.updated_at_et` and format as ET._
+
+**BUG-90** `components/PickDetailModal.tsx`
+"Save to Number Book" button fires a toast message but performs no actual save — no AsyncStorage write, no state mutation, no Supabase insert.
+_Fix: implement via a shared `addToNumberBook(combo)` helper that persists to AsyncStorage._
+
+**BUG-94** `engines/zk6.ts`
+Prior-snapshot soft-delete uses a hardcoded ET offset of `4h` (`etOffsetMs = 4 * 60 * 60 * 1000`). During EST (UTC-5), ET midnight is UTC 05:00 but the window starts at UTC 04:00 — one hour early. Pre-1am ET slates in winter are not soft-deleted before regen.
+_Fix: dynamically compute ET offset (−5h EST / −4h EDT) or use `slate_date` column filter._
+
+**BUG-95** `engines/zk6.ts`
+`fetchHistoryOverrides` sets `dsOverride = idx` (array index 0, 1, 2…) as draws-since proxy. In a multi-state dataset the first combo in the result has `dsOverride=0` even if it drew yesterday; the 50th has `dsOverride=49` even if it drew the same day. True draws-since can be 10× higher.
+_Fix: compute draws-since as calendar-day delta from `row.date_et` to today, as done in `zk30.ts`._
+
+**BUG-97** `engines/zk6.ts`
+`daily_intelligence DELETE` filters `hit_box=eq.false&hit_straight=eq.false`, leaving already-hit rows in place. The subsequent POST with `resolution=merge-duplicates` may silently overwrite the preserved `hit_box=true` flags if the merge direction is wrong.
+_Fix: DELETE all rows for `(slate_date, scope, mode)` and re-insert with hit flags preserved, or use a true upsert ON CONFLICT that preserves hit columns._
+
+**BUG-99** `lib/hitDetection.ts`
+`runHitDetectionAndRefresh(_scope, date)` accepts a scope parameter but always fetches all three scopes unconditionally. Every scoped call from `DashboardView` checks midday+evening+allday regardless of which scope was passed.
+_Fix: honour `_scope` (filter snapshot query when non-null) or remove the parameter and update all callers._
+
+**BUG-100** `lib/hitDetection.ts`
+`generateSupplementalSlate` is called with `excludeList = [...hitComboSets, ...allComboSets]` — every combo from the original slate (hit or not) is excluded. If 1 of 6 picks hits, the other 5 valid combos are unnecessarily banned from the supplement.
+_Fix: pass only `hitComboSets` to `generateSupplementalSlate`._
+
+**BUG-104** `hooks/useSnapshot.tsx`
+`coveragePercentage` denominator counts ALL keys in `horizons_present_json` including `_engineVersion`, `_mode`, `_confidence`, `_dataStats`, `_source`. A snapshot with 10 horizon keys and 5 metadata keys shows 67% instead of 100%.
+_Fix: filter denominator keys to the `H\d{2}Y` pattern only._
+
+**BUG-105** `hooks/useSnapshot.tsx`
+AsyncStorage cache evicts valid snapshots older than 2 hours by comparing `updated_at_et` to `Date.now() - 2h`. A slate generated at 6 am becomes stale at 8 am; on a spotty connection after 8 am, the user sees an error instead of the still-valid cached slate.
+_Fix: evict based on `slate_date` equality (evict only when today's ET date differs from the cached snapshot's `slate_date`)._
+
+**BUG-110** `hooks/useDataIngestion.tsx`
+`importDailyMutation` builds a row with `draws_since: numberify(...)` but the DB column is named `ds_raw`. Supabase silently drops the unknown key — `ds_raw` is always `null` in newly imported daily input rows.
+_Fix: rename key to `ds_raw`._
+
+**BUG-115** `supabase/functions/compute-slate-zk6/index.ts`
+Same `dsOverride = idx` (row ordinal index) bug as BUG-95 — present in the production edge function that actually generates slates.
+_Fix: compute actual calendar-day draws-since from `row.date_et`._
+
+**BUG-117** `supabase/functions/compute-slate-zk6/index.ts`
+CORS header is `'Access-Control-Allow-Origin': '*'`. This edge function uses the service role key for writes; an open CORS policy permits arbitrary origins to invoke it with a stolen JWT.
+_Fix: restrict to the Expo app origin or enforce `Authorization: Bearer <service-key>` that is not client-accessible._
+
+**BUG-118** `engines/zk30.ts`
+Same `drawsSince = idx` (row ordinal index) bug as BUG-95/BUG-115 in `fetchZK30Datasets`. For a 10,000-row history the draws-since value can be orders of magnitude larger than the true recency.
+_Fix: compute draws-since as calendar-day delta from `row.date_et`._
+
+---
+
+### 🟡 Open — Medium
+
+**BUG-42** `app/(tabs)/index.tsx`
+`todayResults` query excludes `ME,NH,VT,MS,PR,MD,MS2` but `regenerateMutation` in `useDataIngestion.tsx` excludes `ME,NH,VT,PR,MD,MS2` (omits `MS`). `MS` results appear in Home but don't trigger regen detection.
+_Fix: extract exclusion list to a shared constant._
+
+**BUG-43** `app/(tabs)/index.tsx`
+`calculateStreak` calls `new Date(dateString)` which JavaScript parses as UTC midnight — off-by-one day on non-ET devices near midnight.
+_Fix: parse as `new Date(dateString + 'T12:00:00')`._
+
+**BUG-44** `app/(tabs)/index.tsx`
+`handleGenerate` invalidates only `['snapshot', scope]` — the other two scopes remain stale. User switching scope immediately after regen sees old data.
+_Fix: invalidate the parent key `['snapshot']` without scope qualifier._
+
+**BUG-46** `app/(tabs)/explore.tsx`
+`handleSaveSlate` timestamps the save with `new Date().toLocaleDateString()` (device local time) instead of ET.
+_Fix: use `getTodayET()`._
+
+**BUG-47** `app/(tabs)/explore.tsx`
+`slateHitItems` derives hits purely from `pick.hitType` on the snapshot without cross-referencing live draw results. A stale or incorrectly written `hitType` shows as a false hit with no verification.
+_Fix: either document as intentional (DB-authoritative) or mirror the `todayResults` cross-reference from `index.tsx`._
+
+**BUG-48** `app/(tabs)/explore.tsx`
+If the `slate_credits` table does not exist, the credits query errors silently — the credits panel shows nothing with no indicator for the admin.
+_Fix: add error case rendering "Credits unavailable" when the query errors._
+
+**BUG-49** `app/(tabs)/results.tsx`
+File-local `getYesterdayET()` uses device local `getDate() - 1` before ET formatting. On a non-ET device near midnight this returns the wrong date.
+_Fix: import from `lib/dateUtils` (after BUG-103 is fixed there)._
+
+**BUG-50** `app/(tabs)/results.tsx`
+`useEffect` auto-select captures `recentDates` at mount time but does not list it in the deps array — may target a stale value if the effect fires before the first render cycle completes.
+_Fix: add `recentDates` to the `useEffect` dependency array._
+
+**BUG-53** `app/(tabs)/intelligence.tsx`
+When `loadSlate` falls back to yesterday's data, the UI displays it with no banner distinguishing it from today. Users cannot tell they are viewing a stale slate.
+_Fix: expose an `isYesterdayFallback` boolean; render a visible "Showing yesterday's data — no data for today yet" notice._
+
+**BUG-54** `app/(tabs)/intelligence.tsx`
+`load()` fires on every screen mount and sets state directly — no caching, deduplication, or background refresh. Every tab visit triggers a fresh multi-query Supabase round-trip.
+_Fix: migrate to `useQuery` with `staleTime: 2 * 60 * 1000`._
+
+**BUG-55** `app/(tabs)/intelligence.tsx`
+`synergyCombos` intermediate map objects include a `signals` property not declared in the `SynergyCombo` type, masked by `any[]` return type.
+_Fix: add `signals` to `SynergyCombo` or remove it from the map._
+
+**BUG-58** `app/(tabs)/book.tsx`
+`handleDelete` deletes a list immediately with no confirmation prompt — a mis-tap is irreversible.
+_Fix: `Alert.alert('Delete list?', ..., [{ text: 'Delete', style: 'destructive', onPress: ... }])`._
+
+**BUG-60** `app/(tabs)/zk30.tsx`
+`staleTime: 0` + `refetchOnMount: 'always'` causes a fresh Supabase query on every ZK30 tab visit.
+_Fix: set `staleTime: 5 * 60 * 1000`._
+
+**BUG-61** `app/(tabs)/zk30.tsx`
+Subtitle hardcodes "Texas 🤠" regardless of the snapshot's actual jurisdiction.
+_Fix: derive from `snapshot?.file_meta?.jurisdiction`._
+
+**BUG-62** `app/(tabs)/account.tsx`
+`historiesStats` fetches `limit=10000` rows just to count totals — large payload for a display-only stat.
+_Fix: use `?select=count` with `Prefer: count=exact` header._
+
+**BUG-63** `app/(tabs)/account.tsx`
+"Manage Subscription" and "Restore Purchase" buttons render as `TouchableOpacity` with no `onPress` — tapping does nothing.
+_Fix: wire to `purchaseSubscription`/`restorePurchases` from `useAuth`._
+
+**BUG-65** `app/(tabs)/account.tsx`
+`memberDays` counter is derived from `first_open_date` in device AsyncStorage — resets to 1 on reinstall or second device.
+_Fix: store `first_open_date` in Supabase user metadata on first launch._
+
+**BUG-66** `app/(tabs)/coverage.tsx`
+Subtitle shows `Scope: {scope}` but the coverage matrix is global — not filtered per scope. Label implies scope-specific data.
+_Fix: remove scope indicator or actually filter matrix by scope._
+
+**BUG-68** `app/(tabs)/_layout.tsx`
+A `learn` tab is rendered in the layout but `app/(tabs)/learn.tsx` was not in scope for this audit — if it's absent Expo Router will throw a missing-screen error at runtime.
+_Fix: verify `learn.tsx` exists and is a proper screen._
+
+**BUG-70** `app/import-wizard.tsx`
+Selecting the "Ledger" import type card triggers `router.push('/ledger-import' as any)` — a screen not in the router config. The push fails silently and `importType` state is left at its previous value.
+_Fix: handle ledger import inline; the wizard already has the full ledger pipeline below._
+
+**BUG-71** `app/import-wizard.tsx`
+`parseDateLoose` fallback calls `new Date(trimmed).getFullYear()/.getMonth()/.getDate()` with local components on a JS-parsed date — device timezone dependent, fails on UTC-offset devices near midnight.
+_Fix: add explicit format branches before the fallback or use a deterministic parse._
+
+**BUG-72** `app/import-wizard.tsx`
+`coverageSet` query has `staleTime: 3000` (3 seconds) — near-constant re-fetches while the user is on the wizard.
+_Fix: raise to `staleTime: 60_000`._
+
+**BUG-73** `app/import-wizard.tsx`
+`handleCommit` calls `setShowSummary(true)` twice — once inside the success block and once unconditionally at the end of the `try` block, which runs even on partial-error paths.
+_Fix: remove the second unconditional call._
+
+**BUG-74** `components/admin/DashboardView.tsx`
+Today's import checklist builds the filter as `getTodayET() + 'T00:00:00.000Z'` — appending `Z` (UTC) to an ET date string creates an invalid timestamp. Imports before 5 am ET are missed.
+_Fix: compute `new Date(getTodayET() + 'T05:00:00.000Z').toISOString()` for the ET midnight cutoff._
+
+**BUG-76** `components/admin/DashboardView.tsx`
+`zk30Jurisdiction` is a hardcoded `const 'TX'` with no UI control.
+_Fix: expose a text input or dropdown; document limitation until ZK30 is productionized._
+
+**BUG-77** `components/admin/EngineConfigView.tsx`
+`handleSave` issues parallel PATCHes via `Promise.all` — a single key failure leaves config partially saved with no rollback and no per-key error report.
+_Fix: collect failures and surface which keys failed, or use a server-side atomic upsert._
+
+**BUG-78** `components/admin/EngineConfigView.tsx`
+`parseInt(cfg.k6_doubles_max, 10) || 2` treats `0` (no doubles) the same as `NaN` — silently overrides an intentional "disable doubles" config.
+_Fix: use `Number.isNaN(v) ? 2 : v`._
+
+**BUG-79** `components/admin/EngineConfigView.tsx`
+"Preview Engine Output" button opens a modal with a static "save and regen instead" message — it does not run the engine.
+_Fix: implement a live preview or rename to "About Engine Config" / hide until implemented._
+
+**BUG-80** `components/admin/AdaptiveLearningView.tsx`
+Box hit rate denominator includes all picks — including unevaluated picks where `hit_box` is null — deflating the shown rate.
+_Fix: denominator = `rows.filter(r => r.hit_box !== null).length`._
+
+**BUG-81** `components/admin/AdaptiveLearningView.tsx`
+"Best Day" card hardcodes `/6` denominator — ZK30 days with 30 picks would show >100% (latent until ZK30 is live).
+_Fix: track picks-per-date alongside hits for an accurate per-day rate._
+
+**BUG-83** `components/admin/HealthTestsView.tsx`
+`runAll` awaits each health test in series even though all four are independent.
+_Fix: `await Promise.all([runConn(), runSnap(), runImports(), runDatasets()])`._
+
+**BUG-86** `components/admin/HitTrackingView.tsx`
+`loadDetail` calls the Supabase REST API with raw `fetch()`, re-implementing auth headers inline instead of using `fetchFromSupabase`.
+_Fix: migrate to `fetchFromSupabase`._
+
+**BUG-87** `components/admin/HitTrackingView.tsx`
+`calculate_hit_rates` RPC failure crashes the entire view with no graceful fallback.
+_Fix: catch RPC failure; fall back to manual calculation from already-fetched rows; show a warning banner._
+
+**BUG-91** `components/PickDetailModal.tsx`
+`confidence = (energy + BOX + CO) / 3` mixes energy (0–100 percentile) with normalized signals (0–1). The result is not mathematically meaningful.
+_Fix: use the engine's actual `pick.confidence` field from the snapshot, or remove the metric._
+
+**BUG-92** `components/PickCard.tsx`
+`heatInfo` and `tempColorFor` map the same energy range to different color tokens (`theme.colors.orange` vs `theme.colors.amber`) — the label and background bar render different hues for the same pick.
+_Fix: consolidate to a single `tempColorFor` function used by both._
+
+**BUG-93** `components/PickCard.tsx`
+Animated shadow uses `glowAnim as any` to bypass a TypeScript incompatibility — suppresses type safety for the animation value.
+_Fix: cast to `Animated.AnimatedNode` or restructure to be type-safe._
+
+**BUG-96** `engines/zk6.ts`
+Pass 2 fills remaining K6 slots with zero-history combos (no draws ever recorded). These produce near-zero scores driven only by coincidental pair signals.
+_Fix: log a warning; pad with placeholders only when ≥ 3 real-data combos exist; surface "insufficient data" error otherwise._
+
+**BUG-98** `lib/hitDetection.ts`
+`updateDailyIntelligenceHit` and `recordHitInAdaptiveTracking` both use raw `fetch()` instead of `fetchFromSupabase`, bypassing the 15s timeout and centralized header management.
+_Fix: migrate to `fetchFromSupabase({ method: 'PATCH'/'POST', ... })`._
+
+**BUG-101** `lib/supabase.ts`
+No retry logic — a single transient failure on a large pair-data fetch (50k rows) throws immediately.
+_Fix: add one retry with 500ms delay inside `fetchFromSupabase` for GET requests._
+
+**BUG-102** `lib/supabase.ts`
+`DEFAULT_TIMEOUT_MS = 15000` may be too short for large pair-data fetches (50k rows on slow connections).
+_Fix: expose an optional `timeout` param; use 30–60s for known large fetches in the engine._
+
+**BUG-103** `lib/dateUtils.ts`
+`getYesterdayET` uses `d.setDate(d.getDate() - 1)` on device local time before ET formatting — off-by-one on non-ET devices near midnight.
+_Fix: compute as `new Date(Date.now() - 86400000)` (UTC-anchored) then format._
+
+**BUG-106** `hooks/useSnapshot.tsx`
+`staleTime: 0` causes a Supabase query on every mount and every window-focus event — at least 3 round-trips per session startup across three scopes.
+_Fix: set `staleTime: 5 * 60 * 1000`._
+
+**BUG-108** `hooks/useDataIngestion.tsx`
+`softDeleteImport`/`undoSoftDeleteImport` pass `{ useServiceKey: true }` to `fetchFromSupabase`, which has no such option. The calls silently fall back to the anon key.
+_Fix: implement `useServiceKey` in `fetchFromSupabase`, or document that anon key has sufficient permissions and remove the unsupported flag._
+
+**BUG-109** `hooks/useDataIngestion.tsx`
+`importsQuery` is filtered by `selectedScope` — an allday box-history import is invisible when the admin is on midday scope.
+_Fix: remove scope filter from the imports query or make it opt-in._
+
+**BUG-111** `hooks/useDataIngestion.tsx`
+Ledger import silently coerces `morning`→`midday` and `night`→`evening` with no warning. Original session granularity is lost.
+_Fix: log a warning when coercion occurs; optionally surface as a validation notice in the import summary._
+
+**BUG-112** `hooks/useAuth.tsx` / `CLAUDE.md`
+`CLAUDE.md` states "Currently defaults to `admin` (BUG-02)" but the actual code initializes `role: 'free'`. The documentation is wrong.
+_Fix: update `CLAUDE.md` to reflect the true default (`'free'`)._
+
+**BUG-114** `components/admin/DashboardView.tsx`
+"Clear Top 30" PATCHes only `on_slate=false` — `hit_box`/`hit_straight` remain `true`. On re-gen, the `daily_intelligence DELETE` skips rows where `hit_box=true`, leaving stale hit-flagged rows that can 409-conflict the re-insert.
+_Fix: also PATCH `hit_box=false, hit_straight=false` when clearing; or use DELETE instead of PATCH._
+
+**BUG-116** `supabase/functions/compute-slate-zk6/index.ts`
+Synergy boost threshold requires all four signals ≥ 0.65, including DGC. DGC returns 0.3 for single-hit combos and 0 for never-drawn — in sparse data environments the boost effectively never fires.
+_Fix: require any 2 of 4 signals ≥ 0.65, or exclude DGC from the synergy threshold._
+
+**BUG-119** `engines/zk30.ts`
+`saveSlateSnapshot` soft-delete computes `todayStart.setUTCHours(0, 0, 0, 0)` (UTC midnight). In ET this equals 7–8 pm the previous day — evening slates from yesterday can be incorrectly soft-deleted.
+_Fix: anchor to ET midnight: `new Date(getTodayET() + 'T04:00:00.000Z')` (EDT) / `T05:00:00.000Z` (EST)._
+
+**BUG-120** `engines/zk30.ts`
+15+ `console.log` calls (including `[ZK6-DIAG]` entries) run unconditionally in the production engine, logging full pick arrays and map sizes on every slate generation.
+_Fix: guard with `if (process.env.NODE_ENV !== 'production')` or a debug flag._
+
+**BUG-121** `engines/zk30.ts`
+ZK30 `loadEngineConfig` does not load `k6_singles_max`, `k6_doubles_max`, or `pair_rep_cap` from `app_config`. Engine Config changes have no effect on ZK30; it always uses `DEFAULT_RAILS`.
+_Fix: add the missing keys to the ZK30 config query._
+
+**BUG-122** `types/core.ts`
+`TopKStraightRow` is missing the four optional hit fields (`hitType`, `hitState`, `hitDate`, `hitResult`, `hitSession`) that hit detection writes at runtime. TypeScript treats them as unknown everywhere the type is used.
+_Fix: add the five fields as optional to `TopKStraightRow`._
+
+---
+
+### 🔵 Open — Low
+
+**BUG-51** `app/(tabs)/results.tsx`
+Signal columns in the results pick card are labelled `F`, `B`, `S` with no legend — opaque to users.
+_Fix: use `BOX`, `PBR`, `CO` labels or add a tooltip legend._
+
+**BUG-64** `app/(tabs)/account.tsx`
+All account action rows (`Change Password`, `Notification Prefs`, `Sign Out`, etc.) are `TouchableOpacity` with no `onPress` — tapping does nothing.
+_Fix: implement stubs showing at minimum a "Coming soon" toast; fully implement `Sign Out`._
+
+**BUG-67** `app/_layout.tsx`
+`initApp` contains `await new Promise(resolve => setTimeout(resolve, 100))` with no documented reason — 100ms added to every cold start.
+_Fix: remove unless a specific async ordering requires the delay._
+
+**BUG-113** `hooks/useAuth.tsx`
+`purchaseSubscription`/`restorePurchases` are 1-second `setTimeout` placeholders that set `role: 'premium'` with no real payment or receipt validation.
+_Fix: integrate StoreKit/Google Play or a backend receipt-validation endpoint before commercial launch._
+
+**BUG-123** `types/core.ts`
+`EngineMetadata` index signature `[horizon: string]: boolean | string | number | ...` allows silent access to any typo'd key instead of a compile-time error.
+_Fix: declare `_engineVersion`, `_mode`, `_source`, etc. as explicit optional fields; narrow the index signature to `H${string}Y` keys._
+
+---
+
+## Enhancement Opportunities
+
+| ID | File | Title |
+|----|------|-------|
+| ENH-01 | `components/PickDetailModal.tsx` | Wire `HitReplay` component — exists in `HitReplay.tsx` but never imported; PLAY tab would benefit from showing the side-by-side predicted vs drawn visual when `pick.hitType` is set |
+| ENH-02 | `app/(tabs)/results.tsx` | Combo-set cluster view — when multiple results share the same combo-set on one day, group them and show a cluster hit count |
+| ENH-03 | `app/(tabs)/intelligence.tsx` | "Days with a hit" stat — add "X of last 30 days had ≥1 box hit" to make performance claims concrete |
+| ENH-04 | `app/(tabs)/book.tsx` | "Add from Today's Slate" shortcut — import current scope's 6 K6 picks directly into a list without manual entry |
+| ENH-05 | `lib/hitDetection.ts` | Persist `hitSession` on updated snapshot picks — already written to `daily_intelligence` but not stored on the snapshot pick object |
+| ENH-06 | `hooks/useSnapshot.tsx` | Show slate generation timestamp on Home — `updated_at_et` is in the snapshot; "Generated at 6:12 am" label builds trust and shows freshness |
+| ENH-07 | `components/admin/DashboardView.tsx` | "Full Daily Workflow" button — single tap runs: hit detection (yesterday+today) → regen all scopes → invalidate all caches |
+| ENH-08 | `engines/zk6.ts` / `engines/zk30.ts` | Engine run telemetry — upsert a summary row per generation in `adaptive_tracking` (scope, weightsKey, horizons used, confidence score) for longitudinal tuning data |
+| ENH-09 | `app/(tabs)/explore.tsx` | Slate freshness indicator — show "Generated 3 hours ago" or "⚠ Slate is 2 days old" from `updated_at_et` |
+| ENH-10 | `app/(tabs)/intelligence.tsx` | Scope filter on Top 30 — currently shows all scopes combined; a scope selector would let admin review per-scope without cross-scope noise |
+| ENH-11 | `components/admin/AdaptiveLearningView.tsx` | Split box vs straight hit rates in the 7-day chart — amber for box, cyan for straight |
+| ENH-12 | `lib/hitDetection.ts` | Hit detection run log — write a `hit_detection_runs` row (date, scopes_checked, hits_found, run_at) after each run to track coverage and catch silent failures |
+| ENH-13 | `app/(tabs)/results.tsx` | Hit-result share button — when `hitType !== null`, a share button copies "My #2 pick 427 hit BOX in Arizona on 5/9 via HitMaster ZK6" for social |
+| ENH-14 | `hooks/useDataIngestion.tsx` | Surface rejected import rows — add `rejectedSamples[0..4]` with reasons to the import summary modal |
+| ENH-15 | `components/admin/EngineConfigView.tsx` | Weight integrity check before save — verify `BOX+PBURST+CO+DGC ≈ 1.0` and `singlesMax+doublesMax ≥ 6` before committing config |
+| ENH-16 | `app/(tabs)/account.tsx` | Implement Sign Out — clear AsyncStorage, reset `useAuth` state, navigate to onboarding; required before multi-user launch |
+| ENH-17 | `app/(tabs)/zk30.tsx` | "Open Admin" shortcut on ZK30 empty state — current EmptyState directs user to Admin screen but provides no navigation button |
+| ENH-18 | `components/admin/HealthTestsView.tsx` | `daily_intelligence` freshness health check — add a test verifying today's Top 30 rows exist for each scope |
+| ENH-19 | `engines/zk6.ts` | Read `synergy_boost_on`/`synergy_boost_weight` from `app_config` in the client engine — currently only the edge function honours these keys |
+| ENH-20 | `lib/dateUtils.ts` | Add `isETDateToday(dateStr)` utility — several places compare stored ET date strings to device `Date.now()` without a shared ET-aware helper |
+| ENH-21 | `components/PickCard.tsx` | Long-press quick-save to Number Book — "Save to Book" + "Copy combo" sheet; stub exists in PickDetailModal but not on the card |
+| ENH-22 | `app/(tabs)/explore.tsx` | Pull-to-refresh triggers hit detection — extend the Slates pull-to-refresh to also run `runHitDetectionAndRefresh(scope, todayET)`, closing the loop without an Admin visit |
 
 ---
 
@@ -407,5 +791,6 @@ Applied design handoff 4 patches and v3 system patches. All items sourced from `
 | 2026-05-12 | BUG-37 fixed (High): Admin "Run Hit Detection Now" ran only for today. `handleDetectHits` iterated scopes for `getTodayET()` only — on 5/12 found no draws and reported "no hits." Fixed to iterate `[getYesterdayET(), today]` so yesterday's hits are always checked. Commit 1690785. | Claude Code |
 | 2026-05-12 | BUG-38 fixed (High): Results tier-3 scope-limited — `useSnapshot().hitPicks` filtered to current scope. Allday hits invisible when user was on midday/evening scope. Replaced with direct `slate_snapshots` query (no scope filter) + client-side `snapshotHitPicks` memo. Commit 1690785. | Claude Code |
 | 2026-05-12 | BUG-39 fixed (High): `file_meta` not a column in `slate_snapshots` — explicit SELECT caused 400 on all tier-3 queries. Removed from column list; dropped supplement-skip guard. Commit 603d732. | Claude Code |
+| 2026-05-12 | Deep scan complete: full read of 38 production files. BUG-41 through BUG-123 documented (83 new findings: 6 critical, 20 high, 51 medium, 5 low, 1 updated). ENH-01 through ENH-22 documented. Quick Counts updated. No fixes applied — awaiting triage orders. | Claude Code |
 | 2026-05-12 | BUG-40 fixed (High): `on_slate=false` (set by "Clear Top 30") blocked tier-1 confirmed-hits query — `on_slate=eq.true` guard removed from `hits` query only. `onSlatePicks` (tier-2) retains the guard intentionally. Fixed count 40→44. Commit 25de56d. | Claude Code |
 | 2026-05-12 | V6 Patch 02 — SlatesScreen 3-tab densification (UX-61): `app/(tabs)/explore.tsx` full replacement. Replaced 5-band chrome stack with 3-tab segmented control (Slate · Live · More) below a simplified header. SLATE tab: scope pills + filter/sort/view-mode chips merged into a single horizontally-scrollable `scopeRow` (`maxHeight: 42`) — eliminates `ctrlStripOuter` (BUG-32 no longer relevant). LIVE tab: `DrawTicker` + today's hit list + heat check action row. MORE tab: yesterday toggle + save slate + engine mode + daily credits (Pro) + pro upsell banner + responsible play disclaimer. Yesterday query now gated with `enabled: tab === 'more' && showYesterday` — no wasted network call when not on More tab. `DrawTicker` added as new import (was not in explore.tsx before). All state handlers preserved. UX Improvements Applied 48→50. | Claude Code |

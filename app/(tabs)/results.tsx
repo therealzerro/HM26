@@ -216,6 +216,23 @@ export default function ResultsScreen() {
     staleTime: 30000,
   });
 
+  // Last-resort: fetch slate_snapshots directly for selectedDate.
+  // daily_intelligence rows may have the wrong slate_date if the slate was
+  // regenerated after midnight ET (BUG-18 scenario), making tiers 1 and 2
+  // miss. slate_snapshots.top_k_straights_json has hitType already set by
+  // lib/hitDetection.ts — same source the Home performance screen uses.
+  const { data: snapshotRows, refetch: refetchSnapshotRows } = useQuery<any[]>({
+    queryKey: ['slate_snapshots_for_results', selectedDate],
+    queryFn: async () => {
+      const res = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/slate_snapshots?select=scope,top_k_straights_json&slate_date=eq.${selectedDate}&deleted_at=is.null&mode=neq.zk30&order=updated_at_et.desc.nullslast&limit=10`,
+        method: 'GET',
+      });
+      return Array.isArray(res) ? res : [];
+    },
+    staleTime: 30000,
+  });
+
   // When today has no draw results yet, auto-select yesterday so the screen
   // is never blank on first load (draws typically land around noon/7:30pm ET).
   useEffect(() => {
@@ -224,12 +241,14 @@ export default function ResultsScreen() {
     }
   }, [ledger, ledgerLoading]);
 
-  const handleRefresh = async () => { await Promise.all([refetchLedger(), refetchHits(), refetchOnSlatePicks()]); };
+  const handleRefresh = async () => {
+    await Promise.all([refetchLedger(), refetchHits(), refetchOnSlatePicks(), refetchSnapshotRows()]);
+  };
 
   const processed = useMemo<ProcessedEntry[]>(() => {
     if (!ledger) return [];
 
-    // Build combo-set → pick map for O(1) client-side lookups
+    // Tier 2: daily_intelligence on-slate picks (combo-set map)
     const csMap = new Map<string, HitRow[]>();
     for (const h of (onSlatePicks || [])) {
       const cs = toComboSet(h.combo ?? '');
@@ -237,11 +256,43 @@ export default function ResultsScreen() {
       csMap.get(cs)!.push(h);
     }
 
+    // Tier 3: slate_snapshots hitType-confirmed picks — same source as Home
+    // screen. Only confirmed hits (hitType set) to avoid false positives.
+    const snapMap = new Map<string, HitRow[]>();
+    for (const snap of (snapshotRows || [])) {
+      let picks: any[] = [];
+      try {
+        picks = Array.isArray(snap.top_k_straights_json)
+          ? snap.top_k_straights_json
+          : JSON.parse(snap.top_k_straights_json ?? '[]');
+      } catch {}
+      for (const p of picks) {
+        if (!p?.hitType) continue;
+        const cs = toComboSet(p.combo ?? '');
+        if (!snapMap.has(cs)) snapMap.set(cs, []);
+        snapMap.get(cs)!.push({
+          slate_date: selectedDate,
+          scope: snap.scope ?? '',
+          mode: 'balanced',
+          rank: p.rank ?? 0,
+          combo: p.combo ?? '',
+          best_order: p.best_order ?? p.combo ?? '',
+          hit_state: '',
+          hit_session: '',
+          hit_box: true,
+          hit_straight: p.hitType === 'straight',
+          signal_box:    p.signals?.BOX    ?? p.box    ?? undefined,
+          signal_pburst: p.signals?.PBURST ?? p.pburst ?? undefined,
+          signal_dgc:    p.signals?.DGC    ?? p.dgc    ?? undefined,
+        });
+      }
+    }
+
     return ledger.map(row => {
       const rowDate = row.date_et?.split('T')[0];
       const rowSet  = toComboSet(row.result_digits ?? '');
 
-      // Prefer DB-confirmed hits (backfill already ran for this date)
+      // Tier 1: DB-confirmed hits (backfill ran, hit_box/hit_straight set)
       const dbHits = (hits || []).filter(h => {
         const hDate = h.slate_date?.split('T')[0];
         return h.hit_state === row.jurisdiction && hDate === rowDate
@@ -249,17 +300,25 @@ export default function ResultsScreen() {
       });
       if (dbHits.length > 0) return { ...row, hits: dbHits };
 
-      // Client-side fallback: box-match on-slate combos against draw result
-      const clientHits = (csMap.get(rowSet) || []).map(h => ({
+      // Tier 2: daily_intelligence box-match (backfill not yet run)
+      const diHits = (csMap.get(rowSet) || []).map(h => ({
         ...h,
         hit_box: true,
         hit_straight: h.combo === row.result_digits || h.best_order === row.result_digits,
         hit_state: row.jurisdiction,
         hit_session: row.session,
       }));
-      return { ...row, hits: clientHits };
+      if (diHits.length > 0) return { ...row, hits: diHits };
+
+      // Tier 3: snapshot hitType picks — bypasses daily_intelligence entirely
+      const snapHits = (snapMap.get(rowSet) || []).map(h => ({
+        ...h,
+        hit_state: row.jurisdiction,
+        hit_session: row.session,
+      }));
+      return { ...row, hits: snapHits };
     });
-  }, [ledger, hits, onSlatePicks]);
+  }, [ledger, hits, onSlatePicks, snapshotRows]);
 
   const filtered = useMemo(() => {
     let rows = processed;

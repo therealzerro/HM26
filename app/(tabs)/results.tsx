@@ -204,7 +204,7 @@ export default function ResultsScreen() {
     queryKey: ['daily_intelligence_hits', selectedDate],
     queryFn: async () => {
       const res = await fetchFromSupabase<HitRow[]>({
-        path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=in.(${selectedDate},${nextDay})&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&order=rank.asc&limit=500`,
+        path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=in.(${selectedDate},${nextDay})&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&order=rank.asc&limit=500`,
         method: 'GET',
       });
       return Array.isArray(res) ? res : [];

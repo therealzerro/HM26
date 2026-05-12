@@ -1,5 +1,14 @@
+// components/TierBadge.tsx
+// ───────────────────────────────────────────────────────────
+// Drop-in replacement. Visual upgrades:
+//   • PRO / PLUS get a subtle native glow (matches neon mocks)
+//   • Uses monoBold token instead of fontWeight: 'bold'
+//   • FREE no longer gets the same border weight as paid tiers
+//   • Crown icon scales with size more consistently
+//   • ComingSoonBadge inherits the same pill styling
+// ───────────────────────────────────────────────────────────
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Crown } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
 import { SubscriptionTier } from '@/types/core';
@@ -9,90 +18,56 @@ interface TierBadgeProps {
   size?: 'small' | 'medium' | 'large';
 }
 
+function tierPalette(tier: SubscriptionTier) {
+  switch (tier) {
+    case 'FREE':
+      return { bg: theme.colors.surfaceLight, border: theme.colors.borderMed, text: theme.colors.textTertiary, glow: false };
+    case 'PRO':
+      return { bg: theme.colors.premium + '20', border: theme.colors.premium, text: theme.colors.premium, glow: true };
+    case 'PLUS':
+      return { bg: theme.colors.admin + '20',   border: theme.colors.admin,   text: theme.colors.admin,   glow: true };
+  }
+}
+
+function sizeMetrics(size: 'small' | 'medium' | 'large') {
+  switch (size) {
+    case 'small':  return { padX: 8,  padY: 3,  fontSize: 10, iconSize: 11 };
+    case 'medium': return { padX: 10, padY: 4,  fontSize: 12, iconSize: 13 };
+    case 'large':  return { padX: 14, padY: 6,  fontSize: 14, iconSize: 16 };
+  }
+}
+
 export function TierBadge({ tier, size = 'medium' }: TierBadgeProps) {
-  const getColors = () => {
-    switch (tier) {
-      case 'FREE':
-        return {
-          background: theme.colors.free + '20',
-          border: theme.colors.free,
-          text: theme.colors.free,
-        };
-      case 'PRO':
-        return {
-          background: theme.colors.premium + '20',
-          border: theme.colors.premium,
-          text: theme.colors.premium,
-        };
-      case 'PLUS':
-        return {
-          background: theme.colors.admin + '20',
-          border: theme.colors.admin,
-          text: theme.colors.admin,
-        };
-    }
-  };
-
-  const getSizes = () => {
-    switch (size) {
-      case 'small':
-        return {
-          padding: 4,
-          fontSize: theme.typography.fontSize.xs,
-          iconSize: 12,
-        };
-      case 'medium':
-        return {
-          padding: 6,
-          fontSize: theme.typography.fontSize.sm,
-          iconSize: 14,
-        };
-      case 'large':
-        return {
-          padding: 8,
-          fontSize: theme.typography.fontSize.md,
-          iconSize: 16,
-        };
-    }
-  };
-
-  const colors = getColors();
-  const sizes = getSizes();
+  const p = tierPalette(tier);
+  const m = sizeMetrics(size);
 
   return (
     <View
       style={[
         styles.container,
         {
-          backgroundColor: colors.background,
-          borderColor: colors.border,
-          paddingHorizontal: sizes.padding * 2,
-          paddingVertical: sizes.padding,
+          backgroundColor: p.bg,
+          borderColor: p.border,
+          paddingHorizontal: m.padX,
+          paddingVertical: m.padY,
+          // soft glow on paid tiers — readable, not blinding
+          ...(p.glow ? {
+            shadowColor: p.border,
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0.45,
+            shadowRadius: 6,
+            ...(Platform.OS === 'android' ? { elevation: 3 } : null),
+          } : null),
         },
       ]}
     >
-      {tier !== 'FREE' && (
-        <Crown size={sizes.iconSize} color={colors.text} />
-      )}
-      <Text
-        style={[
-          styles.text,
-          {
-            color: colors.text,
-            fontSize: sizes.fontSize,
-          },
-        ]}
-      >
-        {tier}
-      </Text>
+      {tier !== 'FREE' && <Crown size={m.iconSize} color={p.text} />}
+      <Text style={[styles.text, { color: p.text, fontSize: m.fontSize }]}>{tier}</Text>
     </View>
   );
 }
 
-interface PremiumBadgeProps {
-  size?: 'small' | 'medium' | 'large';
-}
-
+interface PremiumBadgeProps { size?: 'small' | 'medium' | 'large' }
 export function PremiumBadge({ size = 'medium' }: PremiumBadgeProps) {
   return <TierBadge tier="PRO" size={size} />;
 }
@@ -101,25 +76,8 @@ interface ComingSoonBadgeProps {
   date?: string;
   size?: 'small' | 'medium' | 'large';
 }
-
 export function ComingSoonBadge({ date, size = 'medium' }: ComingSoonBadgeProps) {
-  const sizes = {
-    small: {
-      padding: 4,
-      fontSize: theme.typography.fontSize.xs,
-    },
-    medium: {
-      padding: 6,
-      fontSize: theme.typography.fontSize.sm,
-    },
-    large: {
-      padding: 8,
-      fontSize: theme.typography.fontSize.md,
-    },
-  };
-
-  const currentSize = sizes[size];
-
+  const m = sizeMetrics(size);
   return (
     <View
       style={[
@@ -127,20 +85,17 @@ export function ComingSoonBadge({ date, size = 'medium' }: ComingSoonBadgeProps)
         {
           backgroundColor: theme.colors.warning + '20',
           borderColor: theme.colors.warning,
-          paddingHorizontal: currentSize.padding * 2,
-          paddingVertical: currentSize.padding,
+          paddingHorizontal: m.padX,
+          paddingVertical: m.padY,
+          shadowColor: theme.colors.warning,
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.4,
+          shadowRadius: 5,
+          ...(Platform.OS === 'android' ? { elevation: 2 } : null),
         },
       ]}
     >
-      <Text
-        style={[
-          styles.text,
-          {
-            color: theme.colors.warning,
-            fontSize: currentSize.fontSize,
-          },
-        ]}
-      >
+      <Text style={[styles.text, { color: theme.colors.warning, fontSize: m.fontSize }]}>
         Coming {date || 'Soon'}
       </Text>
     </View>
@@ -152,11 +107,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    borderRadius: theme.borderRadius.full,
+    borderRadius: 999,            // pill
     borderWidth: 1,
   },
   text: {
-    fontWeight: 'bold',
-    fontFamily: theme.typography.fontFamily.mono,
+    fontWeight: '800',
+    fontFamily: theme.typography.fontFamily.monoBold,
+    letterSpacing: 0.6,
   },
 });

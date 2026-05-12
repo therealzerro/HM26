@@ -188,6 +188,12 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
   const lastSeenMap   = new Map<string, string>();
   const rawBoxRows    = [...boxRows];
 
+  // BUG-129 fix: dsRaw / drawsSince must come from H01Y horizon (1-year window),
+  // not whichever horizon happens to have the highest times_drawn (typically H10Y).
+  // The local engine and replay harness both prefer H01Y; the edge function was
+  // letting long-horizon dsRaw values bleed in, inflating BOX pressure scores and
+  // biasing selection toward "long-overdue" combos. timesDrawn is allowed to take
+  // its max across horizons (max wins) since it's a frequency measure.
   for (const row of boxRows as any[]) {
     if (!row || typeof row.key !== 'string') continue;
     const h       = String(row.horizon_label ?? 'H01Y');
@@ -196,28 +202,44 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
     const td      = typeof row.times_drawn === 'number' ? row.times_drawn : 0;
     if (!boxByHorizon.has(h)) boxByHorizon.set(h, new Map());
     boxByHorizon.get(h)!.set(normKey, ds);
-    // MAX timesDrawn wins — multiple raw permutations map to same normKey
+
+    // timesDrawn: max across horizons wins
     if (td > (timesDrawnMap.get(normKey) ?? 0)) {
       timesDrawnMap.set(normKey, td);
-      dsRawMap.set(normKey, ds);
-      drawsSinceMap.set(normKey, ds);
     }
+
+    // dsRaw / drawsSince: H01Y preferred, within H01Y non-zero wins.
+    // If no H01Y row arrives for a normKey, the first horizon seen seeds the value.
+    if (h === 'H01Y' || !drawsSinceMap.has(normKey)) {
+      const existing = dsRawMap.get(normKey) ?? 0;
+      if (existing === 0 || ds > 0) {
+        dsRawMap.set(normKey, ds);
+        drawsSinceMap.set(normKey, ds);
+      }
+    }
+
     const ls = typeof row.last_seen === 'string' ? row.last_seen : null;
     if (ls && (!lastSeenMap.has(normKey) || ls > lastSeenMap.get(normKey)!))
       lastSeenMap.set(normKey, ls);
   }
 
+  // BUG-129 fix (pair path): pairMetaMap must be H01Y-preferred, matching the local
+  // engine and replay harness. The edge function was previously selecting the horizon
+  // with the highest times_drawn (typically H10Y), causing pair signal scores to use
+  // 10-year aggregates for both freq and pressure components, which inflated PBURST/CO.
   const pairMetaMap = new Map<string, Map<number, PairMeta>>();
   for (const row of pairRows as any[]) {
     if (!row || typeof row.key_pair !== 'string') continue;
+    const h = String(row.horizon_label ?? 'H01Y');
     const normKey = normalizePairKey(row.key_pair);
     const classId = typeof row.class_id === 'number' ? row.class_id : parseInt(String(row.class_id ?? '0'), 10);
     const td = typeof row.times_drawn === 'number' ? row.times_drawn : 0;
     const ds = typeof row.ds_raw      === 'number' ? row.ds_raw      : 0;
     if (!pairMetaMap.has(normKey)) pairMetaMap.set(normKey, new Map());
     const cm = pairMetaMap.get(normKey)!;
-    if (!cm.has(classId) || td > cm.get(classId)!.timesDrawn)
+    if (h === 'H01Y' || !cm.has(classId)) {
       cm.set(classId, { dsRaw: ds, drawsSince: ds, timesDrawn: td });
+    }
   }
 
   const horizonsPresent: Record<string, boolean> = {};

@@ -139,13 +139,16 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
     let totalScopes = 0;
     let totalSupplements = 0;
     try {
+      const yesterday = getYesterdayET();
       const today = getTodayET();
-      for (const sc of scopes) {
-        setDetectProgress(`Running hit detection for ${sc}…`);
-        const res = await runHitDetectionAndRefresh(sc, today);
-        totalHits += res.hitsFound;
-        totalScopes += res.scopesChecked;
-        totalSupplements += res.supplementsGenerated;
+      for (const date of [yesterday, today]) {
+        for (const sc of scopes) {
+          setDetectProgress(`Running hit detection for ${sc} (${date})…`);
+          const res = await runHitDetectionAndRefresh(sc, date);
+          totalHits += res.hitsFound;
+          totalScopes += res.scopesChecked;
+          totalSupplements += res.supplementsGenerated;
+        }
       }
       const combined: HitDetectionResult = { hitsFound: totalHits, scopesChecked: totalScopes, supplementsGenerated: totalSupplements };
       setDetectResult(combined);

@@ -30,7 +30,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
 import { fetchFromSupabase } from '@/lib/supabase';
-import { useSnapshot } from '@/hooks/useSnapshot';
 import { theme } from '@/constants/theme';
 import { Calendar, MoreHorizontal, Search, X } from 'lucide-react-native';
 import { EmptyState } from '@/components/EmptyState';
@@ -226,9 +225,41 @@ export default function ResultsScreen() {
     staleTime: 30000,
   });
 
-  // Tier-3 source: hitPicks from the live snapshot context — exactly what
-  // the Home performance section uses. Avoids all DB query date issues.
-  const { hitPicks: snapshotHitPicks } = useSnapshot();
+  // Tier-3: direct all-scope snapshot query — avoids useSnapshot() scope limitation.
+  // Fetches all scopes (midday/evening/allday) so allday slate hits appear regardless
+  // of the user's current scope selection.
+  const { data: snapshotRows } = useQuery<any[]>({
+    queryKey: ['slate_snapshots_hits', selectedDate],
+    queryFn: async () => {
+      const twoDaysOut = getNextDay(nextDay);
+      const res = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/slate_snapshots?select=scope,top_k_straights_json,file_meta&deleted_at=is.null&updated_at_et=gte.${selectedDate}&updated_at_et=lt.${twoDaysOut}T09:00:00&mode=neq.zk30&order=updated_at_et.desc.nullslast&limit=20`,
+        method: 'GET',
+      });
+      return Array.isArray(res) ? res : [];
+    },
+    staleTime: 30000,
+  });
+  const snapshotHitPicks = useMemo<any[]>(() => {
+    if (!snapshotRows) return [];
+    const out: any[] = [];
+    for (const row of snapshotRows) {
+      try {
+        const meta = typeof row.file_meta === 'string' ? JSON.parse(row.file_meta) : row.file_meta;
+        if (meta?.is_supplement) continue;
+      } catch {}
+      let picks: any[] = [];
+      try {
+        picks = typeof row.top_k_straights_json === 'string'
+          ? JSON.parse(row.top_k_straights_json)
+          : (row.top_k_straights_json ?? []);
+      } catch { continue; }
+      for (const p of picks) {
+        if (p?.hitType) out.push({ ...p, scope: row.scope });
+      }
+    }
+    return out;
+  }, [snapshotRows]);
 
   // When today has no draw results yet, auto-select yesterday so the screen
   // is never blank on first load (draws typically land around noon/7:30pm ET).
@@ -253,9 +284,7 @@ export default function ResultsScreen() {
       csMap.get(cs)!.push(h);
     }
 
-    // Tier 3: hitPicks from useSnapshot — the identical source the Home
-    // performance section reads. hitDate on each pick (set by hitDetection.ts)
-    // scopes to the correct draw date even when the snapshot is tagged today.
+    // Tier 3: snapshot hitType picks (all scopes). hitDate filter narrows to selectedDate.
     const snapMap = new Map<string, HitRow[]>();
     for (const p of (snapshotHitPicks as any[])) {
       if (!p?.hitType) continue;
@@ -268,7 +297,6 @@ export default function ResultsScreen() {
         mode: 'balanced',
         rank: p.rank ?? 0,
         combo: p.combo ?? '',
-        best_order: p.best_order ?? p.combo ?? '',
         hit_state: '',
         hit_session: '',
         hit_box: true,

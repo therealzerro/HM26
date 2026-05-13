@@ -269,6 +269,20 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
     pick.energy >= 75 ? D.amber :
     pick.energy >= 60 ? D.gold  : D.cyan;
 
+  // Normalized lookup keys — datasets_pair stores keys sorted (sortedPair()
+  // in engine), so position-pair lookups must normalize before comparing.
+  // Without this, any combo with a non-ascending position-pair (e.g. "417"
+  // → front="41") fails the find() and shows 0 in the "Why this order" UI
+  // even when real pair data exists.
+  const wantedPairKeys = useMemo(
+    () => ({
+      front: normalizePairKey(pairs.front),
+      back:  normalizePairKey(pairs.back),
+      split: normalizePairKey(pairs.split),
+    }),
+    [pairs],
+  );
+
   const { data: pairRows = [] } = useQuery({
     queryKey: ['pair_intel', pick.combo, scope],
     queryFn: async () => {
@@ -277,8 +291,8 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
           path: `/rest/v1/datasets_pair?scope=eq.${encodeURIComponent(scope)}&horizon_label=eq.H01Y&class_id=in.(2,3,4)&jurisdiction=is.null&select=key,key_pair,class_id,ds_raw,times_drawn`,
         });
         if (!Array.isArray(rows)) return [];
-        const wantedPairs = new Set([pairs.front, pairs.back, pairs.split]);
-        return rows.filter(r => wantedPairs.has(normalizePairKey(String(r.key_pair ?? r.key ?? ''))));
+        const wantedSet = new Set([wantedPairKeys.front, wantedPairKeys.back, wantedPairKeys.split]);
+        return rows.filter(r => wantedSet.has(normalizePairKey(String(r.key_pair ?? r.key ?? ''))));
       } catch { return []; }
     },
     enabled: isPro,
@@ -290,16 +304,16 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
       const row = pairRows.find(r => normalizePairKey(String(r.key_pair ?? r.key ?? '')) === pairKey && r.class_id === classId);
       return row ? (row.times_drawn ?? 0) : 0;
     };
-    const f  = getScore(pairs.front, 2);
-    const b  = getScore(pairs.back,  3);
-    const sp = getScore(pairs.split, 4);
+    const f  = getScore(wantedPairKeys.front, 2);
+    const b  = getScore(wantedPairKeys.back,  3);
+    const sp = getScore(wantedPairKeys.split, 4);
     const mx = Math.max(f, b, sp, 1);
     return {
       front: Math.round((f / mx) * 100),
       back:  Math.round((b / mx) * 100),
       split: Math.round((sp / mx) * 100),
     };
-  }, [pairRows, pairs]);
+  }, [pairRows, wantedPairKeys]);
 
   const handleShare = async () => {
     try {

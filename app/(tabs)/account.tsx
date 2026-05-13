@@ -8,6 +8,7 @@ import { router } from 'expo-router';
 import { useToast } from '@/components/Toast';
 import { LastHitPill } from '@/components/LastHitPill';
 import { useFollowedStates, JURISDICTION_GROUPS } from '@/hooks/useFollowedStates';
+import { useCoffeeMode } from '@/hooks/useCoffeeMode';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
@@ -67,6 +68,7 @@ export default function AccountScreen() {
   const { user, setRole, purchaseSubscription, restorePurchases, signOut } = useAuth();
   const { showToast } = useToast();
   const { followed: followedStates, isFollowing, toggle: toggleFollowedState, clear: clearFollowedStates } = useFollowedStates();
+  const { enabled: coffeeMode, toggle: toggleCoffeeMode } = useCoffeeMode();
   const [glossOpen, setGlossOpen] = useState<number | null>(null);
   // Notification preferences (enhancements §1.4 — persistence only).
   // Delivery (local schedules + push-on-hit) ships in next iteration; for now
@@ -354,6 +356,19 @@ export default function AccountScreen() {
                 </View>
               </View>
             ))}
+          </View>
+        </View>
+
+        {/* ── Display (enhancements §3.5) ── */}
+        <View style={s.section}>
+          <Text style={s.sectionLabel}>DISPLAY</Text>
+          <View style={s.card}>
+            <Toggle
+              on={coffeeMode}
+              onChange={() => toggleCoffeeMode()}
+              label="Coffee mode"
+              sub="Hide all chrome on Home — just scope + 6 picks + countdown"
+            />
           </View>
         </View>
 

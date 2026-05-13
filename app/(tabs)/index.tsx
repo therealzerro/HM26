@@ -51,6 +51,7 @@ import { CosmicBackground } from '@/components/CosmicBackground';
 import { TrialOfferBanner } from '@/components/TrialOfferBanner';
 import { BudgetPlanner } from '@/components/BudgetPlanner';
 import { LastHitPill } from '@/components/LastHitPill';
+import { useCoffeeMode } from '@/hooks/useCoffeeMode';
 import { scopeAccent } from '@/lib/scopeAccent';
 import { EnergySparkline } from '@/components/EnergySparkline';
 import { useToast } from '@/components/Toast';
@@ -270,6 +271,7 @@ export default function HomeScreen() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { scope, setScope: setScopeRaw } = useScope();
+  const { enabled: coffeeMode } = useCoffeeMode();
   const setScope = (s: string) => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setScopeRaw(s as any); };
   const { regenerateSlate, checkSlateLock } = useDataIngestion();
   const insets = useSafeAreaInsets();
@@ -609,6 +611,82 @@ export default function HomeScreen() {
   const hasData = Array.isArray(snapshot?.top_k_straights_json) && (snapshot?.top_k_straights_json?.length ?? 0) > 0;
   const avgColor = energyColor(avgEnergy);
   const nextDrawIn = useDrawCountdown(scope);
+
+  // ── Coffee mode (enhancements §3.5) — ultra-minimal Home ────────────────
+  if (coffeeMode) {
+    return (
+      <View style={[s.container, { paddingTop: insets.top }]}>
+        <CosmicBackground />
+        <ScrollView style={s.scroll} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 }}>
+          {/* Scope segmented + countdown */}
+          <View style={{ flexDirection: 'row', gap: 6, marginBottom: 14 }}>
+            {(['midday', 'evening', 'allday'] as const).map(sc => {
+              const active = scope === sc;
+              const accent = scopeAccent(sc);
+              return (
+                <TouchableOpacity
+                  key={sc}
+                  style={{ flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center', backgroundColor: active ? accent + '14' : theme.colors.bgElevated, borderWidth: 1, borderColor: active ? accent + '88' : theme.colors.border }}
+                  onPress={() => setScope(sc)}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: active ? '900' : '700', color: active ? accent : theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.5 }}>{SCOPE_LABELS[sc] ?? sc}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {nextDrawIn && (
+            <View style={{ alignItems: 'center', marginBottom: 14 }}>
+              <Text style={{ fontSize: 9, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold }}>NEXT DRAW</Text>
+              <Text style={{ fontSize: 22, fontWeight: '900', color: theme.colors.purple, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 2 }}>{nextDrawIn}</Text>
+            </View>
+          )}
+          {/* 6 K6 tiles — 2×3 grid */}
+          {snapshotLoading ? (
+            <View style={s.loadingCard}><LoadingPhrase style={s.loadingText} /></View>
+          ) : (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {items.map(pick => {
+                const tc = energyColor(pick.energy);
+                const locked = pick.locked;
+                return (
+                  <TouchableOpacity
+                    key={`coffee-${pick.rank}-${pick.combo}`}
+                    onPress={() => locked ? setPaywallOpen(true) : setDetail(pick)}
+                    activeOpacity={0.85}
+                    style={{ width: '48%', backgroundColor: theme.colors.card, borderRadius: 14, borderWidth: 1.5, borderColor: tc + '55', padding: 14, alignItems: 'center', shadowColor: tc, shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } }}
+                  >
+                    <Text style={{ fontSize: 10, fontWeight: '900', color: theme.colors.textTertiary, letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 6 }}>#{pick.rank}</Text>
+                    <Text
+                      style={{ fontSize: 30, fontWeight: '900', color: locked ? theme.colors.textTertiary : tc, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 4, marginBottom: 6 }}
+                      maxFontSizeMultiplier={1.3}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      {locked ? '• • •' : (pick.bestOrder ?? pick.combo).split('').join(' ')}
+                    </Text>
+                    {!locked ? (
+                      <Text style={{ fontSize: 10, fontWeight: '900', color: tc, letterSpacing: 1, fontFamily: theme.typography.fontFamily.monoBold }}>ENERGY {pick.energy}</Text>
+                    ) : (
+                      <Text style={{ fontSize: 9, fontWeight: '900', color: theme.colors.gold, letterSpacing: 0.8, fontFamily: theme.typography.fontFamily.monoBold }}>♛ ORACLE+</Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+        </ScrollView>
+        {/* Modals still available */}
+        {detail && (
+          <PickDetailModal pick={detail} scope={scope} isPro={currentTier !== 'FREE'}
+            onClose={() => setDetail(null)} onHeatCheck={() => { setDetail(null); setHeatCheckOpen(true); }} />
+        )}
+        <Paywall visible={paywallOpen} onClose={() => setPaywallOpen(false)} />
+        <HeatCheckModal visible={heatCheckOpen} onClose={() => setHeatCheckOpen(false)} initialCombo="" scope={scope} />
+      </View>
+    );
+  }
 
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>

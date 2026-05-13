@@ -11,6 +11,7 @@ import { SnapshotProvider } from "@/hooks/useSnapshot";
 import { CoverageProvider } from "@/hooks/useCoverage";
 import { DataIngestionProvider } from "@/hooks/useDataIngestion";
 import { FollowedStatesProvider } from "@/hooks/useFollowedStates";
+import { CoffeeModeProvider } from "@/hooks/useCoffeeMode";
 import { AppModeProvider } from "@/context/AppModeContext";
 import { ToastProvider } from "@/components/Toast";
 import { theme } from "@/constants/theme";
@@ -161,7 +162,9 @@ function AppContent() {
               <CoverageProvider>
                 <DataIngestionProvider>
                   <FollowedStatesProvider>
-                    <RootLayoutNav />
+                    <CoffeeModeProvider>
+                      <RootLayoutNav />
+                    </CoffeeModeProvider>
                   </FollowedStatesProvider>
                 </DataIngestionProvider>
               </CoverageProvider>

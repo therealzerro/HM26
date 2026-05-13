@@ -144,8 +144,26 @@ A push notification each evening: "Today's recap: 1 BOX hit (Mississippi 065 →
 **Push gating (deferred):** would only fire on followed states once §1.4 phase 2 native push pipeline lands. UI is forward-compatible — the `useFollowedStates` hook is already the source of truth for "which states matter to this user."
 **Empty-state behavior:** when `followed.length === 0`, all queries fall through to "show all" (no jurisdiction filter applied). Power-users with 2–3 states get a personalized app; casual users see everything (the safe default).
 
-### 3.5 Morning coffee mode (P2)
-A toggle in Account: "Show me only the K6 picks, no chrome." Renders an ultra-minimal Home: just 6 big pick tiles, scope switcher, draw countdown. Power users who already know everything else just want their numbers fast. **Effort: half-day.**
+### 3.5 Morning coffee mode (P2) — ✅ Shipped 2026-05-13
+**New hook:** `hooks/useCoffeeMode.tsx` — context provider with `enabled`, `toggle()`, `set()`. Persists to `coffee_mode_enabled_v1`. Wrapped at app root.
+**Toggle UI:** new "DISPLAY" section on Profile between FOLLOWED STATES and NOTIFICATIONS. Single toggle: "Coffee mode · Hide all chrome on Home — just scope + 6 picks + countdown."
+**Coffee Home render (early return in `app/(tabs)/index.tsx`):**
+- Scope segmented control (large, scopeAccent-tinted)
+- Countdown badge (NEXT DRAW + minutes:seconds)
+- 6 K6 tiles in a 2×3 grid, each ~48% width: rank badge, big bestOrder digits (energyColor-tinted), `ENERGY N` footer. Locked picks show `• • •` + gold `♛ ORACLE+` badge.
+- Tap a tile → opens PickDetailModal (full power-user flow still accessible)
+- Locked-tile tap → opens paywall
+- Modals (PickDetailModal, Paywall, HeatCheckModal) all wired
+**Hidden in coffee mode:**
+- Gradient header (title, tier badge, streak, scope selector chrome)
+- Status strip
+- LastHitPill
+- Unified hero band (avg energy / hit rate / countdown — countdown reappears solo)
+- EnergySparkline
+- Trial offer banner, hit/loss banners, today's hits section
+- Slate confidence pill
+- Pro gate, budget planner, hit-celebration overlay (still mounts but mostly dormant since the hits-today section is gone)
+**Power-user intent preserved:** the doc said "just want their numbers fast." Coffee mode strips everything that isn't a pick or the time of the next draw.
 
 ### 3.6 Drawing-time auto-scope (P1 polish) — ✅ Shipped 2026-05-13
 **Where:** `hooks/useScope.tsx` — `defaultScopeForTime()` helper plus a date-aware persistence layer.

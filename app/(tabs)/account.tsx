@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useToast } from '@/components/Toast';
+import { LastHitPill } from '@/components/LastHitPill';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
@@ -274,6 +275,9 @@ export default function AccountScreen() {
             </View>
           )}
         </View>
+
+        {/* §4.2 last-hit pill */}
+        <LastHitPill />
 
         {/* ── History (enhancements §4.4 + §2.6) ── */}
         <View style={s.section}>

@@ -42,6 +42,7 @@ import { Paywall } from '@/components/Paywall';
 import { HeatCheckModal } from '@/components/HeatCheckModal';
 import { HeatCheckFAB } from '@/components/HeatCheckFAB';
 import { CosmicBackground } from '@/components/CosmicBackground';
+import { LastHitPill } from '@/components/LastHitPill';
 import { DrawTicker } from '@/components/DrawTicker';
 import { storage } from '@/lib/storage';
 import { fetchFromSupabase } from '@/lib/supabase';
@@ -511,6 +512,9 @@ export default function SlatesScreen() {
           </View>
         </View>
       )}
+
+      {/* §4.2 last-hit pill */}
+      <LastHitPill />
 
       {/* ── TAB BAR ── */}
       <View style={s.tabBar}>

@@ -14,7 +14,7 @@ interface Props {
   height?: number;
 }
 
-export function EnergySparkline({ series, highlight, scopeLabel, width = 320, height = 56 }: Props) {
+export function EnergySparkline({ series, highlight, scopeLabel, width = 320, height = 48 }: Props) {
   const stats = useMemo(() => {
     const valid = series.filter(v => Number.isFinite(v) && v > 0);
     if (valid.length === 0) return null;
@@ -85,10 +85,10 @@ export function EnergySparkline({ series, highlight, scopeLabel, width = 320, he
 }
 
 const s = StyleSheet.create({
-  container: { marginHorizontal: 16, marginTop: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: theme.colors.card, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border },
-  headerRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 },
-  headerLabel: { fontSize: 9, fontWeight: '900', color: theme.colors.textTertiary, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold },
-  headerStat: { fontSize: 10, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
+  container: { marginHorizontal: 16, marginTop: 6, paddingHorizontal: 10, paddingVertical: 7, backgroundColor: theme.colors.card, borderRadius: 10, borderWidth: 1, borderColor: theme.colors.border },
+  headerRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 2 },
+  headerLabel: { fontSize: 8, fontWeight: '900', color: theme.colors.textTertiary, letterSpacing: 1.3, fontFamily: theme.typography.fontFamily.monoBold },
+  headerStat: { fontSize: 9, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
   headerStatNum: { fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold },
   headerSep: { color: theme.colors.textTertiary },
   empty: { marginHorizontal: 16, marginTop: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: theme.colors.card, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border },

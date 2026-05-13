@@ -50,6 +50,7 @@ import { LoadingPhrase } from '@/components/LoadingPhrase';
 import { CosmicBackground } from '@/components/CosmicBackground';
 import { TrialOfferBanner } from '@/components/TrialOfferBanner';
 import { BudgetPlanner } from '@/components/BudgetPlanner';
+import { LastHitPill } from '@/components/LastHitPill';
 import { scopeAccent } from '@/lib/scopeAccent';
 import { EnergySparkline } from '@/components/EnergySparkline';
 import { useToast } from '@/components/Toast';
@@ -371,49 +372,6 @@ export default function HomeScreen() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Trending box-sets across all 3 scopes (enhancements §5.6).
-  // Pulls today's snapshots for all scopes (latest per scope), aggregates K6
-  // box-sets, and ranks by cross-scope agreement, then by best energy.
-  const { data: trendingSnaps = [] } = useQuery<Array<{ scope: string; top_k_straights_json: any; updated_at_et: string }>>({
-    queryKey: ['trending_box_sets', todayStr],
-    queryFn: async () => {
-      const rows = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/slate_snapshots?select=scope,top_k_straights_json,updated_at_et&deleted_at=is.null&mode=in.(balanced,conservative,aggressive)&slate_date=eq.${todayStr}&top_k_straights_json=not.is.null&order=updated_at_et.desc&limit=20`,
-      });
-      return Array.isArray(rows) ? rows : [];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-  const trendingBoxSets = useMemo<string[]>(() => {
-    const seenScope = new Set<string>();
-    const setStats = new Map<string, { scopes: Set<string>; bestEnergy: number }>();
-    for (const snap of trendingSnaps) {
-      if (seenScope.has(snap.scope)) continue;
-      seenScope.add(snap.scope);
-      const picks = Array.isArray(snap.top_k_straights_json)
-        ? snap.top_k_straights_json
-        : (typeof snap.top_k_straights_json === 'string'
-            ? (() => { try { return JSON.parse(snap.top_k_straights_json); } catch { return []; } })()
-            : []);
-      for (const p of picks) {
-        const set = (p.comboSet ?? toComboSet(p.combo ?? '')) as string;
-        if (!set || set === '{-,-,-}') continue;
-        const existing = setStats.get(set) ?? { scopes: new Set<string>(), bestEnergy: 0 };
-        existing.scopes.add(snap.scope);
-        existing.bestEnergy = Math.max(existing.bestEnergy, Number(p.energy ?? p.temperature ?? 0));
-        setStats.set(set, existing);
-      }
-    }
-    return [...setStats.entries()]
-      .sort((a, b) => {
-        const scopeDiff = b[1].scopes.size - a[1].scopes.size;
-        if (scopeDiff !== 0) return scopeDiff;
-        return b[1].bestEnergy - a[1].bestEnergy;
-      })
-      .slice(0, 3)
-      .map(([set]) => set);
-  }, [trendingSnaps]);
-
   // 30-day energy series for the EnergySparkline (enhancements §5.5).
   // Pulls per-(date, scope) snapshots for the user's current scope; takes
   // the latest snapshot per date and computes mean K6 energy for that day.
@@ -694,6 +652,9 @@ export default function HomeScreen() {
           </View>
         </LinearGradient>
 
+        {/* §4.2 — last-hit pill (suppressed if no hit in last 7 days) */}
+        <LastHitPill />
+
         {/* ── Unified hero: avg energy · hit rate · next draw (enhancements §1.3) ── */}
         <View style={s.heroStat}>
           <View style={s.heroCol}>
@@ -775,13 +736,6 @@ export default function HomeScreen() {
           />
         )}
 
-        {/* ── Trending box-sets across all 3 scopes (enhancements §5.6) ── */}
-        {trendingBoxSets.length > 0 && (
-          <View style={s.trendingBand}>
-            <Text style={s.trendingLabel}>🔥 TRENDING</Text>
-            <Text style={s.trendingSets} numberOfLines={1}>{trendingBoxSets.join('  ·  ')}</Text>
-          </View>
-        )}
 
         {/* ── ZK6 PICKS — THE HERO ── */}
         <View style={s.slateSection}>
@@ -917,20 +871,16 @@ const s = StyleSheet.create({
   scopeBtnText: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: '500' },
   scopeBtnTextOn: { color: theme.colors.cyan, fontWeight: '700' },
 
-  heroStat: { flexDirection: 'row', alignItems: 'stretch', marginHorizontal: 16, marginTop: 12, paddingHorizontal: 10, paddingVertical: 9, backgroundColor: theme.colors.bgElevated, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border },
+  heroStat: { flexDirection: 'row', alignItems: 'stretch', marginHorizontal: 16, marginTop: 10, paddingHorizontal: 10, paddingVertical: 7, backgroundColor: theme.colors.bgElevated, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border },
   heroCol: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  heroColNum: { fontSize: 26, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, lineHeight: 28, letterSpacing: -0.8 },
-  heroColLabel: { fontSize: 8, fontWeight: '900', color: theme.colors.cyan, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 2 },
-  heroColMeta: { fontSize: 10, color: theme.colors.textSecondary, marginTop: 0, textAlign: 'center' },
+  heroColNum: { fontSize: 22, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, lineHeight: 24, letterSpacing: -0.7 },
+  heroColLabel: { fontSize: 8, fontWeight: '900', color: theme.colors.cyan, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 1 },
+  heroColMeta: { fontSize: 9, color: theme.colors.textSecondary, marginTop: 0, textAlign: 'center' },
   heroDivider: { width: 1, backgroundColor: theme.colors.border, marginHorizontal: 3 },
 
-  trendingBand: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginTop: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.colors.amber + '14', borderRadius: 10, borderWidth: 1, borderColor: theme.colors.amber + '55' },
-  trendingLabel: { fontSize: 9, fontWeight: '900', color: theme.colors.amber, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold },
-  trendingSets: { flex: 1, fontSize: 12, fontWeight: '800', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.5 },
-
-  countdownBox: { alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.purple + '18', borderRadius: 8, borderWidth: 1, borderColor: theme.colors.purple + '44', paddingHorizontal: 8, paddingVertical: 4, minWidth: 64 },
+  countdownBox: { alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.purple + '18', borderRadius: 7, borderWidth: 1, borderColor: theme.colors.purple + '44', paddingHorizontal: 7, paddingVertical: 3, minWidth: 56 },
   countdownLabel: { fontSize: 7, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
-  countdownTime: { fontSize: 13, fontWeight: '900', color: theme.colors.purple, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 1 },
+  countdownTime: { fontSize: 11, fontWeight: '900', color: theme.colors.purple, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 1 },
 
   hitBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginTop: 12, backgroundColor: theme.colors.cyan + '18', borderRadius: 14, borderWidth: 1.5, borderColor: theme.colors.cyan + '55', padding: 12 },
   hitBannerTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold },

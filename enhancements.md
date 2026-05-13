@@ -173,8 +173,15 @@ A toggle in Account: "Show me only the K6 picks, no chrome." Renders an ultra-mi
 
 **Why:** Hits are emotional peaks. The app should be present for them, not invisible. Every share is also a paid acquisition channel.
 
-### 4.2 "Last hit" persistent surface (P1)
-A small pill at the top of every screen: "Last HitMaster hit: 605 in MS · 2h ago". Tap to see details. This keeps the win salient across the whole app, not just the home screen, not just today. **Effort: half-day.**
+### 4.2 "Last hit" persistent surface (P1) — ✅ Shipped 2026-05-13
+**New component:** `components/LastHitPill.tsx` — single-line pill: `🎯 LAST HIT · 605 · MS · 2d ago · [BOX]`. Color-coded by hit type (gold border for STRAIGHT, cyan for BOX). Tap → opens `/track-record` (§2.6).
+**Data:** `useQuery` for the most recent K6 hit in the last 7 days. Scope-validity gated (BUG-132 DiD). Suppressed entirely when no fresh hit — never shows stale wins that erode credibility.
+**Surfaces wired:**
+- Home — between the gradient header and the unified hero band
+- Slates — above the tab bar
+- Profile — above the HISTORY section
+- **Not wired:** Results (already hits-focused), Number Book (sidebar layout doesn't have a natural slot for this — removed per user feedback), Learn (educational), modal stack screens (Replay, Track Record, Paywall, Wizard) — would compete with their own chrome.
+**Why "last 7 days" cap:** the doc said "keep the win salient." A hit from 30 days ago doesn't feel salient — it feels desperate. 7-day window keeps the surface honest. Tunable via `LOOKBACK_DAYS` constant.
 
 ### 4.3 Personal hit history (P1)
 On the Number Book screen, when a user saves a pick to a list and that pick later hits, mark the row with a 🎯. Show a personal "Your saved picks have hit X times" stat in Account. This makes the app's value personal, not just abstract. **Effort: 1 day.**
@@ -257,12 +264,10 @@ After running a heat check on a combo, offer a "Share this analysis" button that
 **Header copy:** `30-DAY ENERGY · {scope}    today {N} · avg {M}`. Subscriber-voice — no "rolling window" or "n=30" framing.
 **Edge cases:** suppressed entirely when `< 2` data points (avoids a meaningless one-dot chart).
 
-### 5.6 "Hot box-sets right now" surface (P2) — ✅ Shipped 2026-05-12
-**Where:** Home, between the loss/hit banner area and the ZK6 PICKS section.
-**Renders:** `🔥 TRENDING   {2,4,8}  ·  {0,6,9}  ·  {1,3,7}` in an amber-tinted band.
-**Logic:** new useQuery in `index.tsx` fetches today's snapshots for all 3 scopes (latest per scope wins). Each K6 pick's comboSet is aggregated; sets are ranked by (1) scope agreement count (a set appearing in 2 or 3 scopes' K6 ranks above a single-scope set), then (2) best energy across those scopes. Top 3 surface in the band.
-**Empty state:** band suppressed when no snapshots exist for today.
-**Why useful:** subscribers who play across scopes get a one-line "engine consensus" view without flipping between scopes manually.
+### 5.6 "Hot box-sets right now" surface (P2) — ✅ Shipped 2026-05-12 · ❌ Removed 2026-05-13
+**Originally shipped:** `🔥 TRENDING  {2,4,8} · {0,6,9} · {1,3,7}` amber band on Home, aggregating K6 box-sets across all 3 scopes ranked by cross-scope agreement + energy.
+**Why removed (per user direction):** the band didn't tell subscribers anything actionable. A box-set "trending across scopes" sounded interesting in spec but read as noise in practice — users can already see their scope's K6 in the slate section below, and cross-scope agreement isn't a signal subscribers play on. Removed cleanly: useQuery + derivation + JSX + 3 styles (`trendingBand` / `trendingLabel` / `trendingSets`) all gone.
+**If revisited:** only worth surfacing if cross-scope agreement correlates statistically with hit rate (would need a backtest). Don't ship just because the data exists.
 
 ---
 

@@ -60,6 +60,15 @@ function energyColor(e: number) {
 const SCOPE_LABELS: Record<string, string> = {
   midday: '☀️ Midday', evening: '🌙 Evening', allday: '◈ All Day',
 };
+
+// Track Record band constants (enhancements §1.3) — backtest hit rate from
+// MASTER_AUDIT.md CONFIG-02 (26-day window 4/13–5/8, n=78 slates × 3 scopes,
+// balanced + floor=70). Recent-hit anchor is the 2026-05-12 ZK6 stabilization
+// — labeled "this week" while the verification window (→ 2026-05-19) is open;
+// switch to a true rolling 7-day count after 5/19 once broken-window data has
+// rolled out.
+const BACKTEST_HIT_RATE = 73.1;
+const POST_STAB_START_DATE = '2026-05-13';
 const MODE_OPTIONS = [
   { key: 'balanced', label: 'Balanced', sub: 'Equal weight' },
   { key: 'conservative', label: 'Conservative', sub: 'History focus' },
@@ -265,6 +274,18 @@ export default function HomeScreen() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Track Record band — count K6 hits since the 2026-05-12 ZK6 stabilization.
+  const { data: weekHits = 0 } = useQuery<number>({
+    queryKey: ['track_record_week_hits', POST_STAB_START_DATE, todayStr],
+    queryFn: async () => {
+      const rows = await fetchFromSupabase<{ hit_box: boolean | null; hit_straight: boolean | null }[]>({
+        path: `/rest/v1/daily_intelligence?slate_date=gte.${POST_STAB_START_DATE}&on_slate=eq.true&mode=neq.zk30&select=hit_box,hit_straight&limit=200`,
+      });
+      return (rows || []).filter(r => r.hit_box || r.hit_straight).length;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const handlePullRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try { await refreshSnapshot(); } finally { setIsRefreshing(false); }
@@ -393,21 +414,28 @@ export default function HomeScreen() {
           </View>
         </LinearGradient>
 
-        {/* ── Single big AVG ENERGY value ── */}
+        {/* ── Unified hero: avg energy · hit rate · next draw (enhancements §1.3) ── */}
         <View style={s.heroStat}>
-          <Text style={[s.heroStatNum, { color: avgColor }]}>{avgEnergy}</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={s.heroStatLabel}>AVG ENERGY</Text>
-            <Text style={s.heroStatMeta}>{isFree ? '2 of 6' : '6 picks'} · {SCOPE_LABELS[scope] ?? scope}</Text>
-            {snapshot?.updated_at_et ? (
-              <Text style={s.heroStatGenAt}>Generated {new Date(snapshot.updated_at_et).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</Text>
-            ) : null}
+          <View style={s.heroCol}>
+            <Text style={[s.heroColNum, { color: avgColor }]}>{avgEnergy}</Text>
+            <Text style={s.heroColLabel}>AVG ENERGY</Text>
+            <Text style={s.heroColMeta}>{isFree ? '2 of 6' : '6 picks'}</Text>
+            <Text style={s.heroColMeta}>{SCOPE_LABELS[scope] ?? scope}</Text>
+          </View>
+          <View style={s.heroDivider} />
+          <View style={s.heroCol}>
+            <Text style={[s.heroColNum, { color: theme.colors.cyan }]}>{BACKTEST_HIT_RATE}%</Text>
+            <Text style={s.heroColLabel}>HIT RATE</Text>
+            <Text style={s.heroColMeta}>{weekHits} in last 7 days</Text>
           </View>
           {nextDrawIn ? (
-            <View style={s.countdownBox}>
-              <Text style={s.countdownLabel}>NEXT DRAW</Text>
-              <Text style={s.countdownTime}>{nextDrawIn}</Text>
-            </View>
+            <>
+              <View style={s.heroDivider} />
+              <View style={s.countdownBox}>
+                <Text style={s.countdownLabel}>NEXT DRAW</Text>
+                <Text style={s.countdownTime}>{nextDrawIn}</Text>
+              </View>
+            </>
           ) : null}
         </View>
 
@@ -528,11 +556,12 @@ const s = StyleSheet.create({
   scopeBtnText: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: '500' },
   scopeBtnTextOn: { color: theme.colors.cyan, fontWeight: '700' },
 
-  heroStat: { flexDirection: 'row', alignItems: 'center', gap: 14, marginHorizontal: 16, marginTop: 16, paddingHorizontal: 16, paddingVertical: 14, backgroundColor: theme.colors.bgElevated, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border },
-  heroStatNum: { fontSize: 48, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, lineHeight: 50, letterSpacing: -1 },
-  heroStatLabel: { fontSize: 10, fontWeight: '900', color: theme.colors.cyan, letterSpacing: 2, fontFamily: theme.typography.fontFamily.monoBold },
-  heroStatMeta: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
-  heroStatGenAt: { fontSize: 10, color: theme.colors.textTertiary, marginTop: 1 },
+  heroStat: { flexDirection: 'row', alignItems: 'stretch', marginHorizontal: 16, marginTop: 16, paddingHorizontal: 12, paddingVertical: 14, backgroundColor: theme.colors.bgElevated, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border },
+  heroCol: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  heroColNum: { fontSize: 34, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, lineHeight: 36, letterSpacing: -1 },
+  heroColLabel: { fontSize: 9, fontWeight: '900', color: theme.colors.cyan, letterSpacing: 1.6, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 4 },
+  heroColMeta: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 1, textAlign: 'center' },
+  heroDivider: { width: 1, backgroundColor: theme.colors.border, marginHorizontal: 4 },
 
   countdownBox: { alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.purple + '18', borderRadius: 10, borderWidth: 1, borderColor: theme.colors.purple + '44', paddingHorizontal: 10, paddingVertical: 8, minWidth: 72 },
   countdownLabel: { fontSize: 7, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },

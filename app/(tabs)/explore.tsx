@@ -53,6 +53,7 @@ import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
 import { RegenConfirmationModal } from '@/components/RegenConfirmationModal';
 import { ScopeSegment } from '@/components/ScopeSegment';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { HitCard } from '@/components/HitCard';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { useToast } from '@/components/Toast';
 import { NeonRefreshControl } from '@/components/NeonRefreshControl';
@@ -589,19 +590,15 @@ export default function SlatesScreen() {
               <Text style={s.emptyDesc}>Check back after the next draw.</Text>
             </View>
           ) : (
-            <View style={{ gap: 6 }}>
+            <View style={{ gap: 8 }}>
               {slateHitItems.map((pick, i) => (
-                <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, backgroundColor: theme.colors.gold + '18', borderRadius: 10, borderWidth: 1, borderColor: theme.colors.gold + '44' }}>
-                  <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1, backgroundColor: pick.hitType === 'straight' ? theme.colors.gold + '22' : theme.colors.cyan + '22', borderColor: pick.hitType === 'straight' ? theme.colors.gold + '66' : theme.colors.cyan + '66' }}>
-                    <Text style={{ fontSize: 9, fontWeight: '900', color: pick.hitType === 'straight' ? theme.colors.gold : theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold }}>
-                      {pick.hitType === 'straight' ? 'STRAIGHT' : 'BOX'}
-                    </Text>
-                  </View>
-                  <Text style={{ fontSize: 20, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 4, color: theme.colors.text, flex: 1 }}>{pick.combo}</Text>
-                  <Text style={{ fontSize: 10, color: theme.colors.textTertiary }}>
-                    {pick.hitState}{pick.hitSession ? ` · ${pick.hitSession === 'midday' ? '☀️' : '🌙'}` : ''}
-                  </Text>
-                </View>
+                <HitCard
+                  key={i}
+                  combo={pick.combo}
+                  hitType={(pick.hitType ?? 'box') as 'straight' | 'box'}
+                  hitState={pick.hitState}
+                  hitSession={pick.hitSession}
+                />
               ))}
             </View>
           )}

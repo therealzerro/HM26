@@ -63,6 +63,7 @@ import { RegenConfirmationModal } from '@/components/RegenConfirmationModal';
 import { ZK6_ENGINE_VERSION } from '@/constants/zk6';
 import { ScopeSegment } from '@/components/ScopeSegment';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { HitCard } from '@/components/HitCard';
 
 function toComboSet(combo: string) { return '{' + combo.split('').sort().join(',') + '}'; }
 function energyColor(e: number) {
@@ -802,20 +803,18 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* ── Today's Hits — keep, also high-signal ── */}
+        {/* ── Today's Hits (shared HitCard — design.md step 4) ── */}
         {hitItems.length > 0 && (
-          <View style={s.hitsSection}>
+          <View style={s.hitsSectionWrap}>
             <Text style={s.hitsSectionTitle}>🎯 TODAY'S HITS</Text>
             {hitItems.map((pick, i) => (
-              <View key={i} style={s.hitRow}>
-                <View style={[s.hitTypeBadge, { borderColor: pick.hitType === 'straight' ? theme.colors.gold + '66' : theme.colors.cyan + '66', backgroundColor: pick.hitType === 'straight' ? theme.colors.gold + '22' : theme.colors.cyan + '22' }]}>
-                  <Text style={[s.hitTypeBadgeText, { color: pick.hitType === 'straight' ? theme.colors.gold : theme.colors.cyan }]}>
-                    {pick.hitType === 'straight' ? '⭐ STRAIGHT' : '🎯 BOX'}
-                  </Text>
-                </View>
-                <Text style={s.hitCombo}>{pick.combo}</Text>
-                <Text style={s.hitMeta}>{pick.hitState}{pick.hitSession ? ` · ${pick.hitSession === 'midday' ? '☀️' : '🌙'}` : ''}</Text>
-              </View>
+              <HitCard
+                key={i}
+                combo={pick.combo}
+                hitType={(pick.hitType ?? 'box') as 'straight' | 'box'}
+                hitState={pick.hitState}
+                hitSession={pick.hitSession}
+              />
             ))}
           </View>
         )}
@@ -983,13 +982,10 @@ const s = StyleSheet.create({
   lossBold: { color: theme.colors.text, fontWeight: '800', fontFamily: theme.typography.fontFamily.monoBold },
   lossFooter: { fontSize: 11, color: theme.colors.textTertiary, marginTop: 2, fontStyle: 'italic' },
 
-  hitsSection: { marginHorizontal: theme.layout.screenInset, marginTop: 12, backgroundColor: 'rgba(255,217,61,0.08)', borderRadius: 14, borderWidth: 1.5, borderColor: theme.colors.gold + '55', padding: 12, gap: 8 },
-  hitsSectionTitle: { fontSize: 10, fontWeight: '900', color: theme.colors.gold, marginBottom: 4, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
-  hitRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  hitTypeBadge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
-  hitTypeBadgeText: { fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
-  hitCombo: { fontSize: 20, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, color: theme.colors.text, letterSpacing: 4, flex: 1 },
-  hitMeta: { fontSize: 10, color: theme.colors.textSecondary, fontWeight: '600' },
+  // hits row/badge moved to components/HitCard.tsx + components/HitBadge.tsx (design.md step 4).
+  // Section wrapper stays — provides the screen-edge inset + title spacing.
+  hitsSectionWrap: { marginHorizontal: theme.layout.screenInset, marginTop: 12, gap: 8 },
+  hitsSectionTitle: { fontSize: 10, fontWeight: '900', color: theme.colors.gold, marginBottom: 2, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
 
   slateSection: { paddingHorizontal: theme.layout.screenInset, marginTop: 16 },
   slateSectionHdr: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 },

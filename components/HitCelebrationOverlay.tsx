@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, Modal, Pressable, Animated, Easing, Share, StyleSheet, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { theme } from '@/constants/theme';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 
 interface Props {
   visible: boolean;
@@ -17,6 +18,7 @@ const SPARKLE_COUNT = 14;
 const SHARE_URL = 'https://hitmaster.app';
 
 export function HitCelebrationOverlay({ visible, onDismiss, rank, digits, jurisdiction, session, hitType }: Props) {
+  const reduceMotion = useReduceMotion();
   const scale = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(0)).current;
   const sparkles = useRef(
@@ -40,6 +42,15 @@ export function HitCelebrationOverlay({ visible, onDismiss, rank, digits, jurisd
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     }
 
+    if (reduceMotion) {
+      // Snap to fully visible without scale-in or sparkles. Haptic still fires
+      // since it's a discrete event, not motion.
+      fade.setValue(1);
+      scale.setValue(1);
+      sparkles.forEach(s => { s.opacity.setValue(0); });
+      return;
+    }
+
     Animated.sequence([
       Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: true }),
       Animated.spring(scale, { toValue: 1, friction: 5, useNativeDriver: true }),
@@ -57,7 +68,7 @@ export function HitCelebrationOverlay({ visible, onDismiss, rank, digits, jurisd
         Animated.timing(s.y, { toValue: Math.sin(angle) * dist, duration: 1100, delay: 200, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       ]).start();
     });
-  }, [visible]);
+  }, [visible, reduceMotion]);
 
   const handleShare = async () => {
     const sessLabel = session === 'midday' ? 'Midday' : 'Evening';

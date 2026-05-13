@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated, Easing, ViewStyle } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 
 type Variant = 'card' | 'row' | 'combo' | 'text' | 'splash';
 
@@ -13,10 +14,12 @@ interface Props {
 }
 
 export function NeonSkeleton({ variant = 'card', count = 1, w, h, style }: Props) {
+  const reduceMotion = useReduceMotion();
   const shimmer = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.loop(
+    if (reduceMotion) { shimmer.setValue(0.5); return; }
+    const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(shimmer, {
           toValue: 1, duration: 900, easing: Easing.inOut(Easing.ease),
@@ -27,8 +30,10 @@ export function NeonSkeleton({ variant = 'card', count = 1, w, h, style }: Props
           useNativeDriver: false,
         }),
       ])
-    ).start();
-  }, [shimmer]);
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [shimmer, reduceMotion]);
 
   const opacity = shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.75] });
 

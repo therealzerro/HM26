@@ -5,6 +5,7 @@ import { theme } from '@/constants/theme';
 import { SignalBar } from './SignalBar';
 import { EnergyMeter } from './EnergyMeter';
 import { storage } from '@/lib/storage';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 
 const SIGNAL_COLORS = {
   BOX:    theme.colors.cyan,
@@ -131,6 +132,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
   const tempC = tempColorFor(pick.energy);
   const hitColor = pick.hitType === 'straight' ? theme.colors.gold : theme.colors.cyan;
 
+  const reduceMotion = useReduceMotion();
   const glowAnim = useRef(new Animated.Value(0.3)).current;
   const glowRef = useRef<Animated.CompositeAnimation | null>(null);
   const hitAnim = useRef(new Animated.Value(0.4)).current;
@@ -138,6 +140,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
 
   useEffect(() => {
     if (!isHot) return;
+    if (reduceMotion) { glowAnim.setValue(0.7); return; }
     glowRef.current = Animated.loop(
       Animated.sequence([
         Animated.timing(glowAnim, { toValue: 1, duration: 900, useNativeDriver: false }),
@@ -146,10 +149,11 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
     );
     glowRef.current.start();
     return () => glowRef.current?.stop();
-  }, [isHot]);
+  }, [isHot, reduceMotion]);
 
   useEffect(() => {
     if (!isHit) return;
+    if (reduceMotion) { hitAnim.setValue(0.7); return; }
     hitRef.current = Animated.loop(
       Animated.sequence([
         Animated.timing(hitAnim, { toValue: 1, duration: 1400, useNativeDriver: false }),
@@ -158,7 +162,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
     );
     hitRef.current.start();
     return () => hitRef.current?.stop();
-  }, [isHit]);
+  }, [isHit, reduceMotion]);
 
   const handleTap = () => {
     Haptics.impactAsync(isHot ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light);

@@ -269,8 +269,18 @@ Today the paywall (`app/paywall.tsx:69`) defaults `selectedPlan` to `trial5`. Pr
 ### 7.2 Empty states need personality (P2)
 Most empty states are functional but bland. The slate empty state (`index.tsx:461`) just says "⚡ Computing your K6 Slate…". Replace with rotating playful copy: "ZK6 is consulting the data oracle…", "Sorting through 100,000 historical draws…", "Running 47 cooldown checks…", etc. Cheap personality. **Effort: 1 hour.**
 
-### 7.3 Reduced motion support (P0 accessibility)
-Several screens use animations (Lottie/scroll animations/etc.). Honor `prefers-reduced-motion`. **Effort: 2 hours.**
+### 7.3 Reduced motion support (P0 accessibility) — ✅ Shipped 2026-05-12
+**New hook:** `hooks/useReduceMotion.tsx` subscribes to `AccessibilityInfo.isReduceMotionEnabled` (iOS Settings → Accessibility → Motion → Reduce Motion; Android Settings → Accessibility → Remove animations). Includes a web fallback via `prefers-reduced-motion` media query.
+
+**Animations gated:**
+- `components/PickCard.tsx` — hot-streak `glowAnim` loop and hit `hitAnim` loop both snap to a stable elevated value (0.7) when reduce motion is on, instead of cycling.
+- `components/EnergyMeter.tsx` — pulsing halo + scale loop (energy ≥ 80) snaps to stable values, keeps the glow without animating.
+- `components/HitCelebrationOverlay.tsx` — modal scale-in spring + sparkle burst skipped; modal appears instantly fully visible. Haptic still fires (it's a discrete event, not motion).
+- `components/NeonSkeleton.tsx` — shimmer loop snaps to mid-opacity stable value.
+
+**Why "stable value" not "no glow":** killing all visual feedback would lose state semantics (a hit pick should still look different from a non-hit pick). The pattern is: keep the visual *state* (color, opacity), drop the *change over time* (loops, springs).
+
+**Not gated (intentional):** AVG ENERGY hero pulse animations (the cosmetic accent), refresh control spinner (system component, OS handles its own reduce-motion behavior), and TouchableOpacity press feedback (briefly fades opacity — under 200ms, considered a press affordance not a "motion effect").
 
 ### 7.4 VoiceOver / accessibility labels (P1) — ✅ Shipped 2026-05-12
 **PickCard.tsx:**

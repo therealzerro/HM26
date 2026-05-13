@@ -9,6 +9,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '@/constants/theme';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 
 interface EnergyMeterProps {
   value: number; // 0–100
@@ -44,10 +45,17 @@ export function EnergyMeter({ value, size = 80 }: EnergyMeterProps) {
   const col = energyColor(value);
   const [g1, g2] = energyGradient(value);
   const innerSize = size * 0.72;
+  const reduceMotion = useReduceMotion();
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const hazeAnim  = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
+    if (value >= 80 && reduceMotion) {
+      // Snap to a stable elevated state — keep the glow but skip the loop.
+      pulseAnim.setValue(1);
+      hazeAnim.setValue(0.4);
+      return;
+    }
     if (value >= 80) {
       const scale = Animated.loop(
         Animated.sequence([
@@ -67,7 +75,7 @@ export function EnergyMeter({ value, size = 80 }: EnergyMeterProps) {
       pulseAnim.setValue(1);
       hazeAnim.setValue(0.3);
     }
-  }, [value]);
+  }, [value, reduceMotion]);
 
   const label = energyLabel(value);
   return (

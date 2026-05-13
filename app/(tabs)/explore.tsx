@@ -163,59 +163,64 @@ function GridTile({ pick, onPress }: { pick: PickItem; onPress: () => void }) {
   );
 }
 const gt = StyleSheet.create({
+  // Screenshot surface — every dimension here is chosen so 3 rows of these
+  // tiles fit comfortably on the smallest reasonable phone (~135pt per row
+  // after gridArea padding + row gaps on iPhone SE). Do NOT add vertical
+  // content without compensating elsewhere; the constraint is hard.
   card: {
     flex: 1,
-    // minHeight ensures locked + unlocked tiles in the same row match
-    // height, AND guarantees the signal grid always has room to render.
-    minHeight: 168,
     backgroundColor: theme.colors.card,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1.5,
-    padding: 10,
-    gap: 6,
+    padding: 8,
+    gap: 4,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.35,
     shadowRadius: 10,
     elevation: 3,
   },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  rankChip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 7, borderWidth: 1 },
-  rankNum: { fontSize: 11, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.3 },
+  rankChip: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, borderWidth: 1 },
+  rankNum: { fontSize: 10, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.3 },
   tempBadge: {
-    flexDirection: 'row', alignItems: 'baseline', gap: 4,
-    paddingHorizontal: 7, paddingVertical: 2,
+    flexDirection: 'row', alignItems: 'baseline', gap: 3,
+    paddingHorizontal: 6, paddingVertical: 1,
     borderRadius: 999, borderWidth: 1,
     backgroundColor: 'rgba(20,12,38,0.55)',
     shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 6,
   },
-  tempLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 1, fontFamily: theme.typography.fontFamily.monoBold },
-  tempNum:   { fontSize: 10, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
+  tempLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 0.8, fontFamily: theme.typography.fontFamily.monoBold },
+  tempNum:   { fontSize: 9,  fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
 
+  // Digits stay the visual headline of the screenshot — keep them bold but
+  // a touch smaller than before (was 32/34). adjustsFontSizeToFit handles
+  // narrower screens by shrinking further if needed.
   digits: {
-    fontSize: 32, fontWeight: '900',
+    fontSize: 26, fontWeight: '900',
     fontFamily: theme.typography.fontFamily.monoBold,
-    letterSpacing: 2, lineHeight: 34,
-    textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 10,
+    letterSpacing: 1.5, lineHeight: 28,
+    textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8,
   },
 
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  comboSet: { flex: 1, fontSize: 10, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
+  comboSet: { flex: 1, fontSize: 9, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
   mult: { fontSize: 8, fontWeight: '900', letterSpacing: 1, fontFamily: theme.typography.fontFamily.monoBold },
 
-  // Signal grid — 2×2 layout via row+rowGap. width:48% with horizontal gap:4
-  // wraps to exactly two columns. marginTop pushes it just below the meta row.
-  signalGrid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 4, rowGap: 4, marginTop: 2 },
-  signalCell: { width: '48%', gap: 2 },
+  // Signal grid — single-row 4-cell layout (was 2×2). Each cell ~22% wide
+  // with a thin bar; this packs into one row instead of two, saving ~16pt
+  // vertically and keeping all 4 signals visible at a glance.
+  signalGrid: { flexDirection: 'row', columnGap: 4, marginTop: 'auto' },
+  signalCell: { flex: 1, gap: 1 },
   signalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  signalKey: { fontSize: 9, fontWeight: '900', letterSpacing: 0.5, fontFamily: theme.typography.fontFamily.monoBold },
-  signalVal: { fontSize: 10, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
-  barTrack: { height: 3, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' },
+  signalKey: { fontSize: 8, fontWeight: '900', letterSpacing: 0.4, fontFamily: theme.typography.fontFamily.monoBold },
+  signalVal: { fontSize: 9, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
+  barTrack: { height: 2.5, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' },
   barFill: {
-    height: 3, borderRadius: 2,
+    height: 2.5, borderRadius: 2,
     shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 4,
   },
 
-  lockedRow: { marginTop: 4, alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)' },
+  lockedRow: { marginTop: 'auto', alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)' },
   lockedText: { fontSize: 10, color: theme.colors.textTertiary, fontWeight: '700' },
 });
 
@@ -511,25 +516,22 @@ export default function SlatesScreen() {
       {tab === 'picks' && (
         <>
           {viewMode === 'compact' ? (
-            // Grid view: 2×3 layout, content-sized rows (was flex:1 per row,
-            // which forced height = container/3 and made cards overflow into
-            // the next row — the "signal grid clipped" bug). ScrollView
-            // wrap kicks in only when content > container (small devices),
-            // so on tall phones the layout still fits without scrolling.
-            <ScrollView
-              style={s.gridContainer}
-              contentContainerStyle={s.gridArea}
-              showsVerticalScrollIndicator={false}
-            >
-              {[0, 1, 2].map(row => (
-                <View key={row} style={s.gridRow}>
-                  {filtered.slice(row * 2, row * 2 + 2).map(pick => (
-                    <GridTile key={`grid-${pick.rank}`} pick={pick} onPress={() => pick.locked ? setPaywallOpen(true) : setDetail(pick)} />
-                  ))}
-                  {filtered.slice(row * 2, row * 2 + 2).length < 2 && <View style={{ flex: 1 }} />}
-                </View>
-              ))}
-            </ScrollView>
+            // Grid view (2×3) — SCREENSHOT SURFACE. Per the brand, all 6
+            // picks must fit on one screen with no scroll. Rows take equal
+            // share of available container height (flex:1); the tile
+            // content is dense enough to fit even on iPhone SE.
+            <View style={s.gridContainer}>
+              <View style={s.gridArea}>
+                {[0, 1, 2].map(row => (
+                  <View key={row} style={s.gridRow}>
+                    {filtered.slice(row * 2, row * 2 + 2).map(pick => (
+                      <GridTile key={`grid-${pick.rank}`} pick={pick} onPress={() => pick.locked ? setPaywallOpen(true) : setDetail(pick)} />
+                    ))}
+                    {filtered.slice(row * 2, row * 2 + 2).length < 2 && <View style={{ flex: 1 }} />}
+                  </View>
+                ))}
+              </View>
+            </View>
           ) : (
             <ScrollView
               style={s.content}
@@ -820,10 +822,11 @@ const s = StyleSheet.create({
   listContent: { paddingHorizontal: theme.layout.screenInset, paddingVertical: 14, paddingBottom: 32, gap: 8 },
 
   gridContainer: { flex: 1, backgroundColor: theme.colors.background },
-  // Drop flex:1 — let rows size to natural content height. The ScrollView
-  // wrap handles vertical overflow if content > available screen space.
-  gridArea: { padding: 8, gap: 6 },
-  gridRow: { flexDirection: 'row', alignItems: 'stretch', gap: 6 },
+  // flex:1 on rows lets all 3 rows split the container height evenly.
+  // Tile content (see `gt` below) is sized to fit even when 1/3 of the
+  // smallest reasonable phone (iPhone SE ≈ ~135pt per row) is allocated.
+  gridArea: { flex: 1, padding: 8, gap: 6 },
+  gridRow: { flex: 1, flexDirection: 'row', alignItems: 'stretch', gap: 6 },
 
   sectionTitle: { fontSize: 10, fontWeight: '900', color: theme.colors.textTertiary, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 8 },
 

@@ -45,6 +45,17 @@ const STATE_MAP: Record<string, string> = {
   'Kansas': 'KS',
   'Kentucky': 'KY',
   'Louisiana': 'LA', // Corrected: Explicitly mapped to LA
+  // Tri-State Pick 3: Maine, New Hampshire, Vermont share one drawing.
+  // Lottery-post style sources list each individually AND emit a separate
+  // "Multi-State" header for the same drawing — all four headers map to
+  // the same jurisdiction code so they count as ONE row in histories. The
+  // dedup at the end of parseRawLedgerData drops the redundant 3 of 4.
+  'Maine': 'ME,NH,VT',
+  'New Hampshire': 'ME,NH,VT',
+  'Vermont': 'ME,NH,VT',
+  'Multi-State': 'ME,NH,VT',
+  'Multistate': 'ME,NH,VT',
+  'Multi State': 'ME,NH,VT',
   'Michigan': 'MI',
   'Minnesota': 'MN',
   'Mississippi': 'MS', // CORRECTED: Mapped to MS instead of MSS
@@ -68,9 +79,9 @@ const STATE_MAP: Record<string, string> = {
   'Washington D.C.': 'DC',
   'Washington, D.C.': 'DC',
   'West Virginia': 'WV',
-  'Western Canada': 'W.Canada', // Mapped to W.Canada code
+  'Western Canada': 'W.Canada', // Mapped to W.Canada code — separate from Multi-State
   'Wisconsin': 'WI',
-  // Explicitly mapping multi-state groups if they appear as single lines
+  // Legacy alternate spellings still supported
   'Maine, New Hampshire & Vermont': 'ME,NH,VT',
   'ME, NH & VT': 'ME,NH,VT',
 };
@@ -253,7 +264,15 @@ export function parseRawLedgerData(text: string): ParseLedgerResult {
           continue;
         }
 
-        // Unknown no-tab line — skip silently (page headers, blank labels, etc.)
+        // Unknown no-tab line — CLEAR currentAbbr so the next data line
+        // doesn't get silently mis-attributed to the previous valid state.
+        // Defense-in-depth even after Multi-State / Maine / NH / Vermont
+        // were added to STATE_MAP: any future unrecognized state header
+        // (or page-section label like "Multi-State Lottery") now fails
+        // safe by dropping its data lines rather than corrupting another
+        // state's row.
+        currentAbbr = null;
+        currentStateFullName = null;
         continue;
       }
 
@@ -334,5 +353,21 @@ export function parseRawLedgerData(text: string): ParseLedgerResult {
     return false;
   });
 
-  return { rows: deduped, skipped };
+  // Tri-State (ME,NH,VT) dedup: Maine, New Hampshire, Vermont, and "Multi-State"
+  // all map to the same jurisdiction code (one Pick 3 drawing shared by 3 states).
+  // Lottery-post sources list each header separately + a Multi-State header, so
+  // the parser emits up to 4 identical rows for the same drawing. Keep the first
+  // only, drop the redundant 3.
+  const triStateSeen = new Set<string>();
+  const dedupedTriState = deduped.filter(row => {
+    if (row.jurisdiction !== 'ME,NH,VT') return true;
+    const key = `${row.date_et}-${row.game}-${row.session}`;
+    if (!triStateSeen.has(key)) {
+      triStateSeen.add(key);
+      return true;
+    }
+    return false;
+  });
+
+  return { rows: dedupedTriState, skipped };
 }

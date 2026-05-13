@@ -402,21 +402,14 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
         });
       } else if (importType === 'ledger') {
         const rawEntries: any[] = parsedData.entries ?? [];
-        // Coerce session before dedup + insert so we stay aligned with
-        // useDataIngestion::importLedgerMutation. The engine only knows
-        // midday/evening; night/morning have to be normalized here or the
-        // resulting histories rows produce phantom hit annotations (see
-        // 2026-05-13 audit — 203 uncoerced rows escaped via this path).
-        const coerceSession = (s: string) =>
-          s === 'morning' ? 'midday' : s === 'night' ? 'evening' : s;
-        const coercedEntries = rawEntries.map((r: any) => ({
-          ...r,
-          session: coerceSession(r.session),
-        }));
+        // No session coercion: preserve morning/night as their own sessions
+        // so they don't collide with midday/evening on the unique key. The
+        // engine ignores morning/night for scoring + hit detection (post
+        // BUG-134) so leaving them distinct is safe and preserves data.
         // Deduplicate within the full set before batching — Postgres throws if
         // the same conflict key appears twice in one ON CONFLICT DO UPDATE statement.
         const seenKeys = new Set<string>();
-        const entries = coercedEntries.filter((r: any) => {
+        const entries = rawEntries.filter((r: any) => {
           const k = `${r.jurisdiction}|${r.game}|${r.date_et}|${r.session}`;
           if (seenKeys.has(k)) return false;
           seenKeys.add(k);

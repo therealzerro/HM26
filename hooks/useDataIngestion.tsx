@@ -685,16 +685,16 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
           }
           
           seenDates.add(dateEt);
-          if (entry.session === 'morning') {
-            console.warn('[importLedger] Coercing session "morning" → "midday" for entry:', entry.date_et, entry.jurisdiction);
-          } else if (entry.session === 'night') {
-            console.warn('[importLedger] Coercing session "night" → "evening" for entry:', entry.date_et, entry.jurisdiction);
-          }
+          // Preserve morning/night sessions as-is (no coercion). The engine
+          // ignores them for scoring + hit detection; coercing them to
+          // midday/evening previously caused TN Morning + TN Midday to
+          // collapse onto the same (j, g, d, session) key, silently losing
+          // one of the two draws on insert.
           validEntries.push({
             jurisdiction: entry.jurisdiction,
             game: entry.game,
             date_et: dateEt,
-            session: entry.session === 'morning' ? 'midday' : entry.session === 'night' ? 'evening' : entry.session,
+            session: entry.session,
             result_digits: entry.result_digits,
             comboset_sorted: `{${entry.result_digits.split('').sort().join(',')}}`
           });

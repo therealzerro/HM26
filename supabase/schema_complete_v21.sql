@@ -235,10 +235,16 @@ CREATE TABLE public.adaptive_tracking (
   co_top_quartile      boolean DEFAULT false,
   burst_top_quartile   boolean DEFAULT false,
   created_at           timestamptz NOT NULL DEFAULT now(),
-  result_at            timestamptz
+  result_at            timestamptz,
+  -- 2026-05-13: which jurisdiction + session produced this hit (a box-set
+  -- can draw simultaneously in multiple states/sessions; these record the
+  -- chosen one). Added via migration 2026-05-13_adaptive_tracking_matched_columns.sql
+  matched_state        text,
+  matched_session      text
 );
 
-CREATE INDEX adaptive_date_scope_idx ON public.adaptive_tracking(slate_date, scope);
+CREATE INDEX adaptive_date_scope_idx   ON public.adaptive_tracking(slate_date, scope);
+CREATE INDEX adaptive_matched_state_idx ON public.adaptive_tracking(matched_state) WHERE matched_state IS NOT NULL;
 CREATE INDEX adaptive_hash_idx       ON public.adaptive_tracking(slate_hash);
 CREATE INDEX adaptive_hit_idx        ON public.adaptive_tracking(hit_box) WHERE hit_box IS NOT NULL;
 

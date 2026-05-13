@@ -69,14 +69,17 @@ export async function backfillIntelHits(
 
     for (const pick of picksForDate) {
       // Filter histories to sessions compatible with this pick's slate scope
-      // (mirrors hitDetection.ts:204-213). Night/morning sessions are
-      // intentionally excluded — engine universe is midday/evening only.
-      const validSessions =
-        pick.scope === 'allday'  ? new Set(['midday','evening']) :
-        pick.scope === 'midday'  ? new Set(['midday']) :
-        pick.scope === 'evening' ? new Set(['evening']) :
-                                   new Set<string>();
-      const scopedHistories = histories.filter(r => validSessions.has(r.session));
+      // (mirrors hitDetection.ts session-match rule):
+      //   midday picks  → ONLY midday draws
+      //   evening picks → ONLY evening draws
+      //   allday picks  → ANY session (midday/evening/morning/night)
+      // Allday is intentionally permissive — "any draw all day" is the
+      // user's convention. The midday/evening exclusivity prevents the
+      // cross-scope bleed bug that BUG-132 cleaned up.
+      const scopedHistories =
+        pick.scope === 'allday'
+          ? histories
+          : histories.filter(r => r.session === pick.scope);
       // Box hit: sorted combo set matches
       const boxMatch = scopedHistories.find(r => r.comboset_sorted === pick.combo_set);
       // Straight hit: exact 3-digit match

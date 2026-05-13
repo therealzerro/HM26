@@ -198,15 +198,19 @@ export async function runHitDetectionAndRefresh(
       const combo = pick.combo;
 
       for (const result of results) {
-        // Only match results whose session is compatible with the slate scope:
-        // midday result → midday or allday slate
-        // evening result → evening or allday slate
-        // night/morning sessions are inert — engine's scope universe is
-        // midday/evening only, and some jurisdictions (GA, DE, CT, ID, VA,
-        // DC, TX, TN) have separate late-night/morning draws that are
-        // distinct events and should not bleed into evening/midday hits.
+        // Scope/session match rule (corrected 2026-05-13):
+        //   midday slate  → ONLY midday draws count as hits
+        //   evening slate → ONLY evening draws count as hits
+        //   allday slate  → ANY session counts (midday, evening, morning, night)
+        //
+        // The "any session" semantics for allday is the user's convention:
+        // allday means "any draw all day long," not "midday + evening only."
+        // Morning/night draws in jurisdictions like TX, TN, GA legitimately
+        // count toward allday hits. The cross-scope filter remains for
+        // midday and evening slates (a TX morning draw must not stamp a
+        // midday-slate pick — different temporal events).
         const sessionMatches =
-          (snapshot.scope === 'allday' && (result.session === 'midday' || result.session === 'evening')) ||
+          snapshot.scope === 'allday' ||
           (snapshot.scope === 'midday' && result.session === 'midday') ||
           (snapshot.scope === 'evening' && result.session === 'evening');
         if (!sessionMatches) continue;

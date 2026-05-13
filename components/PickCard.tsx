@@ -6,6 +6,7 @@ import { SignalBar } from './SignalBar';
 import { EnergyMeter } from './EnergyMeter';
 import { storage } from '@/lib/storage';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
+import { useEnergyBandHitRates, bandFor } from '@/hooks/useEnergyBandHitRates';
 
 const SIGNAL_COLORS = {
   BOX:    theme.colors.cyan,
@@ -133,6 +134,13 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
   const hitColor = pick.hitType === 'straight' ? theme.colors.gold : theme.colors.cyan;
 
   const reduceMotion = useReduceMotion();
+  // §2.2 — per-pick "verified by" footer. Look up the historical hit rate
+  // for this pick's energy band. Only render once we have a meaningful
+  // sample (≥ 50 picks); otherwise the rate is too noisy to quote.
+  const { byBand: bandStats } = useEnergyBandHitRates();
+  const bandKey = bandFor(pick.energy);
+  const bandStat = bandKey ? bandStats.get(bandKey) : undefined;
+  const showBandFooter = !!bandStat && bandStat.total >= 50;
   const glowAnim = useRef(new Animated.Value(0.3)).current;
   const glowRef = useRef<Animated.CompositeAnimation | null>(null);
   const hitAnim = useRef(new Animated.Value(0.4)).current;
@@ -442,8 +450,23 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
           </View>
         </View>
 
+        {showBandFooter && bandStat && (
+          <View
+            style={s.verifiedRow}
+            accessibilityRole="text"
+            accessibilityLabel={`Verified by historical record: ${bandStat.total} picks at ${bandKey} energy hit ${Math.round(bandStat.rate * 100)} percent of the time.`}
+          >
+            <Text style={s.verifiedIcon}>✓</Text>
+            <Text style={s.verifiedText} numberOfLines={1}>
+              <Text style={s.verifiedNum}>{bandStat.total}</Text> picks at{' '}
+              <Text style={s.verifiedNum}>{bandKey}</Text> energy hit{' '}
+              <Text style={[s.verifiedNum, { color: theme.colors.cyan }]}>{Math.round(bandStat.rate * 100)}%</Text> historically
+            </Text>
+          </View>
+        )}
+
         {/* Bottom row */}
-        <View style={s.bottomRow}>
+        <View style={[s.bottomRow, showBandFooter && s.bottomRowNoDivider]}>
           {pick.lastSeen && (
             <Text style={s.lastSeenText}>{formatLastSeen(pick.lastSeen)}</Text>
           )}
@@ -574,6 +597,15 @@ const s = StyleSheet.create({
     marginTop: 10, paddingTop: 8,
     borderTopWidth: 1, borderTopColor: theme.colors.border,
   },
+  bottomRowNoDivider: { marginTop: 6, paddingTop: 0, borderTopWidth: 0 },
+  verifiedRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    marginTop: 10, paddingTop: 8,
+    borderTopWidth: 1, borderTopColor: theme.colors.border,
+  },
+  verifiedIcon: { fontSize: 10, color: theme.colors.cyan, fontWeight: '900' },
+  verifiedText: { flex: 1, fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
+  verifiedNum: { color: theme.colors.textSecondary, fontWeight: '800', fontFamily: theme.typography.fontFamily.monoBold },
   lastSeenText: { fontSize: 10, color: theme.colors.textTertiary, flex: 1 },
   shareBtn: {
     backgroundColor: theme.colors.bgElevated, borderRadius: 8,

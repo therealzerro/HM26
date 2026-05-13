@@ -85,14 +85,26 @@ Subscribers don't churn because we miss. They churn because they suspect we're a
 **Why absorbed:** the unified hero (§1.3) already shows `73.1% · HIT RATE` as one of three top-of-screen columns — adding a duplicate ribbon at the bottom would be redundant. The "87 slates tracked · Wilson 95% CI" framing was also operator-statistics jargon that conflicts with the consumer-grade voice rule (see [memory](../memory/feedback_subscriber_copy_voice.md)).
 **Net result:** the trust signal is delivered once, prominently, in subscriber voice. Subscribers see the rate the second they open the app. If a richer track-record surface is desired later, build it as §2.6 ("Verified hit ledger page") rather than a duplicate ribbon.
 
-### 2.2 Per-pick "verified by" footer (P1)
+### 2.2 Per-pick "verified by" footer (P1) — ✅ Shipped 2026-05-13
 Under each pick card, when the pick has been historically evaluated, show: "245 picks of this energy band (90–100) have hit at **76%** historically." This converts abstract energy scores into concrete probability talk. We have the data in `daily_intelligence`. **Effort: 1 day.**
+
+**Shipped:**
+- New `hooks/useEnergyBandHitRates.tsx` — single global query (1h staleTime, dedupes across all rendered PickCards via React Query) that pulls 60 days of `daily_intelligence` rows for ZK6 modes only (`balanced/conservative/aggressive` — excludes zk30 to keep the rate national, not per-state), groups by energy band, returns hit count + total + rate per band. Exposes `bandFor(energy)` helper.
+- Bands: `90-100`, `80-89`, `70-79`, `60-69`, `<60`.
+- `components/PickCard.tsx` — new "verified by" row above the bottom row (only when sample ≥ 50 picks in that band; otherwise the rate is too noisy to quote): `✓ 245 picks at 90-100 energy hit 76% historically`. Border-top hairline shared with bottom row collapses neatly when both are present.
+- Locked PickCard rows (free tier preview) skip the footer — they're already in their own render branch with no bottom controls.
 
 ### 2.3 "Open the engine" tappable explainer (P2)
 A "How was this pick made?" link on every pick card opens a sheet with the BOX/PBURST/CO/DGC signal breakdown as a horizontal bar chart, plus the cooldown status ("last seen 14 days ago"), the box-set frequency over the last year, and what got rejected for rail reasons. Most subscribers will never tap it — but its existence kills the "is this just random?" suspicion in one stroke. **Effort: 2 days.**
 
-### 2.4 Surface the engine version and timestamp (P2)
+### 2.4 Surface the engine version and timestamp (P2) — ✅ Shipped 2026-05-13
 Today the home shows "Powered by ZK6 Engine" as a static subtitle. Replace with "ZK6 v2.0 · slate generated 11:43 AM ET" so subscribers can see freshness. When data is stale (e.g., post-5/12 if rebuild hasn't run), show a yellow "🟡 Engine inputs last refreshed 2h ago" warning. **Effort: 2 hours.**
+
+**Shipped:**
+- New `ZK6_ENGINE_VERSION = 'v2.0'` constant in `constants/zk6.ts` — single source of truth. Bumped on behaviorally-relevant math/config changes, not on UI tweaks.
+- `app/(tabs)/index.tsx` Home subtitle reads `ZK6 v2.0 · slate generated 11:43 AM ET` when the snapshot is today's, parsed from `useSnapshot().lastUpdate`.
+- Stale fallback: when `snapshot.slate_date < todayET`, swaps to `🟡 Engine inputs last refreshed Xh ago` (or `Xd ago` past 24h) using `snapshot.updated_at_et`. Subtitle text color shifts to `theme.colors.warning` (#ffcc00) so the warning reads at a glance.
+- No-snapshot fallback: bare `ZK6 v2.0` (no version-less or "Powered by" copy ever shipped to subscribers).
 
 ### 2.5 "Confidence ribbon" on the slate — ✅ Shipped 2026-05-12
 **Where:** `app/(tabs)/index.tsx` — small pill in the K6 SLATE header row, with optional sub-line below for the LOW case.

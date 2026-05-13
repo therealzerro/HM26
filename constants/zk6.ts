@@ -3,6 +3,12 @@
 
 import { HorizonLabel } from '@/types/core';
 
+// Engine version shown to subscribers (enhancements §2.4). Bump on
+// behaviorally-relevant math/config changes — not on UI tweaks. Current
+// line is the 2026-05-12 post-stabilization build (BOX max-norm, pair
+// ds_raw rebuild, fixed cooldown tier, quality floor 70).
+export const ZK6_ENGINE_VERSION = 'v2.0';
+
 // Default ZK6 Component Weights
 // Updated 2026-04: BOX signal empirically strongest predictor on real hit data
 // (avg 0.859 on hits vs 0.763 on misses); PBURST/CO were inversely correlated.

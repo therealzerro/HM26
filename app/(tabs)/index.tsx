@@ -60,6 +60,7 @@ import { fetchFromSupabase } from '@/lib/supabase';
 import { storage } from '@/lib/storage';
 import { getTodayET } from '@/lib/dateUtils';
 import { RegenConfirmationModal } from '@/components/RegenConfirmationModal';
+import { ZK6_ENGINE_VERSION } from '@/constants/zk6';
 
 function toComboSet(combo: string) { return '{' + combo.split('').sort().join(',') + '}'; }
 function energyColor(e: number) {
@@ -268,7 +269,7 @@ const os = StyleSheet.create({
 
 // ─── Home Screen ─────────────────────────────────────────────────────────
 export default function HomeScreen() {
-  const { snapshot, refreshSnapshot, isLoading: snapshotLoading, hitPicks, activePicks } = useSnapshot();
+  const { snapshot, refreshSnapshot, isLoading: snapshotLoading, hitPicks, activePicks, lastUpdate } = useSnapshot();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { scope, setScope: setScopeRaw } = useScope();
@@ -508,6 +509,34 @@ export default function HomeScreen() {
       }));
   }, [hitPicks, todayResults]);
 
+  // §2.4 — engine version + freshness subtitle. Snapshot's `slate_date`
+  // tells us whether the slate is for today or a stale yesterday-and-prior.
+  // `lastUpdate` is already a formatted local time string from useSnapshot.
+  const engineFreshness = useMemo(() => {
+    if (!snapshot) return { stale: false, text: `ZK6 ${ZK6_ENGINE_VERSION}` };
+    const today = getTodayET();
+    const slateDate = (snapshot as any)?.slate_date as string | undefined;
+    const isToday = !!slateDate && slateDate === today;
+    if (!isToday && slateDate) {
+      // Compute hours since update for the warning copy. Fall back gracefully
+      // if updated_at_et is missing.
+      const updatedAt = (snapshot as any)?.updated_at_et as string | undefined;
+      let agoLabel = 'earlier';
+      if (updatedAt) {
+        const ms = Date.now() - new Date(updatedAt).getTime();
+        const hours = Math.max(1, Math.round(ms / 3_600_000));
+        agoLabel = hours < 24 ? `${hours}h ago` : `${Math.round(hours / 24)}d ago`;
+      }
+      return { stale: true, text: `🟡 Engine inputs last refreshed ${agoLabel}` };
+    }
+    if (!lastUpdate) return { stale: false, text: `ZK6 ${ZK6_ENGINE_VERSION}` };
+    // lastUpdate is e.g. "May 13, 11:43 AM" — keep only the time portion for
+    // the subtitle ("slate generated 11:43 AM ET"); the date is implicit (today).
+    const timeMatch = lastUpdate.match(/\d{1,2}:\d{2}\s?(?:AM|PM)/i);
+    const timeStr = timeMatch ? `${timeMatch[0]} ET` : lastUpdate;
+    return { stale: false, text: `ZK6 ${ZK6_ENGINE_VERSION} · slate generated ${timeStr}` };
+  }, [snapshot, lastUpdate]);
+
   const hitBanner = useMemo(() => {
     if (!todayResults || !Array.isArray(todayResults) || todayResults.length === 0) return null;
     for (const result of todayResults) {
@@ -701,7 +730,12 @@ export default function HomeScreen() {
           <View style={s.headerTop}>
             <View style={{ flex: 1 }}>
               <Text style={s.title}>Today's <Text style={{ color: theme.colors.cyan }}>Picks</Text> ⚡</Text>
-              <Text style={s.subtitle}>Powered by ZK6 Engine</Text>
+              <Text
+                style={[s.subtitle, engineFreshness.stale && { color: theme.colors.warning ?? theme.colors.gold }]}
+                accessibilityLabel={engineFreshness.text}
+              >
+                {engineFreshness.text}
+              </Text>
             </View>
             <View style={{ alignItems: 'flex-end', gap: 4 }}>
               <View style={[s.tierBadge, { backgroundColor: currentTier === 'FREE' ? theme.colors.free : currentTier === 'PRO' ? theme.colors.premium : theme.colors.admin }]}>

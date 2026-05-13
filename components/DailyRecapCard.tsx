@@ -57,9 +57,35 @@ export function DailyRecapCard() {
     staleTime: 5 * 60 * 1000,
   });
 
-  if (hour < 20 || hits.length === 0) return null;
+  if (hour < 20) return null;
 
-  // Pick the most "impressive" hit for the headline (prefer straight, then most recent session).
+  // Miss-day branch (§3.2 absorbed into §3.3): on 0-hit days after 8 PM ET,
+  // still render a "tomorrow preview" so users who open late aren't left
+  // with no signal at all. Pulls them back tomorrow without manufacturing
+  // false enthusiasm.
+  if (hits.length === 0) {
+    return (
+      <TouchableOpacity
+        style={[s.card, { borderColor: theme.colors.purple + '66' }]}
+        onPress={() => router.push('/track-record')}
+        accessibilityRole="button"
+        accessibilityLabel="Day's done. Tap to see recent track record."
+        activeOpacity={0.85}
+      >
+        <View style={s.headerRow}>
+          <Text style={[s.label, { color: theme.colors.purple }]}>🌙 DAY'S DONE</Text>
+          <Text style={s.chev}>›</Text>
+        </View>
+        <Text style={s.line1}>
+          <Text style={s.bold}>0</Text> verified hits today
+        </Text>
+        <Text style={s.line3}>Tomorrow's slate is fresh after the evening import lands.</Text>
+      </TouchableOpacity>
+    );
+  }
+
+  // Hit-day branch: pick the most "impressive" hit for the headline
+  // (prefer straight, then most recent session).
   const sessionOrder: Record<string, number> = { morning: 0, midday: 1, evening: 2, night: 3 };
   const sorted = [...hits].sort((a, b) => {
     if (a.hit_straight && !b.hit_straight) return -1;

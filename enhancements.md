@@ -127,8 +127,16 @@ The app needs to be the first thing they check in the morning and the last thing
 **Phase 3 deferred — paid streak restore modal:** "You broke your N-day streak yesterday. Tap to restore for $0.99." requires StoreKit/Google Play wiring (see Phase 3 / [BUG-65](#)). UI surface waits until subscription infrastructure lands.
 **Why:** Duolingo's streak is the single most studied retention mechanic in apps. Pick 3 players are emotionally similar to language learners — daily ritual, small daily wins, fear of breaking the chain.
 
-### 3.2 "Tomorrow's slate" preview at 9 PM ET (P2)
-After the evening draw at 7:30 PM, around 9 PM ET show a card on Home: "Tomorrow's slate is being prepared — first analysis runs at 4 AM ET." Optional bell icon: "Notify me when ready." This turns "I'll check tomorrow" into "I'll be notified when the next slate drops." **Effort: half-day.**
+### 3.2 "Tomorrow's slate" preview at 9 PM ET (P2) — ✅ Absorbed into §3.3 DailyRecapCard 2026-05-13
+**What §3.2 actually adds beyond §3.3:** visibility on miss days. §3.3 originally only showed when there were verified hits today; on a 0-hit day at 10 PM the user saw nothing about tomorrow.
+**Resolution:** extended `DailyRecapCard` with a miss-day branch. After 8 PM ET, the card renders in one of two states:
+- **Hit day:** gold border, `📊 TODAY'S RECAP · N hits · top combo · forward line`
+- **Miss day:** purple border, `🌙 DAY'S DONE · 0 hits today · forward line`
+Both tap → `/track-record`. Single component, single slot on Home.
+**Honest copy deviations from doc:**
+- "First analysis runs at 4 AM ET" dropped — there is no 4 AM auto-regen. The current pipeline regenerates after the evening daily-input import (automated via §C edge function trigger from 2026-05-12).
+- "Notify me when ready" bell deferred — push, blocked on §1.4 phase 2.
+**Why merge rather than two cards:** §3.2 and §3.3 share the same post-evening time window, the same Home slot, and the same goal (pull users back / set tomorrow's expectation). Two separate cards would compete and double the chrome for the same intent.
 
 ### 3.3 Daily summary widget (push or in-app card) (P1) — ✅ In-app variant Shipped 2026-05-13
 **New component:** `components/DailyRecapCard.tsx`. Renders on Home below the LastHitPill (between LastHitPill and the unified hero band).

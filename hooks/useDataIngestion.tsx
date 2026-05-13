@@ -12,6 +12,8 @@ import { computeSlate } from '@/engines/zk6';
 import { HORIZON_WEIGHTS } from '@/constants/zk6';
 import { storage } from '@/lib/storage';
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
+import { runDailyRebuild } from '@/lib/rebuildTrigger';
+import { useToast } from '@/components/Toast';
 
 interface DataIngestionState {
   importHistory: (data: HistoryImportData) => Promise<ImportSummary>;
@@ -83,6 +85,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
   const { user } = useAuth();
   const { scope: selectedScope } = useScope();
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const isAdmin = user?.role === 'admin';
 
   const isUuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-fA-F-]{36}$/.test(v);
@@ -521,8 +524,10 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
         // in case we later redesign this path to use DrawsSince correctly.
         console.log(
           '[importDaily] CSV received with', data.combos.length, 'combos for scope',
-          data.scope, '— ds_raw updates suppressed (BUG-130). Run',
-          '`npm run rebuild:datasets -- --apply` to refresh from histories.',
+          data.scope, '— ds_raw updates suppressed (BUG-130).',
+          data.scope === 'evening'
+            ? 'Auto-rebuild will fire from onSuccess.'
+            : 'Manual rebuild via npm run rebuild:datasets, or wait for the evening import to trigger it.',
         );
 
         await fetchFromSupabase({ path: `/rest/v1/imports?id=eq.${importId}`, method: 'PATCH', body: { status: 'completed' } });
@@ -554,13 +559,39 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
         throw new Error(message);
       }
     },
-    onSuccess: () => {
+    onSuccess: (_summary, variables) => {
       queryClient.removeQueries({ queryKey: ['snapshot'] });
       queryClient.invalidateQueries({ queryKey: ['snapshot'] });
       queryClient.invalidateQueries({ queryKey: ['audit_logs'] });
       queryClient.invalidateQueries({ queryKey: ['coverage'] });
       queryClient.invalidateQueries({ queryKey: ['v_recent_ledger'] });
       queryClient.invalidateQueries({ queryKey: ['daily_intelligence_hits'] });
+
+      // Auto-trigger ds_raw rebuild after evening daily input. Once-per-day
+      // dedupe handled inside runDailyRebuild via the rebuild_last_date
+      // storage flag. Async — does not block the import response.
+      if (variables?.scope === 'evening') {
+        showToast('🔧 Rebuilding datasets from histories…', 'info');
+        runDailyRebuild()
+          .then(result => {
+            if ('skipped' in result) {
+              showToast(`Rebuild skipped — ${result.reason}`, 'info');
+              return;
+            }
+            const seconds = (result.durationMs / 1000).toFixed(1);
+            showToast(
+              `✓ Datasets refreshed · ${result.totalUpdated} of ${result.totalChecked} rows updated · ${seconds}s`,
+              'success',
+            );
+            queryClient.invalidateQueries({ queryKey: ['snapshot'] });
+            queryClient.invalidateQueries({ queryKey: ['audit_logs'] });
+          })
+          .catch(err => {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.warn('[useDataIngestion] daily rebuild failed:', msg);
+            showToast(`Rebuild failed: ${msg.slice(0, 80)}`, 'error');
+          });
+      }
     }
   });
 

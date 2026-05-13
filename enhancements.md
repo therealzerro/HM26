@@ -247,8 +247,10 @@ After running a heat check on a combo, offer a "Share this analysis" button that
 **Placement:** above the trending box-sets band (high in the visual hierarchy, below the hero).
 **Phase 2 deferred — push notification:** the doc spec said "push them" but real push requires §1.4 phase 2 infrastructure (still blocked on EAS Build pipeline). When push lands, swap the in-app banner for a foreground push trigger; banner stays as fallback when the app is already open.
 
-### 6.3 "Save your streak" upsell (P2)
-Tie streak (3.1) to monetization: streak breaks → "Restore your 12-day streak for $0.99" → micropayment. Even users who don't subscribe to monthly might do micro-purchases. **Effort: included in 3.1.**
+### 6.3 "Save your streak" upsell (P2) — ⏳ Deferred 2026-05-12 (blocked on Phase 3, see §3.1)
+**Spec:** when a user's streak breaks, surface a `Restore your N-day streak for $0.99` micropayment offer. Even users who won't pay $9.99/mo may grab a $0.99 streak-saver.
+**Why deferred:** identical blocker to §3.1 phase 3 and §6.4 — needs StoreKit/Google Play IAP wired (currently stubbed in `useAuth.tsx`). Building the modal UI today without working IAP would promise a payment flow we can't process. The streak-detection scaffolding (`daily_streak`, `streak_freezes_available`) is already in place from §3.1 phases 1+2; this entry adds only the modal + IAP call.
+**Resume when:** Phase 3 subscriptions land. At that point, this is a small ~3-4 hour add: detect day-after-break (`diffDays > 2 OR (diffDays === 2 && freezes === 0)`), show modal on next open, wire to a `restoreStreak` IAP product. If using RevenueCat (per §6.4), this is one consumable product with a server callback that bumps `daily_streak` back to its pre-break value.
 
 ### 6.4 Friend-of-a-subscriber discount (P2) — ⏳ Deferred 2026-05-12 (blocked on Phase 3)
 **Spec:** Pro subscriber's first-time invitee gets 50% off month 1; inviter gets a free month if the invitee subscribes. Asymmetric reward favors the inviter to drive repeat invites.

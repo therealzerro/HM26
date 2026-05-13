@@ -18,8 +18,8 @@
 
 **The four highest-leverage gaps are:**
 
-1. **The Intelligence screen — your most valuable content — is unreachable from the bottom tab bar** (`app/(tabs)/_layout.tsx:112` has it set to `href: null`). All the per-signal AUC, hit-rate analytics, and rank-band breakdown live there. New subscribers never see this; existing ones forget it exists. This is the single highest-ROI fix in the document.
-2. **The tab bar shows 7 tabs including a broken ZK30 tab** that the engine team has explicitly locked out of production work. Subscribers tapping that tab today are tapping a known-broken surface — exactly the wrong first impression.
+1. ~~**The Intelligence screen — your most valuable content — is unreachable from the bottom tab bar**~~ ❌ Rejected 2026-05-13 — Intelligence is the **admin backend**, not a Seeker/Oracle+ surface. Reached via triple-tap → admin → IntelligenceRouteView. Original recommendation reflected an incorrect assumption about target audience. See §1.1.
+2. ~~**The tab bar shows 7 tabs including a broken ZK30 tab**~~ ✅ Shipped 2026-05-13 — see §1.2 (Option A).
 3. **There is no "track record" surface anywhere in the app.** The engine has a measured 73% slate hit rate. Subscribers should see "HitMaster hit on 6 of the last 7 days. Today's slate energy: 87." as the first thing on Home. We have this data; we hide it.
 4. **Win celebrations are weak and loss explanations are absent.** When a pick hits, the app shows a small cyan banner. When the slate misses, the app shows nothing — no acknowledgment, no "here's what got close, here's why tomorrow is different." Lottery players live on emotional swings; both moments are leverage we currently leave on the table.
 
@@ -29,16 +29,14 @@ The rest of this document is a prioritized list of concrete, mostly-small change
 
 ## 1. P0 — Fix First (this week)
 
-### 1.1 Restore the Intelligence tab
-**Where:** `app/(tabs)/_layout.tsx:112`
-**Change:** Remove `href: null`, add a tab entry between Results and Number Book with emoji `🧠` and label "Intel."
-**Why:** Intelligence is where subscribers see top-30 picks with per-signal breakdown, hit annotations, and the rank-band hit-rate chart. It's the single richest data surface in the app and currently has zero discovery. Estimated effort: **10 minutes**. Estimated retention impact: **high**.
+### 1.1 Restore the Intelligence tab — ❌ Rejected 2026-05-13
+**Original recommendation:** Surface Intelligence as a public tab.
+**Why rejected:** Intelligence is the **admin/operator backend** for tuning, audit, and signal diagnostics — it's not a subscriber-facing surface. Free (Seeker) and Premium (Oracle+) users should never see it. Admins reach it via the existing path: triple-tap avatar on Profile → admin route → IntelligenceRouteView. Leaving `href: null` is correct.
+**Reviewer note:** original recommendation was based on a misread of the Intelligence screen's audience. The per-signal AUC, hit-rate analytics, and rank-band breakdown are operator tools — exposing them to subscribers would create more confusion (and potentially undermine the engine's mystique) than value. If we want subscriber-facing analytics, build a separate, simpler "Track Record" surface (see §1.3 / §2.1 / §2.6) rather than exposing the operator UI.
 
-### 1.2 Hide or rename the ZK30 tab
-**Where:** `app/(tabs)/_layout.tsx:76-82`
-**Options:**
-- **A (recommended):** set `href: null` until ZK30 is verified stable per the 2026-05-19 review (see `MEMORY.md`)
-- **B:** rename to "🔮 ZK30 Lab" with a small "BETA" pill, AND wrap the screen in an EmptyState that says "Coming after ZK6 verification — currently in lab. ETA week of May 19." Don't let users hit a broken surface without context.
+### 1.2 Hide or rename the ZK30 tab — ✅ Shipped 2026-05-13 (Option A)
+**Where:** `app/(tabs)/_layout.tsx`
+**Change:** Set `href: null` on the ZK30 tab until 2026-05-19 verification window closes. Will revisit if ZK6 hits ≥73% over 7d post-fix per CLAUDE.md ZK30 unlock gate.
 
 ### 1.3 Add a "Today's Track Record" hero band
 **Where:** `app/(tabs)/index.tsx` — between the AVG ENERGY hero stat (line 397) and the hit banner.

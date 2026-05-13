@@ -74,13 +74,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="zk30"
-        options={{
-          title: 'ZK30',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🎯" label="ZK30" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
         name="results"
         options={{
           title: 'Results',
@@ -108,6 +101,7 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => <TabIcon emoji="♛" label="Profile" focused={focused} />,
         }}
       />
+      <Tabs.Screen name="zk30" options={{ href: null }} />
       <Tabs.Screen name="coverage" options={{ href: null }} />
       <Tabs.Screen name="intelligence" options={{ href: null }} />
       <Tabs.Screen name="admin" options={{ href: null }} />

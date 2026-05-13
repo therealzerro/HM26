@@ -200,8 +200,10 @@ A new tab or section: "Today's hits feed" — a chronological stream of every co
 ### 5.3 Heat check social share (P2)
 After running a heat check on a combo, offer a "Share this analysis" button that screenshots the breakdown into a brandable PNG. Powerful word-of-mouth tool — users explaining a heat check to friends become evangelists. **Effort: half-day.**
 
-### 5.4 Engine confidence quiz / onboarding ritual (P2)
-A 60-second onboarding game: "We'll show you 5 pairs of combos. Pick which one you think is more likely to hit today. We'll show you which one ZK6 picked and why." Establishes the "you can't beat the engine" intuition in 60 seconds. **Effort: 2 days.**
+### 5.4 Engine confidence quiz / onboarding ritual (P2) — ⏳ Deferred 2026-05-12
+**Spec:** 60-second 5-round mini-game where the user picks between two combos per round; reveal shows which ZK6 picked and why. Final summary: "ZK6 agreed X/5 times."
+**Why deferred:** multi-day investment (~6-8 hrs for the full flow including onboarding insertion + plausible-pair generation + reveal UI + summary share card). The "you can't beat the engine" intuition this builds is valuable but speculative — no data yet shows current engagement (§3.1 streak v2, §4.1 celebration, §1.5 loss card, §5.5 sparkline, §5.6 trending) is insufficient on its own. Better to ship and measure those first, then decide whether the quiz adds incremental retention.
+**Resume when:** a few weeks of post-launch data show either (a) onboarding completion is good but day-7 retention dips (quiz could deepen the ritual), or (b) subscribers report not understanding why the engine picked what it picked (quiz teaches the signal vocabulary).
 
 ### 5.5 Daily energy chart on Home (P2) — ✅ Shipped 2026-05-12
 **Where:** Home, between the unified hero band and the Hit Streak banner.

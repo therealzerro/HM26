@@ -211,7 +211,14 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
             <Text style={[s.combo, { color: theme.colors.textTertiary }]}>•  •  •</Text>
           </View>
         </View>
-        <TouchableOpacity style={s.lockOverlay} activeOpacity={0.85} onPress={handleUnlock}>
+        <TouchableOpacity
+          style={s.lockOverlay}
+          activeOpacity={0.85}
+          onPress={handleUnlock}
+          accessibilityRole="button"
+          accessibilityLabel={`Pick ${pick.rank} locked — Oracle+ only`}
+          accessibilityHint="Double tap to upgrade and unlock all 6 picks."
+        >
           <Text style={s.lockTitle}>♛ Pick #{pick.rank} — Oracle+</Text>
           <View style={s.lockBadge}>
             <Text style={s.lockBadgeText}>UPGRADE TO ORACLE+</Text>
@@ -237,7 +244,15 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
         !isHit && isHot && { shadowColor: heat.color, shadowOpacity: glowAnim as unknown as number, shadowRadius: 12, elevation: 8 },
       ]}
     >
-      <TouchableOpacity onPress={handleTap} onLongPress={handleLongPress} delayLongPress={600} activeOpacity={0.85}>
+      <TouchableOpacity
+        onPress={handleTap}
+        onLongPress={handleLongPress}
+        delayLongPress={600}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel={`Pick ${pick.rank}, combo ${pick.combo.split('').join(' ')}, energy ${pick.energy} ${heat.label}${isHit ? `, hit — ${pick.hitType === 'straight' ? 'straight' : 'box'}${pick.hitResult ? ` ${pick.hitResult}` : ''}` : ''}`}
+        accessibilityHint="Double tap to open pick details. Long press to share."
+      >
         {/* ── HIT banner ── */}
         {isHit && (
           <View style={[s.hitBanner, { backgroundColor: hitColor + '18', borderColor: hitColor + '50' }]}>
@@ -423,7 +438,13 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
           {pick.lastSeen && (
             <Text style={s.lastSeenText}>{formatLastSeen(pick.lastSeen)}</Text>
           )}
-          <TouchableOpacity onPress={handleShare} style={s.shareBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity
+            onPress={handleShare}
+            style={s.shareBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Share pick ${pick.combo}`}
+          >
             <Text style={s.shareBtnText}>📤 Share</Text>
           </TouchableOpacity>
         </View>

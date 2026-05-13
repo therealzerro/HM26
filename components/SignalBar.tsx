@@ -21,9 +21,16 @@ const BAR_MAX = 60;   // spec — max fill width in px
 export function SignalBar({ label, value, color }: SignalBarProps) {
   const pct = Math.min(Math.max(value, 0), 1);
   const fillW = pct * BAR_MAX;
+  const valuePct = Math.round(pct * 100);
 
   return (
-    <View style={s.row}>
+    <View
+      style={s.row}
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={`${label} signal`}
+      accessibilityValue={{ min: 0, max: 100, now: valuePct, text: `${valuePct} of 100` }}
+    >
       <Text style={s.label}>{label}</Text>
       <View style={s.track}>
         <View
@@ -43,7 +50,7 @@ export function SignalBar({ label, value, color }: SignalBarProps) {
           ]}
         />
       </View>
-      <Text style={[s.val, { color }]}>{Math.round(pct * 100)}</Text>
+      <Text style={[s.val, { color }]}>{valuePct}</Text>
     </View>
   );
 }

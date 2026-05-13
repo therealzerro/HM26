@@ -271,8 +271,22 @@ Most empty states are functional but bland. The slate empty state (`index.tsx:46
 ### 7.3 Reduced motion support (P0 accessibility)
 Several screens use animations (Lottie/scroll animations/etc.). Honor `prefers-reduced-motion`. **Effort: 2 hours.**
 
-### 7.4 VoiceOver / accessibility labels (P1)
-PickCard, signal bars, energy meters all lack screen-reader labels. Add `accessibilityLabel` and `accessibilityHint` on the major interactive elements. Quick wins are listed in `PickCard.tsx`, `SignalBar.tsx`, `EnergyMeter.tsx`. **Effort: half-day.**
+### 7.4 VoiceOver / accessibility labels (P1) — ✅ Shipped 2026-05-12
+**PickCard.tsx:**
+- Main TouchableOpacity now has `accessibilityRole="button"`, `accessibilityLabel` (e.g., "Pick 1, combo 2 4 8, energy 87 BLAZING, hit — straight 248"), and `accessibilityHint` ("Double tap to open pick details. Long press to share.").
+- Share button labeled "Share pick {combo}".
+- Locked variant labeled "Pick {N} locked — Oracle+ only" with hint "Double tap to upgrade and unlock all 6 picks."
+
+**SignalBar.tsx:**
+- Wrapped in an `accessibilityRole="progressbar"` View with `accessibilityValue` (`min/max/now/text`) so VoiceOver reads "BOX signal, 87 of 100" instead of skipping over it as decorative.
+
+**EnergyMeter.tsx:**
+- Same `progressbar` treatment with label `"Energy: 87, BLAZING"` and value `"87 of 100, BLAZING"`.
+
+**Other accessibility work shipped earlier this session (not part of this entry but relevant):**
+- Tab bar icons in `app/(tabs)/_layout.tsx` had `accessibilityLabel` from prior work; §7.7 added "—new hits" suffix when the badge is present.
+- Slates page `viewToggle` and `scopeBigBtn` got `accessibilityRole="tab"` + `accessibilityState` from §6.1 work.
+- LockedPicksSummary "Watch ad" buttons got `accessibilityLabel="Watch ad to unlock pick {N}"`.
 
 ### 7.5 Dynamic Type support (P2)
 The mono-font picks lock at `combo: 38` (`theme.ts:145`). On a user's accessibility-large font setting, they overflow. Wrap combos in PickCard with `allowFontScaling={true}` and test at 200% type size. **Effort: 2 hours.**

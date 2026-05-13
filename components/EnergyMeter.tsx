@@ -69,8 +69,15 @@ export function EnergyMeter({ value, size = 80 }: EnergyMeterProps) {
     }
   }, [value]);
 
+  const label = energyLabel(value);
   return (
-    <View style={{ width: size, height: size + 16, alignItems: 'center' }}>
+    <View
+      style={{ width: size, height: size + 16, alignItems: 'center' }}
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={`Energy: ${value}, ${label}`}
+      accessibilityValue={{ min: 0, max: 100, now: value, text: `${value} of 100, ${label}` }}
+    >
       {/* Animated glow halo — only for 80+ */}
       {value >= 80 && (
         <Animated.View
@@ -112,7 +119,7 @@ export function EnergyMeter({ value, size = 80 }: EnergyMeterProps) {
       </LinearGradient>
 
       <Text style={[s.label, { color: col, fontSize: size * 0.12, marginTop: 4 }]}>
-        {energyLabel(value)}
+        {label}
       </Text>
     </View>
   );

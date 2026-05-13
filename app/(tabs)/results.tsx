@@ -37,22 +37,8 @@ import { Calendar, MoreHorizontal, Search, X } from 'lucide-react-native';
 import { EmptyState } from '@/components/EmptyState';
 import { ScreenHeader } from '@/components/ScreenHeader';
 
-// ─── tokens ─────────────────────────────────────────────────────────────
-const D = {
-  bg:       theme.colors.background,
-  surface:  theme.colors.bgElevated,
-  surface2: theme.colors.surface2,
-  border:   theme.colors.border,
-  purple:   theme.colors.purple,
-  teal:     theme.colors.cyan,
-  amber:    theme.colors.gold,
-  orange:   theme.colors.amber,
-  violet:   theme.colors.purple,
-  indigo:   theme.colors.blue,
-  text:     theme.colors.text,
-  textSub:  theme.colors.textSecondary,
-  textDim:  theme.colors.textTertiary,
-};
+// Local D color alias map removed (design.md step 6) — every reference
+// now uses theme.colors.* directly so grep-for-cyan finds this file.
 
 interface LedgerRow {
   jurisdiction: string; game: string; date_et: string; session: string; result_digits: string; comboset_sorted?: string;
@@ -130,26 +116,26 @@ function StatsSheet({ visible, onClose, stats, selectedDate }: {
 
           <Text style={ss.sectionTitle}>Session breakdown</Text>
           <View style={ss.grid}>
-            <Stat n={stats.morn}  label="🌅 Morning" c={D.orange} />
-            <Stat n={stats.mid}   label="☀️ Midday"  c={D.amber}  />
-            <Stat n={stats.eve}   label="🌙 Evening" c={D.violet} />
-            <Stat n={stats.night} label="🌑 Night"   c={D.indigo} />
+            <Stat n={stats.morn}  label="🌅 Morning" c={theme.colors.amber} />
+            <Stat n={stats.mid}   label="☀️ Midday"  c={theme.colors.gold}  />
+            <Stat n={stats.eve}   label="🌙 Evening" c={theme.colors.purple} />
+            <Stat n={stats.night} label="🌑 Night"   c={theme.colors.blue} />
           </View>
 
           <Text style={ss.sectionTitle}>Totals</Text>
           <View style={ss.bigRow}>
             <View style={ss.bigStat}>
-              <Text style={[ss.bigNum, { color: D.text }]}>{stats.total}</Text>
+              <Text style={[ss.bigNum, { color: theme.colors.text }]}>{stats.total}</Text>
               <Text style={ss.bigLabel}>Total draws</Text>
             </View>
             <View style={ss.divider} />
             <View style={ss.bigStat}>
-              <Text style={[ss.bigNum, { color: D.teal }]}>{stats.hits}</Text>
+              <Text style={[ss.bigNum, { color: theme.colors.cyan }]}>{stats.hits}</Text>
               <Text style={ss.bigLabel}>🎯 ZK6 hits</Text>
             </View>
             <View style={ss.divider} />
             <View style={ss.bigStat}>
-              <Text style={[ss.bigNum, { color: D.amber }]}>
+              <Text style={[ss.bigNum, { color: theme.colors.gold }]}>
                 {stats.total > 0 ? Math.round((stats.hits / stats.total) * 100) : 0}%
               </Text>
               <Text style={ss.bigLabel}>Hit rate</Text>
@@ -211,7 +197,7 @@ function HitSummary({ items }: { items: HitSummaryItem[] }) {
           <Text style={hs.combo}>{h.combo}</Text>
           <View style={{ flex: 1 }}>
             <Text style={hs.main}>
-              <Text style={{ color: h.hitType === 'STRAIGHT' ? D.amber : D.teal, fontWeight: '900' }}>K6 {h.hitType}</Text>
+              <Text style={{ color: h.hitType === 'STRAIGHT' ? theme.colors.gold : theme.colors.cyan, fontWeight: '900' }}>K6 {h.hitType}</Text>
               {h.scope ? ` · ${h.scope}` : ''}
             </Text>
             <Text style={hs.sub2}>{h.jurisdiction} {h.session}</Text>
@@ -242,7 +228,7 @@ function HitSummarySheet({ visible, onClose, items, selectedDate }: {
   );
 }
 const hs = StyleSheet.create({
-  container: { backgroundColor: theme.colors.card, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border, padding: 14, marginTop: 14, marginHorizontal: 12, gap: 10 },
+  container: { backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: theme.colors.border, padding: 14, marginTop: 14, marginHorizontal: 12, gap: 10 },
   title: { fontSize: 12, fontWeight: '900', color: theme.colors.text, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 4 },
   sub: { fontSize: 12, color: theme.colors.textTertiary },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6, borderTopWidth: 1, borderTopColor: theme.colors.border + '55' },
@@ -515,7 +501,7 @@ export default function ResultsScreen() {
 
   const renderItem = ({ item }: { item: typeof grouped[0] }) => {
     if (item.type === 'header') {
-      const color = SESSION_COLORS[item.session] ?? D.purple;
+      const color = SESSION_COLORS[item.session] ?? theme.colors.purple;
       const icon  = SESSION_ICONS[item.session]  ?? '•';
       const label = item.session.charAt(0).toUpperCase() + item.session.slice(1);
       return (
@@ -529,10 +515,10 @@ export default function ResultsScreen() {
     }
     const row = item.data;
     const hasHit = row.hits.length > 0;
-    const sessionColor = SESSION_COLORS[row.session] ?? D.purple;
+    const sessionColor = SESSION_COLORS[row.session] ?? theme.colors.purple;
     const sessionIcon  = SESSION_ICONS[row.session]  ?? '•';
-    const stripColor   = hasHit ? D.teal : sessionColor + '80';
-    const digitColor   = hasHit ? D.teal : sessionColor;
+    const stripColor   = hasHit ? theme.colors.cyan : sessionColor + '80';
+    const digitColor   = hasHit ? theme.colors.cyan : sessionColor;
     const hit          = row.hits[0];
 
     return (
@@ -540,8 +526,8 @@ export default function ResultsScreen() {
         <View style={[s.strip, { backgroundColor: stripColor }]} />
         <View style={s.cardInner}>
           <View style={s.cardHeader}>
-            <View style={[s.statePill, { borderColor: hasHit ? D.teal : sessionColor + '70' }]}>
-              <Text style={[s.stateText, { color: hasHit ? D.teal : sessionColor }]}>{row.jurisdiction}</Text>
+            <View style={[s.statePill, { borderColor: hasHit ? theme.colors.cyan : sessionColor + '70' }]}>
+              <Text style={[s.stateText, { color: hasHit ? theme.colors.cyan : sessionColor }]}>{row.jurisdiction}</Text>
             </View>
             <View style={s.gameInfo}>
               <Text style={s.gameName}>{row.jurisdiction} · {row.game || 'Pick 3'}</Text>
@@ -626,7 +612,7 @@ export default function ResultsScreen() {
             {stats.hits > 0 && (
               <Text
                 onPress={() => setHitSummaryOpen(true)}
-                style={{ color: D.teal }}
+                style={{ color: theme.colors.cyan }}
                 accessibilityRole="button"
                 accessibilityLabel={`${stats.hits} hits — open hit summary`}
               > · {stats.hits} 🎯</Text>
@@ -658,19 +644,19 @@ export default function ResultsScreen() {
       {/* ── Compact controls strip — search icon + session pills + count ── */}
       {searchOpen ? (
         <View style={s.searchRow}>
-          <Search size={14} color={D.textDim} />
+          <Search size={14} color={theme.colors.textTertiary} />
           <TextInput
             style={s.searchInput} placeholder="Search state, game, or digits…"
-            placeholderTextColor={D.textDim} value={searchQuery} onChangeText={setSearchQuery} autoFocus
+            placeholderTextColor={theme.colors.textTertiary} value={searchQuery} onChangeText={setSearchQuery} autoFocus
           />
           <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchOpen(false); }}>
-            <X size={16} color={D.textDim} />
+            <X size={16} color={theme.colors.textTertiary} />
           </TouchableOpacity>
         </View>
       ) : (
         <View style={s.controlsRow}>
           <TouchableOpacity onPress={() => setSearchOpen(true)} style={s.searchTrigger}>
-            <Search size={14} color={searchQuery ? D.teal : D.textDim} />
+            <Search size={14} color={searchQuery ? theme.colors.cyan : theme.colors.textTertiary} />
             {searchQuery ? <Text style={s.searchActiveText}>{searchQuery}</Text> : null}
           </TouchableOpacity>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}
@@ -705,32 +691,32 @@ export default function ResultsScreen() {
       {/* ── List (the hero) ── */}
       {ledgerLoading ? (
         <View style={s.loadingWrap}>
-          <ActivityIndicator color={D.purple} size="large" />
+          <ActivityIndicator color={theme.colors.purple} size="large" />
           <Text style={s.loadingText}>Loading draws…</Text>
         </View>
       ) : clusterView ? (
         <ScrollView style={s.flatList} contentContainerStyle={s.list}>
           {clustered.length === 0 ? (
             <View style={{ padding: 32, alignItems: 'center' }}>
-              <Text style={{ color: D.textDim, fontSize: 13 }}>No draws to cluster</Text>
+              <Text style={{ color: theme.colors.textTertiary, fontSize: 13 }}>No draws to cluster</Text>
             </View>
           ) : clustered.map(c => (
             <View key={c.comboSet} style={[s.card, c.hitCount > 0 && s.cardHit]}>
-              <View style={[s.strip, { backgroundColor: c.hitCount > 0 ? D.teal : D.surface }]} />
+              <View style={[s.strip, { backgroundColor: c.hitCount > 0 ? theme.colors.cyan : theme.colors.bgElevated }]} />
               <View style={s.cardInner}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <Text style={{ fontSize: 16, fontWeight: '900', color: D.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 2 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 2 }}>
                     {c.comboSet}
                   </Text>
                   <View style={{ flex: 1 }} />
                   {c.hitCount > 0 && (
-                    <View style={{ backgroundColor: D.teal + '22', borderWidth: 1, borderColor: D.teal + '55', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-                      <Text style={{ fontSize: 10, fontWeight: '900', color: D.teal }}>🎯 {c.hitCount} HIT{c.hitCount > 1 ? 'S' : ''}</Text>
+                    <View style={{ backgroundColor: theme.colors.cyan + '22', borderWidth: 1, borderColor: theme.colors.cyan + '55', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                      <Text style={{ fontSize: 10, fontWeight: '900', color: theme.colors.cyan }}>🎯 {c.hitCount} HIT{c.hitCount > 1 ? 'S' : ''}</Text>
                     </View>
                   )}
-                  <Text style={{ fontSize: 11, color: D.textDim }}>{c.drawCount} draw{c.drawCount > 1 ? 's' : ''}</Text>
+                  <Text style={{ fontSize: 11, color: theme.colors.textTertiary }}>{c.drawCount} draw{c.drawCount > 1 ? 's' : ''}</Text>
                 </View>
-                <Text style={{ fontSize: 11, color: D.textDim, marginTop: 4 }}>
+                <Text style={{ fontSize: 11, color: theme.colors.textTertiary, marginTop: 4 }}>
                   Perms: {c.digits.join(' · ')}
                 </Text>
               </View>
@@ -748,7 +734,7 @@ export default function ResultsScreen() {
           contentContainerStyle={s.list}
           ListFooterComponent={<HitSummary items={hitSummaryItems} />}
           refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor={D.purple} colors={[D.purple]} />
+            <RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor={theme.colors.purple} colors={[theme.colors.purple]} />
           }
           ListEmptyComponent={
             <EmptyState icon={Calendar} title="No draws found"
@@ -765,66 +751,66 @@ export default function ResultsScreen() {
 
 // ─── styles ────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: D.bg },
+  container: { flex: 1, backgroundColor: theme.colors.background },
 
   // header
   // header layout moved to components/ScreenHeader.tsx (design.md step 3).
-  // The opaque `backgroundColor: D.surface` on the gradient view was likely
+  // The opaque `backgroundColor: theme.colors.bgElevated` on the gradient view was likely
   // hiding the gradient on some platforms — fixed in passing.
-  headerTitle: { fontSize: 22, fontWeight: '900', color: D.text, lineHeight: 26, fontFamily: theme.typography.fontFamily.bold },
-  headerWhite: { color: D.text },
+  headerTitle: { fontSize: 22, fontWeight: '900', color: theme.colors.text, lineHeight: 26, fontFamily: theme.typography.fontFamily.bold },
+  headerWhite: { color: theme.colors.text },
   headerCyan:  { color: theme.colors.cyan },
-  headerSub:   { fontSize: 11, color: D.textDim, marginTop: 3, fontFamily: theme.typography.fontFamily.mono },
-  overflowBtn: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: D.border, backgroundColor: D.bg },
+  headerSub:   { fontSize: 11, color: theme.colors.textTertiary, marginTop: 3, fontFamily: theme.typography.fontFamily.mono },
+  overflowBtn: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.background },
 
   // date tabs
-  dateTabs: { flexShrink: 0, maxHeight: 46, backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.border },
+  dateTabs: { flexShrink: 0, maxHeight: 46, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   dateTabsContent: { paddingHorizontal: theme.layout.screenInset, paddingVertical: 6, gap: 8 },
-  dateTab: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: theme.borderRadius.pill, backgroundColor: D.surface2, borderWidth: 1, borderColor: D.border },
+  dateTab: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: theme.borderRadius.pill, backgroundColor: theme.colors.surface2, borderWidth: 1, borderColor: theme.colors.border },
   dateTabActive: { backgroundColor: theme.colors.purple + '22', borderColor: theme.colors.purple + '88' },
-  dateTabText: { fontSize: 12, fontWeight: '600', color: D.textSub, fontFamily: theme.typography.fontFamily.mono },
+  dateTabText: { fontSize: 12, fontWeight: '600', color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
   dateTabTextActive: { color: theme.colors.purple, fontWeight: '700' },
 
   // controls strip (collapsed default)
-  controlsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: theme.layout.screenInset, paddingVertical: 8, backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.border },
-  searchTrigger: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: theme.borderRadius.pill, backgroundColor: D.surface2, borderWidth: 1, borderColor: D.border, maxWidth: 120 },
-  searchActiveText: { fontSize: 11, color: D.teal, fontFamily: theme.typography.fontFamily.mono, maxWidth: 80 },
+  controlsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: theme.layout.screenInset, paddingVertical: 8, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  searchTrigger: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: theme.borderRadius.pill, backgroundColor: theme.colors.surface2, borderWidth: 1, borderColor: theme.colors.border, maxWidth: 120 },
+  searchActiveText: { fontSize: 11, color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.mono, maxWidth: 80 },
   filterRow: { flex: 1, flexShrink: 0, maxHeight: 32 },
   filterRowContent: { gap: 4, alignItems: 'center' },
-  filterBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 9, paddingVertical: 5, borderRadius: theme.borderRadius.pill, backgroundColor: 'transparent', borderWidth: 1, borderColor: D.border },
+  filterBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 9, paddingVertical: 5, borderRadius: theme.borderRadius.pill, backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.border },
   filterBtnActive: { backgroundColor: theme.colors.cyan + '18', borderColor: theme.colors.cyan + '66' },
   filterIcon: { fontSize: 11 },
-  filterText: { fontSize: 10, fontWeight: '600', color: D.textSub, fontFamily: theme.typography.fontFamily.mono },
+  filterText: { fontSize: 10, fontWeight: '600', color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
   filterTextActive: { color: theme.colors.cyan, fontWeight: '700' },
-  drawCount: { fontSize: 11, color: D.textDim, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700', flexShrink: 0 },
+  drawCount: { fontSize: 11, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700', flexShrink: 0 },
 
   // search expanded
-  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: theme.layout.screenInset, marginVertical: 8, backgroundColor: D.surface2, borderRadius: theme.borderRadius.card, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.colors.cyan + '55' },
-  searchInput: { flex: 1, paddingVertical: 10, fontSize: 13, color: D.text, fontFamily: theme.typography.fontFamily.mono },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: theme.layout.screenInset, marginVertical: 8, backgroundColor: theme.colors.surface2, borderRadius: theme.borderRadius.card, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.colors.cyan + '55' },
+  searchInput: { flex: 1, paddingVertical: 10, fontSize: 13, color: theme.colors.text, fontFamily: theme.typography.fontFamily.mono },
 
   // section header in list
   sectionHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: theme.layout.screenInset, paddingVertical: 10, gap: 6 },
   dot: { fontSize: 7 },
   sectionIcon: { fontSize: 14 },
   sectionText: { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
-  sectionCount: { fontSize: 10, color: D.textDim, fontFamily: theme.typography.fontFamily.mono },
+  sectionCount: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
 
   // list/loading
   flatList: { flex: 1 },
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText: { fontSize: 13, color: D.textDim },
+  loadingText: { fontSize: 13, color: theme.colors.textTertiary },
   list: { paddingBottom: 40 },
 
   // card
-  card: { flexDirection: 'row', backgroundColor: D.surface2, marginHorizontal: theme.layout.screenInset, marginBottom: 8, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: D.border, overflow: 'hidden' },
+  card: { flexDirection: 'row', backgroundColor: theme.colors.surface2, marginHorizontal: theme.layout.screenInset, marginBottom: 8, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: theme.colors.border, overflow: 'hidden' },
   cardHit: { backgroundColor: theme.colors.cyan + '0d', borderColor: theme.colors.cyan + '55' },
   strip: { width: 6 },
   cardInner: { flex: 1, padding: 12 },
   cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 },
-  statePill: { width: 38, height: 38, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', backgroundColor: D.bg, marginRight: 8 },
+  statePill: { width: 38, height: 38, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.background, marginRight: 8 },
   stateText: { fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
   gameInfo: { flex: 1 },
-  gameName: { fontSize: 13, fontWeight: '700', color: D.text, fontFamily: theme.typography.fontFamily.medium },
+  gameName: { fontSize: 13, fontWeight: '700', color: theme.colors.text, fontFamily: theme.typography.fontFamily.medium },
   hitBadge: { marginTop: 4, backgroundColor: theme.colors.cyan + '18', borderWidth: 1, borderColor: theme.colors.cyan + '55', borderRadius: theme.borderRadius.pill, paddingHorizontal: 8, paddingVertical: 3 },
   hitBadgeText: { fontSize: 9, fontWeight: '900', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.5 },
   shareBtn: { marginTop: 4, backgroundColor: theme.colors.cyan + '22', borderWidth: 1, borderColor: theme.colors.cyan + '55', borderRadius: 8, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },

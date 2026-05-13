@@ -166,7 +166,7 @@ const gt = StyleSheet.create({
   card: {
     flex: 1,
     backgroundColor: theme.colors.card,
-    borderRadius: 14,
+    borderRadius: theme.borderRadius.lg,
     borderWidth: 1.5,
     padding: 10,
     gap: 6,
@@ -830,16 +830,16 @@ const s = StyleSheet.create({
   modeBtnText: { fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary },
   modeBtnTextOn: { color: theme.colors.purple },
 
-  bigAction: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, backgroundColor: theme.colors.bgElevated, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border },
+  bigAction: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, backgroundColor: theme.colors.bgElevated, borderRadius: theme.borderRadius.tile, borderWidth: 1, borderColor: theme.colors.border },
   bigActionTitle: { fontSize: 13, fontWeight: '700', color: theme.colors.text },
   bigActionSub: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 2 },
 
-  emptyCard: { padding: 22, alignItems: 'center', backgroundColor: theme.colors.bgElevated, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border },
+  emptyCard: { padding: 22, alignItems: 'center', backgroundColor: theme.colors.bgElevated, borderRadius: theme.borderRadius.tile, borderWidth: 1, borderColor: theme.colors.border },
   emptyEmoji: { fontSize: 32, marginBottom: 8 },
   emptyTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.text },
   emptyDesc: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 4, textAlign: 'center' },
 
-  upsellCard: { borderRadius: 14, padding: 20, alignItems: 'center', borderWidth: 1.5, borderColor: theme.colors.purple + '66', backgroundColor: theme.colors.purple + '12' },
+  upsellCard: { borderRadius: theme.borderRadius.lg, padding: 20, alignItems: 'center', borderWidth: 1.5, borderColor: theme.colors.purple + '66', backgroundColor: theme.colors.purple + '12' },
   upsellTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.text, marginBottom: 4 },
   upsellDesc: { fontSize: 12, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 12, lineHeight: 18 },
   upsellBtn: { backgroundColor: theme.colors.purple, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 11 },
@@ -848,7 +848,7 @@ const s = StyleSheet.create({
   disclaimer: { fontSize: 11, color: theme.colors.textTertiary, lineHeight: 18 },
 
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  modalCard: { width: '100%', maxWidth: 400, backgroundColor: theme.colors.bgElevated, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border, padding: 20 },
+  modalCard: { width: '100%', maxWidth: 400, backgroundColor: theme.colors.bgElevated, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: theme.colors.border, padding: 20 },
   modalTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.text, marginBottom: 8 },
   modalBody: { fontSize: 14, color: theme.colors.textSecondary, marginBottom: 16 },
   modalBtn: { backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.borderMed, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },

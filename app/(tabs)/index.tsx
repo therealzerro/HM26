@@ -184,7 +184,7 @@ function OnboardingModal({
 }
 const ob = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: '#0009', alignItems: 'center', justifyContent: 'center', padding: 28 },
-  card: { width: '100%', maxWidth: 380, borderRadius: 22, padding: 28, alignItems: 'center', borderWidth: 1.5, borderColor: theme.colors.purple + '44' },
+  card: { width: '100%', maxWidth: 380, borderRadius: theme.borderRadius.xxl, padding: 28, alignItems: 'center', borderWidth: 1.5, borderColor: theme.colors.purple + '44' },
   title: { fontSize: 20, fontWeight: '900', color: theme.colors.text, textAlign: 'center', marginBottom: 12 },
   body: { fontSize: 14, color: theme.colors.textSecondary, textAlign: 'center', lineHeight: 21, marginBottom: 20 },
   dots: { flexDirection: 'row', gap: 6, marginBottom: 20 },
@@ -193,7 +193,7 @@ const ob = StyleSheet.create({
   btn: { backgroundColor: theme.colors.purple, borderRadius: 13, paddingHorizontal: 28, paddingVertical: 13, width: '100%', alignItems: 'center' },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   previewWrap: { width: '100%', flexDirection: 'row', justifyContent: 'center', gap: 10, marginBottom: 18 },
-  previewPill: { flex: 1, alignItems: 'center', backgroundColor: theme.colors.bgElevated, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: theme.colors.cyan + '55' },
+  previewPill: { flex: 1, alignItems: 'center', backgroundColor: theme.colors.bgElevated, borderRadius: theme.borderRadius.tile, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: theme.colors.cyan + '55' },
   previewRank: { fontSize: 10, fontWeight: '900', color: theme.colors.cyan, letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 4 },
   previewCombo: { fontSize: 24, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 4 },
   previewEnergy: { fontSize: 11, color: theme.colors.gold, marginTop: 4, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700' },
@@ -646,7 +646,7 @@ export default function HomeScreen() {
                     key={`coffee-${pick.rank}-${pick.combo}`}
                     onPress={() => locked ? setPaywallOpen(true) : setDetail(pick)}
                     activeOpacity={0.85}
-                    style={{ width: '48%', backgroundColor: theme.colors.card, borderRadius: 14, borderWidth: 1.5, borderColor: tc + '55', padding: 14, alignItems: 'center', shadowColor: tc, shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } }}
+                    style={{ width: '48%', backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.lg, borderWidth: 1.5, borderColor: tc + '55', padding: 14, alignItems: 'center', shadowColor: tc, shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } }}
                   >
                     <Text style={{ fontSize: 10, fontWeight: '900', color: theme.colors.textTertiary, letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 6 }}>#{pick.rank}</Text>
                     <Text
@@ -928,7 +928,7 @@ const s = StyleSheet.create({
 
   // scope tab styles moved to components/ScopeSegment.tsx (design.md step 1)
 
-  heroStat: { flexDirection: 'row', alignItems: 'stretch', marginHorizontal: theme.layout.screenInset, marginTop: 10, paddingHorizontal: 10, paddingVertical: 7, backgroundColor: theme.colors.bgElevated, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border },
+  heroStat: { flexDirection: 'row', alignItems: 'stretch', marginHorizontal: theme.layout.screenInset, marginTop: 10, paddingHorizontal: 10, paddingVertical: 7, backgroundColor: theme.colors.bgElevated, borderRadius: theme.borderRadius.tile, borderWidth: 1, borderColor: theme.colors.border },
   heroCol: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   heroColNum: { fontSize: 22, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, lineHeight: 24, letterSpacing: -0.7 },
   heroColLabel: { fontSize: 8, fontWeight: '900', color: theme.colors.cyan, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 1 },
@@ -939,11 +939,11 @@ const s = StyleSheet.create({
   countdownLabel: { fontSize: 7, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
   countdownTime: { fontSize: 11, fontWeight: '900', color: theme.colors.purple, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 1 },
 
-  hitBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: theme.layout.screenInset, marginTop: 12, backgroundColor: theme.colors.cyan + '18', borderRadius: 14, borderWidth: 1.5, borderColor: theme.colors.cyan + '55', padding: 12 },
+  hitBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: theme.layout.screenInset, marginTop: 12, backgroundColor: theme.colors.cyan + '18', borderRadius: theme.borderRadius.lg, borderWidth: 1.5, borderColor: theme.colors.cyan + '55', padding: 12 },
   hitBannerTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold },
   hitBannerSub: { fontSize: 11, color: theme.colors.cyan + 'AA', marginTop: 2 },
 
-  lossCard: { marginHorizontal: theme.layout.screenInset, marginTop: 12, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: theme.colors.card, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border, gap: 6 },
+  lossCard: { marginHorizontal: theme.layout.screenInset, marginTop: 12, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: theme.colors.border, gap: 6 },
   lossTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold },
   lossBody: { fontSize: 12, color: theme.colors.textSecondary, lineHeight: 18 },
   lossBold: { color: theme.colors.text, fontWeight: '800', fontFamily: theme.typography.fontFamily.monoBold },
@@ -962,10 +962,10 @@ const s = StyleSheet.create({
   confSub: { fontSize: 11, color: theme.colors.textTertiary, marginTop: -6, marginBottom: 10 },
   generateBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.purple, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 },
   generateBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
-  loadingCard: { backgroundColor: theme.colors.card, borderRadius: 16, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.border },
+  loadingCard: { backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.card, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.border },
   loadingText: { fontSize: 13, color: theme.colors.textTertiary },
 
-  proGate: { borderRadius: 16, padding: 22, alignItems: 'center', borderWidth: 1.5, borderColor: theme.colors.purple + '66', marginTop: 8, marginBottom: 16, backgroundColor: theme.colors.purple + '12' },
+  proGate: { borderRadius: theme.borderRadius.card, padding: 22, alignItems: 'center', borderWidth: 1.5, borderColor: theme.colors.purple + '66', marginTop: 8, marginBottom: 16, backgroundColor: theme.colors.purple + '12' },
   proGateLocked: { fontSize: 11, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 4 },
   proGateTitle: { fontSize: 16, fontWeight: '800', color: theme.colors.text, marginBottom: 6 },
   proGateDesc: { fontSize: 12, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 14, lineHeight: 18 },
@@ -973,7 +973,7 @@ const s = StyleSheet.create({
   proGateBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  modalCard: { width: '100%', maxWidth: 400, backgroundColor: theme.colors.bgElevated, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border, padding: 20 },
+  modalCard: { width: '100%', maxWidth: 400, backgroundColor: theme.colors.bgElevated, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: theme.colors.border, padding: 20 },
   modalTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.text, marginBottom: 8 },
   modalBody: { fontSize: 14, color: theme.colors.textSecondary, marginBottom: 16 },
   modalBtn: { backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.borderMed, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },

@@ -79,6 +79,16 @@ function getNextDay(dateStr: string): string {
 function toComboSet(digits: string): string {
   return '{' + digits.split('').sort().join(',') + '}';
 }
+// A slate scope only matches a draw session of the same time of day. allday
+// matches any session. Prevents cross-scope hit attribution (e.g. an evening
+// pick being credited as a hit on a midday draw with the same comboSet).
+function scopeMatches(slateScope: string | undefined, drawSession: string | undefined): boolean {
+  const s = (slateScope ?? '').toLowerCase();
+  const d = (drawSession ?? '').toLowerCase();
+  if (!s) return true; // unknown scope — fall back to permissive (preserves Tier 1 behavior)
+  if (s === 'allday') return true;
+  return s === d;
+}
 function getDateLabel(dateStr: string): string {
   const today = getTodayET();
   const yStr = getYesterdayET();
@@ -156,6 +166,88 @@ function Stat({ n, label, c }: { n: number; label: string; c: string }) {
     </View>
   );
 }
+
+// ─── hit summary (rendered both in footer and in the sheet) ──────────────
+interface HitSummaryItem {
+  combo: string;
+  scope: string;
+  jurisdiction: string;
+  session: string;
+  hitType: 'BOX' | 'STRAIGHT';
+  rank?: number;
+}
+function flattenHits(processed: ProcessedEntry[]): HitSummaryItem[] {
+  const out: HitSummaryItem[] = [];
+  for (const row of processed) {
+    for (const h of row.hits ?? []) {
+      out.push({
+        combo: h.combo ?? '',
+        scope: h.scope ?? '',
+        jurisdiction: h.hit_state || row.jurisdiction || '',
+        session: h.hit_session || row.session || '',
+        hitType: h.hit_straight ? 'STRAIGHT' : 'BOX',
+        rank: h.rank,
+      });
+    }
+  }
+  return out;
+}
+function HitSummary({ items }: { items: HitSummaryItem[] }) {
+  if (items.length === 0) {
+    return (
+      <View style={hs.container}>
+        <Text style={hs.title}>🎯 No hits yet today</Text>
+        <Text style={hs.sub}>Slate hits will appear here as draws come in.</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={hs.container}>
+      <Text style={hs.title}>🎯 {items.length} {items.length === 1 ? 'HIT' : 'HITS'} TODAY</Text>
+      {items.map((h, i) => (
+        <View key={`${h.combo}-${h.jurisdiction}-${h.session}-${i}`} style={hs.row}>
+          <Text style={hs.combo}>{h.combo}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={hs.main}>
+              <Text style={{ color: h.hitType === 'STRAIGHT' ? D.amber : D.teal, fontWeight: '900' }}>K6 {h.hitType}</Text>
+              {h.scope ? ` · ${h.scope}` : ''}
+            </Text>
+            <Text style={hs.sub2}>{h.jurisdiction} {h.session}</Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+function HitSummarySheet({ visible, onClose, items, selectedDate }: {
+  visible: boolean; onClose: () => void; items: HitSummaryItem[]; selectedDate: string;
+}) {
+  return (
+    <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
+      <Pressable style={ss.backdrop} onPress={onClose}>
+        <Pressable style={ss.sheet} onPress={e => e.stopPropagation()}>
+          <View style={ss.handle} />
+          <View style={ss.headerRow}>
+            <Text style={ss.heading}>{formatDisplayDate(selectedDate)}</Text>
+            <TouchableOpacity onPress={onClose}><X size={20} color={theme.colors.textSecondary} /></TouchableOpacity>
+          </View>
+          <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 480 }}>
+            <HitSummary items={items} />
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+const hs = StyleSheet.create({
+  container: { backgroundColor: theme.colors.card, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border, padding: 14, marginTop: 14, marginHorizontal: 12, gap: 10 },
+  title: { fontSize: 12, fontWeight: '900', color: theme.colors.text, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 4 },
+  sub: { fontSize: 12, color: theme.colors.textTertiary },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6, borderTopWidth: 1, borderTopColor: theme.colors.border + '55' },
+  combo: { fontSize: 22, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 3, minWidth: 64 },
+  main: { fontSize: 12, color: theme.colors.textSecondary },
+  sub2: { fontSize: 11, color: theme.colors.textTertiary, marginTop: 2 },
+});
 const ss = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: theme.colors.bgElevated, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, paddingBottom: 36, gap: 12, borderTopWidth: 1.5, borderColor: theme.colors.purple + '44' },
@@ -182,6 +274,7 @@ export default function ResultsScreen() {
   const [searchQuery,   setSearchQuery]   = useState('');
   const [searchOpen,    setSearchOpen]    = useState(false);
   const [statsOpen,     setStatsOpen]     = useState(false);
+  const [hitSummaryOpen, setHitSummaryOpen] = useState(false);
   const [clusterView,   setClusterView]   = useState(false);
 
   const { data: ledger, isLoading: ledgerLoading, refetch: refetchLedger, isRefetching } = useQuery<LedgerRow[]>({
@@ -202,10 +295,12 @@ export default function ResultsScreen() {
   const nextDay = getNextDay(selectedDate);
 
   const { data: hits, refetch: refetchHits } = useQuery<HitRow[]>({
-    queryKey: ['daily_intelligence_hits', selectedDate],
+    queryKey: ['daily_intelligence_hits_v3_scope_safe', selectedDate],
     queryFn: async () => {
       const res = await fetchFromSupabase<HitRow[]>({
-        path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=in.(${selectedDate},${nextDay})&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&order=rank.asc&limit=500`,
+        // on_slate=eq.true keeps Results forward-facing: only K6 daily picks
+        // appear, never the operator-only top-30 intel rows.
+        path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=in.(${selectedDate},${nextDay})&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&order=rank.asc&limit=500`,
         method: 'GET',
       });
       return Array.isArray(res) ? res : [];
@@ -215,7 +310,7 @@ export default function ResultsScreen() {
 
   // All on-slate picks — client-side hit detection when backfill hasn't run.
   const { data: onSlatePicks, refetch: refetchOnSlatePicks } = useQuery<HitRow[]>({
-    queryKey: ['daily_intelligence_on_slate', selectedDate],
+    queryKey: ['daily_intelligence_on_slate_v2', selectedDate],
     queryFn: async () => {
       const res = await fetchFromSupabase<HitRow[]>({
         path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=in.(${selectedDate},${nextDay})&on_slate=eq.true&mode=in.(balanced,conservative,aggressive)&order=rank.asc&limit=500`,
@@ -230,11 +325,14 @@ export default function ResultsScreen() {
   // Fetches all scopes (midday/evening/allday) so allday slate hits appear regardless
   // of the user's current scope selection.
   const { data: snapshotRows } = useQuery<any[]>({
-    queryKey: ['slate_snapshots_hits', selectedDate],
+    queryKey: ['slate_snapshots_hits_v2_slate_date_safe', selectedDate],
     queryFn: async () => {
-      const twoDaysOut = getNextDay(nextDay);
+      // slate_date filter scopes Tier 3 to the slate(s) generated FOR
+      // selectedDate (or its late-night twin). Without it, yesterday's
+      // snapshot — re-touched today by hit detection — bleeds into today's
+      // Results as a "K6 hit" even though that K6 belongs to yesterday.
       const res = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/slate_snapshots?select=scope,top_k_straights_json&deleted_at=is.null&updated_at_et=gte.${selectedDate}&updated_at_et=lt.${twoDaysOut}T09:00:00&mode=neq.zk30&order=updated_at_et.desc.nullslast&limit=20`,
+        path: `/rest/v1/slate_snapshots?select=scope,slate_date,top_k_straights_json&deleted_at=is.null&slate_date=in.(${selectedDate},${nextDay})&mode=in.(balanced,conservative,aggressive)&order=updated_at_et.desc.nullslast&limit=20`,
         method: 'GET',
       });
       return Array.isArray(res) ? res : [];
@@ -308,30 +406,41 @@ export default function ResultsScreen() {
       const rowDate = row.date_et?.split('T')[0];
       const rowSet  = toComboSet(row.result_digits ?? '');
 
-      // Tier 1: DB-confirmed hits (backfill ran, hit_box/hit_straight set)
+      // Tier 1: DB-confirmed hits (backfill ran, hit_box/hit_straight set).
+      // hit_session is whatever session hit detection ran against — does NOT
+      // necessarily match the slate's scope. Add scopeMatches gate so an
+      // evening slate pick can't be credited to a midday draw even if hit
+      // detection wrote hit_session=midday on the row.
       const dbHits = (hits || []).filter(h => {
         const hDate = h.slate_date?.split('T')[0];
         return h.hit_state === row.jurisdiction && hDate === rowDate
-          && h.hit_session?.toLowerCase() === row.session?.toLowerCase();
+          && h.hit_session?.toLowerCase() === row.session?.toLowerCase()
+          && scopeMatches(h.scope, row.session);
       });
       if (dbHits.length > 0) return { ...row, hits: dbHits };
 
-      // Tier 2: daily_intelligence box-match (backfill not yet run)
-      const diHits = (csMap.get(rowSet) || []).map(h => ({
-        ...h,
-        hit_box: true,
-        hit_straight: h.combo === row.result_digits,
-        hit_state: row.jurisdiction,
-        hit_session: row.session,
-      }));
+      // Tier 2: daily_intelligence box-match (backfill not yet run).
+      // scopeMatches enforces midday-pick→midday-draw, etc.
+      const diHits = (csMap.get(rowSet) || [])
+        .filter(h => scopeMatches(h.scope, row.session))
+        .map(h => ({
+          ...h,
+          hit_box: true,
+          hit_straight: h.combo === row.result_digits,
+          hit_state: row.jurisdiction,
+          hit_session: row.session,
+        }));
       if (diHits.length > 0) return { ...row, hits: diHits };
 
-      // Tier 3: snapshot hitType picks — bypasses daily_intelligence entirely
-      const snapHits = (snapMap.get(rowSet) || []).map(h => ({
-        ...h,
-        hit_state: row.jurisdiction,
-        hit_session: row.session,
-      }));
+      // Tier 3: snapshot hitType picks — bypasses daily_intelligence entirely.
+      // Same scopeMatches gate.
+      const snapHits = (snapMap.get(rowSet) || [])
+        .filter(h => scopeMatches(h.scope, row.session))
+        .map(h => ({
+          ...h,
+          hit_state: row.jurisdiction,
+          hit_session: row.session,
+        }));
       return { ...row, hits: snapHits };
     });
   }, [ledger, hits, onSlatePicks, snapshotHitPicks, selectedDate]);
@@ -358,6 +467,8 @@ export default function ResultsScreen() {
     total: processed.length,
     hits:  processed.filter(r => r.hits.length > 0).length,
   }), [processed]);
+
+  const hitSummaryItems = useMemo(() => flattenHits(processed), [processed]);
 
   const grouped = useMemo(() => {
     const sessions = ['morning', 'midday', 'evening', 'night'];
@@ -423,8 +534,11 @@ export default function ResultsScreen() {
                       {'🎯 ZK6 HIT · '}
                       {row.hits.map(h => {
                         const type  = h.hit_straight ? 'Straight' : 'Box';
-                        const scope = h.scope.charAt(0).toUpperCase() + h.scope.slice(1);
-                        return `${scope} Pick #${h.rank} · ${type}`;
+                        const scope = h.scope ? h.scope.charAt(0).toUpperCase() + h.scope.slice(1) : '';
+                        // Drop indicator rank — for K6 picks outside top-30 (BUG-127),
+                        // rank can be 31+ which reads as a "top-30 leak" even though
+                        // on_slate=true confirms it's a real K6 pick.
+                        return `K6 ${scope} · ${type}`;
                       }).join('  ')}
                     </Text>
                   </View>
@@ -489,7 +603,14 @@ export default function ResultsScreen() {
           </Text>
           <Text style={s.headerSub}>
             {formatDisplayDate(selectedDate)} · {stats.total} draws
-            {stats.hits > 0 && <Text style={{ color: D.teal }}> · {stats.hits} 🎯</Text>}
+            {stats.hits > 0 && (
+              <Text
+                onPress={() => setHitSummaryOpen(true)}
+                style={{ color: D.teal }}
+                accessibilityRole="button"
+                accessibilityLabel={`${stats.hits} hits — open hit summary`}
+              > · {stats.hits} 🎯</Text>
+            )}
           </Text>
         </View>
         <TouchableOpacity onPress={() => setStatsOpen(true)} style={s.overflowBtn}>
@@ -593,6 +714,7 @@ export default function ResultsScreen() {
               </View>
             </View>
           ))}
+          <HitSummary items={hitSummaryItems} />
         </ScrollView>
       ) : (
         <FlatList
@@ -602,6 +724,7 @@ export default function ResultsScreen() {
             : `r-${item.data.jurisdiction}-${item.data.date_et}-${item.data.session}-${idx}`}
           renderItem={renderItem}
           contentContainerStyle={s.list}
+          ListFooterComponent={<HitSummary items={hitSummaryItems} />}
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor={D.purple} colors={[D.purple]} />
           }
@@ -613,6 +736,7 @@ export default function ResultsScreen() {
       )}
 
       <StatsSheet visible={statsOpen} onClose={() => setStatsOpen(false)} stats={stats} selectedDate={selectedDate} />
+      <HitSummarySheet visible={hitSummaryOpen} onClose={() => setHitSummaryOpen(false)} items={hitSummaryItems} selectedDate={selectedDate} />
     </SafeAreaView>
   );
 }

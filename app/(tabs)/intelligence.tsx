@@ -316,8 +316,26 @@ function SigDot({ label, value, color }: { label: string; value: number; color: 
   );
 }
 
+// Scope-aware hit gate: a row's hit_box/hit_straight is only "real" for that
+// row's slate scope if the hit was credited to a matching draw session.
+// Hit detection writes hit_session = the draw's session, regardless of the
+// row's slate scope — so an evening row can have hit_box=true from a midday
+// draw. This guard prevents that cross-scope leak at display time. Same
+// pattern as scopeMatches() in results.tsx.
+function rowHitIsScopeValid(row: IntelRow): boolean {
+  const s = (row.scope ?? '').toLowerCase();
+  const sess = (row.hit_session ?? '').toLowerCase();
+  if (!s) return true;
+  if (s === 'allday') return true;
+  if (!sess) return true; // hit_session not set yet — let the underlying flag through
+  return s === sess;
+}
+
 function SlateRow({ row }: { row: IntelRow }) {
   const isK6 = row.on_slate === true;
+  const scopeValid = rowHitIsScopeValid(row);
+  const showStraight = row.hit_straight && scopeValid;
+  const showBox = row.hit_box && !row.hit_straight && scopeValid;
   const energy = Math.round(row.energy_score ?? 0);
   const eColor = energy >= 80 ? theme.colors.error
     : energy >= 65 ? theme.colors.orange
@@ -348,10 +366,10 @@ function SlateRow({ row }: { row: IntelRow }) {
               <Text style={ss.multText}>{row.multiplicity}</Text>
             </View>
           )}
-          {row.hit_straight && (
+          {showStraight && (
             <View style={ss.hitBadge}><Text style={ss.hitBadgeText}>⭐ STRAIGHT</Text></View>
           )}
-          {!row.hit_straight && row.hit_box && (
+          {showBox && (
             <View style={[ss.hitBadge, ss.hitBadgeBox]}><Text style={[ss.hitBadgeText, ss.hitBadgeBoxText]}>🎯 BOX</Text></View>
           )}
         </View>
@@ -662,7 +680,7 @@ export default function IntelligenceScreen() {
               </View>
               <View style={s.todayChip}>
                 <Text style={[s.todayChipNum, { color: theme.colors.success }]}>
-                  {slateRows.filter(r => r.hit_box || r.hit_straight).length}
+                  {slateRows.filter(r => (r.hit_box || r.hit_straight) && rowHitIsScopeValid(r)).length}
                 </Text>
                 <Text style={s.todayChipLabel}>Hits Today</Text>
               </View>

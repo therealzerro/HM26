@@ -57,9 +57,13 @@ Headline rate sourced from MASTER_AUDIT.md CONFIG-02 backtest (78 slates × 3 sc
 4. **Anchor switch deferred** — "in last 7 days" currently uses the 5/13 stabilization anchor (functionally identical while the verification window is open). After 2026-05-19, switch to a true rolling 7-day count once the broken-window data has rolled out. Code comment in `index.tsx` flags this.
 
 ### 1.4 Wire notification preferences to actual notifications
-**Where:** `app/(tabs)/account.tsx:68-73` — toggles exist but emit toasts only.
-**Required:** request notification permissions via `expo-notifications`, schedule a daily local notification for "Slate Ready" 30 min before each draw, and send a push when `hit_box` or `hit_straight` flips true on `daily_intelligence` for a row where `on_slate=true`.
-**Why:** the user already toggled these on. Today nothing happens. A push notification at 11:45 AM ET ("Today's Midday Slate is live · pick #1 is BLAZING 🔥") is the single most effective daily-retention lever for an app like this. Effort: **1 day** (push setup + Supabase webhook). Impact: **enormous**.
+**Phase 1 (persistence) — ✅ Shipped 2026-05-13.** Toggles in `app/(tabs)/account.tsx` now persist to AsyncStorage under `notif_prefs_v1` and re-load on mount. User configuration survives restarts.
+
+**Phase 2 (delivery) — ⏳ Deferred.** Two pieces remain:
+- **Local notifications** (~3-5 hrs): install `expo-notifications`, request permissions on first toggle enable, schedule daily local notifications for `slateReady` and `nextDraw` at fixed pre-draw times. No server dependency. Doable any time.
+- **Push-on-hit** (~1-2 days): requires storing per-device push tokens in Supabase, an Edge Function dispatcher, and a pg_cron or trigger to detect `hit_box || hit_straight` flips on `on_slate=true` rows. Adds native push setup (FCM Android key, APNs cert, EAS config). Higher infrastructure cost.
+
+**Why originally planned:** the user already toggled these on. Today nothing fires. A push notification at 11:45 AM ET ("Today's Midday Slate is live · pick #1 is BLAZING 🔥") is the single most effective daily-retention lever for an app like this. Combined effort: **1-2 days**. Impact: **enormous**.
 
 ### 1.5 "Why didn't we hit today?" — loss explanation card
 **Where:** new card on `app/(tabs)/index.tsx`, shown only when today's hit count = 0 and the last session has drawn.

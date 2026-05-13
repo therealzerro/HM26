@@ -65,11 +65,34 @@ export default function AccountScreen() {
   const { user, setRole, purchaseSubscription, restorePurchases, signOut } = useAuth();
   const { showToast } = useToast();
   const [glossOpen, setGlossOpen] = useState<number | null>(null);
+  // Notification preferences (enhancements §1.4 — persistence only).
+  // Delivery (local schedules + push-on-hit) ships in next iteration; for now
+  // we persist the user's choices so their setup carries across app restarts.
+  const NOTIF_PREFS_KEY = 'notif_prefs_v1';
   const [notifPrefs, setNotifPrefs] = useState({ nextDraw: true, slateReady: true, hits: true, promo: false });
 
+  useEffect(() => {
+    (async () => {
+      const stored = await storage.getItem(NOTIF_PREFS_KEY);
+      if (!stored) return;
+      try {
+        const parsed = JSON.parse(stored);
+        setNotifPrefs(p => ({ ...p, ...parsed }));
+      } catch {}
+    })();
+  }, []);
+
   const handleNotifChange = (key: keyof typeof notifPrefs, value: boolean) => {
-    setNotifPrefs(p => ({ ...p, [key]: value }));
-    showToast(`${value ? 'Enabled' : 'Disabled'}: ${key === 'nextDraw' ? 'Next Draw Alert' : key === 'slateReady' ? 'Slate Ready' : key === 'hits' ? 'Slate Hit Alert' : 'Promotions'}`, 'info');
+    const next = { ...notifPrefs, [key]: value };
+    setNotifPrefs(next);
+    storage.setItem(NOTIF_PREFS_KEY, JSON.stringify(next));
+    const labels: Record<keyof typeof notifPrefs, string> = {
+      nextDraw: 'Next Draw Alert',
+      slateReady: 'Slate Ready',
+      hits: 'Slate Hit Alert',
+      promo: 'Promotions',
+    };
+    showToast(`${value ? 'Enabled' : 'Disabled'}: ${labels[key]}`, 'info');
   };
   const [memberDays, setMemberDays] = useState(0);
 

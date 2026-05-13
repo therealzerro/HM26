@@ -165,6 +165,9 @@ function GridTile({ pick, onPress }: { pick: PickItem; onPress: () => void }) {
 const gt = StyleSheet.create({
   card: {
     flex: 1,
+    // minHeight ensures locked + unlocked tiles in the same row match
+    // height, AND guarantees the signal grid always has room to render.
+    minHeight: 168,
     backgroundColor: theme.colors.card,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1.5,
@@ -199,7 +202,9 @@ const gt = StyleSheet.create({
   comboSet: { flex: 1, fontSize: 10, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
   mult: { fontSize: 8, fontWeight: '900', letterSpacing: 1, fontFamily: theme.typography.fontFamily.monoBold },
 
-  signalGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 2 },
+  // Signal grid — 2×2 layout via row+rowGap. width:48% with horizontal gap:4
+  // wraps to exactly two columns. marginTop pushes it just below the meta row.
+  signalGrid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 4, rowGap: 4, marginTop: 2 },
   signalCell: { width: '48%', gap: 2 },
   signalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   signalKey: { fontSize: 9, fontWeight: '900', letterSpacing: 0.5, fontFamily: theme.typography.fontFamily.monoBold },
@@ -506,18 +511,25 @@ export default function SlatesScreen() {
       {tab === 'picks' && (
         <>
           {viewMode === 'compact' ? (
-            <View style={s.gridContainer}>
-              <View style={s.gridArea}>
-                {[0, 1, 2].map(row => (
-                  <View key={row} style={s.gridRow}>
-                    {filtered.slice(row * 2, row * 2 + 2).map(pick => (
-                      <GridTile key={`grid-${pick.rank}`} pick={pick} onPress={() => pick.locked ? setPaywallOpen(true) : setDetail(pick)} />
-                    ))}
-                    {filtered.slice(row * 2, row * 2 + 2).length < 2 && <View style={{ flex: 1 }} />}
-                  </View>
-                ))}
-              </View>
-            </View>
+            // Grid view: 2×3 layout, content-sized rows (was flex:1 per row,
+            // which forced height = container/3 and made cards overflow into
+            // the next row — the "signal grid clipped" bug). ScrollView
+            // wrap kicks in only when content > container (small devices),
+            // so on tall phones the layout still fits without scrolling.
+            <ScrollView
+              style={s.gridContainer}
+              contentContainerStyle={s.gridArea}
+              showsVerticalScrollIndicator={false}
+            >
+              {[0, 1, 2].map(row => (
+                <View key={row} style={s.gridRow}>
+                  {filtered.slice(row * 2, row * 2 + 2).map(pick => (
+                    <GridTile key={`grid-${pick.rank}`} pick={pick} onPress={() => pick.locked ? setPaywallOpen(true) : setDetail(pick)} />
+                  ))}
+                  {filtered.slice(row * 2, row * 2 + 2).length < 2 && <View style={{ flex: 1 }} />}
+                </View>
+              ))}
+            </ScrollView>
           ) : (
             <ScrollView
               style={s.content}
@@ -808,8 +820,10 @@ const s = StyleSheet.create({
   listContent: { paddingHorizontal: theme.layout.screenInset, paddingVertical: 14, paddingBottom: 32, gap: 8 },
 
   gridContainer: { flex: 1, backgroundColor: theme.colors.background },
-  gridArea: { flex: 1, padding: 8, gap: 6 },
-  gridRow: { flex: 1, flexDirection: 'row', gap: 6 },
+  // Drop flex:1 — let rows size to natural content height. The ScrollView
+  // wrap handles vertical overflow if content > available screen space.
+  gridArea: { padding: 8, gap: 6 },
+  gridRow: { flexDirection: 'row', alignItems: 'stretch', gap: 6 },
 
   sectionTitle: { fontSize: 10, fontWeight: '900', color: theme.colors.textTertiary, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 8 },
 

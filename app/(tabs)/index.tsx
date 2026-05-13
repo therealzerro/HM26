@@ -385,7 +385,7 @@ export default function HomeScreen() {
     if (!Array.isArray(list) || list.length === 0) {
       return Array.from({ length: 6 }).map((_, i) => ({
         rank: i + 1, combo: '•••', comboSet: '{•,•,•}', energy: 0,
-        signals: { BOX: 0, PBURST: 0, CO: 0, DGC: 0 }, locked: isFree && i >= 2,
+        signals: { BOX: 0, PBURST: 0, CO: 0, DGC: 0 }, locked: isFree && i < 4,
       }));
     }
     return list.slice(0, 6).map((row, idx) => {
@@ -397,7 +397,7 @@ export default function HomeScreen() {
         signals: { BOX: Number(r.box ?? 0), PBURST: Number(r.pburst ?? 0), CO: Number(r.co ?? 0), DGC: Number(r.signals?.DGC ?? 0) },
         multiplicity: r.multiplicity, topPair: r.topPair, drawsSince: r.drawsSince,
         timesDrawn: r.timesDrawn, lastSeen: r.lastSeen,
-        locked: isFree && idx >= 2,
+        locked: isFree && idx < 4,
         generatedAt: snapshot?.updated_at_et ?? undefined, snapshotScope: snapshot?.scope ?? undefined,
       };
     });
@@ -645,9 +645,9 @@ export default function HomeScreen() {
 
           {isFree && !snapshotLoading && (
             <View style={s.proGate}>
-              <Text style={{ fontSize: 28, marginBottom: 6 }}>🏆</Text>
-              <Text style={s.proGateTitle}>See all 6 picks</Text>
-              <Text style={s.proGateDesc}>Oracle+ unlocks all 6 K6 picks, optimal straight order, and deep analytics.</Text>
+              <Text style={s.proGateLocked}>{items.filter(p => p.locked).length} of 6 picks hidden</Text>
+              <Text style={s.proGateTitle}>You saw the free tier</Text>
+              <Text style={s.proGateDesc}>Oracle+ unlocks the full K6 slate at HitMaster's verified {BACKTEST_HIT_RATE}% hit rate — plus the optimal straight order and deep analytics.</Text>
               <TouchableOpacity style={s.proGateBtn} onPress={() => setPaywallOpen(true)}>
                 <Text style={s.proGateBtnText}>Upgrade · $9.99/mo ♛</Text>
               </TouchableOpacity>
@@ -761,6 +761,7 @@ const s = StyleSheet.create({
   loadingText: { fontSize: 13, color: theme.colors.textTertiary },
 
   proGate: { borderRadius: 16, padding: 22, alignItems: 'center', borderWidth: 1.5, borderColor: theme.colors.purple + '66', marginTop: 8, marginBottom: 16, backgroundColor: theme.colors.purple + '12' },
+  proGateLocked: { fontSize: 11, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 4 },
   proGateTitle: { fontSize: 16, fontWeight: '800', color: theme.colors.text, marginBottom: 6 },
   proGateDesc: { fontSize: 12, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 14, lineHeight: 18 },
   proGateBtn: { backgroundColor: theme.colors.purple, paddingHorizontal: 24, paddingVertical: 11, borderRadius: 13 },

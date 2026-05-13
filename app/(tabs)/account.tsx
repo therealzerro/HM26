@@ -16,7 +16,7 @@ import { storage } from '@/lib/storage';
 const GLOSSARY = [
   { term: 'ZK6™ Engine', def: 'HitMaster\'s proprietary intelligence engine — a multi-dimensional pattern recognition system trained on years of lottery draw history. Picks are ranked by Oracle Score (signal convergence strength), not guarantees.' },
   { term: 'Energy Score', def: 'A 0–100 composite signal strength. BLAZING (80+) · HOT (65+) · WARM (45+) · COOL (<45). Higher = stronger convergence across all three signals.' },
-  { term: 'K6 Slate', def: 'Your 6 daily picks — the top combos emerging from ZK6\'s full intelligence pass. Oracle+ sees all 6. Free sees top 2.' },
+  { term: 'K6 Slate', def: 'Your 6 daily picks — the top combos emerging from ZK6\'s full intelligence pass. Oracle+ sees all 6. Free sees picks 5–6.' },
   { term: 'Frequency Signal', def: 'Historical draw pressure — how strongly a number set is signaling based on long-term draw history.' },
   { term: 'Momentum Signal', def: 'Pair energy and burst patterns — which digit pairs are building directional pressure right now.' },
   { term: 'Pattern Signal', def: 'Digit co-occurrence and relationship activity across our full historical database.' },

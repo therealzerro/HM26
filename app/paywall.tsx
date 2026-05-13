@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, Crown, Check, Star } from 'lucide-react-native';
+import { ChevronLeft, Check } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
 import { SubscriptionPlan } from '@/types/core';
 import { useAuth } from '@/hooks/useAuth';
+
+// Verified hit rate from MASTER_AUDIT.md CONFIG-02 backtest
+// (26-day window 4/13–5/8, n=78 slates × 3 scopes, balanced + floor=70).
+// Mirrors the headline shown in the Home unified hero (§1.3).
+const VERIFIED_HIT_RATE = 73.1;
 
 interface PlanOption {
   id: SubscriptionPlan;
@@ -21,37 +26,24 @@ const plans: PlanOption[] = [
     id: 'trial5',
     title: '5-Day Access',
     price: '$4.99',
-    description: 'Perfect for new users',
-    badge: 'BEST FOR BEGINNERS',
-    features: ['No auto-renew', 'Full access', 'Try risk-free']
+    description: 'Try the full slate for 5 days',
+    features: ['No auto-renew', 'Full K6 slate', 'Cancel anytime'],
   },
   {
     id: 'monthly',
     title: 'Monthly',
     price: '$9.99/mo',
     description: 'Flexible monthly billing',
-    features: ['Cancel anytime', 'Full access', 'Monthly billing']
+    features: ['Cancel anytime', 'Full K6 slate', 'Monthly billing'],
   },
   {
     id: 'annual',
     title: 'Annual',
     price: '$89.99/yr',
-    description: 'Best value - Save 25%',
-    badge: 'SAVE 25%',
-    features: ['Best value', 'Full access', 'Annual billing']
-  }
-];
-
-const testimonials = [
-  { text: 'HitMaster helped me win 3 straight!', author: 'Mike R.' },
-  { text: 'The heat checker is incredibly accurate.', author: 'Sarah L.' },
-  { text: 'Finally, a system that actually works.', author: 'David K.' }
-];
-
-const comingSoonFeatures = [
-  { name: 'HitMaster 3 Straight', countdown: '14 days' },
-  { name: 'HitMaster 3 State', countdown: '21 days' },
-  { name: 'HitMaster 4 Box', countdown: '28 days' }
+    description: 'Best value — save 25%',
+    badge: 'BEST VALUE',
+    features: ['Save 25%', 'Full K6 slate', 'Annual billing'],
+  },
 ];
 
 const featureComparison = [
@@ -60,21 +52,13 @@ const featureComparison = [
   { feature: 'Pick by Budget', free: 'No', premium: 'Yes' },
   { feature: 'Live Updates', free: '15-min delay', premium: 'Real-time' },
   { feature: 'Detailed Reasons', free: 'Summary only', premium: 'Full details' },
-  { feature: 'Previous Hits', free: 'Summary', premium: 'Complete history' }
+  { feature: 'Previous Hits', free: 'Summary', premium: 'Complete history' },
 ];
 
 export default function PaywallScreen() {
   const { plan } = useLocalSearchParams<{ plan?: SubscriptionPlan }>();
   const { setRole } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>(plan || 'trial5');
-  const [currentTestimonial, setCurrentTestimonial] = useState<number>(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleSubscribe = async () => {
     try {
@@ -130,26 +114,12 @@ export default function PaywallScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Hero Section */}
+        {/* Hero Section — verified-rate claim, no marketing fluff */}
         <View style={styles.hero}>
-          <View style={styles.crownContainer}>
-            <Crown size={48} color={theme.colors.crownGold} />
-          </View>
-          <Text style={styles.heroTitle}>Unlock HitMaster Premium</Text>
-          <Text style={styles.heroSubtitle}>Go beyond the sample — unlock the full slate.</Text>
-        </View>
-
-        {/* Coming Soon Features */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Coming Soon</Text>
-          <View style={styles.comingSoonGrid}>
-            {comingSoonFeatures.map((feature, index) => (
-              <View key={feature.name} style={styles.comingSoonCard}>
-                <Text style={styles.comingSoonName}>{feature.name}</Text>
-                <Text style={styles.comingSoonCountdown}>{feature.countdown}</Text>
-              </View>
-            ))}
-          </View>
+          <Text style={styles.heroBigNum}>{VERIFIED_HIT_RATE}%</Text>
+          <Text style={styles.heroBigSub}>verified hit rate</Text>
+          <Text style={styles.heroCompare}>vs ~7% random chance</Text>
+          <Text style={styles.heroTitle}>Unlock the full K6 slate</Text>
         </View>
 
         {/* Feature Comparison */}
@@ -208,20 +178,6 @@ export default function PaywallScreen() {
           </View>
         </View>
 
-        {/* Social Proof */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>What Users Say</Text>
-          <View style={styles.testimonialCard}>
-            <Star size={20} color={theme.colors.crownGold} />
-            <Text style={styles.testimonialText}>
-              &ldquo;{testimonials[currentTestimonial].text}&rdquo;
-            </Text>
-            <Text style={styles.testimonialAuthor}>
-              — {testimonials[currentTestimonial].author}
-            </Text>
-          </View>
-        </View>
-
         {/* CTA Section */}
         <View style={styles.ctaSection}>
           <TouchableOpacity style={styles.subscribeButton} onPress={handleSubscribe}>
@@ -270,20 +226,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: theme.spacing.xl,
     paddingHorizontal: theme.spacing.lg,
+    gap: 4,
   },
-  crownContainer: {
-    marginBottom: theme.spacing.lg,
+  heroBigNum: {
+    fontSize: 64,
+    fontWeight: '900',
+    color: theme.colors.cyan,
+    fontFamily: theme.typography.fontFamily.monoBold,
+    letterSpacing: -2,
+    lineHeight: 68,
+  },
+  heroBigSub: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    fontFamily: theme.typography.fontFamily.mono,
+    letterSpacing: 0.4,
+    marginBottom: 6,
+  },
+  heroCompare: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+    fontStyle: 'italic',
+    marginBottom: 18,
   },
   heroTitle: {
-    fontSize: theme.typography.fontSize.xxl,
-    fontWeight: 'bold',
+    fontSize: theme.typography.fontSize.xl,
+    fontWeight: '800',
     color: theme.colors.text,
-    textAlign: 'center',
-    marginBottom: theme.spacing.sm,
-  },
-  heroSubtitle: {
-    fontSize: theme.typography.fontSize.lg,
-    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   section: {
@@ -295,31 +264,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: theme.colors.text,
     marginBottom: theme.spacing.lg,
-  },
-  comingSoonGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: theme.spacing.md,
-  },
-  comingSoonCard: {
-    flex: 1,
-    minWidth: 100,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    alignItems: 'center',
-  },
-  comingSoonName: {
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: '600',
-    color: theme.colors.text,
-    textAlign: 'center',
-    marginBottom: theme.spacing.xs,
-  },
-  comingSoonCountdown: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.primary,
-    fontWeight: '600',
   },
   comparisonTable: {
     backgroundColor: theme.colors.surface,
@@ -424,23 +368,6 @@ const styles = StyleSheet.create({
     gap: theme.spacing.xs,
   },
   planFeatureText: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
-  },
-  testimonialCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-  },
-  testimonialText: {
-    fontSize: theme.typography.fontSize.md,
-    color: theme.colors.text,
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
-  testimonialAuthor: {
     fontSize: theme.typography.fontSize.sm,
     color: theme.colors.textSecondary,
   },

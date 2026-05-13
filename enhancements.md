@@ -197,13 +197,22 @@ Above the slate, a small live ticker: "🔥 Trending box-sets: {2,4,8} · {0,6,9
 
 ## 6. Monetization — convert and retain more efficiently
 
-### 6.1 Paywall hero rewrite (P1)
-**Current** (`app/paywall.tsx`): generic "BEST FOR BEGINNERS" badge, hardcoded testimonials, $9.99/$89.99 plans, "Coming Soon: HitMaster 3 Straight 14 days" (likely stale).
-**Recommended:**
-- Hero claim: "HitMaster's verified hit rate over the last 30 days: **73%**. The average lottery app: random chance (~7%)." Sourced from backtest data, updated weekly.
-- Replace fake testimonials with real verified hit screenshots ("Verified hit · 605 box · MS 5/12/26")
-- Add a "What you saw was the free tier" callout under the K6 slate when the user is FREE and the top 4 picks are hidden — show the obscured combos as grey placeholders rather than completely hidden, so they FEEL what they're missing
-**Effort: 1-2 days. Impact: conversion lift.**
+### 6.1 Paywall hero rewrite (P1) — ✅ Shipped 2026-05-12
+**Paywall (`app/paywall.tsx`):**
+- New hero: big `73.1%` cyan number + `verified hit rate` subtitle + `vs ~7% random chance` italic compare line + `Unlock the full K6 slate` title. Replaces the generic "Unlock HitMaster Premium / Go beyond the sample" copy.
+- Dropped the entire "Coming Soon" section (HitMaster 3 Straight 14 days countdowns were stale and read as broken promises).
+- Dropped the entire "What Users Say" testimonials section (Mike R. / Sarah L. / David K. were fake; per the subscriber-voice rule, fake social proof is worse than no social proof).
+- Removed the "BEST FOR BEGINNERS" badge on the trial plan; renamed annual badge `SAVE 25%` → `BEST VALUE`.
+- Cleaned up unused styles (`comingSoon*`, `testimonial*`, `crownContainer`, `heroSubtitle`) and unused imports (`Crown`, `Star`, `useEffect`).
+- Backtest rate sourced from a `VERIFIED_HIT_RATE = 73.1` constant (mirrors §1.3 hero band — single source on this screen, but should be hoisted to `constants/` if a third surface ever needs it).
+
+**K6 free-tier reveal on Home (`app/(tabs)/index.tsx::proGate`):**
+- Lead line now reads `{lockedCount} of 6 picks hidden` (computed dynamically from `items.filter(p => p.locked).length`) — anchors the loss in the moment.
+- Title: `You saw the free tier` (vs the generic `See all 6 picks`).
+- Body now ties the upgrade to the verified hit rate: "Oracle+ unlocks the full K6 slate at HitMaster's verified 73.1% hit rate — plus the optimal straight order and deep analytics."
+- The locked PickCard treatment (`opacity 0.2`, `•••` placeholder digits, "Pick #N — Oracle+ Only" overlay) was already shipped — no change needed.
+
+**Why:** every dishonest element on the paywall (fake testimonials, stale countdowns, generic claims) erodes trust at the exact moment the user is deciding to pay. Replacing them with the verified rate that the engine has actually delivered makes the upgrade decision honest.
 
 ### 6.2 Trial extension on hit (P1)
 If a Free user has the app installed and the engine hits on the 2 picks they CAN see, push them: "Your free pick hit today! Try a 5-day Oracle+ trial to see all 6 → first hit free." Highly targeted, only fires when value is concretely demonstrated. **Effort: 1 day.**

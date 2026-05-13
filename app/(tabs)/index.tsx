@@ -62,6 +62,10 @@ const SCOPE_LABELS: Record<string, string> = {
   midday: '☀️ Midday', evening: '🌙 Evening', allday: '◈ All Day',
 };
 
+// Streak milestone tiers (enhancements §3.1). Cleared via celebration toast
+// the first time the user's streak hits the milestone today.
+const STREAK_MILESTONES = [3, 7, 14, 30, 60, 90] as const;
+
 // Track Record band constants (enhancements §1.3) — backtest hit rate from
 // MASTER_AUDIT.md CONFIG-02 (26-day window 4/13–5/8, n=78 slates × 3 scopes,
 // balanced + floor=70). Recent-hit count is today-only.
@@ -242,28 +246,77 @@ export default function HomeScreen() {
   const currentTier = user?.role === 'admin' ? 'PLUS' : user?.role === 'premium' ? 'PRO' : 'FREE';
   const isFree = currentTier === 'FREE';
 
-  // streak + onboarding init
+  // streak + onboarding init (enhancements §3.1: + monthly freeze + milestone toasts)
   useEffect(() => {
     (async () => {
       const today = getTodayET();
+      const currentMonth = today.slice(0, 7); // YYYY-MM
+
       const lastOpenDate = await storage.getItem('last_open_date');
       const streakStr = await storage.getItem('daily_streak');
-      const currentStreak = parseInt(streakStr || '0', 10);
-      let newStreak = 1;
-      if (lastOpenDate) {
-        const diffDays = Math.round((new Date(today + 'T12:00:00').getTime() - new Date(lastOpenDate + 'T12:00:00').getTime()) / 86400000);
-        if (diffDays === 0) newStreak = Math.max(currentStreak, 1);
-        else if (diffDays === 1) newStreak = currentStreak + 1;
+      const freezeMonthStr = await storage.getItem('streak_freeze_last_grant');
+      const freezesAvailStr = await storage.getItem('streak_freezes_available');
+
+      const prevStreak = parseInt(streakStr || '0', 10);
+      let freezesAvail = parseInt(freezesAvailStr || '0', 10);
+
+      // Grant 1 freeze at the start of each new month (cap 1 — non-stacking).
+      if (freezeMonthStr !== currentMonth) {
+        freezesAvail = 1;
+        await storage.setItem('streak_freeze_last_grant', currentMonth);
       }
+
+      let newStreak = 1;
+      let usedFreeze = false;
+      if (lastOpenDate) {
+        const diffDays = Math.round(
+          (new Date(today + 'T12:00:00').getTime() - new Date(lastOpenDate + 'T12:00:00').getTime()) / 86400000,
+        );
+        if (diffDays === 0) {
+          newStreak = Math.max(prevStreak, 1);
+        } else if (diffDays === 1) {
+          newStreak = prevStreak + 1;
+        } else if (diffDays === 2 && freezesAvail > 0 && prevStreak > 0) {
+          // 1 missed day, freeze covers it
+          newStreak = prevStreak + 1;
+          freezesAvail -= 1;
+          usedFreeze = true;
+        }
+      }
+
       await storage.setItem('last_open_date', today);
       await storage.setItem('daily_streak', String(newStreak));
+      await storage.setItem('streak_freezes_available', String(freezesAvail));
       setDailyStreak(newStreak);
+
+      if (usedFreeze) {
+        showToast(`❄️ Streak freeze used — your ${newStreak}-day streak is safe!`, 'success');
+      }
+      // Milestone celebration toast — only when crossing a milestone today
+      const milestoneMsg = STREAK_MILESTONES.find(m => m === newStreak && m > prevStreak);
+      if (milestoneMsg) {
+        const msg =
+          newStreak === 3 ? '🔥 3-day streak! Keep it going.'
+          : newStreak === 7 ? '🔥 1 week streak!'
+          : newStreak === 14 ? '🔥 2 week streak!'
+          : newStreak === 30 ? '🔥 1 month streak — legend.'
+          : newStreak === 60 ? '🔥 60-day streak!'
+          : newStreak === 90 ? '🔥 90-day streak!'
+          : `🔥 ${newStreak}-day streak!`;
+        setTimeout(() => showToast(msg, 'success'), usedFreeze ? 1800 : 200);
+      }
+
       const firstOpen = await storage.getItem('first_open_date');
       if (!firstOpen) await storage.setItem('first_open_date', today);
       const onboardingDone = await storage.getItem('onboarding_complete');
       if (!onboardingDone) setShowOnboarding(true);
     })();
-  }, []);
+  }, [showToast]);
+
+  const nextStreakMilestone = useMemo(
+    () => STREAK_MILESTONES.find(m => m > dailyStreak) ?? null,
+    [dailyStreak],
+  );
 
   const todayStr = useMemo(() => getTodayET(), []);
   const { data: todayResults } = useQuery<{ result_digits: string; jurisdiction: string; session: string }[]>({
@@ -470,7 +523,14 @@ export default function HomeScreen() {
               <View style={[s.tierBadge, { backgroundColor: currentTier === 'FREE' ? theme.colors.free : currentTier === 'PRO' ? theme.colors.premium : theme.colors.admin }]}>
                 <Text style={s.tierText}>{currentTier === 'FREE' ? 'Seeker' : currentTier === 'PRO' ? 'Oracle+ ♛' : 'Mystic ♛'}</Text>
               </View>
-              {dailyStreak > 0 && <View style={s.streakBadge}><Text style={s.streakText}>🔥 {dailyStreak}d</Text></View>}
+              {dailyStreak > 0 && (
+                <View style={s.streakBadge}>
+                  <Text style={s.streakText}>🔥 {dailyStreak}d</Text>
+                  {nextStreakMilestone && (
+                    <Text style={s.streakNext}>· next {nextStreakMilestone}</Text>
+                  )}
+                </View>
+              )}
             </View>
             <TouchableOpacity onPress={() => setOverflowOpen(true)} style={s.overflowBtn}>
               <MoreHorizontal size={20} color={theme.colors.textSecondary} />
@@ -649,8 +709,9 @@ const s = StyleSheet.create({
   subtitle: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2, fontFamily: theme.typography.fontFamily.mono },
   tierBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99 },
   tierText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
-  streakBadge: { backgroundColor: theme.colors.amber + '18', borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: theme.colors.amber + '55' },
+  streakBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.colors.amber + '18', borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: theme.colors.amber + '55' },
   streakText: { fontSize: 10, fontWeight: '800', color: theme.colors.amber, fontFamily: theme.typography.fontFamily.monoBold },
+  streakNext: { fontSize: 9, color: theme.colors.amber + 'AA', fontFamily: theme.typography.fontFamily.mono },
   overflowBtn: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.card },
 
   scopeRow: { flexDirection: 'row', backgroundColor: theme.colors.background, borderRadius: 10, padding: 2, gap: 1, borderWidth: 1, borderColor: theme.colors.border },

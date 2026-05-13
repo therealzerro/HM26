@@ -112,13 +112,12 @@ A new section in Account or under Intelligence: "Track record." A chronological 
 
 The app needs to be the first thing they check in the morning and the last thing before sleep. Every change here serves that.
 
-### 3.1 Streak system upgrade (P1)
-**Current:** A "🔥 Nd" pill on Home for daily app opens (`index.tsx:379`). Resets to 1 if you skip a day.
-**Upgrade:**
-- Visible threshold markers ("3 day streak unlocks: free heat check refresh", "7 day streak: badge on profile", "30 day: discount on annual")
-- A streak freeze: 1 per month, prevents the streak from breaking on a missed day
-- A streak save modal on day-after-miss: "You broke your 12-day streak yesterday. Tap to restore for $0.99."
-**Why:** Duolingo's streak is the single most studied retention mechanic in apps. Pick 3 players are emotionally similar to language learners — daily ritual, small daily wins, fear of breaking the chain. **Effort: 2-3 days.**
+### 3.1 Streak system upgrade (P1) — ✅ Phases 1+2 Shipped 2026-05-12
+**Phase 1 — Threshold markers (UI):** the existing `🔥 Nd` pill in the Home header now also shows `· next M` where M is the next milestone above the current streak. Milestones: `[3, 7, 14, 30, 60, 90]`. Suppressed once a user clears the final tier.
+**Phase 2 — Monthly streak freeze:** auto-granted at the start of each ET month, capped at 1 (non-stacking). Storage keys: `streak_freeze_last_grant` (YYYY-MM) and `streak_freezes_available` (count). When the user opens the app after exactly 1 missed day (`diffDays === 2`) AND has a freeze available, the freeze is auto-consumed and the streak continues at `prevStreak + 1` instead of resetting. Toast on use: `❄️ Streak freeze used — your N-day streak is safe!`. Multiple-day gaps (`diffDays > 2`) still break the streak — freezes don't cover them.
+**Milestone celebration toasts:** when the streak crosses a milestone today (i.e., `newStreak > prevStreak` AND `newStreak ∈ STREAK_MILESTONES`), a celebration toast fires after init: `🔥 3-day streak! Keep it going.` / `🔥 1 week streak!` / etc. Sequenced after the freeze toast (1.8s delay) when both fire same session.
+**Phase 3 deferred — paid streak restore modal:** "You broke your N-day streak yesterday. Tap to restore for $0.99." requires StoreKit/Google Play wiring (see Phase 3 / [BUG-65](#)). UI surface waits until subscription infrastructure lands.
+**Why:** Duolingo's streak is the single most studied retention mechanic in apps. Pick 3 players are emotionally similar to language learners — daily ritual, small daily wins, fear of breaking the chain.
 
 ### 3.2 "Tomorrow's slate" preview at 9 PM ET (P2)
 After the evening draw at 7:30 PM, around 9 PM ET show a card on Home: "Tomorrow's slate is being prepared — first analysis runs at 4 AM ET." Optional bell icon: "Notify me when ready." This turns "I'll check tomorrow" into "I'll be notified when the next slate drops." **Effort: half-day.**

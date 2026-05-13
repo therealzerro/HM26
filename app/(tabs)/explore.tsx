@@ -26,7 +26,7 @@
    ============================================================================ */
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { RefreshCw, Settings, X } from 'lucide-react-native';
@@ -243,7 +243,6 @@ export default function SlatesScreen() {
   const [savingSlate, setSavingSlate] = useState(false);
   const [slateSavedMsg, setSlateSavedMsg] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'compact'>('list');
-  const [showYesterday, setShowYesterday] = useState(false);
   const [regenConfirm, setRegenConfirm] = useState<{ visible: boolean; isLocked: boolean }>({ visible: false, isLocked: false });
 
   const isFree = user?.role === 'free';
@@ -253,7 +252,6 @@ export default function SlatesScreen() {
   const creditsRemaining = Math.max(0, PRO_DAILY_CREDITS - creditsUsed);
 
   const todayStr = useMemo(() => getTodayET(), []);
-  const yesterdayStr = useMemo(() => getYesterdayET(), []);
   const { followed: followedStates, toPostgrestFilter } = useFollowedStates();
   const hitStateFilter = toPostgrestFilter().replace('jurisdiction=', 'hit_state=');
 
@@ -288,18 +286,11 @@ export default function SlatesScreen() {
       .sort((a, b) => (sessionOrder[a.hit_session?.toLowerCase()] ?? 9) - (sessionOrder[b.hit_session?.toLowerCase()] ?? 9));
   }, [feedHits]);
 
-  // yesterday data (only fetched when on More tab + showYesterday)
-  const { data: yesterdaySnap, isLoading: ysLoading } = useQuery({
-    queryKey: ['yesterday_snap', scope, yesterdayStr],
-    queryFn: async () => {
-      const rows = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/slate_snapshots?scope=eq.${scope}&updated_at_et=gte.${yesterdayStr}T00:00:00&updated_at_et=lt.${todayStr}T00:00:00&order=updated_at_et.desc&limit=1&select=id,scope,top_k_straights_json`,
-      });
-      return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
-    },
-    enabled: tab === 'more' && showYesterday,
-    staleTime: 10 * 60 * 1000,
-  });
+  // "Show yesterday" toggle + yesterdaySnap useQuery removed — the original
+  // implementation fetched a snapshot but never consumed it in the picks tab,
+  // so the button was a dead-end. Replaced with a tap-through to the Replay
+  // screen, which does the same job (yesterday's picks vs actual draws) and
+  // already exists at app/replay.tsx (§4.4).
 
   // PRO credits
   useEffect(() => {
@@ -659,18 +650,19 @@ export default function SlatesScreen() {
               <Text style={s.bigActionSub}>Bookmark today's picks for later review</Text>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity style={[s.bigAction, { marginTop: 8 }]} onPress={() => setShowYesterday(v => !v)}>
+          <TouchableOpacity
+            style={[s.bigAction, { marginTop: 8 }]}
+            onPress={() => router.push('/replay')}
+            accessibilityRole="button"
+            accessibilityLabel="Open replay — review past slates vs actual draws"
+          >
             <Text style={{ fontSize: 20 }}>📅</Text>
             <View style={{ flex: 1 }}>
-              <Text style={s.bigActionTitle}>{showYesterday ? 'Hide yesterday' : 'Show yesterday'}</Text>
-              <Text style={s.bigActionSub}>Review yesterday's K6 picks vs actual draws</Text>
+              <Text style={s.bigActionTitle}>Replay past slates</Text>
+              <Text style={s.bigActionSub}>Yesterday's K6 picks vs actual draws · last 7 days</Text>
             </View>
+            <Text style={{ fontSize: 18, color: theme.colors.textTertiary }}>›</Text>
           </TouchableOpacity>
-          {showYesterday && (
-            ysLoading ? <ActivityIndicator color={theme.colors.cyan} style={{ marginTop: 12 }} />
-            : !yesterdaySnap ? <Text style={s.emptyDesc}>No yesterday's slate found.</Text>
-            : <Text style={[s.emptyDesc, { marginTop: 8 }]}>Yesterday's slate loaded — switch to Slate tab to view.</Text>
-          )}
 
           {/* ── Group: Account ── */}
           <Text style={[s.moreGroupTitle, { marginTop: 22 }]}>ACCOUNT</Text>

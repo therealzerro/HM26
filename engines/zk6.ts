@@ -1171,7 +1171,16 @@ export async function computeSlate({
     // adaptive_tracking complete signal/outcome pairs across BOTH hits and
     // misses — the foundation the Calibration Dashboard + intel:propose
     // need for real AUC analysis.
+    //
+    // Idempotency: skip INSERT if primary rows already exist for this
+    // (slate_hash, mode). Same slate_hash → same picks → no new data.
     try {
+      const existing = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/adaptive_tracking?slate_hash=eq.${encodeURIComponent(hash)}&mode=eq.${encodeURIComponent(weightsKey)}&matched_state=is.null&select=id&limit=1`,
+      });
+      if (Array.isArray(existing) && existing.length > 0) {
+        console.log('[zk6v2] adaptive_tracking: slate_hash already has primary rows, skipping');
+      } else {
       // Quartile thresholds — top-25% of the top30PreRail pool per signal.
       const q75 = (vals: number[]) => {
         const sorted = [...vals].sort((a, b) => a - b);
@@ -1225,6 +1234,7 @@ export async function computeSlate({
         body: atRows,
       });
       console.log('[zk6v2] adaptive_tracking: wrote', atRows.length, 'K6 primary rows');
+      }
     } catch (e) {
       console.warn('[zk6v2] adaptive_tracking pre-write failed:', String(e));
     }

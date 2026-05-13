@@ -597,37 +597,47 @@ async function computeSlate(params: {
     } catch (e) { console.error('[edge-zk6] daily_intelligence write FAILED:', String(e)); }
 
     // ─── E1+E2+E5: adaptive_tracking K6 primary rows (mirrors engines/zk6.ts) ───
+    // Idempotency: skip INSERT if primary rows already exist for this
+    // (slate_hash, mode). Same slate_hash → same picks → no new data to
+    // record. Prevents duplicate accumulation across regens.
     try {
-      const q75 = (vals: number[]) => {
-        const sorted = [...vals].sort((a, b) => a - b);
-        return sorted.length === 0 ? 0 : sorted[Math.floor(sorted.length * 0.75)] ?? 0;
-      };
-      const boxQ75    = q75(top30PreRail.map(p => p.signals.BOX));
-      const pburstQ75 = q75(top30PreRail.map(p => p.signals.PBURST));
-      const coQ75     = q75(top30PreRail.map(p => p.signals.CO));
-      const dgcQ75    = q75(top30PreRail.map(p => p.signals.DGC ?? 0));
-
-      const atRows = k6.map((x, idx) => {
-        const bs = x.boxS, ps = x.pburstS, cs = x.coS, ds = x.dgcS;
-        const dominant =
-          bs >= ps && bs >= cs && bs >= ds ? 'BOX' :
-          ps >= cs && ps >= ds              ? 'PBURST' :
-          cs >= ds                          ? 'CO' : 'DGC';
-        return {
-          slate_date: effectiveDate, scope, slate_hash: hash,
-          rank: idx + 1, combo: x.combo, combo_set: x.normKey,
-          // adaptive_tracking uses signal_burst as the DGC slot (legacy name).
-          signal_box: bs, signal_pburst: ps, signal_co: cs, signal_burst: ds,
-          energy_score: x.energy, mode: weightsKey,
-          box_top_quartile:    bs >= boxQ75,
-          pburst_top_quartile: ps >= pburstQ75,
-          co_top_quartile:     cs >= coQ75,
-          burst_top_quartile:  ds >= dgcQ75,  // DGC quartile
-          dominant_signal: dominant,
+      const existing = await sbGet<any[]>(
+        `/rest/v1/adaptive_tracking?slate_hash=eq.${encodeURIComponent(hash)}&mode=eq.${encodeURIComponent(weightsKey)}&matched_state=is.null&select=id&limit=1`,
+      );
+      if (Array.isArray(existing) && existing.length > 0) {
+        console.log('[edge-zk6] adaptive_tracking: slate_hash already has primary rows, skipping');
+      } else {
+        const q75 = (vals: number[]) => {
+          const sorted = [...vals].sort((a, b) => a - b);
+          return sorted.length === 0 ? 0 : sorted[Math.floor(sorted.length * 0.75)] ?? 0;
         };
-      });
-      await sbPost('/rest/v1/adaptive_tracking', atRows, 'return=minimal');
-      console.log('[edge-zk6] adaptive_tracking: wrote', atRows.length, 'K6 primary rows');
+        const boxQ75    = q75(top30PreRail.map(p => p.signals.BOX));
+        const pburstQ75 = q75(top30PreRail.map(p => p.signals.PBURST));
+        const coQ75     = q75(top30PreRail.map(p => p.signals.CO));
+        const dgcQ75    = q75(top30PreRail.map(p => p.signals.DGC ?? 0));
+
+        const atRows = k6.map((x, idx) => {
+          const bs = x.boxS, ps = x.pburstS, cs = x.coS, ds = x.dgcS;
+          const dominant =
+            bs >= ps && bs >= cs && bs >= ds ? 'BOX' :
+            ps >= cs && ps >= ds              ? 'PBURST' :
+            cs >= ds                          ? 'CO' : 'DGC';
+          return {
+            slate_date: effectiveDate, scope, slate_hash: hash,
+            rank: idx + 1, combo: x.combo, combo_set: x.normKey,
+            // adaptive_tracking uses signal_burst as the DGC slot (legacy name).
+            signal_box: bs, signal_pburst: ps, signal_co: cs, signal_burst: ds,
+            energy_score: x.energy, mode: weightsKey,
+            box_top_quartile:    bs >= boxQ75,
+            pburst_top_quartile: ps >= pburstQ75,
+            co_top_quartile:     cs >= coQ75,
+            burst_top_quartile:  ds >= dgcQ75,  // DGC quartile
+            dominant_signal: dominant,
+          };
+        });
+        await sbPost('/rest/v1/adaptive_tracking', atRows, 'return=minimal');
+        console.log('[edge-zk6] adaptive_tracking: wrote', atRows.length, 'K6 primary rows');
+      }
     } catch (e) { console.warn('[edge-zk6] adaptive_tracking pre-write failed:', String(e)); }
   }
 

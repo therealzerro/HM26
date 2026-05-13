@@ -64,12 +64,8 @@ const SCOPE_LABELS: Record<string, string> = {
 
 // Track Record band constants (enhancements §1.3) — backtest hit rate from
 // MASTER_AUDIT.md CONFIG-02 (26-day window 4/13–5/8, n=78 slates × 3 scopes,
-// balanced + floor=70). Recent-hit anchor is the 2026-05-12 ZK6 stabilization
-// (BUG-129/130/131 + CONFIG-02 all landed that evening). After 2026-05-19,
-// switch to a true rolling 7-day count once the broken-window data has
-// rolled out and a clean live window becomes meaningful.
+// balanced + floor=70). Recent-hit count is today-only.
 const BACKTEST_HIT_RATE = 73.1;
-const POST_STAB_START_DATE = '2026-05-12';
 const MODE_OPTIONS = [
   { key: 'balanced', label: 'Balanced', sub: 'Equal weight' },
   { key: 'conservative', label: 'Conservative', sub: 'History focus' },
@@ -276,12 +272,12 @@ export default function HomeScreen() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Track Record band — count K6 hits since the 2026-05-12 ZK6 stabilization.
-  const { data: weekHits = 0 } = useQuery<number>({
-    queryKey: ['track_record_week_hits', POST_STAB_START_DATE, todayStr],
+  // Track Record band — count today's K6 hits.
+  const { data: todayHits = 0 } = useQuery<number>({
+    queryKey: ['track_record_today_hits', todayStr],
     queryFn: async () => {
       const rows = await fetchFromSupabase<{ hit_box: boolean | null; hit_straight: boolean | null }[]>({
-        path: `/rest/v1/daily_intelligence?slate_date=gte.${POST_STAB_START_DATE}&on_slate=eq.true&mode=neq.zk30&select=hit_box,hit_straight&limit=200`,
+        path: `/rest/v1/daily_intelligence?slate_date=eq.${todayStr}&on_slate=eq.true&mode=neq.zk30&select=hit_box,hit_straight&limit=200`,
       });
       return (rows || []).filter(r => r.hit_box || r.hit_straight).length;
     },
@@ -442,7 +438,7 @@ export default function HomeScreen() {
           <View style={s.heroCol}>
             <Text style={[s.heroColNum, { color: theme.colors.cyan }]}>{BACKTEST_HIT_RATE}%</Text>
             <Text style={s.heroColLabel}>HIT RATE</Text>
-            <Text style={s.heroColMeta}>{weekHits} in last 7 days</Text>
+            <Text style={s.heroColMeta}>{todayHits} {todayHits === 1 ? 'hit' : 'hits'} today</Text>
           </View>
           {nextDrawIn ? (
             <>

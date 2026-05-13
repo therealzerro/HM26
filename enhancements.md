@@ -45,16 +45,16 @@ The rest of this document is a prioritized list of concrete, mostly-small change
 ┌────────────┬────────────┬──────────┐
 │    87      │   73.1%    │   NEXT   │
 │ AVG ENERGY │  HIT RATE  │  14:23   │
-│  6 picks   │ 2 in last  │          │
-│  All Day   │   7 days   │          │
+│  6 picks   │  2 hits    │          │
+│  All Day   │   today    │          │
 └────────────┴────────────┴──────────┘
 ```
-Headline rate sourced from MASTER_AUDIT.md CONFIG-02 backtest (78 slates × 3 scopes, 4/13–5/8 window, balanced + floor=70). 7-day count queries `daily_intelligence` for K6 hits since the 2026-05-12 ZK6 stabilization anchor.
+Headline rate sourced from MASTER_AUDIT.md CONFIG-02 backtest (78 slates × 3 scopes, 4/13–5/8 window, balanced + floor=70). Hit count queries `daily_intelligence` for today's K6 hits (`slate_date=eq.${today}`).
 **Framing decisions:**
 1. **Rejected raw rolling-7-day rate** — the live window currently includes the 5/9–5/12 corruption days, which would show ~32% — exactly the trust-killer the band was meant to prevent. Instead surface the validated backtest rate as headline.
 2. **Rejected operator copy** — initial draft used "VERIFIED HIT RATE / 78 slates backtested · 4/13–5/8 / POST-STABILIZATION day 1 of 7" which read as an internal status page. Subscribers should not see internal recovery / verification language. Final voice is clean, jargon-free.
 3. **Unified card vs stacked cards** — initial draft was two separate cards (AVG ENERGY hero + Track Record band) which wasted vertical space and visually competed. Final design is a single 3-column hero card with thin dividers; same info, half the footprint.
-4. **Anchor switch deferred** — "in last 7 days" currently uses the 5/13 stabilization anchor (functionally identical while the verification window is open). After 2026-05-19, switch to a true rolling 7-day count once the broken-window data has rolled out. Code comment in `index.tsx` flags this.
+4. **Today-only count over rolling-7-day** — final iteration switched from "X in last 7 days" to "X hits today" per user direction. Cleaner, more actionable, resets daily so subscribers see the day's pulse instead of a smoothed window. Sidesteps the broken-window concern entirely.
 
 ### 1.4 Wire notification preferences to actual notifications
 **Phase 1 (persistence) — ✅ Shipped 2026-05-12.** Toggles in `app/(tabs)/account.tsx` now persist to AsyncStorage under `notif_prefs_v1` and re-load on mount. User configuration survives restarts.

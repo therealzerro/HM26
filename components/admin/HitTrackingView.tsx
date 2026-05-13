@@ -333,31 +333,100 @@ function PerformanceRow({
                 </Text>
               )}
 
-              {/* SECTION B — SIGNAL ANALYSIS */}
+              {/* SECTION B — WHY THESE PICKS WORKED
+                  Reads from adaptive_tracking (ENH-01). Subscriber-voice copy:
+                  no "AUC", "energy", "PBURST" — plain Frequency/Momentum/
+                  Pattern/Consistency, conversational framing. Lives in admin
+                  but reads like something you'd be comfortable showing a
+                  subscriber. */}
               {expandedData.trackingRows.length > 0 && (() => {
                 const hits = expandedData.trackingRows.filter((t: any) => t.hit_box || t.hit_straight);
                 const misses = expandedData.trackingRows.filter((t: any) => !t.hit_box && !t.hit_straight);
-                const avgHitEnergy = hits.length ? Math.round(hits.reduce((s: number, t: any) => s + (t.energy_score ?? 0), 0) / hits.length) : 0;
-                const avgMissEnergy = misses.length ? Math.round(misses.reduce((s: number, t: any) => s + (t.energy_score ?? 0), 0) / misses.length) : 0;
+                // Friendly names for each signal channel
+                const FRIENDLY: Record<string, string> = {
+                  BOX: 'Frequency',
+                  PBURST: 'Momentum',
+                  CO: 'Pattern',
+                  DGC: 'Consistency',
+                };
+                // adaptive_tracking stores DGC in signal_burst (legacy name)
+                const dgcOf = (t: any) => t.signal_burst ?? t.signal_dgc ?? 0;
+                // Use dominant_signal column if present, otherwise compute
+                const dominantOf = (t: any) => {
+                  if (t.dominant_signal && FRIENDLY[t.dominant_signal]) return FRIENDLY[t.dominant_signal];
+                  const bs = t.signal_box ?? 0, ps = t.signal_pburst ?? 0;
+                  const cs = t.signal_co ?? 0,  ds = dgcOf(t);
+                  if (bs >= ps && bs >= cs && bs >= ds) return 'Frequency';
+                  if (ps >= cs && ps >= ds) return 'Momentum';
+                  if (cs >= ds) return 'Pattern';
+                  return 'Consistency';
+                };
                 return (
                   <View style={{ marginBottom: 12 }}>
-                    <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Signal Analysis</Text>
-                    {hits.map((t: any, ti: number) => {
-                      const maxSig = Math.max(t.signal_box ?? 0, t.signal_pburst ?? 0, t.signal_co ?? 0, t.signal_dgc ?? 0);
-                      const dominant = maxSig === (t.signal_box ?? 0) ? 'FREQUENCY' : maxSig === (t.signal_pburst ?? 0) ? 'MOMENTUM' : maxSig === (t.signal_co ?? 0) ? 'PATTERN' : 'CONSISTENCY';
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: theme.colors.text, marginBottom: 6 }}>
+                      Why these picks worked
+                    </Text>
+                    {hits.length === 0 ? (
+                      <Text style={{ fontSize: 10, color: theme.colors.textTertiary, fontStyle: 'italic' }}>
+                        No hits today to break down.
+                      </Text>
+                    ) : (
+                      hits.map((t: any, ti: number) => {
+                        const dominant = dominantOf(t);
+                        return (
+                          <View key={ti} style={{ marginBottom: 8, padding: 8, borderRadius: 8, backgroundColor: theme.colors.gold + '11', borderWidth: 1, borderColor: theme.colors.gold + '33' }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+                              <Text style={{ fontSize: 14, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 2 }}>{t.combo}</Text>
+                              <Text style={{ fontSize: 10, color: theme.colors.gold, fontWeight: '700' }}>
+                                {dominant} led this pick
+                              </Text>
+                            </View>
+                            {/* Friendly signal bars */}
+                            <View style={{ flexDirection: 'row', gap: 8 }}>
+                              {([
+                                ['Frequency',   t.signal_box ?? 0,    theme.colors.cyan,   t.box_top_quartile],
+                                ['Momentum',    t.signal_pburst ?? 0, theme.colors.rose,   t.pburst_top_quartile],
+                                ['Pattern',     t.signal_co ?? 0,     theme.colors.purple, t.co_top_quartile],
+                                ['Consistency', dgcOf(t),             theme.colors.gold,   t.burst_top_quartile],
+                              ] as const).map(([lbl, val, color, topQ]) => (
+                                <View key={lbl} style={{ flex: 1 }}>
+                                  <Text style={{ fontSize: 8, color: theme.colors.textTertiary, marginBottom: 2 }}>
+                                    {lbl}{topQ ? ' ★' : ''}
+                                  </Text>
+                                  <View style={{ height: 4, backgroundColor: theme.colors.border, borderRadius: 2 }}>
+                                    <View style={{ width: `${Math.min(val * 100, 100)}%`, height: 4, backgroundColor: color, borderRadius: 2 }} />
+                                  </View>
+                                  <Text style={{ fontSize: 9, color, marginTop: 2, fontFamily: theme.typography.fontFamily.monoBold }}>
+                                    {Math.round(val * 100)}
+                                  </Text>
+                                </View>
+                              ))}
+                            </View>
+                            <Text style={{ fontSize: 8, color: theme.colors.textTertiary, marginTop: 5, fontStyle: 'italic' }}>
+                              ★ = top quartile of the day
+                            </Text>
+                          </View>
+                        );
+                      })
+                    )}
+                    {hits.length > 0 && misses.length > 0 && (() => {
+                      // Subscriber-friendly framing — no "avg energy", just
+                      // "your strongest picks vs the rest."
+                      const hitStrong = hits.reduce((s: number, t: any) => s + (t.energy_score ?? 0), 0) / hits.length;
+                      const missStrong = misses.reduce((s: number, t: any) => s + (t.energy_score ?? 0), 0) / misses.length;
+                      const diff = Math.round(hitStrong - missStrong);
                       return (
-                        <Text key={ti} style={{ fontSize: 10, color: theme.colors.text, marginBottom: 2 }}>
-                          {t.combo} hit · Freq {Math.round((t.signal_box ?? 0) * 100)}% · Mom {Math.round((t.signal_pburst ?? 0) * 100)}% · Pat {Math.round((t.signal_co ?? 0) * 100)}% · Cons {Math.round((t.signal_dgc ?? 0) * 100)}%
-                          {' '}· Dominant: <Text style={{ fontWeight: '700', color: theme.colors.primary }}>{dominant}</Text>
+                        <Text style={{ fontSize: 10, color: theme.colors.textSecondary, marginTop: 6 }}>
+                          {diff > 5 ? (
+                            <>✓ Your winning picks were stronger going in (by {diff} points) — the engine ranked them higher and they delivered.</>
+                          ) : diff > -5 ? (
+                            <>The winners and the rest scored about the same going in. Luck of the draw today.</>
+                          ) : (
+                            <>⚠ The winners actually scored {Math.abs(diff)} points lower than the rest going in — worth investigating.</>
+                          )}
                         </Text>
                       );
-                    })}
-                    {hits.length > 0 && misses.length > 0 && (
-                      <Text style={{ fontSize: 10, color: theme.colors.textSecondary, marginTop: 4 }}>
-                        Avg hit energy: {avgHitEnergy} · Avg miss energy: {avgMissEnergy}
-                        {avgHitEnergy > avgMissEnergy ? ' · Hits scored higher' : ' · Misses scored higher'}
-                      </Text>
-                    )}
+                    })()}
                   </View>
                 );
               })()}

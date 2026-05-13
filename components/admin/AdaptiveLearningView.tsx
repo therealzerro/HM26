@@ -21,30 +21,46 @@ import { SectionTitle, Card, st } from './AdminShared';
 // the backtest harness tells you whether to ship it.
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface DiRow {
+// Reads from `adaptive_tracking` (ENH-01) — the K6-only training dataset.
+// One row per K6 pick × slate_hash × mode with signals + outcome + quartile
+// flags + dominant_signal pre-computed at slate-gen time. Cleaner than
+// daily_intelligence (no top-30 watch-list noise), and the new analytic
+// columns let the dashboard read flags directly instead of recomputing
+// distributions on the fly.
+//
+// Important schema note: adaptive_tracking stores DGC values in the legacy
+// `signal_burst` column (renaming would break `burst_top_quartile`).
+// We map signal_burst → DGC for display.
+interface AtRow {
   slate_date: string;
   scope: string;
   mode: string;
   rank: number | null;
-  multiplicity: string | null;
+  combo: string | null;
   energy_score: number | null;
   signal_box: number | null;
   signal_pburst: number | null;
   signal_co: number | null;
-  signal_dgc: number | null;
+  signal_burst: number | null;   // DGC slot in adaptive_tracking
   hit_box: boolean | null;
   hit_straight: boolean | null;
-  hit_state: string | null;
+  matched_state: string | null;
+  matched_session: string | null;
+  dominant_signal: string | null;
+  box_top_quartile: boolean | null;
+  pburst_top_quartile: boolean | null;
+  co_top_quartile: boolean | null;
+  burst_top_quartile: boolean | null;
 }
 
-const SIGNAL_KEYS = ['signal_box', 'signal_pburst', 'signal_co', 'signal_dgc'] as const;
+const SIGNAL_KEYS = ['signal_box', 'signal_pburst', 'signal_co', 'signal_burst'] as const;
 type SignalKey = (typeof SIGNAL_KEYS)[number];
 
 const SIGNAL_LABEL: Record<SignalKey, string> = {
   signal_box: 'BOX',
   signal_pburst: 'PBURST',
   signal_co: 'CO',
-  signal_dgc: 'DGC',
+  signal_burst: 'DGC',  // legacy column name, DGC is its semantic meaning
 };
 
 const DAYS_PRIMARY = 30;
@@ -82,8 +98,17 @@ function rate(num: number, den: number): number {
   return den > 0 ? (num / den) * 100 : 0;
 }
 
-function pickIsHit(r: DiRow): boolean {
+function pickIsHit(r: AtRow): boolean {
   return !!(r.hit_box || r.hit_straight);
+}
+
+// adaptive_tracking lacks a multiplicity column — compute from combo digits.
+function multiplicityOf(combo: string | null): 'singles' | 'doubles' | 'triples' | null {
+  if (!combo || combo.length !== 3) return null;
+  const a = combo[0], b = combo[1], c = combo[2];
+  if (a === b && b === c) return 'triples';
+  if (a === b || b === c || a === c) return 'doubles';
+  return 'singles';
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -91,18 +116,20 @@ function pickIsHit(r: DiRow): boolean {
 export default function AdaptiveLearningView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [rows, setRows] = useState<DiRow[]>([]);
+  const [rows, setRows] = useState<AtRow[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
     try {
       const since = daysAgoISO(DAYS_TOTAL);
-      const data = await fetchFromSupabase<DiRow[]>({
+      const data = await fetchFromSupabase<AtRow[]>({
         path:
-          '/rest/v1/daily_intelligence?' +
-          'select=slate_date,scope,mode,rank,multiplicity,energy_score,' +
-          'signal_box,signal_pburst,signal_co,signal_dgc,' +
-          'hit_box,hit_straight,hit_state' +
+          '/rest/v1/adaptive_tracking?' +
+          'select=slate_date,scope,mode,rank,combo,energy_score,' +
+          'signal_box,signal_pburst,signal_co,signal_burst,' +
+          'hit_box,hit_straight,matched_state,matched_session,' +
+          'dominant_signal,box_top_quartile,pburst_top_quartile,' +
+          'co_top_quartile,burst_top_quartile' +
           `&slate_date=gte.${since}` +
           '&mode=eq.balanced' +
           '&order=slate_date.desc&limit=20000',
@@ -131,7 +158,7 @@ export default function AdaptiveLearningView() {
   );
 
   // Slate-level hit rate = % of (date, scope) slates with ≥1 hit
-  const slateHitRate = useCallback((window: DiRow[]) => {
+  const slateHitRate = useCallback((window: AtRow[]) => {
     const slateMap = new Map<string, boolean>();
     for (const r of window) {
       if (!r.scope || !r.slate_date) continue;
@@ -203,39 +230,63 @@ export default function AdaptiveLearningView() {
     return real.length >= 3;
   }, [energyBands]);
 
-  // Multiplicity performance
+  // Multiplicity performance — compute from combo since adaptive_tracking has no multiplicity column
   const multStats = useMemo(() => {
     const mults: Array<'singles' | 'doubles' | 'triples'> = ['singles', 'doubles', 'triples'];
     return mults.map(m => {
-      const window = primaryRows.filter(r => r.multiplicity === m);
+      const window = primaryRows.filter(r => multiplicityOf(r.combo) === m);
       const hits = window.filter(pickIsHit).length;
       return { mult: m, total: window.length, hits, rate: rate(hits, window.length) };
     });
   }, [primaryRows]);
 
-  // Pick position (rank 1..6 hits) — only K6 slate picks, not the top30 daily_intelligence padding
+  // Pick position (rank 1..6 hits) — adaptive_tracking is K6-only (ranks 1-6)
   const positionStats = useMemo(() => {
-    const slateMap = new Map<string, DiRow[]>();
-    for (const r of primaryRows) {
-      if (!r.scope || !r.slate_date || typeof r.rank !== 'number') continue;
-      if (r.rank > 30) continue; // skip K6 picks appended past rank 30
-      const k = `${r.slate_date}|${r.scope}`;
-      if (!slateMap.has(k)) slateMap.set(k, []);
-      slateMap.get(k)!.push(r);
-    }
-    // For each slate, the K6 picks are typically picks marked on_slate=true. Without that
-    // field in our query (didn't include it for size), approximate using top 6 by rank.
     const bins: Array<{ pos: number; total: number; hits: number; rate: number }> = [];
     for (let i = 1; i <= 6; i++) bins.push({ pos: i, total: 0, hits: 0, rate: 0 });
-    for (const slatePicks of slateMap.values()) {
-      const top6 = slatePicks.sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99)).slice(0, 6);
-      for (let i = 0; i < top6.length; i++) {
-        bins[i].total++;
-        if (pickIsHit(top6[i])) bins[i].hits++;
-      }
+    for (const r of primaryRows) {
+      if (typeof r.rank !== 'number') continue;
+      if (r.rank < 1 || r.rank > 6) continue;
+      bins[r.rank - 1].total++;
+      if (pickIsHit(r)) bins[r.rank - 1].hits++;
     }
     for (const b of bins) b.rate = rate(b.hits, b.total);
     return bins;
+  }, [primaryRows]);
+
+  // Dominant-signal hit rates — new section enabled by ENH-01.
+  // "When BOX dominated the pick, did it hit?" Quickly tells you which
+  // signal channel is actually predictive vs noise.
+  const dominantStats = useMemo(() => {
+    const labels = ['BOX', 'PBURST', 'CO', 'DGC'] as const;
+    return labels.map(label => {
+      const window = primaryRows.filter(r => r.dominant_signal === label);
+      const hits = window.filter(pickIsHit).length;
+      return { label, total: window.length, hits, rate: rate(hits, window.length) };
+    });
+  }, [primaryRows]);
+
+  // Quartile hit rates — for each signal, hit rate of picks flagged as
+  // top-quartile vs not. If top-quartile dramatically out-hits bottom,
+  // that signal is genuinely predictive. If they're equal, the signal
+  // doesn't separate winners from losers.
+  const quartileStats = useMemo(() => {
+    type Q = { label: string; topRate: number; topN: number; botRate: number; botN: number; lift: number };
+    const channels: Array<{ label: string; flag: keyof AtRow }> = [
+      { label: 'BOX',    flag: 'box_top_quartile' },
+      { label: 'PBURST', flag: 'pburst_top_quartile' },
+      { label: 'CO',     flag: 'co_top_quartile' },
+      { label: 'DGC',    flag: 'burst_top_quartile' },
+    ];
+    return channels.map<Q>(({ label, flag }) => {
+      const top = primaryRows.filter(r => r[flag] === true);
+      const bot = primaryRows.filter(r => r[flag] === false);
+      const topHits = top.filter(pickIsHit).length;
+      const botHits = bot.filter(pickIsHit).length;
+      const topRate = rate(topHits, top.length);
+      const botRate = rate(botHits, bot.length);
+      return { label, topRate, topN: top.length, botRate, botN: bot.length, lift: topRate - botRate };
+    });
   }, [primaryRows]);
 
   // Recommendations engine — generates 0–3 actionable items based on the diagnostics
@@ -437,6 +488,50 @@ export default function AdaptiveLearningView() {
                   <View style={{ height: 6, backgroundColor: theme.colors.surfaceMuted, borderRadius: 3, overflow: 'hidden' }}>
                     <View style={{ height: 6, width: `${barW}%`, backgroundColor: tone }} />
                   </View>
+                </View>
+              );
+            })}
+          </Card>
+
+          {/* ── DOMINANT SIGNAL HIT RATES (new, ENH-01) ──────────────────────── */}
+          <SectionTitle>BY DOMINANT SIGNAL</SectionTitle>
+          <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginBottom: 8, paddingHorizontal: 4 }}>
+            Hit rate of picks where each signal led the score. Big gap between signals = the engine is correctly picking based on what works.
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 6, marginBottom: 14 }}>
+            {dominantStats.map(s => (
+              <Card key={s.label} style={{ flex: 1, padding: 10, alignItems: 'center' }}>
+                <Text style={{ fontSize: 9, color: theme.colors.textTertiary, fontWeight: '700', marginBottom: 3 }}>{s.label}</Text>
+                <Text style={{ fontSize: 18, fontWeight: '900', color: s.total === 0 ? theme.colors.textTertiary : theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>
+                  {s.total > 0 ? s.rate.toFixed(0) + '%' : '—'}
+                </Text>
+                <Text style={{ fontSize: 8, color: theme.colors.textTertiary, marginTop: 2 }}>{s.hits}/{s.total}</Text>
+              </Card>
+            ))}
+          </View>
+
+          {/* ── TOP-QUARTILE LIFT (new, ENH-02) ──────────────────────────────── */}
+          <SectionTitle>TOP-QUARTILE LIFT PER SIGNAL</SectionTitle>
+          <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginBottom: 8, paddingHorizontal: 4 }}>
+            Hit rate when a signal is in the top 25% of the day vs not. Positive lift = the signal actually separates winners.
+          </Text>
+          <Card style={{ padding: 12, marginBottom: 14 }}>
+            {quartileStats.map((q, idx) => {
+              const tone = q.lift >= 10 ? theme.colors.success
+                : q.lift >= 3 ? theme.colors.gold
+                : q.lift >= -3 ? theme.colors.textTertiary
+                : theme.colors.error;
+              return (
+                <View key={q.label} style={{ marginBottom: idx === quartileStats.length - 1 ? 0 : 8 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.text }}>{q.label}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '900', color: tone, fontFamily: theme.typography.fontFamily.monoBold }}>
+                      {q.lift >= 0 ? '+' : ''}{q.lift.toFixed(1)}pp
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono }}>
+                    top-quartile: {q.topRate.toFixed(0)}% ({q.topN})  ·  other: {q.botRate.toFixed(0)}% ({q.botN})
+                  </Text>
                 </View>
               );
             })}

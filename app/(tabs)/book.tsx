@@ -183,6 +183,25 @@ export default function NumberBookScreen() {
     setShowCreate(false);
   }, []);
 
+  // Sample-list onboarding (enhancements §8.3) — pre-populated "NY Favorites"
+  // so first-run users see a working list without having to add numbers manually.
+  // Combos are arbitrary defaults; user can edit/remove freely.
+  const handleCreateSample = useCallback(() => {
+    const sample: BookList = {
+      id: Date.now() + '',
+      name: 'NY Favorites (sample)',
+      scope: 'midday',
+      states: ['NY'],
+      combos: [
+        { combo: '248', note: 'sample · top singles pattern', starred: true },
+        { combo: '069', note: 'sample · spread combo', starred: false },
+        { combo: '357', note: 'sample · odd singles', starred: false },
+      ],
+    };
+    setLists(l => [...l, sample]);
+    setActiveId(sample.id);
+  }, []);
+
   const handleDelete = useCallback((id: string) => {
     Alert.alert('Delete list?', 'This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
@@ -331,6 +350,9 @@ export default function NumberBookScreen() {
                 <Text style={s.welcomeDesc}>Save your favorite numbers, organize by scope and state, and be first for powerful new features.</Text>
                 <TouchableOpacity style={s.createBtn} onPress={() => setShowCreate(true)}>
                   <Text style={s.createBtnText}>✦ Create Your First List</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.sampleBtn} onPress={handleCreateSample} accessibilityRole="button" accessibilityLabel="Try a sample list">
+                  <Text style={s.sampleBtnText}>Or try a sample list →</Text>
                 </TouchableOpacity>
               </View>
 
@@ -543,6 +565,8 @@ const s = StyleSheet.create({
   welcomeDesc: { fontSize: 13, color: theme.colors.textSecondary, textAlign: 'center', maxWidth: 300, lineHeight: 20, marginBottom: 16 },
   createBtn: { backgroundColor: theme.colors.cosmic, paddingHorizontal: 22, paddingVertical: 11, borderRadius: 11 },
   createBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  sampleBtn: { marginTop: 10, paddingHorizontal: 16, paddingVertical: 8 },
+  sampleBtnText: { color: theme.colors.textSecondary, fontWeight: '600', fontSize: 12 },
   upsellCard: { borderRadius: theme.borderRadius.xl, padding: 18, alignItems: 'center', borderWidth: 1.5, borderColor: theme.colors.primary + '33', marginTop: 8 },
   upsellTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.text, marginBottom: 4 },
   upsellDesc: { fontSize: 11, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 12, lineHeight: 18 },

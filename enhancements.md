@@ -341,8 +341,11 @@ The tab bar (`_layout.tsx:67`) uses raw emojis. On some Android skins these rend
 ### 8.2 The cosmic background is wasted in many places
 The theme has gorgeous gradients (`gradients.purpleRose`, `cyanPurple`) but most screens render flat backgrounds. Adding a subtle 5% opacity gradient overlay (e.g., diagonal cyan→purple) on the home + slates background would tie the brand together without overpowering content. **Effort: 1 hour.**
 
-### 8.3 Number-Book empty state is dull
-Today: an empty list with `BookOpen` icon. Add: an interactive "Try a sample list" button that auto-creates a "NY Favorites" list with 3 popular box-sets and an explanatory tooltip. First-run gold. **Effort: 2 hours.**
+### 8.3 Number-Book empty state is dull — ✅ Shipped 2026-05-12
+**Where:** `app/(tabs)/book.tsx` welcome panel (rendered when no list is active).
+**Change:** added a small secondary button "Or try a sample list →" below the primary "✦ Create Your First List" CTA. Tapping it calls a new `handleCreateSample` that pushes a pre-populated `NY Favorites (sample)` list with 3 starter combos (`248`, `069`, `357` — labeled with `sample · …` notes so the user can tell they're not picks they added). The list activates immediately so first-run users see a real working list state instead of an empty placeholder.
+**Why these defaults:** arbitrary plausible singles patterns. The user can edit/remove freely — the list isn't locked. The `(sample)` suffix in the name signals provenance.
+**Tooltip note:** the doc spec mentioned an "explanatory tooltip" — skipped. The notes in each combo row already explain provenance, and adding a tooltip would clutter the welcome flow. The button text "Or try a sample list" is self-explanatory.
 
 ### 8.4 Heat-check entry point is hidden in the overflow sheet — ✅ Shipped 2026-05-12
 **New component:** `components/HeatCheckFAB.tsx` — small amber pill positioned `right: 16, bottom: 80` (clears the 64px tab bar). Reads `🔥 Check`. Includes accessibility role/label/hint.

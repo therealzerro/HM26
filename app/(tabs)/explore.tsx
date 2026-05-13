@@ -41,6 +41,7 @@ import { PickDetailModal } from '@/components/PickDetailModal';
 import { Paywall } from '@/components/Paywall';
 import { HeatCheckModal } from '@/components/HeatCheckModal';
 import { HeatCheckFAB } from '@/components/HeatCheckFAB';
+import { CosmicBackground } from '@/components/CosmicBackground';
 import { DrawTicker } from '@/components/DrawTicker';
 import { storage } from '@/lib/storage';
 import { fetchFromSupabase } from '@/lib/supabase';
@@ -395,6 +396,7 @@ export default function SlatesScreen() {
 
   return (
     <SafeAreaView style={s.container} edges={['left', 'right', 'bottom']}>
+      <CosmicBackground />
       {/* ── Status strip ── */}
       <View style={s.statusStrip}>
         <View style={s.liveDot} />

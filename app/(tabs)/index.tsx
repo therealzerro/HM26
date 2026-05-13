@@ -47,6 +47,7 @@ import { HeatCheckFAB } from '@/components/HeatCheckFAB';
 import { HitCelebrationOverlay } from '@/components/HitCelebrationOverlay';
 import { LockedPicksSummary } from '@/components/LockedPicksSummary';
 import { LoadingPhrase } from '@/components/LoadingPhrase';
+import { CosmicBackground } from '@/components/CosmicBackground';
 import { scopeAccent } from '@/lib/scopeAccent';
 import { EnergySparkline } from '@/components/EnergySparkline';
 import { useToast } from '@/components/Toast';
@@ -631,6 +632,7 @@ export default function HomeScreen() {
 
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
+      <CosmicBackground />
       <ScrollView
         style={s.scroll} contentContainerStyle={s.scrollContent}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handlePullRefresh} tintColor={theme.colors.primary} />}

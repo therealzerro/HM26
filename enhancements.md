@@ -338,8 +338,10 @@ These are smaller polish ideas. None individually move the needle, but together 
 ### 8.1 Replace 🏠 home-tab emoji with a custom HitMaster crown glyph
 The tab bar (`_layout.tsx:67`) uses raw emojis. On some Android skins these render inconsistently. Migrate to lucide-react-native icons (already imported elsewhere) for consistency. Use `Crown` for Home, `Zap` for Slates, `Target` for Results, `Bookmark` for Book, `GraduationCap` for Learn, `User` for Profile. **Effort: 1 hour.**
 
-### 8.2 The cosmic background is wasted in many places
-The theme has gorgeous gradients (`gradients.purpleRose`, `cyanPurple`) but most screens render flat backgrounds. Adding a subtle 5% opacity gradient overlay (e.g., diagonal cyan→purple) on the home + slates background would tie the brand together without overpowering content. **Effort: 1 hour.**
+### 8.2 The cosmic background is wasted in many places — ✅ Shipped 2026-05-12
+**New component:** `components/CosmicBackground.tsx` — full-screen `LinearGradient` (cyan→purple diagonal from `theme.gradients.cyanPurple`) at default `opacity: 0.06`. Uses `StyleSheet.absoluteFillObject` + `pointerEvents="none"` so it sits behind everything and doesn't intercept taps.
+**Surfaces wired:** Home (`app/(tabs)/index.tsx`) and Slates (`app/(tabs)/explore.tsx`) — first child of each root container, sits below all content. Other screens (Results, Number Book, Learn, Profile, Replay, Paywall) intentionally untouched — they have their own visual identity (gold tint, etc.) or are modal/single-purpose surfaces where a gradient would compete.
+**Why 0.06 opacity (not 0.05 per spec):** at 0.05 against the dark `#0a0613` background the gradient was barely perceptible. 0.06 is enough to feel "cosmic" without competing with content readability — A/B by eye, easy to tune via the `opacity` prop later.
 
 ### 8.3 Number-Book empty state is dull — ✅ Shipped 2026-05-12
 **Where:** `app/(tabs)/book.tsx` welcome panel (rendered when no list is active).

@@ -39,7 +39,9 @@ export interface FingerprintStats {
   totalSnapshots: number;
   totalPicks: number;
   hits: number;
-  hitRate: number;          // percent
+  hitRate: number;          // per-pick: hits / totalPicks * 100
+  slatesWithHit: number;    // count of snapshots where at least one pick has hitType
+  slateHitRate: number;     // per-slate: slatesWithHit / totalSnapshots * 100
   tempBuckets: { hot: number; warm: number; mild: number; cold: number };
   multiplicity: { singles: number; doubles: number; triples?: number };
   avgSignals: { BOX: number; PBURST: number; CO: number; DGC?: number };
@@ -79,10 +81,14 @@ export function EngineFingerprintScreen({ stats }: Props) {
         </Text>
       </View>
 
-      {/* KPI row */}
+      {/* KPI row — two complementary hit-rate views, then breakdown */}
       <View style={s.kpiRow}>
-        <Kpi label="HIT RATE" value={`${stats.hitRate.toFixed(2)}%`}
-             sub={`${stats.hits} of ${stats.totalPicks}`} color={theme.colors.cyan}/>
+        <Kpi label="SLATE RATE" value={`${stats.slateHitRate.toFixed(1)}%`}
+             sub={`${stats.slatesWithHit} of ${stats.totalSnapshots} slates · ≥1 hit`}
+             color={theme.colors.cyan}/>
+        <Kpi label="PICK RATE" value={`${stats.hitRate.toFixed(2)}%`}
+             sub={`${stats.hits} of ${stats.totalPicks} picks`}
+             color={theme.colors.cyan}/>
         <Kpi label="SCOPES" value={String(stats.scopes.length)}
              sub={stats.scopes.join(' · ')} color={theme.colors.purple}/>
         <Kpi label="SINGLES"
@@ -154,6 +160,7 @@ export function computeFingerprint(
 ): FingerprintStats {
   const allPicks: any[] = [];
   const scopes = new Set<string>();
+  let slatesWithHit = 0;
   for (const snap of snapshots) {
     if (snap.scope) scopes.add(snap.scope);
     let picks: any = snap.picks;
@@ -165,7 +172,10 @@ export function computeFingerprint(
         picks = snap.top_k_straights_json;
       }
     }
-    if (Array.isArray(picks)) allPicks.push(...picks);
+    if (Array.isArray(picks)) {
+      allPicks.push(...picks);
+      if (picks.some((p: any) => p?.hitType)) slatesWithHit++;
+    }
   }
   const tempBuckets = { hot: 0, warm: 0, mild: 0, cold: 0 };
   const mult = { singles: 0, doubles: 0, triples: 0 };
@@ -185,11 +195,14 @@ export function computeFingerprint(
     if (p.hitType) hits++;
   }
   const n = allPicks.length || 1;
+  const totalSnapshots = snapshots.length;
   return {
-    totalSnapshots: snapshots.length,
+    totalSnapshots,
     totalPicks: allPicks.length,
     hits,
     hitRate: (hits / n) * 100,
+    slatesWithHit,
+    slateHitRate: totalSnapshots > 0 ? (slatesWithHit / totalSnapshots) * 100 : 0,
     tempBuckets,
     multiplicity: mult,
     avgSignals: {

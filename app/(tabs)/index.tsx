@@ -61,6 +61,7 @@ import { storage } from '@/lib/storage';
 import { getTodayET } from '@/lib/dateUtils';
 import { RegenConfirmationModal } from '@/components/RegenConfirmationModal';
 import { ZK6_ENGINE_VERSION } from '@/constants/zk6';
+import { ScopeSegment } from '@/components/ScopeSegment';
 
 function toComboSet(combo: string) { return '{' + combo.split('').sort().join(',') + '}'; }
 function energyColor(e: number) {
@@ -648,24 +649,8 @@ export default function HomeScreen() {
       <View style={[s.container, { paddingTop: insets.top }]}>
         <CosmicBackground />
         <ScrollView style={s.scroll} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 }}>
-          {/* Scope segmented + countdown */}
-          <View style={{ flexDirection: 'row', gap: 6, marginBottom: 14 }}>
-            {(['midday', 'evening', 'allday'] as const).map(sc => {
-              const active = scope === sc;
-              const accent = scopeAccent(sc);
-              return (
-                <TouchableOpacity
-                  key={sc}
-                  style={{ flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center', backgroundColor: active ? accent + '14' : theme.colors.bgElevated, borderWidth: 1, borderColor: active ? accent + '88' : theme.colors.border }}
-                  onPress={() => setScope(sc)}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: active }}
-                >
-                  <Text style={{ fontSize: 13, fontWeight: active ? '900' : '700', color: active ? accent : theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.5 }}>{SCOPE_LABELS[sc] ?? sc}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          {/* Scope segmented (shared ScopeSegment — design.md step 1) */}
+          <ScopeSegment value={scope as any} onChange={setScope as any} size="tall" style={{ marginBottom: 14 }} />
           {nextDrawIn && (
             <View style={{ alignItems: 'center', marginBottom: 14 }}>
               <Text style={{ fontSize: 9, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold }}>NEXT DRAW</Text>
@@ -755,14 +740,8 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Scope only — mode moved to overflow */}
-          <View style={s.scopeRow}>
-            {(['midday', 'evening', 'allday'] as const).map(sc => (
-              <TouchableOpacity key={sc} style={[s.scopeBtn, scope === sc && s.scopeBtnOn]} onPress={() => setScope(sc)}>
-                <Text style={[s.scopeBtnText, scope === sc && s.scopeBtnTextOn]}>{SCOPE_LABELS[sc]}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          {/* Scope (shared ScopeSegment — design.md step 1) */}
+          <ScopeSegment value={scope as any} onChange={setScope as any} size="compact" />
         </LinearGradient>
 
         {/* §4.2 — last-hit pill (suppressed if no hit in last 7 days) */}
@@ -981,11 +960,7 @@ const s = StyleSheet.create({
   streakNext: { fontSize: 9, color: theme.colors.amber + 'AA', fontFamily: theme.typography.fontFamily.mono },
   overflowBtn: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.card },
 
-  scopeRow: { flexDirection: 'row', backgroundColor: theme.colors.background, borderRadius: 10, padding: 2, gap: 1, borderWidth: 1, borderColor: theme.colors.border },
-  scopeBtn: { flex: 1, paddingVertical: 7, borderRadius: 8, alignItems: 'center' },
-  scopeBtnOn: { backgroundColor: theme.colors.bgElevated },
-  scopeBtnText: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: '500' },
-  scopeBtnTextOn: { color: theme.colors.cyan, fontWeight: '700' },
+  // scope tab styles moved to components/ScopeSegment.tsx (design.md step 1)
 
   heroStat: { flexDirection: 'row', alignItems: 'stretch', marginHorizontal: 16, marginTop: 10, paddingHorizontal: 10, paddingVertical: 7, backgroundColor: theme.colors.bgElevated, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border },
   heroCol: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },

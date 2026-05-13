@@ -51,6 +51,7 @@ import { scopeAccent } from '@/lib/scopeAccent';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
 import { RegenConfirmationModal } from '@/components/RegenConfirmationModal';
+import { ScopeSegment } from '@/components/ScopeSegment';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { useToast } from '@/components/Toast';
 import { NeonRefreshControl } from '@/components/NeonRefreshControl';
@@ -467,27 +468,10 @@ export default function SlatesScreen() {
         )}
       </View>
 
-      {/* ── Big segmented scope control (screenshot-friendly) ── */}
+      {/* ── Big segmented scope control (shared ScopeSegment — design.md step 1) ── */}
       {tab === 'picks' && (
-        <View style={s.scopeBigRow}>
-          {(['midday', 'evening', 'allday'] as const).map(sc => {
-            const active = scope === sc;
-            const accent = scopeAccent(sc);
-            return (
-              <TouchableOpacity
-                key={sc}
-                style={[
-                  s.scopeBigBtn,
-                  active && { backgroundColor: accent + '14', borderColor: accent + '88' },
-                ]}
-                onPress={() => setScope(sc as any)}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: active }}
-              >
-                <Text style={[s.scopeBigText, active && { color: accent, fontWeight: '900' }]}>{SCOPE_LABELS[sc]}</Text>
-              </TouchableOpacity>
-            );
-          })}
+        <View style={s.scopeBigRowWrap}>
+          <ScopeSegment value={scope as any} onChange={setScope as any} size="tall" />
         </View>
       )}
 
@@ -812,9 +796,9 @@ const s = StyleSheet.create({
   tabDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.gold },
 
   // Big scope segmented control (screenshot-friendly)
-  scopeBigRow: { flexDirection: 'row', backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: theme.colors.border, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10, gap: 6 },
-  scopeBigBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center', backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.border },
-  scopeBigText: { fontSize: 13, fontWeight: '700', color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.6 },
+  // Wrapper preserves the surrounding band: bg-elevated, bottom border,
+  // padding around the shared ScopeSegment. (Component itself is layout-only.)
+  scopeBigRowWrap: { backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: theme.colors.border, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10 },
   scopeMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 14, paddingTop: 6, paddingBottom: 6, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   scopeTimestampInline: { flex: 1, fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 0.4 },
   viewToggle: { flexDirection: 'row', backgroundColor: theme.colors.background, borderRadius: 8, padding: 2, gap: 1, borderWidth: 1, borderColor: theme.colors.border },

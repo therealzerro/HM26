@@ -116,7 +116,7 @@ export default function PaywallScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Hero Section — verified-rate claim, no marketing fluff */}
         <View style={styles.hero}>
-          <Text style={styles.heroBigNum}>{VERIFIED_HIT_RATE}%</Text>
+          <Text style={styles.heroBigNum} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit>{VERIFIED_HIT_RATE}%</Text>
           <Text style={styles.heroBigSub}>verified hit rate</Text>
           <Text style={styles.heroCompare}>vs ~7% random chance</Text>
           <Text style={styles.heroTitle}>Unlock the full K6 slate</Text>

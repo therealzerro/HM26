@@ -670,14 +670,14 @@ export default function HomeScreen() {
         {/* ── Unified hero: avg energy · hit rate · next draw (enhancements §1.3) ── */}
         <View style={s.heroStat}>
           <View style={s.heroCol}>
-            <Text style={[s.heroColNum, { color: avgColor }]}>{avgEnergy}</Text>
+            <Text style={[s.heroColNum, { color: avgColor }]} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit>{avgEnergy}</Text>
             <Text style={s.heroColLabel}>AVG ENERGY</Text>
             <Text style={s.heroColMeta}>{isFree ? '2 of 6' : '6 picks'}</Text>
             <Text style={s.heroColMeta}>{SCOPE_LABELS[scope] ?? scope}</Text>
           </View>
           <View style={s.heroDivider} />
           <View style={s.heroCol}>
-            <Text style={[s.heroColNum, { color: theme.colors.cyan }]}>{BACKTEST_HIT_RATE}%</Text>
+            <Text style={[s.heroColNum, { color: theme.colors.cyan }]} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit>{BACKTEST_HIT_RATE}%</Text>
             <Text style={s.heroColLabel}>HIT RATE</Text>
             <Text style={s.heroColMeta}>{todayHits} {todayHits === 1 ? 'hit' : 'hits'} today</Text>
           </View>

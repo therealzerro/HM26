@@ -208,7 +208,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
             <Text style={[s.rankText, { color: theme.colors.textTertiary }]}>#{pick.rank}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[s.combo, { color: theme.colors.textTertiary }]}>•  •  •</Text>
+            <Text style={[s.combo, { color: theme.colors.textTertiary }]} maxFontSizeMultiplier={1.4}>•  •  •</Text>
           </View>
         </View>
         <TouchableOpacity
@@ -292,15 +292,20 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
             {/* Best Straight — primary */}
             <View style={{ marginBottom: 6 }}>
               <Text style={[s.bestStraightLabel, { color: tempC }]}>⚡ Best Straight</Text>
-              <Text style={[
-                s.bestStraightDigits,
-                {
-                  color: tempC,
-                  textShadowColor: tempC,
-                  textShadowRadius: 14,
-                  textShadowOffset: { width: 0, height: 0 },
-                },
-              ]}>
+              <Text
+                style={[
+                  s.bestStraightDigits,
+                  {
+                    color: tempC,
+                    textShadowColor: tempC,
+                    textShadowRadius: 14,
+                    textShadowOffset: { width: 0, height: 0 },
+                  },
+                ]}
+                maxFontSizeMultiplier={1.4}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
                 {(pick.bestOrder ?? pick.combo).split('').join(' - ')}
               </Text>
               <Text style={s.boxSetSecondary}>Box: {pick.comboSet}</Text>

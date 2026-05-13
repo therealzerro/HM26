@@ -114,7 +114,12 @@ export function EnergyMeter({ value, size = 80 }: EnergyMeterProps) {
           backgroundColor: theme.colors.background,
           alignItems: 'center', justifyContent: 'center',
         }}>
-          <Text style={[s.num, { color: col, fontSize: size * 0.28 }]}>{value}</Text>
+          <Text
+            style={[s.num, { color: col, fontSize: size * 0.28 }]}
+            maxFontSizeMultiplier={1.3}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >{value}</Text>
         </View>
       </LinearGradient>
 

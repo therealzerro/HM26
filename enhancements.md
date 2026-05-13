@@ -289,8 +289,15 @@ Several screens use animations (Lottie/scroll animations/etc.). Honor `prefers-r
 - Slates page `viewToggle` and `scopeBigBtn` got `accessibilityRole="tab"` + `accessibilityState` from §6.1 work.
 - LockedPicksSummary "Watch ad" buttons got `accessibilityLabel="Watch ad to unlock pick {N}"`.
 
-### 7.5 Dynamic Type support (P2)
-The mono-font picks lock at `combo: 38` (`theme.ts:145`). On a user's accessibility-large font setting, they overflow. Wrap combos in PickCard with `allowFontScaling={true}` and test at 200% type size. **Effort: 2 hours.**
+### 7.5 Dynamic Type support (P2) — ✅ Shipped 2026-05-12
+**Audit finding:** `allowFontScaling` is at React Native's default (`true`) everywhere — no one explicitly disabled it. The real failure mode at 200% OS type isn't *no scaling*, it's **layout overflow** on big fixed-size display text (combos, hit rate, energy meter).
+**Fix applied** — added `maxFontSizeMultiplier={1.3-1.4}` + `numberOfLines={1}` + `adjustsFontSizeToFit` to the largest fixed-layout text:
+- `components/PickCard.tsx` — `bestStraightDigits` (combo display) + `combo` placeholder in locked variant
+- `components/EnergyMeter.tsx` — the big circle number
+- `app/(tabs)/index.tsx` — both `heroColNum` instances (avg energy + hit rate %)
+- `app/paywall.tsx` — `heroBigNum` (73.1%)
+- `components/HitCelebrationOverlay.tsx` — combo digits in the celebration card
+**Why a cap, not no-scaling:** at extreme OS scales (200%+), uncapped scaling shatters the design (combo digits flow off-card, hero numbers wrap to two lines, etc.). 1.3–1.4x cap respects most user accessibility preferences while preserving visual integrity. Body text, labels, and captions remain at default (full scaling) since they're in flex containers that absorb growth gracefully.
 
 ### 7.6 Performance — drop the legacy theme aliases (P2 housekeeping)
 `constants/theme.ts:60-86` has 25+ legacy compat aliases. Trace and remove. Smaller bundle, cleaner mental model. **Effort: half-day.**

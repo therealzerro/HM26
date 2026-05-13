@@ -256,14 +256,15 @@ Today the paywall (`app/paywall.tsx:69`) defaults `selectedPlan` to `trial5`. Pr
 
 ## 7. Polish & accessibility
 
-### 7.1 Onboarding richness (P2)
-**Current** (`index.tsx:100-104`): 3 screens, generic copy ("Join 2,400+ Players"), no interactive demo.
-**Upgrade:**
-- 5 screens total
-- Screen 3: interactive "scope demo" — let them tap between midday/evening/allday and see the slate change
-- Screen 4: "Your free preview" — show 2 real picks for today
-- Screen 5: real social proof: "Last 7 days: 5 hits across 32 jurisdictions"
-**Effort: 1 day.**
+### 7.1 Onboarding richness (P2) — ✅ Phase 1 Shipped 2026-05-12 (free preview only)
+**Phase 1 — free preview screen:** added a 4th onboarding screen titled "Your free preview" that renders 2 real picks from today's slate (the bottom 2, matching the free-tier reveal model). Screen is dynamically inserted only when picks are available; if the snapshot hasn't loaded yet, the modal falls back to the original 3-screen flow so we never show an empty placeholder.
+- Picks rendered as compact cyan-bordered pills: `#5  4 8 7  72°`
+- Final CTA on this screen reads "Get My Picks" (was "Get My Slates" — also a small ZK6-Picks rebrand consistency fix).
+- The dot indicator now reflects the actual screen count (3 or 4 depending on data availability).
+
+**Phases deferred:**
+- **Interactive scope demo screen** (~1.5 hrs) — let user tap midday/evening/allday and see the picks change live. Skipped today; the static preview is the smaller-scope MVP.
+- **"Real social proof" screen** — original spec said "Last 7 days: 5 hits across 32 jurisdictions" but the "32 jurisdictions" framing is dishonest social proof (it's data coverage, not user validation). If revisited, reframe as a clean hit-count line ("Last 7 days: N verified K6 hits") matching the subscriber-voice rule.
 
 ### 7.2 Empty states need personality (P2)
 Most empty states are functional but bland. The slate empty state (`index.tsx:461`) just says "⚡ Computing your K6 Slate…". Replace with rotating playful copy: "ZK6 is consulting the data oracle…", "Sorting through 100,000 historical draws…", "Running 47 cooldown checks…", etc. Cheap personality. **Effort: 1 hour.**

@@ -108,18 +108,39 @@ function useDrawCountdown(scope: string): string {
   return text;
 }
 
-// ─── Onboarding (unchanged from v5) ─────────────────────────────────────
-const ONBOARDING_SCREENS = [
-  { emoji: '🏆', title: 'Welcome to HitMaster', body: 'Your daily Pick 3 intelligence system. The ZK6™ Engine analyzes years of draw history to surface your highest-signal plays.', btn: 'Next →' },
-  { emoji: '⚡', title: 'Your Daily K6 Slate', body: 'Each morning your K6 Slate is powered by 3 signals — Frequency, Momentum, and Pattern — ranked by Energy Score.', btn: 'Next →' },
-  { emoji: '🌟', title: 'Join 2,400+ Players', body: 'Players across 18 states use HitMaster daily. Upgrade to Oracle+ to see all 6 picks.', btn: 'Get My Slates' },
+// ─── Onboarding (enhancements §7.1: + free-preview screen) ──────────────
+type OnboardingScreen =
+  | { kind: 'text'; emoji: string; title: string; body: string; btn: string }
+  | { kind: 'preview'; emoji: string; title: string; body: string; btn: string };
+
+const ONBOARDING_BASE: OnboardingScreen[] = [
+  { kind: 'text', emoji: '🏆', title: 'Welcome to HitMaster', body: 'Your daily Pick 3 intelligence system. The ZK6™ Engine analyzes years of draw history to surface your highest-signal plays.', btn: 'Next →' },
+  { kind: 'text', emoji: '⚡', title: 'Your Daily K6 Slate', body: 'Each morning your K6 Slate is powered by 3 signals — Frequency, Momentum, and Pattern — ranked by Energy Score.', btn: 'Next →' },
+  { kind: 'text', emoji: '🌟', title: 'Join 2,400+ Players', body: 'Players across 18 states use HitMaster daily. Upgrade to Oracle+ to see all 6 picks.', btn: 'Next →' },
+  { kind: 'preview', emoji: '👇', title: 'Your free preview', body: 'A taste of today\'s ZK6 picks — yours on the free tier. Oracle+ unlocks all 6.', btn: 'Get My Picks' },
 ];
 
-function OnboardingModal({ visible, onDone }: { visible: boolean; onDone: () => void }) {
+interface PreviewPick { rank: number; combo: string; energy: number }
+
+function OnboardingModal({
+  visible,
+  onDone,
+  previewPicks,
+}: {
+  visible: boolean;
+  onDone: () => void;
+  previewPicks: PreviewPick[];
+}) {
+  // If we have no preview picks (snapshot not loaded yet), drop the
+  // preview screen so we don't show an empty placeholder.
+  const screens = useMemo<OnboardingScreen[]>(
+    () => (previewPicks.length > 0 ? ONBOARDING_BASE : ONBOARDING_BASE.filter(s => s.kind !== 'preview')),
+    [previewPicks.length],
+  );
   const [step, setStep] = useState(0);
-  const screen = ONBOARDING_SCREENS[step];
+  const screen = screens[Math.min(step, screens.length - 1)];
   const next = async () => {
-    if (step < ONBOARDING_SCREENS.length - 1) setStep(s => s + 1);
+    if (step < screens.length - 1) setStep(s => s + 1);
     else { await storage.setItem('onboarding_complete', 'true'); onDone(); }
   };
   return (
@@ -129,7 +150,18 @@ function OnboardingModal({ visible, onDone }: { visible: boolean; onDone: () => 
           <Text style={{ fontSize: 48, marginBottom: 16 }}>{screen.emoji}</Text>
           <Text style={ob.title}>{screen.title}</Text>
           <Text style={ob.body}>{screen.body}</Text>
-          <View style={ob.dots}>{ONBOARDING_SCREENS.map((_, i) => <View key={i} style={[ob.dot, i === step && ob.dotActive]} />)}</View>
+          {screen.kind === 'preview' && (
+            <View style={ob.previewWrap}>
+              {previewPicks.slice(0, 2).map(p => (
+                <View key={p.rank} style={ob.previewPill}>
+                  <Text style={ob.previewRank}>#{p.rank}</Text>
+                  <Text style={ob.previewCombo}>{p.combo}</Text>
+                  <Text style={ob.previewEnergy}>{p.energy}°</Text>
+                </View>
+              ))}
+            </View>
+          )}
+          <View style={ob.dots}>{screens.map((_, i) => <View key={i} style={[ob.dot, i === step && ob.dotActive]} />)}</View>
           <TouchableOpacity style={ob.btn} onPress={next}><Text style={ob.btnText}>{screen.btn}</Text></TouchableOpacity>
           {step > 0 && <TouchableOpacity onPress={onDone} style={{ marginTop: 10 }}><Text style={{ fontSize: 12, color: theme.colors.textTertiary }}>Skip</Text></TouchableOpacity>}
         </LinearGradient>
@@ -147,6 +179,11 @@ const ob = StyleSheet.create({
   dotActive: { backgroundColor: theme.colors.purple, width: 18 },
   btn: { backgroundColor: theme.colors.purple, borderRadius: 13, paddingHorizontal: 28, paddingVertical: 13, width: '100%', alignItems: 'center' },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  previewWrap: { width: '100%', flexDirection: 'row', justifyContent: 'center', gap: 10, marginBottom: 18 },
+  previewPill: { flex: 1, alignItems: 'center', backgroundColor: theme.colors.bgElevated, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: theme.colors.cyan + '55' },
+  previewRank: { fontSize: 10, fontWeight: '900', color: theme.colors.cyan, letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 4 },
+  previewCombo: { fontSize: 24, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 4 },
+  previewEnergy: { fontSize: 11, color: theme.colors.gold, marginTop: 4, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700' },
 });
 
 // ─── Overflow sheet — everything that used to clutter the top ─────────────
@@ -793,7 +830,14 @@ export default function HomeScreen() {
       )}
       <Paywall visible={paywallOpen} onClose={() => setPaywallOpen(false)} />
       <HeatCheckModal visible={heatCheckOpen} onClose={() => setHeatCheckOpen(false)} initialCombo="" scope={scope} />
-      <OnboardingModal visible={showOnboarding} onDone={() => setShowOnboarding(false)} />
+      <OnboardingModal
+        visible={showOnboarding}
+        onDone={() => setShowOnboarding(false)}
+        previewPicks={items
+          .filter(p => p.combo !== '---' && p.combo !== '•••' && p.energy > 0)
+          .slice(-2)
+          .map(p => ({ rank: p.rank, combo: p.combo, energy: p.energy }))}
+      />
       {hitBanner && (
         <HitCelebrationOverlay
           visible={celebrationVisible}

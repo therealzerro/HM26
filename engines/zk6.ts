@@ -1198,7 +1198,11 @@ export async function computeSlate({
           signal_box:    bs,
           signal_pburst: ps,
           signal_co:     cs,
-          signal_dgc:    ds,
+          // adaptive_tracking uses `signal_burst` as the DGC slot (legacy
+          // name predates the DGC rename; renaming would break the existing
+          // *_top_quartile column pair `burst_top_quartile`). Engine code
+          // writes DGC values here; reads should treat them as DGC.
+          signal_burst:  ds,
           energy_score:  x.energy,
           mode: weightsKey,
           // Outcome left NULL — hit detection fills these:
@@ -1207,7 +1211,7 @@ export async function computeSlate({
           box_top_quartile:    bs >= boxQ75,
           pburst_top_quartile: ps >= pburstQ75,
           co_top_quartile:     cs >= coQ75,
-          burst_top_quartile:  ps >= pburstQ75,  // legacy alias of pburst
+          burst_top_quartile:  ds >= dgcQ75,  // DGC quartile lives in this flag
           dominant_signal: dominant,
         };
       });

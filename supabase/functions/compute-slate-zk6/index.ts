@@ -616,12 +616,13 @@ async function computeSlate(params: {
         return {
           slate_date: effectiveDate, scope, slate_hash: hash,
           rank: idx + 1, combo: x.combo, combo_set: x.normKey,
-          signal_box: bs, signal_pburst: ps, signal_co: cs, signal_dgc: ds,
+          // adaptive_tracking uses signal_burst as the DGC slot (legacy name).
+          signal_box: bs, signal_pburst: ps, signal_co: cs, signal_burst: ds,
           energy_score: x.energy, mode: weightsKey,
           box_top_quartile:    bs >= boxQ75,
           pburst_top_quartile: ps >= pburstQ75,
           co_top_quartile:     cs >= coQ75,
-          burst_top_quartile:  ps >= pburstQ75,
+          burst_top_quartile:  ds >= dgcQ75,  // DGC quartile
           dominant_signal: dominant,
         };
       });

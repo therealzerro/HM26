@@ -128,13 +128,14 @@ async function main() {
         slate_date: s.slate_date,
         scope, slate_hash: slateHash, rank, combo,
         combo_set: p.comboSet ?? `{${[...combo].sort().join(',')}}`,
-        signal_box: bs, signal_pburst: ps, signal_co: cs, signal_dgc: ds,
+        // adaptive_tracking stores DGC in signal_burst (legacy column name)
+        signal_box: bs, signal_pburst: ps, signal_co: cs, signal_burst: ds,
         energy_score: p.energy ?? p.temperature ?? 0,
         mode,
         box_top_quartile: bs >= boxQ,
         pburst_top_quartile: ps >= pburstQ,
         co_top_quartile: cs >= coQ,
-        burst_top_quartile: ps >= pburstQ,
+        burst_top_quartile: ds >= dgcQ,  // DGC quartile lives in this flag
         dominant_signal: dominantOf(bs, ps, cs, ds),
       };
       if (p.hitType) {

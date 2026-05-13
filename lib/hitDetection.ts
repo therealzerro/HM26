@@ -114,7 +114,8 @@ async function recordHitInAdaptiveTracking(pick: any, result: any, snapshot: any
         signal_box: boxS,
         signal_pburst: pburstS,
         signal_co: coS,
-        signal_dgc: dgcS,
+        // adaptive_tracking stores DGC in signal_burst (legacy column name)
+        signal_burst: dgcS,
         energy_score: pick.temperature ?? pick.energy ?? 0,
         mode,
         ...outcomeFields,

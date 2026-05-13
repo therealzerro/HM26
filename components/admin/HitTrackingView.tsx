@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import { theme } from '@/constants/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
@@ -65,13 +65,14 @@ function PerformanceRow({
           else if (Array.isArray(raw)) picks = raw;
         } catch {}
       } else {
-        // Fallback: search by scope + date
+        // Fallback: search by scope + slate_date (canonical date column).
+        // B5 fix: was matching on updated_at_et.split('T')[0] which fails
+        // when a slate is regenerated past midnight ET but tagged with
+        // the prior date's slate_date.
         const snaps = await fetchFromSupabase<any[]>({
-          path: `/rest/v1/slate_snapshots?scope=eq.${row.scope}&deleted_at=is.null&order=updated_at_et.desc&limit=30&select=id,scope,top_k_straights_json,updated_at_et`,
+          path: `/rest/v1/slate_snapshots?scope=eq.${row.scope}&slate_date=eq.${row.slate_date}&deleted_at=is.null&order=updated_at_et.desc&limit=10&select=id,scope,top_k_straights_json,updated_at_et`,
         });
-        const scopeSnap = Array.isArray(snaps)
-          ? (snaps.find((s: any) => (s.updated_at_et?.split('T')[0] ?? '') === row.slate_date) ?? snaps[0])
-          : null;
+        const scopeSnap = Array.isArray(snaps) ? snaps[0] : null;
         if (scopeSnap) {
           resolvedSnapshotId = scopeSnap.id ?? null;
           try {
@@ -83,13 +84,16 @@ function PerformanceRow({
       }
 
 
+      // B6/B10 fix: explicit columns instead of select=*, raise limit so
+      // multi-state secondary rows don't get truncated (6 K6 primary + up
+      // to ~6 secondaries per pick = 50 is comfortable).
       const [histRes, trackRes] = await Promise.all([
         fetchFromSupabase<any[]>({
           path: `/rest/v1/histories?date_et=eq.${row.slate_date}&select=result_digits,comboset_sorted,jurisdiction,session`,
           method: 'GET',
         }),
         fetchFromSupabase<any[]>({
-          path: `/rest/v1/adaptive_tracking?slate_date=eq.${row.slate_date}&scope=eq.${row.scope}&select=*&limit=20`,
+          path: `/rest/v1/adaptive_tracking?slate_date=eq.${row.slate_date}&scope=eq.${row.scope}&select=rank,combo,combo_set,signal_box,signal_pburst,signal_co,signal_burst,energy_score,mode,hit_box,hit_straight,actual_result,matched_state,matched_session,dominant_signal,box_top_quartile,pburst_top_quartile,co_top_quartile,burst_top_quartile&limit=100`,
           method: 'GET',
         }),
       ]);
@@ -157,11 +161,11 @@ function PerformanceRow({
       }
 
       Alert.alert(
-        'Delete Slate?',
-        'Remove this slate record permanently?',
+        'Soft-delete slate?',
+        'Hides this slate from views. Recoverable from "Recently deleted" panel for 30 days.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', style: 'destructive', onPress: () => softDeleteById(snapshotId!) },
+          { text: 'Soft-delete', style: 'destructive', onPress: () => softDeleteById(snapshotId!) },
         ]
       );
     };
@@ -332,6 +336,88 @@ function PerformanceRow({
                   No picks stored for this slate.{'\n'}Regenerate slates to populate pick data.
                 </Text>
               )}
+
+              {/* Phase 3 — PROVENANCE + QUARTILE STRATIFICATION
+                  Two summary blocks above Section B:
+                  (1) "Where the hits came from" — distinct jurisdictions /
+                      sessions per pick, surfaces multi-state matches
+                      visibly (e.g. pick 916 hit BOTH WI AND ME,NH,VT).
+                  (2) "Top-quartile lift" — for each signal, hit rate of
+                      top-quartile picks vs others within today's data. Uses
+                      the *_top_quartile flags from ENH-02. */}
+              {expandedData.trackingRows.filter((t: any) => t.hit_box || t.hit_straight).length > 0 && (() => {
+                const hits = expandedData.trackingRows.filter((t: any) => t.hit_box || t.hit_straight);
+                // Provenance: group by combo, list every state that hit it
+                const byCombo = new Map<string, any[]>();
+                for (const h of hits) {
+                  if (!byCombo.has(h.combo)) byCombo.set(h.combo, []);
+                  byCombo.get(h.combo)!.push(h);
+                }
+                return (
+                  <View style={{ marginBottom: 12 }}>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Where the hits came from</Text>
+                    {[...byCombo.entries()].map(([combo, matches], ci) => (
+                      <View key={ci} style={{ marginBottom: 4 }}>
+                        <Text style={{ fontSize: 11, color: theme.colors.text }}>
+                          <Text style={{ fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '900', letterSpacing: 2 }}>{combo}</Text>
+                          {' hit '}
+                          {matches.length === 1
+                            ? <Text>in <Text style={{ fontWeight: '700' }}>{matches[0].matched_state}</Text> · {matches[0].matched_session}</Text>
+                            : <>
+                                in <Text style={{ fontWeight: '700' }}>{matches.length} jurisdictions</Text>:
+                                {' '}{matches.map((m: any, i: number) =>
+                                  <Text key={i} style={{ color: theme.colors.gold, fontWeight: '700' }}>
+                                    {m.matched_state}{i < matches.length - 1 ? ' · ' : ''}
+                                  </Text>
+                                )}
+                              </>
+                          }
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                );
+              })()}
+
+              {/* Quartile stratification — across this slate's K6 picks,
+                  show hit rate by signal-quartile flag. Reads the
+                  pre-computed *_top_quartile booleans (ENH-02). */}
+              {expandedData.trackingRows.length >= 3 && (() => {
+                const all = expandedData.trackingRows;
+                const isHit = (t: any) => !!(t.hit_box || t.hit_straight);
+                const flags: Array<[string, string, string]> = [
+                  ['Frequency',   'box_top_quartile',    'box'],
+                  ['Momentum',    'pburst_top_quartile', 'pburst'],
+                  ['Pattern',     'co_top_quartile',     'co'],
+                  ['Consistency', 'burst_top_quartile',  'burst'],
+                ];
+                return (
+                  <View style={{ marginBottom: 12 }}>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Top-quartile lift</Text>
+                    {flags.map(([label, flag]) => {
+                      const top = all.filter((t: any) => t[flag] === true);
+                      const bot = all.filter((t: any) => t[flag] === false);
+                      const tHits = top.filter(isHit).length;
+                      const bHits = bot.filter(isHit).length;
+                      const tRate = top.length ? Math.round((tHits / top.length) * 100) : 0;
+                      const bRate = bot.length ? Math.round((bHits / bot.length) * 100) : 0;
+                      const lift = tRate - bRate;
+                      const tone = lift >= 10 ? theme.colors.success : lift >= 3 ? theme.colors.gold : lift >= -3 ? theme.colors.textTertiary : theme.colors.error;
+                      return (
+                        <View key={label} style={{ flexDirection: 'row', alignItems: 'baseline', marginBottom: 2 }}>
+                          <Text style={{ fontSize: 10, color: theme.colors.text, width: 88 }}>{label}</Text>
+                          <Text style={{ fontSize: 10, color: theme.colors.textSecondary, flex: 1, fontFamily: theme.typography.fontFamily.mono }}>
+                            top: {tRate}%  ·  other: {bRate}%
+                          </Text>
+                          <Text style={{ fontSize: 10, fontWeight: '900', color: tone, fontFamily: theme.typography.fontFamily.monoBold }}>
+                            {lift >= 0 ? '+' : ''}{lift}pp
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                );
+              })()}
 
               {/* SECTION B — WHY THESE PICKS WORKED
                   Reads from adaptive_tracking (ENH-01). Subscriber-voice copy:
@@ -521,49 +607,104 @@ export default function HitTrackingView() {
   const [scopeFilter, setScopeFilter] = useState<string>('all');
   const [modeFilter, setModeFilter] = useState<string>('all');
 
+  // Phase 1 (B1 fix): replace `calculate_hit_rates` RPC with client-side
+  // aggregation over `adaptive_tracking`. The RPC reads hit annotations off
+  // the CURRENT active snapshot — which after a mid-day regen has none,
+  // because the engine excluded already-drawn box-sets from the new picks.
+  // adaptive_tracking holds the hit log keyed by slate_hash so regens don't
+  // erase history. Also de-dupes multi-state secondary matches so a single
+  // pick that hit in 2 states still counts as 1 hit.
+  //
+  // Phase 1 (B5 fix): match by `slate_date`, not `updated_at_et.split('T')[0]`
+  // — slate_date is canonical; updated_at_et can be the next ET day for
+  // late-night regens.
   const load = useCallback(async () => {
     setLoading(true); setFetchError(null);
     try {
+      // Pull last 60 days of K6 picks across all snapshots (paginate)
+      const since = (() => {
+        const d = new Date(); d.setUTCDate(d.getUTCDate() - 60);
+        return d.toISOString().slice(0, 10);
+      })();
+      let at: any[] = [];
+      for (let off = 0; off < 5000; off += 1000) {
+        const page = await fetchFromSupabase<any[]>({
+          path: `/rest/v1/adaptive_tracking?slate_date=gte.${since}&select=slate_date,scope,mode,combo,hit_box,hit_straight,slate_hash,matched_state&limit=1000&offset=${off}`,
+        });
+        if (!Array.isArray(page) || page.length === 0) break;
+        at.push(...page);
+        if (page.length < 1000) break;
+      }
+
+      // Get all snapshots (active + soft-deleted) in window — we need them
+      // to pick the right snapshotId per (date, scope, mode) row, preferring
+      // the snapshot with the most hit annotations so the row's "delete"
+      // button targets the meaningful version.
       const snaps = await fetchFromSupabase<any[]>({
-        path: '/rest/v1/slate_snapshots?deleted_at=is.null&select=id,scope,updated_at_et&order=updated_at_et.desc&limit=200',
-        method: 'GET',
+        path: `/rest/v1/slate_snapshots?slate_date=gte.${since}&select=id,scope,slate_date,hash,updated_at_et,deleted_at,top_k_straights_json&order=slate_date.desc,updated_at_et.desc&limit=500`,
       });
       const snapList = Array.isArray(snaps) ? snaps : [];
 
-      let hitRows: any[] = [];
-      try {
-        const rpcRows = await fetchFromSupabase<any[]>({
-          path: '/rest/v1/rpc/calculate_hit_rates',
-          method: 'POST',
-          body: {},
-        });
-        hitRows = Array.isArray(rpcRows) ? rpcRows : [];
-      } catch (rpcErr) {
-        console.warn('[HitTrackingView] calculate_hit_rates RPC failed, showing snapshots only:', rpcErr);
-        // Fallback: synthesize rows from snapshots with null hit rates
-        hitRows = snapList.map((s: any) => ({
-          slate_date: (s.updated_at_et ?? '').split('T')[0],
-          scope: s.scope,
-          mode: s.mode ?? 'balanced',
-          total_picks: 6,
-          box_hits: null,
-          straight_hits: null,
-          box_hit_rate: null,
-          straight_hit_rate: null,
-          snapshotId: s.id,
-        }));
+      // Aggregate hits per (slate_date, scope, mode). Multi-state secondary
+      // rows (same combo, different matched_state) are de-duped — one combo
+      // hitting in 2 states = 1 hit.
+      type Agg = { box: Set<string>; straight: Set<string>; total: number };
+      const aggMap = new Map<string, Agg>();
+      const totalByKey = new Map<string, Set<string>>();
+      for (const r of at) {
+        if (!r.slate_date || !r.scope) continue;
+        const mode = r.mode || 'balanced';
+        const key = `${r.slate_date}|${r.scope}|${mode}`;
+        if (!aggMap.has(key)) aggMap.set(key, { box: new Set(), straight: new Set(), total: 0 });
+        if (!totalByKey.has(key)) totalByKey.set(key, new Set());
+        const a = aggMap.get(key)!;
+        const tk = totalByKey.get(key)!;
+        if (r.combo) tk.add(r.combo);
+        if (r.hit_box && r.combo) a.box.add(r.combo);
+        if (r.hit_straight && r.combo) a.straight.add(r.combo);
       }
 
-      // Merge snapshot ID into each performance row
-      const merged = hitRows.map((row: any) => {
-        if (row.snapshotId) return row;
-        const match = snapList.find((s: any) =>
-          s.scope === row.scope &&
-          (s.updated_at_et?.split('T')[0] ?? '') === row.slate_date
-        );
-        return { ...row, snapshotId: match?.id ?? null };
-      });
-      setData(merged);
+      // For each (date, scope, mode), pick the snapshot with the most hit
+      // annotations on top_k_straights_json — the row that the screen
+      // operations should target. Mirrors the Replay logic.
+      const snapHitCount = (s: any) =>
+        Array.isArray(s.top_k_straights_json)
+          ? s.top_k_straights_json.filter((p: any) => p?.hitType).length
+          : 0;
+      const snapByKey = new Map<string, any[]>();
+      for (const s of snapList) {
+        const mode = s.mode || 'balanced';
+        const key = `${s.slate_date}|${s.scope}|${mode}`;
+        if (!snapByKey.has(key)) snapByKey.set(key, []);
+        snapByKey.get(key)!.push(s);
+      }
+
+      const rows: any[] = [];
+      for (const [key, agg] of aggMap.entries()) {
+        const [slate_date, scope, mode] = key.split('|');
+        const total = Math.max(totalByKey.get(key)?.size ?? 0, 6);
+        const candidates = (snapByKey.get(key) ?? []).slice().sort((a, b) => {
+          const ha = snapHitCount(a), hb = snapHitCount(b);
+          if (hb !== ha) return hb - ha;
+          // Tie-break: prefer active (not soft-deleted), then most-recent updated_at
+          if (!!a.deleted_at !== !!b.deleted_at) return a.deleted_at ? 1 : -1;
+          return (b.updated_at_et ?? '').localeCompare(a.updated_at_et ?? '');
+        });
+        const chosen = candidates[0];
+        rows.push({
+          slate_date, scope, mode,
+          total_picks: total,
+          box_hits: agg.box.size,
+          straight_hits: agg.straight.size,
+          box_hit_rate: total > 0 ? Math.round((agg.box.size / total) * 1000) / 10 : 0,
+          straight_hit_rate: total > 0 ? Math.round((agg.straight.size / total) * 1000) / 10 : 0,
+          snapshotId: chosen?.id ?? null,
+          snapshotHash: chosen?.hash ?? null,
+          snapshotDeleted: !!chosen?.deleted_at,
+        });
+      }
+      rows.sort((a, b) => b.slate_date.localeCompare(a.slate_date));
+      setData(rows);
     } catch (e) {
       setFetchError(String(e instanceof Error ? e.message : e));
     } finally { setLoading(false); }
@@ -574,29 +715,48 @@ export default function HitTrackingView() {
   const handleDeleteDuplicates = useCallback(async () => {
     try {
       const snaps = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/slate_snapshots?deleted_at=is.null&select=id,scope,mode,updated_at_et&order=updated_at_et.desc&limit=500`,
+        path: `/rest/v1/slate_snapshots?deleted_at=is.null&select=id,scope,mode,slate_date,updated_at_et,top_k_straights_json&order=updated_at_et.desc&limit=500`,
       });
       if (!Array.isArray(snaps) || snaps.length === 0) {
         Alert.alert('No Duplicates', 'No snapshots found.'); return;
       }
+      // Phase 2 (B4 fix): keep 1 most recent per (slate_date, scope, mode).
+      // Duplicates are bugs left over from race conditions in older regen
+      // paths — there's no valid reason to have 2+ active snapshots for
+      // the same logical slate. The previous "keep 3" was supplemental-slate
+      // legacy that no longer applies post-BUG-127.
+      // Phase 2 (B5 fix): group by slate_date, not updated_at_et.split('T')[0].
       const groups = new Map<string, any[]>();
       for (const snap of snaps) {
-        const date = (snap.updated_at_et ?? '').split('T')[0];
+        const date = snap.slate_date ?? (snap.updated_at_et ?? '').split('T')[0];
         const mode = snap.mode ?? 'balanced';
         const key = `${date}-${snap.scope}-${mode}`;
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key)!.push(snap);
       }
+      // Within each group: prefer the snapshot with the most hit annotations
+      // (the slate that actually recorded hits beats a post-regen empty one).
+      // Ties broken by most-recent updated_at_et.
+      const snapHitCount = (s: any) =>
+        Array.isArray(s.top_k_straights_json)
+          ? s.top_k_straights_json.filter((p: any) => p?.hitType).length
+          : 0;
       const toDelete: string[] = [];
       for (const group of groups.values()) {
-        if (group.length > 3) toDelete.push(...group.slice(3).map((s: any) => s.id));
+        if (group.length <= 1) continue;
+        const ranked = group.slice().sort((a, b) => {
+          const ha = snapHitCount(a), hb = snapHitCount(b);
+          if (hb !== ha) return hb - ha;
+          return (b.updated_at_et ?? '').localeCompare(a.updated_at_et ?? '');
+        });
+        toDelete.push(...ranked.slice(1).map((s: any) => s.id));
       }
       if (toDelete.length === 0) {
-        Alert.alert('No Duplicates', 'No duplicate snapshots found (max 3 per scope/mode/date).'); return;
+        Alert.alert('No Duplicates', 'No duplicate active snapshots found.'); return;
       }
       Alert.alert(
-        'Delete Duplicates',
-        `Found ${toDelete.length} duplicate snapshot(s). Keep 3 most recent per scope/mode/date.`,
+        'Soft-delete duplicates?',
+        `Found ${toDelete.length} duplicate snapshot(s). Keep 1 most recent per scope/mode/date (the one with hits, if any).`,
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Remove', style: 'destructive', onPress: async () => {
@@ -659,12 +819,35 @@ export default function HitTrackingView() {
         </TouchableOpacity>
       </View>
       <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginBottom: 10 }}>Slate picks vs actual draw results · tap row to expand</Text>
-      <TouchableOpacity
-        onPress={handleDeleteDuplicates}
-        style={{ alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.error + '55', backgroundColor: theme.colors.errorLight, marginBottom: 14 }}
-      >
-        <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.error }}>🗑 Delete Duplicates</Text>
-      </TouchableOpacity>
+      {/* Phase 6: action row — duplicate cleanup + CSV export */}
+      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+        <TouchableOpacity
+          onPress={handleDeleteDuplicates}
+          style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.error + '55', backgroundColor: theme.colors.errorLight }}
+        >
+          <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.error }}>🗑 Clean Duplicates</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={async () => {
+            // Phase 6: export current performance table to CSV for offline review.
+            // Uses the in-memory `data` array (already filtered + aggregated).
+            const header = 'slate_date,scope,mode,total_picks,box_hits,straight_hits,box_hit_rate,straight_hit_rate,snapshot_hash';
+            const lines = data.map(r => [
+              r.slate_date, r.scope, r.mode ?? 'balanced',
+              r.total_picks ?? 6, r.box_hits ?? 0, r.straight_hits ?? 0,
+              r.box_hit_rate ?? 0, r.straight_hit_rate ?? 0,
+              r.snapshotHash ?? '',
+            ].join(','));
+            const csv = [header, ...lines].join('\n');
+            try {
+              await Share.share({ message: csv, title: `zk6-performance-${getTodayET()}.csv` });
+            } catch (e) { Alert.alert('Share failed', String(e)); }
+          }}
+          style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.primary + '55', backgroundColor: theme.colors.primaryLight }}
+        >
+          <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.primary }}>📋 Export CSV</Text>
+        </TouchableOpacity>
+      </View>
 
       {loading ? (
         <View style={{ alignItems: 'center', paddingTop: 60, gap: 12 }}>
@@ -763,6 +946,12 @@ export default function HitTrackingView() {
             </Card>
           )}
 
+          {/* Phase 4 — Recently deleted (last 30d) panel.
+              Soft-deletes set deleted_at; this surface lists them and
+              offers a one-tap PATCH back to deleted_at=null. Cap displayed
+              rows at 50 for perf. Audit-log every restore. */}
+          <RecentlyDeletedPanel onRestored={load} />
+
           <Card style={{ padding: 10, marginTop: 8 }}>
             <Text style={{ fontSize: 9, color: theme.colors.textTertiary, lineHeight: 15 }}>
               🟢 Green = box rate {'>'} 33% · 🟡 Yellow = 16–33% · 🔴 Red = {'<'} 16%{'\n'}
@@ -772,5 +961,129 @@ export default function HitTrackingView() {
         </>
       )}
     </ScrollView>
+  );
+}
+
+// ─── Phase 4 — Recently deleted panel ───────────────────────────────────────
+function RecentlyDeletedPanel({ onRestored }: { onRestored?: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const since = (() => {
+        const d = new Date(); d.setUTCDate(d.getUTCDate() - 30);
+        return d.toISOString().slice(0, 10);
+      })();
+      const data = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/slate_snapshots?deleted_at=not.is.null&slate_date=gte.${since}&select=id,scope,slate_date,hash,deleted_at,top_k_straights_json&order=deleted_at.desc&limit=50`,
+      });
+      setRows(Array.isArray(data) ? data : []);
+    } catch {
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { if (expanded && rows.length === 0) load(); }, [expanded, rows.length, load]);
+
+  const restore = useCallback((id: string, scope: string, slate_date: string, hash: string) => {
+    Alert.alert(
+      'Restore snapshot?',
+      `Brings ${scope} ${slate_date} (${hash?.slice(0,8)}) back as active. Other active snapshots for the same scope/date stay active — you may end up with duplicates.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Restore',
+          onPress: async () => {
+            setRestoringId(id);
+            try {
+              await fetchFromSupabase({
+                path: `/rest/v1/slate_snapshots?id=eq.${id}`,
+                method: 'PATCH',
+                body: { deleted_at: null },
+              });
+              await fetchFromSupabase({
+                path: '/rest/v1/audit_logs',
+                method: 'POST',
+                headers: { 'Prefer': 'return=minimal' },
+                body: {
+                  action: 'restore_snapshot',
+                  target: id,
+                  payload_meta: { scope, slate_date, hash, note: 'Phase 4 manual restore' },
+                },
+              });
+              Alert.alert('Restored', `${scope} ${slate_date} is active again.`);
+              setRows(prev => prev.filter(r => r.id !== id));
+              onRestored?.();
+            } catch (e) {
+              Alert.alert('Failed', String(e));
+            } finally {
+              setRestoringId(null);
+            }
+          },
+        },
+      ],
+    );
+  }, [onRestored]);
+
+  const hitsOf = (s: any) =>
+    Array.isArray(s.top_k_straights_json)
+      ? s.top_k_straights_json.filter((p: any) => p?.hitType).length
+      : 0;
+
+  return (
+    <Card style={{ padding: 12, marginTop: 8 }}>
+      <TouchableOpacity onPress={() => setExpanded(e => !e)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <Text style={{ fontSize: 14 }}>{expanded ? '▾' : '▸'}</Text>
+        <Text style={{ fontSize: 11, fontWeight: '800', color: theme.colors.textSecondary, letterSpacing: 0.4 }}>
+          Recently deleted (last 30d)
+        </Text>
+        <View style={{ flex: 1 }} />
+        {!expanded && (
+          <Text style={{ fontSize: 10, color: theme.colors.textTertiary }}>tap to expand</Text>
+        )}
+      </TouchableOpacity>
+      {expanded && (
+        <View style={{ marginTop: 10, gap: 6 }}>
+          {loading ? (
+            <ActivityIndicator size="small" color={theme.colors.primary} />
+          ) : rows.length === 0 ? (
+            <Text style={{ fontSize: 10, color: theme.colors.textTertiary }}>Nothing soft-deleted in the last 30 days.</Text>
+          ) : (
+            rows.map(r => {
+              const hits = hitsOf(r);
+              const isRestoring = restoringId === r.id;
+              return (
+                <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, backgroundColor: theme.colors.bgElevated, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.border }}>
+                  <Text style={{ fontSize: 10, fontFamily: theme.typography.fontFamily.monoBold, color: theme.colors.text, width: 76 }}>
+                    {r.slate_date}
+                  </Text>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.textSecondary, width: 56 }}>
+                    {r.scope}
+                  </Text>
+                  <Text style={{ fontSize: 9, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, flex: 1 }}>
+                    {r.hash?.slice(0,8)} · {hits} hit{hits === 1 ? '' : 's'}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => restore(r.id, r.scope, r.slate_date, r.hash)}
+                    disabled={isRestoring}
+                    style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, backgroundColor: theme.colors.primaryLight, borderWidth: 1, borderColor: theme.colors.primary + '66' }}
+                  >
+                    <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.primary }}>
+                      {isRestoring ? '…' : '↶ Restore'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })
+          )}
+        </View>
+      )}
+    </Card>
   );
 }

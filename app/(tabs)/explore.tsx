@@ -776,19 +776,19 @@ export default function SlatesScreen() {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
 
-  statusStrip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 5, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  statusStrip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: theme.layout.screenInset, paddingVertical: 5, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
   liveDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: theme.colors.cyan },
   stripText: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
   stripFreshness: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, opacity: 0.7 },
   stripHash: { fontSize: 10, color: 'rgba(255,255,255,0.25)', fontFamily: theme.typography.fontFamily.mono, marginLeft: 'auto' },
 
-  header: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: theme.layout.screenInset, paddingVertical: 12, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   title: { fontSize: 22, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.bold },
   generateBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: theme.colors.purple, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
   generateBtnText: { color: '#fff', fontWeight: '700', fontSize: 11 },
 
   // tabs
-  tabBar: { flexDirection: 'row', backgroundColor: theme.colors.background, paddingHorizontal: 14, paddingVertical: 8, gap: 6, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  tabBar: { flexDirection: 'row', backgroundColor: theme.colors.background, paddingHorizontal: theme.layout.screenInset, paddingVertical: 8, gap: 6, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   tabBtn: { flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: 'center', backgroundColor: theme.colors.bgElevated, borderWidth: 1, borderColor: theme.colors.border, flexDirection: 'row', justifyContent: 'center', gap: 6 },
   tabBtnOn: { backgroundColor: theme.colors.purple + '22', borderColor: theme.colors.purple + '88' },
   tabText: { fontSize: 13, fontWeight: '700', color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 1 },
@@ -798,8 +798,8 @@ const s = StyleSheet.create({
   // Big scope segmented control (screenshot-friendly)
   // Wrapper preserves the surrounding band: bg-elevated, bottom border,
   // padding around the shared ScopeSegment. (Component itself is layout-only.)
-  scopeBigRowWrap: { backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: theme.colors.border, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10 },
-  scopeMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 14, paddingTop: 6, paddingBottom: 6, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  scopeBigRowWrap: { backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: theme.colors.border, paddingHorizontal: theme.layout.screenInset, paddingTop: 10, paddingBottom: 10 },
+  scopeMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: theme.layout.screenInset, paddingTop: 6, paddingBottom: 6, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   scopeTimestampInline: { flex: 1, fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 0.4 },
   viewToggle: { flexDirection: 'row', backgroundColor: theme.colors.background, borderRadius: 8, padding: 2, gap: 1, borderWidth: 1, borderColor: theme.colors.border },
   viewToggleBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
@@ -829,7 +829,7 @@ const s = StyleSheet.create({
   moreGroupTitle: { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 10 },
 
   content: { flex: 1 },
-  listContent: { padding: 14, paddingBottom: 32, gap: 8 },
+  listContent: { paddingHorizontal: theme.layout.screenInset, paddingVertical: 14, paddingBottom: 32, gap: 8 },
 
   gridContainer: { flex: 1, backgroundColor: theme.colors.background },
   gridArea: { flex: 1, padding: 8, gap: 6 },

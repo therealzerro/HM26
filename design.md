@@ -51,7 +51,7 @@ theme.borderRadius.card = 14           // keep alias for general cards
 | # | Step | Effort | Status | Visible delta |
 |---|---|---|---|---|
 | 1 | `<ScopeSegment>` extracted, used on Home (both modes) + Slate | 30 min | ✅ shipped | Home normal mode gets the gold/purple/cyan per-scope accent treatment. **Largest visible win.** |
-| 2 | `theme.layout.screenInset` + every screen sources from it | 15 min | ⏳ pending | Content edges align across screens. Subtle but registers as "professional." |
+| 2 | `theme.layout.screenInset` + every screen sources from it | 15 min | ✅ shipped | Content edges align across screens. Subtle but registers as "professional." |
 | 3 | `<ScreenHeader>` extracted, three screens adopt | 45 min | ⏳ pending | Headers become true siblings. Results' gradient-overpaint bug fixed in passing. |
 | 4 | `<HitBadge>` + `<HitCard>` extracted, used in 4+ places | 45 min | ⏳ pending | The hit moment reads identically everywhere. |
 | 5 | `<FreshnessLine>` extracted, three screens adopt | 20 min | ⏳ pending | Slate's operator-style strip retires; everywhere shows the same subscriber-voice line. |
@@ -72,3 +72,4 @@ theme.borderRadius.card = 14           // keep alias for general cards
 Each step gets a one-line entry below as it ships, with the commit hash.
 
 - 2026-05-13 — Step 1 — `components/ScopeSegment.tsx` extracted. Home normal mode + Home coffee mode + Slate `scopeBigRow` all now consume the shared component. Two `size` modes: `compact` (Home normal, fits in header) and `tall` (Slate, Home coffee — screenshot-prominent). Old `s.scopeRow / scopeBtn*` styles removed from Home, `s.scopeBigRow / scopeBigBtn / scopeBigText` removed from Slate (replaced with `scopeBigRowWrap` which preserves the surrounding band).
+- 2026-05-13 — Step 2 — `theme.layout = { screenInset: 16 }` added. Every screen-edge inset on Home, Slate, Results now sources from it. Slate went from `14` → `16` (statusStrip, header, tabBar, scopeBigRowWrap, scopeMetaRow, listContent); Results went from `12` → `16` (dateTabsContent, controlsRow, searchRow, card, sectionHeader). Internal card padding (lossCard inner, modal styles, date pill paddings) left at their existing values — they're not screen-edge insets. Net visible delta: content edge is now identical across all three screens.

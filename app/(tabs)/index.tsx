@@ -648,7 +648,7 @@ export default function HomeScreen() {
     return (
       <View style={[s.container, { paddingTop: insets.top }]}>
         <CosmicBackground />
-        <ScrollView style={s.scroll} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 }}>
+        <ScrollView style={s.scroll} contentContainerStyle={{ paddingHorizontal: theme.layout.screenInset, paddingTop: 12, paddingBottom: 32 }}>
           {/* Scope segmented (shared ScopeSegment — design.md step 1) */}
           <ScopeSegment value={scope as any} onChange={setScope as any} size="tall" style={{ marginBottom: 14 }} />
           {nextDrawIn && (
@@ -949,7 +949,7 @@ const s = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 32 },
 
-  header: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, gap: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  header: { paddingHorizontal: theme.layout.screenInset, paddingTop: 14, paddingBottom: 12, gap: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   headerTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
   title: { fontSize: 24, fontWeight: '900', color: theme.colors.text, lineHeight: 28, fontFamily: theme.typography.fontFamily.bold },
   subtitle: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2, fontFamily: theme.typography.fontFamily.mono },
@@ -962,7 +962,7 @@ const s = StyleSheet.create({
 
   // scope tab styles moved to components/ScopeSegment.tsx (design.md step 1)
 
-  heroStat: { flexDirection: 'row', alignItems: 'stretch', marginHorizontal: 16, marginTop: 10, paddingHorizontal: 10, paddingVertical: 7, backgroundColor: theme.colors.bgElevated, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border },
+  heroStat: { flexDirection: 'row', alignItems: 'stretch', marginHorizontal: theme.layout.screenInset, marginTop: 10, paddingHorizontal: 10, paddingVertical: 7, backgroundColor: theme.colors.bgElevated, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border },
   heroCol: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   heroColNum: { fontSize: 22, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, lineHeight: 24, letterSpacing: -0.7 },
   heroColLabel: { fontSize: 8, fontWeight: '900', color: theme.colors.cyan, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 1 },
@@ -973,17 +973,17 @@ const s = StyleSheet.create({
   countdownLabel: { fontSize: 7, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
   countdownTime: { fontSize: 11, fontWeight: '900', color: theme.colors.purple, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 1 },
 
-  hitBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginTop: 12, backgroundColor: theme.colors.cyan + '18', borderRadius: 14, borderWidth: 1.5, borderColor: theme.colors.cyan + '55', padding: 12 },
+  hitBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: theme.layout.screenInset, marginTop: 12, backgroundColor: theme.colors.cyan + '18', borderRadius: 14, borderWidth: 1.5, borderColor: theme.colors.cyan + '55', padding: 12 },
   hitBannerTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold },
   hitBannerSub: { fontSize: 11, color: theme.colors.cyan + 'AA', marginTop: 2 },
 
-  lossCard: { marginHorizontal: 16, marginTop: 12, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: theme.colors.card, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border, gap: 6 },
+  lossCard: { marginHorizontal: theme.layout.screenInset, marginTop: 12, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: theme.colors.card, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border, gap: 6 },
   lossTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold },
   lossBody: { fontSize: 12, color: theme.colors.textSecondary, lineHeight: 18 },
   lossBold: { color: theme.colors.text, fontWeight: '800', fontFamily: theme.typography.fontFamily.monoBold },
   lossFooter: { fontSize: 11, color: theme.colors.textTertiary, marginTop: 2, fontStyle: 'italic' },
 
-  hitsSection: { marginHorizontal: 16, marginTop: 12, backgroundColor: 'rgba(255,217,61,0.08)', borderRadius: 14, borderWidth: 1.5, borderColor: theme.colors.gold + '55', padding: 12, gap: 8 },
+  hitsSection: { marginHorizontal: theme.layout.screenInset, marginTop: 12, backgroundColor: 'rgba(255,217,61,0.08)', borderRadius: 14, borderWidth: 1.5, borderColor: theme.colors.gold + '55', padding: 12, gap: 8 },
   hitsSectionTitle: { fontSize: 10, fontWeight: '900', color: theme.colors.gold, marginBottom: 4, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
   hitRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   hitTypeBadge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
@@ -991,7 +991,7 @@ const s = StyleSheet.create({
   hitCombo: { fontSize: 20, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, color: theme.colors.text, letterSpacing: 4, flex: 1 },
   hitMeta: { fontSize: 10, color: theme.colors.textSecondary, fontWeight: '600' },
 
-  slateSection: { paddingHorizontal: 16, marginTop: 16 },
+  slateSection: { paddingHorizontal: theme.layout.screenInset, marginTop: 16 },
   slateSectionHdr: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 },
   slateSectionTitle: { fontSize: 12, fontWeight: '900', color: theme.colors.text, letterSpacing: 2, fontFamily: theme.typography.fontFamily.monoBold },
   confPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 99, borderWidth: 1 },

@@ -114,6 +114,13 @@ export const theme = {
     banner: 8,
   },
 
+  // Layout tokens (design.md step 2). Every screen's horizontal inset
+  // sources from `screenInset` so the content edge is identical across
+  // Home / Slate / Results. Don't hardcode 12/14/16 in screen styles.
+  layout: {
+    screenInset: 16,
+  },
+
   typography: {
     fontFamily: {
       regular: 'Inter_400Regular',

@@ -764,7 +764,7 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: D.bg },
 
   // header
-  header: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: theme.layout.screenInset, paddingTop: 14, paddingBottom: 12, backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   headerTitle: { fontSize: 22, fontWeight: '900', color: D.text, fontFamily: theme.typography.fontFamily.bold },
   headerWhite: { color: D.text },
   headerCyan:  { color: theme.colors.cyan },
@@ -773,14 +773,14 @@ const s = StyleSheet.create({
 
   // date tabs
   dateTabs: { flexShrink: 0, maxHeight: 46, backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.border },
-  dateTabsContent: { paddingHorizontal: 12, paddingVertical: 6, gap: 8 },
+  dateTabsContent: { paddingHorizontal: theme.layout.screenInset, paddingVertical: 6, gap: 8 },
   dateTab: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: theme.borderRadius.pill, backgroundColor: D.surface2, borderWidth: 1, borderColor: D.border },
   dateTabActive: { backgroundColor: theme.colors.purple + '22', borderColor: theme.colors.purple + '88' },
   dateTabText: { fontSize: 12, fontWeight: '600', color: D.textSub, fontFamily: theme.typography.fontFamily.mono },
   dateTabTextActive: { color: theme.colors.purple, fontWeight: '700' },
 
   // controls strip (collapsed default)
-  controlsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.border },
+  controlsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: theme.layout.screenInset, paddingVertical: 8, backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.border },
   searchTrigger: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: theme.borderRadius.pill, backgroundColor: D.surface2, borderWidth: 1, borderColor: D.border, maxWidth: 120 },
   searchActiveText: { fontSize: 11, color: D.teal, fontFamily: theme.typography.fontFamily.mono, maxWidth: 80 },
   filterRow: { flex: 1, flexShrink: 0, maxHeight: 32 },
@@ -793,11 +793,11 @@ const s = StyleSheet.create({
   drawCount: { fontSize: 11, color: D.textDim, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700', flexShrink: 0 },
 
   // search expanded
-  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 12, marginVertical: 8, backgroundColor: D.surface2, borderRadius: theme.borderRadius.card, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.colors.cyan + '55' },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: theme.layout.screenInset, marginVertical: 8, backgroundColor: D.surface2, borderRadius: theme.borderRadius.card, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.colors.cyan + '55' },
   searchInput: { flex: 1, paddingVertical: 10, fontSize: 13, color: D.text, fontFamily: theme.typography.fontFamily.mono },
 
   // section header in list
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, gap: 6 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: theme.layout.screenInset, paddingVertical: 10, gap: 6 },
   dot: { fontSize: 7 },
   sectionIcon: { fontSize: 14 },
   sectionText: { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
@@ -810,7 +810,7 @@ const s = StyleSheet.create({
   list: { paddingBottom: 40 },
 
   // card
-  card: { flexDirection: 'row', backgroundColor: D.surface2, marginHorizontal: 12, marginBottom: 8, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: D.border, overflow: 'hidden' },
+  card: { flexDirection: 'row', backgroundColor: D.surface2, marginHorizontal: theme.layout.screenInset, marginBottom: 8, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: D.border, overflow: 'hidden' },
   cardHit: { backgroundColor: theme.colors.cyan + '0d', borderColor: theme.colors.cyan + '55' },
   strip: { width: 6 },
   cardInner: { flex: 1, padding: 12 },

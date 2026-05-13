@@ -77,6 +77,10 @@ function RootLayoutNav() {
         name="coming-soon"
         options={{ title: "Coming Soon", ...modalScreenOptions }}
       />
+      <Stack.Screen
+        name="replay"
+        options={{ title: "Replay", ...modalScreenOptions }}
+      />
     </Stack>
   );
 }

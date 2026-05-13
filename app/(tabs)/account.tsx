@@ -272,6 +272,21 @@ export default function AccountScreen() {
           )}
         </View>
 
+        {/* ── Replay (enhancements §4.4) ── */}
+        <View style={s.section}>
+          <Text style={s.sectionLabel}>HISTORY</Text>
+          <TouchableOpacity style={s.card} onPress={() => router.push('/replay')}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 }}>
+              <Text style={{ fontSize: 26 }}>📼</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.text }}>Replay last 7 days</Text>
+                <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginTop: 2 }}>See past slates vs actual draws — validate the engine yourself.</Text>
+              </View>
+              <Text style={{ fontSize: 18, color: theme.colors.textTertiary }}>›</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {/* ── Notifications ── */}
         <View style={s.section}>
           <Text style={s.sectionLabel}>NOTIFICATIONS</Text>

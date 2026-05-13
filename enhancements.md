@@ -162,8 +162,22 @@ A small pill at the top of every screen: "Last HitMaster hit: 605 in MS · 2h ag
 ### 4.3 Personal hit history (P1)
 On the Number Book screen, when a user saves a pick to a list and that pick later hits, mark the row with a 🎯. Show a personal "Your saved picks have hit X times" stat in Account. This makes the app's value personal, not just abstract. **Effort: 1 day.**
 
-### 4.4 Replay mode (P2)
-A new sub-screen: pick any past date, see what the slate WAS for that day, see what drew, see the hits. Subscribers can validate the engine themselves over arbitrary windows. **Already exists in `HitReplay.tsx`** — needs to be surfaced from Intelligence or Account. **Effort: 2 hours (it's built, just orphaned).**
+### 4.4 Replay mode (P2) — ✅ MVP Shipped 2026-05-12
+**Doc claim was wrong:** the spec said "Already exists in `HitReplay.tsx` — needs to be surfaced." `HitReplay.tsx` is actually a 132-line presentational component that shows a single hit's predicted-vs-drawn digits side by side, already wired into PickDetailModal. It was not the past-date slate-vs-draws screen the spec described.
+
+**MVP delivered (last 7 days, no date picker):**
+- New screen `app/replay.tsx` registered as a stack route in `app/_layout.tsx`.
+- Entry point added to Account tab under HISTORY → "Replay last 7 days".
+- For each of the last 7 days, renders one card per scope (midday/evening/allday) that has a snapshot. Each card shows:
+  - K6 picks 1-6 inline as pills, color-coded by hit (gold = straight, cyan = box, plain = no hit)
+  - The day's draws for that scope (jurisdiction + result), capped at 6 inline + "+N more" overflow
+  - Per-scope and per-day hit count badges
+- ZK6-only filter (`mode IN balanced/conservative/aggressive`); skips snapshots with null `top_k_straights_json`.
+- Scope-aware draw matching — midday picks only check midday draws, etc.; allday matches anything.
+
+**Why MVP vs full spec:** scoped down from the original "any past date" picker to a fixed 7-day window. Cleaner first version; no edge-cases with very old data; date picker can be added later if subscribers ask for it.
+
+**Phase 2 (deferred):** date picker + arbitrary range + per-card screenshot-as-image. Would extend `app/replay.tsx`; ~2-3 additional hours.
 
 ### 4.5 Smart picks-by-budget (P1)
 Today the K6 slate is the same 6 picks. Add a budget input on Home: "$10 budget today?" → app suggests playing picks 1-3 as $1 box + $1 straight, picks 4-6 as $1 box only. "$5 budget" → just picks 1-3 as box. This converts the engine output into actionable play guidance for the casual subscriber. **Effort: 1 day.**

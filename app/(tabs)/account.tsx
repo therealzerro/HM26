@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { UserRole } from '@/types/core';
 import { fetchFromSupabase, countFromSupabase } from '@/lib/supabase';
 import { storage } from '@/lib/storage';
+import { useSavedHits } from '@/hooks/useSavedHits';
 
 const GLOSSARY = [
   { term: 'ZK6™ Engine', def: 'HitMaster\'s proprietary intelligence engine — a multi-dimensional pattern recognition system trained on years of lottery draw history. Picks are ranked by Oracle Score (signal convergence strength), not guarantees.' },
@@ -100,6 +101,30 @@ export default function AccountScreen() {
     showToast(`${value ? 'Enabled' : 'Disabled'}: ${labels[key]}`, 'info');
   };
   const [memberDays, setMemberDays] = useState(0);
+
+  // §4.3 — load saved combos from Number Book storage to feed personal hit
+  // history aggregate. Re-reads on screen focus so newly saved picks roll in.
+  const [savedCombos, setSavedCombos] = useState<string[]>([]);
+  useEffect(() => {
+    (async () => {
+      const out: string[] = [];
+      try {
+        const raw = await storage.getItem('number_book_lists');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            for (const l of parsed) {
+              if (Array.isArray(l?.combos)) {
+                for (const c of l.combos) if (typeof c?.combo === 'string') out.push(c.combo);
+              }
+            }
+          }
+        }
+      } catch {}
+      setSavedCombos(out);
+    })();
+  }, []);
+  const personalHits = useSavedHits(savedCombos);
 
   // Triple-tap on avatar → promote to admin (Mystic tier) AND navigate.
   // Without the setRole call, the user lands on the admin screen visually
@@ -286,6 +311,29 @@ export default function AccountScreen() {
         {/* ── History (enhancements §4.4 + §2.6) ── */}
         <View style={s.section}>
           <Text style={s.sectionLabel}>HISTORY</Text>
+          {savedCombos.length > 0 && (
+            <TouchableOpacity
+              style={[s.card, { marginBottom: 8, borderColor: theme.colors.gold + '55', borderWidth: 1 }]}
+              onPress={() => router.push('/(tabs)/book')}
+              accessibilityRole="button"
+              accessibilityLabel={`Your saved picks have hit ${personalHits.totalHits} times in the last 30 days. Tap to open Number Book.`}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 }}>
+                <Text style={{ fontSize: 26 }}>🎯</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.text }}>
+                    Your saved picks have hit{' '}
+                    <Text style={{ color: theme.colors.gold, fontWeight: '900' }}>{personalHits.totalHits}</Text>{' '}
+                    {personalHits.totalHits === 1 ? 'time' : 'times'}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginTop: 2 }}>
+                    {savedCombos.length} {savedCombos.length === 1 ? 'pick' : 'picks'} tracked · {personalHits.totalStraight} straight · last 30 days
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 18, color: theme.colors.textTertiary }}>›</Text>
+              </View>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={[s.card, { marginBottom: 8 }]} onPress={() => router.push('/track-record')}>
             <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 }}>
               <Text style={{ fontSize: 26 }}>🧾</Text>

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Alert,
 } from 'react-native';
@@ -10,6 +10,7 @@ import { storage } from '@/lib/storage';
 import { HeatCheckModal } from '@/components/HeatCheckModal';
 import { EmptyState } from '@/components/EmptyState';
 import { BookOpen } from 'lucide-react-native';
+import { useSavedHits } from '@/hooks/useSavedHits';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { getTodayET } from '@/lib/dateUtils';
 
@@ -137,6 +138,14 @@ const m = StyleSheet.create({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function NumberBookScreen() {
   const [lists, setLists] = useState<BookList[]>([]);
+
+  // §4.3 — personal hit history: flatten saved combos across lists,
+  // query histories for matches, mark hit rows + surface aggregate.
+  const allSavedCombos = useMemo(
+    () => lists.flatMap(l => l.combos.map(c => c.combo)),
+    [lists],
+  );
+  const savedHits = useSavedHits(allSavedCombos);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [listsLoaded, setListsLoaded] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -447,6 +456,22 @@ export default function NumberBookScreen() {
                 </View>
               </View>
 
+              {(() => {
+                const listHitCount = activeList.combos.reduce(
+                  (sum, c) => sum + (savedHits.hitsByCombo.get(c.combo) ?? 0),
+                  0,
+                );
+                const hitPicks = activeList.combos.filter(c => savedHits.hitsByCombo.has(c.combo)).length;
+                if (listHitCount === 0) return null;
+                return (
+                  <View style={{ marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.colors.gold + '15', borderRadius: theme.borderRadius.md, borderWidth: 1, borderColor: theme.colors.gold + '40', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontSize: 16 }}>🎯</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: theme.colors.gold, fontFamily: theme.typography.fontFamily.monoBold, flex: 1 }}>
+                      {listHitCount} {listHitCount === 1 ? 'HIT' : 'HITS'} across {hitPicks} {hitPicks === 1 ? 'pick' : 'picks'} (last 30 days)
+                    </Text>
+                  </View>
+                );
+              })()}
               {activeList.combos.length === 0 ? (
                 <EmptyState
                   icon={BookOpen}
@@ -459,25 +484,44 @@ export default function NumberBookScreen() {
                   }
                 />
               ) : (
-                activeList.combos.map(item => (
-                  <View key={item.combo} style={s.comboRow}>
-                    <TouchableOpacity onPress={() => handleStar(item.combo)}>
-                      <Text style={{ fontSize: 16 }}>{item.starred ? '⭐' : '☆'}</Text>
-                    </TouchableOpacity>
-                    <Text style={s.comboNum}>{item.combo}</Text>
-                    <Text style={s.comboSet}>{toSet(item.combo)}</Text>
-                    <Text style={s.comboNote} numberOfLines={1}>{item.note || 'No note'}</Text>
-                    <TouchableOpacity
-                      onPress={() => { setHeatCheckCombo(item.combo); setHeatCheckOpen(true); }}
-                      style={{ paddingHorizontal: 7, paddingVertical: 3, backgroundColor: theme.colors.primaryLight, borderRadius: 7, borderWidth: 1, borderColor: theme.colors.primary + '33' }}
+                activeList.combos.map(item => {
+                  const hitCount = savedHits.hitsByCombo.get(item.combo) ?? 0;
+                  const lastHit = savedHits.lastHitByCombo.get(item.combo);
+                  return (
+                    <View
+                      key={item.combo}
+                      style={[
+                        s.comboRow,
+                        hitCount > 0 && { borderColor: theme.colors.gold + '66', borderWidth: 1.5, backgroundColor: theme.colors.gold + '10' },
+                      ]}
                     >
-                      <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.primary }}>🔍</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleDeleteCombo(item.combo)}>
-                      <Text style={{ color: theme.colors.textTertiary, fontSize: 16 }}>×</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))
+                      <TouchableOpacity onPress={() => handleStar(item.combo)}>
+                        <Text style={{ fontSize: 16 }}>{item.starred ? '⭐' : '☆'}</Text>
+                      </TouchableOpacity>
+                      <Text style={s.comboNum}>{item.combo}</Text>
+                      <Text style={s.comboSet}>{toSet(item.combo)}</Text>
+                      {hitCount > 0 ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1, minWidth: 0 }}>
+                          <Text style={{ fontSize: 14 }}>🎯</Text>
+                          <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.gold, fontFamily: theme.typography.fontFamily.monoBold }} numberOfLines={1}>
+                            {hitCount === 1 ? 'HIT' : `${hitCount}×`}{lastHit ? ` · ${lastHit.state} ${lastHit.session}` : ''}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text style={s.comboNote} numberOfLines={1}>{item.note || 'No note'}</Text>
+                      )}
+                      <TouchableOpacity
+                        onPress={() => { setHeatCheckCombo(item.combo); setHeatCheckOpen(true); }}
+                        style={{ paddingHorizontal: 7, paddingVertical: 3, backgroundColor: theme.colors.primaryLight, borderRadius: 7, borderWidth: 1, borderColor: theme.colors.primary + '33' }}
+                      >
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.primary }}>🔍</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => handleDeleteCombo(item.combo)}>
+                        <Text style={{ color: theme.colors.textTertiary, fontSize: 16 }}>×</Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })
               )}
 
               {/* Coming features for list */}

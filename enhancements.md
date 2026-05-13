@@ -227,8 +227,14 @@ Both tap → `/track-record`. Single component, single slot on Home.
 - **Not wired:** Results (already hits-focused), Number Book (sidebar layout doesn't have a natural slot for this — removed per user feedback), Learn (educational), modal stack screens (Replay, Track Record, Paywall, Wizard) — would compete with their own chrome.
 **Why "last 7 days" cap:** the doc said "keep the win salient." A hit from 30 days ago doesn't feel salient — it feels desperate. 7-day window keeps the surface honest. Tunable via `LOOKBACK_DAYS` constant.
 
-### 4.3 Personal hit history (P1)
+### 4.3 Personal hit history (P1) — ✅ Shipped 2026-05-13
 On the Number Book screen, when a user saves a pick to a list and that pick later hits, mark the row with a 🎯. Show a personal "Your saved picks have hit X times" stat in Account. This makes the app's value personal, not just abstract. **Effort: 1 day.**
+
+**Shipped:**
+- New `hooks/useSavedHits.tsx` — given a list of combos, queries `histories?comboset_sorted=in.(<unique box-sets>)` over the last 30 days (with FollowedStates filter applied), returns `{ hitsByCombo, totalHits, totalStraight, lastHitByCombo }`. Optimization: dedupes by box-set so the IN clause stays tight even for large lists.
+- `app/(tabs)/book.tsx` — custom-list combo rows now show a 🎯 + `HIT` (or `N×`) badge with `STATE session` of the most recent hit, gold border tint when hit. Per-list aggregate header `🎯 N HITS across M picks (last 30 days)` renders above the combo list when at least one hit. (Saved-slate rows already carry their own at-save-time hit indicators — left as-is.)
+- `app/(tabs)/account.tsx` — new HISTORY card above Track Record: `🎯 Your saved picks have hit X times` with sub-line `N picks tracked · S straight · last 30 days`. Tapping deep-links to Number Book. Only renders if user has saved picks.
+- Follows existing `useFollowedStates` filter so the stat respects the user's state preferences.
 
 ### 4.4 Replay mode (P2) — ✅ MVP Shipped 2026-05-12
 **Doc claim was wrong:** the spec said "Already exists in `HitReplay.tsx` — needs to be surfaced." `HitReplay.tsx` is actually a 132-line presentational component that shows a single hit's predicted-vs-drawn digits side by side, already wired into PickDetailModal. It was not the past-date slate-vs-draws screen the spec described.

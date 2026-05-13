@@ -156,9 +156,14 @@ export function computeFingerprint(
   const scopes = new Set<string>();
   for (const snap of snapshots) {
     if (snap.scope) scopes.add(snap.scope);
-    let picks = snap.picks;
-    if (!picks && snap.top_k_straights_json) {
-      try { picks = JSON.parse(snap.top_k_straights_json); } catch { picks = []; }
+    let picks: any = snap.picks;
+    // PostgREST returns JSON columns already parsed; handle both shapes.
+    if (!picks && snap.top_k_straights_json != null) {
+      if (typeof snap.top_k_straights_json === 'string') {
+        try { picks = JSON.parse(snap.top_k_straights_json); } catch { picks = []; }
+      } else {
+        picks = snap.top_k_straights_json;
+      }
     }
     if (Array.isArray(picks)) allPicks.push(...picks);
   }

@@ -7,14 +7,18 @@ import { theme } from '@/constants/theme';
 
 export default function FingerprintView() {
   const { data: snapshots, isLoading, error } = useQuery({
-    queryKey: ['fingerprint_snapshots'],
+    // queryKey bumped to invalidate any stale empty-cache from the pre-BUG-31
+    // era (pre-2026-05-12) when snapshot INSERTs were silently dropping
+    // top_k_straights_json.
+    queryKey: ['fingerprint_snapshots_v2'],
     queryFn: async () => {
       const rows = await fetchFromSupabase<any[]>({
-        path: '/rest/v1/slate_snapshots?select=scope,top_k_straights_json&order=updated_at_et.desc&limit=100&deleted_at=is.null',
+        path: '/rest/v1/slate_snapshots?select=scope,top_k_straights_json&deleted_at=is.null&mode=in.(balanced,conservative,aggressive)&top_k_straights_json=not.is.null&order=updated_at_et.desc&limit=100',
       });
       return Array.isArray(rows) ? rows : [];
     },
     staleTime: 5 * 60 * 1000,
+    refetchOnMount: 'always', // force fresh fetch each time the screen mounts
   });
 
   const stats = useMemo(
@@ -33,7 +37,21 @@ export default function FingerprintView() {
     );
   }
 
-  if (error || !snapshots?.length) {
+  if (error) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <Text style={{ fontSize: 32, marginBottom: 12 }}>⚠️</Text>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.text, marginBottom: 6 }}>
+          Failed to load snapshots
+        </Text>
+        <Text style={{ fontSize: 11, color: theme.colors.textSecondary, textAlign: 'center', fontFamily: theme.typography.fontFamily.mono }}>
+          {error instanceof Error ? error.message : String(error)}
+        </Text>
+      </View>
+    );
+  }
+
+  if (!snapshots?.length) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <Text style={{ fontSize: 32, marginBottom: 12 }}>🔬</Text>

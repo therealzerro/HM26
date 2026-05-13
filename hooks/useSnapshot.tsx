@@ -15,7 +15,6 @@ interface SnapshotState {
   coveragePercentage: number;
   refreshSnapshot: () => Promise<void>;
   hasLiveData: boolean;
-  hitPicks: TopKStraightRow[];
   activePicks: TopKStraightRow[];
   supplementalPicks: TopKStraightRow[];
 }
@@ -310,10 +309,15 @@ export const [SnapshotProvider, useSnapshot] = createContextHook<SnapshotState>(
   }, [snapshot?.updated_at_et]);
 
   return useMemo(() => {
+    // BUG-138 — `hitPicks` (snapshot picks where p.hitType truthy) used to be
+    // surfaced here. Removed because the post-regen anti-pattern made it
+    // unreliable: a fresh K6 generated after a hit excludes the already-drawn
+    // box-set, so hitType never gets stamped onto its picks. Consumers (Home's
+    // "Today's Hits" + Performance Section A) now source from adaptive_tracking
+    // which is keyed by slate_hash and survives regens.
     const allPicks = Array.isArray(snapshot?.top_k_straights_json)
       ? (snapshot!.top_k_straights_json as any[])
       : [];
-    const hitPicks = allPicks.filter((p: any) => !!p?.hitType) as TopKStraightRow[];
     const activePicks = allPicks.filter((p: any) => !p?.hitType) as TopKStraightRow[];
 
     return {
@@ -323,7 +327,6 @@ export const [SnapshotProvider, useSnapshot] = createContextHook<SnapshotState>(
       coveragePercentage,
       refreshSnapshot,
       hasLiveData,
-      hitPicks,
       activePicks,
       supplementalPicks,
     };

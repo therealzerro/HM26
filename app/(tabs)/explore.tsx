@@ -225,7 +225,7 @@ const gt = StyleSheet.create({
 });
 
 export default function SlatesScreen() {
-  const { snapshot, refreshSnapshot, hitPicks, activePicks } = useSnapshot();
+  const { snapshot, refreshSnapshot, activePicks } = useSnapshot();
   const { scope, setScope } = useScope();
   const { regenerateSlate, checkSlateLock } = useDataIngestion();
   const { user } = useAuth();

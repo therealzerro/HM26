@@ -273,7 +273,7 @@ const os = StyleSheet.create({
 
 // ─── Home Screen ─────────────────────────────────────────────────────────
 export default function HomeScreen() {
-  const { snapshot, refreshSnapshot, isLoading: snapshotLoading, hitPicks, activePicks } = useSnapshot();
+  const { snapshot, refreshSnapshot, isLoading: snapshotLoading, activePicks } = useSnapshot();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { scope, setScope: setScopeRaw } = useScope();
@@ -496,22 +496,43 @@ export default function HomeScreen() {
     });
   }, [activePicks, snapshot, isFree]);
 
+  // BUG-138 — Home's "TODAY'S HITS" section used to source from
+  // useSnapshot().hitPicks (filter of snapshot picks where p.hitType truthy).
+  // Same regen-empty anti-pattern as BUG-137: after a mid-day regen the
+  // active snapshot's picks exclude already-drawn box-sets, so hitType is
+  // never set on the K6 that replaced them, and the section rendered empty
+  // even on days with real hits (e.g. 2026-05-13 allday had 916/WI +
+  // 916/ME,NH,VT + 924/GA all box-hit but Home showed nothing). Now sources
+  // from adaptive_tracking which preserves hits across regens AND stores
+  // each multi-state match as its own row → one HitCard per matched_state
+  // surfaces multi-state visibly (916 renders twice: once for WI, once for
+  // ME,NH,VT).
+  const adaptiveScopeFilter = scope === 'allday' ? 'allday' : scope;
+  const { data: adaptiveHitRows = [] } = useQuery<any[]>({
+    queryKey: ['home_today_hits_adaptive', todayStr, adaptiveScopeFilter],
+    queryFn: async () => {
+      const rows = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/adaptive_tracking?slate_date=eq.${todayStr}&scope=eq.${encodeURIComponent(adaptiveScopeFilter)}&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&select=rank,combo,combo_set,hit_box,hit_straight,matched_state,matched_session,actual_result,energy_score&order=rank.asc.nullslast&limit=50`,
+      });
+      return Array.isArray(rows) ? rows : [];
+    },
+    staleTime: 60 * 1000,
+  });
+
   const hitItems = useMemo((): PickItem[] => {
-    // Only show hits that are confirmed against today's actual draw results.
-    // Prevents yesterday's snapshot hit-markers from appearing as "TODAY'S HITS".
-    if (!todayResults || todayResults.length === 0) return [];
-    const todaySets = new Set(todayResults.map(r => toComboSet(r.result_digits)));
-    return hitPicks
-      .filter((row: any) => todaySets.has(toComboSet(row.combo ?? '')))
-      .map((row: any, idx) => ({
-        rank: row.rank ?? (idx + 1),
-        combo: row.combo ?? '---', comboSet: row.comboSet ?? toComboSet(row.combo ?? ''),
-        energy: row.energy ?? 0,
-        signals: { BOX: Number(row.box ?? 0), PBURST: Number(row.pburst ?? 0), CO: Number(row.co ?? 0), DGC: Number(row.signals?.DGC ?? 0) },
-        locked: false,
-        hitType: row.hitType as 'straight' | 'box', hitState: row.hitState, hitSession: row.hitSession, hitResult: row.hitResult,
-      }));
-  }, [hitPicks, todayResults]);
+    return adaptiveHitRows.map((row: any, idx) => ({
+      rank: row.rank ?? (idx + 1),
+      combo: row.combo ?? '---',
+      comboSet: row.combo_set ?? toComboSet(row.combo ?? ''),
+      energy: Math.round(row.energy_score ?? 0),
+      signals: { BOX: 0, PBURST: 0, CO: 0, DGC: 0 },
+      locked: false,
+      hitType: (row.hit_straight ? 'straight' : 'box') as 'straight' | 'box',
+      hitState: row.matched_state ?? undefined,
+      hitSession: row.matched_session ?? undefined,
+      hitResult: row.actual_result ?? undefined,
+    }));
+  }, [adaptiveHitRows]);
 
   // §2.4 freshness logic moved to components/FreshnessLine.tsx (design.md step 5).
 

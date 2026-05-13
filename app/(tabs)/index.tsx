@@ -45,6 +45,7 @@ import { Paywall } from '@/components/Paywall';
 import { HeatCheckModal } from '@/components/HeatCheckModal';
 import { HitCelebrationOverlay } from '@/components/HitCelebrationOverlay';
 import { LockedPicksSummary } from '@/components/LockedPicksSummary';
+import { LoadingPhrase } from '@/components/LoadingPhrase';
 import { EnergySparkline } from '@/components/EnergySparkline';
 import { useToast } from '@/components/Toast';
 import { fetchFromSupabase } from '@/lib/supabase';
@@ -771,7 +772,7 @@ export default function HomeScreen() {
           />
 
           {snapshotLoading ? (
-            <View style={s.loadingCard}><Text style={s.loadingText}>⚡ Computing your ZK6 Picks…</Text></View>
+            <View style={s.loadingCard}><LoadingPhrase style={s.loadingText} /></View>
           ) : (() => {
             const locked = items.filter(p => p.locked);
             const unlocked = items.filter(p => !p.locked);

@@ -266,8 +266,13 @@ Today the paywall (`app/paywall.tsx:69`) defaults `selectedPlan` to `trial5`. Pr
 - **Interactive scope demo screen** (~1.5 hrs) — let user tap midday/evening/allday and see the picks change live. Skipped today; the static preview is the smaller-scope MVP.
 - **"Real social proof" screen** — original spec said "Last 7 days: 5 hits across 32 jurisdictions" but the "32 jurisdictions" framing is dishonest social proof (it's data coverage, not user validation). If revisited, reframe as a clean hit-count line ("Last 7 days: N verified K6 hits") matching the subscriber-voice rule.
 
-### 7.2 Empty states need personality (P2)
-Most empty states are functional but bland. The slate empty state (`index.tsx:461`) just says "⚡ Computing your K6 Slate…". Replace with rotating playful copy: "ZK6 is consulting the data oracle…", "Sorting through 100,000 historical draws…", "Running 47 cooldown checks…", etc. Cheap personality. **Effort: 1 hour.**
+### 7.2 Empty states need personality (P2) — ✅ Shipped 2026-05-12
+**New component:** `components/LoadingPhrase.tsx` — rotates through a list of playful phrases every 2.2s. Default phrase set is engine-themed: `⚡ Consulting the data oracle…`, `⚡ Sifting through historical draws…`, `⚡ Running cooldown checks…`, etc. Accepts a custom `phrases` prop so each surface can theme its own copy.
+**Reduce-motion aware:** when the OS asks for reduced motion (per §7.3), rotation pauses and a single random phrase is shown statically. Subscriber still gets variety across sessions; what they don't get is the in-place ticking.
+**Surfaces wired:**
+- Home K6 PICKS loading card — replaces the static `⚡ Computing your ZK6 Picks…`.
+- Replay screen — uses a rewind-themed phrase set: `⏪ Rewinding the tape…`, `⏪ Pulling slate snapshots…`, `⏪ Cross-checking draws…`, `⏪ Stitching hits to picks…`.
+**Not wired:** root `LoadingScreen` in `app/_layout.tsx` (uses `Loading K-Slate...`) — that's the splash before fonts load, would risk flicker. Skipped intentionally.
 
 ### 7.3 Reduced motion support (P0 accessibility) — ✅ Shipped 2026-05-12
 **New hook:** `hooks/useReduceMotion.tsx` subscribes to `AccessibilityInfo.isReduceMotionEnabled` (iOS Settings → Accessibility → Motion → Reduce Motion; Android Settings → Accessibility → Remove animations). Includes a web fallback via `prefers-reduced-motion` media query.

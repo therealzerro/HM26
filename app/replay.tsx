@@ -6,6 +6,7 @@ import { ChevronLeft } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
+import { LoadingPhrase } from '@/components/LoadingPhrase';
 
 const SCOPE_ICON: Record<string, string> = { midday: '☀️', evening: '🌙', allday: '◈' };
 const SCOPE_LABEL: Record<string, string> = { midday: 'Midday', evening: 'Evening', allday: 'All Day' };
@@ -144,7 +145,15 @@ export default function ReplayScreen() {
       {isLoading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 }}>
           <ActivityIndicator color={theme.colors.cyan} />
-          <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>Loading replay…</Text>
+          <LoadingPhrase
+            style={{ color: theme.colors.textSecondary, fontSize: 12 }}
+            phrases={[
+              '⏪ Rewinding the tape…',
+              '⏪ Pulling slate snapshots…',
+              '⏪ Cross-checking draws…',
+              '⏪ Stitching hits to picks…',
+            ]}
+          />
         </View>
       ) : grouped.length === 0 ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>

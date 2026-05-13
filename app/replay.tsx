@@ -41,29 +41,41 @@ function scopeMatchesSession(scope: string, session: string): boolean {
   return s === d;
 }
 
-interface Snap { scope: string; slate_date: string; top_k_straights_json: any; }
+interface Snap { scope: string; slate_date: string; top_k_straights_json: any; updated_at_et?: string; deleted_at?: string | null; }
 interface Draw { result_digits: string; jurisdiction: string; session: string; date_et: string; }
 
 export default function ReplayScreen() {
   const dates = useMemo(() => lastNDates(7), []);
   const earliest = dates[dates.length - 1];
 
+  // Include soft-deleted snapshots in the replay window — when a slate is
+  // regenerated mid-day after a hit, the engine intentionally excludes the
+  // already-drawn box-sets from the new picks AND soft-deletes the old
+  // snapshot. The OLD snapshot is where the hitType annotations live; the
+  // new active one has no hits. Filtering on deleted_at=is.null would
+  // hide today's actual hits.
   const { data: snapshots = [], isLoading: snapsLoading } = useQuery<Snap[]>({
-    queryKey: ['replay_snapshots', earliest],
+    queryKey: ['replay_snapshots_v2', earliest],
     queryFn: async () => {
       const rows = await fetchFromSupabase<Snap[]>({
-        path: `/rest/v1/slate_snapshots?select=scope,slate_date,top_k_straights_json&deleted_at=is.null&mode=in.(balanced,conservative,aggressive)&slate_date=gte.${earliest}&top_k_straights_json=not.is.null&order=slate_date.desc,updated_at_et.desc`,
+        path: `/rest/v1/slate_snapshots?select=scope,slate_date,top_k_straights_json,updated_at_et,deleted_at&mode=in.(balanced,conservative,aggressive)&slate_date=gte.${earliest}&top_k_straights_json=not.is.null&order=slate_date.desc,updated_at_et.desc`,
       });
       return Array.isArray(rows) ? rows : [];
     },
     staleTime: 5 * 60 * 1000,
   });
 
+  // Histories exclusion: PR + MD are the only jurisdictions the parser
+  // skips (per parseLedger EXCLUDE_STATES_FROM_PARSING). The legacy
+  // exclusion (ME,NH,VT,MS,MS2) is obsolete — ME/NH/VT now map to the
+  // composite `ME,NH,VT` jurisdiction code (which doesn't match the
+  // individual letters in not.in anyway), and MS is a valid active
+  // jurisdiction in current imports.
   const { data: draws = [], isLoading: drawsLoading } = useQuery<Draw[]>({
-    queryKey: ['replay_draws', earliest],
+    queryKey: ['replay_draws_v2', earliest],
     queryFn: async () => {
       const rows = await fetchFromSupabase<Draw[]>({
-        path: `/rest/v1/histories?select=result_digits,jurisdiction,session,date_et&date_et=gte.${earliest}&jurisdiction=not.in.(ME,NH,VT,MS,PR,MD,MS2)&order=date_et.desc,session.asc`,
+        path: `/rest/v1/histories?select=result_digits,jurisdiction,session,date_et&date_et=gte.${earliest}&jurisdiction=not.in.(PR,MD)&order=date_et.desc,session.asc`,
       });
       return Array.isArray(rows) ? rows : [];
     },
@@ -78,16 +90,36 @@ export default function ReplayScreen() {
       draws: Draw[];
     };
 
-    // Take the most-recent snapshot per (date, scope) — we ordered by updated_at_et.desc
-    const seen = new Set<string>();
-    const cards: CardData[] = [];
+    // For each (date, scope), prefer the snapshot with the most hitType
+    // annotations on its picks — that's the slate that actually recorded
+    // hits. Mid-day regens can wipe annotations from the active snapshot;
+    // the hits live on the soft-deleted older version. Fall back to most
+    // recent if no version of the day has hits.
+    const candidatesByKey = new Map<string, Snap[]>();
     for (const snap of snapshots) {
       const key = `${snap.slate_date}__${snap.scope}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      const picks = Array.isArray(snap.top_k_straights_json)
-        ? snap.top_k_straights_json
-        : (typeof snap.top_k_straights_json === 'string' ? JSON.parse(snap.top_k_straights_json || '[]') : []);
+      if (!candidatesByKey.has(key)) candidatesByKey.set(key, []);
+      candidatesByKey.get(key)!.push(snap);
+    }
+    const parsePicks = (raw: any): any[] =>
+      Array.isArray(raw) ? raw
+      : typeof raw === 'string' ? (() => { try { return JSON.parse(raw || '[]'); } catch { return []; } })()
+      : [];
+    const chosen = new Map<string, Snap>();
+    for (const [key, list] of candidatesByKey) {
+      // Score: count hitType-annotated picks. Highest wins; ties broken by
+      // most-recent updated_at_et.
+      const ranked = list
+        .map(s => ({ s, hits: parsePicks(s.top_k_straights_json).filter((p: any) => p?.hitType).length }))
+        .sort((a, b) => {
+          if (b.hits !== a.hits) return b.hits - a.hits;
+          return (b.s.updated_at_et ?? '').localeCompare(a.s.updated_at_et ?? '');
+        });
+      chosen.set(key, ranked[0].s);
+    }
+    const cards: CardData[] = [];
+    for (const snap of chosen.values()) {
+      const picks = parsePicks(snap.top_k_straights_json);
       const dayDraws = draws.filter(d =>
         (d.date_et?.split('T')[0] === snap.slate_date) && scopeMatchesSession(snap.scope, d.session)
       );

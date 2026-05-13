@@ -57,30 +57,25 @@ export const theme = {
     // Depth layers
     surface2:     '#0d0820',   // intermediate depth between background and surface
 
-    // Legacy compat — map to new palette
+    // Compat shims — these are load-bearing across the codebase and
+    // effectively canonical. The eight unused aliases (crownPurple,
+    // crownYellow, dataRed, glow, hotGlow, orangeLight, primaryDark,
+    // starGold) were removed 2026-05-12 per enhancements §7.6.
     primary:      '#9b5bff',
     primaryLight: 'rgba(155,91,255,0.12)',
-    primaryDark:  '#7a3de8',
     surface:      '#120a1f',
     surfaceLight: 'rgba(255,255,255,0.06)',
     surfaceMuted: 'rgba(255,255,255,0.04)',
     crownGold:    '#ffd93d',
-    crownYellow:  '#ffd93d',
-    crownPurple:  '#9b5bff',
     dataBlue:     '#22a3ff',
     dataGreen:    '#34c759',
     dataYellow:   '#ffd93d',
     dataPurple:   '#9b5bff',
-    dataRed:      '#ff3b30',
-    glow:         'rgba(155,91,255,0.35)',
-    hotGlow:      'rgba(255,59,48,0.35)',
     orange:       '#ff6a2b',
-    orangeLight:  'rgba(255,106,43,0.12)',
     teal:         '#2bffcc',
     tealLight:    'rgba(43,255,204,0.12)',
     cosmic:       '#9b5bff',
     cosmicLight:  'rgba(155,91,255,0.12)',
-    starGold:     '#ffd93d',
     goldLight:    'rgba(255,217,61,0.12)',
     roseLight:    'rgba(255,61,154,0.12)',
   },

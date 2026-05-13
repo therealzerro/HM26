@@ -309,8 +309,15 @@ Most empty states are functional but bland. The slate empty state (`index.tsx:46
 - `components/HitCelebrationOverlay.tsx` — combo digits in the celebration card
 **Why a cap, not no-scaling:** at extreme OS scales (200%+), uncapped scaling shatters the design (combo digits flow off-card, hero numbers wrap to two lines, etc.). 1.3–1.4x cap respects most user accessibility preferences while preserving visual integrity. Body text, labels, and captions remain at default (full scaling) since they're in flex containers that absorb growth gracefully.
 
-### 7.6 Performance — drop the legacy theme aliases (P2 housekeeping)
-`constants/theme.ts:60-86` has 25+ legacy compat aliases. Trace and remove. Smaller bundle, cleaner mental model. **Effort: half-day.**
+### 7.6 Performance — drop the legacy theme aliases (P2 housekeeping) — ✅ Partial Shipped 2026-05-12
+**Audit:** scanned every legacy-compat color alias in `constants/theme.ts` against the codebase. Three tiers emerged:
+- **Truly unused (8):** `crownPurple`, `crownYellow`, `dataRed`, `glow`, `hotGlow`, `orangeLight`, `primaryDark`, `starGold` — zero references outside `theme.ts` itself.
+- **Lightly used (10):** `crownGold` (2 refs), `dataBlue/Green/Purple/Yellow` (2-4 each), `cosmic` (3), `cosmicLight` (4), `tealLight` (4), `roseLight` (3) — small reference counts; could migrate to canonical names but spreads churn across multiple files for marginal gain.
+- **Heavily used (8):** `primary` (188), `surface` (59), `surfaceLight` (56), `teal` (36), `primaryLight` (31), `goldLight` (23), `orange` (15), `surfaceMuted` (10) — these aren't really "compat aliases" anymore, they're load-bearing canonical names in practice.
+
+**Action taken:** removed the 8 truly unused aliases. Renamed the comment block from "Legacy compat" to "Compat shims" with a note explaining the load-bearing tier. Net: 25 → 17 aliases.
+
+**Deferred:** migrating the 10 lightly-used aliases to canonical names (`crownGold → gold`, `dataPurple → purple`, etc.). Not done — touches 25+ scattered files for cosmetic gain. If a future refactor pass comes through one of those files, sweep at that time.
 
 ### 7.7 Stale tab badge (P1) — ✅ Shipped 2026-05-12
 **Where:** `app/(tabs)/_layout.tsx` — small red dot rendered in the top-right of the Results tab icon when there are unviewed hits.

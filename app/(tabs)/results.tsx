@@ -30,6 +30,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { storage } from '@/lib/storage';
+import { useFollowedStates } from '@/hooks/useFollowedStates';
 import { getYesterdayET } from '@/lib/dateUtils';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { theme } from '@/constants/theme';
@@ -278,11 +279,15 @@ export default function ResultsScreen() {
   const [hitSummaryOpen, setHitSummaryOpen] = useState(false);
   const [clusterView,   setClusterView]   = useState(false);
 
+  const { followed: followedStates, toPostgrestFilter } = useFollowedStates();
+  const jurisdictionFilter = toPostgrestFilter(); // already in `&jurisdiction=in.(...)` form
+  const hitStateFilter = jurisdictionFilter.replace('jurisdiction=', 'hit_state=');
+
   const { data: ledger, isLoading: ledgerLoading, refetch: refetchLedger, isRefetching } = useQuery<LedgerRow[]>({
-    queryKey: ['v_recent_ledger', selectedDate],
+    queryKey: ['v_recent_ledger', selectedDate, followedStates.join(',')],
     queryFn: async () => {
       const res = await fetchFromSupabase<LedgerRow[]>({
-        path: `/rest/v1/histories?select=jurisdiction,game,date_et,session,result_digits,comboset_sorted&date_et=eq.${selectedDate}&order=session.asc,jurisdiction.asc&limit=500`,
+        path: `/rest/v1/histories?select=jurisdiction,game,date_et,session,result_digits,comboset_sorted&date_et=eq.${selectedDate}${jurisdictionFilter}&order=session.asc,jurisdiction.asc&limit=500`,
         method: 'GET',
       });
       return Array.isArray(res) ? res : [];
@@ -296,12 +301,12 @@ export default function ResultsScreen() {
   const nextDay = getNextDay(selectedDate);
 
   const { data: hits, refetch: refetchHits } = useQuery<HitRow[]>({
-    queryKey: ['daily_intelligence_hits_v3_scope_safe', selectedDate],
+    queryKey: ['daily_intelligence_hits_v3_scope_safe', selectedDate, followedStates.join(',')],
     queryFn: async () => {
       const res = await fetchFromSupabase<HitRow[]>({
         // on_slate=eq.true keeps Results forward-facing: only K6 daily picks
         // appear, never the operator-only top-30 intel rows.
-        path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=in.(${selectedDate},${nextDay})&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&order=rank.asc&limit=500`,
+        path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=in.(${selectedDate},${nextDay})&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${hitStateFilter}&order=rank.asc&limit=500`,
         method: 'GET',
       });
       return Array.isArray(res) ? res : [];
@@ -310,6 +315,10 @@ export default function ResultsScreen() {
   });
 
   // All on-slate picks — client-side hit detection when backfill hasn't run.
+  // NOT filtered by followed states: this query feeds csMap which is later
+  // matched against ledger draws that ARE filtered. So even a non-followed
+  // state's K6 picks need to remain in csMap; the jurisdiction filter on
+  // the ledger query handles the visible filter.
   const { data: onSlatePicks, refetch: refetchOnSlatePicks } = useQuery<HitRow[]>({
     queryKey: ['daily_intelligence_on_slate_v2', selectedDate],
     queryFn: async () => {

@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
+import { useFollowedStates } from '@/hooks/useFollowedStates';
 
 interface HitRow {
   slate_date: string;
@@ -51,12 +52,14 @@ function scopeMatchesSession(scope: string, session: string): boolean {
  */
 export function LastHitPill() {
   const sinceDate = useMemo(() => lookbackSinceDate(), []);
+  const { followed, toPostgrestFilter } = useFollowedStates();
+  const stateFilter = toPostgrestFilter().replace('jurisdiction=', 'hit_state=');
 
   const { data: hit } = useQuery<HitRow | null>({
-    queryKey: ['last_hit_pill', sinceDate],
+    queryKey: ['last_hit_pill', sinceDate, followed.join(',')],
     queryFn: async () => {
       const rows = await fetchFromSupabase<HitRow[]>({
-        path: `/rest/v1/daily_intelligence?slate_date=gte.${sinceDate}&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&select=slate_date,scope,combo,hit_state,hit_session,hit_box,hit_straight&order=slate_date.desc&limit=50`,
+        path: `/rest/v1/daily_intelligence?slate_date=gte.${sinceDate}&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${stateFilter}&select=slate_date,scope,combo,hit_state,hit_session,hit_box,hit_straight&order=slate_date.desc&limit=50`,
       });
       const list = Array.isArray(rows) ? rows : [];
       // Server orders by slate_date.desc only — within a single day we need

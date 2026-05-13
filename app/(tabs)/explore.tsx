@@ -43,6 +43,7 @@ import { HeatCheckModal } from '@/components/HeatCheckModal';
 import { HeatCheckFAB } from '@/components/HeatCheckFAB';
 import { CosmicBackground } from '@/components/CosmicBackground';
 import { LastHitPill } from '@/components/LastHitPill';
+import { useFollowedStates } from '@/hooks/useFollowedStates';
 import { DrawTicker } from '@/components/DrawTicker';
 import { storage } from '@/lib/storage';
 import { fetchFromSupabase } from '@/lib/supabase';
@@ -252,15 +253,18 @@ export default function SlatesScreen() {
 
   const todayStr = useMemo(() => getTodayET(), []);
   const yesterdayStr = useMemo(() => getYesterdayET(), []);
+  const { followed: followedStates, toPostgrestFilter } = useFollowedStates();
+  const hitStateFilter = toPostgrestFilter().replace('jurisdiction=', 'hit_state=');
 
   // Cross-scope hit feed (enhancements §5.1) — all K6 hits today across
   // every scope and jurisdiction. Surfaces social proof beyond the user's
-  // current scope filter. Only fetched when the Hits tab is active.
+  // current scope filter. Only fetched when the Hits tab is active. Filtered
+  // to followed states (§3.4) when any are set.
   const { data: feedHits = [] } = useQuery<Array<{ scope: string; combo: string; rank: number; hit_state: string; hit_session: string; hit_box: boolean; hit_straight: boolean }>>({
-    queryKey: ['hit_feed_today', todayStr],
+    queryKey: ['hit_feed_today', todayStr, followedStates.join(',')],
     queryFn: async () => {
       const rows = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/daily_intelligence?slate_date=eq.${todayStr}&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&select=scope,combo,rank,hit_state,hit_session,hit_box,hit_straight&order=hit_session.asc&limit=200`,
+        path: `/rest/v1/daily_intelligence?slate_date=eq.${todayStr}&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${hitStateFilter}&select=scope,combo,rank,hit_state,hit_session,hit_box,hit_straight&order=hit_session.asc&limit=200`,
       });
       return Array.isArray(rows) ? rows : [];
     },

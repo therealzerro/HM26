@@ -8,6 +8,7 @@ import { theme } from '@/constants/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { LoadingPhrase } from '@/components/LoadingPhrase';
 import { scopeAccent } from '@/lib/scopeAccent';
+import { useFollowedStates } from '@/hooks/useFollowedStates';
 
 const SCOPE_LABEL: Record<string, string> = { midday: 'Midday', evening: 'Evening', allday: 'All Day' };
 const SCOPE_ICON: Record<string, string> = { midday: '☀️', evening: '🌙', allday: '◈' };
@@ -52,12 +53,14 @@ function lastNDates(n: number): string {
 
 export default function TrackRecordScreen() {
   const sinceDate = useMemo(() => lastNDates(WINDOW_DAYS), []);
+  const { followed, toPostgrestFilter } = useFollowedStates();
+  const stateFilter = toPostgrestFilter().replace('jurisdiction=', 'hit_state=');
 
   const { data: hits = [], isLoading } = useQuery<HitRow[]>({
-    queryKey: ['verified_track_record', sinceDate],
+    queryKey: ['verified_track_record', sinceDate, followed.join(',')],
     queryFn: async () => {
       const rows = await fetchFromSupabase<HitRow[]>({
-        path: `/rest/v1/daily_intelligence?slate_date=gte.${sinceDate}&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&select=slate_date,scope,combo,rank,hit_state,hit_session,hit_box,hit_straight,hit_result&order=slate_date.desc&limit=500`,
+        path: `/rest/v1/daily_intelligence?slate_date=gte.${sinceDate}&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${stateFilter}&select=slate_date,scope,combo,rank,hit_state,hit_session,hit_box,hit_straight,hit_result&order=slate_date.desc&limit=500`,
       });
       return Array.isArray(rows) ? rows : [];
     },

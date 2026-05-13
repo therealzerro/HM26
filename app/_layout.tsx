@@ -10,6 +10,7 @@ import { ScopeProvider } from "@/hooks/useScope";
 import { SnapshotProvider } from "@/hooks/useSnapshot";
 import { CoverageProvider } from "@/hooks/useCoverage";
 import { DataIngestionProvider } from "@/hooks/useDataIngestion";
+import { FollowedStatesProvider } from "@/hooks/useFollowedStates";
 import { AppModeProvider } from "@/context/AppModeContext";
 import { ToastProvider } from "@/components/Toast";
 import { theme } from "@/constants/theme";
@@ -159,7 +160,9 @@ function AppContent() {
             <SnapshotProvider>
               <CoverageProvider>
                 <DataIngestionProvider>
-                  <RootLayoutNav />
+                  <FollowedStatesProvider>
+                    <RootLayoutNav />
+                  </FollowedStatesProvider>
                 </DataIngestionProvider>
               </CoverageProvider>
             </SnapshotProvider>

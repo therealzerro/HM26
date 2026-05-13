@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useToast } from '@/components/Toast';
 import { LastHitPill } from '@/components/LastHitPill';
+import { useFollowedStates, JURISDICTION_GROUPS } from '@/hooks/useFollowedStates';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
@@ -65,6 +66,7 @@ const tog = StyleSheet.create({
 export default function AccountScreen() {
   const { user, setRole, purchaseSubscription, restorePurchases, signOut } = useAuth();
   const { showToast } = useToast();
+  const { followed: followedStates, isFollowing, toggle: toggleFollowedState, clear: clearFollowedStates } = useFollowedStates();
   const [glossOpen, setGlossOpen] = useState<number | null>(null);
   // Notification preferences (enhancements §1.4 — persistence only).
   // Delivery (local schedules + push-on-hit) ships in next iteration; for now
@@ -302,6 +304,57 @@ export default function AccountScreen() {
               <Text style={{ fontSize: 18, color: theme.colors.textTertiary }}>›</Text>
             </View>
           </TouchableOpacity>
+        </View>
+
+        {/* ── Followed states (enhancements §3.4) ── */}
+        <View style={s.section}>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
+            <Text style={s.sectionLabel}>FOLLOWED STATES</Text>
+            {followedStates.length > 0 && (
+              <TouchableOpacity onPress={() => clearFollowedStates().then(() => showToast('Cleared followed states', 'info'))}>
+                <Text style={{ fontSize: 10, color: theme.colors.textTertiary, letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold }}>CLEAR</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          <View style={s.card}>
+            <Text style={{ fontSize: 11, color: theme.colors.textSecondary, padding: 14, paddingBottom: 6, lineHeight: 16 }}>
+              {followedStates.length === 0
+                ? 'No filters active. Tap states to follow — Results, Hit Feed, Track Record, and Last Hit will filter to those states only.'
+                : `Filtering to ${followedStates.length} state${followedStates.length === 1 ? '' : 's'}: ${followedStates.join(' · ')}`}
+            </Text>
+            {JURISDICTION_GROUPS.map(group => (
+              <View key={group.label} style={{ paddingHorizontal: 12, paddingBottom: 10, gap: 6 }}>
+                <Text style={{ fontSize: 9, fontWeight: '900', color: theme.colors.textTertiary, letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 4 }}>{group.label.toUpperCase()}</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5 }}>
+                  {group.codes.map(code => {
+                    const on = isFollowing(code);
+                    return (
+                      <TouchableOpacity
+                        key={code}
+                        onPress={() => toggleFollowedState(code)}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: on }}
+                        accessibilityLabel={`${on ? 'Unfollow' : 'Follow'} ${code}`}
+                        style={{
+                          paddingHorizontal: 9, paddingVertical: 5, borderRadius: 99,
+                          borderWidth: 1,
+                          borderColor: on ? theme.colors.cyan + '88' : theme.colors.border,
+                          backgroundColor: on ? theme.colors.cyan + '18' : theme.colors.bgElevated,
+                        }}
+                      >
+                        <Text style={{
+                          fontSize: 11, fontWeight: '900',
+                          color: on ? theme.colors.cyan : theme.colors.textSecondary,
+                          fontFamily: theme.typography.fontFamily.monoBold,
+                          letterSpacing: 0.4,
+                        }}>{code}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            ))}
+          </View>
         </View>
 
         {/* ── Notifications ── */}

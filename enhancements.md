@@ -133,8 +133,16 @@ After the evening draw at 7:30 PM, around 9 PM ET show a card on Home: "Tomorrow
 ### 3.3 Daily summary widget (push or in-app card) (P1)
 A push notification each evening: "Today's recap: 1 BOX hit (Mississippi 065 → pick #2). Tomorrow's slate generates at 4 AM. Tap to view yesterday's analysis." Subscribers who didn't open the app during the day get pulled back at the moment of peak relevance. **Effort: 1 day.**
 
-### 3.4 Per-jurisdiction follow lists (P2)
-Today `Number Book` (`app/(tabs)/book.tsx`) lets users save combos. Extend it: let them "follow" specific states (NY, FL, etc.). The app filters everything to those states. Push notifications only fire for followed states' hits. Subscribers who play 2-3 specific states get a personalized app. **Effort: 1-2 days.**
+### 3.4 Per-jurisdiction follow lists (P2) — ✅ Phase 1 Shipped 2026-05-13 (filter; push deferred)
+**New hook:** `hooks/useFollowedStates.tsx` — context provider with `followed` (string[]), `toggle()`, `clear()`, and `toPostgrestFilter()` (returns `&jurisdiction=in.(A,B,C)` or empty string when no follows are set). Persists to AsyncStorage key `followed_states_v1`. Wrapped at the app root in `_layout.tsx`.
+**Picker UI:** new "FOLLOWED STATES" section on the Profile tab between HISTORY and NOTIFICATIONS. Pill grid grouped by region (Northeast / Southeast / Midwest / West / Other / Canada), ~35 common Pick 3 jurisdictions. Status line above the grid: `No filters active. Tap states to follow…` or `Filtering to 3 states: NY · TX · CA`. CLEAR button when any are followed.
+**Filter applied to:**
+- **Results screen** — `histories` ledger (uses `jurisdiction` column directly); `daily_intelligence_hits` query (uses `hit_state`). `onSlatePicks` query intentionally NOT filtered so csMap remains complete for client-side cross-checking against the already-filtered ledger.
+- **Last-Hit pill** — `hit_state` filter
+- **Track Record screen** — `hit_state` filter
+- **Slates Hits tab cross-scope feed** — `hit_state` filter
+**Push gating (deferred):** would only fire on followed states once §1.4 phase 2 native push pipeline lands. UI is forward-compatible — the `useFollowedStates` hook is already the source of truth for "which states matter to this user."
+**Empty-state behavior:** when `followed.length === 0`, all queries fall through to "show all" (no jurisdiction filter applied). Power-users with 2–3 states get a personalized app; casual users see everything (the safe default).
 
 ### 3.5 Morning coffee mode (P2)
 A toggle in Account: "Show me only the K6 picks, no chrome." Renders an ultra-minimal Home: just 6 big pick tiles, scope switcher, draw countdown. Power users who already know everything else just want their numbers fast. **Effort: half-day.**

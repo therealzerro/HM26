@@ -203,8 +203,12 @@ After running a heat check on a combo, offer a "Share this analysis" button that
 ### 5.4 Engine confidence quiz / onboarding ritual (P2)
 A 60-second onboarding game: "We'll show you 5 pairs of combos. Pick which one you think is more likely to hit today. We'll show you which one ZK6 picked and why." Establishes the "you can't beat the engine" intuition in 60 seconds. **Effort: 2 days.**
 
-### 5.5 Daily energy chart on Home (P2)
-A tiny line chart showing today's K6 average energy vs the last 30 days. Subscribers immediately see if today's slate is unusually hot or cold. **Effort: half-day.**
+### 5.5 Daily energy chart on Home (P2) — ✅ Shipped 2026-05-12
+**Where:** Home, between the unified hero band and the Hit Streak banner.
+**Component:** new `components/EnergySparkline.tsx` — built with `react-native-svg` (already in deps). 56px tall card with a polyline + dashed average reference line + colored marker for today's value. Today's value uses `theme.colors.hot` if above the 30-day average, `textTertiary` if below, `cyan` if equal.
+**Data:** new `useQuery` in `index.tsx` pulls last 30 days of snapshots for the *current scope* (`scope=eq.${scope}`), takes the most recent snapshot per `slate_date`, computes mean K6 energy. Series is per-day average across the 6 K6 picks.
+**Header copy:** `30-DAY ENERGY · {scope}    today {N} · avg {M}`. Subscriber-voice — no "rolling window" or "n=30" framing.
+**Edge cases:** suppressed entirely when `< 2` data points (avoids a meaningless one-dot chart).
 
 ### 5.6 "Hot box-sets right now" surface (P2)
 Above the slate, a small live ticker: "🔥 Trending box-sets: {2,4,8} · {0,6,9} · {1,3,7} — these are the box-sets the engine ranked highest across all 3 scopes today." Helpful for users who play across scopes. **Effort: 3 hours.**

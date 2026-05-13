@@ -44,6 +44,7 @@ import { PickDetailModal } from '@/components/PickDetailModal';
 import { Paywall } from '@/components/Paywall';
 import { HeatCheckModal } from '@/components/HeatCheckModal';
 import { HitCelebrationOverlay } from '@/components/HitCelebrationOverlay';
+import { EnergySparkline } from '@/components/EnergySparkline';
 import { useToast } from '@/components/Toast';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { storage } from '@/lib/storage';
@@ -325,6 +326,44 @@ export default function HomeScreen() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // 30-day energy series for the EnergySparkline (enhancements §5.5).
+  // Pulls per-(date, scope) snapshots for the user's current scope; takes
+  // the latest snapshot per date and computes mean K6 energy for that day.
+  const energySinceDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 29);
+    return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  }, []);
+  const { data: energySnaps = [] } = useQuery<Array<{ slate_date: string; updated_at_et: string; top_k_straights_json: any }>>({
+    queryKey: ['energy_sparkline', scope, energySinceDate],
+    queryFn: async () => {
+      const rows = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/slate_snapshots?select=slate_date,updated_at_et,top_k_straights_json&scope=eq.${encodeURIComponent(scope)}&deleted_at=is.null&mode=in.(balanced,conservative,aggressive)&slate_date=gte.${energySinceDate}&top_k_straights_json=not.is.null&order=slate_date.asc,updated_at_et.desc`,
+      });
+      return Array.isArray(rows) ? rows : [];
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+  const energySeries = useMemo(() => {
+    // most-recent snapshot wins per slate_date (input is asc by date, desc by updated_at within date)
+    const seen = new Set<string>();
+    const series: number[] = [];
+    for (const snap of energySnaps) {
+      if (seen.has(snap.slate_date)) continue;
+      seen.add(snap.slate_date);
+      const picks = Array.isArray(snap.top_k_straights_json)
+        ? snap.top_k_straights_json
+        : (typeof snap.top_k_straights_json === 'string' ? (() => { try { return JSON.parse(snap.top_k_straights_json); } catch { return []; } })() : []);
+      const energies = picks
+        .map((p: any) => Number(p?.energy ?? p?.temperature ?? 0))
+        .filter((v: number) => Number.isFinite(v) && v > 0);
+      if (energies.length === 0) continue;
+      const avg = Math.round(energies.reduce((a: number, b: number) => a + b, 0) / energies.length);
+      series.push(avg);
+    }
+    return series;
+  }, [energySnaps]);
+
   // Track Record band — count today's K6 hits, scope-gated. A row only
   // counts if its slate scope matches the draw session that hit it (allday
   // matches anything). Without this, a midday draw can inflate the count by
@@ -571,6 +610,11 @@ export default function HomeScreen() {
             </>
           ) : null}
         </View>
+
+        {/* ── 30-day energy sparkline (enhancements §5.5) ── */}
+        {energySeries.length >= 2 && (
+          <EnergySparkline series={energySeries} highlight={avgEnergy} scopeLabel={SCOPE_LABELS[scope] ?? scope} />
+        )}
 
         {/* ── Hit Streak Banner (high-signal, keep above slate) ── */}
         {hitBanner && (

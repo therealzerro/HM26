@@ -139,9 +139,18 @@ Today `Number Book` (`app/(tabs)/book.tsx`) lets users save combos. Extend it: l
 ### 3.5 Morning coffee mode (P2)
 A toggle in Account: "Show me only the K6 picks, no chrome." Renders an ultra-minimal Home: just 6 big pick tiles, scope switcher, draw countdown. Power users who already know everything else just want their numbers fast. **Effort: half-day.**
 
-### 3.6 Drawing-time auto-scope (P1 polish)
-**Where:** `app/(tabs)/index.tsx` — `useScope` initialization.
-**Logic:** before 1 PM ET, default scope to `midday`. Between 1 PM and 7 PM, default to `evening`. After 8 PM, default to `allday` for tomorrow's planning. Today the app remembers whatever scope you last selected — which means a user who checked evening picks last night opens at 9 AM today and sees evening picks already played. **Effort: 1 hour.**
+### 3.6 Drawing-time auto-scope (P1 polish) — ✅ Shipped 2026-05-13
+**Where:** `hooks/useScope.tsx` — `defaultScopeForTime()` helper plus a date-aware persistence layer.
+**Logic:**
+- < 1 PM ET → midday (planning today's midday draw)
+- < 8 PM ET → evening (after midday draw lands, before evening draw)
+- ≥ 8 PM ET → allday (tomorrow's planning context)
+
+**Critical detail — explicit user choice wins for the rest of the ET day:** scope persistence now writes both `selectedScope` AND `selectedScopeDate`. On mount, the stored scope is honored *only if* `selectedScopeDate` matches today's ET date. Otherwise (first launch ever, or returning a day later), `defaultScopeForTime()` runs.
+
+**Why the date guard:** prevents the doc's exact pain — "user checked evening picks last night opens at 9 AM today and sees evening picks already played." Yesterday's choice doesn't bleed into today's first open. But if the user manually switches scope today, that choice sticks for the whole ET day.
+
+**ET hour parsing:** uses `Intl.DateTimeFormat` with `timeZone: 'America/New_York'` so DST is handled correctly. Falls back to `allday` on any error.
 
 ---
 

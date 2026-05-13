@@ -16,6 +16,7 @@ import { UserRole } from '@/types/core';
 import { fetchFromSupabase, countFromSupabase } from '@/lib/supabase';
 import { storage } from '@/lib/storage';
 import { useSavedHits } from '@/hooks/useSavedHits';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 const GLOSSARY = [
   { term: 'ZK6™ Engine', def: 'HitMaster\'s proprietary intelligence engine — a multi-dimensional pattern recognition system trained on years of lottery draw history. Picks are ranked by Oracle Score (signal convergence strength), not guarantees.' },
@@ -88,7 +89,11 @@ export default function AccountScreen() {
     })();
   }, []);
 
-  const handleNotifChange = (key: keyof typeof notifPrefs, value: boolean) => {
+  // §1.4 phase 2 — push registration. Lazy: only kicks in when the user
+  // flips a toggle ON, so we don't pop a permission dialog on first launch.
+  const push = usePushNotifications(notifPrefs);
+
+  const handleNotifChange = async (key: keyof typeof notifPrefs, value: boolean) => {
     const next = { ...notifPrefs, [key]: value };
     setNotifPrefs(next);
     storage.setItem(NOTIF_PREFS_KEY, JSON.stringify(next));
@@ -98,6 +103,14 @@ export default function AccountScreen() {
       hits: 'Slate Hit Alert',
       promo: 'Promotions',
     };
+    // Lazy-register on first ON toggle (asks permission then). On every
+    // toggle, push the updated prefs to the server row.
+    if (value && !push.token && push.status !== 'unsupported') {
+      const t = await push.register();
+      if (t) await push.syncPrefs(next);
+    } else if (push.token) {
+      await push.syncPrefs(next);
+    }
     showToast(`${value ? 'Enabled' : 'Disabled'}: ${labels[key]}`, 'info');
   };
   const [memberDays, setMemberDays] = useState(0);

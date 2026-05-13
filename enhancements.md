@@ -59,9 +59,22 @@ Headline rate sourced from MASTER_AUDIT.md CONFIG-02 backtest (78 slates × 3 sc
 ### 1.4 Wire notification preferences to actual notifications
 **Phase 1 (persistence) — ✅ Shipped 2026-05-12.** Toggles in `app/(tabs)/account.tsx` now persist to AsyncStorage under `notif_prefs_v1` and re-load on mount. User configuration survives restarts.
 
-**Phase 2 (delivery) — ⏳ Deferred.** Two pieces remain:
-- **Local notifications** (~3-5 hrs): install `expo-notifications`, request permissions on first toggle enable, schedule daily local notifications for `slateReady` and `nextDraw` at fixed pre-draw times. No server dependency. Doable any time.
-- **Push-on-hit** (~1-2 days): requires storing per-device push tokens in Supabase, an Edge Function dispatcher, and a pg_cron or trigger to detect `hit_box || hit_straight` flips on `on_slate=true` rows. Adds native push setup (FCM Android key, APNs cert, EAS config). Higher infrastructure cost.
+**Phase 2 (delivery) — ⏳ Phase A infrastructure shipped 2026-05-13; final activation blocked on EAS Build + APNs/FCM credentials.**
+
+**Phase A — code + backend infrastructure (shipped):**
+- Installed `expo-notifications` + `expo-device`.
+- `app.json` registers the `expo-notifications` plugin with HitMaster purple notification tint (#7c3aed).
+- Migration `supabase/migrations/2026-05-13_push_tokens.sql` creates `public.push_tokens` (PK: `expo_push_token`; columns: `device_id`, `platform`, `app_version`, `prefs` jsonb, `active`, `last_seen_at`, `created_at`, `updated_at`). RLS: anon may insert + update; reads are service-role only. Trigger keeps `updated_at` fresh. **Migration must be applied manually** via Supabase SQL editor or CLI — MCP server doesn't see this project.
+- New `hooks/usePushNotifications.tsx` — lazy registration (only fires on first user opt-in), permission request, token fetch via `getExpoPushTokenAsync`, upsert into `push_tokens` with prefs. Android channel created with HIGH importance. Web returns `unsupported`.
+- `app/(tabs)/account.tsx` notification toggles now lazy-register on first enable and `syncPrefs` to the server row on every change.
+- New Edge Function `supabase/functions/send-push/index.ts` — accepts `{ channel, title, body, data?, tokens?, dryRun? }`, fetches active push_tokens rows where `prefs->channel = true`, dispatches via Expo Push API (`https://exp.host/--/api/v2/push/send`) in batches of 100, marks `DeviceNotRegistered` tokens inactive automatically. Service-role auth.
+
+**Phase B — still needed for actual delivery:**
+- Apple Developer account → APNs key (`p8` or push cert) uploaded to EAS via `eas credentials`.
+- Firebase project → FCM v1 service account JSON uploaded to EAS.
+- First `eas build --profile preview --platform all` so a real device can receive tokens (Expo Go test client cannot — it only supports limited push).
+- Deploy `send-push` Edge Function to the live project (`supabase functions deploy send-push`).
+- Wire trigger callers: post-hit-detection (already runs after every results import) calls `send-push({ channel: 'hits', ... })` with the matched pick; pre-draw scheduler (pg_cron) calls `send-push({ channel: 'nextDraw' })` 15 min before each draw.
 
 **Why originally planned:** the user already toggled these on. Today nothing fires. A push notification at 11:45 AM ET ("Today's Midday Slate is live · pick #1 is BLAZING 🔥") is the single most effective daily-retention lever for an app like this. Combined effort: **1-2 days**. Impact: **enormous**.
 

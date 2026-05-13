@@ -252,6 +252,36 @@ export default function SlatesScreen() {
   const todayStr = useMemo(() => getTodayET(), []);
   const yesterdayStr = useMemo(() => getYesterdayET(), []);
 
+  // Cross-scope hit feed (enhancements §5.1) — all K6 hits today across
+  // every scope and jurisdiction. Surfaces social proof beyond the user's
+  // current scope filter. Only fetched when the Hits tab is active.
+  const { data: feedHits = [] } = useQuery<Array<{ scope: string; combo: string; rank: number; hit_state: string; hit_session: string; hit_box: boolean; hit_straight: boolean }>>({
+    queryKey: ['hit_feed_today', todayStr],
+    queryFn: async () => {
+      const rows = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/daily_intelligence?slate_date=eq.${todayStr}&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&select=scope,combo,rank,hit_state,hit_session,hit_box,hit_straight&order=hit_session.asc&limit=200`,
+      });
+      return Array.isArray(rows) ? rows : [];
+    },
+    enabled: tab === 'hits',
+    staleTime: 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
+  });
+  const feedHitsValid = useMemo(() => {
+    // BUG-132 defense in depth — only show hits whose slate scope matches
+    // the hit session (or scope=allday, which matches anything).
+    const sessionOrder: Record<string, number> = { morning: 0, midday: 1, evening: 2, night: 3 };
+    return feedHits
+      .filter(h => {
+        const s = (h.scope ?? '').toLowerCase();
+        const sess = (h.hit_session ?? '').toLowerCase();
+        if (s === 'allday') return true;
+        if (!sess) return true;
+        return s === sess;
+      })
+      .sort((a, b) => (sessionOrder[a.hit_session?.toLowerCase()] ?? 9) - (sessionOrder[b.hit_session?.toLowerCase()] ?? 9));
+  }, [feedHits]);
+
   // yesterday data (only fetched when on More tab + showYesterday)
   const { data: yesterdaySnap, isLoading: ysLoading } = useQuery({
     queryKey: ['yesterday_snap', scope, yesterdayStr],
@@ -576,6 +606,43 @@ export default function SlatesScreen() {
                   </Text>
                 </View>
               ))}
+            </View>
+          )}
+
+          <Text style={[s.sectionTitle, { marginTop: 16 }]}>Hit feed · all scopes today</Text>
+          {feedHitsValid.length === 0 ? (
+            <View style={s.emptyCard}>
+              <Text style={s.emptyEmoji}>📡</Text>
+              <Text style={s.emptyTitle}>No hits across the engine yet</Text>
+              <Text style={s.emptyDesc}>Confirmed hits from any scope and jurisdiction will appear here.</Text>
+            </View>
+          ) : (
+            <View style={{ gap: 5 }}>
+              {feedHitsValid.map((h, i) => {
+                const sessIcon = h.hit_session === 'midday' ? '☀️' : h.hit_session === 'evening' ? '🌙' : h.hit_session === 'morning' ? '🌅' : h.hit_session === 'night' ? '🌑' : '◈';
+                const tint = scopeAccent(h.scope);
+                const isStraight = !!h.hit_straight;
+                return (
+                  <View key={`${h.scope}-${h.combo}-${h.hit_state}-${h.hit_session}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, backgroundColor: tint + '0E', borderRadius: 8, borderLeftWidth: 3, borderLeftColor: tint }}>
+                    <Text style={{ fontSize: 14 }}>{sessIcon}</Text>
+                    <Text style={{ fontSize: 16, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 3, color: theme.colors.text, minWidth: 56 }}>{h.combo}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 11, color: theme.colors.textSecondary }}>
+                        <Text style={{ color: tint, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold }}>{h.scope}</Text>
+                        {' · '}
+                        <Text style={{ fontWeight: '700', color: theme.colors.text }}>{h.hit_state}</Text>
+                        {' · '}
+                        {h.hit_session}
+                      </Text>
+                    </View>
+                    <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1, borderColor: isStraight ? theme.colors.gold + '88' : theme.colors.cyan + '88', backgroundColor: isStraight ? theme.colors.gold + '18' : theme.colors.cyan + '14' }}>
+                      <Text style={{ fontSize: 8, fontWeight: '900', color: isStraight ? theme.colors.gold : theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.4 }}>
+                        {isStraight ? '⭐ STR' : '🎯 BOX'}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
             </View>
           )}
 

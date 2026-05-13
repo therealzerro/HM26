@@ -189,8 +189,14 @@ A search box on Intelligence: "Did the engine consider 123?" → returns the ran
 
 ## 5. Engagement — turn passive subscribers into active ones
 
-### 5.1 Community-style hit feed (P2)
-A new tab or section: "Today's hits feed" — a chronological stream of every confirmed hit on the engine across all jurisdictions. Anonymized but real: "12:34 PM · pick #4 hit Florida midday · 943." Subscribers love seeing other people winning — it's the social proof and the FOMO at once. **Effort: 1 day (data is already there).**
+### 5.1 Community-style hit feed (P2) — ✅ Shipped 2026-05-12
+**Where:** Slates → Hits tab, new `Hit feed · all scopes today` section between the existing scope-specific "Today's hits" block and the Heat Check entry.
+**Data:** new `useQuery` (`enabled: tab === 'hits'`) pulls today's K6 hits across **every scope and every jurisdiction**: `slate_date=eq.${today} & on_slate=eq.true & or=(hit_box.eq.true,hit_straight.eq.true) & mode in (balanced/conservative/aggressive)`. Refreshes every 5 minutes. Same scope-validity gate as Results (BUG-132 defense in depth).
+**Sort order:** `morning → midday → evening → night` by `hit_session` (closest to chronological we can do without per-draw timestamps; the `histories` table is session-tagged, not minute-precise).
+**Row format:** `[session emoji] [combo] · scope · jurisdiction · session · [⭐ STR / 🎯 BOX]`. Each row's left border picks up the `scopeAccent` color for the slate that produced the hit, so a glance at the feed shows scope distribution.
+**Empty state:** `📡 No hits across the engine yet · Confirmed hits from any scope and jurisdiction will appear here.`
+**Difference from existing scope-specific section:** the original "Today's hits" block above the feed remains scope-filtered (matches the user's slate context). The new feed is cross-scope social proof — broader by design.
+**Honest deviation from doc spec:** the spec called for "12:34 PM" timestamps. `daily_intelligence` and `histories` don't carry minute-precise timestamps for draws — they're session-tagged. Used session order as the chronological proxy.
 
 ### 5.2 Saved-pick alerts (P1) — ⏳ Deferred (blocked on §1.4 phase 2)
 **Spec:** when a user saves a combo in Number Book, register a watcher. When that combo (or its box-set) draws anywhere, push them: "Your saved pick 459 just drew in Texas 945 evening."

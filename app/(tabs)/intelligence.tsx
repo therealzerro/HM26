@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, TextInput,
 } from 'react-native';
 import { NeonRefreshControl as RefreshControl } from '@/components/NeonRefreshControl';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -418,6 +418,11 @@ export default function IntelligenceScreen() {
   const [isYesterdayFallback, setIsYesterdayFallback] = useState(false);
   const [regenLoading, setRegenLoading] = useState(false);
 
+  // §4.6 — combo lookup ("did the engine consider XYZ?")
+  const [lookupQuery, setLookupQuery] = useState('');
+  const lookupCombo = lookupQuery.replace(/\D/g, '').slice(0, 3);
+  const isLookupValid = /^\d{3}$/.test(lookupCombo);
+
   const lastFetchRef = useRef<number>(0);
   const INTEL_STALE_MS = 2 * 60 * 1000;
 
@@ -654,6 +659,63 @@ export default function IntelligenceScreen() {
           <View style={s.todayHeader}>
             <Text style={s.todayDate}>{getTodayET()}</Text>
             <Text style={s.todayTitle}>Today's Intelligence</Text>
+          </View>
+
+          {/* §4.6 — combo lookup */}
+          <View style={s.lookupCard}>
+            <Text style={s.lookupLabel}>🔎 DID THE ENGINE CONSIDER…</Text>
+            <View style={s.lookupRow}>
+              <TextInput
+                style={s.lookupInput}
+                value={lookupQuery}
+                onChangeText={setLookupQuery}
+                keyboardType="number-pad"
+                maxLength={3}
+                placeholder="123"
+                placeholderTextColor={theme.colors.textTertiary}
+                accessibilityLabel="3-digit combo to look up"
+              />
+              {lookupQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setLookupQuery('')} style={s.lookupClear}>
+                  <Text style={s.lookupClearText}>×</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {isLookupValid && (() => {
+              const target = lookupCombo;
+              const targetSet = '{' + target.split('').sort().join(',') + '}';
+              // Match by exact combo first, then by box-set (engine treats picks at the box level).
+              const exact = slateRows.find(r => r.combo === target);
+              const setMatches = slateRows.filter(r => (r.combo_set ?? '') === targetSet);
+              const k6Members = setMatches.filter(r => r.on_slate);
+              const found = exact ?? setMatches[0];
+              if (!found) {
+                return (
+                  <Text style={s.lookupResult}>
+                    <Text style={s.lookupBold}>{target}</Text> · box-set <Text style={s.lookupBold}>{targetSet}</Text> · not in today's top 30 for {SCOPE_LABEL_INLINE[slateScope]}.{'\n'}
+                    <Text style={s.lookupSub}>Below the engine's top-30 indicator threshold.</Text>
+                  </Text>
+                );
+              }
+              const energy = Math.round(found.energy_score ?? 0);
+              const onSlate = !!found.on_slate || k6Members.length > 0;
+              const reason = onSlate
+                ? `On today's K6 slate at rank ${(k6Members[0] ?? found).rank} (${SCOPE_LABEL_INLINE[slateScope]}).`
+                : energy < 70
+                  ? `Considered at rank ${found.rank} (energy ${energy}). Likely rejected: below energy floor (70).`
+                  : `Considered at rank ${found.rank} (energy ${energy}). Likely rejected: yesterday-block, cooldown, or box-set already filled by another K6 pick. Multiple combos in this box-set: ${setMatches.length}.`;
+              return (
+                <View style={{ gap: 4 }}>
+                  <Text style={s.lookupResult}>
+                    <Text style={s.lookupBold}>{found.combo}</Text> · set <Text style={s.lookupBold}>{found.combo_set ?? targetSet}</Text> · energy <Text style={s.lookupBold}>{energy}</Text> · ds_raw {found.draws_since ?? '—'}
+                  </Text>
+                  <Text style={[s.lookupReason, { color: onSlate ? theme.colors.cyan : theme.colors.textSecondary }]}>{reason}</Text>
+                  <Text style={s.lookupSig}>
+                    BOX {Math.round((found.signal_box ?? 0) * 100)} · PB {Math.round((found.signal_pburst ?? 0) * 100)} · CO {Math.round((found.signal_co ?? 0) * 100)} · DGC {Math.round((found.signal_dgc ?? 0) * 100)}
+                  </Text>
+                </View>
+              );
+            })()}
           </View>
 
           <View style={ss.scopeRow}>
@@ -1046,7 +1108,22 @@ export default function IntelligenceScreen() {
   );
 }
 
+const SCOPE_LABEL_INLINE: Record<string, string> = { midday: 'Midday', evening: 'Evening', allday: 'All Day' };
+
 const s = StyleSheet.create({
+  // §4.6 lookup card
+  lookupCard: { backgroundColor: theme.colors.card, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.purple + '55', padding: 12, marginBottom: 12, gap: 8 },
+  lookupLabel: { fontSize: 10, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold },
+  lookupRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  lookupInput: { flex: 1, backgroundColor: theme.colors.bgElevated, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.border, paddingHorizontal: 14, paddingVertical: 10, fontSize: 18, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 4, textAlign: 'center' },
+  lookupClear: { paddingHorizontal: 10, paddingVertical: 6 },
+  lookupClearText: { fontSize: 18, color: theme.colors.textTertiary, fontWeight: '700' },
+  lookupResult: { fontSize: 12, color: theme.colors.textSecondary, lineHeight: 17, fontFamily: theme.typography.fontFamily.mono },
+  lookupBold: { color: theme.colors.text, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
+  lookupSub: { fontSize: 11, color: theme.colors.textTertiary, fontStyle: 'italic' },
+  lookupReason: { fontSize: 11, fontWeight: '700', fontFamily: theme.typography.fontFamily.mono, lineHeight: 15 },
+  lookupSig: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 0.4 },
+
   container: { flex: 1, backgroundColor: theme.colors.background },
   scroll: { padding: theme.spacing.md },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },

@@ -203,8 +203,17 @@ On the Number Book screen, when a user saves a pick to a list and that pick late
 **Empty states:** 0 draws → `Select at least one draw to plan a play.`; budget below one-play cost → `Budget below $X.XX (one box across {drawLabel}, {stateLabel}).`
 **Constants exposed for tuning:** `STAKE` ($0.25), `STRAIGHT_PAYOUT` ($225), `boxPayout()` (multiplicity-based), `ALL_STATES_COUNT` (32 — tune if histories filter membership shifts).
 
-### 4.6 "Why this pick wasn't on the slate" lookup (P2)
-A search box on Intelligence: "Did the engine consider 123?" → returns the rank, signals, why it was rejected (cooldown / yesterday-block / energy floor / box-set already picked). Power-user feature but kills the "did you miss this?" suspicion. **Effort: half-day.**
+### 4.6 "Why this pick wasn't on the slate" lookup (P2) — ✅ Shipped 2026-05-13
+**Where:** Intelligence tab → Today view → new "🔎 DID THE ENGINE CONSIDER…" card above the scope row. Admin-only (Intelligence is operator-facing per the [admin-only memory](memory)).
+**Input:** 3-digit number-pad input. Auto-strips non-digits. Shows clear button when populated.
+**Lookup logic:** searches the loaded `slateRows` (top-30 picks for current scope+date) by exact combo first, then by box-set fallback (engine treats picks at the box level).
+**Output cases:**
+- Not in top 30 → `123 · box-set {1,2,3} · not in today's top 30 for {scope}. Below the engine's top-30 indicator threshold.`
+- Found + on_slate → cyan-tinted `On today's K6 slate at rank N ({scope}).`
+- Found + below energy floor → `Considered at rank N (energy E). Likely rejected: below energy floor (70).`
+- Found + above floor but not selected → `Considered at rank N (energy E). Likely rejected: yesterday-block, cooldown, or box-set already filled by another K6 pick. Multiple combos in this box-set: M.`
+- Always shows full signal breakdown: `BOX X · PB Y · CO Z · DGC W` and `ds_raw N`.
+**Why "likely":** rejection reasons aren't stored in `daily_intelligence` — they're determined at slate-generation time and discarded. Inferring from `on_slate=false + rank + energy` is the closest we can get without re-running the engine logic on demand. Future enhancement: store rejection reason on the row at INSERT time.
 
 ---
 

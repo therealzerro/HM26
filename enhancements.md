@@ -65,10 +65,14 @@ Headline rate sourced from MASTER_AUDIT.md CONFIG-02 backtest (78 slates × 3 sc
 
 **Why originally planned:** the user already toggled these on. Today nothing fires. A push notification at 11:45 AM ET ("Today's Midday Slate is live · pick #1 is BLAZING 🔥") is the single most effective daily-retention lever for an app like this. Combined effort: **1-2 days**. Impact: **enormous**.
 
-### 1.5 "Why didn't we hit today?" — loss explanation card
-**Where:** new card on `app/(tabs)/index.tsx`, shown only when today's hit count = 0 and the last session has drawn.
-**Content:** "Today's slate didn't hit — here's what got close. Pick #2 (485) shared 2 of 3 digits with 4 draws today (NY 458, IL 854, NC 845, OH 485 evening pending). Tomorrow's slate will avoid these recently-drawn box-sets."
-**Why:** silence after a miss is corrosive. A frank, data-backed acknowledgement of the miss + a forward-looking sentence reinforces "the engine is thinking about this, not glitching." Effort: **half-day**. Impact: retention churn protection.
+### 1.5 "Why didn't we hit today?" — loss explanation card — ✅ Shipped 2026-05-12
+**Where:** `app/(tabs)/index.tsx` — renders in the slot directly below the unified hero card, mutually exclusive with the win banner (only one of `hitBanner` / `lossCard` shows).
+**Trigger conditions (all must hold):**
+- `hitItems.length === 0` — no K6 hits yet today (would be silenced by the win banner otherwise)
+- At least one draw has happened today in the current scope (`scope === 'allday'` matches any session, otherwise scope must equal `result.session`)
+- At least one K6 pick shares exactly 2 of 3 digits (set semantics) with at least one matching draw — the "close call" data the card is built around
+**Content:** picks the K6 pick with the most close-call matches and shows: "Pick #N (XYZ) shared 2 of 3 digits with M draws today: NY midday (458), IL evening (854)…" — capped at 4 draws inline. Footer: "Tomorrow's slate will avoid recently-drawn box-sets." (factually true — the engine's yesterday-block from BUG-125 enforces this.)
+**Why:** silence after a miss is corrosive. A frank, data-backed acknowledgement plus a forward-looking sentence reframes "engine missed" as "engine was close, here's what's next."
 
 ---
 

@@ -397,6 +397,39 @@ export default function HomeScreen() {
     });
   }, [hitBanner, todayStr]);
 
+  // Loss explanation card (enhancements §1.5) — when today's slate has no
+  // K6 hits but draws have happened in the current scope, find the closest
+  // K6 pick (2 of 3 digits shared) and surface it. Frames a miss as "we
+  // were close" rather than silence after a miss.
+  const lossCard = useMemo(() => {
+    if (hitItems.length > 0) return null; // we hit — banner takes over
+    if (!todayResults || todayResults.length === 0) return null;
+
+    const matchingDraws = todayResults.filter(r =>
+      scope === 'allday' || r.session === scope
+    );
+    if (matchingDraws.length === 0) return null;
+
+    const picks = items.filter(p => !p.locked && p.combo !== '---' && p.combo !== '•••');
+    let best: { pick: typeof picks[number]; closeCalls: typeof matchingDraws } | null = null;
+
+    for (const p of picks) {
+      const pickDigits = new Set(p.combo.split(''));
+      const closeCalls = matchingDraws.filter(d => {
+        const drawDigits = new Set(d.result_digits.split(''));
+        let shared = 0;
+        pickDigits.forEach(x => { if (drawDigits.has(x)) shared++; });
+        return shared === 2;
+      });
+      if (closeCalls.length === 0) continue;
+      if (!best || closeCalls.length > best.closeCalls.length) {
+        best = { pick: p, closeCalls };
+      }
+    }
+
+    return best;
+  }, [hitItems, todayResults, items, scope]);
+
   const avgEnergy = useMemo(() => {
     const unlocked = items.filter(x => !x.locked && x.energy > 0);
     if (!unlocked.length) return 0;
@@ -474,6 +507,17 @@ export default function HomeScreen() {
               <Text style={s.hitBannerTitle}>ZK6 HIT TODAY · {hitBanner.digits} in {hitBanner.jurisdiction}</Text>
               <Text style={s.hitBannerSub}>{hitBanner.session === 'midday' ? '☀️ Midday' : '🌙 Evening'} · {hitBanner.hitType === 'straight' ? 'Straight hit ✓' : 'Box hit ✓'}</Text>
             </View>
+          </View>
+        )}
+
+        {/* ── Loss explanation card (enhancements §1.5) ── */}
+        {!hitBanner && lossCard && (
+          <View style={s.lossCard}>
+            <Text style={s.lossTitle}>Today's slate didn't hit — here's what got close.</Text>
+            <Text style={s.lossBody}>
+              <Text style={s.lossBold}>Pick #{lossCard.pick.rank} ({lossCard.pick.combo})</Text> shared 2 of 3 digits with {lossCard.closeCalls.length} {lossCard.closeCalls.length === 1 ? 'draw' : 'draws'} today: {lossCard.closeCalls.slice(0, 4).map(d => `${d.jurisdiction} ${d.session} (${d.result_digits})`).join(', ')}{lossCard.closeCalls.length > 4 ? '…' : '.'}
+            </Text>
+            <Text style={s.lossFooter}>Tomorrow's slate will avoid recently-drawn box-sets.</Text>
           </View>
         )}
 
@@ -608,6 +652,12 @@ const s = StyleSheet.create({
   hitBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginTop: 12, backgroundColor: theme.colors.cyan + '18', borderRadius: 14, borderWidth: 1.5, borderColor: theme.colors.cyan + '55', padding: 12 },
   hitBannerTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold },
   hitBannerSub: { fontSize: 11, color: theme.colors.cyan + 'AA', marginTop: 2 },
+
+  lossCard: { marginHorizontal: 16, marginTop: 12, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: theme.colors.card, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border, gap: 6 },
+  lossTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold },
+  lossBody: { fontSize: 12, color: theme.colors.textSecondary, lineHeight: 18 },
+  lossBold: { color: theme.colors.text, fontWeight: '800', fontFamily: theme.typography.fontFamily.monoBold },
+  lossFooter: { fontSize: 11, color: theme.colors.textTertiary, marginTop: 2, fontStyle: 'italic' },
 
   hitsSection: { marginHorizontal: 16, marginTop: 12, backgroundColor: 'rgba(255,217,61,0.08)', borderRadius: 14, borderWidth: 1.5, borderColor: theme.colors.gold + '55', padding: 12, gap: 8 },
   hitsSectionTitle: { fontSize: 10, fontWeight: '900', color: theme.colors.gold, marginBottom: 4, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },

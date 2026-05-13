@@ -44,6 +44,7 @@ import { HeatCheckFAB } from '@/components/HeatCheckFAB';
 import { DrawTicker } from '@/components/DrawTicker';
 import { storage } from '@/lib/storage';
 import { fetchFromSupabase } from '@/lib/supabase';
+import { scopeAccent } from '@/lib/scopeAccent';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
 import { RegenConfirmationModal } from '@/components/RegenConfirmationModal';
@@ -434,15 +435,19 @@ export default function SlatesScreen() {
         <View style={s.scopeBigRow}>
           {(['midday', 'evening', 'allday'] as const).map(sc => {
             const active = scope === sc;
+            const accent = scopeAccent(sc);
             return (
               <TouchableOpacity
                 key={sc}
-                style={[s.scopeBigBtn, active && s.scopeBigBtnOn]}
+                style={[
+                  s.scopeBigBtn,
+                  active && { backgroundColor: accent + '14', borderColor: accent + '88' },
+                ]}
                 onPress={() => setScope(sc as any)}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: active }}
               >
-                <Text style={[s.scopeBigText, active && s.scopeBigTextOn]}>{SCOPE_LABELS[sc]}</Text>
+                <Text style={[s.scopeBigText, active && { color: accent, fontWeight: '900' }]}>{SCOPE_LABELS[sc]}</Text>
               </TouchableOpacity>
             );
           })}
@@ -732,9 +737,7 @@ const s = StyleSheet.create({
   // Big scope segmented control (screenshot-friendly)
   scopeBigRow: { flexDirection: 'row', backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: theme.colors.border, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10, gap: 6 },
   scopeBigBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center', backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.border },
-  scopeBigBtnOn: { backgroundColor: theme.colors.cyan + '14', borderColor: theme.colors.cyan + '88' },
   scopeBigText: { fontSize: 13, fontWeight: '700', color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.6 },
-  scopeBigTextOn: { color: theme.colors.cyan, fontWeight: '900' },
   scopeMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 14, paddingTop: 6, paddingBottom: 6, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   scopeTimestampInline: { flex: 1, fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 0.4 },
   viewToggle: { flexDirection: 'row', backgroundColor: theme.colors.background, borderRadius: 8, padding: 2, gap: 1, borderWidth: 1, borderColor: theme.colors.border },

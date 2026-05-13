@@ -47,6 +47,7 @@ import { HeatCheckFAB } from '@/components/HeatCheckFAB';
 import { HitCelebrationOverlay } from '@/components/HitCelebrationOverlay';
 import { LockedPicksSummary } from '@/components/LockedPicksSummary';
 import { LoadingPhrase } from '@/components/LoadingPhrase';
+import { scopeAccent } from '@/lib/scopeAccent';
 import { EnergySparkline } from '@/components/EnergySparkline';
 import { useToast } from '@/components/Toast';
 import { fetchFromSupabase } from '@/lib/supabase';
@@ -675,7 +676,7 @@ export default function HomeScreen() {
             <Text style={[s.heroColNum, { color: avgColor }]} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit>{avgEnergy}</Text>
             <Text style={s.heroColLabel}>AVG ENERGY</Text>
             <Text style={s.heroColMeta}>{isFree ? '2 of 6' : '6 picks'}</Text>
-            <Text style={s.heroColMeta}>{SCOPE_LABELS[scope] ?? scope}</Text>
+            <Text style={[s.heroColMeta, { color: scopeAccent(scope), fontWeight: '700' }]}>{SCOPE_LABELS[scope] ?? scope}</Text>
           </View>
           <View style={s.heroDivider} />
           <View style={s.heroCol}>

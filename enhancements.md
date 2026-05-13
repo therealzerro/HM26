@@ -351,8 +351,13 @@ Today: an empty list with `BookOpen` icon. Add: an interactive "Try a sample lis
 - Slates (`app/(tabs)/explore.tsx`) — gated on `tab === 'picks' && viewMode !== 'compact'`. The compact (grid) view is the screenshot mode that shows all 6 detailed picks without scrolling, so the FAB is suppressed there to keep that frame clean.
 **Why not "every screen":** Results focuses on draws (not picks); Number Book has its own combo-add flow; Learn is educational; Profile is account stuff. The two screens where users are actively analyzing picks are where the FAB belongs. Easy to extend later if specific demand emerges.
 
-### 8.5 Add scope-specific visual identity
-Midday slates → warm gold accents. Evening → cool blue/purple. Allday → green/teal. The data is the same engine; the visual mood signals "this is different time of day." Subtle but reinforces context. **Effort: 1 day.**
+### 8.5 Add scope-specific visual identity — ✅ Phase 1 Shipped 2026-05-12
+**New helper:** `lib/scopeAccent.ts` — `scopeAccent(scope) → color`. Midday=gold (warm sun), evening=purple (cool moon), allday=cyan (neutral default + matches the engine's trust signal color).
+**Surfaces wired (Phase 1 — most visible):**
+- Slates segmented control (`app/(tabs)/explore.tsx`): active scope button now tints in its own accent (gold/purple/cyan) instead of the static cyan-for-all. Each scope has visibly its own mood when selected.
+- Home scope label (`app/(tabs)/index.tsx`): the `☀️ Midday / 🌙 Evening / ◈ All Day` text under AVG ENERGY now renders in the scope's accent color. Subtle but reinforces context.
+**Phase 2 deferred (would touch many surfaces):** PickCard borders, Slates timestamp tints, scope-specific section headers, slate confidence pill tinting. Would unify the entire screen's visual mood per scope, but spreads churn across 8+ files for diminishing returns. The two highest-visibility spots (segmented control + scope label) deliver 80% of the perceptual change for ~10% of the work.
+**Engine semantics preserved:** energy coloring (hot/warm/mild/cold), signal colors (BOX/PBURST/CO/DGC), and hit colors (gold/cyan for straight/box) all stay scope-agnostic per the helper's docstring.
 
 ---
 

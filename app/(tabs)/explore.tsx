@@ -325,7 +325,7 @@ export default function SlatesScreen() {
     if (!Array.isArray(list) || list.length === 0) {
       return Array.from({ length: 6 }).map((_, i) => ({
         rank: i + 1, combo: '---', comboSet: '{-,-,-}', energy: 0,
-        signals: { BOX: 0, PBURST: 0, CO: 0, DGC: 0 }, locked: isFree && i >= 2,
+        signals: { BOX: 0, PBURST: 0, CO: 0, DGC: 0 }, locked: isFree && i < 4,
       }));
     }
     return list.slice(0, 6).map((row, idx) => {
@@ -341,7 +341,7 @@ export default function SlatesScreen() {
           DGC: Number(r.signals?.DGC ?? r.components?.DGC ?? 0),
         },
         multiplicity: r.multiplicity, topPair: r.topPair, drawsSince: r.drawsSince,
-        timesDrawn: r.timesDrawn, lastSeen: r.lastSeen, locked: isFree && idx >= 2,
+        timesDrawn: r.timesDrawn, lastSeen: r.lastSeen, locked: isFree && idx < 4,
         generatedAt: snapshot?.updated_at_et, snapshotScope: scope,
       };
     });

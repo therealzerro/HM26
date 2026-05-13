@@ -202,7 +202,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
 
   if (pick.locked) {
     return (
-      <View style={[s.card, { overflow: 'hidden' }]}>
+      <View style={[s.card, s.lockedCard]}>
         <View style={{ opacity: 0.2, flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
           <View style={[s.rankBadge, { backgroundColor: theme.colors.surfaceLight }]}>
             <Text style={[s.rankText, { color: theme.colors.textTertiary }]}>#{pick.rank}</Text>
@@ -212,7 +212,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
           </View>
         </View>
         <TouchableOpacity style={s.lockOverlay} activeOpacity={0.85} onPress={handleUnlock}>
-          <Text style={{ fontSize: 20 }}>♛</Text>
+          <Text style={{ fontSize: 22 }}>♛</Text>
           <Text style={s.lockTitle}>Pick #{pick.rank} — Oracle+ Only</Text>
           <Text style={s.lockSub}>Tap to unlock all 6 picks</Text>
           <View style={s.lockBadge}>
@@ -553,11 +553,12 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: theme.colors.borderMed,
   },
   shareBtnText: { fontSize: 10, color: theme.colors.textSecondary, fontWeight: '700' },
+  lockedCard: { minHeight: 130, overflow: 'hidden' },
   lockOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     alignItems: 'center', justifyContent: 'center',
     backgroundColor: theme.colors.bgElevated + 'EE',
-    borderRadius: theme.borderRadius.card, gap: 4,
+    borderRadius: theme.borderRadius.card, gap: 4, padding: 12,
   },
   lockTitle: { fontSize: 14, fontWeight: '800', color: theme.colors.text },
   lockSub: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 3, marginBottom: 6 },

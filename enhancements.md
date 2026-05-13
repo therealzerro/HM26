@@ -250,8 +250,18 @@ After running a heat check on a combo, offer a "Share this analysis" button that
 ### 6.3 "Save your streak" upsell (P2)
 Tie streak (3.1) to monetization: streak breaks → "Restore your 12-day streak for $0.99" → micropayment. Even users who don't subscribe to monthly might do micro-purchases. **Effort: included in 3.1.**
 
-### 6.4 Friend-of-a-subscriber discount (P2)
-Existing referral mechanic with a twist: a Pro subscriber's first-time invitee gets 50% off their first month AND the inviter gets a free month if the invitee subscribes. Asymmetric reward favors the inviter, which gets them to invite again. **Effort: 2-3 days (RevenueCat coupon work).**
+### 6.4 Friend-of-a-subscriber discount (P2) — ⏳ Deferred 2026-05-12 (blocked on Phase 3)
+**Spec:** Pro subscriber's first-time invitee gets 50% off month 1; inviter gets a free month if the invitee subscribes. Asymmetric reward favors the inviter to drive repeat invites.
+**Why deferred:** the mechanic depends entirely on infrastructure that doesn't exist yet:
+- Real subscriptions (`useAuth.tsx::purchaseSubscription` is currently a stub returning `false`)
+- RevenueCat (or equivalent) configured with coupon SKUs
+- App Store / Play Store products defined
+- Backend referral attribution (invite link → invitee account → coupon)
+- Native build pipeline (same EAS Build dependency that blocks §1.4 phase 2 push, §3.1 phase 3 paid restore, §5.2 push-on-hit, §6.2 phase 2 push-on-hit-trial)
+
+**Why not even a stub UI:** building "Your invite link · 0 invites · 0 free months earned" today would promise rewards we can't fulfill — exactly the dishonest framing the subscriber-voice rule rejects. Better to ship the full mechanic once subs are live.
+
+**Resume when:** Phase 3 subscriptions land. RevenueCat coupon work then becomes the single concrete task (~2-3 days per the original spec).
 
 ### 6.5 Test annual default selection in paywall (P1)
 Today the paywall (`app/paywall.tsx:69`) defaults `selectedPlan` to `trial5`. Pricing research consistently shows annual-default lifts annual conversion. Try setting `annual` as the default with the trial as a smaller secondary CTA. A/B test. **Effort: 30 minutes.**

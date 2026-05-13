@@ -62,6 +62,7 @@ import { getTodayET } from '@/lib/dateUtils';
 import { RegenConfirmationModal } from '@/components/RegenConfirmationModal';
 import { ZK6_ENGINE_VERSION } from '@/constants/zk6';
 import { ScopeSegment } from '@/components/ScopeSegment';
+import { ScreenHeader } from '@/components/ScreenHeader';
 
 function toComboSet(combo: string) { return '{' + combo.split('').sort().join(',') + '}'; }
 function energyColor(e: number) {
@@ -710,19 +711,19 @@ export default function HomeScreen() {
         style={s.scroll} contentContainerStyle={s.scrollContent}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handlePullRefresh} tintColor={theme.colors.primary} />}
       >
-        {/* ── Header — title + tier + overflow ── */}
-        <LinearGradient colors={theme.gradients.header} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={s.header}>
-          <View style={s.headerTop}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.title}>Today's <Text style={{ color: theme.colors.cyan }}>Picks</Text> ⚡</Text>
-              <Text
-                style={[s.subtitle, engineFreshness.stale && { color: theme.colors.warning ?? theme.colors.gold }]}
-                accessibilityLabel={engineFreshness.text}
-              >
-                {engineFreshness.text}
-              </Text>
-            </View>
-            <View style={{ alignItems: 'flex-end', gap: 4 }}>
+        {/* ── Header (shared ScreenHeader — design.md step 3) ── */}
+        <ScreenHeader
+          title={<Text style={s.title}>Today's <Text style={{ color: theme.colors.cyan }}>Picks</Text> ⚡</Text>}
+          subtitle={
+            <Text
+              style={[s.subtitle, engineFreshness.stale && { color: theme.colors.warning ?? theme.colors.gold }]}
+              accessibilityLabel={engineFreshness.text}
+            >
+              {engineFreshness.text}
+            </Text>
+          }
+          rightSlot={
+            <>
               <View style={[s.tierBadge, { backgroundColor: currentTier === 'FREE' ? theme.colors.free : currentTier === 'PRO' ? theme.colors.premium : theme.colors.admin }]}>
                 <Text style={s.tierText}>{currentTier === 'FREE' ? 'Seeker' : currentTier === 'PRO' ? 'Oracle+ ♛' : 'Mystic ♛'}</Text>
               </View>
@@ -734,15 +735,14 @@ export default function HomeScreen() {
                   )}
                 </View>
               )}
-            </View>
-            <TouchableOpacity onPress={() => setOverflowOpen(true)} style={s.overflowBtn}>
-              <MoreHorizontal size={20} color={theme.colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Scope (shared ScopeSegment — design.md step 1) */}
+              <TouchableOpacity onPress={() => setOverflowOpen(true)} style={s.overflowBtn}>
+                <MoreHorizontal size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </>
+          }
+        >
           <ScopeSegment value={scope as any} onChange={setScope as any} size="compact" />
-        </LinearGradient>
+        </ScreenHeader>
 
         {/* §4.2 — last-hit pill (suppressed if no hit in last 7 days) */}
         <LastHitPill />
@@ -949,9 +949,9 @@ const s = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 32 },
 
-  header: { paddingHorizontal: theme.layout.screenInset, paddingTop: 14, paddingBottom: 12, gap: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  headerTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
-  title: { fontSize: 24, fontWeight: '900', color: theme.colors.text, lineHeight: 28, fontFamily: theme.typography.fontFamily.bold },
+  // header layout moved to components/ScreenHeader.tsx (design.md step 3).
+  // title/subtitle styles stay here because they're still consumed locally.
+  title: { fontSize: 22, fontWeight: '900', color: theme.colors.text, lineHeight: 26, fontFamily: theme.typography.fontFamily.bold },
   subtitle: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2, fontFamily: theme.typography.fontFamily.mono },
   tierBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99 },
   tierText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },

@@ -52,6 +52,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
 import { RegenConfirmationModal } from '@/components/RegenConfirmationModal';
 import { ScopeSegment } from '@/components/ScopeSegment';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { useToast } from '@/components/Toast';
 import { NeonRefreshControl } from '@/components/NeonRefreshControl';
@@ -448,25 +449,29 @@ export default function SlatesScreen() {
         {snapshot?.hash && <Text style={s.stripHash}>#{snapshot.hash.slice(-6)}</Text>}
       </View>
 
-      {/* ── Header — title + generate + controls (⚙️) ── */}
-      <View style={s.header}>
-        <Text style={s.title}>ZK6 <Text style={{ color: theme.colors.cyan }}>Picks</Text></Text>
-        <View style={{ flex: 1 }} />
-        {!isFree && (
-          <TouchableOpacity
-            style={[s.generateBtn, isPro && creditsRemaining === 0 && { opacity: 0.4 }]}
-            onPress={handleRequestRegen} disabled={isRegenLoading || (isPro && creditsRemaining <= 0)}
-          >
-            <RefreshCw size={12} color="#fff" />
-            <Text style={s.generateBtnText}>{isRegenLoading ? '…' : 'Generate'}</Text>
-          </TouchableOpacity>
-        )}
-        {tab === 'picks' && (
-          <TouchableOpacity style={s.iconBtn} onPress={() => setControlsSheetOpen(true)} accessibilityLabel="Slate display controls">
-            <Settings size={16} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
-        )}
-      </View>
+      {/* ── Header (shared ScreenHeader — design.md step 3) ── */}
+      <ScreenHeader
+        title={<Text style={s.title}>ZK6 <Text style={{ color: theme.colors.cyan }}>Picks</Text></Text>}
+        rightSlot={
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {!isFree && (
+              <TouchableOpacity
+                style={[s.generateBtn, isPro && creditsRemaining === 0 && { opacity: 0.4 }]}
+                onPress={handleRequestRegen} disabled={isRegenLoading || (isPro && creditsRemaining <= 0)}
+              >
+                <RefreshCw size={12} color="#fff" />
+                <Text style={s.generateBtnText}>{isRegenLoading ? '…' : 'Generate'}</Text>
+              </TouchableOpacity>
+            )}
+            {tab === 'picks' && (
+              <TouchableOpacity style={s.iconBtn} onPress={() => setControlsSheetOpen(true)} accessibilityLabel="Slate display controls">
+                <Settings size={16} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+        }
+      />
+
 
       {/* ── Big segmented scope control (shared ScopeSegment — design.md step 1) ── */}
       {tab === 'picks' && (
@@ -782,8 +787,8 @@ const s = StyleSheet.create({
   stripFreshness: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, opacity: 0.7 },
   stripHash: { fontSize: 10, color: 'rgba(255,255,255,0.25)', fontFamily: theme.typography.fontFamily.mono, marginLeft: 'auto' },
 
-  header: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: theme.layout.screenInset, paddingVertical: 12, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  title: { fontSize: 22, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.bold },
+  // header layout moved to components/ScreenHeader.tsx (design.md step 3).
+  title: { fontSize: 22, fontWeight: '900', color: theme.colors.text, lineHeight: 26, fontFamily: theme.typography.fontFamily.bold },
   generateBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: theme.colors.purple, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
   generateBtnText: { color: '#fff', fontWeight: '700', fontSize: 11 },
 

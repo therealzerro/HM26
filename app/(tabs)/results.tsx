@@ -27,7 +27,6 @@ import {
 } from 'react-native';
 import { NeonRefreshControl as RefreshControl } from '@/components/NeonRefreshControl';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { storage } from '@/lib/storage';
 import { useFollowedStates } from '@/hooks/useFollowedStates';
@@ -36,6 +35,7 @@ import { fetchFromSupabase } from '@/lib/supabase';
 import { theme } from '@/constants/theme';
 import { Calendar, MoreHorizontal, Search, X } from 'lucide-react-native';
 import { EmptyState } from '@/components/EmptyState';
+import { ScreenHeader } from '@/components/ScreenHeader';
 
 // ─── tokens ─────────────────────────────────────────────────────────────
 const D = {
@@ -612,13 +612,15 @@ export default function ResultsScreen() {
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
-      {/* ── Header ── */}
-      <LinearGradient colors={theme.gradients.header} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={s.header}>
-        <View style={{ flex: 1 }}>
+      {/* ── Header (shared ScreenHeader — design.md step 3) ── */}
+      <ScreenHeader
+        title={
           <Text style={s.headerTitle}>
             <Text style={s.headerWhite}>Results </Text>
             <Text style={s.headerCyan}>Ledger</Text>
           </Text>
+        }
+        subtitle={
           <Text style={s.headerSub}>
             {formatDisplayDate(selectedDate)} · {stats.total} draws
             {stats.hits > 0 && (
@@ -630,11 +632,13 @@ export default function ResultsScreen() {
               > · {stats.hits} 🎯</Text>
             )}
           </Text>
-        </View>
-        <TouchableOpacity onPress={() => setStatsOpen(true)} style={s.overflowBtn}>
-          <MoreHorizontal size={20} color={theme.colors.textSecondary} />
-        </TouchableOpacity>
-      </LinearGradient>
+        }
+        rightSlot={
+          <TouchableOpacity onPress={() => setStatsOpen(true)} style={s.overflowBtn}>
+            <MoreHorizontal size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        }
+      />
 
       {/* ── Date tabs ── */}
       <ScrollView
@@ -764,8 +768,10 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: D.bg },
 
   // header
-  header: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: theme.layout.screenInset, paddingTop: 14, paddingBottom: 12, backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  headerTitle: { fontSize: 22, fontWeight: '900', color: D.text, fontFamily: theme.typography.fontFamily.bold },
+  // header layout moved to components/ScreenHeader.tsx (design.md step 3).
+  // The opaque `backgroundColor: D.surface` on the gradient view was likely
+  // hiding the gradient on some platforms — fixed in passing.
+  headerTitle: { fontSize: 22, fontWeight: '900', color: D.text, lineHeight: 26, fontFamily: theme.typography.fontFamily.bold },
   headerWhite: { color: D.text },
   headerCyan:  { color: theme.colors.cyan },
   headerSub:   { fontSize: 11, color: D.textDim, marginTop: 3, fontFamily: theme.typography.fontFamily.mono },

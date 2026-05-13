@@ -179,19 +179,21 @@ On the Number Book screen, when a user saves a pick to a list and that pick late
 
 **Phase 2 (deferred):** date picker + arbitrary range + per-card screenshot-as-image. Would extend `app/replay.tsx`; ~2-3 additional hours.
 
-### 4.5 Smart picks-by-budget (P1) — ✅ Shipped 2026-05-12
-**New component:** `components/BudgetPlanner.tsx` — gold-tinted card on Home below the slate. Header reads `💰 PLAN MY PLAY  ·  Box $0.25 · Str $0.25`.
-**Player logic (per user direction 2026-05-12, codified as constants):**
-- Straight bet: $0.25 stake → **$225** payout
-- Box bet: $0.25 stake → **$37.50** singles · **$75** doubles · **$225** triples
-**Budget input:** dollar field with `$1 / $5 / $10 / $20` quick presets (highlighted when active). Decimal-pad keyboard.
-**Allocation (top-down greedy):**
-1. Pass 1: $0.25 box on every visible pick, top to bottom, until budget runs out.
-2. Pass 2: add $0.25 straight to top picks (in order) if budget remains.
-**Per-row display:** `#N  combo  [BOX|STR|BOX+STR]  $cost  → $payout`. Payout uses the pick's actual `multiplicity` to compute the box win amount.
-**Footer:** `Total: $X.XX  ·  $Y.YY unplayed` (suppresses leftover when 0).
-**Free tier honoring:** plans only against `!locked` picks. Free user with picks 5-6 unlocked sees a planner across just those two; upgrading expands the planner to all 6 automatically.
-**Empty state:** when budget is below $0.25 minimum stake, shows `Budget is below the $0.25 minimum stake. Try $1 or $5.` Cleaner than rendering an empty plan list.
+### 4.5 Smart picks-by-budget (P1) — ✅ Shipped 2026-05-12 (v2 with draws + states)
+**Component:** `components/BudgetPlanner.tsx` — gold-tinted card on Home below the slate.
+**Player logic (constants):**
+- Each play = `$0.25 × draws_selected × states_selected` for one bet type on one pick.
+- Straight bet: $225 payout per hit.
+- Box bet: $37.50 singles · $75 doubles · $225 triples.
+**Controls:**
+- **Budget input** — decimal field, presets `$0.25 / $1 / $5 / $10 / $20`. Default `$1.00`.
+- **DRAWS pills** — `☀️ Midday` (gold) / `🌙 Evening` (purple). Toggle independently. Seeded from current scope: midday→Mid only, evening→Eve only, allday→both.
+- **STATES pills** — `1 state` / `All 32` (cyan). 1-state mode shows per-state unit cost; all-states mode multiplies cost ×32 and notes that wins count independently per state.
+**Allocation (top-down greedy):** pass-1 box / pass-2 straight, but each play now costs `$0.25 × drawCount × stateCount`. With both draws + 1 state = $0.50/play; both draws + all states = $16/play.
+**Per-row display:** `#N  combo  [BOX|STR|BOX+STR]  × Mid+Eve × 1st  $cost  → $payout/hit`.
+**Footer:** `Total: $X.XX · $Y.YY unplayed · N of M picks fit`. When all-states is on, adds an italic note that hits count independently per state.
+**Empty states:** 0 draws → `Select at least one draw to plan a play.`; budget below one-play cost → `Budget below $X.XX (one box across {drawLabel}, {stateLabel}).`
+**Constants exposed for tuning:** `STAKE` ($0.25), `STRAIGHT_PAYOUT` ($225), `boxPayout()` (multiplicity-based), `ALL_STATES_COUNT` (32 — tune if histories filter membership shifts).
 
 ### 4.6 "Why this pick wasn't on the slate" lookup (P2)
 A search box on Intelligence: "Did the engine consider 123?" → returns the rank, signals, why it was rejected (cooldown / yesterday-block / energy floor / box-set already picked). Power-user feature but kills the "did you miss this?" suspicion. **Effort: half-day.**

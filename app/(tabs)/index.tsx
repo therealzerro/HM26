@@ -842,7 +842,7 @@ export default function HomeScreen() {
         </View>
 
         {/* Budget planner (enhancements §4.5) — converts visible picks into actionable play guidance */}
-        {!snapshotLoading && <BudgetPlanner picks={items} />}
+        {!snapshotLoading && <BudgetPlanner picks={items} scope={scope} />}
 
         <View style={{ height: 40 }} />
       </ScrollView>

@@ -8,7 +8,12 @@ export interface HitDetectionResult {
   supplementsGenerated: number;
 }
 
-async function updateDailyIntelligenceHit(pick: any, result: any, date: string) {
+async function updateDailyIntelligenceHit(
+  pick: any,
+  result: any,
+  date: string,
+  snapshot: { scope?: string; mode?: string },
+) {
   const comboSet = pick.comboSet ?? pick.normKey ?? '';
   const isBox = result.comboset_sorted === comboSet;
   const isStraight = result.result_digits === pick.combo;
@@ -20,9 +25,18 @@ async function updateDailyIntelligenceHit(pick: any, result: any, date: string) 
   const prev = new Date(date + 'T12:00:00'); prev.setDate(prev.getDate() - 1);
   const prevDayStr = prev.toISOString().split('T')[0];
   const dateFilter = `slate_date=in.(${date},${prevDayStr})`;
+  // BUG-132: scope + mode filters keep the PATCH narrowed to the slate context
+  // that actually produced this hit. Without them, a midday-draw → allday-slate
+  // hit also flips hit_box=true on every other slate's row with the same combo
+  // (midday rows, evening rows, every mode), inflating downstream counts and
+  // forcing every display surface to scope-gate after the fact.
+  const scopeFilter = snapshot.scope ? `&scope=eq.${encodeURIComponent(snapshot.scope)}` : '';
+  const modeFilter = snapshot.mode && ['balanced', 'conservative', 'aggressive'].includes(snapshot.mode)
+    ? `&mode=eq.${encodeURIComponent(snapshot.mode)}`
+    : '';
   try {
     await fetchFromSupabase({
-      path: `/rest/v1/daily_intelligence?${dateFilter}&combo=eq.${encodeURIComponent(pick.combo)}`,
+      path: `/rest/v1/daily_intelligence?${dateFilter}&combo=eq.${encodeURIComponent(pick.combo)}${scopeFilter}${modeFilter}`,
       method: 'PATCH',
       headers: { 'Prefer': 'return=minimal' },
       body: {
@@ -200,7 +214,7 @@ export async function runHitDetectionAndRefresh(
           hasNewHit = true;
           totalHits++;
           recordHitInAdaptiveTracking(pick, result, snapshot, date);
-          updateDailyIntelligenceHit(pick, result, date);
+          updateDailyIntelligenceHit(pick, result, date, { scope: snapshot.scope, mode: snapshot.mode });
           return {
             ...pick,
             hitType: straightHit ? 'straight' : 'box',

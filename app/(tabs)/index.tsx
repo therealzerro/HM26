@@ -49,6 +49,7 @@ import { LockedPicksSummary } from '@/components/LockedPicksSummary';
 import { LoadingPhrase } from '@/components/LoadingPhrase';
 import { CosmicBackground } from '@/components/CosmicBackground';
 import { TrialOfferBanner } from '@/components/TrialOfferBanner';
+import { BudgetPlanner } from '@/components/BudgetPlanner';
 import { scopeAccent } from '@/lib/scopeAccent';
 import { EnergySparkline } from '@/components/EnergySparkline';
 import { useToast } from '@/components/Toast';
@@ -839,6 +840,9 @@ export default function HomeScreen() {
             </View>
           )}
         </View>
+
+        {/* Budget planner (enhancements §4.5) — converts visible picks into actionable play guidance */}
+        {!snapshotLoading && <BudgetPlanner picks={items} />}
 
         <View style={{ height: 40 }} />
       </ScrollView>

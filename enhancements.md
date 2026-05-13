@@ -344,9 +344,12 @@ The theme has gorgeous gradients (`gradients.purpleRose`, `cyanPurple`) but most
 ### 8.3 Number-Book empty state is dull
 Today: an empty list with `BookOpen` icon. Add: an interactive "Try a sample list" button that auto-creates a "NY Favorites" list with 3 popular box-sets and an explanatory tooltip. First-run gold. **Effort: 2 hours.**
 
-### 8.4 Heat-check entry point is hidden in the overflow sheet
-**Where:** `app/(tabs)/index.tsx` — Heat Check moved to overflow per v6 patch.
-**Recommendation:** add a small persistent "🔥 Check any number" FAB (floating action button) in the bottom-right corner of every screen. Heat checks are one of the most valuable free-tier teasers and they're currently 2 taps away. **Effort: 2 hours.**
+### 8.4 Heat-check entry point is hidden in the overflow sheet — ✅ Shipped 2026-05-12
+**New component:** `components/HeatCheckFAB.tsx` — small amber pill positioned `right: 16, bottom: 80` (clears the 64px tab bar). Reads `🔥 Check`. Includes accessibility role/label/hint.
+**Surfaces wired:**
+- Home (`app/(tabs)/index.tsx`) — always visible, opens HeatCheckModal with empty initial combo.
+- Slates (`app/(tabs)/explore.tsx`) — gated on `tab === 'picks' && viewMode !== 'compact'`. The compact (grid) view is the screenshot mode that shows all 6 detailed picks without scrolling, so the FAB is suppressed there to keep that frame clean.
+**Why not "every screen":** Results focuses on draws (not picks); Number Book has its own combo-add flow; Learn is educational; Profile is account stuff. The two screens where users are actively analyzing picks are where the FAB belongs. Easy to extend later if specific demand emerges.
 
 ### 8.5 Add scope-specific visual identity
 Midday slates → warm gold accents. Evening → cool blue/purple. Allday → green/teal. The data is the same engine; the visual mood signals "this is different time of day." Subtle but reinforces context. **Effort: 1 day.**

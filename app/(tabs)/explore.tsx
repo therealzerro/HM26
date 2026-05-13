@@ -40,6 +40,7 @@ import { LockedPicksSummary } from '@/components/LockedPicksSummary';
 import { PickDetailModal } from '@/components/PickDetailModal';
 import { Paywall } from '@/components/Paywall';
 import { HeatCheckModal } from '@/components/HeatCheckModal';
+import { HeatCheckFAB } from '@/components/HeatCheckFAB';
 import { DrawTicker } from '@/components/DrawTicker';
 import { storage } from '@/lib/storage';
 import { fetchFromSupabase } from '@/lib/supabase';
@@ -698,6 +699,10 @@ export default function SlatesScreen() {
       )}
       <Paywall visible={paywallOpen} onClose={() => setPaywallOpen(false)} />
       <HeatCheckModal visible={heatCheckOpen} onClose={() => setHeatCheckOpen(false)} initialCombo={heatCheckCombo} scope={scope} />
+      {/* FAB hidden on compact (grid) view so screenshots stay clean. */}
+      {tab === 'picks' && viewMode !== 'compact' && (
+        <HeatCheckFAB onPress={() => { setHeatCheckCombo(''); setHeatCheckOpen(true); }} />
+      )}
     </SafeAreaView>
   );
 }

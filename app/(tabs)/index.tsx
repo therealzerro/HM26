@@ -43,6 +43,7 @@ import { PickCard, PickItem } from '@/components/PickCard';
 import { PickDetailModal } from '@/components/PickDetailModal';
 import { Paywall } from '@/components/Paywall';
 import { HeatCheckModal } from '@/components/HeatCheckModal';
+import { HeatCheckFAB } from '@/components/HeatCheckFAB';
 import { HitCelebrationOverlay } from '@/components/HitCelebrationOverlay';
 import { LockedPicksSummary } from '@/components/LockedPicksSummary';
 import { LoadingPhrase } from '@/components/LoadingPhrase';
@@ -831,6 +832,7 @@ export default function HomeScreen() {
       )}
       <Paywall visible={paywallOpen} onClose={() => setPaywallOpen(false)} />
       <HeatCheckModal visible={heatCheckOpen} onClose={() => setHeatCheckOpen(false)} initialCombo="" scope={scope} />
+      <HeatCheckFAB onPress={() => setHeatCheckOpen(true)} />
       <OnboardingModal
         visible={showOnboarding}
         onDone={() => setShowOnboarding(false)}

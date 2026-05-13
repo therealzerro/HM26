@@ -94,8 +94,18 @@ Under each pick card, when the pick has been historically evaluated, show: "245 
 - `components/PickCard.tsx` — new "verified by" row above the bottom row (only when sample ≥ 50 picks in that band; otherwise the rate is too noisy to quote): `✓ 245 picks at 90-100 energy hit 76% historically`. Border-top hairline shared with bottom row collapses neatly when both are present.
 - Locked PickCard rows (free tier preview) skip the footer — they're already in their own render branch with no bottom controls.
 
-### 2.3 "Open the engine" tappable explainer (P2)
+### 2.3 "Open the engine" tappable explainer (P2) — ✅ Shipped 2026-05-13
 A "How was this pick made?" link on every pick card opens a sheet with the BOX/PBURST/CO/DGC signal breakdown as a horizontal bar chart, plus the cooldown status ("last seen 14 days ago"), the box-set frequency over the last year, and what got rejected for rail reasons. Most subscribers will never tap it — but its existence kills the "is this just random?" suspicion in one stroke. **Effort: 2 days.**
+
+**Shipped:**
+- New `components/PickExplainerModal.tsx` — slide-up bottom sheet with full dismiss support (✕ button, swipe-down via PanResponder, tap-outside, hardware back, ScrollView for tall content, maxHeight 88%). Pattern matches the HeatCheckModal fixes from §5.3.
+- `components/PickCard.tsx` — new `❓ Why this pick?` button in the bottom row alongside `📤 Share`, opens the explainer for that specific pick. Cyan-tinted to read as a soft secondary action, not competing with the primary tap-to-deep-dive.
+- **Plain-language summary** auto-generated from whichever signal is strongest (BOX → "hitting more often than average"; PBURST → "digit pairs showing momentum"; CO → "digits co-occur at above-average rate"; DGC → "consistent across multiple time horizons"). Subscribers see the *why* before the chart.
+- **4 horizontal signal bars** — Frequency / Pair Momentum / Co-occurrence / Consistency. Each row has a one-line plain-English caption ("how often this box-set hits", etc.) so the abstract terms aren't load-bearing.
+- **RECENT HISTORY card** — `⏱ Last drew N draws ago` (humanized: today / yesterday / N draws / N weeks / N months / over a year), `📊 Hit Nx across the historical record`, `~Expected every N draws based on rate`.
+- **WHY IT MADE THE SLATE card** — names the rail filters in subscriber voice: already-hit-today blocks, yesterday cooldown, multiplicity caps; closes with "{combo} survived all six selection passes." No per-pick rejection reasons are stored (engine discards them), so we describe the rail logic rather than fabricate specifics.
+- Footer line: `ZK6 v2.0 · weighted signals: BOX / PBURST / CO / DGC`.
+**Distinction from PickDetailModal:** that modal is the operator deep-dive (PAIR INTELLIGENCE MATRIX, multi-tab). The explainer is intentionally short and reads in subscriber voice. Both live on the same card — explainer via the small `❓` link, deep-dive via tapping the card body.
 
 ### 2.4 Surface the engine version and timestamp (P2) — ✅ Shipped 2026-05-13
 Today the home shows "Powered by ZK6 Engine" as a static subtitle. Replace with "ZK6 v2.0 · slate generated 11:43 AM ET" so subscribers can see freshness. When data is stale (e.g., post-5/12 if rebuild hasn't run), show a yellow "🟡 Engine inputs last refreshed 2h ago" warning. **Effort: 2 hours.**

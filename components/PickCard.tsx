@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Share, Animated, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { theme } from '@/constants/theme';
@@ -7,6 +7,7 @@ import { EnergyMeter } from './EnergyMeter';
 import { storage } from '@/lib/storage';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { useEnergyBandHitRates, bandFor } from '@/hooks/useEnergyBandHitRates';
+import { PickExplainerModal } from './PickExplainerModal';
 
 const SIGNAL_COLORS = {
   BOX:    theme.colors.cyan,
@@ -134,6 +135,8 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
   const hitColor = pick.hitType === 'straight' ? theme.colors.gold : theme.colors.cyan;
 
   const reduceMotion = useReduceMotion();
+  // §2.3 — plain-language explainer modal.
+  const [explainerOpen, setExplainerOpen] = useState(false);
   // §2.2 — per-pick "verified by" footer. Look up the historical hit rate
   // for this pick's energy band. Only render once we have a meaningful
   // sample (≥ 50 picks); otherwise the rate is too noisy to quote.
@@ -471,6 +474,15 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
             <Text style={s.lastSeenText}>{formatLastSeen(pick.lastSeen)}</Text>
           )}
           <TouchableOpacity
+            onPress={() => setExplainerOpen(true)}
+            style={s.explainBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={`How was pick ${pick.combo} made? Opens explainer.`}
+          >
+            <Text style={s.explainBtnText}>❓ Why this pick?</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={handleShare}
             style={s.shareBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -481,6 +493,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
+      <PickExplainerModal visible={explainerOpen} onClose={() => setExplainerOpen(false)} pick={pick} />
     </Animated.View>
   );
 }
@@ -594,7 +607,7 @@ const s = StyleSheet.create({
   hitDotMore: { fontSize: 8, fontWeight: '800' },
   bottomRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginTop: 10, paddingTop: 8,
+    marginTop: 10, paddingTop: 8, gap: 6,
     borderTopWidth: 1, borderTopColor: theme.colors.border,
   },
   bottomRowNoDivider: { marginTop: 6, paddingTop: 0, borderTopWidth: 0 },
@@ -613,6 +626,12 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: theme.colors.borderMed,
   },
   shareBtnText: { fontSize: 10, color: theme.colors.textSecondary, fontWeight: '700' },
+  explainBtn: {
+    paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8,
+    borderWidth: 1, borderColor: theme.colors.cyan + '44',
+    backgroundColor: theme.colors.cyan + '0F',
+  },
+  explainBtnText: { fontSize: 10, color: theme.colors.cyan, fontWeight: '700' },
   lockedCard: { minHeight: 64, paddingVertical: 8, marginBottom: 6, overflow: 'hidden' },
   lockOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,

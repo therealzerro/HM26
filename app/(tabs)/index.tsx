@@ -430,6 +430,19 @@ export default function HomeScreen() {
     return best;
   }, [hitItems, todayResults, items, scope]);
 
+  // Slate confidence ribbon (enhancements §2.5) — count K6 picks with
+  // energy ≥ 70 to set honest expectations on hard days. Counts ALL real
+  // picks regardless of lock state so the rating reflects engine output,
+  // not what the user can see at their tier.
+  const slateConfidence = useMemo(() => {
+    const real = items.filter(p => p.combo !== '---' && p.combo !== '•••');
+    if (real.length === 0) return null;
+    const strong = real.filter(p => p.energy >= 70).length;
+    if (strong === real.length) return { label: 'HIGH CONFIDENCE', tier: 'high' as const, color: theme.colors.cyan, sub: undefined as string | undefined };
+    if (strong >= 4) return { label: 'MEDIUM CONFIDENCE', tier: 'medium' as const, color: theme.colors.gold, sub: undefined };
+    return { label: 'LOW CONFIDENCE', tier: 'low' as const, color: theme.colors.amber, sub: 'Thin slate — heavy cooldown overlap today' };
+  }, [items]);
+
   const avgEnergy = useMemo(() => {
     const unlocked = items.filter(x => !x.locked && x.energy > 0);
     if (!unlocked.length) return 0;
@@ -543,6 +556,11 @@ export default function HomeScreen() {
         <View style={s.slateSection}>
           <View style={s.slateSectionHdr}>
             <Text style={s.slateSectionTitle}>K6 <Text style={{ color: theme.colors.cyan }}>SLATE</Text></Text>
+            {slateConfidence && !snapshotLoading && (
+              <View style={[s.confPill, { borderColor: slateConfidence.color + '66', backgroundColor: slateConfidence.color + '14' }]}>
+                <Text style={[s.confPillText, { color: slateConfidence.color }]}>{slateConfidence.label}</Text>
+              </View>
+            )}
             {(!hasData || snapshotLoading) && (
               <TouchableOpacity style={s.generateBtn} onPress={handleRequestRegen} disabled={isRegenLoading}>
                 <RefreshCw size={14} color={theme.colors.text} />
@@ -550,6 +568,9 @@ export default function HomeScreen() {
               </TouchableOpacity>
             )}
           </View>
+          {slateConfidence?.sub && (
+            <Text style={s.confSub}>{slateConfidence.sub}</Text>
+          )}
 
           <RegenConfirmationModal
             visible={regenConfirm.visible} isLocked={regenConfirm.isLocked} scope={scope}
@@ -668,8 +689,11 @@ const s = StyleSheet.create({
   hitMeta: { fontSize: 10, color: theme.colors.textSecondary, fontWeight: '600' },
 
   slateSection: { paddingHorizontal: 16, marginTop: 16 },
-  slateSectionHdr: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  slateSectionHdr: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 },
   slateSectionTitle: { fontSize: 12, fontWeight: '900', color: theme.colors.text, letterSpacing: 2, fontFamily: theme.typography.fontFamily.monoBold },
+  confPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 99, borderWidth: 1 },
+  confPillText: { fontSize: 9, fontWeight: '900', letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold },
+  confSub: { fontSize: 11, color: theme.colors.textTertiary, marginTop: -6, marginBottom: 10 },
   generateBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.purple, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 },
   generateBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
   loadingCard: { backgroundColor: theme.colors.card, borderRadius: 16, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.border },

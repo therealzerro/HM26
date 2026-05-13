@@ -94,8 +94,14 @@ A "How was this pick made?" link on every pick card opens a sheet with the BOX/P
 ### 2.4 Surface the engine version and timestamp (P2)
 Today the home shows "Powered by ZK6 Engine" as a static subtitle. Replace with "ZK6 v2.0 · slate generated 11:43 AM ET" so subscribers can see freshness. When data is stale (e.g., post-5/12 if rebuild hasn't run), show a yellow "🟡 Engine inputs last refreshed 2h ago" warning. **Effort: 2 hours.**
 
-### 2.5 "Confidence ribbon" on the slate (P1)
-Compute `min(pickEnergies) / median(pickEnergies)`. Show a small badge at the top of the K6 slate: **HIGH CONFIDENCE** (green) when all 6 picks ≥ 70 energy, **MEDIUM** (gold) when 4-5 are ≥ 70, **LOW** (orange) when the slate has fewer than 4 strong picks ("thin slate — heavy cooldown overlap today"). This sets honest expectations and reduces "why did the engine pick this garbage" frustration on hard days. **Effort: 3 hours.**
+### 2.5 "Confidence ribbon" on the slate — ✅ Shipped 2026-05-12
+**Where:** `app/(tabs)/index.tsx` — small pill in the K6 SLATE header row, with optional sub-line below for the LOW case.
+**Logic:** counts K6 picks with `energy ≥ 70` (across all 6 real picks regardless of free/locked state — reflects engine output, not what the user can see).
+- 6 of 6 → **HIGH CONFIDENCE** (cyan)
+- 4–5 of 6 → **MEDIUM CONFIDENCE** (gold)
+- < 4 of 6 → **LOW CONFIDENCE** (amber) + sub-line: "Thin slate — heavy cooldown overlap today"
+**Why:** sets honest expectations on hard days. Reduces "why did the engine pick this garbage" frustration when cooldown rejection or yesterday-block forces the engine to dip into lower-energy combos to fill the K6.
+**Note on doc deviation:** original spec mentioned `min(pickEnergies) / median(pickEnergies)` as the ratio. Implementation uses the simpler "count ≥ 70" approach which matches the doc's tier definitions directly and is easier to reason about than a ratio.
 
 ### 2.6 Verified hit ledger page (P1)
 A new section in Account or under Intelligence: "Track record." A chronological list of every slate, marked with hit count, with each hit linked to the specific jurisdiction/draw. Subscribers love receipts. Today the data lives across `daily_intelligence` + `histories` — surfacing it takes one query. **Effort: 1 day.**

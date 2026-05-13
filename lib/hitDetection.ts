@@ -201,8 +201,12 @@ export async function runHitDetectionAndRefresh(
         // Only match results whose session is compatible with the slate scope:
         // midday result → midday or allday slate
         // evening result → evening or allday slate
+        // night/morning sessions are inert — engine's scope universe is
+        // midday/evening only, and some jurisdictions (GA, DE, CT, ID, VA,
+        // DC, TX, TN) have separate late-night/morning draws that are
+        // distinct events and should not bleed into evening/midday hits.
         const sessionMatches =
-          snapshot.scope === 'allday' ||
+          (snapshot.scope === 'allday' && (result.session === 'midday' || result.session === 'evening')) ||
           (snapshot.scope === 'midday' && result.session === 'midday') ||
           (snapshot.scope === 'evening' && result.session === 'evening');
         if (!sessionMatches) continue;

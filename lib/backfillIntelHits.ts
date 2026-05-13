@@ -39,9 +39,13 @@ export async function backfillIntelHits(
 ): Promise<{ hitsFound: number; datesProcessed: number }> {
   onProgress?.({ phase: 'Fetching dates…', datesTotal: 0, datesDone: 0, hitsFound: 0 });
 
-  // Fetch every row (id + slate_date + combo + combo_set) — no filter, get all
-  const allPicks = await sbGet<{ id: string; slate_date: string; combo: string; combo_set: string | null }[]>(
-    '/rest/v1/daily_intelligence?select=id,slate_date,combo,combo_set&order=slate_date.desc&limit=5000',
+  // Fetch every row (id + slate_date + scope + combo + combo_set) — no filter, get all.
+  // Scope is required so the backfill can session-filter matches the same way
+  // hitDetection.ts does (BUG-XXX fix 2026-05-13 — without this, night/morning
+  // session draws were stamped onto allday daily_intelligence rows, producing
+  // ~11% phantom hit rate over the 30d audit window).
+  const allPicks = await sbGet<{ id: string; slate_date: string; scope: string; combo: string; combo_set: string | null }[]>(
+    '/rest/v1/daily_intelligence?select=id,slate_date,scope,combo,combo_set&order=slate_date.desc&limit=5000',
   );
 
   if (!Array.isArray(allPicks) || allPicks.length === 0) {
@@ -64,10 +68,19 @@ export async function backfillIntelHits(
     const picksForDate = allPicks.filter(p => p.slate_date === date);
 
     for (const pick of picksForDate) {
+      // Filter histories to sessions compatible with this pick's slate scope
+      // (mirrors hitDetection.ts:204-213). Night/morning sessions are
+      // intentionally excluded — engine universe is midday/evening only.
+      const validSessions =
+        pick.scope === 'allday'  ? new Set(['midday','evening']) :
+        pick.scope === 'midday'  ? new Set(['midday']) :
+        pick.scope === 'evening' ? new Set(['evening']) :
+                                   new Set<string>();
+      const scopedHistories = histories.filter(r => validSessions.has(r.session));
       // Box hit: sorted combo set matches
-      const boxMatch = histories.find(r => r.comboset_sorted === pick.combo_set);
+      const boxMatch = scopedHistories.find(r => r.comboset_sorted === pick.combo_set);
       // Straight hit: exact 3-digit match
-      const straightMatch = histories.find(r => r.result_digits === pick.combo);
+      const straightMatch = scopedHistories.find(r => r.result_digits === pick.combo);
 
       if (boxMatch || straightMatch) {
         const winning = straightMatch ?? boxMatch!;

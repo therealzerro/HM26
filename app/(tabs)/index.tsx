@@ -43,6 +43,7 @@ import { PickCard, PickItem } from '@/components/PickCard';
 import { PickDetailModal } from '@/components/PickDetailModal';
 import { Paywall } from '@/components/Paywall';
 import { HeatCheckModal } from '@/components/HeatCheckModal';
+import { HitCelebrationOverlay } from '@/components/HitCelebrationOverlay';
 import { useToast } from '@/components/Toast';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { storage } from '@/lib/storage';
@@ -64,11 +65,11 @@ const SCOPE_LABELS: Record<string, string> = {
 // Track Record band constants (enhancements §1.3) — backtest hit rate from
 // MASTER_AUDIT.md CONFIG-02 (26-day window 4/13–5/8, n=78 slates × 3 scopes,
 // balanced + floor=70). Recent-hit anchor is the 2026-05-12 ZK6 stabilization
-// — labeled "this week" while the verification window (→ 2026-05-19) is open;
-// switch to a true rolling 7-day count after 5/19 once broken-window data has
-// rolled out.
+// (BUG-129/130/131 + CONFIG-02 all landed that evening). After 2026-05-19,
+// switch to a true rolling 7-day count once the broken-window data has
+// rolled out and a clean live window becomes meaningful.
 const BACKTEST_HIT_RATE = 73.1;
-const POST_STAB_START_DATE = '2026-05-13';
+const POST_STAB_START_DATE = '2026-05-12';
 const MODE_OPTIONS = [
   { key: 'balanced', label: 'Balanced', sub: 'Equal weight' },
   { key: 'conservative', label: 'Conservative', sub: 'History focus' },
@@ -239,6 +240,7 @@ export default function HomeScreen() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [regenConfirm, setRegenConfirm] = useState<{ visible: boolean; isLocked: boolean }>({ visible: false, isLocked: false });
+  const [celebrationVisible, setCelebrationVisible] = useState(false);
   const { showToast } = useToast();
 
   const currentTier = user?.role === 'admin' ? 'PLUS' : user?.role === 'premium' ? 'PRO' : 'FREE';
@@ -369,6 +371,20 @@ export default function HomeScreen() {
     }
     return null;
   }, [todayResults, items, scope]);
+
+  // Win celebration trigger (enhancements §4.1) — fire once per ET day on
+  // the first open after a hit lands. Storage key = today's ET date so a
+  // hit that arrives later in the day still triggers if the user hasn't
+  // opened the app since.
+  useEffect(() => {
+    if (!hitBanner) return;
+    const key = `hit_celebrated_${todayStr}`;
+    storage.getItem(key).then(stored => {
+      if (stored) return;
+      setCelebrationVisible(true);
+      storage.setItem(key, '1');
+    });
+  }, [hitBanner, todayStr]);
 
   const avgEnergy = useMemo(() => {
     const unlocked = items.filter(x => !x.locked && x.energy > 0);
@@ -531,6 +547,17 @@ export default function HomeScreen() {
       <Paywall visible={paywallOpen} onClose={() => setPaywallOpen(false)} />
       <HeatCheckModal visible={heatCheckOpen} onClose={() => setHeatCheckOpen(false)} initialCombo="" scope={scope} />
       <OnboardingModal visible={showOnboarding} onDone={() => setShowOnboarding(false)} />
+      {hitBanner && (
+        <HitCelebrationOverlay
+          visible={celebrationVisible}
+          onDismiss={() => setCelebrationVisible(false)}
+          rank={hitBanner.rank}
+          digits={hitBanner.digits}
+          jurisdiction={hitBanner.jurisdiction}
+          session={hitBanner.session}
+          hitType={hitBanner.hitType}
+        />
+      )}
     </View>
   );
 }

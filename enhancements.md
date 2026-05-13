@@ -18,8 +18,8 @@
 
 **The four highest-leverage gaps are:**
 
-1. ~~**The Intelligence screen — your most valuable content — is unreachable from the bottom tab bar**~~ ❌ Rejected 2026-05-13 — Intelligence is the **admin backend**, not a Seeker/Oracle+ surface. Reached via triple-tap → admin → IntelligenceRouteView. Original recommendation reflected an incorrect assumption about target audience. See §1.1.
-2. ~~**The tab bar shows 7 tabs including a broken ZK30 tab**~~ ✅ Shipped 2026-05-13 — see §1.2 (Option A).
+1. ~~**The Intelligence screen — your most valuable content — is unreachable from the bottom tab bar**~~ ❌ Rejected 2026-05-12 — Intelligence is the **admin backend**, not a Seeker/Oracle+ surface. Reached via triple-tap → admin → IntelligenceRouteView. Original recommendation reflected an incorrect assumption about target audience. See §1.1.
+2. ~~**The tab bar shows 7 tabs including a broken ZK30 tab**~~ ✅ Shipped 2026-05-12 — see §1.2 (Option A).
 3. **There is no "track record" surface anywhere in the app.** The engine has a measured 73% slate hit rate. Subscribers should see "HitMaster hit on 6 of the last 7 days. Today's slate energy: 87." as the first thing on Home. We have this data; we hide it.
 4. **Win celebrations are weak and loss explanations are absent.** When a pick hits, the app shows a small cyan banner. When the slate misses, the app shows nothing — no acknowledgment, no "here's what got close, here's why tomorrow is different." Lottery players live on emotional swings; both moments are leverage we currently leave on the table.
 
@@ -29,16 +29,16 @@ The rest of this document is a prioritized list of concrete, mostly-small change
 
 ## 1. P0 — Fix First (this week)
 
-### 1.1 Restore the Intelligence tab — ❌ Rejected 2026-05-13
+### 1.1 Restore the Intelligence tab — ❌ Rejected 2026-05-12
 **Original recommendation:** Surface Intelligence as a public tab.
 **Why rejected:** Intelligence is the **admin/operator backend** for tuning, audit, and signal diagnostics — it's not a subscriber-facing surface. Free (Seeker) and Premium (Oracle+) users should never see it. Admins reach it via the existing path: triple-tap avatar on Profile → admin route → IntelligenceRouteView. Leaving `href: null` is correct.
 **Reviewer note:** original recommendation was based on a misread of the Intelligence screen's audience. The per-signal AUC, hit-rate analytics, and rank-band breakdown are operator tools — exposing them to subscribers would create more confusion (and potentially undermine the engine's mystique) than value. If we want subscriber-facing analytics, build a separate, simpler "Track Record" surface (see §1.3 / §2.1 / §2.6) rather than exposing the operator UI.
 
-### 1.2 Hide or rename the ZK30 tab — ✅ Shipped 2026-05-13 (Option A)
+### 1.2 Hide or rename the ZK30 tab — ✅ Shipped 2026-05-12 (Option A)
 **Where:** `app/(tabs)/_layout.tsx`
 **Change:** Set `href: null` on the ZK30 tab until 2026-05-19 verification window closes. Will revisit if ZK6 hits ≥73% over 7d post-fix per CLAUDE.md ZK30 unlock gate.
 
-### 1.3 Add a "Today's Track Record" hero band — ✅ Shipped 2026-05-13
+### 1.3 Add a "Today's Track Record" hero band — ✅ Shipped 2026-05-12
 **Where:** `app/(tabs)/index.tsx` — merged into a single 3-column unified hero (AVG ENERGY · HIT RATE · NEXT DRAW countdown). Replaces the previous separate AVG ENERGY card; consolidates two stacked cards into one.
 **Final layout:**
 ```
@@ -57,7 +57,7 @@ Headline rate sourced from MASTER_AUDIT.md CONFIG-02 backtest (78 slates × 3 sc
 4. **Anchor switch deferred** — "in last 7 days" currently uses the 5/13 stabilization anchor (functionally identical while the verification window is open). After 2026-05-19, switch to a true rolling 7-day count once the broken-window data has rolled out. Code comment in `index.tsx` flags this.
 
 ### 1.4 Wire notification preferences to actual notifications
-**Phase 1 (persistence) — ✅ Shipped 2026-05-13.** Toggles in `app/(tabs)/account.tsx` now persist to AsyncStorage under `notif_prefs_v1` and re-load on mount. User configuration survives restarts.
+**Phase 1 (persistence) — ✅ Shipped 2026-05-12.** Toggles in `app/(tabs)/account.tsx` now persist to AsyncStorage under `notif_prefs_v1` and re-load on mount. User configuration survives restarts.
 
 **Phase 2 (delivery) — ⏳ Deferred.** Two pieces remain:
 - **Local notifications** (~3-5 hrs): install `expo-notifications`, request permissions on first toggle enable, schedule daily local notifications for `slateReady` and `nextDraw` at fixed pre-draw times. No server dependency. Doable any time.
@@ -128,15 +128,22 @@ A toggle in Account: "Show me only the K6 picks, no chrome." Renders an ultra-mi
 
 ## 4. Value — every session leaves them smarter or luckier
 
-### 4.1 Win celebration upgrade (P0/P1)
-**Current:** A small cyan "ZK6 HIT TODAY" banner appears on Home (`index.tsx:415`).
-**Upgrade:** When a hit is detected:
-- Full-screen Lottie animation (confetti, fireworks, or branded particle effect) on first open of the day
-- Haptic feedback (success pattern, 200ms)
-- Audio (optional, off by default)
-- Auto-screenshot a "shareable card" of the hit pre-formatted for SMS/Instagram/Twitter
-- "Tell your friends" CTA → opens share sheet with "I just hit on HitMaster — pick #2 was 485, drew tonight in NJ. Try the app: [referral link]"
-**Why:** Hits are emotional peaks. The app should be present for them, not invisible. Every share is also a paid acquisition channel. **Effort: 1-2 days. Impact: enormous on both retention and referral.**
+### 4.1 Win celebration upgrade (P0/P1) — ✅ MVP Shipped 2026-05-12
+**MVP delivered:** new `components/HitCelebrationOverlay.tsx`, wired into `app/(tabs)/index.tsx`. Triggers once per ET day on first open after a hit lands (gated by `hit_celebrated_${date}` in AsyncStorage). The overlay:
+- Full-screen modal with sparkle burst (built-in `Animated` API, 14 sparkles flying outward in a circle)
+- Spring scale-in + fade backdrop
+- Success haptic (`Haptics.NotificationFeedbackType.Success`) on native; gracefully no-ops on web
+- Hit details: pick rank, digits, jurisdiction, session, hit type
+- "Tell your friends ✨" CTA via React Native's built-in `Share.share()` with prefilled message ("🎯 Just hit on HitMaster — pick #N was XYZ, drew today in {state} {Midday|Evening} ({STRAIGHT|BOX}). Try the app: https://hitmaster.app")
+- "Awesome" dismiss
+
+**Deferred to Phase 2 (when scope expands):**
+- Lottie animation (requires `lottie-react-native` native dep)
+- Auto-screenshot brandable PNG card (requires `react-native-view-shot` native dep)
+- Audio (requires `expo-av`)
+- Real referral link infrastructure (replace `https://hitmaster.app` placeholder with tracked link)
+
+**Why:** Hits are emotional peaks. The app should be present for them, not invisible. Every share is also a paid acquisition channel.
 
 ### 4.2 "Last hit" persistent surface (P1)
 A small pill at the top of every screen: "Last HitMaster hit: 605 in MS · 2h ago". Tap to see details. This keeps the win salient across the whole app, not just the home screen, not just today. **Effort: half-day.**

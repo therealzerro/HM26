@@ -48,6 +48,7 @@ import { HitCelebrationOverlay } from '@/components/HitCelebrationOverlay';
 import { LockedPicksSummary } from '@/components/LockedPicksSummary';
 import { LoadingPhrase } from '@/components/LoadingPhrase';
 import { CosmicBackground } from '@/components/CosmicBackground';
+import { TrialOfferBanner } from '@/components/TrialOfferBanner';
 import { scopeAccent } from '@/lib/scopeAccent';
 import { EnergySparkline } from '@/components/EnergySparkline';
 import { useToast } from '@/components/Toast';
@@ -284,6 +285,7 @@ export default function HomeScreen() {
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [regenConfirm, setRegenConfirm] = useState<{ visible: boolean; isLocked: boolean }>({ visible: false, isLocked: false });
   const [celebrationVisible, setCelebrationVisible] = useState(false);
+  const [trialOfferDismissed, setTrialOfferDismissed] = useState(false);
   const { showToast } = useToast();
 
   const currentTier = user?.role === 'admin' ? 'PLUS' : user?.role === 'premium' ? 'PRO' : 'FREE';
@@ -560,6 +562,25 @@ export default function HomeScreen() {
     return null;
   }, [todayResults, items, scope]);
 
+  // Trial extension on hit (enhancements §6.2) — for Free users, detect
+  // when one of their visible (unlocked) picks is in today's hit set.
+  // High-value moment for the upsell ask: the engine just delivered.
+  const visibleHit = useMemo(() => {
+    if (!isFree || hitItems.length === 0) return null;
+    const visibleCombos = new Set(items.filter(p => !p.locked && p.combo !== '---' && p.combo !== '•••').map(p => p.combo));
+    const match = hitItems.find(h => visibleCombos.has(h.combo));
+    return match ?? null;
+  }, [isFree, items, hitItems]);
+  useEffect(() => {
+    if (!visibleHit) return;
+    const key = `trial_offer_dismissed_${todayStr}`;
+    storage.getItem(key).then(v => setTrialOfferDismissed(!!v));
+  }, [visibleHit, todayStr]);
+  const handleDismissTrialOffer = useCallback(() => {
+    storage.setItem(`trial_offer_dismissed_${todayStr}`, '1');
+    setTrialOfferDismissed(true);
+  }, [todayStr]);
+
   // Win celebration trigger (enhancements §4.1) — fire once per ET day on
   // the first open after a hit lands. Storage key = today's ET date so a
   // hit that arrives later in the day still triggers if the user hasn't
@@ -740,6 +761,17 @@ export default function HomeScreen() {
               </View>
             ))}
           </View>
+        )}
+
+        {/* ── Trial offer on visible-pick hit (enhancements §6.2) ── */}
+        {visibleHit && !trialOfferDismissed && (
+          <TrialOfferBanner
+            pickRank={visibleHit.rank}
+            pickCombo={visibleHit.combo}
+            hitType={visibleHit.hitType}
+            onUpgrade={() => setPaywallOpen(true)}
+            onDismiss={handleDismissTrialOffer}
+          />
         )}
 
         {/* ── Trending box-sets across all 3 scopes (enhancements §5.6) ── */}

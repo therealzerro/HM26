@@ -240,8 +240,12 @@ After running a heat check on a combo, offer a "Share this analysis" button that
 
 **Why:** every dishonest element on the paywall (fake testimonials, stale countdowns, generic claims) erodes trust at the exact moment the user is deciding to pay. Replacing them with the verified rate that the engine has actually delivered makes the upgrade decision honest.
 
-### 6.2 Trial extension on hit (P1)
-If a Free user has the app installed and the engine hits on the 2 picks they CAN see, push them: "Your free pick hit today! Try a 5-day Oracle+ trial to see all 6 → first hit free." Highly targeted, only fires when value is concretely demonstrated. **Effort: 1 day.**
+### 6.2 Trial extension on hit (P1) — ✅ Phase 1 Shipped 2026-05-12 (in-app)
+**New component:** `components/TrialOfferBanner.tsx` — gold/cyan gradient card with the message `🎯 Your free pick #N just hit · {combo} {box|straight} hit verified today. The full K6 slate has 4 more picks just like it.` and a CTA `Try Oracle+ 5 days free →`. Includes `×` dismiss.
+**Trigger:** new `visibleHit` derived value on Home — for Free users only, true when one of the user's *unlocked* picks (currently picks 5–6 per the recent free-tier invert) has its combo in today's `hitItems`. The engine just delivered something the user can verify themselves, so the upsell ask lands with concrete proof attached.
+**One-per-day:** dismissal stored in `trial_offer_dismissed_${todayStr}` AsyncStorage flag — banner stays gone for the rest of the ET day once dismissed, returns next day if a new hit lands.
+**Placement:** above the trending box-sets band (high in the visual hierarchy, below the hero).
+**Phase 2 deferred — push notification:** the doc spec said "push them" but real push requires §1.4 phase 2 infrastructure (still blocked on EAS Build pipeline). When push lands, swap the in-app banner for a foreground push trigger; banner stays as fallback when the app is already open.
 
 ### 6.3 "Save your streak" upsell (P2)
 Tie streak (3.1) to monetization: streak breaks → "Restore your 12-day streak for $0.99" → micropayment. Even users who don't subscribe to monthly might do micro-purchases. **Effort: included in 3.1.**

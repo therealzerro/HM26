@@ -33,9 +33,12 @@ import { useFollowedStates } from '@/hooks/useFollowedStates';
 import { getYesterdayET } from '@/lib/dateUtils';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { theme } from '@/constants/theme';
-import { Calendar, MoreHorizontal, Search, X } from 'lucide-react-native';
+import { Calendar, MoreHorizontal, Search, X, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { EmptyState } from '@/components/EmptyState';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { HitHeroBand, type HitHeroItem } from '@/components/HitHeroBand';
+import { MissDayCard } from '@/components/MissDayCard';
+import { HitReplay } from '@/components/HitReplay';
 
 // Local D color alias map removed (design.md step 6) — every reference
 // now uses theme.colors.* directly so grep-for-cyan finds this file.
@@ -162,6 +165,8 @@ interface HitSummaryItem {
   jurisdiction: string;
   session: string;
   hitType: 'BOX' | 'STRAIGHT';
+  /** Actual drawn digits — used by HitHeroBand for the WE-PICKED → DRAWN replay. */
+  hitResult?: string;
   rank?: number;
 }
 function flattenHits(processed: ProcessedEntry[]): HitSummaryItem[] {
@@ -174,6 +179,7 @@ function flattenHits(processed: ProcessedEntry[]): HitSummaryItem[] {
         jurisdiction: h.hit_state || row.jurisdiction || '',
         session: h.hit_session || row.session || '',
         hitType: h.hit_straight ? 'STRAIGHT' : 'BOX',
+        hitResult: row.result_digits ?? '',
         rank: h.rank,
       });
     }
@@ -264,6 +270,9 @@ export default function ResultsScreen() {
   const [statsOpen,     setStatsOpen]     = useState(false);
   const [hitSummaryOpen, setHitSummaryOpen] = useState(false);
   const [clusterView,   setClusterView]   = useState(false);
+  // E2: inline-replay expand state — row id (`${jurisdiction}-${session}-${date}`)
+  // of the currently-expanded hit card, or null. Only one row open at a time.
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
   const { followed: followedStates, toPostgrestFilter } = useFollowedStates();
   const jurisdictionFilter = toPostgrestFilter(); // already in `&jurisdiction=in.(...)` form
@@ -317,6 +326,20 @@ export default function ResultsScreen() {
     staleTime: 30000,
   });
 
+  // E3/E4/E5: week-hits map — single query powers streak chip, date-tab dots, and
+  // miss-day trend fact. Filtered by followed states for personalization.
+  const { data: weekHits } = useQuery<{ slate_date: string; hit_straight: boolean }[]>({
+    queryKey: ['week_hits_for_results', recentDates.join(','), followedStates.join(',')],
+    queryFn: async () => {
+      const res = await fetchFromSupabase<{ slate_date: string; hit_straight: boolean }[]>({
+        path: `/rest/v1/daily_intelligence?select=slate_date,hit_straight&slate_date=in.(${recentDates.join(',')})&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${hitStateFilter}&limit=500`,
+        method: 'GET',
+      });
+      return Array.isArray(res) ? res : [];
+    },
+    staleTime: 60_000,
+  });
+
   // Tier-3: direct all-scope snapshot query — avoids useSnapshot() scope limitation.
   // Fetches all scopes (midday/evening/allday) so allday slate hits appear regardless
   // of the user's current scope selection.
@@ -351,6 +374,47 @@ export default function ResultsScreen() {
     }
     return out;
   }, [snapshotRows]);
+
+  // E3/E4/E5 derived from weekHits.
+  // hitsByDate: how many K6 hits per day in the last 7 days (dotted tabs, miss-day trend)
+  // hitsLast7Days: number of distinct days in window with ≥1 hit
+  // streak: consecutive days ending today (or yesterday if today empty + at least one earlier hit) with ≥1 hit
+  const hitsByDate = useMemo(() => {
+    const map = new Map<string, { total: number; straight: number }>();
+    for (const h of weekHits || []) {
+      const cur = map.get(h.slate_date) ?? { total: 0, straight: 0 };
+      cur.total += 1;
+      if (h.hit_straight) cur.straight += 1;
+      map.set(h.slate_date, cur);
+    }
+    return map;
+  }, [weekHits]);
+  const hitsLast7Days = useMemo(
+    () => recentDates.filter(d => (hitsByDate.get(d)?.total ?? 0) > 0).length,
+    [hitsByDate, recentDates],
+  );
+  const streak = useMemo(() => {
+    // recentDates is [today, yesterday, …] (line 88). Walk forward and count
+    // consecutive days with ≥1 hit. If today has 0 hits but yesterday does,
+    // skip today (likely pre-evening-draw) and count from yesterday.
+    let count = 0;
+    let started = false;
+    for (let i = 0; i < recentDates.length; i++) {
+      const has = (hitsByDate.get(recentDates[i])?.total ?? 0) > 0;
+      if (!started) {
+        if (has) { started = true; count = 1; }
+        else if (i === 0) { continue; } // today empty — try yesterday
+        else { break; } // started must begin within first two slots
+      } else {
+        if (has) count++;
+        else break;
+      }
+    }
+    return count;
+  }, [hitsByDate, recentDates]);
+
+  // Reset row expansion whenever the user changes context — date, session, or search.
+  useEffect(() => { setExpandedRowId(null); }, [selectedDate, sessionFilter, searchQuery]);
 
   // When today has no draw results yet, auto-select yesterday so the screen
   // is never blank on first load (draws typically land around noon/7:30pm ET).
@@ -520,6 +584,11 @@ export default function ResultsScreen() {
     const stripColor   = hasHit ? theme.colors.cyan : sessionColor + '80';
     const digitColor   = hasHit ? theme.colors.cyan : sessionColor;
     const hit          = row.hits[0];
+    const rowId        = `${row.jurisdiction}|${row.session}|${row.date_et}`;
+    const isExpanded   = hasHit && expandedRowId === rowId;
+    // Use signal_box (0–1) as temperature for HitReplay color (0–100 scale).
+    // Hot picks get red, warm gold, mild green — the existing HitReplay vocabulary.
+    const replayTemp   = hasHit ? Math.round((hit?.signal_box ?? 0.75) * 100) : 0;
 
     return (
       <View style={[s.card, hasHit && s.cardHit]}>
@@ -557,30 +626,22 @@ export default function ResultsScreen() {
                 </View>
               )}
             </View>
-            <View style={s.signalCol}>
-              {hasHit && hit ? (
-                <>
-                  <View style={s.signalItem}>
-                    <Text style={[s.signalKey, { color: theme.colors.cyan }]}>BOX</Text>
-                    <Text style={[s.signalVal, { color: theme.colors.cyan }]}>{Math.round((hit.signal_box ?? 0) * 100)}</Text>
-                  </View>
-                  <View style={s.signalItem}>
-                    <Text style={[s.signalKey, { color: theme.colors.rose }]}>PBR</Text>
-                    <Text style={[s.signalVal, { color: theme.colors.rose }]}>{Math.round((hit.signal_pburst ?? 0) * 100)}</Text>
-                  </View>
-                  <View style={s.signalItem}>
-                    <Text style={[s.signalKey, { color: theme.colors.gold }]}>DGC</Text>
-                    <Text style={[s.signalVal, { color: theme.colors.gold }]}>{Math.round((hit.signal_dgc ?? 0) * 100)}</Text>
-                  </View>
-                </>
-              ) : (
-                <>
-                  <Text style={[s.signalKey, { color: theme.colors.cyan + '40' }]}>BOX</Text>
-                  <Text style={[s.signalKey, { color: theme.colors.rose  + '40' }]}>PBR</Text>
-                  <Text style={[s.signalKey, { color: theme.colors.gold  + '40' }]}>DGC</Text>
-                </>
-              )}
-            </View>
+            {hasHit ? (
+              // E2: chevron replaces the BOX/PBR/DGC operator column.
+              // Tap to expand inline HitReplay (the WE-PICKED → DRAWN moment).
+              <TouchableOpacity
+                onPress={() => setExpandedRowId(prev => prev === rowId ? null : rowId)}
+                style={s.chevronBtn}
+                accessibilityRole="button"
+                accessibilityLabel={isExpanded ? 'Hide hit replay' : 'Show hit replay'}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                {isExpanded
+                  ? <ChevronUp size={18} color={theme.colors.cyan} />
+                  : <ChevronDown size={18} color={theme.colors.cyan} />}
+                <Text style={s.chevronLabel}>Replay</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
           <View style={s.resultRow}>
             <View style={s.sessionRow}>
@@ -591,6 +652,22 @@ export default function ResultsScreen() {
             </View>
             <Text style={[s.resultDigits, { color: digitColor }]}>{row.result_digits}</Text>
           </View>
+
+          {/* E2: inline HitReplay revealed on tap */}
+          {isExpanded && hit && (
+            <View style={{ marginTop: 12 }}>
+              <HitReplay
+                pick={{
+                  combo: hit.combo,
+                  hitResult: row.result_digits,
+                  hitType: hit.hit_straight ? 'straight' : 'box',
+                  hitState: row.jurisdiction,
+                  hitDate: row.date_et,
+                  temperature: replayTemp,
+                }}
+              />
+            </View>
+          )}
         </View>
       </View>
     );
@@ -617,6 +694,15 @@ export default function ResultsScreen() {
                 accessibilityLabel={`${stats.hits} hits — open hit summary`}
               > · {stats.hits} 🎯</Text>
             )}
+            {/* E3: streak chip — only shown when streak >= 2 (1 isn't a streak) */}
+            {streak >= 2 && (
+              <Text
+                onPress={() => setHitSummaryOpen(true)}
+                style={{ color: theme.colors.hotStreak }}
+                accessibilityRole="button"
+                accessibilityLabel={`${streak} day hit streak — open hit summary`}
+              > · 🔥 {streak}d streak</Text>
+            )}
           </Text>
         }
         rightSlot={
@@ -626,16 +712,26 @@ export default function ResultsScreen() {
         }
       />
 
-      {/* ── Date tabs ── */}
+      {/* ── Date tabs (E4: hit-count dots) ── */}
       <ScrollView
         horizontal showsHorizontalScrollIndicator={false}
         style={s.dateTabs} contentContainerStyle={s.dateTabsContent}
       >
         {recentDates.map(date => {
           const isActive = date === selectedDate;
+          const dayHits = hitsByDate.get(date);
+          const hadHit = (dayHits?.total ?? 0) > 0;
+          const hadStraight = (dayHits?.straight ?? 0) > 0;
+          const dotColor = hadStraight ? theme.colors.gold : theme.colors.cyan;
           return (
             <TouchableOpacity key={date} onPress={() => setSelectedDate(date)} style={[s.dateTab, isActive && s.dateTabActive]}>
               <Text style={[s.dateTabText, isActive && s.dateTabTextActive]}>{getDateLabel(date)}</Text>
+              {hadHit && (
+                <View style={[s.tabDot, { backgroundColor: dotColor, shadowColor: dotColor }]} />
+              )}
+              {(dayHits?.total ?? 0) >= 2 && (
+                <View style={[s.tabDot, s.tabDotSecondary, { backgroundColor: dotColor }]} />
+              )}
             </TouchableOpacity>
           );
         })}
@@ -686,6 +782,27 @@ export default function ResultsScreen() {
             <Text style={[s.filterText, clusterView && s.filterTextActive]}>Clusters</Text>
           </TouchableOpacity>
         </View>
+      )}
+
+      {/* ── E1 / E5: Hit Hero band when hits > 0, otherwise miss-day warmth ── */}
+      {!ledgerLoading && processed.length > 0 && (
+        stats.hits > 0 ? (
+          <HitHeroBand
+            items={hitSummaryItems.map<HitHeroItem>(h => ({
+              combo: h.combo,
+              hitResult: h.hitResult,
+              hitType: h.hitType === 'STRAIGHT' ? 'straight' : 'box',
+              jurisdiction: h.jurisdiction,
+              session: h.session,
+            }))}
+          />
+        ) : (
+          <MissDayCard
+            selectedDate={selectedDate}
+            hitsLast7Days={hitsLast7Days}
+            followedCount={followedStates.length}
+          />
+        )
       )}
 
       {/* ── List (the hero) ── */}
@@ -766,10 +883,23 @@ const s = StyleSheet.create({
   // date tabs
   dateTabs: { flexShrink: 0, maxHeight: 46, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   dateTabsContent: { paddingHorizontal: theme.layout.screenInset, paddingVertical: 6, gap: 8 },
-  dateTab: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: theme.borderRadius.pill, backgroundColor: theme.colors.surface2, borderWidth: 1, borderColor: theme.colors.border },
+  dateTab: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: theme.borderRadius.pill, backgroundColor: theme.colors.surface2, borderWidth: 1, borderColor: theme.colors.border, position: 'relative' },
   dateTabActive: { backgroundColor: theme.colors.purple + '22', borderColor: theme.colors.purple + '88' },
   dateTabText: { fontSize: 12, fontWeight: '600', color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
   dateTabTextActive: { color: theme.colors.purple, fontWeight: '700' },
+  // E4: hit-count dots — absolute-positioned top-right of each date tab.
+  tabDot: {
+    position: 'absolute',
+    top: 4,
+    right: 6,
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 3,
+  },
+  tabDotSecondary: { right: 13 },
 
   // controls strip (collapsed default)
   controlsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: theme.layout.screenInset, paddingVertical: 8, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
@@ -815,10 +945,22 @@ const s = StyleSheet.create({
   hitBadgeText: { fontSize: 9, fontWeight: '900', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.5 },
   shareBtn: { marginTop: 4, backgroundColor: theme.colors.cyan + '22', borderWidth: 1, borderColor: theme.colors.cyan + '55', borderRadius: 8, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
   shareBtnText: { fontSize: 13, fontWeight: '900', color: theme.colors.cyan },
-  signalCol: { flexDirection: 'row', gap: 6, alignItems: 'center', marginLeft: 6 },
-  signalItem: { alignItems: 'center', gap: 1 },
-  signalKey: { fontSize: 9, fontWeight: '900', letterSpacing: 0.5, fontFamily: theme.typography.fontFamily.monoBold },
-  signalVal: { fontSize: 11, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
+  // E2: chevron column — replaces BOX/PBR/DGC operator-speak signal column.
+  chevronBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 6,
+    gap: 1,
+  },
+  chevronLabel: {
+    fontSize: 8,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+    color: theme.colors.cyan + 'aa',
+    fontFamily: theme.typography.fontFamily.monoBold,
+  },
   resultRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sessionRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   sessionIcon: { fontSize: 13 },

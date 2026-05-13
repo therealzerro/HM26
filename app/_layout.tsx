@@ -81,6 +81,10 @@ function RootLayoutNav() {
         name="replay"
         options={{ title: "Replay", ...modalScreenOptions }}
       />
+      <Stack.Screen
+        name="track-record"
+        options={{ title: "Verified Track Record", ...modalScreenOptions }}
+      />
     </Stack>
   );
 }

@@ -275,15 +275,25 @@ export default function AccountScreen() {
           )}
         </View>
 
-        {/* ── Replay (enhancements §4.4) ── */}
+        {/* ── History (enhancements §4.4 + §2.6) ── */}
         <View style={s.section}>
           <Text style={s.sectionLabel}>HISTORY</Text>
+          <TouchableOpacity style={[s.card, { marginBottom: 8 }]} onPress={() => router.push('/track-record')}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 }}>
+              <Text style={{ fontSize: 26 }}>🧾</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.text }}>Verified track record</Text>
+                <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginTop: 2 }}>Receipts: every confirmed K6 hit, last 30 days.</Text>
+              </View>
+              <Text style={{ fontSize: 18, color: theme.colors.textTertiary }}>›</Text>
+            </View>
+          </TouchableOpacity>
           <TouchableOpacity style={s.card} onPress={() => router.push('/replay')}>
             <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 }}>
               <Text style={{ fontSize: 26 }}>📼</Text>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.text }}>Replay last 7 days</Text>
-                <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginTop: 2 }}>See past slates vs actual draws — validate the engine yourself.</Text>
+                <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginTop: 2 }}>Past slates vs actual draws, day by day.</Text>
               </View>
               <Text style={{ fontSize: 18, color: theme.colors.textTertiary }}>›</Text>
             </View>

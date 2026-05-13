@@ -103,8 +103,16 @@ Today the home shows "Powered by ZK6 Engine" as a static subtitle. Replace with 
 **Why:** sets honest expectations on hard days. Reduces "why did the engine pick this garbage" frustration when cooldown rejection or yesterday-block forces the engine to dip into lower-energy combos to fill the K6.
 **Note on doc deviation:** original spec mentioned `min(pickEnergies) / median(pickEnergies)` as the ratio. Implementation uses the simpler "count ≥ 70" approach which matches the doc's tier definitions directly and is easier to reason about than a ratio.
 
-### 2.6 Verified hit ledger page (P1)
-A new section in Account or under Intelligence: "Track record." A chronological list of every slate, marked with hit count, with each hit linked to the specific jurisdiction/draw. Subscribers love receipts. Today the data lives across `daily_intelligence` + `histories` — surfacing it takes one query. **Effort: 1 day.**
+### 2.6 Verified hit ledger page (P1) — ✅ Shipped 2026-05-13
+**Where:** new screen `app/track-record.tsx`, accessible from Account → HISTORY → "🧾 Verified track record". Sits alongside §4.4 Replay in the same section.
+**Distinction from Replay:** Replay shows day-by-day slate composition (full slate including misses); Verified track record is a hits-only stream (receipts).
+**Window:** last 30 days, ordered date-desc, capped at 500 hits per fetch.
+**Header summary band:** four KPIs side by side — `HITS | STRAIGHT | BOX | DAYS` — plus a sub-line `Across N jurisdictions · last 30 days`.
+**Stream:** grouped by date with `Today / Yesterday / Mon Mar 5` headers, sessions sorted morning→midday→evening→night within each day. Each hit row: session emoji · combo · `⭐ STRAIGHT` or `🎯 BOX` · scope label tinted with `scopeAccent` · `Drew {result} in {state} {session}` meta line.
+**Defense in depth:** same `scopeMatchesSession` filter as Results (BUG-132).
+**Empty state:** `🧾 No verified hits in the last 30 days` with a sub-line.
+**Loading state:** uses `LoadingPhrase` with rewind-themed phrases (`🧾 Pulling verified hits…` etc).
+**Account location moved (intentional):** since both Replay and this share the HISTORY section now, restructured so Verified Track Record appears first (more prominent receipts-first framing) with Replay as the deeper-detail option below.
 
 ---
 

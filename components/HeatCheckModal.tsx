@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, Modal, TouchableOpacity, TextInput,
-  ActivityIndicator, KeyboardAvoidingView, Platform,
+  ActivityIndicator, KeyboardAvoidingView, Platform, Share,
+  Animated, PanResponder, Dimensions, ScrollView, Keyboard,
 } from 'react-native';
 import { theme } from '@/constants/theme';
 import { storage } from '@/lib/storage';
@@ -84,6 +85,8 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
   }, [isPro]);
 
   const handleCheck = useCallback(async () => {
+    // Dismiss the keyboard so the result content isn't hidden behind it.
+    Keyboard.dismiss();
     const cleaned = combo.trim().replace(/\D/g, '').slice(0, 3);
     if (cleaned.length !== 3) {
       setError('Enter a valid 3-digit combo');
@@ -204,22 +207,142 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
     }
   }, [combo, scope, isPro, checkRateLimit]);
 
+  // Swipe-down-to-dismiss + tap-outside-to-close. Native Modal with
+  // animationType="slide" doesn't include pan gesture; we add it ourselves
+  // with PanResponder so the sheet feels like an iOS bottom sheet.
+  const translateY = useRef(new Animated.Value(0)).current;
+  const screenH = Dimensions.get('window').height;
+
+  const animateClose = useCallback(() => {
+    Animated.timing(translateY, {
+      toValue: screenH,
+      duration: 220,
+      useNativeDriver: true,
+    }).start(() => {
+      translateY.setValue(0);
+      setCombo(initialCombo);
+      setResult(null);
+      setError(null);
+      setRateLimited(false);
+      onClose();
+    });
+  }, [translateY, screenH, initialCombo, onClose]);
+
   const handleClose = useCallback(() => {
-    setCombo(initialCombo);
-    setResult(null);
-    setError(null);
-    setRateLimited(false);
-    onClose();
-  }, [initialCombo, onClose]);
+    animateClose();
+  }, [animateClose]);
+
+  // Reset slide position whenever the modal becomes visible (in case the
+  // previous close left translateY mid-animation).
+  useEffect(() => {
+    if (visible) translateY.setValue(0);
+  }, [visible, translateY]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 4,
+      onPanResponderMove: (_, g) => {
+        if (g.dy > 0) translateY.setValue(g.dy);
+      },
+      onPanResponderRelease: (_, g) => {
+        if (g.dy > 100 || g.vy > 0.6) {
+          animateClose();
+        } else {
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            bounciness: 4,
+          }).start();
+        }
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(translateY, { toValue: 0, useNativeDriver: true }).start();
+      },
+    })
+  ).current;
+
+  // §5.3 — share a brandable text summary of the heat check. Native PNG
+  // screenshot deferred (requires react-native-view-shot, a native module
+  // that pairs naturally with the §1.4 phase 2 EAS build cycle). Text
+  // share works on every platform today and is what users actually paste
+  // into iMessage / WhatsApp / Discord without an image preview hiccup.
+  const handleShare = useCallback(async () => {
+    if (!result) return;
+    const pct = (v: number | null) => v == null ? '—' : `${(v * 100).toFixed(1)}%`;
+    const lines: string[] = [];
+    lines.push(`🔍 Heat Check: ${result.combo}`);
+    lines.push(`${result.comboSet} · key ${result.sortedKey}`);
+    lines.push('');
+    if (result.energy != null) lines.push(`ENERGY ${result.energy}/100`);
+    lines.push(result.verdict);
+    lines.push('');
+    if (result.signalBox != null) lines.push(`BOX    ${pct(result.signalBox)}`);
+    if (result.signalPburst != null) lines.push(`PBURST ${pct(result.signalPburst)}`);
+    if (result.signalCo != null) lines.push(`CO     ${pct(result.signalCo)}`);
+    if (result.signalDgc != null) lines.push(`DGC    ${pct(result.signalDgc)}`);
+    if (result.signalBox != null || result.signalPburst != null || result.signalCo != null || result.signalDgc != null) {
+      lines.push('');
+    }
+    if (result.drawsSince != null) lines.push(`draws since:  ${result.drawsSince}`);
+    if (result.timesDrawn != null && result.timesDrawn > 0) {
+      lines.push(`all-time:     ${result.timesDrawn}× hits`);
+      lines.push(`expected:     ~every ${Math.round(365 / result.timesDrawn)} draws`);
+    }
+    if (result.lastSeen) lines.push(`last seen:    ${result.lastSeen}`);
+    lines.push('');
+    lines.push('Powered by HitMaster ZK6™ Intelligence');
+    lines.push('Run your own heat check → https://hitmaster.app');
+    const message = lines.join('\n');
+    try {
+      await Share.share({ message, title: `Heat Check: ${result.combo}` });
+    } catch {
+      // user cancelled — silent
+    }
+  }, [result]);
 
   return (
     <Modal transparent visible={visible} animationType="slide" onRequestClose={handleClose}>
       <TouchableOpacity style={s.backdrop} activeOpacity={1} onPress={handleClose}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%' }}>
-          <TouchableOpacity activeOpacity={1} style={s.sheet} onPress={() => {}}>
-            <View style={s.handle} />
-            <Text style={s.title}>🔍 Heat Check</Text>
-            <Text style={s.sub}>Look up the ZK6 signal for any 3-digit combo</Text>
+          <Animated.View
+            style={[s.sheet, { transform: [{ translateY }] }]}
+            onStartShouldSetResponder={() => true}
+            onResponderRelease={() => {}}
+          >
+            {/* Top bar: drag handle (whole bar pannable) + explicit X close on the
+                right. Flex layout so X is always visible. Pan on the whole bar
+                gives users a fatter drag target; TouchableOpacity child still
+                claims its own touches via the responder system. */}
+            <View style={s.topBar} {...panResponder.panHandlers}>
+              <View style={s.topBarSpacer} />
+              <View style={s.handleHitArea}>
+                <View style={s.handle} />
+              </View>
+              <TouchableOpacity
+                onPress={handleClose}
+                style={s.closeBtn}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close heat check"
+                activeOpacity={0.7}
+              >
+                <View style={s.closeBtnInner}>
+                  <Text style={s.closeX}>✕</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              style={s.sheetScroll}
+              contentContainerStyle={s.sheetScrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Tap-eater: absorbs any tap inside the sheet so it doesn't
+                  bubble up to the backdrop TouchableOpacity (which closes). */}
+              <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+              <Text style={s.title}>🔍 Heat Check</Text>
+              <Text style={s.sub}>Look up the ZK6 signal for any 3-digit combo</Text>
 
             {!isPro && (
               <View style={s.tierBadge}>
@@ -390,10 +513,22 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
                     </View>
                   </View>
                 )}
+
+                {/* §5.3 — share analysis */}
+                <TouchableOpacity
+                  style={s.shareBtn}
+                  onPress={handleShare}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Share heat check analysis for combo ${result.combo}`}
+                  activeOpacity={0.85}
+                >
+                  <Text style={s.shareBtnText}>📤 Share this analysis</Text>
+                </TouchableOpacity>
               </View>
             )}
-            <View style={{ height: 20 }} />
-          </TouchableOpacity>
+              </TouchableOpacity>
+            </ScrollView>
+          </Animated.View>
         </KeyboardAvoidingView>
       </TouchableOpacity>
     </Modal>
@@ -408,13 +543,33 @@ const s = StyleSheet.create({
   sheet: {
     backgroundColor: theme.colors.surface,
     borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    padding: 20, paddingTop: 12,
+    paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20,
     borderTopWidth: 1, borderTopColor: theme.colors.border,
+    maxHeight: '88%',
+  },
+  sheetScroll: { flexGrow: 0 },
+  sheetScrollContent: { paddingBottom: 8 },
+  topBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginBottom: 10, height: 44,
+  },
+  topBarSpacer: { width: 44, height: 44 },
+  handleHitArea: {
+    flex: 1, height: 44,
+    alignItems: 'center', justifyContent: 'center',
   },
   handle: {
-    width: 36, height: 4, borderRadius: 2,
-    backgroundColor: theme.colors.border, alignSelf: 'center', marginBottom: 14,
+    width: 56, height: 5, borderRadius: 2.5,
+    backgroundColor: theme.colors.textTertiary + 'AA',
   },
+  closeBtn: { padding: 0 },
+  closeBtnInner: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  closeX: { fontSize: 16, color: theme.colors.text, fontWeight: '800' },
   title: { fontSize: 18, fontWeight: '900', color: theme.colors.text, marginBottom: 4 },
   sub: { fontSize: 12, color: theme.colors.textSecondary, marginBottom: 12 },
   tierBadge: {
@@ -468,4 +623,11 @@ const s = StyleSheet.create({
   statNum: { fontSize: 14, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold },
   statLbl: { fontSize: 9, color: theme.colors.textTertiary, fontWeight: '600', marginTop: 1 },
   noDataText: { fontSize: 11, color: theme.colors.textSecondary, fontStyle: 'italic', marginTop: 6 },
+  shareBtn: {
+    marginTop: 12, paddingVertical: 11,
+    backgroundColor: theme.colors.primary, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: theme.colors.primary,
+  },
+  shareBtnText: { color: '#fff', fontWeight: '800', fontSize: 13, letterSpacing: 0.3 },
 });

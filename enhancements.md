@@ -311,8 +311,15 @@ On the Number Book screen, when a user saves a pick to a list and that pick late
 **Why deferred:** the core deliverable here is push notification — the user gets pulled back into the app when their pick hits. Without §1.4 phase 2 (push infrastructure: token storage, Edge Function dispatcher, native FCM/APNs setup), we can only ship an in-app indicator, which is a meaningfully different UX (no re-engagement, just decoration). Better to ship this in its full form once push is wired than fragment it now.
 **Resume when:** §1.4 phase 2 ships. At that point the combo→draw matcher already exists (Number Book combos + `histories` query); the only added work is registering tokens and the per-combo cron/trigger to dispatch.
 
-### 5.3 Heat check social share (P2)
+### 5.3 Heat check social share (P2) — ✅ Shipped 2026-05-13 (text MVP; PNG deferred)
 After running a heat check on a combo, offer a "Share this analysis" button that screenshots the breakdown into a brandable PNG. Powerful word-of-mouth tool — users explaining a heat check to friends become evangelists. **Effort: half-day.**
+
+**Shipped (text MVP):**
+- `components/HeatCheckModal.tsx` — new `📤 Share this analysis` primary button at the bottom of the result card. Uses RN's built-in `Share` API (no native dep).
+- Builds a brandable text summary: header (`🔍 Heat Check: 472 / {2,4,7} · key 247`), energy + verdict, signal table (BOX / PBURST / CO / DGC as percentages with monospace alignment), stat table (`draws since`, `all-time hits`, `expected every N draws`, `last seen`), brand footer (`Powered by HitMaster ZK6™ Intelligence / Run your own heat check → https://hitmaster.app`).
+- Silently ignores share-cancel (user closing the share sheet).
+**Why text, not PNG:** PNG screenshot needs `react-native-view-shot`, a native module. Adding it requires an EAS Build / Expo prebuild cycle — same pipeline that gates §1.4 phase 2. Text shares paste into iMessage / WhatsApp / Discord / SMS without an image preview hiccup, so users get the brand exposure today rather than after the next native rebuild.
+**Resume when:** §1.4 phase 2 EAS build cycle is happening anyway, then bolt on `react-native-view-shot` + a styled offscreen branded view for the PNG path. Text path stays as the fallback when image generation fails.
 
 ### 5.4 Engine confidence quiz / onboarding ritual (P2) — ⏳ Deferred 2026-05-12
 **Spec:** 60-second 5-round mini-game where the user picks between two combos per round; reveal shows which ZK6 picked and why. Final summary: "ZK6 agreed X/5 times."

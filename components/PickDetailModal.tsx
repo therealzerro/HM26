@@ -464,27 +464,51 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
       {pick.hitType && pick.hitResult && (
         <HitReplay pick={{ ...pick, temperature: pick.energy }} />
       )}
-      {/* Straight vs Box bet cards */}
-      <View style={ct.betRow}>
-        <View style={[ct.betCard, { borderColor: D.cyan + '66' }]}>
-          <Text style={[ct.betType, { color: D.cyan }]}>STRAIGHT</Text>
-          <Text style={[ct.betCombo, { color: D.cyan, letterSpacing: 8 }]}>{bestOrder}</Text>
-          <Text style={ct.betPayout}>~$500</Text>
-          <Text style={ct.betNote}>Exact order wins</Text>
-          <View style={[ct.betBadge, { backgroundColor: D.cyan + '18', borderColor: D.cyan + '44' }]}>
-            <Text style={[ct.betBadgeText, { color: D.cyan }]}>ZK6 BEST ORDER</Text>
+      {/* Straight vs Box bet cards — payouts per actual player logic (2026-05-12):
+          $0.25 stake; straight wins $225; box wins by multiplicity (singles
+          $37.50 / doubles $75 / triples $225). Multiplicity derived from
+          unique-digit count when pick.multiplicity isn't set. */}
+      {(() => {
+        const uniq = new Set((pick.combo ?? '').split('')).size;
+        const mult = (pick.multiplicity ?? '').toLowerCase() ||
+          (uniq === 1 ? 'triples' : uniq === 2 ? 'doubles' : 'singles');
+        const boxWin = mult === 'doubles' ? 75 : mult === 'triples' ? 225 : 37.5;
+        const boxLabel = mult === 'doubles' ? 'DOUBLE' : mult === 'triples' ? 'TRIPLE' : 'SINGLE';
+        return (
+          <View style={ct.betRow}>
+            <View style={[ct.betCard, { borderColor: D.cyan + '66' }]}>
+              <Text style={[ct.betType, { color: D.cyan }]}>STRAIGHT</Text>
+              <Text
+                style={[ct.betCombo, { color: D.cyan, fontSize: 22, letterSpacing: 3 }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+              >{bestOrder}</Text>
+              <Text style={ct.betBetLine}>Bet <Text style={ct.betBetNum}>$0.25</Text></Text>
+              <Text style={ct.betPayout}>Win $225</Text>
+              <Text style={ct.betNote}>Exact order only</Text>
+              <View style={[ct.betBadge, { backgroundColor: D.cyan + '18', borderColor: D.cyan + '44' }]}>
+                <Text style={[ct.betBadgeText, { color: D.cyan }]}>ZK6 BEST ORDER</Text>
+              </View>
+            </View>
+            <View style={[ct.betCard, { borderColor: D.gold + '66' }]}>
+              <Text style={[ct.betType, { color: D.gold }]}>BOX</Text>
+              <Text
+                style={[ct.betCombo, { color: D.gold, fontSize: 18, letterSpacing: 1 }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+              >{pick.comboSet}</Text>
+              <Text style={ct.betBetLine}>Bet <Text style={ct.betBetNum}>$0.25</Text></Text>
+              <Text style={ct.betPayout}>Win ${boxWin % 1 === 0 ? boxWin : boxWin.toFixed(2)}</Text>
+              <Text style={ct.betNote}>Any order · {boxLabel}</Text>
+              <View style={[ct.betBadge, { backgroundColor: D.gold + '18', borderColor: D.gold + '44' }]}>
+                <Text style={[ct.betBadgeText, { color: D.gold }]}>SAFE PLAY</Text>
+              </View>
+            </View>
           </View>
-        </View>
-        <View style={[ct.betCard, { borderColor: D.gold + '66' }]}>
-          <Text style={[ct.betType, { color: D.gold }]}>BOX</Text>
-          <Text style={[ct.betCombo, { color: D.gold, letterSpacing: 8 }]}>{pick.comboSet}</Text>
-          <Text style={ct.betPayout}>~$80</Text>
-          <Text style={ct.betNote}>Any order wins</Text>
-          <View style={[ct.betBadge, { backgroundColor: D.gold + '18', borderColor: D.gold + '44' }]}>
-            <Text style={[ct.betBadgeText, { color: D.gold }]}>SAFE PLAY</Text>
-          </View>
-        </View>
-      </View>
+        );
+      })()}
 
       {/* Action buttons */}
       <View style={ct.actionStack}>
@@ -585,7 +609,12 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
             {/* Center: combo display */}
             <View style={s.heroCenter}>
               <Text style={s.heroBestLabel}>⚡ BEST STRAIGHT</Text>
-              <Text style={[s.heroDigits, { color: energyColor }]}>
+              <Text
+                style={[s.heroDigits, { color: energyColor }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+              >
                 {bestOrder[0]} · {bestOrder[1]} · {bestOrder[2]}
               </Text>
               <View style={s.posRow}>
@@ -675,6 +704,8 @@ const ct = StyleSheet.create({
   betCard:         { flex: 1, backgroundColor: D.glass, borderRadius: 14, borderWidth: 1.5, padding: 14, gap: 3, alignItems: 'center' },
   betType:         { fontSize: 9, fontWeight: '900', letterSpacing: 2.5 },
   betCombo:        { fontSize: 28, fontWeight: '900', fontFamily: 'JetBrainsMono_700Bold', marginVertical: 4 },
+  betBetLine:      { fontSize: 10, color: D.textDim, fontWeight: '600' },
+  betBetNum:       { color: D.text, fontWeight: '800' },
   betPayout:       { fontSize: 18, fontWeight: '900', color: D.text },
   betNote:         { fontSize: 9, color: D.textDim },
   betBadge:        { marginTop: 8, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 7, borderWidth: 1 },
@@ -713,7 +744,7 @@ const s = StyleSheet.create({
   heroEnergyLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
   heroCenter:      { flex: 1, alignItems: 'center', gap: 5 },
   heroBestLabel:   { fontSize: 8, fontWeight: '900', color: D.cyan, letterSpacing: 2 },
-  heroDigits:      { fontSize: 30, fontWeight: '900', fontFamily: 'JetBrainsMono_700Bold', letterSpacing: 2, lineHeight: 34 },
+  heroDigits:      { fontSize: 22, fontWeight: '900', fontFamily: 'JetBrainsMono_700Bold', letterSpacing: 1, lineHeight: 26 },
   posRow:          { flexDirection: 'row', gap: 5 },
   posBox:          { width: 28, height: 34, borderRadius: 7, borderWidth: 1.5, borderColor: D.glassBorder, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.04)' },
   posDigit:        { fontSize: 13, fontWeight: '900', color: D.textDim, fontFamily: D.monoBold },

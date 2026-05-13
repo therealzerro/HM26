@@ -12,7 +12,7 @@ import { computeSlate } from '@/engines/zk6';
 import { HORIZON_WEIGHTS } from '@/constants/zk6';
 import { storage } from '@/lib/storage';
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
-import { runDailyRebuild } from '@/lib/rebuildTrigger';
+import { runDailyRebuild, runDailyReport } from '@/lib/rebuildTrigger';
 import { useToast } from '@/components/Toast';
 
 interface DataIngestionState {
@@ -585,6 +585,13 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
             );
             queryClient.invalidateQueries({ queryKey: ['snapshot'] });
             queryClient.invalidateQueries({ queryKey: ['audit_logs'] });
+            // After ds_raw rebuild settles, capture today's hit-rate snapshot
+            // into engine_daily_report. Errors swallowed by runDailyReport.
+            runDailyReport().then(r => {
+              if (r.ok && !r.skipped) {
+                queryClient.invalidateQueries({ queryKey: ['engine_daily_report'] });
+              }
+            });
           })
           .catch(err => {
             const msg = err instanceof Error ? err.message : String(err);

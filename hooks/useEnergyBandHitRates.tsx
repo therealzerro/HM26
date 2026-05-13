@@ -17,12 +17,12 @@ export interface EnergyBandStatsResult {
 const LOOKBACK_DAYS = 60;
 
 /** Bucket boundaries — 10-point bands above 60, single bucket below 60. */
-export function bandFor(energy: number): string {
-  if (!Number.isFinite(energy)) return '';
-  if (energy >= 90) return '90-100';
-  if (energy >= 80) return '80-89';
-  if (energy >= 70) return '70-79';
-  if (energy >= 60) return '60-69';
+export function bandFor(energy_score: number): string {
+  if (!Number.isFinite(energy_score)) return '';
+  if (energy_score >= 90) return '90-100';
+  if (energy_score >= 80) return '80-89';
+  if (energy_score >= 70) return '70-79';
+  if (energy_score >= 60) return '60-69';
   return '<60';
 }
 
@@ -34,9 +34,9 @@ function sinceDate(): string {
 
 /**
  * Energy-band hit rates (enhancements §2.2). Groups every K6/top-30
- * daily_intelligence row from the last 60 days by energy band and
+ * daily_intelligence row from the last 60 days by energy_score band and
  * computes how often that band hit (box OR straight). Used by PickCard
- * to surface a "245 picks at 90–100 energy hit 76% historically" footer.
+ * to surface a "245 picks at 90–100 energy_score hit 76% historically" footer.
  *
  * Only ZK6 modes (balanced/conservative/aggressive) are counted — zk30
  * rows would mix per-state behavior into a national rate.
@@ -44,11 +44,11 @@ function sinceDate(): string {
 export function useEnergyBandHitRates(): EnergyBandStatsResult {
   const since = useMemo(() => sinceDate(), []);
 
-  const { data: rows = [], isLoading } = useQuery<Array<{ energy: number; hit_box: boolean | null; hit_straight: boolean | null }>>({
-    queryKey: ['energy_band_hit_rates', since],
+  const { data: rows = [], isLoading } = useQuery<Array<{ energy_score: number; hit_box: boolean | null; hit_straight: boolean | null }>>({
+    queryKey: ['energy_score_band_hit_rates', since],
     queryFn: async () => {
       const data = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/daily_intelligence?slate_date=gte.${since}&energy=not.is.null&mode=in.(balanced,conservative,aggressive)&select=energy,hit_box,hit_straight&limit=20000`,
+        path: `/rest/v1/daily_intelligence?slate_date=gte.${since}&energy_score=not.is.null&mode=in.(balanced,conservative,aggressive)&select=energy_score,hit_box,hit_straight&limit=20000`,
       });
       return Array.isArray(data) ? data : [];
     },
@@ -58,7 +58,7 @@ export function useEnergyBandHitRates(): EnergyBandStatsResult {
   return useMemo(() => {
     const byBand = new Map<string, BandStat>();
     for (const r of rows) {
-      const e = Number(r.energy);
+      const e = Number(r.energy_score);
       if (!Number.isFinite(e)) continue;
       const b = bandFor(e);
       if (!b) continue;

@@ -96,7 +96,10 @@ export default function AccountScreen() {
   };
   const [memberDays, setMemberDays] = useState(0);
 
-  // Triple-tap on avatar → admin
+  // Triple-tap on avatar → promote to admin (Mystic tier) AND navigate.
+  // Without the setRole call, the user lands on the admin screen visually
+  // but useDataIngestion::isAdmin (role==='admin') still blocks all the
+  // import flows. Promotion is the canonical Mystic unlock per BUG-02.
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleLogoTap = useCallback(() => {
@@ -105,9 +108,9 @@ export default function AccountScreen() {
     tapTimerRef.current = setTimeout(() => { tapCountRef.current = 0; }, 600);
     if (tapCountRef.current >= 3) {
       tapCountRef.current = 0;
-      router.push('/(tabs)/admin');
+      setRole('admin').then(() => router.push('/(tabs)/admin')).catch(() => {});
     }
-  }, []);
+  }, [setRole]);
 
   useEffect(() => {
     (async () => {

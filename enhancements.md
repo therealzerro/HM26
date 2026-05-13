@@ -1,5 +1,23 @@
 # HitMaster — UI/UX Enhancement Roadmap
 
+> **STATUS — 2026-05-13: This batch is parked.**
+>
+> Every enhancement that is code-side unblocked is ✅ shipped. The remaining items are all gated on three external accounts that haven't been set up yet:
+>
+> - **Apple Developer ($99/yr)** → APNs auth key for iOS push. Unblocks §1.4 phase 2 final activation, §5.2 (saved-pick push alerts).
+> - **Firebase project** for `com.hitmaster.app` → FCM v1 service-account JSON for Android push. Unblocks the Android half of the same items.
+> - **RevenueCat** (or equivalent IAP wrapper) → subscription management + coupons + trial mechanics. Unblocks §6.3 streak-save upsell, §6.4 referral discount, §6.5 annual-default paywall A/B.
+>
+> Push pipeline Phase A (deps + table + Edge Function + client registration) is already shipped (commit 4f62257). Phase B = uploading APNs key + FCM JSON into EAS, then `eas build --profile preview --platform all`. Daily-report MVP for the ZK6 verification window also shipped (commit 99c9925).
+>
+> **Resume condition:** any of the three accounts come online → unblock the matching items below. Until then, code-side enhancement work is done.
+>
+> Items still on the menu but not account-gated:
+> - **§5.4** Engine confidence quiz (deferred for product reasons — waiting on retention data, not infra)
+> - **§9** future bets (Pick 4, multi-state tier, white-label, AI explanation, live-draw alerts)
+
+---
+
 **Date:** 2026-05-12
 **Audience:** Product / design / founding team
 **Objective:** Win and retain subscribers who depend on HitMaster for accurate picks and lottery results. Every recommendation below maps to one of three subscriber retention pillars:

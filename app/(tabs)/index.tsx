@@ -44,6 +44,7 @@ import { PickDetailModal } from '@/components/PickDetailModal';
 import { Paywall } from '@/components/Paywall';
 import { HeatCheckModal } from '@/components/HeatCheckModal';
 import { HitCelebrationOverlay } from '@/components/HitCelebrationOverlay';
+import { LockedPicksSummary } from '@/components/LockedPicksSummary';
 import { EnergySparkline } from '@/components/EnergySparkline';
 import { useToast } from '@/components/Toast';
 import { fetchFromSupabase } from '@/lib/supabase';
@@ -325,6 +326,49 @@ export default function HomeScreen() {
     queryFn: () => fetchFromSupabase({ path: `/rest/v1/histories?date_et=eq.${todayStr}&select=result_digits,jurisdiction,session&jurisdiction=not.in.(ME,NH,VT,MS,PR,MD,MS2)` }),
     staleTime: 5 * 60 * 1000,
   });
+
+  // Trending box-sets across all 3 scopes (enhancements §5.6).
+  // Pulls today's snapshots for all scopes (latest per scope), aggregates K6
+  // box-sets, and ranks by cross-scope agreement, then by best energy.
+  const { data: trendingSnaps = [] } = useQuery<Array<{ scope: string; top_k_straights_json: any; updated_at_et: string }>>({
+    queryKey: ['trending_box_sets', todayStr],
+    queryFn: async () => {
+      const rows = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/slate_snapshots?select=scope,top_k_straights_json,updated_at_et&deleted_at=is.null&mode=in.(balanced,conservative,aggressive)&slate_date=eq.${todayStr}&top_k_straights_json=not.is.null&order=updated_at_et.desc&limit=20`,
+      });
+      return Array.isArray(rows) ? rows : [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const trendingBoxSets = useMemo<string[]>(() => {
+    const seenScope = new Set<string>();
+    const setStats = new Map<string, { scopes: Set<string>; bestEnergy: number }>();
+    for (const snap of trendingSnaps) {
+      if (seenScope.has(snap.scope)) continue;
+      seenScope.add(snap.scope);
+      const picks = Array.isArray(snap.top_k_straights_json)
+        ? snap.top_k_straights_json
+        : (typeof snap.top_k_straights_json === 'string'
+            ? (() => { try { return JSON.parse(snap.top_k_straights_json); } catch { return []; } })()
+            : []);
+      for (const p of picks) {
+        const set = (p.comboSet ?? toComboSet(p.combo ?? '')) as string;
+        if (!set || set === '{-,-,-}') continue;
+        const existing = setStats.get(set) ?? { scopes: new Set<string>(), bestEnergy: 0 };
+        existing.scopes.add(snap.scope);
+        existing.bestEnergy = Math.max(existing.bestEnergy, Number(p.energy ?? p.temperature ?? 0));
+        setStats.set(set, existing);
+      }
+    }
+    return [...setStats.entries()]
+      .sort((a, b) => {
+        const scopeDiff = b[1].scopes.size - a[1].scopes.size;
+        if (scopeDiff !== 0) return scopeDiff;
+        return b[1].bestEnergy - a[1].bestEnergy;
+      })
+      .slice(0, 3)
+      .map(([set]) => set);
+  }, [trendingSnaps]);
 
   // 30-day energy series for the EnergySparkline (enhancements §5.5).
   // Pulls per-(date, scope) snapshots for the user's current scope; takes
@@ -656,7 +700,15 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* ── K6 SLATE — THE HERO ── */}
+        {/* ── Trending box-sets across all 3 scopes (enhancements §5.6) ── */}
+        {trendingBoxSets.length > 0 && (
+          <View style={s.trendingBand}>
+            <Text style={s.trendingLabel}>🔥 TRENDING</Text>
+            <Text style={s.trendingSets} numberOfLines={1}>{trendingBoxSets.join('  ·  ')}</Text>
+          </View>
+        )}
+
+        {/* ── ZK6 PICKS — THE HERO ── */}
         <View style={s.slateSection}>
           <View style={s.slateSectionHdr}>
             <Text style={s.slateSectionTitle}>ZK6 <Text style={{ color: theme.colors.cyan }}>PICKS</Text></Text>
@@ -682,10 +734,25 @@ export default function HomeScreen() {
           />
 
           {snapshotLoading ? (
-            <View style={s.loadingCard}><Text style={s.loadingText}>⚡ Computing your K6 Slate…</Text></View>
-          ) : items.map(pick => (
-            <PickCard key={`${pick.rank}-${pick.combo}`} pick={pick} onTap={() => !pick.locked && setDetail(pick)} onUnlock={() => setPaywallOpen(true)} />
-          ))}
+            <View style={s.loadingCard}><Text style={s.loadingText}>⚡ Computing your ZK6 Picks…</Text></View>
+          ) : (() => {
+            const locked = items.filter(p => p.locked);
+            const unlocked = items.filter(p => !p.locked);
+            const handleAdTap = (_rank: number) => {
+              showToast('👁 Watch-to-unlock launches soon — upgrade for instant access', 'info');
+              setPaywallOpen(true);
+            };
+            return (
+              <>
+                {locked.length > 0 && (
+                  <LockedPicksSummary lockedPicks={locked} onUnlock={() => setPaywallOpen(true)} onWatchAd={handleAdTap} />
+                )}
+                {unlocked.map(pick => (
+                  <PickCard key={`${pick.rank}-${pick.combo}`} pick={pick} onTap={() => setDetail(pick)} onUnlock={() => setPaywallOpen(true)} />
+                ))}
+              </>
+            );
+          })()}
 
           {isFree && !snapshotLoading && (
             <View style={s.proGate}>
@@ -770,6 +837,10 @@ const s = StyleSheet.create({
   heroColLabel: { fontSize: 8, fontWeight: '900', color: theme.colors.cyan, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 2 },
   heroColMeta: { fontSize: 10, color: theme.colors.textSecondary, marginTop: 0, textAlign: 'center' },
   heroDivider: { width: 1, backgroundColor: theme.colors.border, marginHorizontal: 3 },
+
+  trendingBand: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginTop: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.colors.amber + '14', borderRadius: 10, borderWidth: 1, borderColor: theme.colors.amber + '55' },
+  trendingLabel: { fontSize: 9, fontWeight: '900', color: theme.colors.amber, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold },
+  trendingSets: { flex: 1, fontSize: 12, fontWeight: '800', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.5 },
 
   countdownBox: { alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.purple + '18', borderRadius: 8, borderWidth: 1, borderColor: theme.colors.purple + '44', paddingHorizontal: 8, paddingVertical: 4, minWidth: 64 },
   countdownLabel: { fontSize: 7, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },

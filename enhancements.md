@@ -210,8 +210,12 @@ A 60-second onboarding game: "We'll show you 5 pairs of combos. Pick which one y
 **Header copy:** `30-DAY ENERGY · {scope}    today {N} · avg {M}`. Subscriber-voice — no "rolling window" or "n=30" framing.
 **Edge cases:** suppressed entirely when `< 2` data points (avoids a meaningless one-dot chart).
 
-### 5.6 "Hot box-sets right now" surface (P2)
-Above the slate, a small live ticker: "🔥 Trending box-sets: {2,4,8} · {0,6,9} · {1,3,7} — these are the box-sets the engine ranked highest across all 3 scopes today." Helpful for users who play across scopes. **Effort: 3 hours.**
+### 5.6 "Hot box-sets right now" surface (P2) — ✅ Shipped 2026-05-12
+**Where:** Home, between the loss/hit banner area and the ZK6 PICKS section.
+**Renders:** `🔥 TRENDING   {2,4,8}  ·  {0,6,9}  ·  {1,3,7}` in an amber-tinted band.
+**Logic:** new useQuery in `index.tsx` fetches today's snapshots for all 3 scopes (latest per scope wins). Each K6 pick's comboSet is aggregated; sets are ranked by (1) scope agreement count (a set appearing in 2 or 3 scopes' K6 ranks above a single-scope set), then (2) best energy across those scopes. Top 3 surface in the band.
+**Empty state:** band suppressed when no snapshots exist for today.
+**Why useful:** subscribers who play across scopes get a one-line "engine consensus" view without flipping between scopes manually.
 
 ---
 
@@ -336,6 +340,28 @@ If we had to pick **just 8 things** to ship in the next 30 days, in priority ord
 **Total effort: ~10-12 days of one engineer.** Combined expected impact: noticeably higher conversion, materially higher retention, and (most importantly) a viscerally different feeling of "this app cares about my outcomes."
 
 ---
+
+## Locked-pick layout + ad-gated reveal (added 2026-05-12)
+
+**Problem (user-flagged):** on the free tier, picks 1–4 each rendered as their own ~64px locked card with a `UPGRADE TO ORACLE+` pill — 4 cards × ~64px = ~256px of dead space on Home and Slates list view. Eats vital real estate, and the same upgrade affordance is repeated 4×.
+
+**Shipped 2026-05-12 — visual compression + stubbed ad UI:**
+- New `components/LockedPicksSummary.tsx` — single ~140px card replacing the 4 stacked locked cards. Shows `4 HIDDEN PICKS · Top-ranked · Oracle+ only` header, then 4 compact rows (`#1 ●●● [👁 Watch ad]` ... `#4 ●●● [👁 Watch ad]`), then a footer link `♛ Or upgrade for full access →`. Saves ~120px per surface.
+- Wired into `app/(tabs)/index.tsx` Home and `app/(tabs)/explore.tsx` Slates list view. Grid view (Slates compact mode) intentionally unchanged — it shows all 6 picks in a 2×3 layout that's already screenshot-friendly.
+- "Watch ad" button currently stubbed: tapping it shows a toast "👁 Watch-to-unlock launches soon — upgrade for instant access" and opens the paywall. UI is forward-compatible with a real rewarded-ad SDK; only the `onWatchAd` handler swap is needed.
+
+**Deferred — real rewarded-ad SDK integration (Phase 3-adjacent):**
+- **Library:** `react-native-google-mobile-ads` (Invertase). The legacy `expo-ads-admob` is deprecated as of Expo SDK 46+ and removed from Expo Go.
+- **Blocker:** native build pipeline. The library does not work in Expo Go; needs EAS Build + dev builds. Same blocker as §1.4 phase 2 (push) and §3.1 phase 3 (paid streak restore).
+- **Setup checklist when unblocked:**
+  1. Add `react-native-google-mobile-ads` + `expo-build-properties` + `expo-tracking-transparency` to package.json.
+  2. Add the Expo config plugin to `app.config.ts` with `androidAppId` and `iosAppId` (placeholder until AdMob account exists).
+  3. Create Google AdMob publisher account; verify ownership via App Store / Play Store listing.
+  4. Create a rewarded ad unit; replace `TestIds.REWARDED` with the production unit ID.
+  5. Replace the `handleAdTap` stub in `index.tsx` and `explore.tsx` with a `RewardedAd.createForAdRequest().show()` flow that, on `EARNED_REWARD` event, marks the specific pick rank as unlocked for the session in component state.
+  6. Per-session unlock cap recommended (e.g., 1 unlock per ad, max 4/day) to balance ad-fill against revenue dilution.
+- **Revenue at scale:** rewarded video eCPM in tier-1 markets is **$15-$40** per 1000 ad views per AppLovin's 2025 benchmarks. Even modest free-tier engagement could meaningfully offset paywall friction.
+- **Note on policy:** AdMob restricts ads on gambling apps but explicitly permits lottery analytics / data tools. HitMaster qualifies as analytics — no wagering occurs in the app.
 
 ## What this document is NOT
 

@@ -36,6 +36,7 @@ import { useScope } from '@/hooks/useScope';
 import { useDataIngestion } from '@/hooks/useDataIngestion';
 import { useAuth } from '@/hooks/useAuth';
 import { PickCard, PickItem } from '@/components/PickCard';
+import { LockedPicksSummary } from '@/components/LockedPicksSummary';
 import { PickDetailModal } from '@/components/PickDetailModal';
 import { Paywall } from '@/components/Paywall';
 import { HeatCheckModal } from '@/components/HeatCheckModal';
@@ -512,13 +513,28 @@ export default function SlatesScreen() {
               contentContainerStyle={s.listContent}
               refreshControl={<NeonRefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} tintColor={theme.colors.primary} />}
             >
-              {filtered.map((pick, i) => (
-                <PickCard
-                  key={`${pick.rank}-${pick.combo}-${i}`} pick={pick}
-                  onTap={pick.locked ? undefined : () => setDetail(pick)}
-                  onUnlock={() => setPaywallOpen(true)}
-                />
-              ))}
+              {(() => {
+                const locked = filtered.filter(p => p.locked);
+                const unlocked = filtered.filter(p => !p.locked);
+                const handleAdTap = (_rank: number) => {
+                  showToast('👁 Watch-to-unlock launches soon — upgrade for instant access', 'info');
+                  setPaywallOpen(true);
+                };
+                return (
+                  <>
+                    {locked.length > 0 && (
+                      <LockedPicksSummary lockedPicks={locked} onUnlock={() => setPaywallOpen(true)} onWatchAd={handleAdTap} />
+                    )}
+                    {unlocked.map((pick, i) => (
+                      <PickCard
+                        key={`${pick.rank}-${pick.combo}-${i}`} pick={pick}
+                        onTap={() => setDetail(pick)}
+                        onUnlock={() => setPaywallOpen(true)}
+                      />
+                    ))}
+                  </>
+                );
+              })()}
             </ScrollView>
           )}
         </>

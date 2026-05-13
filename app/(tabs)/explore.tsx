@@ -263,17 +263,22 @@ export default function SlatesScreen() {
 
   const todayStr = useMemo(() => getTodayET(), []);
   const { followed: followedStates, toPostgrestFilter } = useFollowedStates();
-  const hitStateFilter = toPostgrestFilter().replace('jurisdiction=', 'hit_state=');
+  const matchedStateFilter = toPostgrestFilter().replace('jurisdiction=', 'matched_state=');
 
-  // Cross-scope hit feed (enhancements §5.1) — all K6 hits today across
-  // every scope and jurisdiction. Surfaces social proof beyond the user's
-  // current scope filter. Only fetched when the Hits tab is active. Filtered
-  // to followed states (§3.4) when any are set.
-  const { data: feedHits = [] } = useQuery<Array<{ scope: string; combo: string; rank: number; hit_state: string; hit_session: string; hit_box: boolean; hit_straight: boolean }>>({
-    queryKey: ['hit_feed_today', todayStr, followedStates.join(',')],
+  // Hit feed (Hits tab) reads from adaptive_tracking — the canonical multi-row
+  // hit log. Critical for two reasons:
+  //   1. Survives slate regens. Each regen produces a new slate_hash; older
+  //      hits stay in adaptive_tracking under the old hash. daily_intelligence
+  //      would lose them when the soft-delete happens on regen.
+  //   2. Multi-state hits visible. One pick can match in multiple jurisdictions
+  //      (today: 916 box-set {1,6,9} hit BOTH WI 619 AND ME,NH,VT 196).
+  //      daily_intelligence has 1 row per pick; adaptive_tracking has one
+  //      row per (pick × matched_state) so secondaries surface naturally.
+  const { data: feedHits = [] } = useQuery<Array<{ scope: string; combo: string; rank: number; matched_state: string; matched_session: string; hit_box: boolean; hit_straight: boolean; actual_result: string | null }>>({
+    queryKey: ['hit_feed_today_adaptive', todayStr, followedStates.join(',')],
     queryFn: async () => {
       const rows = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/daily_intelligence?slate_date=eq.${todayStr}&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${hitStateFilter}&select=scope,combo,rank,hit_state,hit_session,hit_box,hit_straight&order=hit_session.asc&limit=200`,
+        path: `/rest/v1/adaptive_tracking?slate_date=eq.${todayStr}&hit_box=eq.true&mode=eq.balanced${matchedStateFilter}&select=scope,combo,rank,matched_state,matched_session,hit_box,hit_straight,actual_result&order=matched_session.asc&limit=200`,
       });
       return Array.isArray(rows) ? rows : [];
     },
@@ -283,18 +288,35 @@ export default function SlatesScreen() {
   });
   const feedHitsValid = useMemo(() => {
     // BUG-132 defense in depth — only show hits whose slate scope matches
-    // the hit session (or scope=allday, which matches anything).
+    // the hit session (or scope=allday, which matches any session per the
+    // user convention saved 2026-05-13).
     const sessionOrder: Record<string, number> = { morning: 0, midday: 1, evening: 2, night: 3 };
     return feedHits
       .filter(h => {
         const s = (h.scope ?? '').toLowerCase();
-        const sess = (h.hit_session ?? '').toLowerCase();
+        const sess = (h.matched_session ?? '').toLowerCase();
         if (s === 'allday') return true;
         if (!sess) return true;
         return s === sess;
       })
-      .sort((a, b) => (sessionOrder[a.hit_session?.toLowerCase()] ?? 9) - (sessionOrder[b.hit_session?.toLowerCase()] ?? 9));
+      .sort((a, b) => (sessionOrder[a.matched_session?.toLowerCase()] ?? 9) - (sessionOrder[b.matched_session?.toLowerCase()] ?? 9));
   }, [feedHits]);
+
+  // Scope-filtered Today's hits — same source as the feed but narrowed to
+  // the user's currently-selected scope. Surfaces hits even after a slate
+  // regen produced different picks (regenerated slates don't carry the
+  // hit annotations from the prior slate_hash).
+  const { data: scopedHits = [] } = useQuery<Array<{ combo: string; rank: number; matched_state: string; matched_session: string; hit_box: boolean; hit_straight: boolean; actual_result: string | null }>>({
+    queryKey: ['hits_today_scope', todayStr, scope, followedStates.join(',')],
+    queryFn: async () => {
+      const rows = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/adaptive_tracking?slate_date=eq.${todayStr}&scope=eq.${encodeURIComponent(scope)}&hit_box=eq.true&mode=eq.balanced${matchedStateFilter}&select=combo,rank,matched_state,matched_session,hit_box,hit_straight,actual_result&order=rank.asc&limit=50`,
+      });
+      return Array.isArray(rows) ? rows : [];
+    },
+    enabled: tab === 'hits',
+    staleTime: 60 * 1000,
+  });
 
   // "Show yesterday" toggle + yesterdaySnap useQuery removed — the original
   // implementation fetched a snapshot but never consumed it in the picks tab,
@@ -389,17 +411,25 @@ export default function SlatesScreen() {
     });
   }, [activePicks, snapshot, isFree, scope]);
 
-  const slateHitItems = useMemo((): PickItem[] => hitPicks.map((row: any, idx) => ({
-    rank: row.rank ?? (idx + 1), combo: row.combo ?? '---',
-    comboSet: row.comboSet ?? toComboSet(row.combo ?? ''),
-    energy: typeof row.energy === 'number' ? row.energy : 0,
-    signals: {
-      BOX: Number(row.signals?.BOX ?? row.box ?? 0), PBURST: Number(row.signals?.PBURST ?? row.pburst ?? 0),
-      CO: Number(row.signals?.CO ?? row.co ?? 0), DGC: Number(row.signals?.DGC ?? 0),
-    },
+  // slateHitItems is the data behind the "Today's hits" section in the Hits
+  // tab. It now sources from `scopedHits` (adaptive_tracking, scope-filtered
+  // by current selection) — NOT from useSnapshot().hitPicks any more, because
+  // hitPicks comes from the CURRENT snapshot which can be a fresh post-hit
+  // regen whose picks intentionally excluded already-drawn box-sets, leaving
+  // zero hit annotations on the active slate. adaptive_tracking preserves
+  // hits across slate_hash regenerations.
+  const slateHitItems = useMemo((): PickItem[] => scopedHits.map((row, idx) => ({
+    rank: row.rank ?? (idx + 1),
+    combo: row.combo ?? '---',
+    comboSet: toComboSet(row.combo ?? ''),
+    energy: 0,
+    signals: { BOX: 0, PBURST: 0, CO: 0, DGC: 0 },
     locked: false,
-    hitType: row.hitType as 'straight' | 'box', hitState: row.hitState, hitSession: row.hitSession, hitResult: row.hitResult,
-  })), [hitPicks]);
+    hitType: (row.hit_straight ? 'straight' : 'box') as 'straight' | 'box',
+    hitState: row.matched_state ?? undefined,
+    hitSession: row.matched_session ?? undefined,
+    hitResult: row.actual_result ?? undefined,
+  })), [scopedHits]);
 
   const filtered = useMemo(() => {
     let p = [...rawItems];
@@ -602,20 +632,20 @@ export default function SlatesScreen() {
           ) : (
             <View style={{ gap: 5 }}>
               {feedHitsValid.map((h, i) => {
-                const sessIcon = h.hit_session === 'midday' ? '☀️' : h.hit_session === 'evening' ? '🌙' : h.hit_session === 'morning' ? '🌅' : h.hit_session === 'night' ? '🌑' : '◈';
+                const sessIcon = h.matched_session === 'midday' ? '☀️' : h.matched_session === 'evening' ? '🌙' : h.matched_session === 'morning' ? '🌅' : h.matched_session === 'night' ? '🌑' : '◈';
                 const tint = scopeAccent(h.scope);
                 const isStraight = !!h.hit_straight;
                 return (
-                  <View key={`${h.scope}-${h.combo}-${h.hit_state}-${h.hit_session}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, backgroundColor: tint + '0E', borderRadius: 8, borderLeftWidth: 3, borderLeftColor: tint }}>
+                  <View key={`${h.scope}-${h.combo}-${h.matched_state}-${h.matched_session}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, backgroundColor: tint + '0E', borderRadius: 8, borderLeftWidth: 3, borderLeftColor: tint }}>
                     <Text style={{ fontSize: 14 }}>{sessIcon}</Text>
                     <Text style={{ fontSize: 16, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 3, color: theme.colors.text, minWidth: 56 }}>{h.combo}</Text>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 11, color: theme.colors.textSecondary }}>
                         <Text style={{ color: tint, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold }}>{h.scope}</Text>
                         {' · '}
-                        <Text style={{ fontWeight: '700', color: theme.colors.text }}>{h.hit_state}</Text>
+                        <Text style={{ fontWeight: '700', color: theme.colors.text }}>{h.matched_state}</Text>
                         {' · '}
-                        {h.hit_session}
+                        {h.matched_session}
                       </Text>
                     </View>
                     <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1, borderColor: isStraight ? theme.colors.gold + '88' : theme.colors.cyan + '88', backgroundColor: isStraight ? theme.colors.gold + '18' : theme.colors.cyan + '14' }}>

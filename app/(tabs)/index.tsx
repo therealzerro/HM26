@@ -516,7 +516,7 @@ export default function HomeScreen() {
         <LinearGradient colors={theme.gradients.header} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={s.header}>
           <View style={s.headerTop}>
             <View style={{ flex: 1 }}>
-              <Text style={s.title}>Today's <Text style={{ color: theme.colors.cyan }}>Slates</Text> ⚡</Text>
+              <Text style={s.title}>Today's <Text style={{ color: theme.colors.cyan }}>Picks</Text> ⚡</Text>
               <Text style={s.subtitle}>Powered by ZK6 Engine</Text>
             </View>
             <View style={{ alignItems: 'flex-end', gap: 4 }}>
@@ -615,7 +615,7 @@ export default function HomeScreen() {
         {/* ── K6 SLATE — THE HERO ── */}
         <View style={s.slateSection}>
           <View style={s.slateSectionHdr}>
-            <Text style={s.slateSectionTitle}>K6 <Text style={{ color: theme.colors.cyan }}>SLATE</Text></Text>
+            <Text style={s.slateSectionTitle}>ZK6 <Text style={{ color: theme.colors.cyan }}>PICKS</Text></Text>
             {slateConfidence && !snapshotLoading && (
               <View style={[s.confPill, { borderColor: slateConfidence.color + '66', backgroundColor: slateConfidence.color + '14' }]}>
                 <Text style={[s.confPillText, { color: slateConfidence.color }]}>{slateConfidence.label}</Text>
@@ -720,16 +720,16 @@ const s = StyleSheet.create({
   scopeBtnText: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: '500' },
   scopeBtnTextOn: { color: theme.colors.cyan, fontWeight: '700' },
 
-  heroStat: { flexDirection: 'row', alignItems: 'stretch', marginHorizontal: 16, marginTop: 16, paddingHorizontal: 12, paddingVertical: 14, backgroundColor: theme.colors.bgElevated, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border },
+  heroStat: { flexDirection: 'row', alignItems: 'stretch', marginHorizontal: 16, marginTop: 12, paddingHorizontal: 10, paddingVertical: 9, backgroundColor: theme.colors.bgElevated, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border },
   heroCol: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  heroColNum: { fontSize: 34, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, lineHeight: 36, letterSpacing: -1 },
-  heroColLabel: { fontSize: 9, fontWeight: '900', color: theme.colors.cyan, letterSpacing: 1.6, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 4 },
-  heroColMeta: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 1, textAlign: 'center' },
-  heroDivider: { width: 1, backgroundColor: theme.colors.border, marginHorizontal: 4 },
+  heroColNum: { fontSize: 26, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, lineHeight: 28, letterSpacing: -0.8 },
+  heroColLabel: { fontSize: 8, fontWeight: '900', color: theme.colors.cyan, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 2 },
+  heroColMeta: { fontSize: 10, color: theme.colors.textSecondary, marginTop: 0, textAlign: 'center' },
+  heroDivider: { width: 1, backgroundColor: theme.colors.border, marginHorizontal: 3 },
 
-  countdownBox: { alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.purple + '18', borderRadius: 10, borderWidth: 1, borderColor: theme.colors.purple + '44', paddingHorizontal: 10, paddingVertical: 8, minWidth: 72 },
+  countdownBox: { alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.purple + '18', borderRadius: 8, borderWidth: 1, borderColor: theme.colors.purple + '44', paddingHorizontal: 8, paddingVertical: 4, minWidth: 64 },
   countdownLabel: { fontSize: 7, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
-  countdownTime: { fontSize: 15, fontWeight: '900', color: theme.colors.purple, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 2 },
+  countdownTime: { fontSize: 13, fontWeight: '900', color: theme.colors.purple, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 1 },
 
   hitBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginTop: 12, backgroundColor: theme.colors.cyan + '18', borderRadius: 14, borderWidth: 1.5, borderColor: theme.colors.cyan + '55', padding: 12 },
   hitBannerTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold },

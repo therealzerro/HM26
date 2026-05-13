@@ -130,8 +130,18 @@ The app needs to be the first thing they check in the morning and the last thing
 ### 3.2 "Tomorrow's slate" preview at 9 PM ET (P2)
 After the evening draw at 7:30 PM, around 9 PM ET show a card on Home: "Tomorrow's slate is being prepared — first analysis runs at 4 AM ET." Optional bell icon: "Notify me when ready." This turns "I'll check tomorrow" into "I'll be notified when the next slate drops." **Effort: half-day.**
 
-### 3.3 Daily summary widget (push or in-app card) (P1)
-A push notification each evening: "Today's recap: 1 BOX hit (Mississippi 065 → pick #2). Tomorrow's slate generates at 4 AM. Tap to view yesterday's analysis." Subscribers who didn't open the app during the day get pulled back at the moment of peak relevance. **Effort: 1 day.**
+### 3.3 Daily summary widget (push or in-app card) (P1) — ✅ In-app variant Shipped 2026-05-13
+**New component:** `components/DailyRecapCard.tsx`. Renders on Home below the LastHitPill (between LastHitPill and the unified hero band).
+**Visibility:** ET hour ≥ 20 (after 8 PM) **AND** at least one verified K6 hit today (in followed states, if any). Naturally disappears at midnight as the ET date rolls forward. Hidden during the day so it doesn't compete with the in-progress hit banner.
+**Content:**
+- Header: `📊 TODAY'S RECAP ›`
+- Line 1: `N verified hits today · ⭐ X straight · 🎯 Y box`
+- Line 2: `Top: 487 STRAIGHT in MS evening` (prefers straights, then latest session)
+- Line 3 (italic): `Tomorrow's slate is fresh after the evening import lands.`
+**Tap:** opens `/track-record` for the full receipts view.
+**Honest copy:** doc spec said "Tomorrow's slate generates at 4 AM." Skipped — there is no 4 AM auto-regen. The current pipeline regenerates after the evening daily-input import (now automated via §C edge function trigger). Line 3 reframes this truthfully.
+**Push variant deferred:** doc envisioned an evening push pulling users back at peak relevance. Requires §1.4 phase 2 native pipeline. Hook + content already structured so the push payload is a direct copy of the in-app card text when push lands.
+**Followed-states aware:** filters via the same `hit_state` clause used by Last-Hit pill, Track Record, etc. Empty followed = show all.
 
 ### 3.4 Per-jurisdiction follow lists (P2) — ✅ Phase 1 Shipped 2026-05-13 (filter; push deferred)
 **New hook:** `hooks/useFollowedStates.tsx` — context provider with `followed` (string[]), `toggle()`, `clear()`, and `toPostgrestFilter()` (returns `&jurisdiction=in.(A,B,C)` or empty string when no follows are set). Persists to AsyncStorage key `followed_states_v1`. Wrapped at the app root in `_layout.tsx`.

@@ -51,6 +51,7 @@ import { CosmicBackground } from '@/components/CosmicBackground';
 import { TrialOfferBanner } from '@/components/TrialOfferBanner';
 import { BudgetPlanner } from '@/components/BudgetPlanner';
 import { LastHitPill } from '@/components/LastHitPill';
+import { DailyRecapCard } from '@/components/DailyRecapCard';
 import { useCoffeeMode } from '@/hooks/useCoffeeMode';
 import { scopeAccent } from '@/lib/scopeAccent';
 import { EnergySparkline } from '@/components/EnergySparkline';
@@ -732,6 +733,9 @@ export default function HomeScreen() {
 
         {/* §4.2 — last-hit pill (suppressed if no hit in last 7 days) */}
         <LastHitPill />
+
+        {/* §3.3 — daily recap card (after 8 PM ET when hits exist) */}
+        <DailyRecapCard />
 
         {/* ── Unified hero: avg energy · hit rate · next draw (enhancements §1.3) ── */}
         <View style={s.heroStat}>

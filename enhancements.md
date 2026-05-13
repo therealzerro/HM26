@@ -335,8 +335,11 @@ Today the paywall (`app/paywall.tsx:69`) defaults `selectedPlan` to `trial5`. Pr
 
 These are smaller polish ideas. None individually move the needle, but together they raise the "this app looks like the team cares" floor.
 
-### 8.1 Replace 🏠 home-tab emoji with a custom HitMaster crown glyph
-The tab bar (`_layout.tsx:67`) uses raw emojis. On some Android skins these render inconsistently. Migrate to lucide-react-native icons (already imported elsewhere) for consistency. Use `Crown` for Home, `Zap` for Slates, `Target` for Results, `Bookmark` for Book, `GraduationCap` for Learn, `User` for Profile. **Effort: 1 hour.**
+### 8.1 Replace 🏠 home-tab emoji with a custom HitMaster crown glyph — ✅ Shipped 2026-05-12
+**Where:** `app/(tabs)/_layout.tsx` — `TabIcon` rewritten to take a lucide `Icon` component instead of an emoji string.
+**Mapping:** Home=`Crown`, Slates=`Zap`, Results=`ClipboardList`, Number Book=`BookMarked`, Learn=`GraduationCap`, Profile=`User`. (Doc spec said `Target` for Results and `Bookmark` for Book — substituted `ClipboardList` because Target visually overlaps with the slate energy/hit semantics, and `BookMarked` because plain Bookmark looks more like a save action than a list of saved numbers.)
+**Visual treatment:** focused = 22px cyan icon at strokeWidth 2.4; unfocused = 19px tertiary-text icon at strokeWidth 2. Stale-tab badge dot still rendered top-right when applicable.
+**Why:** raw emojis render inconsistently across Android skins (some show outline-only, some show flat color, some show OS-specific replacements). Lucide icons render identically across platforms and respect the active/inactive color tokens automatically.
 
 ### 8.2 The cosmic background is wasted in many places — ✅ Shipped 2026-05-12
 **New component:** `components/CosmicBackground.tsx` — full-screen `LinearGradient` (cyan→purple diagonal from `theme.gradients.cyanPurple`) at default `opacity: 0.06`. Uses `StyleSheet.absoluteFillObject` + `pointerEvents="none"` so it sits behind everything and doesn't intercept taps.

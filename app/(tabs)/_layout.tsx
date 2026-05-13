@@ -1,32 +1,37 @@
 import { Tabs } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
-import { Text, View, StyleSheet } from 'react-native';
+import React, { useEffect, useMemo, useState, ComponentType } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
 import { storage } from '@/lib/storage';
 import { fetchFromSupabase } from '@/lib/supabase';
+import { Crown, Zap, ClipboardList, BookMarked, GraduationCap, User } from 'lucide-react-native';
+
+interface LucideIconProps { size?: number; color?: string; strokeWidth?: number }
 
 function TabIcon({
-  emoji,
+  Icon,
   label,
   focused,
   hasBadge,
 }: {
-  emoji: string;
+  Icon: ComponentType<LucideIconProps>;
   label: string;
   focused: boolean;
   hasBadge?: boolean;
 }) {
   return (
-    <View style={[styles.iconWrap, focused && styles.iconWrapFocused]}>
-      <Text
-        style={[styles.icon, focused && styles.iconFocused]}
-        accessible
-        accessibilityLabel={hasBadge ? `${label} — new hits` : label}
-        accessibilityRole="image"
-      >
-        {emoji}
-      </Text>
+    <View
+      style={[styles.iconWrap, focused && styles.iconWrapFocused]}
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={hasBadge ? `${label} — new hits` : label}
+    >
+      <Icon
+        size={focused ? 22 : 19}
+        color={focused ? theme.colors.cyan : theme.colors.textTertiary}
+        strokeWidth={focused ? 2.4 : 2}
+      />
       {hasBadge && <View style={styles.badge} />}
     </View>
   );
@@ -110,42 +115,42 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" label="Home" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon Icon={Crown} label="Home" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Slates',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="⚡" label="Slates" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon Icon={Zap} label="Slates" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="results"
         options={{
           title: 'Results',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📋" label="Results" focused={focused} hasBadge={hasUnviewedHits} />,
+          tabBarIcon: ({ focused }) => <TabIcon Icon={ClipboardList} label="Results" focused={focused} hasBadge={hasUnviewedHits} />,
         }}
       />
       <Tabs.Screen
         name="book"
         options={{
           title: 'Number Book',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📖" label="Number Book" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon Icon={BookMarked} label="Number Book" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="learn"
         options={{
           title: 'Learn',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🎓" label="Learn" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon Icon={GraduationCap} label="Learn" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="account"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="♛" label="Profile" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon Icon={User} label="Profile" focused={focused} />,
         }}
       />
       <Tabs.Screen name="zk30" options={{ href: null }} />
@@ -175,8 +180,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  icon: { fontSize: 18, opacity: 0.7 },
-  iconFocused: { fontSize: 20, opacity: 1 },
   badge: {
     position: 'absolute',
     top: 0,

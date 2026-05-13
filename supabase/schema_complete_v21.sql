@@ -240,11 +240,16 @@ CREATE TABLE public.adaptive_tracking (
   -- can draw simultaneously in multiple states/sessions; these record the
   -- chosen one). Added via migration 2026-05-13_adaptive_tracking_matched_columns.sql
   matched_state        text,
-  matched_session      text
+  matched_session      text,
+  -- 2026-05-13 (E5): which signal dominated the pick — BOX, PBURST, CO,
+  -- or DGC. Computed once at slate-gen time, persists for the row's
+  -- lifetime. Enables "hits where DGC was dominant" style analysis.
+  dominant_signal      text
 );
 
-CREATE INDEX adaptive_date_scope_idx   ON public.adaptive_tracking(slate_date, scope);
-CREATE INDEX adaptive_matched_state_idx ON public.adaptive_tracking(matched_state) WHERE matched_state IS NOT NULL;
+CREATE INDEX adaptive_date_scope_idx       ON public.adaptive_tracking(slate_date, scope);
+CREATE INDEX adaptive_matched_state_idx    ON public.adaptive_tracking(matched_state) WHERE matched_state IS NOT NULL;
+CREATE INDEX adaptive_dominant_signal_idx  ON public.adaptive_tracking(dominant_signal) WHERE dominant_signal IS NOT NULL;
 CREATE INDEX adaptive_hash_idx       ON public.adaptive_tracking(slate_hash);
 CREATE INDEX adaptive_hit_idx        ON public.adaptive_tracking(hit_box) WHERE hit_box IS NOT NULL;
 

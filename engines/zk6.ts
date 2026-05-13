@@ -1162,6 +1162,68 @@ export async function computeSlate({
     } catch (e) {
       console.error('[zk6v2] daily_intelligence write FAILED — date will not increment:', String(e));
     }
+
+    // ─── E1+E2+E5: adaptive_tracking K6 primary rows ──────────────────────
+    // One row per K6 pick at slate-gen time with full signals + quartile
+    // flags + dominant_signal. Outcome columns (hit_box, hit_straight,
+    // actual_result, matched_state) stay NULL until hit detection runs.
+    // Together with hitDetection's UPSERT-style update path, this gives
+    // adaptive_tracking complete signal/outcome pairs across BOTH hits and
+    // misses — the foundation the Calibration Dashboard + intel:propose
+    // need for real AUC analysis.
+    try {
+      // Quartile thresholds — top-25% of the top30PreRail pool per signal.
+      const q75 = (vals: number[]) => {
+        const sorted = [...vals].sort((a, b) => a - b);
+        return sorted.length === 0 ? 0 : sorted[Math.floor(sorted.length * 0.75)] ?? 0;
+      };
+      const boxQ75    = q75(top30PreRail.map(p => p.signals.BOX));
+      const pburstQ75 = q75(top30PreRail.map(p => p.signals.PBURST));
+      const coQ75     = q75(top30PreRail.map(p => p.signals.CO));
+      const dgcQ75    = q75(top30PreRail.map(p => p.signals.DGC ?? 0));
+
+      const atRows = k6.map((x, idx) => {
+        const bs = x.boxS, ps = x.pburstS, cs = x.coS, ds = x.dgcS;
+        const dominant =
+          bs >= ps && bs >= cs && bs >= ds ? 'BOX' :
+          ps >= cs && ps >= ds              ? 'PBURST' :
+          cs >= ds                          ? 'CO' : 'DGC';
+        return {
+          slate_date: effectiveDate,
+          scope,
+          slate_hash: hash,
+          rank: idx + 1,
+          combo: x.combo,
+          combo_set: x.normKey,
+          signal_box:    bs,
+          signal_pburst: ps,
+          signal_co:     cs,
+          signal_dgc:    ds,
+          energy_score:  x.energy,
+          mode: weightsKey,
+          // Outcome left NULL — hit detection fills these:
+          // hit_box, hit_straight, actual_result, actual_set,
+          // matched_state, matched_session, result_at.
+          box_top_quartile:    bs >= boxQ75,
+          pburst_top_quartile: ps >= pburstQ75,
+          co_top_quartile:     cs >= coQ75,
+          burst_top_quartile:  ps >= pburstQ75,  // legacy alias of pburst
+          dominant_signal: dominant,
+        };
+      });
+      // Idempotent: regen will overwrite via merge-duplicates on (slate_hash, rank, combo).
+      // No unique constraint exists, so successive regens just append historical
+      // rows — that's fine since slate_hash differs per regen.
+      await fetchFromSupabase({
+        path: '/rest/v1/adaptive_tracking',
+        method: 'POST',
+        headers: { 'Prefer': 'return=minimal' },
+        body: atRows,
+      });
+      console.log('[zk6v2] adaptive_tracking: wrote', atRows.length, 'K6 primary rows');
+    } catch (e) {
+      console.warn('[zk6v2] adaptive_tracking pre-write failed:', String(e));
+    }
   }
 
   return snapshot;

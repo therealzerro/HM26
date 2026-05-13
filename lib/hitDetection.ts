@@ -56,32 +56,68 @@ async function recordHitInAdaptiveTracking(pick: any, result: any, snapshot: any
   const boxS = pick.box ?? pick.signals?.BOX ?? 0;
   const pburstS = pick.pburst ?? pick.signals?.PBURST ?? 0;
   const coS = pick.co ?? pick.signals?.CO ?? 0;
-  const dominantSignal = boxS > pburstS && boxS > coS ? 'BOX' : pburstS > coS ? 'PBURST' : 'CO';
+  const dgcS = pick.dgc ?? pick.signals?.DGC ?? 0;
+  const dominantSignal =
+    boxS >= pburstS && boxS >= coS && boxS >= dgcS ? 'BOX' :
+    pburstS >= coS && pburstS >= dgcS              ? 'PBURST' :
+    coS >= dgcS                                    ? 'CO' : 'DGC';
+  const comboSet = pick.comboSet ?? pick.normKey;
+  const isBox = result.comboset_sorted === comboSet;
+  const isStraight = result.result_digits === pick.combo;
+  const slateHash = snapshot.hash ?? '';
+  const mode = snapshot.mode || 'balanced';
+  const outcomeFields = {
+    hit_box: isBox || isStraight,
+    hit_straight: isStraight,
+    actual_result: result.result_digits,
+    actual_set: result.comboset_sorted,
+    matched_state: result.jurisdiction,
+    matched_session: result.session,
+    dominant_signal: dominantSignal,
+    result_at: new Date().toISOString(),
+  };
+
   try {
+    // E1: slate generation pre-writes one primary row per K6 pick with
+    // NULL outcome. Hit detection's FIRST match should UPDATE that row.
+    // Subsequent matches (multi-state hits) INSERT secondary rows because
+    // there's no per-pick uniqueness on adaptive_tracking.
+    //
+    // Lookup: primary row = (slate_hash, rank, combo, mode, matched_state IS NULL)
+    const existing = await fetchFromSupabase<any[]>({
+      path: `/rest/v1/adaptive_tracking?slate_hash=eq.${encodeURIComponent(slateHash)}&rank=eq.${pick.rank}&combo=eq.${pick.combo}&mode=eq.${encodeURIComponent(mode)}&matched_state=is.null&select=id&limit=1`,
+    });
+    if (Array.isArray(existing) && existing.length > 0) {
+      // PATCH the pre-written primary row in place
+      await fetchFromSupabase({
+        path: `/rest/v1/adaptive_tracking?id=eq.${existing[0].id}`,
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=minimal' },
+        body: outcomeFields,
+      });
+      return;
+    }
+    // Fallback: no primary row pre-written (legacy slate, or secondary
+    // multi-state match for a pick whose primary row was already
+    // UPDATED). INSERT a new row including the snapshot-time signals.
     await fetchFromSupabase({
       path: '/rest/v1/adaptive_tracking',
       method: 'POST',
-      headers: { 'Prefer': 'resolution=merge-duplicates' },
+      headers: { 'Prefer': 'return=minimal' },
       body: {
         slate_date: date,
         scope: snapshot.scope,
-        slate_hash: snapshot.hash,
+        slate_hash: slateHash,
         rank: pick.rank,
         combo: pick.combo,
-        combo_set: pick.comboSet ?? pick.normKey,
+        combo_set: comboSet,
         signal_box: boxS,
         signal_pburst: pburstS,
         signal_co: coS,
+        signal_dgc: dgcS,
         energy_score: pick.temperature ?? pick.energy ?? 0,
-        mode: snapshot.mode || 'balanced',
-        hit_box: result.comboset_sorted === (pick.comboSet ?? pick.normKey),
-        hit_straight: result.result_digits === pick.combo,
-        actual_result: result.result_digits,
-        actual_set: result.comboset_sorted,
-        matched_state: result.jurisdiction,
-        matched_session: result.session,
-        dominant_signal: dominantSignal,
-        result_at: new Date().toISOString(),
+        mode,
+        ...outcomeFields,
       },
     });
   } catch (e) {

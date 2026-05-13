@@ -431,7 +431,7 @@ export default function SlatesScreen() {
   }, [savingSlate, rawItems, scope]);
 
   return (
-    <SafeAreaView style={s.container} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={s.container} edges={['top', 'left', 'right', 'bottom']}>
       <CosmicBackground />
       {/* ── Header (shared ScreenHeader — design.md step 3; freshness via FreshnessLine — step 5) ── */}
       <ScreenHeader

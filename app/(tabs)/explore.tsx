@@ -54,6 +54,7 @@ import { RegenConfirmationModal } from '@/components/RegenConfirmationModal';
 import { ScopeSegment } from '@/components/ScopeSegment';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { HitCard } from '@/components/HitCard';
+import { FreshnessLine } from '@/components/FreshnessLine';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { useToast } from '@/components/Toast';
 import { NeonRefreshControl } from '@/components/NeonRefreshControl';
@@ -72,9 +73,6 @@ function tempLabel(e: number): string {
   if (e >= 60) return 'WARM';
   if (e >= 40) return 'MILD';
   return 'COLD';
-}
-function getETTime() {
-  return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York' }) + ' ET';
 }
 
 const SCOPE_LABELS: Record<string, string> = { midday: '☀️ Midday', evening: '🌙 Evening', allday: '◈ All Day' };
@@ -435,24 +433,10 @@ export default function SlatesScreen() {
   return (
     <SafeAreaView style={s.container} edges={['left', 'right', 'bottom']}>
       <CosmicBackground />
-      {/* ── Status strip ── */}
-      <View style={s.statusStrip}>
-        <View style={s.liveDot} />
-        <Text style={s.stripText}>{getETTime()} ET</Text>
-        {snapshot?.updated_at_et && (
-          <Text style={s.stripFreshness}>
-            · {(() => {
-              const mins = Math.floor((Date.now() - new Date(snapshot.updated_at_et).getTime()) / 60000);
-              return mins < 60 ? `${mins}m ago` : `${Math.floor(mins / 60)}h ago`;
-            })()}
-          </Text>
-        )}
-        {snapshot?.hash && <Text style={s.stripHash}>#{snapshot.hash.slice(-6)}</Text>}
-      </View>
-
-      {/* ── Header (shared ScreenHeader — design.md step 3) ── */}
+      {/* ── Header (shared ScreenHeader — design.md step 3; freshness via FreshnessLine — step 5) ── */}
       <ScreenHeader
         title={<Text style={s.title}>ZK6 <Text style={{ color: theme.colors.cyan }}>Picks</Text></Text>}
+        subtitle={<FreshnessLine snapshot={snapshot} />}
         rightSlot={
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             {!isFree && (
@@ -778,11 +762,9 @@ export default function SlatesScreen() {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
 
-  statusStrip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: theme.layout.screenInset, paddingVertical: 5, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-  liveDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: theme.colors.cyan },
-  stripText: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
-  stripFreshness: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, opacity: 0.7 },
-  stripHash: { fontSize: 10, color: 'rgba(255,255,255,0.25)', fontFamily: theme.typography.fontFamily.mono, marginLeft: 'auto' },
+  // status strip retired (design.md step 5) — freshness now lives in the header subtitle
+  // via components/FreshnessLine.tsx. Operator-grade fields (live-dot, hash, raw ET clock)
+  // are no longer subscriber-facing.
 
   // header layout moved to components/ScreenHeader.tsx (design.md step 3).
   title: { fontSize: 22, fontWeight: '900', color: theme.colors.text, lineHeight: 26, fontFamily: theme.typography.fontFamily.bold },

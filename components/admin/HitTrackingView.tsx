@@ -236,59 +236,62 @@ function PerformanceRow({
             </View>
           ) : expandedData ? (
             <>
-              {/* SECTION A — HIT SUMMARY */}
+              {/* SECTION A — HIT SUMMARY
+                  BUG-137 fix: source from adaptive_tracking (expandedData.trackingRows),
+                  not snapshot top_k_straights_json. After a mid-day regen the snapshot
+                  excludes already-drawn box-sets, so picks[] is post-regen empty —
+                  Section A used to show "Went 0 for 6" and multi-state hits never
+                  surfaced. adaptive_tracking is keyed by slate_hash and preserves the
+                  full hit log across regens, including secondary rows for multi-state
+                  matches (one combo, multiple matched_state entries). Group by combo
+                  so a combo that hit in 2 states still counts as 1 hit but surfaces
+                  every jurisdiction it landed in. */}
               <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>
                 Hit Summary — {formatDate(row.slate_date)} {row.scope}
               </Text>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: theme.colors.text, marginBottom: 8 }}>
-                Went {boxHits} for {totalPicks || expandedData.picks.length || 6}
-                {straightHits > 0 ? ` (${straightHits} straight)` : ''}
-              </Text>
 
-              {expandedData.picks.length > 0 ? (() => {
-                const histSet = new Map<string, any>();
-                expandedData.historyResults.forEach((r: any) => {
-                  const cs = r.comboset_sorted ?? ('{' + (r.result_digits ?? '').split('').sort().join(',') + '}');
-                  histSet.set(cs, r);
-                });
-                const picksToShow = expandedData.picks.slice(0, 6);
-                let boxHitCount = 0, straightHitCount = 0;
-                const enriched = picksToShow.map((pick: any) => {
-                  const cs = pick.comboSet ?? ('{' + (pick.combo ?? '').split('').sort().join(',') + '}');
-                  const histMatch = histSet.get(cs);
-                  const isStraightHit = pick.hitType === 'straight' || (histMatch && (histMatch.result_digits === pick.bestOrder || histMatch.result_digits === pick.combo));
-                  const isBoxHit = !!pick.hitType || !!histMatch;
-                  if (isBoxHit) boxHitCount++;
-                  if (isStraightHit) straightHitCount++;
-                  return { ...pick, isBoxHit, isStraightHit, histMatch };
-                });
+              {expandedData.trackingRows.length > 0 ? (() => {
+                // Group tracking rows by combo. Primary row holds signals + rank;
+                // additional rows for the same combo are multi-state secondaries.
+                const byCombo = new Map<string, { primary: any; matches: any[] }>();
+                for (const t of expandedData.trackingRows) {
+                  if (!t.combo) continue;
+                  if (!byCombo.has(t.combo)) byCombo.set(t.combo, { primary: t, matches: [] });
+                  const bucket = byCombo.get(t.combo)!;
+                  // Prefer the row with a rank as the canonical primary
+                  if (t.rank != null && bucket.primary.rank == null) bucket.primary = t;
+                  if (t.hit_box || t.hit_straight) bucket.matches.push(t);
+                }
+                const combos = [...byCombo.values()].sort((a, b) => (a.primary.rank ?? 99) - (b.primary.rank ?? 99));
+                const uniqueBoxHits = combos.filter(c => c.matches.length > 0).length;
+                const uniqueStraightHits = combos.filter(c => c.matches.some(m => m.hit_straight)).length;
                 const rankMedal = (r: number) => r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : `#${r}`;
                 return (
                   <View style={{ marginBottom: 12 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.text, marginBottom: 8 }}>
-                      Went {boxHitCount} for {picksToShow.length} · {boxHitCount} box hit{boxHitCount !== 1 ? 's' : ''} · {straightHitCount} straight hit{straightHitCount !== 1 ? 's' : ''}
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: theme.colors.text, marginBottom: 8 }}>
+                      Went {uniqueBoxHits} for {combos.length}
+                      {uniqueStraightHits > 0 ? ` (${uniqueStraightHits} straight)` : ''}
                     </Text>
                     <View style={{ gap: 6 }}>
-                      {enriched.map((pick: any, pi: number) => {
-                        const rank = pick.rank ?? pi + 1;
-                        const combo = pick.combo ?? '???';
+                      {combos.map((c, pi) => {
+                        const p = c.primary;
+                        const rank = p.rank ?? pi + 1;
+                        const combo = p.combo ?? '???';
                         const digits = combo.split('').join(' — ');
-                        const cs = pick.comboSet ?? ('{' + combo.split('').sort().join(',') + '}');
-                        const bestOrder = pick.bestOrder;
-                        const hasDiffOrder = bestOrder && bestOrder !== combo;
-                        const energy = pick.energy ?? pick.temperature ?? 0;
+                        const cs = p.combo_set ?? ('{' + combo.split('').sort().join(',') + '}');
+                        const energy = Math.round(p.energy_score ?? 0);
                         const energyColor = energy >= 80 ? theme.colors.success : energy >= 50 ? theme.colors.gold : theme.colors.textSecondary;
-                        const bBox = Math.round((pick.box ?? 0) * 100);
-                        const bPburst = Math.round((pick.pburst ?? 0) * 100);
-                        const bCo = Math.round((pick.co ?? 0) * 100);
-                        const hitState = pick.hitState ?? pick.histMatch?.jurisdiction;
-                        const hitSession = pick.hitSession ?? pick.histMatch?.session;
-                        const hitResult = pick.hitResult ?? pick.histMatch?.result_digits;
+                        const bBox = Math.round((p.signal_box ?? 0) * 100);
+                        const bPburst = Math.round((p.signal_pburst ?? 0) * 100);
+                        const bCo = Math.round((p.signal_co ?? 0) * 100);
+                        const isBoxHit = c.matches.length > 0;
+                        const isStraightHit = c.matches.some(m => m.hit_straight);
+                        const straightMatch = c.matches.find(m => m.hit_straight);
                         return (
                           <View key={pi} style={{
                             padding: 10, borderRadius: 10, borderWidth: 1,
-                            backgroundColor: pick.isStraightHit ? theme.colors.successLight : pick.isBoxHit ? theme.colors.gold + '14' : theme.colors.surfaceLight,
-                            borderColor: pick.isStraightHit ? theme.colors.success + '66' : pick.isBoxHit ? theme.colors.gold + '55' : theme.colors.border,
+                            backgroundColor: isStraightHit ? theme.colors.successLight : isBoxHit ? theme.colors.gold + '14' : theme.colors.surfaceLight,
+                            borderColor: isStraightHit ? theme.colors.success + '66' : isBoxHit ? theme.colors.gold + '55' : theme.colors.border,
                           }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
                               <Text style={{ fontSize: 13, marginRight: 6 }}>{rankMedal(rank)}</Text>
@@ -297,11 +300,6 @@ function PerformanceRow({
                                 <Text style={{ fontSize: 9, fontWeight: '800', color: energyColor }}>E{energy}</Text>
                               </View>
                             </View>
-                            {hasDiffOrder && (
-                              <Text style={{ fontSize: 10, color: theme.colors.gold, fontWeight: '700', marginBottom: 3 }}>
-                                Best order: {bestOrder?.split('').join(' — ')}
-                              </Text>
-                            )}
                             <Text style={{ fontSize: 9, color: theme.colors.textTertiary, marginBottom: 6 }}>{cs}</Text>
                             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 6 }}>
                               {([['Freq', bBox, theme.colors.primary], ['Mom', bPburst, theme.colors.teal], ['Pat', bCo, theme.colors.rose]] as const).map(([lbl, val, color]) => (
@@ -314,13 +312,13 @@ function PerformanceRow({
                                 </View>
                               ))}
                             </View>
-                            {pick.isStraightHit ? (
+                            {isStraightHit && straightMatch ? (
                               <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.success }}>
-                                ⭐ Straight · {hitState}{hitResult ? ` (${hitResult})` : ''}
+                                ⭐ Straight · {straightMatch.matched_state}{straightMatch.matched_session ? ` ${straightMatch.matched_session}` : ''}{straightMatch.actual_result ? ` (${straightMatch.actual_result})` : ''}
                               </Text>
-                            ) : pick.isBoxHit ? (
+                            ) : isBoxHit ? (
                               <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.gold }}>
-                                🎯 Box · {hitState} {hitSession ?? ''}
+                                🎯 Box · {c.matches.map(m => `${m.matched_state}${m.matched_session ? ` ${m.matched_session}` : ''}`).join(' · ')}
                               </Text>
                             ) : (
                               <Text style={{ fontSize: 9, color: theme.colors.textTertiary }}>✗ Miss</Text>
@@ -333,7 +331,7 @@ function PerformanceRow({
                 );
               })() : (
                 <Text style={{ fontSize: 11, color: theme.colors.textTertiary, marginBottom: 12 }}>
-                  No picks stored for this slate.{'\n'}Regenerate slates to populate pick data.
+                  No tracking data for this slate.{'\n'}Regenerate slates to populate adaptive_tracking.
                 </Text>
               )}
 
@@ -517,29 +515,45 @@ function PerformanceRow({
                 );
               })()}
 
-              {/* SECTION C — STATE BREAKDOWN */}
-              {expandedData.historyResults.length > 0 && (
-                <View style={{ marginBottom: 12 }}>
-                  <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>State Breakdown</Text>
-                  <View style={{ gap: 2 }}>
-                    {expandedData.historyResults.slice(0, 10).map((res: any, ri: number) => {
-                      const matchedPick = expandedData.picks.find((p: any) =>
-                        p.comboSet === res.comboset_sorted || (p.hitType && p.hitResult === res.result_digits)
-                      );
-                      const matched = !!matchedPick;
-                      return (
-                        <View key={ri} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 }}>
-                          <Text style={{ fontSize: 10, width: 80, color: theme.colors.textSecondary }}>{res.jurisdiction?.slice(0, 10) ?? '?'}</Text>
-                          <Text style={{ fontSize: 10, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700', color: theme.colors.text, width: 30 }}>{res.result_digits}</Text>
-                          <Text style={{ fontSize: 10, color: matched ? theme.colors.success : theme.colors.textTertiary, flex: 1 }}>
-                            {matched ? `✓ ${matchedPick.hitType} hit · Pick #${matchedPick.rank ?? '?'}` : '✗ Miss'}
-                          </Text>
-                        </View>
-                      );
-                    })}
+              {/* SECTION C — STATE BREAKDOWN
+                  BUG-137 fix: cross-reference draws against trackingRows, not picks[].
+                  Same regen-empty problem — picks[] no longer contains hit-bearing
+                  combos after a mid-day regen. trackingRows preserves the K6 set
+                  with hit annotations keyed by matched_state, so we can light up
+                  every draw that landed on one of our picks. */}
+              {expandedData.historyResults.length > 0 && (() => {
+                // Build (comboset → primary tracking row) and (combo → matched states)
+                const csToTrack = new Map<string, any>();
+                const csToRank = new Map<string, number>();
+                for (const t of expandedData.trackingRows) {
+                  if (!t.combo_set) continue;
+                  if (!csToTrack.has(t.combo_set)) csToTrack.set(t.combo_set, t);
+                  if (t.rank != null && (csToRank.get(t.combo_set) ?? 99) > t.rank) csToRank.set(t.combo_set, t.rank);
+                }
+                return (
+                  <View style={{ marginBottom: 12 }}>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>State Breakdown</Text>
+                    <View style={{ gap: 2 }}>
+                      {expandedData.historyResults.slice(0, 10).map((res: any, ri: number) => {
+                        const cs = res.comboset_sorted ?? ('{' + (res.result_digits ?? '').split('').sort().join(',') + '}');
+                        const track = csToTrack.get(cs);
+                        const matched = !!track;
+                        const isStraight = !!track && track.combo === res.result_digits;
+                        const pickRank = csToRank.get(cs);
+                        return (
+                          <View key={ri} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 }}>
+                            <Text style={{ fontSize: 10, width: 80, color: theme.colors.textSecondary }}>{res.jurisdiction?.slice(0, 10) ?? '?'}</Text>
+                            <Text style={{ fontSize: 10, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700', color: theme.colors.text, width: 30 }}>{res.result_digits}</Text>
+                            <Text style={{ fontSize: 10, color: matched ? theme.colors.success : theme.colors.textTertiary, flex: 1 }}>
+                              {matched ? `✓ ${isStraight ? 'straight' : 'box'} hit · Pick #${pickRank ?? '?'}` : '✗ Miss'}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
                   </View>
-                </View>
-              )}
+                );
+              })()}
 
               {/* SECTION D — CUMULATIVE CONTEXT */}
               {(() => {

@@ -178,8 +178,10 @@ A search box on Intelligence: "Did the engine consider 123?" → returns the ran
 ### 5.1 Community-style hit feed (P2)
 A new tab or section: "Today's hits feed" — a chronological stream of every confirmed hit on the engine across all jurisdictions. Anonymized but real: "12:34 PM · pick #4 hit Florida midday · 943." Subscribers love seeing other people winning — it's the social proof and the FOMO at once. **Effort: 1 day (data is already there).**
 
-### 5.2 Saved-pick alerts (P1)
-When a user saves a combo in Number Book, register a watcher. When that combo (or its box-set) draws anywhere, push them: "Your saved pick 459 just drew in Texas 945 evening." **Effort: 1 day.**
+### 5.2 Saved-pick alerts (P1) — ⏳ Deferred (blocked on §1.4 phase 2)
+**Spec:** when a user saves a combo in Number Book, register a watcher. When that combo (or its box-set) draws anywhere, push them: "Your saved pick 459 just drew in Texas 945 evening."
+**Why deferred:** the core deliverable here is push notification — the user gets pulled back into the app when their pick hits. Without §1.4 phase 2 (push infrastructure: token storage, Edge Function dispatcher, native FCM/APNs setup), we can only ship an in-app indicator, which is a meaningfully different UX (no re-engagement, just decoration). Better to ship this in its full form once push is wired than fragment it now.
+**Resume when:** §1.4 phase 2 ships. At that point the combo→draw matcher already exists (Number Book combos + `histories` query); the only added work is registering tokens and the per-combo cron/trigger to dispatch.
 
 ### 5.3 Heat check social share (P2)
 After running a heat check on a combo, offer a "Share this analysis" button that screenshots the breakdown into a brandable PNG. Powerful word-of-mouth tool — users explaining a heat check to friends become evangelists. **Effort: half-day.**

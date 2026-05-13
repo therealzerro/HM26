@@ -53,7 +53,25 @@ export const [FollowedStatesProvider, useFollowedStates] = createContextHook<Fol
 
   const toPostgrestFilter = useCallback(() => {
     if (!loaded || followed.length === 0) return '';
-    return `&jurisdiction=in.(${followed.map(s => encodeURIComponent(s)).join(',')})`;
+    // Expand individual ME / NH / VT follows to also include the composite
+    // `ME,NH,VT` jurisdiction code — the Tri-State Pick 3 drawing IS shared
+    // between those three states, so following any of them should surface
+    // the Tri-State hits. Same idea for BC/AB → W.Canada when applicable.
+    const expanded = new Set(followed);
+    if (followed.some(s => s === 'ME' || s === 'NH' || s === 'VT')) {
+      expanded.add('ME,NH,VT');
+    }
+    if (followed.some(s => s === 'BC' || s === 'AB')) {
+      expanded.add('W.Canada');
+    }
+    // Values containing commas (e.g. `ME,NH,VT`) must be wrapped in double
+    // quotes per PostgREST `in.(...)` syntax — otherwise PostgREST splits
+    // the composite on the embedded comma and reads it as three separate
+    // values (ME, NH, VT), missing the actual `ME,NH,VT` row.
+    const formatted = [...expanded].map(s =>
+      s.includes(',') ? `"${encodeURIComponent(s)}"` : encodeURIComponent(s),
+    );
+    return `&jurisdiction=in.(${formatted.join(',')})`;
   }, [loaded, followed]);
 
   return useMemo(() => ({ followed, isFollowing, toggle, clear, toPostgrestFilter }), [followed, isFollowing, toggle, clear, toPostgrestFilter]);

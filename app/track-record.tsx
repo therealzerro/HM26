@@ -67,8 +67,47 @@ export default function TrackRecordScreen() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Secondary matches from adaptive_tracking — when a single pick hits in
+  // multiple jurisdictions (e.g. 916 box hit on both WI 619 and ME,NH,VT 196
+  // today), daily_intelligence only records the first match. adaptive_tracking
+  // has one row per (pick, matched_state) so it surfaces the others.
+  const atStateFilter = stateFilter.replace('hit_state=', 'matched_state=');
+  const { data: extraMatches = [] } = useQuery<Array<{
+    slate_date: string; scope: string; combo: string; rank: number;
+    matched_state: string | null; matched_session: string | null;
+    hit_box: boolean; hit_straight: boolean; actual_result: string | null;
+  }>>({
+    queryKey: ['verified_track_record_multistate', sinceDate, followed.join(',')],
+    queryFn: async () => {
+      const rows = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/adaptive_tracking?slate_date=gte.${sinceDate}&matched_state=not.is.null&select=slate_date,scope,combo,rank,matched_state,matched_session,hit_box,hit_straight,actual_result${atStateFilter}&order=slate_date.desc&limit=500`,
+      });
+      return Array.isArray(rows) ? rows : [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Same scope-validity gate as Results (BUG-132 defense in depth).
-  const validHits = useMemo(() => hits.filter(h => scopeMatchesSession(h.scope, h.hit_session)), [hits]);
+  // Then merge in any adaptive_tracking secondary matches not already in DI.
+  const validHits = useMemo(() => {
+    const primary = hits.filter(h => scopeMatchesSession(h.scope, h.hit_session));
+    const seen = new Set(primary.map(h => `${h.slate_date}|${h.scope}|${h.combo}|${h.hit_state}`));
+    const merged: HitRow[] = [...primary];
+    for (const m of extraMatches) {
+      if (!m.matched_state) continue;
+      const k = `${m.slate_date}|${m.scope}|${m.combo}|${m.matched_state}`;
+      if (seen.has(k)) continue;
+      if (!scopeMatchesSession(m.scope, m.matched_session ?? '')) continue;
+      seen.add(k);
+      merged.push({
+        slate_date: m.slate_date, scope: m.scope, combo: m.combo, rank: m.rank,
+        hit_state: m.matched_state, hit_session: m.matched_session ?? '',
+        hit_box: m.hit_box, hit_straight: m.hit_straight,
+        hit_result: m.actual_result ?? '',
+      });
+    }
+    return merged;
+  }, [hits, extraMatches]);
 
   // Group by date for the stream layout
   const grouped = useMemo(() => {

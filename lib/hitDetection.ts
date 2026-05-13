@@ -197,6 +197,16 @@ export async function runHitDetectionAndRefresh(
       const comboSet = pick.comboSet ?? pick.normKey;
       const combo = pick.combo;
 
+      // Collect ALL matches across jurisdictions (a box-set can draw
+      // simultaneously in multiple states — WI 619 + ME,NH,VT 196 both
+      // match pick 916's box-set {1,6,9} on the same allday slate). The
+      // FIRST match becomes the canonical hit annotation on the snapshot
+      // pick + daily_intelligence row (those tables have 1-row-per-pick
+      // structure). Additional matches are logged to adaptive_tracking
+      // only, which has no per-pick uniqueness constraint — that's where
+      // the Verified Track Record reads them from to show all states a
+      // pick hit in.
+      const matches: any[] = [];
       for (const result of results) {
         // Scope/session match rule (corrected 2026-05-13):
         //   midday slate  → ONLY midday draws count as hits
@@ -217,23 +227,34 @@ export async function runHitDetectionAndRefresh(
 
         const boxHit = result.comboset_sorted === comboSet;
         const straightHit = result.result_digits === combo;
-
         if (boxHit || straightHit) {
-          hasNewHit = true;
-          totalHits++;
-          recordHitInAdaptiveTracking(pick, result, snapshot, date);
-          updateDailyIntelligenceHit(pick, result, date, { scope: snapshot.scope, mode: snapshot.mode });
-          return {
-            ...pick,
-            hitType: straightHit ? 'straight' : 'box',
-            hitState: result.jurisdiction,
-            hitSession: result.session,
-            hitDate: date,
-            hitResult: result.result_digits,
-          };
+          matches.push({ result, straightHit, boxHit });
         }
       }
-      return pick;
+
+      if (matches.length === 0) return pick;
+
+      // Sort matches: prefer straight over box (more impressive hit type
+      // becomes the canonical annotation).
+      matches.sort((a, b) => (b.straightHit ? 1 : 0) - (a.straightHit ? 1 : 0));
+      const primary = matches[0];
+
+      hasNewHit = true;
+      totalHits += matches.length;
+      // Log EVERY jurisdiction match into adaptive_tracking
+      for (const m of matches) {
+        recordHitInAdaptiveTracking(pick, m.result, snapshot, date);
+      }
+      // daily_intelligence only gets the primary (one row per pick)
+      updateDailyIntelligenceHit(pick, primary.result, date, { scope: snapshot.scope, mode: snapshot.mode });
+      return {
+        ...pick,
+        hitType: primary.straightHit ? 'straight' : 'box',
+        hitState: primary.result.jurisdiction,
+        hitSession: primary.result.session,
+        hitDate: date,
+        hitResult: primary.result.result_digits,
+      };
     });
 
     if (hasNewHit) {

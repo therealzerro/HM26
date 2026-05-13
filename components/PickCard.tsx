@@ -212,9 +212,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
           </View>
         </View>
         <TouchableOpacity style={s.lockOverlay} activeOpacity={0.85} onPress={handleUnlock}>
-          <Text style={{ fontSize: 22 }}>♛</Text>
-          <Text style={s.lockTitle}>Pick #{pick.rank} — Oracle+ Only</Text>
-          <Text style={s.lockSub}>Tap to unlock all 6 picks</Text>
+          <Text style={s.lockTitle}>♛ Pick #{pick.rank} — Oracle+</Text>
           <View style={s.lockBadge}>
             <Text style={s.lockBadgeText}>UPGRADE TO ORACLE+</Text>
           </View>
@@ -553,18 +551,17 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: theme.colors.borderMed,
   },
   shareBtnText: { fontSize: 10, color: theme.colors.textSecondary, fontWeight: '700' },
-  lockedCard: { minHeight: 130, overflow: 'hidden' },
+  lockedCard: { minHeight: 64, paddingVertical: 8, marginBottom: 6, overflow: 'hidden' },
   lockOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    alignItems: 'center', justifyContent: 'center',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: theme.colors.bgElevated + 'EE',
-    borderRadius: theme.borderRadius.card, gap: 4, padding: 12,
+    borderRadius: theme.borderRadius.card, gap: 8, paddingHorizontal: 14,
   },
-  lockTitle: { fontSize: 14, fontWeight: '800', color: theme.colors.text },
-  lockSub: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 3, marginBottom: 6 },
+  lockTitle: { fontSize: 12, fontWeight: '800', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.3, flex: 1 },
   lockBadge: {
-    backgroundColor: theme.colors.goldLight, paddingHorizontal: 12, paddingVertical: 4,
+    backgroundColor: theme.colors.goldLight, paddingHorizontal: 10, paddingVertical: 4,
     borderRadius: 99, borderWidth: 1, borderColor: theme.colors.gold + '40',
   },
-  lockBadgeText: { fontSize: 10, fontWeight: '800', color: theme.colors.gold },
+  lockBadgeText: { fontSize: 9, fontWeight: '800', color: theme.colors.gold, letterSpacing: 0.5 },
 });

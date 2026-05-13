@@ -80,8 +80,10 @@ Headline rate sourced from MASTER_AUDIT.md CONFIG-02 backtest (78 slates × 3 sc
 
 Subscribers don't churn because we miss. They churn because they suspect we're a black box. Every change in this section is about giving them receipts.
 
-### 2.1 Public hit-rate ribbon (P1)
-A persistent badge in the bottom of Home: "Verified hit rate (last 30 days): **73.1%** · 87 slates tracked · Wilson 95% CI [63.4–81.7%]". Sourced from a new view over `daily_intelligence`. Subscribers should see this rate every single time they open the app. **Effort: half-day. Impact: high.**
+### 2.1 Public hit-rate ribbon — ✅ Absorbed by §1.3 (Shipped 2026-05-12)
+**Original intent:** persistent badge with "Verified hit rate (last 30 days): 73.1% · 87 slates tracked · Wilson 95% CI [63.4–81.7%]" at bottom of Home.
+**Why absorbed:** the unified hero (§1.3) already shows `73.1% · HIT RATE` as one of three top-of-screen columns — adding a duplicate ribbon at the bottom would be redundant. The "87 slates tracked · Wilson 95% CI" framing was also operator-statistics jargon that conflicts with the consumer-grade voice rule (see [memory](../memory/feedback_subscriber_copy_voice.md)).
+**Net result:** the trust signal is delivered once, prominently, in subscriber voice. Subscribers see the rate the second they open the app. If a richer track-record surface is desired later, build it as §2.6 ("Verified hit ledger page") rather than a duplicate ribbon.
 
 ### 2.2 Per-pick "verified by" footer (P1)
 Under each pick card, when the pick has been historically evaluated, show: "245 picks of this energy band (90–100) have hit at **76%** historically." This converts abstract energy scores into concrete probability talk. We have the data in `daily_intelligence`. **Effort: 1 day.**

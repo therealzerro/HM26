@@ -23,6 +23,31 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
+### CONFIG-04 — `datasets_pair.ds_raw` Rebuild From Histories (2026-05-13 ~18:45 UTC)
+
+Pair table sibling of CONFIG-03. Audit on 2026-05-13 found `datasets_pair.ds_raw` values across all 10 pair classes (2-11) drifting in the same `importDaily` increment-without-anchor pattern that corrupted `datasets_box` pre-BUG-130. Sample: midday H01Y class=9 pair=`01` stored=747 days vs truth=31 days (-716d off); class=10 pair=`11` allday stored=829 vs truth=19 (-810d). Affects PBURST + CO scoring (combined ≈ 40% of weighted indicator) — the engine's "pressure" component of pair signal was rewarding pairs claimed-to-be-overdue that had actually drawn within the past 2-4 weeks.
+
+**Pre-fix audit** (midday H01Y, n=543 rows with computable ground truth from histories):
+- 475 / 543 (87.5%) stale by ≥5 days
+- Mean |delta| = 67.0 days; median 38; p95 246; max 716
+
+**Rebuild method:** for each (scope, horizon, class_id ∈ 2–11, key_pair), compute most recent date the pair was hit by a draw via `histories` (session-filtered per scope), set `ds_raw = days_since_most_recent_hit`. Pair-class semantics encoded in `pairsForDraw()` (classes 2/5 = front, 3/6 = back, 4/7 = split, 8/9/10 = sorted-box equivalents, 11 = any-position-box). Pairs with no hit in the horizon window left untouched. `times_drawn` intentionally NOT modified (same logic as CONFIG-03 — histories window can't reconstruct multi-year frequency aggregates).
+
+**Authorization:** explicit user request 2026-05-13 after the midday deep-check report identified pair-data freshness as the strongest pair-side lever (cooldown tuning and per-scope rails scheduled separately for 2026-05-16).
+
+**Application:** `npm run rebuild:pair-datasets -- --apply` at 2026-05-13 ~18:45 UTC. 3,198 rows corrected (midday H01Y 527, midday H02Y 527, evening H01Y 535, evening H02Y 535, allday H01Y 538, allday H02Y 536). H03Y–H10Y had 0 corrections because those horizons are empty in `datasets_pair` (separate uniform issue, not midday-specific, not gated by this rebuild). 0 PATCH failures.
+
+**Post-fix validation:** midday H01Y stale-≥5-days dropped from 475/543 (87.5%) → **0/543 (0%)**. Mean |delta| 67d → 0d. Every pair row now matches histories ground truth exactly.
+
+**Files:**
+- `scripts/intel-tuning/rebuild-pair-datasets.ts` (new — parallel to existing `rebuild-datasets.ts`)
+- `package.json` script `rebuild:pair-datasets`
+- No engine code changes — purely a data correction
+
+**Rollback:** `datasets_pair.ds_raw` would need to be re-imported from original CSV. Original values not preserved. Treat the post-rebuild state as the new baseline.
+
+**Review:** observe slate quality 2026-05-14 → 2026-05-19 (final day of original 7d post-stabilization window). Combined with CONFIG-03 box rebuild, pair data should now no longer be a source of latent error. If midday hit rate climbs vs the 5/13 baseline, this rebuild is the most likely cause. The cooldown tuning + per-scope config work scheduled for 5/16 should run as an additive evaluation on top of this corrected pair data.
+
 ### CONFIG-03 — `datasets_box.ds_raw` Rebuild From Histories (2026-05-12 ~21:50 UTC)
 
 6,401 of 6,600 `datasets_box` rows had `ds_raw` values 1000-2000+ days off from reality (e.g. `444 midday H01Y` stored as 2065 days when histories proves the actual hit was 124 days ago). Engine BOX pressure scoring had been operating on garbage values for an unknown duration — combos that were recently drawn were being treated as "wildly overdue" and getting pressure-boosted into picks.

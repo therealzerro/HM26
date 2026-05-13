@@ -56,9 +56,18 @@ export function LastHitPill() {
     queryKey: ['last_hit_pill', sinceDate],
     queryFn: async () => {
       const rows = await fetchFromSupabase<HitRow[]>({
-        path: `/rest/v1/daily_intelligence?slate_date=gte.${sinceDate}&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&select=slate_date,scope,combo,hit_state,hit_session,hit_box,hit_straight&order=slate_date.desc&limit=20`,
+        path: `/rest/v1/daily_intelligence?slate_date=gte.${sinceDate}&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&select=slate_date,scope,combo,hit_state,hit_session,hit_box,hit_straight&order=slate_date.desc&limit=50`,
       });
       const list = Array.isArray(rows) ? rows : [];
+      // Server orders by slate_date.desc only — within a single day we need
+      // session order (latest session first) so an evening hit beats a midday
+      // hit when both landed today.
+      const sessionOrder: Record<string, number> = { morning: 0, midday: 1, evening: 2, night: 3 };
+      list.sort((a, b) => {
+        if (a.slate_date !== b.slate_date) return a.slate_date < b.slate_date ? 1 : -1;
+        return (sessionOrder[(b.hit_session ?? '').toLowerCase()] ?? 0)
+             - (sessionOrder[(a.hit_session ?? '').toLowerCase()] ?? 0);
+      });
       const valid = list.find(r => scopeMatchesSession(r.scope, r.hit_session));
       return valid ?? null;
     },

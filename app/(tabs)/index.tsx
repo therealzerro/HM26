@@ -64,6 +64,7 @@ import { ScopeSegment } from '@/components/ScopeSegment';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { HitCard } from '@/components/HitCard';
 import { FreshnessLine } from '@/components/FreshnessLine';
+import { BrandMark } from '@/components/BrandMark';
 
 function toComboSet(combo: string) { return '{' + combo.split('').sort().join(',') + '}'; }
 function energyColor(e: number) {
@@ -688,7 +689,12 @@ export default function HomeScreen() {
       >
         {/* ── Header (shared ScreenHeader — design.md step 3) ── */}
         <ScreenHeader
-          title={<Text style={s.title}>Today's <Text style={{ color: theme.colors.cyan }}>Picks</Text> ⚡</Text>}
+          title={
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <BrandMark size="sm" />
+              <Text style={s.title}>Today's <Text style={{ color: theme.colors.cyan }}>Picks</Text> ⚡</Text>
+            </View>
+          }
           subtitle={<FreshnessLine snapshot={snapshot} />}
           rightSlot={
             <>

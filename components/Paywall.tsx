@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
+import { BrandMark } from '@/components/BrandMark';
 
 const PLANS = [
   { id: '5day', label: '5-Day Trial', price: '$4.99', period: '5 days', badge: 'TRY IT', highlight: false },
@@ -55,9 +56,11 @@ export function Paywall({ visible, onClose }: PaywallProps) {
         <TouchableOpacity activeOpacity={1} style={s.sheet} onPress={() => {}}>
           <View style={s.handle} />
           <ScrollView contentContainerStyle={s.body}>
-            {/* Header */}
+            {/* Header — brand mark replaces the generic 🏆 emoji at the
+                conversion moment so the upgrade ask is anchored to HitMaster,
+                not a generic trophy. */}
             <View style={s.header}>
-              <Text style={{ fontSize: 32, marginBottom: 6 }}>🏆</Text>
+              <BrandMark size="lg" style={{ marginBottom: 10 }} />
               <Text style={s.title}>Unlock Oracle+</Text>
               <Text style={s.subtitle}>Join 2,400+ players using ZK6 intelligence daily</Text>
             </View>

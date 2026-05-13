@@ -1,32 +1,79 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
+import { storage } from '@/lib/storage';
+import { fetchFromSupabase } from '@/lib/supabase';
 
 function TabIcon({
   emoji,
   label,
   focused,
+  hasBadge,
 }: {
   emoji: string;
   label: string;
   focused: boolean;
+  hasBadge?: boolean;
 }) {
   return (
     <View style={[styles.iconWrap, focused && styles.iconWrapFocused]}>
       <Text
         style={[styles.icon, focused && styles.iconFocused]}
         accessible
-        accessibilityLabel={label}
+        accessibilityLabel={hasBadge ? `${label} — new hits` : label}
         accessibilityRole="image"
       >
         {emoji}
       </Text>
+      {hasBadge && <View style={styles.badge} />}
     </View>
   );
 }
 
+// Stale tab badge (enhancements §7.7) — true when there are K6 hits on a
+// slate_date newer than the last time the user opened Results. Tracks
+// last-view date in AsyncStorage; defaults to yesterday for first-time
+// users so an overnight hit still pings the badge on first open.
+function useUnviewedResultsHits(): boolean {
+  const [lastViewedDate, setLastViewedDate] = useState<string | null>(null);
+  const yesterdayStr = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  }, []);
+
+  useEffect(() => {
+    storage.getItem('results_last_viewed_date').then(v => setLastViewedDate(v));
+  }, []);
+
+  const { data: hasUnviewed = false } = useQuery<boolean>({
+    queryKey: ['unviewed_results_hits', lastViewedDate, yesterdayStr],
+    queryFn: async () => {
+      const since = lastViewedDate ?? yesterdayStr;
+      const rows = await fetchFromSupabase<Array<{ scope?: string; hit_session?: string }>>({
+        path: `/rest/v1/daily_intelligence?slate_date=gt.${since}&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&select=scope,hit_session&limit=10`,
+      });
+      // Same scope-validity gate Results uses (BUG-132 defense in depth).
+      const valid = (rows || []).filter(r => {
+        const s = (r.scope ?? '').toLowerCase();
+        const sess = (r.hit_session ?? '').toLowerCase();
+        if (s === 'allday') return true;
+        if (!sess) return true;
+        return s === sess;
+      });
+      return valid.length > 0;
+    },
+    staleTime: 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
+  });
+
+  return hasUnviewed;
+}
+
 export default function TabLayout() {
+  const hasUnviewedHits = useUnviewedResultsHits();
   return (
     <Tabs
       sceneContainerStyle={{ backgroundColor: theme.colors.background }}
@@ -77,7 +124,7 @@ export default function TabLayout() {
         name="results"
         options={{
           title: 'Results',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📋" label="Results" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon emoji="📋" label="Results" focused={focused} hasBadge={hasUnviewedHits} />,
         }}
       />
       <Tabs.Screen
@@ -130,4 +177,15 @@ const styles = StyleSheet.create({
   },
   icon: { fontSize: 18, opacity: 0.7 },
   iconFocused: { fontSize: 20, opacity: 1 },
+  badge: {
+    position: 'absolute',
+    top: 0,
+    right: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: theme.colors.hot,
+    borderWidth: 1.5,
+    borderColor: theme.colors.surface2,
+  },
 });

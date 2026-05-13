@@ -280,8 +280,10 @@ The mono-font picks lock at `combo: 38` (`theme.ts:145`). On a user's accessibil
 ### 7.6 Performance — drop the legacy theme aliases (P2 housekeeping)
 `constants/theme.ts:60-86` has 25+ legacy compat aliases. Trace and remove. Smaller bundle, cleaner mental model. **Effort: half-day.**
 
-### 7.7 Stale tab badge (P1)
-When a user has unviewed hits (a pick on yesterday's slate that hit overnight while they slept), show a red dot on the Results tab. This is a 30-line change that increases re-engagement on a known-high-emotion event. **Effort: 2 hours.**
+### 7.7 Stale tab badge (P1) — ✅ Shipped 2026-05-12
+**Where:** `app/(tabs)/_layout.tsx` — small red dot rendered in the top-right of the Results tab icon when there are unviewed hits.
+**Logic:** new `useUnviewedResultsHits` hook tracks `results_last_viewed_date` in AsyncStorage. Query polls `daily_intelligence` for K6 hits (`on_slate=true AND (hit_box OR hit_straight) AND slate_date > last_viewed`); first-time users default to yesterday so an overnight hit still pings on first open. Refetches every 5 minutes. Same scope-validity gate as Results (BUG-132 defense in depth).
+**Clearing:** Results screen writes `today` to storage on mount and invalidates the badge query — opening the tab makes the dot disappear within seconds.
 
 ---
 

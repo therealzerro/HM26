@@ -28,7 +28,8 @@ import {
 import { NeonRefreshControl as RefreshControl } from '@/components/NeonRefreshControl';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { storage } from '@/lib/storage';
 import { getYesterdayET } from '@/lib/dateUtils';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { theme } from '@/constants/theme';
@@ -363,6 +364,14 @@ export default function ResultsScreen() {
       setSelectedDate(recentDates[1]);
     }
   }, [ledger, ledgerLoading, recentDates]);
+
+  // Mark Results as viewed (clears the §7.7 stale-tab badge).
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+    storage.setItem('results_last_viewed_date', today);
+    queryClient.invalidateQueries({ queryKey: ['unviewed_results_hits'] });
+  }, [queryClient]);
 
   const handleRefresh = async () => {
     await Promise.all([refetchLedger(), refetchHits(), refetchOnSlatePicks()]);

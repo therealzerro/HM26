@@ -15,6 +15,7 @@ import { CoffeeModeProvider } from "@/hooks/useCoffeeMode";
 import { AppModeProvider } from "@/context/AppModeContext";
 import { ToastProvider } from "@/components/Toast";
 import { theme } from "@/constants/theme";
+import { ThemeProvider } from "@/lib/theme";
 import { useFonts } from "expo-font";
 import {
   Inter_400Regular,
@@ -155,23 +156,25 @@ function AppContent() {
 
   return (
     <ErrorBoundary>
-      <AppModeProvider>
-        <ToastProvider>
-          <ScopeProvider>
-            <SnapshotProvider>
-              <CoverageProvider>
-                <DataIngestionProvider>
-                  <FollowedStatesProvider>
-                    <CoffeeModeProvider>
-                      <RootLayoutNav />
-                    </CoffeeModeProvider>
-                  </FollowedStatesProvider>
-                </DataIngestionProvider>
-              </CoverageProvider>
-            </SnapshotProvider>
-          </ScopeProvider>
-        </ToastProvider>
-      </AppModeProvider>
+      <ThemeProvider>
+        <AppModeProvider>
+          <ToastProvider>
+            <ScopeProvider>
+              <SnapshotProvider>
+                <CoverageProvider>
+                  <DataIngestionProvider>
+                    <FollowedStatesProvider>
+                      <CoffeeModeProvider>
+                        <RootLayoutNav />
+                      </CoffeeModeProvider>
+                    </FollowedStatesProvider>
+                  </DataIngestionProvider>
+                </CoverageProvider>
+              </SnapshotProvider>
+            </ScopeProvider>
+          </ToastProvider>
+        </AppModeProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

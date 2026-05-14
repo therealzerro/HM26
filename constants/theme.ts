@@ -1,3 +1,16 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// LIGHT-MODE NOTE (2026-05-14)
+// ─────────────────────────────────────────────────────────────────────────────
+// `theme` is the LEGACY singleton export — always returns the dark palette —
+// kept for back-compat while we migrate ~73 consumer files to the new
+// `useTheme()` hook (see `lib/theme/`). New code SHOULD import `useTheme` from
+// `lib/theme` and read `theme.colors.X` off that. Files still using this raw
+// `theme` export render dark-only regardless of the user's mode preference.
+//
+// Underlying palettes live in `lib/theme/palettes.ts`. This file's sole job is
+// to keep the 73 raw-import call-sites compiling unchanged.
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const theme = {
   colors: {
     // Surfaces

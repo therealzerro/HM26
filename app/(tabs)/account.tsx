@@ -11,6 +11,7 @@ import { useFollowedStates, JURISDICTION_GROUPS } from '@/hooks/useFollowedState
 import { useCoffeeMode } from '@/hooks/useCoffeeMode';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
+import { useTheme, type ThemeMode } from '@/lib/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { UserRole } from '@/types/core';
 import { fetchFromSupabase, countFromSupabase } from '@/lib/supabase';
@@ -71,6 +72,7 @@ export default function AccountScreen() {
   const { showToast } = useToast();
   const { followed: followedStates, isFollowing, toggle: toggleFollowedState, clear: clearFollowedStates } = useFollowedStates();
   const { enabled: coffeeMode, toggle: toggleCoffeeMode } = useCoffeeMode();
+  const { mode: themeMode, scheme: themeScheme, setMode: setThemeMode } = useTheme();
   const [glossOpen, setGlossOpen] = useState<number | null>(null);
   // Notification preferences (enhancements §1.4 — persistence only).
   // Delivery (local schedules + push-on-hit) ships in next iteration; for now
@@ -424,6 +426,45 @@ export default function AccountScreen() {
         <View style={s.section}>
           <Text style={s.sectionLabel}>DISPLAY</Text>
           <View style={s.card}>
+            {/* Appearance — light / dark / system. Persists via AsyncStorage
+                in lib/theme/ThemeProvider; default 'system'. */}
+            <View style={{ paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={tog.label}>Appearance</Text>
+                  <Text style={tog.sub}>
+                    {themeMode === 'system'
+                      ? `Follow device · currently ${themeScheme}`
+                      : `Always ${themeMode}`}
+                  </Text>
+                </View>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                {(['system', 'light', 'dark'] as ThemeMode[]).map(m => {
+                  const active = themeMode === m;
+                  return (
+                    <TouchableOpacity
+                      key={m}
+                      onPress={() => setThemeMode(m)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      style={{
+                        flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: active ? theme.colors.purple : theme.colors.border,
+                        backgroundColor: active ? theme.colors.primaryLight : theme.colors.bgElevated,
+                      }}
+                    >
+                      <Text style={{
+                        fontSize: 13, fontWeight: '700',
+                        color: active ? theme.colors.purple : theme.colors.textSecondary,
+                        textTransform: 'capitalize',
+                      }}>{m}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
             <Toggle
               on={coffeeMode}
               onChange={() => toggleCoffeeMode()}

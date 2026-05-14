@@ -522,13 +522,31 @@ export default function ResultsScreen() {
       // necessarily match the slate's scope. Add scopeMatches gate so an
       // evening slate pick can't be credited to a midday draw even if hit
       // detection wrote hit_session=midday on the row.
+      // BUG-144 (2026-05-14): dedup by (scope, combo, hit_state, hit_session) —
+      // regens can leave multiple adaptive_tracking rows at different slate
+      // hashes for the same pick (e.g., 5/13 evening 034 had AT rows at both
+      // the live hash and a regen'd-out hash). Without dedup the hero band
+      // (and HitSummary) renders the same hit twice.
       const dbHits = (hits || []).filter(h => {
         const hDate = h.slate_date?.split('T')[0];
         return h.hit_state === row.jurisdiction && hDate === rowDate
           && h.hit_session?.toLowerCase() === row.session?.toLowerCase()
           && scopeMatches(h.scope, row.session);
       });
-      if (dbHits.length > 0) return { ...row, hits: dbHits };
+      const dbHitsDedup = (() => {
+        const seen = new Map<string, HitRow>();
+        for (const h of dbHits) {
+          const key = `${h.scope}|${h.combo}|${h.hit_state}|${h.hit_session}`;
+          const existing = seen.get(key);
+          // Prefer the row with a rank (primary > secondary) and with
+          // hit_straight set over box-only — matches the BUG-141 tie-breaker.
+          if (!existing) seen.set(key, h);
+          else if (h.hit_straight && !existing.hit_straight) seen.set(key, h);
+          else if (h.rank != null && existing.rank == null) seen.set(key, h);
+        }
+        return [...seen.values()];
+      })();
+      if (dbHitsDedup.length > 0) return { ...row, hits: dbHitsDedup };
 
       // Tier 2: daily_intelligence box-match (backfill not yet run).
       // scopeMatches enforces midday-pick→midday-draw, etc.

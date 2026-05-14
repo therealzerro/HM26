@@ -27,6 +27,38 @@ async function patchIntelRow(id: string, body: Record<string, unknown>) {
   });
 }
 
+// Mirror the hit annotation into adaptive_tracking so the hit-tracker UI
+// (which reads adaptive_tracking per BUG-138/142) stays in sync. Without this
+// the backfill leaves DI annotated but the tracker silently misses those hits.
+async function patchAdaptiveTrackingHit(
+  slate_date: string,
+  scope: string,
+  combo: string,
+  winning: { jurisdiction: string; session: string; result_digits: string },
+  isStraight: boolean,
+) {
+  if (!SB_URL || !SB_KEY) return;
+  const filter =
+    `slate_date=eq.${slate_date}` +
+    `&scope=eq.${encodeURIComponent(scope)}` +
+    `&combo=eq.${encodeURIComponent(combo)}` +
+    `&mode=eq.balanced` +
+    `&matched_state=is.null`;
+  await fetch(`${SB_URL}/rest/v1/adaptive_tracking?${filter}`, {
+    method: 'PATCH',
+    headers: HEADERS,
+    body: JSON.stringify({
+      hit_box: true,
+      hit_straight: isStraight,
+      actual_result: winning.result_digits,
+      actual_set: null,
+      matched_state: winning.jurisdiction,
+      matched_session: winning.session,
+      result_at: new Date().toISOString(),
+    }),
+  });
+}
+
 export interface BackfillProgress {
   phase: string;
   datesTotal: number;
@@ -94,6 +126,13 @@ export async function backfillIntelHits(
           hit_session: winning.session,
           hit_result: winning.result_digits,
         });
+        await patchAdaptiveTrackingHit(
+          pick.slate_date,
+          pick.scope,
+          pick.combo,
+          winning,
+          !!straightMatch,
+        );
         hitsFound++;
         console.log('[backfill] hit:', pick.combo, date, winning.jurisdiction);
       }

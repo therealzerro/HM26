@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState, ComponentType } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
+import { useTheme } from '@/lib/theme';
 import { storage } from '@/lib/storage';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { Crown, Zap, ClipboardList, BookMarked, GraduationCap, User } from 'lucide-react-native';
@@ -20,19 +21,37 @@ function TabIcon({
   focused: boolean;
   hasBadge?: boolean;
 }) {
+  // Theme-aware variant of the static `styles` object below. iconWrapFocused
+  // uses cyan glow which works on both modes; badge needs the active scope2
+  // color so the border ring reads against whichever tab bar is rendered.
+  const { colors } = useTheme();
   return (
     <View
-      style={[styles.iconWrap, focused && styles.iconWrapFocused]}
+      style={[
+        staticStyles.iconWrap,
+        focused && {
+          backgroundColor: 'rgba(43,255,204,0.12)',
+          borderWidth: 1,
+          borderColor: 'rgba(43,255,204,0.45)',
+          shadowColor: colors.cyan,
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.55,
+          shadowRadius: 8,
+          elevation: 6,
+        },
+      ]}
       accessible
       accessibilityRole="image"
       accessibilityLabel={hasBadge ? `${label} — new hits` : label}
     >
       <Icon
         size={focused ? 22 : 19}
-        color={focused ? theme.colors.cyan : theme.colors.textTertiary}
+        color={focused ? colors.cyan : colors.textTertiary}
         strokeWidth={focused ? 2.4 : 2}
       />
-      {hasBadge && <View style={styles.badge} />}
+      {hasBadge && (
+        <View style={[staticStyles.badge, { backgroundColor: colors.hot, borderColor: colors.surface2 }]} />
+      )}
     </View>
   );
 }
@@ -84,20 +103,21 @@ function useUnviewedResultsHits(): boolean {
 
 export default function TabLayout() {
   const hasUnviewedHits = useUnviewedResultsHits();
+  const { colors } = useTheme();
   return (
     <Tabs
-      sceneContainerStyle={{ backgroundColor: theme.colors.background }}
+      sceneContainerStyle={{ backgroundColor: colors.background }}
       screenOptions={{
-        tabBarActiveTintColor: theme.colors.cyan,
-        tabBarInactiveTintColor: theme.colors.textTertiary,
+        tabBarActiveTintColor: colors.cyan,
+        tabBarInactiveTintColor: colors.textTertiary,
         tabBarStyle: {
-          backgroundColor: theme.colors.surface2,
+          backgroundColor: colors.surface2,
           borderTopColor: 'rgba(155,91,255,0.18)',
           borderTopWidth: 1.5,
           height: 64,
           paddingTop: 6,
           paddingBottom: 8,
-          shadowColor: theme.colors.purple,
+          shadowColor: colors.purple,
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.25,
           shadowRadius: 12,
@@ -110,9 +130,9 @@ export default function TabLayout() {
           letterSpacing: 0.4,
           textTransform: 'uppercase',
         },
-        headerStyle: { backgroundColor: theme.colors.bgElevated },
-        headerTintColor: theme.colors.text,
-        headerTitleStyle: { fontWeight: '700', color: theme.colors.text },
+        headerStyle: { backgroundColor: colors.bgElevated },
+        headerTintColor: colors.text,
+        headerTitleStyle: { fontWeight: '700', color: colors.text },
         headerShown: false,
       }}
     >
@@ -167,23 +187,15 @@ export default function TabLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+// Static style fragments — theme-dependent fields are applied inline at the
+// call sites (see TabIcon above) so they react to mode changes at runtime.
+const staticStyles = StyleSheet.create({
   iconWrap: {
     width: 40,
     height: 28,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  iconWrapFocused: {
-    backgroundColor: 'rgba(43,255,204,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(43,255,204,0.45)',
-    shadowColor: theme.colors.cyan,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.55,
-    shadowRadius: 8,
-    elevation: 6,
   },
   badge: {
     position: 'absolute',
@@ -192,8 +204,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.hot,
     borderWidth: 1.5,
-    borderColor: theme.colors.surface2,
   },
 });

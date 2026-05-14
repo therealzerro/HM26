@@ -15,7 +15,7 @@ import { CoffeeModeProvider } from "@/hooks/useCoffeeMode";
 import { AppModeProvider } from "@/context/AppModeContext";
 import { ToastProvider } from "@/components/Toast";
 import { theme } from "@/constants/theme";
-import { ThemeProvider } from "@/lib/theme";
+import { ThemeProvider, useTheme } from "@/lib/theme";
 import { useFonts } from "expo-font";
 import {
   Inter_400Regular,
@@ -52,19 +52,21 @@ const queryClient = new QueryClient({
 function RootLayoutNav() {
   // PHASE IV: modal screens use surface2 so they read as one layer above
   // the underlying tab content. Tab content keeps `background` (deepest).
+  // Theme-aware: colors track the active mode from ThemeProvider.
+  const { colors } = useTheme();
   const modalScreenOptions = {
     presentation: "modal" as const,
-    contentStyle: { backgroundColor: theme.colors.surface2 },
-    headerStyle: { backgroundColor: theme.colors.surface2 },
+    contentStyle: { backgroundColor: colors.surface2 },
+    headerStyle: { backgroundColor: colors.surface2 },
   };
 
   return (
     <Stack
       screenOptions={{
         headerBackTitle: "Back",
-        headerStyle: { backgroundColor: theme.colors.bgElevated },
-        headerTintColor: theme.colors.text,
-        contentStyle: { backgroundColor: theme.colors.background },
+        headerStyle: { backgroundColor: colors.bgElevated },
+        headerTintColor: colors.text,
+        contentStyle: { backgroundColor: colors.background },
       }}
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

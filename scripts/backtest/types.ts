@@ -56,6 +56,13 @@ export interface HitResult {
   totalHits: number;
   hittingCombos: string[];
   hittingJurisdictions: string[];
+  // Uniform-random 6-pick baseline metrics for the same (date, scope, K) —
+  // identical regardless of engine config, so summary can fairly compute
+  // engine-vs-baseline lift.
+  baselinePerPickHitProb: number;
+  baselineExpectedPickHits: number;
+  baselineSlateHitProb: number;
+  resultsInScope: number;
 }
 
 export interface ReportRow {
@@ -68,4 +75,9 @@ export interface ReportRow {
   hitsStraight: number;
   totalHits: number;
   source: string;
+  // Baseline (uniform-random 6-pick) metrics — see score.ts::computeBaseline.
+  baselinePerPickHitProb: number;
+  baselineExpectedPickHits: number;
+  baselineSlateHitProb: number;
+  resultsInScope: number;
 }

@@ -4,7 +4,7 @@
 
 import { dbGet } from './data.js';
 import { toComboSet } from '../../lib/engineCore.js';
-import { scorePicksVsResults, fetchDrawResults } from './score.js';
+import { scorePicksVsResults, fetchDrawResults, computeBaseline } from './score.js';
 import type { ReportRow, Scope } from './types.js';
 
 const SCOPES: Scope[] = ['midday', 'evening', 'allday'];
@@ -83,6 +83,7 @@ export async function runReport(days: number): Promise<ReportRow[]> {
 
       const results = await fetchDrawResults(date);
       const hit = scorePicksVsResults(picks, results, scope as Scope);
+      const baseline = computeBaseline(results, scope as Scope, picks.length || 6);
       const source = parseSource(snap);
 
       rows.push({
@@ -95,6 +96,10 @@ export async function runReport(days: number): Promise<ReportRow[]> {
         hitsStraight: hit.hitsStraight,
         totalHits: hit.totalHits,
         source,
+        baselinePerPickHitProb: baseline.perPickHitProb,
+        baselineExpectedPickHits: baseline.expectedPickHits,
+        baselineSlateHitProb: baseline.slateHitProb,
+        resultsInScope: baseline.resultsInScope,
       });
     }
   }

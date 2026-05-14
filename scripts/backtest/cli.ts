@@ -11,7 +11,7 @@
 
 import { runReport } from './report.js';
 import { computeSlateAsOf } from './replay.js';
-import { fetchDrawResults } from './score.js';
+import { fetchDrawResults, computeBaseline } from './score.js';
 import { scorePicksVsResults } from './score.js';
 import { writeReportCSV, printReportSummary, writeReplayCSV, printReplaySummary } from './output.js';
 import { CONFIGS } from './configs.js';
@@ -104,6 +104,14 @@ async function modeReplay(args: Record<string, string>) {
     const results = await fetchDrawResults(date);
     if (results.length === 0) continue; // no draw data for this date — skip
 
+    // Baseline depends only on (date, scope, pickCount=6) — compute once per
+    // scope and reuse across configs/modes.
+    const baselineByScope: Record<Scope, ReturnType<typeof computeBaseline>> = {
+      midday:  computeBaseline(results, 'midday'),
+      evening: computeBaseline(results, 'evening'),
+      allday:  computeBaseline(results, 'allday'),
+    };
+
     for (const scope of SCOPES) {
       for (const configName of configNames) {
         for (const mode of modes) {
@@ -114,6 +122,7 @@ async function modeReplay(args: Record<string, string>) {
               results,
               scope,
             );
+            const baseline = baselineByScope[scope];
             allHits.push({
               date, scope, configName, mode,
               picks,
@@ -122,6 +131,10 @@ async function modeReplay(args: Record<string, string>) {
               totalHits: hit.totalHits,
               hittingCombos: hit.hittingCombos,
               hittingJurisdictions: hit.hittingJurisdictions,
+              baselinePerPickHitProb: baseline.perPickHitProb,
+              baselineExpectedPickHits: baseline.expectedPickHits,
+              baselineSlateHitProb: baseline.slateHitProb,
+              resultsInScope: baseline.resultsInScope,
             });
             processed++;
             if (processed % 10 === 0) {

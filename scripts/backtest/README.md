@@ -46,6 +46,26 @@ Custom configs via `--config-file path/to/config.json`.
 Hit rate is per-slate: a slate "hits" if any of its 6 picks match a draw result (box or straight).
 Confidence intervals are Wilson 95% — trust them for n > 20.
 
+### Lift vs uniform-random 6-pick baseline
+
+Both `report` and `replay` summaries now include a lift block. For each `(date, scope)` it
+computes an analytic baseline — the expected performance of 6 picks sampled uniformly from
+`000–999` against the same scope-filtered draw universe. Per result, P(random pick matches
+box) = `perms_of_comboset / 1000` (singles: 6, doubles: 3, triples: 1).
+
+Two ratios are reported per bucket:
+
+- **`pick` lift** = (engine pick-hits / picks attempted) / (baseline expected pick-hits / picks attempted)
+  — primary metric, doesn't saturate. `>1.0` means the engine beats no-information picks.
+- **`slate` lift** = engine slate-hit rate / mean(baseline slate-hit prob)
+  — saturates fast on allday (large K → baseline ~100%); reported for completeness.
+
+**Caveat:** the baseline is rail-unconstrained. The engine's multiplicity caps may
+preferentially allocate picks to doubles/triples (lower box-hit probability), which can
+penalise pick lift for reasons unrelated to signal quality. A rail-matched baseline is a
+planned follow-up; until then, treat absolute pick-lift numbers as a directional canary
+(collapse toward 1.0 = regression) rather than a precise "x% better than random" claim.
+
 ## Approximation note
 
 The replay harness uses `datasets_box` and `datasets_pair` **as they exist today**, not as

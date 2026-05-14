@@ -40,15 +40,90 @@ function ci(hits: number, trials: number): string {
   return `[${pct(lo)}–${pct(hi)}]`;
 }
 
+// ── Lift vs uniform-random baseline ──────────────────────────────────────────
+// Two ratios, both per bucket:
+//   lift_pick  = (Σ engine pick-hits) / (Σ baseline expected pick-hits)
+//                — honest, doesn't saturate, primary metric.
+//   lift_slate = engine slate-hit-rate / mean(baseline slate-hit-prob)
+//                — saturates on allday (K large → baseline ~100%), report anyway.
+// Lift > 1.0 means engine beats no-information baseline; collapse to ~1.0 is
+// the canary for regression (CONFIG-01 would have shown up here).
+
+interface LiftBucket {
+  name: string;
+  n: number;
+  engineSlateHits: number;
+  enginePickHits: number;
+  enginePicksAttempted: number;
+  baselineSlateProbSum: number;     // for mean baseline slate rate
+  baselinePickHitsExpected: number; // Σ E[hits] across slates
+}
+
+function emptyBucket(name: string): LiftBucket {
+  return { name, n: 0, engineSlateHits: 0, enginePickHits: 0, enginePicksAttempted: 0, baselineSlateProbSum: 0, baselinePickHitsExpected: 0 };
+}
+
+function addRowToBucket(b: LiftBucket, r: ReportRow) {
+  b.n++;
+  b.engineSlateHits += r.totalHits > 0 ? 1 : 0;
+  b.enginePickHits  += r.totalHits;
+  b.enginePicksAttempted += r.pickCount;
+  b.baselineSlateProbSum += r.baselineSlateHitProb;
+  b.baselinePickHitsExpected += r.baselineExpectedPickHits;
+}
+
+function liftLine(b: LiftBucket): string {
+  if (b.n === 0) return `${b.name.padEnd(22)} (n=0)`;
+  const enginePick   = b.enginePicksAttempted > 0 ? b.enginePickHits / b.enginePicksAttempted : 0;
+  const baselinePick = b.enginePicksAttempted > 0 ? b.baselinePickHitsExpected / b.enginePicksAttempted : 0;
+  const engineSlate  = b.engineSlateHits / b.n;
+  const baselineSlate = b.baselineSlateProbSum / b.n;
+  const liftPick  = baselinePick  > 0 ? enginePick  / baselinePick  : 0;
+  const liftSlate = baselineSlate > 0 ? engineSlate / baselineSlate : 0;
+  return `${b.name.padEnd(22)} ` +
+    `pick: ${pct(enginePick).padStart(6)} vs ${pct(baselinePick).padStart(6)} (×${liftPick.toFixed(2).padStart(4)})   ` +
+    `slate: ${pct(engineSlate).padStart(6)} vs ${pct(baselineSlate).padStart(6)} (×${liftSlate.toFixed(2).padStart(4)})   ` +
+    `n=${b.n}`;
+}
+
+function printLiftSection(rows: ReportRow[]): void {
+  if (rows.length === 0) return;
+  console.log('── Lift vs uniform-random 6-pick baseline ──────────────────');
+  console.log('  Baseline: closed-form analytic, no rail constraints.');
+  console.log('  lift > 1.0 ⇒ engine beats no-information picker.');
+  console.log();
+
+  const overall = emptyBucket('Overall');
+  const byScope: Record<string, LiftBucket> = {
+    midday:  emptyBucket('midday'),
+    evening: emptyBucket('evening'),
+    allday:  emptyBucket('allday'),
+  };
+  for (const r of rows) {
+    addRowToBucket(overall, r);
+    if (byScope[r.scope]) addRowToBucket(byScope[r.scope], r);
+  }
+  console.log('  ' + liftLine(overall));
+  for (const s of ['midday', 'evening', 'allday']) console.log('  ' + liftLine(byScope[s]));
+  console.log();
+}
+
 // ── Report (Mode A) ───────────────────────────────────────────────────────────
 
 export function writeReportCSV(rows: ReportRow[]): string {
   ensureOutputDir();
   const ts = isoTs();
   const path = join(OUTPUT_DIR, `report-${ts}.csv`);
-  const header = 'date,scope,mode,snapshot_id,pick_count,hits_box,hits_straight,total_hits,source';
+  const header = 'date,scope,mode,snapshot_id,pick_count,hits_box,hits_straight,total_hits,source,results_in_scope,baseline_per_pick_prob,baseline_expected_pick_hits,baseline_slate_prob';
   const lines = rows.map(r =>
-    [r.date, r.scope, r.mode, r.snapshotId, r.pickCount, r.hitsBox, r.hitsStraight, r.totalHits, r.source].join(','),
+    [
+      r.date, r.scope, r.mode, r.snapshotId, r.pickCount,
+      r.hitsBox, r.hitsStraight, r.totalHits, r.source,
+      r.resultsInScope,
+      r.baselinePerPickHitProb.toFixed(6),
+      r.baselineExpectedPickHits.toFixed(4),
+      r.baselineSlateHitProb.toFixed(6),
+    ].join(','),
   );
   writeFileSync(path, [header, ...lines].join('\n') + '\n');
   return path;
@@ -127,6 +202,8 @@ export function printReportSummary(rows: ReportRow[]): void {
     console.log(`  Week of ${week}: ${pct(hit / wRows.length)} ${ci(hit, wRows.length)} (n=${wRows.length})`);
   }
   console.log();
+
+  printLiftSection(rows);
 }
 
 // ── Replay (Mode B) ───────────────────────────────────────────────────────────
@@ -135,7 +212,7 @@ export function writeReplayCSV(hits: HitResult[]): string {
   ensureOutputDir();
   const ts = isoTs();
   const path = join(OUTPUT_DIR, `replay-${ts}.csv`);
-  const header = 'date,scope,config_name,mode,pick_1,pick_2,pick_3,pick_4,pick_5,pick_6,hits_box,hits_straight,total_hits,hitting_combos,hitting_jurisdictions';
+  const header = 'date,scope,config_name,mode,pick_1,pick_2,pick_3,pick_4,pick_5,pick_6,hits_box,hits_straight,total_hits,hitting_combos,hitting_jurisdictions,results_in_scope,baseline_per_pick_prob,baseline_expected_pick_hits,baseline_slate_prob';
   const lines = hits.map(r => {
     const picks = r.picks.map(p => p.combo).slice(0, 6);
     while (picks.length < 6) picks.push('');
@@ -145,10 +222,33 @@ export function writeReplayCSV(hits: HitResult[]): string {
       r.hitsBox, r.hitsStraight, r.totalHits,
       r.hittingCombos.join('|'),
       r.hittingJurisdictions.join('|'),
+      r.resultsInScope,
+      r.baselinePerPickHitProb.toFixed(6),
+      r.baselineExpectedPickHits.toFixed(4),
+      r.baselineSlateHitProb.toFixed(6),
     ].join(',');
   });
   writeFileSync(path, [header, ...lines].join('\n') + '\n');
   return path;
+}
+
+// HitResult → ReportRow shape for lift section reuse.
+function hitResultToReportRow(h: HitResult): ReportRow {
+  return {
+    date: h.date,
+    scope: h.scope,
+    mode: h.mode,
+    snapshotId: '',
+    pickCount: h.picks.length,
+    hitsBox: h.hitsBox,
+    hitsStraight: h.hitsStraight,
+    totalHits: h.totalHits,
+    source: h.configName,
+    baselinePerPickHitProb: h.baselinePerPickHitProb,
+    baselineExpectedPickHits: h.baselineExpectedPickHits,
+    baselineSlateHitProb: h.baselineSlateHitProb,
+    resultsInScope: h.resultsInScope,
+  };
 }
 
 export function printReplaySummary(hits: HitResult[], configNames: string[]): void {
@@ -168,6 +268,7 @@ export function printReplaySummary(hits: HitResult[], configNames: string[]): vo
       console.log(`  ${scope.padEnd(8)}: ${pct(s.length > 0 ? hit / s.length : 0)} ${ci(hit, s.length)} (n=${s.length})`);
     }
     console.log();
+    printLiftSection(rows.map(hitResultToReportRow));
   }
 
   // Side-by-side comparison (slate hit rate)

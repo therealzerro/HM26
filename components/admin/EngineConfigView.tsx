@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
 import { theme } from '@/constants/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
@@ -9,10 +9,13 @@ const SCOPE_NAMES: ScopeName[] = ['midday', 'evening', 'allday'];
 
 // ─── Engine Config View ───────────────────────────────────────────────────────
 export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?: (scope: any, weightsKey?: any) => Promise<any> }) {
+  // E4 (2026-05-13): DGC is now visible. Defaults match engine production
+  // (49.5/27/13.5/10 etc.) so Reset aligns with what the engine currently runs
+  // rather than legacy starting points. All four signals sum to 100.
   const DEFAULT_PRESETS: Record<string, Record<string, number>> = {
-    balanced:     { BOX: 40, PBURST: 40, CO: 20 },
-    conservative: { BOX: 70, PBURST: 20, CO: 10 },
-    aggressive:   { BOX: 25, PBURST: 45, CO: 30 },
+    balanced:     { BOX: 49.5, PBURST: 27,   CO: 13.5, DGC: 10 },
+    conservative: { BOX: 67.5, PBURST: 13.5, CO: 9,    DGC: 10 },
+    aggressive:   { BOX: 40.5, PBURST: 31.5, CO: 18,   DGC: 10 },
   };
 
   const HORIZONS = ['H01Y','H02Y','H03Y','H04Y','H05Y','H06Y','H07Y','H08Y','H09Y','H10Y'];
@@ -51,12 +54,42 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
   });
   const [previewModal, setPreviewModal] = useState(false);
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
+  const [backtestModalOpen, setBacktestModalOpen] = useState(false);
   const [savedSummary, setSavedSummary] = useState<{ written: number; deleted: number } | null>(null);
   const [synergyOn, setSynergyOn] = useState(false);
   const [synergyWeight, setSynergyWeight] = useState(0.15);
 
+  // E6 (2026-05-13): snapshot of all editable state at last load. Compared
+  // against current state to drive the "● Unsaved changes" badge. Loaded
+  // snapshot updates after every successful save so the badge resets.
+  const [loadedSnapshot, setLoadedSnapshot] = useState<string>('');
+  // E8 (2026-05-13): recent config_change rows from audit_logs, rendered as
+  // a 3-row history strip near the top so operators see what's been tuned
+  // recently without leaving the screen.
+  const [recentChanges, setRecentChanges] = useState<{ created_at: string; payload_meta: any }[]>([]);
+  const loadRecentConfigChanges = useCallback(async () => {
+    try {
+      const rows = await fetchFromSupabase<any[]>({
+        path: '/rest/v1/audit_logs?action=eq.config_change&order=created_at.desc&limit=3&select=created_at,payload_meta',
+      });
+      if (Array.isArray(rows)) setRecentChanges(rows);
+    } catch (e) {
+      console.warn('[engine-config] load recent changes failed:', e);
+    }
+  }, []);
+
   const w = presets[wPreset] ?? DEFAULT_PRESETS.balanced;
   const horizonSum = Object.values(horizonWeights).reduce((a, b) => a + b, 0);
+
+  // E6: snapshot the editable surface area as a stable JSON string. Compared
+  // against loadedSnapshot to detect unsaved changes. Cheaper than deep-equal
+  // and stable as long as serialization order is deterministic.
+  const currentSnapshot = useMemo(() => JSON.stringify({
+    presets, singlesMax, doublesMax, pairRepCap, triplesOn, defaultScope,
+    horizonWeights, pressureThreshold, minEnergyThreshold, recentHitCooldown,
+    scopeCooldowns, synergyOn, synergyWeight,
+  }), [presets, singlesMax, doublesMax, pairRepCap, triplesOn, defaultScope, horizonWeights, pressureThreshold, minEnergyThreshold, recentHitCooldown, scopeCooldowns, synergyOn, synergyWeight]);
+  const isDirty = loadedSnapshot !== '' && currentSnapshot !== loadedSnapshot;
 
   // ── Load config from app_config table ──
   const loadConfig = useCallback(async () => {
@@ -112,6 +145,28 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
         }
       });
       setPresets(overrides);
+
+      // E6: snapshot the loaded surface area. currentSnapshot uses live state
+      // which hasn't flushed yet, so we serialize the values we just loaded
+      // directly. Any subsequent edit makes isDirty true; save resets it.
+      const loaded = {
+        presets: overrides,
+        singlesMax: cfg.k6_singles_max ? (parseInt(cfg.k6_singles_max, 10) || 4) : 4,
+        doublesMax: cfg.k6_doubles_max !== undefined ? (parseInt(cfg.k6_doubles_max, 10) || 2) : 2,
+        pairRepCap: cfg.pair_rep_cap ? (parseInt(cfg.pair_rep_cap, 10) || 2) : 2,
+        triplesOn: cfg.k6_triples_on === 'true',
+        defaultScope: cfg.default_scope || 'midday',
+        horizonWeights: cfg.horizon_weights
+          ? (() => { try { return { ...DEFAULT_HORIZON_WEIGHTS, ...JSON.parse(cfg.horizon_weights) }; } catch { return DEFAULT_HORIZON_WEIGHTS; } })()
+          : DEFAULT_HORIZON_WEIGHTS,
+        pressureThreshold: cfg.pressure_threshold ? (parseInt(cfg.pressure_threshold, 10) || 250) : 250,
+        minEnergyThreshold: cfg.min_energy_threshold ? (parseInt(cfg.min_energy_threshold, 10) || 0) : 0,
+        recentHitCooldown: cfg.recent_hit_cooldown ? (parseInt(cfg.recent_hit_cooldown, 10) || 0) : 20,
+        scopeCooldowns: scopeOverrides,
+        synergyOn: cfg.synergy_boost_on === 'true',
+        synergyWeight: cfg.synergy_boost_weight ? (parseFloat(cfg.synergy_boost_weight) || 0.15) : 0.15,
+      };
+      setLoadedSnapshot(JSON.stringify(loaded));
     } catch (e) {
       setLoadError(String(e instanceof Error ? e.message : e));
     } finally {
@@ -119,7 +174,7 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
     }
   }, []);
 
-  useEffect(() => { loadConfig(); }, [loadConfig]);
+  useEffect(() => { loadConfig(); loadRecentConfigChanges(); }, [loadConfig, loadRecentConfigChanges]);
 
   // ── Save all config keys via single upsert POST (E3) ──
   // Replaces the prior PATCH-per-key flow which silently no-op'd when a key
@@ -128,9 +183,11 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
   // genuinely created on first save — upsert handles both cases. Scope-cooldown
   // overrides that the user CLEARED are tracked separately and DELETEd.
   const handleSave = useCallback(async () => {
-    const signalSum = (w.BOX ?? 0) + (w.PBURST ?? 0) + (w.CO ?? 0);
+    // E4: sum-check now includes DGC. Engine production runs ~49/27/14/10
+    // for balanced; DGC is a legitimate fourth signal, not a constant.
+    const signalSum = (w.BOX ?? 0) + (w.PBURST ?? 0) + (w.CO ?? 0) + (w.DGC ?? 0);
     if (Math.abs(signalSum - 100) > 1) {
-      setSaveError(`Signal weights must sum to 100% (currently ${signalSum}%)`);
+      setSaveError(`Signal weights must sum to 100% (currently ${signalSum.toFixed(1)}%)`);
       return;
     }
     if (Math.abs(horizonSum - 100) > 1) {
@@ -198,16 +255,45 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
       }
       // Refresh the loaded-snapshot so the diff tracking resets.
       setLoadedScopeCooldowns({ ...scopeCooldowns });
+      setLoadedSnapshot(currentSnapshot); // E6: clear unsaved-changes badge
       setSavedOk(true);
       setSavedAt(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
       setSavedSummary({ written: body.length, deleted: deletedCount });
       setTimeout(() => setSavedOk(false), 2500);
+
+      // E8: write a config_change row to audit_logs so the "Recent config
+      // changes" card at the top has fresh content. Best-effort — swallow
+      // errors so the save flow doesn't fail if audit_logs is unreachable.
+      try {
+        await fetchFromSupabase({
+          path: '/rest/v1/audit_logs',
+          method: 'POST',
+          headers: { 'Prefer': 'return=minimal' },
+          body: {
+            actor_id: null,
+            action: 'config_change',
+            target: 'engine_config',
+            payload_meta: {
+              written: body.length,
+              deleted: deletedCount,
+              scope_overrides: scopeCooldowns,
+              global_cooldown: recentHitCooldown,
+              min_energy: minEnergyThreshold,
+              pressure_threshold: pressureThreshold,
+            },
+          },
+        });
+        // Refresh the inline log so the new row shows immediately
+        loadRecentConfigChanges();
+      } catch (e) {
+        console.warn('[engine-config] audit_logs write failed:', e);
+      }
     } catch (e) {
       setSaveError(String(e instanceof Error ? e.message : e));
     } finally {
       setSaving(false);
     }
-  }, [synergyOn, synergyWeight, triplesOn, singlesMax, doublesMax, pairRepCap, defaultScope, presets, horizonWeights, pressureThreshold, minEnergyThreshold, recentHitCooldown, scopeCooldowns, loadedScopeCooldowns, horizonSum, w]);
+  }, [synergyOn, synergyWeight, triplesOn, singlesMax, doublesMax, pairRepCap, defaultScope, presets, horizonWeights, pressureThreshold, minEnergyThreshold, recentHitCooldown, scopeCooldowns, loadedScopeCooldowns, horizonSum, w, currentSnapshot, loadRecentConfigChanges]);
 
   const handleSaveAndRegen = useCallback(async () => {
     await handleSave();
@@ -279,6 +365,52 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
         </Card>
       )}
 
+      {/* E6: unsaved-changes banner — compares current state against the
+          snapshot taken at last load (or post-save reset). Discard pulls
+          live production state via Reload. */}
+      {isDirty && (
+        <Card style={{ padding: 10, marginBottom: 14, backgroundColor: theme.colors.gold + '14', borderColor: theme.colors.gold + '55', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Text style={{ fontSize: 16 }}>●</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.gold }}>Unsaved changes</Text>
+            <Text style={{ fontSize: 10, color: theme.colors.textSecondary }}>Your edits diverge from production. Save to apply, or Reload to discard.</Text>
+          </View>
+          <TouchableOpacity onPress={handleReload} style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, backgroundColor: theme.colors.surfaceLight, borderWidth: 1, borderColor: theme.colors.border }}>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.textSecondary }}>↻ Discard</Text>
+          </TouchableOpacity>
+        </Card>
+      )}
+
+      {/* E8: recent config changes inline. Each Save writes a row to
+          audit_logs with action=config_change — the strip shows the last 3
+          so operators see what was tuned recently without bouncing to the
+          MASTER_AUDIT.md file. */}
+      {recentChanges.length > 0 && (
+        <Card style={{ padding: 12, marginBottom: 16, backgroundColor: theme.colors.surfaceLight }}>
+          <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1.5, marginBottom: 8 }}>RECENT CONFIG CHANGES</Text>
+          {recentChanges.map((r, i) => {
+            const ts = new Date(r.created_at);
+            const tsLabel = ts.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+            const meta = r.payload_meta ?? {};
+            const overrides = Object.entries(meta.scope_overrides ?? {})
+              .filter(([, v]) => v != null)
+              .map(([k, v]) => `${k} cd=${v}`)
+              .join(', ');
+            const summary = [
+              meta.global_cooldown != null ? `global cd=${meta.global_cooldown}` : null,
+              meta.min_energy != null ? `floor=${meta.min_energy}` : null,
+              overrides || null,
+            ].filter(Boolean).join(' · ');
+            return (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 4, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: theme.colors.border }}>
+                <Text style={{ fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, width: 92 }}>{tsLabel}</Text>
+                <Text style={{ fontSize: 10, color: theme.colors.textSecondary, flex: 1 }}>{summary || '(no diff captured)'}</Text>
+              </View>
+            );
+          })}
+        </Card>
+      )}
+
       <SectionTitle>SIGNAL WEIGHTS</SectionTitle>
       <Card style={{ padding: 14, marginBottom: 16 }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
@@ -286,19 +418,41 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
             {Object.entries(presets).map(([k, v]) => (
               <TouchableOpacity key={k} style={[st.optBtn, wPreset === k && st.optBtnOn]} onPress={() => setWPreset(k)}>
                 <Text style={[st.optBtnText, wPreset === k && st.optBtnTextOn]}>
-                  {k.charAt(0).toUpperCase() + k.slice(1)} ({v.BOX}/{v.PBURST}/{v.CO})
+                  {k.charAt(0).toUpperCase() + k.slice(1)} ({v.BOX}/{v.PBURST}/{v.CO}/{v.DGC})
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
         </ScrollView>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {[{ l: 'BOX', c: theme.colors.primary }, { l: 'PBURST', c: theme.colors.rose }, { l: 'CO', c: theme.colors.teal }].map(s => (
+        {/* E4: DGC now shown alongside BOX/PBURST/CO. Engine treats it as a
+            true fourth signal — production runs ~10% (DGC contributes to the
+            final indicator score). Sum-100 validation now spans all four. */}
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          {[
+            { l: 'BOX', c: theme.colors.primary },
+            { l: 'PBURST', c: theme.colors.rose },
+            { l: 'CO', c: theme.colors.teal },
+            { l: 'DGC', c: theme.colors.gold },
+          ].map(s => (
             <View key={s.l} style={{ flex: 1, backgroundColor: theme.colors.surfaceLight, borderRadius: 10, padding: 10, alignItems: 'center' }}>
               <Text style={{ fontSize: 9, color: theme.colors.textTertiary, fontWeight: '800', letterSpacing: 1, marginBottom: 3 }}>{s.l}</Text>
-              <Text style={{ fontSize: 20, fontWeight: '900', color: s.c, fontFamily: theme.typography.fontFamily.monoBold }}>{(w as any)[s.l]}%</Text>
+              <Text style={{ fontSize: 18, fontWeight: '900', color: s.c, fontFamily: theme.typography.fontFamily.monoBold }}>{(w as any)[s.l]}%</Text>
             </View>
           ))}
+        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+          <Text style={{ fontSize: 10, color: theme.colors.textTertiary }}>
+            Pick a preset above. Sum across all four must equal 100%.
+          </Text>
+          {(() => {
+            const sum = (w.BOX ?? 0) + (w.PBURST ?? 0) + (w.CO ?? 0) + (w.DGC ?? 0);
+            const ok = Math.abs(sum - 100) <= 1;
+            return (
+              <Text style={{ fontSize: 10, fontWeight: '800', color: ok ? theme.colors.success : theme.colors.error, fontFamily: theme.typography.fontFamily.monoBold }}>
+                Σ {sum.toFixed(1)}%
+              </Text>
+            );
+          })()}
         </View>
       </Card>
 
@@ -586,8 +740,21 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
           ℹ️ About Engine Config
         </Text>
       </TouchableOpacity>
+
+      {/* E7: Backtest CTA. Doesn't run a backtest from RN — the script lives
+          on the host (node + tsx). Modal explains the npm command per CLAUDE.md
+          and where to find the CSV output. Surfacing this button next to Save
+          puts the empirical-validation gate in the operator's line of sight. */}
+      <TouchableOpacity
+        style={[st.btnGhost, { borderWidth: 1.5, borderColor: theme.colors.teal + '44', backgroundColor: theme.colors.tealLight, marginTop: 8 }]}
+        onPress={() => setBacktestModalOpen(true)}
+      >
+        <Text style={[st.btnGhostText, { color: theme.colors.teal, fontWeight: '700' }]}>
+          📊 Validate via Backtest
+        </Text>
+      </TouchableOpacity>
       <Text style={{ fontSize: 10, color: theme.colors.textTertiary, textAlign: 'center', marginTop: 6, marginBottom: 20 }}>
-        View current config summary and guidance
+        Per CLAUDE.md: no engine change ships without a hit-rate number attached
       </Text>
       {savedAt && (
         <Text style={{ fontSize: 10, color: theme.colors.success, textAlign: 'center', marginTop: -14, marginBottom: 16 }}>
@@ -620,6 +787,61 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
               </View>
             </View>
           </View>
+        </Modal>
+      )}
+
+      {/* E7: backtest CTA modal */}
+      {backtestModalOpen && (
+        <Modal transparent animationType="slide" onRequestClose={() => setBacktestModalOpen(false)}>
+          <TouchableOpacity style={{ flex: 1, backgroundColor: '#1E1B4B55' }} activeOpacity={1} onPress={() => setBacktestModalOpen(false)}>
+            <TouchableOpacity activeOpacity={1} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: theme.colors.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 1, borderColor: theme.colors.border, padding: 20, maxHeight: '78%' }} onPress={() => {}}>
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: theme.colors.surfaceMuted, alignSelf: 'center', marginBottom: 16 }} />
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={{ fontSize: 15, fontWeight: '800', color: theme.colors.text, marginBottom: 4 }}>📊 Validate via Backtest</Text>
+                <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginBottom: 16 }}>
+                  Per CLAUDE.md: every engine/config change ships with a hit-rate number attached. The backtest harness replays the engine over the last 30 days against any named config preset.
+                </Text>
+                <Card style={{ padding: 14, marginBottom: 12, backgroundColor: theme.colors.tealLight, borderColor: theme.colors.teal + '28' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: theme.colors.teal, marginBottom: 6, letterSpacing: 1 }}>1. RECORD BASELINE</Text>
+                  <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginBottom: 6 }}>From a host shell (not in this app):</Text>
+                  <View style={{ backgroundColor: theme.colors.background, borderRadius: 6, padding: 8, borderWidth: 1, borderColor: theme.colors.border }}>
+                    <Text style={{ fontSize: 11, color: theme.colors.text, fontFamily: theme.typography.fontFamily.mono }}>
+                      npm run backtest:replay -- --days 30 --config default
+                    </Text>
+                  </View>
+                </Card>
+                <Card style={{ padding: 14, marginBottom: 12, backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary + '28' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: theme.colors.primary, marginBottom: 6, letterSpacing: 1 }}>2. RUN CANDIDATE</Text>
+                  <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginBottom: 6 }}>If you&apos;re testing a new combination, add a preset in:</Text>
+                  <View style={{ backgroundColor: theme.colors.background, borderRadius: 6, padding: 8, marginBottom: 6, borderWidth: 1, borderColor: theme.colors.border }}>
+                    <Text style={{ fontSize: 11, color: theme.colors.text, fontFamily: theme.typography.fontFamily.mono }}>
+                      scripts/backtest/configs.ts
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginBottom: 6 }}>Then replay it:</Text>
+                  <View style={{ backgroundColor: theme.colors.background, borderRadius: 6, padding: 8, borderWidth: 1, borderColor: theme.colors.border }}>
+                    <Text style={{ fontSize: 11, color: theme.colors.text, fontFamily: theme.typography.fontFamily.mono }}>
+                      npm run backtest:replay -- --days 30 --config &lt;your-preset&gt;
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginTop: 6, fontStyle: 'italic' }}>
+                    Tip: comma-separated configs run in parallel — e.g. `--config default,floor70,midday_cd10`
+                  </Text>
+                </Card>
+                <Card style={{ padding: 14, marginBottom: 16, backgroundColor: theme.colors.goldLight, borderColor: theme.colors.gold + '28' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: theme.colors.gold, marginBottom: 6, letterSpacing: 1 }}>3. DECIDE</Text>
+                  <Text style={{ fontSize: 11, color: theme.colors.textSecondary, lineHeight: 17 }}>
+                    Ship only if CANDIDATE ≥ BASELINE on overall hit rate.{'\n'}
+                    CSV output lands in <Text style={{ fontFamily: theme.typography.fontFamily.mono, color: theme.colors.text }}>scripts/backtest/output/</Text>{'\n'}
+                    Record the numbers as a CONFIG-XX entry in MASTER_AUDIT.md before applying.
+                  </Text>
+                </Card>
+                <TouchableOpacity style={st.btnPrimary} onPress={() => setBacktestModalOpen(false)}>
+                  <Text style={st.btnPrimaryText}>Close</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </TouchableOpacity>
+          </TouchableOpacity>
         </Modal>
       )}
 

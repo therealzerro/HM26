@@ -1,17 +1,19 @@
 #!/usr/bin/env tsx
 /**
- * verify-hits.ts — Reconcile adaptive_tracking + daily_intelligence hit
- * annotations against current `histories` ground truth for a given date
- * (or range). Clears stale annotations that survived from before a ledger
- * re-import corrected the underlying draws.
+ * verify-hits.ts — Reconcile adaptive_tracking + daily_intelligence +
+ * slate_snapshots hit annotations against current `histories` ground truth
+ * for a given date (or range). Clears stale annotations that survived from
+ * before a ledger re-import corrected the underlying draws.
  *
- * Pattern: a hit row in adaptive_tracking carries (combo, matched_state,
- * matched_session). The row is "valid" iff there exists a histories row
- * on that (date, jurisdiction=matched_state, session=matched_session)
- * whose comboset_sorted matches the combo. If no such histories row
- * exists, the annotation is stale and gets cleared.
+ * Three sources, same validity rule: an annotation is valid iff there exists
+ * a histories row on that (date, jurisdiction, session) whose comboset
+ * matches the combo. If no such row exists, the annotation is stale.
  *
- * Same check applied to daily_intelligence (hit_state/hit_session columns).
+ *   adaptive_tracking → NULL out matched_state, matched_session, actual_result,
+ *                       hit_box, hit_straight on stale rows.
+ *   daily_intelligence → SET hit_box=false, hit_straight=false, NULL state/session/result.
+ *   slate_snapshots → PATCH top_k_straights_json with hitType/hitState/hitSession/
+ *                     hitDate/hitResult stripped from picks whose annotation is stale.
  *
  * Idempotent. Safe to re-run.
  *
@@ -64,14 +66,27 @@ function lastNDates(n: number): string[] {
   return out;
 }
 
-async function verifyDate(date: string, apply: boolean): Promise<{ atStale: number; diStale: number; atKept: number; diKept: number }> {
+// Pick fields hit detection writes (lib/hitDetection.ts). Stripping these
+// keys reverts a pick to "no hit annotation" without disturbing signals,
+// rank, energy, etc. Defensive cast — we only know shape by convention.
+const HIT_FIELDS = ['hitType', 'hitState', 'hitSession', 'hitDate', 'hitResult'] as const;
+function stripHitFields(pick: any): any {
+  const cleaned: any = { ...pick };
+  for (const k of HIT_FIELDS) delete cleaned[k];
+  return cleaned;
+}
+
+async function verifyDate(date: string, apply: boolean): Promise<{ atStale: number; diStale: number; snapStaleSnapshots: number; snapStalePicks: number; atKept: number; diKept: number; snapKept: number }> {
   console.log(`\n=== ${date} ===`);
 
   // 1. Pull adaptive_tracking annotated rows
   const atRows = await api(`/rest/v1/adaptive_tracking?slate_date=eq.${date}&matched_state=not.is.null&select=id,scope,combo,matched_state,matched_session,actual_result,hit_box,hit_straight`) as any[];
   // 2. Pull daily_intelligence annotated rows
   const diRows = await api(`/rest/v1/daily_intelligence?slate_date=eq.${date}&or=(hit_box.eq.true,hit_straight.eq.true)&select=id,scope,combo,hit_state,hit_session,hit_result,hit_box,hit_straight`) as any[];
-  // 3. Pull histories ground truth
+  // 3. Pull slate_snapshots (active + soft-deleted) — hitType annotations can
+  //    live on old soft-deleted versions after a regen.
+  const snapRows = await api(`/rest/v1/slate_snapshots?slate_date=eq.${date}&top_k_straights_json=not.is.null&select=id,scope,hash,top_k_straights_json,updated_at_et,deleted_at`) as any[];
+  // 4. Pull histories ground truth
   const histRows = await api(`/rest/v1/histories?date_et=eq.${date}&select=jurisdiction,session,result_digits,comboset_sorted`) as any[];
 
   // Build lookup: (jurisdiction, session) → set of comboset_sorted that drew
@@ -105,21 +120,50 @@ async function verifyDate(date: string, apply: boolean): Promise<{ atStale: numb
     else diStale.push(r);
   }
 
-  console.log(`  adaptive_tracking: ${atRows.length} annotated · ${atKept} valid · ${atStale.length} stale`);
-  if (atStale.length) {
-    for (const r of atStale) {
-      console.log(`    ✗ ${r.scope}/${r.combo} claimed hit in ${r.matched_state}/${r.matched_session} — no matching draw`);
-    }
-  }
-  console.log(`  daily_intelligence: ${diRows.length} annotated · ${diKept} valid · ${diStale.length} stale`);
-  if (diStale.length) {
-    for (const r of diStale) {
-      console.log(`    ✗ ${r.scope}/${r.combo} claimed hit in ${r.hit_state}/${r.hit_session} — no matching draw`);
+  // slate_snapshots: scan each snapshot's top_k_straights_json picks. A
+  // snapshot is "stale" if at least one pick has a hitType annotation
+  // pointing at a (state, session, combo) tuple no histories row supports.
+  // We collect the stale picks per snapshot so we can build a cleaned
+  // top_k_straights_json and PATCH the row.
+  const snapStaleList: { row: any; cleaned: any[]; stalePicks: any[] }[] = [];
+  let snapKept = 0;
+  let snapStalePickCount = 0;
+  for (const snap of snapRows) {
+    const picks = Array.isArray(snap.top_k_straights_json) ? snap.top_k_straights_json
+      : typeof snap.top_k_straights_json === 'string' ? (() => { try { return JSON.parse(snap.top_k_straights_json || '[]'); } catch { return []; } })()
+      : [];
+    if (picks.length === 0) { snapKept++; continue; }
+    const stalePicks: any[] = [];
+    let anyAnnotated = false;
+    const cleaned = picks.map((p: any) => {
+      if (!p?.hitType) return p;
+      anyAnnotated = true;
+      if (isValid(p.hitState, p.hitSession, p.combo)) return p;
+      stalePicks.push(p);
+      return stripHitFields(p);
+    });
+    if (!anyAnnotated || stalePicks.length === 0) {
+      snapKept++;
+    } else {
+      snapStaleList.push({ row: snap, cleaned, stalePicks });
+      snapStalePickCount += stalePicks.length;
     }
   }
 
-  if (!apply || (atStale.length === 0 && diStale.length === 0)) {
-    return { atStale: atStale.length, diStale: diStale.length, atKept, diKept };
+  console.log(`  adaptive_tracking:  ${atRows.length} annotated · ${atKept} valid · ${atStale.length} stale`);
+  for (const r of atStale) console.log(`    ✗ ${r.scope}/${r.combo} claimed hit in ${r.matched_state}/${r.matched_session} — no matching draw`);
+  console.log(`  daily_intelligence: ${diRows.length} annotated · ${diKept} valid · ${diStale.length} stale`);
+  for (const r of diStale) console.log(`    ✗ ${r.scope}/${r.combo} claimed hit in ${r.hit_state}/${r.hit_session} — no matching draw`);
+  console.log(`  slate_snapshots:    ${snapRows.length} scanned · ${snapKept} clean · ${snapStaleList.length} have stale picks (${snapStalePickCount} picks total)`);
+  for (const s of snapStaleList) {
+    const hashHint = s.row.hash ? ` hash=${s.row.hash}` : '';
+    const delHint = s.row.deleted_at ? ' [deleted]' : '';
+    console.log(`    ✗ ${s.row.scope}${hashHint}${delHint} · ${s.stalePicks.length} stale pick(s):`);
+    for (const p of s.stalePicks) console.log(`        ${p.combo} → ${p.hitState}/${p.hitSession}`);
+  }
+
+  if (!apply || (atStale.length === 0 && diStale.length === 0 && snapStaleList.length === 0)) {
+    return { atStale: atStale.length, diStale: diStale.length, snapStaleSnapshots: snapStaleList.length, snapStalePicks: snapStalePickCount, atKept, diKept, snapKept };
   }
 
   // Apply: clear hit fields on stale rows.
@@ -149,8 +193,15 @@ async function verifyDate(date: string, apply: boolean): Promise<{ atStale: numb
       }),
     });
   }
-  console.log(`  ✓ Cleared ${atStale.length} adaptive_tracking + ${diStale.length} daily_intelligence stale annotations`);
-  return { atStale: atStale.length, diStale: diStale.length, atKept, diKept };
+  for (const s of snapStaleList) {
+    await api(`/rest/v1/slate_snapshots?id=eq.${s.row.id}`, {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ top_k_straights_json: s.cleaned }),
+    });
+  }
+  console.log(`  ✓ Cleared ${atStale.length} adaptive_tracking + ${diStale.length} daily_intelligence + ${snapStalePickCount} snapshot pick(s) across ${snapStaleList.length} snapshot(s)`);
+  return { atStale: atStale.length, diStale: diStale.length, snapStaleSnapshots: snapStaleList.length, snapStalePicks: snapStalePickCount, atKept, diKept, snapKept };
 }
 
 async function main() {
@@ -161,16 +212,19 @@ async function main() {
     : [new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })];
 
   console.log(`verify-hits — ${apply ? 'APPLY' : 'DRY RUN'} · dates: ${dates.join(', ')}`);
-  let totalStaleAT = 0, totalStaleDI = 0, totalKeptAT = 0, totalKeptDI = 0;
+  let totalStaleAT = 0, totalStaleDI = 0, totalStaleSnaps = 0, totalStaleSnapPicks = 0;
+  let totalKeptAT = 0, totalKeptDI = 0, totalKeptSnaps = 0;
   for (const d of dates) {
     const r = await verifyDate(d, apply);
     totalStaleAT += r.atStale; totalStaleDI += r.diStale;
-    totalKeptAT += r.atKept; totalKeptDI += r.diKept;
+    totalStaleSnaps += r.snapStaleSnapshots; totalStaleSnapPicks += r.snapStalePicks;
+    totalKeptAT += r.atKept; totalKeptDI += r.diKept; totalKeptSnaps += r.snapKept;
   }
   console.log(`\n── Summary ──`);
-  console.log(`  adaptive_tracking: ${totalKeptAT} valid · ${totalStaleAT} stale`);
+  console.log(`  adaptive_tracking:  ${totalKeptAT} valid · ${totalStaleAT} stale`);
   console.log(`  daily_intelligence: ${totalKeptDI} valid · ${totalStaleDI} stale`);
-  if (!apply && (totalStaleAT + totalStaleDI) > 0) {
+  console.log(`  slate_snapshots:    ${totalKeptSnaps} clean · ${totalStaleSnaps} have stale picks (${totalStaleSnapPicks} picks total)`);
+  if (!apply && (totalStaleAT + totalStaleDI + totalStaleSnaps) > 0) {
     console.log(`\nRe-run with --apply to clear stale annotations.`);
   }
 }

@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
 import { theme } from '@/constants/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
-import { getTodayET } from '@/lib/dateUtils';
 import { SectionTitle, Card, st } from './AdminShared';
+
+type ScopeName = 'midday' | 'evening' | 'allday';
+const SCOPE_NAMES: ScopeName[] = ['midday', 'evening', 'allday'];
 
 // ─── Engine Config View ───────────────────────────────────────────────────────
 export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?: (scope: any, weightsKey?: any) => Promise<any> }) {
@@ -28,22 +30,28 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
   const [singlesMax, setSinglesMax]   = useState(4);
   const [doublesMax, setDoublesMax]   = useState(2);
   const [pairRepCap, setPairRepCap]   = useState(2);
-  const [confAdjust, setConfAdjust]   = useState(true);
-  const [burstSignal, setBurstSignal] = useState(true);
   const [triplesOn, setTriplesOn]     = useState(false);
   const [defaultScope, setDefaultScope] = useState('midday');
 
-  // Task 4 — new engine config state
   const DEFAULT_HORIZON_WEIGHTS: Record<string, number> = { H01Y:35, H02Y:22, H03Y:14, H04Y:9, H05Y:6, H06Y:4.5, H07Y:3, H08Y:2.5, H09Y:2, H10Y:2 };
   const [horizonWeights, setHorizonWeights] = useState<Record<string, number>>(DEFAULT_HORIZON_WEIGHTS);
-  const [pressureThreshold, setPressureThreshold] = useState(200);
-  const [pressureBonusWeight, setPressureBonusWeight] = useState(10);
+  const [pressureThreshold, setPressureThreshold] = useState(250);
   const [minEnergyThreshold, setMinEnergyThreshold] = useState(0);
   const [recentHitCooldown, setRecentHitCooldown] = useState(20);
-  const [autoGenSlates, setAutoGenSlates] = useState(false);
-  const [morningGenTime, setMorningGenTime] = useState('04:00');
-  const [eveningGenTime, setEveningGenTime] = useState('16:00');
+  // E1 (2026-05-13): per-scope cooldown overrides. null = no override (engine
+  // falls back to global recentHitCooldown). Mirrors the CONFIG-05 production
+  // mechanism: app_config keys `recent_hit_cooldown_${scope}` overlay the global.
+  const [scopeCooldowns, setScopeCooldowns] = useState<Record<ScopeName, number | null>>({
+    midday: null, evening: null, allday: null,
+  });
+  // Snapshot of scope overrides at last load — used to compute which keys to
+  // DELETE when the user clears an override (was non-null at load, now null).
+  const [loadedScopeCooldowns, setLoadedScopeCooldowns] = useState<Record<ScopeName, number | null>>({
+    midday: null, evening: null, allday: null,
+  });
   const [previewModal, setPreviewModal] = useState(false);
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
+  const [savedSummary, setSavedSummary] = useState<{ written: number; deleted: number } | null>(null);
   const [synergyOn, setSynergyOn] = useState(false);
   const [synergyWeight, setSynergyWeight] = useState(0.15);
 
@@ -62,9 +70,11 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
       const cfg: Record<string, string> = {};
       rows.forEach(r => { cfg[r.key] = r.value; });
 
-      if (cfg.engine_preset) setWPreset(cfg.engine_preset);
-      if (cfg.drawing_confidence_on) setConfAdjust(cfg.drawing_confidence_on === 'true');
-      if (cfg.burst_signal_on)       setBurstSignal(cfg.burst_signal_on === 'true');
+      // E2 (2026-05-13): stripped reads for dead keys (engine_preset,
+      // drawing_confidence_on, burst_signal_on, pressure_bonus_weight,
+      // auto_gen_slates, morning_gen_time, evening_gen_time). Existing rows in
+      // app_config are left in place — engine doesn't read them so they're
+      // harmless. Stop writing them on save, drop the UI controls.
       if (cfg.synergy_boost_on)      setSynergyOn(cfg.synergy_boost_on === 'true');
       if (cfg.synergy_boost_weight)  setSynergyWeight(parseFloat(cfg.synergy_boost_weight) || 0.15);
       if (cfg.k6_triples_on)         setTriplesOn(cfg.k6_triples_on === 'true');
@@ -72,16 +82,26 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
       if (cfg.k6_doubles_max !== undefined) { const v = parseInt(cfg.k6_doubles_max, 10); setDoublesMax(Number.isNaN(v) ? 2 : v); }
       if (cfg.pair_rep_cap)          { const v = parseInt(cfg.pair_rep_cap, 10); setPairRepCap(Number.isNaN(v) ? 2 : v); }
       if (cfg.default_scope)         setDefaultScope(cfg.default_scope);
-      if (cfg.pressure_threshold)    setPressureThreshold(parseInt(cfg.pressure_threshold, 10) || 200);
-      if (cfg.pressure_bonus_weight) setPressureBonusWeight(parseInt(cfg.pressure_bonus_weight, 10) || 10);
+      if (cfg.pressure_threshold)    setPressureThreshold(parseInt(cfg.pressure_threshold, 10) || 250);
       if (cfg.min_energy_threshold)  setMinEnergyThreshold(parseInt(cfg.min_energy_threshold, 10) || 0);
       if (cfg.recent_hit_cooldown)   setRecentHitCooldown(parseInt(cfg.recent_hit_cooldown, 10) || 0);
-      if (cfg.auto_gen_slates)       setAutoGenSlates(cfg.auto_gen_slates === 'true');
-      if (cfg.morning_gen_time)      setMorningGenTime(cfg.morning_gen_time);
-      if (cfg.evening_gen_time)      setEveningGenTime(cfg.evening_gen_time);
       if (cfg.horizon_weights) {
         try { setHorizonWeights({ ...DEFAULT_HORIZON_WEIGHTS, ...JSON.parse(cfg.horizon_weights) }); } catch {}
       }
+
+      // E1: per-scope cooldown overrides (CONFIG-05). null when no override row.
+      const scopeOverrides: Record<ScopeName, number | null> = {
+        midday: null, evening: null, allday: null,
+      };
+      for (const sc of SCOPE_NAMES) {
+        const raw = cfg[`recent_hit_cooldown_${sc}`];
+        if (raw != null && raw !== '') {
+          const v = parseInt(raw, 10);
+          if (!Number.isNaN(v) && v >= 0) scopeOverrides[sc] = v;
+        }
+      }
+      setScopeCooldowns(scopeOverrides);
+      setLoadedScopeCooldowns(scopeOverrides);
 
       // Load custom preset weights if stored
       const overrides: typeof DEFAULT_PRESETS = { ...DEFAULT_PRESETS };
@@ -101,7 +121,12 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
 
   useEffect(() => { loadConfig(); }, [loadConfig]);
 
-  // ── Save all config keys via individual PATCH calls (avoids RLS INSERT restriction) ──
+  // ── Save all config keys via single upsert POST (E3) ──
+  // Replaces the prior PATCH-per-key flow which silently no-op'd when a key
+  // didn't exist (PATCH ?key=eq.X matches 0 rows → no error). With CONFIG-05's
+  // new scope-suffixed keys (recent_hit_cooldown_midday etc.), some keys are
+  // genuinely created on first save — upsert handles both cases. Scope-cooldown
+  // overrides that the user CLEARED are tracked separately and DELETEd.
   const handleSave = useCallback(async () => {
     const signalSum = (w.BOX ?? 0) + (w.PBURST ?? 0) + (w.CO ?? 0);
     if (Math.abs(signalSum - 100) > 1) {
@@ -115,13 +140,11 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
     setSaving(true);
     setSaveError(null);
     setSavedOk(false);
+    setSavedSummary(null);
     try {
       const entries: Record<string, string> = {
-        engine_preset:            wPreset,
-        drawing_confidence_on:    String(confAdjust),
-        burst_signal_on:          String(burstSignal),
         synergy_boost_on:         String(synergyOn),
-        synergy_boost_weight:      String(synergyWeight),
+        synergy_boost_weight:     String(synergyWeight),
         k6_triples_on:            String(triplesOn),
         k6_singles_max:           String(singlesMax),
         k6_doubles_max:           String(doublesMax),
@@ -132,42 +155,59 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
         engine_weights_aggressive: JSON.stringify(presets.aggressive),
         horizon_weights:          JSON.stringify(horizonWeights),
         pressure_threshold:       String(pressureThreshold),
-        pressure_bonus_weight:    String(pressureBonusWeight),
         min_energy_threshold:     String(minEnergyThreshold),
         recent_hit_cooldown:      String(recentHitCooldown),
-        auto_gen_slates:          String(autoGenSlates),
-        morning_gen_time:         morningGenTime,
-        evening_gen_time:         eveningGenTime,
       };
-
-      // Use PATCH per key — rows already exist, INSERT would violate RLS
-      const keys = Object.keys(entries);
-      const results = await Promise.allSettled(
-        Object.entries(entries).map(([k, v]) =>
-          fetchFromSupabase({
-            path: `/rest/v1/app_config?key=eq.${encodeURIComponent(k)}`,
-            method: 'PATCH',
-            headers: { 'Prefer': 'return=minimal' },
-            body: { value: v },
-          })
-        )
-      );
-      const failures = results
-        .map((r, i) => r.status === 'rejected' ? keys[i] : null)
-        .filter(Boolean) as string[];
-      if (failures.length > 0) {
-        setSaveError(`${failures.length} key(s) failed: ${failures.join(', ')}`);
-      } else {
-        setSavedOk(true);
-        setSavedAt(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
-        setTimeout(() => setSavedOk(false), 2500);
+      // Scope cooldown upserts (non-null current value)
+      const scopeDeletes: string[] = [];
+      for (const sc of SCOPE_NAMES) {
+        const key = `recent_hit_cooldown_${sc}`;
+        const cur = scopeCooldowns[sc];
+        const wasLoaded = loadedScopeCooldowns[sc];
+        if (cur != null) {
+          entries[key] = String(cur);
+        } else if (wasLoaded != null) {
+          // User cleared a previously-set override → DELETE that row.
+          scopeDeletes.push(key);
+        }
       }
+
+      // Single upsert POST. Prefer: resolution=merge-duplicates means existing
+      // rows get UPDATED on (key) primary-key conflict, new rows get INSERTED.
+      const body = Object.entries(entries).map(([key, value]) => ({ key, value }));
+      await fetchFromSupabase({
+        path: '/rest/v1/app_config',
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        body,
+      });
+      // Process scope-override deletes one at a time (rare — only on explicit
+      // clear). DELETE ?key=eq.X is a no-op if the row was never created.
+      let deletedCount = 0;
+      for (const key of scopeDeletes) {
+        try {
+          await fetchFromSupabase({
+            path: `/rest/v1/app_config?key=eq.${encodeURIComponent(key)}`,
+            method: 'DELETE',
+            headers: { 'Prefer': 'return=minimal' },
+          });
+          deletedCount++;
+        } catch (e) {
+          console.warn('[engine-config] DELETE failed:', key, e);
+        }
+      }
+      // Refresh the loaded-snapshot so the diff tracking resets.
+      setLoadedScopeCooldowns({ ...scopeCooldowns });
+      setSavedOk(true);
+      setSavedAt(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+      setSavedSummary({ written: body.length, deleted: deletedCount });
+      setTimeout(() => setSavedOk(false), 2500);
     } catch (e) {
       setSaveError(String(e instanceof Error ? e.message : e));
     } finally {
       setSaving(false);
     }
-  }, [wPreset, confAdjust, burstSignal, synergyOn, synergyWeight, triplesOn, singlesMax, doublesMax, pairRepCap, defaultScope, presets, horizonWeights, pressureThreshold, pressureBonusWeight, minEnergyThreshold, recentHitCooldown, autoGenSlates, morningGenTime, eveningGenTime]);
+  }, [synergyOn, synergyWeight, triplesOn, singlesMax, doublesMax, pairRepCap, defaultScope, presets, horizonWeights, pressureThreshold, minEnergyThreshold, recentHitCooldown, scopeCooldowns, loadedScopeCooldowns, horizonSum, w]);
 
   const handleSaveAndRegen = useCallback(async () => {
     await handleSave();
@@ -180,17 +220,27 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
     setRegenning(false);
   }, [handleSave, regenerateSlate]);
 
+  // E5: Reset wipes UI to hardcoded defaults — destructive, can erase
+  // operator-tuned values that aren't yet saved. Now gated behind a confirm
+  // modal (confirmResetOpen). Reload-from-production is the safer adjacent
+  // action; see handleReload.
   const handleReset = useCallback(() => {
     setWPreset('balanced'); setPresets(DEFAULT_PRESETS);
     setSinglesMax(4); setDoublesMax(2); setPairRepCap(2);
-    setConfAdjust(true); setBurstSignal(true); setTriplesOn(false);
+    setTriplesOn(false);
     setSynergyOn(false); setSynergyWeight(0.15);
     setDefaultScope('midday');
     setHorizonWeights(DEFAULT_HORIZON_WEIGHTS);
-    setPressureThreshold(200); setPressureBonusWeight(10);
+    setPressureThreshold(250);
     setMinEnergyThreshold(0); setRecentHitCooldown(20);
-    setAutoGenSlates(false); setMorningGenTime('04:00'); setEveningGenTime('16:00');
+    setScopeCooldowns({ midday: null, evening: null, allday: null });
   }, []);
+
+  // E5: pull current production state from app_config without touching the
+  // hardcoded defaults. Safer than Reset for "I want to see what's actually live."
+  const handleReload = useCallback(() => {
+    loadConfig();
+  }, [loadConfig]);
 
   function ToggleRow({ icon, label, sub, on, onChange }: { icon: string; label: string; sub?: string; on: boolean; onChange: (v: boolean) => void }) {
     return (
@@ -254,8 +304,6 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
 
       <SectionTitle>K6 RAIL CONTROLS</SectionTitle>
       <Card style={{ paddingHorizontal: 16 }}>
-        <ToggleRow icon="🏆" label="Drawing Confidence Adjustment" sub="Weight signals higher for physical ball machine states" on={confAdjust} onChange={setConfAdjust} />
-        <ToggleRow icon="📈" label="Recency Burst Detection" sub="Bonus signal for combos building extra pressure in H01Y" on={burstSignal} onChange={setBurstSignal} />
         <ToggleRow icon="3️⃣" label="Allow Triples in K6" sub="Currently off — triples have very low historical frequency" on={triplesOn} onChange={setTriplesOn} />
 
         <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
@@ -385,7 +433,7 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
       {/* ── Draws Since Pressure ── */}
       <SectionTitle>DRAWS SINCE PRESSURE</SectionTitle>
       <Card style={{ paddingHorizontal: 16, paddingVertical: 14, marginBottom: 16 }}>
-        <View style={{ marginBottom: 14 }}>
+        <View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>Pressure Threshold</Text>
@@ -394,25 +442,9 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
             <Text style={{ fontSize: 16, fontWeight: '900', color: theme.colors.rose, fontFamily: theme.typography.fontFamily.monoBold }}>{pressureThreshold}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 6 }}>
-            {[50, 100, 150, 200, 300, 500].map(v => (
+            {[50, 100, 150, 200, 250, 300, 500].map(v => (
               <TouchableOpacity key={v} onPress={() => setPressureThreshold(v)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: pressureThreshold === v ? theme.colors.roseLight : theme.colors.surfaceLight, borderWidth: 1, borderColor: pressureThreshold === v ? theme.colors.rose + '55' : theme.colors.border }}>
                 <Text style={{ fontSize: 10, fontWeight: '700', color: pressureThreshold === v ? theme.colors.rose : theme.colors.textTertiary }}>{v}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-        <View>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>Pressure Bonus Weight</Text>
-              <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginTop: 2 }}>How much the pressure bonus affects final score</Text>
-            </View>
-            <Text style={{ fontSize: 16, fontWeight: '900', color: theme.colors.rose, fontFamily: theme.typography.fontFamily.monoBold }}>{pressureBonusWeight}%</Text>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 6 }}>
-            {[5, 10, 15, 20, 25].map(v => (
-              <TouchableOpacity key={v} onPress={() => setPressureBonusWeight(v)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: pressureBonusWeight === v ? theme.colors.roseLight : theme.colors.surfaceLight, borderWidth: 1, borderColor: pressureBonusWeight === v ? theme.colors.rose + '55' : theme.colors.border }}>
-                <Text style={{ fontSize: 10, fontWeight: '700', color: pressureBonusWeight === v ? theme.colors.rose : theme.colors.textTertiary }}>{v}%</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -441,8 +473,8 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
         <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>🚫 Recent Hit Cooldown</Text>
-              <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginTop: 1 }}>Exclude combos that hit within last N draws (0 = off)</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>🚫 Recent Hit Cooldown (global)</Text>
+              <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginTop: 1 }}>Exclude combos that hit within last N draws (0 = off). Per-scope overrides below.</Text>
             </View>
             <Text style={{ fontSize: 14, fontWeight: '900', color: theme.colors.teal, fontFamily: theme.typography.fontFamily.monoBold }}>{recentHitCooldown === 0 ? 'Off' : `${recentHitCooldown}d`}</Text>
           </View>
@@ -454,43 +486,57 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
             ))}
           </View>
         </View>
+        {/* E1 (CONFIG-05): per-scope cooldown overrides. Each scope can either
+            inherit the global (left as "(global)") or set its own value. The
+            engine reads `recent_hit_cooldown_${scope}` and prefers it over
+            global when present. Save writes/deletes the row per scope. */}
+        <View style={{ paddingVertical: 10 }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text, marginBottom: 2 }}>Per-scope cooldown overrides</Text>
+          <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginBottom: 8 }}>Surgical tuning when one scope underperforms. Empty = use global ({recentHitCooldown}d).</Text>
+          {SCOPE_NAMES.map(sc => {
+            const cur = scopeCooldowns[sc];
+            const label = sc === 'midday' ? '☀️ Midday' : sc === 'evening' ? '🌙 Evening' : '◈ All Day';
+            const isOverride = cur != null;
+            return (
+              <View key={sc} style={{ marginBottom: 6, padding: 8, borderRadius: 8, backgroundColor: isOverride ? theme.colors.tealLight + '55' : theme.colors.surfaceLight, borderWidth: 1, borderColor: isOverride ? theme.colors.teal + '44' : theme.colors.border }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.text }}>{label}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: isOverride ? theme.colors.teal : theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold }}>
+                      {isOverride ? `${cur}d` : '(global)'}
+                    </Text>
+                    {isOverride && (
+                      <TouchableOpacity
+                        onPress={() => setScopeCooldowns(prev => ({ ...prev, [sc]: null }))}
+                        style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: theme.colors.surfaceLight, borderWidth: 1, borderColor: theme.colors.border }}
+                      >
+                        <Text style={{ fontSize: 9, fontWeight: '700', color: theme.colors.textSecondary }}>✗ clear</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap' }}>
+                  {[5, 10, 15, 20, 25, 30].map(v => (
+                    <TouchableOpacity
+                      key={v}
+                      onPress={() => setScopeCooldowns(prev => ({ ...prev, [sc]: v }))}
+                      style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5, backgroundColor: cur === v ? theme.colors.teal : 'transparent', borderWidth: 1, borderColor: cur === v ? theme.colors.teal : theme.colors.border }}
+                    >
+                      <Text style={{ fontSize: 9, fontWeight: '700', color: cur === v ? '#fff' : theme.colors.textTertiary }}>{v}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            );
+          })}
+        </View>
       </Card>
 
-      {/* ── Slate Generation Schedule ── */}
-      <SectionTitle>SLATE GENERATION SCHEDULE</SectionTitle>
-      <Card style={{ paddingHorizontal: 16, marginBottom: 16 }}>
-        <ToggleRow
-          icon="⏰"
-          label="Auto-generate Slates"
-          sub="Note: requires server-side scheduling (Phase 3)"
-          on={autoGenSlates}
-          onChange={setAutoGenSlates}
-        />
-        {autoGenSlates && (
-          <>
-            <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.text, marginBottom: 6 }}>Morning Generation Time (ET)</Text>
-              <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-                {['02:00','03:00','04:00','05:00','06:00'].map(t => (
-                  <TouchableOpacity key={t} onPress={() => setMorningGenTime(t)} style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 7, backgroundColor: morningGenTime === t ? theme.colors.goldLight : theme.colors.surfaceLight, borderWidth: 1, borderColor: morningGenTime === t ? theme.colors.gold + '55' : theme.colors.border }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: morningGenTime === t ? theme.colors.gold : theme.colors.textTertiary }}>{t} ET</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-            <View style={{ paddingVertical: 10 }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.text, marginBottom: 6 }}>Evening Generation Time (ET)</Text>
-              <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-                {['14:00','15:00','16:00','17:00','18:00'].map(t => (
-                  <TouchableOpacity key={t} onPress={() => setEveningGenTime(t)} style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 7, backgroundColor: eveningGenTime === t ? theme.colors.goldLight : theme.colors.surfaceLight, borderWidth: 1, borderColor: eveningGenTime === t ? theme.colors.gold + '55' : theme.colors.border }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: eveningGenTime === t ? theme.colors.gold : theme.colors.textTertiary }}>{t} ET</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          </>
-        )}
-      </Card>
+      {/* E2 (2026-05-13): removed the Slate Generation Schedule section.
+          auto_gen_slates / morning_gen_time / evening_gen_time were never
+          wired to a scheduler — UI itself admitted "requires server-side
+          scheduling (Phase 3)" which never shipped. Use the remote routine
+          mechanism (scheduled agents) instead for time-based regens. */}
 
       {saveError && (
         <Card style={{ padding: 10, marginBottom: 10, backgroundColor: theme.colors.errorLight, borderColor: theme.colors.error + '44' }}>
@@ -508,7 +554,13 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
             {saving ? '⏳ Saving…' : savedOk ? '✓ Saved!' : '💾 Save Engine Config'}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={st.btnGhost} onPress={handleReset}>
+        {/* E5: Reload-from-production sits next to Reset because the two are
+            adjacent in intent but opposite in destructiveness. Reload pulls
+            live state; Reset wipes to UI defaults and now requires confirm. */}
+        <TouchableOpacity style={st.btnGhost} onPress={handleReload} disabled={saving || regenning || loading}>
+          <Text style={st.btnGhostText}>↻ Reload</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={st.btnGhost} onPress={() => setConfirmResetOpen(true)} disabled={saving || regenning}>
           <Text style={st.btnGhostText}>↺ Reset</Text>
         </TouchableOpacity>
       </View>
@@ -539,8 +591,36 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
       </Text>
       {savedAt && (
         <Text style={{ fontSize: 10, color: theme.colors.success, textAlign: 'center', marginTop: -14, marginBottom: 16 }}>
-          Last saved: {savedAt} — engine will use these weights on next slate generation
+          Last saved: {savedAt} — {savedSummary ? `${savedSummary.written} key${savedSummary.written !== 1 ? 's' : ''} written${savedSummary.deleted > 0 ? `, ${savedSummary.deleted} override${savedSummary.deleted !== 1 ? 's' : ''} cleared` : ''}. ` : ''}
+          Engine will use these on next slate generation
         </Text>
+      )}
+
+      {/* E5: confirm-reset modal — prevents accidental wipe of operator-tuned
+          values. Reload-from-production is the safer adjacent action; Reset
+          is genuinely destructive. */}
+      {confirmResetOpen && (
+        <Modal transparent animationType="fade" onRequestClose={() => setConfirmResetOpen(false)}>
+          <View style={{ flex: 1, backgroundColor: '#1E1B4B66', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            <View style={{ backgroundColor: theme.colors.surface, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border, padding: 18, width: '100%', maxWidth: 360 }}>
+              <Text style={{ fontSize: 15, fontWeight: '800', color: theme.colors.text, marginBottom: 6 }}>Reset to UI defaults?</Text>
+              <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginBottom: 14 }}>
+                This wipes all staged engine settings back to hardcoded defaults — including any per-scope cooldown overrides. It does NOT touch production app_config until you Save.{'\n\n'}If you want the live production state instead, cancel and use ↻ Reload.
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity style={[st.btnGhost, { flex: 1 }]} onPress={() => setConfirmResetOpen(false)}>
+                  <Text style={st.btnGhostText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[st.btnPrimary, { flex: 1, backgroundColor: theme.colors.error }]}
+                  onPress={() => { handleReset(); setConfirmResetOpen(false); }}
+                >
+                  <Text style={st.btnPrimaryText}>Reset</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       )}
 
       {/* Preview modal */}

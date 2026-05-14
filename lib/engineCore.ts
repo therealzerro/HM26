@@ -96,7 +96,10 @@ export function computeDGC(dayOffsets: number[]): number {
 // ─── BOX signal ───────────────────────────────────────────────────────────────
 
 /**
- * Raw BOX score (before normalization): 60% frequency + 40% recency pressure.
+ * Raw BOX score (before normalization): `freqWeight * freq + pressureWeight * pressure`.
+ * Defaults: 60% frequency + 40% recency pressure (production behavior). The optional
+ * weight params let backtest candidates vary the split without touching production —
+ * when omitted, output is bit-identical to the legacy two-arg form.
  * pressureThreshold: draws_since value where pressure peaks (default 250).
  */
 export function computeBoxSignal(
@@ -104,6 +107,8 @@ export function computeBoxSignal(
   dsVal: number,
   maxTimesDrawn: number,
   pressureThreshold: number,
+  freqWeight: number = 0.60,
+  pressureWeight: number = 0.40,
 ): number {
   if (timesDrawn === 0) return 0;
   const freqScore = maxTimesDrawn > 0 ? timesDrawn / maxTimesDrawn : 0;
@@ -114,7 +119,7 @@ export function computeBoxSignal(
       : dsVal > pressureThreshold
       ? Math.max(1.0 - (dsVal - pressureThreshold) / 200, 0.3)
       : (dsVal / 100) * 0.5;
-  return (freqScore * 0.60) + (pressureScore * 0.40);
+  return (freqScore * freqWeight) + (pressureScore * pressureWeight);
 }
 
 // ─── Pair signal (PBURST / CO) ────────────────────────────────────────────────

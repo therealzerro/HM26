@@ -35,6 +35,21 @@ export interface EngineConfig {
   // summing to ~1.0 (NOT percentages). When omitted, replay uses the hardcoded
   // HORIZON_WEIGHTS const. Mirrors production app_config.horizon_weights.
   horizonWeights?: Record<string, number>;
+  // ENH-BP (2026-05-14): BOX freq/pressure split. Defaults (omitted) preserve the
+  // hard-coded 60/40 production split. Candidates can vary the split to test
+  // whether the "overdue pressure" term is hurting midday/doubles performance
+  // (see FORENSIC-01: 0 hits on 28 doubles picks suggests anti-correlated pressure).
+  // Weights are absolute, not normalized — typical sane range: both in [0,1],
+  // freq+pressure ≈ 1.0. Setting pressureWeight=0 disables the over-due signal;
+  // setting it negative inverts it (penalises "overdue" combos).
+  boxFreqWeight?: number;
+  boxPressureWeight?: number;
+  // Per-scope override (wins over the globals above). Mirrors the
+  // `recentHitCooldownByScope` pattern. Needed because the 30-day candidate
+  // sweep showed pressure inversion helps midday/evening but hurts allday;
+  // a single global value can't win on all three scopes.
+  boxFreqWeightByScope?: Partial<Record<Scope, number>>;
+  boxPressureWeightByScope?: Partial<Record<Scope, number>>;
 }
 
 export interface ReplayPick {

@@ -298,6 +298,11 @@ export async function computeSlateAsOf(
   // HORIZON_WEIGHTS const when present. Decimals summing to ~1.0.
   const horizonWeights: Record<string, number> = config.horizonWeights ?? HORIZON_WEIGHTS;
 
+  // ENH-BP: per-scope BOX freq/pressure weight override wins over global wins
+  // over function default (0.60 / 0.40). Mirrors recentHitCooldownByScope.
+  const effFreqWeight     = config.boxFreqWeightByScope?.[scope]     ?? config.boxFreqWeight;
+  const effPressureWeight = config.boxPressureWeightByScope?.[scope] ?? config.boxPressureWeight;
+
   const { dsOverride, hitDatesMap } = buildOverrides(historyRows, date);
 
   // Merge: history wins when it shows a more recent hit
@@ -347,7 +352,10 @@ export async function computeSlateAsOf(
       for (const h of H_ALL) {
         dsVal += (boxByHorizon.get(h)?.get(normKey) ?? 0) * (horizonWeights[h] ?? 0);
       }
-      rawBox[i] = computeBoxSignal(timesDrawnVal, dsVal, maxTimesDrawn, config.pressureThreshold);
+      rawBox[i] = computeBoxSignal(
+        timesDrawnVal, dsVal, maxTimesDrawn, config.pressureThreshold,
+        effFreqWeight, effPressureWeight,
+      );
     }
 
     const ab = sortedPair(a, b);

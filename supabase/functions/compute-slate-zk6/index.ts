@@ -68,6 +68,15 @@ interface EngineConfig {
   pressureThreshold: number; minEnergyThreshold: number;
   recentHitCooldown: number; synergyOn: boolean; synergyWeight: number;
   horizonWeights: Record<string, number>;
+  // CONFIG-02 (2026-05-14): BOX freq/pressure split, with per-scope override
+  // wins-over-global wins-over-default (0.60 / 0.40). Negative pressure weight
+  // = "inverted" — penalise high-pressure ("overdue") combos. Validated by
+  // 30-day backtest: midday/evening benefit from inversion, allday does not.
+  boxFreqWeight: number;
+  boxPressureWeight: number;
+  /** Resolved effective values (post-scope-override). Same defaults if unset. */
+  effectiveBoxFreqWeight?: number;
+  effectiveBoxPressureWeight?: number;
 }
 interface Datasets {
   boxByHorizon: BoxByHorizon;
@@ -100,6 +109,8 @@ const DEFAULT_CFG: EngineConfig = {
   synergyOn:     false,
   synergyWeight: 0.15,
   horizonWeights: { ...HORIZON_WEIGHTS },
+  boxFreqWeight: 0.60,
+  boxPressureWeight: 0.40,
 };
 
 // ─── Config loader ────────────────────────────────────────────────────────────
@@ -110,14 +121,19 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     // also pull `recent_hit_cooldown_${scope}` and overlay it on the global. Only
     // recent_hit_cooldown is currently scope-overridable; other knobs stay global
     // until empirically justified.
-    const scopeOverrideKey = scope ? `recent_hit_cooldown_${scope}` : null;
+    const scopeCooldownKey = scope ? `recent_hit_cooldown_${scope}` : null;
+    const scopeBoxFreqKey  = scope ? `box_freq_weight_${scope}`     : null;
+    const scopeBoxPressKey = scope ? `box_pressure_weight_${scope}` : null;
     const keyList = [
       'engine_weights_balanced', 'engine_weights_conservative', 'engine_weights_aggressive',
       'k6_singles_max', 'k6_doubles_max', 'k6_triples_on', 'pair_rep_cap',
       'pressure_threshold', 'min_energy_threshold', 'recent_hit_cooldown',
       'synergy_boost_on', 'synergy_boost_weight',
       'horizon_weights',
-      ...(scopeOverrideKey ? [scopeOverrideKey] : []),
+      'box_freq_weight', 'box_pressure_weight',
+      ...(scopeCooldownKey ? [scopeCooldownKey] : []),
+      ...(scopeBoxFreqKey  ? [scopeBoxFreqKey]  : []),
+      ...(scopeBoxPressKey ? [scopeBoxPressKey] : []),
     ];
     const rows = await sbGet<{ key: string; value: string }[]>(
       '/rest/v1/app_config?key=in.(' + keyList.join(',') + ')&select=key,value',
@@ -125,6 +141,8 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     if (!Array.isArray(rows) || rows.length === 0) return DEFAULT_CFG;
     const cfg: EngineConfig = JSON.parse(JSON.stringify(DEFAULT_CFG));
     let scopeCooldownOverride: number | null = null;
+    let scopeBoxFreqOverride:  number | null = null;
+    let scopeBoxPressOverride: number | null = null;
     for (const row of rows) {
       try {
         if (row.key === 'k6_singles_max')       { const v = parseInt(row.value,10); if (!isNaN(v)) cfg.rails.singlesMax = v; continue; }
@@ -134,9 +152,29 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
         if (row.key === 'pressure_threshold')   { const v = parseInt(row.value,10); if (!isNaN(v) && v >= 50) cfg.pressureThreshold = v; continue; }
         if (row.key === 'min_energy_threshold') { const v = parseInt(row.value,10); if (!isNaN(v) && v >= 0) cfg.minEnergyThreshold = v; continue; }
         if (row.key === 'recent_hit_cooldown')  { const v = parseInt(row.value,10); if (!isNaN(v) && v >= 0) cfg.recentHitCooldown = v; continue; }
-        if (scopeOverrideKey && row.key === scopeOverrideKey) {
+        if (scopeCooldownKey && row.key === scopeCooldownKey) {
           const v = parseInt(row.value, 10);
           if (!isNaN(v) && v >= 0) scopeCooldownOverride = v;
+          continue;
+        }
+        if (row.key === 'box_freq_weight') {
+          const v = parseFloat(row.value);
+          if (!isNaN(v)) cfg.boxFreqWeight = v;
+          continue;
+        }
+        if (row.key === 'box_pressure_weight') {
+          const v = parseFloat(row.value);
+          if (!isNaN(v)) cfg.boxPressureWeight = v;
+          continue;
+        }
+        if (scopeBoxFreqKey && row.key === scopeBoxFreqKey) {
+          const v = parseFloat(row.value);
+          if (!isNaN(v)) scopeBoxFreqOverride = v;
+          continue;
+        }
+        if (scopeBoxPressKey && row.key === scopeBoxPressKey) {
+          const v = parseFloat(row.value);
+          if (!isNaN(v)) scopeBoxPressOverride = v;
           continue;
         }
         if (row.key === 'synergy_boost_on')     { cfg.synergyOn = row.value === 'true'; continue; }
@@ -179,6 +217,11 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     if (scopeCooldownOverride !== null && scope) {
       console.log(`[edge-zk6] cooldown override: scope=${scope} ${cfg.recentHitCooldown} → ${scopeCooldownOverride}`);
       cfg.recentHitCooldown = scopeCooldownOverride;
+    }
+    cfg.effectiveBoxFreqWeight     = scopeBoxFreqOverride  ?? cfg.boxFreqWeight;
+    cfg.effectiveBoxPressureWeight = scopeBoxPressOverride ?? cfg.boxPressureWeight;
+    if ((scopeBoxFreqOverride !== null || scopeBoxPressOverride !== null) && scope) {
+      console.log(`[edge-zk6] box weight override: scope=${scope} freq=${cfg.effectiveBoxFreqWeight} pressure=${cfg.effectiveBoxPressureWeight}`);
     }
     return cfg;
   } catch {
@@ -350,8 +393,13 @@ async function computeSlate(params: {
   const effectiveDate = targetDate || todayEt;
   const universe = buildUniverse();
 
-  const { presets, rails, pressureThreshold, minEnergyThreshold, recentHitCooldown, synergyOn, synergyWeight, horizonWeights } = await loadEngineConfig(scope);
+  const cfg = await loadEngineConfig(scope);
+  const { presets, rails, pressureThreshold, minEnergyThreshold, recentHitCooldown, synergyOn, synergyWeight, horizonWeights } = cfg;
   const weights: WeightSet = (presets as any)[weightsKey] ?? presets.balanced;
+  // CONFIG-02 (2026-05-14): effective per-scope BOX freq/pressure split.
+  const effBoxFreqWeight     = cfg.effectiveBoxFreqWeight     ?? cfg.boxFreqWeight;
+  const effBoxPressureWeight = cfg.effectiveBoxPressureWeight ?? cfg.boxPressureWeight;
+  console.log('[edge-zk6] BOX split: freq=' + effBoxFreqWeight + ' pressure=' + effBoxPressureWeight);
 
   // 1. Fetch datasets + history overrides
   const [ds, { dsOverride, lsOverride, hitDatesMap }] = await Promise.all([
@@ -449,7 +497,7 @@ async function computeSlate(params: {
         dsVal > pressureThreshold                  ? Math.max(1.0 - (dsVal - pressureThreshold) / 200, 0.3) :
                                                      (dsVal / 100) * 0.5;
       rawFreq[i] = freqScore; rawPressure[i] = pScore;
-      rawBox[i]  = (freqScore * 0.60) + (pScore * 0.40);
+      rawBox[i]  = (freqScore * effBoxFreqWeight) + (pScore * effBoxPressureWeight);
     }
     const ab = sortedPair(a, b), bc = sortedPair(b, c), ac2 = sortedPair(a, c);
     rawPburst[i] = (getPairSignal(ab, 2) + getPairSignal(bc, 3) + getPairSignal(ac2, 4)) / 3;

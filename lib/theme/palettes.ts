@@ -5,14 +5,22 @@
  * existing screens that read from the singleton `theme` export get bit-identical
  * output today.
  *
- * `lightColors` is the new "lighter chrome + dark cards" palette: page surfaces,
- * headers, and the tab bar go light; cards/modals stay in the cosmic dark palette
- * so signal colors (cyan/rose/gold/purple) keep their contrast. This is the
- * lower-risk path — fully-light surfaces require designing parallel light-mode
- * signal colors, which is parked until beta reactions on phase 1+2 come back.
+ * `lightColors` is the current "lighter chrome + dark cards" palette: page
+ * surfaces, headers, and the tab bar go light; cards/modals stay in the cosmic
+ * dark palette so signal colors (cyan/rose/gold/purple) keep their contrast.
  *
  * The two palettes share the same KEY set so `useTheme().colors.X` resolves
  * identically regardless of mode (the value differs, not the lookup).
+ *
+ * ┌─ DESIGN-01 (parked 2026-05-14) ─────────────────────────────────────────┐
+ * │ Beta testers want fully-light pages, not just chrome. The 5 signal hues │
+ * │ (cyan/rose/gold/purple/amber) fail WCAG-AA on light surfaces. Before    │
+ * │ flipping cards from cosmic-dark to light, the BOX/PBURST/CO/DGC + brand │
+ * │ entries below need WCAG-AA-passing light-mode replacements (model:      │
+ * │ `dataBlue: #1078d0` is already darkened correctly).                     │
+ * │ Then migrate the remaining 73 `theme` consumers + 33 raw-literal files. │
+ * │ See MASTER_AUDIT.md DESIGN-01 and memory `project_light_mode_phase3.md`.│
+ * └─────────────────────────────────────────────────────────────────────────┘
  */
 
 // Dark palette — copy of the legacy theme.colors, kept in lockstep with the

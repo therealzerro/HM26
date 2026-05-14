@@ -1,1 +1,30 @@
 project_id = "tgagarhwqbdcwoqhpapi"
+
+# ─── Edge function declarations ──────────────────────────────────────────────
+# These blocks document deployment intent and are consumed by `supabase
+# functions serve` for local dev. Cloud deploys read `verify_jwt` from the
+# `supabase functions deploy --no-verify-jwt` flag at deploy time, not from
+# this file — so the toml is a source-of-truth manifest, not enforcement.
+#
+# Use this file to spot drift: every function under supabase/functions/*/
+# should have a block here, and any block here should map to a deployed
+# function. BUG-146 (2026-05-14) caught rebuild-datasets-zk6 sitting in
+# source but never deployed; this manifest would have flagged it in PR.
+#
+# All current functions require JWT (the anon key suffices — Supabase routes
+# accept any valid JWT including anon).
+
+[functions.compute-slate-zk6]
+verify_jwt = true
+
+[functions.compute-daily-report]
+verify_jwt = true
+
+[functions.rebuild-datasets-zk6]
+verify_jwt = true
+
+[functions.run-hit-detection]
+verify_jwt = true
+
+[functions.send-push]
+verify_jwt = true

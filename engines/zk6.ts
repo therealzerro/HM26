@@ -249,11 +249,16 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
 // ─── Blending Helpers ─────────────────────────────────────────────────────────
 
 /** Blend a box combo's draws_since across all available horizons. */
-function blendBox(normKey: string, boxByHorizon: BoxByHorizon): number {
+// ENH-HW (2026-05-13): now load-bearing — used in computeSlate's BOX scoring
+// loop in place of the H01Y-only dsRawMap lookup. Accepts a runtime weights
+// arg (from app_config.horizon_weights, falls back to HORIZON_WEIGHTS const).
+// Weights are decimals summing to ~1.0; output is a weighted sum of per-
+// horizon raw draws-since values.
+function blendBoxDsRaw(normKey: string, boxByHorizon: BoxByHorizon, weights: Record<string, number>): number {
   let total = 0;
   for (const h of H_ALL) {
     const ds = boxByHorizon.get(h)?.get(normKey) ?? 0;
-    total += ds * (HORIZON_WEIGHTS[h] ?? 0);
+    total += ds * (weights[h] ?? 0);
   }
   return total;
 }
@@ -371,6 +376,10 @@ interface EngineConfig {
   recentHitCooldown: number;
   synergyOn: boolean;
   synergyWeight: number;
+  // ENH-HW (2026-05-13): per-horizon weights for BOX dsRaw blend. Defaults to
+  // hardcoded HORIZON_WEIGHTS; admin can override via app_config.horizon_weights
+  // (stored as percentages, converted to decimals on load).
+  horizonWeights: Record<string, number>;
 }
 
 const DEFAULT_ENGINE_CONFIG: EngineConfig = {
@@ -381,6 +390,7 @@ const DEFAULT_ENGINE_CONFIG: EngineConfig = {
   recentHitCooldown: 20,
   synergyOn: false,
   synergyWeight: 0.15,
+  horizonWeights: { ...HORIZON_WEIGHTS },
 };
 
 async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
@@ -395,6 +405,7 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       'k6_singles_max', 'k6_doubles_max', 'k6_triples_on', 'pair_rep_cap',
       'pressure_threshold', 'min_energy_threshold', 'recent_hit_cooldown',
       'synergy_boost_on', 'synergy_boost_weight',
+      'horizon_weights',
       ...(scopeOverrideKey ? [scopeOverrideKey] : []),
     ];
     const rows = await fetchFromSupabase<any[]>({
@@ -414,6 +425,7 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     let scopeCooldownOverride: number | null = null;
     let synergyOn = false;
     let synergyWeight = 0.15;
+    let horizonWeights: Record<string, number> = { ...HORIZON_WEIGHTS };
 
     for (const row of rows) {
       try {
@@ -431,6 +443,28 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
         }
         if (row.key === 'synergy_boost_on')     { synergyOn = row.value === 'true'; continue; }
         if (row.key === 'synergy_boost_weight') { const v = parseFloat(row.value); if (!isNaN(v) && v >= 0) synergyWeight = v; continue; }
+        if (row.key === 'horizon_weights') {
+          // app_config stores percentages (sum ≈ 100) — convert to decimals.
+          // Validate: must include all 10 horizons and sum within 1% of 100%.
+          try {
+            const parsedHw = JSON.parse(row.value);
+            const candidate: Record<string, number> = {};
+            let sum = 0;
+            let valid = true;
+            for (const h of Object.keys(HORIZON_WEIGHTS)) {
+              const v = parsedHw[h];
+              if (typeof v !== 'number' || v < 0) { valid = false; break; }
+              candidate[h] = v / 100;
+              sum += v;
+            }
+            if (valid && Math.abs(sum - 100) <= 1) {
+              horizonWeights = candidate;
+            } else {
+              console.warn('[zk6v2] horizon_weights ignored (invalid or sum != 100):', sum);
+            }
+          } catch { console.warn('[zk6v2] horizon_weights parse failed'); }
+          continue;
+        }
 
         const parsed = JSON.parse(row.value);
         const pct2dec = (v: number) => v > 1 ? v / 100 : v;
@@ -453,7 +487,7 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     if (scopeCooldownOverride !== null && scope) {
       console.log(`[zk6v2] cooldown override: scope=${scope} ${recentHitCooldown} → ${effectiveCooldown}`);
     }
-    return { presets, rails, pressureThreshold, minEnergyThreshold, recentHitCooldown: effectiveCooldown, synergyOn, synergyWeight };
+    return { presets, rails, pressureThreshold, minEnergyThreshold, recentHitCooldown: effectiveCooldown, synergyOn, synergyWeight, horizonWeights };
   } catch {
     return DEFAULT_ENGINE_CONFIG;
   }
@@ -574,7 +608,7 @@ export async function computeSlate({
   const todayEt = getTodayET();
   const effectiveDate = targetDate || todayEt;
 
-  const { presets: weightPresets, rails, pressureThreshold, minEnergyThreshold, recentHitCooldown, synergyOn, synergyWeight } = await loadEngineConfig(scope);
+  const { presets: weightPresets, rails, pressureThreshold, minEnergyThreshold, recentHitCooldown, synergyOn, synergyWeight, horizonWeights } = await loadEngineConfig(scope);
   const weights = weightPresets[weightsKey] ?? weightPresets.balanced;
   const universe = buildUniverse();
 
@@ -724,7 +758,12 @@ export async function computeSlate({
     const timesDrawnVal = ds.timesDrawnMap.get(normKey) ?? 0;
     if (timesDrawnVal > 0) {
       const freqScore  = maxTimesDrawn > 0 ? timesDrawnVal / maxTimesDrawn : 0;
-      const dsVal      = ds.dsRawMap.get(normKey) ?? 0;
+      // ENH-HW: dsVal is now a horizon-weighted blend across H01Y..H10Y.
+      // With weights={H01Y:1.0, rest:0}, behavior is identical to the prior
+      // H01Y-only lookup. Production app_config defaults to {H01Y:35%, H02Y:22%, …}
+      // which gives a weighted-average across horizons — a different signal
+      // than pure H01Y dsRaw. Backtest gates the production weights change.
+      const dsVal      = blendBoxDsRaw(normKey, ds.boxByHorizon, horizonWeights);
       const ptSpan     = Math.max(pressureThreshold - 100, 1);
       const pressureScore =
         dsVal >= 100 && dsVal <= pressureThreshold

@@ -84,6 +84,9 @@ function buildDatasets(boxRows: any[], pairRows: any[]) {
   const timesDrawnMap = new Map<string, number>();
   const dsRawMap = new Map<string, number>();       // H01Y preferred, used for BOX scoring
   const drawsSinceMap = new Map<string, number>();  // will be corrected by dsOverride
+  // ENH-HW: per-horizon ds_raw, so BOX scoring can blend across horizons
+  // using config.horizonWeights. Mirrors engine's boxByHorizon.
+  const boxByHorizon = new Map<string, Map<string, number>>();
 
   for (const row of boxRows) {
     if (!row || typeof row.key !== 'string') continue;
@@ -94,6 +97,9 @@ function buildDatasets(boxRows: any[], pairRows: any[]) {
     if (row.times_drawn != null && row.times_drawn > (timesDrawnMap.get(normKey) ?? 0)) {
       timesDrawnMap.set(normKey, row.times_drawn);
     }
+
+    if (!boxByHorizon.has(h)) boxByHorizon.set(h, new Map());
+    boxByHorizon.get(h)!.set(normKey, rawDs);
 
     // H01Y preferred for drawsSince/dsRaw; within H01Y, non-zero wins
     if (h === 'H01Y' || !drawsSinceMap.has(normKey)) {
@@ -122,7 +128,7 @@ function buildDatasets(boxRows: any[], pairRows: any[]) {
     }
   }
 
-  return { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap };
+  return { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap, boxByHorizon };
 }
 
 // ── History overrides ─────────────────────────────────────────────────────────
@@ -287,7 +293,10 @@ export async function computeSlateAsOf(
     excludeYesterday ? fetchYesterdayResults(date) : Promise.resolve(new Set<string>()),
   ]);
 
-  const { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap } = buildDatasets(boxRows, pairRows);
+  const { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap, boxByHorizon } = buildDatasets(boxRows, pairRows);
+  // ENH-HW: horizon weights for BOX dsRaw blend. Config overrides default
+  // HORIZON_WEIGHTS const when present. Decimals summing to ~1.0.
+  const horizonWeights: Record<string, number> = config.horizonWeights ?? HORIZON_WEIGHTS;
 
   const { dsOverride, hitDatesMap } = buildOverrides(historyRows, date);
 
@@ -332,7 +341,12 @@ export async function computeSlateAsOf(
 
     const timesDrawnVal = timesDrawnMap.get(normKey) ?? 0;
     if (timesDrawnVal > 0) {
-      const dsVal = dsRawMap.get(normKey) ?? 0;
+      // ENH-HW: horizon-weighted dsRaw blend. With weights={H01Y:1.0,rest:0},
+      // matches the prior H01Y-only dsRawMap lookup.
+      let dsVal = 0;
+      for (const h of H_ALL) {
+        dsVal += (boxByHorizon.get(h)?.get(normKey) ?? 0) * (horizonWeights[h] ?? 0);
+      }
       rawBox[i] = computeBoxSignal(timesDrawnVal, dsVal, maxTimesDrawn, config.pressureThreshold);
     }
 

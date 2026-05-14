@@ -5,7 +5,7 @@
  */
 
 import {
-  H_ALL, HORIZON_WEIGHTS as _HW, MULTIPLICITY_PRIORS,
+  H_ALL, HORIZON_WEIGHTS, MULTIPLICITY_PRIORS,
   toComboSet, sortedPair, multiplicityOf, topPairOf, buildUniverse,
   normalizeBoxKey, normalizePairKey,
   computeDGC, percentileRankOf, maxNorm,
@@ -67,6 +67,7 @@ interface EngineConfig {
   presets: WeightPresets; rails: RailConfig;
   pressureThreshold: number; minEnergyThreshold: number;
   recentHitCooldown: number; synergyOn: boolean; synergyWeight: number;
+  horizonWeights: Record<string, number>;
 }
 interface Datasets {
   boxByHorizon: BoxByHorizon;
@@ -98,6 +99,7 @@ const DEFAULT_CFG: EngineConfig = {
   recentHitCooldown: 20,
   synergyOn:     false,
   synergyWeight: 0.15,
+  horizonWeights: { ...HORIZON_WEIGHTS },
 };
 
 // ─── Config loader ────────────────────────────────────────────────────────────
@@ -114,6 +116,7 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       'k6_singles_max', 'k6_doubles_max', 'k6_triples_on', 'pair_rep_cap',
       'pressure_threshold', 'min_energy_threshold', 'recent_hit_cooldown',
       'synergy_boost_on', 'synergy_boost_weight',
+      'horizon_weights',
       ...(scopeOverrideKey ? [scopeOverrideKey] : []),
     ];
     const rows = await sbGet<{ key: string; value: string }[]>(
@@ -138,6 +141,26 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
         }
         if (row.key === 'synergy_boost_on')     { cfg.synergyOn = row.value === 'true'; continue; }
         if (row.key === 'synergy_boost_weight') { const v = parseFloat(row.value); if (!isNaN(v) && v >= 0) cfg.synergyWeight = v; continue; }
+        if (row.key === 'horizon_weights') {
+          try {
+            const parsedHw = JSON.parse(row.value);
+            const candidate: Record<string, number> = {};
+            let sum = 0;
+            let valid = true;
+            for (const h of Object.keys(HORIZON_WEIGHTS)) {
+              const v = parsedHw[h];
+              if (typeof v !== 'number' || v < 0) { valid = false; break; }
+              candidate[h] = v / 100;
+              sum += v;
+            }
+            if (valid && Math.abs(sum - 100) <= 1) {
+              cfg.horizonWeights = candidate;
+            } else {
+              console.warn('[edge-zk6] horizon_weights ignored (invalid or sum != 100):', sum);
+            }
+          } catch { console.warn('[edge-zk6] horizon_weights parse failed'); }
+          continue;
+        }
         const parsed = JSON.parse(row.value);
         const p = (v: number) => v > 1 ? v / 100 : v;
         const ws: WeightSet = {
@@ -327,7 +350,7 @@ async function computeSlate(params: {
   const effectiveDate = targetDate || todayEt;
   const universe = buildUniverse();
 
-  const { presets, rails, pressureThreshold, minEnergyThreshold, recentHitCooldown, synergyOn, synergyWeight } = await loadEngineConfig(scope);
+  const { presets, rails, pressureThreshold, minEnergyThreshold, recentHitCooldown, synergyOn, synergyWeight, horizonWeights } = await loadEngineConfig(scope);
   const weights: WeightSet = (presets as any)[weightsKey] ?? presets.balanced;
 
   // 1. Fetch datasets + history overrides
@@ -412,7 +435,14 @@ async function computeSlate(params: {
     const td = ds.timesDrawnMap.get(normKey) ?? 0;
     if (td > 0) {
       const freqScore = maxTimesDrawn > 0 ? td / maxTimesDrawn : 0;
-      const dsVal     = ds.dsRawMap.get(normKey) ?? 0;
+      // ENH-HW: dsVal is now a horizon-weighted blend across H01Y..H10Y.
+      // With weights={H01Y:1.0, rest:0}, behavior matches the prior H01Y-only
+      // dsRawMap lookup. Mirrors engines/zk6.ts blendBoxDsRaw.
+      let dsVal = 0;
+      for (const h of H_ALL) {
+        const v = ds.boxByHorizon.get(h)?.get(normKey) ?? 0;
+        dsVal += v * (horizonWeights[h] ?? 0);
+      }
       const ptSpan    = Math.max(pressureThreshold - 100, 1);
       const pScore    =
         dsVal >= 100 && dsVal <= pressureThreshold ? Math.min((dsVal - 100) / ptSpan, 1.0) :

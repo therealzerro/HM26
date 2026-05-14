@@ -31,6 +31,10 @@ export interface EngineConfig {
   // global recentHitCooldown. Mirrors the production `recent_hit_cooldown_${scope}`
   // app_config key that engines/zk6.ts and compute-slate-zk6 read.
   recentHitCooldownByScope?: Partial<Record<Scope, number>>;
+  // ENH-HW (2026-05-13): per-horizon weights for the BOX dsRaw blend. Decimals
+  // summing to ~1.0 (NOT percentages). When omitted, replay uses the hardcoded
+  // HORIZON_WEIGHTS const. Mirrors production app_config.horizon_weights.
+  horizonWeights?: Record<string, number>;
 }
 
 export interface ReplayPick {

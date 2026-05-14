@@ -198,6 +198,64 @@ export const CONFIGS: Record<string, EngineConfig> = {
     recentHitCooldownByScope: { midday: 5 },
   },
 
+  // ─────────────────── 2026-05-13: horizon-weight blend candidates ───────────────────
+  // BOX dsRaw is now a per-horizon weighted blend (ENH-HW). horizonWeights are
+  // DECIMALS summing to ~1.0 here (production app_config stores percentages).
+  //
+  // hw_parity_h01y is the sanity guard: weights={H01Y:1.0, rest:0} must match
+  // `default` exactly. Any divergence means the wiring is broken.
+  hw_parity_h01y: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 0, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    horizonWeights: { H01Y: 1.0, H02Y: 0, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+  },
+  // hw_production matches the current app_config.horizon_weights value
+  // (35.35/21.72/14.14/9.09/6.06/4.045/3/2.525/2.02/2.02 in % form).
+  hw_production: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 0, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    horizonWeights: { H01Y: 0.350, H02Y: 0.220, H03Y: 0.140, H04Y: 0.090, H05Y: 0.060, H06Y: 0.045, H07Y: 0.030, H08Y: 0.025, H09Y: 0.020, H10Y: 0.020 },
+  },
+  // hw_uniform — equal 10% across all 10 horizons. Tests whether long-horizon
+  // signal contributes when given equal voice.
+  hw_uniform: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 0, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    horizonWeights: { H01Y: 0.10, H02Y: 0.10, H03Y: 0.10, H04Y: 0.10, H05Y: 0.10, H06Y: 0.10, H07Y: 0.10, H08Y: 0.10, H09Y: 0.10, H10Y: 0.10 },
+  },
+  // hw_h01y_heavy — half weight on H01Y, rest distributed in mild decay.
+  // Hypothesis: H01Y has the strongest predictive signal; over-weighting it
+  // may help. Counter-hypothesis: too narrow a window misses pattern history.
+  hw_h01y_heavy: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 0, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    horizonWeights: { H01Y: 0.50, H02Y: 0.20, H03Y: 0.12, H04Y: 0.07, H05Y: 0.04, H06Y: 0.03, H07Y: 0.02, H08Y: 0.01, H09Y: 0.005, H10Y: 0.005 },
+  },
+
   // BOX-heavy 3-signal model (DGC weight = 0).
   // Tests whether introducing DGC was a regression vs the older 3-signal model.
   legacy: {

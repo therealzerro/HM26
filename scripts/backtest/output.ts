@@ -108,6 +108,27 @@ function printLiftSection(rows: ReportRow[]): void {
   console.log();
 }
 
+// Lift segmented by the same periods as the hit-rate "By period" block.
+// Answers: did the engine ever beat baseline, or has it always trailed?
+function printLiftByPeriod(rows: ReportRow[]): void {
+  if (rows.length === 0) return;
+  const before   = rows.filter(r => r.date < DESTROYED_START);
+  const destroyed = rows.filter(r => r.date >= DESTROYED_START && r.date < CODE_CHANGE);
+  const recovery = rows.filter(r => r.date >= CODE_CHANGE);
+
+  const make = (name: string, subset: ReportRow[]): LiftBucket => {
+    const b = emptyBucket(name);
+    for (const r of subset) addRowToBucket(b, r);
+    return b;
+  };
+
+  console.log('── Lift by period ──────────────────────────────────────────');
+  console.log('  ' + liftLine(make('Before 2026-05-09', before)));
+  console.log('  ' + liftLine(make('2026-05-09–10 destroyed', destroyed)));
+  console.log('  ' + liftLine(make('2026-05-11+ recovery', recovery)));
+  console.log();
+}
+
 // ── Report (Mode A) ───────────────────────────────────────────────────────────
 
 export function writeReportCSV(rows: ReportRow[]): string {
@@ -204,6 +225,7 @@ export function printReportSummary(rows: ReportRow[]): void {
   console.log();
 
   printLiftSection(rows);
+  printLiftByPeriod(rows);
 }
 
 // ── Replay (Mode B) ───────────────────────────────────────────────────────────

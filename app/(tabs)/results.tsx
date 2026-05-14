@@ -277,6 +277,11 @@ export default function ResultsScreen() {
   const { followed: followedStates, toPostgrestFilter } = useFollowedStates();
   const jurisdictionFilter = toPostgrestFilter(); // already in `&jurisdiction=in.(...)` form
   const hitStateFilter = jurisdictionFilter.replace('jurisdiction=', 'hit_state=');
+  // BUG-140 (2026-05-13): adaptive_tracking uses `matched_state` instead of
+  // `hit_state` (legacy daily_intelligence column name). When the queries
+  // below moved off daily_intelligence onto adaptive_tracking, the followed-
+  // states filter needs the new column name.
+  const matchedStateFilter = jurisdictionFilter.replace('jurisdiction=', 'matched_state=');
 
   const { data: ledger, isLoading: ledgerLoading, refetch: refetchLedger, isRefetching } = useQuery<LedgerRow[]>({
     queryKey: ['v_recent_ledger', selectedDate, followedStates.join(',')],
@@ -295,44 +300,82 @@ export default function ResultsScreen() {
   // All three hit-detection queries use in.(selectedDate,nextDay).
   const nextDay = getNextDay(selectedDate);
 
+  // BUG-140 (2026-05-13): Tier 1 hits + onSlatePicks + weekHits all migrated
+  // from daily_intelligence to adaptive_tracking. The prior queries gated on
+  // `on_slate=eq.true`, which becomes FALSE on hit-bearing combos after a
+  // mid-day regen excludes them from the new K6 (today's 916/924 are at
+  // ranks 31/32 with on_slate=false). adaptive_tracking is slate_hash-keyed
+  // so hit rows survive regens by design. Column name mapping:
+  //   daily_intelligence.hit_state    → adaptive_tracking.matched_state
+  //   daily_intelligence.hit_session  → adaptive_tracking.matched_session
+  //   daily_intelligence.signal_dgc   → adaptive_tracking.signal_burst (legacy)
+  // The remap helper returns the same HitRow shape consumers already expect.
+  const remapToHitRow = (r: any): HitRow => ({
+    slate_date: r.slate_date,
+    scope: r.scope,
+    mode: r.mode,
+    rank: r.rank ?? 0,
+    combo: r.combo ?? '',
+    hit_state: r.matched_state ?? '',
+    hit_session: r.matched_session ?? '',
+    hit_box: !!r.hit_box,
+    hit_straight: !!r.hit_straight,
+    signal_box: r.signal_box,
+    signal_pburst: r.signal_pburst,
+    signal_dgc: r.signal_burst,
+  });
+
   const { data: hits, refetch: refetchHits } = useQuery<HitRow[]>({
-    queryKey: ['daily_intelligence_hits_v3_scope_safe', selectedDate, followedStates.join(',')],
+    queryKey: ['adaptive_tracking_hits_v1', selectedDate, followedStates.join(',')],
     queryFn: async () => {
-      const res = await fetchFromSupabase<HitRow[]>({
-        // on_slate=eq.true keeps Results forward-facing: only K6 daily picks
-        // appear, never the operator-only top-30 intel rows.
-        path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=in.(${selectedDate},${nextDay})&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${hitStateFilter}&order=rank.asc&limit=500`,
+      const res = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/adaptive_tracking?select=slate_date,scope,mode,rank,combo,signal_box,signal_pburst,signal_burst,matched_state,matched_session,hit_box,hit_straight&slate_date=in.(${selectedDate},${nextDay})&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${matchedStateFilter}&order=rank.asc.nullslast&limit=500`,
         method: 'GET',
       });
-      return Array.isArray(res) ? res : [];
+      return Array.isArray(res) ? res.map(remapToHitRow) : [];
     },
     staleTime: 30000,
   });
 
-  // All on-slate picks — client-side hit detection when backfill hasn't run.
-  // NOT filtered by followed states: this query feeds csMap which is later
-  // matched against ledger draws that ARE filtered. So even a non-followed
-  // state's K6 picks need to remain in csMap; the jurisdiction filter on
-  // the ledger query handles the visible filter.
+  // All K6 picks today — feeds Tier 2 csMap for client-side comboSet matching
+  // when daily_intelligence's hit annotations haven't been written yet (e.g.,
+  // before backfill runs). adaptive_tracking has one row per K6 pick at slate-
+  // gen time even when no hit occurred (ENH-01 primary rows), so this returns
+  // the full K6 universe across all regens of the day. De-dupe by combo so
+  // multi-state secondary rows don't bloat csMap.
   const { data: onSlatePicks, refetch: refetchOnSlatePicks } = useQuery<HitRow[]>({
-    queryKey: ['daily_intelligence_on_slate_v2', selectedDate],
+    queryKey: ['adaptive_tracking_on_slate_v1', selectedDate],
     queryFn: async () => {
-      const res = await fetchFromSupabase<HitRow[]>({
-        path: `/rest/v1/daily_intelligence?select=slate_date,scope,mode,rank,combo,hit_state,hit_session,hit_box,hit_straight,signal_box,signal_pburst,signal_dgc&slate_date=in.(${selectedDate},${nextDay})&on_slate=eq.true&mode=in.(balanced,conservative,aggressive)&order=rank.asc&limit=500`,
+      const res = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/adaptive_tracking?select=slate_date,scope,mode,rank,combo,signal_box,signal_pburst,signal_burst,matched_state,matched_session,hit_box,hit_straight&slate_date=in.(${selectedDate},${nextDay})&mode=in.(balanced,conservative,aggressive)&order=rank.asc.nullslast&limit=1000`,
         method: 'GET',
       });
-      return Array.isArray(res) ? res : [];
+      const rows = Array.isArray(res) ? res : [];
+      // De-dupe by (scope, combo): prefer the row with a hit annotation, then
+      // the row with a rank (primary) over secondaries.
+      const byKey = new Map<string, any>();
+      for (const r of rows) {
+        if (!r.combo) continue;
+        const key = `${r.scope}|${r.combo}`;
+        const existing = byKey.get(key);
+        const isHit = !!r.hit_box || !!r.hit_straight;
+        const exHit = existing && (existing.hit_box || existing.hit_straight);
+        if (!existing) byKey.set(key, r);
+        else if (isHit && !exHit) byKey.set(key, r);
+        else if (r.rank != null && existing.rank == null) byKey.set(key, r);
+      }
+      return [...byKey.values()].map(remapToHitRow);
     },
     staleTime: 30000,
   });
 
-  // E3/E4/E5: week-hits map — single query powers streak chip, date-tab dots, and
-  // miss-day trend fact. Filtered by followed states for personalization.
+  // E3/E4/E5: week-hits map — single query powers streak chip, date-tab dots,
+  // and miss-day trend fact. Also migrated to adaptive_tracking (BUG-140).
   const { data: weekHits } = useQuery<{ slate_date: string; hit_straight: boolean }[]>({
-    queryKey: ['week_hits_for_results', recentDates.join(','), followedStates.join(',')],
+    queryKey: ['week_hits_for_results_adaptive_v1', recentDates.join(','), followedStates.join(',')],
     queryFn: async () => {
       const res = await fetchFromSupabase<{ slate_date: string; hit_straight: boolean }[]>({
-        path: `/rest/v1/daily_intelligence?select=slate_date,hit_straight&slate_date=in.(${recentDates.join(',')})&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${hitStateFilter}&limit=500`,
+        path: `/rest/v1/adaptive_tracking?select=slate_date,hit_straight&slate_date=in.(${recentDates.join(',')})&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${matchedStateFilter}&limit=500`,
         method: 'GET',
       });
       return Array.isArray(res) ? res : [];

@@ -418,29 +418,42 @@ export default function HomeScreen() {
     return series;
   }, [energySnaps]);
 
-  // Track Record band — count today's K6 hits, scope-gated. A row only
-  // counts if its slate scope matches the draw session that hit it (allday
-  // matches anything). Without this, a midday draw can inflate the count by
-  // also marking the evening-scope K6 row whose comboSet happens to match.
+  // Track Record band + Hit-rate hero — count today's K6 hits.
+  //
+  // BUG-140 (2026-05-13): switched from `daily_intelligence?on_slate=eq.true`
+  // to `adaptive_tracking`. The prior query gated on `on_slate=true`, which
+  // BUG-139's regen flow turns FALSE on combos that hit earlier but were then
+  // excluded from the new K6 (today's 916/924 became rank-31/32 "hit orphans"
+  // with on_slate=false). Result: Track Record band showed 0 hits even though
+  // the engine clearly had 3 box hits earlier in the day.
+  //
+  // adaptive_tracking is keyed by slate_hash, so hit rows survive regens.
+  // De-dupe by combo so multi-state matches (916 hit in WI AND ME,NH,VT)
+  // still count as one hit. Scope/session matching: allday matches any
+  // session; midday/evening match strictly.
   const { data: todayHits = 0 } = useQuery<number>({
-    queryKey: ['track_record_today_hits_v2_scope_safe', todayStr],
+    queryKey: ['track_record_today_hits_adaptive_v3', todayStr],
     queryFn: async () => {
       const rows = await fetchFromSupabase<{
         scope: string | null;
-        hit_session: string | null;
+        combo: string | null;
+        matched_session: string | null;
         hit_box: boolean | null;
         hit_straight: boolean | null;
       }[]>({
-        path: `/rest/v1/daily_intelligence?slate_date=eq.${todayStr}&on_slate=eq.true&mode=in.(balanced,conservative,aggressive)&select=scope,hit_session,hit_box,hit_straight&limit=200`,
+        path: `/rest/v1/adaptive_tracking?slate_date=eq.${todayStr}&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&select=scope,combo,matched_session,hit_box,hit_straight&limit=200`,
       });
-      return (rows || []).filter(r => {
-        if (!r.hit_box && !r.hit_straight) return false;
+      const uniqHitKeys = new Set<string>();
+      for (const r of rows || []) {
+        if (!r.combo) continue;
         const s = (r.scope ?? '').toLowerCase();
-        const sess = (r.hit_session ?? '').toLowerCase();
-        if (s === 'allday') return true;
-        if (!sess) return true; // not attributed yet — matches Intel logic
-        return s === sess;
-      }).length;
+        const sess = (r.matched_session ?? '').toLowerCase();
+        // allday matches any session; midday/evening match strictly.
+        if (s !== 'allday' && sess && s !== sess) continue;
+        // De-dupe by (scope, combo): one combo hitting in 2 states = 1 hit.
+        uniqHitKeys.add(`${s}|${r.combo}`);
+      }
+      return uniqHitKeys.size;
     },
     staleTime: 5 * 60 * 1000,
   });

@@ -53,17 +53,22 @@ function useUnviewedResultsHits(): boolean {
     storage.getItem('results_last_viewed_date').then(v => setLastViewedDate(v));
   }, []);
 
+  // BUG-142 (2026-05-13): migrated from daily_intelligence?on_slate=eq.true
+  // to adaptive_tracking. Same regen-orphan blind spot as BUG-140/141 — after
+  // a mid-day regen, today's hit-bearing combos have on_slate=false in
+  // daily_intelligence, so the tab badge would stay un-lit even when fresh
+  // hits exist. adaptive_tracking is slate_hash-keyed and survives regens.
   const { data: hasUnviewed = false } = useQuery<boolean>({
-    queryKey: ['unviewed_results_hits', lastViewedDate, yesterdayStr],
+    queryKey: ['unviewed_results_hits_adaptive_v1', lastViewedDate, yesterdayStr],
     queryFn: async () => {
       const since = lastViewedDate ?? yesterdayStr;
-      const rows = await fetchFromSupabase<Array<{ scope?: string; hit_session?: string }>>({
-        path: `/rest/v1/daily_intelligence?slate_date=gt.${since}&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&select=scope,hit_session&limit=10`,
+      const rows = await fetchFromSupabase<Array<{ scope?: string; matched_session?: string }>>({
+        path: `/rest/v1/adaptive_tracking?slate_date=gt.${since}&matched_state=not.is.null&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&select=scope,matched_session&limit=10`,
       });
       // Same scope-validity gate Results uses (BUG-132 defense in depth).
       const valid = (rows || []).filter(r => {
         const s = (r.scope ?? '').toLowerCase();
-        const sess = (r.hit_session ?? '').toLowerCase();
+        const sess = (r.matched_session ?? '').toLowerCase();
         if (s === 'allday') return true;
         if (!sess) return true;
         return s === sess;

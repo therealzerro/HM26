@@ -103,6 +103,88 @@ export function computeBaseline(
   return { resultsInScope: scopeResults.length, perPickHitProb, expectedPickHits, slateHitProb };
 }
 
+// ── Rail-matched baseline ────────────────────────────────────────────────────
+// Same idea, but the random "picker" is constrained to the same multiplicity
+// mix as the engine's actual slate. Honors the engine's rail caps so the
+// comparison isn't unfairly penalised when the engine is forced to allocate
+// picks to doubles/triples (which have lower box-hit prob than singles).
+//
+// Within-class universe sizes:
+//   singles strings: 10*9*8 = 720, each comboset has 6 permutations
+//   doubles strings: 270,           each comboset has 3 permutations
+//   triples strings: 10,            each comboset has 1 permutation
+// A class-C pick can only box-match a class-C result (different multiplicity
+// → different comboset structure → no overlap possible).
+//
+// Per-pick hit probs (1 = hit ≥1 of the same-class K results):
+//   random-singles pick: 1 - (1 - 1/120)^K_singles_in_scope   (6/720 = 1/120)
+//   random-doubles pick: 1 - (1 - 1/90 )^K_doubles_in_scope   (3/270 = 1/90)
+//   random-triples pick: 1 - (1 - 1/10 )^K_triples_in_scope   (1/10  = 1/10)
+
+export interface RailMix {
+  singles: number;
+  doubles: number;
+  triples: number;
+}
+
+export interface RailMatchedBaseline {
+  resultsInScope: number;
+  /** K_C — count of class-C results in scope, used to derive per-pick hit prob per rail. */
+  kByRail: RailMix;
+  /** Per-pick hit probability if the pick is a uniform random member of class C. */
+  perPickHitProbByRail: RailMix;
+  /** Σ over picks of P(hit) — expected pick-hits for a rail-matched random slate. */
+  expectedPickHits: number;
+  /** P(slate has ≥1 hit) given the engine's rail mix. */
+  slateHitProb: number;
+}
+
+export function computeRailMatchedBaseline(
+  results: DrawResult[],
+  scope: Scope,
+  pickMix: RailMix,
+): RailMatchedBaseline {
+  const scopeResults = results.filter(r => {
+    const validScopes = SESSION_SCOPE[r.session] ?? [];
+    return validScopes.includes(scope);
+  });
+
+  const k: RailMix = { singles: 0, doubles: 0, triples: 0 };
+  for (const r of scopeResults) {
+    const digits = (r.result_digits ?? '').replace(/\D/g, '');
+    if (digits.length !== 3) continue;
+    k[multiplicity(digits)]++;
+  }
+
+  const probSingles = 1 - Math.pow(1 - 1 / 120, k.singles);
+  const probDoubles = 1 - Math.pow(1 - 1 / 90,  k.doubles);
+  const probTriples = 1 - Math.pow(1 - 1 / 10,  k.triples);
+
+  const expectedPickHits =
+    pickMix.singles * probSingles +
+    pickMix.doubles * probDoubles +
+    pickMix.triples * probTriples;
+
+  const slateHitProb = 1 - (
+    Math.pow(1 - probSingles, pickMix.singles) *
+    Math.pow(1 - probDoubles, pickMix.doubles) *
+    Math.pow(1 - probTriples, pickMix.triples)
+  );
+
+  return {
+    resultsInScope: scopeResults.length,
+    kByRail: k,
+    perPickHitProbByRail: { singles: probSingles, doubles: probDoubles, triples: probTriples },
+    expectedPickHits,
+    slateHitProb,
+  };
+}
+
+/** Convenience: multiplicity classifier for callers that have raw combo strings. */
+export function classifyMultiplicity(combo: string): 'singles' | 'doubles' | 'triples' {
+  return multiplicity(combo);
+}
+
 export function scorePicksVsResults(
   picks: { combo: string; comboSet: string }[],
   results: DrawResult[],

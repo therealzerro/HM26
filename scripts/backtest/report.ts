@@ -4,7 +4,7 @@
 
 import { dbGet } from './data.js';
 import { toComboSet } from '../../lib/engineCore.js';
-import { scorePicksVsResults, fetchDrawResults, computeBaseline } from './score.js';
+import { scorePicksVsResults, fetchDrawResults, computeBaseline, computeRailMatchedBaseline, classifyMultiplicity } from './score.js';
 import type { ReportRow, Scope } from './types.js';
 
 const SCOPES: Scope[] = ['midday', 'evening', 'allday'];
@@ -84,6 +84,10 @@ export async function runReport(days: number): Promise<ReportRow[]> {
       const results = await fetchDrawResults(date);
       const hit = scorePicksVsResults(picks, results, scope as Scope);
       const baseline = computeBaseline(results, scope as Scope, picks.length || 6);
+      // Rail-matched baseline uses the engine's actual multiplicity mix.
+      const pickMix = { singles: 0, doubles: 0, triples: 0 };
+      for (const p of picks) pickMix[classifyMultiplicity(p.combo)]++;
+      const railBaseline = computeRailMatchedBaseline(results, scope as Scope, pickMix);
       const source = parseSource(snap);
 
       rows.push({
@@ -100,6 +104,11 @@ export async function runReport(days: number): Promise<ReportRow[]> {
         baselineExpectedPickHits: baseline.expectedPickHits,
         baselineSlateHitProb: baseline.slateHitProb,
         resultsInScope: baseline.resultsInScope,
+        railMatchedExpectedPickHits: railBaseline.expectedPickHits,
+        railMatchedSlateHitProb: railBaseline.slateHitProb,
+        picksSingles: pickMix.singles,
+        picksDoubles: pickMix.doubles,
+        picksTriples: pickMix.triples,
       });
     }
   }

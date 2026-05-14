@@ -60,11 +60,16 @@ Two ratios are reported per bucket:
 - **`slate` lift** = engine slate-hit rate / mean(baseline slate-hit prob)
   — saturates fast on allday (large K → baseline ~100%); reported for completeness.
 
-**Caveat:** the baseline is rail-unconstrained. The engine's multiplicity caps may
-preferentially allocate picks to doubles/triples (lower box-hit probability), which can
-penalise pick lift for reasons unrelated to signal quality. A rail-matched baseline is a
-planned follow-up; until then, treat absolute pick-lift numbers as a directional canary
-(collapse toward 1.0 = regression) rather than a precise "x% better than random" claim.
+**Rail-matched baseline (2026-05-14 followup):** the rail-unconstrained baseline was
+penalising the engine when its multiplicity caps forced doubles/triples allocations
+that uniform-random pickers would never have to make. The harness now also prints a
+**rail-matched** lift section in which the random picker is constrained to the same
+singles/doubles/triples mix as the engine's actual slate. Within-class universe sizes
+are 720/270/10, so a random class-C pick matches a class-C result with probability
+1/120, 1/90, or 1/10 (singles/doubles/triples) — a class-C pick cannot box-match
+results of other classes. Empirically rail-matched is a touch stricter than uniform
+(because constrained random doesn't "waste" picks on impossible matches). Both views
+are reported so the reader can see whether the gap is rail-mix or signal.
 
 ## Approximation note
 

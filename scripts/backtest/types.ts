@@ -78,6 +78,12 @@ export interface HitResult {
   baselineExpectedPickHits: number;
   baselineSlateHitProb: number;
   resultsInScope: number;
+  // Rail-matched baseline: random picks of the SAME multiplicity mix as the
+  // engine's actual slate. More honest comparison since the engine's rail
+  // caps may force doubles/triples allocations the uniform baseline doesn't
+  // see. See score.ts::computeRailMatchedBaseline.
+  railMatchedExpectedPickHits: number;
+  railMatchedSlateHitProb: number;
 }
 
 export interface ReportRow {
@@ -95,4 +101,11 @@ export interface ReportRow {
   baselineExpectedPickHits: number;
   baselineSlateHitProb: number;
   resultsInScope: number;
+  // Rail-matched baseline (uses the engine's own multiplicity mix).
+  railMatchedExpectedPickHits: number;
+  railMatchedSlateHitProb: number;
+  /** Engine pick mix for this slate, captured for diagnostic CSV columns. */
+  picksSingles: number;
+  picksDoubles: number;
+  picksTriples: number;
 }

@@ -55,12 +55,18 @@ interface LiftBucket {
   engineSlateHits: number;
   enginePickHits: number;
   enginePicksAttempted: number;
-  baselineSlateProbSum: number;     // for mean baseline slate rate
-  baselinePickHitsExpected: number; // Σ E[hits] across slates
+  baselineSlateProbSum: number;     // uniform-baseline slate-prob sum (for mean)
+  baselinePickHitsExpected: number; // uniform-baseline Σ E[pick-hits]
+  railSlateProbSum: number;         // rail-matched slate-prob sum
+  railPickHitsExpected: number;     // rail-matched Σ E[pick-hits]
 }
 
 function emptyBucket(name: string): LiftBucket {
-  return { name, n: 0, engineSlateHits: 0, enginePickHits: 0, enginePicksAttempted: 0, baselineSlateProbSum: 0, baselinePickHitsExpected: 0 };
+  return {
+    name, n: 0, engineSlateHits: 0, enginePickHits: 0, enginePicksAttempted: 0,
+    baselineSlateProbSum: 0, baselinePickHitsExpected: 0,
+    railSlateProbSum: 0, railPickHitsExpected: 0,
+  };
 }
 
 function addRowToBucket(b: LiftBucket, r: ReportRow) {
@@ -70,8 +76,11 @@ function addRowToBucket(b: LiftBucket, r: ReportRow) {
   b.enginePicksAttempted += r.pickCount;
   b.baselineSlateProbSum += r.baselineSlateHitProb;
   b.baselinePickHitsExpected += r.baselineExpectedPickHits;
+  b.railSlateProbSum += r.railMatchedSlateHitProb;
+  b.railPickHitsExpected += r.railMatchedExpectedPickHits;
 }
 
+/** Uniform-baseline lift line (legacy view). */
 function liftLine(b: LiftBucket): string {
   if (b.n === 0) return `${b.name.padEnd(22)} (n=0)`;
   const enginePick   = b.enginePicksAttempted > 0 ? b.enginePickHits / b.enginePicksAttempted : 0;
@@ -86,13 +95,23 @@ function liftLine(b: LiftBucket): string {
     `n=${b.n}`;
 }
 
+/** Rail-matched lift line — random pickers constrained to the engine's mix. */
+function railLiftLine(b: LiftBucket): string {
+  if (b.n === 0) return `${b.name.padEnd(22)} (n=0)`;
+  const enginePick   = b.enginePicksAttempted > 0 ? b.enginePickHits / b.enginePicksAttempted : 0;
+  const railPick     = b.enginePicksAttempted > 0 ? b.railPickHitsExpected / b.enginePicksAttempted : 0;
+  const engineSlate  = b.engineSlateHits / b.n;
+  const railSlate    = b.railSlateProbSum / b.n;
+  const liftPick     = railPick  > 0 ? enginePick  / railPick  : 0;
+  const liftSlate    = railSlate > 0 ? engineSlate / railSlate : 0;
+  return `${b.name.padEnd(22)} ` +
+    `pick: ${pct(enginePick).padStart(6)} vs ${pct(railPick).padStart(6)} (×${liftPick.toFixed(2).padStart(4)})   ` +
+    `slate: ${pct(engineSlate).padStart(6)} vs ${pct(railSlate).padStart(6)} (×${liftSlate.toFixed(2).padStart(4)})   ` +
+    `n=${b.n}`;
+}
+
 function printLiftSection(rows: ReportRow[]): void {
   if (rows.length === 0) return;
-  console.log('── Lift vs uniform-random 6-pick baseline ──────────────────');
-  console.log('  Baseline: closed-form analytic, no rail constraints.');
-  console.log('  lift > 1.0 ⇒ engine beats no-information picker.');
-  console.log();
-
   const overall = emptyBucket('Overall');
   const byScope: Record<string, LiftBucket> = {
     midday:  emptyBucket('midday'),
@@ -103,13 +122,27 @@ function printLiftSection(rows: ReportRow[]): void {
     addRowToBucket(overall, r);
     if (byScope[r.scope]) addRowToBucket(byScope[r.scope], r);
   }
+
+  console.log('── Lift vs uniform-random 6-pick baseline ──────────────────');
+  console.log('  Baseline: closed-form analytic, no rail constraints.');
+  console.log('  lift > 1.0 ⇒ engine beats no-information picker.');
+  console.log();
   console.log('  ' + liftLine(overall));
   for (const s of ['midday', 'evening', 'allday']) console.log('  ' + liftLine(byScope[s]));
+  console.log();
+
+  console.log('── Lift vs rail-matched baseline (engine pick-mix preserved) ──');
+  console.log('  Baseline: random pickers constrained to the engine\'s singles/doubles/triples mix.');
+  console.log('  More honest: removes the "engine is penalised for picking doubles" caveat.');
+  console.log();
+  console.log('  ' + railLiftLine(overall));
+  for (const s of ['midday', 'evening', 'allday']) console.log('  ' + railLiftLine(byScope[s]));
   console.log();
 }
 
 // Lift segmented by the same periods as the hit-rate "By period" block.
 // Answers: did the engine ever beat baseline, or has it always trailed?
+// Shows rail-matched lift (the honest read after METRIC-01 followup).
 function printLiftByPeriod(rows: ReportRow[]): void {
   if (rows.length === 0) return;
   const before   = rows.filter(r => r.date < DESTROYED_START);
@@ -122,10 +155,10 @@ function printLiftByPeriod(rows: ReportRow[]): void {
     return b;
   };
 
-  console.log('── Lift by period ──────────────────────────────────────────');
-  console.log('  ' + liftLine(make('Before 2026-05-09', before)));
-  console.log('  ' + liftLine(make('2026-05-09–10 destroyed', destroyed)));
-  console.log('  ' + liftLine(make('2026-05-11+ recovery', recovery)));
+  console.log('── Lift by period (rail-matched baseline) ──────────────────');
+  console.log('  ' + railLiftLine(make('Before 2026-05-09', before)));
+  console.log('  ' + railLiftLine(make('2026-05-09–10 destroyed', destroyed)));
+  console.log('  ' + railLiftLine(make('2026-05-11+ recovery', recovery)));
   console.log();
 }
 
@@ -135,7 +168,7 @@ export function writeReportCSV(rows: ReportRow[]): string {
   ensureOutputDir();
   const ts = isoTs();
   const path = join(OUTPUT_DIR, `report-${ts}.csv`);
-  const header = 'date,scope,mode,snapshot_id,pick_count,hits_box,hits_straight,total_hits,source,results_in_scope,baseline_per_pick_prob,baseline_expected_pick_hits,baseline_slate_prob';
+  const header = 'date,scope,mode,snapshot_id,pick_count,hits_box,hits_straight,total_hits,source,results_in_scope,baseline_per_pick_prob,baseline_expected_pick_hits,baseline_slate_prob,picks_singles,picks_doubles,picks_triples,rail_matched_expected_pick_hits,rail_matched_slate_prob';
   const lines = rows.map(r =>
     [
       r.date, r.scope, r.mode, r.snapshotId, r.pickCount,
@@ -144,6 +177,9 @@ export function writeReportCSV(rows: ReportRow[]): string {
       r.baselinePerPickHitProb.toFixed(6),
       r.baselineExpectedPickHits.toFixed(4),
       r.baselineSlateHitProb.toFixed(6),
+      r.picksSingles, r.picksDoubles, r.picksTriples,
+      r.railMatchedExpectedPickHits.toFixed(4),
+      r.railMatchedSlateHitProb.toFixed(6),
     ].join(','),
   );
   writeFileSync(path, [header, ...lines].join('\n') + '\n');
@@ -234,10 +270,12 @@ export function writeReplayCSV(hits: HitResult[]): string {
   ensureOutputDir();
   const ts = isoTs();
   const path = join(OUTPUT_DIR, `replay-${ts}.csv`);
-  const header = 'date,scope,config_name,mode,pick_1,pick_2,pick_3,pick_4,pick_5,pick_6,hits_box,hits_straight,total_hits,hitting_combos,hitting_jurisdictions,results_in_scope,baseline_per_pick_prob,baseline_expected_pick_hits,baseline_slate_prob';
+  const header = 'date,scope,config_name,mode,pick_1,pick_2,pick_3,pick_4,pick_5,pick_6,hits_box,hits_straight,total_hits,hitting_combos,hitting_jurisdictions,results_in_scope,baseline_per_pick_prob,baseline_expected_pick_hits,baseline_slate_prob,picks_singles,picks_doubles,picks_triples,rail_matched_expected_pick_hits,rail_matched_slate_prob';
   const lines = hits.map(r => {
     const picks = r.picks.map(p => p.combo).slice(0, 6);
     while (picks.length < 6) picks.push('');
+    let nS = 0, nD = 0, nT = 0;
+    for (const p of r.picks) (p.multiplicity === 'singles' ? nS++ : p.multiplicity === 'doubles' ? nD++ : nT++);
     return [
       r.date, r.scope, r.configName, r.mode,
       ...picks,
@@ -248,6 +286,9 @@ export function writeReplayCSV(hits: HitResult[]): string {
       r.baselinePerPickHitProb.toFixed(6),
       r.baselineExpectedPickHits.toFixed(4),
       r.baselineSlateHitProb.toFixed(6),
+      nS, nD, nT,
+      r.railMatchedExpectedPickHits.toFixed(4),
+      r.railMatchedSlateHitProb.toFixed(6),
     ].join(',');
   });
   writeFileSync(path, [header, ...lines].join('\n') + '\n');
@@ -256,6 +297,8 @@ export function writeReplayCSV(hits: HitResult[]): string {
 
 // HitResult → ReportRow shape for lift section reuse.
 function hitResultToReportRow(h: HitResult): ReportRow {
+  let nS = 0, nD = 0, nT = 0;
+  for (const p of h.picks) (p.multiplicity === 'singles' ? nS++ : p.multiplicity === 'doubles' ? nD++ : nT++);
   return {
     date: h.date,
     scope: h.scope,
@@ -270,6 +313,9 @@ function hitResultToReportRow(h: HitResult): ReportRow {
     baselineExpectedPickHits: h.baselineExpectedPickHits,
     baselineSlateHitProb: h.baselineSlateHitProb,
     resultsInScope: h.resultsInScope,
+    railMatchedExpectedPickHits: h.railMatchedExpectedPickHits,
+    railMatchedSlateHitProb: h.railMatchedSlateHitProb,
+    picksSingles: nS, picksDoubles: nD, picksTriples: nT,
   };
 }
 

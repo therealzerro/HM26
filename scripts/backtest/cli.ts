@@ -11,7 +11,7 @@
 
 import { runReport } from './report.js';
 import { computeSlateAsOf } from './replay.js';
-import { fetchDrawResults, computeBaseline } from './score.js';
+import { fetchDrawResults, computeBaseline, computeRailMatchedBaseline } from './score.js';
 import { scorePicksVsResults } from './score.js';
 import { writeReportCSV, printReportSummary, writeReplayCSV, printReplaySummary } from './output.js';
 import { CONFIGS } from './configs.js';
@@ -123,6 +123,10 @@ async function modeReplay(args: Record<string, string>) {
               scope,
             );
             const baseline = baselineByScope[scope];
+            // Rail-matched baseline differs PER PICK SET — must compute per config/mode.
+            const pickMix = { singles: 0, doubles: 0, triples: 0 };
+            for (const p of picks) pickMix[p.multiplicity]++;
+            const railBaseline = computeRailMatchedBaseline(results, scope, pickMix);
             allHits.push({
               date, scope, configName, mode,
               picks,
@@ -135,6 +139,8 @@ async function modeReplay(args: Record<string, string>) {
               baselineExpectedPickHits: baseline.expectedPickHits,
               baselineSlateHitProb: baseline.slateHitProb,
               resultsInScope: baseline.resultsInScope,
+              railMatchedExpectedPickHits: railBaseline.expectedPickHits,
+              railMatchedSlateHitProb: railBaseline.slateHitProb,
             });
             processed++;
             if (processed % 10 === 0) {

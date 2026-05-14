@@ -443,6 +443,12 @@ export default function HomeScreen() {
       }[]>({
         path: `/rest/v1/adaptive_tracking?slate_date=eq.${todayStr}&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&select=scope,combo,matched_session,hit_box,hit_straight&limit=200`,
       });
+      // BUG-141 (2026-05-13): multi-state matches each count as a hit. Today
+      // 916 hit in BOTH WI and ME,NH,VT → 2 distinct hits in the band, not 1.
+      // Matches BUG-138's display semantics (2 HitCards stacked on Home) and
+      // Slates Hits tab. De-dupe key includes matched_state so 916/WI and
+      // 916/ME,NH,VT count separately; only true duplicates (same combo,
+      // same scope, same state) collapse.
       const uniqHitKeys = new Set<string>();
       for (const r of rows || []) {
         if (!r.combo) continue;
@@ -450,8 +456,7 @@ export default function HomeScreen() {
         const sess = (r.matched_session ?? '').toLowerCase();
         // allday matches any session; midday/evening match strictly.
         if (s !== 'allday' && sess && s !== sess) continue;
-        // De-dupe by (scope, combo): one combo hitting in 2 states = 1 hit.
-        uniqHitKeys.add(`${s}|${r.combo}`);
+        uniqHitKeys.add(`${s}|${r.combo}|${r.matched_state ?? ''}`);
       }
       return uniqHitKeys.size;
     },

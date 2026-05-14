@@ -55,13 +55,27 @@ export function LastHitPill() {
   const { followed, toPostgrestFilter } = useFollowedStates();
   const stateFilter = toPostgrestFilter().replace('jurisdiction=', 'hit_state=');
 
+  // BUG-141 (2026-05-13): migrated from daily_intelligence?on_slate=eq.true
+  // to adaptive_tracking. The prior query missed today's hits whenever a
+  // mid-day regen orphaned them (on_slate=false), causing the pill to fall
+  // back to YESTERDAY's last hit and display stale "yesterday" text on
+  // days when fresh hits actually existed.
+  const matchedStateFilter = stateFilter.replace('hit_state=', 'matched_state=');
   const { data: hit } = useQuery<HitRow | null>({
-    queryKey: ['last_hit_pill', sinceDate, followed.join(',')],
+    queryKey: ['last_hit_pill_adaptive_v1', sinceDate, followed.join(',')],
     queryFn: async () => {
-      const rows = await fetchFromSupabase<HitRow[]>({
-        path: `/rest/v1/daily_intelligence?slate_date=gte.${sinceDate}&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${stateFilter}&select=slate_date,scope,combo,hit_state,hit_session,hit_box,hit_straight&order=slate_date.desc&limit=50`,
+      const rows = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/adaptive_tracking?slate_date=gte.${sinceDate}&matched_state=not.is.null&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${matchedStateFilter}&select=slate_date,scope,combo,matched_state,matched_session,hit_box,hit_straight&order=slate_date.desc&limit=50`,
       });
-      const list = Array.isArray(rows) ? rows : [];
+      const list = (Array.isArray(rows) ? rows : []).map(r => ({
+        slate_date: r.slate_date,
+        scope: r.scope,
+        combo: r.combo,
+        hit_state: r.matched_state ?? '',
+        hit_session: r.matched_session ?? '',
+        hit_box: !!r.hit_box,
+        hit_straight: !!r.hit_straight,
+      }));
       // Server orders by slate_date.desc only — within a single day we need
       // session order (latest session first) so an evening hit beats a midday
       // hit when both landed today.

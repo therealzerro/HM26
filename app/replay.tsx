@@ -86,8 +86,13 @@ export default function ReplayScreen() {
     type CardData = {
       date: string;
       scope: string;
-      picks: Array<{ rank: number; combo: string; comboSet: string; hit: 'box' | 'straight' | null; hitState?: string; hitSession?: string; hitResult?: string }>;
+      picks: Array<{ rank: number; combo: string; comboSet: string; hit: 'box' | 'straight' | null; hitState?: string; hitSession?: string; hitResult?: string; matchCount: number }>;
       draws: Draw[];
+      // BUG-141: total match count for this card. A pick that hit in multiple
+      // jurisdictions (e.g. 916 today in WI + ME,NH,VT) contributes its
+      // multi-state count. `picks.filter(p => p.hit).length` would have given
+      // 1 for that pick (since `hit` is a single value); totalMatches gives 2.
+      totalMatches: number;
     };
 
     // For each (date, scope), prefer the snapshot with the most hitType
@@ -123,15 +128,29 @@ export default function ReplayScreen() {
       const dayDraws = draws.filter(d =>
         (d.date_et?.split('T')[0] === snap.slate_date) && scopeMatchesSession(snap.scope, d.session)
       );
-      const drawSetMap = new Map<string, Draw>();
-      for (const d of dayDraws) drawSetMap.set(toComboSet(d.result_digits), d);
+      // BUG-141: track ALL matching draws per comboSet, not just the last
+      // one. A combo can hit in multiple jurisdictions on the same day (e.g.
+      // 916 hit in WI 619 AND ME,NH,VT 196 today) and the prior single-Map
+      // logic discarded the additional matches.
+      const drawsBySet = new Map<string, Draw[]>();
+      for (const d of dayDraws) {
+        const cs = toComboSet(d.result_digits);
+        if (!drawsBySet.has(cs)) drawsBySet.set(cs, []);
+        drawsBySet.get(cs)!.push(d);
+      }
 
+      let cardTotalMatches = 0;
       const cardPicks = picks.slice(0, 6).map((p: any, i: number) => {
         const combo = String(p.combo ?? '');
         const set = toComboSet(combo);
-        const matched = drawSetMap.get(set);
-        const isStraight = matched && matched.result_digits === combo;
-        const hit = matched ? (isStraight ? 'straight' as const : 'box' as const) : null;
+        const matches = drawsBySet.get(set) ?? [];
+        // For the pick pill: prefer a straight hit as the displayed marker;
+        // otherwise show the first box match. The total-count badge below
+        // surfaces the full multi-state count.
+        const straightMatch = matches.find(m => m.result_digits === combo);
+        const matched = straightMatch ?? matches[0];
+        const hit = matches.length === 0 ? null : (straightMatch ? 'straight' as const : 'box' as const);
+        cardTotalMatches += matches.length;
         return {
           rank: p.rank ?? i + 1,
           combo,
@@ -140,10 +159,11 @@ export default function ReplayScreen() {
           hitState: matched?.jurisdiction,
           hitSession: matched?.session,
           hitResult: matched?.result_digits,
+          matchCount: matches.length,
         };
       });
 
-      cards.push({ date: snap.slate_date, scope: snap.scope, picks: cardPicks, draws: dayDraws });
+      cards.push({ date: snap.slate_date, scope: snap.scope, picks: cardPicks, draws: dayDraws, totalMatches: cardTotalMatches });
     }
 
     // Group by date (descending by date_et based on input order)
@@ -198,7 +218,11 @@ export default function ReplayScreen() {
       ) : (
         <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
           {grouped.map(([date, cards]) => {
-            const totalHits = cards.reduce((sum, c) => sum + c.picks.filter(p => p.hit).length, 0);
+            // BUG-141: use totalMatches (sums per-pick match counts) instead
+            // of picks.filter(p => p.hit).length (counts hit picks). Multi-
+            // state matches each count separately, matching the band/feed
+            // display semantics elsewhere.
+            const totalHits = cards.reduce((sum, c) => sum + c.totalMatches, 0);
             return (
               <View key={date} style={s.daySection}>
                 <View style={s.dayHeader}>
@@ -211,7 +235,8 @@ export default function ReplayScreen() {
                   )}
                 </View>
                 {cards.map(card => {
-                  const hits = card.picks.filter(p => p.hit).length;
+                  // BUG-141: count multi-state matches separately.
+                  const hits = card.totalMatches;
                   return (
                     <View key={card.scope} style={s.scopeCard}>
                       <View style={s.scopeHeader}>
@@ -229,7 +254,9 @@ export default function ReplayScreen() {
                             <Text style={[s.pickRank, p.hit && { color: theme.colors.bgElevated }]}>#{p.rank}</Text>
                             <Text style={[s.pickCombo, p.hit && { color: theme.colors.bgElevated }]}>{p.combo || '•••'}</Text>
                             {p.hit && (
-                              <Text style={s.pickHitMark}>{p.hit === 'straight' ? '⭐' : '🎯'}</Text>
+                              <Text style={s.pickHitMark}>
+                                {p.hit === 'straight' ? '⭐' : '🎯'}{p.matchCount > 1 ? `×${p.matchCount}` : ''}
+                              </Text>
                             )}
                           </View>
                         ))}

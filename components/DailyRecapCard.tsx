@@ -44,13 +44,25 @@ export function DailyRecapCard() {
   const { followed, toPostgrestFilter } = useFollowedStates();
   const stateFilter = toPostgrestFilter().replace('jurisdiction=', 'hit_state=');
 
+  // BUG-141 (2026-05-13): migrated from daily_intelligence?on_slate=eq.true
+  // to adaptive_tracking. After mid-day regen, today's hit-orphans have
+  // on_slate=false → previous query returned 0 → DailyRecapCard rendered
+  // the "0 verified hits today" miss-day branch even when real hits existed.
+  const matchedStateFilter = stateFilter.replace('hit_state=', 'matched_state=');
   const { data: hits = [] } = useQuery<HitRow[]>({
-    queryKey: ['daily_recap', today, followed.join(',')],
+    queryKey: ['daily_recap_adaptive_v1', today, followed.join(',')],
     queryFn: async () => {
-      const rows = await fetchFromSupabase<HitRow[]>({
-        path: `/rest/v1/daily_intelligence?slate_date=eq.${today}&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${stateFilter}&select=scope,combo,hit_state,hit_session,hit_box,hit_straight&limit=50`,
+      const rows = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/adaptive_tracking?slate_date=eq.${today}&matched_state=not.is.null&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${matchedStateFilter}&select=scope,combo,matched_state,matched_session,hit_box,hit_straight&limit=50`,
       });
-      const list = Array.isArray(rows) ? rows : [];
+      const list = (Array.isArray(rows) ? rows : []).map(r => ({
+        scope: r.scope,
+        combo: r.combo,
+        hit_state: r.matched_state ?? '',
+        hit_session: r.matched_session ?? '',
+        hit_box: !!r.hit_box,
+        hit_straight: !!r.hit_straight,
+      })) as HitRow[];
       return list.filter(h => scopeMatchesSession(h.scope, h.hit_session));
     },
     enabled: hour >= 20, // only fetch after 8 PM ET

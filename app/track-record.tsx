@@ -56,48 +56,49 @@ export default function TrackRecordScreen() {
   const { followed, toPostgrestFilter } = useFollowedStates();
   const stateFilter = toPostgrestFilter().replace('jurisdiction=', 'hit_state=');
 
-  const { data: hits = [], isLoading } = useQuery<HitRow[]>({
-    queryKey: ['verified_track_record', sinceDate, followed.join(',')],
-    queryFn: async () => {
-      const rows = await fetchFromSupabase<HitRow[]>({
-        path: `/rest/v1/daily_intelligence?slate_date=gte.${sinceDate}&on_slate=eq.true&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${stateFilter}&select=slate_date,scope,combo,rank,hit_state,hit_session,hit_box,hit_straight,hit_result&order=slate_date.desc&limit=500`,
-      });
-      return Array.isArray(rows) ? rows : [];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // Secondary matches from adaptive_tracking — when a single pick hits in
-  // multiple jurisdictions (e.g. 916 box hit on both WI 619 and ME,NH,VT 196
-  // today), daily_intelligence only records the first match. adaptive_tracking
-  // has one row per (pick, matched_state) so it surfaces the others.
+  // BUG-141 (2026-05-13): consolidated from a two-query merge
+  // (daily_intelligence primary + adaptive_tracking secondary) into a single
+  // adaptive_tracking query. The prior daily_intelligence-based primary was
+  // gated on `on_slate=eq.true` and missed hit-orphan rows after regens
+  // (today's 916/924 had on_slate=false). adaptive_tracking is slate_hash-
+  // keyed: every hit ever recorded survives regen, and the secondary query
+  // we already had captures every (combo × matched_state) match. So the
+  // primary just becomes the same source.
+  //
+  // Verified against the live DB on 2026-05-13:
+  //   2026-05-13 — daily_intelligence: 0 on-slate hits, adaptive_tracking: 3
+  //   2026-05-12 — daily_intelligence: 6, adaptive_tracking: 6 (parity)
+  //   2026-05-11 — daily_intelligence: 0, adaptive_tracking: 4 (regen also
+  //   hit-orphaned that day's hits)
+  // i.e., adaptive_tracking is the strictly-more-complete source.
   const atStateFilter = stateFilter.replace('hit_state=', 'matched_state=');
-  const { data: extraMatches = [] } = useQuery<Array<{
+  const { data: hitRows = [], isLoading } = useQuery<Array<{
     slate_date: string; scope: string; combo: string; rank: number;
     matched_state: string | null; matched_session: string | null;
     hit_box: boolean; hit_straight: boolean; actual_result: string | null;
   }>>({
-    queryKey: ['verified_track_record_multistate', sinceDate, followed.join(',')],
+    queryKey: ['verified_track_record_adaptive_v1', sinceDate, followed.join(',')],
     queryFn: async () => {
       const rows = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/adaptive_tracking?slate_date=gte.${sinceDate}&matched_state=not.is.null&select=slate_date,scope,combo,rank,matched_state,matched_session,hit_box,hit_straight,actual_result${atStateFilter}&order=slate_date.desc&limit=500`,
+        path: `/rest/v1/adaptive_tracking?slate_date=gte.${sinceDate}&matched_state=not.is.null&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${atStateFilter}&select=slate_date,scope,combo,rank,matched_state,matched_session,hit_box,hit_straight,actual_result&order=slate_date.desc&limit=500`,
       });
       return Array.isArray(rows) ? rows : [];
     },
     staleTime: 5 * 60 * 1000,
   });
 
-  // Same scope-validity gate as Results (BUG-132 defense in depth).
-  // Then merge in any adaptive_tracking secondary matches not already in DI.
+  // Same scope-validity gate as Results (BUG-132 defense in depth). De-dupe
+  // by (date, scope, combo, matched_state) so true duplicates collapse but
+  // multi-state matches stay distinct — pick 916 hitting in WI and ME,NH,VT
+  // counts as 2 hits, matching BUG-138's display semantics.
   const validHits = useMemo(() => {
-    const primary = hits.filter(h => scopeMatchesSession(h.scope, h.hit_session));
-    const seen = new Set(primary.map(h => `${h.slate_date}|${h.scope}|${h.combo}|${h.hit_state}`));
-    const merged: HitRow[] = [...primary];
-    for (const m of extraMatches) {
+    const seen = new Set<string>();
+    const merged: HitRow[] = [];
+    for (const m of hitRows) {
       if (!m.matched_state) continue;
+      if (!scopeMatchesSession(m.scope, m.matched_session ?? '')) continue;
       const k = `${m.slate_date}|${m.scope}|${m.combo}|${m.matched_state}`;
       if (seen.has(k)) continue;
-      if (!scopeMatchesSession(m.scope, m.matched_session ?? '')) continue;
       seen.add(k);
       merged.push({
         slate_date: m.slate_date, scope: m.scope, combo: m.combo, rank: m.rank,
@@ -107,7 +108,7 @@ export default function TrackRecordScreen() {
       });
     }
     return merged;
-  }, [hits, extraMatches]);
+  }, [hitRows]);
 
   // Group by date for the stream layout
   const grouped = useMemo(() => {

@@ -568,17 +568,68 @@ async function computeSlate(params: {
   // INSERT — no separate PATCH needed. Any K6 combo that didn't make top30 (because
   // pass-5 cooldown relaxation can pick combos outside the top30) gets appended as
   // an extra row past rank 30 so the Intelligence screen still finds it.
+  //
+  // BUG-139 fix: previous write strategy was DELETE-WHERE-hit_box=false then INSERT
+  // new top30 with `Prefer: resolution=merge-duplicates`. This preserved rows where
+  // hits had already been stamped, but caused the entire INSERT batch to abort
+  // silently when the new top30 occupied a rank held by a preserved hit-row — the
+  // unique constraint on (slate_date, scope, mode, rank) fired before merge-
+  // duplicates could resolve the natural-key conflict. 2026-05-13 allday demonstrated
+  // this: 916/924 preserved at ranks 2/8, regen failed to write the remaining ~28
+  // rows, Intel screen showed only those 2 picks for the whole day. Midday/evening
+  // were unaffected because they had no hits → no preserved rows → no rank conflict.
+  //
+  // New strategy: DELETE ALL rows for (date, scope, mode) unconditionally, then
+  // INSERT fresh top30 + K6-extras. Hit annotations are recovered by reading
+  // adaptive_tracking (slate_hash-keyed, survives regens — the canonical hit log
+  // per ENH-01) BEFORE the delete, and stamped onto matching combos in the new
+  // INSERT batch. Combos that hit today but fell outside the new top30/K6 (because
+  // their box-set was excluded by the today-hit filter) get appended past the
+  // top30 + extra-K6 ranks so the Track Record band's hit_box=true count and the
+  // Intel screen's "hit chip" still find them.
   if (!is_supplement) {
     try {
       const k6ComboSet = new Set(k6.map(x => x.combo));
       const top30Combos = new Set(top30PreRail.map(p => p.combo));
+
+      // Hits-from-adaptive_tracking lookup: combo → primary match (first hit row
+      // per combo; multi-state secondaries are still in adaptive_tracking but
+      // daily_intelligence has 1-row-per-(date,scope,mode,combo) so we collapse).
+      let hitsByCombo = new Map<string, { hit_box: boolean; hit_straight: boolean; hit_state: string | null; hit_session: string | null; hit_result: string | null }>();
+      try {
+        const at = await sbGet<any[]>(
+          `/rest/v1/adaptive_tracking?slate_date=eq.${effectiveDate}&scope=eq.${encodeURIComponent(scope)}&mode=eq.${encodeURIComponent(weightsKey)}&or=(hit_box.eq.true,hit_straight.eq.true)&select=combo,hit_box,hit_straight,matched_state,matched_session,actual_result&limit=200`,
+        );
+        if (Array.isArray(at)) {
+          for (const r of at) {
+            if (!r.combo) continue;
+            const existing = hitsByCombo.get(r.combo);
+            // Prefer straight > box when collapsing multi-state
+            if (!existing || (r.hit_straight && !existing.hit_straight)) {
+              hitsByCombo.set(r.combo, {
+                hit_box: !!r.hit_box,
+                hit_straight: !!r.hit_straight,
+                hit_state: r.matched_state ?? null,
+                hit_session: r.matched_session ?? null,
+                hit_result: r.actual_result ?? null,
+              });
+            }
+          }
+        }
+      } catch (e) { console.warn('[edge-zk6] adaptive_tracking hits fetch warn:', String(e)); }
+
+      const stamp = (combo: string) => {
+        const h = hitsByCombo.get(combo);
+        return h ?? { hit_box: false, hit_straight: false, hit_state: null, hit_session: null, hit_result: null };
+      };
 
       const top30Rows = top30PreRail.map((p, i) => ({
         slate_date: effectiveDate, scope, mode: weightsKey, rank: i + 1,
         combo: p.combo, combo_set: p.comboSet, multiplicity: p.mult, top_pair: p.topPair,
         signal_box: p.signals.BOX, signal_pburst: p.signals.PBURST, signal_co: p.signals.CO, signal_dgc: p.signals.DGC,
         energy_score: p.energy,
-        on_slate: k6ComboSet.has(p.combo), hit_box: false, hit_straight: false,
+        on_slate: k6ComboSet.has(p.combo),
+        ...stamp(p.combo),
       }));
 
       const extraK6Rows = k6
@@ -588,12 +639,32 @@ async function computeSlate(params: {
           combo: x.combo, combo_set: x.normKey, multiplicity: x.multiplicity, top_pair: x.topPair,
           signal_box: x.boxS, signal_pburst: x.pburstS, signal_co: x.coS, signal_dgc: x.dgcS,
           energy_score: x.energy,
-          on_slate: true, hit_box: false, hit_straight: false,
+          on_slate: true,
+          ...stamp(x.combo),
         }));
 
-      const diRows = [...top30Rows, ...extraK6Rows];
-      await sbDelete(`/rest/v1/daily_intelligence?slate_date=eq.${effectiveDate}&scope=eq.${encodeURIComponent(scope)}&mode=eq.${encodeURIComponent(weightsKey)}&hit_box=eq.false&hit_straight=eq.false`);
-      await sbPost('/rest/v1/daily_intelligence', diRows, 'resolution=merge-duplicates,return=minimal');
+      // Any hit-bearing combo NOT in top30 and NOT in K6 (e.g. its box-set was
+      // already drawn so the engine excluded it from the new top30) gets
+      // appended so the historical hit row stays visible on Intel/Track Record.
+      const placedCombos = new Set([...top30Combos, ...k6ComboSet]);
+      const k6ExtraEndRank = 30 + extraK6Rows.length;
+      const hitOrphanRows = [...hitsByCombo.entries()]
+        .filter(([combo]) => !placedCombos.has(combo))
+        .map(([combo, h], i) => ({
+          slate_date: effectiveDate, scope, mode: weightsKey, rank: k6ExtraEndRank + i + 1,
+          combo, combo_set: `{${combo.split('').sort().join(',')}}`,
+          multiplicity: null, top_pair: null,
+          signal_box: 0, signal_pburst: 0, signal_co: 0, signal_dgc: 0,
+          energy_score: 0,
+          on_slate: false,
+          hit_box: h.hit_box, hit_straight: h.hit_straight,
+          hit_state: h.hit_state, hit_session: h.hit_session, hit_result: h.hit_result,
+        }));
+
+      const diRows = [...top30Rows, ...extraK6Rows, ...hitOrphanRows];
+      await sbDelete(`/rest/v1/daily_intelligence?slate_date=eq.${effectiveDate}&scope=eq.${encodeURIComponent(scope)}&mode=eq.${encodeURIComponent(weightsKey)}`);
+      await sbPost('/rest/v1/daily_intelligence', diRows, 'return=minimal');
+      console.log('[edge-zk6] daily_intelligence: wrote', diRows.length, 'rows (' + hitOrphanRows.length + ' hit-orphans appended)');
     } catch (e) { console.error('[edge-zk6] daily_intelligence write FAILED:', String(e)); }
 
     // ─── E1+E2+E5: adaptive_tracking K6 primary rows (mirrors engines/zk6.ts) ───

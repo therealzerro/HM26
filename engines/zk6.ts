@@ -1089,13 +1089,56 @@ export async function computeSlate({
   // Write top 30 pre-rail picks to daily_intelligence.
   // Skip for supplemental slates — they use post-hit-exclusion picks which
   // would overwrite the original intelligence data with incomplete signal data.
+  //
+  // BUG-139 fix: previous write strategy was DELETE-WHERE-hit_box=false then INSERT
+  // new top30 with `Prefer: resolution=ignore-duplicates`. This preserved rows where
+  // hits had already been stamped, but caused the entire INSERT batch to abort
+  // silently when the new top30 occupied a rank held by a preserved hit-row — the
+  // unique constraint on (slate_date, scope, mode, rank) fired before
+  // ignore-duplicates could short-circuit it. 2026-05-13 allday demonstrated this:
+  // 916/924 preserved at ranks 2/8, regen failed to write the remaining ~28 rows,
+  // Intel screen showed only those 2 picks. Midday/evening had no hits → no rank
+  // conflict → wrote cleanly.
+  //
+  // New strategy: DELETE ALL rows unconditionally, INSERT fresh top30 + K6-extras
+  // with hit annotations stamped from adaptive_tracking (slate_hash-keyed, the
+  // canonical hit log per ENH-01). Combos that hit today but fell outside the new
+  // top30/K6 get appended past rank 30 so the Track Record band's hit_box=true
+  // count and Intel's "hit chip" still find them.
   if (!is_supplement) {
     try {
-      // on_slate is embedded in the INSERT. Any K6 combo that didn't make top30 (pass-5
-      // cooldown relaxation can pick combos outside top30) gets appended past rank 30 so
-      // the Intelligence screen still finds it.
       const k6ComboSet = new Set(k6.map(x => x.combo));
       const top30Combos = new Set(top30PreRail.map(p => p.combo));
+
+      // Recover hits from adaptive_tracking BEFORE the delete — combo → primary
+      // match. Multi-state secondaries live in adaptive_tracking but
+      // daily_intelligence has 1-row-per-(date,scope,mode,combo), so collapse here.
+      const hitsByCombo = new Map<string, { hit_box: boolean; hit_straight: boolean; hit_state: string | null; hit_session: string | null; hit_result: string | null }>();
+      try {
+        const at = await fetchFromSupabase<any[]>({
+          path: `/rest/v1/adaptive_tracking?slate_date=eq.${effectiveDate}&scope=eq.${encodeURIComponent(scope)}&mode=eq.${encodeURIComponent(weightsKey)}&or=(hit_box.eq.true,hit_straight.eq.true)&select=combo,hit_box,hit_straight,matched_state,matched_session,actual_result&limit=200`,
+        });
+        if (Array.isArray(at)) {
+          for (const r of at) {
+            if (!r.combo) continue;
+            const existing = hitsByCombo.get(r.combo);
+            if (!existing || (r.hit_straight && !existing.hit_straight)) {
+              hitsByCombo.set(r.combo, {
+                hit_box: !!r.hit_box,
+                hit_straight: !!r.hit_straight,
+                hit_state: r.matched_state ?? null,
+                hit_session: r.matched_session ?? null,
+                hit_result: r.actual_result ?? null,
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[zk6v2] adaptive_tracking hits fetch warn:', String(e));
+      }
+
+      const stamp = (combo: string) =>
+        hitsByCombo.get(combo) ?? { hit_box: false, hit_straight: false, hit_state: null, hit_session: null, hit_result: null };
 
       const top30Rows = top30PreRail.map((pick, idx) => ({
         slate_date: effectiveDate,
@@ -1115,8 +1158,7 @@ export async function computeSlate({
         times_drawn: pick.timesDrawn,
         best_order: bestOrderFor(pick.combo, ds.pairData),
         on_slate: k6ComboSet.has(pick.combo),
-        hit_box: false,
-        hit_straight: false,
+        ...stamp(pick.combo),
       }));
 
       const extraK6Rows = k6
@@ -1139,13 +1181,42 @@ export async function computeSlate({
           times_drawn: ds.timesDrawnMap.get(x.normKey) ?? 0,
           best_order: bestOrderFor(x.combo, ds.pairData),
           on_slate: true,
-          hit_box: false,
-          hit_straight: false,
+          ...stamp(x.combo),
         }));
 
-      const diRows = [...top30Rows, ...extraK6Rows];
+      // Append any hit-bearing combo not placed by top30/K6 so Intel + Track
+      // Record still see it. Typical case: today-hit comboSets are excluded
+      // from the new top30 by design, but their historical hit row should
+      // remain visible.
+      const placedCombos = new Set([...top30Combos, ...k6ComboSet]);
+      const k6ExtraEndRank = 30 + extraK6Rows.length;
+      const hitOrphanRows = [...hitsByCombo.entries()]
+        .filter(([combo]) => !placedCombos.has(combo))
+        .map(([combo, h], i) => ({
+          slate_date: effectiveDate,
+          scope,
+          mode: weightsKey,
+          rank: k6ExtraEndRank + i + 1,
+          combo,
+          combo_set: `{${combo.split('').sort().join(',')}}`,
+          multiplicity: null as any,
+          top_pair: null as any,
+          signal_box: 0, signal_pburst: 0, signal_co: 0, signal_dgc: 0,
+          energy_score: 0,
+          draws_since: null as any,
+          times_drawn: 0,
+          best_order: combo,
+          on_slate: false,
+          hit_box: h.hit_box,
+          hit_straight: h.hit_straight,
+          hit_state: h.hit_state,
+          hit_session: h.hit_session,
+          hit_result: h.hit_result,
+        }));
+
+      const diRows = [...top30Rows, ...extraK6Rows, ...hitOrphanRows];
       const delErr = await fetchFromSupabase({
-        path: `/rest/v1/daily_intelligence?slate_date=eq.${effectiveDate}&scope=eq.${encodeURIComponent(scope)}&mode=eq.${encodeURIComponent(weightsKey)}&hit_box=eq.false&hit_straight=eq.false`,
+        path: `/rest/v1/daily_intelligence?slate_date=eq.${effectiveDate}&scope=eq.${encodeURIComponent(scope)}&mode=eq.${encodeURIComponent(weightsKey)}`,
         method: 'DELETE',
         headers: { 'Prefer': 'return=minimal' },
       }).then(() => null).catch((e: unknown) => e);
@@ -1155,10 +1226,10 @@ export async function computeSlate({
       await fetchFromSupabase({
         path: '/rest/v1/daily_intelligence',
         method: 'POST',
-        headers: { 'Prefer': 'resolution=ignore-duplicates,return=minimal' },
+        headers: { 'Prefer': 'return=minimal' },
         body: diRows,
       });
-      console.log('[zk6v2] daily_intelligence: wrote', diRows.length, 'rows for scope:', scope, 'date:', effectiveDate);
+      console.log('[zk6v2] daily_intelligence: wrote', diRows.length, 'rows for scope:', scope, 'date:', effectiveDate, '(' + hitOrphanRows.length + ' hit-orphans appended)');
     } catch (e) {
       console.error('[zk6v2] daily_intelligence write FAILED — date will not increment:', String(e));
     }

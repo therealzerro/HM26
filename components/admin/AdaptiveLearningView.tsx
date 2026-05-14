@@ -113,7 +113,14 @@ function multiplicityOf(combo: string | null): 'singles' | 'doubles' | 'triples'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function AdaptiveLearningView() {
+// setView is optional so the screen still renders standalone if dropped into
+// a context that doesn't supply it. When present, the "Tune in Engine Config →"
+// CTAs route the operator to the matching admin view without losing context.
+interface AdaptiveLearningViewProps {
+  setView?: (view: string) => void;
+}
+
+export default function AdaptiveLearningView({ setView }: AdaptiveLearningViewProps = {}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<AtRow[]>([]);
@@ -289,9 +296,12 @@ export default function AdaptiveLearningView() {
     });
   }, [primaryRows]);
 
-  // Recommendations engine — generates 0–3 actionable items based on the diagnostics
+  // Recommendations engine — generates 0–3 actionable items based on the diagnostics.
+  // Each rec can optionally include `actionable: true` to surface a "Tune in
+  // Engine Config →" CTA. Reserved for recs where Engine Config has the
+  // matching knob — informational/diagnostic recs skip the CTA.
   const recommendations = useMemo(() => {
-    const recs: Array<{ severity: 'high' | 'medium' | 'info'; title: string; body: string }> = [];
+    const recs: { severity: 'high' | 'medium' | 'info'; title: string; body: string; actionable?: boolean }[] = [];
 
     // 1. Signal AUC near 0.5 → consider weight reduction
     for (const key of SIGNAL_KEYS) {
@@ -301,11 +311,13 @@ export default function AdaptiveLearningView() {
         severity: 'high',
         title: `${SIGNAL_LABEL[key]} AUC = ${a.toFixed(3)} (anti-predictive)`,
         body: `Higher ${SIGNAL_LABEL[key]} scores correlate with FEWER hits. Run \`npm run intel:propose\` to generate an AUC-fitted weight set, then backtest it before applying.`,
+        actionable: true,
       });
       else if (a < 0.51 && a >= 0.49) recs.push({
         severity: 'medium',
         title: `${SIGNAL_LABEL[key]} AUC = ${a.toFixed(3)} (random)`,
         body: `${SIGNAL_LABEL[key]} provides no predictive lift over random. Consider zeroing its weight and redistributing to the higher-AUC signals.`,
+        actionable: true,
       });
     }
 
@@ -315,6 +327,7 @@ export default function AdaptiveLearningView() {
         severity: 'high',
         title: 'Energy ranking is not calibrated',
         body: 'Higher-energy picks do not consistently hit more often than lower-energy picks. The percentile mapping may be inflating sub-quality picks. Audit `percentileRankOf` / scorePool construction.',
+        // Not actionable from Engine Config — diagnosis points at code, not config.
       });
     }
 
@@ -325,12 +338,14 @@ export default function AdaptiveLearningView() {
         severity: 'medium',
         title: `Doubles: 0% over ${doubles.total} picks`,
         body: 'Doubles aren\'t producing any hits. Consider raising `k6_singles_max` from 4 → 5 to let an extra single fill the slot a double would have taken. Backtest required.',
+        actionable: true,
       });
     } else if (doubles && doubles.total >= 30 && doubles.rate < 5) {
       recs.push({
         severity: 'medium',
         title: `Doubles hit rate ${doubles.rate.toFixed(1)}% over ${doubles.total} picks`,
         body: 'Doubles are underperforming. Investigate whether they\'re scoring high but missing, or whether the rails are forcing low-quality doubles into the slate.',
+        actionable: true,
       });
     }
 
@@ -342,10 +357,13 @@ export default function AdaptiveLearningView() {
         severity: 'high',
         title: `Pick #1 (${p1.toFixed(1)}%) hits less than Pick #6 (${p6.toFixed(1)}%)`,
         body: 'The display ordering (sort by indicator desc) is not predictive of hit likelihood. This may indicate the indicator formula needs re-weighting or the pass-relaxation logic is placing weaker picks above stronger ones.',
+        actionable: true,
       });
     }
 
-    // 5. Weakest scope flag
+    // 5. Weakest scope flag — text refreshed 2026-05-13 (per-scope cooldown
+    //    landed via CONFIG-05 on the same day, not 5/16 as the prior stale
+    //    text indicated).
     if (weakestScope && weakestScope.total >= 10) {
       const others = scopeStats.filter(s => s.scope !== weakestScope.scope && s.total >= 10);
       const otherAvg = others.length > 0
@@ -355,7 +373,8 @@ export default function AdaptiveLearningView() {
         recs.push({
           severity: 'medium',
           title: `${weakestScope.scope} is the weakest scope (${weakestScope.rate.toFixed(1)}% vs ${otherAvg.toFixed(1)}% avg)`,
-          body: `Per-scope config (\`recent_hit_cooldown_${weakestScope.scope}\` etc.) is scheduled to land 2026-05-16. After deploy, lower the cooldown for this scope specifically and backtest.`,
+          body: `Per-scope cooldown overrides shipped 2026-05-13 (CONFIG-05). In Engine Config → K6 Rail Controls → Per-scope cooldown overrides, set \`${weakestScope.scope}\` to a lower value (try 10-15) and backtest before saving.`,
+          actionable: true,
         });
       }
     }
@@ -366,6 +385,7 @@ export default function AdaptiveLearningView() {
         severity: 'high',
         title: `Hit rate dropped ${Math.abs(trendDelta).toFixed(1)}pp vs prior 30d`,
         body: 'Recent regression detected. Check the activity log for code/config changes in the last 30 days. Run `npm run backtest:replay -- --days 30 --config default` to verify the current config still produces backtest-projected numbers.',
+        actionable: true,
       });
     }
 
@@ -374,6 +394,7 @@ export default function AdaptiveLearningView() {
         severity: 'info',
         title: 'No tuning recommendations',
         body: 'All diagnostics are in healthy ranges. Continue current config; re-evaluate after 14 days of fresh data.',
+        // No CTA — nothing to tune.
       });
     }
 
@@ -615,6 +636,7 @@ export default function AdaptiveLearningView() {
                 rec.severity === 'high' ? theme.colors.error :
                 rec.severity === 'medium' ? theme.colors.gold :
                 theme.colors.primary;
+              const showCTA = rec.actionable && setView;
               return (
                 <Card key={idx} style={{
                   padding: 14, marginBottom: 8,
@@ -629,6 +651,23 @@ export default function AdaptiveLearningView() {
                     <Text style={{ fontSize: 12, fontWeight: '700', color: theme.colors.text, flex: 1 }}>{rec.title}</Text>
                   </View>
                   <Text style={{ fontSize: 11, color: theme.colors.textSecondary, lineHeight: 16 }}>{rec.body}</Text>
+                  {showCTA && (
+                    <TouchableOpacity
+                      onPress={() => setView!('engine')}
+                      style={{
+                        alignSelf: 'flex-start',
+                        marginTop: 10,
+                        paddingHorizontal: 10, paddingVertical: 6,
+                        borderRadius: 7,
+                        backgroundColor: tone + '14',
+                        borderWidth: 1, borderColor: tone + '44',
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: tone }}>
+                        Tune in Engine Config →
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </Card>
               );
             })

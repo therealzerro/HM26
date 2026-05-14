@@ -82,7 +82,7 @@ export default function AdminScreen() {
         {view === 'engine' && <EngineConfigView regenerateSlate={regenerateSlate} />}
         {view === 'performance' && <HitTrackingView />}
         {view === 'nationwide' && <NationwideAdminView />}
-        {view === 'adaptive' && <AdaptiveLearningView />}
+        {view === 'adaptive' && <AdaptiveLearningView setView={setView} />}
         {view === 'intelligence' && <IntelligenceRouteView />}
         {view === 'fingerprint'  && <FingerprintView />}
       </View>

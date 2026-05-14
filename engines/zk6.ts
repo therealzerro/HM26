@@ -383,12 +383,22 @@ const DEFAULT_ENGINE_CONFIG: EngineConfig = {
   synergyWeight: 0.15,
 };
 
-async function loadEngineConfig(): Promise<EngineConfig> {
+async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
   try {
+    // Per-scope cooldown override (2026-05-13 CONFIG-05). When `scope` is passed,
+    // also pull `recent_hit_cooldown_${scope}` and overlay it on the global. Only
+    // recent_hit_cooldown is currently scope-overridable; other knobs stay global
+    // until empirically justified.
+    const scopeOverrideKey = scope ? `recent_hit_cooldown_${scope}` : null;
+    const keyList = [
+      'engine_weights_balanced', 'engine_weights_conservative', 'engine_weights_aggressive',
+      'k6_singles_max', 'k6_doubles_max', 'k6_triples_on', 'pair_rep_cap',
+      'pressure_threshold', 'min_energy_threshold', 'recent_hit_cooldown',
+      'synergy_boost_on', 'synergy_boost_weight',
+      ...(scopeOverrideKey ? [scopeOverrideKey] : []),
+    ];
     const rows = await fetchFromSupabase<any[]>({
-      path: '/rest/v1/app_config' +
-        '?key=in.(engine_weights_balanced,engine_weights_conservative,engine_weights_aggressive,k6_singles_max,k6_doubles_max,k6_triples_on,pair_rep_cap,pressure_threshold,min_energy_threshold,recent_hit_cooldown,synergy_boost_on,synergy_boost_weight)' +
-        '&select=key,value',
+      path: '/rest/v1/app_config?key=in.(' + keyList.join(',') + ')&select=key,value',
     });
     if (!Array.isArray(rows) || rows.length === 0) return DEFAULT_ENGINE_CONFIG;
 
@@ -401,6 +411,7 @@ async function loadEngineConfig(): Promise<EngineConfig> {
     let pressureThreshold = 250;
     let minEnergyThreshold = 0;
     let recentHitCooldown = 20;
+    let scopeCooldownOverride: number | null = null;
     let synergyOn = false;
     let synergyWeight = 0.15;
 
@@ -413,6 +424,11 @@ async function loadEngineConfig(): Promise<EngineConfig> {
         if (row.key === 'pressure_threshold')   { const v = parseInt(row.value, 10); if (!isNaN(v) && v >= 50) pressureThreshold = v; continue; }
         if (row.key === 'min_energy_threshold') { const v = parseInt(row.value, 10); if (!isNaN(v) && v >= 0) minEnergyThreshold = v; continue; }
         if (row.key === 'recent_hit_cooldown')  { const v = parseInt(row.value, 10); if (!isNaN(v) && v >= 0) recentHitCooldown = v; continue; }
+        if (scopeOverrideKey && row.key === scopeOverrideKey) {
+          const v = parseInt(row.value, 10);
+          if (!isNaN(v) && v >= 0) scopeCooldownOverride = v;
+          continue;
+        }
         if (row.key === 'synergy_boost_on')     { synergyOn = row.value === 'true'; continue; }
         if (row.key === 'synergy_boost_weight') { const v = parseFloat(row.value); if (!isNaN(v) && v >= 0) synergyWeight = v; continue; }
 
@@ -431,7 +447,13 @@ async function loadEngineConfig(): Promise<EngineConfig> {
         }
       } catch {}
     }
-    return { presets, rails, pressureThreshold, minEnergyThreshold, recentHitCooldown, synergyOn, synergyWeight };
+    // Scope override wins over global when present. Logged at the call site
+    // so production diffs are visible in the console.
+    const effectiveCooldown = scopeCooldownOverride ?? recentHitCooldown;
+    if (scopeCooldownOverride !== null && scope) {
+      console.log(`[zk6v2] cooldown override: scope=${scope} ${recentHitCooldown} → ${effectiveCooldown}`);
+    }
+    return { presets, rails, pressureThreshold, minEnergyThreshold, recentHitCooldown: effectiveCooldown, synergyOn, synergyWeight };
   } catch {
     return DEFAULT_ENGINE_CONFIG;
   }
@@ -552,7 +574,7 @@ export async function computeSlate({
   const todayEt = getTodayET();
   const effectiveDate = targetDate || todayEt;
 
-  const { presets: weightPresets, rails, pressureThreshold, minEnergyThreshold, recentHitCooldown, synergyOn, synergyWeight } = await loadEngineConfig();
+  const { presets: weightPresets, rails, pressureThreshold, minEnergyThreshold, recentHitCooldown, synergyOn, synergyWeight } = await loadEngineConfig(scope);
   const weights = weightPresets[weightsKey] ?? weightPresets.balanced;
   const universe = buildUniverse();
 

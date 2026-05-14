@@ -144,6 +144,60 @@ export const CONFIGS: Record<string, EngineConfig> = {
     synergyOn: false, synergyWeight: 0.15,
   },
 
+  // ─────────────────── 2026-05-13: per-scope midday cooldown candidates ───────────────────
+  // Hypothesis: midday's 37.9% hit rate (vs allday 100%, evening 69%) on the 30-day
+  // BASELINE suggests its 20-day flat cooldown is over-aggressive — too many valid
+  // midday-drawing combos get rejected for having drawn elsewhere recently. Test
+  // tighter midday-only cooldowns. recentHitCooldownByScope.midday wins over global.
+  // Evening + allday stay at the global 20.
+  //
+  // parity_midday_cd20 is a sanity guard: with the override = global, results MUST
+  // match `default`. If they differ, the loader is wrong — do not proceed.
+  parity_midday_cd20: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 0, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    recentHitCooldownByScope: { midday: 20 },
+  },
+  midday_cd15: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 0, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    recentHitCooldownByScope: { midday: 15 },
+  },
+  midday_cd10: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 0, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    recentHitCooldownByScope: { midday: 10 },
+  },
+  midday_cd5: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 0, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    recentHitCooldownByScope: { midday: 5 },
+  },
+
   // BOX-heavy 3-signal model (DGC weight = 0).
   // Tests whether introducing DGC was a regression vs the older 3-signal model.
   legacy: {

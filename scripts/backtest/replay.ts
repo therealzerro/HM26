@@ -181,8 +181,12 @@ function runK6Selection(
   config: EngineConfig,
   weights: { BOX: number; PBURST: number; CO: number; DGC: number },
   scorePoolForEnergy: number[],
+  scope: Scope,
 ): ReplayPick[] {
-  const { rails, minEnergyThreshold, recentHitCooldown } = config;
+  const { rails, minEnergyThreshold } = config;
+  // Per-scope cooldown override wins when present; global is the fallback.
+  // Mirrors production's `recent_hit_cooldown_${scope}` app_config key.
+  const recentHitCooldown = config.recentHitCooldownByScope?.[scope] ?? config.recentHitCooldown;
 
   const realIdx: number[] = [];
   const placeholderIdx: number[] = [];
@@ -388,5 +392,6 @@ export async function computeSlateAsOf(
   return runK6Selection(
     universe, finalScores, timesDrawnMap, drawsSinceMap,
     todayHitComboSets, config, weights, scorePoolForEnergy,
+    scope,
   );
 }

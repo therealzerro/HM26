@@ -102,17 +102,26 @@ const DEFAULT_CFG: EngineConfig = {
 
 // ─── Config loader ────────────────────────────────────────────────────────────
 
-async function loadEngineConfig(): Promise<EngineConfig> {
+async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
   try {
+    // Per-scope cooldown override (2026-05-13 CONFIG-05). When `scope` is passed,
+    // also pull `recent_hit_cooldown_${scope}` and overlay it on the global. Only
+    // recent_hit_cooldown is currently scope-overridable; other knobs stay global
+    // until empirically justified.
+    const scopeOverrideKey = scope ? `recent_hit_cooldown_${scope}` : null;
+    const keyList = [
+      'engine_weights_balanced', 'engine_weights_conservative', 'engine_weights_aggressive',
+      'k6_singles_max', 'k6_doubles_max', 'k6_triples_on', 'pair_rep_cap',
+      'pressure_threshold', 'min_energy_threshold', 'recent_hit_cooldown',
+      'synergy_boost_on', 'synergy_boost_weight',
+      ...(scopeOverrideKey ? [scopeOverrideKey] : []),
+    ];
     const rows = await sbGet<{ key: string; value: string }[]>(
-      '/rest/v1/app_config' +
-      '?key=in.(engine_weights_balanced,engine_weights_conservative,engine_weights_aggressive,' +
-      'k6_singles_max,k6_doubles_max,k6_triples_on,pair_rep_cap,pressure_threshold,' +
-      'min_energy_threshold,recent_hit_cooldown,synergy_boost_on,synergy_boost_weight)' +
-      '&select=key,value',
+      '/rest/v1/app_config?key=in.(' + keyList.join(',') + ')&select=key,value',
     );
     if (!Array.isArray(rows) || rows.length === 0) return DEFAULT_CFG;
     const cfg: EngineConfig = JSON.parse(JSON.stringify(DEFAULT_CFG));
+    let scopeCooldownOverride: number | null = null;
     for (const row of rows) {
       try {
         if (row.key === 'k6_singles_max')       { const v = parseInt(row.value,10); if (!isNaN(v)) cfg.rails.singlesMax = v; continue; }
@@ -122,6 +131,11 @@ async function loadEngineConfig(): Promise<EngineConfig> {
         if (row.key === 'pressure_threshold')   { const v = parseInt(row.value,10); if (!isNaN(v) && v >= 50) cfg.pressureThreshold = v; continue; }
         if (row.key === 'min_energy_threshold') { const v = parseInt(row.value,10); if (!isNaN(v) && v >= 0) cfg.minEnergyThreshold = v; continue; }
         if (row.key === 'recent_hit_cooldown')  { const v = parseInt(row.value,10); if (!isNaN(v) && v >= 0) cfg.recentHitCooldown = v; continue; }
+        if (scopeOverrideKey && row.key === scopeOverrideKey) {
+          const v = parseInt(row.value, 10);
+          if (!isNaN(v) && v >= 0) scopeCooldownOverride = v;
+          continue;
+        }
         if (row.key === 'synergy_boost_on')     { cfg.synergyOn = row.value === 'true'; continue; }
         if (row.key === 'synergy_boost_weight') { const v = parseFloat(row.value); if (!isNaN(v) && v >= 0) cfg.synergyWeight = v; continue; }
         const parsed = JSON.parse(row.value);
@@ -138,6 +152,10 @@ async function loadEngineConfig(): Promise<EngineConfig> {
           if (row.key === 'engine_weights_aggressive')   cfg.presets.aggressive   = ws;
         }
       } catch { /* keep default */ }
+    }
+    if (scopeCooldownOverride !== null && scope) {
+      console.log(`[edge-zk6] cooldown override: scope=${scope} ${cfg.recentHitCooldown} → ${scopeCooldownOverride}`);
+      cfg.recentHitCooldown = scopeCooldownOverride;
     }
     return cfg;
   } catch {
@@ -309,7 +327,7 @@ async function computeSlate(params: {
   const effectiveDate = targetDate || todayEt;
   const universe = buildUniverse();
 
-  const { presets, rails, pressureThreshold, minEnergyThreshold, recentHitCooldown, synergyOn, synergyWeight } = await loadEngineConfig();
+  const { presets, rails, pressureThreshold, minEnergyThreshold, recentHitCooldown, synergyOn, synergyWeight } = await loadEngineConfig(scope);
   const weights: WeightSet = (presets as any)[weightsKey] ?? presets.balanced;
 
   // 1. Fetch datasets + history overrides

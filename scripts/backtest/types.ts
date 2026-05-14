@@ -26,6 +26,11 @@ export interface EngineConfig {
   // 20-day cooldown is too aggressive for them. When set, overrides `recentHitCooldown`
   // based on the candidate's multiplicity.
   cooldownByMultiplicity?: { singles: number; doubles: number; triples: number };
+  // ENH (2026-05-13): per-scope cooldown override. When the replay is processing
+  // a slate of scope X and recentHitCooldownByScope[X] is set, that value wins over
+  // global recentHitCooldown. Mirrors the production `recent_hit_cooldown_${scope}`
+  // app_config key that engines/zk6.ts and compute-slate-zk6 read.
+  recentHitCooldownByScope?: Partial<Record<Scope, number>>;
 }
 
 export interface ReplayPick {

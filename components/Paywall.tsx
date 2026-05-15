@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView,
 } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { BrandMark } from '@/components/BrandMark';
 
@@ -29,6 +30,8 @@ interface PaywallProps {
 }
 
 export function Paywall({ visible, onClose }: PaywallProps) {
+  const { colors, shadows } = useTheme();
+  const s = useMemo(() => makeS(colors, shadows), [colors, shadows]);
   const { setRole } = useAuth();
   const [selected, setSelected] = useState('monthly');
   const [loading, setLoading] = useState(false);
@@ -88,7 +91,7 @@ export function Paywall({ visible, onClose }: PaywallProps) {
                       <Text style={s.popularBadgeText}>{plan.badge}</Text>
                     </View>
                   )}
-                  <Text style={[s.planPrice, selected === plan.id && { color: theme.colors.primary }]}>
+                  <Text style={[s.planPrice, selected === plan.id && { color: colors.primary }]}>
                     {plan.price}
                   </Text>
                   <Text style={s.planPeriod}>{plan.period}</Text>
@@ -125,85 +128,85 @@ export function Paywall({ visible, onClose }: PaywallProps) {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: '#1E1B4B66',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     maxHeight: '92%',
   },
   handle: {
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: theme.colors.surfaceMuted,
+    backgroundColor: colors.surfaceMuted,
     alignSelf: 'center',
     marginTop: 12,
     marginBottom: 4,
   },
   body: { padding: 20, paddingBottom: 40 },
   header: { alignItems: 'center', marginBottom: 18 },
-  title: { fontSize: 22, fontWeight: '900', color: theme.colors.text, marginBottom: 4 },
-  subtitle: { fontSize: 13, color: theme.colors.textSecondary, textAlign: 'center' },
+  title: { fontSize: 22, fontWeight: '900', color: colors.text, marginBottom: 4 },
+  subtitle: { fontSize: 13, color: colors.textSecondary, textAlign: 'center' },
   benefits: {
-    backgroundColor: theme.colors.surfaceLight,
+    backgroundColor: colors.surfaceLight,
     borderRadius: theme.borderRadius.lg,
     padding: 14,
     marginBottom: 16,
     gap: 6,
   },
   benefitRow: {},
-  benefitText: { fontSize: 13, color: theme.colors.text, fontWeight: '500' },
+  benefitText: { fontSize: 13, color: colors.text, fontWeight: '500' },
   plansRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   planCard: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceLight,
+    backgroundColor: colors.surfaceLight,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 2,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     padding: 10,
     alignItems: 'center',
     gap: 2,
   },
   planCardOn: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primaryLight,
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
   },
   planCardHighlight: {
-    borderColor: theme.colors.gold,
+    borderColor: colors.gold,
   },
   popularBadge: {
-    backgroundColor: theme.colors.gold,
+    backgroundColor: colors.gold,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 99,
     marginBottom: 4,
   },
   popularBadgeText: { fontSize: 8, fontWeight: '800', color: '#fff' },
-  planPrice: { fontSize: 16, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold },
-  planPeriod: { fontSize: 9, color: theme.colors.textTertiary },
-  planBadge: { fontSize: 8, fontWeight: '700', color: theme.colors.textTertiary, marginTop: 2 },
+  planPrice: { fontSize: 16, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold },
+  planPeriod: { fontSize: 9, color: colors.textTertiary },
+  planBadge: { fontSize: 8, fontWeight: '700', color: colors.textTertiary, marginTop: 2 },
   cta: {
-    backgroundColor: theme.colors.cosmic,
+    backgroundColor: colors.cosmic,
     borderRadius: 14,
     padding: 15,
     alignItems: 'center',
     marginBottom: 10,
-    ...theme.shadows.glow,
+    ...shadows.glow,
   },
   ctaText: { color: '#fff', fontWeight: '900', fontSize: 16 },
   restoreBtn: { alignItems: 'center', padding: 8 },
-  restoreBtnText: { fontSize: 12, color: theme.colors.textSecondary },
+  restoreBtnText: { fontSize: 12, color: colors.textSecondary },
   legal: {
     fontSize: 10,
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 16,

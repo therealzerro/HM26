@@ -1,9 +1,10 @@
-import React, { useRef, useCallback, useEffect } from 'react';
+import React, { useRef, useCallback, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, Modal, TouchableOpacity,
   Animated, PanResponder, Dimensions, ScrollView,
 } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import type { PickItem } from './PickCard';
 
 /**
@@ -61,6 +62,8 @@ function frequencyLine(pick: PickItem): string | null {
 }
 
 export function PickExplainerModal({ visible, onClose, pick }: Props) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   const translateY = useRef(new Animated.Value(0)).current;
   const screenH = Dimensions.get('window').height;
 
@@ -102,10 +105,10 @@ export function PickExplainerModal({ visible, onClose, pick }: Props) {
   if (!pick) return null;
 
   const signals: SignalRow[] = [
-    { key: 'BOX',    label: 'Frequency',       plain: 'how often this box-set hits', value: pick.signals.BOX,          color: theme.colors.cyan },
-    { key: 'PBURST', label: 'Pair Momentum',   plain: 'recent drawing of these pairs', value: pick.signals.PBURST,     color: theme.colors.rose },
-    { key: 'CO',     label: 'Co-occurrence',   plain: 'digits drawing together',       value: pick.signals.CO,         color: theme.colors.purple },
-    { key: 'DGC',    label: 'Consistency',     plain: 'signal stability across time',  value: pick.signals.DGC ?? 0,   color: theme.colors.gold },
+    { key: 'BOX',    label: 'Frequency',       plain: 'how often this box-set hits', value: pick.signals.BOX,          color: colors.cyan },
+    { key: 'PBURST', label: 'Pair Momentum',   plain: 'recent drawing of these pairs', value: pick.signals.PBURST,     color: colors.rose },
+    { key: 'CO',     label: 'Co-occurrence',   plain: 'digits drawing together',       value: pick.signals.CO,         color: colors.purple },
+    { key: 'DGC',    label: 'Consistency',     plain: 'signal stability across time',  value: pick.signals.DGC ?? 0,   color: colors.gold },
   ];
   const top = [...signals].sort((a, b) => b.value - a.value)[0];
   const summary = summaryFor(top, pick.combo);
@@ -204,19 +207,19 @@ export function PickExplainerModal({ visible, onClose, pick }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens) => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 20, borderTopRightRadius: 20,
     paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20,
-    borderTopWidth: 1, borderTopColor: theme.colors.border,
+    borderTopWidth: 1, borderTopColor: colors.border,
     maxHeight: '88%',
   },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, height: 44 },
   topBarSpacer: { width: 44, height: 44 },
   handleHitArea: { flex: 1, height: 44, alignItems: 'center', justifyContent: 'center' },
-  handle: { width: 56, height: 5, borderRadius: 2.5, backgroundColor: theme.colors.textTertiary + 'AA' },
+  handle: { width: 56, height: 5, borderRadius: 2.5, backgroundColor: colors.textTertiary + 'AA' },
   closeBtn: { padding: 0 },
   closeBtnInner: {
     width: 44, height: 44, borderRadius: 22,
@@ -224,57 +227,57 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)',
     alignItems: 'center', justifyContent: 'center',
   },
-  closeX: { fontSize: 16, color: theme.colors.text, fontWeight: '800' },
+  closeX: { fontSize: 16, color: colors.text, fontWeight: '800' },
 
-  title: { fontSize: 20, fontWeight: '900', color: theme.colors.text, marginBottom: 12 },
+  title: { fontSize: 20, fontWeight: '900', color: colors.text, marginBottom: 12 },
   heroRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 10 },
   combo: {
-    fontSize: 40, color: theme.colors.text,
+    fontSize: 40, color: colors.text,
     fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 6,
   },
   energyPill: {
     alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 10, borderWidth: 1.5,
-    borderColor: theme.colors.cyan + '55', backgroundColor: theme.colors.cyan + '15',
+    borderColor: colors.cyan + '55', backgroundColor: colors.cyan + '15',
   },
-  energyNum: { fontSize: 20, fontWeight: '900', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold },
-  energyLbl: { fontSize: 8, fontWeight: '700', color: theme.colors.cyan, letterSpacing: 0.5 },
+  energyNum: { fontSize: 20, fontWeight: '900', color: colors.cyan, fontFamily: theme.typography.fontFamily.monoBold },
+  energyLbl: { fontSize: 8, fontWeight: '700', color: colors.cyan, letterSpacing: 0.5 },
 
   summary: {
-    fontSize: 13, lineHeight: 19, color: theme.colors.textSecondary,
+    fontSize: 13, lineHeight: 19, color: colors.textSecondary,
     marginBottom: 18,
   },
 
   sectionLabel: {
-    fontSize: 10, fontWeight: '900', color: theme.colors.textTertiary,
+    fontSize: 10, fontWeight: '900', color: colors.textTertiary,
     letterSpacing: 1.4, marginTop: 4, marginBottom: 8,
     fontFamily: theme.typography.fontFamily.monoBold,
   },
   signalCard: {
-    backgroundColor: theme.colors.bgElevated, borderRadius: 12, padding: 12,
-    borderWidth: 1, borderColor: theme.colors.border, gap: 12, marginBottom: 16,
+    backgroundColor: colors.bgElevated, borderRadius: 12, padding: 12,
+    borderWidth: 1, borderColor: colors.border, gap: 12, marginBottom: 16,
   },
   signalRow: {},
   signalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 },
-  signalLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.text },
+  signalLabel: { fontSize: 12, fontWeight: '700', color: colors.text },
   signalValue: { fontSize: 13, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
-  barTrack: { height: 8, backgroundColor: theme.colors.border, borderRadius: 4, overflow: 'hidden' },
+  barTrack: { height: 8, backgroundColor: colors.border, borderRadius: 4, overflow: 'hidden' },
   barFill: { height: 8, borderRadius: 4 },
-  signalSub: { fontSize: 10, color: theme.colors.textTertiary, marginTop: 3, fontStyle: 'italic' },
+  signalSub: { fontSize: 10, color: colors.textTertiary, marginTop: 3, fontStyle: 'italic' },
 
   historyCard: {
-    backgroundColor: theme.colors.bgElevated, borderRadius: 12, padding: 12,
-    borderWidth: 1, borderColor: theme.colors.border, gap: 6, marginBottom: 16,
+    backgroundColor: colors.bgElevated, borderRadius: 12, padding: 12,
+    borderWidth: 1, borderColor: colors.border, gap: 6, marginBottom: 16,
   },
-  historyLine: { fontSize: 13, color: theme.colors.text, fontFamily: theme.typography.fontFamily.mono },
-  historySub: { fontSize: 11, color: theme.colors.textTertiary, fontStyle: 'italic' },
+  historyLine: { fontSize: 13, color: colors.text, fontFamily: theme.typography.fontFamily.mono },
+  historySub: { fontSize: 11, color: colors.textTertiary, fontStyle: 'italic' },
 
   railCard: {
-    backgroundColor: theme.colors.bgElevated, borderRadius: 12, padding: 12,
-    borderWidth: 1, borderColor: theme.colors.border, gap: 5, marginBottom: 14,
+    backgroundColor: colors.bgElevated, borderRadius: 12, padding: 12,
+    borderWidth: 1, borderColor: colors.border, gap: 5, marginBottom: 14,
   },
-  railLine: { fontSize: 12, color: theme.colors.textSecondary, lineHeight: 17 },
-  railBullet: { fontSize: 12, color: theme.colors.textSecondary, lineHeight: 17, paddingLeft: 6 },
+  railLine: { fontSize: 12, color: colors.textSecondary, lineHeight: 17 },
+  railBullet: { fontSize: 12, color: colors.textSecondary, lineHeight: 17, paddingLeft: 6 },
 
-  footer: { fontSize: 10, color: theme.colors.textTertiary, textAlign: 'center', marginTop: 4 },
+  footer: { fontSize: 10, color: colors.textTertiary, textAlign: 'center', marginTop: 4 },
 });

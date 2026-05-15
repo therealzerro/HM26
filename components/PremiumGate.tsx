@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Lock, Crown } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { SubscriptionTier } from '@/types/core';
 
@@ -21,6 +22,8 @@ export function PremiumGate({
   description,
   variant = 'inline'
 }: PremiumGateProps) {
+  const { colors, shadows } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { user } = useAuth();
   
   const getUserTier = (): SubscriptionTier => {
@@ -48,12 +51,12 @@ export function PremiumGate({
   
   if (variant === 'inline') {
     return (
-      <View style={[styles.container, theme.shadows.glow]} testID="premium-gate">
+      <View style={[styles.container, shadows.glow]} testID="premium-gate">
         <View style={styles.iconContainer}>
           <View style={styles.lockBackground}>
-            <Lock size={24} color={theme.colors.text} />
+            <Lock size={24} color={colors.text} />
           </View>
-          <Crown size={20} color={theme.colors.crownGold} style={styles.crownIcon} />
+          <Crown size={20} color={colors.crownGold} style={styles.crownIcon} />
         </View>
         
         <View style={styles.content}>
@@ -79,7 +82,7 @@ export function PremiumGate({
   return (
     <View style={styles.modalContainer}>
       <View style={styles.modalContent}>
-        <Crown size={32} color={theme.colors.crownGold} />
+        <Crown size={32} color={colors.crownGold} />
         <Text style={styles.modalTitle}>Unlock {feature}</Text>
         {description && (
           <Text style={styles.modalDescription}>{description}</Text>
@@ -95,14 +98,14 @@ export function PremiumGate({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.xxl,
     padding: theme.spacing.lg,
     margin: theme.spacing.md,
     borderWidth: 2,
-    borderColor: theme.colors.premium + '40',
+    borderColor: colors.premium + '40',
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.md,
@@ -116,7 +119,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.surfaceLight,
+    backgroundColor: colors.surfaceLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -131,27 +134,27 @@ const styles = StyleSheet.create({
   title: {
     fontSize: theme.typography.fontSize.lg,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: theme.spacing.xs,
   },
   description: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     marginBottom: theme.spacing.xs,
   },
   tierText: {
     fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.premium,
+    color: colors.premium,
     fontWeight: '600',
   },
   upgradeButton: {
-    backgroundColor: theme.colors.premium,
+    backgroundColor: colors.premium,
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.sm,
     borderRadius: theme.borderRadius.xl,
   },
   upgradeText: {
-    color: theme.colors.text,
+    color: colors.text,
     fontWeight: 'bold',
     fontSize: theme.typography.fontSize.md,
   },
@@ -163,7 +166,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.xl,
   },
   modalContent: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.xxl,
     padding: theme.spacing.xl,
     alignItems: 'center',
@@ -174,29 +177,29 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: theme.typography.fontSize.xl,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
     textAlign: 'center',
   },
   modalDescription: {
     fontSize: theme.typography.fontSize.md,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   modalUpgradeButton: {
-    backgroundColor: theme.colors.premium,
+    backgroundColor: colors.premium,
     paddingHorizontal: theme.spacing.xl,
     paddingVertical: theme.spacing.md,
     borderRadius: theme.borderRadius.xl,
     width: '100%',
   },
   modalUpgradeText: {
-    color: theme.colors.text,
+    color: colors.text,
     fontWeight: 'bold',
     fontSize: theme.typography.fontSize.lg,
     textAlign: 'center',
   },
   maybeLaterText: {
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontSize: theme.typography.fontSize.sm,
     marginTop: theme.spacing.sm,
   },

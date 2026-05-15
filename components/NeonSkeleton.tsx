@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { View, StyleSheet, Animated, Easing, ViewStyle } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 
 type Variant = 'card' | 'row' | 'combo' | 'text' | 'splash';
@@ -14,6 +15,8 @@ interface Props {
 }
 
 export function NeonSkeleton({ variant = 'card', count = 1, w, h, style }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const reduceMotion = useReduceMotion();
   const shimmer = useRef(new Animated.Value(0)).current;
 
@@ -50,6 +53,8 @@ export function NeonSkeleton({ variant = 'card', count = 1, w, h, style }: Props
 function SkeletonBody({
   variant, w, h, opacity,
 }: { variant: Variant; w?: number; h?: number; opacity: Animated.AnimatedInterpolation<number> }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   if (variant === 'card') {
     return (
       <Animated.View style={[styles.card, { opacity }]}>
@@ -111,14 +116,14 @@ const block: ViewStyle = {
   borderRadius: 6,
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   wrap: { gap: 12 },
   block,
   card: {
-    backgroundColor: theme.colors.card,
+    backgroundColor: colors.card,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     padding: 12,
     gap: 8,
   },
@@ -134,9 +139,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 12,
-    backgroundColor: theme.colors.card,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
   },
 
   comboWrap: {

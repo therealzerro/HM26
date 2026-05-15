@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Modal, TouchableOpacity, View, Text, TextInput, StyleSheet } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 
 interface RegenConfirmationModalProps {
   visible: boolean;
@@ -17,6 +18,8 @@ export function RegenConfirmationModal({
   scope,
   isLocked,
 }: RegenConfirmationModalProps) {
+  const { colors, shadows } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, shadows), [colors, shadows]);
   const [confirmText, setConfirmText] = useState('');
 
   useEffect(() => {
@@ -44,7 +47,7 @@ export function RegenConfirmationModal({
               <TextInput
                 style={styles.input}
                 placeholder="FORCE"
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholderTextColor={colors.textTertiary}
                 autoCapitalize="characters"
                 value={confirmText}
                 onChangeText={setConfirmText}
@@ -74,7 +77,7 @@ export function RegenConfirmationModal({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -82,22 +85,22 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 24,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...theme.shadows.glow,
+    borderColor: colors.border,
+    ...shadows.glow,
   },
   title: {
     fontSize: 18,
     fontWeight: '900',
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: 8,
   },
   body: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 20,
     marginBottom: 16,
   },
@@ -107,16 +110,16 @@ const styles = StyleSheet.create({
   forceLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.error,
+    color: colors.error,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: theme.colors.surfaceLight,
+    backgroundColor: colors.surfaceLight,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     borderRadius: 8,
     padding: 12,
-    color: theme.colors.text,
+    color: colors.text,
     fontFamily: theme.typography.fontFamily.mono,
   },
   btnRow: {
@@ -130,20 +133,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   btnCancel: {
-    backgroundColor: theme.colors.surfaceLight,
+    backgroundColor: colors.surfaceLight,
   },
   btnConfirm: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
   },
   btnForce: {
-    backgroundColor: theme.colors.error,
+    backgroundColor: colors.error,
   },
   btnDisabled: {
     opacity: 0.5,
   },
   btnTextCancel: {
     fontWeight: '700',
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
   },
   btnTextConfirm: {
     fontWeight: '700',

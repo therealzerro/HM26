@@ -34,6 +34,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RefreshCw, MoreHorizontal, X } from 'lucide-react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { useSnapshot } from '@/hooks/useSnapshot';
 import { useDataIngestion } from '@/hooks/useDataIngestion';
 import { useScope } from '@/hooks/useScope';
@@ -67,11 +68,11 @@ import { FreshnessLine } from '@/components/FreshnessLine';
 import { BrandMark } from '@/components/BrandMark';
 
 function toComboSet(combo: string) { return '{' + combo.split('').sort().join(',') + '}'; }
-function energyColor(e: number) {
-  if (e >= 80) return theme.colors.hot;
-  if (e >= 65) return theme.colors.amber;
-  if (e >= 45) return theme.colors.gold;
-  return theme.colors.textTertiary;
+function energyColor(e: number, colors: ColorTokens) {
+  if (e >= 80) return colors.hot;
+  if (e >= 65) return colors.amber;
+  if (e >= 45) return colors.gold;
+  return colors.textTertiary;
 }
 
 const SCOPE_LABELS: Record<string, string> = {
@@ -145,6 +146,8 @@ function OnboardingModal({
   onDone: () => void;
   previewPicks: PreviewPick[];
 }) {
+  const { colors } = useTheme();
+  const ob = useMemo(() => makeOb(colors), [colors]);
   // If we have no preview picks (snapshot not loaded yet), drop the
   // preview screen so we don't show an empty placeholder.
   const screens = useMemo<OnboardingScreen[]>(
@@ -160,7 +163,7 @@ function OnboardingModal({
   return (
     <Modal transparent visible={visible} animationType="fade">
       <View style={ob.backdrop}>
-        <LinearGradient colors={[theme.colors.bgElevated, theme.colors.background]} style={ob.card}>
+        <LinearGradient colors={[colors.bgElevated, colors.background]} style={ob.card}>
           <Text style={{ fontSize: 48, marginBottom: 16 }}>{screen.emoji}</Text>
           <Text style={ob.title}>{screen.title}</Text>
           <Text style={ob.body}>{screen.body}</Text>
@@ -177,33 +180,35 @@ function OnboardingModal({
           )}
           <View style={ob.dots}>{screens.map((_, i) => <View key={i} style={[ob.dot, i === step && ob.dotActive]} />)}</View>
           <TouchableOpacity style={ob.btn} onPress={next}><Text style={ob.btnText}>{screen.btn}</Text></TouchableOpacity>
-          {step > 0 && <TouchableOpacity onPress={onDone} style={{ marginTop: 10 }}><Text style={{ fontSize: 12, color: theme.colors.textTertiary }}>Skip</Text></TouchableOpacity>}
+          {step > 0 && <TouchableOpacity onPress={onDone} style={{ marginTop: 10 }}><Text style={{ fontSize: 12, color: colors.textTertiary }}>Skip</Text></TouchableOpacity>}
         </LinearGradient>
       </View>
     </Modal>
   );
 }
-const ob = StyleSheet.create({
+const makeOb = (colors: ColorTokens) => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: '#0009', alignItems: 'center', justifyContent: 'center', padding: 28 },
-  card: { width: '100%', maxWidth: 380, borderRadius: theme.borderRadius.xxl, padding: 28, alignItems: 'center', borderWidth: 1.5, borderColor: theme.colors.purple + '44' },
-  title: { fontSize: 20, fontWeight: '900', color: theme.colors.text, textAlign: 'center', marginBottom: 12 },
-  body: { fontSize: 14, color: theme.colors.textSecondary, textAlign: 'center', lineHeight: 21, marginBottom: 20 },
+  card: { width: '100%', maxWidth: 380, borderRadius: theme.borderRadius.xxl, padding: 28, alignItems: 'center', borderWidth: 1.5, borderColor: colors.purple + '44' },
+  title: { fontSize: 20, fontWeight: '900', color: colors.text, textAlign: 'center', marginBottom: 12 },
+  body: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', lineHeight: 21, marginBottom: 20 },
   dots: { flexDirection: 'row', gap: 6, marginBottom: 20 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.border },
-  dotActive: { backgroundColor: theme.colors.purple, width: 18 },
-  btn: { backgroundColor: theme.colors.purple, borderRadius: 13, paddingHorizontal: 28, paddingVertical: 13, width: '100%', alignItems: 'center' },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.border },
+  dotActive: { backgroundColor: colors.purple, width: 18 },
+  btn: { backgroundColor: colors.purple, borderRadius: 13, paddingHorizontal: 28, paddingVertical: 13, width: '100%', alignItems: 'center' },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   previewWrap: { width: '100%', flexDirection: 'row', justifyContent: 'center', gap: 10, marginBottom: 18 },
-  previewPill: { flex: 1, alignItems: 'center', backgroundColor: theme.colors.bgElevated, borderRadius: theme.borderRadius.tile, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: theme.colors.cyan + '55' },
-  previewRank: { fontSize: 10, fontWeight: '900', color: theme.colors.cyan, letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 4 },
-  previewCombo: { fontSize: 24, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 4 },
-  previewEnergy: { fontSize: 11, color: theme.colors.gold, marginTop: 4, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700' },
+  previewPill: { flex: 1, alignItems: 'center', backgroundColor: colors.bgElevated, borderRadius: theme.borderRadius.tile, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: colors.cyan + '55' },
+  previewRank: { fontSize: 10, fontWeight: '900', color: colors.cyan, letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 4 },
+  previewCombo: { fontSize: 24, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 4 },
+  previewEnergy: { fontSize: 11, color: colors.gold, marginTop: 4, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700' },
 });
 
 // ─── Overflow sheet — everything that used to clutter the top ─────────────
 function OverflowSheet({
   visible, onClose, mode, setMode, onHeatCheck, snapshot, scope,
 }: any) {
+  const { colors } = useTheme();
+  const os = useMemo(() => makeOs(colors), [colors]);
   const meta = snapshot?.horizons_present_json as Record<string, any> | undefined;
   const version = (meta?._engineVersion as string) ?? 'v2.0';
   const rawStats = meta?._dataStats;
@@ -215,7 +220,7 @@ function OverflowSheet({
           <View style={os.handle} />
           <View style={os.headerRow}>
             <Text style={os.heading}>More</Text>
-            <TouchableOpacity onPress={onClose}><X size={20} color={theme.colors.textSecondary} /></TouchableOpacity>
+            <TouchableOpacity onPress={onClose}><X size={20} color={colors.textSecondary} /></TouchableOpacity>
           </View>
 
           <Text style={os.sectionTitle}>Engine mode</Text>
@@ -223,7 +228,7 @@ function OverflowSheet({
             {MODE_OPTIONS.map(opt => (
               <TouchableOpacity key={opt.key} style={[os.modeBtn, mode === opt.key && os.modeBtnOn]} onPress={() => setMode(opt.key)}>
                 <Text style={[os.modeBtnText, mode === opt.key && os.modeBtnTextOn]}>{opt.label}</Text>
-                <Text style={[os.modeBtnSub, mode === opt.key && { color: theme.colors.purple + 'AA' }]}>{opt.sub}</Text>
+                <Text style={[os.modeBtnSub, mode === opt.key && { color: colors.purple + 'AA' }]}>{opt.sub}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -251,28 +256,30 @@ function OverflowSheet({
     </Modal>
   );
 }
-const os = StyleSheet.create({
+const makeOs = (colors: ColorTokens) => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: theme.colors.bgElevated, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, paddingBottom: 36, gap: 12, borderTopWidth: 1.5, borderColor: theme.colors.purple + '44' },
-  handle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: theme.colors.border, marginBottom: 6 },
+  sheet: { backgroundColor: colors.bgElevated, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, paddingBottom: 36, gap: 12, borderTopWidth: 1.5, borderColor: colors.purple + '44' },
+  handle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border, marginBottom: 6 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  heading: { fontSize: 18, fontWeight: '900', color: theme.colors.text },
-  sectionTitle: { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, color: theme.colors.textTertiary, marginTop: 8, fontFamily: theme.typography.fontFamily.monoBold },
+  heading: { fontSize: 18, fontWeight: '900', color: colors.text },
+  sectionTitle: { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, color: colors.textTertiary, marginTop: 8, fontFamily: theme.typography.fontFamily.monoBold },
   modeRow: { flexDirection: 'row', gap: 6 },
-  modeBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: theme.colors.border, alignItems: 'center', backgroundColor: theme.colors.card },
-  modeBtnOn: { borderColor: theme.colors.purple + '88', backgroundColor: theme.colors.purple + '18' },
-  modeBtnText: { fontSize: 11, fontWeight: '700', color: theme.colors.textTertiary },
-  modeBtnTextOn: { color: theme.colors.purple },
-  modeBtnSub: { fontSize: 9, color: theme.colors.textTertiary + '88', marginTop: 1 },
-  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 10, backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border },
+  modeBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: colors.border, alignItems: 'center', backgroundColor: colors.card },
+  modeBtnOn: { borderColor: colors.purple + '88', backgroundColor: colors.purple + '18' },
+  modeBtnText: { fontSize: 11, fontWeight: '700', color: colors.textTertiary },
+  modeBtnTextOn: { color: colors.purple },
+  modeBtnSub: { fontSize: 9, color: colors.textTertiary + '88', marginTop: 1 },
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   actionEmoji: { fontSize: 18 },
-  actionLabel: { fontSize: 13, fontWeight: '700', color: theme.colors.text },
-  statusLine: { fontSize: 11, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, lineHeight: 17 },
-  disclaimer: { fontSize: 11, color: theme.colors.textTertiary, lineHeight: 18 },
+  actionLabel: { fontSize: 13, fontWeight: '700', color: colors.text },
+  statusLine: { fontSize: 11, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, lineHeight: 17 },
+  disclaimer: { fontSize: 11, color: colors.textTertiary, lineHeight: 18 },
 });
 
 // ─── Home Screen ─────────────────────────────────────────────────────────
 export default function HomeScreen() {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   const { snapshot, refreshSnapshot, isLoading: snapshotLoading, activePicks } = useSnapshot();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -644,9 +651,9 @@ export default function HomeScreen() {
     const real = items.filter(p => p.combo !== '---' && p.combo !== '•••');
     if (real.length === 0) return null;
     const strong = real.filter(p => p.energy >= 70).length;
-    if (strong === real.length) return { label: 'HIGH CONFIDENCE', tier: 'high' as const, color: theme.colors.cyan, sub: undefined as string | undefined };
-    if (strong >= 4) return { label: 'MEDIUM CONFIDENCE', tier: 'medium' as const, color: theme.colors.gold, sub: undefined };
-    return { label: 'LOW CONFIDENCE', tier: 'low' as const, color: theme.colors.amber, sub: 'Thin slate — heavy cooldown overlap today' };
+    if (strong === real.length) return { label: 'HIGH CONFIDENCE', tier: 'high' as const, color: colors.cyan, sub: undefined as string | undefined };
+    if (strong >= 4) return { label: 'MEDIUM CONFIDENCE', tier: 'medium' as const, color: colors.gold, sub: undefined };
+    return { label: 'LOW CONFIDENCE', tier: 'low' as const, color: colors.amber, sub: 'Thin slate — heavy cooldown overlap today' };
   }, [items]);
 
   const avgEnergy = useMemo(() => {
@@ -656,7 +663,7 @@ export default function HomeScreen() {
   }, [items]);
 
   const hasData = Array.isArray(snapshot?.top_k_straights_json) && (snapshot?.top_k_straights_json?.length ?? 0) > 0;
-  const avgColor = energyColor(avgEnergy);
+  const avgColor = energyColor(avgEnergy, colors);
   const nextDrawIn = useDrawCountdown(scope);
 
   // ── Coffee mode (enhancements §3.5) — ultra-minimal Home ────────────────
@@ -669,8 +676,8 @@ export default function HomeScreen() {
           <ScopeSegment value={scope as any} onChange={setScope as any} size="tall" style={{ marginBottom: 14 }} />
           {nextDrawIn && (
             <View style={{ alignItems: 'center', marginBottom: 14 }}>
-              <Text style={{ fontSize: 9, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold }}>NEXT DRAW</Text>
-              <Text style={{ fontSize: 22, fontWeight: '900', color: theme.colors.purple, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 2 }}>{nextDrawIn}</Text>
+              <Text style={{ fontSize: 9, fontWeight: '900', color: colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold }}>NEXT DRAW</Text>
+              <Text style={{ fontSize: 22, fontWeight: '900', color: colors.purple, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 2 }}>{nextDrawIn}</Text>
             </View>
           )}
           {/* 6 K6 tiles — 2×3 grid */}
@@ -679,18 +686,18 @@ export default function HomeScreen() {
           ) : (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {items.map(pick => {
-                const tc = energyColor(pick.energy);
+                const tc = energyColor(pick.energy, colors);
                 const locked = pick.locked;
                 return (
                   <TouchableOpacity
                     key={`coffee-${pick.rank}-${pick.combo}`}
                     onPress={() => locked ? setPaywallOpen(true) : setDetail(pick)}
                     activeOpacity={0.85}
-                    style={{ width: '48%', backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.lg, borderWidth: 1.5, borderColor: tc + '55', padding: 14, alignItems: 'center', shadowColor: tc, shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } }}
+                    style={{ width: '48%', backgroundColor: colors.card, borderRadius: theme.borderRadius.lg, borderWidth: 1.5, borderColor: tc + '55', padding: 14, alignItems: 'center', shadowColor: tc, shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } }}
                   >
-                    <Text style={{ fontSize: 10, fontWeight: '900', color: theme.colors.textTertiary, letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 6 }}>#{pick.rank}</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '900', color: colors.textTertiary, letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 6 }}>#{pick.rank}</Text>
                     <Text
-                      style={{ fontSize: 30, fontWeight: '900', color: locked ? theme.colors.textTertiary : tc, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 4, marginBottom: 6 }}
+                      style={{ fontSize: 30, fontWeight: '900', color: locked ? colors.textTertiary : tc, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 4, marginBottom: 6 }}
                       maxFontSizeMultiplier={1.3}
                       numberOfLines={1}
                       adjustsFontSizeToFit
@@ -700,7 +707,7 @@ export default function HomeScreen() {
                     {!locked ? (
                       <Text style={{ fontSize: 10, fontWeight: '900', color: tc, letterSpacing: 1, fontFamily: theme.typography.fontFamily.monoBold }}>ENERGY {pick.energy}</Text>
                     ) : (
-                      <Text style={{ fontSize: 9, fontWeight: '900', color: theme.colors.gold, letterSpacing: 0.8, fontFamily: theme.typography.fontFamily.monoBold }}>♛ ORACLE+</Text>
+                      <Text style={{ fontSize: 9, fontWeight: '900', color: colors.gold, letterSpacing: 0.8, fontFamily: theme.typography.fontFamily.monoBold }}>♛ ORACLE+</Text>
                     )}
                   </TouchableOpacity>
                 );
@@ -724,20 +731,20 @@ export default function HomeScreen() {
       <CosmicBackground />
       <ScrollView
         style={s.scroll} contentContainerStyle={s.scrollContent}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handlePullRefresh} tintColor={theme.colors.primary} />}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handlePullRefresh} tintColor={colors.primary} />}
       >
         {/* ── Header (shared ScreenHeader — design.md step 3) ── */}
         <ScreenHeader
           title={
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <BrandMark size="sm" />
-              <Text style={s.title}>Today's <Text style={{ color: theme.colors.cyan }}>Picks</Text> ⚡</Text>
+              <Text style={s.title}>Today's <Text style={{ color: colors.cyan }}>Picks</Text> ⚡</Text>
             </View>
           }
           subtitle={<FreshnessLine snapshot={snapshot} />}
           rightSlot={
             <>
-              <View style={[s.tierBadge, { backgroundColor: currentTier === 'FREE' ? theme.colors.free : currentTier === 'PRO' ? theme.colors.premium : theme.colors.admin }]}>
+              <View style={[s.tierBadge, { backgroundColor: currentTier === 'FREE' ? colors.free : currentTier === 'PRO' ? colors.premium : colors.admin }]}>
                 <Text style={s.tierText}>{currentTier === 'FREE' ? 'Seeker' : currentTier === 'PRO' ? 'Oracle+ ♛' : 'Mystic ♛'}</Text>
               </View>
               {dailyStreak > 0 && (
@@ -749,7 +756,7 @@ export default function HomeScreen() {
                 </View>
               )}
               <TouchableOpacity onPress={() => setOverflowOpen(true)} style={s.overflowBtn}>
-                <MoreHorizontal size={20} color={theme.colors.textSecondary} />
+                <MoreHorizontal size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </>
           }
@@ -773,7 +780,7 @@ export default function HomeScreen() {
           </View>
           <View style={s.heroDivider} />
           <View style={s.heroCol}>
-            <Text style={[s.heroColNum, { color: theme.colors.cyan }]} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit>{BACKTEST_HIT_RATE}%</Text>
+            <Text style={[s.heroColNum, { color: colors.cyan }]} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit>{BACKTEST_HIT_RATE}%</Text>
             <Text style={s.heroColLabel}>HIT RATE</Text>
             <Text style={s.heroColMeta}>{todayHits} {todayHits === 1 ? 'hit' : 'hits'} today</Text>
           </View>
@@ -846,7 +853,7 @@ export default function HomeScreen() {
         {/* ── ZK6 PICKS — THE HERO ── */}
         <View style={s.slateSection}>
           <View style={s.slateSectionHdr}>
-            <Text style={s.slateSectionTitle}>ZK6 <Text style={{ color: theme.colors.cyan }}>PICKS</Text></Text>
+            <Text style={s.slateSectionTitle}>ZK6 <Text style={{ color: colors.cyan }}>PICKS</Text></Text>
             {slateConfidence && !snapshotLoading && (
               <View style={[s.confPill, { borderColor: slateConfidence.color + '66', backgroundColor: slateConfidence.color + '14' }]}>
                 <Text style={[s.confPillText, { color: slateConfidence.color }]}>{slateConfidence.label}</Text>
@@ -854,7 +861,7 @@ export default function HomeScreen() {
             )}
             {(!hasData || snapshotLoading) && (
               <TouchableOpacity style={s.generateBtn} onPress={handleRequestRegen} disabled={isRegenLoading}>
-                <RefreshCw size={14} color={theme.colors.text} />
+                <RefreshCw size={14} color={colors.text} />
                 <Text style={s.generateBtnText}>{isRegenLoading ? 'Generating…' : 'Generate'}</Text>
               </TouchableOpacity>
             )}
@@ -955,72 +962,72 @@ export default function HomeScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+const makeS = (colors: ColorTokens) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 32 },
 
   // header layout moved to components/ScreenHeader.tsx (design.md step 3).
   // title/subtitle styles stay here because they're still consumed locally.
-  title: { fontSize: 22, fontWeight: '900', color: theme.colors.text, lineHeight: 26, fontFamily: theme.typography.fontFamily.bold },
-  subtitle: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2, fontFamily: theme.typography.fontFamily.mono },
+  title: { fontSize: 22, fontWeight: '900', color: colors.text, lineHeight: 26, fontFamily: theme.typography.fontFamily.bold },
+  subtitle: { fontSize: 12, color: colors.textTertiary, marginTop: 2, fontFamily: theme.typography.fontFamily.mono },
   tierBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99 },
   tierText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
-  streakBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.colors.amber + '18', borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: theme.colors.amber + '55' },
-  streakText: { fontSize: 10, fontWeight: '800', color: theme.colors.amber, fontFamily: theme.typography.fontFamily.monoBold },
-  streakNext: { fontSize: 9, color: theme.colors.amber + 'AA', fontFamily: theme.typography.fontFamily.mono },
-  overflowBtn: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.card },
+  streakBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.amber + '18', borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: colors.amber + '55' },
+  streakText: { fontSize: 10, fontWeight: '800', color: colors.amber, fontFamily: theme.typography.fontFamily.monoBold },
+  streakNext: { fontSize: 9, color: colors.amber + 'AA', fontFamily: theme.typography.fontFamily.mono },
+  overflowBtn: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card },
 
   // scope tab styles moved to components/ScopeSegment.tsx (design.md step 1)
 
-  heroStat: { flexDirection: 'row', alignItems: 'stretch', marginHorizontal: theme.layout.screenInset, marginTop: 10, paddingHorizontal: 10, paddingVertical: 7, backgroundColor: theme.colors.bgElevated, borderRadius: theme.borderRadius.tile, borderWidth: 1, borderColor: theme.colors.border },
+  heroStat: { flexDirection: 'row', alignItems: 'stretch', marginHorizontal: theme.layout.screenInset, marginTop: 10, paddingHorizontal: 10, paddingVertical: 7, backgroundColor: colors.bgElevated, borderRadius: theme.borderRadius.tile, borderWidth: 1, borderColor: colors.border },
   heroCol: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   heroColNum: { fontSize: 22, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, lineHeight: 24, letterSpacing: -0.7 },
-  heroColLabel: { fontSize: 8, fontWeight: '900', color: theme.colors.cyan, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 1 },
-  heroColMeta: { fontSize: 9, color: theme.colors.textSecondary, marginTop: 0, textAlign: 'center' },
-  heroDivider: { width: 1, backgroundColor: theme.colors.border, marginHorizontal: 3 },
+  heroColLabel: { fontSize: 8, fontWeight: '900', color: colors.cyan, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 1 },
+  heroColMeta: { fontSize: 9, color: colors.textSecondary, marginTop: 0, textAlign: 'center' },
+  heroDivider: { width: 1, backgroundColor: colors.border, marginHorizontal: 3 },
 
-  countdownBox: { alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.purple + '18', borderRadius: 7, borderWidth: 1, borderColor: theme.colors.purple + '44', paddingHorizontal: 7, paddingVertical: 3, minWidth: 56 },
-  countdownLabel: { fontSize: 7, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
-  countdownTime: { fontSize: 11, fontWeight: '900', color: theme.colors.purple, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 1 },
+  countdownBox: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.purple + '18', borderRadius: 7, borderWidth: 1, borderColor: colors.purple + '44', paddingHorizontal: 7, paddingVertical: 3, minWidth: 56 },
+  countdownLabel: { fontSize: 7, fontWeight: '900', color: colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
+  countdownTime: { fontSize: 11, fontWeight: '900', color: colors.purple, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 1 },
 
-  hitBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: theme.layout.screenInset, marginTop: 12, backgroundColor: theme.colors.cyan + '18', borderRadius: theme.borderRadius.lg, borderWidth: 1.5, borderColor: theme.colors.cyan + '55', padding: 12 },
-  hitBannerTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold },
-  hitBannerSub: { fontSize: 11, color: theme.colors.cyan + 'AA', marginTop: 2 },
+  hitBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: theme.layout.screenInset, marginTop: 12, backgroundColor: colors.cyan + '18', borderRadius: theme.borderRadius.lg, borderWidth: 1.5, borderColor: colors.cyan + '55', padding: 12 },
+  hitBannerTitle: { fontSize: 13, fontWeight: '800', color: colors.cyan, fontFamily: theme.typography.fontFamily.monoBold },
+  hitBannerSub: { fontSize: 11, color: colors.cyan + 'AA', marginTop: 2 },
 
-  lossCard: { marginHorizontal: theme.layout.screenInset, marginTop: 12, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: theme.colors.border, gap: 6 },
-  lossTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold },
-  lossBody: { fontSize: 12, color: theme.colors.textSecondary, lineHeight: 18 },
-  lossBold: { color: theme.colors.text, fontWeight: '800', fontFamily: theme.typography.fontFamily.monoBold },
-  lossFooter: { fontSize: 11, color: theme.colors.textTertiary, marginTop: 2, fontStyle: 'italic' },
+  lossCard: { marginHorizontal: theme.layout.screenInset, marginTop: 12, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: colors.card, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: colors.border, gap: 6 },
+  lossTitle: { fontSize: 13, fontWeight: '800', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold },
+  lossBody: { fontSize: 12, color: colors.textSecondary, lineHeight: 18 },
+  lossBold: { color: colors.text, fontWeight: '800', fontFamily: theme.typography.fontFamily.monoBold },
+  lossFooter: { fontSize: 11, color: colors.textTertiary, marginTop: 2, fontStyle: 'italic' },
 
   // hits row/badge moved to components/HitCard.tsx + components/HitBadge.tsx (design.md step 4).
   // Section wrapper stays — provides the screen-edge inset + title spacing.
   hitsSectionWrap: { marginHorizontal: theme.layout.screenInset, marginTop: 12, gap: 8 },
-  hitsSectionTitle: { fontSize: 10, fontWeight: '900', color: theme.colors.gold, marginBottom: 2, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
+  hitsSectionTitle: { fontSize: 10, fontWeight: '900', color: colors.gold, marginBottom: 2, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
 
   slateSection: { paddingHorizontal: theme.layout.screenInset, marginTop: 16 },
   slateSectionHdr: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 },
-  slateSectionTitle: { fontSize: 12, fontWeight: '900', color: theme.colors.text, letterSpacing: 2, fontFamily: theme.typography.fontFamily.monoBold },
+  slateSectionTitle: { fontSize: 12, fontWeight: '900', color: colors.text, letterSpacing: 2, fontFamily: theme.typography.fontFamily.monoBold },
   confPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 99, borderWidth: 1 },
   confPillText: { fontSize: 9, fontWeight: '900', letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold },
-  confSub: { fontSize: 11, color: theme.colors.textTertiary, marginTop: -6, marginBottom: 10 },
-  generateBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.colors.purple, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 },
+  confSub: { fontSize: 11, color: colors.textTertiary, marginTop: -6, marginBottom: 10 },
+  generateBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.purple, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 },
   generateBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
-  loadingCard: { backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.card, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.border },
-  loadingText: { fontSize: 13, color: theme.colors.textTertiary },
+  loadingCard: { backgroundColor: colors.card, borderRadius: theme.borderRadius.card, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
+  loadingText: { fontSize: 13, color: colors.textTertiary },
 
-  proGate: { borderRadius: theme.borderRadius.card, padding: 22, alignItems: 'center', borderWidth: 1.5, borderColor: theme.colors.purple + '66', marginTop: 8, marginBottom: 16, backgroundColor: theme.colors.purple + '12' },
-  proGateLocked: { fontSize: 11, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 4 },
-  proGateTitle: { fontSize: 16, fontWeight: '800', color: theme.colors.text, marginBottom: 6 },
-  proGateDesc: { fontSize: 12, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 14, lineHeight: 18 },
-  proGateBtn: { backgroundColor: theme.colors.purple, paddingHorizontal: 24, paddingVertical: 11, borderRadius: 13 },
+  proGate: { borderRadius: theme.borderRadius.card, padding: 22, alignItems: 'center', borderWidth: 1.5, borderColor: colors.purple + '66', marginTop: 8, marginBottom: 16, backgroundColor: colors.purple + '12' },
+  proGateLocked: { fontSize: 11, fontWeight: '900', color: colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 4 },
+  proGateTitle: { fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 6 },
+  proGateDesc: { fontSize: 12, color: colors.textSecondary, textAlign: 'center', marginBottom: 14, lineHeight: 18 },
+  proGateBtn: { backgroundColor: colors.purple, paddingHorizontal: 24, paddingVertical: 11, borderRadius: 13 },
   proGateBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  modalCard: { width: '100%', maxWidth: 400, backgroundColor: theme.colors.bgElevated, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: theme.colors.border, padding: 20 },
-  modalTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.text, marginBottom: 8 },
-  modalBody: { fontSize: 14, color: theme.colors.textSecondary, marginBottom: 16 },
-  modalBtn: { backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.borderMed, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
-  modalBtnText: { color: theme.colors.text, fontWeight: '600' },
+  modalCard: { width: '100%', maxWidth: 400, backgroundColor: colors.bgElevated, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: colors.border, padding: 20 },
+  modalTitle: { fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 8 },
+  modalBody: { fontSize: 14, color: colors.textSecondary, marginBottom: 16 },
+  modalBtn: { backgroundColor: colors.background, borderWidth: 1, borderColor: colors.borderMed, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
+  modalBtnText: { color: colors.text, fontWeight: '600' },
 });

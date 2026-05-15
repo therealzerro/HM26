@@ -685,6 +685,35 @@ async function computeSlate(params: {
   const res = await sbPost('/rest/v1/slate_snapshots', payload) as any[];
   const savedId = Array.isArray(res) && res.length > 0 ? String(res[0]?.id ?? '') : `zk6-${scope}-${Date.now()}`;
 
+  // ENH-08 (2026-05-15): engine_runs telemetry row per slate generation.
+  // Captures the EFFECTIVE config used at gen time (post per-scope overrides) so
+  // longitudinal queries can correlate config changes to live outcomes without
+  // having to reconstruct what was in app_config at gen time. Non-fatal —
+  // wrapped in try/catch so a telemetry failure never blocks slate save.
+  if (!is_supplement) {
+    try {
+      await sbPost('/rest/v1/engine_runs', {
+        slate_hash:           hash,
+        scope,
+        mode:                 weightsKey,
+        slate_date:           effectiveDate,
+        effective_weights:    { ...weights, _mode: weightsKey },
+        horizons_present:     ds.horizonsPresent,
+        horizons_loaded:      ds.horizonsLoaded,
+        confidence_score:     Math.round(scopeConfidence * 100),
+        using_fallback:       ds.usingFallback,
+        box_freq_weight:      effBoxFreqWeight,
+        box_pressure_weight:  effBoxPressureWeight,
+        recent_hit_cooldown:  cfg.recentHitCooldown,
+        min_energy_threshold: cfg.minEnergyThreshold,
+        source:               'edge',
+        generated_at_et:      now,
+      }, 'resolution=merge-duplicates,return=minimal');
+    } catch (e) {
+      console.warn('[edge-zk6] engine_runs telemetry write failed (non-fatal):', String(e));
+    }
+  }
+
   // Write daily_intelligence (non-supplement only). on_slate is embedded in the
   // INSERT — no separate PATCH needed. Any K6 combo that didn't make top30 (because
   // pass-5 cooldown relaxation can pick combos outside the top30) gets appended as

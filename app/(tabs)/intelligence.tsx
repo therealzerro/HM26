@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Alert, TextInput,
@@ -7,6 +7,7 @@ import { NeonRefreshControl as RefreshControl } from '@/components/NeonRefreshCo
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { backfillIntelHits, BackfillProgress } from '@/lib/backfillIntelHits';
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
@@ -234,6 +235,8 @@ function computeAnalysis(rows: IntelRow[]): AnalysisData {
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
 function StatCard({ label, value, color }: { label: string; value: string; color?: string }) {
+  const { colors, shadows } = useTheme();
+  const s = useMemo(() => makeS(colors, shadows), [colors, shadows]);
   return (
     <View style={s.statCard}>
       <Text style={[s.statValue, color ? { color } : {}]}>{value}</Text>
@@ -243,10 +246,14 @@ function StatCard({ label, value, color }: { label: string; value: string; color
 }
 
 function SectionHeader({ title }: { title: string }) {
+  const { colors, shadows } = useTheme();
+  const s = useMemo(() => makeS(colors, shadows), [colors, shadows]);
   return <Text style={s.sectionHeader}>{title}</Text>;
 }
 
 function CompareBar({ label, hitsVal, missVal }: { label: string; hitsVal: number; missVal: number }) {
+  const { colors, shadows } = useTheme();
+  const s = useMemo(() => makeS(colors, shadows), [colors, shadows]);
   const green = hitsVal >= missVal;
   const maxW = 120;
   return (
@@ -254,13 +261,13 @@ function CompareBar({ label, hitsVal, missVal }: { label: string; hitsVal: numbe
       <Text style={s.compareLabel}>{label}</Text>
       <View style={s.compareBars}>
         <View style={s.compareBarRow}>
-          <Text style={[s.compareBarLabel, { color: theme.colors.success }]}>Hits</Text>
-          <View style={[s.compareBar, { width: Math.min((hitsVal / 100) * maxW, maxW), backgroundColor: green ? theme.colors.success : theme.colors.error }]} />
+          <Text style={[s.compareBarLabel, { color: colors.success }]}>Hits</Text>
+          <View style={[s.compareBar, { width: Math.min((hitsVal / 100) * maxW, maxW), backgroundColor: green ? colors.success : colors.error }]} />
           <Text style={s.compareVal}>{hitsVal.toFixed(1)}</Text>
         </View>
         <View style={s.compareBarRow}>
-          <Text style={[s.compareBarLabel, { color: theme.colors.textTertiary }]}>Miss</Text>
-          <View style={[s.compareBar, { width: Math.min((missVal / 100) * maxW, maxW), backgroundColor: theme.colors.surfaceMuted }]} />
+          <Text style={[s.compareBarLabel, { color: colors.textTertiary }]}>Miss</Text>
+          <View style={[s.compareBar, { width: Math.min((missVal / 100) * maxW, maxW), backgroundColor: colors.surfaceMuted }]} />
           <Text style={s.compareVal}>{missVal.toFixed(1)}</Text>
         </View>
       </View>
@@ -269,11 +276,13 @@ function CompareBar({ label, hitsVal, missVal }: { label: string; hitsVal: numbe
 }
 
 function RateBar({ label, rate, total, color }: { label: string; rate: number; total: number; color?: string }) {
+  const { colors, shadows } = useTheme();
+  const s = useMemo(() => makeS(colors, shadows), [colors, shadows]);
   return (
     <View style={s.rateRow}>
       <Text style={s.rateLabel}>{label}</Text>
       <View style={s.rateTrack}>
-        <View style={[s.rateFill, { width: `${Math.min(rate, 100)}%`, backgroundColor: color ?? theme.colors.primary }]} />
+        <View style={[s.rateFill, { width: `${Math.min(rate, 100)}%`, backgroundColor: color ?? colors.primary }]} />
       </View>
       <Text style={s.ratePct}>{rate.toFixed(1)}%</Text>
       <Text style={s.rateTotal}>({total})</Text>
@@ -287,6 +296,8 @@ function SuggestionCard({
   icon: string; title: string; body: string;
   onApply: () => void; onDismiss: () => void; dismissed: boolean;
 }) {
+  const { colors, shadows } = useTheme();
+  const s = useMemo(() => makeS(colors, shadows), [colors, shadows]);
   if (dismissed) return null;
   return (
     <View style={s.suggCard}>
@@ -308,10 +319,12 @@ function SuggestionCard({
 }
 
 function SigDot({ label, value, color }: { label: string; value: number; color: string }) {
+  const { colors, shadows } = useTheme();
+  const ss = useMemo(() => makeSs(colors, shadows), [colors, shadows]);
   const on = value >= 0.6;
   return (
-    <View style={[ss.sigDot, { backgroundColor: on ? color + '25' : theme.colors.surfaceMuted, borderColor: on ? color + '55' : 'transparent' }]}>
-      <Text style={[ss.sigLabel, { color: on ? color : theme.colors.textTertiary }]}>{label}</Text>
+    <View style={[ss.sigDot, { backgroundColor: on ? color + '25' : colors.surfaceMuted, borderColor: on ? color + '55' : 'transparent' }]}>
+      <Text style={[ss.sigLabel, { color: on ? color : colors.textTertiary }]}>{label}</Text>
     </View>
   );
 }
@@ -332,15 +345,17 @@ function rowHitIsScopeValid(row: IntelRow): boolean {
 }
 
 function SlateRow({ row }: { row: IntelRow }) {
+  const { colors, shadows } = useTheme();
+  const ss = useMemo(() => makeSs(colors, shadows), [colors, shadows]);
   const isK6 = row.on_slate === true;
   const scopeValid = rowHitIsScopeValid(row);
   const showStraight = row.hit_straight && scopeValid;
   const showBox = row.hit_box && !row.hit_straight && scopeValid;
   const energy = Math.round(row.energy_score ?? 0);
-  const eColor = energy >= 80 ? theme.colors.error
-    : energy >= 65 ? theme.colors.orange
-    : energy >= 45 ? theme.colors.gold
-    : theme.colors.textTertiary;
+  const eColor = energy >= 80 ? colors.error
+    : energy >= 65 ? colors.orange
+    : energy >= 45 ? colors.gold
+    : colors.textTertiary;
 
   return (
     <View style={[ss.row, isK6 && ss.rowK6]}>
@@ -355,7 +370,7 @@ function SlateRow({ row }: { row: IntelRow }) {
       {/* Combo + signals */}
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-          <Text style={[ss.combo, isK6 && { color: theme.colors.gold }]}>
+          <Text style={[ss.combo, isK6 && { color: colors.gold }]}>
             {row.combo.split('').join(' ')}
           </Text>
           {isK6 && (
@@ -374,10 +389,10 @@ function SlateRow({ row }: { row: IntelRow }) {
           )}
         </View>
         <View style={ss.sigRow}>
-          <SigDot label="BOX"  value={row.signal_box    ?? 0} color={theme.colors.cyan}   />
-          <SigDot label="MB"   value={row.signal_pburst ?? 0} color={theme.colors.rose}   />
-          <SigDot label="CO"   value={row.signal_co     ?? 0} color={theme.colors.purple} />
-          <SigDot label="DGC"  value={row.signal_dgc    ?? 0} color={theme.colors.gold}   />
+          <SigDot label="BOX"  value={row.signal_box    ?? 0} color={colors.cyan}   />
+          <SigDot label="MB"   value={row.signal_pburst ?? 0} color={colors.rose}   />
+          <SigDot label="CO"   value={row.signal_co     ?? 0} color={colors.purple} />
+          <SigDot label="DGC"  value={row.signal_dgc    ?? 0} color={colors.gold}   />
           {row.draws_since != null && (
             <Text style={ss.drawsSince}>{row.draws_since}d ago</Text>
           )}
@@ -396,6 +411,9 @@ function SlateRow({ row }: { row: IntelRow }) {
 // ─── Main Screen ───────────────────────────────────────────────────────────────
 
 export default function IntelligenceScreen() {
+  const { colors, shadows } = useTheme();
+  const s = useMemo(() => makeS(colors, shadows), [colors, shadows]);
+  const ss = useMemo(() => makeSs(colors, shadows), [colors, shadows]);
   const [view, setView] = useState<'today' | 'analysis' | 'slate'>('today');
   const { scope: globalScope } = useScope();
   const { regenerateSlate, checkSlateLock } = useDataIngestion();
@@ -543,14 +561,14 @@ export default function IntelligenceScreen() {
     return (
       <SafeAreaView style={s.container}>
         <View style={s.center}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={s.loadingText}>
             {loadingRows > 0
               ? `Loading… ${loadingRows.toLocaleString()} of ~2,000 picks`
               : 'Loading Pattern Intelligence…'}
           </Text>
           {loadingRows > 0 && (
-            <Text style={{ fontSize: 11, color: theme.colors.textTertiary, marginTop: 4 }}>
+            <Text style={{ fontSize: 11, color: colors.textTertiary, marginTop: 4 }}>
               Analyzing signal patterns across all draws…
             </Text>
           )}
@@ -586,10 +604,10 @@ export default function IntelligenceScreen() {
               </TouchableOpacity>
               {!!backfillStatus && <Text style={s.backfillStatus}>{backfillStatus}</Text>}
               <TouchableOpacity
-                style={[s.backfillBtn, { backgroundColor: theme.colors.bgElevated, borderWidth: 1, borderColor: theme.colors.border }]}
+                style={[s.backfillBtn, { backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border }]}
                 onPress={() => { setView('slate'); }}
               >
-                <Text style={[s.backfillBtnText, { color: theme.colors.cyan }]}>Go to Top 30 Slate →</Text>
+                <Text style={[s.backfillBtnText, { color: colors.cyan }]}>Go to Top 30 Slate →</Text>
               </TouchableOpacity>
             </View>
           }
@@ -654,7 +672,7 @@ export default function IntelligenceScreen() {
         <ScrollView
           contentContainerStyle={s.scroll}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={slateLoading} onRefresh={() => loadSlate(slateScope)} tintColor={theme.colors.primary} />}
+          refreshControl={<RefreshControl refreshing={slateLoading} onRefresh={() => loadSlate(slateScope)} tintColor={colors.primary} />}
         >
           <View style={s.todayHeader}>
             <Text style={s.todayDate}>{getTodayET()}</Text>
@@ -672,7 +690,7 @@ export default function IntelligenceScreen() {
                 keyboardType="number-pad"
                 maxLength={3}
                 placeholder="123"
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholderTextColor={colors.textTertiary}
                 accessibilityLabel="3-digit combo to look up"
               />
               {lookupQuery.length > 0 && (
@@ -709,7 +727,7 @@ export default function IntelligenceScreen() {
                   <Text style={s.lookupResult}>
                     <Text style={s.lookupBold}>{found.combo}</Text> · set <Text style={s.lookupBold}>{found.combo_set ?? targetSet}</Text> · energy <Text style={s.lookupBold}>{energy}</Text> · ds_raw {found.draws_since ?? '—'}
                   </Text>
-                  <Text style={[s.lookupReason, { color: onSlate ? theme.colors.cyan : theme.colors.textSecondary }]}>{reason}</Text>
+                  <Text style={[s.lookupReason, { color: onSlate ? colors.cyan : colors.textSecondary }]}>{reason}</Text>
                   <Text style={s.lookupSig}>
                     BOX {Math.round((found.signal_box ?? 0) * 100)} · PB {Math.round((found.signal_pburst ?? 0) * 100)} · CO {Math.round((found.signal_co ?? 0) * 100)} · DGC {Math.round((found.signal_dgc ?? 0) * 100)}
                   </Text>
@@ -735,19 +753,19 @@ export default function IntelligenceScreen() {
           {slateRows.length > 0 && (
             <View style={s.todayStats}>
               <View style={s.todayChip}>
-                <Text style={[s.todayChipNum, { color: theme.colors.gold }]}>
+                <Text style={[s.todayChipNum, { color: colors.gold }]}>
                   {slateRows.filter(r => r.on_slate).length}
                 </Text>
                 <Text style={s.todayChipLabel}>K6 Picks</Text>
               </View>
               <View style={s.todayChip}>
-                <Text style={[s.todayChipNum, { color: theme.colors.success }]}>
+                <Text style={[s.todayChipNum, { color: colors.success }]}>
                   {slateRows.filter(r => (r.hit_box || r.hit_straight) && rowHitIsScopeValid(r)).length}
                 </Text>
                 <Text style={s.todayChipLabel}>Hits Today</Text>
               </View>
               <View style={s.todayChip}>
-                <Text style={[s.todayChipNum, { color: theme.colors.cyan }]}>
+                <Text style={[s.todayChipNum, { color: colors.cyan }]}>
                   {slateRows.length > 0
                     ? Math.round(slateRows.reduce((a, r) => a + (r.energy_score ?? 0), 0) / slateRows.length)
                     : 0}
@@ -758,14 +776,14 @@ export default function IntelligenceScreen() {
           )}
 
           {isYesterdayFallback && !slateLoading && (
-            <View style={{ backgroundColor: theme.colors.amber + '22', borderRadius: 8, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: theme.colors.amber + '55' }}>
-              <Text style={{ fontSize: 11, color: theme.colors.amber, fontWeight: '700' }}>⚠ Showing yesterday's data — no slate generated for today yet</Text>
+            <View style={{ backgroundColor: colors.amber + '22', borderRadius: 8, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: colors.amber + '55' }}>
+              <Text style={{ fontSize: 11, color: colors.amber, fontWeight: '700' }}>⚠ Showing yesterday's data — no slate generated for today yet</Text>
             </View>
           )}
 
           {slateLoading ? (
             <View style={s.center}>
-              <ActivityIndicator color={theme.colors.primary} />
+              <ActivityIndicator color={colors.primary} />
               <Text style={s.loadingText}>Loading today's picks…</Text>
             </View>
           ) : slateRows.length === 0 ? (
@@ -775,7 +793,7 @@ export default function IntelligenceScreen() {
               message="Generate a slate to see today's picks here."
               action={
                 <TouchableOpacity
-                  style={{ backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius.md, paddingVertical: 12, paddingHorizontal: 24, opacity: regenLoading ? 0.6 : 1 }}
+                  style={{ backgroundColor: colors.primary, borderRadius: theme.borderRadius.md, paddingVertical: 12, paddingHorizontal: 24, opacity: regenLoading ? 0.6 : 1 }}
                   onPress={handleRegen}
                   disabled={regenLoading}
                 >
@@ -811,7 +829,7 @@ export default function IntelligenceScreen() {
         <ScrollView
           contentContainerStyle={s.scroll}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={slateLoading} onRefresh={() => loadSlate(slateScope)} tintColor={theme.colors.primary} />}
+          refreshControl={<RefreshControl refreshing={slateLoading} onRefresh={() => loadSlate(slateScope)} tintColor={colors.primary} />}
         >
           {/* Scope selector */}
           <View style={ss.scopeRow}>
@@ -833,7 +851,7 @@ export default function IntelligenceScreen() {
             <Text style={s.headerTitle}>Today's Hidden 30</Text>
             <View style={{ flex: 1 }} />
             {slateRows.length > 0 && (
-              <Text style={{ fontSize: 11, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono }}>
+              <Text style={{ fontSize: 11, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono }}>
                 {getTodayET()} · {slateRows.length} picks
               </Text>
             )}
@@ -842,18 +860,18 @@ export default function IntelligenceScreen() {
           {/* K6 legend */}
           <View style={ss.legend}>
             <View style={ss.legendItem}>
-              <View style={[ss.legendDot, { backgroundColor: theme.colors.gold }]} />
+              <View style={[ss.legendDot, { backgroundColor: colors.gold }]} />
               <Text style={ss.legendText}>♛ K6 final pick (on_slate)</Text>
             </View>
             <View style={ss.legendItem}>
-              <View style={[ss.legendDot, { backgroundColor: theme.colors.surfaceMuted }]} />
+              <View style={[ss.legendDot, { backgroundColor: colors.surfaceMuted }]} />
               <Text style={ss.legendText}>Ranked but not selected</Text>
             </View>
           </View>
 
           {slateLoading ? (
             <View style={s.center}>
-              <ActivityIndicator color={theme.colors.primary} />
+              <ActivityIndicator color={colors.primary} />
               <Text style={s.loadingText}>Loading slate…</Text>
             </View>
           ) : slateRows.length === 0 ? (
@@ -863,7 +881,7 @@ export default function IntelligenceScreen() {
               message="Generate a slate to see today's hidden picks here."
               action={
                 <TouchableOpacity
-                  style={{ backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius.md, paddingVertical: 12, paddingHorizontal: 24, opacity: regenLoading ? 0.6 : 1 }}
+                  style={{ backgroundColor: colors.primary, borderRadius: theme.borderRadius.md, paddingVertical: 12, paddingHorizontal: 24, opacity: regenLoading ? 0.6 : 1 }}
                   onPress={handleRegen}
                   disabled={regenLoading}
                 >
@@ -885,7 +903,7 @@ export default function IntelligenceScreen() {
       {view === 'analysis' && <ScrollView
         contentContainerStyle={s.scroll}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={() => load(true)} tintColor={theme.colors.primary} />}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={() => load(true)} tintColor={colors.primary} />}
       >
 
         {/* Header */}
@@ -908,12 +926,12 @@ export default function IntelligenceScreen() {
         <SectionHeader title="A — Overall Performance" />
         <View style={s.statRow}>
           <StatCard label="Total Picks" value={d.total.toLocaleString()} />
-          <StatCard label="Box Hit Rate" value={`${d.boxHitRate.toFixed(1)}%`} color={theme.colors.success} />
-          <StatCard label="Straight Rate" value={`${d.straightHitRate.toFixed(1)}%`} color={theme.colors.primary} />
-          <StatCard label="Best Rank" value={`#${d.bestRank}`} color={theme.colors.gold} />
+          <StatCard label="Box Hit Rate" value={`${d.boxHitRate.toFixed(1)}%`} color={colors.success} />
+          <StatCard label="Straight Rate" value={`${d.straightHitRate.toFixed(1)}%`} color={colors.primary} />
+          <StatCard label="Best Rank" value={`#${d.bestRank}`} color={colors.gold} />
         </View>
         <View style={s.statRow}>
-          <StatCard label="Days With Hit" value={`${d.daysWithHit}`} color={theme.colors.teal} />
+          <StatCard label="Days With Hit" value={`${d.daysWithHit}`} color={colors.teal} />
         </View>
 
         {/* Section B — Signal Analysis */}
@@ -942,7 +960,7 @@ export default function IntelligenceScreen() {
               label={`Rank ${r.rank}`}
               rate={r.rate}
               total={r.total}
-              color={r.rank <= 6 ? theme.colors.primary : r.rank <= 15 ? theme.colors.gold : theme.colors.textTertiary}
+              color={r.rank <= 6 ? colors.primary : r.rank <= 15 ? colors.gold : colors.textTertiary}
             />
           ))}
           {d.rankRates.length === 0 && <Text style={s.noData}>No rank data yet</Text>}
@@ -952,7 +970,7 @@ export default function IntelligenceScreen() {
         <SectionHeader title="D — Draws Since Analysis" />
         <View style={s.card}>
           {d.drawsRanges.map(r => (
-            <RateBar key={r.label} label={r.label} rate={r.rate} total={r.total} color={r.label === d.bestDrawsRange ? theme.colors.success : theme.colors.primary} />
+            <RateBar key={r.label} label={r.label} rate={r.rate} total={r.total} color={r.label === d.bestDrawsRange ? colors.success : colors.primary} />
           ))}
           <Text style={s.insightText}>
             Best pressure window: <Text style={s.bold}>{d.bestDrawsRange} draws</Text> — highest hit rate
@@ -962,8 +980,8 @@ export default function IntelligenceScreen() {
         {/* Section E — Multiplicity */}
         <SectionHeader title="E — Multiplicity Analysis" />
         <View style={s.card}>
-          <RateBar label="Singles" rate={d.singlesRate} total={d.rows.filter(r => r.multiplicity === 'singles').length} color={theme.colors.primary} />
-          <RateBar label="Doubles" rate={d.doublesRate} total={d.rows.filter(r => r.multiplicity === 'doubles').length} color={theme.colors.gold} />
+          <RateBar label="Singles" rate={d.singlesRate} total={d.rows.filter(r => r.multiplicity === 'singles').length} color={colors.primary} />
+          <RateBar label="Doubles" rate={d.doublesRate} total={d.rows.filter(r => r.multiplicity === 'doubles').length} color={colors.gold} />
           <Text style={s.insightText}>
             {d.singlesRate >= d.doublesRate ? 'Singles outperform doubles — ZK6 should favor singles' : 'Doubles outperform singles — ZK6 should favor doubles'}
           </Text>
@@ -989,7 +1007,7 @@ export default function IntelligenceScreen() {
         <SectionHeader title="G — Scope Performance" />
         <View style={s.card}>
           {d.scopeRates.map(sr => (
-            <RateBar key={sr.scope} label={sr.scope} rate={sr.boxRate} total={sr.total} color={sr.scope === d.bestScope ? theme.colors.success : theme.colors.primary} />
+            <RateBar key={sr.scope} label={sr.scope} rate={sr.boxRate} total={sr.total} color={sr.scope === d.bestScope ? colors.success : colors.primary} />
           ))}
           <Text style={s.insightText}>
             Best scope: <Text style={s.bold}>{d.bestScope}</Text>
@@ -1005,7 +1023,7 @@ export default function IntelligenceScreen() {
               label={`Energy ${e.label}`}
               rate={e.rate}
               total={e.total}
-              color={e.min === d.bestEnergyMin ? theme.colors.success : theme.colors.primary}
+              color={e.min === d.bestEnergyMin ? colors.success : colors.primary}
             />
           ))}
           <Text style={s.insightText}>
@@ -1025,7 +1043,7 @@ export default function IntelligenceScreen() {
               label={combo.name} 
               rate={combo.rate} 
               total={combo.count} 
-              color={combo.rate > 20 ? theme.colors.gold : theme.colors.primary} 
+              color={combo.rate > 20 ? colors.gold : colors.primary} 
             />
           ))}
           <Text style={s.insightText}>
@@ -1110,144 +1128,144 @@ export default function IntelligenceScreen() {
 
 const SCOPE_LABEL_INLINE: Record<string, string> = { midday: 'Midday', evening: 'Evening', allday: 'All Day' };
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create({
   // §4.6 lookup card
-  lookupCard: { backgroundColor: theme.colors.card, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.purple + '55', padding: 12, marginBottom: 12, gap: 8 },
-  lookupLabel: { fontSize: 10, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold },
+  lookupCard: { backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.purple + '55', padding: 12, marginBottom: 12, gap: 8 },
+  lookupLabel: { fontSize: 10, fontWeight: '900', color: colors.purple, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold },
   lookupRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  lookupInput: { flex: 1, backgroundColor: theme.colors.bgElevated, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.border, paddingHorizontal: 14, paddingVertical: 10, fontSize: 18, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 4, textAlign: 'center' },
+  lookupInput: { flex: 1, backgroundColor: colors.bgElevated, borderRadius: 8, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14, paddingVertical: 10, fontSize: 18, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 4, textAlign: 'center' },
   lookupClear: { paddingHorizontal: 10, paddingVertical: 6 },
-  lookupClearText: { fontSize: 18, color: theme.colors.textTertiary, fontWeight: '700' },
-  lookupResult: { fontSize: 12, color: theme.colors.textSecondary, lineHeight: 17, fontFamily: theme.typography.fontFamily.mono },
-  lookupBold: { color: theme.colors.text, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
-  lookupSub: { fontSize: 11, color: theme.colors.textTertiary, fontStyle: 'italic' },
+  lookupClearText: { fontSize: 18, color: colors.textTertiary, fontWeight: '700' },
+  lookupResult: { fontSize: 12, color: colors.textSecondary, lineHeight: 17, fontFamily: theme.typography.fontFamily.mono },
+  lookupBold: { color: colors.text, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
+  lookupSub: { fontSize: 11, color: colors.textTertiary, fontStyle: 'italic' },
   lookupReason: { fontSize: 11, fontWeight: '700', fontFamily: theme.typography.fontFamily.mono, lineHeight: 15 },
-  lookupSig: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 0.4 },
+  lookupSig: { fontSize: 10, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 0.4 },
 
-  container: { flex: 1, backgroundColor: theme.colors.background },
+  container: { flex: 1, backgroundColor: colors.background },
   scroll: { padding: theme.spacing.md },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   header: { marginBottom: theme.spacing.lg },
-  tabRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  tabRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.border },
   tab: { flex: 1, paddingVertical: 11, alignItems: 'center' },
-  tabOn: { borderBottomWidth: 2, borderBottomColor: theme.colors.primary },
-  tabText: { fontSize: 13, fontWeight: '600', color: theme.colors.textSecondary },
-  tabTextOn: { color: theme.colors.primary, fontWeight: '800' },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: theme.colors.text },
-  headerSub: { fontSize: 13, color: theme.colors.textTertiary, marginTop: 2 },
-  loadingText: { marginTop: 12, color: theme.colors.textSecondary, fontSize: 14 },
-  errorText: { color: theme.colors.error, textAlign: 'center', fontSize: 14, marginBottom: 16 },
-  sectionHeader: { fontSize: 13, fontWeight: '800', color: theme.colors.primary, marginTop: 20, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.8 },
-  card: { backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.lg, padding: theme.spacing.md, marginBottom: 4, borderWidth: 1, borderColor: theme.colors.border, ...theme.shadows.glow },
+  tabOn: { borderBottomWidth: 2, borderBottomColor: colors.primary },
+  tabText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
+  tabTextOn: { color: colors.primary, fontWeight: '800' },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: colors.text },
+  headerSub: { fontSize: 13, color: colors.textTertiary, marginTop: 2 },
+  loadingText: { marginTop: 12, color: colors.textSecondary, fontSize: 14 },
+  errorText: { color: colors.error, textAlign: 'center', fontSize: 14, marginBottom: 16 },
+  sectionHeader: { fontSize: 13, fontWeight: '800', color: colors.primary, marginTop: 20, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.8 },
+  card: { backgroundColor: colors.surface, borderRadius: theme.borderRadius.lg, padding: theme.spacing.md, marginBottom: 4, borderWidth: 1, borderColor: colors.border, ...shadows.glow },
   statRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
-  statCard: { flex: 1, minWidth: 70, backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.md, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.border, ...theme.shadows.glow },
-  statValue: { fontSize: 20, fontWeight: '800', color: theme.colors.text },
-  statLabel: { fontSize: 10, color: theme.colors.textTertiary, marginTop: 2, textAlign: 'center' },
+  statCard: { flex: 1, minWidth: 70, backgroundColor: colors.surface, borderRadius: theme.borderRadius.md, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.border, ...shadows.glow },
+  statValue: { fontSize: 20, fontWeight: '800', color: colors.text },
+  statLabel: { fontSize: 10, color: colors.textTertiary, marginTop: 2, textAlign: 'center' },
   compareRow: { marginBottom: 12 },
-  compareLabel: { fontSize: 12, fontWeight: '700', color: theme.colors.text, marginBottom: 4 },
+  compareLabel: { fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 4 },
   compareBars: { gap: 3 },
   compareBarRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   compareBarLabel: { fontSize: 10, width: 28, fontWeight: '600' },
   compareBar: { height: 10, borderRadius: 4, minWidth: 4 },
-  compareVal: { fontSize: 10, color: theme.colors.textSecondary, marginLeft: 4 },
+  compareVal: { fontSize: 10, color: colors.textSecondary, marginLeft: 4 },
   rateRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  rateLabel: { fontSize: 11, color: theme.colors.text, width: 80 },
-  rateTrack: { flex: 1, height: 10, backgroundColor: theme.colors.surfaceMuted, borderRadius: 5, overflow: 'hidden' },
+  rateLabel: { fontSize: 11, color: colors.text, width: 80 },
+  rateTrack: { flex: 1, height: 10, backgroundColor: colors.surfaceMuted, borderRadius: 5, overflow: 'hidden' },
   rateFill: { height: '100%', borderRadius: 5 },
-  ratePct: { fontSize: 11, fontWeight: '700', color: theme.colors.text, width: 38, textAlign: 'right' },
-  rateTotal: { fontSize: 10, color: theme.colors.textTertiary, width: 32 },
-  insightBadge: { fontSize: 12, fontWeight: '700', color: theme.colors.text, marginBottom: 10, backgroundColor: theme.colors.surfaceLight, padding: 8, borderRadius: 8 },
-  insightText: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 8 },
-  bold: { fontWeight: '700', color: theme.colors.text },
-  noData: { fontSize: 12, color: theme.colors.textTertiary, textAlign: 'center', padding: 12 },
-  pairRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: theme.colors.border, gap: 8 },
-  pairRank: { fontSize: 11, color: theme.colors.textTertiary, width: 24 },
-  pairLabel: { fontSize: 13, fontWeight: '700', color: theme.colors.text, flex: 1 },
-  pairCount: { fontSize: 12, color: theme.colors.textSecondary },
-  pairBadge: { fontSize: 10, backgroundColor: theme.colors.goldLight, color: theme.colors.gold, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, fontWeight: '700' },
-  suggCard: { backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.lg, padding: theme.spacing.md, marginBottom: 8, borderWidth: 1, borderColor: theme.colors.borderMed, ...theme.shadows.glow },
+  ratePct: { fontSize: 11, fontWeight: '700', color: colors.text, width: 38, textAlign: 'right' },
+  rateTotal: { fontSize: 10, color: colors.textTertiary, width: 32 },
+  insightBadge: { fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 10, backgroundColor: colors.surfaceLight, padding: 8, borderRadius: 8 },
+  insightText: { fontSize: 12, color: colors.textSecondary, marginTop: 8 },
+  bold: { fontWeight: '700', color: colors.text },
+  noData: { fontSize: 12, color: colors.textTertiary, textAlign: 'center', padding: 12 },
+  pairRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: colors.border, gap: 8 },
+  pairRank: { fontSize: 11, color: colors.textTertiary, width: 24 },
+  pairLabel: { fontSize: 13, fontWeight: '700', color: colors.text, flex: 1 },
+  pairCount: { fontSize: 12, color: colors.textSecondary },
+  pairBadge: { fontSize: 10, backgroundColor: colors.goldLight, color: colors.gold, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, fontWeight: '700' },
+  suggCard: { backgroundColor: colors.surface, borderRadius: theme.borderRadius.lg, padding: theme.spacing.md, marginBottom: 8, borderWidth: 1, borderColor: colors.borderMed, ...shadows.glow },
   suggHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   suggIcon: { fontSize: 20 },
-  suggTitle: { fontSize: 14, fontWeight: '800', color: theme.colors.text },
-  suggBody: { fontSize: 12, color: theme.colors.textSecondary, lineHeight: 18, marginBottom: 12 },
+  suggTitle: { fontSize: 14, fontWeight: '800', color: colors.text },
+  suggBody: { fontSize: 12, color: colors.textSecondary, lineHeight: 18, marginBottom: 12 },
   suggButtons: { flexDirection: 'row', gap: 8 },
-  applyBtn: { flex: 1, backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius.md, paddingVertical: 9, alignItems: 'center' },
+  applyBtn: { flex: 1, backgroundColor: colors.primary, borderRadius: theme.borderRadius.md, paddingVertical: 9, alignItems: 'center' },
   applyBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  dismissBtn: { backgroundColor: theme.colors.surfaceMuted, borderRadius: theme.borderRadius.md, paddingVertical: 9, paddingHorizontal: 16, alignItems: 'center' },
-  dismissBtnText: { color: theme.colors.textSecondary, fontSize: 12, fontWeight: '600' },
-  backfillDesc: { fontSize: 12, color: theme.colors.textTertiary, marginBottom: 12, lineHeight: 18 },
-  backfillBtn: { backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius.md, paddingVertical: 12, alignItems: 'center' },
+  dismissBtn: { backgroundColor: colors.surfaceMuted, borderRadius: theme.borderRadius.md, paddingVertical: 9, paddingHorizontal: 16, alignItems: 'center' },
+  dismissBtnText: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
+  backfillDesc: { fontSize: 12, color: colors.textTertiary, marginBottom: 12, lineHeight: 18 },
+  backfillBtn: { backgroundColor: colors.primary, borderRadius: theme.borderRadius.md, paddingVertical: 12, alignItems: 'center' },
   backfillBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  backfillStatus: { fontSize: 12, color: theme.colors.success, marginTop: 10, textAlign: 'center', fontWeight: '600' },
-  reloadBtn: { marginTop: 10, backgroundColor: theme.colors.primaryLight, borderRadius: theme.borderRadius.md, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'flex-start' },
-  reloadBtnText: { color: theme.colors.primary, fontSize: 13, fontWeight: '700' },
+  backfillStatus: { fontSize: 12, color: colors.success, marginTop: 10, textAlign: 'center', fontWeight: '600' },
+  reloadBtn: { marginTop: 10, backgroundColor: colors.primaryLight, borderRadius: theme.borderRadius.md, paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'flex-start' },
+  reloadBtnText: { color: colors.primary, fontSize: 13, fontWeight: '700' },
 
   todayHeader: { marginBottom: 12 },
-  todayDate: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 1, marginBottom: 2 },
-  todayTitle: { fontSize: 22, fontWeight: '900', color: theme.colors.text },
+  todayDate: { fontSize: 10, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 1, marginBottom: 2 },
+  todayTitle: { fontSize: 22, fontWeight: '900', color: colors.text },
   todayStats: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  todayChip: { flex: 1, backgroundColor: theme.colors.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border, padding: 10, alignItems: 'center', ...theme.shadows.glow },
+  todayChip: { flex: 1, backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 10, alignItems: 'center', ...shadows.glow },
   todayChipNum: { fontSize: 24, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
-  todayChipLabel: { fontSize: 9, color: theme.colors.textTertiary, fontWeight: '700', marginTop: 2 },
-  todaySection: { fontSize: 10, fontWeight: '900', color: theme.colors.textTertiary, letterSpacing: 2, marginTop: 12, marginBottom: 8 },
+  todayChipLabel: { fontSize: 9, color: colors.textTertiary, fontWeight: '700', marginTop: 2 },
+  todaySection: { fontSize: 10, fontWeight: '900', color: colors.textTertiary, letterSpacing: 2, marginTop: 12, marginBottom: 8 },
 });
 
-const ss = StyleSheet.create({
+const makeSs = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create({
   // Scope selector
   scopeRow: { flexDirection: 'row', gap: 6, marginBottom: 16 },
-  scopeBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center', backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border },
-  scopeBtnOn: { backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary },
-  scopeText: { fontSize: 12, fontWeight: '600', color: theme.colors.textSecondary },
-  scopeTextOn: { color: theme.colors.primary, fontWeight: '800' },
+  scopeBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  scopeBtnOn: { backgroundColor: colors.primaryLight, borderColor: colors.primary },
+  scopeText: { fontSize: 12, fontWeight: '600', color: colors.textSecondary },
+  scopeTextOn: { color: colors.primary, fontWeight: '800' },
 
   // Legend
   legend: { flexDirection: 'row', gap: 16, marginBottom: 14, paddingHorizontal: 2 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 10, color: theme.colors.textTertiary },
+  legendText: { fontSize: 10, color: colors.textTertiary },
 
   // Slate row
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: theme.colors.surface, borderRadius: 12,
-    borderWidth: 1, borderColor: theme.colors.border,
+    backgroundColor: colors.surface, borderRadius: 12,
+    borderWidth: 1, borderColor: colors.border,
     paddingHorizontal: 12, paddingVertical: 10, marginBottom: 6,
-    ...theme.shadows.glow,
+    ...shadows.glow,
   },
   rowK6: {
-    borderColor: theme.colors.gold + '66',
-    backgroundColor: theme.colors.goldLight ?? (theme.colors.gold + '0A'),
+    borderColor: colors.gold + '66',
+    backgroundColor: colors.goldLight ?? (colors.gold + '0A'),
   },
 
   // Rank badge
   rankBadge: {
     width: 34, height: 34, borderRadius: 9,
-    backgroundColor: theme.colors.surfaceLight,
+    backgroundColor: colors.surfaceLight,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  rankBadgeK6: { backgroundColor: theme.colors.gold + '22' },
-  rankNum: { fontSize: 11, fontWeight: '900', color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold },
-  rankCrown: { fontSize: 16, color: theme.colors.gold },
+  rankBadgeK6: { backgroundColor: colors.gold + '22' },
+  rankNum: { fontSize: 11, fontWeight: '900', color: colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold },
+  rankCrown: { fontSize: 16, color: colors.gold },
 
   // Combo
   combo: {
-    fontSize: 22, color: theme.colors.text,
+    fontSize: 22, color: colors.text,
     letterSpacing: 4, fontFamily: theme.typography.fontFamily.monoBold,
   },
 
   // Badges
   k6Badge: {
-    backgroundColor: theme.colors.gold + '25', borderRadius: 6,
+    backgroundColor: colors.gold + '25', borderRadius: 6,
     paddingHorizontal: 6, paddingVertical: 2,
-    borderWidth: 1, borderColor: theme.colors.gold + '55',
+    borderWidth: 1, borderColor: colors.gold + '55',
   },
-  k6BadgeText: { fontSize: 9, fontWeight: '900', color: theme.colors.gold, letterSpacing: 0.5 },
-  multBadge: { backgroundColor: theme.colors.primaryLight, borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
-  multText: { fontSize: 9, fontWeight: '700', color: theme.colors.primary },
-  hitBadge: { backgroundColor: theme.colors.gold + '22', borderWidth: 1, borderColor: theme.colors.gold + '66', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  hitBadgeText: { fontSize: 9, fontWeight: '900', color: theme.colors.gold, letterSpacing: 0.5 },
-  hitBadgeBox: { backgroundColor: theme.colors.cyan + '22', borderColor: theme.colors.cyan + '66' },
-  hitBadgeBoxText: { color: theme.colors.cyan },
+  k6BadgeText: { fontSize: 9, fontWeight: '900', color: colors.gold, letterSpacing: 0.5 },
+  multBadge: { backgroundColor: colors.primaryLight, borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2 },
+  multText: { fontSize: 9, fontWeight: '700', color: colors.primary },
+  hitBadge: { backgroundColor: colors.gold + '22', borderWidth: 1, borderColor: colors.gold + '66', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  hitBadgeText: { fontSize: 9, fontWeight: '900', color: colors.gold, letterSpacing: 0.5 },
+  hitBadgeBox: { backgroundColor: colors.cyan + '22', borderColor: colors.cyan + '66' },
+  hitBadgeBoxText: { color: colors.cyan },
 
   // Signal dots
   sigRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -1256,13 +1274,13 @@ const ss = StyleSheet.create({
     borderWidth: 1, borderColor: 'transparent',
   },
   sigLabel: { fontSize: 8, fontWeight: '800', letterSpacing: 0.3 },
-  drawsSince: { fontSize: 9, color: theme.colors.textTertiary, marginLeft: 3, fontFamily: theme.typography.fontFamily.mono },
+  drawsSince: { fontSize: 9, color: colors.textTertiary, marginLeft: 3, fontFamily: theme.typography.fontFamily.mono },
 
   // Energy badge
   energyBadge: {
     width: 38, height: 38, borderRadius: 10, flexShrink: 0,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, backgroundColor: theme.colors.bgElevated,
+    borderWidth: 1.5, backgroundColor: colors.bgElevated,
   },
   energyNum: { fontSize: 12, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, lineHeight: 14 },
   energyLbl: { fontSize: 7, fontWeight: '800', letterSpacing: 0.3 },

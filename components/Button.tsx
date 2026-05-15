@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 
 interface ButtonProps {
   title: string;
@@ -23,6 +24,8 @@ export function Button({
   style,
   testID,
 }: ButtonProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const isDisabled = disabled || loading;
 
   return (
@@ -40,7 +43,7 @@ export function Button({
     >
       {loading ? (
         <ActivityIndicator 
-          color={variant === 'secondary' ? theme.colors.primary : theme.colors.background} 
+          color={variant === 'secondary' ? colors.primary : colors.background} 
         />
       ) : (
         <Text style={[styles.text, styles[`${variant}Text`]]}>
@@ -51,7 +54,7 @@ export function Button({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   base: {
     borderRadius: theme.borderRadius.tile,
     alignItems: 'center',
@@ -59,15 +62,15 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   primary: {
-    backgroundColor: theme.colors.purple,
+    backgroundColor: colors.purple,
   },
   secondary: {
-    backgroundColor: theme.colors.bgElevated,
+    backgroundColor: colors.bgElevated,
     borderWidth: 1,
-    borderColor: theme.colors.borderMed,
+    borderColor: colors.borderMed,
   },
   danger: {
-    backgroundColor: theme.colors.error,
+    backgroundColor: colors.error,
   },
   small: {
     paddingHorizontal: theme.spacing.md,
@@ -90,12 +93,12 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.semibold,
   },
   primaryText: {
-    color: theme.colors.text,
+    color: colors.text,
   },
   secondaryText: {
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
   },
   dangerText: {
-    color: theme.colors.text,
+    color: colors.text,
   },
 });

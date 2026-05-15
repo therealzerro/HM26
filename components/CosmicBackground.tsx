@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { theme } from '@/constants/theme';
+import { useTheme } from '@/lib/theme';
 
 interface Props {
   // 0–1; default 0.06 keeps the gradient barely visible against the
@@ -17,9 +17,10 @@ interface Props {
  * pass through.
  */
 export function CosmicBackground({ opacity = 0.06 }: Props) {
+  const { gradients } = useTheme();
   return (
     <LinearGradient
-      colors={theme.gradients.cyanPurple}
+      colors={gradients.cyanPurple}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={[StyleSheet.absoluteFillObject, { opacity }]}

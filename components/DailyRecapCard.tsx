@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { getTodayET } from '@/lib/dateUtils';
 import { useFollowedStates } from '@/hooks/useFollowedStates';
@@ -39,6 +40,8 @@ function scopeMatchesSession(scope: string, session: string): boolean {
 }
 
 export function DailyRecapCard() {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   const today = useMemo(() => getTodayET(), []);
   const hour = etHourNow();
   const { followed, toPostgrestFilter } = useFollowedStates();
@@ -78,14 +81,14 @@ export function DailyRecapCard() {
   if (hits.length === 0) {
     return (
       <TouchableOpacity
-        style={[s.card, { borderColor: theme.colors.purple + '66' }]}
+        style={[s.card, { borderColor: colors.purple + '66' }]}
         onPress={() => router.push('/track-record')}
         accessibilityRole="button"
         accessibilityLabel="Day's done. Tap to see recent track record."
         activeOpacity={0.85}
       >
         <View style={s.headerRow}>
-          <Text style={[s.label, { color: theme.colors.purple }]}>🌙 DAY'S DONE</Text>
+          <Text style={[s.label, { color: colors.purple }]}>🌙 DAY'S DONE</Text>
           <Text style={s.chev}>›</Text>
         </View>
         <Text style={s.line1}>
@@ -133,14 +136,14 @@ export function DailyRecapCard() {
   );
 }
 
-const s = StyleSheet.create({
-  card: { marginHorizontal: 16, marginTop: 8, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: theme.colors.bgElevated, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.gold + '66', gap: 4 },
+const makeS = (colors: ColorTokens) => StyleSheet.create({
+  card: { marginHorizontal: 16, marginTop: 8, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: colors.bgElevated, borderRadius: 12, borderWidth: 1, borderColor: colors.gold + '66', gap: 4 },
   headerRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  label: { fontSize: 10, fontWeight: '900', color: theme.colors.gold, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold },
-  chev: { fontSize: 16, color: theme.colors.textTertiary, fontWeight: '700' },
-  line1: { fontSize: 13, color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold },
-  line2: { fontSize: 11, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, marginTop: 2 },
-  line3: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, fontStyle: 'italic', marginTop: 4 },
-  bold: { color: theme.colors.text, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
-  subStat: { color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, fontWeight: '700' },
+  label: { fontSize: 10, fontWeight: '900', color: colors.gold, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold },
+  chev: { fontSize: 16, color: colors.textTertiary, fontWeight: '700' },
+  line1: { fontSize: 13, color: colors.text, fontFamily: theme.typography.fontFamily.monoBold },
+  line2: { fontSize: 11, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, marginTop: 2 },
+  line3: { fontSize: 10, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, fontStyle: 'italic', marginTop: 4 },
+  bold: { color: colors.text, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
+  subStat: { color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, fontWeight: '700' },
 });

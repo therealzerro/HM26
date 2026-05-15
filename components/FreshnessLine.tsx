@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Text, StyleSheet, StyleProp, TextStyle } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { ZK6_ENGINE_VERSION } from '@/constants/zk6';
 import { getTodayET } from '@/lib/dateUtils';
 
@@ -57,6 +58,8 @@ function agoLabel(updatedAt: string): string {
 }
 
 export function FreshnessLine({ snapshot, versionLabel = `ZK6 ${ZK6_ENGINE_VERSION}`, style }: Props) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   const { text, stale } = useMemo(() => {
     if (!snapshot) return { stale: false, text: versionLabel };
     const today = getTodayET();
@@ -73,7 +76,7 @@ export function FreshnessLine({ snapshot, versionLabel = `ZK6 ${ZK6_ENGINE_VERSI
 
   return (
     <Text
-      style={[s.line, stale && { color: theme.colors.warning ?? theme.colors.gold }, style]}
+      style={[s.line, stale && { color: colors.warning ?? colors.gold }, style]}
       accessibilityLabel={text}
     >
       {text}
@@ -81,10 +84,10 @@ export function FreshnessLine({ snapshot, versionLabel = `ZK6 ${ZK6_ENGINE_VERSI
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens) => StyleSheet.create({
   line: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
     marginTop: 2,
     fontFamily: theme.typography.fontFamily.mono,
   },

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 import { getETHour, getETMinutes } from '@/lib/dateUtils';
 
 interface DrawEntry {
@@ -124,6 +125,8 @@ interface DrawTickerProps {
 }
 
 export function DrawTicker({ scope = 'allday' }: DrawTickerProps) {
+  const { colors, shadows } = useTheme();
+  const s = useMemo(() => makeS(colors, shadows), [colors, shadows]);
   const [, forceUpdate] = useState(0);
 
   useEffect(() => {
@@ -166,14 +169,14 @@ export function DrawTicker({ scope = 'allday' }: DrawTickerProps) {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     padding: 10,
-    ...theme.shadows.glow,
+    ...shadows.glow,
     gap: 6,
   },
   main: {
@@ -186,32 +189,32 @@ const s = StyleSheet.create({
   nextLabel: {
     fontSize: 8,
     fontWeight: '800',
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
     letterSpacing: 1.5,
     marginBottom: 1,
   },
   drawName: {
     fontSize: 13,
     fontWeight: '800',
-    color: theme.colors.text,
+    color: colors.text,
   },
   drawTime: {
     fontSize: 10,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 1,
   },
   countdownBox: {
-    backgroundColor: theme.colors.surfaceLight,
+    backgroundColor: colors.surfaceLight,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
   },
   countdownText: {
     fontSize: 20,
-    color: theme.colors.text,
+    color: colors.text,
     fontFamily: theme.typography.fontFamily.monoBold,
     letterSpacing: 2,
   },
@@ -223,12 +226,12 @@ const s = StyleSheet.create({
   upNextLabel: {
     fontSize: 8,
     fontWeight: '800',
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
     letterSpacing: 1.5,
   },
   upNextItem: {
     fontSize: 9,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '600',
   },
 });

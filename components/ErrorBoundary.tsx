@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -10,6 +11,18 @@ interface ErrorBoundaryProps {
 interface ErrorBoundaryState {
   hasError: boolean;
   errorMessage: string | null;
+}
+
+function ErrorFallback({ message, testID }: { message: string; testID: string }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+  return (
+    <View style={styles.container} testID={testID}>
+      <Text style={styles.title}>Something went wrong</Text>
+      <Text style={styles.message}>{message}</Text>
+      <Text style={styles.hint}>Please try again or navigate back.</Text>
+    </View>
+  );
 }
 
 export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -30,11 +43,10 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   render() {
     if (this.state.hasError) {
       return (
-        <View style={styles.container} testID={this.props.testID ?? 'error-boundary'}>
-          <Text style={styles.title}>Something went wrong</Text>
-          <Text style={styles.message}>{this.state.errorMessage ?? 'Unexpected error'}</Text>
-          <Text style={styles.hint}>Please try again or navigate back.</Text>
-        </View>
+        <ErrorFallback
+          message={this.state.errorMessage ?? 'Unexpected error'}
+          testID={this.props.testID ?? 'error-boundary'}
+        />
       );
     }
 
@@ -42,28 +54,28 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     padding: theme.spacing.lg,
   },
   title: {
     fontSize: theme.typography.fontSize.xl,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: theme.spacing.sm,
   },
   message: {
     fontSize: theme.typography.fontSize.md,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: theme.spacing.md,
   },
   hint: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
   },
 });

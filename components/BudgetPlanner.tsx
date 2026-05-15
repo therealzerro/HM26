@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import type { PickItem } from '@/components/PickCard';
 
 // Pick 3 player logic per user direction (2026-05-12).
@@ -61,6 +62,8 @@ interface Props {
 }
 
 export function BudgetPlanner({ picks, scope }: Props) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   // Budget input
   const [budgetStr, setBudgetStr] = useState('1.00');
   const budget = useMemo(() => {
@@ -112,7 +115,7 @@ export function BudgetPlanner({ picks, scope }: Props) {
             onChangeText={setBudgetStr}
             keyboardType="decimal-pad"
             placeholder="1.00"
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={colors.textTertiary}
             accessibilityLabel="Budget in dollars"
           />
         </View>
@@ -127,14 +130,14 @@ export function BudgetPlanner({ picks, scope }: Props) {
 
       <View style={s.controlRow}>
         <Text style={s.controlLabel}>DRAWS</Text>
-        <Pill on={playMidday} label="☀️ Midday" onPress={() => setPlayMidday(v => !v)} accent={theme.colors.gold} />
-        <Pill on={playEvening} label="🌙 Evening" onPress={() => setPlayEvening(v => !v)} accent={theme.colors.purple} />
+        <Pill on={playMidday} label="☀️ Midday" onPress={() => setPlayMidday(v => !v)} accent={colors.gold} />
+        <Pill on={playEvening} label="🌙 Evening" onPress={() => setPlayEvening(v => !v)} accent={colors.purple} />
       </View>
 
       <View style={s.controlRow}>
         <Text style={s.controlLabel}>STATES</Text>
-        <Pill on={!allStates} label="1 state" onPress={() => setAllStates(false)} accent={theme.colors.cyan} />
-        <Pill on={allStates} label={`All ${ALL_STATES_COUNT}`} onPress={() => setAllStates(true)} accent={theme.colors.cyan} />
+        <Pill on={!allStates} label="1 state" onPress={() => setAllStates(false)} accent={colors.cyan} />
+        <Pill on={allStates} label={`All ${ALL_STATES_COUNT}`} onPress={() => setAllStates(true)} accent={colors.cyan} />
       </View>
 
       {drawCount === 0 ? (
@@ -186,6 +189,8 @@ export function BudgetPlanner({ picks, scope }: Props) {
 }
 
 function Pill({ on, label, onPress, accent }: { on: boolean; label: string; onPress: () => void; accent: string }) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   return (
     <TouchableOpacity
       style={[s.pill, on && { backgroundColor: accent + '20', borderColor: accent + '88' }]}
@@ -198,7 +203,7 @@ function Pill({ on, label, onPress, accent }: { on: boolean; label: string; onPr
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens) => StyleSheet.create({
   card: {
     marginHorizontal: 16,
     marginTop: 12,
@@ -206,45 +211,45 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 12,
     paddingBottom: 12,
-    backgroundColor: theme.colors.card,
+    backgroundColor: colors.card,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: theme.colors.gold + '55',
+    borderColor: colors.gold + '55',
     gap: 8,
   },
   headerRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  label: { fontSize: 11, fontWeight: '900', color: theme.colors.gold, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
-  headerHint: { fontSize: 9, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 0.4 },
+  label: { fontSize: 11, fontWeight: '900', color: colors.gold, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
+  headerHint: { fontSize: 9, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 0.4 },
 
   budgetRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, marginBottom: 2 },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.bgElevated, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.border, paddingHorizontal: 10, paddingVertical: 4, minWidth: 80 },
-  dollar: { fontSize: 14, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold },
-  input: { fontSize: 16, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, padding: 0, marginLeft: 4, minWidth: 48 },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgElevated, borderRadius: 8, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 10, paddingVertical: 4, minWidth: 80 },
+  dollar: { fontSize: 14, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold },
+  input: { fontSize: 16, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold, padding: 0, marginLeft: 4, minWidth: 48 },
   presetRow: { flexDirection: 'row', gap: 4, flex: 1, justifyContent: 'flex-end', flexWrap: 'wrap' },
-  preset: { paddingHorizontal: 7, paddingVertical: 4, borderRadius: 6, backgroundColor: theme.colors.bgElevated, borderWidth: 1, borderColor: theme.colors.border },
-  presetOn: { backgroundColor: theme.colors.gold + '22', borderColor: theme.colors.gold + '88' },
-  presetText: { fontSize: 10, fontWeight: '700', color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.monoBold },
-  presetTextOn: { color: theme.colors.gold, fontWeight: '900' },
+  preset: { paddingHorizontal: 7, paddingVertical: 4, borderRadius: 6, backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border },
+  presetOn: { backgroundColor: colors.gold + '22', borderColor: colors.gold + '88' },
+  presetText: { fontSize: 10, fontWeight: '700', color: colors.textSecondary, fontFamily: theme.typography.fontFamily.monoBold },
+  presetTextOn: { color: colors.gold, fontWeight: '900' },
 
   controlRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  controlLabel: { fontSize: 9, fontWeight: '900', color: theme.colors.textTertiary, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold, minWidth: 50 },
-  pill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, backgroundColor: theme.colors.bgElevated, borderWidth: 1, borderColor: theme.colors.border },
-  pillText: { fontSize: 11, fontWeight: '700', color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.3 },
+  controlLabel: { fontSize: 9, fontWeight: '900', color: colors.textTertiary, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold, minWidth: 50 },
+  pill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border },
+  pillText: { fontSize: 11, fontWeight: '700', color: colors.textSecondary, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.3 },
 
-  planRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, borderTopWidth: 1, borderTopColor: theme.colors.border + '55' },
-  rank: { fontSize: 10, fontWeight: '900', color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold, minWidth: 22 },
-  combo: { fontSize: 14, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 1.5, minWidth: 44 },
-  betChip: { alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: theme.colors.cyan + '14', borderWidth: 1, borderColor: theme.colors.cyan + '66' },
-  betChipText: { fontSize: 9, fontWeight: '900', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.4 },
-  betSub: { fontSize: 9, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, marginTop: 2, letterSpacing: 0.3 },
-  cost: { fontSize: 12, color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '900' },
-  win: { fontSize: 10, color: theme.colors.gold, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700', marginTop: 1 },
+  planRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, borderTopWidth: 1, borderTopColor: colors.border + '55' },
+  rank: { fontSize: 10, fontWeight: '900', color: colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold, minWidth: 22 },
+  combo: { fontSize: 14, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 1.5, minWidth: 44 },
+  betChip: { alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, backgroundColor: colors.cyan + '14', borderWidth: 1, borderColor: colors.cyan + '66' },
+  betChipText: { fontSize: 9, fontWeight: '900', color: colors.cyan, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.4 },
+  betSub: { fontSize: 9, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, marginTop: 2, letterSpacing: 0.3 },
+  cost: { fontSize: 12, color: colors.text, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '900' },
+  win: { fontSize: 10, color: colors.gold, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700', marginTop: 1 },
 
-  footer: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: theme.colors.border + '77', gap: 4 },
-  footerLabel: { fontSize: 11, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, lineHeight: 15 },
-  footerValue: { color: theme.colors.text, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
-  footerLeft: { color: theme.colors.textTertiary },
-  footerNote: { fontSize: 10, color: theme.colors.textTertiary, fontStyle: 'italic', lineHeight: 14 },
+  footer: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border + '77', gap: 4 },
+  footerLabel: { fontSize: 11, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, lineHeight: 15 },
+  footerValue: { color: colors.text, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
+  footerLeft: { color: colors.textTertiary },
+  footerNote: { fontSize: 10, color: colors.textTertiary, fontStyle: 'italic', lineHeight: 14 },
 
-  emptyMsg: { fontSize: 11, color: theme.colors.textTertiary, fontStyle: 'italic', paddingVertical: 4 },
+  emptyMsg: { fontSize: 11, color: colors.textTertiary, fontStyle: 'italic', paddingVertical: 4 },
 });

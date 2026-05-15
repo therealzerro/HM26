@@ -11,7 +11,7 @@ import { useScope } from '@/hooks/useScope';
 import { HorizonLabel } from '@/types/core';
 
 export default function CoverageScreen() {
-  const { colors } = useTheme();
+  const { colors, gradients } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { matrix, coveragePctH01Y, refetch } = useCoverage();
   const { scope } = useScope();
@@ -34,7 +34,7 @@ export default function CoverageScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: 'Coverage' }} />
       <LinearGradient
-        colors={['#0d1b2a', colors.background] as [string, string]}
+        colors={gradients.header}
         start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
         style={styles.header}
       >

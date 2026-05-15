@@ -142,7 +142,7 @@ const makeM = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create(
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function NumberBookScreen() {
-  const { colors, shadows } = useTheme();
+  const { colors, shadows, gradients } = useTheme();
   const s = useMemo(() => makeS(colors, shadows), [colors, shadows]);
   const [lists, setLists] = useState<BookList[]>([]);
 
@@ -284,7 +284,7 @@ export default function NumberBookScreen() {
         {/* ── Left Sidebar ── */}
         <View style={s.sidebar}>
           <LinearGradient
-            colors={['#1a0d35', colors.surface] as [string, string]}
+            colors={gradients.header}
             start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
             style={s.sidebarHeader}
           >

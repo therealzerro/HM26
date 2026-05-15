@@ -74,7 +74,7 @@ export default function AccountScreen() {
   const { showToast } = useToast();
   const { followed: followedStates, isFollowing, toggle: toggleFollowedState, clear: clearFollowedStates } = useFollowedStates();
   const { enabled: coffeeMode, toggle: toggleCoffeeMode } = useCoffeeMode();
-  const { mode: themeMode, scheme: themeScheme, setMode: setThemeMode, colors, shadows } = useTheme();
+  const { mode: themeMode, scheme: themeScheme, setMode: setThemeMode, colors, shadows, gradients } = useTheme();
   const s = useMemo(() => makeS(colors, shadows), [colors, shadows]);
   const tog = useMemo(() => makeTog(colors), [colors]);
   const [glossOpen, setGlossOpen] = useState<number | null>(null);
@@ -201,7 +201,7 @@ export default function AccountScreen() {
 
         {/* ── Hero ── */}
         <LinearGradient
-          colors={['#1a0d35', '#120a1f'] as [string, string]}
+          colors={gradients.header}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={s.hero}

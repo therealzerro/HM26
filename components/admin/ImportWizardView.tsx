@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { parseRawLedgerData } from '@/lib/parseLedger';
 import { getTodayET } from '@/lib/dateUtils';
 import { runHitDetectionAllScopes } from '@/lib/hitDetection';
-import { Pill, SectionTitle, Card, st, HORIZONS, IMPORT_TYPES, PAIR_CLASSES, ImportRecord } from './AdminShared';
+import { Pill, SectionTitle, Card, useSt, HORIZONS, IMPORT_TYPES, PAIR_CLASSES, ImportRecord } from './AdminShared';
 
 // ─── Box History helpers ──────────────────────────────────────────────────────
 
@@ -114,6 +115,8 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
   preset?: { type: 'box_history' | 'pair_history'; jurisdiction: string } | null;
   onClearPreset?: () => void;
 }) {
+  const { colors } = useTheme();
+  const st = useSt();
   const [step, setStep] = useState(preset ? 1 : 0);
   const [importType, setImportType] = useState<string | null>(preset?.type ?? null);
   const todayDefault = useMemo(() => getTodayET(), []);
@@ -490,16 +493,16 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
   return (
     <View style={{ flex: 1 }}>
       {/* Steps header */}
-      <View style={{ backgroundColor: theme.colors.surface, borderBottomWidth: 1, borderBottomColor: theme.colors.border, padding: 12 }}>
+      <View style={{ backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border, padding: 12 }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
             {steps.map((s, i) => (
               <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: step > i ? theme.colors.success : i === step ? theme.colors.primary : theme.colors.surfaceLight, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: step > i ? theme.colors.success : i === step ? theme.colors.primary : theme.colors.border }}>
-                  <Text style={{ fontSize: 9, fontWeight: '700', color: step > i || i === step ? '#fff' : theme.colors.textTertiary }}>{step > i ? '✓' : i + 1}</Text>
+                <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: step > i ? colors.success : i === step ? colors.primary : colors.surfaceLight, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: step > i ? colors.success : i === step ? colors.primary : colors.border }}>
+                  <Text style={{ fontSize: 9, fontWeight: '700', color: step > i || i === step ? '#fff' : colors.textTertiary }}>{step > i ? '✓' : i + 1}</Text>
                 </View>
-                <Text style={{ fontSize: 10, color: i === step ? theme.colors.primary : theme.colors.textTertiary, fontWeight: i === step ? '700' : '400' }}>{s}</Text>
-                {i < steps.length - 1 && <View style={{ width: 16, height: 2, backgroundColor: step > i ? theme.colors.success : theme.colors.border }} />}
+                <Text style={{ fontSize: 10, color: i === step ? colors.primary : colors.textTertiary, fontWeight: i === step ? '700' : '400' }}>{s}</Text>
+                {i < steps.length - 1 && <View style={{ width: 16, height: 2, backgroundColor: step > i ? colors.success : colors.border }} />}
               </View>
             ))}
           </View>
@@ -521,10 +524,10 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
                   else setConfig(c => ({ ...c, import_date: todayDefault }));
                   setStep(1);
                 }} activeOpacity={0.8}>
-                  <Card style={{ padding: 16, borderWidth: importType === t.id ? 2 : 1, borderColor: importType === t.id ? t.color : theme.colors.border }}>
+                  <Card style={{ padding: 16, borderWidth: importType === t.id ? 2 : 1, borderColor: importType === t.id ? t.color : colors.border }}>
                     <Text style={{ fontSize: 26, marginBottom: 8 }}>{t.icon}</Text>
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text, marginBottom: 4 }}>{t.label}</Text>
-                    <Text style={{ fontSize: 10, color: theme.colors.textSecondary, lineHeight: 15, marginBottom: 8 }}>{t.desc}</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 4 }}>{t.label}</Text>
+                    <Text style={{ fontSize: 10, color: colors.textSecondary, lineHeight: 15, marginBottom: 8 }}>{t.desc}</Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 3 }}>
                       {t.headers.map(h => <Pill key={h} label={h} color={t.color} />)}
                     </View>
@@ -599,18 +602,18 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
                   })}
                 </View>
                 {importType === 'daily_input' && (
-                  <Card style={{ padding: 10, marginBottom: 14, backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary + '28' }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.primary }}>
+                  <Card style={{ padding: 10, marginBottom: 14, backgroundColor: colors.primaryLight, borderColor: colors.primary + '28' }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary }}>
                       📅 This import will be tagged as date: {config.import_date} · scope: {config.scope}
                     </Text>
                   </Card>
                 )}
                 {importType === 'ledger' && (
-                  <Card style={{ padding: 10, marginBottom: 14, backgroundColor: theme.colors.tealLight, borderColor: theme.colors.teal + '28' }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.teal }}>
+                  <Card style={{ padding: 10, marginBottom: 14, backgroundColor: colors.tealLight, borderColor: colors.teal + '28' }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.teal }}>
                       📋 Expected date: {config.import_date} · scope: {config.scope}
                     </Text>
-                    <Text style={{ fontSize: 10, color: theme.colors.textSecondary, marginTop: 2 }}>
+                    <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 2 }}>
                       A warning will appear if parsed results don't match this date.
                     </Text>
                   </Card>
@@ -619,8 +622,8 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
             )}
 
             <Card style={{ padding: 12, marginBottom: 18 }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.text, marginBottom: 4 }}>Import will create:</Text>
-              <Text style={{ fontSize: 12, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: colors.text, marginBottom: 4 }}>Import will create:</Text>
+              <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>
                 {importType === 'box_history' ? 'Box Class (1)' : importType === 'pair_history' ? 'Pair Class (' + config.class_id + ')' : ''}{config.horizon ? ' · ' + config.horizon : ''} · Scope: {config.scope}{(importType === 'daily_input' || importType === 'ledger') ? ' · Date: ' + config.import_date : ''}
               </Text>
             </Card>
@@ -638,7 +641,7 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
             <Text style={st.sub}>{importType === 'ledger' ? 'Copy the full results page from lotterypost.com and paste below.' : `Paste your CSV data. Required: ${typeInfo?.headers.join(', ')}`}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
               <View style={{ flexDirection: 'row', gap: 4 }}>
-                {(typeInfo?.headers ?? []).map(h => <Pill key={h} label={h} color={theme.colors.primary} />)}
+                {(typeInfo?.headers ?? []).map(h => <Pill key={h} label={h} color={colors.primary} />)}
               </View>
             </ScrollView>
             <TextInput
@@ -648,7 +651,7 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
               placeholder={importType === 'ledger'
                 ? 'Paste raw results from lotterypost.com.\n\nState Name\nGame\tDate\tResult\nGame\tDate\tResult\nNext State\n...'
                 : "Paste CSV here, or tap 'Load Sample'..."}
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={colors.textTertiary}
               multiline
               textAlignVertical="top"
             />
@@ -667,29 +670,29 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
           <View>
             <Text style={st.title}>Review & Commit</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-              {[{ l:'Accepted', v: parsed.accepted, c: theme.colors.success }, { l:'Rejected', v: parsed.rejected, c: theme.colors.error }, { l:'Fixed', v: parsed.fixed, c: theme.colors.gold }, { l:'Total', v: parsed.totalRows, c: theme.colors.primary }].map(s => (
+              {[{ l:'Accepted', v: parsed.accepted, c: colors.success }, { l:'Rejected', v: parsed.rejected, c: colors.error }, { l:'Fixed', v: parsed.fixed, c: colors.gold }, { l:'Total', v: parsed.totalRows, c: colors.primary }].map(s => (
                 <Card key={s.l} style={{ flex: 1, minWidth: 70, padding: 10, alignItems: 'center' }}>
                   <Text style={{ fontSize: 20, fontWeight: '900', color: s.c, fontFamily: theme.typography.fontFamily.monoBold }}>{s.v}</Text>
-                  <Text style={{ fontSize: 9, color: theme.colors.textTertiary, fontWeight: '700' }}>{s.l}</Text>
+                  <Text style={{ fontSize: 9, color: colors.textTertiary, fontWeight: '700' }}>{s.l}</Text>
                 </Card>
               ))}
             </View>
             {parsed.warnings?.length > 0 && (
-              <Card style={{ padding: 12, marginBottom: 10, backgroundColor: theme.colors.goldLight, borderColor: theme.colors.gold + '44' }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.gold, marginBottom: 4 }}>⚠️ Warnings</Text>
-                {parsed.warnings.map((w: string, i: number) => <Text key={i} style={{ fontSize: 11, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>{w}</Text>)}
+              <Card style={{ padding: 12, marginBottom: 10, backgroundColor: colors.goldLight, borderColor: colors.gold + '44' }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: colors.gold, marginBottom: 4 }}>⚠️ Warnings</Text>
+                {parsed.warnings.map((w: string, i: number) => <Text key={i} style={{ fontSize: 11, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>{w}</Text>)}
               </Card>
             )}
-            <Card style={{ padding: 12, marginBottom: 14, backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary + '28' }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.primary, marginBottom: 4 }}>Import Configuration</Text>
-              <Text style={{ fontSize: 12, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>
+            <Card style={{ padding: 12, marginBottom: 14, backgroundColor: colors.primaryLight, borderColor: colors.primary + '28' }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary, marginBottom: 4 }}>Import Configuration</Text>
+              <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>
                 Type: {importType}{importType === 'pair_history' ? ' · Class ' + config.class_id : importType === 'box_history' ? ' · Class 1' : ''}{config.horizon && (importType === 'box_history' || importType === 'pair_history') ? ' · ' + config.horizon : ''} · Scope: {config.scope}
               </Text>
             </Card>
             {commitError && (
-              <Card style={{ padding: 12, marginBottom: 10, backgroundColor: theme.colors.errorLight, borderColor: theme.colors.error + '44' }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.error, marginBottom: 4 }}>✗ Import Failed</Text>
-                <Text style={{ fontSize: 11, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>{commitError}</Text>
+              <Card style={{ padding: 12, marginBottom: 10, backgroundColor: colors.errorLight, borderColor: colors.error + '44' }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: colors.error, marginBottom: 4 }}>✗ Import Failed</Text>
+                <Text style={{ fontSize: 11, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>{commitError}</Text>
               </Card>
             )}
             <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -706,35 +709,35 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
           <View>
             <View style={{ alignItems: 'center', marginBottom: 20 }}>
               <Text style={{ fontSize: 48, marginBottom: 8 }}>✅</Text>
-              <Text style={{ fontSize: 20, fontWeight: '800', color: theme.colors.success, marginBottom: 4 }}>Import Committed</Text>
-              <Text style={{ fontSize: 11, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono }} numberOfLines={1}>ID: {result.id}</Text>
+              <Text style={{ fontSize: 20, fontWeight: '800', color: colors.success, marginBottom: 4 }}>Import Committed</Text>
+              <Text style={{ fontSize: 11, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono }} numberOfLines={1}>ID: {result.id}</Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
-              {[{ l:'Accepted', v: result.accepted, c: theme.colors.success }, { l:'Rejected', v: result.rejected, c: theme.colors.error }, { l:'Fixed', v: result.fixed ?? 0, c: theme.colors.gold }].map(s => (
+              {[{ l:'Accepted', v: result.accepted, c: colors.success }, { l:'Rejected', v: result.rejected, c: colors.error }, { l:'Fixed', v: result.fixed ?? 0, c: colors.gold }].map(s => (
                 <Card key={s.l} style={{ flex: 1, padding: 12, alignItems: 'center' }}>
                   <Text style={{ fontSize: 20, fontWeight: '900', color: s.c, fontFamily: theme.typography.fontFamily.monoBold }}>{s.v}</Text>
-                  <Text style={{ fontSize: 9, color: theme.colors.textTertiary, fontWeight: '700' }}>{s.l}</Text>
+                  <Text style={{ fontSize: 9, color: colors.textTertiary, fontWeight: '700' }}>{s.l}</Text>
                 </Card>
               ))}
             </View>
             {result.warnings?.length > 0 && (
-              <Card style={{ padding: 12, marginBottom: 10, backgroundColor: theme.colors.goldLight, borderColor: theme.colors.gold + '44' }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.gold, marginBottom: 4 }}>⚠️ Warnings</Text>
-                {result.warnings.slice(0, 5).map((w: string, i: number) => <Text key={i} style={{ fontSize: 11, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>{w}</Text>)}
+              <Card style={{ padding: 12, marginBottom: 10, backgroundColor: colors.goldLight, borderColor: colors.gold + '44' }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: colors.gold, marginBottom: 4 }}>⚠️ Warnings</Text>
+                {result.warnings.slice(0, 5).map((w: string, i: number) => <Text key={i} style={{ fontSize: 11, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>{w}</Text>)}
               </Card>
             )}
-            <Card style={{ padding: 14, marginBottom: 14, backgroundColor: theme.colors.successLight, borderColor: theme.colors.success + '33' }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: theme.colors.success, marginBottom: 6 }}>✓ Supabase write confirmed</Text>
+            <Card style={{ padding: 14, marginBottom: 14, backgroundColor: colors.successLight, borderColor: colors.success + '33' }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.success, marginBottom: 6 }}>✓ Supabase write confirmed</Text>
               {(importType === 'box_history' || importType === 'pair_history') ? (
-                <Text style={{ fontSize: 11, color: theme.colors.textSecondary, lineHeight: 18 }}>
+                <Text style={{ fontSize: 11, color: colors.textSecondary, lineHeight: 18 }}>
                   P99 cap computed · Percentile map saved · Horizon blend updated{result.p99_cap ? ` · P99 cap: ${result.p99_cap}` : ''}{result.first_seen ? `\nFirst seen: ${result.first_seen} · Last seen: ${result.last_seen}` : ''}
                 </Text>
               ) : importType === 'ledger' ? (
-                <Text style={{ fontSize: 11, color: theme.colors.textSecondary, lineHeight: 18 }}>
+                <Text style={{ fontSize: 11, color: colors.textSecondary, lineHeight: 18 }}>
                   {result.accepted} draw results inserted into histories · ON CONFLICT DO NOTHING applied for duplicates
                 </Text>
               ) : (
-                <Text style={{ fontSize: 11, color: theme.colors.textSecondary }}>
+                <Text style={{ fontSize: 11, color: colors.textSecondary }}>
                   Daily input logged for scope: {config.scope}
                 </Text>
               )}

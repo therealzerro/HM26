@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import { theme } from '@/constants/theme';
+import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { getTodayET } from '@/lib/dateUtils';
-import { SectionTitle, Card, st } from './AdminShared';
+import { SectionTitle, Card, useSt } from './AdminShared';
 
 // ─── Hit Tracking View ────────────────────────────────────────────────────────
 
@@ -22,6 +23,8 @@ function PerformanceRow({
   avgBox,
   onDeleted,
 }: { row: any; allData: any[]; avgBox: number; onDeleted?: () => void }) {
+  const { colors } = useTheme();
+  const st = useSt();
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [expandedData, setExpandedData] = useState<ExpandedRowData | null>(null);
@@ -34,12 +37,12 @@ function PerformanceRow({
   const boxHits = row.box_hits ?? 0;
   const straightHits = row.straight_hits ?? 0;
 
-  const rowBg = rate > 33 ? theme.colors.successLight : rate >= 16 ? theme.colors.goldLight : theme.colors.errorLight;
-  const rowBorderC = rate > 33 ? theme.colors.success + '44' : rate >= 16 ? theme.colors.gold + '44' : theme.colors.error + '44';
-  const rateColor = rate > 33 ? theme.colors.success : rate >= 16 ? theme.colors.gold : theme.colors.error;
+  const rowBg = rate > 33 ? colors.successLight : rate >= 16 ? colors.goldLight : colors.errorLight;
+  const rowBorderC = rate > 33 ? colors.success + '44' : rate >= 16 ? colors.gold + '44' : colors.error + '44';
+  const rateColor = rate > 33 ? colors.success : rate >= 16 ? colors.gold : colors.error;
 
   const scopeLabel = row.scope === 'midday' ? '☀️ Mid' : row.scope === 'evening' ? '🌙 Eve' : '◈ All';
-  const scopeColor = row.scope === 'midday' ? theme.colors.gold : row.scope === 'evening' ? theme.colors.primary : theme.colors.teal;
+  const scopeColor = row.scope === 'midday' ? colors.gold : row.scope === 'evening' ? colors.primary : colors.teal;
 
   const formatDate = (d: string) => {
     try {
@@ -192,24 +195,24 @@ function PerformanceRow({
         }}
       >
         <View style={{ width: 62 }}>
-          <Text style={{ fontSize: 10, fontFamily: theme.typography.fontFamily.monoBold, color: theme.colors.text, fontWeight: '700' }}>{formatDate(row.slate_date)}</Text>
+          <Text style={{ fontSize: 10, fontFamily: theme.typography.fontFamily.monoBold, color: colors.text, fontWeight: '700' }}>{formatDate(row.slate_date)}</Text>
         </View>
         <View style={{ width: 52 }}>
           <Text style={{ fontSize: 9, fontWeight: '700', color: scopeColor }}>{scopeLabel}</Text>
-          {row.mode && <Text style={{ fontSize: 8, color: theme.colors.textTertiary }}>{row.mode}</Text>}
+          {row.mode && <Text style={{ fontSize: 8, color: colors.textTertiary }}>{row.mode}</Text>}
         </View>
         <View style={{ width: 36 }}>
-          <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.monoBold }}>{boxHits}/{totalPicks || 6}</Text>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textSecondary, fontFamily: theme.typography.fontFamily.monoBold }}>{boxHits}/{totalPicks || 6}</Text>
         </View>
         <View style={{ flex: 1, marginHorizontal: 8 }}>
-          <View style={{ height: 6, backgroundColor: theme.colors.border, borderRadius: 3, overflow: 'hidden' }}>
+          <View style={{ height: 6, backgroundColor: colors.border, borderRadius: 3, overflow: 'hidden' }}>
             <View style={{ width: `${barWidth}%`, height: 6, backgroundColor: rateColor, borderRadius: 3 }} />
           </View>
           <Text style={{ fontSize: 8, color: rateColor, fontWeight: '800', marginTop: 2 }}>{rate > 0 ? rate + '% box' : '—'}</Text>
         </View>
         <View style={{ width: 28, alignItems: 'flex-end' }}>
           {straightHits > 0 && (
-            <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.teal }}>🎯{straightHits}</Text>
+            <Text style={{ fontSize: 9, fontWeight: '800', color: colors.teal }}>🎯{straightHits}</Text>
           )}
         </View>
         <TouchableOpacity
@@ -218,21 +221,21 @@ function PerformanceRow({
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={{ marginLeft: 6, padding: 2 }}
         >
-          <Text style={{ fontSize: 13, color: deleting ? theme.colors.textTertiary : theme.colors.error }}>🗑</Text>
+          <Text style={{ fontSize: 13, color: deleting ? colors.textTertiary : colors.error }}>🗑</Text>
         </TouchableOpacity>
-        <Text style={{ fontSize: 12, color: theme.colors.textTertiary, marginLeft: 4 }}>{expanded ? '▲' : '▼'}</Text>
+        <Text style={{ fontSize: 12, color: colors.textTertiary, marginLeft: 4 }}>{expanded ? '▲' : '▼'}</Text>
       </TouchableOpacity>
 
       {/* Expanded detail */}
       {expanded && (
         <View style={{
-          backgroundColor: theme.colors.surface, borderWidth: 1, borderTopWidth: 0,
+          backgroundColor: colors.surface, borderWidth: 1, borderTopWidth: 0,
           borderColor: rowBorderC, borderBottomLeftRadius: 10, borderBottomRightRadius: 10,
           padding: 12,
         }}>
           {loadingDetail ? (
             <View style={{ alignItems: 'center', paddingVertical: 16 }}>
-              <ActivityIndicator size="small" color={theme.colors.primary} />
+              <ActivityIndicator size="small" color={colors.primary} />
             </View>
           ) : expandedData ? (
             <>
@@ -246,7 +249,7 @@ function PerformanceRow({
                   matches (one combo, multiple matched_state entries). Group by combo
                   so a combo that hit in 2 states still counts as 1 hit but surfaces
                   every jurisdiction it landed in. */}
-              <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>
+              <Text style={{ fontSize: 9, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>
                 Hit Summary — {formatDate(row.slate_date)} {row.scope}
               </Text>
 
@@ -268,7 +271,7 @@ function PerformanceRow({
                 const rankMedal = (r: number) => r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : `#${r}`;
                 return (
                   <View style={{ marginBottom: 12 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: theme.colors.text, marginBottom: 8 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 8 }}>
                       Went {uniqueBoxHits} for {combos.length}
                       {uniqueStraightHits > 0 ? ` (${uniqueStraightHits} straight)` : ''}
                     </Text>
@@ -280,7 +283,7 @@ function PerformanceRow({
                         const digits = combo.split('').join(' — ');
                         const cs = p.combo_set ?? ('{' + combo.split('').sort().join(',') + '}');
                         const energy = Math.round(p.energy_score ?? 0);
-                        const energyColor = energy >= 80 ? theme.colors.success : energy >= 50 ? theme.colors.gold : theme.colors.textSecondary;
+                        const energyColor = energy >= 80 ? colors.success : energy >= 50 ? colors.gold : colors.textSecondary;
                         const bBox = Math.round((p.signal_box ?? 0) * 100);
                         const bPburst = Math.round((p.signal_pburst ?? 0) * 100);
                         const bCo = Math.round((p.signal_co ?? 0) * 100);
@@ -290,22 +293,22 @@ function PerformanceRow({
                         return (
                           <View key={pi} style={{
                             padding: 10, borderRadius: 10, borderWidth: 1,
-                            backgroundColor: isStraightHit ? theme.colors.successLight : isBoxHit ? theme.colors.gold + '14' : theme.colors.surfaceLight,
-                            borderColor: isStraightHit ? theme.colors.success + '66' : isBoxHit ? theme.colors.gold + '55' : theme.colors.border,
+                            backgroundColor: isStraightHit ? colors.successLight : isBoxHit ? colors.gold + '14' : colors.surfaceLight,
+                            borderColor: isStraightHit ? colors.success + '66' : isBoxHit ? colors.gold + '55' : colors.border,
                           }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
                               <Text style={{ fontSize: 13, marginRight: 6 }}>{rankMedal(rank)}</Text>
-                              <Text style={{ fontSize: 18, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, color: theme.colors.text, flex: 1 }}>{digits}</Text>
+                              <Text style={{ fontSize: 18, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, color: colors.text, flex: 1 }}>{digits}</Text>
                               <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: energyColor + '22' }}>
                                 <Text style={{ fontSize: 9, fontWeight: '800', color: energyColor }}>E{energy}</Text>
                               </View>
                             </View>
-                            <Text style={{ fontSize: 9, color: theme.colors.textTertiary, marginBottom: 6 }}>{cs}</Text>
+                            <Text style={{ fontSize: 9, color: colors.textTertiary, marginBottom: 6 }}>{cs}</Text>
                             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 6 }}>
-                              {([['Freq', bBox, theme.colors.primary], ['Mom', bPburst, theme.colors.teal], ['Pat', bCo, theme.colors.rose]] as const).map(([lbl, val, color]) => (
+                              {([['Freq', bBox, colors.primary], ['Mom', bPburst, colors.teal], ['Pat', bCo, colors.rose]] as const).map(([lbl, val, color]) => (
                                 <View key={lbl} style={{ flex: 1 }}>
-                                  <Text style={{ fontSize: 8, color: theme.colors.textTertiary, marginBottom: 2 }}>{lbl}</Text>
-                                  <View style={{ height: 4, backgroundColor: theme.colors.border, borderRadius: 2 }}>
+                                  <Text style={{ fontSize: 8, color: colors.textTertiary, marginBottom: 2 }}>{lbl}</Text>
+                                  <View style={{ height: 4, backgroundColor: colors.border, borderRadius: 2 }}>
                                     <View style={{ width: `${Math.min(val, 100)}%`, height: 4, backgroundColor: color, borderRadius: 2 }} />
                                   </View>
                                   <Text style={{ fontSize: 8, color, marginTop: 1 }}>{val}%</Text>
@@ -313,15 +316,15 @@ function PerformanceRow({
                               ))}
                             </View>
                             {isStraightHit && straightMatch ? (
-                              <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.success }}>
+                              <Text style={{ fontSize: 10, fontWeight: '800', color: colors.success }}>
                                 ⭐ Straight · {straightMatch.matched_state}{straightMatch.matched_session ? ` ${straightMatch.matched_session}` : ''}{straightMatch.actual_result ? ` (${straightMatch.actual_result})` : ''}
                               </Text>
                             ) : isBoxHit ? (
-                              <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.gold }}>
+                              <Text style={{ fontSize: 10, fontWeight: '700', color: colors.gold }}>
                                 🎯 Box · {c.matches.map(m => `${m.matched_state}${m.matched_session ? ` ${m.matched_session}` : ''}`).join(' · ')}
                               </Text>
                             ) : (
-                              <Text style={{ fontSize: 9, color: theme.colors.textTertiary }}>✗ Miss</Text>
+                              <Text style={{ fontSize: 9, color: colors.textTertiary }}>✗ Miss</Text>
                             )}
                           </View>
                         );
@@ -330,7 +333,7 @@ function PerformanceRow({
                   </View>
                 );
               })() : (
-                <Text style={{ fontSize: 11, color: theme.colors.textTertiary, marginBottom: 12 }}>
+                <Text style={{ fontSize: 11, color: colors.textTertiary, marginBottom: 12 }}>
                   No tracking data for this slate.{'\n'}Regenerate slates to populate adaptive_tracking.
                 </Text>
               )}
@@ -353,10 +356,10 @@ function PerformanceRow({
                 }
                 return (
                   <View style={{ marginBottom: 12 }}>
-                    <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Where the hits came from</Text>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Where the hits came from</Text>
                     {[...byCombo.entries()].map(([combo, matches], ci) => (
                       <View key={ci} style={{ marginBottom: 4 }}>
-                        <Text style={{ fontSize: 11, color: theme.colors.text }}>
+                        <Text style={{ fontSize: 11, color: colors.text }}>
                           <Text style={{ fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '900', letterSpacing: 2 }}>{combo}</Text>
                           {' hit '}
                           {matches.length === 1
@@ -364,7 +367,7 @@ function PerformanceRow({
                             : <>
                                 in <Text style={{ fontWeight: '700' }}>{matches.length} jurisdictions</Text>:
                                 {' '}{matches.map((m: any, i: number) =>
-                                  <Text key={i} style={{ color: theme.colors.gold, fontWeight: '700' }}>
+                                  <Text key={i} style={{ color: colors.gold, fontWeight: '700' }}>
                                     {m.matched_state}{i < matches.length - 1 ? ' · ' : ''}
                                   </Text>
                                 )}
@@ -391,7 +394,7 @@ function PerformanceRow({
                 ];
                 return (
                   <View style={{ marginBottom: 12 }}>
-                    <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Top-quartile lift</Text>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Top-quartile lift</Text>
                     {flags.map(([label, flag]) => {
                       const top = all.filter((t: any) => t[flag] === true);
                       const bot = all.filter((t: any) => t[flag] === false);
@@ -400,11 +403,11 @@ function PerformanceRow({
                       const tRate = top.length ? Math.round((tHits / top.length) * 100) : 0;
                       const bRate = bot.length ? Math.round((bHits / bot.length) * 100) : 0;
                       const lift = tRate - bRate;
-                      const tone = lift >= 10 ? theme.colors.success : lift >= 3 ? theme.colors.gold : lift >= -3 ? theme.colors.textTertiary : theme.colors.error;
+                      const tone = lift >= 10 ? colors.success : lift >= 3 ? colors.gold : lift >= -3 ? colors.textTertiary : colors.error;
                       return (
                         <View key={label} style={{ flexDirection: 'row', alignItems: 'baseline', marginBottom: 2 }}>
-                          <Text style={{ fontSize: 10, color: theme.colors.text, width: 88 }}>{label}</Text>
-                          <Text style={{ fontSize: 10, color: theme.colors.textSecondary, flex: 1, fontFamily: theme.typography.fontFamily.mono }}>
+                          <Text style={{ fontSize: 10, color: colors.text, width: 88 }}>{label}</Text>
+                          <Text style={{ fontSize: 10, color: colors.textSecondary, flex: 1, fontFamily: theme.typography.fontFamily.mono }}>
                             top: {tRate}%  ·  other: {bRate}%
                           </Text>
                           <Text style={{ fontSize: 10, fontWeight: '900', color: tone, fontFamily: theme.typography.fontFamily.monoBold }}>
@@ -447,37 +450,37 @@ function PerformanceRow({
                 };
                 return (
                   <View style={{ marginBottom: 12 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '800', color: theme.colors.text, marginBottom: 6 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: colors.text, marginBottom: 6 }}>
                       Why these picks worked
                     </Text>
                     {hits.length === 0 ? (
-                      <Text style={{ fontSize: 10, color: theme.colors.textTertiary, fontStyle: 'italic' }}>
+                      <Text style={{ fontSize: 10, color: colors.textTertiary, fontStyle: 'italic' }}>
                         No hits today to break down.
                       </Text>
                     ) : (
                       hits.map((t: any, ti: number) => {
                         const dominant = dominantOf(t);
                         return (
-                          <View key={ti} style={{ marginBottom: 8, padding: 8, borderRadius: 8, backgroundColor: theme.colors.gold + '11', borderWidth: 1, borderColor: theme.colors.gold + '33' }}>
+                          <View key={ti} style={{ marginBottom: 8, padding: 8, borderRadius: 8, backgroundColor: colors.gold + '11', borderWidth: 1, borderColor: colors.gold + '33' }}>
                             <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
-                              <Text style={{ fontSize: 14, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 2 }}>{t.combo}</Text>
-                              <Text style={{ fontSize: 10, color: theme.colors.gold, fontWeight: '700' }}>
+                              <Text style={{ fontSize: 14, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 2 }}>{t.combo}</Text>
+                              <Text style={{ fontSize: 10, color: colors.gold, fontWeight: '700' }}>
                                 {dominant} led this pick
                               </Text>
                             </View>
                             {/* Friendly signal bars */}
                             <View style={{ flexDirection: 'row', gap: 8 }}>
                               {([
-                                ['Frequency',   t.signal_box ?? 0,    theme.colors.cyan,   t.box_top_quartile],
-                                ['Momentum',    t.signal_pburst ?? 0, theme.colors.rose,   t.pburst_top_quartile],
-                                ['Pattern',     t.signal_co ?? 0,     theme.colors.purple, t.co_top_quartile],
-                                ['Consistency', dgcOf(t),             theme.colors.gold,   t.burst_top_quartile],
+                                ['Frequency',   t.signal_box ?? 0,    colors.cyan,   t.box_top_quartile],
+                                ['Momentum',    t.signal_pburst ?? 0, colors.rose,   t.pburst_top_quartile],
+                                ['Pattern',     t.signal_co ?? 0,     colors.purple, t.co_top_quartile],
+                                ['Consistency', dgcOf(t),             colors.gold,   t.burst_top_quartile],
                               ] as const).map(([lbl, val, color, topQ]) => (
                                 <View key={lbl} style={{ flex: 1 }}>
-                                  <Text style={{ fontSize: 8, color: theme.colors.textTertiary, marginBottom: 2 }}>
+                                  <Text style={{ fontSize: 8, color: colors.textTertiary, marginBottom: 2 }}>
                                     {lbl}{topQ ? ' ★' : ''}
                                   </Text>
-                                  <View style={{ height: 4, backgroundColor: theme.colors.border, borderRadius: 2 }}>
+                                  <View style={{ height: 4, backgroundColor: colors.border, borderRadius: 2 }}>
                                     <View style={{ width: `${Math.min(val * 100, 100)}%`, height: 4, backgroundColor: color, borderRadius: 2 }} />
                                   </View>
                                   <Text style={{ fontSize: 9, color, marginTop: 2, fontFamily: theme.typography.fontFamily.monoBold }}>
@@ -486,7 +489,7 @@ function PerformanceRow({
                                 </View>
                               ))}
                             </View>
-                            <Text style={{ fontSize: 8, color: theme.colors.textTertiary, marginTop: 5, fontStyle: 'italic' }}>
+                            <Text style={{ fontSize: 8, color: colors.textTertiary, marginTop: 5, fontStyle: 'italic' }}>
                               ★ = top quartile of the day
                             </Text>
                           </View>
@@ -500,7 +503,7 @@ function PerformanceRow({
                       const missStrong = misses.reduce((s: number, t: any) => s + (t.energy_score ?? 0), 0) / misses.length;
                       const diff = Math.round(hitStrong - missStrong);
                       return (
-                        <Text style={{ fontSize: 10, color: theme.colors.textSecondary, marginTop: 6 }}>
+                        <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 6 }}>
                           {diff > 5 ? (
                             <>✓ Your winning picks were stronger going in (by {diff} points) — the engine ranked them higher and they delivered.</>
                           ) : diff > -5 ? (
@@ -532,7 +535,7 @@ function PerformanceRow({
                 }
                 return (
                   <View style={{ marginBottom: 12 }}>
-                    <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>State Breakdown</Text>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>State Breakdown</Text>
                     <View style={{ gap: 2 }}>
                       {expandedData.historyResults.slice(0, 10).map((res: any, ri: number) => {
                         const cs = res.comboset_sorted ?? ('{' + (res.result_digits ?? '').split('').sort().join(',') + '}');
@@ -542,9 +545,9 @@ function PerformanceRow({
                         const pickRank = csToRank.get(cs);
                         return (
                           <View key={ri} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 }}>
-                            <Text style={{ fontSize: 10, width: 80, color: theme.colors.textSecondary }}>{res.jurisdiction?.slice(0, 10) ?? '?'}</Text>
-                            <Text style={{ fontSize: 10, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700', color: theme.colors.text, width: 30 }}>{res.result_digits}</Text>
-                            <Text style={{ fontSize: 10, color: matched ? theme.colors.success : theme.colors.textTertiary, flex: 1 }}>
+                            <Text style={{ fontSize: 10, width: 80, color: colors.textSecondary }}>{res.jurisdiction?.slice(0, 10) ?? '?'}</Text>
+                            <Text style={{ fontSize: 10, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700', color: colors.text, width: 30 }}>{res.result_digits}</Text>
+                            <Text style={{ fontSize: 10, color: matched ? colors.success : colors.textTertiary, flex: 1 }}>
                               {matched ? `✓ ${isStraight ? 'straight' : 'box'} hit · Pick #${pickRank ?? '?'}` : '✗ Miss'}
                             </Text>
                           </View>
@@ -564,11 +567,11 @@ function PerformanceRow({
                 const vsAvg = rate - avg30;
                 return (
                   <View style={{ marginBottom: 12 }}>
-                    <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Cumulative Context</Text>
-                    <Text style={{ fontSize: 10, color: theme.colors.text, marginBottom: 2 }}>Best day: {bestRow.slate_date ? formatDate(bestRow.slate_date) : '—'} — {bestRow.box_hits ?? 0}/{bestRow.total_picks ?? 6} hits</Text>
-                    <Text style={{ fontSize: 10, color: theme.colors.text, marginBottom: 2 }}>Worst day: {worstRow.slate_date ? formatDate(worstRow.slate_date) : '—'} — {worstRow.box_hits ?? 0}/{worstRow.total_picks ?? 6} hits</Text>
-                    <Text style={{ fontSize: 10, color: theme.colors.text, marginBottom: 2 }}>30-day avg box rate: {avgBox}%</Text>
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: vsAvg >= 0 ? theme.colors.success : theme.colors.error }}>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Cumulative Context</Text>
+                    <Text style={{ fontSize: 10, color: colors.text, marginBottom: 2 }}>Best day: {bestRow.slate_date ? formatDate(bestRow.slate_date) : '—'} — {bestRow.box_hits ?? 0}/{bestRow.total_picks ?? 6} hits</Text>
+                    <Text style={{ fontSize: 10, color: colors.text, marginBottom: 2 }}>Worst day: {worstRow.slate_date ? formatDate(worstRow.slate_date) : '—'} — {worstRow.box_hits ?? 0}/{worstRow.total_picks ?? 6} hits</Text>
+                    <Text style={{ fontSize: 10, color: colors.text, marginBottom: 2 }}>30-day avg box rate: {avgBox}%</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: vsAvg >= 0 ? colors.success : colors.error }}>
                       This slate: {vsAvg >= 0 ? '+' : ''}{vsAvg.toFixed(1)}% vs average
                     </Text>
                   </View>
@@ -587,9 +590,9 @@ function PerformanceRow({
                 const bestMode = modeStats.reduce((best, m) => (m.avg ?? 0) > (best.avg ?? 0) ? m : best, modeStats[0]);
                 return (
                   <View style={{ marginBottom: 12 }}>
-                    <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Mode Analysis</Text>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Mode Analysis</Text>
                     {modeStats.map(m => (
-                      <Text key={m.mode} style={{ fontSize: 10, color: m.mode === bestMode.mode ? theme.colors.primary : theme.colors.text, marginBottom: 2 }}>
+                      <Text key={m.mode} style={{ fontSize: 10, color: m.mode === bestMode.mode ? colors.primary : colors.text, marginBottom: 2 }}>
                         {m.mode}: {m.avg ?? 0}% avg box rate ({m.count} slates){m.mode === bestMode.mode ? ' ← best' : ''}
                       </Text>
                     ))}
@@ -600,10 +603,10 @@ function PerformanceRow({
               {/* SECTION F — QUICK ACTIONS */}
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <TouchableOpacity
-                  style={{ flex: 1, padding: 8, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.primary + '44', backgroundColor: theme.colors.primaryLight, alignItems: 'center' }}
+                  style={{ flex: 1, padding: 8, borderRadius: 8, borderWidth: 1, borderColor: colors.primary + '44', backgroundColor: colors.primaryLight, alignItems: 'center' }}
                   onPress={() => router.push('/(tabs)/results')}
                 >
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.primary }}>View Results</Text>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: colors.primary }}>View Results</Text>
                 </TouchableOpacity>
               </View>
             </>
@@ -615,6 +618,8 @@ function PerformanceRow({
 }
 
 export default function HitTrackingView() {
+  const { colors } = useTheme();
+  const st = useSt();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -827,19 +832,19 @@ export default function HitTrackingView() {
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-        <Text style={{ fontSize: 17, fontWeight: '800', color: theme.colors.text }}>🎯 Slate Performance</Text>
+        <Text style={{ fontSize: 17, fontWeight: '800', color: colors.text }}>🎯 Slate Performance</Text>
         <TouchableOpacity onPress={load} style={{ padding: 6 }}>
-          <Text style={{ fontSize: 16, color: theme.colors.primary }}>↻</Text>
+          <Text style={{ fontSize: 16, color: colors.primary }}>↻</Text>
         </TouchableOpacity>
       </View>
-      <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginBottom: 10 }}>Slate picks vs actual draw results · tap row to expand</Text>
+      <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 10 }}>Slate picks vs actual draw results · tap row to expand</Text>
       {/* Phase 6: action row — duplicate cleanup + CSV export */}
       <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
         <TouchableOpacity
           onPress={handleDeleteDuplicates}
-          style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.error + '55', backgroundColor: theme.colors.errorLight }}
+          style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: colors.error + '55', backgroundColor: colors.errorLight }}
         >
-          <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.error }}>🗑 Clean Duplicates</Text>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: colors.error }}>🗑 Clean Duplicates</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={async () => {
@@ -857,21 +862,21 @@ export default function HitTrackingView() {
               await Share.share({ message: csv, title: `zk6-performance-${getTodayET()}.csv` });
             } catch (e) { Alert.alert('Share failed', String(e)); }
           }}
-          style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.primary + '55', backgroundColor: theme.colors.primaryLight }}
+          style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: colors.primary + '55', backgroundColor: colors.primaryLight }}
         >
-          <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.primary }}>📋 Export CSV</Text>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary }}>📋 Export CSV</Text>
         </TouchableOpacity>
       </View>
 
       {loading ? (
         <View style={{ alignItems: 'center', paddingTop: 60, gap: 12 }}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={{ fontSize: 13, color: theme.colors.textSecondary }}>Calculating hit rates…</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={{ fontSize: 13, color: colors.textSecondary }}>Calculating hit rates…</Text>
         </View>
       ) : fetchError ? (
-        <Card style={{ padding: 16, backgroundColor: theme.colors.errorLight, borderColor: theme.colors.error + '44' }}>
-          <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.error, marginBottom: 4 }}>⚠️ Failed to load</Text>
-          <Text style={{ fontSize: 11, color: theme.colors.textSecondary }}>{fetchError}</Text>
+        <Card style={{ padding: 16, backgroundColor: colors.errorLight, borderColor: colors.error + '44' }}>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: colors.error, marginBottom: 4 }}>⚠️ Failed to load</Text>
+          <Text style={{ fontSize: 11, color: colors.textSecondary }}>{fetchError}</Text>
           <TouchableOpacity style={[st.btnPrimary, { marginTop: 12 }]} onPress={load}>
             <Text style={st.btnPrimaryText}>↺ Retry</Text>
           </TouchableOpacity>
@@ -879,8 +884,8 @@ export default function HitTrackingView() {
       ) : !data.length ? (
         <Card style={{ padding: 24, alignItems: 'center' }}>
           <Text style={{ fontSize: 32, marginBottom: 8 }}>📊</Text>
-          <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.text, marginBottom: 6 }}>No performance data yet</Text>
-          <Text style={{ fontSize: 12, color: theme.colors.textSecondary, textAlign: 'center', lineHeight: 18 }}>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 6 }}>No performance data yet</Text>
+          <Text style={{ fontSize: 12, color: colors.textSecondary, textAlign: 'center', lineHeight: 18 }}>
             Import Results Ledger data and generate slates to begin tracking ZK6 accuracy.
           </Text>
         </Card>
@@ -890,15 +895,15 @@ export default function HitTrackingView() {
           {stats && (
             <View style={{ flexDirection: 'row', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
               {[
-                { l: 'All-Time Box %', v: stats.avgBox + '%', c: theme.colors.success, i: '✓' },
-                { l: 'All-Time Straight %', v: stats.avgStr + '%', c: theme.colors.teal, i: '🎯' },
-                { l: 'Best Day', v: `${stats.best}%${stats.bestDate ? '\n' + stats.bestDate.slice(5) : ''}`, c: theme.colors.gold, i: '🏆' },
-                { l: 'Total Hits', v: String(stats.totalHits), c: theme.colors.primary, i: '🔢' },
+                { l: 'All-Time Box %', v: stats.avgBox + '%', c: colors.success, i: '✓' },
+                { l: 'All-Time Straight %', v: stats.avgStr + '%', c: colors.teal, i: '🎯' },
+                { l: 'Best Day', v: `${stats.best}%${stats.bestDate ? '\n' + stats.bestDate.slice(5) : ''}`, c: colors.gold, i: '🏆' },
+                { l: 'Total Hits', v: String(stats.totalHits), c: colors.primary, i: '🔢' },
               ].map(s => (
                 <Card key={s.l} style={{ flex: 1, minWidth: 72, padding: 10, alignItems: 'center' }}>
                   <Text style={{ fontSize: 13, marginBottom: 2 }}>{s.i}</Text>
                   <Text style={{ fontSize: 13, fontWeight: '900', color: s.c, fontFamily: theme.typography.fontFamily.monoBold, textAlign: 'center' }}>{s.v}</Text>
-                  <Text style={{ fontSize: 8, color: theme.colors.textTertiary, fontWeight: '700', textAlign: 'center', marginTop: 2 }}>{s.l}</Text>
+                  <Text style={{ fontSize: 8, color: colors.textTertiary, fontWeight: '700', textAlign: 'center', marginTop: 2 }}>{s.l}</Text>
                 </Card>
               ))}
             </View>
@@ -912,11 +917,11 @@ export default function HitTrackingView() {
                 onPress={() => setScopeFilter(val)}
                 style={{
                   paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
-                  backgroundColor: scopeFilter === val ? theme.colors.primary : theme.colors.surfaceLight,
-                  borderWidth: 1, borderColor: scopeFilter === val ? theme.colors.primary : theme.colors.border,
+                  backgroundColor: scopeFilter === val ? colors.primary : colors.surfaceLight,
+                  borderWidth: 1, borderColor: scopeFilter === val ? colors.primary : colors.border,
                 }}
               >
-                <Text style={{ fontSize: 9, fontWeight: '700', color: scopeFilter === val ? '#fff' : theme.colors.textSecondary }}>{label}</Text>
+                <Text style={{ fontSize: 9, fontWeight: '700', color: scopeFilter === val ? '#fff' : colors.textSecondary }}>{label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -929,11 +934,11 @@ export default function HitTrackingView() {
                 onPress={() => setModeFilter(val)}
                 style={{
                   paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
-                  backgroundColor: modeFilter === val ? theme.colors.teal : theme.colors.surfaceLight,
-                  borderWidth: 1, borderColor: modeFilter === val ? theme.colors.teal : theme.colors.border,
+                  backgroundColor: modeFilter === val ? colors.teal : colors.surfaceLight,
+                  borderWidth: 1, borderColor: modeFilter === val ? colors.teal : colors.border,
                 }}
               >
-                <Text style={{ fontSize: 9, fontWeight: '700', color: modeFilter === val ? '#fff' : theme.colors.textSecondary }}>{label}</Text>
+                <Text style={{ fontSize: 9, fontWeight: '700', color: modeFilter === val ? '#fff' : colors.textSecondary }}>{label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -942,12 +947,12 @@ export default function HitTrackingView() {
 
           {/* Column labels */}
           <View style={{ flexDirection: 'row', paddingHorizontal: 10, paddingVertical: 4, marginBottom: 4 }}>
-            <Text style={{ width: 62, fontSize: 8, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 0.8 }}>DATE</Text>
-            <Text style={{ width: 52, fontSize: 8, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 0.8 }}>SCOPE</Text>
-            <Text style={{ width: 36, fontSize: 8, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 0.8 }}>HITS</Text>
-            <Text style={{ flex: 1, fontSize: 8, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 0.8 }}>BOX RATE</Text>
-            <Text style={{ width: 28, fontSize: 8, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 0.8 }}>STR</Text>
-            <Text style={{ width: 36, fontSize: 8, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 0.8 }}>DEL</Text>
+            <Text style={{ width: 62, fontSize: 8, fontWeight: '800', color: colors.textTertiary, letterSpacing: 0.8 }}>DATE</Text>
+            <Text style={{ width: 52, fontSize: 8, fontWeight: '800', color: colors.textTertiary, letterSpacing: 0.8 }}>SCOPE</Text>
+            <Text style={{ width: 36, fontSize: 8, fontWeight: '800', color: colors.textTertiary, letterSpacing: 0.8 }}>HITS</Text>
+            <Text style={{ flex: 1, fontSize: 8, fontWeight: '800', color: colors.textTertiary, letterSpacing: 0.8 }}>BOX RATE</Text>
+            <Text style={{ width: 28, fontSize: 8, fontWeight: '800', color: colors.textTertiary, letterSpacing: 0.8 }}>STR</Text>
+            <Text style={{ width: 36, fontSize: 8, fontWeight: '800', color: colors.textTertiary, letterSpacing: 0.8 }}>DEL</Text>
           </View>
 
           {filtered.map((row, i) => (
@@ -956,7 +961,7 @@ export default function HitTrackingView() {
 
           {filtered.length === 0 && (
             <Card style={{ padding: 16, alignItems: 'center' }}>
-              <Text style={{ fontSize: 12, color: theme.colors.textSecondary }}>No data matches current filters</Text>
+              <Text style={{ fontSize: 12, color: colors.textSecondary }}>No data matches current filters</Text>
             </Card>
           )}
 
@@ -967,7 +972,7 @@ export default function HitTrackingView() {
           <RecentlyDeletedPanel onRestored={load} />
 
           <Card style={{ padding: 10, marginTop: 8 }}>
-            <Text style={{ fontSize: 9, color: theme.colors.textTertiary, lineHeight: 15 }}>
+            <Text style={{ fontSize: 9, color: colors.textTertiary, lineHeight: 15 }}>
               🟢 Green = box rate {'>'} 33% · 🟡 Yellow = 16–33% · 🔴 Red = {'<'} 16%{'\n'}
               Tap any row to expand hit details, signal analysis, and state breakdown
             </Text>
@@ -980,6 +985,8 @@ export default function HitTrackingView() {
 
 // ─── Phase 4 — Recently deleted panel ───────────────────────────────────────
 function RecentlyDeletedPanel({ onRestored }: { onRestored?: () => void }) {
+  const { colors } = useTheme();
+  const st = useSt();
   const [expanded, setExpanded] = useState(false);
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1054,41 +1061,41 @@ function RecentlyDeletedPanel({ onRestored }: { onRestored?: () => void }) {
     <Card style={{ padding: 12, marginTop: 8 }}>
       <TouchableOpacity onPress={() => setExpanded(e => !e)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         <Text style={{ fontSize: 14 }}>{expanded ? '▾' : '▸'}</Text>
-        <Text style={{ fontSize: 11, fontWeight: '800', color: theme.colors.textSecondary, letterSpacing: 0.4 }}>
+        <Text style={{ fontSize: 11, fontWeight: '800', color: colors.textSecondary, letterSpacing: 0.4 }}>
           Recently deleted (last 30d)
         </Text>
         <View style={{ flex: 1 }} />
         {!expanded && (
-          <Text style={{ fontSize: 10, color: theme.colors.textTertiary }}>tap to expand</Text>
+          <Text style={{ fontSize: 10, color: colors.textTertiary }}>tap to expand</Text>
         )}
       </TouchableOpacity>
       {expanded && (
         <View style={{ marginTop: 10, gap: 6 }}>
           {loading ? (
-            <ActivityIndicator size="small" color={theme.colors.primary} />
+            <ActivityIndicator size="small" color={colors.primary} />
           ) : rows.length === 0 ? (
-            <Text style={{ fontSize: 10, color: theme.colors.textTertiary }}>Nothing soft-deleted in the last 30 days.</Text>
+            <Text style={{ fontSize: 10, color: colors.textTertiary }}>Nothing soft-deleted in the last 30 days.</Text>
           ) : (
             rows.map(r => {
               const hits = hitsOf(r);
               const isRestoring = restoringId === r.id;
               return (
-                <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, backgroundColor: theme.colors.bgElevated, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.border }}>
-                  <Text style={{ fontSize: 10, fontFamily: theme.typography.fontFamily.monoBold, color: theme.colors.text, width: 76 }}>
+                <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, backgroundColor: colors.bgElevated, borderRadius: 8, borderWidth: 1, borderColor: colors.border }}>
+                  <Text style={{ fontSize: 10, fontFamily: theme.typography.fontFamily.monoBold, color: colors.text, width: 76 }}>
                     {r.slate_date}
                   </Text>
-                  <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.textSecondary, width: 56 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textSecondary, width: 56 }}>
                     {r.scope}
                   </Text>
-                  <Text style={{ fontSize: 9, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, flex: 1 }}>
+                  <Text style={{ fontSize: 9, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, flex: 1 }}>
                     {r.hash?.slice(0,8)} · {hits} hit{hits === 1 ? '' : 's'}
                   </Text>
                   <TouchableOpacity
                     onPress={() => restore(r.id, r.scope, r.slate_date, r.hash)}
                     disabled={isRestoring}
-                    style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, backgroundColor: theme.colors.primaryLight, borderWidth: 1, borderColor: theme.colors.primary + '66' }}
+                    style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, backgroundColor: colors.primaryLight, borderWidth: 1, borderColor: colors.primary + '66' }}
                   >
-                    <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.primary }}>
+                    <Text style={{ fontSize: 10, fontWeight: '800', color: colors.primary }}>
                       {isRestoring ? '…' : '↶ Restore'}
                     </Text>
                   </TouchableOpacity>

@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
-import { SectionTitle, Card, st } from './AdminShared';
+import { SectionTitle, Card, useSt } from './AdminShared';
 
 type ScopeName = 'midday' | 'evening' | 'allday';
 const SCOPE_NAMES: ScopeName[] = ['midday', 'evening', 'allday'];
 
 // ─── Engine Config View ───────────────────────────────────────────────────────
 export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?: (scope: any, weightsKey?: any) => Promise<any> }) {
+  const { colors } = useTheme();
+  const st = useSt();
   // E4 (2026-05-13): DGC is now visible. Defaults match engine production
   // (49.5/27/13.5/10 etc.) so Reset aligns with what the engine currently runs
   // rather than legacy starting points. All four signals sum to 100.
@@ -330,15 +333,15 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
 
   function ToggleRow({ icon, label, sub, on, onChange }: { icon: string; label: string; sub?: string; on: boolean; onChange: (v: boolean) => void }) {
     return (
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
         <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', flex: 1 }}>
           <Text style={{ fontSize: 15 }}>{icon}</Text>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>{label}</Text>
-            {sub && <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginTop: 1 }}>{sub}</Text>}
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>{label}</Text>
+            {sub && <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 1 }}>{sub}</Text>}
           </View>
         </View>
-        <TouchableOpacity onPress={() => onChange(!on)} style={{ width: 42, height: 22, borderRadius: 11, backgroundColor: on ? theme.colors.primary : theme.colors.surfaceMuted, justifyContent: 'center', paddingHorizontal: 3 }}>
+        <TouchableOpacity onPress={() => onChange(!on)} style={{ width: 42, height: 22, borderRadius: 11, backgroundColor: on ? colors.primary : colors.surfaceMuted, justifyContent: 'center', paddingHorizontal: 3 }}>
           <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: '#fff', alignSelf: on ? 'flex-end' : 'flex-start' }} />
         </TouchableOpacity>
       </View>
@@ -348,20 +351,20 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
   if (loading) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={{ fontSize: 13, color: theme.colors.textSecondary }}>Loading engine config…</Text>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ fontSize: 13, color: colors.textSecondary }}>Loading engine config…</Text>
       </View>
     );
   }
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      <Text style={{ fontSize: 17, fontWeight: '800', color: theme.colors.text, marginBottom: 4 }}>⚙️ ZK6 Engine Configuration</Text>
-      <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginBottom: loadError ? 8 : 16 }}>Proprietary settings — creator access only.</Text>
+      <Text style={{ fontSize: 17, fontWeight: '800', color: colors.text, marginBottom: 4 }}>⚙️ ZK6 Engine Configuration</Text>
+      <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: loadError ? 8 : 16 }}>Proprietary settings — creator access only.</Text>
 
       {loadError && (
-        <Card style={{ padding: 10, marginBottom: 14, backgroundColor: theme.colors.goldLight, borderColor: theme.colors.gold + '44' }}>
-          <Text style={{ fontSize: 11, color: theme.colors.gold }}>⚠️ Loaded with defaults — {loadError}</Text>
+        <Card style={{ padding: 10, marginBottom: 14, backgroundColor: colors.goldLight, borderColor: colors.gold + '44' }}>
+          <Text style={{ fontSize: 11, color: colors.gold }}>⚠️ Loaded with defaults — {loadError}</Text>
         </Card>
       )}
 
@@ -369,14 +372,14 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
           snapshot taken at last load (or post-save reset). Discard pulls
           live production state via Reload. */}
       {isDirty && (
-        <Card style={{ padding: 10, marginBottom: 14, backgroundColor: theme.colors.gold + '14', borderColor: theme.colors.gold + '55', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <Card style={{ padding: 10, marginBottom: 14, backgroundColor: colors.gold + '14', borderColor: colors.gold + '55', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Text style={{ fontSize: 16 }}>●</Text>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.gold }}>Unsaved changes</Text>
-            <Text style={{ fontSize: 10, color: theme.colors.textSecondary }}>Your edits diverge from production. Save to apply, or Reload to discard.</Text>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: colors.gold }}>Unsaved changes</Text>
+            <Text style={{ fontSize: 10, color: colors.textSecondary }}>Your edits diverge from production. Save to apply, or Reload to discard.</Text>
           </View>
-          <TouchableOpacity onPress={handleReload} style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, backgroundColor: theme.colors.surfaceLight, borderWidth: 1, borderColor: theme.colors.border }}>
-            <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.textSecondary }}>↻ Discard</Text>
+          <TouchableOpacity onPress={handleReload} style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border }}>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textSecondary }}>↻ Discard</Text>
           </TouchableOpacity>
         </Card>
       )}
@@ -386,8 +389,8 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
           so operators see what was tuned recently without bouncing to the
           MASTER_AUDIT.md file. */}
       {recentChanges.length > 0 && (
-        <Card style={{ padding: 12, marginBottom: 16, backgroundColor: theme.colors.surfaceLight }}>
-          <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1.5, marginBottom: 8 }}>RECENT CONFIG CHANGES</Text>
+        <Card style={{ padding: 12, marginBottom: 16, backgroundColor: colors.surfaceLight }}>
+          <Text style={{ fontSize: 10, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1.5, marginBottom: 8 }}>RECENT CONFIG CHANGES</Text>
           {recentChanges.map((r, i) => {
             const ts = new Date(r.created_at);
             const tsLabel = ts.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -402,9 +405,9 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
               overrides || null,
             ].filter(Boolean).join(' · ');
             return (
-              <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 4, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: theme.colors.border }}>
-                <Text style={{ fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, width: 92 }}>{tsLabel}</Text>
-                <Text style={{ fontSize: 10, color: theme.colors.textSecondary, flex: 1 }}>{summary || '(no diff captured)'}</Text>
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 4, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border }}>
+                <Text style={{ fontSize: 10, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, width: 92 }}>{tsLabel}</Text>
+                <Text style={{ fontSize: 10, color: colors.textSecondary, flex: 1 }}>{summary || '(no diff captured)'}</Text>
               </View>
             );
           })}
@@ -429,26 +432,26 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
             final indicator score). Sum-100 validation now spans all four. */}
         <View style={{ flexDirection: 'row', gap: 6 }}>
           {[
-            { l: 'BOX', c: theme.colors.primary },
-            { l: 'PBURST', c: theme.colors.rose },
-            { l: 'CO', c: theme.colors.teal },
-            { l: 'DGC', c: theme.colors.gold },
+            { l: 'BOX', c: colors.primary },
+            { l: 'PBURST', c: colors.rose },
+            { l: 'CO', c: colors.teal },
+            { l: 'DGC', c: colors.gold },
           ].map(s => (
-            <View key={s.l} style={{ flex: 1, backgroundColor: theme.colors.surfaceLight, borderRadius: 10, padding: 10, alignItems: 'center' }}>
-              <Text style={{ fontSize: 9, color: theme.colors.textTertiary, fontWeight: '800', letterSpacing: 1, marginBottom: 3 }}>{s.l}</Text>
+            <View key={s.l} style={{ flex: 1, backgroundColor: colors.surfaceLight, borderRadius: 10, padding: 10, alignItems: 'center' }}>
+              <Text style={{ fontSize: 9, color: colors.textTertiary, fontWeight: '800', letterSpacing: 1, marginBottom: 3 }}>{s.l}</Text>
               <Text style={{ fontSize: 18, fontWeight: '900', color: s.c, fontFamily: theme.typography.fontFamily.monoBold }}>{(w as any)[s.l]}%</Text>
             </View>
           ))}
         </View>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
-          <Text style={{ fontSize: 10, color: theme.colors.textTertiary }}>
+          <Text style={{ fontSize: 10, color: colors.textTertiary }}>
             Pick a preset above. Sum across all four must equal 100%.
           </Text>
           {(() => {
             const sum = (w.BOX ?? 0) + (w.PBURST ?? 0) + (w.CO ?? 0) + (w.DGC ?? 0);
             const ok = Math.abs(sum - 100) <= 1;
             return (
-              <Text style={{ fontSize: 10, fontWeight: '800', color: ok ? theme.colors.success : theme.colors.error, fontFamily: theme.typography.fontFamily.monoBold }}>
+              <Text style={{ fontSize: 10, fontWeight: '800', color: ok ? colors.success : colors.error, fontFamily: theme.typography.fontFamily.monoBold }}>
                 Σ {sum.toFixed(1)}%
               </Text>
             );
@@ -460,32 +463,32 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
       <Card style={{ paddingHorizontal: 16 }}>
         <ToggleRow icon="3️⃣" label="Allow Triples in K6" sub="Currently off — triples have very low historical frequency" on={triplesOn} onChange={setTriplesOn} />
 
-        <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+        <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>Max Singles in K6</Text>
-            <Text style={{ fontSize: 14, fontWeight: '900', color: theme.colors.primary, fontFamily: theme.typography.fontFamily.monoBold }}>{singlesMax}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>Max Singles in K6</Text>
+            <Text style={{ fontSize: 14, fontWeight: '900', color: colors.primary, fontFamily: theme.typography.fontFamily.monoBold }}>{singlesMax}</Text>
           </View>
-          <View style={{ height: 4, backgroundColor: theme.colors.surfaceLight, borderRadius: 2, overflow: 'hidden' }}>
-            <View style={{ width: `${(singlesMax / 6) * 100}%`, height: '100%', backgroundColor: theme.colors.primary, borderRadius: 2 }} />
+          <View style={{ height: 4, backgroundColor: colors.surfaceLight, borderRadius: 2, overflow: 'hidden' }}>
+            <View style={{ width: `${(singlesMax / 6) * 100}%`, height: '100%', backgroundColor: colors.primary, borderRadius: 2 }} />
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
             {[1,2,3,4,5,6].map(v => (
-              <TouchableOpacity key={v} onPress={() => setSinglesMax(v)} style={{ width: 30, height: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 6, backgroundColor: singlesMax === v ? theme.colors.primaryLight : 'transparent' }}>
-                <Text style={{ fontSize: 10, color: singlesMax === v ? theme.colors.primary : theme.colors.textTertiary, fontWeight: '700' }}>{v}</Text>
+              <TouchableOpacity key={v} onPress={() => setSinglesMax(v)} style={{ width: 30, height: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 6, backgroundColor: singlesMax === v ? colors.primaryLight : 'transparent' }}>
+                <Text style={{ fontSize: 10, color: singlesMax === v ? colors.primary : colors.textTertiary, fontWeight: '700' }}>{v}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+        <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>Max Doubles in K6</Text>
-            <Text style={{ fontSize: 14, fontWeight: '900', color: theme.colors.teal, fontFamily: theme.typography.fontFamily.monoBold }}>{doublesMax}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>Max Doubles in K6</Text>
+            <Text style={{ fontSize: 14, fontWeight: '900', color: colors.teal, fontFamily: theme.typography.fontFamily.monoBold }}>{doublesMax}</Text>
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             {[0,1,2,3,4].map(v => (
-              <TouchableOpacity key={v} onPress={() => setDoublesMax(v)} style={{ width: 30, height: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 6, backgroundColor: doublesMax === v ? theme.colors.tealLight : 'transparent' }}>
-                <Text style={{ fontSize: 10, color: doublesMax === v ? theme.colors.teal : theme.colors.textTertiary, fontWeight: '700' }}>{v}</Text>
+              <TouchableOpacity key={v} onPress={() => setDoublesMax(v)} style={{ width: 30, height: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 6, backgroundColor: doublesMax === v ? colors.tealLight : 'transparent' }}>
+                <Text style={{ fontSize: 10, color: doublesMax === v ? colors.teal : colors.textTertiary, fontWeight: '700' }}>{v}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -493,13 +496,13 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
 
         <View style={{ paddingVertical: 10 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>Pair Repetition Cap</Text>
-            <Text style={{ fontSize: 14, fontWeight: '900', color: theme.colors.gold, fontFamily: theme.typography.fontFamily.monoBold }}>{pairRepCap}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>Pair Repetition Cap</Text>
+            <Text style={{ fontSize: 14, fontWeight: '900', color: colors.gold, fontFamily: theme.typography.fontFamily.monoBold }}>{pairRepCap}</Text>
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             {[1,2,3,4].map(v => (
-              <TouchableOpacity key={v} onPress={() => setPairRepCap(v)} style={{ width: 30, height: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 6, backgroundColor: pairRepCap === v ? theme.colors.goldLight : 'transparent' }}>
-                <Text style={{ fontSize: 10, color: pairRepCap === v ? theme.colors.gold : theme.colors.textTertiary, fontWeight: '700' }}>{v}</Text>
+              <TouchableOpacity key={v} onPress={() => setPairRepCap(v)} style={{ width: 30, height: 22, alignItems: 'center', justifyContent: 'center', borderRadius: 6, backgroundColor: pairRepCap === v ? colors.goldLight : 'transparent' }}>
+                <Text style={{ fontSize: 10, color: pairRepCap === v ? colors.gold : colors.textTertiary, fontWeight: '700' }}>{v}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -519,15 +522,15 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
         <View style={{ marginTop: 10 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>Boost Weight</Text>
-              <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginTop: 2 }}>Bonus score added when 2+ signals are {'>'} 0.70</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>Boost Weight</Text>
+              <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 2 }}>Bonus score added when 2+ signals are {'>'} 0.70</Text>
             </View>
-            <Text style={{ fontSize: 16, fontWeight: '900', color: theme.colors.primary, fontFamily: theme.typography.fontFamily.monoBold }}>+{synergyWeight.toFixed(2)}</Text>
+            <Text style={{ fontSize: 16, fontWeight: '900', color: colors.primary, fontFamily: theme.typography.fontFamily.monoBold }}>+{synergyWeight.toFixed(2)}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 6 }}>
             {[0.05, 0.10, 0.15, 0.20, 0.25].map(v => (
-              <TouchableOpacity key={v} onPress={() => setSynergyWeight(v)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: synergyWeight === v ? theme.colors.primaryLight : theme.colors.surfaceLight, borderWidth: 1, borderColor: synergyWeight === v ? theme.colors.primary + '55' : theme.colors.border }}>
-                <Text style={{ fontSize: 10, fontWeight: '700', color: synergyWeight === v ? theme.colors.primary : theme.colors.textTertiary }}>+{v.toFixed(2)}</Text>
+              <TouchableOpacity key={v} onPress={() => setSynergyWeight(v)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: synergyWeight === v ? colors.primaryLight : colors.surfaceLight, borderWidth: 1, borderColor: synergyWeight === v ? colors.primary + '55' : colors.border }}>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: synergyWeight === v ? colors.primary : colors.textTertiary }}>+{v.toFixed(2)}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -536,7 +539,7 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
 
       <SectionTitle>DEFAULT SCOPE</SectionTitle>
       <Card style={{ padding: 14, marginBottom: 16 }}>
-        <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text, marginBottom: 8 }}>Default Scope on App Launch</Text>
+        <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text, marginBottom: 8 }}>Default Scope on App Launch</Text>
         <View style={{ flexDirection: 'row', gap: 6 }}>
           {([['midday','☀️ Midday'], ['evening','🌙 Evening'], ['allday','◈ All Day']] as [string,string][]).map(([id, lbl]) => (
             <TouchableOpacity key={id} style={[st.optBtn, { flex: 1 }, defaultScope === id && st.optBtnOn]} onPress={() => setDefaultScope(id)}>
@@ -550,33 +553,33 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
       <SectionTitle>HORIZON WEIGHTS</SectionTitle>
       <Card style={{ padding: 14, marginBottom: 16 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>Horizon Blend Weights</Text>
-          <Text style={{ fontSize: 11, fontWeight: '700', color: Math.abs(horizonSum - 100) < 0.5 ? theme.colors.success : theme.colors.error, fontFamily: theme.typography.fontFamily.monoBold }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>Horizon Blend Weights</Text>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: Math.abs(horizonSum - 100) < 0.5 ? colors.success : colors.error, fontFamily: theme.typography.fontFamily.monoBold }}>
             Sum: {horizonSum.toFixed(1)}%
           </Text>
         </View>
-        <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginBottom: 10 }}>Sum must equal 100%. Higher weight = more influence on final score.</Text>
+        <Text style={{ fontSize: 10, color: colors.textTertiary, marginBottom: 10 }}>Sum must equal 100%. Higher weight = more influence on final score.</Text>
         {HORIZONS.map(h => {
           const val = horizonWeights[h] ?? 0;
           return (
             <View key={h} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.primary, width: 40, fontFamily: theme.typography.fontFamily.monoBold }}>{h}</Text>
-              <View style={{ flex: 1, height: 6, backgroundColor: theme.colors.surfaceLight, borderRadius: 3, overflow: 'hidden' }}>
-                <View style={{ width: `${Math.min(val, 100)}%`, height: '100%', backgroundColor: theme.colors.primary, borderRadius: 3 }} />
+              <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary, width: 40, fontFamily: theme.typography.fontFamily.monoBold }}>{h}</Text>
+              <View style={{ flex: 1, height: 6, backgroundColor: colors.surfaceLight, borderRadius: 3, overflow: 'hidden' }}>
+                <View style={{ width: `${Math.min(val, 100)}%`, height: '100%', backgroundColor: colors.primary, borderRadius: 3 }} />
               </View>
-              <Text style={{ fontSize: 11, fontWeight: '900', color: theme.colors.primary, fontFamily: theme.typography.fontFamily.monoBold, width: 36 }}>{val}%</Text>
+              <Text style={{ fontSize: 11, fontWeight: '900', color: colors.primary, fontFamily: theme.typography.fontFamily.monoBold, width: 36 }}>{val}%</Text>
               <View style={{ flexDirection: 'row', gap: 3 }}>
                 <TouchableOpacity
                   onPress={() => setHorizonWeights(w => ({ ...w, [h]: Math.max(0, (w[h] ?? 0) - 0.5) }))}
-                  style={{ width: 22, height: 22, backgroundColor: theme.colors.surfaceLight, borderRadius: 6, alignItems: 'center', justifyContent: 'center' }}
+                  style={{ width: 22, height: 22, backgroundColor: colors.surfaceLight, borderRadius: 6, alignItems: 'center', justifyContent: 'center' }}
                 >
-                  <Text style={{ fontSize: 12, color: theme.colors.textSecondary, fontWeight: '700' }}>−</Text>
+                  <Text style={{ fontSize: 12, color: colors.textSecondary, fontWeight: '700' }}>−</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setHorizonWeights(w => ({ ...w, [h]: (w[h] ?? 0) + 0.5 }))}
-                  style={{ width: 22, height: 22, backgroundColor: theme.colors.surfaceLight, borderRadius: 6, alignItems: 'center', justifyContent: 'center' }}
+                  style={{ width: 22, height: 22, backgroundColor: colors.surfaceLight, borderRadius: 6, alignItems: 'center', justifyContent: 'center' }}
                 >
-                  <Text style={{ fontSize: 12, color: theme.colors.textSecondary, fontWeight: '700' }}>+</Text>
+                  <Text style={{ fontSize: 12, color: colors.textSecondary, fontWeight: '700' }}>+</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -590,15 +593,15 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
         <View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>Pressure Threshold</Text>
-              <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginTop: 2 }}>Combos overdue by more than X draws get a pressure bonus</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>Pressure Threshold</Text>
+              <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 2 }}>Combos overdue by more than X draws get a pressure bonus</Text>
             </View>
-            <Text style={{ fontSize: 16, fontWeight: '900', color: theme.colors.rose, fontFamily: theme.typography.fontFamily.monoBold }}>{pressureThreshold}</Text>
+            <Text style={{ fontSize: 16, fontWeight: '900', color: colors.rose, fontFamily: theme.typography.fontFamily.monoBold }}>{pressureThreshold}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 6 }}>
             {[50, 100, 150, 200, 250, 300, 500].map(v => (
-              <TouchableOpacity key={v} onPress={() => setPressureThreshold(v)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: pressureThreshold === v ? theme.colors.roseLight : theme.colors.surfaceLight, borderWidth: 1, borderColor: pressureThreshold === v ? theme.colors.rose + '55' : theme.colors.border }}>
-                <Text style={{ fontSize: 10, fontWeight: '700', color: pressureThreshold === v ? theme.colors.rose : theme.colors.textTertiary }}>{v}</Text>
+              <TouchableOpacity key={v} onPress={() => setPressureThreshold(v)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: pressureThreshold === v ? colors.roseLight : colors.surfaceLight, borderWidth: 1, borderColor: pressureThreshold === v ? colors.rose + '55' : colors.border }}>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: pressureThreshold === v ? colors.rose : colors.textTertiary }}>{v}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -608,34 +611,34 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
       {/* ── Diversity Rails (enhanced) ── */}
       <SectionTitle>DIVERSITY RAILS</SectionTitle>
       <Card style={{ paddingHorizontal: 16 }}>
-        <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+        <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>Min Energy Threshold</Text>
-              <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginTop: 2 }}>Only include picks with energy score above this threshold</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>Min Energy Threshold</Text>
+              <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 2 }}>Only include picks with energy score above this threshold</Text>
             </View>
-            <Text style={{ fontSize: 16, fontWeight: '900', color: theme.colors.primary, fontFamily: theme.typography.fontFamily.monoBold }}>{minEnergyThreshold}</Text>
+            <Text style={{ fontSize: 16, fontWeight: '900', color: colors.primary, fontFamily: theme.typography.fontFamily.monoBold }}>{minEnergyThreshold}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 6 }}>
             {[0, 10, 20, 30, 40, 50].map(v => (
-              <TouchableOpacity key={v} onPress={() => setMinEnergyThreshold(v)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: minEnergyThreshold === v ? theme.colors.primaryLight : theme.colors.surfaceLight, borderWidth: 1, borderColor: minEnergyThreshold === v ? theme.colors.primary + '55' : theme.colors.border }}>
-                <Text style={{ fontSize: 10, fontWeight: '700', color: minEnergyThreshold === v ? theme.colors.primary : theme.colors.textTertiary }}>{v}</Text>
+              <TouchableOpacity key={v} onPress={() => setMinEnergyThreshold(v)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: minEnergyThreshold === v ? colors.primaryLight : colors.surfaceLight, borderWidth: 1, borderColor: minEnergyThreshold === v ? colors.primary + '55' : colors.border }}>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: minEnergyThreshold === v ? colors.primary : colors.textTertiary }}>{v}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
-        <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+        <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>🚫 Recent Hit Cooldown (global)</Text>
-              <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginTop: 1 }}>Exclude combos that hit within last N draws (0 = off). Per-scope overrides below.</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>🚫 Recent Hit Cooldown (global)</Text>
+              <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 1 }}>Exclude combos that hit within last N draws (0 = off). Per-scope overrides below.</Text>
             </View>
-            <Text style={{ fontSize: 14, fontWeight: '900', color: theme.colors.teal, fontFamily: theme.typography.fontFamily.monoBold }}>{recentHitCooldown === 0 ? 'Off' : `${recentHitCooldown}d`}</Text>
+            <Text style={{ fontSize: 14, fontWeight: '900', color: colors.teal, fontFamily: theme.typography.fontFamily.monoBold }}>{recentHitCooldown === 0 ? 'Off' : `${recentHitCooldown}d`}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
             {[0, 5, 10, 15, 20, 25, 30].map(v => (
-              <TouchableOpacity key={v} onPress={() => setRecentHitCooldown(v)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: recentHitCooldown === v ? theme.colors.tealLight : theme.colors.surfaceLight, borderWidth: 1, borderColor: recentHitCooldown === v ? theme.colors.teal + '55' : theme.colors.border }}>
-                <Text style={{ fontSize: 10, fontWeight: '700', color: recentHitCooldown === v ? theme.colors.teal : theme.colors.textTertiary }}>{v === 0 ? 'Off' : v}</Text>
+              <TouchableOpacity key={v} onPress={() => setRecentHitCooldown(v)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: recentHitCooldown === v ? colors.tealLight : colors.surfaceLight, borderWidth: 1, borderColor: recentHitCooldown === v ? colors.teal + '55' : colors.border }}>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: recentHitCooldown === v ? colors.teal : colors.textTertiary }}>{v === 0 ? 'Off' : v}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -645,26 +648,26 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
             engine reads `recent_hit_cooldown_${scope}` and prefers it over
             global when present. Save writes/deletes the row per scope. */}
         <View style={{ paddingVertical: 10 }}>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text, marginBottom: 2 }}>Per-scope cooldown overrides</Text>
-          <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginBottom: 8 }}>Surgical tuning when one scope underperforms. Empty = use global ({recentHitCooldown}d).</Text>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text, marginBottom: 2 }}>Per-scope cooldown overrides</Text>
+          <Text style={{ fontSize: 10, color: colors.textTertiary, marginBottom: 8 }}>Surgical tuning when one scope underperforms. Empty = use global ({recentHitCooldown}d).</Text>
           {SCOPE_NAMES.map(sc => {
             const cur = scopeCooldowns[sc];
             const label = sc === 'midday' ? '☀️ Midday' : sc === 'evening' ? '🌙 Evening' : '◈ All Day';
             const isOverride = cur != null;
             return (
-              <View key={sc} style={{ marginBottom: 6, padding: 8, borderRadius: 8, backgroundColor: isOverride ? theme.colors.tealLight + '55' : theme.colors.surfaceLight, borderWidth: 1, borderColor: isOverride ? theme.colors.teal + '44' : theme.colors.border }}>
+              <View key={sc} style={{ marginBottom: 6, padding: 8, borderRadius: 8, backgroundColor: isOverride ? colors.tealLight + '55' : colors.surfaceLight, borderWidth: 1, borderColor: isOverride ? colors.teal + '44' : colors.border }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.text }}>{label}</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: colors.text }}>{label}</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: isOverride ? theme.colors.teal : theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold }}>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: isOverride ? colors.teal : colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold }}>
                       {isOverride ? `${cur}d` : '(global)'}
                     </Text>
                     {isOverride && (
                       <TouchableOpacity
                         onPress={() => setScopeCooldowns(prev => ({ ...prev, [sc]: null }))}
-                        style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: theme.colors.surfaceLight, borderWidth: 1, borderColor: theme.colors.border }}
+                        style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border }}
                       >
-                        <Text style={{ fontSize: 9, fontWeight: '700', color: theme.colors.textSecondary }}>✗ clear</Text>
+                        <Text style={{ fontSize: 9, fontWeight: '700', color: colors.textSecondary }}>✗ clear</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -674,9 +677,9 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
                     <TouchableOpacity
                       key={v}
                       onPress={() => setScopeCooldowns(prev => ({ ...prev, [sc]: v }))}
-                      style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5, backgroundColor: cur === v ? theme.colors.teal : 'transparent', borderWidth: 1, borderColor: cur === v ? theme.colors.teal : theme.colors.border }}
+                      style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5, backgroundColor: cur === v ? colors.teal : 'transparent', borderWidth: 1, borderColor: cur === v ? colors.teal : colors.border }}
                     >
-                      <Text style={{ fontSize: 9, fontWeight: '700', color: cur === v ? '#fff' : theme.colors.textTertiary }}>{v}</Text>
+                      <Text style={{ fontSize: 9, fontWeight: '700', color: cur === v ? '#fff' : colors.textTertiary }}>{v}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -693,8 +696,8 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
           mechanism (scheduled agents) instead for time-based regens. */}
 
       {saveError && (
-        <Card style={{ padding: 10, marginBottom: 10, backgroundColor: theme.colors.errorLight, borderColor: theme.colors.error + '44' }}>
-          <Text style={{ fontSize: 11, color: theme.colors.error }}>✗ Save failed — {saveError}</Text>
+        <Card style={{ padding: 10, marginBottom: 10, backgroundColor: colors.errorLight, borderColor: colors.error + '44' }}>
+          <Text style={{ fontSize: 11, color: colors.error }}>✗ Save failed — {saveError}</Text>
         </Card>
       )}
 
@@ -720,7 +723,7 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
       </View>
       {regenerateSlate && (
         <TouchableOpacity
-          style={[st.btnPrimary, { marginTop: 8, backgroundColor: theme.colors.teal, opacity: saving || regenning ? 0.6 : 1 }]}
+          style={[st.btnPrimary, { marginTop: 8, backgroundColor: colors.teal, opacity: saving || regenning ? 0.6 : 1 }]}
           onPress={handleSaveAndRegen}
           disabled={saving || regenning}
         >
@@ -733,10 +736,10 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
 
       {/* About Engine Config button */}
       <TouchableOpacity
-        style={[st.btnGhost, { borderWidth: 1.5, borderColor: theme.colors.primary + '44', backgroundColor: theme.colors.primaryLight, marginTop: 10 }]}
+        style={[st.btnGhost, { borderWidth: 1.5, borderColor: colors.primary + '44', backgroundColor: colors.primaryLight, marginTop: 10 }]}
         onPress={() => setPreviewModal(true)}
       >
-        <Text style={[st.btnGhostText, { color: theme.colors.primary, fontWeight: '700' }]}>
+        <Text style={[st.btnGhostText, { color: colors.primary, fontWeight: '700' }]}>
           ℹ️ About Engine Config
         </Text>
       </TouchableOpacity>
@@ -746,18 +749,18 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
           and where to find the CSV output. Surfacing this button next to Save
           puts the empirical-validation gate in the operator's line of sight. */}
       <TouchableOpacity
-        style={[st.btnGhost, { borderWidth: 1.5, borderColor: theme.colors.teal + '44', backgroundColor: theme.colors.tealLight, marginTop: 8 }]}
+        style={[st.btnGhost, { borderWidth: 1.5, borderColor: colors.teal + '44', backgroundColor: colors.tealLight, marginTop: 8 }]}
         onPress={() => setBacktestModalOpen(true)}
       >
-        <Text style={[st.btnGhostText, { color: theme.colors.teal, fontWeight: '700' }]}>
+        <Text style={[st.btnGhostText, { color: colors.teal, fontWeight: '700' }]}>
           📊 Validate via Backtest
         </Text>
       </TouchableOpacity>
-      <Text style={{ fontSize: 10, color: theme.colors.textTertiary, textAlign: 'center', marginTop: 6, marginBottom: 20 }}>
+      <Text style={{ fontSize: 10, color: colors.textTertiary, textAlign: 'center', marginTop: 6, marginBottom: 20 }}>
         Per CLAUDE.md: no engine change ships without a hit-rate number attached
       </Text>
       {savedAt && (
-        <Text style={{ fontSize: 10, color: theme.colors.success, textAlign: 'center', marginTop: -14, marginBottom: 16 }}>
+        <Text style={{ fontSize: 10, color: colors.success, textAlign: 'center', marginTop: -14, marginBottom: 16 }}>
           Last saved: {savedAt} — {savedSummary ? `${savedSummary.written} key${savedSummary.written !== 1 ? 's' : ''} written${savedSummary.deleted > 0 ? `, ${savedSummary.deleted} override${savedSummary.deleted !== 1 ? 's' : ''} cleared` : ''}. ` : ''}
           Engine will use these on next slate generation
         </Text>
@@ -769,9 +772,9 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
       {confirmResetOpen && (
         <Modal transparent animationType="fade" onRequestClose={() => setConfirmResetOpen(false)}>
           <View style={{ flex: 1, backgroundColor: '#1E1B4B66', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-            <View style={{ backgroundColor: theme.colors.surface, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border, padding: 18, width: '100%', maxWidth: 360 }}>
-              <Text style={{ fontSize: 15, fontWeight: '800', color: theme.colors.text, marginBottom: 6 }}>Reset to UI defaults?</Text>
-              <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginBottom: 14 }}>
+            <View style={{ backgroundColor: colors.surface, borderRadius: 14, borderWidth: 1, borderColor: colors.border, padding: 18, width: '100%', maxWidth: 360 }}>
+              <Text style={{ fontSize: 15, fontWeight: '800', color: colors.text, marginBottom: 6 }}>Reset to UI defaults?</Text>
+              <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 14 }}>
                 This wipes all staged engine settings back to hardcoded defaults — including any per-scope cooldown overrides. It does NOT touch production app_config until you Save.{'\n\n'}If you want the live production state instead, cancel and use ↻ Reload.
               </Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -779,7 +782,7 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
                   <Text style={st.btnGhostText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[st.btnPrimary, { flex: 1, backgroundColor: theme.colors.error }]}
+                  style={[st.btnPrimary, { flex: 1, backgroundColor: colors.error }]}
                   onPress={() => { handleReset(); setConfirmResetOpen(false); }}
                 >
                   <Text style={st.btnPrimaryText}>Reset</Text>
@@ -794,45 +797,45 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
       {backtestModalOpen && (
         <Modal transparent animationType="slide" onRequestClose={() => setBacktestModalOpen(false)}>
           <TouchableOpacity style={{ flex: 1, backgroundColor: '#1E1B4B55' }} activeOpacity={1} onPress={() => setBacktestModalOpen(false)}>
-            <TouchableOpacity activeOpacity={1} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: theme.colors.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 1, borderColor: theme.colors.border, padding: 20, maxHeight: '78%' }} onPress={() => {}}>
-              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: theme.colors.surfaceMuted, alignSelf: 'center', marginBottom: 16 }} />
+            <TouchableOpacity activeOpacity={1} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 1, borderColor: colors.border, padding: 20, maxHeight: '78%' }} onPress={() => {}}>
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.surfaceMuted, alignSelf: 'center', marginBottom: 16 }} />
               <ScrollView showsVerticalScrollIndicator={false}>
-                <Text style={{ fontSize: 15, fontWeight: '800', color: theme.colors.text, marginBottom: 4 }}>📊 Validate via Backtest</Text>
-                <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginBottom: 16 }}>
+                <Text style={{ fontSize: 15, fontWeight: '800', color: colors.text, marginBottom: 4 }}>📊 Validate via Backtest</Text>
+                <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 16 }}>
                   Per CLAUDE.md: every engine/config change ships with a hit-rate number attached. The backtest harness replays the engine over the last 30 days against any named config preset.
                 </Text>
-                <Card style={{ padding: 14, marginBottom: 12, backgroundColor: theme.colors.tealLight, borderColor: theme.colors.teal + '28' }}>
-                  <Text style={{ fontSize: 11, fontWeight: '800', color: theme.colors.teal, marginBottom: 6, letterSpacing: 1 }}>1. RECORD BASELINE</Text>
-                  <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginBottom: 6 }}>From a host shell (not in this app):</Text>
-                  <View style={{ backgroundColor: theme.colors.background, borderRadius: 6, padding: 8, borderWidth: 1, borderColor: theme.colors.border }}>
-                    <Text style={{ fontSize: 11, color: theme.colors.text, fontFamily: theme.typography.fontFamily.mono }}>
+                <Card style={{ padding: 14, marginBottom: 12, backgroundColor: colors.tealLight, borderColor: colors.teal + '28' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: colors.teal, marginBottom: 6, letterSpacing: 1 }}>1. RECORD BASELINE</Text>
+                  <Text style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 6 }}>From a host shell (not in this app):</Text>
+                  <View style={{ backgroundColor: colors.background, borderRadius: 6, padding: 8, borderWidth: 1, borderColor: colors.border }}>
+                    <Text style={{ fontSize: 11, color: colors.text, fontFamily: theme.typography.fontFamily.mono }}>
                       npm run backtest:replay -- --days 30 --config default
                     </Text>
                   </View>
                 </Card>
-                <Card style={{ padding: 14, marginBottom: 12, backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary + '28' }}>
-                  <Text style={{ fontSize: 11, fontWeight: '800', color: theme.colors.primary, marginBottom: 6, letterSpacing: 1 }}>2. RUN CANDIDATE</Text>
-                  <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginBottom: 6 }}>If you&apos;re testing a new combination, add a preset in:</Text>
-                  <View style={{ backgroundColor: theme.colors.background, borderRadius: 6, padding: 8, marginBottom: 6, borderWidth: 1, borderColor: theme.colors.border }}>
-                    <Text style={{ fontSize: 11, color: theme.colors.text, fontFamily: theme.typography.fontFamily.mono }}>
+                <Card style={{ padding: 14, marginBottom: 12, backgroundColor: colors.primaryLight, borderColor: colors.primary + '28' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: colors.primary, marginBottom: 6, letterSpacing: 1 }}>2. RUN CANDIDATE</Text>
+                  <Text style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 6 }}>If you&apos;re testing a new combination, add a preset in:</Text>
+                  <View style={{ backgroundColor: colors.background, borderRadius: 6, padding: 8, marginBottom: 6, borderWidth: 1, borderColor: colors.border }}>
+                    <Text style={{ fontSize: 11, color: colors.text, fontFamily: theme.typography.fontFamily.mono }}>
                       scripts/backtest/configs.ts
                     </Text>
                   </View>
-                  <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginBottom: 6 }}>Then replay it:</Text>
-                  <View style={{ backgroundColor: theme.colors.background, borderRadius: 6, padding: 8, borderWidth: 1, borderColor: theme.colors.border }}>
-                    <Text style={{ fontSize: 11, color: theme.colors.text, fontFamily: theme.typography.fontFamily.mono }}>
+                  <Text style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 6 }}>Then replay it:</Text>
+                  <View style={{ backgroundColor: colors.background, borderRadius: 6, padding: 8, borderWidth: 1, borderColor: colors.border }}>
+                    <Text style={{ fontSize: 11, color: colors.text, fontFamily: theme.typography.fontFamily.mono }}>
                       npm run backtest:replay -- --days 30 --config &lt;your-preset&gt;
                     </Text>
                   </View>
-                  <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginTop: 6, fontStyle: 'italic' }}>
+                  <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 6, fontStyle: 'italic' }}>
                     Tip: comma-separated configs run in parallel — e.g. `--config default,floor70,midday_cd10`
                   </Text>
                 </Card>
-                <Card style={{ padding: 14, marginBottom: 16, backgroundColor: theme.colors.goldLight, borderColor: theme.colors.gold + '28' }}>
-                  <Text style={{ fontSize: 11, fontWeight: '800', color: theme.colors.gold, marginBottom: 6, letterSpacing: 1 }}>3. DECIDE</Text>
-                  <Text style={{ fontSize: 11, color: theme.colors.textSecondary, lineHeight: 17 }}>
+                <Card style={{ padding: 14, marginBottom: 16, backgroundColor: colors.goldLight, borderColor: colors.gold + '28' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: colors.gold, marginBottom: 6, letterSpacing: 1 }}>3. DECIDE</Text>
+                  <Text style={{ fontSize: 11, color: colors.textSecondary, lineHeight: 17 }}>
                     Ship only if CANDIDATE ≥ BASELINE on overall hit rate.{'\n'}
-                    CSV output lands in <Text style={{ fontFamily: theme.typography.fontFamily.mono, color: theme.colors.text }}>scripts/backtest/output/</Text>{'\n'}
+                    CSV output lands in <Text style={{ fontFamily: theme.typography.fontFamily.mono, color: colors.text }}>scripts/backtest/output/</Text>{'\n'}
                     Record the numbers as a CONFIG-XX entry in MASTER_AUDIT.md before applying.
                   </Text>
                 </Card>
@@ -849,15 +852,15 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
       {previewModal && (
         <Modal transparent animationType="slide" onRequestClose={() => setPreviewModal(false)}>
           <TouchableOpacity style={{ flex: 1, backgroundColor: '#1E1B4B55' }} activeOpacity={1} onPress={() => setPreviewModal(false)}>
-            <TouchableOpacity activeOpacity={1} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: theme.colors.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 1, borderColor: theme.colors.border, padding: 20, maxHeight: '70%' }} onPress={() => {}}>
-              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: theme.colors.surfaceMuted, alignSelf: 'center', marginBottom: 16 }} />
-              <Text style={{ fontSize: 15, fontWeight: '800', color: theme.colors.text, marginBottom: 4 }}>ℹ️ About Engine Config</Text>
-              <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginBottom: 16 }}>
+            <TouchableOpacity activeOpacity={1} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: 1, borderColor: colors.border, padding: 20, maxHeight: '70%' }} onPress={() => {}}>
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.surfaceMuted, alignSelf: 'center', marginBottom: 16 }} />
+              <Text style={{ fontSize: 15, fontWeight: '800', color: colors.text, marginBottom: 4 }}>ℹ️ About Engine Config</Text>
+              <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 16 }}>
                 Current config: {wPreset} preset · {singlesMax} singles max · {doublesMax} doubles max · scope: {defaultScope}
               </Text>
-              <Card style={{ padding: 14, backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary + '28', marginBottom: 16 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: theme.colors.primary, marginBottom: 8 }}>Engine Configuration</Text>
-                <Text style={{ fontSize: 11, color: theme.colors.textSecondary, lineHeight: 18 }}>
+              <Card style={{ padding: 14, backgroundColor: colors.primaryLight, borderColor: colors.primary + '28', marginBottom: 16 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary, marginBottom: 8 }}>Engine Configuration</Text>
+                <Text style={{ fontSize: 11, color: colors.textSecondary, lineHeight: 18 }}>
                   Save your config first, then use Regen All Slates on the Dashboard to apply settings. Changes take effect on the next slate generation — they do not retroactively modify existing snapshots.
                 </Text>
               </Card>

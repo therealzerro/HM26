@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, 
 import { useDataIngestion } from '@/hooks/useDataIngestion';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { Import } from '@/types/core';
 import { Stack } from 'expo-router';
 import { Button } from '@/components/Button';
@@ -16,6 +17,8 @@ import { useCoverage } from '@/hooks/useCoverage';
 import { useLocalSearchParams } from 'expo-router';
 
 export default function AdminImportsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { imports, isLoading, softDeleteImport, undoSoftDeleteImport, healthMetrics } = useDataIngestion();
   const queryClient = useQueryClient();
   const { lastUpdate } = useSnapshot();
@@ -72,20 +75,20 @@ export default function AdminImportsScreen() {
           <Text style={styles.rowSub}>{new Date(item.created_at).toLocaleString()}</Text>
           <View style={styles.rowChips}>
             <View style={[styles.chip, styles.chipBlue]}>
-              <Layers size={12} color={theme.colors.primary} />
+              <Layers size={12} color={colors.primary} />
               <Text style={styles.chipText}>Horizon: {item.horizon_label ?? '—'}</Text>
             </View>
             <View style={[styles.chip, styles.chipGreen]}>
-              <Database size={12} color={theme.colors.success} />
+              <Database size={12} color={colors.success} />
               <Text style={styles.chipText}>Entries: {item.counts ?? 0}</Text>
             </View>
           </View>
         </View>
         <View style={styles.rowMeta}>
-          <Text style={[styles.statusText, { color: isDeleted ? theme.colors.error : item.status === 'completed' ? theme.colors.success : theme.colors.warning }]}>
+          <Text style={[styles.statusText, { color: isDeleted ? colors.error : item.status === 'completed' ? colors.success : colors.warning }]}>
             {isDeleted ? 'deleted' : item.status}
           </Text>
-          {workingId === item.id && <ActivityIndicator color={theme.colors.primary} size="small" />}
+          {workingId === item.id && <ActivityIndicator color={colors.primary} size="small" />}
         </View>
       </TouchableOpacity>
     );
@@ -155,21 +158,21 @@ export default function AdminImportsScreen() {
       <Stack.Screen options={{ title: 'Import History' }} />
       {isLoading ? (
         <View style={styles.center}> 
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <View style={styles.content}>
           <View style={styles.infoHeader} testID="admin-imports-info">
             <View style={styles.infoChip}>
-              <ActivityIcon size={16} color={theme.colors.success} />
+              <ActivityIcon size={16} color={colors.success} />
               <Text style={styles.infoChipText}>Coverage: {Number(coveragePctH01Y ?? 0).toFixed(0)}%</Text>
             </View>
             <View style={styles.infoChip}>
-              <Database size={16} color={theme.colors.primary} />
+              <Database size={16} color={colors.primary} />
               <Text style={styles.infoChipText}>Box: {healthMetrics?.datasetCounts.boxEntries ?? 0}</Text>
             </View>
             <View style={styles.infoChip}>
-              <Clock3 size={16} color={theme.colors.textSecondary} />
+              <Clock3 size={16} color={colors.textSecondary} />
               <Text style={styles.infoChipText}>Last: {lastUpdate ?? 'Never'}</Text>
             </View>
           </View>
@@ -224,36 +227,36 @@ export default function AdminImportsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+const makeStyles = (colors: ColorTokens) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   content: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   listPad: { padding: theme.spacing.md },
   sep: { height: 8 },
-  row: { backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.md, padding: theme.spacing.md, borderWidth: 1, borderColor: theme.colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  rowActive: { borderColor: theme.colors.primary },
+  row: { backgroundColor: colors.surface, borderRadius: theme.borderRadius.md, padding: theme.spacing.md, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  rowActive: { borderColor: colors.primary },
   rowMain: { gap: 4 },
-  rowTitle: { color: theme.colors.text, fontWeight: '600' as const },
-  rowSub: { color: theme.colors.textTertiary, fontSize: theme.typography.fontSize.xs },
+  rowTitle: { color: colors.text, fontWeight: '600' as const },
+  rowSub: { color: colors.textTertiary, fontSize: theme.typography.fontSize.xs },
   rowChips: { flexDirection: 'row', gap: 8, marginTop: 6, flexWrap: 'wrap' as const },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, borderWidth: 1 },
-  chipBlue: { borderColor: theme.colors.primary + '55', backgroundColor: theme.colors.primary + '10' },
-  chipGreen: { borderColor: theme.colors.success + '55', backgroundColor: theme.colors.success + '10' },
-  chipText: { color: theme.colors.text, fontSize: theme.typography.fontSize.xs },
+  chipBlue: { borderColor: colors.primary + '55', backgroundColor: colors.primary + '10' },
+  chipGreen: { borderColor: colors.success + '55', backgroundColor: colors.success + '10' },
+  chipText: { color: colors.text, fontSize: theme.typography.fontSize.xs },
   rowMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   statusText: { fontWeight: '600' as const, textTransform: 'capitalize' as const },
-  footer: { flexDirection: 'row', gap: theme.spacing.md, padding: theme.spacing.md, borderTopWidth: 1, borderTopColor: theme.colors.border, backgroundColor: theme.colors.surface },
+  footer: { flexDirection: 'row', gap: theme.spacing.md, padding: theme.spacing.md, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface },
   infoHeader: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' as const, paddingHorizontal: theme.spacing.md, paddingTop: theme.spacing.md, paddingBottom: theme.spacing.sm },
-  infoChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.surface },
-  infoChipText: { color: theme.colors.text },
+  infoChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  infoChipText: { color: colors.text },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', padding: theme.spacing.lg },
-  modalCard: { width: '100%', maxWidth: 420, backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.lg, padding: theme.spacing.lg, borderWidth: 1, borderColor: theme.colors.border },
-  modalTitle: { color: theme.colors.text, fontWeight: '700' as const, fontSize: theme.typography.fontSize.lg, marginBottom: theme.spacing.xs },
-  modalSub: { color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.sm, marginBottom: theme.spacing.md },
-  input: { borderWidth: 1, borderColor: theme.colors.border, borderRadius: theme.borderRadius.md, paddingHorizontal: theme.spacing.md, paddingVertical: 10, color: theme.colors.text, backgroundColor: theme.colors.background, marginBottom: theme.spacing.md },
+  modalCard: { width: '100%', maxWidth: 420, backgroundColor: colors.surface, borderRadius: theme.borderRadius.lg, padding: theme.spacing.lg, borderWidth: 1, borderColor: colors.border },
+  modalTitle: { color: colors.text, fontWeight: '700' as const, fontSize: theme.typography.fontSize.lg, marginBottom: theme.spacing.xs },
+  modalSub: { color: colors.textSecondary, fontSize: theme.typography.fontSize.sm, marginBottom: theme.spacing.md },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: theme.borderRadius.md, paddingHorizontal: theme.spacing.md, paddingVertical: 10, color: colors.text, backgroundColor: colors.background, marginBottom: theme.spacing.md },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: theme.spacing.md },
-  modalBtnSecondary: { paddingHorizontal: theme.spacing.md, paddingVertical: 10, borderRadius: theme.borderRadius.md, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border },
-  modalBtnSecondaryText: { color: theme.colors.text },
-  modalBtnDanger: { paddingHorizontal: theme.spacing.md, paddingVertical: 10, borderRadius: theme.borderRadius.md, backgroundColor: theme.colors.error },
+  modalBtnSecondary: { paddingHorizontal: theme.spacing.md, paddingVertical: 10, borderRadius: theme.borderRadius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  modalBtnSecondaryText: { color: colors.text },
+  modalBtnDanger: { paddingHorizontal: theme.spacing.md, paddingVertical: 10, borderRadius: theme.borderRadius.md, backgroundColor: colors.error },
   modalBtnDangerText: { color: '#fff' },
 });

@@ -4,12 +4,15 @@ import { Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RefreshCw } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { HORIZONS, PAIR_CLASSES, SCOPES } from '@/constants/pairClasses';
 import { useCoverage } from '@/hooks/useCoverage';
 import { useScope } from '@/hooks/useScope';
 import { HorizonLabel } from '@/types/core';
 
 export default function CoverageScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { matrix, coveragePctH01Y, refetch } = useCoverage();
   const { scope } = useScope();
   const [selected, setSelected] = useState<{ classId: number; horizon: HorizonLabel } | null>(null);
@@ -31,7 +34,7 @@ export default function CoverageScreen() {
     <View style={styles.container}>
       <Stack.Screen options={{ title: 'Coverage' }} />
       <LinearGradient
-        colors={['#0d1b2a', theme.colors.background] as [string, string]}
+        colors={['#0d1b2a', colors.background] as [string, string]}
         start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
         style={styles.header}
       >
@@ -47,9 +50,9 @@ export default function CoverageScreen() {
             testID="coverage-refresh"
           >
             {isRefreshing ? (
-              <ActivityIndicator size="small" color={theme.colors.primary} />
+              <ActivityIndicator size="small" color={colors.primary} />
             ) : (
-              <RefreshCw size={20} color={theme.colors.primary} />
+              <RefreshCw size={20} color={colors.primary} />
             )}
           </TouchableOpacity>
         </View>
@@ -103,27 +106,27 @@ export default function CoverageScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+const makeStyles = (colors: ColorTokens) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   header: { padding: theme.spacing.md },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  refreshBtn: { padding: 8, borderRadius: 8, backgroundColor: theme.colors.surface },
-  title: { color: theme.colors.text, fontSize: theme.typography.fontSize.xl, fontWeight: '700' as const },
-  subtitle: { color: theme.colors.textSecondary, marginTop: 4 },
+  refreshBtn: { padding: 8, borderRadius: 8, backgroundColor: colors.surface },
+  title: { color: colors.text, fontSize: theme.typography.fontSize.xl, fontWeight: '700' as const },
+  subtitle: { color: colors.textSecondary, marginTop: 4 },
   rowHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  cellHeader: { width: 84, textAlign: 'center' as const, color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.xs },
-  classLabel: { width: 160, color: theme.colors.text, fontSize: theme.typography.fontSize.sm },
-  cell: { width: 84, height: 36, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.border },
-  cellOk: { backgroundColor: theme.colors.success + '20' },
-  cellMiss: { backgroundColor: theme.colors.surface },
-  ok: { color: theme.colors.success, fontWeight: '700' as const },
-  miss: { color: theme.colors.textSecondary },
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: theme.colors.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, borderWidth: 1, borderColor: theme.colors.border, padding: theme.spacing.md },
-  sheetTitle: { color: theme.colors.text, fontWeight: '700' as const, marginBottom: 6 },
-  sheetText: { color: theme.colors.text },
-  sheetLink: { color: theme.colors.primary, marginTop: 4 },
+  cellHeader: { width: 84, textAlign: 'center' as const, color: colors.textSecondary, fontSize: theme.typography.fontSize.xs },
+  classLabel: { width: 160, color: colors.text, fontSize: theme.typography.fontSize.sm },
+  cell: { width: 84, height: 36, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+  cellOk: { backgroundColor: colors.success + '20' },
+  cellMiss: { backgroundColor: colors.surface },
+  ok: { color: colors.success, fontWeight: '700' as const },
+  miss: { color: colors.textSecondary },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, borderWidth: 1, borderColor: colors.border, padding: theme.spacing.md },
+  sheetTitle: { color: colors.text, fontWeight: '700' as const, marginBottom: 6 },
+  sheetText: { color: colors.text },
+  sheetLink: { color: colors.primary, marginTop: 4 },
   sheetActions: { marginTop: theme.spacing.md, flexDirection: 'row', justifyContent: 'flex-end' },
-  btnSecondary: { paddingHorizontal: theme.spacing.md, paddingVertical: 10, borderRadius: theme.borderRadius.md, borderWidth: 1, borderColor: theme.colors.border },
-  btnSecondaryText: { color: theme.colors.text },
+  btnSecondary: { paddingHorizontal: theme.spacing.md, paddingVertical: 10, borderRadius: theme.borderRadius.md, borderWidth: 1, borderColor: colors.border },
+  btnSecondaryText: { color: colors.text },
 });

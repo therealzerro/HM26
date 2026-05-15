@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TextInput,
   TouchableOpacity, ActivityIndicator,
@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AlertCircle, CheckCircle } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { Button } from '@/components/Button';
 import { useDataIngestion } from '@/hooks/useDataIngestion';
 import { parseRawLedgerData, ParsedLedgerRow } from '@/lib/parseLedger';
@@ -26,6 +27,8 @@ function uniqueDates(rows: ParsedLedgerRow[]): string[] {
 type Stage = 'input' | 'validated' | 'committed';
 
 export default function LedgerImportScreen() {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   const router = useRouter();
   const { importLedger } = useDataIngestion();
 
@@ -131,7 +134,7 @@ export default function LedgerImportScreen() {
                 'Example:\nArizona\nPick 3\tTue, Apr 14, 2026\t6-4-1\nArkansas\n' +
                 'Cash 3 Midday\tTue, Apr 14, 2026\t2-7-2\nCash 3 Evening\tTue, Apr 14, 2026\t3-2-4'
               }
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={colors.textTertiary}
               keyboardAppearance="dark"
             />
 
@@ -151,7 +154,7 @@ export default function LedgerImportScreen() {
           <>
             {/* Summary badge */}
             <View style={s.badge}>
-              <CheckCircle size={14} color={theme.colors.success} />
+              <CheckCircle size={14} color={colors.success} />
               <Text style={s.badgeText}>
                 {parsed.length} row{parsed.length !== 1 ? 's' : ''} parsed across{' '}
                 {stateCount} state{stateCount !== 1 ? 's' : ''}
@@ -177,7 +180,7 @@ export default function LedgerImportScreen() {
                         <Text style={[s.tableCell, colWidth('State')]}>{row.jurisdiction}</Text>
                         <Text style={[s.tableCell, colWidth('Game')]} numberOfLines={1}>{row.game}</Text>
                         <Text style={[s.tableCell, colWidth('Date')]}>{row.date_et}</Text>
-                        <Text style={[s.tableCell, colWidth('Session'), { color: row.session === 'midday' ? theme.colors.gold : theme.colors.primary }]}>
+                        <Text style={[s.tableCell, colWidth('Session'), { color: row.session === 'midday' ? colors.gold : colors.primary }]}>
                           {row.session === 'midday' ? '☀️ Mid' : '🌙 Eve'}
                         </Text>
                         <Text style={[s.tableCell, colWidth('Result'), { fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700' }]}>{row.result_digits}</Text>
@@ -196,7 +199,7 @@ export default function LedgerImportScreen() {
             {skipped.length > 0 && (
               <View style={s.skippedBox}>
                 <View style={s.skippedHeader}>
-                  <AlertCircle size={14} color={theme.colors.orange} />
+                  <AlertCircle size={14} color={colors.orange} />
                   <Text style={s.skippedTitle}>{skipped.length} line{skipped.length !== 1 ? 's' : ''} skipped — these won't be imported</Text>
                 </View>
                 {skipped.slice(0, 10).map((msg, i) => (
@@ -214,7 +217,7 @@ export default function LedgerImportScreen() {
 
             {parsed.length === 0 && (
               <View style={s.emptyBox}>
-                <AlertCircle size={20} color={theme.colors.error} />
+                <AlertCircle size={20} color={colors.error} />
                 <Text style={s.emptyText}>No rows could be parsed. Check your input format.</Text>
               </View>
             )}
@@ -231,7 +234,7 @@ export default function LedgerImportScreen() {
 
             {committing && (
               <View style={s.loadingRow}>
-                <ActivityIndicator color={theme.colors.primary} />
+                <ActivityIndicator color={colors.primary} />
                 <Text style={s.loadingText}>Inserting in batches of 50…</Text>
               </View>
             )}
@@ -242,10 +245,10 @@ export default function LedgerImportScreen() {
         {stage === 'committed' && (
           <View style={s.section}>
             <View style={s.successCard}>
-              <CheckCircle size={28} color={theme.colors.success} />
+              <CheckCircle size={28} color={colors.success} />
               <Text style={s.successTitle}>Import Complete ✓</Text>
               <Text style={s.successMsg}>{commitMsg}</Text>
-              <Text style={{ fontSize: 11, color: theme.colors.textTertiary, marginTop: 8, textAlign: 'center', lineHeight: 17 }}>
+              <Text style={{ fontSize: 11, color: colors.textTertiary, marginTop: 8, textAlign: 'center', lineHeight: 17 }}>
                 Your results are now active. ZK6 will use this data on the next slate generation. View Results to see hit tracking.
               </Text>
               {commitError ? (
@@ -280,29 +283,29 @@ function colWidth(col: string) {
 
 // ─── styles ──────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+const makeS = (colors: ColorTokens) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   scroll:    { flex: 1 },
   content:   { paddingBottom: 32 },
 
   header: {
     paddingHorizontal: 16, paddingVertical: 16,
-    borderBottomWidth: 1, borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
   },
-  title:    { fontSize: 20, fontWeight: '900', color: theme.colors.text },
-  subtitle: { fontSize: 11, color: theme.colors.textTertiary, marginTop: 2 },
+  title:    { fontSize: 20, fontWeight: '900', color: colors.text },
+  subtitle: { fontSize: 11, color: colors.textTertiary, marginTop: 2 },
 
   section:      { paddingHorizontal: 16, paddingTop: 16 },
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: theme.colors.text, marginBottom: 10 },
+  sectionTitle: { fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 10 },
 
   textarea: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     padding: 14,
-    color: theme.colors.text,
+    color: colors.text,
     fontSize: 12,
     fontFamily: theme.typography.fontFamily.mono,
     minHeight: 280,
@@ -322,14 +325,14 @@ const s = StyleSheet.create({
     gap: 8,
     marginHorizontal: 16,
     marginTop: 14,
-    backgroundColor: theme.colors.success + '18',
+    backgroundColor: colors.success + '18',
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: theme.colors.success + '55',
+    borderColor: colors.success + '55',
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  badgeText: { fontSize: 13, color: theme.colors.success, fontWeight: '600', flex: 1 },
+  badgeText: { fontSize: 13, color: colors.success, fontWeight: '600', flex: 1 },
 
   // Table
   tableRow: {
@@ -337,52 +340,52 @@ const s = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 7,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
   },
-  tableRowAlt:  { backgroundColor: theme.colors.surfaceLight },
-  tableHead:    { backgroundColor: theme.colors.surface },
-  tableCell:    { fontSize: 11, color: theme.colors.text, paddingHorizontal: 6 },
-  tableHeadCell:{ color: theme.colors.textTertiary, fontWeight: '700', letterSpacing: 0.5 },
+  tableRowAlt:  { backgroundColor: colors.surfaceLight },
+  tableHead:    { backgroundColor: colors.surface },
+  tableCell:    { fontSize: 11, color: colors.text, paddingHorizontal: 6 },
+  tableHeadCell:{ color: colors.textTertiary, fontWeight: '700', letterSpacing: 0.5 },
 
   moreRows: {
-    fontSize: 11, color: theme.colors.textTertiary,
+    fontSize: 11, color: colors.textTertiary,
     padding: 10, textAlign: 'center',
   },
 
   skippedBox: {
     marginHorizontal: 16, marginTop: 12,
-    backgroundColor: theme.colors.orange + '14',
+    backgroundColor: colors.orange + '14',
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: theme.colors.orange + '44',
+    borderColor: colors.orange + '44',
     padding: 12,
   },
   skippedHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  skippedTitle:  { fontSize: 12, fontWeight: '700', color: theme.colors.orange },
-  skippedLine:   { fontSize: 11, color: theme.colors.textSecondary, marginBottom: 2, fontFamily: theme.typography.fontFamily.mono },
+  skippedTitle:  { fontSize: 12, fontWeight: '700', color: colors.orange },
+  skippedLine:   { fontSize: 11, color: colors.textSecondary, marginBottom: 2, fontFamily: theme.typography.fontFamily.mono },
 
   emptyBox: {
     marginHorizontal: 16, marginTop: 12,
     alignItems: 'center', gap: 10, padding: 20,
-    backgroundColor: theme.colors.error + '10',
+    backgroundColor: colors.error + '10',
     borderRadius: theme.borderRadius.lg,
-    borderWidth: 1, borderColor: theme.colors.error + '44',
+    borderWidth: 1, borderColor: colors.error + '44',
   },
-  emptyText: { fontSize: 13, color: theme.colors.error, textAlign: 'center' },
+  emptyText: { fontSize: 13, color: colors.error, textAlign: 'center' },
 
   loadingRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 16, paddingTop: 10,
   },
-  loadingText: { fontSize: 12, color: theme.colors.textSecondary },
+  loadingText: { fontSize: 12, color: colors.textSecondary },
 
   successCard: {
     alignItems: 'center', gap: 10, padding: 24,
-    backgroundColor: theme.colors.success + '12',
+    backgroundColor: colors.success + '12',
     borderRadius: theme.borderRadius.xl,
-    borderWidth: 1, borderColor: theme.colors.success + '44',
+    borderWidth: 1, borderColor: colors.success + '44',
   },
-  successTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.success },
-  successMsg:   { fontSize: 13, color: theme.colors.text, textAlign: 'center', lineHeight: 20 },
-  errorMsg:     { fontSize: 11, color: theme.colors.error, textAlign: 'center' },
+  successTitle: { fontSize: 18, fontWeight: '800', color: colors.success },
+  successMsg:   { fontSize: 13, color: colors.text, textAlign: 'center', lineHeight: 20 },
+  errorMsg:     { fontSize: 11, color: colors.error, textAlign: 'center' },
 });

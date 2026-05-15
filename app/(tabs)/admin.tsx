@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { theme } from '@/constants/theme';
+import { useTheme } from '@/lib/theme';
 import { useSnapshot } from '@/hooks/useSnapshot';
 import { useCoverage } from '@/hooks/useCoverage';
 import { useDataIngestion } from '@/hooks/useDataIngestion';
@@ -39,6 +40,7 @@ const NAV = [
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function AdminScreen() {
+  const { colors } = useTheme();
   const [view, setView] = useState('dashboard');
   const [wizardPreset, setWizardPreset] = useState<{ type: 'box_history' | 'pair_history'; jurisdiction: string } | null>(null);
   const { refreshSnapshot } = useSnapshot();
@@ -47,9 +49,9 @@ export default function AdminScreen() {
   const { scope } = useScope();
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['left', 'right', 'bottom']}>
       {/* Top header */}
-      <LinearGradient colors={[theme.colors.cosmic, theme.colors.primary]} style={{ paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      <LinearGradient colors={[colors.cosmic, colors.primary]} style={{ paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <Text style={{ fontSize: 22 }}>🔐</Text>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 14, fontWeight: '800', color: '#fff' }}>Creator Access</Text>
@@ -61,12 +63,12 @@ export default function AdminScreen() {
       </LinearGradient>
 
       {/* Horizontal nav */}
-      <View style={{ backgroundColor: theme.colors.surface, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+      <View style={{ backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 6, gap: 4, flexDirection: 'row' }}>
           {NAV.map(n => (
-            <TouchableOpacity key={n.id} style={[{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9, flexDirection: 'row', alignItems: 'center', gap: 5 }, view === n.id && { backgroundColor: theme.colors.primaryLight }]} onPress={() => setView(n.id)}>
+            <TouchableOpacity key={n.id} style={[{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9, flexDirection: 'row', alignItems: 'center', gap: 5 }, view === n.id && { backgroundColor: colors.primaryLight }]} onPress={() => setView(n.id)}>
               <Text style={{ fontSize: 13 }}>{n.icon}</Text>
-              <Text style={{ fontSize: 11, fontWeight: view === n.id ? '700' : '400', color: view === n.id ? theme.colors.primary : theme.colors.textSecondary }}>{n.label}</Text>
+              <Text style={{ fontSize: 11, fontWeight: view === n.id ? '700' : '400', color: view === n.id ? colors.primary : colors.textSecondary }}>{n.label}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>

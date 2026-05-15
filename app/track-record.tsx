@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { LoadingPhrase } from '@/components/LoadingPhrase';
 import { scopeAccent } from '@/lib/scopeAccent';
@@ -52,6 +53,8 @@ function lastNDates(n: number): string {
 }
 
 export default function TrackRecordScreen() {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   const sinceDate = useMemo(() => lastNDates(WINDOW_DAYS), []);
   const { followed, toPostgrestFilter } = useFollowedStates();
   const stateFilter = toPostgrestFilter().replace('jurisdiction=', 'hit_state=');
@@ -140,7 +143,7 @@ export default function TrackRecordScreen() {
     <SafeAreaView style={s.container} edges={['top']}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn} accessibilityLabel="Back">
-          <ChevronLeft size={22} color={theme.colors.text} />
+          <ChevronLeft size={22} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={s.title}>Verified Track Record</Text>
@@ -150,9 +153,9 @@ export default function TrackRecordScreen() {
 
       {isLoading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-          <ActivityIndicator color={theme.colors.cyan} />
+          <ActivityIndicator color={colors.cyan} />
           <LoadingPhrase
-            style={{ color: theme.colors.textSecondary, fontSize: 12 }}
+            style={{ color: colors.textSecondary, fontSize: 12 }}
             phrases={[
               '🧾 Pulling verified hits…',
               '🧾 Cross-checking against draws…',
@@ -163,8 +166,8 @@ export default function TrackRecordScreen() {
       ) : validHits.length === 0 ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
           <Text style={{ fontSize: 32, marginBottom: 10 }}>🧾</Text>
-          <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.text, marginBottom: 6 }}>No verified hits in the last {WINDOW_DAYS} days</Text>
-          <Text style={{ fontSize: 12, color: theme.colors.textSecondary, textAlign: 'center' }}>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 6 }}>No verified hits in the last {WINDOW_DAYS} days</Text>
+          <Text style={{ fontSize: 12, color: colors.textSecondary, textAlign: 'center' }}>
             Hits will appear here as your slate matches real draws.
           </Text>
         </View>
@@ -173,13 +176,13 @@ export default function TrackRecordScreen() {
           {/* Summary band */}
           <View style={s.summaryCard}>
             <View style={s.summaryRow}>
-              <SummaryStat value={summary.totalHits} label="HITS" color={theme.colors.cyan} />
+              <SummaryStat value={summary.totalHits} label="HITS" color={colors.cyan} />
               <View style={s.summaryDivider} />
-              <SummaryStat value={summary.straightHits} label="STRAIGHT" color={theme.colors.gold} />
+              <SummaryStat value={summary.straightHits} label="STRAIGHT" color={colors.gold} />
               <View style={s.summaryDivider} />
-              <SummaryStat value={summary.boxHits} label="BOX" color={theme.colors.cyan} />
+              <SummaryStat value={summary.boxHits} label="BOX" color={colors.cyan} />
               <View style={s.summaryDivider} />
-              <SummaryStat value={summary.distinctDates} label="DAYS" color={theme.colors.purple} />
+              <SummaryStat value={summary.distinctDates} label="DAYS" color={colors.purple} />
             </View>
             <Text style={s.summarySub}>Across {summary.distinctStates} jurisdictions · last {WINDOW_DAYS} days</Text>
           </View>
@@ -202,7 +205,7 @@ export default function TrackRecordScreen() {
                     <Text style={s.hitCombo}>{h.combo}</Text>
                     <View style={{ flex: 1 }}>
                       <Text style={s.hitMain}>
-                        <Text style={[s.hitTypeLabel, { color: isStraight ? theme.colors.gold : theme.colors.cyan }]}>
+                        <Text style={[s.hitTypeLabel, { color: isStraight ? colors.gold : colors.cyan }]}>
                           {isStraight ? '⭐ STRAIGHT' : '🎯 BOX'}
                         </Text>
                         {' · '}
@@ -226,6 +229,8 @@ export default function TrackRecordScreen() {
 }
 
 function SummaryStat({ value, label, color }: { value: number; label: string; color: string }) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   return (
     <View style={s.summaryStat}>
       <Text style={[s.summaryValue, { color }]}>{value}</Text>
@@ -234,35 +239,35 @@ function SummaryStat({ value, label, color }: { value: number; label: string; co
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+const makeS = (colors: ColorTokens) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
   backBtn: { padding: 4 },
-  title: { fontSize: 22, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.bold },
-  subtitle: { fontSize: 11, color: theme.colors.textTertiary, marginTop: 2, fontFamily: theme.typography.fontFamily.mono },
+  title: { fontSize: 22, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.bold },
+  subtitle: { fontSize: 11, color: colors.textTertiary, marginTop: 2, fontFamily: theme.typography.fontFamily.mono },
 
   scroll: { padding: 14, paddingBottom: 40, gap: 12 },
 
-  summaryCard: { backgroundColor: theme.colors.card, borderRadius: 14, borderWidth: 1, borderColor: theme.colors.border, padding: 14 },
+  summaryCard: { backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border, padding: 14 },
   summaryRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
   summaryStat: { flex: 1, alignItems: 'center' },
   summaryValue: { fontSize: 22, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: -0.4 },
-  summaryLabel: { fontSize: 9, fontWeight: '900', color: theme.colors.textTertiary, letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 2 },
-  summaryDivider: { width: 1, height: 28, backgroundColor: theme.colors.border },
-  summarySub: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, textAlign: 'center', marginTop: 8, letterSpacing: 0.3 },
+  summaryLabel: { fontSize: 9, fontWeight: '900', color: colors.textTertiary, letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 2 },
+  summaryDivider: { width: 1, height: 28, backgroundColor: colors.border },
+  summarySub: { fontSize: 10, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, textAlign: 'center', marginTop: 8, letterSpacing: 0.3 },
 
   daySection: { gap: 6 },
   dayHeader: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginBottom: 4 },
-  dayLabel: { fontSize: 13, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.bold },
-  dayDate: { fontSize: 11, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
-  dayBadge: { marginLeft: 'auto', backgroundColor: theme.colors.gold + '22', borderWidth: 1, borderColor: theme.colors.gold + '66', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 99 },
-  dayBadgeText: { fontSize: 9, fontWeight: '900', color: theme.colors.gold, fontFamily: theme.typography.fontFamily.monoBold },
+  dayLabel: { fontSize: 13, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.bold },
+  dayDate: { fontSize: 11, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
+  dayBadge: { marginLeft: 'auto', backgroundColor: colors.gold + '22', borderWidth: 1, borderColor: colors.gold + '66', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 99 },
+  dayBadgeText: { fontSize: 9, fontWeight: '900', color: colors.gold, fontFamily: theme.typography.fontFamily.monoBold },
 
-  hitRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 10, backgroundColor: theme.colors.card, borderRadius: 10, borderLeftWidth: 3, borderColor: theme.colors.border, borderWidth: 1 },
+  hitRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 10, backgroundColor: colors.card, borderRadius: 10, borderLeftWidth: 3, borderColor: colors.border, borderWidth: 1 },
   hitSessIcon: { fontSize: 16 },
-  hitCombo: { fontSize: 18, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 3, minWidth: 60 },
-  hitMain: { fontSize: 11, color: theme.colors.textSecondary },
+  hitCombo: { fontSize: 18, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 3, minWidth: 60 },
+  hitMain: { fontSize: 11, color: colors.textSecondary },
   hitTypeLabel: { fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.4 },
   hitScope: { fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
-  hitMeta: { fontSize: 10, color: theme.colors.textTertiary, marginTop: 2, fontFamily: theme.typography.fontFamily.mono },
+  hitMeta: { fontSize: 10, color: colors.textTertiary, marginTop: 2, fontFamily: theme.typography.fontFamily.mono },
 });

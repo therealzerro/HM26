@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, Check } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { SubscriptionPlan } from '@/types/core';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -56,6 +57,8 @@ const featureComparison = [
 ];
 
 export default function PaywallScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { plan } = useLocalSearchParams<{ plan?: SubscriptionPlan }>();
   const { setRole } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>(plan || 'trial5');
@@ -109,7 +112,7 @@ export default function PaywallScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ChevronLeft size={24} color={theme.colors.text} />
+          <ChevronLeft size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -136,7 +139,7 @@ export default function PaywallScreen() {
                 <Text style={styles.comparisonFeature}>{item.feature}</Text>
                 <Text style={styles.comparisonFree}>{item.free}</Text>
                 <View style={styles.comparisonPremium}>
-                  <Check size={16} color={theme.colors.success} />
+                  <Check size={16} color={colors.success} />
                   <Text style={styles.comparisonPremiumText}>{item.premium}</Text>
                 </View>
               </View>
@@ -168,7 +171,7 @@ export default function PaywallScreen() {
                 <View style={styles.planFeatures}>
                   {planOption.features.map((feature) => (
                     <View key={feature} style={styles.planFeature}>
-                      <Check size={14} color={theme.colors.success} />
+                      <Check size={14} color={colors.success} />
                       <Text style={styles.planFeatureText}>{feature}</Text>
                     </View>
                   ))}
@@ -205,10 +208,10 @@ export default function PaywallScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -231,28 +234,28 @@ const styles = StyleSheet.create({
   heroBigNum: {
     fontSize: 64,
     fontWeight: '900',
-    color: theme.colors.cyan,
+    color: colors.cyan,
     fontFamily: theme.typography.fontFamily.monoBold,
     letterSpacing: -2,
     lineHeight: 68,
   },
   heroBigSub: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontFamily: theme.typography.fontFamily.mono,
     letterSpacing: 0.4,
     marginBottom: 6,
   },
   heroCompare: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontStyle: 'italic',
     marginBottom: 18,
   },
   heroTitle: {
     fontSize: theme.typography.fontSize.xl,
     fontWeight: '800',
-    color: theme.colors.text,
+    color: colors.text,
     textAlign: 'center',
   },
   section: {
@@ -262,17 +265,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: theme.typography.fontSize.xl,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: theme.spacing.lg,
   },
   comparisonTable: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.lg,
     overflow: 'hidden',
   },
   comparisonHeader: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surfaceLight,
+    backgroundColor: colors.surfaceLight,
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.lg,
   },
@@ -280,7 +283,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: theme.typography.fontSize.sm,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
     textAlign: 'center',
   },
   comparisonRow: {
@@ -288,17 +291,17 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
   },
   comparisonFeature: {
     flex: 1,
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.text,
+    color: colors.text,
   },
   comparisonFree: {
     flex: 1,
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
     textAlign: 'center',
   },
   comparisonPremium: {
@@ -310,29 +313,29 @@ const styles = StyleSheet.create({
   },
   comparisonPremiumText: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.success,
+    color: colors.success,
     fontWeight: '600',
   },
   plansContainer: {
     gap: theme.spacing.md,
   },
   planCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.xxl,
     padding: theme.spacing.lg,
     borderWidth: 2,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     position: 'relative',
   },
   planCardSelected: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary + '10',
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + '10',
   },
   planBadge: {
     position: 'absolute',
     top: -8,
     right: theme.spacing.lg,
-    backgroundColor: theme.colors.warning,
+    backgroundColor: colors.warning,
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: 4,
     borderRadius: theme.borderRadius.full,
@@ -340,23 +343,23 @@ const styles = StyleSheet.create({
   planBadgeText: {
     fontSize: theme.typography.fontSize.xs,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
   },
   planTitle: {
     fontSize: theme.typography.fontSize.lg,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: theme.spacing.xs,
   },
   planPrice: {
     fontSize: theme.typography.fontSize.xl,
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
     marginBottom: theme.spacing.xs,
   },
   planDescription: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     marginBottom: theme.spacing.md,
   },
   planFeatures: {
@@ -369,7 +372,7 @@ const styles = StyleSheet.create({
   },
   planFeatureText: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
   },
   ctaSection: {
     paddingHorizontal: theme.spacing.lg,
@@ -377,7 +380,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
   },
   subscribeButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: theme.borderRadius.xl,
     paddingVertical: theme.spacing.lg,
     alignItems: 'center',
@@ -385,7 +388,7 @@ const styles = StyleSheet.create({
   subscribeButtonText: {
     fontSize: theme.typography.fontSize.lg,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
   },
   restoreButton: {
     alignItems: 'center',
@@ -393,7 +396,7 @@ const styles = StyleSheet.create({
   },
   restoreButtonText: {
     fontSize: theme.typography.fontSize.md,
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '600',
   },
   legalLinks: {
@@ -405,10 +408,10 @@ const styles = StyleSheet.create({
   },
   legalText: {
     fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
   },
   legalSeparator: {
     fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
   },
 });

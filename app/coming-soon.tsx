@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ScrollView, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { ChevronLeft, Clock, Bell, Zap, Target, TrendingUp, Shield, BarChart3, Users } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 import { useAuth } from '@/hooks/useAuth';
 
 interface ComingSoonFeature {
@@ -65,14 +66,14 @@ function getTimeUntilLaunch(launchDate: Date): string {
   }
 }
 
-function getProgressIcon(progress: ComingSoonFeature['progress']) {
+function getProgressIcon(progress: ComingSoonFeature['progress'], colors: ColorTokens) {
   switch (progress) {
     case 'build':
-      return <Zap size={16} color={theme.colors.warning} />;
+      return <Zap size={16} color={colors.warning} />;
     case 'qa':
-      return <Shield size={16} color={theme.colors.primary} />;
+      return <Shield size={16} color={colors.primary} />;
     case 'launch':
-      return <Target size={16} color={theme.colors.success} />;
+      return <Target size={16} color={colors.success} />;
   }
 }
 
@@ -88,6 +89,8 @@ function getProgressText(progress: ComingSoonFeature['progress']) {
 }
 
 export default function ComingSoonScreen() {
+  const { colors, shadows } = useTheme();
+  const styles = useMemo(() => makeStyles(colors, shadows), [colors, shadows]);
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [notifyEmails, setNotifyEmails] = useState<Set<string>>(new Set());
@@ -130,7 +133,7 @@ export default function ComingSoonScreen() {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <ChevronLeft size={24} color={theme.colors.text} />
+          <ChevronLeft size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Coming Soon</Text>
       </View>
@@ -138,7 +141,7 @@ export default function ComingSoonScreen() {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Hero Section */}
         <View style={styles.hero}>
-          <Clock size={48} color={theme.colors.primary} />
+          <Clock size={48} color={colors.primary} />
           <Text style={styles.heroTitle}>The Future of HitMaster</Text>
           <Text style={styles.heroSubtitle}>
             Exciting new features are in development. Be the first to know when they launch!
@@ -154,7 +157,7 @@ export default function ComingSoonScreen() {
                 <View style={styles.featureInfo}>
                   <Text style={styles.featureName}>{feature.name}</Text>
                   <View style={styles.featureProgress}>
-                    {getProgressIcon(feature.progress)}
+                    {getProgressIcon(feature.progress, colors)}
                     <Text style={styles.featureProgressText}>
                       {getProgressText(feature.progress)}
                     </Text>
@@ -183,7 +186,7 @@ export default function ComingSoonScreen() {
                 onPress={() => handleNotifyMe(feature.id)}
               >
                 <Bell size={16} color={
-                  notifyEmails.has(feature.id) ? theme.colors.text : theme.colors.primary
+                  notifyEmails.has(feature.id) ? colors.text : colors.primary
                 } />
                 <Text style={[
                   styles.notifyButtonText,
@@ -217,17 +220,17 @@ export default function ComingSoonScreen() {
           <Text style={styles.sectionTitle}>Development Progress</Text>
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
-              <BarChart3 size={24} color={theme.colors.primary} />
+              <BarChart3 size={24} color={colors.primary} />
               <Text style={styles.statNumber}>3</Text>
               <Text style={styles.statLabel}>Features in Build</Text>
             </View>
             <View style={styles.statCard}>
-              <TrendingUp size={24} color={theme.colors.success} />
+              <TrendingUp size={24} color={colors.success} />
               <Text style={styles.statNumber}>85%</Text>
               <Text style={styles.statLabel}>Overall Progress</Text>
             </View>
             <View style={styles.statCard}>
-              <Users size={24} color={theme.colors.warning} />
+              <Users size={24} color={colors.warning} />
               <Text style={styles.statNumber}>1.2K+</Text>
               <Text style={styles.statLabel}>Beta Testers</Text>
             </View>
@@ -252,10 +255,10 @@ export default function ComingSoonScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -270,7 +273,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: theme.typography.fontSize.xl,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
   },
   scrollView: {
     flex: 1,
@@ -286,14 +289,14 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: theme.typography.fontSize.xxxl,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
     textAlign: 'center',
     marginTop: theme.spacing.lg,
     marginBottom: theme.spacing.sm,
   },
   heroSubtitle: {
     fontSize: theme.typography.fontSize.lg,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   featuresSection: {
@@ -303,15 +306,15 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: theme.typography.fontSize.xl,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: theme.spacing.lg,
   },
   featureCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
     marginBottom: theme.spacing.md,
-    ...theme.shadows.glow,
+    ...shadows.glow,
   },
   featureHeader: {
     flexDirection: 'row',
@@ -325,7 +328,7 @@ const styles = StyleSheet.create({
   featureName: {
     fontSize: theme.typography.fontSize.lg,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: theme.spacing.xs,
   },
   featureProgress: {
@@ -335,7 +338,7 @@ const styles = StyleSheet.create({
   },
   featureProgressText: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   featureCountdown: {
@@ -344,16 +347,16 @@ const styles = StyleSheet.create({
   countdownText: {
     fontSize: theme.typography.fontSize.lg,
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   featureDescription: {
     fontSize: theme.typography.fontSize.md,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 20,
     marginBottom: theme.spacing.md,
   },
   earlyAccessBadge: {
-    backgroundColor: theme.colors.premium + '20',
+    backgroundColor: colors.premium + '20',
     borderRadius: theme.borderRadius.sm,
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: theme.spacing.xs,
@@ -363,7 +366,7 @@ const styles = StyleSheet.create({
   earlyAccessText: {
     fontSize: theme.typography.fontSize.xs,
     fontWeight: 'bold',
-    color: theme.colors.premium,
+    color: colors.premium,
   },
   notifyButton: {
     flexDirection: 'row',
@@ -372,21 +375,21 @@ const styles = StyleSheet.create({
     gap: theme.spacing.xs,
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: theme.colors.primary,
+    borderColor: colors.primary,
     borderRadius: theme.borderRadius.lg,
     paddingVertical: theme.spacing.sm,
     paddingHorizontal: theme.spacing.md,
   },
   notifyButtonActive: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
   },
   notifyButtonText: {
     fontSize: theme.typography.fontSize.sm,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   notifyButtonTextActive: {
-    color: theme.colors.text,
+    color: colors.text,
   },
   underTheHoodSection: {
     paddingHorizontal: theme.spacing.lg,
@@ -394,11 +397,11 @@ const styles = StyleSheet.create({
   },
   underTheHoodSubtitle: {
     fontSize: theme.typography.fontSize.md,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     marginBottom: theme.spacing.lg,
   },
   underTheHoodList: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
   },
@@ -412,13 +415,13 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     marginTop: 6,
   },
   underTheHoodText: {
     flex: 1,
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.text,
+    color: colors.text,
     lineHeight: 18,
   },
   statsSection: {
@@ -431,7 +434,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
     alignItems: 'center',
@@ -440,12 +443,12 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: theme.typography.fontSize.xxl,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
     fontFamily: theme.typography.fontFamily.tabular,
   },
   statLabel: {
     fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   ctaSection: {
@@ -455,18 +458,18 @@ const styles = StyleSheet.create({
   ctaTitle: {
     fontSize: theme.typography.fontSize.xl,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
     textAlign: 'center',
     marginBottom: theme.spacing.sm,
   },
   ctaSubtitle: {
     fontSize: theme.typography.fontSize.md,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: theme.spacing.lg,
   },
   ctaButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: theme.borderRadius.lg,
     paddingVertical: theme.spacing.lg,
     paddingHorizontal: theme.spacing.xl,
@@ -474,6 +477,6 @@ const styles = StyleSheet.create({
   ctaButtonText: {
     fontSize: theme.typography.fontSize.lg,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
   },
 });

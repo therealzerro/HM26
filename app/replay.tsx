@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { LoadingPhrase } from '@/components/LoadingPhrase';
 
@@ -45,6 +46,8 @@ interface Snap { scope: string; slate_date: string; top_k_straights_json: any; u
 interface Draw { result_digits: string; jurisdiction: string; session: string; date_et: string; }
 
 export default function ReplayScreen() {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   const dates = useMemo(() => lastNDates(7), []);
   const earliest = dates[dates.length - 1];
 
@@ -186,7 +189,7 @@ export default function ReplayScreen() {
     <SafeAreaView style={s.container} edges={['top']}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <ChevronLeft size={22} color={theme.colors.text} />
+          <ChevronLeft size={22} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={s.title}>Replay</Text>
@@ -196,9 +199,9 @@ export default function ReplayScreen() {
 
       {isLoading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-          <ActivityIndicator color={theme.colors.cyan} />
+          <ActivityIndicator color={colors.cyan} />
           <LoadingPhrase
-            style={{ color: theme.colors.textSecondary, fontSize: 12 }}
+            style={{ color: colors.textSecondary, fontSize: 12 }}
             phrases={[
               '⏪ Rewinding the tape…',
               '⏪ Pulling slate snapshots…',
@@ -210,8 +213,8 @@ export default function ReplayScreen() {
       ) : grouped.length === 0 ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
           <Text style={{ fontSize: 32, marginBottom: 10 }}>📼</Text>
-          <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.text, marginBottom: 6 }}>No slates in the last 7 days</Text>
-          <Text style={{ fontSize: 12, color: theme.colors.textSecondary, textAlign: 'center' }}>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 6 }}>No slates in the last 7 days</Text>
+          <Text style={{ fontSize: 12, color: colors.textSecondary, textAlign: 'center' }}>
             Generate a slate to start building your replay history.
           </Text>
         </View>
@@ -251,8 +254,8 @@ export default function ReplayScreen() {
                       <View style={s.picksGrid}>
                         {card.picks.map(p => (
                           <View key={p.rank} style={[s.pickPill, p.hit === 'straight' && s.pickPillStraight, p.hit === 'box' && s.pickPillBox]}>
-                            <Text style={[s.pickRank, p.hit && { color: theme.colors.bgElevated }]}>#{p.rank}</Text>
-                            <Text style={[s.pickCombo, p.hit && { color: theme.colors.bgElevated }]}>{p.combo || '•••'}</Text>
+                            <Text style={[s.pickRank, p.hit && { color: colors.bgElevated }]}>#{p.rank}</Text>
+                            <Text style={[s.pickCombo, p.hit && { color: colors.bgElevated }]}>{p.combo || '•••'}</Text>
                             {p.hit && (
                               <Text style={s.pickHitMark}>
                                 {p.hit === 'straight' ? '⭐' : '🎯'}{p.matchCount > 1 ? `×${p.matchCount}` : ''}
@@ -280,36 +283,36 @@ export default function ReplayScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+const makeS = (colors: ColorTokens) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
   backBtn: { padding: 4 },
-  title: { fontSize: 22, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.bold },
-  subtitle: { fontSize: 11, color: theme.colors.textTertiary, marginTop: 2, fontFamily: theme.typography.fontFamily.mono },
+  title: { fontSize: 22, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.bold },
+  subtitle: { fontSize: 11, color: colors.textTertiary, marginTop: 2, fontFamily: theme.typography.fontFamily.mono },
 
   scroll: { padding: 14, paddingBottom: 32, gap: 14 },
 
   daySection: { gap: 8 },
   dayHeader: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginBottom: 4 },
-  dayLabel: { fontSize: 14, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.bold },
-  dayDate: { fontSize: 11, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
-  dayHitsBadge: { marginLeft: 'auto', backgroundColor: theme.colors.gold + '22', borderWidth: 1, borderColor: theme.colors.gold + '66', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 99 },
-  dayHitsText: { fontSize: 10, fontWeight: '900', color: theme.colors.gold, fontFamily: theme.typography.fontFamily.monoBold },
+  dayLabel: { fontSize: 14, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.bold },
+  dayDate: { fontSize: 11, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
+  dayHitsBadge: { marginLeft: 'auto', backgroundColor: colors.gold + '22', borderWidth: 1, borderColor: colors.gold + '66', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 99 },
+  dayHitsText: { fontSize: 10, fontWeight: '900', color: colors.gold, fontFamily: theme.typography.fontFamily.monoBold },
 
-  scopeCard: { backgroundColor: theme.colors.card, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: theme.colors.border, gap: 8 },
+  scopeCard: { backgroundColor: colors.card, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.border, gap: 8 },
   scopeHeader: { flexDirection: 'row', alignItems: 'center' },
-  scopeLabel: { fontSize: 12, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.5 },
-  scopeHitsBadge: { fontSize: 10, fontWeight: '900', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold },
-  scopeMissedBadge: { fontSize: 10, fontWeight: '700', color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold },
+  scopeLabel: { fontSize: 12, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.5 },
+  scopeHitsBadge: { fontSize: 10, fontWeight: '900', color: colors.cyan, fontFamily: theme.typography.fontFamily.monoBold },
+  scopeMissedBadge: { fontSize: 10, fontWeight: '700', color: colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold },
 
   picksGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  pickPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.colors.bgElevated, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5, borderWidth: 1, borderColor: theme.colors.border },
-  pickPillBox: { backgroundColor: theme.colors.cyan, borderColor: theme.colors.cyan },
-  pickPillStraight: { backgroundColor: theme.colors.gold, borderColor: theme.colors.gold },
-  pickRank: { fontSize: 9, fontWeight: '900', color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold },
-  pickCombo: { fontSize: 13, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 1 },
+  pickPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.bgElevated, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5, borderWidth: 1, borderColor: colors.border },
+  pickPillBox: { backgroundColor: colors.cyan, borderColor: colors.cyan },
+  pickPillStraight: { backgroundColor: colors.gold, borderColor: colors.gold },
+  pickRank: { fontSize: 9, fontWeight: '900', color: colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold },
+  pickCombo: { fontSize: 13, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 1 },
   pickHitMark: { fontSize: 11 },
 
-  drawsLine: { fontSize: 10, color: theme.colors.textSecondary, lineHeight: 14, fontFamily: theme.typography.fontFamily.mono },
-  drawsLineEmpty: { fontSize: 10, color: theme.colors.textTertiary, fontStyle: 'italic' },
+  drawsLine: { fontSize: 10, color: colors.textSecondary, lineHeight: 14, fontFamily: theme.typography.fontFamily.mono },
+  drawsLineEmpty: { fontSize: 10, color: colors.textTertiary, fontStyle: 'italic' },
 });

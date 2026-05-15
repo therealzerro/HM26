@@ -33,6 +33,7 @@ import { useFollowedStates } from '@/hooks/useFollowedStates';
 import { getYesterdayET } from '@/lib/dateUtils';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { Calendar, MoreHorizontal, Search, X, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { EmptyState } from '@/components/EmptyState';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -41,7 +42,7 @@ import { MissDayCard } from '@/components/MissDayCard';
 import { HitReplay } from '@/components/HitReplay';
 
 // Local D color alias map removed (design.md step 6) — every reference
-// now uses theme.colors.* directly so grep-for-cyan finds this file.
+// now uses colors.* directly so grep-for-cyan finds this file.
 
 interface LedgerRow {
   jurisdiction: string; game: string; date_et: string; session: string; result_digits: string; comboset_sorted?: string;
@@ -54,9 +55,11 @@ interface HitRow {
 interface ProcessedEntry extends LedgerRow { hits: HitRow[] }
 
 const SESSION_ICONS:  Record<string, string> = { morning: '🌅', midday: '☀️', evening: '🌙', night: '🌑' };
-const SESSION_COLORS: Record<string, string> = {
-  morning: theme.colors.amber, midday: theme.colors.gold,
-  evening: theme.colors.purple, night: theme.colors.blue,
+// Indirection via color-token keys so SESSION_COLORS resolves through the
+// active palette at render time (dark vs light) rather than locking to dark
+// at module load. Look up: `colors[SESSION_COLOR_KEYS[session]]`.
+const SESSION_COLOR_KEYS: Record<string, keyof ColorTokens> = {
+  morning: 'amber', midday: 'gold', evening: 'purple', night: 'blue',
 };
 
 function getTodayET(): string {
@@ -107,6 +110,8 @@ function StatsSheet({ visible, onClose, stats, selectedDate }: {
   visible: boolean; onClose: () => void; selectedDate: string;
   stats: { morn: number; mid: number; eve: number; night: number; total: number; hits: number };
 }) {
+  const { colors } = useTheme();
+  const ss = useMemo(() => makeSs(colors), [colors]);
   return (
     <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
       <Pressable style={ss.backdrop} onPress={onClose}>
@@ -114,31 +119,31 @@ function StatsSheet({ visible, onClose, stats, selectedDate }: {
           <View style={ss.handle} />
           <View style={ss.headerRow}>
             <Text style={ss.heading}>{formatDisplayDate(selectedDate)}</Text>
-            <TouchableOpacity onPress={onClose}><X size={20} color={theme.colors.textSecondary} /></TouchableOpacity>
+            <TouchableOpacity onPress={onClose}><X size={20} color={colors.textSecondary} /></TouchableOpacity>
           </View>
 
           <Text style={ss.sectionTitle}>Session breakdown</Text>
           <View style={ss.grid}>
-            <Stat n={stats.morn}  label="🌅 Morning" c={theme.colors.amber} />
-            <Stat n={stats.mid}   label="☀️ Midday"  c={theme.colors.gold}  />
-            <Stat n={stats.eve}   label="🌙 Evening" c={theme.colors.purple} />
-            <Stat n={stats.night} label="🌑 Night"   c={theme.colors.blue} />
+            <Stat n={stats.morn}  label="🌅 Morning" c={colors.amber} />
+            <Stat n={stats.mid}   label="☀️ Midday"  c={colors.gold}  />
+            <Stat n={stats.eve}   label="🌙 Evening" c={colors.purple} />
+            <Stat n={stats.night} label="🌑 Night"   c={colors.blue} />
           </View>
 
           <Text style={ss.sectionTitle}>Totals</Text>
           <View style={ss.bigRow}>
             <View style={ss.bigStat}>
-              <Text style={[ss.bigNum, { color: theme.colors.text }]}>{stats.total}</Text>
+              <Text style={[ss.bigNum, { color: colors.text }]}>{stats.total}</Text>
               <Text style={ss.bigLabel}>Total draws</Text>
             </View>
             <View style={ss.divider} />
             <View style={ss.bigStat}>
-              <Text style={[ss.bigNum, { color: theme.colors.cyan }]}>{stats.hits}</Text>
+              <Text style={[ss.bigNum, { color: colors.cyan }]}>{stats.hits}</Text>
               <Text style={ss.bigLabel}>🎯 ZK6 hits</Text>
             </View>
             <View style={ss.divider} />
             <View style={ss.bigStat}>
-              <Text style={[ss.bigNum, { color: theme.colors.gold }]}>
+              <Text style={[ss.bigNum, { color: colors.gold }]}>
                 {stats.total > 0 ? Math.round((stats.hits / stats.total) * 100) : 0}%
               </Text>
               <Text style={ss.bigLabel}>Hit rate</Text>
@@ -150,6 +155,8 @@ function StatsSheet({ visible, onClose, stats, selectedDate }: {
   );
 }
 function Stat({ n, label, c }: { n: number; label: string; c: string }) {
+  const { colors } = useTheme();
+  const ss = useMemo(() => makeSs(colors), [colors]);
   return (
     <View style={ss.cell}>
       <Text style={[ss.cellNum, { color: c }]}>{n}</Text>
@@ -187,6 +194,8 @@ function flattenHits(processed: ProcessedEntry[]): HitSummaryItem[] {
   return out;
 }
 function HitSummary({ items }: { items: HitSummaryItem[] }) {
+  const { colors } = useTheme();
+  const hs = useMemo(() => makeHs(colors), [colors]);
   if (items.length === 0) {
     return (
       <View style={hs.container}>
@@ -203,7 +212,7 @@ function HitSummary({ items }: { items: HitSummaryItem[] }) {
           <Text style={hs.combo}>{h.combo}</Text>
           <View style={{ flex: 1 }}>
             <Text style={hs.main}>
-              <Text style={{ color: h.hitType === 'STRAIGHT' ? theme.colors.gold : theme.colors.cyan, fontWeight: '900' }}>K6 {h.hitType}</Text>
+              <Text style={{ color: h.hitType === 'STRAIGHT' ? colors.gold : colors.cyan, fontWeight: '900' }}>K6 {h.hitType}</Text>
               {h.scope ? ` · ${h.scope}` : ''}
             </Text>
             <Text style={hs.sub2}>{h.jurisdiction} {h.session}</Text>
@@ -216,6 +225,8 @@ function HitSummary({ items }: { items: HitSummaryItem[] }) {
 function HitSummarySheet({ visible, onClose, items, selectedDate }: {
   visible: boolean; onClose: () => void; items: HitSummaryItem[]; selectedDate: string;
 }) {
+  const { colors } = useTheme();
+  const ss = useMemo(() => makeSs(colors), [colors]);
   return (
     <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
       <Pressable style={ss.backdrop} onPress={onClose}>
@@ -223,7 +234,7 @@ function HitSummarySheet({ visible, onClose, items, selectedDate }: {
           <View style={ss.handle} />
           <View style={ss.headerRow}>
             <Text style={ss.heading}>{formatDisplayDate(selectedDate)}</Text>
-            <TouchableOpacity onPress={onClose}><X size={20} color={theme.colors.textSecondary} /></TouchableOpacity>
+            <TouchableOpacity onPress={onClose}><X size={20} color={colors.textSecondary} /></TouchableOpacity>
           </View>
           <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 480 }}>
             <HitSummary items={items} />
@@ -233,35 +244,37 @@ function HitSummarySheet({ visible, onClose, items, selectedDate }: {
     </Modal>
   );
 }
-const hs = StyleSheet.create({
-  container: { backgroundColor: theme.colors.card, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: theme.colors.border, padding: 14, marginTop: 14, marginHorizontal: 12, gap: 10 },
-  title: { fontSize: 12, fontWeight: '900', color: theme.colors.text, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 4 },
-  sub: { fontSize: 12, color: theme.colors.textTertiary },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6, borderTopWidth: 1, borderTopColor: theme.colors.border + '55' },
-  combo: { fontSize: 22, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 3, minWidth: 64 },
-  main: { fontSize: 12, color: theme.colors.textSecondary },
-  sub2: { fontSize: 11, color: theme.colors.textTertiary, marginTop: 2 },
+const makeHs = (colors: ColorTokens) => StyleSheet.create({
+  container: { backgroundColor: colors.card, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: colors.border, padding: 14, marginTop: 14, marginHorizontal: 12, gap: 10 },
+  title: { fontSize: 12, fontWeight: '900', color: colors.text, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 4 },
+  sub: { fontSize: 12, color: colors.textTertiary },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6, borderTopWidth: 1, borderTopColor: colors.border + '55' },
+  combo: { fontSize: 22, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 3, minWidth: 64 },
+  main: { fontSize: 12, color: colors.textSecondary },
+  sub2: { fontSize: 11, color: colors.textTertiary, marginTop: 2 },
 });
-const ss = StyleSheet.create({
+const makeSs = (colors: ColorTokens) => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: theme.colors.bgElevated, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, paddingBottom: 36, gap: 12, borderTopWidth: 1.5, borderColor: theme.colors.purple + '44' },
-  handle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: theme.colors.border, marginBottom: 6 },
+  sheet: { backgroundColor: colors.bgElevated, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, paddingBottom: 36, gap: 12, borderTopWidth: 1.5, borderColor: colors.purple + '44' },
+  handle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border, marginBottom: 6 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  heading: { fontSize: 18, fontWeight: '900', color: theme.colors.text },
-  sectionTitle: { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 6 },
+  heading: { fontSize: 18, fontWeight: '900', color: colors.text },
+  sectionTitle: { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 6 },
   grid: { flexDirection: 'row', gap: 6 },
-  cell: { flex: 1, paddingVertical: 12, alignItems: 'center', backgroundColor: theme.colors.card, borderRadius: 10, borderWidth: 1, borderColor: theme.colors.border },
+  cell: { flex: 1, paddingVertical: 12, alignItems: 'center', backgroundColor: colors.card, borderRadius: 10, borderWidth: 1, borderColor: colors.border },
   cellNum: { fontSize: 22, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '900' },
-  cellLabel: { fontSize: 10, color: theme.colors.textSecondary, marginTop: 4 },
-  bigRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.card, borderRadius: 10, borderWidth: 1, borderColor: theme.colors.border, paddingVertical: 14 },
+  cellLabel: { fontSize: 10, color: colors.textSecondary, marginTop: 4 },
+  bigRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 10, borderWidth: 1, borderColor: colors.border, paddingVertical: 14 },
   bigStat: { flex: 1, alignItems: 'center' },
   bigNum: { fontSize: 26, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '900' },
-  bigLabel: { fontSize: 10, color: theme.colors.textTertiary, marginTop: 4 },
-  divider: { width: 1, height: 30, backgroundColor: theme.colors.border },
+  bigLabel: { fontSize: 10, color: colors.textTertiary, marginTop: 4 },
+  divider: { width: 1, height: 30, backgroundColor: colors.border },
 });
 
 // ─── main screen ───────────────────────────────────────────────────────
 export default function ResultsScreen() {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   const recentDates = useMemo(() => getRecentDates(), []);
   const [selectedDate,  setSelectedDate]  = useState(recentDates[0]);
   const [sessionFilter, setSessionFilter] = useState<string>('all');
@@ -626,7 +639,7 @@ export default function ResultsScreen() {
 
   const renderItem = ({ item }: { item: typeof grouped[0] }) => {
     if (item.type === 'header') {
-      const color = SESSION_COLORS[item.session] ?? theme.colors.purple;
+      const color = colors[SESSION_COLOR_KEYS[item.session] ?? 'purple'];
       const icon  = SESSION_ICONS[item.session]  ?? '•';
       const label = item.session.charAt(0).toUpperCase() + item.session.slice(1);
       return (
@@ -640,10 +653,10 @@ export default function ResultsScreen() {
     }
     const row = item.data;
     const hasHit = row.hits.length > 0;
-    const sessionColor = SESSION_COLORS[row.session] ?? theme.colors.purple;
+    const sessionColor = colors[SESSION_COLOR_KEYS[row.session] ?? 'purple'];
     const sessionIcon  = SESSION_ICONS[row.session]  ?? '•';
-    const stripColor   = hasHit ? theme.colors.cyan : sessionColor + '80';
-    const digitColor   = hasHit ? theme.colors.cyan : sessionColor;
+    const stripColor   = hasHit ? colors.cyan : sessionColor + '80';
+    const digitColor   = hasHit ? colors.cyan : sessionColor;
     const hit          = row.hits[0];
     const rowId        = `${row.jurisdiction}|${row.session}|${row.date_et}`;
     const isExpanded   = hasHit && expandedRowId === rowId;
@@ -656,8 +669,8 @@ export default function ResultsScreen() {
         <View style={[s.strip, { backgroundColor: stripColor }]} />
         <View style={s.cardInner}>
           <View style={s.cardHeader}>
-            <View style={[s.statePill, { borderColor: hasHit ? theme.colors.cyan : sessionColor + '70' }]}>
-              <Text style={[s.stateText, { color: hasHit ? theme.colors.cyan : sessionColor }]}>{row.jurisdiction}</Text>
+            <View style={[s.statePill, { borderColor: hasHit ? colors.cyan : sessionColor + '70' }]}>
+              <Text style={[s.stateText, { color: hasHit ? colors.cyan : sessionColor }]}>{row.jurisdiction}</Text>
             </View>
             <View style={s.gameInfo}>
               <Text style={s.gameName}>{row.jurisdiction} · {row.game || 'Pick 3'}</Text>
@@ -698,8 +711,8 @@ export default function ResultsScreen() {
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 {isExpanded
-                  ? <ChevronUp size={18} color={theme.colors.cyan} />
-                  : <ChevronDown size={18} color={theme.colors.cyan} />}
+                  ? <ChevronUp size={18} color={colors.cyan} />
+                  : <ChevronDown size={18} color={colors.cyan} />}
                 <Text style={s.chevronLabel}>Replay</Text>
               </TouchableOpacity>
             ) : null}
@@ -750,7 +763,7 @@ export default function ResultsScreen() {
             {stats.hits > 0 && (
               <Text
                 onPress={() => setHitSummaryOpen(true)}
-                style={{ color: theme.colors.cyan }}
+                style={{ color: colors.cyan }}
                 accessibilityRole="button"
                 accessibilityLabel={`${stats.hits} hits — open hit summary`}
               > · {stats.hits} 🎯</Text>
@@ -759,7 +772,7 @@ export default function ResultsScreen() {
             {streak >= 2 && (
               <Text
                 onPress={() => setHitSummaryOpen(true)}
-                style={{ color: theme.colors.hotStreak }}
+                style={{ color: colors.hotStreak }}
                 accessibilityRole="button"
                 accessibilityLabel={`${streak} day hit streak — open hit summary`}
               > · 🔥 {streak}d streak</Text>
@@ -768,7 +781,7 @@ export default function ResultsScreen() {
         }
         rightSlot={
           <TouchableOpacity onPress={() => setStatsOpen(true)} style={s.overflowBtn}>
-            <MoreHorizontal size={20} color={theme.colors.textSecondary} />
+            <MoreHorizontal size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         }
       />
@@ -783,7 +796,7 @@ export default function ResultsScreen() {
           const dayHits = hitsByDate.get(date);
           const hadHit = (dayHits?.total ?? 0) > 0;
           const hadStraight = (dayHits?.straight ?? 0) > 0;
-          const dotColor = hadStraight ? theme.colors.gold : theme.colors.cyan;
+          const dotColor = hadStraight ? colors.gold : colors.cyan;
           return (
             <TouchableOpacity key={date} onPress={() => setSelectedDate(date)} style={[s.dateTab, isActive && s.dateTabActive]}>
               <Text style={[s.dateTabText, isActive && s.dateTabTextActive]}>{getDateLabel(date)}</Text>
@@ -801,19 +814,19 @@ export default function ResultsScreen() {
       {/* ── Compact controls strip — search icon + session pills + count ── */}
       {searchOpen ? (
         <View style={s.searchRow}>
-          <Search size={14} color={theme.colors.textTertiary} />
+          <Search size={14} color={colors.textTertiary} />
           <TextInput
             style={s.searchInput} placeholder="Search state, game, or digits…"
-            placeholderTextColor={theme.colors.textTertiary} value={searchQuery} onChangeText={setSearchQuery} autoFocus
+            placeholderTextColor={colors.textTertiary} value={searchQuery} onChangeText={setSearchQuery} autoFocus
           />
           <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchOpen(false); }}>
-            <X size={16} color={theme.colors.textTertiary} />
+            <X size={16} color={colors.textTertiary} />
           </TouchableOpacity>
         </View>
       ) : (
         <View style={s.controlsRow}>
           <TouchableOpacity onPress={() => setSearchOpen(true)} style={s.searchTrigger}>
-            <Search size={14} color={searchQuery ? theme.colors.cyan : theme.colors.textTertiary} />
+            <Search size={14} color={searchQuery ? colors.cyan : colors.textTertiary} />
             {searchQuery ? <Text style={s.searchActiveText}>{searchQuery}</Text> : null}
           </TouchableOpacity>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}
@@ -869,32 +882,32 @@ export default function ResultsScreen() {
       {/* ── List (the hero) ── */}
       {ledgerLoading ? (
         <View style={s.loadingWrap}>
-          <ActivityIndicator color={theme.colors.purple} size="large" />
+          <ActivityIndicator color={colors.purple} size="large" />
           <Text style={s.loadingText}>Loading draws…</Text>
         </View>
       ) : clusterView ? (
         <ScrollView style={s.flatList} contentContainerStyle={s.list}>
           {clustered.length === 0 ? (
             <View style={{ padding: 32, alignItems: 'center' }}>
-              <Text style={{ color: theme.colors.textTertiary, fontSize: 13 }}>No draws to cluster</Text>
+              <Text style={{ color: colors.textTertiary, fontSize: 13 }}>No draws to cluster</Text>
             </View>
           ) : clustered.map(c => (
             <View key={c.comboSet} style={[s.card, c.hitCount > 0 && s.cardHit]}>
-              <View style={[s.strip, { backgroundColor: c.hitCount > 0 ? theme.colors.cyan : theme.colors.bgElevated }]} />
+              <View style={[s.strip, { backgroundColor: c.hitCount > 0 ? colors.cyan : colors.bgElevated }]} />
               <View style={s.cardInner}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <Text style={{ fontSize: 16, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 2 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 2 }}>
                     {c.comboSet}
                   </Text>
                   <View style={{ flex: 1 }} />
                   {c.hitCount > 0 && (
-                    <View style={{ backgroundColor: theme.colors.cyan + '22', borderWidth: 1, borderColor: theme.colors.cyan + '55', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-                      <Text style={{ fontSize: 10, fontWeight: '900', color: theme.colors.cyan }}>🎯 {c.hitCount} HIT{c.hitCount > 1 ? 'S' : ''}</Text>
+                    <View style={{ backgroundColor: colors.cyan + '22', borderWidth: 1, borderColor: colors.cyan + '55', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                      <Text style={{ fontSize: 10, fontWeight: '900', color: colors.cyan }}>🎯 {c.hitCount} HIT{c.hitCount > 1 ? 'S' : ''}</Text>
                     </View>
                   )}
-                  <Text style={{ fontSize: 11, color: theme.colors.textTertiary }}>{c.drawCount} draw{c.drawCount > 1 ? 's' : ''}</Text>
+                  <Text style={{ fontSize: 11, color: colors.textTertiary }}>{c.drawCount} draw{c.drawCount > 1 ? 's' : ''}</Text>
                 </View>
-                <Text style={{ fontSize: 11, color: theme.colors.textTertiary, marginTop: 4 }}>
+                <Text style={{ fontSize: 11, color: colors.textTertiary, marginTop: 4 }}>
                   Perms: {c.digits.join(' · ')}
                 </Text>
               </View>
@@ -912,7 +925,7 @@ export default function ResultsScreen() {
           contentContainerStyle={s.list}
           ListFooterComponent={<HitSummary items={hitSummaryItems} />}
           refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor={theme.colors.purple} colors={[theme.colors.purple]} />
+            <RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor={colors.purple} colors={[colors.purple]} />
           }
           ListEmptyComponent={
             <EmptyState icon={Calendar} title="No draws found"
@@ -928,26 +941,26 @@ export default function ResultsScreen() {
 }
 
 // ─── styles ────────────────────────────────────────────────────────────
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+const makeS = (colors: ColorTokens) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
 
   // header
   // header layout moved to components/ScreenHeader.tsx (design.md step 3).
-  // The opaque `backgroundColor: theme.colors.bgElevated` on the gradient view was likely
+  // The opaque `backgroundColor: colors.bgElevated` on the gradient view was likely
   // hiding the gradient on some platforms — fixed in passing.
-  headerTitle: { fontSize: 22, fontWeight: '900', color: theme.colors.text, lineHeight: 26, fontFamily: theme.typography.fontFamily.bold },
-  headerWhite: { color: theme.colors.text },
-  headerCyan:  { color: theme.colors.cyan },
-  headerSub:   { fontSize: 11, color: theme.colors.textTertiary, marginTop: 3, fontFamily: theme.typography.fontFamily.mono },
-  overflowBtn: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.background },
+  headerTitle: { fontSize: 22, fontWeight: '900', color: colors.text, lineHeight: 26, fontFamily: theme.typography.fontFamily.bold },
+  headerWhite: { color: colors.text },
+  headerCyan:  { color: colors.cyan },
+  headerSub:   { fontSize: 11, color: colors.textTertiary, marginTop: 3, fontFamily: theme.typography.fontFamily.mono },
+  overflowBtn: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
 
   // date tabs
-  dateTabs: { flexShrink: 0, maxHeight: 46, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+  dateTabs: { flexShrink: 0, maxHeight: 46, backgroundColor: colors.bgElevated, borderBottomWidth: 1, borderBottomColor: colors.border },
   dateTabsContent: { paddingHorizontal: theme.layout.screenInset, paddingVertical: 6, gap: 8 },
-  dateTab: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: theme.borderRadius.pill, backgroundColor: theme.colors.surface2, borderWidth: 1, borderColor: theme.colors.border, position: 'relative' },
-  dateTabActive: { backgroundColor: theme.colors.purple + '22', borderColor: theme.colors.purple + '88' },
-  dateTabText: { fontSize: 12, fontWeight: '600', color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
-  dateTabTextActive: { color: theme.colors.purple, fontWeight: '700' },
+  dateTab: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: theme.borderRadius.pill, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border, position: 'relative' },
+  dateTabActive: { backgroundColor: colors.purple + '22', borderColor: colors.purple + '88' },
+  dateTabText: { fontSize: 12, fontWeight: '600', color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
+  dateTabTextActive: { color: colors.purple, fontWeight: '700' },
   // E4: hit-count dots — absolute-positioned top-right of each date tab.
   tabDot: {
     position: 'absolute',
@@ -963,49 +976,49 @@ const s = StyleSheet.create({
   tabDotSecondary: { right: 13 },
 
   // controls strip (collapsed default)
-  controlsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: theme.layout.screenInset, paddingVertical: 8, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
-  searchTrigger: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: theme.borderRadius.pill, backgroundColor: theme.colors.surface2, borderWidth: 1, borderColor: theme.colors.border, maxWidth: 120 },
-  searchActiveText: { fontSize: 11, color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.mono, maxWidth: 80 },
+  controlsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: theme.layout.screenInset, paddingVertical: 8, backgroundColor: colors.bgElevated, borderBottomWidth: 1, borderBottomColor: colors.border },
+  searchTrigger: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: theme.borderRadius.pill, backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border, maxWidth: 120 },
+  searchActiveText: { fontSize: 11, color: colors.cyan, fontFamily: theme.typography.fontFamily.mono, maxWidth: 80 },
   filterRow: { flex: 1, flexShrink: 0, maxHeight: 32 },
   filterRowContent: { gap: 4, alignItems: 'center' },
-  filterBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 9, paddingVertical: 5, borderRadius: theme.borderRadius.pill, backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.colors.border },
-  filterBtnActive: { backgroundColor: theme.colors.cyan + '18', borderColor: theme.colors.cyan + '66' },
+  filterBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 9, paddingVertical: 5, borderRadius: theme.borderRadius.pill, backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border },
+  filterBtnActive: { backgroundColor: colors.cyan + '18', borderColor: colors.cyan + '66' },
   filterIcon: { fontSize: 11 },
-  filterText: { fontSize: 10, fontWeight: '600', color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
-  filterTextActive: { color: theme.colors.cyan, fontWeight: '700' },
-  drawCount: { fontSize: 11, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700', flexShrink: 0 },
+  filterText: { fontSize: 10, fontWeight: '600', color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
+  filterTextActive: { color: colors.cyan, fontWeight: '700' },
+  drawCount: { fontSize: 11, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold, fontWeight: '700', flexShrink: 0 },
 
   // search expanded
-  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: theme.layout.screenInset, marginVertical: 8, backgroundColor: theme.colors.surface2, borderRadius: theme.borderRadius.card, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.colors.cyan + '55' },
-  searchInput: { flex: 1, paddingVertical: 10, fontSize: 13, color: theme.colors.text, fontFamily: theme.typography.fontFamily.mono },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: theme.layout.screenInset, marginVertical: 8, backgroundColor: colors.surface2, borderRadius: theme.borderRadius.card, paddingHorizontal: 12, borderWidth: 1, borderColor: colors.cyan + '55' },
+  searchInput: { flex: 1, paddingVertical: 10, fontSize: 13, color: colors.text, fontFamily: theme.typography.fontFamily.mono },
 
   // section header in list
   sectionHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: theme.layout.screenInset, paddingVertical: 10, gap: 6 },
   dot: { fontSize: 7 },
   sectionIcon: { fontSize: 14 },
   sectionText: { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
-  sectionCount: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
+  sectionCount: { fontSize: 10, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
 
   // list/loading
   flatList: { flex: 1 },
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText: { fontSize: 13, color: theme.colors.textTertiary },
+  loadingText: { fontSize: 13, color: colors.textTertiary },
   list: { paddingBottom: 40 },
 
   // card
-  card: { flexDirection: 'row', backgroundColor: theme.colors.surface2, marginHorizontal: theme.layout.screenInset, marginBottom: 8, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: theme.colors.border, overflow: 'hidden' },
-  cardHit: { backgroundColor: theme.colors.cyan + '0d', borderColor: theme.colors.cyan + '55' },
+  card: { flexDirection: 'row', backgroundColor: colors.surface2, marginHorizontal: theme.layout.screenInset, marginBottom: 8, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  cardHit: { backgroundColor: colors.cyan + '0d', borderColor: colors.cyan + '55' },
   strip: { width: 6 },
   cardInner: { flex: 1, padding: 12 },
   cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 },
-  statePill: { width: 38, height: 38, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.background, marginRight: 8 },
+  statePill: { width: 38, height: 38, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background, marginRight: 8 },
   stateText: { fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
   gameInfo: { flex: 1 },
-  gameName: { fontSize: 13, fontWeight: '700', color: theme.colors.text, fontFamily: theme.typography.fontFamily.medium },
-  hitBadge: { marginTop: 4, backgroundColor: theme.colors.cyan + '18', borderWidth: 1, borderColor: theme.colors.cyan + '55', borderRadius: theme.borderRadius.pill, paddingHorizontal: 8, paddingVertical: 3 },
-  hitBadgeText: { fontSize: 9, fontWeight: '900', color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.5 },
-  shareBtn: { marginTop: 4, backgroundColor: theme.colors.cyan + '22', borderWidth: 1, borderColor: theme.colors.cyan + '55', borderRadius: 8, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
-  shareBtnText: { fontSize: 13, fontWeight: '900', color: theme.colors.cyan },
+  gameName: { fontSize: 13, fontWeight: '700', color: colors.text, fontFamily: theme.typography.fontFamily.medium },
+  hitBadge: { marginTop: 4, backgroundColor: colors.cyan + '18', borderWidth: 1, borderColor: colors.cyan + '55', borderRadius: theme.borderRadius.pill, paddingHorizontal: 8, paddingVertical: 3 },
+  hitBadgeText: { fontSize: 9, fontWeight: '900', color: colors.cyan, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.5 },
+  shareBtn: { marginTop: 4, backgroundColor: colors.cyan + '22', borderWidth: 1, borderColor: colors.cyan + '55', borderRadius: 8, width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  shareBtnText: { fontSize: 13, fontWeight: '900', color: colors.cyan },
   // E2: chevron column — replaces BOX/PBR/DGC operator-speak signal column.
   chevronBtn: {
     alignItems: 'center',
@@ -1019,7 +1032,7 @@ const s = StyleSheet.create({
     fontSize: 8,
     fontWeight: '900',
     letterSpacing: 0.6,
-    color: theme.colors.cyan + 'aa',
+    color: colors.cyan + 'aa',
     fontFamily: theme.typography.fontFamily.monoBold,
   },
   resultRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

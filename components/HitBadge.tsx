@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 
 /**
  * Shared hit-type pill (design.md step 4).
@@ -27,7 +28,9 @@ interface Props {
 }
 
 export function HitBadge({ type, compact, style }: Props) {
-  const color = type === 'straight' ? theme.colors.gold : theme.colors.cyan;
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
+  const color = type === 'straight' ? colors.gold : colors.cyan;
   const emoji = type === 'straight' ? '⭐' : '🎯';
   const label = type === 'straight' ? 'STRAIGHT' : 'BOX';
   return (
@@ -47,7 +50,7 @@ export function HitBadge({ type, compact, style }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (_colors: ColorTokens) => StyleSheet.create({
   badge: {
     paddingHorizontal: 8,
     paddingVertical: 3,

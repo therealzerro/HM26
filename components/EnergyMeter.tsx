@@ -5,10 +5,11 @@
 // aligns labels with PickCard's heatInfo bands, and adds a
 // soft ring glow on all energies (was only ≥80).
 // ───────────────────────────────────────────────────────────
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 
 interface EnergyMeterProps {
@@ -17,12 +18,12 @@ interface EnergyMeterProps {
 }
 
 // Aligned with PickCard.heatInfo: 90 ON FIRE → 80 BLAZING → 65 HOT → 45 WARM → COOL
-function energyColor(e: number) {
-  if (e >= 90) return theme.colors.hot;        // #ff3b30
-  if (e >= 80) return theme.colors.amber;      // #ff6a2b
-  if (e >= 65) return theme.colors.orange;     // #ff6a2b alias
-  if (e >= 45) return theme.colors.gold;       // #ffd93d
-  return theme.colors.cyan;                    // #2bffcc — cool, still legible
+function energyColor(e: number, colors: ColorTokens) {
+  if (e >= 90) return colors.hot;
+  if (e >= 80) return colors.amber;
+  if (e >= 65) return colors.orange;
+  if (e >= 45) return colors.gold;
+  return colors.cyan;
 }
 
 function energyLabel(e: number) {
@@ -33,17 +34,19 @@ function energyLabel(e: number) {
   return 'COOL';
 }
 
-function energyGradient(e: number): [string, string] {
-  if (e >= 90) return [theme.colors.hot,   theme.colors.amber];
-  if (e >= 80) return [theme.colors.amber, theme.colors.gold];
-  if (e >= 65) return [theme.colors.orange,theme.colors.gold];
-  if (e >= 45) return [theme.colors.gold,  theme.colors.cyan];
-  return        [theme.colors.cyan,  theme.colors.purple];   // COOL now reads
+function energyGradient(e: number, colors: ColorTokens): [string, string] {
+  if (e >= 90) return [colors.hot,    colors.amber];
+  if (e >= 80) return [colors.amber,  colors.gold];
+  if (e >= 65) return [colors.orange, colors.gold];
+  if (e >= 45) return [colors.gold,   colors.cyan];
+  return        [colors.cyan,   colors.purple];
 }
 
 export function EnergyMeter({ value, size = 80 }: EnergyMeterProps) {
-  const col = energyColor(value);
-  const [g1, g2] = energyGradient(value);
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
+  const col = energyColor(value, colors);
+  const [g1, g2] = energyGradient(value, colors);
   const innerSize = size * 0.72;
   const reduceMotion = useReduceMotion();
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -119,7 +122,7 @@ export function EnergyMeter({ value, size = 80 }: EnergyMeterProps) {
       >
         <View style={{
           width: innerSize, height: innerSize, borderRadius: innerSize / 2,
-          backgroundColor: theme.colors.background,
+          backgroundColor: colors.background,
           alignItems: 'center', justifyContent: 'center',
         }}>
           <Text
@@ -138,7 +141,7 @@ export function EnergyMeter({ value, size = 80 }: EnergyMeterProps) {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (_colors: ColorTokens) => StyleSheet.create({
   halo: { position: 'absolute' },
   num:  { fontFamily: theme.typography.fontFamily.monoBold },
   label:{ fontFamily: theme.typography.fontFamily.mono, letterSpacing: 0.8, fontWeight: '700' },

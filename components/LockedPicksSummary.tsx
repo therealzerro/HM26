@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import type { PickItem } from '@/components/PickCard';
 
 interface Props {
@@ -17,6 +18,8 @@ interface Props {
 }
 
 export function LockedPicksSummary({ lockedPicks, onUnlock, onWatchAd }: Props) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   if (lockedPicks.length === 0) return null;
   const handleWatch = onWatchAd ?? ((_rank: number) => onUnlock());
 
@@ -47,26 +50,26 @@ export function LockedPicksSummary({ lockedPicks, onUnlock, onWatchAd }: Props) 
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens) => StyleSheet.create({
   card: {
     marginHorizontal: 0,
     marginBottom: 9,
     paddingHorizontal: 14,
     paddingTop: 12,
     paddingBottom: 8,
-    backgroundColor: theme.colors.card,
+    backgroundColor: colors.card,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: theme.colors.purple + '55',
+    borderColor: colors.purple + '55',
   },
   header: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 },
-  headerLabel: { fontSize: 10, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
-  headerSub: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
+  headerLabel: { fontSize: 10, fontWeight: '900', color: colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
+  headerSub: { fontSize: 10, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 },
-  rank: { fontSize: 11, fontWeight: '900', color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold, minWidth: 22 },
-  combo: { fontSize: 16, fontWeight: '900', color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 4, opacity: 0.5 },
-  adBtn: { backgroundColor: theme.colors.purple + '22', borderWidth: 1, borderColor: theme.colors.purple + '66', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99 },
-  adBtnText: { fontSize: 10, fontWeight: '800', color: theme.colors.purple, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.4 },
-  upgradeRow: { marginTop: 8, paddingTop: 8, alignItems: 'center', borderTopWidth: 1, borderTopColor: theme.colors.border + '77' },
-  upgradeText: { fontSize: 11, color: theme.colors.gold, fontWeight: '800', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.3 },
+  rank: { fontSize: 11, fontWeight: '900', color: colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold, minWidth: 22 },
+  combo: { fontSize: 16, fontWeight: '900', color: colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 4, opacity: 0.5 },
+  adBtn: { backgroundColor: colors.purple + '22', borderWidth: 1, borderColor: colors.purple + '66', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99 },
+  adBtnText: { fontSize: 10, fontWeight: '800', color: colors.purple, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.4 },
+  upgradeRow: { marginTop: 8, paddingTop: 8, alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.border + '77' },
+  upgradeText: { fontSize: 11, color: colors.gold, fontWeight: '800', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.3 },
 });

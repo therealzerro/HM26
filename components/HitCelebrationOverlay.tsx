@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, Modal, Pressable, Animated, Easing, Share, StyleSheet, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 
 interface Props {
@@ -18,6 +19,8 @@ const SPARKLE_COUNT = 14;
 const SHARE_URL = 'https://hitmaster.app';
 
 export function HitCelebrationOverlay({ visible, onDismiss, rank, digits, jurisdiction, session, hitType }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const reduceMotion = useReduceMotion();
   const scale = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(0)).current;
@@ -115,18 +118,18 @@ export function HitCelebrationOverlay({ visible, onDismiss, rank, digits, jurisd
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(10,6,19,0.92)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   card: {
-    backgroundColor: theme.colors.bgElevated,
+    backgroundColor: colors.bgElevated,
     borderRadius: 24,
     padding: 28,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: theme.colors.cyan,
+    borderColor: colors.cyan,
     width: '100%',
     maxWidth: 360,
-    shadowColor: theme.colors.cyan,
+    shadowColor: colors.cyan,
     shadowOpacity: 0.45,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 0 },
@@ -134,13 +137,13 @@ const styles = StyleSheet.create({
     overflow: 'visible',
   },
   sparkleAnchor: { position: 'absolute', top: '50%', left: '50%', width: 0, height: 0 },
-  sparkle: { position: 'absolute', fontSize: 22, color: theme.colors.cyan, top: -11, left: -11, fontWeight: '900' },
+  sparkle: { position: 'absolute', fontSize: 22, color: colors.cyan, top: -11, left: -11, fontWeight: '900' },
   bigEmoji: { fontSize: 56, marginBottom: 4 },
-  title: { fontSize: 38, fontWeight: '900', color: theme.colors.cyan, letterSpacing: 6, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 4 },
-  combo: { fontSize: 56, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 6, marginVertical: 10 },
-  meta: { fontSize: 13, color: theme.colors.textSecondary, marginBottom: 22, textAlign: 'center', lineHeight: 18 },
-  shareBtn: { backgroundColor: theme.colors.cyan, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12, marginBottom: 6, width: '100%', alignItems: 'center' },
-  shareBtnText: { color: theme.colors.background, fontSize: 15, fontWeight: '800', letterSpacing: 0.4 },
+  title: { fontSize: 38, fontWeight: '900', color: colors.cyan, letterSpacing: 6, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 4 },
+  combo: { fontSize: 56, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 6, marginVertical: 10 },
+  meta: { fontSize: 13, color: colors.textSecondary, marginBottom: 22, textAlign: 'center', lineHeight: 18 },
+  shareBtn: { backgroundColor: colors.cyan, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12, marginBottom: 6, width: '100%', alignItems: 'center' },
+  shareBtnText: { color: colors.background, fontSize: 15, fontWeight: '800', letterSpacing: 0.4 },
   dismissBtn: { paddingVertical: 10, marginTop: 4 },
-  dismissBtnText: { color: theme.colors.textSecondary, fontSize: 13, fontWeight: '600' },
+  dismissBtnText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
 });

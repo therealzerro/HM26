@@ -2,10 +2,13 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { RefreshCw, Hash, CalendarClock } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { useSnapshot } from '@/hooks/useSnapshot';
 import { useScope } from '@/hooks/useScope';
 
 export function GeneratedSlates() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { snapshot, lastUpdate, hasLiveData, refreshSnapshot } = useSnapshot();
   const { scope } = useScope();
 
@@ -23,10 +26,10 @@ export function GeneratedSlates() {
   return (
     <View style={styles.card} testID="generated-slates-card">
       <View style={styles.header}>
-        <Hash size={18} color={theme.colors.primary} />
+        <Hash size={18} color={colors.primary} />
         <Text style={styles.title}>Generated Slates</Text>
         <TouchableOpacity onPress={refreshSnapshot} style={styles.refreshBtn} testID="generated-slates-refresh">
-          <RefreshCw size={16} color={theme.colors.text} />
+          <RefreshCw size={16} color={colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -40,7 +43,7 @@ export function GeneratedSlates() {
           <View style={styles.meta}>
             <Text style={styles.metaLabel}>Updated</Text>
             <View style={styles.timeRow}>
-              <CalendarClock size={14} color={theme.colors.textSecondary} />
+              <CalendarClock size={14} color={colors.textSecondary} />
               <Text style={styles.timeText}>{lastUpdate ?? '—'}</Text>
             </View>
           </View>
@@ -59,12 +62,12 @@ export function GeneratedSlates() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     padding: theme.spacing.md,
     gap: theme.spacing.sm,
   },
@@ -77,15 +80,15 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: theme.typography.fontSize.lg,
     fontWeight: '700' as const,
-    color: theme.colors.text,
+    color: colors.text,
   },
   refreshBtn: {
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     borderRadius: theme.borderRadius.sm,
-    backgroundColor: theme.colors.surfaceLight,
+    backgroundColor: colors.surfaceLight,
   },
   row: {
     flexDirection: 'row',
@@ -96,14 +99,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: 4,
     borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.surfaceLight,
+    backgroundColor: colors.surfaceLight,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
   },
   badgeText: {
     fontSize: theme.typography.fontSize.xs,
     fontWeight: '700' as const,
-    color: theme.colors.text,
+    color: colors.text,
     textTransform: 'capitalize' as const,
   },
   meta: {
@@ -111,13 +114,13 @@ const styles = StyleSheet.create({
   },
   metaLabel: {
     fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
     marginBottom: 2,
   },
   metaValue: {
     fontSize: theme.typography.fontSize.md,
     fontFamily: theme.typography.fontFamily.mono,
-    color: theme.colors.text,
+    color: colors.text,
   },
   timeRow: {
     flexDirection: 'row',
@@ -126,7 +129,7 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
   },
   empty: {
     paddingVertical: theme.spacing.sm,
@@ -134,11 +137,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: theme.typography.fontSize.md,
     fontWeight: '600' as const,
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: 2,
   },
   emptyText: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
   },
 });

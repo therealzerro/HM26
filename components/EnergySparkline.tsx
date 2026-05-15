@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Polyline, Circle, Line } from 'react-native-svg';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 
 interface Props {
   // ordered ascending by date — last entry is "today"
@@ -15,6 +16,8 @@ interface Props {
 }
 
 export function EnergySparkline({ series, highlight, scopeLabel, width = 320, height = 48 }: Props) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   const stats = useMemo(() => {
     const valid = series.filter(v => Number.isFinite(v) && v > 0);
     if (valid.length === 0) return null;
@@ -50,7 +53,7 @@ export function EnergySparkline({ series, highlight, scopeLabel, width = 320, he
 
   const todayVsAvg = stats.today - stats.avg;
   const todayHotter = todayVsAvg > 0;
-  const todayColor = todayHotter ? theme.colors.hot : todayVsAvg < 0 ? theme.colors.textTertiary : theme.colors.cyan;
+  const todayColor = todayHotter ? colors.hot : todayVsAvg < 0 ? colors.textTertiary : colors.cyan;
 
   return (
     <View style={s.container}>
@@ -66,31 +69,31 @@ export function EnergySparkline({ series, highlight, scopeLabel, width = 320, he
         {/* Average reference line */}
         <Line
           x1={padX} y1={avgY} x2={width - padX} y2={avgY}
-          stroke={theme.colors.border} strokeWidth={1} strokeDasharray="3 3"
+          stroke={colors.border} strokeWidth={1} strokeDasharray="3 3"
         />
         {/* Polyline */}
         <Polyline
           points={points}
           fill="none"
-          stroke={theme.colors.cyan + 'AA'}
+          stroke={colors.cyan + 'AA'}
           strokeWidth={1.5}
           strokeLinecap="round"
           strokeLinejoin="round"
         />
         {/* Today's marker */}
-        <Circle cx={lastX} cy={lastY} r={3.5} fill={todayColor} stroke={theme.colors.bgElevated} strokeWidth={1.5} />
+        <Circle cx={lastX} cy={lastY} r={3.5} fill={todayColor} stroke={colors.bgElevated} strokeWidth={1.5} />
       </Svg>
     </View>
   );
 }
 
-const s = StyleSheet.create({
-  container: { marginHorizontal: 16, marginTop: 6, paddingHorizontal: 10, paddingVertical: 7, backgroundColor: theme.colors.card, borderRadius: 10, borderWidth: 1, borderColor: theme.colors.border },
+const makeS = (colors: ColorTokens) => StyleSheet.create({
+  container: { marginHorizontal: 16, marginTop: 6, paddingHorizontal: 10, paddingVertical: 7, backgroundColor: colors.card, borderRadius: 10, borderWidth: 1, borderColor: colors.border },
   headerRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 2 },
-  headerLabel: { fontSize: 8, fontWeight: '900', color: theme.colors.textTertiary, letterSpacing: 1.3, fontFamily: theme.typography.fontFamily.monoBold },
-  headerStat: { fontSize: 9, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
-  headerStatNum: { fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold },
-  headerSep: { color: theme.colors.textTertiary },
-  empty: { marginHorizontal: 16, marginTop: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: theme.colors.card, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.border },
-  emptySub: { fontSize: 11, color: theme.colors.textTertiary, fontStyle: 'italic' },
+  headerLabel: { fontSize: 8, fontWeight: '900', color: colors.textTertiary, letterSpacing: 1.3, fontFamily: theme.typography.fontFamily.monoBold },
+  headerStat: { fontSize: 9, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
+  headerStatNum: { fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold },
+  headerSep: { color: colors.textTertiary },
+  empty: { marginHorizontal: 16, marginTop: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: colors.border },
+  emptySub: { fontSize: 11, color: colors.textTertiary, fontStyle: 'italic' },
 });

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 
 interface Props {
   onPress: () => void;
@@ -9,6 +9,8 @@ interface Props {
 }
 
 export function HeatCheckFAB({ onPress, bottomOffset = 80 }: Props) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   return (
     <TouchableOpacity
       style={[s.fab, { bottom: bottomOffset }]}
@@ -24,20 +26,20 @@ export function HeatCheckFAB({ onPress, bottomOffset = 80 }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens) => StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: theme.colors.amber,
+    backgroundColor: colors.amber,
     borderRadius: 99,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderWidth: 1.5,
-    borderColor: theme.colors.amber,
-    shadowColor: theme.colors.amber,
+    borderColor: colors.amber,
+    shadowColor: colors.amber,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.55,
     shadowRadius: 10,

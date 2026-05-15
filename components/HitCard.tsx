@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { HitBadge } from './HitBadge';
 
 /**
@@ -39,7 +40,9 @@ function sessionEmoji(session?: string | null): string {
 }
 
 export function HitCard({ combo, hitType, hitState, hitSession, tone = 'gold', style }: Props) {
-  const accent = tone === 'gold' ? theme.colors.gold : theme.colors.cyan;
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
+  const accent = tone === 'gold' ? colors.gold : colors.cyan;
   return (
     <View
       style={[
@@ -61,7 +64,7 @@ export function HitCard({ combo, hitType, hitState, hitSession, tone = 'gold', s
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -76,12 +79,12 @@ const s = StyleSheet.create({
     fontSize: 20,
     fontWeight: '900',
     letterSpacing: 4,
-    color: theme.colors.text,
+    color: colors.text,
     fontFamily: theme.typography.fontFamily.monoBold,
   },
   meta: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontFamily: theme.typography.fontFamily.mono,
   },
 });

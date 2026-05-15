@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { useFollowedStates } from '@/hooks/useFollowedStates';
 
@@ -51,6 +52,8 @@ function scopeMatchesSession(scope: string, session: string): boolean {
  * surfaced as "fresh news."
  */
 export function LastHitPill() {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   const sinceDate = useMemo(() => lookbackSinceDate(), []);
   const { followed, toPostgrestFilter } = useFollowedStates();
   const stateFilter = toPostgrestFilter().replace('jurisdiction=', 'hit_state=');
@@ -94,7 +97,7 @@ export function LastHitPill() {
   if (!hit) return null;
 
   const isStraight = !!hit.hit_straight;
-  const accent = isStraight ? theme.colors.gold : theme.colors.cyan;
+  const accent = isStraight ? colors.gold : colors.cyan;
   const when = formatHitWhen(hit.slate_date);
   const label = isStraight ? 'STRAIGHT' : 'BOX';
 
@@ -118,7 +121,7 @@ export function LastHitPill() {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens) => StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -131,10 +134,10 @@ const s = StyleSheet.create({
     borderWidth: 1,
   },
   icon: { fontSize: 13 },
-  label: { fontSize: 9, fontWeight: '900', color: theme.colors.textTertiary, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold },
+  label: { fontSize: 9, fontWeight: '900', color: colors.textTertiary, letterSpacing: 1.4, fontFamily: theme.typography.fontFamily.monoBold },
   combo: { fontSize: 13, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 1.5 },
-  meta: { flex: 1, fontSize: 10, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
+  meta: { flex: 1, fontSize: 10, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
   tag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1 },
   tagText: { fontSize: 8, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.4 },
-  chev: { fontSize: 16, color: theme.colors.textTertiary, marginLeft: 2 },
+  chev: { fontSize: 16, color: colors.textTertiary, marginLeft: 2 },
 });

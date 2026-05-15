@@ -283,7 +283,8 @@ export async function computeSlateAsOf(
   mode: 'balanced' | 'conservative' | 'aggressive' = 'balanced',
 ): Promise<ReplayPick[]> {
   const scopeEnc = encodeURIComponent(scope);
-  const weights = config.presets[mode];
+  // Per-scope preset wins over global preset when present (ENH 2026-05-15).
+  const weights = config.presetByScope?.[scope]?.[mode] ?? config.presets[mode];
 
   const excludeYesterday = config.excludeYesterdayHits !== false; // default true
   const [boxRows, pairRows, historyRows, todayHitComboSets] = await Promise.all([

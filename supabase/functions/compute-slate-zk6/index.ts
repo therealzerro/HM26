@@ -124,6 +124,10 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     const scopeCooldownKey = scope ? `recent_hit_cooldown_${scope}` : null;
     const scopeBoxFreqKey  = scope ? `box_freq_weight_${scope}`     : null;
     const scopeBoxPressKey = scope ? `box_pressure_weight_${scope}` : null;
+    // CONFIG-07 (2026-05-15): per-scope signal-weight overrides.
+    const scopeBalancedKey     = scope ? `engine_weights_balanced_${scope}`     : null;
+    const scopeConservativeKey = scope ? `engine_weights_conservative_${scope}` : null;
+    const scopeAggressiveKey   = scope ? `engine_weights_aggressive_${scope}`   : null;
     const keyList = [
       'engine_weights_balanced', 'engine_weights_conservative', 'engine_weights_aggressive',
       'k6_singles_max', 'k6_doubles_max', 'k6_triples_on', 'pair_rep_cap',
@@ -134,6 +138,9 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       ...(scopeCooldownKey ? [scopeCooldownKey] : []),
       ...(scopeBoxFreqKey  ? [scopeBoxFreqKey]  : []),
       ...(scopeBoxPressKey ? [scopeBoxPressKey] : []),
+      ...(scopeBalancedKey     ? [scopeBalancedKey]     : []),
+      ...(scopeConservativeKey ? [scopeConservativeKey] : []),
+      ...(scopeAggressiveKey   ? [scopeAggressiveKey]   : []),
     ];
     const rows = await sbGet<{ key: string; value: string }[]>(
       '/rest/v1/app_config?key=in.(' + keyList.join(',') + ')&select=key,value',
@@ -143,6 +150,9 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     let scopeCooldownOverride: number | null = null;
     let scopeBoxFreqOverride:  number | null = null;
     let scopeBoxPressOverride: number | null = null;
+    let scopeBalancedOverride:     WeightSet | null = null;
+    let scopeConservativeOverride: WeightSet | null = null;
+    let scopeAggressiveOverride:   WeightSet | null = null;
     for (const row of rows) {
       try {
         if (row.key === 'k6_singles_max')       { const v = parseInt(row.value,10); if (!isNaN(v)) cfg.rails.singlesMax = v; continue; }
@@ -211,8 +221,23 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
           if (row.key === 'engine_weights_balanced')     cfg.presets.balanced     = ws;
           if (row.key === 'engine_weights_conservative') cfg.presets.conservative = ws;
           if (row.key === 'engine_weights_aggressive')   cfg.presets.aggressive   = ws;
+          if (scopeBalancedKey     && row.key === scopeBalancedKey)     scopeBalancedOverride     = ws;
+          if (scopeConservativeKey && row.key === scopeConservativeKey) scopeConservativeOverride = ws;
+          if (scopeAggressiveKey   && row.key === scopeAggressiveKey)   scopeAggressiveOverride   = ws;
         }
       } catch { /* keep default */ }
+    }
+    if (scopeBalancedOverride && scope) {
+      console.log(`[edge-zk6] preset override: scope=${scope} preset=balanced ${JSON.stringify(cfg.presets.balanced)} → ${JSON.stringify(scopeBalancedOverride)}`);
+      cfg.presets.balanced = scopeBalancedOverride;
+    }
+    if (scopeConservativeOverride && scope) {
+      console.log(`[edge-zk6] preset override: scope=${scope} preset=conservative ${JSON.stringify(cfg.presets.conservative)} → ${JSON.stringify(scopeConservativeOverride)}`);
+      cfg.presets.conservative = scopeConservativeOverride;
+    }
+    if (scopeAggressiveOverride && scope) {
+      console.log(`[edge-zk6] preset override: scope=${scope} preset=aggressive ${JSON.stringify(cfg.presets.aggressive)} → ${JSON.stringify(scopeAggressiveOverride)}`);
+      cfg.presets.aggressive = scopeAggressiveOverride;
     }
     if (scopeCooldownOverride !== null && scope) {
       console.log(`[edge-zk6] cooldown override: scope=${scope} ${cfg.recentHitCooldown} → ${scopeCooldownOverride}`);

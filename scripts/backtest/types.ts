@@ -50,6 +50,16 @@ export interface EngineConfig {
   // a single global value can't win on all three scopes.
   boxFreqWeightByScope?: Partial<Record<Scope, number>>;
   boxPressureWeightByScope?: Partial<Record<Scope, number>>;
+  // ENH (2026-05-15): per-scope signal-weight overrides (BOX/PBURST/CO/DGC).
+  // When set for a scope, replaces `presets[mode]` for that scope only. Other
+  // scopes fall back to the global preset. Mirrors the per-scope override
+  // pattern used by `boxFreqWeightByScope` etc. Production engine does not yet
+  // load this; harness extension precedes engine extension by design.
+  presetByScope?: Partial<Record<Scope, {
+    balanced: WeightSet;
+    conservative: WeightSet;
+    aggressive: WeightSet;
+  }>>;
 }
 
 export interface ReplayPick {

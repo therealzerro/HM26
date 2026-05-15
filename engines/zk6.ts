@@ -417,6 +417,12 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     const scopeCooldownKey = scope ? `recent_hit_cooldown_${scope}` : null;
     const scopeBoxFreqKey  = scope ? `box_freq_weight_${scope}`     : null;
     const scopeBoxPressKey = scope ? `box_pressure_weight_${scope}` : null;
+    // CONFIG-07 (2026-05-15): per-scope signal-weight overrides. Mirrors the
+    // cooldown/freq/pressure per-scope pattern. When set, replaces the preset
+    // entirely for that scope. Other scopes still use the global preset.
+    const scopeBalancedKey     = scope ? `engine_weights_balanced_${scope}`     : null;
+    const scopeConservativeKey = scope ? `engine_weights_conservative_${scope}` : null;
+    const scopeAggressiveKey   = scope ? `engine_weights_aggressive_${scope}`   : null;
     const keyList = [
       'engine_weights_balanced', 'engine_weights_conservative', 'engine_weights_aggressive',
       'k6_singles_max', 'k6_doubles_max', 'k6_triples_on', 'pair_rep_cap',
@@ -427,6 +433,9 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       ...(scopeCooldownKey ? [scopeCooldownKey] : []),
       ...(scopeBoxFreqKey  ? [scopeBoxFreqKey]  : []),
       ...(scopeBoxPressKey ? [scopeBoxPressKey] : []),
+      ...(scopeBalancedKey     ? [scopeBalancedKey]     : []),
+      ...(scopeConservativeKey ? [scopeConservativeKey] : []),
+      ...(scopeAggressiveKey   ? [scopeAggressiveKey]   : []),
     ];
     const rows = await fetchFromSupabase<any[]>({
       path: '/rest/v1/app_config?key=in.(' + keyList.join(',') + ')&select=key,value',
@@ -450,6 +459,9 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     let boxPressureWeight = 0.40;
     let scopeBoxFreqOverride: number | null = null;
     let scopeBoxPressOverride: number | null = null;
+    let scopeBalancedOverride:     WeightSet | null = null;
+    let scopeConservativeOverride: WeightSet | null = null;
+    let scopeAggressiveOverride:   WeightSet | null = null;
 
     for (const row of rows) {
       try {
@@ -522,8 +534,25 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
           if (row.key === 'engine_weights_balanced')     presets.balanced     = ws;
           if (row.key === 'engine_weights_conservative') presets.conservative = ws;
           if (row.key === 'engine_weights_aggressive')   presets.aggressive   = ws;
+          if (scopeBalancedKey     && row.key === scopeBalancedKey)     scopeBalancedOverride     = ws;
+          if (scopeConservativeKey && row.key === scopeConservativeKey) scopeConservativeOverride = ws;
+          if (scopeAggressiveKey   && row.key === scopeAggressiveKey)   scopeAggressiveOverride   = ws;
         }
       } catch {}
+    }
+    // CONFIG-07: per-scope preset override wins over global. Logged so prod diffs
+    // are visible in console (mirrors the cooldown/freq/pressure override pattern).
+    if (scopeBalancedOverride && scope) {
+      console.log(`[zk6v2] preset override: scope=${scope} preset=balanced ${JSON.stringify(presets.balanced)} → ${JSON.stringify(scopeBalancedOverride)}`);
+      presets.balanced = scopeBalancedOverride;
+    }
+    if (scopeConservativeOverride && scope) {
+      console.log(`[zk6v2] preset override: scope=${scope} preset=conservative ${JSON.stringify(presets.conservative)} → ${JSON.stringify(scopeConservativeOverride)}`);
+      presets.conservative = scopeConservativeOverride;
+    }
+    if (scopeAggressiveOverride && scope) {
+      console.log(`[zk6v2] preset override: scope=${scope} preset=aggressive ${JSON.stringify(presets.aggressive)} → ${JSON.stringify(scopeAggressiveOverride)}`);
+      presets.aggressive = scopeAggressiveOverride;
     }
     // Scope override wins over global when present. Logged at the call site
     // so production diffs are visible in the console.

@@ -346,6 +346,112 @@ export const CONFIGS: Record<string, EngineConfig> = {
     boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
     boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
   },
+  // bp_midday_evening_inverted_floor70 — TRUE production parity (2026-05-15).
+  // Identical to bp_midday_evening_inverted but with minEnergyThreshold: 70 to
+  // match the live app_config. Isolates "weight change" from "floor enabled" in
+  // comparisons against intel_tuned_floor70.
+  bp_midday_evening_inverted_floor70: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+  },
+
+  // ─── 2026-05-15: per-scope signal weights (ENH presetByScope) ───
+  // presetByScope_parity — sanity guard. Every scope's per-scope preset is set
+  // to identical values matching the global preset. Output MUST match
+  // bp_midday_evening_inverted_floor70 bit-for-bit. If it doesn't, the override
+  // wiring is broken — abort before drawing conclusions.
+  presetByScope_parity: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+        conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+        aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+      },
+      evening: {
+        balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+        conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+        aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+      },
+      allday: {
+        balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+        conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+        aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+      },
+    },
+  },
+
+  // intel_weights_midday_only_floor70 — conservative variant. Only midday gets
+  // intel_tuned weights; evening AND allday stay on production weights. Preserves
+  // allday's slate hit rate at the cost of allday's pick-lift improvement.
+  intel_weights_midday_only_floor70: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+      // evening + allday intentionally omitted → fall back to global production preset
+    },
+  },
+
+  // intel_weights_midday_allday_floor70 — primary Phase 1 candidate.
+  // Evening keeps current production weights (×1.04 rail-matched lift, the one
+  // working scope). Midday + allday adopt intel_tuned weights (CO-heavy, DGC=0)
+  // since the 60-day sweep showed they lift those scopes substantially without
+  // helping evening. Floor70, pressure inversion, cooldown all match production.
+  intel_weights_midday_allday_floor70: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+      // evening intentionally omitted → falls back to global preset (production)
+      allday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+  },
   // bp_midday_only_inverted — conservative variant: only midday gets inverted.
   // Evening's win in sweep #1 was modest (0.81→0.87×); if the midday-only fix
   // is enough to push overall slate hit above default, smaller-blast-radius win.

@@ -23,6 +23,34 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
+### CONFIG-07 — Per-Scope Signal-Weight Override for Midday (2026-05-15)
+
+Mechanism + first ship. Extends the per-scope override pattern (already established for `recent_hit_cooldown_${scope}`, `box_freq_weight_${scope}`, `box_pressure_weight_${scope}`) to the full signal-weight presets (BOX/PBURST/CO/DGC). Both engine paths now read `engine_weights_${preset}_${scope}` from `app_config` and overlay onto the global preset when scope matches.
+
+**Problem.** 14-day diagnostic + 90-day backtest established that midday's pick lift vs rail-matched random was ×0.84 (overall pick lift ×0.95 across production). Evening was already at ×1.06 (working) and allday at ×0.94 (acceptable). Global preset changes that fixed midday regressed evening. A per-scope override was needed.
+
+**Mechanism (additive).** `engines/zk6.ts::loadEngineConfig(scope)` and `compute-slate-zk6/index.ts::loadEngineConfig(scope)` now pull three additional keys when `scope` is set — `engine_weights_balanced_${scope}`, `engine_weights_conservative_${scope}`, `engine_weights_aggressive_${scope}` — and replace `presets.${preset}` with the per-scope value when present. Other scopes still use globals. Logged at the call site so prod diffs are visible. Backtest harness extended with `EngineConfig.presetByScope?: Partial<Record<Scope, {balanced, conservative, aggressive}>>` and the `presetByScope_parity` config produced numbers identical to bp_midday_evening_inverted_floor70 (parity guard passed).
+
+**Empirical validation (90d × 729 slates, balanced mode):**
+- BASELINE `bp_midday_evening_inverted_floor70` (matches current production exactly): overall rail-matched pick lift ×0.95; midday ×0.84; evening ×1.06; allday ×0.94. Slate hit rate 37.9% / 29.6% / 37.0% / 46.9%.
+- CANDIDATE `intel_weights_midday_only_floor70` (intel-tuned weights for midday alone, evening + allday unchanged): overall ×1.09; **midday ×1.42**; evening ×1.06 (preserved bit-identical); allday ×0.94 (preserved bit-identical). Slate hit rate **41.6%** / 40.7% / 37.0% / 46.9%.
+- Comparison vs `intel_weights_midday_allday_floor70` (broader candidate): midday-only had higher overall slate hit rate (41.6% vs 40.7%) at lower pick lift (×1.09 vs ×1.17). Trade chosen: preserve allday slate hit rate over capture allday pick-lift gain. Subscriber UX is slate-level.
+- Validated at 30d / 60d / 90d windows — the 90d window extends to 2026-02-15, two months before the original intel-tuned AUC fit window (4/13–5/8). Out-of-sample stable.
+
+**Action sequence:**
+1. Code: `engines/zk6.ts::loadEngineConfig` extended with `scopeBalancedKey/scopeConservativeKey/scopeAggressiveKey` reads + overlay block. Mirrors existing cooldown/freq/pressure pattern. Log line: `[zk6v2] preset override: scope=midday preset=balanced {old} → {new}`.
+2. Code: `supabase/functions/compute-slate-zk6/index.ts::loadEngineConfig` mirrored line-for-line.
+3. Harness: `scripts/backtest/types.ts` got `presetByScope` field; `scripts/backtest/replay.ts:286` resolves per-scope before falling back to global; `scripts/backtest/configs.ts` added `presetByScope_parity`, `intel_weights_midday_only_floor70`, `intel_weights_midday_allday_floor70`, `bp_midday_evening_inverted_floor70`.
+4. DB: 3 new app_config rows (`engine_weights_balanced_midday`, `engine_weights_conservative_midday`, `engine_weights_aggressive_midday`) — percentages summing to 100, matching existing `engine_weights_*` row format.
+5. Edge function `compute-slate-zk6` redeployed so the loader change is live.
+6. Today's (2026-05-15) production midday slate was already generated this morning at 06:07 ET under the OLD config; change affects the next midday slate generation onward.
+
+**Rollback condition: 2026-05-22 (7-day review).** If 7-day midday box-hit rate post-deploy (5/15–5/22) is worse than the pre-deploy 14-day baseline of 8.97% per-pick box hits, revert. Revert action: `DELETE FROM app_config WHERE key LIKE 'engine_weights_%_midday'` — engine falls back to global preset, bit-identical to pre-deploy behavior. No code change needed for rollback.
+
+**Stacking caveat.** Live midday hit rate post-deploy will be measuring CONFIG-05 (cooldown=10) + CONFIG-06 (horizon_weights pure H01Y) + CONFIG-07 (intel-tuned weights) combined. Backtest already validated CONFIG-07 on top of CONFIG-05+CONFIG-06 baseline (the harness uses current production behavior as baseline). Live signal will reflect the full stack; isolating CONFIG-07's contribution from CONFIG-05+CONFIG-06 not in scope.
+
+---
+
 ### CONFIG-04 — `datasets_pair.ds_raw` Rebuild From Histories (2026-05-13 ~18:45 UTC)
 
 Pair table sibling of CONFIG-03. Audit on 2026-05-13 found `datasets_pair.ds_raw` values across all 10 pair classes (2-11) drifting in the same `importDaily` increment-without-anchor pattern that corrupted `datasets_box` pre-BUG-130. Sample: midday H01Y class=9 pair=`01` stored=747 days vs truth=31 days (-716d off); class=10 pair=`11` allday stored=829 vs truth=19 (-810d). Affects PBURST + CO scoring (combined ≈ 40% of weighted indicator) — the engine's "pressure" component of pair signal was rewarding pairs claimed-to-be-overdue that had actually drawn within the past 2-4 weeks.

@@ -49,6 +49,8 @@ Mechanism + first ship. Extends the per-scope override pattern (already establis
 
 **Stacking caveat.** Live midday hit rate post-deploy will be measuring CONFIG-05 (cooldown=10) + CONFIG-06 (horizon_weights pure H01Y) + CONFIG-07 (intel-tuned weights) combined. Backtest already validated CONFIG-07 on top of CONFIG-05+CONFIG-06 baseline (the harness uses current production behavior as baseline). Live signal will reflect the full stack; isolating CONFIG-07's contribution from CONFIG-05+CONFIG-06 not in scope.
 
+**Review automation scheduled (2026-05-15 02:13 UTC):** Remote Claude Code routine `trig_01WHsjJRSHVLU6uFtBcEuEoH` (https://claude.ai/code/routines/trig_01WHsjJRSHVLU6uFtBcEuEoH) set to fire once at **2026-05-22T21:00:00Z (17:00 ET)**, ~30 min after that day's midday import completes per the project's import cadence (midday → 5 PM ET, evening → 1:30 AM ET next day). Agent runs read-only against Supabase REST (anon key embedded, RLS-gated), computes 8-day midday box-hits-per-pick from slate_snapshots ∩ histories, compares to the 8.97% pre-deploy baseline, appends a `**Review 2026-05-22 outcome:**` paragraph to this section, and commits + pushes the audit update. **The agent does NOT execute rollback** — only prints the `DELETE FROM app_config WHERE key LIKE 'engine_weights_%_midday'` SQL for human approval. Tools allowlist: Bash/Read/Write/Edit/Glob/Grep. Model: claude-sonnet-4-6.
+
 ---
 
 ### CONFIG-04 — `datasets_pair.ds_raw` Rebuild From Histories (2026-05-13 ~18:45 UTC)

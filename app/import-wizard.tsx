@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TextInput, Alert, TouchableOpacity,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FileText, AlertCircle, CheckCircle, Copy, RefreshCw } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { Button } from '@/components/Button';
 import { ImportType, ValidationError, HorizonLabel, Scope } from '@/types/core';
 import { PAIR_CLASSES, SCOPES } from '@/constants/pairClasses';
@@ -14,6 +15,8 @@ import { useScope } from '@/hooks/useScope';
 import { runHitDetectionAndRefresh, HitDetectionResult } from '@/lib/hitDetection';
 
 export default function ImportWizardScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const router = useRouter();
   const { importHistory, importLedger, importDailyInput, isLoading, lastImportSummary, regenerateSlate } = useDataIngestion();
   const { scope, setScope } = useScope();
@@ -801,7 +804,7 @@ export default function ImportWizardScreen() {
               disabled={isRegenLoading}
               testID="generate-slate-import"
             >
-              <RefreshCw size={16} color={theme.colors.text} />
+              <RefreshCw size={16} color={colors.text} />
               <Text style={styles.generateBtnText}>{isRegenLoading ? 'Generating…' : 'Generate Slate'}</Text>
             </TouchableOpacity>
           </View>
@@ -877,7 +880,7 @@ export default function ImportWizardScreen() {
                       ]}>
                         {h}
                       </Text>
-                      <Text style={[styles.coverageChipBase, { color: covered ? theme.colors.success : theme.colors.textSecondary }]}>{covered ? '✓' : '⌛'}</Text>
+                      <Text style={[styles.coverageChipBase, { color: covered ? colors.success : colors.textSecondary }]}>{covered ? '✓' : '⌛'}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -925,7 +928,7 @@ export default function ImportWizardScreen() {
             style={styles.textInput}
             multiline
             placeholder={getPlaceholder(importType)}
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={colors.textTertiary}
             value={csvData}
             onChangeText={(t) => { setCsvData(t); setNormalizedPreview([]); }}
             keyboardAppearance="dark"
@@ -936,7 +939,7 @@ export default function ImportWizardScreen() {
           <View style={styles.errorContainer}>
             {validationErrors.map((error, index) => (
               <View key={index} style={styles.errorItem}>
-                <AlertCircle size={16} color={theme.colors.error} />
+                <AlertCircle size={16} color={colors.error} />
                 <Text style={styles.errorText}>{error.message}</Text>
               </View>
             ))}
@@ -945,7 +948,7 @@ export default function ImportWizardScreen() {
 
         {csvData.trim() && validationErrors.length === 0 && (
           <View style={styles.successContainer}>
-            <CheckCircle size={16} color={theme.colors.success} />
+            <CheckCircle size={16} color={colors.success} />
             <Text style={styles.successText}>Data format valid</Text>
           </View>
         )}
@@ -992,7 +995,7 @@ export default function ImportWizardScreen() {
         <View style={styles.modalOverlay} testID="import-summary-modal">
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <FileText size={18} color={theme.colors.primary} />
+              <FileText size={18} color={colors.primary} />
               <Text style={styles.modalTitle}>Import committed</Text>
             </View>
             {lastImportSummary ? (
@@ -1023,10 +1026,10 @@ export default function ImportWizardScreen() {
                   <Text style={styles.summaryRow}>Warnings: {lastImportSummary.warnings.join(', ')}</Text>
                 )}
                 {Array.isArray(lastImportSummary.rejectedSamples) && lastImportSummary.rejectedSamples.length > 0 && (
-                  <View style={{ marginTop: 8, padding: 8, backgroundColor: theme.colors.errorLight, borderRadius: 8 }}>
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.error, marginBottom: 4 }}>Rejected samples:</Text>
+                  <View style={{ marginTop: 8, padding: 8, backgroundColor: colors.errorLight, borderRadius: 8 }}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: colors.error, marginBottom: 4 }}>Rejected samples:</Text>
                     {lastImportSummary.rejectedSamples.map((s, i) => (
-                      <Text key={i} style={{ fontSize: 10, color: theme.colors.error }}>{s}</Text>
+                      <Text key={i} style={{ fontSize: 10, color: colors.error }}>{s}</Text>
                     ))}
                   </View>
                 )}
@@ -1037,11 +1040,11 @@ export default function ImportWizardScreen() {
             {importType === 'ledger' && (
               <View style={[styles.successContainer, { marginTop: 0, marginBottom: 8, marginHorizontal: 0 }]}>
                 {hitDetectionStatus === 'running' ? (
-                  <Text style={[styles.successText, { color: theme.colors.primary }]}>
+                  <Text style={[styles.successText, { color: colors.primary }]}>
                     Running hit detection...
                   </Text>
                 ) : hitDetectionStatus === 'done' && hitDetectionResult ? (
-                  <Text style={[styles.successText, { color: hitDetectionResult.hitsFound > 0 ? theme.colors.gold : theme.colors.textSecondary }]}>
+                  <Text style={[styles.successText, { color: hitDetectionResult.hitsFound > 0 ? colors.gold : colors.textSecondary }]}>
                     {hitDetectionResult.hitsFound > 0
                       ? `Hit detection complete: ${hitDetectionResult.hitsFound} hit${hitDetectionResult.hitsFound !== 1 ? 's' : ''} found`
                       : 'No hits found for today\'s slate'}
@@ -1076,7 +1079,7 @@ export default function ImportWizardScreen() {
         <View style={styles.modalOverlay} testID="rest-error-modal">
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <AlertCircle size={18} color={theme.colors.error} />
+              <AlertCircle size={18} color={colors.error} />
               <Text style={styles.modalTitle}>Import error</Text>
             </View>
             <ScrollView style={styles.errorScroll}>
@@ -1094,7 +1097,7 @@ export default function ImportWizardScreen() {
                   }
                 }
               }}>
-                <Copy size={16} color={theme.colors.text} />
+                <Copy size={16} color={colors.text} />
                 <Text style={styles.copyText}>Copy error</Text>
               </TouchableOpacity>
               <Button title="Retry" onPress={async () => {
@@ -1150,10 +1153,10 @@ function getPlaceholder(type: ImportType): string {
   }
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
@@ -1164,13 +1167,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: theme.typography.fontSize.lg,
     fontWeight: 'bold' as const,
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: theme.spacing.md,
   },
   headerRow: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const },
   helperText: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     marginBottom: theme.spacing.sm,
   },
   typeGrid: {
@@ -1181,54 +1184,54 @@ const styles = StyleSheet.create({
   typeCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.md,
     padding: theme.spacing.md,
     alignItems: 'center' as const,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
   },
   typeCardActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary + '20',
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + '20',
   },
   typeText: {
     fontSize: theme.typography.fontSize.sm,
     fontWeight: '600' as const,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
   },
   typeTextActive: {
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   classGrid: {
     flexDirection: 'row' as const,
     gap: theme.spacing.sm,
   },
   classCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.md,
     padding: theme.spacing.sm,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     minWidth: 120,
   },
   classLabel: {
     fontSize: theme.typography.fontSize.sm,
     fontWeight: '600' as const,
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: theme.spacing.xs,
   },
   classExample: {
     fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
   },
   textInput: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     padding: theme.spacing.md,
-    color: theme.colors.text,
+    color: colors.text,
     fontSize: theme.typography.fontSize.sm,
     minHeight: 200,
     fontFamily: theme.typography.fontFamily.mono,
@@ -1236,10 +1239,10 @@ const styles = StyleSheet.create({
   errorContainer: {
     margin: theme.spacing.md,
     padding: theme.spacing.md,
-    backgroundColor: theme.colors.error + '20',
+    backgroundColor: colors.error + '20',
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
-    borderColor: theme.colors.error,
+    borderColor: colors.error,
   },
   errorItem: {
     flexDirection: 'row' as const,
@@ -1249,7 +1252,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.error,
+    color: colors.error,
     flex: 1,
   },
   errorScroll: {
@@ -1259,22 +1262,22 @@ const styles = StyleSheet.create({
   errorTextMono: {
     fontFamily: theme.typography.fontFamily.mono,
     fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.error,
+    color: colors.error,
   },
   successContainer: {
     margin: theme.spacing.md,
     padding: theme.spacing.md,
-    backgroundColor: theme.colors.success + '20',
+    backgroundColor: colors.success + '20',
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
-    borderColor: theme.colors.success,
+    borderColor: colors.success,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     gap: theme.spacing.sm,
   },
   successText: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.success,
+    color: colors.success,
   },
   actions: {
     flexDirection: 'row' as const,
@@ -1300,7 +1303,7 @@ const styles = StyleSheet.create({
   configLabel: {
     fontSize: theme.typography.fontSize.md,
     fontWeight: '600' as const,
-    color: theme.colors.text,
+    color: colors.text,
     marginBottom: theme.spacing.sm,
   },
   configOptions: {
@@ -1309,11 +1312,11 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   configOption: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.sm,
     padding: theme.spacing.sm,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     minWidth: 80,
     alignItems: 'center' as const,
     flexDirection: 'row' as const,
@@ -1321,17 +1324,17 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   configOptionActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary + '20',
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + '20',
   },
   configOptionText: {
     fontSize: theme.typography.fontSize.sm,
     fontWeight: '500' as const,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center' as const,
   },
   configOptionTextActive: {
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   coverageChipBase: {
     fontSize: theme.typography.fontSize.sm,
@@ -1352,10 +1355,10 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 520,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     padding: theme.spacing.lg,
   },
   modalHeader: {
@@ -1367,18 +1370,18 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: theme.typography.fontSize.lg,
     fontWeight: '700' as const,
-    color: theme.colors.text,
+    color: colors.text,
   },
   summaryGrid: {
     gap: theme.spacing.xs,
     marginBottom: theme.spacing.md,
   },
-  modalBody: { color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.md, marginTop: theme.spacing.xs },
-  modalBtnSecondary: { paddingHorizontal: theme.spacing.md, paddingVertical: 10, borderRadius: theme.borderRadius.md, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border },
-  modalBtnSecondaryText: { color: theme.colors.text },
+  modalBody: { color: colors.textSecondary, fontSize: theme.typography.fontSize.md, marginTop: theme.spacing.xs },
+  modalBtnSecondary: { paddingHorizontal: theme.spacing.md, paddingVertical: 10, borderRadius: theme.borderRadius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  modalBtnSecondaryText: { color: colors.text },
   summaryRow: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.text,
+    color: colors.text,
   },
   modalActions: {
     flexDirection: 'row' as const,
@@ -1386,10 +1389,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end' as const,
   },
   previewBox: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     padding: theme.spacing.md,
     marginHorizontal: theme.spacing.md,
     marginBottom: theme.spacing.lg,
@@ -1397,7 +1400,7 @@ const styles = StyleSheet.create({
   previewText: {
     fontFamily: theme.typography.fontFamily.mono,
     fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     marginBottom: theme.spacing.xs,
   },
   copyBtn: {
@@ -1407,23 +1410,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: theme.spacing.xs,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     borderRadius: theme.borderRadius.sm,
   },
   copyText: {
-    color: theme.colors.text,
+    color: colors.text,
     fontSize: theme.typography.fontSize.sm,
   },
   generateBtn: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     gap: 8,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 8,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: colors.primary,
   },
-  generateBtnText: { color: theme.colors.text, fontWeight: '700' as const },
+  generateBtnText: { color: colors.text, fontWeight: '700' as const },
 });

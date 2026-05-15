@@ -18,9 +18,10 @@
       )}
    ────────────────────────────────────────────────────────────────────────── */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 
 interface Props {
   pick: {
@@ -33,15 +34,17 @@ interface Props {
   };
 }
 
-function tempColor(t: number) {
-  if (t >= 80) return theme.colors.hot;
-  if (t >= 60) return theme.colors.warm;
-  if (t >= 40) return theme.colors.mild;
-  return theme.colors.cold;
+function tempColor(t: number, colors: ColorTokens) {
+  if (t >= 80) return colors.hot;
+  if (t >= 60) return colors.warm;
+  if (t >= 40) return colors.mild;
+  return colors.cold;
 }
 
 export function HitReplay({ pick }: Props) {
-  const tc = tempColor(pick.temperature);
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
+  const tc = tempColor(pick.temperature, colors);
 
   return (
     <View style={[s.card, { borderColor: tc + '66', shadowColor: tc }]}>
@@ -64,10 +67,12 @@ export function HitReplay({ pick }: Props) {
 function DigitGroup({ label, digits, color, variant }: {
   label: string; digits: string; color: string; variant: 'ghost' | 'solid';
 }) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   const isSolid = variant === 'solid';
   return (
     <View style={s.group}>
-      <Text style={[s.groupLabel, { color: isSolid ? color : theme.colors.textTertiary }]}>
+      <Text style={[s.groupLabel, { color: isSolid ? color : colors.textTertiary }]}>
         {label}
       </Text>
       <View style={s.digits}>
@@ -90,17 +95,17 @@ function DigitGroup({ label, digits, color, variant }: {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens) => StyleSheet.create({
   card: {
     padding: 14, borderRadius: 14, borderWidth: 1,
-    backgroundColor: theme.colors.surface2 ?? 'rgba(20,12,38,0.72)',
+    backgroundColor: colors.surface2 ?? 'rgba(20,12,38,0.72)',
     shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 16,
     gap: 10,
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   eyebrow: {
     fontSize: 9, letterSpacing: 1.6, textTransform: 'uppercase',
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontFamily: theme.typography.fontFamily.bold,
   },
   meta: {

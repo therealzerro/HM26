@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 
 interface InfoTooltipProps {
   term: string;
@@ -9,6 +10,8 @@ interface InfoTooltipProps {
 }
 
 export function InfoTooltip({ term, definition, size = 15 }: InfoTooltipProps) {
+  const { colors } = useTheme();
+  const tt = useMemo(() => makeTt(colors), [colors]);
   const [visible, setVisible] = useState(false);
 
   return (
@@ -46,16 +49,16 @@ export function InfoTooltip({ term, definition, size = 15 }: InfoTooltipProps) {
   );
 }
 
-const tt = StyleSheet.create({
+const makeTt = (colors: ColorTokens) => StyleSheet.create({
   btn: {
-    backgroundColor: theme.colors.surfaceLight,
+    backgroundColor: colors.surfaceLight,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   btnText: {
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontWeight: '800',
     lineHeight: 16,
     textAlign: 'center',
@@ -70,10 +73,10 @@ const tt = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 340,
-    backgroundColor: theme.colors.bgElevated,
+    backgroundColor: colors.bgElevated,
     borderRadius: theme.borderRadius.xl,
     borderWidth: 1,
-    borderColor: theme.colors.borderMed,
+    borderColor: colors.borderMed,
     padding: 22,
     shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.5, shadowRadius: 20, elevation: 12,
@@ -81,22 +84,22 @@ const tt = StyleSheet.create({
   term: {
     fontSize: 15,
     fontWeight: '800',
-    color: theme.colors.cyan,
+    color: colors.cyan,
     marginBottom: 10,
   },
   divider: {
     height: 1,
-    backgroundColor: theme.colors.border,
+    backgroundColor: colors.border,
     marginBottom: 12,
   },
   def: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 21,
   },
   closeBtn: {
     marginTop: 18,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: theme.borderRadius.md,
     paddingVertical: 11,
     alignItems: 'center',

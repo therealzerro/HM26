@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens, type GradientTokens } from '@/lib/theme';
 
 /**
  * HitHeroBand — celebratory header band on Results when the day has hits.
@@ -28,13 +29,15 @@ export interface HitHeroItem {
 }
 
 export function HitHeroBand({ items }: { items: HitHeroItem[] }) {
+  const { colors, gradients } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   if (items.length === 0) return null;
   const straightCount = items.filter(i => i.hitType === 'straight').length;
   const hasStraight = straightCount > 0;
 
   return (
     <LinearGradient
-      colors={hasStraight ? theme.gradients.goldAmber : theme.gradients.cyanPurple}
+      colors={hasStraight ? gradients.goldAmber : gradients.cyanPurple}
       start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
       style={s.gradientBorder}
     >
@@ -67,8 +70,10 @@ export function HitHeroBand({ items }: { items: HitHeroItem[] }) {
 }
 
 function Tile({ item }: { item: HitHeroItem }) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   const isStraight = item.hitType === 'straight';
-  const accent = isStraight ? theme.colors.gold : theme.colors.cyan;
+  const accent = isStraight ? colors.gold : colors.cyan;
   const sess = (item.session ?? '').toLowerCase();
   const sessEmoji = SESSION_EMOJI[sess] ?? '';
 
@@ -98,6 +103,8 @@ function Tile({ item }: { item: HitHeroItem }) {
 function DigitGroup({ digits, accent, variant }: {
   digits: string; accent: string; variant: 'ghost' | 'solid';
 }) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   const isSolid = variant === 'solid';
   return (
     <View style={s.digitGroup}>
@@ -118,7 +125,7 @@ function DigitGroup({ digits, accent, variant }: {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens) => StyleSheet.create({
   gradientBorder: {
     marginHorizontal: theme.layout.screenInset,
     marginTop: 10,
@@ -128,7 +135,7 @@ const s = StyleSheet.create({
   },
   inner: {
     borderRadius: theme.borderRadius.card - 1,
-    backgroundColor: theme.colors.bgElevated,
+    backgroundColor: colors.bgElevated,
     paddingVertical: 12,
     paddingHorizontal: 12,
   },
@@ -139,27 +146,27 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1.4,
-    color: theme.colors.text,
+    color: colors.text,
     fontFamily: theme.typography.fontFamily.monoBold,
   },
   straightChip: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: theme.borderRadius.pill,
-    backgroundColor: theme.colors.gold + '22',
+    backgroundColor: colors.gold + '22',
     borderWidth: 1,
-    borderColor: theme.colors.gold + '55',
+    borderColor: colors.gold + '55',
   },
   straightChipText: {
     fontSize: 9,
     fontWeight: '900',
-    color: theme.colors.gold,
+    color: colors.gold,
     fontFamily: theme.typography.fontFamily.monoBold,
     letterSpacing: 0.5,
   },
   tileRow: { gap: 10, paddingRight: 12 },
   tile: {
-    backgroundColor: theme.colors.surface2,
+    backgroundColor: colors.surface2,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
     padding: 10,
@@ -194,7 +201,7 @@ const s = StyleSheet.create({
   },
   tileMeta: {
     fontSize: 10,
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontFamily: theme.typography.fontFamily.mono,
   },
 });

@@ -4,7 +4,7 @@ import {
   RefreshControlProps,
   Platform,
 } from 'react-native';
-import { theme } from '@/constants/theme';
+import { useTheme } from '@/lib/theme';
 
 /**
  * Neon-themed pull-to-refresh.
@@ -12,18 +12,19 @@ import { theme } from '@/constants/theme';
  * - Android: cyan + purple + rose Material spinner with surface2 background
  */
 export function NeonRefreshControl(props: RefreshControlProps) {
+  const { colors } = useTheme();
   return (
     <RNRefreshControl
       {...props}
-      tintColor={Platform.OS === 'ios' ? theme.colors.cyan : undefined}
-      titleColor={theme.colors.textSecondary}
+      tintColor={Platform.OS === 'ios' ? colors.cyan : undefined}
+      titleColor={colors.textSecondary}
       colors={
         Platform.OS === 'android'
-          ? [theme.colors.cyan, theme.colors.purple, theme.colors.rose]
+          ? [colors.cyan, colors.purple, colors.rose]
           : undefined
       }
       progressBackgroundColor={
-        Platform.OS === 'android' ? theme.colors.surface2 : undefined
+        Platform.OS === 'android' ? colors.surface2 : undefined
       }
     />
   );

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { getTodayET } from '@/lib/dateUtils';
 
 /**
@@ -64,20 +65,22 @@ function useNextDrawCountdown(): { text: string; label: string; emoji: string } 
 }
 
 export function MissDayCard({ selectedDate, hitsLast7Days, followedCount }: Props) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   const isToday = useMemo(() => selectedDate === getTodayET(), [selectedDate]);
   const next = useNextDrawCountdown();
 
   // Scenario A — today, draws still ahead
   if (isToday && next) {
     return (
-      <View style={[s.card, { borderColor: theme.colors.purple + '55' }]}>
+      <View style={[s.card, { borderColor: colors.purple + '55' }]}>
         <View style={s.headerRow}>
-          <Text style={[s.eyebrow, { color: theme.colors.purple }]}>
+          <Text style={[s.eyebrow, { color: colors.purple }]}>
             {next.emoji}  COMING UP
           </Text>
         </View>
         <Text style={s.line1}>
-          Next {next.label} draws land in <Text style={[s.bold, { color: theme.colors.purple }]}>{next.text}</Text>
+          Next {next.label} draws land in <Text style={[s.bold, { color: colors.purple }]}>{next.text}</Text>
         </Text>
         {typeof followedCount === 'number' && followedCount > 0 && (
           <Text style={s.line2}>
@@ -90,16 +93,16 @@ export function MissDayCard({ selectedDate, hitsLast7Days, followedCount }: Prop
 
   // Scenario B — past date OR today after all draws + still no hit
   return (
-    <View style={[s.card, { borderColor: theme.colors.border }]}>
+    <View style={[s.card, { borderColor: colors.border }]}>
       <View style={s.headerRow}>
-        <Text style={[s.eyebrow, { color: theme.colors.textTertiary }]}>📅  NOTHING LANDED</Text>
+        <Text style={[s.eyebrow, { color: colors.textTertiary }]}>📅  NOTHING LANDED</Text>
       </View>
       <Text style={s.line1}>
         No K6 hits on this date.
       </Text>
       {hitsLast7Days > 0 ? (
         <Text style={s.line2}>
-          But you've hit on <Text style={[s.bold, { color: theme.colors.gold }]}>{hitsLast7Days} of the last 7 days</Text>.
+          But you've hit on <Text style={[s.bold, { color: colors.gold }]}>{hitsLast7Days} of the last 7 days</Text>.
         </Text>
       ) : (
         <Text style={s.line2}>
@@ -110,14 +113,14 @@ export function MissDayCard({ selectedDate, hitsLast7Days, followedCount }: Prop
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens) => StyleSheet.create({
   card: {
     marginHorizontal: theme.layout.screenInset,
     marginTop: 10,
     marginBottom: 6,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    backgroundColor: theme.colors.bgElevated,
+    backgroundColor: colors.bgElevated,
     borderRadius: theme.borderRadius.card,
     borderWidth: 1,
     gap: 4,
@@ -131,13 +134,13 @@ const s = StyleSheet.create({
   },
   line1: {
     fontSize: 13,
-    color: theme.colors.text,
+    color: colors.text,
     fontFamily: theme.typography.fontFamily.medium,
     lineHeight: 18,
   },
   line2: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontFamily: theme.typography.fontFamily.mono,
     marginTop: 4,
     lineHeight: 16,

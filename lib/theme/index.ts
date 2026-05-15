@@ -16,3 +16,7 @@ export { ThemeProvider, useTheme } from './ThemeProvider';
 export type { ThemeMode, ResolvedScheme } from './ThemeProvider';
 export { darkColors, lightColors } from './palettes';
 export type { ColorTokens } from './palettes';
+export { darkShadows, lightShadows } from './shadows';
+export type { ShadowTokens } from './shadows';
+export { darkGradients, lightGradients } from './gradients';
+export type { GradientTokens } from './gradients';

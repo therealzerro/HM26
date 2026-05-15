@@ -22,6 +22,8 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { darkColors, lightColors, type ColorTokens } from './palettes';
+import { darkShadows, lightShadows, type ShadowTokens } from './shadows';
+import { darkGradients, lightGradients, type GradientTokens } from './gradients';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type ResolvedScheme = 'light' | 'dark';
@@ -35,6 +37,10 @@ interface ThemeContextValue {
   scheme: ResolvedScheme;
   /** Active color palette — drop-in replacement for `theme.colors`. */
   colors: ColorTokens;
+  /** Active shadow tokens — drop-in replacement for `theme.shadows`. */
+  shadows: ShadowTokens;
+  /** Active gradient tokens — drop-in replacement for `theme.gradients`. */
+  gradients: GradientTokens;
   /** Persists to AsyncStorage and triggers re-render. */
   setMode: (m: ThemeMode) => void;
 }
@@ -46,6 +52,8 @@ const ThemeContext = createContext<ThemeContextValue>({
   mode: 'system',
   scheme: 'dark',
   colors: darkColors,
+  shadows: darkShadows,
+  gradients: darkGradients,
   setMode: () => {},
 });
 
@@ -86,10 +94,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       else if (mode === 'dark') scheme = 'dark';
       else scheme = (systemScheme === 'light' ? 'light' : 'dark');
     }
+    const isLight = scheme === 'light';
     return {
       mode,
       scheme,
-      colors: scheme === 'light' ? lightColors : darkColors,
+      colors:    isLight ? lightColors    : darkColors,
+      shadows:   isLight ? lightShadows   : darkShadows,
+      gradients: isLight ? lightGradients : darkGradients,
       setMode,
     };
   }, [hydrated, mode, systemScheme]);

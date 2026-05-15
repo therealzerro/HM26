@@ -5,9 +5,9 @@
  * existing screens that read from the singleton `theme` export get bit-identical
  * output today.
  *
- * `lightColors` is the current "lighter chrome + dark cards" palette: page
- * surfaces, headers, and the tab bar go light; cards/modals stay in the cosmic
- * dark palette so signal colors (cyan/rose/gold/purple) keep their contrast.
+ * `lightColors` is the fully-light palette: light page surfaces AND light
+ * cards, with signal hues darkened to WCAG-AA-passing variants on those
+ * surfaces. Hue families preserved (BOX is still teal-family, CO purple, etc.).
  *
  * The two palettes share the same KEY set so `useTheme().colors.X` resolves
  * identically regardless of mode (the value differs, not the lookup).

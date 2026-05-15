@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { useDataIngestion } from '@/hooks/useDataIngestion';
 import { useCoverage } from '@/hooks/useCoverage';
 import { getTodayET } from '@/lib/dateUtils';
-import { SectionTitle, HORIZONS, PAIR_CLASSES, st, Card } from './AdminShared';
+import { SectionTitle, HORIZONS, PAIR_CLASSES, useSt, Card } from './AdminShared';
 
 // ─── Coverage Matrix View ─────────────────────────────────────────────────────
 export default function CoverageMatrixView({ setView }: { setView: (v: string) => void }) {
+  const { colors } = useTheme();
+  const st = useSt();
   const [matrixTab, setMatrixTab] = useState<'history' | 'daily_input' | 'results'>('history');
 
   // ── Box/Pair History tab ──
@@ -198,7 +201,7 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
   return (
     <View style={{ flex: 1 }}>
       {/* ── Matrix tab bar ── */}
-      <View style={{ flexDirection: 'row', backgroundColor: theme.colors.surface, borderBottomWidth: 1, borderBottomColor: theme.colors.border, paddingHorizontal: 10, paddingVertical: 8, gap: 5 }}>
+      <View style={{ flexDirection: 'row', backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border, paddingHorizontal: 10, paddingVertical: 8, gap: 5 }}>
         {[
           { id: 'history', label: 'Box & Pair' },
           { id: 'daily_input', label: 'Daily Input' },
@@ -218,22 +221,22 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
       {matrixTab === 'history' && (
         loading ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
-            <Text style={{ fontSize: 13, color: theme.colors.textSecondary }}>Loading coverage matrix…</Text>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={{ fontSize: 13, color: colors.textSecondary }}>Loading coverage matrix…</Text>
           </View>
         ) : fetchError ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
             <Text style={{ fontSize: 24, marginBottom: 8 }}>⚠️</Text>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.error, marginBottom: 4, textAlign: 'center' }}>Failed to load coverage</Text>
-            <Text style={{ fontSize: 12, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 16 }}>{fetchError}</Text>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: colors.error, marginBottom: 4, textAlign: 'center' }}>Failed to load coverage</Text>
+            <Text style={{ fontSize: 12, color: colors.textSecondary, textAlign: 'center', marginBottom: 16 }}>{fetchError}</Text>
             <TouchableOpacity style={st.btnPrimary} onPress={loadBoxPairData}><Text style={st.btnPrimaryText}>↺ Retry</Text></TouchableOpacity>
           </View>
         ) : (
           <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
             {/* ── Clear Coverage Section ── */}
-            <View style={{ backgroundColor: theme.colors.surfaceLight, borderRadius: 12, borderWidth: 1, borderColor: theme.colors.error + '30', padding: 14, marginBottom: 18 }}>
-              <Text style={{ fontSize: 11, fontWeight: '800', color: theme.colors.error, letterSpacing: 1, marginBottom: 6 }}>CLEAR COVERAGE DATA</Text>
-              <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginBottom: 10, lineHeight: 16 }}>
+            <View style={{ backgroundColor: colors.surfaceLight, borderRadius: 12, borderWidth: 1, borderColor: colors.error + '30', padding: 14, marginBottom: 18 }}>
+              <Text style={{ fontSize: 11, fontWeight: '800', color: colors.error, letterSpacing: 1, marginBottom: 6 }}>CLEAR COVERAGE DATA</Text>
+              <Text style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 10, lineHeight: 16 }}>
                 Permanently removes dataset rows for a scope. Use before re-importing to avoid duplicates.
               </Text>
               <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
@@ -242,9 +245,9 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
                     key={sc}
                     onPress={() => handleClearScope(sc)}
                     disabled={clearingScope !== null}
-                    style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.error + '44', backgroundColor: theme.colors.error + '08', opacity: clearingScope !== null ? 0.5 : 1 }}
+                    style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: colors.error + '44', backgroundColor: colors.error + '08', opacity: clearingScope !== null ? 0.5 : 1 }}
                   >
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.error }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.error }}>
                       {clearingScope === sc ? '⏳ Clearing…' : `Clear ${sc}`}
                     </Text>
                   </TouchableOpacity>
@@ -252,17 +255,17 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
                 <TouchableOpacity
                   onPress={handleClearAllScopes}
                   disabled={clearingScope !== null}
-                  style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1.5, borderColor: theme.colors.error, backgroundColor: theme.colors.error + '12', opacity: clearingScope !== null ? 0.5 : 1 }}
+                  style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1.5, borderColor: colors.error, backgroundColor: colors.error + '12', opacity: clearingScope !== null ? 0.5 : 1 }}
                 >
-                  <Text style={{ fontSize: 11, fontWeight: '800', color: theme.colors.error }}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: colors.error }}>
                     {clearingScope === 'all' ? '⏳ Clearing All…' : '💥 Clear All Scopes'}
                   </Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            <Text style={{ fontSize: 16, fontWeight: '800', color: theme.colors.text, marginBottom: 4 }}>Horizon Coverage Matrix</Text>
-            <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginBottom: 12 }}>✓ = data present · ⌛ = missing. K6 requires H01Y for all 11 classes</Text>
+            <Text style={{ fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 4 }}>Horizon Coverage Matrix</Text>
+            <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 12 }}>✓ = data present · ⌛ = missing. K6 requires H01Y for all 11 classes</Text>
             <View style={{ flexDirection: 'row', gap: 6, marginBottom: 14 }}>
               {(['midday', 'evening', 'allday'] as const).map(s => (
                 <TouchableOpacity key={s} style={[st.optBtn, scopeTab === s && st.optBtnOn, { flex: 1 }]} onPress={() => setScopeTab(s)}>
@@ -272,32 +275,32 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
                 </TouchableOpacity>
               ))}
             </View>
-            <Card style={{ padding: 12, marginBottom: 16, backgroundColor: h01yPct === 100 ? theme.colors.successLight : theme.colors.goldLight, borderColor: (h01yPct === 100 ? theme.colors.success : theme.colors.gold) + '44' }}>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: h01yPct === 100 ? theme.colors.success : theme.colors.gold }}>
+            <Card style={{ padding: 12, marginBottom: 16, backgroundColor: h01yPct === 100 ? colors.successLight : colors.goldLight, borderColor: (h01yPct === 100 ? colors.success : colors.gold) + '44' }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: h01yPct === 100 ? colors.success : colors.gold }}>
                 H01Y Coverage ({scopeTab}): {h01yPct}% · {h01yPresent}/{classes.length} classes
               </Text>
               {h01yMissing.length > 0 && (
-                <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginTop: 2 }}>Missing: {h01yMissing.join(', ')}</Text>
+                <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>Missing: {h01yMissing.join(', ')}</Text>
               )}
             </Card>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View>
-                <View style={{ flexDirection: 'row', backgroundColor: theme.colors.surfaceLight }}>
-                  <View style={{ width: 120, padding: 8 }}><Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.textTertiary }}>CLASS</Text></View>
+                <View style={{ flexDirection: 'row', backgroundColor: colors.surfaceLight }}>
+                  <View style={{ width: 120, padding: 8 }}><Text style={{ fontSize: 10, fontWeight: '700', color: colors.textTertiary }}>CLASS</Text></View>
                   {HORIZONS.map(h => (
                     <View key={h} style={{ width: 50, padding: 8, alignItems: 'center' }}>
-                      <Text style={{ fontSize: 9, fontWeight: '700', color: theme.colors.textTertiary }}>{h}</Text>
+                      <Text style={{ fontSize: 9, fontWeight: '700', color: colors.textTertiary }}>{h}</Text>
                     </View>
                   ))}
                 </View>
                 {classes.map((cls, ci) => (
-                  <View key={cls.id} style={{ flexDirection: 'row', backgroundColor: ci % 2 === 0 ? theme.colors.surface : theme.colors.background, borderTopWidth: 1, borderTopColor: theme.colors.border + '66' }}>
+                  <View key={cls.id} style={{ flexDirection: 'row', backgroundColor: ci % 2 === 0 ? colors.surface : colors.background, borderTopWidth: 1, borderTopColor: colors.border + '66' }}>
                     <View style={{ width: 120, padding: 8, justifyContent: 'center' }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                        <View style={{ backgroundColor: cls.type === 'box' ? theme.colors.primaryLight : theme.colors.cosmicLight, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4 }}>
-                          <Text style={{ fontSize: 8, fontWeight: '700', color: theme.colors.primary }}>{cls.type === 'box' ? 'BOX' : 'PAIR'}</Text>
+                        <View style={{ backgroundColor: cls.type === 'box' ? colors.primaryLight : colors.cosmicLight, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4 }}>
+                          <Text style={{ fontSize: 8, fontWeight: '700', color: colors.primary }}>{cls.type === 'box' ? 'BOX' : 'PAIR'}</Text>
                         </View>
-                        <Text style={{ fontSize: 10, fontWeight: '600', color: theme.colors.textSecondary }} numberOfLines={1}>{(cls as any).label ?? 'Class ' + cls.id}</Text>
+                        <Text style={{ fontSize: 10, fontWeight: '600', color: colors.textSecondary }} numberOfLines={1}>{(cls as any).label ?? 'Class ' + cls.id}</Text>
                       </View>
                     </View>
                     {HORIZONS.map(h => {
@@ -305,9 +308,9 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
                       const ok = count > 0;
                       return (
                         <View key={h} style={{ width: 50, padding: 4, alignItems: 'center', justifyContent: 'center' }}>
-                          <View style={{ width: 42, height: 30, borderRadius: 6, backgroundColor: ok ? theme.colors.successLight : theme.colors.surfaceLight, borderWidth: 1, borderColor: (ok ? theme.colors.success : theme.colors.border) + '55', alignItems: 'center', justifyContent: 'center' }}>
-                            <Text style={{ fontSize: 10, color: ok ? theme.colors.success : theme.colors.textTertiary, lineHeight: 12 }}>{ok ? '✓' : '⌛'}</Text>
-                            {ok && <Text style={{ fontSize: 7, color: theme.colors.success + 'AA', lineHeight: 8 }}>{count >= 1000 ? Math.round(count / 1000) + 'k' : count}</Text>}
+                          <View style={{ width: 42, height: 30, borderRadius: 6, backgroundColor: ok ? colors.successLight : colors.surfaceLight, borderWidth: 1, borderColor: (ok ? colors.success : colors.border) + '55', alignItems: 'center', justifyContent: 'center' }}>
+                            <Text style={{ fontSize: 10, color: ok ? colors.success : colors.textTertiary, lineHeight: 12 }}>{ok ? '✓' : '⌛'}</Text>
+                            {ok && <Text style={{ fontSize: 7, color: colors.success + 'AA', lineHeight: 8 }}>{count >= 1000 ? Math.round(count / 1000) + 'k' : count}</Text>}
                           </View>
                         </View>
                       );
@@ -318,12 +321,12 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
             </ScrollView>
             {coverageRows.length === 0 && (
               <View style={{ alignItems: 'center', marginTop: 24, padding: 16 }}>
-                <Text style={{ fontSize: 13, color: theme.colors.textSecondary, textAlign: 'center' }}>No coverage data found. Import Box History or Pair History data first.</Text>
+                <Text style={{ fontSize: 13, color: colors.textSecondary, textAlign: 'center' }}>No coverage data found. Import Box History or Pair History data first.</Text>
               </View>
             )}
             {h01yPresent === 0 && coverageRows.length > 0 && (
-              <Card style={{ padding: 10, marginTop: 8, backgroundColor: theme.colors.goldLight, borderColor: theme.colors.gold + '44' }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.gold }}>
+              <Card style={{ padding: 10, marginTop: 8, backgroundColor: colors.goldLight, borderColor: colors.gold + '44' }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: colors.gold }}>
                   ⚠️ No {scopeTab} data — ZK6 will use allday fallback for this scope
                 </Text>
               </Card>
@@ -335,38 +338,38 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
       {/* ── Tab: Daily Input Coverage ── */}
       {matrixTab === 'daily_input' && (
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-          <Text style={{ fontSize: 16, fontWeight: '800', color: theme.colors.text, marginBottom: 4 }}>Daily Input Coverage</Text>
-          <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginBottom: 12 }}>Last 30 days · GREEN = imported for that scope/day</Text>
+          <Text style={{ fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 4 }}>Daily Input Coverage</Text>
+          <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 12 }}>Last 30 days · GREEN = imported for that scope/day</Text>
 
-          <Card style={{ padding: 12, marginBottom: 8, backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary + '33' }}>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.primary }}>
+          <Card style={{ padding: 12, marginBottom: 8, backgroundColor: colors.primaryLight, borderColor: colors.primary + '33' }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.primary }}>
               Last 7 days: {last7DailyCount}/21 sessions imported
             </Text>
           </Card>
 
           {!todayHasDailyInput && (
-            <Card style={{ padding: 12, marginBottom: 12, backgroundColor: theme.colors.error + '15', borderColor: theme.colors.error + '40' }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: theme.colors.error }}>
+            <Card style={{ padding: 12, marginBottom: 12, backgroundColor: colors.error + '15', borderColor: colors.error + '40' }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.error }}>
                 ⚠️ No daily input for today — ZK6 picks may be stale
               </Text>
             </Card>
           )}
 
           {dailyLoading ? (
-            <ActivityIndicator size="small" color={theme.colors.primary} style={{ marginTop: 20 }} />
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 20 }} />
           ) : dailyError ? (
             <View style={{ alignItems: 'center', padding: 24, gap: 8 }}>
               <Text style={{ fontSize: 24 }}>⚠️</Text>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.error, textAlign: 'center' }}>{dailyError}</Text>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: colors.error, textAlign: 'center' }}>{dailyError}</Text>
               <TouchableOpacity style={st.btnPrimary} onPress={loadDailyData}><Text style={st.btnPrimaryText}>↺ Retry</Text></TouchableOpacity>
             </View>
           ) : (
             <>
               <View style={{ flexDirection: 'row', marginBottom: 6, paddingHorizontal: 2 }}>
-                <View style={{ width: 84 }}><Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1 }}>DATE</Text></View>
+                <View style={{ width: 84 }}><Text style={{ fontSize: 9, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1 }}>DATE</Text></View>
                 {['MIDDAY', 'EVENING', 'ALL DAY'].map(sc => (
                   <View key={sc} style={{ flex: 1, alignItems: 'center' }}>
-                    <Text style={{ fontSize: 8, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 0.5 }}>{sc}</Text>
+                    <Text style={{ fontSize: 8, fontWeight: '800', color: colors.textTertiary, letterSpacing: 0.5 }}>{sc}</Text>
                   </View>
                 ))}
               </View>
@@ -374,9 +377,9 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
                 const isToday = d === today;
                 const isYday = d === yesterday;
                 return (
-                  <View key={d} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 3, paddingHorizontal: 2, backgroundColor: isToday ? theme.colors.primaryLight + '55' : 'transparent', borderRadius: 6 }}>
+                  <View key={d} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 3, paddingHorizontal: 2, backgroundColor: isToday ? colors.primaryLight + '55' : 'transparent', borderRadius: 6 }}>
                     <View style={{ width: 84 }}>
-                      <Text style={{ fontSize: 10, color: isToday ? theme.colors.primary : isYday ? theme.colors.gold : theme.colors.textSecondary, fontWeight: (isToday || isYday) ? '700' : '400', fontFamily: theme.typography.fontFamily.mono }}>
+                      <Text style={{ fontSize: 10, color: isToday ? colors.primary : isYday ? colors.gold : colors.textSecondary, fontWeight: (isToday || isYday) ? '700' : '400', fontFamily: theme.typography.fontFamily.mono }}>
                         {isToday ? 'Today' : isYday ? 'Yesterday' : formatDateShort(d)}
                       </Text>
                     </View>
@@ -385,11 +388,11 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
                       return (
                         <TouchableOpacity
                           key={sc}
-                          style={{ flex: 1, marginHorizontal: 2, height: 28, borderRadius: 6, backgroundColor: has ? theme.colors.successLight : theme.colors.surfaceLight, borderWidth: 1, borderColor: has ? theme.colors.success + '55' : theme.colors.border + '44', alignItems: 'center', justifyContent: 'center' }}
+                          style={{ flex: 1, marginHorizontal: 2, height: 28, borderRadius: 6, backgroundColor: has ? colors.successLight : colors.surfaceLight, borderWidth: 1, borderColor: has ? colors.success + '55' : colors.border + '44', alignItems: 'center', justifyContent: 'center' }}
                           onPress={() => { if (!has) setView('wizard'); }}
                           activeOpacity={has ? 1 : 0.65}
                         >
-                          <Text style={{ fontSize: 11, color: has ? theme.colors.success : theme.colors.textTertiary }}>
+                          <Text style={{ fontSize: 11, color: has ? colors.success : colors.textTertiary }}>
                             {has ? '✓' : '+'}
                           </Text>
                         </TouchableOpacity>
@@ -406,36 +409,36 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
       {/* ── Tab: Results Ledger Coverage ── */}
       {matrixTab === 'results' && (
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-          <Text style={{ fontSize: 16, fontWeight: '800', color: theme.colors.text, marginBottom: 4 }}>Results Ledger Coverage</Text>
-          <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginBottom: 12 }}>Last 30 days · GREEN = 30+ states · YELLOW = partial · + = missing</Text>
+          <Text style={{ fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 4 }}>Results Ledger Coverage</Text>
+          <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 12 }}>Last 30 days · GREEN = 30+ states · YELLOW = partial · + = missing</Text>
 
-          <Card style={{ padding: 12, marginBottom: 8, backgroundColor: theme.colors.tealLight, borderColor: theme.colors.teal + '33' }}>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.teal }}>Results Coverage: last 30 days</Text>
+          <Card style={{ padding: 12, marginBottom: 8, backgroundColor: colors.tealLight, borderColor: colors.teal + '33' }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.teal }}>Results Coverage: last 30 days</Text>
           </Card>
 
           {!yesterdayHasResults && (
-            <Card style={{ padding: 12, marginBottom: 12, backgroundColor: theme.colors.error + '15', borderColor: theme.colors.error + '40' }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: theme.colors.error }}>
+            <Card style={{ padding: 12, marginBottom: 12, backgroundColor: colors.error + '15', borderColor: colors.error + '40' }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.error }}>
                 ⚠️ Yesterday's results not imported — hit tracking unavailable
               </Text>
             </Card>
           )}
 
           {historyLoading ? (
-            <ActivityIndicator size="small" color={theme.colors.primary} style={{ marginTop: 20 }} />
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 20 }} />
           ) : historyError ? (
             <View style={{ alignItems: 'center', padding: 24, gap: 8 }}>
               <Text style={{ fontSize: 24 }}>⚠️</Text>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.error, textAlign: 'center' }}>{historyError}</Text>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: colors.error, textAlign: 'center' }}>{historyError}</Text>
               <TouchableOpacity style={st.btnPrimary} onPress={loadHistoryData}><Text style={st.btnPrimaryText}>↺ Retry</Text></TouchableOpacity>
             </View>
           ) : (
             <>
               <View style={{ flexDirection: 'row', marginBottom: 6, paddingHorizontal: 2 }}>
-                <View style={{ width: 84 }}><Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1 }}>DATE</Text></View>
+                <View style={{ width: 84 }}><Text style={{ fontSize: 9, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1 }}>DATE</Text></View>
                 {['MIDDAY', 'EVENING'].map(s => (
                   <View key={s} style={{ flex: 1, alignItems: 'center' }}>
-                    <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 0.5 }}>{s}</Text>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: colors.textTertiary, letterSpacing: 0.5 }}>{s}</Text>
                   </View>
                 ))}
               </View>
@@ -443,9 +446,9 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
                 const isToday = d === today;
                 const isYday = d === yesterday;
                 return (
-                  <View key={d} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 3, paddingHorizontal: 2, backgroundColor: isToday ? theme.colors.primaryLight + '44' : 'transparent', borderRadius: 6 }}>
+                  <View key={d} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 3, paddingHorizontal: 2, backgroundColor: isToday ? colors.primaryLight + '44' : 'transparent', borderRadius: 6 }}>
                     <View style={{ width: 84 }}>
-                      <Text style={{ fontSize: 10, color: isToday ? theme.colors.primary : isYday ? theme.colors.gold : theme.colors.textSecondary, fontWeight: (isToday || isYday) ? '700' : '400', fontFamily: theme.typography.fontFamily.mono }}>
+                      <Text style={{ fontSize: 10, color: isToday ? colors.primary : isYday ? colors.gold : colors.textSecondary, fontWeight: (isToday || isYday) ? '700' : '400', fontFamily: theme.typography.fontFamily.mono }}>
                         {isToday ? 'Today' : isYday ? 'Yesterday' : formatDateShort(d)}
                       </Text>
                     </View>
@@ -453,9 +456,9 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
                       const count = resultsMap.get(`${d}-${session}`)?.size ?? 0;
                       const isFull = count >= 30;
                       const isPartial = count > 0 && count < 30;
-                      const bgColor = isFull ? theme.colors.successLight : isPartial ? theme.colors.goldLight : theme.colors.surfaceLight;
-                      const bdColor = isFull ? theme.colors.success + '55' : isPartial ? theme.colors.gold + '55' : theme.colors.border + '44';
-                      const textColor = isFull ? theme.colors.success : isPartial ? theme.colors.gold : theme.colors.textTertiary;
+                      const bgColor = isFull ? colors.successLight : isPartial ? colors.goldLight : colors.surfaceLight;
+                      const bdColor = isFull ? colors.success + '55' : isPartial ? colors.gold + '55' : colors.border + '44';
+                      const textColor = isFull ? colors.success : isPartial ? colors.gold : colors.textTertiary;
                       return (
                         <TouchableOpacity
                           key={session}
@@ -488,11 +491,11 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
         onRequestClose={() => { setClearModal(null); setClearConfirmText(''); }}
       >
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <View style={{ width: '100%', maxWidth: 400, backgroundColor: theme.colors.surface, borderRadius: 14, padding: 20, borderWidth: 1, borderColor: theme.colors.error + '55' }}>
-            <Text style={{ fontSize: 15, fontWeight: '800', color: theme.colors.error, marginBottom: 6 }}>
+          <View style={{ width: '100%', maxWidth: 400, backgroundColor: colors.surface, borderRadius: 14, padding: 20, borderWidth: 1, borderColor: colors.error + '55' }}>
+            <Text style={{ fontSize: 15, fontWeight: '800', color: colors.error, marginBottom: 6 }}>
               ⚠️ Clear {clearModal?.label ?? ''} coverage data?
             </Text>
-            <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginBottom: 14, lineHeight: 18 }}>
+            <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 14, lineHeight: 18 }}>
               This permanently removes all box, pair, percentile, and blend rows for this scope. This cannot be undone.{'\n\n'}Type CLEAR to confirm.
             </Text>
             <TextInput
@@ -500,19 +503,19 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
               onChangeText={setClearConfirmText}
               placeholder="Type CLEAR here"
               autoCapitalize="characters"
-              style={{ borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10, color: theme.colors.text, backgroundColor: theme.colors.background, marginBottom: 14, fontSize: 13 }}
+              style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10, color: colors.text, backgroundColor: colors.background, marginBottom: 14, fontSize: 13 }}
             />
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
               <TouchableOpacity
                 onPress={() => { setClearModal(null); setClearConfirmText(''); }}
-                style={{ paddingHorizontal: 16, paddingVertical: 9, borderRadius: 8, borderWidth: 1, borderColor: theme.colors.border }}
+                style={{ paddingHorizontal: 16, paddingVertical: 9, borderRadius: 8, borderWidth: 1, borderColor: colors.border }}
               >
-                <Text style={{ color: theme.colors.text, fontSize: 13 }}>Cancel</Text>
+                <Text style={{ color: colors.text, fontSize: 13 }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={executeClear}
                 disabled={clearConfirmText.trim().toUpperCase() !== 'CLEAR'}
-                style={{ paddingHorizontal: 16, paddingVertical: 9, borderRadius: 8, backgroundColor: clearConfirmText.trim().toUpperCase() === 'CLEAR' ? theme.colors.error : theme.colors.error + '44' }}
+                style={{ paddingHorizontal: 16, paddingVertical: 9, borderRadius: 8, backgroundColor: clearConfirmText.trim().toUpperCase() === 'CLEAR' ? colors.error : colors.error + '44' }}
               >
                 <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>Confirm Clear</Text>
               </TouchableOpacity>

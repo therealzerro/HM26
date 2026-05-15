@@ -1,12 +1,15 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { getTodayET } from '@/lib/dateUtils';
-import { Pill, SectionTitle, Card, st } from './AdminShared';
+import { Pill, SectionTitle, Card, useSt } from './AdminShared';
 
 // ─── Health Tests View ────────────────────────────────────────────────────────
 export default function HealthTestsView() {
+  const { colors } = useTheme();
+  const st = useSt();
   type TS = { s: 'idle' | 'running' | 'success' | 'error'; msg: string; ms?: number | null; detail?: string | null };
   const idle = (hint: string): TS => ({ s: 'idle', msg: hint, ms: null, detail: null });
 
@@ -136,53 +139,53 @@ export default function HealthTestsView() {
   ];
 
   const dotColor = (s: string) =>
-    s === 'success' ? theme.colors.success
-    : s === 'error' ? theme.colors.error
-    : s === 'running' ? theme.colors.gold
-    : theme.colors.textTertiary;
+    s === 'success' ? colors.success
+    : s === 'error' ? colors.error
+    : s === 'running' ? colors.gold
+    : colors.textTertiary;
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: lastRun ? 4 : 16 }}>
-        <Text style={{ fontSize: 16, fontWeight: '800', color: theme.colors.text }}>Backend Health</Text>
+        <Text style={{ fontSize: 16, fontWeight: '800', color: colors.text }}>Backend Health</Text>
         <TouchableOpacity style={[st.btnPrimary, { paddingHorizontal: 16, opacity: running ? 0.6 : 1 }]} onPress={runAll} disabled={running}>
           <Text style={st.btnPrimaryText}>{running ? '⏳ Running…' : '▶ Run All'}</Text>
         </TouchableOpacity>
       </View>
       {lastRun && (
-        <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginBottom: 14 }}>
+        <Text style={{ fontSize: 10, color: colors.textTertiary, marginBottom: 14 }}>
           Last run: {lastRun.toLocaleTimeString()}
         </Text>
       )}
 
       {SUITE.map(t => {
         const state = tests[t.k];
-        const bg = state.s === 'success' ? theme.colors.successLight
-          : state.s === 'error' ? theme.colors.errorLight
-          : state.s === 'running' ? theme.colors.goldLight
-          : theme.colors.surfaceLight;
-        const bc = state.s === 'success' ? theme.colors.success + '33'
-          : state.s === 'error' ? theme.colors.error + '33'
-          : state.s === 'running' ? theme.colors.gold + '33'
-          : theme.colors.border;
+        const bg = state.s === 'success' ? colors.successLight
+          : state.s === 'error' ? colors.errorLight
+          : state.s === 'running' ? colors.goldLight
+          : colors.surfaceLight;
+        const bc = state.s === 'success' ? colors.success + '33'
+          : state.s === 'error' ? colors.error + '33'
+          : state.s === 'running' ? colors.gold + '33'
+          : colors.border;
         return (
           <Card key={t.k} style={{ padding: 12, marginBottom: 8, backgroundColor: bg, borderColor: bc }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               {state.s === 'running'
-                ? <ActivityIndicator size="small" color={theme.colors.gold} style={{ width: 8, height: 8 }} />
+                ? <ActivityIndicator size="small" color={colors.gold} style={{ width: 8, height: 8 }} />
                 : <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: dotColor(state.s) }} />
               }
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: theme.colors.text }}>{t.l}</Text>
-                <Text style={{ fontSize: 10, color: theme.colors.textTertiary }}>{state.s === 'idle' ? t.h : state.msg}</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>{t.l}</Text>
+                <Text style={{ fontSize: 10, color: colors.textTertiary }}>{state.s === 'idle' ? t.h : state.msg}</Text>
               </View>
               {state.ms != null && state.s !== 'running' && (
-                <Text style={{ fontSize: 10, color: state.s === 'success' ? theme.colors.success : theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono }}>
+                <Text style={{ fontSize: 10, color: state.s === 'success' ? colors.success : colors.textTertiary, fontFamily: theme.typography.fontFamily.mono }}>
                   {state.ms}ms
                 </Text>
               )}
               {state.detail && (
-                <Text style={{ fontSize: 10, color: theme.colors.primary, fontFamily: theme.typography.fontFamily.mono }}>…{state.detail}</Text>
+                <Text style={{ fontSize: 10, color: colors.primary, fontFamily: theme.typography.fontFamily.mono }}>…{state.detail}</Text>
               )}
               <TouchableOpacity
                 style={[st.btnGhost, { paddingHorizontal: 10, paddingVertical: 5, opacity: state.s === 'running' ? 0.4 : 1 }]}
@@ -196,7 +199,7 @@ export default function HealthTestsView() {
         );
       })}
       <Card style={{ padding: 12, marginTop: 8 }}>
-        <Text style={{ fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, lineHeight: 16 }}>
+        <Text style={{ fontSize: 10, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, lineHeight: 16 }}>
           Connected · ZK6 Engine v2
         </Text>
       </Card>

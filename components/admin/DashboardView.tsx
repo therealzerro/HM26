@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } fr
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQueryClient } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
+import { useTheme } from '@/lib/theme';
 import { useSnapshot } from '@/hooks/useSnapshot';
 import { useDataIngestion } from '@/hooks/useDataIngestion';
 import { useScope } from '@/hooks/useScope';
@@ -11,7 +12,7 @@ import { getTodayET, getTomorrowET, getYesterdayET } from '@/lib/dateUtils';
 import { runHitDetectionAllScopes, runHitDetectionAndRefresh, HitDetectionResult } from '@/lib/hitDetection';
 import { RegenConfirmationModal } from '@/components/RegenConfirmationModal';
 import { computeZK30Slate } from '@/engines/zk30';
-import { Pill, SectionTitle, Card, timeAgo, MOCK_IMPORTS, IMPORT_TYPES, PAIR_CLASSES, st, ImportRecord } from './AdminShared';
+import { Pill, SectionTitle, Card, timeAgo, MOCK_IMPORTS, IMPORT_TYPES, PAIR_CLASSES, useSt, ImportRecord } from './AdminShared';
 
 export default function DashboardView({ setView, imports, healthMetrics, regenerateSlate, checkSlateLock, onOpenZK30Import }: {
   setView: (v: string) => void;
@@ -21,6 +22,8 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
   checkSlateLock: (scope: any, date?: string) => Promise<boolean>;
   onOpenZK30Import: (type: 'box_history' | 'pair_history') => void;
 }) {
+  const { colors } = useTheme();
+  const st = useSt();
   const liveImports = (imports && imports.length > 0) ? imports : MOCK_IMPORTS;
   const completed = liveImports.filter(i => i.status === 'completed').length;
   const failed = liveImports.filter(i => i.status === 'failed').length;
@@ -231,20 +234,20 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
 
   return (
     <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 32 }}>
-      <Text style={{ fontSize: 20, fontWeight: '900', color: theme.colors.text, marginBottom: 4 }}>🔐 Creator Dashboard</Text>
-      <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginBottom: 20 }}>Data pipeline · ZK6 engine management · System health</Text>
+      <Text style={{ fontSize: 20, fontWeight: '900', color: colors.text, marginBottom: 4 }}>🔐 Creator Dashboard</Text>
+      <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 20 }}>Data pipeline · ZK6 engine management · System health</Text>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
         {[
-          { i:'📥', v: liveImports.length, l:'Total Imports', c: theme.colors.primary },
-          { i:'✅', v: completed, l:'Completed', c: theme.colors.success },
-          { i:'❌', v: failed, l:'Failed', c: theme.colors.error },
-          { i:'📊', v: totalAccepted.toLocaleString(), l:'Rows Accepted', c: theme.colors.teal },
+          { i:'📥', v: liveImports.length, l:'Total Imports', c: colors.primary },
+          { i:'✅', v: completed, l:'Completed', c: colors.success },
+          { i:'❌', v: failed, l:'Failed', c: colors.error },
+          { i:'📊', v: totalAccepted.toLocaleString(), l:'Rows Accepted', c: colors.teal },
         ].map(stat => (
           <Card key={stat.l} style={{ flex: 1, minWidth: 120, padding: 14, alignItems: 'center' }}>
             <Text style={{ fontSize: 20, marginBottom: 4 }}>{stat.i}</Text>
             <Text style={{ fontSize: 18, fontWeight: '900', color: stat.c, fontFamily: theme.typography.fontFamily.monoBold, lineHeight: 20, marginBottom: 2 }}>{stat.v}</Text>
-            <Text style={{ fontSize: 9, color: theme.colors.textTertiary, fontWeight: '700', textAlign: 'center' }}>{stat.l}</Text>
+            <Text style={{ fontSize: 9, color: colors.textTertiary, fontWeight: '700', textAlign: 'center' }}>{stat.l}</Text>
           </Card>
         ))}
       </View>
@@ -254,10 +257,10 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
           <TouchableOpacity key={a.view} style={{ width: '47%' }} onPress={() => setView(a.view)} activeOpacity={0.8}>
             <Card style={{ padding: 16 }}>
               <Text style={{ fontSize: 24, marginBottom: 8 }}>{a.icon}</Text>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.text, marginBottom: 4 }}>{a.title}</Text>
-              <Text style={{ fontSize: 10, color: theme.colors.textSecondary, lineHeight: 16 }}>{a.desc}</Text>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 4 }}>{a.title}</Text>
+              <Text style={{ fontSize: 10, color: colors.textSecondary, lineHeight: 16 }}>{a.desc}</Text>
               <View style={{ marginTop: 8 }}>
-                <Pill label="Creator Only" color={theme.colors.primary} />
+                <Pill label="Creator Only" color={colors.primary} />
               </View>
             </Card>
           </TouchableOpacity>
@@ -279,12 +282,12 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
         ];
         return (
           <Card style={{ padding: 12, marginBottom: 8 }}>
-            <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1, marginBottom: 8 }}>TODAY'S IMPORTS</Text>
+            <Text style={{ fontSize: 10, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1, marginBottom: 8 }}>TODAY'S IMPORTS</Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {items.map(({ label, ok }) => (
-                <View key={label} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: ok ? theme.colors.successLight : theme.colors.errorLight, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 6 }}>
+                <View key={label} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: ok ? colors.successLight : colors.errorLight, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 6 }}>
                   <Text style={{ fontSize: 14 }}>{ok ? '✅' : '⚠️'}</Text>
-                  <Text style={{ fontSize: 9, fontWeight: '700', color: ok ? theme.colors.success : theme.colors.error, flex: 1, lineHeight: 12 }}>{label}</Text>
+                  <Text style={{ fontSize: 9, fontWeight: '700', color: ok ? colors.success : colors.error, flex: 1, lineHeight: 12 }}>{label}</Text>
                 </View>
               ))}
             </View>
@@ -292,18 +295,18 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
         );
       })()}
       <Card style={{ padding: 16, marginBottom: 4 }}>
-        <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12, backgroundColor: theme.colors.background, padding: 2, borderRadius: 10 }}>
+        <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12, backgroundColor: colors.background, padding: 2, borderRadius: 10 }}>
           {(['today', 'tomorrow'] as const).map(d => (
             <TouchableOpacity
               key={d}
               onPress={() => setTargetDateOption(d)}
               style={{
                 flex: 1, paddingVertical: 6, borderRadius: 8, alignItems: 'center',
-                backgroundColor: targetDateOption === d ? theme.colors.bgElevated : 'transparent',
-                borderWidth: 1, borderColor: targetDateOption === d ? theme.colors.primary + '88' : 'transparent'
+                backgroundColor: targetDateOption === d ? colors.bgElevated : 'transparent',
+                borderWidth: 1, borderColor: targetDateOption === d ? colors.primary + '88' : 'transparent'
               }}
             >
-              <Text style={{ fontSize: 10, fontWeight: '700', color: targetDateOption === d ? theme.colors.primary : theme.colors.textTertiary }}>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: targetDateOption === d ? colors.primary : colors.textTertiary }}>
                 {d.toUpperCase()} ({d === 'today' ? getTodayET().slice(5) : getTomorrowET().slice(5)})
               </Text>
             </TouchableOpacity>
@@ -311,34 +314,34 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
           <View>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text }}>ZK6 Slates</Text>
-            <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginTop: 2 }}>Regenerate Midday · Evening · All-Day</Text>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>ZK6 Slates</Text>
+            <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 2 }}>Regenerate Midday · Evening · All-Day</Text>
           </View>
           <TouchableOpacity
             onPress={() => requestRegen('all')}
             disabled={isRegening}
             style={{
               flexDirection: 'row', alignItems: 'center', gap: 6,
-              backgroundColor: isRegening ? theme.colors.surfaceLight : theme.colors.primary,
+              backgroundColor: isRegening ? colors.surfaceLight : colors.primary,
               paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
             }}
           >
-            {isRegening && <ActivityIndicator size="small" color={theme.colors.textSecondary} />}
-            <Text style={{ fontSize: 12, fontWeight: '700', color: isRegening ? theme.colors.textSecondary : '#fff' }}>
+            {isRegening && <ActivityIndicator size="small" color={colors.textSecondary} />}
+            <Text style={{ fontSize: 12, fontWeight: '700', color: isRegening ? colors.textSecondary : '#fff' }}>
               {isRegening ? 'Regenerating…' : '↻ Regen All Slates'}
             </Text>
           </TouchableOpacity>
         </View>
         {regenProgress ? (
-          <View style={{ backgroundColor: theme.colors.surfaceLight, borderRadius: 8, padding: 10, borderWidth: 1, borderColor: theme.colors.border }}>
-            <Text style={{ fontSize: 11, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>{regenProgress}</Text>
+          <View style={{ backgroundColor: colors.surfaceLight, borderRadius: 8, padding: 10, borderWidth: 1, borderColor: colors.border }}>
+            <Text style={{ fontSize: 11, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>{regenProgress}</Text>
           </View>
         ) : null}
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
           {[
-            { s: 'midday', label: '☀️ Midday', c: theme.colors.gold },
-            { s: 'evening', label: '🌙 Evening', c: theme.colors.primary },
-            { s: 'allday', label: '◈ All-Day', c: theme.colors.teal },
+            { s: 'midday', label: '☀️ Midday', c: colors.gold },
+            { s: 'evening', label: '🌙 Evening', c: colors.primary },
+            { s: 'allday', label: '◈ All-Day', c: colors.teal },
           ].map(({ s, label, c }) => {
             const busy = !!regeningScopeMap[s];
             return (
@@ -349,7 +352,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
                 style={{ flex: 1, padding: 8, borderRadius: 8, borderWidth: 1, borderColor: c + '44', backgroundColor: c + '10', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4 }}
               >
                 {busy && <ActivityIndicator size="small" color={c} />}
-                <Text style={{ fontSize: 10, fontWeight: '700', color: busy ? theme.colors.textTertiary : c }}>{busy ? '…' : label}</Text>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: busy ? colors.textTertiary : c }}>{busy ? '…' : label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -366,25 +369,25 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
           }}
         />
 
-        <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: theme.colors.border, paddingTop: 12 }}>
+        <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 12 }}>
           <TouchableOpacity
             onPress={handleFullWorkflow}
             disabled={isRunningWorkflow || isDetecting || isRegening}
             style={{
               flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-              backgroundColor: isRunningWorkflow ? theme.colors.surfaceLight : theme.colors.primary + '18',
-              borderWidth: 1.5, borderColor: theme.colors.primary + '55',
+              backgroundColor: isRunningWorkflow ? colors.surfaceLight : colors.primary + '18',
+              borderWidth: 1.5, borderColor: colors.primary + '55',
               paddingVertical: 11, borderRadius: 10, marginBottom: 8,
             }}
           >
-            {isRunningWorkflow && <ActivityIndicator size="small" color={theme.colors.primary} />}
-            <Text style={{ fontSize: 12, fontWeight: '800', color: isRunningWorkflow ? theme.colors.textSecondary : theme.colors.primary }}>
+            {isRunningWorkflow && <ActivityIndicator size="small" color={colors.primary} />}
+            <Text style={{ fontSize: 12, fontWeight: '800', color: isRunningWorkflow ? colors.textSecondary : colors.primary }}>
               {isRunningWorkflow ? workflowProgress : '⚡ Full Daily Workflow'}
             </Text>
           </TouchableOpacity>
           {!isRunningWorkflow && workflowProgress ? (
-            <View style={{ backgroundColor: theme.colors.surfaceLight, borderRadius: 8, padding: 8, marginBottom: 8 }}>
-              <Text style={{ fontSize: 10, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, textAlign: 'center' }}>{workflowProgress}</Text>
+            <View style={{ backgroundColor: colors.surfaceLight, borderRadius: 8, padding: 8, marginBottom: 8 }}>
+              <Text style={{ fontSize: 10, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, textAlign: 'center' }}>{workflowProgress}</Text>
             </View>
           ) : null}
           <TouchableOpacity
@@ -392,19 +395,19 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
             disabled={isDetecting}
             style={{
               flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-              backgroundColor: isDetecting ? theme.colors.surfaceLight : theme.colors.gold + '18',
-              borderWidth: 1, borderColor: theme.colors.gold + '44',
+              backgroundColor: isDetecting ? colors.surfaceLight : colors.gold + '18',
+              borderWidth: 1, borderColor: colors.gold + '44',
               paddingVertical: 10, borderRadius: 10,
             }}
           >
-            {isDetecting && <ActivityIndicator size="small" color={theme.colors.gold} />}
-            <Text style={{ fontSize: 12, fontWeight: '700', color: isDetecting ? theme.colors.textSecondary : theme.colors.gold }}>
+            {isDetecting && <ActivityIndicator size="small" color={colors.gold} />}
+            <Text style={{ fontSize: 12, fontWeight: '700', color: isDetecting ? colors.textSecondary : colors.gold }}>
               {detectProgress || (isDetecting ? 'Running hit detection…' : '🎯 Run Hit Detection Now')}
             </Text>
           </TouchableOpacity>
           {detectResult && (
-            <View style={{ marginTop: 8, backgroundColor: theme.colors.surfaceLight, borderRadius: 8, padding: 10 }}>
-              <Text style={{ fontSize: 11, color: detectResult.hitsFound > 0 ? theme.colors.gold : theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, textAlign: 'center' }}>
+            <View style={{ marginTop: 8, backgroundColor: colors.surfaceLight, borderRadius: 8, padding: 10 }}>
+              <Text style={{ fontSize: 11, color: detectResult.hitsFound > 0 ? colors.gold : colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, textAlign: 'center' }}>
                 {detectResult.hitsFound > 0
                   ? `Found ${detectResult.hitsFound} hit${detectResult.hitsFound !== 1 ? 's' : ''} across ${detectResult.scopesChecked} scope${detectResult.scopesChecked !== 1 ? 's' : ''}`
                   : 'No hits found for today\'s slate'}
@@ -417,14 +420,14 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
 
       <SectionTitle>DATA CLEANUP</SectionTitle>
       <Card style={{ padding: 16, marginBottom: 16 }}>
-        <Text style={{ fontSize: 12, fontWeight: '700', color: theme.colors.text, marginBottom: 4 }}>Clear Top 30 Picks</Text>
-        <Text style={{ fontSize: 11, color: theme.colors.textTertiary, marginBottom: 12 }}>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 4 }}>Clear Top 30 Picks</Text>
+        <Text style={{ fontSize: 11, color: colors.textTertiary, marginBottom: 12 }}>
           Sets on_slate=false for all daily_intelligence rows on a date. Use to remove stale test slates before regenerating.
         </Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {[
-            { label: 'Clear Today',     date: getTodayET(),      color: theme.colors.amber },
-            { label: 'Clear Yesterday', date: getYesterdayET(),  color: theme.colors.rose  },
+            { label: 'Clear Today',     date: getTodayET(),      color: colors.amber },
+            { label: 'Clear Yesterday', date: getYesterdayET(),  color: colors.rose  },
           ].map(({ label, date, color }) => {
             const busy = clearingIntel === date;
             return (
@@ -442,7 +445,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
                   borderColor: color + '55', backgroundColor: color + '12' }}
               >
                 {busy && <ActivityIndicator size="small" color={color} />}
-                <Text style={{ fontSize: 11, fontWeight: '700', color: busy ? theme.colors.textSecondary : color }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: busy ? colors.textSecondary : color }}>
                   {busy ? 'Clearing…' : label}
                 </Text>
               </TouchableOpacity>
@@ -450,7 +453,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
           })}
         </View>
         {clearIntelResult && (
-          <Text style={{ marginTop: 8, fontSize: 11, color: theme.colors.textSecondary,
+          <Text style={{ marginTop: 8, fontSize: 11, color: colors.textSecondary,
             fontFamily: theme.typography.fontFamily.mono, textAlign: 'center' }}>
             {clearIntelResult}
           </Text>
@@ -461,14 +464,14 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
       <Card style={{ padding: 16, marginBottom: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <View>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text }}>ZK30 Slates</Text>
-            <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginTop: 2 }}>Single-state · jurisdiction-filtered histories</Text>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>ZK30 Slates</Text>
+            <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 2 }}>Single-state · jurisdiction-filtered histories</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={{ fontSize: 10, color: theme.colors.textTertiary, fontWeight: '600' }}>State:</Text>
+            <Text style={{ fontSize: 10, color: colors.textTertiary, fontWeight: '600' }}>State:</Text>
             <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1,
-                           borderColor: theme.colors.teal + '55', backgroundColor: theme.colors.teal + '12' }}>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: theme.colors.teal }}>{zk30Jurisdiction}</Text>
+                           borderColor: colors.teal + '55', backgroundColor: colors.teal + '12' }}>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.teal }}>{zk30Jurisdiction}</Text>
             </View>
           </View>
         </View>
@@ -478,18 +481,18 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
               key={st}
               onPress={() => setZk30Jurisdiction(st)}
               style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, borderWidth: 1,
-                       borderColor: zk30Jurisdiction === st ? theme.colors.teal + '88' : theme.colors.border,
-                       backgroundColor: zk30Jurisdiction === st ? theme.colors.teal + '18' : theme.colors.surfaceLight }}
+                       borderColor: zk30Jurisdiction === st ? colors.teal + '88' : colors.border,
+                       backgroundColor: zk30Jurisdiction === st ? colors.teal + '18' : colors.surfaceLight }}
             >
-              <Text style={{ fontSize: 10, fontWeight: '700', color: zk30Jurisdiction === st ? theme.colors.teal : theme.colors.textSecondary }}>{st}</Text>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: zk30Jurisdiction === st ? colors.teal : colors.textSecondary }}>{st}</Text>
             </TouchableOpacity>
           ))}
         </View>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {([
-            { s: 'midday'  as const, label: '☀️ Midday',  c: theme.colors.gold },
-            { s: 'evening' as const, label: '🌙 Evening', c: theme.colors.primary },
-            { s: 'allday'  as const, label: '◈ All-Day',  c: theme.colors.teal },
+            { s: 'midday'  as const, label: '☀️ Midday',  c: colors.gold },
+            { s: 'evening' as const, label: '🌙 Evening', c: colors.primary },
+            { s: 'allday'  as const, label: '◈ All-Day',  c: colors.teal },
           ]).map(({ s, label, c }) => {
             const busy   = !!zk30BusyMap[s];
             const status = zk30StatusMap[s];
@@ -503,7 +506,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
                          alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4 }}
               >
                 {busy && <ActivityIndicator size="small" color={c} />}
-                <Text style={{ fontSize: 10, fontWeight: '700', color: busy ? theme.colors.textTertiary : c }}>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: busy ? colors.textTertiary : c }}>
                   {busy ? '…' : status || label}
                 </Text>
               </TouchableOpacity>
@@ -515,30 +518,30 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
       <Card style={{ padding: 16, marginBottom: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <View>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text }}>ZK30 Data Import</Text>
-            <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginTop: 2 }}>Box & pair history · jurisdiction-scoped</Text>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>ZK30 Data Import</Text>
+            <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 2 }}>Box & pair history · jurisdiction-scoped</Text>
           </View>
           <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1,
-                         borderColor: theme.colors.teal + '55', backgroundColor: theme.colors.teal + '12' }}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: theme.colors.teal }}>{zk30Jurisdiction}</Text>
+                         borderColor: colors.teal + '55', backgroundColor: colors.teal + '12' }}>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.teal }}>{zk30Jurisdiction}</Text>
           </View>
         </View>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TouchableOpacity
             style={{ flex: 1, padding: 8, borderRadius: 8, borderWidth: 1,
-                     borderColor: theme.colors.teal + '44', backgroundColor: theme.colors.teal + '10',
+                     borderColor: colors.teal + '44', backgroundColor: colors.teal + '10',
                      alignItems: 'center', justifyContent: 'center' }}
             onPress={() => onOpenZK30Import('box_history')}
           >
-            <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.teal }}>📦 Import {zk30Jurisdiction} Box History</Text>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: colors.teal }}>📦 Import {zk30Jurisdiction} Box History</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={{ flex: 1, padding: 8, borderRadius: 8, borderWidth: 1,
-                     borderColor: theme.colors.teal + '44', backgroundColor: theme.colors.teal + '10',
+                     borderColor: colors.teal + '44', backgroundColor: colors.teal + '10',
                      alignItems: 'center', justifyContent: 'center' }}
             onPress={() => onOpenZK30Import('pair_history')}
           >
-            <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.teal }}>🔗 Import {zk30Jurisdiction} Pair History</Text>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: colors.teal }}>🔗 Import {zk30Jurisdiction} Pair History</Text>
           </TouchableOpacity>
         </View>
       </Card>
@@ -547,7 +550,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
       <Card style={{ padding: 0, marginBottom: 4 }}>
         {checklistLoading ? (
           <View style={{ padding: 16, alignItems: 'center' }}>
-            <ActivityIndicator size="small" color={theme.colors.primary} />
+            <ActivityIndicator size="small" color={colors.primary} />
           </View>
         ) : (() => {
           const etHour = parseInt(new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' }), 10);
@@ -564,18 +567,18 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
             );
             const isLate = item.scope === 'evening' && isLateEvening && !match;
             const statusIcon = match ? '✅' : isLate ? '🔴' : '⚠️';
-            const statusColor = match ? theme.colors.success : isLate ? theme.colors.error : theme.colors.orange;
+            const statusColor = match ? colors.success : isLate ? colors.error : colors.orange;
             return (
               <TouchableOpacity
                 key={item.label}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderBottomWidth: i < 3 ? 1 : 0, borderBottomColor: theme.colors.border }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderBottomWidth: i < 3 ? 1 : 0, borderBottomColor: colors.border }}
                 onPress={() => { if (!match) setView('wizard'); }}
                 activeOpacity={match ? 1 : 0.7}
               >
                 <Text style={{ fontSize: 14 }}>{statusIcon}</Text>
                 <Text style={{ fontSize: 12 }}>{item.icon}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>{item.label}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>{item.label}</Text>
                   <Text style={{ fontSize: 10, color: statusColor }}>
                     {match
                       ? `${timeAgo(match.created_at)}${match.counts ? ` · ${match.counts} rows` : ''}`
@@ -583,8 +586,8 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
                   </Text>
                 </View>
                 {!match && (
-                  <View style={{ backgroundColor: theme.colors.primary + '18', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 7, borderWidth: 1, borderColor: theme.colors.primary + '33' }}>
-                    <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.primary }}>IMPORT →</Text>
+                  <View style={{ backgroundColor: colors.primary + '18', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 7, borderWidth: 1, borderColor: colors.primary + '33' }}>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: colors.primary }}>IMPORT →</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -603,13 +606,13 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
           const daysAgo = last ? Math.floor((Date.now() - new Date(last.created_at).getTime()) / 86400000) : null;
           const isStale = daysAgo != null && daysAgo >= 14;
           const isAging = !isStale && daysAgo != null && daysAgo >= 7;
-          const alertColor = isStale ? theme.colors.error : isAging ? theme.colors.orange : theme.colors.success;
+          const alertColor = isStale ? colors.error : isAging ? colors.orange : colors.success;
           return (
-            <View key={item.type} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderBottomWidth: i < 1 ? 1 : 0, borderBottomColor: theme.colors.border }}>
+            <View key={item.type} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderBottomWidth: i < 1 ? 1 : 0, borderBottomColor: colors.border }}>
               <Text style={{ fontSize: 14 }}>{item.icon}</Text>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>{item.label}</Text>
-                <Text style={{ fontSize: 10, color: (isStale || isAging) ? alertColor : last ? theme.colors.success : theme.colors.textTertiary }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>{item.label}</Text>
+                <Text style={{ fontSize: 10, color: (isStale || isAging) ? alertColor : last ? colors.success : colors.textTertiary }}>
                   {last
                     ? (daysAgo === 0 ? 'Imported today' : daysAgo === 1 ? 'Imported yesterday' : `Imported ${daysAgo} days ago`) + (isStale ? ' — refresh recommended' : isAging ? ' — consider refreshing' : '')
                     : 'Never imported'}
@@ -631,8 +634,8 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
           style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 }}
           onPress={() => setGuideOpen(g => !g)}
         >
-          <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text }}>What to import and when</Text>
-          <Text style={{ fontSize: 12, color: theme.colors.textTertiary }}>{guideOpen ? '▲' : '▼'}</Text>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>What to import and when</Text>
+          <Text style={{ fontSize: 12, color: colors.textTertiary }}>{guideOpen ? '▲' : '▼'}</Text>
         </TouchableOpacity>
         {guideOpen && (
           <View style={{ paddingHorizontal: 14, paddingBottom: 14 }}>
@@ -642,11 +645,11 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
               { icon: '📦', when: 'Weekly', what: 'Re-import Box History H01Y to refresh frequency data' },
               { icon: '🗃️', when: 'Monthly', what: 'Import H02Y–H10Y for deep pattern analysis' },
             ].map((row, i) => (
-              <View key={i} style={{ flexDirection: 'row', gap: 10, paddingVertical: 10, borderTopWidth: 1, borderTopColor: theme.colors.border }}>
+              <View key={i} style={{ flexDirection: 'row', gap: 10, paddingVertical: 10, borderTopWidth: 1, borderTopColor: colors.border }}>
                 <Text style={{ fontSize: 16 }}>{row.icon}</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.text, marginBottom: 2 }}>{row.when}</Text>
-                  <Text style={{ fontSize: 11, color: theme.colors.textSecondary }}>{row.what}</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: colors.text, marginBottom: 2 }}>{row.when}</Text>
+                  <Text style={{ fontSize: 11, color: colors.textSecondary }}>{row.what}</Text>
                 </View>
               </View>
             ))}
@@ -658,16 +661,16 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
       <Card style={{ padding: 0 }}>
         {liveImports.slice(0, 5).map((imp, i) => {
           const typeInfo = IMPORT_TYPES.find(t => t.id === imp.type);
-          const sc = imp.status === 'completed' ? theme.colors.success : imp.status === 'failed' ? theme.colors.error : theme.colors.textTertiary;
+          const sc = imp.status === 'completed' ? colors.success : imp.status === 'failed' ? colors.error : colors.textTertiary;
           return (
-            <View key={imp.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderBottomWidth: i < 4 ? 1 : 0, borderBottomColor: theme.colors.border }}>
+            <View key={imp.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderBottomWidth: i < 4 ? 1 : 0, borderBottomColor: colors.border }}>
               <Text style={{ fontSize: 16 }}>{typeInfo?.icon ?? '📦'}</Text>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: theme.colors.text }}>{imp.type}{imp.horizon_label ? ' · ' + imp.horizon_label : ''}{imp.class_id ? ' · Class ' + imp.class_id : ''}</Text>
-                <Text style={{ fontSize: 10, color: theme.colors.textTertiary }}>{imp.scope} · {new Date(imp.created_at).toLocaleDateString()}</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>{imp.type}{imp.horizon_label ? ' · ' + imp.horizon_label : ''}{imp.class_id ? ' · Class ' + imp.class_id : ''}</Text>
+                <Text style={{ fontSize: 10, color: colors.textTertiary }}>{imp.scope} · {new Date(imp.created_at).toLocaleDateString()}</Text>
               </View>
               <Pill label={imp.status} color={sc} />
-              <Text style={{ fontSize: 12, color: theme.colors.success, fontFamily: theme.typography.fontFamily.mono }}>+{imp.accepted}</Text>
+              <Text style={{ fontSize: 12, color: colors.success, fontFamily: theme.typography.fontFamily.mono }}>+{imp.accepted}</Text>
             </View>
           );
         })}

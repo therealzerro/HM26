@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
-import { SectionTitle, Card, st } from './AdminShared';
+import { SectionTitle, Card, useSt } from './AdminShared';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Engine Calibration Dashboard
@@ -121,6 +122,8 @@ interface AdaptiveLearningViewProps {
 }
 
 export default function AdaptiveLearningView({ setView }: AdaptiveLearningViewProps = {}) {
+  const { colors } = useTheme();
+  const st = useSt();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<AtRow[]>([]);
@@ -407,24 +410,24 @@ export default function AdaptiveLearningView({ setView }: AdaptiveLearningViewPr
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      <Text style={{ fontSize: 17, fontWeight: '800', color: theme.colors.text, marginBottom: 4 }}>
+      <Text style={{ fontSize: 17, fontWeight: '800', color: colors.text, marginBottom: 4 }}>
         ZK6 Engine Calibration
       </Text>
-      <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginBottom: 16 }}>
+      <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 16 }}>
         Diagnostic dashboard — every metric is a knob you can turn for more accurate picks.
       </Text>
 
       {loading && (
         <View style={{ alignItems: 'center', paddingVertical: 32 }}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginTop: 10 }}>Loading 60 days of pick data…</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 10 }}>Loading 60 days of pick data…</Text>
         </View>
       )}
 
       {error && !loading && (
-        <Card style={{ padding: 16, marginBottom: 14, borderColor: theme.colors.error + '44', backgroundColor: theme.colors.error + '0A', alignItems: 'center' }}>
-          <Text style={{ fontSize: 13, color: theme.colors.error, fontWeight: '700', marginBottom: 8 }}>Failed to load</Text>
-          <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginBottom: 12, textAlign: 'center' }}>{error}</Text>
+        <Card style={{ padding: 16, marginBottom: 14, borderColor: colors.error + '44', backgroundColor: colors.error + '0A', alignItems: 'center' }}>
+          <Text style={{ fontSize: 13, color: colors.error, fontWeight: '700', marginBottom: 8 }}>Failed to load</Text>
+          <Text style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 12, textAlign: 'center' }}>{error}</Text>
           <TouchableOpacity style={st.btnGhost} onPress={load}>
             <Text style={st.btnGhostText}>Retry</Text>
           </TouchableOpacity>
@@ -434,8 +437,8 @@ export default function AdaptiveLearningView({ setView }: AdaptiveLearningViewPr
       {isEmpty && (
         <Card style={{ padding: 24, marginBottom: 14, alignItems: 'center' }}>
           <Text style={{ fontSize: 28, marginBottom: 10 }}>📭</Text>
-          <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.text, marginBottom: 6, textAlign: 'center' }}>No pick data yet</Text>
-          <Text style={{ fontSize: 11, color: theme.colors.textSecondary, textAlign: 'center', lineHeight: 18 }}>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 6, textAlign: 'center' }}>No pick data yet</Text>
+          <Text style={{ fontSize: 11, color: colors.textSecondary, textAlign: 'center', lineHeight: 18 }}>
             Generate slates and import ledger results to begin tracking calibration.
           </Text>
         </Card>
@@ -448,20 +451,20 @@ export default function AdaptiveLearningView({ setView }: AdaptiveLearningViewPr
           <Card style={{ padding: 18, marginBottom: 14, alignItems: 'center' }}>
             <Text style={{
               fontSize: 44, fontWeight: '900',
-              color: primary.rate >= 70 ? theme.colors.success : primary.rate >= 55 ? theme.colors.gold : theme.colors.error,
+              color: primary.rate >= 70 ? colors.success : primary.rate >= 55 ? colors.gold : colors.error,
               fontFamily: theme.typography.fontFamily.monoBold,
             }}>
               {primary.rate.toFixed(1)}%
             </Text>
-            <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginTop: 4 }}>
+            <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 4 }}>
               slate hit rate · last {DAYS_PRIMARY} days · {primary.hits} of {primary.total} slates with ≥1 hit
             </Text>
             {prior.total >= 5 && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 }}>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: trendDelta >= 0 ? theme.colors.success : theme.colors.error }}>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: trendDelta >= 0 ? colors.success : colors.error }}>
                   {trendDelta >= 0 ? '↑' : '↓'} {Math.abs(trendDelta).toFixed(1)}pp
                 </Text>
-                <Text style={{ fontSize: 11, color: theme.colors.textTertiary }}>
+                <Text style={{ fontSize: 11, color: colors.textTertiary }}>
                   vs prior {DAYS_PRIOR}d ({prior.rate.toFixed(1)}%)
                 </Text>
               </View>
@@ -474,12 +477,12 @@ export default function AdaptiveLearningView({ setView }: AdaptiveLearningViewPr
             {scopeStats.map(s => {
               const isWeakest = weakestScope?.scope === s.scope && s.total > 0;
               return (
-                <Card key={s.scope} style={{ flex: 1, padding: 12, alignItems: 'center', borderColor: isWeakest ? theme.colors.error + '66' : undefined, borderWidth: isWeakest ? 1 : undefined }}>
-                  <Text style={{ fontSize: 9, color: theme.colors.textTertiary, fontWeight: '700', marginBottom: 4, textTransform: 'uppercase' }}>{s.scope}</Text>
-                  <Text style={{ fontSize: 22, fontWeight: '900', color: isWeakest ? theme.colors.error : theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>
+                <Card key={s.scope} style={{ flex: 1, padding: 12, alignItems: 'center', borderColor: isWeakest ? colors.error + '66' : undefined, borderWidth: isWeakest ? 1 : undefined }}>
+                  <Text style={{ fontSize: 9, color: colors.textTertiary, fontWeight: '700', marginBottom: 4, textTransform: 'uppercase' }}>{s.scope}</Text>
+                  <Text style={{ fontSize: 22, fontWeight: '900', color: isWeakest ? colors.error : colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>
                     {s.total > 0 ? s.rate.toFixed(0) + '%' : '—'}
                   </Text>
-                  <Text style={{ fontSize: 9, color: theme.colors.textTertiary, marginTop: 3 }}>{s.hits}/{s.total} slates</Text>
+                  <Text style={{ fontSize: 9, color: colors.textTertiary, marginTop: 3 }}>{s.hits}/{s.total} slates</Text>
                 </Card>
               );
             })}
@@ -487,26 +490,26 @@ export default function AdaptiveLearningView({ setView }: AdaptiveLearningViewPr
 
           {/* ── SIGNAL AUC ───────────────────────────────────────────────────── */}
           <SectionTitle>SIGNAL PREDICTIVE POWER (AUC)</SectionTitle>
-          <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginBottom: 8, paddingHorizontal: 4 }}>
+          <Text style={{ fontSize: 10, color: colors.textTertiary, marginBottom: 8, paddingHorizontal: 4 }}>
             AUC = 0.5 means random · 1.0 means perfect predictor · {'>'}0.55 is genuine lift
           </Text>
           <Card style={{ padding: 14, marginBottom: 14 }}>
             {SIGNAL_KEYS.map((key, idx) => {
               const a = signalAUC[key];
-              const tone = a.auc >= 0.55 ? theme.colors.success
-                : a.auc >= 0.51 ? theme.colors.gold
-                : a.auc >= 0.49 ? theme.colors.textTertiary
-                : theme.colors.error;
+              const tone = a.auc >= 0.55 ? colors.success
+                : a.auc >= 0.51 ? colors.gold
+                : a.auc >= 0.49 ? colors.textTertiary
+                : colors.error;
               const barW = Math.max(2, Math.min(100, (a.auc - 0.4) * 250));
               return (
                 <View key={key} style={{ marginBottom: idx === SIGNAL_KEYS.length - 1 ? 0 : 10 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.text }}>{SIGNAL_LABEL[key]}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.text }}>{SIGNAL_LABEL[key]}</Text>
                     <Text style={{ fontSize: 11, fontWeight: '700', color: tone, fontFamily: theme.typography.fontFamily.monoBold }}>
                       {a.auc.toFixed(3)}
                     </Text>
                   </View>
-                  <View style={{ height: 6, backgroundColor: theme.colors.surfaceMuted, borderRadius: 3, overflow: 'hidden' }}>
+                  <View style={{ height: 6, backgroundColor: colors.surfaceMuted, borderRadius: 3, overflow: 'hidden' }}>
                     <View style={{ height: 6, width: `${barW}%`, backgroundColor: tone }} />
                   </View>
                 </View>
@@ -516,41 +519,41 @@ export default function AdaptiveLearningView({ setView }: AdaptiveLearningViewPr
 
           {/* ── DOMINANT SIGNAL HIT RATES (new, ENH-01) ──────────────────────── */}
           <SectionTitle>BY DOMINANT SIGNAL</SectionTitle>
-          <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginBottom: 8, paddingHorizontal: 4 }}>
+          <Text style={{ fontSize: 10, color: colors.textTertiary, marginBottom: 8, paddingHorizontal: 4 }}>
             Hit rate of picks where each signal led the score. Big gap between signals = the engine is correctly picking based on what works.
           </Text>
           <View style={{ flexDirection: 'row', gap: 6, marginBottom: 14 }}>
             {dominantStats.map(s => (
               <Card key={s.label} style={{ flex: 1, padding: 10, alignItems: 'center' }}>
-                <Text style={{ fontSize: 9, color: theme.colors.textTertiary, fontWeight: '700', marginBottom: 3 }}>{s.label}</Text>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: s.total === 0 ? theme.colors.textTertiary : theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>
+                <Text style={{ fontSize: 9, color: colors.textTertiary, fontWeight: '700', marginBottom: 3 }}>{s.label}</Text>
+                <Text style={{ fontSize: 18, fontWeight: '900', color: s.total === 0 ? colors.textTertiary : colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>
                   {s.total > 0 ? s.rate.toFixed(0) + '%' : '—'}
                 </Text>
-                <Text style={{ fontSize: 8, color: theme.colors.textTertiary, marginTop: 2 }}>{s.hits}/{s.total}</Text>
+                <Text style={{ fontSize: 8, color: colors.textTertiary, marginTop: 2 }}>{s.hits}/{s.total}</Text>
               </Card>
             ))}
           </View>
 
           {/* ── TOP-QUARTILE LIFT (new, ENH-02) ──────────────────────────────── */}
           <SectionTitle>TOP-QUARTILE LIFT PER SIGNAL</SectionTitle>
-          <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginBottom: 8, paddingHorizontal: 4 }}>
+          <Text style={{ fontSize: 10, color: colors.textTertiary, marginBottom: 8, paddingHorizontal: 4 }}>
             Hit rate when a signal is in the top 25% of the day vs not. Positive lift = the signal actually separates winners.
           </Text>
           <Card style={{ padding: 12, marginBottom: 14 }}>
             {quartileStats.map((q, idx) => {
-              const tone = q.lift >= 10 ? theme.colors.success
-                : q.lift >= 3 ? theme.colors.gold
-                : q.lift >= -3 ? theme.colors.textTertiary
-                : theme.colors.error;
+              const tone = q.lift >= 10 ? colors.success
+                : q.lift >= 3 ? colors.gold
+                : q.lift >= -3 ? colors.textTertiary
+                : colors.error;
               return (
                 <View key={q.label} style={{ marginBottom: idx === quartileStats.length - 1 ? 0 : 8 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.text }}>{q.label}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.text }}>{q.label}</Text>
                     <Text style={{ fontSize: 11, fontWeight: '900', color: tone, fontFamily: theme.typography.fontFamily.monoBold }}>
                       {q.lift >= 0 ? '+' : ''}{q.lift.toFixed(1)}pp
                     </Text>
                   </View>
-                  <Text style={{ fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono }}>
+                  <Text style={{ fontSize: 10, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono }}>
                     top-quartile: {q.topRate.toFixed(0)}% ({q.topN})  ·  other: {q.botRate.toFixed(0)}% ({q.botN})
                   </Text>
                 </View>
@@ -560,7 +563,7 @@ export default function AdaptiveLearningView({ setView }: AdaptiveLearningViewPr
 
           {/* ── ENERGY CALIBRATION ───────────────────────────────────────────── */}
           <SectionTitle>ENERGY BAND HIT RATES</SectionTitle>
-          <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginBottom: 8, paddingHorizontal: 4 }}>
+          <Text style={{ fontSize: 10, color: colors.textTertiary, marginBottom: 8, paddingHorizontal: 4 }}>
             Healthy engine: higher-energy bands hit more often. Flat or inverted = ranking is broken.
           </Text>
           <Card style={{ padding: 14, marginBottom: 14 }}>
@@ -570,18 +573,18 @@ export default function AdaptiveLearningView({ setView }: AdaptiveLearningViewPr
                 const h = b.total >= 5 ? Math.max(3, Math.round((b.rate / maxRate) * 70)) : 3;
                 return (
                   <View key={b.label} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end' }}>
-                    <Text style={{ fontSize: 9, fontWeight: '700', color: theme.colors.text, marginBottom: 3, fontFamily: theme.typography.fontFamily.monoBold }}>
+                    <Text style={{ fontSize: 9, fontWeight: '700', color: colors.text, marginBottom: 3, fontFamily: theme.typography.fontFamily.monoBold }}>
                       {b.total >= 5 ? b.rate.toFixed(0) + '%' : '—'}
                     </Text>
-                    <View style={{ width: '70%', height: h, backgroundColor: b.total >= 5 ? theme.colors.primary : theme.colors.surfaceMuted, borderRadius: 3 }} />
-                    <Text style={{ fontSize: 9, color: theme.colors.textTertiary, marginTop: 4 }}>{b.label}</Text>
-                    <Text style={{ fontSize: 8, color: theme.colors.textTertiary }}>{b.total >= 1 ? `n=${b.total}` : ''}</Text>
+                    <View style={{ width: '70%', height: h, backgroundColor: b.total >= 5 ? colors.primary : colors.surfaceMuted, borderRadius: 3 }} />
+                    <Text style={{ fontSize: 9, color: colors.textTertiary, marginTop: 4 }}>{b.label}</Text>
+                    <Text style={{ fontSize: 8, color: colors.textTertiary }}>{b.total >= 1 ? `n=${b.total}` : ''}</Text>
                   </View>
                 );
               })}
             </View>
-            <View style={{ marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: theme.colors.surfaceMuted }}>
-              <Text style={{ fontSize: 10, color: isCalibrationMonotonic ? theme.colors.success : theme.colors.error, fontWeight: '700' }}>
+            <View style={{ marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.surfaceMuted }}>
+              <Text style={{ fontSize: 10, color: isCalibrationMonotonic ? colors.success : colors.error, fontWeight: '700' }}>
                 {isCalibrationMonotonic ? '✓ Calibrated — higher energy = higher hit rate' : '⚠ Not monotonic — engine ranking does not predict hits reliably'}
               </Text>
             </View>
@@ -592,18 +595,18 @@ export default function AdaptiveLearningView({ setView }: AdaptiveLearningViewPr
           <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
             {multStats.map(s => (
               <Card key={s.mult} style={{ flex: 1, padding: 12, alignItems: 'center' }}>
-                <Text style={{ fontSize: 9, color: theme.colors.textTertiary, fontWeight: '700', marginBottom: 4, textTransform: 'uppercase' }}>{s.mult}</Text>
-                <Text style={{ fontSize: 22, fontWeight: '900', color: s.total === 0 ? theme.colors.textTertiary : (s.rate < 10 && s.total >= 30 ? theme.colors.error : theme.colors.text), fontFamily: theme.typography.fontFamily.monoBold }}>
+                <Text style={{ fontSize: 9, color: colors.textTertiary, fontWeight: '700', marginBottom: 4, textTransform: 'uppercase' }}>{s.mult}</Text>
+                <Text style={{ fontSize: 22, fontWeight: '900', color: s.total === 0 ? colors.textTertiary : (s.rate < 10 && s.total >= 30 ? colors.error : colors.text), fontFamily: theme.typography.fontFamily.monoBold }}>
                   {s.total > 0 ? s.rate.toFixed(0) + '%' : '—'}
                 </Text>
-                <Text style={{ fontSize: 9, color: theme.colors.textTertiary, marginTop: 3 }}>{s.hits}/{s.total} picks</Text>
+                <Text style={{ fontSize: 9, color: colors.textTertiary, marginTop: 3 }}>{s.hits}/{s.total} picks</Text>
               </Card>
             ))}
           </View>
 
           {/* ── PICK POSITION ────────────────────────────────────────────────── */}
           <SectionTitle>PICK POSITION (RANK 1–6)</SectionTitle>
-          <Text style={{ fontSize: 10, color: theme.colors.textTertiary, marginBottom: 8, paddingHorizontal: 4 }}>
+          <Text style={{ fontSize: 10, color: colors.textTertiary, marginBottom: 8, paddingHorizontal: 4 }}>
             Engine sorts by indicator desc. Pick #1 should hit most often.
           </Text>
           <Card style={{ padding: 14, marginBottom: 14 }}>
@@ -613,11 +616,11 @@ export default function AdaptiveLearningView({ setView }: AdaptiveLearningViewPr
                 const h = p.total >= 5 ? Math.max(3, Math.round((p.rate / maxRate) * 60)) : 3;
                 return (
                   <View key={p.pos} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end' }}>
-                    <Text style={{ fontSize: 9, fontWeight: '700', color: theme.colors.text, marginBottom: 3, fontFamily: theme.typography.fontFamily.monoBold }}>
+                    <Text style={{ fontSize: 9, fontWeight: '700', color: colors.text, marginBottom: 3, fontFamily: theme.typography.fontFamily.monoBold }}>
                       {p.total >= 5 ? p.rate.toFixed(0) + '%' : '—'}
                     </Text>
-                    <View style={{ width: '70%', height: h, backgroundColor: theme.colors.teal, borderRadius: 3 }} />
-                    <Text style={{ fontSize: 9, color: theme.colors.textTertiary, marginTop: 4 }}>#{p.pos}</Text>
+                    <View style={{ width: '70%', height: h, backgroundColor: colors.teal, borderRadius: 3 }} />
+                    <Text style={{ fontSize: 9, color: colors.textTertiary, marginTop: 4 }}>#{p.pos}</Text>
                   </View>
                 );
               })}
@@ -628,14 +631,14 @@ export default function AdaptiveLearningView({ setView }: AdaptiveLearningViewPr
           <SectionTitle>RECOMMENDED ACTIONS</SectionTitle>
           {recommendations.length === 0 ? (
             <Card style={{ padding: 14, marginBottom: 14, alignItems: 'center' }}>
-              <Text style={{ fontSize: 11, color: theme.colors.textSecondary }}>Need more data for recommendations.</Text>
+              <Text style={{ fontSize: 11, color: colors.textSecondary }}>Need more data for recommendations.</Text>
             </Card>
           ) : (
             recommendations.map((rec, idx) => {
               const tone =
-                rec.severity === 'high' ? theme.colors.error :
-                rec.severity === 'medium' ? theme.colors.gold :
-                theme.colors.primary;
+                rec.severity === 'high' ? colors.error :
+                rec.severity === 'medium' ? colors.gold :
+                colors.primary;
               const showCTA = rec.actionable && setView;
               return (
                 <Card key={idx} style={{
@@ -648,9 +651,9 @@ export default function AdaptiveLearningView({ setView }: AdaptiveLearningViewPr
                         {rec.severity}
                       </Text>
                     </View>
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: theme.colors.text, flex: 1 }}>{rec.title}</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text, flex: 1 }}>{rec.title}</Text>
                   </View>
-                  <Text style={{ fontSize: 11, color: theme.colors.textSecondary, lineHeight: 16 }}>{rec.body}</Text>
+                  <Text style={{ fontSize: 11, color: colors.textSecondary, lineHeight: 16 }}>{rec.body}</Text>
                   {showCTA && (
                     <TouchableOpacity
                       onPress={() => setView!('engine')}
@@ -674,17 +677,17 @@ export default function AdaptiveLearningView({ setView }: AdaptiveLearningViewPr
           )}
 
           {/* ── HOW TO ACT ───────────────────────────────────────────────────── */}
-          <Card style={{ padding: 14, marginTop: 6, marginBottom: 14, backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary + '33' }}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: theme.colors.primary, marginBottom: 6 }}>
+          <Card style={{ padding: 14, marginTop: 6, marginBottom: 14, backgroundColor: colors.primaryLight, borderColor: colors.primary + '33' }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary, marginBottom: 6 }}>
               How to act on these signals
             </Text>
-            <Text style={{ fontSize: 11, color: theme.colors.textSecondary, lineHeight: 17 }}>
+            <Text style={{ fontSize: 11, color: colors.textSecondary, lineHeight: 17 }}>
               • Per CLAUDE.md, no engine/config change ships without a backtest number. Run{' '}
-              <Text style={{ fontFamily: theme.typography.fontFamily.monoBold, color: theme.colors.text }}>
+              <Text style={{ fontFamily: theme.typography.fontFamily.monoBold, color: colors.text }}>
                 npm run backtest:replay -- --days 30 --config &lt;preset&gt;
               </Text>
               {'\n\n'}• For AUC-fitted weight proposals:{' '}
-              <Text style={{ fontFamily: theme.typography.fontFamily.monoBold, color: theme.colors.text }}>
+              <Text style={{ fontFamily: theme.typography.fontFamily.monoBold, color: colors.text }}>
                 npm run intel:propose
               </Text>
               {'\n\n'}• Production app_config changes get tracked as CONFIG-XX entries in MASTER_AUDIT.md.

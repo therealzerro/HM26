@@ -12,7 +12,7 @@ import { getTodayET, getTomorrowET, getYesterdayET } from '@/lib/dateUtils';
 import { runHitDetectionAllScopes, runHitDetectionAndRefresh, HitDetectionResult } from '@/lib/hitDetection';
 import { RegenConfirmationModal } from '@/components/RegenConfirmationModal';
 import { computeZK30Slate } from '@/engines/zk30';
-import { Pill, SectionTitle, Card, timeAgo, MOCK_IMPORTS, IMPORT_TYPES, PAIR_CLASSES, useSt, ImportRecord } from './AdminShared';
+import { Pill, SectionTitle, Card, timeAgo, MOCK_IMPORTS, useImportTypes, PAIR_CLASSES, useSt, ImportRecord } from './AdminShared';
 
 export default function DashboardView({ setView, imports, healthMetrics, regenerateSlate, checkSlateLock, onOpenZK30Import }: {
   setView: (v: string) => void;
@@ -24,6 +24,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
 }) {
   const { colors } = useTheme();
   const st = useSt();
+  const IMPORT_TYPES = useImportTypes();
   const liveImports = (imports && imports.length > 0) ? imports : MOCK_IMPORTS;
   const completed = liveImports.filter(i => i.status === 'completed').length;
   const failed = liveImports.filter(i => i.status === 'failed').length;

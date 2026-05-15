@@ -6,7 +6,7 @@ import { fetchFromSupabase } from '@/lib/supabase';
 import { parseRawLedgerData } from '@/lib/parseLedger';
 import { getTodayET } from '@/lib/dateUtils';
 import { runHitDetectionAllScopes } from '@/lib/hitDetection';
-import { Pill, SectionTitle, Card, useSt, HORIZONS, IMPORT_TYPES, PAIR_CLASSES, ImportRecord } from './AdminShared';
+import { Pill, SectionTitle, Card, useSt, HORIZONS, useImportTypes, PAIR_CLASSES, ImportRecord } from './AdminShared';
 
 // ─── Box History helpers ──────────────────────────────────────────────────────
 
@@ -117,6 +117,7 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
 }) {
   const { colors } = useTheme();
   const st = useSt();
+  const IMPORT_TYPES = useImportTypes();
   const [step, setStep] = useState(preset ? 1 : 0);
   const [importType, setImportType] = useState<string | null>(preset?.type ?? null);
   const todayDefault = useMemo(() => getTodayET(), []);

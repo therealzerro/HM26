@@ -16,7 +16,8 @@
     "rebuild:datasets": "tsx scripts/intel-tuning/rebuild-datasets.ts",
     "rebuild:pair-datasets": "tsx scripts/intel-tuning/rebuild-pair-datasets.ts",
     "backfill:adaptive-tracking": "tsx scripts/intel-tuning/backfill-adaptive-tracking.ts",
-    "verify:hits": "tsx scripts/intel-tuning/verify-hits.ts"
+    "verify:hits": "tsx scripts/intel-tuning/verify-hits.ts",
+    "rls:smoke": "tsx scripts/rls-smoke.ts"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

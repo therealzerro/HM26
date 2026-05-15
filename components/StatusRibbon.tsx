@@ -1,12 +1,15 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { useSnapshot } from '@/hooks/useSnapshot';
 import { useDataIngestion } from '@/hooks/useDataIngestion';
 import { useCoverage } from '@/hooks/useCoverage';
 import { Clock, Database, TrendingUp, Wifi, WifiOff } from 'lucide-react-native';
 
 export function StatusRibbon() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { lastUpdate, snapshot, hasLiveData } = useSnapshot();
   const { healthMetrics, isLoading } = useDataIngestion();
   const { matrix } = useCoverage();
@@ -22,15 +25,15 @@ export function StatusRibbon() {
 
     if (present.length > 0) {
       horizonChips.push({
-        icon: <Database size={14} color={theme.colors.success} />,
+        icon: <Database size={14} color={colors.success} />,
         label: `Box ${present.join(',')} ✓`,
-        color: theme.colors.success,
+        color: colors.success,
       });
 
       horizonChips.push({
-        icon: <Database size={14} color={theme.colors.success} />,
+        icon: <Database size={14} color={colors.success} />,
         label: `Pair 1-10 ${present.slice(0,2).join(',')} ✓`,
-        color: theme.colors.success,
+        color: colors.success,
       });
 
       const pending = Object.entries(snapshot.horizons_present_json)
@@ -40,18 +43,18 @@ export function StatusRibbon() {
 
       if (pending.length > 0) {
         horizonChips.push({
-          icon: <Clock size={14} color={theme.colors.warning} />,
+          icon: <Clock size={14} color={colors.warning} />,
           label: `${pending.join(',')} ⌛`,
-          color: theme.colors.warning,
+          color: colors.warning,
         });
       }
     }
 
     if (meta?._dataStats?.usingFallback === true) {
       horizonChips.push({
-        icon: <WifiOff size={14} color={theme.colors.amber} />,
+        icon: <WifiOff size={14} color={colors.amber} />,
         label: 'Data: allday fallback',
-        color: theme.colors.amber,
+        color: colors.amber,
       });
     }
   }
@@ -64,10 +67,10 @@ export function StatusRibbon() {
   
   const backendChip = {
     icon: backendOnline ? 
-      <Wifi size={14} color={theme.colors.success} /> : 
-      <WifiOff size={14} color={theme.colors.warning} />,
+      <Wifi size={14} color={colors.success} /> : 
+      <WifiOff size={14} color={colors.warning} />,
     label: backendOnline ? 'Backend: Online' : 'Backend: Fallback',
-    color: backendOnline ? theme.colors.success : theme.colors.warning,
+    color: backendOnline ? colors.success : colors.warning,
   };
 
   const coverageDiff = useMemo(() => {
@@ -85,25 +88,25 @@ export function StatusRibbon() {
 
   const chips = [
     {
-      icon: <Clock size={14} color={theme.colors.primary} />,
+      icon: <Clock size={14} color={colors.primary} />,
       label: `Last: ${lastUpdate || 'Never'}`,
-      color: theme.colors.primary,
+      color: colors.primary,
     },
     {
-      icon: <Database size={14} color={theme.colors.dataYellow} />,
+      icon: <Database size={14} color={colors.dataYellow} />,
       label: coverageDiff,
-      color: theme.colors.dataYellow,
+      color: colors.dataYellow,
     },
     ...horizonChips,
     {
-      icon: <TrendingUp size={14} color={theme.colors.dataBlue} />,
+      icon: <TrendingUp size={14} color={colors.dataBlue} />,
       label: 'Norm: percentile',
-      color: theme.colors.dataBlue,
+      color: colors.dataBlue,
     },
     {
-      icon: <TrendingUp size={14} color={theme.colors.dataPurple} />,
+      icon: <TrendingUp size={14} color={colors.dataPurple} />,
       label: 'Winsor: p99',
-      color: theme.colors.dataPurple,
+      color: colors.dataPurple,
     },
     backendChip,
   ];
@@ -111,16 +114,16 @@ export function StatusRibbon() {
   if (healthMetrics) {
     if (healthMetrics.datasetCounts.boxEntries > 0) {
       chips.splice(-1, 0, {
-        icon: <Database size={14} color={theme.colors.dataGreen} />,
+        icon: <Database size={14} color={colors.dataGreen} />,
         label: `Box: ${healthMetrics.datasetCounts.boxEntries}`,
-        color: theme.colors.dataGreen,
+        color: colors.dataGreen,
       });
     }
     if (healthMetrics.datasetCounts.pairEntries > 0) {
       chips.splice(-1, 0, {
-        icon: <Database size={14} color={theme.colors.dataYellow} />,
+        icon: <Database size={14} color={colors.dataYellow} />,
         label: `Pairs: ${healthMetrics.datasetCounts.pairEntries}`,
-        color: theme.colors.dataYellow,
+        color: colors.dataYellow,
       });
     }
   }
@@ -141,9 +144,9 @@ export function StatusRibbon() {
           </View>
         ))}
         {isLoading && (
-          <View style={[styles.chip, { borderColor: theme.colors.warning }]}>
-            <Clock size={14} color={theme.colors.warning} />
-            <Text style={[styles.chipText, { color: theme.colors.warning }]}>
+          <View style={[styles.chip, { borderColor: colors.warning }]}>
+            <Clock size={14} color={colors.warning} />
+            <Text style={[styles.chipText, { color: colors.warning }]}>
               Loading...
             </Text>
           </View>
@@ -153,12 +156,12 @@ export function StatusRibbon() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.bgElevated,
+    backgroundColor: colors.bgElevated,
     paddingVertical: theme.spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
   },
   scrollContent: {
     paddingHorizontal: theme.spacing.md,
@@ -172,7 +175,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: theme.borderRadius.pill,
     borderWidth: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   chipText: {
     fontSize: theme.typography.fontSize.xs,

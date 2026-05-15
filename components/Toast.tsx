@@ -1,7 +1,8 @@
-import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useRef, useState, useMemo } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -12,6 +13,8 @@ const ToastContext = createContext<ToastCtx>({ showToast: () => {} });
 export function useToast() { return useContext(ToastContext); }
 
 function ToastItem({ toast, onHide }: { toast: ToastMsg; onHide: () => void }) {
+  const { colors } = useTheme();
+  const st = useMemo(() => makeSt(colors), [colors]);
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(16)).current;
 
@@ -29,7 +32,7 @@ function ToastItem({ toast, onHide }: { toast: ToastMsg; onHide: () => void }) {
     return () => clearTimeout(t);
   }, []);
 
-  const accent = { success: theme.colors.success, error: theme.colors.error, warning: theme.colors.warning, info: theme.colors.purple }[toast.type];
+  const accent = { success: colors.success, error: colors.error, warning: colors.warning, info: colors.purple }[toast.type];
   const icon   = { success: '✓', error: '✕', warning: '⚠', info: 'i' }[toast.type];
 
   return (
@@ -43,6 +46,8 @@ function ToastItem({ toast, onHide }: { toast: ToastMsg; onHide: () => void }) {
 }
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const { colors } = useTheme();
+  const st = useMemo(() => makeSt(colors), [colors]);
   const [toasts, setToasts] = useState<ToastMsg[]>([]);
   const insets  = useSafeAreaInsets();
   const counter = useRef(0);
@@ -66,15 +71,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-const st = StyleSheet.create({
+const makeSt = (colors: ColorTokens) => StyleSheet.create({
   container: {
     position: 'absolute', left: 16, right: 16, gap: 8, zIndex: 9999,
   },
   toast: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: theme.colors.bgElevated,
+    backgroundColor: colors.bgElevated,
     borderRadius: theme.borderRadius.md,
-    borderWidth: 1, borderColor: theme.colors.borderMed,
+    borderWidth: 1, borderColor: colors.borderMed,
     borderLeftWidth: 4,
     paddingHorizontal: 12, paddingVertical: 11,
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
@@ -85,5 +90,5 @@ const st = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   icon: { fontSize: 11, fontWeight: '900' },
-  msg:  { fontSize: 13, color: theme.colors.text, fontWeight: '600', flex: 1, lineHeight: 18 },
+  msg:  { fontSize: 13, color: colors.text, fontWeight: '600', flex: 1, lineHeight: 18 },
 });

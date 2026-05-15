@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 
 interface Props {
   pickRank: number;
@@ -18,10 +19,12 @@ interface Props {
  * can verify, so the upgrade ask lands with concrete proof attached.
  */
 export function TrialOfferBanner({ pickRank, pickCombo, hitType, onUpgrade, onDismiss }: Props) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   const typeLabel = hitType === 'straight' ? 'straight' : 'box';
   return (
     <LinearGradient
-      colors={[theme.colors.gold + '22', theme.colors.cyan + '14']}
+      colors={[colors.gold + '22', colors.cyan + '14']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={s.card}
@@ -42,7 +45,7 @@ export function TrialOfferBanner({ pickRank, pickCombo, hitType, onUpgrade, onDi
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens) => StyleSheet.create({
   card: {
     marginHorizontal: 16,
     marginTop: 12,
@@ -51,14 +54,14 @@ const s = StyleSheet.create({
     paddingBottom: 12,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: theme.colors.gold + '88',
+    borderColor: colors.gold + '88',
     gap: 8,
   },
   headerRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  title: { fontSize: 13, fontWeight: '900', color: theme.colors.gold, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.4 },
-  dismiss: { fontSize: 18, color: theme.colors.textTertiary, fontWeight: '700' },
-  body: { fontSize: 12, color: theme.colors.text, lineHeight: 18 },
-  combo: { fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 1.5 },
-  cta: { backgroundColor: theme.colors.gold, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, alignItems: 'center', alignSelf: 'flex-start', marginTop: 4 },
-  ctaText: { color: theme.colors.background, fontSize: 13, fontWeight: '900', letterSpacing: 0.4 },
+  title: { fontSize: 13, fontWeight: '900', color: colors.gold, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.4 },
+  dismiss: { fontSize: 18, color: colors.textTertiary, fontWeight: '700' },
+  body: { fontSize: 12, color: colors.text, lineHeight: 18 },
+  combo: { fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 1.5 },
+  cta: { backgroundColor: colors.gold, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, alignItems: 'center', alignSelf: 'flex-start', marginTop: 4 },
+  ctaText: { color: colors.background, fontSize: 13, fontWeight: '900', letterSpacing: 0.4 },
 });

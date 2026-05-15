@@ -19,9 +19,10 @@
       doesn't include them, add them as optional in types/core.ts.
    ────────────────────────────────────────────────────────────────────────── */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { SignalBar } from '@/components/SignalBar';
 
 type Signals = Partial<{ BOX: number; PBURST: number; CO: number; DGC: number }>;
@@ -47,30 +48,34 @@ interface Props {
   onPress?: () => void;
 }
 
-function tempColor(t: number) {
-  if (t >= 80) return theme.colors.hot;
-  if (t >= 60) return theme.colors.warm;
-  if (t >= 40) return theme.colors.mild;
-  return theme.colors.cold;
+function tempColor(t: number, colors: ColorTokens) {
+  if (t >= 80) return colors.hot;
+  if (t >= 60) return colors.warm;
+  if (t >= 40) return colors.mild;
+  return colors.cold;
 }
 
-const CHANNEL_META: { key: keyof Signals; color: string }[] = [
-  { key: 'BOX',    color: theme.colors.cyan   },
-  { key: 'PBURST', color: theme.colors.rose   },
-  { key: 'CO',     color: theme.colors.purple },
-  { key: 'DGC',    color: theme.colors.gold   },
-];
+function channelMeta(colors: ColorTokens): { key: keyof Signals; color: string }[] {
+  return [
+    { key: 'BOX',    color: colors.cyan   },
+    { key: 'PBURST', color: colors.rose   },
+    { key: 'CO',     color: colors.purple },
+    { key: 'DGC',    color: colors.gold   },
+  ];
+}
 
 export function SlateCard({ pick, onPress }: Props) {
-  const tc = tempColor(pick.temperature);
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
+  const tc = tempColor(pick.temperature, colors);
   const isHit = !!pick.hitType;
 
-  const channels = CHANNEL_META.filter(c => typeof pick.signals[c.key] === 'number');
+  const channels = channelMeta(colors).filter(c => typeof pick.signals[c.key] === 'number');
 
   return (
     <View style={[
       s.card,
-      { borderColor: isHit ? tc : theme.colors.border,
+      { borderColor: isHit ? tc : colors.border,
         shadowColor: tc,
         shadowOpacity: isHit ? 0.45 : 0.18 },
     ]}>
@@ -146,9 +151,9 @@ export function SlateCard({ pick, onPress }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens) => StyleSheet.create({
   card: {
-    backgroundColor: theme.colors.surface2 ?? 'rgba(20,12,38,0.72)',
+    backgroundColor: colors.surface2 ?? 'rgba(20,12,38,0.72)',
     borderRadius: 16, borderWidth: 1,
     paddingHorizontal: 12, paddingVertical: 8, gap: 8,
     shadowOffset: { width: 0, height: 0 }, shadowRadius: 18, elevation: 4,
@@ -171,11 +176,11 @@ const s = StyleSheet.create({
   },
   eyebrow: {
     fontSize: 9, letterSpacing: 1.4, textTransform: 'uppercase',
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontFamily: theme.typography.fontFamily.bold,
   },
   metaMono: {
-    fontSize: 11, color: theme.colors.textSecondary,
+    fontSize: 11, color: colors.textSecondary,
     fontFamily: theme.typography.fontFamily.monoBold, marginTop: 2,
   },
   tempBadge: {

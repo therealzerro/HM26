@@ -7,10 +7,11 @@
 //   • Crown icon scales with size more consistently
 //   • ComingSoonBadge inherits the same pill styling
 // ───────────────────────────────────────────────────────────
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Crown } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { SubscriptionTier } from '@/types/core';
 
 interface TierBadgeProps {
@@ -18,14 +19,14 @@ interface TierBadgeProps {
   size?: 'small' | 'medium' | 'large';
 }
 
-function tierPalette(tier: SubscriptionTier) {
+function tierPalette(tier: SubscriptionTier, colors: ColorTokens) {
   switch (tier) {
     case 'FREE':
-      return { bg: theme.colors.surfaceLight, border: theme.colors.borderMed, text: theme.colors.textTertiary, glow: false };
+      return { bg: colors.surfaceLight, border: colors.borderMed, text: colors.textTertiary, glow: false };
     case 'PRO':
-      return { bg: theme.colors.premium + '20', border: theme.colors.premium, text: theme.colors.premium, glow: true };
+      return { bg: colors.premium + '20', border: colors.premium, text: colors.premium, glow: true };
     case 'PLUS':
-      return { bg: theme.colors.admin + '20',   border: theme.colors.admin,   text: theme.colors.admin,   glow: true };
+      return { bg: colors.admin + '20',   border: colors.admin,   text: colors.admin,   glow: true };
   }
 }
 
@@ -38,7 +39,8 @@ function sizeMetrics(size: 'small' | 'medium' | 'large') {
 }
 
 export function TierBadge({ tier, size = 'medium' }: TierBadgeProps) {
-  const p = tierPalette(tier);
+  const { colors } = useTheme();
+  const p = tierPalette(tier, colors);
   const m = sizeMetrics(size);
 
   return (
@@ -77,17 +79,18 @@ interface ComingSoonBadgeProps {
   size?: 'small' | 'medium' | 'large';
 }
 export function ComingSoonBadge({ date, size = 'medium' }: ComingSoonBadgeProps) {
+  const { colors } = useTheme();
   const m = sizeMetrics(size);
   return (
     <View
       style={[
         styles.container,
         {
-          backgroundColor: theme.colors.warning + '20',
-          borderColor: theme.colors.warning,
+          backgroundColor: colors.warning + '20',
+          borderColor: colors.warning,
           paddingHorizontal: m.padX,
           paddingVertical: m.padY,
-          shadowColor: theme.colors.warning,
+          shadowColor: colors.warning,
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.4,
           shadowRadius: 5,
@@ -95,7 +98,7 @@ export function ComingSoonBadge({ date, size = 'medium' }: ComingSoonBadgeProps)
         },
       ]}
     >
-      <Text style={[styles.text, { color: theme.colors.warning, fontSize: m.fontSize }]}>
+      <Text style={[styles.text, { color: colors.warning, fontSize: m.fontSize }]}>
         Coming {date || 'Soon'}
       </Text>
     </View>

@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Share, Animated, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 import { SignalBar } from './SignalBar';
 import { EnergyMeter } from './EnergyMeter';
 import { storage } from '@/lib/storage';
@@ -9,12 +10,14 @@ import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { useEnergyBandHitRates, bandFor } from '@/hooks/useEnergyBandHitRates';
 import { PickExplainerModal } from './PickExplainerModal';
 
-const SIGNAL_COLORS = {
-  BOX:    theme.colors.cyan,
-  PBURST: theme.colors.rose,
-  CO:     theme.colors.purple,
-  DGC:    theme.colors.gold,
-} as const;
+function signalColors(colors: ColorTokens) {
+  return {
+    BOX:    colors.cyan,
+    PBURST: colors.rose,
+    CO:     colors.purple,
+    DGC:    colors.gold,
+  } as const;
+}
 
 export interface PickItem {
   rank: number;
@@ -50,16 +53,16 @@ function formatGenTime(iso?: string): string | null {
 const SCOPE_LABELS: Record<string, string> = { midday: 'Midday', evening: 'Evening', allday: 'All Day' };
 
 // ─── Heat rating ──────────────────────────────────────────────────────────────
-function heatInfo(e: number): { label: string; emoji: string; color: string } {
-  if (e >= 90) return { label: 'ON FIRE',  emoji: '🔥', color: theme.colors.hot    };
-  if (e >= 80) return { label: 'BLAZING',  emoji: '⚡', color: theme.colors.amber  };
-  if (e >= 65) return { label: 'HOT',      emoji: '✦',  color: theme.colors.orange };
-  if (e >= 45) return { label: 'WARM',     emoji: '◈',  color: theme.colors.gold   };
-  return         { label: 'COOL',     emoji: '❄',  color: theme.colors.textTertiary };
+function heatInfo(e: number, colors: ColorTokens): { label: string; emoji: string; color: string } {
+  if (e >= 90) return { label: 'ON FIRE',  emoji: '🔥', color: colors.hot    };
+  if (e >= 80) return { label: 'BLAZING',  emoji: '⚡', color: colors.amber  };
+  if (e >= 65) return { label: 'HOT',      emoji: '✦',  color: colors.orange };
+  if (e >= 45) return { label: 'WARM',     emoji: '◈',  color: colors.gold   };
+  return         { label: 'COOL',     emoji: '❄',  color: colors.textTertiary };
 }
 
-function tempColorFor(energy: number): string {
-  return heatInfo(energy).color;
+function tempColorFor(energy: number, colors: ColorTokens): string {
+  return heatInfo(energy, colors).color;
 }
 
 // ─── WHY THIS PICK summary ────────────────────────────────────────────────────
@@ -76,11 +79,11 @@ function whySummary(pick: PickItem): string {
 }
 
 // ─── Pressure ─────────────────────────────────────────────────────────────────
-function pressureInfo(ds?: number, td?: number): { label: string; sub: string; color: string } | null {
+function pressureInfo(ds: number | undefined, td: number | undefined, colors: ColorTokens): { label: string; sub: string; color: string } | null {
   if (ds == null || td === 0 || ds >= 500) return null;
-  if (ds < 30)  return { label: `Fresh hit ✓`,          sub: `Hit ${ds} draws ago`,       color: theme.colors.success };
-  if (ds > 200) return { label: `Overdue ⚠`,            sub: `${ds} draws without a hit`, color: theme.colors.orange };
-  return               { label: 'Building pressure',     sub: `${ds} draws since last hit`, color: theme.colors.gold };
+  if (ds < 30)  return { label: `Fresh hit ✓`,          sub: `Hit ${ds} draws ago`,       color: colors.success };
+  if (ds > 200) return { label: `Overdue ⚠`,            sub: `${ds} draws without a hit`, color: colors.orange };
+  return               { label: 'Building pressure',     sub: `${ds} draws since last hit`, color: colors.gold };
 }
 
 // ─── Signal description ───────────────────────────────────────────────────────
@@ -111,10 +114,10 @@ export function formatLastSeen(lastSeen?: string): string {
   }
 }
 
-function multColor(m?: string) {
-  if (m === 'singles') return theme.colors.cyan;
-  if (m === 'doubles') return theme.colors.amber;
-  return theme.colors.rose;
+function multColor(m: string | undefined, colors: ColorTokens) {
+  if (m === 'singles') return colors.cyan;
+  if (m === 'doubles') return colors.amber;
+  return colors.rose;
 }
 
 const MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
@@ -126,13 +129,16 @@ interface PickCardProps {
 }
 
 export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
-  const heat = heatInfo(pick.energy);
-  const pressure = pressureInfo(pick.drawsSince, pick.timesDrawn);
+  const { colors, shadows } = useTheme();
+  const s = useMemo(() => makeS(colors, shadows), [colors, shadows]);
+  const SIGNAL_COLORS = useMemo(() => signalColors(colors), [colors]);
+  const heat = heatInfo(pick.energy, colors);
+  const pressure = pressureInfo(pick.drawsSince, pick.timesDrawn, colors);
   const isHot = pick.energy >= 80;
   const isHotStreak = pick.energy >= 85;
   const isHit = !!pick.hitType;
-  const tempC = tempColorFor(pick.energy);
-  const hitColor = pick.hitType === 'straight' ? theme.colors.gold : theme.colors.cyan;
+  const tempC = tempColorFor(pick.energy, colors);
+  const hitColor = pick.hitType === 'straight' ? colors.gold : colors.cyan;
 
   const reduceMotion = useReduceMotion();
   // §2.3 — plain-language explainer modal.
@@ -219,11 +225,11 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
     return (
       <View style={[s.card, s.lockedCard]}>
         <View style={{ opacity: 0.2, flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
-          <View style={[s.rankBadge, { backgroundColor: theme.colors.surfaceLight }]}>
-            <Text style={[s.rankText, { color: theme.colors.textTertiary }]}>#{pick.rank}</Text>
+          <View style={[s.rankBadge, { backgroundColor: colors.surfaceLight }]}>
+            <Text style={[s.rankText, { color: colors.textTertiary }]}>#{pick.rank}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[s.combo, { color: theme.colors.textTertiary }]} maxFontSizeMultiplier={1.4}>•  •  •</Text>
+            <Text style={[s.combo, { color: colors.textTertiary }]} maxFontSizeMultiplier={1.4}>•  •  •</Text>
           </View>
         </View>
         <TouchableOpacity
@@ -288,15 +294,15 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
           {/* Rank badge with medal */}
           <View style={[
             s.rankBadge,
-            pick.rank === 1 ? { backgroundColor: theme.colors.gold }
+            pick.rank === 1 ? { backgroundColor: colors.gold }
             : pick.rank === 2 ? { backgroundColor: '#C0C0C0' }
             : pick.rank === 3 ? { backgroundColor: '#CD7F32' }
-            : { backgroundColor: theme.colors.surfaceLight },
+            : { backgroundColor: colors.surfaceLight },
           ]}>
             {MEDAL[pick.rank] ? (
               <Text style={{ fontSize: 18 }}>{MEDAL[pick.rank]}</Text>
             ) : (
-              <Text style={[s.rankText, { color: pick.rank <= 3 ? '#fff' : theme.colors.textTertiary }]}>
+              <Text style={[s.rankText, { color: pick.rank <= 3 ? '#fff' : colors.textTertiary }]}>
                 #{pick.rank}
               </Text>
             )}
@@ -347,8 +353,8 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
             {/* Signal convergence dots */}
             <View style={s.signalDots}>
               {convergingSignals.map(sig => (
-                <View key={sig.key} style={[s.sigDot, { backgroundColor: sig.on ? sig.color : theme.colors.border }]}>
-                  <Text style={[s.sigDotLabel, { color: sig.on ? '#fff' : theme.colors.textTertiary }]}>{sig.key}</Text>
+                <View key={sig.key} style={[s.sigDot, { backgroundColor: sig.on ? sig.color : colors.border }]}>
+                  <Text style={[s.sigDotLabel, { color: sig.on ? '#fff' : colors.textTertiary }]}>{sig.key}</Text>
                 </View>
               ))}
               <Text style={s.sigDotHint}>
@@ -387,23 +393,23 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
             {/* Tags row */}
             <View style={{ flexDirection: 'row', gap: 5, flexWrap: 'wrap', marginBottom: 8, marginTop: 4 }}>
               {pick.multiplicity && (
-                <View style={[s.tag, { backgroundColor: multColor(pick.multiplicity) + '18' }]}>
-                  <Text style={[s.tagText, { color: multColor(pick.multiplicity) }]}>{pick.multiplicity}</Text>
+                <View style={[s.tag, { backgroundColor: multColor(pick.multiplicity, colors) + '18' }]}>
+                  <Text style={[s.tagText, { color: multColor(pick.multiplicity, colors) }]}>{pick.multiplicity}</Text>
                 </View>
               )}
               {pick.synergy && (
-                <View style={[s.tag, { backgroundColor: theme.colors.goldLight }]}>
-                  <Text style={[s.tagText, { color: theme.colors.gold }]}>⚡ SUPER SIGNAL</Text>
+                <View style={[s.tag, { backgroundColor: colors.goldLight }]}>
+                  <Text style={[s.tagText, { color: colors.gold }]}>⚡ SUPER SIGNAL</Text>
                 </View>
               )}
               {pick.topPair && (
-                <View style={[s.tag, { backgroundColor: theme.colors.primaryLight }]}>
-                  <Text style={[s.tagText, { color: theme.colors.primary }]}>Pair {pick.topPair}</Text>
+                <View style={[s.tag, { backgroundColor: colors.primaryLight }]}>
+                  <Text style={[s.tagText, { color: colors.primary }]}>Pair {pick.topPair}</Text>
                 </View>
               )}
               {(pick.timesDrawn === 0 || pick.timesDrawn == null) && (
-                <View style={[s.tag, { backgroundColor: theme.colors.surfaceLight }]}>
-                  <Text style={[s.tagText, { color: theme.colors.textTertiary }]}>Limited data</Text>
+                <View style={[s.tag, { backgroundColor: colors.surfaceLight }]}>
+                  <Text style={[s.tagText, { color: colors.textTertiary }]}>Limited data</Text>
                 </View>
               )}
             </View>
@@ -427,16 +433,16 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
                     <View style={s.timelineTrack}>
                       <View style={[s.timelineFill, {
                         width: `${Math.min(100, Math.round((pick.drawsSince / 365) * 100))}%` as any,
-                        backgroundColor: pressure?.color ?? theme.colors.gold,
+                        backgroundColor: pressure?.color ?? colors.gold,
                       }]} />
                     </View>
                     {pick.timesDrawn != null && pick.timesDrawn > 0 && (
                       <View style={s.hitDots}>
                         {Array.from({ length: Math.min(5, pick.timesDrawn) }).map((_, i) => (
-                          <View key={i} style={[s.hitDot, { backgroundColor: pressure?.color ?? theme.colors.gold }]} />
+                          <View key={i} style={[s.hitDot, { backgroundColor: pressure?.color ?? colors.gold }]} />
                         ))}
                         {pick.timesDrawn > 5 && (
-                          <Text style={[s.hitDotMore, { color: pressure?.color ?? theme.colors.gold }]}>+{pick.timesDrawn - 5}</Text>
+                          <Text style={[s.hitDotMore, { color: pressure?.color ?? colors.gold }]}>+{pick.timesDrawn - 5}</Text>
                         )}
                       </View>
                     )}
@@ -463,7 +469,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
             <Text style={s.verifiedText} numberOfLines={1}>
               <Text style={s.verifiedNum}>{bandStat.total}</Text> picks at{' '}
               <Text style={s.verifiedNum}>{bandKey}</Text> energy hit{' '}
-              <Text style={[s.verifiedNum, { color: theme.colors.cyan }]}>{Math.round(bandStat.rate * 100)}%</Text> historically
+              <Text style={[s.verifiedNum, { color: colors.cyan }]}>{Math.round(bandStat.rate * 100)}%</Text> historically
             </Text>
           </View>
         )}
@@ -498,15 +504,15 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create({
   card: {
-    backgroundColor: theme.colors.card,
+    backgroundColor: colors.card,
     borderRadius: theme.borderRadius.card,
     borderWidth: 1,
-    borderColor: theme.colors.purple + '28',
+    borderColor: colors.purple + '28',
     padding: 14,
     marginBottom: 9,
-    ...theme.shadows.glow,
+    ...shadows.glow,
   },
   hitBanner: {
     borderRadius: 8,
@@ -518,43 +524,43 @@ const s = StyleSheet.create({
   },
   hitBannerText: { fontSize: 11, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.5 },
   hotStreakBanner: {
-    backgroundColor: theme.colors.error + '15',
+    backgroundColor: colors.error + '15',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 5,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: theme.colors.error + '40',
+    borderColor: colors.error + '40',
     alignItems: 'center',
   },
-  hotStreakText: { fontSize: 11, fontWeight: '800', color: theme.colors.error, letterSpacing: 0.5 },
+  hotStreakText: { fontSize: 11, fontWeight: '800', color: colors.error, letterSpacing: 0.5 },
   whyBanner: {
-    backgroundColor: theme.colors.bgElevated,
+    backgroundColor: colors.bgElevated,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: theme.colors.purple + '40',
+    borderColor: colors.purple + '40',
   },
-  whyLabel: { fontSize: 8, fontWeight: '900', color: theme.colors.purple, letterSpacing: 1, marginBottom: 2 },
-  whyText: { fontSize: 10, color: theme.colors.text, lineHeight: 14 },
+  whyLabel: { fontSize: 8, fontWeight: '900', color: colors.purple, letterSpacing: 1, marginBottom: 2 },
+  whyText: { fontSize: 10, color: colors.text, lineHeight: 14 },
   signalDots: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8 },
   sigDot: {
     paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6,
     alignItems: 'center', justifyContent: 'center',
   },
   sigDotLabel: { fontSize: 8, fontWeight: '800', letterSpacing: 0.5 },
-  sigDotHint: { fontSize: 9, color: theme.colors.textTertiary, flex: 1 },
+  sigDotHint: { fontSize: 9, color: colors.textTertiary, flex: 1 },
   quickStats: {
     flexDirection: 'row', gap: 10, marginBottom: 8,
-    backgroundColor: theme.colors.bgElevated, borderRadius: 8,
+    backgroundColor: colors.bgElevated, borderRadius: 8,
     paddingHorizontal: 10, paddingVertical: 6,
-    borderWidth: 1, borderColor: theme.colors.border,
+    borderWidth: 1, borderColor: colors.border,
   },
   qStat: { alignItems: 'center', flex: 1 },
-  qStatNum: { fontSize: 14, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold },
-  qStatLabel: { fontSize: 8, color: theme.colors.textTertiary, fontWeight: '600' },
+  qStatNum: { fontSize: 14, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold },
+  qStatLabel: { fontSize: 8, color: colors.textTertiary, fontWeight: '600' },
   rankBadge: {
     width: 37, height: 37, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
@@ -562,45 +568,45 @@ const s = StyleSheet.create({
   rankText: { fontSize: 12, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
   bestStraightLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 1.5, marginBottom: 2 },
   bestStraightDigits: { fontSize: 26, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 3, lineHeight: 31 },
-  genTimestamp: { fontSize: 9, color: theme.colors.textTertiary, marginTop: 3 },
-  boxSetSecondary: { fontSize: 10, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, marginTop: 2 },
+  genTimestamp: { fontSize: 9, color: colors.textTertiary, marginTop: 3 },
+  boxSetSecondary: { fontSize: 10, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, marginTop: 2 },
   combo: {
-    fontSize: 32, color: theme.colors.text,
+    fontSize: 32, color: colors.text,
     letterSpacing: 4, fontFamily: theme.typography.fontFamily.monoBold,
   },
-  comboSet: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
+  comboSet: { fontSize: 10, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
   straightRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
   straightRowGold: {
-    backgroundColor: theme.colors.goldLight, borderRadius: 8,
-    paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: theme.colors.gold + '33',
+    backgroundColor: colors.goldLight, borderRadius: 8,
+    paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: colors.gold + '33',
   },
-  straightLabel: { fontSize: 9, color: theme.colors.textTertiary, fontWeight: '700' },
+  straightLabel: { fontSize: 9, color: colors.textTertiary, fontWeight: '700' },
   straightVal: {
-    fontSize: 12, color: theme.colors.primary,
+    fontSize: 12, color: colors.primary,
     fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 2,
   },
   straightBadge: {
-    backgroundColor: theme.colors.gold + '25', borderRadius: 99,
+    backgroundColor: colors.gold + '25', borderRadius: 99,
     paddingHorizontal: 5, paddingVertical: 1,
-    borderWidth: 1, borderColor: theme.colors.gold + '44',
+    borderWidth: 1, borderColor: colors.gold + '44',
   },
-  straightBadgeText: { fontSize: 8, fontWeight: '800', color: theme.colors.gold },
+  straightBadgeText: { fontSize: 8, fontWeight: '800', color: colors.gold },
   straightHint: {
-    fontSize: 9, color: theme.colors.gold + 'BB', fontStyle: 'italic',
+    fontSize: 9, color: colors.gold + 'BB', fontStyle: 'italic',
     marginBottom: 6, marginTop: 1, lineHeight: 13,
   },
   tag: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 99 },
   tagText: { fontSize: 9, fontWeight: '700' },
-  tapHint: { fontSize: 8, color: theme.colors.textTertiary },
+  tapHint: { fontSize: 8, color: colors.textTertiary },
   pressureBlock: { marginTop: 7, gap: 4 },
   pressureRow: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
   },
   pressureDot: { width: 5, height: 5, borderRadius: 3 },
   pressureText: { fontSize: 10, fontWeight: '700' },
-  pressureSub: { fontSize: 9, color: theme.colors.textTertiary, marginLeft: 2 },
+  pressureSub: { fontSize: 9, color: colors.textTertiary, marginLeft: 2 },
   timelineRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  timelineTrack: { flex: 1, height: 3, backgroundColor: theme.colors.border, borderRadius: 2, overflow: 'hidden' },
+  timelineTrack: { flex: 1, height: 3, backgroundColor: colors.border, borderRadius: 2, overflow: 'hidden' },
   timelineFill: { height: 3, borderRadius: 2 },
   hitDots: { flexDirection: 'row', gap: 3, alignItems: 'center' },
   hitDot: { width: 6, height: 6, borderRadius: 3 },
@@ -608,41 +614,41 @@ const s = StyleSheet.create({
   bottomRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginTop: 10, paddingTop: 8, gap: 6,
-    borderTopWidth: 1, borderTopColor: theme.colors.border,
+    borderTopWidth: 1, borderTopColor: colors.border,
   },
   bottomRowNoDivider: { marginTop: 6, paddingTop: 0, borderTopWidth: 0 },
   verifiedRow: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     marginTop: 10, paddingTop: 8,
-    borderTopWidth: 1, borderTopColor: theme.colors.border,
+    borderTopWidth: 1, borderTopColor: colors.border,
   },
-  verifiedIcon: { fontSize: 10, color: theme.colors.cyan, fontWeight: '900' },
-  verifiedText: { flex: 1, fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
-  verifiedNum: { color: theme.colors.textSecondary, fontWeight: '800', fontFamily: theme.typography.fontFamily.monoBold },
-  lastSeenText: { fontSize: 10, color: theme.colors.textTertiary, flex: 1 },
+  verifiedIcon: { fontSize: 10, color: colors.cyan, fontWeight: '900' },
+  verifiedText: { flex: 1, fontSize: 10, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
+  verifiedNum: { color: colors.textSecondary, fontWeight: '800', fontFamily: theme.typography.fontFamily.monoBold },
+  lastSeenText: { fontSize: 10, color: colors.textTertiary, flex: 1 },
   shareBtn: {
-    backgroundColor: theme.colors.bgElevated, borderRadius: 8,
+    backgroundColor: colors.bgElevated, borderRadius: 8,
     paddingHorizontal: 10, paddingVertical: 5,
-    borderWidth: 1, borderColor: theme.colors.borderMed,
+    borderWidth: 1, borderColor: colors.borderMed,
   },
-  shareBtnText: { fontSize: 10, color: theme.colors.textSecondary, fontWeight: '700' },
+  shareBtnText: { fontSize: 10, color: colors.textSecondary, fontWeight: '700' },
   explainBtn: {
     paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8,
-    borderWidth: 1, borderColor: theme.colors.cyan + '44',
-    backgroundColor: theme.colors.cyan + '0F',
+    borderWidth: 1, borderColor: colors.cyan + '44',
+    backgroundColor: colors.cyan + '0F',
   },
-  explainBtnText: { fontSize: 10, color: theme.colors.cyan, fontWeight: '700' },
+  explainBtnText: { fontSize: 10, color: colors.cyan, fontWeight: '700' },
   lockedCard: { minHeight: 64, paddingVertical: 8, marginBottom: 6, overflow: 'hidden' },
   lockOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: theme.colors.bgElevated + 'EE',
+    backgroundColor: colors.bgElevated + 'EE',
     borderRadius: theme.borderRadius.card, gap: 8, paddingHorizontal: 14,
   },
-  lockTitle: { fontSize: 12, fontWeight: '800', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.3, flex: 1 },
+  lockTitle: { fontSize: 12, fontWeight: '800', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.3, flex: 1 },
   lockBadge: {
-    backgroundColor: theme.colors.goldLight, paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 99, borderWidth: 1, borderColor: theme.colors.gold + '40',
+    backgroundColor: colors.goldLight, paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 99, borderWidth: 1, borderColor: colors.gold + '40',
   },
-  lockBadgeText: { fontSize: 9, fontWeight: '800', color: theme.colors.gold, letterSpacing: 0.5 },
+  lockBadgeText: { fontSize: 9, fontWeight: '800', color: colors.gold, letterSpacing: 0.5 },
 });

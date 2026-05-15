@@ -12,14 +12,12 @@
  * The two palettes share the same KEY set so `useTheme().colors.X` resolves
  * identically regardless of mode (the value differs, not the lookup).
  *
- * ┌─ DESIGN-01 (parked 2026-05-14) ─────────────────────────────────────────┐
- * │ Beta testers want fully-light pages, not just chrome. The 5 signal hues │
- * │ (cyan/rose/gold/purple/amber) fail WCAG-AA on light surfaces. Before    │
- * │ flipping cards from cosmic-dark to light, the BOX/PBURST/CO/DGC + brand │
- * │ entries below need WCAG-AA-passing light-mode replacements (model:      │
- * │ `dataBlue: #1078d0` is already darkened correctly).                     │
- * │ Then migrate the remaining 73 `theme` consumers + 33 raw-literal files. │
- * │ See MASTER_AUDIT.md DESIGN-01 and memory `project_light_mode_phase3.md`.│
+ * ┌─ DESIGN-01 (Phase 3 shipped 2026-05-15) ────────────────────────────────┐
+ * │ Light-mode signal hues (BOX/PBURST/CO/DGC + cyan/rose/gold/purple/amber)│
+ * │ are darkened to WCAG-AA-passing variants on `#f7f5fb` page bg and on    │
+ * │ `#ffffff` card surfaces. Cards flipped from cosmic-dark to light. Hue   │
+ * │ family preserved so the BOX-is-teal / CO-is-purple mental model still  │
+ * │ holds. See MASTER_AUDIT.md DESIGN-01 closure entry.                     │
  * └─────────────────────────────────────────────────────────────────────────┘
  */
 
@@ -102,19 +100,19 @@ export const darkColors = {
 // values for the same keys. Key-set equality is enforced via `_CheckKeys`.
 export type ColorTokens = { [K in keyof typeof darkColors]: string };
 
-// Light palette — soft warm white surfaces, dark cosmic cards retained. Each
-// token MUST exist on both palettes; if a token isn't meaningfully different
-// in light mode (signal accent colors, brand, tiers, etc.), it keeps the dark
-// value verbatim so cards rendered inside light pages still look correct.
+// Light palette — soft warm white surfaces with light cards. Each token MUST
+// exist on both palettes; signal channel hues are darkened to WCAG-AA-passing
+// variants while keeping the hue family (BOX-is-teal, CO-is-purple, etc.).
 export const lightColors: ColorTokens = {
-  // Surfaces — warm off-white. Avoid pure #fff (too harsh next to the saturated
-  // signal colors); the slight warmth lines up with the cosmic-purple brand.
+  // Surfaces — warm off-white. Avoid pure #fff for the page bg (too harsh
+  // next to the saturated signal colors); the slight warmth lines up with the
+  // cosmic-purple brand.
   background:   '#f7f5fb',
   bgElevated:   '#ffffff',
-  // Cards stay dark cosmic — preserves contrast for signal chips, hit pills,
-  // pick combos. Slightly opaqued vs the dark-mode card so it reads as a
-  // deliberate inset on a light page.
-  card:         'rgba(20,12,38,0.92)',
+  // Cards flip to light: pure white sits one step above the warm-off-white bg.
+  // Layering is conveyed by the border + theme.shadows (handled per-component);
+  // raising contrast via card tint risks fighting the signal palette.
+  card:         '#ffffff',
   border:       'rgba(15,8,32,0.10)',
   borderMed:    'rgba(15,8,32,0.18)',
 
@@ -123,30 +121,29 @@ export const lightColors: ColorTokens = {
   textSecondary: 'rgba(18,10,31,0.72)',
   textTertiary:  'rgba(18,10,31,0.50)',
 
-  // Signal channels — UNCHANGED. They live on dark cards/chips even when the
-  // page is light. The chrome (tab bar, headers) avoids using these colors
-  // as fills against light bg; small accents (icons, focus rings) are fine.
-  cyan:   '#2bffcc',
-  rose:   '#ff3d9a',
-  amber:  '#ff6a2b',
-  gold:   '#ffd93d',
-  purple: '#9b5bff',
-  blue:   '#22a3ff',
+  // Signal channels — deepened to WCAG-AA-passing variants on #f7f5fb bg AND
+  // #ffffff cards. Hue family preserved so channel coding stays intuitive.
+  cyan:   '#0e9f7a',  // deep teal (was #2bffcc neon teal on dark)
+  rose:   '#cc1e72',  // deep rose (was #ff3d9a hot pink on dark)
+  amber:  '#cc501e',  // deep amber (was #ff6a2b on dark)
+  gold:   '#b68d00',  // deep gold (was #ffd93d on dark)
+  purple: '#7a3fd6',  // deep purple (was #9b5bff on dark)
+  blue:   '#1078d0',  // deep blue (was #22a3ff on dark)
 
-  BOX:    '#2bffcc',
-  PBURST: '#ff3d9a',
-  CO:     '#9b5bff',
-  DGC:    '#ffd93d',
+  BOX:    '#0e9f7a',  // = cyan
+  PBURST: '#cc1e72',  // = rose
+  CO:     '#7a3fd6',  // = purple
+  DGC:    '#b68d00',  // = gold
 
-  freqSignal:    '#2bffcc',
-  momoSignal:    '#ff3d9a',
-  patternSignal: '#9b5bff',
-  consistSignal: '#ffd93d',
-  hotStreak:     '#ff6a2b',
-  brand:         '#9b5bff',
-  // Tinted neutrals get darker bases on light bg so the 12%-alpha actually
-  // reads as a tint instead of disappearing.
-  neutralCool:   'rgba(20,140,108,0.10)',
+  freqSignal:    '#0e9f7a',
+  momoSignal:    '#cc1e72',
+  patternSignal: '#7a3fd6',
+  consistSignal: '#b68d00',
+  hotStreak:     '#cc501e',
+  brand:         '#7a3fd6',
+  // Tinted neutrals — same deep bases as cyan/amber at 10% alpha. Visible on
+  // both light bg and white cards.
+  neutralCool:   'rgba(14,159,122,0.10)',
   neutralWarm:   'rgba(204,80,30,0.10)',
 
   hot:  '#d12d24',

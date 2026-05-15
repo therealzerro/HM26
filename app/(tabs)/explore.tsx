@@ -31,6 +31,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { RefreshCw, Settings, X } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { useSnapshot } from '@/hooks/useSnapshot';
 import { useScope } from '@/hooks/useScope';
 import { useDataIngestion } from '@/hooks/useDataIngestion';
@@ -61,11 +62,11 @@ import { NeonRefreshControl } from '@/components/NeonRefreshControl';
 import { runHitDetectionAllScopes } from '@/lib/hitDetection';
 
 function toComboSet(combo: string) { return '{' + combo.split('').sort().join(',') + '}'; }
-function tempColorForEnergy(e: number): string {
-  if (e >= 80) return theme.colors.hot;    // #ff3b30
-  if (e >= 60) return theme.colors.warm;   // #ffcc00
-  if (e >= 40) return theme.colors.mild;   // #34c759
-  return theme.colors.cold;                 // #666666
+function tempColorForEnergy(e: number, colors: ColorTokens): string {
+  if (e >= 80) return colors.hot;
+  if (e >= 60) return colors.warm;
+  if (e >= 40) return colors.mild;
+  return colors.cold;
 }
 
 function tempLabel(e: number): string {
@@ -82,16 +83,18 @@ type Tab = 'picks' | 'hits' | 'more';
 
 // ─── Grid tile (v8 — temp badge + signal labels/values + glow) ────────────
 function GridTile({ pick, onPress }: { pick: PickItem; onPress: () => void }) {
-  const tc       = tempColorForEnergy(pick.energy);
+  const { colors } = useTheme();
+  const gt = useMemo(() => makeGt(colors), [colors]);
+  const tc       = tempColorForEnergy(pick.energy, colors);
   const tLabel   = tempLabel(pick.energy);
   const isLocked = pick.locked;
   const digits   = isLocked ? '•••' : (pick.bestOrder ?? pick.combo);
 
   const channels = [
-    { k: 'B', v: pick.signals.BOX,      c: theme.colors.cyan   },
-    { k: 'P', v: pick.signals.PBURST,   c: theme.colors.rose   },
-    { k: 'C', v: pick.signals.CO,       c: theme.colors.purple },
-    { k: 'D', v: pick.signals.DGC ?? 0, c: theme.colors.gold   },
+    { k: 'B', v: pick.signals.BOX,      c: colors.cyan   },
+    { k: 'P', v: pick.signals.PBURST,   c: colors.rose   },
+    { k: 'C', v: pick.signals.CO,       c: colors.purple },
+    { k: 'D', v: pick.signals.DGC ?? 0, c: colors.gold   },
   ];
 
   return (
@@ -162,14 +165,14 @@ function GridTile({ pick, onPress }: { pick: PickItem; onPress: () => void }) {
     </TouchableOpacity>
   );
 }
-const gt = StyleSheet.create({
+const makeGt = (colors: ColorTokens) => StyleSheet.create({
   // Screenshot surface — every dimension here is chosen so 3 rows of these
   // tiles fit comfortably on the smallest reasonable phone (~135pt per row
   // after gridArea padding + row gaps on iPhone SE). Do NOT add vertical
   // content without compensating elsewhere; the constraint is hard.
   card: {
     flex: 1,
-    backgroundColor: theme.colors.card,
+    backgroundColor: colors.card,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1.5,
     padding: 8,
@@ -203,7 +206,7 @@ const gt = StyleSheet.create({
   },
 
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  comboSet: { flex: 1, fontSize: 9, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
+  comboSet: { flex: 1, fontSize: 9, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
   mult: { fontSize: 8, fontWeight: '900', letterSpacing: 1, fontFamily: theme.typography.fontFamily.monoBold },
 
   // Signal grid — single-row 4-cell layout (was 2×2). Each cell ~22% wide
@@ -221,10 +224,12 @@ const gt = StyleSheet.create({
   },
 
   lockedRow: { marginTop: 'auto', alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)' },
-  lockedText: { fontSize: 10, color: theme.colors.textTertiary, fontWeight: '700' },
+  lockedText: { fontSize: 10, color: colors.textTertiary, fontWeight: '700' },
 });
 
 export default function SlatesScreen() {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   const { snapshot, refreshSnapshot, activePicks } = useSnapshot();
   const { scope, setScope } = useScope();
   const { regenerateSlate, checkSlateLock } = useDataIngestion();
@@ -466,7 +471,7 @@ export default function SlatesScreen() {
       <CosmicBackground />
       {/* ── Header (shared ScreenHeader — design.md step 3; freshness via FreshnessLine — step 5) ── */}
       <ScreenHeader
-        title={<Text style={s.title}>ZK6 <Text style={{ color: theme.colors.cyan }}>Picks</Text></Text>}
+        title={<Text style={s.title}>ZK6 <Text style={{ color: colors.cyan }}>Picks</Text></Text>}
         subtitle={<FreshnessLine snapshot={snapshot} />}
         rightSlot={
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -481,7 +486,7 @@ export default function SlatesScreen() {
             )}
             {tab === 'picks' && (
               <TouchableOpacity style={s.iconBtn} onPress={() => setControlsSheetOpen(true)} accessibilityLabel="Slate display controls">
-                <Settings size={16} color={theme.colors.textSecondary} />
+                <Settings size={16} color={colors.textSecondary} />
               </TouchableOpacity>
             )}
           </View>
@@ -566,7 +571,7 @@ export default function SlatesScreen() {
             <ScrollView
               style={s.content}
               contentContainerStyle={s.listContent}
-              refreshControl={<NeonRefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} tintColor={theme.colors.primary} />}
+              refreshControl={<NeonRefreshControl refreshing={isPullRefreshing} onRefresh={handlePullRefresh} tintColor={colors.primary} />}
             >
               {(() => {
                 const locked = filtered.filter(p => p.locked);
@@ -638,18 +643,18 @@ export default function SlatesScreen() {
                 return (
                   <View key={`${h.scope}-${h.combo}-${h.matched_state}-${h.matched_session}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, backgroundColor: tint + '0E', borderRadius: 8, borderLeftWidth: 3, borderLeftColor: tint }}>
                     <Text style={{ fontSize: 14 }}>{sessIcon}</Text>
-                    <Text style={{ fontSize: 16, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 3, color: theme.colors.text, minWidth: 56 }}>{h.combo}</Text>
+                    <Text style={{ fontSize: 16, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 3, color: colors.text, minWidth: 56 }}>{h.combo}</Text>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 11, color: theme.colors.textSecondary }}>
+                      <Text style={{ fontSize: 11, color: colors.textSecondary }}>
                         <Text style={{ color: tint, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold }}>{h.scope}</Text>
                         {' · '}
-                        <Text style={{ fontWeight: '700', color: theme.colors.text }}>{h.matched_state}</Text>
+                        <Text style={{ fontWeight: '700', color: colors.text }}>{h.matched_state}</Text>
                         {' · '}
                         {h.matched_session}
                       </Text>
                     </View>
-                    <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1, borderColor: isStraight ? theme.colors.gold + '88' : theme.colors.cyan + '88', backgroundColor: isStraight ? theme.colors.gold + '18' : theme.colors.cyan + '14' }}>
-                      <Text style={{ fontSize: 8, fontWeight: '900', color: isStraight ? theme.colors.gold : theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.4 }}>
+                    <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1, borderColor: isStraight ? colors.gold + '88' : colors.cyan + '88', backgroundColor: isStraight ? colors.gold + '18' : colors.cyan + '14' }}>
+                      <Text style={{ fontSize: 8, fontWeight: '900', color: isStraight ? colors.gold : colors.cyan, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.4 }}>
                         {isStraight ? '⭐ STR' : '🎯 BOX'}
                       </Text>
                     </View>
@@ -705,7 +710,7 @@ export default function SlatesScreen() {
               <Text style={s.bigActionTitle}>Replay past slates</Text>
               <Text style={s.bigActionSub}>Yesterday's K6 picks vs actual draws · last 7 days</Text>
             </View>
-            <Text style={{ fontSize: 18, color: theme.colors.textTertiary }}>›</Text>
+            <Text style={{ fontSize: 18, color: colors.textTertiary }}>›</Text>
           </TouchableOpacity>
 
           {/* ── Group: Account ── */}
@@ -713,7 +718,7 @@ export default function SlatesScreen() {
           {isPro && (
             <View style={s.statRow}>
               <Text style={s.statLabel}>Daily regenerations</Text>
-              <Text style={[s.statValue, creditsRemaining === 0 && { color: theme.colors.error }]}>
+              <Text style={[s.statValue, creditsRemaining === 0 && { color: colors.error }]}>
                 {creditsError ? 'Credits unavailable' : `${creditsRemaining}/${PRO_DAILY_CREDITS}`}
               </Text>
               <InfoTooltip term="Daily Regenerations" definition={`Oracle+ gets ${PRO_DAILY_CREDITS} regens/day. Resets at midnight ET.`} size={13} />
@@ -753,7 +758,7 @@ export default function SlatesScreen() {
             <View style={s.sheetHeader}>
               <Text style={s.sheetTitle}>Slate display</Text>
               <TouchableOpacity onPress={() => setControlsSheetOpen(false)}>
-                <X size={20} color={theme.colors.textSecondary} />
+                <X size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -795,101 +800,101 @@ export default function SlatesScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+const makeS = (colors: ColorTokens) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
 
   // status strip retired (design.md step 5) — freshness now lives in the header subtitle
   // via components/FreshnessLine.tsx. Operator-grade fields (live-dot, hash, raw ET clock)
   // are no longer subscriber-facing.
 
   // header layout moved to components/ScreenHeader.tsx (design.md step 3).
-  title: { fontSize: 22, fontWeight: '900', color: theme.colors.text, lineHeight: 26, fontFamily: theme.typography.fontFamily.bold },
-  generateBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: theme.colors.purple, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
+  title: { fontSize: 22, fontWeight: '900', color: colors.text, lineHeight: 26, fontFamily: theme.typography.fontFamily.bold },
+  generateBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.purple, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
   generateBtnText: { color: '#fff', fontWeight: '700', fontSize: 11 },
 
   // tabs
-  tabBar: { flexDirection: 'row', backgroundColor: theme.colors.background, paddingHorizontal: theme.layout.screenInset, paddingVertical: 8, gap: 6, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
-  tabBtn: { flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: 'center', backgroundColor: theme.colors.bgElevated, borderWidth: 1, borderColor: theme.colors.border, flexDirection: 'row', justifyContent: 'center', gap: 6 },
-  tabBtnOn: { backgroundColor: theme.colors.purple + '22', borderColor: theme.colors.purple + '88' },
-  tabText: { fontSize: 13, fontWeight: '700', color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 1 },
-  tabTextOn: { color: theme.colors.purple },
-  tabDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.gold },
+  tabBar: { flexDirection: 'row', backgroundColor: colors.background, paddingHorizontal: theme.layout.screenInset, paddingVertical: 8, gap: 6, borderBottomWidth: 1, borderBottomColor: colors.border },
+  tabBtn: { flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: 'center', backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', justifyContent: 'center', gap: 6 },
+  tabBtnOn: { backgroundColor: colors.purple + '22', borderColor: colors.purple + '88' },
+  tabText: { fontSize: 13, fontWeight: '700', color: colors.textSecondary, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 1 },
+  tabTextOn: { color: colors.purple },
+  tabDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.gold },
 
   // Big scope segmented control (screenshot-friendly)
   // Wrapper preserves the surrounding band: bg-elevated, bottom border,
   // padding around the shared ScopeSegment. (Component itself is layout-only.)
-  scopeBigRowWrap: { backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: theme.colors.border, paddingHorizontal: theme.layout.screenInset, paddingTop: 10, paddingBottom: 10 },
-  scopeMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: theme.layout.screenInset, paddingTop: 6, paddingBottom: 6, backgroundColor: theme.colors.bgElevated, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
-  scopeTimestampInline: { flex: 1, fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 0.4 },
-  viewToggle: { flexDirection: 'row', backgroundColor: theme.colors.background, borderRadius: 8, padding: 2, gap: 1, borderWidth: 1, borderColor: theme.colors.border },
+  scopeBigRowWrap: { backgroundColor: colors.bgElevated, borderBottomWidth: 1, borderBottomColor: colors.border, paddingHorizontal: theme.layout.screenInset, paddingTop: 10, paddingBottom: 10 },
+  scopeMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: theme.layout.screenInset, paddingTop: 6, paddingBottom: 6, backgroundColor: colors.bgElevated, borderBottomWidth: 1, borderBottomColor: colors.border },
+  scopeTimestampInline: { flex: 1, fontSize: 10, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 0.4 },
+  viewToggle: { flexDirection: 'row', backgroundColor: colors.background, borderRadius: 8, padding: 2, gap: 1, borderWidth: 1, borderColor: colors.border },
   viewToggleBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  viewToggleBtnOn: { backgroundColor: theme.colors.purple + '20', borderWidth: 1, borderColor: theme.colors.purple + '66' },
-  viewToggleText: { fontSize: 10, fontWeight: '700', color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.4 },
-  viewToggleTextOn: { color: theme.colors.purple, fontWeight: '900' },
+  viewToggleBtnOn: { backgroundColor: colors.purple + '20', borderWidth: 1, borderColor: colors.purple + '66' },
+  viewToggleText: { fontSize: 10, fontWeight: '700', color: colors.textSecondary, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.4 },
+  viewToggleTextOn: { color: colors.purple, fontWeight: '900' },
 
   // Header icon button (settings ⚙️)
-  iconBtn: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.bgElevated, borderWidth: 1, borderColor: theme.colors.border, marginLeft: 6 },
+  iconBtn: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border, marginLeft: 6 },
 
   // Slate display controls sheet
   sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: theme.colors.bgElevated, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32, borderTopWidth: 1.5, borderColor: theme.colors.purple + '44', gap: 12 },
-  sheetHandle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: theme.colors.border, marginBottom: 8 },
+  sheet: { backgroundColor: colors.bgElevated, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32, borderTopWidth: 1.5, borderColor: colors.purple + '44', gap: 12 },
+  sheetHandle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border, marginBottom: 8 },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  sheetTitle: { fontSize: 16, fontWeight: '900', color: theme.colors.text },
-  sheetGroupLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 8, marginBottom: 6 },
+  sheetTitle: { fontSize: 16, fontWeight: '900', color: colors.text },
+  sheetGroupLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 8, marginBottom: 6 },
   sheetGroupRow: { flexDirection: 'row', gap: 6 },
-  sheetChip: { flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center', backgroundColor: theme.colors.card, borderWidth: 1, borderColor: theme.colors.border },
-  sheetChipOnCyan: { backgroundColor: theme.colors.cyan + '14', borderColor: theme.colors.cyan + '88' },
-  sheetChipOnPurple: { backgroundColor: theme.colors.purple + '20', borderColor: theme.colors.purple + '88' },
-  sheetChipText: { fontSize: 12, fontWeight: '700', color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.4 },
-  sheetChipTextOnCyan: { color: theme.colors.cyan, fontWeight: '900' },
-  sheetChipTextOnPurple: { color: theme.colors.purple, fontWeight: '900' },
+  sheetChip: { flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
+  sheetChipOnCyan: { backgroundColor: colors.cyan + '14', borderColor: colors.cyan + '88' },
+  sheetChipOnPurple: { backgroundColor: colors.purple + '20', borderColor: colors.purple + '88' },
+  sheetChipText: { fontSize: 12, fontWeight: '700', color: colors.textSecondary, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.4 },
+  sheetChipTextOnCyan: { color: colors.cyan, fontWeight: '900' },
+  sheetChipTextOnPurple: { color: colors.purple, fontWeight: '900' },
 
   // More tab section grouping
-  moreGroupTitle: { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, color: theme.colors.cyan, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 10 },
+  moreGroupTitle: { fontSize: 10, fontWeight: '900', letterSpacing: 1.5, color: colors.cyan, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 10 },
 
   content: { flex: 1 },
   listContent: { paddingHorizontal: theme.layout.screenInset, paddingVertical: 14, paddingBottom: 32, gap: 8 },
 
-  gridContainer: { flex: 1, backgroundColor: theme.colors.background },
+  gridContainer: { flex: 1, backgroundColor: colors.background },
   // flex:1 on rows lets all 3 rows split the container height evenly.
   // Tile content (see `gt` below) is sized to fit even when 1/3 of the
   // smallest reasonable phone (iPhone SE ≈ ~135pt per row) is allocated.
   gridArea: { flex: 1, padding: 8, gap: 6 },
   gridRow: { flex: 1, flexDirection: 'row', alignItems: 'stretch', gap: 6 },
 
-  sectionTitle: { fontSize: 10, fontWeight: '900', color: theme.colors.textTertiary, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 8 },
+  sectionTitle: { fontSize: 10, fontWeight: '900', color: colors.textTertiary, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 8 },
 
-  statRow: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, backgroundColor: theme.colors.bgElevated, borderRadius: 10, borderWidth: 1, borderColor: theme.colors.border, marginBottom: 12 },
-  statLabel: { fontSize: 13, color: theme.colors.text, flex: 1 },
-  statValue: { fontSize: 14, fontWeight: '900', color: theme.colors.purple, fontFamily: theme.typography.fontFamily.monoBold },
+  statRow: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, backgroundColor: colors.bgElevated, borderRadius: 10, borderWidth: 1, borderColor: colors.border, marginBottom: 12 },
+  statLabel: { fontSize: 13, color: colors.text, flex: 1 },
+  statValue: { fontSize: 14, fontWeight: '900', color: colors.purple, fontFamily: theme.typography.fontFamily.monoBold },
 
-  modeBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: theme.colors.border, alignItems: 'center', backgroundColor: theme.colors.bgElevated },
-  modeBtnOn: { borderColor: theme.colors.purple + '88', backgroundColor: theme.colors.purple + '18' },
-  modeBtnText: { fontSize: 12, fontWeight: '700', color: theme.colors.textTertiary },
-  modeBtnTextOn: { color: theme.colors.purple },
+  modeBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: colors.border, alignItems: 'center', backgroundColor: colors.bgElevated },
+  modeBtnOn: { borderColor: colors.purple + '88', backgroundColor: colors.purple + '18' },
+  modeBtnText: { fontSize: 12, fontWeight: '700', color: colors.textTertiary },
+  modeBtnTextOn: { color: colors.purple },
 
-  bigAction: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, backgroundColor: theme.colors.bgElevated, borderRadius: theme.borderRadius.tile, borderWidth: 1, borderColor: theme.colors.border },
-  bigActionTitle: { fontSize: 13, fontWeight: '700', color: theme.colors.text },
-  bigActionSub: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 2 },
+  bigAction: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, backgroundColor: colors.bgElevated, borderRadius: theme.borderRadius.tile, borderWidth: 1, borderColor: colors.border },
+  bigActionTitle: { fontSize: 13, fontWeight: '700', color: colors.text },
+  bigActionSub: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
 
-  emptyCard: { padding: 22, alignItems: 'center', backgroundColor: theme.colors.bgElevated, borderRadius: theme.borderRadius.tile, borderWidth: 1, borderColor: theme.colors.border },
+  emptyCard: { padding: 22, alignItems: 'center', backgroundColor: colors.bgElevated, borderRadius: theme.borderRadius.tile, borderWidth: 1, borderColor: colors.border },
   emptyEmoji: { fontSize: 32, marginBottom: 8 },
-  emptyTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.text },
-  emptyDesc: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 4, textAlign: 'center' },
+  emptyTitle: { fontSize: 14, fontWeight: '700', color: colors.text },
+  emptyDesc: { fontSize: 12, color: colors.textSecondary, marginTop: 4, textAlign: 'center' },
 
-  upsellCard: { borderRadius: theme.borderRadius.lg, padding: 20, alignItems: 'center', borderWidth: 1.5, borderColor: theme.colors.purple + '66', backgroundColor: theme.colors.purple + '12' },
-  upsellTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.text, marginBottom: 4 },
-  upsellDesc: { fontSize: 12, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 12, lineHeight: 18 },
-  upsellBtn: { backgroundColor: theme.colors.purple, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 11 },
+  upsellCard: { borderRadius: theme.borderRadius.lg, padding: 20, alignItems: 'center', borderWidth: 1.5, borderColor: colors.purple + '66', backgroundColor: colors.purple + '12' },
+  upsellTitle: { fontSize: 13, fontWeight: '800', color: colors.text, marginBottom: 4 },
+  upsellDesc: { fontSize: 12, color: colors.textSecondary, textAlign: 'center', marginBottom: 12, lineHeight: 18 },
+  upsellBtn: { backgroundColor: colors.purple, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 11 },
   upsellBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
 
-  disclaimer: { fontSize: 11, color: theme.colors.textTertiary, lineHeight: 18 },
+  disclaimer: { fontSize: 11, color: colors.textTertiary, lineHeight: 18 },
 
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  modalCard: { width: '100%', maxWidth: 400, backgroundColor: theme.colors.bgElevated, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: theme.colors.border, padding: 20 },
-  modalTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.text, marginBottom: 8 },
-  modalBody: { fontSize: 14, color: theme.colors.textSecondary, marginBottom: 16 },
-  modalBtn: { backgroundColor: theme.colors.background, borderWidth: 1, borderColor: theme.colors.borderMed, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
-  modalBtnText: { color: theme.colors.text, fontWeight: '600' },
+  modalCard: { width: '100%', maxWidth: 400, backgroundColor: colors.bgElevated, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: colors.border, padding: 20 },
+  modalTitle: { fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 8 },
+  modalBody: { fontSize: 14, color: colors.textSecondary, marginBottom: 16 },
+  modalBtn: { backgroundColor: colors.background, borderWidth: 1, borderColor: colors.borderMed, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
+  modalBtnText: { color: colors.text, fontWeight: '600' },
 });

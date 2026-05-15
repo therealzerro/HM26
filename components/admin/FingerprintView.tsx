@@ -4,8 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { EngineFingerprintScreen, computeFingerprint } from '@/screens/EngineFingerprintScreen';
 import { theme } from '@/constants/theme';
+import { useTheme } from '@/lib/theme';
 
 export default function FingerprintView() {
+  const { colors } = useTheme();
   const { data: snapshots, isLoading, error } = useQuery({
     // queryKey bumped to invalidate any stale empty-cache from the pre-BUG-31
     // era (pre-2026-05-12) when snapshot INSERTs were silently dropping
@@ -29,8 +31,8 @@ export default function FingerprintView() {
   if (isLoading) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-        <ActivityIndicator color={theme.colors.cyan} />
-        <Text style={{ fontSize: 12, color: theme.colors.textSecondary }}>
+        <ActivityIndicator color={colors.cyan} />
+        <Text style={{ fontSize: 12, color: colors.textSecondary }}>
           Loading snapshots…
         </Text>
       </View>
@@ -41,10 +43,10 @@ export default function FingerprintView() {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <Text style={{ fontSize: 32, marginBottom: 12 }}>⚠️</Text>
-        <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.text, marginBottom: 6 }}>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 6 }}>
           Failed to load snapshots
         </Text>
-        <Text style={{ fontSize: 11, color: theme.colors.textSecondary, textAlign: 'center', fontFamily: theme.typography.fontFamily.mono }}>
+        <Text style={{ fontSize: 11, color: colors.textSecondary, textAlign: 'center', fontFamily: theme.typography.fontFamily.mono }}>
           {error instanceof Error ? error.message : String(error)}
         </Text>
       </View>
@@ -55,10 +57,10 @@ export default function FingerprintView() {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <Text style={{ fontSize: 32, marginBottom: 12 }}>🔬</Text>
-        <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.text, marginBottom: 6 }}>
+        <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 6 }}>
           No snapshot data
         </Text>
-        <Text style={{ fontSize: 12, color: theme.colors.textSecondary, textAlign: 'center' }}>
+        <Text style={{ fontSize: 12, color: colors.textSecondary, textAlign: 'center' }}>
           Generate at least one slate to see the engine fingerprint.
         </Text>
       </View>

@@ -1,6 +1,7 @@
-import React, { Component } from 'react';
+import React, { Component, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, darkColors, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 
 // ─── Error Boundary ───────────────────────────────────────────────────────────
 export class ErrorBoundary extends Component<
@@ -54,6 +55,19 @@ export const MOCK_IMPORTS: ImportRecord[] = [
   { id:'i7', type:'box_history', class_id:1, horizon_label:'H02Y', scope:'allday', status:'failed', accepted:0, rejected:0, fixed:0, warnings:['Schema error: missing DrawsSince column'], created_at:'2026-04-10T11:00:00', p99:null, first_seen:null, last_seen:null },
 ];
 
+// IMPORT_TYPES — color tokens resolved at consumption via useImportTypes().
+// Keeping the keys static here means dark-mode resolution is byte-identical
+// to the prior export, while light mode picks up the deepened accents.
+export function useImportTypes() {
+  const { colors } = useTheme();
+  return useMemo(() => ([
+    { id:'box_history', icon:'📦', label:'Box History', desc:'Unordered combo frequency data.\nOne file per scope × horizon (H01Y–H10Y).', color: colors.primary, headers:['Combo','Times Drawn','Expected','Last Seen','Draws Since'] },
+    { id:'pair_history', icon:'🔗', label:'Pair History', desc:'Pair class frequency data.\nClasses 2–11, one file per class × scope × horizon.', color: colors.primary, headers:['Pair','TimesDrawn','LastSeen','DrawsSince'] },
+    { id:'daily_input', icon:'📅', label:'Daily Input', desc:'Today\'s draw results for DrawsSince rescoring.\nSame shape as Box History.', color: colors.gold, headers:['Combo','ComboSet','TimesDrawn','LastSeen','DrawsSince'] },
+    { id:'ledger', icon:'📋', label:'Results Ledger', desc:'Paste raw results from lotterypost.com.\nAuto-parses state names, dates, and digits.', color: colors.success, headers:['State Name (header)', 'Game\tDate\tResult (rows)'] },
+  ]), [colors]);
+}
+// Legacy static export — kept until callers migrate. Resolves to dark-mode colors.
 export const IMPORT_TYPES = [
   { id:'box_history', icon:'📦', label:'Box History', desc:'Unordered combo frequency data.\nOne file per scope × horizon (H01Y–H10Y).', color:theme.colors.primary, headers:['Combo','Times Drawn','Expected','Last Seen','Draws Since'] },
   { id:'pair_history', icon:'🔗', label:'Pair History', desc:'Pair class frequency data.\nClasses 2–11, one file per class × scope × horizon.', color:theme.colors.primary, headers:['Pair','TimesDrawn','LastSeen','DrawsSince'] },
@@ -77,10 +91,12 @@ export function Pill({ label, color }: { label: string; color: string }) {
   );
 }
 export function SectionTitle({ children }: { children: string }) {
-  return <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, marginTop: 20 }}>{children}</Text>;
+  const { colors } = useTheme();
+  return <Text style={{ fontSize: 9, fontWeight: '800', color: colors.textTertiary, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, marginTop: 20 }}>{children}</Text>;
 }
 export function Card({ children, style }: { children: React.ReactNode; style?: object }) {
-  return <View style={[{ backgroundColor: theme.colors.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border, ...theme.shadows.glow }, style]}>{children}</View>;
+  const { colors, shadows } = useTheme();
+  return <View style={[{ backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.border, ...shadows.glow }, style]}>{children}</View>;
 }
 export function timeAgo(dateStr: string): string {
   const ms = Date.now() - new Date(dateStr).getTime();
@@ -93,20 +109,32 @@ export function timeAgo(dateStr: string): string {
 }
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
-export const st = StyleSheet.create({
-  title: { fontSize: 18, fontWeight: '800', color: theme.colors.text, marginBottom: 4 },
-  sub: { fontSize: 12, color: theme.colors.textSecondary, marginBottom: 16 },
-  fieldLabel: { fontSize: 10, fontWeight: '700', color: theme.colors.textTertiary, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
-  optBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, borderWidth: 1.5, borderColor: theme.colors.border },
-  optBtnOn: { borderColor: theme.colors.primary, backgroundColor: theme.colors.primaryLight },
-  optBtnText: { fontSize: 11, fontWeight: '500', color: theme.colors.textSecondary },
-  optBtnTextOn: { color: theme.colors.primary, fontWeight: '700' },
-  btnPrimary: { backgroundColor: theme.colors.primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
+// Mode-aware factory + hook. Consumers call useSt() inside their components;
+// the result is the same StyleSheet shape as the legacy `st` export, just
+// resolved through the active palette so admin views flip with light/dark mode.
+const makeSt = (colors: ColorTokens) => StyleSheet.create({
+  title: { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 4 },
+  sub: { fontSize: 12, color: colors.textSecondary, marginBottom: 16 },
+  fieldLabel: { fontSize: 10, fontWeight: '700', color: colors.textTertiary, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
+  optBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, borderWidth: 1.5, borderColor: colors.border },
+  optBtnOn: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
+  optBtnText: { fontSize: 11, fontWeight: '500', color: colors.textSecondary },
+  optBtnTextOn: { color: colors.primary, fontWeight: '700' },
+  btnPrimary: { backgroundColor: colors.primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
   btnPrimaryText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  btnGhost: { backgroundColor: theme.colors.surfaceLight, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
-  btnGhostText: { color: theme.colors.textSecondary, fontWeight: '600', fontSize: 12 },
+  btnGhost: { backgroundColor: colors.surfaceLight, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
+  btnGhostText: { color: colors.textSecondary, fontWeight: '600', fontSize: 12 },
   filterBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: 'transparent' },
-  filterBtnOn: { backgroundColor: theme.colors.primary },
-  filterBtnText: { fontSize: 11, fontWeight: '500', color: theme.colors.textSecondary },
-  csvInput: { borderWidth: 1.5, borderColor: theme.colors.border, borderRadius: 10, padding: 12, fontSize: 11, color: theme.colors.text, backgroundColor: theme.colors.surface, height: 160, fontFamily: theme.typography.fontFamily.mono },
+  filterBtnOn: { backgroundColor: colors.primary },
+  filterBtnText: { fontSize: 11, fontWeight: '500', color: colors.textSecondary },
+  csvInput: { borderWidth: 1.5, borderColor: colors.border, borderRadius: 10, padding: 12, fontSize: 11, color: colors.text, backgroundColor: colors.surface, height: 160, fontFamily: theme.typography.fontFamily.mono },
 });
+
+export function useSt() {
+  const { colors } = useTheme();
+  return useMemo(() => makeSt(colors), [colors]);
+}
+
+// Legacy static export — dark-mode only. Kept for existing imports until
+// consumers migrate to useSt(). Use the hook for mode-aware styling.
+export const st = makeSt(darkColors);

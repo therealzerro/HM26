@@ -24,7 +24,6 @@ function PerformanceRow({
   onDeleted,
 }: { row: any; allData: any[]; avgBox: number; onDeleted?: () => void }) {
   const { colors } = useTheme();
-  const st = useSt();
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [expandedData, setExpandedData] = useState<ExpandedRowData | null>(null);
@@ -986,7 +985,6 @@ export default function HitTrackingView() {
 // ─── Phase 4 — Recently deleted panel ───────────────────────────────────────
 function RecentlyDeletedPanel({ onRestored }: { onRestored?: () => void }) {
   const { colors } = useTheme();
-  const st = useSt();
   const [expanded, setExpanded] = useState(false);
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);

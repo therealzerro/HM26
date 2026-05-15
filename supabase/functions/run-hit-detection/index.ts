@@ -404,17 +404,43 @@ Deno.serve(async (req: Request) => {
   const allErrors: string[] = [];
 
   for (const d of dateList) {
+    const dateStarted = Date.now();
+    let dateRes: RunResult;
     try {
-      const res = await runForDate(d, scope, skipSupplements);
-      totalHits        += res.hitsFound;
-      totalScopes      += res.scopesChecked;
-      totalSupplements += res.supplementsGenerated;
-      perDate[d] = res;
-      allErrors.push(...res.errors);
+      dateRes = await runForDate(d, scope, skipSupplements);
+      totalHits        += dateRes.hitsFound;
+      totalScopes      += dateRes.scopesChecked;
+      totalSupplements += dateRes.supplementsGenerated;
+      perDate[d] = dateRes;
+      allErrors.push(...dateRes.errors);
     } catch (e) {
       const msg = String(e instanceof Error ? e.message : e).slice(0, 200);
-      perDate[d] = { hitsFound: 0, scopesChecked: 0, supplementsGenerated: 0, errors: [msg] };
+      dateRes = { hitsFound: 0, scopesChecked: 0, supplementsGenerated: 0, errors: [msg] };
+      perDate[d] = dateRes;
       allErrors.push(`${d}: ${msg}`);
+    }
+    // ENH-12 (2026-05-15): hit_detection_runs telemetry. One row per (date, scope).
+    // Closes the BUG-145 silent-failure gap — recent rows show whether detection
+    // actually ran and what it found. Non-fatal: wrapped in try/catch so a
+    // telemetry write failure never affects the response.
+    try {
+      await fetch(SUPABASE_URL + '/rest/v1/hit_detection_runs', {
+        method: 'POST',
+        headers: svcHeaders({ 'Prefer': 'return=minimal' }),
+        body: JSON.stringify({
+          date:                  d,
+          scope:                 scope,
+          hits_found:            dateRes.hitsFound,
+          scopes_checked:        dateRes.scopesChecked,
+          supplements_generated: dateRes.supplementsGenerated,
+          errors:                dateRes.errors.slice(0, 10),
+          error_count:           dateRes.errors.length,
+          duration_ms:           Date.now() - dateStarted,
+          run_source:            'edge',
+        }),
+      });
+    } catch (e) {
+      console.warn('[run-hit-detection] hit_detection_runs telemetry write failed (non-fatal):', String(e));
     }
   }
 

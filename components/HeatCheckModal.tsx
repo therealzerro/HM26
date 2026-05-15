@@ -1,10 +1,11 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, Modal, TouchableOpacity, TextInput,
   ActivityIndicator, KeyboardAvoidingView, Platform, Share,
   Animated, PanResponder, Dimensions, ScrollView, Keyboard,
 } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { storage } from '@/lib/storage';
 import { useAuth } from '@/hooks/useAuth';
 import { isPremium, getTodayET } from '@/lib/dateUtils';
@@ -49,12 +50,12 @@ function verdictText(energy: number | null, drawsSince: number | null): string {
   return '❄ COLD — Low signal, not recommended';
 }
 
-function verdictColor(energy: number | null): string {
-  if (energy == null) return theme.colors.textTertiary;
-  if (energy >= 85) return theme.colors.error;
-  if (energy >= 70) return theme.colors.orange;
-  if (energy >= 50) return theme.colors.gold;
-  return theme.colors.textTertiary;
+function verdictColor(energy: number | null, colors: ColorTokens): string {
+  if (energy == null) return colors.textTertiary;
+  if (energy >= 85) return colors.error;
+  if (energy >= 70) return colors.orange;
+  if (energy >= 50) return colors.gold;
+  return colors.textTertiary;
 }
 
 interface Props {
@@ -66,6 +67,8 @@ interface Props {
 }
 
 export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'midday' }: Props) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   const { user } = useAuth();
   const userRole = (user as any)?.role ?? (user as any)?.tier ?? '';
   const isPro = isPremium(userRole) || user?.role === 'premium' || user?.role === 'admin';
@@ -358,7 +361,7 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
                 placeholder="e.g. 472"
                 keyboardType="numeric"
                 maxLength={3}
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholderTextColor={colors.textTertiary}
                 autoFocus
               />
               <TouchableOpacity
@@ -390,17 +393,17 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
                   <View>
                     <Text style={s.resultCombo}>{result.combo}</Text>
                     <Text style={s.resultComboSet}>{result.comboSet}</Text>
-                    <Text style={[s.resultComboSet, { color: theme.colors.textTertiary + 'AA' }]}>key: {result.sortedKey}</Text>
+                    <Text style={[s.resultComboSet, { color: colors.textTertiary + 'AA' }]}>key: {result.sortedKey}</Text>
                   </View>
                   {result.energy != null && (
-                    <View style={[s.energyPill, { borderColor: verdictColor(result.energy) + '55', backgroundColor: verdictColor(result.energy) + '12' }]}>
-                      <Text style={[s.energyPillNum, { color: verdictColor(result.energy) }]}>{result.energy}</Text>
-                      <Text style={[s.energyPillLbl, { color: verdictColor(result.energy) }]}>energy</Text>
+                    <View style={[s.energyPill, { borderColor: verdictColor(result.energy, colors) + '55', backgroundColor: verdictColor(result.energy, colors) + '12' }]}>
+                      <Text style={[s.energyPillNum, { color: verdictColor(result.energy, colors) }]}>{result.energy}</Text>
+                      <Text style={[s.energyPillLbl, { color: verdictColor(result.energy, colors) }]}>energy</Text>
                     </View>
                   )}
                 </View>
 
-                <Text style={[s.verdict, { color: verdictColor(result.energy) }]}>{result.verdict}</Text>
+                <Text style={[s.verdict, { color: verdictColor(result.energy, colors) }]}>{result.verdict}</Text>
 
                 {/* Stats grid */}
                 <View style={s.statsRow}>
@@ -432,25 +435,25 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
 
                 {/* BOX SIGNAL */}
                 {(result.signalBox != null || result.dsRaw != null) && (
-                  <View style={{ marginTop: 8, backgroundColor: theme.colors.background, borderRadius: 8, padding: 8, borderWidth: 1, borderColor: theme.colors.border }}>
-                    <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1, marginBottom: 6 }}>BOX SIGNAL (allday · H01Y)</Text>
+                  <View style={{ marginTop: 8, backgroundColor: colors.background, borderRadius: 8, padding: 8, borderWidth: 1, borderColor: colors.border }}>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1, marginBottom: 6 }}>BOX SIGNAL (allday · H01Y)</Text>
                     {result.signalBox != null ? (
                       <View>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
-                          <Text style={{ fontSize: 10, color: theme.colors.textSecondary }}>BOX</Text>
-                          <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>{(result.signalBox * 100).toFixed(1)}%</Text>
+                          <Text style={{ fontSize: 10, color: colors.textSecondary }}>BOX</Text>
+                          <Text style={{ fontSize: 10, fontWeight: '800', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>{(result.signalBox * 100).toFixed(1)}%</Text>
                         </View>
-                        <View style={{ height: 6, backgroundColor: theme.colors.border, borderRadius: 3 }}>
-                          <View style={{ height: 6, borderRadius: 3, backgroundColor: theme.colors.primary, width: `${Math.min(100, result.signalBox * 100).toFixed(1)}%` as any }} />
+                        <View style={{ height: 6, backgroundColor: colors.border, borderRadius: 3 }}>
+                          <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.primary, width: `${Math.min(100, result.signalBox * 100).toFixed(1)}%` as any }} />
                         </View>
                       </View>
                     ) : (
                       <View style={{ flexDirection: 'row', gap: 12 }}>
-                        <Text style={{ fontSize: 11, color: theme.colors.textSecondary }}>
-                          ds_raw: <Text style={{ fontWeight: '800', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>{result.dsRaw}</Text>
+                        <Text style={{ fontSize: 11, color: colors.textSecondary }}>
+                          ds_raw: <Text style={{ fontWeight: '800', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>{result.dsRaw}</Text>
                         </Text>
-                        <Text style={{ fontSize: 11, color: theme.colors.textSecondary }}>
-                          scope: <Text style={{ fontWeight: '700', color: theme.colors.text }}>allday</Text>
+                        <Text style={{ fontSize: 11, color: colors.textSecondary }}>
+                          scope: <Text style={{ fontWeight: '700', color: colors.text }}>allday</Text>
                         </Text>
                       </View>
                     )}
@@ -459,29 +462,29 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
 
                 {/* Pair signals */}
                 {(result.signalPburst != null || result.signalCo != null || result.pairRows.length > 0) && (
-                  <View style={{ marginTop: 8, backgroundColor: theme.colors.background, borderRadius: 8, padding: 8, borderWidth: 1, borderColor: theme.colors.border }}>
-                    <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1, marginBottom: 6 }}>PAIR SIGNALS</Text>
+                  <View style={{ marginTop: 8, backgroundColor: colors.background, borderRadius: 8, padding: 8, borderWidth: 1, borderColor: colors.border }}>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1, marginBottom: 6 }}>PAIR SIGNALS</Text>
                     {(result.signalPburst != null || result.signalCo != null) ? (
                       <View style={{ gap: 6 }}>
                         {result.signalPburst != null && (
                           <View>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
-                              <Text style={{ fontSize: 10, color: theme.colors.textSecondary }}>PBURST</Text>
-                              <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>{(result.signalPburst * 100).toFixed(1)}%</Text>
+                              <Text style={{ fontSize: 10, color: colors.textSecondary }}>PBURST</Text>
+                              <Text style={{ fontSize: 10, fontWeight: '800', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>{(result.signalPburst * 100).toFixed(1)}%</Text>
                             </View>
-                            <View style={{ height: 6, backgroundColor: theme.colors.border, borderRadius: 3 }}>
-                              <View style={{ height: 6, borderRadius: 3, backgroundColor: theme.colors.gold, width: `${Math.min(100, result.signalPburst * 100).toFixed(1)}%` as any }} />
+                            <View style={{ height: 6, backgroundColor: colors.border, borderRadius: 3 }}>
+                              <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.gold, width: `${Math.min(100, result.signalPburst * 100).toFixed(1)}%` as any }} />
                             </View>
                           </View>
                         )}
                         {result.signalCo != null && (
                           <View>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
-                              <Text style={{ fontSize: 10, color: theme.colors.textSecondary }}>CO</Text>
-                              <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>{(result.signalCo * 100).toFixed(1)}%</Text>
+                              <Text style={{ fontSize: 10, color: colors.textSecondary }}>CO</Text>
+                              <Text style={{ fontSize: 10, fontWeight: '800', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>{(result.signalCo * 100).toFixed(1)}%</Text>
                             </View>
-                            <View style={{ height: 6, backgroundColor: theme.colors.border, borderRadius: 3 }}>
-                              <View style={{ height: 6, borderRadius: 3, backgroundColor: theme.colors.orange, width: `${Math.min(100, result.signalCo * 100).toFixed(1)}%` as any }} />
+                            <View style={{ height: 6, backgroundColor: colors.border, borderRadius: 3 }}>
+                              <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.orange, width: `${Math.min(100, result.signalCo * 100).toFixed(1)}%` as any }} />
                             </View>
                           </View>
                         )}
@@ -489,9 +492,9 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
                     ) : (
                       result.pairRows.slice(0, 6).map((pr: any, i: number) => (
                         <View key={i} style={{ flexDirection: 'row', gap: 8, marginBottom: 2 }}>
-                          <Text style={{ fontSize: 10, fontFamily: theme.typography.fontFamily.monoBold, color: theme.colors.text, fontWeight: '700', width: 28 }}>{pr.key}</Text>
-                          <Text style={{ fontSize: 10, color: theme.colors.textSecondary }}>class {pr.class_id}</Text>
-                          <Text style={{ fontSize: 10, color: theme.colors.textSecondary }}>ds_raw: <Text style={{ fontWeight: '700', color: theme.colors.text }}>{pr.ds_raw}</Text></Text>
+                          <Text style={{ fontSize: 10, fontFamily: theme.typography.fontFamily.monoBold, color: colors.text, fontWeight: '700', width: 28 }}>{pr.key}</Text>
+                          <Text style={{ fontSize: 10, color: colors.textSecondary }}>class {pr.class_id}</Text>
+                          <Text style={{ fontSize: 10, color: colors.textSecondary }}>ds_raw: <Text style={{ fontWeight: '700', color: colors.text }}>{pr.ds_raw}</Text></Text>
                         </View>
                       ))
                     )}
@@ -500,15 +503,15 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
 
                 {/* Consistency signal */}
                 {result.signalDgc != null && (
-                  <View style={{ marginTop: 8, backgroundColor: theme.colors.background, borderRadius: 8, padding: 8, borderWidth: 1, borderColor: theme.colors.border }}>
-                    <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1, marginBottom: 6 }}>CONSISTENCY SIGNAL</Text>
+                  <View style={{ marginTop: 8, backgroundColor: colors.background, borderRadius: 8, padding: 8, borderWidth: 1, borderColor: colors.border }}>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1, marginBottom: 6 }}>CONSISTENCY SIGNAL</Text>
                     <View>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
-                        <Text style={{ fontSize: 10, color: theme.colors.textSecondary }}>DGC</Text>
-                        <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>{((result.signalDgc ?? 0) * 100).toFixed(1)}%</Text>
+                        <Text style={{ fontSize: 10, color: colors.textSecondary }}>DGC</Text>
+                        <Text style={{ fontSize: 10, fontWeight: '800', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold }}>{((result.signalDgc ?? 0) * 100).toFixed(1)}%</Text>
                       </View>
-                      <View style={{ height: 6, backgroundColor: theme.colors.border, borderRadius: 3 }}>
-                        <View style={{ height: 6, borderRadius: 3, backgroundColor: theme.colors.gold, width: `${Math.min(100, (result.signalDgc ?? 0) * 100).toFixed(1)}%` as any }} />
+                      <View style={{ height: 6, backgroundColor: colors.border, borderRadius: 3 }}>
+                        <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.gold, width: `${Math.min(100, (result.signalDgc ?? 0) * 100).toFixed(1)}%` as any }} />
                       </View>
                     </View>
                   </View>
@@ -535,16 +538,16 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens) => StyleSheet.create({
   backdrop: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.55)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 20, borderTopRightRadius: 20,
     paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20,
-    borderTopWidth: 1, borderTopColor: theme.colors.border,
+    borderTopWidth: 1, borderTopColor: colors.border,
     maxHeight: '88%',
   },
   sheetScroll: { flexGrow: 0 },
@@ -560,7 +563,7 @@ const s = StyleSheet.create({
   },
   handle: {
     width: 56, height: 5, borderRadius: 2.5,
-    backgroundColor: theme.colors.textTertiary + 'AA',
+    backgroundColor: colors.textTertiary + 'AA',
   },
   closeBtn: { padding: 0 },
   closeBtnInner: {
@@ -569,48 +572,48 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)',
     alignItems: 'center', justifyContent: 'center',
   },
-  closeX: { fontSize: 16, color: theme.colors.text, fontWeight: '800' },
-  title: { fontSize: 18, fontWeight: '900', color: theme.colors.text, marginBottom: 4 },
-  sub: { fontSize: 12, color: theme.colors.textSecondary, marginBottom: 12 },
+  closeX: { fontSize: 16, color: colors.text, fontWeight: '800' },
+  title: { fontSize: 18, fontWeight: '900', color: colors.text, marginBottom: 4 },
+  sub: { fontSize: 12, color: colors.textSecondary, marginBottom: 12 },
   tierBadge: {
-    backgroundColor: theme.colors.goldLight, borderRadius: 8,
+    backgroundColor: colors.goldLight, borderRadius: 8,
     paddingHorizontal: 10, paddingVertical: 5, marginBottom: 12,
-    borderWidth: 1, borderColor: theme.colors.gold + '44',
+    borderWidth: 1, borderColor: colors.gold + '44',
   },
-  tierText: { fontSize: 11, color: theme.colors.gold, fontWeight: '700' },
+  tierText: { fontSize: 11, color: colors.gold, fontWeight: '700' },
   inputRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
   input: {
-    flex: 1, height: 48, borderWidth: 1.5, borderColor: theme.colors.border,
+    flex: 1, height: 48, borderWidth: 1.5, borderColor: colors.border,
     borderRadius: 10, paddingHorizontal: 14,
-    fontSize: 22, color: theme.colors.text,
+    fontSize: 22, color: colors.text,
     fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 6,
-    backgroundColor: theme.colors.background, textAlign: 'center',
+    backgroundColor: colors.background, textAlign: 'center',
   },
   checkBtn: {
     paddingHorizontal: 20, height: 48, borderRadius: 10,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     alignItems: 'center', justifyContent: 'center',
   },
   checkBtnDisabled: { opacity: 0.45 },
   checkBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
-  errorText: { fontSize: 12, color: theme.colors.error, marginBottom: 8 },
+  errorText: { fontSize: 12, color: colors.error, marginBottom: 8 },
   rateLimitBox: {
-    backgroundColor: theme.colors.error + '12', borderRadius: 10,
-    borderWidth: 1, borderColor: theme.colors.error + '44',
+    backgroundColor: colors.error + '12', borderRadius: 10,
+    borderWidth: 1, borderColor: colors.error + '44',
     padding: 14, marginBottom: 8,
   },
-  rateLimitTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.error, marginBottom: 4 },
-  rateLimitSub: { fontSize: 12, color: theme.colors.textSecondary },
+  rateLimitTitle: { fontSize: 13, fontWeight: '800', color: colors.error, marginBottom: 4 },
+  rateLimitSub: { fontSize: 12, color: colors.textSecondary },
   resultCard: {
-    backgroundColor: theme.colors.surfaceLight, borderRadius: 12,
-    borderWidth: 1, borderColor: theme.colors.border, padding: 14,
+    backgroundColor: colors.surfaceLight, borderRadius: 12,
+    borderWidth: 1, borderColor: colors.border, padding: 14,
   },
   resultHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   resultCombo: {
-    fontSize: 36, color: theme.colors.text,
+    fontSize: 36, color: colors.text,
     fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 6,
   },
-  resultComboSet: { flex: 1, fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
+  resultComboSet: { flex: 1, fontSize: 10, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
   energyPill: {
     alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6,
     borderRadius: 10, borderWidth: 1.5,
@@ -620,14 +623,14 @@ const s = StyleSheet.create({
   verdict: { fontSize: 13, fontWeight: '700', marginBottom: 10, lineHeight: 18 },
   statsRow: { flexDirection: 'row', gap: 0 },
   stat: { flex: 1, alignItems: 'center', paddingVertical: 6 },
-  statNum: { fontSize: 14, fontWeight: '900', color: theme.colors.text, fontFamily: theme.typography.fontFamily.monoBold },
-  statLbl: { fontSize: 9, color: theme.colors.textTertiary, fontWeight: '600', marginTop: 1 },
-  noDataText: { fontSize: 11, color: theme.colors.textSecondary, fontStyle: 'italic', marginTop: 6 },
+  statNum: { fontSize: 14, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold },
+  statLbl: { fontSize: 9, color: colors.textTertiary, fontWeight: '600', marginTop: 1 },
+  noDataText: { fontSize: 11, color: colors.textSecondary, fontStyle: 'italic', marginTop: 6 },
   shareBtn: {
     marginTop: 12, paddingVertical: 11,
-    backgroundColor: theme.colors.primary, borderRadius: 10,
+    backgroundColor: colors.primary, borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: theme.colors.primary,
+    borderWidth: 1, borderColor: colors.primary,
   },
   shareBtnText: { color: '#fff', fontWeight: '800', fontSize: 13, letterSpacing: 0.3 },
 });

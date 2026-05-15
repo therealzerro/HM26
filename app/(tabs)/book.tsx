@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 import { storage } from '@/lib/storage';
 import { HeatCheckModal } from '@/components/HeatCheckModal';
 import { EmptyState } from '@/components/EmptyState';
@@ -19,8 +20,8 @@ function toSet(combo: string) {
 }
 
 const scopeIcon = (s: string) => s === 'midday' ? '☀️' : s === 'evening' ? '🌙' : '◈';
-const scopeColor = (s: string) =>
-  s === 'midday' ? theme.colors.gold : s === 'evening' ? theme.colors.primary : theme.colors.teal;
+const scopeColor = (s: string, colors: ColorTokens) =>
+  s === 'midday' ? colors.gold : s === 'evening' ? colors.primary : colors.teal;
 
 const COMING_FEATURES = [
   { icon: '🗺', title: 'Slate by State', desc: 'Filter today\'s K6 Slate to only your selected states.', tier: 'PLUS' },
@@ -34,6 +35,8 @@ interface BookList { id: string; name: string; scope: string; states: string[]; 
 
 // ─── Create List Modal ────────────────────────────────────────────────────────
 function CreateListModal({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string, scope: string) => void }) {
+  const { colors, shadows } = useTheme();
+  const m = useMemo(() => makeM(colors, shadows), [colors, shadows]);
   const [name, setName] = useState('');
   const [scope, setScope] = useState('allday');
 
@@ -43,11 +46,11 @@ function CreateListModal({ onClose, onCreate }: { onClose: () => void; onCreate:
         <TouchableOpacity activeOpacity={1} style={m.card} onPress={() => {}}>
           <Text style={m.title}>✦ Create New List</Text>
           <TextInput
-            style={[m.input, name ? { borderColor: theme.colors.primary } : {}]}
+            style={[m.input, name ? { borderColor: colors.primary } : {}]}
             value={name}
             onChangeText={setName}
             placeholder="List name (e.g. NY Evening Picks)"
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={colors.textTertiary}
           />
           <View style={{ flexDirection: 'row', gap: 6, marginBottom: 18 }}>
             {[['midday', '☀️ Midday'], ['evening', '🌙 Evening'], ['allday', '◈ All Day']].map(([id, lbl]) => (
@@ -61,14 +64,14 @@ function CreateListModal({ onClose, onCreate }: { onClose: () => void; onCreate:
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity
-              style={[m.btn, { backgroundColor: theme.colors.primary, opacity: name.trim() ? 1 : 0.5 }]}
+              style={[m.btn, { backgroundColor: colors.primary, opacity: name.trim() ? 1 : 0.5 }]}
               onPress={() => { if (name.trim()) onCreate(name.trim(), scope); }}
               disabled={!name.trim()}
             >
               <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Create List</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[m.btn, { backgroundColor: theme.colors.surfaceLight, borderWidth: 1, borderColor: theme.colors.border }]} onPress={onClose}>
-              <Text style={{ color: theme.colors.textSecondary, fontWeight: '600', fontSize: 13 }}>Cancel</Text>
+            <TouchableOpacity style={[m.btn, { backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border }]} onPress={onClose}>
+              <Text style={{ color: colors.textSecondary, fontWeight: '600', fontSize: 13 }}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -79,6 +82,8 @@ function CreateListModal({ onClose, onCreate }: { onClose: () => void; onCreate:
 
 // ─── Add Number Modal ─────────────────────────────────────────────────────────
 function AddNumberModal({ onClose, onAdd }: { onClose: () => void; onAdd: (combo: string, note: string) => void }) {
+  const { colors, shadows } = useTheme();
+  const m = useMemo(() => makeM(colors, shadows), [colors, shadows]);
   const [combo, setCombo] = useState('');
   const [note, setNote] = useState('');
   const valid = /^\d{3}$/.test(combo);
@@ -89,11 +94,11 @@ function AddNumberModal({ onClose, onAdd }: { onClose: () => void; onAdd: (combo
         <TouchableOpacity activeOpacity={1} style={m.card} onPress={() => {}}>
           <Text style={m.title}>＋ Add Number</Text>
           <TextInput
-            style={[m.comboInput, valid ? { borderColor: theme.colors.primary } : {}]}
+            style={[m.comboInput, valid ? { borderColor: colors.primary } : {}]}
             value={combo}
             onChangeText={t => setCombo(t.replace(/\D/g, '').slice(0, 3))}
             placeholder="3 digits"
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={colors.textTertiary}
             keyboardType="numeric"
             maxLength={3}
           />
@@ -102,18 +107,18 @@ function AddNumberModal({ onClose, onAdd }: { onClose: () => void; onAdd: (combo
             value={note}
             onChangeText={setNote}
             placeholder="Note (optional)"
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={colors.textTertiary}
           />
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity
-              style={[m.btn, { backgroundColor: theme.colors.primary, opacity: valid ? 1 : 0.5 }]}
+              style={[m.btn, { backgroundColor: colors.primary, opacity: valid ? 1 : 0.5 }]}
               onPress={() => { if (valid) onAdd(combo, note); }}
               disabled={!valid}
             >
               <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Add Number</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[m.btn, { backgroundColor: theme.colors.surfaceLight, borderWidth: 1, borderColor: theme.colors.border }]} onPress={onClose}>
-              <Text style={{ color: theme.colors.textSecondary, fontWeight: '600', fontSize: 13 }}>Cancel</Text>
+            <TouchableOpacity style={[m.btn, { backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border }]} onPress={onClose}>
+              <Text style={{ color: colors.textSecondary, fontWeight: '600', fontSize: 13 }}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -122,21 +127,23 @@ function AddNumberModal({ onClose, onAdd }: { onClose: () => void; onAdd: (combo
   );
 }
 
-const m = StyleSheet.create({
+const makeM = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: '#1E1B4B77', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  card: { width: '100%', maxWidth: 380, backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.xl, borderWidth: 1, borderColor: theme.colors.border, padding: 22, ...theme.shadows.medium },
-  title: { fontSize: 16, fontWeight: '800', color: theme.colors.text, marginBottom: 14 },
-  input: { width: '100%', padding: 10, borderRadius: 9, borderWidth: 1.5, borderColor: theme.colors.border, fontSize: 13, color: theme.colors.text, backgroundColor: theme.colors.surface, marginBottom: 10 },
-  comboInput: { width: '100%', padding: 12, borderRadius: 9, borderWidth: 1.5, borderColor: theme.colors.border, fontSize: 28, fontWeight: '900', color: theme.colors.text, backgroundColor: theme.colors.surface, marginBottom: 10, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 6, textAlign: 'center' },
-  scopeBtn: { flex: 1, paddingVertical: 7, paddingHorizontal: 6, borderRadius: 9, borderWidth: 1.5, borderColor: theme.colors.border, alignItems: 'center' },
-  scopeBtnOn: { borderColor: theme.colors.primary, backgroundColor: theme.colors.primaryLight },
-  scopeBtnText: { fontSize: 11, fontWeight: '500', color: theme.colors.textSecondary },
-  scopeBtnTextOn: { color: theme.colors.primary, fontWeight: '700' },
+  card: { width: '100%', maxWidth: 380, backgroundColor: colors.surface, borderRadius: theme.borderRadius.xl, borderWidth: 1, borderColor: colors.border, padding: 22, ...shadows.medium },
+  title: { fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 14 },
+  input: { width: '100%', padding: 10, borderRadius: 9, borderWidth: 1.5, borderColor: colors.border, fontSize: 13, color: colors.text, backgroundColor: colors.surface, marginBottom: 10 },
+  comboInput: { width: '100%', padding: 12, borderRadius: 9, borderWidth: 1.5, borderColor: colors.border, fontSize: 28, fontWeight: '900', color: colors.text, backgroundColor: colors.surface, marginBottom: 10, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 6, textAlign: 'center' },
+  scopeBtn: { flex: 1, paddingVertical: 7, paddingHorizontal: 6, borderRadius: 9, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center' },
+  scopeBtnOn: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
+  scopeBtnText: { fontSize: 11, fontWeight: '500', color: colors.textSecondary },
+  scopeBtnTextOn: { color: colors.primary, fontWeight: '700' },
   btn: { flex: 1, paddingVertical: 10, borderRadius: theme.borderRadius.lg, alignItems: 'center' },
 });
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function NumberBookScreen() {
+  const { colors, shadows } = useTheme();
+  const s = useMemo(() => makeS(colors, shadows), [colors, shadows]);
   const [lists, setLists] = useState<BookList[]>([]);
 
   // §4.3 — personal hit history: flatten saved combos across lists,
@@ -277,11 +284,11 @@ export default function NumberBookScreen() {
         {/* ── Left Sidebar ── */}
         <View style={s.sidebar}>
           <LinearGradient
-            colors={['#1a0d35', theme.colors.surface] as [string, string]}
+            colors={['#1a0d35', colors.surface] as [string, string]}
             start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
             style={s.sidebarHeader}
           >
-            <Text style={s.sidebarTitle}>📖 Number <Text style={{ color: theme.colors.primary }}>Book</Text></Text>
+            <Text style={s.sidebarTitle}>📖 Number <Text style={{ color: colors.primary }}>Book</Text></Text>
             <Text style={s.sidebarSub}>Your personal number collection</Text>
           </LinearGradient>
 
@@ -297,11 +304,11 @@ export default function NumberBookScreen() {
                 >
                   <Text style={{ fontSize: 14 }}>{scopeIcon(lst.scope)}</Text>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={[s.listName, on && { color: theme.colors.primary }]} numberOfLines={1}>{lst.name}</Text>
+                    <Text style={[s.listName, on && { color: colors.primary }]} numberOfLines={1}>{lst.name}</Text>
                     <Text style={s.listMeta}>{lst.combos.length} numbers{lst.states.length ? ' · ' + lst.states.slice(0, 2).join(', ') : ''}</Text>
                   </View>
                   <TouchableOpacity onPress={() => handleDelete(lst.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <Text style={{ color: theme.colors.textTertiary, fontSize: 16 }}>×</Text>
+                    <Text style={{ color: colors.textTertiary, fontSize: 16 }}>×</Text>
                   </TouchableOpacity>
                 </TouchableOpacity>
               );
@@ -315,12 +322,12 @@ export default function NumberBookScreen() {
                   return (
                     <TouchableOpacity
                       key={lst.id}
-                      style={[s.listRow, on && s.listRowOn, { borderColor: on ? theme.colors.gold + '55' : theme.colors.gold + '22', borderWidth: 1, backgroundColor: on ? theme.colors.goldLight : 'transparent' }]}
+                      style={[s.listRow, on && s.listRowOn, { borderColor: on ? colors.gold + '55' : colors.gold + '22', borderWidth: 1, backgroundColor: on ? colors.goldLight : 'transparent' }]}
                       onPress={() => setActiveId(lst.id)}
                     >
                       <Text style={{ fontSize: 14 }}>⭐</Text>
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={[s.listName, { color: on ? theme.colors.gold : theme.colors.text }]} numberOfLines={1}>{lst.name}</Text>
+                        <Text style={[s.listName, { color: on ? colors.gold : colors.text }]} numberOfLines={1}>{lst.name}</Text>
                         <Text style={s.listMeta}>{lst.combos.length} picks · Saved slate</Text>
                       </View>
                     </TouchableOpacity>
@@ -330,7 +337,7 @@ export default function NumberBookScreen() {
             )}
 
             <TouchableOpacity style={s.newListBtn} onPress={() => setShowCreate(true)}>
-              <Text style={{ fontSize: 16, color: theme.colors.primary }}>＋</Text>
+              <Text style={{ fontSize: 16, color: colors.primary }}>＋</Text>
               <Text style={s.newListBtnText}>New List</Text>
             </TouchableOpacity>
 
@@ -378,7 +385,7 @@ export default function NumberBookScreen() {
               </View>
 
               {/* Pro upsell */}
-              <LinearGradient colors={[theme.colors.cosmicLight, theme.colors.goldLight]} style={s.upsellCard}>
+              <LinearGradient colors={[colors.cosmicLight, colors.goldLight]} style={s.upsellCard}>
                 <Text style={{ fontSize: 26, marginBottom: 6 }}>🏆</Text>
                 <Text style={s.upsellTitle}>Number Book is Pro exclusive</Text>
                 <Text style={s.upsellDesc}>Save unlimited lists, organize by state, get first access to Slate by State & Pick 4.</Text>
@@ -390,15 +397,15 @@ export default function NumberBookScreen() {
           ) : activeList.type === 'saved_slate' ? (
             /* Saved Slate Detail — locked, gold bordered */
             <ScrollView contentContainerStyle={s.panelContent}>
-              <View style={[s.panelHeader, { borderWidth: 1.5, borderColor: theme.colors.gold + '55', backgroundColor: theme.colors.goldLight, borderRadius: theme.borderRadius.lg, padding: 14, marginBottom: 14 }]}>
+              <View style={[s.panelHeader, { borderWidth: 1.5, borderColor: colors.gold + '55', backgroundColor: colors.goldLight, borderRadius: theme.borderRadius.lg, padding: 14, marginBottom: 14 }]}>
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <Text style={{ fontSize: 18 }}>⭐</Text>
-                    <Text style={[s.panelTitle, { color: theme.colors.gold }]}>{activeList.name}</Text>
+                    <Text style={[s.panelTitle, { color: colors.gold }]}>{activeList.name}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', gap: 5, flexWrap: 'wrap' }}>
-                    <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 99, backgroundColor: theme.colors.gold + '25', borderWidth: 1, borderColor: theme.colors.gold + '40' }}>
-                      <Text style={{ fontSize: 9, fontWeight: '800', color: theme.colors.gold }}>SAVED SLATE</Text>
+                    <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 99, backgroundColor: colors.gold + '25', borderWidth: 1, borderColor: colors.gold + '40' }}>
+                      <Text style={{ fontSize: 9, fontWeight: '800', color: colors.gold }}>SAVED SLATE</Text>
                     </View>
                     {activeList.savedAt && (
                       <View style={s.stateTag}>
@@ -408,11 +415,11 @@ export default function NumberBookScreen() {
                   </View>
                 </View>
               </View>
-              <View style={{ backgroundColor: theme.colors.goldLight, borderRadius: theme.borderRadius.md, padding: 10, marginBottom: 14, borderWidth: 1, borderColor: theme.colors.gold + '33' }}>
-                <Text style={{ fontSize: 11, color: theme.colors.gold, fontWeight: '600' }}>🔒 This is a saved slate record — picks are static and cannot be changed.</Text>
+              <View style={{ backgroundColor: colors.goldLight, borderRadius: theme.borderRadius.md, padding: 10, marginBottom: 14, borderWidth: 1, borderColor: colors.gold + '33' }}>
+                <Text style={{ fontSize: 11, color: colors.gold, fontWeight: '600' }}>🔒 This is a saved slate record — picks are static and cannot be changed.</Text>
               </View>
               {activeList.combos.map((item, i) => (
-                <View key={item.combo} style={[s.comboRow, { borderColor: theme.colors.gold + '44', borderWidth: 1.5 }]}>
+                <View key={item.combo} style={[s.comboRow, { borderColor: colors.gold + '44', borderWidth: 1.5 }]}>
                   <Text style={{ fontSize: 16 }}>{item.hitStraight ? '⭐' : item.hitBox ? '✅' : '◈'}</Text>
                   <Text style={s.comboNum}>{item.combo}</Text>
                   <Text style={s.comboSet}>{toSet(item.combo)}</Text>
@@ -430,8 +437,8 @@ export default function NumberBookScreen() {
                     <Text style={s.panelTitle}>{activeList.name}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', gap: 5, flexWrap: 'wrap' }}>
-                    <View style={[s.scopeTag, { borderColor: scopeColor(activeList.scope) + '40', backgroundColor: scopeColor(activeList.scope) + '15' }]}>
-                      <Text style={[s.scopeTagText, { color: scopeColor(activeList.scope) }]}>{activeList.scope}</Text>
+                    <View style={[s.scopeTag, { borderColor: scopeColor(activeList.scope, colors) + '40', backgroundColor: scopeColor(activeList.scope, colors) + '15' }]}>
+                      <Text style={[s.scopeTagText, { color: scopeColor(activeList.scope, colors) }]}>{activeList.scope}</Text>
                     </View>
                     {activeList.states.map(st => (
                       <View key={st} style={s.stateTag}>
@@ -448,10 +455,10 @@ export default function NumberBookScreen() {
                     <Text style={s.addBtnText}>＋ Add Number</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[s.addBtn, { backgroundColor: theme.colors.teal + '18', borderColor: theme.colors.teal + '55', borderWidth: 1 }]}
+                    style={[s.addBtn, { backgroundColor: colors.teal + '18', borderColor: colors.teal + '55', borderWidth: 1 }]}
                     onPress={handleAddFromSlate}
                   >
-                    <Text style={[s.addBtnText, { color: theme.colors.teal }]}>⚡ Add from Slate</Text>
+                    <Text style={[s.addBtnText, { color: colors.teal }]}>⚡ Add from Slate</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -464,9 +471,9 @@ export default function NumberBookScreen() {
                 const hitPicks = activeList.combos.filter(c => savedHits.hitsByCombo.has(c.combo)).length;
                 if (listHitCount === 0) return null;
                 return (
-                  <View style={{ marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.colors.gold + '15', borderRadius: theme.borderRadius.md, borderWidth: 1, borderColor: theme.colors.gold + '40', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: colors.gold + '15', borderRadius: theme.borderRadius.md, borderWidth: 1, borderColor: colors.gold + '40', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <Text style={{ fontSize: 16 }}>🎯</Text>
-                    <Text style={{ fontSize: 12, fontWeight: '800', color: theme.colors.gold, fontFamily: theme.typography.fontFamily.monoBold, flex: 1 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: colors.gold, fontFamily: theme.typography.fontFamily.monoBold, flex: 1 }}>
                       {listHitCount} {listHitCount === 1 ? 'HIT' : 'HITS'} across {hitPicks} {hitPicks === 1 ? 'pick' : 'picks'} (last 30 days)
                     </Text>
                   </View>
@@ -492,7 +499,7 @@ export default function NumberBookScreen() {
                       key={item.combo}
                       style={[
                         s.comboRow,
-                        hitCount > 0 && { borderColor: theme.colors.gold + '66', borderWidth: 1.5, backgroundColor: theme.colors.gold + '10' },
+                        hitCount > 0 && { borderColor: colors.gold + '66', borderWidth: 1.5, backgroundColor: colors.gold + '10' },
                       ]}
                     >
                       <TouchableOpacity onPress={() => handleStar(item.combo)}>
@@ -503,7 +510,7 @@ export default function NumberBookScreen() {
                       {hitCount > 0 ? (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1, minWidth: 0 }}>
                           <Text style={{ fontSize: 14 }}>🎯</Text>
-                          <Text style={{ fontSize: 10, fontWeight: '800', color: theme.colors.gold, fontFamily: theme.typography.fontFamily.monoBold }} numberOfLines={1}>
+                          <Text style={{ fontSize: 10, fontWeight: '800', color: colors.gold, fontFamily: theme.typography.fontFamily.monoBold }} numberOfLines={1}>
                             {hitCount === 1 ? 'HIT' : `${hitCount}×`}{lastHit ? ` · ${lastHit.state} ${lastHit.session}` : ''}
                           </Text>
                         </View>
@@ -512,12 +519,12 @@ export default function NumberBookScreen() {
                       )}
                       <TouchableOpacity
                         onPress={() => { setHeatCheckCombo(item.combo); setHeatCheckOpen(true); }}
-                        style={{ paddingHorizontal: 7, paddingVertical: 3, backgroundColor: theme.colors.primaryLight, borderRadius: 7, borderWidth: 1, borderColor: theme.colors.primary + '33' }}
+                        style={{ paddingHorizontal: 7, paddingVertical: 3, backgroundColor: colors.primaryLight, borderRadius: 7, borderWidth: 1, borderColor: colors.primary + '33' }}
                       >
-                        <Text style={{ fontSize: 10, fontWeight: '700', color: theme.colors.primary }}>🔍</Text>
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: colors.primary }}>🔍</Text>
                       </TouchableOpacity>
                       <TouchableOpacity onPress={() => handleDeleteCombo(item.combo)}>
-                        <Text style={{ color: theme.colors.textTertiary, fontSize: 16 }}>×</Text>
+                        <Text style={{ color: colors.textTertiary, fontSize: 16 }}>×</Text>
                       </TouchableOpacity>
                     </View>
                   );
@@ -553,67 +560,67 @@ export default function NumberBookScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+const makeS = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   layout: { flex: 1, flexDirection: 'row' },
 
   // Sidebar
-  sidebar: { width: 220, backgroundColor: theme.colors.surface, borderRightWidth: 1, borderRightColor: theme.colors.border },
-  sidebarHeader: { padding: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
-  sidebarTitle: { fontSize: 15, fontWeight: '900', color: theme.colors.text, marginBottom: 2 },
-  sidebarSub: { fontSize: 11, color: theme.colors.textTertiary },
+  sidebar: { width: 220, backgroundColor: colors.surface, borderRightWidth: 1, borderRightColor: colors.border },
+  sidebarHeader: { padding: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
+  sidebarTitle: { fontSize: 15, fontWeight: '900', color: colors.text, marginBottom: 2 },
+  sidebarSub: { fontSize: 11, color: colors.textTertiary },
   sidebarList: { flex: 1, padding: 8 },
-  listSectionLabel: { fontSize: 9, fontWeight: '800', color: theme.colors.textTertiary, letterSpacing: 1.5, paddingHorizontal: 8, paddingVertical: 8, textTransform: 'uppercase' },
+  listSectionLabel: { fontSize: 9, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1.5, paddingHorizontal: 8, paddingVertical: 8, textTransform: 'uppercase' },
   listRow: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 10, marginBottom: 3, borderWidth: 1, borderColor: 'transparent' },
-  listRowOn: { backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary + '33' },
-  listName: { fontSize: 12, fontWeight: '700', color: theme.colors.text },
-  listMeta: { fontSize: 10, color: theme.colors.textTertiary },
-  newListBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 9, borderRadius: 10, borderWidth: 1.5, borderStyle: 'dashed', borderColor: theme.colors.border, marginTop: 6 },
-  newListBtnText: { fontSize: 12, color: theme.colors.textSecondary },
-  comingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, marginBottom: 3, backgroundColor: theme.colors.surfaceLight, borderWidth: 1, borderColor: theme.colors.border },
-  comingTitle: { fontSize: 10, fontWeight: '700', color: theme.colors.text },
-  plusBadge: { backgroundColor: theme.colors.primaryLight, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 99, marginTop: 2 },
-  plusBadgeText: { fontSize: 8, fontWeight: '800', color: theme.colors.primary },
+  listRowOn: { backgroundColor: colors.primaryLight, borderColor: colors.primary + '33' },
+  listName: { fontSize: 12, fontWeight: '700', color: colors.text },
+  listMeta: { fontSize: 10, color: colors.textTertiary },
+  newListBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 9, borderRadius: 10, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.border, marginTop: 6 },
+  newListBtnText: { fontSize: 12, color: colors.textSecondary },
+  comingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, marginBottom: 3, backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border },
+  comingTitle: { fontSize: 10, fontWeight: '700', color: colors.text },
+  plusBadge: { backgroundColor: colors.primaryLight, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 99, marginTop: 2 },
+  plusBadgeText: { fontSize: 8, fontWeight: '800', color: colors.primary },
 
   // Right panel
-  panel: { flex: 1, backgroundColor: theme.colors.background },
+  panel: { flex: 1, backgroundColor: colors.background },
   panelContent: { padding: 18, paddingBottom: 32 },
   panelHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14, gap: 10 },
-  panelTitle: { fontSize: 18, fontWeight: '900', color: theme.colors.text },
+  panelTitle: { fontSize: 18, fontWeight: '900', color: colors.text },
   scopeTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 99, borderWidth: 1 },
   scopeTagText: { fontSize: 10, fontWeight: '700' },
-  stateTag: { backgroundColor: theme.colors.surfaceLight, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 99 },
-  stateTagText: { fontSize: 9, color: theme.colors.textTertiary, fontWeight: '600' },
-  addBtn: { backgroundColor: theme.colors.primary, paddingHorizontal: 12, paddingVertical: 7, borderRadius: theme.borderRadius.md },
+  stateTag: { backgroundColor: colors.surfaceLight, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 99 },
+  stateTagText: { fontSize: 9, color: colors.textTertiary, fontWeight: '600' },
+  addBtn: { backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 7, borderRadius: theme.borderRadius.md },
   addBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
-  comboRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: theme.colors.border, padding: 12, marginBottom: 8, ...theme.shadows.glow },
-  comboNum: { fontSize: 20, fontWeight: '900', color: theme.colors.text, letterSpacing: 3, fontFamily: theme.typography.fontFamily.monoBold, minWidth: 56 },
-  comboSet: { fontSize: 10, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
-  comboNote: { flex: 1, fontSize: 11, color: theme.colors.textSecondary },
+  comboRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.surface, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: colors.border, padding: 12, marginBottom: 8, ...shadows.glow },
+  comboNum: { fontSize: 20, fontWeight: '900', color: colors.text, letterSpacing: 3, fontFamily: theme.typography.fontFamily.monoBold, minWidth: 56 },
+  comboSet: { fontSize: 10, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
+  comboNote: { flex: 1, fontSize: 11, color: colors.textSecondary },
   emptyState: { alignItems: 'center', paddingVertical: 32 },
-  emptyTitle: { fontSize: 13, fontWeight: '700', color: theme.colors.text, marginBottom: 12 },
-  addBtnOutline: { borderWidth: 1.5, borderColor: theme.colors.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: theme.borderRadius.lg },
-  addBtnOutlineText: { color: theme.colors.primary, fontWeight: '700', fontSize: 13 },
-  divider: { height: 1, backgroundColor: theme.colors.border, marginVertical: 16 },
+  emptyTitle: { fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 12 },
+  addBtnOutline: { borderWidth: 1.5, borderColor: colors.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: theme.borderRadius.lg },
+  addBtnOutlineText: { color: colors.primary, fontWeight: '700', fontSize: 13 },
+  divider: { height: 1, backgroundColor: colors.border, marginVertical: 16 },
   comingGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-  comingCard: { flex: 1, minWidth: 130, backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: theme.colors.border, padding: 12, ...theme.shadows.glow },
-  comingCardTitle: { fontSize: 11, fontWeight: '700', color: theme.colors.text, marginBottom: 4 },
-  comingCardDesc: { fontSize: 10, color: theme.colors.textSecondary, lineHeight: 15 },
-  comingSoonBadge: { backgroundColor: theme.colors.primaryLight, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 99, marginTop: 4 },
-  comingSoonBadgeText: { fontSize: 8, fontWeight: '800', color: theme.colors.primary },
+  comingCard: { flex: 1, minWidth: 130, backgroundColor: colors.surface, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: colors.border, padding: 12, ...shadows.glow },
+  comingCardTitle: { fontSize: 11, fontWeight: '700', color: colors.text, marginBottom: 4 },
+  comingCardDesc: { fontSize: 10, color: colors.textSecondary, lineHeight: 15 },
+  comingSoonBadge: { backgroundColor: colors.primaryLight, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 99, marginTop: 4 },
+  comingSoonBadgeText: { fontSize: 8, fontWeight: '800', color: colors.primary },
 
   // Welcome
   welcomeContent: { padding: 20, paddingBottom: 32 },
   welcomeHero: { alignItems: 'center', paddingVertical: 24, marginBottom: 16 },
-  welcomeTitle: { fontSize: 20, fontWeight: '900', color: theme.colors.text, marginBottom: 8 },
-  welcomeDesc: { fontSize: 13, color: theme.colors.textSecondary, textAlign: 'center', maxWidth: 300, lineHeight: 20, marginBottom: 16 },
-  createBtn: { backgroundColor: theme.colors.cosmic, paddingHorizontal: 22, paddingVertical: 11, borderRadius: 11 },
+  welcomeTitle: { fontSize: 20, fontWeight: '900', color: colors.text, marginBottom: 8 },
+  welcomeDesc: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', maxWidth: 300, lineHeight: 20, marginBottom: 16 },
+  createBtn: { backgroundColor: colors.cosmic, paddingHorizontal: 22, paddingVertical: 11, borderRadius: 11 },
   createBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   sampleBtn: { marginTop: 10, paddingHorizontal: 16, paddingVertical: 8 },
-  sampleBtnText: { color: theme.colors.textSecondary, fontWeight: '600', fontSize: 12 },
-  upsellCard: { borderRadius: theme.borderRadius.xl, padding: 18, alignItems: 'center', borderWidth: 1.5, borderColor: theme.colors.primary + '33', marginTop: 8 },
-  upsellTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.text, marginBottom: 4 },
-  upsellDesc: { fontSize: 11, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 12, lineHeight: 18 },
-  upsellBtn: { backgroundColor: theme.colors.gold, paddingHorizontal: 18, paddingVertical: 9, borderRadius: theme.borderRadius.lg },
+  sampleBtnText: { color: colors.textSecondary, fontWeight: '600', fontSize: 12 },
+  upsellCard: { borderRadius: theme.borderRadius.xl, padding: 18, alignItems: 'center', borderWidth: 1.5, borderColor: colors.primary + '33', marginTop: 8 },
+  upsellTitle: { fontSize: 13, fontWeight: '800', color: colors.text, marginBottom: 4 },
+  upsellDesc: { fontSize: 11, color: colors.textSecondary, textAlign: 'center', marginBottom: 12, lineHeight: 18 },
+  upsellBtn: { backgroundColor: colors.gold, paddingHorizontal: 18, paddingVertical: 9, borderRadius: theme.borderRadius.lg },
   upsellBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
 });

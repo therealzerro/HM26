@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
 } from 'react-native';
@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 
 const LEARN_MODULES = [
   {
@@ -58,6 +59,8 @@ const LEARN_MODULES = [
 ];
 
 export default function LearnScreen() {
+  const { colors, shadows } = useTheme();
+  const s = useMemo(() => makeS(colors, shadows), [colors, shadows]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [expandedSection, setExpandedSection] = useState<number | null>(null);
 
@@ -69,7 +72,7 @@ export default function LearnScreen() {
         {/* ── Module list (sidebar) ── */}
         <View style={s.sidebar}>
           <View style={s.sidebarHeader}>
-            <Text style={s.sidebarTitle}>🎓 <Text style={{ color: theme.colors.primary }}>Learn to Play</Text></Text>
+            <Text style={s.sidebarTitle}>🎓 <Text style={{ color: colors.primary }}>Learn to Play</Text></Text>
             <Text style={s.sidebarSub}>Pick 3 from zero to pro player</Text>
           </View>
 
@@ -84,7 +87,7 @@ export default function LearnScreen() {
                 >
                   <Text style={{ fontSize: 20, flexShrink: 0 }}>{m.icon}</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={[s.moduleTitle, on && { color: theme.colors.primary }]}>{m.title}</Text>
+                    <Text style={[s.moduleTitle, on && { color: colors.primary }]}>{m.title}</Text>
                     <Text style={s.moduleSummary} numberOfLines={2}>{m.summary}</Text>
                   </View>
                 </TouchableOpacity>
@@ -127,7 +130,7 @@ export default function LearnScreen() {
                 ))}
               </View>
 
-              <LinearGradient colors={[theme.colors.primaryLight, theme.colors.cosmicLight]} style={s.ctaCard}>
+              <LinearGradient colors={[colors.primaryLight, colors.cosmicLight]} style={s.ctaCard}>
                 <Text style={s.ctaTitle}>Ready to get your picks?</Text>
                 <Text style={s.ctaDesc}>Once you understand the basics, your daily K6 Slate is waiting.</Text>
                 <TouchableOpacity
@@ -161,7 +164,7 @@ export default function LearnScreen() {
                   activeOpacity={0.85}
                 >
                   <View style={s.sectionHeader}>
-                    <Text style={[s.sectionTitle, expandedSection === i && { color: theme.colors.primary }]}>
+                    <Text style={[s.sectionTitle, expandedSection === i && { color: colors.primary }]}>
                       {section.title}
                     </Text>
                     <Text style={s.sectionArrow}>{expandedSection === i ? '▲' : '▼'}</Text>
@@ -174,7 +177,7 @@ export default function LearnScreen() {
 
               {/* Regions — Pro teaser */}
               {activeId === 'regions-states' && (
-                <LinearGradient colors={[theme.colors.cosmicLight, theme.colors.goldLight]} style={s.proTeaser}>
+                <LinearGradient colors={[colors.cosmicLight, colors.goldLight]} style={s.proTeaser}>
                   <Text style={{ fontSize: 24, marginBottom: 6 }}>🔐</Text>
                   <Text style={s.proTeaserTitle}>Pro Secret: Play All States Nationwide</Text>
                   <Text style={s.proTeaserDesc}>Did you know you can legally play Pick 3 in multiple states from your home? Pro members unlock our curated guide showing exactly how.</Text>
@@ -195,58 +198,58 @@ export default function LearnScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+const makeS = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   layout: { flex: 1, flexDirection: 'row' },
 
-  sidebar: { width: 230, backgroundColor: theme.colors.surface, borderRightWidth: 1, borderRightColor: theme.colors.border },
-  sidebarHeader: { padding: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
-  sidebarTitle: { fontSize: 15, fontWeight: '900', color: theme.colors.text, marginBottom: 2 },
-  sidebarSub: { fontSize: 11, color: theme.colors.textTertiary },
+  sidebar: { width: 230, backgroundColor: colors.surface, borderRightWidth: 1, borderRightColor: colors.border },
+  sidebarHeader: { padding: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
+  sidebarTitle: { fontSize: 15, fontWeight: '900', color: colors.text, marginBottom: 2 },
+  sidebarSub: { fontSize: 11, color: colors.textTertiary },
   moduleList: { flex: 1, padding: 8 },
 
   moduleRow: { flexDirection: 'row', gap: 10, padding: 12, borderRadius: 11, marginBottom: 4, borderWidth: 1, borderColor: 'transparent' },
-  moduleRowOn: { backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.primary + '33' },
-  moduleTitle: { fontSize: 12, fontWeight: '700', color: theme.colors.text, marginBottom: 2 },
-  moduleSummary: { fontSize: 10, color: theme.colors.textTertiary, lineHeight: 14 },
+  moduleRowOn: { backgroundColor: colors.primaryLight, borderColor: colors.primary + '33' },
+  moduleTitle: { fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 2 },
+  moduleSummary: { fontSize: 10, color: colors.textTertiary, lineHeight: 14 },
 
-  quickTip: { backgroundColor: theme.colors.goldLight, borderRadius: 10, padding: 12, marginTop: 12, borderWidth: 1, borderColor: theme.colors.gold + '33' },
-  quickTipLabel: { fontSize: 10, fontWeight: '800', color: theme.colors.gold, marginBottom: 3 },
-  quickTipText: { fontSize: 10, color: theme.colors.textSecondary, lineHeight: 15 },
+  quickTip: { backgroundColor: colors.goldLight, borderRadius: 10, padding: 12, marginTop: 12, borderWidth: 1, borderColor: colors.gold + '33' },
+  quickTipLabel: { fontSize: 10, fontWeight: '800', color: colors.gold, marginBottom: 3 },
+  quickTipText: { fontSize: 10, color: colors.textSecondary, lineHeight: 15 },
 
-  panel: { flex: 1, backgroundColor: theme.colors.background },
+  panel: { flex: 1, backgroundColor: colors.background },
 
   welcomeContent: { padding: 20, paddingBottom: 32 },
   welcomeHero: { alignItems: 'center', paddingBottom: 20 },
-  welcomeTitle: { fontSize: 22, fontWeight: '900', color: theme.colors.text, marginBottom: 8 },
-  welcomeDesc: { fontSize: 13, color: theme.colors.textSecondary, textAlign: 'center', maxWidth: 380, lineHeight: 20 },
+  welcomeTitle: { fontSize: 22, fontWeight: '900', color: colors.text, marginBottom: 8 },
+  welcomeDesc: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', maxWidth: 380, lineHeight: 20 },
   modulesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
-  moduleCard: { flex: 1, minWidth: 140, backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: theme.colors.border, padding: 14, ...theme.shadows.glow },
-  moduleCardTitle: { fontSize: 13, fontWeight: '700', color: theme.colors.text, marginBottom: 4 },
-  moduleCardSummary: { fontSize: 11, color: theme.colors.textSecondary, lineHeight: 16 },
-  ctaCard: { borderRadius: theme.borderRadius.xl, padding: 18, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.primary + '33' },
-  ctaTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.text, marginBottom: 4 },
-  ctaDesc: { fontSize: 11, color: theme.colors.textSecondary, marginBottom: 12 },
-  ctaBtn: { backgroundColor: theme.colors.primary, paddingHorizontal: 18, paddingVertical: 9, borderRadius: theme.borderRadius.lg },
+  moduleCard: { flex: 1, minWidth: 140, backgroundColor: colors.surface, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: colors.border, padding: 14, ...shadows.glow },
+  moduleCardTitle: { fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 4 },
+  moduleCardSummary: { fontSize: 11, color: colors.textSecondary, lineHeight: 16 },
+  ctaCard: { borderRadius: theme.borderRadius.xl, padding: 18, alignItems: 'center', borderWidth: 1, borderColor: colors.primary + '33' },
+  ctaTitle: { fontSize: 13, fontWeight: '800', color: colors.text, marginBottom: 4 },
+  ctaDesc: { fontSize: 11, color: colors.textSecondary, marginBottom: 12 },
+  ctaBtn: { backgroundColor: colors.primary, paddingHorizontal: 18, paddingVertical: 9, borderRadius: theme.borderRadius.lg },
   ctaBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
 
   moduleContent: { padding: 22, paddingBottom: 40 },
   backBtn: { marginBottom: 16 },
   backBtnBottom: { marginTop: 16 },
-  backBtnText: { fontSize: 13, color: theme.colors.textSecondary },
+  backBtnText: { fontSize: 13, color: colors.textSecondary },
   moduleHero: { flexDirection: 'row', gap: 14, alignItems: 'flex-start', marginBottom: 20 },
-  moduleTitleLg: { fontSize: 20, fontWeight: '900', color: theme.colors.text, marginBottom: 4 },
-  moduleSummaryLg: { fontSize: 13, color: theme.colors.textSecondary },
+  moduleTitleLg: { fontSize: 20, fontWeight: '900', color: colors.text, marginBottom: 4 },
+  moduleSummaryLg: { fontSize: 13, color: colors.textSecondary },
 
-  sectionCard: { backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: theme.colors.border, marginBottom: 10, overflow: 'hidden', ...theme.shadows.glow },
+  sectionCard: { backgroundColor: colors.surface, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: colors.border, marginBottom: 10, overflow: 'hidden', ...shadows.glow },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
-  sectionTitle: { fontSize: 13, fontWeight: '800', color: theme.colors.text, flex: 1 },
-  sectionArrow: { fontSize: 11, color: theme.colors.textTertiary },
-  sectionBody: { fontSize: 13, color: theme.colors.textSecondary, lineHeight: 22, padding: 14, paddingTop: 0 },
+  sectionTitle: { fontSize: 13, fontWeight: '800', color: colors.text, flex: 1 },
+  sectionArrow: { fontSize: 11, color: colors.textTertiary },
+  sectionBody: { fontSize: 13, color: colors.textSecondary, lineHeight: 22, padding: 14, paddingTop: 0 },
 
-  proTeaser: { borderRadius: theme.borderRadius.xl, padding: 18, alignItems: 'center', borderWidth: 1.5, borderColor: theme.colors.primary + '44', marginTop: 4, borderStyle: 'dashed' },
-  proTeaserTitle: { fontSize: 14, fontWeight: '800', color: theme.colors.text, marginBottom: 6, textAlign: 'center' },
-  proTeaserDesc: { fontSize: 12, color: theme.colors.textSecondary, textAlign: 'center', lineHeight: 18, marginBottom: 12 },
-  proTeaserBtn: { backgroundColor: theme.colors.gold, paddingHorizontal: 18, paddingVertical: 9, borderRadius: theme.borderRadius.lg },
+  proTeaser: { borderRadius: theme.borderRadius.xl, padding: 18, alignItems: 'center', borderWidth: 1.5, borderColor: colors.primary + '44', marginTop: 4, borderStyle: 'dashed' },
+  proTeaserTitle: { fontSize: 14, fontWeight: '800', color: colors.text, marginBottom: 6, textAlign: 'center' },
+  proTeaserDesc: { fontSize: 12, color: colors.textSecondary, textAlign: 'center', lineHeight: 18, marginBottom: 12 },
+  proTeaserBtn: { backgroundColor: colors.gold, paddingHorizontal: 18, paddingVertical: 9, borderRadius: theme.borderRadius.lg },
   proTeaserBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
 });

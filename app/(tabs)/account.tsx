@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch,
 } from 'react-native';
@@ -11,7 +11,7 @@ import { useFollowedStates, JURISDICTION_GROUPS } from '@/hooks/useFollowedState
 import { useCoffeeMode } from '@/hooks/useCoffeeMode';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
-import { useTheme, type ThemeMode } from '@/lib/theme';
+import { useTheme, type ThemeMode, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { UserRole } from '@/types/core';
 import { fetchFromSupabase, countFromSupabase } from '@/lib/supabase';
@@ -41,6 +41,8 @@ const PRO_FEATURES = [
 ];
 
 function Toggle({ on, onChange, label, sub }: { on: boolean; onChange: (v: boolean) => void; label: string; sub?: string }) {
+  const { colors } = useTheme();
+  const tog = useMemo(() => makeTog(colors), [colors]);
   return (
     <View style={tog.row}>
       <View style={{ flex: 1 }}>
@@ -50,21 +52,21 @@ function Toggle({ on, onChange, label, sub }: { on: boolean; onChange: (v: boole
       <Switch
         value={on}
         onValueChange={onChange}
-        trackColor={{ false: theme.colors.border, true: theme.colors.purple }}
+        trackColor={{ false: colors.border, true: colors.purple }}
         thumbColor="#fff"
       />
     </View>
   );
 }
 
-const tog = StyleSheet.create({
+const makeTog = (colors: ColorTokens) => StyleSheet.create({
   row: {
     flexDirection: 'row', alignItems: 'center',
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border,
   },
-  label: { fontSize: 14, fontWeight: '600', color: theme.colors.text },
-  sub: { fontSize: 11, color: theme.colors.textTertiary, marginTop: 2 },
+  label: { fontSize: 14, fontWeight: '600', color: colors.text },
+  sub: { fontSize: 11, color: colors.textTertiary, marginTop: 2 },
 });
 
 export default function AccountScreen() {
@@ -72,7 +74,9 @@ export default function AccountScreen() {
   const { showToast } = useToast();
   const { followed: followedStates, isFollowing, toggle: toggleFollowedState, clear: clearFollowedStates } = useFollowedStates();
   const { enabled: coffeeMode, toggle: toggleCoffeeMode } = useCoffeeMode();
-  const { mode: themeMode, scheme: themeScheme, setMode: setThemeMode } = useTheme();
+  const { mode: themeMode, scheme: themeScheme, setMode: setThemeMode, colors, shadows } = useTheme();
+  const s = useMemo(() => makeS(colors, shadows), [colors, shadows]);
+  const tog = useMemo(() => makeTog(colors), [colors]);
   const [glossOpen, setGlossOpen] = useState<number | null>(null);
   // Notification preferences (enhancements §1.4 — persistence only).
   // Delivery (local schedules + push-on-hit) ships in next iteration; for now
@@ -189,7 +193,7 @@ export default function AccountScreen() {
   const tier = user?.role === 'admin' ? 'PLUS' : user?.role === 'premium' ? 'PRO' : 'FREE';
   const isFree = tier === 'FREE';
   const tierLabel = isFree ? 'Seeker' : tier === 'PRO' ? 'Oracle+' : 'Mystic';
-  const tierColor = isFree ? theme.colors.free : tier === 'PRO' ? theme.colors.premium : theme.colors.admin;
+  const tierColor = isFree ? colors.free : tier === 'PRO' ? colors.premium : colors.admin;
 
   return (
     <SafeAreaView style={s.container} edges={['left', 'right', 'bottom']}>
@@ -211,8 +215,8 @@ export default function AccountScreen() {
             <View style={[s.pill, { backgroundColor: tierColor + '20', borderColor: tierColor + '44' }]}>
               <Text style={[s.pillText, { color: tierColor }]}>♛ {tierLabel}</Text>
             </View>
-            <View style={[s.pill, { backgroundColor: theme.colors.bgElevated, borderColor: theme.colors.borderMed }]}>
-              <Text style={[s.pillText, { color: theme.colors.textTertiary }]}>
+            <View style={[s.pill, { backgroundColor: colors.bgElevated, borderColor: colors.borderMed }]}>
+              <Text style={[s.pillText, { color: colors.textTertiary }]}>
                 {memberDays > 0 ? `${memberDays}d member` : 'New member'}
               </Text>
             </View>
@@ -224,23 +228,23 @@ export default function AccountScreen() {
           <Text style={s.sectionLabel}>ACTIVITY</Text>
           <View style={s.statsGrid}>
             <View style={s.statCard}>
-              <Text style={[s.statNum, { color: theme.colors.cyan }]}>
+              <Text style={[s.statNum, { color: colors.cyan }]}>
                 {historiesStats?.totalDraws ? historiesStats.totalDraws.toLocaleString() : '—'}
               </Text>
               <Text style={s.statLabel}>Draws Tracked</Text>
             </View>
             <View style={s.statCard}>
-              <Text style={[s.statNum, { color: theme.colors.amber }]}>
+              <Text style={[s.statNum, { color: colors.amber }]}>
                 {historiesStats?.activeStates ?? '—'}
               </Text>
               <Text style={s.statLabel}>States Active</Text>
             </View>
             <View style={s.statCard}>
-              <Text style={[s.statNum, { color: theme.colors.gold }]}>{memberDays}</Text>
+              <Text style={[s.statNum, { color: colors.gold }]}>{memberDays}</Text>
               <Text style={s.statLabel}>Days Active</Text>
             </View>
             <View style={s.statCard}>
-              <Text style={[s.statNum, { color: theme.colors.rose }]}>ZK6™</Text>
+              <Text style={[s.statNum, { color: colors.rose }]}>ZK6™</Text>
               <Text style={s.statLabel}>Engine</Text>
             </View>
           </View>
@@ -262,9 +266,9 @@ export default function AccountScreen() {
               {/* FREE vs PRO comparison */}
               <View style={s.compareGrid}>
                 <View style={[s.compareRow, { backgroundColor: 'rgba(255,255,255,0.04)' }]}>
-                  <Text style={[s.compareFeature, { fontSize: 9, color: theme.colors.textTertiary, letterSpacing: 1.2 }]}>FEATURE</Text>
-                  <Text style={[s.compareFreeTxt, { fontWeight: '800', color: theme.colors.textSecondary }]}>FREE</Text>
-                  <Text style={[s.compareProTxt, { color: theme.colors.purple, fontWeight: '800' }]}>ORACLE+</Text>
+                  <Text style={[s.compareFeature, { fontSize: 9, color: colors.textTertiary, letterSpacing: 1.2 }]}>FEATURE</Text>
+                  <Text style={[s.compareFreeTxt, { fontWeight: '800', color: colors.textSecondary }]}>FREE</Text>
+                  <Text style={[s.compareProTxt, { color: colors.purple, fontWeight: '800' }]}>ORACLE+</Text>
                 </View>
                 {([
                   ['K6 Picks',       '2 of 6',  'All 6 ✓'],
@@ -292,10 +296,10 @@ export default function AccountScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <View>
                   <Text style={s.planActiveTitle}>{tierLabel}</Text>
-                  <Text style={[s.planActiveStatus, { color: theme.colors.success }]}>● Active</Text>
+                  <Text style={[s.planActiveStatus, { color: colors.success }]}>● Active</Text>
                 </View>
-                <View style={[s.pill, { backgroundColor: theme.colors.successLight, borderColor: theme.colors.success + '33' }]}>
-                  <Text style={[s.pillText, { color: theme.colors.success }]}>ACTIVE</Text>
+                <View style={[s.pill, { backgroundColor: colors.successLight, borderColor: colors.success + '33' }]}>
+                  <Text style={[s.pillText, { color: colors.success }]}>ACTIVE</Text>
                 </View>
               </View>
               {PRO_FEATURES.map((f, i) => (
@@ -305,7 +309,7 @@ export default function AccountScreen() {
                 </View>
               ))}
               <View style={[s.divider, { marginTop: 14 }]} />
-              <Text style={{ fontSize: 11, color: theme.colors.textTertiary, marginTop: 10, marginBottom: 8 }}>
+              <Text style={{ fontSize: 11, color: colors.textTertiary, marginTop: 10, marginBottom: 8 }}>
                 Subscription renews automatically. Manage or cancel in your App Store account settings.
               </Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -328,7 +332,7 @@ export default function AccountScreen() {
           <Text style={s.sectionLabel}>HISTORY</Text>
           {savedCombos.length > 0 && (
             <TouchableOpacity
-              style={[s.card, { marginBottom: 8, borderColor: theme.colors.gold + '55', borderWidth: 1 }]}
+              style={[s.card, { marginBottom: 8, borderColor: colors.gold + '55', borderWidth: 1 }]}
               onPress={() => router.push('/(tabs)/book')}
               accessibilityRole="button"
               accessibilityLabel={`Your saved picks have hit ${personalHits.totalHits} times in the last 30 days. Tap to open Number Book.`}
@@ -336,16 +340,16 @@ export default function AccountScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 }}>
                 <Text style={{ fontSize: 26 }}>🎯</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.text }}>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text }}>
                     Your saved picks have hit{' '}
-                    <Text style={{ color: theme.colors.gold, fontWeight: '900' }}>{personalHits.totalHits}</Text>{' '}
+                    <Text style={{ color: colors.gold, fontWeight: '900' }}>{personalHits.totalHits}</Text>{' '}
                     {personalHits.totalHits === 1 ? 'time' : 'times'}
                   </Text>
-                  <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginTop: 2 }}>
+                  <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
                     {savedCombos.length} {savedCombos.length === 1 ? 'pick' : 'picks'} tracked · {personalHits.totalStraight} straight · last 30 days
                   </Text>
                 </View>
-                <Text style={{ fontSize: 18, color: theme.colors.textTertiary }}>›</Text>
+                <Text style={{ fontSize: 18, color: colors.textTertiary }}>›</Text>
               </View>
             </TouchableOpacity>
           )}
@@ -353,20 +357,20 @@ export default function AccountScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 }}>
               <Text style={{ fontSize: 26 }}>🧾</Text>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.text }}>Verified track record</Text>
-                <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginTop: 2 }}>Receipts: every confirmed K6 hit, last 30 days.</Text>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text }}>Verified track record</Text>
+                <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>Receipts: every confirmed K6 hit, last 30 days.</Text>
               </View>
-              <Text style={{ fontSize: 18, color: theme.colors.textTertiary }}>›</Text>
+              <Text style={{ fontSize: 18, color: colors.textTertiary }}>›</Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={s.card} onPress={() => router.push('/replay')}>
             <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 }}>
               <Text style={{ fontSize: 26 }}>📼</Text>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.text }}>Replay last 7 days</Text>
-                <Text style={{ fontSize: 11, color: theme.colors.textSecondary, marginTop: 2 }}>Past slates vs actual draws, day by day.</Text>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text }}>Replay last 7 days</Text>
+                <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>Past slates vs actual draws, day by day.</Text>
               </View>
-              <Text style={{ fontSize: 18, color: theme.colors.textTertiary }}>›</Text>
+              <Text style={{ fontSize: 18, color: colors.textTertiary }}>›</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -377,19 +381,19 @@ export default function AccountScreen() {
             <Text style={s.sectionLabel}>FOLLOWED STATES</Text>
             {followedStates.length > 0 && (
               <TouchableOpacity onPress={() => clearFollowedStates().then(() => showToast('Cleared followed states', 'info'))}>
-                <Text style={{ fontSize: 10, color: theme.colors.textTertiary, letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold }}>CLEAR</Text>
+                <Text style={{ fontSize: 10, color: colors.textTertiary, letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold }}>CLEAR</Text>
               </TouchableOpacity>
             )}
           </View>
           <View style={s.card}>
-            <Text style={{ fontSize: 11, color: theme.colors.textSecondary, padding: 14, paddingBottom: 6, lineHeight: 16 }}>
+            <Text style={{ fontSize: 11, color: colors.textSecondary, padding: 14, paddingBottom: 6, lineHeight: 16 }}>
               {followedStates.length === 0
                 ? 'No filters active. Tap states to follow — Results, Hit Feed, Track Record, and Last Hit will filter to those states only.'
                 : `Filtering to ${followedStates.length} state${followedStates.length === 1 ? '' : 's'}: ${followedStates.join(' · ')}`}
             </Text>
             {JURISDICTION_GROUPS.map(group => (
               <View key={group.label} style={{ paddingHorizontal: 12, paddingBottom: 10, gap: 6 }}>
-                <Text style={{ fontSize: 9, fontWeight: '900', color: theme.colors.textTertiary, letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 4 }}>{group.label.toUpperCase()}</Text>
+                <Text style={{ fontSize: 9, fontWeight: '900', color: colors.textTertiary, letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 4 }}>{group.label.toUpperCase()}</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5 }}>
                   {group.codes.map(code => {
                     const on = isFollowing(code);
@@ -403,13 +407,13 @@ export default function AccountScreen() {
                         style={{
                           paddingHorizontal: 9, paddingVertical: 5, borderRadius: 99,
                           borderWidth: 1,
-                          borderColor: on ? theme.colors.cyan + '88' : theme.colors.border,
-                          backgroundColor: on ? theme.colors.cyan + '18' : theme.colors.bgElevated,
+                          borderColor: on ? colors.cyan + '88' : colors.border,
+                          backgroundColor: on ? colors.cyan + '18' : colors.bgElevated,
                         }}
                       >
                         <Text style={{
                           fontSize: 11, fontWeight: '900',
-                          color: on ? theme.colors.cyan : theme.colors.textSecondary,
+                          color: on ? colors.cyan : colors.textSecondary,
                           fontFamily: theme.typography.fontFamily.monoBold,
                           letterSpacing: 0.4,
                         }}>{code}</Text>
@@ -428,7 +432,7 @@ export default function AccountScreen() {
           <View style={s.card}>
             {/* Appearance — light / dark / system. Persists via AsyncStorage
                 in lib/theme/ThemeProvider; default 'system'. */}
-            <View style={{ paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border }}>
+            <View style={{ paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={tog.label}>Appearance</Text>
@@ -451,13 +455,13 @@ export default function AccountScreen() {
                       style={{
                         flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8,
                         borderWidth: 1,
-                        borderColor: active ? theme.colors.purple : theme.colors.border,
-                        backgroundColor: active ? theme.colors.primaryLight : theme.colors.bgElevated,
+                        borderColor: active ? colors.purple : colors.border,
+                        backgroundColor: active ? colors.primaryLight : colors.bgElevated,
                       }}
                     >
                       <Text style={{
                         fontSize: 13, fontWeight: '700',
-                        color: active ? theme.colors.purple : theme.colors.textSecondary,
+                        color: active ? colors.purple : colors.textSecondary,
                         textTransform: 'capitalize',
                       }}>{m}</Text>
                     </TouchableOpacity>
@@ -492,15 +496,15 @@ export default function AccountScreen() {
             {GLOSSARY.map((g, i) => (
               <View
                 key={i}
-                style={[s.glossItem, i < GLOSSARY.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border }]}
+                style={[s.glossItem, i < GLOSSARY.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}
               >
                 <TouchableOpacity
                   style={s.glossHeader}
                   onPress={() => setGlossOpen(glossOpen === i ? null : i)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[s.glossTerm, glossOpen === i && { color: theme.colors.cyan }]}>{g.term}</Text>
-                  <Text style={[s.glossArrow, { color: glossOpen === i ? theme.colors.cyan : theme.colors.purple }]}>
+                  <Text style={[s.glossTerm, glossOpen === i && { color: colors.cyan }]}>{g.term}</Text>
+                  <Text style={[s.glossArrow, { color: glossOpen === i ? colors.cyan : colors.purple }]}>
                     {glossOpen === i ? '▲' : '›'}
                   </Text>
                 </TouchableOpacity>
@@ -526,7 +530,7 @@ export default function AccountScreen() {
             ] as [string, string, string?, boolean?][]).map(([icon, label, meta, isDanger], i, arr) => (
               <TouchableOpacity
                 key={i}
-                style={[s.accountRow, i < arr.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border }]}
+                style={[s.accountRow, i < arr.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}
                 activeOpacity={0.7}
                 onPress={() => {
                   if (label === 'Sign Out') {
@@ -540,7 +544,7 @@ export default function AccountScreen() {
                 }}
               >
                 <Text style={s.accountIcon}>{icon}</Text>
-                <Text style={[s.accountLabel, isDanger && { color: theme.colors.error }]}>{label}</Text>
+                <Text style={[s.accountLabel, isDanger && { color: colors.error }]}>{label}</Text>
                 {meta
                   ? <Text style={s.accountMeta}>{meta}</Text>
                   : <Text style={s.accountArrow}>›</Text>
@@ -571,7 +575,7 @@ export default function AccountScreen() {
 
         {/* ── Footer ── */}
         <View style={s.footer}>
-          <Text style={s.footerLogo}>HIT<Text style={{ color: theme.colors.cyan }}>MASTER</Text></Text>
+          <Text style={s.footerLogo}>HIT<Text style={{ color: colors.cyan }}>MASTER</Text></Text>
           <Text style={s.footerSub}>Powered by ZK6™ Intelligence Engine</Text>
           <Text style={s.footerLegal}>© 2026 HitMaster · For entertainment only · Not financial advice</Text>
         </View>
@@ -582,25 +586,25 @@ export default function AccountScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+const makeS = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   scrollContent: { paddingBottom: 32 },
 
   hero: {
     margin: 16, borderRadius: theme.borderRadius.xl,
     padding: 24, alignItems: 'center',
-    borderWidth: 1, borderColor: theme.colors.border,
-    ...theme.shadows.glow,
+    borderWidth: 1, borderColor: colors.border,
+    ...shadows.glow,
   },
   avatar: {
     width: 72, height: 72, borderRadius: 36,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: colors.primaryLight,
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 12,
-    borderWidth: 2, borderColor: theme.colors.purple + '55',
+    borderWidth: 2, borderColor: colors.purple + '55',
   },
-  heroTitle: { fontSize: 18, fontWeight: '900', color: theme.colors.text, marginBottom: 4, fontFamily: theme.typography.fontFamily.bold },
-  heroSub: { fontSize: 11, color: theme.colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 1.5, marginBottom: 12 },
+  heroTitle: { fontSize: 18, fontWeight: '900', color: colors.text, marginBottom: 4, fontFamily: theme.typography.fontFamily.bold },
+  heroSub: { fontSize: 11, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 1.5, marginBottom: 12 },
   heroPills: { flexDirection: 'row', gap: 8 },
   pill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, borderWidth: 1 },
   pillText: { fontSize: 11, fontWeight: '700' },
@@ -608,82 +612,82 @@ const s = StyleSheet.create({
   section: { paddingHorizontal: 16, marginBottom: 24 },
   sectionLabel: {
     fontSize: 10, fontWeight: '900',
-    color: theme.colors.cyan,
+    color: colors.cyan,
     fontFamily: theme.typography.fontFamily.mono,
     letterSpacing: 1.5,
     marginBottom: 10,
   },
   card: {
-    backgroundColor: theme.colors.card,
+    backgroundColor: colors.card,
     borderRadius: theme.borderRadius.card,
-    borderWidth: 1, borderColor: theme.colors.border,
+    borderWidth: 1, borderColor: colors.border,
     overflow: 'hidden',
-    ...theme.shadows.glow,
+    ...shadows.glow,
   },
 
   statsGrid: { flexDirection: 'row', gap: 8 },
   statCard: {
     flex: 1,
-    backgroundColor: theme.colors.bgElevated,
+    backgroundColor: colors.bgElevated,
     borderRadius: theme.borderRadius.tile,
-    borderWidth: 1, borderColor: theme.colors.border,
+    borderWidth: 1, borderColor: colors.border,
     paddingVertical: 14, paddingHorizontal: 8,
     alignItems: 'center',
-    ...theme.shadows.glow,
+    ...shadows.glow,
   },
   statNum: { fontSize: 16, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 4 },
-  statLabel: { fontSize: 9, color: theme.colors.textTertiary, fontWeight: '700', letterSpacing: 0.3, textAlign: 'center' },
+  statLabel: { fontSize: 9, color: colors.textTertiary, fontWeight: '700', letterSpacing: 0.3, textAlign: 'center' },
 
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.border },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
 
   planFreeCard: {
-    backgroundColor: theme.colors.bgElevated,
+    backgroundColor: colors.bgElevated,
     borderRadius: theme.borderRadius.card,
-    borderWidth: 1.5, borderColor: theme.colors.purple + '44',
+    borderWidth: 1.5, borderColor: colors.purple + '44',
     padding: 18,
-    ...theme.shadows.glow,
+    ...shadows.glow,
   },
   planFreeTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 },
-  planFreeTitle: { fontSize: 15, fontWeight: '800', color: theme.colors.text, marginBottom: 3 },
-  planFreeSub: { fontSize: 12, color: theme.colors.textSecondary },
-  planFreeTeaser: { fontSize: 12, color: theme.colors.textSecondary, lineHeight: 18, marginVertical: 14 },
-  compareGrid: { borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: theme.colors.border, marginVertical: 12 },
-  compareRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
-  compareFeature: { flex: 2, fontSize: 12, color: theme.colors.text, fontWeight: '600' },
-  compareFreeTxt: { flex: 1, fontSize: 11, color: theme.colors.textTertiary, textAlign: 'center' },
-  compareProTxt:  { flex: 1.5, fontSize: 11, color: theme.colors.success, textAlign: 'center', fontWeight: '700' },
+  planFreeTitle: { fontSize: 15, fontWeight: '800', color: colors.text, marginBottom: 3 },
+  planFreeSub: { fontSize: 12, color: colors.textSecondary },
+  planFreeTeaser: { fontSize: 12, color: colors.textSecondary, lineHeight: 18, marginVertical: 14 },
+  compareGrid: { borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: colors.border, marginVertical: 12 },
+  compareRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  compareFeature: { flex: 2, fontSize: 12, color: colors.text, fontWeight: '600' },
+  compareFreeTxt: { flex: 1, fontSize: 11, color: colors.textTertiary, textAlign: 'center' },
+  compareProTxt:  { flex: 1.5, fontSize: 11, color: colors.success, textAlign: 'center', fontWeight: '700' },
   upgradeBtn: {
-    backgroundColor: theme.colors.purple,
+    backgroundColor: colors.purple,
     borderRadius: theme.borderRadius.tile,
     paddingVertical: 13, alignItems: 'center', marginBottom: 8,
   },
-  upgradeBtnText: { color: theme.colors.text, fontWeight: '700', fontSize: 14 },
+  upgradeBtnText: { color: colors.text, fontWeight: '700', fontSize: 14 },
   trialBtn: { alignItems: 'center', paddingVertical: 6 },
-  trialBtnText: { fontSize: 12, color: theme.colors.cyan, fontWeight: '600' },
+  trialBtnText: { fontSize: 12, color: colors.cyan, fontWeight: '600' },
 
   planActiveCard: {
-    backgroundColor: theme.colors.bgElevated,
+    backgroundColor: colors.bgElevated,
     borderRadius: theme.borderRadius.card,
-    borderWidth: 1, borderColor: theme.colors.border,
+    borderWidth: 1, borderColor: colors.border,
     padding: 18,
-    ...theme.shadows.glow,
+    ...shadows.glow,
   },
-  planActiveTitle: { fontSize: 15, fontWeight: '800', color: theme.colors.text, marginBottom: 2 },
+  planActiveTitle: { fontSize: 15, fontWeight: '800', color: colors.text, marginBottom: 2 },
   planActiveStatus: { fontSize: 12, fontWeight: '600' },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
-  featureCheck: { fontSize: 12, color: theme.colors.cyan, fontWeight: '800', width: 16, fontFamily: theme.typography.fontFamily.monoBold },
-  featureText: { fontSize: 13, color: theme.colors.textSecondary },
+  featureCheck: { fontSize: 12, color: colors.cyan, fontWeight: '800', width: 16, fontFamily: theme.typography.fontFamily.monoBold },
+  featureText: { fontSize: 13, color: colors.textSecondary },
   outlineBtn: {
-    flex: 1, borderWidth: 1.5, borderColor: theme.colors.purple,
+    flex: 1, borderWidth: 1.5, borderColor: colors.purple,
     borderRadius: theme.borderRadius.chip, paddingVertical: 8, alignItems: 'center',
   },
-  outlineBtnText: { fontSize: 12, color: theme.colors.purple, fontWeight: '600' },
+  outlineBtnText: { fontSize: 12, color: colors.purple, fontWeight: '600' },
   ghostBtn: {
-    flex: 1, backgroundColor: theme.colors.bgElevated,
+    flex: 1, backgroundColor: colors.bgElevated,
     borderRadius: theme.borderRadius.chip, paddingVertical: 8, alignItems: 'center',
-    borderWidth: 1, borderColor: theme.colors.border,
+    borderWidth: 1, borderColor: colors.border,
   },
-  ghostBtnText: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: '600' },
+  ghostBtnText: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
 
   glossItem: {},
   glossHeader: {
@@ -691,31 +695,31 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16, paddingVertical: 14,
   },
-  glossTerm: { fontSize: 13, fontWeight: '700', color: theme.colors.text, flex: 1 },
-  glossArrow: { fontSize: 10, color: theme.colors.textTertiary, marginLeft: 8 },
-  glossDef: { fontSize: 12, color: theme.colors.textSecondary, lineHeight: 19, paddingHorizontal: 16, paddingBottom: 14 },
+  glossTerm: { fontSize: 13, fontWeight: '700', color: colors.text, flex: 1 },
+  glossArrow: { fontSize: 10, color: colors.textTertiary, marginLeft: 8 },
+  glossDef: { fontSize: 12, color: colors.textSecondary, lineHeight: 19, paddingHorizontal: 16, paddingBottom: 14 },
 
   accountRow: {
     flexDirection: 'row', alignItems: 'center',
     gap: 12, paddingHorizontal: 16, paddingVertical: 14,
   },
   accountIcon: { fontSize: 16, width: 22, textAlign: 'center' },
-  accountLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: theme.colors.text },
-  accountMeta: { fontSize: 12, color: theme.colors.textTertiary },
-  accountArrow: { color: theme.colors.textTertiary, fontSize: 18, fontWeight: '300' },
+  accountLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.text },
+  accountMeta: { fontSize: 12, color: colors.textTertiary },
+  accountArrow: { color: colors.textTertiary, fontSize: 18, fontWeight: '300' },
 
   roleBtn: {
     paddingHorizontal: 14, paddingVertical: 8,
     borderRadius: theme.borderRadius.chip,
-    backgroundColor: theme.colors.bgElevated,
-    borderWidth: 1, borderColor: theme.colors.border,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1, borderColor: colors.border,
   },
-  roleBtnOn: { backgroundColor: theme.colors.purple, borderColor: theme.colors.purple },
-  roleBtnText: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: '600' },
+  roleBtnOn: { backgroundColor: colors.purple, borderColor: colors.purple },
+  roleBtnText: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
   roleBtnTextOn: { color: '#fff', fontWeight: '700' },
 
   footer: { alignItems: 'center', paddingTop: 8, paddingBottom: 16, gap: 5 },
-  footerLogo: { fontSize: 14, fontWeight: '900', color: theme.colors.text, letterSpacing: 1 },
-  footerSub: { fontSize: 10, color: theme.colors.textTertiary },
-  footerLegal: { fontSize: 10, color: theme.colors.textTertiary, textAlign: 'center', paddingHorizontal: 24 },
+  footerLogo: { fontSize: 14, fontWeight: '900', color: colors.text, letterSpacing: 1 },
+  footerSub: { fontSize: 10, color: colors.textTertiary },
+  footerLegal: { fontSize: 10, color: colors.textTertiary, textAlign: 'center', paddingHorizontal: 24 },
 });

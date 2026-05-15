@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { scopeAccent } from '@/lib/scopeAccent';
 
 /**
@@ -38,6 +39,8 @@ interface Props {
 }
 
 export function ScopeSegment({ value, onChange, size = 'tall', style }: Props) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   const isCompact = size === 'compact';
   return (
     <View style={[s.row, isCompact && s.rowCompact, style]}>
@@ -63,7 +66,7 @@ export function ScopeSegment({ value, onChange, size = 'tall', style }: Props) {
             <Text
               style={[
                 isCompact ? s.textCompact : s.textTall,
-                { color: active ? accent : theme.colors.textSecondary },
+                { color: active ? accent : colors.textSecondary },
                 active && { fontWeight: '900' },
               ]}
             >
@@ -76,15 +79,15 @@ export function ScopeSegment({ value, onChange, size = 'tall', style }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens) => StyleSheet.create({
   row: { flexDirection: 'row', gap: 6 },
   rowCompact: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
     borderRadius: 10,
     padding: 2,
     gap: 1,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
   },
   btnCompact: {
     flex: 1,
@@ -100,21 +103,21 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
-    backgroundColor: theme.colors.bgElevated,
+    backgroundColor: colors.bgElevated,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
   },
   textCompact: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontFamily: theme.typography.fontFamily.monoBold,
     letterSpacing: 0.3,
   },
   textTall: {
     fontSize: 13,
     fontWeight: '700',
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontFamily: theme.typography.fontFamily.monoBold,
     letterSpacing: 0.5,
   },

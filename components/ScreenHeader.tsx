@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 
 /**
  * Shared screen header (design.md step 3).
@@ -33,9 +34,11 @@ interface Props {
 }
 
 export function ScreenHeader({ title, subtitle, rightSlot, children, style }: Props) {
+  const { colors, gradients } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   return (
     <LinearGradient
-      colors={theme.gradients.header}
+      colors={gradients.header}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={[s.header, style]}
@@ -54,7 +57,7 @@ export function ScreenHeader({ title, subtitle, rightSlot, children, style }: Pr
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens) => StyleSheet.create({
   header: {
     paddingHorizontal: theme.layout.screenInset,
     paddingTop: 14,
@@ -73,13 +76,13 @@ const s = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '900',
-    color: theme.colors.text,
+    color: colors.text,
     lineHeight: 26,
     fontFamily: theme.typography.fontFamily.bold,
   },
   subtitle: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
     marginTop: 2,
     fontFamily: theme.typography.fontFamily.mono,
   },

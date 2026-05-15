@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { UserRole } from '@/types/core';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { Shield } from 'lucide-react-native';
 
 interface RoleGuardProps {
@@ -12,6 +13,8 @@ interface RoleGuardProps {
 }
 
 export function RoleGuard({ allowedRoles, children, fallback }: RoleGuardProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { user } = useAuth();
 
   if (!user || !allowedRoles.includes(user.role)) {
@@ -22,7 +25,7 @@ export function RoleGuard({ allowedRoles, children, fallback }: RoleGuardProps) 
     return (
       <View style={styles.container}>
         <View style={styles.card}>
-          <Shield size={48} color={theme.colors.primary} />
+          <Shield size={48} color={colors.primary} />
           <Text style={styles.title}>Access Restricted</Text>
           <Text style={styles.message}>
             This content is curated by our admin team to ensure data quality and accuracy.
@@ -40,46 +43,46 @@ export function RoleGuard({ allowedRoles, children, fallback }: RoleGuardProps) 
   return <>{children}</>;
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: theme.spacing.lg,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: theme.borderRadius.xl,
     padding: theme.spacing.xl,
     alignItems: 'center',
     maxWidth: 400,
     width: '100%',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
   },
   title: {
     fontSize: theme.typography.fontSize.xl,
     fontWeight: 'bold',
-    color: theme.colors.text,
+    color: colors.text,
     marginTop: theme.spacing.md,
     marginBottom: theme.spacing.sm,
   },
   message: {
     fontSize: theme.typography.fontSize.md,
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: theme.spacing.lg,
   },
   badge: {
-    backgroundColor: theme.colors.surfaceLight,
+    backgroundColor: colors.surfaceLight,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
     borderRadius: theme.borderRadius.full,
   },
   badgeText: {
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: theme.typography.fontSize.sm,
     fontWeight: '600',
   },

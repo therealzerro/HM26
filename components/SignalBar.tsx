@@ -6,9 +6,10 @@
 //   • Fill border-radius matches the track (2px)
 //   • Native glow under fill via shadow props
 // ───────────────────────────────────────────────────────────
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 
 interface SignalBarProps {
   label: string;
@@ -19,6 +20,8 @@ interface SignalBarProps {
 const BAR_MAX = 60;   // spec — max fill width in px
 
 export function SignalBar({ label, value, color }: SignalBarProps) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeS(colors), [colors]);
   const pct = Math.min(Math.max(value, 0), 1);
   const fillW = pct * BAR_MAX;
   const valuePct = Math.round(pct * 100);
@@ -55,7 +58,7 @@ export function SignalBar({ label, value, color }: SignalBarProps) {
   );
 }
 
-const s = StyleSheet.create({
+const makeS = (colors: ColorTokens) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -66,7 +69,7 @@ const s = StyleSheet.create({
     width: 60,
     fontSize: 9,
     textAlign: 'right',
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontFamily: theme.typography.fontFamily.mono,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -74,7 +77,7 @@ const s = StyleSheet.create({
   track: {
     width: BAR_MAX,         // ← fixed; was flex:1
     height: 4,
-    backgroundColor: theme.colors.surfaceLight,
+    backgroundColor: colors.surfaceLight,
     borderRadius: 2,
     overflow: 'hidden',
   },

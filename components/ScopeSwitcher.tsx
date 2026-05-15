@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 import { SCOPES } from '@/constants/pairClasses';
 import { useScope } from '@/hooks/useScope';
 import { Scope } from '@/types/core';
 
 export function ScopeSwitcher() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { scope, setScope } = useScope();
 
   return (
@@ -33,16 +36,16 @@ export function ScopeSwitcher() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.bgElevated,
+    backgroundColor: colors.bgElevated,
     borderRadius: theme.borderRadius.tile,
     padding: 4,
     marginHorizontal: theme.spacing.md,
     marginVertical: theme.spacing.sm,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: colors.border,
   },
   button: {
     flex: 1,
@@ -54,7 +57,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.chip,
   },
   buttonActive: {
-    backgroundColor: theme.colors.purple,
+    backgroundColor: colors.purple,
   },
   icon: {
     fontSize: 16,
@@ -62,10 +65,10 @@ const styles = StyleSheet.create({
   label: {
     fontSize: theme.typography.fontSize.sm,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: colors.textSecondary,
     fontFamily: theme.typography.fontFamily.medium,
   },
   labelActive: {
-    color: theme.colors.text,
+    color: colors.text,
   },
 });

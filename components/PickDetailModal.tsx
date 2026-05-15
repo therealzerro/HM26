@@ -9,33 +9,56 @@ import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop, Rect } from 're
 import { useQuery } from '@tanstack/react-query';
 import { fetchFromSupabase } from '../lib/supabase';
 import { theme } from '../constants/theme';
+import { useTheme, type ColorTokens } from '../lib/theme';
 import { PickItem } from './PickCard';
 import { HitReplay } from './HitReplay';
 import { getPairs, normalizePairKey } from '../lib/pairUtils';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
-const D = {
-  bg:          theme.colors.background,
-  surface:     theme.colors.bgElevated,
-  glass:       theme.colors.card,
-  glassBorder: theme.colors.border,
-  borderMed:   theme.colors.borderMed,
-  cyan:        theme.colors.cyan,
-  rose:        theme.colors.rose,
-  purple:      theme.colors.purple,
-  gold:        theme.colors.gold,
-  amber:       theme.colors.amber,
-  hot:         theme.colors.hot,
-  text:        theme.colors.text,
-  textSub:     theme.colors.textSecondary,
-  textDim:     theme.colors.textTertiary,
-  mono:        theme.typography.fontFamily.mono,
-  monoBold:    theme.typography.fontFamily.monoBold,
-};
+// Active design tokens — same shape as the original `D` map but resolved
+// per render through useTheme so the modal flips with light/dark mode.
+type DTokens = ReturnType<typeof makeD>;
+function makeD(colors: ColorTokens) {
+  return {
+    bg:          colors.background,
+    surface:     colors.bgElevated,
+    glass:       colors.card,
+    glassBorder: colors.border,
+    borderMed:   colors.borderMed,
+    cyan:        colors.cyan,
+    rose:        colors.rose,
+    purple:      colors.purple,
+    gold:        colors.gold,
+    amber:       colors.amber,
+    hot:         colors.hot,
+    text:        colors.text,
+    textSub:     colors.textSecondary,
+    textDim:     colors.textTertiary,
+    mono:        theme.typography.fontFamily.mono,
+    monoBold:    theme.typography.fontFamily.monoBold,
+  };
+}
+
+function useStyles() {
+  const { colors } = useTheme();
+  return useMemo(() => {
+    const D = makeD(colors);
+    return {
+      D,
+      sp: makeSp(D),
+      mx: makeMx(D),
+      wy: makeWy(D),
+      tb: makeTb(D),
+      ct: makeCt(D),
+      s:  makeS(D),
+    };
+  }, [colors]);
+}
 
 // ─── Gradient accent line ─────────────────────────────────────────────────────
 function GradientLine() {
+  const { D } = useStyles();
   return (
     <Svg width={SCREEN_W} height={3} style={{ display: 'flex' }}>
       <Defs>
@@ -53,6 +76,7 @@ function GradientLine() {
 
 // ─── Animated energy arc ──────────────────────────────────────────────────────
 function EnergyArc({ value, size = 80 }: { value: number; size?: number }) {
+  const { D } = useStyles();
   const pulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     if (value >= 80) {
@@ -100,6 +124,7 @@ function EnergyArc({ value, size = 80 }: { value: number; size?: number }) {
 
 // ─── Signal pill (compact, 4-across) ─────────────────────────────────────────
 function SignalPill({ label, value, color }: { label: string; value: number; color: string }) {
+  const { sp } = useStyles();
   const pct = Math.round(value * 100);
   return (
     <View style={sp.card}>
@@ -111,7 +136,7 @@ function SignalPill({ label, value, color }: { label: string; value: number; col
     </View>
   );
 }
-const sp = StyleSheet.create({
+const makeSp = (D: DTokens) => StyleSheet.create({
   card:   { flex: 1, backgroundColor: D.glass, borderRadius: 10, borderWidth: 1, borderColor: D.glassBorder, paddingVertical: 10, paddingHorizontal: 8, gap: 4, alignItems: 'center' },
   label:  { fontSize: 7, fontWeight: '900', letterSpacing: 1 },
   val:    { fontSize: 22, fontWeight: '900', fontFamily: D.monoBold, lineHeight: 24 },
@@ -122,6 +147,7 @@ const sp = StyleSheet.create({
 
 // ─── Pair matrix header + rows ────────────────────────────────────────────────
 function PairMatrixHeader({ labels }: { labels: string[] }) {
+  const { D, mx } = useStyles();
   return (
     <View style={mx.headerRow}>
       <View style={{ width: 76 }}>
@@ -138,6 +164,7 @@ function PairMatrixHeader({ labels }: { labels: string[] }) {
 }
 
 function PairProgressRow({ icon, label, scores }: { icon: string; label: string; scores: number[] }) {
+  const { D, mx } = useStyles();
   return (
     <View style={mx.dataRow}>
       <View style={mx.rowLabel}>
@@ -158,7 +185,7 @@ function PairProgressRow({ icon, label, scores }: { icon: string; label: string;
     </View>
   );
 }
-const mx = StyleSheet.create({
+const makeMx = (D: DTokens) => StyleSheet.create({
   headerRow:  { flexDirection: 'row', alignItems: 'flex-end', paddingBottom: 10, borderBottomWidth: 1.5, borderBottomColor: D.borderMed, marginBottom: 2 },
   headerCell: { flex: 1, alignItems: 'center' },
   headerPair: { fontSize: 14, fontWeight: '900', color: D.text, fontFamily: D.monoBold },
@@ -175,6 +202,7 @@ const mx = StyleSheet.create({
 
 // ─── Why row ──────────────────────────────────────────────────────────────────
 function WhyRow({ icon, label, desc, score }: { icon: string; label: string; desc: string; score: number }) {
+  const { D, wy } = useStyles();
   const c = score >= 70 ? D.cyan : score >= 40 ? D.gold : D.textDim;
   return (
     <View style={wy.row}>
@@ -189,7 +217,7 @@ function WhyRow({ icon, label, desc, score }: { icon: string; label: string; des
     </View>
   );
 }
-const wy = StyleSheet.create({
+const makeWy = (D: DTokens) => StyleSheet.create({
   row:      { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
   iconBox:  { width: 32, height: 32, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.07)', alignItems: 'center', justifyContent: 'center' },
   icon:     { fontSize: 16 },
@@ -209,6 +237,7 @@ const TABS: { key: Tab; icon: string; label: string }[] = [
 ];
 
 function TabBar({ active, onPress }: { active: Tab; onPress: (t: Tab) => void }) {
+  const { tb } = useStyles();
   return (
     <View style={tb.bar}>
       {TABS.map(t => (
@@ -221,7 +250,7 @@ function TabBar({ active, onPress }: { active: Tab; onPress: (t: Tab) => void })
     </View>
   );
 }
-const tb = StyleSheet.create({
+const makeTb = (D: DTokens) => StyleSheet.create({
   bar:            { flexDirection: 'row', backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.glassBorder },
   tab:            { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 13, position: 'relative' },
   tabActive:      { backgroundColor: 'rgba(43,255,204,0.04)' },
@@ -242,6 +271,7 @@ interface PickDetailModalProps {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: PickDetailModalProps) {
+  const { D, ct, s } = useStyles();
   const [tab, setTab]       = useState<Tab>('INTEL');
   const [savedMsg, setSavedMsg] = useState('');
   const slideAnim = useRef(new Animated.Value(SCREEN_H)).current;
@@ -667,7 +697,7 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const ct = StyleSheet.create({
+const makeCt = (D: DTokens) => StyleSheet.create({
   pad:          { padding: 16 },
   sectionTitle: { fontSize: 9, fontWeight: '900', color: D.cyan, letterSpacing: 2, marginBottom: 8 },
   subtitle:     { fontSize: 9, color: D.textDim, marginTop: -4, marginBottom: 10 },
@@ -719,7 +749,7 @@ const ct = StyleSheet.create({
   savedMsg:        { textAlign: 'center', color: D.cyan, fontSize: 12, fontWeight: '700', marginTop: 10 },
 });
 
-const s = StyleSheet.create({
+const makeS = (D: DTokens) => StyleSheet.create({
   overlay:  { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)' },
   sheet:    { flex: 1, backgroundColor: D.bg },
 

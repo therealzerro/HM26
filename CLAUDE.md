@@ -45,6 +45,24 @@ Config changes are tracked with **CONFIG-XX** entries in `MASTER_AUDIT.md` (para
 
 **No engine change ships without a hit-rate number attached.**
 
+## Brand voice — public-facing strings
+
+The HitMaster ZK6 Facebook page was de-recommended by Meta in May 2026 due to algorithmic misclassification as gambling-adjacent. The product is being repositioned as a **data intelligence and analytics platform** — comparable to ESPN Stats, FiveThirtyEight, Yahoo Finance — not a lottery prediction service. Any user-facing text in the codebase must reflect that voice. See `assets/HitMaster_Designer_Agent_Skill_Brief.md` for the full forbidden-word list and approved vocabulary; BRAND-01 in `MASTER_AUDIT.md` tracks the in-app audit.
+
+**Avoid:** "lottery", "lotto", "Pick 3", "winning numbers", "winners", "winning", "daily picks", "today's picks", "hot picks", "Daily Heat", "hits" (as a count of correct predictions), "Hit detection", "play"/"play the numbers", "gamble"/"bet", "lucky"/"luck", "jackpot"/"payout".
+
+**Use instead:** "daily signals", "intelligence reports", "data drops", "Daily Intelligence", "pattern matches", "patterns identified", "signals matched", "predictions verified", "pattern matching", "numerical pattern analysis", "observed outcomes", "succeed"/"outperform", "use"/"apply"/"engage".
+
+**Applies to:** `app.config.ts`, `app.json`, push notification copy, App Store / Play Store metadata, share message templates, deep-link previews, splash/onboarding copy, error messages shown to users, and all consumer-tab UI (`app/(tabs)/index.tsx`, `explore`, `results`, `book`, `learn`, `account`, `track-record`, plus shared consumer components and modals).
+
+**Does NOT apply to:**
+- Internal code identifiers — function names, variable names, type names, file names (`hitDetection.ts`, `HitHeroBand.tsx`, `hit_box`, `runHitDetectionAndRefresh` all stay).
+- Comments, audit log strings, `console.*` output, MASTER_AUDIT entries.
+- Admin/operator surfaces — `app/(tabs)/intelligence.tsx`, `app/(tabs)/admin.tsx`, `app/(tabs)/admin-imports.tsx`, `app/import-wizard.tsx`, `app/ledger-import.tsx`, and `components/admin/*`. These are internal tools; subscribers don't see them.
+- The brand name **HitMaster** / **HitMaster ZK6** itself — preserved everywhere as the wordmark.
+
+When editing user-facing strings, do not bulk-rename. Each replacement is per-string and context-sensitive (e.g. "Today's picks" → "Today's signals", but a button labeled "Detect hits" in admin tools stays).
+
 ## Architecture Overview
 
 ### Stack

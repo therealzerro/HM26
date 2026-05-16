@@ -146,6 +146,37 @@ External AI tool (Gemini CLI) overwrote engine config with untested aggressive t
 
 ---
 
+## Brand-Voice Audit (BRAND-XX)
+
+Public-facing copy is governed by a separate rulebook from engine behavior. The HitMaster ZK6 Facebook page was de-recommended by Meta in May 2026 due to gambling-classifier triggers in the page's copy. The repositioning effort — see `assets/HitMaster_Designer_Agent_Skill_Brief.md` — extends from social/ads into the app itself: App Store metadata, push notifications, in-app UI strings, share templates, and error messages must all use the data-intelligence voice. Internal code identifiers and admin/operator surfaces are explicitly exempt. CLAUDE.md "Brand voice — public-facing strings" section is the in-repo doctrine; this section is the audit trail.
+
+### BRAND-01 — In-App Copy Scrub For Meta Rehabilitation Eligibility (2026-05-16 opened)
+
+**Trigger.** Facebook page de-recommendation in May 2026 attributed to gambling-adjacent classification. Brand rehabilitation requires that every public-facing surface (page + ads + app store listings + in-app copy that screenshots into marketing) read as data intelligence, not lottery prediction. Designer skill brief landed at `assets/HitMaster_Designer_Agent_Skill_Brief.md` 2026-05-16 with the forbidden/approved vocabulary; this entry tracks application of that vocabulary to the app's code-resident user-facing strings.
+
+**Scope (in).** Strings rendered to consumer users — `app.config.ts`, `app.json`, `app/(tabs)/index.tsx`, `explore.tsx`, `results.tsx`, `book.tsx`, `learn.tsx`, `account.tsx`, `app/track-record.tsx`, `app/coming-soon.tsx`, consumer-side modals (`PickDetailModal`, `PickExplainerModal`, `HeatCheckModal` if any), shared consumer components (`HitHeroBand`, `PickCard`, `SlateCard`, etc. — text only), push-notification copy, share/deep-link templates, error toasts and Alert dialogs visible to users.
+
+**Scope (out — explicit carve-outs).** Internal code identifiers (function names, variable names, type names, file names — `hitDetection.ts`, `runHitDetectionAndRefresh`, `hit_box`, `HitHeroBand.tsx` all stay). Comments, `console.*`, audit log strings, MASTER_AUDIT entries. Admin/operator surfaces (`app/(tabs)/intelligence.tsx`, `admin.tsx`, `admin-imports.tsx`, `app/import-wizard.tsx`, `app/ledger-import.tsx`, `components/admin/*`) — these are internal tools, subscribers do not see them, and the operator vocabulary is load-bearing for the admin workflow. The brand wordmark **HitMaster** / **HitMaster ZK6** is preserved everywhere.
+
+**User decisions captured 2026-05-16.**
+1. Brand-name carve-out: confirmed — `HitMaster` / `HitMaster ZK6` stays everywhere.
+2. App Store display name: stays `HitMaster` (per `app.config.ts` line 5 + `app.json` `expo.name`).
+3. App Store subtitle/description target: uses the brief's About-section line verbatim — *"a data intelligence platform for numerical pattern analysis"*.
+4. Admin/operator exemption: confirmed — Tier 4 surfaces keep existing operator language.
+
+**Phased plan.**
+- **Phase 0 (this entry).** Doctrine + audit anchor. CLAUDE.md "Brand voice" section added; `assets/HitMaster_Designer_Agent_Skill_Brief.md` committed; in-flight feature work landed first so the audit starts on a clean tree.
+- **Phase 1.** Inventory — grep-based sweep of the in-scope file set for the brief's forbidden vocabulary. Output is a per-row table here (file · line · current text · proposed replacement · tier). Read-only; no code edits.
+- **Phase 2.** Tier the inventory. T1 = external eligibility (`app.config.ts` / `app.json` / push / share / splash). T2 = first-touch UI (home, onboarding, `coming-soon`, `learn`, auth). T3 = subscriber functional UI (explore, results, track-record, account, consumer modals, shared components). T4 = admin/operator (no edits — documented exempt).
+- **Phase 3.** Surgical edits, one tier per commit (`chore(copy): brand-voice scrub T1 …`). Each edit is per-string, context-sensitive — no bulk renames. Lint + smoke test the affected surfaces after each tier; commit hashes recorded here.
+- **Phase 4.** Verify — re-run the forbidden-word grep on T1–T3 paths; expect zero hits outside the brand-name carve-out. `git diff --stat` review confirms no `.ts`/`.tsx` identifier renames slipped in. Manual walk through Home → Explore → Results → Track Record → Account on tunnel. Close this entry with the diff range.
+
+**Inventory table.** Pending Phase 1 sweep. Populated in this section before any Phase 3 edits.
+
+**Status:** 🟡 In progress. Phase 0 doctrine landed 2026-05-16; Phase 1 inventory next.
+
+---
+
 ## Quick Counts
 
 | State | Count |

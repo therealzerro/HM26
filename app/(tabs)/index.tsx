@@ -129,10 +129,10 @@ type OnboardingScreen =
   | { kind: 'preview'; emoji: string; title: string; body: string; btn: string };
 
 const ONBOARDING_BASE: OnboardingScreen[] = [
-  { kind: 'text', emoji: '🏆', title: 'Welcome to HitMaster', body: 'Your daily Pick 3 intelligence system. The ZK6™ Engine analyzes years of draw history to surface your highest-signal plays.', btn: 'Next →' },
+  { kind: 'text', emoji: '🏆', title: 'Welcome to HitMaster', body: 'Your daily numerical pattern analysis. The ZK6™ Engine analyzes years of public draw data to surface your highest-signal combinations.', btn: 'Next →' },
   { kind: 'text', emoji: '⚡', title: 'Your Daily K6 Slate', body: 'Each morning your K6 Slate is powered by 3 signals — Frequency, Momentum, and Pattern — ranked by Energy Score.', btn: 'Next →' },
-  { kind: 'text', emoji: '🌟', title: 'Join 2,400+ Players', body: 'Players across 18 states use HitMaster daily. Upgrade to Oracle+ to see all 6 picks.', btn: 'Next →' },
-  { kind: 'preview', emoji: '👇', title: 'Your free preview', body: 'A taste of today\'s ZK6 picks — yours on the free tier. Oracle+ unlocks all 6.', btn: 'Get My Picks' },
+  { kind: 'text', emoji: '🌟', title: 'Join 2,400+ Members', body: 'Members across 18 states use HitMaster daily. Upgrade to Oracle+ to see all 6 signals.', btn: 'Next →' },
+  { kind: 'preview', emoji: '👇', title: 'Your free preview', body: 'A preview of today\'s ZK6 signals — yours on the free tier. Oracle+ unlocks all 6.', btn: 'See My Signals' },
 ];
 
 interface PreviewPick { rank: number; combo: string; energy: number }
@@ -237,7 +237,7 @@ function OverflowSheet({
           <DrawTicker scope={scope} />
           <TouchableOpacity style={os.actionRow} onPress={() => { onClose(); setTimeout(onHeatCheck, 200); }}>
             <Text style={os.actionEmoji}>🔍</Text>
-            <Text style={os.actionLabel}>Heat Check any combo</Text>
+            <Text style={os.actionLabel}>Signal Check any combo</Text>
           </TouchableOpacity>
 
           <Text style={os.sectionTitle}>Engine</Text>
@@ -247,9 +247,9 @@ function OverflowSheet({
               : `🔶 Sample data only — import draws in Results tab`}
           </Text>
 
-          <Text style={os.sectionTitle}>Responsible play</Text>
+          <Text style={os.sectionTitle}>About</Text>
           <Text style={os.disclaimer}>
-            HitMaster slate picks are for entertainment and analysis only — not guarantees. Play responsibly. 1-800-GAMBLER
+            HitMaster signals are for analytical research only — not guarantees. Use responsibly.
           </Text>
         </Pressable>
       </Pressable>
@@ -766,7 +766,7 @@ export default function HomeScreen() {
           title={
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <BrandMark size="sm" />
-              <Text style={s.title}>Today's <Text style={{ color: colors.cyan }}>Picks</Text> ⚡</Text>
+              <Text style={s.title}>Today's <Text style={{ color: colors.cyan }}>Signals</Text> ⚡</Text>
             </View>
           }
           subtitle={<FreshnessLine snapshot={snapshot} />}
@@ -803,14 +803,14 @@ export default function HomeScreen() {
           <View style={s.heroCol}>
             <Text style={[s.heroColNum, { color: avgColor }]} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit>{avgEnergy}</Text>
             <Text style={s.heroColLabel}>AVG ENERGY</Text>
-            <Text style={s.heroColMeta}>{isFree ? '2 of 6' : '6 picks'}</Text>
+            <Text style={s.heroColMeta}>{isFree ? '2 of 6' : '6 signals'}</Text>
             <Text style={[s.heroColMeta, { color: scopeAccent(scope), fontWeight: '700' }]}>{SCOPE_LABELS[scope] ?? scope}</Text>
           </View>
           <View style={s.heroDivider} />
           <View style={s.heroCol}>
             <Text style={[s.heroColNum, { color: colors.cyan }]} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit>{BACKTEST_HIT_RATE}%</Text>
-            <Text style={s.heroColLabel}>HIT RATE</Text>
-            <Text style={s.heroColMeta}>{todayHits} {todayHits === 1 ? 'hit' : 'hits'} today</Text>
+            <Text style={s.heroColLabel}>MATCH RATE</Text>
+            <Text style={s.heroColMeta}>{todayHits} {todayHits === 1 ? 'match' : 'matches'} today</Text>
           </View>
           {nextDrawIn ? (
             <>
@@ -833,8 +833,8 @@ export default function HomeScreen() {
           <View style={s.hitBanner}>
             <Text style={{ fontSize: 22 }}>🔥</Text>
             <View style={{ flex: 1 }}>
-              <Text style={s.hitBannerTitle}>ZK6 HIT TODAY · {hitBanner.digits} in {hitBanner.jurisdiction}</Text>
-              <Text style={s.hitBannerSub}>{hitBanner.session === 'midday' ? '☀️ Midday' : '🌙 Evening'} · {hitBanner.hitType === 'straight' ? 'Straight hit ✓' : 'Box hit ✓'}</Text>
+              <Text style={s.hitBannerTitle}>ZK6 MATCH TODAY · {hitBanner.digits} in {hitBanner.jurisdiction}</Text>
+              <Text style={s.hitBannerSub}>{hitBanner.session === 'midday' ? '☀️ Midday' : '🌙 Evening'} · {hitBanner.hitType === 'straight' ? 'Straight match ✓' : 'Box match ✓'}</Text>
             </View>
           </View>
         )}
@@ -842,7 +842,7 @@ export default function HomeScreen() {
         {/* ── Loss explanation card (enhancements §1.5) ── */}
         {!hitBanner && lossCard && (
           <View style={s.lossCard}>
-            <Text style={s.lossTitle}>Today's slate didn't hit — here's what got close.</Text>
+            <Text style={s.lossTitle}>Today's slate didn't match — here's what got close.</Text>
             <Text style={s.lossBody}>
               <Text style={s.lossBold}>Pick #{lossCard.pick.rank} ({lossCard.pick.combo})</Text> shared 2 of 3 digits with {lossCard.closeCalls.length} {lossCard.closeCalls.length === 1 ? 'draw' : 'draws'} today: {lossCard.closeCalls.slice(0, 4).map(d => `${d.jurisdiction} ${d.session} (${d.result_digits})`).join(', ')}{lossCard.closeCalls.length > 4 ? '…' : '.'}
             </Text>
@@ -926,9 +926,9 @@ export default function HomeScreen() {
 
           {isFree && !snapshotLoading && (
             <View style={s.proGate}>
-              <Text style={s.proGateLocked}>{items.filter(p => p.locked).length} of 6 picks hidden</Text>
+              <Text style={s.proGateLocked}>{items.filter(p => p.locked).length} of 6 signals hidden</Text>
               <Text style={s.proGateTitle}>You saw the free tier</Text>
-              <Text style={s.proGateDesc}>Oracle+ unlocks the full K6 slate at HitMaster's verified {BACKTEST_HIT_RATE}% hit rate — plus the optimal straight order and deep analytics.</Text>
+              <Text style={s.proGateDesc}>Oracle+ unlocks the full K6 slate at HitMaster's verified {BACKTEST_HIT_RATE}% match rate — plus the optimal straight order and deep analytics.</Text>
               <TouchableOpacity style={s.proGateBtn} onPress={() => setPaywallOpen(true)}>
                 <Text style={s.proGateBtnText}>Upgrade · $9.99/mo ♛</Text>
               </TouchableOpacity>

@@ -20,7 +20,7 @@ const COMING_SOON_FEATURES: ComingSoonFeature[] = [
   {
     id: 'hitmaster-3-straight',
     name: 'HitMaster 3 Straight',
-    description: 'Advanced 3-digit straight play analysis with position-specific insights',
+    description: 'Advanced 3-digit straight-arrangement analysis with position-specific insights',
     launchDate: new Date('2025-12-15'),
     progress: 'build',
     earlyAccess: true
@@ -35,16 +35,16 @@ const COMING_SOON_FEATURES: ComingSoonFeature[] = [
   {
     id: 'hitmaster-4-box',
     name: 'HitMaster 4 Box',
-    description: '4-digit box combination analysis with enhanced prediction models',
+    description: '4-digit box combination analysis with enhanced pattern-recognition models',
     launchDate: new Date('2026-03-10'),
     progress: 'build'
   }
 ];
 
 const UNDER_THE_HOOD_FEATURES = [
-  'Multi-pass scoring v2 (recency/presence/integrity/heat/verification)',
+  'Multi-pass scoring v2 (recency/presence/integrity/signal/verification)',
   'Pattern-aware combos (co-occurrence without overfitting)',
-  'Adaptive heat model (per-state decay, cold-start smoothing)',
+  'Adaptive signal model (per-state decay, cold-start smoothing)',
   'Backtest harness (fixed-seed replays; diagnostics)',
   'Explainability (rationale, factor breakdown, lineage)',
   'Risk tiers (conservative/standard/aggressive probability ranges)'

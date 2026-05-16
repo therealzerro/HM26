@@ -49,11 +49,11 @@ const plans: PlanOption[] = [
 
 const featureComparison = [
   { feature: 'Full K6 Slate', free: 'Sample only', premium: 'Yes' },
-  { feature: 'Heat Checks', free: '1/day', premium: 'Unlimited' },
-  { feature: 'Pick by Budget', free: 'No', premium: 'Yes' },
+  { feature: 'Signal Checks', free: '1/day', premium: 'Unlimited' },
+  { feature: 'Budget Planner', free: 'No', premium: 'Yes' },
   { feature: 'Live Updates', free: '15-min delay', premium: 'Real-time' },
   { feature: 'Detailed Reasons', free: 'Summary only', premium: 'Full details' },
-  { feature: 'Previous Hits', free: 'Summary', premium: 'Complete history' },
+  { feature: 'Previous Matches', free: 'Summary', premium: 'Complete history' },
 ];
 
 export default function PaywallScreen() {
@@ -120,7 +120,7 @@ export default function PaywallScreen() {
         {/* Hero Section — verified-rate claim, no marketing fluff */}
         <View style={styles.hero}>
           <Text style={styles.heroBigNum} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit>{VERIFIED_HIT_RATE}%</Text>
-          <Text style={styles.heroBigSub}>verified hit rate</Text>
+          <Text style={styles.heroBigSub}>verified match rate</Text>
           <Text style={styles.heroCompare}>vs ~7% random chance</Text>
           <Text style={styles.heroTitle}>Unlock the full K6 slate</Text>
         </View>

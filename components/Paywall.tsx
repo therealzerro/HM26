@@ -14,13 +14,13 @@ const PLANS = [
 ];
 
 const PRO_BENEFITS = [
-  '⚡ All 6 K6 Slate picks daily',
-  '✦ Optimal straight per pick',
-  '🔥 Unlimited Heat Checks',
+  '⚡ All 6 K6 Slate signals daily',
+  '✦ Optimal straight per signal',
+  '🔥 Unlimited Signal Checks',
   '📊 Full pattern depth analytics',
-  '💰 Budget Pick tool',
+  '💰 Budget Planner tool',
   '📖 Number Book (unlimited lists)',
-  '📋 Full hit history & stats',
+  '📋 Full match history & stats',
   '🔔 Live slate update alerts',
 ];
 
@@ -65,7 +65,7 @@ export function Paywall({ visible, onClose }: PaywallProps) {
             <View style={s.header}>
               <BrandMark size="lg" style={{ marginBottom: 10 }} />
               <Text style={s.title}>Unlock Oracle+</Text>
-              <Text style={s.subtitle}>Join 2,400+ players using ZK6 intelligence daily</Text>
+              <Text style={s.subtitle}>Join 2,400+ members using ZK6 intelligence daily</Text>
             </View>
 
             {/* Benefits */}

@@ -10,21 +10,21 @@ import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 
 const LEARN_MODULES = [
   {
-    id: 'what-is-pick3', icon: '🎰', title: 'What is Pick 3?',
-    summary: 'The most popular daily lottery game in America.',
+    id: 'what-is-pick3', icon: '🎰', title: 'What is a 3-digit draw?',
+    summary: 'The most popular daily state-run draw in America.',
     sections: [
-      { title: 'The Basics', body: 'Pick 3 is a daily lottery game where you choose 3 digits (000–999). Each state runs it 1–2 times per day — a Midday draw and an Evening draw. You pick 3 numbers and try to match the winning combination drawn by your state lottery.' },
-      { title: 'How Much Can You Win?', body: 'Straight play: match all 3 digits in exact order → typically $500 for a $1 bet.\nBox play: match all 3 digits in any order → typically $80–$160 for a $1 bet.\nStraight/Box combo: play both for one ticket → win both if you hit straight, or just the box prize if out of order.' },
-      { title: 'Where Do You Buy Tickets?', body: 'Walk into any gas station, convenience store, grocery store, or dedicated lottery retailer in your state. Ask for \'Pick 3\' or look for the lottery terminal. Most states also allow online play through their official lottery website.' },
+      { title: 'The Basics', body: 'A 3-digit draw is a state-run game where you choose 3 digits (000–999). Each state runs it 1–2 times per day — a Midday draw and an Evening draw. You select 3 numbers and try to match the drawn combination from your state\'s official draw.' },
+      { title: 'How the Tiers Work', body: 'Straight: match all 3 digits in exact order → primary tier (highest secondary return).\nBox: match all 3 digits in any order → secondary tier (lower per-arrangement return, better odds).\nStraight/Box combo: place both on one ticket — match the primary tier on exact order, or the secondary tier on any order.' },
+      { title: 'Where Do You Place a Number?', body: 'Walk into any gas station, convenience store, grocery store, or state-authorized retailer. Ask for the 3-digit draw or look for the state\'s draw terminal. Most states also allow online entry through their official site.' },
     ],
   },
   {
     id: 'box-vs-straight', icon: '📦', title: 'Box vs Straight',
-    summary: 'The two ways to play — and why Box is the smarter play.',
+    summary: 'The two arrangements — and why Box is the smarter approach.',
     sections: [
-      { title: 'Straight Play', body: 'You must match ALL 3 digits in the EXACT order they are drawn. Example: You play 4-2-7. The winning number drawn is 4-2-7. You WIN. If 7-2-4 is drawn — you LOSE. Higher payout (~$500 per $1) but much harder to win.' },
-      { title: 'Box Play', body: 'You match all 3 digits in ANY ORDER. Example: You play the box set {2,4,7}. You win if 4-2-7, 7-4-2, 2-7-4, or any arrangement of those three digits is drawn. Lower payout (~$80–$160) but significantly better odds.' },
-      { title: 'HitMaster focuses on Box', body: 'Our ZK6 Engine analyzes the universe of all possible 3-digit number sets (000–999). We score each SET regardless of order, then identify the optimal straight arrangement. This gives you the best of both worlds — the strategic edge of box analysis with the straight-play payout opportunity.' },
+      { title: 'Straight Arrangement', body: 'You must match ALL 3 digits in the EXACT order they are drawn. Example: 4-2-7 is placed. If 4-2-7 is drawn, the arrangement matches. If 7-2-4 is drawn — it does not match. Primary tier: higher per-arrangement return, but a tighter match requirement.' },
+      { title: 'Box Arrangement', body: 'You match all 3 digits in ANY ORDER. Example: the box set {2,4,7} matches if 4-2-7, 7-4-2, 2-7-4, or any arrangement of those three digits is drawn. Secondary tier: lower per-arrangement return, but significantly better match odds.' },
+      { title: 'HitMaster focuses on Box', body: 'The ZK6 Engine analyzes the universe of all possible 3-digit number sets (000–999). We score each SET regardless of order, then identify the optimal straight arrangement. This gives you the analytical edge of box analysis with the straight-arrangement return on top when both align.' },
       { title: 'Singles vs Doubles vs Triples', body: 'Singles: 3 different digits (123, 456) — 6 possible straight arrangements. Most common.\nDoubles: one repeated digit (112, 344) — 3 arrangements. Less frequent.\nTriples: all same digit (111, 777) — only 1 arrangement. Rare.' },
     ],
   },
@@ -32,28 +32,28 @@ const LEARN_MODULES = [
     id: 'daily-drawings', icon: '📅', title: 'Daily Drawing Times',
     summary: '76 draws happen every day — HitMaster tracks all of them.',
     sections: [
-      { title: 'Two Sessions Per Day', body: 'Most states run Pick 3 twice daily:\n☀️ Midday: draws happen between 9:53 AM – 3:45 PM ET\n🌙 Evening: draws happen between 6:25 PM – 11:15 PM ET\n\nYou buy your ticket BEFORE the draw. Most states stop selling tickets 15–30 minutes before draw time.' },
+      { title: 'Two Sessions Per Day', body: 'Most states run their 3-digit draw twice daily:\n☀️ Midday: draws happen between 9:53 AM – 3:45 PM ET\n🌙 Evening: draws happen between 6:25 PM – 11:15 PM ET\n\nYou place your number BEFORE the draw. Most states stop accepting entries 15–30 minutes before draw time.' },
       { title: 'Your State\'s Times', body: 'Every state has its specific draw time. For example:\n• New York Midday: 2:00 PM ET\n• Florida Evening: 9:15 PM ET\n• Ohio Midday: 12:14 PM ET\n• California Evening: 9:15 PM ET\n\nHitMaster shows you all 76 daily draw times and the next upcoming draw at the top of every screen.' },
-      { title: 'All Day Scope', body: 'HitMaster\'s \'All Day\' analysis combines data from BOTH Midday and Evening sessions. This gives ZK6 the largest possible historical dataset to work with — ideal when you want the strongest overall picks regardless of session.' },
+      { title: 'All Day Scope', body: 'HitMaster\'s \'All Day\' analysis combines data from BOTH Midday and Evening sessions. This gives ZK6 the largest possible historical dataset to work with — ideal when you want the strongest overall signals regardless of session.' },
     ],
   },
   {
     id: 'regions-states', icon: '🗺', title: 'States & Regions',
-    summary: 'Pick 3 is played across the US and Canada — each state is its own game.',
+    summary: '3-digit draws run across the US and Canada — each state is its own game.',
     sections: [
-      { title: 'Each State is Independent', body: 'Every state runs its own Pick 3 lottery with its own drawing equipment, its own history, and its own winning numbers. A number hitting in New York does NOT affect New York\'s next draw — each draw is independent.' },
+      { title: 'Each State is Independent', body: 'Every state runs its own 3-digit draw with its own drawing equipment, its own history, and its own drawn combinations. A number matching in New York does NOT affect New York\'s next draw — each draw is independent.' },
       { title: 'Drawing Method Matters', body: 'States using physical ball machines (like TX, SC, NY, FL) produce draws with real physical randomness — slight mechanical patterns can emerge over time. States using computerized RNG are designed to be purely random. ZK6 adjusts its signal confidence accordingly.' },
-      { title: 'HitMaster Covers 40+ Jurisdictions', body: 'We track Pick 3 drawings in: AZ, AR, CA, CO, CT, DC, DE, FL, GA, IA, ID, IL, IN, KS, KY, LA, MI, MN, MO, NC, NE, NJ, NM, NY, OH, OK, PA, SC, TN, TX, VA, WA, WI, WV — plus Ontario, Quebec, and Western Canada.' },
+      { title: 'HitMaster Covers 40+ Jurisdictions', body: 'We track 3-digit draws in: AZ, AR, CA, CO, CT, DC, DE, FL, GA, IA, ID, IL, IN, KS, KY, LA, MI, MN, MO, NC, NE, NJ, NM, NY, OH, OK, PA, SC, TN, TX, VA, WA, WI, WV — plus Ontario, Quebec, and Western Canada.' },
     ],
   },
   {
     id: 'zk6-for-you', icon: '⚡', title: 'How ZK6 Works For You',
     summary: 'You don\'t need to understand the math — just follow the slate.',
     sections: [
-      { title: 'Your Daily K6 Slate', body: 'Every day, ZK6 analyzes the entire Pick 3 universe — all 1,000 possible combinations — and selects the 6 picks with the strongest signal convergence. These are your K6 Slate picks. Pro members see all 6; Free members see the top 2 as a preview.' },
-      { title: 'Reading a Pick Card', body: 'Each pick shows:\n• The 3-digit number set and its box combination\n• Frequency, Momentum, Pattern signal bars (higher = stronger signal)\n• Energy Score (0–100): how strongly the pick stands out vs. the full universe\n• Optimal Straight: the best ordering for straight play\n\nPicks with Energy 65+ are HOT. 80+ is BLAZING.' },
-      { title: 'How to Use It', body: '1. Open HitMaster before your state\'s draw time\n2. Check the K6 Slate for your session (Midday or Evening)\n3. Find your state\'s picks — or use All Day for the combined slate\n4. Play the top picks as Box bets at your local lottery retailer\n5. After the draw, check Results to see if your picks hit' },
-      { title: 'Managing Expectations', body: 'HitMaster provides data-driven analysis to help you make smarter picks — it is NOT a guarantee of winning. The lottery is a game of chance. ZK6 identifies statistical patterns and signal convergence, but every draw is independent. Play responsibly, within your means.' },
+      { title: 'Your Daily K6 Slate', body: 'Every day, ZK6 analyzes the entire 3-digit draw universe — all 1,000 possible combinations — and selects the 6 signals with the strongest signal convergence. These are your K6 Slate signals. Pro members see all 6; Free members see the top 2 as a preview.' },
+      { title: 'Reading a Signal Card', body: 'Each signal shows:\n• The 3-digit number set and its box combination\n• Frequency, Momentum, Pattern signal bars (higher = stronger signal)\n• Energy Score (0–100): how strongly the signal stands out vs. the full universe\n• Optimal Straight: the best ordering for straight arrangement\n\nSignals with Energy 65+ are STRONG. 80+ is BLAZING.' },
+      { title: 'How to Use It', body: '1. Open HitMaster before your state\'s draw time\n2. Check the K6 Slate for your session (Midday or Evening)\n3. Find your state\'s signals — or use All Day for the combined slate\n4. Place the top signals as Box arrangements at your state-authorized retailer\n5. After the draw, check Results to see if your signals matched' },
+      { title: 'Managing Expectations', body: 'HitMaster provides data-driven analysis to help you make smarter signal choices — it is NOT a guarantee of outcomes. Every draw is independent. ZK6 identifies statistical patterns and signal convergence, but no engine eliminates randomness. Use responsibly, within your means.' },
     ],
   },
 ];
@@ -72,8 +72,8 @@ export default function LearnScreen() {
         {/* ── Module list (sidebar) ── */}
         <View style={s.sidebar}>
           <View style={s.sidebarHeader}>
-            <Text style={s.sidebarTitle}>🎓 <Text style={{ color: colors.primary }}>Learn to Play</Text></Text>
-            <Text style={s.sidebarSub}>Pick 3 from zero to pro player</Text>
+            <Text style={s.sidebarTitle}>🎓 <Text style={{ color: colors.primary }}>Learning Center</Text></Text>
+            <Text style={s.sidebarSub}>3-digit draws from zero to expert</Text>
           </View>
 
           <ScrollView style={s.moduleList}>
@@ -97,7 +97,7 @@ export default function LearnScreen() {
             {/* Quick tip */}
             <View style={s.quickTip}>
               <Text style={s.quickTipLabel}>💡 Quick Tip</Text>
-              <Text style={s.quickTipText}>Always play BOX on new picks. Once you're comfortable, add straight plays for bigger payouts.</Text>
+              <Text style={s.quickTipText}>Always start with BOX on new signals. Once you're comfortable, layer in straight arrangements for the primary tier.</Text>
             </View>
           </ScrollView>
         </View>
@@ -109,9 +109,9 @@ export default function LearnScreen() {
             <ScrollView contentContainerStyle={s.welcomeContent}>
               <View style={s.welcomeHero}>
                 <Text style={{ fontSize: 52, marginBottom: 10 }}>🎓</Text>
-                <Text style={s.welcomeTitle}>New to Pick 3?</Text>
+                <Text style={s.welcomeTitle}>New to 3-digit draws?</Text>
                 <Text style={s.welcomeDesc}>
-                  Most players only know how to play at their local store in their home state. We'll teach you everything — from buying your first ticket to understanding ZK6 picks — in plain English.
+                  Most members only know how to engage at their local retailer in their home state. We'll teach you everything — from placing your first number to understanding ZK6 signals — in plain English.
                 </Text>
               </View>
 
@@ -131,7 +131,7 @@ export default function LearnScreen() {
               </View>
 
               <LinearGradient colors={[colors.primaryLight, colors.cosmicLight]} style={s.ctaCard}>
-                <Text style={s.ctaTitle}>Ready to get your picks?</Text>
+                <Text style={s.ctaTitle}>Ready to see your signals?</Text>
                 <Text style={s.ctaDesc}>Once you understand the basics, your daily K6 Slate is waiting.</Text>
                 <TouchableOpacity
                   style={s.ctaBtn}
@@ -179,8 +179,8 @@ export default function LearnScreen() {
               {activeId === 'regions-states' && (
                 <LinearGradient colors={[colors.cosmicLight, colors.goldLight]} style={s.proTeaser}>
                   <Text style={{ fontSize: 24, marginBottom: 6 }}>🔐</Text>
-                  <Text style={s.proTeaserTitle}>Pro Secret: Play All States Nationwide</Text>
-                  <Text style={s.proTeaserDesc}>Did you know you can legally play Pick 3 in multiple states from your home? Pro members unlock our curated guide showing exactly how.</Text>
+                  <Text style={s.proTeaserTitle}>Pro Secret: Engage All States Nationwide</Text>
+                  <Text style={s.proTeaserDesc}>Did you know you can legally place 3-digit numbers in multiple states from your home? Pro members unlock our curated guide showing exactly how.</Text>
                   <TouchableOpacity style={s.proTeaserBtn} onPress={() => router.push('/paywall')}>
                     <Text style={s.proTeaserBtnText}>Unlock with Pro ♛</Text>
                   </TouchableOpacity>

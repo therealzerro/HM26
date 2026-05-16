@@ -318,7 +318,23 @@ These rows are not safe to auto-include in surgical edits; each has cross-file r
 
 **Decisions captured 2026-05-16 (user):** Q1 → Signal Check (option a). Q2 → Matches (option a). Q3 → Drop "Pick 3" / "Pick 4" entirely (option a). Q4 → Soft rewrite of Learn screen (option b). Q5 → Remove the 1-800-GAMBLER disclaimer entirely. Q6 → members (option a).
 
-**Status:** 🟡 In progress. Phase 0 doctrine landed 2026-05-16; Phase 1 inventory complete; Phase 3 edits in flight per Q1–Q6 decisions.
+**Phase 3 commit range (2026-05-16):**
+- `73d053e` — T1: store metadata + share templates (`app.json`, `HitCelebrationOverlay`, `PickCard` share text, `PickDetailModal` share text, `HeatCheckModal` share text).
+- `c4829b8` — T2: first-touch UI (`app/(tabs)/index.tsx` onboarding/hero/overflow, `app/paywall.tsx`, `components/Paywall.tsx`, `app/coming-soon.tsx`).
+- `3ad0210` — T3 part A: subscriber tab screens (`explore`, `results`, `book`, `account`, `track-record`, `replay`).
+- `c7e80a4` — T3 part B: consumer components (`HitHeroBand`, `HitBadge`, `HitCard`, `HitCelebrationOverlay`, `HitReplay`, `LastHitPill`, `PickCard`, `PickDetailModal`, `PickExplainerModal`, `HeatCheckFAB`, `HeatCheckModal`, `DailyRecapCard`, `BudgetPlanner`, `MissDayCard`, `LockedPicksSummary`).
+- `b346e96` — Q4 soft rewrite of `app/(tabs)/learn.tsx` (all 5 modules + sidebar + welcome + CTA + pro teaser).
+- **Stragglers (P4 verification):** `index.tsx` "TODAY'S HITS" + loss-card Pick label, `results.tsx` per-row HIT badge, `components/Paywall.tsx` legal footer (second 1-800-GAMBLER occurrence), `PickCard` "all-time hits" + "Why this pick?" + a11y, `PickExplainerModal` modal title + rail bullet, `SlateCard` HIT badge, `TrialOfferBanner` title + body.
+
+**Phase 4 verification (2026-05-16):**
+- Re-ran the brief's forbidden-vocabulary grep over the 56 in-scope files (T1–T3 paths). **Zero remaining hits** outside three documented carve-outs: (1) `HitMaster` / `hitMaster` brand wordmark; (2) internal identifiers — variable names (`stats.hits`, `pick.hitType`, `notifPrefs.hits`, `Tab = 'picks' | 'hits' | 'more'`, etc.); (3) comments / queryKey strings / log strings.
+- `git diff --stat` review across all 6 BRAND-01 commits: 28 files changed, 251 insertions / 269 deletions. Zero `.ts`/`.tsx` identifier renames slipped in. Verified by grepping the diff for any `function` / `const` / `let` / `var` / `type` / `interface` definitions touching forbidden vocabulary — none found.
+- Brand wordmark intact in expected carve-out locations: `app.config.ts:5 name: 'HitMaster'`, `app.json:3 "name": "HitMaster"`, `app.json:6 description: "HitMaster ZK6 — a data intelligence platform..."`, `account.tsx:578 footerLogo HIT<Text>MASTER</Text>` (stylized rendering of the wordmark).
+- Manual UI smoke deferred — no dev server in this session; pre-existing lint errors (32 errors, 106 warnings) exist exclusively in T4-exempt admin views (`admin*.tsx`, `intelligence.tsx`, `coverage.tsx`, `import-wizard.tsx`, `components/admin/*`) and were not introduced by this work.
+
+**Soft guardrail (not shipped yet):** Phase 5 would add a `scripts/check-brand-voice.ts` lint script that scans the in-scope file list for the forbidden vocabulary and exits non-zero on hit. Documented as a follow-up. The grep recipe used in P1 inventory + P4 verification is preserved in `/tmp/inscope.txt`-style form in this commit's hash range; future regressions can be caught by repeating the grep manually.
+
+**Status:** ✅ Complete 2026-05-16. 6 commits, 28 files, zero internal-identifier renames, zero remaining forbidden display strings in T1–T3 surfaces. Admin/operator surfaces preserved exempt. Brand wordmark preserved. Ready for Meta page recommendation re-eligibility review.
 
 ---
 

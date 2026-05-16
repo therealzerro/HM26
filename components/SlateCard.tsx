@@ -81,7 +81,7 @@ export function SlateCard({ pick, onPress }: Props) {
     ]}>
       {isHit && (
         <View style={[s.hitBadge, { backgroundColor: tc, shadowColor: tc }]}>
-          <Text style={s.hitBadgeText}>⭐ {pick.hitType!.toUpperCase()} HIT</Text>
+          <Text style={s.hitBadgeText}>⭐ {pick.hitType!.toUpperCase()} MATCH</Text>
         </View>
       )}
 

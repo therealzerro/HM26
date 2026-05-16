@@ -997,7 +997,7 @@ export default function ResultsScreen() {
                   <View style={{ flex: 1 }} />
                   {c.hitCount > 0 && (
                     <View style={{ backgroundColor: colors.cyan + '22', borderWidth: 1, borderColor: colors.cyan + '55', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-                      <Text style={{ fontSize: 10, fontWeight: '900', color: colors.cyan }}>🎯 {c.hitCount} HIT{c.hitCount > 1 ? 'S' : ''}</Text>
+                      <Text style={{ fontSize: 10, fontWeight: '900', color: colors.cyan }}>🎯 {c.hitCount} MATCH{c.hitCount > 1 ? 'ES' : ''}</Text>
                     </View>
                   )}
                   <Text style={{ fontSize: 11, color: colors.textTertiary }}>{c.drawCount} draw{c.drawCount > 1 ? 's' : ''}</Text>

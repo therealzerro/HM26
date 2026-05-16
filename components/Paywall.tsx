@@ -119,7 +119,7 @@ export function Paywall({ visible, onClose }: PaywallProps) {
             </TouchableOpacity>
 
             <Text style={s.legal}>
-              For entertainment purposes only. Not financial advice. Play responsibly. 1-800-GAMBLER
+              For analytical research only. Not financial advice. Use responsibly.
             </Text>
           </ScrollView>
         </TouchableOpacity>

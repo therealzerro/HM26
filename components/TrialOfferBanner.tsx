@@ -30,13 +30,13 @@ export function TrialOfferBanner({ pickRank, pickCombo, hitType, onUpgrade, onDi
       style={s.card}
     >
       <View style={s.headerRow}>
-        <Text style={s.title}>🎯 Your free pick #{pickRank} just hit</Text>
+        <Text style={s.title}>🎯 Your free signal #{pickRank} just matched</Text>
         <TouchableOpacity onPress={onDismiss} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityLabel="Dismiss trial offer">
           <Text style={s.dismiss}>×</Text>
         </TouchableOpacity>
       </View>
       <Text style={s.body}>
-        <Text style={s.combo}>{pickCombo}</Text> {typeLabel} hit verified today. The full K6 slate has 4 more picks just like it.
+        <Text style={s.combo}>{pickCombo}</Text> {typeLabel} match verified today. The full K6 slate has 4 more signals just like it.
       </Text>
       <TouchableOpacity style={s.cta} onPress={onUpgrade}>
         <Text style={s.ctaText}>Try Oracle+ 5 days free →</Text>

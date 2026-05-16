@@ -844,7 +844,7 @@ export default function HomeScreen() {
           <View style={s.lossCard}>
             <Text style={s.lossTitle}>Today's slate didn't match — here's what got close.</Text>
             <Text style={s.lossBody}>
-              <Text style={s.lossBold}>Pick #{lossCard.pick.rank} ({lossCard.pick.combo})</Text> shared 2 of 3 digits with {lossCard.closeCalls.length} {lossCard.closeCalls.length === 1 ? 'draw' : 'draws'} today: {lossCard.closeCalls.slice(0, 4).map(d => `${d.jurisdiction} ${d.session} (${d.result_digits})`).join(', ')}{lossCard.closeCalls.length > 4 ? '…' : '.'}
+              <Text style={s.lossBold}>Signal #{lossCard.pick.rank} ({lossCard.pick.combo})</Text> shared 2 of 3 digits with {lossCard.closeCalls.length} {lossCard.closeCalls.length === 1 ? 'draw' : 'draws'} today: {lossCard.closeCalls.slice(0, 4).map(d => `${d.jurisdiction} ${d.session} (${d.result_digits})`).join(', ')}{lossCard.closeCalls.length > 4 ? '…' : '.'}
             </Text>
             <Text style={s.lossFooter}>Tomorrow's slate will avoid recently-drawn box-sets.</Text>
           </View>
@@ -853,7 +853,7 @@ export default function HomeScreen() {
         {/* ── Today's Hits (shared HitCard — design.md step 4) ── */}
         {hitItems.length > 0 && (
           <View style={s.hitsSectionWrap}>
-            <Text style={s.hitsSectionTitle}>🎯 TODAY'S HITS</Text>
+            <Text style={s.hitsSectionTitle}>🎯 TODAY'S MATCHES</Text>
             {hitItems.map((pick, i) => (
               <HitCard
                 key={i}

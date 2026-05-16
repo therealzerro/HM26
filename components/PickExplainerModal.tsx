@@ -148,7 +148,7 @@ export function PickExplainerModal({ visible, onClose, pick }: Props) {
             showsVerticalScrollIndicator={false}
           >
             <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-              <Text style={s.title}>How this pick was made</Text>
+              <Text style={s.title}>How this signal was made</Text>
 
               <View style={s.heroRow}>
                 <Text style={s.combo}>{pick.combo}</Text>
@@ -192,7 +192,7 @@ export function PickExplainerModal({ visible, onClose, pick }: Props) {
               <Text style={s.sectionLabel}>WHY IT MADE THE SLATE</Text>
               <View style={s.railCard}>
                 <Text style={s.railLine}>The engine scored every 3-digit combo, ranked by weighted signal sum, and ran rail filters:</Text>
-                <Text style={s.railBullet}>•  Removed combos that already hit today</Text>
+                <Text style={s.railBullet}>•  Removed combos that already matched today</Text>
                 <Text style={s.railBullet}>•  Removed combos that drew yesterday (cooldown)</Text>
                 <Text style={s.railBullet}>•  Capped how many singles / doubles / triples can stack on the slate</Text>
                 <Text style={s.railLine}>{pick.combo} survived all six selection passes.</Text>

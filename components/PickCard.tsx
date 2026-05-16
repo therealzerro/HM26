@@ -379,7 +379,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
               {pick.timesDrawn != null && pick.timesDrawn > 0 && (
                 <View style={s.qStat}>
                   <Text style={s.qStatNum}>{pick.timesDrawn}×</Text>
-                  <Text style={s.qStatLabel}>all-time hits</Text>
+                  <Text style={s.qStatLabel}>all-time matches</Text>
                 </View>
               )}
               {pick.energy != null && (
@@ -484,9 +484,9 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
             style={s.explainBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityRole="button"
-            accessibilityLabel={`How was pick ${pick.combo} made? Opens explainer.`}
+            accessibilityLabel={`How was signal ${pick.combo} made? Opens explainer.`}
           >
-            <Text style={s.explainBtnText}>❓ Why this pick?</Text>
+            <Text style={s.explainBtnText}>❓ Why this signal?</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleShare}

@@ -102,7 +102,7 @@ export function BudgetPlanner({ picks, scope }: Props) {
   return (
     <View style={s.card}>
       <View style={s.headerRow}>
-        <Text style={s.label}>💰 PLAN MY PLAY</Text>
+        <Text style={s.label}>💰 PLAN MY ARRANGEMENT</Text>
         <Text style={s.headerHint}>Box/Str $0.25 each</Text>
       </View>
 
@@ -141,7 +141,7 @@ export function BudgetPlanner({ picks, scope }: Props) {
       </View>
 
       {drawCount === 0 ? (
-        <Text style={s.emptyMsg}>Select at least one draw to plan a play.</Text>
+        <Text style={s.emptyMsg}>Select at least one draw to plan an arrangement.</Text>
       ) : plan.rows.length === 0 ? (
         <Text style={s.emptyMsg}>
           Budget below ${(STAKE * drawCount * stateCount).toFixed(2)} (one box across {drawLabel}, {stateLabel}).
@@ -163,7 +163,7 @@ export function BudgetPlanner({ picks, scope }: Props) {
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text style={s.cost}>${row.totalCost.toFixed(2)}</Text>
-                  <Text style={s.win}>→ ${winPerHit.toFixed(2)} / hit</Text>
+                  <Text style={s.win}>→ ${winPerHit.toFixed(2)} / match</Text>
                 </View>
               </View>
             );
@@ -175,11 +175,11 @@ export function BudgetPlanner({ picks, scope }: Props) {
                 <Text style={s.footerLeft}>  ·  ${plan.leftover.toFixed(2)} unplayed</Text>
               )}
               {visibleCount < totalVisible && (
-                <Text style={s.footerLeft}>  ·  {visibleCount} of {totalVisible} picks fit</Text>
+                <Text style={s.footerLeft}>  ·  {visibleCount} of {totalVisible} signals fit</Text>
               )}
             </Text>
             {allStates && (
-              <Text style={s.footerNote}>Each play wins independently per state — multi-state increases your chance of catching a hit.</Text>
+              <Text style={s.footerNote}>Each arrangement scores independently per state — multi-state increases your chance of catching a match.</Text>
             )}
           </View>
         </>

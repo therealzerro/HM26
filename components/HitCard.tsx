@@ -50,7 +50,7 @@ export function HitCard({ combo, hitType, hitState, hitSession, tone = 'gold', s
         { backgroundColor: accent + '18', borderColor: accent + '44' },
         style,
       ]}
-      accessibilityLabel={`${combo} ${hitType} hit${hitState ? ` in ${hitState}` : ''}${hitSession ? ` ${hitSession}` : ''}`}
+      accessibilityLabel={`${combo} ${hitType} match${hitState ? ` in ${hitState}` : ''}${hitSession ? ` ${hitSession}` : ''}`}
     >
       <HitBadge type={hitType} />
       <Text style={s.combo} numberOfLines={1}>{combo}</Text>

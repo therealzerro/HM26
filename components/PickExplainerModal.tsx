@@ -35,11 +35,11 @@ function summaryFor(top: SignalRow, combo: string): string {
   const setStr = '{' + combo.split('').sort().join(',') + '}';
   switch (top.key) {
     case 'BOX':
-      return `${setStr} is hitting more often than average across recent history — the strongest signal driving this pick.`;
+      return `${setStr} is matching more often than average across recent history — the strongest signal driving this pick.`;
     case 'PBURST':
       return `The digit pairs in ${combo} are showing momentum lately — recent draws are clustering around these pairs.`;
     case 'CO':
-      return `${combo}'s digits co-occur in winning numbers at an above-average rate across the historical record.`;
+      return `${combo}'s digits co-occur in observed draws at an above-average rate across the historical record.`;
     case 'DGC':
       return `${combo}'s signal stays consistent across multiple time horizons (week / month / year) — it's not a one-window fluke.`;
   }

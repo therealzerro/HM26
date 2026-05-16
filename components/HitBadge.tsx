@@ -41,7 +41,7 @@ export function HitBadge({ type, compact, style }: Props) {
         compact && s.badgeCompact,
         style,
       ]}
-      accessibilityLabel={`${type} hit`}
+      accessibilityLabel={`${type} match`}
     >
       <Text style={[s.badgeText, { color }]} numberOfLines={1}>
         {emoji}{compact ? '' : ` ${label}`}

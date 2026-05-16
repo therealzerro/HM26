@@ -67,7 +67,7 @@ function tempColorFor(energy: number, colors: ColorTokens): string {
 
 // ─── WHY THIS PICK summary ────────────────────────────────────────────────────
 function whySummary(pick: PickItem): string {
-  if (pick.synergy) return '⚡ Signal synergy: Multiple lethal indicators aligned';
+  if (pick.synergy) return '⚡ Signal synergy: Multiple indicators aligned';
   const { BOX, PBURST, CO } = pick.signals;
   const parts: string[] = [];
   if (BOX >= 0.65)    parts.push('high frequency');
@@ -81,9 +81,9 @@ function whySummary(pick: PickItem): string {
 // ─── Pressure ─────────────────────────────────────────────────────────────────
 function pressureInfo(ds: number | undefined, td: number | undefined, colors: ColorTokens): { label: string; sub: string; color: string } | null {
   if (ds == null || td === 0 || ds >= 500) return null;
-  if (ds < 30)  return { label: `Fresh hit ✓`,          sub: `Hit ${ds} draws ago`,       color: colors.success };
-  if (ds > 200) return { label: `Overdue ⚠`,            sub: `${ds} draws without a hit`, color: colors.orange };
-  return               { label: 'Building pressure',     sub: `${ds} draws since last hit`, color: colors.gold };
+  if (ds < 30)  return { label: `Fresh match ✓`,        sub: `Matched ${ds} draws ago`,      color: colors.success };
+  if (ds > 200) return { label: `Overdue ⚠`,            sub: `${ds} draws without a match`,   color: colors.orange };
+  return               { label: 'Building pressure',     sub: `${ds} draws since last match`,  color: colors.gold };
 }
 
 // ─── Signal description ───────────────────────────────────────────────────────
@@ -96,21 +96,21 @@ export function signalDesc(label: string, value: number): string {
 
 // ─── Optimal play ─────────────────────────────────────────────────────────────
 export function optimalPlay(energy: number): string {
-  if (energy >= 80) return '⭐ STRONG BET — Consider box + straight combo';
-  if (energy >= 65) return '✦ SOLID PICK — Box play recommended';
-  if (energy >= 45) return '◈ WATCH LIST — Box play only';
-  return                   '❄ SPECULATIVE — Small box play if at all';
+  if (energy >= 80) return '⭐ STRONG SIGNAL — Consider box + straight combo';
+  if (energy >= 65) return '✦ SOLID SIGNAL — Box arrangement recommended';
+  if (energy >= 45) return '◈ WATCH LIST — Box arrangement only';
+  return                   '❄ SPECULATIVE — Conservative arrangement only';
 }
 
 // ─── Last seen format ─────────────────────────────────────────────────────────
 export function formatLastSeen(lastSeen?: string): string {
-  if (!lastSeen) return 'Last hit: Unknown';
+  if (!lastSeen) return 'Last match: Unknown';
   try {
     const [y, m, d] = lastSeen.split('-').map(Number);
     const dt = new Date(y, m - 1, d);
-    return 'Last hit: ' + dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return 'Last match: ' + dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   } catch {
-    return 'Last hit: Unknown';
+    return 'Last match: Unknown';
   }
 }
 
@@ -237,10 +237,10 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
           activeOpacity={0.85}
           onPress={handleUnlock}
           accessibilityRole="button"
-          accessibilityLabel={`Pick ${pick.rank} locked — Oracle+ only`}
-          accessibilityHint="Double tap to upgrade and unlock all 6 picks."
+          accessibilityLabel={`Signal ${pick.rank} locked — Oracle+ only`}
+          accessibilityHint="Double tap to upgrade and unlock all 6 signals."
         >
-          <Text style={s.lockTitle}>♛ Pick #{pick.rank} — Oracle+</Text>
+          <Text style={s.lockTitle}>♛ Signal #{pick.rank} — Oracle+</Text>
           <View style={s.lockBadge}>
             <Text style={s.lockBadgeText}>UPGRADE TO ORACLE+</Text>
           </View>
@@ -271,14 +271,14 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
         delayLongPress={600}
         activeOpacity={0.85}
         accessibilityRole="button"
-        accessibilityLabel={`Pick ${pick.rank}, combo ${pick.combo.split('').join(' ')}, energy ${pick.energy} ${heat.label}${isHit ? `, hit — ${pick.hitType === 'straight' ? 'straight' : 'box'}${pick.hitResult ? ` ${pick.hitResult}` : ''}` : ''}`}
-        accessibilityHint="Double tap to open pick details. Long press to share."
+        accessibilityLabel={`Signal ${pick.rank}, combo ${pick.combo.split('').join(' ')}, energy ${pick.energy} ${heat.label}${isHit ? `, match — ${pick.hitType === 'straight' ? 'straight' : 'box'}${pick.hitResult ? ` ${pick.hitResult}` : ''}` : ''}`}
+        accessibilityHint="Double tap to open signal details. Long press to share."
       >
         {/* ── HIT banner ── */}
         {isHit && (
           <View style={[s.hitBanner, { backgroundColor: hitColor + '18', borderColor: hitColor + '50' }]}>
             <Text style={[s.hitBannerText, { color: hitColor }]}>
-              {pick.hitType === 'straight' ? '⭐ STRAIGHT HIT' : '🎯 BOX HIT'}
+              {pick.hitType === 'straight' ? '⭐ STRAIGHT MATCH' : '🎯 BOX MATCH'}
               {pick.hitResult ? ` — ${pick.hitResult}` : ''}
             </Text>
           </View>
@@ -286,7 +286,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
         {/* ── HOT STREAK banner ── */}
         {isHotStreak && !isHit && (
           <View style={s.hotStreakBanner}>
-            <Text style={s.hotStreakText}>🔥 HOT STREAK — Energy {pick.energy}/100</Text>
+            <Text style={s.hotStreakText}>🔥 STRONG SIGNAL — Energy {pick.energy}/100</Text>
           </View>
         )}
 
@@ -346,7 +346,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
 
             {/* WHY THIS PICK */}
             <View style={s.whyBanner}>
-              <Text style={s.whyLabel}>WHY THIS PICK</Text>
+              <Text style={s.whyLabel}>WHY THIS SIGNAL</Text>
               <Text style={s.whyText}>{whySummary(pick)}</Text>
             </View>
 

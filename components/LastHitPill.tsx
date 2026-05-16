@@ -106,11 +106,11 @@ export function LastHitPill() {
       style={[s.pill, { borderColor: accent + '88', backgroundColor: accent + '10' }]}
       onPress={() => router.push('/track-record')}
       accessibilityRole="button"
-      accessibilityLabel={`Last hit: ${hit.combo} in ${hit.hit_state} ${when}. Tap to open verified track record.`}
+      accessibilityLabel={`Last match: ${hit.combo} in ${hit.hit_state} ${when}. Tap to open verified track record.`}
       activeOpacity={0.85}
     >
       <Text style={s.icon}>🎯</Text>
-      <Text style={s.label}>LAST HIT</Text>
+      <Text style={s.label}>LAST MATCH</Text>
       <Text style={[s.combo, { color: accent }]}>{hit.combo}</Text>
       <Text style={s.meta}>· {hit.hit_state || '??'} · {when}</Text>
       <View style={[s.tag, { borderColor: accent }]}>

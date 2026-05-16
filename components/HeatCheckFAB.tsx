@@ -16,8 +16,8 @@ export function HeatCheckFAB({ onPress, bottomOffset = 80 }: Props) {
       style={[s.fab, { bottom: bottomOffset }]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel="Heat check any number"
-      accessibilityHint="Opens a panel to check the energy and hit history of any 3-digit combo."
+      accessibilityLabel="Signal check any number"
+      accessibilityHint="Opens a panel to check the energy and match history of any 3-digit combo."
       activeOpacity={0.85}
     >
       <Text style={s.icon}>🔥</Text>

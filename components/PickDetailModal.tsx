@@ -571,14 +571,14 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
           onPress={() => { onClose(); onHeatCheck?.(pick.combo ?? ''); }}
         >
           <Text style={ct.actionBtnIcon}>⚡</Text>
-          <Text style={[ct.actionBtnText, { color: D.purple }]}>Run Heat Check</Text>
+          <Text style={[ct.actionBtnText, { color: D.purple }]}>Run Signal Check</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[ct.actionBtn, { backgroundColor: D.glass, borderColor: D.glassBorder }]}
           onPress={handleShare}
         >
           <Text style={ct.actionBtnIcon}>📤</Text>
-          <Text style={[ct.actionBtnText, { color: D.textSub }]}>Share This Pick</Text>
+          <Text style={[ct.actionBtnText, { color: D.textSub }]}>Share This Signal</Text>
         </TouchableOpacity>
       </View>
 

@@ -43,11 +43,11 @@ interface HeatCheckResult {
 
 function verdictText(energy: number | null, drawsSince: number | null): string {
   if (energy == null) return 'No signal data found for this combo';
-  if (energy >= 85) return '🔥 BLAZING HOT — High-confidence pick';
-  if (energy >= 70) return '✦ HOT SIGNAL — Strong box play';
-  if (energy >= 50) return '◈ WARM — Moderate signal, box only';
-  if (drawsSince != null && drawsSince > 200) return '⚠️ OVERDUE — Pressure building, speculative play';
-  return '❄ COLD — Low signal, not recommended';
+  if (energy >= 85) return '🔥 BLAZING SIGNAL — High-confidence signal';
+  if (energy >= 70) return '✦ STRONG SIGNAL — Box arrangement recommended';
+  if (energy >= 50) return '◈ MODERATE — Box arrangement only';
+  if (drawsSince != null && drawsSince > 200) return '⚠️ OVERDUE — Pressure building, conservative arrangement';
+  return '❄ LOW — Weak signal, not recommended';
 }
 
 function verdictColor(energy: number | null, colors: ColorTokens): string {
@@ -327,7 +327,7 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
                 style={s.closeBtn}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 accessibilityRole="button"
-                accessibilityLabel="Close heat check"
+                accessibilityLabel="Close signal check"
                 activeOpacity={0.7}
               >
                 <View style={s.closeBtnInner}>
@@ -344,7 +344,7 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
               {/* Tap-eater: absorbs any tap inside the sheet so it doesn't
                   bubble up to the backdrop TouchableOpacity (which closes). */}
               <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-              <Text style={s.title}>🔍 Heat Check</Text>
+              <Text style={s.title}>🔍 Signal Check</Text>
               <Text style={s.sub}>Look up the ZK6 signal for any 3-digit combo</Text>
 
             {!isPro && (
@@ -382,7 +382,7 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
             {rateLimited && (
               <View style={s.rateLimitBox}>
                 <Text style={s.rateLimitTitle}>Daily limit reached</Text>
-                <Text style={s.rateLimitSub}>Upgrade to Oracle to run unlimited Heat Checks.</Text>
+                <Text style={s.rateLimitSub}>Upgrade to Oracle to run unlimited Signal Checks.</Text>
               </View>
             )}
 
@@ -410,13 +410,13 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
                   {result.drawsSince != null && (
                     <View style={s.stat}>
                       <Text style={s.statNum}>{result.drawsSince}</Text>
-                      <Text style={s.statLbl}>{result.drawsSince === 0 ? 'hit today' : result.drawsSince === 1 ? 'hit yesterday' : result.drawsSince <= 7 ? 'draws ago\n(this week)' : result.drawsSince >= 500 ? 'no recent\ndata' : 'draws ago'}</Text>
+                      <Text style={s.statLbl}>{result.drawsSince === 0 ? 'matched today' : result.drawsSince === 1 ? 'matched yesterday' : result.drawsSince <= 7 ? 'draws ago\n(this week)' : result.drawsSince >= 500 ? 'no recent\ndata' : 'draws ago'}</Text>
                     </View>
                   )}
                   {result.timesDrawn != null && result.timesDrawn > 0 && (
                     <View style={s.stat}>
                       <Text style={s.statNum}>{result.timesDrawn}×</Text>
-                      <Text style={s.statLbl}>all-time{'\n'}hits</Text>
+                      <Text style={s.statLbl}>all-time{'\n'}matches</Text>
                     </View>
                   )}
                   {result.timesDrawn != null && result.timesDrawn > 0 && (
@@ -522,7 +522,7 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
                   style={s.shareBtn}
                   onPress={handleShare}
                   accessibilityRole="button"
-                  accessibilityLabel={`Share heat check analysis for combo ${result.combo}`}
+                  accessibilityLabel={`Share signal check analysis for combo ${result.combo}`}
                   activeOpacity={0.85}
                 >
                   <Text style={s.shareBtnText}>📤 Share this analysis</Text>

@@ -98,15 +98,15 @@ export function MissDayCard({ selectedDate, hitsLast7Days, followedCount }: Prop
         <Text style={[s.eyebrow, { color: colors.textTertiary }]}>📅  NOTHING LANDED</Text>
       </View>
       <Text style={s.line1}>
-        No K6 hits on this date.
+        No K6 matches on this date.
       </Text>
       {hitsLast7Days > 0 ? (
         <Text style={s.line2}>
-          But you've hit on <Text style={[s.bold, { color: colors.gold }]}>{hitsLast7Days} of the last 7 days</Text>.
+          But you've matched on <Text style={[s.bold, { color: colors.gold }]}>{hitsLast7Days} of the last 7 days</Text>.
         </Text>
       ) : (
         <Text style={s.line2}>
-          Tomorrow's slate is the next chance — picks refresh after each import.
+          Tomorrow's slate is the next chance — signals refresh after each import.
         </Text>
       )}
     </View>

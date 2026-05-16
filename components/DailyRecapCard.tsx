@@ -116,7 +116,7 @@ export function DailyRecapCard() {
       style={s.card}
       onPress={() => router.push('/track-record')}
       accessibilityRole="button"
-      accessibilityLabel={`Today's recap: ${hits.length} hits. Tap for full track record.`}
+      accessibilityLabel={`Today's recap: ${hits.length} matches. Tap for full track record.`}
       activeOpacity={0.85}
     >
       <View style={s.headerRow}>
@@ -124,7 +124,7 @@ export function DailyRecapCard() {
         <Text style={s.chev}>›</Text>
       </View>
       <Text style={s.line1}>
-        <Text style={s.bold}>{hits.length}</Text> verified {hits.length === 1 ? 'hit' : 'hits'} today
+        <Text style={s.bold}>{hits.length}</Text> verified {hits.length === 1 ? 'match' : 'matches'} today
         {straightCount > 0 && <Text style={s.subStat}> · ⭐ {straightCount} straight</Text>}
         {boxCount > 0 && <Text style={s.subStat}> · 🎯 {boxCount} box</Text>}
       </Text>

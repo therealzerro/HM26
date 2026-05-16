@@ -49,14 +49,14 @@ export function HitReplay({ pick }: Props) {
   return (
     <View style={[s.card, { borderColor: tc + '66', shadowColor: tc }]}>
       <View style={s.header}>
-        <Text style={s.eyebrow}>{pick.hitType.toUpperCase()} HIT REPLAY</Text>
+        <Text style={s.eyebrow}>{pick.hitType.toUpperCase()} MATCH REPLAY</Text>
         <Text style={[s.meta, { color: tc }]}>
           {[pick.hitState, pick.hitDate].filter(Boolean).join(' · ')}
         </Text>
       </View>
 
       <View style={s.row}>
-        <DigitGroup label="WE PICKED" digits={pick.combo} color={tc} variant="ghost"/>
+        <DigitGroup label="WE SIGNALED" digits={pick.combo} color={tc} variant="ghost"/>
         <Text style={[s.arrow, { color: tc, textShadowColor: tc }]}>→</Text>
         <DigitGroup label="DRAWN" digits={pick.hitResult} color={tc} variant="solid"/>
       </View>

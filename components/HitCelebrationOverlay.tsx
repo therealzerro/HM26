@@ -103,7 +103,7 @@ export function HitCelebrationOverlay({ visible, onDismiss, rank, digits, jurisd
             ))}
           </View>
           <Text style={styles.bigEmoji}>🎯</Text>
-          <Text style={styles.title}>HIT!</Text>
+          <Text style={styles.title}>MATCH!</Text>
           <Text style={styles.combo} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit>{digits}</Text>
           <Text style={styles.meta}>Pick #{rank} · {jurisdiction} {sessIcon} · {typeText}</Text>
           <Pressable style={styles.shareBtn} onPress={handleShare}>

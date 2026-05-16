@@ -56,7 +56,7 @@ export function HitHeroBand({ items, onItemPress }: { items: HitHeroItem[]; onIt
         <View style={s.headerRow}>
           <Text style={s.headlineEmoji}>🎯</Text>
           <Text style={s.headline}>
-            {items.length} {items.length === 1 ? 'HIT' : 'HITS'} TODAY
+            {items.length} {items.length === 1 ? 'MATCH' : 'MATCHES'} TODAY
           </Text>
           {hasStraight && (
             <View style={s.straightChip}>
@@ -69,7 +69,7 @@ export function HitHeroBand({ items, onItemPress }: { items: HitHeroItem[]; onIt
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={s.tileRow}
-          accessibilityLabel={`${items.length} hits today, scroll to view`}
+          accessibilityLabel={`${items.length} matches today, scroll to view`}
         >
           {items.map((it, i) => (
             <Tile
@@ -121,7 +121,7 @@ function Tile({ item, onPress }: { item: HitHeroItem; onPress?: () => void }) {
         onPress={onPress}
         activeOpacity={0.85}
         accessibilityRole="button"
-        accessibilityLabel={`${isStraight ? 'Straight' : 'Box'} hit ${item.combo}, tap for details`}
+        accessibilityLabel={`${isStraight ? 'Straight' : 'Box'} match ${item.combo}, tap for details`}
       >
         {inner}
       </TouchableOpacity>

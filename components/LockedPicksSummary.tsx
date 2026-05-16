@@ -37,7 +37,7 @@ export function LockedPicksSummary({ lockedPicks, onUnlock, onWatchAd }: Props) 
           <TouchableOpacity
             style={s.adBtn}
             onPress={() => handleWatch(p.rank)}
-            accessibilityLabel={`Watch ad to unlock pick ${p.rank}`}
+            accessibilityLabel={`Watch ad to unlock signal ${p.rank}`}
           >
             <Text style={s.adBtnText}>👁 Watch ad</Text>
           </TouchableOpacity>

@@ -274,7 +274,7 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
     if (!result) return;
     const pct = (v: number | null) => v == null ? '—' : `${(v * 100).toFixed(1)}%`;
     const lines: string[] = [];
-    lines.push(`🔍 Heat Check: ${result.combo}`);
+    lines.push(`🔍 Signal Check: ${result.combo}`);
     lines.push(`${result.comboSet} · key ${result.sortedKey}`);
     lines.push('');
     if (result.energy != null) lines.push(`ENERGY ${result.energy}/100`);
@@ -289,16 +289,16 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
     }
     if (result.drawsSince != null) lines.push(`draws since:  ${result.drawsSince}`);
     if (result.timesDrawn != null && result.timesDrawn > 0) {
-      lines.push(`all-time:     ${result.timesDrawn}× hits`);
+      lines.push(`all-time:     ${result.timesDrawn}× matches`);
       lines.push(`expected:     ~every ${Math.round(365 / result.timesDrawn)} draws`);
     }
     if (result.lastSeen) lines.push(`last seen:    ${result.lastSeen}`);
     lines.push('');
     lines.push('Powered by HitMaster ZK6™ Intelligence');
-    lines.push('Run your own heat check → https://hitmaster.app');
+    lines.push('Run your own signal check → https://hitmaster.app');
     const message = lines.join('\n');
     try {
-      await Share.share({ message, title: `Heat Check: ${result.combo}` });
+      await Share.share({ message, title: `Signal Check: ${result.combo}` });
     } catch {
       // user cancelled — silent
     }

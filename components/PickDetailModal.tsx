@@ -368,7 +368,7 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
         hitsInfo,
         ``,
         `⚡ Intelligence is your edge.`,
-        `📲 hitmaster.app  #ZK6 #Pick3`,
+        `📲 hitmaster.app  #ZK6 #DataIntelligence`,
       ].filter(Boolean).join('\n');
       await Share.share({ message: lines });
     } catch {}

@@ -213,10 +213,10 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
     try {
       await Share.share({
         message:
-          `🎯 My ZK6 pick for today: ${pick.combo} (Energy ${pick.energy}/100)\n` +
+          `🎯 Today's ZK6 signal: ${pick.combo} (Energy ${pick.energy}/100)\n` +
           `Powered by HitMaster ZK6™ Intelligence\n` +
-          `Get your daily picks: hitmaster.app\n` +
-          `#HitMaster #Pick3 #ZK6`,
+          `Get your daily signals: hitmaster.app\n` +
+          `#HitMaster #ZK6 #DataIntelligence`,
       });
     } catch { /* ignore */ }
   };

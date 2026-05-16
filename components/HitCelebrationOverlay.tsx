@@ -76,7 +76,7 @@ export function HitCelebrationOverlay({ visible, onDismiss, rank, digits, jurisd
   const handleShare = async () => {
     const sessLabel = session === 'midday' ? 'Midday' : 'Evening';
     const typeLabel = hitType === 'straight' ? 'STRAIGHT' : 'BOX';
-    const message = `🎯 Just hit on HitMaster — pick #${rank} was ${digits}, drew today in ${jurisdiction} ${sessLabel} (${typeLabel}). Try the app: ${SHARE_URL}`;
+    const message = `🎯 Pattern verified on HitMaster — signal #${rank} was ${digits}, matched today in ${jurisdiction} ${sessLabel} (${typeLabel}). Try the app: ${SHARE_URL}`;
     try {
       await Share.share({ message });
     } catch {}

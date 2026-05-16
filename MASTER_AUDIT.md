@@ -171,9 +171,154 @@ Public-facing copy is governed by a separate rulebook from engine behavior. The 
 - **Phase 3.** Surgical edits, one tier per commit (`chore(copy): brand-voice scrub T1 …`). Each edit is per-string, context-sensitive — no bulk renames. Lint + smoke test the affected surfaces after each tier; commit hashes recorded here.
 - **Phase 4.** Verify — re-run the forbidden-word grep on T1–T3 paths; expect zero hits outside the brand-name carve-out. `git diff --stat` review confirms no `.ts`/`.tsx` identifier renames slipped in. Manual walk through Home → Explore → Results → Track Record → Account on tunnel. Close this entry with the diff range.
 
-**Inventory table.** Pending Phase 1 sweep. Populated in this section before any Phase 3 edits.
+**Inventory (Phase 1, completed 2026-05-16).** Sweep targeted the 56 in-scope files from the doctrine. Findings below are grouped by tier; T4 is documented exempt. Each row needs explicit user approval (or override) before Phase 3 begins because several rows are feature-name renames with cross-file ripple, not single-word substitutions.
 
-**Status:** 🟡 In progress. Phase 0 doctrine landed 2026-05-16; Phase 1 inventory next.
+**T1 — External eligibility (App Store / push / share / splash).**
+- `app.config.ts:5` `name: 'HitMaster'` → **KEEP** (brand-name carve-out, user decision 2 confirmed).
+- `app.json:3` `"name": "HitMaster"` → **KEEP** (same).
+- `app.json` — no `expo.description` / `expo.shortDescription` / `expo.keywords` fields yet. The App Store subtitle "*a data intelligence platform for numerical pattern analysis*" (user decision 3) will be added here as a Phase 3-T1 net-new field, not a rewrite.
+- No `lib/notifications*` file exists — push-notification copy is not yet code-resident. Out of scope until that lands.
+- **Share-message templates (T1 surface, lives in T3 component files):**
+  - `components/HitCelebrationOverlay.tsx:79` — `'🎯 Just hit on HitMaster — pick #${rank} was ${digits}, drew today in ${jurisdiction} …'` → reframe to *"Pattern verified: HitMaster signal #${rank} matched today in ${jurisdiction}"*.
+  - `components/PickCard.tsx:216–219` — `'🎯 My ZK6 pick for today: ${pick.combo} … Get your daily picks: hitmaster.app  #HitMaster #Pick3 #ZK6'` → reframe to *"Today's ZK6 signal: ${pick.combo} (Energy ${pick.energy}/100). hitmaster.app  #HitMaster #ZK6 #DataIntelligence"* — hashtag `#Pick3` removed.
+  - `components/PickDetailModal.tsx:371` — share template trailing `'📲 hitmaster.app  #ZK6 #Pick3'` → drop `#Pick3`, replace with `#DataIntelligence`.
+  - `components/HeatCheckModal.tsx:277,298,301` — share strings reading *"Heat Check: ${result.combo}"* → rename per the feature-rename decision below.
+
+**T2 — First-touch / onboarding (~25 strings).**
+
+| File | Line | Current | Proposed |
+|------|------|---------|----------|
+| `app/(tabs)/index.tsx` | 132 | "Your daily Pick 3 intelligence system. The ZK6™ Engine analyzes years of draw history to surface your highest-signal plays." | "Your daily numerical pattern analysis. The ZK6™ Engine analyzes years of public draw data to surface your highest-signal combinations." |
+| `app/(tabs)/index.tsx` | 134 | "Join 2,400+ Players" / "Players across 18 states use HitMaster daily." | "Join 2,400+ Members" / "Members across 18 states use HitMaster daily." |
+| `app/(tabs)/index.tsx` | 135 | "A taste of today's ZK6 picks — yours on the free tier." | "A preview of today's ZK6 signals — yours on the free tier." |
+| `app/(tabs)/index.tsx` | 135 | btn `'Get My Picks'` | `'See My Signals'` |
+| `app/(tabs)/index.tsx` | 240 | "Heat Check any combo" (action label) | "Run Signal Check" (per Heat-Check rename decision below) |
+| `app/(tabs)/index.tsx` | 250 | section title "Responsible play" | "Responsible use" |
+| `app/(tabs)/index.tsx` | 769 | `<Text>Today's <Text style={cyan}>Picks</Text> ⚡</Text>` | "Today's Signals ⚡" |
+| `app/(tabs)/index.tsx` | 806 | `'2 of 6'` / `'6 picks'` heroColMeta | `'2 of 6'` / `'6 signals'` |
+| `app/(tabs)/index.tsx` | 813 | `'{todayHits} hits today'` / `'hit'` | `'{todayHits} matches today'` / `'match'` |
+| `app/(tabs)/index.tsx` | 837 | "Straight hit ✓" / "Box hit ✓" | "Straight match ✓" / "Box match ✓" |
+| `app/(tabs)/index.tsx` | 845 | "Today's slate didn't hit — here's what got close." | "Today's slate didn't match — here's what got closest." |
+| `app/(tabs)/index.tsx` | 929 | `'{n} of 6 picks hidden'` | `'{n} of 6 signals hidden'` |
+| `app/(tabs)/index.tsx` | 931 | `"…verified {BACKTEST_HIT_RATE}% hit rate…"` | `"…verified {BACKTEST_HIT_RATE}% match rate…"` |
+| `app/(tabs)/learn.tsx` | wholesale | The Learn screen is built around teaching Pick 3 — every section title and body uses "lottery", "Pick 3", "play", "winning numbers", "winning", "payout". | **Decision needed — see judgment calls below.** Not auto-included in Phase 3 until you choose direction. |
+| `app/paywall.tsx` | 52 | feature row "Heat Checks" | "Signal Checks" (or per decision) |
+| `app/paywall.tsx` | 53 | "Pick by Budget" | "Budget Planner" |
+| `app/paywall.tsx` | 56 | "Previous Hits" / "Complete history" | "Previous Matches" / "Complete history" |
+| `app/paywall.tsx` | 122–123 | `'{VERIFIED_HIT_RATE}%'` / "verified hit rate" | unchanged value / "verified match rate" |
+| `components/Paywall.tsx` | 17 | "⚡ All 6 K6 Slate picks daily" | "⚡ All 6 K6 Slate signals daily" |
+| `components/Paywall.tsx` | 19 | "🔥 Unlimited Heat Checks" | "🔥 Unlimited Signal Checks" |
+| `components/Paywall.tsx` | 21 | "💰 Budget Pick tool" | "💰 Budget Planner" |
+| `components/Paywall.tsx` | 23 | "📋 Full hit history & stats" | "📋 Full match history & stats" |
+| `components/Paywall.tsx` | 68 | "Join 2,400+ players using ZK6 intelligence daily" | "Join 2,400+ members using ZK6 intelligence daily" |
+| `app/coming-soon.tsx` | 23 | "Advanced 3-digit straight play analysis…" | "Advanced 3-digit straight-arrangement analysis…" |
+| `app/coming-soon.tsx` | 45,47 | "Multi-pass scoring v2 (recency/presence/integrity/heat/verification)" / "Adaptive heat model" | "…/signal/verification" / "Adaptive signal model" |
+
+**T3 — Subscriber functional UI (~80 strings).** Full row-by-row in commit context; high-density files summarized:
+
+- **`app/(tabs)/explore.tsx`** — type `Tab = 'picks' | 'hits' | 'more'` is internal-only (carve-out), but every user-visible label `Picks` / `Hits` / `Today's hits` / `No hits yet today` / `Hit feed · all scopes today` / `No hits across the engine yet` / `Heat check` / `Heat Check any combo` / `Bookmark today's picks for later review` / `Yesterday's K6 picks vs actual draws` / `Pro unlocks all 6 picks` → swap to `Signals` / `Matches` / `Today's matches` / `Match feed` / `Signal Check` / `Bookmark today's signals` / `Yesterday's K6 signals vs actual draws` / `Pro unlocks all 6 signals`. **Line 525** export filename `ZK6 Picks · …` → `ZK6 Signals · …`. **Line 808** disclaimer — see judgment call.
+- **`app/(tabs)/results.tsx`** — `🎯 ZK6 hits` / `Hit rate` / `🎯 No hits yet today` / `Slate hits will appear here…` / `{hitType} hit ${combo}` / `🎯 ZK6 HIT! …Straight/Box hit on…` / `Hide hit replay` / `${n} hits — open hit summary` / `${n} day hit streak` → swap `hit(s)` → `match(es)` in display strings. Internal `stats.hits` variable stays. Game-name `'Pick 3'` line 731 → judgment call.
+- **`app/(tabs)/book.tsx`** — feature cards "Straight Pick 3 Slate" / "Pick 4 Box" / "Pick 4 Straight" → "Straight-Arrangement Slate" / "4-digit Box (coming)" / "4-digit Straight (coming)" — drops "Pick 3" / "Pick 4" branding. Alert `'All of today's picks are already in this list.'` → `'…signals are already in this list.'`. `'{n} picks · Saved slate'` / `'{n} pick'/'picks'` → `signal`/`signals`. List name placeholder `'NY Evening Picks'` → `'NY Evening Signals'`. Line 477 `'{n} HITS across {n} picks'` → `'{n} MATCHES across {n} signals'`.
+- **`app/(tabs)/account.tsx`** — glossary entries (lines 23, 25, 31) heavily use "lottery", "picks", "payout" — reword to "public draw data", "signals", "$80 secondary tier" (drop the literal "$80 payout / $500 payout" wording → rephrase as relative tiers). Premium features (lines 35–40) `'All 6 K6 Slate picks'` / `'Pick by Budget tool'` / `'Hit history & stats'` → `'All 6 K6 Slate signals'` / `'Budget Planner tool'` / `'Match history & stats'`. Notification prefs `'Slate Hit Alert'` / `'When your picks match draw results'` → `'Slate Match Alert'` / `'When your signals match draw results'`. Plan grid (lines 274–278) `'K6 Picks'`/`'Heat Checks'`/`'Hit History'` → `'K6 Signals'`/`'Signal Checks'`/`'Match History'`. Line 391 follow-states empty state references "Hit Feed" / "Last Hit" → `'Match Feed' / 'Last Match'`. Line 476 cinema-mode subtitle `'… just scope + 6 picks + countdown'` → `'… just scope + 6 signals + countdown'`.
+- **`app/track-record.tsx`** — `'ZK6 K6 hits, draw-by-draw'` / `'Pulling verified hits…'` / `'No verified hits in the last…'` / `'{n} hit'/'hits'` / a11y `'… hit on ${combo} in ${hit_state}…'` → `match(es)`.
+- **`app/replay.tsx`** — `'Last 7 days · ZK6 picks vs actual draws'` / `'🎯 {n} hit/hits'` / `'{n} hit/hits'` / `'0 hits'` → `signals` / `match(es)`.
+- **`components/HitHeroBand.tsx`** — `'{n} HIT'/'HITS' TODAY` / a11y `'... hit ${combo}...'` → `'MATCH'/'MATCHES'`. Internal name (file, component) preserved.
+- **`components/HitBadge.tsx`** — a11y `'${type} hit'` → `'${type} match'`. Internal name preserved.
+- **`components/HitCard.tsx`** — a11y `'… ${hitType} hit …'` → `match`. Internal name preserved.
+- **`components/HitCelebrationOverlay.tsx`** — `'HIT!'` overlay text → `'MATCH!'`; share-message text (already in T1 share-template section above).
+- **`components/HitReplay.tsx`** — eyebrow `'{hitType.toUpperCase()} HIT REPLAY'` → `'… MATCH REPLAY'`. `'WE PICKED'` / `'DRAWN'` → `'WE SIGNALED'` / `'DRAWN'`.
+- **`components/LastHitPill.tsx`** — `'LAST HIT'` / a11y `'Last hit: …'` → `'LAST MATCH'` / `'Last match: …'`. Internal name preserved.
+- **`components/PickCard.tsx`** — heat-label vocabulary lines 70/76/84–86/100–102/107/111/113/140/281/289 use `Fresh hit`, `Last hit:`, `BOX HIT`, `STRAIGHT HIT`, `HOT STREAK`, `SOLID PICK — Box play recommended`, `WATCH LIST — Box play only`, `SPECULATIVE — Small box play if at all`. Reframe table:
+  - "Fresh hit ✓" → "Fresh match ✓"
+  - "Hit ${n} draws ago" → "Matched ${n} draws ago"
+  - "${n} draws without a hit" → "${n} draws without a match"
+  - "${n} draws since last hit" → "${n} draws since last match"
+  - "SOLID PICK — Box play recommended" → "STRONG SIGNAL — Box arrangement recommended"
+  - "WATCH LIST — Box play only" → "WATCH LIST — Box arrangement only"
+  - "SPECULATIVE — Small box play if at all" → "SPECULATIVE — Conservative arrangement only"
+  - "Last hit: Unknown" / "Last hit: ${date}" → "Last match: …"
+  - "BOX HIT" / "STRAIGHT HIT" overlay → "BOX MATCH" / "STRAIGHT MATCH"
+  - "🔥 HOT STREAK — Energy ${e}/100" → "🔥 STRONG SIGNAL — Energy ${e}/100"
+  - `whyHero` line 70: `'⚡ Signal synergy: Multiple lethal indicators aligned'` → drop "lethal" — `'⚡ Signal synergy: Multiple indicators aligned'`.
+  - a11y line 274 `'…energy ${e} ${heat.label}${isHit ? ', hit — …'}'` → `, match — …`.
+  - a11y line 275 `'Long press to share.'` — fine.
+- **`components/PickDetailModal.tsx`** — share text (already T1), `'Run Heat Check'` button line 574 → `'Run Signal Check'` (per rename).
+- **`components/PickExplainerModal.tsx`** — line 42 `'co-occur in winning numbers at an above-average rate…'` → `'co-occur in observed draws at an above-average rate…'`.
+- **`components/HeatCheckFAB.tsx`** — a11y `'Heat check any number'` / hint `'Opens a panel to check the energy and hit history of any 3-digit combo.'` → `'Signal check any number'` / `'… energy and match history of any 3-digit combo.'`. **Internal component name preserved.**
+- **`components/HeatCheckModal.tsx`** — surface title `'🔍 Heat Check'`, share lines, a11y labels, rate-limit `'Upgrade to Oracle to run unlimited Heat Checks.'`, energy verdicts `'🔥 BLAZING HOT — High-confidence pick'` / `'✦ HOT SIGNAL — Strong box play'` / `'⚠️ OVERDUE — Pressure building, speculative play'` → rename surface to *Signal Check*; verdict copy `BLAZING SIGNAL` / `STRONG SIGNAL — Box arrangement` / `OVERDUE — Pressure building, conservative arrangement`. **Internal component name preserved.**
+- **`components/DailyRecapCard.tsx`** — `'📊 TODAY'S RECAP'` / `'{n} verified hits today'` / a11y `'Today's recap: {n} hits…'` → `match(es)`.
+- **`components/BudgetPlanner.tsx`** — header `'💰 PLAN MY PLAY'` → `'💰 PLAN MY ARRANGEMENT'`. `'Select at least one draw to plan a play.'` → `'… plan an arrangement.'`. `'→ ${win} / hit'` → `'→ ${win} / match'`. `'Each play wins independently per state — multi-state increases your chance of catching a hit.'` → `'Each arrangement scores independently per state — multi-state increases your chance of catching a match.'`.
+- **`components/MissDayCard.tsx`** — `"…you've hit on {n} of the last 7 days"` → `"…you've matched on {n} of the last 7 days"`.
+- **`components/LockedPicksSummary.tsx`** — a11y `'Watch ad to unlock pick ${rank}'` → keep "pick" or use "signal"? **Recommend "signal"** for consistency.
+
+**T4 — Exempt (documented, no edits).**
+- `app/(tabs)/intelligence.tsx`, `admin.tsx`, `admin-imports.tsx`, `coverage.tsx`, `zk30.tsx`
+- `app/import-wizard.tsx`, `app/ledger-import.tsx`
+- `components/admin/*` (DashboardView, ImportWizardView, NationwideAdminView, AdminShared, HitTrackingView, EngineConfigView, AdaptiveLearning, HealthTests, ImportHistory, CoverageMatrix, etc.)
+- All `engines/`, `supabase/`, `scripts/`, `lib/` internals
+- Comments, `console.*`, type names, identifiers, audit log strings (e.g. results.tsx `// snapshot — re-touched today by hit detection` stays — it's a comment)
+
+**Vocabulary substitution rules (applies across all tiers).**
+| Old | New |
+|-----|-----|
+| hit / hits (noun in display) | match / matches |
+| Hit (verb in display) | match |
+| picks (display) | signals (or "intelligence reports" for archetype variation) |
+| pick (display, singular) | signal (preserve "Pick" prefix in feature-name reframes — see Heat Check note) |
+| play / plays (verb in display) | arrangement / use |
+| winning numbers | observed draws / detected matches |
+| lottery (noun) | public draw data |
+| Daily Heat / Heat Check (feature label) | Signal Check (see decision below) |
+| HOT / BLAZING (energy verdict) | STRONG / BLAZING SIGNAL |
+| Pick 3 (game name in marketing) | numerical pattern analysis (or drop entirely per decision) |
+| Pick 4 (game name) | 4-digit (preserve only in feature-coming labels per decision) |
+| #Pick3 hashtag | drop; use `#DataIntelligence` |
+| players (audience term) | members / community |
+| payout (display) | secondary tier / win tier (per decision) |
+
+---
+
+**Judgment calls — explicit user decision required before Phase 3 begins.**
+
+These rows are not safe to auto-include in surgical edits; each has cross-file ripple or potential business impact. Please answer Q1–Q6 before I touch any user-facing string.
+
+**Q1. Heat Check rename.** The "Heat Check" feature is a named, marketed sub-product (in paywall comparison, FAB, modal, share text, glossary). Options:
+- (a) **Signal Check** — closest synonym, no game-feel; preserves verb pattern ("Run Signal Check"). **Recommended.**
+- (b) **Combo Probe** — more analytical, less retail.
+- (c) **Pattern Check** — alignment with brief's "pattern matching" vocabulary.
+- (d) Keep "Heat Check" — Meta classifier risk persists.
+
+**Q2. "Hits" → "Matches" terminology.** This is the highest-frequency rename: ~60 display strings. Options:
+- (a) **Matches** — neutral, analytical. **Recommended.**
+- (b) **Verified picks** — still flags brief's "picks" rule.
+- (c) **Pattern matches** — true to brief vocabulary, slightly long for tight UI cells.
+- (d) Keep "hits" in subscriber-only UI on the basis Meta can't crawl logged-in screens. Risk: a free user screenshots Home → posts it → Meta classifier reads "5 HITS TODAY".
+
+**Q3. "Pick 3" mentions outside the Learn screen.**
+- `app/(tabs)/book.tsx:28–30` (feature cards "Straight Pick 3 Slate" / "Pick 4 Box" / "Pick 4 Straight"); `app/(tabs)/results.tsx:731` (per-row game-name display `{game || 'Pick 3'}`); share hashtag `#Pick3`. Options:
+- (a) **Drop "Pick 3" entirely** — book cards become "Straight-Arrangement Slate" / "4-digit Box (coming)" / "4-digit Straight (coming)"; results game line becomes `MI · 3-digit draw · 791`. **Recommended for rehabilitation period.**
+- (b) Replace with "3-digit draw" / "4-digit draw" — neutral, still informative.
+- (c) Keep "Pick 3" — small surfaces, but flags Meta forbidden list.
+
+**Q4. The Learn screen (`app/(tabs)/learn.tsx`).** The page is built around explaining the Pick 3 game (basics, sessions, states, how to read picks, responsible play). Strict scrub guts the page's purpose. Options:
+- (a) **Full rewrite** as "Understanding Numerical Pattern Analysis" — drop game-explanation framing, focus on what ZK6 does and how to read signals. Loses the educational onboarding for new lottery players.
+- (b) **Soft rewrite** — keep game-explanation content, but reframe the vocabulary in each paragraph (e.g. "lottery game" → "state-run 3-digit draw"; "winning numbers" → "drawn combinations"; "play" → "place"). Preserves educational utility, partial Meta classifier exposure remaining.
+- (c) **Move educational content out** — replace with a single "Learn the analytical methodology" link that opens an external page (off-app, not Meta-crawled). Aligns with brief's data-intelligence positioning.
+- (d) **Keep as-is** under the argument the screen is gated behind app install (i.e. not crawled). Note Apple App Store reviewers will see screenshots of Learn during review.
+
+**Q5. The "1-800-GAMBLER" disclaimer on `app/(tabs)/explore.tsx:808`.** Currently reads: *"HitMaster picks are for entertainment only. Play responsibly. 1-800-GAMBLER"*. This is the single most explicit gambling signal in the codebase, but it's also a common-practice responsible-disclosure line. Options:
+- (a) **Reframe** to *"HitMaster signals are for analytical research only. Use responsibly."* — keeps the disclaimer's intent, drops "gambling" / "play" framing and the hotline. Risk: legal advisor may want the hotline preserved.
+- (b) **Move to Terms of Service / About** — single in-app screen vs. on every Slates tab visit.
+- (c) **Keep as-is** — accept Meta classifier hit on this one line in exchange for legal safety. Recommend pairing with a legal review.
+
+**Q6. "Players" → "members" / "community".** Used in onboarding (`index.tsx:134`, `Paywall.tsx:68`). Brief table says `players → members / community`. Options:
+- (a) **members** — direct from brief. **Recommended.**
+- (b) **community** — softer, aligns with archetype copy.
+- (c) Keep "players".
+
+**Decisions captured 2026-05-16 (user):** Q1 → Signal Check (option a). Q2 → Matches (option a). Q3 → Drop "Pick 3" / "Pick 4" entirely (option a). Q4 → Soft rewrite of Learn screen (option b). Q5 → Remove the 1-800-GAMBLER disclaimer entirely. Q6 → members (option a).
+
+**Status:** 🟡 In progress. Phase 0 doctrine landed 2026-05-16; Phase 1 inventory complete; Phase 3 edits in flight per Q1–Q6 decisions.
 
 ---
 

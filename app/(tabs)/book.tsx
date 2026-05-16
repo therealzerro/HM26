@@ -25,9 +25,9 @@ const scopeColor = (s: string, colors: ColorTokens) =>
 
 const COMING_FEATURES = [
   { icon: '🗺', title: 'Slate by State', desc: 'Filter today\'s K6 Slate to only your selected states.', tier: 'PLUS' },
-  { icon: '🎯', title: 'Straight Pick 3 Slate', desc: 'Dedicated straight-only intelligence slate powered by ZK6.', tier: 'PLUS' },
-  { icon: '4️⃣', title: 'Pick 4 Box', desc: '4-digit box intelligence — ZK6 expanding to Pick 4.', tier: 'PLUS' },
-  { icon: '⭐', title: 'Pick 4 Straight', desc: '4-digit straight slate picks with optimal arrangement.', tier: 'PLUS' },
+  { icon: '🎯', title: 'Straight-Arrangement Slate', desc: 'Dedicated straight-only intelligence slate powered by ZK6.', tier: 'PLUS' },
+  { icon: '4️⃣', title: '4-digit Box (coming)', desc: '4-digit box intelligence — ZK6 expanding to 4-digit analysis.', tier: 'PLUS' },
+  { icon: '⭐', title: '4-digit Straight (coming)', desc: '4-digit straight slate signals with optimal arrangement.', tier: 'PLUS' },
 ];
 
 interface ComboItem { combo: string; note: string; starred: boolean; energy?: number; hitBox?: boolean; hitStraight?: boolean; }
@@ -49,7 +49,7 @@ function CreateListModal({ onClose, onCreate }: { onClose: () => void; onCreate:
             style={[m.input, name ? { borderColor: colors.primary } : {}]}
             value={name}
             onChangeText={setName}
-            placeholder="List name (e.g. NY Evening Picks)"
+            placeholder="List name (e.g. NY Evening Signals)"
             placeholderTextColor={colors.textTertiary}
           />
           <View style={{ flexDirection: 'row', gap: 6, marginBottom: 18 }}>
@@ -269,7 +269,7 @@ export default function NumberBookScreen() {
         .filter((p: any) => p?.combo && !existing.has(p.combo))
         .map((p: any) => ({ combo: p.combo, note: `ZK6 #${p.rank ?? ''}`, starred: false, energy: p.energy }));
       if (toAdd.length === 0) {
-        Alert.alert('Already Added', "All of today's picks are already in this list.");
+        Alert.alert('Already Added', "All of today's signals are already in this list.");
         return;
       }
       setLists(l => l.map(x => x.id === activeList!.id ? { ...x, combos: [...x.combos, ...toAdd] } : x));
@@ -328,7 +328,7 @@ export default function NumberBookScreen() {
                       <Text style={{ fontSize: 14 }}>⭐</Text>
                       <View style={{ flex: 1, minWidth: 0 }}>
                         <Text style={[s.listName, { color: on ? colors.gold : colors.text }]} numberOfLines={1}>{lst.name}</Text>
-                        <Text style={s.listMeta}>{lst.combos.length} picks · Saved slate</Text>
+                        <Text style={s.listMeta}>{lst.combos.length} signals · Saved slate</Text>
                       </View>
                     </TouchableOpacity>
                   );
@@ -388,7 +388,7 @@ export default function NumberBookScreen() {
               <LinearGradient colors={[colors.cosmicLight, colors.goldLight]} style={s.upsellCard}>
                 <Text style={{ fontSize: 26, marginBottom: 6 }}>🏆</Text>
                 <Text style={s.upsellTitle}>Number Book is Pro exclusive</Text>
-                <Text style={s.upsellDesc}>Save unlimited lists, organize by state, get first access to Slate by State & Pick 4.</Text>
+                <Text style={s.upsellDesc}>Save unlimited lists, organize by state, get first access to Slate by State & 4-digit analytics.</Text>
                 <TouchableOpacity style={s.upsellBtn} onPress={() => router.push('/paywall')}>
                   <Text style={s.upsellBtnText}>Unlock Oracle+ ♛</Text>
                 </TouchableOpacity>
@@ -416,7 +416,7 @@ export default function NumberBookScreen() {
                 </View>
               </View>
               <View style={{ backgroundColor: colors.goldLight, borderRadius: theme.borderRadius.md, padding: 10, marginBottom: 14, borderWidth: 1, borderColor: colors.gold + '33' }}>
-                <Text style={{ fontSize: 11, color: colors.gold, fontWeight: '600' }}>🔒 This is a saved slate record — picks are static and cannot be changed.</Text>
+                <Text style={{ fontSize: 11, color: colors.gold, fontWeight: '600' }}>🔒 This is a saved slate record — signals are static and cannot be changed.</Text>
               </View>
               {activeList.combos.map((item, i) => (
                 <View key={item.combo} style={[s.comboRow, { borderColor: colors.gold + '44', borderWidth: 1.5 }]}>
@@ -474,7 +474,7 @@ export default function NumberBookScreen() {
                   <View style={{ marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: colors.gold + '15', borderRadius: theme.borderRadius.md, borderWidth: 1, borderColor: colors.gold + '40', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <Text style={{ fontSize: 16 }}>🎯</Text>
                     <Text style={{ fontSize: 12, fontWeight: '800', color: colors.gold, fontFamily: theme.typography.fontFamily.monoBold, flex: 1 }}>
-                      {listHitCount} {listHitCount === 1 ? 'HIT' : 'HITS'} across {hitPicks} {hitPicks === 1 ? 'pick' : 'picks'} (last 30 days)
+                      {listHitCount} {listHitCount === 1 ? 'MATCH' : 'MATCHES'} across {hitPicks} {hitPicks === 1 ? 'signal' : 'signals'} (last 30 days)
                     </Text>
                   </View>
                 );

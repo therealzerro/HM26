@@ -20,24 +20,24 @@ import { useSavedHits } from '@/hooks/useSavedHits';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 const GLOSSARY = [
-  { term: 'ZK6™ Engine', def: 'HitMaster\'s proprietary intelligence engine — a multi-dimensional pattern recognition system trained on years of lottery draw history. Picks are ranked by Oracle Score (signal convergence strength), not guarantees.' },
-  { term: 'Energy Score', def: 'A 0–100 composite signal strength. BLAZING (80+) · HOT (65+) · WARM (45+) · COOL (<45). Higher = stronger convergence across all three signals.' },
-  { term: 'K6 Slate', def: 'Your 6 daily picks — the top combos emerging from ZK6\'s full intelligence pass. Oracle+ sees all 6. Free sees picks 5–6.' },
+  { term: 'ZK6™ Engine', def: 'HitMaster\'s proprietary intelligence engine — a multi-dimensional pattern recognition system trained on years of public draw data. Signals are ranked by Oracle Score (signal convergence strength), not guarantees.' },
+  { term: 'Energy Score', def: 'A 0–100 composite signal strength. BLAZING (80+) · STRONG (65+) · MODERATE (45+) · LOW (<45). Higher = stronger convergence across all three signals.' },
+  { term: 'K6 Slate', def: 'Your 6 daily signals — the top combos emerging from ZK6\'s full intelligence pass. Oracle+ sees all 6. Free sees signals 5–6.' },
   { term: 'Frequency Signal', def: 'Historical draw pressure — how strongly a number set is signaling based on long-term draw history.' },
   { term: 'Momentum Signal', def: 'Pair energy and burst patterns — which digit pairs are building directional pressure right now.' },
   { term: 'Pattern Signal', def: 'Digit co-occurrence and relationship activity across our full historical database.' },
   { term: 'Scope', def: 'Draw session: Midday (☀️), Evening (🌙), or All Day (◈). ZK6 runs separate analyses per scope.' },
   { term: 'Optimal Straight', def: 'The recommended exact-order arrangement for a box number — the ordering with the strongest directional signal alignment.' },
-  { term: 'Box vs Straight', def: 'Box: match 3 digits in ANY order (~$80 payout). Straight: exact order (~$500). ZK6 focuses on box picks, then surfaces the best straight arrangement.' },
+  { term: 'Box vs Straight', def: 'Box: match 3 digits in ANY order (secondary tier). Straight: exact order (primary tier). ZK6 focuses on box signals, then surfaces the best straight arrangement.' },
 ];
 
 const PRO_FEATURES = [
-  'All 6 K6 Slate picks',
-  'Optimal straight per pick',
-  'Unlimited Heat Checks',
+  'All 6 K6 Slate signals',
+  'Optimal straight per signal',
+  'Unlimited Signal Checks',
   'Full pattern depth analytics',
-  'Pick by Budget tool',
-  'Hit history & stats',
+  'Budget Planner tool',
+  'Match history & stats',
 ];
 
 function Toggle({ on, onChange, label, sub }: { on: boolean; onChange: (v: boolean) => void; label: string; sub?: string }) {
@@ -106,7 +106,7 @@ export default function AccountScreen() {
     const labels: Record<keyof typeof notifPrefs, string> = {
       nextDraw: 'Next Draw Alert',
       slateReady: 'Slate Ready',
-      hits: 'Slate Hit Alert',
+      hits: 'Slate Match Alert',
       promo: 'Promotions',
     };
     // Lazy-register on first ON toggle (asks permission then). On every
@@ -258,7 +258,7 @@ export default function AccountScreen() {
               <View style={s.planFreeTop}>
                 <View>
                   <Text style={s.planFreeTitle}>Seeker · Free</Text>
-                  <Text style={s.planFreeSub}>2 picks preview per draw</Text>
+                  <Text style={s.planFreeSub}>2 signals preview per draw</Text>
                 </View>
                 <Text style={{ fontSize: 28 }}>🏆</Text>
               </View>
@@ -271,11 +271,11 @@ export default function AccountScreen() {
                   <Text style={[s.compareProTxt, { color: colors.purple, fontWeight: '800' }]}>ORACLE+</Text>
                 </View>
                 {([
-                  ['K6 Picks',       '2 of 6',  'All 6 ✓'],
+                  ['K6 Signals',     '2 of 6',  'All 6 ✓'],
                   ['Best Straight',  '✗',        '✓'],
-                  ['Heat Checks',    '✗',        'Unlimited ✓'],
+                  ['Signal Checks',  '✗',        'Unlimited ✓'],
                   ['Deep Analytics', '✗',        '✓'],
-                  ['Hit History',    '✗',        '✓'],
+                  ['Match History',  '✗',        '✓'],
                 ] as [string, string, string][]).map(([feature, freeVal, proVal]) => (
                   <View key={feature} style={s.compareRow}>
                     <Text style={s.compareFeature}>{feature}</Text>
@@ -335,18 +335,18 @@ export default function AccountScreen() {
               style={[s.card, { marginBottom: 8, borderColor: colors.gold + '55', borderWidth: 1 }]}
               onPress={() => router.push('/(tabs)/book')}
               accessibilityRole="button"
-              accessibilityLabel={`Your saved picks have hit ${personalHits.totalHits} times in the last 30 days. Tap to open Number Book.`}
+              accessibilityLabel={`Your saved signals have matched ${personalHits.totalHits} times in the last 30 days. Tap to open Number Book.`}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 }}>
                 <Text style={{ fontSize: 26 }}>🎯</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text }}>
-                    Your saved picks have hit{' '}
+                    Your saved signals have matched{' '}
                     <Text style={{ color: colors.gold, fontWeight: '900' }}>{personalHits.totalHits}</Text>{' '}
                     {personalHits.totalHits === 1 ? 'time' : 'times'}
                   </Text>
                   <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
-                    {savedCombos.length} {savedCombos.length === 1 ? 'pick' : 'picks'} tracked · {personalHits.totalStraight} straight · last 30 days
+                    {savedCombos.length} {savedCombos.length === 1 ? 'signal' : 'signals'} tracked · {personalHits.totalStraight} straight · last 30 days
                   </Text>
                 </View>
                 <Text style={{ fontSize: 18, color: colors.textTertiary }}>›</Text>
@@ -358,7 +358,7 @@ export default function AccountScreen() {
               <Text style={{ fontSize: 26 }}>🧾</Text>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text }}>Verified track record</Text>
-                <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>Receipts: every confirmed K6 hit, last 30 days.</Text>
+                <Text style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>Receipts: every confirmed K6 match, last 30 days.</Text>
               </View>
               <Text style={{ fontSize: 18, color: colors.textTertiary }}>›</Text>
             </View>
@@ -388,7 +388,7 @@ export default function AccountScreen() {
           <View style={s.card}>
             <Text style={{ fontSize: 11, color: colors.textSecondary, padding: 14, paddingBottom: 6, lineHeight: 16 }}>
               {followedStates.length === 0
-                ? 'No filters active. Tap states to follow — Results, Hit Feed, Track Record, and Last Hit will filter to those states only.'
+                ? 'No filters active. Tap states to follow — Results, Match Feed, Track Record, and Last Match will filter to those states only.'
                 : `Filtering to ${followedStates.length} state${followedStates.length === 1 ? '' : 's'}: ${followedStates.join(' · ')}`}
             </Text>
             {JURISDICTION_GROUPS.map(group => (
@@ -473,7 +473,7 @@ export default function AccountScreen() {
               on={coffeeMode}
               onChange={() => toggleCoffeeMode()}
               label="Coffee mode"
-              sub="Hide all chrome on Home — just scope + 6 picks + countdown"
+              sub="Hide all chrome on Home — just scope + 6 signals + countdown"
             />
           </View>
         </View>
@@ -484,7 +484,7 @@ export default function AccountScreen() {
           <View style={s.card}>
             <Toggle on={notifPrefs.nextDraw}   onChange={v => handleNotifChange('nextDraw', v)}   label="Next Draw Alert"          sub="15 min before each draw" />
             <Toggle on={notifPrefs.slateReady} onChange={v => handleNotifChange('slateReady', v)} label="Slate Ready"               sub="When ZK6 generates your daily slate" />
-            <Toggle on={notifPrefs.hits}       onChange={v => handleNotifChange('hits', v)}       label="Slate Hit Alert"           sub="When your picks match draw results" />
+            <Toggle on={notifPrefs.hits}       onChange={v => handleNotifChange('hits', v)}       label="Slate Match Alert"         sub="When your signals match draw results" />
             <Toggle on={notifPrefs.promo}      onChange={v => handleNotifChange('promo', v)}      label="Promotions & New Features" sub="Special offers and announcements" />
           </View>
         </View>

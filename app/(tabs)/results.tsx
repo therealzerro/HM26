@@ -146,14 +146,14 @@ function StatsSheet({ visible, onClose, stats, selectedDate }: {
             <View style={ss.divider} />
             <View style={ss.bigStat}>
               <Text style={[ss.bigNum, { color: colors.cyan }]}>{stats.hits}</Text>
-              <Text style={ss.bigLabel}>🎯 ZK6 hits</Text>
+              <Text style={ss.bigLabel}>🎯 ZK6 matches</Text>
             </View>
             <View style={ss.divider} />
             <View style={ss.bigStat}>
               <Text style={[ss.bigNum, { color: colors.gold }]}>
                 {stats.total > 0 ? Math.round((stats.hits / stats.total) * 100) : 0}%
               </Text>
-              <Text style={ss.bigLabel}>Hit rate</Text>
+              <Text style={ss.bigLabel}>Match rate</Text>
             </View>
           </View>
         </Pressable>
@@ -219,18 +219,18 @@ function HitSummary({ items, onItemPress }: { items: HitSummaryItem[]; onItemPre
   if (items.length === 0) {
     return (
       <View style={hs.container}>
-        <Text style={hs.title}>🎯 No hits yet today</Text>
-        <Text style={hs.sub}>Slate hits will appear here as draws come in.</Text>
+        <Text style={hs.title}>🎯 No matches yet today</Text>
+        <Text style={hs.sub}>Slate matches will appear here as draws come in.</Text>
       </View>
     );
   }
   return (
     <View style={hs.container}>
-      <Text style={hs.title}>🎯 {items.length} {items.length === 1 ? 'HIT' : 'HITS'} TODAY</Text>
+      <Text style={hs.title}>🎯 {items.length} {items.length === 1 ? 'MATCH' : 'MATCHES'} TODAY</Text>
       {items.map((h, i) => {
         const RowComp: any = onItemPress ? TouchableOpacity : View;
         const rowProps = onItemPress
-          ? { onPress: () => onItemPress(h), activeOpacity: 0.85, accessibilityRole: 'button' as const, accessibilityLabel: `${h.hitType} hit ${h.combo}, tap for details` }
+          ? { onPress: () => onItemPress(h), activeOpacity: 0.85, accessibilityRole: 'button' as const, accessibilityLabel: `${h.hitType} match ${h.combo}, tap for details` }
           : {};
         return (
           <RowComp key={`${h.combo}-${h.jurisdiction}-${h.session}-${i}`} style={hs.row} {...rowProps}>
@@ -728,7 +728,7 @@ export default function ResultsScreen() {
               <Text style={[s.stateText, { color: hasHit ? colors.cyan : sessionColor }]}>{row.jurisdiction}</Text>
             </View>
             <View style={s.gameInfo}>
-              <Text style={s.gameName}>{row.jurisdiction} · {row.game || 'Pick 3'}</Text>
+              <Text style={s.gameName}>{row.jurisdiction} · {row.game || '3-digit draw'}</Text>
               {hasHit && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <TouchableOpacity
@@ -751,10 +751,10 @@ export default function ResultsScreen() {
                     }))}
                     activeOpacity={0.85}
                     accessibilityRole="button"
-                    accessibilityLabel={`ZK6 hit ${hit.combo}, tap for details`}
+                    accessibilityLabel={`ZK6 match ${hit.combo}, tap for details`}
                   >
                     <Text style={s.hitBadgeText}>
-                      {'🎯 ZK6 HIT · '}
+                      {'🎯 ZK6 MATCH · '}
                       {row.hits.map(h => {
                         const type  = h.hit_straight ? 'Straight' : 'Box';
                         const scope = h.scope ? h.scope.charAt(0).toUpperCase() + h.scope.slice(1) : '';
@@ -767,7 +767,7 @@ export default function ResultsScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => Share.share({
-                      message: `🎯 ZK6 HIT! ${row.result_digits} — ${row.hits.map(h => h.hit_straight ? 'Straight' : 'Box').join(' & ')} hit on ${row.date_et ?? ''} (${row.jurisdiction})`,
+                      message: `🎯 ZK6 MATCH! ${row.result_digits} — ${row.hits.map(h => h.hit_straight ? 'Straight' : 'Box').join(' & ')} match on ${row.date_et ?? ''} (${row.jurisdiction})`,
                     })}
                     style={s.shareBtn}
                   >
@@ -783,7 +783,7 @@ export default function ResultsScreen() {
                 onPress={() => setExpandedRowId(prev => prev === rowId ? null : rowId)}
                 style={s.chevronBtn}
                 accessibilityRole="button"
-                accessibilityLabel={isExpanded ? 'Hide hit replay' : 'Show hit replay'}
+                accessibilityLabel={isExpanded ? 'Hide match replay' : 'Show match replay'}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 {isExpanded
@@ -841,7 +841,7 @@ export default function ResultsScreen() {
                 onPress={() => setHitSummaryOpen(true)}
                 style={{ color: colors.cyan }}
                 accessibilityRole="button"
-                accessibilityLabel={`${stats.hits} hits — open hit summary`}
+                accessibilityLabel={`${stats.hits} matches — open match summary`}
               > · {stats.hits} 🎯</Text>
             )}
             {/* E3: streak chip — only shown when streak >= 2 (1 isn't a streak) */}
@@ -850,7 +850,7 @@ export default function ResultsScreen() {
                 onPress={() => setHitSummaryOpen(true)}
                 style={{ color: colors.hotStreak }}
                 accessibilityRole="button"
-                accessibilityLabel={`${streak} day hit streak — open hit summary`}
+                accessibilityLabel={`${streak} day match streak — open match summary`}
               > · 🔥 {streak}d streak</Text>
             )}
           </Text>

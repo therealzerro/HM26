@@ -522,7 +522,7 @@ export default function SlatesScreen() {
       const todayEt = getTodayET();
       const entry = {
         id: 'slate_' + Date.now(),
-        name: `ZK6 Picks · ${SCOPE_LABELS[scope]} · ${todayEt}`,
+        name: `ZK6 Signals · ${SCOPE_LABELS[scope]} · ${todayEt}`,
         scope, type: 'saved_slate', savedAt: new Date().toISOString(),
         combos: rawItems.filter(p => p.combo !== '---').map(p => ({ combo: p.combo, energy: p.energy })),
       };
@@ -541,7 +541,7 @@ export default function SlatesScreen() {
       <CosmicBackground />
       {/* ── Header (shared ScreenHeader — design.md step 3; freshness via FreshnessLine — step 5) ── */}
       <ScreenHeader
-        title={<Text style={s.title}>ZK6 <Text style={{ color: colors.cyan }}>Picks</Text></Text>}
+        title={<Text style={s.title}>ZK6 <Text style={{ color: colors.cyan }}>Signals</Text></Text>}
         subtitle={<FreshnessLine snapshot={snapshot} />}
         rightSlot={
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -605,7 +605,7 @@ export default function SlatesScreen() {
         {(['picks', 'hits', 'more'] as Tab[]).map(t => (
           <TouchableOpacity key={t} style={[s.tabBtn, tab === t && s.tabBtnOn]} onPress={() => setTab(t)}>
             <Text style={[s.tabText, tab === t && s.tabTextOn]}>
-              {t === 'picks' ? 'Picks' : t === 'hits' ? 'Hits' : 'More'}
+              {t === 'picks' ? 'Signals' : t === 'hits' ? 'Matches' : 'More'}
             </Text>
             {t === 'hits' && slateHitItems.length > 0 && <View style={s.tabDot} />}
           </TouchableOpacity>
@@ -676,11 +676,11 @@ export default function SlatesScreen() {
           <Text style={s.sectionTitle}>Live draw ticker</Text>
           <DrawTicker scope={scope} />
 
-          <Text style={[s.sectionTitle, { marginTop: 16 }]}>Today's hits</Text>
+          <Text style={[s.sectionTitle, { marginTop: 16 }]}>Today's matches</Text>
           {slateHitItems.length === 0 ? (
             <View style={s.emptyCard}>
               <Text style={s.emptyEmoji}>⏳</Text>
-              <Text style={s.emptyTitle}>No hits yet today</Text>
+              <Text style={s.emptyTitle}>No matches yet today</Text>
               <Text style={s.emptyDesc}>Check back after the next draw.</Text>
             </View>
           ) : (
@@ -697,12 +697,12 @@ export default function SlatesScreen() {
             </View>
           )}
 
-          <Text style={[s.sectionTitle, { marginTop: 16 }]}>Hit feed · all scopes today</Text>
+          <Text style={[s.sectionTitle, { marginTop: 16 }]}>Match feed · all scopes today</Text>
           {feedHitsValid.length === 0 ? (
             <View style={s.emptyCard}>
               <Text style={s.emptyEmoji}>📡</Text>
-              <Text style={s.emptyTitle}>No hits across the engine yet</Text>
-              <Text style={s.emptyDesc}>Confirmed hits from any scope and jurisdiction will appear here.</Text>
+              <Text style={s.emptyTitle}>No matches across the engine yet</Text>
+              <Text style={s.emptyDesc}>Confirmed matches from any scope and jurisdiction will appear here.</Text>
             </View>
           ) : (
             <View style={{ gap: 5 }}>
@@ -734,12 +734,12 @@ export default function SlatesScreen() {
             </View>
           )}
 
-          <Text style={[s.sectionTitle, { marginTop: 16 }]}>Heat check</Text>
+          <Text style={[s.sectionTitle, { marginTop: 16 }]}>Signal check</Text>
           <TouchableOpacity style={s.bigAction} onPress={() => { setHeatCheckCombo(''); setHeatCheckOpen(true); }}>
             <Text style={{ fontSize: 20 }}>🔍</Text>
             <View style={{ flex: 1 }}>
-              <Text style={s.bigActionTitle}>Heat Check any combo</Text>
-              <Text style={s.bigActionSub}>See the energy and hit history for any 3-digit combo</Text>
+              <Text style={s.bigActionTitle}>Signal Check any combo</Text>
+              <Text style={s.bigActionSub}>See the energy and match history for any 3-digit combo</Text>
             </View>
           </TouchableOpacity>
         </ScrollView>
@@ -766,7 +766,7 @@ export default function SlatesScreen() {
             <Text style={{ fontSize: 20 }}>📖</Text>
             <View style={{ flex: 1 }}>
               <Text style={s.bigActionTitle}>{slateSavedMsg ? '✓ Saved' : savingSlate ? 'Saving…' : isFree ? 'Save (Pro only)' : 'Save current slate'}</Text>
-              <Text style={s.bigActionSub}>Bookmark today's picks for later review</Text>
+              <Text style={s.bigActionSub}>Bookmark today's signals for later review</Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity
@@ -778,7 +778,7 @@ export default function SlatesScreen() {
             <Text style={{ fontSize: 20 }}>📅</Text>
             <View style={{ flex: 1 }}>
               <Text style={s.bigActionTitle}>Replay past slates</Text>
-              <Text style={s.bigActionSub}>Yesterday's K6 picks vs actual draws · last 7 days</Text>
+              <Text style={s.bigActionSub}>Yesterday's K6 signals vs actual draws · last 7 days</Text>
             </View>
             <Text style={{ fontSize: 18, color: colors.textTertiary }}>›</Text>
           </TouchableOpacity>
@@ -797,7 +797,7 @@ export default function SlatesScreen() {
           {isFree && (
             <View style={s.upsellCard}>
               <Text style={s.upsellTitle}>♛ Unlock your full K6 Slate</Text>
-              <Text style={s.upsellDesc}>Pro unlocks all 6 picks, optimal straights, pattern analysis.</Text>
+              <Text style={s.upsellDesc}>Pro unlocks all 6 signals, optimal straights, pattern analysis.</Text>
               <TouchableOpacity style={s.upsellBtn} onPress={() => setPaywallOpen(true)}>
                 <Text style={s.upsellBtnText}>♛ Begin Pro Trial · $4.99</Text>
               </TouchableOpacity>
@@ -805,7 +805,7 @@ export default function SlatesScreen() {
           )}
 
           {/* ── Footer ── */}
-          <Text style={s.disclaimer}>HitMaster picks are for entertainment only. Play responsibly. 1-800-GAMBLER</Text>
+          <Text style={s.disclaimer}>HitMaster signals are for analytical research only. Use responsibly.</Text>
         </ScrollView>
       )}
 

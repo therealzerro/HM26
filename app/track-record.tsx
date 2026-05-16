@@ -168,7 +168,7 @@ export default function TrackRecordScreen() {
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={s.title}>Verified Track Record</Text>
-          <Text style={s.subtitle}>Last {WINDOW_DAYS} days · ZK6 K6 hits, draw-by-draw</Text>
+          <Text style={s.subtitle}>Last {WINDOW_DAYS} days · ZK6 K6 matches, draw-by-draw</Text>
         </View>
       </View>
 
@@ -178,7 +178,7 @@ export default function TrackRecordScreen() {
           <LoadingPhrase
             style={{ color: colors.textSecondary, fontSize: 12 }}
             phrases={[
-              '🧾 Pulling verified hits…',
+              '🧾 Pulling verified matches…',
               '🧾 Cross-checking against draws…',
               '🧾 Sorting your receipts…',
             ]}
@@ -187,9 +187,9 @@ export default function TrackRecordScreen() {
       ) : validHits.length === 0 ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
           <Text style={{ fontSize: 32, marginBottom: 10 }}>🧾</Text>
-          <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 6 }}>No verified hits in the last {WINDOW_DAYS} days</Text>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 6 }}>No verified matches in the last {WINDOW_DAYS} days</Text>
           <Text style={{ fontSize: 12, color: colors.textSecondary, textAlign: 'center' }}>
-            Hits will appear here as your slate matches real draws.
+            Matches will appear here as your slate matches real draws.
           </Text>
         </View>
       ) : (
@@ -197,7 +197,7 @@ export default function TrackRecordScreen() {
           {/* Summary band */}
           <View style={s.summaryCard}>
             <View style={s.summaryRow}>
-              <SummaryStat value={summary.totalHits} label="HITS" color={colors.cyan} />
+              <SummaryStat value={summary.totalHits} label="MATCHES" color={colors.cyan} />
               <View style={s.summaryDivider} />
               <SummaryStat value={summary.straightHits} label="STRAIGHT" color={colors.gold} />
               <View style={s.summaryDivider} />
@@ -214,7 +214,7 @@ export default function TrackRecordScreen() {
               <View style={s.dayHeader}>
                 <Text style={s.dayLabel}>{formatDateLabel(date)}</Text>
                 <Text style={s.dayDate}>{date}</Text>
-                <View style={s.dayBadge}><Text style={s.dayBadgeText}>{dateHits.length} {dateHits.length === 1 ? 'hit' : 'hits'}</Text></View>
+                <View style={s.dayBadge}><Text style={s.dayBadgeText}>{dateHits.length} {dateHits.length === 1 ? 'match' : 'matches'}</Text></View>
               </View>
               {dateHits.map((h, i) => {
                 const tint = scopeAccent(h.scope);
@@ -227,7 +227,7 @@ export default function TrackRecordScreen() {
                     onPress={() => setDetail(hitRowToPickItem(h))}
                     activeOpacity={0.85}
                     accessibilityRole="button"
-                    accessibilityLabel={`${isStraight ? 'Straight' : 'Box'} hit on ${h.combo} in ${h.hit_state}, tap for details`}
+                    accessibilityLabel={`${isStraight ? 'Straight' : 'Box'} match on ${h.combo} in ${h.hit_state}, tap for details`}
                   >
                     <Text style={s.hitSessIcon}>{sessIcon}</Text>
                     <Text style={s.hitCombo}>{h.combo}</Text>

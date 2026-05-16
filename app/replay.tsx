@@ -193,7 +193,7 @@ export default function ReplayScreen() {
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={s.title}>Replay</Text>
-          <Text style={s.subtitle}>Last 7 days · ZK6 picks vs actual draws</Text>
+          <Text style={s.subtitle}>Last 7 days · ZK6 signals vs actual draws</Text>
         </View>
       </View>
 
@@ -206,7 +206,7 @@ export default function ReplayScreen() {
               '⏪ Rewinding the tape…',
               '⏪ Pulling slate snapshots…',
               '⏪ Cross-checking draws…',
-              '⏪ Stitching hits to picks…',
+              '⏪ Stitching matches to signals…',
             ]}
           />
         </View>
@@ -233,7 +233,7 @@ export default function ReplayScreen() {
                   <Text style={s.dayDate}>{date}</Text>
                   {totalHits > 0 && (
                     <View style={s.dayHitsBadge}>
-                      <Text style={s.dayHitsText}>🎯 {totalHits} {totalHits === 1 ? 'hit' : 'hits'}</Text>
+                      <Text style={s.dayHitsText}>🎯 {totalHits} {totalHits === 1 ? 'match' : 'matches'}</Text>
                     </View>
                   )}
                 </View>
@@ -246,9 +246,9 @@ export default function ReplayScreen() {
                         <Text style={s.scopeLabel}>{SCOPE_ICON[card.scope] ?? '◈'} {SCOPE_LABEL[card.scope] ?? card.scope}</Text>
                         <View style={{ flex: 1 }} />
                         {hits > 0 ? (
-                          <Text style={s.scopeHitsBadge}>{hits} hit{hits === 1 ? '' : 's'}</Text>
+                          <Text style={s.scopeHitsBadge}>{hits} match{hits === 1 ? '' : 'es'}</Text>
                         ) : (
-                          <Text style={s.scopeMissedBadge}>0 hits</Text>
+                          <Text style={s.scopeMissedBadge}>0 matches</Text>
                         )}
                       </View>
                       <View style={s.picksGrid}>

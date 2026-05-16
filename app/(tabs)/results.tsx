@@ -40,6 +40,10 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { HitHeroBand, type HitHeroItem } from '@/components/HitHeroBand';
 import { MissDayCard } from '@/components/MissDayCard';
 import { HitReplay } from '@/components/HitReplay';
+import { PickDetailModal } from '@/components/PickDetailModal';
+import type { PickItem } from '@/components/PickCard';
+import { hitRowToPickItem } from '@/lib/hitToPickItem';
+import { useAuth } from '@/hooks/useAuth';
 
 // Local D color alias map removed (design.md step 6) — every reference
 // now uses colors.* directly so grep-for-cyan finds this file.
@@ -49,8 +53,11 @@ interface LedgerRow {
 }
 interface HitRow {
   slate_date: string; scope: string; mode: string; rank: number; combo: string;
+  combo_set?: string;
   hit_state: string; hit_session: string; hit_box: boolean; hit_straight: boolean;
-  signal_box?: number; signal_pburst?: number; signal_dgc?: number;
+  actual_result?: string;
+  signal_box?: number; signal_pburst?: number; signal_co?: number; signal_dgc?: number;
+  energy?: number;
 }
 interface ProcessedEntry extends LedgerRow { hits: HitRow[] }
 
@@ -175,6 +182,13 @@ interface HitSummaryItem {
   /** Actual drawn digits — used by HitHeroBand for the WE-PICKED → DRAWN replay. */
   hitResult?: string;
   rank?: number;
+  // Optional pass-through fields used by callers that wire onTap → PickDetailModal.
+  comboSet?: string;
+  signalBox?: number;
+  signalPburst?: number;
+  signalCo?: number;
+  signalDgc?: number;
+  energy?: number;
 }
 function flattenHits(processed: ProcessedEntry[]): HitSummaryItem[] {
   const out: HitSummaryItem[] = [];
@@ -188,12 +202,18 @@ function flattenHits(processed: ProcessedEntry[]): HitSummaryItem[] {
         hitType: h.hit_straight ? 'STRAIGHT' : 'BOX',
         hitResult: row.result_digits ?? '',
         rank: h.rank,
+        comboSet: h.combo_set,
+        signalBox:    h.signal_box,
+        signalPburst: h.signal_pburst,
+        signalCo:     h.signal_co,
+        signalDgc:    h.signal_dgc,
+        energy:       h.energy,
       });
     }
   }
   return out;
 }
-function HitSummary({ items }: { items: HitSummaryItem[] }) {
+function HitSummary({ items, onItemPress }: { items: HitSummaryItem[]; onItemPress?: (item: HitSummaryItem) => void }) {
   const { colors } = useTheme();
   const hs = useMemo(() => makeHs(colors), [colors]);
   if (items.length === 0) {
@@ -207,23 +227,30 @@ function HitSummary({ items }: { items: HitSummaryItem[] }) {
   return (
     <View style={hs.container}>
       <Text style={hs.title}>🎯 {items.length} {items.length === 1 ? 'HIT' : 'HITS'} TODAY</Text>
-      {items.map((h, i) => (
-        <View key={`${h.combo}-${h.jurisdiction}-${h.session}-${i}`} style={hs.row}>
-          <Text style={hs.combo}>{h.combo}</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={hs.main}>
-              <Text style={{ color: h.hitType === 'STRAIGHT' ? colors.gold : colors.cyan, fontWeight: '900' }}>K6 {h.hitType}</Text>
-              {h.scope ? ` · ${h.scope}` : ''}
-            </Text>
-            <Text style={hs.sub2}>{h.jurisdiction} {h.session}</Text>
-          </View>
-        </View>
-      ))}
+      {items.map((h, i) => {
+        const RowComp: any = onItemPress ? TouchableOpacity : View;
+        const rowProps = onItemPress
+          ? { onPress: () => onItemPress(h), activeOpacity: 0.85, accessibilityRole: 'button' as const, accessibilityLabel: `${h.hitType} hit ${h.combo}, tap for details` }
+          : {};
+        return (
+          <RowComp key={`${h.combo}-${h.jurisdiction}-${h.session}-${i}`} style={hs.row} {...rowProps}>
+            <Text style={hs.combo}>{h.combo}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={hs.main}>
+                <Text style={{ color: h.hitType === 'STRAIGHT' ? colors.gold : colors.cyan, fontWeight: '900' }}>K6 {h.hitType}</Text>
+                {h.scope ? ` · ${h.scope}` : ''}
+              </Text>
+              <Text style={hs.sub2}>{h.jurisdiction} {h.session}</Text>
+            </View>
+          </RowComp>
+        );
+      })}
     </View>
   );
 }
-function HitSummarySheet({ visible, onClose, items, selectedDate }: {
+function HitSummarySheet({ visible, onClose, items, selectedDate, onItemPress }: {
   visible: boolean; onClose: () => void; items: HitSummaryItem[]; selectedDate: string;
+  onItemPress?: (item: HitSummaryItem) => void;
 }) {
   const { colors } = useTheme();
   const ss = useMemo(() => makeSs(colors), [colors]);
@@ -237,7 +264,7 @@ function HitSummarySheet({ visible, onClose, items, selectedDate }: {
             <TouchableOpacity onPress={onClose}><X size={20} color={colors.textSecondary} /></TouchableOpacity>
           </View>
           <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 480 }}>
-            <HitSummary items={items} />
+            <HitSummary items={items} onItemPress={onItemPress} />
           </ScrollView>
         </Pressable>
       </Pressable>
@@ -275,11 +302,35 @@ const makeSs = (colors: ColorTokens) => StyleSheet.create({
 export default function ResultsScreen() {
   const { colors } = useTheme();
   const s = useMemo(() => makeS(colors), [colors]);
+  const { user } = useAuth();
+  const isPro = user?.role !== 'free';
   const recentDates = useMemo(() => getRecentDates(), []);
   const [selectedDate,  setSelectedDate]  = useState(recentDates[0]);
   const [sessionFilter, setSessionFilter] = useState<string>('all');
   const [searchQuery,   setSearchQuery]   = useState('');
   const [searchOpen,    setSearchOpen]    = useState(false);
+  const [detail, setDetail] = useState<PickItem | null>(null);
+  // Build a PickItem from a flattened HitSummaryItem (used by HitHeroBand and
+  // HitSummary tap handlers). Maps the flattened shape back onto the AT-row
+  // shape that hitRowToPickItem expects.
+  const openHitDetail = useCallback((h: HitSummaryItem) => {
+    setDetail(hitRowToPickItem({
+      combo: h.combo,
+      combo_set: h.comboSet ?? null,
+      scope: h.scope ?? null,
+      rank: h.rank ?? null,
+      hit_state: h.jurisdiction ?? null,
+      hit_session: h.session ?? null,
+      hit_box: true,
+      hit_straight: h.hitType === 'STRAIGHT',
+      hit_result: h.hitResult ?? null,
+      signal_box:    h.signalBox    ?? null,
+      signal_pburst: h.signalPburst ?? null,
+      signal_co:     h.signalCo     ?? null,
+      signal_dgc:    h.signalDgc    ?? null,
+      energy:        h.energy       ?? null,
+    }));
+  }, []);
   const [statsOpen,     setStatsOpen]     = useState(false);
   const [hitSummaryOpen, setHitSummaryOpen] = useState(false);
   const [clusterView,   setClusterView]   = useState(false);
@@ -329,20 +380,24 @@ export default function ResultsScreen() {
     mode: r.mode,
     rank: r.rank ?? 0,
     combo: r.combo ?? '',
+    combo_set: r.combo_set ?? undefined,
     hit_state: r.matched_state ?? '',
     hit_session: r.matched_session ?? '',
     hit_box: !!r.hit_box,
     hit_straight: !!r.hit_straight,
+    actual_result: r.actual_result ?? undefined,
     signal_box: r.signal_box,
     signal_pburst: r.signal_pburst,
+    signal_co: r.signal_co,
     signal_dgc: r.signal_burst,
+    energy: r.energy_score,
   });
 
   const { data: hits, refetch: refetchHits } = useQuery<HitRow[]>({
-    queryKey: ['adaptive_tracking_hits_v1', selectedDate, followedStates.join(',')],
+    queryKey: ['adaptive_tracking_hits_v2', selectedDate, followedStates.join(',')],
     queryFn: async () => {
       const res = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/adaptive_tracking?select=slate_date,scope,mode,rank,combo,signal_box,signal_pburst,signal_burst,matched_state,matched_session,hit_box,hit_straight&slate_date=in.(${selectedDate},${nextDay})&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${matchedStateFilter}&order=rank.asc.nullslast&limit=500`,
+        path: `/rest/v1/adaptive_tracking?select=slate_date,scope,mode,rank,combo,combo_set,energy_score,signal_box,signal_pburst,signal_co,signal_burst,actual_result,matched_state,matched_session,hit_box,hit_straight&slate_date=in.(${selectedDate},${nextDay})&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${matchedStateFilter}&order=rank.asc.nullslast&limit=500`,
         method: 'GET',
       });
       return Array.isArray(res) ? res.map(remapToHitRow) : [];
@@ -357,10 +412,10 @@ export default function ResultsScreen() {
   // the full K6 universe across all regens of the day. De-dupe by combo so
   // multi-state secondary rows don't bloat csMap.
   const { data: onSlatePicks, refetch: refetchOnSlatePicks } = useQuery<HitRow[]>({
-    queryKey: ['adaptive_tracking_on_slate_v1', selectedDate],
+    queryKey: ['adaptive_tracking_on_slate_v2', selectedDate],
     queryFn: async () => {
       const res = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/adaptive_tracking?select=slate_date,scope,mode,rank,combo,signal_box,signal_pburst,signal_burst,matched_state,matched_session,hit_box,hit_straight&slate_date=in.(${selectedDate},${nextDay})&mode=in.(balanced,conservative,aggressive)&order=rank.asc.nullslast&limit=1000`,
+        path: `/rest/v1/adaptive_tracking?select=slate_date,scope,mode,rank,combo,combo_set,energy_score,signal_box,signal_pburst,signal_co,signal_burst,actual_result,matched_state,matched_session,hit_box,hit_straight&slate_date=in.(${selectedDate},${nextDay})&mode=in.(balanced,conservative,aggressive)&order=rank.asc.nullslast&limit=1000`,
         method: 'GET',
       });
       const rows = Array.isArray(res) ? res : [];
@@ -676,7 +731,28 @@ export default function ResultsScreen() {
               <Text style={s.gameName}>{row.jurisdiction} · {row.game || 'Pick 3'}</Text>
               {hasHit && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <View style={[s.hitBadge, { flex: 1 }]}>
+                  <TouchableOpacity
+                    style={[s.hitBadge, { flex: 1 }]}
+                    onPress={() => setDetail(hitRowToPickItem({
+                      combo: hit.combo,
+                      combo_set: hit.combo_set ?? null,
+                      scope: hit.scope ?? null,
+                      rank: hit.rank ?? null,
+                      hit_state: hit.hit_state || row.jurisdiction || null,
+                      hit_session: hit.hit_session || row.session || null,
+                      hit_box: !!hit.hit_box,
+                      hit_straight: !!hit.hit_straight,
+                      hit_result: hit.actual_result || row.result_digits || null,
+                      signal_box:    hit.signal_box    ?? null,
+                      signal_pburst: hit.signal_pburst ?? null,
+                      signal_co:     hit.signal_co     ?? null,
+                      signal_dgc:    hit.signal_dgc    ?? null,
+                      energy:        hit.energy        ?? null,
+                    }))}
+                    activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityLabel={`ZK6 hit ${hit.combo}, tap for details`}
+                  >
                     <Text style={s.hitBadgeText}>
                       {'🎯 ZK6 HIT · '}
                       {row.hits.map(h => {
@@ -688,7 +764,7 @@ export default function ResultsScreen() {
                         return `K6 ${scope} · ${type}`;
                       }).join('  ')}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => Share.share({
                       message: `🎯 ZK6 HIT! ${row.result_digits} — ${row.hits.map(h => h.hit_straight ? 'Straight' : 'Box').join(' & ')} hit on ${row.date_et ?? ''} (${row.jurisdiction})`,
@@ -868,7 +944,26 @@ export default function ResultsScreen() {
               hitType: h.hitType === 'STRAIGHT' ? 'straight' : 'box',
               jurisdiction: h.jurisdiction,
               session: h.session,
+              scope: h.scope,
+              rank: h.rank,
+              comboSet: h.comboSet,
+              signalBox:    h.signalBox,
+              signalPburst: h.signalPburst,
+              signalCo:     h.signalCo,
+              signalDgc:    h.signalDgc,
+              energy:       h.energy,
             }))}
+            onItemPress={(it) => {
+              // Locate the matching HitSummaryItem so we keep our richer
+              // pass-through fields (signals + energy + comboSet) when
+              // opening the modal.
+              const src = hitSummaryItems.find(h =>
+                h.combo === it.combo &&
+                (h.jurisdiction ?? '') === (it.jurisdiction ?? '') &&
+                (h.session ?? '') === (it.session ?? '')
+              ) ?? null;
+              if (src) openHitDetail(src);
+            }}
           />
         ) : (
           <MissDayCard
@@ -913,7 +1008,7 @@ export default function ResultsScreen() {
               </View>
             </View>
           ))}
-          <HitSummary items={hitSummaryItems} />
+          <HitSummary items={hitSummaryItems} onItemPress={openHitDetail} />
         </ScrollView>
       ) : (
         <FlatList
@@ -923,7 +1018,7 @@ export default function ResultsScreen() {
             : `r-${item.data.jurisdiction}-${item.data.date_et}-${item.data.session}-${idx}`}
           renderItem={renderItem}
           contentContainerStyle={s.list}
-          ListFooterComponent={<HitSummary items={hitSummaryItems} />}
+          ListFooterComponent={<HitSummary items={hitSummaryItems} onItemPress={openHitDetail} />}
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={handleRefresh} tintColor={colors.purple} colors={[colors.purple]} />
           }
@@ -935,7 +1030,16 @@ export default function ResultsScreen() {
       )}
 
       <StatsSheet visible={statsOpen} onClose={() => setStatsOpen(false)} stats={stats} selectedDate={selectedDate} />
-      <HitSummarySheet visible={hitSummaryOpen} onClose={() => setHitSummaryOpen(false)} items={hitSummaryItems} selectedDate={selectedDate} />
+      <HitSummarySheet visible={hitSummaryOpen} onClose={() => setHitSummaryOpen(false)} items={hitSummaryItems} selectedDate={selectedDate} onItemPress={(h) => { setHitSummaryOpen(false); openHitDetail(h); }} />
+
+      {detail && (
+        <PickDetailModal
+          pick={detail}
+          scope={detail.snapshotScope ?? 'allday'}
+          isPro={isPro}
+          onClose={() => setDetail(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }

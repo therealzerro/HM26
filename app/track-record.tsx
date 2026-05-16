@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -10,6 +10,10 @@ import { fetchFromSupabase } from '@/lib/supabase';
 import { LoadingPhrase } from '@/components/LoadingPhrase';
 import { scopeAccent } from '@/lib/scopeAccent';
 import { useFollowedStates } from '@/hooks/useFollowedStates';
+import { PickDetailModal } from '@/components/PickDetailModal';
+import type { PickItem } from '@/components/PickCard';
+import { hitRowToPickItem } from '@/lib/hitToPickItem';
+import { useAuth } from '@/hooks/useAuth';
 
 const SCOPE_LABEL: Record<string, string> = { midday: 'Midday', evening: 'Evening', allday: 'All Day' };
 const SCOPE_ICON: Record<string, string> = { midday: '☀️', evening: '🌙', allday: '◈' };
@@ -21,12 +25,18 @@ interface HitRow {
   slate_date: string;
   scope: string;
   combo: string;
+  combo_set?: string;
   rank: number;
   hit_state: string;
   hit_session: string;
   hit_box: boolean;
   hit_straight: boolean;
   hit_result: string;
+  signal_box?: number;
+  signal_pburst?: number;
+  signal_co?: number;
+  signal_dgc?: number; // signal_burst in DB (legacy)
+  energy?: number;
 }
 
 function scopeMatchesSession(scope: string, session: string): boolean {
@@ -58,6 +68,9 @@ export default function TrackRecordScreen() {
   const sinceDate = useMemo(() => lastNDates(WINDOW_DAYS), []);
   const { followed, toPostgrestFilter } = useFollowedStates();
   const stateFilter = toPostgrestFilter().replace('jurisdiction=', 'hit_state=');
+  const { user } = useAuth();
+  const isPro = user?.role !== 'free';
+  const [detail, setDetail] = useState<PickItem | null>(null);
 
   // BUG-141 (2026-05-13): consolidated from a two-query merge
   // (daily_intelligence primary + adaptive_tracking secondary) into a single
@@ -76,14 +89,17 @@ export default function TrackRecordScreen() {
   // i.e., adaptive_tracking is the strictly-more-complete source.
   const atStateFilter = stateFilter.replace('hit_state=', 'matched_state=');
   const { data: hitRows = [], isLoading } = useQuery<Array<{
-    slate_date: string; scope: string; combo: string; rank: number;
+    slate_date: string; scope: string; combo: string; combo_set: string | null; rank: number;
     matched_state: string | null; matched_session: string | null;
     hit_box: boolean; hit_straight: boolean; actual_result: string | null;
+    signal_box: number | null; signal_pburst: number | null;
+    signal_co: number | null; signal_burst: number | null;
+    energy_score: number | null;
   }>>({
-    queryKey: ['verified_track_record_adaptive_v1', sinceDate, followed.join(',')],
+    queryKey: ['verified_track_record_adaptive_v2', sinceDate, followed.join(',')],
     queryFn: async () => {
       const rows = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/adaptive_tracking?slate_date=gte.${sinceDate}&matched_state=not.is.null&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${atStateFilter}&select=slate_date,scope,combo,rank,matched_state,matched_session,hit_box,hit_straight,actual_result&order=slate_date.desc&limit=500`,
+        path: `/rest/v1/adaptive_tracking?slate_date=gte.${sinceDate}&matched_state=not.is.null&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${atStateFilter}&select=slate_date,scope,combo,combo_set,rank,matched_state,matched_session,hit_box,hit_straight,actual_result,signal_box,signal_pburst,signal_co,signal_burst,energy_score&order=slate_date.desc&limit=500`,
       });
       return Array.isArray(rows) ? rows : [];
     },
@@ -104,10 +120,15 @@ export default function TrackRecordScreen() {
       if (seen.has(k)) continue;
       seen.add(k);
       merged.push({
-        slate_date: m.slate_date, scope: m.scope, combo: m.combo, rank: m.rank,
+        slate_date: m.slate_date, scope: m.scope, combo: m.combo, combo_set: m.combo_set ?? undefined, rank: m.rank,
         hit_state: m.matched_state, hit_session: m.matched_session ?? '',
         hit_box: m.hit_box, hit_straight: m.hit_straight,
         hit_result: m.actual_result ?? '',
+        signal_box:    m.signal_box    ?? undefined,
+        signal_pburst: m.signal_pburst ?? undefined,
+        signal_co:     m.signal_co     ?? undefined,
+        signal_dgc:    m.signal_burst  ?? undefined,
+        energy:        m.energy_score  ?? undefined,
       });
     }
     return merged;
@@ -200,7 +221,14 @@ export default function TrackRecordScreen() {
                 const sessIcon = SESSION_ICON[(h.hit_session ?? '').toLowerCase()] ?? '◈';
                 const isStraight = !!h.hit_straight;
                 return (
-                  <View key={`${h.combo}-${h.hit_state}-${h.hit_session}-${i}`} style={[s.hitRow, { borderLeftColor: tint }]}>
+                  <TouchableOpacity
+                    key={`${h.combo}-${h.hit_state}-${h.hit_session}-${i}`}
+                    style={[s.hitRow, { borderLeftColor: tint }]}
+                    onPress={() => setDetail(hitRowToPickItem(h))}
+                    activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${isStraight ? 'Straight' : 'Box'} hit on ${h.combo} in ${h.hit_state}, tap for details`}
+                  >
                     <Text style={s.hitSessIcon}>{sessIcon}</Text>
                     <Text style={s.hitCombo}>{h.combo}</Text>
                     <View style={{ flex: 1 }}>
@@ -217,12 +245,21 @@ export default function TrackRecordScreen() {
                         Drew {h.hit_result || '???'} in {h.hit_state || '??'} {h.hit_session || ''}
                       </Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 );
               })}
             </View>
           ))}
         </ScrollView>
+      )}
+
+      {detail && (
+        <PickDetailModal
+          pick={detail}
+          scope={detail.snapshotScope ?? 'allday'}
+          isPro={isPro}
+          onClose={() => setDetail(null)}
+        />
       )}
     </SafeAreaView>
   );

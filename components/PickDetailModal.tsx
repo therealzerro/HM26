@@ -32,6 +32,7 @@ function makeD(colors: ColorTokens) {
     gold:        colors.gold,
     amber:       colors.amber,
     hot:         colors.hot,
+    success:     colors.success,
     text:        colors.text,
     textSub:     colors.textSecondary,
     textDim:     colors.textTertiary,
@@ -630,6 +631,28 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
 
           {/* ── Hero ── */}
           <View style={s.hero}>
+            {/* Hit stamp — continuity marker when entering from a hit surface.
+                Translucent fill so the digits behind still read; pointerEvents
+                disabled so taps fall through to the hero. Intentionally more
+                restrained than the GridTile stamp (smaller font, lower fill)
+                because the modal also surfaces HitReplay on the PLAY tab and
+                we don't want to compete with it. */}
+            {pick.hitType && (
+              <View pointerEvents="none" style={s.hitStampWrap}>
+                <View style={s.hitStamp}>
+                  <Text style={s.hitStampText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+                    {pick.hitType === 'straight' ? 'STRAIGHT HIT' : 'BOX HIT'}
+                  </Text>
+                  {pick.hitResult ? (
+                    <Text style={s.hitStampSub} numberOfLines={1}>
+                      {pick.hitResult}
+                      {pick.hitState ? ` · ${pick.hitState}` : ''}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            )}
+
             {/* Left: energy arc */}
             <View style={s.heroLeft}>
               <EnergyArc value={pick.energy} size={80} />
@@ -769,7 +792,43 @@ const makeS = (D: DTokens) => StyleSheet.create({
   closeX:       { fontSize: 15, color: D.text, fontWeight: '800' },
 
   // Hero
-  hero:            { flexDirection: 'row', alignItems: 'center', backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.glassBorder, paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
+  hero:            { position: 'relative', flexDirection: 'row', alignItems: 'center', backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.glassBorder, paddingHorizontal: 16, paddingVertical: 14, gap: 10, overflow: 'hidden' },
+  // Hit stamp — absolutely centered watermark over the hero. Tuned smaller +
+  // less saturated than the GridTile/coffee-mode versions intentionally.
+  hitStampWrap: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    alignItems: 'center', justifyContent: 'center',
+    zIndex: 2,
+  },
+  hitStamp: {
+    paddingHorizontal: 12, paddingVertical: 4,
+    borderRadius: 6, borderWidth: 2,
+    borderColor: D.success,
+    backgroundColor: D.success + '20',
+    transform: [{ rotate: '-8deg' }],
+    shadowColor: D.success,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.85,
+    shadowRadius: 10,
+    elevation: 6,
+    alignItems: 'center',
+  },
+  hitStampText: {
+    fontSize: 16, fontWeight: '900',
+    color: D.success,
+    fontFamily: D.monoBold,
+    letterSpacing: 1.3,
+    textShadowColor: D.success + 'aa',
+    textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 6,
+  },
+  hitStampSub: {
+    fontSize: 10, fontWeight: '900',
+    color: D.success,
+    fontFamily: D.monoBold,
+    letterSpacing: 0.8,
+    marginTop: 1,
+  },
   heroLeft:        { alignItems: 'center', gap: 5 },
   heroEnergyLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
   heroCenter:      { flex: 1, alignItems: 'center', gap: 5 },

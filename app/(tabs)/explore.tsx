@@ -88,6 +88,8 @@ function GridTile({ pick, onPress }: { pick: PickItem; onPress: () => void }) {
   const tc       = tempColorForEnergy(pick.energy, colors);
   const tLabel   = tempLabel(pick.energy);
   const isLocked = pick.locked;
+  const isHit    = !!pick.hitType;
+  const hitLabel = pick.hitType === 'straight' ? 'STRAIGHT HIT' : 'BOX HIT';
   const digits   = isLocked ? '•••' : (pick.bestOrder ?? pick.combo);
 
   const channels = [
@@ -97,9 +99,12 @@ function GridTile({ pick, onPress }: { pick: PickItem; onPress: () => void }) {
     { k: 'D', v: pick.signals.DGC ?? 0, c: colors.gold   },
   ];
 
+  const borderC = isHit ? colors.success : tc + '66';
+  const shadowC = isHit ? colors.success : tc;
+
   return (
     <TouchableOpacity
-      style={[gt.card, { borderColor: tc + '66', shadowColor: tc }]}
+      style={[gt.card, { borderColor: borderC, shadowColor: shadowC }, isHit && gt.cardHit]}
       onPress={onPress}
       activeOpacity={0.85}
     >
@@ -162,6 +167,28 @@ function GridTile({ pick, onPress }: { pick: PickItem; onPress: () => void }) {
           <Text style={gt.lockedText}>🔒 Pro</Text>
         </View>
       )}
+
+      {/* Hit stamp — large green overlay on winning pickcards. Sits centered
+          across the tile so it reads as a "stamped" mark over the digits. */}
+      {isHit && !isLocked && (
+        <View pointerEvents="none" style={gt.hitStampWrap}>
+          <View style={[gt.hitStamp, { borderColor: colors.success, backgroundColor: colors.success + '22', shadowColor: colors.success }]}>
+            <Text
+              style={[gt.hitStampText, { color: colors.success, textShadowColor: colors.success + 'aa' }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.5}
+            >
+              {hitLabel}
+            </Text>
+            {pick.hitResult ? (
+              <Text style={[gt.hitStampSub, { color: colors.success }]} numberOfLines={1}>
+                {pick.hitResult}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -181,6 +208,13 @@ const makeGt = (colors: ColorTokens) => StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 10,
     elevation: 3,
+    overflow: 'hidden',
+  },
+  cardHit: {
+    borderWidth: 2,
+    shadowOpacity: 0.8,
+    shadowRadius: 14,
+    elevation: 10,
   },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rankChip: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, borderWidth: 1 },
@@ -225,12 +259,42 @@ const makeGt = (colors: ColorTokens) => StyleSheet.create({
 
   lockedRow: { marginTop: 'auto', alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)' },
   lockedText: { fontSize: 10, color: colors.textTertiary, fontWeight: '700' },
+
+  // Hit stamp — absolutely centered, rotated slightly so it reads as a
+  // physical "stamp" over the pick. Keep it inside the card (overflow hidden
+  // on the card) so it never bleeds into neighboring tiles.
+  hitStampWrap: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  hitStamp: {
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderWidth: 2, borderRadius: 6,
+    transform: [{ rotate: '-8deg' }],
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9, shadowRadius: 10,
+    elevation: 8,
+    alignItems: 'center',
+  },
+  hitStampText: {
+    fontSize: 18, fontWeight: '900',
+    fontFamily: theme.typography.fontFamily.monoBold,
+    letterSpacing: 1.5,
+    textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 6,
+  },
+  hitStampSub: {
+    fontSize: 10, fontWeight: '900',
+    fontFamily: theme.typography.fontFamily.monoBold,
+    letterSpacing: 1,
+    marginTop: 1,
+  },
 });
 
 export default function SlatesScreen() {
   const { colors } = useTheme();
   const s = useMemo(() => makeS(colors), [colors]);
-  const { snapshot, refreshSnapshot, activePicks } = useSnapshot();
+  const { snapshot, refreshSnapshot } = useSnapshot();
   const { scope, setScope } = useScope();
   const { regenerateSlate, checkSlateLock } = useDataIngestion();
   const { user } = useAuth();
@@ -386,11 +450,12 @@ export default function SlatesScreen() {
   }, [refreshSnapshot, queryClient]);
 
   const rawItems = useMemo((): PickItem[] => {
-    // If active (non-hit) picks exist, show those. Otherwise fall back to the full
-    // snapshot including hit picks — so the slate never shows empty placeholder rows
-    // just because all picks already hit (e.g. yesterday's slate after hit detection ran).
-    const list = activePicks.length > 0 ? activePicks
-      : (Array.isArray(snapshot?.top_k_straights_json) ? (snapshot!.top_k_straights_json as any[]) : []);
+    // Always render the full slate including picks that already hit — winning
+    // pickcards stay on the grid with a green BOX HIT / STRAIGHT HIT stamp
+    // (handled in GridTile + PickCard) instead of being filtered out.
+    const list = Array.isArray(snapshot?.top_k_straights_json)
+      ? (snapshot!.top_k_straights_json as any[])
+      : [];
     if (!Array.isArray(list) || list.length === 0) {
       return Array.from({ length: 6 }).map((_, i) => ({
         rank: i + 1, combo: '---', comboSet: '{-,-,-}', energy: 0,
@@ -401,6 +466,7 @@ export default function SlatesScreen() {
       const r = row as any;
       const combo = r.combo ?? '---';
       const energy = typeof r.energy === 'number' ? r.energy : typeof r.temperature === 'number' ? r.temperature : 0;
+      const hitType = r.hitType === 'straight' || r.hitType === 'box' ? r.hitType : undefined;
       return {
         rank: idx + 1, combo, comboSet: r.comboSet ?? toComboSet(combo), bestOrder: r.bestOrder ?? combo, energy,
         signals: {
@@ -412,9 +478,13 @@ export default function SlatesScreen() {
         multiplicity: r.multiplicity, topPair: r.topPair, drawsSince: r.drawsSince,
         timesDrawn: r.timesDrawn, lastSeen: r.lastSeen, locked: isFree && idx < 4,
         generatedAt: snapshot?.updated_at_et, snapshotScope: scope,
+        hitType,
+        hitState: r.hitState ?? r.matched_state ?? undefined,
+        hitSession: r.hitSession ?? r.matched_session ?? undefined,
+        hitResult: r.hitResult ?? r.actual_result ?? undefined,
       };
     });
-  }, [activePicks, snapshot, isFree, scope]);
+  }, [snapshot, isFree, scope]);
 
   // slateHitItems is the data behind the "Today's hits" section in the Hits
   // tab. It now sources from `scopedHits` (adaptive_tracking, scope-filtered

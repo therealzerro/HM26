@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '@/constants/theme';
 import { useTheme, type ColorTokens, type GradientTokens } from '@/lib/theme';
@@ -26,9 +26,20 @@ export interface HitHeroItem {
   hitType: 'straight' | 'box';
   jurisdiction?: string;
   session?: string;
+  // Optional fields used by callers that wire onItemPress → PickDetailModal.
+  // Tile rendering ignores them; they're carried so the parent's handler can
+  // build a PickItem without a second DB lookup.
+  scope?: string;
+  rank?: number;
+  comboSet?: string;
+  signalBox?: number;
+  signalPburst?: number;
+  signalCo?: number;
+  signalDgc?: number;
+  energy?: number;
 }
 
-export function HitHeroBand({ items }: { items: HitHeroItem[] }) {
+export function HitHeroBand({ items, onItemPress }: { items: HitHeroItem[]; onItemPress?: (item: HitHeroItem) => void }) {
   const { colors, gradients } = useTheme();
   const s = useMemo(() => makeS(colors), [colors]);
   if (items.length === 0) return null;
@@ -61,7 +72,11 @@ export function HitHeroBand({ items }: { items: HitHeroItem[] }) {
           accessibilityLabel={`${items.length} hits today, scroll to view`}
         >
           {items.map((it, i) => (
-            <Tile key={`${it.combo}-${it.jurisdiction ?? ''}-${i}`} item={it} />
+            <Tile
+              key={`${it.combo}-${it.jurisdiction ?? ''}-${i}`}
+              item={it}
+              onPress={onItemPress ? () => onItemPress(it) : undefined}
+            />
           ))}
         </ScrollView>
       </View>
@@ -69,7 +84,7 @@ export function HitHeroBand({ items }: { items: HitHeroItem[] }) {
   );
 }
 
-function Tile({ item }: { item: HitHeroItem }) {
+function Tile({ item, onPress }: { item: HitHeroItem; onPress?: () => void }) {
   const { colors } = useTheme();
   const s = useMemo(() => makeS(colors), [colors]);
   const isStraight = item.hitType === 'straight';
@@ -77,8 +92,8 @@ function Tile({ item }: { item: HitHeroItem }) {
   const sess = (item.session ?? '').toLowerCase();
   const sessEmoji = SESSION_EMOJI[sess] ?? '';
 
-  return (
-    <View style={[s.tile, { borderColor: accent + '55', shadowColor: accent }]}>
+  const inner = (
+    <>
       <View style={s.digitRow}>
         <DigitGroup digits={item.combo} accent={accent} variant="ghost" />
         <Text style={[s.arrow, { color: accent }]}>➜</Text>
@@ -96,6 +111,26 @@ function Tile({ item }: { item: HitHeroItem }) {
           </Text>
         )}
       </View>
+    </>
+  );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity
+        style={[s.tile, { borderColor: accent + '55', shadowColor: accent }]}
+        onPress={onPress}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel={`${isStraight ? 'Straight' : 'Box'} hit ${item.combo}, tap for details`}
+      >
+        {inner}
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <View style={[s.tile, { borderColor: accent + '55', shadowColor: accent }]}>
+      {inner}
     </View>
   );
 }

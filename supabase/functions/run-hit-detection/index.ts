@@ -224,24 +224,28 @@ async function runForDate(date: string, scope: string | null, skipSupplements: b
   let totalHits = 0;
   let supplementsGenerated = 0;
 
-  const nextDay = new Date(date + 'T12:00:00');
-  nextDay.setDate(nextDay.getDate() + 1);
-  const nextDayStr = nextDay.toISOString().split('T')[0];
-
+  // BUG-147 (2026-05-15): pair snapshots to draws strictly by `slate_date`.
+  // The prior implementation bucketed snapshots by `updated_at_et` (a UTC
+  // timestamptz despite the `_et` suffix). A yesterday-night ET regen — e.g.
+  // 5/14 10:39 PM ET = 5/15 02:39 UTC — has `updated_at_et >= today UTC`, so
+  // today's run was pulling in yesterday's snapshot and matching its picks
+  // against today's draws. The `recordHitInAdaptiveTracking` PATCH path then
+  // stamped today's hits onto yesterday's primary AT row (slate_hash-keyed,
+  // slate_date untouched), producing false hits dated to the prior slate.
+  // Filtering by `slate_date=eq.${date}` is the canonical pairing — a
+  // snapshot's slate_date is the day whose draws it should be scored against.
   const fetchScope = async (s: string) =>
     sbGet<SnapshotRow[]>(
       `/rest/v1/slate_snapshots?scope=eq.${s}&deleted_at=is.null` +
-      `&updated_at_et=gte.${date}&updated_at_et=lt.${nextDayStr}T09:00:00` +
+      `&slate_date=eq.${date}` +
       `&order=updated_at_et.asc&limit=10`,
     );
-  const resolveSnaps = async (initial: SnapshotRow[] | null, s: string): Promise<SnapshotRow[]> => {
-    if (Array.isArray(initial) && initial.length > 0) return initial;
-    const fallback = await sbGet<SnapshotRow[]>(
-      `/rest/v1/slate_snapshots?scope=eq.${s}&deleted_at=is.null&slate_date=lte.${date}` +
-      `&order=updated_at_et.desc&limit=3`,
-    );
-    return Array.isArray(fallback) ? fallback : [];
-  };
+  // No prior-date fallback: if no snapshot exists for `${date}`, there is
+  // nothing to score for that day. Borrowing a snapshot from an earlier
+  // slate_date would re-introduce the same cross-date pollution this fix
+  // closes.
+  const resolveSnaps = async (initial: SnapshotRow[] | null): Promise<SnapshotRow[]> =>
+    Array.isArray(initial) ? initial : [];
 
   const skipMidday  = scope !== null && scope !== 'midday';
   const skipEvening = scope !== null && scope !== 'evening';
@@ -252,9 +256,9 @@ async function runForDate(date: string, scope: string | null, skipSupplements: b
     skipAllday  ? Promise.resolve([] as SnapshotRow[]) : fetchScope('allday'),
   ]);
   const [resolvedMidday, resolvedEvening, resolvedAllday] = await Promise.all([
-    skipMidday  ? Promise.resolve([] as SnapshotRow[]) : resolveSnaps(middaySnaps,  'midday'),
-    skipEvening ? Promise.resolve([] as SnapshotRow[]) : resolveSnaps(eveningSnaps, 'evening'),
-    skipAllday  ? Promise.resolve([] as SnapshotRow[]) : resolveSnaps(alldaySnaps,  'allday'),
+    skipMidday  ? Promise.resolve([] as SnapshotRow[]) : resolveSnaps(middaySnaps),
+    skipEvening ? Promise.resolve([] as SnapshotRow[]) : resolveSnaps(eveningSnaps),
+    skipAllday  ? Promise.resolve([] as SnapshotRow[]) : resolveSnaps(alldaySnaps),
   ]);
   const snapshots = [...resolvedMidday, ...resolvedEvening, ...resolvedAllday];
   if (snapshots.length === 0) return { hitsFound: 0, scopesChecked: 0, supplementsGenerated: 0, errors };

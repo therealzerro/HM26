@@ -280,7 +280,7 @@ const makeOs = (colors: ColorTokens) => StyleSheet.create({
 export default function HomeScreen() {
   const { colors } = useTheme();
   const s = useMemo(() => makeS(colors), [colors]);
-  const { snapshot, refreshSnapshot, isLoading: snapshotLoading, activePicks } = useSnapshot();
+  const { snapshot, refreshSnapshot, isLoading: snapshotLoading } = useSnapshot();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { scope, setScope: setScopeRaw } = useScope();
@@ -498,8 +498,13 @@ export default function HomeScreen() {
   }, [regenerateSlate, scope, mode, refreshSnapshot, showToast]);
 
   const items = useMemo((): PickItem[] => {
-    const list = activePicks.length > 0 ? activePicks
-      : (Array.isArray(snapshot?.top_k_straights_json) ? (snapshot!.top_k_straights_json as any[]).filter((p: any) => !p?.hitType) : []);
+    // Always include hit picks — they stay on the slate with a green BOX HIT /
+    // STRAIGHT HIT stamp instead of being filtered out. PickCard handles the
+    // banner for the list view; the coffee-mode 2×3 grid below renders its own
+    // overlay using the same hitType field.
+    const list = Array.isArray(snapshot?.top_k_straights_json)
+      ? (snapshot!.top_k_straights_json as any[])
+      : [];
     if (!Array.isArray(list) || list.length === 0) {
       return Array.from({ length: 6 }).map((_, i) => ({
         rank: i + 1, combo: '•••', comboSet: '{•,•,•}', energy: 0,
@@ -510,6 +515,7 @@ export default function HomeScreen() {
       const r = row as any;
       const combo = r.combo ?? '---';
       const energy = typeof r.energy === 'number' ? r.energy : typeof r.temperature === 'number' ? r.temperature : 0;
+      const hitType = r.hitType === 'straight' || r.hitType === 'box' ? r.hitType : undefined;
       return {
         rank: idx + 1, combo, comboSet: toComboSet(combo), bestOrder: r.bestOrder, energy,
         signals: { BOX: Number(r.box ?? 0), PBURST: Number(r.pburst ?? 0), CO: Number(r.co ?? 0), DGC: Number(r.signals?.DGC ?? 0) },
@@ -517,9 +523,13 @@ export default function HomeScreen() {
         timesDrawn: r.timesDrawn, lastSeen: r.lastSeen,
         locked: isFree && idx < 4,
         generatedAt: snapshot?.updated_at_et ?? undefined, snapshotScope: snapshot?.scope ?? undefined,
+        hitType,
+        hitState: r.hitState ?? r.matched_state ?? undefined,
+        hitSession: r.hitSession ?? r.matched_session ?? undefined,
+        hitResult: r.hitResult ?? r.actual_result ?? undefined,
       };
     });
-  }, [activePicks, snapshot, isFree]);
+  }, [snapshot, isFree]);
 
   // BUG-138 — Home's "TODAY'S HITS" section used to source from
   // useSnapshot().hitPicks (filter of snapshot picks where p.hitType truthy).
@@ -688,12 +698,16 @@ export default function HomeScreen() {
               {items.map(pick => {
                 const tc = energyColor(pick.energy, colors);
                 const locked = pick.locked;
+                const isHit = !!pick.hitType;
+                const hitLabel = pick.hitType === 'straight' ? 'STRAIGHT HIT' : 'BOX HIT';
+                const borderC = isHit ? colors.success : tc + '55';
+                const shadowC = isHit ? colors.success : tc;
                 return (
                   <TouchableOpacity
                     key={`coffee-${pick.rank}-${pick.combo}`}
                     onPress={() => locked ? setPaywallOpen(true) : setDetail(pick)}
                     activeOpacity={0.85}
-                    style={{ width: '48%', backgroundColor: colors.card, borderRadius: theme.borderRadius.lg, borderWidth: 1.5, borderColor: tc + '55', padding: 14, alignItems: 'center', shadowColor: tc, shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } }}
+                    style={{ width: '48%', backgroundColor: colors.card, borderRadius: theme.borderRadius.lg, borderWidth: isHit ? 2 : 1.5, borderColor: borderC, padding: 14, alignItems: 'center', shadowColor: shadowC, shadowOpacity: isHit ? 0.8 : 0.35, shadowRadius: isHit ? 14 : 10, shadowOffset: { width: 0, height: 0 }, overflow: 'hidden' }}
                   >
                     <Text style={{ fontSize: 10, fontWeight: '900', color: colors.textTertiary, letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 6 }}>#{pick.rank}</Text>
                     <Text
@@ -704,6 +718,20 @@ export default function HomeScreen() {
                     >
                       {locked ? '• • •' : (pick.bestOrder ?? pick.combo).split('').join(' ')}
                     </Text>
+                    {isHit && !locked && (
+                      <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
+                        <View style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 6, borderWidth: 2, borderColor: colors.success, backgroundColor: colors.success + '22', transform: [{ rotate: '-8deg' }], shadowColor: colors.success, shadowOpacity: 0.9, shadowRadius: 10, shadowOffset: { width: 0, height: 0 }, alignItems: 'center' }}>
+                          <Text style={{ fontSize: 18, fontWeight: '900', color: colors.success, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 1.5, textShadowColor: colors.success + 'aa', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 6 }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
+                            {hitLabel}
+                          </Text>
+                          {pick.hitResult ? (
+                            <Text style={{ fontSize: 10, fontWeight: '900', color: colors.success, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 1, marginTop: 1 }} numberOfLines={1}>
+                              {pick.hitResult}
+                            </Text>
+                          ) : null}
+                        </View>
+                      </View>
+                    )}
                     {!locked ? (
                       <Text style={{ fontSize: 10, fontWeight: '900', color: tc, letterSpacing: 1, fontFamily: theme.typography.fontFamily.monoBold }}>ENERGY {pick.energy}</Text>
                     ) : (

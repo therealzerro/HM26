@@ -834,7 +834,7 @@ export default function HomeScreen() {
             <Text style={{ fontSize: 22 }}>🔥</Text>
             <View style={{ flex: 1 }}>
               <Text style={s.hitBannerTitle}>ZK6 MATCH TODAY · {hitBanner.digits} in {hitBanner.jurisdiction}</Text>
-              <Text style={s.hitBannerSub}>{hitBanner.session === 'midday' ? '☀️ Midday' : '🌙 Evening'} · {hitBanner.hitType === 'straight' ? 'Straight match ✓' : 'Box match ✓'}</Text>
+              <Text style={s.hitBannerSub}>{hitBanner.session === 'midday' ? '☀️ Midday' : '🌙 Evening'} · {hitBanner.hitType === 'straight' ? 'Exact match ✓' : 'Partial match ✓'}</Text>
             </View>
           </View>
         )}

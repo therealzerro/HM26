@@ -75,7 +75,7 @@ export function HitCelebrationOverlay({ visible, onDismiss, rank, digits, jurisd
 
   const handleShare = async () => {
     const sessLabel = session === 'midday' ? 'Midday' : 'Evening';
-    const typeLabel = hitType === 'straight' ? 'STRAIGHT' : 'BOX';
+    const typeLabel = hitType === 'straight' ? 'EXACT' : 'PARTIAL';
     const message = `🎯 Pattern verified on HitMaster — signal #${rank} was ${digits}, matched today in ${jurisdiction} ${sessLabel} (${typeLabel}). Try the app: ${SHARE_URL}`;
     try {
       await Share.share({ message });
@@ -83,7 +83,7 @@ export function HitCelebrationOverlay({ visible, onDismiss, rank, digits, jurisd
   };
 
   const sessIcon = session === 'midday' ? '☀️' : session === 'evening' ? '🌙' : '◈';
-  const typeText = hitType === 'straight' ? 'Straight ✓' : 'Box ✓';
+  const typeText = hitType === 'straight' ? 'Exact ✓' : 'Partial ✓';
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>

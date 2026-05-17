@@ -304,10 +304,13 @@ async function runForDate(date: string, scope: string | null, skipSupplements: b
       const combo = pick.combo;
       const matches: { result: HistoryRow; straightHit: boolean; boxHit: boolean }[] = [];
       for (const result of results) {
+        // BUG-148 (2026-05-17): histories.session is now strictly
+        // midday|evening (parser + CHECK constraint enforce it). The prior
+        // (scope==='evening' && session==='evening') filter dropped DE Play 3
+        // Night and similar late-draw hits because source data labels them
+        // "Night" → session='night' → never matched evening scope.
         const sessionMatches =
-          snapshot.scope === 'allday' ||
-          (snapshot.scope === 'midday'  && result.session === 'midday') ||
-          (snapshot.scope === 'evening' && result.session === 'evening');
+          snapshot.scope === 'allday' || snapshot.scope === result.session;
         if (!sessionMatches) continue;
         const boxHit = result.comboset_sorted === comboSet;
         const straightHit = result.result_digits === combo;

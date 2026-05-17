@@ -31,10 +31,8 @@ interface Props {
 
 function sessionEmoji(session?: string | null): string {
   switch ((session ?? '').toLowerCase()) {
-    case 'morning': return '🌅';
     case 'midday':  return '☀️';
     case 'evening': return '🌙';
-    case 'night':   return '🌑';
     default:        return '';
   }
 }

@@ -707,7 +707,7 @@ export default function SlatesScreen() {
           ) : (
             <View style={{ gap: 5 }}>
               {feedHitsValid.map((h, i) => {
-                const sessIcon = h.matched_session === 'midday' ? '☀️' : h.matched_session === 'evening' ? '🌙' : h.matched_session === 'morning' ? '🌅' : h.matched_session === 'night' ? '🌑' : '◈';
+                const sessIcon = h.matched_session === 'midday' ? '☀️' : h.matched_session === 'evening' ? '🌙' : '◈';
                 const tint = scopeAccent(h.scope);
                 const isStraight = !!h.hit_straight;
                 return (

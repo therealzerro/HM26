@@ -61,7 +61,7 @@ interface LedgerImportData {
     jurisdiction: string;
     game: string;
     date_et: string;
-    session: 'midday' | 'evening' | 'morning' | 'night';
+    session: 'midday' | 'evening';
     result_digits: string;
   }[];
 }

@@ -12,7 +12,15 @@ export interface ParsedLedgerRow {
   jurisdiction: string;      // 2-letter abbreviation or code from DRAWINGS table, or full name
   game: string;              // cleaned game name (no session words)
   date_et: string;           // YYYY-MM-DD
-  session: 'midday' | 'evening' | 'morning' | 'night';
+  // Session is collapsed to two buckets only. Morning/night were dropped on
+  // 2026-05-17 (BUG-148): the parser previously emitted 4 values, but DE
+  // Play 3 Night = DE's evening draw (the source labels it "Night"), and
+  // the evening hit-detection filter required session==='evening', so every
+  // DE/CT/ID/VA night-labeled hit was silently missed. Source labels like
+  // "Pick 3 Morning" or "Play 3 Night" now map to midday/evening here; the
+  // genuinely 4-draw states (TX, GA, DC, TN) keep all draws via the wider
+  // histories unique key (..., result_digits).
+  session: 'midday' | 'evening';
   result_digits: string;     // exactly 3 digits e.g. "641"
   comboset_sorted: string;   // e.g. "{1,4,6}"
 }
@@ -130,35 +138,32 @@ function parseDate(raw: string): string | null {
 
 // ─── Session detector ─────────────────────────────────────────────────────────
 
-function parseSession(gameName: string): 'midday' | 'evening' | 'morning' | 'night' {
+function parseSession(gameName: string): 'midday' | 'evening' {
+  // BUG-148 (2026-05-17): collapse to two buckets. "Morning"/"Night" labels
+  // were unreliable proxies for draw timing — DE Play 3 Night IS the DE
+  // evening draw, just labeled differently by source; the strict evening
+  // filter dropped those hits. Now: early-of-day → midday, late-of-day →
+  // evening, regardless of source label.
   const lower = gameName.toLowerCase();
 
-  // Explicit time like "1:50pm" or "7:50pm"
+  // Explicit time like "1:50pm" or "7:50pm" — anything before 4 PM ET is
+  // a midday-bucket draw; anything 4 PM and later is evening-bucket.
   const timeMatch = lower.match(/(\d{1,2}):(\d{2})(am|pm)/);
   if (timeMatch) {
     let h = parseInt(timeMatch[1], 10);
     if (timeMatch[3] === 'pm' && h !== 12) h += 12;
     if (timeMatch[3] === 'am' && h === 12) h = 0;
-    if (h < 11) return 'morning';
-    if (h < 18) return 'midday';
-    if (h < 21) return 'evening';
-    return 'night';
+    return h < 16 ? 'midday' : 'evening';
   }
 
-  // Time like "10am" / "11am"
-  if (/\d+(am)/.test(lower)) return 'morning';
+  // Time like "10am" / "11am" → midday bucket
+  if (/\d+(am)/.test(lower)) return 'midday';
 
-  // Morning keyword (must check before midday/day)
-  if (/\bmorning\b/.test(lower)) return 'morning';
+  // Morning keyword folds into midday bucket
+  if (/\b(morning|midday|day|daytime|d[ií]a)\b/.test(lower)) return 'midday';
 
-  // Night keyword (must check before evening)
-  if (/\bnight\b/.test(lower)) return 'night';
-
-  // Midday keywords
-  if (/\b(midday|day|daytime|d[ií]a)\b/.test(lower)) return 'midday';
-
-  // Evening keywords
-  if (/\b(evening|noche)\b/.test(lower)) return 'evening';
+  // Night keyword folds into evening bucket
+  if (/\b(night|evening|noche)\b/.test(lower)) return 'evening';
 
   // Default: single daily draw → evening
   return 'evening';

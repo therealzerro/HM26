@@ -131,10 +131,8 @@ function StatsSheet({ visible, onClose, stats, selectedDate }: {
 
           <Text style={ss.sectionTitle}>Session breakdown</Text>
           <View style={ss.grid}>
-            <Stat n={stats.morn}  label="🌅 Morning" c={colors.amber} />
             <Stat n={stats.mid}   label="☀️ Midday"  c={colors.gold}  />
             <Stat n={stats.eve}   label="🌙 Evening" c={colors.purple} />
-            <Stat n={stats.night} label="🌑 Night"   c={colors.blue} />
           </View>
 
           <Text style={ss.sectionTitle}>Totals</Text>
@@ -657,10 +655,8 @@ export default function ResultsScreen() {
   }, [processed, sessionFilter, searchQuery]);
 
   const stats = useMemo(() => ({
-    morn:  processed.filter(r => r.session === 'morning').length,
     mid:   processed.filter(r => r.session === 'midday').length,
     eve:   processed.filter(r => r.session === 'evening').length,
-    night: processed.filter(r => r.session === 'night').length,
     total: processed.length,
     hits:  processed.filter(r => r.hits.length > 0).length,
   }), [processed]);
@@ -668,7 +664,7 @@ export default function ResultsScreen() {
   const hitSummaryItems = useMemo(() => flattenHits(processed), [processed]);
 
   const grouped = useMemo(() => {
-    const sessions = ['morning', 'midday', 'evening', 'night'];
+    const sessions = ['midday', 'evening'];
     const result: Array<{ type: 'header'; session: string; count: number } | { type: 'row'; data: ProcessedEntry }> = [];
     for (const sess of sessions) {
       const rows = filtered.filter(r => r.session === sess);
@@ -909,10 +905,8 @@ export default function ResultsScreen() {
             style={s.filterRow} contentContainerStyle={s.filterRowContent}>
             {[
               { key: 'all',     label: 'All',     icon: '⚡' },
-              { key: 'morning', label: 'Morn',    icon: '🌅' },
               { key: 'midday',  label: 'Mid',     icon: '☀️' },
               { key: 'evening', label: 'Eve',     icon: '🌙' },
-              { key: 'night',   label: 'Night',   icon: '🌑' },
             ].map(f => {
               const active = sessionFilter === f.key;
               return (

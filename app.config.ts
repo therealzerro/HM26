@@ -23,7 +23,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ...config.android,
     package: 'com.hitmaster.app',
     adaptiveIcon: {
-      foregroundImage: './assets/images/adaptive-icon.png',
+      foregroundImage: './assets/app-icon.png',
       backgroundColor: '#ffffff'
     }
   }

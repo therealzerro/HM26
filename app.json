@@ -5,7 +5,7 @@
     "version": "2.0.0",
     "description": "HitMaster ZK6 — a data intelligence platform for numerical pattern analysis.",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/app-icon.png",
     "scheme": "hitmaster",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -18,14 +18,14 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/app-icon.png",
         "backgroundColor": "#0a0613"
       },
       "package": "com.hitmaster.app"
     },
     "web": {
       "bundler": "metro",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/app-icon.png"
     },
     "plugins": [
       "expo-router",
@@ -43,7 +43,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/icon.png",
+          "icon": "./assets/app-icon.png",
           "color": "#7c3aed",
           "mode": "production"
         }

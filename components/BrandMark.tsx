@@ -26,7 +26,7 @@ interface Props {
   style?: StyleProp<ImageStyle>;
 }
 
-const SOURCE = require('@/assets/images/icon.png');
+const SOURCE = require('@/assets/app-icon.png');
 
 export function BrandMark({ size = 'sm', style }: Props) {
   const px = PX[size];

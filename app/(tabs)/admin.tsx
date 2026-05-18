@@ -22,6 +22,7 @@ import NationwideAdminView from '@/components/admin/NationwideAdminView';
 import AdaptiveLearningView from '@/components/admin/AdaptiveLearningView';
 import IntelligenceRouteView from '@/components/admin/IntelligenceRouteView';
 import FingerprintView from '@/components/admin/FingerprintView';
+import ProposalReviewView from '@/components/admin/ProposalReviewView';
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
 const NAV = [
@@ -36,6 +37,7 @@ const NAV = [
   { id:'adaptive', icon:'🧠', label:'Learning' },
   { id:'intelligence', icon:'🔬', label:'Intelligence' },
   { id:'fingerprint',  icon:'🧬', label:'Fingerprint'  },
+  { id:'proposals',    icon:'🧾', label:'Proposals'   },
 ];
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
@@ -81,12 +83,13 @@ export default function AdminScreen() {
         {view === 'history' && <ImportHistoryView />}
         {view === 'matrix' && <ErrorBoundary fallback="Coverage matrix error"><CoverageMatrixView setView={setView} /></ErrorBoundary>}
         {view === 'health' && <HealthTestsView />}
-        {view === 'engine' && <EngineConfigView regenerateSlate={regenerateSlate} />}
+        {view === 'engine' && <EngineConfigView regenerateSlate={regenerateSlate} onOpenProposals={() => setView('proposals')} />}
         {view === 'performance' && <HitTrackingView />}
         {view === 'nationwide' && <NationwideAdminView />}
         {view === 'adaptive' && <AdaptiveLearningView setView={setView} />}
         {view === 'intelligence' && <IntelligenceRouteView />}
         {view === 'fingerprint'  && <FingerprintView />}
+        {view === 'proposals'    && <ProposalReviewView />}
       </View>
     </SafeAreaView>
   );

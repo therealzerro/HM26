@@ -4,12 +4,13 @@ import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { SectionTitle, Card, useSt } from './AdminShared';
+import { ProposalRegenBanner } from './ProposalRegenBanner';
 
 type ScopeName = 'midday' | 'evening' | 'allday';
 const SCOPE_NAMES: ScopeName[] = ['midday', 'evening', 'allday'];
 
 // ─── Engine Config View ───────────────────────────────────────────────────────
-export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?: (scope: any, weightsKey?: any) => Promise<any> }) {
+export default function EngineConfigView({ regenerateSlate, onOpenProposals }: { regenerateSlate?: (scope: any, weightsKey?: any) => Promise<any>; onOpenProposals?: () => void }) {
   const { colors } = useTheme();
   const st = useSt();
   // E4 (2026-05-13): DGC is now visible. Defaults match engine production
@@ -359,6 +360,7 @@ export default function EngineConfigView({ regenerateSlate }: { regenerateSlate?
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <ProposalRegenBanner onOpenProposals={onOpenProposals} />
       <Text style={{ fontSize: 17, fontWeight: '800', color: colors.text, marginBottom: 4 }}>⚙️ ZK6 Engine Configuration</Text>
       <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: loadError ? 8 : 16 }}>Proprietary settings — creator access only.</Text>
 

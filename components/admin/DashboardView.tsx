@@ -13,6 +13,7 @@ import { runHitDetectionAllScopes, runHitDetectionAndRefresh, HitDetectionResult
 import { RegenConfirmationModal } from '@/components/RegenConfirmationModal';
 import { computeZK30Slate } from '@/engines/zk30';
 import { Pill, SectionTitle, Card, timeAgo, MOCK_IMPORTS, useImportTypes, PAIR_CLASSES, ImportRecord } from './AdminShared';
+import { ProposalRegenBanner } from './ProposalRegenBanner';
 
 export default function DashboardView({ setView, imports, healthMetrics, regenerateSlate, checkSlateLock, onOpenZK30Import }: {
   setView: (v: string) => void;
@@ -234,6 +235,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
 
   return (
     <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 32 }}>
+      <ProposalRegenBanner onOpenProposals={() => setView('proposals')} />
       <Text style={{ fontSize: 20, fontWeight: '900', color: colors.text, marginBottom: 4 }}>🔐 Creator Dashboard</Text>
       <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 20 }}>Data pipeline · ZK6 engine management · System health</Text>
 

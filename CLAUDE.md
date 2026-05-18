@@ -47,7 +47,9 @@ Config changes are tracked with **CONFIG-XX** entries in `MASTER_AUDIT.md` (para
 
 ## Brand voice — public-facing strings
 
-The HitMaster ZK6 Facebook page was de-recommended by Meta in May 2026 due to algorithmic misclassification as gambling-adjacent. The product is being repositioned as a **data intelligence and analytics platform** — comparable to ESPN Stats, FiveThirtyEight, Yahoo Finance — not a lottery prediction service. Any user-facing text in the codebase must reflect that voice. See `assets/HitMaster_Designer_Agent_Skill_Brief.md` for the full forbidden-word list and approved vocabulary; BRAND-01 in `MASTER_AUDIT.md` tracks the in-app audit.
+The HitMaster ZK6 Facebook page was de-recommended by Meta twice in May 2026 (early May, then again 5/17 within hours of brief restoration) due to algorithmic misclassification as gambling-adjacent. Two appeals denied 2026-05-18. The product is being repositioned as a **data intelligence and analytics platform** — comparable to ESPN Stats, FiveThirtyEight, Yahoo Finance — not a lottery prediction service. Any user-facing text in the codebase must reflect that voice.
+
+**Canonical brief for all public-facing content work** (graphics, video, captions, App Store metadata, push copy): `assets/HitMaster_Brand_Rehab_Skill_Brief_v2.md` (effective 2026-05-18). It supersedes the v1 Designer Agent Brief and adds: mandatory Two-Question pre-publication filter, 4-tier audience map (public page = brand-only; free group = conversion funnel; cross-posts; Pro $0.99/mo; App Store), and Gemini Nano Banana Pro prompt conventions. The in-code forbidden-word shortlist below is a subset — when in doubt, consult v2. BRAND-01 in `MASTER_AUDIT.md` tracks the in-app audit.
 
 **Avoid:** "lottery", "lotto", "Pick 3", "winning numbers", "winners", "winning", "daily picks", "today's picks", "hot picks", "Daily Heat", "hits" (as a count of correct predictions), "Hit detection", "play"/"play the numbers", "gamble"/"bet", "lucky"/"luck", "jackpot"/"payout".
 

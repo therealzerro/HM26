@@ -29,8 +29,46 @@ async function upsertConfig(key: string, value: string) {
   });
 }
 
-export async function applyDataDrivenWeights(): Promise<void> {
-  console.log('[weightUpdate] Applying data-driven weight presets to app_config…');
+/**
+ * ⚠️ WARNING: NOT A DATA-DRIVEN TUNING FUNCTION ⚠️
+ *
+ * Despite the previous name (`applyDataDrivenWeights`), this function
+ * writes HARDCODED weight constants to app_config. It does NOT fit
+ * weights from observed data or signals.
+ *
+ * If activated, it will OVERRIDE all existing per-scope configs
+ * (CONFIG-02, CONFIG-07, and any future scope-specific overrides)
+ * with flat global values.
+ *
+ * History: This function was created as a placeholder for adaptive
+ * weight tuning but was never wired to actual fitWeights() output.
+ * Renamed 2026-05-18 (self-tuning audit follow-up Order 1) to defuse
+ * the latent risk of accidental activation based on its prior name.
+ *
+ * Activation requires either:
+ *   1. Rewriting the implementation to use scripts/intel-tuning/fit.ts
+ *   2. Adding significance + backtest gates per the self-tuning audit
+ *      (docs/self_tuning_audit_2026-05-18.md §7.B)
+ *   3. Explicit acknowledgment that hardcoded global override is
+ *      intentional for a specific operational scenario
+ *
+ * CONFIG-01 (2026-05-09 Gemini CLI incident) is the precedent for
+ * what happens when this surface is written to without gates.
+ */
+export async function applyHardcodedWeightOverride(): Promise<void> {
+  // Runtime guard: refuses to execute unless explicitly acknowledged.
+  // Set to true ONLY with explicit owner sign-off. See function comment
+  // block above + docs/self_tuning_audit_2026-05-18.md §7.B before flipping.
+  const ACKNOWLEDGED_HARDCODED_OVERRIDE = false;
+  if (!ACKNOWLEDGED_HARDCODED_OVERRIDE) {
+    throw new Error(
+      'applyHardcodedWeightOverride() is gated. See function comment ' +
+      'block. To activate, read docs/self_tuning_audit_2026-05-18.md ' +
+      'and set ACKNOWLEDGED_HARDCODED_OVERRIDE=true with sign-off.'
+    );
+  }
+
+  console.log('[weightUpdate] Applying HARDCODED weight override to app_config…');
 
   await Promise.all(
     Object.entries(NEW_WEIGHTS).map(([key, w]) =>

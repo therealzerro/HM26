@@ -5,6 +5,8 @@
 **Scope:** Forensic audit of tracking → feedback wiring; no code/config/DB changes
 **Time spent:** ~80 min
 
+> **Post-audit note (2026-05-18 follow-up Order 1):** `applyDataDrivenWeights()` was renamed to `applyHardcodedWeightOverride()` and gated behind a runtime guard. References below reflect the name as of audit time; the current function is `applyHardcodedWeightOverride` in `lib/applyWeightUpdate.ts`.
+
 ---
 
 ## 1. Executive Summary

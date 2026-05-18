@@ -6,7 +6,7 @@ Index of recurring server-side jobs in the HitMaster ZK6 system.
 
 ## `compute-daily-report` — nightly engine_daily_report aggregation
 
-**Status:** ⚠️ NOT YET AUTOMATED — manual backfill done 2026-05-18 for 5/14–5/17. Scheduling decision blocked on pg_cron extension enable (see "Scheduling mechanism" below).
+**Status:** ✅ LIVE since 2026-05-18 via pg_cron. Migration: `supabase/migrations/2026-05-18_pg_cron_compute_daily_report.sql`. First scheduled fire: 2026-05-19 08:00 UTC (= 04:00 EDT) for the 2026-05-18 row.
 
 **What it does:** Reads `daily_intelligence` for the target date, aggregates picks_count/hits_count/straights_count/boxes_count/rate/mean_energy per (slate_date, scope), upserts rows into `engine_daily_report`. Idempotent on conflict `(slate_date, scope)`.
 
@@ -33,50 +33,24 @@ WHERE slate_date >= CURRENT_DATE - INTERVAL '7 days'
 ORDER BY slate_date DESC, scope;
 ```
 
-### Scheduling mechanism — decision pending
+### Scheduling mechanism — pg_cron + pg_net (chosen 2026-05-18)
 
-The Supabase project has `pg_cron` and `pg_net` extensions **available but not installed** (verified 2026-05-18 via `list_extensions`). The project has no GitHub Actions and no external scheduler.
+`pg_cron` 1.6.4 + `pg_net` 0.19.5 installed via `CREATE EXTENSION IF NOT EXISTS`. Anon JWT stored in `vault.secrets` as `cron_anon_key` so the cron SQL doesn't inline credentials.
 
-The existing "scheduled routine" reference in project memory (`project_config07_review_window.md`) is the Claude Code `/schedule` skill — that requires a live Claude session at fire time and is wrong-shaped for a nightly server-side job.
-
-**Three viable paths:**
-
-| Option | Cost | Pros | Cons |
-|---|---|---|---|
-| A. Install `pg_cron` + `pg_net` Supabase extensions | DB-level change, ~5 min | Canonical Supabase pattern; survives any restart | New operational dependency; requires explicit enable |
-| B. External scheduler (GitHub Actions cron) | Add `.github/workflows/` | No DB extensions; visible in repo | Requires GitHub Actions billing minutes; not yet in project pattern |
-| C. Claude `/schedule` routine | Zero install | Already in use | Requires Claude session live at 4 AM ET; not appropriate for prod-critical jobs |
-
-**Once a path is chosen, the SQL (Option A) would be:**
-
-```sql
--- Requires pg_cron + pg_net installed first:
--- CREATE EXTENSION IF NOT EXISTS pg_cron;
--- CREATE EXTENSION IF NOT EXISTS pg_net;
-
-SELECT cron.schedule(
-  'compute-daily-report-nightly',
-  '0 8 * * *',  -- 8 AM UTC = 4 AM ET (5 AM during DST is fine; report is for prior day)
-  $$
-  SELECT net.http_post(
-    url := 'https://tgagarhwqbdcwoqhpapi.supabase.co/functions/v1/compute-daily-report',
-    headers := jsonb_build_object(
-      'Authorization', 'Bearer ' || current_setting('app.service_role_key'),
-      'Content-Type', 'application/json'
-    ),
-    body := jsonb_build_object(
-      'date', (CURRENT_DATE - INTERVAL '1 day')::text
-    )
-  );
-  $$
-);
-```
-
-The service role key would need to live in a `current_setting` or be inlined (less secure). Worth a separate work order to set up the secret correctly.
+**Verification (2026-05-18 end-to-end test):** manual invocation of the exact cron body returned HTTP 200 + processed all 3 scopes + wrote `engine_daily_report` row for 2026-05-17 (`durationMs: 638`).
 
 **Disable / pause:**
 ```sql
 SELECT cron.unschedule('compute-daily-report-nightly');
+```
+
+**Re-enable:** re-run the migration `2026-05-18_pg_cron_compute_daily_report.sql`.
+
+**Inspect last N fires:**
+```sql
+SELECT id, status_code, error_msg, created
+FROM net._http_response
+ORDER BY created DESC LIMIT 10;
 ```
 
 ---

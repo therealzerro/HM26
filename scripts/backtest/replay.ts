@@ -234,7 +234,15 @@ function runK6Selection(
     if (!relaxPairRepCap && (pairCounts[tp] ?? 0) >= rails.pairRepCap) return false;
 
     const energy = percentileRankOf(finalScores[idx], scorePoolForEnergy);
-    if (minEnergyThreshold > 0 && (timesDrawnMap.get(normKey) ?? 0) > 0 && energy < minEnergyThreshold) {
+    // ENH-DBL-H2 (2026-05-18): per-multiplicity floor wins over global.
+    // Per-scope mirror of the same pattern.
+    const floorByMult =
+      config.minEnergyThresholdByMultiplicityByScope?.[scope] ??
+      config.minEnergyThresholdByMultiplicity;
+    const effectiveFloor = floorByMult
+      ? (mult === 'singles' ? floorByMult.singles : mult === 'doubles' ? floorByMult.doubles : floorByMult.triples)
+      : minEnergyThreshold;
+    if (effectiveFloor > 0 && (timesDrawnMap.get(normKey) ?? 0) > 0 && energy < effectiveFloor) {
       return false;
     }
 
@@ -392,11 +400,19 @@ export async function computeSlateAsOf(
   const normCo     = maxNorm(Array.from(rawCo), true);
   const normDgc    = maxNorm(Array.from(rawDgc), true);
 
+  // ENH-DBL-H1 (2026-05-18): resolve per-multiplicity priors with per-scope
+  // override → global override → engineCore default. Mirrors recentHitCooldown
+  // / boxFreqWeight resolution pattern.
+  const effectivePriors =
+    config.multiplicityPriorsByScope?.[scope] ??
+    config.multiplicityPriors ??
+    MULTIPLICITY_PRIORS;
+
   // Final scores with synergy check matching production engine (2+ signals ≥ 0.65)
   const finalScores = new Float64Array(1000);
   for (let i = 0; i < 1000; i++) {
     const combo = universe[i];
-    const multAdj = MULTIPLICITY_PRIORS[multiplicityOf(combo)];
+    const multAdj = effectivePriors[multiplicityOf(combo)];
     let score =
       weights.BOX    * normBox[i] +
       weights.PBURST * normPburst[i] +
@@ -408,6 +424,29 @@ export async function computeSlateAsOf(
       if (aboveThresh >= 2) score *= (1 + config.synergyWeight);
     }
     finalScores[i] = score;
+  }
+
+  // ENH-DBL-H3 (2026-05-18): top-N doubles selective bonus. Applied AFTER
+  // the weighted-signal score is computed but BEFORE energy percentile is
+  // taken — so bonused doubles also rise in energy (helping them clear the
+  // floor) AND in the rank-sort order (helping them enter K6 at top ranks).
+  // Per-scope override > global > unset (no-op).
+  const h3 =
+    config.doublesTopNBoostByScope?.[scope] ??
+    config.doublesTopNBoost;
+  if (h3 && h3.topN > 0 && h3.bonus !== 0) {
+    // Collect (index, score) for all doubles, sort desc by score, bonus the top N.
+    const doublesByScore: { idx: number; score: number }[] = [];
+    for (let i = 0; i < 1000; i++) {
+      if (multiplicityOf(universe[i]) === 'doubles') {
+        doublesByScore.push({ idx: i, score: finalScores[i] });
+      }
+    }
+    doublesByScore.sort((a, b) => b.score - a.score);
+    const cutoff = Math.min(h3.topN, doublesByScore.length);
+    for (let j = 0; j < cutoff; j++) {
+      finalScores[doublesByScore[j].idx] += h3.bonus;
+    }
   }
 
   const scorePoolForEnergy = Array.from(finalScores).sort((a, b) => a - b);

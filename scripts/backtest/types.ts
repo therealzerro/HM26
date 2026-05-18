@@ -60,6 +60,36 @@ export interface EngineConfig {
     conservative: WeightSet;
     aggressive: WeightSet;
   }>>;
+  // ENH-DBL-H1 (2026-05-18): per-multiplicity indicator-score prior override.
+  // When omitted, replay uses the default MULTIPLICITY_PRIORS from engineCore
+  // (singles: 0.0, doubles: -0.02, triples: -0.04). 2026-05-18 cross-cut +
+  // diag-doubles showed doubles hit 100% (n=8) when picked but enter K6 at
+  // mean rank 5.0 — the -0.02 prior pushes them below singles in the
+  // indicator-sorted scoring. H1 candidates raise or zero the doubles prior.
+  multiplicityPriors?: { singles: number; doubles: number; triples: number };
+  /** Per-scope override mirror. Required for midday-specific intervention. */
+  multiplicityPriorsByScope?: Partial<Record<Scope, { singles: number; doubles: number; triples: number }>>;
+  // ENH-DBL-H2 (2026-05-18): per-multiplicity energy-floor override. Default
+  // `minEnergyThreshold` (production = 70) is applied uniformly. Doubles
+  // cluster at low energy percentiles due to frequency-weighted BOX scoring
+  // (doubles draw ~50% as often as singles, so freq-weighted BOX suppresses
+  // them) — the floor filters most of them out before they reach K6.
+  // H2 candidates lower or zero the doubles floor.
+  minEnergyThresholdByMultiplicity?: { singles: number; doubles: number; triples: number };
+  /** Per-scope override mirror. */
+  minEnergyThresholdByMultiplicityByScope?: Partial<Record<Scope, { singles: number; doubles: number; triples: number }>>;
+  // ENH-DBL-H3 (2026-05-18): top-N doubles selective bonus. H1 + H2 both
+  // failed because they treated all doubles the same:
+  //   H1 boosted ALL doubles → no effect (boost too small to lift them above singles)
+  //   H2 admitted ALL doubles → tanked quality (weak doubles pollute the slate)
+  // H3 isolates the few doubles already showing signal strength and boosts
+  // ONLY those — strong doubles compete with mid-rank singles, weak doubles
+  // stay suppressed. Applied to the finalScores array after weighted-signal
+  // scoring but before runK6Selection sort. Identifies top-N doubles by raw
+  // score, adds `bonus` to those indices only.
+  doublesTopNBoost?: { topN: number; bonus: number };
+  /** Per-scope override. midday CO=74% changes the doubles distribution — needs separate tuning. */
+  doublesTopNBoostByScope?: Partial<Record<Scope, { topN: number; bonus: number }>>;
 }
 
 export interface ReplayPick {

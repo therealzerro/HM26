@@ -626,6 +626,472 @@ export const CONFIGS: Record<string, EngineConfig> = {
     },
   },
 
+  // ─────────────── 2026-05-18: ENH-DBL — Doubles allocation sweep [PARKED] ──
+  //
+  // STATUS: Killed 2026-05-18 after 3 hypotheses + 18 candidate runs.
+  // ALL 11 configs in this block kept for reproducibility; do NOT ship.
+  //
+  // H1 (flat multiplicity prior boost): zero effect. Even +0.06 doubles
+  //   prior produced 0 doubles in 30 slates. The swing is dwarfed by the
+  //   absolute score gap (singles ~0.5-1.0, doubles ~0.10-0.20).
+  // H2 (energy floor relaxation for doubles): floor=40 had zero effect
+  //   (doubles can't reach 40th percentile). floor=0 admitted doubles to
+  //   cap but tanked quality — midday rank-1 dropped 30%→10%, overall
+  //   slate rate 75.6%→72.2%. Weak doubles polluted the slate.
+  // H3 (selective top-N doubles bonus): bonuses up to +0.50 tested.
+  //   +0.05/+0.10 had zero effect. +0.30/+0.50 moved some doubles in but
+  //   per-rank still regressed (midday r1 30%→20%) and overall slate
+  //   rate dropped 75.6%→74.4%. The strong doubles that did enter via
+  //   the bonus weren't actually stronger predictors than the mid-rank
+  //   singles they displaced.
+  //
+  // Conclusion: the diag-doubles "doubles hit 100% (n=8)" finding was
+  // selection bias per [[feedback-signal-analysis-selected-vs-universe]].
+  // Doubles ARE correctly suppressed by the scoring model — frequency-
+  // weighted BOX + per-scope CO-heavy presets correctly rank them below
+  // singles. The "leaving lift on the table" framing was wrong.
+  //
+  // The new optional EngineConfig fields stay (multiplicityPriors,
+  // minEnergyThresholdByMultiplicity, doublesTopNBoost) — useful
+  // infrastructure for any future per-multiplicity experiment.
+  //
+  // Original investigation context (preserved):
+  //
+  // diag-doubles smoke run (2026-05-18, 30d, balanced) surfaced three facts:
+  //   • midday picked 0 doubles in 21 slates (CO=74% preset suppresses)
+  //   • evening + allday picked 4 doubles each, enter K6 at mean rank 5.0
+  //     (rail-relaxation passes 4-6, not signal alone)
+  //   • Doubles hit 100% when picked (n=8, all scopes) vs singles 24-56%
+  //
+  // Two hypotheses for why doubles never bubble to top of slate:
+  //   H1 — Multiplicity prior too punitive. engineCore.MULTIPLICITY_PRIORS
+  //        currently penalizes doubles by -0.02 in the indicator score.
+  //        Singles dominate the top-of-rank, doubles can't compete on score.
+  //   H2 — Energy floor (minEnergyThreshold=70) filters doubles. Doubles
+  //        cluster at low energy percentiles because frequency-weighted BOX
+  //        scoring inherently down-scores them (~50% draw frequency of singles).
+  //
+  // Per [[feedback-scopes-separate-data]]: midday is a different problem than
+  // evening/allday (CO-heavy preset, separate input slice). Per-scope variants
+  // included to test whether midday needs a stronger boost than evening/allday.
+  //
+  // ALL baselines built atop `intel_weights_midday_only_floor70` (current
+  // production parity, 2026-05-18 app_config snapshot).
+  //
+  // Run order:
+  //   1) BASELINE   npm run backtest:replay -- --days 30 --config intel_weights_midday_only_floor70
+  //   2) PARITY     npm run backtest:replay -- --days 30 --config dbl_parity
+  //                 Must match (1) byte-for-byte. Loader sanity guard.
+  //   3) H1 family  --config dbl_h1_doubles_neutral,dbl_h1_doubles_boost,dbl_h1_midday_strong_boost
+  //   4) H2 family  --config dbl_h2_floor_doubles_0,dbl_h2_floor_doubles_40
+  //   5) COMBINED   --config dbl_h1_h2_combined
+  //
+  // Decision rule: ship only if candidate ≥ baseline on BOTH slate hit rate
+  // AND rank-matched pick lift (per CLAUDE.md). Per-rank section flags whether
+  // candidates restore healthy monotonicity; the doubles count in CSV's
+  // picks_doubles column shows whether the intervention actually moved doubles.
+
+  // dbl_parity — sanity guard. multiplicityPriors set to engineCore default,
+  // minEnergyThresholdByMultiplicity omitted (falls back to global floor 70).
+  // Must match `intel_weights_midday_only_floor70` byte-for-byte.
+  dbl_parity: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+    // Identity prior — equals engineCore.MULTIPLICITY_PRIORS exactly.
+    multiplicityPriors: { singles: 0.00, doubles: -0.02, triples: -0.04 },
+  },
+
+  // ── H1 family: prior boost ──────────────────────────────────────────────────
+  // dbl_h1_doubles_neutral — zero the doubles penalty. Doubles get equal prior
+  // to singles (0.00). Minimal change: tests "is the -0.02 penalty meaningful?"
+  dbl_h1_doubles_neutral: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+    multiplicityPriors: { singles: 0.00, doubles: 0.00, triples: -0.04 },
+  },
+
+  // dbl_h1_doubles_boost — active boost. Doubles get +0.03 (was -0.02, swing
+  // of 0.05). Should lift doubles a few rank positions in the indicator sort
+  // given typical normalized signal scores in 0-1 range.
+  dbl_h1_doubles_boost: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+    multiplicityPriors: { singles: 0.00, doubles: 0.03, triples: -0.04 },
+  },
+
+  // dbl_h1_midday_strong_boost — per-scope intervention. Midday picks 0
+  // doubles because CO=74% preset suppresses; needs a stronger boost than
+  // evening/allday which already pick some doubles via rail-relaxation.
+  // Midday doubles get +0.06, evening/allday stay at +0.02 (modest active
+  // boost). Per [[feedback-scopes-separate-data]] — different scopes, different
+  // interventions.
+  dbl_h1_midday_strong_boost: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+    multiplicityPriorsByScope: {
+      midday:  { singles: 0.00, doubles: 0.06, triples: -0.04 },
+      evening: { singles: 0.00, doubles: 0.02, triples: -0.04 },
+      allday:  { singles: 0.00, doubles: 0.02, triples: -0.04 },
+    },
+  },
+
+  // ── H2 family: energy-floor relaxation for doubles only ────────────────────
+  // dbl_h2_floor_doubles_0 — keep priors at default, remove floor entirely for
+  // doubles. Tests "is the floor what's filtering doubles?" Singles + triples
+  // stay at 70. (Triples disabled by rails.triplesOn=false anyway, so the
+  // triples value is moot.)
+  dbl_h2_floor_doubles_0: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+    multiplicityPriors: { singles: 0.00, doubles: -0.02, triples: -0.04 },
+    minEnergyThresholdByMultiplicity: { singles: 70, doubles: 0, triples: 70 },
+  },
+
+  // dbl_h2_floor_doubles_40 — modest relaxation. Doubles at 40 (vs 70 for
+  // singles) — still filters bottom-40th-percentile doubles but allows the
+  // 40-69th percentile range that the 70 floor blocks today.
+  dbl_h2_floor_doubles_40: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+    multiplicityPriors: { singles: 0.00, doubles: -0.02, triples: -0.04 },
+    minEnergyThresholdByMultiplicity: { singles: 70, doubles: 40, triples: 70 },
+  },
+
+  // ── Combined H1 + H2 ──────────────────────────────────────────────────────
+  // dbl_h1_h2_combined — neutral doubles prior (0.0) + zero floor for doubles.
+  // The "both levers wide open" test. If this doesn't move doubles count up,
+  // there's a third blocker (likely pair-rep-cap or that doubles intrinsically
+  // score lower on weighted signals — not solvable by these two knobs).
+  dbl_h1_h2_combined: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+    multiplicityPriors: { singles: 0.00, doubles: 0.00, triples: -0.04 },
+    minEnergyThresholdByMultiplicity: { singles: 70, doubles: 0, triples: 70 },
+  },
+
+  // ─────────── 2026-05-18: ENH-DBL-H3 — top-N doubles selective bonus ──────
+  //
+  // Third hypothesis after H1 (flat prior, no effect) and H2 (flat floor
+  // relaxation, tanked quality). H1/H2 treated all doubles equally; H3
+  // targets ONLY the few doubles already showing signal strength.
+  //
+  // Mechanism: after weighted-signal scoring, identify top-N doubles by
+  // raw score, add `bonus` to their finalScores. Strong doubles compete
+  // with mid-rank singles in the iteration order AND clear the energy floor
+  // (which is computed from the post-bonus score pool). Weak doubles stay
+  // suppressed.
+  //
+  // Knobs:
+  //   topN  — how many of the 90 doubles in the universe get boosted
+  //   bonus — additive score lift (typical signal scores fall in 0-1.0 range
+  //           after weighted sum + normalization)
+  //
+  // Configs (all built on `intel_weights_midday_only_floor70` baseline):
+  //
+  //   dbl_h3_parity       — boost omitted, must match baseline byte-for-byte
+  //   dbl_h3_top5_b05     — top 5 of 90 doubles get +0.05 (focused, gentle)
+  //   dbl_h3_top10_b05    — top 10 get +0.05 (wider, same lift per pick)
+  //   dbl_h3_top5_b10     — top 5 get +0.10 (focused, aggressive)
+  //   dbl_h3_per_scope    — midday gets stronger boost (top 5 @ +0.10) since
+  //                          CO=74% suppresses doubles harder; evening/allday
+  //                          stay at top 5 @ +0.05
+  //
+  // Run order:
+  //   1) BASELINE  npm run backtest:replay -- --days 30 --config intel_weights_midday_only_floor70
+  //   2) PARITY    npm run backtest:replay -- --days 30 --config dbl_h3_parity
+  //   3) SWEEP     --config dbl_h3_top5_b05,dbl_h3_top10_b05,dbl_h3_top5_b10,dbl_h3_per_scope
+  //
+  // Decision rule per CLAUDE.md: ship only if candidate ≥ baseline on BOTH
+  // slate hit rate AND rank-matched pick lift. Per-rank section flags
+  // monotonicity. CSV picks_doubles column shows actual doubles allocation.
+  //
+  // Watch for: did boosting strong doubles lift slate rates WITHOUT the
+  // catastrophic midday r1 regression from H2-floor-0?
+
+  dbl_h3_parity: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+    // No doublesTopNBoost — must match baseline byte-for-byte. Loader sanity check.
+  },
+
+  dbl_h3_top5_b05: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+    doublesTopNBoost: { topN: 5, bonus: 0.05 },
+  },
+
+  dbl_h3_top10_b05: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+    doublesTopNBoost: { topN: 10, bonus: 0.05 },
+  },
+
+  dbl_h3_top5_b10: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+    doublesTopNBoost: { topN: 5, bonus: 0.10 },
+  },
+
+  // ── ENH-DBL-H3 second pass (2026-05-18): bigger bonuses ──
+  // First H3 sweep (top5_b05, top10_b05, top5_b10, per_scope) had ZERO effect
+  // on doubles allocation — every candidate was bit-identical to baseline.
+  // Score-gap analysis: midday top doubles ~0.10 vs mid-rank singles ~0.60;
+  // evening/allday top doubles ~0.20 vs singles ~0.50. +0.10 bonus moves top
+  // double from 0.10 → 0.20 (midday), still nowhere near singles. Need
+  // 5-10× larger bonuses to test the mechanism at all.
+  dbl_h3_top5_b30: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+    doublesTopNBoost: { topN: 5, bonus: 0.30 },
+  },
+  dbl_h3_top5_b50: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+    doublesTopNBoost: { topN: 5, bonus: 0.50 },
+  },
+  dbl_h3_top10_b30: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+    doublesTopNBoost: { topN: 10, bonus: 0.30 },
+  },
+
+  // Per-scope: midday needs stronger boost since CO=74% preset suppresses
+  // doubles harder than the global preset evening/allday use.
+  dbl_h3_per_scope: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+    doublesTopNBoostByScope: {
+      midday:  { topN: 5, bonus: 0.10 },
+      evening: { topN: 5, bonus: 0.05 },
+      allday:  { topN: 5, bonus: 0.05 },
+    },
+  },
+
   // BOX-heavy 3-signal model (DGC weight = 0).
   // Tests whether introducing DGC was a regression vs the older 3-signal model.
   legacy: {

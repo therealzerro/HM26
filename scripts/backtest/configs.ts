@@ -483,6 +483,127 @@ export const CONFIGS: Record<string, EngineConfig> = {
     boxFreqWeight: 0.60, boxPressureWeight: -0.40,
   },
 
+  // ─────────────── 2026-05-18: ENH-EVCO — Evening CO-cut sweep ───────────────
+  // Post-BUG-148/149/150 data cleanup (5/18) surfaced two evening-specific facts
+  // from the admin Adaptive-Learning + Fingerprint cross-cut:
+  //   1. Evening CO-dominant K6 picks hit 0/10 (0.0%) in the last 30 days,
+  //      vs BOX-dom 55.3% (38), PBURST-dom 46.7% (15), DGC-dom 44.4% (9).
+  //   2. Evening rank-1 hit rate (46.2%) is LOWER than rank-2 (60.0%) — engine
+  //      is mis-ordering evening picks at the top of the slate. Allday + midday
+  //      are monotonically declining (engine ranks correctly).
+  //
+  // Evening currently uses the GLOBAL balanced preset (BOX 49.5 / PBURST 27 /
+  // CO 13.5 / DGC 10). CONFIG-07 shipped midday-only per-scope weights on
+  // 5/15; evening's weights were never tuned per-scope. Hypothesis: reducing
+  // evening's CO weight restores rank monotonicity at the top AND lifts slate
+  // hit rate, without touching midday (own preset) or allday (intact).
+  //
+  // Baseline for comparison: `intel_weights_midday_only_floor70` — that preset
+  // is the closest match to live production (2026-05-18 app_config snapshot:
+  // global preset for evening + allday, midday on CONFIG-07 CO-heavy override,
+  // pressure inversion on midday + evening, floor 70).
+  //
+  // Run order:
+  //   1) BASELINE   npm run backtest:replay -- --days 30 --config intel_weights_midday_only_floor70
+  //   2) PARITY     npm run backtest:replay -- --days 30 --config evening_co_cut_parity
+  //                 Must match (1) bit-for-bit. If not, the presetByScope.evening
+  //                 loader path is broken — abort before any conclusions.
+  //   3) CANDIDATE  npm run backtest:replay -- --days 30 --config evening_co_cut_5
+  //   4) BOOKEND    npm run backtest:replay -- --days 30 --config evening_co_zero
+  //
+  // Decision rule per [[feedback-engine-metric-dual-lens]] + CLAUDE.md:
+  // ship only if candidate ≥ baseline on BOTH slate hit rate AND rank-matched
+  // pick lift, OR explicit user override with rollback condition + review date.
+
+  // evening_co_cut_parity — sanity guard. presetByScope.evening is set to the
+  // EXACT global preset values, so the override is active but functionally a
+  // no-op. Output MUST match `intel_weights_midday_only_floor70` byte-for-byte.
+  // If it doesn't, the loader treats the new override path differently from
+  // the omitted-fall-through path → abort.
+  evening_co_cut_parity: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+      evening: {
+        balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+        conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+        aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+      },
+    },
+  },
+
+  // evening_co_cut_5 — primary candidate. Reduces evening CO weight from 13.5%
+  // to 5.0%. Redistributes 8.5pp to BOX (+6pp) and PBURST (+2.5pp), keeps DGC
+  // at 10%. Conservative — preserves CO presence (in case the 0% n=10 sample
+  // is noise) while substantially de-weighting it. Conservative + aggressive
+  // modes get proportional redistributions.
+  evening_co_cut_5: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+      evening: {
+        balanced:     { BOX: 0.555, PBURST: 0.295, CO: 0.050, DGC: 0.10 },
+        conservative: { BOX: 0.700, PBURST: 0.150, CO: 0.050, DGC: 0.10 },
+        aggressive:   { BOX: 0.475, PBURST: 0.345, CO: 0.080, DGC: 0.10 },
+      },
+    },
+  },
+
+  // evening_co_zero — aggressive bookend. CO weight = 0 on evening entirely.
+  // Answers "is CO worth anything on evening, or is the 0/10 signal real?"
+  // If this beats evening_co_cut_5, the dominant-signal data was directional;
+  // if it loses, the n=10 was noise and 5% was the right call.
+  evening_co_zero: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+      evening: {
+        balanced:     { BOX: 0.590, PBURST: 0.310, CO: 0.000, DGC: 0.10 },
+        conservative: { BOX: 0.740, PBURST: 0.160, CO: 0.000, DGC: 0.10 },
+        aggressive:   { BOX: 0.520, PBURST: 0.380, CO: 0.000, DGC: 0.10 },
+      },
+    },
+  },
+
   // BOX-heavy 3-signal model (DGC weight = 0).
   // Tests whether introducing DGC was a regression vs the older 3-signal model.
   legacy: {

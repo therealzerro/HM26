@@ -87,18 +87,25 @@ The revert path is encoded at proposal-generation time in `revert_ops`. Always a
 
 The gates protect against bad proposals. Operator judgment protects against situational context the gates can't see.
 
-## Scheduling (Phase C — blocked)
+## Scheduling (Phase C — live with Option B subset)
 
-The work order Task 3 says: schedule weekly, Sunday 5:00 AM ET, using the same mechanism as `compute-daily-report`.
+**Status (2026-05-18):** ✅ Scheduled weekly via pg_cron, Option B path. Decision documented in `docs/scheduled_jobs.md`.
 
-**Status (2026-05-18):** `compute-daily-report` itself is not yet scheduled — blocked on a decision between:
-- **pg_cron + pg_net** (available in this Supabase project but **not installed**)
-- **GitHub Actions cron** (no `.github/workflows/` in repo yet)
-- **External webhook**
+**What ships scheduled:** an edge function `generate-weight-proposal` (deployed v1, sha256 `5c35d6cf…`) runs gates **G1, G2, G5** only. It writes the same `audit_logs` row shape as the Node version, plus a `g3_status: 'skipped_edge'` field that the admin UI uses to flag scheduled proposals as "backtest not validated."
 
-Once that decision is made and `compute-daily-report` is scheduled, this generator can ship onto the same mechanism with one additional `cron.schedule()` entry (or one additional workflow file). See `docs/scheduled_jobs.md` for the SQL template if pg_cron path is chosen.
+**What stays manual:** gates **G3 (backtest)** and **G4 (divergence)** require the engine codebase which isn't ported to Deno. Operators who want full G3 evidence before approving a high-stakes proposal should run:
 
-**Until then:** invoke manually via `npm run autotune:propose -- --manual` whenever you want a fresh proposal evaluated.
+```bash
+npm run autotune:propose -- --manual
+```
+
+The manual run takes 3-4 minutes (full backtest) and writes its own audit row that supersedes (but doesn't dismiss) the edge-generated one.
+
+**Cron job:** `generate-weight-proposal-weekly`, fires Sunday 09:00 UTC (= 05:00 EDT during DST, 04:00 EST in winter). Migration: `supabase/migrations/2026-05-18_pg_cron_generate_weight_proposal.sql`.
+
+**Disable:** `SELECT cron.unschedule('generate-weight-proposal-weekly');`
+
+**Why this scope:** porting the full engine to Deno would be 12-20 hours (~1500 lines of zk6.ts + replay.ts + dependencies). The hybrid lets the system observe weekly and emit proposals as soon as data permits, without that investment. Once 4+ weeks of edge-gen proposals are operator-reviewed (with optional manual G3 validation), graduating to a full Deno port or accepting the manual-G3 workflow long-term becomes a data-informed decision.
 
 ## Manual verification procedure
 

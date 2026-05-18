@@ -135,6 +135,7 @@ async function modeReplay(args: Record<string, string>) {
               totalHits: hit.totalHits,
               hittingCombos: hit.hittingCombos,
               hittingJurisdictions: hit.hittingJurisdictions,
+              hitsByPick: hit.hitsByPick,
               baselinePerPickHitProb: baseline.perPickHitProb,
               baselineExpectedPickHits: baseline.expectedPickHits,
               baselineSlateHitProb: baseline.slateHitProb,

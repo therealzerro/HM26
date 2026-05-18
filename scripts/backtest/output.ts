@@ -319,6 +319,51 @@ function hitResultToReportRow(h: HitResult): ReportRow {
   };
 }
 
+// Per-rank hit rate: % of slates where pick at rank R scored ≥1 hit. Rendered
+// per (config, scope). Detects rank-mis-ordering — if rank-1 < rank-2, the
+// engine's top-of-slate ranking is broken. Symptom that triggered ENH-EVCO
+// (2026-05-18 evening rank-1=46.2% < rank-2=60.0% on live AT data).
+function printRankSection(rows: HitResult[]): void {
+  const scopes = ['midday', 'evening', 'allday'] as const;
+  console.log('── Per-rank hit rate (% slates where rank-R pick hit) ──');
+  console.log('   scope     r1      r2      r3      r4      r5      r6      n');
+  for (const scope of scopes) {
+    const s = rows.filter(r => r.scope === scope);
+    if (s.length === 0) {
+      console.log(`   ${scope.padEnd(9)} (n=0)`);
+      continue;
+    }
+    const cells = [0, 1, 2, 3, 4, 5].map(idx => {
+      // n_at_rank = slates that actually had a pick at this rank (rail may
+      // emit fewer than 6 picks if even pass 6 with relaxMultCaps can't fill).
+      let nAtRank = 0;
+      let hitsAtRank = 0;
+      for (const row of s) {
+        if (idx < row.hitsByPick.length) {
+          nAtRank++;
+          if (row.hitsByPick[idx]) hitsAtRank++;
+        }
+      }
+      if (nAtRank === 0) return '   - ';
+      return pct(hitsAtRank / nAtRank).padStart(5);
+    });
+    console.log(`   ${scope.padEnd(9)} ${cells.join('   ')}   ${s.length}`);
+  }
+  // Monotonicity flag: rank-1 should be ≥ rank-2 (we ranked the slate by score,
+  // so a higher-rank pick hitting more than the top pick means the scoring is
+  // miscalibrated). Flag any scope where r1 < r2 by ≥3pp (>noise floor).
+  for (const scope of scopes) {
+    const s = rows.filter(r => r.scope === scope);
+    if (s.length < 10) continue;
+    const r1 = s.filter(r => r.hitsByPick[0]).length / s.length;
+    const r2 = s.filter(r => r.hitsByPick[1]).length / s.length;
+    if (r2 - r1 > 0.03) {
+      console.log(`   ⚠️  ${scope}: rank-1 ${pct(r1)} < rank-2 ${pct(r2)} — engine mis-orders top of slate`);
+    }
+  }
+  console.log();
+}
+
 export function printReplaySummary(hits: HitResult[], configNames: string[]): void {
   console.log('\n═══════════════════════════════════════════════════════════');
   console.log('  BACKTEST REPLAY — Engine Re-run Hit Rate Comparison');
@@ -336,6 +381,7 @@ export function printReplaySummary(hits: HitResult[], configNames: string[]): vo
       console.log(`  ${scope.padEnd(8)}: ${pct(s.length > 0 ? hit / s.length : 0)} ${ci(hit, s.length)} (n=${s.length})`);
     }
     console.log();
+    printRankSection(rows);
     printLiftSection(rows.map(hitResultToReportRow));
   }
 

@@ -483,20 +483,42 @@ export const CONFIGS: Record<string, EngineConfig> = {
     boxFreqWeight: 0.60, boxPressureWeight: -0.40,
   },
 
-  // ─────────────── 2026-05-18: ENH-EVCO — Evening CO-cut sweep ───────────────
-  // Post-BUG-148/149/150 data cleanup (5/18) surfaced two evening-specific facts
-  // from the admin Adaptive-Learning + Fingerprint cross-cut:
-  //   1. Evening CO-dominant K6 picks hit 0/10 (0.0%) in the last 30 days,
-  //      vs BOX-dom 55.3% (38), PBURST-dom 46.7% (15), DGC-dom 44.4% (9).
-  //   2. Evening rank-1 hit rate (46.2%) is LOWER than rank-2 (60.0%) — engine
-  //      is mis-ordering evening picks at the top of the slate. Allday + midday
-  //      are monotonically declining (engine ranks correctly).
+  // ─────────────── 2026-05-18: ENH-EVCO — Evening CO-cut sweep [PARKED] ──────
   //
-  // Evening currently uses the GLOBAL balanced preset (BOX 49.5 / PBURST 27 /
-  // CO 13.5 / DGC 10). CONFIG-07 shipped midday-only per-scope weights on
-  // 5/15; evening's weights were never tuned per-scope. Hypothesis: reducing
-  // evening's CO weight restores rank monotonicity at the top AND lifts slate
-  // hit rate, without touching midday (own preset) or allday (intact).
+  // STATUS: Killed 2026-05-18 after 30d backtest + per-rank harness extension.
+  // Configs kept in place for reproducibility; do NOT ship without re-evaluating.
+  //
+  // Original motivation (post-BUG-148/149/150 data cleanup, 5/18):
+  //   1. Evening CO-dominant K6 picks hit 0/10 (0.0%) in last 30 days of LIVE
+  //      adaptive_tracking, vs BOX-dom 55.3% (38), PBURST-dom 46.7%, DGC-dom 44.4%.
+  //   2. Evening rank-1 LIVE hit rate (46.2%) was LOWER than rank-2 (60.0%) —
+  //      suggested engine mis-ordering evening picks at top of slate.
+  //
+  // Backtest verdict (30d, n=30 slates/scope, balanced mode, per-rank harness):
+  //   • Parity guard PASSED — `evening_co_cut_parity` matched
+  //     `intel_weights_midday_only_floor70` byte-for-byte across all rank +
+  //     lift sections. Loader wiring verified.
+  //   • Slate-rate gain real but small: evening 66.7% → 70.0% (cut_5) →
+  //     73.3% (zero); Wilson CIs overlap completely (n=30 too small).
+  //   • Rank-1 unchanged in both candidates (26.7% across all 4 configs).
+  //     The original r1<r2 symptom DID NOT REPLICATE in the replay
+  //     (baseline shows r1=r2=26.7%, not 46/60 from live AT).
+  //   • Candidates actually WORSENED rank ordering: lifted r2 to 33.3%
+  //     while r1 stayed flat, triggering harness "engine mis-orders top of
+  //     slate" warning. Per-rank lens revealed slate-rate gain came from
+  //     redistribution (r2/r3/r5 up; r4/r6 down — r4 dropped 20%→3.3% in
+  //     `zero`) rather than better top-of-slate ranking.
+  //   • Rail-matched pick lift regressed: evening 0.95 → 0.85 (cut_5) /
+  //     0.87 (zero). Per CLAUDE.md dual-lens rule, candidate fails.
+  //
+  // Hypothesis post-mortem: the LIVE r1<r2 inversion may have been a
+  // confound of mid-day regenerations + BUG-148 session shifts (cleaned
+  // up 5/18). Re-check live AT in 24-48h with fresh post-cleanup data
+  // before opening another sweep on this surface.
+  //
+  // Original hypothesis (preserved for context): reducing evening's CO
+  // weight restores rank monotonicity at the top AND lifts slate hit rate,
+  // without touching midday (own preset) or allday (intact).
   //
   // Baseline for comparison: `intel_weights_midday_only_floor70` — that preset
   // is the closest match to live production (2026-05-18 app_config snapshot:

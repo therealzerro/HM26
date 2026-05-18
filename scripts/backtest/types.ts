@@ -81,6 +81,8 @@ export interface HitResult {
   totalHits: number;
   hittingCombos: string[];
   hittingJurisdictions: string[];
+  /** Per-pick hit flag, indexed in rank order (hitsByPick[i] = rank i+1). */
+  hitsByPick: boolean[];
   // Uniform-random 6-pick baseline metrics for the same (date, scope, K) —
   // identical regardless of engine config, so summary can fairly compute
   // engine-vs-baseline lift.

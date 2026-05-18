@@ -19,6 +19,14 @@ export interface HitSummary {
   totalHits: number;
   hittingCombos: string[];
   hittingJurisdictions: string[];
+  /**
+   * Per-pick hit flag, indexed in the same order as the input `picks` array.
+   * `hitsByPick[i] === true` means pick at index i (rank i+1) scored ≥1 hit
+   * against any scope-filtered result. Used by the replay summary's per-rank
+   * monotonicity section to detect rank-mis-ordering (e.g. evening rank-1 <
+   * rank-2 from the 2026-05-18 dashboard cross-cut).
+   */
+  hitsByPick: boolean[];
 }
 
 const SESSION_SCOPE: Record<string, Scope[]> = {
@@ -192,6 +200,7 @@ export function scorePicksVsResults(
 ): HitSummary {
   const hittingCombos: string[] = [];
   const hittingJurisdictions: string[] = [];
+  const hitsByPick: boolean[] = new Array(picks.length).fill(false);
   let hitsBox = 0;
   let hitsStraight = 0;
 
@@ -201,7 +210,8 @@ export function scorePicksVsResults(
     return validScopes.includes(scope);
   });
 
-  for (const pick of picks) {
+  for (let i = 0; i < picks.length; i++) {
+    const pick = picks[i];
     const pickComboSet = pick.comboSet || toComboSet(pick.combo);
     for (const result of scopeResults) {
       const dbComboSet = result.comboset_sorted || toComboSet(result.result_digits);
@@ -212,6 +222,7 @@ export function scorePicksVsResults(
         else hitsBox++;
         if (!hittingCombos.includes(pick.combo)) hittingCombos.push(pick.combo);
         if (!hittingJurisdictions.includes(result.jurisdiction)) hittingJurisdictions.push(result.jurisdiction);
+        hitsByPick[i] = true;
         break; // one result per pick
       }
     }
@@ -223,5 +234,6 @@ export function scorePicksVsResults(
     totalHits: hitsBox + hitsStraight,
     hittingCombos,
     hittingJurisdictions,
+    hitsByPick,
   };
 }

@@ -706,7 +706,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
           const chunk = validEntries.slice(i, i + BATCH_SIZE);
           try {
             await fetchFromSupabase({
-              path: '/rest/v1/histories?on_conflict=jurisdiction,game,date_et,session',
+              path: '/rest/v1/histories?on_conflict=jurisdiction,game,date_et,session,result_digits',
               method: 'POST',
               headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
               body: chunk

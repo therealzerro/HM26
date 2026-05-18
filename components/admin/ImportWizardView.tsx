@@ -5,7 +5,7 @@ import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { parseRawLedgerData } from '@/lib/parseLedger';
 import { getTodayET } from '@/lib/dateUtils';
-import { runHitDetectionAllScopes } from '@/lib/hitDetection';
+import { runHitDetectionForDates } from '@/lib/hitDetection';
 import { Pill, SectionTitle, Card, useSt, HORIZONS, useImportTypes, PAIR_CLASSES, ImportRecord } from './AdminShared';
 
 // ─── Box History helpers ──────────────────────────────────────────────────────
@@ -414,7 +414,7 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
         // the same conflict key appears twice in one ON CONFLICT DO UPDATE statement.
         const seenKeys = new Set<string>();
         const entries = rawEntries.filter((r: any) => {
-          const k = `${r.jurisdiction}|${r.game}|${r.date_et}|${r.session}`;
+          const k = `${r.jurisdiction}|${r.game}|${r.date_et}|${r.session}|${r.result_digits}`;
           if (seenKeys.has(k)) return false;
           seenKeys.add(k);
           return true;
@@ -426,7 +426,7 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
           const chunk = entries.slice(bi, bi + BATCH);
           try {
             await fetchFromSupabase({
-              path: '/rest/v1/histories?on_conflict=jurisdiction,game,date_et,session',
+              path: '/rest/v1/histories?on_conflict=jurisdiction,game,date_et,session,result_digits',
               method: 'POST',
               headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
               body: chunk,
@@ -455,17 +455,38 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
             type: 'ledger',
             scope: config.scope,
             counts: totalAccepted,
-            status: 'completed',
+            status: totalAccepted === 0 && entries.length > 0 ? 'failed' : 'completed',
+            error_text: totalAccepted === 0 && entries.length > 0 ? (lastError || 'all batches failed') : null,
             file_meta: { import_date: config.import_date, scope: config.scope, dateRange, states: states.length },
           },
         }).catch(() => {/* non-fatal */});
+        // BUG-149 (2026-05-18): wire hit detection into the wizard's ledger path.
+        // useDataIngestion's importLedger does this automatically, but the wizard
+        // path had no trigger — every wizard ledger import left daily_intelligence
+        // hit_box/hit_straight at zero until the next pull-to-refresh somewhere
+        // else fired it. Run for the dates we just inserted, non-fatal on failure.
+        const hitDetectionWarnings: string[] = [];
+        if (totalAccepted > 0 && dates.length > 0) {
+          try {
+            const hd = await runHitDetectionForDates(dates);
+            if (hd.ran && hd.totalHits > 0) {
+              hitDetectionWarnings.push(`✓ Hit detection: ${hd.totalHits} hit${hd.totalHits === 1 ? '' : 's'} found across ${dates.length} date${dates.length === 1 ? '' : 's'}`);
+            } else if (hd.ran) {
+              hitDetectionWarnings.push(`✓ Hit detection ran — 0 hits matched`);
+            } else {
+              hitDetectionWarnings.push(`⚠️ Hit detection failed to run — trigger manually from Home pull-to-refresh`);
+            }
+          } catch (e) {
+            hitDetectionWarnings.push(`⚠️ Hit detection error: ${String(e instanceof Error ? e.message : e)}`);
+          }
+        }
         summary = {
           id: 'ledger_' + Date.now(),
           type: 'ledger',
           accepted: totalAccepted,
           rejected: entries.length - totalAccepted,
           fixed: 0,
-          warnings: [...(lastError ? [lastError] : []), ...dateMismatchWarnings],
+          warnings: [...(lastError ? [lastError] : []), ...dateMismatchWarnings, ...hitDetectionWarnings],
           states: states.length,
           dateRange,
         };

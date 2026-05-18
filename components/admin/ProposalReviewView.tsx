@@ -247,15 +247,22 @@ export default function ProposalReviewView() {
         const g5 = pm.all_gate_results?.find((g: any) => g.name === 'G5_per_scope_respect');
         return (
           <Card key={p.id} style={{ padding: 14, marginBottom: 10 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+              <Text style={{ fontSize: 11, color: colors.textSecondary, fontWeight: '600', flex: 1 }} numberOfLines={1}>
                 {fmtDate(p.created_at)} · {daysUntil(pm.expires_at)}
               </Text>
-              {g4?.details?.is_high_divergence && (
-                <View style={{ backgroundColor: colors.gold + '22', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                  <Text style={{ fontSize: 9, color: colors.gold, fontWeight: '700' }}>HIGH DIVERGENCE</Text>
-                </View>
-              )}
+              <View style={{ flexDirection: 'row', gap: 4 }}>
+                {pm.g3_status === 'skipped_edge' && (
+                  <View style={{ backgroundColor: colors.gold + '22', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1, borderColor: colors.gold + '55' }}>
+                    <Text style={{ fontSize: 9, color: colors.gold, fontWeight: '700' }}>G3 NOT VALIDATED</Text>
+                  </View>
+                )}
+                {g4?.details?.is_high_divergence && (
+                  <View style={{ backgroundColor: colors.gold + '22', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                    <Text style={{ fontSize: 9, color: colors.gold, fontWeight: '700' }}>HIGH DIVERGENCE</Text>
+                  </View>
+                )}
+              </View>
             </View>
             <Text style={{ fontSize: 12, color: colors.text, fontFamily: theme.typography.fontFamily.mono, marginBottom: 6 }}>
               Proposed (balanced): {fmtWeightSet(proposed)}
@@ -377,12 +384,23 @@ export default function ProposalReviewView() {
             {modal?.kind === 'apply' && (() => {
               const pm = modal.proposal.payload_meta ?? {};
               const revertOps = pm.revert_ops ?? [];
+              const g3Skipped = pm.g3_status === 'skipped_edge';
               return (
                 <>
                   <Text style={{ fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 8 }}>Approve & Apply Proposal</Text>
                   <Text style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 10 }}>
                     Apply these changes to app_config. Slate regeneration is NOT triggered — press Regenerate manually when ready.
                   </Text>
+                  {g3Skipped && (
+                    <View style={{ backgroundColor: colors.gold + '14', borderWidth: 1, borderColor: colors.gold + '66', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                      <Text style={{ fontSize: 11, color: colors.gold, fontWeight: '700', marginBottom: 4 }}>⚠️ G3 backtest gate not validated</Text>
+                      <Text style={{ fontSize: 10, color: colors.textSecondary, lineHeight: 14 }}>
+                        This proposal came from the scheduled edge function which skips the historical-backtest gate. For high-stakes approvals run{' '}
+                        <Text style={{ fontFamily: theme.typography.fontFamily.mono, color: colors.text }}>npm run autotune:propose -- --manual</Text>
+                        {' '}first to get a fully-validated proposal (3-4 min, runs all 5 gates locally).
+                      </Text>
+                    </View>
+                  )}
                   <Text style={{ fontSize: 11, fontWeight: '700', color: colors.text, marginTop: 8, marginBottom: 4 }}>Will update:</Text>
                   {(pm.apply_ops ?? []).map((op: any) => (
                     <Text key={op.key} style={{ fontSize: 10, color: colors.text, fontFamily: theme.typography.fontFamily.mono, marginBottom: 2 }}>

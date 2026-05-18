@@ -14,6 +14,7 @@
     "backtest:replay": "tsx scripts/backtest/cli.ts replay",
     "backtest:diag-doubles": "tsx scripts/backtest/diag-doubles.ts",
     "intel:propose": "tsx scripts/intel-tuning/cli.ts",
+    "autotune:propose": "tsx scripts/intel-tuning/generate-proposal.ts",
     "rebuild:datasets": "tsx scripts/intel-tuning/rebuild-datasets.ts",
     "rebuild:pair-datasets": "tsx scripts/intel-tuning/rebuild-pair-datasets.ts",
     "backfill:adaptive-tracking": "tsx scripts/intel-tuning/backfill-adaptive-tracking.ts",

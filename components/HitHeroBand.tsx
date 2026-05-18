@@ -100,9 +100,16 @@ function Tile({ item, onPress }: { item: HitHeroItem; onPress?: () => void }) {
         <DigitGroup digits={item.hitResult ?? item.combo} accent={accent} variant="solid" />
       </View>
       <View style={s.tileMetaRow}>
-        <Text style={[s.tileType, { color: accent }]}>
-          {isStraight ? '⭐ STRAIGHT' : '🎯 BOX'}
-        </Text>
+        <View style={s.tileTypeRow}>
+          <Text style={[s.tileType, { color: accent }]}>
+            {isStraight ? '⭐ EXACT' : '🎯 PARTIAL'}
+          </Text>
+          {item.scope && (
+            <View style={[s.scopePill, { borderColor: accent + '55', backgroundColor: accent + '14' }]}>
+              <Text style={[s.scopePillText, { color: accent }]}>{item.scope.toUpperCase()}</Text>
+            </View>
+          )}
+        </View>
         {(item.jurisdiction || sess) && (
           <Text style={s.tileMeta} numberOfLines={1}>
             {item.jurisdiction ?? ''}
@@ -121,7 +128,7 @@ function Tile({ item, onPress }: { item: HitHeroItem; onPress?: () => void }) {
         onPress={onPress}
         activeOpacity={0.85}
         accessibilityRole="button"
-        accessibilityLabel={`${isStraight ? 'Straight' : 'Box'} match ${item.combo}, tap for details`}
+        accessibilityLabel={`${isStraight ? 'Exact' : 'Partial'} match ${item.combo}${item.scope ? `, ${item.scope} scope` : ''}, tap for details`}
       >
         {inner}
       </TouchableOpacity>
@@ -228,10 +235,23 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
   },
   arrow: { fontSize: 16, fontWeight: '900', marginHorizontal: 4 },
   tileMetaRow: { gap: 2 },
+  tileTypeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
   tileType: {
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0.6,
+    fontFamily: theme.typography.fontFamily.monoBold,
+  },
+  scopePill: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: theme.borderRadius.pill,
+    borderWidth: 1,
+  },
+  scopePillText: {
+    fontSize: 8,
+    fontWeight: '900',
+    letterSpacing: 0.5,
     fontFamily: theme.typography.fontFamily.monoBold,
   },
   tileMeta: {

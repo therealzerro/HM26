@@ -157,8 +157,31 @@ async function recordHitInAdaptiveTracking(
     result_at: new Date().toISOString(),
   };
 
-  // Look up primary row (slate_hash, rank, combo, mode, matched_state IS NULL).
-  // PATCH it if found; otherwise INSERT a secondary row (multi-state match).
+  // BUG-150 (2026-05-18): idempotent + race-resilient PATCH-or-INSERT.
+  // Prior logic looked up only `matched_state IS NULL` and either PATCHed
+  // (first match) or INSERTed (subsequent matches). When the per-pick
+  // atWrites loop fired in parallel (Promise.all in runForDate), two writes
+  // for the same pick both saw `matched_state IS NULL` simultaneously, both
+  // PATCHed the same primary row — last-write-wins lost one state, leaving
+  // only one AT row for picks whose digits drew in 2+ states. Track record +
+  // explore grid + slate compact view all read AT and silently missed the
+  // dropped state (e.g., 5/17 combo 826 hit DC and DE midday; only DC landed).
+  // Two-layer fix: (1) check for a matching state-specific row first so
+  // re-runs are no-ops on already-recorded matches; (2) caller in runForDate
+  // now awaits AT writes serially per-pick so PATCH happens before the next
+  // IS-NULL lookup.
+  // Layer 1: idempotency — exact state+session already recorded → no-op.
+  const dup = await sbGet<{ id: string }[]>(
+    `/rest/v1/adaptive_tracking?slate_hash=eq.${encodeURIComponent(slateHash)}` +
+    `&rank=eq.${pick.rank}&combo=eq.${encodeURIComponent(pick.combo)}` +
+    `&mode=eq.${encodeURIComponent(mode)}` +
+    `&matched_state=eq.${encodeURIComponent(result.jurisdiction)}` +
+    `&matched_session=eq.${encodeURIComponent(result.session)}` +
+    `&select=id&limit=1`,
+  );
+  if (Array.isArray(dup) && dup.length > 0) return;
+
+  // PATCH the un-stamped primary row if one exists.
   const existing = await sbGet<{ id: string }[]>(
     `/rest/v1/adaptive_tracking?slate_hash=eq.${encodeURIComponent(slateHash)}` +
     `&rank=eq.${pick.rank}&combo=eq.${encodeURIComponent(pick.combo)}` +
@@ -292,10 +315,14 @@ async function runForDate(date: string, scope: string | null, skipSupplements: b
     scopesChecked.add(snapshot.scope ?? 'unknown');
 
     let hasNewHit = false;
-    // Collect adaptive_tracking + daily_intelligence writes so we can settle
-    // them concurrently after the loop. Each is a tracked promise so errors
-    // surface (vs. the old fire-and-forget pattern that hid the BUG-145 401s).
-    const atWrites: Promise<void>[] = [];
+    // BUG-150 (2026-05-18): per-pick AT writes must be serial — the IS-NULL
+    // primary-row lookup in recordHitInAdaptiveTracking depends on seeing
+    // the prior write's effect. Parallel `Promise.all` raced: two writes for
+    // the same pick both saw the primary row un-stamped and both PATCHed it,
+    // losing the second state. DI writes still run after AT (one per pick).
+    // pickPasses[pickIndex] = Promise that resolves once that pick's AT
+    // writes + DI write are done, in order.
+    const pickPasses: Promise<void>[] = [];
     const diWrites: Promise<void>[] = [];
 
     const updatedPicks = picks.map((pick: any) => {
@@ -323,13 +350,17 @@ async function runForDate(date: string, scope: string | null, skipSupplements: b
       hasNewHit = true;
       totalHits += matches.length;
 
-      for (const m of matches) {
-        atWrites.push(
-          recordHitInAdaptiveTracking(pick, m.result, snapshot, date).catch(e => {
+      // Serial AT writes per pick: each match must observe the previous
+      // match's PATCH before its own IS-NULL lookup runs (BUG-150).
+      pickPasses.push((async () => {
+        for (const m of matches) {
+          try {
+            await recordHitInAdaptiveTracking(pick, m.result, snapshot, date);
+          } catch (e) {
             errors.push(`AT ${snapshot.scope}/${pick.combo}/${m.result.jurisdiction}: ${String(e).slice(0, 120)}`);
-          }),
-        );
-      }
+          }
+        }
+      })());
       diWrites.push(
         updateDailyIntelligenceHit(pick, primary.result, date, { scope: snapshot.scope, mode: snapshot.mode })
           .catch(e => {
@@ -351,8 +382,9 @@ async function runForDate(date: string, scope: string | null, skipSupplements: b
     // the snapshot. If a downstream surface refreshes between the snapshot
     // PATCH and these writes, it could otherwise see a snapshot annotated
     // with hits but an AT/DI still empty — which is exactly the BUG-145
-    // symptom we're trying to eliminate.
-    await Promise.all([...atWrites, ...diWrites]);
+    // symptom we're trying to eliminate. Per-pick AT writes are serial
+    // inside each pickPasses entry; different picks run in parallel.
+    await Promise.all([...pickPasses, ...diWrites]);
 
     if (hasNewHit) {
       try {

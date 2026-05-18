@@ -189,7 +189,12 @@ function runK6Selection(
   scorePoolForEnergy: number[],
   scope: Scope,
 ): ReplayPick[] {
-  const { rails, minEnergyThreshold } = config;
+  const { rails } = config;
+  // Per-scope energy floor override wins when present; global is the fallback.
+  // Mirrors production's `min_energy_threshold_${scope}` app_config key
+  // (ENH-MET, 2026-05-18). Distinct from minEnergyThresholdByMultiplicity
+  // which is per-multiplicity (and which still applies on top of this).
+  const minEnergyThreshold = config.minEnergyThresholdByScope?.[scope] ?? config.minEnergyThreshold;
   // Per-scope cooldown override wins when present; global is the fallback.
   // Mirrors production's `recent_hit_cooldown_${scope}` app_config key.
   const recentHitCooldown = config.recentHitCooldownByScope?.[scope] ?? config.recentHitCooldown;

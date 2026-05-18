@@ -128,6 +128,9 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     const scopeBalancedKey     = scope ? `engine_weights_balanced_${scope}`     : null;
     const scopeConservativeKey = scope ? `engine_weights_conservative_${scope}` : null;
     const scopeAggressiveKey   = scope ? `engine_weights_aggressive_${scope}`   : null;
+    // ENH-MET (2026-05-18): per-scope energy floor override. Parity with
+    // engines/zk6.ts. Falls back to global min_energy_threshold then hardcoded.
+    const scopeMinEnergyKey = scope ? `min_energy_threshold_${scope}` : null;
     const keyList = [
       'engine_weights_balanced', 'engine_weights_conservative', 'engine_weights_aggressive',
       'k6_singles_max', 'k6_doubles_max', 'k6_triples_on', 'pair_rep_cap',
@@ -141,6 +144,7 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       ...(scopeBalancedKey     ? [scopeBalancedKey]     : []),
       ...(scopeConservativeKey ? [scopeConservativeKey] : []),
       ...(scopeAggressiveKey   ? [scopeAggressiveKey]   : []),
+      ...(scopeMinEnergyKey ? [scopeMinEnergyKey] : []),
     ];
     const rows = await sbGet<{ key: string; value: string }[]>(
       '/rest/v1/app_config?key=in.(' + keyList.join(',') + ')&select=key,value',
@@ -153,6 +157,7 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     let scopeBalancedOverride:     WeightSet | null = null;
     let scopeConservativeOverride: WeightSet | null = null;
     let scopeAggressiveOverride:   WeightSet | null = null;
+    let scopeMinEnergyOverride: number | null = null;
     for (const row of rows) {
       try {
         if (row.key === 'k6_singles_max')       { const v = parseInt(row.value,10); if (!isNaN(v)) cfg.rails.singlesMax = v; continue; }
@@ -185,6 +190,11 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
         if (scopeBoxPressKey && row.key === scopeBoxPressKey) {
           const v = parseFloat(row.value);
           if (!isNaN(v)) scopeBoxPressOverride = v;
+          continue;
+        }
+        if (scopeMinEnergyKey && row.key === scopeMinEnergyKey) {
+          const v = parseInt(row.value, 10);
+          if (!isNaN(v) && v >= 0) scopeMinEnergyOverride = v;
           continue;
         }
         if (row.key === 'synergy_boost_on')     { cfg.synergyOn = row.value === 'true'; continue; }
@@ -247,6 +257,10 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     cfg.effectiveBoxPressureWeight = scopeBoxPressOverride ?? cfg.boxPressureWeight;
     if ((scopeBoxFreqOverride !== null || scopeBoxPressOverride !== null) && scope) {
       console.log(`[edge-zk6] box weight override: scope=${scope} freq=${cfg.effectiveBoxFreqWeight} pressure=${cfg.effectiveBoxPressureWeight}`);
+    }
+    if (scopeMinEnergyOverride !== null && scope) {
+      console.log(`[edge-zk6] energy floor override: scope=${scope} ${cfg.minEnergyThreshold} → ${scopeMinEnergyOverride}`);
+      cfg.minEnergyThreshold = scopeMinEnergyOverride;
     }
     return cfg;
   } catch {

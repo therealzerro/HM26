@@ -423,6 +423,14 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     const scopeBalancedKey     = scope ? `engine_weights_balanced_${scope}`     : null;
     const scopeConservativeKey = scope ? `engine_weights_conservative_${scope}` : null;
     const scopeAggressiveKey   = scope ? `engine_weights_aggressive_${scope}`   : null;
+    // ENH-MET (2026-05-18, post engine-split investigation §7): per-scope
+    // energy floor override. Investigation Appendix D showed midday picks
+    // have ~13-22pp of underperformance beyond what data volume explains;
+    // per-scope floor relaxation is a candidate intervention to unlock that
+    // headroom without affecting evening/allday (which are at or near their
+    // structural ceilings already). Falls back to global min_energy_threshold,
+    // then to hardcoded default.
+    const scopeMinEnergyKey = scope ? `min_energy_threshold_${scope}` : null;
     const keyList = [
       'engine_weights_balanced', 'engine_weights_conservative', 'engine_weights_aggressive',
       'k6_singles_max', 'k6_doubles_max', 'k6_triples_on', 'pair_rep_cap',
@@ -436,6 +444,7 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       ...(scopeBalancedKey     ? [scopeBalancedKey]     : []),
       ...(scopeConservativeKey ? [scopeConservativeKey] : []),
       ...(scopeAggressiveKey   ? [scopeAggressiveKey]   : []),
+      ...(scopeMinEnergyKey ? [scopeMinEnergyKey] : []),
     ];
     const rows = await fetchFromSupabase<any[]>({
       path: '/rest/v1/app_config?key=in.(' + keyList.join(',') + ')&select=key,value',
@@ -462,6 +471,7 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     let scopeBalancedOverride:     WeightSet | null = null;
     let scopeConservativeOverride: WeightSet | null = null;
     let scopeAggressiveOverride:   WeightSet | null = null;
+    let scopeMinEnergyOverride: number | null = null;
 
     for (const row of rows) {
       try {
@@ -495,6 +505,11 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
         if (scopeBoxPressKey && row.key === scopeBoxPressKey) {
           const v = parseFloat(row.value);
           if (!isNaN(v)) scopeBoxPressOverride = v;
+          continue;
+        }
+        if (scopeMinEnergyKey && row.key === scopeMinEnergyKey) {
+          const v = parseInt(row.value, 10);
+          if (!isNaN(v) && v >= 0) scopeMinEnergyOverride = v;
           continue;
         }
         if (row.key === 'synergy_boost_on')     { synergyOn = row.value === 'true'; continue; }
@@ -565,8 +580,13 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     if ((scopeBoxFreqOverride !== null || scopeBoxPressOverride !== null) && scope) {
       console.log(`[zk6v2] box weight override: scope=${scope} freq ${boxFreqWeight}→${effectiveBoxFreqWeight} pressure ${boxPressureWeight}→${effectiveBoxPressureWeight}`);
     }
+    const effectiveMinEnergyThreshold = scopeMinEnergyOverride ?? minEnergyThreshold;
+    if (scopeMinEnergyOverride !== null && scope) {
+      console.log(`[zk6v2] energy floor override: scope=${scope} ${minEnergyThreshold} → ${effectiveMinEnergyThreshold}`);
+    }
     return {
-      presets, rails, pressureThreshold, minEnergyThreshold,
+      presets, rails, pressureThreshold,
+      minEnergyThreshold: effectiveMinEnergyThreshold,
       recentHitCooldown: effectiveCooldown,
       synergyOn, synergyWeight, horizonWeights,
       boxFreqWeight, boxPressureWeight,

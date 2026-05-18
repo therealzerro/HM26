@@ -50,6 +50,13 @@ export interface EngineConfig {
   // a single global value can't win on all three scopes.
   boxFreqWeightByScope?: Partial<Record<Scope, number>>;
   boxPressureWeightByScope?: Partial<Record<Scope, number>>;
+  // ENH-MET (2026-05-18): per-scope energy floor override. Mirrors the
+  // production app_config `min_energy_threshold_${scope}` reader added to
+  // engines/zk6.ts + compute-slate-zk6 the same day. When set for a scope,
+  // overrides `minEnergyThreshold` for that scope only — other scopes use
+  // the global. Distinct from `minEnergyThresholdByMultiplicity` (per-
+  // multiplicity, all scopes) added during the parked ENH-DBL sweep.
+  minEnergyThresholdByScope?: Partial<Record<Scope, number>>;
   // ENH (2026-05-15): per-scope signal-weight overrides (BOX/PBURST/CO/DGC).
   // When set for a scope, replaces `presets[mode]` for that scope only. Other
   // scopes fall back to the global preset. Mirrors the per-scope override

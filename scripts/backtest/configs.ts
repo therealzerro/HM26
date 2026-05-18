@@ -1092,6 +1092,71 @@ export const CONFIGS: Record<string, EngineConfig> = {
     },
   },
 
+  // ─────────────── 2026-05-18: ENH-MET — per-scope energy floor [PARKED] ───
+  //
+  // STATUS: Null result 2026-05-18. Config kept for reproducibility; do NOT
+  // ship. Full backtest report: `docs/min_energy_threshold_midday_backtest_2026-05-18.md`.
+  //
+  // Verdict: Δ slate hit rate = 0.0pp across all scopes (n=57). Isolation
+  // check passed (evening + allday bit-identical between baseline and
+  // candidate). Midday per-rank composition shifted meaningfully — r3 went
+  // 8.8% → 17.5% with offsetting drops at r2/r4 — but slate-level netted to
+  // identical hit count. The floor relaxation admitted DIFFERENT picks
+  // (50-69th energy percentile band) but not BETTER picks; new admits
+  // weren't winning slates that the baseline picks didn't already cover.
+  //
+  // Doubles allocation unchanged (0/57 on midday at both 70 and 50) —
+  // confirms doubles score so low they can't reach floor 50 either, only
+  // ~0 admits them (which ENH-DBL H2 already showed tanks quality).
+  //
+  // Lesson: the energy floor is NOT the bottleneck on midday performance.
+  // The 13-22pp tuning headroom from investigation Appendix D is real but
+  // lives elsewhere. Next per-scope candidates to try (per investigation
+  // §7 item #5, after CONFIG-07 5/22 review): `pair_rep_cap_${scope}` or
+  // `pressure_threshold_${scope}`. Energy floor is closed as a tuning
+  // lever for midday.
+  //
+  // Original investigation context (preserved):
+  //
+  // Per the engine-split investigation (docs/engine_split_investigation_2026-05-18.md)
+  // §7 Next Steps, items #1–2: extend per-scope override surface with
+  // `min_energy_threshold_${scope}`, test a midday-only candidate at 50.
+  //
+  // Hypothesis: midday picks have ~13-22pp of underperformance beyond what
+  // data volume explains (investigation Appendix D). CONFIG-07's CO=74%
+  // midday preset selects CO-heavy picks, which often have low energy
+  // percentiles because BOX frequency scoring (still 20.8%) penalizes them.
+  // A floor of 50 (vs global 70) lets those CO-rich midday picks through
+  // without affecting evening or allday (still at floor 70).
+  //
+  // Isolation property: evening and allday slate hit rates MUST be
+  // unchanged. If they move, the per-scope override isn't isolating
+  // correctly — abort before drawing conclusions.
+  //
+  // Built on top of `intel_weights_midday_only_floor70` (live production
+  // parity). Only differs by `minEnergyThresholdByScope.midday = 50`.
+  min_energy_midday_50: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+    minEnergyThresholdByScope: { midday: 50 },
+    // evening + allday intentionally omitted → fall back to global minEnergyThreshold=70
+  },
+
   // BOX-heavy 3-signal model (DGC weight = 0).
   // Tests whether introducing DGC was a regression vs the older 3-signal model.
   legacy: {

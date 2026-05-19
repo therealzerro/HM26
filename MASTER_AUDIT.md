@@ -816,6 +816,7 @@ Removed 100ms artificial delay from `initApp`. SplashScreen.hideAsync() already 
 | ENH-21 | `components/PickCard.tsx` | Long-press quick-save to Number Book — "Save to Book" + "Copy combo" sheet; stub exists in PickDetailModal but not on the card | ✅ Fixed 2026-05-12 |
 | ENH-22 | `app/(tabs)/explore.tsx` | Pull-to-refresh triggers hit detection — extend the Slates pull-to-refresh to also run `runHitDetectionAndRefresh(scope, todayET)`, closing the loop without an Admin visit | ✅ Fixed 2026-05-12 |
 | ENH-AUDIT-2026-05-19 | `engines/zk6.ts`, new `pick_state_strength` table, `components/PickDetailModal.tsx` | **Per-state pattern strength layer for ZK6 picks** (PRE-ZK30 dependency). Secondary scoring layer that runs after ZK6 generates its 6 picks; for each pick × jurisdiction, compute recency-weighted hit rate against that state's last 365 draws; persist to `pick_state_strength`; surface top 5 per pick in `PickDetailModal`. See long-form section below for problem statement, scope, technical approach, acceptance criteria. Unlocks honest per-state marketing language flagged in `docs/state_confidence_audit_2026-05-19.md`. | 🟡 Queued — not started; sequenced after Phase 4 IAP / Phase 5 EAS / Phase 6 Playwright and before ZK30 Phase 1 |
+| ENH-FUNNEL-2026-05-19 | new tables `pro_subscribers`, `fb_group_contributors`, `fb_engagement_snapshots`, `funnel_daily_snapshots`, `subscriber_import_history`; new edge fn `subscriber-admin`; `components/admin/ProSubscribersView.tsx`, `SubscriberImportView.tsx`, `FunnelDashboardView.tsx`, `AdminKeyGate.tsx` | **Pro subscriber tracking + funnel intelligence.** Source-of-truth roster for 21 confirmed Pro subscribers (email PII + date subscribed from Meta Business Suite "Supporter Email Addresses" export). Service-role Edge Function gateway (`subscriber-admin`) gated by `ADMIN_OPS_KEY` header — RLS denies anon, function uses service-role to bypass; operator enters secret once into AdminKeyGate and it persists to AsyncStorage (never bundled). Daily funnel snapshots with generated columns for conversion rate, gross MRR, net MRR. Parsers for TSV/CSV/multi-space inputs (subscriber emails + Group Insights contributors). PII-masking in admin UI with reveal toggle. Seeded with 21 subscribers and funnel snapshots for 5/18 (18 subs, 22.0% conv, $17.82 gross MRR) and 5/19 (21 subs, 24.7% conv, $20.79 gross MRR). See `docs/subscriber_tracking_README.md` for setup + operator workflow and `docs/subscriber_reconciliation_queries.sql` for diagnostics. | ✅ Shipped 2026-05-19 — schema applied, edge fn deployed v1, UI wired into admin nav. Operator must set `ADMIN_OPS_KEY` in Supabase secrets and unlock via AdminKeyGate before first use. |
 
 ---
 
@@ -906,6 +907,59 @@ Complete AFTER current pre-launch priorities (Phase 4 RevenueCat IAP, Phase 5 EA
 7. Update slate snapshot writers to call the compute step
 8. Verify honest copy (no prediction claims) — passes Two-Question filter
 9. Marketing language audit post-ship — update copy that the audit flagged as currently-aspirational
+
+---
+
+### ENH-FUNNEL-2026-05-19 — Pro Subscriber Tracking + Funnel Intelligence
+
+**Source:** Funnel analytics + subscriber data review 2026-05-19, building on the Meta Business Suite "Supporter Email Addresses" feature becoming available for this Page.
+**Priority:** Pre-iOS-launch CRITICAL (foundation for the migration list when RevenueCat IAP ships)
+**Status:** ✅ Shipped 2026-05-19
+**Effort:** ~7 hours
+
+#### Why this exists
+
+Until 5/19 the operator's view of paying subscribers came from Facebook's lagged dashboard. Meta's email export feature now gives us an authoritative roster: 21 confirmed subscribers with emails and `Date Subscribed` timestamps. Pairing that roster with the engagement data from Group Insights exports gives a coherent picture of the funnel (page → free group → Pro) and grounds MRR math in real numbers rather than Facebook's reporting lag.
+
+This also creates the email-targetable audience for the eventual iOS launch migration: when RevenueCat IAP goes live we have a known list of people to invite, not a guess.
+
+#### What shipped
+
+1. **Five new tables** (`pro_subscribers`, `fb_group_contributors`, `fb_engagement_snapshots`, `funnel_daily_snapshots`, `subscriber_import_history`). RLS enabled with no public policies — tables are unreachable from the anon key.
+2. **Edge Function `subscriber-admin`** (deployed v1, ACTIVE) — service-role gateway gated by `X-Admin-Key` matching `ADMIN_OPS_KEY` env var. 12 actions covering list/upsert/update across all five tables, plus potential-churn detection and contributor-to-subscriber linking.
+3. **Client lib `lib/subscriberAdminClient.ts`** — typed wrappers, AsyncStorage-backed key management, email-masking helper.
+4. **Parsers** for both data sources, tolerant of tab/CSV/multi-space inputs and with date-validity sanity checks.
+5. **Admin UI** — `📈 Funnel`, `👥 Subscribers`, `📧 Sub Import` tabs in the existing admin nav. PII masked by default with reveal toggle.
+6. **Seed data** — 21 subscribers + funnel snapshots for 5/18 (18 active, 22.0% conv, $17.82 gross MRR / $12.47 net) and 5/19 (21 active, 24.7% conv, $20.79 gross MRR / $14.55 net).
+7. **Docs** — `docs/subscriber_tracking_README.md` (setup + workflow), `docs/subscriber_reconciliation_queries.sql` (operator diagnostics).
+
+#### Security model
+
+The work order's original RLS plan (admin role via `profiles.role = 'admin'` + `auth.uid()`) was incompatible with the codebase: there is no `profiles` table and the app uses the anon key directly with no Supabase Auth. The Edge Function gateway approach was substituted:
+
+- Tables deny anon entirely (RLS on, no policies).
+- All access goes through `subscriber-admin` using the service-role key.
+- `ADMIN_OPS_KEY` is a shared secret in Supabase Edge Function secrets (operator must set this).
+- Operator enters the key once into `AdminKeyGate`; persists to AsyncStorage only — never bundled into the JS.
+
+#### Reconciliation gap (open)
+
+Email export shows 21 subscribers as of 5/19; free group UI shows 23–24 humans. Variance is 2–3 humans (likely payment processing lag, churned-still-in-group, comped, or business account artifact). Resolution is operator-side via the admin UI; the data model supports manual adds (status='comped' or 'unknown') for special cases.
+
+#### What's deliberately NOT in scope
+
+- Facebook Graph API integration.
+- Browser automation / scraping.
+- Automated email sending to subscribers (separate work order).
+- iOS migration flow itself (Phase 4 RevenueCat work; data model is ready).
+- Multi-tier pricing UI (column exists for it; UI assumes single $0.99 tier).
+- Excel/.xlsx parsing — operator copy-pastes from spreadsheet UI; TSV/CSV only.
+
+#### Follow-ups
+
+- Operator sets `ADMIN_OPS_KEY` in Supabase secrets and re-deploys the edge fn so it picks up the secret (deployment without the secret returns 401 to all callers — verifiable end-to-end test).
+- First real Group Insights import will exercise the contributor → subscriber correlation flow; expect to manually link names to emails for the 21 subscribers with `facebook_name IS NULL`.
+- When RevenueCat IAP ships, drive the migration list from `SELECT email FROM pro_subscribers WHERE status='active' AND ios_migration_invited_at IS NULL`.
 
 ---
 

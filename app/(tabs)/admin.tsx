@@ -23,6 +23,9 @@ import AdaptiveLearningView from '@/components/admin/AdaptiveLearningView';
 import IntelligenceRouteView from '@/components/admin/IntelligenceRouteView';
 import FingerprintView from '@/components/admin/FingerprintView';
 import ProposalReviewView from '@/components/admin/ProposalReviewView';
+import ProSubscribersView from '@/components/admin/ProSubscribersView';
+import SubscriberImportView from '@/components/admin/SubscriberImportView';
+import FunnelDashboardView from '@/components/admin/FunnelDashboardView';
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
 const NAV = [
@@ -38,6 +41,9 @@ const NAV = [
   { id:'intelligence', icon:'🔬', label:'Intelligence' },
   { id:'fingerprint',  icon:'🧬', label:'Fingerprint'  },
   { id:'proposals',    icon:'🧾', label:'Proposals'   },
+  { id:'funnel',       icon:'📈', label:'Funnel'      },
+  { id:'subscribers',  icon:'👥', label:'Subscribers' },
+  { id:'sub-import',   icon:'📧', label:'Sub Import'  },
 ];
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
@@ -90,6 +96,9 @@ export default function AdminScreen() {
         {view === 'intelligence' && <IntelligenceRouteView />}
         {view === 'fingerprint'  && <FingerprintView />}
         {view === 'proposals'    && <ProposalReviewView />}
+        {view === 'funnel'       && <ErrorBoundary fallback="Funnel dashboard error"><FunnelDashboardView /></ErrorBoundary>}
+        {view === 'subscribers'  && <ErrorBoundary fallback="Subscribers view error"><ProSubscribersView /></ErrorBoundary>}
+        {view === 'sub-import'   && <ErrorBoundary fallback="Subscriber import error"><SubscriberImportView /></ErrorBoundary>}
       </View>
     </SafeAreaView>
   );

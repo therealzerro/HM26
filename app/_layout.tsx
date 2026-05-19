@@ -65,7 +65,7 @@ function RootLayoutNav() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {isLight && (
         <Image
-          source={require('@/assets/background_2.PNG')}
+          source={require('@/assets/background_2.png')}
           style={[StyleSheet.absoluteFillObject, { opacity: 0.2 }]}
           resizeMode="cover"
           pointerEvents="none"

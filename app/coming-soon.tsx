@@ -44,7 +44,7 @@ const COMING_SOON_FEATURES: ComingSoonFeature[] = [
 const UNDER_THE_HOOD_FEATURES = [
   'Multi-pass scoring v2 (recency/presence/integrity/signal/verification)',
   'Pattern-aware combos (co-occurrence without overfitting)',
-  'Adaptive signal model (per-state decay, cold-start smoothing)',
+  'Per-state pattern intelligence (in development)',
   'Backtest harness (fixed-seed replays; diagnostics)',
   'Explainability (rationale, factor breakdown, lineage)',
   'Risk tiers (conservative/standard/aggressive probability ranges)'

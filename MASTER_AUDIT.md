@@ -815,6 +815,97 @@ Removed 100ms artificial delay from `initApp`. SplashScreen.hideAsync() already 
 | ENH-20 | `lib/dateUtils.ts` | Add `isETDateToday(dateStr)` utility — several places compare stored ET date strings to device `Date.now()` without a shared ET-aware helper | ✅ Fixed 2026-05-12 |
 | ENH-21 | `components/PickCard.tsx` | Long-press quick-save to Number Book — "Save to Book" + "Copy combo" sheet; stub exists in PickDetailModal but not on the card | ✅ Fixed 2026-05-12 |
 | ENH-22 | `app/(tabs)/explore.tsx` | Pull-to-refresh triggers hit detection — extend the Slates pull-to-refresh to also run `runHitDetectionAndRefresh(scope, todayET)`, closing the loop without an Admin visit | ✅ Fixed 2026-05-12 |
+| ENH-AUDIT-2026-05-19 | `engines/zk6.ts`, new `pick_state_strength` table, `components/PickDetailModal.tsx` | **Per-state pattern strength layer for ZK6 picks** (PRE-ZK30 dependency). Secondary scoring layer that runs after ZK6 generates its 6 picks; for each pick × jurisdiction, compute recency-weighted hit rate against that state's last 365 draws; persist to `pick_state_strength`; surface top 5 per pick in `PickDetailModal`. See long-form section below for problem statement, scope, technical approach, acceptance criteria. Unlocks honest per-state marketing language flagged in `docs/state_confidence_audit_2026-05-19.md`. | 🟡 Queued — not started; sequenced after Phase 4 IAP / Phase 5 EAS / Phase 6 Playwright and before ZK30 Phase 1 |
+
+---
+
+### ENH-AUDIT-2026-05-19 — Per-State Pattern Strength Layer for ZK6 Picks
+
+**Source:** State Confidence Audit 2026-05-19 (`docs/state_confidence_audit_2026-05-19.md`)
+**Priority:** PRE-ZK30 (must complete before ZK30 full build begins)
+**Effort estimate:** 6–10 hours focused work
+**Status:** QUEUED — not yet started
+
+#### Problem statement
+
+ZK6 currently loads only `jurisdiction IS NULL` data and generates one cross-jurisdictional slate per scope. The `state_confidence_overrides` row in `app_config` was empty `{}` with zero code consumers and was removed 2026-05-19 (see audit_logs `config_row_deletion_executed` action). There is currently no per-state pattern strength computation anywhere in the codebase.
+
+Marketing language has described per-state identification capability that doesn't exist. The audit recommended either changing the marketing OR building the capability. This enhancement builds the capability so future marketing claims become verifiably true.
+
+#### Scope
+
+Build a secondary per-state strength scoring layer that runs AFTER ZK6 generates its 6 picks. For each pick × each jurisdiction, compute a recency-weighted hit rate score against that jurisdiction's historical draws. Persist scores to a new `pick_state_strength` table. Surface top 5 strongest jurisdictions per pick in `PickDetailModal.tsx`.
+
+#### Why pre-ZK30 dependency
+
+1. ZK30 is the per-state engine. ZK6 needs to honestly support per-state language BEFORE ZK30 launches, or the marketing story for the ZK family stays incoherent.
+2. The per-state datasets (`datasets_box` and `datasets_pair` rows with non-null jurisdiction) already exist in the database. They were built for ZK30 but are sitting unused. This enhancement gives them a consumer in the ZK6 product line.
+3. Building per-state strength scoring in ZK6 first proves the methodology before ZK30 expansion makes it production-critical. If the v1 metric isn't useful, we discover that with ZK6 risk exposure, not ZK30 risk exposure.
+4. ZK30 inherits the per-state strength infrastructure. The compute logic, the schema, and the UI patterns built for this enhancement become foundational for ZK30's per-state engine.
+
+#### Technical approach (v1)
+
+**Metric:** Recency-weighted hit rate of each pick's combo in each jurisdiction's last 365 draws, normalized to 0-100 scale.
+
+**New table:** `pick_state_strength` with columns:
+- `snapshot_id` (FK to `slate_snapshots`)
+- `pick_rank` (1–6)
+- `combo`, `combo_set`
+- `jurisdiction` (state code)
+- `strength_score` (0–100)
+- `raw_hit_count`, `draws_evaluated`
+- `rank_within_pick` (1–N, ranking states for this specific pick)
+
+**Compute step:** New function `computePerStateStrength()` runs after `compute-slate-zk6` finishes. Writes ~210 rows per slate (6 picks × 35 jurisdictions).
+
+**UI surface:** New section in `PickDetailModal.tsx` titled "Pattern Strength by Jurisdiction" displaying top 5 states for the pick with strength scores and visual bars. Honest copy: "Based on recency-weighted hit rate in each state's last 365 draws."
+
+#### Out of scope for this enhancement
+
+- Changes to ZK6 pick selection logic (national selection stays)
+- Per-state signal recomputation (BOX/PBURST/CO/DGC per state)
+- Per-state forecasting or prediction
+- Admin override UI for per-state weights
+- Real-time per-state strength updates
+- Backfill of legacy slates (new slates only get the data)
+
+#### Dependencies
+
+- Slate snapshot writers must trigger per-state computation
+- `histories` table must continue to have reliable per-jurisdiction data (already does)
+- Performance budget: per-state computation adds < 30 seconds to slate generation
+
+#### Acceptance criteria
+
+- [ ] `pick_state_strength` table created with correct schema
+- [ ] Per-state strength computed for every new slate generation
+- [ ] PickDetailModal renders top 5 jurisdictions per pick
+- [ ] Section copy is honest ("recency-weighted hit rate")
+- [ ] Performance: < 30s added to slate generation
+- [ ] Legacy slates without per-state data render gracefully
+
+#### Marketing language unlocked after ship
+
+The following becomes verifiably true:
+- "ZK6 identifies which states are showing the strongest patterns for each pick"
+- "Picks are paired with the jurisdictions where patterns are strongest"
+- "Per-state pattern intelligence for every signal"
+
+#### Sequencing
+
+Complete AFTER current pre-launch priorities (Phase 4 RevenueCat IAP, Phase 5 EAS Build → TestFlight → App Store, Phase 6 Playwright auto-import) and BEFORE ZK30 Phase 1 (Texas single-state build).
+
+#### Implementation task breakdown
+
+1. Define per-state strength metric (v1: recency-weighted hit rate)
+2. Schema design + migration for `pick_state_strength` table
+3. Implement `computePerStateStrength()` function
+4. Integrate with slate generation pipeline (`compute-slate-zk6` edge fn)
+5. Build API helper `fetchPickStateStrength()`
+6. Add UI section to `PickDetailModal.tsx`
+7. Update slate snapshot writers to call the compute step
+8. Verify honest copy (no prediction claims) — passes Two-Question filter
+9. Marketing language audit post-ship — update copy that the audit flagged as currently-aspirational
 
 ---
 

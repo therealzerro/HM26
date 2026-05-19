@@ -3,7 +3,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, ActivityIndicator, StyleSheet, Image } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ScopeProvider } from "@/hooks/useScope";
@@ -53,7 +53,8 @@ function RootLayoutNav() {
   // PHASE IV: modal screens use surface2 so they read as one layer above
   // the underlying tab content. Tab content keeps `background` (deepest).
   // Theme-aware: colors track the active mode from ThemeProvider.
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
+  const isLight = scheme === 'light';
   const modalScreenOptions = {
     presentation: "modal" as const,
     contentStyle: { backgroundColor: colors.surface2 },
@@ -61,12 +62,21 @@ function RootLayoutNav() {
   };
 
   return (
-    <Stack
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      {isLight && (
+        <Image
+          source={require('@/assets/background_2.PNG')}
+          style={[StyleSheet.absoluteFillObject, { opacity: 0.2 }]}
+          resizeMode="cover"
+          pointerEvents="none"
+        />
+      )}
+      <Stack
       screenOptions={{
         headerBackTitle: "Back",
         headerStyle: { backgroundColor: colors.bgElevated },
         headerTintColor: colors.text,
-        contentStyle: { backgroundColor: colors.background },
+        contentStyle: { backgroundColor: isLight ? 'transparent' : colors.background },
       }}
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -91,6 +101,7 @@ function RootLayoutNav() {
         options={{ title: "Verified Track Record", ...modalScreenOptions }}
       />
     </Stack>
+    </View>
   );
 }
 

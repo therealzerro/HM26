@@ -62,7 +62,7 @@ function RootLayoutNav() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: isLight ? 'transparent' : colors.background }}>
       {isLight && (
         <Image
           source={require('@/assets/background_2.png')}

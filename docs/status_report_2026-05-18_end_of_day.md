@@ -163,7 +163,7 @@ The morning's work orders (Engine Split Investigation + min_energy_threshold + S
 
 ## §B.7 — Known issues + watch list
 
-1. **`compute-slate-zk6` edge function source has ENH-MET reader committed locally but NOT REDEPLOYED.** The reader code exists in `supabase/functions/compute-slate-zk6/index.ts` but the deployed v16 predates that change. If anyone sets `min_energy_threshold_midday` in `app_config`, the local engine + harness would honor it but the LIVE production edge function would silently ignore it. Recommended fix: redeploy `compute-slate-zk6` to v17. ~5 min. Not urgent because no `min_energy_threshold_midday` key currently exists in `app_config` (ENH-MET was null-result, not deployed).
+1. ~~`compute-slate-zk6` edge function source has ENH-MET reader committed locally but NOT REDEPLOYED.~~ **CLOSED 2026-05-19** — redeployed v17 via `npx supabase functions deploy compute-slate-zk6`. sha256 changed from `d1c143d3…` to `9a120404…`. Verified deployed source contains `scopeMinEnergyKey` (×5) + `scopeMinEnergyOverride` (×5) + `min_energy_threshold_${scope}` template literal + `ENH-MET` marker. Behavior bit-identical to v16 today (no `min_energy_threshold_${scope}` key in `app_config`), but next per-scope experiment can land cleanly.
 
 2. **`engine_runs` table is sparse and dormant.** 13 rows total across the lifetime of the project; writes only happen on `compute-slate-zk6` invocation. No reader anywhere. Self-tuning audit §3 classified as DORMANT. Two options: (a) retire it, (b) build something that reads it. Neither is urgent.
 

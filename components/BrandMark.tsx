@@ -3,7 +3,7 @@ import { Image, ImageStyle, StyleProp } from 'react-native';
 
 /**
  * HitMaster brand mark — wraps the icon asset for consistent in-app
- * placements. The icon ships as a square PNG at 1024×1024 and gets
+ * placements. The icon ships as a square PNG at 2048×2048 and gets
  * downscaled by RN to whatever `size` is requested.
  *
  * Two canonical sizes ship today:

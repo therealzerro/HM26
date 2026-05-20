@@ -346,6 +346,56 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
     };
   }, [pairRows, wantedPairKeys]);
 
+  // Where this signal has resolved before — last 30 days of adaptive_tracking,
+  // matched by combo_set (any-order class). Mirrors the track-record filter:
+  // matched_state present, hit_box|hit_straight, production modes only. Dedupe
+  // per (date, state) so a same-day multi-mode hit counts once.
+  const { data: resolutionStates = [] } = useQuery({
+    queryKey: ['pick_resolution_trail', pick.comboSet],
+    queryFn: async () => {
+      const sinceDate = (() => {
+        const d = new Date(); d.setDate(d.getDate() - 30);
+        return d.toISOString().slice(0, 10);
+      })();
+      try {
+        const rows = await fetchFromSupabase<Array<{
+          slate_date: string; matched_state: string; hit_straight: boolean;
+        }>>({
+          path: `/rest/v1/adaptive_tracking?slate_date=gte.${sinceDate}&combo_set=eq.${encodeURIComponent(pick.comboSet)}&matched_state=not.is.null&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&select=slate_date,matched_state,hit_straight&limit=500`,
+        });
+        if (!Array.isArray(rows)) return [];
+        const seen = new Map<string, { state: string; exact: boolean; date: string }>();
+        for (const r of rows) {
+          if (!r.matched_state) continue;
+          const k = `${r.slate_date}|${r.matched_state}`;
+          const prev = seen.get(k);
+          seen.set(k, {
+            state: r.matched_state,
+            exact: (prev?.exact ?? false) || !!r.hit_straight,
+            date: r.slate_date,
+          });
+        }
+        const byState = new Map<string, { state: string; count: number; exactCount: number; latest: string }>();
+        for (const v of seen.values()) {
+          const cur = byState.get(v.state) ?? { state: v.state, count: 0, exactCount: 0, latest: '' };
+          cur.count += 1;
+          if (v.exact) cur.exactCount += 1;
+          if (v.date > cur.latest) cur.latest = v.date;
+          byState.set(v.state, cur);
+        }
+        return Array.from(byState.values()).sort((a, b) =>
+          b.count - a.count || b.latest.localeCompare(a.latest)
+        );
+      } catch { return []; }
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const resolutionTotals = useMemo(() => {
+    const total  = resolutionStates.reduce((a, s) => a + s.count, 0);
+    const exact  = resolutionStates.reduce((a, s) => a + s.exactCount, 0);
+    return { total, exact, states: resolutionStates.length };
+  }, [resolutionStates]);
+
   const handleShare = async () => {
     try {
       const drawsInfo = pick.drawsSince != null && pick.drawsSince < 500
@@ -434,6 +484,40 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
           desc={`${pairs.split} confirms alignment across all 3 signal channels`}
           score={pairScores.split}
         />
+      </View>
+
+      {/* Resolution trail — where this signal has appeared in the last 30d */}
+      <Text style={[ct.sectionTitle, { marginTop: 14 }]}>RESOLVED IN  ·  LAST 30 DAYS</Text>
+      <View style={ct.trailCard}>
+        {resolutionStates.length === 0 ? (
+          <Text style={ct.trailEmpty}>
+            New signal — no prior resolutions in this window.
+          </Text>
+        ) : (
+          <>
+            <View style={ct.trailPills}>
+              {resolutionStates.slice(0, 6).map(rs => (
+                <View
+                  key={rs.state}
+                  style={[
+                    ct.trailPill,
+                    rs.exactCount > 0 && { borderColor: D.cyan + '55', backgroundColor: D.cyan + '12' },
+                  ]}
+                >
+                  <Text style={ct.trailState}>{rs.state}</Text>
+                  <Text style={[ct.trailCount, rs.exactCount > 0 && { color: D.cyan }]}>
+                    {rs.count}×{rs.exactCount > 0 ? ' ✓' : ''}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            <Text style={ct.trailMeta}>
+              {resolutionTotals.total} match{resolutionTotals.total === 1 ? '' : 'es'} across {resolutionTotals.states} jurisdiction{resolutionTotals.states === 1 ? '' : 's'}
+              {resolutionTotals.exact > 0 ? ` · ${resolutionTotals.exact} exact` : ''}
+              {resolutionStates.length > 6 ? ' · top 6 shown' : ''}
+            </Text>
+          </>
+        )}
       </View>
     </View>
   );
@@ -737,6 +821,15 @@ const makeCt = (D: DTokens) => StyleSheet.create({
 
   // Why card
   whyCard:    { backgroundColor: D.glass, borderRadius: 12, borderWidth: 1, borderColor: D.glassBorder, paddingHorizontal: 12, paddingTop: 2, paddingBottom: 2 },
+
+  // Resolution trail (state pills under WHY THIS ORDER on INTEL tab)
+  trailCard:   { backgroundColor: D.glass, borderRadius: 12, borderWidth: 1, borderColor: D.glassBorder, padding: 12, gap: 8 },
+  trailPills:  { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  trailPill:   { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: D.surface, borderWidth: 1, borderColor: D.glassBorder },
+  trailState:  { fontSize: 11, fontWeight: '900', color: D.text, fontFamily: D.monoBold, letterSpacing: 0.5 },
+  trailCount:  { fontSize: 10, fontWeight: '800', color: D.textSub, fontFamily: D.mono },
+  trailMeta:   { fontSize: 9, color: D.textDim, marginTop: 2 },
+  trailEmpty:  { fontSize: 11, color: D.textDim, fontStyle: 'italic', textAlign: 'center', paddingVertical: 6 },
 
   // Matrix card
   matrixCard: { backgroundColor: D.glass, borderRadius: 12, borderWidth: 1, borderColor: D.glassBorder, paddingHorizontal: 12, paddingTop: 12, paddingBottom: 4 },

@@ -115,7 +115,7 @@ function formatDisplayDate(dateStr: string): string {
 // ─── stats overflow sheet ──────────────────────────────────────────────
 function StatsSheet({ visible, onClose, stats, selectedDate }: {
   visible: boolean; onClose: () => void; selectedDate: string;
-  stats: { morn: number; mid: number; eve: number; night: number; total: number; hits: number };
+  stats: { mid: number; eve: number; total: number; hits: number };
 }) {
   const { colors } = useTheme();
   const ss = useMemo(() => makeSs(colors), [colors]);
@@ -593,11 +593,17 @@ export default function ResultsScreen() {
       // hashes for the same pick (e.g., 5/13 evening 034 had AT rows at both
       // the live hash and a regen'd-out hash). Without dedup the hero band
       // (and HitSummary) renders the same hit twice.
+      // BUG-149 (2026-05-20): also require the AT row's combo to share a
+      // comboSet with this ledger row's actual draw. Without this gate,
+      // multi-game states (TX/DC/GA each run two evening games) attach the
+      // same hit to BOTH games' ledger rows — the wrong-game card shows a
+      // bogus 🎯 badge and flattenHits emits the hit twice in the footer.
       const dbHits = (hits || []).filter(h => {
         const hDate = h.slate_date?.split('T')[0];
         return h.hit_state === row.jurisdiction && hDate === rowDate
           && h.hit_session?.toLowerCase() === row.session?.toLowerCase()
-          && scopeMatches(h.scope, row.session);
+          && scopeMatches(h.scope, row.session)
+          && toComboSet(h.combo) === rowSet;
       });
       const dbHitsDedup = (() => {
         const seen = new Map<string, HitRow>();

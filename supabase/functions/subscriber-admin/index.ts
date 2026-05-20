@@ -62,7 +62,9 @@ async function sbPost(path: string, body: unknown, prefer = 'return=representati
   });
   if (!r.ok) throw new Error(`POST ${path} → ${r.status}: ${await r.text()}`);
   if (r.status === 204) return undefined;
-  return r.json();
+  // return=minimal yields 201 with an empty body; r.json() would throw on that.
+  const text = await r.text();
+  return text ? JSON.parse(text) : undefined;
 }
 
 async function sbPatch(path: string, body: unknown): Promise<unknown> {
@@ -73,7 +75,8 @@ async function sbPatch(path: string, body: unknown): Promise<unknown> {
   });
   if (!r.ok) throw new Error(`PATCH ${path} → ${r.status}: ${await r.text()}`);
   if (r.status === 204) return undefined;
-  return r.json();
+  const text = await r.text();
+  return text ? JSON.parse(text) : undefined;
 }
 
 function jsonResponse(body: unknown, status = 200): Response {

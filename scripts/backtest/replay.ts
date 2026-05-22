@@ -43,11 +43,21 @@ async function fetchBoxRows(scopeEnc: string): Promise<any[]> {
 }
 
 async function fetchPairRows(scopeEnc: string): Promise<any[]> {
-  const rows = await dbGet<any[]>(
-    `/datasets_pair?scope=eq.${scopeEnc}&deleted_at=is.null&jurisdiction=is.null` +
-    `&select=key,key_pair,class_id,ds_raw,times_drawn,horizon_label&limit=50000`,
-  );
-  return Array.isArray(rows) ? rows : [];
+  // BUG-153: PostgREST caps responses at 1000 rows; paginate to get the full
+  // pair dataset across all classes × horizons. Mirrors the production fix in
+  // engines/zk6.ts + compute-slate-zk6.
+  const all: any[] = [];
+  const pageSize = 1000;
+  for (let offset = 0; offset < 20000; offset += pageSize) {
+    const page = await dbGet<any[]>(
+      `/datasets_pair?scope=eq.${scopeEnc}&deleted_at=is.null&jurisdiction=is.null` +
+      `&select=key,key_pair,class_id,ds_raw,times_drawn,horizon_label&limit=${pageSize}&offset=${offset}`,
+    );
+    const arr = Array.isArray(page) ? page : [];
+    all.push(...arr);
+    if (arr.length < pageSize) break;
+  }
+  return all;
 }
 
 async function fetchHistoryRows(date: string, scope: Scope): Promise<any[]> {

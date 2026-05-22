@@ -290,14 +290,29 @@ async function fetchRaw(scopeEnc: string): Promise<{ boxRows: unknown[]; pairRow
       `&select=key,ds_raw,times_drawn,last_seen,horizon_label&limit=1100`,
     ).then(r => Array.isArray(r) ? r : []),
   );
+  // BUG-153: PostgREST caps single REST responses at 1000 rows regardless of
+  // client `limit`. The pair fetch was returning ~1000 of 1370+ rows per scope,
+  // silently dropping the highest-class / oldest-horizon rows. Paginate via
+  // offset until a page returns fewer than pageSize rows.
+  const fetchPairRowsPaginated = async (): Promise<unknown[]> => {
+    const all: unknown[] = [];
+    const pageSize = 1000;
+    for (let offset = 0; offset < 20000; offset += pageSize) {
+      const page = await sbGet<unknown[]>(
+        `/rest/v1/datasets_pair?scope=eq.${scopeEnc}&deleted_at=is.null&jurisdiction=is.null` +
+        `&select=key,key_pair,class_id,ds_raw,times_drawn,horizon_label&limit=${pageSize}&offset=${offset}`,
+      );
+      const arr = Array.isArray(page) ? page : [];
+      all.push(...arr);
+      if (arr.length < pageSize) break;
+    }
+    return all;
+  };
   const [boxArrays, pairRows] = await Promise.all([
     Promise.all(boxFetches),
-    sbGet<unknown[]>(
-      `/rest/v1/datasets_pair?scope=eq.${scopeEnc}&deleted_at=is.null&jurisdiction=is.null` +
-      `&select=key,key_pair,class_id,ds_raw,times_drawn,horizon_label&limit=50000`,
-    ),
+    fetchPairRowsPaginated(),
   ]);
-  return { boxRows: boxArrays.flat(), pairRows: Array.isArray(pairRows) ? pairRows : [] };
+  return { boxRows: boxArrays.flat(), pairRows };
 }
 
 async function fetchDatasets(scope: Scope): Promise<Datasets> {

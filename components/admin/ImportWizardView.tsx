@@ -606,23 +606,25 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
             {(importType === 'daily_input' || importType === 'ledger') && (
               <>
                 <Text style={st.fieldLabel}>IMPORT DATE</Text>
-                <View style={{ flexDirection: 'row', gap: 6, marginBottom: 14 }}>
-                  {[0, 1, 2, 3, 4, 5, 6].map(daysAgo => {
-                    const todayET = getTodayET();
-                    const d = new Date(todayET + 'T12:00:00'); d.setDate(d.getDate() - daysAgo);
-                    const dateStr = d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-                    const label = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yest.' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    return (
-                      <TouchableOpacity
-                        key={dateStr}
-                        style={[st.optBtn, config.import_date === dateStr && st.optBtnOn, { paddingHorizontal: 8 }]}
-                        onPress={() => setConfig(c => ({ ...c, import_date: dateStr }))}
-                      >
-                        <Text style={[st.optBtnText, config.import_date === dateStr && st.optBtnTextOn, { fontSize: 10 }]}>{label}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+                  <View style={{ flexDirection: 'row', gap: 6 }}>
+                    {Array.from({ length: 30 }, (_, i) => i).map(daysAgo => {
+                      const todayET = getTodayET();
+                      const d = new Date(todayET + 'T12:00:00'); d.setDate(d.getDate() - daysAgo);
+                      const dateStr = d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+                      const label = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yest.' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                      return (
+                        <TouchableOpacity
+                          key={dateStr}
+                          style={[st.optBtn, config.import_date === dateStr && st.optBtnOn, { paddingHorizontal: 8 }]}
+                          onPress={() => setConfig(c => ({ ...c, import_date: dateStr }))}
+                        >
+                          <Text style={[st.optBtnText, config.import_date === dateStr && st.optBtnTextOn, { fontSize: 10 }]}>{label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </ScrollView>
                 {importType === 'daily_input' && (
                   <Card style={{ padding: 10, marginBottom: 14, backgroundColor: colors.primaryLight, borderColor: colors.primary + '28' }}>
                     <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary }}>

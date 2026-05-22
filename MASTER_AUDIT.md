@@ -964,6 +964,55 @@ Email export shows 21 subscribers as of 5/19; free group UI shows 23–24 humans
 
 ---
 
+### ENH-EVCO-2026-05-18 — Evening CO-Weight Cut Sweep (Retired 2026-05-22)
+
+**Status:** ❌ Retired as a CO-weight intervention. Per-scope CO cuts will not ship.
+**Source:** Live observation 5/18 that evening r1 hit % (46%) was inverted vs r2 (60%) over the prior measurement window, suggesting the top of the slate was mis-ordered. Initial hypothesis: CO signal weight was over-influencing rank 1.
+
+#### Investigation arc
+
+1. **2026-05-18 (parked the same day, commit `3933fb8`).** Scaffolded three configs in `scripts/backtest/configs.ts` per the per-scope override pattern (`evening_co_cut_parity`, `evening_co_cut_5`, `evening_co_cut_zero`). Parity guard matched `intel_weights_midday_only_floor70` byte-for-byte across rank + lift sections — loader wiring clean. Extended backtest harness with `HitSummary.hitsByPick: boolean[]` to capture per-rank hits (the lens slate-rate alone hides).
+2. **Backtest verdict (30d, balanced, n=30 evening slates):**
+   - Slate rate: baseline 66.7% / cut_5 70.0% / zero 73.3% — Wilson CIs heavily overlapping.
+   - **Per-rank evening hit %:** baseline r1=26.7% r2=26.7% (flat, NOT inverted in backtest), cut_5 r1=26.7% r2=**33.3%** (worsened the gap), zero r1=26.7% r2=**33.3%** (same).
+   - Rail-matched pick lift: evening 0.95× → 0.85× (cut_5) / 0.87× (zero). Per CLAUDE.md dual-lens rule, candidate fails the lift gate.
+3. **Two findings killed the CO-cut path:**
+   - Original live symptom (r1<r2 inversion) did **not** replicate in backtest baseline. Likely confound: mid-day regenerations + BUG-148 session shifts (cleaned 5/18) rather than a stable engine ranking bug.
+   - Candidates **worsened** rank ordering — both lifted r2 to 33.3% while leaving r1 unchanged. The intervention pushed hits down the slate, not up.
+
+#### 2026-05-22 recheck (closes the parking)
+
+Per the parking commitment, re-pulled `adaptive_tracking` after fresh post-cleanup data accumulated. Latest-snapshot-per-(date,scope) dedupe, evening balanced picks, 5/13–5/22 (n=10 per rank):
+
+| rank | picks | hits | hit% |
+|---|---|---|---|
+| r1 | 10 | 1 | 10.0% |
+| r2 | 10 | 3 | 30.0% |
+| r3 | 10 | 2 | 20.0% |
+| r4 | 11 | 5 | 45.5% |
+| r5 | 10 | 2 | 20.0% |
+| r6 | 10 | 0 | 0.0% |
+
+Histories confirm evening draws (39–42 jurisdictions/day) exist for 5/13–5/21 → `hit_box=NULL` reads as evaluated miss.
+
+**Live r1<r2 inversion persists** in the post-5/18-cleanup window (10% vs 30%, 20pp gap). BUG-148 was not the sole cause. But:
+- n=10 per rank — Wilson 95% CIs ~[0.5%, 40%] for r1 and ~[11%, 60%] for r2 overlap heavily; not statistically significant.
+- Backtest baseline still shows r1=r2 flat — same harness blind spot as 5/18.
+
+#### Retirement decision
+
+CO-weight cut is retired regardless of whether the live inversion is real, because the 5/18 backtest already condemned the intervention on per-rank grounds. Configs in `scripts/backtest/configs.ts` left in place for reproducibility; no `engine_weights_*_evening` override row was ever written to `app_config` and none should be.
+
+#### Open watchlist (not a new bug yet)
+
+Live evening r1<r2 inversion remains directionally present but under-powered (n=10). Recheck again at 2026-05-29 (n≈17) before opening a different-angle investigation. If the inversion persists with n=17+ and a meaningful gap (≥15pp), it warrants a different lens — energy floor / energy_score interaction at top of slate, K6 Pass-relaxation ordering effects, or selected-vs-universe AUC per-rank (per [[feedback-signal-analysis-selected-vs-universe]], not a selected-pick signal diff). Explicitly NOT another CO-weight sweep.
+
+#### Harness keeps
+
+- `HitSummary.hitsByPick: boolean[]` + per-rank section in `printReplaySummary` (with rank-1 < rank-2 ≥3pp flag) — use for any future per-scope tuning decision; this is the lens slate-rate alone hid.
+
+---
+
 ## Growth-Aligned Bug Prioritization (2026-05-10)
 
 This roadmap aligns technical debt resolution with subscriber growth and retention strategies.

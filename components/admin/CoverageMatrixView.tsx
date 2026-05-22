@@ -203,9 +203,49 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
     });
     return map;
   }, [coverageRows]);
+  // Staleness lookup: most-recent update timestamp per cell.
+  // Box auto-rebuilds daily from evening import → stale at 2d, critical at 5d.
+  // Pair has no auto-rebuild → stale at 7d, critical at 14d.
+  const stalenessLookup = useMemo(() => {
+    const map: Record<string, { lastUpdated: string; daysOld: number; type: 'box' | 'pair' }> = {};
+    const todayMs = Date.now();
+    coverageRows.forEach(r => {
+      if (!r?.last_updated) return;
+      const key = `${r.class_id}-${r.scope}-${r.horizon_label}`;
+      const ms = new Date(String(r.last_updated)).getTime();
+      const daysOld = Math.max(0, Math.floor((todayMs - ms) / 86400000));
+      const existing = map[key];
+      if (!existing || daysOld < existing.daysOld) {
+        map[key] = { lastUpdated: String(r.last_updated), daysOld, type: r.data_type === 'pair' ? 'pair' : 'box' };
+      }
+    });
+    return map;
+  }, [coverageRows]);
+  const stalenessOf = useCallback((classId: number, scope: string, horizon: string) => {
+    const meta = stalenessLookup[`${classId}-${scope}-${horizon}`];
+    if (!meta) return null;
+    const isPair = meta.type === 'pair';
+    const warnDays = isPair ? 7 : 2;
+    const critDays = isPair ? 14 : 5;
+    const level: 'fresh' | 'warn' | 'crit' = meta.daysOld >= critDays ? 'crit' : meta.daysOld >= warnDays ? 'warn' : 'fresh';
+    return { ...meta, level, warnDays, critDays };
+  }, [stalenessLookup]);
   const h01yPresent = classes.filter(c => (lookup[`${c.id}-${scopeTab}-H01Y`] ?? 0) > 0).length;
   const h01yPct = Math.round((h01yPresent / classes.length) * 100);
   const h01yMissing = classes.filter(c => !((lookup[`${c.id}-${scopeTab}-H01Y`] ?? 0) > 0)).map(c => c.label);
+  // Stale-cell counter for the active scope across the full matrix
+  const staleCellCount = useMemo(() => {
+    let warn = 0, crit = 0;
+    classes.forEach(c => {
+      HORIZONS.forEach(h => {
+        const s = stalenessOf(c.id, scopeTab, h);
+        if (!s) return;
+        if (s.level === 'crit') crit++;
+        else if (s.level === 'warn') warn++;
+      });
+    });
+    return { warn, crit };
+  }, [classes, scopeTab, stalenessOf]);
 
   const formatDateShort = (d: string) => {
     try {
@@ -281,7 +321,20 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
             </View>
 
             <Text style={{ fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 4 }}>Horizon Coverage Matrix</Text>
-            <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 12 }}>✓ = data present · ⌛ = missing. K6 requires H01Y for all 11 classes</Text>
+            <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 12 }}>✓ = data present · ⌛ = missing · cell border: green = fresh, amber = ≥thresh, red = critical. K6 requires H01Y for all 11 classes.</Text>
+            {(staleCellCount.warn > 0 || staleCellCount.crit > 0) && (
+              <Card style={{ padding: 10, marginBottom: 12, backgroundColor: (staleCellCount.crit > 0 ? colors.error : colors.gold) + '15', borderColor: (staleCellCount.crit > 0 ? colors.error : colors.gold) + '55' }}>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: staleCellCount.crit > 0 ? colors.error : colors.gold }}>
+                  ⚠ Staleness alert ({scopeTab}):
+                  {staleCellCount.crit > 0 ? ` ${staleCellCount.crit} cell(s) critically stale` : ''}
+                  {staleCellCount.crit > 0 && staleCellCount.warn > 0 ? ',' : ''}
+                  {staleCellCount.warn > 0 ? ` ${staleCellCount.warn} cell(s) warning` : ''}
+                </Text>
+                <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 2 }}>
+                  Box auto-rebuilds nightly from evening import (warn ≥2d, critical ≥5d). Pair has no auto-rebuild (warn ≥7d, critical ≥14d) — run `npm run rebuild:pair-datasets -- --apply` to refresh.
+                </Text>
+              </Card>
+            )}
             <View style={{ flexDirection: 'row', gap: 6, marginBottom: 14 }}>
               {(['midday', 'evening', 'allday'] as const).map(s => (
                 <TouchableOpacity key={s} style={[st.optBtn, scopeTab === s && st.optBtnOn, { flex: 1 }]} onPress={() => setScopeTab(s)}>
@@ -322,11 +375,33 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
                     {HORIZONS.map(h => {
                       const count = lookup[`${cls.id}-${scopeTab}-${h}`] ?? 0;
                       const ok = count > 0;
+                      const stale = ok ? stalenessOf(cls.id, scopeTab, h) : null;
+                      const borderColor = !ok ? colors.border
+                        : stale?.level === 'crit' ? colors.error
+                        : stale?.level === 'warn' ? colors.gold
+                        : colors.success;
+                      const bgColor = !ok ? colors.surfaceLight
+                        : stale?.level === 'crit' ? colors.error + '12'
+                        : stale?.level === 'warn' ? colors.gold + '12'
+                        : colors.successLight;
+                      const dayLabelColor = stale?.level === 'crit' ? colors.error
+                        : stale?.level === 'warn' ? colors.gold
+                        : colors.success + 'AA';
                       return (
                         <View key={h} style={{ width: 50, padding: 4, alignItems: 'center', justifyContent: 'center' }}>
-                          <View style={{ width: 42, height: 30, borderRadius: 6, backgroundColor: ok ? colors.successLight : colors.surfaceLight, borderWidth: 1, borderColor: (ok ? colors.success : colors.border) + '55', alignItems: 'center', justifyContent: 'center' }}>
-                            <Text style={{ fontSize: 10, color: ok ? colors.success : colors.textTertiary, lineHeight: 12 }}>{ok ? '✓' : '⌛'}</Text>
-                            {ok && <Text style={{ fontSize: 7, color: colors.success + 'AA', lineHeight: 8 }}>{count >= 1000 ? Math.round(count / 1000) + 'k' : count}</Text>}
+                          <View
+                            accessibilityLabel={ok && stale ? `${cls.label ?? 'Class ' + cls.id} ${h} ${scopeTab}, ${count} rows, updated ${stale.daysOld}d ago` : undefined}
+                            style={{ width: 42, height: 30, borderRadius: 6, backgroundColor: bgColor, borderWidth: stale?.level === 'crit' ? 2 : 1, borderColor: borderColor + (stale?.level === 'crit' ? 'CC' : '55'), alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <Text style={{ fontSize: 10, color: ok ? (stale?.level === 'crit' ? colors.error : stale?.level === 'warn' ? colors.gold : colors.success) : colors.textTertiary, lineHeight: 12 }}>
+                              {ok ? (stale?.level === 'crit' ? '⚠' : '✓') : '⌛'}
+                            </Text>
+                            {ok && (
+                              <Text style={{ fontSize: 7, color: dayLabelColor, lineHeight: 8 }}>
+                                {count >= 1000 ? Math.round(count / 1000) + 'k' : count}
+                                {stale ? ` · ${stale.daysOld}d` : ''}
+                              </Text>
+                            )}
                           </View>
                         </View>
                       );

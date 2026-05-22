@@ -203,20 +203,26 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
     });
     return map;
   }, [coverageRows]);
-  // Staleness lookup: most-recent update timestamp per cell.
-  // Box auto-rebuilds daily from evening import → stale at 2d, critical at 5d.
-  // Pair has no auto-rebuild → stale at 7d, critical at 14d.
+  // Staleness lookup: days since the underlying CSV was last imported per
+  // (class × scope × horizon). Uses v_coverage_summary.latest_imported =
+  // MAX(created_at) on datasets_box/datasets_pair rows — rebuild scripts
+  // PATCH ds_raw + updated_at but do NOT re-insert, so created_at is the
+  // operator-meaningful "source data freshness" signal. Reading updated_at
+  // would give a false "fresh" reading after every nightly rebuild.
+  // Thresholds (same for box + pair; both are operator-imported CSVs with
+  // no auto-refresh path):
+  //   warn ≥14d, critical ≥30d.
   const stalenessLookup = useMemo(() => {
-    const map: Record<string, { lastUpdated: string; daysOld: number; type: 'box' | 'pair' }> = {};
+    const map: Record<string, { latestImported: string; daysOld: number; type: 'box' | 'pair' }> = {};
     const todayMs = Date.now();
     coverageRows.forEach(r => {
-      if (!r?.last_updated) return;
+      if (!r?.latest_imported) return;
       const key = `${r.class_id}-${r.scope}-${r.horizon_label}`;
-      const ms = new Date(String(r.last_updated)).getTime();
+      const ms = new Date(String(r.latest_imported)).getTime();
       const daysOld = Math.max(0, Math.floor((todayMs - ms) / 86400000));
       const existing = map[key];
       if (!existing || daysOld < existing.daysOld) {
-        map[key] = { lastUpdated: String(r.last_updated), daysOld, type: r.data_type === 'pair' ? 'pair' : 'box' };
+        map[key] = { latestImported: String(r.latest_imported), daysOld, type: r.data_type === 'pair' ? 'pair' : 'box' };
       }
     });
     return map;
@@ -224,9 +230,8 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
   const stalenessOf = useCallback((classId: number, scope: string, horizon: string) => {
     const meta = stalenessLookup[`${classId}-${scope}-${horizon}`];
     if (!meta) return null;
-    const isPair = meta.type === 'pair';
-    const warnDays = isPair ? 7 : 2;
-    const critDays = isPair ? 14 : 5;
+    const warnDays = 14;
+    const critDays = 30;
     const level: 'fresh' | 'warn' | 'crit' = meta.daysOld >= critDays ? 'crit' : meta.daysOld >= warnDays ? 'warn' : 'fresh';
     return { ...meta, level, warnDays, critDays };
   }, [stalenessLookup]);
@@ -321,17 +326,17 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
             </View>
 
             <Text style={{ fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 4 }}>Horizon Coverage Matrix</Text>
-            <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 12 }}>✓ = data present · ⌛ = missing · cell border: green = fresh, amber = ≥thresh, red = critical. K6 requires H01Y for all 11 classes.</Text>
+            <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 12 }}>✓ = data present · ⌛ = missing · cell border: green = fresh, amber = ≥14d since import, red = ≥30d. K6 requires H01Y for all 11 classes.</Text>
             {(staleCellCount.warn > 0 || staleCellCount.crit > 0) && (
               <Card style={{ padding: 10, marginBottom: 12, backgroundColor: (staleCellCount.crit > 0 ? colors.error : colors.gold) + '15', borderColor: (staleCellCount.crit > 0 ? colors.error : colors.gold) + '55' }}>
                 <Text style={{ fontSize: 12, fontWeight: '800', color: staleCellCount.crit > 0 ? colors.error : colors.gold }}>
                   ⚠ Staleness alert ({scopeTab}):
-                  {staleCellCount.crit > 0 ? ` ${staleCellCount.crit} cell(s) critically stale` : ''}
+                  {staleCellCount.crit > 0 ? ` ${staleCellCount.crit} cell(s) critically stale (≥30d)` : ''}
                   {staleCellCount.crit > 0 && staleCellCount.warn > 0 ? ',' : ''}
-                  {staleCellCount.warn > 0 ? ` ${staleCellCount.warn} cell(s) warning` : ''}
+                  {staleCellCount.warn > 0 ? ` ${staleCellCount.warn} cell(s) warning (≥14d)` : ''}
                 </Text>
                 <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 2 }}>
-                  Box auto-rebuilds nightly from evening import (warn ≥2d, critical ≥5d). Pair has no auto-rebuild (warn ≥7d, critical ≥14d) — run `npm run rebuild:pair-datasets -- --apply` to refresh.
+                  Counts days since the underlying CSV was last imported into datasets_box/datasets_pair (not the engine-side rebuild). Re-import via Import Wizard → Box / Pair History.
                 </Text>
               </Card>
             )}

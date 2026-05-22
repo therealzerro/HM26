@@ -398,10 +398,19 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
 async function fetchHistoryOverrides(scope: Scope) {
   try {
     const clause = scope === 'allday' ? '' : `&session=eq.${encodeURIComponent(scope)}`;
-    const rows = await sbGet<any[]>(
-      `/rest/v1/histories?select=result_digits,date_et${clause}&order=date_et.desc&limit=3650`,
-    );
-    if (!Array.isArray(rows) || rows.length === 0)
+    // BUG-152: PostgREST caps responses at 1000 rows regardless of client `limit`.
+    // Paginate via offset until a page returns fewer than pageSize rows.
+    const rows: any[] = [];
+    const pageSize = 1000;
+    for (let offset = 0; offset < 20000; offset += pageSize) {
+      const page = await sbGet<any[]>(
+        `/rest/v1/histories?select=result_digits,date_et${clause}&order=date_et.desc&limit=${pageSize}&offset=${offset}`,
+      );
+      const arr = Array.isArray(page) ? page : [];
+      rows.push(...arr);
+      if (arr.length < pageSize) break;
+    }
+    if (rows.length === 0)
       return { dsOverride: new Map<string,number>(), lsOverride: new Map<string,string>(), hitDatesMap: new Map<string,number[]>() };
     const dsOverride  = new Map<string, number>();
     const lsOverride  = new Map<string, string>();

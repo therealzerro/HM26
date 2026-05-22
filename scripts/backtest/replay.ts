@@ -51,12 +51,22 @@ async function fetchPairRows(scopeEnc: string): Promise<any[]> {
 }
 
 async function fetchHistoryRows(date: string, scope: Scope): Promise<any[]> {
+  // BUG-152: PostgREST caps responses at 1000 rows; paginate to get the full
+  // intended window. Mirrors the production fix planned for engines/zk6.ts +
+  // compute-slate-zk6 edge fn.
   const sessionClause = scope === 'allday' ? '' : `&session=eq.${scope}`;
-  const rows = await dbGet<any[]>(
-    `/histories?select=result_digits,date_et,session` +
-    `&date_et=lt.${date}${sessionClause}&order=date_et.desc&limit=10000`,
-  );
-  return Array.isArray(rows) ? rows : [];
+  const all: any[] = [];
+  const pageSize = 1000;
+  for (let offset = 0; offset < 20000; offset += pageSize) {
+    const page = await dbGet<any[]>(
+      `/histories?select=result_digits,date_et,session` +
+      `&date_et=lt.${date}${sessionClause}&order=date_et.desc&limit=${pageSize}&offset=${offset}`,
+    );
+    const rows = Array.isArray(page) ? page : [];
+    all.push(...rows);
+    if (rows.length < pageSize) break;
+  }
+  return all;
 }
 
 async function fetchYesterdayResults(date: string): Promise<Set<string>> {

@@ -23,3 +23,12 @@ scripts/backtest/output/
 # ZK6 parity harness
 scripts/zk6-parity/.build/
 scripts/zk6-parity/runs/
+
+# Subscriber tracking — Facebook exports contain member PII (names + emails).
+# Operator can keep these locally in assets/ for convenience but they must
+# never be committed. See docs/subscriber_tracking_README.md "PII handling".
+assets/Facebook_*.xlsx
+assets/Facebook_*.csv
+assets/Facebook_*.tsv
+assets/supporter_emails_*.csv
+assets/supporter_emails_*.tsv

@@ -699,7 +699,7 @@ export default function HomeScreen() {
                 const tc = energyColor(pick.energy, colors);
                 const locked = pick.locked;
                 const isHit = !!pick.hitType;
-                const hitLabel = pick.hitType === 'straight' ? 'STRAIGHT HIT' : 'BOX HIT';
+                const hitLabel = pick.hitType === 'straight' ? 'EXACT MATCH' : 'PARTIAL MATCH';
                 const borderC = isHit ? colors.success : tc + '55';
                 const shadowC = isHit ? colors.success : tc;
                 return (

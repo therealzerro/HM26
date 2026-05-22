@@ -725,7 +725,7 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
               <View pointerEvents="none" style={s.hitStampWrap}>
                 <View style={s.hitStamp}>
                   <Text style={s.hitStampText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
-                    {pick.hitType === 'straight' ? 'STRAIGHT HIT' : 'BOX HIT'}
+                    {pick.hitType === 'straight' ? 'EXACT MATCH' : 'PARTIAL MATCH'}
                   </Text>
                   {pick.hitResult ? (
                     <Text style={s.hitStampSub} numberOfLines={1}>

@@ -89,7 +89,7 @@ function GridTile({ pick, onPress }: { pick: PickItem; onPress: () => void }) {
   const tLabel   = tempLabel(pick.energy);
   const isLocked = pick.locked;
   const isHit    = !!pick.hitType;
-  const hitLabel = pick.hitType === 'straight' ? 'STRAIGHT HIT' : 'BOX HIT';
+  const hitLabel = pick.hitType === 'straight' ? 'EXACT MATCH' : 'PARTIAL MATCH';
   const digits   = isLocked ? '•••' : (pick.bestOrder ?? pick.combo);
 
   const channels = [

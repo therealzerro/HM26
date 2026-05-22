@@ -332,9 +332,19 @@ These rows are not safe to auto-include in surgical edits; each has cross-file r
 - Brand wordmark intact in expected carve-out locations: `app.config.ts:5 name: 'HitMaster'`, `app.json:3 "name": "HitMaster"`, `app.json:6 description: "HitMaster ZK6 — a data intelligence platform..."`, `account.tsx:578 footerLogo HIT<Text>MASTER</Text>` (stylized rendering of the wordmark).
 - Manual UI smoke deferred — no dev server in this session; pre-existing lint errors (32 errors, 106 warnings) exist exclusively in T4-exempt admin views (`admin*.tsx`, `intelligence.tsx`, `coverage.tsx`, `import-wizard.tsx`, `components/admin/*`) and were not introduced by this work.
 
-**Soft guardrail (not shipped yet):** Phase 5 would add a `scripts/check-brand-voice.ts` lint script that scans the in-scope file list for the forbidden vocabulary and exits non-zero on hit. Documented as a follow-up. The grep recipe used in P1 inventory + P4 verification is preserved in `/tmp/inscope.txt`-style form in this commit's hash range; future regressions can be caught by repeating the grep manually.
+**Phase 5 — Soft guardrail (shipped 2026-05-22).** `scripts/check-brand-voice.ts` + `npm run check:brand-voice`. Scans the BRAND-01 in-scope file list (T1–T3, 30 consumer surfaces) for forbidden vocabulary and exits non-zero on hit. High-precision phrase-level rules (not single ambiguous words like "hit"/"pick") so the lint catches regressions without flooding false positives. Doctrine cited inline: CLAUDE.md "Brand voice" + the v2 brief. Multi-line `/* */` comments tracked statefully; narrow `LINE_ALLOWLIST` for HeatCheck* component imports/JSX, queryKey strings, and comments. First run on the certified-clean tree surfaced **3 BRAND-03 stragglers** that the original 5/17 swap missed:
 
-**Status:** ✅ Complete 2026-05-16. 6 commits, 28 files, zero internal-identifier renames, zero remaining forbidden display strings in T1–T3 surfaces. Admin/operator surfaces preserved exempt. Brand wordmark preserved. Ready for Meta page recommendation re-eligibility review.
+| File | Line | Was | Now |
+|------|------|-----|-----|
+| `app/(tabs)/index.tsx` | 702 | `'STRAIGHT HIT' : 'BOX HIT'` | `'EXACT MATCH' : 'PARTIAL MATCH'` |
+| `app/(tabs)/explore.tsx` | 92 | `'STRAIGHT HIT' : 'BOX HIT'` | `'EXACT MATCH' : 'PARTIAL MATCH'` |
+| `components/PickDetailModal.tsx` | 728 | `'STRAIGHT HIT' : 'BOX HIT'` | `'EXACT MATCH' : 'PARTIAL MATCH'` |
+
+All three are subscriber-visible rotated hit-stamp badges (Home Coffee/Bites grid tile overlay, Slates GridTile overlay, PickDetailModal hit stamp). They paired with the 5 already-fixed BRAND-03 surfaces but lived inside a different code pattern (`const hitLabel = ...` and the modal's own ternary) so the original sweep missed them. Caught + fixed in the same pass that shipped the lint — the script paid for itself on first run.
+
+Post-fix re-run: ✅ 30 files scanned, 0 findings.
+
+**Status:** ✅ Complete 2026-05-22 (initial scrub 2026-05-16 + match-type swap 2026-05-17 + Phase 5 guardrail 2026-05-22). 7 commits across 31 files, zero internal-identifier renames, zero forbidden display strings in T1–T3, automated regression guard wired to `npm run check:brand-voice`. Admin/operator surfaces preserved exempt. Brand wordmark preserved. **Only remaining BRAND-01 step**: manual UI smoke walkthrough on tunnel (`npm run start-tunnel` → Home → Explore → Results → Track Record → Account) — operator-only, can't be automated. Ready for Meta page recommendation re-eligibility review.
 
 ### BRAND-02 — App Icon Rewire + Asset Directory Cleanup (2026-05-17)
 

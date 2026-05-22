@@ -135,10 +135,26 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
   const loadHistoryData = useCallback(async () => {
     setHistoryLoading(true); setHistoryError(null);
     try {
-      const rows = await fetchFromSupabase<{ date_et: string; session: string; jurisdiction: string }[]>({
-        path: '/rest/v1/histories?select=date_et,session,jurisdiction&order=date_et.desc&limit=5000&jurisdiction=not.in.(ME,NH,VT,MS,PR,MD,MS2)',
-      });
-      setHistoryRows(Array.isArray(rows) ? rows : []);
+      // PostgREST caps responses at 1000 rows server-side regardless of client
+      // limit / Range header, so we filter to the 30-day window the matrix
+      // renders AND paginate. Without this, only the latest ~15 days came
+      // back and earlier dates rendered as empty.
+      const todayET = getTodayET();
+      const cutoff = new Date(todayET + 'T12:00:00');
+      cutoff.setDate(cutoff.getDate() - 31);
+      const since = cutoff.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+
+      const all: { date_et: string; session: string; jurisdiction: string }[] = [];
+      const pageSize = 1000;
+      for (let offset = 0; offset < 10000; offset += pageSize) {
+        const page = await fetchFromSupabase<{ date_et: string; session: string; jurisdiction: string }[]>({
+          path: `/rest/v1/histories?select=date_et,session,jurisdiction&order=date_et.desc&limit=${pageSize}&offset=${offset}&date_et=gte.${since}&jurisdiction=not.in.(ME,NH,VT,MS,PR,MD,MS2)`,
+        });
+        const rows = Array.isArray(page) ? page : [];
+        all.push(...rows);
+        if (rows.length < pageSize) break;
+      }
+      setHistoryRows(all);
     } catch (e) {
       setHistoryError(String(e instanceof Error ? e.message : e));
     } finally { setHistoryLoading(false); }

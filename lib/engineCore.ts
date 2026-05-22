@@ -95,11 +95,37 @@ export function computeDGC(dayOffsets: number[]): number {
 
 // ─── BOX signal ───────────────────────────────────────────────────────────────
 
+export interface BoxSignalParts { freq: number; pressure: number; box: number }
+
+/**
+ * Detailed BOX score: returns freq/pressure components alongside the combined
+ * box value. Engines that need per-component logging (rawFreq/rawPressure) use
+ * this; callers that only need the final box value can use computeBoxSignal.
+ * Defaults: 60% frequency + 40% recency pressure.
+ */
+export function computeBoxSignalDetailed(
+  timesDrawn: number,
+  dsVal: number,
+  maxTimesDrawn: number,
+  pressureThreshold: number,
+  freqWeight: number = 0.60,
+  pressureWeight: number = 0.40,
+): BoxSignalParts {
+  if (timesDrawn === 0) return { freq: 0, pressure: 0, box: 0 };
+  const freq = maxTimesDrawn > 0 ? timesDrawn / maxTimesDrawn : 0;
+  const ptSpan = Math.max(pressureThreshold - 100, 1);
+  const pressure =
+    dsVal >= 100 && dsVal <= pressureThreshold
+      ? Math.min((dsVal - 100) / ptSpan, 1.0)
+      : dsVal > pressureThreshold
+      ? Math.max(1.0 - (dsVal - pressureThreshold) / 200, 0.3)
+      : (dsVal / 100) * 0.5;
+  return { freq, pressure, box: (freq * freqWeight) + (pressure * pressureWeight) };
+}
+
 /**
  * Raw BOX score (before normalization): `freqWeight * freq + pressureWeight * pressure`.
- * Defaults: 60% frequency + 40% recency pressure (production behavior). The optional
- * weight params let backtest candidates vary the split without touching production —
- * when omitted, output is bit-identical to the legacy two-arg form.
+ * Thin wrapper over computeBoxSignalDetailed for callers that only need the final value.
  * pressureThreshold: draws_since value where pressure peaks (default 250).
  */
 export function computeBoxSignal(
@@ -110,16 +136,24 @@ export function computeBoxSignal(
   freqWeight: number = 0.60,
   pressureWeight: number = 0.40,
 ): number {
-  if (timesDrawn === 0) return 0;
-  const freqScore = maxTimesDrawn > 0 ? timesDrawn / maxTimesDrawn : 0;
-  const ptSpan = Math.max(pressureThreshold - 100, 1);
-  const pressureScore =
-    dsVal >= 100 && dsVal <= pressureThreshold
-      ? Math.min((dsVal - 100) / ptSpan, 1.0)
-      : dsVal > pressureThreshold
-      ? Math.max(1.0 - (dsVal - pressureThreshold) / 200, 0.3)
-      : (dsVal / 100) * 0.5;
-  return (freqScore * freqWeight) + (pressureScore * pressureWeight);
+  return computeBoxSignalDetailed(timesDrawn, dsVal, maxTimesDrawn, pressureThreshold, freqWeight, pressureWeight).box;
+}
+
+/**
+ * Blend a box combo's draws_since across all available horizons.
+ * weights are decimals summing to ~1.0 (HORIZON_WEIGHTS or app_config.horizon_weights).
+ */
+export function blendBoxDsRaw(
+  normKey: string,
+  boxByHorizon: Map<string, Map<string, number>>,
+  weights: Record<string, number>,
+): number {
+  let total = 0;
+  for (const h of H_ALL) {
+    const ds = boxByHorizon.get(h)?.get(normKey) ?? 0;
+    total += ds * (weights[h] ?? 0);
+  }
+  return total;
 }
 
 // ─── Pair signal (PBURST / CO) ────────────────────────────────────────────────
@@ -138,6 +172,100 @@ export function computePairSignal(
     ? Math.min(drawsSince / 182, 1.0)
     : 0;
   return (freqScore * 0.70) + (pressureScore * 0.30);
+}
+
+/**
+ * Pair signal lookup helper — fetches meta from pairMetaMap and delegates to
+ * computePairSignal. Returns 0 when no meta is present for (pairKey, classId).
+ */
+export function getPairSignalFromMap(
+  pairMetaMap: Map<string, Map<number, { timesDrawn: number; drawsSince: number }>>,
+  pairKey: string,
+  classId: number,
+  maxPairTimesDrawn: number,
+): number {
+  const meta = pairMetaMap.get(pairKey)?.get(classId);
+  if (!meta) return 0;
+  return computePairSignal(meta, maxPairTimesDrawn);
+}
+
+// ─── Best-order (position-pair maximisation) ──────────────────────────────────
+
+/** Per-horizon pair ds_raw tree: pairKey → classId → horizonLabel → ds_raw. */
+export type PairDataTree = Map<string, Map<number, Map<string, number>>>;
+
+/**
+ * Blend a pair's ds_raw for a given classId across all available horizons,
+ * using the canonical HORIZON_WEIGHTS constant decay. Used internally by
+ * bestOrderFor to rank position-specific pair scores.
+ */
+export function blendPairAcrossHorizons(
+  pairKey: string, classId: number, pairData: PairDataTree,
+  weights: Record<string, number> = HORIZON_WEIGHTS,
+): number {
+  const horizonMap = pairData.get(pairKey)?.get(classId);
+  if (!horizonMap) return 0;
+  let total = 0;
+  for (const h of H_ALL) total += (horizonMap.get(h) ?? 0) * (weights[h] ?? 0);
+  return total;
+}
+
+/**
+ * Per-pick "intelligence row" extras: the three columns that end up on every
+ * daily_intelligence row alongside the signal scores. Both engine paths (the
+ * RN-side engines/zk6.ts and the Deno-side compute-slate-zk6) call this so
+ * the column write-shape stays in lockstep — any future column addition lands
+ * here once and propagates to both writers.
+ *
+ * When the data maps / pairData aren't available (hit-orphan rows that were
+ * never on a slate), the function returns the canonical "we have no scoring
+ * context" defaults: draws_since=null, times_drawn=0, best_order=combo.
+ */
+export function intelligenceRowExtras(
+  combo: string,
+  comboSet: string,
+  drawsSinceMap: Map<string, number> | null,
+  timesDrawnMap: Map<string, number> | null,
+  pairData: PairDataTree | null,
+): { draws_since: number | null; times_drawn: number; best_order: string } {
+  if (!drawsSinceMap || !timesDrawnMap || !pairData) {
+    return { draws_since: null, times_drawn: 0, best_order: combo };
+  }
+  return {
+    draws_since: drawsSinceMap.get(comboSet) ?? null,
+    times_drawn: timesDrawnMap.get(comboSet) ?? 0,
+    best_order: bestOrderFor(combo, pairData),
+  };
+}
+
+/**
+ * Returns the 6-perm arrangement of `combo` that maximises the sum of
+ * position-specific pair scores (classes 2 / 3 / 4 = front / back / split).
+ * Used by both engine paths to compute the per-pick `bestOrder` field.
+ */
+export function bestOrderFor(
+  combo: string, pairData: PairDataTree,
+  weights: Record<string, number> = HORIZON_WEIGHTS,
+): string {
+  const [a, b, c] = combo;
+  const perms = [
+    a + b + c, a + c + b,
+    b + a + c, b + c + a,
+    c + a + b, c + b + a,
+  ];
+  let best = combo;
+  let bestScore = -1;
+  for (const perm of perms) {
+    const ab = sortedPair(perm[0], perm[1]);
+    const bc = sortedPair(perm[1], perm[2]);
+    const ac = sortedPair(perm[0], perm[2]);
+    const score =
+      blendPairAcrossHorizons(ab, 2, pairData, weights) +
+      blendPairAcrossHorizons(bc, 3, pairData, weights) +
+      blendPairAcrossHorizons(ac, 4, pairData, weights);
+    if (score > bestScore) { bestScore = score; best = perm; }
+  }
+  return best;
 }
 
 // ─── Normalization ────────────────────────────────────────────────────────────

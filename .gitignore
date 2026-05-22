@@ -19,3 +19,7 @@ supabase/.temp/
 # Backtest harness
 .env.backtest
 scripts/backtest/output/
+
+# ZK6 parity harness
+scripts/zk6-parity/.build/
+scripts/zk6-parity/runs/

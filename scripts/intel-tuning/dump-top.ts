@@ -7,6 +7,7 @@ import {
   toComboSet, multiplicityOf, topPairOf, sortedPair, maxNorm,
   computeDGC, computeBoxSignal, buildUniverse,
   normalizeBoxKey, normalizePairKey, MULTIPLICITY_PRIORS,
+  getPairSignalFromMap,
 } from '../../lib/engineCore.js';
 
 const H_ALL = ['H01Y','H02Y','H03Y','H04Y','H05Y','H06Y','H07Y','H08Y','H09Y','H10Y'];
@@ -65,13 +66,8 @@ async function fetchPairRows() {
   for (const cm of pairMetaMap.values()) for (const m of cm.values()) if (m.timesDrawn > maxPairTd) maxPairTd = m.timesDrawn;
   console.log(`maxTimesDrawn=${maxTd}, maxPairTimesDrawn=${maxPairTd}`);
 
-  function getPairSignal(pk: string, classId: number): number {
-    const m = pairMetaMap.get(pk)?.get(classId);
-    if (!m) return 0;
-    const freq = maxPairTd > 0 ? m.timesDrawn / maxPairTd : 0;
-    const pressure = (m.timesDrawn > 0 && m.drawsSince < 500) ? Math.min(m.drawsSince / 182, 1.0) : 0;
-    return freq * 0.70 + pressure * 0.30;
-  }
+  const getPairSignal = (pk: string, classId: number): number =>
+    getPairSignalFromMap(pairMetaMap, pk, classId, maxPairTd);
 
   const rawBox = new Array(1000).fill(0);
   const rawPburst = new Array(1000).fill(0);

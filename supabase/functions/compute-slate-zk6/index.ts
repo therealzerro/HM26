@@ -10,6 +10,8 @@ import {
   normalizeBoxKey, normalizePairKey,
   computeDGC, percentileRankOf, maxNorm,
   computeSlateHash, computeConfidenceScore,
+  computeBoxSignalDetailed, blendBoxDsRaw, getPairSignalFromMap,
+  bestOrderFor, intelligenceRowExtras, type PairDataTree,
   type Scope, type WeightSet,
 } from '../../../lib/engineCore.ts';
 import { getTodayET, getYesterdayET } from '../../../lib/dateUtils.ts';
@@ -81,6 +83,9 @@ interface EngineConfig {
 interface Datasets {
   boxByHorizon: BoxByHorizon;
   pairMetaMap:  Map<string, Map<number, PairMeta>>;
+  // Per-horizon pair ds_raw tree — needed by bestOrderFor (engineCore).
+  // Parallel to pairMetaMap but preserves all horizons instead of H01Y-preferred.
+  pairData:     PairDataTree;
   drawsSinceMap: Map<string, number>;
   dsRawMap:      Map<string, number>;
   timesDrawnMap: Map<string, number>;
@@ -350,7 +355,11 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
   // engine and replay harness. The edge function was previously selecting the horizon
   // with the highest times_drawn (typically H10Y), causing pair signal scores to use
   // 10-year aggregates for both freq and pressure components, which inflated PBURST/CO.
+  //
+  // pairData (per-horizon tree) is built in parallel for bestOrderFor — its position-
+  // pair scoring needs all horizons, blended by HORIZON_WEIGHTS. Parity with engines/zk6.ts.
   const pairMetaMap = new Map<string, Map<number, PairMeta>>();
+  const pairData: PairDataTree = new Map();
   for (const row of pairRows as any[]) {
     if (!row || typeof row.key_pair !== 'string') continue;
     const h = String(row.horizon_label ?? 'H01Y');
@@ -363,6 +372,11 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
     if (h === 'H01Y' || !cm.has(classId)) {
       cm.set(classId, { dsRaw: ds, drawsSince: ds, timesDrawn: td });
     }
+    // Per-horizon pairData tree (all horizons preserved)
+    if (!pairData.has(normKey)) pairData.set(normKey, new Map());
+    const cd = pairData.get(normKey)!;
+    if (!cd.has(classId)) cd.set(classId, new Map());
+    cd.get(classId)!.set(h, ds);
   }
 
   const horizonsPresent: Record<string, boolean> = {};
@@ -374,7 +388,8 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
   }
 
   return {
-    boxByHorizon, pairMetaMap, drawsSinceMap, dsRawMap, timesDrawnMap, lastSeenMap,
+    boxByHorizon, pairMetaMap, pairData,
+    drawsSinceMap, dsRawMap, timesDrawnMap, lastSeenMap,
     horizonsPresent, horizonsLoaded, usingFallback,
     boxRowCount: boxRows.length, pairRowCount: pairRows.length, rawBoxRows,
   };
@@ -500,13 +515,10 @@ async function computeSlate(params: {
   let maxPairTimesDrawn = 0;
   for (const cm of ds.pairMetaMap.values()) for (const m of cm.values()) if (m.timesDrawn > maxPairTimesDrawn) maxPairTimesDrawn = m.timesDrawn;
 
-  const getPairSignal = (pk: string, classId: number): number => {
-    const m = ds.pairMetaMap.get(pk)?.get(classId);
-    if (!m) return 0;
-    const freq     = maxPairTimesDrawn > 0 ? m.timesDrawn / maxPairTimesDrawn : 0;
-    const pressure = (m.timesDrawn > 0 && m.drawsSince < 500) ? Math.min(m.drawsSince / 182, 1.0) : 0;
-    return (freq * 0.70) + (pressure * 0.30);
-  };
+  // Pair signal: delegates to engineCore.getPairSignalFromMap (canonical
+  // 70% freq + 30% pressure formula, shared with engines/zk6.ts).
+  const getPairSignal = (pk: string, classId: number): number =>
+    getPairSignalFromMap(ds.pairMetaMap, pk, classId, maxPairTimesDrawn);
 
   const rawBox      = new Float64Array(1000);
   const rawFreq     = new Float64Array(1000);
@@ -519,25 +531,18 @@ async function computeSlate(params: {
     const combo   = universe[i];
     const normKey = toComboSet(combo);
     const [a, b, c] = combo;
+    // BOX: delegates to engineCore.computeBoxSignalDetailed (shared math).
+    // ENH-HW: dsVal is a horizon-weighted blend; with {H01Y:1.0, rest:0}
+    // behavior matches the prior H01Y-only dsRawMap lookup.
     const td = ds.timesDrawnMap.get(normKey) ?? 0;
-    if (td > 0) {
-      const freqScore = maxTimesDrawn > 0 ? td / maxTimesDrawn : 0;
-      // ENH-HW: dsVal is now a horizon-weighted blend across H01Y..H10Y.
-      // With weights={H01Y:1.0, rest:0}, behavior matches the prior H01Y-only
-      // dsRawMap lookup. Mirrors engines/zk6.ts blendBoxDsRaw.
-      let dsVal = 0;
-      for (const h of H_ALL) {
-        const v = ds.boxByHorizon.get(h)?.get(normKey) ?? 0;
-        dsVal += v * (horizonWeights[h] ?? 0);
-      }
-      const ptSpan    = Math.max(pressureThreshold - 100, 1);
-      const pScore    =
-        dsVal >= 100 && dsVal <= pressureThreshold ? Math.min((dsVal - 100) / ptSpan, 1.0) :
-        dsVal > pressureThreshold                  ? Math.max(1.0 - (dsVal - pressureThreshold) / 200, 0.3) :
-                                                     (dsVal / 100) * 0.5;
-      rawFreq[i] = freqScore; rawPressure[i] = pScore;
-      rawBox[i]  = (freqScore * effBoxFreqWeight) + (pScore * effBoxPressureWeight);
-    }
+    const dsVal = blendBoxDsRaw(normKey, ds.boxByHorizon, horizonWeights);
+    const parts = computeBoxSignalDetailed(
+      td, dsVal, maxTimesDrawn, pressureThreshold,
+      effBoxFreqWeight, effBoxPressureWeight,
+    );
+    rawFreq[i]     = parts.freq;
+    rawPressure[i] = parts.pressure;
+    rawBox[i]      = parts.box;
     const ab = sortedPair(a, b), bc = sortedPair(b, c), ac2 = sortedPair(a, c);
     rawPburst[i] = (getPairSignal(ab, 2) + getPairSignal(bc, 3) + getPairSignal(ac2, 4)) / 3;
     let coSum = 0;
@@ -583,6 +588,7 @@ async function computeSlate(params: {
       mult: multiplicityOf(combo), topPair: topPairOf(combo),
       signals: { BOX: normBox[i], PBURST: normPburst[i], CO: normCo[i], DGC: normDgc[i] },
       energy: percentileRankOf(finalScores[i], scorePool),
+      drawsSince: ds.drawsSinceMap.get(nk) ?? null,
       timesDrawn: ds.timesDrawnMap.get(nk) ?? 0 };
   }).filter(p => !(todayHitComboSets.size > 0 && todayHitComboSets.has(p.comboSet)))
     .sort((a, b) => b.finalScore - a.finalScore).slice(0, 30);
@@ -649,7 +655,10 @@ async function computeSlate(params: {
       box: x.boxS, pburst: x.pburstS, co: x.coS,
       signals: { BOX: x.boxS, PBURST: x.pburstS, CO: x.coS, DGC: x.dgcS },
       multiplicity: x.multiplicity, topPair: x.topPair, energy: x.energy, temperature: x.energy,
-      rank: idx + 1, confidence: Math.round(scopeConfidence * 100),
+      rank: idx + 1,
+      // Position-pair maximised arrangement (engineCore.bestOrderFor). Parity with engines/zk6.ts.
+      bestOrder: bestOrderFor(x.combo, ds.pairData),
+      confidence: Math.round(scopeConfidence * 100),
       drawsSince: ds.dsRawMap.get(x.normKey) ?? (br as any)?.ds_raw ?? null,
       timesDrawn: (br as any)?.times_drawn ?? ds.timesDrawnMap.get(x.normKey) ?? 0,
       dsRaw:      (br as any)?.ds_raw ?? ds.dsRawMap.get(x.normKey) ?? 0,
@@ -683,14 +692,15 @@ async function computeSlate(params: {
     ...(is_supplement ? { file_meta: JSON.stringify({ is_supplement: true, supplement_reason: 'post_hit_refresh', excluded_combo_sets: excludeComboSets }) } : {}),
   };
 
-  // Soft-delete prior same-scope snapshot for today (non-supplement only)
+  // Soft-delete prior same-scope snapshot for the slate's effective date
+  // (non-supplement only). Filtering on slate_date matches engines/zk6.ts and
+  // correctly handles past-date regens (e.g. backfilling yesterday's slate).
+  // Prior implementation used a UTC+4h window on updated_at_et which only
+  // worked for "today" and was off by an hour during EST (Nov–Mar).
   if (!is_supplement) {
     try {
-      const etMs = 4 * 60 * 60 * 1000;
-      const start = new Date(new Date(getTodayET() + 'T00:00:00').getTime() + etMs);
-      const end   = new Date(start.getTime() + 86400000);
       await sbPatch(
-        `/rest/v1/slate_snapshots?scope=eq.${encodeURIComponent(scope)}&updated_at_et=gte.${start.toISOString()}&updated_at_et=lt.${end.toISOString()}&deleted_at=is.null`,
+        `/rest/v1/slate_snapshots?scope=eq.${encodeURIComponent(scope)}&slate_date=eq.${effectiveDate}&deleted_at=is.null`,
         { deleted_at: now },
       );
     } catch { /* non-fatal */ }
@@ -792,6 +802,7 @@ async function computeSlate(params: {
         combo: p.combo, combo_set: p.comboSet, multiplicity: p.mult, top_pair: p.topPair,
         signal_box: p.signals.BOX, signal_pburst: p.signals.PBURST, signal_co: p.signals.CO, signal_dgc: p.signals.DGC,
         energy_score: p.energy,
+        ...intelligenceRowExtras(p.combo, p.comboSet, ds.drawsSinceMap, ds.timesDrawnMap, ds.pairData),
         on_slate: k6ComboSet.has(p.combo),
         ...stamp(p.combo),
       }));
@@ -803,6 +814,7 @@ async function computeSlate(params: {
           combo: x.combo, combo_set: x.normKey, multiplicity: x.multiplicity, top_pair: x.topPair,
           signal_box: x.boxS, signal_pburst: x.pburstS, signal_co: x.coS, signal_dgc: x.dgcS,
           energy_score: x.energy,
+          ...intelligenceRowExtras(x.combo, x.normKey, ds.drawsSinceMap, ds.timesDrawnMap, ds.pairData),
           on_slate: true,
           ...stamp(x.combo),
         }));
@@ -820,6 +832,7 @@ async function computeSlate(params: {
           multiplicity: null, top_pair: null,
           signal_box: 0, signal_pburst: 0, signal_co: 0, signal_dgc: 0,
           energy_score: 0,
+          ...intelligenceRowExtras(combo, `{${combo.split('').sort().join(',')}}`, null, null, null),
           on_slate: false,
           hit_box: h.hit_box, hit_straight: h.hit_straight,
           hit_state: h.hit_state, hit_session: h.hit_session, hit_result: h.hit_result,
@@ -886,6 +899,14 @@ async function computeSlate(params: {
     updated_at_et: now, slate_date: effectiveDate, hash,
     mode: weightsKey, engineVersion: ENGINE_VERSION, source: 'edge',
     confidence: Math.round(scopeConfidence * 100),
+    // Top-level dataStats parity with engines/zk6.ts. Same payload also lives
+    // inside horizons_present_json._dataStats for the persisted snapshot row.
+    dataStats: {
+      boxRowsUsed:    ds.boxRowCount,
+      pairRowsUsed:   ds.pairRowCount,
+      horizonsLoaded: ds.horizonsLoaded,
+      usingFallback:  ds.usingFallback,
+    },
   };
 }
 

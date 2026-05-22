@@ -21,7 +21,7 @@ import {
   multiplicityOf, topPairOf, sortedPair,
   computeBoxSignal, maxNorm, percentileRankOf,
   MULTIPLICITY_PRIORS, H_ALL, HORIZON_WEIGHTS,
-  computeDGC,
+  computeDGC, blendBoxDsRaw, getPairSignalFromMap,
 } from '../../lib/engineCore.js';
 import type { EngineConfig, ReplayPick, Scope } from './types.js';
 
@@ -158,23 +158,9 @@ function buildOverrides(historyRows: any[], date: string) {
 }
 
 // ── Scoring pipeline ──────────────────────────────────────────────────────────
-
-function getPairSignal(
-  pairMetaMap: Map<string, Map<number, PairMeta>>,
-  pairKey: string,
-  classId: number,
-  maxPairTimesDrawn: number,
-): number {
-  const meta = pairMetaMap.get(pairKey)?.get(classId);
-  if (!meta) return 0;
-  const drawsSince = meta.drawsSince || 500;
-  const timesDrawn = meta.timesDrawn || 0;
-  const freqScore = maxPairTimesDrawn > 0 ? timesDrawn / maxPairTimesDrawn : 0;
-  const pressureScore = timesDrawn > 0 && drawsSince < 500
-    ? Math.min(drawsSince / 182, 1.0)
-    : 0;
-  return (freqScore * 0.70) + (pressureScore * 0.30);
-}
+// Pair / box helpers now live in lib/engineCore — see getPairSignalFromMap and
+// blendBoxDsRaw. This file used to carry a near-duplicate getPairSignal that
+// could drift from the production engines.
 
 // ── K6 selection ──────────────────────────────────────────────────────────────
 
@@ -360,12 +346,7 @@ export async function computeSlateAsOf(
 
     const timesDrawnVal = timesDrawnMap.get(normKey) ?? 0;
     if (timesDrawnVal > 0) {
-      // ENH-HW: horizon-weighted dsRaw blend. With weights={H01Y:1.0,rest:0},
-      // matches the prior H01Y-only dsRawMap lookup.
-      let dsVal = 0;
-      for (const h of H_ALL) {
-        dsVal += (boxByHorizon.get(h)?.get(normKey) ?? 0) * (horizonWeights[h] ?? 0);
-      }
+      const dsVal = blendBoxDsRaw(normKey, boxByHorizon, horizonWeights);
       rawBox[i] = computeBoxSignal(
         timesDrawnVal, dsVal, maxTimesDrawn, config.pressureThreshold,
         effFreqWeight, effPressureWeight,
@@ -377,15 +358,15 @@ export async function computeSlateAsOf(
     const ac = sortedPair(a, c);
 
     rawPburst[i] = (
-      getPairSignal(pairMetaMap, ab, 2, maxPairTimesDrawn) +
-      getPairSignal(pairMetaMap, bc, 3, maxPairTimesDrawn) +
-      getPairSignal(pairMetaMap, ac, 4, maxPairTimesDrawn)
+      getPairSignalFromMap(pairMetaMap, ab, 2, maxPairTimesDrawn) +
+      getPairSignalFromMap(pairMetaMap, bc, 3, maxPairTimesDrawn) +
+      getPairSignalFromMap(pairMetaMap, ac, 4, maxPairTimesDrawn)
     ) / 3;
 
     let coSum = 0;
     for (const classId of [5, 6, 7, 8, 9, 10, 11]) {
       for (const pk of [ab, bc, ac]) {
-        coSum += getPairSignal(pairMetaMap, pk, classId, maxPairTimesDrawn);
+        coSum += getPairSignalFromMap(pairMetaMap, pk, classId, maxPairTimesDrawn);
       }
     }
     rawCo[i] = coSum / 21;

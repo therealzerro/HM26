@@ -32,6 +32,11 @@ import {
   maxNorm,
   computeSlateHash,
   computeConfidenceScore,
+  computeBoxSignalDetailed,
+  blendBoxDsRaw,
+  getPairSignalFromMap,
+  bestOrderFor,
+  intelligenceRowExtras,
 } from '@/lib/engineCore';
 
 const ENGINE_VERSION = 'v2.1';
@@ -178,7 +183,14 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
         drawsSinceMap.set(normKey, rawDs);
         dsRawMap.set(normKey, dsRawVal);
       }
-      if (row.last_seen && !lastSeenMap.has(normKey)) lastSeenMap.set(normKey, row.last_seen);
+    }
+
+    // lastSeen: MAX-wins across all horizons (most recent draw is the truth).
+    // Parity with compute-slate-zk6 — prior H01Y-first-wins logic could mask a
+    // newer last_seen surfacing only in a longer horizon.
+    const ls = typeof row.last_seen === 'string' ? row.last_seen : null;
+    if (ls && (!lastSeenMap.has(normKey) || ls > lastSeenMap.get(normKey)!)) {
+      lastSeenMap.set(normKey, ls);
     }
   }
 
@@ -247,57 +259,8 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
 }
 
 // ─── Blending Helpers ─────────────────────────────────────────────────────────
-
-/** Blend a box combo's draws_since across all available horizons. */
-// ENH-HW (2026-05-13): now load-bearing — used in computeSlate's BOX scoring
-// loop in place of the H01Y-only dsRawMap lookup. Accepts a runtime weights
-// arg (from app_config.horizon_weights, falls back to HORIZON_WEIGHTS const).
-// Weights are decimals summing to ~1.0; output is a weighted sum of per-
-// horizon raw draws-since values.
-function blendBoxDsRaw(normKey: string, boxByHorizon: BoxByHorizon, weights: Record<string, number>): number {
-  let total = 0;
-  for (const h of H_ALL) {
-    const ds = boxByHorizon.get(h)?.get(normKey) ?? 0;
-    total += ds * (weights[h] ?? 0);
-  }
-  return total;
-}
-
-/** Blend a pair's ds_raw for a given classId across all available horizons. */
-function blendPair(pairKey: string, classId: number, pairData: PairTree): number {
-  const horizonMap = pairData.get(pairKey)?.get(classId);
-  if (!horizonMap) return 0;
-  let total = 0;
-  for (const h of H_ALL) {
-    total += (horizonMap.get(h) ?? 0) * (HORIZON_WEIGHTS[h] ?? 0);
-  }
-  return total;
-}
-
-// ─── bestOrderFor ─────────────────────────────────────────────────────────────
-
-/** Returns the 6-perm arrangement that maximises sum of position-specific pair scores. */
-function bestOrderFor(combo: string, pairData: PairTree): string {
-  const [a, b, c] = combo;
-  const perms = [
-    a+b+c, a+c+b,
-    b+a+c, b+c+a,
-    c+a+b, c+b+a,
-  ];
-  let best = combo;
-  let bestScore = -1;
-  for (const perm of perms) {
-    const ab = sortedPair(perm[0], perm[1]);
-    const bc = sortedPair(perm[1], perm[2]);
-    const ac = sortedPair(perm[0], perm[2]);
-    const score =
-      blendPair(ab, 2, pairData) +   // front pair straight (class 2)
-      blendPair(bc, 3, pairData) +   // back pair straight  (class 3)
-      blendPair(ac, 4, pairData);    // split pair straight (class 4)
-    if (score > bestScore) { bestScore = score; best = perm; }
-  }
-  return best;
-}
+// All blending lives in lib/engineCore — blendBoxDsRaw (per-combo box ds_raw)
+// and blendPairAcrossHorizons (per-pair ds_raw, called via bestOrderFor).
 
 
 // ─── History overrides ────────────────────────────────────────────────────────
@@ -832,19 +795,11 @@ export async function computeSlate({
     }
   }
 
-  const getPairSignal = (pairKey: string, classId: number): number => {
-    const meta = ds.pairMetaMap.get(pairKey)?.get(classId);
-    if (!meta) return 0;
-    const drawsSince = meta.drawsSince || 500;
-    const timesDrawn = meta.timesDrawn || 0;
-    // freqScore: how frequently this pair has appeared historically (0→1, higher = more frequent)
-    const freqScore = maxPairTimesDrawn > 0 ? timesDrawn / maxPairTimesDrawn : 0;
-    // pressureScore: how overdue this pair is (peaks at 182 draws since last seen)
-    const pressureScore = (timesDrawn > 0 && drawsSince < 500)
-      ? Math.min(drawsSince / 182, 1.0)
-      : 0;
-    return (freqScore * 0.70) + (pressureScore * 0.30);
-  };
+  // Pair signal lookup: delegates to engineCore.getPairSignalFromMap which
+  // implements the canonical 70% freq + 30% pressure formula. Same behavior
+  // as the prior local closure (drawsSince=0 → pressure=0 in both paths).
+  const getPairSignal = (pairKey: string, classId: number): number =>
+    getPairSignalFromMap(ds.pairMetaMap, pairKey, classId, maxPairTimesDrawn);
 
   const rawBox      = new Float64Array(1000);
   const rawFreq     = new Float64Array(1000); // freq component before weighting
@@ -858,34 +813,20 @@ export async function computeSlate({
     const normKey = toComboSet(combo);
     const [a, b, c] = combo;
 
-    // BOX signal = 60% historical frequency + 40% recency pressure.
-    // freqScore    : timesDrawn / maxTimesDrawn — proves the pattern exists.
-    // pressureScore: peaked curve, optimal at 100-pressureThreshold draws.
-    //   0-100 draws                → ramps 0→0.5  (recently hit, building again)
-    //   100-pressureThreshold draws → ramps 0→1.0  (ideal pressure window)
-    //   pressureThreshold+ draws   → decays 1.0→0.3 floor (getting stale but still valid)
+    // BOX signal delegates to engineCore.computeBoxSignalDetailed — the canonical
+    // (freqWeight × freq) + (pressureWeight × pressure) formula, with per-component
+    // values preserved for diagnostic logging (rawFreq/rawPressure).
+    // ENH-HW: dsVal is a horizon-weighted blend (app_config.horizon_weights);
+    // with {H01Y:1.0, rest:0} behavior matches the prior H01Y-only lookup.
     const timesDrawnVal = ds.timesDrawnMap.get(normKey) ?? 0;
-    if (timesDrawnVal > 0) {
-      const freqScore  = maxTimesDrawn > 0 ? timesDrawnVal / maxTimesDrawn : 0;
-      // ENH-HW: dsVal is now a horizon-weighted blend across H01Y..H10Y.
-      // With weights={H01Y:1.0, rest:0}, behavior is identical to the prior
-      // H01Y-only lookup. Production app_config defaults to {H01Y:35%, H02Y:22%, …}
-      // which gives a weighted-average across horizons — a different signal
-      // than pure H01Y dsRaw. Backtest gates the production weights change.
-      const dsVal      = blendBoxDsRaw(normKey, ds.boxByHorizon, horizonWeights);
-      const ptSpan     = Math.max(pressureThreshold - 100, 1);
-      const pressureScore =
-        dsVal >= 100 && dsVal <= pressureThreshold
-          ? Math.min((dsVal - 100) / ptSpan, 1.0)
-          : dsVal > pressureThreshold
-          ? Math.max(1.0 - (dsVal - pressureThreshold) / 200, 0.3)
-          : (dsVal / 100) * 0.5;
-      rawFreq[i]     = freqScore;
-      rawPressure[i] = pressureScore;
-      rawBox[i]      = (freqScore * effBoxFreqWeight) + (pressureScore * effBoxPressureWeight);
-    } else {
-      rawFreq[i] = rawPressure[i] = rawBox[i] = 0;
-    }
+    const dsVal = blendBoxDsRaw(normKey, ds.boxByHorizon, horizonWeights);
+    const parts = computeBoxSignalDetailed(
+      timesDrawnVal, dsVal, maxTimesDrawn, pressureThreshold,
+      effBoxFreqWeight, effBoxPressureWeight,
+    );
+    rawFreq[i]     = parts.freq;
+    rawPressure[i] = parts.pressure;
+    rawBox[i]      = parts.box;
 
     // PBURST signal: position-specific pairs (classes 2, 3, 4) — combined freq+pressure pairSignal
     const ab = sortedPair(a, b);
@@ -1256,6 +1197,38 @@ export async function computeSlate({
     snapshot.id = savedId;
   }
 
+  // ENH-08: engine_runs telemetry — one row per slate generation capturing the
+  // effective post-override config used. Parity with compute-slate-zk6/index.ts.
+  // Non-fatal: a telemetry write failure never blocks slate save.
+  if (!is_supplement) {
+    try {
+      await fetchFromSupabase({
+        path: '/rest/v1/engine_runs',
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        body: {
+          slate_hash:           hash,
+          scope,
+          mode:                 weightsKey,
+          slate_date:           effectiveDate,
+          effective_weights:    { ...weights, _mode: weightsKey },
+          horizons_present:     ds.horizonsPresent,
+          horizons_loaded:      ds.horizonsLoaded,
+          confidence_score:     Math.round(scopeConfidence * 100),
+          using_fallback:       ds.usingFallback,
+          box_freq_weight:      effBoxFreqWeight,
+          box_pressure_weight:  effBoxPressureWeight,
+          recent_hit_cooldown:  cfg.recentHitCooldown,
+          min_energy_threshold: cfg.minEnergyThreshold,
+          source:               'live',
+          generated_at_et:      now,
+        },
+      });
+    } catch (e) {
+      console.warn('[zk6v2] engine_runs telemetry write failed (non-fatal):', String(e));
+    }
+  }
+
   // Write top 30 pre-rail picks to daily_intelligence.
   // Skip for supplemental slates — they use post-hit-exclusion picks which
   // would overwrite the original intelligence data with incomplete signal data.
@@ -1324,9 +1297,7 @@ export async function computeSlate({
         signal_co: pick.signals.CO,
         signal_dgc: pick.signals.DGC,
         energy_score: pick.energy,
-        draws_since: pick.drawsSince,
-        times_drawn: pick.timesDrawn,
-        best_order: bestOrderFor(pick.combo, ds.pairData),
+        ...intelligenceRowExtras(pick.combo, pick.comboSet, ds.drawsSinceMap, ds.timesDrawnMap, ds.pairData),
         on_slate: k6ComboSet.has(pick.combo),
         ...stamp(pick.combo),
       }));
@@ -1347,9 +1318,7 @@ export async function computeSlate({
           signal_co: x.coS,
           signal_dgc: x.dgcS,
           energy_score: x.energy,
-          draws_since: ds.drawsSinceMap.get(x.normKey) ?? null,
-          times_drawn: ds.timesDrawnMap.get(x.normKey) ?? 0,
-          best_order: bestOrderFor(x.combo, ds.pairData),
+          ...intelligenceRowExtras(x.combo, x.normKey, ds.drawsSinceMap, ds.timesDrawnMap, ds.pairData),
           on_slate: true,
           ...stamp(x.combo),
         }));
@@ -1373,9 +1342,7 @@ export async function computeSlate({
           top_pair: null as any,
           signal_box: 0, signal_pburst: 0, signal_co: 0, signal_dgc: 0,
           energy_score: 0,
-          draws_since: null as any,
-          times_drawn: 0,
-          best_order: combo,
+          ...intelligenceRowExtras(combo, `{${combo.split('').sort().join(',')}}`, null, null, null),
           on_slate: false,
           hit_box: h.hit_box,
           hit_straight: h.hit_straight,

@@ -345,9 +345,17 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
             chunks.push(records.slice(i, i + chunkSize));
           }
 
+          // BUG-154 (2026-05-22): on_conflict must match the actual unique
+          // index which is 5 columns (class_id, scope, horizon_label, key,
+          // jurisdiction). The previous 4-column spec triggered Postgres 42P10
+          // ("no unique or exclusion constraint matching the ON CONFLICT
+          // specification") at plan time, regardless of whether any row would
+          // conflict. ImportWizardView.tsx:353 has the correct 5-column
+          // spec for box; this is the parallel fix for the pair_history flow
+          // that delegates to importHistory() through this code path.
           const postPath = data.type === 'box_history'
-            ? '/rest/v1/datasets_box?on_conflict=class_id,scope,horizon_label,key'
-            : '/rest/v1/datasets_pair?on_conflict=class_id,scope,horizon_label,key';
+            ? '/rest/v1/datasets_box?on_conflict=class_id,scope,horizon_label,key,jurisdiction'
+            : '/rest/v1/datasets_pair?on_conflict=class_id,scope,horizon_label,key,jurisdiction';
 
           const tryBatch = async (batch: typeof records, attempt: number): Promise<void> => {
             const started = Date.now();

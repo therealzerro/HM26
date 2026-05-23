@@ -38,6 +38,7 @@ import {
   EXPORT_WIDTH,
   EXPORT_HEIGHT,
   BANNER_HEIGHT,
+  BANNER_SAFE_BUFFER,
   type ExportType,
   type ExportSession,
 } from '@/lib/captureExportImage';
@@ -56,10 +57,13 @@ const SESSION_LABELS: Record<ExportSession, string> = {
 // aesthetic instead of "stretched-out desktop web" — fixed-pixel font sizes
 // (e.g. 22px hero digits in PickPosterCard) sit at the same proportion they
 // would on a real phone screen.
-const STAGE_LOGICAL_WIDTH  = 390;
-const STAGE_SCALE          = EXPORT_WIDTH / STAGE_LOGICAL_WIDTH; // ≈ 2.769
-const STAGE_LOGICAL_HEIGHT = EXPORT_HEIGHT / STAGE_SCALE;        // ≈ 693.33
-const LOGICAL_BANNER_HEIGHT = BANNER_HEIGHT / STAGE_SCALE;       // ≈ 54.17
+const STAGE_LOGICAL_WIDTH       = 390;
+const STAGE_SCALE               = EXPORT_WIDTH / STAGE_LOGICAL_WIDTH;   // ≈ 2.769
+const STAGE_LOGICAL_HEIGHT      = EXPORT_HEIGHT / STAGE_SCALE;          // ≈ 693.33
+const LOGICAL_BANNER_HEIGHT     = BANNER_HEIGHT / STAGE_SCALE;          // ≈ 54.17
+// Safe buffer below the public CTA banner (Facebook Reels UI overlay zone).
+// At STAGE_SCALE this maps to BANNER_SAFE_BUFFER (220px) on the output PNG.
+const LOGICAL_SAFE_BUFFER       = BANNER_SAFE_BUFFER / STAGE_SCALE;     // ≈ 79.44
 
 function toComboSet(combo: string): string {
   return '{' + combo.split('').sort().join(',') + '}';
@@ -247,8 +251,11 @@ export default function AdminImageExportScreen() {
   const isPublic = exportType === 'public';
   // Logical (mobile-native) heights for the poster region. The output PNG is
   // still 1080×1920; these are what the inner content is laid out at before
-  // the STAGE_SCALE transform multiplies them up.
-  const logicalPosterHeight = isPublic ? STAGE_LOGICAL_HEIGHT - LOGICAL_BANNER_HEIGHT : STAGE_LOGICAL_HEIGHT;
+  // the STAGE_SCALE transform multiplies them up. Public exports also reserve
+  // LOGICAL_SAFE_BUFFER below the banner for the Facebook Reels UI overlay zone.
+  const logicalPosterHeight = isPublic
+    ? STAGE_LOGICAL_HEIGHT - LOGICAL_BANNER_HEIGHT - LOGICAL_SAFE_BUFFER
+    : STAGE_LOGICAL_HEIGHT;
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -451,7 +458,12 @@ export default function AdminImageExportScreen() {
               </View>
               <Text style={styles.slateFooter}>Intelligence is your edge. Use it.</Text>
             </View>
-            {isPublic && <PublicExportBanner height={LOGICAL_BANNER_HEIGHT} />}
+            {isPublic && (
+              <>
+                <PublicExportBanner height={LOGICAL_BANNER_HEIGHT} />
+                <View style={[styles.safeBuffer, { height: LOGICAL_SAFE_BUFFER }]} />
+              </>
+            )}
           </View>
         )}
 
@@ -463,7 +475,12 @@ export default function AdminImageExportScreen() {
               redact={isPublic}
               height={logicalPosterHeight}
             />
-            {isPublic && <PublicExportBanner height={LOGICAL_BANNER_HEIGHT} />}
+            {isPublic && (
+              <>
+                <PublicExportBanner height={LOGICAL_BANNER_HEIGHT} />
+                <View style={[styles.safeBuffer, { height: LOGICAL_SAFE_BUFFER }]} />
+              </>
+            )}
           </View>
         )}
       </View>
@@ -656,6 +673,13 @@ const makeStyles = (colors: ColorTokens) => StyleSheet.create({
     height: STAGE_LOGICAL_HEIGHT,
     transform: [{ scale: STAGE_SCALE }],
     transformOrigin: '0 0',
+    backgroundColor: colors.background,
+  },
+  // Navy fill below the public CTA banner. Sized at LOGICAL_SAFE_BUFFER per
+  // composition; explicit backgroundColor keeps the bottom 220px (output) opaque
+  // so html-to-image never emits transparency in the Facebook Reels overlay zone.
+  safeBuffer: {
+    width: '100%',
     backgroundColor: colors.background,
   },
   // Slate header / footer sized in MOBILE-NATIVE pixels (multiplied ~2.77×

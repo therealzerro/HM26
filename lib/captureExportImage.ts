@@ -20,6 +20,14 @@ import { Platform } from 'react-native';
 export const EXPORT_WIDTH  = 1080;
 export const EXPORT_HEIGHT = 1920;
 export const BANNER_HEIGHT = 150;
+/**
+ * Navy background reserved BELOW the public-export CTA banner, in output px.
+ * Facebook Reels overlays its UI (caption, share buttons, account handle)
+ * inside the bottom ~220px of the frame, so the banner is positioned at
+ * 1550–1700 with this buffer occupying 1700–1920 to keep the CTA legible.
+ * Pro exports have neither a banner nor this buffer.
+ */
+export const BANNER_SAFE_BUFFER = 220;
 
 export type ExportType    = 'public' | 'pro';
 export type ExportSession = 'midday' | 'evening' | 'allday';

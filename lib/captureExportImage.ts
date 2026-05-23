@@ -135,3 +135,62 @@ export async function downloadAllSequential(
     }
   }
 }
+
+// ─── Web Share (Save to Photos via native share sheet) ───────────────────────
+// On iOS Safari / Android Chrome the Web Share API can hand a File off to the
+// system share sheet, which exposes a "Save Image" target that routes the PNG
+// directly into Photos / Gallery — bypassing the Files-app round-trip the
+// Download button requires. Falls back transparently: the caller only renders
+// the button when shareToPhotosAvailable() returns true.
+
+/** Decode a base64 dataURL into a File suitable for navigator.share(). */
+function dataUrlToFile(dataUrl: string, filename: string, type = 'image/png'): File {
+  const comma = dataUrl.indexOf(',');
+  const base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new File([bytes], filename, { type });
+}
+
+/**
+ * True if the current browser supports Web Share API with file attachments
+ * (iOS Safari 15+, Android Chrome 89+, macOS Safari 14+). Returns false on
+ * desktop browsers without share-with-files (Firefox, older Chrome) and on
+ * native (React Native) builds. Safe to call repeatedly — does a cheap
+ * canShare() probe with a 1-byte File.
+ */
+export function shareToPhotosAvailable(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const nav = navigator as Navigator & {
+    canShare?: (data: { files?: File[] }) => boolean;
+    share?:    (data: { files?: File[]; title?: string; text?: string }) => Promise<void>;
+  };
+  if (typeof nav.share !== 'function' || typeof nav.canShare !== 'function') return false;
+  try {
+    const probe = new File([new Uint8Array([0])], 'probe.png', { type: 'image/png' });
+    return nav.canShare({ files: [probe] });
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Sentinel error type the caller can check with `err.name === 'AbortError'`
+ * — the Web Share API throws AbortError when the user dismisses the share
+ * sheet, which is a normal flow and should be swallowed silently.
+ */
+export async function shareDataUrlToPhotos(
+  dataUrl: string,
+  filename: string,
+  title = 'HitMaster Slate Image',
+): Promise<void> {
+  if (!shareToPhotosAvailable()) {
+    throw new Error('Web Share API with files is not available in this browser.');
+  }
+  const file = dataUrlToFile(dataUrl, filename);
+  const nav = navigator as Navigator & {
+    share: (data: { files?: File[]; title?: string; text?: string }) => Promise<void>;
+  };
+  await nav.share({ files: [file], title, text: '' });
+}

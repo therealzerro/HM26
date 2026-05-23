@@ -20,7 +20,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image as RNImage } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useNavigation } from 'expo-router';
-import { ArrowLeft, Download, AlertCircle, CheckCircle, ImageDown } from 'lucide-react-native';
+import { ArrowLeft, Download, AlertCircle, CheckCircle, ImageDown, Share2 } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
 import { useTheme, type ColorTokens } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
@@ -34,6 +34,8 @@ import {
   captureNodeToPng,
   downloadDataUrl,
   downloadAllSequential,
+  shareToPhotosAvailable,
+  shareDataUrlToPhotos,
   buildFilename,
   EXPORT_WIDTH,
   EXPORT_HEIGHT,
@@ -246,6 +248,23 @@ export default function AdminImageExportScreen() {
     await downloadAllSequential(items.map(it => ({ dataUrl: it.dataUrl, filename: it.filename })));
   }, []);
 
+  // Web Share with files (iOS Safari / Android Chrome) → routes the PNG into
+  // the native share sheet, where "Save Image" sends it directly to Photos.
+  // Computed once per mount; the API doesn't change between picks. AbortError
+  // is the user dismissing the sheet — swallow silently. Other errors surface
+  // as a non-fatal status message so the operator can fall back to Download.
+  const canShareFiles = useMemo(() => shareToPhotosAvailable(), []);
+  const handleSaveToPhotos = useCallback(async (item: ExportItem) => {
+    try {
+      await shareDataUrlToPhotos(item.dataUrl, item.filename);
+    } catch (err: any) {
+      if (err?.name === 'AbortError') return; // user cancelled share sheet
+      // eslint-disable-next-line no-console
+      console.warn('[image-export] share failed:', err);
+      setStatus({ kind: 'error', msg: `Save to Photos failed: ${String(err?.message ?? err)}. Use Download instead.` });
+    }
+  }, []);
+
   const isWeb = Platform.OS === 'web';
   const canRun = isWeb && status.kind !== 'loading' && status.kind !== 'generating';
   const isPublic = exportType === 'public';
@@ -406,6 +425,8 @@ export default function AdminImageExportScreen() {
                 key={item.filename}
                 item={item}
                 onDownload={handleDownloadOne}
+                onShare={handleSaveToPhotos}
+                canShare={canShareFiles}
                 colors={colors}
                 styles={styles}
                 large
@@ -419,6 +440,8 @@ export default function AdminImageExportScreen() {
                   key={item.filename}
                   item={item}
                   onDownload={handleDownloadOne}
+                  onShare={handleSaveToPhotos}
+                  canShare={canShareFiles}
                   colors={colors}
                   styles={styles}
                 />
@@ -495,20 +518,25 @@ export default function AdminImageExportScreen() {
 interface PreviewCardProps {
   item: ExportItem;
   onDownload: (item: ExportItem) => void;
+  onShare:    (item: ExportItem) => void;
+  canShare:   boolean;
   colors: ColorTokens;
   styles: ReturnType<typeof makeStyles>;
   large?: boolean;
 }
 
-function PreviewCard({ item, onDownload, colors, styles, large = false }: PreviewCardProps) {
+function PreviewCard({ item, onDownload, onShare, canShare, colors, styles, large = false }: PreviewCardProps) {
   return (
     <View style={[styles.previewCard, large && styles.previewCardLarge]}>
       <RNImage source={{ uri: item.dataUrl }} style={styles.previewImg} resizeMode="contain" />
-      <View style={styles.previewMetaRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.previewLabel}>{item.label}</Text>
-          <Text style={styles.previewFilename} numberOfLines={1}>{item.filename}</Text>
-        </View>
+      <View style={styles.previewMeta}>
+        <Text style={styles.previewLabel}>{item.label}</Text>
+        <Text style={styles.previewFilename} numberOfLines={1}>{item.filename}</Text>
+      </View>
+      {/* Actions row — wraps to a stacked layout on narrow (pick) cards where
+          both buttons can't share a line. flex:1 + minWidth keeps each tappable
+          target reasonably sized. */}
+      <View style={styles.previewActions}>
         <TouchableOpacity
           style={styles.previewDownloadBtn}
           onPress={() => onDownload(item)}
@@ -517,6 +545,16 @@ function PreviewCard({ item, onDownload, colors, styles, large = false }: Previe
           <Download size={14} color={colors.background} />
           <Text style={styles.previewDownloadText}>Download</Text>
         </TouchableOpacity>
+        {canShare && (
+          <TouchableOpacity
+            style={[styles.previewShareBtn, { borderColor: colors.cyan }]}
+            onPress={() => onShare(item)}
+            activeOpacity={0.85}
+          >
+            <Share2 size={14} color={colors.cyan} />
+            <Text style={[styles.previewShareText, { color: colors.cyan }]}>Save to Photos</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -637,20 +675,37 @@ const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   },
   previewCardLarge: { width: '100%' },
   previewImg: { width: '100%', aspectRatio: 1080 / 1920, borderRadius: 6, backgroundColor: 'rgba(0,0,0,0.4)' },
-  previewMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  previewMeta: { gap: 0 },
   previewLabel: { fontSize: 12, fontWeight: '800', color: colors.text, letterSpacing: 0.6 },
   previewFilename: {
     fontSize: 9, color: colors.textTertiary,
     fontFamily: theme.typography.fontFamily.mono,
     marginTop: 2,
   },
+  previewActions: {
+    flexDirection: 'row',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
   previewDownloadBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 7,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 8,
     borderRadius: 7, backgroundColor: colors.cyan,
+    flexGrow: 1, flexBasis: 100, minWidth: 100,
   },
   previewDownloadText: {
     fontSize: 11, fontWeight: '900', color: colors.background, letterSpacing: 0.8,
+    fontFamily: theme.typography.fontFamily.monoBold,
+  },
+  previewShareBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 8,
+    borderRadius: 7, backgroundColor: 'transparent',
+    borderWidth: 1,
+    flexGrow: 1, flexBasis: 120, minWidth: 120,
+  },
+  previewShareText: {
+    fontSize: 11, fontWeight: '900', letterSpacing: 0.8,
     fontFamily: theme.typography.fontFamily.monoBold,
   },
 

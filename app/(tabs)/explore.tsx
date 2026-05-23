@@ -37,6 +37,7 @@ import { useScope } from '@/hooks/useScope';
 import { useDataIngestion } from '@/hooks/useDataIngestion';
 import { useAuth } from '@/hooks/useAuth';
 import { PickCard, PickItem } from '@/components/PickCard';
+import { SlatePosterCard } from '@/components/SlatePosterCard';
 import { LockedPicksSummary } from '@/components/LockedPicksSummary';
 import { PickDetailModal } from '@/components/PickDetailModal';
 import { Paywall } from '@/components/Paywall';
@@ -62,234 +63,11 @@ import { NeonRefreshControl } from '@/components/NeonRefreshControl';
 import { runHitDetectionAllScopes } from '@/lib/hitDetection';
 
 function toComboSet(combo: string) { return '{' + combo.split('').sort().join(',') + '}'; }
-function tempColorForEnergy(e: number, colors: ColorTokens): string {
-  if (e >= 80) return colors.hot;
-  if (e >= 60) return colors.warm;
-  if (e >= 40) return colors.mild;
-  return colors.cold;
-}
-
-function tempLabel(e: number): string {
-  if (e >= 80) return 'HOT';
-  if (e >= 60) return 'WARM';
-  if (e >= 40) return 'MILD';
-  return 'COLD';
-}
 
 const SCOPE_LABELS: Record<string, string> = { midday: '☀️ Midday', evening: '🌙 Evening', allday: '◈ All Day' };
 const MODE_LABELS = ['balanced', 'conservative', 'aggressive'];
 
 type Tab = 'picks' | 'hits' | 'more';
-
-// ─── Grid tile (v8 — temp badge + signal labels/values + glow) ────────────
-function GridTile({ pick, onPress }: { pick: PickItem; onPress: () => void }) {
-  const { colors } = useTheme();
-  const gt = useMemo(() => makeGt(colors), [colors]);
-  const tc       = tempColorForEnergy(pick.energy, colors);
-  const tLabel   = tempLabel(pick.energy);
-  const isLocked = pick.locked;
-  const isHit    = !!pick.hitType;
-  const hitLabel = pick.hitType === 'straight' ? 'EXACT MATCH' : 'PARTIAL MATCH';
-  const digits   = isLocked ? '•••' : (pick.bestOrder ?? pick.combo);
-
-  const channels = [
-    { k: 'B', v: pick.signals.BOX,      c: colors.cyan   },
-    { k: 'P', v: pick.signals.PBURST,   c: colors.rose   },
-    { k: 'C', v: pick.signals.CO,       c: colors.purple },
-    { k: 'D', v: pick.signals.DGC ?? 0, c: colors.gold   },
-  ];
-
-  const borderC = isHit ? colors.success : tc + '66';
-  const shadowC = isHit ? colors.success : tc;
-
-  return (
-    <TouchableOpacity
-      style={[gt.card, { borderColor: borderC, shadowColor: shadowC }, isHit && gt.cardHit]}
-      onPress={onPress}
-      activeOpacity={0.85}
-    >
-      {/* Top: rank chip + temp badge */}
-      <View style={gt.topRow}>
-        <View style={[gt.rankChip, { borderColor: tc + '66', backgroundColor: tc + '14' }]}>
-          <Text style={[gt.rankNum, { color: tc }]}>#{pick.rank}</Text>
-        </View>
-        <View style={{ flex: 1 }} />
-        <View style={[gt.tempBadge, { borderColor: tc, shadowColor: tc }]}>
-          <Text style={[gt.tempLabel, { color: tc }]}>{tLabel}</Text>
-          <Text style={[gt.tempNum,   { color: tc }]}>{pick.energy}°</Text>
-        </View>
-      </View>
-
-      {/* Combo digits — sized to fit */}
-      <Text
-        style={[gt.digits, { color: tc, textShadowColor: tc + 'aa' }]}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.5}
-      >
-        {digits.split('').join(' ')}
-      </Text>
-
-      {/* comboSet · multiplicity */}
-      <View style={gt.metaRow}>
-        <Text style={gt.comboSet} numberOfLines={1}>
-          {isLocked ? '{•,•,•}' : pick.comboSet}
-        </Text>
-        {pick.multiplicity && !isLocked && (
-          <Text style={[gt.mult, { color: tc }]}>
-            {pick.multiplicity === 'doubles' ? 'DBL' : 'SGL'}
-          </Text>
-        )}
-      </View>
-
-      {/* Signal grid — 4 mini-bars w/ label + value */}
-      {!isLocked && (
-        <View style={gt.signalGrid}>
-          {channels.map(ch => {
-            const pct = Math.max(0, Math.min(1, ch.v));
-            return (
-              <View key={ch.k} style={gt.signalCell}>
-                <View style={gt.signalHead}>
-                  <Text style={[gt.signalKey, { color: ch.c }]}>{ch.k}</Text>
-                  <Text style={[gt.signalVal, { color: ch.c }]}>{Math.round(pct * 100)}</Text>
-                </View>
-                <View style={gt.barTrack}>
-                  <View style={[gt.barFill, { width: (pct * 100) + '%' as any, backgroundColor: ch.c, shadowColor: ch.c }]} />
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      )}
-
-      {isLocked && (
-        <View style={gt.lockedRow}>
-          <Text style={gt.lockedText}>🔒 Pro</Text>
-        </View>
-      )}
-
-      {/* Hit stamp — large green overlay on winning pickcards. Sits centered
-          across the tile so it reads as a "stamped" mark over the digits. */}
-      {isHit && !isLocked && (
-        <View pointerEvents="none" style={gt.hitStampWrap}>
-          <View style={[gt.hitStamp, { borderColor: colors.success, backgroundColor: colors.success + '22', shadowColor: colors.success }]}>
-            <Text
-              style={[gt.hitStampText, { color: colors.success, textShadowColor: colors.success + 'aa' }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.5}
-            >
-              {hitLabel}
-            </Text>
-            {pick.hitResult ? (
-              <Text style={[gt.hitStampSub, { color: colors.success }]} numberOfLines={1}>
-                {pick.hitResult}
-              </Text>
-            ) : null}
-          </View>
-        </View>
-      )}
-    </TouchableOpacity>
-  );
-}
-const makeGt = (colors: ColorTokens) => StyleSheet.create({
-  // Screenshot surface — every dimension here is chosen so 3 rows of these
-  // tiles fit comfortably on the smallest reasonable phone (~135pt per row
-  // after gridArea padding + row gaps on iPhone SE). Do NOT add vertical
-  // content without compensating elsewhere; the constraint is hard.
-  card: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: theme.borderRadius.lg,
-    borderWidth: 1.5,
-    padding: 8,
-    gap: 4,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 3,
-    overflow: 'hidden',
-  },
-  cardHit: {
-    borderWidth: 2,
-    shadowOpacity: 0.8,
-    shadowRadius: 14,
-    elevation: 10,
-  },
-  topRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  rankChip: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, borderWidth: 1 },
-  rankNum: { fontSize: 10, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.3 },
-  tempBadge: {
-    flexDirection: 'row', alignItems: 'baseline', gap: 3,
-    paddingHorizontal: 6, paddingVertical: 1,
-    borderRadius: 999, borderWidth: 1,
-    backgroundColor: 'rgba(20,12,38,0.55)',
-    shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 6,
-  },
-  tempLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 0.8, fontFamily: theme.typography.fontFamily.monoBold },
-  tempNum:   { fontSize: 9,  fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
-
-  // Digits stay the visual headline of the screenshot — keep them bold but
-  // a touch smaller than before (was 32/34). adjustsFontSizeToFit handles
-  // narrower screens by shrinking further if needed.
-  digits: {
-    fontSize: 26, fontWeight: '900',
-    fontFamily: theme.typography.fontFamily.monoBold,
-    letterSpacing: 1.5, lineHeight: 28,
-    textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8,
-  },
-
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  comboSet: { flex: 1, fontSize: 9, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
-  mult: { fontSize: 8, fontWeight: '900', letterSpacing: 1, fontFamily: theme.typography.fontFamily.monoBold },
-
-  // Signal grid — single-row 4-cell layout (was 2×2). Each cell ~22% wide
-  // with a thin bar; this packs into one row instead of two, saving ~16pt
-  // vertically and keeping all 4 signals visible at a glance.
-  signalGrid: { flexDirection: 'row', columnGap: 4, marginTop: 'auto' },
-  signalCell: { flex: 1, gap: 1 },
-  signalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  signalKey: { fontSize: 8, fontWeight: '900', letterSpacing: 0.4, fontFamily: theme.typography.fontFamily.monoBold },
-  signalVal: { fontSize: 9, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
-  barTrack: { height: 2.5, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' },
-  barFill: {
-    height: 2.5, borderRadius: 2,
-    shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 4,
-  },
-
-  lockedRow: { marginTop: 'auto', alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)' },
-  lockedText: { fontSize: 10, color: colors.textTertiary, fontWeight: '700' },
-
-  // Hit stamp — absolutely centered, rotated slightly so it reads as a
-  // physical "stamp" over the pick. Keep it inside the card (overflow hidden
-  // on the card) so it never bleeds into neighboring tiles.
-  hitStampWrap: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  hitStamp: {
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderWidth: 2, borderRadius: 6,
-    transform: [{ rotate: '-8deg' }],
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9, shadowRadius: 10,
-    elevation: 8,
-    alignItems: 'center',
-  },
-  hitStampText: {
-    fontSize: 18, fontWeight: '900',
-    fontFamily: theme.typography.fontFamily.monoBold,
-    letterSpacing: 1.5,
-    textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 6,
-  },
-  hitStampSub: {
-    fontSize: 10, fontWeight: '900',
-    fontFamily: theme.typography.fontFamily.monoBold,
-    letterSpacing: 1,
-    marginTop: 1,
-  },
-});
 
 export default function SlatesScreen() {
   const { colors } = useTheme();
@@ -452,7 +230,7 @@ export default function SlatesScreen() {
   const rawItems = useMemo((): PickItem[] => {
     // Always render the full slate including picks that already hit — winning
     // pickcards stay on the grid with a green BOX HIT / STRAIGHT HIT stamp
-    // (handled in GridTile + PickCard) instead of being filtered out.
+    // (handled in SlatePosterCard + PickCard) instead of being filtered out.
     const list = Array.isArray(snapshot?.top_k_straights_json)
       ? (snapshot!.top_k_straights_json as any[])
       : [];
@@ -630,7 +408,7 @@ export default function SlatesScreen() {
                 {[0, 1, 2].map(row => (
                   <View key={row} style={s.gridRow}>
                     {filtered.slice(row * 2, row * 2 + 2).map(pick => (
-                      <GridTile key={`grid-${pick.rank}`} pick={pick} onPress={() => pick.locked ? setPaywallOpen(true) : setDetail(pick)} />
+                      <SlatePosterCard key={`grid-${pick.rank}`} pick={pick} onPress={() => pick.locked ? setPaywallOpen(true) : setDetail(pick)} />
                     ))}
                     {filtered.slice(row * 2, row * 2 + 2).length < 2 && <View style={{ flex: 1 }} />}
                   </View>

@@ -85,6 +85,10 @@ function RootLayoutNav() {
         options={{ title: "Import Data", ...modalScreenOptions }}
       />
       <Stack.Screen
+        name="admin-image-export"
+        options={{ title: "Image Export", ...modalScreenOptions }}
+      />
+      <Stack.Screen
         name="paywall"
         options={{ title: "Premium", ...modalScreenOptions }}
       />

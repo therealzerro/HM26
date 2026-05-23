@@ -13,6 +13,7 @@ import { useTheme, type ColorTokens } from '../lib/theme';
 import { PickItem } from './PickCard';
 import { HitReplay } from './HitReplay';
 import { getPairs, normalizePairKey } from '../lib/pairUtils';
+import { EnergyArc, SignalPill, WhyRow } from './pickVisuals';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -47,9 +48,7 @@ function useStyles() {
     const D = makeD(colors);
     return {
       D,
-      sp: makeSp(D),
       mx: makeMx(D),
-      wy: makeWy(D),
       tb: makeTb(D),
       ct: makeCt(D),
       s:  makeS(D),
@@ -75,76 +74,7 @@ function GradientLine() {
   );
 }
 
-// ─── Animated energy arc ──────────────────────────────────────────────────────
-function EnergyArc({ value, size = 80 }: { value: number; size?: number }) {
-  const { D } = useStyles();
-  const pulse = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    if (value >= 80) {
-      Animated.loop(Animated.sequence([
-        Animated.timing(pulse, { toValue: 1.07, duration: 700, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0.96, duration: 700, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ])).start();
-    }
-  }, [value]);
-
-  const r     = (size - 14) / 2;
-  const cx    = size / 2;
-  const cy    = size / 2;
-  const circ  = 2 * Math.PI * r;
-  const dash  = circ * Math.min(1, Math.max(0, value) / 100);
-  const gap   = circ - dash;
-  const accent = value >= 90 ? D.hot : value >= 75 ? D.amber : value >= 60 ? D.gold : D.cyan;
-
-  return (
-    <Animated.View style={{ transform: [{ scale: value >= 80 ? pulse : 1 }] }}>
-      <Svg width={size} height={size}>
-        <Defs>
-          <SvgGradient id="earc" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0%"   stopColor={D.cyan}   />
-            <Stop offset="100%" stopColor={accent}   />
-          </SvgGradient>
-        </Defs>
-        <Circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={7} />
-        <Circle
-          cx={cx} cy={cy} r={r} fill="none"
-          stroke="url(#earc)" strokeWidth={7}
-          strokeDasharray={`${dash} ${gap}`} strokeLinecap="round"
-          transform={`rotate(-90, ${cx}, ${cy})`}
-        />
-      </Svg>
-      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 20, fontWeight: '900', color: accent, fontFamily: D.monoBold, lineHeight: 22 }}>{value}</Text>
-          <Text style={{ fontSize: 7, color: D.textDim, fontWeight: '700', letterSpacing: 0.5 }}>ENERGY</Text>
-        </View>
-      </View>
-    </Animated.View>
-  );
-}
-
-// ─── Signal pill (compact, 4-across) ─────────────────────────────────────────
-function SignalPill({ label, value, color }: { label: string; value: number; color: string }) {
-  const { sp } = useStyles();
-  const pct = Math.round(value * 100);
-  return (
-    <View style={sp.card}>
-      <Text style={[sp.label, { color }]}>{label}</Text>
-      <Text style={[sp.val, { color }]}>{pct}<Text style={sp.suffix}>%</Text></Text>
-      <View style={sp.track}>
-        <View style={[sp.fill, { width: `${pct}%` as any, backgroundColor: color }]} />
-      </View>
-    </View>
-  );
-}
-const makeSp = (D: DTokens) => StyleSheet.create({
-  card:   { flex: 1, backgroundColor: D.glass, borderRadius: 10, borderWidth: 1, borderColor: D.glassBorder, paddingVertical: 10, paddingHorizontal: 8, gap: 4, alignItems: 'center' },
-  label:  { fontSize: 7, fontWeight: '900', letterSpacing: 1 },
-  val:    { fontSize: 22, fontWeight: '900', fontFamily: D.monoBold, lineHeight: 24 },
-  suffix: { fontSize: 11, fontWeight: '700' },
-  track:  { width: '100%', height: 3, backgroundColor: 'rgba(255,255,255,0.09)', borderRadius: 2, overflow: 'hidden' },
-  fill:   { height: 3, borderRadius: 2 },
-});
+// EnergyArc + SignalPill moved to ./pickVisuals so PickPosterCard can reuse them.
 
 // ─── Pair matrix header + rows ────────────────────────────────────────────────
 function PairMatrixHeader({ labels }: { labels: string[] }) {
@@ -201,33 +131,7 @@ const makeMx = (D: DTokens) => StyleSheet.create({
   scoreText:  { fontSize: 10, fontWeight: '800', fontFamily: D.mono, textAlign: 'center' },
 });
 
-// ─── Why row ──────────────────────────────────────────────────────────────────
-function WhyRow({ icon, label, desc, score }: { icon: string; label: string; desc: string; score: number }) {
-  const { D, wy } = useStyles();
-  const c = score >= 70 ? D.cyan : score >= 40 ? D.gold : D.textDim;
-  return (
-    <View style={wy.row}>
-      <View style={wy.iconBox}><Text style={wy.icon}>{icon}</Text></View>
-      <View style={wy.text}>
-        <Text style={wy.label}>{label}</Text>
-        <Text style={wy.desc}>{desc}</Text>
-      </View>
-      <View style={[wy.badge, { borderColor: c + '55', backgroundColor: c + '15' }]}>
-        <Text style={[wy.badgeNum, { color: c }]}>{score}%</Text>
-      </View>
-    </View>
-  );
-}
-const makeWy = (D: DTokens) => StyleSheet.create({
-  row:      { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-  iconBox:  { width: 32, height: 32, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.07)', alignItems: 'center', justifyContent: 'center' },
-  icon:     { fontSize: 16 },
-  text:     { flex: 1 },
-  label:    { fontSize: 11, fontWeight: '700', color: D.text, lineHeight: 14 },
-  desc:     { fontSize: 9, color: D.textDim, marginTop: 2, lineHeight: 12 },
-  badge:    { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8, borderWidth: 1 },
-  badgeNum: { fontSize: 13, fontWeight: '900', fontFamily: D.monoBold },
-});
+// WhyRow moved to ./pickVisuals so PickPosterCard can reuse it.
 
 // ─── Tab bar ──────────────────────────────────────────────────────────────────
 type Tab = 'INTEL' | 'PAIRS' | 'PLAY';

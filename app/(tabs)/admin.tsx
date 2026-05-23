@@ -44,6 +44,7 @@ const NAV = [
   { id:'funnel',       icon:'📈', label:'Funnel'      },
   { id:'subscribers',  icon:'👥', label:'Subscribers' },
   { id:'sub-import',   icon:'📧', label:'Sub Import'  },
+  { id:'image-export', icon:'🖼', label:'Image Export', route:'/admin-image-export' as unknown as Parameters<typeof router.push>[0] },
 ];
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
@@ -74,7 +75,7 @@ export default function AdminScreen() {
       <View style={{ backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 6, gap: 4, flexDirection: 'row' }}>
           {NAV.map(n => (
-            <TouchableOpacity key={n.id} style={[{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9, flexDirection: 'row', alignItems: 'center', gap: 5 }, view === n.id && { backgroundColor: colors.primaryLight }]} onPress={() => setView(n.id)}>
+            <TouchableOpacity key={n.id} style={[{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9, flexDirection: 'row', alignItems: 'center', gap: 5 }, view === n.id && { backgroundColor: colors.primaryLight }]} onPress={() => 'route' in n && n.route ? router.push(n.route) : setView(n.id)}>
               <Text style={{ fontSize: 13 }}>{n.icon}</Text>
               <Text style={{ fontSize: 11, fontWeight: view === n.id ? '700' : '400', color: view === n.id ? colors.primary : colors.textSecondary }}>{n.label}</Text>
             </TouchableOpacity>

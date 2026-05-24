@@ -104,8 +104,16 @@ async function updateDailyIntelligenceHit(
   snap: { scope: string; mode: string },
 ): Promise<void> {
   const comboSet = pick.comboSet ?? pick.normKey ?? '';
+  // BUG-155 (2026-05-23): straight match must compare against bestOrder
+  // (the user-facing recommended straight), not combo (engine enumeration
+  // index 000..999 from buildUniverse). When bestOrder differs from combo
+  // and the draw happens to equal the enumeration index but not the
+  // recommended order, the prior code stamped 'straight' even though the
+  // user playing bestOrder only got a box. Fallback to combo for legacy
+  // picks that pre-date bestOrder being persisted.
+  const straightCombo = pick.bestOrder ?? pick.combo;
   const isBox = result.comboset_sorted === comboSet;
-  const isStraight = result.result_digits === pick.combo;
+  const isStraight = result.result_digits === straightCombo;
   if (!isBox && !isStraight) return;
   // BUG-32 fix mirrored: only `${date}` and the prior day are valid targets.
   // Late-night ET regens are tagged with the current ET date, never tomorrow's.
@@ -142,8 +150,11 @@ async function recordHitInAdaptiveTracking(
     pburstS >= coS     && pburstS >= dgcS                   ? 'PBURST' :
     coS     >= dgcS                                         ? 'CO' : 'DGC';
   const comboSet = pick.comboSet ?? pick.normKey;
+  // BUG-155 (2026-05-23): see updateDailyIntelligenceHit — compare against
+  // bestOrder, not the engine enumeration index.
+  const straightCombo = pick.bestOrder ?? pick.combo;
   const isBox = result.comboset_sorted === comboSet;
-  const isStraight = result.result_digits === pick.combo;
+  const isStraight = result.result_digits === straightCombo;
   const slateHash = snap.hash ?? '';
   const mode = snap.mode || 'balanced';
   const outcomeFields = {
@@ -328,7 +339,14 @@ async function runForDate(date: string, scope: string | null, skipSupplements: b
     const updatedPicks = picks.map((pick: any) => {
       if (pick.hitType) return pick;
       const comboSet = pick.comboSet ?? pick.normKey;
-      const combo = pick.combo;
+      // BUG-155 (2026-05-23): straight match must compare against
+      // pick.bestOrder (the user-facing recommended straight), not
+      // pick.combo (engine enumeration index 000..999). They diverge
+      // whenever bestOrderFor() chose a different permutation than the
+      // iteration index. Prior code stamped picks as 'straight' on raw
+      // index matches even though the user playing bestOrder only got box.
+      // Fallback to combo for legacy picks that pre-date bestOrder.
+      const straightCombo = pick.bestOrder ?? pick.combo;
       const matches: { result: HistoryRow; straightHit: boolean; boxHit: boolean }[] = [];
       for (const result of results) {
         // BUG-148 (2026-05-17): histories.session is now strictly
@@ -340,7 +358,7 @@ async function runForDate(date: string, scope: string | null, skipSupplements: b
           snapshot.scope === 'allday' || snapshot.scope === result.session;
         if (!sessionMatches) continue;
         const boxHit = result.comboset_sorted === comboSet;
-        const straightHit = result.result_digits === combo;
+        const straightHit = result.result_digits === straightCombo;
         if (boxHit || straightHit) matches.push({ result, straightHit, boxHit });
       }
       if (matches.length === 0) return pick;

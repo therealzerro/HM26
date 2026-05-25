@@ -1234,6 +1234,22 @@ Unblocks step 3 importer construction.
 
 ---
 
+**Step 3a complete (2026-05-25):**
+
+- `lib/zk30/parseTxRaw.ts` — pure parser, shared between CLI + future admin UI
+- `scripts/imports/import_tx_raw.ts` — CLI wrapper, service-role auth, batched 500
+- Unique-key migration applied: dropped 4-tuple, added 2-tuple `UNIQUE (date_et, session)`
+- Parser bugfix: rebuilt for actual TX file format (`date \t jurisdiction \t session \t result-with-fireball`)
+- Backfill: 2,498 rows imported from `/workspaces/HM26/assets/tx_history.txt`
+- Date range: 2024-05-27 → 2026-05-25 (728 days = 2 years)
+- Session distribution: Day 625, Evening 624, Morning 625, Night 624
+- DOW distribution: Mon 418, Tue/Wed/Thu/Fri/Sat 416 each, Sun 0
+- Fireball nulls: 0
+- Idempotency verified: re-run inserted 0 rows
+- Ready for Step 3b (`aggregate_tx_datasets.ts`)
+
+---
+
 ## ZK6 Engine Audit Findings (2026-05-10)
 
 | ID | Issue | Severity | Description |

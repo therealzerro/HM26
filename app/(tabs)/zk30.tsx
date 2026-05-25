@@ -21,7 +21,7 @@ import {
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, RefreshCw, Layers, Grid3x3, List, Sparkles, Info, Play, X } from 'lucide-react-native';
+import { ChevronLeft, RefreshCw, Layers, Grid3x3, List, Sparkles, Info, Play, X, TrendingUp, MoreHorizontal } from 'lucide-react-native';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
 import { useTheme, type ColorTokens } from '@/lib/theme';
@@ -33,7 +33,8 @@ import { ZK30PickCardRow } from '@/components/zk30/PickCard';
 import { ZK30PickDetailModal } from '@/components/zk30/PickDetailModal';
 import { ZK30PickItem, ZK30Snapshot } from '@/components/zk30/types';
 
-type ViewMode = 'compact' | 'list' | 'hits';
+type ViewMode = 'compact' | 'list' | 'hits' | 'results' | 'tbd1' | 'tbd2';
+const PRIMARY_MODES: readonly ViewMode[] = ['compact', 'list', 'hits'] as const;
 const VIEW_MODE_KEY = 'zk30-view-mode';
 
 // ─── Data fetch (today → yesterday fallback) ───────────────────────────────
@@ -84,7 +85,9 @@ export default function ZK30Screen() {
   // Load persisted view mode on mount.
   useEffect(() => {
     storage.getItem(VIEW_MODE_KEY).then((v) => {
-      if (v === 'compact' || v === 'list' || v === 'hits') setViewMode(v);
+      if (v === 'compact' || v === 'list' || v === 'hits' || v === 'results' || v === 'tbd1' || v === 'tbd2') {
+        setViewMode(v as ViewMode);
+      }
     });
   }, []);
   const changeViewMode = useCallback((m: ViewMode) => {
@@ -190,7 +193,7 @@ export default function ZK30Screen() {
         </TouchableOpacity>
       </View>
 
-      {/* View-mode chips */}
+      {/* Primary view-mode chips — data shapes */}
       <View style={s.modeRow}>
         <ModeChip
           active={viewMode === 'compact'}
@@ -219,6 +222,37 @@ export default function ZK30Screen() {
           colors={colors}
           brand={brandBlue}
           highlight={hitPicks.length > 0}
+        />
+      </View>
+
+      {/* Secondary chips — sections (compact: smaller chip height to save vertical) */}
+      <View style={s.modeRowSecondary}>
+        <ModeChip
+          active={viewMode === 'results'}
+          onPress={() => changeViewMode('results')}
+          Icon={TrendingUp}
+          label="RESULTS"
+          colors={colors}
+          brand={brandBlue}
+          compact
+        />
+        <ModeChip
+          active={viewMode === 'tbd1'}
+          onPress={() => changeViewMode('tbd1')}
+          Icon={MoreHorizontal}
+          label="TBD · 1"
+          colors={colors}
+          brand={brandBlue}
+          compact
+        />
+        <ModeChip
+          active={viewMode === 'tbd2'}
+          onPress={() => changeViewMode('tbd2')}
+          Icon={MoreHorizontal}
+          label="TBD · 2"
+          colors={colors}
+          brand={brandBlue}
+          compact
         />
       </View>
 
@@ -278,48 +312,59 @@ export default function ZK30Screen() {
             <Text style={[s.secondaryBtnText, { color: brandBlue }]}>Show all 30 picks</Text>
           </TouchableOpacity>
         </View>
+      ) : viewMode === 'results' ? (
+        <ResultsPlaceholder
+          colors={colors}
+          brand={brandBlue}
+          hitsToday={hitPicks.length}
+          slateDate={slateDateLabel}
+          onTriggerDetection={triggerHitDetection}
+          triggerBusy={hitTriggerBusy}
+          triggerStatus={hitTriggerStatus}
+        />
+      ) : viewMode === 'tbd1' ? (
+        <TbdPlaceholder colors={colors} brand={brandBlue} label="TBD · 1" />
+      ) : viewMode === 'tbd2' ? (
+        <TbdPlaceholder colors={colors} brand={brandBlue} label="TBD · 2" />
+      ) : viewMode === 'compact' ? (
+        // No ScrollView in compact mode — pure flexbox so the 5×6 grid claims
+        // all available vertical space. Tiles get flex:1 per row + row gets
+        // flex:1 per column = equal-share auto-sizing tiles.
+        <View style={s.gridContainer}>
+          <View style={s.gridArea}>
+            {Array.from({ length: Math.ceil(visiblePicks.length / 5) }).map((_, rowIdx) => (
+              <View key={rowIdx} style={s.gridRowFlex}>
+                {visiblePicks.slice(rowIdx * 5, rowIdx * 5 + 5).map((p) => (
+                  <CompactTile
+                    key={`tile-${p.rank}`}
+                    pick={p}
+                    brandBlue={brandBlue}
+                    onPress={() => setDetail(p)}
+                  />
+                ))}
+                {visiblePicks.slice(rowIdx * 5, rowIdx * 5 + 5).length < 5 &&
+                  Array.from({
+                    length: 5 - visiblePicks.slice(rowIdx * 5, rowIdx * 5 + 5).length,
+                  }).map((_, i) => <View key={`pad-${i}`} style={{ flex: 1 }} />)}
+              </View>
+            ))}
+          </View>
+        </View>
       ) : (
+        // List + Hits: ScrollView (rows always scroll regardless of count).
         <ScrollView
           style={s.scroll}
-          contentContainerStyle={
-            viewMode === 'compact'
-              ? s.gridContent
-              : s.listContent
-          }
+          contentContainerStyle={s.listContent}
           showsVerticalScrollIndicator={false}
         >
-          {viewMode === 'compact' ? (
-            // 6 columns × 5 rows — data-ring tiles, ~50px each
-            <View style={s.grid}>
-              {Array.from({ length: Math.ceil(visiblePicks.length / 6) }).map((_, rowIdx) => (
-                <View key={rowIdx} style={s.gridRow}>
-                  {visiblePicks.slice(rowIdx * 6, rowIdx * 6 + 6).map((p) => (
-                    <CompactTile
-                      key={`tile-${p.rank}`}
-                      pick={p}
-                      brandBlue={brandBlue}
-                      onPress={() => setDetail(p)}
-                    />
-                  ))}
-                  {/* Pad incomplete rows so last-row tiles don't stretch */}
-                  {visiblePicks.slice(rowIdx * 6, rowIdx * 6 + 6).length < 6 &&
-                    Array.from({
-                      length: 6 - visiblePicks.slice(rowIdx * 6, rowIdx * 6 + 6).length,
-                    }).map((_, i) => <View key={`pad-${i}`} style={{ flex: 1 }} />)}
-                </View>
-              ))}
-            </View>
-          ) : (
-            // list + hits both render full PickCardRow
-            visiblePicks.map((p) => (
-              <ZK30PickCardRow
-                key={`row-${p.rank}`}
-                pick={p}
-                brandBlue={brandBlue}
-                onPress={() => setDetail(p)}
-              />
-            ))
-          )}
+          {visiblePicks.map((p) => (
+            <ZK30PickCardRow
+              key={`row-${p.rank}`}
+              pick={p}
+              brandBlue={brandBlue}
+              onPress={() => setDetail(p)}
+            />
+          ))}
           <View style={{ height: 40 }} />
         </ScrollView>
       )}
@@ -357,6 +402,117 @@ export default function ZK30Screen() {
   );
 }
 
+// ─── Section subcomponents (Results + TBD placeholders) ────────────────────
+
+function ResultsPlaceholder({
+  colors, brand, hitsToday, slateDate, onTriggerDetection, triggerBusy, triggerStatus,
+}: {
+  colors: ColorTokens; brand: string; hitsToday: number; slateDate: string;
+  onTriggerDetection: () => void; triggerBusy: boolean; triggerStatus: string;
+}) {
+  return (
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+      {/* Today's at-a-glance */}
+      <View style={[placeholderStyles.card, { borderColor: brand + '44' }]}>
+        <Text style={[placeholderStyles.sectionLabel, { color: brand }]}>TODAY  ·  {slateDate}</Text>
+        <View style={placeholderStyles.statsRow}>
+          <View style={placeholderStyles.statBlock}>
+            <Text style={[placeholderStyles.statNum, { color: hitsToday > 0 ? colors.gold : colors.textTertiary }]}>
+              {hitsToday}
+            </Text>
+            <Text style={[placeholderStyles.statLabel, { color: colors.textTertiary }]}>HITS</Text>
+          </View>
+          <View style={[placeholderStyles.statBlock, { borderLeftWidth: 1, borderLeftColor: colors.border, paddingLeft: 18 }]}>
+            <Text style={[placeholderStyles.statNum, { color: colors.text }]}>30</Text>
+            <Text style={[placeholderStyles.statLabel, { color: colors.textTertiary }]}>PICKS</Text>
+          </View>
+          <View style={[placeholderStyles.statBlock, { borderLeftWidth: 1, borderLeftColor: colors.border, paddingLeft: 18 }]}>
+            <Text style={[placeholderStyles.statNum, { color: colors.text }]}>
+              {hitsToday > 0 ? Math.round((hitsToday / 30) * 100) : 0}<Text style={{ fontSize: 13 }}>%</Text>
+            </Text>
+            <Text style={[placeholderStyles.statLabel, { color: colors.textTertiary }]}>RATE</Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          disabled={triggerBusy}
+          onPress={onTriggerDetection}
+          style={[placeholderStyles.runBtn, { backgroundColor: brand + '15', borderColor: brand + '88' }]}
+        >
+          {triggerBusy && <ActivityIndicator size="small" color={brand} />}
+          <Text style={[placeholderStyles.runBtnText, { color: brand }]}>
+            {triggerBusy ? 'Running…' : 'Run Hit Detection Now'}
+          </Text>
+        </TouchableOpacity>
+        {triggerStatus !== '' && (
+          <Text style={[{ fontSize: 11, fontWeight: '700', textAlign: 'center', marginTop: 4 },
+            { color: triggerStatus.startsWith('✓') ? colors.success : colors.error }]}>
+            {triggerStatus}
+          </Text>
+        )}
+      </View>
+
+      {/* Coming-soon roadmap */}
+      <View style={[placeholderStyles.card, { borderColor: colors.border }]}>
+        <Text style={[placeholderStyles.sectionLabel, { color: colors.textTertiary }]}>COMING SOON</Text>
+        {[
+          '7-day hit rollup chart',
+          'By-session breakdown (Morning / Day / Evening / Night)',
+          'Fireball-only vs natural-only split',
+          'Best-performing energy band',
+          'Cron health (last 14 runs · success/failure)',
+        ].map((line, i) => (
+          <View key={i} style={placeholderStyles.bullet}>
+            <Text style={[placeholderStyles.bulletDot, { color: brand }]}>·</Text>
+            <Text style={[placeholderStyles.bulletText, { color: colors.textSecondary }]}>{line}</Text>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
+  );
+}
+
+function TbdPlaceholder({ colors, brand, label }: { colors: ColorTokens; brand: string; label: string }) {
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 10 }}>
+      <View style={{
+        width: 64, height: 64, borderRadius: 32,
+        borderWidth: 2, borderColor: brand + '55',
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        <MoreHorizontal size={24} color={brand} />
+      </View>
+      <Text style={{ fontSize: 16, fontWeight: '900', color: colors.text, letterSpacing: 1 }}>{label}</Text>
+      <Text style={{ fontSize: 12, color: colors.textTertiary, textAlign: 'center', maxWidth: 240, lineHeight: 17 }}>
+        Reserved slot. Defines later when the data model + operator workflow are sketched.
+      </Text>
+    </View>
+  );
+}
+
+const placeholderStyles = StyleSheet.create({
+  card: {
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderWidth: 1, borderRadius: 12,
+    padding: 14, gap: 10,
+  },
+  sectionLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 1.5 },
+  statsRow: { flexDirection: 'row', alignItems: 'baseline', gap: 18, paddingVertical: 4 },
+  statBlock: { alignItems: 'flex-start' },
+  statNum: { fontSize: 28, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
+  statLabel: { fontSize: 9, fontWeight: '800', letterSpacing: 1, marginTop: 2 },
+  runBtn: {
+    flexDirection: 'row', gap: 6,
+    paddingVertical: 10, paddingHorizontal: 14,
+    borderRadius: 10, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
+    marginTop: 4,
+  },
+  runBtnText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
+  bullet: { flexDirection: 'row', gap: 6, paddingVertical: 2 },
+  bulletDot: { fontSize: 16, fontWeight: '900', lineHeight: 16 },
+  bulletText: { fontSize: 11, flex: 1, lineHeight: 16 },
+});
+
 function PopKV({ label, value, colors, mono }: { label: string; value: string; colors: ColorTokens; mono?: boolean }) {
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5 }}>
@@ -378,43 +534,49 @@ interface ChipProps {
   onPress: () => void;
   Icon: React.ComponentType<{ size: number; color: string }>;
   label: string;
-  count: number;
+  count?: number;
   colors: ColorTokens;
   brand: string;
   highlight?: boolean;
+  compact?: boolean;
 }
-function ModeChip({ active, onPress, Icon, label, count, colors, brand, highlight }: ChipProps) {
+function ModeChip({ active, onPress, Icon, label, count, colors, brand, highlight, compact }: ChipProps) {
   const color = active ? brand : colors.textTertiary;
+  const padV = compact ? 5 : 8;
+  const iconSize = compact ? 11 : 12;
   return (
     <TouchableOpacity
       onPress={onPress}
       style={[
         chipStyles.chip,
         {
+          paddingVertical: padV,
           backgroundColor: active ? brand + '18' : 'transparent',
           borderColor: active ? brand + '88' : colors.border,
         },
       ]}
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
-      accessibilityLabel={`${label} view, ${count} picks`}
+      accessibilityLabel={`${label} view${typeof count === 'number' ? `, ${count} picks` : ''}`}
     >
-      <Icon size={12} color={color} />
+      <Icon size={iconSize} color={color} />
       <Text style={[chipStyles.label, { color }]}>{label}</Text>
-      <View
-        style={[
-          chipStyles.count,
-          {
-            backgroundColor: active ? brand + '33' : colors.surfaceLight,
-            borderColor: highlight && count > 0 ? colors.gold + '88' : 'transparent',
-            borderWidth: highlight && count > 0 ? 1 : 0,
-          },
-        ]}
-      >
-        <Text style={[chipStyles.countText, { color: highlight && count > 0 ? colors.gold : color }]}>
-          {count}
-        </Text>
-      </View>
+      {typeof count === 'number' && (
+        <View
+          style={[
+            chipStyles.count,
+            {
+              backgroundColor: active ? brand + '33' : colors.surfaceLight,
+              borderColor: highlight && count > 0 ? colors.gold + '88' : 'transparent',
+              borderWidth: highlight && count > 0 ? 1 : 0,
+            },
+          ]}
+        >
+          <Text style={[chipStyles.countText, { color: highlight && count > 0 ? colors.gold : color }]}>
+            {count}
+          </Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -512,10 +674,16 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
     backgroundColor: colors.surfaceLight,
   },
 
-  // View-mode chips
+  // View-mode chips — primary (data shapes)
   modeRow: {
     flexDirection: 'row',
-    paddingHorizontal: 12, paddingVertical: 10,
+    paddingHorizontal: 12, paddingTop: 10, paddingBottom: 4,
+    gap: 6,
+  },
+  // Secondary (sections — Results / TBD / TBD)
+  modeRowSecondary: {
+    flexDirection: 'row',
+    paddingHorizontal: 12, paddingTop: 0, paddingBottom: 8,
     gap: 6,
   },
 
@@ -540,10 +708,10 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
 
   // Body
   scroll: { flex: 1 },
-  gridContent: { padding: 10, gap: 8 },
   listContent: { padding: 10, gap: 8 },
 
-  // Compact grid
-  grid: { gap: 8 },
-  gridRow: { flexDirection: 'row', gap: 8 },
+  // Compact grid — pure flexbox, fills available vertical space.
+  gridContainer: { flex: 1, paddingHorizontal: 8, paddingVertical: 8 },
+  gridArea: { flex: 1, gap: 6 },
+  gridRowFlex: { flex: 1, flexDirection: 'row', gap: 6 },
 });

@@ -55,9 +55,9 @@ export function CompactTile({ pick, onPress, brandBlue }: Props) {
   const energy = typeof pick.energy === 'number' ? pick.energy : (pick.temperature ?? 0);
   const chrome = hitChrome(pick.hitType, colors);
 
-  // Ring sizing: outer 44px gives stroke room inside ~50px tile padding.
-  // Combo sits inside the ring (center). Pip row sits below.
-  const RING_SIZE = 44;
+  // Ring sizing: 68px outer (was 76) — trimmed to compensate for the new
+  // secondary chip row that eats ~32px of vertical chrome.
+  const RING_SIZE = 68;
 
   return (
     <TouchableOpacity
@@ -86,7 +86,7 @@ export function CompactTile({ pick, onPress, brandBlue }: Props) {
         <Text style={s.combo}>{combo}</Text>
       </EnergyRing>
 
-      <SignalPips signals={pick.signals} brandBlue={brandBlue} size={3.5} />
+      <SignalPips signals={pick.signals} brandBlue={brandBlue} size={5.5} />
 
       {chrome.glyph && (
         <View style={s.cornerGlyph}>
@@ -101,22 +101,24 @@ const makeS = (colors: ColorTokens, _brandBlue: string) =>
   StyleSheet.create({
     tile: {
       flex: 1,
-      aspectRatio: 0.85,        // slightly taller than wide — fits ring + pip row
-      borderRadius: 8,
-      paddingTop: 3,
-      paddingBottom: 4,
-      paddingHorizontal: 2,
+      // No aspectRatio — tiles flex to fill available row height. Min-height
+      // guards short screens after the secondary chip row trimmed vertical.
+      minHeight: 70,
+      borderRadius: 11,
+      paddingTop: 5,
+      paddingBottom: 6,
+      paddingHorizontal: 3,
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 3,
+      gap: 5,
       position: 'relative',
       overflow: 'visible',
     },
     combo: {
-      fontSize: 12,
+      fontSize: 16,
       fontFamily: theme.typography.fontFamily.monoBold,
       color: colors.text,
-      letterSpacing: 1.2,
+      letterSpacing: 1.6,
       fontWeight: '900',
     },
     cornerGlyph: {

@@ -53,14 +53,23 @@ export const HORIZON_WEIGHTS_ZK30: Record<ZK30Horizon, number> = {
 };
 
 // ─── Weights (mode preset) ───────────────────────────────────────────────────
-// Inherited from ZK6 balanced for v1.0. Re-tune via backtest post-launch.
-// Only `balanced` shipped in v1.0; conservative/aggressive deferred to v2.0.
+// Inherited from ZK6 v2.1 engine balanced preset — the *carved-out 4-channel*
+// version actually shipped in `engines/zk6.ts:345-349`, not the 3-channel
+// {BOX:0.55, PBURST:0.30, CO:0.15} listed in `constants/zk6.ts:15-31`.
+// Discrepancy: ZK6's engine takes that 3-channel ratio, multiplies each by
+// (1 − 0.10) to carve out a DGC channel at 0.10, yielding the production
+// 4-channel split below. We mirror the production split — DGC is
+// load-bearing in ZK6's measured hit rate.
+//
+// Re-tune via backtest post-launch (step 4 spec). Only `balanced` shipped
+// in v1.0; conservative/aggressive deferred to v2.0.
 
 export const ZK30_WEIGHTS = {
   balanced: {
-    BOX: 0.55,
-    PBURST: 0.30,
-    CO: 0.15,
+    BOX:    0.495,
+    PBURST: 0.270,
+    CO:     0.135,
+    DGC:    0.10,
   },
 } as const;
 

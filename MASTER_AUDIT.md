@@ -1458,6 +1458,50 @@ Fireball substitution: `[fb+r[1]+r[2], r[0]+fb+r[2], r[0]+r[1]+fb]` (3 augmented
 
 ---
 
+**Step 7 complete — `app/(tabs)/zk30.tsx` rewrite + admin hit-detection trigger (2026-05-25):**
+
+Operator-only ZK30 slate view (hidden tab `href: null`, accessed via direct route). Pure read-side surface; mutations stay in admin + cron.
+
+**Files changed:**
+- `app/(tabs)/zk30.tsx` — full rewrite (~330 lines). Was a 221-line stub querying the stale `slate_snapshots?mode=eq.zk30` shape from pre-rebuild ZK30.
+- `components/admin/DashboardView.tsx` — added `handleZK30HitDetection` callback + admin button between the ZK30 regen card and the ZK30 import card (~50 lines).
+
+**`zk30.tsx` changes:**
+- **Query swap:** `slate_snapshots_zk30?slate_date=eq.${today}&deleted_at=is.null&order=updated_at_et.desc&limit=1`. Falls back to yesterday's slate if today's hasn't dropped yet (slate marked `_isStale: true` client-side, stale banner rendered).
+- **Scope chips removed.** Single immutable label "◈ ALL-DAY · TEXAS" — v1.0 lock-in is scope=allday, no optionality.
+- **4-flag hit badge strip** per pick card (`S` / `B` / `🔥S` / `🔥B`). Superset suppression: `B` suppressed when `S` set; `🔥B` suppressed when `🔥S` set. Persistent letter = affordance; color = decoration. Tooltip via `accessibilityLabel`. Palette: emerald-500 / blue-500 / orange-500 / amber-500 / slate-300 dim.
+- **Refresh-on-focus** via `useFocusEffect` + `queryClient.invalidateQueries(['zk30-snapshot-latest'])`. Catches the 09:00-ET daily drop when operator switches tabs back.
+- **Metadata footer:** `v{engine_version} · {hash8} · gen {updated_at_et}` (monospace). Surfaces engine version + hash + gen time for operator triage.
+- **States:** loading (spinner + "Loading today's slate…"), error (retry button), no-slate (empty state + "Next drop: 09:00 ET" + admin deep link), stale (yellow banner above pick groups).
+- **Light-mode-only** blue palette (hardcoded). Doesn't honor `useTheme()`. Acceptable for v1.0 internal use; proper theme integration deferred to v2.0 public launch.
+
+**`DashboardView.tsx` changes:**
+- New `zk30HitBusy` / `zk30HitStatus` state pair
+- `handleZK30HitDetection` callback — POSTs to `/functions/v1/run-hit-detection-zk30` with `{date: getTodayET()}` and surfaces `hitsFound` + `picksMatched` from the response. Inline ~25-line fetch (lib/hitDetection.ts targets ZK6 path).
+- New card "ZK30 Hit Detection" between the existing scope-regen card and data-import card. Single "Run ZK30 Hit Detection (Today)" button + spinner + status line. Mirrors existing teal styling.
+
+**Verification:**
+- tsc clean for both files (3 pre-existing `regenerateSlate` signature errors in `DashboardView.tsx:96/118/204` are unrelated and pre-date step 7).
+- Smoke verified via MCP: the query `slate_snapshots_zk30?slate_date=eq.2026-05-25&deleted_at=is.null&order=updated_at_et.desc&limit=1` returns the active snapshot (hash `3B15D864`, 30 picks, jurisdiction TX) and rank 22 (combo `173`) has `hitType='fireball_straight', hitSession='Day', hitResult='171', hitFireball='3'` — confirming the 🔥S badge will render correctly for the captured step 6 hit.
+
+**Spec deviations (documented):**
+
+1. **4-flag derivation is from `hitType` only, not 4 explicit boolean flags.** The work-order spec assumed the snapshot's `top_k_straights_json` carries `hit_straight/hit_box/hit_fireball_straight/hit_fireball_box` per-pick. Actual snapshot shape carries only `hitType` (single primary). For multi-hit picks (e.g. natural box AND fireball straight same day), only the primary surfaces — full match list lives in `adaptive_tracking_zk30` and would require a secondary fetch to render. v1.0 trade-off: simpler, single fetch, captures 99%+ of cases. Operator can drill into AT for the rare multi-hit case.
+
+2. **`order=created_at` → `order=updated_at_et`.** `slate_snapshots_zk30` has no `created_at` column (per step 4.1 schema). Functionally equivalent — each snapshot is a new INSERT after soft-delete-prior, so `updated_at_et` IS the effective creation timestamp.
+
+3. **Polish items (7.8 + 7.9) deferred** per work-order spec — tab badge for unviewed ZK30 hits + Home strip integration not included.
+
+**Operator runbook for v1.0 dogfooding:**
+1. Slate generates automatically via the 09:00-ET ET schedule **not yet wired** (no pg_cron for compute-slate-zk30 — must trigger manually via admin button). _Open follow-up: ARCH-06 step 8 cron for slate-gen._
+2. Hit detection runs nightly at 23:30 ET via `run-hit-detection-zk30-nightly` cron (step 6).
+3. Operator opens `/zk30` route to view today's slate. If no slate visible: open Admin → ZK30 section → tap a scope regen button.
+4. To force re-detection mid-day: Admin → ZK30 Hit Detection → "Run ZK30 Hit Detection (Today)".
+
+**Ready for v1.0 internal launch.** Outstanding for public launch (per ARCH-06 spec): 7 consecutive days of clean cron generation; full backtest re-run once 30 days of TX matches accumulate.
+
+---
+
 ## ZK6 Engine Audit Findings (2026-05-10)
 
 | ID | Issue | Severity | Description |

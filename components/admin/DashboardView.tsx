@@ -61,6 +61,9 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
   const [zk30Jurisdiction, setZk30Jurisdiction] = useState<string>('TX');
   const [zk30BusyMap, setZk30BusyMap] = useState<Record<string, boolean>>({});
   const [zk30StatusMap, setZk30StatusMap] = useState<Record<string, string>>({});
+  // ZK30 hit detection state (ARCH-06 step 7.4)
+  const [zk30HitBusy, setZk30HitBusy] = useState<boolean>(false);
+  const [zk30HitStatus, setZk30HitStatus] = useState<string>('');
 
   useEffect(() => {
     const todayStart = new Date(getTodayET() + 'T05:00:00.000Z').toISOString();
@@ -137,6 +140,49 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
       setZk30BusyMap(m => ({ ...m, [scope]: false }));
     }
   }, [zk30Jurisdiction]);
+
+  // ARCH-06 step 7.4 — POST today's ET date to the ZK30 hit-detection edge fn.
+  // lib/hitDetection.ts targets the ZK6 path; ZK30 needs its own invocation.
+  // Kept inline (~25 lines) rather than splitting to lib/ until a second
+  // consumer appears.
+  const handleZK30HitDetection = useCallback(async () => {
+    const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+    const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) {
+      setZk30HitStatus('✗ Supabase config missing');
+      return;
+    }
+    setZk30HitBusy(true);
+    setZk30HitStatus('');
+    try {
+      const res = await fetch(`${url}/functions/v1/run-hit-detection-zk30`, {
+        method: 'POST',
+        headers: {
+          'apikey': key,
+          'Authorization': 'Bearer ' + key,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ date: getTodayET() }),
+      });
+      const text = await res.text();
+      if (!res.ok) {
+        setZk30HitStatus(`✗ ${res.status}: ${text.slice(0, 60)}`);
+        return;
+      }
+      try {
+        const json = JSON.parse(text);
+        const hits = typeof json?.hitsFound === 'number' ? json.hitsFound : 0;
+        const picks = typeof json?.picksMatched === 'number' ? json.picksMatched : 0;
+        setZk30HitStatus(`✓ ${hits} hit${hits !== 1 ? 's' : ''} across ${picks} pick${picks !== 1 ? 's' : ''}`);
+      } catch {
+        setZk30HitStatus('✓ Done (response unparsable)');
+      }
+    } catch (e) {
+      setZk30HitStatus(`✗ ${String(e instanceof Error ? e.message : e).slice(0, 60)}`);
+    } finally {
+      setZk30HitBusy(false);
+    }
+  }, []);
 
   const handleFullWorkflow = useCallback(async () => {
     setIsRunningWorkflow(true);
@@ -515,6 +561,40 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
             );
           })}
         </View>
+      </Card>
+
+      {/* ARCH-06 step 7.4 — ZK30 hit detection trigger */}
+      <Card style={{ padding: 16, marginBottom: 4 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>ZK30 Hit Detection</Text>
+            <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 2 }}>
+              POST to run-hit-detection-zk30 · cron runs nightly 23:30 ET
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          disabled={zk30HitBusy}
+          onPress={handleZK30HitDetection}
+          style={{
+            padding: 10, borderRadius: 8, borderWidth: 1,
+            borderColor: colors.teal + '44', backgroundColor: colors.teal + '10',
+            alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6,
+          }}
+        >
+          {zk30HitBusy && <ActivityIndicator size="small" color={colors.teal} />}
+          <Text style={{ fontSize: 11, fontWeight: '700', color: zk30HitBusy ? colors.textTertiary : colors.teal }}>
+            {zk30HitBusy ? 'Running…' : 'Run ZK30 Hit Detection (Today)'}
+          </Text>
+        </TouchableOpacity>
+        {zk30HitStatus && (
+          <Text style={{
+            marginTop: 8, fontSize: 11, color: colors.textSecondary,
+            fontFamily: theme.typography.fontFamily.mono, textAlign: 'center',
+          }}>
+            {zk30HitStatus}
+          </Text>
+        )}
       </Card>
 
       <Card style={{ padding: 16, marginBottom: 4 }}>

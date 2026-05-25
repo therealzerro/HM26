@@ -1250,6 +1250,45 @@ Unblocks step 3 importer construction.
 
 ---
 
+
+**Step 3b complete (2026-05-25):**
+
+- `lib/zk30/aggregateTxDatasets.ts` — pure aggregator. Inputs: TX draws + anchor + horizon. Outputs: 220 box rows + 685 pair rows per horizon. First true `histories → datasets` aggregator in the codebase (ZK6 rebuild paths are UPDATE-only — original datasets came from operator CSV imports).
+- `scripts/imports/aggregate_tx_datasets.ts` — CLI wrapper. `--dry-run` default, `--apply` writes. Always operates on BOTH H01Y + H02Y (per-horizon partial rebuilds intentionally not supported to avoid delete-all-reinsert-one footgun). Full-delete-then-INSERT pattern; brief empty window acceptable for v1.0 backfill (engine not reading yet).
+- Anchor: `2026-05-25` (= max `date_et` in `histories_tx`).
+- Row counts written (verified): **440 box + 1,370 pair = 1,810 total**, split evenly across 2 horizons.
+
+**ZK6 helpers reused (no engine code modified):**
+- `lib/engineCore.ts::sortedPair`, `multiplicityOf` — pair canonicalization + multiplicity dedup for class 11
+- Pagination pattern from `scripts/intel-tuning/rebuild-datasets.ts::fetchHistoriesForScope` — BUG-153 1000-cap defense
+- `constants/pairClasses.ts` definitions — informed the 10-class extraction logic
+
+**Convention decisions logged via sign-off:**
+- Never-drew rows: emitted in full with `ds_raw=horizon_days`, `last_seen=NULL`, `draws_since=window_draws`. No sentinels.
+- `expected` column: NULL (verified via grep that `engines/zk6.ts`, `compute-slate-zk6`, `engineCore.ts` never read it)
+- `ds_normalized`: 0 (engine recomputes from raw signals)
+- Anchor-day inclusion: window is `(anchor − horizonDays, anchor]` (right-closed, left-open)
+- Pair class 11: dedups per draw (triple `1-1-1` counts pair `{1,1}` once, not three times)
+
+**Validation queries (all 6 green):**
+
+| # | Check | Result | Expected | Status |
+|---|---|---|---|---|
+| 1 | Box rows per horizon | H01Y=220, H02Y=220 | 220 each | ✅ |
+| 2 | Pair rows per horizon + class count | H01Y=685/10, H02Y=685/10 | 685 each, 10 classes (2..11) | ✅ |
+| 3 | Spot-check `box['117']` (recent 5/25 Day was 171) | td=2, last_seen=2026-05-25, ds_raw=0, draws_since=0 | td≥1, last_seen=most recent | ✅ |
+| 4 | Coverage universe sanity | box=220 distinct keys, pair=685 distinct (key,class) | matches universe | ✅ |
+| 5 | `times_drawn` sum cross-check | H02Y=2,498 (= file total), H01Y=1,250 (~1,248 expected) | matches window | ✅ |
+| 6 | Idempotency (dry-run + re-apply) | identical counts both times | identical | ✅ |
+
+**Deviations from recon expectations:** none. Universe sizes, pair-class counts, and helper reuse plan all held.
+
+**Audit-log rows written:** `action='aggregate_tx_datasets'`, `target='datasets_box,datasets_pair'`. Two rows from the two `--apply` runs.
+
+**Ready for Step 4 (`engines/zk30.ts`).**
+
+---
+
 ## ZK6 Engine Audit Findings (2026-05-10)
 
 | ID | Issue | Severity | Description |

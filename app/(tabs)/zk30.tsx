@@ -1,28 +1,27 @@
 // app/(tabs)/zk30.tsx
 //
-// Phase 7.A → 7.E rewrite (ARCH-06 v1.1 UI overhaul).
+// ARCH-06 v1.2 — Data Ring tile + chrome compression.
 //
-// Dark cosmic theme honoring useTheme(); blue (colors.dataBlue) replaces
-// purple as the brand accent. Back arrow → router.back(). Three view modes:
+// Compact: 6×5 grid of CompactTile (data-ring layout) — all 30 picks fit
+//   on iPhone SE in one screen, ring shows energy, pips show signals.
+// List:    full ZK30PickCardRow with horizontal right-side stack.
+// Hits:    filtered; empty state has inline "run detection now" trigger.
 //
-//   Compact (default): 5×6 grid of CompactTile — all 30 picks visible.
-//   List:              scroll of ZK30PickCardRow — full signal bars + pressure.
-//   Hits:              filtered to picks with hitType set — wins surface.
-//
-// Tap any tile/row → ZK30PickDetailModal (with fireball substitution
-// explainer when applicable).
+// Header compressed: meta info (version / hash / gen-time) moved into an
+// info popover behind ⓘ. Stale-day shown as a chip in the header, not a
+// full-width banner.
 //
 // View-mode preference persisted in AsyncStorage (`zk30-view-mode`).
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView,
+  View, Text, StyleSheet, ScrollView, Modal,
   TouchableOpacity, ActivityIndicator,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, RefreshCw, Layers, Grid3x3, List, Sparkles } from 'lucide-react-native';
+import { ChevronLeft, RefreshCw, Layers, Grid3x3, List, Sparkles, Info, Play, X } from 'lucide-react-native';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
 import { useTheme, type ColorTokens } from '@/lib/theme';
@@ -78,6 +77,9 @@ export default function ZK30Screen() {
 
   const [viewMode, setViewMode] = useState<ViewMode>('compact');
   const [detail, setDetail] = useState<ZK30PickItem | null>(null);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [hitTriggerBusy, setHitTriggerBusy] = useState(false);
+  const [hitTriggerStatus, setHitTriggerStatus] = useState<string>('');
 
   // Load persisted view mode on mount.
   useEffect(() => {
@@ -103,6 +105,44 @@ export default function ZK30Screen() {
     }, [queryClient]),
   );
 
+  // Inline hit-detection trigger for the empty-hits state. Mirrors the admin
+  // DashboardView button so operator doesn't need to leave /zk30.
+  const triggerHitDetection = useCallback(async () => {
+    const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+    const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) { setHitTriggerStatus('✗ config missing'); return; }
+    setHitTriggerBusy(true);
+    setHitTriggerStatus('');
+    try {
+      const res = await fetch(`${url}/functions/v1/run-hit-detection-zk30`, {
+        method: 'POST',
+        headers: {
+          'apikey': key,
+          'Authorization': 'Bearer ' + key,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ date: getTodayET() }),
+      });
+      const text = await res.text();
+      if (!res.ok) {
+        setHitTriggerStatus(`✗ ${res.status}`);
+      } else {
+        try {
+          const json = JSON.parse(text);
+          const hits = typeof json?.hitsFound === 'number' ? json.hitsFound : 0;
+          setHitTriggerStatus(`✓ ${hits} hit${hits !== 1 ? 's' : ''}`);
+          queryClient.invalidateQueries({ queryKey: ['zk30-snapshot-latest'] });
+        } catch {
+          setHitTriggerStatus('✓ done');
+        }
+      }
+    } catch (e) {
+      setHitTriggerStatus(`✗ ${String(e instanceof Error ? e.message : e).slice(0, 40)}`);
+    } finally {
+      setHitTriggerBusy(false);
+    }
+  }, [queryClient]);
+
   const allPicks = parsePicks(snapshot?.top_k_straights_json).slice(0, 30);
   const hitPicks = allPicks.filter((p) => p.hitType);
 
@@ -122,46 +162,33 @@ export default function ZK30Screen() {
 
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
-      {/* Header — back arrow + brand + actions */}
+      {/* Header — back + brand + stale pill + info + refresh */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.iconBtn} accessibilityLabel="Back">
           <ChevronLeft size={22} color={colors.text} />
         </TouchableOpacity>
         <View style={s.headerCenter}>
-          <Text style={s.headerTitle}>
-            ZK30  <Text style={[s.headerBrand, { color: brandBlue }]}>·</Text>  TX
-          </Text>
-          <Text style={s.headerSub}>
-            {slateDateLabel}
-            {isStale && <Text style={[s.staleInline, { color: colors.warning }]}>  (yesterday)</Text>}
-          </Text>
+          <View style={s.headerTitleRow}>
+            <Text style={s.headerTitle}>
+              ZK30  <Text style={[s.headerBrand, { color: brandBlue }]}>·</Text>  TX
+            </Text>
+            {isStale && (
+              <View style={[s.stalePill, { backgroundColor: colors.warning + '20', borderColor: colors.warning + '88' }]}>
+                <Text style={[s.stalePillText, { color: colors.warning }]}>YESTERDAY</Text>
+              </View>
+            )}
+          </View>
+          <Text style={s.headerSub}>{slateDateLabel}</Text>
         </View>
-        <TouchableOpacity
-          onPress={() => refetch()}
-          style={s.iconBtn}
-          accessibilityLabel="Refresh"
-        >
+        <TouchableOpacity onPress={() => setInfoOpen(true)} style={s.iconBtn} accessibilityLabel="Slate info">
+          <Info size={17} color={colors.textSecondary} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => refetch()} style={s.iconBtn} accessibilityLabel="Refresh">
           {isRefetching
             ? <ActivityIndicator size="small" color={brandBlue} />
-            : <RefreshCw size={18} color={colors.textSecondary} />}
+            : <RefreshCw size={17} color={colors.textSecondary} />}
         </TouchableOpacity>
       </View>
-
-      {/* Meta strip (mono, low contrast) */}
-      <View style={[s.metaStrip, { borderTopColor: brandBlue + '33' }]}>
-        <Text style={s.metaText}>
-          v{engineV}  ·  {hash8 || '——'}  ·  gen {genTime}
-        </Text>
-      </View>
-
-      {/* Stale banner */}
-      {isStale && (
-        <View style={[s.staleBanner, { backgroundColor: colors.warning + '18', borderColor: colors.warning + '55' }]}>
-          <Text style={[s.staleText, { color: colors.warning }]}>
-            Today&apos;s slate hasn&apos;t generated yet — showing {slateDateLabel}.
-          </Text>
-        </View>
-      )}
 
       {/* View-mode chips */}
       <View style={s.modeRow}>
@@ -227,8 +254,23 @@ export default function ZK30Screen() {
           <EmptyState
             icon={Sparkles}
             title="No hits yet"
-            message="Nightly hit detection runs at 23:30 ET. Trigger it now from Admin."
+            message="Nightly detection runs at 23:30 ET. Trigger it now to score today's slate against any draws that have landed."
           />
+          <TouchableOpacity
+            disabled={hitTriggerBusy}
+            onPress={triggerHitDetection}
+            style={[s.primaryBtn, { backgroundColor: brandBlue, flexDirection: 'row', gap: 8 }]}
+          >
+            {hitTriggerBusy ? <ActivityIndicator size="small" color="#fff" /> : <Play size={14} color="#fff" />}
+            <Text style={s.primaryBtnText}>
+              {hitTriggerBusy ? 'Running…' : 'Run Hit Detection Now'}
+            </Text>
+          </TouchableOpacity>
+          {hitTriggerStatus !== '' && (
+            <Text style={[s.statusText, { color: hitTriggerStatus.startsWith('✓') ? colors.success : colors.error }]}>
+              {hitTriggerStatus}
+            </Text>
+          )}
           <TouchableOpacity
             style={[s.secondaryBtn, { borderColor: brandBlue }]}
             onPress={() => changeViewMode('compact')}
@@ -247,11 +289,11 @@ export default function ZK30Screen() {
           showsVerticalScrollIndicator={false}
         >
           {viewMode === 'compact' ? (
-            // 5 columns × 6 rows
+            // 6 columns × 5 rows — data-ring tiles, ~50px each
             <View style={s.grid}>
-              {Array.from({ length: Math.ceil(visiblePicks.length / 5) }).map((_, rowIdx) => (
+              {Array.from({ length: Math.ceil(visiblePicks.length / 6) }).map((_, rowIdx) => (
                 <View key={rowIdx} style={s.gridRow}>
-                  {visiblePicks.slice(rowIdx * 5, rowIdx * 5 + 5).map((p) => (
+                  {visiblePicks.slice(rowIdx * 6, rowIdx * 6 + 6).map((p) => (
                     <CompactTile
                       key={`tile-${p.rank}`}
                       pick={p}
@@ -259,10 +301,10 @@ export default function ZK30Screen() {
                       onPress={() => setDetail(p)}
                     />
                   ))}
-                  {/* Pad incomplete rows so last row tiles don't stretch */}
-                  {visiblePicks.slice(rowIdx * 5, rowIdx * 5 + 5).length < 5 &&
+                  {/* Pad incomplete rows so last-row tiles don't stretch */}
+                  {visiblePicks.slice(rowIdx * 6, rowIdx * 6 + 6).length < 6 &&
                     Array.from({
-                      length: 5 - visiblePicks.slice(rowIdx * 5, rowIdx * 5 + 5).length,
+                      length: 6 - visiblePicks.slice(rowIdx * 6, rowIdx * 6 + 6).length,
                     }).map((_, i) => <View key={`pad-${i}`} style={{ flex: 1 }} />)}
                 </View>
               ))}
@@ -288,6 +330,43 @@ export default function ZK30Screen() {
         brandBlue={brandBlue}
         onClose={() => setDetail(null)}
       />
+
+      {/* Info popover — replaces the always-visible meta strip */}
+      <Modal transparent animationType="fade" visible={infoOpen} onRequestClose={() => setInfoOpen(false)}>
+        <TouchableOpacity style={s.popBackdrop} activeOpacity={1} onPress={() => setInfoOpen(false)}>
+          <View style={[s.popCard, { borderColor: brandBlue + '55' }]}>
+            <View style={s.popHeader}>
+              <Text style={[s.popTitle, { color: brandBlue }]}>SLATE METADATA</Text>
+              <TouchableOpacity onPress={() => setInfoOpen(false)} style={s.popClose}>
+                <X size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <PopKV label="Jurisdiction"   value="TX" colors={colors} />
+            <PopKV label="Scope"          value="allday" colors={colors} />
+            <PopKV label="Mode"           value="balanced" colors={colors} />
+            <PopKV label="Engine"         value={`v${engineV}`} colors={colors} />
+            <PopKV label="Slate date"     value={slateDateLabel} colors={colors} />
+            <PopKV label="Snapshot hash"  value={hash8 || '——'} colors={colors} mono />
+            <PopKV label="Generated"      value={genTime} colors={colors} />
+            <PopKV label="Pick count"     value={String(allPicks.length)} colors={colors} />
+            <PopKV label="Hits annotated" value={String(hitPicks.length)} colors={colors} />
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
+  );
+}
+
+function PopKV({ label, value, colors, mono }: { label: string; value: string; colors: ColorTokens; mono?: boolean }) {
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5 }}>
+      <Text style={{ fontSize: 10, fontWeight: '800', color: colors.textTertiary, letterSpacing: 0.5 }}>{label}</Text>
+      <Text style={{
+        fontSize: 12, fontWeight: '700', color: colors.text,
+        fontFamily: mono ? theme.typography.fontFamily.mono : undefined,
+      }}>
+        {value}
+      </Text>
     </View>
   );
 }
@@ -382,6 +461,7 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
     borderRadius: 18,
   },
   headerCenter: { flex: 1, alignItems: 'center' },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   headerTitle: {
     fontSize: 18, fontWeight: '900', color: colors.text,
     letterSpacing: 1, fontFamily: theme.typography.fontFamily.bold,
@@ -391,29 +471,45 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
     fontSize: 11, color: colors.textSecondary, fontWeight: '600',
     marginTop: 1,
   },
-  staleInline: { fontWeight: '700' },
+  stalePill: {
+    paddingHorizontal: 6, paddingVertical: 2,
+    borderRadius: 4, borderWidth: 1,
+  },
+  stalePillText: { fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
 
-  // Meta strip
-  metaStrip: {
-    paddingHorizontal: 16, paddingVertical: 5,
-    backgroundColor: colors.surface2,
-    borderTopWidth: 1,
+  statusText: { fontSize: 11, fontWeight: '700', marginTop: 4 },
+
+  // Info popover
+  popBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: 64,
+    paddingRight: 8,
+  },
+  popCard: {
+    minWidth: 260,
+    backgroundColor: colors.bgElevated,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+    gap: 1,
+  },
+  popHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 6,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  metaText: {
-    fontSize: 9, color: colors.textTertiary,
-    fontFamily: theme.typography.fontFamily.mono,
-    letterSpacing: 0.5,
-  },
-
-  // Stale banner
-  staleBanner: {
-    marginHorizontal: 12, marginTop: 8,
-    paddingVertical: 8, paddingHorizontal: 12,
-    borderRadius: 8, borderWidth: 1,
-  },
-  staleText: {
-    fontSize: 11, fontWeight: '700', textAlign: 'center',
+  popTitle: { fontSize: 9, fontWeight: '900', letterSpacing: 1.5 },
+  popClose: {
+    width: 24, height: 24, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.surfaceLight,
   },
 
   // View-mode chips

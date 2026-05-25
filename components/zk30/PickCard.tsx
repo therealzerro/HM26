@@ -94,9 +94,9 @@ export function ZK30PickCardRow({ pick, onPress, brandBlue }: Props) {
         <SignalBar label="DGC"    value={pick.signals.DGC ?? 0} color={colors.gold} />
       </View>
 
-      {/* Right: hit badges + pressure */}
+      {/* Right: badges, pressure, hit label — single horizontal row */}
       <View style={s.right}>
-        <View style={s.badgeStrip}>
+        <View style={s.rightRow}>
           {badges.map((b, i) => (
             <View
               key={i}
@@ -112,10 +112,10 @@ export function ZK30PickCardRow({ pick, onPress, brandBlue }: Props) {
               </Text>
             </View>
           ))}
+          {pressure && (
+            <Text style={[s.pressure, { color: pressure.color }]}>· {pressure.txt}</Text>
+          )}
         </View>
-        {pressure && (
-          <Text style={[s.pressure, { color: pressure.color }]}>{pressure.txt}</Text>
-        )}
         {hitLabel && (
           <Text style={[s.hitLabel, { color: border }]}>{hitLabel}</Text>
         )}
@@ -161,8 +161,8 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
   heatLabel: { fontSize: 8, fontWeight: '800', letterSpacing: 0.5 },
   energyNum: { fontSize: 9, fontWeight: '700' },
   mid: { flex: 1, gap: 1 },
-  right: { width: 90, alignItems: 'flex-end', gap: 4 },
-  badgeStrip: { flexDirection: 'row', gap: 2 },
+  right: { width: 120, alignItems: 'flex-end', gap: 3 },
+  rightRow: { flexDirection: 'row', alignItems: 'center', gap: 3, flexWrap: 'wrap', justifyContent: 'flex-end' },
   badge: {
     paddingHorizontal: 4, paddingVertical: 2,
     borderRadius: 4, borderWidth: 1,

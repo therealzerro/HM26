@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQueryClient } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
@@ -509,6 +510,25 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
       </Card>
 
       <SectionTitle>ZK30 — SINGLE STATE MODE</SectionTitle>
+      <TouchableOpacity
+        onPress={() => router.push('/(tabs)/zk30')}
+        style={{
+          marginBottom: 8,
+          padding: 12,
+          borderRadius: 10,
+          borderWidth: 1.5,
+          borderColor: '#0ea5e9',
+          backgroundColor: '#0ea5e9' + '12',
+          alignItems: 'center',
+          flexDirection: 'row',
+          justifyContent: 'center',
+          gap: 6,
+        }}
+      >
+        <Text style={{ fontSize: 13, fontWeight: '800', color: '#0ea5e9', letterSpacing: 0.3 }}>
+          Open ZK30 Slate  →
+        </Text>
+      </TouchableOpacity>
       <Card style={{ padding: 16, marginBottom: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <View>

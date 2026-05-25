@@ -1502,6 +1502,67 @@ Operator-only ZK30 slate view (hidden tab `href: null`, accessed via direct rout
 
 ---
 
+## ARCH-06 v1.0 CLOSURE (2026-05-25)
+
+Slate-gen cron deployed — final v1.0 gap closed.
+
+**Closure migration:** `supabase/migrations/2026_05_25_zk30_slate_gen_cron.sql`. Applied via Supabase MCP. Audit-log row written (`target='arch-06-zk30-slate-gen-cron'`).
+
+**Both ZK30 crons live:**
+
+| jobname | schedule (UTC) | EDT / EST | Function |
+|---|---|---|---|
+| `compute-slate-zk30-daily` | `0 13 * * 1-6` | 09:00 ET / 08:00 ET, Mon–Sat | `compute-slate-zk30` (step 5) |
+| `run-hit-detection-zk30-nightly` | `30 3 * * *` | 23:30 ET / 22:30 ET, daily | `run-hit-detection-zk30` (step 6) |
+
+Both `active=true`, both POST via `pg_net` with `cron_anon_key` vault secret (reused from ZK6's `compute-daily-report` cron migration).
+
+**ZK30 v1.0 build COMPLETE.**
+
+| Step | Deliverable | Status |
+|---|---|---|
+| 1 | DDL — histories_tx, daily_intelligence_zk30, adaptive_tracking_zk30 | ✅ migrated, RLS verified |
+| 2 | constants/zk30.ts | ✅ narrowed horizon type, app_config seeded |
+| 3a | TX raw parser + CLI importer | ✅ 2,498 rows imported, idempotent |
+| 3b | TX datasets aggregator | ✅ 440 box + 1,370 pair rows, 6 validation queries green |
+| 4 | engines/zk30.ts + slate_snapshots_zk30 + DGC weight correction + hash wrapper | ✅ smoke green, 30-pick slate generated |
+| 5 | compute-slate-zk30 Edge Function | ✅ v3 deployed sha 7718ac7d, parity hash 3B15D864 matches RN engine |
+| 6 | run-hit-detection-zk30 Edge Function + nightly cron | ✅ v1 deployed sha 067b45ae, captured real Fireball Straight hit on combo 173 |
+| 7 | UI integration — `app/(tabs)/zk30.tsx` rewrite + admin hit-detection trigger | ✅ tsc clean, smoke verified, 4-flag hit badges + stale-banner + focus-refetch |
+| closure | compute-slate-zk30 daily cron | ✅ scheduled `0 13 * * 1-6` UTC, active |
+
+**Daily operator workflow (post-closure):**
+
+1. **Manual** — TX import via admin (after Night session settles, ~22:30 ET). Operator pastes the day's draws into the admin import wizard; the parser + importer (step 3) writes to `histories_tx`.
+2. **Manual** — aggregator run via CLI: `tsx scripts/imports/aggregate_tx_datasets.ts --apply`. Rebuilds `datasets_box` + `datasets_pair` TX rows from the updated `histories_tx`.
+3. **AUTO** — slate-gen cron fires at **09:00 ET next morning** (Mon–Sat). Writes `slate_snapshots_zk30` + `daily_intelligence_zk30` + `adaptive_tracking_zk30` primary rows + `engine_runs` telemetry.
+4. **AUTO** — hit-detection cron fires at **23:30 ET next night**. Annotates `slate_snapshots_zk30.top_k_straights_json` with `hitType`, writes per-session match rows to `adaptive_tracking_zk30`, PATCHes `daily_intelligence_zk30` rows.
+5. Operator monitors via `/zk30` route (refresh-on-focus). Admin can force re-detection or re-gen mid-day via the DashboardView buttons.
+
+**Phase 6 roadmap (deferred, not v1.0 blockers):**
+
+- **Auto-import via Playwright scraper** — replace step 1 manual paste with scheduled scrape of TX Lottery site. Removes operator burden from the daily loop.
+- **Auto-aggregator** — wire step 2 into a post-import trigger or a cron 60s before slate-gen cron. Eliminates the manual `--apply` step.
+- **Multi-jurisdiction parameterization (v2.0)** — expand from `jurisdiction='TX'` hardcode to SC/OH/NJ/NY/FL per ARCH-06's "deferred to v2.0" list.
+
+**Outstanding follow-ups registered (separate audit tickets recommended):**
+
+1. **ZK6 hash-only AT dedup** — `recordHitInAdaptiveTracking` in `supabase/functions/run-hit-detection/index.ts` has the same latent flaw fixed in step 5/6 for ZK30: `slate_hash`-only dedup misses the multi-day-same-picks case. ZK6 is currently insulated by its higher hash variance from per-scope/per-mode multiplication, but the bug exists.
+2. **`engine_runs` UPSERT no-op caveat** — PostgREST `Prefer: resolution=merge-duplicates` without an explicit `?on_conflict=` URL param silently no-ops on non-PK unique conflicts. Visible side-effect: `generated_at_et` pins to first write for any (slate_hash, mode) pair. Affects both ZK6 + ZK30 telemetry timestamps. Fix is one query-string addition to the `sbPost('/rest/v1/engine_runs', ...)` call in both edge functions.
+3. **v1.1 hardening items:**
+   - Per-multiplicity energy threshold tuning (engine smoke showed composition 23/4/3 vs ARCH-06's 18/9/3 target — `zk30_min_energy_threshold` could be lowered for non-singles to unlock more doubles/triples)
+   - Theme integration for `/zk30` (currently hardcoded blue palette, light-only — won't honor dark mode toggle)
+   - `histories_tx.comboset_sorted` column — currently computed inline in hit detection edge fn; cheap denormalization would simplify future query paths
+
+**v1.0 acceptance gates (per ARCH-06 spec, in flight):**
+
+- ⏳ 7 consecutive days of clean slate-gen at 09:00 ET — measurement starts after first cron fire (2026-05-26 09:00 ET).
+- ⏳ Full backtest re-run once 30 days of TX matches accumulated — earliest practical date ≈ 2026-06-25.
+
+Both gates are time-based; structural build is done.
+
+---
+
 ## ZK6 Engine Audit Findings (2026-05-10)
 
 | ID | Issue | Severity | Description |

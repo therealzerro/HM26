@@ -1217,6 +1217,23 @@ All inherit ZK6 defaults (post-CONFIG-01 revert + CONFIG-02 quality-floor 70). R
 
 ---
 
+**Step 3a.0 — `histories_tx` unique-key correction: SHIPPED 2026-05-25.**
+
+Pre-importer fix. Step 1 deployed `UNIQUE (date_et, session, result_digits, fireball)`; the importer needs `on_conflict=date_et,session` for idempotent upserts — the 4-tuple key would have triggered BUG-149's "no unique or exclusion constraint matching the ON CONFLICT specification" the moment the first batch posted.
+
+- Migration file: `supabase/migrations/2026_05_25_zk30_histories_tx_unique_key_fix.sql`
+- Applied via Supabase MCP `apply_migration` (name: `zk30_histories_tx_unique_key_fix`)
+- `histories_tx` verified empty before the swap (rowcount = 0).
+- Dropped: `histories_tx_date_et_session_result_digits_fireball_key UNIQUE (date_et, session, result_digits, fireball)`.
+- Added: `histories_tx_date_et_session_key UNIQUE (date_et, session)`.
+- No redundant non-unique index on `(date_et, session)` existed; `idx_histories_tx_date` and `idx_histories_tx_session` serve distinct query patterns and stay.
+- Operational consequence: corrections to `result_digits` or `fireball` after the first import must go through `PATCH` on the row (not re-`INSERT`).
+- Audit-log row written: `target='arch-06-zk30-histories-tx-unique-key'`.
+
+Unblocks step 3 importer construction.
+
+---
+
 ## ZK6 Engine Audit Findings (2026-05-10)
 
 | ID | Issue | Severity | Description |

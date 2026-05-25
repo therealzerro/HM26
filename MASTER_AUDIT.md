@@ -400,7 +400,7 @@ Post-fix re-run: ✅ 30 files scanned, 0 findings.
 | 🟡 Open — Medium | 0 |
 | 🔵 Open — Low | 0 |
 | 🔵 Latent / Not Active | 1 |
-| 🏗️ Architecture Debt | 5 (1 open, 4 fixed) |
+| 🏗️ Architecture Debt | 6 (1 open = ARCH-06, 4 fixed, 1 superseded = ARCH-04→ARCH-06) |
 | 💡 Enhancement Opportunities | 22 (20 implemented, 2 deferred — ENH-08 requires DB schema, ENH-12 requires new table) |
 
 ---
@@ -1056,9 +1056,164 @@ These are not bugs but structural issues that will cause maintenance pain at sca
 | ARCH-01 | `admin.tsx` ~4000 lines — UI, data fetching, business logic all mixed | Slow velocity, high side-effect risk | ✅ Fixed 2026-05-11 — Extracted 10 view components into `components/admin/`. `admin.tsx` now 88 lines (thin router). Shared helpers/styles/types in `AdminShared.tsx`. |
 | ARCH-02 | ZK6 and ZK30 share ~80% logic — two separate files | Fixes in one engine get missed in the other | ✅ Fixed 2026-05-12 — `lib/engineCore.ts` extracted: pure TS, Deno-safe signal math (`computeDGC`, `computeBoxSignal`, `computePairSignal`, `maxNorm`, `computeWeightedScore`, `computeSlateHash`, `computeConfidenceScore`, combo utilities, `HORIZON_WEIGHTS`, `MULTIPLICITY_PRIORS`). Both `engines/zk6.ts` and `engines/zk30.ts` now import from it; ~80 local duplicate lines removed per engine. |
 | ARCH-03 | No unit test suite | Signal computation regressions go undetected | ✅ Fixed 2026-05-11 — Jest + jest-expo configured (`npm test`). 22 tests in `__tests__/` covering ENG-01 (max-norm), ENG-05 (pairFreqScore), DGC, toComboSet, normalizeScope, pairUtils. Regressions in signal math now caught immediately. |
-| ARCH-04 | `useDataIngestion.tsx` imports `computeSlate` from ZK6 only — no path to trigger ZK30 regen from hooks | ZK30 can only be regenerated from the Admin screen directly | Open |
+| ARCH-04 | `useDataIngestion.tsx` imports `computeSlate` from ZK6 only — no path to trigger ZK30 regen from hooks | ZK30 can only be regenerated from the Admin screen directly | ✅ Superseded by ARCH-06 (2026-05-25) — the ZK30 v1.0 ground-up rebuild covers this in step 3 (import pipeline). Old `engines/zk30.ts` deleted 2026-05-25 to clear way for the new build; the hook-side integration ships with the new engine. |
 | ARCH-05 / NEW-28 | Dual hit detection system — `lib/hitDetection.ts` (used by `admin.tsx`, `import-wizard.tsx`) and inline `runHitDetectionAndRefresh` in `useDataIngestion.tsx` (used by ledger import) are two separate implementations with divergent behavior | Hits detected via admin may miss cases handled by ledger-triggered detection and vice versa | ✅ Fixed 2026-05-11 — Inline 190-line implementation removed from `useDataIngestion.tsx`. Now delegates to `lib/hitDetection.ts::runHitDetectionForDates()`. Ledger-specific pair RPC kept in hook. `dominant_signal` added to `recordHitInAdaptiveTracking` in lib. |
+| ARCH-06 | ZK30 v1.0 single-state engine architecture lock-in (Texas pilot). Ground-up rebuild replacing the stale `engines/zk30.ts` clone-of-ZK6 (deleted 2026-05-25). Spec covers: scope=`allday` only, 30 picks, balanced-only mode, 09:00 ET Mon–Sat drop, jurisdiction='TX' hardcoded, 18/9/3 rails, `PAIR_REPETITION_CAP_ZK30=10`, H01Y+H02Y horizons (0.70/0.30), 3 new tables (`histories_tx` with 4-session + Fireball, `daily_intelligence_zk30`, `adaptive_tracking_zk30`), 4 match types (straight/box/fireball_straight/fireball_box), Edge Function runtime via `EXPO_PUBLIC_USE_EDGE_ZK30`, ported ZK6 fixes (BUG-153 pair pagination, AT primary writes, hit-orphan append, full-delete intel pattern). | If shipped without the structural lock-in, future patches will drift the ZK30 implementation from the agreed v1.0 contract — same failure mode as PROCESS-01. | Open — see long-form section below. Build is sequenced into 7 work orders; step 1 (DDL migrations) staged 2026-05-25. Deviations require a new ARCH entry. |
 | PROCESS-01 | Edge-function migration audits checked git diffs in the change window only, not structural API parity. The `EXPO_PUBLIC_USE_EDGE_ZK6` parity verification on 2026-05-21 found two pre-window structural drifts (`bestOrder` and `dataStats` missing from `compute-slate-zk6`'s return shape) that would have caused a user-visible UI regression on flag flip. The runtime parity harness caught them; the static audit did not. | UI fields silently rendered as `undefined` post-cutover; type contract violations slip through code review when both sides type-check independently. | Lesson logged 2026-05-21 — Future engine/edge-function migration audits MUST include a structural parity step BEFORE the git-diff step: enumerate every field returned by both paths and every column persisted by both paths, then diff field-by-field independent of the change window. The harness at `scripts/zk6-parity/` is the runtime backstop, but the static audit must catch structural drift first. Apply this to: future ZK6/edge migrations, any future ZK30 edge fn, and the next time a client engine swap is contemplated. |
+
+---
+
+### ARCH-06 — ZK30 v1.0 Engine Architecture Lock-in (2026-05-25)
+
+Fresh ground-up rebuild of the ZK30 single-state engine for Texas, replacing the stale clone in `engines/zk30.ts` (deleted 2026-05-25). Locks all v1.0 design decisions; deviations require a new ARCH entry, not patches to this one.
+
+**Replaces:** `engines/zk30.ts` (the v2.1-cloned-from-ZK6 file with state filter only). Deleted to clear way for clean build. Also closes ARCH-04.
+
+**Engine shape:**
+- Single scope: `allday` (no midday/evening switching)
+- 30 picks per slate (vs ZK6's 6)
+- Single mode: `balanced` only for v1.0 (BOX:0.55, PBURST:0.30, CO:0.15 inherited from ZK6 — re-tune via backtest post-launch)
+- Drop time: 09:00 ET daily, Mon–Sat only (no Sunday draws)
+- Engine version tag: `v1.0`
+- Jurisdiction: hardcoded `'TX'` for v1.0 — parameterize in v2.0 when expanding to SC/OH/NJ/NY/FL
+
+**Rails (scaled 5× from ZK6's 6-pick design):**
+- 18 singles / 9 doubles / 3 triples (was 4/2/0 for ZK6)
+- `PAIR_REPETITION_CAP_ZK30 = 10` (linear scale: ZK6's 2 × 5)
+- 5-pass selector with relaxation order: exclusions → pair cap → cooldown → emergency
+
+**Horizons:**
+- H01Y + H02Y only (TX dataset is 2 years; H03Y–H10Y not populated)
+- Custom horizon weights: **H01Y=0.70, H02Y=0.30** (H01Y-heavy, not proportional renormalization)
+- H03Y–H10Y explicitly zero-weighted in `HORIZON_WEIGHTS_ZK30`
+
+**Data architecture:**
+- **NEW table `histories_tx`** — raw TX draws, 4 sessions preserved (Morning/Day/Evening/Night), Fireball stored per row. Separate from `histories` to avoid ZK6 collapse-collision (per BUG-149).
+- **Existing tables `datasets_box` + `datasets_pair`** — TX rows written with `jurisdiction='TX'`, `scope='allday'`. Same schema as ZK6, just jurisdiction filter.
+- **NEW table `daily_intelligence_zk30`** — fully isolated from `daily_intelligence`. No ZK6 bleed. Adds 4 match columns (hit_straight, hit_box, hit_fireball_straight, hit_fireball_box) + matched_session/result/fireball.
+- **NEW table `adaptive_tracking_zk30`** — primary rows written at slate-gen time with quartile flags + dominant_signal (parity with ZK6's AUC analysis foundation). Multi-row per pick when matched across multiple sessions.
+
+**Match detection:**
+- 4 match types per pick per draw: straight, box, fireball_straight, fireball_box
+- Fireball mechanic: substitute drawn Fireball digit into pos 0/1/2 of pick, check straight + box against draw result
+- **Log every matched session per pick** — not just highest-priority. Multi-row writes to `adaptive_tracking_zk30` when one pick matches across multiple sessions. Maximum AUC visibility.
+
+**Build path:**
+- Runtime: Supabase Edge Function `compute-slate-zk30` (parity with ZK6's Edge Function), routed via `EXPO_PUBLIC_USE_EDGE_ZK30=true`
+- Shared math: imports `lib/engineCore.ts` (no changes to engineCore)
+- New constants file: `constants/zk30.ts`
+- **Don't-touch list:** `engines/zk6.ts`, `supabase/functions/compute-slate-zk6/`, `constants/zk6.ts`, `lib/engineCore.ts`
+
+**Ported fixes from ZK6 (must not be skipped):**
+- BUG-153 pagination on pair fetch (PostgREST 1000-row cap)
+- adaptive_tracking primary write pattern (was missing from old zk30.ts)
+- hit-orphan row appending to daily_intelligence_zk30
+- Full-delete pattern on intel writes (replaces the `hit_box=eq.false` filter from old zk30.ts)
+
+**Build order (each step is a separate work order):**
+1. DDL migrations (3 tables + indexes + RLS) — **first work order, staged 2026-05-25**
+2. `constants/zk30.ts`
+3. Import pipeline: `import_tx_raw.ts` + `aggregate_tx_datasets.ts` + 2-year backfill
+4. `engines/zk30.ts` (RN-side, debug-friendly first)
+5. `compute-slate-zk30` Edge Function (Deno port after engine math validates)
+6. Hit detection: `detectZK30Matches` + `run-hit-detection-zk30` Edge Function
+7. UI integration (blue-themed slate cards, deferred design step)
+
+**Definition of done for v1.0:**
+- 3 new tables exist with RLS
+- `histories_tx` has ≥2 years TX raw (Mon–Sat, 4 sessions, Fireball)
+- `datasets_box` + `datasets_pair` have TX rows for H01Y and H02Y
+- Engine generates valid 30-pick slate
+- Edge Function deployed, responds <2s
+- `daily_intelligence_zk30` + `adaptive_tracking_zk30` write per generation
+- Hit detection correctly flags all 4 match types
+- 7 consecutive days of clean slate-gen at 09:00 ET without manual intervention
+
+**Open items deferred to post-v1.0:**
+- Mode presets (conservative/aggressive) — currently balanced only
+- Multi-jurisdiction parameterization (SC/OH/NJ/NY/FL expansion)
+- Backtest harness for ZK30 (mirror `scripts/backtest/` pattern)
+- ZK30 priority access mechanics for ZK Mystic tier per subscription design
+
+**Review:** initial review after first 7 days of clean generation. Full backtest re-run once 30 days of TX matches accumulated.
+
+**Override of standing rule:** memory + CLAUDE.md hold a "no ZK30 work until ZK6 verified ≥73% over 7d post-fix" gate. Operator explicitly overrode 2026-05-25 to begin this rebuild; ZK6 stabilization work continues in parallel and is not gated by ZK30 progress.
+
+---
+
+**Step 1 of 7 — DDL Migrations: DEPLOYED 2026-05-25 14:26 ET (18:26 UTC).**
+
+- Migration file: `supabase/migrations/2026_05_25_zk30_tables.sql`
+- Applied via Supabase MCP `apply_migration` (name: `zk30_v1_tables`, version `20260525182620`)
+- Audit-log row written: `action='arch_migration_applied'`, `target='arch-06-zk30-v1-tables'`
+
+Tables verified present (column counts shown):
+
+| Table | RLS | Columns | Indexes |
+|---|---|---|---|
+| `histories_tx` | enabled | 7 | 4 (PK, unique 4-tuple, idx_date, idx_session) |
+| `daily_intelligence_zk30` | enabled | 24 | 4 (PK, unique slate_date+rank+combo, idx_date, idx_hits) |
+| `adaptive_tracking_zk30` | enabled | 25 | 3 (PK, idx_hash, idx_date) |
+
+Policies installed:
+
+- `histories_tx` — single `allow_all` policy on `public` role for `ALL`. Anon CRUD (mirrors `histories`).
+- `daily_intelligence_zk30` — `di_zk30_select_public` (`SELECT` public), `di_zk30_update_anon` (`UPDATE` anon), `di_zk30_update_authenticated` (`UPDATE` authenticated). INSERT/DELETE service_role only (mirrors `daily_intelligence` lockdown from BUG-20).
+- `adaptive_tracking_zk30` — `at_zk30_select_public`, `at_zk30_insert_anon`, `at_zk30_insert_authenticated`, `at_zk30_update_authenticated`. Anon DELETE blocked at policy level; service_role bypasses (mirrors `adaptive_tracking` post-BUG-20 + 5/14 anon-grant restore).
+
+Grants installed for anon/authenticated/service_role on tables and `*_id_seq` sequences.
+
+**Validation tests:**
+
+- ✅ Roundtrip INSERT into all 3 tables inside a `BEGIN/ROLLBACK` — counts went 1/1/3 inside txn, 0/0/0 after rollback.
+- ✅ Multi-row append on `adaptive_tracking_zk30`: 3 rows for same `(slate_hash, rank, combo)` succeeded (primary + 2 match rows for different `matched_session`). Confirms no unique-constraint blocker for the multi-session match model.
+- ✅ Negative CHECK constraint test: `INSERT … session='BadSession'` correctly raised `check_violation`.
+
+**Deviations from work-order spec:** none on schema or rails. One naming difference logged for context — the work order's text referenced `ARCH-04` per the original draft; the audit file uses **ARCH-06** because ARCH-04 was already taken (now superseded by ARCH-06). Schema, indexes, RLS pattern, column types, and PK strategy match the work order verbatim.
+
+**Next work order:** step 2 — `constants/zk30.ts`. Step 3 (import pipeline) is the next DB-touching step; nothing else writes to these tables until then.
+
+---
+
+**Step 2 of 7 — Constants Module: SHIPPED 2026-05-25 ~14:35 ET.**
+
+- File created: `constants/zk30.ts`
+- Engine identity exports: `ZK30_ENGINE_VERSION='v1.0'`, `ZK30_JURISDICTION='TX'`, `ZK30_SCOPE='allday'`, `ZK30_DROP_TIME_ET='09:00'`, `ZK30_DRAW_SESSIONS` + `ZK30Session` type, `ZK30_DRAW_DAYS=[1..6]` (Mon–Sat)
+- **Horizon set narrowed at the type level** to `'H01Y' | 'H02Y'` via `Extract<HorizonLabel, 'H01Y' | 'H02Y'>`. `ZK30_HORIZONS` is the 2-element runtime array; `HORIZON_WEIGHTS_ZK30: Record<ZK30Horizon, number>` is the keyed weight map (H01Y=0.70, H02Y=0.30). H03Y–H10Y are unreachable from any ZK30 import.
+- Rails: `K30_QUOTAS = { singles: 18, doubles: 9, triples: 3 }`, `PAIR_REPETITION_CAP_ZK30 = 10`
+- Match types: 4-element `ZK30_MATCH_TYPES` + `ZK30MatchType` union: `'straight' | 'box' | 'fireball_straight' | 'fireball_box'`
+- Weights: single `balanced` preset inherited from ZK6 (BOX 0.55 / PBURST 0.30 / CO 0.15). `ZK30Mode = keyof typeof ZK30_WEIGHTS` — currently just `'balanced'`.
+- Audit-action constants: `ZK30_AUDIT_ACTIONS` for import / aggregate / regenerate / hit-detection paths
+
+**7 app_config rows seeded** (idempotent `ON CONFLICT DO NOTHING`):
+
+| key | value |
+|---|---|
+| `zk30_pressure_threshold` | 250 |
+| `zk30_recent_hit_cooldown` | 20 |
+| `zk30_min_energy_threshold` | 70 |
+| `zk30_synergy_boost_on` | false |
+| `zk30_synergy_boost_weight` | 0.15 |
+| `zk30_box_freq_weight` | 0.60 |
+| `zk30_box_pressure_weight` | 0.40 |
+
+All inherit ZK6 defaults (post-CONFIG-01 revert + CONFIG-02 quality-floor 70). Re-tune via backtest in v2.0+.
+
+**Validation:**
+
+- ✅ `tsc --noEmit` clean for `constants/zk30.ts` (zero errors attributable to this file)
+- ✅ Type-narrowing proof: temp file `constants/_zk30_narrowing_proof.ts` written with `const x: ZK30Horizon = 'H03Y'` and `HORIZON_WEIGHTS_ZK30['H03Y']` — tsc reported two expected errors (`TS2322` on the type annotation, `TS7053` on the indexed access). Proof file deleted after verification.
+- ✅ `ZK30_HORIZONS.length === 2` at compile time (tuple via `as const`)
+
+**Known stale reference (not from this step):** `components/admin/DashboardView.tsx:14` still imports from the deleted `@/engines/zk30`. Pre-existing breakage from the file deletion in step 0 — will resolve automatically when step 4 creates the new engine module.
+
+**Architectural intent honored downstream:**
+
+1. Step 3 import / aggregation pipeline iterates `ZK30_HORIZONS`, NOT `H_ALL`. No zero-row placeholders for H03Y–H10Y.
+2. Step 4 engine fetch code queries `datasets_box` / `datasets_pair` with `horizon_label.in.(H01Y,H02Y)`. BUG-153 pagination still required for pair fetch.
+3. Step 4/5 blend math passes `HORIZON_WEIGHTS_ZK30` directly into `engineCore` helpers — engineCore's loop over `H_ALL` hits `undefined → 0` for H03Y+, producing identical math. **No ZK30-specific blending helper** wrapping engineCore — explicitly out of scope.
+
+**Next work order:** step 3 — import pipeline (`import_tx_raw.ts` + `aggregate_tx_datasets.ts` + 2-year backfill).
 
 ---
 
@@ -1297,6 +1452,7 @@ Applied design handoff 4 patches and v3 system patches. All items sourced from `
 | 2026-05-12 | V7 Patch 01 — Results Ledger cleanup (UX-62): `app/(tabs)/results.tsx` full replacement. Above-list chrome reduced from 5 bands to 3 (header + date tabs + one compact controls strip). Stats row (6 numbers) moved to `StatsSheet` bottom modal — prettier 4-cell session breakdown + total/hits/hit-rate row, triggered by ⋯ `MoreHorizontal` button in header. Search bar collapsed from full row to 🔍 icon trigger; tap expands inline with teal border + X to close; active query shown as teal chip on trigger. Session filter shrunk from full pills row to compact icon+3-letter-label pills inside a flex scrollable. Single `controlsRow` = [search trigger] [session pills] [draw count]. All queries, processed data, grouped sections, hit badge rendering, F/B/S signal columns preserved unchanged. UX Improvements Applied 50→51. | Claude Code |
 | 2026-05-12 | BUG-28 re-applied: RLS SQL (`GRANT UPDATE TO anon` + `intelligence_update_anon` + `snapshots_update_anon` policies) was generated in the first pass but never executed — PATCHes continued to 401. Re-run with `DROP POLICY IF EXISTS` guards on second pass. 5/11 hit data written directly via SQL (609 QC evening, 425 TX morning) as one-time data repair since app write path was blocked. False `hit_box=true` on 5/12 allday row cleared via SQL. | Claude Code |
 | 2026-05-12 | BUG-37 fixed (High): Admin "Run Hit Detection Now" ran only for today. `handleDetectHits` iterated scopes for `getTodayET()` only — on 5/12 found no draws and reported "no hits." Fixed to iterate `[getYesterdayET(), today]` so yesterday's hits are always checked. Commit 1690785. | Claude Code |
+| 2026-05-25 | ARCH-06 opened: ZK30 v1.0 architecture lock-in for Texas pilot. Replaces deleted `engines/zk30.ts` (stale clone-of-ZK6). Closes ARCH-04 by absorption. Step 1 of 7 — DDL migrations for `histories_tx`, `daily_intelligence_zk30`, `adaptive_tracking_zk30` — drafted to `supabase/migrations/2026-05-25_zk30_v1_tables.sql`; NOT yet applied to remote project pending operator review. Standing "no ZK30 work until ZK6 verified" rule explicitly overridden by operator. | Claude Code |
 | 2026-05-12 | BUG-38 fixed (High): Results tier-3 scope-limited — `useSnapshot().hitPicks` filtered to current scope. Allday hits invisible when user was on midday/evening scope. Replaced with direct `slate_snapshots` query (no scope filter) + client-side `snapshotHitPicks` memo. Commit 1690785. | Claude Code |
 | 2026-05-12 | BUG-39 fixed (High): `file_meta` not a column in `slate_snapshots` — explicit SELECT caused 400 on all tier-3 queries. Removed from column list; dropped supplement-skip guard. Commit 603d732. | Claude Code |
 | 2026-05-12 | BUG-56/57/59/82/84/107 fixed (all 6 critical): Number Book persistence added (AsyncStorage); sample lists removed; XHR replaced with fetchFromSupabase in admin-imports + HitTrackingView + useDataIngestion; hardcoded anon JWT fallback removed from useDataIngestion; Supabase project URL removed from HealthTestsView UI. Fixed count 44→50, Critical Open 6→0. Commit 42f6d2c. | Claude Code |

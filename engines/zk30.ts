@@ -809,7 +809,9 @@ export async function computeSlateZK30({
       await fetchFromSupabase({
         path: '/rest/v1/engine_runs',
         method: 'POST',
-        headers: { 'Prefer': 'return=minimal' },
+        // engine_runs has UNIQUE (slate_hash, mode); merge-duplicates upserts
+        // on re-runs (avoids 409). Parity with ZK6 telemetry + edge fn.
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
         body: {
           slate_hash:           hash,
           scope:                ZK30_SCOPE,
@@ -942,10 +944,13 @@ export async function computeSlateZK30({
     }
 
     // ── adaptive_tracking_zk30 — 30 primary rows + quartiles + dominant_signal
-    // Idempotent: skip INSERT if slate_hash already has primary rows.
+    // Idempotent: skip INSERT if (slate_hash, slate_date) already has primary
+    // rows. slate_date scope-down was added 2026-05-25 after step 5.4 surfaced
+    // hash-only dedup blocking second-day writes (identical TX data + algorithm
+    // produced same hash across dates).
     try {
       const existing = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/adaptive_tracking_zk30?slate_hash=eq.${encodeURIComponent(hash)}&matched_session=is.null&select=id&limit=1`,
+        path: `/rest/v1/adaptive_tracking_zk30?slate_hash=eq.${encodeURIComponent(hash)}&slate_date=eq.${effectiveDate}&matched_session=is.null&select=id&limit=1`,
       });
       if (Array.isArray(existing) && existing.length > 0) {
         console.log('[zk30] adaptive_tracking_zk30: primary rows already exist for hash, skipping');

@@ -1359,6 +1359,37 @@ Reads `histories_tx` (not `histories`) for live overrides + recent-draws exclusi
 
 ---
 
+**Step 5 complete — `compute-slate-zk30` Edge Function deployed (2026-05-25):**
+
+- **Deployed slug:** `compute-slate-zk30`, version **v3**, sha256 `7718ac7dbdeea033dc35bd36845933a3f1b383c421fcb020ce3bb0b6332c57fc`, `verify_jwt: true`. Three quick iterations needed: v1 baseline, v2 fixed `adaptive_tracking_zk30` idempotency dedup, v3 fixed `engine_runs` upsert (added `resolution=merge-duplicates`).
+- **File:** `supabase/functions/compute-slate-zk30/index.ts` (on-disk version uses `../../../lib/...` relative paths; MCP deploy flattens to `./` per `feedback_edge_fn_deploy_flat_naming`).
+- **Inline constants chosen** (mirror ZK6, not import from `constants/zk30.ts`). Drift-control comment at top of file lists the three source-of-truth files (`constants/zk30.ts`, `engines/zk30.ts`, this file) that must be updated in lockstep on any change to the inlined block.
+- **Auth:** service-role via `Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')` for all writes (bypasses RLS on `daily_intelligence_zk30` + `engine_runs`). Caller-side `verify_jwt: true` accepts anon JWTs.
+
+**All 4 write surfaces verified post-v3 (live invocation against TX data, `targetDate=2026-05-26`, hash `3B15D864`):**
+
+| Table | Behavior | Idempotency on re-run |
+|---|---|---|
+| `slate_snapshots_zk30` | INSERT 1 row, soft-delete prior active for same (slate_date) | ✅ +1 active, prior soft-deleted |
+| `daily_intelligence_zk30` | DELETE-then-INSERT 30 rows (+ hit orphans) | ✅ same 30 rows |
+| `adaptive_tracking_zk30` | INSERT 30 primary rows, dedup probe on `(slate_hash, slate_date, matched_session IS NULL)` | ✅ no duplicate rows |
+| `engine_runs` | UPSERT (merge-duplicates) on `UNIQUE (slate_hash, mode)`, `_jurisdiction='TX'` in `effective_weights` | ⚠ row persists but `generated_at_et` pins to first write — same as ZK6 behavior |
+
+**Two bugs found + fixed during 5.4–5.5:**
+
+1. **`adaptive_tracking_zk30` dedup over-block (v2 fix):** Initial dedup probe was `slate_hash`-only. For ZK30 the same 30 picks generate the same hash across multiple days (stable TX data + algorithm). v1 wrote rows for `slate_date=2026-05-25` then blocked the `2026-05-26` write. **Fix:** scoped probe to `(slate_hash, slate_date)`. Same fix applied to `engines/zk30.ts` RN-side. ZK6 has the same latent risk but its hash varies more day-to-day from changing data — flagging as a separate audit item.
+
+2. **`engine_runs` 409 swallowed (v3 fix):** Original `Prefer: return=minimal` raised silent 409 on the `engine_runs_hash_mode_unique` constraint. **Fix:** changed to `Prefer: resolution=merge-duplicates,return=minimal` matching ZK6. Same fix applied to `engines/zk30.ts`. Known limitation: PostgREST `merge-duplicates` without an explicit `?on_conflict=slate_hash,mode` URL param appears to silently no-op on upserts targeting non-PK unique constraints, so `generated_at_et` stays pinned to the first-write timestamp. ZK6 exhibits identical behavior — separate audit ticket recommended.
+
+**Parity check:** edge fn hash `3B15D864` matches the RN engine smoke from step 4 byte-for-byte. The pure inlined math + Deno-safe `engineCore` import produces identical output.
+
+**Flag flipped:** `EXPO_PUBLIC_USE_EDGE_ZK30=true` added to `.env`. The `engines/zk30.ts:457` shortcircuit is now active — any RN-side call to `computeSlateZK30()` routes through `/functions/v1/compute-slate-zk30`. This unblocks the 2 RLS-locked write surfaces that the prior RN-direct path couldn't reach.
+
+**Deviation from work-order spec:** operator's expectation for `engine_runs` was "1 new telemetry row (always writes)". Actual behavior is "1 row per `(slate_hash, mode)`, write-once". This matches ZK6's existing semantic (verified across 5 ZK6 `engine_runs` sample rows from 5/24 + 5/25 — all show first-write timestamps). Recommendation: revise the telemetry semantic in a separate audit ticket or drop the unique constraint if append-only is required.
+
+
+---
+
 ## ZK6 Engine Audit Findings (2026-05-10)
 
 | ID | Issue | Severity | Description |

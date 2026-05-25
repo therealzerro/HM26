@@ -152,6 +152,12 @@ export default function AdminImageExportScreen() {
   const [stagePick, setStagePick] = useState<PickItem | null>(null);
   const [stageMode, setStageMode] = useState<'slate' | 'pick'>('slate');
   const [stagePicks, setStagePicks] = useState<PickItem[] | null>(null);
+  // Date of the actual slate being captured (from snap.slate_date). Falls
+  // back to today only if the snapshot row is missing slate_date entirely.
+  // Must be rendered in the slate header AND used in filenames so the
+  // exported image's stamp matches the slate it depicts, not the day the
+  // export was generated.
+  const [stageSlateDate, setStageSlateDate] = useState<string>(() => getTodayET());
 
   const runExport = useCallback(async (mode: 'sample' | 'full') => {
     if (!captureAvailable()) {
@@ -166,6 +172,7 @@ export default function AdminImageExportScreen() {
 
     let picks: PickItem[];
     let snapshotUpdatedAt: string | undefined;
+    let snapshotSlateDate: string | undefined;
     try {
       const rows = await fetchFromSupabase<any[]>({
         path: `/rest/v1/v_latest_slate_snapshots?select=*&scope=eq.${encodeURIComponent(session)}&mode=neq.zk30&limit=1`,
@@ -182,6 +189,7 @@ export default function AdminImageExportScreen() {
             ? (() => { try { return JSON.parse(snap.top_k_straights_json); } catch { return []; } })()
             : []);
       snapshotUpdatedAt = snap.updated_at_et ?? snap.updated_at ?? snap.created_at;
+      snapshotSlateDate = typeof snap.slate_date === 'string' ? snap.slate_date : undefined;
       picks = (Array.isArray(raw) ? raw : []).slice(0, 6).map((r: any, i: number) => rowToPickItem(r, i, snapshotUpdatedAt, session));
       if (picks.length === 0) {
         setStatus({ kind: 'error', msg: `Snapshot for ${SESSION_LABELS[session]} has no picks.` });
@@ -192,7 +200,12 @@ export default function AdminImageExportScreen() {
       return;
     }
 
-    const date = getTodayET();
+    // Prefer the snapshot's own slate_date (the date the picks are FOR), not
+    // wall-clock today — operators often export the prior session's slate
+    // after the next day has rolled over in ET.
+    const date = snapshotSlateDate ?? getTodayET();
+    setStageSlateDate(date);
+
     const items: ExportItem[] = [];
 
     // ── 1) Slate composite ───────────────────────────────────────────────
@@ -467,7 +480,7 @@ export default function AdminImageExportScreen() {
               <View style={styles.slateHeader}>
                 <Text style={styles.slateBrand}>HITMASTER <Text style={{ color: colors.cyan }}>ZK6</Text></Text>
                 <Text style={styles.slateMeta}>
-                  {SESSION_LABELS[session].toUpperCase()} · {getTodayET()}
+                  {SESSION_LABELS[session].toUpperCase()} · {stageSlateDate}
                 </Text>
               </View>
               <View style={styles.slateGrid}>

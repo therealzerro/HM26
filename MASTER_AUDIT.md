@@ -1387,6 +1387,74 @@ Reads `histories_tx` (not `histories`) for live overrides + recent-draws exclusi
 
 **Deviation from work-order spec:** operator's expectation for `engine_runs` was "1 new telemetry row (always writes)". Actual behavior is "1 row per `(slate_hash, mode)`, write-once". This matches ZK6's existing semantic (verified across 5 ZK6 `engine_runs` sample rows from 5/24 + 5/25 — all show first-write timestamps). Recommendation: revise the telemetry semantic in a separate audit ticket or drop the unique constraint if append-only is required.
 
+**Ready for Step 6 (hit detection).**
+
+---
+
+**Step 6 complete — `run-hit-detection-zk30` Edge Function + cron deployed (2026-05-25):**
+
+- **Edge fn:** `run-hit-detection-zk30`, version **v1**, sha256 `067b45ae45c57e52594c714465160a6b1cc6f82283fe55daf02a9ee2bcfaa7ba`, `verify_jwt: true`
+- **File:** `supabase/functions/run-hit-detection-zk30/index.ts` (477 lines on disk; deploy payload minified)
+- **Cron:** `run-hit-detection-zk30-nightly`, schedule `30 3 * * *` (= 03:30 UTC = 23:30 ET EDT / 22:30 ET EST). Both land after TX Night draw (~22:00 ET). Body uses `(now() AT TIME ZONE 'America/New_York')::date` — runs detection for today's slate after all 4 sessions land. Migration: `supabase/migrations/2026_05_25_zk30_hit_detection_cron.sql`. Reuses the `cron_anon_key` vault secret from `compute-daily-report` migration.
+
+**Match math (per-pick × per-draw):**
+
+```ts
+straightCombo = pick.bestOrder ?? pick.combo;     // BUG-155 preserved
+comboSet      = pick.comboSet ?? pick.normKey;
+hit_straight          = result_digits === straightCombo;
+hit_box               = sortDigits(result_digits) === comboSet || hit_straight;
+hit_fireball_straight = fbAugmented.some(r => r === straightCombo);
+hit_fireball_box      = fbAugmented.some(r => sortDigits(r) === comboSet) || hit_fireball_straight;
+```
+
+Fireball substitution: `[fb+r[1]+r[2], r[0]+fb+r[2], r[0]+r[1]+fb]` (3 augmented results per draw). Natural + fireball flags are **independent** — a natural straight does NOT suppress fireball flags. `histories_tx.comboset_sorted` doesn't exist; computed inline.
+
+**Schema deviations from work-order spec (corrected mid-build):**
+
+- `daily_intelligence_zk30` has no `jurisdiction`/`scope`/`mode` columns — PATCH WHERE simplified to `(slate_date IN ..., combo=eq)`.
+- DI columns are `matched_session` / `matched_result` / `matched_fireball` (not `hit_state` / `hit_session` / `hit_result` / `hit_fireball` as the spec stated).
+- `adaptive_tracking_zk30` has no `matched_state` column — `matched_session` is the per-row discriminator (single jurisdiction, so state is redundant).
+- `hit_detection_runs` column is `date` (not `run_date`); no jurisdiction column. ZK30 distinguishes itself in telemetry via `scope='allday-tx'` + `run_source='edge-zk30'`.
+
+**Bug-pattern preservation:**
+
+- **BUG-155 (bestOrder match):** straight comparison uses `pick.bestOrder ?? pick.combo`. Required because `pick.combo` is the engine enumeration index (000..999 from `buildUniverse()`) while `pick.bestOrder` is the user-facing recommended permutation from `bestOrderFor()`.
+- **BUG-150 (serial AT writes per pick):** `pickPasses[i] = async { for (m of matches) await record... }`. Different picks parallel; matches within a pick serial so the IS-NULL primary-row probe in match N sees match N-1's PATCH effect.
+- **BUG-145 (telemetry backstop):** `hit_detection_runs` row written per invocation, even on errors (non-fatal try/catch). Telemetry survives function failures.
+
+**DI write strategy:** PATCH per pick on the primary match (highest-precedence: straight > box > fireball_straight > fireball_box, ties broken by session order). One DI row per pick — multi-session detail lives in AT.
+
+**AT write strategy:** multi-row per pick. Layer 1 exact-match dedup probe `(slate_hash, rank, combo, matched_session)`. Layer 2 PATCH the un-stamped primary (matched_session IS NULL). Layer 3 INSERT a secondary row for additional matches.
+
+**Live verification (anchor `2026-05-25`):**
+
+- HTTP 200, `hitsFound: 1, picksMatched: 1` on first call
+- **Real Fireball Straight hit caught:** combo `173` at rank 22 of the 5/25 slate. Day draw `171` + fireball `3` → substituting fireball into position 2 yields `173` = pick.bestOrder exact match. `hit_fireball_straight=true`, `hit_fireball_box=true`, `hit_straight=false`, `hit_box=false` (natural draw didn't match).
+- DI row 22 PATCHed with the 4 flag values + `matched_session='Day'`, `matched_result='171'`, `matched_fireball='3'`.
+- AT row exists (was primary at gen time; PATCHed on first detection, idempotent-skipped on re-runs).
+- `hit_detection_runs` row written per call: 3 invocations → 3 telemetry rows. All `run_source='edge-zk30'`, `scope='allday-tx'`.
+- Caveat: initial test attempt failed because step 4's RN smoke had RLS-blocked the DI writes for 2026-05-25. Resolved by regenerating the slate via the edge fn (which writes DI via service-role). Not a bug in hit detection itself.
+
+**Idempotency re-run (3rd invocation):**
+
+| Surface | Result | Expected |
+|---|---|---|
+| HTTP response | `hitsFound: 0, picksMatched: 0` | ✅ snapshot-level early-out via `pick.hitType` already-set |
+| AT row count for (combo=173, session=Day) | 1 (unchanged) | ✅ Layer-1 exact-match dedup |
+| DI fireball-straight hits | 1 (unchanged) | ✅ PATCH-as-no-op |
+| Telemetry rows | 3 (one per invocation) | ✅ each call always writes telemetry |
+
+**Decisions matching recon sign-off recommendations:**
+
+- Fireball flags independent (no mutex) — caller derives "any kind of straight" via OR
+- Single daily cron at 23:30 ET (not 4 per-session crons) — simpler ops; same-day Morning hits delay by ~13h
+- Multi-row per pick AT writes inherited from ZK6 verbatim
+- Supplemental slates **skipped** for v1.0 (30 picks already is the full slate; supplements are a ZK6 6-pick artifact)
+- DI = one row per pick (primary match wins), multi-session detail in AT
+- RN wrapper parked — v1.0 invocation path is daily cron + ad-hoc curl
+
+**Ready for Step 7 (UI integration).**
 
 ---
 

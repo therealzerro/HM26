@@ -168,8 +168,11 @@ function formatGenShort(updatedAtEt: string | null | undefined): string {
   if (!updatedAtEt) return '—';
   const d = new Date(updatedAtEt);
   const wkday = d.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'America/New_York' });
+  // 12hr with AM/PM per operator convention — "Mon 8:14 PM ET" reads
+  // naturally; the 24hr "Mon 20:14 ET" was an internal-math artifact
+  // that leaked into a display string.
   const time = d.toLocaleTimeString('en-US', {
-    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/New_York',
+    hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York',
   });
   return `${wkday} ${time} ET`;
 }
@@ -482,7 +485,7 @@ export default function ZK30Screen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isToday, tickKey]);
   const engineV = snapshot?.engine_version ?? '—';
-  // Spec format: "May 25, 2026 09:00 ET" — date + time in 24h, both in ET.
+  // Display format: "May 25, 2026 9:00 PM ET" — date + 12hr time, both in ET.
   const genTime = snapshot?.updated_at_et
     ? (() => {
         const d = new Date(snapshot.updated_at_et);
@@ -491,7 +494,7 @@ export default function ZK30Screen() {
           timeZone: 'America/New_York',
         });
         const time = d.toLocaleTimeString('en-US', {
-          hour: '2-digit', minute: '2-digit', hour12: false,
+          hour: 'numeric', minute: '2-digit', hour12: true,
           timeZone: 'America/New_York',
         });
         return `${date} ${time} ET`;

@@ -40,6 +40,7 @@ import {
   SessionBreakdown, FireballNaturalSplit,
 } from '@/components/zk30/ResultsAnalytics';
 import { TexasOutline } from '@/lib/zk30/svg/TexasOutline';
+import { getNextDraw, formatTimeUntil } from '@/lib/zk30/txDrawSchedule';
 
 type ViewMode = 'compact' | 'list' | 'hits' | 'results';
 const PRIMARY_MODES: readonly ViewMode[] = ['compact', 'list', 'hits'] as const;
@@ -69,6 +70,65 @@ async function fetchAvailableDates(): Promise<Set<string>> {
   const set = new Set<string>();
   if (Array.isArray(rows)) for (const r of rows) if (r.slate_date) set.add(r.slate_date);
   return set;
+}
+
+// Phase B2 — 7-day performance numbers for the header ribbon. NATURAL ONLY
+// per ARCH-08; fireball hits are intentionally excluded so the headline
+// metric isn't inflated for non-TX-Pick3 users.
+async function fetchPerformanceStats(): Promise<{
+  matches7d: number;
+  picks7d: number;
+  hitRatePct: number;
+  streakDays: number;
+}> {
+  const today = getTodayET();
+  const start7 = addDaysET(today, -6); // inclusive 7-day window
+  const start30 = addDaysET(today, -29); // streak walk needs more history
+
+  const [hits, picks] = await Promise.all([
+    // All natural-hit AT rows in the last 30 days — needed for both 7d hit
+    // rate AND the up-to-30-day streak walk.
+    fetchFromSupabase<Array<{ slate_date: string; combo: string }>>({
+      path: `/rest/v1/adaptive_tracking_zk30` +
+            `?slate_date=gte.${start30}` +
+            `&or=(hit_straight.eq.true,hit_box.eq.true)` +
+            `&select=slate_date,combo&limit=1000`,
+    }),
+    fetchFromSupabase<Array<{ slate_date: string }>>({
+      path: `/rest/v1/daily_intelligence_zk30` +
+            `?slate_date=gte.${start7}&select=slate_date&limit=1000`,
+    }),
+  ]);
+
+  // matches_7d = distinct (slate_date, combo) tuples with natural hit in the
+  // last 7 days. Dedup at this granularity because a single pick can match
+  // multiple sessions per day; we only want one credit per pick per day.
+  const hitsArr = Array.isArray(hits) ? hits : [];
+  const picksArr = Array.isArray(picks) ? picks : [];
+  const sevenDayKeys = new Set<string>();
+  for (const h of hitsArr) {
+    if (h.slate_date >= start7) sevenDayKeys.add(`${h.slate_date}|${h.combo}`);
+  }
+  const matches7d = sevenDayKeys.size;
+  const picks7d = picksArr.length;
+  const hitRatePct = picks7d > 0 ? Math.round((matches7d / picks7d) * 1000) / 10 : 0;
+
+  // Streak — walk back from today through consecutive days that had ≥1
+  // natural hit. Sundays don't break the streak because TX skips them
+  // (treat absence-of-draws as continuation).
+  const datesWithHits = new Set(hitsArr.map(h => h.slate_date));
+  let streakDays = 0;
+  let cursor = today;
+  for (let i = 0; i < 30; i++) {
+    if (datesWithHits.has(cursor)) streakDays++;
+    else {
+      const isSunday = new Date(cursor + 'T12:00:00Z').getUTCDay() === 0;
+      if (!isSunday) break;
+    }
+    cursor = addDaysET(cursor, -1);
+  }
+
+  return { matches7d, picks7d, hitRatePct, streakDays };
 }
 
 // Last edge-zk30 hit-detection run — backs the "Last run" caption beneath the
@@ -209,6 +269,15 @@ export default function ZK30Screen() {
     staleTime: 30 * 1000,
   });
 
+  // Phase B2 — header performance ribbon. 5min stale time matches the
+  // typical operator review cadence; manual refresh via the screen's
+  // refresh button invalidates this implicitly.
+  const { data: perfStats } = useQuery({
+    queryKey: ['zk30-perf-stats-7d'],
+    queryFn: fetchPerformanceStats,
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Refetch on focus so post-09:00-ET drop appears when operator returns.
   useFocusEffect(
     useCallback(() => {
@@ -309,6 +378,16 @@ export default function ZK30Screen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [isToday, snapshot?.updated_at_et, tickKey],
   );
+
+  // Phase B4 — next-TX-draw countdown chip text. tickKey rebinds every 60s
+  // so the chip stays fresh; hidden on past-date views.
+  const nextDrawText = useMemo(() => {
+    if (!isToday) return '';
+    const n = getNextDraw();
+    if (!n) return '';
+    return `⏱  Next TX draw in ${formatTimeUntil(n)}  ·  ${n.session.toUpperCase()}`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isToday, tickKey]);
   const engineV = snapshot?.engine_version ?? '—';
   // Spec format: "May 25, 2026 09:00 ET" — date + time in 24h, both in ET.
   const genTime = snapshot?.updated_at_et
@@ -421,6 +500,45 @@ export default function ZK30Screen() {
           slate  ·  {hash8 || '——'}  ·  gen {formatGenShort(snapshot?.updated_at_et)}
         </Text>
       </TouchableOpacity>
+
+      {/* Phase B4 — next-draw countdown chip. Hidden on past-date views so
+          operators reviewing history don't see a misleading "next draw"
+          label that doesn't apply to the displayed slate. */}
+      {isToday && nextDrawText !== '' && (
+        <View style={s.drawChipRow}>
+          <Text style={s.drawChip}>{nextDrawText}</Text>
+        </View>
+      )}
+
+      {/* Phase B2 — 7-day performance band. Three segments separated by
+          vertical dividers. Natural-only per ARCH-08. */}
+      {perfStats && (
+        <View style={[s.perfBand, { borderColor: colors.border }]}>
+          <View style={s.perfSeg}>
+            <Text style={[s.perfLabel, { color: colors.textTertiary }]}>7-DAY HIT RATE</Text>
+            <Text style={[s.perfNum, { color: colors.text }]}>
+              {perfStats.hitRatePct.toFixed(1)}<Text style={{ fontSize: 11 }}>%</Text>
+            </Text>
+          </View>
+          <View style={[s.perfDivider, { backgroundColor: colors.border }]} />
+          <View style={s.perfSeg}>
+            <Text style={[s.perfLabel, { color: colors.textTertiary }]}>MATCHES</Text>
+            <Text style={[s.perfNum, { color: colors.text }]}>{perfStats.matches7d}</Text>
+          </View>
+          <View style={[s.perfDivider, { backgroundColor: colors.border }]} />
+          <View style={s.perfSeg}>
+            <Text style={[s.perfLabel, { color: colors.textTertiary }]}>STREAK</Text>
+            <Text style={[
+              s.perfNum,
+              { color: perfStats.streakDays > 0 ? colors.success : colors.textTertiary },
+            ]}>
+              {perfStats.streakDays > 0
+                ? <>ON <Text style={{ fontSize: 11 }}>{perfStats.streakDays}d</Text></>
+                : <>0</>}
+            </Text>
+          </View>
+        </View>
+      )}
 
       {/* Primary view-mode chips — data shapes */}
       <View style={s.modeRow}>
@@ -1337,6 +1455,30 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center', justifyContent: 'center',
   },
+
+  // Phase B4 — next-draw chip row, sits between hash chip and perf band.
+  drawChipRow: { alignItems: 'center', paddingTop: 2, paddingBottom: 2 },
+  drawChip: {
+    fontSize: 10, fontWeight: '700', letterSpacing: 0.3,
+    color: '#94a3b8', // slate-400 — softer than text, brighter than tertiary
+  },
+
+  // Phase B2 — 7-day performance ribbon. Single line, 3 segments + 2 dividers.
+  perfBand: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    marginHorizontal: 12,
+    marginTop: 6,
+    marginBottom: 2,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
+  perfSeg: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  perfDivider: { width: StyleSheet.hairlineWidth, marginVertical: 4 },
+  perfLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  perfNum:   { fontSize: 16, fontWeight: '900', letterSpacing: 0.4 },
 
   statusText: { fontSize: 11, fontWeight: '700', marginTop: 4 },
 

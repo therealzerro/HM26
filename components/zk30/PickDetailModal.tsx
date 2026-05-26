@@ -19,11 +19,14 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
 import { useTheme, type ColorTokens } from '@/lib/theme';
+import { ZK30_THEME } from '@/lib/theme/zk30Theme';
 import { X } from 'lucide-react-native';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { SignalBar } from '@/components/SignalBar';
 import { EnergyMeter } from '@/components/EnergyMeter';
 import { ZK30PickItem, hitTypeLabel, fireballHitTypeLabel, energyTier } from './types';
+import { useZK30ViewMode } from '@/lib/zk30/viewMode';
+import { SIGNAL_LABELS, ENERGY_LABELS, ENERGY_LABEL_TO_KEY } from '@/lib/zk30/labelMaps';
 
 // All distinct permutations of a 3-digit combo. Triples → 1, doubles → 3,
 // singles → 6. Used to query histories_tx for any past hit of this comboSet.
@@ -126,6 +129,8 @@ interface Props {
 export function ZK30PickDetailModal({ pick, onClose, brandBlue, slateDate = '' }: Props) {
   const { colors } = useTheme();
   const s = useMemo(() => makeS(colors), [colors]);
+  const { mode } = useZK30ViewMode();
+  const sigLabels = SIGNAL_LABELS[mode];
 
   // ALL hooks must run on every render — pick may be null on first mount and
   // become non-null when a row is tapped. Early-return AFTER all hook calls.
@@ -144,6 +149,9 @@ export function ZK30PickDetailModal({ pick, onClose, brandBlue, slateDate = '' }
   const energy = typeof pick.energy === 'number' ? pick.energy : (pick.temperature ?? 0);
   const tier = energyTier(energy);
   const tierColor = tier.color;
+  // Phase C1 — translate energy label per view mode.
+  const tierKey = ENERGY_LABEL_TO_KEY[tier.label] ?? 'COLD';
+  const tierLabel = ENERGY_LABELS[mode][tierKey];
 
   // ARCH-08 split: separate natural + fireball blocks. Either can be present
   // independently. `hit` (natural) reads from snapshot fields; `fbHit`
@@ -195,7 +203,7 @@ export function ZK30PickDetailModal({ pick, onClose, brandBlue, slateDate = '' }
           {/* Header */}
           <View style={s.header}>
             <View style={{ flex: 1 }}>
-              <Text style={s.rank}>RANK #{pick.rank}  ·  {tier.label}</Text>
+              <Text style={s.rank}>RANK #{pick.rank}  ·  {tierLabel}</Text>
               <View style={s.comboRow}>
                 <Text style={s.combo}>{bestOrder}</Text>
                 {bestOrder !== combo && (
@@ -216,7 +224,7 @@ export function ZK30PickDetailModal({ pick, onClose, brandBlue, slateDate = '' }
                 <EnergyMeter value={energy} size={80} />
                 <View style={{ flex: 1, gap: 4 }}>
                   <Text style={[s.bigNum, { color: tierColor }]}>{energy}</Text>
-                  <Text style={[s.tierLabel, { color: tierColor }]}>{tier.label}</Text>
+                  <Text style={[s.tierLabel, { color: tierColor }]}>{tierLabel}</Text>
                   <Text style={s.hint}>Percentile rank within the slate's 1000-combo score pool.</Text>
                 </View>
               </View>
@@ -228,10 +236,10 @@ export function ZK30PickDetailModal({ pick, onClose, brandBlue, slateDate = '' }
             <View style={s.section}>
               <Text style={s.sectionLabel}>SIGNALS</Text>
               <View style={{ gap: 2 }}>
-                <SignalBar label="BOX"    value={pick.signals.BOX}     color={colors.cyan} />
-                <SignalBar label="PBURST" value={pick.signals.PBURST}  color={colors.rose} />
-                <SignalBar label="CO"     value={pick.signals.CO}      color={brandBlue} />
-                <SignalBar label="DGC"    value={pick.signals.DGC ?? 0} color={colors.gold} />
+                <SignalBar label={sigLabels.BOX}    value={pick.signals.BOX}     color={colors.cyan} />
+                <SignalBar label={sigLabels.PBURST} value={pick.signals.PBURST}  color={colors.rose} />
+                <SignalBar label={sigLabels.CO}     value={pick.signals.CO}      color={brandBlue} />
+                <SignalBar label={sigLabels.DGC}    value={pick.signals.DGC ?? 0} color={colors.gold} />
               </View>
             </View>
 
@@ -263,9 +271,11 @@ export function ZK30PickDetailModal({ pick, onClose, brandBlue, slateDate = '' }
                     <Text style={[s.hint, { marginBottom: 8 }]}>No natural match.</Text>
                   )}
 
-                  {/* FIREBALL sub-block */}
-                  <Text style={[s.subSectionLabel, { color: colors.textSecondary, marginTop: 12 }]}>
-                    🔥 FIREBALL MATCH  ·  TX-only
+                  {/* FIREBALL sub-block. Channel label uses textSecondary
+                      (neutral); TX-only suffix uses accentTX per Phase C2. */}
+                  <Text style={[s.subSectionLabel, { marginTop: 12 }]}>
+                    <Text style={{ color: colors.textSecondary }}>🔥 FIREBALL MATCH</Text>
+                    <Text style={{ color: ZK30_THEME.accentTX }}>{'  ·  TX-only'}</Text>
                   </Text>
                   {fbHit ? (
                     <>

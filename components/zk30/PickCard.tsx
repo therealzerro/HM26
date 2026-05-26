@@ -15,6 +15,8 @@ import { useTheme, type ColorTokens } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { SignalBar } from '@/components/SignalBar';
 import { ZK30PickItem, energyTier, hitBorderColor, hitTypeLabel, fireballHitTypeLabel } from './types';
+import { useZK30ViewMode } from '@/lib/zk30/viewMode';
+import { SIGNAL_LABELS, FRESHNESS_PHRASES, ENERGY_LABELS, ENERGY_LABEL_TO_KEY } from '@/lib/zk30/labelMaps';
 
 // Shared cached lookup for the Fresh/Building threshold. All 30 ZK30 rows mount
 // PickCard simultaneously; TanStack Query dedupes via this stable queryKey so
@@ -50,11 +52,17 @@ export function ZK30PickCardRow({ pick, onPress, brandBlue }: Props) {
   const s = useMemo(() => makeS(colors), [colors]);
   const freshDays = useFreshThreshold();
   const [tooltipOpen, setTooltipOpen] = useState(false);
+  const { mode } = useZK30ViewMode();
+  const sigLabels = SIGNAL_LABELS[mode];
+  const phrases = FRESHNESS_PHRASES[mode];
 
   const combo = pick.bestOrder ?? pick.combo;
   const energy = typeof pick.energy === 'number' ? pick.energy : (pick.temperature ?? 0);
   const tier = energyTier(energy);
   const tierColor = tier.color;
+  // Phase C1 — translate energy label per view mode.
+  const tierKey = ENERGY_LABEL_TO_KEY[tier.label] ?? 'COLD';
+  const tierLabel = ENERGY_LABELS[mode][tierKey];
   const isTriple = pick.multiplicity === 'triples';
 
   // ARCH-08: border + glow are NATURAL-only. Fireball gets a secondary
@@ -90,9 +98,9 @@ export function ZK30PickCardRow({ pick, onPress, brandBlue }: Props) {
   const drawsSince = pick.drawsSince ?? pick.dsRaw ?? null;
   const pressure: { txt: string; color: string; band: 'fresh' | 'building' | 'overdue' } | null =
     drawsSince == null || drawsSince >= 500 ? null
-    : drawsSince <= freshDays ? { txt: `Fresh ${drawsSince}d`,    color: colors.success, band: 'fresh' }
-    : drawsSince > 200        ? { txt: `Overdue ${drawsSince}d`,  color: colors.orange,  band: 'overdue' }
-    :                            { txt: `Building ${drawsSince}d`, color: colors.gold,    band: 'building' };
+    : drawsSince <= freshDays ? { txt: phrases.fresh(drawsSince),    color: colors.success, band: 'fresh' }
+    : drawsSince > 200        ? { txt: phrases.overdue(drawsSince),  color: colors.orange,  band: 'overdue' }
+    :                            { txt: phrases.building(drawsSince), color: colors.gold,    band: 'building' };
   // (?) tooltip only renders next to Fresh/Building (the threshold-dependent
   // bands). Overdue uses a separate cutoff and gets no tooltip — the meaning
   // is self-evident.
@@ -127,17 +135,17 @@ export function ZK30PickCardRow({ pick, onPress, brandBlue }: Props) {
         <Text style={s.combo}>{combo}</Text>
         <View style={s.heatRow}>
           <View style={[s.dot, { backgroundColor: tierColor }]} />
-          <Text style={[s.heatLabel, { color: tierColor }]}>{tier.label}</Text>
+          <Text style={[s.heatLabel, { color: tierColor }]}>{tierLabel}</Text>
           <Text style={[s.energyNum, { color: colors.textSecondary }]}>{energy}</Text>
         </View>
       </View>
 
       {/* Middle: signal bars */}
       <View style={s.mid}>
-        <SignalBar label="BOX"    value={pick.signals.BOX}     color={colors.cyan} />
-        <SignalBar label="PBURST" value={pick.signals.PBURST}  color={colors.rose} />
-        <SignalBar label="CO"     value={pick.signals.CO}      color={brandBlue} />
-        <SignalBar label="DGC"    value={pick.signals.DGC ?? 0} color={colors.gold} />
+        <SignalBar label={sigLabels.BOX}    value={pick.signals.BOX}     color={colors.cyan} />
+        <SignalBar label={sigLabels.PBURST} value={pick.signals.PBURST}  color={colors.rose} />
+        <SignalBar label={sigLabels.CO}     value={pick.signals.CO}      color={brandBlue} />
+        <SignalBar label={sigLabels.DGC}    value={pick.signals.DGC ?? 0} color={colors.gold} />
       </View>
 
       {/* Right: badges, pressure, hit label — primary badges + (optional)

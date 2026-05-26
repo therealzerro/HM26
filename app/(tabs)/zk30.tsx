@@ -13,7 +13,7 @@
 //
 // View-mode preference persisted in AsyncStorage (`zk30-view-mode`).
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Modal,
   TouchableOpacity, ActivityIndicator,
@@ -23,7 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ChevronLeft, ChevronRight, Calendar,
-  RefreshCw, Layers, Grid3x3, List, Sparkles, Info, Play, X, TrendingUp,
+  RefreshCw, Layers, Grid3x3, List, Sparkles, Info, Play, X, TrendingUp, Share2,
 } from 'lucide-react-native';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
@@ -41,6 +41,8 @@ import {
 } from '@/components/zk30/ResultsAnalytics';
 import { TexasOutline } from '@/lib/zk30/svg/TexasOutline';
 import { getNextDraw, formatTimeUntil } from '@/lib/zk30/txDrawSchedule';
+import { ZK30_THEME } from '@/lib/theme/zk30Theme';
+import { captureSlate, shareCapturedSlate, copySlateHash } from '@/lib/zk30/shareSlate';
 
 type ViewMode = 'compact' | 'list' | 'hits' | 'results';
 const PRIMARY_MODES: readonly ViewMode[] = ['compact', 'list', 'hits'] as const;
@@ -235,6 +237,16 @@ export default function ZK30Screen() {
   // 5s debounce ref for the hit-detection trigger button.
   const lastTriggerRef = useRef<number>(0);
 
+  // Phase C3 — Share Slate flow. The slate capture region wraps the
+  // masthead + hash chip + draw chip + perf band + tab row + body content
+  // via captureRootRef; pressing the Share button opens the action sheet
+  // and each option flips captureOverlay to render the right pre-capture
+  // chrome (watermark only / watermark + redaction layer) before snap.
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [captureOverlay, setCaptureOverlay] = useState<'none' | 'pro' | 'redacted'>('none');
+  const captureRootRef = useRef<View | null>(null);
+
   // Load persisted view mode on mount.
   useEffect(() => {
     storage.getItem(VIEW_MODE_KEY).then((v) => {
@@ -346,6 +358,45 @@ export default function ZK30Screen() {
     }
   }, [queryClient, selectedDate]);
 
+  // Phase C3 — Share handlers. Pro flow: set overlay → wait 1 frame →
+  // capture → share → reset. Redacted: same but overlay='redacted' so the
+  // CTA scrim and ?-?-? mask are visible in the capture. Hash: direct
+  // clipboard write, no capture.
+  const handleShare = useCallback(async (mode: 'pro' | 'redacted') => {
+    if (shareBusy || !captureRootRef.current) return;
+    setShareOpen(false);
+    setShareBusy(true);
+    setCaptureOverlay(mode);
+    try {
+      // One animation frame to let the overlay render before we snap. RN
+      // doesn't expose requestAnimationFrame on every platform cleanly,
+      // so a short setTimeout is the portable equivalent.
+      await new Promise<void>(resolve => setTimeout(resolve, 80));
+      // hash8 is derived later in the render path; pull the first 8 chars
+      // directly from the snapshot for the filename so the callback doesn't
+      // forward-reference a render-cycle binding.
+      const hashHead = (snapshot?.snapshot_hash ?? '').slice(0, 8).toLowerCase() || 'na';
+      const uri = await captureSlate({
+        viewRef: captureRootRef,
+        fileName: `zk30-${selectedDate}-${mode}-${hashHead}`,
+      });
+      await shareCapturedSlate(uri);
+    } catch (e) {
+      console.warn('[zk30 share] capture failed:', String(e));
+    } finally {
+      setCaptureOverlay('none');
+      setShareBusy(false);
+    }
+  }, [shareBusy, selectedDate, snapshot]);
+
+  const handleCopyHash = useCallback(async () => {
+    setShareOpen(false);
+    const full = snapshot?.snapshot_hash ?? '';
+    if (!full) return;
+    await copySlateHash(full);
+    setHitTriggerStatus(`✓ Hash copied · ${full.slice(0, 8)}…`);
+  }, [snapshot]);
+
   // Format last-run for the caption under the trigger button. "Last run: 7:42 PM
   // ET · 1 hit found" per spec; pivots gracefully when the table is empty.
   const lastRunCaption = useMemo(() => {
@@ -406,7 +457,7 @@ export default function ZK30Screen() {
     : '—';
 
   return (
-    <View style={[s.container, { paddingTop: insets.top }]}>
+    <View ref={captureRootRef} collapsable={false} style={[s.container, { paddingTop: insets.top }]}>
       {/* Header — back + brand + stepper + countdown + info/refresh */}
       {/* Hero masthead (Phase A1). 3 stacked lines:
               1. "ZK30 · SINGLE-STATE MODE" — small caps brand kicker
@@ -426,7 +477,7 @@ export default function ZK30Screen() {
 
           <View style={s.mastheadTitleRow}>
             <Text style={s.mastheadTitle}>
-              <Text style={{ color: '#bf0a30' }}>⭐</Text>  TEXAS
+              <Text style={{ color: ZK30_THEME.accentTX }}>⭐</Text>  TEXAS
             </Text>
             {!isToday && (
               <TouchableOpacity
@@ -478,6 +529,16 @@ export default function ZK30Screen() {
 
         <TouchableOpacity onPress={() => setInfoOpen(true)} style={s.iconBtn} accessibilityLabel="Slate info">
           <Info size={17} color={colors.textSecondary} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setShareOpen(true)}
+          style={s.iconBtn}
+          accessibilityLabel="Share slate"
+          accessibilityRole="button"
+        >
+          {shareBusy
+            ? <ActivityIndicator size="small" color={brandBlue} />
+            : <Share2 size={17} color={colors.textSecondary} />}
         </TouchableOpacity>
         <TouchableOpacity onPress={() => refetch()} style={s.iconBtn} accessibilityLabel="Refresh">
           {isRefetching
@@ -725,6 +786,62 @@ export default function ZK30Screen() {
         brandBlue={brandBlue}
         colors={colors}
       />
+
+      {/* Phase C3 — Share Slate action sheet. 3 options: Pro PNG, Redacted
+          PNG (with funnel CTA overlay), Copy slate hash. Wired through the
+          share/clipboard helpers in lib/zk30/shareSlate.ts. */}
+      <Modal transparent animationType="fade" visible={shareOpen} onRequestClose={() => setShareOpen(false)}>
+        <TouchableOpacity style={s.popBackdrop} activeOpacity={1} onPress={() => setShareOpen(false)}>
+          <View style={[s.popCard, { borderColor: brandBlue + '55', minWidth: 280 }]}>
+            <View style={s.popHeader}>
+              <Text style={[s.popTitle, { color: brandBlue }]}>SHARE SLATE</Text>
+              <TouchableOpacity onPress={() => setShareOpen(false)} style={s.popClose}>
+                <X size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <ShareSheetRow
+              colors={colors}
+              brand={brandBlue}
+              title="Share Pro version"
+              sub="Full slate as PNG with watermark"
+              onPress={() => handleShare('pro')}
+            />
+            <ShareSheetRow
+              colors={colors}
+              brand={brandBlue}
+              title="Share Redacted version"
+              sub="Picks obscured + funnel CTA — for public posts"
+              onPress={() => handleShare('redacted')}
+            />
+            <ShareSheetRow
+              colors={colors}
+              brand={brandBlue}
+              title="Copy slate hash"
+              sub={(snapshot?.snapshot_hash ?? '——').slice(0, 16)}
+              onPress={handleCopyHash}
+              mono
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Capture-mode overlays. Rendered INSIDE captureRootRef so they
+          appear in the snapshot but stay absent from the normal UI. */}
+      {captureOverlay !== 'none' && (
+        <View style={s.captureWatermark} pointerEvents="none">
+          <Text style={s.captureWatermarkText}>
+            HITMASTER  ·  ZK30  ·  #{hash8 || '——'}  ·  {selectedDate}
+          </Text>
+        </View>
+      )}
+      {captureOverlay === 'redacted' && (
+        <View style={s.redactionScrim} pointerEvents="none">
+          <View style={s.redactionPanel}>
+            <Text style={s.redactionHeadline}>FULL PICKS IN PRO GROUP</Text>
+            <Text style={s.redactionCta}>JOIN FREE — link in bio</Text>
+          </View>
+        </View>
+      )}
 
       {/* Info popover — replaces the always-visible meta strip */}
       <Modal transparent animationType="fade" visible={infoOpen} onRequestClose={() => setInfoOpen(false)}>
@@ -1005,8 +1122,12 @@ function HitsTimelineView({
                       <Text style={[timelineStyles.bandChevron, { color: colors.orange }]}>
                         {isFbOpen ? '▼' : '▶'}
                       </Text>
-                      <Text style={[timelineStyles.fbBandLabel, { color: colors.orange }]}>
-                        🔥 FIREBALL · TX-only
+                      {/* Split-color label: channel half stays orange per ARCH-08
+                          (fireball channel color); "TX-only" suffix uses TX red
+                          per Phase C2 jurisdictional accent. */}
+                      <Text style={timelineStyles.fbBandLabel}>
+                        <Text style={{ color: colors.orange }}>🔥 FIREBALL</Text>
+                        <Text style={{ color: ZK30_THEME.accentTX }}>{'  ·  TX-only'}</Text>
                       </Text>
                       <Text style={[timelineStyles.bandCount, { color: colors.orange }]}>
                         ({totalF})
@@ -1223,7 +1344,7 @@ function ResultsPlaceholder({
           }}>
             <Text style={{ fontSize: 11, fontWeight: '700', color: colors.orange, letterSpacing: 0.4 }}>
               {`+ ${fireballHitsToday} FIREBALL`}
-              <Text style={{ color: colors.textTertiary }}>{`  ·  TX-only`}</Text>
+              <Text style={{ color: ZK30_THEME.accentTX }}>{'  ·  TX-only'}</Text>
             </Text>
           </View>
         )}
@@ -1285,6 +1406,35 @@ const placeholderStyles = StyleSheet.create({
   },
   runBtnText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
 });
+
+// Phase C3 — share-sheet row. Single button with title + subline; tapping
+// fires the parent's handler (capture+share or copy).
+function ShareSheetRow({
+  colors, brand, title, sub, onPress, mono,
+}: {
+  colors: ColorTokens; brand: string;
+  title: string; sub: string; onPress: () => void; mono?: boolean;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      style={{
+        paddingVertical: 10,
+        paddingHorizontal: 4,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: colors.border,
+      }}
+    >
+      <Text style={{ fontSize: 13, fontWeight: '800', color: colors.text, letterSpacing: 0.2 }}>{title}</Text>
+      <Text style={{
+        fontSize: 10, fontWeight: '600', color: colors.textSecondary, marginTop: 2,
+        fontFamily: mono ? theme.typography.fontFamily.mono : undefined,
+      }}>{sub}</Text>
+    </TouchableOpacity>
+  );
+}
 
 function PopKV({ label, value, colors, mono }: { label: string; value: string; colors: ColorTokens; mono?: boolean }) {
   return (
@@ -1454,6 +1604,41 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
   watermarkLayer: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center', justifyContent: 'center',
+  },
+
+  // Phase C3 — capture-mode overlays (visible only during snap).
+  captureWatermark: {
+    position: 'absolute',
+    right: 8, bottom: 60,
+    paddingHorizontal: 8, paddingVertical: 4,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 4,
+  },
+  captureWatermarkText: {
+    fontSize: 9, fontWeight: '700', letterSpacing: 0.3,
+    color: 'rgba(255,255,255,0.85)',
+    fontFamily: theme.typography.fontFamily.mono,
+  },
+  redactionScrim: {
+    // Covers the picks area only (below the header chrome, above the tab
+    // bar). The funnel CTA panel sits centered inside it.
+    position: 'absolute',
+    top: 250, left: 12, right: 12, bottom: 60,
+    backgroundColor: 'rgba(10,6,19,0.92)',
+    alignItems: 'center', justifyContent: 'center',
+    borderRadius: 12,
+  },
+  redactionPanel: {
+    alignItems: 'center', gap: 8,
+    paddingHorizontal: 24, paddingVertical: 18,
+  },
+  redactionHeadline: {
+    fontSize: 18, fontWeight: '900', color: '#fff',
+    letterSpacing: 1, textAlign: 'center',
+  },
+  redactionCta: {
+    fontSize: 13, fontWeight: '700', color: ZK30_THEME.primary,
+    letterSpacing: 0.4, textAlign: 'center',
   },
 
   // Phase B4 — next-draw chip row, sits between hash chip and perf band.

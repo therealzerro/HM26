@@ -15,6 +15,7 @@ import { CoffeeModeProvider } from "@/hooks/useCoffeeMode";
 import { AppModeProvider } from "@/context/AppModeContext";
 import { ToastProvider } from "@/components/Toast";
 import { theme } from "@/constants/theme";
+import { ZK30ViewModeProvider } from "@/lib/zk30/viewMode";
 import { ThemeProvider, useTheme } from "@/lib/theme";
 import { useFonts } from "expo-font";
 import {
@@ -196,7 +197,9 @@ function AppContent() {
                   <DataIngestionProvider>
                     <FollowedStatesProvider>
                       <CoffeeModeProvider>
-                        <RootLayoutNav />
+                        <ZK30ViewModeProvider>
+                          <RootLayoutNav />
+                        </ZK30ViewModeProvider>
                       </CoffeeModeProvider>
                     </FollowedStatesProvider>
                   </DataIngestionProvider>

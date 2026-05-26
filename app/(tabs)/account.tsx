@@ -18,6 +18,8 @@ import { fetchFromSupabase, countFromSupabase } from '@/lib/supabase';
 import { storage } from '@/lib/storage';
 import { useSavedHits } from '@/hooks/useSavedHits';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useZK30ViewMode } from '@/lib/zk30/viewMode';
+import type { ViewMode as ZK30ViewMode } from '@/lib/zk30/labelMaps';
 
 const GLOSSARY = [
   { term: 'ZK6™ Engine', def: 'HitMaster\'s proprietary intelligence engine — a multi-dimensional pattern recognition system trained on years of public draw data. Signals are ranked by Oracle Score (signal convergence strength), not guarantees.' },
@@ -55,6 +57,54 @@ function Toggle({ on, onChange, label, sub }: { on: boolean; onChange: (v: boole
         trackColor={{ false: colors.border, true: colors.purple }}
         thumbColor="#fff"
       />
+    </View>
+  );
+}
+
+// Phase C1 — ZK30 view-mode segmented control. Renders ONLY for admin users.
+// Non-admins are pinned to subscriber by the context; surfacing a disabled
+// row for them adds noise without function.
+function ZK30ViewModeRow() {
+  const { colors } = useTheme();
+  const tog = useMemo(() => makeTog(colors), [colors]);
+  const { mode, setMode, canToggleOperator } = useZK30ViewMode();
+
+  if (!canToggleOperator) return null;
+  return (
+    <View style={{ paddingVertical: 12 }}>
+      <View style={{ marginBottom: 8 }}>
+        <Text style={tog.label}>ZK30 view mode</Text>
+        <Text style={tog.sub}>
+          {mode === 'subscriber'
+            ? 'Subscriber-friendly labels (FREQUENCY / PAIR HEAT / etc).'
+            : 'Engine-internal labels (BOX / PBURST / CO / DGC).'}
+        </Text>
+      </View>
+      <View style={{ flexDirection: 'row', gap: 6 }}>
+        {(['subscriber', 'operator'] as ZK30ViewMode[]).map(m => {
+          const active = mode === m;
+          return (
+            <TouchableOpacity
+              key={m}
+              onPress={() => setMode(m)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              style={{
+                flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8,
+                borderWidth: 1,
+                borderColor: active ? colors.purple : colors.border,
+                backgroundColor: active ? colors.primaryLight : colors.bgElevated,
+              }}
+            >
+              <Text style={{
+                fontSize: 13, fontWeight: '700',
+                color: active ? colors.purple : colors.textSecondary,
+                textTransform: 'capitalize',
+              }}>{m}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -475,6 +525,9 @@ export default function AccountScreen() {
               label="Coffee mode"
               sub="Hide all chrome on Home — just scope + 6 signals + countdown"
             />
+            {/* Phase C1 — ZK30 view-mode toggle. Admin-only; non-admin users
+                are locked to subscriber and don't see this control. */}
+            <ZK30ViewModeRow />
           </View>
         </View>
 

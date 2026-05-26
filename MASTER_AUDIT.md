@@ -1672,6 +1672,28 @@ Operator-driven post-v1.0 polish across the ZK30 surface. Shipped across three c
 
 ---
 
+## ARCH-06 v1.0 follow-up — UI Evolution Phases A–D (2026-05-26)
+
+Second wave of operator-driven UI work, shipped in 4 phases per the UI Evolution work order. Each phase mandatory-paused for operator review before the next; visual smoke at each checkpoint via headless-chromium.
+
+**Phase A — Layer 1: Identity anchoring** (`7dfb0cc`)
+ZK30 UI Layer 1 (Identity) shipped: hero masthead redesigned (3-line stacked "ZK30 · SINGLE-STATE MODE" / "⭐ TEXAS" / date + scope + sessions stepper), TX state silhouette watermark added (24-anchor SVG at 6% opacity on COMPACT + LIST only, `lib/zk30/svg/TexasOutline.tsx`), slate hash chip "slate · A14D842C · gen Mon 20:14 ET" between masthead and tabs (tap opens existing metadata modal). Screenshots now self-identify as ZK30 single-state TX without needing caption context.
+
+**Phase B — Layer 2: Visual interest** (`e0612e0`)
+ZK30 UI Layer 2 (Visual interest) shipped: top-5 rank emphasis on CompactTile — rank #1 gets 4px ring + brand-blue outer glow + 20×20 medallion with white "1", ranks #2-5 get 3.5px ring + dark mini-chip "#2"/"#3"/"#4"/"#5"; triple flag moved to bottom-left to free top-left for rank chip. 7-day performance band (HIT RATE / MATCHES / STREAK) between hash chip and tab row, natural-only per ARCH-08, dedup at (slate_date, combo) granularity, Sunday-aware streak walk. Rank #1 pulse animation via reanimated useSharedValue (2s cycle, scale 1.0→1.04→1.0, opacity 1.0→0.85→1.0, iOS/Android only). Next-TX-draw countdown chip "⏱ Next TX draw in 2h 14m · DAY" from new `lib/zk30/txDrawSchedule.ts` (M 10:00 / D 12:27 / E 18:00 / N 22:12 ET, Sunday-skipped, DST-safe Intl parse).
+
+**Phase C — Layer 3: Brand voice + share tooling** (`6e32897`)
+ZK30 UI Layer 3 (Brand voice + share tooling) shipped: Operator/Subscriber view mode toggle via new `lib/zk30/labelMaps.ts` + `lib/zk30/viewMode.tsx` (React Context + AsyncStorage). Subscriber default for non-admin users (FREQUENCY/PAIR HEAT/CONSISTENCY/RHYTHM signal labels; TOP PICK/STRONG/OVERDUE/RECENT HIT energy tiers; "Hit N days ago"/"N days since last hit" freshness phrases); admin opt-in to operator-mode (BOX/PBURST/CO/DGC + ON FIRE/HOT/BUILDING/COLD + "Fresh Nd"/"Building Nd"). TX-native theme via new `lib/theme/zk30Theme.ts` adds `accentTX = #bf0a30` (TX flag red) for the lone star + jurisdictional "TX-only" suffixes on fireball labels. Share Slate action button (lucide Share2) in header opens 3-row action sheet: Pro PNG capture, Redacted PNG (CTA scrim overlay + watermark), Copy slate hash. New deps: `expo-sharing@14.0.8` + `react-native-view-shot@4.0.3` (Expo-native equivalents preferred over the community libs the spec suggested); `expo-clipboard` was already present. Capture wrapped via `captureRootRef` on the screen container + `captureOverlay` state controlling pre-snap chrome.
+
+**Phase D — Layer 4: Animations** (this commit)
+ZK30 UI Layer 4 (Animations) shipped: D1 slate-drop reveal — picks stagger-fade by row over ~750ms on FIRST mount per slate hash (tracked via `seenSlateHashesRef`); subsequent re-renders render instantly. Reanimated `FadeIn.delay(rowIdx × 100).duration(250)` per tile/row. D2 natural-hit celebration — when natural hit count transitions N → N+1, mount `HitCelebration` toast with kind-aware copy (🎯 NATURAL STRAIGHT MATCH / ✓ NATURAL BOX MATCH / 🔥 FIREBALL MATCH — fireball gets the quieter variant per ARCH-08), 4s auto-dismiss, FadeIn/FadeOut transitions. **Confetti deferred**: spec called for `react-native-confetti-cannon` but that package ships Flow-typed imports against pre-modern RN paths and Metro can't resolve them; D2 ships toast-only — headline information is in the message, confetti was decorative. Future: revisit via lottie or hand-rolled reanimated particle system. D3 date stepper cross-dissolve — picks body wrapped in `Animated.View` keyed on `selectedDate`, reanimated FadeIn 200ms + FadeOut 200ms cross-dissolve between days.
+
+**Implementation outcome**: tsc clean across all 4 phases; headless-chromium smoke at each checkpoint confirmed render. Console warnings (~240) are pre-existing RN-Web text-node + nested-button warnings unrelated to UI Evolution work.
+
+**Deps added across the suite**: `expo-sharing`, `react-native-view-shot`. `react-native-confetti-cannon` was installed in D2 then uninstalled when it broke Metro.
+
+---
+
 ## ZK6 Engine Audit Findings (2026-05-10)
 
 | ID | Issue | Severity | Description |

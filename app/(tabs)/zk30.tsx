@@ -18,6 +18,7 @@ import {
   View, Text, StyleSheet, ScrollView, Modal,
   TouchableOpacity, ActivityIndicator,
 } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -43,6 +44,7 @@ import { TexasOutline } from '@/lib/zk30/svg/TexasOutline';
 import { getNextDraw, formatTimeUntil } from '@/lib/zk30/txDrawSchedule';
 import { ZK30_THEME } from '@/lib/theme/zk30Theme';
 import { captureSlate, shareCapturedSlate, copySlateHash } from '@/lib/zk30/shareSlate';
+import { HitCelebration, type CelebrationKind } from '@/components/zk30/HitCelebration';
 
 type ViewMode = 'compact' | 'list' | 'hits' | 'results';
 const PRIMARY_MODES: readonly ViewMode[] = ['compact', 'list', 'hits'] as const;
@@ -414,6 +416,46 @@ export default function ZK30Screen() {
   const hitPicks = allPicks.filter((p) => !!p.hitType);
   const fireballHitPicks = allPicks.filter((p) => !!p.fireballHitType);
 
+  // Phase D1 — slate drop reveal. Stagger-fade rows on FIRST mount per
+  // slate hash; subsequent re-renders (refetch, date stepper navigation
+  // back-and-forth) render instantly. Track seen hashes in a ref so the
+  // set survives re-renders without triggering them.
+  const seenSlateHashesRef = useRef<Set<string>>(new Set());
+  const currentSlateKey = `${selectedDate}|${snapshot?.snapshot_hash ?? ''}`;
+  const isFirstReveal = useMemo(() => {
+    if (!snapshot || !snapshot.snapshot_hash) return false;
+    return !seenSlateHashesRef.current.has(currentSlateKey);
+  }, [snapshot, currentSlateKey]);
+  // Mark as seen post-render so the reveal fires once per session per slate.
+  useEffect(() => {
+    if (isFirstReveal) seenSlateHashesRef.current.add(currentSlateKey);
+  }, [isFirstReveal, currentSlateKey]);
+
+  // Phase D2 — hit celebration. Track prev → curr transitions in the two
+  // hit-count channels. When N → N+1 fires, mount HitCelebration with the
+  // newly-matched pick. Fireball-only N+1 uses the 'fireball' (quieter)
+  // variant per ARCH-08; natural N+1 uses confetti.
+  const prevHitsRef = useRef<{ nat: number; fb: number }>({ nat: 0, fb: 0 });
+  const [celebration, setCelebration] = useState<{
+    kind: CelebrationKind; combo: string;
+  } | null>(null);
+  useEffect(() => {
+    const prev = prevHitsRef.current;
+    const natUp = hitPicks.length > prev.nat;
+    const fbUp = fireballHitPicks.length > prev.fb;
+    if (natUp) {
+      // Natural newcomer is the one in hitPicks not previously counted —
+      // use the last pick (most recently appended) as the matched one.
+      const winner = hitPicks[hitPicks.length - 1];
+      const kind: CelebrationKind = winner?.hitType === 'straight' ? 'natural-straight' : 'natural-box';
+      setCelebration({ kind, combo: winner?.bestOrder ?? winner?.combo ?? '???' });
+    } else if (fbUp) {
+      const winner = fireballHitPicks[fireballHitPicks.length - 1];
+      setCelebration({ kind: 'fireball', combo: winner?.bestOrder ?? winner?.combo ?? '???' });
+    }
+    prevHitsRef.current = { nat: hitPicks.length, fb: fireballHitPicks.length };
+  }, [hitPicks.length, fireballHitPicks.length, hitPicks, fireballHitPicks]);
+
   // Filter by view mode for body. List and compact still show all 30; Hits
   // tab is governed entirely by HitsTimelineView (historical query, not
   // snapshot filter).
@@ -712,7 +754,14 @@ export default function ZK30Screen() {
         // No ScrollView in compact mode — pure flexbox so the 5×6 grid claims
         // all available vertical space. Tiles get flex:1 per row + row gets
         // flex:1 per column = equal-share auto-sizing tiles.
-        <View style={s.gridContainer}>
+        // Phase D3 — keyed on selectedDate so reanimated cross-dissolves
+        // (200ms exit + 200ms enter) between slates when the stepper moves.
+        <Animated.View
+          key={`compact-${selectedDate}`}
+          style={s.gridContainer}
+          entering={FadeIn.duration(200)}
+          exiting={FadeOut.duration(200)}
+        >
           {/* TX watermark (Phase A2) — sits behind the grid at 6% opacity.
               pointerEvents=none so tile taps still register. Compact-only;
               the LIST view gets its own watermark inside the ScrollView. */}
@@ -723,12 +772,19 @@ export default function ZK30Screen() {
             {Array.from({ length: Math.ceil(visiblePicks.length / 5) }).map((_, rowIdx) => (
               <View key={rowIdx} style={s.gridRowFlex}>
                 {visiblePicks.slice(rowIdx * 5, rowIdx * 5 + 5).map((p) => (
-                  <CompactTile
+                  // Phase D1 — stagger fade-in per row when this slate hash
+                  // hasn't been seen yet. delay = rowIdx × 100ms.
+                  <Animated.View
                     key={`tile-${p.rank}`}
-                    pick={p}
-                    brandBlue={brandBlue}
-                    onPress={() => setDetail(p)}
-                  />
+                    style={{ flex: 1 }}
+                    entering={isFirstReveal ? FadeIn.delay(rowIdx * 100).duration(250) : undefined}
+                  >
+                    <CompactTile
+                      pick={p}
+                      brandBlue={brandBlue}
+                      onPress={() => setDetail(p)}
+                    />
+                  </Animated.View>
                 ))}
                 {visiblePicks.slice(rowIdx * 5, rowIdx * 5 + 5).length < 5 &&
                   Array.from({
@@ -737,12 +793,18 @@ export default function ZK30Screen() {
               </View>
             ))}
           </View>
-        </View>
+        </Animated.View>
       ) : (
         // List + Hits: ScrollView (rows always scroll regardless of count).
         // Watermark only on LIST per Phase A2 (HITS view has its own dense
         // content that would compete with a behind-layer silhouette).
-        <View style={{ flex: 1, position: 'relative' }}>
+        // Phase D3 — date-keyed cross-dissolve, same as compact above.
+        <Animated.View
+          key={`list-${selectedDate}-${viewMode}`}
+          style={{ flex: 1, position: 'relative' }}
+          entering={FadeIn.duration(200)}
+          exiting={FadeOut.duration(200)}
+        >
           {viewMode === 'list' && (
             <View style={s.watermarkLayer} pointerEvents="none">
               <TexasOutline size={280} color={brandBlue} opacity={0.06} />
@@ -753,17 +815,26 @@ export default function ZK30Screen() {
             contentContainerStyle={s.listContent}
             showsVerticalScrollIndicator={false}
           >
-            {visiblePicks.map((p) => (
-              <ZK30PickCardRow
-                key={`row-${p.rank}`}
-                pick={p}
-                brandBlue={brandBlue}
-                onPress={() => setDetail(p)}
-              />
-            ))}
+            {visiblePicks.map((p, idx) => {
+              // Same stagger pattern as compact — list shows 1 pick per row
+              // so the delay is per-pick / 5 to mirror the compact cadence.
+              const delay = Math.floor(idx / 5) * 100;
+              return (
+                <Animated.View
+                  key={`row-${p.rank}`}
+                  entering={isFirstReveal ? FadeIn.delay(delay).duration(250) : undefined}
+                >
+                  <ZK30PickCardRow
+                    pick={p}
+                    brandBlue={brandBlue}
+                    onPress={() => setDetail(p)}
+                  />
+                </Animated.View>
+              );
+            })}
             <View style={{ height: 40 }} />
           </ScrollView>
-        </View>
+        </Animated.View>
       )}
 
       {/* Detail modal — slateDate passed so the fireball detail lookup
@@ -824,6 +895,16 @@ export default function ZK30Screen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Phase D2 — hit celebration overlay. Auto-dismisses after 4s via
+          the component's internal timer; parent only manages the mount. */}
+      {celebration && (
+        <HitCelebration
+          kind={celebration.kind}
+          combo={celebration.combo}
+          onDismiss={() => setCelebration(null)}
+        />
+      )}
 
       {/* Capture-mode overlays. Rendered INSIDE captureRootRef so they
           appear in the snapshot but stay absent from the normal UI. */}

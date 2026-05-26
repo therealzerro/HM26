@@ -1300,7 +1300,7 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
     paddingHorizontal: 12, paddingTop: 10, paddingBottom: 4,
     gap: 6,
   },
-  // Secondary (sections — Results / TBD / TBD)
+  // Secondary chip row — Results only (TBD slots removed in Phase A)
   modeRowSecondary: {
     flexDirection: 'row',
     paddingHorizontal: 12, paddingTop: 0, paddingBottom: 8,

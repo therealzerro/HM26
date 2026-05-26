@@ -1651,6 +1651,27 @@ Fireball matches are PRESENTATION-ONLY and isolated from all engine/scoring/tuni
 
 ---
 
+## ARCH-06 v1.0 follow-up — UI Enhancement Suite Phases A–D (2026-05-25→2026-05-26)
+
+Operator-driven post-v1.0 polish across the ZK30 surface. Shipped across three commits — `ad85477` (Phases A–C), `7794c40` (Phase D), with the audit lock-in landing here after the fact. All four phases pass the work-order DoD.
+
+**Phase A — quick wins** (committed in `ad85477`):
+- TBD·1 and TBD·2 chips removed from the secondary view-mode row. `ViewMode` union narrowed to `compact|list|hits|results`, `TbdPlaceholder` component + `MoreHorizontal` import deleted, persistence parser trimmed.
+- `SignalPips` row stripped from `CompactTile.tsx` — signal info now lives only in the detail modal (cleaner 5×6 grid at compact density).
+- `(i)` metadata modal already existed; tightened two fields: (a) `Engine` was rendering "vv1.0" because `engine_version` is stored prefixed; dropped the literal `v` prefix. (b) `Generated` reformatted from `"9:00 AM ET"` → `"May 25, 2026 09:00 ET"` (date + 24h time, both ET) per spec.
+
+**Phase B — visual** (committed in `ad85477`): `energyTier` rewritten as a 4-tier {label, color} (ON FIRE / HOT / BUILDING / COLD) with explicit ZK30-specific hex colors (`#ff4444 / #ff8800 / #ffaa00 / #64748b`) — single source of truth for `EnergyRing` + `CompactTile` + `PickCard` + `PickDetailModal`. Triples flagged via dashed ring + `▲` top-left overlay (CompactTile) / `▲` next to rank label (PickCard). `app_config.zk30_fresh_threshold_days=30` seeded; `useFreshThreshold()` cached hook drives the Fresh/Building boundary; `(?)` tooltip explainer modal renders next to Fresh/Building pressure text with `stopPropagation` so it doesn't bubble to the row press.
+
+**Phase C — workflow** (committed in `ad85477`): `selectedDate` state replaces the prior today→yesterday auto-fallback. Header gains `← {DATE} →` stepper with a 30-day date-picker modal (availability dots fetched from `slate_snapshots_zk30`). `TODAY` pill jumps back when off-today. Subtitle shows `Next slate: Xh Ym` before 09:00 ET, `Slate ready · last updated Xh ago` after. Hit-detection button gets a 5s `useRef` debounce + `Last run: HH:MM ET · N hits found` caption from `hit_detection_runs?run_source=eq.edge-zk30`. New HIT HISTORY section in `PickDetailModal` queries `histories_tx` for the combo's distinct permutations (limit 12). Hits tab restructured into `HitsTimelineView` — 30-day historical query against `adaptive_tracking_zk30`, grouped into 4 collapsible day-bands (Today / Yesterday / This week / Earlier this month).
+
+**Phase D — analytics** (committed in `7794c40`, lives in `components/zk30/ResultsAnalytics.tsx`): four hand-rolled SVG cards on the Results tab + a top-of-stack failure banner. (1) Cron Health Card merges `hit_detection_runs?run_source=eq.edge-zk30` + `engine_runs?effective_weights->>_engine=eq.zk30` and trims to the latest 14. (2) 7-day stacked bar chart (Straight/Box/🔥S/🔥B) with avg-line overlay. (3) By-Session horizontal 4-bar chart with 7d/30d/90d window toggle. (4) Fireball-vs-Natural 3-segment split bar over 30d. Hand-rolled via `react-native-svg` rather than the spec-suggested `react-native-svg-charts` (unmaintained since 2020).
+
+**Phase A→D outcome**: ZK30 admin surface compresses from a clutter screen with placeholder tabs and a today-only Hits view into a date-stepper-driven slate review with historical timeline + cron health + 4 analytics cards. tsc clean on all touched files post-each-phase commit. The hook-order crash bug introduced by the Phase C2 `usePickHitHistory` call (placed after the modal's early-return) was caught and fixed in the same commit (`ad85477`) before push.
+
+**Outstanding from spec, deferred**: Phase D's coming-soon roadmap card mentioned a "best-performing energy band" analytic that wasn't in the numbered D1–D4 items; not built. Easy add if it comes up later.
+
+---
+
 ## ZK6 Engine Audit Findings (2026-05-10)
 
 | ID | Issue | Severity | Description |

@@ -35,6 +35,10 @@ import { CompactTile } from '@/components/zk30/CompactTile';
 import { ZK30PickCardRow } from '@/components/zk30/PickCard';
 import { ZK30PickDetailModal } from '@/components/zk30/PickDetailModal';
 import { ZK30PickItem, ZK30Snapshot } from '@/components/zk30/types';
+import {
+  FailedRunsBanner, CronHealthCard, SevenDayChart,
+  SessionBreakdown, FireballNaturalSplit,
+} from '@/components/zk30/ResultsAnalytics';
 
 type ViewMode = 'compact' | 'list' | 'hits' | 'results';
 const PRIMARY_MODES: readonly ViewMode[] = ['compact', 'list', 'hits'] as const;
@@ -973,22 +977,13 @@ function ResultsPlaceholder({
         )}
       </View>
 
-      {/* Coming-soon roadmap */}
-      <View style={[placeholderStyles.card, { borderColor: colors.border }]}>
-        <Text style={[placeholderStyles.sectionLabel, { color: colors.textTertiary }]}>COMING SOON</Text>
-        {[
-          '7-day hit rollup chart',
-          'By-session breakdown (Morning / Day / Evening / Night)',
-          'Fireball-only vs natural-only split',
-          'Best-performing energy band',
-          'Cron health (last 14 runs · success/failure)',
-        ].map((line, i) => (
-          <View key={i} style={placeholderStyles.bullet}>
-            <Text style={[placeholderStyles.bulletDot, { color: brand }]}>·</Text>
-            <Text style={[placeholderStyles.bulletText, { color: colors.textSecondary }]}>{line}</Text>
-          </View>
-        ))}
-      </View>
+      {/* Phase D analytics (D1–D4). FailedRunsBanner pinned at the top of
+          the analytics stack so cron failures surface before the cards. */}
+      <FailedRunsBanner colors={colors} />
+      <CronHealthCard       colors={colors} brand={brand} />
+      <SevenDayChart        colors={colors} brand={brand} />
+      <SessionBreakdown     colors={colors} brand={brand} />
+      <FireballNaturalSplit colors={colors} brand={brand} />
     </ScrollView>
   );
 }
@@ -1012,9 +1007,6 @@ const placeholderStyles = StyleSheet.create({
     marginTop: 4,
   },
   runBtnText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
-  bullet: { flexDirection: 'row', gap: 6, paddingVertical: 2 },
-  bulletDot: { fontSize: 16, fontWeight: '900', lineHeight: 16 },
-  bulletText: { fontSize: 11, flex: 1, lineHeight: 16 },
 });
 
 function PopKV({ label, value, colors, mono }: { label: string; value: string; colors: ColorTokens; mono?: boolean }) {

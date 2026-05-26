@@ -1,21 +1,18 @@
 // components/zk30/HitCelebration.tsx
 //
-// Phase D2 — toast banner that fires on natural N→N+1 hit transitions.
-// Original spec called for confetti via react-native-confetti-cannon, but
-// that package ships Flow types referencing pre-modern RN paths and Metro
-// can't resolve them. The toast carries the headline information; visual
-// confetti was decorative on top of that, not the primary signal. Toast-only
-// implementation ships D2 cleanly without a broken native dep.
-//
-// Future: revisit confetti via a maintained alternative (e.g. lottie file)
-// or a hand-rolled reanimated particle system if visual punch matters more
-// than the toast already delivers.
+// Phase D2 — toast banner + (natural-only) confetti burst when zk30 detects
+// an N→N+1 hit transition. The confetti was originally deferred because
+// react-native-confetti-cannon shipped pre-modern Flow types Metro couldn't
+// resolve; replaced with a hand-rolled reanimated particle system in
+// components/zk30/Confetti.tsx (no extra dep beyond reanimated, which is
+// already in the project).
 
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, Dimensions } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { ZK30_THEME } from '@/lib/theme/zk30Theme';
 import { theme } from '@/constants/theme';
+import { Confetti } from './Confetti';
 
 export type CelebrationKind = 'natural-straight' | 'natural-box' | 'fireball';
 
@@ -49,14 +46,23 @@ const HOLD_MS = 4000;
 
 export function HitCelebration({ kind, combo, onDismiss }: Props) {
   const { headline, sub, color } = COPY[kind];
+  // ARCH-08 — fireball hits get the quieter variant. Natural hits (straight
+  // or box) trigger the confetti burst from just above the toast.
+  const isNatural = kind === 'natural-straight' || kind === 'natural-box';
 
   useEffect(() => {
     const t = setTimeout(onDismiss, HOLD_MS);
     return () => clearTimeout(t);
   }, [onDismiss]);
 
+  // Origin point — roughly the toast's horizontal center, just below where it
+  // sits. Particles fan upward+outward from there.
+  const { width: screenW } = Dimensions.get('window');
+  const confettiOrigin = { x: screenW / 2 - 4, y: 130 };
+
   return (
     <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+      {isNatural && <Confetti origin={confettiOrigin} count={40} />}
       <Animated.View
         entering={FadeIn.duration(180)}
         exiting={FadeOut.duration(220)}

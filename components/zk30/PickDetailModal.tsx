@@ -16,12 +16,55 @@ import React, { useMemo } from 'react';
 import {
   View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Platform,
 } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
 import { useTheme, type ColorTokens } from '@/lib/theme';
 import { X } from 'lucide-react-native';
+import { fetchFromSupabase } from '@/lib/supabase';
 import { SignalBar } from '@/components/SignalBar';
 import { EnergyMeter } from '@/components/EnergyMeter';
 import { ZK30PickItem, hitTypeLabel, energyTier } from './types';
+
+// All distinct permutations of a 3-digit combo. Triples → 1, doubles → 3,
+// singles → 6. Used to query histories_tx for any past hit of this comboSet.
+function permsOf(combo: string): string[] {
+  const [a, b, c] = combo;
+  return Array.from(new Set([
+    a + b + c, a + c + b,
+    b + a + c, b + c + a,
+    c + a + b, c + b + a,
+  ]));
+}
+
+// Per-pick hit history. "straight" match = result_digits equals the
+// recommended bestOrder; any other in-set permutation is a "box". Limit 12 —
+// covers the last ~year of hits for a typical combo, more than enough to spot
+// cadence at a glance.
+//
+// Accepts empty `combo` so the hook can be called unconditionally at the top of
+// the modal (Rules of Hooks — the modal early-returns null when no pick is
+// selected, so the query must be wired with `enabled` rather than gated by
+// the early return).
+function usePickHitHistory(combo: string, straightAgainst: string) {
+  return useQuery<Array<{ date_et: string; session: string; match_type: 'straight' | 'box' }>>({
+    queryKey: ['zk30-pick-hit-history', combo],
+    enabled: combo.length === 3,
+    queryFn: async () => {
+      const inList = permsOf(combo).join(',');
+      const rows = await fetchFromSupabase<Array<{ date_et: string; session: string; result_digits: string }>>({
+        path: `/rest/v1/histories_tx?result_digits=in.(${inList})` +
+              `&select=date_et,session,result_digits&order=date_et.desc,session.desc&limit=12`,
+      });
+      if (!Array.isArray(rows)) return [];
+      return rows.map(r => ({
+        date_et: r.date_et,
+        session: r.session,
+        match_type: r.result_digits === straightAgainst ? 'straight' : 'box',
+      }));
+    },
+    staleTime: 60 * 1000,
+  });
+}
 
 interface Props {
   pick: ZK30PickItem | null;
@@ -33,13 +76,17 @@ export function ZK30PickDetailModal({ pick, onClose, brandBlue }: Props) {
   const { colors } = useTheme();
   const s = useMemo(() => makeS(colors), [colors]);
 
+  // ALL hooks must run on every render — pick may be null on first mount and
+  // become non-null when a row is tapped. Early-return AFTER all hook calls.
+  const combo     = pick?.combo ?? '';
+  const bestOrder = pick?.bestOrder ?? pick?.combo ?? '';
+  const { data: hitHistory } = usePickHitHistory(combo, bestOrder);
+
   if (!pick) return null;
 
-  const combo = pick.combo;
-  const bestOrder = pick.bestOrder ?? pick.combo;
   const energy = typeof pick.energy === 'number' ? pick.energy : (pick.temperature ?? 0);
   const tier = energyTier(energy);
-  const tierColor = colors[tier.key as keyof ColorTokens] as string;
+  const tierColor = tier.color;
 
   const hit = pick.hitType
     ? {
@@ -195,6 +242,47 @@ export function ZK30PickDetailModal({ pick, onClose, brandBlue }: Props) {
                 <View style={s.divider} />
               </>
             )}
+
+            {/* Hit history — last 12 matches of this comboSet against TX draws */}
+            <View style={s.section}>
+              <Text style={s.sectionLabel}>HIT HISTORY</Text>
+              {!hitHistory ? (
+                <Text style={s.hint}>Loading…</Text>
+              ) : hitHistory.length === 0 ? (
+                <Text style={s.hint}>No prior hits in the TX history window.</Text>
+              ) : (
+                <View style={{ gap: 4 }}>
+                  {hitHistory.slice(0, 12).map((h, i) => (
+                    <View key={i} style={s.hitHistRow}>
+                      <Text style={s.hitHistDate}>{h.date_et}</Text>
+                      <Text style={s.hitHistSession}>
+                        {(h.session || '').toUpperCase()}
+                      </Text>
+                      <Text
+                        style={[
+                          s.hitHistType,
+                          {
+                            color: h.match_type === 'straight' ? colors.gold : colors.success,
+                          },
+                        ]}
+                      >
+                        {h.match_type === 'straight' ? 'STRAIGHT' : 'BOX'}
+                      </Text>
+                    </View>
+                  ))}
+                  {hitHistory.length === 12 && (
+                    // PostgREST cap is the LIMIT we passed (12). If the row count
+                    // hits the cap, surface that more hits likely exist beyond
+                    // what we've fetched — operator can drill via SQL if needed.
+                    <Text style={[s.hint, { marginTop: 2 }]}>
+                      + more historical hits (showing 12 most recent)
+                    </Text>
+                  )}
+                </View>
+              )}
+            </View>
+
+            <View style={s.divider} />
 
             {/* History */}
             <View style={s.section}>
@@ -392,5 +480,33 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
   kvGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+  },
+  // Hit history rows — compact 3-column timeline (date · session · type)
+  hitHistRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 3,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  hitHistDate: {
+    fontSize: 11,
+    color: colors.text,
+    fontFamily: theme.typography.fontFamily.mono,
+    fontWeight: '700',
+    width: 86,
+  },
+  hitHistSession: {
+    fontSize: 9,
+    color: colors.textSecondary,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    flex: 1,
+  },
+  hitHistType: {
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.8,
   },
 });

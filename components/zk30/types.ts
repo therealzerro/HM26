@@ -81,14 +81,17 @@ export function hitTypeGlyph(t: ZK30PickItem['hitType']): string {
   }
 }
 
-/** Energy → 5-tier label + tier color key. Mirrors EnergyMeter conventions. */
+/** Energy → 4-tier label + explicit ring color. Single source of truth for the
+ *  ZK30 energy palette — both CompactTile's ring and PickCard's heat dot/text
+ *  pull from here so the label and color stay synced. Hex colors are intentional
+ *  (not theme tokens) because the band split is ZK30-specific and the deep-red
+ *  "ON FIRE" hue doesn't exist in the global palette. */
 export function energyTier(e: number): {
-  label: 'ON FIRE' | 'BLAZING' | 'HOT' | 'WARM' | 'COOL';
-  key: 'hot' | 'amber' | 'orange' | 'gold' | 'cyan';
+  label: 'ON FIRE' | 'HOT' | 'BUILDING' | 'COLD';
+  color: string;
 } {
-  if (e >= 90) return { label: 'ON FIRE', key: 'hot' };
-  if (e >= 80) return { label: 'BLAZING', key: 'amber' };
-  if (e >= 65) return { label: 'HOT',     key: 'orange' };
-  if (e >= 45) return { label: 'WARM',    key: 'gold' };
-  return         { label: 'COOL',    key: 'cyan' };
+  if (e >= 95) return { label: 'ON FIRE',  color: '#ff4444' };
+  if (e >= 85) return { label: 'HOT',      color: '#ff8800' };
+  if (e >= 70) return { label: 'BUILDING', color: '#ffaa00' };
+  return         { label: 'COLD',     color: '#64748b' };
 }

@@ -8,7 +8,7 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { useTheme, type ColorTokens } from '@/lib/theme';
+import { useTheme } from '@/lib/theme';
 import { energyTier } from './types';
 
 interface EnergyRingProps {
@@ -18,14 +18,15 @@ interface EnergyRingProps {
   children?: React.ReactNode;
   /** Override stroke color (e.g., gold when straight-hit). When set, ignores tier. */
   overrideColor?: string;
+  /** Dashed stroke — used by ZK30 to flag triples (rare, intentionally distinct). */
+  dashed?: boolean;
 }
 
-export function EnergyRing({ energy, size, stroke = 2.5, children, overrideColor }: EnergyRingProps) {
+export function EnergyRing({ energy, size, stroke = 2.5, children, overrideColor, dashed = false }: EnergyRingProps) {
   const { colors } = useTheme();
 
   const tier = energyTier(energy);
-  const tierColor = colors[tier.key as keyof ColorTokens] as string;
-  const ringColor = overrideColor ?? tierColor;
+  const ringColor = overrideColor ?? tier.color;
 
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -56,9 +57,12 @@ export function EnergyRing({ energy, size, stroke = 2.5, children, overrideColor
           stroke={ringColor}
           strokeWidth={stroke}
           fill="none"
-          strokeDasharray={`${circumference} ${circumference}`}
-          strokeDashoffset={dashOffset}
-          strokeLinecap="round"
+          // Dashed mode: short on-off pattern + zero offset so the ring reads as
+          // segmented rather than a partial arc. Solid mode preserves the
+          // energy-fill arc (offset = circumference × (1 - pct)).
+          strokeDasharray={dashed ? `3 3` : `${circumference} ${circumference}`}
+          strokeDashoffset={dashed ? 0 : dashOffset}
+          strokeLinecap={dashed ? 'butt' : 'round'}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </Svg>

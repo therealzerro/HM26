@@ -18,7 +18,6 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native
 import { theme } from '@/constants/theme';
 import { useTheme, type ColorTokens } from '@/lib/theme';
 import { EnergyRing } from './EnergyRing';
-import { SignalPips } from './SignalPips';
 import { ZK30PickItem, energyTier } from './types';
 
 interface Props {
@@ -54,6 +53,7 @@ export function CompactTile({ pick, onPress, brandBlue }: Props) {
   const combo = pick.bestOrder ?? pick.combo;
   const energy = typeof pick.energy === 'number' ? pick.energy : (pick.temperature ?? 0);
   const chrome = hitChrome(pick.hitType, colors);
+  const isTriple = pick.multiplicity === 'triples';
 
   // Ring sizing: 68px outer (was 76) — trimmed to compensate for the new
   // secondary chip row that eats ~32px of vertical chrome.
@@ -82,15 +82,24 @@ export function CompactTile({ pick, onPress, brandBlue }: Props) {
         size={RING_SIZE}
         stroke={2.5}
         overrideColor={chrome.ringOverride}
+        dashed={isTriple}
       >
         <Text style={s.combo}>{combo}</Text>
       </EnergyRing>
 
-      <SignalPips signals={pick.signals} brandBlue={brandBlue} size={5.5} />
-
+      {/* Hit-type glyph (top-right corner) */}
       {chrome.glyph && (
         <View style={s.cornerGlyph}>
           <Text style={s.cornerGlyphText}>{chrome.glyph}</Text>
+        </View>
+      )}
+
+      {/* Triple flag (top-left corner) — kept on the opposite corner so it
+          doesn't collide with hit glyphs, and small enough to read as "marker"
+          rather than "warning". */}
+      {isTriple && (
+        <View style={s.tripleFlag}>
+          <Text style={s.tripleFlagText}>▲</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -129,5 +138,16 @@ const makeS = (colors: ColorTokens, _brandBlue: string) =>
     cornerGlyphText: {
       fontSize: 11,
       lineHeight: 13,
+    },
+    tripleFlag: {
+      position: 'absolute',
+      top: 1,
+      left: 3,
+    },
+    tripleFlagText: {
+      fontSize: 9,
+      lineHeight: 11,
+      color: colors.textTertiary,
+      fontWeight: '900',
     },
   });

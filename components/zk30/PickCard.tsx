@@ -6,12 +6,38 @@
 //
 // Tap → opens ZK30PickDetailModal.
 
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Modal } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
+import { HelpCircle, X } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
 import { useTheme, type ColorTokens } from '@/lib/theme';
+import { fetchFromSupabase } from '@/lib/supabase';
 import { SignalBar } from '@/components/SignalBar';
 import { ZK30PickItem, energyTier, hitBorderColor, hitTypeLabel } from './types';
+
+// Shared cached lookup for the Fresh/Building threshold. All 30 ZK30 rows mount
+// PickCard simultaneously; TanStack Query dedupes via this stable queryKey so
+// the GET fires once per session. Missing row → default 30 (UI-only label;
+// engine does not consume).
+function useFreshThreshold(): number {
+  const { data } = useQuery<number>({
+    queryKey: ['zk30-fresh-threshold-days'],
+    queryFn: async () => {
+      try {
+        const rows = await fetchFromSupabase<Array<{ value: string }>>({
+          path: `/rest/v1/app_config?key=eq.zk30_fresh_threshold_days&select=value&limit=1`,
+        });
+        const v = Array.isArray(rows) && rows[0] ? parseInt(rows[0].value, 10) : NaN;
+        return Number.isFinite(v) && v >= 1 ? v : 30;
+      } catch {
+        return 30;
+      }
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+  return data ?? 30;
+}
 
 interface Props {
   pick: ZK30PickItem;
@@ -22,11 +48,14 @@ interface Props {
 export function ZK30PickCardRow({ pick, onPress, brandBlue }: Props) {
   const { colors } = useTheme();
   const s = useMemo(() => makeS(colors), [colors]);
+  const freshDays = useFreshThreshold();
+  const [tooltipOpen, setTooltipOpen] = useState(false);
 
   const combo = pick.bestOrder ?? pick.combo;
   const energy = typeof pick.energy === 'number' ? pick.energy : (pick.temperature ?? 0);
   const tier = energyTier(energy);
-  const tierColor = colors[tier.key as keyof ColorTokens] as string;
+  const tierColor = tier.color;
+  const isTriple = pick.multiplicity === 'triples';
 
   const border = hitBorderColor(pick.hitType, brandBlue + '33', {
     success: colors.success, gold: colors.gold,
@@ -49,11 +78,15 @@ export function ZK30PickCardRow({ pick, onPress, brandBlue }: Props) {
   ];
 
   const drawsSince = pick.drawsSince ?? pick.dsRaw ?? null;
-  const pressure: { txt: string; color: string } | null =
+  const pressure: { txt: string; color: string; band: 'fresh' | 'building' | 'overdue' } | null =
     drawsSince == null || drawsSince >= 500 ? null
-    : drawsSince < 30  ? { txt: `Fresh ${drawsSince}d`, color: colors.success }
-    : drawsSince > 200 ? { txt: `Overdue ${drawsSince}d`, color: colors.orange }
-    : { txt: `Building ${drawsSince}d`, color: colors.gold };
+    : drawsSince <= freshDays ? { txt: `Fresh ${drawsSince}d`,    color: colors.success, band: 'fresh' }
+    : drawsSince > 200        ? { txt: `Overdue ${drawsSince}d`,  color: colors.orange,  band: 'overdue' }
+    :                            { txt: `Building ${drawsSince}d`, color: colors.gold,    band: 'building' };
+  // (?) tooltip only renders next to Fresh/Building (the threshold-dependent
+  // bands). Overdue uses a separate cutoff and gets no tooltip — the meaning
+  // is self-evident.
+  const showFreshTooltip = pressure?.band === 'fresh' || pressure?.band === 'building';
 
   const isStraight = pick.hitType === 'straight';
 
@@ -77,7 +110,10 @@ export function ZK30PickCardRow({ pick, onPress, brandBlue }: Props) {
     >
       {/* Left: rank + combo + heat */}
       <View style={s.left}>
-        <Text style={s.rank}>#{pick.rank}</Text>
+        <View style={s.rankRow}>
+          <Text style={s.rank}>#{pick.rank}</Text>
+          {isTriple && <Text style={s.tripleFlag}>▲</Text>}
+        </View>
         <Text style={s.combo}>{combo}</Text>
         <View style={s.heatRow}>
           <View style={[s.dot, { backgroundColor: tierColor }]} />
@@ -113,13 +149,57 @@ export function ZK30PickCardRow({ pick, onPress, brandBlue }: Props) {
             </View>
           ))}
           {pressure && (
-            <Text style={[s.pressure, { color: pressure.color }]}>· {pressure.txt}</Text>
+            <View style={s.pressureRow}>
+              <Text style={[s.pressure, { color: pressure.color }]}>· {pressure.txt}</Text>
+              {showFreshTooltip && (
+                <TouchableOpacity
+                  onPress={(e) => { e.stopPropagation?.(); setTooltipOpen(true); }}
+                  hitSlop={6}
+                  accessibilityLabel="Explain Fresh and Building"
+                  accessibilityRole="button"
+                >
+                  <HelpCircle size={10} color={colors.textTertiary} />
+                </TouchableOpacity>
+              )}
+            </View>
           )}
         </View>
         {hitLabel && (
           <Text style={[s.hitLabel, { color: border }]}>{hitLabel}</Text>
         )}
       </View>
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={tooltipOpen}
+        onRequestClose={() => setTooltipOpen(false)}
+      >
+        <TouchableOpacity style={s.tipBackdrop} activeOpacity={1} onPress={() => setTooltipOpen(false)}>
+          <View style={[s.tipCard, { borderColor: brandBlue + '55' }]}>
+            <View style={s.tipHeader}>
+              <Text style={[s.tipTitle, { color: brandBlue }]}>FRESHNESS</Text>
+              <TouchableOpacity onPress={() => setTooltipOpen(false)} hitSlop={6}>
+                <X size={14} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={[s.tipBody, { color: colors.textSecondary }]}>
+              Days since this combo last drew (any TX session, fireball-substituted hits not counted).
+            </Text>
+            <View style={s.tipRow}>
+              <Text style={[s.tipBand, { color: colors.success }]}>Fresh</Text>
+              <Text style={[s.tipBandDesc, { color: colors.textSecondary }]}>{`≤ ${freshDays} days since last hit`}</Text>
+            </View>
+            <View style={s.tipRow}>
+              <Text style={[s.tipBand, { color: colors.gold }]}>Building</Text>
+              <Text style={[s.tipBandDesc, { color: colors.textSecondary }]}>{`> ${freshDays} days (pressure building)`}</Text>
+            </View>
+            <Text style={[s.tipFooter, { color: colors.textTertiary }]}>
+              Threshold tunable via app_config.zk30_fresh_threshold_days (default 30).
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </TouchableOpacity>
   );
 }
@@ -138,11 +218,18 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
     width: 70,
     gap: 2,
   },
+  rankRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   rank: {
     fontSize: 9,
     color: colors.textTertiary,
     fontFamily: theme.typography.fontFamily.mono,
     fontWeight: '700',
+  },
+  tripleFlag: {
+    fontSize: 9,
+    color: colors.textTertiary,
+    fontWeight: '900',
+    lineHeight: 11,
   },
   combo: {
     fontSize: 22,
@@ -169,9 +256,61 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
     minWidth: 18, alignItems: 'center',
   },
   badgeText: { fontSize: 8, fontWeight: '900' },
+  pressureRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   pressure: { fontSize: 9, fontWeight: '700' },
   hitLabel: {
     fontSize: 8, fontWeight: '900',
     letterSpacing: 0.5,
+  },
+  tipBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  tipCard: {
+    width: '100%',
+    maxWidth: 320,
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    gap: 8,
+  },
+  tipHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  tipTitle: {
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.4,
+  },
+  tipBody: {
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  tipRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+  },
+  tipBand: {
+    fontSize: 11,
+    fontWeight: '900',
+    width: 64,
+    letterSpacing: 0.5,
+  },
+  tipBandDesc: {
+    fontSize: 11,
+    flex: 1,
+  },
+  tipFooter: {
+    fontSize: 9,
+    fontStyle: 'italic',
+    marginTop: 4,
+    lineHeight: 13,
   },
 });

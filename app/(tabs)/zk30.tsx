@@ -281,10 +281,15 @@ export default function ZK30Screen() {
   }, [lastDetectionRun]);
 
   const allPicks = parsePicks(snapshot?.top_k_straights_json).slice(0, 30);
-  const hitPicks = allPicks.filter((p) => p.hitType);
+  // ARCH-08: HITS badge counts NATURAL hits only. Fireball hits are
+  // secondary — see fireballHitPicks for the parenthetical callout.
+  const hitPicks = allPicks.filter((p) => !!p.hitType);
+  const fireballHitPicks = allPicks.filter((p) => !!p.fireballHitType);
 
-  // Filter by view mode for body.
-  const visiblePicks = viewMode === 'hits' ? hitPicks : allPicks;
+  // Filter by view mode for body. List and compact still show all 30; Hits
+  // tab is governed entirely by HitsTimelineView (historical query, not
+  // snapshot filter).
+  const visiblePicks = allPicks;
 
   // ─── Header subline metadata ─────────────────────────────────────────────
   const slateDateLabel = formatDateLong(selectedDate);
@@ -478,6 +483,7 @@ export default function ZK30Screen() {
           colors={colors}
           brand={brandBlue}
           hitsToday={hitPicks.length}
+          fireballHitsToday={fireballHitPicks.length}
           slateDate={slateDateLabel}
           onTriggerDetection={triggerHitDetection}
           triggerBusy={hitTriggerBusy}
@@ -527,10 +533,12 @@ export default function ZK30Screen() {
         </ScrollView>
       )}
 
-      {/* Detail modal */}
+      {/* Detail modal — slateDate passed so the fireball detail lookup
+          against adaptive_tracking_zk30 can scope to the right day. */}
       <ZK30PickDetailModal
         pick={detail}
         brandBlue={brandBlue}
+        slateDate={selectedDate}
         onClose={() => setDetail(null)}
       />
 
@@ -628,6 +636,17 @@ const BAND_LABELS: Record<HitBandKey, string> = {
   month:     'Earlier this month',
 };
 
+// ARCH-08: classify an AT row by channel. A row counts as "natural" if any
+// natural flag is set; otherwise "fireball" if any fireball flag is set.
+// Rows with both natural and fireball flags appear in the natural bucket
+// only (natural-primary rule).
+function isNaturalRow(r: ZK30HitRow): boolean {
+  return r.hit_straight || r.hit_box;
+}
+function isFireballOnlyRow(r: ZK30HitRow): boolean {
+  return !isNaturalRow(r) && (r.hit_fireball_straight || r.hit_fireball_box);
+}
+
 function hitTypeOf(r: ZK30HitRow): 'straight' | 'box' | 'fireball_straight' | 'fireball_box' {
   if (r.hit_straight) return 'straight';
   if (r.hit_box) return 'box';
@@ -665,18 +684,34 @@ function HitsTimelineView({
     staleTime: 60 * 1000,
   });
 
-  // Group rows into the 4 bands. Order: today, yesterday, week, month.
+  // Group rows into the 4 bands, then within each band split natural vs
+  // fireball-only (ARCH-08). Each band carries its own pair of arrays so
+  // the renderer can show natural inline + a collapsible fireball sub-band.
   const groups = useMemo(() => {
-    const out: Record<HitBandKey, ZK30HitRow[]> = { today: [], yesterday: [], week: [], month: [] };
-    if (hits) for (const h of hits) out[bandOf(h.slate_date, today)].push(h);
+    const out: Record<HitBandKey, { natural: ZK30HitRow[]; fireball: ZK30HitRow[] }> = {
+      today:     { natural: [], fireball: [] },
+      yesterday: { natural: [], fireball: [] },
+      week:      { natural: [], fireball: [] },
+      month:     { natural: [], fireball: [] },
+    };
+    if (hits) for (const h of hits) {
+      const band = bandOf(h.slate_date, today);
+      if (isNaturalRow(h)) out[band].natural.push(h);
+      else if (isFireballOnlyRow(h)) out[band].fireball.push(h);
+    }
     return out;
   }, [hits, today]);
 
-  // Only Today expanded by default (spec C5).
+  // Only Today expanded by default (spec C5). Fireball sub-bands collapse by
+  // default on every day-band (ARCH-08 secondary visual rule).
   const [expanded, setExpanded] = useState<Record<HitBandKey, boolean>>({
     today: true, yesterday: false, week: false, month: false,
   });
+  const [fbExpanded, setFbExpanded] = useState<Record<HitBandKey, boolean>>({
+    today: false, yesterday: false, week: false, month: false,
+  });
   const toggle = (k: HitBandKey) => setExpanded(e => ({ ...e, [k]: !e[k] }));
+  const toggleFb = (k: HitBandKey) => setFbExpanded(e => ({ ...e, [k]: !e[k] }));
 
   if (isPending) {
     return (
@@ -721,11 +756,38 @@ function HitsTimelineView({
     );
   }
 
+  // Single row renderer — reused for natural + fireball sub-lists.
+  const renderRow = (r: ZK30HitRow, i: number) => {
+    const t = hitTypeOf(r);
+    return (
+      <View key={`${r.slate_date}-${r.rank}-${i}`} style={[timelineStyles.row, { borderColor: colors.border }]}>
+        <View style={{ flex: 1 }}>
+          <View style={timelineStyles.rowTop}>
+            <Text style={timelineStyles.combo}>{r.combo}</Text>
+            <Text style={[timelineStyles.hitType, { color: hitTypeColor(t, colors) }]}>
+              {hitTypeShort(t)}
+            </Text>
+          </View>
+          <Text style={[timelineStyles.rowMeta, { color: colors.textSecondary }]}>
+            {r.slate_date}  ·  {(r.matched_session ?? 'session').toUpperCase()}
+            {r.matched_result ? `  ·  draw ${r.matched_result}` : ''}
+            {r.matched_fireball ? `  + fb ${r.matched_fireball}` : ''}
+          </Text>
+        </View>
+        <Text style={[timelineStyles.rank, { color: colors.textTertiary }]}>#{r.rank}</Text>
+      </View>
+    );
+  };
+
   return (
     <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }}>
       {(['today', 'yesterday', 'week', 'month'] as HitBandKey[]).map((band) => {
-        const list = groups[band];
+        const { natural, fireball } = groups[band];
+        const totalN = natural.length;
+        const totalF = fireball.length;
+        const totalAny = totalN + totalF;
         const isOpen = expanded[band];
+        const isFbOpen = fbExpanded[band];
         return (
           <View key={band} style={[timelineStyles.bandCard, { borderColor: colors.border }]}>
             <TouchableOpacity
@@ -734,45 +796,56 @@ function HitsTimelineView({
               accessibilityRole="button"
               accessibilityState={{ expanded: isOpen }}
             >
-              <Text style={[timelineStyles.bandChevron, { color: list.length > 0 ? brand : colors.textTertiary }]}>
+              <Text style={[timelineStyles.bandChevron, { color: totalAny > 0 ? brand : colors.textTertiary }]}>
                 {isOpen ? '▼' : '▶'}
               </Text>
-              <Text style={[timelineStyles.bandLabel, { color: list.length > 0 ? colors.text : colors.textTertiary }]}>
+              <Text style={[timelineStyles.bandLabel, { color: totalAny > 0 ? colors.text : colors.textTertiary }]}>
                 {BAND_LABELS[band]}
               </Text>
-              <Text style={[timelineStyles.bandCount, { color: list.length > 0 ? brand : colors.textTertiary }]}>
-                ({list.length})
+              <Text style={[timelineStyles.bandCount, { color: totalN > 0 ? brand : colors.textTertiary }]}>
+                ({totalN})
+                {totalF > 0 && (
+                  <Text style={{ color: colors.orange }}>{` + ${totalF} 🔥`}</Text>
+                )}
               </Text>
             </TouchableOpacity>
-            {isOpen && list.length > 0 && (
-              <View style={{ gap: 6, paddingTop: 4 }}>
-                {list.map((r, i) => {
-                  const t = hitTypeOf(r);
-                  return (
-                    <View key={`${r.slate_date}-${r.rank}-${i}`} style={[timelineStyles.row, { borderColor: colors.border }]}>
-                      <View style={{ flex: 1 }}>
-                        <View style={timelineStyles.rowTop}>
-                          <Text style={timelineStyles.combo}>{r.combo}</Text>
-                          <Text style={[timelineStyles.hitType, { color: hitTypeColor(t, colors) }]}>
-                            {hitTypeShort(t)}
-                          </Text>
-                        </View>
-                        <Text style={[timelineStyles.rowMeta, { color: colors.textSecondary }]}>
-                          {r.slate_date}  ·  {(r.matched_session ?? 'session').toUpperCase()}
-                          {r.matched_result ? `  ·  draw ${r.matched_result}` : ''}
-                          {r.matched_fireball ? `  + fb ${r.matched_fireball}` : ''}
-                        </Text>
-                      </View>
-                      <Text style={[timelineStyles.rank, { color: colors.textTertiary }]}>#{r.rank}</Text>
-                    </View>
-                  );
-                })}
+
+            {isOpen && (
+              <View style={{ paddingTop: 4, gap: 8 }}>
+                {/* Natural sub-list — always inline (primary per ARCH-08) */}
+                {totalN > 0 ? (
+                  <View style={{ gap: 6 }}>{natural.map(renderRow)}</View>
+                ) : (
+                  <Text style={[timelineStyles.empty, { color: colors.textTertiary }]}>
+                    No natural matches in this window.
+                  </Text>
+                )}
+
+                {/* Fireball sub-band — collapsible, "TX-only" tag */}
+                {totalF > 0 && (
+                  <View style={[timelineStyles.fbBand, { borderColor: colors.border }]}>
+                    <TouchableOpacity
+                      onPress={() => toggleFb(band)}
+                      style={timelineStyles.bandHeader}
+                      accessibilityRole="button"
+                      accessibilityState={{ expanded: isFbOpen }}
+                    >
+                      <Text style={[timelineStyles.bandChevron, { color: colors.orange }]}>
+                        {isFbOpen ? '▼' : '▶'}
+                      </Text>
+                      <Text style={[timelineStyles.fbBandLabel, { color: colors.orange }]}>
+                        🔥 FIREBALL · TX-only
+                      </Text>
+                      <Text style={[timelineStyles.bandCount, { color: colors.orange }]}>
+                        ({totalF})
+                      </Text>
+                    </TouchableOpacity>
+                    {isFbOpen && (
+                      <View style={{ gap: 6, paddingTop: 4 }}>{fireball.map(renderRow)}</View>
+                    )}
+                  </View>
+                )}
               </View>
-            )}
-            {isOpen && list.length === 0 && (
-              <Text style={[timelineStyles.empty, { color: colors.textTertiary }]}>
-                No hits in this window.
-              </Text>
             )}
           </View>
         );
@@ -804,6 +877,17 @@ const timelineStyles = StyleSheet.create({
   rowMeta: { fontSize: 10, fontWeight: '600', marginTop: 2 },
   rank: { fontSize: 10, fontWeight: '700', width: 28, textAlign: 'right' },
   empty: { fontSize: 11, fontStyle: 'italic', paddingVertical: 4 },
+  // ARCH-08: nested fireball sub-band container — dotted left rule signals
+  // hierarchy, lower contrast so natural rows stay primary visually.
+  fbBand: {
+    borderLeftWidth: 2,
+    paddingLeft: 8,
+    paddingTop: 4,
+    paddingBottom: 4,
+    marginTop: 4,
+    gap: 4,
+  },
+  fbBandLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 0.8, flex: 1 },
 });
 
 // ─── Date picker modal ────────────────────────────────────────────────────
@@ -921,15 +1005,22 @@ const dpStyles = StyleSheet.create({
 // ─── Section subcomponents (Results placeholder) ──────────────────────────
 
 function ResultsPlaceholder({
-  colors, brand, hitsToday, slateDate, onTriggerDetection, triggerBusy, triggerStatus, lastRunCaption,
+  colors, brand, hitsToday, fireballHitsToday, slateDate,
+  onTriggerDetection, triggerBusy, triggerStatus, lastRunCaption,
 }: {
-  colors: ColorTokens; brand: string; hitsToday: number; slateDate: string;
+  colors: ColorTokens; brand: string;
+  hitsToday: number;          // ARCH-08: NATURAL hits only
+  fireballHitsToday: number;  // fireball-only callout
+  slateDate: string;
   onTriggerDetection: () => void; triggerBusy: boolean; triggerStatus: string;
   lastRunCaption: string;
 }) {
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-      {/* Today's at-a-glance */}
+      {/* Today's at-a-glance — ARCH-08 natural primary; fireball secondary
+          callout below when there are any fireball-only picks. HITS and RATE
+          are NEVER inflated by fireball — most users can't claim fireball
+          prizes (non-TX jurisdictions). */}
       <View style={[placeholderStyles.card, { borderColor: brand + '44' }]}>
         <Text style={[placeholderStyles.sectionLabel, { color: brand }]}>TODAY  ·  {slateDate}</Text>
         <View style={placeholderStyles.statsRow}>
@@ -950,6 +1041,20 @@ function ResultsPlaceholder({
             <Text style={[placeholderStyles.statLabel, { color: colors.textTertiary }]}>RATE</Text>
           </View>
         </View>
+        {fireballHitsToday > 0 && (
+          <View style={{
+            marginTop: 4,
+            paddingTop: 8,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: colors.border,
+            alignItems: 'center',
+          }}>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: colors.orange, letterSpacing: 0.4 }}>
+              {`+ ${fireballHitsToday} FIREBALL`}
+              <Text style={{ color: colors.textTertiary }}>{`  ·  TX-only`}</Text>
+            </Text>
+          </View>
+        )}
         <TouchableOpacity
           disabled={triggerBusy}
           onPress={onTriggerDetection}

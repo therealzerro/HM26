@@ -1604,6 +1604,53 @@ Both gates are time-based; structural build is done.
 
 ---
 
+## ARCH-08 — ZK30 Fireball Separation Principle (2026-05-26)
+
+**Load-bearing architectural rule, not a UX preference.** Documented here so future work can't drift it back.
+
+Fireball matches are PRESENTATION-ONLY and isolated from all engine/scoring/tuning paths.
+
+**Reasoning**: a magnitude of HitMaster users play TX Pick 3 in jurisdictions where Fireball is not available, OR play Pick 3 in non-TX jurisdictions where ZK30 picks are useful but Fireball is not. Mixing fireball matches into hit metrics inflates ZK30's apparent performance for those users and produces phantom hit notifications they cannot collect.
+
+**Rules**:
+
+1. **Hit rate** = `(hit_straight OR hit_box) / picks`. Fireball is NEVER included in primary hit rate calculation.
+2. **Any backtest, optimization loop, or weight-tuning target** uses NATURAL-ONLY hit rate as the objective function.
+3. **Engine signals** (BOX, PBURST, CO, DGC) consume natural draws only via `histories_tx.result_digits`. Fireball-substituted variants NEVER enter aggregation.
+4. **Snapshot pick fields**: `pick.hitType` reflects NATURAL primary match (straight > box > null). `pick.fireballHitType` reflects FIREBALL primary match (fireball_straight > fireball_box > null). They are independent fields and both can be populated on a single pick.
+5. **DI columns** `matched_session / matched_result / matched_fireball` track NATURAL primary match only. Fireball detail lives in `adaptive_tracking_zk30` per-match rows + snapshot `fireballHitType`.
+6. **UI**: primary surfaces (HITS badge, "Today" stats, hit rate, pick card primary badge row) show natural only. Fireball gets its own secondary section labeled "TX-only" — always visible but collapsed by default, expandable on user tap.
+7. **External captions / verification posts / marketing copy** use natural-hit count as the headline metric. Fireball is a parenthetical aside ("+ N fireball matches for TX players").
+8. **Future jurisdictions with bonus mechanics** (e.g., other states with Wild Ball, Boost, etc.) inherit this same separation pattern: bonus is secondary, never enters scoring.
+
+**Violation surfaces** (search and audit periodically):
+- Any SQL aggregating hits without filtering on `hit_straight OR hit_box`
+- Any UI label saying "N hits today" without specifying natural
+- Any backtest comparing engine versions on a fireball-inclusive metric
+- Any caption/post template that bundles fireball into headline counts
+
+**v1.0 implementation surfaces**:
+
+| Layer | Where it lives |
+|---|---|
+| Data shape | `ZK30PickItem.hitType` narrowed to `'straight' \| 'box' \| null`; new `ZK30PickItem.fireballHitType: 'fireball_straight' \| 'fireball_box' \| null` (`components/zk30/types.ts`) |
+| Edge fn | `run-hit-detection-zk30` v2 sha `2a673114…`: `naturalPrecedence` + `fireballPrecedence` compute independent primaries; `updateDailyIntelligenceHit(natural, fireball)` populates `matched_*` from natural only; snapshot pick gains `fireballHitType` field; telemetry response splits `hitsFound` (natural pick count) + `fireballHitsFound` (fireball-only pick count, non-overlapping) |
+| Telemetry table | `hit_detection_runs.hits_found` = natural-only count. `supplements_generated` column repurposed to carry fireball-only count (no schema add — table is shared with ZK6 and a column add was out of scope for v1.0) |
+| HITS badge | `hitPicks = allPicks.filter(p => !!p.hitType)` — natural only (`app/(tabs)/zk30.tsx`) |
+| Compact tile | Natural hits keep bg tint + ring chrome; fireball-only picks get a small dim 🔥 in the bottom-right corner only |
+| List card | Primary badge row [S][B] (natural). Fireball [🔥S][🔥B] sub-row renders ONLY when `pick.fireballHitType` set, with a tinted background + smaller font + 🔥 prefix. Fireball-only picks surface a fireball label when no natural label is present |
+| Detail modal | "MATCH RESULTS" section split into NATURAL MATCH + 🔥 FIREBALL MATCH · TX-only sub-blocks. Each shows its own pick-vs-draw shape; "No natural/fireball match" message when one is absent. Fireball detail (session/result/digit) fetched lazily from `adaptive_tracking_zk30` via `useFireballHitDetail` hook, scoped to `slateDate + combo + rank` |
+| Hits timeline (C5) | Each day-band sub-groups natural inline + collapsible 🔥 sub-band labeled "TX-only". Fireball sub-band collapsed by default on every band |
+| Results "Today" stats | HITS + RATE compute from natural only. `+ N FIREBALL · TX-only` callout below the 3-stat row, only rendered when `fireballHitsToday > 0` |
+
+**One-shot migration**: `scripts/migrations/2026_05_25_zk30_fireball_separation.ts` walks every active snapshot, moves `hitType='fireball_*'` → `fireballHitType`, adds `fireballHitType: null` to clean picks (schema consistency for downstream renderers), nulls `matched_session/result/fireball` on DI rows where natural flags are both false. Idempotent — re-runs produce 0 work. First run on 2026-05-26: 1 DI row cleaned (pick 173, the 5/25 fireball-straight hit on Day-session draw 171 + fb 3). Snapshot picks already migrated by Phase 1 regen.
+
+**Engine + aggregator NOT touched** (verified fireball-free pre-fix): `aggregate_tx_datasets.ts` reads `result_digits` only; BOX/PBURST/CO/DGC derive from `datasets_box` + `datasets_pair` + `histories_tx.result_digits` (no fireball-substituted variants); `engines/zk30.ts` + `compute-slate-zk30` have no fireball references in scoring paths. ARCH-08 is purely a downstream presentation + telemetry rewire — the engine never had to learn fireball; it just had to stop the data layer from collapsing it into the natural primary slot.
+
+**Audit script** (for the periodic violation sweep): grep for `hit_straight OR hit_box OR hit_fireball` in SQL/edge-fn paths, `hitsToday` / `hits_found` displays without "natural" qualifier in user-facing strings, and any caption template that does `total_hits = naturalHits + fireballHits` math.
+
+---
+
 ## ZK6 Engine Audit Findings (2026-05-10)
 
 | ID | Issue | Severity | Description |

@@ -14,7 +14,7 @@ import { theme } from '@/constants/theme';
 import { useTheme, type ColorTokens } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { SignalBar } from '@/components/SignalBar';
-import { ZK30PickItem, energyTier, hitBorderColor, hitTypeLabel } from './types';
+import { ZK30PickItem, energyTier, hitBorderColor, hitTypeLabel, fireballHitTypeLabel } from './types';
 
 // Shared cached lookup for the Fresh/Building threshold. All 30 ZK30 rows mount
 // PickCard simultaneously; TanStack Query dedupes via this stable queryKey so
@@ -57,24 +57,34 @@ export function ZK30PickCardRow({ pick, onPress, brandBlue }: Props) {
   const tierColor = tier.color;
   const isTriple = pick.multiplicity === 'triples';
 
+  // ARCH-08: border + glow are NATURAL-only. Fireball gets a secondary
+  // sub-row beneath the primary badges instead of dominating the row chrome.
   const border = hitBorderColor(pick.hitType, brandBlue + '33', {
     success: colors.success, gold: colors.gold,
-    orange: colors.orange, amber: colors.amber,
   });
   const hitLabel = hitTypeLabel(pick.hitType);
+  const fbHitLabel = fireballHitTypeLabel(pick.fireballHitType);
 
-  // 4-badge strip (derived from primary hitType; superset suppression).
-  const flags = {
-    s:   pick.hitType === 'straight',
-    b:   pick.hitType === 'box',
-    fbs: pick.hitType === 'fireball_straight',
-    fbb: pick.hitType === 'fireball_box',
+  // Primary badges — natural only (S, B). Box-supersedes-straight visual
+  // collapse preserved.
+  const natFlags = {
+    s: pick.hitType === 'straight',
+    b: pick.hitType === 'box',
   };
-  const badges = [
-    { letter: 'S',   on: flags.s,                  color: colors.gold },
-    { letter: 'B',   on: flags.b && !flags.s,      color: colors.success },
-    { letter: '🔥S', on: flags.fbs,                color: colors.orange },
-    { letter: '🔥B', on: flags.fbb && !flags.fbs,  color: colors.amber },
+  const primaryBadges = [
+    { letter: 'S', on: natFlags.s,                  color: colors.gold },
+    { letter: 'B', on: natFlags.b && !natFlags.s,   color: colors.success },
+  ];
+
+  // Fireball sub-row badges — visible ONLY when this pick has a fireball hit.
+  const showFbRow = !!pick.fireballHitType;
+  const fbFlags = {
+    fbs: pick.fireballHitType === 'fireball_straight',
+    fbb: pick.fireballHitType === 'fireball_box',
+  };
+  const fireballBadges = [
+    { letter: '🔥S', on: fbFlags.fbs,                  color: colors.orange },
+    { letter: '🔥B', on: fbFlags.fbb && !fbFlags.fbs,  color: colors.amber },
   ];
 
   const drawsSince = pick.drawsSince ?? pick.dsRaw ?? null;
@@ -130,10 +140,13 @@ export function ZK30PickCardRow({ pick, onPress, brandBlue }: Props) {
         <SignalBar label="DGC"    value={pick.signals.DGC ?? 0} color={colors.gold} />
       </View>
 
-      {/* Right: badges, pressure, hit label — single horizontal row */}
+      {/* Right: badges, pressure, hit label — primary badges + (optional)
+          fireball sub-row + pressure + hit label. Fireball sub-row renders
+          ONLY when pick.fireballHitType is set, so most picks read as a
+          tight 2-badge primary row (per ARCH-08 visual hierarchy). */}
       <View style={s.right}>
         <View style={s.rightRow}>
-          {badges.map((b, i) => (
+          {primaryBadges.map((b, i) => (
             <View
               key={i}
               style={[
@@ -164,8 +177,33 @@ export function ZK30PickCardRow({ pick, onPress, brandBlue }: Props) {
             </View>
           )}
         </View>
+        {showFbRow && (
+          <View style={s.fbSubRow}>
+            <Text style={s.fbPrefix}>🔥</Text>
+            {fireballBadges.map((b, i) => (
+              <View
+                key={i}
+                style={[
+                  s.fbBadge,
+                  b.on
+                    ? { backgroundColor: b.color + '22', borderColor: b.color + '88' }
+                    : { backgroundColor: colors.surfaceLight, borderColor: colors.border },
+                ]}
+              >
+                <Text style={[s.fbBadgeText, { color: b.on ? b.color : colors.textTertiary }]}>
+                  {b.letter}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
         {hitLabel && (
           <Text style={[s.hitLabel, { color: border }]}>{hitLabel}</Text>
+        )}
+        {!hitLabel && fbHitLabel && (
+          // Fireball-only pick still surfaces a label so the row reads as
+          // "something hit," just with the secondary tone.
+          <Text style={[s.hitLabel, { color: colors.orange }]}>{fbHitLabel}</Text>
         )}
       </View>
 
@@ -256,6 +294,22 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
     minWidth: 18, alignItems: 'center',
   },
   badgeText: { fontSize: 8, fontWeight: '900' },
+  // Fireball sub-row — smaller, dimmer than the natural primary badges per
+  // ARCH-08 visual hierarchy (fireball is secondary, "TX-only" semantic).
+  fbSubRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    marginTop: 2,
+    paddingHorizontal: 4, paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,140,0,0.06)',
+  },
+  fbPrefix: { fontSize: 9, lineHeight: 11 },
+  fbBadge: {
+    paddingHorizontal: 3, paddingVertical: 1,
+    borderRadius: 3, borderWidth: 1,
+    minWidth: 18, alignItems: 'center',
+  },
+  fbBadgeText: { fontSize: 7, fontWeight: '900' },
   pressureRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   pressure: { fontSize: 9, fontWeight: '700' },
   hitLabel: {

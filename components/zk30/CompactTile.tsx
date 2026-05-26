@@ -26,8 +26,9 @@ interface Props {
   brandBlue: string;
 }
 
-// Background tint + ring override per hit type. Tint is the LOUD signal at
-// 50px density — border swap (v1) was too quiet.
+// Background tint + ring override per NATURAL hit type (ARCH-08). Fireball
+// gets its own subtle bottom-right glyph rather than dominating the chrome —
+// most users can't claim fireball prizes (non-TX jurisdictions).
 function hitChrome(
   hitType: ZK30PickItem['hitType'],
   colors: ColorTokens,
@@ -37,10 +38,6 @@ function hitChrome(
       return { bg: colors.gold + '20', ringOverride: colors.gold, glow: colors.gold, glyph: '⭐' };
     case 'box':
       return { bg: colors.success + '15', ringOverride: colors.success };
-    case 'fireball_straight':
-      return { bg: colors.orange + '22', ringOverride: colors.orange, glyph: '🔥' };
-    case 'fireball_box':
-      return { bg: colors.amber + '15', ringOverride: colors.amber, glyph: '🔥' };
     default:
       return { bg: colors.card };
   }
@@ -54,6 +51,10 @@ export function CompactTile({ pick, onPress, brandBlue }: Props) {
   const energy = typeof pick.energy === 'number' ? pick.energy : (pick.temperature ?? 0);
   const chrome = hitChrome(pick.hitType, colors);
   const isTriple = pick.multiplicity === 'triples';
+  // ARCH-08: fireball is a secondary marker — small dim 🔥 in the corner,
+  // visible only when fireball fires and natural did not (so it doesn't
+  // duplicate the primary glyph on dual-hit picks).
+  const fireballOnly = !pick.hitType && !!pick.fireballHitType;
 
   // Ring sizing: 68px outer (was 76) — trimmed to compensate for the new
   // secondary chip row that eats ~32px of vertical chrome.
@@ -100,6 +101,16 @@ export function CompactTile({ pick, onPress, brandBlue }: Props) {
       {isTriple && (
         <View style={s.tripleFlag}>
           <Text style={s.tripleFlagText}>▲</Text>
+        </View>
+      )}
+
+      {/* Fireball-only marker (bottom-right) — dim 🔥. Renders ONLY when
+          this pick has a fireball hit and no natural hit. Dual-hit picks
+          already show the natural glyph top-right; the fireball is
+          implicit (sub-row visible on the detail modal). */}
+      {fireballOnly && (
+        <View style={s.fbCornerGlyph}>
+          <Text style={s.fbCornerGlyphText}>🔥</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -149,5 +160,15 @@ const makeS = (colors: ColorTokens, _brandBlue: string) =>
       lineHeight: 11,
       color: colors.textTertiary,
       fontWeight: '900',
+    },
+    fbCornerGlyph: {
+      position: 'absolute',
+      bottom: 1,
+      right: 3,
+      opacity: 0.65,
+    },
+    fbCornerGlyphText: {
+      fontSize: 9,
+      lineHeight: 11,
     },
   });

@@ -17,13 +17,17 @@ export interface ZK30PickItem {
   dsRaw?: number;
   lastSeen?: string | null;
   // Hit annotations (written by run-hit-detection-zk30 after a match).
-  // Only the PRIMARY match per pick is on the snapshot — multi-session
-  // matches live in adaptive_tracking_zk30 by design.
-  hitType?: 'straight' | 'box' | 'fireball_straight' | 'fireball_box';
-  hitSession?: 'Morning' | 'Day' | 'Evening' | 'Night' | string;
-  hitDate?: string;
-  hitResult?: string;        // 3-digit TX draw
-  hitFireball?: string | null; // 1-digit
+  // ARCH-08 Fireball Separation: hitType is NATURAL-only, fireballHitType is
+  // FIREBALL-only. Both can be populated on a single pick (rare double-prize
+  // case). hitSession/Date/Result/Fireball track NATURAL primary only —
+  // fireball detail (session/result/digit) lives in adaptive_tracking_zk30
+  // per-match rows and is fetched on demand by the detail modal.
+  hitType?: 'straight' | 'box' | null;
+  fireballHitType?: 'fireball_straight' | 'fireball_box' | null;
+  hitSession?: 'Morning' | 'Day' | 'Evening' | 'Night' | string | null;
+  hitDate?: string | null;
+  hitResult?: string | null;        // 3-digit TX draw
+  hitFireball?: string | null;      // 1-digit
 }
 
 export type ZK30Snapshot = {
@@ -41,30 +45,30 @@ export type ZK30Snapshot = {
   _isStale?: boolean;
 };
 
-/** Tile / row border-color encoding based on hit type. */
+/** Tile / row border-color encoding — NATURAL primary only per ARCH-08.
+ *  Fireball chrome is a separate sub-row, not part of the primary border. */
 export function hitBorderColor(
   hitType: ZK30PickItem['hitType'] | undefined,
   fallback: string,
-  colors: {
-    success: string;
-    gold: string;
-    orange: string;
-    amber: string;
-  },
+  colors: { success: string; gold: string },
 ): string {
   switch (hitType) {
     case 'straight':          return colors.gold;
     case 'box':               return colors.success;
-    case 'fireball_straight': return colors.orange;
-    case 'fireball_box':      return colors.amber;
     default:                  return fallback;
   }
 }
 
 export function hitTypeLabel(t: ZK30PickItem['hitType']): string {
   switch (t) {
-    case 'straight':          return 'STRAIGHT MATCH';
-    case 'box':               return 'BOX MATCH';
+    case 'straight': return 'STRAIGHT MATCH';
+    case 'box':      return 'BOX MATCH';
+    default:         return '';
+  }
+}
+
+export function fireballHitTypeLabel(t: ZK30PickItem['fireballHitType']): string {
+  switch (t) {
     case 'fireball_straight': return 'FIREBALL STRAIGHT';
     case 'fireball_box':      return 'FIREBALL BOX';
     default:                  return '';
@@ -73,11 +77,9 @@ export function hitTypeLabel(t: ZK30PickItem['hitType']): string {
 
 export function hitTypeGlyph(t: ZK30PickItem['hitType']): string {
   switch (t) {
-    case 'straight':          return '⭐';
-    case 'box':               return '◆';
-    case 'fireball_straight': return '🔥';
-    case 'fireball_box':      return '🔥';
-    default:                  return '';
+    case 'straight': return '⭐';
+    case 'box':      return '◆';
+    default:         return '';
   }
 }
 

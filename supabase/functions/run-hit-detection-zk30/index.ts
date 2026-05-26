@@ -158,19 +158,45 @@ interface Match {
   precedence: number; // higher = better. straight=4, box=3, fb_straight=2, fb_box=1
 }
 
-function matchPrecedence(f: HitFlags): number {
-  if (f.hit_straight) return 4;
-  if (f.hit_box) return 3;
+// ZK30 Fireball Separation Principle (ARCH-08): natural and fireball each
+// pick their own primary independently. Two non-overlapping precedence
+// scales let a single match contribute simultaneously to natural-primary
+// (straight > box) and fireball-primary (fb_straight > fb_box) selection.
+
+function naturalPrecedence(f: HitFlags): number {
+  if (f.hit_straight) return 2;
+  if (f.hit_box) return 1;
+  return 0;
+}
+
+function fireballPrecedence(f: HitFlags): number {
   if (f.hit_fireball_straight) return 2;
   if (f.hit_fireball_box) return 1;
   return 0;
 }
 
-// ─── DI annotation (per-pick PATCH; primary match wins) ──────────────────────
+// Legacy combined precedence retained for any external caller that
+// imports it; not used internally after the separation. Kept as a thin
+// alias on naturalPrecedence + fireballPrecedence so existing call sites
+// don't break.
+function matchPrecedence(f: HitFlags): number {
+  const n = naturalPrecedence(f);
+  if (n > 0) return 2 + n; // 3 (box) or 4 (straight)
+  return fireballPrecedence(f); // 1 (fb_box) or 2 (fb_straight)
+}
+
+// ─── DI annotation (per-pick PATCH) ──────────────────────────────────────────
+//
+// ARCH-08 contract: hit_state / hit_session / hit_result / hit_fireball
+// populate from NATURAL primary only. If no natural match, those columns
+// stay NULL — fireball-only hits surface via flag columns + AT detail rows.
+// All 4 flag columns (natural + fireball pair) write per truth from the
+// union of matches across all sessions for this pick.
 
 async function updateDailyIntelligenceHit(
   pick: any,
-  primary: Match,
+  naturalPrimary: Match | null,
+  fireballPrimary: Match | null,
   date: string,
 ): Promise<void> {
   // BUG-32 lineage: slate_date can be `date` or yesterday for late-night ET
@@ -182,13 +208,15 @@ async function updateDailyIntelligenceHit(
   await sbPatch(
     `/rest/v1/daily_intelligence_zk30?${dateFilter}&combo=eq.${encodeURIComponent(pick.combo)}`,
     {
-      hit_straight:          primary.flags.hit_straight,
-      hit_box:               primary.flags.hit_box,
-      hit_fireball_straight: primary.flags.hit_fireball_straight,
-      hit_fireball_box:      primary.flags.hit_fireball_box,
-      matched_session:       primary.result.session,
-      matched_result:        primary.result.result_digits,
-      matched_fireball:      primary.result.fireball,
+      hit_straight:          naturalPrimary?.flags.hit_straight  ?? false,
+      hit_box:               naturalPrimary?.flags.hit_box       ?? false,
+      hit_fireball_straight: fireballPrimary?.flags.hit_fireball_straight ?? false,
+      hit_fireball_box:      fireballPrimary?.flags.hit_fireball_box      ?? false,
+      // matched_* columns track natural primary ONLY (ARCH-08). When natural
+      // is absent, these stay NULL — fireball detail lives in AT rows.
+      matched_session:       naturalPrimary?.result.session        ?? null,
+      matched_result:        naturalPrimary?.result.result_digits  ?? null,
+      matched_fireball:      naturalPrimary?.result.fireball       ?? null,
     },
   );
 }
@@ -267,14 +295,20 @@ async function recordHitInAdaptiveTracking(
 // ─── Per-date runner ─────────────────────────────────────────────────────────
 
 interface RunResult {
+  /** Picks where any natural (straight or box) match fired across any session. */
   hitsFound: number;
+  /** Picks where ONLY fireball fired — no natural anywhere. ARCH-08
+   *  non-overlap rule means hitsFound + fireballHitsFound = total picks with
+   *  any flag set. */
+  fireballHitsFound: number;
   picksMatched: number;
   errors: string[];
 }
 
 async function runForDate(date: string): Promise<RunResult> {
   const errors: string[] = [];
-  let totalMatches = 0;
+  let picksWithNatural = 0;
+  let picksWithFireballOnly = 0;
   let picksMatched = 0;
 
   // 1. Fetch the active slate for `date`. ZK30 v1.0: single scope+mode.
@@ -283,7 +317,7 @@ async function runForDate(date: string): Promise<RunResult> {
     `&order=updated_at_et.desc&limit=10`,
   );
   if (!Array.isArray(snaps) || snaps.length === 0) {
-    return { hitsFound: 0, picksMatched: 0, errors };
+    return { hitsFound: 0, fireballHitsFound: 0, picksMatched: 0, errors };
   }
 
   // 2. Fetch all TX draws on `date`. histories_tx has no `comboset_sorted`
@@ -293,7 +327,7 @@ async function runForDate(date: string): Promise<RunResult> {
     `&select=date_et,session,result_digits,fireball`,
   );
   if (!Array.isArray(draws) || draws.length === 0) {
-    return { hitsFound: 0, picksMatched: 0, errors };
+    return { hitsFound: 0, fireballHitsFound: 0, picksMatched: 0, errors };
   }
 
   // 3. Per-snapshot processing. ZK30 v1.0 has one (snapshot per date) but
@@ -314,8 +348,12 @@ async function runForDate(date: string): Promise<RunResult> {
     const diWrites: Promise<void>[] = [];
 
     const updatedPicks = picks.map((pick: any) => {
-      // Snapshot-level idempotency: already-annotated picks skip the loop.
-      if (pick.hitType) return pick;
+      // Snapshot-level idempotency: skip if EITHER channel already annotated.
+      // Post-ARCH-08, hitType can be null while fireballHitType is set, so
+      // checking just hitType would re-process fireball-only picks every
+      // run. Check both — if either field is present, this pick has been
+      // through detection for this snapshot before.
+      if (pick.hitType || pick.fireballHitType) return pick;
 
       const comboSet = pick.comboSet ?? pick.normKey;
       const straightCombo = pick.bestOrder ?? pick.combo;
@@ -334,18 +372,32 @@ async function runForDate(date: string): Promise<RunResult> {
       if (matches.length === 0) return pick;
 
       picksMatched++;
-      totalMatches += matches.length;
 
-      // Primary match for DI = highest precedence. Ties broken deterministically
-      // by session order to keep regens stable (Morning < Day < Evening < Night).
+      // ARCH-08 split: independent natural + fireball primaries. Session-order
+      // tiebreak preserved for deterministic regens.
       const SESSION_RANK: Record<string, number> = { Morning: 0, Day: 1, Evening: 2, Night: 3 };
-      matches.sort((a, b) =>
-        b.precedence - a.precedence ||
-        (SESSION_RANK[a.result.session] ?? 99) - (SESSION_RANK[b.result.session] ?? 99),
-      );
-      const primary = matches[0];
+      const sortBySession = (a: Match, b: Match) =>
+        (SESSION_RANK[a.result.session] ?? 99) - (SESSION_RANK[b.result.session] ?? 99);
 
-      // Serial AT writes per pick.
+      const naturalMatches = matches
+        .filter(m => naturalPrecedence(m.flags) > 0)
+        .sort((a, b) => naturalPrecedence(b.flags) - naturalPrecedence(a.flags) || sortBySession(a, b));
+      const fireballMatches = matches
+        .filter(m => fireballPrecedence(m.flags) > 0)
+        .sort((a, b) => fireballPrecedence(b.flags) - fireballPrecedence(a.flags) || sortBySession(a, b));
+
+      const naturalPrimary  = naturalMatches[0]  ?? null;
+      const fireballPrimary = fireballMatches[0] ?? null;
+
+      // Per-pick counter contract: hitsFound counts picks with any natural;
+      // fireballHitsFound counts picks with ONLY fireball (no natural). The
+      // two are non-overlapping so the operator can sum them for "any hit".
+      if (naturalPrimary) picksWithNatural++;
+      else if (fireballPrimary) picksWithFireballOnly++;
+
+      // Serial AT writes per pick — every match still gets its own AT row
+      // regardless of which channel it belongs to, since AT is the canonical
+      // multi-match audit log (BUG-150).
       pickPasses.push((async () => {
         for (const m of matches) {
           try {
@@ -356,24 +408,27 @@ async function runForDate(date: string): Promise<RunResult> {
         }
       })());
       diWrites.push(
-        updateDailyIntelligenceHit(pick, primary, date).catch(e => {
+        updateDailyIntelligenceHit(pick, naturalPrimary, fireballPrimary, date).catch(e => {
           errors.push(`DI ${pick.combo}: ${String(e).slice(0, 120)}`);
         }),
       );
 
-      // Snapshot-row annotation for snapshot PATCH at the end.
-      const flagToType = (f: HitFlags): 'straight' | 'box' | 'fireball_straight' | 'fireball_box' | undefined =>
-        f.hit_straight ? 'straight' :
-        f.hit_box ? 'box' :
-        f.hit_fireball_straight ? 'fireball_straight' :
-        f.hit_fireball_box ? 'fireball_box' : undefined;
+      // Snapshot-row annotation: hitType is natural-only; fireballHitType is
+      // fireball-only; both can be set on a single pick. Detail fields
+      // (hitSession/Date/Result/Fireball) track NATURAL primary only — the
+      // UI fetches fireball detail from AT on demand (spec 2.4).
       return {
         ...pick,
-        hitType: flagToType(primary.flags),
-        hitSession: primary.result.session,
-        hitDate: date,
-        hitResult: primary.result.result_digits,
-        hitFireball: primary.result.fireball,
+        hitType: naturalPrimary
+          ? (naturalPrimary.flags.hit_straight ? 'straight' : 'box')
+          : null,
+        fireballHitType: fireballPrimary
+          ? (fireballPrimary.flags.hit_fireball_straight ? 'fireball_straight' : 'fireball_box')
+          : null,
+        hitSession:  naturalPrimary?.result.session       ?? null,
+        hitDate:     naturalPrimary ? date                : null,
+        hitResult:   naturalPrimary?.result.result_digits ?? null,
+        hitFireball: naturalPrimary?.result.fireball      ?? null,
       };
     });
 
@@ -393,7 +448,12 @@ async function runForDate(date: string): Promise<RunResult> {
     }
   }
 
-  return { hitsFound: totalMatches, picksMatched, errors };
+  return {
+    hitsFound: picksWithNatural,
+    fireballHitsFound: picksWithFireballOnly,
+    picksMatched,
+    errors,
+  };
 }
 
 // ─── HTTP handler ─────────────────────────────────────────────────────────────
@@ -418,9 +478,12 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  let totalHits = 0;
+  let totalHits = 0;            // natural-only (ARCH-08)
+  let totalFireballHits = 0;    // fireball-only, no overlap with natural
   let totalPicksMatched = 0;
-  const perDate: Record<string, { hitsFound: number; picksMatched: number; errors: string[] }> = {};
+  const perDate: Record<string, {
+    hitsFound: number; fireballHitsFound: number; picksMatched: number; errors: string[];
+  }> = {};
   const allErrors: string[] = [];
 
   for (const d of dateList) {
@@ -428,13 +491,14 @@ Deno.serve(async (req: Request) => {
     let dateRes: RunResult;
     try {
       dateRes = await runForDate(d);
-      totalHits        += dateRes.hitsFound;
+      totalHits         += dateRes.hitsFound;
+      totalFireballHits += dateRes.fireballHitsFound;
       totalPicksMatched += dateRes.picksMatched;
       perDate[d] = dateRes;
       allErrors.push(...dateRes.errors);
     } catch (e) {
       const msg = String(e instanceof Error ? e.message : e).slice(0, 200);
-      dateRes = { hitsFound: 0, picksMatched: 0, errors: [msg] };
+      dateRes = { hitsFound: 0, fireballHitsFound: 0, picksMatched: 0, errors: [msg] };
       perDate[d] = dateRes;
       allErrors.push(`${d}: ${msg}`);
     }
@@ -447,11 +511,16 @@ Deno.serve(async (req: Request) => {
         method: 'POST',
         headers: svcHeaders({ 'Prefer': 'return=minimal' }),
         body: JSON.stringify({
+          // hit_detection_runs.hits_found semantic post-ARCH-08: NATURAL hits
+          // only. Fireball-only hits are surfaced via the function response
+          // (fireballHitsFound) — telemetry schema doesn't carry a separate
+          // column for them yet (would be a column add on a shared table;
+          // out of scope for v1.0 here).
           date:                  d,
           scope:                 'allday-tx',
           hits_found:            dateRes.hitsFound,
           scopes_checked:        1, // single scope for ZK30 v1.0
-          supplements_generated: 0, // not supported in v1.0
+          supplements_generated: dateRes.fireballHitsFound, // repurposed: see ARCH-08 note above
           errors:                dateRes.errors.slice(0, 10),
           error_count:           dateRes.errors.length,
           duration_ms:           Date.now() - dateStarted,
@@ -465,7 +534,8 @@ Deno.serve(async (req: Request) => {
 
   return new Response(JSON.stringify({
     success: allErrors.length === 0,
-    hitsFound: totalHits,
+    hitsFound: totalHits,                  // natural (ARCH-08)
+    fireballHitsFound: totalFireballHits,  // fireball-only, non-overlapping
     picksMatched: totalPicksMatched,
     perDate,
     errors: allErrors.slice(0, 30),

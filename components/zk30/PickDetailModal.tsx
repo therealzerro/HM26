@@ -23,7 +23,7 @@ import { X } from 'lucide-react-native';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { SignalBar } from '@/components/SignalBar';
 import { EnergyMeter } from '@/components/EnergyMeter';
-import { ZK30PickItem, hitTypeLabel, energyTier } from './types';
+import { ZK30PickItem, hitTypeLabel, fireballHitTypeLabel, energyTier } from './types';
 
 // All distinct permutations of a 3-digit combo. Triples → 1, doubles → 3,
 // singles → 6. Used to query histories_tx for any past hit of this comboSet.
@@ -34,6 +34,53 @@ function permsOf(combo: string): string[] {
     b + a + c, b + c + a,
     c + a + b, c + b + a,
   ]));
+}
+
+// Per-pick fireball detail fetch (ARCH-08). Snapshot picks carry
+// hitSession/Result/Fireball for NATURAL primary only — when a pick fired
+// fireball, we look up the specific match row in adaptive_tracking_zk30 to
+// surface session/result/digit on the detail modal.
+//
+// Picks fb_straight > fb_box; session order tiebreak (Morning < Day <
+// Evening < Night). Returns null when no fireball detail to show.
+function useFireballHitDetail(args: {
+  slateDate: string;
+  combo: string;
+  rank: number;
+  fireballHitType: ZK30PickItem['fireballHitType'];
+}) {
+  const { slateDate, combo, rank, fireballHitType } = args;
+  return useQuery<{ session: string; result: string; fireball: string | null } | null>({
+    queryKey: ['zk30-fireball-detail', slateDate, combo, rank],
+    enabled: !!fireballHitType && slateDate.length === 10 && combo.length > 0,
+    queryFn: async () => {
+      const rows = await fetchFromSupabase<Array<{
+        matched_session: string; matched_result: string; matched_fireball: string | null;
+        hit_fireball_straight: boolean; hit_fireball_box: boolean;
+      }>>({
+        path: `/rest/v1/adaptive_tracking_zk30?slate_date=eq.${slateDate}` +
+              `&combo=eq.${encodeURIComponent(combo)}&rank=eq.${rank}` +
+              `&or=(hit_fireball_straight.eq.true,hit_fireball_box.eq.true)` +
+              `&select=matched_session,matched_result,matched_fireball,hit_fireball_straight,hit_fireball_box` +
+              `&limit=10`,
+      });
+      if (!Array.isArray(rows) || rows.length === 0) return null;
+      // Prefer fb_straight; then session order.
+      const rank2 = (r: typeof rows[0]) => r.hit_fireball_straight ? 2 : (r.hit_fireball_box ? 1 : 0);
+      const SESSION_RANK: Record<string, number> = { Morning: 0, Day: 1, Evening: 2, Night: 3 };
+      rows.sort((a, b) =>
+        rank2(b) - rank2(a) ||
+        (SESSION_RANK[a.matched_session] ?? 99) - (SESSION_RANK[b.matched_session] ?? 99),
+      );
+      const best = rows[0];
+      return {
+        session: best.matched_session,
+        result: best.matched_result,
+        fireball: best.matched_fireball,
+      };
+    },
+    staleTime: 60 * 1000,
+  });
 }
 
 // Per-pick hit history. "straight" match = result_digits equals the
@@ -70,9 +117,13 @@ interface Props {
   pick: ZK30PickItem | null;
   onClose: () => void;
   brandBlue: string;
+  /** Slate date this pick belongs to. Required for the fireball detail
+   *  lookup in adaptive_tracking_zk30 (snapshot carries natural detail only
+   *  post-ARCH-08; fireball session/result/digit live in AT). */
+  slateDate?: string;
 }
 
-export function ZK30PickDetailModal({ pick, onClose, brandBlue }: Props) {
+export function ZK30PickDetailModal({ pick, onClose, brandBlue, slateDate = '' }: Props) {
   const { colors } = useTheme();
   const s = useMemo(() => makeS(colors), [colors]);
 
@@ -81,6 +132,12 @@ export function ZK30PickDetailModal({ pick, onClose, brandBlue }: Props) {
   const combo     = pick?.combo ?? '';
   const bestOrder = pick?.bestOrder ?? pick?.combo ?? '';
   const { data: hitHistory } = usePickHitHistory(combo, bestOrder);
+  const { data: fireballDetail } = useFireballHitDetail({
+    slateDate,
+    combo,
+    rank: pick?.rank ?? 0,
+    fireballHitType: pick?.fireballHitType ?? null,
+  });
 
   if (!pick) return null;
 
@@ -88,38 +145,48 @@ export function ZK30PickDetailModal({ pick, onClose, brandBlue }: Props) {
   const tier = energyTier(energy);
   const tierColor = tier.color;
 
+  // ARCH-08 split: separate natural + fireball blocks. Either can be present
+  // independently. `hit` (natural) reads from snapshot fields; `fbHit`
+  // (fireball) reads from the AT lookup above.
   const hit = pick.hitType
     ? {
         type: pick.hitType,
         label: hitTypeLabel(pick.hitType),
-        session: pick.hitSession,
-        result: pick.hitResult,
-        fireball: pick.hitFireball ?? null,
+        session: pick.hitSession ?? null,
+        result: pick.hitResult ?? null,
       }
     : null;
 
+  const fbHit = pick.fireballHitType
+    ? {
+        type: pick.fireballHitType,
+        label: fireballHitTypeLabel(pick.fireballHitType),
+        session: fireballDetail?.session ?? null,
+        result:  fireballDetail?.result  ?? null,
+        fireball: fireballDetail?.fireball ?? null,
+      }
+    : null;
+
+  // Fireball substitution explainer only renders when we have a fireball
+  // hit AND the AT lookup returned a fireball digit to demonstrate.
   const fbAugmented =
-    hit && hit.result && hit.fireball
+    fbHit && fbHit.result && fbHit.fireball
       ? [
-          { pos: 0, augmented: hit.fireball + hit.result[1] + hit.result[2] },
-          { pos: 1, augmented: hit.result[0] + hit.fireball + hit.result[2] },
-          { pos: 2, augmented: hit.result[0] + hit.result[1] + hit.fireball },
+          { pos: 0, augmented: fbHit.fireball + fbHit.result[1] + fbHit.result[2] },
+          { pos: 1, augmented: fbHit.result[0] + fbHit.fireball + fbHit.result[2] },
+          { pos: 2, augmented: fbHit.result[0] + fbHit.result[1] + fbHit.fireball },
         ]
       : [];
 
-  // 4-flag strip same as PickCard
-  const flags = {
-    s:   pick.hitType === 'straight',
-    b:   pick.hitType === 'box',
-    fbs: pick.hitType === 'fireball_straight',
-    fbb: pick.hitType === 'fireball_box',
-  };
+  // Match-summary strip (used at the bottom of the Match Results section).
+  // Natural badges live next to fireball badges, both rendered per truth.
   const badges = [
-    { letter: 'S',   on: flags.s,                  color: colors.gold,    label: 'Straight match' },
-    { letter: 'B',   on: flags.b && !flags.s,      color: colors.success, label: 'Box match' },
-    { letter: '🔥S', on: flags.fbs,                color: colors.orange,  label: 'Fireball straight' },
-    { letter: '🔥B', on: flags.fbb && !flags.fbs,  color: colors.amber,   label: 'Fireball box' },
+    { letter: 'S',   on: pick.hitType === 'straight',                                    color: colors.gold,    label: 'Straight match' },
+    { letter: 'B',   on: pick.hitType === 'box',                                         color: colors.success, label: 'Box match' },
+    { letter: '🔥S', on: pick.fireballHitType === 'fireball_straight',                   color: colors.orange,  label: 'Fireball straight' },
+    { letter: '🔥B', on: pick.fireballHitType === 'fireball_box',                        color: colors.amber,   label: 'Fireball box' },
   ];
+  const anyHit = !!hit || !!fbHit;
 
   return (
     <Modal transparent animationType="fade" onRequestClose={onClose}>
@@ -170,57 +237,89 @@ export function ZK30PickDetailModal({ pick, onClose, brandBlue }: Props) {
 
             <View style={s.divider} />
 
-            {/* Hit detail (conditional) */}
-            {hit && (
+            {/* Match Results — ARCH-08 split. Renders when either natural OR
+                fireball fired. Two sub-blocks, both always shown for
+                transparency about what hit vs what didn't. */}
+            {anyHit && (
               <>
                 <View style={s.section}>
-                  <Text style={[s.sectionLabel, { color: brandBlue }]}>HIT  ·  {hit.label}</Text>
+                  <Text style={[s.sectionLabel, { color: brandBlue }]}>MATCH RESULTS</Text>
 
-                  {/* Match shape: pick vs draw */}
-                  <View style={s.hitShape}>
-                    <View style={s.hitCol}>
-                      <Text style={s.hitColLabel}>PICK</Text>
-                      <Text style={s.hitDigits}>{bestOrder}</Text>
-                    </View>
-                    <Text style={s.hitArrow}>vs</Text>
-                    <View style={s.hitCol}>
-                      <Text style={s.hitColLabel}>{hit.session?.toUpperCase() ?? 'DRAW'}</Text>
-                      <Text style={s.hitDigits}>{hit.result}</Text>
-                      {hit.fireball && (
-                        <Text style={s.hitFireball}>+ fireball {hit.fireball}</Text>
-                      )}
-                    </View>
-                  </View>
-
-                  {/* Fireball substitution explainer (only for fireball hits) */}
-                  {(hit.type === 'fireball_straight' || hit.type === 'fireball_box') && fbAugmented.length > 0 && (
-                    <View style={s.fbExplainer}>
-                      <Text style={s.fbExplainerLabel}>FIREBALL SUBSTITUTION</Text>
-                      <Text style={s.hint}>
-                        Replace one position of the draw with the fireball digit.
-                      </Text>
-                      <View style={{ gap: 4, marginTop: 6 }}>
-                        {fbAugmented.map(fb => {
-                          const matches =
-                            (hit.type === 'fireball_straight' && fb.augmented === bestOrder) ||
-                            (hit.type === 'fireball_box' &&
-                              fb.augmented.split('').sort().join('') === bestOrder.split('').sort().join(''));
-                          return (
-                            <View key={fb.pos} style={s.fbRow}>
-                              <Text style={s.fbPos}>POS {fb.pos}</Text>
-                              <Text style={[s.fbDigits, matches && { color: colors.orange, fontWeight: '900' }]}>
-                                {fb.augmented}
-                              </Text>
-                              {matches && <Text style={s.fbMatch}>✓ match</Text>}
-                            </View>
-                          );
-                        })}
+                  {/* NATURAL sub-block */}
+                  <Text style={[s.subSectionLabel, { color: colors.textSecondary }]}>NATURAL MATCH</Text>
+                  {hit ? (
+                    <View style={s.hitShape}>
+                      <View style={s.hitCol}>
+                        <Text style={s.hitColLabel}>PICK</Text>
+                        <Text style={s.hitDigits}>{bestOrder}</Text>
+                      </View>
+                      <Text style={s.hitArrow}>vs</Text>
+                      <View style={s.hitCol}>
+                        <Text style={s.hitColLabel}>{hit.session?.toUpperCase() ?? 'DRAW'}</Text>
+                        <Text style={s.hitDigits}>{hit.result ?? '—'}</Text>
                       </View>
                     </View>
+                  ) : (
+                    <Text style={[s.hint, { marginBottom: 8 }]}>No natural match.</Text>
                   )}
 
-                  {/* 4-flag strip */}
-                  <View style={s.badgeStrip}>
+                  {/* FIREBALL sub-block */}
+                  <Text style={[s.subSectionLabel, { color: colors.textSecondary, marginTop: 12 }]}>
+                    🔥 FIREBALL MATCH  ·  TX-only
+                  </Text>
+                  {fbHit ? (
+                    <>
+                      <View style={s.hitShape}>
+                        <View style={s.hitCol}>
+                          <Text style={s.hitColLabel}>PICK</Text>
+                          <Text style={s.hitDigits}>{bestOrder}</Text>
+                        </View>
+                        <Text style={s.hitArrow}>vs</Text>
+                        <View style={s.hitCol}>
+                          <Text style={s.hitColLabel}>{(fbHit.session ?? 'DRAW').toUpperCase()}</Text>
+                          <Text style={s.hitDigits}>{fbHit.result ?? '—'}</Text>
+                          {fbHit.fireball && (
+                            <Text style={s.hitFireball}>+ fireball {fbHit.fireball}</Text>
+                          )}
+                        </View>
+                      </View>
+                      <Text style={[s.subSectionLabel, { color: colors.orange, marginTop: 4 }]}>
+                        {fbHit.label}
+                      </Text>
+
+                      {/* Fireball substitution explainer */}
+                      {fbAugmented.length > 0 && (
+                        <View style={s.fbExplainer}>
+                          <Text style={s.fbExplainerLabel}>FIREBALL SUBSTITUTION</Text>
+                          <Text style={s.hint}>
+                            Replace one position of the draw with the fireball digit.
+                          </Text>
+                          <View style={{ gap: 4, marginTop: 6 }}>
+                            {fbAugmented.map(fb => {
+                              const matches =
+                                (fbHit.type === 'fireball_straight' && fb.augmented === bestOrder) ||
+                                (fbHit.type === 'fireball_box' &&
+                                  fb.augmented.split('').sort().join('') === bestOrder.split('').sort().join(''));
+                              return (
+                                <View key={fb.pos} style={s.fbRow}>
+                                  <Text style={s.fbPos}>POS {fb.pos}</Text>
+                                  <Text style={[s.fbDigits, matches && { color: colors.orange, fontWeight: '900' }]}>
+                                    {fb.augmented}
+                                  </Text>
+                                  {matches && <Text style={s.fbMatch}>✓ match</Text>}
+                                </View>
+                              );
+                            })}
+                          </View>
+                        </View>
+                      )}
+                    </>
+                  ) : (
+                    <Text style={[s.hint, { marginBottom: 8 }]}>No fireball match.</Text>
+                  )}
+
+                  {/* 4-flag strip — all matched flags across both channels */}
+                  <View style={[s.badgeStrip, { marginTop: 12 }]}>
                     {badges.map((b, i) => (
                       <View
                         key={i}
@@ -480,6 +579,15 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
   kvGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+  },
+  // ARCH-08: sub-section header used inside MATCH RESULTS to split natural
+  // and fireball blocks. Smaller + less prominent than the parent sectionLabel.
+  subSectionLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    marginTop: 6,
+    marginBottom: 4,
   },
   // Hit history rows — compact 3-column timeline (date · session · type)
   hitHistRow: {

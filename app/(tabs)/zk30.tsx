@@ -39,6 +39,7 @@ import {
   FailedRunsBanner, CronHealthCard, SevenDayChart,
   SessionBreakdown, FireballNaturalSplit,
 } from '@/components/zk30/ResultsAnalytics';
+import { TexasOutline } from '@/lib/zk30/svg/TexasOutline';
 
 type ViewMode = 'compact' | 'list' | 'hits' | 'results';
 const PRIMARY_MODES: readonly ViewMode[] = ['compact', 'list', 'hits'] as const;
@@ -96,6 +97,17 @@ function formatDateLong(dateStr: string): string {
     weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
     timeZone: 'America/New_York',
   });
+}
+
+/** Short weekday + 24h time for the slate-hash chip (e.g. "Mon 09:00 ET"). */
+function formatGenShort(updatedAtEt: string | null | undefined): string {
+  if (!updatedAtEt) return '—';
+  const d = new Date(updatedAtEt);
+  const wkday = d.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'America/New_York' });
+  const time = d.toLocaleTimeString('en-US', {
+    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/New_York',
+  });
+  return `${wkday} ${time} ET`;
 }
 
 /** Countdown subtitle text. Returns either the time-until-next-09:00-ET or a
@@ -317,14 +329,25 @@ export default function ZK30Screen() {
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
       {/* Header — back + brand + stepper + countdown + info/refresh */}
+      {/* Hero masthead (Phase A1). 3 stacked lines:
+              1. "ZK30 · SINGLE-STATE MODE" — small caps brand kicker
+              2. "⭐ TEXAS" — large jurisdiction focal point (swap glyph + name
+                 per state when expanding to SC/OH/NJ/NY/FL in v2.0)
+              3. ← date · scope · sessions → — date stepper row
+          Back + info + refresh icons preserved on left/right. */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.iconBtn} accessibilityLabel="Back">
           <ChevronLeft size={22} color={colors.text} />
         </TouchableOpacity>
+
         <View style={s.headerCenter}>
-          <View style={s.headerTitleRow}>
-            <Text style={s.headerTitle}>
-              ZK30  <Text style={[s.headerBrand, { color: brandBlue }]}>·</Text>  TX
+          <Text style={[s.mastheadKicker, { color: brandBlue }]}>
+            ZK30  ·  SINGLE-STATE MODE
+          </Text>
+
+          <View style={s.mastheadTitleRow}>
+            <Text style={s.mastheadTitle}>
+              <Text style={{ color: '#bf0a30' }}>⭐</Text>  TEXAS
             </Text>
             {!isToday && (
               <TouchableOpacity
@@ -338,7 +361,7 @@ export default function ZK30Screen() {
             )}
           </View>
 
-          {/* Date stepper row — ← {DATE} → */}
+          {/* Subline + date stepper — ← date · ALL-DAY · 4 SESSIONS → */}
           <View style={s.stepperRow}>
             <TouchableOpacity onPress={stepBack} hitSlop={8} accessibilityLabel="Previous day">
               <ChevronLeft size={14} color={colors.textSecondary} />
@@ -351,7 +374,12 @@ export default function ZK30Screen() {
               style={s.stepperDateBtn}
             >
               <Calendar size={11} color={colors.textTertiary} />
-              <Text style={s.stepperDate}>{slateDateLabel}</Text>
+              <Text style={s.stepperDate} numberOfLines={1}>
+                {slateDateLabel}
+                <Text style={{ color: colors.textTertiary, fontWeight: '600' }}>
+                  {'  ·  ALL-DAY  ·  4 SESSIONS (M/D/E/N)'}
+                </Text>
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={stepForward}
@@ -378,6 +406,21 @@ export default function ZK30Screen() {
             : <RefreshCw size={17} color={colors.textSecondary} />}
         </TouchableOpacity>
       </View>
+
+      {/* Slate hash chip (Phase A3) — sits below the masthead, above the
+          tab row. Tap opens the same metadata modal the (i) icon does so
+          operators can drill into the slate without hunting for the icon. */}
+      <TouchableOpacity
+        onPress={() => setInfoOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Open slate metadata"
+        style={s.hashChipWrap}
+        hitSlop={6}
+      >
+        <Text style={s.hashChip}>
+          slate  ·  {hash8 || '——'}  ·  gen {formatGenShort(snapshot?.updated_at_et)}
+        </Text>
+      </TouchableOpacity>
 
       {/* Primary view-mode chips — data shapes */}
       <View style={s.modeRow}>
@@ -491,6 +534,12 @@ export default function ZK30Screen() {
         // all available vertical space. Tiles get flex:1 per row + row gets
         // flex:1 per column = equal-share auto-sizing tiles.
         <View style={s.gridContainer}>
+          {/* TX watermark (Phase A2) — sits behind the grid at 6% opacity.
+              pointerEvents=none so tile taps still register. Compact-only;
+              the LIST view gets its own watermark inside the ScrollView. */}
+          <View style={s.watermarkLayer} pointerEvents="none">
+            <TexasOutline size={260} color={brandBlue} opacity={0.06} />
+          </View>
           <View style={s.gridArea}>
             {Array.from({ length: Math.ceil(visiblePicks.length / 5) }).map((_, rowIdx) => (
               <View key={rowIdx} style={s.gridRowFlex}>
@@ -512,21 +561,30 @@ export default function ZK30Screen() {
         </View>
       ) : (
         // List + Hits: ScrollView (rows always scroll regardless of count).
-        <ScrollView
-          style={s.scroll}
-          contentContainerStyle={s.listContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {visiblePicks.map((p) => (
-            <ZK30PickCardRow
-              key={`row-${p.rank}`}
-              pick={p}
-              brandBlue={brandBlue}
-              onPress={() => setDetail(p)}
-            />
-          ))}
-          <View style={{ height: 40 }} />
-        </ScrollView>
+        // Watermark only on LIST per Phase A2 (HITS view has its own dense
+        // content that would compete with a behind-layer silhouette).
+        <View style={{ flex: 1, position: 'relative' }}>
+          {viewMode === 'list' && (
+            <View style={s.watermarkLayer} pointerEvents="none">
+              <TexasOutline size={280} color={brandBlue} opacity={0.06} />
+            </View>
+          )}
+          <ScrollView
+            style={s.scroll}
+            contentContainerStyle={s.listContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {visiblePicks.map((p) => (
+              <ZK30PickCardRow
+                key={`row-${p.rank}`}
+                pick={p}
+                brandBlue={brandBlue}
+                onPress={() => setDetail(p)}
+              />
+            ))}
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </View>
       )}
 
       {/* Detail modal — slateDate passed so the fireball detail lookup
@@ -1220,12 +1278,19 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
     borderRadius: 18,
   },
   headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  headerTitle: {
-    fontSize: 18, fontWeight: '900', color: colors.text,
-    letterSpacing: 1, fontFamily: theme.typography.fontFamily.bold,
+  // Phase A1 masthead — 3 stacked lines: kicker, jurisdiction, subline.
+  mastheadKicker: {
+    fontSize: 9, fontWeight: '900',
+    letterSpacing: 2, textTransform: 'uppercase',
+    marginBottom: 1,
   },
-  headerBrand: { fontSize: 18, fontWeight: '900' },
+  mastheadTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  mastheadTitle: {
+    fontSize: 26, fontWeight: '900',
+    color: colors.text, letterSpacing: 1.5,
+    fontFamily: theme.typography.fontFamily.bold,
+    lineHeight: 30,
+  },
   headerSub: {
     fontSize: 11, color: colors.textSecondary, fontWeight: '600',
     marginTop: 1,
@@ -1249,10 +1314,28 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
     paddingHorizontal: 4, paddingVertical: 1,
   },
   stepperDate: {
-    fontSize: 11, color: colors.textSecondary, fontWeight: '700',
+    fontSize: 12, color: colors.textSecondary, fontWeight: '700',
   },
   countdown: {
     fontSize: 9, fontWeight: '700', marginTop: 1, letterSpacing: 0.4,
+  },
+
+  // Phase A3 — slate hash chip below the masthead, above the tab row.
+  hashChipWrap: {
+    alignItems: 'center', paddingTop: 4, paddingBottom: 2,
+  },
+  hashChip: {
+    fontSize: 10,
+    color: '#64748b', // slate-500, intentionally dim
+    fontFamily: theme.typography.fontFamily.mono,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+
+  // Phase A2 — TX watermark layer, absolute-positioned behind the picks.
+  watermarkLayer: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center', justifyContent: 'center',
   },
 
   statusText: { fontSize: 11, fontWeight: '700', marginTop: 4 },

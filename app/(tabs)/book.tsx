@@ -341,6 +341,20 @@ export default function NumberBookScreen() {
               <Text style={s.newListBtnText}>New List</Text>
             </TouchableOpacity>
 
+            {/* Learn Center — relocated here from the tab bar; ZK30 took the
+                Learn slot. Visual treatment matches the New List button so
+                operators read it as another sidebar action, not a marketing
+                CTA. */}
+            <TouchableOpacity
+              style={[s.newListBtn, { borderColor: colors.gold + '44', backgroundColor: colors.goldLight }]}
+              onPress={() => router.push('/(tabs)/learn')}
+              accessibilityRole="button"
+              accessibilityLabel="Open Learn Center"
+            >
+              <Text style={{ fontSize: 14 }}>🎓</Text>
+              <Text style={[s.newListBtnText, { color: colors.gold }]}>Learn Center</Text>
+            </TouchableOpacity>
+
             {/* Coming Soon */}
             <Text style={[s.listSectionLabel, { marginTop: 16 }]}>✦ COMING SOON</Text>
             {COMING_FEATURES.map(f => (

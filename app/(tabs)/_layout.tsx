@@ -6,7 +6,7 @@ import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
 import { storage } from '@/lib/storage';
 import { fetchFromSupabase } from '@/lib/supabase';
-import { Crown, Zap, ClipboardList, BookMarked, GraduationCap, User } from 'lucide-react-native';
+import { Crown, Zap, ClipboardList, BookMarked, User, Target } from 'lucide-react-native';
 
 interface LucideIconProps { size?: number; color?: string; strokeWidth?: number }
 
@@ -165,10 +165,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="learn"
+        name="zk30"
         options={{
-          title: 'Learn',
-          tabBarIcon: ({ focused }) => <TabIcon Icon={GraduationCap} label="Learn" focused={focused} />,
+          title: 'ZK30',
+          tabBarIcon: ({ focused }) => <TabIcon Icon={Target} label="ZK30" focused={focused} />,
         }}
       />
       <Tabs.Screen
@@ -178,7 +178,8 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => <TabIcon Icon={User} label="Profile" focused={focused} />,
         }}
       />
-      <Tabs.Screen name="zk30" options={{ href: null }} />
+      {/* Learn moved off the tab bar — accessed from inside book.tsx (Number Book sidebar). */}
+      <Tabs.Screen name="learn" options={{ href: null }} />
       <Tabs.Screen name="coverage" options={{ href: null }} />
       <Tabs.Screen name="intelligence" options={{ href: null }} />
       <Tabs.Screen name="admin" options={{ href: null }} />

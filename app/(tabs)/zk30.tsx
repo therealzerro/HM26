@@ -101,12 +101,8 @@ function formatDateLong(dateStr: string): string {
 /** Countdown subtitle text. Returns either the time-until-next-09:00-ET or a
  *  "last updated Xh ago" string when today's slate has already dropped. */
 function buildCountdownText(snapshotUpdatedAt: string | null): string {
-  // Compute now in ET.
+  // 09:00 ET cutoff anchored via America/New_York so DST doesn't shift it.
   const nowEt = new Date();
-  // 09:00 ET cutoff today (anchored in ET so DST doesn't shift it).
-  const todayEt = getTodayET();
-  const nineAm = new Date(todayEt + 'T09:00:00-05:00');
-  // Adjust for DST — easier: just use America/New_York to render hour boundary.
   const etHourNow = parseInt(nowEt.toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }), 10);
   const etMinNow = parseInt(nowEt.toLocaleString('en-US', { timeZone: 'America/New_York', minute: 'numeric' }), 10);
   const minsSinceMidnight = etHourNow * 60 + etMinNow;

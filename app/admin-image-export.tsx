@@ -174,8 +174,14 @@ export default function AdminImageExportScreen() {
     let snapshotUpdatedAt: string | undefined;
     let snapshotSlateDate: string | undefined;
     try {
+      // Query slate_snapshots directly (not v_latest_slate_snapshots) because
+      // the view drops slate_date — the column we need to stamp the export
+      // image with the date the picks are FOR, not wall-clock today. The
+      // ORDER BY + LIMIT 1 here replicates the view's per-scope latest
+      // semantics; the or=(mode.is.null,mode.neq.zk30) mirrors the view's
+      // NULL-tolerant filter.
       const rows = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/v_latest_slate_snapshots?select=*&scope=eq.${encodeURIComponent(session)}&mode=neq.zk30&limit=1`,
+        path: `/rest/v1/slate_snapshots?select=*&scope=eq.${encodeURIComponent(session)}&deleted_at=is.null&or=(mode.is.null,mode.neq.zk30)&order=updated_at_et.desc&limit=1`,
         method: 'GET',
       });
       const snap = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;

@@ -45,7 +45,6 @@ import {
   buildUniverse,
   normalizeBoxKey,
   normalizePairKey,
-  computeDGC,
   percentileRankOf,
   maxNorm,
   computeSlateHash,
@@ -111,6 +110,14 @@ interface EngineConfig {
   synergyWeight: number;
   boxFreqWeight: number;
   boxPressureWeight: number;
+  /** DGC reference stdev (days). ZK6's lib/engineCore.ts uses 10 — too tight
+   *  for TX single-state pace where median combo stdev ≈ 46d. 50 makes ~57%
+   *  of combos register a real DGC signal. Tunable via app_config. */
+  dgcRefStdDev: number;
+  /** Minimum gap count before computing variance. Below this, computeDGCZK30
+   *  returns a 0.15 baseline (not the 1.0 single-sample-variance freak value).
+   *  Guards against 2-hit triples dominating maxNorm. */
+  dgcMinGaps: number;
 }
 
 const DEFAULT_ENGINE_CONFIG: EngineConfig = {
@@ -128,7 +135,38 @@ const DEFAULT_ENGINE_CONFIG: EngineConfig = {
   synergyWeight: 0.15,
   boxFreqWeight: 0.60,
   boxPressureWeight: 0.40,
+  dgcRefStdDev: 50,
+  dgcMinGaps: 3,
 };
+
+// ─── ZK30-local DGC (replaces engineCore.computeDGC for this engine) ────────
+//
+// Why a local copy: lib/engineCore.ts is on the don't-touch list (ARCH-06)
+// AND the constant DGC_REF_STD_DEV=10 there is calibrated for ZK6's national
+// data pace (10× tighter clustering than TX single-state). Two bugs in the
+// shared formula bite ZK30 specifically:
+//   1. ref=10 vs TX median stdev ≈46 → 98% of combos return 0
+//   2. dayOffsets.length<2 special-cased but length==2 yields
+//      variance=0 → DGC=1.0 (false "perfect regularity" from one gap)
+// This local function fixes both and accepts the constants as args so
+// app_config tuning doesn't need a redeploy.
+function computeDGCZK30(
+  dayOffsets: number[],
+  refStdDev: number,
+  minGaps: number,
+): number {
+  if (dayOffsets.length === 0) return 0;
+  // length < minGaps+1 means we have fewer than minGaps gaps. Return a weak
+  // baseline so low-data combos can't dominate maxNorm with freak 1.0 values
+  // but also don't get zeroed out completely.
+  if (dayOffsets.length < minGaps + 1) return 0.15;
+  const sorted = dayOffsets.slice().sort((a, b) => a - b);
+  const gaps: number[] = [];
+  for (let i = 1; i < sorted.length; i++) gaps.push(sorted[i] - sorted[i - 1]);
+  const mean = gaps.reduce((s, g) => s + g, 0) / gaps.length;
+  const variance = gaps.reduce((s, g) => s + (g - mean) ** 2, 0) / gaps.length;
+  return Math.max(0, 1 - Math.sqrt(variance) / refStdDev);
+}
 
 // ─── Slate hash (ZK30-specific, includes jurisdiction) ───────────────────────
 
@@ -165,6 +203,8 @@ async function loadEngineConfig(): Promise<EngineConfig> {
       'zk30_synergy_boost_weight',
       'zk30_box_freq_weight',
       'zk30_box_pressure_weight',
+      'zk30_dgc_ref_std_dev',
+      'zk30_dgc_min_gaps',
     ];
     const rows = await fetchFromSupabase<any[]>({
       path: '/rest/v1/app_config?key=in.(' + keys.join(',') + ')&select=key,value',
@@ -179,6 +219,8 @@ async function loadEngineConfig(): Promise<EngineConfig> {
       synergyWeight: DEFAULT_ENGINE_CONFIG.synergyWeight,
       boxFreqWeight: DEFAULT_ENGINE_CONFIG.boxFreqWeight,
       boxPressureWeight: DEFAULT_ENGINE_CONFIG.boxPressureWeight,
+      dgcRefStdDev: DEFAULT_ENGINE_CONFIG.dgcRefStdDev,
+      dgcMinGaps: DEFAULT_ENGINE_CONFIG.dgcMinGaps,
     };
     if (!Array.isArray(rows)) return cfg;
     for (const row of rows) {
@@ -190,6 +232,8 @@ async function loadEngineConfig(): Promise<EngineConfig> {
         else if (row.key === 'zk30_synergy_boost_weight') { const v = parseFloat(row.value); if (!isNaN(v) && v >= 0) cfg.synergyWeight = v; }
         else if (row.key === 'zk30_box_freq_weight')      { const v = parseFloat(row.value); if (!isNaN(v)) cfg.boxFreqWeight = v; }
         else if (row.key === 'zk30_box_pressure_weight')  { const v = parseFloat(row.value); if (!isNaN(v)) cfg.boxPressureWeight = v; }
+        else if (row.key === 'zk30_dgc_ref_std_dev')      { const v = parseFloat(row.value); if (!isNaN(v) && v > 0) cfg.dgcRefStdDev = v; }
+        else if (row.key === 'zk30_dgc_min_gaps')         { const v = parseInt(row.value, 10); if (!isNaN(v) && v >= 1) cfg.dgcMinGaps = v; }
       } catch {}
     }
     return cfg;
@@ -492,7 +536,12 @@ export async function computeSlateZK30({
   }
 
   const dgcMap = new Map<string, number>();
-  for (const [cs, dates] of hitDatesMap) dgcMap.set(cs, computeDGC(dates));
+  // Use the ZK30-local DGC (engineCore.computeDGC is calibrated for ZK6's
+  // national-pace data; TX needs ref ≈ 50 + min-gaps guard). See
+  // computeDGCZK30 docblock for the two bugs this addresses.
+  for (const [cs, dates] of hitDatesMap) {
+    dgcMap.set(cs, computeDGCZK30(dates, cfg.dgcRefStdDev, cfg.dgcMinGaps));
+  }
 
   if (ds.horizonsLoaded.length === 0) {
     throw new Error('No BOX data available for ZK30/TX');

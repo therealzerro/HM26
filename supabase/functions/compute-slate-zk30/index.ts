@@ -27,7 +27,7 @@ import {
   MULTIPLICITY_PRIORS,
   toComboSet, sortedPair, multiplicityOf, topPairOf, buildUniverse,
   normalizeBoxKey, normalizePairKey,
-  computeDGC, percentileRankOf, maxNorm,
+  percentileRankOf, maxNorm,
   computeSlateHash, computeConfidenceScore,
   computeBoxSignalDetailed, blendBoxDsRaw, getPairSignalFromMap,
   bestOrderFor, type PairDataTree,
@@ -118,6 +118,13 @@ interface EngineConfig {
   synergyWeight: number;
   boxFreqWeight: number;
   boxPressureWeight: number;
+  /** DGC reference stdev (days). ZK6's engineCore uses 10 — too tight for
+   *  TX single-state pace where median combo stdev ≈ 46d. Tunable via
+   *  app_config row `zk30_dgc_ref_std_dev`. */
+  dgcRefStdDev: number;
+  /** Minimum gap count before computing variance. Below this, computeDGCZK30
+   *  returns a 0.15 baseline. Guards against 2-hit triples dominating maxNorm. */
+  dgcMinGaps: number;
 }
 interface Datasets {
   boxByHorizon: BoxByHorizon;
@@ -143,7 +150,33 @@ const DEFAULT_CFG: EngineConfig = {
   synergyWeight: 0.15,
   boxFreqWeight: 0.60,
   boxPressureWeight: 0.40,
+  dgcRefStdDev: 50,
+  dgcMinGaps:   3,
 };
+
+// ─── ZK30-local DGC (replaces engineCore.computeDGC) ─────────────────────────
+//
+// engineCore.computeDGC hard-codes DGC_REF_STD_DEV=10 which was calibrated for
+// ZK6's national-pace data. TX single-state pace has median combo stdev ≈ 46d,
+// so 98% of TX combos returned DGC=0 under the original formula. This local
+// implementation:
+//   1. Accepts ref + min-gaps from app_config (tunable without redeploy)
+//   2. Returns 0.15 baseline when below min-gaps (avoids the 2-hit triple
+//      freak case where variance=0 → DGC=1.0 → maxNorm domination)
+function computeDGCZK30(
+  dayOffsets: number[],
+  refStdDev: number,
+  minGaps: number,
+): number {
+  if (dayOffsets.length === 0) return 0;
+  if (dayOffsets.length < minGaps + 1) return 0.15;
+  const sorted = dayOffsets.slice().sort((a, b) => a - b);
+  const gaps: number[] = [];
+  for (let i = 1; i < sorted.length; i++) gaps.push(sorted[i] - sorted[i - 1]);
+  const mean = gaps.reduce((s, g) => s + g, 0) / gaps.length;
+  const variance = gaps.reduce((s, g) => s + (g - mean) ** 2, 0) / gaps.length;
+  return Math.max(0, 1 - Math.sqrt(variance) / refStdDev);
+}
 
 // ─── Config loader (zk30_* keys only — no per-scope overrides for v1.0) ─────
 
@@ -157,6 +190,8 @@ async function loadEngineConfig(): Promise<EngineConfig> {
       'zk30_synergy_boost_weight',
       'zk30_box_freq_weight',
       'zk30_box_pressure_weight',
+      'zk30_dgc_ref_std_dev',
+      'zk30_dgc_min_gaps',
     ];
     const rows = await sbGet<{ key: string; value: string }[]>(
       '/rest/v1/app_config?key=in.(' + keys.join(',') + ')&select=key,value',
@@ -172,6 +207,8 @@ async function loadEngineConfig(): Promise<EngineConfig> {
         else if (row.key === 'zk30_synergy_boost_weight') { const v = parseFloat(row.value); if (!isNaN(v) && v >= 0) cfg.synergyWeight = v; }
         else if (row.key === 'zk30_box_freq_weight')      { const v = parseFloat(row.value); if (!isNaN(v)) cfg.boxFreqWeight = v; }
         else if (row.key === 'zk30_box_pressure_weight')  { const v = parseFloat(row.value); if (!isNaN(v)) cfg.boxPressureWeight = v; }
+        else if (row.key === 'zk30_dgc_ref_std_dev')      { const v = parseFloat(row.value); if (!isNaN(v) && v > 0) cfg.dgcRefStdDev = v; }
+        else if (row.key === 'zk30_dgc_min_gaps')         { const v = parseInt(row.value, 10); if (!isNaN(v) && v >= 1) cfg.dgcMinGaps = v; }
       } catch { /* keep default */ }
     }
     return cfg;
@@ -388,7 +425,11 @@ async function computeSlate(params: {
   }
 
   const dgcMap = new Map<string, number>();
-  for (const [cs, dates] of hitDatesMap) dgcMap.set(cs, computeDGC(dates));
+  // Use the ZK30-local DGC (engineCore.computeDGC mis-calibrated for TX —
+  // see computeDGCZK30 docblock for the two bugs this addresses).
+  for (const [cs, dates] of hitDatesMap) {
+    dgcMap.set(cs, computeDGCZK30(dates, cfg.dgcRefStdDev, cfg.dgcMinGaps));
+  }
 
   // 2. Today + yesterday hit comboSets — HARD block.
   const todayHitComboSets = new Set<string>();

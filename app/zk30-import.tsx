@@ -20,7 +20,7 @@ import {
   ChevronLeft, Upload, CheckCircle2, AlertCircle, FileText, ExternalLink,
 } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
-import { useTheme, type ColorTokens } from '@/lib/theme';
+import { type ColorTokens } from '@/lib/theme';
 
 type ImportResult = {
   success: boolean;
@@ -48,8 +48,11 @@ const PLACEHOLDER =
 
 export default function ZK30ImportScreen() {
   const insets = useSafeAreaInsets();
-  const { colors } = useTheme();
   const queryClient = useQueryClient();
+  // Operator-only screen — pin to the static dark palette so the global
+  // cosmic-light background doesn't bleed through panels and text stays
+  // readable regardless of which theme mode the app is in.
+  const colors = theme.colors as unknown as ColorTokens;
   const brandBlue = colors.dataBlue;
   const s = useMemo(() => makeS(colors), [colors]);
 

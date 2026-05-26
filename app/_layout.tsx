@@ -106,7 +106,17 @@ function RootLayoutNav() {
       />
       <Stack.Screen
         name="zk30-import"
-        options={{ title: "ZK30 TX Import", ...modalScreenOptions, headerShown: false }}
+        options={{
+          title: "ZK30 TX Import",
+          headerShown: false,
+          // Operator screen — full-bleed dark canvas instead of the modal
+          // preset other screens use. presentation: "card" makes the screen
+          // take the full viewport so the contentStyle background actually
+          // covers the global cosmic backdrop instead of letting it bleed
+          // through a centered modal frame.
+          presentation: "card",
+          contentStyle: { backgroundColor: theme.colors.background },
+        }}
       />
     </Stack>
     </View>

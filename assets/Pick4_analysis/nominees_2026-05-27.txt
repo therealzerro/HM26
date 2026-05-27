@@ -1,0 +1,41 @@
+Pick 4 Nominees — 2026-05-27 (national, all jurisdictions)
+=============================================================
+
+  #  BOX     BEST STRAIGHT    Indicator
+  -- ------  --------------   ---------
+  1  1368    3816             0.7956
+  2  1258    1582             0.7816
+  3  0136    0631             0.7809
+  4  2369    2639             0.7689
+  5  1379    9713             0.7627
+
+All 5 are singles (4 distinct digits, 24 straight permutations per box).
+
+Scoring methodology
+-------------------
+  BOX ratio (multiplicity-aware td / expected)   weight 0.30
+  Straight peak (best perm td / universe max)    weight 0.25
+  PBURST (positional from-box-combination pair)  weight 0.30
+  CO (any-position box pair signal)              weight 0.15
+
+  Pressure dropped: Lottery Post "Draws Since" semantics don't match the
+  engine's pressure formula (days-since calibration).
+  DGC absent: would need multi-hit dates per combo, not available in the
+  Lottery Post export.
+
+Source data (in this folder)
+----------------------------
+  pick4_box_h01Y.rtf        715 box-sorted combos w/ td, expected, last_seen, ds_raw
+  pick4_straight_H01Y.rtf   9,277 distinct straight permutations
+  pick4_pair_history.rtf    19 pair-class blocks (1 any-pos-box + 6 positions × 3 variants)
+  pick4_5_26_results.txt    51 nationwide draws from 5/26 (used for sanity check)
+
+5/26 validation (1-day, not a backtest)
+---------------------------------------
+  Box hits on these 5 picks: 3 (pick #3 hit twice as 1036 and 1063; pick #5 hit as 1397)
+  Straight hits: 0
+  3-of-4 close calls across 5 picks: 25
+  Base rate at 5 picks × 50 draws / 715 combos ≈ 0.35 expected hits/day; observed 3.
+
+  Single day = noise-prone. Multi-day backtest blocked on Pick 4 results
+  ingestion into Supabase (not done as of 2026-05-27).

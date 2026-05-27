@@ -52,6 +52,12 @@ interface AtRow {
   pburst_top_quartile: boolean | null;
   co_top_quartile: boolean | null;
   burst_top_quartile: boolean | null;
+  // BUG-FIX 2026-05-27: needed to de-dup multi-regen days. Each regen writes
+  // 6 K6 primary rows with a new slate_hash; without filtering to the
+  // canonical (latest) hash per (date, scope, mode) every per-pick analysis
+  // double-counts. See the canonicalRows filter below.
+  slate_hash: string | null;
+  created_at: string | null;
 }
 
 const SIGNAL_KEYS = ['signal_box', 'signal_pburst', 'signal_co', 'signal_burst'] as const;
@@ -139,7 +145,7 @@ export default function AdaptiveLearningView({ setView }: AdaptiveLearningViewPr
           'signal_box,signal_pburst,signal_co,signal_burst,' +
           'hit_box,hit_straight,matched_state,matched_session,' +
           'dominant_signal,box_top_quartile,pburst_top_quartile,' +
-          'co_top_quartile,burst_top_quartile' +
+          'co_top_quartile,burst_top_quartile,slate_hash,created_at' +
           `&slate_date=gte.${since}` +
           '&mode=eq.balanced' +
           '&order=slate_date.desc&limit=20000',
@@ -156,15 +162,47 @@ export default function AdaptiveLearningView({ setView }: AdaptiveLearningViewPr
 
   // ─── Computed metrics (all memoized) ──────────────────────────────────────────
 
+  // BUG-FIX 2026-05-27: collapse multi-regen days to the canonical slate
+  // before any analysis. Each regen writes 6 K6 primary rows with a fresh
+  // slate_hash; without this filter, days like 5/22 (22 regens) and 5/27 (8
+  // regens) inflate every per-pick aggregation (signalAUC, energyBands,
+  // positionStats, multStats, dominantSignal, quartileBoost) by 4–22×.
+  //
+  // Canonical = the slate_hash with the LATEST created_at per (date, scope,
+  // mode). Falls back gracefully when created_at is missing (just keeps the
+  // first hash seen). Multi-state secondary rows (matched_state IS NOT NULL)
+  // also dropped here — they aren't K6 primary picks and would double-count
+  // any pick that hit in multiple jurisdictions.
+  const canonicalRows = useMemo(() => {
+    if (rows.length === 0) return rows;
+    const latestPerKey = new Map<string, { hash: string; createdAt: string }>();
+    for (const r of rows) {
+      if (r.matched_state) continue; // primary only
+      if (!r.slate_date || !r.scope || !r.slate_hash) continue;
+      const mode = r.mode || 'balanced';
+      const key = `${r.slate_date}|${r.scope}|${mode}`;
+      const ca = r.created_at ?? '';
+      const cur = latestPerKey.get(key);
+      if (!cur || ca > cur.createdAt) latestPerKey.set(key, { hash: r.slate_hash, createdAt: ca });
+    }
+    return rows.filter(r => {
+      if (r.matched_state) return false;
+      if (!r.slate_date || !r.scope || !r.slate_hash) return false;
+      const mode = r.mode || 'balanced';
+      const key = `${r.slate_date}|${r.scope}|${mode}`;
+      return latestPerKey.get(key)?.hash === r.slate_hash;
+    });
+  }, [rows]);
+
   const primaryCutoff = useMemo(() => daysAgoISO(DAYS_PRIMARY), []);
 
   const primaryRows = useMemo(
-    () => rows.filter(r => r.slate_date >= primaryCutoff),
-    [rows, primaryCutoff],
+    () => canonicalRows.filter(r => r.slate_date >= primaryCutoff),
+    [canonicalRows, primaryCutoff],
   );
   const priorRows = useMemo(
-    () => rows.filter(r => r.slate_date < primaryCutoff),
-    [rows, primaryCutoff],
+    () => canonicalRows.filter(r => r.slate_date < primaryCutoff),
+    [canonicalRows, primaryCutoff],
   );
 
   // Slate-level hit rate = % of (date, scope) slates with ≥1 hit

@@ -21,6 +21,8 @@ import {
   multiplicityOf, topPairOf, sortedPair,
   computeBoxSignal, maxNorm, percentileRankOf,
   MULTIPLICITY_PRIORS, H_ALL, HORIZON_WEIGHTS,
+  blendBoxTimesDrawn, blendPairTimesDrawn,
+  type PairTimesDrawnTree,
   computeDGC, blendBoxDsRaw, getPairSignalFromMap,
   bestOrderFor, type PairDataTree,
 } from '../../lib/engineCore.js';
@@ -108,12 +110,16 @@ function buildDatasets(boxRows: any[], pairRows: any[]) {
   // ENH-HW: per-horizon ds_raw, so BOX scoring can blend across horizons
   // using config.horizonWeights. Mirrors engine's boxByHorizon.
   const boxByHorizon = new Map<string, Map<string, number>>();
+  // ENH-TDB (2026-05-27): per-horizon BOX times_drawn for the blend path.
+  // Built unconditionally so any config can opt in; legacy timesDrawnMap stays.
+  const boxTimesDrawnByHorizon = new Map<string, Map<string, number>>();
 
   for (const row of boxRows) {
     if (!row || typeof row.key !== 'string') continue;
     const h = String(row.horizon_label ?? 'H01Y');
     const normKey = normalizeBoxKey(row.key);
     const rawDs = typeof row.ds_raw === 'number' ? row.ds_raw : 0;
+    const rawTd = typeof row.times_drawn === 'number' ? row.times_drawn : 0;
 
     if (row.times_drawn != null && row.times_drawn > (timesDrawnMap.get(normKey) ?? 0)) {
       timesDrawnMap.set(normKey, row.times_drawn);
@@ -121,6 +127,9 @@ function buildDatasets(boxRows: any[], pairRows: any[]) {
 
     if (!boxByHorizon.has(h)) boxByHorizon.set(h, new Map());
     boxByHorizon.get(h)!.set(normKey, rawDs);
+
+    if (!boxTimesDrawnByHorizon.has(h)) boxTimesDrawnByHorizon.set(h, new Map());
+    boxTimesDrawnByHorizon.get(h)!.set(normKey, rawTd);
 
     // H01Y preferred for drawsSince/dsRaw; within H01Y, non-zero wins
     if (h === 'H01Y' || !drawsSinceMap.has(normKey)) {
@@ -138,6 +147,10 @@ function buildDatasets(boxRows: any[], pairRows: any[]) {
   // engines/zk6.ts builds the same structure). Indexed pairKey → classId →
   // horizonLabel → ds_raw.
   const pairData: PairDataTree = new Map();
+  // ENH-TDB: per-horizon pair times_drawn tree, parallel structure to pairData.
+  // Indexed pairKey → classId → horizonLabel → times_drawn. Consumed by the
+  // blend path via blendPairTimesDrawn.
+  const pairTimesDrawnByHorizon: PairTimesDrawnTree = new Map();
 
   for (const row of pairRows) {
     if (!row || typeof row.class_id !== 'number') continue;
@@ -145,6 +158,7 @@ function buildDatasets(boxRows: any[], pairRows: any[]) {
     const rawPairKey = row.key_pair ?? row.key;
     const pairKey = normalizePairKey(rawPairKey);
     const dsRaw = typeof row.ds_raw === 'number' ? row.ds_raw : 0;
+    const rawTd = typeof row.times_drawn === 'number' ? row.times_drawn : 0;
 
     // Per-horizon pair ds_raw tree (consumed by bestOrderFor).
     if (!pairData.has(pairKey)) pairData.set(pairKey, new Map());
@@ -152,17 +166,23 @@ function buildDatasets(boxRows: any[], pairRows: any[]) {
     if (!classMap.has(row.class_id)) classMap.set(row.class_id, new Map());
     classMap.get(row.class_id)!.set(h, dsRaw);
 
+    // Per-horizon pair times_drawn tree (consumed by blendPairTimesDrawn).
+    if (!pairTimesDrawnByHorizon.has(pairKey)) pairTimesDrawnByHorizon.set(pairKey, new Map());
+    const tdClassMap = pairTimesDrawnByHorizon.get(pairKey)!;
+    if (!tdClassMap.has(row.class_id)) tdClassMap.set(row.class_id, new Map());
+    tdClassMap.get(row.class_id)!.set(h, rawTd);
+
     if (h === 'H01Y' || !pairMetaMap.get(pairKey)?.has(row.class_id)) {
       if (!pairMetaMap.has(pairKey)) pairMetaMap.set(pairKey, new Map());
       pairMetaMap.get(pairKey)!.set(row.class_id, {
         dsRaw,
         drawsSince: typeof row.ds_raw === 'number' ? row.ds_raw : 500,
-        timesDrawn: typeof row.times_drawn === 'number' ? row.times_drawn : 0,
+        timesDrawn: rawTd,
       });
     }
   }
 
-  return { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap, boxByHorizon, pairData };
+  return { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap, boxByHorizon, pairData, boxTimesDrawnByHorizon, pairTimesDrawnByHorizon };
 }
 
 // ── History overrides ─────────────────────────────────────────────────────────
@@ -335,7 +355,7 @@ export async function computeSlateAsOf(
     excludeYesterday ? fetchYesterdayResults(date) : Promise.resolve(new Set<string>()),
   ]);
 
-  const { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap, boxByHorizon, pairData } = buildDatasets(boxRows, pairRows);
+  const { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap, boxByHorizon, pairData, boxTimesDrawnByHorizon, pairTimesDrawnByHorizon } = buildDatasets(boxRows, pairRows);
   // ENH-HW: horizon weights for BOX dsRaw blend. Config overrides default
   // HORIZON_WEIGHTS const when present. Decimals summing to ~1.0.
   const horizonWeights: Record<string, number> = config.horizonWeights ?? HORIZON_WEIGHTS;
@@ -362,14 +382,46 @@ export async function computeSlateAsOf(
 
   const universe = buildUniverse();
 
-  // Pre-pass: maxTimesDrawn, maxPairTimesDrawn
+  // ENH-TDB (2026-05-27): blend path uses horizon-weighted times_drawn for BOX
+  // and pair scoring. Legacy path: BOX = MAX across horizons (effectively H02Y),
+  // pair = H01Y row. When the flag is set, both honor horizonWeights uniformly.
+  const tdBlend = config.timesDrawnHorizonBlend === true;
+
+  // For the blend path we pre-build a synthetic pairMetaMap keyed by the blended
+  // times_drawn (drawsSince stays H01Y per legacy — ds_raw is invariant across
+  // horizons by construction, so blending it would be a no-op anyway). The
+  // legacy pairMetaMap is left untouched for the K6 cooldown reads downstream.
+  let pairMetaForSignals = pairMetaMap;
+  if (tdBlend) {
+    pairMetaForSignals = new Map();
+    for (const [pairKey, classMap] of pairTimesDrawnByHorizon.entries()) {
+      const newClassMap = new Map<number, PairMeta>();
+      for (const classId of classMap.keys()) {
+        const blendedTd = blendPairTimesDrawn(pairKey, classId, pairTimesDrawnByHorizon, horizonWeights);
+        const legacyMeta = pairMetaMap.get(pairKey)?.get(classId);
+        newClassMap.set(classId, {
+          dsRaw: legacyMeta?.dsRaw ?? 0,
+          drawsSince: legacyMeta?.drawsSince ?? 500,
+          timesDrawn: blendedTd,
+        });
+      }
+      pairMetaForSignals.set(pairKey, newClassMap);
+    }
+  }
+
+  // Pre-pass: maxTimesDrawn, maxPairTimesDrawn (consistent with the BOX / pair
+  // values used in per-combo scoring — both legacy and blend paths take their
+  // max over the same set of values they read at scoring time).
   let maxTimesDrawn = 0;
   for (let i = 0; i < 1000; i++) {
-    const td = timesDrawnMap.get(toComboSet(universe[i])) ?? 0;
+    const nk = toComboSet(universe[i]);
+    const td = tdBlend
+      ? blendBoxTimesDrawn(nk, boxTimesDrawnByHorizon, horizonWeights)
+      : (timesDrawnMap.get(nk) ?? 0);
     if (td > maxTimesDrawn) maxTimesDrawn = td;
   }
   let maxPairTimesDrawn = 0;
-  for (const classMap of pairMetaMap.values()) {
+  for (const classMap of pairMetaForSignals.values()) {
     for (const meta of classMap.values()) {
       if (meta.timesDrawn > maxPairTimesDrawn) maxPairTimesDrawn = meta.timesDrawn;
     }
@@ -386,7 +438,9 @@ export async function computeSlateAsOf(
     const normKey = toComboSet(combo);
     const [a, b, c] = combo;
 
-    const timesDrawnVal = timesDrawnMap.get(normKey) ?? 0;
+    const timesDrawnVal = tdBlend
+      ? blendBoxTimesDrawn(normKey, boxTimesDrawnByHorizon, horizonWeights)
+      : (timesDrawnMap.get(normKey) ?? 0);
     if (timesDrawnVal > 0) {
       const dsVal = blendBoxDsRaw(normKey, boxByHorizon, horizonWeights);
       rawBox[i] = computeBoxSignal(
@@ -400,15 +454,15 @@ export async function computeSlateAsOf(
     const ac = sortedPair(a, c);
 
     rawPburst[i] = (
-      getPairSignalFromMap(pairMetaMap, ab, 2, maxPairTimesDrawn) +
-      getPairSignalFromMap(pairMetaMap, bc, 3, maxPairTimesDrawn) +
-      getPairSignalFromMap(pairMetaMap, ac, 4, maxPairTimesDrawn)
+      getPairSignalFromMap(pairMetaForSignals, ab, 2, maxPairTimesDrawn) +
+      getPairSignalFromMap(pairMetaForSignals, bc, 3, maxPairTimesDrawn) +
+      getPairSignalFromMap(pairMetaForSignals, ac, 4, maxPairTimesDrawn)
     ) / 3;
 
     let coSum = 0;
     for (const classId of [5, 6, 7, 8, 9, 10, 11]) {
       for (const pk of [ab, bc, ac]) {
-        coSum += getPairSignalFromMap(pairMetaMap, pk, classId, maxPairTimesDrawn);
+        coSum += getPairSignalFromMap(pairMetaForSignals, pk, classId, maxPairTimesDrawn);
       }
     }
     rawCo[i] = coSum / 21;

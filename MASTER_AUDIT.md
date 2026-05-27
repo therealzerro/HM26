@@ -23,6 +23,41 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
+### CONFIG-08 — H01Y/H02Y Times-Drawn Horizon Blend (2026-05-27)
+
+Structural fix to an inconsistency in how `times_drawn` flowed through the engine: BOX scoring took **MAX across horizons** (effectively H02Y, since H02Y's window is a superset of H01Y's), while pair scoring used **H01Y-only**. Each path silently consumed a different horizon, and `horizon_weights` had **no effect** on the engine's output (the only horizon-blended value, `ds_raw`, is invariant across horizons by construction — "days since last hit" doesn't change based on lookback width).
+
+**Discovery.** Systems sweep on 2026-05-27 included an H01Y/H02Y ratio backtest expecting `horizonWeights` to move the engine. All 5 candidates produced byte-identical output. Query of `datasets_pair` confirmed `ds_raw` averages identical across H01Y/H02Y per scope (78.72/78.72 midday, 82.45/82.45 evening, 80.71/80.71 allday) while `times_drawn` differed substantially (midday H01Y=194 / H02Y=294). The `horizon_weights` config knob was effectively dead.
+
+**Mechanism (CONFIG-08).** Added `blendBoxTimesDrawn` + `blendPairTimesDrawn` in `lib/engineCore.ts` (mirrors of `blendBoxDsRaw` + `blendPairAcrossHorizons`). New app_config key `box_times_drawn_blend_enabled` (string `'true'/'false'`, defaults `true`) gates the path; when on, BOX and pair times_drawn both honor `horizon_weights`. Legacy MAX-for-BOX / H01Y-for-pair paths preserved behind the flag for rollback.
+
+**Empirical validation (30d × 87 slates, balanced mode, harness `tdblend_*` configs):**
+
+| Config | Overall | Midday | Evening | Allday | Rail-matched pick lift |
+|---|---|---|---|---|---|
+| BASELINE `ehnboa_prod_aligned` (legacy, MAX/H01Y mix) | 72.4% | 51.7% | 72.4% | 93.1% | **×0.95** ← below random |
+| `tdblend_h01_only` (H01Y:100) | 82.8% | 62.1% | 93.1% | 93.1% | ×1.00 |
+| `tdblend_h02_only` (H02Y:100) | 75.9% | 58.6% | 79.3% | 89.7% | ×1.01 |
+| `tdblend_h01_70_h02_30` | 80.5% | 62.1% | 82.8% | 96.6% | ×1.04 |
+| **`tdblend_h01_60_h02_40` (SHIPPED)** | **80.5%** | **62.1%** | **82.8%** | **96.6%** | **×1.07** |
+| `tdblend_h01_50_h02_50` | 79.3% | 58.6% | 82.8% | 96.6% | ×1.05 |
+
+Dual-lens decision per CLAUDE.md: every blend candidate beats baseline on BOTH slate hit rate AND rail-matched pick lift. `tdblend_h01_60_h02_40` wins pick lift (the more efficient signal) and best matches the user-stated intent that both H01Y and H02Y should contribute. The legacy baseline's ×0.95 rail-matched pick lift means the engine was producing picks **slightly worse than rail-matched random** — the blend path flips this from <1.0 to ≥1.0 across every scope.
+
+**Action sequence:**
+1. `lib/engineCore.ts` — added `blendBoxTimesDrawn`, `blendPairTimesDrawn`, `PairTimesDrawnTree` type.
+2. `engines/zk6.ts` — added `boxTimesDrawnByHorizon`, `pairTimesDrawnByHorizon` to dataset builder; added `timesDrawnBlendEnabled` to `EngineConfig`; config loader reads `box_times_drawn_blend_enabled`; scoring loop branches on flag.
+3. `supabase/functions/compute-slate-zk6/index.ts` — same mirror, line-for-line.
+4. `scripts/backtest/replay.ts` + `configs.ts` + `types.ts` — harness path landed first for empirical validation.
+5. `app_config` UPDATE: `horizon_weights` `{H01Y:100,...}` → `{H01Y:60,H02Y:40,rest:0}`; INSERT `box_times_drawn_blend_enabled='true'`.
+6. Edge function `compute-slate-zk6` redeployed (next step).
+
+**Rollback condition: 2026-06-03 (7-day review).** If 7-day overall slate hit rate post-deploy (5/27–6/03) trails the pre-deploy 30-day baseline (72.4%) by more than 5pp, OR rail-matched pick lift drops below ×0.95 on any scope, revert. **Revert action:** `UPDATE app_config SET value = 'false' WHERE key = 'box_times_drawn_blend_enabled'` — engine falls back to legacy MAX/H01Y path. No code change or `horizon_weights` change needed for rollback.
+
+**Stacking caveat.** Live 7-day hit rate post-deploy measures CONFIG-08 stacked on CONFIG-02 (pressure inversion) + CONFIG-05 (midday cooldown=10) + CONFIG-07 (midday CO-heavy preset). Backtest validated CONFIG-08 atop the full stack. Isolating CONFIG-08's incremental contribution from prior layers not in scope; the slate hit rate +8.1pp gain and pick lift +0.12 gain are vs. the full prior stack.
+
+---
+
 ### CONFIG-07 — Per-Scope Signal-Weight Override for Midday (2026-05-15)
 
 Mechanism + first ship. Extends the per-scope override pattern (already established for `recent_hit_cooldown_${scope}`, `box_freq_weight_${scope}`, `box_pressure_weight_${scope}`) to the full signal-weight presets (BOX/PBURST/CO/DGC). Both engine paths now read `engine_weights_${preset}_${scope}` from `app_config` and overlay onto the global preset when scope matches.

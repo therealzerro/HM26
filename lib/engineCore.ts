@@ -156,6 +156,48 @@ export function blendBoxDsRaw(
   return total;
 }
 
+/**
+ * Blend a box combo's times_drawn across horizons. Mirror of blendBoxDsRaw
+ * but for the times_drawn column. Legacy engines used max-across-horizons
+ * for box times_drawn (which always favors the widest window); this lets a
+ * caller honor horizon_weights instead.
+ */
+export function blendBoxTimesDrawn(
+  normKey: string,
+  boxTimesDrawnByHorizon: Map<string, Map<string, number>>,
+  weights: Record<string, number>,
+): number {
+  let total = 0;
+  for (const h of H_ALL) {
+    const td = boxTimesDrawnByHorizon.get(h)?.get(normKey) ?? 0;
+    total += td * (weights[h] ?? 0);
+  }
+  return total;
+}
+
+/**
+ * Per-horizon pair times_drawn tree: pairKey → classId → horizonLabel → times_drawn.
+ * Same shape as PairDataTree but the inner value is times_drawn rather than ds_raw.
+ */
+export type PairTimesDrawnTree = Map<string, Map<number, Map<string, number>>>;
+
+/**
+ * Blend a pair's times_drawn for a given classId across horizons. Mirror of
+ * blendPairAcrossHorizons but for times_drawn. Legacy engines used the H01Y
+ * row exclusively for pair times_drawn; this lets a caller honor horizon_weights.
+ */
+export function blendPairTimesDrawn(
+  pairKey: string, classId: number,
+  pairTimesDrawnByHorizon: PairTimesDrawnTree,
+  weights: Record<string, number>,
+): number {
+  const horizonMap = pairTimesDrawnByHorizon.get(pairKey)?.get(classId);
+  if (!horizonMap) return 0;
+  let total = 0;
+  for (const h of H_ALL) total += (horizonMap.get(h) ?? 0) * (weights[h] ?? 0);
+  return total;
+}
+
 // ─── Pair signal (PBURST / CO) ────────────────────────────────────────────────
 
 /**

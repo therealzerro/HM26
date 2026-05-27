@@ -44,6 +44,14 @@ export interface EngineConfig {
   // engine behavior under whatever other config it carries, isolating the
   // realignment's straight-hit effect from BOX-scoring changes.
   bestOrderUseDefaultHorizonWeights?: boolean;
+  // ENH-TDB (2026-05-27): when true, BOX times_drawn and pair times_drawn
+  // honor `horizonWeights` via blend (mirror of ds_raw blend). When false /
+  // omitted, replay uses legacy behavior: BOX times_drawn = MAX across
+  // horizons (effectively H02Y, since H02Y is a superset window of H01Y),
+  // pair times_drawn = H01Y row exclusively. The legacy paths are
+  // inconsistent (BOX dominated by H02Y, pair dominated by H01Y); the blend
+  // path applies horizon_weights uniformly.
+  timesDrawnHorizonBlend?: boolean;
   // ENH-BP (2026-05-14): BOX freq/pressure split. Defaults (omitted) preserve the
   // hard-coded 60/40 production split. Candidates can vary the split to test
   // whether the "overdue pressure" term is hurting midday/doubles performance

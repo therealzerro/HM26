@@ -11,7 +11,8 @@ import {
   computeDGC, percentileRankOf, maxNorm,
   computeSlateHash, computeConfidenceScore,
   computeBoxSignalDetailed, blendBoxDsRaw, getPairSignalFromMap,
-  bestOrderFor, intelligenceRowExtras, type PairDataTree,
+  blendBoxTimesDrawn, blendPairTimesDrawn,
+  bestOrderFor, intelligenceRowExtras, type PairDataTree, type PairTimesDrawnTree,
   type Scope, type WeightSet,
 } from '../../../lib/engineCore.ts';
 import { getTodayET, getYesterdayET } from '../../../lib/dateUtils.ts';
@@ -79,13 +80,20 @@ interface EngineConfig {
   /** Resolved effective values (post-scope-override). Same defaults if unset. */
   effectiveBoxFreqWeight?: number;
   effectiveBoxPressureWeight?: number;
+  // CONFIG-08 (2026-05-27): when true, BOX times_drawn + pair times_drawn
+  // honor horizon_weights via blend. Read from app_config; defaults to true.
+  timesDrawnBlendEnabled: boolean;
 }
 interface Datasets {
   boxByHorizon: BoxByHorizon;
+  // CONFIG-08: per-horizon BOX times_drawn (parallel to boxByHorizon).
+  boxTimesDrawnByHorizon: Map<string, Map<string, number>>;
   pairMetaMap:  Map<string, Map<number, PairMeta>>;
   // Per-horizon pair ds_raw tree — needed by bestOrderFor (engineCore).
   // Parallel to pairMetaMap but preserves all horizons instead of H01Y-preferred.
   pairData:     PairDataTree;
+  // CONFIG-08: per-horizon pair times_drawn tree (parallel to pairData).
+  pairTimesDrawnByHorizon: PairTimesDrawnTree;
   drawsSinceMap: Map<string, number>;
   dsRawMap:      Map<string, number>;
   timesDrawnMap: Map<string, number>;
@@ -116,6 +124,7 @@ const DEFAULT_CFG: EngineConfig = {
   horizonWeights: { ...HORIZON_WEIGHTS },
   boxFreqWeight: 0.60,
   boxPressureWeight: 0.40,
+  timesDrawnBlendEnabled: true,
 };
 
 // ─── Config loader ────────────────────────────────────────────────────────────
@@ -143,6 +152,7 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       'synergy_boost_on', 'synergy_boost_weight',
       'horizon_weights',
       'box_freq_weight', 'box_pressure_weight',
+      'box_times_drawn_blend_enabled',
       ...(scopeCooldownKey ? [scopeCooldownKey] : []),
       ...(scopeBoxFreqKey  ? [scopeBoxFreqKey]  : []),
       ...(scopeBoxPressKey ? [scopeBoxPressKey] : []),
@@ -185,6 +195,11 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
         if (row.key === 'box_pressure_weight') {
           const v = parseFloat(row.value);
           if (!isNaN(v)) cfg.boxPressureWeight = v;
+          continue;
+        }
+        if (row.key === 'box_times_drawn_blend_enabled') {
+          if (row.value === 'true')  { cfg.timesDrawnBlendEnabled = true;  continue; }
+          if (row.value === 'false') { cfg.timesDrawnBlendEnabled = false; continue; }
           continue;
         }
         if (scopeBoxFreqKey && row.key === scopeBoxFreqKey) {
@@ -325,6 +340,7 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
   }
 
   const boxByHorizon: BoxByHorizon = new Map();
+  const boxTimesDrawnByHorizon = new Map<string, Map<string, number>>();
   const dsRawMap      = new Map<string, number>();
   const timesDrawnMap = new Map<string, number>();
   const drawsSinceMap = new Map<string, number>();
@@ -346,7 +362,11 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
     if (!boxByHorizon.has(h)) boxByHorizon.set(h, new Map());
     boxByHorizon.get(h)!.set(normKey, ds);
 
-    // timesDrawn: max across horizons wins
+    // CONFIG-08: per-horizon times_drawn (parallel structure used by blend path).
+    if (!boxTimesDrawnByHorizon.has(h)) boxTimesDrawnByHorizon.set(h, new Map());
+    boxTimesDrawnByHorizon.get(h)!.set(normKey, td);
+
+    // timesDrawn: max across horizons wins (kept as placeholder-vs-real gate).
     if (td > (timesDrawnMap.get(normKey) ?? 0)) {
       timesDrawnMap.set(normKey, td);
     }
@@ -375,6 +395,8 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
   // pair scoring needs all horizons, blended by HORIZON_WEIGHTS. Parity with engines/zk6.ts.
   const pairMetaMap = new Map<string, Map<number, PairMeta>>();
   const pairData: PairDataTree = new Map();
+  // CONFIG-08: per-horizon pair times_drawn tree, parallel to pairData.
+  const pairTimesDrawnByHorizon: PairTimesDrawnTree = new Map();
   for (const row of pairRows as any[]) {
     if (!row || typeof row.key_pair !== 'string') continue;
     const h = String(row.horizon_label ?? 'H01Y');
@@ -392,6 +414,12 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
     const cd = pairData.get(normKey)!;
     if (!cd.has(classId)) cd.set(classId, new Map());
     cd.get(classId)!.set(h, ds);
+
+    // CONFIG-08: per-horizon pair times_drawn (parallel to pairData).
+    if (!pairTimesDrawnByHorizon.has(normKey)) pairTimesDrawnByHorizon.set(normKey, new Map());
+    const ct = pairTimesDrawnByHorizon.get(normKey)!;
+    if (!ct.has(classId)) ct.set(classId, new Map());
+    ct.get(classId)!.set(h, td);
   }
 
   const horizonsPresent: Record<string, boolean> = {};
@@ -403,7 +431,7 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
   }
 
   return {
-    boxByHorizon, pairMetaMap, pairData,
+    boxByHorizon, boxTimesDrawnByHorizon, pairMetaMap, pairData, pairTimesDrawnByHorizon,
     drawsSinceMap, dsRawMap, timesDrawnMap, lastSeenMap,
     horizonsPresent, horizonsLoaded, usingFallback,
     boxRowCount: boxRows.length, pairRowCount: pairRows.length, rawBoxRows,
@@ -531,18 +559,46 @@ async function computeSlate(params: {
   } catch { /* non-fatal */ }
 
   // 3. Signal scoring
+  // CONFIG-08 (2026-05-27): when timesDrawnBlendEnabled is true, BOX + pair
+  // times_drawn honor horizon_weights via blend. Build synthetic pairMetaMap
+  // keyed by the blended times_drawn (drawsSince stays H01Y — ds_raw invariant
+  // across horizons by construction). Legacy pairMetaMap stays for cooldown reads.
+  const tdBlend = cfg.timesDrawnBlendEnabled === true;
+  let pairMetaForSignals = ds.pairMetaMap;
+  if (tdBlend) {
+    pairMetaForSignals = new Map();
+    for (const [pairKey, classMap] of ds.pairTimesDrawnByHorizon.entries()) {
+      const newClassMap = new Map<number, PairMeta>();
+      for (const classId of classMap.keys()) {
+        const blendedTd = blendPairTimesDrawn(pairKey, classId, ds.pairTimesDrawnByHorizon, horizonWeights);
+        const legacyMeta = ds.pairMetaMap.get(pairKey)?.get(classId);
+        newClassMap.set(classId, {
+          dsRaw: legacyMeta?.dsRaw ?? 0,
+          drawsSince: legacyMeta?.drawsSince ?? 500,
+          timesDrawn: blendedTd,
+        });
+      }
+      pairMetaForSignals.set(pairKey, newClassMap);
+    }
+  }
+
   let maxTimesDrawn = 0;
   for (let i = 0; i < 1000; i++) {
-    const td = ds.timesDrawnMap.get(toComboSet(universe[i])) ?? 0;
+    const nk = toComboSet(universe[i]);
+    const td = tdBlend
+      ? blendBoxTimesDrawn(nk, ds.boxTimesDrawnByHorizon, horizonWeights)
+      : (ds.timesDrawnMap.get(nk) ?? 0);
     if (td > maxTimesDrawn) maxTimesDrawn = td;
   }
-  let maxPairTimesDrawn = 0;
-  for (const cm of ds.pairMetaMap.values()) for (const m of cm.values()) if (m.timesDrawn > maxPairTimesDrawn) maxPairTimesDrawn = m.timesDrawn;
+  console.log('[edge-zk6] CONFIG-08 blend:', tdBlend, 'maxTimesDrawn:', maxTimesDrawn, 'horizonWeights:', JSON.stringify(horizonWeights));
 
-  // Pair signal: delegates to engineCore.getPairSignalFromMap (canonical
-  // 70% freq + 30% pressure formula, shared with engines/zk6.ts).
+  let maxPairTimesDrawn = 0;
+  for (const cm of pairMetaForSignals.values()) for (const m of cm.values()) if (m.timesDrawn > maxPairTimesDrawn) maxPairTimesDrawn = m.timesDrawn;
+
+  // Pair signal: delegates to engineCore.getPairSignalFromMap. When CONFIG-08
+  // blend is on, pairMetaForSignals carries the blended times_drawn.
   const getPairSignal = (pk: string, classId: number): number =>
-    getPairSignalFromMap(ds.pairMetaMap, pk, classId, maxPairTimesDrawn);
+    getPairSignalFromMap(pairMetaForSignals, pk, classId, maxPairTimesDrawn);
 
   const rawBox      = new Float64Array(1000);
   const rawFreq     = new Float64Array(1000);
@@ -556,9 +612,11 @@ async function computeSlate(params: {
     const normKey = toComboSet(combo);
     const [a, b, c] = combo;
     // BOX: delegates to engineCore.computeBoxSignalDetailed (shared math).
-    // ENH-HW: dsVal is a horizon-weighted blend; with {H01Y:1.0, rest:0}
-    // behavior matches the prior H01Y-only dsRawMap lookup.
-    const td = ds.timesDrawnMap.get(normKey) ?? 0;
+    // ENH-HW: dsVal is a horizon-weighted blend.
+    // CONFIG-08: times_drawn is also horizon-blended when the flag is on.
+    const td = tdBlend
+      ? blendBoxTimesDrawn(normKey, ds.boxTimesDrawnByHorizon, horizonWeights)
+      : (ds.timesDrawnMap.get(normKey) ?? 0);
     const dsVal = blendBoxDsRaw(normKey, ds.boxByHorizon, horizonWeights);
     const parts = computeBoxSignalDetailed(
       td, dsVal, maxTimesDrawn, pressureThreshold,

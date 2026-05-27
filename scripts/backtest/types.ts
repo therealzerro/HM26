@@ -114,6 +114,11 @@ export interface EngineConfig {
   doublesTopNBoost?: { topN: number; bonus: number };
   /** Per-scope override. midday CO=74% changes the doubles distribution — needs separate tuning. */
   doublesTopNBoostByScope?: Partial<Record<Scope, { topN: number; bonus: number }>>;
+  // ENH-AFL-2 (2026-05-27): adaptive signal weights. When enabled, replay
+  // reads historical signal_auc_per_day rows as-of the backtest date, computes
+  // the rolling 30-day AUC for that date, and applies Option β adjustment to
+  // the base weights via lib/engineCore.computeAdaptiveWeights.
+  adaptiveSignalWeights?: { enabled: boolean; alpha: number };
 }
 
 export interface ReplayPick {

@@ -12,8 +12,9 @@ import {
   computeSlateHash, computeConfidenceScore,
   computeBoxSignalDetailed, blendBoxDsRaw, getPairSignalFromMap,
   blendBoxTimesDrawn, blendPairTimesDrawn,
-  bestOrderFor, intelligenceRowExtras, type PairDataTree, type PairTimesDrawnTree,
-  type Scope, type WeightSet,
+  bestOrderFor, intelligenceRowExtras, computeAdaptiveWeights,
+  type PairDataTree, type PairTimesDrawnTree,
+  type Scope, type WeightSet, type SignalAuc,
 } from '../../../lib/engineCore.ts';
 import { getTodayET, getYesterdayET } from '../../../lib/dateUtils.ts';
 
@@ -85,6 +86,9 @@ interface EngineConfig {
   // CONFIG-08 (2026-05-27): when true, BOX times_drawn + pair times_drawn
   // honor horizon_weights via blend. Read from app_config; defaults to true.
   timesDrawnBlendEnabled: boolean;
+  // ENH-AFL-2 (2026-05-27): adaptive signal weights.
+  adaptiveSignalWeightsEnabled: boolean;
+  adaptiveSignalWeightsAlpha: number;
 }
 interface Datasets {
   boxByHorizon: BoxByHorizon;
@@ -125,6 +129,8 @@ const DEFAULT_CFG: EngineConfig = {
   boxFreqWeight: 0.60,
   boxPressureWeight: 0.40,
   timesDrawnBlendEnabled: true,
+  adaptiveSignalWeightsEnabled: false,
+  adaptiveSignalWeightsAlpha: 1.0,
 };
 
 // ─── Config loader ────────────────────────────────────────────────────────────
@@ -152,6 +158,7 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       'horizon_weights',
       'box_freq_weight', 'box_pressure_weight',
       'box_times_drawn_blend_enabled',
+      'adaptive_signal_weights_enabled', 'adaptive_signal_weights_alpha',
       ...(scopeCooldownKey ? [scopeCooldownKey] : []),
       ...(scopeBoxFreqKey  ? [scopeBoxFreqKey]  : []),
       ...(scopeBoxPressKey ? [scopeBoxPressKey] : []),
@@ -195,6 +202,16 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
         if (row.key === 'box_times_drawn_blend_enabled') {
           if (row.value === 'true')  { cfg.timesDrawnBlendEnabled = true;  continue; }
           if (row.value === 'false') { cfg.timesDrawnBlendEnabled = false; continue; }
+          continue;
+        }
+        if (row.key === 'adaptive_signal_weights_enabled') {
+          if (row.value === 'true')  { cfg.adaptiveSignalWeightsEnabled = true;  continue; }
+          if (row.value === 'false') { cfg.adaptiveSignalWeightsEnabled = false; continue; }
+          continue;
+        }
+        if (row.key === 'adaptive_signal_weights_alpha') {
+          const v = parseFloat(row.value);
+          if (!isNaN(v) && v >= 0 && v <= 2) cfg.adaptiveSignalWeightsAlpha = v;
           continue;
         }
         if (scopeBoxFreqKey && row.key === scopeBoxFreqKey) {
@@ -269,6 +286,36 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     return cfg;
   } catch {
     return DEFAULT_CFG;
+  }
+}
+
+/**
+ * ENH-AFL-2: Load rolling 30-day per-signal AUC from signal_auc_per_day.
+ * Returns null when < 14 days of data are available (cold-start fallback).
+ */
+async function loadRollingAuc(scope: Scope): Promise<SignalAuc | null> {
+  try {
+    const sinceDate = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+    const rows = await sbGet<{ signal: string; auc: number }[]>(
+      `/rest/v1/signal_auc_per_day?scope=eq.${encodeURIComponent(scope)}&day=gte.${sinceDate}&select=signal,auc&limit=200`,
+    );
+    if (!Array.isArray(rows)) return null;
+    const buckets: Record<string, number[]> = { BOX: [], PBURST: [], CO: [], DGC: [] };
+    for (const r of rows) {
+      if (r.signal in buckets && typeof r.auc === 'number') buckets[r.signal].push(r.auc);
+    }
+    for (const sig of ['BOX', 'PBURST', 'CO', 'DGC']) {
+      if (buckets[sig].length < 14) return null;
+    }
+    const avg = (arr: number[]) => arr.reduce((s, v) => s + v, 0) / arr.length;
+    return {
+      BOX: avg(buckets.BOX),
+      PBURST: avg(buckets.PBURST),
+      CO: avg(buckets.CO),
+      DGC: avg(buckets.DGC),
+    };
+  } catch {
+    return null;
   }
 }
 
@@ -488,7 +535,25 @@ async function computeSlate(params: {
 
   const cfg = await loadEngineConfig(scope);
   const { presets, rails, pressureThreshold, minEnergyThreshold, recentHitCooldown, synergyOn, synergyWeight, horizonWeights } = cfg;
-  const weights: WeightSet = presets.balanced;
+  const baseWeights: WeightSet = presets.balanced;
+
+  // ENH-AFL-2: adaptive signal weights. Layer on top of base when enabled and
+  // sufficient AUC history exists. See engines/zk6.ts for parity copy.
+  let weights: WeightSet = baseWeights;
+  let adaptiveDiagnostics: ReturnType<typeof computeAdaptiveWeights>['diagnostics'] | null = null;
+  if (cfg.adaptiveSignalWeightsEnabled) {
+    const rollingAuc = await loadRollingAuc(scope);
+    if (rollingAuc) {
+      const adaptive = computeAdaptiveWeights(baseWeights, rollingAuc, cfg.adaptiveSignalWeightsAlpha);
+      weights = adaptive.weights;
+      adaptiveDiagnostics = adaptive.diagnostics;
+      console.log(`[edge-zk6] ENH-AFL-2 adaptive: scope=${scope} α=${cfg.adaptiveSignalWeightsAlpha}`,
+        `auc=${JSON.stringify(rollingAuc)}`,
+        `base→adj: ${JSON.stringify(baseWeights)} → ${JSON.stringify(weights)}`);
+    } else {
+      console.log(`[edge-zk6] ENH-AFL-2 adaptive: scope=${scope} — insufficient AUC data, using base`);
+    }
+  }
   // CONFIG-02 (2026-05-14): effective per-scope BOX freq/pressure split.
   const effBoxFreqWeight     = cfg.effectiveBoxFreqWeight     ?? cfg.boxFreqWeight;
   const effBoxPressureWeight = cfg.effectiveBoxPressureWeight ?? cfg.boxPressureWeight;
@@ -790,7 +855,16 @@ async function computeSlate(params: {
         scope,
         mode:                 weightsKey,
         slate_date:           effectiveDate,
-        effective_weights:    { ...weights, _mode: weightsKey },
+        effective_weights:    {
+          ...weights,
+          _mode: weightsKey,
+          _adaptive: adaptiveDiagnostics ? {
+            alpha: cfg.adaptiveSignalWeightsAlpha,
+            auc: adaptiveDiagnostics.auc,
+            base: adaptiveDiagnostics.base,
+            clamped: adaptiveDiagnostics.clampedSignals,
+          } : null,
+        },
         horizons_present:     ds.horizonsPresent,
         horizons_loaded:      ds.horizonsLoaded,
         confidence_score:     Math.round(scopeConfidence * 100),

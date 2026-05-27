@@ -22,7 +22,9 @@ import {
   computeBoxSignal, maxNorm, percentileRankOf,
   MULTIPLICITY_PRIORS, H_ALL, HORIZON_WEIGHTS,
   blendBoxTimesDrawn, blendPairTimesDrawn,
+  computeAdaptiveWeights,
   type PairTimesDrawnTree,
+  type SignalAuc,
   computeDGC, blendBoxDsRaw, getPairSignalFromMap,
   bestOrderFor, type PairDataTree,
 } from '../../lib/engineCore.js';
@@ -337,6 +339,39 @@ function runK6Selection(
 
 // ── Public entry point ────────────────────────────────────────────────────────
 
+/**
+ * ENH-AFL-2: For a given backtest date D, fetch the rolling 30-day per-signal
+ * AUC from signal_auc_per_day looking at rows BEFORE D (no leakage). Returns
+ * null when < 14 days of pre-D data exist — replay then falls back to base.
+ */
+async function fetchRollingAucAsOf(date: string, scope: Scope): Promise<SignalAuc | null> {
+  const target = new Date(date + 'T00:00:00Z').getTime();
+  const since = new Date(target - 30 * 86400000).toISOString().split('T')[0];
+  const endExclusive = new Date(target - 86400000).toISOString().split('T')[0]; // up to D-1
+  try {
+    const rows = await dbGet<{ signal: string; auc: number }[]>(
+      `/signal_auc_per_day?scope=eq.${encodeURIComponent(scope)}&day=gte.${since}&day=lte.${endExclusive}&select=signal,auc&limit=200`,
+    );
+    if (!Array.isArray(rows)) return null;
+    const buckets: Record<string, number[]> = { BOX: [], PBURST: [], CO: [], DGC: [] };
+    for (const r of rows) {
+      if (r.signal in buckets && typeof r.auc === 'number') buckets[r.signal].push(r.auc);
+    }
+    for (const sig of ['BOX', 'PBURST', 'CO', 'DGC']) {
+      if (buckets[sig].length < 14) return null;
+    }
+    const avg = (arr: number[]) => arr.reduce((s, v) => s + v, 0) / arr.length;
+    return {
+      BOX: avg(buckets.BOX),
+      PBURST: avg(buckets.PBURST),
+      CO: avg(buckets.CO),
+      DGC: avg(buckets.DGC),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function computeSlateAsOf(
   date: string,
   scope: Scope,
@@ -345,7 +380,18 @@ export async function computeSlateAsOf(
 ): Promise<ReplayPick[]> {
   const scopeEnc = encodeURIComponent(scope);
   // Per-scope preset wins over global preset when present (ENH 2026-05-15).
-  const weights = config.presetByScope?.[scope]?.[mode] ?? config.presets[mode];
+  const baseWeights = config.presetByScope?.[scope]?.[mode] ?? config.presets[mode];
+
+  // ENH-AFL-2: when adaptive flag is on, layer rolling-30d AUC adjustment on
+  // top of base weights. Reads signal_auc_per_day rows < D (no leakage).
+  let weights = baseWeights;
+  if (config.adaptiveSignalWeights?.enabled) {
+    const rollingAuc = await fetchRollingAucAsOf(date, scope);
+    if (rollingAuc) {
+      const adj = computeAdaptiveWeights(baseWeights, rollingAuc, config.adaptiveSignalWeights.alpha);
+      weights = adj.weights;
+    }
+  }
 
   const excludeYesterday = config.excludeYesterdayHits !== false; // default true
   const [boxRows, pairRows, historyRows, todayHitComboSets] = await Promise.all([

@@ -23,6 +23,53 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
+### ENH-AFL — Adaptive Feedback Loop v1 — Infrastructure Shipped, Flag OFF (2026-05-27)
+
+Phase 1 (per-signal AUC compute) + Phase 2 (engine consumption + harness + admin debug surface) shipped end-to-end. **Production flag `adaptive_signal_weights_enabled` set to `false`** — no live behavior change. 30-day backtest validation found insufficient lift to ship at any α ∈ [0.5, 1.5]; root cause is that current AUC gradients (signals mostly in [0.50, 0.65]) are too gentle for Option β's `(1 + α × (auc − 0.5))` formula to materially shift K6 selection. Infrastructure parked for future revisit when richer signal structure emerges.
+
+**Phase 1 — Per-signal AUC compute (ENH-AFL-1):**
+- New table `signal_auc_per_day` (scope, signal, day, auc, n_hits, n_combosets). PK = (scope, signal, day). RLS-protected (open SELECT, service-role-only writes).
+- New script `scripts/intel-tuning/compute-daily-auc.ts` (Node CLI): scores all ~220 combosets using as-of-D-1 box/pair data + history dsOverride, looks up actual scope-filtered hits on day D, computes Mann-Whitney AUC per signal.
+- New edge fn `compute-daily-auc-zk6`: Deno port of the CLI script, callable from admin UI.
+- 60-day backfill on 2026-05-27 wrote 720 rows. Rolling 30d averages:
+  - midday: BOX 0.594 / PBURST 0.561 / CO 0.612 / DGC 0.544
+  - evening: BOX 0.608 / PBURST 0.557 / CO 0.630 / DGC 0.548
+  - allday: BOX 0.615 / PBURST 0.559 / CO 0.523 / DGC 0.486
+
+**Phase 2 — Engine consumption (ENH-AFL-2):**
+- New function `lib/engineCore.ts::computeAdaptiveWeights(base, auc, alpha) → { weights, diagnostics }`. Option β formula with [0.02, 0.85] clamp + renormalize to sum-1.
+- `engines/zk6.ts` + `compute-slate-zk6/index.ts`: new `loadRollingAuc(scope)` helper (queries last 30 days, returns null if < 14 days). Wired into computeSlate after base-weights resolution. Gated on `adaptive_signal_weights_enabled` flag. Diagnostics persisted to `engine_runs.effective_weights._adaptive`.
+- 2 new app_config keys: `adaptive_signal_weights_enabled` (default false), `adaptive_signal_weights_alpha` (default 1.0).
+- Daily Workflow button extended: Step 2/4 calls compute-daily-auc-zk6 between pair rebuild (Step 1) and hit detection (Step 3). Non-fatal on failure.
+- `scripts/backtest/replay.ts`: reads historical `signal_auc_per_day` rows strictly before backtest date D (no leakage). New `EngineConfig.adaptiveSignalWeights?: { enabled, alpha }`. Parity guard at α=0 matched baseline byte-for-byte.
+- New admin UI section in `EngineConfigView`: read-only table showing current rolling 30-day AUC per scope/signal, current flag state, and α value. Useful for the eventual revisit.
+
+**Backtest verdict (30d × 87 slates, balanced, harness `adaptive_*` configs atop dgc_allday_15):**
+
+| Config | Overall | Midday | Evening | Allday | Pick lift (rail) |
+|---|---|---|---|---|---|
+| BASELINE `dgc_allday_15` | 82.8% | 69.0% | 89.7% | 89.7% | ×1.13 |
+| `adaptive_parity` (α=0) | 82.8% | 69.0% | 89.7% | 89.7% | ×1.13 ✅ |
+| `adaptive_alpha_05` | 82.8% | 69.0% | 89.7% | 89.7% | ×1.13 (no-op) |
+| `adaptive_alpha_10` | 82.8% | 72.4% | 89.7% | 86.2% | ×1.11 |
+| `adaptive_alpha_15` | 81.6% | 72.4% | 86.2% | 86.2% | ×1.12 |
+
+**Forensic Path B analysis** showed total pick churn across 87 backtest slates = 21 swaps out of 522 slate-pick decisions (4% churn). Most slates entirely unchanged. The +3.4pp midday "win" and -3.5pp allday "loss" at α=1.0 each represent a single slate flip — well within Wilson CI noise on n=29. The Option β formula simply doesn't move weights enough to materially affect K6 selection.
+
+**Why shipped anyway (flag OFF):**
+- All P1 + P2 infrastructure is sound and reusable.
+- The AUC data is genuine intelligence — surfaces signal-quality patterns (allday DGC anti-predictive on average, midday CO dominant, BOX most reliable) that operator/marketing can leverage independently of adaptive scoring.
+- Future revisit: ENH-AUDIT-2026-05-19 (per-state strength layer, queued) introduces a new AUC dimension that may have stronger gradients. Adaptive infrastructure is ready to consume that data without further build.
+- The admin debug surface keeps adaptive AUC visible during daily ops, supporting eventual re-evaluation.
+
+**Rollback path (if even flag-off behavior diverges):**
+- `DELETE FROM app_config WHERE key IN ('adaptive_signal_weights_enabled', 'adaptive_signal_weights_alpha');` — engine defaults rule, behavior identical.
+- Revert engine code via git → restores pre-ENH-AFL paths.
+
+**Future ship gate.** Re-evaluate when **any** of: (a) new signal data with stronger AUC gradients (e.g., per-state from ENH-AUDIT-2026-05-19), (b) a different adjustment formula (Option B from the Path B writeup — `w_adj = base × auc^k`), (c) per-scope α tuning shows clear lift in a fresh sweep. No automatic schedule; revisit triggered by data.
+
+---
+
 ### SCRUB-01 — Remove Conservative/Aggressive Modes from Production (2026-05-27)
 
 Production engine, hooks, admin UI, and consumer UI scrubbed to balanced-only while in deep live testing of CONFIG-08/09/10. Conservative + aggressive presets retained in the backtest harness for legacy reproducibility but removed from every production code path. Mode pickers removed from `app/(tabs)/index.tsx` (overflow sheet) and `app/(tabs)/explore.tsx` (engine settings). Admin EngineConfigView shows only the balanced weight editor. Telemetry queries (Energy band hit rates, Fingerprint, daily_intelligence reads, adaptive_tracking reads) all narrowed to `mode=eq.balanced` — historical conservative/aggressive rows from before this scrub are not surfaced in consumer views (Option A).

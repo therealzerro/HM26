@@ -39,7 +39,9 @@ import {
   getPairSignalFromMap,
   bestOrderFor,
   intelligenceRowExtras,
+  computeAdaptiveWeights,
   type PairTimesDrawnTree,
+  type SignalAuc,
 } from '@/lib/engineCore';
 
 const ENGINE_VERSION = 'v2.1';
@@ -415,6 +417,12 @@ interface EngineConfig {
   // pair uses H01Y row. Read from app_config.box_times_drawn_blend_enabled
   // ('true'/'false' string); defaults to true.
   timesDrawnBlendEnabled: boolean;
+  // ENH-AFL-2 (2026-05-27): adaptive signal weights. When enabled, scoring
+  // weights are adjusted at slate-gen time using the rolling-30d per-signal
+  // AUC from signal_auc_per_day. Default false; flip to true after P2.7
+  // backtest validation.
+  adaptiveSignalWeightsEnabled: boolean;
+  adaptiveSignalWeightsAlpha: number;
 }
 
 const DEFAULT_ENGINE_CONFIG: EngineConfig = {
@@ -429,6 +437,8 @@ const DEFAULT_ENGINE_CONFIG: EngineConfig = {
   boxFreqWeight: 0.60,
   boxPressureWeight: 0.40,
   timesDrawnBlendEnabled: true,
+  adaptiveSignalWeightsEnabled: false,
+  adaptiveSignalWeightsAlpha: 1.0,
 };
 
 async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
@@ -464,6 +474,7 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       'horizon_weights',
       'box_freq_weight', 'box_pressure_weight',
       'box_times_drawn_blend_enabled',
+      'adaptive_signal_weights_enabled', 'adaptive_signal_weights_alpha',
       ...(scopeCooldownKey ? [scopeCooldownKey] : []),
       ...(scopeBoxFreqKey  ? [scopeBoxFreqKey]  : []),
       ...(scopeBoxPressKey ? [scopeBoxPressKey] : []),
@@ -489,6 +500,8 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     let boxFreqWeight = 0.60;
     let boxPressureWeight = 0.40;
     let timesDrawnBlendEnabled = true;
+    let adaptiveSignalWeightsEnabled = false;
+    let adaptiveSignalWeightsAlpha = 1.0;
     let scopeBoxFreqOverride: number | null = null;
     let scopeBoxPressOverride: number | null = null;
     let scopeBalancedOverride: WeightSet | null = null;
@@ -523,6 +536,16 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
           // Unknown values fall back to the default (true).
           if (row.value === 'true')  { timesDrawnBlendEnabled = true;  continue; }
           if (row.value === 'false') { timesDrawnBlendEnabled = false; continue; }
+          continue;
+        }
+        if (row.key === 'adaptive_signal_weights_enabled') {
+          if (row.value === 'true')  { adaptiveSignalWeightsEnabled = true;  continue; }
+          if (row.value === 'false') { adaptiveSignalWeightsEnabled = false; continue; }
+          continue;
+        }
+        if (row.key === 'adaptive_signal_weights_alpha') {
+          const v = parseFloat(row.value);
+          if (!isNaN(v) && v >= 0 && v <= 2) adaptiveSignalWeightsAlpha = v;
           continue;
         }
         if (scopeBoxFreqKey && row.key === scopeBoxFreqKey) {
@@ -609,9 +632,42 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       boxFreqWeight, boxPressureWeight,
       effectiveBoxFreqWeight, effectiveBoxPressureWeight,
       timesDrawnBlendEnabled,
+      adaptiveSignalWeightsEnabled,
+      adaptiveSignalWeightsAlpha,
     };
   } catch {
     return DEFAULT_ENGINE_CONFIG;
+  }
+}
+
+/**
+ * ENH-AFL-2: Load rolling 30-day per-signal AUC from signal_auc_per_day.
+ * Returns null when < 14 days of data are available (cold-start fallback).
+ */
+async function loadRollingAuc(scope: Scope): Promise<SignalAuc | null> {
+  try {
+    const sinceDate = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+    const rows = await fetchFromSupabase<{ signal: string; auc: number }[]>({
+      path: `/rest/v1/signal_auc_per_day?scope=eq.${encodeURIComponent(scope)}&day=gte.${sinceDate}&select=signal,auc&limit=200`,
+    });
+    if (!Array.isArray(rows)) return null;
+    const buckets: Record<string, number[]> = { BOX: [], PBURST: [], CO: [], DGC: [] };
+    for (const r of rows) {
+      if (r.signal in buckets && typeof r.auc === 'number') buckets[r.signal].push(r.auc);
+    }
+    // Require ≥14 days for each signal — otherwise too noisy.
+    for (const sig of ['BOX', 'PBURST', 'CO', 'DGC']) {
+      if (buckets[sig].length < 14) return null;
+    }
+    const avg = (arr: number[]) => arr.reduce((s, v) => s + v, 0) / arr.length;
+    return {
+      BOX: avg(buckets.BOX),
+      PBURST: avg(buckets.PBURST),
+      CO: avg(buckets.CO),
+      DGC: avg(buckets.DGC),
+    };
+  } catch {
+    return null;
   }
 }
 
@@ -734,7 +790,27 @@ export async function computeSlate({
   const { presets: weightPresets, rails, pressureThreshold, minEnergyThreshold, recentHitCooldown, synergyOn, synergyWeight, horizonWeights } = cfg;
   // SCRUB-01: production is balanced-only. weightsKey param is retained for
   // backward caller compatibility but always resolves to balanced.
-  const weights = weightPresets.balanced;
+  const baseWeights = weightPresets.balanced;
+
+  // ENH-AFL-2: adaptive signal weights. When enabled, load rolling 30d AUC
+  // and adjust weights toward signals that have been predicting well in this
+  // scope's recent history. Falls back to baseWeights when AUC data isn't
+  // available (< 14 days) or the flag is off.
+  let weights = baseWeights;
+  let adaptiveDiagnostics: ReturnType<typeof computeAdaptiveWeights>['diagnostics'] | null = null;
+  if (cfg.adaptiveSignalWeightsEnabled) {
+    const rollingAuc = await loadRollingAuc(scope);
+    if (rollingAuc) {
+      const adaptive = computeAdaptiveWeights(baseWeights, rollingAuc, cfg.adaptiveSignalWeightsAlpha);
+      weights = adaptive.weights;
+      adaptiveDiagnostics = adaptive.diagnostics;
+      console.log(`[zk6v2] ENH-AFL-2 adaptive: scope=${scope} α=${cfg.adaptiveSignalWeightsAlpha}`,
+        `auc=${JSON.stringify(rollingAuc)}`,
+        `base→adj: ${JSON.stringify(baseWeights)} → ${JSON.stringify(weights)}`);
+    } else {
+      console.log(`[zk6v2] ENH-AFL-2 adaptive: scope=${scope} — insufficient AUC data, using base weights`);
+    }
+  }
   // CONFIG-02 (2026-05-14): effective per-scope BOX freq/pressure split.
   const effBoxFreqWeight     = cfg.effectiveBoxFreqWeight     ?? cfg.boxFreqWeight;
   const effBoxPressureWeight = cfg.effectiveBoxPressureWeight ?? cfg.boxPressureWeight;
@@ -1298,7 +1374,18 @@ export async function computeSlate({
           scope,
           mode:                 weightsKey,
           slate_date:           effectiveDate,
-          effective_weights:    { ...weights, _mode: weightsKey },
+          effective_weights:    {
+            ...weights,
+            _mode: weightsKey,
+            // ENH-AFL-2: include adaptive diagnostics when applied. Null when
+            // adaptive is disabled or fell back to base weights (cold-start).
+            _adaptive: adaptiveDiagnostics ? {
+              alpha: cfg.adaptiveSignalWeightsAlpha,
+              auc: adaptiveDiagnostics.auc,
+              base: adaptiveDiagnostics.base,
+              clamped: adaptiveDiagnostics.clampedSignals,
+            } : null,
+          },
           horizons_present:     ds.horizonsPresent,
           horizons_loaded:      ds.horizonsLoaded,
           confidence_score:     Math.round(scopeConfidence * 100),

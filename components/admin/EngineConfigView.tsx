@@ -69,6 +69,60 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
   // against current state to drive the "● Unsaved changes" badge. Loaded
   // snapshot updates after every successful save so the badge resets.
   const [loadedSnapshot, setLoadedSnapshot] = useState<string>('');
+
+  // ENH-AFL-2 (2026-05-27): per-scope rolling AUC + the would-be adaptive
+  // weights, shown read-only for operator transparency. Flag is OFF in prod.
+  type ScopeAuc = { BOX: number; PBURST: number; CO: number; DGC: number; nDays: number };
+  const [adaptiveAuc, setAdaptiveAuc] = useState<Record<string, ScopeAuc | null>>({ midday: null, evening: null, allday: null });
+  const [adaptiveFlagOn, setAdaptiveFlagOn] = useState<boolean>(false);
+  const [adaptiveAlpha, setAdaptiveAlphaState] = useState<number>(1.0);
+  const loadAdaptiveAuc = useCallback(async () => {
+    try {
+      const sinceDate = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+      const rows = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/signal_auc_per_day?day=gte.${sinceDate}&select=scope,signal,auc,day&limit=500`,
+      });
+      if (!Array.isArray(rows)) return;
+      const acc: Record<string, Record<string, number[]>> = {
+        midday:  { BOX: [], PBURST: [], CO: [], DGC: [] },
+        evening: { BOX: [], PBURST: [], CO: [], DGC: [] },
+        allday:  { BOX: [], PBURST: [], CO: [], DGC: [] },
+      };
+      for (const r of rows) {
+        if (acc[r.scope] && acc[r.scope][r.signal] && typeof r.auc === 'number') {
+          acc[r.scope][r.signal].push(r.auc);
+        }
+      }
+      const out: Record<string, ScopeAuc | null> = { midday: null, evening: null, allday: null };
+      for (const sc of ['midday', 'evening', 'allday']) {
+        const buckets = acc[sc];
+        const minDays = Math.min(buckets.BOX.length, buckets.PBURST.length, buckets.CO.length, buckets.DGC.length);
+        if (minDays === 0) continue;
+        const avg = (arr: number[]) => arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0;
+        out[sc] = {
+          BOX: avg(buckets.BOX), PBURST: avg(buckets.PBURST),
+          CO: avg(buckets.CO), DGC: avg(buckets.DGC),
+          nDays: minDays,
+        };
+      }
+      setAdaptiveAuc(out);
+    } catch (e) { console.warn('[ENH-AFL-2] AUC load failed', e); }
+  }, []);
+  const loadAdaptiveFlags = useCallback(async () => {
+    try {
+      const rows = await fetchFromSupabase<{ key: string; value: string }[]>({
+        path: '/rest/v1/app_config?key=in.(adaptive_signal_weights_enabled,adaptive_signal_weights_alpha)&select=key,value',
+      });
+      if (!Array.isArray(rows)) return;
+      for (const r of rows) {
+        if (r.key === 'adaptive_signal_weights_enabled') setAdaptiveFlagOn(r.value === 'true');
+        if (r.key === 'adaptive_signal_weights_alpha') {
+          const v = parseFloat(r.value);
+          if (!isNaN(v)) setAdaptiveAlphaState(v);
+        }
+      }
+    } catch (e) { console.warn('[ENH-AFL-2] flag load failed', e); }
+  }, []);
   // E8 (2026-05-13): recent config_change rows from audit_logs, rendered as
   // a 3-row history strip near the top so operators see what's been tuned
   // recently without leaving the screen.
@@ -179,7 +233,7 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
     }
   }, []);
 
-  useEffect(() => { loadConfig(); loadRecentConfigChanges(); }, [loadConfig, loadRecentConfigChanges]);
+  useEffect(() => { loadConfig(); loadRecentConfigChanges(); loadAdaptiveAuc(); loadAdaptiveFlags(); }, [loadConfig, loadRecentConfigChanges, loadAdaptiveAuc, loadAdaptiveFlags]);
 
   // ── Save all config keys via single upsert POST (E3) ──
   // Replaces the prior PATCH-per-key flow which silently no-op'd when a key
@@ -680,6 +734,61 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
             );
           })}
         </View>
+      </Card>
+
+      {/* ── ENH-AFL-2: Adaptive Signal Weights (debug surface) ── */}
+      <SectionTitle>ADAPTIVE SIGNAL WEIGHTS (ENH-AFL-2)</SectionTitle>
+      <Card style={{ paddingHorizontal: 16, paddingVertical: 14, marginBottom: 16 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
+            Status: <Text style={{ color: adaptiveFlagOn ? colors.primary : colors.textTertiary }}>{adaptiveFlagOn ? 'ENABLED' : 'DISABLED'}</Text>
+          </Text>
+          <Text style={{ fontSize: 10, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold }}>
+            α = {adaptiveAlpha.toFixed(2)}
+          </Text>
+        </View>
+        <Text style={{ fontSize: 10, color: colors.textTertiary, marginBottom: 10, lineHeight: 14 }}>
+          Rolling 30-day per-signal AUC from signal_auc_per_day. When enabled, base weights are
+          adjusted toward signals that predicted well in this scope's recent history. Flag is currently
+          OFF — 30-day backtest 2026-05-27 showed insufficient lift across all α ∈ [0.5, 1.5] (see
+          MASTER_AUDIT.md ENH-AFL ship entry).
+        </Text>
+        <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 4, marginBottom: 6 }}>
+          <Text style={{ flex: 1, fontSize: 10, fontWeight: '700', color: colors.textSecondary }}>scope</Text>
+          <Text style={{ width: 56, fontSize: 10, fontWeight: '700', color: colors.textSecondary, textAlign: 'right' }}>BOX</Text>
+          <Text style={{ width: 56, fontSize: 10, fontWeight: '700', color: colors.textSecondary, textAlign: 'right' }}>PBURST</Text>
+          <Text style={{ width: 56, fontSize: 10, fontWeight: '700', color: colors.textSecondary, textAlign: 'right' }}>CO</Text>
+          <Text style={{ width: 56, fontSize: 10, fontWeight: '700', color: colors.textSecondary, textAlign: 'right' }}>DGC</Text>
+          <Text style={{ width: 40, fontSize: 10, fontWeight: '700', color: colors.textSecondary, textAlign: 'right' }}>days</Text>
+        </View>
+        {(['midday', 'evening', 'allday'] as const).map(sc => {
+          const a = adaptiveAuc[sc];
+          if (!a) return (
+            <View key={sc} style={{ flexDirection: 'row', paddingVertical: 4 }}>
+              <Text style={{ flex: 1, fontSize: 11, color: colors.text }}>{sc}</Text>
+              <Text style={{ flex: 4, fontSize: 10, color: colors.textTertiary, textAlign: 'center' }}>no data</Text>
+            </View>
+          );
+          const fmt = (v: number, base = 0.5) => {
+            const above = v >= base;
+            return <Text style={{ width: 56, fontSize: 11, color: above ? colors.primary : colors.warning, textAlign: 'right', fontFamily: theme.typography.fontFamily.monoBold }}>{v.toFixed(3)}</Text>;
+          };
+          return (
+            <View key={sc} style={{ flexDirection: 'row', paddingVertical: 4, borderBottomWidth: sc === 'allday' ? 0 : 1, borderBottomColor: colors.border + '33' }}>
+              <Text style={{ flex: 1, fontSize: 11, color: colors.text, fontWeight: '600' }}>{sc}</Text>
+              {fmt(a.BOX)}
+              {fmt(a.PBURST)}
+              {fmt(a.CO)}
+              {fmt(a.DGC)}
+              <Text style={{ width: 40, fontSize: 11, color: colors.textTertiary, textAlign: 'right', fontFamily: theme.typography.fontFamily.monoBold }}>{a.nDays}</Text>
+            </View>
+          );
+        })}
+        <Text style={{ fontSize: 9, color: colors.textTertiary, marginTop: 10, lineHeight: 12 }}>
+          AUC interpretation: 0.5 = no predictive lift · &gt; 0.5 = signal correctly ranked hits above misses ·
+          &lt; 0.5 = anti-predictive (warning color). Daily AUC refresh fires via the Full Daily Workflow
+          button (Step 2/4).
+        </Text>
       </Card>
 
       {/* E2 (2026-05-13): removed the Slate Generation Schedule section.

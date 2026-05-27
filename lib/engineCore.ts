@@ -363,6 +363,99 @@ export function computeWeightedScore(
   return score;
 }
 
+// ─── Adaptive signal weights (ENH-AFL-2, 2026-05-27) ─────────────────────────
+
+/** Rolling-AUC tuple per signal, as read from signal_auc_per_day's 30d window. */
+export interface SignalAuc { BOX: number; PBURST: number; CO: number; DGC: number; }
+
+/** Result of computeAdaptiveWeights — adjusted weights + diagnostics for telemetry. */
+export interface AdaptiveWeightsResult {
+  weights: WeightSet;
+  diagnostics: {
+    base: WeightSet;
+    auc: SignalAuc;
+    alpha: number;
+    rawAdjusted: WeightSet;    // pre-clamp, pre-renormalize
+    clampedSignals: string[];  // which signals hit a clamp bound
+  };
+}
+
+const ADAPTIVE_CLAMP_MIN = 0.02;
+const ADAPTIVE_CLAMP_MAX = 0.85;
+
+/**
+ * Adjust signal weights based on rolling AUC (Option β with clamp + renormalize).
+ *
+ *   adj[s] = base[s] × (1 + α × (auc[s] − 0.5))
+ *   clamp adj[s] to [0.02, 0.85]
+ *   renormalize so weights sum to 1.0
+ *
+ * - alpha = 0 → no change (parity)
+ * - alpha = 1 → proportional adaptation (AUC 0.6 boosts weight by 10%)
+ * - alpha > 0 with AUC < 0.5 → signal weight reduces (anti-predictive suppression)
+ * - Clamp keeps any single signal between 2% and 85% of total weight (prevents
+ *   collapse onto one signal AND prevents complete zero-out of a weak signal).
+ *
+ * Pure function. Engine paths (zk6 + edge fn) and the backtest harness all
+ * call this with their own base weights + rolling AUC.
+ */
+export function computeAdaptiveWeights(
+  base: WeightSet,
+  auc: SignalAuc,
+  alpha: number,
+): AdaptiveWeightsResult {
+  const signals: (keyof WeightSet)[] = ['BOX', 'PBURST', 'CO', 'DGC'];
+  const rawAdjusted: WeightSet = { BOX: 0, PBURST: 0, CO: 0, DGC: 0 };
+  for (const s of signals) {
+    rawAdjusted[s] = Math.max(0, base[s] * (1 + alpha * (auc[s] - 0.5)));
+  }
+
+  // First renormalize so we have a sum-to-1 starting point for clamping.
+  let total = rawAdjusted.BOX + rawAdjusted.PBURST + rawAdjusted.CO + rawAdjusted.DGC;
+  if (total <= 0) {
+    // All signals zeroed (alpha too aggressive vs AUCs all < 0.5) — fall back to base.
+    return {
+      weights: { ...base },
+      diagnostics: { base, auc, alpha, rawAdjusted, clampedSignals: ['__fallback__'] },
+    };
+  }
+  const normed: WeightSet = {
+    BOX: rawAdjusted.BOX / total,
+    PBURST: rawAdjusted.PBURST / total,
+    CO: rawAdjusted.CO / total,
+    DGC: rawAdjusted.DGC / total,
+  };
+
+  // Clamp each signal to [MIN, MAX]. Track which signals hit a bound.
+  const clampedSignals: string[] = [];
+  const clamped: WeightSet = { BOX: 0, PBURST: 0, CO: 0, DGC: 0 };
+  for (const s of signals) {
+    if (normed[s] < ADAPTIVE_CLAMP_MIN) {
+      clamped[s] = ADAPTIVE_CLAMP_MIN;
+      clampedSignals.push(`${s}:min`);
+    } else if (normed[s] > ADAPTIVE_CLAMP_MAX) {
+      clamped[s] = ADAPTIVE_CLAMP_MAX;
+      clampedSignals.push(`${s}:max`);
+    } else {
+      clamped[s] = normed[s];
+    }
+  }
+
+  // Renormalize the clamped weights so they sum to 1.0 again.
+  total = clamped.BOX + clamped.PBURST + clamped.CO + clamped.DGC;
+  const final: WeightSet = {
+    BOX: clamped.BOX / total,
+    PBURST: clamped.PBURST / total,
+    CO: clamped.CO / total,
+    DGC: clamped.DGC / total,
+  };
+
+  return {
+    weights: final,
+    diagnostics: { base, auc, alpha, rawAdjusted, clampedSignals },
+  };
+}
+
 // ─── Slate hash ───────────────────────────────────────────────────────────────
 
 /**

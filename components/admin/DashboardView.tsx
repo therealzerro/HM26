@@ -187,7 +187,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
 
   const handleFullWorkflow = useCallback(async () => {
     setIsRunningWorkflow(true);
-    setWorkflowProgress('Step 1/3: Rebuilding pair datasets…');
+    setWorkflowProgress('Step 1/4: Rebuilding pair datasets…');
     try {
       // Step 1: Refresh datasets_pair.ds_raw from histories. Pair tables are
       // manual-rebuild only (no nightly cron); without this step PBURST + CO
@@ -222,7 +222,36 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
         pairRebuildMsg = 'Pair rebuild: failed (non-fatal)';
       }
 
-      setWorkflowProgress(`${pairRebuildMsg} · Step 2/3: Running hit detection…`);
+      // Step 2/4: refresh per-signal AUC for yesterday so the engine reads
+      // fresh rolling-30d values during slate regen. Non-fatal — workflow
+      // continues with stale AUC if the call fails. ENH-AFL-1 (2026-05-27).
+      setWorkflowProgress(`${pairRebuildMsg} · Step 2/4: Refreshing signal AUC…`);
+      let aucRefreshMsg = '';
+      try {
+        const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+        const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+        if (url && key) {
+          const res = await fetch(`${url}/functions/v1/compute-daily-auc-zk6`, {
+            method: 'POST',
+            headers: {
+              'apikey': key,
+              'Authorization': 'Bearer ' + key,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ dryRun: false }),
+          });
+          const j = res.ok ? await res.json() : null;
+          if (j && typeof j.rowsWritten === 'number') {
+            aucRefreshMsg = `AUC refresh: ${j.rowsWritten} rows for ${j.day}`;
+          } else {
+            aucRefreshMsg = 'AUC refresh: skipped (non-fatal)';
+          }
+        }
+      } catch {
+        aucRefreshMsg = 'AUC refresh: failed (non-fatal)';
+      }
+
+      setWorkflowProgress(`${pairRebuildMsg} · ${aucRefreshMsg} · Step 3/4: Running hit detection…`);
       const yesterday = getYesterdayET();
       const today = getTodayET();
       let totalHits = 0;
@@ -230,7 +259,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
         const res = await runHitDetectionAllScopes(date);
         totalHits += res.hitsFound;
       }
-      setWorkflowProgress(`${pairRebuildMsg} · Hit detection done (${totalHits} hit${totalHits !== 1 ? 's' : ''}) · Step 3/3: Regenerating all slates…`);
+      setWorkflowProgress(`${pairRebuildMsg} · ${aucRefreshMsg} · Hit detection done (${totalHits} hit${totalHits !== 1 ? 's' : ''}) · Step 4/4: Regenerating all slates…`);
       const date = targetDateOption === 'today' ? getTodayET() : getTomorrowET();
       const scopes: Array<'midday' | 'evening' | 'allday'> = ['midday', 'evening', 'allday'];
       const results = await Promise.all(
@@ -243,7 +272,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
       );
       queryClient.invalidateQueries({ queryKey: ['snapshot'] });
       queryClient.invalidateQueries({ queryKey: ['daily_intelligence_hits'] });
-      setWorkflowProgress(`Done · ${pairRebuildMsg} · Hits detected · Slates: ${results.join(' / ')}`);
+      setWorkflowProgress(`Done · ${pairRebuildMsg} · ${aucRefreshMsg} · Hits detected · Slates: ${results.join(' / ')}`);
     } catch (e) {
       setWorkflowProgress('Workflow error — check logs');
     } finally {

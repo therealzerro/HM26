@@ -83,10 +83,13 @@ const SCOPE_LABELS: Record<string, string> = {
 // the first time the user's streak hits the milestone today.
 const STREAK_MILESTONES = [3, 7, 14, 30, 60, 90] as const;
 
-// Track Record band constants (enhancements §1.3) — backtest hit rate from
-// MASTER_AUDIT.md CONFIG-02 (26-day window 4/13–5/8, n=78 slates × 3 scopes,
-// balanced + floor=70). Recent-hit count is today-only.
-const BACKTEST_HIT_RATE = 73.1;
+// Track Record band constants (enhancements §1.3) — backtest hit rate
+// measured 2026-05-27 on the current production stack (CONFIG-06 pure-H01Y
+// horizons + CONFIG-07 per-scope midday CO-heavy + ENH-BOA bestOrderFor
+// realignment). 30-day window 4/28–5/27, n=87 slates × 3 scopes, balanced
+// + floor=70. Per-scope: midday 51.7%, evening 72.4%, allday 93.1%.
+// Recent-hit count is today-only.
+const BACKTEST_HIT_RATE = 72.4;
 const MODE_OPTIONS = [
   { key: 'balanced', label: 'Balanced', sub: 'Equal weight' },
   { key: 'conservative', label: 'Conservative', sub: 'History focus' },
@@ -699,9 +702,12 @@ export default function HomeScreen() {
                 const tc = energyColor(pick.energy, colors);
                 const locked = pick.locked;
                 const isHit = !!pick.hitType;
-                const hitLabel = pick.hitType === 'straight' ? 'EXACT MATCH' : 'PARTIAL MATCH';
-                const borderC = isHit ? colors.success : tc + '55';
-                const shadowC = isHit ? colors.success : tc;
+                const isStraightHit = pick.hitType === 'straight';
+                const hitLabel = isStraightHit ? 'STRAIGHT MATCH' : 'MATCH';
+                // Gold stamp for straight matches, green for box matches.
+                const stampC  = isStraightHit ? colors.gold : colors.success;
+                const borderC = isHit ? stampC : tc + '55';
+                const shadowC = isHit ? stampC : tc;
                 return (
                   <TouchableOpacity
                     key={`coffee-${pick.rank}-${pick.combo}`}
@@ -720,12 +726,12 @@ export default function HomeScreen() {
                     </Text>
                     {isHit && !locked && (
                       <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
-                        <View style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 6, borderWidth: 2, borderColor: colors.success, backgroundColor: colors.success + '22', transform: [{ rotate: '-8deg' }], shadowColor: colors.success, shadowOpacity: 0.9, shadowRadius: 10, shadowOffset: { width: 0, height: 0 }, alignItems: 'center' }}>
-                          <Text style={{ fontSize: 18, fontWeight: '900', color: colors.success, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 1.5, textShadowColor: colors.success + 'aa', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 6 }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
+                        <View style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 6, borderWidth: 2, borderColor: stampC, backgroundColor: stampC + '22', transform: [{ rotate: '-8deg' }], shadowColor: stampC, shadowOpacity: 0.9, shadowRadius: 10, shadowOffset: { width: 0, height: 0 }, alignItems: 'center' }}>
+                          <Text style={{ fontSize: 18, fontWeight: '900', color: stampC, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 1.5, textShadowColor: stampC + 'aa', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 6 }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
                             {hitLabel}
                           </Text>
                           {pick.hitResult ? (
-                            <Text style={{ fontSize: 10, fontWeight: '900', color: colors.success, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 1, marginTop: 1 }} numberOfLines={1}>
+                            <Text style={{ fontSize: 10, fontWeight: '900', color: stampC, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 1, marginTop: 1 }} numberOfLines={1}>
                               {pick.hitResult}
                             </Text>
                           ) : null}
@@ -834,7 +840,7 @@ export default function HomeScreen() {
             <Text style={{ fontSize: 22 }}>🔥</Text>
             <View style={{ flex: 1 }}>
               <Text style={s.hitBannerTitle}>ZK6 MATCH TODAY · {hitBanner.digits} in {hitBanner.jurisdiction}</Text>
-              <Text style={s.hitBannerSub}>{hitBanner.session === 'midday' ? '☀️ Midday' : '🌙 Evening'} · {hitBanner.hitType === 'straight' ? 'Exact match ✓' : 'Partial match ✓'}</Text>
+              <Text style={s.hitBannerSub}>{hitBanner.session === 'midday' ? '☀️ Midday' : '🌙 Evening'} · {hitBanner.hitType === 'straight' ? 'Straight match ✓' : 'Match ✓'}</Text>
             </View>
           </View>
         )}

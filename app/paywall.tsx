@@ -8,10 +8,11 @@ import { useTheme, type ColorTokens } from '@/lib/theme';
 import { SubscriptionPlan } from '@/types/core';
 import { useAuth } from '@/hooks/useAuth';
 
-// Verified hit rate from MASTER_AUDIT.md CONFIG-02 backtest
-// (26-day window 4/13–5/8, n=78 slates × 3 scopes, balanced + floor=70).
-// Mirrors the headline shown in the Home unified hero (§1.3).
-const VERIFIED_HIT_RATE = 73.1;
+// Verified hit rate — measured 2026-05-27 on the current production stack
+// (CONFIG-06 pure-H01Y + CONFIG-07 per-scope midday CO-heavy + ENH-BOA
+// bestOrderFor realignment). 30-day window 4/28–5/27, n=87 slates × 3 scopes,
+// balanced + floor=70. Mirrors the headline shown in the Home unified hero (§1.3).
+const VERIFIED_HIT_RATE = 72.4;
 
 interface PlanOption {
   id: SubscriptionPlan;

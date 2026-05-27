@@ -63,7 +63,9 @@ async function sbDelete(path: string): Promise<void> {
 
 type BoxByHorizon = Map<string, Map<string, number>>;
 type PairMeta = { dsRaw: number; drawsSince: number; timesDrawn: number };
-type WeightPresets = { balanced: WeightSet; conservative: WeightSet; aggressive: WeightSet };
+// SCRUB-01 (2026-05-27): production is balanced-only during deep live testing.
+// Conservative/aggressive removed from production. Harness retains 3 modes.
+type WeightPresets = { balanced: WeightSet };
 
 interface RailConfig { singlesMax: number; doublesMax: number; triplesOn: boolean; pairRepCap: number; }
 interface EngineConfig {
@@ -111,9 +113,7 @@ interface Datasets {
 const ENGINE_VERSION = 'v2.1';
 const DEFAULT_CFG: EngineConfig = {
   presets: {
-    balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
-    conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
-    aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    balanced: { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
   },
   rails:             { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
   pressureThreshold: 250,
@@ -139,14 +139,13 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     const scopeBoxFreqKey  = scope ? `box_freq_weight_${scope}`     : null;
     const scopeBoxPressKey = scope ? `box_pressure_weight_${scope}` : null;
     // CONFIG-07 (2026-05-15): per-scope signal-weight overrides.
-    const scopeBalancedKey     = scope ? `engine_weights_balanced_${scope}`     : null;
-    const scopeConservativeKey = scope ? `engine_weights_conservative_${scope}` : null;
-    const scopeAggressiveKey   = scope ? `engine_weights_aggressive_${scope}`   : null;
+    // SCRUB-01 (2026-05-27): only balanced is consumed in production.
+    const scopeBalancedKey = scope ? `engine_weights_balanced_${scope}` : null;
     // ENH-MET (2026-05-18): per-scope energy floor override. Parity with
     // engines/zk6.ts. Falls back to global min_energy_threshold then hardcoded.
     const scopeMinEnergyKey = scope ? `min_energy_threshold_${scope}` : null;
     const keyList = [
-      'engine_weights_balanced', 'engine_weights_conservative', 'engine_weights_aggressive',
+      'engine_weights_balanced',
       'k6_singles_max', 'k6_doubles_max', 'k6_triples_on', 'pair_rep_cap',
       'pressure_threshold', 'min_energy_threshold', 'recent_hit_cooldown',
       'synergy_boost_on', 'synergy_boost_weight',
@@ -156,9 +155,7 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       ...(scopeCooldownKey ? [scopeCooldownKey] : []),
       ...(scopeBoxFreqKey  ? [scopeBoxFreqKey]  : []),
       ...(scopeBoxPressKey ? [scopeBoxPressKey] : []),
-      ...(scopeBalancedKey     ? [scopeBalancedKey]     : []),
-      ...(scopeConservativeKey ? [scopeConservativeKey] : []),
-      ...(scopeAggressiveKey   ? [scopeAggressiveKey]   : []),
+      ...(scopeBalancedKey ? [scopeBalancedKey] : []),
       ...(scopeMinEnergyKey ? [scopeMinEnergyKey] : []),
     ];
     const rows = await sbGet<{ key: string; value: string }[]>(
@@ -170,8 +167,6 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     let scopeBoxFreqOverride:  number | null = null;
     let scopeBoxPressOverride: number | null = null;
     let scopeBalancedOverride:     WeightSet | null = null;
-    let scopeConservativeOverride: WeightSet | null = null;
-    let scopeAggressiveOverride:   WeightSet | null = null;
     let scopeMinEnergyOverride: number | null = null;
     for (const row of rows) {
       try {
@@ -248,26 +243,15 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
           DGC:    p(parsed.DGC    ?? parsed.dgc    ?? DEFAULT_CFG.presets.balanced.DGC),
         };
         if (ws.BOX + ws.PBURST + ws.CO > 0.05) {
-          if (row.key === 'engine_weights_balanced')     cfg.presets.balanced     = ws;
-          if (row.key === 'engine_weights_conservative') cfg.presets.conservative = ws;
-          if (row.key === 'engine_weights_aggressive')   cfg.presets.aggressive   = ws;
-          if (scopeBalancedKey     && row.key === scopeBalancedKey)     scopeBalancedOverride     = ws;
-          if (scopeConservativeKey && row.key === scopeConservativeKey) scopeConservativeOverride = ws;
-          if (scopeAggressiveKey   && row.key === scopeAggressiveKey)   scopeAggressiveOverride   = ws;
+          if (row.key === 'engine_weights_balanced') cfg.presets.balanced = ws;
+          if (scopeBalancedKey && row.key === scopeBalancedKey) scopeBalancedOverride = ws;
         }
       } catch { /* keep default */ }
     }
+    // SCRUB-01: balanced-only in production.
     if (scopeBalancedOverride && scope) {
       console.log(`[edge-zk6] preset override: scope=${scope} preset=balanced ${JSON.stringify(cfg.presets.balanced)} → ${JSON.stringify(scopeBalancedOverride)}`);
       cfg.presets.balanced = scopeBalancedOverride;
-    }
-    if (scopeConservativeOverride && scope) {
-      console.log(`[edge-zk6] preset override: scope=${scope} preset=conservative ${JSON.stringify(cfg.presets.conservative)} → ${JSON.stringify(scopeConservativeOverride)}`);
-      cfg.presets.conservative = scopeConservativeOverride;
-    }
-    if (scopeAggressiveOverride && scope) {
-      console.log(`[edge-zk6] preset override: scope=${scope} preset=aggressive ${JSON.stringify(cfg.presets.aggressive)} → ${JSON.stringify(scopeAggressiveOverride)}`);
-      cfg.presets.aggressive = scopeAggressiveOverride;
     }
     if (scopeCooldownOverride !== null && scope) {
       console.log(`[edge-zk6] cooldown override: scope=${scope} ${cfg.recentHitCooldown} → ${scopeCooldownOverride}`);
@@ -492,7 +476,10 @@ async function computeSlate(params: {
   scope: string; weightsKey?: string; targetDate?: string;
   excludeComboSets?: string[]; is_supplement?: boolean;
 }): Promise<Record<string, unknown>> {
-  const { weightsKey = 'balanced', targetDate, excludeComboSets = [], is_supplement = false } = params;
+  // SCRUB-01: weightsKey param retained for caller compat but always resolves
+  // to balanced in production. Persisted as 'balanced' on every snapshot/AT row.
+  const { targetDate, excludeComboSets = [], is_supplement = false } = params;
+  const weightsKey = 'balanced';
   const scope = normalizeScope(params.scope);
   const now   = new Date().toISOString();
   const todayEt = getTodayET();
@@ -501,7 +488,7 @@ async function computeSlate(params: {
 
   const cfg = await loadEngineConfig(scope);
   const { presets, rails, pressureThreshold, minEnergyThreshold, recentHitCooldown, synergyOn, synergyWeight, horizonWeights } = cfg;
-  const weights: WeightSet = (presets as any)[weightsKey] ?? presets.balanced;
+  const weights: WeightSet = presets.balanced;
   // CONFIG-02 (2026-05-14): effective per-scope BOX freq/pressure split.
   const effBoxFreqWeight     = cfg.effectiveBoxFreqWeight     ?? cfg.boxFreqWeight;
   const effBoxPressureWeight = cfg.effectiveBoxPressureWeight ?? cfg.boxPressureWeight;

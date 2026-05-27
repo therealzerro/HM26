@@ -577,9 +577,9 @@ function PerformanceRow({
                 );
               })()}
 
-              {/* SECTION E — MODE ANALYSIS */}
+              {/* SECTION E — MODE ANALYSIS — SCRUB-01: balanced-only in production. */}
               {(() => {
-                const modes = ['balanced', 'conservative', 'aggressive'];
+                const modes = ['balanced'];
                 const modeStats = modes.map(m => {
                   const modeRows = allData.filter(r => r.mode === m);
                   const avg = modeRows.length ? Math.round(modeRows.reduce((s: number, r: any) => s + (r.box_hit_rate ?? 0), 0) / modeRows.length * 10) / 10 : null;
@@ -925,22 +925,7 @@ export default function HitTrackingView() {
             ))}
           </View>
 
-          {/* Mode Filter */}
-          <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12 }}>
-            {[['all', 'All Modes'], ['balanced', 'Balanced'], ['conservative', 'Conservative'], ['aggressive', 'Aggressive']].map(([val, label]) => (
-              <TouchableOpacity
-                key={val}
-                onPress={() => setModeFilter(val)}
-                style={{
-                  paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
-                  backgroundColor: modeFilter === val ? colors.teal : colors.surfaceLight,
-                  borderWidth: 1, borderColor: modeFilter === val ? colors.teal : colors.border,
-                }}
-              >
-                <Text style={{ fontSize: 9, fontWeight: '700', color: modeFilter === val ? '#fff' : colors.textSecondary }}>{label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          {/* Mode Filter — SCRUB-01: balanced-only in production. */}
 
           <SectionTitle>RECENT PERFORMANCE (LAST 30 DAYS)</SectionTitle>
 

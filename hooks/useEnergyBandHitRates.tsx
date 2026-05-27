@@ -38,8 +38,9 @@ function sinceDate(): string {
  * computes how often that band hit (box OR straight). Used by PickCard
  * to surface a "245 picks at 90–100 energy_score hit 76% historically" footer.
  *
- * Only ZK6 modes (balanced/conservative/aggressive) are counted — zk30
- * rows would mix per-state behavior into a national rate.
+ * SCRUB-01 (2026-05-27): production is balanced-only. Filter scoped to
+ * balanced; historical conservative/aggressive rows from before scrub are
+ * excluded.
  */
 export function useEnergyBandHitRates(): EnergyBandStatsResult {
   const since = useMemo(() => sinceDate(), []);
@@ -48,7 +49,7 @@ export function useEnergyBandHitRates(): EnergyBandStatsResult {
     queryKey: ['energy_score_band_hit_rates', since],
     queryFn: async () => {
       const data = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/daily_intelligence?slate_date=gte.${since}&energy_score=not.is.null&mode=in.(balanced,conservative,aggressive)&select=energy_score,hit_box,hit_straight&limit=20000`,
+        path: `/rest/v1/daily_intelligence?slate_date=gte.${since}&energy_score=not.is.null&mode=eq.balanced&select=energy_score,hit_box,hit_straight&limit=20000`,
       });
       return Array.isArray(data) ? data : [];
     },

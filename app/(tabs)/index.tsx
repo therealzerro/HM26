@@ -90,11 +90,9 @@ const STREAK_MILESTONES = [3, 7, 14, 30, 60, 90] as const;
 // + floor=70. Per-scope: midday 51.7%, evening 72.4%, allday 93.1%.
 // Recent-hit count is today-only.
 const BACKTEST_HIT_RATE = 72.4;
-const MODE_OPTIONS = [
-  { key: 'balanced', label: 'Balanced', sub: 'Equal weight' },
-  { key: 'conservative', label: 'Conservative', sub: 'History focus' },
-  { key: 'aggressive', label: 'Aggressive', sub: 'Momentum focus' },
-];
+// SCRUB-01 (2026-05-27): production is balanced-only during deep live testing.
+// Mode picker removed from consumer overflow sheet. The `mode` prop remains
+// threaded through the component tree for signature stability; always 'balanced'.
 
 function useDrawCountdown(scope: string): string {
   const [text, setText] = React.useState('');
@@ -226,16 +224,7 @@ function OverflowSheet({
             <TouchableOpacity onPress={onClose}><X size={20} color={colors.textSecondary} /></TouchableOpacity>
           </View>
 
-          <Text style={os.sectionTitle}>Engine mode</Text>
-          <View style={os.modeRow}>
-            {MODE_OPTIONS.map(opt => (
-              <TouchableOpacity key={opt.key} style={[os.modeBtn, mode === opt.key && os.modeBtnOn]} onPress={() => setMode(opt.key)}>
-                <Text style={[os.modeBtnText, mode === opt.key && os.modeBtnTextOn]}>{opt.label}</Text>
-                <Text style={[os.modeBtnSub, mode === opt.key && { color: colors.purple + 'AA' }]}>{opt.sub}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
+          {/* SCRUB-01 (2026-05-27): Engine mode picker removed; production is balanced-only. */}
           <Text style={os.sectionTitle}>Live data</Text>
           <DrawTicker scope={scope} />
           <TouchableOpacity style={os.actionRow} onPress={() => { onClose(); setTimeout(onHeatCheck, 200); }}>
@@ -292,7 +281,8 @@ export default function HomeScreen() {
   const { regenerateSlate, checkSlateLock } = useDataIngestion();
   const insets = useSafeAreaInsets();
 
-  const [mode, setMode] = useState<'balanced' | 'conservative' | 'aggressive'>('balanced');
+  // SCRUB-01: mode state kept for downstream signature compat; always 'balanced'.
+  const [mode, setMode] = useState<'balanced'>('balanced');
   const [detail, setDetail] = useState<PickItem | null>(null);
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [regenOpen, setRegenOpen] = useState(false);
@@ -402,7 +392,7 @@ export default function HomeScreen() {
     queryKey: ['energy_sparkline', scope, energySinceDate],
     queryFn: async () => {
       const rows = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/slate_snapshots?select=slate_date,updated_at_et,top_k_straights_json&scope=eq.${encodeURIComponent(scope)}&deleted_at=is.null&mode=in.(balanced,conservative,aggressive)&slate_date=gte.${energySinceDate}&top_k_straights_json=not.is.null&order=slate_date.asc,updated_at_et.desc`,
+        path: `/rest/v1/slate_snapshots?select=slate_date,updated_at_et,top_k_straights_json&scope=eq.${encodeURIComponent(scope)}&deleted_at=is.null&mode=eq.balanced&slate_date=gte.${energySinceDate}&top_k_straights_json=not.is.null&order=slate_date.asc,updated_at_et.desc`,
       });
       return Array.isArray(rows) ? rows : [];
     },
@@ -451,7 +441,7 @@ export default function HomeScreen() {
         hit_box: boolean | null;
         hit_straight: boolean | null;
       }[]>({
-        path: `/rest/v1/adaptive_tracking?slate_date=eq.${todayStr}&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&select=scope,combo,matched_session,hit_box,hit_straight&limit=200`,
+        path: `/rest/v1/adaptive_tracking?slate_date=eq.${todayStr}&or=(hit_box.eq.true,hit_straight.eq.true)&mode=eq.balanced&select=scope,combo,matched_session,hit_box,hit_straight&limit=200`,
       });
       // BUG-141 (2026-05-13): multi-state matches each count as a hit. Today
       // 916 hit in BOTH WI and ME,NH,VT → 2 distinct hits in the band, not 1.
@@ -550,7 +540,7 @@ export default function HomeScreen() {
     queryKey: ['home_today_hits_adaptive', todayStr, adaptiveScopeFilter],
     queryFn: async () => {
       const rows = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/adaptive_tracking?slate_date=eq.${todayStr}&scope=eq.${encodeURIComponent(adaptiveScopeFilter)}&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&select=rank,combo,combo_set,hit_box,hit_straight,matched_state,matched_session,actual_result,energy_score&order=rank.asc.nullslast&limit=50`,
+        path: `/rest/v1/adaptive_tracking?slate_date=eq.${todayStr}&scope=eq.${encodeURIComponent(adaptiveScopeFilter)}&or=(hit_box.eq.true,hit_straight.eq.true)&mode=eq.balanced&select=rank,combo,combo_set,hit_box,hit_straight,matched_state,matched_session,actual_result,energy_score&order=rank.asc.nullslast&limit=50`,
       });
       return Array.isArray(rows) ? rows : [];
     },

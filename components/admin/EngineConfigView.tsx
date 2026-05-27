@@ -14,12 +14,12 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
   const { colors } = useTheme();
   const st = useSt();
   // E4 (2026-05-13): DGC is now visible. Defaults match engine production
-  // (49.5/27/13.5/10 etc.) so Reset aligns with what the engine currently runs
-  // rather than legacy starting points. All four signals sum to 100.
+  // (49.5/27/13.5/10) so Reset aligns with what the engine currently runs.
+  // SCRUB-01 (2026-05-27): production is balanced-only. Conservative + aggressive
+  // removed from the editor. Save no longer writes their app_config rows
+  // (the existing legacy rows remain until 2026-06-03 review cleanup).
   const DEFAULT_PRESETS: Record<string, Record<string, number>> = {
-    balanced:     { BOX: 49.5, PBURST: 27,   CO: 13.5, DGC: 10 },
-    conservative: { BOX: 67.5, PBURST: 13.5, CO: 9,    DGC: 10 },
-    aggressive:   { BOX: 40.5, PBURST: 31.5, CO: 18,   DGC: 10 },
+    balanced: { BOX: 49.5, PBURST: 27, CO: 13.5, DGC: 10 },
   };
 
   const HORIZONS = ['H01Y','H02Y','H03Y','H04Y','H05Y','H06Y','H07Y','H08Y','H09Y','H10Y'];
@@ -32,7 +32,9 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [wPreset, setWPreset]         = useState('balanced');
+  // SCRUB-01: wPreset retained for the few callers below that still reference
+  // it; it's always 'balanced' now.
+  const [wPreset] = useState<'balanced'>('balanced');
   const [presets, setPresets]         = useState(DEFAULT_PRESETS);
   const [singlesMax, setSinglesMax]   = useState(4);
   const [doublesMax, setDoublesMax]   = useState(2);
@@ -140,14 +142,13 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
       setScopeCooldowns(scopeOverrides);
       setLoadedScopeCooldowns(scopeOverrides);
 
-      // Load custom preset weights if stored
+      // SCRUB-01: balanced-only. Only `engine_weights_balanced` is loaded.
+      // Legacy conservative/aggressive rows in app_config are ignored.
       const overrides: typeof DEFAULT_PRESETS = { ...DEFAULT_PRESETS };
-      (['balanced', 'conservative', 'aggressive'] as const).forEach(p => {
-        const raw = cfg[`engine_weights_${p}`];
-        if (raw) {
-          try { overrides[p] = { ...DEFAULT_PRESETS[p], ...JSON.parse(raw) }; } catch {}
-        }
-      });
+      const rawBalanced = cfg['engine_weights_balanced'];
+      if (rawBalanced) {
+        try { overrides.balanced = { ...DEFAULT_PRESETS.balanced, ...JSON.parse(rawBalanced) }; } catch {}
+      }
       setPresets(overrides);
 
       // E6: snapshot the loaded surface area. currentSnapshot uses live state
@@ -212,8 +213,7 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
         pair_rep_cap:             String(pairRepCap),
         default_scope:            defaultScope,
         engine_weights_balanced:  JSON.stringify(presets.balanced),
-        engine_weights_conservative: JSON.stringify(presets.conservative),
-        engine_weights_aggressive: JSON.stringify(presets.aggressive),
+        // SCRUB-01: conservative + aggressive no longer written on save.
         horizon_weights:          JSON.stringify(horizonWeights),
         pressure_threshold:       String(pressureThreshold),
         min_energy_threshold:     String(minEnergyThreshold),
@@ -315,7 +315,7 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
   // modal (confirmResetOpen). Reload-from-production is the safer adjacent
   // action; see handleReload.
   const handleReset = useCallback(() => {
-    setWPreset('balanced'); setPresets(DEFAULT_PRESETS);
+    setPresets(DEFAULT_PRESETS);
     setSinglesMax(4); setDoublesMax(2); setPairRepCap(2);
     setTriplesOn(false);
     setSynergyOn(false); setSynergyWeight(0.15);
@@ -418,17 +418,8 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
 
       <SectionTitle>SIGNAL WEIGHTS</SectionTitle>
       <Card style={{ padding: 14, marginBottom: 16 }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
-          <View style={{ flexDirection: 'row', gap: 6 }}>
-            {Object.entries(presets).map(([k, v]) => (
-              <TouchableOpacity key={k} style={[st.optBtn, wPreset === k && st.optBtnOn]} onPress={() => setWPreset(k)}>
-                <Text style={[st.optBtnText, wPreset === k && st.optBtnTextOn]}>
-                  {k.charAt(0).toUpperCase() + k.slice(1)} ({v.BOX}/{v.PBURST}/{v.CO}/{v.DGC})
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
+        {/* SCRUB-01 (2026-05-27): production is balanced-only. Preset selector
+            removed; editor always operates on the balanced preset. */}
         {/* E4: DGC now shown alongside BOX/PBURST/CO. Engine treats it as a
             true fourth signal — production runs ~10% (DGC contributes to the
             final indicator score). Sum-100 validation now spans all four. */}

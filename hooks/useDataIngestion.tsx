@@ -29,7 +29,8 @@ interface DataIngestionState {
   healthMetrics: HealthMetrics | null;
   refreshHealth: () => Promise<void>;
   checkSlateLock: (scope: Scope, date?: string) => Promise<boolean>;
-  regenerateSlate: (scope: Scope, weightsKey?: 'balanced' | 'conservative' | 'aggressive', force?: boolean, date?: string) => Promise<RegenerateResult>;
+  /** SCRUB-01: weightsKey retained for backward-compat; always 'balanced' in production. */
+  regenerateSlate: (scope: Scope, weightsKey?: 'balanced', force?: boolean, date?: string) => Promise<RegenerateResult>;
   lastImportSummary: ImportSummary | null;
   runHitDetectionAndRefresh: (dates?: string[]) => Promise<HitDetectionResult>;
 }
@@ -1026,7 +1027,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
   const importHistory = (data: HistoryImportData) => importHistoryMutation.mutateAsync(data);
   const importDailyInput = (data: DailyInputData) => importDailyMutation.mutateAsync(data);
   const importLedger = (data: LedgerImportData) => importLedgerMutation.mutateAsync(data);
-  const regenerateSlate = async (scope: Scope, weightsKey?: 'balanced' | 'conservative' | 'aggressive', force?: boolean, date?: string): Promise<RegenerateResult> => {
+  const regenerateSlate = async (scope: Scope, weightsKey?: 'balanced', force?: boolean, date?: string): Promise<RegenerateResult> => {
     try {
       return await regenerateMutation.mutateAsync({ scope, weightsKey, force, date });
     } catch (e) {

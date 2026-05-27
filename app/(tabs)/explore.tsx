@@ -65,7 +65,9 @@ import { runHitDetectionAllScopes } from '@/lib/hitDetection';
 function toComboSet(combo: string) { return '{' + combo.split('').sort().join(',') + '}'; }
 
 const SCOPE_LABELS: Record<string, string> = { midday: '☀️ Midday', evening: '🌙 Evening', allday: '◈ All Day' };
-const MODE_LABELS = ['balanced', 'conservative', 'aggressive'];
+// SCRUB-01 (2026-05-27): production is balanced-only during deep live testing.
+// Conservative/aggressive removed from consumer UI. wKey state retained for
+// the existing regenerateSlate call signature; always 'balanced'.
 
 type Tab = 'picks' | 'hits' | 'more';
 
@@ -85,7 +87,7 @@ export default function SlatesScreen() {
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
 
   // existing state preserved
-  const [wKey, setWKey] = useState<'balanced' | 'conservative' | 'aggressive'>('balanced');
+  const [wKey] = useState<'balanced'>('balanced');
   const [fMult, setFMult] = useState<'all' | 'singles' | 'doubles'>('all');
   const [sort, setSort] = useState<'rank' | 'energy' | 'freq'>('rank');
   const [detail, setDetail] = useState<PickItem | null>(null);
@@ -527,18 +529,8 @@ export default function SlatesScreen() {
       {tab === 'more' && (
         <ScrollView style={s.content} contentContainerStyle={s.listContent}>
 
-          {/* ── Group: Engine settings ── */}
-          <Text style={s.moreGroupTitle}>ENGINE</Text>
-          <Text style={s.sectionTitle}>Mode</Text>
-          <View style={{ flexDirection: 'row', gap: 6 }}>
-            {MODE_LABELS.map(k => (
-              <TouchableOpacity key={k} style={[s.modeBtn, wKey === k && s.modeBtnOn]} onPress={() => setWKey(k as any)}>
-                <Text style={[s.modeBtnText, wKey === k && s.modeBtnTextOn]}>{k.charAt(0).toUpperCase() + k.slice(1)}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
           {/* ── Group: Slate actions ── */}
+          {/* SCRUB-01 (2026-05-27): Mode picker removed; production is balanced-only. */}
           <Text style={[s.moreGroupTitle, { marginTop: 22 }]}>THIS SLATE</Text>
           <TouchableOpacity style={s.bigAction} onPress={handleSaveSlate} disabled={savingSlate || isFree}>
             <Text style={{ fontSize: 20 }}>📖</Text>

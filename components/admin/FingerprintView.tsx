@@ -15,7 +15,7 @@ export default function FingerprintView() {
     queryKey: ['fingerprint_snapshots_v2'],
     queryFn: async () => {
       const rows = await fetchFromSupabase<any[]>({
-        path: '/rest/v1/slate_snapshots?select=scope,top_k_straights_json&deleted_at=is.null&mode=in.(balanced,conservative,aggressive)&top_k_straights_json=not.is.null&order=updated_at_et.desc&limit=100',
+        path: '/rest/v1/slate_snapshots?select=scope,top_k_straights_json&deleted_at=is.null&mode=eq.balanced&top_k_straights_json=not.is.null&order=updated_at_et.desc&limit=100',
       });
       return Array.isArray(rows) ? rows : [];
     },

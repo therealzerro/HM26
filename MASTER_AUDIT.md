@@ -23,6 +23,43 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
+### SCRUB-01 — Remove Conservative/Aggressive Modes from Production (2026-05-27)
+
+Production engine, hooks, admin UI, and consumer UI scrubbed to balanced-only while in deep live testing of CONFIG-08/09/10. Conservative + aggressive presets retained in the backtest harness for legacy reproducibility but removed from every production code path. Mode pickers removed from `app/(tabs)/index.tsx` (overflow sheet) and `app/(tabs)/explore.tsx` (engine settings). Admin EngineConfigView shows only the balanced weight editor. Telemetry queries (Energy band hit rates, Fingerprint, daily_intelligence reads, adaptive_tracking reads) all narrowed to `mode=eq.balanced` — historical conservative/aggressive rows from before this scrub are not surfaced in consumer views (Option A).
+
+**Problem.** Conservative and aggressive modes were defined alongside balanced from the original engine design, but in practice only balanced has been live for the entire CONFIG-02 → CONFIG-10 sequence. The unused mode surfaces added cognitive overhead during the rapid config-iteration cycle (engineer asks "does conservative do X under CONFIG-09?" — answer is "nobody knows, it hasn't been backtested or shipped"). The mode picker in the consumer overflow sheet was also a paywall confusion vector: subscribers tapping it expected meaningful differentiation but got three uncalibrated weight presets.
+
+**Decision rule:** Lock production to balanced. Keep harness flexibility for future experimentation (legacy reproducibility, A/B exploration). Don't delete app_config rows yet — preserve rollback path until the 2026-06-03 CONFIG-08/09/10 review confirms the live stack is stable.
+
+**Action sequence:**
+1. **Engine code (production):**
+   - `engines/zk6.ts`: `WeightPresets` type narrowed to `{ balanced }`; `DEFAULT_WEIGHTS` reduced to balanced-only; config loader keyList drops `engine_weights_conservative` + `engine_weights_aggressive` + per-scope `_conservative_${scope}` + `_aggressive_${scope}`; preset-override loop simplified; `ComputeSlateParams.weightsKey` typed to `'balanced'`; weights resolution hardcoded to `presets.balanced`.
+   - `supabase/functions/compute-slate-zk6/index.ts`: same mirror, line-for-line.
+2. **Hooks:**
+   - `hooks/useDataIngestion.tsx`: `regenerateSlate` weightsKey param typed to `'balanced'` (retained for caller compat).
+   - `hooks/useEnergyBandHitRates.tsx`: query filter narrowed to `mode=eq.balanced`.
+3. **Admin UI:**
+   - `components/admin/EngineConfigView.tsx`: preset picker removed, only balanced weight editor renders; save no longer writes conservative/aggressive rows.
+   - `components/admin/HitTrackingView.tsx`: mode picker removed; MODE ANALYSIS section narrows to balanced-only.
+   - `components/admin/FingerprintView.tsx`: query filter narrowed to `mode=eq.balanced`.
+4. **Consumer UI:**
+   - `app/(tabs)/index.tsx`: `MODE_OPTIONS` array removed; engine-mode section removed from overflow sheet; `mode` state typed to `'balanced'`; 3 query filters narrowed to `mode=eq.balanced`.
+   - `app/(tabs)/explore.tsx`: `MODE_LABELS` removed; mode picker removed from engine settings; `wKey` state typed to `'balanced'`.
+5. **Backtest harness — UNCHANGED.** `scripts/backtest/*` retains all 3 modes in `EngineConfig` for legacy reproducibility and future A/B exploration. Harness comments updated to clarify production-vs-harness divergence not required.
+6. **app_config rows — UNCHANGED.** 6 conservative/aggressive rows (global + midday + allday × 2 modes) kept for rollback safety. Schedule DELETE for after 2026-06-03 CONFIG-08/09/10 review confirms stack stability.
+7. **Edge fn redeployed** via Supabase CLI; script size 65.12kB. Smoke test PASSED — midday regen for 5/27 with no `weightsKey` param produced hash `29E7F8FF` (identical to the CONFIG-09 midday baseline), confirming the scrub didn't change scoring math.
+
+**Rollback path.** If consumer UX or operator forensics need conservative/aggressive back:
+1. Revert this commit on the production code paths (engine + hooks + UI).
+2. The app_config rows are still present, so no DB writes needed.
+3. Backtest harness wasn't touched — no rollback there.
+
+Total rollback time ≈ 30 minutes if needed.
+
+**Post-2026-06-03 follow-up (deferred):** DELETE the 6 conservative/aggressive app_config rows after CONFIG-08/09/10 review confirms the live stack is stable. Add to MASTER_AUDIT.md as the SCRUB-01 closing entry at that time.
+
+---
+
 ### CONFIG-10 — Allday DGC Boost to 15% (2026-05-27)
 
 Same-day follow-up to CONFIG-09. CONFIG-08's backtest revealed allday's per-rank distribution had r5=55.2% > r1=41.4% — the engine putting the strongest pick at rank 5 instead of rank 1. The DGC sweep on allday found a 15% weight (carved from CO) restores monotonic top-of-slate ordering: r1 jumps to 44.8%, r5 drops to 41.4%, r1 > r5 finally.

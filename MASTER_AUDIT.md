@@ -23,6 +23,44 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
+### CONFIG-09 — Midday DGC Re-enablement (2026-05-27)
+
+Re-enables DGC signal weight for midday at 10% (carved from CO). CONFIG-07's intel-tuned weights zeroed midday DGC because the AUC fit (4/13–5/8) showed no predictive lift for DGC under the legacy MAX/H01Y mixed-horizon BOX scoring + stale pair data. With CONFIG-08 (times_drawn horizon blend) and the new daily-workflow pair rebuild shipping the same day, DGC's recurrence-consistency signal contributes meaningfully again.
+
+**Problem.** Backtest under CONFIG-08 (`tdblend_h01_60_h02_40`) showed midday's per-rank distribution remains misordered: r1=17.2%, r3=34.5% — engine consistently mis-orders the top of the slate, putting the highest-conviction pick in position 3 instead of 1. Subscribers see "Today's #1 pick" first; a 17% hit rate on rank 1 vs 34.5% on rank 3 is a user-visible quality gap.
+
+**Backtest validation (30d × 29 midday slates, balanced mode, harness `dgc_midday_*` configs atop tdblend_h01_60_h02_40):**
+
+| Config | Slate hit | r1 hit | r3 hit | Rail-matched pick lift |
+|---|---|---|---|---|
+| BASELINE (DGC=0) | 69.0% | 17.2% | 34.5% | ×1.12 |
+| `dgc_midday_5` | 69.0% | **31.0%** | 20.7% | ×1.05 (regress) |
+| `dgc_midday_10` (SHIPPED) | 69.0% | **24.1%** | 17.2% | **×1.12 (tie)** |
+| `dgc_midday_15` | 69.0% | 24.1% | 17.2% | ×1.08 (regress) |
+
+`dgc_midday_10` ties baseline on both canonical metrics (slate hit rate + rail-matched pick lift) while lifting rank-1 by 6.9pp (40% relative). DGC=5% over-corrects (highest r1 but pick lift regresses); DGC=15% over-shoots the optimum. Evening + allday untouched (no scope override applied).
+
+**Action sequence:**
+1. Backtest configs added to `scripts/backtest/configs.ts`: `dgc_midday_parity`, `dgc_midday_5`, `dgc_midday_10`, `dgc_midday_15`. Parity guard matched `tdblend_h01_60_h02_40` byte-for-byte before any candidates were judged.
+2. `app_config` UPDATE on 3 midday preset keys:
+   - `engine_weights_balanced_midday`: `CO=74→64, DGC=0→10`
+   - `engine_weights_conservative_midday`: `CO=61.6→51.6, DGC=0→10`
+   - `engine_weights_aggressive_midday`: `CO=81→71, DGC=0→10`
+3. No code change required — `engines/zk6.ts` + `compute-slate-zk6` per-scope preset loader (CONFIG-07 mechanism) already consumes these rows.
+4. Today's (2026-05-27) midday slate regenerated immediately after the config flip; hash `29E7F8FF`, new top pick `263 {2,3,6}` (DGC=0.716).
+
+**Rollback condition: 2026-06-03 (7-day review, same window as CONFIG-08).** If 7-day midday rank-1 hit rate post-deploy (5/27–6/03) trails the CONFIG-08-only baseline rank-1 rate by more than 5pp, OR if midday slate hit rate drops below 50%, revert. **Revert action:**
+```sql
+UPDATE app_config SET value='{"BOX":20.8,"PBURST":5.2,"CO":74,"DGC":0}' WHERE key='engine_weights_balanced_midday';
+UPDATE app_config SET value='{"BOX":35.1,"PBURST":3.2,"CO":61.6,"DGC":0}' WHERE key='engine_weights_conservative_midday';
+UPDATE app_config SET value='{"BOX":14,"PBURST":5,"CO":81,"DGC":0}' WHERE key='engine_weights_aggressive_midday';
+```
+No code change or edge fn redeploy needed for rollback.
+
+**Stacking caveat.** Live 7-day midday hit rate post-deploy measures CONFIG-09 stacked on top of CONFIG-02 + CONFIG-05 + CONFIG-07 + CONFIG-08 + pair-rebuild-wiring (all five active for midday). Backtest validated CONFIG-09 atop CONFIG-08 (the post-pair-rebuild config), so the incremental signal is "rank-1 ordering quality" rather than slate-rate or pick-lift.
+
+---
+
 ### CONFIG-08 — H01Y/H02Y Times-Drawn Horizon Blend (2026-05-27)
 
 Structural fix to an inconsistency in how `times_drawn` flowed through the engine: BOX scoring took **MAX across horizons** (effectively H02Y, since H02Y's window is a superset of H01Y's), while pair scoring used **H01Y-only**. Each path silently consumed a different horizon, and `horizon_weights` had **no effect** on the engine's output (the only horizon-blended value, `ds_raw`, is invariant across horizons by construction — "days since last hit" doesn't change based on lookback width).

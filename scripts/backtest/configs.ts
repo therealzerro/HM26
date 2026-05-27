@@ -1471,4 +1471,117 @@ export const CONFIGS: Record<string, EngineConfig> = {
     },
     timesDrawnHorizonBlend: true,
   },
+
+  // ─── 2026-05-27: midday DGC re-enablement sweep ──────────────────────────────
+  // Hypothesis: CONFIG-07's intel-tuned weights zeroed midday DGC because the
+  // AUC fit (4/13–5/8) said DGC had no predictive lift. That fit ran against
+  // legacy MAX/H01Y mixed-horizon BOX scoring + stale pair data. Under
+  // CONFIG-08 + fresh pair data (post 2026-05-27 rebuild), DGC's recurrence-
+  // consistency signal may behave differently — today's midday slate showed
+  // wildly erratic DGC values (0.019 – 0.668) because the engine doesn't
+  // optimize for it. Test re-enabling DGC at 5/10/15% by carving from CO.
+  //
+  // Baseline: tdblend_h01_60_h02_40 (current production parity, CONFIG-08 live).
+  // Parity guard: dgc_midday_parity is identical to baseline; must match
+  // byte-for-byte. If not, the loader is broken — abort before drawing
+  // conclusions.
+  //
+  // All candidates only modify midday's preset. Evening + allday inherit
+  // the global preset unchanged.
+  //
+  // Run order:
+  //   1) BASELINE   --config tdblend_h01_60_h02_40
+  //   2) PARITY     --config dgc_midday_parity
+  //   3) CANDIDATES --config dgc_midday_5,dgc_midday_10,dgc_midday_15
+  //
+  // Decision rule per CLAUDE.md dual-lens: ship only if winner beats baseline
+  // on BOTH midday slate hit rate AND midday rail-matched pick lift. Evening
+  // and allday should not change (no scope override applied) — flag if they do.
+  dgc_midday_parity: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+  },
+
+  dgc_midday_5: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.690, DGC: 0.050 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.566, DGC: 0.050 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.760, DGC: 0.050 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+  },
+
+  dgc_midday_10: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.516, DGC: 0.100 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.710, DGC: 0.100 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+  },
+
+  dgc_midday_15: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.590, DGC: 0.150 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.466, DGC: 0.150 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.660, DGC: 0.150 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+  },
 };

@@ -423,7 +423,7 @@ export default function NumberBookScreen() {
                     </View>
                     {activeList.savedAt && (
                       <View style={s.stateTag}>
-                        <Text style={s.stateTagText}>Saved {new Date(activeList.savedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</Text>
+                        <Text style={s.stateTagText}>Saved {new Date(activeList.savedAt).toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' })}</Text>
                       </View>
                     )}
                   </View>

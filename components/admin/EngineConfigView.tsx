@@ -315,7 +315,7 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
       setLoadedScopeCooldowns({ ...scopeCooldowns });
       setLoadedSnapshot(currentSnapshot); // E6: clear unsaved-changes badge
       setSavedOk(true);
-      setSavedAt(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+      setSavedAt(new Date().toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' }));
       setSavedSummary({ written: body.length, deleted: deletedCount });
       setTimeout(() => setSavedOk(false), 2500);
 
@@ -449,7 +449,7 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
           <Text style={{ fontSize: 10, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1.5, marginBottom: 8 }}>RECENT CONFIG CHANGES</Text>
           {recentChanges.map((r, i) => {
             const ts = new Date(r.created_at);
-            const tsLabel = ts.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+            const tsLabel = ts.toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
             const meta = r.payload_meta ?? {};
             const overrides = Object.entries(meta.scope_overrides ?? {})
               .filter(([, v]) => v != null)

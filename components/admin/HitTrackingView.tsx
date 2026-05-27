@@ -46,7 +46,7 @@ function PerformanceRow({
   const formatDate = (d: string) => {
     try {
       const [y, m, day] = d.split('-').map(Number);
-      return new Date(y, m - 1, day).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+      return new Date(y, m - 1, day).toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', year: '2-digit' });
     } catch { return d; }
   };
 

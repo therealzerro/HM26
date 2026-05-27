@@ -42,7 +42,7 @@ interface AuditLogRow {
 const Q_KEY = ['weight_proposals'];
 
 function fmtDate(iso: string): string {
-  try { return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+  try { return new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
   catch { return iso; }
 }
 

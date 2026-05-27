@@ -356,7 +356,7 @@ export default function SlatesScreen() {
         <View style={s.scopeMetaRow}>
           {snapshot?.updated_at_et ? (
             <Text style={s.scopeTimestampInline}>
-              Generated {new Date(snapshot.updated_at_et).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} ET
+              Generated {new Date(snapshot.updated_at_et).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true })} ET
             </Text>
           ) : (
             <View style={{ flex: 1 }} />

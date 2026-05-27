@@ -625,21 +625,30 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
                 restrained than the GridTile stamp (smaller font, lower fill)
                 because the modal also surfaces HitReplay on the PLAY tab and
                 we don't want to compete with it. */}
-            {pick.hitType && (
-              <View pointerEvents="none" style={s.hitStampWrap}>
-                <View style={s.hitStamp}>
-                  <Text style={s.hitStampText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
-                    {pick.hitType === 'straight' ? 'EXACT MATCH' : 'PARTIAL MATCH'}
-                  </Text>
-                  {pick.hitResult ? (
-                    <Text style={s.hitStampSub} numberOfLines={1}>
-                      {pick.hitResult}
-                      {pick.hitState ? ` · ${pick.hitState}` : ''}
+            {pick.hitType && (() => {
+              const isStraight = pick.hitType === 'straight';
+              const stampC = isStraight ? D.gold : D.success;
+              return (
+                <View pointerEvents="none" style={s.hitStampWrap}>
+                  <View style={[s.hitStamp, { borderColor: stampC, backgroundColor: stampC + '20', shadowColor: stampC }]}>
+                    <Text
+                      style={[s.hitStampText, { color: stampC, textShadowColor: stampC + 'aa' }]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.6}
+                    >
+                      {isStraight ? 'STRAIGHT MATCH' : 'MATCH'}
                     </Text>
-                  ) : null}
+                    {pick.hitResult ? (
+                      <Text style={[s.hitStampSub, { color: stampC }]} numberOfLines={1}>
+                        {pick.hitResult}
+                        {pick.hitState ? ` · ${pick.hitState}` : ''}
+                      </Text>
+                    ) : null}
+                  </View>
                 </View>
-              </View>
-            )}
+              );
+            })()}
 
             {/* Left: energy arc */}
             <View style={s.heroLeft}>

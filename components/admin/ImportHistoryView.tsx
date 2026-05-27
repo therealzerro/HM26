@@ -254,7 +254,7 @@ export default function ImportHistoryView() {
                       {imp.type}{imp.horizon_label ? ' · ' + imp.horizon_label : ''}{imp.class_id != null ? ' · Class ' + imp.class_id : ''}
                     </Text>
                     <Text style={{ fontSize: 10, color: colors.textTertiary }}>
-                      {imp.scope ?? '—'} · {new Date(imp.created_at).toLocaleString()}
+                      {imp.scope ?? '—'} · {new Date(imp.created_at).toLocaleString('en-US', { timeZone: 'America/New_York' })}
                     </Text>
                     <View style={{ flexDirection: 'row', gap: 10, marginTop: 2 }}>
                       {imp.counts != null && <Text style={{ fontSize: 10, color: colors.success }}>✓ {imp.counts} rows</Text>}
@@ -284,8 +284,8 @@ export default function ImportHistoryView() {
                       ['Status', imp.status],
                       imp.counts != null ? ['Row Count', String(imp.counts)] : null,
                       imp.error_text ? ['Error', imp.error_text] : null,
-                      ['Created', new Date(imp.created_at).toLocaleString()],
-                      imp.deleted_at ? ['Deleted At', new Date(imp.deleted_at).toLocaleString()] : null,
+                      ['Created', new Date(imp.created_at).toLocaleString('en-US', { timeZone: 'America/New_York' })],
+                      imp.deleted_at ? ['Deleted At', new Date(imp.deleted_at).toLocaleString('en-US', { timeZone: 'America/New_York' })] : null,
                     ] as ([string, string] | null)[]).filter(Boolean).map((row) => (
                       <View key={row![0]} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: colors.border + '55' }}>
                         <Text style={{ fontSize: 11, color: colors.textTertiary, width: 80 }}>{row![0]}</Text>

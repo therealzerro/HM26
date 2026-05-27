@@ -99,7 +99,7 @@ export function PickPosterCard({ pick, scope, pairScores, redact = false, height
 
         <View style={s.heroRight}>
           <View style={s.boxBadge}>
-            <Text style={s.boxBadgeLabel}>PARTIAL SET</Text>
+            <Text style={s.boxBadgeLabel}>BOX SET</Text>
             <Text style={s.boxBadgeCombo}>{renderComboSet}</Text>
           </View>
           <Text style={s.heroMeta}>{scope.toUpperCase()}</Text>

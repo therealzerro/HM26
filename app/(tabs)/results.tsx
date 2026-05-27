@@ -96,7 +96,7 @@ function getDateLabel(dateStr: string): string {
   if (dateStr === today) return 'Today';
   if (dateStr === yStr)  return 'Yesterday';
   const d = new Date(dateStr + 'T12:00:00');
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return d.toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' });
 }
 function getRecentDates(): string[] {
   const out: string[] = [];
@@ -109,7 +109,7 @@ function getRecentDates(): string[] {
 }
 function formatDisplayDate(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00');
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' });
+  return d.toLocaleDateString('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'long', day: 'numeric' });
 }
 
 // ─── stats overflow sheet ──────────────────────────────────────────────

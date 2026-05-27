@@ -46,7 +46,7 @@ function formatGenTime(iso?: string): string | null {
   try {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return null;
-    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York' }) + ' ET';
+    return d.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York' }) + ' ET';
   } catch { return null; }
 }
 
@@ -108,7 +108,7 @@ export function formatLastSeen(lastSeen?: string): string {
   try {
     const [y, m, d] = lastSeen.split('-').map(Number);
     const dt = new Date(y, m - 1, d);
-    return 'Last match: ' + dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return 'Last match: ' + dt.toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', year: 'numeric' });
   } catch {
     return 'Last match: Unknown';
   }

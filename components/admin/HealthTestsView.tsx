@@ -66,7 +66,7 @@ export default function HealthTestsView() {
         const total = r.total_imports ?? rows.length;
         const completed = r.completed ?? rows.filter((x: any) => x.status === 'completed').length;
         const failed = r.failed ?? rows.filter((x: any) => x.status === 'failed').length;
-        const lastAt = r.last_import_at ? new Date(r.last_import_at).toLocaleDateString() : null;
+        const lastAt = r.last_import_at ? new Date(r.last_import_at).toLocaleDateString('en-US', { timeZone: 'America/New_York' }) : null;
         setT('imports', {
           s: completed > 0 ? 'success' : 'error',
           msg: `${total} total · ${completed} completed · ${failed} failed${lastAt ? ' · last: ' + lastAt : ''}`,
@@ -154,7 +154,7 @@ export default function HealthTestsView() {
       </View>
       {lastRun && (
         <Text style={{ fontSize: 10, color: colors.textTertiary, marginBottom: 14 }}>
-          Last run: {lastRun.toLocaleTimeString()}
+          Last run: {lastRun.toLocaleTimeString('en-US', { timeZone: 'America/New_York' })} ET
         </Text>
       )}
 

@@ -47,7 +47,10 @@ export function SlatePosterCard({ pick, onPress, redact = false }: SlatePosterCa
   const tLabel   = tempLabel(pick.energy);
   const isLocked = pick.locked;
   const isHit    = !!pick.hitType;
-  const hitLabel = pick.hitType === 'straight' ? 'EXACT MATCH' : 'PARTIAL MATCH';
+  const isStraightHit = pick.hitType === 'straight';
+  const hitLabel = isStraightHit ? 'STRAIGHT MATCH' : 'MATCH';
+  // Straight matches get a gold stamp (rarer, more newsworthy); box matches stay green.
+  const stampColor = isStraightHit ? colors.gold : colors.success;
   const rawDigits = isLocked ? '•••' : (pick.bestOrder ?? pick.combo);
   const digits   = rawDigits;
   const comboSetText = redact
@@ -64,8 +67,8 @@ export function SlatePosterCard({ pick, onPress, redact = false }: SlatePosterCa
   // Redaction overrides hit/normal border styling. When redacted, the card
   // edge picks up a cyan "premium gated" glow so the viewer reads it as
   // intentionally hidden rather than broken.
-  const borderC = redact ? colors.cyan : (isHit ? colors.success : tc + '66');
-  const shadowC = redact ? colors.cyan : (isHit ? colors.success : tc);
+  const borderC = redact ? colors.cyan : (isHit ? stampColor : tc + '66');
+  const shadowC = redact ? colors.cyan : (isHit ? stampColor : tc);
 
   return (
     <TouchableOpacity
@@ -149,20 +152,23 @@ export function SlatePosterCard({ pick, onPress, redact = false }: SlatePosterCa
         </View>
       )}
 
-      {/* Hit stamp — large green overlay on winning pickcards. */}
+      {/* Match stamp — overlay on matched pick cards.
+          Gold for straight matches, green for box matches.
+          The hitResult subtitle (actual draw digits) is suppressed when
+          redact=true — otherwise it would defeat the digit-tile redaction. */}
       {isHit && !isLocked && (
         <View pointerEvents="none" style={gt.hitStampWrap}>
-          <View style={[gt.hitStamp, { borderColor: colors.success, backgroundColor: colors.success + '22', shadowColor: colors.success }]}>
+          <View style={[gt.hitStamp, { borderColor: stampColor, backgroundColor: stampColor + '22', shadowColor: stampColor }]}>
             <Text
-              style={[gt.hitStampText, { color: colors.success, textShadowColor: colors.success + 'aa' }]}
+              style={[gt.hitStampText, { color: stampColor, textShadowColor: stampColor + 'aa' }]}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.5}
             >
               {hitLabel}
             </Text>
-            {pick.hitResult ? (
-              <Text style={[gt.hitStampSub, { color: colors.success }]} numberOfLines={1}>
+            {!redact && pick.hitResult ? (
+              <Text style={[gt.hitStampSub, { color: stampColor }]} numberOfLines={1}>
                 {pick.hitResult}
               </Text>
             ) : null}

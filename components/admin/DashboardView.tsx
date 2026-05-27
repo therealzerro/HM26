@@ -853,7 +853,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
               <Text style={{ fontSize: 16 }}>{typeInfo?.icon ?? '📦'}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text }}>{imp.type}{imp.horizon_label ? ' · ' + imp.horizon_label : ''}{imp.class_id ? ' · Class ' + imp.class_id : ''}</Text>
-                <Text style={{ fontSize: 10, color: colors.textTertiary }}>{imp.scope} · {new Date(imp.created_at).toLocaleDateString()}</Text>
+                <Text style={{ fontSize: 10, color: colors.textTertiary }}>{imp.scope} · {new Date(imp.created_at).toLocaleDateString('en-US', { timeZone: 'America/New_York' })}</Text>
               </View>
               <Pill label={imp.status} color={sc} />
               <Text style={{ fontSize: 12, color: colors.success, fontFamily: theme.typography.fontFamily.mono }}>+{imp.accepted}</Text>

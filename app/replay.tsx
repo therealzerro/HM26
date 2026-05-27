@@ -32,7 +32,7 @@ function formatDateLabel(date: string): string {
   const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
   if (date === yesterday.toLocaleDateString('en-CA', { timeZone: 'America/New_York' })) return 'Yesterday';
   const d = new Date(date + 'T12:00:00');
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  return d.toLocaleDateString('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric' });
 }
 
 function scopeMatchesSession(scope: string, session: string): boolean {

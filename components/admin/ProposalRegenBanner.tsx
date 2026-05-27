@@ -79,8 +79,8 @@ export function ProposalRegenBanner({ onOpenProposals }: { onOpenProposals?: () 
             Weight proposal pending review
           </Text>
           <Text style={{ fontSize: 10, color: colors.textSecondary }}>
-            Generated {new Date(pendingProposal.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            {expiresAt ? ` · expires ${new Date(expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
+            Generated {new Date(pendingProposal.created_at).toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' })}
+            {expiresAt ? ` · expires ${new Date(expiresAt).toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' })}` : ''}
             {'. If you regenerate now, current weights will be used.'}
           </Text>
         </View>

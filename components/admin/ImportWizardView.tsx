@@ -612,7 +612,7 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
                       const todayET = getTodayET();
                       const d = new Date(todayET + 'T12:00:00'); d.setDate(d.getDate() - daysAgo);
                       const dateStr = d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-                      const label = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yest.' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                      const label = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yest.' : d.toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' });
                       return (
                         <TouchableOpacity
                           key={dateStr}

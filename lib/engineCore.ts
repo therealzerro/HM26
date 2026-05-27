@@ -227,6 +227,7 @@ export function intelligenceRowExtras(
   drawsSinceMap: Map<string, number> | null,
   timesDrawnMap: Map<string, number> | null,
   pairData: PairDataTree | null,
+  weights: Record<string, number> = HORIZON_WEIGHTS,
 ): { draws_since: number | null; times_drawn: number; best_order: string } {
   if (!drawsSinceMap || !timesDrawnMap || !pairData) {
     return { draws_since: null, times_drawn: 0, best_order: combo };
@@ -234,7 +235,7 @@ export function intelligenceRowExtras(
   return {
     draws_since: drawsSinceMap.get(comboSet) ?? null,
     times_drawn: timesDrawnMap.get(comboSet) ?? 0,
-    best_order: bestOrderFor(combo, pairData),
+    best_order: bestOrderFor(combo, pairData, weights),
   };
 }
 

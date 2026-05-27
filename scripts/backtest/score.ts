@@ -194,7 +194,7 @@ export function classifyMultiplicity(combo: string): 'singles' | 'doubles' | 'tr
 }
 
 export function scorePicksVsResults(
-  picks: { combo: string; comboSet: string }[],
+  picks: { combo: string; comboSet: string; bestOrder?: string }[],
   results: DrawResult[],
   scope: Scope,
 ): HitSummary {
@@ -213,9 +213,14 @@ export function scorePicksVsResults(
   for (let i = 0; i < picks.length; i++) {
     const pick = picks[i];
     const pickComboSet = pick.comboSet || toComboSet(pick.combo);
+    // BUG-155 parity: production hit-detection matches result_digits against
+    // bestOrder (position-pair maximised arrangement), NOT the universe-
+    // enumeration `combo`. Fall through to `combo` only when bestOrder is
+    // absent (legacy callers / pre-extension data).
+    const pickStraightKey = pick.bestOrder ?? pick.combo;
     for (const result of scopeResults) {
       const dbComboSet = result.comboset_sorted || toComboSet(result.result_digits);
-      const straight = result.result_digits === pick.combo;
+      const straight = result.result_digits === pickStraightKey;
       const box = dbComboSet === pickComboSet;
       if (straight || box) {
         if (straight) hitsStraight++;

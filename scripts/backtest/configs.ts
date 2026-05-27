@@ -1172,4 +1172,73 @@ export const CONFIGS: Record<string, EngineConfig> = {
     synergyOn: false,
     synergyWeight: 0.15,
   },
+
+  // ─── 2026-05-27: ENH-BOA — bestOrderFor realignment validation ─────────────
+  // Production engine change: bestOrderFor now threads config.horizonWeights
+  // through to its pair-blend (engineCore.blendPairAcrossHorizons), matching
+  // the BOX dsRaw blend. Pre-change it always used the hardcoded
+  // HORIZON_WEIGHTS const regardless of app_config.horizon_weights.
+  //
+  // The two configs below isolate the realignment effect from any other
+  // config delta. Both reproduce the current production stack
+  // (intel_weights_midday_only_floor70 base + pure-H01Y horizon blend +
+  // CONFIG-07 midday CO-heavy preset + pressure inversion); they differ ONLY
+  // in how bestOrderFor weights itself.
+  //
+  // Run order:
+  //   1) BASELINE   npm run backtest:replay -- --days 30 --config ehnboa_prod_baseline
+  //                 (simulates pre-realignment engine — bestOrderFor uses
+  //                 HORIZON_WEIGHTS, BOX uses pure-H01Y per CONFIG-06)
+  //   2) CANDIDATE  npm run backtest:replay -- --days 30 --config ehnboa_prod_aligned
+  //                 (simulates post-realignment engine — both bestOrderFor
+  //                 and BOX use pure-H01Y, matching app_config.horizon_weights)
+  //
+  // Decision rule per CLAUDE.md: ship only if CANDIDATE ≥ BASELINE on overall
+  // straight + box hit rate. K6 selection is identical between the two by
+  // design (only bestOrder differs) — total hit count should NOT diverge
+  // (box matches are comboset-based, invariant) but straight/box SPLIT can.
+  // If straights ≥ baseline on every scope, ship. If straights regress on
+  // any scope, halt and document.
+  ehnboa_prod_baseline: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 1.0, H02Y: 0, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+    bestOrderUseDefaultHorizonWeights: true,
+  },
+  ehnboa_prod_aligned: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 1.0, H02Y: 0, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.740, DGC: 0.000 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.616, DGC: 0.000 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.810, DGC: 0.000 },
+      },
+    },
+    // bestOrderUseDefaultHorizonWeights omitted → false (aligned behavior).
+  },
 };

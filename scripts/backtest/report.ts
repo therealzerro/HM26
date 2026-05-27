@@ -40,16 +40,21 @@ function parseSource(row: any): string {
   }
 }
 
-function parsePicks(row: any): { combo: string; comboSet: string }[] {
+function parsePicks(row: any): { combo: string; comboSet: string; bestOrder?: string }[] {
   try {
     const arr = typeof row.top_k_straights_json === 'string'
       ? JSON.parse(row.top_k_straights_json)
       : row.top_k_straights_json;
     if (!Array.isArray(arr)) return [];
-    return arr.map((p: any) => ({
-      combo:    typeof p === 'string' ? p : String(p?.combo ?? ''),
-      comboSet: typeof p === 'string' ? toComboSet(p) : String(p?.comboSet ?? p?.normKey ?? toComboSet(p?.combo ?? '')),
-    })).filter(p => /^\d{3}$/.test(p.combo));
+    return arr.map((p: any) => {
+      const combo    = typeof p === 'string' ? p : String(p?.combo ?? '');
+      const comboSet = typeof p === 'string' ? toComboSet(p) : String(p?.comboSet ?? p?.normKey ?? toComboSet(p?.combo ?? ''));
+      // Preserve stored bestOrder when present — production matches against it
+      // for straight detection (BUG-155). Falls back to combo in score.ts when
+      // missing (older snapshots written before bestOrder was a column).
+      const bestOrder = typeof p === 'string' ? undefined : (typeof p?.bestOrder === 'string' ? p.bestOrder : undefined);
+      return { combo, comboSet, bestOrder };
+    }).filter(p => /^\d{3}$/.test(p.combo));
   } catch {
     return [];
   }

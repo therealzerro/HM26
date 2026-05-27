@@ -35,6 +35,15 @@ export interface EngineConfig {
   // summing to ~1.0 (NOT percentages). When omitted, replay uses the hardcoded
   // HORIZON_WEIGHTS const. Mirrors production app_config.horizon_weights.
   horizonWeights?: Record<string, number>;
+  // ENH-BOA (2026-05-27): when true, bestOrderFor uses the hardcoded
+  // HORIZON_WEIGHTS const for its pair-blend regardless of `horizonWeights`.
+  // Default (false / omitted) threads `horizonWeights` through to bestOrderFor,
+  // matching the post-realignment production engine. Used as the BASELINE flag
+  // in the empirical validation for the 2026-05-27 bestOrderFor change — a
+  // run with `bestOrderUseDefaultHorizonWeights: true` reproduces pre-change
+  // engine behavior under whatever other config it carries, isolating the
+  // realignment's straight-hit effect from BOX-scoring changes.
+  bestOrderUseDefaultHorizonWeights?: boolean;
   // ENH-BP (2026-05-14): BOX freq/pressure split. Defaults (omitted) preserve the
   // hard-coded 60/40 production split. Candidates can vary the split to test
   // whether the "overdue pressure" term is hurting midday/doubles performance
@@ -105,6 +114,11 @@ export interface ReplayPick {
   indicator: number;
   energy: number;
   multiplicity: 'singles' | 'doubles' | 'triples';
+  // Position-pair maximised arrangement of `combo`. Production matches this
+  // against histories.result_digits for straight detection (BUG-155). Weighted
+  // by engine's horizonWeights — when the config sets horizon_weights pure-H01Y,
+  // this reflects that; when defaulted, uses the full 10-horizon decay.
+  bestOrder: string;
 }
 
 export interface HitResult {

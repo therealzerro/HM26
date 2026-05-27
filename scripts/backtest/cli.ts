@@ -118,7 +118,7 @@ async function modeReplay(args: Record<string, string>) {
           try {
             const picks = await computeSlateAsOf(date, scope, configs[configName], mode);
             const hit = scorePicksVsResults(
-              picks.map(p => ({ combo: p.combo, comboSet: p.comboSet })),
+              picks.map(p => ({ combo: p.combo, comboSet: p.comboSet, bestOrder: p.bestOrder })),
               results,
               scope,
             );

@@ -1139,7 +1139,7 @@ export async function computeSlate({
       energy: x.energy,
       temperature: x.energy,        // backward compat
       rank: idx + 1,
-      bestOrder: bestOrderFor(x.combo, ds.pairData),
+      bestOrder: bestOrderFor(x.combo, ds.pairData, horizonWeights),
       confidence: Math.round(scopeConfidence * 100),
       drawsSince: ds.dsRawMap.get(x.normKey) ?? boxRow?.ds_raw ?? null,
       timesDrawn: boxRow?.times_drawn ?? ds.timesDrawnMap.get(x.normKey) ?? 0,
@@ -1321,7 +1321,7 @@ export async function computeSlate({
         signal_co: pick.signals.CO,
         signal_dgc: pick.signals.DGC,
         energy_score: pick.energy,
-        ...intelligenceRowExtras(pick.combo, pick.comboSet, ds.drawsSinceMap, ds.timesDrawnMap, ds.pairData),
+        ...intelligenceRowExtras(pick.combo, pick.comboSet, ds.drawsSinceMap, ds.timesDrawnMap, ds.pairData, horizonWeights),
         on_slate: k6ComboSet.has(pick.combo),
         ...stamp(pick.combo),
       }));
@@ -1342,7 +1342,7 @@ export async function computeSlate({
           signal_co: x.coS,
           signal_dgc: x.dgcS,
           energy_score: x.energy,
-          ...intelligenceRowExtras(x.combo, x.normKey, ds.drawsSinceMap, ds.timesDrawnMap, ds.pairData),
+          ...intelligenceRowExtras(x.combo, x.normKey, ds.drawsSinceMap, ds.timesDrawnMap, ds.pairData, horizonWeights),
           on_slate: true,
           ...stamp(x.combo),
         }));

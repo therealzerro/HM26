@@ -22,6 +22,7 @@ import {
   computeBoxSignal, maxNorm, percentileRankOf,
   MULTIPLICITY_PRIORS, H_ALL, HORIZON_WEIGHTS,
   computeDGC, blendBoxDsRaw, getPairSignalFromMap,
+  bestOrderFor, type PairDataTree,
 } from '../../lib/engineCore.js';
 import type { EngineConfig, ReplayPick, Scope } from './types.js';
 
@@ -132,23 +133,36 @@ function buildDatasets(boxRows: any[], pairRows: any[]) {
   }
 
   const pairMetaMap = new Map<string, Map<number, PairMeta>>();
+  // Per-horizon pair ds_raw tree — needed by bestOrderFor to compute the
+  // position-pair maximised arrangement of each pick (production parity:
+  // engines/zk6.ts builds the same structure). Indexed pairKey → classId →
+  // horizonLabel → ds_raw.
+  const pairData: PairDataTree = new Map();
 
   for (const row of pairRows) {
     if (!row || typeof row.class_id !== 'number') continue;
     const h = String(row.horizon_label ?? 'H01Y');
     const rawPairKey = row.key_pair ?? row.key;
     const pairKey = normalizePairKey(rawPairKey);
+    const dsRaw = typeof row.ds_raw === 'number' ? row.ds_raw : 0;
+
+    // Per-horizon pair ds_raw tree (consumed by bestOrderFor).
+    if (!pairData.has(pairKey)) pairData.set(pairKey, new Map());
+    const classMap = pairData.get(pairKey)!;
+    if (!classMap.has(row.class_id)) classMap.set(row.class_id, new Map());
+    classMap.get(row.class_id)!.set(h, dsRaw);
+
     if (h === 'H01Y' || !pairMetaMap.get(pairKey)?.has(row.class_id)) {
       if (!pairMetaMap.has(pairKey)) pairMetaMap.set(pairKey, new Map());
       pairMetaMap.get(pairKey)!.set(row.class_id, {
-        dsRaw:      typeof row.ds_raw === 'number' ? row.ds_raw : 0,
+        dsRaw,
         drawsSince: typeof row.ds_raw === 'number' ? row.ds_raw : 500,
         timesDrawn: typeof row.times_drawn === 'number' ? row.times_drawn : 0,
       });
     }
   }
 
-  return { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap, boxByHorizon };
+  return { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap, boxByHorizon, pairData };
 }
 
 // ── History overrides ─────────────────────────────────────────────────────────
@@ -194,6 +208,8 @@ function runK6Selection(
   weights: { BOX: number; PBURST: number; CO: number; DGC: number },
   scorePoolForEnergy: number[],
   scope: Scope,
+  pairData: PairDataTree,
+  horizonWeights: Record<string, number>,
 ): ReplayPick[] {
   const { rails } = config;
   // Per-scope energy floor override wins when present; global is the fallback.
@@ -273,6 +289,12 @@ function runK6Selection(
       indicator: finalScores[idx],
       energy,
       multiplicity: mult,
+      // BUG-155 parity: production hit-detection matches result_digits against
+      // bestOrder (not the universe-enumeration combo). The weights param
+      // makes this respect config.horizonWeights — when production sets
+      // app_config.horizon_weights pure-H01Y, bestOrder collapses to the H01Y
+      // pair-blend; otherwise the full 10-horizon decay applies.
+      bestOrder: bestOrderFor(combo, pairData, horizonWeights),
     });
     if (mult === 'singles') singles++;
     else if (mult === 'doubles') doubles++;
@@ -313,7 +335,7 @@ export async function computeSlateAsOf(
     excludeYesterday ? fetchYesterdayResults(date) : Promise.resolve(new Set<string>()),
   ]);
 
-  const { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap, boxByHorizon } = buildDatasets(boxRows, pairRows);
+  const { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap, boxByHorizon, pairData } = buildDatasets(boxRows, pairRows);
   // ENH-HW: horizon weights for BOX dsRaw blend. Config overrides default
   // HORIZON_WEIGHTS const when present. Decimals summing to ~1.0.
   const horizonWeights: Record<string, number> = config.horizonWeights ?? HORIZON_WEIGHTS;
@@ -457,9 +479,16 @@ export async function computeSlateAsOf(
 
   const scorePoolForEnergy = Array.from(finalScores).sort((a, b) => a - b);
 
+  // ENH-BOA: BASELINE simulation flag — bestOrderFor falls back to HORIZON_WEIGHTS
+  // even when config.horizonWeights is set. CANDIDATE (default) threads
+  // config.horizonWeights through, matching the post-realignment production engine.
+  const bestOrderWeights = config.bestOrderUseDefaultHorizonWeights
+    ? HORIZON_WEIGHTS
+    : horizonWeights;
+
   return runK6Selection(
     universe, finalScores, timesDrawnMap, drawsSinceMap,
     todayHitComboSets, config, weights, scorePoolForEnergy,
-    scope,
+    scope, pairData, bestOrderWeights,
   );
 }

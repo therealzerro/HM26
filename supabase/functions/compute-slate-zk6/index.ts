@@ -681,7 +681,7 @@ async function computeSlate(params: {
       multiplicity: x.multiplicity, topPair: x.topPair, energy: x.energy, temperature: x.energy,
       rank: idx + 1,
       // Position-pair maximised arrangement (engineCore.bestOrderFor). Parity with engines/zk6.ts.
-      bestOrder: bestOrderFor(x.combo, ds.pairData),
+      bestOrder: bestOrderFor(x.combo, ds.pairData, horizonWeights),
       confidence: Math.round(scopeConfidence * 100),
       drawsSince: ds.dsRawMap.get(x.normKey) ?? (br as any)?.ds_raw ?? null,
       timesDrawn: (br as any)?.times_drawn ?? ds.timesDrawnMap.get(x.normKey) ?? 0,
@@ -826,7 +826,7 @@ async function computeSlate(params: {
         combo: p.combo, combo_set: p.comboSet, multiplicity: p.mult, top_pair: p.topPair,
         signal_box: p.signals.BOX, signal_pburst: p.signals.PBURST, signal_co: p.signals.CO, signal_dgc: p.signals.DGC,
         energy_score: p.energy,
-        ...intelligenceRowExtras(p.combo, p.comboSet, ds.drawsSinceMap, ds.timesDrawnMap, ds.pairData),
+        ...intelligenceRowExtras(p.combo, p.comboSet, ds.drawsSinceMap, ds.timesDrawnMap, ds.pairData, horizonWeights),
         on_slate: k6ComboSet.has(p.combo),
         ...stamp(p.combo),
       }));
@@ -838,7 +838,7 @@ async function computeSlate(params: {
           combo: x.combo, combo_set: x.normKey, multiplicity: x.multiplicity, top_pair: x.topPair,
           signal_box: x.boxS, signal_pburst: x.pburstS, signal_co: x.coS, signal_dgc: x.dgcS,
           energy_score: x.energy,
-          ...intelligenceRowExtras(x.combo, x.normKey, ds.drawsSinceMap, ds.timesDrawnMap, ds.pairData),
+          ...intelligenceRowExtras(x.combo, x.normKey, ds.drawsSinceMap, ds.timesDrawnMap, ds.pairData, horizonWeights),
           on_slate: true,
           ...stamp(x.combo),
         }));

@@ -187,8 +187,42 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
 
   const handleFullWorkflow = useCallback(async () => {
     setIsRunningWorkflow(true);
-    setWorkflowProgress('Step 1/2: Running hit detection…');
+    setWorkflowProgress('Step 1/3: Rebuilding pair datasets…');
     try {
+      // Step 1: Refresh datasets_pair.ds_raw from histories. Pair tables are
+      // manual-rebuild only (no nightly cron); without this step PBURST + CO
+      // pressure scores drift as days pass since the last rebuild. Runs first
+      // so hit detection + slate regen below see fresh pair pressure values.
+      let pairRebuildMsg = '';
+      try {
+        const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+        const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+        if (url && key) {
+          const res = await fetch(`${url}/functions/v1/rebuild-pair-datasets-zk6`, {
+            method: 'POST',
+            headers: {
+              'apikey': key,
+              'Authorization': 'Bearer ' + key,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ dryRun: false }),
+          });
+          const j = res.ok ? await res.json() : null;
+          if (j && typeof j.totalUpdated === 'number') {
+            pairRebuildMsg = `Pair rebuild: ${j.totalUpdated} updated (${j.totalFailed ?? 0} failed)`;
+          } else {
+            pairRebuildMsg = 'Pair rebuild: skipped (non-fatal)';
+          }
+        }
+      } catch (e) {
+        // Non-fatal — continue with the rest of the workflow even if pair
+        // rebuild fails. The slate will still regenerate against whatever pair
+        // state currently exists (which is no worse than the prior workflow's
+        // behavior of skipping pair rebuild entirely).
+        pairRebuildMsg = 'Pair rebuild: failed (non-fatal)';
+      }
+
+      setWorkflowProgress(`${pairRebuildMsg} · Step 2/3: Running hit detection…`);
       const yesterday = getYesterdayET();
       const today = getTodayET();
       let totalHits = 0;
@@ -196,7 +230,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
         const res = await runHitDetectionAllScopes(date);
         totalHits += res.hitsFound;
       }
-      setWorkflowProgress(`Hit detection done (${totalHits} hit${totalHits !== 1 ? 's' : ''}) · Step 2/2: Regenerating all slates…`);
+      setWorkflowProgress(`${pairRebuildMsg} · Hit detection done (${totalHits} hit${totalHits !== 1 ? 's' : ''}) · Step 3/3: Regenerating all slates…`);
       const date = targetDateOption === 'today' ? getTodayET() : getTomorrowET();
       const scopes: Array<'midday' | 'evening' | 'allday'> = ['midday', 'evening', 'allday'];
       const results = await Promise.all(
@@ -209,7 +243,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
       );
       queryClient.invalidateQueries({ queryKey: ['snapshot'] });
       queryClient.invalidateQueries({ queryKey: ['daily_intelligence_hits'] });
-      setWorkflowProgress(`Done · Hits detected · Slates: ${results.join(' / ')}`);
+      setWorkflowProgress(`Done · ${pairRebuildMsg} · Hits detected · Slates: ${results.join(' / ')}`);
     } catch (e) {
       setWorkflowProgress('Workflow error — check logs');
     } finally {

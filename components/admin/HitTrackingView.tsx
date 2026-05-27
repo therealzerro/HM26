@@ -663,21 +663,30 @@ export default function HitTrackingView() {
       });
       const snapList = Array.isArray(snaps) ? snaps : [];
 
-      // Aggregate hits per (slate_date, scope, mode). Multi-state secondary
-      // rows (same combo, different matched_state) are de-duped — one combo
-      // hitting in 2 states = 1 hit.
-      type Agg = { box: Set<string>; straight: Set<string>; total: number };
-      const aggMap = new Map<string, Agg>();
-      const totalByKey = new Map<string, Set<string>>();
+      // BUG-FIX 2026-05-27: when a slate is regenerated multiple times on the
+      // same day, adaptive_tracking accumulates 6 K6 primary rows PER REGEN
+      // (each tagged with a distinct slate_hash). Prior aggregation took the
+      // union of distinct combos across regens, producing total_picks like 14
+      // or 17 instead of the canonical 6. That made the box_hit_rate column
+      // wildly understate the actual slate performance (e.g., 5/22 allday
+      // 2/17=12% instead of 2/6=33%).
+      //
+      // Fix: aggregate per (date, scope, mode, slate_hash), then pick the
+      // CANONICAL hash per (date, scope, mode) — same selection rule as the
+      // snapshot chooser below. Each canonical slate has exactly 6 K6 picks,
+      // so total_picks = 6.
+      //
+      // Multi-state secondary rows (same combo, different matched_state) are
+      // still de-duped via Set keying on combo.
+      type Agg = { box: Set<string>; straight: Set<string>; total: Set<string> };
+      const aggByHash = new Map<string, Agg>();
       for (const r of at) {
-        if (!r.slate_date || !r.scope) continue;
+        if (!r.slate_date || !r.scope || !r.slate_hash) continue;
         const mode = r.mode || 'balanced';
-        const key = `${r.slate_date}|${r.scope}|${mode}`;
-        if (!aggMap.has(key)) aggMap.set(key, { box: new Set(), straight: new Set(), total: 0 });
-        if (!totalByKey.has(key)) totalByKey.set(key, new Set());
-        const a = aggMap.get(key)!;
-        const tk = totalByKey.get(key)!;
-        if (r.combo) tk.add(r.combo);
+        const key = `${r.slate_date}|${r.scope}|${mode}|${r.slate_hash}`;
+        if (!aggByHash.has(key)) aggByHash.set(key, { box: new Set(), straight: new Set(), total: new Set() });
+        const a = aggByHash.get(key)!;
+        if (r.combo) a.total.add(r.combo);
         if (r.hit_box && r.combo) a.box.add(r.combo);
         if (r.hit_straight && r.combo) a.straight.add(r.combo);
       }
@@ -697,10 +706,21 @@ export default function HitTrackingView() {
         snapByKey.get(key)!.push(s);
       }
 
+      // Group aggByHash entries by (date, scope, mode) so we can pick the
+      // canonical slate_hash within each group.
+      const hashesByKey = new Map<string, string[]>();
+      for (const fullKey of aggByHash.keys()) {
+        const [d, sc, md, h] = fullKey.split('|');
+        const k = `${d}|${sc}|${md}`;
+        if (!hashesByKey.has(k)) hashesByKey.set(k, []);
+        hashesByKey.get(k)!.push(h);
+      }
+      // Union of keys with any data source — adaptive_tracking, snapshots, or both.
+      const allKeys = new Set<string>([...hashesByKey.keys(), ...snapByKey.keys()]);
+
       const rows: any[] = [];
-      for (const [key, agg] of aggMap.entries()) {
+      for (const key of allKeys) {
         const [slate_date, scope, mode] = key.split('|');
-        const total = Math.max(totalByKey.get(key)?.size ?? 0, 6);
         const candidates = (snapByKey.get(key) ?? []).slice().sort((a, b) => {
           const ha = snapHitCount(a), hb = snapHitCount(b);
           if (hb !== ha) return hb - ha;
@@ -709,15 +729,28 @@ export default function HitTrackingView() {
           return (b.updated_at_et ?? '').localeCompare(a.updated_at_et ?? '');
         });
         const chosen = candidates[0];
+
+        // Canonical slate_hash: prefer the chosen snapshot's hash. If no
+        // snapshot row exists (rare — adaptive_tracking has rows but the
+        // snapshot was hard-deleted), fall back to ANY hash with hit data.
+        const candidateHashes = hashesByKey.get(key) ?? [];
+        const canonicalHash = chosen?.hash && candidateHashes.includes(chosen.hash)
+          ? chosen.hash
+          : candidateHashes[0] ?? null;
+
+        const agg = canonicalHash ? aggByHash.get(`${key}|${canonicalHash}`) : null;
+        const total = 6; // canonical K6 size — never grows with regens
+        const boxHits = Math.min(agg?.box.size ?? 0, total);
+        const straightHits = Math.min(agg?.straight.size ?? 0, total);
         rows.push({
           slate_date, scope, mode,
           total_picks: total,
-          box_hits: agg.box.size,
-          straight_hits: agg.straight.size,
-          box_hit_rate: total > 0 ? Math.round((agg.box.size / total) * 1000) / 10 : 0,
-          straight_hit_rate: total > 0 ? Math.round((agg.straight.size / total) * 1000) / 10 : 0,
+          box_hits: boxHits,
+          straight_hits: straightHits,
+          box_hit_rate: total > 0 ? Math.round((boxHits / total) * 1000) / 10 : 0,
+          straight_hit_rate: total > 0 ? Math.round((straightHits / total) * 1000) / 10 : 0,
           snapshotId: chosen?.id ?? null,
-          snapshotHash: chosen?.hash ?? null,
+          snapshotHash: chosen?.hash ?? canonicalHash ?? null,
           snapshotDeleted: !!chosen?.deleted_at,
         });
       }

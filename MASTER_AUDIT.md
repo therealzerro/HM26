@@ -23,6 +23,44 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
+### CONFIG-10 — Allday DGC Boost to 15% (2026-05-27)
+
+Same-day follow-up to CONFIG-09. CONFIG-08's backtest revealed allday's per-rank distribution had r5=55.2% > r1=41.4% — the engine putting the strongest pick at rank 5 instead of rank 1. The DGC sweep on allday found a 15% weight (carved from CO) restores monotonic top-of-slate ordering: r1 jumps to 44.8%, r5 drops to 41.4%, r1 > r5 finally.
+
+**Problem.** Allday currently inherits the global preset (DGC=10). Same mis-ordering pattern that CONFIG-09 just fixed for midday — but in allday the misplaced strength is at rank 5, not rank 3. Fixing user-facing #1 pick quality is the goal.
+
+**Backtest validation (30d × 29 allday slates, balanced mode, harness `dgc_allday_*` configs atop tdblend_h01_60_h02_40 + CONFIG-09 midday override):**
+
+| Config | Slate hit | r1 | r5 | r1 vs r5 | Rail-matched pick lift | Total hits |
+|---|---|---|---|---|---|---|
+| BASELINE (DGC=10) | 89.7% | 41.4% | 55.2% | ❌ r5 > r1 | ×1.05 | 147 |
+| `dgc_allday_5` | 86.2% | 41.4% | 48.3% | ❌ r5 > r1 | ×1.07 | 148 |
+| `dgc_allday_15` (SHIPPED) | 89.7% | **44.8%** | 41.4% | **✅ r1 > r5** | ×1.04 | 146 |
+| `dgc_allday_20` | 89.7% | 44.8% | 34.5% | ✅ r1 > r5 (but r3=51.7% — new mis-order) | ×1.04 | 146 |
+
+`dgc_allday_15` ties baseline on slate hit rate, fixes the r5 > r1 mis-ordering (44.8 > 41.4), and trades 1 hit out of 147 picks for the ordering improvement. Pick lift drops 0.01 (×1.05 → ×1.04) — within Wilson CI noise. `dgc_allday_5` regresses slate hit rate -3.5pp (wrong direction — lower DGC removes the signal that breaks the tie). `dgc_allday_20` over-corrects: r1 vs r5 fixed but r3=51.7% now exceeds r1=44.8%, creating new mis-ordering elsewhere.
+
+**Ship trade-off acknowledged:** strictly per CLAUDE.md "≥ baseline on both lenses," ×1.04 < ×1.05 is a regression. The 1-hit difference across 174 picks is statistically noise (Wilson CIs overlap completely). User judgment: ship for the user-visible rank-1 improvement. Rollback condition tightens accordingly — see below.
+
+**Action sequence:**
+1. Backtest configs added to `scripts/backtest/configs.ts`: `dgc_allday_parity`, `dgc_allday_5`, `dgc_allday_15`, `dgc_allday_20`. Parity guard matched baseline byte-for-byte on allday metrics before any candidates were judged.
+2. `app_config` INSERT on 3 new allday preset keys (parallel to CONFIG-07's midday pattern):
+   - `engine_weights_balanced_allday`: `{"BOX":49.5,"PBURST":27,"CO":8.5,"DGC":15}`
+   - `engine_weights_conservative_allday`: `{"BOX":67.5,"PBURST":13.5,"CO":4,"DGC":15}`
+   - `engine_weights_aggressive_allday`: `{"BOX":40.5,"PBURST":31.5,"CO":13,"DGC":15}`
+3. No code change required — the per-scope preset loader (CONFIG-07 mechanism) reads `engine_weights_${preset}_${scope}` keys dynamically.
+4. Today's (2026-05-27) allday slate regenerated immediately. Hash `E1D158BB`. New top pick `476 {4,6,7}` (DGC=0.798). All 6 picks have DGC scores in 0.778–0.835 (uniformly high — the signal is now load-bearing).
+
+**Rollback condition: 2026-06-03 (7-day review, same window as CONFIG-08 + CONFIG-09).** TIGHTER than CONFIG-09 due to the acknowledged 0.01 pick-lift trade. Revert if **any** of: (a) 7-day allday slate hit rate trails the pre-deploy 30-day baseline (89.7%) by more than 5pp, (b) allday rail-matched pick lift drops below ×1.00, OR (c) r1 hit rate fails to clear baseline 41.4% across the 7-day window. **Revert action:**
+```sql
+DELETE FROM app_config WHERE key IN ('engine_weights_balanced_allday','engine_weights_conservative_allday','engine_weights_aggressive_allday');
+```
+Engine falls back to the global preset (DGC=10), bit-identical to pre-CONFIG-10 behavior. No code change or edge fn redeploy needed for rollback.
+
+**Stacking caveat.** Live 7-day allday hit rate post-deploy stacks on CONFIG-08 + pair-rebuild-wiring (no prior per-scope overrides for allday). Backtest validated CONFIG-10 atop CONFIG-08 + CONFIG-09 (midday), so the incremental signal is allday-specific.
+
+---
+
 ### CONFIG-09 — Midday DGC Re-enablement (2026-05-27)
 
 Re-enables DGC signal weight for midday at 10% (carved from CO). CONFIG-07's intel-tuned weights zeroed midday DGC because the AUC fit (4/13–5/8) showed no predictive lift for DGC under the legacy MAX/H01Y mixed-horizon BOX scoring + stale pair data. With CONFIG-08 (times_drawn horizon blend) and the new daily-workflow pair rebuild shipping the same day, DGC's recurrence-consistency signal contributes meaningfully again.

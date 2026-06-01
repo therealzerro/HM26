@@ -192,8 +192,14 @@ function flattenHits(processed: ProcessedEntry[]): HitSummaryItem[] {
   const out: HitSummaryItem[] = [];
   for (const row of processed) {
     for (const h of row.hits ?? []) {
+      // For a STRAIGHT hit, the predicted bestOrder matched the draw exactly,
+      // so the row's result_digits IS the order we picked. h.combo (the
+      // sorted comboSet key, per BUG-155) would render in the wrong order.
+      const displayCombo = h.hit_straight && row.result_digits
+        ? row.result_digits
+        : (h.combo ?? '');
       out.push({
-        combo: h.combo ?? '',
+        combo: displayCombo,
         scope: h.scope ?? '',
         jurisdiction: h.hit_state || row.jurisdiction || '',
         session: h.hit_session || row.session || '',

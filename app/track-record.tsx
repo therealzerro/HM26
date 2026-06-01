@@ -230,7 +230,10 @@ export default function TrackRecordScreen() {
                     accessibilityLabel={`${isStraight ? 'Straight' : 'Box'} match on ${h.combo} in ${h.hit_state}, tap for details`}
                   >
                     <Text style={s.hitSessIcon}>{sessIcon}</Text>
-                    <Text style={s.hitCombo}>{h.combo}</Text>
+                    {/* h.combo is the sorted comboSet key; for STRAIGHT, the
+                        predicted order equals the draw — render hit_result so
+                        the digits match what was actually predicted. */}
+                    <Text style={s.hitCombo}>{isStraight && h.hit_result ? h.hit_result : h.combo}</Text>
                     <View style={{ flex: 1 }}>
                       <Text style={s.hitMain}>
                         <Text style={[s.hitTypeLabel, { color: isStraight ? colors.gold : colors.cyan }]}>

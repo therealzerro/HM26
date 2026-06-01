@@ -37,12 +37,17 @@ function toComboSet(combo: string): string {
 }
 
 export function hitRowToPickItem(h: HitToPickInput): PickItem {
-  const combo = h.combo ?? '';
+  const sortedCombo = h.combo ?? '';
+  // adaptive_tracking.combo is the sorted-canonical comboSet key (per BUG-155),
+  // not the order actually predicted. For a STRAIGHT hit, the engine's
+  // bestOrder matched the draw exactly, so hit_result IS that bestOrder.
+  // Surfacing the sorted key here would render "019 → 910" on a straight match.
+  const orderedCombo = h.hit_straight && h.hit_result ? h.hit_result : sortedCombo;
   return {
     rank: h.rank ?? 1,
-    combo,
-    comboSet: h.combo_set ?? toComboSet(combo),
-    bestOrder: combo,
+    combo: orderedCombo,
+    comboSet: h.combo_set ?? toComboSet(sortedCombo),
+    bestOrder: orderedCombo,
     energy: typeof h.energy === 'number' ? Math.round(h.energy) : 0,
     signals: {
       BOX:    typeof h.signal_box    === 'number' ? h.signal_box    : 0,

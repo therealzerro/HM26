@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-02 (SEC-05 — `REVOKE ALL` on materialized view `pair_live` from anon/authenticated; advisor `materialized_view_in_api` 1→0)  
+**Last updated:** 2026-06-02 (SEC-06 — `extension_in_public` (pg_net) deferred WONT-FIX after scoping: objects already in `net` schema, extension non-relocatable, all callers schema-qualify)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -494,6 +494,36 @@ Post-revoke ACL: `postgres=arwdDxtm/postgres`, `service_role=arwdDxtm/postgres` 
 
 **Rollback.** `GRANT SELECT ON public.pair_live TO anon, authenticated;` if a client caller emerges later (note: even then, prefer plumbing access through a proper view + RLS-protected base table rather than re-exposing the matview directly).
 
+### SEC-06 — `extension_in_public` (pg_net) — deferred WONT-FIX (2026-06-02)
+
+**Trigger.** Supabase advisor reported `extension_in_public` WARN: extension `pg_net` 0.19.5 has `pg_extension.extnamespace = 'public'`. The advisor's stated concern is that extension-provided callables in `public` collide with app objects and can be shadowed.
+
+**Investigation.** That concern does not apply to this DB.
+
+| Aspect | Value |
+|---|---|
+| `pg_extension.extnamespace` | `public` (what the advisor flags) |
+| `extrelocatable` | **`false`** — `ALTER EXTENSION ... SET SCHEMA` rejected by Postgres |
+| Actual object locations | All 12 functions + 2 tables + 1 sequence already live in **`net.*`**, not `public` |
+| Pending data | `net._http_response` 2 rows; `net.http_request_queue` 0 rows |
+
+Every caller in this DB already schema-qualifies as `net.http_post(...)`:
+- 4 cron jobs in `cron.job` (`compute-daily-report-nightly`, `generate-weight-proposal-weekly`, `run-hit-detection-zk30-nightly`, `compute-slate-zk30-daily`).
+- 4 migration files (`supabase/migrations/2026-05-18_pg_cron_compute_daily_report.sql`, `2026-05-18_pg_cron_generate_weight_proposal.sql`, `2026_05_25_zk30_slate_gen_cron.sql`, `2026_05_25_zk30_hit_detection_cron.sql`).
+- Zero unqualified `http_get(...) / http_post(...)` calls anywhere in `app/`, `lib/`, `hooks/`, `components/`, `engines/`, `scripts/`, `supabase/`.
+
+**Options considered.**
+
+| Approach | Outcome |
+|---|---|
+| `ALTER EXTENSION pg_net SET SCHEMA extensions` | Fails — `extrelocatable=false`. |
+| `DROP EXTENSION pg_net CASCADE; CREATE EXTENSION pg_net WITH SCHEMA extensions;` | Even with `WITH SCHEMA`, Supabase's pg_net build hard-creates objects in the `net` schema regardless — likely a no-op for the advisor while incurring real cost: drops the `net` schema mid-flight (cron jobs fail until recreate), loses 2 rows of response history, requires re-running 4 migrations, may end up exactly where we started. |
+| `UPDATE pg_extension SET extnamespace = ...` (catalog hack) | Requires superuser (not available via MCP); metadata-only flip with no actual security improvement since objects are already in `net`. |
+
+**Decision: WONT-FIX, deferred.** The actual schema separation pg_net's advisor exists to enforce is already in place — every callable is under `net.*` and every caller schema-qualifies. The advisor flag is a metadata curiosity tied to a non-relocatable Supabase-managed extension, and every viable "fix" either fails outright, risks the nightly cron pipeline, or is a no-op for the lint.
+
+**Revisit if:** (a) Supabase ships a relocatable pg_net build, (b) a future caller adds an unqualified `http_*` call (advisor's real concern), or (c) a Supabase support ticket surfaces a sanctioned migration path.
+
 ---
 
 ## Brand-Voice Audit (BRAND-XX)
@@ -761,7 +791,7 @@ Post-fix re-run: ✅ 30 files scanned, 0 findings.
 | State | Count |
 |-------|-------|
 | ✅ Fixed | 138 |
-| ℹ️ By design / False positive / Deferred | 12 |
+| ℹ️ By design / False positive / Deferred | 13 |
 | 🎨 UX Improvements Applied | 58 |
 | 🔴 Open — Critical | 0 |
 | 🟠 Open — High | 0 |

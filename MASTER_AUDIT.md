@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-02 (SEC-03 — `search_path = pg_catalog, public` pinned on 13 function overloads; advisor `function_search_path_mutable` 12→0)  
+**Last updated:** 2026-06-02 (SEC-04 — `REVOKE EXECUTE` on 10 SECURITY DEFINER functions from anon/authenticated/PUBLIC; advisor `*_security_definer_function_executable` 22→2)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -423,7 +423,56 @@ Advisor re-run: **ERROR count 0** (was 8). Remaining levels: 63 WARN + 10 INFO (
 
 **Rollback.** `ALTER FUNCTION public.<name>(<args>) RESET search_path;` per function.
 
-**Not done here.** The 22 `*_security_definer_function_executable` WARNs (anon+authenticated EXECUTE on DEFINER funcs), 27 `rls_policy_always_true` (intentional permissive policies — the anon-key client depends on these), `materialized_view_in_api` (`pair_live`), and `extension_in_public` (`pg_net`) remain. Tracked as SEC-04+ candidates; each needs a call-site audit before action.
+**Not done here.** The 22 `*_security_definer_function_executable` WARNs (anon+authenticated EXECUTE on DEFINER funcs) — addressed in SEC-04. The 27 `rls_policy_always_true` (intentional permissive policies — the anon-key client depends on these), `materialized_view_in_api` (`pair_live`), and `extension_in_public` (`pg_net`) remain.
+
+### SEC-04 — Revoke EXECUTE on 10 SECURITY DEFINER functions from anon / authenticated / PUBLIC (2026-06-02)
+
+**Trigger.** Supabase advisor reported 22 `*_security_definer_function_executable` WARNs (11 functions × 2 roles, `anon` + `authenticated`). DEFINER functions run with the owner's privileges, so an EXECUTE grant to anon/authenticated is effectively a back-door bypass of RLS unless the function's body is intentionally callable by those roles. Each function needs a per-call-site audit, not a blanket policy.
+
+**Inventory and disposition** (11 functions; `create_dataset` has two overloads):
+
+| Function | Class | Active anon/auth caller? | EXEC retained for |
+|---|---|---|---|
+| `set_engine_daily_report_updated_at()` | trigger | none (1 trigger ref) | `postgres`, `service_role` |
+| `set_push_tokens_updated_at()` | trigger | none (1 trigger ref) | `postgres`, `service_role` |
+| `sync_box_keys()` | trigger | none (1 trigger ref) | `postgres`, `service_role` |
+| `sync_pair_keys()` | trigger | none (1 trigger ref) | `postgres`, `service_role` |
+| `analyze_pick_patterns()` | admin helper | zero grep hits in `app/`, `lib/`, `hooks/`, `components/`, `engines/`, `scripts/`, `supabase/functions/` | `postgres`, `service_role` |
+| `create_dataset(text, text)` | admin helper | zero grep hits | `postgres`, `service_role` |
+| `create_dataset(text, text, text, integer, boolean)` | admin helper | zero grep hits | `postgres`, `service_role` |
+| `get_or_create_dataset(text, text, text, integer, boolean)` | admin helper | zero grep hits | `postgres`, `service_role` |
+| `get_todays_hits(text)` | admin helper | zero grep hits | `postgres`, `service_role` |
+| `update_pair_draws_since_from_results(text, date)` | dead RPC | call site removed in BUG-131 (`hooks/useDataIngestion.tsx:616` comment); function "neutered server-side" | `postgres`, `service_role` |
+| `calculate_hit_rates()` | view-backed | **KEPT** — invoked by `v_monthly_hit_rates` under `security_invoker = true` (per SEC-02); anon must have EXECUTE for the view to return rows under anon role | `postgres`, `service_role`, **`anon`**, **`authenticated`**, **`PUBLIC`** |
+
+The trigger functions are particularly important: triggers fire regardless of the caller's EXECUTE permission because the trigger function runs in the table-modification's transaction context. Anon/authenticated EXEC on them was pure attack surface.
+
+**Fix.** Migration `sec_04_revoke_definer_exec_from_anon_auth`:
+```sql
+-- Trigger-only (4) — also revoke PUBLIC
+REVOKE EXECUTE ON FUNCTION public.set_engine_daily_report_updated_at() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.set_push_tokens_updated_at()         FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.sync_box_keys()                      FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.sync_pair_keys()                     FROM PUBLIC, anon, authenticated;
+
+-- Admin helpers / dead RPC (6 funcs, 6 overloads)
+REVOKE EXECUTE ON FUNCTION public.analyze_pick_patterns()                                                          FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.create_dataset(text, text)                                                       FROM anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.create_dataset(text, text, text, integer, boolean)                               FROM anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.get_or_create_dataset(text, text, text, integer, boolean)                        FROM anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.get_todays_hits(text)                                                            FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.update_pair_draws_since_from_results(text, date)                                 FROM PUBLIC, anon, authenticated;
+```
+
+All 10 revoked functions now show ACL = `postgres=X/postgres, service_role=X/postgres` only. Edge Functions invoking these via the service-role key continue to work.
+
+**Verification.**
+- Anon smoke test on `v_monthly_hit_rates` (relies on `calculate_hit_rates` EXEC) still returns 9 rows.
+- Advisor re-run: `anon_security_definer_function_executable` **11 → 1**; `authenticated_security_definer_function_executable` **11 → 1**; remaining `calculate_hit_rates` flag is intentional. Total WARN **51 → 31**; ERROR still 0.
+
+**Rollback.** `GRANT EXECUTE ON FUNCTION public.<name>(<args>) TO anon, authenticated;` per function if any service-role-only assumption later proves wrong.
+
+**`calculate_hit_rates` kept-EXEC rationale.** Two prior call sites have been retired: the direct `/rest/v1/rpc/calculate_hit_rates` invocation from `components/admin/HitTrackingView.tsx` (replaced by client-side aggregation in Phase 1 B1) and the view's DEFINER bypass (closed by SEC-02 flipping the view to INVOKER). Under INVOKER mode the anon caller's perms gate the function call, so anon EXEC is now required for `v_monthly_hit_rates` to be queryable. The function body only reads `adaptive_tracking` (already public-readable via permissive policy), so the residual exposure matches the existing data surface — no new bypass.
 
 ---
 
@@ -691,7 +740,7 @@ Post-fix re-run: ✅ 30 files scanned, 0 findings.
 
 | State | Count |
 |-------|-------|
-| ✅ Fixed | 136 |
+| ✅ Fixed | 137 |
 | ℹ️ By design / False positive / Deferred | 12 |
 | 🎨 UX Improvements Applied | 58 |
 | 🔴 Open — Critical | 0 |

@@ -29,6 +29,7 @@ import { SlatePosterCard } from '@/components/SlatePosterCard';
 import { PickPosterCard } from '@/components/PickPosterCard';
 import { PublicExportBanner } from '@/components/PublicExportBanner';
 import { PickItem } from '@/components/PickCard';
+import { fetchPairScores } from '@/lib/pairUtils';
 import {
   captureAvailable,
   captureNodeToPng,
@@ -152,6 +153,13 @@ export default function AdminImageExportScreen() {
   const [stagePick, setStagePick] = useState<PickItem | null>(null);
   const [stageMode, setStageMode] = useState<'slate' | 'pick'>('slate');
   const [stagePicks, setStagePicks] = useState<PickItem[] | null>(null);
+  // Per-pick pair %s, fetched imperatively before each capture so the poster
+  // renders the same WHY-THIS-ORDER values as PickDetailModal. Null between
+  // captures so a stale value from the previous pick can't leak into the
+  // next one if the fetch fails.
+  const [stagePickPairScores, setStagePickPairScores] = useState<
+    { front: number; back: number; split: number } | null
+  >(null);
   // Date of the actual slate being captured (from snap.slate_date). Falls
   // back to today only if the snapshot row is missing slate_date entirely.
   // Must be rendered in the slate header AND used in filenames so the
@@ -238,6 +246,12 @@ export default function AdminImageExportScreen() {
       const pick = picks[i];
       setStagePicks(null);
       setStagePick(pick);
+      // Pre-fetch pair %s BEFORE setting stageMode/raf so the poster's
+      // first render under stageMode='pick' already has the scores. A
+      // useQuery here would resolve after raf and render zeros into the
+      // capture.
+      const ps = await fetchPairScores(pick.bestOrder ?? pick.combo ?? '000', session);
+      setStagePickPairScores(ps);
       setStageMode('pick');
       setStatus({ kind: 'generating', current: 2 + i, total: totalImages, label: `Pick #${i + 1}` });
       await raf();
@@ -256,6 +270,7 @@ export default function AdminImageExportScreen() {
 
     setStagePick(null);
     setStagePicks(null);
+    setStagePickPairScores(null);
     setStatus({ kind: 'done', items });
   }, [exportType, session]);
 
@@ -514,6 +529,7 @@ export default function AdminImageExportScreen() {
             <PickPosterCard
               pick={stagePick}
               scope={session}
+              pairScores={stagePickPairScores ?? undefined}
               redact={isPublic}
               height={logicalPosterHeight}
             />

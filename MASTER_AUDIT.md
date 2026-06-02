@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-02 (SEC-01 — RLS enabled on `drawings` and `pair_events` after Supabase advisor flagged two `rls_disabled_in_public` ERRORs; both tables unused by client code)  
+**Last updated:** 2026-06-02 (SEC-02 — 8 public views flipped from SECURITY DEFINER to `security_invoker=true`; advisor now reports zero ERROR-level findings)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -362,7 +362,47 @@ Pattern mirrors `pro_subscribers`, `funnel_daily_snapshots`, `saved_slates`, `us
 
 **Rollback.** `ALTER TABLE public.<name> DISABLE ROW LEVEL SECURITY;` (one-liner per table) if any service-role-key caller surfaces later.
 
-**Follow-ups not done here.** Advisor still reports 8 `security_definer_view` WARNs (views with SECURITY DEFINER), 8 `rls_enabled_no_policy` (tables with RLS but zero policies — same intentional pattern as the SEC-01 fix), 27 `rls_policy_always_true` (permissive `using (true)` policies on app-consumed tables — intentional, app uses anon key), 12 `function_search_path_mutable`, and 22 `*_security_definer_function_executable` items. None are ERROR-level; track separately if/when triaged.
+**Follow-ups not done here.** Advisor still reports 8 `security_definer_view` ERRORs (views with SECURITY DEFINER) — addressed in SEC-02. Also 8 `rls_enabled_no_policy` (tables with RLS but zero policies — same intentional pattern as the SEC-01 fix), 27 `rls_policy_always_true` (permissive `using (true)` policies on app-consumed tables — intentional, app uses anon key), 12 `function_search_path_mutable`, and 22 `*_security_definer_function_executable` items. None are ERROR-level; track separately if/when triaged.
+
+### SEC-02 — `security_invoker=true` on 8 public views (2026-06-02)
+
+**Trigger.** Supabase security advisor reported 8 `security_definer_view` ERRORs on every analytics/admin view in `public`. A view defined with SECURITY DEFINER runs queries against its underlying tables with the privileges of the *view owner* (here, `postgres` superuser), bypassing the *caller's* RLS. Result: even though the underlying tables had RLS enabled, the views effectively re-exposed them to anon with unfiltered access.
+
+**Views flipped.** `v_signal_hit_rates`, `v_box_import_format`, `v_coverage_summary`, `v_rank_hit_rates`, `v_recent_ledger`, `v_latest_slate_snapshots`, `v_import_health`, `v_monthly_hit_rates`.
+
+**Pre-flip risk check.** Two of the eight views are on the consumer hot path:
+- `v_latest_slate_snapshots` — used by `hooks/useSnapshot.tsx:108` (main slate load for every consumer screen) and `components/admin/HealthTestsView.tsx`, `hooks/useDataIngestion.tsx:853`.
+- `v_recent_ledger` — used by `app/(tabs)/results.tsx:355` and invalidated 6× in `hooks/useDataIngestion.tsx`.
+
+The other six (`v_coverage_summary`, `v_import_health`, `v_box_import_format`, `v_signal_hit_rates`, `v_rank_hit_rates`, `v_monthly_hit_rates`) are admin-only or unreferenced. Switching to INVOKER would zero-out callers if the underlying tables' RLS didn't permit the anon role — but every underlying table (`slate_snapshots`, `histories`, `datasets_box`, `datasets_pair`, `imports`, `daily_intelligence`, `adaptive_tracking`) carries a permissive `using (true)` SELECT policy for `public` or `anon`, so the flip is safe. The one wrapped function — `v_monthly_hit_rates` → `calculate_hit_rates()` — is itself SECURITY DEFINER with `EXECUTE` granted to anon, so it isolates table access independently.
+
+**Fix.** Single migration `sec_02_views_security_invoker`:
+```sql
+ALTER VIEW public.v_signal_hit_rates       SET (security_invoker = true);
+ALTER VIEW public.v_box_import_format      SET (security_invoker = true);
+ALTER VIEW public.v_coverage_summary       SET (security_invoker = true);
+ALTER VIEW public.v_rank_hit_rates         SET (security_invoker = true);
+ALTER VIEW public.v_recent_ledger          SET (security_invoker = true);
+ALTER VIEW public.v_latest_slate_snapshots SET (security_invoker = true);
+ALTER VIEW public.v_import_health          SET (security_invoker = true);
+ALTER VIEW public.v_monthly_hit_rates      SET (security_invoker = true);
+```
+
+**Verification.** Post-migration smoke test under `SET LOCAL ROLE anon` returned expected rowcounts on all 8 views:
+| view | anon rowcount |
+|---|---|
+| v_latest_slate_snapshots | 3 (one per scope — consumer load path OK) |
+| v_recent_ledger | 4095 (results screen OK) |
+| v_box_import_format | 7040 |
+| v_coverage_summary | 90 |
+| v_rank_hit_rates | 34 |
+| v_monthly_hit_rates | 9 |
+| v_signal_hit_rates | 1 (aggregate) |
+| v_import_health | 1 (aggregate) |
+
+Advisor re-run: **ERROR count 0** (was 8). Remaining levels: 63 WARN + 10 INFO (all by-design — permissive `using(true)` policies on app-consumed tables, intentional service-role-only tables, function search-path noise).
+
+**Rollback.** `ALTER VIEW public.<name> RESET (security_invoker);` per view (reverts to DEFINER default).
 
 ---
 
@@ -630,7 +670,7 @@ Post-fix re-run: ✅ 30 files scanned, 0 findings.
 
 | State | Count |
 |-------|-------|
-| ✅ Fixed | 134 |
+| ✅ Fixed | 135 |
 | ℹ️ By design / False positive / Deferred | 12 |
 | 🎨 UX Improvements Applied | 58 |
 | 🔴 Open — Critical | 0 |

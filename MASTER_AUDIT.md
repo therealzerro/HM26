@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-05-17 (BRAND-03 match-type vocab swap — Straight→Exact / Box→Partial on 5 consumer surfaces per marketing-reference doc, internal identifiers unchanged)  
+**Last updated:** 2026-06-02 (SEC-01 — RLS enabled on `drawings` and `pair_events` after Supabase advisor flagged two `rls_disabled_in_public` ERRORs; both tables unused by client code)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -341,6 +341,31 @@ External AI tool (Gemini CLI) overwrote engine config with untested aggressive t
 
 ---
 
+## Security Audit (SEC-XX)
+
+Tracks fixes prompted by Supabase advisor findings (`get_advisors type=security`) and any other production-security work. Distinct from BUG-XX (app behavior) and CONFIG-XX (engine math) because the failure mode is unauthorized data access, not incorrect output.
+
+### SEC-01 — RLS enabled on `drawings` and `pair_events` (2026-06-02)
+
+**Trigger.** Supabase security advisor flagged two `rls_disabled_in_public` ERRORs on 2026-05-31: `public.drawings` (76 rows) and `public.pair_events` (empty). Every other public table already had RLS enabled.
+
+**Risk.** With the anon publishable key, both tables were world-readable and world-writable. `drawings` holds the operator-curated drawing schedule (codes, times, multi-state flags, exclusion flags). `pair_events` is a per-event pair store — currently empty, but the schema is provisioned.
+
+**Code-path check.** No `fetchFromSupabase` caller hits either table. `drawings` is referenced only in three TODO-style comments in `lib/parseLedger.ts` (lines 34, 37, 98) describing future grouping logic; `pair_events` has zero references anywhere in `app/`, `lib/`, `hooks/`, `engines/`, or `supabase/`. Enabling RLS without policies therefore has no runtime impact on the client app.
+
+**Fix.** Single migration `sec_01_enable_rls_drawings_pair_events`:
+```sql
+ALTER TABLE public.drawings    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pair_events ENABLE ROW LEVEL SECURITY;
+```
+Pattern mirrors `pro_subscribers`, `funnel_daily_snapshots`, `saved_slates`, `user_sessions`, etc. (RLS on, no anon policies → service-role-only access). Verified post-migration via `pg_class.relrowsecurity = true` on both.
+
+**Rollback.** `ALTER TABLE public.<name> DISABLE ROW LEVEL SECURITY;` (one-liner per table) if any service-role-key caller surfaces later.
+
+**Follow-ups not done here.** Advisor still reports 8 `security_definer_view` WARNs (views with SECURITY DEFINER), 8 `rls_enabled_no_policy` (tables with RLS but zero policies — same intentional pattern as the SEC-01 fix), 27 `rls_policy_always_true` (permissive `using (true)` policies on app-consumed tables — intentional, app uses anon key), 12 `function_search_path_mutable`, and 22 `*_security_definer_function_executable` items. None are ERROR-level; track separately if/when triaged.
+
+---
+
 ## Brand-Voice Audit (BRAND-XX)
 
 Public-facing copy is governed by a separate rulebook from engine behavior. The HitMaster ZK6 Facebook page was de-recommended by Meta in May 2026 due to gambling-classifier triggers in the page's copy. The repositioning effort — see `assets/HitMaster_Designer_Agent_Skill_Brief.md` — extends from social/ads into the app itself: App Store metadata, push notifications, in-app UI strings, share templates, and error messages must all use the data-intelligence voice. Internal code identifiers and admin/operator surfaces are explicitly exempt. CLAUDE.md "Brand voice — public-facing strings" section is the in-repo doctrine; this section is the audit trail.
@@ -605,7 +630,7 @@ Post-fix re-run: ✅ 30 files scanned, 0 findings.
 
 | State | Count |
 |-------|-------|
-| ✅ Fixed | 133 |
+| ✅ Fixed | 134 |
 | ℹ️ By design / False positive / Deferred | 12 |
 | 🎨 UX Improvements Applied | 58 |
 | 🔴 Open — Critical | 0 |

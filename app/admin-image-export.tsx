@@ -255,6 +255,7 @@ export default function AdminImageExportScreen() {
       setStageMode('pick');
       setStatus({ kind: 'generating', current: 2 + i, total: totalImages, label: `Pick #${i + 1}` });
       await raf();
+      await waitFonts();
       try {
         const node = getStageNode(stageRef);
         if (!node) throw new Error('Capture stage not mounted');

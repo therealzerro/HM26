@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-02 (SEC-02 — 8 public views flipped from SECURITY DEFINER to `security_invoker=true`; advisor now reports zero ERROR-level findings)  
+**Last updated:** 2026-06-02 (SEC-03 — `search_path = pg_catalog, public` pinned on 13 function overloads; advisor `function_search_path_mutable` 12→0)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -404,6 +404,27 @@ Advisor re-run: **ERROR count 0** (was 8). Remaining levels: 63 WARN + 10 INFO (
 
 **Rollback.** `ALTER VIEW public.<name> RESET (security_invoker);` per view (reverts to DEFINER default).
 
+### SEC-03 — Pin `search_path` on 13 function overloads (2026-06-02)
+
+**Trigger.** Supabase advisor reported 12 `function_search_path_mutable` WARNs across `public.*` functions. With a mutable `search_path`, a SECURITY DEFINER function can be tricked into resolving unqualified identifiers against a malicious schema injected by a low-privilege caller (CVE-class search-path attack). Pinning the path closes that vector — body unchanged.
+
+**Functions touched** (13 overloads — `create_dataset` has two signatures):
+- SECURITY DEFINER (8): `analyze_pick_patterns`, `calculate_hit_rates`, `create_dataset(text,text)`, `create_dataset(text,text,text,int,bool)`, `get_todays_hits`, `sync_box_keys`, `sync_pair_keys`, `update_pair_draws_since_from_results`
+- SECURITY INVOKER (5): `fn_mirror_datasets_box_keys`, `fn_mirror_datasets_pair_keys`, `refresh_materialized_view`, `touch_updated_at`, `update_app_config_timestamp`
+
+**Pre-flip safety check.** Body grep for cross-schema references (`auth.`, `storage.`, `extensions.`, `net.`, `graphql.`, `vault.`) returned zero hits across all 13 overloads. Every function only touches `public.*` tables and `pg_catalog` built-ins, so `search_path = pg_catalog, public` is a no-op for resolution behavior while locking out malicious schema injection.
+
+**Fix.** Migration `sec_03_pin_function_search_path` — 13× `ALTER FUNCTION public.<name>(<args>) SET search_path = pg_catalog, public;`.
+
+**Verification.**
+- All 13 overloads now show `search_path=pg_catalog, public` in `pg_proc.proconfig`.
+- Anon-role smoke test: `SELECT count(*) FROM public.v_monthly_hit_rates` (which invokes `calculate_hit_rates()` under DEFINER) still returns 9 rows — proves the pinned-path function path is intact.
+- Advisor re-run: `function_search_path_mutable` count **12 → 0**. Total WARN 63 → 51. ERROR remains 0.
+
+**Rollback.** `ALTER FUNCTION public.<name>(<args>) RESET search_path;` per function.
+
+**Not done here.** The 22 `*_security_definer_function_executable` WARNs (anon+authenticated EXECUTE on DEFINER funcs), 27 `rls_policy_always_true` (intentional permissive policies — the anon-key client depends on these), `materialized_view_in_api` (`pair_live`), and `extension_in_public` (`pg_net`) remain. Tracked as SEC-04+ candidates; each needs a call-site audit before action.
+
 ---
 
 ## Brand-Voice Audit (BRAND-XX)
@@ -670,7 +691,7 @@ Post-fix re-run: ✅ 30 files scanned, 0 findings.
 
 | State | Count |
 |-------|-------|
-| ✅ Fixed | 135 |
+| ✅ Fixed | 136 |
 | ℹ️ By design / False positive / Deferred | 12 |
 | 🎨 UX Improvements Applied | 58 |
 | 🔴 Open — Critical | 0 |

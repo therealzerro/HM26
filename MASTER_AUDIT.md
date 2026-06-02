@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-02 (SEC-04 — `REVOKE EXECUTE` on 10 SECURITY DEFINER functions from anon/authenticated/PUBLIC; advisor `*_security_definer_function_executable` 22→2)  
+**Last updated:** 2026-06-02 (SEC-05 — `REVOKE ALL` on materialized view `pair_live` from anon/authenticated; advisor `materialized_view_in_api` 1→0)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -474,6 +474,26 @@ All 10 revoked functions now show ACL = `postgres=X/postgres, service_role=X/pos
 
 **`calculate_hit_rates` kept-EXEC rationale.** Two prior call sites have been retired: the direct `/rest/v1/rpc/calculate_hit_rates` invocation from `components/admin/HitTrackingView.tsx` (replaced by client-side aggregation in Phase 1 B1) and the view's DEFINER bypass (closed by SEC-02 flipping the view to INVOKER). Under INVOKER mode the anon caller's perms gate the function call, so anon EXEC is now required for `v_monthly_hit_rates` to be queryable. The function body only reads `adaptive_tracking` (already public-readable via permissive policy), so the residual exposure matches the existing data surface — no new bypass.
 
+### SEC-05 — Revoke materialized view `pair_live` from anon / authenticated (2026-06-02)
+
+**Trigger.** Supabase advisor reported `materialized_view_in_api` WARN on `public.pair_live` — a materialized view exposed via PostgREST to the anon-key client. Materialized views don't honor RLS, so any anon-readable matview is a complete RLS bypass of its underlying tables.
+
+**Pre-revoke audit.**
+- `pair_live` aggregates `public.pair_events` (the empty table locked down in SEC-01 — RLS enabled, no policies, service-role-only).
+- Current ACL granted **`arwdDxtm`** (full perms — INSERT/SELECT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER/MAINTAIN) to both `anon` and `authenticated`. Most of those bits are no-ops on a materialized view, but SELECT, INSERT, and DELETE are not — that's significant over-granting.
+- Zero references to `pair_live` in `app/`, `lib/`, `hooks/`, `components/`, `engines/`, `scripts/`, or `supabase/`. No client caller.
+
+**Fix.** Migration `sec_05_revoke_pair_live_from_anon_auth`:
+```sql
+REVOKE ALL ON public.pair_live FROM anon, authenticated;
+```
+
+Post-revoke ACL: `postgres=arwdDxtm/postgres`, `service_role=arwdDxtm/postgres` only.
+
+**Verification.** Advisor re-run: `materialized_view_in_api` **1 → 0**. Total WARN **31 → 30**.
+
+**Rollback.** `GRANT SELECT ON public.pair_live TO anon, authenticated;` if a client caller emerges later (note: even then, prefer plumbing access through a proper view + RLS-protected base table rather than re-exposing the matview directly).
+
 ---
 
 ## Brand-Voice Audit (BRAND-XX)
@@ -740,7 +760,7 @@ Post-fix re-run: ✅ 30 files scanned, 0 findings.
 
 | State | Count |
 |-------|-------|
-| ✅ Fixed | 137 |
+| ✅ Fixed | 138 |
 | ℹ️ By design / False positive / Deferred | 12 |
 | 🎨 UX Improvements Applied | 58 |
 | 🔴 Open — Critical | 0 |

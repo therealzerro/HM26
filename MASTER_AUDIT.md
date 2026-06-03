@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-03 (DATA-01 — `datasets_box` corruption reset + clean re-import of 30 box + 30 pair H01Y files; pair H02Y deferred; engine verified end-to-end on fresh inputs pre-midday draw)  
+**Last updated:** 2026-06-03 (REFACTOR-01 — consolidated all rebuild + daily-report triggers under the Daily Workflow button; removed the evening-daily-input auto-chain; DATA-01 dataset reset earlier in the day)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -22,6 +22,51 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 - Backtest result confirming improvement, OR explicit "untested, applying for empirical observation" with planned review date
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
+
+### REFACTOR-01 — Consolidate Rebuild + Daily-Report Triggers Under Daily Workflow (2026-06-03)
+
+All rebuild and daily-report side effects now live in a single operator-triggered button (`DashboardView::handleFullWorkflow`). No more auto-chains from import success handlers. Matches the operator's stated mental model: "rebuilds only fire when I click the Daily Workflow button or do an explicit manual import" — and since import is itself an explicit manual action, every refresh path is now operator-initiated.
+
+**Before this refactor.** Two implicit auto-chains and one explicit button:
+- `hooks/useDataIngestion.tsx::importDailyMutation` auto-fired `runDailyRebuild()` after every `scope==='evening'` daily-input import, then chained `runDailyReport()` on success.
+- The Full Daily Workflow button (4 steps) rebuilt **only pair** datasets, then AUC, hit detection, slate regen — it did NOT call box rebuild or daily report. Box was assumed to have been triggered already by the evening-import auto-chain.
+- pg_cron job `compute-daily-report-nightly` (8am ET) — independent server-side safety net for daily report.
+
+Result: box rebuild only ever happened as a side effect of evening daily-input import. If operator skipped that import or imported only one scope (e.g., midday-only catch-up), box `ds_raw` quietly went stale for days. The Daily Workflow button didn't fix it because box wasn't in its step list.
+
+**After this refactor.** Single button does everything refresh-related:
+- Step 1/5 — Box + pair rebuild **in parallel** (both refresh `ds_raw` from histories; independent tables, can run concurrently). Uses `runDailyRebuild(true)` (force-bypasses per-day dedupe since the click is an explicit operator action).
+- Step 2/5 — AUC refresh (`compute-daily-auc-zk6`).
+- Step 3/5 — Hit detection for yesterday + today.
+- Step 4/5 — Regenerate all 3 slates for `targetDateOption` (today/tomorrow toggle).
+- Step 5/5 — Daily report (`runDailyReport(true)`).
+- The evening-daily-input auto-chain is gone entirely. Importing daily input now just imports — the operator must click Daily Workflow separately to refresh derived data.
+- The 8am ET `compute-daily-report-nightly` pg_cron is preserved as a safety net (in case the operator forgets to click).
+
+**Files touched.** 3 changes:
+- `hooks/useDataIngestion.tsx` — removed `runDailyRebuild`/`runDailyReport` imports + the entire `if (variables?.scope === 'evening') { ... }` post-import auto-chain block.
+- `components/admin/DashboardView.tsx` — added `runDailyRebuild`/`runDailyReport` imports; `handleFullWorkflow` now runs box + pair rebuild in parallel via `Promise.all` at Step 1, then daily report at Step 5; all step labels updated 1/4–4/4 → 1/5–5/5.
+- `lib/rebuildTrigger.ts` — updated stale JSDoc comment on `runDailyReport()` to reflect new trigger source (Daily Workflow button, not evening-import auto-chain).
+
+**Why.** Five compounding reasons:
+1. DATA-01 (this morning) traced 12 days of polluted engine output to silent dataset contamination. Reducing the number of trigger paths makes the rebuild step easier to audit and reason about.
+2. Operator preference is explicit: "I want the rebuild to happen only when I manually import or click the daily workflow" (2026-06-03 chat).
+3. The auto-chain pattern depended on the operator importing exactly one specific scope (`evening`) — easy to break. A single workflow button is impossible to forget into.
+4. The Daily Workflow button is the obvious "do all the daily stuff" UI affordance; not having box rebuild in it was a usability inconsistency.
+5. The 8am cron + Daily Workflow button combination is now the only refresh story: scheduled safety net + explicit operator action. No third "lurking" path.
+
+**Trade-offs accepted.**
+- Operator MUST click Daily Workflow each day; daily-input import alone no longer refreshes `ds_raw`. The button is prominently displayed in the admin Dashboard, but missing it for a day means engine reads day-stale `ds_raw`. Mitigated by the 8am cron picking up daily report regardless, and by `ds_raw` being only mildly time-sensitive (one stale day shifts `draws_since` by ~25-60 depending on scope, not catastrophic).
+- Step 1's parallel rebuild means both rebuilds must finish before Step 2 (AUC) starts. Sequential would have allowed AUC to start as soon as pair finished. In practice both rebuilds complete in ~5-10s each so the wall-clock cost is negligible.
+
+**Verification.**
+- Lint clean on all 3 modified files (no new warnings or errors introduced — the pre-existing `useDataIngestion is defined but never used` warning in `DashboardView.tsx` predates this refactor).
+- No code path now calls `runDailyRebuild` outside of `DashboardView::handleFullWorkflow`. Grep confirmed.
+- pg_cron job table verified: only `compute-daily-report-nightly` runs at 8am; no cron calls `rebuild-datasets-zk6` or `rebuild-pair-datasets-zk6` (and none ever did — the "nightly auto-rebuild" wording in the prior `[Dataset rebuild semantics]` memory was loose; the auto-chain was client-side post-import, not pg_cron).
+
+**Memory updated.** `feedback_dataset_rebuild_semantics.md` (`[Dataset rebuild semantics]` in MEMORY.md) replaced with REFACTOR-01-aware version.
+
+---
 
 ### DATA-01 — `datasets_box` Corruption Reset + Clean Re-Import (2026-06-03)
 

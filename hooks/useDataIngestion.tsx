@@ -12,7 +12,6 @@ import { computeSlate } from '@/engines/zk6';
 import { HORIZON_WEIGHTS } from '@/constants/zk6';
 import { storage } from '@/lib/storage';
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
-import { runDailyRebuild, runDailyReport } from '@/lib/rebuildTrigger';
 import { useToast } from '@/components/Toast';
 
 interface DataIngestionState {
@@ -575,39 +574,9 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
       queryClient.invalidateQueries({ queryKey: ['coverage'] });
       queryClient.invalidateQueries({ queryKey: ['v_recent_ledger'] });
       queryClient.invalidateQueries({ queryKey: ['daily_intelligence_hits'] });
-
-      // Auto-trigger ds_raw rebuild after evening daily input. Once-per-day
-      // dedupe handled inside runDailyRebuild via the rebuild_last_date
-      // storage flag. Async — does not block the import response.
-      if (variables?.scope === 'evening') {
-        showToast('🔧 Rebuilding datasets from histories…', 'info');
-        runDailyRebuild()
-          .then(result => {
-            if ('skipped' in result) {
-              showToast(`Rebuild skipped — ${result.reason}`, 'info');
-              return;
-            }
-            const seconds = (result.durationMs / 1000).toFixed(1);
-            showToast(
-              `✓ Datasets refreshed · ${result.totalUpdated} of ${result.totalChecked} rows updated · ${seconds}s`,
-              'success',
-            );
-            queryClient.invalidateQueries({ queryKey: ['snapshot'] });
-            queryClient.invalidateQueries({ queryKey: ['audit_logs'] });
-            // After ds_raw rebuild settles, capture today's hit-rate snapshot
-            // into engine_daily_report. Errors swallowed by runDailyReport.
-            runDailyReport().then(r => {
-              if (r.ok && !r.skipped) {
-                queryClient.invalidateQueries({ queryKey: ['engine_daily_report'] });
-              }
-            });
-          })
-          .catch(err => {
-            const msg = err instanceof Error ? err.message : String(err);
-            console.warn('[useDataIngestion] daily rebuild failed:', msg);
-            showToast(`Rebuild failed: ${msg.slice(0, 80)}`, 'error');
-          });
-      }
+      // Rebuild + daily report no longer auto-chain from this import — both
+      // run only via the Daily Workflow button in DashboardView (operator's
+      // explicit one-click trigger). See MASTER_AUDIT.md → REFACTOR-01.
     }
   });
 

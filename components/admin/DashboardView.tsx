@@ -11,6 +11,7 @@ import { useScope } from '@/hooks/useScope';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { getTodayET, getTomorrowET, getYesterdayET } from '@/lib/dateUtils';
 import { runHitDetectionAllScopes, runHitDetectionAndRefresh, HitDetectionResult } from '@/lib/hitDetection';
+import { runDailyRebuild, runDailyReport } from '@/lib/rebuildTrigger';
 import { RegenConfirmationModal } from '@/components/RegenConfirmationModal';
 import { computeZK30Slate } from '@/engines/zk30';
 import { Pill, SectionTitle, Card, timeAgo, MOCK_IMPORTS, useImportTypes, PAIR_CLASSES, ImportRecord } from './AdminShared';
@@ -187,17 +188,28 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
 
   const handleFullWorkflow = useCallback(async () => {
     setIsRunningWorkflow(true);
-    setWorkflowProgress('Step 1/4: Rebuilding pair datasets…');
+    setWorkflowProgress('Step 1/5: Rebuilding box + pair datasets…');
     try {
-      // Step 1: Refresh datasets_pair.ds_raw from histories. Pair tables are
-      // manual-rebuild only (no nightly cron); without this step PBURST + CO
-      // pressure scores drift as days pass since the last rebuild. Runs first
-      // so hit detection + slate regen below see fresh pair pressure values.
-      let pairRebuildMsg = '';
-      try {
-        const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-        const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-        if (url && key) {
+      // Step 1: Refresh datasets_box.ds_raw + datasets_pair.ds_raw from
+      // histories. Both run in parallel — they touch different tables and
+      // are independent. Runs first so the AUC compute below (Step 2) and
+      // slate regen (Step 4) read fresh pressure values for both signals.
+      const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+      const boxRebuildPromise = (async () => {
+        try {
+          const r = await runDailyRebuild(true); // force=true: explicit operator click bypasses per-day dedupe
+          if ('skipped' in r) return `Box rebuild: ${r.reason}`;
+          return `Box rebuild: ${r.totalUpdated} of ${r.totalChecked} rows updated`;
+        } catch (e) {
+          return `Box rebuild: failed (non-fatal) — ${String(e instanceof Error ? e.message : e).slice(0, 60)}`;
+        }
+      })();
+
+      const pairRebuildPromise = (async () => {
+        try {
+          if (!url || !key) return 'Pair rebuild: skipped (no config)';
           const res = await fetch(`${url}/functions/v1/rebuild-pair-datasets-zk6`, {
             method: 'POST',
             headers: {
@@ -209,27 +221,23 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
           });
           const j = res.ok ? await res.json() : null;
           if (j && typeof j.totalUpdated === 'number') {
-            pairRebuildMsg = `Pair rebuild: ${j.totalUpdated} updated (${j.totalFailed ?? 0} failed)`;
-          } else {
-            pairRebuildMsg = 'Pair rebuild: skipped (non-fatal)';
+            return `Pair rebuild: ${j.totalUpdated} updated (${j.totalFailed ?? 0} failed)`;
           }
+          return 'Pair rebuild: skipped (non-fatal)';
+        } catch {
+          return 'Pair rebuild: failed (non-fatal)';
         }
-      } catch (e) {
-        // Non-fatal — continue with the rest of the workflow even if pair
-        // rebuild fails. The slate will still regenerate against whatever pair
-        // state currently exists (which is no worse than the prior workflow's
-        // behavior of skipping pair rebuild entirely).
-        pairRebuildMsg = 'Pair rebuild: failed (non-fatal)';
-      }
+      })();
 
-      // Step 2/4: refresh per-signal AUC for yesterday so the engine reads
+      const [boxRebuildMsg, pairRebuildMsg] = await Promise.all([boxRebuildPromise, pairRebuildPromise]);
+      const rebuildMsg = `${boxRebuildMsg} · ${pairRebuildMsg}`;
+
+      // Step 2/5: refresh per-signal AUC for yesterday so the engine reads
       // fresh rolling-30d values during slate regen. Non-fatal — workflow
       // continues with stale AUC if the call fails. ENH-AFL-1 (2026-05-27).
-      setWorkflowProgress(`${pairRebuildMsg} · Step 2/4: Refreshing signal AUC…`);
+      setWorkflowProgress(`${rebuildMsg} · Step 2/5: Refreshing signal AUC…`);
       let aucRefreshMsg = '';
       try {
-        const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-        const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
         if (url && key) {
           const res = await fetch(`${url}/functions/v1/compute-daily-auc-zk6`, {
             method: 'POST',
@@ -251,7 +259,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
         aucRefreshMsg = 'AUC refresh: failed (non-fatal)';
       }
 
-      setWorkflowProgress(`${pairRebuildMsg} · ${aucRefreshMsg} · Step 3/4: Running hit detection…`);
+      setWorkflowProgress(`${rebuildMsg} · ${aucRefreshMsg} · Step 3/5: Running hit detection…`);
       const yesterday = getYesterdayET();
       const today = getTodayET();
       let totalHits = 0;
@@ -259,7 +267,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
         const res = await runHitDetectionAllScopes(date);
         totalHits += res.hitsFound;
       }
-      setWorkflowProgress(`${pairRebuildMsg} · ${aucRefreshMsg} · Hit detection done (${totalHits} hit${totalHits !== 1 ? 's' : ''}) · Step 4/4: Regenerating all slates…`);
+      setWorkflowProgress(`${rebuildMsg} · ${aucRefreshMsg} · Hit detection done (${totalHits} hit${totalHits !== 1 ? 's' : ''}) · Step 4/5: Regenerating all slates…`);
       const date = targetDateOption === 'today' ? getTodayET() : getTomorrowET();
       const scopes: Array<'midday' | 'evening' | 'allday'> = ['midday', 'evening', 'allday'];
       const results = await Promise.all(
@@ -272,7 +280,22 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
       );
       queryClient.invalidateQueries({ queryKey: ['snapshot'] });
       queryClient.invalidateQueries({ queryKey: ['daily_intelligence_hits'] });
-      setWorkflowProgress(`Done · ${pairRebuildMsg} · ${aucRefreshMsg} · Hits detected · Slates: ${results.join(' / ')}`);
+
+      // Step 5/5: capture today's hit-rate snapshot into engine_daily_report.
+      // Non-fatal — the 8am ET cron (compute-daily-report-nightly) is a
+      // safety net for days the workflow button isn't clicked.
+      setWorkflowProgress(`${rebuildMsg} · ${aucRefreshMsg} · Slates: ${results.join(' / ')} · Step 5/5: Daily report…`);
+      let reportMsg = '';
+      try {
+        const r = await runDailyReport(true);
+        reportMsg = r.ok ? (r.skipped ? 'Daily report: skipped' : 'Daily report: ✓') : `Daily report: failed (${r.reason ?? '?'})`;
+        if (r.ok && !r.skipped) {
+          queryClient.invalidateQueries({ queryKey: ['engine_daily_report'] });
+        }
+      } catch (e) {
+        reportMsg = 'Daily report: failed (non-fatal)';
+      }
+      setWorkflowProgress(`Done · ${rebuildMsg} · ${aucRefreshMsg} · Hits detected · Slates: ${results.join(' / ')} · ${reportMsg}`);
     } catch (e) {
       setWorkflowProgress('Workflow error — check logs');
     } finally {

@@ -77,13 +77,15 @@ export async function runDailyRebuild(force = false): Promise<RebuildStats | { s
 
 /**
  * Fire the compute-daily-report edge function for today (ET) once per
- * day. Intended to run after rebuild-datasets-zk6 succeeds (the canonical
- * post-evening-import slot) so the report captures the freshly-updated
- * ds_raw/hit state.
+ * day. Intended as the final step of the Daily Workflow button (after
+ * rebuild + AUC + hit-detection + slate regen) so the report captures
+ * the freshly-updated ds_raw/hit state. The 8am ET pg_cron job
+ * (compute-daily-report-nightly) is a safety net for days the operator
+ * doesn't click Daily Workflow.
  *
- * Dedupe via REPORT_LAST_DATE_KEY so opening the app twice on the same
- * day after the evening import doesn't re-fire it. Errors are swallowed
- * (logged + returned) so they never block the user-visible import flow.
+ * Dedupe via REPORT_LAST_DATE_KEY so multiple workflow clicks on the
+ * same day don't re-fire it. Pass force=true to bypass. Errors are
+ * swallowed (logged + returned) so they never block the workflow.
  */
 export async function runDailyReport(force = false): Promise<{ ok: boolean; skipped?: boolean; reason?: string; results?: unknown }> {
   const today = getTodayET();

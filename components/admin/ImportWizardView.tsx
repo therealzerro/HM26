@@ -105,6 +105,19 @@ function comboToSet(combo: string): string {
   return '{' + digits.join(',') + '}';
 }
 
+/**
+ * Sort the digits of a combo ascending — canonical box-key form.
+ * "742" → "247", "247" → "247", "{2,4,7}" → "247".
+ * BUG-160: every box row written to `datasets_box.key` / `key_box` MUST
+ * be canonical. Without this, non-canonical permutation rows leak in,
+ * `rebuild-datasets-zk6` skips them on the nightly refresh, and engine
+ * read code uses non-deterministic last-row-wins for `ds_raw`.
+ */
+function sortComboDigits(combo: string): string {
+  const digits = (combo.match(/\d/g) ?? []).join('').split('').sort();
+  return digits.join('');
+}
+
 // ─── Import Wizard View ───────────────────────────────────────────────────────
 export default function ImportWizardView({ setView, importHistory, importLedger, importDailyInput, regenerateSlate, preset, onClearPreset }: {
   setView: (v: string) => void;
@@ -327,22 +340,29 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
         const boxRows: { key: string; timesDrawn: number; expected: number; lastSeen: string; drawsSince: number }[] =
           parsedData.boxRows ?? [];
 
-        // Build records for datasets_box
-        const records = boxRows.map(r => ({
-          class_id: 1,
-          scope: config.scope,
-          horizon_label: config.horizon,
-          key: r.key,
-          jurisdiction: preset?.jurisdiction ?? null,
-          key_box: r.key,
-          ds_raw: r.drawsSince,
-          ds_normalized: 0,
-          times_drawn: r.timesDrawn,
-          last_seen: r.lastSeen,
-          expected: r.expected,
-          draws_since: r.drawsSince,
-          deleted_at: null,
-        }));
+        // Build records for datasets_box. BUG-160: keys MUST be canonical-sorted
+        // before insert so non-canonical permutation rows can't leak in (e.g.
+        // straight-form CSV "742" → store as "247"). Combined with the
+        // NULLS NOT DISTINCT constraint applied 2026-06-03, every re-import
+        // structurally merges into the 220-row canonical universe.
+        const records = boxRows.map(r => {
+          const sortedKey = sortComboDigits(r.key);
+          return {
+            class_id: 1,
+            scope: config.scope,
+            horizon_label: config.horizon,
+            key: sortedKey,
+            jurisdiction: preset?.jurisdiction ?? null,
+            key_box: sortedKey,
+            ds_raw: r.drawsSince,
+            ds_normalized: 0,
+            times_drawn: r.timesDrawn,
+            last_seen: r.lastSeen,
+            expected: r.expected,
+            draws_since: r.drawsSince,
+            deleted_at: null,
+          };
+        });
 
         // Chunk at 500 rows to stay within PostgREST payload limits
         const CHUNK = 500;
@@ -356,6 +376,27 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
             body: batch,
           });
           inserted += batch.length;
+        }
+
+        // BUG-160 tripwire: verify final row count fits the box universe
+        // (220 unique sorted-key combos per scope × horizon × class × jurisdiction).
+        // If the count exceeds 220, surface a hard error to the operator so they
+        // can investigate before the engine reads contaminated data.
+        const scopeEnc = encodeURIComponent(config.scope);
+        const horizonEnc = encodeURIComponent(config.horizon);
+        const jurFilter = preset?.jurisdiction
+          ? `&jurisdiction=eq.${encodeURIComponent(preset.jurisdiction)}`
+          : '&jurisdiction=is.null';
+        const verifyRows = await fetchFromSupabase<{ id: string }[]>({
+          path: `/rest/v1/datasets_box?select=id&class_id=eq.1&scope=eq.${scopeEnc}&horizon_label=eq.${horizonEnc}&deleted_at=is.null${jurFilter}&limit=1100`,
+        });
+        const finalCount = Array.isArray(verifyRows) ? verifyRows.length : 0;
+        if (finalCount > 220) {
+          throw new Error(
+            `Box import wrote ${finalCount} rows for (${config.scope}, ${config.horizon})` +
+            `${preset?.jurisdiction ? ' jurisdiction=' + preset.jurisdiction : ''}; ` +
+            `expected ≤220 unique box combos. Possible contamination — review datasets_box before regenerating slates.`,
+          );
         }
 
         // Log import record

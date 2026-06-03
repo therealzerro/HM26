@@ -102,12 +102,19 @@ const FORBIDDEN: ForbiddenRule[] = [
   { pattern: /\bpayout\b/i,          why: 'replaced by tier/win-tier',     source: 'CLAUDE.md' },
   { pattern: /1[- ]?800[- ]?GAMBLER/i, why: 'hotline removed per Q5',      source: 'CLAUDE.md' },
   { pattern: /#Pick3\b/,             why: 'replaced by #DataIntelligence',  source: 'CLAUDE.md' },
-  { pattern: /\bStraight match\b/,   why: 'use "Exact match" in result UI', source: 'BRAND-03' },
-  { pattern: /\bStraight Match\b/,   why: 'use "Exact match" in result UI', source: 'BRAND-03' },
-  { pattern: /\bBox match\b/,        why: 'use "Partial match" in result UI', source: 'BRAND-03' },
-  { pattern: /\bBox Match\b/,        why: 'use "Partial match" in result UI', source: 'BRAND-03' },
-  { pattern: /\bSTRAIGHT HIT\b/,     why: 'use EXACT MATCH in result UI',  source: 'BRAND-03' },
-  { pattern: /\bBOX HIT\b/,          why: 'use PARTIAL MATCH in result UI', source: 'BRAND-03' },
+  // Match-type vocab (BRAND-04 inversion, 2026-05-26): the prior 5/17 mapping
+  // (Straight→Exact, Box→Partial) is RETIRED. The new public vocab is
+  //   box match    → "MATCH"
+  //   straight match → "STRAIGHT MATCH"
+  // and "PARTIAL"/"EXACT" as match-status words are now banned (they were the
+  // leak vector on the public redacted reel exports — see BUG-157).
+  { pattern: /\bPARTIAL MATCH\b/i,   why: 'use "MATCH" (banned per BRAND-04)', source: 'BRAND-03' },
+  { pattern: /\bEXACT MATCH\b/i,     why: 'use "STRAIGHT MATCH" (banned per BRAND-04)', source: 'BRAND-03' },
+  { pattern: /\bPartial set\b/i,     why: 'use "Box set" (banned per BRAND-04)', source: 'BRAND-03' },
+  { pattern: /\bBox match\b/,        why: 'use "MATCH" in result UI',        source: 'BRAND-03' },
+  { pattern: /\bBox Match\b/,        why: 'use "MATCH" in result UI',        source: 'BRAND-03' },
+  { pattern: /\bSTRAIGHT HIT\b/,     why: 'use STRAIGHT MATCH in result UI', source: 'BRAND-03' },
+  { pattern: /\bBOX HIT\b/,          why: 'use MATCH in result UI',          source: 'BRAND-03' },
 ];
 
 // ────────────────────────────────────────────────────────────────────────────

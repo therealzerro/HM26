@@ -16,6 +16,7 @@ import { theme } from '@/constants/theme';
 import { useTheme, type ColorTokens } from '@/lib/theme';
 import { PickItem } from './PickCard';
 import { RedactedDigitRow } from './pickVisuals';
+import { formatHitContext } from '@/lib/hitToPickItem';
 
 const REDACT_LOCK_GOLD = '#FFD700';
 
@@ -155,26 +156,36 @@ export function SlatePosterCard({ pick, onPress, redact = false }: SlatePosterCa
       {/* Match stamp — overlay on matched pick cards.
           Gold for straight matches, green for box matches.
           The hitResult subtitle (actual draw digits) is suppressed when
-          redact=true — otherwise it would defeat the digit-tile redaction. */}
-      {isHit && !isLocked && (
-        <View pointerEvents="none" style={gt.hitStampWrap}>
-          <View style={[gt.hitStamp, { borderColor: stampColor, backgroundColor: stampColor + '22', shadowColor: stampColor }]}>
-            <Text
-              style={[gt.hitStampText, { color: stampColor, textShadowColor: stampColor + 'aa' }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.5}
-            >
-              {hitLabel}
-            </Text>
-            {!redact && pick.hitResult ? (
-              <Text style={[gt.hitStampSub, { color: stampColor }]} numberOfLines={1}>
-                {pick.hitResult}
+          redact=true — otherwise it would defeat the digit-tile redaction.
+          The context line ("6/3 NC Midday") gives the viewer where/when the
+          match landed — date · jurisdiction · session. */}
+      {isHit && !isLocked && (() => {
+        const context = redact ? '' : formatHitContext(pick);
+        return (
+          <View pointerEvents="none" style={gt.hitStampWrap}>
+            <View style={[gt.hitStamp, { borderColor: stampColor, backgroundColor: stampColor + '22', shadowColor: stampColor }]}>
+              <Text
+                style={[gt.hitStampText, { color: stampColor, textShadowColor: stampColor + 'aa' }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.5}
+              >
+                {hitLabel}
               </Text>
-            ) : null}
+              {!redact && pick.hitResult ? (
+                <Text style={[gt.hitStampSub, { color: stampColor }]} numberOfLines={1}>
+                  {pick.hitResult}
+                </Text>
+              ) : null}
+              {context ? (
+                <Text style={[gt.hitStampContext, { color: stampColor }]} numberOfLines={1}>
+                  {context}
+                </Text>
+              ) : null}
+            </View>
           </View>
-        </View>
-      )}
+        );
+      })()}
     </TouchableOpacity>
   );
 }
@@ -280,5 +291,12 @@ const makeGt = (colors: ColorTokens) => StyleSheet.create({
     fontFamily: theme.typography.fontFamily.monoBold,
     letterSpacing: 1,
     marginTop: 1,
+  },
+  hitStampContext: {
+    fontSize: 8, fontWeight: '800',
+    fontFamily: theme.typography.fontFamily.monoBold,
+    letterSpacing: 0.8,
+    marginTop: 1,
+    opacity: 0.95,
   },
 });

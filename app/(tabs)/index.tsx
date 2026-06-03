@@ -520,6 +520,7 @@ export default function HomeScreen() {
         hitState: r.hitState ?? r.matched_state ?? undefined,
         hitSession: r.hitSession ?? r.matched_session ?? undefined,
         hitResult: r.hitResult ?? r.actual_result ?? undefined,
+        hitDate: r.hitDate ?? r.slate_date ?? snapshot?.slate_date ?? undefined,
       };
     });
   }, [snapshot, isFree]);
@@ -559,8 +560,9 @@ export default function HomeScreen() {
       hitState: row.matched_state ?? undefined,
       hitSession: row.matched_session ?? undefined,
       hitResult: row.actual_result ?? undefined,
+      hitDate: todayStr,
     }));
-  }, [adaptiveHitRows]);
+  }, [adaptiveHitRows, todayStr]);
 
   // §2.4 freshness logic moved to components/FreshnessLine.tsx (design.md step 5).
 

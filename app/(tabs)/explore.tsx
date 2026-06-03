@@ -262,6 +262,7 @@ export default function SlatesScreen() {
         hitState: r.hitState ?? r.matched_state ?? undefined,
         hitSession: r.hitSession ?? r.matched_session ?? undefined,
         hitResult: r.hitResult ?? r.actual_result ?? undefined,
+        hitDate: r.hitDate ?? r.slate_date ?? snapshot?.slate_date ?? undefined,
       };
     });
   }, [snapshot, isFree, scope]);
@@ -284,7 +285,8 @@ export default function SlatesScreen() {
     hitState: row.matched_state ?? undefined,
     hitSession: row.matched_session ?? undefined,
     hitResult: row.actual_result ?? undefined,
-  })), [scopedHits]);
+    hitDate: todayStr,
+  })), [scopedHits, todayStr]);
 
   const filtered = useMemo(() => {
     let p = [...rawItems];

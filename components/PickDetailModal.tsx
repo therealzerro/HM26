@@ -14,6 +14,7 @@ import { PickItem } from './PickCard';
 import { HitReplay } from './HitReplay';
 import { getPairs, fetchPairScores } from '../lib/pairUtils';
 import { EnergyArc, SignalPill, WhyRow } from './pickVisuals';
+import { formatHitContext } from '../lib/hitToPickItem';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -592,6 +593,7 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
             {pick.hitType && (() => {
               const isStraight = pick.hitType === 'straight';
               const stampC = isStraight ? D.gold : D.success;
+              const context = formatHitContext(pick);
               return (
                 <View pointerEvents="none" style={s.hitStampWrap}>
                   <View style={[s.hitStamp, { borderColor: stampC, backgroundColor: stampC + '20', shadowColor: stampC }]}>
@@ -606,7 +608,11 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
                     {pick.hitResult ? (
                       <Text style={[s.hitStampSub, { color: stampC }]} numberOfLines={1}>
                         {pick.hitResult}
-                        {pick.hitState ? ` · ${pick.hitState}` : ''}
+                      </Text>
+                    ) : null}
+                    {context ? (
+                      <Text style={[s.hitStampContext, { color: stampC }]} numberOfLines={1}>
+                        {context}
                       </Text>
                     ) : null}
                   </View>
@@ -798,6 +804,14 @@ const makeS = (D: DTokens) => StyleSheet.create({
     fontFamily: D.monoBold,
     letterSpacing: 0.8,
     marginTop: 1,
+  },
+  hitStampContext: {
+    fontSize: 8, fontWeight: '800',
+    color: D.success,
+    fontFamily: D.monoBold,
+    letterSpacing: 0.6,
+    marginTop: 1,
+    opacity: 0.95,
   },
   heroLeft:        { alignItems: 'center', gap: 5 },
   heroEnergyLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },

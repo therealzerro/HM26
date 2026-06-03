@@ -36,6 +36,37 @@ function toComboSet(combo: string): string {
   return '{' + combo.split('').sort().join(',') + '}';
 }
 
+const SESSION_LABELS: Record<string, string> = {
+  morning: 'Morning',
+  midday:  'Midday',
+  evening: 'Evening',
+  night:   'Night',
+  allday:  'All Day',
+};
+
+/**
+ * formatHitContext — "6/3 NC Midday" style metadata line for hit stamps.
+ * Renders only the parts that exist; returns "" when nothing is available so
+ * callers can no-op render.
+ */
+export function formatHitContext(p: {
+  hitDate?: string;
+  hitState?: string;
+  hitSession?: string;
+  snapshotScope?: string;
+}): string {
+  const parts: string[] = [];
+  // M/D (no leading zero) parsed from YYYY-MM-DD
+  if (p.hitDate) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(p.hitDate);
+    if (m) parts.push(`${Number(m[2])}/${Number(m[3])}`);
+  }
+  if (p.hitState) parts.push(p.hitState);
+  const sess = (p.hitSession ?? p.snapshotScope ?? '').toLowerCase();
+  if (sess) parts.push(SESSION_LABELS[sess] ?? (sess.charAt(0).toUpperCase() + sess.slice(1)));
+  return parts.join(' ');
+}
+
 export function hitRowToPickItem(h: HitToPickInput): PickItem {
   const sortedCombo = h.combo ?? '';
   // adaptive_tracking.combo is the sorted-canonical comboSet key (per BUG-155),
@@ -60,6 +91,7 @@ export function hitRowToPickItem(h: HitToPickInput): PickItem {
     hitState: h.hit_state ?? undefined,
     hitSession: h.hit_session ?? undefined,
     hitResult: h.hit_result ?? undefined,
+    hitDate: h.slate_date ?? undefined,
     snapshotScope: h.scope ?? undefined,
   };
 }

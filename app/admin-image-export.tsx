@@ -72,7 +72,7 @@ function toComboSet(combo: string): string {
   return '{' + combo.split('').sort().join(',') + '}';
 }
 
-function rowToPickItem(r: any, idx: number, snapshotUpdatedAt?: string, scope?: string): PickItem {
+function rowToPickItem(r: any, idx: number, snapshotUpdatedAt?: string, scope?: string, slateDate?: string): PickItem {
   const combo  = r.combo ?? '---';
   const energy = typeof r.energy === 'number' ? r.energy : typeof r.temperature === 'number' ? r.temperature : 0;
   const hitType = r.hitType === 'straight' || r.hitType === 'box' ? r.hitType : undefined;
@@ -100,6 +100,7 @@ function rowToPickItem(r: any, idx: number, snapshotUpdatedAt?: string, scope?: 
     hitState:  r.hitState  ?? r.matched_state    ?? undefined,
     hitSession: r.hitSession ?? r.matched_session ?? undefined,
     hitResult: r.hitResult ?? r.actual_result    ?? undefined,
+    hitDate:   r.hitDate   ?? r.slate_date       ?? slateDate ?? undefined,
   };
 }
 
@@ -204,7 +205,7 @@ export default function AdminImageExportScreen() {
             : []);
       snapshotUpdatedAt = snap.updated_at_et ?? snap.updated_at ?? snap.created_at;
       snapshotSlateDate = typeof snap.slate_date === 'string' ? snap.slate_date : undefined;
-      picks = (Array.isArray(raw) ? raw : []).slice(0, 6).map((r: any, i: number) => rowToPickItem(r, i, snapshotUpdatedAt, session));
+      picks = (Array.isArray(raw) ? raw : []).slice(0, 6).map((r: any, i: number) => rowToPickItem(r, i, snapshotUpdatedAt, session, snapshotSlateDate));
       if (picks.length === 0) {
         setStatus({ kind: 'error', msg: `Snapshot for ${SESSION_LABELS[session]} has no picks.` });
         return;

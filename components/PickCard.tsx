@@ -36,6 +36,7 @@ export interface PickItem {
   hitState?: string;
   hitSession?: string;
   hitResult?: string;
+  hitDate?: string;       // slate_date (YYYY-MM-DD) the hit was recorded on
   generatedAt?: string;   // snapshot updated_at_et
   snapshotScope?: string; // snapshot scope
   synergy?: boolean;

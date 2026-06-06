@@ -2561,6 +2561,141 @@ export const CONFIGS: Record<string, EngineConfig> = {
     timesDrawnHorizonBlend: true,
   },
 
+  // ─── DGC drop candidate (2026-06-06): zero out the anti-predictive signal ──
+  // Phase 1 fix (LEARN-01 + HIT-DET-01) cleaned signal_auc_per_day. 28d AUC:
+  //   DGC midday 0.430 / evening 0.485 / allday 0.454 — anti-predictive in ALL
+  //   BOX strongest on allday (0.594); CO strongest on midday (0.596) + evening (0.615)
+  //
+  // Hypothesis: DGC's 10% (midday/evening) / 15% (allday) weight is actively
+  // dragging hit rate down. Drop DGC to 0; redistribute weight to remaining
+  // signals proportional to their current allocation (no new bets, just
+  // remove the dead-weight signal).
+  //
+  // Allocation math = scale remaining 3 signals to sum to 1.0:
+  //   midday  scale 100/90  = 1.111  → BOX 23.1 / PBURST 5.8 / CO 71.1
+  //   evening scale 100/90  = 1.111  → BOX 50.0 / PBURST 27.8 / CO 22.2
+  //   allday  scale 100/85  = 1.176  → BOX 58.2 / PBURST 31.8 / CO 10.0
+  //   global  scale 100/90  = 1.111  → BOX 55.0 / PBURST 30.0 / CO 15.0
+  //
+  // Ship gate (when 6/13 review window closes and this becomes a candidate):
+  //   candidate ≥ baseline on slate AND pick rate, no scope > 2pp regression,
+  //   r1 hit rate per scope preserved (per Lever-2 lesson).
+  dgc_cut_v1: {
+    presets: {
+      balanced:     { BOX: 0.550, PBURST: 0.300, CO: 0.150, DGC: 0.00 },
+      conservative: { BOX: 0.750, PBURST: 0.150, CO: 0.100, DGC: 0.00 },
+      aggressive:   { BOX: 0.450, PBURST: 0.350, CO: 0.200, DGC: 0.00 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.231, PBURST: 0.058, CO: 0.711, DGC: 0.000 },
+        conservative: { BOX: 0.390, PBURST: 0.036, CO: 0.574, DGC: 0.000 },
+        aggressive:   { BOX: 0.156, PBURST: 0.056, CO: 0.788, DGC: 0.000 },
+      },
+      evening: {
+        balanced:     { BOX: 0.500, PBURST: 0.278, CO: 0.222, DGC: 0.000 },
+        conservative: { BOX: 0.700, PBURST: 0.128, CO: 0.172, DGC: 0.000 },
+        aggressive:   { BOX: 0.400, PBURST: 0.328, CO: 0.272, DGC: 0.000 },
+      },
+      allday: {
+        balanced:     { BOX: 0.582, PBURST: 0.318, CO: 0.100, DGC: 0.000 },
+        conservative: { BOX: 0.794, PBURST: 0.159, CO: 0.047, DGC: 0.000 },
+        aggressive:   { BOX: 0.476, PBURST: 0.371, CO: 0.153, DGC: 0.000 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+  },
+
+  // ─── AFL re-test (2026-06-06): adaptive feedback loop on clean AUC data ────
+  // Original ENH-AFL conclusion (5/27) was flag-OFF because backtest showed
+  // no lift. Source data (signal_auc_per_day) was contaminated by the
+  // canonical-row filter bug fixed in Phase 1 last night (LEARN-01) and the
+  // missing result_at stamps for misses (HIT-DET-01). Both fixed 2026-06-06.
+  //
+  // 28-day post-Phase-1 AUC shows real gradient:
+  //   DGC anti-predictive in ALL scopes (mean AUC 0.43-0.49)
+  //   CO strongest on midday (0.596) + evening (0.615)
+  //   BOX strongest on allday (0.594)
+  //
+  // Hypothesis: AFL alpha=1.0 layered on evening_co_boost_20 (production-
+  // parity baseline) now produces lift the contaminated test couldn't see.
+  // Same preset shape as evening_co_boost_20 + adaptiveSignalWeights on.
+  evening_co_boost_20_afl_10: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.516, DGC: 0.100 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.710, DGC: 0.100 },
+      },
+      evening: {
+        balanced:     { BOX: 0.450, PBURST: 0.250, CO: 0.200, DGC: 0.100 },
+        conservative: { BOX: 0.630, PBURST: 0.115, CO: 0.155, DGC: 0.100 },
+        aggressive:   { BOX: 0.360, PBURST: 0.295, CO: 0.245, DGC: 0.100 },
+      },
+      allday: {
+        balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.085, DGC: 0.150 },
+        conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.040, DGC: 0.150 },
+        aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.130, DGC: 0.150 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+    adaptiveSignalWeights: { enabled: true, alpha: 1.0 },
+  },
+
+  // Softer AFL variant — alpha=0.5 halves the gradient pull. Tests whether the
+  // alpha=1.0 result (allday +3.5pp slate, midday -3.4pp slate) was an over-
+  // correction. If midday flattens (no loss) and allday holds gain, alpha=0.5
+  // becomes the ship candidate.
+  evening_co_boost_20_afl_05: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.516, DGC: 0.100 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.710, DGC: 0.100 },
+      },
+      evening: {
+        balanced:     { BOX: 0.450, PBURST: 0.250, CO: 0.200, DGC: 0.100 },
+        conservative: { BOX: 0.630, PBURST: 0.115, CO: 0.155, DGC: 0.100 },
+        aggressive:   { BOX: 0.360, PBURST: 0.295, CO: 0.245, DGC: 0.100 },
+      },
+      allday: {
+        balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.085, DGC: 0.150 },
+        conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.040, DGC: 0.150 },
+        aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.130, DGC: 0.150 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+    adaptiveSignalWeights: { enabled: true, alpha: 0.5 },
+  },
+
   // ─── Lever 2 investigation (2026-06-06): evening pressure weight neutral ────
   // ⛔ FALSIFIED 2026-06-06 — DO NOT SHIP. Kept for audit-trail reference only.
   //

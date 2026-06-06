@@ -53,6 +53,18 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
   const [scopeCooldowns, setScopeCooldowns] = useState<Record<ScopeName, number | null>>({
     midday: null, evening: null, allday: null,
   });
+  // ENGINE-UI-01 (2026-06-06): read-only mirror of per-scope signal-weight
+  // overrides (`engine_weights_balanced_${scope}` rows). Production reads these
+  // FIRST via the CONFIG-07 mechanism; the editor above shows only the global
+  // preset. Without surfacing these, "Reset to defaults" silently degrades
+  // scopes that have overrides — e.g. midday's CO=64% override would be
+  // invisible. State is read-only (no save path) to prevent operators from
+  // bypassing the CLAUDE.md backtest gate via the UI. To change per-scope
+  // weights, add a CONFIG-XX entry + backtest + SQL ship per MASTER_AUDIT.
+  type WeightSet = { BOX: number; PBURST: number; CO: number; DGC: number };
+  const [perScopeWeights, setPerScopeWeights] = useState<Record<ScopeName, WeightSet | null>>({
+    midday: null, evening: null, allday: null,
+  });
   // Snapshot of scope overrides at last load — used to compute which keys to
   // DELETE when the user clears an override (was non-null at load, now null).
   const [loadedScopeCooldowns, setLoadedScopeCooldowns] = useState<Record<ScopeName, number | null>>({
@@ -204,6 +216,29 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
         try { overrides.balanced = { ...DEFAULT_PRESETS.balanced, ...JSON.parse(rawBalanced) }; } catch {}
       }
       setPresets(overrides);
+
+      // ENGINE-UI-01: load per-scope balanced overrides for read-only display.
+      // Engine reads these FIRST; if no row exists for a scope, engine falls
+      // back to the global `engine_weights_balanced`. UI mirrors that exact
+      // semantics — null = inherits global.
+      const perScopeWts: Record<ScopeName, WeightSet | null> = {
+        midday: null, evening: null, allday: null,
+      };
+      for (const sc of SCOPE_NAMES) {
+        const raw = cfg[`engine_weights_balanced_${sc}`];
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (
+              typeof parsed?.BOX === 'number' && typeof parsed?.PBURST === 'number' &&
+              typeof parsed?.CO === 'number'  && typeof parsed?.DGC === 'number'
+            ) {
+              perScopeWts[sc] = parsed as WeightSet;
+            }
+          } catch {}
+        }
+      }
+      setPerScopeWeights(perScopeWts);
 
       // E6: snapshot the loaded surface area. currentSnapshot uses live state
       // which hasn't flushed yet, so we serialize the values we just loaded
@@ -504,6 +539,60 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
             );
           })()}
         </View>
+      </Card>
+
+      {/* ENGINE-UI-01 (2026-06-06): per-scope weight overrides — read-only.
+          Production engine reads `engine_weights_balanced_${scope}` FIRST and
+          falls back to the global preset above only when no row exists. This
+          card surfaces what's actually running per scope. To change values,
+          add a CONFIG-XX entry + backtest + SQL ship per MASTER_AUDIT — the
+          Reset button does NOT touch these rows. */}
+      <SectionTitle>PER-SCOPE OVERRIDES (LIVE)</SectionTitle>
+      <Card style={{ padding: 12, marginBottom: 16 }}>
+        <Text style={{ fontSize: 10, color: colors.textTertiary, marginBottom: 10, lineHeight: 14 }}>
+          Engine reads these rows first; scopes without an override inherit the global preset above. Read-only here — change via CONFIG-XX backtest + SQL.
+        </Text>
+        {SCOPE_NAMES.map((sc, idx) => {
+          const w = perScopeWeights[sc];
+          const label = sc === 'midday' ? '☀️ Midday' : sc === 'evening' ? '🌙 Evening' : '◈ All Day';
+          if (!w) {
+            return (
+              <View key={sc} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderTopWidth: idx === 0 ? 0 : 1, borderTopColor: colors.border }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: colors.text, width: 96 }}>{label}</Text>
+                <Text style={{ fontSize: 10, color: colors.textTertiary, fontStyle: 'italic', flex: 1 }}>inherits global preset</Text>
+              </View>
+            );
+          }
+          const sum = w.BOX + w.PBURST + w.CO + w.DGC;
+          const sumOk = Math.abs(sum - 100) <= 1;
+          return (
+            <View key={sc} style={{ paddingVertical: 10, borderTopWidth: idx === 0 ? 0 : 1, borderTopColor: colors.border }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: colors.text, width: 96 }}>{label}</Text>
+                <View style={{ backgroundColor: colors.primaryLight, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                  <Text style={{ fontSize: 9, fontWeight: '800', color: colors.primary, letterSpacing: 0.5 }}>OVERRIDE</Text>
+                </View>
+                <View style={{ flex: 1 }} />
+                <Text style={{ fontSize: 10, fontWeight: '700', color: sumOk ? colors.success : colors.error, fontFamily: theme.typography.fontFamily.monoBold }}>
+                  Σ {sum.toFixed(1)}%
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 5 }}>
+                {[
+                  { l: 'BOX',    v: w.BOX,    c: colors.primary },
+                  { l: 'PBURST', v: w.PBURST, c: colors.rose    },
+                  { l: 'CO',     v: w.CO,     c: colors.teal    },
+                  { l: 'DGC',    v: w.DGC,    c: colors.gold    },
+                ].map(s => (
+                  <View key={s.l} style={{ flex: 1, backgroundColor: colors.surfaceLight, borderRadius: 8, padding: 7, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 8, color: colors.textTertiary, fontWeight: '800', letterSpacing: 1 }}>{s.l}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '900', color: s.c, fontFamily: theme.typography.fontFamily.monoBold }}>{s.v}%</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          );
+        })}
       </Card>
 
       <SectionTitle>K6 RAIL CONTROLS</SectionTitle>
@@ -877,7 +966,7 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
             <View style={{ backgroundColor: colors.surface, borderRadius: 14, borderWidth: 1, borderColor: colors.border, padding: 18, width: '100%', maxWidth: 360 }}>
               <Text style={{ fontSize: 15, fontWeight: '800', color: colors.text, marginBottom: 6 }}>Reset to UI defaults?</Text>
               <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 14 }}>
-                This wipes all staged engine settings back to hardcoded defaults — including any per-scope cooldown overrides. It does NOT touch production app_config until you Save.{'\n\n'}If you want the live production state instead, cancel and use ↻ Reload.
+                This wipes all staged engine settings back to hardcoded defaults — including any per-scope cooldown overrides. It does NOT touch production app_config until you Save.{'\n\n'}<Text style={{ fontWeight: '700', color: colors.gold }}>Per-scope signal-weight overrides (Midday / Evening / Allday — shown read-only in the PER-SCOPE OVERRIDES card above) are NOT cleared by Reset and NOT cleared by Save.</Text> Production engine continues reading those rows. To change them: backtest + SQL ship per MASTER_AUDIT CONFIG-XX pattern.{'\n\n'}If you want the live production state instead, cancel and use ↻ Reload.
               </Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <TouchableOpacity style={[st.btnGhost, { flex: 1 }]} onPress={() => setConfirmResetOpen(false)}>

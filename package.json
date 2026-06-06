@@ -23,8 +23,8 @@
     "rls:smoke": "tsx scripts/rls-smoke.ts",
     "zk6:parity": "tsx scripts/zk6-parity/run.ts",
     "check:brand-voice": "tsx scripts/check-brand-voice.ts",
-    "sync:edge-shared": "cp -f lib/engineCore.ts supabase/_shared/engineCore.ts && cp -f lib/dateUtils.ts supabase/_shared/dateUtils.ts && echo 'OK supabase/_shared/ synced from lib/'",
-    "check:edge-shared": "diff -q lib/engineCore.ts supabase/_shared/engineCore.ts && diff -q lib/dateUtils.ts supabase/_shared/dateUtils.ts && echo 'OK supabase/_shared/ in sync with lib/'"
+    "sync:edge-shared": "cp -f lib/engineCore.ts supabase/functions/_shared/engineCore.ts && cp -f lib/dateUtils.ts supabase/functions/_shared/dateUtils.ts && echo 'OK supabase/functions/_shared/ synced from lib/'",
+    "check:edge-shared": "diff -q lib/engineCore.ts supabase/functions/_shared/engineCore.ts && diff -q lib/dateUtils.ts supabase/functions/_shared/dateUtils.ts && echo 'OK supabase/functions/_shared/ in sync with lib/'"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

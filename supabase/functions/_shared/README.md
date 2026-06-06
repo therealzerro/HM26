@@ -1,6 +1,6 @@
 # `_shared/` — parity mirror of `lib/`
 
-This directory exists to work around a Supabase CLI v1.215.1 bundler quirk that refuses to resolve `../../../lib/<file>.ts` imports from edge functions (see `MASTER_AUDIT.md` → **DEPLOY-01**). Edge fn imports must stay within `supabase/` for the bundler to graph them.
+This directory exists to work around a Supabase CLI v1.215.1 bundler sandbox that scopes the deployable graph to `supabase/functions/`. Imports must resolve inside that directory or the bundler can't find them (see `MASTER_AUDIT.md` → **DEPLOY-01**). The canonical location for Supabase shared module code is `supabase/functions/_shared/` per the Supabase docs convention.
 
 ## Files
 
@@ -17,8 +17,8 @@ When you change `lib/engineCore.ts` or `lib/dateUtils.ts`:
 
 ```bash
 npm run sync:edge-shared    # copies lib/* into _shared/
-git diff supabase/_shared/  # eyeball the diff
-git add lib/ supabase/_shared/  # commit both sides together
+git diff supabase/functions/_shared/  # eyeball the diff
+git add lib/ supabase/functions/_shared/  # commit both sides together
 ```
 
 Before deploying any edge function:

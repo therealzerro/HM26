@@ -22,7 +22,7 @@ import {
   normalizeBoxKey, normalizePairKey,
   computeDGC, computeBoxSignal, computePairSignal, blendBoxDsRaw,
   type Scope,
-} from '../../_shared/engineCore.ts';
+} from '../_shared/engineCore.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SVC_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;

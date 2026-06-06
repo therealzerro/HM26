@@ -23,14 +23,14 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
-### DEPLOY-01 ✅ FIXED — Edge Fn `../../../lib/` Imports Resolved via `supabase/_shared/` Mirror (2026-06-06)
+### DEPLOY-01 ✅ FIXED — Edge Fn `../../../lib/` Imports Resolved via `supabase/functions/_shared/` Mirror (2026-06-06)
 
-**Resolution.** Created `supabase/_shared/engineCore.ts` and `supabase/_shared/dateUtils.ts` as byte-identical mirrors of the canonical `lib/` files. Updated all three affected edge functions (`compute-slate-zk6`, `compute-slate-zk30`, `compute-daily-auc-zk6`) to import from `../../_shared/<file>.ts` instead of `../../../lib/<file>.ts`. Both shared files are byte-identical to their `lib/` counterparts — no in-file parity headers; parity rule lives in `supabase/_shared/README.md` and is enforced by two npm scripts:
+**Resolution.** Created `supabase/functions/_shared/engineCore.ts` and `supabase/functions/_shared/dateUtils.ts` as byte-identical mirrors of the canonical `lib/` files. Updated all three affected edge functions (`compute-slate-zk6`, `compute-slate-zk30`, `compute-daily-auc-zk6`) to import from `../_shared/<file>.ts` instead of `../../../lib/<file>.ts`. Both shared files are byte-identical to their `lib/` counterparts — no in-file parity headers; parity rule lives in `supabase/functions/_shared/README.md` and is enforced by two npm scripts:
 
-- `npm run sync:edge-shared` — copies `lib/{engineCore,dateUtils}.ts` to `supabase/_shared/` (manual; operator runs after every `lib/` change)
-- `npm run check:edge-shared` — `diff -q` between `lib/` and `supabase/_shared/`; exits non-zero on drift (suitable for pre-commit hook or CI)
+- `npm run sync:edge-shared` — copies `lib/{engineCore,dateUtils}.ts` to `supabase/functions/_shared/` (manual; operator runs after every `lib/` change)
+- `npm run check:edge-shared` — `diff -q` between `lib/` and `supabase/functions/_shared/`; exits non-zero on drift (suitable for pre-commit hook or CI)
 
-The relative path `../../_shared/` stays inside `supabase/`, sidestepping whatever the v1.215.1 bundler now rejects about `../../../` traversal. Three edge fns now deploy under the same CLI version that was refusing them.
+The relative path `../_shared/` stays inside `supabase/`, sidestepping whatever the v1.215.1 bundler now rejects about `../../../` traversal. Three edge fns now deploy under the same CLI version that was refusing them.
 
 Why this layout vs alternatives:
 - **vs inline-all (the operator's first ask):** inline-all would have triplicated the ~500-line `engineCore.ts` body across three edge fns → three sync points instead of one. Same class of bug we already lived through tonight (the dead `lib/computeWeightedScore` divergence from three inline copies). Single sync point + a check script keeps drift surface narrow.
@@ -42,8 +42,8 @@ Why this layout vs alternatives:
 **Operator workflow going forward:**
 1. Edit `lib/engineCore.ts` (or `dateUtils.ts`)
 2. `npm run sync:edge-shared`
-3. `git diff supabase/_shared/` (eyeball)
-4. `git add lib/ supabase/_shared/` (commit both sides together)
+3. `git diff supabase/functions/_shared/` (eyeball)
+4. `git add lib/ supabase/functions/_shared/` (commit both sides together)
 5. Deploy affected edge fns
 
 Pre-deploy guard: `npm run check:edge-shared` — exits non-zero if `_shared/` drifted from `lib/`.
@@ -75,7 +75,7 @@ Two edge fns deployed cleanly the same night (`run-hit-detection`, `generate-wei
 - ENH-AFL signal AUC computation tweaks
 - Any bug fix in the slate-compute flow
 
-**Fix applied tonight (Option 1 — restructure):** see header for full detail. `supabase/_shared/` mirror + parity npm scripts; all three edge fns now import via `../../_shared/` and deploy under v1.215.1.
+**Fix applied tonight (Option 1 — restructure):** see header for full detail. `supabase/functions/_shared/` mirror + parity npm scripts; all three edge fns now import via `../_shared/` and deploy under v1.215.1.
 
 Tracker memory: [[feedback-supabase-cli-lib-imports]] retained for the bundler quirk itself (root cause unknown — file an upstream report if it recurs).
 

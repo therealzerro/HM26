@@ -404,6 +404,28 @@ async function runForDate(date: string, scope: string | null, skipSupplements: b
     // inside each pickPasses entry; different picks run in parallel.
     await Promise.all([...pickPasses, ...diWrites]);
 
+    // HIT-DET-01 (2026-06-06): mark this snapshot's still-unstamped primary
+    // rows as result_at=NOW. Any K6 primary with matched_state IS NULL at
+    // this point is a confirmed miss for the date's draws — without this
+    // stamp it would be indistinguishable from "detection hasn't run yet"
+    // downstream (G1 sample-size gate, autotune AUC fitting). Hits already
+    // had result_at stamped via recordHitInAdaptiveTracking; the
+    // result_at=is.null filter makes this PATCH idempotent so re-runs are
+    // no-ops on already-labeled picks. Outside the hasNewHit branch
+    // deliberately: all-miss slates are exactly the case we most need to
+    // label so the operator sees them as "verified" not "pending".
+    if (snapshot.hash) {
+      try {
+        await sbPatch(
+          `/rest/v1/adaptive_tracking?slate_hash=eq.${encodeURIComponent(snapshot.hash)}` +
+          `&matched_state=is.null&result_at=is.null`,
+          { result_at: new Date().toISOString() },
+        );
+      } catch (e) {
+        errors.push(`AT miss-stamp ${snapshot.scope}/${snapshot.hash}: ${String(e).slice(0, 120)}`);
+      }
+    }
+
     if (hasNewHit) {
       try {
         await sbPatch(`/rest/v1/slate_snapshots?id=eq.${snapshot.id}`, {

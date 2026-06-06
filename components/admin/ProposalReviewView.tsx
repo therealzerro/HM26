@@ -80,16 +80,31 @@ export default function ProposalReviewView() {
     staleTime: 30000,
   });
 
-  // Sample-size proxy for system status
+  // Sample-size proxy for system status.
+  //
+  // PROP-01 (2026-06-06): the prior query lacked a matched_state filter and
+  // returned a mix of (a) ~2 labeled K6 primaries (the only ones with
+  // result_at populated under the old data model) and (b) ~136 secondary hit
+  // rows, where hit_box.eq.true is structurally always true on secondaries.
+  // The dataset was ~99% hits / 0% misses — a degenerate training set that
+  // would make gateAucImprovement return 0.5 immediately. Pairs with
+  // HIT-DET-01 (now stamps result_at on missed K6 primaries too).
+  //
+  // New query: count distinct K6 picks where outcome is known. Filter
+  // result_at IS NOT NULL (post-HIT-DET-01 this is populated on hits AND
+  // misses), then dedupe (slate_hash, rank, combo) client-side so a hit
+  // pick that landed in 3 jurisdictions counts once, not three times.
   const { data: atSampleSize = 0 } = useQuery<number>({
     queryKey: ['adaptive_tracking_sample_size'],
     queryFn: async () => {
       const since = new Date(); since.setDate(since.getDate() - 30);
       const sinceStr = since.toISOString().split('T')[0];
-      const r = await fetchFromSupabase<{ id: string }[]>({
-        path: `/rest/v1/adaptive_tracking?slate_date=gte.${sinceStr}&mode=eq.balanced&rank=gte.1&rank=lte.6&or=(hit_box.eq.true,hit_straight.eq.true,result_at.not.is.null)&select=id&limit=10000`,
+      const rows = await fetchFromSupabase<{ slate_hash: string; rank: number; combo: string }[]>({
+        path: `/rest/v1/adaptive_tracking?slate_date=gte.${sinceStr}&mode=eq.balanced&rank=gte.1&rank=lte.6&result_at=not.is.null&select=slate_hash,rank,combo&limit=10000`,
       });
-      return Array.isArray(r) ? r.length : 0;
+      if (!Array.isArray(rows)) return 0;
+      const uniquePicks = new Set(rows.map(r => `${r.slate_hash}|${r.rank}|${r.combo}`));
+      return uniquePicks.size;
     },
     staleTime: 60000,
   });

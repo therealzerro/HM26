@@ -131,12 +131,21 @@ async function loadProductionWeights(): Promise<ProductionWeights> {
 interface GateResult { name: string; passed: boolean; reason: string; details: any }
 
 async function gateSampleSize(): Promise<GateResult> {
+  // G1-GATE-01 (2026-06-06): prior query lacked a matched_state filter and
+  // mixed primary rows (with result_at as the labeling signal) with secondary
+  // hit rows (where hit_box.eq.true is structurally always true). Returned
+  // ~99% hits / 0% misses — a degenerate dataset that would make downstream
+  // AUC fitting return 0.5 immediately. Pairs with HIT-DET-01 (now stamps
+  // result_at on missed K6 primaries) and PROP-01 (same fix in the screen
+  // proxy). Filter result_at IS NOT NULL, then dedupe (slate_hash, rank,
+  // combo) so a hit pick that landed in 3 jurisdictions counts once.
   const since = new Date();
   since.setDate(since.getDate() - LOOKBACK_DAYS);
   const sinceStr = since.toISOString().split('T')[0];
-  const path = `/adaptive_tracking?slate_date=gte.${sinceStr}&mode=eq.balanced&rank=gte.1&rank=lte.6&or=(hit_box.eq.true,hit_straight.eq.true,result_at.not.is.null)&select=id&limit=10000`;
-  const rows = await dbGet<{ id: string }[]>(path);
-  const n = Array.isArray(rows) ? rows.length : 0;
+  const path = `/adaptive_tracking?slate_date=gte.${sinceStr}&mode=eq.balanced&rank=gte.1&rank=lte.6&result_at=not.is.null&select=slate_hash,rank,combo&limit=10000`;
+  const rows = await dbGet<{ slate_hash: string; rank: number; combo: string }[]>(path);
+  const uniquePicks = new Set((Array.isArray(rows) ? rows : []).map(r => `${r.slate_hash}|${r.rank}|${r.combo}`));
+  const n = uniquePicks.size;
   return {
     name: 'G1_sample_size',
     passed: n >= SAMPLE_SIZE_MIN,

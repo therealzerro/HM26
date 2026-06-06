@@ -191,13 +191,18 @@ function fitWeights(rows: DiRow[]): FitResult {
 interface GateResult { name: string; passed: boolean; reason: string; details: unknown }
 
 async function gateSampleSize(): Promise<GateResult> {
+  // G1-GATE-01 (2026-06-06): same fix as scripts/intel-tuning/generate-proposal.ts.
+  // Prior query mixed primaries + secondaries and never had a misses class;
+  // gateAucImprovement would return 0.5. Filter result_at IS NOT NULL, dedupe
+  // by (slate_hash, rank, combo) for multi-state hits. Pairs with HIT-DET-01.
   const since = new Date();
   since.setDate(since.getDate() - LOOKBACK_DAYS);
   const sinceStr = since.toISOString().split('T')[0];
-  const rows = await sbGet<{ id: string }[]>(
-    `/rest/v1/adaptive_tracking?slate_date=gte.${sinceStr}&mode=eq.balanced&rank=gte.1&rank=lte.6&or=(hit_box.eq.true,hit_straight.eq.true,result_at.not.is.null)&select=id&limit=10000`,
+  const rows = await sbGet<{ slate_hash: string; rank: number; combo: string }[]>(
+    `/rest/v1/adaptive_tracking?slate_date=gte.${sinceStr}&mode=eq.balanced&rank=gte.1&rank=lte.6&result_at=not.is.null&select=slate_hash,rank,combo&limit=10000`,
   );
-  const n = Array.isArray(rows) ? rows.length : 0;
+  const uniquePicks = new Set((Array.isArray(rows) ? rows : []).map(r => `${r.slate_hash}|${r.rank}|${r.combo}`));
+  const n = uniquePicks.size;
   return {
     name: 'G1_sample_size',
     passed: n >= SAMPLE_SIZE_MIN,

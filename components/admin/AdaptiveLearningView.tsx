@@ -162,35 +162,96 @@ export default function AdaptiveLearningView({ setView }: AdaptiveLearningViewPr
 
   // ─── Computed metrics (all memoized) ──────────────────────────────────────────
 
-  // BUG-FIX 2026-05-27: collapse multi-regen days to the canonical slate
-  // before any analysis. Each regen writes 6 K6 primary rows with a fresh
-  // slate_hash; without this filter, days like 5/22 (22 regens) and 5/27 (8
-  // regens) inflate every per-pick aggregation (signalAUC, energyBands,
-  // positionStats, multStats, dominantSignal, quartileBoost) by 4–22×.
+  // LEARN-01 (2026-06-06): the prior implementation had two defects that made
+  // every downstream metric read 0%:
   //
-  // Canonical = the slate_hash with the LATEST created_at per (date, scope,
-  // mode). Falls back gracefully when created_at is missing (just keeps the
-  // first hash seen). Multi-state secondary rows (matched_state IS NOT NULL)
-  // also dropped here — they aren't K6 primary picks and would double-count
-  // any pick that hit in multiple jurisdictions.
+  //   1. Hit flags only live on SECONDARY rows (matched_state IS NOT NULL) —
+  //      one row per matched jurisdiction. Primary rows always have hit_box
+  //      and hit_straight as FALSE. Filtering "primary only" at canonical
+  //      selection threw away every row that could carry a hit.
+  //
+  //   2. Picking the canonical slate_hash by LATEST created_at landed us on
+  //      the post-regen slate — engine excludes already-drawn box-sets when
+  //      it regenerates, so the latest hash always has zero hit-bearing
+  //      combos. Mirrors the BUG-137 regen-empty pattern the Performance
+  //      screen already fixed.
+  //
+  // Corrected approach:
+  //   (a) Build a (slate_date|scope|combo) hit lookup across ALL secondary
+  //       rows, ignoring slate_hash (hits attach to combos that were in some
+  //       prior regen's pick set, often a different hash than the canonical
+  //       primary's).
+  //   (b) Pick canonical slate_hash per (date, scope, mode) by MOST hits
+  //       (using the combo lookup) with created_at as tie-break. Matches the
+  //       Performance screen's canonical rule.
+  //   (c) Return canonical primary rows DECORATED with hit_box/hit_straight
+  //       derived from the combo lookup — so downstream pickIsHit() and every
+  //       per-pick analysis sees real hit data without code changes.
+  //
+  // Also still collapses multi-regen days (BUG-FIX 2026-05-27 intent preserved)
+  // and drops secondary rows from the returned set (they aren't K6 primary
+  // picks and would double-count multi-state matches).
   const canonicalRows = useMemo(() => {
     if (rows.length === 0) return rows;
-    const latestPerKey = new Map<string, { hash: string; createdAt: string }>();
+
+    // (a) hit lookup keyed by (date|scope|combo), source: secondary rows
+    const hitByCombo = new Map<string, { hit_box: boolean; hit_straight: boolean }>();
     for (const r of rows) {
-      if (r.matched_state) continue; // primary only
+      if (!r.matched_state) continue; // secondaries only
+      if (!r.slate_date || !r.scope || !r.combo) continue;
+      const key = `${r.slate_date}|${r.scope}|${r.combo}`;
+      const cur = hitByCombo.get(key) ?? { hit_box: false, hit_straight: false };
+      cur.hit_box = cur.hit_box || !!r.hit_box;
+      cur.hit_straight = cur.hit_straight || !!r.hit_straight;
+      hitByCombo.set(key, cur);
+    }
+
+    // (b) per (date, scope, mode), score every candidate slate_hash by how
+    // many of its primary-row combos appear in the hit lookup. Pick the
+    // highest-scoring hash; break ties by latest created_at.
+    type Cand = { hash: string; hitCount: number; createdAt: string };
+    const candsByKey = new Map<string, Map<string, Cand>>();
+    for (const r of rows) {
+      if (r.matched_state) continue; // primary rows scored
       if (!r.slate_date || !r.scope || !r.slate_hash) continue;
       const mode = r.mode || 'balanced';
-      const key = `${r.slate_date}|${r.scope}|${mode}`;
+      const groupKey = `${r.slate_date}|${r.scope}|${mode}`;
+      let group = candsByKey.get(groupKey);
+      if (!group) { group = new Map(); candsByKey.set(groupKey, group); }
+      let cand = group.get(r.slate_hash);
+      if (!cand) { cand = { hash: r.slate_hash, hitCount: 0, createdAt: r.created_at ?? '' }; group.set(r.slate_hash, cand); }
+      const hitKey = `${r.slate_date}|${r.scope}|${r.combo ?? ''}`;
+      const h = hitByCombo.get(hitKey);
+      if (h && (h.hit_box || h.hit_straight)) cand.hitCount += 1;
       const ca = r.created_at ?? '';
-      const cur = latestPerKey.get(key);
-      if (!cur || ca > cur.createdAt) latestPerKey.set(key, { hash: r.slate_hash, createdAt: ca });
+      if (ca > cand.createdAt) cand.createdAt = ca;
     }
+
+    const chosenHash = new Map<string, string>();
+    for (const [groupKey, group] of candsByKey) {
+      let best: Cand | null = null;
+      for (const cand of group.values()) {
+        if (!best
+            || cand.hitCount > best.hitCount
+            || (cand.hitCount === best.hitCount && cand.createdAt > best.createdAt)) {
+          best = cand;
+        }
+      }
+      if (best) chosenHash.set(groupKey, best.hash);
+    }
+
+    // (c) emit canonical primary rows decorated with derived hit flags
     return rows.filter(r => {
       if (r.matched_state) return false;
       if (!r.slate_date || !r.scope || !r.slate_hash) return false;
       const mode = r.mode || 'balanced';
-      const key = `${r.slate_date}|${r.scope}|${mode}`;
-      return latestPerKey.get(key)?.hash === r.slate_hash;
+      const groupKey = `${r.slate_date}|${r.scope}|${mode}`;
+      return chosenHash.get(groupKey) === r.slate_hash;
+    }).map(r => {
+      const hitKey = `${r.slate_date}|${r.scope}|${r.combo ?? ''}`;
+      const h = hitByCombo.get(hitKey);
+      if (!h) return r;
+      return { ...r, hit_box: h.hit_box, hit_straight: h.hit_straight };
     });
   }, [rows]);
 

@@ -1505,6 +1505,7 @@ Removed 100ms artificial delay from `initApp`. SplashScreen.hideAsync() already 
 | ENH-22 | `app/(tabs)/explore.tsx` | Pull-to-refresh triggers hit detection — extend the Slates pull-to-refresh to also run `runHitDetectionAndRefresh(scope, todayET)`, closing the loop without an Admin visit | ✅ Fixed 2026-05-12 |
 | ENH-AUDIT-2026-05-19 | `engines/zk6.ts`, new `pick_state_strength` table, `components/PickDetailModal.tsx` | **Per-state pattern strength layer for ZK6 picks** (PRE-ZK30 dependency). Secondary scoring layer that runs after ZK6 generates its 6 picks; for each pick × jurisdiction, compute recency-weighted hit rate against that state's last 365 draws; persist to `pick_state_strength`; surface top 5 per pick in `PickDetailModal`. See long-form section below for problem statement, scope, technical approach, acceptance criteria. Unlocks honest per-state marketing language flagged in `docs/state_confidence_audit_2026-05-19.md`. | 🟡 Queued — not started; sequenced after Phase 4 IAP / Phase 5 EAS / Phase 6 Playwright and before ZK30 Phase 1 |
 | ENH-EXPORT-2026-05-23 | `app/admin-image-export.tsx`, `components/SlatePosterCard.tsx`, `components/PickPosterCard.tsx`, `components/PublicExportBanner.tsx`, `components/pickVisuals.tsx`, `lib/captureExportImage.ts` | **Admin image export — public + Pro daily reel composer.** Web-only operator screen that generates 7 PNGs per session (1 slate composite + 6 pick composites) at 1080×1920. Public mode redacts digits and appends a CTA banner ("FULL SLATE INSIDE · JOIN THE FREE COMMUNITY"); Pro mode is full fidelity, no banner. Reuses production slate/modal visuals via extracted `SlatePosterCard` + shared `pickVisuals` (SignalPill/WhyRow/EnergyArc) so future styling changes propagate automatically (INVARIANT 4 honored). INVARIANT 2 carve-out: this screen reads `slate_snapshots` directly via `fetchFromSupabase` (no engine recomputation, no writes, operator-triggered only). Capture pipeline uses `html-to-image` against an off-screen wrapper at exact export dimensions; native (iOS) capture is gated until react-native-view-shot can be added under an EAS dev build. See `docs/features/admin-image-export.md`. | ✅ Shipped 2026-05-23 — web-only; native deferred to EAS dev build availability. |
+| ENH-WARMING-2026-06-06 | `lib/engineCore.ts` (new `computeWarmingSignal` helper), `engines/zk6.ts` + edge fn `compute-slate-zk6` (5-channel ensemble), new `app_config` keys for WARMING weight per scope, optional materialized `combo_warming_7d` view for performance | **7-day cross-jurisdiction warming signal — first genuinely new signal source found this session.** 60d evidence: `prior_7d_draws` predicts same-day multi-draw with monotonic gradient — baseline 9.8% (warming 0-2) → 31.5% (5-6) → 67.5% (7-10) → 100% (11+). Triple-draw rate hits 43.9% at warming 11-20. Independent of BOX/PBURST/CO/DGC (none of which compute a short-window momentum). See long-form section below for design, AUC validation plan, ship gate. NOT a ship candidate before 2026-06-13 CONFIG-11a + CONFIG-12 review window closes. | 🟡 Queued — design done, AUC validation + backtest harness wiring pending |
 | ENH-FUNNEL-2026-05-19 | new tables `pro_subscribers`, `fb_group_contributors`, `fb_engagement_snapshots`, `funnel_daily_snapshots`, `subscriber_import_history`; new edge fn `subscriber-admin`; `components/admin/ProSubscribersView.tsx`, `SubscriberImportView.tsx`, `FunnelDashboardView.tsx`, `AdminKeyGate.tsx` | **Pro subscriber tracking + funnel intelligence.** Source-of-truth roster for 21 confirmed Pro subscribers (email PII + date subscribed from Meta Business Suite "Supporter Email Addresses" export). Service-role Edge Function gateway (`subscriber-admin`) gated by `ADMIN_OPS_KEY` header — RLS denies anon, function uses service-role to bypass; operator enters secret once into AdminKeyGate and it persists to AsyncStorage (never bundled). Daily funnel snapshots with generated columns for conversion rate, gross MRR, net MRR. Parsers for TSV/CSV/multi-space inputs (subscriber emails + Group Insights contributors). PII-masking in admin UI with reveal toggle. Seeded with 21 subscribers and funnel snapshots for 5/18 (18 subs, 22.0% conv, $17.82 gross MRR) and 5/19 (21 subs, 24.7% conv, $20.79 gross MRR). See `docs/subscriber_tracking_README.md` for setup + operator workflow and `docs/subscriber_reconciliation_queries.sql` for diagnostics. | ✅ Shipped 2026-05-19 — schema applied, edge fn deployed v1, UI wired into admin nav. Operator must set `ADMIN_OPS_KEY` in Supabase secrets and unlock via AdminKeyGate before first use. |
 
 ---
@@ -1596,6 +1597,103 @@ Complete AFTER current pre-launch priorities (Phase 4 RevenueCat IAP, Phase 5 EA
 7. Update slate snapshot writers to call the compute step
 8. Verify honest copy (no prediction claims) — passes Two-Question filter
 9. Marketing language audit post-ship — update copy that the audit flagged as currently-aspirational
+
+---
+
+### ENH-WARMING-2026-06-06 — 7-Day Cross-Jurisdiction Warming Signal
+
+**Source:** Side-quest investigation 2026-06-06 into why the engine missed multi-drawn singles on 6/5 (notably `{1,5,7}` drawn 4 times across CA/IL/KS/OH).
+**Priority:** HIGH — first genuinely new signal source found in the current 4-channel framework. Independent of BOX/PBURST/CO/DGC. Per-state strength (ENH-AUDIT-2026-05-19) is bigger long-term but expensive and unvalidated; WARMING is cheap and has measured lift.
+**Status:** 🟡 Queued — design done, AUC validation + backtest harness wiring pending. Pre-ship gated on CONFIG-11a + CONFIG-12 review (2026-06-13).
+**Effort:** ~1 day (1 helper, edge fn + RN engine wiring, app_config keys, backtest preset)
+
+#### Problem statement
+
+On 2026-06-05 nationally, 15 distinct comboSets drew ≥2 times. Engine had 4 in top-30 (2 on slate, both hit). 11 were completely off-radar including `{1,5,7}` which drew 4 times in one day. Investigation showed `{1,5,7}` had drawn **28 times in the prior 7 days** across 5 jurisdictions — a strong "warming" pattern the engine cannot see because every existing signal is either:
+- `ds_raw` — distance to LAST draw only (one data point)
+- `times_drawn` — annual H01Y/H02Y aggregate (no short-window resolution)
+
+The engine ranks `{0,3,8}` (td=122 evening) above `{1,5,7}` (td=92 evening) on freq alone, even though `{1,5,7}` had a 4× higher recent burst rate. There is no channel that captures recent-window momentum.
+
+#### Evidence (60d window, 2026-04-07 → 2026-06-05)
+
+Bucketing each (combo × day) observation by `prior_7d_draws` (count of times this comboSet was drawn nationally in the preceding 7 days), then measuring whether it multi-drew (≥2 times) on the observation day:
+
+| prior_7d_draws | n_combo_days | multi-draw rate | triple-draw rate | lift vs baseline |
+|---|---|---|---|---|
+| 0-2 | 1301 | 9.8% | 0.0% | 1.0× |
+| 3-4 | 976 | 13.6% | 1.1% | 1.4× |
+| 5-6 | 438 | **31.5%** | 4.3% | **3.2×** |
+| 7-10 | 197 | **67.5%** | 9.1% | **6.9×** |
+| 11-20 | 41 | **100%** | **43.9%** | **10.2×** |
+| 21+ | 2 | 100% | 100% | 10.2× |
+
+Monotonic gradient. Sample sizes robust through bucket 5 (n=41). This would be the highest-AUC signal in the system by a wide margin — likely 0.75+ vs the existing channels at 0.43–0.62.
+
+#### Design
+
+**Signal definition.** For each comboSet `c` on slate-gen day `D`:
+```
+warming(c, D) = |{ history row : comboset_sorted = c AND date_et ∈ [D - 7, D - 1] }|
+```
+Counted across the national jurisdiction pool (jurisdiction is NOT filtered — the cross-jurisdiction "warming" effect is the whole point of the signal).
+
+**Normalization.** Max-norm across the universe per slate-gen, matching BOX's normalization (`value / max_in_universe`). Range [0, 1].
+
+**Per-scope weights (initial proposal — to be tuned by backtest):**
+Reallocate ~10pp from existing signals to make room for WARMING. First-pass test should reallocate from DGC (already characterized as anti-predictive in [[project_enh_afl_shipped_flag_off]]):
+
+| Scope | Current | Proposed |
+|---|---|---|
+| midday | BOX 20.8 / PBURST 5.2 / CO 64 / DGC 10 | BOX 20.8 / PBURST 5.2 / CO 64 / DGC 0 / **WARMING 10** |
+| evening | BOX 45 / PBURST 25 / CO 20 / DGC 10 | BOX 45 / PBURST 25 / CO 20 / DGC 0 / **WARMING 10** |
+| allday | BOX 49.5 / PBURST 27 / CO 8.5 / DGC 15 | BOX 49.5 / PBURST 27 / CO 8.5 / DGC 0 / **WARMING 15** |
+
+Combines the dead-DGC finding from the AFL re-test with the new WARMING signal in a single ship. The DGC weight space becomes the WARMING budget.
+
+#### Implementation plan
+
+1. **New helper.** `lib/engineCore.ts::computeWarmingSignal(comboSet, asOfDate, historyRows): number` — pure function returning raw count. Test against known cases including `{1,5,7}` 6/5 → 28.
+2. **Data source.** Query `histories` filtered to `date_et BETWEEN asOfDate - 7 AND asOfDate - 1`, aggregate by `comboset_sorted`. Lightweight — ~500 rows per 7-day window.
+3. **Engine wire-up.** Add WARMING channel to `engines/zk6.ts` and `supabase/functions/compute-slate-zk6` 5-channel scoring loop. Same max-norm pattern as BOX.
+4. **Config.** Add `engine_weights_warming_midday/evening/allday` (or extend the existing preset blob to a 5-channel shape). Per-scope tunable to match existing pattern.
+5. **Backtest harness.** Add WARMING fetcher to `scripts/backtest/replay.ts` (window query against historical histories). New preset `warming_v1` cloning `evening_co_boost_20` with WARMING enabled. 30d candidate vs production-parity baseline.
+6. **Validation.** Compute WARMING AUC alongside BOX/PBURST/CO/DGC in `compute-daily-auc-zk6`. Expect ≥ 0.70 based on the gradient evidence. If <0.65, hypothesis weaker than expected — reassess.
+7. **Telemetry.** Surface WARMING column in `daily_intelligence`, AdaptiveLearning screen, Calibration Dashboard. Same treatment as other 4 channels.
+
+#### Ship gate
+
+Per [[feedback_engine_config_ship_pattern]] and CLAUDE.md:
+1. WARMING AUC ≥ 0.65 in 28-day validation (sanity check — gradient must persist as AUC)
+2. 30d backtest of `warming_v1` vs `evening_co_boost_20` baseline:
+   - Overall slate hit rate ≥ baseline
+   - No scope > 2pp regression
+   - r1 hit rate per scope preserved (per [[project_bug155_bestorder_vs_combo]] / Lever-2 lesson)
+3. Margin must exceed [[feedback_backtest_harness_noise]] ±1.7pp run-to-run noise floor
+
+#### Sequencing
+
+- **NOT before 2026-06-13.** CONFIG-11a + CONFIG-12 review window must close before stacking a new signal. Otherwise attribution becomes hopeless.
+- **Earliest design start:** any time. Implementation code is pure addition (no production behavior change until configs are set).
+- **Earliest backtest:** any time once preset wired into harness.
+- **Earliest ship:** 2026-06-14, IF 6/13 review ratifies CONFIG-11a + CONFIG-12 AND WARMING AUC + backtest gates pass.
+
+#### Marketing / subscriber language unlock
+
+Honest claims become available:
+- "Nationally trending — drawn 8+ times this week across multiple states" (when WARMING bucket ≥ 7)
+- "Cross-state momentum signal" (operator framing for the channel)
+- Does NOT unlock any prediction language — observation of past frequency, not prediction.
+
+Passes the Two-Question filter ([[feedback_two_question_filter]]) and matches the data intelligence positioning per [[project_fb_probationary]].
+
+#### Counterargument and reality check
+
+The biggest risk: **survivor-style bias.** The 60d evidence above measures "warming combos that did multi-draw" but I haven't separated which fraction of those would have hit the slate anyway via existing signals. A combo with warming=10 likely also has high freq + low ds — so the existing BOX signal already partially captures it. The 67.5% multi-draw rate at warming=7-10 may be partly the existing channels doing their job.
+
+Resolution: AUC computation in step 6 measures **incremental** predictive power vs the other channels. If WARMING AUC ≈ BOX AUC and they're highly correlated, the lift is illusory. If WARMING AUC is high AND its rank correlations with BOX/PBURST/CO/DGC are low (say ρ < 0.4), it's a real new dimension.
+
+**Don't ship without that AUC + correlation analysis.** The gradient is necessary but not sufficient.
 
 ---
 

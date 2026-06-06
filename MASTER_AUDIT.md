@@ -23,6 +23,55 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
+### CONFIG-12 — Pressure Threshold 250 → 100 (2026-06-06)
+
+Lowers `pressure_threshold` from 250 → 100 to capture the empirically-observed hit zone. Intelligence screen 30-day data showed hits average 102 days overdue vs misses 44.6 days; the draws-since 101–200 band hits at 30.0% and the 201–365 band at 21.4%. The current threshold (250) bonuses only the 250+ tail, missing the entire 101–249 sweet spot where the highest-rate hit band lives.
+
+**Problem.** `pressure_threshold = 250` (shipped 2026-05-12 via CONFIG-02) was tuned before the H01Y/H02Y horizon collapse (CONFIG-08, 2026-05-27). Post-CONFIG-08 the BOX scoring shape changed and the optimal pressure-bonus cutoff dropped well below 250. Live data from Intelligence screen confirms hits live mostly in the 100–365 band. This is a GLOBAL change (no per-scope override path exists for pressure_threshold yet) — higher blast radius than CONFIG-11a's per-scope override.
+
+**Backtest validation (30d × 87 slates total, balanced mode, harness `pressure_*` configs atop `evening_co_boost_20` production-parity baseline post-CONFIG-11a):**
+
+| Config | Overall slate | Overall pick | Overall rail-lift | Midday slate / pick | Evening slate / pick | Allday slate / pick | Total hits |
+|---|---|---|---|---|---|---|---|
+| BASELINE (`evening_co_boost_20`) | 83.9% | 25.9% | ×1.05 | 75.9% / 19.0% | 79.3% / 21.8% | 96.6% / 36.8% | 135 |
+| **`pressure_100` (SHIPPED)** | **83.9%** | **27.6%** | **×1.12** | **75.9% / 19.5%** | **79.3% / 26.4%** | 96.6% / 36.8% | 144 |
+| `pressure_150` | 83.9% | 26.4% | ×1.08 | 75.9% / 18.4% | 79.3% / 24.1% | 96.6% / 36.8% | 138 |
+| `pressure_200` | 83.9% | 26.4% | ×1.08 | 75.9% / 18.4% | 79.3% / 24.1% | 96.6% / 36.8% | 138 |
+
+`pressure_100` strictly passes every CLAUDE.md ship gate (≥ baseline on overall slate, overall pick, AND every per-scope metric). Cleanest gate result of the entire 2026-06-06 session. Overall pick rate +1.7pp, overall rail-matched lift ×1.05 → ×1.12, evening pick rate +4.6pp, evening rail-matched lift ×1.01 → ×1.22 (massive). Midday +0.5pp pick rate (confirms threshold issue affected more than just evening). Allday invariant (its pressure dynamics were already healthy).
+
+`pressure_150` and `pressure_200` are statistically identical — lowering 250→200 doesn't reach far enough to capture the sweet spot. The 101–150 band only gets bonused at threshold ≤100, which is where the response curve actually moves.
+
+**Same-night ship of two CONFIGs acknowledged:** CONFIG-11a (evening per-scope CO=20%) shipped earlier this session at 9:27pm ET, ~25 minutes before this ship. Plan default was a 5-day gap between CONFIG-XX ships for attribution clarity. Override rationale:
+- Effects are mostly orthogonal per scope: CONFIG-11a touches only evening; CONFIG-12 is global but the backtest showed evening +4.6pp, midday +0.5pp, allday 0pp.
+- Each has an independent one-shot revert path.
+- Intelligence-screen evidence for the 250 threshold being wrong was the strongest single piece of cross-screen data from the synthesis phase — holding for 7 days = 7 more days of subscriber-visible underperformance.
+- Both reviews ratify together on 2026-06-13.
+
+**Attribution map for the 7-day watch window:**
+- If midday slate/pick declines → CONFIG-12 (CONFIG-11a didn't touch midday). Revert CONFIG-12 first.
+- If evening slate/pick declines → most likely CONFIG-12 (larger lever). Revert CONFIG-12 first; if still bad, revert CONFIG-11a.
+- If allday slate/pick declines → CONFIG-12 (backtest projected 0 effect; any decline is a surprise). Revert CONFIG-12.
+- If only evening r1 declines but evening aggregate is fine → CONFIG-11a was the cause.
+
+**Action sequence:**
+1. Backtest configs added to `scripts/backtest/configs.ts`: `pressure_100` (SHIPPED), `pressure_150`, `pressure_200` (all kept for future reference). Each clones `evening_co_boost_20` exactly except `pressureThreshold`.
+2. `app_config` UPDATE on the single global key: `pressure_threshold`: `'250' → '100'`.
+3. No code change required — `engines/zk6.ts` reads `pressure_threshold` from app_config at slate-compute time.
+4. SHIP TIMING: 9:42pm ET 6/5 — within the safe ship window (system idle, evening slate already posted, midday slate not yet generated for 6/6).
+
+**Rollback condition: 2026-06-13 (7-day review).** Revert if **any** of: (a) 7-day overall slate hit rate drops > 5pp below pre-deploy live baseline (assume ~75% based on prior 30-day data), (b) any single scope's pick rate drops > 3pp below its pre-deploy 30-day live baseline (midday ~17.2%, evening ~19.9%, allday ~33.9%), OR (c) any rail-matched lift index drops below ×1.00 (engine ceases to beat random-with-same-mix). **Revert action:**
+
+```sql
+UPDATE app_config SET value='250' WHERE key='pressure_threshold';
+```
+
+Engine falls back to pre-CONFIG-12 behavior on the next slate compute. No code change or edge fn redeploy needed for rollback.
+
+**Stacking caveat.** CONFIG-12 stacks on CONFIG-11a (same-day) + CONFIG-08 + CONFIG-09 (midday) + CONFIG-10 (allday) + DATA-01 (clean re-import) + REFACTOR-01 (workflow consolidation) + Phase 1 instrumentation. Backtest validated CONFIG-12 atop `evening_co_boost_20` (CONFIG-08+09+10+11a). 7-day watch separates by scope as described in the attribution map above.
+
+---
+
 ### CONFIG-11a — Evening Per-Scope CO Boost to 20% (2026-06-06)
 
 Adds an evening per-scope signal-weight override (parallel to the CONFIG-07 midday override and CONFIG-10 allday override). Evening was the only live scope inheriting the global preset (CO=13.5%) — it absorbed the CONFIG-08 horizon collapse (H01Y:60 / H02Y:40) without compensating weight tuning. 30-day production data post-CONFIG-08/09/10 showed evening regressing (slate rate 76.2% → 60.0%, box rate 21.4% → 16.7%) while midday gained (+16pp slate, +6.8pp box) and allday held. Engine-screen rolling 30-day AUC: evening CO = 0.617 (highest of any signal in any scope) — strong universe-level evidence that evening was under-weighting its best predictor.

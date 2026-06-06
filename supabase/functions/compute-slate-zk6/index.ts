@@ -13,7 +13,6 @@ import {
   computeBoxSignalDetailed, blendBoxDsRaw, getPairSignalFromMap,
   blendBoxTimesDrawn, blendPairTimesDrawn,
   bestOrderFor, intelligenceRowExtras, computeAdaptiveWeights,
-  computeWeightedScore,
   type PairDataTree, type PairTimesDrawnTree,
   type Scope, type WeightSet, type SignalAuc,
 } from '../../../lib/engineCore.ts';
@@ -696,20 +695,20 @@ async function computeSlate(params: {
   const normDgc        = maxNorm(Array.from(rawDgc),    true);
 
   // 5. Final scores
-  // ENG-AUDIT-02 (2026-06-06): replaces the inline body with the shared
-  // computeWeightedScore helper. Behavior bit-identical at the default
-  // synergy threshold (0.65) and minCount (2), which matches the prior
-  // inline implementation. Completes the consolidation started in
-  // ENG-AUDIT-01: lib/engineCore.computeWeightedScore is now the single
-  // source of truth across engines/zk6.ts, scripts/backtest/replay.ts,
-  // and this edge function.
+  // ENG-AUDIT-02 (2026-06-06): attempted consolidation into the shared
+  // computeWeightedScore helper rolled back — Supabase CLI bundler v1.215.1
+  // could not resolve `../../../lib/engineCore.ts` for the newly-added
+  // import even though the import block as a whole has been deploying since
+  // v27 (2026-05-27). Inline body preserved here; bit-identical to the
+  // shared helper at default threshold (0.65) + minCount (2). Tracked for
+  // a future deploy session where we either pin the CLI or restructure
+  // the project to keep edge-fn deps within supabase/.
   const finalScores = new Float64Array(1000);
   for (let i = 0; i < 1000; i++) {
     const multAdj = MULTIPLICITY_PRIORS[multiplicityOf(universe[i])];
-    finalScores[i] = computeWeightedScore(
-      normBox[i], normPburst[i], normCo[i], normDgc[i],
-      weights, multAdj, synergyOn, synergyWeight,
-    );
+    finalScores[i] = weights.BOX * normBox[i] + weights.PBURST * normPburst[i] + weights.CO * normCo[i] + weights.DGC * normDgc[i] + multAdj;
+    if (synergyOn && [normBox[i], normPburst[i], normCo[i], normDgc[i]].filter(v => v >= 0.65).length >= 2)
+      finalScores[i] *= (1 + synergyWeight);
   }
 
   // 6. K6 selection (6 passes)

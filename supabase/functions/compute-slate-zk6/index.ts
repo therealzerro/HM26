@@ -15,8 +15,8 @@ import {
   bestOrderFor, intelligenceRowExtras, computeAdaptiveWeights,
   type PairDataTree, type PairTimesDrawnTree,
   type Scope, type WeightSet, type SignalAuc,
-} from '../../../lib/engineCore.ts';
-import { getTodayET, getYesterdayET } from '../../../lib/dateUtils.ts';
+} from '../../_shared/engineCore.ts';
+import { getTodayET, getYesterdayET } from '../../_shared/dateUtils.ts';
 
 // ─── Supabase fetch helpers ───────────────────────────────────────────────────
 

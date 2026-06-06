@@ -339,7 +339,18 @@ export function maxNorm(arr: number[], nonZeroOnly = false): number[] {
 
 /**
  * Final indicator score for one combo.
+ *
+ * ENG-AUDIT-01 (2026-06-06): consolidates three inline copies of this formula
+ * (engines/zk6.ts:~1031, supabase/functions/compute-slate-zk6/index.ts:~702,
+ * scripts/backtest/replay.ts:~544). The prior body of this exported helper
+ * had a STRICTER synergy condition (`all 4 ≥ 0.65`) than the inline copies
+ * (`≥2 of 4 ≥ 0.65`) — a source-of-truth ambiguity discovered while
+ * investigating the synergy weight sweep producing identical output. Body
+ * now matches the production formula bit-for-bit; the threshold + minCount
+ * params let backtest sweeps override the defaults without code edits.
+ *
  * multAdj: pre-looked-up value from MULTIPLICITY_PRIORS.
+ * synergyThreshold / synergyMinCount: prod defaults are 0.65 / 2.
  */
 export function computeWeightedScore(
   normBox: number,
@@ -350,6 +361,8 @@ export function computeWeightedScore(
   multAdj: number,
   synergyOn: boolean,
   synergyWeight: number,
+  synergyThreshold: number = 0.65,
+  synergyMinCount: number = 2,
 ): number {
   let score =
     weights.BOX    * normBox +
@@ -357,8 +370,12 @@ export function computeWeightedScore(
     weights.CO     * normCo +
     weights.DGC    * normDgc +
     multAdj;
-  if (synergyOn && normBox >= 0.65 && normPburst >= 0.65 && normCo >= 0.65 && normDgc >= 0.65) {
-    score *= (1 + synergyWeight);
+  if (synergyOn) {
+    const aboveThresh = (normBox    >= synergyThreshold ? 1 : 0)
+                      + (normPburst >= synergyThreshold ? 1 : 0)
+                      + (normCo     >= synergyThreshold ? 1 : 0)
+                      + (normDgc    >= synergyThreshold ? 1 : 0);
+    if (aboveThresh >= synergyMinCount) score *= (1 + synergyWeight);
   }
   return score;
 }

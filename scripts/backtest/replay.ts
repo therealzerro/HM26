@@ -27,6 +27,7 @@ import {
   type SignalAuc,
   computeDGC, blendBoxDsRaw, getPairSignalFromMap,
   bestOrderFor, type PairDataTree,
+  computeWeightedScore,
 } from '../../lib/engineCore.js';
 import type { EngineConfig, ReplayPick, Scope } from './types.js';
 
@@ -536,22 +537,19 @@ export async function computeSlateAsOf(
     config.multiplicityPriors ??
     MULTIPLICITY_PRIORS;
 
-  // Final scores with synergy check matching production engine (2+ signals ≥ 0.65)
+  // ENG-AUDIT-01 (2026-06-06): replaces the inline body with the shared
+  // computeWeightedScore helper. synergyThreshold / synergyMinCount carry
+  // through to the helper; defaults (0.65 / 2) match production.
   const finalScores = new Float64Array(1000);
   for (let i = 0; i < 1000; i++) {
     const combo = universe[i];
     const multAdj = effectivePriors[multiplicityOf(combo)];
-    let score =
-      weights.BOX    * normBox[i] +
-      weights.PBURST * normPburst[i] +
-      weights.CO     * normCo[i] +
-      weights.DGC    * normDgc[i] +
-      multAdj;
-    if (config.synergyOn) {
-      const aboveThresh = [normBox[i], normPburst[i], normCo[i], normDgc[i]].filter(v => v >= 0.65).length;
-      if (aboveThresh >= 2) score *= (1 + config.synergyWeight);
-    }
-    finalScores[i] = score;
+    finalScores[i] = computeWeightedScore(
+      normBox[i], normPburst[i], normCo[i], normDgc[i],
+      weights, multAdj,
+      config.synergyOn, config.synergyWeight,
+      config.synergyThreshold ?? 0.65, config.synergyMinCount ?? 2,
+    );
   }
 
   // ENH-DBL-H3 (2026-05-18): top-N doubles selective bonus. Applied AFTER

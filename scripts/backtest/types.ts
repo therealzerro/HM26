@@ -119,6 +119,14 @@ export interface EngineConfig {
   // the rolling 30-day AUC for that date, and applies Option β adjustment to
   // the base weights via lib/engineCore.computeAdaptiveWeights.
   adaptiveSignalWeights?: { enabled: boolean; alpha: number };
+  // ENG-AUDIT-01 follow-up (2026-06-06): synergy threshold sweep. Production
+  // hardcodes 0.65 in engines/zk6.ts:1041 and an identical inline copy in
+  // replay.ts:551. Field added so backtests can sweep the threshold without
+  // engine-code touch. Defaults preserve production parity. minCount lets us
+  // sweep ≥2 (prod) vs ≥3 vs ≥4 (the stricter formula sitting dead in
+  // engineCore.computeWeightedScore).
+  synergyThreshold?: number;
+  synergyMinCount?: number;
 }
 
 export interface ReplayPick {

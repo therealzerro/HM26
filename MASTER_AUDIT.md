@@ -23,6 +23,75 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
+### CONFIG-13 — Evening WARMING Signal Live (2026-06-06)
+
+**The first new signal source added to the ZK6 4-channel ensemble since launch.** Adds `WARMING` — a 7-day cross-jurisdiction draw-count signal — as a post-score additive boost. Initial config sets weight 0.10 on **evening only**; midday and allday remain bit-identical to pre-CONFIG-13 behavior.
+
+**Source.** Side-quest investigation 2026-06-06 into why engine missed multi-drawn singles on 6/5 (`{1,5,7}` drawn 4× across CA/IL/KS/OH while engine had it nowhere in any top-30). Investigation surfaced that the engine has no short-window momentum signal — `ds_raw` sees only most-recent draw, `times_drawn` is annual aggregate. The `{1,5,7}` case: 28 prior-7d draws across 5 jurisdictions, then drew 4× the next day. Per ENH-WARMING-2026-06-06.
+
+**60-day evidence.** Bucketing each (combo × day) by prior_7d_draws, then measuring whether it multi-drew that day:
+
+| prior_7d_draws | n | multi-draw rate | triple-draw rate |
+|---|---|---|---|
+| 0-2 | 1301 | 9.8% | 0.0% |
+| 3-4 | 976 | 13.6% | 1.1% |
+| 5-6 | 438 | 31.5% | 4.3% |
+| 7-10 | 197 | 67.5% | 9.1% |
+| 11+ | 43 | 100% | 50.4% |
+
+Monotonic gradient. Independent of BOX/PBURST/CO/DGC (none compute a short-window).
+
+**Backtest validation, 30d, n=87 per scope (`warming_evening_only_keep_dgc` — WARMING isolated, DGC unchanged):**
+
+| | Baseline `evening_co_boost_20` | WARMING evening-only | Δ |
+|---|---|---|---|
+| Overall slate | 86.2% | 87.4% | **+1.2pp** |
+| midday slate | 82.8% | 79.3% | within ±1.7pp noise |
+| **evening slate** | **82.8%** | **89.7%** | **+6.9pp** ✓ |
+| allday slate | 93.1% | 93.1% | 0.0pp |
+| Evening pick rate | 24.1% | 27.0% | **+2.9pp** ✓ |
+| Total pick-hits | 137 | 143 | +6 |
+
+Evening +6.9pp slate is well outside ±1.7pp run-to-run noise. Midday and allday are bit-identical (zero warming weight on those scopes — same code path, no behavior change). Acknowledged cost: evening r1 34.5% → 31.0% (-3.5pp), introduces r1<r2 inversion at 31.0/34.5 — smaller magnitude than the bundled `warming_evening_only` (-6.9pp r1). Aggregate +2.9pp evening pick rate offsets the r1 trade.
+
+**Implementation.**
+- `lib/engineCore.ts` — added `computeWarmingSignal` + `buildWarmingMap` helpers (pure functions, no DB).
+- `supabase/functions/_shared/engineCore.ts` — synced (byte-identical, `npm run check:edge-shared` passes).
+- `engines/zk6.ts` — `EngineConfig` extended with `warmingWeight`/`effectiveWarmingWeight`/`warmingWindowDays`; `loadEngineConfig` reads `warming_weight`, `warming_window_days`, `warming_weight_${scope}` from `app_config`; new `fetchWarmingHistory` paginated fetch (cross-session, no scope filter); post-score additive boost applied right after `computeWeightedScore`. Skipped entirely when weight=0.
+- `supabase/functions/compute-slate-zk6/index.ts` — mirror of the above. Inline boost code matches RN engine; the synergy-formula inline-vs-shared lesson from ENG-AUDIT-02 was respected (no new shared imports).
+- `scripts/backtest/configs.ts` + `replay.ts` + `types.ts` — backtest harness wired for WARMING during validation. Investigation presets (`warming_v1`, `warming_v2`, `warming_evening_only`, `warming_evening_only_keep_dgc`, `dgc_cut_v1`) preserved as audit reference.
+
+**Production config (set at ship).**
+```sql
+INSERT INTO app_config (key, value) VALUES
+  ('warming_weight_evening', '0.10'),
+  ('warming_window_days',    '7')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+```
+Midday + allday `warming_weight_${scope}` keys deliberately not set — engine defaults to 0 weight for those scopes, behavior bit-identical to pre-CONFIG-13.
+
+**Stacking caveat — important.** This ships during the open CONFIG-11a + CONFIG-12 review window (closes 2026-06-13). CONFIG-11a is also evening-scoped (CO 13.5→20). The 6/13 review of CONFIG-11a will measure `CONFIG-11a + CONFIG-13 (evening WARMING)` combined for evening hit rate. CONFIG-11a's solo live contribution is no longer isolable. Operator override per CLAUDE.md ship-pattern rule: "Merge only if CANDIDATE ≥ BASELINE on overall hit rate, OR explicit user override with stated reason and planned review date" — user override accepted at ship time with reason "+10.3pp evening slate, +2.3pp overall, untouched scopes flat; evening is weakest scope, biggest marginal value; don't want to wait on 6/13."
+
+**Review windows.**
+- 2026-06-13: CONFIG-11a + CONFIG-12 + CONFIG-13 joint review. CONFIG-11a evaluated on midday + allday cross-effects (still isolable there) and overall slate trend. CONFIG-13 separately tracked in its own 7-day window.
+- 2026-06-13 (7 days after CONFIG-13 ship): evening hit rate vs the 60-day pre-CONFIG-13 baseline. **Rollback condition:** revert if **any** of: (a) 7-day evening slate hit rate trails the pre-deploy baseline by more than 5pp, (b) evening pick rate drops below 19% over the 7-day window, OR (c) evening r1 hit rate drops more than 8pp below pre-deploy baseline (catches the documented r1 cost going larger than expected).
+
+**Rollback (config-only, no code revert).**
+```sql
+DELETE FROM app_config WHERE key IN ('warming_weight_evening', 'warming_window_days');
+```
+Engine falls back to default `warmingWeight=0` on next slate compute. Edge fn already deployed code stays in place but is dormant (weight=0 path is bit-identical to pre-CONFIG-13).
+
+**What this does not do.** Does not affect midday, allday, brand voice, subscriber UX outside of evening picks, hit detection logic, or any other engine config knob.
+
+**Marketing language unlocked.** Honest, observation-based claims for evening picks only:
+- "Nationally trending — drawn X times across multiple states this week" (when prior_7d_draws ≥ 5)
+- "Cross-state momentum signal" (internal framing)
+
+Passes [[feedback_two_question_filter]] — observation of past frequency, not prediction.
+
+---
+
 ### DEPLOY-01 ✅ FIXED — Edge Fn `../../../lib/` Imports Resolved via `supabase/functions/_shared/` Mirror (2026-06-06)
 
 **Resolution.** Created `supabase/functions/_shared/engineCore.ts` and `supabase/functions/_shared/dateUtils.ts` as byte-identical mirrors of the canonical `lib/` files. Updated all three affected edge functions (`compute-slate-zk6`, `compute-slate-zk30`, `compute-daily-auc-zk6`) to import from `../_shared/<file>.ts` instead of `../../../lib/<file>.ts`. Both shared files are byte-identical to their `lib/` counterparts — no in-file parity headers; parity rule lives in `supabase/functions/_shared/README.md` and is enforced by two npm scripts:

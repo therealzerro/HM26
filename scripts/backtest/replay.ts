@@ -28,6 +28,7 @@ import {
   computeDGC, blendBoxDsRaw, getPairSignalFromMap,
   bestOrderFor, type PairDataTree,
   computeWeightedScore,
+  buildWarmingMap,
 } from '../../lib/engineCore.js';
 import type { EngineConfig, ReplayPick, Scope } from './types.js';
 
@@ -80,6 +81,49 @@ async function fetchHistoryRows(date: string, scope: Scope): Promise<any[]> {
     );
     const rows = Array.isArray(page) ? page : [];
     all.push(...rows);
+    if (rows.length < pageSize) break;
+  }
+  return all;
+}
+
+/**
+ * ENH-WARMING-2026-06-06: fetch draws within the prior N-day window for
+ * warming-signal computation.
+ *
+ * v1 (cross-session): NO session filter — counts every national draw in window.
+ * Backtest showed midday r1 collapse + allday slate -6.9pp, hypothesis was
+ * "cross-session noise pollutes scope-specific predictions."
+ *
+ * v2 (scope-matched): when `scope` is midday or evening, filters to matching
+ * session — matches the engine's existing data pattern (datasets_box/_pair
+ * are scope-filtered too). When scope is allday, no filter (all sessions
+ * count, same as v1). Caller picks v1 vs v2 via the `scopeMatched` parameter
+ * — config field warmingScopeMatched plumbs through.
+ */
+async function fetchWarmingHistory(
+  date: string,
+  windowDays: number,
+  scope: Scope,
+  scopeMatched: boolean,
+): Promise<{ comboset_sorted: string; date_et: string }[]> {
+  const d = new Date(date + 'T12:00:00');
+  d.setDate(d.getDate() - windowDays);
+  const fromDate = d.toISOString().split('T')[0];
+  const sessionClause = (scopeMatched && scope !== 'allday') ? `&session=eq.${scope}` : '';
+  const all: { comboset_sorted: string; date_et: string }[] = [];
+  const pageSize = 1000;
+  for (let offset = 0; offset < 10000; offset += pageSize) {
+    const page = await dbGet<any[]>(
+      `/histories?select=comboset_sorted,date_et` +
+      `&date_et=gte.${fromDate}&date_et=lt.${date}${sessionClause}` +
+      `&order=date_et.desc&limit=${pageSize}&offset=${offset}`,
+    );
+    const rows = Array.isArray(page) ? page : [];
+    for (const r of rows) {
+      if (r && typeof r.comboset_sorted === 'string' && typeof r.date_et === 'string') {
+        all.push({ comboset_sorted: r.comboset_sorted, date_et: r.date_et });
+      }
+    }
     if (rows.length < pageSize) break;
   }
   return all;
@@ -395,11 +439,18 @@ export async function computeSlateAsOf(
   }
 
   const excludeYesterday = config.excludeYesterdayHits !== false; // default true
-  const [boxRows, pairRows, historyRows, todayHitComboSets] = await Promise.all([
+  // ENH-WARMING-2026-06-06: only fetch the warming window if some scope has a
+  // non-zero weight configured. Saves ~1k rows of fetch per slate when warming
+  // is off (preserves baseline backtest perf).
+  const warmingWeightForThisScope = config.warmingWeightByScope?.[scope] ?? config.warmingWeight ?? 0;
+  const warmingActive = warmingWeightForThisScope > 0;
+  const warmingWindowDays = config.warmingWindowDays ?? 7;
+  const [boxRows, pairRows, historyRows, todayHitComboSets, warmingHistory] = await Promise.all([
     fetchBoxRows(scopeEnc),
     fetchPairRows(scopeEnc),
     fetchHistoryRows(date, scope),
     excludeYesterday ? fetchYesterdayResults(date) : Promise.resolve(new Set<string>()),
+    warmingActive ? fetchWarmingHistory(date, warmingWindowDays, scope, config.warmingScopeMatched === true) : Promise.resolve([] as { comboset_sorted: string; date_et: string }[]),
   ]);
 
   const { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap, boxByHorizon, pairData, boxTimesDrawnByHorizon, pairTimesDrawnByHorizon } = buildDatasets(boxRows, pairRows);
@@ -550,6 +601,25 @@ export async function computeSlateAsOf(
       config.synergyOn, config.synergyWeight,
       config.synergyThreshold ?? 0.65, config.synergyMinCount ?? 2,
     );
+  }
+
+  // ENH-WARMING-2026-06-06: post-score additive boost. Build warming map once,
+  // score each combo by its prior-N-day national count, max-norm, add
+  // warmingWeight × normWarming to finalScores. When weight is 0 the block
+  // is skipped entirely (preserves baseline parity).
+  let rawWarming: Float64Array | null = null;
+  let normWarming: number[] | null = null;
+  if (warmingActive) {
+    const warmingMap = buildWarmingMap(warmingHistory);
+    rawWarming = new Float64Array(1000);
+    for (let i = 0; i < 1000; i++) {
+      const normKey = toComboSet(universe[i]);
+      rawWarming[i] = warmingMap.get(normKey) ?? 0;
+    }
+    normWarming = maxNorm(Array.from(rawWarming), true);
+    for (let i = 0; i < 1000; i++) {
+      finalScores[i] += warmingWeightForThisScope * normWarming[i];
+    }
   }
 
   // ENH-DBL-H3 (2026-05-18): top-N doubles selective bonus. Applied AFTER

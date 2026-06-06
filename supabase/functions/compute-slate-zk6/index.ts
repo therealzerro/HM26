@@ -89,6 +89,12 @@ interface EngineConfig {
   // ENH-AFL-2 (2026-05-27): adaptive signal weights.
   adaptiveSignalWeightsEnabled: boolean;
   adaptiveSignalWeightsAlpha: number;
+  // ENH-WARMING-2026-06-06: 7-day cross-jurisdiction warming signal applied
+  // as a post-score additive boost. When effectiveWarmingWeight = 0 (default),
+  // bit-identical to pre-WARMING engine.
+  warmingWeight: number;
+  effectiveWarmingWeight?: number;
+  warmingWindowDays: number;
 }
 interface Datasets {
   boxByHorizon: BoxByHorizon;
@@ -131,6 +137,8 @@ const DEFAULT_CFG: EngineConfig = {
   timesDrawnBlendEnabled: true,
   adaptiveSignalWeightsEnabled: false,
   adaptiveSignalWeightsAlpha: 1.0,
+  warmingWeight: 0,
+  warmingWindowDays: 7,
 };
 
 // ─── Config loader ────────────────────────────────────────────────────────────
@@ -150,6 +158,8 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     // ENH-MET (2026-05-18): per-scope energy floor override. Parity with
     // engines/zk6.ts. Falls back to global min_energy_threshold then hardcoded.
     const scopeMinEnergyKey = scope ? `min_energy_threshold_${scope}` : null;
+    // ENH-WARMING-2026-06-06: warming weight per-scope override + window key.
+    const scopeWarmingKey = scope ? `warming_weight_${scope}` : null;
     const keyList = [
       'engine_weights_balanced',
       'k6_singles_max', 'k6_doubles_max', 'k6_triples_on', 'pair_rep_cap',
@@ -159,11 +169,13 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       'box_freq_weight', 'box_pressure_weight',
       'box_times_drawn_blend_enabled',
       'adaptive_signal_weights_enabled', 'adaptive_signal_weights_alpha',
+      'warming_weight', 'warming_window_days',
       ...(scopeCooldownKey ? [scopeCooldownKey] : []),
       ...(scopeBoxFreqKey  ? [scopeBoxFreqKey]  : []),
       ...(scopeBoxPressKey ? [scopeBoxPressKey] : []),
       ...(scopeBalancedKey ? [scopeBalancedKey] : []),
       ...(scopeMinEnergyKey ? [scopeMinEnergyKey] : []),
+      ...(scopeWarmingKey ? [scopeWarmingKey] : []),
     ];
     const rows = await sbGet<{ key: string; value: string }[]>(
       '/rest/v1/app_config?key=in.(' + keyList.join(',') + ')&select=key,value',
@@ -175,6 +187,7 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     let scopeBoxPressOverride: number | null = null;
     let scopeBalancedOverride:     WeightSet | null = null;
     let scopeMinEnergyOverride: number | null = null;
+    let scopeWarmingOverride: number | null = null;
     for (const row of rows) {
       try {
         if (row.key === 'k6_singles_max')       { const v = parseInt(row.value,10); if (!isNaN(v)) cfg.rails.singlesMax = v; continue; }
@@ -227,6 +240,21 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
         if (scopeMinEnergyKey && row.key === scopeMinEnergyKey) {
           const v = parseInt(row.value, 10);
           if (!isNaN(v) && v >= 0) scopeMinEnergyOverride = v;
+          continue;
+        }
+        if (row.key === 'warming_weight') {
+          const v = parseFloat(row.value);
+          if (!isNaN(v) && v >= 0 && v <= 1) cfg.warmingWeight = v;
+          continue;
+        }
+        if (row.key === 'warming_window_days') {
+          const v = parseInt(row.value, 10);
+          if (!isNaN(v) && v >= 1 && v <= 30) cfg.warmingWindowDays = v;
+          continue;
+        }
+        if (scopeWarmingKey && row.key === scopeWarmingKey) {
+          const v = parseFloat(row.value);
+          if (!isNaN(v) && v >= 0 && v <= 1) scopeWarmingOverride = v;
           continue;
         }
         if (row.key === 'synergy_boost_on')     { cfg.synergyOn = row.value === 'true'; continue; }
@@ -282,6 +310,10 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     if (scopeMinEnergyOverride !== null && scope) {
       console.log(`[edge-zk6] energy floor override: scope=${scope} ${cfg.minEnergyThreshold} → ${scopeMinEnergyOverride}`);
       cfg.minEnergyThreshold = scopeMinEnergyOverride;
+    }
+    cfg.effectiveWarmingWeight = scopeWarmingOverride ?? cfg.warmingWeight;
+    if ((cfg.effectiveWarmingWeight ?? 0) > 0) {
+      console.log(`[edge-zk6] WARMING active: scope=${scope ?? 'global'} weight=${cfg.effectiveWarmingWeight} windowDays=${cfg.warmingWindowDays}`);
     }
     return cfg;
   } catch {
@@ -469,6 +501,40 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
   };
 }
 
+/**
+ * ENH-WARMING-2026-06-06: cross-jurisdiction prior-N-day history for WARMING.
+ * Returns [] when warming weight is 0 (caller checks before invoking).
+ */
+async function fetchWarmingHistory(
+  todayEt: string,
+  windowDays: number,
+): Promise<{ comboset_sorted: string; date_et: string }[]> {
+  try {
+    const todayDate = new Date(todayEt + 'T12:00:00');
+    todayDate.setDate(todayDate.getDate() - windowDays);
+    const fromDate = todayDate.toISOString().split('T')[0];
+    const all: { comboset_sorted: string; date_et: string }[] = [];
+    const pageSize = 1000;
+    for (let offset = 0; offset < 10000; offset += pageSize) {
+      const page = await sbGet<any[]>(
+        `/rest/v1/histories?select=comboset_sorted,date_et` +
+          `&date_et=gte.${fromDate}&date_et=lt.${todayEt}` +
+          `&order=date_et.desc&limit=${pageSize}&offset=${offset}`,
+      );
+      const arr = Array.isArray(page) ? page : [];
+      for (const r of arr) {
+        if (r && typeof r.comboset_sorted === 'string' && typeof r.date_et === 'string') {
+          all.push({ comboset_sorted: r.comboset_sorted, date_et: r.date_et });
+        }
+      }
+      if (arr.length < pageSize) break;
+    }
+    return all;
+  } catch {
+    return [];
+  }
+}
+
 async function fetchHistoryOverrides(scope: Scope) {
   try {
     const clause = scope === 'allday' ? '' : `&session=eq.${encodeURIComponent(scope)}`;
@@ -559,11 +625,19 @@ async function computeSlate(params: {
   const effBoxPressureWeight = cfg.effectiveBoxPressureWeight ?? cfg.boxPressureWeight;
   console.log('[edge-zk6] BOX split: freq=' + effBoxFreqWeight + ' pressure=' + effBoxPressureWeight);
 
-  // 1. Fetch datasets + history overrides
-  const [ds, { dsOverride, lsOverride, hitDatesMap }] = await Promise.all([
+  // 1. Fetch datasets + history overrides + warming history (parallel)
+  // ENH-WARMING-2026-06-06: warming fetch is skipped (returns []) when weight=0.
+  const warmingActive = (cfg.effectiveWarmingWeight ?? 0) > 0;
+  const [ds, { dsOverride, lsOverride, hitDatesMap }, warmingRows] = await Promise.all([
     fetchDatasets(scope),
     fetchHistoryOverrides(scope),
+    warmingActive
+      ? fetchWarmingHistory(todayEt, cfg.warmingWindowDays)
+      : Promise.resolve([] as { comboset_sorted: string; date_et: string }[]),
   ]);
+  if (warmingActive) {
+    console.log(`[edge-zk6] WARMING fetched ${warmingRows.length} rows over ${cfg.warmingWindowDays}d window`);
+  }
   for (const [cs, d] of dsOverride) { const s = ds.drawsSinceMap.get(cs); if (s == null || d < s) ds.drawsSinceMap.set(cs, d); }
   for (const [cs, l] of lsOverride) { const s = ds.lastSeenMap.get(cs);   if (!s || l > s)       ds.lastSeenMap.set(cs, l);   }
 
@@ -709,6 +783,28 @@ async function computeSlate(params: {
     finalScores[i] = weights.BOX * normBox[i] + weights.PBURST * normPburst[i] + weights.CO * normCo[i] + weights.DGC * normDgc[i] + multAdj;
     if (synergyOn && [normBox[i], normPburst[i], normCo[i], normDgc[i]].filter(v => v >= 0.65).length >= 2)
       finalScores[i] *= (1 + synergyWeight);
+  }
+
+  // 5b. ENH-WARMING-2026-06-06: post-score additive boost. Build map from prior
+  // N-day national history, max-norm across the universe, add wWeight*normWarming
+  // to finalScores. Bit-identical to pre-WARMING when wWeight=0.
+  let rawWarming: Float64Array | null = null;
+  let normWarming: number[] | null = null;
+  if (warmingActive) {
+    const wMap = new Map<string, number>();
+    for (const r of warmingRows) wMap.set(r.comboset_sorted, (wMap.get(r.comboset_sorted) ?? 0) + 1);
+    rawWarming = new Float64Array(1000);
+    for (let i = 0; i < 1000; i++) {
+      rawWarming[i] = wMap.get(toComboSet(universe[i])) ?? 0;
+    }
+    normWarming = maxNorm(Array.from(rawWarming), true);
+    const wWeight = cfg.effectiveWarmingWeight ?? 0;
+    for (let i = 0; i < 1000; i++) {
+      finalScores[i] += wWeight * normWarming[i];
+    }
+    const nonZero = Array.from(rawWarming).filter(v => v > 0).length;
+    const maxW = Array.from(rawWarming).reduce((m, v) => v > m ? v : m, 0);
+    console.log(`[edge-zk6] WARMING applied: weight=${wWeight} nonZeroCombos=${nonZero} maxRaw=${maxW}`);
   }
 
   // 6. K6 selection (6 passes)

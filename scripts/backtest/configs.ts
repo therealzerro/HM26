@@ -2561,6 +2561,197 @@ export const CONFIGS: Record<string, EngineConfig> = {
     timesDrawnHorizonBlend: true,
   },
 
+  // ─── WARMING v1 (2026-06-06): drop DGC, add 7-day cross-jurisdiction signal ─
+  // Combines two findings from today's session:
+  //   1. DGC anti-predictive in all scopes (28d AUC 0.43-0.49) → zero out
+  //   2. prior_7d_draws predicts same-day multi-draw with 3-10× lift over
+  //      baseline (60d n=2955 evidence in ENH-WARMING-2026-06-06)
+  //
+  // DGC weight slot becomes the WARMING weight slot, scope-by-scope:
+  //   midday  DGC 10% → WARMING 10%
+  //   evening DGC 10% → WARMING 10%
+  //   allday  DGC 15% → WARMING 15%
+  //
+  // Hypothesis: WARMING captures the {1,5,7} case (drawn 28x prior 7d, then
+  // drew 4× on 6/5) that BOX/PBURST/CO/DGC all missed. Sign reads on the
+  // multi-drawn singles from 6/5 are dominant; 60d evidence is monotonic.
+  //
+  // Risk: WARMING may correlate with BOX freq (high-freq combos also burst).
+  // If correlation is high, lift will be illusory. AUC + rank-correlation
+  // analysis pending — current preset is the empirical first probe.
+  warming_v1: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.00 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.00 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.00 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.00 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.516, DGC: 0.00 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.710, DGC: 0.00 },
+      },
+      evening: {
+        balanced:     { BOX: 0.450, PBURST: 0.250, CO: 0.200, DGC: 0.00 },
+        conservative: { BOX: 0.630, PBURST: 0.115, CO: 0.155, DGC: 0.00 },
+        aggressive:   { BOX: 0.360, PBURST: 0.295, CO: 0.245, DGC: 0.00 },
+      },
+      allday: {
+        balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.085, DGC: 0.00 },
+        conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.040, DGC: 0.00 },
+        aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.130, DGC: 0.00 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+    warmingWindowDays: 7,
+    warmingWeightByScope: { midday: 0.10, evening: 0.10, allday: 0.15 },
+  },
+
+  // ─── WARMING v2 (2026-06-06): scope-matched history filter ────────────────
+  // v1 result (cross-session): overall -1.1pp slate, midday r1 collapsed
+  // 24.1 → 10.3, allday -6.9pp slate. Hypothesis: counting prior-7d draws
+  // across ALL sessions polluted the midday/evening signal. The engine's
+  // existing datasets_box/_pair already filter by session for midday/evening
+  // — warming should match that pattern.
+  //
+  // v2 changes ONE thing vs v1: warmingScopeMatched = true.
+  // - midday slate's warming counts prior-7d MIDDAY draws only
+  // - evening slate's warming counts prior-7d EVENING draws only
+  // - allday slate's warming counts everything (unchanged)
+  //
+  // If v2 fixes midday/allday while preserving the evening +6.9pp gain, the
+  // scope-mismatch hypothesis is confirmed. If midday/allday still hurt,
+  // WARMING is dominated by BOX freq and the audit needs falsification update.
+  warming_v2: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.00 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.00 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.00 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.00 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.516, DGC: 0.00 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.710, DGC: 0.00 },
+      },
+      evening: {
+        balanced:     { BOX: 0.450, PBURST: 0.250, CO: 0.200, DGC: 0.00 },
+        conservative: { BOX: 0.630, PBURST: 0.115, CO: 0.155, DGC: 0.00 },
+        aggressive:   { BOX: 0.360, PBURST: 0.295, CO: 0.245, DGC: 0.00 },
+      },
+      allday: {
+        balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.085, DGC: 0.00 },
+        conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.040, DGC: 0.00 },
+        aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.130, DGC: 0.00 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+    warmingWindowDays: 7,
+    warmingScopeMatched: true,
+    warmingWeightByScope: { midday: 0.10, evening: 0.10, allday: 0.15 },
+  },
+
+  // ─── WARMING evening-only (2026-06-06): isolate the only working signal ───
+  // v1 + v2 both surfaced the same pattern: midday + allday regress, evening
+  // gains. v1 evening +10.3pp slate, v2 evening +6.9pp slate. Both outside
+  // ±1.7pp noise. This preset isolates that win by setting WARMING weight to
+  // 0 on midday + allday (those scopes are unchanged from baseline) and
+  // keeping 10% on evening only.
+  //
+  // Uses cross-session warming for evening (matches v1's evening result, which
+  // was stronger than v2's). Evening scope's warming counts all national draws
+  // in the prior 7 days — same {1,5,7} story that motivated the investigation.
+  //
+  // DGC stays at 0 on evening (matched to v1/v2). Midday + allday retain DGC
+  // at baseline levels (10% + 15%) since we're not touching them.
+  warming_evening_only: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.516, DGC: 0.100 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.710, DGC: 0.100 },
+      },
+      evening: {
+        balanced:     { BOX: 0.450, PBURST: 0.250, CO: 0.200, DGC: 0.00 },
+        conservative: { BOX: 0.630, PBURST: 0.115, CO: 0.155, DGC: 0.00 },
+        aggressive:   { BOX: 0.360, PBURST: 0.295, CO: 0.245, DGC: 0.00 },
+      },
+      allday: {
+        balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.085, DGC: 0.150 },
+        conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.040, DGC: 0.150 },
+        aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.130, DGC: 0.150 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+    warmingWindowDays: 7,
+    warmingScopeMatched: false,
+    warmingWeightByScope: { midday: 0.00, evening: 0.10, allday: 0.00 },
+  },
+
+  // ─── WARMING isolation (2026-06-06): WARMING on evening, DGC stays at 10 ──
+  // warming_evening_only bundled two changes: DGC 10→0 AND WARMING 0→10 on
+  // evening. The backtest +10.3pp slate could be either lever. This preset
+  // isolates WARMING by keeping evening DGC at 10%. If this preset still
+  // beats baseline by >2pp on evening, WARMING is doing the work. If it ties
+  // baseline, the DGC drop was the lever.
+  warming_evening_only_keep_dgc: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.516, DGC: 0.100 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.710, DGC: 0.100 },
+      },
+      evening: {
+        balanced:     { BOX: 0.450, PBURST: 0.250, CO: 0.200, DGC: 0.100 },
+        conservative: { BOX: 0.630, PBURST: 0.115, CO: 0.155, DGC: 0.100 },
+        aggressive:   { BOX: 0.360, PBURST: 0.295, CO: 0.245, DGC: 0.100 },
+      },
+      allday: {
+        balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.085, DGC: 0.150 },
+        conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.040, DGC: 0.150 },
+        aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.130, DGC: 0.150 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+    warmingWindowDays: 7,
+    warmingScopeMatched: false,
+    warmingWeightByScope: { midday: 0.00, evening: 0.10, allday: 0.00 },
+  },
+
   // ─── DGC drop candidate (2026-06-06): zero out the anti-predictive signal ──
   // Phase 1 fix (LEARN-01 + HIT-DET-01) cleaned signal_auc_per_day. 28d AUC:
   //   DGC midday 0.430 / evening 0.485 / allday 0.454 — anti-predictive in ALL

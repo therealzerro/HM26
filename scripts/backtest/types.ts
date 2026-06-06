@@ -127,6 +127,25 @@ export interface EngineConfig {
   // engineCore.computeWeightedScore).
   synergyThreshold?: number;
   synergyMinCount?: number;
+  // ENH-WARMING-2026-06-06: 7-day cross-jurisdiction warming signal.
+  // Optional 5th channel applied as a post-score additive boost (matching the
+  // doublesTopNBoost application pattern). When 0/undefined, behavior is
+  // bit-identical to the 4-channel engine. When set, the prior-7d national
+  // draw count per comboSet is max-normed and added as warmingWeight × normWarming
+  // to each combo's finalScore before energy + K6 selection. See ENH-WARMING-2026
+  // -06-06 in MASTER_AUDIT for the 60d evidence.
+  warmingWeight?: number;
+  warmingWeightByScope?: Partial<Record<Scope, number>>;
+  /** Window size in days for the warming lookup (default 7). */
+  warmingWindowDays?: number;
+  /**
+   * v2 (2026-06-06): when true, warming history fetch filters by session for
+   * midday/evening scopes (allday always counts all sessions). Matches the
+   * engine's existing scope-filtered datasets_box/_pair pattern. v1 default
+   * (false/omitted) keeps cross-session fetch — preserves prior backtest
+   * comparability.
+   */
+  warmingScopeMatched?: boolean;
 }
 
 export interface ReplayPick {

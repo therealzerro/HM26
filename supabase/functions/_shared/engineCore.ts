@@ -93,6 +93,59 @@ export function computeDGC(dayOffsets: number[]): number {
   return Math.max(0, 1 - Math.sqrt(variance) / DGC_REF_STD_DEV);
 }
 
+// ─── WARMING signal (ENH-WARMING-2026-06-06) ────────────────────────────────
+//
+// Counts how many times this comboSet was drawn nationally in the preceding
+// N days (default 7). Captures cross-jurisdiction short-window momentum that
+// neither ds_raw (most-recent draw only) nor times_drawn (annual aggregate)
+// can see.
+//
+// Pure: caller provides the pre-filtered history rows for the [asOfDate-N,
+// asOfDate-1] window. No DB call here.
+//
+// Returns RAW count. Caller is responsible for max-norm across the universe
+// (matching BOX's normalization pattern).
+
+export interface WarmingHistoryRow {
+  comboset_sorted: string;
+  date_et: string;
+}
+
+/**
+ * Count national draws of a single comboSet in the supplied history window.
+ * Window is the responsibility of the caller — typically the 7 days before
+ * the slate-gen date, fetched via fetchHistoryRows or equivalent.
+ *
+ * Performance note: for engine use the caller should bucket the entire
+ * history window into a Map<comboSet, count> ONCE per slate-gen, not call
+ * this 1000 times. See buildWarmingMap below.
+ */
+export function computeWarmingSignal(
+  comboSet: string,
+  windowHistoryRows: WarmingHistoryRow[],
+): number {
+  let count = 0;
+  for (const row of windowHistoryRows) {
+    if (row.comboset_sorted === comboSet) count++;
+  }
+  return count;
+}
+
+/**
+ * Bucket a history window into a Map<comboSet, raw_count> for O(1) lookup
+ * during the per-combo scoring loop. Call this once per slate-gen with the
+ * full prior-N-days history rows; use the returned map for all 1000 combos.
+ */
+export function buildWarmingMap(
+  windowHistoryRows: WarmingHistoryRow[],
+): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const row of windowHistoryRows) {
+    m.set(row.comboset_sorted, (m.get(row.comboset_sorted) ?? 0) + 1);
+  }
+  return m;
+}
+
 // ─── BOX signal ───────────────────────────────────────────────────────────────
 
 export interface BoxSignalParts { freq: number; pressure: number; box: number }

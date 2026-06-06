@@ -2711,6 +2711,59 @@ export const CONFIGS: Record<string, EngineConfig> = {
     warmingWeightByScope: { midday: 0.00, evening: 0.10, allday: 0.00 },
   },
 
+  // ─── ALLDAY CO=0 investigation (2026-06-06): test the anti-CO finding ─────
+  // 60d on-slate evidence: allday CO-low (<0.5) picks hit at 90.3% (n=154),
+  // CO-high (≥0.5) picks hit at 45.8% (n=155). 44.5pp gap, monotonic.
+  // Same anti-pattern present (smaller) on evening + midday but ALLDAY shows
+  // it most strongly. Engine's CO weight on allday is currently 8.5% positive
+  // — the data says it should be 0 or negative.
+  //
+  // CAVEAT: analysis was on on_slate=true picks (selection-biased). This
+  // backtest is the disambiguator — if candidate beats baseline, CO is
+  // genuinely anti-predictive. If candidate ties or regresses, the on-slate
+  // finding was forced by rail constraints filling spare slots with diverse
+  // low-CO combos that happened to be good for OTHER reasons.
+  //
+  // Reallocation: allday CO 8.5pp → 0. Proportionally scale remaining
+  // BOX/PBURST/DGC to sum to 100. Midday + evening untouched (their CO weights
+  // are higher and matter more for those scopes; CONFIG-11a evening review
+  // window still open).
+  //
+  // balanced allday  scale 100/91.5  = 1.0929 → BOX 54.1 / PBURST 29.5 / DGC 16.4
+  // conservative     scale 100/96.0  = 1.0417 → BOX 70.3 / PBURST 14.1 / DGC 15.6
+  // aggressive       scale 100/87.0  = 1.1494 → BOX 46.6 / PBURST 36.2 / DGC 17.2
+  allday_co_zero: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.516, DGC: 0.100 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.710, DGC: 0.100 },
+      },
+      evening: {
+        balanced:     { BOX: 0.450, PBURST: 0.250, CO: 0.200, DGC: 0.100 },
+        conservative: { BOX: 0.630, PBURST: 0.115, CO: 0.155, DGC: 0.100 },
+        aggressive:   { BOX: 0.360, PBURST: 0.295, CO: 0.245, DGC: 0.100 },
+      },
+      allday: {
+        balanced:     { BOX: 0.541, PBURST: 0.295, CO: 0.000, DGC: 0.164 },
+        conservative: { BOX: 0.703, PBURST: 0.141, CO: 0.000, DGC: 0.156 },
+        aggressive:   { BOX: 0.466, PBURST: 0.362, CO: 0.000, DGC: 0.172 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+  },
+
   // ─── WARMING isolation (2026-06-06): WARMING on evening, DGC stays at 10 ──
   // warming_evening_only bundled two changes: DGC 10→0 AND WARMING 0→10 on
   // evening. The backtest +10.3pp slate could be either lever. This preset

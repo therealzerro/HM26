@@ -23,6 +23,83 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
+### CONFIG-14 — Allday CO Weight 8.5 → 0 (2026-06-06)
+
+**Pure config ship, ~25 min after CONFIG-13. The cheapest engine intervention of the day and the cleanest backtest result of the session.** Sets allday CO weight to 0 and redistributes the 8.5pp proportionally to BOX/PBURST/DGC. Midday + evening untouched.
+
+**Source.** Allday signal sweep 2026-06-06. 60-day analysis of allday on-slate picks (n=309) showed CO is strongly anti-predictive at the slate level:
+
+| Scope | CO-low (<0.5) hit % | CO-high (≥0.5) hit % | gap |
+|---|---|---|---|
+| **allday** | **90.3%** (n=154) | **45.8%** (n=155) | **+44.5pp** |
+| evening | 56.8% (n=169) | 33.3% (n=150) | +23.5pp |
+| midday | 30.0% (n=150) | 25.9% (n=158) | +4.1pp |
+
+Same anti-pattern across all three scopes; **dramatically strongest on allday**. Engine weight assignment was inversely calibrated — where CO hurts most (allday), the weight was already smallest (8.5%), but still positive and still pulling wrong direction. PBURST shows the same anti-pattern on allday at smaller magnitude.
+
+The structural explanation: CO measures pair co-occurrence at H01Y resolution. High-CO combos are in "popular pair families" that have already drawn heavily and are mean-reverting. K6 rail constraints (singles_max, pair_rep_cap) force diversity into the slate, so when high-CO clusters fill top slots, the engine has to dip into low-CO combos for the remainder — those "spare slot" combos hit at 90%+.
+
+**Backtest validation (`allday_co_zero` vs `evening_co_boost_20`, 30d, n=87 per scope):**
+
+| | Baseline | Candidate | Δ |
+|---|---|---|---|
+| Overall slate | 86.2% | 86.2% | tied |
+| midday slate | 82.8% | 79.3% | within ±1.7pp noise (config-untouched) |
+| evening slate | 82.8% | 82.8% | identical (bit-by-bit, config-untouched) |
+| **allday slate** | **93.1%** | **96.6%** | **+3.5pp** ✓ |
+| allday pick rate | 35.6% | 36.8% | +1.2pp |
+| Total pick-hits | 141 | 142 | +1 |
+
+**Per-rank ALLDAY (the breakthrough):**
+
+| | Baseline | Candidate |
+|---|---|---|
+| r1 | 27.6% ⚠️ | **34.5%** |
+| r2 | 37.9% | 34.5% |
+| r3 | 31.0% | 37.9% |
+| r4 | 41.4% | 31.0% |
+| r5 | 31.0% | 41.4% |
+| r6 | 44.8% | 41.4% |
+
+**Allday r1<r2 inversion ELIMINATED.** r1 lifts +6.9pp (27.6 → 34.5). The harness no longer emits the `⚠️ allday: rank-1 < rank-2 — engine mis-orders top of slate` warning. This inversion has been outstanding since CONFIG-10 ship (5/27) — explicitly accepted as a trade at that time. CONFIG-14 closes it without any new code.
+
+**Production config (set at ship 2026-06-06 14:08 UTC):**
+```sql
+UPDATE app_config
+SET value = '{"BOX":54.1,"PBURST":29.5,"CO":0,"DGC":16.4}', updated_at = NOW()
+WHERE key = 'engine_weights_balanced_allday';
+```
+Allocation math: scale factor 100/91.5 = 1.0929 applied to BOX/PBURST/DGC. Original allday CONFIG-10 stack was `{BOX:49.5, PBURST:27, CO:8.5, DGC:15}` — the CO weight cleanly moves to zero, others scale up proportionally to preserve the relative ratio.
+
+**First subscriber-visible allday slate under CONFIG-14:** manual regen via edge fn v31 immediately after config set. New snapshot hash `997FAB7B`. r6 changed from `653` ({3,5,6}) to `103` ({0,1,3}) — a comboSet that was previously blocked by CO weighting. r1/r2 (`637`, `923`) preserved.
+
+**Stacking caveat.** CONFIG-14 ships into an open review window with three other recent changes:
+- CONFIG-11a (evening CO 13.5→20, shipped 6/6 01:27 UTC) — different scope, not directly confounded
+- CONFIG-12 (pressure_threshold 250→100 global, shipped 6/6 01:43 UTC) — dormant in practice (verified 6/6 morning: no top-30 combos in the affected ds range)
+- CONFIG-13 (evening WARMING 10% weight, shipped 6/6 13:48 UTC) — different scope
+- CONFIG-10 (allday DGC 15%, shipped 5/27) — already in review window 5/27→6/3, ratified
+
+**Allday hasn't been touched since CONFIG-10 (5/27).** CONFIG-14 is the first live allday change in 10 days. The 6/13 review can evaluate it independently of the evening-scoped CONFIG-11a/13 changes.
+
+**Review window: 2026-06-13.** Watch: (a) allday 7-day slate hit rate vs pre-CONFIG-14 baseline (live-data baseline ~93%), (b) allday r1 hit rate ≥ baseline (the headline gain), (c) midday + evening invariance (their config is untouched — any drift would indicate something else moved).
+
+**Rollback (one SQL row, no deploy):**
+```sql
+UPDATE app_config
+SET value = '{"BOX":49.5,"PBURST":27,"CO":8.5,"DGC":15}', updated_at = NOW()
+WHERE key = 'engine_weights_balanced_allday';
+```
+Engine falls back to pre-CONFIG-14 weights on next slate compute. Edge fn code unchanged — pure data revert.
+
+**Rollback conditions.** Revert if **any** of:
+1. 7-day allday slate hit rate trails 88% (5pp below ~93% pre-deploy baseline)
+2. Allday r1 hit rate fails to clear the 27.6% baseline over the 7-day window
+3. Allday pick rate drops below 30% (5pp below baseline 35.6%)
+
+**Marketing language unlocked.** None. CONFIG-14 is a calibration fix, not a new capability. Subscriber UX improves quietly: allday r1 pick is more often the right pick.
+
+---
+
 ### CONFIG-13 — Evening WARMING Signal Live (2026-06-06)
 
 **The first new signal source added to the ZK6 4-channel ensemble since launch.** Adds `WARMING` — a 7-day cross-jurisdiction draw-count signal — as a post-score additive boost. Initial config sets weight 0.10 on **evening only**; midday and allday remain bit-identical to pre-CONFIG-13 behavior.

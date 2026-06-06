@@ -622,6 +622,29 @@ export async function computeSlateAsOf(
     }
   }
 
+  // ENH-POP-PENALTY-2026-06-06: subtract a multiplicative popularity penalty
+  // for the doubly-popular (high TD × high CO) interaction. Derived from
+  // existing data — `popPenalty[i] = (timesDrawn[i] / maxTimesDrawn) * normCo[i]`,
+  // max-normed across the universe. Subtracted as `weight × normPopPenalty`.
+  // Designed for midday where the trap is concentrated; allday CO=0 already
+  // addressed differently; evening has slack absorbed by WARMING.
+  const popPenaltyWeight = config.popularityPenaltyWeightByScope?.[scope] ?? config.popularityPenaltyWeight ?? 0;
+  if (popPenaltyWeight > 0) {
+    const rawPopPenalty = new Float64Array(1000);
+    for (let i = 0; i < 1000; i++) {
+      const normKey = toComboSet(universe[i]);
+      const td = tdBlend
+        ? blendBoxTimesDrawn(normKey, boxTimesDrawnByHorizon, horizonWeights)
+        : (timesDrawnMap.get(normKey) ?? 0);
+      const normTd = maxTimesDrawn > 0 ? td / maxTimesDrawn : 0;
+      rawPopPenalty[i] = normTd * normCo[i];
+    }
+    const normPopPenalty = maxNorm(Array.from(rawPopPenalty), true);
+    for (let i = 0; i < 1000; i++) {
+      finalScores[i] -= popPenaltyWeight * normPopPenalty[i];
+    }
+  }
+
   // ENH-DBL-H3 (2026-05-18): top-N doubles selective bonus. Applied AFTER
   // the weighted-signal score is computed but BEFORE energy percentile is
   // taken — so bonused doubles also rise in energy (helping them clear the

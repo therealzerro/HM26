@@ -2711,6 +2711,128 @@ export const CONFIGS: Record<string, EngineConfig> = {
     warmingWeightByScope: { midday: 0.00, evening: 0.10, allday: 0.00 },
   },
 
+  // ─── MIDDAY popularity-penalty signal (2026-06-06) ──────────────────────────
+  // After midday CO sweep falsified the "reweight" approach, this preset adds
+  // a NEW derived signal targeting the doubly-popular interaction directly.
+  // popPenalty[i] = (TD[i]/maxTD) × normCo[i], max-normed, subtracted with
+  // weight 0.15 on midday only. Phase A test — multiplicative smooth variant.
+  // If null result, try thresholded variants (B/C in audit). All other config
+  // including midday baseline weights UNCHANGED.
+  midday_pop_penalty_v1: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.516, DGC: 0.100 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.710, DGC: 0.100 },
+      },
+      evening: {
+        balanced:     { BOX: 0.450, PBURST: 0.250, CO: 0.200, DGC: 0.100 },
+        conservative: { BOX: 0.630, PBURST: 0.115, CO: 0.155, DGC: 0.100 },
+        aggressive:   { BOX: 0.360, PBURST: 0.295, CO: 0.245, DGC: 0.100 },
+      },
+      allday: {
+        balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.085, DGC: 0.150 },
+        conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.040, DGC: 0.150 },
+        aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.130, DGC: 0.150 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+    popularityPenaltyWeightByScope: { midday: 0.15, evening: 0.00, allday: 0.00 },
+  },
+
+  // ─── MIDDAY CO investigation (2026-06-06) ──────────────────────────────────
+  // Midday is structurally different from allday:
+  //   - Allday CO weight was 8.5% (small) → zeroing was a small indicator shift
+  //   - Midday CO weight is 64% (largest in system) → zeroing is a MAJOR restructure
+  // Two competing theories:
+  //   A. CO is a popularity trap on midday too (same as allday) — zero helps
+  //   B. CO is a noise smoother — without it, BOX freq dominates and picks
+  //      the popularity ceiling MORE aggressively
+  // Run both midday_co_zero AND midday_co_modest to see the response curve.
+  // Bar for ship: outside ±1.7pp noise, r1 preserved, no scope regression > 2pp.
+
+  // Full zero — proportional redistribution. CO 64 → 0; scale 100/36 = 2.778
+  // applied to BOX 20.8, PBURST 5.2, DGC 10. Result: BOX 57.8 / PBURST 14.4 /
+  // DGC 27.8 / CO 0. Major flip away from CO dominance to BOX dominance.
+  midday_co_zero: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.578, PBURST: 0.144, CO: 0.000, DGC: 0.278 },
+        conservative: { BOX: 0.752, PBURST: 0.071, CO: 0.000, DGC: 0.177 },
+        aggressive:   { BOX: 0.483, PBURST: 0.172, CO: 0.000, DGC: 0.345 },
+      },
+      evening: {
+        balanced:     { BOX: 0.450, PBURST: 0.250, CO: 0.200, DGC: 0.100 },
+        conservative: { BOX: 0.630, PBURST: 0.115, CO: 0.155, DGC: 0.100 },
+        aggressive:   { BOX: 0.360, PBURST: 0.295, CO: 0.245, DGC: 0.100 },
+      },
+      allday: {
+        balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.085, DGC: 0.150 },
+        conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.040, DGC: 0.150 },
+        aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.130, DGC: 0.150 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+  },
+
+  // Modest reduction. CO 64 → 30 (34pp redistributed). Scale 34/36 = 0.944 of
+  // residual capacity applied to BOX 20.8, PBURST 5.2, DGC 10. Result:
+  // BOX 40.4 / PBURST 10.1 / CO 30 / DGC 19.4.
+  // Less radical than zero, preserves CO's smoothing role.
+  midday_co_modest: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.404, PBURST: 0.101, CO: 0.300, DGC: 0.195 },
+        conservative: { BOX: 0.508, PBURST: 0.046, CO: 0.300, DGC: 0.146 },
+        aggressive:   { BOX: 0.342, PBURST: 0.122, CO: 0.300, DGC: 0.236 },
+      },
+      evening: {
+        balanced:     { BOX: 0.450, PBURST: 0.250, CO: 0.200, DGC: 0.100 },
+        conservative: { BOX: 0.630, PBURST: 0.115, CO: 0.155, DGC: 0.100 },
+        aggressive:   { BOX: 0.360, PBURST: 0.295, CO: 0.245, DGC: 0.100 },
+      },
+      allday: {
+        balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.085, DGC: 0.150 },
+        conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.040, DGC: 0.150 },
+        aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.130, DGC: 0.150 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+  },
+
   // ─── ALLDAY CO=0 investigation (2026-06-06): test the anti-CO finding ─────
   // 60d on-slate evidence: allday CO-low (<0.5) picks hit at 90.3% (n=154),
   // CO-high (≥0.5) picks hit at 45.8% (n=155). 44.5pp gap, monotonic.

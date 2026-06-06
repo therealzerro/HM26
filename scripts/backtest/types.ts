@@ -138,6 +138,17 @@ export interface EngineConfig {
   warmingWeightByScope?: Partial<Record<Scope, number>>;
   /** Window size in days for the warming lookup (default 7). */
   warmingWindowDays?: number;
+  // ENH-POP-PENALTY-2026-06-06: derived signal targeting the doubly-popular
+  // interaction (high TD × high CO). 60d midday on-slate evidence: combos at
+  // TD ≥ 693 AND CO ≥ 0.85 hit at 16% (n=25) vs 30-34% baseline at any other
+  // joint quadrant. Linear weights on TD or CO alone can't penalize this
+  // interaction. popPenalty = normTD × normCo (multiplicative); max-normed;
+  // subtracted from finalScore as `popularityPenaltyWeight × normPopPenalty`.
+  // Skipped entirely when weight=0 (parity-preserving). Scope-gated:
+  // initial proposal sets midday only since allday CO=0 already addressed
+  // its popularity trap differently.
+  popularityPenaltyWeight?: number;
+  popularityPenaltyWeightByScope?: Partial<Record<Scope, number>>;
   /**
    * v2 (2026-06-06): when true, warming history fetch filters by session for
    * midday/evening scopes (allday always counts all sessions). Matches the

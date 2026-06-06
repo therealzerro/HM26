@@ -23,6 +23,42 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
+### DEPLOY-01 — Edge Fn `../../../lib/` Imports Broken Under Supabase CLI v1.215.1 (2026-06-06)
+
+Discovered while attempting ENG-AUDIT-02 (consolidating the inline synergy formula in `compute-slate-zk6/index.ts` to call the shared `lib/engineCore.computeWeightedScore` helper). Deploy via `supabase functions deploy compute-slate-zk6` failed with:
+
+```
+Module not found "file:///workspaces/HM26/lib/engineCore.ts"
+at file:///workspaces/HM26/supabase/functions/compute-slate-zk6/index.ts:18:8
+```
+
+Same error reproduces on the pre-edit content (reverted to byte-identical-to-v27, the last successful deploy on 2026-05-27). Three edge fns are affected — all share the `../../../lib/` import pattern:
+- `compute-slate-zk6` (slate generation — last v27, 5/27)
+- `compute-slate-zk30` (ZK30 path)
+- `compute-daily-auc-zk6` (ENH-AFL daily AUC computation)
+
+Two edge fns deployed cleanly the same night (`run-hit-detection`, `generate-weight-proposal`) because they don't import from `lib/`. The bundler issue is specifically about traversing outside `supabase/`.
+
+**Production state.** Not affected at runtime. All three edge fns continue serving their previously-deployed versions:
+- `compute-slate-zk6` v27 (2026-05-27, post-CONFIG-08 ship). All CONFIG-09/10/11a/12 changes were `app_config` row UPDATEs that the edge fn reads at slate-compute time — no code change required.
+
+**What this blocks.** Any future engine code change that needs to ship via edge fn deploy. Examples:
+- Synergy threshold parameterization (would let CONFIG-XX tune synergy without engine code edits)
+- doublesTopNBoost porting from harness to production
+- ENH-AFL signal AUC computation tweaks
+- Any bug fix in the slate-compute flow
+
+**Repair options (deferred — not blocking any subscriber-visible work):**
+1. **Restructure**: copy `lib/engineCore.ts` to `supabase/_shared/engineCore.ts` and update imports to `../_shared/engineCore.ts`. Eliminates outer traversal. Cleanest, but adds a parity-sync rule between `lib/` and `supabase/_shared/`.
+2. **Upgrade Supabase CLI**: v1.215.1 → v2.105.0 might restore the prior bundler behavior. Risk: untested at v2 with this project's setup.
+3. **Inline-all**: copy every needed export from `lib/engineCore.ts` into each affected edge fn. Ugly, defeats the point of `engineCore` as a shared module.
+
+Tracker memory: [[feedback-supabase-cli-lib-imports]].
+
+ENG-AUDIT-02 retired as a follow-up to this entry — the consolidation is correctly designed; it's the deploy pipeline that's broken. Task #36 closed; re-open after DEPLOY-01 lands a fix.
+
+---
+
 ### PROP-02 — Autotune Activation Path Selected: Path A (2026-06-06)
 
 Forward-looking decision entry. The scheduled autotune pipeline (`generate-weight-proposal` edge function on a Sunday 5am ET pg_cron schedule) was infrastructure-complete since 2026-05-18 but operationally dormant — sample-size gate G1 was structurally unclearable due to two bugs (PROP-01 + G1-GATE-01) both fixed today. With the pipeline now viable for the first time, this entry locks in **Path A** (enable scheduled autotune with hand-reviewed proposals) over **Path B** (formally mark dormant; manual ops indefinitely) as the long-term operational mode.

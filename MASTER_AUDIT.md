@@ -23,6 +23,50 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
+### PROP-02 — Autotune Activation Path Selected: Path A (2026-06-06)
+
+Forward-looking decision entry. The scheduled autotune pipeline (`generate-weight-proposal` edge function on a Sunday 5am ET pg_cron schedule) was infrastructure-complete since 2026-05-18 but operationally dormant — sample-size gate G1 was structurally unclearable due to two bugs (PROP-01 + G1-GATE-01) both fixed today. With the pipeline now viable for the first time, this entry locks in **Path A** (enable scheduled autotune with hand-reviewed proposals) over **Path B** (formally mark dormant; manual ops indefinitely) as the long-term operational mode.
+
+**Path A vs Path B trade-off considered:**
+
+| | Path A (autotune live) | Path B (dormant) |
+|---|---|---|
+| Maintenance burden | Sunday cron runs, weekly proposal review | None |
+| Risk surface | Operator could miss a hand-review and let a bad proposal apply | Zero — manual ops only |
+| Reaction speed to engine regression | Weekly automated detection | Only when operator notices |
+| Decision style | Empirical (AUC-driven proposals + manual gate) | Intuitive (operator + local backtest) |
+
+**Path A selected** because the engine is now in a state where small per-scope tuning (CONFIG-07/09/10/11a) and per-knob nudges (CONFIG-12) produce measurable gains, but the operator can only notice regressions after the fact. Weekly proposal cycles give a structured "is anything drifting?" signal even if every proposal is dismissed.
+
+**Dependencies (now met):**
+- **HIT-DET-01** (this session): K6 primaries auto-labeled by `run-hit-detection` edge fn on every Daily Workflow run. Provides ongoing G1 sample-size growth without manual maintenance.
+- **PROP-01** (this session): Proposals screen sample-size proxy now honest (filters `result_at IS NOT NULL`, dedupes per pick). Operator can see if G1 is on track.
+- **G1-GATE-01** (this session): Same fix in the autotune script + edge fn. Gate logic now matches its semantic intent.
+- **Phase 1 commit `1b48583`** landed all three; deploys verified on 6/4 K6 (18/18 labeled).
+
+**Remaining work (PROP-03, task #21):**
+1. Watch ≥ 4 weeks of clean manual cycle (`npm run autotune:propose -- --manual`) producing sane proposals before flipping the cron schedule. "Sane" = backtest gate G3 passes on the generated weights without producing absurd values.
+2. When the manual cycle is proven, flip the flag via:
+   ```sql
+   -- This is the future PROP-03 ship action, NOT executed by PROP-02.
+   -- Enables the existing supabase/migrations/2026-05-18_pg_cron_generate_weight_proposal.sql cron.
+   SELECT cron.schedule('autotune-weekly-proposal', '0 9 * * 0', $$ ... $$);
+   ```
+3. Operator reviews each Sunday's proposal in the Proposals tab; refuses to Apply if backtest gate G3 fails locally.
+
+**Cancellation path (if Path A turns out to be wrong):**
+- DELETE the pg_cron schedule. Pipeline goes dormant; manual ops continues working.
+- No subscriber impact — proposals only become engine config if operator clicks Apply in the Proposals tab.
+
+**Why not flip the schedule now:** Sample size cleared the gate (857 > 500) but the proposals system has never produced ONE proposal end-to-end in production. The 4-week manual-cycle window proves the pipeline can produce sane proposals before automation runs unattended. If the first manual proposal is degenerate (e.g., G2/G3 fail in unexpected ways), we want to find that out without a cron deadline.
+
+**Tracking:**
+- Task #21 (PROP-03) is the actual schedule-flip ship.
+- Earliest activation: 2026-07-04 (4 weeks after CONFIG-12 ratification on 2026-06-13).
+- Stand up a calendar reminder for the operator to run `npm run autotune:propose -- --manual` weekly during the proving window, ideally Sundays to match the eventual cron cadence.
+
+---
+
 ### CONFIG-12 — Pressure Threshold 250 → 100 (2026-06-06)
 
 Lowers `pressure_threshold` from 250 → 100 to capture the empirically-observed hit zone. Intelligence screen 30-day data showed hits average 102 days overdue vs misses 44.6 days; the draws-since 101–200 band hits at 30.0% and the 201–365 band at 21.4%. The current threshold (250) bonuses only the 250+ tail, missing the entire 101–249 sweet spot where the highest-rate hit band lives.

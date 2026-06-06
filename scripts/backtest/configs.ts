@@ -1845,4 +1845,103 @@ export const CONFIGS: Record<string, EngineConfig> = {
     timesDrawnHorizonBlend: true,
     adaptiveSignalWeights: { enabled: true, alpha: 1.5 },
   },
+
+  // ─── CONFIG-11a (2026-06-06): evening per-scope CO boost ────────────────────
+  // Evening is the only live scope without a per-scope weights override —
+  // inherits the global preset (CO 13.5%) while absorbing the 5/27 horizon
+  // collapse to H01Y:60/H02Y:40. Performance era-split shows evening box rate
+  // -4.7pp and slate rate -16pp after the 5/27 ship, while midday (with its
+  // CO=64% override) gained +6.8pp box / +16pp slate.
+  //
+  // Engine screen 30-day rolling AUC: evening CO = 0.617 (highest of any
+  // signal in any scope), evening BOX = 0.585, evening PBURST = 0.538,
+  // evening DGC = 0.483 (anti-predictive but recovered at the slate-rate
+  // lens per the dual-lens pattern). The 13.5% global CO weight is well
+  // below where the universe-AUC says the signal lives.
+  //
+  // CONFIG-11a balances evening toward CO without abandoning BOX dominance:
+  //   BOX 49.5 → 45.0  (-4.5pp)   still primary
+  //   PBURST 27.0 → 22.0  (-5.0pp) middle-weight
+  //   CO 13.5 → 23.0      (+9.5pp) closer to AUC strength
+  //   DGC 10.0 → 10.0     unchanged
+  // Sum = 100% ✓. Mirrors the per-scope override pattern used for midday
+  // and allday. Conservative + aggressive entries shifted proportionally
+  // following the dgc_allday_15 derivation; production is balanced-only
+  // (SCRUB-01) so those modes are not exercised in prod.
+  //
+  // Baseline:  dgc_allday_15 (production parity post-5/27)
+  // Candidate: evening_co_boost_23 (this preset)
+  // Ship gate: candidate evening box AND slate rate ≥ baseline,
+  //            no other scope drops > 2pp on either lens.
+  // CONFIG-11a alternate (2026-06-06): less aggressive CO boost. The CO=23%
+  // candidate redistributed evening hits dramatically (r1: 17.2% → 31.0%
+  // resolving the r1<r2 inversion) but dipped overall pick rate by 1.1pp
+  // (within noise but failing the strict ship gate). CO=20% softens the
+  // bet — proportional shave from global default (BOX 49.5 / PBURST 27 /
+  // CO 13.5 / DGC 10) of just 6.5pp instead of 14.5pp. If r1 lift holds at
+  // a smaller magnitude AND aggregate pick rate stays ≥ baseline, this is
+  // the strict-gate-passing variant.
+  evening_co_boost_20: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.516, DGC: 0.100 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.710, DGC: 0.100 },
+      },
+      evening: {
+        balanced:     { BOX: 0.450, PBURST: 0.250, CO: 0.200, DGC: 0.100 },
+        conservative: { BOX: 0.630, PBURST: 0.115, CO: 0.155, DGC: 0.100 },
+        aggressive:   { BOX: 0.360, PBURST: 0.295, CO: 0.245, DGC: 0.100 },
+      },
+      allday: {
+        balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.085, DGC: 0.150 },
+        conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.040, DGC: 0.150 },
+        aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.130, DGC: 0.150 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+  },
+
+  evening_co_boost_23: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.090, DGC: 0.10 },
+      aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.180, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 250, minEnergyThreshold: 70, recentHitCooldown: 20,
+    synergyOn: false, synergyWeight: 0.15,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+        conservative: { BOX: 0.351, PBURST: 0.032, CO: 0.516, DGC: 0.100 },
+        aggressive:   { BOX: 0.140, PBURST: 0.050, CO: 0.710, DGC: 0.100 },
+      },
+      evening: {
+        balanced:     { BOX: 0.450, PBURST: 0.220, CO: 0.230, DGC: 0.100 },
+        conservative: { BOX: 0.630, PBURST: 0.090, CO: 0.180, DGC: 0.100 },
+        aggressive:   { BOX: 0.360, PBURST: 0.265, CO: 0.275, DGC: 0.100 },
+      },
+      allday: {
+        balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.085, DGC: 0.150 },
+        conservative: { BOX: 0.675, PBURST: 0.135, CO: 0.040, DGC: 0.150 },
+        aggressive:   { BOX: 0.405, PBURST: 0.315, CO: 0.130, DGC: 0.150 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+  },
 };

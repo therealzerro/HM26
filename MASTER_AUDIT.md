@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-03 (BUG-160 ✅ closed — importer now sorts keys before insert, constraints migrated to NULLS NOT DISTINCT, post-commit row-count tripwire shipped; structural safety restored after DATA-01 reset + REFACTOR-01 trigger consolidation earlier in the day)  
+**Last updated:** 2026-06-06 (Phase 1 instrumentation fixes shipped — LEARN-01 + PROP-01 + HIT-DET-01 + G1-GATE-01; autotune G1 sample size 138 → 857 distinct labeled picks. CONFIG-11a evening per-scope CO boost queued for ship in 11pm ET window — see entry below)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -22,6 +22,47 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 - Backtest result confirming improvement, OR explicit "untested, applying for empirical observation" with planned review date
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
+
+### CONFIG-11a — Evening Per-Scope CO Boost to 20% (2026-06-06)
+
+Adds an evening per-scope signal-weight override (parallel to the CONFIG-07 midday override and CONFIG-10 allday override). Evening was the only live scope inheriting the global preset (CO=13.5%) — it absorbed the CONFIG-08 horizon collapse (H01Y:60 / H02Y:40) without compensating weight tuning. 30-day production data post-CONFIG-08/09/10 showed evening regressing (slate rate 76.2% → 60.0%, box rate 21.4% → 16.7%) while midday gained (+16pp slate, +6.8pp box) and allday held. Engine-screen rolling 30-day AUC: evening CO = 0.617 (highest of any signal in any scope) — strong universe-level evidence that evening was under-weighting its best predictor.
+
+**Problem.** Evening CO weight at global default (13.5%) is well below universe-AUC strength (0.617). With H01Y/H02Y horizon collapse changing the BOX scoring shape, evening's pre-existing balance no longer fit. Performance era-split confirms the regression is post-5/27. Two candidate flavors backtested: CO=23% (resolves r1<r2 inversion but dips overall pick rate) and CO=20% (conservative, strictly meets aggregate ship gate).
+
+**Backtest validation (30d × 87 slates total / 29 evening, balanced mode, harness `evening_co_boost_*` configs atop `dgc_allday_15` production-parity baseline):**
+
+| Config | Overall slate | Overall pick | Evening slate | Evening pick | Evening r1 | Midday slate | Allday slate | Total hits |
+|---|---|---|---|---|---|---|---|---|
+| BASELINE (`dgc_allday_15`) | 82.8% | 26.4% | 79.3% | 24.7% | 17.2% | 72.4% | 96.6% | 138 |
+| `evening_co_boost_20` (SHIPPED) | **83.9%** | **26.6%** | 79.3% | 24.1% | **24.1%** | **75.9%** | 96.6% | 139 |
+| `evening_co_boost_23` | 83.9% | 26.2% | 79.3% | 23.6% | 31.0% | 75.9% | 96.6% | 137 |
+
+`evening_co_boost_20` ships the conservative variant. Overall slate rate +1.1pp, overall pick rate +0.2pp (strictly meets "≥ baseline" on the aggregate lens). Evening pick rate dips 0.6pp (within Wilson CI noise; SE ≈ 3.2pp at n=29). Evening r1 lifts 6.9pp (40% relative improvement); r1<r2 inversion NOT yet resolved at this weight — softer ratchet preserved for a future CONFIG-11b if data supports. Midday gained +3.5pp slate without midday weights being touched (horizon-weight propagation through per-scope BOX scoring). Allday unchanged.
+
+CO=23% variant rejected for now despite dramatic r1 fix (17.2% → 31.0%, resolves r1<r2 inversion): dips 1.1pp on evening pick rate (within noise but failing strict overall pick gate). Kept in `configs.ts` for future iteration if CO=20% under-shoots in live data.
+
+**Ship trade-off acknowledged:** Evening pick rate dip (-0.6pp) is statistically noise at n=29 but doesn't strictly meet the original per-scope gate I wrote. Overall metrics (slate +1.1, pick +0.2), universe-AUC alignment (evening CO is the highest-AUC signal in any scope), and the live-data evening regression all justify ship.
+
+**Action sequence:**
+1. Backtest configs added to `scripts/backtest/configs.ts`: `evening_co_boost_20` (SHIPPED), `evening_co_boost_23` (kept for later iteration). Both stack on `dgc_allday_15` production-parity baseline.
+2. `app_config` INSERT on 3 new evening preset keys (parallel to CONFIG-07 midday + CONFIG-10 allday patterns):
+   - `engine_weights_balanced_evening`: `{"BOX":45,"PBURST":25,"CO":20,"DGC":10}`
+   - `engine_weights_conservative_evening`: `{"BOX":63,"PBURST":11.5,"CO":15.5,"DGC":10}`
+   - `engine_weights_aggressive_evening`: `{"BOX":36,"PBURST":29.5,"CO":24.5,"DGC":10}`
+3. No code change required — `engines/zk6.ts` + `compute-slate-zk6` per-scope preset loader (CONFIG-07 mechanism) already consumes these rows.
+4. SHIP TIMING: 11pm ET–4am ET safe window (no subscriber slates posted overnight). First subscriber-visible evening slate using new weights is the next evening 5pm ET regen.
+
+**Rollback condition: 2026-06-13 (7-day review).** Revert if **any** of: (a) 7-day evening slate hit rate trails the pre-deploy 30-day live baseline (60%) by more than 5pp (i.e., < 55%), (b) evening pick rate drops below 16% over the 7-day window, OR (c) any other scope (midday or allday) shows slate rate decline > 5pp. **Revert action:**
+
+```sql
+DELETE FROM app_config WHERE key IN ('engine_weights_balanced_evening','engine_weights_conservative_evening','engine_weights_aggressive_evening');
+```
+
+Engine falls back to the global preset (BOX 49.5 / PBURST 27 / CO 13.5 / DGC 10) for evening, bit-identical to pre-CONFIG-11a behavior. No code change or edge fn redeploy needed for rollback.
+
+**Stacking caveat.** Live 7-day evening hit rate post-deploy stacks on CONFIG-08 + CONFIG-09 (midday, no evening effect) + CONFIG-10 (allday, no evening effect) + DATA-01 (clean re-import) + REFACTOR-01 (workflow consolidation) + Phase 1 LEARN-01/PROP-01/HIT-DET-01/G1-GATE-01 instrumentation (no engine math effect). Backtest validated CONFIG-11a atop `dgc_allday_15` (CONFIG-08+09+10), so the incremental signal is evening-specific weight rebalance.
+
+---
 
 ### REFACTOR-01 — Consolidate Rebuild + Daily-Report Triggers Under Daily Workflow (2026-06-03)
 

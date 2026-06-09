@@ -1355,7 +1355,27 @@ export async function computeSlate({
   // Sort by indicator desc so position 1 is the highest-conviction pick (selection
   // happens pass-by-pass and can place low-indicator pass-1 picks ahead of higher-
   // indicator pass-5 picks). Same set of 6 combos, just reordered for display.
-  k6.sort((a, b) => b.indicator - a.indicator);
+  //
+  // ENG-MIDDAY-REORDER-01 (2026-06-09): midday is the exception. Empirical 30d
+  // data (n=28 slates) confirmed pick #1 by indicator hits at 21.4% while pick
+  // #1 by draws_since desc hits at 35.7% (+14.3pp on the most-visible UX metric).
+  // The midday CO=64 weight is anti-predictive at the top of the slate; the
+  // engine's weighted-sum ranks recently-drawn high-popularity combos at the
+  // top, but those don't repeat in single-session midday. Reordering the SAME
+  // 6 picks by "due-ness" surfaces the actually-hitting picks first.
+  // Slate-level hit rate (>=1 of 6) is unchanged — same combos, different order.
+  // Per-state intelligence (ENH-AUDIT-2026-05-19 v2) is the structural fix;
+  // this is the surgical interim win that ships TODAY.
+  if (scope === 'midday') {
+    k6.sort((a, b) => {
+      const aDs = ds.drawsSinceMap.get(a.normKey) ?? 0;
+      const bDs = ds.drawsSinceMap.get(b.normKey) ?? 0;
+      if (aDs !== bDs) return bDs - aDs;
+      return b.indicator - a.indicator;  // tiebreak
+    });
+  } else {
+    k6.sort((a, b) => b.indicator - a.indicator);
+  }
 
   console.log('[zk6v2] K6 after rails:', k6.map(x => `${x.combo}(e=${x.energy})`));
 

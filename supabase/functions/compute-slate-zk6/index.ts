@@ -887,7 +887,22 @@ async function computeSlate(params: {
   // can interleave low-indicator pass-1 picks ahead of higher-indicator pass-5 picks
   // (e.g. when cooldown relaxes). Indicator-desc gives the user the highest-conviction
   // pick at position 1 without changing which 6 combos are selected.
-  k6.sort((a, b) => b.indicator - a.indicator);
+  //
+  // ENG-MIDDAY-REORDER-01 (2026-06-09): midday exception. 30d empirical data
+  // (n=28 slates) confirmed pick #1 by indicator hits 21.4%, pick #1 by
+  // draws_since desc hits 35.7% (+14.3pp on the most-visible UX metric).
+  // Same 6 picks, different sort. Slate hit rate unchanged. Mirror of
+  // engines/zk6.ts:~1358.
+  if (scope === 'midday') {
+    k6.sort((a, b) => {
+      const aDs = ds.drawsSinceMap.get(a.normKey) ?? 0;
+      const bDs = ds.drawsSinceMap.get(b.normKey) ?? 0;
+      if (aDs !== bDs) return bDs - aDs;
+      return b.indicator - a.indicator;
+    });
+  } else {
+    k6.sort((a, b) => b.indicator - a.indicator);
+  }
 
   // 7. Build output
   const scopeConfidence = computeConfidenceScore(ds.horizonsLoaded.length, ds.boxRowCount);

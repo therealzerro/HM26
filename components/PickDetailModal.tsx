@@ -230,7 +230,7 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
         const rows = await fetchFromSupabase<Array<{
           slate_date: string; matched_state: string; hit_straight: boolean;
         }>>({
-          path: `/rest/v1/adaptive_tracking?slate_date=gte.${sinceDate}&combo_set=eq.${encodeURIComponent(pick.comboSet)}&matched_state=not.is.null&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)&select=slate_date,matched_state,hit_straight&limit=500`,
+          path: `/rest/v1/adaptive_tracking?slate_date=gte.${sinceDate}&combo_set=eq.${encodeURIComponent(pick.comboSet)}&matched_state=not.is.null&or=(hit_box.eq.true,hit_straight.eq.true)&mode=eq.balanced&select=slate_date,matched_state,hit_straight&limit=500`,
         });
         if (!Array.isArray(rows)) return [];
         const seen = new Map<string, { state: string; exact: boolean; date: string }>();

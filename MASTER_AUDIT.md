@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-09 (sweep #2 — empirical K6 accuracy: CONFIG-15 ships evening CO 20→0 (3 modes) with strong evidence (-16pp Q1→Q4 gradient); ENG-BLOCK-NARROW-01 narrows hardcoded yesterday+today winner block to today-only (yesterday-winners repeat 16-20% in same session). Edge fn v32→v33. 3 findings DEFERRED with stated rationale: midday CO reduction, DGC reduction, ENG-PAIR-CAP analysis.)  
+**Last updated:** 2026-06-09 (SCRUB-02 — finishes SCRUB-01 mode removal: 8 orphan app_config rows DELETE'd (engine_weights_aggressive/conservative + 6 scope variants); compute-daily-report v2→v3 + run-hit-detection v8→v9 simplified to balanced-only iteration; 3 client queries narrowed `mode=in.(...)` → `mode=eq.balanced`. app_config 54 → 46 rows. Verified: 4582 daily_intelligence + 156 slate_snapshots rows are 100% balanced since project inception.)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -97,6 +97,65 @@ Engine falls back to pre-CONFIG-14 weights on next slate compute. Edge fn code u
 3. Allday pick rate drops below 30% (5pp below baseline 35.6%)
 
 **Marketing language unlocked.** None. CONFIG-14 is a calibration fix, not a new capability. Subscriber UX improves quietly: allday r1 pick is more often the right pick.
+
+---
+
+### SCRUB-02 — Finish Aggressive/Conservative Mode Removal (2026-06-09)
+
+**Finishes the partial removal begun by SCRUB-01 (2026-05-27).** SCRUB-01 made the production engine stop *reading* aggressive/conservative weight rows but left them in `app_config` "for rollback safety until 2026-06-03". That safety date passed 6 days ago. Today's operator question — "why are aggressive/conservative still showing up in code if we only use balanced?" — surfaced that downstream consumers (daily-report aggregator, hit-detection edge fn, 3 client queries) were still iterating all 3 modes even though no non-balanced rows have ever been written.
+
+**Empirical verification of safety (2026-06-09):**
+```sql
+SELECT mode, COUNT(*) FROM daily_intelligence GROUP BY mode;
+-- balanced: 4582 rows (since 2026-04-19)
+-- aggressive: 0, conservative: 0
+
+SELECT mode, COUNT(*) FROM slate_snapshots WHERE deleted_at IS NULL GROUP BY mode;
+-- balanced: 156 rows (since 2026-04-18)
+-- aggressive: 0, conservative: 0
+```
+
+Two whole tables, every row across project history, 100% `balanced`. The orphan code paths and DB rows were pure technical debt.
+
+**Phase A — 8 orphan app_config rows DELETE'd** (migration `2026_06_09_scrub_02a_drop_orphan_mode_weights.sql`):
+- `engine_weights_aggressive`, `engine_weights_conservative` (globals)
+- `engine_weights_aggressive_{allday,midday,evening}` (per-scope)
+- `engine_weights_conservative_{allday,midday,evening}` (per-scope)
+
+Of note: **CONFIG-15 earlier today (CO 20→0 on evening) updated all 3 evening modes including conservative and aggressive.** Those two UPDATEs were wasted work — the rows had been orphan since SCRUB-01. The `balanced` row was the only one that mattered.
+
+`app_config` row count: **54 → 46**.
+
+**Phase B — `compute-daily-report/index.ts` simplified:**
+```diff
+-const ZK6_MODES = ['balanced', 'conservative', 'aggressive'] as const;
++const ZK6_MODES = ['balanced'] as const;
+```
+The `modes_included` column in `engine_daily_report` is preserved for schema compat (now always `['balanced']`). Header comment updated. Edge fn deployed **v2 → v3**, status ACTIVE, `verify_jwt=true` preserved.
+
+**Phase C — `run-hit-detection/index.ts` simplified:**
+- Defensive `.includes(['balanced','conservative','aggressive'])` checks → strict `=== 'balanced'`
+- `mode: 'balanced' | 'conservative' | 'aggressive'` parameter type → `mode: 'balanced'`
+- Supplemental slate generation fallback narrowed to `'balanced' as const`
+- Edge fn deployed **v8 → v9**, status ACTIVE, `verify_jwt=true` preserved.
+
+**Phase D — 3 client queries narrowed:**
+- `components/DailyRecapCard.tsx:59` — `mode=in.(...)` → `mode=eq.balanced`
+- `components/LastHitPill.tsx:71` — same
+- `components/PickDetailModal.tsx:233` — same
+
+Faster queries (single eq instead of in.(...)), less ambiguous intent.
+
+**Intentionally left alone (with rationale):**
+- **Backtest harness** (`scripts/backtest/*.ts`): still uses 3 modes. SCRUB-01 explicitly retained this "for legacy reproducibility" — old presets are still usable for historical baseline replay even though they no longer ship. Removing would invalidate old baseline records.
+- **`generate-weight-proposal/index.ts`**: admin tool that proposes weight changes. Kept untouched (admin tooling, separate path from production engine).
+- **`slate_snapshots_zk30.mode` CHECK constraint** (`('balanced','conservative','aggressive')`): ZK30 is the parallel engine build (per CLAUDE.md, off-limits until ZK6 verified). Don't touch ZK30 surfaces.
+- **Old migration files** (`2026-05-13_engine_daily_report.sql` default value): historical migrations don't get rewritten; the live DEFAULT will become `['balanced']` on next migration touching that column if needed.
+- **TypeScript Mode union types in shared utilities**: `weightsKey: 'balanced' | 'conservative' | 'aggressive'` in `compute-slate-zk6/index.ts:589`, `runHitDetectionAllScopes` types in `lib/hitDetection.ts`. Hardcoded `weightsKey = 'balanced'` already replaces the value at runtime. Narrowing the literal union breaks no behavior but is a larger ripple. Deferred for now.
+
+**Rollback (data):** the 8 deleted app_config rows can be restored from a backup if reintroducing 3-mode UX is desired. Code rollbacks are trivial single-line reverts on the 5 edited files.
+
+**What this does not change.** No engine math. No K6 selection. No weight values for `balanced`. Subscriber UX unchanged (mode was never exposed to subscribers — admin-only). Brand voice unchanged.
 
 ---
 

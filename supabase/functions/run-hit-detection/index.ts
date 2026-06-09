@@ -121,7 +121,8 @@ async function updateDailyIntelligenceHit(
   const prevDayStr = prev.toISOString().split('T')[0];
   const dateFilter = `slate_date=in.(${date},${prevDayStr})`;
   const scopeFilter = snap.scope ? `&scope=eq.${encodeURIComponent(snap.scope)}` : '';
-  const modeFilter = snap.mode && ['balanced', 'conservative', 'aggressive'].includes(snap.mode)
+  // SCRUB-02 (2026-06-09): only 'balanced' is written to daily_intelligence.
+  const modeFilter = snap.mode === 'balanced'
     ? `&mode=eq.${encodeURIComponent(snap.mode)}` : '';
   await sbPatch(
     `/rest/v1/daily_intelligence?${dateFilter}&combo=eq.${encodeURIComponent(pick.combo)}${scopeFilter}${modeFilter}`,
@@ -221,7 +222,7 @@ async function recordHitInAdaptiveTracking(
 
 async function generateSupplementalSlate(
   scope: string,
-  mode: 'balanced' | 'conservative' | 'aggressive',
+  mode: 'balanced',
   excludeComboSets: string[],
 ): Promise<boolean> {
   // Internal call to compute-slate-zk6. Service-role auth so the request is
@@ -442,8 +443,8 @@ async function runForDate(date: string, scope: string | null, skipSupplements: b
           .filter(Boolean) as string[];
         const excludeList = [...new Set(hitComboSets)];
         const scope = (snapshot.scope ?? 'allday');
-        const mode = (['balanced', 'conservative', 'aggressive'].includes(snapshot.mode)
-          ? snapshot.mode : 'balanced') as 'balanced' | 'conservative' | 'aggressive';
+        // SCRUB-02 (2026-06-09): production is balanced-only.
+        const mode = 'balanced' as const;
         const ok = await generateSupplementalSlate(scope, mode, excludeList);
         if (ok) supplementsGenerated++;
       }

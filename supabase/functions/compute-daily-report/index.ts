@@ -11,7 +11,7 @@
  * comparison reads from the same table.
  *
  * Source rows:
- *   daily_intelligence WHERE on_slate=true AND mode IN ZK6_MODES AND slate_date=:date AND scope=:scope
+ *   daily_intelligence WHERE on_slate=true AND mode='balanced' AND slate_date=:date AND scope=:scope
  *
  * Output per (date, scope):
  *   picks_count, hits_count (hit_box OR hit_straight), straights_count,
@@ -24,11 +24,16 @@
  *     "scope"?: "midday"|"evening"|"allday",  // default: process all 3
  *     "dryRun"?: boolean
  *   }
+ *
+ * SCRUB-02 (2026-06-09): production engine is balanced-only since SCRUB-01
+ * (2026-05-27). daily_intelligence verified to contain zero non-balanced rows
+ * across all 4582 rows. ZK6_MODES collapsed to ['balanced']; modes_included
+ * output array retained for engine_daily_report.modes_included column compat.
  */
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-const ZK6_MODES = ['balanced', 'conservative', 'aggressive'] as const;
+const ZK6_MODES = ['balanced'] as const;
 const SCOPES = ['midday', 'evening', 'allday'] as const;
 
 interface DiRow {

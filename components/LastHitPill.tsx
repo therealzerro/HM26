@@ -68,7 +68,7 @@ export function LastHitPill() {
     queryKey: ['last_hit_pill_adaptive_v1', sinceDate, followed.join(',')],
     queryFn: async () => {
       const rows = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/adaptive_tracking?slate_date=gte.${sinceDate}&matched_state=not.is.null&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${matchedStateFilter}&select=slate_date,scope,combo,matched_state,matched_session,hit_box,hit_straight&order=slate_date.desc&limit=50`,
+        path: `/rest/v1/adaptive_tracking?slate_date=gte.${sinceDate}&matched_state=not.is.null&or=(hit_box.eq.true,hit_straight.eq.true)&mode=eq.balanced${matchedStateFilter}&select=slate_date,scope,combo,matched_state,matched_session,hit_box,hit_straight&order=slate_date.desc&limit=50`,
       });
       const list = (Array.isArray(rows) ? rows : []).map(r => ({
         slate_date: r.slate_date,

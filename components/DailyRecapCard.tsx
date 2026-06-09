@@ -56,7 +56,7 @@ export function DailyRecapCard() {
     queryKey: ['daily_recap_adaptive_v1', today, followed.join(',')],
     queryFn: async () => {
       const rows = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/adaptive_tracking?slate_date=eq.${today}&matched_state=not.is.null&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${matchedStateFilter}&select=scope,combo,matched_state,matched_session,hit_box,hit_straight&limit=50`,
+        path: `/rest/v1/adaptive_tracking?slate_date=eq.${today}&matched_state=not.is.null&or=(hit_box.eq.true,hit_straight.eq.true)&mode=eq.balanced${matchedStateFilter}&select=scope,combo,matched_state,matched_session,hit_box,hit_straight&limit=50`,
       });
       const list = (Array.isArray(rows) ? rows : []).map(r => ({
         scope: r.scope,

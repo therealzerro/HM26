@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-09 (SCRUB-02 — finishes SCRUB-01 mode removal: 8 orphan app_config rows DELETE'd (engine_weights_aggressive/conservative + 6 scope variants); compute-daily-report v2→v3 + run-hit-detection v8→v9 simplified to balanced-only iteration; 3 client queries narrowed `mode=in.(...)` → `mode=eq.balanced`. app_config 54 → 46 rows. Verified: 4582 daily_intelligence + 156 slate_snapshots rows are 100% balanced since project inception.)  
+**Last updated:** 2026-06-09 (3 deferred items resolved with empirical decisions: PAIR-CAP closed (excluded 7ths hit 0/120 — cap is correct), DGC reduction REJECTED (decile view shows quartile gradient was noise), midday rank inversion confirmed STRUCTURAL (per-state intelligence ENH-AUDIT-2026-05-19 is the only fix; priority bumped). No config or code changes — audit-only update.)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -97,6 +97,69 @@ Engine falls back to pre-CONFIG-14 weights on next slate compute. Edge fn code u
 3. Allday pick rate drops below 30% (5pp below baseline 35.6%)
 
 **Marketing language unlocked.** None. CONFIG-14 is a calibration fix, not a new capability. Subscriber UX improves quietly: allday r1 pick is more often the right pick.
+
+---
+
+### Deferred-Items Resolution — 3 Empirical Decisions (2026-06-09)
+
+After SCRUB-02, attacked the 3 items deferred from sweep #2. Result: zero new code or config changes — all three resolve to "do nothing" once the proper analysis was run. Documenting here so future-me doesn't re-open these.
+
+---
+
+**1. PAIR-CAP — CLOSED. The cap is doing its job.**
+
+For each slate (30d, 28 per scope) where `pair_rep_cap=2` bound, I joined `daily_intelligence` to find the next-best candidate that shared a top pair with the 2 already-picked combos and got excluded. Then checked hit rate on those excluded "7th candidates":
+
+| scope | excluded 7th candidates | hits | hit % |
+|---|---|---|---|
+| allday | 29 | 0 | **0.0%** |
+| evening | 37 | 0 | **0.0%** |
+| midday | 54 | 0 | **0.0%** |
+
+**Zero hits across 120 excluded candidates.** The pair_rep_cap is not costing any lift — every combo it excludes was a non-winner. The 25-39% binding rate noted in sweep #2 is the cap doing exactly its intended job: maintaining diversity at the cost of zero detected hits.
+
+**Action:** None. The cap stays at 2 on all scopes.
+
+---
+
+**2. DGC reduction — REJECTED. Quartile gradient was bucket-aggregation noise.**
+
+Sweep #2 reported anti-predictive DGC across all scopes based on quartile gradients of 4-5pp (Q1 ≥ Q4). The 4-bucket view aggregated 56 picks per Q1/Q2 and 28 per Q3/Q4. At decile resolution (n=16-17 per bucket), the signal disappears:
+
+| scope | d1 | d2 | d3 | d4 | d5 | d6 | d7 | d8 | d9 | d10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| allday | 23.5 | **70.6** | 41.2 | 35.3 | 64.7 | 47.1 | **70.6** | 35.3 | 37.5 | 25.0 |
+| evening | 35.3 | 29.4 | 35.3 | 23.5 | 29.4 | 23.5 | 17.6 | 35.3 | 37.5 | **43.8** |
+| midday | 29.4 | 29.4 | 23.5 | 41.2 | 23.5 | 29.4 | 23.5 | 11.8 | 25.0 | 6.3 |
+
+- **Allday** is bimodal (d2 and d7 both 70.6%) with no monotonic trend.
+- **Evening** actually trends UP toward the highest DGC decile (d10=43.8% best).
+- **Only midday** shows a weak downward trend, dominated by the n=16 d10=6.3% outlier.
+
+**Diagnosis: my earlier quartile aggregation was concentrating noise. The 4-5pp Q1>Q4 gradients were bucket-collision artifacts, not signal.** This was a methodological error on my part — I should have run decile (or larger-bucket) views before declaring DGC anti-predictive.
+
+Cross-checks the memory note "DGC anti-predictive in all scopes — cleaner lever than AFL" — that memory was based on an earlier sweep that likely had the same quartile-aggregation problem. **Memory entry [[project_enh_afl_shipped_flag_off]] should be re-examined when the next signal-AUC sweep runs.** I am NOT updating it yet — the original observation may have been correct in different conditions, and aggressive memory updates without re-verifying the source data is the wrong move.
+
+**Action:** None. DGC weights stay where they are (allday 16.4 / evening 12.5 / midday 10). CONFIG-14's bump to allday 16.4 is not undone.
+
+---
+
+**3. Midday rank inversion — STRUCTURAL. Per-state intelligence (ENH-AUDIT-2026-05-19) priority bumped.**
+
+Sweep #2 showed midday top-6 picks hit 15.8% vs rank 31+ Pass-relaxed picks at 29.3%. I walked every plausible surgical config lever and each falls apart on close inspection:
+
+- **Raise `recent_hit_cooldown_midday` 10→20**: Pass 5 relaxes cooldown, so the same picks come back. Net behavior change: zero (just relabels Pass 1 picks as Pass 5).
+- **Lower midday CO 64→40**: tested in 2026-06-06 investigation. Zeroing crashes slate by -6.9pp. Memory [[project_midday_investigation_2026_06_06]]: "Popularity ceiling real but pop-penalty failed: universe has no better alternatives."
+- **Swap multiplicity caps** (`singles_max=4, doubles_max=2` → `singles_max=6, doubles_max=0`): midday picks 0 doubles even when the rail forces them (per memory note). Swapping the cap doesn't change picks, just relabels which pass fires.
+- **Raise `min_energy_threshold` midday**: rank 31+ picks already have energy=88.9 (above the 70 floor). Raising the floor doesn't change which picks land.
+
+The rank 31+ picks (`ds_avg=13.3`, hit 29.3%) come from Pass 6 multiplicity-cap relaxation — they're high-singles picks that overflow `singles_max=4`. The engine's *weighted-sum score function* is systematically ranking the wrong combos at the top; the K6 rails accidentally fix the slate by reaching into the relaxed pool.
+
+**This is a score-function problem, not a rail problem. No single-config knob fixes it.** Memory's 2026-06-06 investigation concluded the same thing: per-state intelligence is the only path forward.
+
+**Action:** Bumping ENH-AUDIT-2026-05-19 from "parked" to "highest engine priority post-launch." Updating the related memory note. No code changes today.
+
+The rank inversion remains visible to subscribers (#1 pick hits 18.5%, #5 pick hits 50%+). This is the headline UX cost of the structural midday problem until per-state ships.
 
 ---
 

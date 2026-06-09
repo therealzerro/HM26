@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-09 (ENG-SLATE-METRICS-06 — slate-level recent match rates added to horizonsMeta: `_recent7dMatchRatePct` + `_recent30dMatchRatePct` per scope. NEW FINDING surfaced: evening 7d=57.1% vs 30d=82.8% (−25.7pp regression) — operator now sees this in tomorrow's slate metadata BEFORE betting. Midday + allday healthy. Edge fn v38→v39. Validated all 3 scopes via curl.)  
+**Last updated:** 2026-06-09 (Opus 4.8 full engine re-sweep — NO pick-accuracy bugs found. Live invariants pass (6 picks/slate, no dup comboSets, bestOrder always a valid permutation, drawsSince clean). Filed 4 low-priority observations as ENG-OBS-01..04 — quality/perf, not accuracy. Earlier today: ENG-SLATE-METRICS-06 surfaced evening 7d=57.1% vs 30d=82.8% regression; edge fn at v39.)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -22,6 +22,32 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 - Backtest result confirming improvement, OR explicit "untested, applying for empirical observation" with planned review date
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
+
+### ENG-OBS-01..04 — Low-Priority Observations from Opus 4.8 Re-Sweep (2026-06-09)
+
+Full engine re-audit on 2026-06-09 (fresh skeptical read, Opus 4.8). **No bugs affecting pick accuracy.** Live invariants verified against the database:
+- Every scope/day has exactly 6 `on_slate` picks (14d window) ✓
+- No duplicate `comboSet` within any slate (30d) ✓
+- `best_order` is always a valid permutation of `combo` (7d) ✓ — matters for straight bets
+- `draws_since` on live picks is clean: no NULLs, no negatives, sane range 1–27 ✓
+- Pair/CO scoring (`PBURST` classes 2/3/4 ÷3, `CO` classes 5–11 ÷21) byte-identical RN↔edge fn ✓
+- Reorder sort is post-selection (cannot change picks), tiebreak directions match empirics, RN↔edge identical ✓
+
+The following are **quality/perf observations, NOT active defects.** None affect which combos are picked or their order. Filed for visibility; no action required before launch.
+
+**ENG-OBS-01 — DGC conflates popularity with cadence. 🟢 Low.**
+`computeDGC` (`lib/engineCore.ts:85`) is fed `hitDatesMap[comboSet]` built in `fetchHistoryOverrides` (`engines/zk6.ts:500-505`), which pushes one day-offset per *(jurisdiction, date)* draw — including same-day duplicates across jurisdictions. A combo that hits 3 states on the same day injects zero-gap entries that deflate gap-variance and skew DGC. Effect is empirically small (max 3 same-day dups observed in 30d, mostly 2) and DGC is a weak, low-weight (10–16%) signal that earlier decile sweeps found near-noise. **Fix only if DGC is ever promoted as a lever** — then compute DGC over *unique draw-days*, not per-jurisdiction draws.
+
+**ENG-OBS-02 — `fetchHistoryOverrides` reads the entire `histories` table every slate-gen. 🟢 Low (perf).**
+`engines/zk6.ts:467-511` paginates ALL of `histories` (~4,600 rows, ~5 round-trips) with no date filter, on every slate generation, to build `dsOverride` / `lsOverride` / `hitDatesMap`. Correct output, but unnecessary I/O — most of the table is older than any signal cares about. **Optional fix:** add a `date_et=gte.<today-Nd>` filter (N large enough to cover the longest pressure horizon) to cut the fetch to a fraction. Mirror in edge fn.
+
+**ENG-OBS-03 — `dsOverride` uses UTC day-math against ET date strings. 🟢 Low.**
+`engines/zk6.ts:490-497`: `todayDays = floor(Date.now()/86400000)` (UTC) minus the draw's UTC day index. When run in the evening ET, UTC may already be tomorrow → a possible ±1-day off-by-one in the computed `draws_since` override. Negligible: it only nudges the pressure input, which operates on a scale of 100+, and the override is merged via `min()` so it can only make a combo look *slightly more recent*. **Fix only if exact day-accuracy is ever needed** — anchor to ET via the existing `getTodayET()` helper.
+
+**ENG-OBS-04 — `bestOrderFor` evaluates duplicate permutations for doubles/triples. 🟢 Trivial.**
+`lib/engineCore.ts:355-378` enumerates all 6 digit permutations; for a double (e.g. `112`) three pairs of perms are identical, for a triple all six are. Wasted comparisons, never wrong output (still returns a valid arrangement). **No fix warranted** — dedup would save microseconds on 10/1000 combos.
+
+---
 
 ### CONFIG-14 — Allday CO Weight 8.5 → 0 (2026-06-06)
 

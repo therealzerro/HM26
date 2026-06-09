@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-09 (3 deferred items resolved with empirical decisions: PAIR-CAP closed (excluded 7ths hit 0/120 — cap is correct), DGC reduction REJECTED (decile view shows quartile gradient was noise), midday rank inversion confirmed STRUCTURAL (per-state intelligence ENH-AUDIT-2026-05-19 is the only fix; priority bumped). No config or code changes — audit-only update.)  
+**Last updated:** 2026-06-09 (ENH-AUDIT-2026-05-19 PROMOTED to highest engine priority + scoped into v1/v2 split. v1 (6-10h, display-only) unblocks marketing; v2 (12-20h + backtest gate) adds STATE_STR as a 5th signal channel to fix the midday rank-1 inversion structurally. Resequenced ahead of Phase 4 IAP / Phase 5 EAS / Phase 6 Playwright. ENH long-form section rewritten with sharp scope + acceptance criteria + ship gate.)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -2144,84 +2144,132 @@ Removed 100ms artificial delay from `initApp`. SplashScreen.hideAsync() already 
 | ENH-20 | `lib/dateUtils.ts` | Add `isETDateToday(dateStr)` utility — several places compare stored ET date strings to device `Date.now()` without a shared ET-aware helper | ✅ Fixed 2026-05-12 |
 | ENH-21 | `components/PickCard.tsx` | Long-press quick-save to Number Book — "Save to Book" + "Copy combo" sheet; stub exists in PickDetailModal but not on the card | ✅ Fixed 2026-05-12 |
 | ENH-22 | `app/(tabs)/explore.tsx` | Pull-to-refresh triggers hit detection — extend the Slates pull-to-refresh to also run `runHitDetectionAndRefresh(scope, todayET)`, closing the loop without an Admin visit | ✅ Fixed 2026-05-12 |
-| ENH-AUDIT-2026-05-19 | `engines/zk6.ts`, new `pick_state_strength` table, `components/PickDetailModal.tsx` | **Per-state pattern strength layer for ZK6 picks** (PRE-ZK30 dependency). Secondary scoring layer that runs after ZK6 generates its 6 picks; for each pick × jurisdiction, compute recency-weighted hit rate against that state's last 365 draws; persist to `pick_state_strength`; surface top 5 per pick in `PickDetailModal`. See long-form section below for problem statement, scope, technical approach, acceptance criteria. Unlocks honest per-state marketing language flagged in `docs/state_confidence_audit_2026-05-19.md`. | 🟡 Queued — not started; sequenced after Phase 4 IAP / Phase 5 EAS / Phase 6 Playwright and before ZK30 Phase 1 |
+| ENH-AUDIT-2026-05-19 | `engines/zk6.ts`, new `pick_state_strength` table, `components/PickDetailModal.tsx`, **v2 also touches** `lib/engineCore.ts`, `supabase/functions/compute-slate-zk6/index.ts` | **Per-state pattern strength layer for ZK6 picks.** Originally scoped 2026-05-19 as marketing-honesty enhancement; **promoted 2026-06-09 to highest engine priority** after two independent sweeps confirmed it is the only structural fix for the midday rank-1 inversion (top-6 picks hit 15.8% vs Pass-6-relaxed picks at 29.3%). Now split into v1 (display-only, original scope, unblocks marketing) and v2 (selection-influence, fixes the midday score function). See long-form section below. | 🔴 **PROMOTED to highest engine priority** — sequenced AHEAD of Phase 4 IAP / Phase 5 EAS / Phase 6 Playwright. v1 first (6-10h), then v2 (12-20h, requires backtest). |
 | ENH-EXPORT-2026-05-23 | `app/admin-image-export.tsx`, `components/SlatePosterCard.tsx`, `components/PickPosterCard.tsx`, `components/PublicExportBanner.tsx`, `components/pickVisuals.tsx`, `lib/captureExportImage.ts` | **Admin image export — public + Pro daily reel composer.** Web-only operator screen that generates 7 PNGs per session (1 slate composite + 6 pick composites) at 1080×1920. Public mode redacts digits and appends a CTA banner ("FULL SLATE INSIDE · JOIN THE FREE COMMUNITY"); Pro mode is full fidelity, no banner. Reuses production slate/modal visuals via extracted `SlatePosterCard` + shared `pickVisuals` (SignalPill/WhyRow/EnergyArc) so future styling changes propagate automatically (INVARIANT 4 honored). INVARIANT 2 carve-out: this screen reads `slate_snapshots` directly via `fetchFromSupabase` (no engine recomputation, no writes, operator-triggered only). Capture pipeline uses `html-to-image` against an off-screen wrapper at exact export dimensions; native (iOS) capture is gated until react-native-view-shot can be added under an EAS dev build. See `docs/features/admin-image-export.md`. | ✅ Shipped 2026-05-23 — web-only; native deferred to EAS dev build availability. |
 | ENH-WARMING-2026-06-06 | `lib/engineCore.ts` (new `computeWarmingSignal` helper), `engines/zk6.ts` + edge fn `compute-slate-zk6` (5-channel ensemble), new `app_config` keys for WARMING weight per scope, optional materialized `combo_warming_7d` view for performance | **7-day cross-jurisdiction warming signal — first genuinely new signal source found this session.** 60d evidence: `prior_7d_draws` predicts same-day multi-draw with monotonic gradient — baseline 9.8% (warming 0-2) → 31.5% (5-6) → 67.5% (7-10) → 100% (11+). Triple-draw rate hits 43.9% at warming 11-20. Independent of BOX/PBURST/CO/DGC (none of which compute a short-window momentum). See long-form section below for design, AUC validation plan, ship gate. NOT a ship candidate before 2026-06-13 CONFIG-11a + CONFIG-12 review window closes. | 🟡 Queued — design done, AUC validation + backtest harness wiring pending |
 | ENH-FUNNEL-2026-05-19 | new tables `pro_subscribers`, `fb_group_contributors`, `fb_engagement_snapshots`, `funnel_daily_snapshots`, `subscriber_import_history`; new edge fn `subscriber-admin`; `components/admin/ProSubscribersView.tsx`, `SubscriberImportView.tsx`, `FunnelDashboardView.tsx`, `AdminKeyGate.tsx` | **Pro subscriber tracking + funnel intelligence.** Source-of-truth roster for 21 confirmed Pro subscribers (email PII + date subscribed from Meta Business Suite "Supporter Email Addresses" export). Service-role Edge Function gateway (`subscriber-admin`) gated by `ADMIN_OPS_KEY` header — RLS denies anon, function uses service-role to bypass; operator enters secret once into AdminKeyGate and it persists to AsyncStorage (never bundled). Daily funnel snapshots with generated columns for conversion rate, gross MRR, net MRR. Parsers for TSV/CSV/multi-space inputs (subscriber emails + Group Insights contributors). PII-masking in admin UI with reveal toggle. Seeded with 21 subscribers and funnel snapshots for 5/18 (18 subs, 22.0% conv, $17.82 gross MRR) and 5/19 (21 subs, 24.7% conv, $20.79 gross MRR). See `docs/subscriber_tracking_README.md` for setup + operator workflow and `docs/subscriber_reconciliation_queries.sql` for diagnostics. | ✅ Shipped 2026-05-19 — schema applied, edge fn deployed v1, UI wired into admin nav. Operator must set `ADMIN_OPS_KEY` in Supabase secrets and unlock via AdminKeyGate before first use. |
 
 ---
 
-### ENH-AUDIT-2026-05-19 — Per-State Pattern Strength Layer for ZK6 Picks
+### ENH-AUDIT-2026-05-19 — Per-State Pattern Strength Layer for ZK6 Picks (PROMOTED 2026-06-09)
 
-**Source:** State Confidence Audit 2026-05-19 (`docs/state_confidence_audit_2026-05-19.md`)
-**Priority:** PRE-ZK30 (must complete before ZK30 full build begins)
-**Effort estimate:** 6–10 hours focused work
-**Status:** QUEUED — not yet started
+**Source:** State Confidence Audit 2026-05-19 (`docs/state_confidence_audit_2026-05-19.md`), reinforced by midday investigations 2026-06-06 and accuracy sweep 2026-06-09.
+**Priority:** 🔴 **HIGHEST ENGINE PRIORITY** (promoted from "parked behind Phase 4/5/6" on 2026-06-09).
+**Status:** QUEUED — not yet started.
 
-#### Problem statement
+#### Why promoted (2026-06-09)
 
-ZK6 currently loads only `jurisdiction IS NULL` data and generates one cross-jurisdictional slate per scope. The `state_confidence_overrides` row in `app_config` was empty `{}` with zero code consumers and was removed 2026-05-19 (see audit_logs `config_row_deletion_executed` action). There is currently no per-state pattern strength computation anywhere in the codebase.
+Originally framed as a marketing-honesty enhancement. Two independent sweeps now confirm it is also the **only structural fix** for the midday rank-1 inversion:
 
-Marketing language has described per-state identification capability that doesn't exist. The audit recommended either changing the marketing OR building the capability. This enhancement builds the capability so future marketing claims become verifiably true.
+- **Memory [[project_midday_investigation_2026_06_06]]** — falsified 3 config-only midday tunings (CO=0, partial CO cut, multiplicative pop-penalty). Universe has no better alternatives at the current signal channels. Concluded per-state strength is the only remaining path.
+- **2026-06-09 accuracy sweep (see Engine Accuracy Sweep #2 entry above)** — 30d empirical: midday top-6 picks hit 15.8% vs Pass-6-relaxed picks at 29.3%. The engine's weighted-sum systematically ranks the wrong combos at the top. Walked every plausible config knob (cooldown, CO partial cut, mult-cap swap, energy floor) — each either falsified by prior backtest or produces zero net behavior change.
 
-#### Scope
+Two independent investigations 3 days apart, reaching the same conclusion through different paths. Resequenced ahead of Phase 4 IAP / Phase 5 EAS / Phase 6 Playwright on this basis.
 
-Build a secondary per-state strength scoring layer that runs AFTER ZK6 generates its 6 picks. For each pick × each jurisdiction, compute a recency-weighted hit rate score against that jurisdiction's historical draws. Persist scores to a new `pick_state_strength` table. Surface top 5 strongest jurisdictions per pick in `PickDetailModal.tsx`.
+#### Two-phase scope (split 2026-06-09)
 
-#### Why pre-ZK30 dependency
+**v1 — Display-only secondary layer (original scope).** Unblocks marketing-honesty AND gives subscribers per-state context that visibly explains the rank-1 inversion. Effort: 6-10h.
 
-1. ZK30 is the per-state engine. ZK6 needs to honestly support per-state language BEFORE ZK30 launches, or the marketing story for the ZK family stays incoherent.
-2. The per-state datasets (`datasets_box` and `datasets_pair` rows with non-null jurisdiction) already exist in the database. They were built for ZK30 but are sitting unused. This enhancement gives them a consumer in the ZK6 product line.
-3. Building per-state strength scoring in ZK6 first proves the methodology before ZK30 expansion makes it production-critical. If the v1 metric isn't useful, we discover that with ZK6 risk exposure, not ZK30 risk exposure.
-4. ZK30 inherits the per-state strength infrastructure. The compute logic, the schema, and the UI patterns built for this enhancement become foundational for ZK30's per-state engine.
+**v2 — Selection-influence per-state score (NEW scope).** Per-state strength becomes an actual signal input to K6 selection, not just a display. Directly addresses the midday rank inversion at the source. Effort: 12-20h, requires backtest gate per CLAUDE.md.
 
-#### Technical approach (v1)
+Ship in order: v1 first (low-risk, unblocks marketing); validate the per-state metric produces sensible rankings against real subscriber feedback; THEN v2 (engine-integrated).
 
-**Metric:** Recency-weighted hit rate of each pick's combo in each jurisdiction's last 365 draws, normalized to 0-100 scale.
+---
 
-**New table:** `pick_state_strength` with columns:
+#### v1 — Display-only per-state strength
+
+**Metric:** Recency-weighted hit rate of each pick's `comboSet` in each jurisdiction's last 365 draws, normalized to 0-100 scale.
+
+**New table:** `pick_state_strength`:
 - `snapshot_id` (FK to `slate_snapshots`)
-- `pick_rank` (1–6)
+- `pick_rank` (1-6)
 - `combo`, `combo_set`
 - `jurisdiction` (state code)
-- `strength_score` (0–100)
+- `strength_score` (0-100)
 - `raw_hit_count`, `draws_evaluated`
-- `rank_within_pick` (1–N, ranking states for this specific pick)
+- `rank_within_pick` (1-N, ranking states for this specific pick)
 
-**Compute step:** New function `computePerStateStrength()` runs after `compute-slate-zk6` finishes. Writes ~210 rows per slate (6 picks × 35 jurisdictions).
+**Compute step:** New function `computePerStateStrength()` runs after `compute-slate-zk6` finishes (or runs separately post-slate, async). Writes ~210 rows per slate (6 picks × ~35 jurisdictions).
 
-**UI surface:** New section in `PickDetailModal.tsx` titled "Pattern Strength by Jurisdiction" displaying top 5 states for the pick with strength scores and visual bars. Honest copy: "Based on recency-weighted hit rate in each state's last 365 draws."
+**UI surface:** New section in `PickDetailModal.tsx` titled "Pattern Strength by Jurisdiction" displaying top 5 states for the pick with strength scores + visual bars. Brand-safe copy: "Based on recency-weighted match rate in each state's last 365 draws."
 
-#### Out of scope for this enhancement
-
-- Changes to ZK6 pick selection logic (national selection stays)
-- Per-state signal recomputation (BOX/PBURST/CO/DGC per state)
-- Per-state forecasting or prediction
-- Admin override UI for per-state weights
-- Real-time per-state strength updates
-- Backfill of legacy slates (new slates only get the data)
-
-#### Dependencies
-
-- Slate snapshot writers must trigger per-state computation
-- `histories` table must continue to have reliable per-jurisdiction data (already does)
-- Performance budget: per-state computation adds < 30 seconds to slate generation
-
-#### Acceptance criteria
-
-- [ ] `pick_state_strength` table created with correct schema
+**v1 acceptance criteria:**
+- [ ] `pick_state_strength` table created (migration committed)
 - [ ] Per-state strength computed for every new slate generation
-- [ ] PickDetailModal renders top 5 jurisdictions per pick
-- [ ] Section copy is honest ("recency-weighted hit rate")
-- [ ] Performance: < 30s added to slate generation
-- [ ] Legacy slates without per-state data render gracefully
+- [ ] `PickDetailModal` renders top 5 jurisdictions per pick
+- [ ] Copy passes the brand voice [[feedback_two_question_filter]]
+- [ ] Performance: < 30s added to slate generation (async fine)
+- [ ] Legacy slates without per-state data render gracefully (empty state)
+- [ ] Operator-visible diagnostic: top 5 states by strength_score per scope per day
 
-#### Marketing language unlocked after ship
-
-The following becomes verifiably true:
-- "ZK6 identifies which states are showing the strongest patterns for each pick"
-- "Picks are paired with the jurisdictions where patterns are strongest"
+**v1 marketing unlock:**
+- "Identifies which states are showing the strongest patterns for each pick"
 - "Per-state pattern intelligence for every signal"
+
+---
+
+#### v2 — Selection-influence (NEW, addresses midday rank inversion)
+
+**Hypothesis (to be backtested):** Midday top-6 anti-predictive pattern is because the weighted-sum score function maximizes a *national* indicator that's saturated. Per-state strength brings in a new dimension that's orthogonal to BOX/PBURST/CO/DGC — it knows "this combo has been hot in TX, NJ, FL specifically over the last 30 days," information none of the current channels can compute.
+
+**Mechanism candidate:** new signal `STATE_STR` injected into the weighted-sum:
+```
+finalScore = w_BOX×normBox + w_PBURST×normPburst + w_CO×normCo + w_DGC×normDgc + w_STATE×normStateStr + multAdj
+```
+Where `normStateStr` for each combo = max strength_score across jurisdictions (or top-5 average), max-normed across the universe.
+
+**Backtest gate (CLAUDE.md required for engine math changes):**
+1. Compute `pick_state_strength` against historical 30d slate-gen dates (backfill)
+2. Replay the engine with STATE_STR weight ∈ {0, 5, 10, 15, 20} per scope
+3. Ship gate per CLAUDE.md: CANDIDATE ≥ BASELINE on midday top-6 hit rate
+4. Watch evening + allday for cross-coupling regression
+
+**v2 acceptance criteria:**
+- [ ] `computeStateStrengthSignal()` helper in `lib/engineCore.ts` (Deno-safe, no DB calls)
+- [ ] Edge fn + RN engine consume STATE_STR with weight from `app_config.engine_weights_balanced_${scope}` (extend the JSON schema to 5 channels — explicit migration of weights to renormalize)
+- [ ] 30d backtest documents per-scope STATE_STR weight that maximizes top-6 hit rate without regressing slate hit rate
+- [ ] Ship as CONFIG-XX with the standard review window pattern
+- [ ] Rollback condition documented: revert if midday top-6 trails baseline by more than 3pp over 7d
+
+**v2 ship gate metric:** midday top-6 hit rate ≥ 25% (1.6× current 15.8%). Below that, the per-state signal isn't strong enough to overcome the saturated-universe problem and we should defer to actual ZK30.
+
+---
+
+#### Why pre-ZK30 dependency (reinforced)
+
+1. **ZK30 is the per-state engine.** ZK6 needs to honestly support per-state language BEFORE ZK30 launches, or the marketing story for the ZK family stays incoherent.
+2. **The per-state datasets already exist.** `datasets_box` + `datasets_pair` rows with non-null `jurisdiction` are populated. Built for ZK30, currently unused. This enhancement gives them a ZK6 consumer.
+3. **Risk de-risking.** Building per-state in ZK6 first proves the methodology before ZK30 expansion makes it production-critical. If the v1 metric is junk, we discover that with ZK6 risk exposure, not ZK30 risk exposure.
+4. **ZK30 inherits the infrastructure.** Compute logic, schema, UI patterns from this enhancement become foundational for ZK30.
+5. **NEW (2026-06-09):** ZK6 midday is structurally stuck at the pick-level until per-state ships. Every day the rank-1 anti-pattern persists is direct UX cost to subscribers.
+
+#### Out of scope for both v1 and v2
+
+- Per-state signal recomputation (per-state BOX/PBURST/CO/DGC) — that's ZK30 territory
+- Per-state forecasting or prediction (would require modeling, not just aggregation)
+- Admin override UI for per-state weights
+- Real-time per-state strength updates (daily refresh fine)
+- Backfill of legacy slate displays (new slates only get the data; v2 backfill is for backtest-only)
+
+#### Dependencies + risks
+
+- **Dependency:** `histories` table must continue to have reliable per-jurisdiction `result_digits` (already does — verified by yesterday's sweeps using histories directly).
+- **Dependency:** v2 requires extending the 4-channel `WeightSet` type to 5 channels. Touches `lib/engineCore.ts`, `engines/zk6.ts`, edge fn, backtest harness, generate-weight-proposal admin tool. Cross-cutting change; merits its own ENG-XX audit entry when shipped.
+- **Risk:** per-state strength may correlate strongly with existing CO signal (both reward "combos that drew recently across jurisdictions"). v2 backtest must include AUC-based collinearity check.
+- **Risk:** STATE_STR may help midday but hurt allday/evening (the rank-1 inversion is most extreme on midday). Per-scope STATE_STR weight is mandatory; do NOT ship a global STATE_STR weight.
+
+#### Effort + sequencing
+
+| phase | effort | gates |
+|---|---|---|
+| v1 build | 6-10h | brand-voice review on copy; no backtest needed |
+| v1 ship | 1-2h | migration + edge fn deploy + UI |
+| v1 → v2 gap | 1-2 weeks | watch subscriber engagement on per-state UI; capture qualitative signal |
+| v2 build | 12-20h | extends WeightSet to 5 channels everywhere |
+| v2 backtest | 4-8h | 30d × 5 weight presets × 3 scopes |
+| v2 ship | 1-2h | as CONFIG-XX with documented rollback |
+
+**Total to fix midday rank inversion: ~25-40h focused work + 1-2 wk observation gap.**
 
 #### Sequencing
 

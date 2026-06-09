@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-09 (ENG-ALLDAY-REORDER-04 — allday found to have a missed win. `ds desc, pburst desc` lifts allday pick #1 46.4% → 53.6% (+7.2pp). And pick #2 + #3 ALSO lift by +7.2pp each. Allday positions 1-3 all improve; position 4 absorbs loss. Edge fn v36→v37. All 3 scopes now have empirically-validated reorders with scope-specific tiebreaks.)  
+**Last updated:** 2026-06-09 (ENG-STATE-DATA-05 — added 3 read-only metadata fields per pick to slate output: `tag` ('overdue'/'strong'/'depth' by display position), `recentStateHits14d` (national hit count 14d window), `topJurisdictions` (top-5 states with recent hits). Pure additive metadata; does NOT touch selection, sort, or scoring. Defensive against fetch failure (empty defaults). Edge fn v37→v38. Validated end-to-end via curl + JSON inspection: all 3 fields populate correctly for tomorrow's midday slate. Test snapshot deleted post-validation.)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -97,6 +97,119 @@ Engine falls back to pre-CONFIG-14 weights on next slate compute. Edge fn code u
 3. Allday pick rate drops below 30% (5pp below baseline 35.6%)
 
 **Marketing language unlocked.** None. CONFIG-14 is a calibration fix, not a new capability. Subscriber UX improves quietly: allday r1 pick is more often the right pick.
+
+---
+
+### ENG-STATE-DATA-05 — Per-Pick State Metadata Bundle (2026-06-09)
+
+**Pure additive metadata.** Three new optional read-only fields on each pick in `top_k_straights_json`. Does NOT touch selection, sort, scoring, or rails. The operator is betting on tomorrow's picks; this ship has zero risk to the picks themselves.
+
+**Hard rules enforced for this ship:**
+- Must NOT change which combos are picked
+- Must NOT change anything that runs before K6 selection
+- All new code wrapped in try/catch with safe defaults
+- All new fields optional — UI consumers ignore unknown fields
+- Performance budget: 1 additional Supabase query parallelized via Promise.all
+- Brand-voice check on tag strings (passed: 'overdue'/'strong'/'depth' are observation-based)
+
+#### Three new fields per pick
+
+| field | type | meaning |
+|---|---|---|
+| `tag` | `'overdue' \| 'strong' \| 'depth'` | by display position (1 → overdue, 2-3 → strong, 4-6 → depth) |
+| `recentStateHits14d` | number | total national hits for this comboSet over prior 14 days |
+| `topJurisdictions` | `Array<{state: string, hits: number}>` | top 5 jurisdictions by hit count, sorted desc with alphabetical tiebreak |
+
+The 14-day window picked as balance: long enough for ~1000-row data per scope-period (matches the WARMING window structure), short enough to feel current.
+
+#### Implementation
+
+**Helper function (both engine paths).** `fetchStateAggregation(todayEt, 14)` returns `Map<comboSet, {totalHits, byState: Map<state, count>}>`. Modeled after `fetchWarmingHistory` — same pagination pattern (PostgREST 1000-cap), same try/catch shape. Empty map on failure → empty fields on each pick.
+
+**Hook into Promise.all alongside the warming + history fetches.** Latency cost: ~1 round-trip query, parallelized with the others; net added latency ≈ 0 in the common case (slowest of the parallel ops dominates).
+
+**Output builder (`topKStraights.map`).** New fields appended at end:
+```ts
+return {
+  // existing fields unchanged...
+  tag: tagForPosition(idx + 1),
+  topJurisdictions: stateAgg ? top-5-sorted : [],
+  recentStateHits14d: stateAgg?.totalHits ?? 0,
+};
+```
+
+**Tag logic.**
+```ts
+function tagForPosition(pos: number): 'overdue' | 'strong' | 'depth' {
+  if (pos === 1) return 'overdue';
+  if (pos <= 3) return 'strong';
+  return 'depth';
+}
+```
+
+Brand-voice check passed: 'overdue' (observation about ds), 'strong' (observation about pattern strength), 'depth' (observation about slate position). No forbidden words.
+
+#### Validation evidence
+
+Edge fn deployed **v37 → v38** (status ACTIVE, verify_jwt=true preserved). Triggered a live test gen via curl for tomorrow's midday slate (`targetDate=2026-06-10`):
+
+```
+pick #1: combo=869, tag='overdue',  hits14d=3, top in ON/PA/TX (1 each)
+pick #2: combo=739, tag='strong',   hits14d=7, top in DC(2)/IN/KS/VA/WA
+pick #3: combo=482, tag='strong',   hits14d=7, top in CO/DE/FL/KS/MO
+pick #4: combo=496, tag='depth',    hits14d=8, top in DE(2)/CO/KY/LA/NJ
+pick #5: combo=370, tag='depth',    hits14d=7, top in MS(2)/KS/LA/MN/NC
+pick #6: combo=632, tag='depth',    hits14d=7, top in DC/IN/KS/KY/NJ
+```
+
+Verified:
+- 6 picks returned (slate intact)
+- All 3 new fields populated with sensible values
+- `tag` correctly mapped to display position
+- `topJurisdictions` arrays sorted by hits desc + alphabetical tiebreak
+- Picks themselves selected correctly (post-reorder sort applied)
+- Test snapshot for 2026-06-10 deleted post-validation to avoid pre-empting tomorrow's authoritative cron-gen
+
+#### Risk audit
+
+| risk | mitigation |
+|---|---|
+| Fetch fails → exception → slate gen fails | try/catch wraps entire helper, returns empty Map on any error |
+| State agg adds latency | Parallelized in existing Promise.all; ~0 net added in common case |
+| Edge fn bundle size growth | 77kB → 80kB (well under 250kB limit) |
+| UI breaks on unknown fields | New fields are optional; UI consumers use `.field ?? default` pattern throughout |
+| New fields affect dedup hash | computeSlateHash only uses `topCombos` list; metadata excluded by construction |
+| Top jurisdictions list contains untrustworthy data | Sourced from histories table (authoritative); no user-input contamination |
+
+#### What this does not change
+
+- Engine math, weights, signal computations: all untouched
+- K6 selection rails: untouched
+- Sort/tiebreak (ENG-MIDDAY/EVENING/ALLDAY/TIEBREAK ships from earlier today): untouched
+- Slate hash + dedup logic: untouched
+- Existing fields in `top_k_straights_json`: untouched
+- Daily_intelligence columns + writes: untouched
+- Subscriber-visible picks: **untouched** (same 6 combos in same display order)
+
+#### UI consumption path (deferred — not required for this ship)
+
+Subscriber-visible UI changes are a separate ship. The data is now available in `slate_snapshots.top_k_straights_json[*].{tag,recentStateHits14d,topJurisdictions}` for tomorrow's slates. UI can adopt at its own cadence.
+
+Suggested first UI surface: a small "Strong in: TX, GA, FL" sub-line on each PickCard. The `tag` could drive a single-color badge (overdue → orange, strong → blue, depth → gray). Brand-voice review on copy before any UI ship.
+
+#### Rollback
+
+If anything goes wrong, revert is trivial in both engine paths:
+1. Remove the helper function (`fetchStateAggregation`, `tagForPosition`)
+2. Remove the `stateAggMap` entry from the `Promise.all`
+3. Remove the 3 fields from the `topKStraights.map` return
+4. Redeploy edge fn (`supabase functions deploy compute-slate-zk6`)
+
+Slate generation reverts to pre-bundle behavior. Existing slates in `slate_snapshots` retain the metadata fields (read-only data, no migration needed).
+
+#### Operator override of CLAUDE.md backtest gate
+
+Stated reason: pure read-only metadata bundle. Picks unchanged. Sort unchanged. No engine math touched. The traditional "backtest CANDIDATE ≥ BASELINE" criterion doesn't apply because there's no CANDIDATE engine — only new descriptive fields. Validation via direct production curl + JSON inspection is appropriate proof.
 
 ---
 

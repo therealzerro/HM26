@@ -352,6 +352,65 @@ async function fetchWarmingHistory(
   }
 }
 
+/**
+ * ENG-STATE-DATA-05 (2026-06-09): for each comboSet seen nationally in the
+ * prior N-day window, bucket the per-jurisdiction hit counts so the slate
+ * output can carry "top states this combo hit in" + total recent hit count.
+ *
+ * Pure metadata. Does NOT influence selection, sorting, or scoring. Failure
+ * returns an empty Map and the engine falls back to picks-without-state-data.
+ *
+ * Pagination matches fetchWarmingHistory pattern (PostgREST 1000-row cap).
+ */
+interface StateAgg { totalHits: number; byState: Map<string, number> }
+async function fetchStateAggregation(
+  todayEt: string,
+  windowDays: number,
+): Promise<Map<string, StateAgg>> {
+  const out = new Map<string, StateAgg>();
+  try {
+    const todayDate = new Date(todayEt + 'T12:00:00');
+    todayDate.setDate(todayDate.getDate() - windowDays);
+    const fromDate = todayDate.toISOString().split('T')[0];
+    const pageSize = 1000;
+    for (let offset = 0; offset < 10000; offset += pageSize) {
+      const page = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/histories?select=comboset_sorted,jurisdiction` +
+          `&date_et=gte.${fromDate}&date_et=lt.${todayEt}` +
+          `&order=date_et.desc&limit=${pageSize}&offset=${offset}`,
+      });
+      const arr = Array.isArray(page) ? page : [];
+      for (const r of arr) {
+        if (!r || typeof r.comboset_sorted !== 'string') continue;
+        const cs = r.comboset_sorted;
+        let agg = out.get(cs);
+        if (!agg) {
+          agg = { totalHits: 0, byState: new Map() };
+          out.set(cs, agg);
+        }
+        agg.totalHits += 1;
+        if (typeof r.jurisdiction === 'string' && r.jurisdiction) {
+          agg.byState.set(r.jurisdiction, (agg.byState.get(r.jurisdiction) ?? 0) + 1);
+        }
+      }
+      if (arr.length < pageSize) break;
+    }
+  } catch (e) {
+    console.log('[zk6v2] state-agg fetch warn (non-fatal):', e);
+  }
+  return out;
+}
+
+/**
+ * ENG-STATE-DATA-05: brand-safe tag per display position.
+ * Strings stored as lowercase metadata; UI maps to localized display copy.
+ */
+function tagForPosition(pos: number): 'overdue' | 'strong' | 'depth' {
+  if (pos === 1) return 'overdue';
+  if (pos <= 3) return 'strong';
+  return 'depth';
+}
+
 async function fetchHistoryOverrides(scope: Scope): Promise<{
   dsOverride: Map<string, number>;
   lsOverride: Map<string, string>;
@@ -905,16 +964,22 @@ export async function computeSlate({
   // also fetch the prior-N-day cross-jurisdiction history window. Skipped
   // entirely when weight is 0 (zero added latency).
   const warmingActive = (cfg.effectiveWarmingWeight ?? 0) > 0;
-  const [ds, { dsOverride, lsOverride, hitDatesMap }, warmingRows] = await Promise.all([
+  // ENG-STATE-DATA-05 (2026-06-09): state-agg fetch parallelized with other
+  // slow ops. 14d window. Pure metadata; failure returns empty Map and slate
+  // generation proceeds with empty state fields on each pick (UX-only).
+  const STATE_AGG_WINDOW_DAYS = 14;
+  const [ds, { dsOverride, lsOverride, hitDatesMap }, warmingRows, stateAggMap] = await Promise.all([
     fetchDatasets(scope),
     fetchHistoryOverrides(scope),
     warmingActive
       ? fetchWarmingHistory(todayEt, cfg.warmingWindowDays)
       : Promise.resolve([] as { comboset_sorted: string; date_et: string }[]),
+    fetchStateAggregation(todayEt, STATE_AGG_WINDOW_DAYS),
   ]);
   if (warmingActive) {
     console.log(`[zk6v2] WARMING fetched ${warmingRows.length} rows over ${cfg.warmingWindowDays}d window`);
   }
+  console.log(`[zk6v2] state-agg: ${stateAggMap.size} unique comboSets over ${STATE_AGG_WINDOW_DAYS}d window`);
 
   // Merge: history wins when it shows a MORE RECENT hit than the imported dataset.
   // This corrects stale draws_since/last_seen without requiring a re-import.
@@ -1435,6 +1500,16 @@ export async function computeSlate({
         (typeof r.key_box === 'string' && sortedComboKey(r.key_box.replace(/[^0-9]/g, '').slice(0, 3)) === sk)
       )
     );
+    // ENG-STATE-DATA-05 (2026-06-09): pure read-only metadata for UX badges +
+    // state context. Defensive: if stateAggMap fetch failed earlier, these
+    // fields default to safe empty values. Does NOT influence selection or sort.
+    const stateAgg = stateAggMap.get(x.normKey);
+    const topJurisdictions = stateAgg && stateAgg.byState.size > 0
+      ? Array.from(stateAgg.byState.entries())
+          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+          .slice(0, 5)
+          .map(([state, hits]) => ({ state, hits }))
+      : [];
     return {
       combo: x.combo,
       comboSet: x.normKey,
@@ -1454,6 +1529,10 @@ export async function computeSlate({
       timesDrawn: boxRow?.times_drawn ?? ds.timesDrawnMap.get(x.normKey) ?? 0,
       dsRaw: boxRow?.ds_raw ?? ds.dsRawMap.get(x.normKey) ?? 0,
       lastSeen: ds.lastSeenMap.get(x.normKey) ?? boxRow?.last_seen ?? null,
+      // ENG-STATE-DATA-05 metadata fields:
+      tag: tagForPosition(idx + 1),
+      topJurisdictions,
+      recentStateHits14d: stateAgg?.totalHits ?? 0,
     };
   });
 

@@ -535,6 +535,57 @@ async function fetchWarmingHistory(
   }
 }
 
+/**
+ * ENG-STATE-DATA-05 (2026-06-09): per-comboSet jurisdiction hit aggregation
+ * for slate output metadata. Mirror of engines/zk6.ts:~fetchStateAggregation.
+ * Failure returns empty Map — slate generation continues with empty state
+ * fields on picks. Does NOT influence selection or sort.
+ */
+interface StateAgg { totalHits: number; byState: Map<string, number> }
+async function fetchStateAggregation(
+  todayEt: string,
+  windowDays: number,
+): Promise<Map<string, StateAgg>> {
+  const out = new Map<string, StateAgg>();
+  try {
+    const todayDate = new Date(todayEt + 'T12:00:00');
+    todayDate.setDate(todayDate.getDate() - windowDays);
+    const fromDate = todayDate.toISOString().split('T')[0];
+    const pageSize = 1000;
+    for (let offset = 0; offset < 10000; offset += pageSize) {
+      const page = await sbGet<any[]>(
+        `/rest/v1/histories?select=comboset_sorted,jurisdiction` +
+          `&date_et=gte.${fromDate}&date_et=lt.${todayEt}` +
+          `&order=date_et.desc&limit=${pageSize}&offset=${offset}`,
+      );
+      const arr = Array.isArray(page) ? page : [];
+      for (const r of arr) {
+        if (!r || typeof r.comboset_sorted !== 'string') continue;
+        const cs = r.comboset_sorted;
+        let agg = out.get(cs);
+        if (!agg) {
+          agg = { totalHits: 0, byState: new Map() };
+          out.set(cs, agg);
+        }
+        agg.totalHits += 1;
+        if (typeof r.jurisdiction === 'string' && r.jurisdiction) {
+          agg.byState.set(r.jurisdiction, (agg.byState.get(r.jurisdiction) ?? 0) + 1);
+        }
+      }
+      if (arr.length < pageSize) break;
+    }
+  } catch (e) {
+    console.log('[edge-zk6] state-agg fetch warn (non-fatal):', e);
+  }
+  return out;
+}
+
+function tagForPosition(pos: number): 'overdue' | 'strong' | 'depth' {
+  if (pos === 1) return 'overdue';
+  if (pos <= 3) return 'strong';
+  return 'depth';
+}
+
 async function fetchHistoryOverrides(scope: Scope) {
   try {
     const clause = scope === 'allday' ? '' : `&session=eq.${encodeURIComponent(scope)}`;
@@ -628,16 +679,20 @@ async function computeSlate(params: {
   // 1. Fetch datasets + history overrides + warming history (parallel)
   // ENH-WARMING-2026-06-06: warming fetch is skipped (returns []) when weight=0.
   const warmingActive = (cfg.effectiveWarmingWeight ?? 0) > 0;
-  const [ds, { dsOverride, lsOverride, hitDatesMap }, warmingRows] = await Promise.all([
+  // ENG-STATE-DATA-05 (2026-06-09): parallel 14d state-agg fetch.
+  const STATE_AGG_WINDOW_DAYS = 14;
+  const [ds, { dsOverride, lsOverride, hitDatesMap }, warmingRows, stateAggMap] = await Promise.all([
     fetchDatasets(scope),
     fetchHistoryOverrides(scope),
     warmingActive
       ? fetchWarmingHistory(todayEt, cfg.warmingWindowDays)
       : Promise.resolve([] as { comboset_sorted: string; date_et: string }[]),
+    fetchStateAggregation(todayEt, STATE_AGG_WINDOW_DAYS),
   ]);
   if (warmingActive) {
     console.log(`[edge-zk6] WARMING fetched ${warmingRows.length} rows over ${cfg.warmingWindowDays}d window`);
   }
+  console.log(`[edge-zk6] state-agg: ${stateAggMap.size} unique comboSets over ${STATE_AGG_WINDOW_DAYS}d window`);
   for (const [cs, d] of dsOverride) { const s = ds.drawsSinceMap.get(cs); if (s == null || d < s) ds.drawsSinceMap.set(cs, d); }
   for (const [cs, l] of lsOverride) { const s = ds.lastSeenMap.get(cs);   if (!s || l > s)       ds.lastSeenMap.set(cs, l);   }
 
@@ -929,6 +984,14 @@ async function computeSlate(params: {
   const topKStraights = k6.map((x, idx) => {
     const sk = sck(x.combo);
     const br = (ds.rawBoxRows as any[]).find(r => r && typeof r.key === 'string' && sck(r.key.replace(/\D/g,'').slice(0,3)) === sk);
+    // ENG-STATE-DATA-05: pure metadata, defensive against missing agg.
+    const stateAgg = stateAggMap.get(x.normKey);
+    const topJurisdictions = stateAgg && stateAgg.byState.size > 0
+      ? Array.from(stateAgg.byState.entries())
+          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+          .slice(0, 5)
+          .map(([state, hits]) => ({ state, hits }))
+      : [];
     return {
       combo: x.combo, comboSet: x.normKey, indicator: x.indicator,
       box: x.boxS, pburst: x.pburstS, co: x.coS,
@@ -942,6 +1005,10 @@ async function computeSlate(params: {
       timesDrawn: (br as any)?.times_drawn ?? ds.timesDrawnMap.get(x.normKey) ?? 0,
       dsRaw:      (br as any)?.ds_raw ?? ds.dsRawMap.get(x.normKey) ?? 0,
       lastSeen:   ds.lastSeenMap.get(x.normKey) ?? (br as any)?.last_seen ?? null,
+      // ENG-STATE-DATA-05 metadata fields:
+      tag: tagForPosition(idx + 1),
+      topJurisdictions,
+      recentStateHits14d: stateAgg?.totalHits ?? 0,
     };
   });
 

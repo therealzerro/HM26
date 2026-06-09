@@ -397,6 +397,27 @@ Default to **$5-7** allocation. Operator can say "morning brief budget $X" to ov
 
 ---
 
+---
+
+## Step 6 — Generate the PDF (after presenting brief in chat)
+
+After running the 5 queries and presenting the chat output, Claude must
+also generate the styled PDF for archival / sharing:
+
+```bash
+set -a; source .env; set +a; npx tsx scripts/generate-jurisdiction-report.ts [date]
+```
+
+- `[date]` is the same `today` that the brief used (CURRENT_DATE or operator-supplied)
+- Script writes `assets/zk6_jurisdiction_correlation_<date>.pdf` (~64KB)
+- Matches the style of historical PDFs in `assets/`
+- Includes Top-10 jurisdictions + per-scope split + today's picks + watch list + takeaways
+- Independent of the chat brief — PDF can be committed to git for archival
+
+When operator says "generate the PDF" or "give me the PDF" without other context:
+- Generate for `CURRENT_DATE` and confirm path
+- If yesterday's date needed: explicit "PDF for YYYY-MM-DD"
+
 ## Validation Checklist (run when modifying this runbook)
 
 1. All 5 queries execute against today's data without error

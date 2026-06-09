@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-09 (CONFIG-13 REVERTED early — `warming_weight_evening` 0.10 → 0 at 20:41 UTC. Post-ship 3-day evening pick-lift collapsed 2.11 → 0.33 (−84%); n=18 inverse warming/hit correlation confirmed. Operator override of 6/13 review window. See CONFIG-13 REVERT note below.)  
+**Last updated:** 2026-06-09 (engine error sweep — 5 fixes shipped: BUG-EDR-01 cron sequencing, ENG-PRESSURE-CLIFF-01 BOX dsVal=100, ENG-PRESSURE-CLIFF-02 pair drawsSince=500, ENG-TRIPLES-LEAK-01 Pass 6 invariant, ENG-CFG-LEGACY 13-key cleanup. Edge fn compute-slate-zk6 v31→v32. CONFIG-13 reverted earlier same day, see entry below.)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -100,7 +100,185 @@ Engine falls back to pre-CONFIG-14 weights on next slate compute. Edge fn code u
 
 ---
 
-### CONFIG-13 REVERT — Evening WARMING Signal Disabled (2026-06-09)
+### Engine Error Sweep — 5 Fixes (2026-06-09 evening)
+
+After CONFIG-13 was reverted earlier the same day (entry below), a deep sweep of `engines/zk6.ts`, `lib/engineCore.ts`, `supabase/functions/compute-slate-zk6/`, `compute-daily-report/`, and the pg_cron migrations surfaced 5 distinct issues, all fixed in the same session. Operator override of the CLAUDE.md backtest-gate rule applied uniformly to all five: stated reason "defensive math/logic hardening with narrow blast radius (small dsVal/drawsSince windows or never-fires invariants); aggregated impact would be lost in backtest run-to-run noise (±1.7pp per memory)."
+
+Parity status post-fixes:
+- `lib/engineCore.ts` ↔ `supabase/functions/_shared/engineCore.ts`: byte-identical (`check:edge-shared` PASS)
+- Engine `compute-slate-zk6` edge fn deployed **v31 → v32**, status ACTIVE, `verify_jwt=true` preserved
+- Lint clean for all changed engine files
+- `app_config` row count: 67 → 54
+
+---
+
+### BUG-EDR-01 — engine_daily_report Cron Sequencing (2026-06-09)
+
+**Problem.** The 08:00 UTC cron (`compute-daily-report-nightly`, shipped 2026-05-18) called `compute-daily-report` for yesterday ET — but did NOT trigger `run-hit-detection` first. `compute-daily-report` reads `daily_intelligence.hit_box`/`hit_straight` columns, which are only `true` after hit detection runs. Whatever hit-flagging state existed at 4am ET was frozen into `engine_daily_report` and never refreshed unless the operator manually re-ran Step 5 of Daily Workflow.
+
+**Concrete impact.** Spot-check 2026-05-30 allday: canonical `daily_intelligence.on_slate` shows 4 any-hits (2 straight + 4 box-set); `engine_daily_report.5/30.allday` shows `hits_count=2`, `boxes_count=0`. Misled the engine error triage on 2026-06-09 by showing all-zero hit days when slates were actually hitting (this was the surface that made the operator suspect a broader engine break).
+
+**Fix.** New migration `2026_06_09_bug_edr_01_hit_detect_before_report.sql` splits the cron into TWO sequential jobs:
+- `run-hit-detection-nightly` at `30 7 * * *` (07:30 UTC = 3:30am ET)
+- `compute-daily-report-nightly` at `0 8 * * *` (08:00 UTC = 4:00am ET, unchanged from existing schedule)
+
+30-min gap gives `run-hit-detection` edge fn time to flag hits across all jurisdictions and scopes before aggregation reads `daily_intelligence`. Both jobs target `yesterday ET` via the existing `now() AT TIME ZONE 'America/New_York' - INTERVAL '1 day'` pattern.
+
+**Verification (next morning).** After 08:30 UTC tomorrow:
+```sql
+SELECT slate_date, scope, hits_count FROM engine_daily_report WHERE slate_date = CURRENT_DATE - 1;
+SELECT slate_date, scope, COUNT(*) FILTER (WHERE on_slate AND (hit_box OR hit_straight)) AS hits
+  FROM daily_intelligence WHERE slate_date = CURRENT_DATE - 1 GROUP BY slate_date, scope;
+```
+Numbers should match within ±1 per scope.
+
+**Rollback.** Drop both new jobs, re-apply the original 2026-05-18 migration:
+```sql
+SELECT cron.unschedule('run-hit-detection-nightly');
+SELECT cron.unschedule('compute-daily-report-nightly');
+-- then re-run 2026-05-18_pg_cron_compute_daily_report.sql
+```
+
+**What this does not change.** No engine math. No edge fn code. Pure infra/scheduling fix. The `compute-daily-report` aggregation logic itself was correct; the data freshness was broken.
+
+---
+
+### ENG-PRESSURE-CLIFF-01 — BOX Pressure Discontinuity at dsVal=100 (2026-06-09)
+
+**Problem.** In `lib/engineCore.ts:computeBoxSignalDetailed`, when `pressureThreshold <= 100` (live CONFIG-12 value), the middle branch becomes degenerate:
+```js
+const ptSpan = Math.max(pressureThreshold - 100, 1);  // = 1 when threshold = 100
+// at dsVal = 100: (100 - 100) / 1 = 0  ← collapses to ZERO at peak point
+```
+Result: `dsVal=99` → pressure=0.495; **`dsVal=100` → pressure=0**; `dsVal=101` → pressure=0.995. A 0.99 cliff at one integer where the curve was supposed to peak.
+
+**Blast radius.** Tiny — only combos with `ds_raw=100` exactly. p95 of `ds_raw` across all scopes is 13/24/26; max is 61 (allday) / 2692 (evening outlier) / 3297 (midday outlier). In practice, zero or one combo per slate-gen lands on this integer. But the bug is real and the fix is trivial.
+
+**Fix.** Replace `Math.max(span, 1)` guard with explicit short-circuit to 1.0 (peak) when the middle branch is degenerate:
+```js
+const ptSpan = pressureThreshold - 100;
+const pressure =
+  dsVal >= 100 && dsVal <= pressureThreshold
+    ? (ptSpan > 0 ? Math.min((dsVal - 100) / ptSpan, 1.0) : 1.0)  // ← peak when degenerate
+    : dsVal > pressureThreshold ? Math.max(1.0 - (dsVal - pressureThreshold) / 200, 0.3)
+    : (dsVal / 100) * 0.5;
+```
+Now `dsVal=100` returns 1.0 (intended peak) regardless of whether `pressureThreshold` is 100, 200, or 500.
+
+**Files.** `lib/engineCore.ts:159-180`. Synced to `supabase/functions/_shared/engineCore.ts` via `npm run sync:edge-shared`. Edge fn delegates to the shared helper so no separate inline edit needed.
+
+**What this does not change.** BOX scoring for `dsVal < 100` or `dsVal > pressureThreshold` — both paths unchanged. PBURST, CO, DGC: unaffected. Behavior bit-identical for any `pressureThreshold > 100` (the pre-CONFIG-12 era).
+
+**Rollback.** Revert the lib edit + `npm run sync:edge-shared` + redeploy.
+
+---
+
+### ENG-PRESSURE-CLIFF-02 — Pair Pressure Cliff at drawsSince=500 (2026-06-09)
+
+**Problem.** In `lib/engineCore.ts:computePairSignal`, the pressure component had a hard cliff:
+```js
+const pressureScore = (timesDrawn > 0 && drawsSince < 500)
+    ? Math.min(drawsSince / 182, 1.0)
+    : 0;
+```
+At `drawsSince=499`: pressure=1.0 → at `drawsSince=500`: pressure=0. One-integer cliff that affects both PBURST (classes 2/3/4) and CO (classes 5-11). Pairs that haven't drawn in ~500 days lose their entire pressure contribution (30% of pair signal) abruptly.
+
+**Blast radius.** Probably small in practice — most active pairs draw far more frequently than every 500 days at national-aggregated scope. But blast radius is hard to quantify because the dataset isn't easy to slice for "pairs with drawsSince in [500, 600]" — the cliff was hidden in the source.
+
+**Fix.** Replace cliff with 100-step linear taper [500, 600] → 0, matching the BOX late-region decay shape (`engineCore.ts:174`):
+```js
+let pressureScore = 0;
+if (timesDrawn > 0) {
+  if (drawsSince < 500)        pressureScore = Math.min(drawsSince / 182, 1.0);
+  else if (drawsSince < 600)   pressureScore = Math.max(1.0 - (drawsSince - 500) / 100, 0);
+  // drawsSince >= 600: pressureScore = 0 (unchanged from pre-fix)
+}
+```
+Pairs at `drawsSince=499` stay at 1.0; pairs at `drawsSince ≥ 600` stay at 0. Only pairs in the narrow [500, 600] window are affected — they now get a smooth ramp instead of a sudden drop.
+
+**Files.** `lib/engineCore.ts:260-285`. Synced to `_shared/`.
+
+**What this does not change.** Pair signal for `drawsSince < 500` or `drawsSince ≥ 600` — unchanged. Freq component (70% weight): untouched.
+
+**Rollback.** Revert the lib edit + sync + redeploy.
+
+---
+
+### ENG-TRIPLES-LEAK-01 — Pass 6 Triples Invariant Hardening (2026-06-09)
+
+**Problem.** In both K6 selectors (`engines/zk6.ts:~1256` and `supabase/functions/compute-slate-zk6/index.ts:~848`), the triples-blocking check was inside the `!relaxMultCaps` guard:
+```js
+if (!relaxMultCaps) {
+  if (mult === 'singles' && singles >= rails.singlesMax) return false;
+  if (mult === 'doubles' && doubles >= rails.doublesMax) return false;
+  if (mult === 'triples' && !rails.triplesOn) return false;  // ← inside relax guard
+}
+```
+On Pass 6 (`relaxMultCaps=true`), the triplesOn=false invariant was bypassed alongside the count caps. If Pass 6 ever fired (which it does — verified 2026-06-09 midday slate has all-singles output indicating singles_max=4 was relaxed) AND the next-best candidates happened to include a triple, a triple could land on the production slate despite `k6_triples_on=false`.
+
+**Blast radius.** In production this likely never fired — at the moment Pass 6 fires, the slate is starved of singles+doubles candidates, but triples are rare (only 10 of 1000 universe combos). Probability of a triple ranking high enough to be next in line is small. But `triplesOn=false` is a *harder* invariant than the count caps (it's a categorical "no" vs a quota), so the defensive fix is correct.
+
+**Fix.** Move the triples-block OUTSIDE the relax guard:
+```js
+if (mult === 'triples' && !rails.triplesOn) return false;  // ← always blocks
+if (!relaxMultCaps) {
+  if (mult === 'singles' && singles >= rails.singlesMax) return false;
+  if (mult === 'doubles' && doubles >= rails.doublesMax) return false;
+}
+```
+Triples are now blocked in every pass (1-6) when `triplesOn=false`. Singles/doubles caps still relax on Pass 6 so the "guarantee 6 picks" spec is preserved.
+
+**Files.** `engines/zk6.ts:1255-1264` and `supabase/functions/compute-slate-zk6/index.ts:847-857`. Both edits identical in structure. Edge fn deployed v31 → v32.
+
+**What this does not change.** When `k6_triples_on=true` (not the current production setting), behavior is identical. When `triplesOn=false` and Pass 6 fires AND the next candidate isn't a triple, behavior is identical. The only change-of-behavior case is the rare {triplesOn=false, Pass 6 fires, next candidate is a triple}.
+
+**Edge case to monitor.** If `singles_max + doubles_max < 6` AND the candidate pool is depleted, the engine could now legitimately fail to reach 6 picks under this stricter invariant. Current production rails: `singles_max=4 + doubles_max=2 = 6`, so this floor is exactly met — no risk. If rails ever drop below 6, watch for "Pass 6 yielded N < 6" warnings.
+
+**Rollback.** Revert both files + redeploy.
+
+---
+
+### ENG-CFG-LEGACY — 13 Unused app_config Keys Deleted (2026-06-09)
+
+**Problem.** `app_config` accumulated 13 keys from older engine generations and abandoned pricing scaffolding that have **zero references** in any `*.ts`, `*.tsx`, or `*.sql` file in the repo (verified 2026-06-09 by exhaustive grep). They added noise to engine-config audits and created confusion risk (e.g., during the CONFIG-13 triage I had to mentally filter them out of the live-config snapshot).
+
+**Keys deleted** (all with 0 grep matches):
+| Key | Why orphan |
+|---|---|
+| `active_weight_preset` | superseded by `engine_preset` |
+| `auto_generate_slates` | typo'd dup of `auto_gen_slates` |
+| `burst_signal_enabled` | superseded by `burst_signal_on` |
+| `drawing_confidence_enabled` | superseded by `drawing_confidence_on` |
+| `evening_generation_time` | superseded by `evening_gen_time` |
+| `exclude_recent_hits` | cooldown handled via `recent_hit_cooldown` |
+| `free_regen_credits` | abandoned pricing scaffold |
+| `morning_generation_time` | superseded by `morning_gen_time` |
+| `plus_regen_credits` | abandoned pricing scaffold |
+| `pro_regen_credits` | abandoned pricing scaffold |
+| `recent_hit_exclusion_window` | not read by engine |
+| `recent_hit_window` | not read by engine |
+| `zk6_engine_version` | superseded by `zk6_version` |
+
+**Keys retained** (≥1 grep reference, kept for safety): `auto_gen_slates`, `evening_gen_time`, `morning_gen_time`, `pressure_bonus_weight`, `zk6_version`, `burst_signal_on`, `drawing_confidence_on`, `engine_preset`, `app_version`.
+
+**Fix.** Migration `2026_06_09_eng_cfg_legacy_cleanup.sql`. Single transactional DELETE. Row count: **67 → 54**.
+
+**Verification.**
+```sql
+SELECT COUNT(*) FROM app_config;  -- expected: 54
+```
+Confirmed post-apply.
+
+**Rollback.** Restore individual rows if any surface complains (none expected since they had zero references):
+```sql
+INSERT INTO app_config (key, value) VALUES (...) ON CONFLICT DO NOTHING;
+```
+
+**What this does not change.** No engine math. No edge fn. Cleanup-only. The grep audit confirms these keys had no consumers.
+
+---
+
+
 
 **Reverted early at day 4 of the 7-day review window. SQL:**
 ```sql

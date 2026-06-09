@@ -653,12 +653,15 @@ async function computeSlate(params: {
   // are queried independently so the block still works when only one is fresh.
   const todayHitComboSets = new Set<string>();
   const effectiveExcluded = new Set<string>();
-  const yesterdayEt = getYesterdayET();
 
-  // Source A: histories table
+  // ENG-BLOCK-NARROW-01 (2026-06-09): block scope tightened from "yesterday +
+  // today" to "today only". Yesterday's national winners repeat in the same
+  // session at 16-20% per session (empirical 30d sweep) — the permanent
+  // block was costing repeat-hit lift. Mirror of engines/zk6.ts:~954.
+  // Source A: histories table — today only
   try {
     const tw = await sbGet<any[]>(
-      `/rest/v1/histories?date_et=gte.${yesterdayEt}&date_et=lte.${todayEt}&select=result_digits&limit=1000`,
+      `/rest/v1/histories?date_et=eq.${todayEt}&select=result_digits&limit=1000`,
     );
     if (Array.isArray(tw)) tw.forEach(w => {
       if (typeof w?.result_digits === 'string' && /^\d{3}$/.test(w.result_digits)) {
@@ -668,10 +671,11 @@ async function computeSlate(params: {
     });
   } catch { /* non-fatal */ }
 
-  // Source B: daily_intelligence hit flags (works when histories isn't yet imported)
+  // Source B: daily_intelligence hit flags — today only (catches supplemental
+  // slates where hit detection ran on earlier-session picks)
   try {
     const di = await sbGet<any[]>(
-      `/rest/v1/daily_intelligence?slate_date=gte.${yesterdayEt}&or=(hit_box.eq.true,hit_straight.eq.true)&select=combo_set,hit_result&limit=500`,
+      `/rest/v1/daily_intelligence?slate_date=eq.${todayEt}&or=(hit_box.eq.true,hit_straight.eq.true)&select=combo_set,hit_result&limit=500`,
     );
     if (Array.isArray(di)) di.forEach(row => {
       if (typeof row?.combo_set === 'string' && row.combo_set) {

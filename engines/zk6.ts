@@ -946,15 +946,26 @@ export async function computeSlate({
   // (B) daily_intelligence table (hit flags set by hit detection flow).
   // Yesterday is a hard block because Pass 5 would otherwise relax the cooldown
   // and allow recently-hit combos back into the slate.
+  //
+  // ENG-BLOCK-NARROW-01 (2026-06-09): block scope tightened from "yesterday +
+  // today" to "today only". The prior range fetched every national winner from
+  // the last 36-48h and permanently blocked them from selection across all
+  // K6 passes. Empirical analysis on 30d of histories (sweep 2026-06-09)
+  // showed yesterday's national winners draw again in the SAME session at
+  // 16-20% per session (midday 16.4%, evening 19.5%) — meaningfully above
+  // slate-baseline hit rate. The permanent block was costing repeat-hit lift.
+  //
+  // Today's earlier-session winners (e.g., midday winners when generating an
+  // evening supplement) are still blocked, which preserves the "results are
+  // out, don't pick the obvious" guard. At morning slate-gen, today is empty
+  // → block is empty → Pass 1 fully relaxed (correct, no draws yet to block).
   const todayHitComboSets = new Set<string>();
   const effectiveExcluded = new Set<string>(excludedCombos);
 
-  const yesterdayEt = getYesterdayET();
-
-  // Source A: histories table (raw draw results from imports)
+  // Source A: histories table (raw draw results from imports) — today only
   try {
     const recentWinners = await fetchFromSupabase<any[]>({
-      path: `/rest/v1/histories?date_et=gte.${yesterdayEt}&date_et=lte.${todayEt}&select=result_digits&limit=1000`,
+      path: `/rest/v1/histories?date_et=eq.${todayEt}&select=result_digits&limit=1000`,
     });
     if (Array.isArray(recentWinners)) {
       recentWinners.forEach(w => {
@@ -968,11 +979,11 @@ export async function computeSlate({
     console.log('[zk6v2] histories exclusion fetch warn (non-fatal):', e);
   }
 
-  // Source B: daily_intelligence hit flags (set by hit detection, works even when
-  // histories hasn't been imported yet for the most recent draw date)
+  // Source B: daily_intelligence hit flags — today only (catches supplemental
+  // slates where hit detection ran on earlier-session picks)
   try {
     const diHits = await fetchFromSupabase<any[]>({
-      path: `/rest/v1/daily_intelligence?slate_date=gte.${yesterdayEt}&or=(hit_box.eq.true,hit_straight.eq.true)&select=combo_set,hit_result&limit=500`,
+      path: `/rest/v1/daily_intelligence?slate_date=eq.${todayEt}&or=(hit_box.eq.true,hit_straight.eq.true)&select=combo_set,hit_result&limit=500`,
     });
     if (Array.isArray(diHits)) {
       diHits.forEach(row => {
@@ -1237,7 +1248,7 @@ export async function computeSlate({
   // relaxPairRepCap       — ignore pairRepCap diversity cap
   // relaxCooldown         — ignore recentHitCooldown suppression
   // relaxMultCaps         — ignore singles/doubles/triples quotas (last resort)
-  // Hard blocks never relaxed: selectedComboSets (no dupe picks) + todayHitComboSets (today + yesterday winners)
+  // Hard blocks never relaxed: selectedComboSets (no dupe picks) + todayHitComboSets (today's earlier-session winners only, per ENG-BLOCK-NARROW-01)
   const tryAdd = (
     idx: number,
     relaxExcludeComboSets = false,

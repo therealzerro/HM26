@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-09 (engine error sweep — 5 fixes shipped: BUG-EDR-01 cron sequencing, ENG-PRESSURE-CLIFF-01 BOX dsVal=100, ENG-PRESSURE-CLIFF-02 pair drawsSince=500, ENG-TRIPLES-LEAK-01 Pass 6 invariant, ENG-CFG-LEGACY 13-key cleanup. Edge fn compute-slate-zk6 v31→v32. CONFIG-13 reverted earlier same day, see entry below.)  
+**Last updated:** 2026-06-09 (sweep #2 — empirical K6 accuracy: CONFIG-15 ships evening CO 20→0 (3 modes) with strong evidence (-16pp Q1→Q4 gradient); ENG-BLOCK-NARROW-01 narrows hardcoded yesterday+today winner block to today-only (yesterday-winners repeat 16-20% in same session). Edge fn v32→v33. 3 findings DEFERRED with stated rationale: midday CO reduction, DGC reduction, ENG-PAIR-CAP analysis.)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -100,7 +100,142 @@ Engine falls back to pre-CONFIG-14 weights on next slate compute. Edge fn code u
 
 ---
 
-### Engine Error Sweep — 5 Fixes (2026-06-09 evening)
+### Engine Accuracy Sweep #2 — CONFIG-15 + ENG-BLOCK-NARROW-01 (2026-06-09 late evening)
+
+Second sweep of the same day, this time empirical (30d live K6 picks) rather than code-walk. Surfaced 5 issues; shipped the 2 with the strongest evidence; deferred 3 with stated rationale to prevent stacking too many changes during the open 6/13 review window.
+
+**Top empirical finding — midday top-of-slate is anti-predictive:**
+
+| midday rank bucket | n | hit % |
+|---|---|---|
+| top-6 (engine's best conviction) | 57 | **15.8%** |
+| rank 7-30 | 53 | 28.3% |
+| rank 31+ (Pass 3-6 rail-relaxed picks) | 58 | **29.3%** |
+
+The midday weighted-sum is putting recently-drawn high-CO popular combos at the top (top-6 `draws_since` avg=4.7, signal_co avg=0.979), and those don't repeat in single-session midday. Rank 31+ picks have ds_avg=13.3 (more overdue) and hit 2× more often. Allday shows the same direction milder (top-6 41.7% vs rank 7-30 53.8%); only evening's ranking is directionally correct.
+
+Memory-noted "midday structurally stuck at ~80% slate" — confirmed at slate level, but pick-level rank is dramatically broken. Subscribers see #1 pick fail constantly. **Not shipped a fix today** — see deferred-items rationale below.
+
+---
+
+### CONFIG-15 — Evening CO 20 → 0 Across All 3 Modes (2026-06-09)
+
+**Reverses CONFIG-11a's CO boost (which was rolled in 6/6 at 01:27 UTC under override) based on stronger empirical evidence than CONFIG-11a's original backtest.** Same per-scope, single-row pattern as CONFIG-14 (allday). Touches evening only; midday + allday untouched.
+
+**Source — 30d live slate-level signal AUC by CO quartile:**
+
+| evening CO quartile | n | hit % |
+|---|---|---|
+| Q1 (lowest CO) | 56 | **37.5%** |
+| Q2 | 56 | 30.4% |
+| Q3 | 28 | 28.6% |
+| Q4 (highest CO) | 28 | **21.4%** |
+
+**Monotonic -16pp Q1→Q4 gradient. CO is anti-predictive on evening at slate level.** Mirrors the allday +44.5pp gap that motivated CONFIG-14, and the +23.5pp gap noted in [[project_anti_co_finding]] memory.
+
+**Weights (proportional redistribution of 20pp from CO to BOX/PBURST/DGC by current share):**
+
+| mode | BOX | PBURST | CO | DGC | sum |
+|---|---|---|---|---|---|
+| balanced (old: 45/25/20/10) | 56.25 | 31.25 | **0** | 12.5 | 100 |
+| aggressive (old: 36/29.5/24.5/10) | 47.7 | 39.1 | **0** | 13.2 | 100 |
+| conservative (old: 63/11.5/15.5/10) | 74.6 | 13.6 | **0** | 11.8 | 100 |
+
+Redistribution method: `new[s] = old[s] + removed_CO × old[s] / sum(non_CO_weights)`. Sums to 100 by construction. Matches CONFIG-14's pattern.
+
+**Stacking caveat — important.** Ships into an already-crowded 6/13 review window with CONFIG-11a (the change being reversed), CONFIG-12, CONFIG-14 still under review, and CONFIG-13 reverted earlier today. Adds a 4th lever in flight. Operator override per CLAUDE.md ship-pattern, stated reason: live -16pp CO Q1→Q4 gradient is empirically stronger than CONFIG-11a's original backtest evidence (which had +6.9pp slate but assumed CO-and-WARMING joint state that's now post-revert); CONFIG-14 precedent on allday makes the redistribution math known-safe.
+
+**Production SQL (executed):**
+```sql
+UPDATE app_config SET value='{"BOX":56.25,"PBURST":31.25,"CO":0,"DGC":12.5}',   updated_at=NOW() WHERE key='engine_weights_balanced_evening';
+UPDATE app_config SET value='{"BOX":47.7,"PBURST":39.1,"CO":0,"DGC":13.2}',     updated_at=NOW() WHERE key='engine_weights_aggressive_evening';
+UPDATE app_config SET value='{"BOX":74.6,"PBURST":13.6,"CO":0,"DGC":11.8}',     updated_at=NOW() WHERE key='engine_weights_conservative_evening';
+-- all 3 rows updated 2026-06-09 21:12:40-44 UTC
+```
+
+**Review window: 2026-06-13** (joint with CONFIG-11a/12/14 + CONFIG-13 REVERT). Rollback condition: revert if 7-day evening slate hit rate trails the pre-CONFIG-15 baseline by more than 5pp, OR evening pick rate drops below 19% over the 7-day window.
+
+**Rollback (config-only):**
+```sql
+UPDATE app_config SET value='{"BOX":45,"PBURST":25,"CO":20,"DGC":10}', updated_at=NOW() WHERE key='engine_weights_balanced_evening';
+UPDATE app_config SET value='{"BOX":36,"PBURST":29.5,"CO":24.5,"DGC":10}', updated_at=NOW() WHERE key='engine_weights_aggressive_evening';
+UPDATE app_config SET value='{"BOX":63,"PBURST":11.5,"CO":15.5,"DGC":10}', updated_at=NOW() WHERE key='engine_weights_conservative_evening';
+```
+Engine falls back to CONFIG-11a weights on next slate compute. No edge fn redeploy needed.
+
+**What this does not change.** Midday + allday engine_weights: untouched. Code: untouched (pure data change). Pricing, brand voice, hit detection: untouched.
+
+---
+
+### ENG-BLOCK-NARROW-01 — Yesterday-Winner Hard Block Narrowed to Today-Only (2026-06-09)
+
+**Problem.** Two SQL fetches in both engine paths (`engines/zk6.ts:~957`, `supabase/functions/compute-slate-zk6/index.ts:~661`) populated the `todayHitComboSets` permanent block from:
+- Source A: `histories?date_et=gte.${yesterdayEt}&date_et=lte.${todayEt}` — yesterday + today raw draw results across all jurisdictions
+- Source B: `daily_intelligence?slate_date=gte.${yesterdayEt}` — yesterday's flagged hits
+
+The variable name implies "today's hits" but the set actually permanently blocked **every national winner from the last 36-48h** across all K6 passes (it's a hard block, never relaxed by Pass 3-6 cooldown/pair-cap/mult-cap relaxations).
+
+**Empirical evidence — yesterday-winners repeat:**
+
+| session | yesterday-winners | hit again next day in same session | repeat % |
+|---|---|---|---|
+| midday | 806 | 132 | **16.4%** |
+| evening | 1044 | 204 | **19.5%** |
+
+**16-20% of yesterday's session winners draw again the next day in the same session** (30d window, 2026-05-09→2026-06-07). The permanent block was preventing those repeats from being selected, costing an estimated 0.2-0.5 expected hits per slate at the pick level.
+
+**Fix.** Narrow both fetches to `today only`:
+```diff
+- /rest/v1/histories?date_et=gte.${yesterdayEt}&date_et=lte.${todayEt}&...
++ /rest/v1/histories?date_et=eq.${todayEt}&...
+
+- /rest/v1/daily_intelligence?slate_date=gte.${yesterdayEt}&...
++ /rest/v1/daily_intelligence?slate_date=eq.${todayEt}&...
+```
+
+Behavior at slate-gen time:
+- **Early-morning allday slate (~4am ET):** today's histories is empty → block is empty → Pass 1 fully unconstrained by yesterday's noise. Yesterday's winners are now eligible based on indicator score.
+- **Supplemental evening slate (after midday draws come in):** block contains midday winners only → "midday picks blocked from evening" guard preserved (the intended protection).
+- **Midday slate (rare standalone):** block empty.
+
+The `dsOverride` map (separate from this block, used by the configurable `recent_hit_cooldown=10/20`) still suppresses combos that drew very recently — that's the soft cooldown lever. The hard block now does the smaller job it should always have done.
+
+**Files.**
+- `engines/zk6.ts:~948-996` (both SQL fetches + the rationale comment)
+- `supabase/functions/compute-slate-zk6/index.ts:~655-685` (mirror — line numbers slightly different due to inline copy)
+- `engines/zk6.ts:~1240` comment updated ("today + yesterday winners" → "today's earlier-session winners only")
+
+`yesterdayEt = getYesterdayET()` call retained in `engines/zk6.ts` (harmless dead local var; cleanup deferred). Removed entirely from edge fn.
+
+**Edge fn deployed v32 → v33.** Status ACTIVE, verify_jwt=true preserved.
+
+**Operator override of CLAUDE.md backtest gate.** Stated reason: the previous behavior was a *bug* (variable-name mismatch with intent), not a calibration choice. The narrow-to-today behavior matches what the variable name (`todayHitComboSets`) describes. 30d live evidence on yesterday-winner repeat rates (16-20%) is strong enough that any prior backtest validating the broader block was implicitly comparing-to-noise.
+
+**Risk to watch over the next 2-3 slates.** Yesterday's hot combos (high BOX, high freq) will now be eligible. Could see picks that "look stale" to operator. If hit rate drops, the soft cooldown (`recent_hit_cooldown`) can be raised before reverting this fix.
+
+**Rollback (code revert):**
+```diff
+- /rest/v1/histories?date_et=eq.${todayEt}&...
++ /rest/v1/histories?date_et=gte.${yesterdayEt}&date_et=lte.${todayEt}&...
+# (also restore the daily_intelligence query and yesterdayEt var)
+```
+Then redeploy edge fn.
+
+---
+
+### Deferred Items — Sweep #2 Findings NOT Shipped (2026-06-09)
+
+Three findings surfaced by the sweep that DID NOT ship today, with stated rationale so we don't lose the work.
+
+**1. Midday CO reduction.** Top-6 midday picks hit at 15.8% vs rank 31+ at 29.3% (the worst rank inversion in the system). Mechanism: CO=64% pulls recently-drawn high-popularity combos to top; those don't repeat in single-session midday. **Why deferred:** memory [[project_midday_investigation_2026_06_06]] documents a 2026-06-06 investigation where zeroing midday CO crashed slate hit rate by -6.9pp; partial reductions also tested and falsified. Investigation concluded **only per-state intelligence (ENH-AUDIT-2026-05-19) will move midday at the pick level.** Reducing CO would optimize the wrong metric (pick-level rank) at the cost of the right one (slate hit rate). The right fix is structural, not a config knob. ENH-AUDIT-2026-05-19 stays parked behind the same priorities it had this morning.
+
+**2. DGC reduction across scopes.** DGC anti-predictive in all scopes (Q1 ≥ Q4 in every scope), but gradients are small (4-5pp) and weights are small (10-16%). **Why deferred:** CONFIG-14 explicitly INCREASED allday DGC (14.7 → 16.4) as part of the CO-redistribution. Reducing DGC now would partially undo CONFIG-14 (which is still in its review window). Aggregated lift from DGC reduction would likely be within the ~1.7pp backtest noise floor. Wait for 6/13 review of CONFIG-14, then revisit.
+
+**3. ENG-PAIR-CAP analysis.** `pair_rep_cap=2` is binding in 25-39% of slates (1/3 of slates exclude a 7th candidate sharing a top pair). **Why deferred:** to determine if this is net-positive (forced diversity) or net-negative (cutting hits), I need to enumerate the excluded 7th candidates' hit rates. That's a deeper data drill (one slate = one excluded candidate at most, so n=11 / 7 / 10 per scope over 28 days — small samples per scope). Not enough signal to act on today. Logged as a TODO for the next signal-AUC pass.
+
+---
+
+
 
 After CONFIG-13 was reverted earlier the same day (entry below), a deep sweep of `engines/zk6.ts`, `lib/engineCore.ts`, `supabase/functions/compute-slate-zk6/`, `compute-daily-report/`, and the pg_cron migrations surfaced 5 distinct issues, all fixed in the same session. Operator override of the CLAUDE.md backtest-gate rule applied uniformly to all five: stated reason "defensive math/logic hardening with narrow blast radius (small dsVal/drawsSince windows or never-fires invariants); aggregated impact would be lost in backtest run-to-run noise (±1.7pp per memory)."
 

@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-09 (ENG-MIDDAY-REORDER-01 shipped — midday K6 final sort changes from `indicator desc` to `draws_since desc`. Empirical 30d data (n=28 slates): pick #1 hit rate goes 21.4% → 35.7% (+14.3pp). Same 6 picks per slate, different sort. Slate-level hit rate unchanged. Edge fn v33→v34. This is the surgical interim win for midday pick-1 UX while ENH-AUDIT v2 (the structural per-state fix) builds. Subscribers see lift TOMORROW.)  
+**Last updated:** 2026-06-09 (ENG-EVENING-REORDER-02 bundled with the midday reorder. Empirical 30d data: evening pick #1 hit rate goes 21.4% → 42.9% (+21.5pp); midday 21.4% → 35.7% (+14.3pp). Allday tied (no change). Edge fn v34→v35. Both single-session scopes (midday + evening) now sort by `draws_since desc`; allday stays on `indicator desc`. Subscribers see the lift on TOMORROW'S evening + midday slates.)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -97,6 +97,39 @@ Engine falls back to pre-CONFIG-14 weights on next slate compute. Edge fn code u
 3. Allday pick rate drops below 30% (5pp below baseline 35.6%)
 
 **Marketing language unlocked.** None. CONFIG-14 is a calibration fix, not a new capability. Subscriber UX improves quietly: allday r1 pick is more often the right pick.
+
+---
+
+### ENG-EVENING-REORDER-02 — Evening K6 Display Sort Also by draws_since desc (2026-06-09)
+
+**Bundled with the midday reorder shipped 30 minutes earlier.** Evening turns out to have the same rank-1 inversion as midday — and the empirical lift is *bigger*.
+
+**Cross-scope pick #1 lift validation, 30d live data (n=28 per scope):**
+
+| scope | current p1 (indicator desc) | by `ds desc` | Δ | shipped? |
+|---|---|---|---|---|
+| allday | 46.4% | 46.4% | tied | no — current sort already correct |
+| midday | 21.4% | 35.7% | **+14.3pp** | ✅ shipped 30 min ago |
+| **evening** | **21.4%** | **42.9%** | **+21.5pp** | ✅ shipped (THIS entry) |
+
+The mechanism is the same as midday — evening's CO=0 since CONFIG-15 but BOX still leans heavily on freq, which favors recently-drawn popular combos. Pick #1 by indicator is the worst-hitting of the 6; pick by ds desc is the best.
+
+Allday: indicator-desc and ds-desc both yield 46.4% pick-1 hit rate. Allday's iteration order with 4 sessions/day means "due" and "high-indicator" combos overlap more. No change needed; staying on indicator-desc preserves the current behavior.
+
+**Mechanism (same as midday):** the K6 final sort branch extended to include evening:
+```diff
+- if (scope === 'midday') {
++ if (scope === 'midday' || scope === 'evening') {
+```
+Files: `engines/zk6.ts:~1358` + `supabase/functions/compute-slate-zk6/index.ts:~890`. Edge fn deployed **v34 → v35**, status ACTIVE, verify_jwt=true preserved.
+
+**Why not all scopes:** allday data shows no benefit. Adding allday to the branch risks introducing tiebreak noise without empirical justification. Stay surgical.
+
+**Review window: 7 days (2026-06-16)**, joint with midday reorder. Rollback condition (per-scope): revert if pick #1 hit rate over 7d trails the empirical baseline (35.7% midday / 42.9% evening) by more than 10pp, OR if slate-level hit rate drops more than 5pp from pre-ship.
+
+**Rollback:** remove `|| scope === 'evening'` from the conditional in both files, redeploy. Trivially reversible per-scope independently.
+
+**Why this isn't blocked on backtest gate.** Same reasoning as ENG-MIDDAY-REORDER-01 — display-order change, not engine math. 30d SQL query against actual production picks IS the validation. Operator override invoked.
 
 ---
 

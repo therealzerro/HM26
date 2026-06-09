@@ -888,12 +888,14 @@ async function computeSlate(params: {
   // (e.g. when cooldown relaxes). Indicator-desc gives the user the highest-conviction
   // pick at position 1 without changing which 6 combos are selected.
   //
-  // ENG-MIDDAY-REORDER-01 (2026-06-09): midday exception. 30d empirical data
-  // (n=28 slates) confirmed pick #1 by indicator hits 21.4%, pick #1 by
-  // draws_since desc hits 35.7% (+14.3pp on the most-visible UX metric).
+  // ENG-MIDDAY-REORDER-01 + ENG-EVENING-REORDER-02 (2026-06-09): midday AND
+  // evening have rank-1 inversion. 30d empirical pick #1 by sort strategy:
+  //   midday:  current 21.4% → ds desc → 35.7% (+14.3pp)
+  //   evening: current 21.4% → ds desc → 42.9% (+21.5pp)
+  //   allday:  current 46.4% (already correct, no change)
   // Same 6 picks, different sort. Slate hit rate unchanged. Mirror of
   // engines/zk6.ts:~1358.
-  if (scope === 'midday') {
+  if (scope === 'midday' || scope === 'evening') {
     k6.sort((a, b) => {
       const aDs = ds.drawsSinceMap.get(a.normKey) ?? 0;
       const bDs = ds.drawsSinceMap.get(b.normKey) ?? 0;

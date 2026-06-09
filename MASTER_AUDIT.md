@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-06 (Phase 1 instrumentation fixes shipped — LEARN-01 + PROP-01 + HIT-DET-01 + G1-GATE-01; autotune G1 sample size 138 → 857 distinct labeled picks. CONFIG-11a evening per-scope CO boost queued for ship in 11pm ET window — see entry below)  
+**Last updated:** 2026-06-09 (CONFIG-13 REVERTED early — `warming_weight_evening` 0.10 → 0 at 20:41 UTC. Post-ship 3-day evening pick-lift collapsed 2.11 → 0.33 (−84%); n=18 inverse warming/hit correlation confirmed. Operator override of 6/13 review window. See CONFIG-13 REVERT note below.)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -97,6 +97,58 @@ Engine falls back to pre-CONFIG-14 weights on next slate compute. Edge fn code u
 3. Allday pick rate drops below 30% (5pp below baseline 35.6%)
 
 **Marketing language unlocked.** None. CONFIG-14 is a calibration fix, not a new capability. Subscriber UX improves quietly: allday r1 pick is more often the right pick.
+
+---
+
+### CONFIG-13 REVERT — Evening WARMING Signal Disabled (2026-06-09)
+
+**Reverted early at day 4 of the 7-day review window. SQL:**
+```sql
+UPDATE app_config SET value='0', updated_at=NOW() WHERE key='warming_weight_evening';
+-- key='warming_weight_evening' value='0' updated_at='2026-06-09 20:41:30 UTC'
+```
+`warming_window_days` left in place (dormant when weight=0). Engine's `warmingActive` check (`effectiveWarmingWeight > 0`, `engines/zk6.ts:907`) now skips the WARMING boost — bit-identical to pre-CONFIG-13 evening behavior.
+
+**Trigger.** Operator-observed hit-rate softness over 6/7–6/8; triage on 2026-06-09 (midday draws imported, evening pending) surfaced large evening pick-lift drop.
+
+**3-day post-ship evidence (n=18 evening on-slate balanced picks):**
+
+| WARMING bucket at slate-gen | picks | hits (box∪straight) | hit rate |
+|---|---|---|---|
+| 0 (cold) | 0 | 0 | — |
+| 1–2 (low) | 5 | 1 | **20.0%** |
+| 3–5 (mid) | 10 | 0 | 0.0% |
+| 6+ (high) | 3 | 0 | 0.0% |
+
+Hit rate is monotonically *inverse* to WARMING bucket on the live post-ship window. The single evening hit in that window (637 / {3,6,7} on 6/06, balanced rank 2) had warming=2.
+
+**Slate-level pick-lift drop:**
+- Pre-ship 9d window (5/28–6/05): evening 2.11 hits/slate avg
+- Post-ship 3d window (6/06–6/08): evening 0.33 hits/slate avg
+- Δ = **−84%**; allday −19% and midday −25% in same window (smaller, consistent with broader variance)
+
+**Universe-best WARMING missed by the slate on 6/08.** The 7-day window ending 6/07 had two combosets tied at warming=9 (universe max): `{0,5,8}` and `{1,5,7}`. `{0,5,8}` drew **twice** on 6/08 evening (DE: 058, GA: 058). It was not on the slate. The slate did include `{0,1,3}` (warming=7) and `{1,2,3}` (warming=6) — WARMING successfully lifted those onto the slate, but the weighted-sum routing favored the wrong subset of warm combos.
+
+**Mechanism re-check.** WARMING (`engines/zk6.ts:1135-1158`) adds `wWeight × maxNorm(prior_7d_count)` to `finalScore` before energy-percentile + K6 selection. By construction, recently-drawn combos get the boost — confirmed by the post-ship avg `draws_since` on evening picks dropping 6.6 → 3.8. The mechanism is doing what it was designed to do. The 60-day backtest evidence supporting CONFIG-13 (multi-draw rate monotonic in `prior_7d_draws`) and the 3-day live evidence here are pointing in opposite directions; live wins for the ship/revert decision.
+
+**Caveats stated for honesty.**
+- n=18 is small; n=3 days of slates is below the ratification framework's 7-day target.
+- The −84% pick-lift could include luck — 6/08 evening was a near-shutout system-wide (midday + evening both 0).
+- The 60-day backtest expected +6.9pp evening slate; live got the opposite sign. Either the backtest baseline (`evening_co_boost_20`) doesn't capture the live joint state with CONFIG-11a, or the post-WARMING regime materially shifted national-draw concentration in a way the harness didn't replay.
+
+**Operator override of 6/13 review framework**, stated reason: evening pick-lift collapse magnitude (−84%) materially outside expected variance band; 3-day live anti-correlation strong enough to justify acting on n=18 rather than waiting through 6/12; clean single-row revert preserves CONFIG-11a/12/14 attribution for the 6/13 joint review.
+
+**Pressure_threshold (CONFIG-12) ruled out as cause.** Math walk-through 2026-06-09: `computeBoxSignalDetailed` (`lib/engineCore.ts:159`) takes branch `(dsVal/100)*0.5` for all `dsVal < 100` regardless of `pressureThreshold`. p95 of `ds_raw` is 13 (allday) / 24 (evening) / 26 (midday) — so >95% of picked combos hit the identical pre-threshold branch under both 250 and 100. CONFIG-12 only re-ranks `dsVal ≥ 100` outliers, which rarely land on slates. (Latent degenerate bug at exactly `dsVal=100` under `pressureThreshold=100`: `ptSpan=max(0,1)=1`, branch 1 returns `(100-100)/1 = 0`, a 0.99 cliff at one integer. Tiny blast radius; logged here for follow-up.)
+
+**`engine_daily_report` chronically under-counts hits — NEW finding.** 2026-05-30 spot check: table reports `straight=2/box=0` allday; canonical `daily_intelligence.on_slate` shows `straight=2/box=4`. Misled early triage by showing all-zero hit days when slates were actually hitting. Logged as **BUG-EDR-01** (separate from this CONFIG-13 entry) — needs review of the upsert/aggregation logic in the daily-report cron.
+
+**What this does not change.** CONFIG-11a (evening per-scope CO=20%), CONFIG-12 (`pressure_threshold=100` global), CONFIG-14 (allday CO=0). All still live, all still in their 6/13 review window. Allday is *above* baseline post-ship (3/3 slate-hit days); evidence supports keeping CONFIG-14.
+
+**Re-evaluation plan.**
+- Watch tonight's 6/09 evening + 6/10–6/12 evenings under reverted config. Target: evening pick-lift returns to ≥1.5/slate within 3 days.
+- If evening recovers under revert, attribution to CONFIG-13 is confirmed; CONFIG-13 stays disabled.
+- If evening does NOT recover, the cause is elsewhere — re-open investigation including CONFIG-11a stacking effects.
+- WARMING is not declared dead; could be re-tested with lower weight (0.05) or different window (3d/14d) after the 6/13 review of remaining changes settles. The backtest evidence base remains real; the live calibration failed.
 
 ---
 
@@ -441,6 +493,14 @@ Pre-midday audit found `datasets_box` (class_id=1, jurisdiction IS NULL) contain
 **Files touched:** none code-side. SQL DELETE + operator-driven wizard re-imports + 3 edge fn POSTs.
 
 **Validation gate.** ZK6 engine validated against fresh inputs before 12:30pm ET midday draw. Today's slate hits/misses are the first real-world signal on what the pre-corruption engine *should* have been doing for the past 12 days. The CONFIG-08/09/10 review on 2026-06-03 (originally scheduled for today) should treat any deltas from this point forward as the *post-clean-data* baseline, not the pre-clean-data trend.
+
+---
+
+### DATA-01-FOLLOWUP — Stale `jurisdiction='TX'` allday rows soft-deleted (2026-06-07)
+
+While investigating an operator concern about evening-workflow imports (allday results + evening daily input), audit-spotted **1,810 stale TX-jurisdiction rows** in `datasets_box` (440) and `datasets_pair` (1,370), confined to `scope='allday'` H01Y/H02Y, last updated 2026-05-26 — i.e., pre-dating the DATA-01 cleanup which intentionally preserved them. Engine impact: **zero** — `engines/zk6.ts:123` and `:137` filter loaders with `jurisdiction=is.null`, so these were already excluded from every slate compute. Cleaned up via soft delete (`deleted_at=NOW()`, reversible) to remove the audit noise. Active row counts post-cleanup: box allday H01Y/H02Y = 220 each (NULL-jurisdiction only); pair allday H01Y/H02Y = 685 each. No engine re-run required.
+
+**Operator workflow validated as correct.** Importing "evening daily input box format" + "allday results" during the evening workflow hits two separate scope partitions (`scope='evening'` and `scope='allday'`) — not duplicative, and required: allday is its own national-aggregate slice, not a derived view of midday+evening.
 
 ---
 

@@ -1253,10 +1253,14 @@ export async function computeSlate({
     if (!relaxExcludeComboSets && effectiveExcluded.has(combo)) return false;
     if (!relaxExcludeComboSets && excludeComboSetsSet.size > 0 && excludeComboSetsSet.has(normKey)) return false;
     const mult = multiplicityOf(combo);
+    // ENG-TRIPLES-LEAK-01 (2026-06-09): triplesOn=false is a harder invariant
+    // than the singles/doubles count caps — never let Pass 6 (relaxMultCaps=true)
+    // leak a triple into the slate. Caps remain inside the relax guard so Pass 6
+    // can still over-fill on singles/doubles to guarantee 6 picks.
+    if (mult === 'triples' && !rails.triplesOn) return false;
     if (!relaxMultCaps) {
       if (mult === 'singles' && singles >= rails.singlesMax) return false;
       if (mult === 'doubles' && doubles >= rails.doublesMax) return false;
-      if (mult === 'triples' && !rails.triplesOn) return false;
     }
     const tp = topPairOf(combo);
     if (!relaxPairRepCap && (pairCounts[tp] ?? 0) >= rails.pairRepCap) return false;

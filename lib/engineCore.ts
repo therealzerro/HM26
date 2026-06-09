@@ -166,10 +166,14 @@ export function computeBoxSignalDetailed(
 ): BoxSignalParts {
   if (timesDrawn === 0) return { freq: 0, pressure: 0, box: 0 };
   const freq = maxTimesDrawn > 0 ? timesDrawn / maxTimesDrawn : 0;
-  const ptSpan = Math.max(pressureThreshold - 100, 1);
+  // ENG-PRESSURE-CLIFF-01 (2026-06-09): when pressureThreshold <= 100 the middle
+  // branch is degenerate (ptSpan would be ≤ 0). Pre-fix: ptSpan=Math.max(span,1)
+  // forced (dsVal-100)/1=0 at dsVal=100, a 0.99 cliff from dsVal=99 (0.495) to
+  // dsVal=101 (0.995). Short-circuit to peak (1.0) when the threshold collapses.
+  const ptSpan = pressureThreshold - 100;
   const pressure =
     dsVal >= 100 && dsVal <= pressureThreshold
-      ? Math.min((dsVal - 100) / ptSpan, 1.0)
+      ? (ptSpan > 0 ? Math.min((dsVal - 100) / ptSpan, 1.0) : 1.0)
       : dsVal > pressureThreshold
       ? Math.max(1.0 - (dsVal - pressureThreshold) / 200, 0.3)
       : (dsVal / 100) * 0.5;
@@ -263,9 +267,18 @@ export function computePairSignal(
 ): number {
   const { timesDrawn, drawsSince } = meta;
   const freqScore = maxPairTimesDrawn > 0 ? timesDrawn / maxPairTimesDrawn : 0;
-  const pressureScore = (timesDrawn > 0 && drawsSince < 500)
-    ? Math.min(drawsSince / 182, 1.0)
-    : 0;
+  // ENG-PRESSURE-CLIFF-02 (2026-06-09): pre-fix had a hard cliff at drawsSince=500
+  // (pressure dropped from 1.0 to 0 across one integer). Replace with a 100-step
+  // linear taper [500, 600] → 0 so a pair at drawsSince=550 contributes 0.5×0.30
+  // rather than 0 — same shape as the BOX late-region decay (engineCore.ts:174).
+  let pressureScore = 0;
+  if (timesDrawn > 0) {
+    if (drawsSince < 500) {
+      pressureScore = Math.min(drawsSince / 182, 1.0);
+    } else if (drawsSince < 600) {
+      pressureScore = Math.max(1.0 - (drawsSince - 500) / 100, 0);
+    }
+  }
   return (freqScore * 0.70) + (pressureScore * 0.30);
 }
 

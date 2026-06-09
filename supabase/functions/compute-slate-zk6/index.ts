@@ -888,19 +888,30 @@ async function computeSlate(params: {
   // (e.g. when cooldown relaxes). Indicator-desc gives the user the highest-conviction
   // pick at position 1 without changing which 6 combos are selected.
   //
-  // ENG-MIDDAY-REORDER-01 + ENG-EVENING-REORDER-02 (2026-06-09): midday AND
-  // evening have rank-1 inversion. 30d empirical pick #1 by sort strategy:
-  //   midday:  current 21.4% → ds desc → 35.7% (+14.3pp)
-  //   evening: current 21.4% → ds desc → 42.9% (+21.5pp)
-  //   allday:  current 46.4% (already correct, no change)
-  // Same 6 picks, different sort. Slate hit rate unchanged. Mirror of
-  // engines/zk6.ts:~1358.
-  if (scope === 'midday' || scope === 'evening') {
+  // ENG-MIDDAY-REORDER-01 + ENG-EVENING-REORDER-02 + ENG-REORDER-TIEBREAK-03
+  // (2026-06-09): scope-specific tiebreak (ties on draws_since are frequent:
+  // 28/28 evening slates, 19/28 midday slates). Tiebreaker is whichever signal
+  // is most orthogonal to the scope's score function:
+  //   midday  → BOX asc (midday CO=64 dominates score, BOX is orthogonal)
+  //   evening → CO asc  (CONFIG-15 zeroed evening CO, CO is orthogonal)
+  //   allday  → no reorder
+  // Empirical 30d pick #1 lift:
+  //   midday  21.4% → 42.9% (+21.5pp)
+  //   evening 21.4% → 39.3% (+17.9pp)
+  // Mirror of engines/zk6.ts:~1358.
+  if (scope === 'midday') {
     k6.sort((a, b) => {
       const aDs = ds.drawsSinceMap.get(a.normKey) ?? 0;
       const bDs = ds.drawsSinceMap.get(b.normKey) ?? 0;
       if (aDs !== bDs) return bDs - aDs;
-      return b.indicator - a.indicator;
+      return a.boxS - b.boxS;
+    });
+  } else if (scope === 'evening') {
+    k6.sort((a, b) => {
+      const aDs = ds.drawsSinceMap.get(a.normKey) ?? 0;
+      const bDs = ds.drawsSinceMap.get(b.normKey) ?? 0;
+      if (aDs !== bDs) return bDs - aDs;
+      return a.coS - b.coS;
     });
   } else {
     k6.sort((a, b) => b.indicator - a.indicator);

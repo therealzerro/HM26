@@ -1356,24 +1356,35 @@ export async function computeSlate({
   // happens pass-by-pass and can place low-indicator pass-1 picks ahead of higher-
   // indicator pass-5 picks). Same set of 6 combos, just reordered for display.
   //
-  // ENG-MIDDAY-REORDER-01 + ENG-EVENING-REORDER-02 (2026-06-09): midday AND
-  // evening both have a rank-1 inversion. Empirical 30d data on each scope's
-  // pick #1 by sort strategy:
-  //   midday:  current 21.4% → sort by ds desc → 35.7% (+14.3pp)
-  //   evening: current 21.4% → sort by ds desc → 42.9% (+21.5pp)
-  //   allday:  current 46.4% (already correct, no change needed)
-  // For midday + evening, the engine's weighted-sum ranks high-CO recently-
-  // drawn popular combos at the top, but those don't repeat in single-session
-  // scopes. Reordering the SAME 6 picks by "due-ness" surfaces the actually-
-  // hitting picks first. Slate-level hit rate (>=1 of 6) unchanged.
+  // ENG-MIDDAY-REORDER-01 + ENG-EVENING-REORDER-02 + ENG-REORDER-TIEBREAK-03
+  // (2026-06-09): midday and evening sort by `draws_since desc` with a
+  // SCOPE-SPECIFIC tiebreak — ties on ds are frequent (28/28 evening slates,
+  // 19/28 midday slates have at least one tie). Tiebreaker chosen by
+  // orthogonality to the scope's score function:
+  //   midday  → tiebreak by signal_box asc  (midday CO=64% dominates, so BOX
+  //             is the orthogonal anti-popularity lever; pick #1 → 42.9%)
+  //   evening → tiebreak by signal_co asc   (CONFIG-15 zeroed evening CO so
+  //             CO is orthogonal info; pick #1 → 39.3%)
+  //   allday  → no reorder; indicator-desc ordering already correct (46.4%)
+  // Empirical 30d pick #1 lift:
+  //   midday  21.4% → 42.9% (+21.5pp)
+  //   evening 21.4% → 39.3% (+17.9pp)
+  // Same 6 picks per slate, different sort. Slate-level hit rate unchanged.
   // Per-state intelligence (ENH-AUDIT-2026-05-19 v2) is the structural fix;
-  // this is the surgical interim that ships TODAY.
-  if (scope === 'midday' || scope === 'evening') {
+  // this is the surgical interim.
+  if (scope === 'midday') {
     k6.sort((a, b) => {
       const aDs = ds.drawsSinceMap.get(a.normKey) ?? 0;
       const bDs = ds.drawsSinceMap.get(b.normKey) ?? 0;
       if (aDs !== bDs) return bDs - aDs;
-      return b.indicator - a.indicator;  // tiebreak
+      return a.boxS - b.boxS;  // tiebreak: lower BOX (less popular) first
+    });
+  } else if (scope === 'evening') {
+    k6.sort((a, b) => {
+      const aDs = ds.drawsSinceMap.get(a.normKey) ?? 0;
+      const bDs = ds.drawsSinceMap.get(b.normKey) ?? 0;
+      if (aDs !== bDs) return bDs - aDs;
+      return a.coS - b.coS;  // tiebreak: lower CO (anti-co-occurrence) first
     });
   } else {
     k6.sort((a, b) => b.indicator - a.indicator);

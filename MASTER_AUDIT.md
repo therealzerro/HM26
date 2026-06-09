@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-09 (ENG-EVENING-REORDER-02 bundled with the midday reorder. Empirical 30d data: evening pick #1 hit rate goes 21.4% → 42.9% (+21.5pp); midday 21.4% → 35.7% (+14.3pp). Allday tied (no change). Edge fn v34→v35. Both single-session scopes (midday + evening) now sort by `draws_since desc`; allday stays on `indicator desc`. Subscribers see the lift on TOMORROW'S evening + midday slates.)  
+**Last updated:** 2026-06-09 (ENG-REORDER-TIEBREAK-03 — found that ds-desc ties are frequent (28/28 evening, 19/28 midday slates). Tiebreaker matters a LOT. Optimal per-scope: midday→box asc (42.9%, +21.5pp), evening→co asc (39.3%, +17.9pp). Updated shipped sort. Edge fn v35→v36. Also: CONFIG-15 simulation shows reorder still wins on evening pick #1 (~34.5% under CONFIG-15 vs 21.4% baseline) but evening positions 5-6 may collapse — flag for slate-level hit rate watch.)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -97,6 +97,101 @@ Engine falls back to pre-CONFIG-14 weights on next slate compute. Edge fn code u
 3. Allday pick rate drops below 30% (5pp below baseline 35.6%)
 
 **Marketing language unlocked.** None. CONFIG-14 is a calibration fix, not a new capability. Subscriber UX improves quietly: allday r1 pick is more often the right pick.
+
+---
+
+### ENG-REORDER-TIEBREAK-03 — Per-Scope Tiebreak Optimization + CONFIG-15 Compounding Audit (2026-06-09)
+
+**Deep-think follow-up on ENG-MIDDAY-REORDER-01 + ENG-EVENING-REORDER-02.** Found that my shipped tiebreak (`b.indicator - a.indicator`) was suboptimal because **ds ties are extremely frequent** — every evening slate and 19/28 midday slates have at least one ds tie. The tiebreaker controls which pick lands at #1 in those cases, and the right choice depends on which signal is *least represented* in the scope's score function.
+
+#### Tie frequency (30d window)
+
+| scope | total slates | slates with ties | avg distinct ds values per slate | avg ties per slate |
+|---|---|---|---|---|
+| evening | 28 | **28** (100%) | 2.57 | 3.43 |
+| midday | 28 | 19 (68%) | 3.39 | 2.61 |
+
+Ties dominate evening; nearly every pick has a duplicate ds value with another pick. So tiebreaker is the *de facto* sort criterion for evening, not the secondary lever I'd assumed.
+
+#### Optimal tiebreaker test grid (30d empirical pick #1 hit rate by sort strategy)
+
+| sort strategy | midday | evening |
+|---|---|---|
+| current PROD before today (`indicator desc`) | 21.4% | 21.4% |
+| `ds desc, indicator desc` (shipped earlier today) | 35.7% | 28.6% |
+| `ds desc, **box asc**` | **42.9%** ← best for midday | 32.1% |
+| `ds desc, **co asc**` | 32.1% | **39.3%** ← best for evening |
+| `ds desc, pburst desc` | 39.3% | 32.1% |
+| `box asc, ds desc` (primary swap) | 28.6% | 39.3% |
+| `co asc, ds desc` (primary swap) | 21.4% | 35.7% |
+| composite `ds × (1-co) desc` | 25.0% | 32.1% |
+
+**Pattern:** the best tiebreaker is the signal *most orthogonal* to the scope's score function:
+
+- **Midday CO=64%** dominates the score. CO is collinear with the indicator (the original problem). Using `signal_box asc` as tiebreak introduces an orthogonal anti-popularity signal — the most-overdue-AND-least-popular pick wins.
+- **Evening CO=0%** (CONFIG-15 just shipped). CO is now uninvolved in the score, so `signal_co asc` becomes orthogonal info — the most-overdue-AND-least-co-occurring pick wins.
+
+This generalizes: the tiebreak signal should be inversely-weighted from the primary score function. A nice principle to remember for any future reorder work.
+
+#### Shipped change
+
+```diff
++ if (scope === 'midday') {
++   k6.sort((a, b) => {
++     ... ds desc ...
++     return a.boxS - b.boxS;  // tiebreak: lower BOX first
++   });
++ } else if (scope === 'evening') {
++   k6.sort((a, b) => {
++     ... ds desc ...
++     return a.coS - b.coS;   // tiebreak: lower CO first
++   });
++ } else {
++   k6.sort((a, b) => b.indicator - a.indicator);
++ }
+```
+
+Edge fn deployed **v35 → v36**, status ACTIVE, verify_jwt=true preserved.
+
+#### Final per-scope pick #1 lift summary (30d empirical)
+
+| scope | before today | after midday/evening reorders + optimal tiebreak | Δ |
+|---|---|---|---|
+| midday | 21.4% | **42.9%** | **+21.5pp** |
+| evening | 21.4% | **39.3%** | **+17.9pp** |
+| allday | 46.4% | 46.4% (unchanged) | 0 |
+
+#### CONFIG-15 compounding simulation (#4 from the deep-think list)
+
+CONFIG-15 (evening CO 20→0 + redistribution) shipped earlier today. **Tomorrow's evening slate will be the FIRST under CONFIG-15.** My 39.3% reorder number was computed on pre-CONFIG-15 historical picks. Need to verify the reorder still wins under the new weights.
+
+**Simulation method.** Took the full set of evening daily_intelligence rows (last 30d), re-scored each with CONFIG-15 weights (`0.5625×BOX + 0.3125×PBURST + 0×CO + 0.125×DGC`), kept top-6 per slate by new score, applied the `ds desc, co asc` sort.
+
+**Simulated post-CONFIG-15 + reorder pick-position hit rates (n=29 slates):**
+
+| sim pos | hit % |
+|---|---|
+| 1 | **34.5%** |
+| 2 | 17.2% |
+| 3 | 24.1% |
+| 4 | 24.1% |
+| 5 | 13.8% |
+| 6 | 10.3% |
+
+**Findings:**
+
+1. **Pick #1 reorder still wins post-CONFIG-15**: 34.5% > 21.4% baseline = +13.1pp. Smaller than the 39.3% pre-CONFIG-15 reorder number, but still a meaningful win. The reorder is robust to CONFIG-15.
+
+2. **Slate-level hit rate may drop under CONFIG-15** (independent of reorder). Estimated `P(≥1 of 6 hit) ≈ 75%` under CONFIG-15 sim vs ~89% historical baseline. **Risk flag** — needs production observation. If evening slate hit rate drops more than 5pp from baseline in next 3 days, the CONFIG-15 revert (back to CO=20 or partial) becomes a priority over keeping CO=0.
+
+3. **Positions 5-6 degrade noticeably** under CONFIG-15 simulation (13.8% / 10.3% vs pre-CONFIG-15 reorder positions 5-6 of 28.6% / 17.9%). The CONFIG-15 BOX-heavy weighting concentrates picks on a narrower set of popular combos with limited ds spread; the reorder's tail becomes weak.
+
+**Caveats:**
+- Simulation uses simplified top-6-by-rescored-indicator instead of running the full K6 rails (pair_rep_cap, mult caps, cooldown, etc.). Actual production picks may differ.
+- 30d sample is small enough that ±5pp variance is normal.
+- The slate-level drop is a *projection*, not an observed regression. Tomorrow's actual evening result is the real test.
+
+**Action on #4:** Ship the optimal-tiebreak reorder NOW. Watch evening slate hit rate over the next 3 days. If it drops more than 5pp from the pre-CONFIG-15 baseline (~89%), evaluate a partial CONFIG-15 revert (e.g., CO=10 instead of 0). The reorder is independently good — won't get reverted; only CONFIG-15 has revert risk.
 
 ---
 

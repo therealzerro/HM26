@@ -889,15 +889,12 @@ async function computeSlate(params: {
   // pick at position 1 without changing which 6 combos are selected.
   //
   // ENG-MIDDAY-REORDER-01 + ENG-EVENING-REORDER-02 + ENG-REORDER-TIEBREAK-03
-  // (2026-06-09): scope-specific tiebreak (ties on draws_since are frequent:
-  // 28/28 evening slates, 19/28 midday slates). Tiebreaker is whichever signal
-  // is most orthogonal to the scope's score function:
-  //   midday  → BOX asc (midday CO=64 dominates score, BOX is orthogonal)
-  //   evening → CO asc  (CONFIG-15 zeroed evening CO, CO is orthogonal)
-  //   allday  → no reorder
-  // Empirical 30d pick #1 lift:
-  //   midday  21.4% → 42.9% (+21.5pp)
-  //   evening 21.4% → 39.3% (+17.9pp)
+  // + ENG-ALLDAY-REORDER-04 (2026-06-09): all 3 scopes sort by ds desc with
+  // empirically-chosen scope-specific tiebreak:
+  //   midday  → BOX asc    (pick #1 → 42.9%)
+  //   evening → CO asc     (pick #1 → 39.3%)
+  //   allday  → PBURST desc (pick #1 → 53.6%)
+  // Pick #1 lifts: midday +21.5pp, evening +17.9pp, allday +7.2pp.
   // Mirror of engines/zk6.ts:~1358.
   if (scope === 'midday') {
     k6.sort((a, b) => {
@@ -912,6 +909,13 @@ async function computeSlate(params: {
       const bDs = ds.drawsSinceMap.get(b.normKey) ?? 0;
       if (aDs !== bDs) return bDs - aDs;
       return a.coS - b.coS;
+    });
+  } else if (scope === 'allday') {
+    k6.sort((a, b) => {
+      const aDs = ds.drawsSinceMap.get(a.normKey) ?? 0;
+      const bDs = ds.drawsSinceMap.get(b.normKey) ?? 0;
+      if (aDs !== bDs) return bDs - aDs;
+      return b.pburstS - a.pburstS;
     });
   } else {
     k6.sort((a, b) => b.indicator - a.indicator);

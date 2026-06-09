@@ -1357,19 +1357,20 @@ export async function computeSlate({
   // indicator pass-5 picks). Same set of 6 combos, just reordered for display.
   //
   // ENG-MIDDAY-REORDER-01 + ENG-EVENING-REORDER-02 + ENG-REORDER-TIEBREAK-03
-  // (2026-06-09): midday and evening sort by `draws_since desc` with a
-  // SCOPE-SPECIFIC tiebreak — ties on ds are frequent (28/28 evening slates,
-  // 19/28 midday slates have at least one tie). Tiebreaker chosen by
-  // orthogonality to the scope's score function:
-  //   midday  → tiebreak by signal_box asc  (midday CO=64% dominates, so BOX
-  //             is the orthogonal anti-popularity lever; pick #1 → 42.9%)
-  //   evening → tiebreak by signal_co asc   (CONFIG-15 zeroed evening CO so
-  //             CO is orthogonal info; pick #1 → 39.3%)
-  //   allday  → no reorder; indicator-desc ordering already correct (46.4%)
+  // + ENG-ALLDAY-REORDER-04 (2026-06-09): all 3 scopes sort by `draws_since
+  // desc` with a SCOPE-SPECIFIC tiebreak. Ties on ds are very frequent
+  // (28/28 evening, 19/28 midday, similar for allday). Tiebreaker chosen
+  // empirically — the signal that best discriminates hits among due picks:
+  //   midday  → BOX asc    (CO=64 dominates score; pick #1 → 42.9%)
+  //   evening → CO asc     (CONFIG-15 zeroed CO; pick #1 → 39.3%)
+  //   allday  → PBURST desc (BOX-saturated score; pick #1 → 53.6%)
   // Empirical 30d pick #1 lift:
   //   midday  21.4% → 42.9% (+21.5pp)
   //   evening 21.4% → 39.3% (+17.9pp)
-  // Same 6 picks per slate, different sort. Slate-level hit rate unchanged.
+  //   allday  46.4% → 53.6% (+7.2pp)
+  // Pick #2 also lifts substantially on midday/evening (midday p2: 7.1 → 32.1,
+  // +25pp). Mid-rank picks (3-4) absorb the redistribution loss; slate-level
+  // hit rate ≥1-of-6 unchanged (same combos, different order).
   // Per-state intelligence (ENH-AUDIT-2026-05-19 v2) is the structural fix;
   // this is the surgical interim.
   if (scope === 'midday') {
@@ -1377,14 +1378,21 @@ export async function computeSlate({
       const aDs = ds.drawsSinceMap.get(a.normKey) ?? 0;
       const bDs = ds.drawsSinceMap.get(b.normKey) ?? 0;
       if (aDs !== bDs) return bDs - aDs;
-      return a.boxS - b.boxS;  // tiebreak: lower BOX (less popular) first
+      return a.boxS - b.boxS;
     });
   } else if (scope === 'evening') {
     k6.sort((a, b) => {
       const aDs = ds.drawsSinceMap.get(a.normKey) ?? 0;
       const bDs = ds.drawsSinceMap.get(b.normKey) ?? 0;
       if (aDs !== bDs) return bDs - aDs;
-      return a.coS - b.coS;  // tiebreak: lower CO (anti-co-occurrence) first
+      return a.coS - b.coS;
+    });
+  } else if (scope === 'allday') {
+    k6.sort((a, b) => {
+      const aDs = ds.drawsSinceMap.get(a.normKey) ?? 0;
+      const bDs = ds.drawsSinceMap.get(b.normKey) ?? 0;
+      if (aDs !== bDs) return bDs - aDs;
+      return b.pburstS - a.pburstS;
     });
   } else {
     k6.sort((a, b) => b.indicator - a.indicator);

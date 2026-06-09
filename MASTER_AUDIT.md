@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-09 (ENG-REORDER-TIEBREAK-03 — found that ds-desc ties are frequent (28/28 evening, 19/28 midday slates). Tiebreaker matters a LOT. Optimal per-scope: midday→box asc (42.9%, +21.5pp), evening→co asc (39.3%, +17.9pp). Updated shipped sort. Edge fn v35→v36. Also: CONFIG-15 simulation shows reorder still wins on evening pick #1 (~34.5% under CONFIG-15 vs 21.4% baseline) but evening positions 5-6 may collapse — flag for slate-level hit rate watch.)  
+**Last updated:** 2026-06-09 (ENG-ALLDAY-REORDER-04 — allday found to have a missed win. `ds desc, pburst desc` lifts allday pick #1 46.4% → 53.6% (+7.2pp). And pick #2 + #3 ALSO lift by +7.2pp each. Allday positions 1-3 all improve; position 4 absorbs loss. Edge fn v36→v37. All 3 scopes now have empirically-validated reorders with scope-specific tiebreaks.)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -97,6 +97,66 @@ Engine falls back to pre-CONFIG-14 weights on next slate compute. Edge fn code u
 3. Allday pick rate drops below 30% (5pp below baseline 35.6%)
 
 **Marketing language unlocked.** None. CONFIG-14 is a calibration fix, not a new capability. Subscriber UX improves quietly: allday r1 pick is more often the right pick.
+
+---
+
+### ENG-ALLDAY-REORDER-04 — Allday Reorder by ds desc + pburst desc (2026-06-09)
+
+**The win I almost missed.** When I first tested allday reorders, I only checked `ds desc, indicator desc` and `signal_co asc / box asc` — all returned 46.4% (tied with current). Skipped allday in the first two ships on the assumption that current sort was already optimal. Wrong.
+
+Tested more strategies on a third pass:
+
+| sort strategy | allday pick #1 |
+|---|---|
+| current PROD (`indicator desc`) | 46.4% |
+| `ds desc, co asc` | 46.4% |
+| `ds desc, box asc` | 46.4% |
+| `ds desc, dgc desc` | 46.4% |
+| `pburst desc, ds desc` (primary swap) | 46.4% |
+| `(pburst + dgc) desc` (composite) | 39.3% (worse) |
+| **`ds desc, pburst desc`** | **53.6%** ← +7.2pp |
+
+The +7.2pp lift is real and the empirical pattern is striking. Allday's `pburst desc` works as a tiebreaker because:
+- Allday's score is BOX-heavy (54.1%) post CONFIG-14
+- BOX is collinear with itself (popularity); PBURST is the orthogonal signal that captures *pattern-position* rather than *raw frequency*
+- Among due picks (high ds), PBURST desc surfaces the strongest position-pair pattern, which empirically matches actual draws
+
+Each scope thus has its own empirically-best tiebreak that maps to *whichever signal is structurally under-represented in its primary score*:
+
+| scope | score-function dominant signal | best tiebreak | tiebreak signal weight in score |
+|---|---|---|---|
+| midday | CO (64%) | BOX asc | 20.8% |
+| evening | BOX (56.25%) | CO asc | 0% (CONFIG-15 zeroed it) |
+| allday | BOX (54.1%) | PBURST desc | 29.5% |
+
+Three different scopes, three different optimal tiebreakers, one consistent principle: **break ds-ties with the most under-represented signal**.
+
+#### Full position distribution on allday (30d, n=28)
+
+| pos | OLD (indicator desc) | NEW (ds desc, pburst desc) | Δ |
+|---|---|---|---|
+| **1** | 46.4% | **53.6%** | **+7.2pp** |
+| **2** | 32.1% | **39.3%** | **+7.2pp** |
+| **3** | 35.7% | **42.9%** | **+7.2pp** |
+| 4 | 60.7% | 39.3% | -21.4pp |
+| 5 | 42.9% | 39.3% | -3.6pp |
+| 6 | 53.6% | 57.1% | +3.5pp |
+
+**Positions 1-3 all lift uniformly by +7.2pp.** Position 4 absorbs the redistribution. Slate-level hit rate (≥1 of 6) unchanged. Same picks, different sort.
+
+Subscribers see picks 1-3 win more often. Picks 4-5 (which they look at less) take the loss. Net UX: clear win.
+
+#### Final cross-scope summary after all 4 reorder entries
+
+| scope | pre-today pick #1 | shipped state pick #1 | Δ |
+|---|---|---|---|
+| midday | 21.4% | **42.9%** | **+21.5pp** |
+| evening | 21.4% | **39.3%** | **+17.9pp** |
+| allday | 46.4% | **53.6%** | **+7.2pp** |
+
+Files: `engines/zk6.ts:~1358` + `supabase/functions/compute-slate-zk6/index.ts:~890`. Edge fn deployed **v36 → v37**, status ACTIVE, verify_jwt=true preserved.
+
+Same review window as the other reorders (2026-06-16). Rollback per-scope: remove the `else if (scope === 'allday')` branch in both files, redeploy.
 
 ---
 

@@ -586,6 +586,54 @@ function tagForPosition(pos: number): 'overdue' | 'strong' | 'depth' {
   return 'depth';
 }
 
+/**
+ * ENG-SLATE-METRICS-06 (2026-06-09): per-scope recent slate-level match rates.
+ * Mirror of engines/zk6.ts fetchRecentSlateMatchRates. Defensive: nulls on failure.
+ */
+interface SlateMatchRates { recent7dMatchRatePct: number | null; recent30dMatchRatePct: number | null; slates7d: number; slates30d: number }
+async function fetchRecentSlateMatchRates(scope: string, todayEt: string): Promise<SlateMatchRates> {
+  const def: SlateMatchRates = { recent7dMatchRatePct: null, recent30dMatchRatePct: null, slates7d: 0, slates30d: 0 };
+  try {
+    const todayDate = new Date(todayEt + 'T12:00:00');
+    todayDate.setDate(todayDate.getDate() - 30);
+    const fromDate = todayDate.toISOString().split('T')[0];
+    const sevenDaysAgoDate = new Date(todayEt + 'T12:00:00');
+    sevenDaysAgoDate.setDate(sevenDaysAgoDate.getDate() - 7);
+    const sevenDaysAgo = sevenDaysAgoDate.toISOString().split('T')[0];
+    const rows = await sbGet<any[]>(
+      `/rest/v1/daily_intelligence?scope=eq.${encodeURIComponent(scope)}` +
+        `&mode=eq.balanced&on_slate=eq.true` +
+        `&slate_date=gte.${fromDate}&slate_date=lt.${todayEt}` +
+        `&select=slate_date,hit_box,hit_straight&limit=1000`,
+    );
+    if (!Array.isArray(rows)) return def;
+    const perSlate = new Map<string, boolean>();
+    for (const r of rows) {
+      if (typeof r?.slate_date !== 'string') continue;
+      const hit = !!r.hit_box || !!r.hit_straight;
+      perSlate.set(r.slate_date, (perSlate.get(r.slate_date) ?? false) || hit);
+    }
+    let slates7d = 0, hits7d = 0, slates30d = 0, hits30d = 0;
+    for (const [date, hit] of perSlate) {
+      slates30d++;
+      if (hit) hits30d++;
+      if (date >= sevenDaysAgo) {
+        slates7d++;
+        if (hit) hits7d++;
+      }
+    }
+    return {
+      recent7dMatchRatePct: slates7d > 0 ? Math.round((hits7d / slates7d) * 1000) / 10 : null,
+      recent30dMatchRatePct: slates30d > 0 ? Math.round((hits30d / slates30d) * 1000) / 10 : null,
+      slates7d,
+      slates30d,
+    };
+  } catch (e) {
+    console.log('[edge-zk6] slate-metrics fetch warn (non-fatal):', e);
+    return def;
+  }
+}
+
 async function fetchHistoryOverrides(scope: Scope) {
   try {
     const clause = scope === 'allday' ? '' : `&session=eq.${encodeURIComponent(scope)}`;
@@ -680,19 +728,22 @@ async function computeSlate(params: {
   // ENH-WARMING-2026-06-06: warming fetch is skipped (returns []) when weight=0.
   const warmingActive = (cfg.effectiveWarmingWeight ?? 0) > 0;
   // ENG-STATE-DATA-05 (2026-06-09): parallel 14d state-agg fetch.
+  // ENG-SLATE-METRICS-06 (2026-06-09): parallel recent slate match rates.
   const STATE_AGG_WINDOW_DAYS = 14;
-  const [ds, { dsOverride, lsOverride, hitDatesMap }, warmingRows, stateAggMap] = await Promise.all([
+  const [ds, { dsOverride, lsOverride, hitDatesMap }, warmingRows, stateAggMap, slateMatchRates] = await Promise.all([
     fetchDatasets(scope),
     fetchHistoryOverrides(scope),
     warmingActive
       ? fetchWarmingHistory(todayEt, cfg.warmingWindowDays)
       : Promise.resolve([] as { comboset_sorted: string; date_et: string }[]),
     fetchStateAggregation(todayEt, STATE_AGG_WINDOW_DAYS),
+    fetchRecentSlateMatchRates(scope, todayEt),
   ]);
   if (warmingActive) {
     console.log(`[edge-zk6] WARMING fetched ${warmingRows.length} rows over ${cfg.warmingWindowDays}d window`);
   }
   console.log(`[edge-zk6] state-agg: ${stateAggMap.size} unique comboSets over ${STATE_AGG_WINDOW_DAYS}d window`);
+  console.log(`[edge-zk6] slate-metrics: 7d=${slateMatchRates.recent7dMatchRatePct}% (${slateMatchRates.slates7d} slates), 30d=${slateMatchRates.recent30dMatchRatePct}% (${slateMatchRates.slates30d} slates)`);
   for (const [cs, d] of dsOverride) { const s = ds.drawsSinceMap.get(cs); if (s == null || d < s) ds.drawsSinceMap.set(cs, d); }
   for (const [cs, l] of lsOverride) { const s = ds.lastSeenMap.get(cs);   if (!s || l > s)       ds.lastSeenMap.set(cs, l);   }
 
@@ -1018,6 +1069,11 @@ async function computeSlate(params: {
     _confidence: Math.round(scopeConfidence * 100),
     _dataStats: { boxRowsUsed: ds.boxRowCount, pairRowsUsed: ds.pairRowCount, horizonsLoaded: ds.horizonsLoaded, usingFallback: ds.usingFallback },
     _source: 'edge',
+    // ENG-SLATE-METRICS-06 (2026-06-09): recent slate-level match rates per scope.
+    _recent7dMatchRatePct: slateMatchRates.recent7dMatchRatePct,
+    _recent30dMatchRatePct: slateMatchRates.recent30dMatchRatePct,
+    _slates7dCount: slateMatchRates.slates7d,
+    _slates30dCount: slateMatchRates.slates30d,
     ...(is_supplement ? { _is_supplement: true } : {}),
   };
   const componentsJson = k6.map(x => ({

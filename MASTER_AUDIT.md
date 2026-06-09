@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-09 (ENG-STATE-DATA-05 — added 3 read-only metadata fields per pick to slate output: `tag` ('overdue'/'strong'/'depth' by display position), `recentStateHits14d` (national hit count 14d window), `topJurisdictions` (top-5 states with recent hits). Pure additive metadata; does NOT touch selection, sort, or scoring. Defensive against fetch failure (empty defaults). Edge fn v37→v38. Validated end-to-end via curl + JSON inspection: all 3 fields populate correctly for tomorrow's midday slate. Test snapshot deleted post-validation.)  
+**Last updated:** 2026-06-09 (ENG-SLATE-METRICS-06 — slate-level recent match rates added to horizonsMeta: `_recent7dMatchRatePct` + `_recent30dMatchRatePct` per scope. NEW FINDING surfaced: evening 7d=57.1% vs 30d=82.8% (−25.7pp regression) — operator now sees this in tomorrow's slate metadata BEFORE betting. Midday + allday healthy. Edge fn v38→v39. Validated all 3 scopes via curl.)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -97,6 +97,100 @@ Engine falls back to pre-CONFIG-14 weights on next slate compute. Edge fn code u
 3. Allday pick rate drops below 30% (5pp below baseline 35.6%)
 
 **Marketing language unlocked.** None. CONFIG-14 is a calibration fix, not a new capability. Subscriber UX improves quietly: allday r1 pick is more often the right pick.
+
+---
+
+### ENG-SLATE-METRICS-06 — Recent Slate Match Rates in horizonsMeta (2026-06-09)
+
+**Operator regression detector for tomorrow.** Pure read-only slate-level metadata. Surfaces the per-scope 7d and 30d recent slate-level match rate, so the operator sees regression risk before betting.
+
+#### NEW finding surfaced by the analysis
+
+Querying `daily_intelligence` 30d window grouped by slate-day:
+
+| scope | last 7d | last 30d | Δ |
+|---|---|---|---|
+| allday | 100.0% (7/7) | 93.1% | +6.9pp ✓ |
+| midday | 85.7% (6/7) | 79.3% | +6.4pp ✓ |
+| **evening** | **57.1%** (4/7) | 82.8% | **−25.7pp** ⚠️ |
+
+**Evening has been regressing significantly.** The 7d window spans the post-CONFIG-11a+13 problematic stack period that was reverted today. Tomorrow's evening slate is the FIRST under CONFIG-15 (CO=0). The operator will see this regression number in tomorrow's slate metadata BEFORE making bets.
+
+This is exactly the use case for this ship — surface scope-level regression risk where the operator can see it without running SQL.
+
+#### Four new fields on `horizons_present_json`
+
+| field | type | meaning |
+|---|---|---|
+| `_recent7dMatchRatePct` | `number \| null` | % of last 7 days' slates where ≥1 pick matched |
+| `_recent30dMatchRatePct` | `number \| null` | % of last 30 days' slates where ≥1 pick matched |
+| `_slates7dCount` | `number` | count of slates in the 7d window (for context — small windows are noisy) |
+| `_slates30dCount` | `number` | same for 30d window |
+
+`null` only on fetch failure. Empty `slates7dCount=0` returns `null` rate (avoid divide by zero).
+
+#### Implementation
+
+**Helper function in both engine paths.** `fetchRecentSlateMatchRates(scope, todayEt)` returns `{recent7dMatchRatePct, recent30dMatchRatePct, slates7d, slates30d}`. One Supabase query against `daily_intelligence` for the 30d window. Bucket by `slate_date`, compute `MAX(hit_box OR hit_straight)` per slate, average over windows.
+
+**Hooked into the existing Promise.all** alongside dataset/history/warming/state-agg fetches. ~0 net added latency in the common case.
+
+**Added to `horizonsMeta`** alongside `_engineVersion`, `_mode`, `_confidence`, `_dataStats`, `_source`. Lives in `slate_snapshots.horizons_present_json`.
+
+#### Validation
+
+Edge fn deployed **v38 → v39**. Triggered curl on all 3 scopes for `targetDate=2026-06-10`:
+
+```
+=== midday ===   _recent7dMatchRatePct = 85.7  (7 slates)
+                 _recent30dMatchRatePct = 79.3  (29 slates)
+                 pick #1: 869 tag=overdue
+=== evening ===  _recent7dMatchRatePct = 57.1  (7 slates)  ← regression flagged
+                 _recent30dMatchRatePct = 82.8  (29 slates)
+                 pick #1: 923 tag=overdue
+=== allday ===   _recent7dMatchRatePct = 100.0 (7 slates)
+                 _recent30dMatchRatePct = 93.1  (29 slates)
+                 pick #1: 518 tag=overdue
+```
+
+All 4 fields populate correctly. Numbers match the SQL baseline exactly. Test snapshots deleted post-validation.
+
+#### Risk audit
+
+| risk | mitigation |
+|---|---|
+| Fetch fails → exception → slate gen fails | try/catch wraps entire helper, returns null defaults |
+| Small-window noise misleads (e.g., 3 slates in window) | `_slates7dCount` exposed so UI can suppress / disclose noisy rates |
+| 7d regression triggers false alarms | rates are observational; UI can show context vs baseline rather than treat as alert |
+| Adds Supabase query latency | Parallelized in existing Promise.all; ~0 net added |
+| New fields break consumers | All new fields optional; existing consumers ignore unknown keys |
+
+#### What this does NOT change
+
+- Picks (engine math, sort, rails all untouched)
+- Slate hash (computeSlateHash excludes horizonsMeta metadata by construction)
+- Existing horizonsMeta fields (`_engineVersion`, `_mode`, etc.)
+- daily_intelligence columns + writes
+- Subscriber-visible picks order
+
+#### Operator guidance for tomorrow
+
+Before generating tomorrow's slates, the operator can query:
+```sql
+SELECT scope, horizons_present_json -> '_recent7dMatchRatePct' AS rate_7d
+FROM slate_snapshots
+WHERE slate_date = '2026-06-10' ORDER BY scope;
+```
+Watch evening specifically. If `_recent7dMatchRatePct` is still below 75%, the CONFIG-15 evening CO=0 may not be enough; consider partial revert (CO=10).
+
+#### Rollback (trivial)
+
+1. Remove the helper function from both engine paths
+2. Remove the `slateMatchRates` element from Promise.all
+3. Remove the 4 fields from horizonsMeta
+4. Redeploy
+
+Existing slate_snapshots rows retain the metadata fields (read-only, no migration).
 
 ---
 

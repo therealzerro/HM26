@@ -131,6 +131,11 @@ export interface EngineMetadata {
   _dataStats?: SlateDataStats;
   _source?: string;
   _is_supplement?: boolean;
+  // ENG-SLATE-METRICS-06 (2026-06-09): per-scope recent slate match rates
+  _recent7dMatchRatePct?: number | null;
+  _recent30dMatchRatePct?: number | null;
+  _slates7dCount?: number;
+  _slates30dCount?: number;
 }
 
 export interface SlateDataStats {

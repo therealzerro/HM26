@@ -280,9 +280,29 @@ ORDER BY COUNT(DISTINCT s.scope) DESC, combo_set;
 
 ---
 
+## Query 6 — Calibrated Pick Probabilities + Stake Split (CALIB-01, added 2026-06-10)
+
+Run `docs/queries/pick_probabilities.sql` verbatim. It applies the logistic
+coefficients in `app_config.pick_prob_calibration` to today's on-slate picks
+and returns `p_hit_pct` (calibrated probability of ≥1 box match in scope
+today) and `stake_share_pct` (p_hit normalized within scope).
+
+Use it in the brief's allocation section: split each scope's budget by
+`stake_share_pct` instead of equal-weighting the tiers. Caveats to repeat in
+the brief when relevant:
+- These are estimates calibrated on 2026-05-13+ data; validation showed mild
+  over-prediction in the top bucket (pred 17.7% vs actual 12.2%) — treat
+  p_hit ≥ 15% as "strong," not as a promise.
+- If the coefficients are older than ~14 days (check `fitted_at` in the
+  app_config row), flag "calibration stale — run `npm run calibrate:picks`,
+  review the gate line (test Brier ≤ trivial), then update the app_config row."
+- Doubles picks show the scope base rate (off-model), not a per-pick estimate.
+
+---
+
 ## Output Template
 
-After running the 5 queries, Claude formats and presents this in chat:
+After running the 5 queries (+ Query 6 for allocation), Claude formats and presents this in chat:
 
 ```
 ══════════════════════════════════════════════════════════════════════

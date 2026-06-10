@@ -23,6 +23,23 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
+### CALIB-01 — Calibrated Pick Probabilities for EV-Based Allocation (2026-06-10)
+
+**Decision-layer enhancement — pick selection untouched.** Logistic model P(pick box-matches ≥1 in-scope draw) fit on 2,610 adjudicated `daily_intelligence` top-30 rows (2026-05-13 → 06-10; artifact era excluded; `draws_since` excluded as era-inconsistent; multiplicity excluded — pool is 100% singles, doubles fall back to scope base rate). Features: scope dummies + the 4 normalized signals.
+
+**Walk-forward gate (train ≤ 5/31 n=1710, test 6/1–6/9 n=900): PASSED** — test Brier 0.04295 vs trivial per-scope-rate baseline 0.04419. Reliability monotone across quintiles (pred 0.6→17.7% vs actual 0.0→12.2%); known mild over-prediction in the top bucket (June allday drift) — documented in the operator query. Fit detail: within the top-30 pool PBURST is the strongest per-SD discriminator (w=0.99), then DGC (0.35); BOX is nearly flat (0.10) because the pool is already BOX-selected (restriction-of-range, not a contradiction of universe AUC).
+
+**Shipped:**
+- `scripts/calibration/fit_pick_probability.ts` + `npm run calibrate:picks` (read-only; prints coefficients + gate verdict; never writes the DB).
+- `app_config.pick_prob_calibration` row (coefficients + validation metadata; written 2026-06-10 01:12 UTC after gate review).
+- `computeCalibratedPickProb()` pure helper in `lib/engineCore.ts` (`_shared` synced; no edge deploy needed — no consumer yet, rides with next deploy).
+- `docs/queries/pick_probabilities.sql` — per-pick `p_hit_pct` + within-scope `stake_share_pct`; validated end-to-end against 2026-06-09 slates.
+- Morning brief runbook Query 6 + staleness rule (refit if `fitted_at` > ~14d, re-run gate before updating the row).
+
+**Maintenance:** refit weekly-ish via `npm run calibrate:picks`; update the app_config row only when the printed gate line shows test Brier ≤ trivial.
+
+---
+
 ### BESTORDER-SWEEP — Orderer Variants Tested; Current `pair` Orderer ≈ Control; No Ship (2026-06-10)
 
 **Motivation.** Live data showed on-slate singles box hits converting to straights at 25.0% (41/164, 5/13–6/9) vs a naive 1/6 ≈ 16.7% baseline — flagged as a possible EV lever (straights pay ~6× box).

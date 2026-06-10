@@ -662,6 +662,49 @@ export function computeAdaptiveWeights(
   };
 }
 
+// ─── Calibrated pick probability (CALIB-01, 2026-06-10) ──────────────────────
+//
+// Applies the logistic coefficients stored in app_config.pick_prob_calibration
+// to one pick's features. Decision-layer ONLY — pick selection never reads
+// this. Fit + validation: scripts/calibration/fit_pick_probability.ts
+// (walk-forward gate: test Brier ≤ trivial per-scope-rate baseline).
+
+export interface PickProbCalibration {
+  /** Feature order: [evening, midday, box, pburst, co, dgc]. */
+  b: number;
+  w: number[];
+  mean: number[];
+  std: number[];
+  base_rates: Record<string, number>;
+}
+
+/**
+ * Calibrated P(this pick scores ≥1 box match in its scope window).
+ * Falls back to the scope base rate when the pick is off-model
+ * (doubles/triples — absent from the training pool) or calib is malformed.
+ */
+export function computeCalibratedPickProb(
+  calib: PickProbCalibration,
+  scope: Scope,
+  signals: { BOX: number; PBURST: number; CO: number; DGC: number },
+  mult: Multiplicity = 'singles',
+): number {
+  const fallback = calib.base_rates?.[scope] ?? 0;
+  if (mult !== 'singles') return fallback;
+  if (!Array.isArray(calib.w) || calib.w.length !== 6) return fallback;
+  const x = [
+    scope === 'evening' ? 1 : 0,
+    scope === 'midday' ? 1 : 0,
+    signals.BOX, signals.PBURST, signals.CO, signals.DGC,
+  ];
+  let z = calib.b;
+  for (let j = 0; j < 6; j++) {
+    const std = calib.std[j] || 1;
+    z += calib.w[j] * ((x[j] - (calib.mean[j] ?? 0)) / std);
+  }
+  return 1 / (1 + Math.exp(-z));
+}
+
 // ─── Slate hash ───────────────────────────────────────────────────────────────
 
 /**

@@ -1036,6 +1036,33 @@ SELECT cron.unschedule('compute-daily-report-nightly');
 
 ---
 
+### BUG-EDR-02 — engine_daily_report Still Stale: Results Import Happens After Both Crons ✅ FIXED + BACKFILLED (2026-06-10)
+
+**Problem.** The BUG-EDR-01 fix sequenced hit-detection (07:30 UTC) before the report cron (08:00 UTC), but the true dependency is the **operator's morning results import**, which lands after both. Confirmed timeline for slate_date 2026-06-09: midday results imported same-day 20:24 UTC (→ counted), evening results imported 2026-06-10 **09:41 UTC** (→ invisible to the 07:30 hit-detection and 08:00 report crons). The report froze allday=0/evening=0/midday=1; canonical `daily_intelligence` shows allday=3/evening=0/midday=1 after the morning workflow stamped hits.
+
+**Second leg of the bug.** The intended safety net — Daily Workflow Step 5 (`lib/rebuildTrigger.ts:runDailyReport`) — POSTs an **empty body** to `compute-daily-report`, which defaults to **today ET**. So after the workflow imports yesterday's evening results and stamps yesterday's hits, Step 5 recomputes *today's* (hitless, just-generated) report and never refreshes yesterday's frozen row. Yesterday's row is permanently wrong for any scope whose hits arrive with the morning import (evening always; allday usually).
+
+**30-day damage (measured 2026-06-10, post-BUG-162 repair, vs canonical daily_intelligence):**
+| scope | report hits | actual hits | mismatched days /29 |
+|---|---|---|---|
+| allday | 25 | 59 | 21 |
+| evening | 7 | 36 | 15 |
+| midday | 22 | 29 | 4 |
+
+Midday mostly survives because midday results import same-day. **Do not read `engine_daily_report` for any rate claim until backfilled** (extends the BUG-162 lesson: compute rates from `daily_intelligence` directly).
+
+**Non-issue (operator clarified 2026-06-10).** No `engine_daily_report` row existed for 2026-06-10 as of ~6am ET — expected, since the workflow ran at ~5:45am ET before any of today's draws; not a Step 5 failure.
+
+**Fix (applied 2026-06-10).** `runDailyReport` in `lib/rebuildTrigger.ts` now POSTs `compute-daily-report` twice — `{ date: getYesterdayET() }` then `{ date: getTodayET() }` — so Workflow Step 5 refreshes the row the just-stamped hits belong to. The edge fn upserts on (slate_date, scope), so recomputing is idempotent. No edge fn or cron changes; the 08:00 UTC cron remains the safety net for days the workflow isn't run. Filtered `tsc --noEmit` clean for the edited file.
+
+**Backfill (2026-06-10).** Re-invoked `compute-daily-report` for every date 2026-05-11 → 2026-06-09 (30 calls, all success). Post-backfill verification: **0 mismatched days** across 29 days × 3 scopes; totals now match canonical `daily_intelligence` exactly (allday 59, evening 36, midday 29). Since `daily_intelligence` flags were repaired under BUG-162 on 2026-06-10, the backfilled report reflects corrected truth.
+
+**Residual caveat.** Yesterday's report row is still provisional between the 08:00 UTC cron and the morning workflow run; it becomes final only after the workflow's import + hit detection + Step 5. Any automated consumer reading `engine_daily_report` before ~noon ET for yesterday's date should expect under-counts for evening/allday.
+
+**Detection query (same as BUG-EDR-01 verification):** report vs daily_intelligence per-scope counts for `CURRENT_DATE - 1` after the morning workflow; must match within ±1.
+
+---
+
 ### ENG-PRESSURE-CLIFF-01 — BOX Pressure Discontinuity at dsVal=100 (2026-06-09)
 
 **Problem.** In `lib/engineCore.ts:computeBoxSignalDetailed`, when `pressureThreshold <= 100` (live CONFIG-12 value), the middle branch becomes degenerate:

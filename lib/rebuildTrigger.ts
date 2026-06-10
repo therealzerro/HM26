@@ -10,7 +10,7 @@
  */
 
 import { storage } from '@/lib/storage';
-import { getTodayET } from '@/lib/dateUtils';
+import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
 
 export interface RebuildStats {
   success: boolean;
@@ -76,12 +76,17 @@ export async function runDailyRebuild(force = false): Promise<RebuildStats | { s
 }
 
 /**
- * Fire the compute-daily-report edge function for today (ET) once per
- * day. Intended as the final step of the Daily Workflow button (after
- * rebuild + AUC + hit-detection + slate regen) so the report captures
- * the freshly-updated ds_raw/hit state. The 8am ET pg_cron job
- * (compute-daily-report-nightly) is a safety net for days the operator
- * doesn't click Daily Workflow.
+ * Fire the compute-daily-report edge function for yesterday AND today
+ * (ET) once per day. Intended as the final step of the Daily Workflow
+ * button (after rebuild + AUC + hit-detection + slate regen).
+ *
+ * Yesterday matters more than today: the morning workflow imports
+ * yesterday's evening results and stamps yesterday's hits, so the 8am
+ * ET cron row for yesterday is stale by the time the workflow runs
+ * (BUG-EDR-02). The edge fn upserts on (slate_date, scope), so
+ * recomputing is idempotent. The 8am ET pg_cron job
+ * (compute-daily-report-nightly) remains a safety net for days the
+ * operator doesn't click Daily Workflow.
  *
  * Dedupe via REPORT_LAST_DATE_KEY so multiple workflow clicks on the
  * same day don't re-fire it. Pass force=true to bypass. Errors are
@@ -102,29 +107,33 @@ export async function runDailyReport(force = false): Promise<{ ok: boolean; skip
     return { ok: false, reason: 'Supabase configuration missing' };
   }
 
-  try {
-    const res = await fetch(`${supabaseUrl}/functions/v1/compute-daily-report`, {
-      method: 'POST',
-      headers: {
-        'apikey': supabaseKey,
-        'Authorization': 'Bearer ' + supabaseKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({}),
-    });
-    const text = await res.text();
-    let parsed: any = null;
-    try { parsed = JSON.parse(text); } catch { /* keep null */ }
-    if (!res.ok || !parsed?.success) {
-      console.log('[daily-report] failed:', res.status, text.slice(0, 200));
-      return { ok: false, reason: `compute-daily-report ${res.status}` };
+  const results: Record<string, unknown> = {};
+  for (const date of [getYesterdayET(), today]) {
+    try {
+      const res = await fetch(`${supabaseUrl}/functions/v1/compute-daily-report`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': 'Bearer ' + supabaseKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ date }),
+      });
+      const text = await res.text();
+      let parsed: any = null;
+      try { parsed = JSON.parse(text); } catch { /* keep null */ }
+      if (!res.ok || !parsed?.success) {
+        console.log('[daily-report] failed:', date, res.status, text.slice(0, 200));
+        return { ok: false, reason: `compute-daily-report ${date}: ${res.status}` };
+      }
+      results[date] = parsed.results;
+    } catch (e) {
+      console.log('[daily-report] error:', date, e);
+      return { ok: false, reason: String(e instanceof Error ? e.message : e) };
     }
-    await storage.setItem(REPORT_LAST_DATE_KEY, today);
-    return { ok: true, results: parsed.results };
-  } catch (e) {
-    console.log('[daily-report] error:', e);
-    return { ok: false, reason: String(e instanceof Error ? e.message : e) };
   }
+  await storage.setItem(REPORT_LAST_DATE_KEY, today);
+  return { ok: true, results };
 }
 
 /**

@@ -1,3 +1,4 @@
+import { withAdminGate } from '@/components/RequireAdmin';
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Stack } from 'expo-router';
@@ -10,7 +11,7 @@ import { useCoverage } from '@/hooks/useCoverage';
 import { useScope } from '@/hooks/useScope';
 import { HorizonLabel } from '@/types/core';
 
-export default function CoverageScreen() {
+function CoverageScreen() {
   const { colors, gradients } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { matrix, coveragePctH01Y, refetch } = useCoverage();
@@ -130,3 +131,4 @@ const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   btnSecondary: { paddingHorizontal: theme.spacing.md, paddingVertical: 10, borderRadius: theme.borderRadius.md, borderWidth: 1, borderColor: colors.border },
   btnSecondaryText: { color: colors.text },
 });
+export default withAdminGate(CoverageScreen);

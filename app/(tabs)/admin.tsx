@@ -1,3 +1,4 @@
+import { withAdminGate } from '@/components/RequireAdmin';
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -48,7 +49,7 @@ const NAV = [
 ];
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
-export default function AdminScreen() {
+function AdminScreen() {
   const { colors } = useTheme();
   const [view, setView] = useState('dashboard');
   const [wizardPreset, setWizardPreset] = useState<{ type: 'box_history' | 'pair_history'; jurisdiction: string } | null>(null);
@@ -104,3 +105,5 @@ export default function AdminScreen() {
     </SafeAreaView>
   );
 }
+
+export default withAdminGate(AdminScreen);

@@ -1,3 +1,4 @@
+import { withAdminGate } from '@/components/RequireAdmin';
 import React, { useMemo, useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
@@ -16,7 +17,7 @@ import { useCoverage } from '@/hooks/useCoverage';
 
 import { useLocalSearchParams } from 'expo-router';
 
-export default function AdminImportsScreen() {
+function AdminImportsScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const { imports, isLoading, softDeleteImport, undoSoftDeleteImport, healthMetrics } = useDataIngestion();
@@ -260,3 +261,5 @@ const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   modalBtnDanger: { paddingHorizontal: theme.spacing.md, paddingVertical: 10, borderRadius: theme.borderRadius.md, backgroundColor: colors.error },
   modalBtnDangerText: { color: '#fff' },
 });
+
+export default withAdminGate(AdminImportsScreen);

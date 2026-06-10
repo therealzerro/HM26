@@ -118,6 +118,18 @@ Per-state layer started per operator directive. Infrastructure complete end-to-e
 
 ---
 
+### SEC-05 — Write-Path Hardening: Sweep Findings + QW1/QW2 Shipped, Gateway Designed (2026-06-10)
+
+Full app sweep (operator-approved scope: subscriber surfaces + operator tooling + reliability; ZK30 excluded by operator instruction; engine math excluded as settled). Headline: **the `anon` role can write nearly the entire database** via always-true RLS policies (advisors 2026-06-10) — including UPDATE on `app_config` (engine weights), `slate_snapshots`, and `daily_intelligence` — and the operator screens `admin` / `intelligence` / `admin-imports` / `coverage` had **no role check** (hidden from the tab bar via `href: null`, but the routes were open to deep links / web URLs).
+
+**Shipped same night (operator approved):**
+- **QW1** — `components/RequireAdmin.tsx::withAdminGate` wraps the four operator screens: renders nothing while role loads, redirects non-admin to Home. Pre-existing TS errors in `intelligence.tsx` (lines 585/920, press event passed into `force?: boolean`) verified pre-existing on HEAD; not touched.
+- **QW2** — migration `sec05_qw2_db_hygiene`: dropped duplicate index `adaptive_hit_idx`; added FK indexes `horizon_blends_import_id_idx` + `percentile_maps_import_id_idx`; dropped exact-duplicate policies `anon_update_daily_intelligence` + `anon_update_slate_snapshots` (behavior-neutral — identical twins remain pending the main migration); revoked EXECUTE on SECURITY DEFINER `calculate_hit_rates()` from PUBLIC/anon/authenticated (client usage removed earlier by the B1 fix; verified ACL = postgres + service_role only).
+
+**Main work designed, not yet built:** `docs/sec05_write_gateway_design.md`. Write inventory shows every non-GET call is operator code except `push_tokens` (usePushNotifications) and `saved_slates` (book/explore) — so target posture is anon = read + those two narrowed writes; all operator writes via a new `admin-ops` edge gateway (ADMIN_OPS_KEY, ENH-FUNNEL pattern, server-side table/op allowlist); then drop anon write policies table-by-table as writers migrate (`app_config` first, but clear of the 6/13 ratification window). Est. ~2 days across sessions. **Pre-launch blocker.**
+
+---
+
 ### COHORT-01 — Standing Overdue-Reversion Cohort Harness (2026-06-10)
 
 Operator's root thesis for the app: in the pooled H01Y singles-box list (Lottery Post combinations view, sorted by draws-since — the feed behind `datasets_box`), the top "red/blue" overdue combos cannot stay at the top long, so overdue-ness should be bettable. Built a standing falsification harness rather than settling it on one window.

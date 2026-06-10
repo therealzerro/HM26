@@ -1,3 +1,4 @@
+import { withAdminGate } from '@/components/RequireAdmin';
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
@@ -410,7 +411,7 @@ function SlateRow({ row }: { row: IntelRow }) {
 
 // ─── Main Screen ───────────────────────────────────────────────────────────────
 
-export default function IntelligenceScreen() {
+function IntelligenceScreen() {
   const { colors, shadows } = useTheme();
   const s = useMemo(() => makeS(colors, shadows), [colors, shadows]);
   const ss = useMemo(() => makeSs(colors, shadows), [colors, shadows]);
@@ -1287,3 +1288,5 @@ const makeSs = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create
 
   // Empty state
 });
+
+export default withAdminGate(IntelligenceScreen);

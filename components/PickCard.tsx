@@ -464,13 +464,13 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
           <View
             style={s.verifiedRow}
             accessibilityRole="text"
-            accessibilityLabel={`Verified by historical record: ${bandStat.total} picks at ${bandKey} energy hit ${Math.round(bandStat.rate * 100)} percent of the time.`}
+            accessibilityLabel={`Historical record: ${bandStat.total} signals at ${bandKey} energy matched ${Math.round(bandStat.rate * 100)} percent of the time. Past patterns do not predict future draws.`}
           >
             <Text style={s.verifiedIcon}>✓</Text>
             <Text style={s.verifiedText} numberOfLines={1}>
-              <Text style={s.verifiedNum}>{bandStat.total}</Text> picks at{' '}
-              <Text style={s.verifiedNum}>{bandKey}</Text> energy hit{' '}
-              <Text style={[s.verifiedNum, { color: colors.cyan }]}>{Math.round(bandStat.rate * 100)}%</Text> historically
+              <Text style={s.verifiedNum}>{bandStat.total}</Text> signals at{' '}
+              <Text style={s.verifiedNum}>{bandKey}</Text> energy matched{' '}
+              <Text style={[s.verifiedNum, { color: colors.cyan }]}>{Math.round(bandStat.rate * 100)}%</Text> — record, not prediction
             </Text>
           </View>
         )}

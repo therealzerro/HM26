@@ -280,19 +280,26 @@ ORDER BY COUNT(DISTINCT s.scope) DESC, combo_set;
 
 ---
 
-## Query 6 — Calibrated Pick Probabilities + Stake Split (CALIB-01, added 2026-06-10)
+## Query 6 — Calibrated Pick Probabilities + Stake Pacing (CALIB-01b, updated 2026-06-10)
 
 Run `docs/queries/pick_probabilities.sql` verbatim. It applies the logistic
 coefficients in `app_config.pick_prob_calibration` to today's on-slate picks
 and returns `p_hit_pct` (calibrated probability of ≥1 box match in scope
 today) and `stake_share_pct` (p_hit normalized within scope).
 
-Use it in the brief's allocation section: split each scope's budget by
-`stake_share_pct` instead of equal-weighting the tiers. Caveats to repeat in
-the brief when relevant:
-- These are estimates calibrated on 2026-05-13+ data; validation showed mild
-  over-prediction in the top bucket (pred 17.7% vs actual 12.2%) — treat
-  p_hit ≥ 15% as "strong," not as a promise.
+**Honest framing (BUG-162 corrected, 2026-06-10) — the brief must present
+allocation as PACING, not edge.** Per-draw win rates of engine picks equal
+the uniform baseline, and the payout schedule is a flat 90% RTP, so expected
+return is −10% per dollar staked on every bet type, regardless of allocation.
+`stake_share_pct` spreads a fixed entertainment budget across picks in
+proportion to their within-pool likelihood — it paces the budget; it does not
+improve the expected return. The brief's allocation section should say
+"budget pacing," never "edge," "EV play," or "+EV."
+
+Caveats to repeat in the brief when relevant:
+- Probabilities are estimates calibrated on clean 2026-05-13+ data
+  (CALIB-01b, refit after the BUG-162 repair). Brief history and dashboards
+  from before 2026-06-10 showed ~30% inflated match rates.
 - If the coefficients are older than ~14 days (check `fitted_at` in the
   app_config row), flag "calibration stale — run `npm run calibrate:picks`,
   review the gate line (test Brier ≤ trivial), then update the app_config row."
@@ -391,6 +398,10 @@ Top-down from T1:
 
 ### When budget isn't specified
 Default to **$5-7** allocation. Operator can say "morning brief budget $X" to override.
+Frame the budget as a fixed entertainment spend (expected return is ~90¢/$1 at
+the standard payout schedule — see Query 6 honest-framing note). Never present
+the allocation as profit-seeking; the brief paces the budget, it does not beat
+the draw.
 
 ### When yesterday's data is incomplete
 - If hit-detection cron hasn't fired (Query 1 returns stale `report_updated_at`):

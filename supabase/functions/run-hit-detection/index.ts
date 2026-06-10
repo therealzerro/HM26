@@ -115,11 +115,15 @@ async function updateDailyIntelligenceHit(
   const isBox = result.comboset_sorted === comboSet;
   const isStraight = result.result_digits === straightCombo;
   if (!isBox && !isStraight) return;
-  // BUG-32 fix mirrored: only `${date}` and the prior day are valid targets.
-  // Late-night ET regens are tagged with the current ET date, never tomorrow's.
-  const prev = new Date(date + 'T12:00:00'); prev.setDate(prev.getDate() - 1);
-  const prevDayStr = prev.toISOString().split('T')[0];
-  const dateFilter = `slate_date=in.(${date},${prevDayStr})`;
+  // BUG-162 (2026-06-10): strict same-date pairing. The prior filter
+  // `slate_date=in.(${date}, ${date-1})` stamped YESTERDAY's intelligence rows
+  // with TODAY's draws whenever the same combo appeared on consecutive slates
+  // (~40% day-over-day overlap) — inflating recorded pick hit rates by ~30%
+  // (audited 5/13–6/9: 164 stamped vs 116 verifiable; every stamped-only "hit"
+  // traced to a slate_date+1 draw). BUG-147 already established slate_date ==
+  // draw date as the canonical pairing for snapshot scoring; this PATCH now
+  // honors the same rule.
+  const dateFilter = `slate_date=eq.${date}`;
   const scopeFilter = snap.scope ? `&scope=eq.${encodeURIComponent(snap.scope)}` : '';
   // SCRUB-02 (2026-06-09): only 'balanced' is written to daily_intelligence.
   const modeFilter = snap.mode === 'balanced'

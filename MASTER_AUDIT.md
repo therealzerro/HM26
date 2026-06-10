@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-10 (Fable 5 session: sweep #3 (BUG-161 fix, parity preset, ENG-OBS-05/06 resolved — pressure rescale falsified, reorder modeled in harness); **CONFIG-16 shipped** (allday DGC→0, +6.9pp backtest, review 6/17; midday KEEPS DGC −13.8pp if zeroed; evening held for CONFIG-15 watch); **ENH-AUDIT v2 STATE_STR built flag-off and falsified** (selection w=0.10 −8.1pp overall; allocation signal null 34.6% vs 38.1% base); edge fn at **v41**; baseline preset now `prod_parity_2026_06_10`.)  
+**Last updated:** 2026-06-10 (Fable 5 session, continued: **BUG-162 found+fixed+repaired** — hit detection stamped next-day results onto prior slates (~30% hit inflation since at least 5/13); run-hit-detection v10 deployed; 61 phantom DI hits cleared; CALIB-01 refit as CALIB-01b on clean labels. **Corrected picture: engine = baseline in every scope at both any-day and per-draw level; at the uniform 90%-RTP payout schedule all bet types carry the −10% house edge regardless of engine config.** Earlier same session: sweep #3 (BUG-161), ENG-OBS-05/06 resolved, CONFIG-16 shipped (review 6/17), STATE_STR falsified, BESTORDER-SWEEP (no ship), CALIB-01; edge zk6 at v41, hit-detection at v10.)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -22,6 +22,26 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 - Backtest result confirming improvement, OR explicit "untested, applying for empirical observation" with planned review date
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
+
+### BUG-162 — Hit Detection Stamped Next-Day Results onto Prior Slates ✅ FIXED + DATA REPAIRED (2026-06-10)
+
+**The most consequential measurement bug since the April artifact era — found while computing bet-level EV from the operator's payout schedule.**
+
+**Mechanism.** `run-hit-detection/index.ts` `updateDailyIntelligenceHit` PATCHed `daily_intelligence` with `slate_date=in.(${date}, ${date-1})` (a mis-mirrored "BUG-32 fix"). Whenever the same combo appeared on consecutive days' slates (~40% day-over-day overlap), day D's draw stamped day D−1's row too — and the snapshot scoring itself was strict (BUG-147), so this PATCH fan-out was the sole contamination path. RN paths (`lib/hitDetection.ts`, `useDataIngestion`) unaffected. `adaptive_tracking` largely unaffected (keyed by snapshot `slate_hash`).
+
+**Audit (5/13–6/9, on-slate singles):** 164 stamped hits vs **116 verifiable** by strict same-day session-compatible join — every stamped-only "hit" traced to a `slate_date+1` draw. ~30–40% relative inflation of all pick-level rates.
+
+**Fix:** `dateFilter = slate_date=eq.${date}` — deployed `run-hit-detection` **v10** (2026-06-10 01:26 UTC, verify_jwt=true). **Data repair:** 61 phantom hit rows cleared in `daily_intelligence` (5/13–6/9) via the strict join (UPDATE … NOT EXISTS). CALIB-01 refit on repaired labels → **CALIB-01b** (gate still passes: test Brier 0.03089 ≤ trivial 0.03143; base rates drop to midday 1.75% / evening 4.4% / allday 7.0% per top-30 pick-day).
+
+**Corrected performance picture (this supersedes ALL prior pick-level lift claims, including the 2026-06-10 information-ceiling analysis):**
+- Any-day pick hit rates (clean): allday 32.3% vs 34.7% base; evening 20.2% vs 21.8%; midday 16.9% vs 16.5% — **engine = baseline in every scope.**
+- Per-draw (the actual bet-win rate; 23,766 pick×draw pairs): allday 5.64 / evening 5.95 / midday 5.80 per 1000 vs uniform 6.00 — **no measurable edge at the draw level.**
+- At the operator's uniform payout schedule ($0.25: box $37.50 = 150×, straight $225 = 900×, doubles box $75 = 300× — all exactly 90% RTP), measured EV per $1 staked: box $0.85–0.89, straight $0.70–0.94. **All bet types ≈ the −10% house edge; no allocation, bet type, or engine config changes this.** Straight-vs-box EV is equivalent at uniform ordering (confirmed by BESTORDER-SWEEP).
+- ENG-SLATE-METRICS 7d/30d match rates and any DI-derived dashboard numbers prior to this repair were inflated ~30%; clean numbers flow from the next detection run onward.
+
+**Lesson:** the same stamped-flag data fed two prior corrections (April era, bestOrder baseline) and still hid one more layer. Ground truth for any rate claim = strict join of picks × draws, never stored flags.
+
+---
 
 ### CALIB-01 — Calibrated Pick Probabilities for EV-Based Allocation (2026-06-10)
 

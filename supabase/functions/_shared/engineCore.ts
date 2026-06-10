@@ -150,6 +150,48 @@ export function buildWarmingMap(
 
 export interface BoxSignalParts { freq: number; pressure: number; box: number }
 
+// ENG-OBS-05 (2026-06-10): pressure scale modes. The legacy 3-branch curve was
+// designed for the pre-DATA-01 ds_raw scale where values spanned 0–500+. Post
+// reset (2026-06-03 re-import + daily rebuilds) ds_raw p95 ≈ 13–26 per scope,
+// so the legacy curve never leaves its first branch (pressure ∈ [0, ~0.13]) and
+// `pressure_threshold` is unreachable. The rescaled modes restore the channel's
+// 0–1 dynamic range by calibrating to the live distribution of real combos:
+//   legacy     — bit-identical to the historical curve (default)
+//   p95ramp    — pressure = min(dsVal / dsP95, 1.0)
+//   percentile — pressure = percentile rank of dsVal among real combos (0–1)
+// Both rescaled modes are monotonic in overdue-ness; the legacy late-decay
+// ("very overdue = cold") is intentionally dropped — it was never exercised on
+// the new scale and the ds tail is structurally capped by daily rebuilds.
+export type PressureScaleMode = 'legacy' | 'p95ramp' | 'percentile';
+
+export interface PressureScaleCtx {
+  mode: PressureScaleMode;
+  /** p95 of real-combo dsVals — required for p95ramp. */
+  dsP95?: number;
+  /** Ascending dsVals of real combos — required for percentile. */
+  sortedDs?: number[];
+}
+
+/**
+ * Build the per-slate-gen pressure scale context from the dsVals of REAL
+ * combos (timesDrawn > 0). Returns undefined for legacy mode so callers can
+ * pass it straight through to computeBoxSignalDetailed (undefined = legacy
+ * curve, bit-identical to pre-ENG-OBS-05 behavior). One call per slate-gen;
+ * shared by engines/zk6.ts, compute-slate-zk6, and the backtest harness.
+ */
+export function buildPressureScaleCtx(
+  mode: PressureScaleMode,
+  realDsVals: number[],
+): PressureScaleCtx | undefined {
+  if (mode !== 'p95ramp' && mode !== 'percentile') return undefined;
+  const sorted = realDsVals.slice().sort((a, b) => a - b);
+  if (mode === 'percentile') return { mode, sortedDs: sorted };
+  const p95 = sorted.length > 0
+    ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))]
+    : 0;
+  return { mode, dsP95: p95 };
+}
+
 /**
  * Detailed BOX score: returns freq/pressure components alongside the combined
  * box value. Engines that need per-component logging (rawFreq/rawPressure) use
@@ -163,20 +205,33 @@ export function computeBoxSignalDetailed(
   pressureThreshold: number,
   freqWeight: number = 0.60,
   pressureWeight: number = 0.40,
+  pressureScale?: PressureScaleCtx,
 ): BoxSignalParts {
   if (timesDrawn === 0) return { freq: 0, pressure: 0, box: 0 };
   const freq = maxTimesDrawn > 0 ? timesDrawn / maxTimesDrawn : 0;
-  // ENG-PRESSURE-CLIFF-01 (2026-06-09): when pressureThreshold <= 100 the middle
-  // branch is degenerate (ptSpan would be ≤ 0). Pre-fix: ptSpan=Math.max(span,1)
-  // forced (dsVal-100)/1=0 at dsVal=100, a 0.99 cliff from dsVal=99 (0.495) to
-  // dsVal=101 (0.995). Short-circuit to peak (1.0) when the threshold collapses.
-  const ptSpan = pressureThreshold - 100;
-  const pressure =
-    dsVal >= 100 && dsVal <= pressureThreshold
-      ? (ptSpan > 0 ? Math.min((dsVal - 100) / ptSpan, 1.0) : 1.0)
-      : dsVal > pressureThreshold
-      ? Math.max(1.0 - (dsVal - pressureThreshold) / 200, 0.3)
-      : (dsVal / 100) * 0.5;
+  let pressure: number;
+  if (pressureScale?.mode === 'p95ramp') {
+    // ENG-OBS-05: linear ramp calibrated to the live ds distribution.
+    const p95 = pressureScale.dsP95 ?? 0;
+    pressure = p95 > 0 ? Math.min(dsVal / p95, 1.0) : 0;
+  } else if (pressureScale?.mode === 'percentile') {
+    // ENG-OBS-05: distribution-free — pressure is the combo's overdue-ness
+    // rank among real combos. Self-calibrating against any future scale drift.
+    const sorted = pressureScale.sortedDs;
+    pressure = sorted && sorted.length > 0 ? percentileRankOf(dsVal, sorted) / 100 : 0;
+  } else {
+    // ENG-PRESSURE-CLIFF-01 (2026-06-09): when pressureThreshold <= 100 the middle
+    // branch is degenerate (ptSpan would be ≤ 0). Pre-fix: ptSpan=Math.max(span,1)
+    // forced (dsVal-100)/1=0 at dsVal=100, a 0.99 cliff from dsVal=99 (0.495) to
+    // dsVal=101 (0.995). Short-circuit to peak (1.0) when the threshold collapses.
+    const ptSpan = pressureThreshold - 100;
+    pressure =
+      dsVal >= 100 && dsVal <= pressureThreshold
+        ? (ptSpan > 0 ? Math.min((dsVal - 100) / ptSpan, 1.0) : 1.0)
+        : dsVal > pressureThreshold
+        ? Math.max(1.0 - (dsVal - pressureThreshold) / 200, 0.3)
+        : (dsVal / 100) * 0.5;
+  }
   return { freq, pressure, box: (freq * freqWeight) + (pressure * pressureWeight) };
 }
 
@@ -192,8 +247,9 @@ export function computeBoxSignal(
   pressureThreshold: number,
   freqWeight: number = 0.60,
   pressureWeight: number = 0.40,
+  pressureScale?: PressureScaleCtx,
 ): number {
-  return computeBoxSignalDetailed(timesDrawn, dsVal, maxTimesDrawn, pressureThreshold, freqWeight, pressureWeight).box;
+  return computeBoxSignalDetailed(timesDrawn, dsVal, maxTimesDrawn, pressureThreshold, freqWeight, pressureWeight, pressureScale).box;
 }
 
 /**

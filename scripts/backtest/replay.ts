@@ -29,6 +29,7 @@ import {
   bestOrderFor, type PairDataTree,
   computeWeightedScore,
   buildWarmingMap,
+  buildPressureScaleCtx,
 } from '../../lib/engineCore.js';
 import type { EngineConfig, ReplayPick, Scope } from './types.js';
 
@@ -525,6 +526,21 @@ export async function computeSlateAsOf(
     }
   }
 
+  // ENG-OBS-05: pressure scale context — built once per date from real combos'
+  // dsVals. undefined (legacy/omitted mode) keeps computeBoxSignal bit-identical.
+  let pressureScaleCtx: ReturnType<typeof buildPressureScaleCtx>;
+  if (config.pressureScaleMode && config.pressureScaleMode !== 'legacy') {
+    const realDsVals: number[] = [];
+    for (let i = 0; i < 1000; i++) {
+      const nk = toComboSet(universe[i]);
+      const td = tdBlend
+        ? blendBoxTimesDrawn(nk, boxTimesDrawnByHorizon, horizonWeights)
+        : (timesDrawnMap.get(nk) ?? 0);
+      if (td > 0) realDsVals.push(blendBoxDsRaw(nk, boxByHorizon, horizonWeights));
+    }
+    pressureScaleCtx = buildPressureScaleCtx(config.pressureScaleMode, realDsVals);
+  }
+
   // Raw signals for all 1000 combos
   const rawBox    = new Float64Array(1000);
   const rawPburst = new Float64Array(1000);
@@ -543,7 +559,7 @@ export async function computeSlateAsOf(
       const dsVal = blendBoxDsRaw(normKey, boxByHorizon, horizonWeights);
       rawBox[i] = computeBoxSignal(
         timesDrawnVal, dsVal, maxTimesDrawn, config.pressureThreshold,
-        effFreqWeight, effPressureWeight,
+        effFreqWeight, effPressureWeight, pressureScaleCtx,
       );
     }
 
@@ -677,9 +693,29 @@ export async function computeSlateAsOf(
     ? HORIZON_WEIGHTS
     : horizonWeights;
 
-  return runK6Selection(
+  const k6 = runK6Selection(
     universe, finalScores, timesDrawnMap, drawsSinceMap,
     todayHitComboSets, config, weights, scorePoolForEnergy,
     scope, pairData, bestOrderWeights,
   );
+
+  // ENG-OBS-06 (2026-06-10): model the production display reorder
+  // (ENG-REORDER-01..04, shipped 2026-06-09 in RN engine + edge fn v39).
+  // Same 6 combos, production rank order: draws_since desc (override-merged
+  // drawsSinceMap, matching production's ds.drawsSinceMap), tiebreak per scope:
+  //   midday  → BOX asc, evening → CO asc, allday → PBURST desc.
+  // Only per-rank metrics change; slate/pick rates are invariant.
+  if (config.modelDisplayReorder === true) {
+    const dsOf = (p: ReplayPick) => drawsSinceMap.get(p.comboSet) ?? 0;
+    const idxOf = (p: ReplayPick) => Number(p.combo);
+    if (scope === 'midday') {
+      k6.sort((a, b) => dsOf(b) - dsOf(a) || normBox[idxOf(a)] - normBox[idxOf(b)]);
+    } else if (scope === 'evening') {
+      k6.sort((a, b) => dsOf(b) - dsOf(a) || normCo[idxOf(a)] - normCo[idxOf(b)]);
+    } else {
+      k6.sort((a, b) => dsOf(b) - dsOf(a) || normPburst[idxOf(b)] - normPburst[idxOf(a)]);
+    }
+  }
+
+  return k6;
 }

@@ -157,6 +157,20 @@ export interface EngineConfig {
    * comparability.
    */
   warmingScopeMatched?: boolean;
+  // ENG-OBS-05 (2026-06-10): pressure scale mode. 'legacy' (default/omitted) =
+  // the historical 3-branch curve, bit-identical. 'p95ramp' / 'percentile'
+  // recalibrate the pressure channel to the per-date live ds_raw distribution
+  // of real combos (post-DATA-01 scale: p95 ≈ 13–26, so the legacy curve's
+  // [100, threshold] zone is unreachable). Mirrors production
+  // app_config.pressure_scale_mode.
+  pressureScaleMode?: 'legacy' | 'p95ramp' | 'percentile';
+  // ENG-OBS-06 (2026-06-10): when true, after K6 selection the slate is
+  // reordered exactly like production (ENG-REORDER-01..04, 2026-06-09):
+  // draws_since desc with per-scope tiebreak (midday BOX asc, evening CO asc,
+  // allday PBURST desc). Affects ONLY per-rank r1–r6 metrics — slate/pick
+  // rates are invariant (same 6 combos). Default false preserves historical
+  // preset reproducibility (selection-order ranks).
+  modelDisplayReorder?: boolean;
 }
 
 export interface ReplayPick {

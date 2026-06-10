@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-10 (Fable 5 engine sweep #3 — found + fixed BUG-161 latent RN-path crash from ENG-BLOCK-NARROW-01; verified deployed edge fn v39 = local source; confirmed evening 6/6–6/8 collapse is evening-only (44.4%→5.6% pick rate, midday/allday stable) consistent with CONFIG-11a/13 attribution, both since removed; added `prod_parity_2026_06_09` backtest preset (old parity preset stale on 3 axes); flagged pressure-channel scale mismatch ENG-OBS-05 + harness reorder-parity gap ENG-OBS-06.)  
+**Last updated:** 2026-06-10 (Fable 5 sweep #3 + ENG-OBS-05/06 resolution under operator override. BUG-161 latent RN crash fixed; `prod_parity_2026_06_09` parity preset added; ENG-OBS-06 fixed (harness models production reorder); ENG-OBS-05 resolved — pressure rescale implemented behind `pressure_scale_mode` (default legacy), backtested, FALSIFIED at current weights (p95ramp −6.9pp, percentile −11.5pp overall slate), NOT flipped; edge fn v40 deployed (bit-identical behavior, lever now SQL-flippable).)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -36,13 +36,32 @@ Independent re-sweep the night after sweep #2 + the Opus 4.8 re-sweep, focused o
 
 ENG-BLOCK-NARROW-01 (commit `7a8fef4`) deleted the `yesterdayEt` declaration but left a reference in the exclusion log object (`engines/zk6.ts:1126`). Babel strips types without name-checking, so on the RN engine path this is a **runtime ReferenceError that crashes `computeSlate` before K6 selection** — zero slates, not degraded slates. Latent only because `.env` has `EXPO_PUBLIC_USE_EDGE_ZK6=true` (line 963 delegates to the edge fn before reaching the bug). Any environment without that flag (fresh checkout, flag rollback, operator device with stale .env) would have lost all slate generation. Fix: log reduced to `todayEt` + stale "(today + yesterday)" label corrected + unused `getYesterdayET` import removed. `tsc` clean on engine files. **Lesson:** run `npx tsc --noEmit` filtered to touched files after every engine edit — the 6/9 session shipped 9 engine commits without a typecheck gate.
 
-#### ENG-OBS-05 — Pressure channel runs on a stale scale post-DATA-01. 🟡 Medium (calibration debt).
+#### ENG-OBS-05/06 Resolution (2026-06-10, operator override of 6/13 freeze)
+
+Operator override 2026-06-10: *"override 6/13 — fix ENG-OBS-05 & 06 now, we can never wait for known engine errors affecting accuracy."* Both items resolved same session; the empirical ship gate was retained.
+
+**ENG-OBS-06 ✅ FIXED.** `modelDisplayReorder` flag added to the harness (`types.ts`, `replay.ts`); when true, K6 is reordered post-selection exactly like production ENG-REORDER-01..04 (override-merged `drawsSinceMap` ds desc; tiebreaks midday BOX asc / evening CO asc / allday PBURST desc). Enabled on `prod_parity_2026_06_09`. Default false preserves historical preset reproducibility. Harness per-rank numbers are now live-comparable; with the reorder modeled, baseline midday r1 = 17% (vs 3.4% indicator-ordered — the reorder's lift is now visible in backtests too).
+
+**ENG-OBS-05 ✅ RESOLVED — rescaling implemented, backtested, and FALSIFIED at current weights; legacy curve retained deliberately.**
+- Code: `computeBoxSignalDetailed` accepts an optional `PressureScaleCtx` (`lib/engineCore.ts` + `buildPressureScaleCtx`); modes `legacy` (default, bit-identical) / `p95ramp` (ramp to live ds p95) / `percentile` (rank among real combos). Wired through `engines/zk6.ts`, `compute-slate-zk6` (new `app_config.pressure_scale_mode` key; **edge fn v40 deployed 2026-06-10 00:21 UTC, verify_jwt=true, bundle content verified**), and the harness (`pressureScaleMode`).
+- Backtest (30d, n=87, single run, reorder modeled, presets `prp_p95ramp` / `prp_percentile` vs `prod_parity_2026_06_09`):
+
+| config | overall slate | midday | evening | allday | overall pick |
+|---|---|---|---|---|---|
+| baseline (legacy) | **86.2%** | 79.3% | 89.7% | 89.7% | 25.9% |
+| p95ramp | 79.3% (−6.9pp) | 75.9% | 89.7% | **72.4%** | 22.8% |
+| percentile | 74.7% (−11.5pp) | 79.3% | 75.9% | **69.0%** | 21.5% |
+
+- **Verdict: DO NOT flip the mode.** Restoring the channel's 0–1 dynamic range at the current ±0.40 weights is destructive everywhere it binds (allday −17 to −21pp). Together with `evening_pressure_neutral` (removal also loses), the picture is consistent: the pressure term works **as a small tiebreak-scale nudge**, not a primary signal — its post-DATA-01 weakness is a feature, not a bug. No `pressure_scale_mode` row was written; loader defaults to legacy; production behavior is bit-identical.
+- Future re-test (post-6/13, optional): rescaled modes at proportionally reduced pressure weights (e.g. ±0.05) — the lever now exists and costs one SQL row to flip.
+
+#### ENG-OBS-05 — Pressure channel runs on a stale scale post-DATA-01. 🟡 Medium (calibration debt). → RESOLVED, see above
 
 `datasets_box.ds_raw` post-reset (6/3 re-import + daily rebuilds): allday p50=3/p95=13, evening p50=4/p95=24, midday p50=6/p95=26; ≤1.4% of rows ≥ 100. Consequences:
 - The three-branch pressure curve (`engineCore.ts:174-179`) effectively never leaves its first branch — pressure ≈ `(ds/100)×0.5` ∈ [0, ~0.13] for >95% of combos. The "pressure zone" [100, threshold] and late-decay branches are **unreachable**; `pressure_threshold` (CONFIG-12) is a dead knob regardless of value (already noted as dormant at CONFIG-12 ship; this entry generalizes it: not just the threshold — the curve's designed 0–1 dynamic range is gone).
 - CONFIG-02's ±0.40 freq/pressure split was calibrated 5/14 on the old inflated scale where pressure actually spanned 0–1. Today it contributes at ~1/8 of its designed magnitude. NOT proposing a sign flip — `evening_pressure_neutral` backtest (6/6) already falsified removal (r1 −6.9pp; the small term still does rank-ordering work). The candidate is **rescaling** (e.g., normalize pressure ramp to the live ds_raw distribution, p95→1.0) so the knob regains dynamic range, then re-test sign/magnitude per scope. **Queued behind the 6/13 review** (config freeze; needs full backtest gate).
 
-#### ENG-OBS-06 — Backtest harness per-rank metrics no longer model production ordering. 🟡 Medium (process).
+#### ENG-OBS-06 — Backtest harness per-rank metrics no longer model production ordering. 🟡 Medium (process). → FIXED, see resolution above
 
 `scripts/backtest/replay.ts:298` orders K6 by indicator desc. Production (RN + edge v39) now reorders by `draws_since desc` + per-scope tiebreak (ENG-REORDER-01..04). Harness r1–r6 tables are therefore **not comparable to live post-reorder rank metrics**; slate-level and pick-level rates remain valid (same combo sets). Any 6/13 decision that leans on rank-position numbers must use live `daily_intelligence`/`adaptive_tracking` data, or the harness needs the reorder modeled first.
 

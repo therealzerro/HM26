@@ -3117,11 +3117,91 @@ export const CONFIGS: Record<string, EngineConfig> = {
   //   - recent_hit_cooldown_midday = 10 (CONFIG-05)
   // NOTE: production is balanced-only (SCRUB-01/02); conservative/aggressive
   // below mirror balanced — placeholders for the harness type, never shipped.
-  // CAVEAT: the harness does NOT model the 2026-06-09 per-scope display reorder
-  // (ds desc + scope tiebreak), so per-rank r1–r6 numbers from this preset are
-  // indicator-ordered and NOT comparable to live post-reorder rank metrics.
-  // Slate-level and pick-level rates remain comparable (same combo sets).
+  // ENG-OBS-06 (2026-06-10): modelDisplayReorder:true — per-rank r1–r6 numbers
+  // now reflect the production ds-desc + per-scope-tiebreak ordering and ARE
+  // comparable to live post-reorder rank metrics. (The first run of this preset
+  // on 2026-06-10, pre-flag, was selection-ordered: overall 85.1%, midday
+  // 75.9%, evening 89.7%, allday 89.7% — slate/pick rates unaffected by the flag.)
   prod_parity_2026_06_09: {
+    modelDisplayReorder: true,
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      aggressive:   { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 100, minEnergyThreshold: 70, recentHitCooldown: 20,
+    recentHitCooldownByScope: { midday: 10 },
+    synergyOn: false, synergyWeight: 0.15,
+    excludeYesterdayHits: false,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+        conservative: { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+        aggressive:   { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+      },
+      evening: {
+        balanced:     { BOX: 0.5625, PBURST: 0.3125, CO: 0.000, DGC: 0.125 },
+        conservative: { BOX: 0.5625, PBURST: 0.3125, CO: 0.000, DGC: 0.125 },
+        aggressive:   { BOX: 0.5625, PBURST: 0.3125, CO: 0.000, DGC: 0.125 },
+      },
+      allday: {
+        balanced:     { BOX: 0.541, PBURST: 0.295, CO: 0.000, DGC: 0.164 },
+        conservative: { BOX: 0.541, PBURST: 0.295, CO: 0.000, DGC: 0.164 },
+        aggressive:   { BOX: 0.541, PBURST: 0.295, CO: 0.000, DGC: 0.164 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+  },
+
+  // ─── ENG-OBS-05 candidates (2026-06-10): pressure channel rescaled to the ──
+  // live post-DATA-01 ds_raw distribution. Identical to prod_parity_2026_06_09
+  // except pressureScaleMode. Operator override of the 6/13 config freeze
+  // (2026-06-10): "we can never wait for known engine errors affecting
+  // accuracy". Ship gate unchanged: candidate ≥ baseline overall slate rate,
+  // no per-scope regression beyond the ~1.7pp run-noise band (>2pp margin).
+  prp_p95ramp: {
+    modelDisplayReorder: true,
+    pressureScaleMode: 'p95ramp',
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      aggressive:   { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 100, minEnergyThreshold: 70, recentHitCooldown: 20,
+    recentHitCooldownByScope: { midday: 10 },
+    synergyOn: false, synergyWeight: 0.15,
+    excludeYesterdayHits: false,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+        conservative: { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+        aggressive:   { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+      },
+      evening: {
+        balanced:     { BOX: 0.5625, PBURST: 0.3125, CO: 0.000, DGC: 0.125 },
+        conservative: { BOX: 0.5625, PBURST: 0.3125, CO: 0.000, DGC: 0.125 },
+        aggressive:   { BOX: 0.5625, PBURST: 0.3125, CO: 0.000, DGC: 0.125 },
+      },
+      allday: {
+        balanced:     { BOX: 0.541, PBURST: 0.295, CO: 0.000, DGC: 0.164 },
+        conservative: { BOX: 0.541, PBURST: 0.295, CO: 0.000, DGC: 0.164 },
+        aggressive:   { BOX: 0.541, PBURST: 0.295, CO: 0.000, DGC: 0.164 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+  },
+
+  prp_percentile: {
+    modelDisplayReorder: true,
+    pressureScaleMode: 'percentile',
     presets: {
       balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
       conservative: { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },

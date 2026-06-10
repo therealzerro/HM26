@@ -13,8 +13,10 @@ import {
   computeBoxSignalDetailed, blendBoxDsRaw, getPairSignalFromMap,
   blendBoxTimesDrawn, blendPairTimesDrawn,
   bestOrderFor, intelligenceRowExtras, computeAdaptiveWeights,
+  buildPressureScaleCtx,
   type PairDataTree, type PairTimesDrawnTree,
   type Scope, type WeightSet, type SignalAuc,
+  type PressureScaleMode,
 } from '../_shared/engineCore.ts';
 import { getTodayET, getYesterdayET } from '../_shared/dateUtils.ts';
 
@@ -95,6 +97,10 @@ interface EngineConfig {
   warmingWeight: number;
   effectiveWarmingWeight?: number;
   warmingWindowDays: number;
+  // ENG-OBS-05 (2026-06-10): pressure scale mode. 'legacy' = historical 3-branch
+  // curve (bit-identical default). Read from app_config.pressure_scale_mode;
+  // ship-gated by backtest (CONFIG-16).
+  pressureScaleMode: PressureScaleMode;
 }
 interface Datasets {
   boxByHorizon: BoxByHorizon;
@@ -139,6 +145,7 @@ const DEFAULT_CFG: EngineConfig = {
   adaptiveSignalWeightsAlpha: 1.0,
   warmingWeight: 0,
   warmingWindowDays: 7,
+  pressureScaleMode: 'legacy',
 };
 
 // ─── Config loader ────────────────────────────────────────────────────────────
@@ -170,6 +177,7 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       'box_times_drawn_blend_enabled',
       'adaptive_signal_weights_enabled', 'adaptive_signal_weights_alpha',
       'warming_weight', 'warming_window_days',
+      'pressure_scale_mode',
       ...(scopeCooldownKey ? [scopeCooldownKey] : []),
       ...(scopeBoxFreqKey  ? [scopeBoxFreqKey]  : []),
       ...(scopeBoxPressKey ? [scopeBoxPressKey] : []),
@@ -255,6 +263,13 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
         if (scopeWarmingKey && row.key === scopeWarmingKey) {
           const v = parseFloat(row.value);
           if (!isNaN(v) && v >= 0 && v <= 1) scopeWarmingOverride = v;
+          continue;
+        }
+        if (row.key === 'pressure_scale_mode') {
+          // ENG-OBS-05: unknown values fall back to legacy (bit-identical curve).
+          if (row.value === 'legacy' || row.value === 'p95ramp' || row.value === 'percentile') {
+            cfg.pressureScaleMode = row.value;
+          }
           continue;
         }
         if (row.key === 'synergy_boost_on')     { cfg.synergyOn = row.value === 'true'; continue; }
@@ -828,6 +843,23 @@ async function computeSlate(params: {
   }
   console.log('[edge-zk6] CONFIG-08 blend:', tdBlend, 'maxTimesDrawn:', maxTimesDrawn, 'horizonWeights:', JSON.stringify(horizonWeights));
 
+  // ENG-OBS-05: pressure scale context — built once from real combos' dsVals.
+  // undefined (legacy mode) keeps computeBoxSignalDetailed bit-identical.
+  let pressureScaleCtx: ReturnType<typeof buildPressureScaleCtx>;
+  if (cfg.pressureScaleMode !== 'legacy') {
+    const realDsVals: number[] = [];
+    for (let i = 0; i < 1000; i++) {
+      const nk = toComboSet(universe[i]);
+      const td = tdBlend
+        ? blendBoxTimesDrawn(nk, ds.boxTimesDrawnByHorizon, horizonWeights)
+        : (ds.timesDrawnMap.get(nk) ?? 0);
+      if (td > 0) realDsVals.push(blendBoxDsRaw(nk, ds.boxByHorizon, horizonWeights));
+    }
+    pressureScaleCtx = buildPressureScaleCtx(cfg.pressureScaleMode, realDsVals);
+    console.log(`[edge-zk6] ENG-OBS-05 pressure scale: mode=${cfg.pressureScaleMode}`,
+      pressureScaleCtx?.mode === 'p95ramp' ? `dsP95=${pressureScaleCtx.dsP95}` : `n=${realDsVals.length}`);
+  }
+
   let maxPairTimesDrawn = 0;
   for (const cm of pairMetaForSignals.values()) for (const m of cm.values()) if (m.timesDrawn > maxPairTimesDrawn) maxPairTimesDrawn = m.timesDrawn;
 
@@ -856,7 +888,7 @@ async function computeSlate(params: {
     const dsVal = blendBoxDsRaw(normKey, ds.boxByHorizon, horizonWeights);
     const parts = computeBoxSignalDetailed(
       td, dsVal, maxTimesDrawn, pressureThreshold,
-      effBoxFreqWeight, effBoxPressureWeight,
+      effBoxFreqWeight, effBoxPressureWeight, pressureScaleCtx,
     );
     rawFreq[i]     = parts.freq;
     rawPressure[i] = parts.pressure;

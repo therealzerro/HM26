@@ -3104,4 +3104,54 @@ export const CONFIGS: Record<string, EngineConfig> = {
     },
     timesDrawnHorizonBlend: true,
   },
+
+  // ─── TRUE production parity as of 2026-06-09 23:59 UTC (post-CONFIG-15) ─────
+  // Replaces evening_co_boost_20 as the parity baseline. Captures the full live
+  // app_config + engine state after the 2026-06-09 session:
+  //   - CONFIG-12: pressure_threshold 100 (global; verified dormant on the
+  //     post-DATA-01 ds_raw scale — p95 ≈ 24, nothing reaches the 100+ zone)
+  //   - CONFIG-14: allday  {BOX:54.1, PBURST:29.5, CO:0, DGC:16.4}
+  //   - CONFIG-15: evening {BOX:56.25, PBURST:31.25, CO:0, DGC:12.5}
+  //   - CONFIG-13 REVERT: warming OFF (no warming fields)
+  //   - ENG-BLOCK-NARROW-01: today-only winner block → excludeYesterdayHits:false
+  //   - recent_hit_cooldown_midday = 10 (CONFIG-05)
+  // NOTE: production is balanced-only (SCRUB-01/02); conservative/aggressive
+  // below mirror balanced — placeholders for the harness type, never shipped.
+  // CAVEAT: the harness does NOT model the 2026-06-09 per-scope display reorder
+  // (ds desc + scope tiebreak), so per-rank r1–r6 numbers from this preset are
+  // indicator-ordered and NOT comparable to live post-reorder rank metrics.
+  // Slate-level and pick-level rates remain comparable (same combo sets).
+  prod_parity_2026_06_09: {
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      aggressive:   { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 100, minEnergyThreshold: 70, recentHitCooldown: 20,
+    recentHitCooldownByScope: { midday: 10 },
+    synergyOn: false, synergyWeight: 0.15,
+    excludeYesterdayHits: false,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+        conservative: { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+        aggressive:   { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+      },
+      evening: {
+        balanced:     { BOX: 0.5625, PBURST: 0.3125, CO: 0.000, DGC: 0.125 },
+        conservative: { BOX: 0.5625, PBURST: 0.3125, CO: 0.000, DGC: 0.125 },
+        aggressive:   { BOX: 0.5625, PBURST: 0.3125, CO: 0.000, DGC: 0.125 },
+      },
+      allday: {
+        balanced:     { BOX: 0.541, PBURST: 0.295, CO: 0.000, DGC: 0.164 },
+        conservative: { BOX: 0.541, PBURST: 0.295, CO: 0.000, DGC: 0.164 },
+        aggressive:   { BOX: 0.541, PBURST: 0.295, CO: 0.000, DGC: 0.164 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+  },
 };

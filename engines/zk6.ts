@@ -12,7 +12,7 @@
  */
 
 import { Scope, SlateSnapshot, SlateDataStats, EngineMetadata } from '@/types/core';
-import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
+import { getTodayET } from '@/lib/dateUtils';
 import { K6_QUOTAS, PAIR_REPETITION_CAP } from '@/constants/zk6';
 import { fetchFromSupabase } from '@/lib/supabase';
 import {
@@ -1122,8 +1122,8 @@ export async function computeSlate({
     console.log('[zk6v2] daily_intelligence exclusion fetch warn (non-fatal):', e);
   }
 
-  console.log('[zk6v2] Recent hit exclusion (today + yesterday, both sources):', {
-    todayEt, yesterdayEt, scope,
+  console.log('[zk6v2] Recent hit exclusion (today only, both sources):', {
+    todayEt, scope,
     hardBlockSets: todayHitComboSets.size,
     totalStraights: effectiveExcluded.size,
   });

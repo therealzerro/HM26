@@ -26,18 +26,10 @@ export function bandFor(energy_score: number): string {
   return '<60';
 }
 
-// BUG-162 / honest-positioning (2026-06-10): hit-rate stats must come from the
-// clean measurement era only. Pre-2026-05-13 rows carry the April hit-stamping
-// artifacts; 5/13+ rows were repaired when the next-day attribution bug was
-// fixed (run-hit-detection v10). Floor the lookback so the 60-day window can
-// never reach contaminated data.
-const CLEAN_DATA_FLOOR = '2026-05-13';
-
 function sinceDate(): string {
   const d = new Date();
   d.setDate(d.getDate() - (LOOKBACK_DAYS - 1));
-  const since = d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-  return since > CLEAN_DATA_FLOOR ? since : CLEAN_DATA_FLOOR;
+  return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 }
 
 /**

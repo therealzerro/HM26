@@ -22,7 +22,7 @@ import { useZK30ViewMode } from '@/lib/zk30/viewMode';
 import type { ViewMode as ZK30ViewMode } from '@/lib/zk30/labelMaps';
 
 const GLOSSARY = [
-  { term: 'ZK6™ Engine', def: 'HitMaster\'s proprietary intelligence engine — a multi-dimensional pattern recognition system built on years of public draw data. Signals are ranked by Oracle Score (signal convergence strength) — a description of historical patterns, not a prediction of future draws.' },
+  { term: 'ZK6™ Engine', def: 'HitMaster\'s proprietary intelligence engine — a multi-dimensional pattern recognition system trained on years of public draw data. Signals are ranked by Oracle Score (signal convergence strength), not guarantees.' },
   { term: 'Energy Score', def: 'A 0–100 composite signal strength. BLAZING (80+) · STRONG (65+) · MODERATE (45+) · LOW (<45). Higher = stronger convergence across all three signals.' },
   { term: 'K6 Slate', def: 'Your 6 daily signals — the top combos emerging from ZK6\'s full intelligence pass. Oracle+ sees all 6. Free sees signals 5–6.' },
   { term: 'Frequency Signal', def: 'Historical draw pressure — how strongly a number set is signaling based on long-term draw history.' },

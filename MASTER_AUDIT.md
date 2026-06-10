@@ -23,23 +23,6 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
-### BRAND-05 — Honest-Positioning Copy Pass Post-BUG-162 (2026-06-10)
-
-Per-string consumer-copy pass aligning the app with the corrected (no-predictive-edge) reality. All edits context-sensitive; `npm run check:brand-voice` clean; brief reframed for the operator.
-
-| surface | before | after |
-|---|---|---|
-| `components/PickCard.tsx` footer | "✓ Verified by historical record: N **picks** at X energy **hit** Y% historically" | "N **signals** at X energy **matched** Y% — **record, not prediction**" (+ a11y: "Past patterns do not predict future draws") |
-| `hooks/useEnergyBandHitRates.tsx` | 60d lookback reaching into the April artifact era | lookback floored at `2026-05-13` (clean, repaired data only) |
-| `app/(tabs)/learn.tsx` Managing Expectations | "help you make **smarter** signal choices" | "choose your signals **with full information**" + "pattern analysis describes drawing history; it does not change the odds of any future draw" + fixed-budget guidance |
-| `app/(tabs)/account.tsx` ZK6 glossary | "**trained** on years… not guarantees" | "**built** on years… a description of historical patterns, **not a prediction of future draws**" |
-| `app_config.nationwide_description` (Learn/Pro) | "Legal **lottery** concierge service — buy tickets…" (forbidden vocab, pre-scrub row) | "Licensed ticket concierge — order entries in 40+ states from home." |
-| `docs/morning_brief.md` (operator) | "EV-based allocation" framing | Query 6 retitled "Stake **Pacing**"; explicit honest-framing block (−10% expected return at 90% RTP; allocation paces budget, never "edge"/"+EV"); budget rule reframed as fixed entertainment spend; pre-6/10 dashboard numbers flagged as ~30% inflated |
-
-Unchanged (already honest from BRAND-01): home-screen disclaimer ("analytical research only — not guarantees"), DailyRecapCard "verified matches today" (factual record), share copy (factual), `app.json` description ("data intelligence platform for numerical pattern analysis").
-
----
-
 ### BUG-162 — Hit Detection Stamped Next-Day Results onto Prior Slates ✅ FIXED + DATA REPAIRED (2026-06-10)
 
 **The most consequential measurement bug since the April artifact era — found while computing bet-level EV from the operator's payout schedule.**

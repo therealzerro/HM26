@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-10 (Fable 5 session, continued: **BUG-162 found+fixed+repaired** — hit detection stamped next-day results onto prior slates (~30% hit inflation since at least 5/13); run-hit-detection v10 deployed; 61 phantom DI hits cleared; CALIB-01 refit as CALIB-01b on clean labels. **Corrected picture: engine = baseline in every scope at both any-day and per-draw level; at the uniform 90%-RTP payout schedule all bet types carry the −10% house edge regardless of engine config.** Earlier same session: sweep #3 (BUG-161), ENG-OBS-05/06 resolved, CONFIG-16 shipped (review 6/17), STATE_STR falsified, BESTORDER-SWEEP (no ship), CALIB-01; edge zk6 at v41, hit-detection at v10.)  
+**Last updated:** 2026-06-10 (Fable 5 session, continued: **BUG-162 found+fixed+repaired** — hit detection stamped next-day results onto prior slates (~30% hit inflation since at least 5/13); run-hit-detection v10 deployed; 61 phantom DI hits cleared; CALIB-01 refit as CALIB-01b on clean labels. **Corrected picture: engine = baseline in every scope at both any-day and per-draw level; at the uniform 90%-RTP payout schedule all bet types carry the −10% house edge regardless of engine config.** Earlier same session: sweep #3 (BUG-161), ENG-OBS-05/06 resolved, CONFIG-16 shipped (review 6/17), STATE_STR falsified, BESTORDER-SWEEP (no ship), CALIB-01; edge zk6 at v41, hit-detection at v10. **Later same day: SIGNAL-INFO-01 — signal information content SETTLED: BOX/PBURST/CO carry zero universe-level information; DGC carries small replicated anti-information that is NOT exploitable; in-backtest lift attributed to datasets forward-drift leak. See entry.**)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -115,6 +115,36 @@ Per-state layer started per operator directive. Infrastructure complete end-to-e
 **Test 2 — allocation signal (does per-state history predict WHERE a pick hits?):** of 133 on-slate hits since 5/13, the hitting state had drawn that comboSet in the prior 60d **34.6%** of the time vs a volume-weighted base of **38.1%** (n=1,992 draws) — zero signal, slightly negative point estimate.
 
 **Conclusion for ENH-AUDIT-2026-05-19:** the v2 selection hypothesis is rejected on current data; v1 (display-only per-state context) remains shippable as a UX/marketing feature but should NOT be sold internally as an accuracy lever. The midday rank-1 inversion's "structural fix" needs a different information source than per-state draw history (candidates: none currently identified that survive the uniform-draw evidence — see Information Ceiling analysis 2026-06-10).
+
+---
+
+### SIGNAL-INFO-01 — Signal Information Content: SETTLED (2026-06-10)
+
+Operator asked: *"do our signals carry any meaning? are there any backtests to run to find lift?"* Resolved empirically in three parts, all read-only / backtest-only — nothing shipped.
+
+**Part 1 — stratified full-universe AUC.** New tool `scripts/intel-tuning/universe-auc-stratified.ts` (read-only, zero DB writes). Fixes two confounds that make `signal_auc_per_day` unusable for the information question:
+1. *Multiplicity pooling* — per draw, a singles comboset is 6×/2× as likely to box-hit as a triples/doubles, and BOX/PBURST/CO all correlate with historical frequency (which encodes multiplicity), so pooled AUC > 0.5 is mechanical. The fair test is the **singles-only stratum** (120 combosets, exactly equiprobable under fair draws → true AUC must be 0.500).
+2. *DGC target-day leakage* — `compute-daily-auc.ts` builds `hitDatesMap` from `date_et <= day`, so DGC sees the outcome it is judged on. Fixed to strictly `< day`. Also: BOX pressure ds as-of corrected from histories (dataset value reflects today's rebuild → forward leak for backfilled days); prod-parity pressure threshold 100 + per-scope freq/pressure weights (compute-daily-auc still hardcodes stale 250).
+
+Results, mean per-day AUC vs 0.500 (t-stat), **singles stratum**:
+
+| Window | Signal | midday | evening | allday |
+|---|---|---|---|---|
+| 5/13–6/9 (28d) | BOX | 0.493 | 0.525 | 0.518 |
+| | PBURST | 0.499 | 0.468 (−2.86) | 0.498 |
+| | CO | 0.518 | 0.525 (+2.23) | 0.488 |
+| | **DGC** | **0.459 (−3.02)** | 0.501 | **0.462 (−3.12)** |
+| 4/1–5/12 (42d, independent) | **DGC** | 0.461 (−1.87) | **0.419 (−3.73)** | **0.436 (−3.62)** |
+
+BOX/PBURST/CO ≈ 0.500 in both windows. Pooled-stratum AUCs (BOX 0.59–0.62, t up to +17.8) reproduce the stored table's apparent lift → confirmed as the multiplicity confound; the stored `signal_auc_per_day` numbers must never be read as evidence of signal information.
+
+**Part 2 — `inverted_signals` backtest (30d, n=87, same-run vs `prod_parity_2026_06_10`).** All four weights negated per scope. Slate 63.2% vs 87.4% overall; pick ×0.79 vs rail-matched baseline — far below random. Context: a 4th independent confirmation of the within-slate anti-predictive pattern was measured the same day (10/12 selected-pick AUCs < 0.5 on hits recomputed from histories, 5/13–6/9). If that pattern were real structure, inversion would win; it collapsed. **Verdict: within-selection anti-patterns are Berkson/range-restriction artifacts**, amplified in backtest by the documented datasets forward-drift leak running in reverse (today's `times_drawn` includes the evaluated day's draws — inflates parity, punishes inversion).
+
+**Part 3 — `dgc_negative` backtest (30d, n=87, same-run vs parity).** Parity with only DGC negated (midday +0.10→−0.10, evening +0.125→−0.125, allday 0→−0.10). Slate 75.9% vs 86.2% overall (midday −20.7pp, evening −6.9pp, allday −3.5pp). **Verdict: DGC's universe-level anti-information (real, replicated, leak-free — DGC is purely histories-derived) is NOT exploitable through the selection channel.** Consistent with the dual-lens paradox already on file: midday loses −13.8pp if DGC is zeroed (CONFIG-16 note) — DGC's selection value is as a rail-interacting diversifier/tiebreak, not information.
+
+**Overall conclusion (joins the BUG-162 corrected picture + Information Ceiling 2026-06-10):** no ZK6 signal carries exploitable predictive information. The engine's in-backtest lift over rail-matched baseline (×1.06–1.10 across the two parity runs) is attributable to the forward-drift leak; live clean measurement = uniform baseline. The only theoretically-open mechanism is long-horizon per-state mechanical bias (chi-square scan over 2yr per-jurisdiction histories with multiple-comparison correction — distinct from the falsified STATE_STR recent-hotness test); low prior, not started.
+
+**Artifacts:** `scripts/intel-tuning/universe-auc-stratified.ts`; presets `inverted_signals` + `dgc_negative` in `scripts/backtest/configs.ts` (**BACKTEST-ONLY — never ship**); CSVs `replay-2026-06-10T15-22-34.csv`, `replay-2026-06-10T15-25-54.csv`. Parity overall across the two runs: 87.4% vs 86.2% — within the known ~1.7pp harness noise; all comparisons above are same-run.
 
 ---
 

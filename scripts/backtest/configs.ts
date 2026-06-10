@@ -3302,6 +3302,60 @@ export const CONFIGS: Record<string, EngineConfig> = {
     return { ...this.prod_parity_2026_06_10, stateStrWeight: 0.20, stateStrWindowDays: 60, stateStrHalfLifeDays: 14 };
   },
 
+  // ─── SIGNAL-INFO-01 (2026-06-10): inverted-signals direction test ──────────
+  // Exact negation of every active signal weight in the production-parity
+  // baseline (global + per-scope). Ranks the LOWEST-signal real combos first.
+  // Purpose: disambiguate the within-slate anti-predictive pattern (4th
+  // confirmation 2026-06-10: 10/12 selected-pick AUCs < 0.5) between
+  //   (a) real anti-structure → this preset beats baseline by > 2pp noise floor
+  //   (b) selection artifact (Berkson/range restriction) → lands at baseline
+  // BACKTEST-ONLY. Never ship: multiplicity priors stay additive so the
+  // inversion is rank-exact on the signal component, but energy floors and
+  // cooldowns interact with a low-signal pool in untested ways.
+  get inverted_signals() {
+    const base = this.prod_parity_2026_06_10;
+    const neg = (w: { BOX: number; PBURST: number; CO: number; DGC: number }) =>
+      ({ BOX: -w.BOX, PBURST: -w.PBURST, CO: -w.CO, DGC: -w.DGC });
+    const negModes = (m: Record<string, { BOX: number; PBURST: number; CO: number; DGC: number }>) => ({
+      balanced: neg(m.balanced), conservative: neg(m.conservative), aggressive: neg(m.aggressive),
+    });
+    return {
+      ...base,
+      presets: negModes(base.presets),
+      presetByScope: {
+        midday:  negModes(base.presetByScope!.midday!),
+        evening: negModes(base.presetByScope!.evening!),
+        allday:  negModes(base.presetByScope!.allday!),
+      },
+    };
+  },
+
+  // ─── SIGNAL-INFO-01b (2026-06-10): targeted DGC-negation test ───────────────
+  // DGC is the ONLY signal with replicated universe-level anti-information
+  // (singles-stratum AUC < 0.5 in both 5/13-6/9 and 4/1-5/12 windows, several
+  // cells p<.01) AND it is purely histories-derived — immune to the
+  // datasets_* forward-drift leak that contaminates the full inversion test.
+  // This preset = production parity with ONLY the DGC weight negated
+  // (midday +0.10→−0.10, evening +0.125→−0.125, allday 0→−0.10).
+  // If DGC anti-information is exploitable, this beats parity > 2pp noise.
+  get dgc_negative() {
+    const base = this.prod_parity_2026_06_10;
+    const withDgc = (w: { BOX: number; PBURST: number; CO: number; DGC: number }, dgc: number) => ({
+      balanced:     { ...w, DGC: dgc },
+      conservative: { ...w, DGC: dgc },
+      aggressive:   { ...w, DGC: dgc },
+    });
+    return {
+      ...base,
+      presets: withDgc(base.presets.balanced, -0.10),
+      presetByScope: {
+        midday:  withDgc(base.presetByScope!.midday!.balanced, -0.100),
+        evening: withDgc(base.presetByScope!.evening!.balanced, -0.125),
+        allday:  withDgc(base.presetByScope!.allday!.balanced, -0.100),
+      },
+    };
+  },
+
   prp_percentile: {
     modelDisplayReorder: true,
     pressureScaleMode: 'percentile',

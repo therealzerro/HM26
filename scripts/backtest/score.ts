@@ -36,6 +36,14 @@ const SESSION_SCOPE: Record<string, Scope[]> = {
   night:   ['evening', 'allday'],
 };
 
+/** Results whose session is compatible with the given scope — the exact
+ *  filter scorePicksVsResults applies internally. Exported for the
+ *  BESTORDER-SWEEP conversion counter (cli.ts) so session semantics stay
+ *  single-sourced. */
+export function filterResultsForScope(results: DrawResult[], scope: Scope): DrawResult[] {
+  return results.filter(r => (SESSION_SCOPE[r.session] ?? []).includes(scope));
+}
+
 export async function fetchDrawResults(date: string): Promise<DrawResult[]> {
   const rows = await dbGet<DrawResult[]>(
     `/histories?date_et=eq.${date}&select=result_digits,comboset_sorted,session,jurisdiction`,

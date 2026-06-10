@@ -3292,6 +3292,12 @@ export const CONFIGS: Record<string, EngineConfig> = {
   get state_str_010() {
     return { ...this.prod_parity_2026_06_10, stateStrWeight: 0.10, stateStrWindowDays: 60, stateStrHalfLifeDays: 14 };
   },
+  // BESTORDER-SWEEP (2026-06-10): production parity + per-pick order variants.
+  // Selection identical to prod_parity_2026_06_10; adds the straight-conversion
+  // table (raw control / pair / pair_full / pos60 / blend) in one pass.
+  get bestorder_sweep() {
+    return { ...this.prod_parity_2026_06_10, bestOrderSweepVariants: true };
+  },
   get state_str_020() {
     return { ...this.prod_parity_2026_06_10, stateStrWeight: 0.20, stateStrWindowDays: 60, stateStrHalfLifeDays: 14 };
   },

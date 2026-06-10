@@ -31,6 +31,7 @@ import {
   buildWarmingMap,
   buildPressureScaleCtx,
   buildStateStrengthMap,
+  blendPairAcrossHorizons,
   type StateHistoryRow,
 } from '../../lib/engineCore.js';
 import type { EngineConfig, ReplayPick, Scope } from './types.js';
@@ -754,6 +755,57 @@ export async function computeSlateAsOf(
     todayHitComboSets, config, weights, scorePoolForEnergy,
     scope, pairData, bestOrderWeights,
   );
+
+  // BESTORDER-SWEEP (2026-06-10): compute candidate orderings per pick.
+  // Ordering never affects selection, so all variants ride one replay pass.
+  if (config.bestOrderSweepVariants === true) {
+    // Positional digit frequencies — last 60d before `date`, scope-session
+    // filtered (historyRows already carries the session filter). As-of by
+    // construction: fetchHistoryRows only returns date_et < date.
+    const cutoff = new Date(date + 'T12:00:00');
+    cutoff.setDate(cutoff.getDate() - 60);
+    const cutoffStr = cutoff.toISOString().split('T')[0];
+    const posFreq: number[][] = [new Array(10).fill(0), new Array(10).fill(0), new Array(10).fill(0)];
+    for (const r of historyRows) {
+      if (typeof r?.result_digits !== 'string' || !/^\d{3}$/.test(r.result_digits)) continue;
+      if (typeof r?.date_et !== 'string' || r.date_et < cutoffStr) continue;
+      for (let p = 0; p < 3; p++) posFreq[p][Number(r.result_digits[p])]++;
+    }
+    const uniquePerms = (combo: string): string[] => {
+      const [a, b, c] = combo;
+      return Array.from(new Set([a+b+c, a+c+b, b+a+c, b+c+a, c+a+b, c+b+a]));
+    };
+    const pairScoreOf = (perm: string): number =>
+      blendPairAcrossHorizons(sortedPair(perm[0], perm[1]), 2, pairData, bestOrderWeights) +
+      blendPairAcrossHorizons(sortedPair(perm[1], perm[2]), 3, pairData, bestOrderWeights) +
+      blendPairAcrossHorizons(sortedPair(perm[0], perm[2]), 4, pairData, bestOrderWeights);
+    const posScoreOf = (perm: string): number =>
+      posFreq[0][Number(perm[0])] + posFreq[1][Number(perm[1])] + posFreq[2][Number(perm[2])];
+    const argmax = (perms: string[], score: (p: string) => number): string => {
+      let best = perms[0], bestS = -Infinity;
+      for (const p of perms) { const s = score(p); if (s > bestS) { bestS = s; best = p; } }
+      return best;
+    };
+    for (const pick of k6) {
+      const perms = uniquePerms(pick.combo);
+      const pairScores = perms.map(pairScoreOf);
+      const posScores  = perms.map(posScoreOf);
+      const maxPair = Math.max(...pairScores, 0);
+      const maxPos  = Math.max(...posScores, 0);
+      let blendBest = perms[0], blendBestS = -Infinity;
+      for (let i = 0; i < perms.length; i++) {
+        const s = (maxPair > 0 ? pairScores[i] / maxPair : 0) + (maxPos > 0 ? posScores[i] / maxPos : 0);
+        if (s > blendBestS) { blendBestS = s; blendBest = perms[i]; }
+      }
+      pick.orderVariants = {
+        raw: pick.combo,
+        pair: pick.bestOrder,
+        pair_full: bestOrderFor(pick.combo, pairData, HORIZON_WEIGHTS),
+        pos60: argmax(perms, posScoreOf),
+        blend: blendBest,
+      };
+    }
+  }
 
   // ENG-OBS-06 (2026-06-10): model the production display reorder
   // (ENG-REORDER-01..04, shipped 2026-06-09 in RN engine + edge fn v39).

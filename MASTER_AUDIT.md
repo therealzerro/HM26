@@ -23,6 +23,29 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
+### BESTORDER-SWEEP — Orderer Variants Tested; Current `pair` Orderer ≈ Control; No Ship (2026-06-10)
+
+**Motivation.** Live data showed on-slate singles box hits converting to straights at 25.0% (41/164, 5/13–6/9) vs a naive 1/6 ≈ 16.7% baseline — flagged as a possible EV lever (straights pay ~6× box).
+
+**Harness extension (permanent):** `bestOrderSweepVariants` config flag — every ReplayPick carries `orderVariants` (5 orderers) and the CLI reports per-variant straight conversion `P(straight | box-set matched)`, counted against ALL matching in-scope results per pick (no first-match break) so all variants see identical opportunities, including a **`raw` no-information control**. One replay pass evaluates all orderers (ordering never changes selection). New exported helper `filterResultsForScope` in `score.ts` keeps session semantics single-sourced.
+
+**Result (35d replay, n=173 matched picks):**
+
+| variant | conversion |
+|---|---|
+| `raw` (control — universe enumeration order) | **21.4%** |
+| `pair` (production bestOrderFor, 60/40 horizons) | 22.5% |
+| `pair_full` (10-horizon decay) | 22.5% |
+| `pos60` (positional digit frequency, 60d as-of) | **15.6%** |
+| `blend` (pair + positional) | 22.5% |
+
+**Findings:**
+1. **The proper baseline is ~21%, not 16.7%** — multi-state box matches give multiple straight chances per pick. The live 25.0% figure was compared against the understated naive baseline; against the multi-draw-adjusted control the apparent bestOrder edge is ~+1pp in replay (+~4pp live) — within noise. **The "bestOrder beats random" claim from the 2026-06-10 information-ceiling analysis is hereby corrected.**
+2. Positional digit frequency is non-predictive (if anything negative) — consistent with per-position uniform draws. Closes the "positional bias" hypothesis without needing the deeper data import for this purpose.
+3. **No production change.** `bestOrderFor` stays (free, not worse than raw; ties pair_full/blend). Ordering optimization is now a documented dead end on current data; do not re-propose orderer variants without a new information source.
+
+---
+
 ### CONFIG-16 — Allday DGC 16.4 → 0 (2026-06-10 00:41 UTC)
 
 **Operator directive:** "zero DGC and start the per-state layer… I just want the engine to work and hit above baseline." Gate run BEFORE ship per standing rule; the gate split the verdict per scope and the ship followed the data, not the directive's literal scope:

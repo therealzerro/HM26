@@ -12,7 +12,7 @@
 import { runReport } from './report.js';
 import { computeSlateAsOf } from './replay.js';
 import { fetchDrawResults, computeBaseline, computeRailMatchedBaseline } from './score.js';
-import { scorePicksVsResults } from './score.js';
+import { scorePicksVsResults, filterResultsForScope } from './score.js';
 import { writeReportCSV, printReportSummary, writeReplayCSV, printReplaySummary } from './output.js';
 import { CONFIGS } from './configs.js';
 import type { HitResult, Scope } from './types.js';
@@ -100,6 +100,13 @@ async function modeReplay(args: Record<string, string>) {
   let processed = 0;
   const total = dates.length * SCOPES.length * configNames.length * modes.length;
 
+  // BESTORDER-SWEEP: per (config, scope, variant) straight-conversion tallies.
+  // Conversion = P(≥1 straight match | comboSet matched ≥1 in-scope result).
+  // Counted against ALL box-matching results per pick (no first-match break),
+  // so every variant is judged on identical opportunities.
+  type ConvTally = { boxMatched: number; converted: Record<string, number> };
+  const conv = new Map<string, ConvTally>(); // key: `${configName}|${scope}`
+
   for (const date of dates) {
     const results = await fetchDrawResults(date);
     if (results.length === 0) continue; // no draw data for this date — skip
@@ -122,6 +129,24 @@ async function modeReplay(args: Record<string, string>) {
               results,
               scope,
             );
+            // BESTORDER-SWEEP conversion accounting (one pass, all variants).
+            if (picks.length > 0 && picks[0].orderVariants) {
+              const inScope = filterResultsForScope(results, scope);
+              const key = `${configName}|${scope}`;
+              let tally = conv.get(key);
+              if (!tally) { tally = { boxMatched: 0, converted: {} }; conv.set(key, tally); }
+              for (const p of picks) {
+                const matches = inScope.filter(r =>
+                  (r.comboset_sorted || '') === p.comboSet);
+                if (matches.length === 0) continue;
+                tally.boxMatched++;
+                for (const [variant, order] of Object.entries(p.orderVariants!)) {
+                  if (matches.some(r => r.result_digits === order)) {
+                    tally.converted[variant] = (tally.converted[variant] ?? 0) + 1;
+                  }
+                }
+              }
+            }
             const baseline = baselineByScope[scope];
             // Rail-matched baseline differs PER PICK SET — must compute per config/mode.
             const pickMix = { singles: 0, doubles: 0, triples: 0 };
@@ -158,6 +183,25 @@ async function modeReplay(args: Record<string, string>) {
 
   console.log(`\n[backtest] Replay complete: ${allHits.length} slates`);
   printReplaySummary(allHits, configNames);
+
+  // BESTORDER-SWEEP report.
+  if (conv.size > 0) {
+    const variants = ['raw', 'pair', 'pair_full', 'pos60', 'blend'];
+    console.log('\n── BESTORDER SWEEP — straight conversion P(straight | box-set matched) ──');
+    console.log('  (random-order baseline ≈ 16.7% per matched draw for singles; raw = control)');
+    console.log(`  ${'config|scope'.padEnd(36)}${'n'.padStart(5)}  ` + variants.map(v => v.padStart(10)).join(''));
+    const totals: ConvTally = { boxMatched: 0, converted: {} };
+    for (const [key, t] of conv) {
+      totals.boxMatched += t.boxMatched;
+      for (const v of variants) totals.converted[v] = (totals.converted[v] ?? 0) + (t.converted[v] ?? 0);
+      const cells = variants.map(v =>
+        (t.boxMatched > 0 ? (100 * (t.converted[v] ?? 0) / t.boxMatched).toFixed(1) + '%' : '—').padStart(10));
+      console.log(`  ${key.padEnd(36)}${String(t.boxMatched).padStart(5)}  ` + cells.join(''));
+    }
+    const totCells = variants.map(v =>
+      (totals.boxMatched > 0 ? (100 * (totals.converted[v] ?? 0) / totals.boxMatched).toFixed(1) + '%' : '—').padStart(10));
+    console.log(`  ${'TOTAL'.padEnd(36)}${String(totals.boxMatched).padStart(5)}  ` + totCells.join(''));
+  }
   const csvPath = writeReplayCSV(allHits);
   console.log(`[backtest] CSV written: ${csvPath}`);
 }

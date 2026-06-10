@@ -182,6 +182,18 @@ export interface EngineConfig {
   stateStrWeightByScope?: Partial<Record<Scope, number>>;
   stateStrHalfLifeDays?: number;
   stateStrWindowDays?: number;
+  // BESTORDER-SWEEP (2026-06-10): when true, each ReplayPick carries
+  // orderVariants — alternative digit arrangements computed by candidate
+  // orderers — and the CLI reports per-variant straight-conversion rates
+  // (P(straight | box-set matched)). Ordering never affects selection, so all
+  // variants are evaluated in ONE replay pass. Variants:
+  //   raw       — universe enumeration order (control: no information)
+  //   pair      — production bestOrderFor with config horizonWeights (current)
+  //   pair_full — bestOrderFor with the full 10-horizon HORIZON_WEIGHTS decay
+  //   pos60     — argmax of per-position digit frequency, last 60d, as-of,
+  //               scope-session filtered (leakage-free; from historyRows)
+  //   blend     — per-pick max-normalized pair score + pos60 score, summed
+  bestOrderSweepVariants?: boolean;
 }
 
 export interface ReplayPick {
@@ -195,6 +207,9 @@ export interface ReplayPick {
   // by engine's horizonWeights — when the config sets horizon_weights pure-H01Y,
   // this reflects that; when defaulted, uses the full 10-horizon decay.
   bestOrder: string;
+  // BESTORDER-SWEEP: candidate orderer outputs, keyed by variant name. Only
+  // populated when config.bestOrderSweepVariants is true.
+  orderVariants?: Record<string, string>;
 }
 
 export interface HitResult {

@@ -146,6 +146,73 @@ export function buildWarmingMap(
   return m;
 }
 
+// ─── STATE_STR signal (ENH-AUDIT-2026-05-19 v2, built 2026-06-10) ─────────────
+//
+// Per-state pattern strength — the first channel that sees WHICH jurisdictions
+// a comboSet has been hitting in, rather than national aggregates. For each
+// (comboSet, jurisdiction): recency-weighted per-draw hit rate within that
+// jurisdiction's own draws (exponential decay, configurable half-life). The
+// combo's signal is the MAX across jurisdictions — "hot in some specific
+// state" — then max-normed across the universe by the caller (engine pattern).
+//
+// Pure: caller supplies the pre-fetched history rows (comboset, jurisdiction,
+// date) for the window before the slate date. No DB calls here. Applied as a
+// post-score additive channel (warming pattern): finalScore += w × normStateStr.
+// Weight 0 (default) ⇒ bit-identical to the 4-channel engine.
+
+export interface StateHistoryRow {
+  comboset_sorted: string;
+  jurisdiction: string | null;
+  date_et: string;
+}
+
+/**
+ * Build comboSet → raw state-strength from a per-jurisdiction history window.
+ *
+ * strength(s, j) = Σ_{draws of s in j} decay(age) / Σ_{all draws in j} decay(age)
+ * raw(s)         = max_j strength(s, j)
+ *
+ * decay(age) = 2^(-ageDays / halfLifeDays), age measured back from asOfDate.
+ * Jurisdictions with fewer than minJurisdictionDraws (undecayed row count) are
+ * skipped — a 2-draw state would otherwise produce freak 0.5 rates that
+ * dominate the max. One call per slate-gen; O(rows).
+ */
+export function buildStateStrengthMap(
+  rows: StateHistoryRow[],
+  asOfDate: string,
+  halfLifeDays: number = 14,
+  minJurisdictionDraws: number = 10,
+): Map<string, number> {
+  const asOfMs = new Date(asOfDate + 'T12:00:00Z').getTime();
+  const totalW = new Map<string, number>();          // jurisdiction → Σ decay
+  const drawCount = new Map<string, number>();       // jurisdiction → raw count
+  const hitW = new Map<string, Map<string, number>>(); // comboSet → jurisdiction → Σ decay
+  for (const r of rows) {
+    if (!r || typeof r.comboset_sorted !== 'string' || !r.jurisdiction) continue;
+    const ageDays = Math.max(0, (asOfMs - new Date(r.date_et + 'T12:00:00Z').getTime()) / 86400000);
+    const w = Math.pow(2, -ageDays / Math.max(halfLifeDays, 1));
+    totalW.set(r.jurisdiction, (totalW.get(r.jurisdiction) ?? 0) + w);
+    drawCount.set(r.jurisdiction, (drawCount.get(r.jurisdiction) ?? 0) + 1);
+    let perState = hitW.get(r.comboset_sorted);
+    if (!perState) { perState = new Map(); hitW.set(r.comboset_sorted, perState); }
+    perState.set(r.jurisdiction, (perState.get(r.jurisdiction) ?? 0) + w);
+  }
+  const out = new Map<string, number>();
+  for (const [cs, perState] of hitW) {
+    let best = 0;
+    for (const [j, w] of perState) {
+      if ((drawCount.get(j) ?? 0) < minJurisdictionDraws) continue;
+      const t = totalW.get(j) ?? 0;
+      if (t > 0) {
+        const rate = w / t;
+        if (rate > best) best = rate;
+      }
+    }
+    if (best > 0) out.set(cs, best);
+  }
+  return out;
+}
+
 // ─── BOX signal ───────────────────────────────────────────────────────────────
 
 export interface BoxSignalParts { freq: number; pressure: number; box: number }

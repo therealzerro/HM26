@@ -30,6 +30,8 @@ import {
   computeWeightedScore,
   buildWarmingMap,
   buildPressureScaleCtx,
+  buildStateStrengthMap,
+  type StateHistoryRow,
 } from '../../lib/engineCore.js';
 import type { EngineConfig, ReplayPick, Scope } from './types.js';
 
@@ -123,6 +125,39 @@ async function fetchWarmingHistory(
     for (const r of rows) {
       if (r && typeof r.comboset_sorted === 'string' && typeof r.date_et === 'string') {
         all.push({ comboset_sorted: r.comboset_sorted, date_et: r.date_et });
+      }
+    }
+    if (rows.length < pageSize) break;
+  }
+  return all;
+}
+
+/**
+ * ENH-AUDIT v2 STATE_STR (2026-06-10): per-jurisdiction history window strictly
+ * BEFORE the replay date (no leakage — histories is date-stamped per draw, so
+ * as-of reconstruction is exact, unlike the datasets_* current-values caveat).
+ * All sessions count (per-state strength is a property of the state's draw
+ * stream, not of one session).
+ */
+async function fetchStateHistory(
+  date: string,
+  windowDays: number,
+): Promise<StateHistoryRow[]> {
+  const d = new Date(date + 'T12:00:00');
+  d.setDate(d.getDate() - windowDays);
+  const fromDate = d.toISOString().split('T')[0];
+  const all: StateHistoryRow[] = [];
+  const pageSize = 1000;
+  for (let offset = 0; offset < 20000; offset += pageSize) {
+    const page = await dbGet<any[]>(
+      `/histories?select=comboset_sorted,jurisdiction,date_et` +
+      `&date_et=gte.${fromDate}&date_et=lt.${date}` +
+      `&order=date_et.desc&limit=${pageSize}&offset=${offset}`,
+    );
+    const rows = Array.isArray(page) ? page : [];
+    for (const r of rows) {
+      if (r && typeof r.comboset_sorted === 'string' && typeof r.date_et === 'string') {
+        all.push({ comboset_sorted: r.comboset_sorted, jurisdiction: r.jurisdiction ?? null, date_et: r.date_et });
       }
     }
     if (rows.length < pageSize) break;
@@ -446,12 +481,16 @@ export async function computeSlateAsOf(
   const warmingWeightForThisScope = config.warmingWeightByScope?.[scope] ?? config.warmingWeight ?? 0;
   const warmingActive = warmingWeightForThisScope > 0;
   const warmingWindowDays = config.warmingWindowDays ?? 7;
-  const [boxRows, pairRows, historyRows, todayHitComboSets, warmingHistory] = await Promise.all([
+  // ENH-AUDIT v2 STATE_STR: per-scope weight resolution mirrors warming.
+  const stateStrWeightForThisScope = config.stateStrWeightByScope?.[scope] ?? config.stateStrWeight ?? 0;
+  const stateStrActive = stateStrWeightForThisScope > 0;
+  const [boxRows, pairRows, historyRows, todayHitComboSets, warmingHistory, stateHistory] = await Promise.all([
     fetchBoxRows(scopeEnc),
     fetchPairRows(scopeEnc),
     fetchHistoryRows(date, scope),
     excludeYesterday ? fetchYesterdayResults(date) : Promise.resolve(new Set<string>()),
     warmingActive ? fetchWarmingHistory(date, warmingWindowDays, scope, config.warmingScopeMatched === true) : Promise.resolve([] as { comboset_sorted: string; date_et: string }[]),
+    stateStrActive ? fetchStateHistory(date, config.stateStrWindowDays ?? 60) : Promise.resolve([] as StateHistoryRow[]),
   ]);
 
   const { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap, boxByHorizon, pairData, boxTimesDrawnByHorizon, pairTimesDrawnByHorizon } = buildDatasets(boxRows, pairRows);
@@ -635,6 +674,23 @@ export async function computeSlateAsOf(
     normWarming = maxNorm(Array.from(rawWarming), true);
     for (let i = 0; i < 1000; i++) {
       finalScores[i] += warmingWeightForThisScope * normWarming[i];
+    }
+  }
+
+  // ENH-AUDIT v2 STATE_STR: post-score additive boost (warming pattern).
+  // strength map built from the as-of per-jurisdiction window, max-normed
+  // across the universe, weighted into finalScores before energy + K6.
+  if (stateStrActive) {
+    const strengthMap = buildStateStrengthMap(
+      stateHistory, date, config.stateStrHalfLifeDays ?? 14,
+    );
+    const rawStateStr = new Float64Array(1000);
+    for (let i = 0; i < 1000; i++) {
+      rawStateStr[i] = strengthMap.get(toComboSet(universe[i])) ?? 0;
+    }
+    const normStateStr = maxNorm(Array.from(rawStateStr), true);
+    for (let i = 0; i < 1000; i++) {
+      finalScores[i] += stateStrWeightForThisScope * normStateStr[i];
     }
   }
 

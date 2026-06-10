@@ -43,9 +43,11 @@ import {
   computeWeightedScore,
   buildWarmingMap,
   buildPressureScaleCtx,
+  buildStateStrengthMap,
   type PairTimesDrawnTree,
   type SignalAuc,
   type PressureScaleMode,
+  type StateHistoryRow,
 } from '@/lib/engineCore';
 
 const ENGINE_VERSION = 'v2.1';
@@ -355,6 +357,43 @@ async function fetchWarmingHistory(
 }
 
 /**
+ * ENH-AUDIT v2 STATE_STR (2026-06-10): per-jurisdiction history window for the
+ * state-strength channel. Same pagination/shape as fetchWarmingHistory plus
+ * the jurisdiction column. All sessions count. Fetched only when the
+ * effective STATE_STR weight is non-zero (zero added latency when off);
+ * failure returns [] and the engine falls back to no boost (bit-identical).
+ */
+async function fetchStateStrengthHistory(
+  todayEt: string,
+  windowDays: number,
+): Promise<StateHistoryRow[]> {
+  try {
+    const todayDate = new Date(todayEt + 'T12:00:00');
+    todayDate.setDate(todayDate.getDate() - windowDays);
+    const fromDate = todayDate.toISOString().split('T')[0];
+    const all: StateHistoryRow[] = [];
+    const pageSize = 1000;
+    for (let offset = 0; offset < 20000; offset += pageSize) {
+      const page = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/histories?select=comboset_sorted,jurisdiction,date_et` +
+          `&date_et=gte.${fromDate}&date_et=lt.${todayEt}` +
+          `&order=date_et.desc&limit=${pageSize}&offset=${offset}`,
+      });
+      const arr = Array.isArray(page) ? page : [];
+      for (const r of arr) {
+        if (r && typeof r.comboset_sorted === 'string' && typeof r.date_et === 'string') {
+          all.push({ comboset_sorted: r.comboset_sorted, jurisdiction: r.jurisdiction ?? null, date_et: r.date_et });
+        }
+      }
+      if (arr.length < pageSize) break;
+    }
+    return all;
+  } catch {
+    return [];
+  }
+}
+
+/**
  * ENG-STATE-DATA-05 (2026-06-09): for each comboSet seen nationally in the
  * prior N-day window, bucket the per-jurisdiction hit counts so the slate
  * output can carry "top states this combo hit in" + total recent hit count.
@@ -588,6 +627,15 @@ interface EngineConfig {
   // pressure channel to the live post-DATA-01 ds_raw distribution. Read from
   // app_config.pressure_scale_mode; ship-gated by backtest (CONFIG-16).
   pressureScaleMode: PressureScaleMode;
+  // ENH-AUDIT-2026-05-19 v2 STATE_STR (2026-06-10): per-state pattern-strength
+  // channel, post-score additive (warming pattern). Weight 0 (default) =
+  // bit-identical 4-channel engine. Keys: state_str_weight (global),
+  // state_str_weight_${scope} (override), state_str_half_life_days,
+  // state_str_window_days. Ship-gated by backtest per spec.
+  stateStrWeight: number;
+  effectiveStateStrWeight?: number;
+  stateStrHalfLifeDays: number;
+  stateStrWindowDays: number;
 }
 
 const DEFAULT_ENGINE_CONFIG: EngineConfig = {
@@ -607,6 +655,9 @@ const DEFAULT_ENGINE_CONFIG: EngineConfig = {
   warmingWeight: 0,
   warmingWindowDays: 7,
   pressureScaleMode: 'legacy',
+  stateStrWeight: 0,
+  stateStrHalfLifeDays: 14,
+  stateStrWindowDays: 60,
 };
 
 async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
@@ -637,6 +688,8 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     // ENH-WARMING-2026-06-06: warming weight per-scope override, plus the
     // shared window-size key. Same resolution as cooldown / freq / pressure.
     const scopeWarmingKey = scope ? `warming_weight_${scope}` : null;
+    // ENH-AUDIT v2 STATE_STR (2026-06-10): same per-scope override pattern.
+    const scopeStateStrKey = scope ? `state_str_weight_${scope}` : null;
     const keyList = [
       'engine_weights_balanced',
       'k6_singles_max', 'k6_doubles_max', 'k6_triples_on', 'pair_rep_cap',
@@ -648,6 +701,8 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       'adaptive_signal_weights_enabled', 'adaptive_signal_weights_alpha',
       'warming_weight', 'warming_window_days',
       'pressure_scale_mode',
+      'state_str_weight', 'state_str_half_life_days', 'state_str_window_days',
+      ...(scopeStateStrKey ? [scopeStateStrKey] : []),
       ...(scopeCooldownKey ? [scopeCooldownKey] : []),
       ...(scopeBoxFreqKey  ? [scopeBoxFreqKey]  : []),
       ...(scopeBoxPressKey ? [scopeBoxPressKey] : []),
@@ -684,6 +739,10 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     let warmingWindowDays = 7;
     let scopeWarmingOverride: number | null = null;
     let pressureScaleMode: PressureScaleMode = 'legacy';
+    let stateStrWeight = 0;
+    let stateStrHalfLifeDays = 14;
+    let stateStrWindowDays = 60;
+    let scopeStateStrOverride: number | null = null;
 
     for (const row of rows) {
       try {
@@ -763,6 +822,26 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
           }
           continue;
         }
+        if (row.key === 'state_str_weight') {
+          const v = parseFloat(row.value);
+          if (!isNaN(v) && v >= 0 && v <= 1) stateStrWeight = v;
+          continue;
+        }
+        if (row.key === 'state_str_half_life_days') {
+          const v = parseInt(row.value, 10);
+          if (!isNaN(v) && v >= 1 && v <= 90) stateStrHalfLifeDays = v;
+          continue;
+        }
+        if (row.key === 'state_str_window_days') {
+          const v = parseInt(row.value, 10);
+          if (!isNaN(v) && v >= 7 && v <= 365) stateStrWindowDays = v;
+          continue;
+        }
+        if (scopeStateStrKey && row.key === scopeStateStrKey) {
+          const v = parseFloat(row.value);
+          if (!isNaN(v) && v >= 0 && v <= 1) scopeStateStrOverride = v;
+          continue;
+        }
         if (row.key === 'synergy_boost_on')     { synergyOn = row.value === 'true'; continue; }
         if (row.key === 'synergy_boost_weight') { const v = parseFloat(row.value); if (!isNaN(v) && v >= 0) synergyWeight = v; continue; }
         if (row.key === 'horizon_weights') {
@@ -828,6 +907,10 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     if (effectiveWarmingWeight > 0) {
       console.log(`[zk6v2] WARMING active: scope=${scope ?? 'global'} weight=${effectiveWarmingWeight} windowDays=${warmingWindowDays}`);
     }
+    const effectiveStateStrWeight = scopeStateStrOverride ?? stateStrWeight;
+    if (effectiveStateStrWeight > 0) {
+      console.log(`[zk6v2] STATE_STR active: scope=${scope ?? 'global'} weight=${effectiveStateStrWeight} halfLife=${stateStrHalfLifeDays}d window=${stateStrWindowDays}d`);
+    }
     return {
       presets, rails, pressureThreshold,
       minEnergyThreshold: effectiveMinEnergyThreshold,
@@ -842,6 +925,10 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       effectiveWarmingWeight,
       warmingWindowDays,
       pressureScaleMode,
+      stateStrWeight,
+      effectiveStateStrWeight,
+      stateStrHalfLifeDays,
+      stateStrWindowDays,
     };
   } catch {
     return DEFAULT_ENGINE_CONFIG;
@@ -1041,7 +1128,9 @@ export async function computeSlate({
   // ENG-SLATE-METRICS-06 (2026-06-09): per-scope recent slate match rates.
   // Also parallelized; nulls on failure. Pure read-only metadata.
   const STATE_AGG_WINDOW_DAYS = 14;
-  const [ds, { dsOverride, lsOverride, hitDatesMap }, warmingRows, stateAggMap, slateMatchRates] = await Promise.all([
+  // ENH-AUDIT v2 STATE_STR: per-jurisdiction window fetched only when active.
+  const stateStrActive = (cfg.effectiveStateStrWeight ?? 0) > 0;
+  const [ds, { dsOverride, lsOverride, hitDatesMap }, warmingRows, stateAggMap, slateMatchRates, stateStrRows] = await Promise.all([
     fetchDatasets(scope),
     fetchHistoryOverrides(scope),
     warmingActive
@@ -1049,6 +1138,9 @@ export async function computeSlate({
       : Promise.resolve([] as { comboset_sorted: string; date_et: string }[]),
     fetchStateAggregation(todayEt, STATE_AGG_WINDOW_DAYS),
     fetchRecentSlateMatchRates(scope, todayEt),
+    stateStrActive
+      ? fetchStateStrengthHistory(effectiveDate, cfg.stateStrWindowDays)
+      : Promise.resolve([] as StateHistoryRow[]),
   ]);
   if (warmingActive) {
     console.log(`[zk6v2] WARMING fetched ${warmingRows.length} rows over ${cfg.warmingWindowDays}d window`);
@@ -1323,6 +1415,24 @@ export async function computeSlate({
     const nonZero = Array.from(rawWarming).filter(v => v > 0).length;
     const maxW = Array.from(rawWarming).reduce((m, v) => v > m ? v : m, 0);
     console.log(`[zk6v2] WARMING applied: weight=${wWeight} nonZeroCombos=${nonZero} maxRaw=${maxW}`);
+  }
+
+  // ── 5c. ENH-AUDIT v2 STATE_STR post-score boost ──────────────────────────────
+  // Per-state pattern strength (max across jurisdictions of recency-weighted
+  // per-draw hit rate), max-normed, added as effectiveStateStrWeight ×
+  // normStateStr. Skipped when weight is 0 — bit-identical 4-channel engine.
+  if (stateStrActive) {
+    const strengthMap = buildStateStrengthMap(stateStrRows, effectiveDate, cfg.stateStrHalfLifeDays);
+    const rawStateStr = new Float64Array(1000);
+    for (let i = 0; i < 1000; i++) {
+      rawStateStr[i] = strengthMap.get(toComboSet(universe[i])) ?? 0;
+    }
+    const normStateStr = maxNorm(Array.from(rawStateStr), true);
+    const ssWeight = cfg.effectiveStateStrWeight ?? 0;
+    for (let i = 0; i < 1000; i++) {
+      finalScores[i] += ssWeight * normStateStr[i];
+    }
+    console.log(`[zk6v2] STATE_STR applied: weight=${ssWeight} comboSetsWithStrength=${strengthMap.size} rows=${stateStrRows.length}`);
   }
 
   // ── 6. Two-pass K6 selection ──────────────────────────────────────────────────

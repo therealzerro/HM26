@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-10 (Fable 5 sweep #3 + ENG-OBS-05/06 resolution under operator override. BUG-161 latent RN crash fixed; `prod_parity_2026_06_09` parity preset added; ENG-OBS-06 fixed (harness models production reorder); ENG-OBS-05 resolved — pressure rescale implemented behind `pressure_scale_mode` (default legacy), backtested, FALSIFIED at current weights (p95ramp −6.9pp, percentile −11.5pp overall slate), NOT flipped; edge fn v40 deployed (bit-identical behavior, lever now SQL-flippable).)  
+**Last updated:** 2026-06-10 (Fable 5 session: sweep #3 (BUG-161 fix, parity preset, ENG-OBS-05/06 resolved — pressure rescale falsified, reorder modeled in harness); **CONFIG-16 shipped** (allday DGC→0, +6.9pp backtest, review 6/17; midday KEEPS DGC −13.8pp if zeroed; evening held for CONFIG-15 watch); **ENH-AUDIT v2 STATE_STR built flag-off and falsified** (selection w=0.10 −8.1pp overall; allocation signal null 34.6% vs 38.1% base); edge fn at **v41**; baseline preset now `prod_parity_2026_06_10`.)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -22,6 +22,41 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 - Backtest result confirming improvement, OR explicit "untested, applying for empirical observation" with planned review date
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
+
+### CONFIG-16 — Allday DGC 16.4 → 0 (2026-06-10 00:41 UTC)
+
+**Operator directive:** "zero DGC and start the per-state layer… I just want the engine to work and hit above baseline." Gate run BEFORE ship per standing rule; the gate split the verdict per scope and the ship followed the data, not the directive's literal scope:
+
+| scope | baseline (prod_parity_2026_06_09) | dgc_zero_all | decision |
+|---|---|---|---|
+| midday | 79.3% | 65.5% (−13.8pp) | **KEEP DGC** — it does real work at midday |
+| evening | 86.2% | 86.2% (tie) | **HOLD** — no benefit shown, and CONFIG-15's 3-day watch must not be confounded by a second evening change |
+| allday | 89.7% | **96.6% (+6.9pp)**, pick 32.2→37.9 | **SHIPPED** |
+
+Supporting evidence: live 49d per-signal AUC has DGC < 0.5 in all scopes (0.449/0.474/0.454) — but the backtest shows the pick-pool interaction differs per scope; AUC alone would have wrongly zeroed midday.
+
+**Shipped:** `engine_weights_balanced_allday` → `{"BOX":64.7,"PBURST":35.3,"CO":0,"DGC":0}` (proportional redistribution, CONFIG-14/15 pattern). Pure config; no deploy; first slate under it 2026-06-10 morning.
+**Review window: 2026-06-17** (7d). Rollback (one SQL row → `{"BOX":54.1,"PBURST":29.5,"CO":0,"DGC":16.4}`) if any of: 7d allday slate rate < 88%; allday pick rate < 31% (5pp below the 36–38% backtest band); allday r1 trails the 31% baseline band by >5pp.
+**Harness:** baseline preset rolled forward → `prod_parity_2026_06_10` (use from now on); `dgc_zero_all` candidate preset retained for the audit trail.
+
+---
+
+### ENH-AUDIT v2 STATE_STR — Built Flag-Off; Selection Channel FALSIFIED; Allocation Signal NULL (2026-06-10)
+
+Per-state layer started per operator directive. Infrastructure complete end-to-end, both empirical uses tested same session — **both negative**. Channel remains in the code at weight 0 (bit-identical engine) for future re-testing.
+
+**Built (all default-off):**
+- `buildStateStrengthMap()` in `lib/engineCore.ts` — recency-weighted per-draw hit rate of each comboSet within each jurisdiction (exp decay, half-life 14d, window 60d, <10-draw jurisdictions skipped), combo signal = max across jurisdictions.
+- Applied as post-score additive channel (warming pattern — deliberate deviation from the spec's 5-channel WeightSet migration; mathematically identical for ranking, far smaller blast radius). Wired in `engines/zk6.ts`, `compute-slate-zk6` (**v41 deployed**, verify_jwt=true), and the harness (`stateStrWeight[ByScope]`, `stateStrHalfLifeDays`, `stateStrWindowDays`). New app_config keys: `state_str_weight`, `state_str_weight_${scope}`, `state_str_half_life_days`, `state_str_window_days` — none written; defaults 0/14/60.
+- Harness as-of fetch is leakage-free (histories is per-draw date-stamped, unlike the datasets_* current-values caveat).
+
+**Test 1 — selection channel (30d, n=87, same-run vs `prod_parity_2026_06_10`):** `state_str_010` (w=0.10 global): midday 79.3→62.1 (−17.2pp), evening 86.2→82.8, allday 96.6→93.1, **overall 87.4→79.3 (−8.1pp). FALSIFIED.** Higher weights not tested — damage is large, uniform-direction, and consistent with the WARMING revert + anti-CO findings: *recent-hotness in any form is anti-predictive at this engine's margin.* The spec's CO-collinearity risk note was correct.
+
+**Test 2 — allocation signal (does per-state history predict WHERE a pick hits?):** of 133 on-slate hits since 5/13, the hitting state had drawn that comboSet in the prior 60d **34.6%** of the time vs a volume-weighted base of **38.1%** (n=1,992 draws) — zero signal, slightly negative point estimate.
+
+**Conclusion for ENH-AUDIT-2026-05-19:** the v2 selection hypothesis is rejected on current data; v1 (display-only per-state context) remains shippable as a UX/marketing feature but should NOT be sold internally as an accuracy lever. The midday rank-1 inversion's "structural fix" needs a different information source than per-state draw history (candidates: none currently identified that survive the uniform-draw evidence — see Information Ceiling analysis 2026-06-10).
+
+---
 
 ### Engine Sweep #3 — Fable 5 Fresh-Eyes Audit (2026-06-10)
 

@@ -171,6 +171,17 @@ export interface EngineConfig {
   // rates are invariant (same 6 combos). Default false preserves historical
   // preset reproducibility (selection-order ranks).
   modelDisplayReorder?: boolean;
+  // ENH-AUDIT-2026-05-19 v2 STATE_STR (2026-06-10): per-state pattern-strength
+  // channel, applied as a post-score additive boost (warming pattern):
+  // finalScore += w × normStateStr. Signal = max across jurisdictions of the
+  // recency-weighted per-draw hit rate of the comboSet within that
+  // jurisdiction (exp decay, halfLife default 14d, window default 60d,
+  // jurisdictions with <10 draws skipped). 0/undefined ⇒ bit-identical to the
+  // 4-channel engine. Per-scope override mandatory for ship (spec risk note).
+  stateStrWeight?: number;
+  stateStrWeightByScope?: Partial<Record<Scope, number>>;
+  stateStrHalfLifeDays?: number;
+  stateStrWindowDays?: number;
 }
 
 export interface ReplayPick {

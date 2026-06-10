@@ -14,9 +14,11 @@ import {
   blendBoxTimesDrawn, blendPairTimesDrawn,
   bestOrderFor, intelligenceRowExtras, computeAdaptiveWeights,
   buildPressureScaleCtx,
+  buildStateStrengthMap,
   type PairDataTree, type PairTimesDrawnTree,
   type Scope, type WeightSet, type SignalAuc,
   type PressureScaleMode,
+  type StateHistoryRow,
 } from '../_shared/engineCore.ts';
 import { getTodayET, getYesterdayET } from '../_shared/dateUtils.ts';
 
@@ -101,6 +103,12 @@ interface EngineConfig {
   // curve (bit-identical default). Read from app_config.pressure_scale_mode;
   // ship-gated by backtest (CONFIG-16).
   pressureScaleMode: PressureScaleMode;
+  // ENH-AUDIT v2 STATE_STR (2026-06-10): per-state strength channel, additive,
+  // weight 0 default = bit-identical. Mirror of engines/zk6.ts.
+  stateStrWeight: number;
+  effectiveStateStrWeight?: number;
+  stateStrHalfLifeDays: number;
+  stateStrWindowDays: number;
 }
 interface Datasets {
   boxByHorizon: BoxByHorizon;
@@ -146,6 +154,9 @@ const DEFAULT_CFG: EngineConfig = {
   warmingWeight: 0,
   warmingWindowDays: 7,
   pressureScaleMode: 'legacy',
+  stateStrWeight: 0,
+  stateStrHalfLifeDays: 14,
+  stateStrWindowDays: 60,
 };
 
 // ─── Config loader ────────────────────────────────────────────────────────────
@@ -167,6 +178,8 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     const scopeMinEnergyKey = scope ? `min_energy_threshold_${scope}` : null;
     // ENH-WARMING-2026-06-06: warming weight per-scope override + window key.
     const scopeWarmingKey = scope ? `warming_weight_${scope}` : null;
+    // ENH-AUDIT v2 STATE_STR: per-scope override key.
+    const scopeStateStrKey = scope ? `state_str_weight_${scope}` : null;
     const keyList = [
       'engine_weights_balanced',
       'k6_singles_max', 'k6_doubles_max', 'k6_triples_on', 'pair_rep_cap',
@@ -178,6 +191,8 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       'adaptive_signal_weights_enabled', 'adaptive_signal_weights_alpha',
       'warming_weight', 'warming_window_days',
       'pressure_scale_mode',
+      'state_str_weight', 'state_str_half_life_days', 'state_str_window_days',
+      ...(scopeStateStrKey ? [scopeStateStrKey] : []),
       ...(scopeCooldownKey ? [scopeCooldownKey] : []),
       ...(scopeBoxFreqKey  ? [scopeBoxFreqKey]  : []),
       ...(scopeBoxPressKey ? [scopeBoxPressKey] : []),
@@ -196,6 +211,7 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     let scopeBalancedOverride:     WeightSet | null = null;
     let scopeMinEnergyOverride: number | null = null;
     let scopeWarmingOverride: number | null = null;
+    let scopeStateStrOverride: number | null = null;
     for (const row of rows) {
       try {
         if (row.key === 'k6_singles_max')       { const v = parseInt(row.value,10); if (!isNaN(v)) cfg.rails.singlesMax = v; continue; }
@@ -265,6 +281,26 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
           if (!isNaN(v) && v >= 0 && v <= 1) scopeWarmingOverride = v;
           continue;
         }
+        if (row.key === 'state_str_weight') {
+          const v = parseFloat(row.value);
+          if (!isNaN(v) && v >= 0 && v <= 1) cfg.stateStrWeight = v;
+          continue;
+        }
+        if (row.key === 'state_str_half_life_days') {
+          const v = parseInt(row.value, 10);
+          if (!isNaN(v) && v >= 1 && v <= 90) cfg.stateStrHalfLifeDays = v;
+          continue;
+        }
+        if (row.key === 'state_str_window_days') {
+          const v = parseInt(row.value, 10);
+          if (!isNaN(v) && v >= 7 && v <= 365) cfg.stateStrWindowDays = v;
+          continue;
+        }
+        if (scopeStateStrKey && row.key === scopeStateStrKey) {
+          const v = parseFloat(row.value);
+          if (!isNaN(v) && v >= 0 && v <= 1) scopeStateStrOverride = v;
+          continue;
+        }
         if (row.key === 'pressure_scale_mode') {
           // ENG-OBS-05: unknown values fall back to legacy (bit-identical curve).
           if (row.value === 'legacy' || row.value === 'p95ramp' || row.value === 'percentile') {
@@ -329,6 +365,10 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     cfg.effectiveWarmingWeight = scopeWarmingOverride ?? cfg.warmingWeight;
     if ((cfg.effectiveWarmingWeight ?? 0) > 0) {
       console.log(`[edge-zk6] WARMING active: scope=${scope ?? 'global'} weight=${cfg.effectiveWarmingWeight} windowDays=${cfg.warmingWindowDays}`);
+    }
+    cfg.effectiveStateStrWeight = scopeStateStrOverride ?? cfg.stateStrWeight;
+    if ((cfg.effectiveStateStrWeight ?? 0) > 0) {
+      console.log(`[edge-zk6] STATE_STR active: scope=${scope ?? 'global'} weight=${cfg.effectiveStateStrWeight} halfLife=${cfg.stateStrHalfLifeDays}d window=${cfg.stateStrWindowDays}d`);
     }
     return cfg;
   } catch {
@@ -551,6 +591,41 @@ async function fetchWarmingHistory(
 }
 
 /**
+ * ENH-AUDIT v2 STATE_STR (2026-06-10): per-jurisdiction history window for the
+ * state-strength channel. Mirror of engines/zk6.ts fetchStateStrengthHistory.
+ * Fetched only when the effective STATE_STR weight is non-zero.
+ */
+async function fetchStateStrengthHistory(
+  todayEt: string,
+  windowDays: number,
+): Promise<StateHistoryRow[]> {
+  try {
+    const todayDate = new Date(todayEt + 'T12:00:00');
+    todayDate.setDate(todayDate.getDate() - windowDays);
+    const fromDate = todayDate.toISOString().split('T')[0];
+    const all: StateHistoryRow[] = [];
+    const pageSize = 1000;
+    for (let offset = 0; offset < 20000; offset += pageSize) {
+      const page = await sbGet<any[]>(
+        `/rest/v1/histories?select=comboset_sorted,jurisdiction,date_et` +
+          `&date_et=gte.${fromDate}&date_et=lt.${todayEt}` +
+          `&order=date_et.desc&limit=${pageSize}&offset=${offset}`,
+      );
+      const arr = Array.isArray(page) ? page : [];
+      for (const r of arr) {
+        if (r && typeof r.comboset_sorted === 'string' && typeof r.date_et === 'string') {
+          all.push({ comboset_sorted: r.comboset_sorted, jurisdiction: r.jurisdiction ?? null, date_et: r.date_et });
+        }
+      }
+      if (arr.length < pageSize) break;
+    }
+    return all;
+  } catch {
+    return [];
+  }
+}
+
+/**
  * ENG-STATE-DATA-05 (2026-06-09): per-comboSet jurisdiction hit aggregation
  * for slate output metadata. Mirror of engines/zk6.ts:~fetchStateAggregation.
  * Failure returns empty Map — slate generation continues with empty state
@@ -745,7 +820,8 @@ async function computeSlate(params: {
   // ENG-STATE-DATA-05 (2026-06-09): parallel 14d state-agg fetch.
   // ENG-SLATE-METRICS-06 (2026-06-09): parallel recent slate match rates.
   const STATE_AGG_WINDOW_DAYS = 14;
-  const [ds, { dsOverride, lsOverride, hitDatesMap }, warmingRows, stateAggMap, slateMatchRates] = await Promise.all([
+  const stateStrActive = (cfg.effectiveStateStrWeight ?? 0) > 0;
+  const [ds, { dsOverride, lsOverride, hitDatesMap }, warmingRows, stateAggMap, slateMatchRates, stateStrRows] = await Promise.all([
     fetchDatasets(scope),
     fetchHistoryOverrides(scope),
     warmingActive
@@ -753,6 +829,9 @@ async function computeSlate(params: {
       : Promise.resolve([] as { comboset_sorted: string; date_et: string }[]),
     fetchStateAggregation(todayEt, STATE_AGG_WINDOW_DAYS),
     fetchRecentSlateMatchRates(scope, todayEt),
+    stateStrActive
+      ? fetchStateStrengthHistory(effectiveDate, cfg.stateStrWindowDays)
+      : Promise.resolve([] as StateHistoryRow[]),
   ]);
   if (warmingActive) {
     console.log(`[edge-zk6] WARMING fetched ${warmingRows.length} rows over ${cfg.warmingWindowDays}d window`);
@@ -947,6 +1026,22 @@ async function computeSlate(params: {
     const nonZero = Array.from(rawWarming).filter(v => v > 0).length;
     const maxW = Array.from(rawWarming).reduce((m, v) => v > m ? v : m, 0);
     console.log(`[edge-zk6] WARMING applied: weight=${wWeight} nonZeroCombos=${nonZero} maxRaw=${maxW}`);
+  }
+
+  // 5c. ENH-AUDIT v2 STATE_STR: post-score additive boost (warming pattern).
+  // Mirror of engines/zk6.ts §5c. Bit-identical when weight=0.
+  if (stateStrActive) {
+    const strengthMap = buildStateStrengthMap(stateStrRows, effectiveDate, cfg.stateStrHalfLifeDays);
+    const rawStateStr = new Float64Array(1000);
+    for (let i = 0; i < 1000; i++) {
+      rawStateStr[i] = strengthMap.get(toComboSet(universe[i])) ?? 0;
+    }
+    const normStateStr = maxNorm(Array.from(rawStateStr), true);
+    const ssWeight = cfg.effectiveStateStrWeight ?? 0;
+    for (let i = 0; i < 1000; i++) {
+      finalScores[i] += ssWeight * normStateStr[i];
+    }
+    console.log(`[edge-zk6] STATE_STR applied: weight=${ssWeight} comboSetsWithStrength=${strengthMap.size} rows=${stateStrRows.length}`);
   }
 
   // 6. K6 selection (6 passes)

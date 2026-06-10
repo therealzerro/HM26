@@ -3199,6 +3199,103 @@ export const CONFIGS: Record<string, EngineConfig> = {
     timesDrawnHorizonBlend: true,
   },
 
+  // ─── CONFIG-16 candidate (2026-06-10): DGC → 0 in all scopes ────────────────
+  // Live 49-day per-signal AUC (signal_auc_per_day): DGC 0.449 midday / 0.474
+  // evening / 0.454 allday — below 0.5 (anti-predictive) in every scope while
+  // carrying 10–16.4% weight. Weight redistributed proportionally to the
+  // surviving channels per scope (CONFIG-14/15 allocation pattern):
+  //   midday  {20.8,5.2,64,10}   → /0.90  → {23.11, 5.78, 71.11, 0}
+  //   evening {56.25,31.25,0,12.5} → /0.875 → {64.29, 35.71, 0, 0}
+  //   allday  {54.1,29.5,0,16.4} → /0.836 → {64.71, 35.29, 0, 0}
+  // Counter-evidence to beat: CONFIG-09/10 (5/27) showed DGC helping r1 under
+  // the old indicator ordering. With the ds-desc reorder now modeled, the gate
+  // re-adjudicates on current production ordering.
+  dgc_zero_all: {
+    modelDisplayReorder: true,
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      aggressive:   { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 100, minEnergyThreshold: 70, recentHitCooldown: 20,
+    recentHitCooldownByScope: { midday: 10 },
+    synergyOn: false, synergyWeight: 0.15,
+    excludeYesterdayHits: false,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.2311, PBURST: 0.0578, CO: 0.7111, DGC: 0 },
+        conservative: { BOX: 0.2311, PBURST: 0.0578, CO: 0.7111, DGC: 0 },
+        aggressive:   { BOX: 0.2311, PBURST: 0.0578, CO: 0.7111, DGC: 0 },
+      },
+      evening: {
+        balanced:     { BOX: 0.6429, PBURST: 0.3571, CO: 0, DGC: 0 },
+        conservative: { BOX: 0.6429, PBURST: 0.3571, CO: 0, DGC: 0 },
+        aggressive:   { BOX: 0.6429, PBURST: 0.3571, CO: 0, DGC: 0 },
+      },
+      allday: {
+        balanced:     { BOX: 0.6471, PBURST: 0.3529, CO: 0, DGC: 0 },
+        conservative: { BOX: 0.6471, PBURST: 0.3529, CO: 0, DGC: 0 },
+        aggressive:   { BOX: 0.6471, PBURST: 0.3529, CO: 0, DGC: 0 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+  },
+
+  // ─── TRUE production parity as of 2026-06-10 00:42 UTC (post-CONFIG-16) ────
+  // = prod_parity_2026_06_09 with the CONFIG-16 allday weights (DGC→0,
+  // redistributed: {64.7, 35.3, 0, 0}). Use as BASELINE from 2026-06-10 on.
+  prod_parity_2026_06_10: {
+    modelDisplayReorder: true,
+    presets: {
+      balanced:     { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      conservative: { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+      aggressive:   { BOX: 0.495, PBURST: 0.270, CO: 0.135, DGC: 0.10 },
+    },
+    rails: { singlesMax: 4, doublesMax: 2, triplesOn: false, pairRepCap: 2 },
+    pressureThreshold: 100, minEnergyThreshold: 70, recentHitCooldown: 20,
+    recentHitCooldownByScope: { midday: 10 },
+    synergyOn: false, synergyWeight: 0.15,
+    excludeYesterdayHits: false,
+    boxFreqWeightByScope:     { midday: 0.60, evening: 0.60, allday: 0.60 },
+    boxPressureWeightByScope: { midday: -0.40, evening: -0.40, allday: 0.40 },
+    horizonWeights: { H01Y: 0.60, H02Y: 0.40, H03Y: 0, H04Y: 0, H05Y: 0, H06Y: 0, H07Y: 0, H08Y: 0, H09Y: 0, H10Y: 0 },
+    presetByScope: {
+      midday: {
+        balanced:     { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+        conservative: { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+        aggressive:   { BOX: 0.208, PBURST: 0.052, CO: 0.640, DGC: 0.100 },
+      },
+      evening: {
+        balanced:     { BOX: 0.5625, PBURST: 0.3125, CO: 0.000, DGC: 0.125 },
+        conservative: { BOX: 0.5625, PBURST: 0.3125, CO: 0.000, DGC: 0.125 },
+        aggressive:   { BOX: 0.5625, PBURST: 0.3125, CO: 0.000, DGC: 0.125 },
+      },
+      allday: {
+        balanced:     { BOX: 0.647, PBURST: 0.353, CO: 0, DGC: 0 },
+        conservative: { BOX: 0.647, PBURST: 0.353, CO: 0, DGC: 0 },
+        aggressive:   { BOX: 0.647, PBURST: 0.353, CO: 0, DGC: 0 },
+      },
+    },
+    timesDrawnHorizonBlend: true,
+  },
+
+  // ─── ENH-AUDIT v2 STATE_STR sweep (2026-06-10) ──────────────────────────────
+  // Per-state pattern-strength channel as post-score additive boost. Global
+  // weight for direction-finding; ship (if any) will be per-scope per the spec
+  // risk note. Gate: midday top-6 ≥ 25% without slate regression elsewhere.
+  // Defined via spread of the 2026-06-10 parity baseline — only the stateStr
+  // fields differ; all other knobs are production-identical.
+  get state_str_010() {
+    return { ...this.prod_parity_2026_06_10, stateStrWeight: 0.10, stateStrWindowDays: 60, stateStrHalfLifeDays: 14 };
+  },
+  get state_str_020() {
+    return { ...this.prod_parity_2026_06_10, stateStrWeight: 0.20, stateStrWindowDays: 60, stateStrHalfLifeDays: 14 };
+  },
+
   prp_percentile: {
     modelDisplayReorder: true,
     pressureScaleMode: 'percentile',

@@ -1063,6 +1063,16 @@ Midday mostly survives because midday results import same-day. **Do not read `en
 
 ---
 
+### DATA-02 — Stale Jurisdiction Codes MSS/WC From Pre-5/6 Parser ✅ FIXED (2026-06-10)
+
+**Problem.** Two legacy jurisdiction codes survived in data from imports before the ~2026-05-05/06 parser cutover: `MSS` (38 `histories` rows, 2026-04-17 → 05-05; canonical `MS`) and `WC` (27 rows, 2026-04-09 → 05-05; canonical `W.Canada`). Date ranges were perfectly complementary with their canonical twins (`MS` 86 rows from 05-06 onward → 124 total; `W.Canada` 35 rows from 05-06 → 62 total), confirming rename-not-separate-jurisdiction. Stale codes had also been stamped into `daily_intelligence.hit_state` (MSS:7, WC:3) and `adaptive_tracking.matched_state` (MSS:2, WC:1). Effect: per-state footprints/leaderboards silently split one state's history across two keys (surfaced during a 2026-06-10 bet analysis when `MSS:1` appeared in a 90d footprint).
+
+**Fix.** Verified zero (date_et, session, result_digits) collisions between each stale/canonical pair, then single transaction renaming MSS→MS and WC→W.Canada across `histories`, `daily_intelligence.hit_state`, `adaptive_tracking.matched_state`. Post-fix: MS=124, W.Canada=62, zero stale rows. Grep confirms no code emits `MSS`/`WC` — the parser was already fixed at the 5/6 cutover; this was data residue only.
+
+**Engine impact.** None on ZK6 scoring (national-aggregated slice, jurisdiction-blind). Per-state surfaces (footprint queries, jurisdiction leaderboards, recentStateHits14d-style metadata) now see MS and W.Canada whole.
+
+---
+
 ### ENG-PRESSURE-CLIFF-01 — BOX Pressure Discontinuity at dsVal=100 (2026-06-09)
 
 **Problem.** In `lib/engineCore.ts:computeBoxSignalDetailed`, when `pressureThreshold <= 100` (live CONFIG-12 value), the middle branch becomes degenerate:

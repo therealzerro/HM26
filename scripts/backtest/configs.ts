@@ -3391,4 +3391,33 @@ export const CONFIGS: Record<string, EngineConfig> = {
     },
     timesDrawnHorizonBlend: true,
   },
+
+  // ─── BUG-DBL-STARVE-01 candidates (2026-06-11) ──────────────────────────────
+  // Doubles can't clear the pooled p70 energy floor, so the doubles quota
+  // (doublesMax=2) never fills, every slate falls through to Pass 6, and the
+  // Pass-6 relaxation disables the cooldown — letting yesterday's winners onto
+  // the slate. Candidates relax ONLY the doubles energy floor (per-mult floor
+  // already supported here since ENH-DBL-H2); selection otherwise identical to
+  // prod_parity_2026_06_10. NOTE: H2-style flat relaxation tanked quality on
+  // 5/18-era weights — re-testing against current production weights.
+  get dbl_fix_floor40() {
+    return { ...this.prod_parity_2026_06_10, minEnergyThresholdByMultiplicity: { singles: 70, doubles: 40, triples: 70 } };
+  },
+  get dbl_fix_floor20() {
+    return { ...this.prod_parity_2026_06_10, minEnergyThresholdByMultiplicity: { singles: 70, doubles: 20, triples: 70 } };
+  },
+  get dbl_fix_floor0() {
+    return { ...this.prod_parity_2026_06_10, minEnergyThresholdByMultiplicity: { singles: 70, doubles: 0, triples: 70 } };
+  },
+  // Quota fix: stop demanding 2 doubles the universe can't profitably supply.
+  // singlesMax 6 lets Pass 1 fill the slate with cooldown-clean singles, so
+  // selection never reaches Pass 5/6 (where the cooldown gets relaxed and
+  // yesterday's winners leak in). Doubles remain eligible on merit (cap 2).
+  get dbl_fix_singles6() {
+    return { ...this.prod_parity_2026_06_10, rails: { singlesMax: 6, doublesMax: 2, triplesOn: false, pairRepCap: 2 } };
+  },
+  // Variant: hard-zero the doubles quota as well (pure-singles slate).
+  get dbl_fix_singles6_dbl0() {
+    return { ...this.prod_parity_2026_06_10, rails: { singlesMax: 6, doublesMax: 0, triplesOn: false, pairRepCap: 2 } };
+  },
 };

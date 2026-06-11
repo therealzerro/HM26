@@ -83,6 +83,30 @@ Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`
 
 ---
 
+### CONFIG-17 — k6_singles_max 4 → 6: Doubles-Starvation / Pass-6 Cooldown Leak Fix (2026-06-11 12:55 UTC)
+
+**Operator directive:** fix the doubles starvation NOW (after yesterday's box+straight winner 923 appeared on today's allday + evening slates, subscriber-visible); do NOT regen today's slates. Gate run before ship per standing rule.
+
+**Root cause (BUG-DBL-STARVE-01).** Zero doubles clear the pooled p70 energy floor under current weights, so the `k6_doubles_max=2` quota never fills (30d live: 2–10% of slates carry any double; 18 doubles picked, 0 hits). Every slate therefore exhausts Passes 1–5 and lands in Pass 6, which relaxes the multiplicity caps AND the `recent_hit_cooldown` — so the highest-scoring cooldown-suppressed combos (= yesterday's winners, whose BOX/PBURST are freshly pumped) fill slots 5–6. The cooldown rail was effectively dead-letter on every scope. Starvation is long-standing (Mode A diag 5/18, evening sweep 6/6); the subscriber-visible symptom became acute after ENG-BLOCK-NARROW-01 (6/9) correctly removed the separate yesterday hard-block.
+
+**Fixes tested (30d replay, balanced, same-run vs `prod_parity_2026_06_10`):**
+
+| candidate | mechanism | overall slate | verdict |
+|---|---|---|---|
+| dbl_fix_floor0 / floor20 | let doubles clear the floor (quota fills ~2/slate) | 74.7% vs 87.4% (**−12.7pp**) | rejected — doubles are eligible but toxic (re-confirms 5/18 H2) |
+| dbl_fix_floor40 | doubles floor 40 | 86.2% vs 87.4%; 0 doubles enter except midday 0.69/slate, midday −3.5pp | rejected — doesn't fill quota, doesn't fix Pass-6 |
+| **dbl_fix_singles6** | **k6_singles_max 4→6** (doubles cap untouched — eligible on merit) | **87.4% vs 86.2% (+1.2pp)**; midday 75.9 vs 72.4 (+3.5pp); evening/allday tied | **SHIPPED** |
+| dbl_fix_singles6_dbl0 | also zero doubles quota | 86.2% (tie) | not needed — singles6 strictly ≥ |
+
+Mechanism of the winner: with 6 singles allowed, Pass 1 fills the slate with cooldown-clean picks and selection never reaches Pass 5/6 — the cooldown binds again, so recently-drawn comboSets (incl. yesterday's winners) cannot leak in. The doubles quota stops being a forcing function it could never satisfy. Note +1.2pp overall is within the documented ~1.7pp run-to-run noise band — claim is "no worse, leak closed," not "lift."
+
+**Shipped:** one SQL row — `app_config.k6_singles_max` '4' → '6' (12:55 UTC). No code deploy; RN engine and edge fn both read the key at compute time. Today's (6/11) slates were generated at 11:50 under the old config and were deliberately NOT regenerated (operator: already subscriber-visible). First slates under CONFIG-17: any supplement generated later on 6/11, then the 6/12 morning workflow.
+**Review window: 2026-06-18** (7d). Rollback (one SQL: value → '4') if 7d overall slate rate drops >2pp below the scope baselines in the 6/13 framework, or if any scope shows a new rank-5/6 dead zone (those slots now come from cooldown-clean depth instead of Pass-6 recent-hotness).
+**Interplay:** lands mid-window with CONFIG-15 (review 6/13) and CONFIG-16 (review 6/17). Selection-layer change, orthogonal to the weight changes, but 6/13/6/17 reviewers should slice rank-5/6 hit contribution separately since Pass-6 picks previously over-contributed there ("Pass-6-relaxed 29.3% vs top-6 15.8%", 6/9 midday analysis — that recent-hotness contribution is intentionally forfeited; the same-run gate says net effect is neutral-to-positive).
+**Harness:** candidates `dbl_fix_*` retained in configs.ts; effective production parity preset is now `dbl_fix_singles6`.
+
+---
+
 ### CONFIG-16 — Allday DGC 16.4 → 0 (2026-06-10 00:41 UTC)
 
 **Operator directive:** "zero DGC and start the per-state layer… I just want the engine to work and hit above baseline." Gate run BEFORE ship per standing rule; the gate split the verdict per scope and the ship followed the data, not the directive's literal scope:

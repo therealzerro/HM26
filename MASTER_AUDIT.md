@@ -1119,6 +1119,44 @@ Midday mostly survives because midday results import same-day. **Do not read `en
 
 ---
 
+### BUG-EDR-03 — compute-daily-report Rejects CORS Preflight: Workflow Step 5 Has Never Worked From the Web Client ✅ FIXED (2026-06-11)
+
+**Problem.** The BUG-EDR-02 fix (`runDailyReport` posting yesterday+today) is correct but **cannot execute from the operator's web client**. `compute-daily-report` (v3) has no CORS/OPTIONS handling — `Deno.serve` returns 405 for any non-POST, including the browser's CORS preflight. Edge logs for 2026-06-11 11:50:37 UTC show `OPTIONS | 405 | compute-daily-report` fired immediately after Step 4's slate regen completed (11:50:36) — Step 5 ran, the preflight was rejected, the real POST never left the browser, and the swallowed error surfaced only as "Daily report: failed (non-fatal)" in the workflow progress text. Every other workflow-invoked edge fn (`compute-slate-zk6`, `run-hit-detection`, etc.) answers OPTIONS with 204 + `Access-Control-Allow-*` headers.
+
+**Why it was invisible.** The 08:00 UTC pg_cron path (server-side `net.http_post`, no preflight) and manual curl backfills (ditto) both succeed — so the function "worked" everywhere except the one path BUG-EDR-02 depended on. Step 5 has been preflight-dead since it was added (REFACTOR-01, 2026-06-03); the BUG-EDR-02 30-day damage table is partly this bug's damage. Native iOS/Android fetch does no CORS preflight, so Step 5 would work from a device build — only the web/tunnel client (the operator's daily driver) is affected.
+
+**Confirmed timeline for slate_date 2026-06-10.** 07:30 cron hit-detection: `hitsFound: 0` (results not yet imported — expected per BUG-EDR-02 residual caveat). 08:00 cron report: froze 0/0/0. 11:45–11:47 UTC: operator imported 74 histories rows for 6/10. ~11:48–11:50: workflow stamped hits (midday 1, evening 1, allday 3 in `daily_intelligence`). 11:50:37: Step 5 preflight 405 → report row stayed 0/0/0 with `created_at = updated_at = 08:00`.
+
+**Remediation applied 2026-06-11 (data only).** Manually re-invoked `compute-daily-report` for 2026-06-10 and 2026-06-11 server-side. 6/10 row now matches canonical: midday 1 (ON), evening 1 straight (PA), allday 3 box (FL×2, ON). 6/11 rows seeded at 0 (correct pre-results).
+
+**Code fix (shipped 2026-06-11).** Added the standard CORS header block + OPTIONS→204 handler to `supabase/functions/compute-daily-report/index.ts` (mirrors `run-hit-detection`); CORS headers also added to the 405/400/200 responses so the browser can read them. Deployed v4 via Supabase CLI (MCP deploy rejected the function's import_map_path); `list_edge_functions` confirms v4 ACTIVE with verify_jwt=true preserved. Verified: OPTIONS preflight with Origin/Request-Method headers → 204 + `Access-Control-Allow-*`; POST dryRun for 2026-06-10 → 200 with correct counts. Step 5 is now reachable from the web client for the first time since REFACTOR-01.
+
+**Secondary observation (not yet triaged).** Edge logs show paired `compute-slate-zk6` POST 500s at 11:45:36 and 11:47:06 UTC (during the histories import, alongside successful `run-hit-detection` calls), before the 11:50 regens succeeded. Possibly supplement-regen calls failing mid-import; worth a look if supplements misbehave.
+
+---
+
+### OPS-01 — All pg_cron Jobs Removed: Daily Workflow Button Is the Only Trigger (2026-06-11)
+
+**Operator decision.** No background jobs may run on a schedule. The operational contract is: operator imports results + daily input and clicks **Daily Workflow before 8:30am ET** — that click is the only trigger for rebuilds, hit detection, slate regen, and the daily report. This supersedes the "08:00 UTC cron remains the safety net" language in BUG-EDR-01/02 and the cron-sequencing design they describe.
+
+**What was removed (2026-06-11, `cron.unschedule` ×5; `cron.job` now empty).** All jobs called edge fns via `net.http_post` with the vault secret `cron_anon_key` (still in vault, untouched). For restoration, the exact definitions:
+
+| jobname | schedule (UTC) | target edge fn | body |
+|---|---|---|---|
+| `generate-weight-proposal-weekly` | `0 9 * * 0` | generate-weight-proposal | `{}` |
+| `run-hit-detection-zk30-nightly` | `30 3 * * *` | run-hit-detection-zk30 | `{date: today ET}` |
+| `compute-slate-zk30-daily` | `0 13 * * 1-6` | compute-slate-zk30 | `{weightsKey:'balanced', targetDate: today ET}` |
+| `run-hit-detection-nightly` | `30 7 * * *` | run-hit-detection | `{date: yesterday ET}` |
+| `compute-daily-report-nightly` | `0 8 * * *` | compute-daily-report | `{date: yesterday ET}` |
+
+**Consequences to know.**
+- `engine_daily_report` rows for a given date are now created/refreshed **only** by Workflow Step 5 (yesterday + today, post-BUG-EDR-03 fix) or manual invocation. Before the morning workflow runs, yesterday's row holds the *previous* workflow's snapshot (or is absent for a brand-new date) — that is expected, not an incident.
+- Morning-brief Query 1's `report_updated_at` staleness check now means "workflow not yet run/Step 5 failed," not "cron didn't fire" (runbook updated).
+- Weekly weight proposals (G1 autotune) and all ZK30 jobs no longer run automatically; trigger manually if needed.
+- HIT-DET-01's nightly auto-stamp of `result_at` is gone with `run-hit-detection-nightly`; stamping now happens via Workflow Step 3 / Detect Hits.
+
+---
+
 ### DATA-02 — Stale Jurisdiction Codes MSS/WC From Pre-5/6 Parser ✅ FIXED (2026-06-10)
 
 **Problem.** Two legacy jurisdiction codes survived in data from imports before the ~2026-05-05/06 parser cutover: `MSS` (38 `histories` rows, 2026-04-17 → 05-05; canonical `MS`) and `WC` (27 rows, 2026-04-09 → 05-05; canonical `W.Canada`). Date ranges were perfectly complementary with their canonical twins (`MS` 86 rows from 05-06 onward → 124 total; `W.Canada` 35 rows from 05-06 → 62 total), confirming rename-not-separate-jurisdiction. Stale codes had also been stamped into `daily_intelligence.hit_state` (MSS:7, WC:3) and `adaptive_tracking.matched_state` (MSS:2, WC:1). Effect: per-state footprints/leaderboards silently split one state's history across two keys (surfaced during a 2026-06-10 bet analysis when `MSS:1` appeared in a 90d footprint).

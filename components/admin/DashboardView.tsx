@@ -281,9 +281,10 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
       queryClient.invalidateQueries({ queryKey: ['snapshot'] });
       queryClient.invalidateQueries({ queryKey: ['daily_intelligence_hits'] });
 
-      // Step 5/5: capture today's hit-rate snapshot into engine_daily_report.
-      // Non-fatal — the 8am ET cron (compute-daily-report-nightly) is a
-      // safety net for days the workflow button isn't clicked.
+      // Step 5/5: capture yesterday's + today's hit-rate snapshot into
+      // engine_daily_report. Sole writer since OPS-01 removed all pg_cron
+      // jobs (2026-06-11) — if this fails, the report stays stale until
+      // the next workflow click.
       setWorkflowProgress(`${rebuildMsg} · ${aucRefreshMsg} · Slates: ${results.join(' / ')} · Step 5/5: Daily report…`);
       let reportMsg = '';
       try {

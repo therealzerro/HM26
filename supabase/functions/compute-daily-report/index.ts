@@ -36,6 +36,14 @@ const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const ZK6_MODES = ['balanced'] as const;
 const SCOPES = ['midday', 'evening', 'allday'] as const;
 
+// BUG-EDR-03: without these the browser's CORS preflight got a 405 and
+// Daily Workflow Step 5 could never reach this function from the web client.
+const cors = {
+  'Access-Control-Allow-Origin':  '*',
+  'Access-Control-Allow-Headers': 'authorization, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 interface DiRow {
   combo: string | null;
   on_slate: boolean | null;
@@ -154,8 +162,11 @@ async function upsertReport(row: ReportRow): Promise<void> {
 
 Deno.serve(async (req: Request) => {
   const started = Date.now();
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: cors });
+  }
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'POST only' }), { status: 405 });
+    return new Response(JSON.stringify({ error: 'POST only' }), { status: 405, headers: cors });
   }
   let body: { date?: string; scope?: string; dryRun?: boolean } = {};
   try { body = await req.json(); } catch { /* allow empty body */ }
@@ -166,7 +177,7 @@ Deno.serve(async (req: Request) => {
     ? [body.scope].filter(s => (SCOPES as readonly string[]).includes(s))
     : [...SCOPES];
   if (scopes.length === 0) {
-    return new Response(JSON.stringify({ error: 'invalid scope' }), { status: 400 });
+    return new Response(JSON.stringify({ error: 'invalid scope' }), { status: 400, headers: cors });
   }
 
   const results: ReportRow[] = [];
@@ -193,6 +204,6 @@ Deno.serve(async (req: Request) => {
       errors,
       durationMs: Date.now() - started,
     }),
-    { headers: { 'Content-Type': 'application/json' } },
+    { headers: { ...cors, 'Content-Type': 'application/json' } },
   );
 });

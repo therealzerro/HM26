@@ -14,7 +14,9 @@
 
 ## Query 1 — Yesterday's Validation
 
-Verifies overnight crons fired + reports per-scope hit rate vs baseline.
+Verifies yesterday's report row is current + reports per-scope hit rate vs baseline.
+
+**OPS-01 (2026-06-11): there are no pg_cron jobs anymore.** `engine_daily_report` is written only by Daily Workflow Step 5 (operator clicks before 8:30am ET, after importing results + input). A stale/missing report row means the workflow hasn't run yet today — not a cron failure.
 
 ```sql
 WITH yesterday_perf AS (
@@ -75,7 +77,7 @@ SELECT
   b.rate_30d_pct,
   CASE
     WHEN r.updated_at IS NULL OR r.updated_at < NOW() - INTERVAL '12 hours'
-      THEN 'CRON STALE — investigate (Section 5 of pre_flight_validation.md)'
+      THEN 'REPORT STALE — Daily Workflow Step 5 has not run yet today'
     WHEN y.slate_had_hit = 1
       THEN 'OK'
     ELSE 'SLATE MISSED (no pick hit)'
@@ -88,8 +90,8 @@ ORDER BY y.scope;
 
 **Interpret:**
 - `pick1_outcome = HIT` → reorder sort working as designed
-- `report_hits < pick_hits` → BUG-EDR-01 regressed (shouldn't happen post-fix)
-- `report_updated_at` > 12 hours old → cron didn't fire
+- `report_hits < pick_hits` AND report row fresh → Step 5 mis-aggregating (BUG-EDR lineage) — investigate
+- `report_updated_at` > 12 hours old or row missing → workflow not yet run today; the brief's hit numbers come from `daily_intelligence` and remain valid, but remind the operator to click Daily Workflow
 - Per-scope `rate_7d_pct` vs `rate_30d_pct`: if 7d trails 30d by > 10pp, scope is regressing
 
 ---
@@ -393,9 +395,9 @@ Top-down from T1:
 Default to **$5-7** allocation. Operator can say "morning brief budget $X" to override.
 
 ### When yesterday's data is incomplete
-- If hit-detection cron hasn't fired (Query 1 returns stale `report_updated_at`):
-  - Skip Yesterday Validation section
-  - Add red flag: "Yesterday's hit-detection didn't fire — Section 5 of pre_flight_validation.md to remediate"
+- If Query 1 returns stale/missing `report_updated_at` (Daily Workflow not yet run today):
+  - Yesterday Validation stays valid (hits read from `daily_intelligence`), but check whether yesterday's results have been imported (`histories` for yesterday); if not, hit flags are also incomplete — say so
+  - Add red flag: "Daily Workflow hasn't run yet today — import results + click it before 8:30am ET (OPS-01: no background jobs will do this for you)"
 
 ### When today's slates aren't ready
 - If Query 2 returns 0 rows for any scope:

@@ -81,12 +81,12 @@ export async function runDailyRebuild(force = false): Promise<RebuildStats | { s
  * button (after rebuild + AUC + hit-detection + slate regen).
  *
  * Yesterday matters more than today: the morning workflow imports
- * yesterday's evening results and stamps yesterday's hits, so the 8am
- * ET cron row for yesterday is stale by the time the workflow runs
- * (BUG-EDR-02). The edge fn upserts on (slate_date, scope), so
- * recomputing is idempotent. The 8am ET pg_cron job
- * (compute-daily-report-nightly) remains a safety net for days the
- * operator doesn't click Daily Workflow.
+ * yesterday's evening results and stamps yesterday's hits, so
+ * yesterday's row is stale until this refreshes it (BUG-EDR-02). The
+ * edge fn upserts on (slate_date, scope), so recomputing is
+ * idempotent. This is the ONLY writer of engine_daily_report — all
+ * pg_cron jobs were removed 2026-06-11 (OPS-01); there is no backstop
+ * for days the operator doesn't click Daily Workflow.
  *
  * Dedupe via REPORT_LAST_DATE_KEY so multiple workflow clicks on the
  * same day don't re-fire it. Pass force=true to bypass. Errors are

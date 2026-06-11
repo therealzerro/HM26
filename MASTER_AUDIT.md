@@ -58,6 +58,10 @@ Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`
 
 **Maintenance:** refit weekly-ish via `npm run calibrate:picks`; update the app_config row only when the printed gate line shows test Brier ≤ trivial.
 
+**Refit 2026-06-11 13:53 UTC (routine, +1 day of labels).** Gate PASSED: test Brier 0.03372 ≤ trivial 0.03492 (n_test=990, train ≤5/31); Q5 reliability clean (pred 10.8% vs actual 11.1% — the 6/10 fit's top-bucket over-prediction has washed out). app_config row updated; today's rankings essentially unchanged (midday 482/513 swap within rounding). Note: the 6/10 01:30 fit was already CALIB-01b on BUG-162-repaired labels — a same-day "fitted pre-repair" hypothesis during the 6/11 bet-sheet session was wrong (base rates identical confirms it).
+
+**Pool-definition caveat (documented 2026-06-11, prompted by the all-states bet-sheet).** The training pool is `rank<=30` with NO `on_slate` filter, so absolute `p_hit_pct` is calibrated to the top-30 pool (scope means 1.75–7.0%), not to on-slate picks (which hit ~9–17% per slate math / adaptive_tracking). Levels systematically under-state on-slate probability **by design**; valid uses are within-scope ranking and `stake_share_pct`. Never quote `p_hit_pct` as a pick's literal session probability — for an all-states-per-session bettor, any singles set's forward per-session box probability ≈ uniform ~18–19% (~35 midday draws × ~6/1000) regardless of pick. If on-slate-calibrated levels are ever needed, that's a model change (filter or on_slate feature) requiring its own gate.
+
 ---
 
 ### BESTORDER-SWEEP — Orderer Variants Tested; Current `pair` Orderer ≈ Control; No Ship (2026-06-10)

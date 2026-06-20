@@ -96,6 +96,7 @@ SELECT cron.unschedule('generate-weight-proposal-weekly');
 | Date backfilled | Method | When | Notes |
 |---|---|---|---|
 | 2026-05-14 → 2026-05-17 | Manual curl per date, work order Order 2 task 2.5 | 2026-05-18 | Closes the 5-day gap since the last write on 5/13. 2026-05-18 itself NOT backfilled — day not complete yet; let scheduled job (or manual run 5/19 morning) handle it. |
+| 2026-06-15 | **NOT backfilled (deliberate)** — see OPS-02 in MASTER_AUDIT | 2026-06-19 | Daily Workflow not clicked 6/15. No faithful prod-path backfill exists 4 days later: `compute-slate-zk6 targetDate` keys all signal loads off real-today (current `datasets_box/_pair` + today windows), so a 6/15 run now forward-leaks 6/15–6/18 draws → inflated hits (BUG-162-class). Logged as a no-run gap; faithful as-of numbers via `backtest:replay --end-date 2026-06-15` recorded in OPS-02. **Caveat for future backfills: this table's 5/14→5/17 entry used the same code path; even next-morning it carries ~1 day of dataset drift. Treat backfilled rows as approximate, never as faithful as-of.** |
 
 ---
 

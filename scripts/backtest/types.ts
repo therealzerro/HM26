@@ -22,6 +22,11 @@ export interface EngineConfig {
   // false = match the pre-port edge function which only blocked today's winners.
   // Defaults to true when omitted.
   excludeYesterdayHits?: boolean;
+  // HIT-PERSIST-01 (2026-06-19): widen the non-relaxable recent-draw block from
+  // the legacy yesterday-only (1) to D-1..D-N. Retires a comboSet for N days
+  // after it draws so recently-hit combos (923/298) stop reappearing every day.
+  // Reverses ENG-BLOCK-NARROW-01's today-only narrowing. Default omitted = 1.
+  recentHitBlockDays?: number;
   // ENH-F: per-multiplicity cooldown. Doubles draw less often than singles, so a flat
   // 20-day cooldown is too aggressive for them. When set, overrides `recentHitCooldown`
   // based on the candidate's multiplicity.

@@ -166,13 +166,19 @@ async function fetchStateHistory(
   return all;
 }
 
-async function fetchYesterdayResults(date: string): Promise<Set<string>> {
-  // Yesterday's actual draws → hard exclusion set (same logic as production engine)
-  const d = new Date(date + 'T12:00:00');
-  d.setDate(d.getDate() - 1);
-  const yesterday = d.toISOString().split('T')[0];
+async function fetchYesterdayResults(date: string, blockDays = 1): Promise<Set<string>> {
+  // Recent actual draws → hard exclusion set (same logic as production engine).
+  // blockDays=1 (default) reproduces the legacy yesterday-only block. blockDays=N
+  // widens it to D-1..D-N — the BUG-DBL-STARVE/HIT-PERSIST candidate that retires
+  // a comboSet for N days after it draws, so recently-hit combos (e.g. 923/298)
+  // stop reappearing on every slate. The window is strictly date_et < D (no
+  // leakage — D's own draws are unknown at slate-build time).
+  const dEnd = new Date(date + 'T12:00:00'); dEnd.setDate(dEnd.getDate() - 1);
+  const dStart = new Date(date + 'T12:00:00'); dStart.setDate(dStart.getDate() - blockDays);
+  const fromDate = dStart.toISOString().split('T')[0];
+  const toDate = dEnd.toISOString().split('T')[0];
   const rows = await dbGet<any[]>(
-    `/histories?date_et=eq.${yesterday}&select=result_digits&limit=500`,
+    `/histories?date_et=gte.${fromDate}&date_et=lte.${toDate}&select=result_digits&limit=2000`,
   );
   const s = new Set<string>();
   if (Array.isArray(rows)) {
@@ -489,7 +495,7 @@ export async function computeSlateAsOf(
     fetchBoxRows(scopeEnc),
     fetchPairRows(scopeEnc),
     fetchHistoryRows(date, scope),
-    excludeYesterday ? fetchYesterdayResults(date) : Promise.resolve(new Set<string>()),
+    excludeYesterday ? fetchYesterdayResults(date, config.recentHitBlockDays ?? 1) : Promise.resolve(new Set<string>()),
     warmingActive ? fetchWarmingHistory(date, warmingWindowDays, scope, config.warmingScopeMatched === true) : Promise.resolve([] as { comboset_sorted: string; date_et: string }[]),
     stateStrActive ? fetchStateHistory(date, config.stateStrWindowDays ?? 60) : Promise.resolve([] as StateHistoryRow[]),
   ]);

@@ -3420,4 +3420,30 @@ export const CONFIGS: Record<string, EngineConfig> = {
   get dbl_fix_singles6_dbl0() {
     return { ...this.prod_parity_2026_06_10, rails: { singlesMax: 6, doublesMax: 0, triplesOn: false, pairRepCap: 2 } };
   },
+
+  // HIT-PERSIST-01 (2026-06-19): retire recently-drawn combos for N days via the
+  // non-relaxable block. BASELINE = dbl_fix_singles6 (recentHitBlockDays omitted = 1,
+  // legacy yesterday-only). Candidates widen the window. Operator chose ~4d to match
+  // their 'ride max 3 days' workflow and stop 923/298 reappearing every day.
+  // NOTE: prod_parity_2026_06_10 sets excludeYesterdayHits:false (mirrors production's
+  // ENG-BLOCK-NARROW-01 today-only block, which the harness models as "no D-1 block").
+  // The candidates must re-enable the block path (excludeYesterdayHits:true) for
+  // recentHitBlockDays to have any effect. hitblock1 = re-enable yesterday-only
+  // (isolates the cost of un-narrowing); hitblock2..5 widen to D-1..D-N.
+  get hitblock1() { return { ...this.dbl_fix_singles6, excludeYesterdayHits: true, recentHitBlockDays: 1 }; },
+  get hitblock2() { return { ...this.dbl_fix_singles6, excludeYesterdayHits: true, recentHitBlockDays: 2 }; },
+  get hitblock3() { return { ...this.dbl_fix_singles6, excludeYesterdayHits: true, recentHitBlockDays: 3 }; },
+  get hitblock4() { return { ...this.dbl_fix_singles6, excludeYesterdayHits: true, recentHitBlockDays: 4 }; },
+  get hitblock5() { return { ...this.dbl_fix_singles6, excludeYesterdayHits: true, recentHitBlockDays: 5 }; },
+
+  // COOLDOWN-WINDOW-SWEEP (2026-06-20): "fix the cooldown unit defect" verified to
+  // be a non-defect — ds_raw is calendar DAYS end-to-end, so recent_hit_cooldown=20
+  // is a coherent 20-DAY window (not a unit bug). Open question: is 20d too WIDE?
+  // BASELINE = dbl_fix_singles6 (cd=20 global, midday cd=10). Candidates tighten the
+  // GLOBAL window only (midday stays at its inherited 10 + has its own hard block),
+  // so this isolates the evening/allday cooldown — the scopes where 923/298 persist.
+  get cd_w10() { return { ...this.dbl_fix_singles6, recentHitCooldown: 10 }; },
+  get cd_w7()  { return { ...this.dbl_fix_singles6, recentHitCooldown: 7 }; },
+  get cd_w5()  { return { ...this.dbl_fix_singles6, recentHitCooldown: 5 }; },
+  get cd_w3()  { return { ...this.dbl_fix_singles6, recentHitCooldown: 3 }; },
 };

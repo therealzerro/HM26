@@ -43,6 +43,60 @@ Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`
 
 **Review window: 2026-06-27** (7d). Rollback (one-line revert of the condition to `todayEt` for midday) if 7d midday slate rate drops below the 53.6% baseline, or midday shows a new rank-5/6 dead zone.
 
+### REVIEW-CLOSEOUT-2026-06-20 — Overdue config/reorder review windows (6/13, 6/16, 6/17, 6/18) closed
+
+**Method.** Faithful slate box-hit computed from `slate_snapshots.top_k_straights_json[].comboSet` ∩ `histories.comboset_sorted` (scope→session: midday/evening strict, allday = any session), per [[project_bug162_hit_inflation]] — **stored `hit_box`/`hit_straight` flags NOT used** (BUG-162 inflation). Window 6/6–6/18; **6/15 excluded** (OPS-02 no-run gap, no slate); 6/19 excluded (unresolved — no histories yet). n=12 resolved days/scope.
+
+**Faithful results (6/6–6/18).** Slate box-hit: allday **12/12 (100%)**, midday **9/12 (75%)**, evening **8/12 (67%)**. Rank-1: allday 33.3%, evening 16.7%, midday **0/12**. Era split (the decider): overall **6/6–6/9 = 58.3%** (CONFIG-13 evening-WARMING era, reverted 6/9) vs **6/11–6/18 clean stack = 90.5%** (n=21, above the 6/13-framework ~86.9% baseline). Evening post-CONFIG-18 (CO=10) 6/11–6/18 = 85.7% (≈89.3 baseline).
+
+**Verdicts (all RATIFY; no production change made):**
+- **CONFIG-12** (`pressure_threshold=100` global, rev 6/13) — **RATIFY.** Early-window weakness attributable to CONFIG-13 (reverted), not this global nudge; clean-stack overall 90.5% > baseline. `pressure_threshold` stays 100.
+- **CONFIG-14** (allday CO→0, rev 6/13) — **RATIFY.** allday 12/12 = 100% faithful slate across the whole period.
+- **CONFIG-11a → CONFIG-15 → CONFIG-18** (evening CO 13.5→20→0→10, rev 6/13) — **RATIFY current state (CO=10).** Evening post-CONFIG-18 = 85.7% ≈ baseline. CONFIG-11a and CONFIG-15 are **superseded/closed** (their solo contributions were never isolable; the saga resolved at CO=10 on 6/11).
+- **CONFIG-16** (allday DGC→0, rev 6/17) — **RATIFY.** allday window slate = 100%, allday r1 = 33.3% > the 31% band; no rollback trigger met.
+- **CONFIG-17** (`k6_singles_max` 4→6, rev 6/18) — **RATIFY.** Clean-stack overall 90.5% > baseline, no >2pp drop, no rank-5/6 dead zone (allday/the stack healthy). Also the cooldown-leak rationale held — see ENG-BLOCK-PERSCOPE-01.
+- **ENG-MIDDAY/EVENING/ALLDAY-REORDER + TIEBREAK** (display sort by `draws_since` desc, rev 6/16) — **KEEP.** Slate-level unaffected and healthy. **midday r1 = 0/12** trips the reorder's pick-#1 rollback condition *by the letter*, BUT this is the known structural rank-1 inversion ([[project_midday_investigation_2026_06_06]]): reverting to indicator-order is NOT the fix (top-6-by-indicator tested 15.8% < Pass-6-relaxed 29.3% on 6/9). Not a reorder-specific defect → no revert. **midday rank-1 remains an open structural item for ENH-AUDIT-2026-05-19** (already highest engine priority).
+
+**Net:** the post-6/11 production stack performs above its pre-registered baseline; all overdue windows ratify. Sole carryover: midday rank-1 (structural, ENH-AUDIT), unchanged by these closures.
+
+### HIT-PERSIST-01 — Hit combos (923/298) persist on evening+allday slates daily — diagnosed; draw-block fix FALSIFIED for target scopes (2026-06-19)
+
+**Report (operator):** 928/923 and other hit combos stay on the slate every day. **Verified:** 923 on every evening+allday slate 6/10→6/18; 298 on every allday slate. Midday unaffected (its CO=64% mix doesn't rank them top-6).
+
+**Root cause (two compounding):**
+1. The recent-hit hard block is deliberately **today-only** (`ENG-BLOCK-NARROW-01`, 2026-06-09 — narrowed from today+yesterday because same-session repeats hit 16–20%). A combo that drew 6/14 isn't blocked on 6/16.
+2. The only remaining guard — the relaxable cooldown — is **non-functional**: `dsOverride` is in **days** (`/86400000`) but merged via `min()` with dataset `draws_since` (draw-events) and compared to `recent_hit_cooldown=20`. Net = a ~20-*day* window that cools almost every high-score combo at once → early passes can't fill 6 → **pass-5 relaxation** re-admits the top-indicator combos every day. (Verified: 6/16 allday {239} last drew 6/14 → cooled at recentDs=2<20, so its presence is pure pass-5 relaxation.)
+
+**Candidate tested (operator-chosen): non-relaxable block on combos drawn in last N days.** Harness-only (`recentHitBlockDays` config + `hitblock1..5` presets; `fetchYesterdayResults` windowed). NOTE: presets must set `excludeYesterdayHits:true` — `prod_parity_2026_06_10` has it false (today-only parity), which silently disabled the block on the first attempt.
+
+**30-day backtest (same-run, n=29/scope), slate hit rate:**
+| Scope | Baseline (dbl_fix_singles6) | hb1 (1d) | hb2 (2d) | hb4 (4d) | hb5 (5d) |
+|---|---|---|---|---|---|
+| midday | 55.2% | 69.0 | 65.5 | **72.4** | 72.4 |
+| evening | 79.3% | **82.8** | 82.8 | 79.3 | 75.9 |
+| allday | **96.6%** | 89.7 | 86.2 | 89.7 | 82.8 |
+| ALL | 77.0% | 80.5 | 78.2 | 80.5 | 77.0 |
+
+**Verdict — draw-block FALSIFIED for the target scopes (evening/allday):**
+- **allday REGRESSES −7 to −14pp** (96.6→82.8–89.7; rail-matched pick ×0.89–0.93). allday repeat-hits are genuinely valuable — the engine is *correct* to keep 298/923 on the shared slate. Reaffirms ENG-BLOCK-NARROW-01 + allday-tripwire.
+- **evening** only narrow (1–2d) helps (+3.5pp); ≥4d neutral-to-negative.
+- **Doesn't even achieve the goal**: 298/928 resurface on 6/17–6/18 because `{289}` went cold yet kept a top indicator score. **No recent-draw/cooldown rule removes a cold-but-high-scored combo** — the persistence is score dominance, not recent draws.
+- **Side-finding (NOT the complaint, do not bundle):** midday *loves* a 4-day block (+17pp, 55.2→72.4; pick ×1.12–1.17). Worth a separate midday-only review.
+
+**Conclusion:** Not an engine bug. The shared slate is correctly surfacing high-value repeat-hitters; forcing them off degrades allday. The operator's real need ("don't show ME combos I've already closed") is a **personal closed-position filter**, best served by the existing `excludeComboSets` engine param — zero hit-rate cost to the product. Pending operator decision on direction. No production code changed; harness presets only. **(Superseded 2026-06-20 — see ENG-BLOCK-PERSCOPE-01 at top of this section: reframed as a regression, midday-only block shipped, operator declined the personal filter.)**
+
+### OPS-02 — 2026-06-15 No-Run Gap (Daily Workflow not clicked) — Logged, NOT backfilled (2026-06-19)
+
+**What:** 6/15 (Monday) has `histories` (75 draw rows) but **zero** engine outputs — `slate_snapshots`, `daily_intelligence`, and `adaptive_tracking` are all empty for `slate_date=2026-06-15`. Neighboring days are fully populated (6/14: 3 snap / 92 DI / 19 AT; 6/16: 6 snap / 95 DI / 36 AT). This is the signature of the Daily Workflow never being clicked that day (no auto-crons since OPS-01), not stale annotations: `verify:hits --date 2026-06-15` reports 0 annotated / 0 stale across all three sources.
+
+**Decision (operator, 2026-06-19): log as a no-run gap; do NOT backfill the production track record.** Rationale: there is no faithful production-path backfill 4 days later. `compute-slate-zk6` accepts a `targetDate`, but it is a *same-day recompute* knob — every signal load keys off real-today: `fetchDatasets` reads the current `datasets_box`/`datasets_pair` (rebuilt through 6/18), and `fetchWarmingHistory` / `fetchStateAggregation` / `fetchRecentSlateMatchRates` / the today-hit hard-blocks all use today's windows. Persisting a `targetDate=2026-06-15` run now would bake 6/15–6/18 results into a slate stamped 6/15 → inflated hits, the exact BUG-162-class corruption. The 6/15 production track record stays a visible hole; that is the honest state.
+
+**Faithful as-of replay (reference only, not persisted):** `backtest:replay --end-date 2026-06-15 --config dbl_fix_singles6` (the rail live since CONFIG-17, 6/11). This path is point-in-time-honest (`date_et < 6/15` + draws-since override; ~1–3% documented `timesDrawn` drift). Result, n=3 (one slate/scope, very noisy — do not over-read):
+- midday: **0/6 miss**
+- evening: **slate HIT** (rank-1)
+- allday: **slate HIT** (rank-1 + rank-4)
+- overall **66.7% slate (2/3 scopes)**.
+
 ### BUG-162 — Hit Detection Stamped Next-Day Results onto Prior Slates ✅ FIXED + DATA REPAIRED (2026-06-10)
 
 **The most consequential measurement bug since the April artifact era — found while computing bet-level EV from the operator's payout schedule.**
@@ -104,6 +158,20 @@ Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`
 1. **The proper baseline is ~21%, not 16.7%** — multi-state box matches give multiple straight chances per pick. The live 25.0% figure was compared against the understated naive baseline; against the multi-draw-adjusted control the apparent bestOrder edge is ~+1pp in replay (+~4pp live) — within noise. **The "bestOrder beats random" claim from the 2026-06-10 information-ceiling analysis is hereby corrected.**
 2. Positional digit frequency is non-predictive (if anything negative) — consistent with per-position uniform draws. Closes the "positional bias" hypothesis without needing the deeper data import for this purpose.
 3. **No production change.** `bestOrderFor` stays (free, not worse than raw; ties pair_full/blend). Ordering optimization is now a documented dead end on current data; do not re-propose orderer variants without a new information source.
+
+---
+
+### CONFIG-18 — Early CONFIG-15 Partial Rollback: Evening CO 0 → 10 (2026-06-11 20:10 UTC)
+
+**Trigger:** CONFIG-15's pre-registered rollback condition breached on BOTH halves at the 6/11 evening-session prep check — evening 7d slate rate **42.9%** (threshold <84%) and 7d pick rate **11.9%** (threshold <19%), computed from `daily_intelligence` (post-BUG-162-repair flags, clean). Operator directive: "pull the trigger early" — executed 2 days ahead of the 6/13 joint review. Backtest gate satisfied via the explicit-operator-override clause (stated reason: written rollback condition breached; review date: 6/13 stands).
+
+**Attribution caveat (honest read):** CONFIG-15 shipped 6/9 21:12 UTC, so only the 6/10 slate in the 7d window (6/4–6/10) ran under CO=0; the breach numbers are dominated by the CONFIG-11a+13 stack era reverted 6/9. The rollback condition keyed on the watch numbers as written, not on proven CO=0 causation. CO=10 is the halfway point — if evening recovers by 6/13 the question becomes whether recovery tracks the stack removal rather than the CO restoration.
+
+**Shipped:** one SQL row — `app_config.engine_weights_balanced_evening` `{"BOX":56.25,"PBURST":31.25,"CO":0,"DGC":12.5}` → `{"BOX":50.625,"PBURST":28.125,"CO":10,"DGC":11.25}` (CONFIG-11a internal ratio 45:25:10 preserved; halfway revert toward CONFIG-11a's CO=20). Only the `balanced` row touched (conservative/aggressive orphaned per SCRUB-01 note in CONFIG-15 entry).
+
+**Slate regen:** evening 6/11 snapshot regenerated 20:11 UTC via edge fn (now under CONFIG-18 weights + CONFIG-17 k6_singles_max=6). Output was the **identical pick set and order** (803, 963/369, 123, 736/763, 564/456, 923) as the 11:50 CO=0 slate — top-6 stable to the CO nudge — so the CONFIG-17 "don't regen subscriber-visible slates" constraint was not violated in effect; snapshot upserted in place, no subscriber-visible change. First slate where CO=10 can change selection: 6/12 morning workflow.
+
+**6/13 review now evaluates CO=10, not CO=0.** Full-revert option remains CO→20 (CONFIG-11a values, one SQL). Rollback-of-the-rollback (back to CO=0) if evening 7d deteriorates further with CO=10 in place.
 
 ---
 

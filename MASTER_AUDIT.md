@@ -1,7 +1,7 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-10 (Fable 5 session, continued: **BUG-162 found+fixed+repaired** — hit detection stamped next-day results onto prior slates (~30% hit inflation since at least 5/13); run-hit-detection v10 deployed; 61 phantom DI hits cleared; CALIB-01 refit as CALIB-01b on clean labels. **Corrected picture: engine = baseline in every scope at both any-day and per-draw level; at the uniform 90%-RTP payout schedule all bet types carry the −10% house edge regardless of engine config.** Earlier same session: sweep #3 (BUG-161), ENG-OBS-05/06 resolved, CONFIG-16 shipped (review 6/17), STATE_STR falsified, BESTORDER-SWEEP (no ship), CALIB-01; edge zk6 at v41, hit-detection at v10. **Later same day: SIGNAL-INFO-01 — signal information content SETTLED: BOX/PBURST/CO carry zero universe-level information; DGC carries small replicated anti-information that is NOT exploitable; in-backtest lift attributed to datasets forward-drift leak. See entry. Evening: COHORT-01 — standing overdue-reversion cohort harness built (`npm run cohort:overdue`); first run flat pooled, per-state red z=2.83 watch item below pre-registered bar.**)  
+**Last updated:** 2026-06-20 (**ENG-BLOCK-PERSCOPE-01** — regression fix: ENG-BLOCK-NARROW-01's blanket today-only block was pinning 923/298 to every slate since 6/10; restored the yesterday+today block for **midday only** (backtest +10.7..+13.8pp, replicated), kept today-only for evening/allday (block regresses allday −7pp, evening is noise); edge fn v41→v42.) Earlier — 2026-06-10 (Fable 5 session, continued: **BUG-162 found+fixed+repaired** — hit detection stamped next-day results onto prior slates (~30% hit inflation since at least 5/13); run-hit-detection v10 deployed; 61 phantom DI hits cleared; CALIB-01 refit as CALIB-01b on clean labels. **Corrected picture: engine = baseline in every scope at both any-day and per-draw level; at the uniform 90%-RTP payout schedule all bet types carry the −10% house edge regardless of engine config.** Earlier same session: sweep #3 (BUG-161), ENG-OBS-05/06 resolved, CONFIG-16 shipped (review 6/17), STATE_STR falsified, BESTORDER-SWEEP (no ship), CALIB-01; edge zk6 at v41, hit-detection at v10. **Later same day: SIGNAL-INFO-01 — signal information content SETTLED: BOX/PBURST/CO carry zero universe-level information; DGC carries small replicated anti-information that is NOT exploitable; in-backtest lift attributed to datasets forward-drift leak. See entry. Evening: COHORT-01 — standing overdue-reversion cohort harness built (`npm run cohort:overdue`); first run flat pooled, per-state red z=2.83 watch item below pre-registered bar.**)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
@@ -22,6 +22,26 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 - Backtest result confirming improvement, OR explicit "untested, applying for empirical observation" with planned review date
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
+
+### ENG-BLOCK-PERSCOPE-01 — Recent-hit block restored for MIDDAY ONLY (regression fix for ENG-BLOCK-NARROW-01) (2026-06-20)
+
+**Trigger (operator):** "the same 3-4 picks have been in every slate since Fable 5; slates had a decent hit rate before that without the same picks every day." Investigation traced the symptom to commit `7a8fef4` **ENG-BLOCK-NARROW-01** (Opus 4.7, 2026-06-09 21:14 UTC) — the recent-hit hard block was narrowed from `date_et ∈ [yesterday, today]` to `today only` **for all scopes**. At morning slate-gen "today" is empty → block empty → Pass 1 re-selects the same top-indicator combos (923/298) every day, because the only other rotation guard (the cooldown rail) is unit-broken (`days` vs `draws_since`, `zk6.ts:1153-1156`/`:1549-1551`) AND relaxed by Pass 5. First bit on the 6/10 slate — matches the operator's "since Fable 5" timing (the narrowing was the Opus 4.7 sweep the night before the Fable 5 session, NOT a Fable 5 change, and NOT triggered by a morning-brief request). See HIT-PERSIST-01 below for the prior (superseded) diagnosis.
+
+**Per-scope decision from same-run backtest** (`dbl_fix_singles6` baseline vs `hitblock1` = yesterday-block; replicated across two windows):
+
+| Scope | Baseline (6/19 / 6/20) | +Yesterday block (6/19 / 6/20) | Δ | Verdict |
+|---|---|---|---|---|
+| midday | 55.2% / 53.6% | 69.0% / **64.3%** | **+13.8 / +10.7** | ✅ robust WIN → re-block |
+| evening | 79.3% / 89.3% | 82.8% / 85.7% | +3.5 / −3.6 | ❌ sign-unstable noise (n=28) → no block |
+| allday | 96.6% / 96.4% | 89.7% / 89.3% | −6.9 / −7.1 | ❌ robust LOSS → keep today-only |
+
+**Shipped:** per-scope block window `blockFromEt = scope === 'midday' ? getYesterdayET() : todayEt` in both `engines/zk6.ts` and `supabase/functions/compute-slate-zk6/index.ts` (Sources A+B both widened to `[blockFromEt, todayEt]`). midday gets the yesterday+today block back; evening + allday stay today-only. Edge fn **compute-slate-zk6 v41 → v42** (CLI deploy, `verify_jwt=true` preserved, ACTIVE). Typecheck clean (pre-existing errors in unrelated admin/layout files only).
+
+**Operator decision (2026-06-20):** declined the `excludeComboSets` personal closed-position filter for evening/allday — "the app is the logic for the operator" (no separate operator view; evening/allday repeat-hitters are statistically correct and stay). So this fix is midday-only by design; the evening/allday persistence is accepted as correct engine behavior.
+
+**Takes effect next Daily Workflow run** — no slate regen performed (per no-regen-without-ask). The cooldown days/draws unit defect is left unfixed deliberately, to keep the midday block attributable; separate backtest when revisited.
+
+**Review window: 2026-06-27** (7d). Rollback (one-line revert of the condition to `todayEt` for midday) if 7d midday slate rate drops below the 53.6% baseline, or midday shows a new rank-5/6 dead zone.
 
 ### BUG-162 — Hit Detection Stamped Next-Day Results onto Prior Slates ✅ FIXED + DATA REPAIRED (2026-06-10)
 

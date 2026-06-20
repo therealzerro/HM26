@@ -854,14 +854,18 @@ async function computeSlate(params: {
   const todayHitComboSets = new Set<string>();
   const effectiveExcluded = new Set<string>();
 
-  // ENG-BLOCK-NARROW-01 (2026-06-09): block scope tightened from "yesterday +
-  // today" to "today only". Yesterday's national winners repeat in the same
-  // session at 16-20% per session (empirical 30d sweep) — the permanent
-  // block was costing repeat-hit lift. Mirror of engines/zk6.ts:~954.
-  // Source A: histories table — today only
+  // ENG-BLOCK-PERSCOPE-01 (2026-06-20): restore the yesterday+today hard block
+  // for MIDDAY ONLY; evening + allday keep today-only. Re-blocking midday is a
+  // robust +10.7..+13.8pp slate-hit win across two backtest windows; re-blocking
+  // allday is a robust −7pp LOSS (its repeat-hitters are valuable) and evening is
+  // sign-unstable noise at n=28. The operator's "don't show me 923/298 I already
+  // closed" on evening/allday is served by the excludeComboSets personal filter,
+  // not an engine block. Mirror of engines/zk6.ts ENG-BLOCK-PERSCOPE-01.
+  const blockFromEt = scope === 'midday' ? getYesterdayET() : todayEt;
+  // Source A: histories table — [blockFromEt, today]
   try {
     const tw = await sbGet<any[]>(
-      `/rest/v1/histories?date_et=eq.${todayEt}&select=result_digits&limit=1000`,
+      `/rest/v1/histories?date_et=gte.${blockFromEt}&date_et=lte.${todayEt}&select=result_digits&limit=1000`,
     );
     if (Array.isArray(tw)) tw.forEach(w => {
       if (typeof w?.result_digits === 'string' && /^\d{3}$/.test(w.result_digits)) {
@@ -871,11 +875,11 @@ async function computeSlate(params: {
     });
   } catch { /* non-fatal */ }
 
-  // Source B: daily_intelligence hit flags — today only (catches supplemental
-  // slates where hit detection ran on earlier-session picks)
+  // Source B: daily_intelligence hit flags — [blockFromEt, today] (also catches
+  // supplemental slates where hit detection ran on earlier-session picks)
   try {
     const di = await sbGet<any[]>(
-      `/rest/v1/daily_intelligence?slate_date=eq.${todayEt}&or=(hit_box.eq.true,hit_straight.eq.true)&select=combo_set,hit_result&limit=500`,
+      `/rest/v1/daily_intelligence?slate_date=gte.${blockFromEt}&slate_date=lte.${todayEt}&or=(hit_box.eq.true,hit_straight.eq.true)&select=combo_set,hit_result&limit=500`,
     );
     if (Array.isArray(di)) di.forEach(row => {
       if (typeof row?.combo_set === 'string' && row.combo_set) {

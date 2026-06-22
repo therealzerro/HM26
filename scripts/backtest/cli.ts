@@ -106,6 +106,10 @@ async function modeReplay(args: Record<string, string>) {
   // so every variant is judged on identical opportunities.
   type ConvTally = { boxMatched: number; converted: Record<string, number> };
   const conv = new Map<string, ConvTally>(); // key: `${configName}|${scope}`
+  // ENG-STALE-01: per-(config,scope,mode) chronological slate-appearance history,
+  // fed forward into computeSlateAsOf so the staleness block can rotate combos that
+  // have been on the slate N days running. Dates iterate oldest→newest below.
+  const slateHistory = new Map<string, string[][]>();
 
   for (const date of dates) {
     const results = await fetchDrawResults(date);
@@ -123,7 +127,16 @@ async function modeReplay(args: Record<string, string>) {
       for (const configName of configNames) {
         for (const mode of modes) {
           try {
-            const picks = await computeSlateAsOf(date, scope, configs[configName], mode);
+            const cfg = configs[configName];
+            const staleN = cfg.slateStalenessThresholdByScope?.[scope] ?? cfg.slateStalenessThreshold ?? 0;
+            const histKey = `${configName}|${scope}|${mode}`;
+            const recentSlateSets = staleN > 0 ? (slateHistory.get(histKey) ?? []) : undefined;
+            const picks = await computeSlateAsOf(date, scope, cfg, mode, { recentSlateSets });
+            if (staleN > 0) {
+              const arr = slateHistory.get(histKey) ?? [];
+              arr.push(picks.map(p => p.comboSet));
+              slateHistory.set(histKey, arr);
+            }
             const hit = scorePicksVsResults(
               picks.map(p => ({ combo: p.combo, comboSet: p.comboSet, bestOrder: p.bestOrder })),
               results,

@@ -31,6 +31,12 @@ export interface EngineConfig {
   // mirroring recentHitCooldownByScope. Wins over the global value when set.
   // Production: { midday: 1, evening: 3, allday: 3 }.
   recentHitBlockDaysByScope?: Partial<Record<Scope, number>>;
+  // ENG-STALE-01 (2026-06-22): slate-appearance staleness. A combo that has been on
+  // the slate for the last N consecutive days (regardless of whether it HIT) is hard-
+  // blocked for the current slate, forcing rotation. Targets the never-hitting overdue
+  // repeaters (923/298) that the hit-based block can't catch. 0/undefined = off.
+  slateStalenessThreshold?: number;
+  slateStalenessThresholdByScope?: Partial<Record<Scope, number>>;
   // ENH-F: per-multiplicity cooldown. Doubles draw less often than singles, so a flat
   // 20-day cooldown is too aggressive for them. When set, overrides `recentHitCooldown`
   // based on the candidate's multiplicity.

@@ -3444,6 +3444,18 @@ export const CONFIGS: Record<string, EngineConfig> = {
     return { ...this.dbl_fix_singles6, excludeYesterdayHits: true, recentHitBlockDaysByScope: { midday: 1, evening: 3, allday: 3 } };
   },
 
+  // ENG-STALE-01 (2026-06-22): slate-appearance staleness candidates layered on the
+  // shipped block baseline. Block a combo that's been on the last N slates (evening +
+  // allday; midday already rotates). Mechanically caps appearance at N/(N+1) of days,
+  // so the never-hitting 923/298 repeaters can't sit on every slate. Measure the
+  // hit-rate cost vs prod_parity_2026_06_22.
+  get stale2() {
+    return { ...this.prod_parity_2026_06_22, slateStalenessThresholdByScope: { evening: 2, allday: 2 } };
+  },
+  get stale3() {
+    return { ...this.prod_parity_2026_06_22, slateStalenessThresholdByScope: { evening: 3, allday: 3 } };
+  },
+
   // COOLDOWN-WINDOW-SWEEP (2026-06-20): "fix the cooldown unit defect" verified to
   // be a non-defect — ds_raw is calendar DAYS end-to-end, so recent_hit_cooldown=20
   // is a coherent 20-DAY window (not a unit bug). Open question: is 20d too WIDE?

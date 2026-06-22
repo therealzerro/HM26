@@ -11,6 +11,25 @@
 
 ---
 
+### ENG-STALE-01 — Slate-appearance staleness lever (rotate never-hitting repeaters) 🧪 BUILT + BACKTESTED (harness only), PROD PORT PENDING DECISION (2026-06-22)
+
+**Problem:** the hit-based block (ENG-BLOCK-PERSCOPE-02) only rotates combos that HIT. The worst freezers — allday/evening `{2,8,9}` (14/14 days), `{2,3,9}` (13/14) — recur mostly WITHOUT hitting: they're overdue, the BOX pressure term pins them top-6, they miss, repeat. A *slate-appearance* staleness block targets them: a comboSet on ALL of the last N slates is hard-blocked (non-relaxable) the next slate, capping any combo at N consecutive appearances (N/(N+1) of days) — forcing rotation regardless of hits.
+
+**Built (backtest harness):** config `slateStalenessThreshold` + `slateStalenessThresholdByScope`; `computeSlateAsOf` computes the stale set (intersection of the last N slates) and `runK6Selection` hard-blocks it; `cli.ts` feeds forward per-(config,scope,mode) chronological slate history. Candidates `stale2`/`stale3` layer on `prod_parity_2026_06_22` (evening+allday only; midday already rotates).
+
+**Backtest (30d, baseline `prod_parity_2026_06_22`; n=29/scope):**
+
+| Scope | Baseline | stale2 (max 2 in a row) | stale3 (max 3 in a row) |
+|---|---|---|---|
+| evening | 82.8% | 79.3% | 82.8% |
+| allday | 86.2% | 89.7% | 82.8% |
+
+**Hit-rate-neutral within noise** (midday, which has NO staleness config here, itself swung 58.6→51.7→62.1 across the same runs — pins the n=29 noise floor at ~±5pp; all evening/allday moves are smaller). Consistent with SIGNAL-INFO-01 (rotation gives up no real edge). The rotation is a *mechanical guarantee* (combo cannot exceed N consecutive slates), not a hit-rate bet.
+
+**PENDING (operator decision):** which N (stale2 = harder rotation / stale3 = gentler), and whether to productionize. Prod port is heavier than Part A — the edge fn computes one slate per invocation, so it must QUERY the last N `slate_snapshots` for the scope to rebuild the appearance-intersection (not yet implemented in `engines/zk6.ts` / `compute-slate-zk6`).
+
+---
+
 ### ENG-BLOCK-PERSCOPE-02 — Evening + allday recent-hit block widened to 3 days (post-hit cooldown) ⏳ CODE DONE, EDGE DEPLOY PENDING (2026-06-22)
 
 **Trigger (operator):** "after a combo hits it should be cooling down and not instantly return to the slate" — evening/allday show the same picks daily. Evidence (6/08–6/21): ~20 **hit-and-return** events (combo drew on D, back on the slate D+1) — e.g. allday `{2,3,9}` returned after 6/10/12/13/14; evening `{4,5,6}` after 6/12/16/20. Mechanism: evening/allday used a **today-only** hard block (ENG-BLOCK-PERSCOPE-01), so a combo that hit *yesterday* wasn't hard-blocked, and the cooldown rail is Pass-5-relaxable.

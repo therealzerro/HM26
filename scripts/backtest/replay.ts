@@ -314,6 +314,7 @@ function runK6Selection(
   timesDrawnMap: Map<string, number>,
   drawsSinceMap: Map<string, number>,
   todayHitComboSets: Set<string>,
+  staleComboSets: Set<string>,
   config: EngineConfig,
   weights: { BOX: number; PBURST: number; CO: number; DGC: number },
   scorePoolForEnergy: number[],
@@ -360,6 +361,8 @@ function runK6Selection(
 
     if (selectedComboSets.has(normKey)) return false;
     if (todayHitComboSets.size > 0 && todayHitComboSets.has(normKey)) return false;
+    // ENG-STALE-01: non-relaxable staleness block (never relaxed by any pass).
+    if (staleComboSets.size > 0 && staleComboSets.has(normKey)) return false;
 
     if (!relaxMultCaps) {
       if (mult === 'singles' && singles >= rails.singlesMax) return false;
@@ -465,9 +468,22 @@ export async function computeSlateAsOf(
   scope: Scope,
   config: EngineConfig,
   mode: 'balanced' | 'conservative' | 'aggressive' = 'balanced',
-  opts: { asOfBoxPressure?: boolean; emitRich?: boolean; outTop30?: ReplayPick[] } = {},
+  opts: { asOfBoxPressure?: boolean; emitRich?: boolean; outTop30?: ReplayPick[]; recentSlateSets?: string[][] } = {},
 ): Promise<ReplayPick[]> {
   const scopeEnc = encodeURIComponent(scope);
+
+  // ENG-STALE-01: slate-appearance staleness hard block. A comboSet present on ALL of
+  // the last N slates (N = threshold) is blocked this slate, forcing rotation of the
+  // never-hitting overdue repeaters. recentSlateSets is fed forward by the caller
+  // (chronological, already sliced to the last N). Stale = intersection of those N.
+  const staleN = config.slateStalenessThresholdByScope?.[scope] ?? config.slateStalenessThreshold ?? 0;
+  const staleComboSets = new Set<string>();
+  if (staleN > 0 && opts.recentSlateSets && opts.recentSlateSets.length >= staleN) {
+    const lastN = opts.recentSlateSets.slice(-staleN);
+    for (const cs of lastN[0]) {
+      if (lastN.every(slate => slate.includes(cs))) staleComboSets.add(cs);
+    }
+  }
   // Per-scope preset wins over global preset when present (ENH 2026-05-15).
   const baseWeights = config.presetByScope?.[scope]?.[mode] ?? config.presets[mode];
 
@@ -787,7 +803,7 @@ export async function computeSlateAsOf(
 
   const k6 = runK6Selection(
     universe, finalScores, timesDrawnMap, drawsSinceMap,
-    todayHitComboSets, config, weights, scorePoolForEnergy,
+    todayHitComboSets, staleComboSets, config, weights, scorePoolForEnergy,
     scope, pairData, bestOrderWeights,
   );
 

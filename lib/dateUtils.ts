@@ -10,6 +10,11 @@ export function getTomorrowET(): string {
   return new Date(Date.now() + 86400000).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 }
 
+// N calendar days before today, ET. getDaysAgoET(1) === getYesterdayET().
+export function getDaysAgoET(n: number): string {
+  return new Date(Date.now() - n * 86400000).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+}
+
 export function getETHour(): number {
   return parseInt(
     new Date().toLocaleString('en-US', {

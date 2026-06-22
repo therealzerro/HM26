@@ -12,7 +12,7 @@
  */
 
 import { Scope, SlateSnapshot, SlateDataStats, EngineMetadata } from '@/types/core';
-import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
+import { getTodayET, getDaysAgoET } from '@/lib/dateUtils';
 import { K6_QUOTAS, PAIR_REPETITION_CAP } from '@/constants/zk6';
 import { fetchFromSupabase } from '@/lib/supabase';
 import {
@@ -1187,21 +1187,22 @@ export async function computeSlate({
   // is relaxed by Pass 5). Symptom: 923/298 pinned to every evening+allday slate
   // 6/10→6/18 (HIT-PERSIST-01).
   //
-  // ENG-BLOCK-PERSCOPE-01 (2026-06-20): restore the yesterday+today hard block
-  // for MIDDAY ONLY; evening + allday keep today-only. ENG-BLOCK-NARROW-01's
-  // blanket today-only narrowing removed the only mechanism rotating recently-hit
-  // high-score combos off the slate (the cooldown rail is unit-broken + Pass-5
-  // relaxed). 30d same-run backtest (dbl_fix_singles6 baseline vs yesterday-block),
-  // replicated across two windows (6/19 + 6/20):
-  //   midday  block +10.7..+13.8pp  → robust WIN  (re-block)
-  //   allday  block −6.9..−7.1pp    → robust LOSS (keep today-only; repeat-hitters
-  //                                   are genuinely valuable on the shared slate)
-  //   evening +3.5pp / −3.6pp       → sign-unstable noise at n=28 → no engine block
-  // Evening/allday "I already closed 923/298" is an operator-personal need, served
-  // by the excludeComboSets personal filter at zero product hit-rate cost — NOT an
-  // engine block. Supplemental evening slates still block today's earlier-session
-  // winners under the today-only branch.
-  const blockFromEt = scope === 'midday' ? getYesterdayET() : todayEt;
+  // ENG-BLOCK-PERSCOPE-02 (2026-06-22): widen the per-scope recent-hit hard block.
+  // midday keeps yesterday+today (ENG-BLOCK-PERSCOPE-01, +10.7..+13.8pp). evening +
+  // allday move from today-only to a 3-DAY block ([D-3, today]) so a combo that just
+  // drew cannot return to the next 1–3 slates — the operator's "after a combo hits it
+  // should cool down, not instantly return". 30d backtest (dbl_fix_singles6 baseline
+  // vs hitblock1..4, per-scope rows on the window ending 6/22):
+  //   evening N=1..3 = +3.5pp (82.8 vs 79.3); N=4 = −3.4pp → sweet spot N≤3
+  //   allday  N=1..4 = neutral within noise (82.8–89.7 vs 89.7, n=29; prior −7pp
+  //                    did not replicate on the current window)
+  //   midday  unchanged (already blocked; benefits further but out of scope here)
+  // N=3 chosen: matches the operator's "ride max 3 days" workflow, evening favorable,
+  // allday flat. Same non-relaxable hard block (todayHitComboSets) — never relaxed by
+  // any K6 pass. CAVEAT: this only rotates combos that HIT; never-hitting overdue
+  // repeaters (923/298) need the separate staleness lever (ENG-STALE-01, in progress).
+  const RECENT_HIT_BLOCK_DAYS: Record<string, number> = { midday: 1, evening: 3, allday: 3 };
+  const blockFromEt = getDaysAgoET(RECENT_HIT_BLOCK_DAYS[scope] ?? 1);
   const todayHitComboSets = new Set<string>();
   const effectiveExcluded = new Set<string>(excludedCombos);
 

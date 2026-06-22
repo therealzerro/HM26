@@ -496,7 +496,7 @@ export async function computeSlateAsOf(
     fetchBoxRows(scopeEnc),
     fetchPairRows(scopeEnc),
     fetchHistoryRows(date, scope),
-    excludeYesterday ? fetchYesterdayResults(date, config.recentHitBlockDays ?? 1) : Promise.resolve(new Set<string>()),
+    excludeYesterday ? fetchYesterdayResults(date, config.recentHitBlockDaysByScope?.[scope] ?? config.recentHitBlockDays ?? 1) : Promise.resolve(new Set<string>()),
     warmingActive ? fetchWarmingHistory(date, warmingWindowDays, scope, config.warmingScopeMatched === true) : Promise.resolve([] as { comboset_sorted: string; date_et: string }[]),
     stateStrActive ? fetchStateHistory(date, config.stateStrWindowDays ?? 60) : Promise.resolve([] as StateHistoryRow[]),
   ]);

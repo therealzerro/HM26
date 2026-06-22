@@ -20,7 +20,7 @@ import {
   type PressureScaleMode,
   type StateHistoryRow,
 } from '../_shared/engineCore.ts';
-import { getTodayET, getYesterdayET } from '../_shared/dateUtils.ts';
+import { getTodayET, getDaysAgoET } from '../_shared/dateUtils.ts';
 
 // ─── Supabase fetch helpers ───────────────────────────────────────────────────
 
@@ -854,14 +854,17 @@ async function computeSlate(params: {
   const todayHitComboSets = new Set<string>();
   const effectiveExcluded = new Set<string>();
 
-  // ENG-BLOCK-PERSCOPE-01 (2026-06-20): restore the yesterday+today hard block
-  // for MIDDAY ONLY; evening + allday keep today-only. Re-blocking midday is a
-  // robust +10.7..+13.8pp slate-hit win across two backtest windows; re-blocking
-  // allday is a robust −7pp LOSS (its repeat-hitters are valuable) and evening is
-  // sign-unstable noise at n=28. The operator's "don't show me 923/298 I already
-  // closed" on evening/allday is served by the excludeComboSets personal filter,
-  // not an engine block. Mirror of engines/zk6.ts ENG-BLOCK-PERSCOPE-01.
-  const blockFromEt = scope === 'midday' ? getYesterdayET() : todayEt;
+  // ENG-BLOCK-PERSCOPE-02 (2026-06-22): widen the per-scope recent-hit hard block.
+  // midday keeps yesterday+today (ENG-BLOCK-PERSCOPE-01, +10.7..+13.8pp); evening +
+  // allday move from today-only to a 3-DAY block ([D-3, today]) so a just-drawn combo
+  // cannot return to the next 1–3 slates ("cool down after a hit"). 30d backtest on the
+  // window ending 6/22: evening N≤3 +3.5pp (N=4 regresses), allday neutral within noise
+  // (prior −7pp did not replicate). N=3 matches the operator's ride-max-3-days workflow.
+  // Same non-relaxable hard block as before. Mirror of engines/zk6.ts ENG-BLOCK-PERSCOPE-02.
+  // CAVEAT: only rotates combos that HIT; never-hitting overdue repeaters (923/298) need
+  // the separate staleness lever (ENG-STALE-01, in progress).
+  const RECENT_HIT_BLOCK_DAYS: Record<string, number> = { midday: 1, evening: 3, allday: 3 };
+  const blockFromEt = getDaysAgoET(RECENT_HIT_BLOCK_DAYS[scope] ?? 1);
   // Source A: histories table — [blockFromEt, today]
   try {
     const tw = await sbGet<any[]>(

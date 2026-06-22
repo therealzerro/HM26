@@ -3436,6 +3436,14 @@ export const CONFIGS: Record<string, EngineConfig> = {
   get hitblock4() { return { ...this.dbl_fix_singles6, excludeYesterdayHits: true, recentHitBlockDays: 4 }; },
   get hitblock5() { return { ...this.dbl_fix_singles6, excludeYesterdayHits: true, recentHitBlockDays: 5 }; },
 
+  // ENG-BLOCK-PERSCOPE-02 (2026-06-22): SHIPPED production parity. midday keeps its
+  // 1-day (yesterday) block; evening + allday widen to a 3-day non-relaxable post-hit
+  // block. Backtest (window ending 6/22): evening +3.5pp, allday neutral within noise.
+  // This is the new baseline for future evening/allday engine experiments.
+  get prod_parity_2026_06_22() {
+    return { ...this.dbl_fix_singles6, excludeYesterdayHits: true, recentHitBlockDaysByScope: { midday: 1, evening: 3, allday: 3 } };
+  },
+
   // COOLDOWN-WINDOW-SWEEP (2026-06-20): "fix the cooldown unit defect" verified to
   // be a non-defect — ds_raw is calendar DAYS end-to-end, so recent_hit_cooldown=20
   // is a coherent 20-DAY window (not a unit bug). Open question: is 20d too WIDE?

@@ -27,6 +27,10 @@ export interface EngineConfig {
   // after it draws so recently-hit combos (923/298) stop reappearing every day.
   // Reverses ENG-BLOCK-NARROW-01's today-only narrowing. Default omitted = 1.
   recentHitBlockDays?: number;
+  // ENG-BLOCK-PERSCOPE-02 (2026-06-22): per-scope override of recentHitBlockDays,
+  // mirroring recentHitCooldownByScope. Wins over the global value when set.
+  // Production: { midday: 1, evening: 3, allday: 3 }.
+  recentHitBlockDaysByScope?: Partial<Record<Scope, number>>;
   // ENH-F: per-multiplicity cooldown. Doubles draw less often than singles, so a flat
   // 20-day cooldown is too aggressive for them. When set, overrides `recentHitCooldown`
   // based on the candidate's multiplicity.

@@ -1,13 +1,34 @@
 # HitMaster — Master Audit & Fix Tracker
 **Project:** HitMaster ZK6/ZK30 Analytics App  
 **Stack:** Expo / React Native · Supabase · TypeScript  
-**Last updated:** 2026-06-22 (**BUG-BACKFILL-AT-HASHKEY-01** + **NEW-REPLAY-STRAIGHTCOUNT-01** + **OBS-BACKFILL-DETERMINISM-01** — see top entries; 6/15 & 6/20 slates backfilled, 6/19 verified healthy.) Earlier — 2026-06-20 (**ENG-BLOCK-PERSCOPE-01** — regression fix: ENG-BLOCK-NARROW-01's blanket today-only block was pinning 923/298 to every slate since 6/10; restored the yesterday+today block for **midday only** (backtest +10.7..+13.8pp, replicated), kept today-only for evening/allday (block regresses allday −7pp, evening is noise); edge fn v41→v42.) Earlier — 2026-06-10 (Fable 5 session, continued: **BUG-162 found+fixed+repaired** — hit detection stamped next-day results onto prior slates (~30% hit inflation since at least 5/13); run-hit-detection v10 deployed; 61 phantom DI hits cleared; CALIB-01 refit as CALIB-01b on clean labels. **Corrected picture: engine = baseline in every scope at both any-day and per-draw level; at the uniform 90%-RTP payout schedule all bet types carry the −10% house edge regardless of engine config.** Earlier same session: sweep #3 (BUG-161), ENG-OBS-05/06 resolved, CONFIG-16 shipped (review 6/17), STATE_STR falsified, BESTORDER-SWEEP (no ship), CALIB-01; edge zk6 at v41, hit-detection at v10. **Later same day: SIGNAL-INFO-01 — signal information content SETTLED: BOX/PBURST/CO carry zero universe-level information; DGC carries small replicated anti-information that is NOT exploitable; in-backtest lift attributed to datasets forward-drift leak. See entry. Evening: COHORT-01 — standing overdue-reversion cohort harness built (`npm run cohort:overdue`); first run flat pooled, per-state red z=2.83 watch item below pre-registered bar.**)  
+**Last updated:** 2026-06-22 (**ENG-BLOCK-PERSCOPE-02** — evening+allday recent-hit block widened to 3-day non-relaxable post-hit cooldown; backtest evening +3.5pp / allday neutral; CODE DONE, edge deploy pending. Earlier same day: **BUG-BACKFILL-AT-HASHKEY-01** + **NEW-REPLAY-STRAIGHTCOUNT-01** + **OBS-BACKFILL-DETERMINISM-01**; 6/15/6/20/6/21 slates backfilled, 6/19 verified healthy.) Earlier — 2026-06-20 (**ENG-BLOCK-PERSCOPE-01** — regression fix: ENG-BLOCK-NARROW-01's blanket today-only block was pinning 923/298 to every slate since 6/10; restored the yesterday+today block for **midday only** (backtest +10.7..+13.8pp, replicated), kept today-only for evening/allday (block regresses allday −7pp, evening is noise); edge fn v41→v42.) Earlier — 2026-06-10 (Fable 5 session, continued: **BUG-162 found+fixed+repaired** — hit detection stamped next-day results onto prior slates (~30% hit inflation since at least 5/13); run-hit-detection v10 deployed; 61 phantom DI hits cleared; CALIB-01 refit as CALIB-01b on clean labels. **Corrected picture: engine = baseline in every scope at both any-day and per-draw level; at the uniform 90%-RTP payout schedule all bet types carry the −10% house edge regardless of engine config.** Earlier same session: sweep #3 (BUG-161), ENG-OBS-05/06 resolved, CONFIG-16 shipped (review 6/17), STATE_STR falsified, BESTORDER-SWEEP (no ship), CALIB-01; edge zk6 at v41, hit-detection at v10. **Later same day: SIGNAL-INFO-01 — signal information content SETTLED: BOX/PBURST/CO carry zero universe-level information; DGC carries small replicated anti-information that is NOT exploitable; in-backtest lift attributed to datasets forward-drift leak. See entry. Evening: COHORT-01 — standing overdue-reversion cohort harness built (`npm run cohort:overdue`); first run flat pooled, per-state red z=2.83 watch item below pre-registered bar.**)  
 **Maintained by:** therealzerro + AI Assistant
 
 > **Process note (added 2026-05-12):** Updating MASTER_AUDIT.md is part of the definition of done for any task, not optional. Two prior sessions (Phase 3 deploy, BUG-02 fix attempts) completed work without logging it, leading to a forensic investigation 2026-05-12 to reconcile documented state with production reality. Every code change, SQL migration, Edge Function deploy, or RLS policy change must produce a corresponding audit entry in the same session.
 
 > **USAGE:** This is the single source of truth for all known issues, fixes, and technical debt.  
 > When a fix is made, update the status column and add a note. Do not create new audit files — append here.
+
+---
+
+### ENG-BLOCK-PERSCOPE-02 — Evening + allday recent-hit block widened to 3 days (post-hit cooldown) ⏳ CODE DONE, EDGE DEPLOY PENDING (2026-06-22)
+
+**Trigger (operator):** "after a combo hits it should be cooling down and not instantly return to the slate" — evening/allday show the same picks daily. Evidence (6/08–6/21): ~20 **hit-and-return** events (combo drew on D, back on the slate D+1) — e.g. allday `{2,3,9}` returned after 6/10/12/13/14; evening `{4,5,6}` after 6/12/16/20. Mechanism: evening/allday used a **today-only** hard block (ENG-BLOCK-PERSCOPE-01), so a combo that hit *yesterday* wasn't hard-blocked, and the cooldown rail is Pass-5-relaxable.
+
+**Change:** per-scope recent-hit block window `RECENT_HIT_BLOCK_DAYS = { midday: 1, evening: 3, allday: 3 }`; `blockFromEt = getDaysAgoET(N)`. midday unchanged (yesterday). evening/allday now block `[D-3, today]` via the same **non-relaxable** `todayHitComboSets` hard block. New helper `getDaysAgoET(n)` added to `lib/dateUtils.ts` + `_shared/dateUtils.ts` (synced via `npm run sync:edge-shared`).
+
+**Backtest (30d window ending 6/22, `dbl_fix_singles6` today-only baseline vs `hitblock1..4`; n=29/scope):**
+
+| Scope | Baseline (today-only) | N=1 | N=2 | N=3 | N=4 |
+|---|---|---|---|---|---|
+| evening | 79.3% | 82.8% | 82.8% | **82.8%** | 75.9% |
+| allday | 89.7% | 86.2% | 82.8% | **86.2%** | 89.7% |
+
+evening N≤3 = **+3.5pp** (≥ baseline ✅); allday = **neutral within noise** (CIs span ~[69–96]; prior ENG-BLOCK-PERSCOPE-01 −7pp did NOT replicate on this window). **N=3 shipped** (matches operator "ride max 3 days"; operator-approved on neutral/freshness basis). New harness parity preset `prod_parity_2026_06_22` (`recentHitBlockDaysByScope`).
+
+**Files:** `engines/zk6.ts`, `supabase/functions/compute-slate-zk6/index.ts`, `lib/dateUtils.ts`, `_shared/dateUtils.ts`, `scripts/backtest/{types,replay,configs}.ts`. Typecheck clean (touched files). **PENDING: edge fn `compute-slate-zk6` deploy (CLI, verify_jwt=true preserved); takes effect next Daily Workflow run — no slate regen.**
+
+**CAVEAT (→ ENG-STALE-01):** a *hit-based* block only rotates combos that HIT. The worst freezers — `{2,8,9}` (14/14 days), `{2,3,9}` (13/14) — recur mostly WITHOUT hitting (overdue → BOX pressure pins them top-6 → miss → repeat). This block does NOT defrost those; the staleness lever (in progress) targets them.
 
 ---
 

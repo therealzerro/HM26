@@ -11,6 +11,14 @@
 
 ---
 
+### 6/21 SLATE REGEN with new rotation logic + BUG-BACKFILL-AT-ORPHAN-01 ✅ (2026-06-22)
+
+**Regen (operator-authorized — 6/21 slates were never posted to FB subscribers, "no damage"):** regenerated 6/21 **evening + allday** through the new ENG-BLOCK-PERSCOPE-02 (3-day block) + ENG-STALE-01 (stale2) rules; **midday unchanged** (no-op, byte-identical hash `856404B4`). Backfill writer extended: per-scope rotation rules overlaid in the write path (the rules are hardcoded in the edge fn, not app_config) + `fetchRecentSlateSets` feeds the last 2 prior slates to the staleness block. Parity gate still validates the BASE engine (3/3 PASS) — the rotation rules are deterministic overlays on a parity-confirmed base. Result: evening `{2,3,9}/{0,3,8}/{3,6,9}/{1,2,3}/{4,5,6}` (frozen across 6/19+6/20) **rotated out** → `3E7DB39F`; allday `{2,8,9}/{2,3,9}/{2,3,5}` **rotated out** → `58968B7E` (1 box hit on a fresh pick). All 3 scopes still return 6 picks (no starvation from the 5-combo staleness block).
+
+**BUG-BACKFILL-AT-ORPHAN-01 (found + fixed):** the backfill writer soft-deletes the prior *snapshot* on regen but left the prior `adaptive_tracking` rows — so a regenerated scope+date kept BOTH old- and new-hash AT rows (double-counted in metrics). Found on the 6/21 regen (12 orphan rows). **Fixed:** writer now `sbDelete`s `adaptive_tracking` for `slate_date=date & scope & slate_hash != newHash` after the snapshot insert. Manually cleaned the 6/21 orphans via SQL — scoped to `slate_date=2026-06-21` because the content hash `4D04C4DC` legitimately recurs on 6/19/6/20 allday (deleting by hash alone would have wiped those). Verified: 6/19/6/20 intact, 6/21 has exactly one slate per scope.
+
+---
+
 ### ENG-STALE-01 — Slate-appearance staleness lever (rotate never-hitting repeaters) ⏳ PRODUCTIONIZED (stale2), EDGE DEPLOY PENDING (2026-06-22)
 
 **PRODUCTION PORT (2026-06-22, operator chose stale2 = max 2 consecutive):** ported to

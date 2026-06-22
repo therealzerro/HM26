@@ -73,6 +73,26 @@ async function histCount(date: string): Promise<number> {
 }
 
 /**
+ * ENG-STALE-01: the last N canonical prior slates (comboSet arrays) for a scope,
+ * strictly before `date` — feeds the staleness block in the as-of engine. Canonical =
+ * latest snapshot per slate_date. Order-independent downstream (the engine intersects).
+ */
+async function fetchRecentSlateSets(scope: Scope, date: string, n: number): Promise<string[][]> {
+  const rows = await dbGet<any[]>(
+    `/slate_snapshots?scope=eq.${encodeURIComponent(scope)}&deleted_at=is.null&mode=neq.zk30&slate_date=lt.${date}&select=slate_date,top_k_boxes_json,top_k_straights_json,updated_at_et&order=slate_date.desc,updated_at_et.desc&limit=20`,
+  );
+  const byDate = new Map<string, string[]>();
+  if (Array.isArray(rows)) for (const r of rows) {
+    if (byDate.has(r.slate_date)) continue; // first per date = latest (updated_at desc)
+    const sets = Array.isArray(r.top_k_boxes_json) && r.top_k_boxes_json.length
+      ? r.top_k_boxes_json.map(String)
+      : (Array.isArray(r.top_k_straights_json) ? r.top_k_straights_json.map((p: any) => String(p?.comboSet ?? '')).filter(Boolean) : []);
+    if (sets.length) byDate.set(r.slate_date, sets);
+  }
+  return [...byDate.values()].slice(0, n);
+}
+
+/**
  * The parity gate proves the ENGINE+CONFIG faithfully reconstruct production
  * TODAY, so it validates against the FRESHEST real snapshot (least datasets-drift)
  * — NOT a day adjacent to an old backfill target. asOfBoxPressure corrects combos
@@ -221,8 +241,18 @@ async function main() {
   let wroteSnapshots = 0, wroteAtRows = 0;
   for (const scope of scopes) {
     const cfg = await loadBackfillConfig(scope);
+    // ENG-BLOCK-PERSCOPE-02 + ENG-STALE-01 (2026-06-22): the new per-scope rotation rules
+    // are hardcoded in the production edge fn (not app_config), so overlay them here so a
+    // regenerated past slate matches what the NEW engine produces. midday is a no-op
+    // (block stays 1, staleness off). The parity gate above still validates the BASE
+    // scoring engine against the (old-logic) stored reference; these are deterministic
+    // rotation overlays applied on top of a parity-confirmed base.
+    cfg.excludeYesterdayHits = true;
+    cfg.recentHitBlockDaysByScope = { midday: 1, evening: 3, allday: 3 };
+    cfg.slateStalenessThresholdByScope = { midday: 0, evening: 2, allday: 2 };
+    const recentSlateSets = await fetchRecentSlateSets(scope, date, 2);
     const top30: ReplayPick[] = [];
-    const k6 = await computeSlateAsOf(date, scope, cfg, MODE, { asOfBoxPressure: true, emitRich: true, outTop30: top30 });
+    const k6 = await computeSlateAsOf(date, scope, cfg, MODE, { asOfBoxPressure: true, emitRich: true, outTop30: top30, recentSlateSets });
     if (k6.length === 0) { console.warn(`  ${scope}: engine returned 0 picks, skipping`); continue; }
 
     const hash = computeSlateHash(scope, MODE, k6.map(p => p.combo), { ...Object.fromEntries(H_ALL.map(h => [h, true])) });
@@ -242,6 +272,13 @@ async function main() {
     await sbPost('/slate_snapshots', snapshot, 'return=minimal');
     wroteSnapshots++;
     console.log(`     ✅ wrote slate_snapshots row (slate_date=${date}, _source=backfill)`);
+
+    // Regen hygiene: a regenerated slate gets a NEW content hash, so adaptive_tracking
+    // rows from a PRIOR generation for this scope+date would orphan (their snapshot is
+    // soft-deleted but the AT rows persist → double-counted in metrics). Delete them,
+    // scoped to THIS date+scope+other-hash — a content hash legitimately recurs on other
+    // dates (e.g. allday 4D04C4DC across 6/19–6/21), so never delete by hash alone.
+    await sbDelete(`/adaptive_tracking?slate_date=eq.${date}&scope=eq.${encodeURIComponent(scope)}&slate_hash=neq.${hash}`);
 
     // adaptive_tracking — idempotent on (slate_hash, mode, slate_date) primary
     // rows. slate_date MUST be part of the key: snapshot_hash is content-based

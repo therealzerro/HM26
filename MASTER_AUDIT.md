@@ -33,7 +33,9 @@
 
 ---
 
-### ENG-STALE-01 — Slate-appearance staleness lever (rotate never-hitting repeaters) ⏳ PRODUCTIONIZED (stale2), EDGE DEPLOY PENDING (2026-06-22)
+### ENG-STALE-01 — Slate-appearance staleness lever (rotate never-hitting repeaters) ✅ SHIPPED — stale2, edge v43 (2026-06-22)
+
+**DEPLOYED 2026-06-22:** `compute-slate-zk6` v42 → **v43** (CLI, `verify_jwt=true` preserved, ACTIVE) — ships ENG-BLOCK-PERSCOPE-02 + ENG-STALE-01 together. Effective next Daily Workflow run; staleness reads the last 2 `slate_snapshots`/scope (the regenerated 6/20+6/21 give it clean history).
 
 **PRODUCTION PORT (2026-06-22, operator chose stale2 = max 2 consecutive):** ported to
 `engines/zk6.ts` + `supabase/functions/compute-slate-zk6/index.ts`. `SLATE_STALENESS_DAYS
@@ -65,7 +67,7 @@ next Daily Workflow run; no slate regen.** Recommend deploying + observing 1–2
 
 ---
 
-### ENG-BLOCK-PERSCOPE-02 — Evening + allday recent-hit block widened to 3 days (post-hit cooldown) ⏳ CODE DONE, EDGE DEPLOY PENDING (2026-06-22)
+### ENG-BLOCK-PERSCOPE-02 — Evening + allday recent-hit block widened to 3 days (post-hit cooldown) ✅ SHIPPED — edge v43 (2026-06-22)
 
 **Trigger (operator):** "after a combo hits it should be cooling down and not instantly return to the slate" — evening/allday show the same picks daily. Evidence (6/08–6/21): ~20 **hit-and-return** events (combo drew on D, back on the slate D+1) — e.g. allday `{2,3,9}` returned after 6/10/12/13/14; evening `{4,5,6}` after 6/12/16/20. Mechanism: evening/allday used a **today-only** hard block (ENG-BLOCK-PERSCOPE-01), so a combo that hit *yesterday* wasn't hard-blocked, and the cooldown rail is Pass-5-relaxable.
 

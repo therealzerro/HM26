@@ -11,7 +11,20 @@
 
 ---
 
-### ENG-STALE-01 — Slate-appearance staleness lever (rotate never-hitting repeaters) 🧪 BUILT + BACKTESTED (harness only), PROD PORT PENDING DECISION (2026-06-22)
+### ENG-STALE-01 — Slate-appearance staleness lever (rotate never-hitting repeaters) ⏳ PRODUCTIONIZED (stale2), EDGE DEPLOY PENDING (2026-06-22)
+
+**PRODUCTION PORT (2026-06-22, operator chose stale2 = max 2 consecutive):** ported to
+`engines/zk6.ts` + `supabase/functions/compute-slate-zk6/index.ts`. `SLATE_STALENESS_DAYS
+= { midday: 0, evening: 2, allday: 2 }`. Each computes the stale set by querying the last
+N `slate_snapshots` for the scope (`slate_date < today`, canonical-per-date via
+`top_k_boxes_json` w/ `top_k_straights_json` fallback) and intersecting; the result is a
+non-relaxable hard block in the K6 `tryAdd` predicate (alongside `todayHitComboSets`).
+K6-only — DI top-30 untouched (matches the backtest). RN engine typechecks; edge fn mirrors
+it (Deno unavailable locally). `stale2` preset is now the harness production-parity baseline.
+**PENDING: ships in the same `compute-slate-zk6` deploy as ENG-BLOCK-PERSCOPE-02; effective
+next Daily Workflow run; no slate regen.** Recommend deploying + observing 1–2 runs.
+
+---
 
 **Problem:** the hit-based block (ENG-BLOCK-PERSCOPE-02) only rotates combos that HIT. The worst freezers — allday/evening `{2,8,9}` (14/14 days), `{2,3,9}` (13/14) — recur mostly WITHOUT hitting: they're overdue, the BOX pressure term pins them top-6, they miss, repeat. A *slate-appearance* staleness block targets them: a comboSet on ALL of the last N slates is hard-blocked (non-relaxable) the next slate, capping any combo at N consecutive appearances (N/(N+1) of days) — forcing rotation regardless of hits.
 

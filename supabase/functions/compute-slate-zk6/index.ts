@@ -895,6 +895,38 @@ async function computeSlate(params: {
     });
   } catch { /* non-fatal */ }
 
+  // ENG-STALE-01 (2026-06-22): slate-appearance staleness block. A comboSet present on
+  // ALL of the last N slates for this scope (evening/allday) is hard-blocked, capping any
+  // combo at N consecutive appearances so the never-hitting overdue repeaters (923/298)
+  // rotate — the hit-based block can't catch them. 30d backtest: hit-rate-NEUTRAL within
+  // noise. K6-only (matches backtest); DI top-30 untouched. midday already rotates (=0).
+  // Mirror of engines/zk6.ts ENG-STALE-01.
+  const SLATE_STALENESS_DAYS: Record<string, number> = { midday: 0, evening: 2, allday: 2 };
+  const staleComboSets = new Set<string>();
+  const staleN = SLATE_STALENESS_DAYS[scope] ?? 0;
+  if (staleN > 0) {
+    try {
+      const prior = await sbGet<any[]>(
+        `/rest/v1/slate_snapshots?scope=eq.${scope}&deleted_at=is.null&mode=neq.zk30&slate_date=lt.${todayEt}&select=slate_date,top_k_boxes_json,top_k_straights_json,updated_at_et&order=slate_date.desc,updated_at_et.desc&limit=20`,
+      );
+      const byDate = new Map<string, string[]>();
+      if (Array.isArray(prior)) for (const r of prior) {
+        if (byDate.has(r.slate_date)) continue; // first per date = latest (updated_at desc)
+        const sets = Array.isArray(r.top_k_boxes_json) && r.top_k_boxes_json.length
+          ? r.top_k_boxes_json.map(String)
+          : (Array.isArray(r.top_k_straights_json) ? r.top_k_straights_json.map((p: any) => String(p?.comboSet ?? '')).filter(Boolean) : []);
+        if (sets.length) byDate.set(r.slate_date, sets);
+      }
+      const lastN = [...byDate.values()].slice(0, staleN);
+      if (lastN.length >= staleN) {
+        for (const cs of lastN[0]) {
+          if (lastN.every(slate => slate.includes(cs))) staleComboSets.add(cs);
+        }
+      }
+    } catch { /* non-fatal */ }
+  }
+  console.log('[edge-zk6] ENG-STALE-01 staleness block:', JSON.stringify({ scope, staleN, stale: [...staleComboSets] }));
+
   // 3. Signal scoring
   // CONFIG-08 (2026-05-27): when timesDrawnBlendEnabled is true, BOX + pair
   // times_drawn honor horizon_weights via blend. Build synthetic pairMetaMap
@@ -1086,6 +1118,8 @@ async function computeSlate(params: {
     const combo = universe[idx], nk = toComboSet(combo);
     if (selectedCS.has(nk)) return false;
     if (todayHitComboSets.size > 0 && todayHitComboSets.has(nk)) return false;
+    // ENG-STALE-01: non-relaxable staleness block (never relaxed by any pass).
+    if (staleComboSets.size > 0 && staleComboSets.has(nk)) return false;
     if (!rx && effectiveExcluded.has(combo)) return false;
     if (!rx && excCSSet.size > 0 && excCSSet.has(nk)) return false;
     const mult = multiplicityOf(combo);

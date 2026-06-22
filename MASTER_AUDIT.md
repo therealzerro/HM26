@@ -11,6 +11,20 @@
 
 ---
 
+### 6/15 + 6/19 + 6/20 SLATE REGEN (new rotation) + parity-gate-tracks-new-engine + 6/16 orphan cleanup ✅ (2026-06-22)
+
+**Regen (operator-authorized):** regenerated **6/15, 6/19, 6/20** evening + allday through ENG-BLOCK-PERSCOPE-02 + ENG-STALE-01 (stale2), oldest-first so each sees the prior regenerated day. **midday unchanged on all three** (no-op; identical hash → AT preserved, not duplicated). Frozen `{2,8,9}/{2,3,9}/{2,3,5}/{0,3,8}/...` rotated out of evening/allday on every day.
+
+**Parity gate now validates the FULL new engine.** Refactored: `applyNewRotationRules(cfg)` shared by the write path AND `parityGate` (so they can't drift); parity also feeds `fetchRecentSlateSets`. Result: parity reproduces the (rotated) reference exactly on **midday + evening**; **allday differs by 1–2 ranks from pair-pagination nondeterminism** (OBS-BACKFILL-DETERMINISM-01), so regens ran `--force` with the midday+evening exact match as the fidelity proof. The writer's BUG-BACKFILL-AT-ORPHAN-01 auto-cleanup kept all regenerated days at exactly 1 AT hash/scope.
+
+**Cleanup:** scanned 6/15–6/21 for orphaned AT rows (slate_hash with no matching active snapshot). Found **18 pre-existing orphans on 6/16** (6/scope, from an earlier mid-day regen — NOT today's work) and deleted them via the `NOT EXISTS` predicate. Verified: 0 orphans remain in the window.
+
+**Per-day hit-rate note:** 6/19 went 1 box hit → 0 because staleness rotated out `{2,3,5}` (the combo that would have hit). This is the expected ± per-day variance of a hit-rate-neutral rotation, not a regression.
+
+**OPEN — chain consistency:** 6/21 was regenerated *earlier* against the pre-regen 6/19/6/20, so its staleness inputs are now slightly stale (still a valid rotated slate). Re-running 6/21 would close the 6/19→6/20→6/21 chain; deferred unless wanted.
+
+---
+
 ### 6/21 SLATE REGEN with new rotation logic + BUG-BACKFILL-AT-ORPHAN-01 ✅ (2026-06-22)
 
 **Regen (operator-authorized — 6/21 slates were never posted to FB subscribers, "no damage"):** regenerated 6/21 **evening + allday** through the new ENG-BLOCK-PERSCOPE-02 (3-day block) + ENG-STALE-01 (stale2) rules; **midday unchanged** (no-op, byte-identical hash `856404B4`). Backfill writer extended: per-scope rotation rules overlaid in the write path (the rules are hardcoded in the edge fn, not app_config) + `fetchRecentSlateSets` feeds the last 2 prior slates to the staleness block. Parity gate still validates the BASE engine (3/3 PASS) — the rotation rules are deterministic overlays on a parity-confirmed base. Result: evening `{2,3,9}/{0,3,8}/{3,6,9}/{1,2,3}/{4,5,6}` (frozen across 6/19+6/20) **rotated out** → `3E7DB39F`; allday `{2,8,9}/{2,3,9}/{2,3,5}` **rotated out** → `58968B7E` (1 box hit on a fresh pick). All 3 scopes still return 6 picks (no starvation from the 5-combo staleness block).

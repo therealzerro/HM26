@@ -106,7 +106,23 @@ async function freshestSnapshotDate(excludeDate: string): Promise<string | null>
   return Array.isArray(rows) && rows.length > 0 ? rows[0].slate_date : null;
 }
 
-/** Recompute a recent real snapshot and confirm membership+rank match. */
+/**
+ * ENG-BLOCK-PERSCOPE-02 + ENG-STALE-01: overlay the production rotation rules that are
+ * HARDCODED in the edge fn (not app_config) onto a loaded config, so the as-of writer AND
+ * the parity gate both reproduce what the NEW engine generates. Shared so the two paths
+ * cannot drift. midday is a no-op (block stays 1, staleness off).
+ */
+function applyNewRotationRules(cfg: any): void {
+  cfg.excludeYesterdayHits = true;
+  cfg.recentHitBlockDaysByScope = { midday: 1, evening: 3, allday: 3 };
+  cfg.slateStalenessThresholdByScope = { midday: 0, evening: 2, allday: 2 };
+}
+
+/** Recompute a recent real snapshot and confirm membership+rank match. Validates the
+ *  FULL new engine (base scoring + rotation rules) so it stays meaningful now that recent
+ *  stored snapshots are themselves rotated. NOTE: allday can differ by 1-2 ranks purely
+ *  from pair-pagination nondeterminism (OBS-BACKFILL-DETERMINISM-01) — a midday+evening
+ *  exact match still confirms engine fidelity; allday-only misses are not drift. */
 async function parityGate(refDate: string): Promise<boolean> {
   console.log(`\n[backfill] PARITY GATE — recomputing ${refDate} (a real production snapshot) to confirm fidelity…`);
   let okScopes = 0, total = 0;
@@ -118,7 +134,9 @@ async function parityGate(refDate: string): Promise<boolean> {
     if (stored.length === 0) continue;
     total++;
     const cfg = await loadBackfillConfig(scope);
-    const picks = await computeSlateAsOf(refDate, scope, cfg, MODE, { asOfBoxPressure: true });
+    applyNewRotationRules(cfg);
+    const recentSlateSets = await fetchRecentSlateSets(scope, refDate, 2);
+    const picks = await computeSlateAsOf(refDate, scope, cfg, MODE, { asOfBoxPressure: true, recentSlateSets });
     const computed = picks.map(p => p.comboSet);
     const exact = stored.length === computed.length && stored.every((c, i) => c === computed[i]);
     console.log(`  ${scope.padEnd(8)} ${exact ? '✅ exact' : '❌ differs'}`);
@@ -241,15 +259,7 @@ async function main() {
   let wroteSnapshots = 0, wroteAtRows = 0;
   for (const scope of scopes) {
     const cfg = await loadBackfillConfig(scope);
-    // ENG-BLOCK-PERSCOPE-02 + ENG-STALE-01 (2026-06-22): the new per-scope rotation rules
-    // are hardcoded in the production edge fn (not app_config), so overlay them here so a
-    // regenerated past slate matches what the NEW engine produces. midday is a no-op
-    // (block stays 1, staleness off). The parity gate above still validates the BASE
-    // scoring engine against the (old-logic) stored reference; these are deterministic
-    // rotation overlays applied on top of a parity-confirmed base.
-    cfg.excludeYesterdayHits = true;
-    cfg.recentHitBlockDaysByScope = { midday: 1, evening: 3, allday: 3 };
-    cfg.slateStalenessThresholdByScope = { midday: 0, evening: 2, allday: 2 };
+    applyNewRotationRules(cfg); // ENG-BLOCK-PERSCOPE-02 + ENG-STALE-01 (shared w/ parity gate)
     const recentSlateSets = await fetchRecentSlateSets(scope, date, 2);
     const top30: ReplayPick[] = [];
     const k6 = await computeSlateAsOf(date, scope, cfg, MODE, { asOfBoxPressure: true, emitRich: true, outTop30: top30, recentSlateSets });

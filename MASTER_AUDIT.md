@@ -37,6 +37,8 @@
 
 **DEPLOYED 2026-06-22:** `compute-slate-zk6` v42 → **v43** (CLI, `verify_jwt=true` preserved, ACTIVE) — ships ENG-BLOCK-PERSCOPE-02 + ENG-STALE-01 together. Effective next Daily Workflow run; staleness reads the last 2 `slate_snapshots`/scope (the regenerated 6/20+6/21 give it clean history).
 
+**NO review window** (operator, 2026-06-22): the engine carries no exploitable edge (SIGNAL-INFO-01), so this rotation is hit-rate-neutral BY DESIGN — there is no metric a review window would move. Success = the slates rotate, verifiable on the first live run. Review windows apply to changes that *claim* a hit-rate gain, not UX/integrity rotation.
+
 **PRODUCTION PORT (2026-06-22, operator chose stale2 = max 2 consecutive):** ported to
 `engines/zk6.ts` + `supabase/functions/compute-slate-zk6/index.ts`. `SLATE_STALENESS_DAYS
 = { midday: 0, evening: 2, allday: 2 }`. Each computes the stale set by querying the last

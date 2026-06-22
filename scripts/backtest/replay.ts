@@ -465,6 +465,7 @@ export async function computeSlateAsOf(
   scope: Scope,
   config: EngineConfig,
   mode: 'balanced' | 'conservative' | 'aggressive' = 'balanced',
+  opts: { asOfBoxPressure?: boolean; emitRich?: boolean; outTop30?: ReplayPick[] } = {},
 ): Promise<ReplayPick[]> {
   const scopeEnc = encodeURIComponent(scope);
   // Per-scope preset wins over global preset when present (ENH 2026-05-15).
@@ -517,6 +518,34 @@ export async function computeSlateAsOf(
     const stale = drawsSinceMap.get(cs);
     if (stale == null || actualDs < stale) drawsSinceMap.set(cs, actualDs);
     // dsRawMap intentionally NOT updated — matches production engine behavior
+  }
+
+  // FAITHFUL BACKFILL (asOfBoxPressure) — make the BOX over-due *pressure* term
+  // as-of-correct, not just the cooldown. Production reads datasets_box.ds_raw as
+  // rebuilt that same morning (as-of D). The replay/backfill instead reads CURRENT
+  // datasets_box.ds_raw, which reflects the LAST rebuild — stale by however many
+  // days have passed, and crucially counting any draw ON/AFTER D (a combo that
+  // drew on D shows ds_raw≈1 today but had NOT yet drawn as-of D). For a 30-day
+  // backtest this is the acknowledged ~drift; for a backfill WRITE it flips
+  // boundary picks (verified: 6/18 membership 83% → fixed below). `dsOverride`
+  // already holds days-since-last-hit-strictly-before-D for every comboSet that
+  // appears in histories<D, so we apply it to BOTH pressure inputs (boxByHorizon
+  // and dsRawMap). times_drawn is NOT corrected — the nightly rebuild freezes it
+  // (rebuild-datasets.ts: "ONLY ds_raw, NOT times_drawn"), so it does not drift.
+  // Combos absent from histories<D keep their stored ds_raw, exactly as
+  // rebuild-datasets.ts leaves them ("no recent history → leave stored alone").
+  if (opts.asOfBoxPressure) {
+    for (const [cs, actualDs] of dsOverride) {
+      // Box pressure inputs (ds_raw per horizon).
+      dsRawMap.set(cs, actualDs);
+      for (const h of boxByHorizon.keys()) boxByHorizon.get(h)!.set(cs, actualDs);
+      // Cooldown + display-reorder input. The merge above takes MIN(current, as-of)
+      // which preserves the LEAKED current value when a combo drew on/after D
+      // (ds≈1). That wrongly (a) trips the cooldown reject and (b) sinks the combo
+      // in the draws_since-desc display reorder. As-of D, days-since-last-hit is
+      // strictly the most recent hit BEFORE D = dsOverride. Overwrite, not min.
+      drawsSinceMap.set(cs, actualDs);
+    }
   }
 
   // DGC map from hit dates
@@ -828,6 +857,49 @@ export async function computeSlateAsOf(
       k6.sort((a, b) => dsOf(b) - dsOf(a) || normCo[idxOf(a)] - normCo[idxOf(b)]);
     } else {
       k6.sort((a, b) => dsOf(b) - dsOf(a) || normPburst[idxOf(b)] - normPburst[idxOf(a)]);
+    }
+  }
+
+  // FAITHFUL BACKFILL (emitRich): attach the per-pick fields the production
+  // write-shape needs. Done AFTER the optional display reorder so `rank` reflects
+  // the persisted order. idx = Number(combo) because buildUniverse() enumerates
+  // 000..999 in order, so the universe index equals the numeric combo.
+  if (opts.emitRich) {
+    k6.forEach((pick, i) => {
+      const idx = Number(pick.combo);
+      pick.signals = { BOX: normBox[idx], PBURST: normPburst[idx], CO: normCo[idx], DGC: normDgc[idx] };
+      pick.topPair = topPairOf(pick.combo);
+      pick.drawsSince = drawsSinceMap.get(pick.comboSet) ?? null;
+      pick.timesDrawn = timesDrawnMap.get(pick.comboSet) ?? 0;
+      pick.dsRaw = dsRawMap.get(pick.comboSet) ?? 0;
+      pick.rank = i + 1;
+    });
+  }
+
+  // FAITHFUL BACKFILL (outTop30): emit the top-30 by finalScore, PRE-RAIL, with
+  // the SAME yesterday-hit hard block K6 applies (edge fn line 1061 — otherwise
+  // recently-drawn box-sets show as "top picks" while the slate omits them). Used
+  // by the writer to reproduce adaptive_tracking quartile flags (q75 over the
+  // top-30 signal distribution) and, later, daily_intelligence top-30 rows.
+  if (opts.outTop30) {
+    const ranked = Array.from({ length: 1000 }, (_, i) => i).sort((a, b) => finalScores[b] - finalScores[a]);
+    for (const idx of ranked) {
+      if (opts.outTop30.length >= 30) break;
+      const combo = universe[idx];
+      const cs = toComboSet(combo);
+      if (todayHitComboSets.size > 0 && todayHitComboSets.has(cs)) continue;
+      opts.outTop30.push({
+        combo, comboSet: cs, indicator: finalScores[idx],
+        energy: percentileRankOf(finalScores[idx], scorePoolForEnergy),
+        multiplicity: multiplicityOf(combo),
+        bestOrder: bestOrderFor(combo, pairData, bestOrderWeights),
+        signals: { BOX: normBox[idx], PBURST: normPburst[idx], CO: normCo[idx], DGC: normDgc[idx] },
+        topPair: topPairOf(combo),
+        drawsSince: drawsSinceMap.get(cs) ?? null,
+        timesDrawn: timesDrawnMap.get(cs) ?? 0,
+        dsRaw: dsRawMap.get(cs) ?? 0,
+        rank: opts.outTop30.length + 1,
+      });
     }
   }
 

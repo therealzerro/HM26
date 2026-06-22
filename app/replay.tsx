@@ -89,7 +89,7 @@ export default function ReplayScreen() {
     type CardData = {
       date: string;
       scope: string;
-      picks: Array<{ rank: number; combo: string; comboSet: string; hit: 'box' | 'straight' | null; hitState?: string; hitSession?: string; hitResult?: string; matchCount: number }>;
+      picks: Array<{ rank: number; combo: string; comboSet: string; hit: 'box' | 'straight' | null; hitState?: string; hitSession?: string; hitResult?: string; matchCount: number; straightCount: number; boxOnlyCount: number }>;
       draws: Draw[];
       // BUG-141: total match count for this card. A pick that hit in multiple
       // jurisdictions (e.g. 916 today in WI + ME,NH,VT) contributes its
@@ -153,6 +153,13 @@ export default function ReplayScreen() {
         const straightMatch = matches.find(m => m.result_digits === combo);
         const matched = straightMatch ?? matches[0];
         const hit = matches.length === 0 ? null : (straightMatch ? 'straight' as const : 'box' as const);
+        // A box-set can match in multiple jurisdictions on one day; some of those
+        // draws may land the exact straight order, the rest are box-only. Track
+        // the two counts SEPARATELY so the pill doesn't render the total
+        // box-match count next to the straight star (which read as "straight ×N"
+        // when really it was 1 straight + N-1 box — e.g. 6/15 midday {1,5,8}).
+        const straightCount = matches.filter(m => m.result_digits === combo).length;
+        const boxOnlyCount = matches.length - straightCount;
         cardTotalMatches += matches.length;
         return {
           rank: p.rank ?? i + 1,
@@ -163,6 +170,8 @@ export default function ReplayScreen() {
           hitSession: matched?.session,
           hitResult: matched?.result_digits,
           matchCount: matches.length,
+          straightCount,
+          boxOnlyCount,
         };
       });
 
@@ -258,7 +267,9 @@ export default function ReplayScreen() {
                             <Text style={[s.pickCombo, p.hit && { color: colors.bgElevated }]}>{p.combo || '•••'}</Text>
                             {p.hit && (
                               <Text style={s.pickHitMark}>
-                                {p.hit === 'straight' ? '⭐' : '🎯'}{p.matchCount > 1 ? `×${p.matchCount}` : ''}
+                                {p.straightCount > 0 ? `⭐${p.straightCount > 1 ? `×${p.straightCount}` : ''}` : ''}
+                                {p.straightCount > 0 && p.boxOnlyCount > 0 ? ' ' : ''}
+                                {p.boxOnlyCount > 0 ? `🎯${p.boxOnlyCount > 1 ? `×${p.boxOnlyCount}` : ''}` : ''}
                               </Text>
                             )}
                           </View>

@@ -215,6 +215,17 @@ export interface ReplayPick {
   // BESTORDER-SWEEP: candidate orderer outputs, keyed by variant name. Only
   // populated when config.bestOrderSweepVariants is true.
   orderVariants?: Record<string, string>;
+  // FAITHFUL BACKFILL (opts.emitRich): per-pick fields the production write-shape
+  // needs (slate_snapshots.top_k_straights_json + adaptive_tracking). Populated
+  // only when computeSlateAsOf is called with emitRich; the backtest path leaves
+  // them undefined. signals are the NORMALIZED per-channel values (0..1), matching
+  // the edge fn's `signals: { BOX, PBURST, CO, DGC }`.
+  signals?: { BOX: number; PBURST: number; CO: number; DGC: number };
+  topPair?: string;
+  drawsSince?: number | null;
+  timesDrawn?: number;
+  dsRaw?: number;
+  rank?: number;
 }
 
 export interface HitResult {

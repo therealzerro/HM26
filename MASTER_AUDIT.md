@@ -21,7 +21,7 @@
 
 **Per-day hit-rate note:** 6/19 went 1 box hit → 0 because staleness rotated out `{2,3,5}` (the combo that would have hit). This is the expected ± per-day variance of a hit-rate-neutral rotation, not a regression.
 
-**OPEN — chain consistency:** 6/21 was regenerated *earlier* against the pre-regen 6/19/6/20, so its staleness inputs are now slightly stale (still a valid rotated slate). Re-running 6/21 would close the 6/19→6/20→6/21 chain; deferred unless wanted.
+**Chain consistency — RESOLVED:** re-ran 6/21 against the regenerated 6/19/6/20 (evening `D751841B`, allday `3B7AE89B`; midday unchanged). Parity **3/3 PASS** (reference 6/20 is now a fresh new-engine slate). Prior-gen 6/21 AT auto-cleaned → 1 hash/scope. The full **6/15→6/19→6/20→6/21** chain is now self-consistent under the new rotation, orphan-free.
 
 ---
 

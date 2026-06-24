@@ -11,6 +11,24 @@
 
 ---
 
+### OBS-AT-ORPHAN-EDGEREGEN-01 — Edge-fn slate regen leaves orphaned adaptive_tracking rows on repeated same-day runs (known behavior, 2026-06-24)
+
+When a slate is regenerated, the new snapshot gets a fresh content hash and the prior snapshot is soft-deleted — but the **edge-fn regen path** (`compute-slate-zk6` via Daily Workflow Step 4) does **NOT** delete the prior generation's `adaptive_tracking` primary rows (`matched_state IS NULL`). They orphan: their snapshot is soft-deleted but the AT rows persist under the old `slate_hash`. Only the **backfill writer** (`scripts/backfill/backfill-slate.ts`) cleans these (`DELETE …&slate_hash=neq.<newhash>`, per BUG-BACKFILL-AT-ORPHAN-01) — the edge fn never got that fix.
+
+**Blast radius:** orphans inflate per-pick sample counts in autotune / signal-AUC fitting (the same date's picks counted under multiple hashes). Track record (`matched_state NOT NULL`) and the slate UI (read the live snapshot) are unaffected. **A single daily workflow run produces NO orphans** — only *repeated* same-day regens accumulate them (6 picks × extra generation × scope).
+
+**Observed 2026-06-24:** workflow re-run ~6× during import troubleshooting → 30 orphan rows/scope (90 total). Cleaned via `DELETE FROM adaptive_tracking WHERE slate_date=D AND NOT EXISTS (live snapshot with matching scope+hash)` — verified 6 aligned / 0 orphan per scope after.
+
+**Cleanup recipe (operator-triggered, when a day was regenerated multiple times):**
+```sql
+DELETE FROM adaptive_tracking a
+WHERE a.slate_date = '<DATE>'
+  AND NOT EXISTS (SELECT 1 FROM slate_snapshots s
+    WHERE s.slate_date='<DATE>' AND s.deleted_at IS NULL AND s.mode<>'zk30'
+      AND s.scope=a.scope AND s.snapshot_hash=a.slate_hash);
+```
+**Fix-forward option (not yet done):** port the backfill writer's neq-hash AT delete into the edge-fn regen path so repeated runs self-clean. Low priority — single daily runs are clean.
+
 ### COVERAGE-STALENESS-FIX — Coverage Matrix badge false-flagged every re-import as stale ✅ FIXED (2026-06-24)
 
 **Symptom:** operator re-imported midday+evening box H01Y–H10Y; the admin Coverage Matrix staleness badge still showed all slices ~21 days stale.

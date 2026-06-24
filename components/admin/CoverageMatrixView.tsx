@@ -204,11 +204,14 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
     return map;
   }, [coverageRows]);
   // Staleness lookup: days since the underlying CSV was last imported per
-  // (class × scope × horizon). Uses v_coverage_summary.latest_imported =
-  // MAX(created_at) on datasets_box/datasets_pair rows — rebuild scripts
-  // PATCH ds_raw + updated_at but do NOT re-insert, so created_at is the
-  // operator-meaningful "source data freshness" signal. Reading updated_at
-  // would give a false "fresh" reading after every nightly rebuild.
+  // (class × scope × horizon). Uses v_coverage_summary.latest_imported.
+  // COVERAGE-STALENESS-FIX (2026-06-24): latest_imported now derives from the
+  // imports log (MAX(imports.created_at) per class/scope/horizon), NOT
+  // MAX(datasets_*.created_at). The import wizard upserts (merge-duplicates)
+  // without writing created_at, so datasets created_at stayed frozen at the
+  // last delete+reinsert (2026-06-03 reset) and this badge false-flagged every
+  // re-import as 21d+ stale. The imports log carries a real per-import timestamp.
+  // (updated_at is still wrong here — it only moves on the nightly ds_raw rebuild.)
   // Thresholds (same for box + pair; both are operator-imported CSVs with
   // no auto-refresh path):
   //   warn ≥14d, critical ≥30d.

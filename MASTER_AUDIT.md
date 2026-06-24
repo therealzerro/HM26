@@ -11,6 +11,16 @@
 
 ---
 
+### COVERAGE-STALENESS-FIX — Coverage Matrix badge false-flagged every re-import as stale ✅ FIXED (2026-06-24)
+
+**Symptom:** operator re-imported midday+evening box H01Y–H10Y; the admin Coverage Matrix staleness badge still showed all slices ~21 days stale.
+
+**Root cause (NOT a failed import):** `v_coverage_summary.latest_imported` was `MAX(datasets_*.created_at)`. The admin import wizard (`components/admin/ImportWizardView.tsx:372`) writes coverage via a **pure upsert** (`Prefer: resolution=merge-duplicates`, no pre-DELETE) whose row payload **omits `created_at`/`updated_at`/`import_id`**. On the existing 220 canonical keys PostgREST does `ON CONFLICT DO UPDATE SET <payload cols>` — refreshing `ds_raw`/`times_drawn`/`ds_normalized` but leaving `created_at` frozen at the last delete+reinsert (the 2026-06-03 DATA-01 reset). So `created_at` never advances on a re-import, and the badge perpetually read stale. **The data was actually fresh** — the engine reads `ds_raw`/`times_drawn` (updated), not `created_at`.
+
+**Verification trail:** anon REST upsert of a sentinel row landed (HTTP 201); a sentinel upsert-**update** returned HTTP 200 and changed `ds_raw`/`times_drawn` while `created_at`/`updated_at`/`import_id` stayed put (proving the import path's update is invisible to those three columns); all 220 midday H01Y rows show `ds_normalized=0` (the wizard's write signature, `ImportWizardView.tsx:358`); the unique index `datasets_box_unique (… NULLS NOT DISTINCT)` and anon `allow_all` grants are intact. Investigation lesson: **do not infer "import didn't land" from `created_at`/`updated_at`/`import_id` on an upsert-merge table** — check the value columns (or `ds_normalized`).
+
+**Fix:** migration `supabase/migrations/2026_06_24_coverage_staleness_latest_imported_fix.sql` (applied to prod) — `CREATE OR REPLACE VIEW v_coverage_summary` sources `latest_imported` from the `imports` log (real per-import `created_at`, matched on type/class_id/scope/horizon_label, status=completed), `COALESCE` to `datasets_*.created_at` for slices lacking an import record. Column set unchanged. Comment in `CoverageMatrixView.tsx` updated. Post-fix the badge reads correctly: midday+evening box = fresh today (10/10 horizons each), allday box + all pair = correctly stale until imported.
+
 ### 6/15 + 6/19 + 6/20 SLATE REGEN (new rotation) + parity-gate-tracks-new-engine + 6/16 orphan cleanup ✅ (2026-06-22)
 
 **Regen (operator-authorized):** regenerated **6/15, 6/19, 6/20** evening + allday through ENG-BLOCK-PERSCOPE-02 + ENG-STALE-01 (stale2), oldest-first so each sees the prior regenerated day. **midday unchanged on all three** (no-op; identical hash → AT preserved, not duplicated). Frozen `{2,8,9}/{2,3,9}/{2,3,5}/{0,3,8}/...` rotated out of evening/allday on every day.

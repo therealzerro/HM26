@@ -108,6 +108,16 @@ During 6/15 backfill, the evening/allday slate hashes **flickered run-to-run** (
 
 ---
 
+### BUG-BACKFILL-PARITYCMD-STALE-01 — Standalone `backfill:parity` command never got the rotation overlay ✅ FIXED (2026-06-24)
+
+`scripts/backfill/parity-check.ts` (the `npm run backfill:parity` command) called `computeSlateAsOf` **without** `applyNewRotationRules` or `recentSlateSets`, so it validated the *base* engine against *rotated* production snapshots and falsely reported "config mirror diverges" on evening/allday (midday — a rotation no-op — passed). The writer's own internal `parityGate()` in `backfill-slate.ts` DOES apply both; its comment even claimed the rules were "shared w/ parity gate" — they weren't. **Fix:** mirrored `applyNewRotationRules` + `fetchRecentSlateSets` into `parity-check.ts`. Verified: 6/22 now 18/18 (100%) matching the writer's gate; 6/23 shows the single genuine evening boundary pick (5/6, `{2,5,6}` vs `{1,3,6}`) attributable to OBS-BACKFILL-DETERMINISM-01 pair-pagination — midday+allday exact. The writer's internal gate was always correct, so no production write was ever mis-guarded.
+
+### OBS-TRACKREC-REGEN-ERASES-HITS-01 — Retroactive rotation regen dropped 6/19 & 6/21's only verified hits from the track record (2026-06-24)
+
+Operator reported 6/19 & 6/21 missing from the Verified Track Record (`app/track-record.tsx` only renders dates with ≥1 `adaptive_tracking` match row). **Not a detection bug** — re-running `run-hit-detection` for both dates correctly returns 0. Root cause: the new-rotation regen (commits 743eedd / ade0f2b) **replaced the originally-published allday slates with picks that miss**, dropping each day's sole hit: 6/19 allday `{2,3,5}` (box-hit 523, W.Canada evening) and 6/21 allday `{0,2,6}` (box-hit 206, ME,NH,VT midday). The pre-regen slates survive soft-deleted with `hitType` stamped. The midday/evening combos that *did* draw on 6/21 (`{1,4,7}`, `{4,5,7}`, `{1,3,5}`) are **session-crossed** (drew in the opposite scope's session) so the per-scope slates legitimately don't match. **Operator decision 2026-06-24: LEAVE as new-engine slates** (track record honestly shows 0 hits those days; originals not restored). Lesson: retroactively regenerating *past* published days rewrites the real track record — a faithful "what we published + what hit" record argues against regenerating days that already published.
+
+---
+
 ## Configuration Change Tracking
 
 Engine behavior is determined by TWO inputs: code (`engines/*.ts`, `lib/engineCore.ts`, `supabase/functions/compute-slate-*/`, `constants/zk6.ts`) AND configuration (`app_config` table rows). Code changes have been tracked in this audit. Configuration changes were NOT — which allowed the 2026-05-09 Gemini CLI config destruction to go undocumented for 3 days until forensic investigation surfaced it.

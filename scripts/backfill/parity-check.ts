@@ -24,6 +24,35 @@ import type { Scope } from '../backtest/types.js';
 
 const SCOPES: Scope[] = ['midday', 'evening', 'allday'];
 
+/**
+ * ENG-BLOCK-PERSCOPE-02 + ENG-STALE-01: the standalone parity command must apply the
+ * SAME hardcoded rotation overlay the writer (backfill-slate.ts) does, or it validates
+ * the base engine against rotated production snapshots and falsely fails evening/allday.
+ * Kept byte-for-byte identical to backfill-slate.ts::applyNewRotationRules.
+ */
+function applyNewRotationRules(cfg: any): void {
+  cfg.excludeYesterdayHits = true;
+  cfg.recentHitBlockDaysByScope = { midday: 1, evening: 3, allday: 3 };
+  cfg.slateStalenessThresholdByScope = { midday: 0, evening: 2, allday: 2 };
+}
+
+/** Canonical (latest-per-date) prior slate sets feeding the staleness block — mirrors
+ *  backfill-slate.ts::fetchRecentSlateSets so this check and the writer cannot drift. */
+async function fetchRecentSlateSets(scope: Scope, date: string, n: number): Promise<string[][]> {
+  const rows = await dbGet<any[]>(
+    `/slate_snapshots?scope=eq.${encodeURIComponent(scope)}&deleted_at=is.null&mode=neq.zk30&slate_date=lt.${date}&select=slate_date,top_k_boxes_json,top_k_straights_json,updated_at_et&order=slate_date.desc,updated_at_et.desc&limit=20`,
+  );
+  const byDate = new Map<string, string[]>();
+  if (Array.isArray(rows)) for (const r of rows) {
+    if (byDate.has(r.slate_date)) continue;
+    const sets = Array.isArray(r.top_k_boxes_json) && r.top_k_boxes_json.length
+      ? r.top_k_boxes_json.map(String)
+      : (Array.isArray(r.top_k_straights_json) ? r.top_k_straights_json.map((p: any) => String(p?.comboSet ?? '')).filter(Boolean) : []);
+    if (sets.length) byDate.set(r.slate_date, sets);
+  }
+  return [...byDate.values()].slice(0, n);
+}
+
 function parseArgs(argv: string[]): Record<string, string> {
   const a: Record<string, string> = {};
   for (let i = 0; i < argv.length; i++) {
@@ -85,7 +114,9 @@ async function main() {
 
     const stored = storedComboSets(snap);
     const cfg = await loadBackfillConfig(scope);
-    const picks = await computeSlateAsOf(date, scope, cfg, 'balanced', { asOfBoxPressure: true });
+    applyNewRotationRules(cfg); // match the writer's rotation overlay
+    const recentSlateSets = await fetchRecentSlateSets(scope, date, 2);
+    const picks = await computeSlateAsOf(date, scope, cfg, 'balanced', { asOfBoxPressure: true, recentSlateSets });
     const computed = picks.map(p => p.comboSet);
 
     const storedSet = new Set(stored);

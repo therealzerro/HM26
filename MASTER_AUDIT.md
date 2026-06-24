@@ -11,6 +11,17 @@
 
 ---
 
+### CALIB-01b — Pick-probability calibration refit (13d → fresh) ✅ SHIPPED (2026-06-24)
+
+Routine refit of `app_config.pick_prob_calibration` (was 13d old, fitted 2026-06-11). Decision-layer only — drives the morning brief's `p_hit_pct` / `stake_share_pct`; **does NOT touch pick selection or ordering**, so the gate is the walk-forward Brier (not the engine hit-rate backtest).
+
+- Ran `npm run calibrate:picks` → train ≤2026-05-31 (n=1710), test 2026-06-01+ (n=1728). **Gate PASS: test Brier model 0.03775 ≤ trivial 0.03846.** Shipped coefficients refit on all 3438 rows (5/13→6/24).
+- Calibration improved: top-bucket over-prediction shrank from 17.7%→12.2% (old) to **11.1%→9.5%** (new); per-scope test pred≈actual (mid 1.6/1.9, eve 3.0/3.3, all 6.9/6.9).
+- Weights consistent with known findings: PBURST dominant (+0.828), CO slightly negative (−0.095, anti-CO), midday dummy −0.179 (scope weakness).
+- Applied via `UPDATE app_config … WHERE key='pick_prob_calibration'`. Today's picks unchanged in rank; top p_hit eased 17.5%→16.1% (allday {0,4,9}).
+- **Rollback** (prior 6/11 fit): `b:-3.466622, w:[-0.098825,-0.086542,0.063273,0.859725,-0.072131,0.350206], mean:[0,0,0.911648,0.752023,0.881847,0.705403], std:[1,1,0.058092,0.123072,0.10257,0.184922], base_rates:{midday:0.0175,evening:0.0439,allday:0.0702}`, fitted_at 2026-06-11T13:53:10Z.
+- Enabled by the 6/23 DI backfill earlier this session (training reads `daily_intelligence` top-30; backfilled days now contribute valid rows). Next refit due ~2026-07-08 (14d).
+
 ### OBS-AT-ORPHAN-EDGEREGEN-01 — Edge-fn slate regen leaves orphaned adaptive_tracking rows on repeated same-day runs (known behavior, 2026-06-24)
 
 When a slate is regenerated, the new snapshot gets a fresh content hash and the prior snapshot is soft-deleted — but the **edge-fn regen path** (`compute-slate-zk6` via Daily Workflow Step 4) does **NOT** delete the prior generation's `adaptive_tracking` primary rows (`matched_state IS NULL`). They orphan: their snapshot is soft-deleted but the AT rows persist under the old `slate_hash`. Only the **backfill writer** (`scripts/backfill/backfill-slate.ts`) cleans these (`DELETE …&slate_hash=neq.<newhash>`, per BUG-BACKFILL-AT-ORPHAN-01) — the edge fn never got that fix.

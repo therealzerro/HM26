@@ -117,7 +117,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
     <li><b>Calibration refit today</b> (CALIB-01b, 2026-06-24 — gate passed: test Brier 0.03775 ≤ 0.03846). Top-bucket over-prediction now mild (11.1%→9.5%, was 17.7%→12.2%) — read 16.1% / 14.7% as ~14% / 13% real. Next refit ~7/8.</li>
     <li><b>Midday is structurally weak today</b>: calibrated P(hit) 1.5–4.8% (vs allday up to 16.1%). Pick #1 <span class="mono">137</span> is overdue/modest footprint while the 19-footprint <span class="mono">236</span> sits at slate #6 — the known rank-inversion / popularity-ceiling pattern, not an import regression.</li>
     <li><b>Evening 7d (71%)</b> trips the runbook's &lt;75% CONFIG-15 trigger by the letter — but evening is UP vs 30d (+5pp), so no revert recommended.</li>
-    <li><b>6/23 engine_daily_report still shows 0 hits</b> (it ran before today's DI backfill). The DI-based counts above are authoritative; report row refreshes on the next report run.</li>
+    <li><b>6/23 fully reconciled:</b> DI backfilled and engine_daily_report recomputed (evening 2, allday 2, midday 0) — all surfaces consistent.</li>
     <li><b>House edge:</b> at uniform ~90% RTP every bet carries ~−10% EV (BUG-162). These picks maximize hit probability, not positive EV.</li>
   </ul>
 </div>

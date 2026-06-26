@@ -1,22 +1,26 @@
 /**
  * generate-morning-brief-pdf.ts
  *
- * Renders the 2026-06-24 Morning Brief to a styled PDF via Playwright (chromium),
- * matching the HTML→PDF approach of generate-jurisdiction-report.ts.
+ * Renders the current day's Morning Brief to a styled PDF via Playwright
+ * (chromium), matching the HTML→PDF approach of generate-jurisdiction-report.ts.
+ * Holds the latest brief inline; prior days are preserved in git history and as
+ * committed assets/morning_brief_<date>.pdf files.
  *
  * Operator context baked in: bets ALL STATES — jurisdiction is NOT a
- * differentiator (the 30d per-state box rates are near-uniform 7–10%), so
+ * differentiator (the 30d per-state box rates are near-uniform 7–9%), so
  * per-state recommendations are intentionally omitted; footprint is shown only
- * as a breadth-of-activity evidence signal.
+ * as a breadth-of-activity evidence signal. All yesterday-validation numbers are
+ * faithful (slate ∩ histories), never stored DI hit flags (BUG-162).
  *
- * Output: assets/morning_brief_2026-06-24.pdf
+ * Output: assets/morning_brief_2026-06-26.pdf
  */
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-const DATE = '2026-06-24';
-const YEST = '2026-06-23';
+const DATE = '2026-06-26';
+const YEST = '2026-06-25';
+const CALIB_FIT = '2026-06-24';   // CALIB-01b refit date (fitted_at in app_config)
 
 const html = `<!doctype html><html><head><meta charset="utf-8"><style>
   @page { size: letter; margin: 14mm 14mm; }
@@ -44,85 +48,82 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
 </style></head><body>
 
 <h1>Morning Brief — ${DATE}</h1>
-<p class="sub">HitMaster ZK6 · Daily Intelligence · engine v2.1 · slates regenerated 12:30 UTC on fresh box+pair coverage · calibration refit 13:09 UTC (CALIB-01b)</p>
-<div class="allstates">OPERATOR PLAYS ALL STATES — jurisdiction is not a differentiator (30d per-state box rates near-uniform 7–10%)</div>
+<p class="sub">HitMaster ZK6 · Daily Intelligence · engine v2.1 · slates regenerated 10:24 UTC on fresh box+pair coverage · calibration CALIB-01b (refit \${CALIB_FIT} 13:09 UTC — 2d old, fresh)</p>
+<div class="allstates">OPERATOR PLAYS ALL STATES — jurisdiction is not a differentiator (30d per-state box rates near-uniform 7–9%)</div>
 
 <div class="sec">
   <h2>1 · Yesterday's Validation (${YEST})</h2>
-  <p class="small muted">Source: daily_intelligence (backfilled ${DATE}). "Picks hit" = on-slate picks that matched ≥1 draw; state-instances in parentheses (a pick can hit several states).</p>
+  <p class="small muted">Source: faithful slate ∩ histories (NOT stored DI flags, BUG-162). "Picks hit" = on-slate combos that matched ≥1 real draw; state-instances in parentheses (a pick can hit several states).</p>
   <table>
-    <tr><th>Scope</th><th>Slate</th><th>Picks hit</th><th>Hitting combos</th></tr>
+    <tr><th>Scope</th><th>Slate</th><th>Picks hit</th><th>Hitting combos (sorted set)</th></tr>
     <tr><td class="mid">Midday</td><td><span class="pill miss">MISS</span></td><td>0 / 6</td><td class="muted">—</td></tr>
-    <tr><td class="eve">Evening</td><td><span class="pill hit">HIT</span></td><td>2 / 6 <span class="muted">(3 state-inst.)</span></td><td class="mono">146 · 268</td></tr>
-    <tr><td class="all">All&nbsp;Day</td><td><span class="pill hit">HIT</span></td><td>2 / 6 <span class="muted">(3 state-inst.)</span></td><td class="mono">689 · 268</td></tr>
+    <tr><td class="eve">Evening</td><td><span class="pill hit">HIT</span></td><td>3 / 6 <span class="muted">(3 state-inst.)</span></td><td class="mono">059 · 014 · 456</td></tr>
+    <tr><td class="all">All&nbsp;Day</td><td><span class="pill hit">HIT</span></td><td>2 / 6 <span class="muted">(4 state-inst.)</span></td><td class="mono">059 · 014</td></tr>
   </table>
-  <p class="small" style="margin-top:8px"><b>Slate-level rolling rate (faithful, adaptive_tracking):</b></p>
+  <p class="small" style="margin-top:8px"><b>Slate-level rolling rate (faithful slate ∩ histories):</b></p>
   <table>
     <tr><th>Scope</th><th>7-day</th><th>30-day</th><th>Drift</th></tr>
     <tr><td class="all">All Day</td><td>71% (5/7)</td><td>90% (27/30)</td><td>−19pp</td></tr>
-    <tr><td class="eve">Evening</td><td>71% (5/7)</td><td>67% (20/30)</td><td>+5pp ▲</td></tr>
-    <tr><td class="mid">Midday</td><td>57% (4/7)</td><td>73% (22/30)</td><td>−16pp</td></tr>
+    <tr><td class="eve">Evening</td><td>57% (4/7)</td><td>63% (19/30)</td><td>−6pp</td></tr>
+    <tr><td class="mid">Midday</td><td>43% (3/7)</td><td>73% (22/30)</td><td>−30pp</td></tr>
   </table>
-  <p class="small muted" style="margin-top:6px">The allday/midday 7d dip is an artifact: 6/19 + 6/21 fall in the window and were rotation-regenerated to 0 hits (the regen dropped the combos that had actually hit). Not a live decline. Evening trending up.</p>
+  <p class="small muted" style="margin-top:6px">Reorder yesterday landed 1/3 — evening #1 <span class="mono">905</span> hit (faithfully, slate HIT); midday #1 <span class="mono">630</span> and allday #1 <span class="mono">451</span> missed. Of the 6/25 recommended plays, the <b>secondary</b> <span class="mono">509</span> (set 059) <b>hit</b> on both evening and allday; the primary <span class="mono">058</span> missed. Evening had its strongest day of the week (3/6).</p>
 </div>
 
 <div class="sec">
   <h2>2 · Today's Slates — Pre-Flight</h2>
   <table>
     <tr><th>Scope</th><th>Status</th><th>Pick #1</th><th>Tag</th><th>Straight</th></tr>
-    <tr><td class="mid">Midday</td><td><span class="pill pass">PASS</span></td><td class="mono">137</td><td>overdue</td><td class="mono">137</td></tr>
-    <tr><td class="eve">Evening</td><td><span class="pill pass">PASS</span></td><td class="mono">059</td><td>overdue</td><td class="mono">905</td></tr>
-    <tr><td class="all">All Day</td><td><span class="pill pass">PASS</span></td><td class="mono">049</td><td>overdue</td><td class="mono">409</td></tr>
+    <tr><td class="mid">Midday</td><td><span class="pill pass">PASS</span></td><td class="mono">235</td><td>overdue</td><td class="mono">352</td></tr>
+    <tr><td class="eve">Evening</td><td><span class="pill pass">PASS</span></td><td class="mono">563</td><td>overdue</td><td class="mono">563</td></tr>
+    <tr><td class="all">All Day</td><td><span class="pill pass">PASS</span></td><td class="mono">523</td><td>overdue</td><td class="mono">235</td></tr>
   </table>
-  <p class="small muted">3/3 scopes clean · 6 picks each · built on freshly re-imported coverage.</p>
+  <p class="small muted">3/3 scopes clean · 6 picks each · engine v2.1 · all metadata present. All three #1s are overdue-tagged again.</p>
 </div>
 
 <div class="sec">
   <h2>3 · Strategic Picks (Tier-Ranked) — box, all states</h2>
-  <p class="small muted">90d = box appearances across the active jurisdiction pool (breadth signal only — not a where-to-bet directive). calib = CALIB-01 modelled P(box hit ≥1 in scope today).</p>
+  <p class="small muted">90d = box appearances across the top-10 active jurisdictions (breadth signal only — not a where-to-bet directive). calib = CALIB-01b modelled P(box hit ≥1 in scope today). Convergence = same set on more than one scope's slate.</p>
   <table>
-    <tr><th>Tier</th><th>Combo</th><th>Slate slot(s)</th><th>90d</th><th>Calibrated P(hit)</th></tr>
-    <tr class="t1"><td><b>T1 · Standout×Conv</b></td><td class="mono">059</td><td>eve #1 · allday #5</td><td><b>10</b></td><td>allday <b>14.7%</b> · eve 8.8%</td></tr>
-    <tr class="t1"><td><b>T1 · Standout×Conv</b></td><td class="mono">047</td><td>eve #5 · midday #5</td><td><b>10</b></td><td>eve 6.5% · mid 2.2%</td></tr>
-    <tr class="t1"><td>T1 · Standout</td><td class="mono">236</td><td>midday #6</td><td><b>19</b> ◀ top</td><td>3.1%</td></tr>
-    <tr class="t1"><td>T1 · Standout</td><td class="mono">458</td><td>allday #4</td><td>15</td><td>10.3%</td></tr>
-    <tr class="t1"><td>T1 · Standout</td><td class="mono">016</td><td>allday #6</td><td>12</td><td>10.3%</td></tr>
-    <tr class="t1"><td>T1 · Standout</td><td class="mono">235</td><td>midday #2</td><td>12</td><td>2.5%</td></tr>
-    <tr class="t1"><td>T1 · Standout</td><td class="mono">347</td><td>eve #4</td><td>11</td><td>8.5%</td></tr>
-    <tr class="t1"><td>T1 · Standout</td><td class="mono">145</td><td>allday #2</td><td>10</td><td>7.5%</td></tr>
-    <tr class="t1"><td>T1 · Standout</td><td class="mono">489</td><td>eve #3</td><td>10</td><td>8.1%</td></tr>
-    <tr class="t1"><td>T1 · Standout</td><td class="mono">239</td><td>midday #3</td><td>10</td><td>1.5%</td></tr>
-    <tr class="t2"><td><b>T2 · Convergence</b></td><td class="mono">049</td><td>allday #1 · eve #2</td><td>6</td><td>allday <b>16.1%</b> ◀ top model</td></tr>
-    <tr class="t2"><td>T2 · Convergence</td><td class="mono">358</td><td>eve #6 · midday #4</td><td>6</td><td>mid 4.8% · eve 3.3%</td></tr>
-    <tr class="t2"><td>T2 · Overdue</td><td class="mono">137</td><td>midday #1</td><td>6</td><td>3.3%</td></tr>
+    <tr><th>Tier</th><th>Set</th><th>Slate slot(s)</th><th>90d</th><th>Calibrated P(hit)</th></tr>
+    <tr class="t1"><td><b>T1 · Standout×Conv</b></td><td class="mono">579</td><td>allday #6 · eve #2</td><td><b>16</b> ◀ top</td><td>allday 3.4% · eve 2.8%</td></tr>
+    <tr class="t1"><td>T1 · Standout×Conv</td><td class="mono">058</td><td>allday #2 · eve #5</td><td>15</td><td>allday <b>8.2%</b> · eve 5.2%</td></tr>
+    <tr class="t1"><td>T1 · Standout×Conv</td><td class="mono">356</td><td>allday #3 · eve #1 · mid #6</td><td>15</td><td>allday <b>7.9%</b> · mid 6.4% · eve 3.6%</td></tr>
+    <tr class="t1"><td>T1 · Standout×Conv</td><td class="mono">235</td><td>allday #1 · midday #1</td><td>14</td><td>allday 3.6% · mid 2.5%</td></tr>
+    <tr class="t1"><td>T1 · Standout×Conv</td><td class="mono">379</td><td>allday #4 · eve #4</td><td>13</td><td>allday <b>8.2%</b> ◀ top model · eve 3.5%</td></tr>
+    <tr class="t1"><td>T1 · Standout</td><td class="mono">349</td><td>eve #3</td><td>10</td><td>5.7%</td></tr>
+    <tr class="t1"><td>T1 · Standout</td><td class="mono">479</td><td>midday #5</td><td>10</td><td>2.7%</td></tr>
+    <tr class="t2"><td><b>T2 · Convergence</b></td><td class="mono">239</td><td>allday #5 · eve #6 · mid #3</td><td>9</td><td>allday 6.2% · eve 3.2% · mid 1.5%</td></tr>
   </table>
+  <p class="small muted" style="margin-top:6px">T3/T4 depth: <span class="mono">267</span> (midday #2, 90d 6) and <span class="mono">358</span> (midday #4, 90d 5) — single-scope, low footprint. Full 18-pick table available on request.</p>
 </div>
 
 <div class="sec">
   <h2>4 · Recommended Play — your style (1–2 combos · max bet · all states · ride ≤3d)</h2>
   <div class="play">
-    <span class="lbl">PRIMARY</span> &nbsp; <span class="combo mono">0&nbsp;5&nbsp;9</span> &nbsp; box (all states) + straight <span class="mono">905</span> (eve) / <span class="mono">509</span> (allday)<br>
-    <span class="small muted">Only pick that is T1 footprint (10) AND cross-scope convergence (eve+allday) AND high model prob (allday 14.7%). Strongest all-around evidence today.</span>
+    <span class="lbl">PRIMARY</span> &nbsp; <span class="combo mono">0&nbsp;5&nbsp;8</span> &nbsp; box (all states) + straight <span class="mono">058</span> (allday) / <span class="mono">850</span> (eve)<br>
+    <span class="small muted">The cleanest all-around pick: top-tier footprint (15), cross-scope convergence (allday+evening), the highest calibrated P(hit) on the board (8.2% allday) and max 14d momentum (7). Recurs from yesterday — the set itself didn't print 6/25 but the evidence stack is unchanged and strongest.</span>
   </div>
   <div class="play" style="margin-top:8px">
-    <span class="lbl">SECONDARY</span> &nbsp; <span class="combo mono">0&nbsp;4&nbsp;9</span> &nbsp; box (all states) + straight <span class="mono">409</span><br>
-    <span class="small muted">Highest calibrated probability today (allday 16.1%) and an allday+evening convergence pick. Shares 0/9 with the primary — overlapping coverage if you prefer a single ticket.</span>
+    <span class="lbl">SECONDARY</span> &nbsp; <span class="combo mono">3&nbsp;5&nbsp;6</span> &nbsp; box (all states) + straight <span class="mono">635</span> (allday) / <span class="mono">563</span> (eve)<br>
+    <span class="small muted">The only <b>triple-scope</b> convergence on the board (allday+evening+midday — broadest coverage of the day's draws), footprint 15, P(hit) 7.9% allday / 6.4% midday, 14d momentum 7. Also the evening #1. Different set from the primary, so two combos cover both digit families.</span>
   </div>
-  <p class="small" style="margin-top:8px"><b>Lean all-day</b> — strongest scope (30d 90%) and holds both top picks. If trimming to one, skip midday (weakest today).</p>
+  <p class="small" style="margin-top:8px"><b>Lean all-day</b> — strongest scope (30d 90%) and it holds both top picks. If trimming to one, skip midday (weakest today: 7d 43%, every pick P&lt;6.5%). The overdue headline #1s (235 / 523) carry less evidence than the convergence picks above — note 356 is the exception, an overdue evening #1 that is <i>also</i> the strongest convergence set.</p>
 </div>
 
 <div class="sec">
   <h2>5 · Red Flags &amp; Notes</h2>
   <ul class="flags small">
-    <li><b>Calibration refit today</b> (CALIB-01b, 2026-06-24 — gate passed: test Brier 0.03775 ≤ 0.03846). Top-bucket over-prediction now mild (11.1%→9.5%, was 17.7%→12.2%) — read 16.1% / 14.7% as ~14% / 13% real. Next refit ~7/8.</li>
-    <li><b>Midday is structurally weak today</b>: calibrated P(hit) 1.5–4.8% (vs allday up to 16.1%). Pick #1 <span class="mono">137</span> is overdue/modest footprint while the 19-footprint <span class="mono">236</span> sits at slate #6 — the known rank-inversion / popularity-ceiling pattern, not an import regression.</li>
-    <li><b>Evening 7d (71%)</b> trips the runbook's &lt;75% CONFIG-15 trigger by the letter — but evening is UP vs 30d (+5pp), so no revert recommended.</li>
-    <li><b>6/23 fully reconciled:</b> DI backfilled and engine_daily_report recomputed (evening 2, allday 2, midday 0) — all surfaces consistent.</li>
+    <li><b>Calibration is fresh</b> (CALIB-01b, refit \${CALIB_FIT} — gate passed: test Brier 0.03775 ≤ 0.03846; 2 days old). Mild top-bucket over-prediction remains — read 8.2% as ~6–7% real. Next refit ~7/1.</li>
+    <li><b>Midday is structurally weak today</b>: calibrated P(hit) 1.5–6.4%, 7d slate rate 43% (vs 30d 73%, −30pp). Pick #1 <span class="mono">235</span> is overdue/low-P; the strongest midday set <span class="mono">356</span> sits at slot #6 — the known rank-inversion / popularity-ceiling pattern, not an import regression.</li>
+    <li><b>Allday 7d (71%) dipped −19pp vs 30d (90%)</b> but is still the top scope and holds both recommended picks. No action — small-n week within the 6/19+ rotation-regen tail.</li>
+    <li><b>Evening 7d (57%)</b> trips the runbook's &lt;75% CONFIG-15 trigger by the letter — but evening is only −6pp vs 30d and CO is already at 10 (CONFIG-18 rollback, lever spent). No config ship off a 7d window. Evening also had the best day yesterday (3/6).</li>
+    <li><b>Overdue channel ran 1/3 yesterday</b> (only evening #1 905 landed). All three of today's #1s are overdue-tagged again — the convergence picks (058, 356) are the stronger play than the headline #1s.</li>
     <li><b>House edge:</b> at uniform ~90% RTP every bet carries ~−10% EV (BUG-162). These picks maximize hit probability, not positive EV.</li>
   </ul>
 </div>
 
-<p class="foot">Why all-states is the right call: 30d per-jurisdiction box-hit rates are near-uniform — DC 10.0%, TX 8.7%, KY/CT/CO/DE/VA/OH/WI 8.3%, SC 7.1%. No single state carries an exploitable edge, so spreading across all states maximizes coverage of each combo's draws. · Generated ${DATE} from live Supabase (slate_snapshots · daily_intelligence · adaptive_tracking · histories · app_config.pick_prob_calibration).</p>
+<p class="foot">Why all-states is the right call: 30d per-jurisdiction box-hit rates are near-uniform — TX 8.7%, CO/IL/KY/WI/OH 8.3%, DC 7.8%, AR/SC 7.1%, CA 6.7%. No single state carries an exploitable edge, so spreading across all states maximizes coverage of each combo's draws. · Generated ${DATE} from live Supabase (slate_snapshots · daily_intelligence · adaptive_tracking · histories · app_config.pick_prob_calibration).</p>
 
 </body></html>`;
 

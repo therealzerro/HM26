@@ -8,12 +8,12 @@
 // Admin surface: brand-voice rules do NOT apply here — "picks", "hits", "box",
 // "straight" all stay.
 
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, StyleSheet } from 'react-native';
 import { useTheme } from '@/lib/theme';
 import { useSt } from './AdminShared';
 import { useBrief } from '@/hooks/useBrief';
-import { captureSlate, shareCapturedSlate } from '@/lib/zk30/shareSlate';
+import { briefIsWeb, briefPhotosAvailable, downloadBriefPng, saveBriefToPhotos, shareBriefNative } from '@/lib/brief/saveBrief';
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
 import type { Scope, ScopeBrief, BriefData, BriefPick } from '@/lib/brief/computeBrief';
 
@@ -37,18 +37,27 @@ export default function BriefView() {
 
   const tab = SCOPE_TABS.find(t => t.scope === scope)!;
   const sb: ScopeBrief | undefined = data?.scopes?.[scope];
+  const isWeb = briefIsWeb();
+  const canPhotos = useMemo(() => briefPhotosAvailable(), []);
 
-  const onShare = async () => {
+  const fileName = () => `brief_${tab.label.toLowerCase()}_${data?.date ?? ''}`;
+
+  const run = async (label: string, fn: () => Promise<void>, doneMsg: string | null) => {
     if (!cardRef.current || !data) return;
-    setShareMsg('Capturing…');
+    setShareMsg(label);
     try {
-      const uri = await captureSlate({ viewRef: cardRef, fileName: `brief_${tab.label.toLowerCase()}_${data.date}` });
-      await shareCapturedSlate(uri);
-      setShareMsg(null);
+      await fn();
+      setShareMsg(doneMsg);
     } catch (e) {
-      setShareMsg(`Share failed: ${e instanceof Error ? e.message : String(e)}`);
+      // Web Share AbortError = user dismissed the sheet; not an error.
+      if (e instanceof Error && e.name === 'AbortError') { setShareMsg(null); return; }
+      setShareMsg(`Failed: ${e instanceof Error ? e.message : String(e)}`);
     }
   };
+
+  const onDownload  = () => run('Capturing…', () => downloadBriefPng(cardRef, fileName()), 'Saved — check your downloads.');
+  const onPhotos    = () => run('Capturing…', () => saveBriefToPhotos(cardRef, fileName()), null);
+  const onShareNative = () => run('Capturing…', () => shareBriefNative(cardRef, fileName()), null);
 
   const validDate = DATE_RE.test(dateInput);
 
@@ -111,10 +120,23 @@ export default function BriefView() {
           {/* the capture target */}
           {sb && <BriefCard ref={cardRef} brief={data} sb={sb} label={tab.label} color={tab.color} />}
 
-          {/* share */}
-          <TouchableOpacity style={[st.btnPrimary, { marginTop: 14 }]} onPress={onShare}>
-            <Text style={st.btnPrimaryText}>📤 Share {tab.label} brief (PNG)</Text>
-          </TouchableOpacity>
+          {/* save / share — web download is the primary "save", mirroring image-export */}
+          {isWeb ? (
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
+              <TouchableOpacity style={[st.btnPrimary, { flex: 1 }]} onPress={onDownload}>
+                <Text style={st.btnPrimaryText}>💾 Save {tab.label} PNG</Text>
+              </TouchableOpacity>
+              {canPhotos && (
+                <TouchableOpacity style={[st.btnGhost, { flex: 1 }]} onPress={onPhotos}>
+                  <Text style={st.btnGhostText}>📲 Save to Photos</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            <TouchableOpacity style={[st.btnPrimary, { marginTop: 14 }]} onPress={onShareNative}>
+              <Text style={st.btnPrimaryText}>📤 Share {tab.label} brief (PNG)</Text>
+            </TouchableOpacity>
+          )}
           {shareMsg && <Text style={{ color: colors.textSecondary, fontSize: 11, marginTop: 6, textAlign: 'center' }}>{shareMsg}</Text>}
           <Text style={{ color: colors.textTertiary, fontSize: 10, marginTop: 10, textAlign: 'center' }}>
             Generated for {data.date} · all-states view · faithful slate ∩ histories

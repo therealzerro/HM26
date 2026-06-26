@@ -103,6 +103,39 @@ export async function captureNodeToPng(node: HTMLElement, filename: string): Pro
 }
 
 /**
+ * Resolve a react-native-web `View` ref to its underlying DOM node. Returns
+ * null on native or if the ref isn't mounted. Shared by the brief save flow
+ * (mirror of the image-export getStageNode helper).
+ */
+export function resolveWebNode(ref: { current: any } | null | undefined): HTMLElement | null {
+  if (Platform.OS !== 'web' || !ref) return null;
+  const cur: any = ref.current;
+  if (!cur) return null;
+  if (cur instanceof HTMLElement) return cur;                       // RN-Web: ref is the DOM node
+  if (typeof cur.getBoundingClientRect === 'function') return cur as HTMLElement;
+  return null;
+}
+
+/**
+ * Capture a DOM node as a PNG at its NATURAL on-screen size (unlike
+ * captureNodeToPng, which forces the 1080×1920 reel frame). Used by the brief
+ * cards, which render inline at a variable height. Returns a PNG dataURL.
+ *
+ * Throws on native; callers must guard with `captureAvailable()` first.
+ */
+export async function captureNodeToPngNatural(node: HTMLElement, pixelRatio = 2): Promise<string> {
+  if (!captureAvailable()) {
+    throw new Error('Image capture is web-only in this build. Open HitMaster on the web to save.');
+  }
+  const rect = node.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) {
+    throw new Error(`Capture node has zero dimensions (${rect.width}×${rect.height}).`);
+  }
+  const { toPng } = await import('html-to-image');
+  return toPng(node, { cacheBust: true, pixelRatio, backgroundColor: '#ffffff' });
+}
+
+/**
  * Trigger a single browser download for the given dataURL. Safe to call from
  * a user gesture handler (Download button onClick) — discrete clicks won't be
  * blocked as a batch.

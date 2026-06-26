@@ -3,8 +3,8 @@
   "main": "expo-router/entry",
   "version": "2.0.0",
   "scripts": {
-    "start": "expo start --port 8081",
-    "start-tunnel": "expo start --tunnel --port 8081",
+    "start": "scripts/ensure-swap.sh; expo start --port 8081",
+    "start-tunnel": "scripts/ensure-swap.sh; expo start --tunnel --port 8081",
     "start-web": "expo start --web --port 8081",
     "android": "expo start --android",
     "ios": "expo start --ios",

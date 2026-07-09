@@ -85,9 +85,12 @@ const GEMINI_PROHIBITION_CLAUSE = `
 Strict exclusions — absolutely NO citation tags, reference tags, bracketed
 text, image_NN.png file references, <IMAGE> tags, or any metadata-style
 annotations. The image must contain ONLY the text specified above and nothing
-else. No specific 3-digit numbers, no "hits," "straight," "box," "picks,"
-"lottery," "winning," or "lucky" vocabulary. No cash, dice, cards, slot
-machines, or gambling imagery.`;
+else. CRITICAL: render NO digits or numerals ANYWHERE in the image — not as
+headline text, not on dashboard panels, and NOT as decorative texture. Data
+streams, "matrix rain," particle trails, and holographic panels must use
+abstract glyphs, dots, waveforms, and light — never legible digits (0-9). No
+"hits," "straight," "box," "picks," "lottery," "winning," or "lucky"
+vocabulary. No cash, dice, cards, slot machines, or gambling imagery.`;
 
 // ── ai_generations log (service role) ────────────────────────────────────────
 async function logGeneration(row: Record<string, unknown>): Promise<void> {

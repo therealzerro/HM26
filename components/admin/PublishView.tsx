@@ -119,6 +119,8 @@ function PublishInner() {
   const [history, setHistory] = useState<any[]>([]);
   const [urls, setUrls] = useState<{ free?: string; pro?: string; proPrice?: string }>({});
   const captionDataRef = useRef<CaptionData | null>(null);
+  // Ref so presets (defined before buildPostKit) can trigger an auto-build.
+  const buildPostKitRef = useRef<((srf?: Surface, cnt?: ContentKind, sess?: SocialSession) => Promise<void>) | null>(null);
 
   // image state
   const [images, setImages] = useState<ImageItem[]>([]);
@@ -138,6 +140,7 @@ function PublishInner() {
   const [stagePick, setStagePick] = useState<PickItem | null>(null);
   const [stagePairScores, setStagePairScores] = useState<{ front: number; back: number; split: number } | null>(null);
   const [stageSlateDate, setStageSlateDate] = useState<string>(() => getTodayET());
+  const [stageSession, setStageSession] = useState<SocialSession>('midday');
   const [stageRedact, setStageRedact] = useState(false);
 
   // brief stage
@@ -277,8 +280,10 @@ function PublishInner() {
     setVariant(0);
     setImages([]);
     setQ1No(false); setQ2No(false);
-    setResultMsg(`⚡ ${SURFACE_LABELS[srf].label} · ${CONTENT_LABELS[cnt].label} — caption ready. Build the images, then publish/share.`);
+    setResultMsg(`⚡ ${SURFACE_LABELS[srf].label} · ${CONTENT_LABELS[cnt].label} — building…`);
     buildCaption(srf, cnt, 0, s);
+    // Auto-build the images so the preset lands ready to publish/share.
+    if (imagePlan(srf, cnt).kind !== 'none') buildPostKitRef.current?.(srf, cnt, s);
   }, [session, buildCaption]);
 
   // ── AI generation ──
@@ -329,28 +334,30 @@ function PublishInner() {
   }, [surface, aiTheme]);
 
   // ── image generation (capture pipeline) ──
-  const generateBriefImage = useCallback(async (briefVariant: 'public' | 'group'): Promise<ImageItem> => {
+  // srf/sess are explicit so presets can auto-build without racing React state.
+  const generateBriefImage = useCallback(async (briefVariant: 'public' | 'group', srf: Surface): Promise<ImageItem> => {
     if (!captureAvailable()) throw new Error('Image capture is web-only. Open HitMaster on the web.');
     setImgProgress('Assembling brief data…');
-    const data = briefData ?? await buildSocialBrief();
+    const data = await buildSocialBrief();
     setBriefData(data);
     // §6: Pro footer only on the FREE variant; PRO surface gets no commercial framing.
-    setBriefRender({ variant: briefVariant, groupTier: briefVariant === 'group' ? (surface === 'pro' ? 'pro' : 'free') : undefined });
+    setBriefRender({ variant: briefVariant, groupTier: briefVariant === 'group' ? (srf === 'pro' ? 'pro' : 'free') : undefined });
     setImgProgress('Rendering brief card…');
     await raf(); await waitFonts(); await raf();
     const node = getStageNode(briefRef as any);
     if (!node) throw new Error('Brief capture stage not mounted');
     const dataUrl = await captureNodeToPngNatural(node, 2);
     setBriefRender(null);
-    return { label: `Brief (${briefVariant})`, filename: `hm-brief-${briefVariant}-${surface}-${getTodayET()}.png`, dataUrl };
-  }, [briefData, surface]);
+    return { label: `Brief (${briefVariant})`, filename: `hm-brief-${briefVariant}-${srf}-${getTodayET()}.png`, dataUrl };
+  }, []);
 
-  const generateSlateImages = useCallback(async (includePicks: boolean): Promise<ImageItem[]> => {
+  const generateSlateImages = useCallback(async (includePicks: boolean, srf: Surface, sess: SocialSession): Promise<ImageItem[]> => {
     if (!captureAvailable()) throw new Error('Image capture is web-only. Open HitMaster on the web.');
-    const redact = surface ? surfaceRedacts(surface) : true;
+    const redact = surfaceRedacts(srf);
     setStageRedact(redact);
-    setImgProgress(`Loading ${session} slate…`);
-    const { picks, slateDate } = await loadSlatePicks(session);
+    setStageSession(sess);
+    setImgProgress(`Loading ${sess} slate…`);
+    const { picks, slateDate } = await loadSlatePicks(sess);
     setStageSlateDate(slateDate);
     const exportType = redact ? 'public' : 'pro';
     const items: ImageItem[] = [];
@@ -362,7 +369,7 @@ function PublishInner() {
     await raf(); await waitFonts();
     const slateNode = getStageNode(stageRef as any);
     if (!slateNode) throw new Error('Capture stage not mounted');
-    const slateFn = buildFilename({ type: exportType, session, date: slateDate, name: 'slate' });
+    const slateFn = buildFilename({ type: exportType, session: sess, date: slateDate, name: 'slate' });
     items.push({ label: 'Slate', filename: slateFn, dataUrl: await captureNodeToPng(slateNode, slateFn) });
 
     if (includePicks) {
@@ -370,36 +377,41 @@ function PublishInner() {
         const p = picks[i];
         setStagePicks(null);
         setStagePick(p);
-        const ps = await fetchPairScores(p.bestOrder ?? p.combo ?? '000', session);
+        const ps = await fetchPairScores(p.bestOrder ?? p.combo ?? '000', sess);
         setStagePairScores(ps);
         setStageMode('pick');
         setImgProgress(`Capturing signal card #${i + 1} (${i + 2}/${picks.length + 1})…`);
         await raf(); await waitFonts();
         const node = getStageNode(stageRef as any);
         if (!node) throw new Error('Capture stage not mounted');
-        const fn = buildFilename({ type: exportType, session, date: slateDate, name: `pick-${i + 1}` });
+        const fn = buildFilename({ type: exportType, session: sess, date: slateDate, name: `pick-${i + 1}` });
         items.push({ label: `Signal #${i + 1}`, filename: fn, dataUrl: await captureNodeToPng(node, fn) });
       }
     }
     setStagePicks(null); setStagePick(null); setStagePairScores(null);
     return items;
-  }, [surface, session]);
+  }, []);
 
-  const buildPostKit = useCallback(async () => {
-    if (!surface || !content || !plan) return;
+  const buildPostKit = useCallback(async (srfArg?: Surface, cntArg?: ContentKind, sessArg?: SocialSession) => {
+    const srf = srfArg ?? surface;
+    const cnt = cntArg ?? content;
+    const sess = sessArg ?? session;
+    if (!srf || !cnt) return;
+    const pl = imagePlan(srf, cnt);
+    if (pl.kind === 'none') return;
     // Preserve any AI cover image at the front (RULE: AI image is the cover).
     const preservedAI = images.filter(i => i.label.startsWith('AI'));
     setBusy(true);
     setResultMsg(null);
     try {
       const out: ImageItem[] = [];
-      if (plan.kind === 'brief') {
-        out.push(await generateBriefImage(surface === 'public' ? 'public' : 'group'));
-      } else if (plan.kind === 'redacted_slate') {
-        out.push(...await generateSlateImages(false));
-      } else if (plan.kind === 'kit') {
-        out.push(...await generateSlateImages(true));
-        out.push(await generateBriefImage('group'));
+      if (pl.kind === 'brief') {
+        out.push(await generateBriefImage(srf === 'public' ? 'public' : 'group', srf));
+      } else if (pl.kind === 'redacted_slate') {
+        out.push(...await generateSlateImages(false, srf, sess));
+      } else if (pl.kind === 'kit') {
+        out.push(...await generateSlateImages(true, srf, sess));
+        out.push(await generateBriefImage('group', srf));
       }
       const final = [...preservedAI, ...out];
       setImages(final);
@@ -410,7 +422,8 @@ function PublishInner() {
       setImgProgress(null);
       setBusy(false);
     }
-  }, [surface, content, plan, images, generateBriefImage, generateSlateImages]);
+  }, [surface, content, session, images, generateBriefImage, generateSlateImages]);
+  buildPostKitRef.current = buildPostKit;
 
   // ── PUBLIC lane (API) ──
   const publishToPage = useCallback(async (scheduledFor?: string, withImage?: ImageItem) => {
@@ -704,7 +717,7 @@ function PublishInner() {
             {plan && <Text style={{ fontSize: 10, color: colors.textSecondary, lineHeight: 15, marginBottom: 10 }}>{plan.label}</Text>}
             <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
               {plan?.kind !== 'none' && (
-                <TouchableOpacity style={[st.btnPrimary, { flex: 1, opacity: busy ? 0.5 : 1 }]} disabled={busy} onPress={buildPostKit}>
+                <TouchableOpacity style={[st.btnPrimary, { flex: 1, opacity: busy ? 0.5 : 1 }]} disabled={busy} onPress={() => buildPostKit()}>
                   <Text style={st.btnPrimaryText}>{imgProgress ? `⏳ ${imgProgress}` : '🧰 Build Images'}</Text>
                 </TouchableOpacity>
               )}
@@ -925,7 +938,7 @@ function PublishInner() {
       picks={stagePicks}
       pick={stagePick}
       pairScores={stagePairScores}
-      session={session}
+      session={stageSession}
       slateDate={stageSlateDate}
       redact={stageRedact}
     />

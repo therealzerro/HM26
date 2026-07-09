@@ -1,25 +1,24 @@
 /**
- * PublishView — operator social publishing console (SOCIAL-01 / SOCIAL-02).
+ * PublishView — operator social publishing console (SOCIAL-01/02/03/04).
  *
- * One screen, two publishing lanes, one safety engine, full image integration:
- *  - PAGE lane (Tier 1): text posts AND brand-safe brief images published
- *    directly via the fb-publish edge function → Meta Graph API. Page images
- *    are limited to the SocialBriefCard PUBLIC variant (aggregate only — no
- *    digits/states/attribution by construction) and gated by the mandatory
- *    Two-Question filter (both answers must be an explicit NO).
- *  - GROUP lane (Tiers 2/3/4): Meta removed the Groups API in April 2024, so
- *    this is the industry-standard assisted flow — but the post kit is built
- *    IN PLACE: slate composite + all 6 pick posters + group brief card are
- *    captured here (same 1080×1920 reel pipeline as admin image-export),
- *    caption goes to the clipboard, Facebook opens, the operator pastes.
- *    Every handoff is logged (same-day duplicate-caption check, Tier-3 rule).
+ * TWO-AXIS MODEL (2026-06-29 spec §6): the operator picks WHERE first
+ * (Public Page / Free Group / Pro Group / Cross-Post), then WHAT (report card,
+ * announcement, slate drop, brief, custom). The same content renders
+ * differently per surface:
+ *   PUBLIC — aggregate captions, redacted/mosaic or brand-safe images only,
+ *            published DIRECTLY via the Page API (text, or photo behind the
+ *            mandatory Two-Question NO/NO ack).
+ *   FREE   — full-fidelity kit + Pro CTA (All-Day = pure value), assisted.
+ *   PRO    — full-fidelity kit, first-access framing, NO pricing, assisted.
+ *   CROSS  — redacted assets + admin-respectful caption + variation, assisted.
  *
- * Surface discipline (2026-06-29 spec §6): PUBLIC + cross-post assets use the
- * redacted (mosaic-picks) variant with the JOIN FREE banner; FREE/PRO get
- * full fidelity. Captions are linted live at the destination tier.
+ * AI layer (SOCIAL-04): Claude (opus-4-8) generates surface-aware captions and
+ * composes brief-§8-compliant Gemini prompts; Gemini 3 Pro Image renders brand
+ * graphics. Everything AI-generated still passes the same client lint + server
+ * guards + Two-Question gate — generation is never clearance.
  *
- * Admin surface — brand-voice display rules do not apply here, but the
- * CONTENT this produces is public-facing and fully governed by the brief.
+ * Groups have no publish API (Meta removed it 4/2024) — group lanes build the
+ * complete post kit in place, copy the caption, open Facebook, log the handoff.
  */
 
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
@@ -30,10 +29,14 @@ import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
 import { lintCaption, LintResult } from '@/lib/social/brandLint';
-import { generateCaption, CaptionKind, CaptionData, KIND_TIER, KIND_LABELS } from '@/lib/social/captions';
+import {
+  generateCaption, ContentKind, CaptionData,
+  SURFACE_TIER, CONTENT_SURFACES, SURFACE_LABELS, CONTENT_LABELS,
+} from '@/lib/social/captions';
 import { fetchReportCardData } from '@/lib/social/reportCard';
 import { buildSocialBrief, SocialBriefData } from '@/lib/social/socialBrief';
 import { fbPublish, PageStatus } from '@/lib/social/fbPublishClient';
+import { aiContent } from '@/lib/social/aiContentClient';
 import {
   loadSlatePicks, raf, waitFonts, getStageNode, surfaceRedacts,
   type SocialSession, type Surface,
@@ -51,20 +54,10 @@ import { AdminKeyMissingError } from '@/lib/subscriberAdminClient';
 import { AdminKeyGate } from './AdminKeyGate';
 import { Pill, SectionTitle, Card, useSt, timeAgo } from './AdminShared';
 
-const KINDS: CaptionKind[] = ['report_card', 'signal_announce', 'group_drop', 'cross_post', 'pro_drop'];
-const PAGE_KINDS = new Set<CaptionKind>(['report_card', 'signal_announce']);
-
-/** Which surface each caption kind publishes to (drives redaction + kit shape). */
-const KIND_SURFACE: Record<CaptionKind, Surface> = {
-  report_card: 'public',
-  signal_announce: 'public',
-  group_drop: 'free',
-  cross_post: 'cross',
-  pro_drop: 'pro',
-};
-
+const SURFACES: Surface[] = ['public', 'free', 'pro', 'cross'];
+const CONTENTS: ContentKind[] = ['report_card', 'signal_announce', 'slate_drop', 'brief', 'custom'];
 const SESSIONS: SocialSession[] = ['midday', 'evening', 'allday'];
-const SESSION_LABELS: Record<SocialSession, string> = { midday: '☀️ Midday', evening: '🌙 Evening', allday: '◈ All-Day' };
+const SESSION_UI: Record<SocialSession, string> = { midday: '☀️ Midday', evening: '🌙 Evening', allday: '◈ All-Day' };
 
 interface ImageItem { label: string; filename: string; dataUrl: string }
 
@@ -73,12 +66,24 @@ function mdLabel(iso: string): string {
   return `${parseInt(m, 10)}/${parseInt(d, 10)}`;
 }
 
-/** Tomorrow 08:15 ET as ISO — the standard morning slot, inside Meta's 10min-30d window. */
+/** Tomorrow 08:15 ET — inside Meta's 10min-30d scheduling window. */
 function tomorrowMorningEtIso(): string {
-  const todayEt = getTodayET();
-  const d = new Date(`${todayEt}T08:15:00-04:00`);
+  const d = new Date(`${getTodayET()}T08:15:00-04:00`);
   d.setDate(d.getDate() + 1);
   return d.toISOString();
+}
+
+/** What images each (surface, content) combination produces. */
+function imagePlan(surface: Surface, content: ContentKind): { label: string; kind: 'none' | 'brief' | 'slate' | 'kit' | 'redacted_slate' } {
+  if (content === 'signal_announce' || content === 'custom') return { label: 'No generated image — text (or attach an AI brand image below).', kind: 'none' };
+  if (content === 'brief' || content === 'report_card') {
+    return surface === 'public'
+      ? { label: 'Brand-safe brief card (aggregate — no digits/states by construction).', kind: 'brief' }
+      : { label: 'Group brief card (full detail, surface-appropriate footer).', kind: 'brief' };
+  }
+  // slate_drop
+  if (surface === 'free' || surface === 'pro') return { label: `Full post kit: slate + all 6 signal cards + group brief (${surface === 'pro' ? 'PRO fidelity' : 'free-group fidelity'}).`, kind: 'kit' };
+  return { label: 'Digit-redacted mosaic slate + JOIN FREE banner (§6 sanctioned public variant).', kind: 'redacted_slate' };
 }
 
 function PublishInner() {
@@ -87,24 +92,31 @@ function PublishInner() {
 
   const [pageStatus, setPageStatus] = useState<PageStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
-  const [kind, setKind] = useState<CaptionKind | null>(null);
+  const [surface, setSurface] = useState<Surface | null>(null);
+  const [content, setContent] = useState<ContentKind | null>(null);
   const [session, setSession] = useState<SocialSession>('midday');
   const [variant, setVariant] = useState(0);
   const [caption, setCaption] = useState('');
   const [dataLoading, setDataLoading] = useState(false);
   const [dataNote, setDataNote] = useState<string | null>(null);
-  const [targetName, setTargetName] = useState('free group');
+  const [targetName, setTargetName] = useState('destination group');
   const [busy, setBusy] = useState(false);
   const [resultMsg, setResultMsg] = useState<string | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [urls, setUrls] = useState<{ free?: string; pro?: string; proPrice?: string }>({});
+  const captionDataRef = useRef<CaptionData | null>(null);
 
-  // ── image pipeline state ──
+  // image state
   const [images, setImages] = useState<ImageItem[]>([]);
   const [imgProgress, setImgProgress] = useState<string | null>(null);
   const canShare = useMemo(() => shareToPhotosAvailable(), []);
 
-  // reel stage (slate/pick posters)
+  // AI state
+  const [aiAvailable, setAiAvailable] = useState<{ claude: boolean; gemini: boolean } | null>(null);
+  const [aiTheme, setAiTheme] = useState('');
+  const [aiBusy, setAiBusy] = useState<string | null>(null);
+
+  // reel stage
   const stageRef = useRef<View | null>(null);
   const [stageMode, setStageMode] = useState<'slate' | 'pick'>('slate');
   const [stagePicks, setStagePicks] = useState<PickItem[] | null>(null);
@@ -113,25 +125,27 @@ function PublishInner() {
   const [stageSlateDate, setStageSlateDate] = useState<string>(() => getTodayET());
   const [stageRedact, setStageRedact] = useState(false);
 
-  // brief-card stage (natural-size capture)
+  // brief stage
   const briefRef = useRef<View | null>(null);
   const [briefData, setBriefData] = useState<SocialBriefData | null>(null);
   const [briefRender, setBriefRender] = useState<{ variant: 'public' | 'group'; showProFooter: boolean } | null>(null);
 
-  // Two-Question filter answers for page photo posts (must both be explicit NO)
+  // Two-Question filter (page photo posts)
   const [q1No, setQ1No] = useState(false);
   const [q2No, setQ2No] = useState(false);
 
-  const tier = kind ? KIND_TIER[kind] : 1;
-  const surface: Surface = kind ? KIND_SURFACE[kind] : 'public';
+  const tier = surface ? SURFACE_TIER[surface] : 1;
   const lint: LintResult = useMemo(() => lintCaption(caption, tier), [caption, tier]);
-  const isPageKind = kind ? PAGE_KINDS.has(kind) : false;
+  const isApiLane = surface === 'public';
+  const validContents = surface ? CONTENTS.filter(c => CONTENT_SURFACES[c].includes(surface)) : [];
+  const plan = surface && content ? imagePlan(surface, content) : null;
+  const needsSession = content === 'slate_drop';
 
   const loadHistory = useCallback(async () => {
     try {
       const r = await fbPublish.listPosts(15);
       setHistory(r.posts ?? []);
-    } catch { /* key missing or fn unreachable — history stays empty */ }
+    } catch { /* fn unreachable — history stays empty */ }
   }, []);
 
   useEffect(() => {
@@ -140,11 +154,14 @@ function PublishInner() {
         setPageStatus(await fbPublish.status());
       } catch (e) {
         if (!(e instanceof AdminKeyMissingError)) console.log('[publish] status error:', e);
-        setPageStatus(null);
       } finally {
         setStatusLoading(false);
       }
       loadHistory();
+      try {
+        const ai = await aiContent.ping();
+        setAiAvailable({ claude: ai.claude, gemini: ai.gemini });
+      } catch { setAiAvailable(null); }
       try {
         const rows = await fetchFromSupabase<{ key: string; value: any }[]>({
           path: '/rest/v1/app_config?key=in.(social_free_group_url,social_pro_url,social_pro_price)&select=key,value',
@@ -161,7 +178,7 @@ function PublishInner() {
     })();
   }, [loadHistory]);
 
-  const buildCaption = useCallback(async (k: CaptionKind, v: number, sess: SocialSession) => {
+  const buildCaption = useCallback(async (srf: Surface, cnt: ContentKind, v: number, sess: SocialSession) => {
     setDataLoading(true);
     setDataNote(null);
     setResultMsg(null);
@@ -172,21 +189,22 @@ function PublishInner() {
         freeGroupUrl: urls.free,
         proUrl: urls.pro,
         proPrice: urls.proPrice,
-        // §6 FREE exception: the All-Day post is pure value — no Pro pitch.
-        allDay: k === 'group_drop' && sess === 'allday',
+        allDay: cnt === 'slate_drop' && srf === 'free' && sess === 'allday',
+        session: cnt === 'slate_drop' ? sess : undefined,
       };
-      if (k === 'report_card') {
+      if (cnt === 'report_card' || cnt === 'brief') {
         const yesterday = getYesterdayET();
         const rc = await fetchReportCardData(yesterday);
-        data.dateLabel = mdLabel(yesterday);
+        data.dateLabel = cnt === 'report_card' ? mdLabel(yesterday) : data.dateLabel;
         data.totalSignals = rc.totalSignals;
         data.verifiedCount = rc.verifiedCount;
         data.jurisdictionCount = rc.jurisdictionCount;
+        data.matches = rc.matches;
         data.verified30d = rc.verified30d;
-        if (rc.totalSignals === 0) setDataNote('⚠️ No slates found for yesterday — nothing to report on.');
-        else if (rc.verifiedCount === 0) setDataNote('⚠️ Zero verified matches yesterday — consider skipping the report card today.');
+        if (cnt === 'report_card' && rc.verifiedCount === 0) setDataNote('⚠️ Zero verified matches yesterday — consider skipping the report card today.');
       }
-      setCaption(generateCaption(k, data, v));
+      captionDataRef.current = data;
+      setCaption(generateCaption(cnt, srf, data, v));
     } catch (e) {
       setDataNote(`Data load failed: ${String(e instanceof Error ? e.message : e)}`);
     } finally {
@@ -194,53 +212,107 @@ function PublishInner() {
     }
   }, [urls]);
 
-  const selectKind = useCallback((k: CaptionKind) => {
-    setKind(k);
+  const selectSurface = useCallback((s: Surface) => {
+    setSurface(s);
+    setImages([]);
+    setQ1No(false); setQ2No(false);
+    setResultMsg(null);
+    const stillValid = content && CONTENT_SURFACES[content].includes(s);
+    if (stillValid && content) {
+      buildCaption(s, content, 0, session);
+      setVariant(0);
+    } else {
+      setContent(null);
+      setCaption('');
+    }
+  }, [content, session, buildCaption]);
+
+  const selectContent = useCallback((c: ContentKind) => {
+    if (!surface) return;
+    setContent(c);
     setVariant(0);
     setImages([]);
     setQ1No(false); setQ2No(false);
-    buildCaption(k, 0, session);
-  }, [buildCaption, session]);
+    buildCaption(surface, c, 0, session);
+  }, [surface, session, buildCaption]);
 
   const selectSession = useCallback((s: SocialSession) => {
     setSession(s);
     setImages([]);
-    if (kind) buildCaption(kind, variant, s);
-  }, [kind, variant, buildCaption]);
+    if (surface && content) buildCaption(surface, content, variant, s);
+  }, [surface, content, variant, buildCaption]);
 
   const nextVariant = useCallback(() => {
-    if (!kind) return;
+    if (!surface || !content) return;
     const v = variant + 1;
     setVariant(v);
-    buildCaption(kind, v, session);
-  }, [kind, variant, buildCaption, session]);
+    buildCaption(surface, content, v, session);
+  }, [surface, content, variant, session, buildCaption]);
 
-  // ── IMAGE GENERATION ────────────────────────────────────────────────────────
+  // ── AI generation ──
+  const aiCaption = useCallback(async () => {
+    if (!surface || !content) return;
+    setAiBusy('caption');
+    setResultMsg(null);
+    try {
+      const d = captionDataRef.current;
+      const ctx = d ? `date ${d.dateLabel}; verified ${d.verifiedCount ?? '-'} of ${d.totalSignals ?? '-'} signals across ${d.jurisdictionCount ?? '-'} jurisdictions; 30d verified ${d.verified30d ?? '-'}; session ${d.session ?? '-'}; allDay=${d.allDay ? 'yes (NO Pro pitch)' : 'no'}; free group ${d.freeGroupUrl ?? '-'}; pro ${d.proUrl ?? '-'} at ${d.proPrice ?? '-'}` : '';
+      const r = await aiContent.generateCaption({
+        surface, content, context: ctx,
+        priorCaptions: history.slice(0, 5).map(h => String(h.caption ?? '')),
+      });
+      setCaption(r.caption);
+      setResultMsg(`✨ AI caption generated — ${r.rationale}`);
+    } catch (e: any) {
+      setResultMsg(`❌ AI caption failed: ${String(e?.message ?? e)}`);
+    } finally {
+      setAiBusy(null);
+    }
+  }, [surface, content, history]);
 
-  /** Capture the SocialBriefCard (natural size) in the requested variant. */
+  const aiBrandImage = useCallback(async () => {
+    if (!surface) return;
+    setAiBusy('image');
+    setResultMsg(null);
+    try {
+      const r = await aiContent.generateBrandImage({
+        theme: aiTheme || 'daily intelligence brand graphic',
+        surface,
+        aspectRatio: '9:16',
+        size: '1K',
+      });
+      const filename = `hm-ai-${surface}-${getTodayET()}.png`;
+      setImages(prev => [...prev, { label: 'AI Brand Image', filename, dataUrl: r.imageDataUrl }]);
+      setResultMsg(`✨ Brand image generated (rendered text: ${r.textStrings.join(' · ') || 'none'}). Review it, then answer the Two-Question filter before any page publish.`);
+    } catch (e: any) {
+      setResultMsg(e?.code === 'composed_prompt_unsafe'
+        ? `⛔ AI refused its own prompt: ${String(e?.detail ?? '')} — adjust the theme.`
+        : `❌ AI image failed: ${String(e?.message ?? e)}`);
+    } finally {
+      setAiBusy(null);
+    }
+  }, [surface, aiTheme]);
+
+  // ── image generation (capture pipeline) ──
   const generateBriefImage = useCallback(async (briefVariant: 'public' | 'group'): Promise<ImageItem> => {
     if (!captureAvailable()) throw new Error('Image capture is web-only. Open HitMaster on the web.');
     setImgProgress('Assembling brief data…');
     const data = briefData ?? await buildSocialBrief();
     setBriefData(data);
-    // §6 PRO: no commercial framing → Pro footer only on the FREE group variant.
+    // §6: Pro footer only on the FREE variant; PRO surface gets no commercial framing.
     setBriefRender({ variant: briefVariant, showProFooter: briefVariant === 'group' && surface === 'free' });
     setImgProgress('Rendering brief card…');
-    await raf();
-    await waitFonts();
-    await raf();
+    await raf(); await waitFonts(); await raf();
     const node = getStageNode(briefRef as any);
     if (!node) throw new Error('Brief capture stage not mounted');
     const dataUrl = await captureNodeToPngNatural(node, 2);
     setBriefRender(null);
-    const filename = `hm-brief-${briefVariant}-${getTodayET()}.png`;
-    return { label: `Brief (${briefVariant})`, filename, dataUrl };
+    return { label: `Brief (${briefVariant})`, filename: `hm-brief-${briefVariant}-${surface}-${getTodayET()}.png`, dataUrl };
   }, [briefData, surface]);
 
-  /** Build the reel-image kit for the selected session: slate + optional 6 picks. */
-  const generateSlateKit = useCallback(async (includePicks: boolean): Promise<ImageItem[]> => {
+  const generateSlateImages = useCallback(async (includePicks: boolean): Promise<ImageItem[]> => {
     if (!captureAvailable()) throw new Error('Image capture is web-only. Open HitMaster on the web.');
-    const redact = surfaceRedacts(surface);
+    const redact = surface ? surfaceRedacts(surface) : true;
     setStageRedact(redact);
     setImgProgress(`Loading ${session} slate…`);
     const { picks, slateDate } = await loadSlatePicks(session);
@@ -248,7 +320,6 @@ function PublishInner() {
     const exportType = redact ? 'public' : 'pro';
     const items: ImageItem[] = [];
 
-    // slate composite
     setStagePicks(picks);
     setStagePick(null);
     setStageMode('slate');
@@ -259,13 +330,11 @@ function PublishInner() {
     const slateFn = buildFilename({ type: exportType, session, date: slateDate, name: 'slate' });
     items.push({ label: 'Slate', filename: slateFn, dataUrl: await captureNodeToPng(slateNode, slateFn) });
 
-    // per-pick posters
     if (includePicks) {
       for (let i = 0; i < picks.length; i++) {
         const p = picks[i];
         setStagePicks(null);
         setStagePick(p);
-        // pair %s must resolve BEFORE the frame paints (useQuery would race the capture)
         const ps = await fetchPairScores(p.bestOrder ?? p.combo ?? '000', session);
         setStagePairScores(ps);
         setStageMode('pick');
@@ -277,107 +346,98 @@ function PublishInner() {
         items.push({ label: `Signal #${i + 1}`, filename: fn, dataUrl: await captureNodeToPng(node, fn) });
       }
     }
-
-    setStagePicks(null);
-    setStagePick(null);
-    setStagePairScores(null);
+    setStagePicks(null); setStagePick(null); setStagePairScores(null);
     return items;
   }, [surface, session]);
 
-  /** One-tap post kit per content type. */
   const buildPostKit = useCallback(async () => {
-    if (!kind) return;
+    if (!surface || !content || !plan) return;
     setBusy(true);
     setResultMsg(null);
     setImages([]);
     try {
       const out: ImageItem[] = [];
-      if (isPageKind) {
-        // Page: brand-safe brief image only (aggregate, no digits by construction)
-        out.push(await generateBriefImage('public'));
-      } else if (kind === 'cross_post') {
-        // Cross-post: redacted slate (mosaic + JOIN FREE banner) — acquisition asset
-        out.push(...await generateSlateKit(false));
-      } else {
-        // Free / Pro group: full slate + all 6 signal cards + group brief
-        out.push(...await generateSlateKit(true));
+      if (plan.kind === 'brief') {
+        out.push(await generateBriefImage(surface === 'public' ? 'public' : 'group'));
+      } else if (plan.kind === 'redacted_slate') {
+        out.push(...await generateSlateImages(false));
+      } else if (plan.kind === 'kit') {
+        out.push(...await generateSlateImages(true));
         out.push(await generateBriefImage('group'));
       }
       setImages(out);
-      setResultMsg(`🖼️ ${out.length} image${out.length === 1 ? '' : 's'} ready below.`);
+      setResultMsg(out.length ? `🖼️ ${out.length} image${out.length === 1 ? '' : 's'} ready below.` : 'No images for this combination.');
     } catch (e) {
       setResultMsg(`❌ Image generation failed: ${String(e instanceof Error ? e.message : e)}`);
     } finally {
       setImgProgress(null);
       setBusy(false);
     }
-  }, [kind, isPageKind, generateBriefImage, generateSlateKit]);
+  }, [surface, content, plan, generateBriefImage, generateSlateImages]);
 
-  // ── PAGE lane ──
+  // ── PUBLIC lane (API) ──
   const publishToPage = useCallback(async (scheduledFor?: string, withImage?: ImageItem) => {
-    if (!kind || !caption.trim()) return;
+    if (!content || !caption.trim()) return;
     if (!lint.ok) {
-      Alert.alert('Caption blocked', 'Fix the blocking vocabulary violations first — they protect the page recommendation.');
+      Alert.alert('Caption blocked', 'Fix the blocking violations first — they protect the page recommendation.');
       return;
     }
     if (withImage && (!q1No || !q2No)) {
       Alert.alert('Two-Question filter', 'Answer both filter questions (must be NO) before publishing an image to the page.');
       return;
     }
-    const what = withImage ? 'brief image + caption' : 'text-only post';
-    const when = scheduledFor ? `Schedule ${what} for tomorrow 8:15 AM ET` : `Publish ${what} NOW to the public page`;
-    Alert.alert(when + '?', 'Via the Page API. The publish log records it.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: scheduledFor ? 'Schedule' : 'Publish',
-        onPress: async () => {
-          setBusy(true);
-          setResultMsg(null);
-          try {
-            const r = withImage
-              ? await fbPublish.publishPagePhoto({
-                  caption, kind, scheduledFor,
-                  imageDataUrl: withImage.dataUrl,
-                  twoQAck: { q1: false, q2: false },
-                  imageMeta: { filename: withImage.filename, source: 'PublishView.brief-public' },
-                })
-              : await fbPublish.publishPageText({ message: caption, kind, scheduledFor });
-            setResultMsg(scheduledFor ? `🕗 Scheduled — post ID ${r.postId}` : `✅ Published — post ID ${r.postId}`);
-            loadHistory();
-          } catch (e: any) {
-            if (e?.code === 'tier1_lint_failed') {
-              setResultMsg(`❌ Server lint refused: ${(e.violations ?? []).join(', ')}`);
-            } else if (e?.code === 'two_question_filter_required') {
-              setResultMsg('❌ Server requires the Two-Question acknowledgement.');
-            } else {
-              setResultMsg(`❌ ${String(e?.message ?? e)}`);
+    const what = withImage ? `${withImage.label} + caption` : 'text-only post';
+    Alert.alert(
+      `${scheduledFor ? 'Schedule' : 'Publish'} ${what}${scheduledFor ? ' for tomorrow 8:15 AM ET' : ' NOW'}?`,
+      'Via the Page API. The publish log records it.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: scheduledFor ? 'Schedule' : 'Publish',
+          onPress: async () => {
+            setBusy(true);
+            setResultMsg(null);
+            try {
+              const r = withImage
+                ? await fbPublish.publishPagePhoto({
+                    caption, kind: content, scheduledFor,
+                    imageDataUrl: withImage.dataUrl,
+                    twoQAck: { q1: false, q2: false },
+                    imageMeta: { filename: withImage.filename, source: `PublishView.${content}.${withImage.label}` },
+                  })
+                : await fbPublish.publishPageText({ message: caption, kind: content, scheduledFor });
+              setResultMsg(scheduledFor ? `🕗 Scheduled — post ID ${r.postId}` : `✅ Published — post ID ${r.postId}`);
+              loadHistory();
+            } catch (e: any) {
+              if (e?.code === 'tier1_lint_failed') setResultMsg(`❌ Server lint refused: ${(e.violations ?? []).join(', ')}`);
+              else setResultMsg(`❌ ${String(e?.message ?? e)}`);
+            } finally {
+              setBusy(false);
             }
-          } finally {
-            setBusy(false);
-          }
+          },
         },
-      },
-    ]);
-  }, [kind, caption, lint.ok, q1No, q2No, loadHistory]);
+      ],
+    );
+  }, [content, caption, lint.ok, q1No, q2No, loadHistory]);
 
-  // ── GROUP lane (assisted) ──
+  // ── GROUP lanes (assisted) ──
   const copyCaption = useCallback(async () => {
     await Clipboard.setStringAsync(caption);
     setResultMsg('📋 Caption copied — paste it inside Facebook.');
   }, [caption]);
 
   const openFacebook = useCallback(() => {
-    const url = surface === 'pro' ? (urls.pro || urls.free) : urls.free;
+    const url = surface === 'pro' ? (urls.pro || urls.free) : surface === 'free' ? urls.free : undefined;
     Linking.openURL(url || 'https://www.facebook.com/groups/');
   }, [surface, urls]);
 
   const markHandedOff = useCallback(async () => {
-    if (!kind) return;
+    if (!surface || !content) return;
     setBusy(true);
     try {
       const r = await fbPublish.logAssist({
-        caption, tier, kind,
-        targetName: kind === 'cross_post' ? targetName : (surface === 'pro' ? 'pro group' : 'free group'),
+        caption, tier, kind: content,
+        targetName: surface === 'cross' ? targetName : surface === 'pro' ? 'pro group' : 'free group',
         imageMeta: images.length > 0 ? { files: images.map(i => i.filename), count: images.length } : null,
       });
       setResultMsg(r.duplicateToday
@@ -389,85 +449,103 @@ function PublishInner() {
     } finally {
       setBusy(false);
     }
-  }, [kind, caption, tier, targetName, surface, images, loadHistory]);
+  }, [surface, content, caption, tier, targetName, images, loadHistory]);
 
-  const briefImage = images.find(i => i.label.startsWith('Brief (public'));
-  const needsSession = kind && !isPageKind;
+  const publishableImage = images.length > 0 ? images[0] : undefined;
 
   return (
     <View style={{ flex: 1 }}>
     <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 60 }}>
       {/* Connection */}
-      <SectionTitle>PAGE CONNECTION</SectionTitle>
+      <SectionTitle>CONNECTIONS</SectionTitle>
       <Card style={{ padding: 12, marginBottom: 14 }}>
         {statusLoading ? (
           <ActivityIndicator size="small" color={colors.primary} />
-        ) : pageStatus?.tokenValid ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={{ fontSize: 14 }}>🟢</Text>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.text }}>
-              {pageStatus.page?.name ?? 'Page'} connected
-            </Text>
-            {pageStatus.page?.followers_count != null && (
-              <Pill label={`${pageStatus.page.followers_count} followers`} color={colors.primary} />
-            )}
-          </View>
         ) : (
-          <View>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.orange, marginBottom: 4 }}>
-              🟡 Page not connected {pageStatus?.configured === false ? '(secrets not set)' : pageStatus?.error ? `(${pageStatus.error})` : ''}
-            </Text>
-            <Text style={{ fontSize: 10, color: colors.textSecondary, lineHeight: 15 }}>
-              One-time setup: docs/facebook_publishing_setup.md — create the Meta app, exchange for a permanent Page token, set the FB_PAGE_ID + FB_PAGE_TOKEN secrets. Group assist works without it.
-            </Text>
+          <View style={{ gap: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={{ fontSize: 12 }}>{pageStatus?.tokenValid ? '🟢' : '🟡'}</Text>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: colors.text, flex: 1 }}>
+                {pageStatus?.tokenValid ? `${pageStatus.page?.name ?? 'Page'} connected` : 'Page not connected (docs/facebook_publishing_setup.md)'}
+              </Text>
+              {pageStatus?.page?.followers_count != null && <Pill label={`${pageStatus.page.followers_count} followers`} color={colors.primary} />}
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={{ fontSize: 12 }}>{aiAvailable?.claude && aiAvailable?.gemini ? '🟢' : aiAvailable?.claude || aiAvailable?.gemini ? '🟡' : '⚪'}</Text>
+              <Text style={{ fontSize: 11, color: colors.textSecondary, flex: 1 }}>
+                AI: Claude {aiAvailable?.claude ? '✓' : '—'} · Gemini {aiAvailable?.gemini ? '✓' : '—'}
+                {!aiAvailable?.claude || !aiAvailable?.gemini ? ' (set ANTHROPIC_API_KEY / GEMINI_API_KEY secrets)' : ''}
+              </Text>
+            </View>
           </View>
         )}
       </Card>
 
-      {/* Content type */}
-      <SectionTitle>CONTENT TYPE</SectionTitle>
+      {/* STEP 1 — WHERE */}
+      <SectionTitle>1 · SURFACE — WHERE IS THIS GOING?</SectionTitle>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-        {KINDS.map(k => {
-          const info = KIND_LABELS[k];
-          const on = kind === k;
+        {SURFACES.map(s => {
+          const info = SURFACE_LABELS[s];
+          const on = surface === s;
           return (
-            <TouchableOpacity key={k} style={{ width: '48%' }} onPress={() => selectKind(k)} activeOpacity={0.8}>
+            <TouchableOpacity key={s} style={{ width: '48%' }} onPress={() => selectSurface(s)} activeOpacity={0.8}>
               <Card style={{ padding: 12, borderWidth: on ? 2 : 1, borderColor: on ? colors.primary : colors.border }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <Text style={{ fontSize: 16 }}>{info.icon}</Text>
                   <Text style={{ fontSize: 12, fontWeight: '800', color: colors.text, flex: 1 }}>{info.label}</Text>
-                  <Pill label={`T${KIND_TIER[k]}`} color={KIND_TIER[k] === 1 ? colors.error : KIND_TIER[k] === 4 ? colors.gold : colors.success} />
+                  <Pill label={info.lane === 'api' ? 'API' : 'ASSIST'} color={info.lane === 'api' ? colors.success : colors.gold} />
                 </View>
-                <Text style={{ fontSize: 9, color: colors.textSecondary, lineHeight: 13, marginBottom: 4 }}>{info.desc}</Text>
-                <Text style={{ fontSize: 9, fontWeight: '700', color: colors.primary }}>{info.dest}</Text>
+                <Text style={{ fontSize: 9, color: colors.textSecondary, lineHeight: 13 }}>{info.desc}</Text>
               </Card>
             </TouchableOpacity>
           );
         })}
       </View>
 
-      {kind && (
+      {/* STEP 2 — WHAT */}
+      {surface && (
         <>
-          {/* Session picker — group kits are per-slate */}
+          <SectionTitle>2 · CONTENT — WHAT ARE YOU POSTING?</SectionTitle>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+            {validContents.map(c => {
+              const info = CONTENT_LABELS[c];
+              const on = content === c;
+              return (
+                <TouchableOpacity key={c} style={{ width: '48%' }} onPress={() => selectContent(c)} activeOpacity={0.8}>
+                  <Card style={{ padding: 12, borderWidth: on ? 2 : 1, borderColor: on ? colors.primary : colors.border }}>
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: colors.text, marginBottom: 4 }}>{info.label}</Text>
+                    <Text style={{ fontSize: 9, color: colors.textSecondary, lineHeight: 13 }}>{info.desc}</Text>
+                  </Card>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </>
+      )}
+
+      {surface && content && (
+        <>
+          {/* session picker for slate drops */}
           {needsSession && (
             <>
               <SectionTitle>SESSION</SectionTitle>
-              <View style={{ flexDirection: 'row', gap: 6, marginBottom: 14 }}>
+              <View style={{ flexDirection: 'row', gap: 6, marginBottom: 10 }}>
                 {SESSIONS.map(s => (
                   <TouchableOpacity key={s} style={[st.optBtn, session === s && st.optBtnOn]} onPress={() => selectSession(s)}>
-                    <Text style={[st.optBtnText, session === s && st.optBtnTextOn]}>{SESSION_LABELS[s]}</Text>
+                    <Text style={[st.optBtnText, session === s && st.optBtnTextOn]}>{SESSION_UI[s]}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
-              {kind === 'group_drop' && session === 'allday' && (
+              {surface === 'free' && session === 'allday' && (
                 <Card style={{ padding: 8, marginBottom: 10, backgroundColor: colors.tealLight }}>
-                  <Text style={{ fontSize: 10, color: colors.teal, fontWeight: '700' }}>All-Day drop = pure value — the Pro pitch is automatically omitted (§6).</Text>
+                  <Text style={{ fontSize: 10, color: colors.teal, fontWeight: '700' }}>All-Day free-group drop = pure value — Pro pitch automatically omitted (§6).</Text>
                 </Card>
               )}
             </>
           )}
 
-          {/* Caption */}
-          <SectionTitle>{`CAPTION — TIER ${tier} ${tier === 1 ? '(STRICT LINT)' : tier === 3 ? '(STRICT + VARIATION)' : '(OPTED-IN AUDIENCE)'}`}</SectionTitle>
+          {/* CAPTION */}
+          <SectionTitle>{`3 · CAPTION — TIER ${tier} ${tier === 1 || tier === 3 ? '(STRICT)' : tier === 4 ? '(NO PRICING)' : '(OPTED-IN)'}`}</SectionTitle>
           {dataLoading ? (
             <Card style={{ padding: 16, alignItems: 'center', marginBottom: 10 }}>
               <ActivityIndicator size="small" color={colors.primary} />
@@ -481,18 +559,26 @@ function PublishInner() {
                 </Card>
               )}
               <TextInput
-                style={[st.csvInput, { minHeight: 160, fontSize: 13, lineHeight: 19 }]}
+                style={[st.csvInput, { minHeight: 150, fontSize: 13, lineHeight: 19 }]}
                 value={caption}
                 onChangeText={setCaption}
+                placeholder={content === 'custom' ? 'Write your caption — the lint below enforces the surface rules.' : undefined}
+                placeholderTextColor={colors.textTertiary}
                 multiline
                 textAlignVertical="top"
               />
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                <TouchableOpacity style={st.btnGhost} onPress={nextVariant}>
-                  <Text style={st.btnGhostText}>↻ Variation {variant + 1}</Text>
-                </TouchableOpacity>
+                {content !== 'custom' && (
+                  <TouchableOpacity style={st.btnGhost} onPress={nextVariant}>
+                    <Text style={st.btnGhostText}>↻ Variation {variant + 1}</Text>
+                  </TouchableOpacity>
+                )}
+                {aiAvailable?.claude && (
+                  <TouchableOpacity style={[st.btnGhost, { opacity: aiBusy ? 0.5 : 1 }]} disabled={!!aiBusy} onPress={aiCaption}>
+                    <Text style={st.btnGhostText}>{aiBusy === 'caption' ? '⏳ AI…' : '✨ AI Caption'}</Text>
+                  </TouchableOpacity>
+                )}
                 <Pill label={`${lint.length} chars`} color={lint.length > 600 ? colors.orange : colors.textTertiary} />
-                <Pill label={`${lint.emojiCount} emoji`} color={lint.emojiCount > 3 ? colors.error : colors.textTertiary} />
                 <Pill label={lint.ok ? '✓ lint clean' : `${lint.violations.filter(v => v.blocking).length} blocking`} color={lint.ok ? colors.success : colors.error} />
               </View>
               {lint.violations.length > 0 && (
@@ -507,25 +593,31 @@ function PublishInner() {
             </>
           )}
 
-          {/* Images */}
-          <SectionTitle>IMAGES</SectionTitle>
+          {/* IMAGES */}
+          <SectionTitle>4 · IMAGES</SectionTitle>
           <Card style={{ padding: 12, marginBottom: 10 }}>
-            <Text style={{ fontSize: 10, color: colors.textSecondary, lineHeight: 15, marginBottom: 10 }}>
-              {isPageKind
-                ? 'Page images are limited to the brand-safe brief card (aggregate stats — no digits, no state codes, by construction). Optional: text-only posts need no image.'
-                : kind === 'cross_post'
-                  ? 'Cross-post asset: digit-redacted slate with the JOIN FREE banner (mosaic variant — §6 public discipline applies outside your own groups).'
-                  : `Full post kit for the ${surface === 'pro' ? 'Pro' : 'free'} group: slate composite + all 6 signal cards + the group brief. Full fidelity — this audience opted in.`}
-            </Text>
-            <TouchableOpacity
-              style={[st.btnPrimary, { opacity: busy ? 0.5 : 1 }]}
-              disabled={busy}
-              onPress={buildPostKit}
-            >
-              <Text style={st.btnPrimaryText}>
-                {imgProgress ? `⏳ ${imgProgress}` : isPageKind ? '🖼️ Generate Brief Image' : '🧰 Build Post Kit'}
-              </Text>
-            </TouchableOpacity>
+            {plan && <Text style={{ fontSize: 10, color: colors.textSecondary, lineHeight: 15, marginBottom: 10 }}>{plan.label}</Text>}
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+              {plan?.kind !== 'none' && (
+                <TouchableOpacity style={[st.btnPrimary, { flex: 1, opacity: busy ? 0.5 : 1 }]} disabled={busy} onPress={buildPostKit}>
+                  <Text style={st.btnPrimaryText}>{imgProgress ? `⏳ ${imgProgress}` : '🧰 Build Images'}</Text>
+                </TouchableOpacity>
+              )}
+              {aiAvailable?.gemini && (
+                <TouchableOpacity style={[st.btnGhost, { opacity: aiBusy ? 0.5 : 1 }]} disabled={!!aiBusy} onPress={aiBrandImage}>
+                  <Text style={st.btnGhostText}>{aiBusy === 'image' ? '⏳ Gemini…' : '✨ AI Brand Image ($0.13)'}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {aiAvailable?.gemini && (
+              <TextInput
+                style={[st.csvInput, { minHeight: 38, marginTop: 8, fontSize: 11 }]}
+                value={aiTheme}
+                onChangeText={setAiTheme}
+                placeholder="AI image theme (e.g. 'vault opening, intelligence descending, launch countdown')"
+                placeholderTextColor={colors.textTertiary}
+              />
+            )}
 
             {images.length > 0 && (
               <>
@@ -558,15 +650,10 @@ function PublishInner() {
             )}
           </Card>
 
-          {/* Actions */}
-          <SectionTitle>{isPageKind ? 'PUBLISH — PUBLIC PAGE (API)' : 'ASSISTED POST — GROUPS'}</SectionTitle>
-          {isPageKind ? (
+          {/* PUBLISH */}
+          <SectionTitle>{isApiLane ? '5 · PUBLISH — PUBLIC PAGE (API)' : `5 · ASSISTED POST — ${SURFACE_LABELS[surface].label.toUpperCase()}`}</SectionTitle>
+          {isApiLane ? (
             <Card style={{ padding: 12, marginBottom: 10 }}>
-              <Text style={{ fontSize: 10, color: colors.textSecondary, lineHeight: 15, marginBottom: 10 }}>
-                Tier-1 lint must be clean — it protects the page&apos;s recommended status. The edge function re-checks server-side.
-              </Text>
-
-              {/* text-only */}
               <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
                 <TouchableOpacity
                   style={[st.btnPrimary, { flex: 1, opacity: busy || !lint.ok || !pageStatus?.tokenValid ? 0.5 : 1 }]}
@@ -580,17 +667,18 @@ function PublishInner() {
                   disabled={busy || !lint.ok || !pageStatus?.tokenValid}
                   onPress={() => publishToPage(tomorrowMorningEtIso())}
                 >
-                  <Text style={st.btnGhostText}>🕗 Tomorrow 8:15a</Text>
+                  <Text style={st.btnGhostText}>🕗 8:15a</Text>
                 </TouchableOpacity>
               </View>
 
-              {/* photo post — requires generated brief + Two-Question NO/NO */}
-              {briefImage && (
+              {publishableImage && (
                 <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10 }}>
-                  <Text style={{ fontSize: 10, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1, marginBottom: 6 }}>TWO-QUESTION FILTER (MANDATORY FOR PAGE IMAGES)</Text>
+                  <Text style={{ fontSize: 10, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1, marginBottom: 6 }}>
+                    TWO-QUESTION FILTER — MANDATORY FOR PAGE IMAGES ({publishableImage.label})
+                  </Text>
                   <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }} onPress={() => setQ1No(v => !v)}>
                     <Text style={{ fontSize: 14 }}>{q1No ? '☑️' : '⬜'}</Text>
-                    <Text style={{ fontSize: 10, color: colors.text, flex: 1 }}>Q1 — NO 3-digit numbers are visible in the image</Text>
+                    <Text style={{ fontSize: 10, color: colors.text, flex: 1 }}>Q1 — NO 3-digit numbers are visible in the image (mosaic redaction counts as NO)</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }} onPress={() => setQ2No(v => !v)}>
                     <Text style={{ fontSize: 14 }}>{q2No ? '☑️' : '⬜'}</Text>
@@ -600,14 +688,14 @@ function PublishInner() {
                     <TouchableOpacity
                       style={[st.btnPrimary, { flex: 1, opacity: busy || !lint.ok || !pageStatus?.tokenValid || !q1No || !q2No ? 0.5 : 1 }]}
                       disabled={busy || !lint.ok || !pageStatus?.tokenValid || !q1No || !q2No}
-                      onPress={() => publishToPage(undefined, briefImage)}
+                      onPress={() => publishToPage(undefined, publishableImage)}
                     >
-                      <Text style={st.btnPrimaryText}>🖼️ Publish Brief + Caption</Text>
+                      <Text style={st.btnPrimaryText}>🖼️ Publish Image + Caption</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[st.btnGhost, { opacity: busy || !lint.ok || !pageStatus?.tokenValid || !q1No || !q2No ? 0.5 : 1 }]}
                       disabled={busy || !lint.ok || !pageStatus?.tokenValid || !q1No || !q2No}
-                      onPress={() => publishToPage(tomorrowMorningEtIso(), briefImage)}
+                      onPress={() => publishToPage(tomorrowMorningEtIso(), publishableImage)}
                     >
                       <Text style={st.btnGhostText}>🕗 8:15a</Text>
                     </TouchableOpacity>
@@ -618,9 +706,9 @@ function PublishInner() {
           ) : (
             <Card style={{ padding: 12, marginBottom: 10 }}>
               <Text style={{ fontSize: 10, color: colors.textSecondary, lineHeight: 15, marginBottom: 10 }}>
-                Meta removed the Groups API (April 2024) — no tool can auto-post to groups. Sanctioned flow: build the kit above, copy the caption, open Facebook, attach the saved images and paste. (Prefilled captions are prohibited by Meta policy — the clipboard step is the correct pattern.)
+                Groups have no publish API (Meta removed it 4/2024). Build the images above, copy the caption, open Facebook, attach + paste, then log it. Clipboard-paste is the sanctioned pattern — Meta prohibits prefilled captions.
               </Text>
-              {kind === 'cross_post' && (
+              {surface === 'cross' && (
                 <>
                   <Text style={st.fieldLabel}>DESTINATION GROUP NAME (for the log)</Text>
                   <TextInput style={[st.csvInput, { minHeight: 40, marginBottom: 10 }]} value={targetName} onChangeText={setTargetName} />
@@ -641,8 +729,8 @@ function PublishInner() {
           )}
 
           {resultMsg && (
-            <Card style={{ padding: 10, marginBottom: 10, backgroundColor: resultMsg.startsWith('❌') ? colors.errorLight : colors.successLight }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: resultMsg.startsWith('❌') ? colors.error : colors.success }}>{resultMsg}</Text>
+            <Card style={{ padding: 10, marginBottom: 10, backgroundColor: resultMsg.startsWith('❌') || resultMsg.startsWith('⛔') ? colors.errorLight : colors.successLight }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: resultMsg.startsWith('❌') || resultMsg.startsWith('⛔') ? colors.error : colors.success }}>{resultMsg}</Text>
             </Card>
           )}
         </>
@@ -674,7 +762,7 @@ function PublishInner() {
       </Card>
     </ScrollView>
 
-    {/* ── Hidden capture stages ── */}
+    {/* hidden capture stages */}
     <PublishStage
       ref={stageRef}
       mode={stageMode}
@@ -686,17 +774,10 @@ function PublishInner() {
       redact={stageRedact}
     />
     {briefRender && briefData && (
-      /* translate (not extreme left offset) so the browser still paints the
-         node — extreme offsets get paint-culled and capture comes back blank.
-         The transform sits on the WRAPPER; the captured child clone carries
-         no transform, so captureNodeToPngNatural reads it cleanly. */
+      /* translate (not extreme offset) keeps the node painted — extreme offsets
+         get paint-culled and the capture comes back blank */
       <View style={{ position: 'absolute', top: 0, left: 0, transform: [{ translateX: 5000 }] as any, pointerEvents: 'none' }} collapsable={false}>
-        <SocialBriefCard
-          ref={briefRef}
-          data={briefData}
-          variant={briefRender.variant}
-          showProFooter={briefRender.showProFooter}
-        />
+        <SocialBriefCard ref={briefRef} data={briefData} variant={briefRender.variant} showProFooter={briefRender.showProFooter} />
       </View>
     )}
     </View>

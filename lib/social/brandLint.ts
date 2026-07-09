@@ -143,6 +143,16 @@ export function lintCaption(caption: string, tier: SocialTier): LintResult {
     }
   }
 
+  // §6 PRO discipline: NO commercial/pricing on the Pro group (paying members
+  // already bought — first-access framing only). FREE is the only surface
+  // where pricing is allowed.
+  if (tier === 4) {
+    const pricing = caption.match(/\$\s?\d|\/mo\b/i);
+    if (pricing) violations.push({ term: pricing[0], rule: 'pro-no-pricing', suggestion: 'no pricing on the Pro group (§6) — first-access framing only', blocking: true });
+    const upgrade = caption.match(/\bupgrade\b|\bsubscribe now\b/i);
+    if (upgrade) violations.push({ term: upgrade[0], rule: 'pro-no-commercial', suggestion: 'no commercial framing on the Pro group (§6)', blocking: true });
+  }
+
   // Emoji cap (brief §5: >3 is too many; quality gate says 1-3)
   const emojiCount = (caption.match(EMOJI_RE) ?? []).length;
   if (emojiCount > 3) {

@@ -28,11 +28,13 @@ import ProSubscribersView from '@/components/admin/ProSubscribersView';
 import SubscriberImportView from '@/components/admin/SubscriberImportView';
 import FunnelDashboardView from '@/components/admin/FunnelDashboardView';
 import BriefView from '@/components/admin/BriefView';
+import PublishView from '@/components/admin/PublishView';
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
 const NAV = [
   { id:'dashboard', icon:'🏠', label:'Dashboard' },
   { id:'brief', icon:'📰', label:'Brief' },
+  { id:'publish', icon:'📣', label:'Publish' },
   { id:'wizard', icon:'📥', label:'Import' },
   { id:'history', icon:'🗂', label:'History' },
   { id:'matrix', icon:'📊', label:'Coverage' },
@@ -90,6 +92,7 @@ function AdminScreen() {
       <View style={{ flex: 1 }}>
         {view === 'dashboard' && <DashboardView setView={setView} imports={imports ?? []} healthMetrics={healthMetrics} regenerateSlate={regenerateSlate} checkSlateLock={checkSlateLock} onOpenZK30Import={(type) => { setWizardPreset({ type, jurisdiction: 'TX' }); setView('wizard'); }} />}
         {view === 'brief' && <ErrorBoundary fallback="Brief view error"><BriefView /></ErrorBoundary>}
+        {view === 'publish' && <ErrorBoundary fallback="Publish view error"><PublishView /></ErrorBoundary>}
         {view === 'wizard' && <ImportWizardView setView={setView} importHistory={importHistory} importLedger={importLedger} regenerateSlate={regenerateSlate} preset={wizardPreset} onClearPreset={() => setWizardPreset(null)} />}
         {view === 'history' && <ImportHistoryView />}
         {view === 'matrix' && <ErrorBoundary fallback="Coverage matrix error"><CoverageMatrixView setView={setView} /></ErrorBoundary>}

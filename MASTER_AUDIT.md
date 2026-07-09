@@ -248,6 +248,25 @@ Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`
 
 **Conclusion:** Not an engine bug. The shared slate is correctly surfacing high-value repeat-hitters; forcing them off degrades allday. The operator's real need ("don't show ME combos I've already closed") is a **personal closed-position filter**, best served by the existing `excludeComboSets` engine param — zero hit-rate cost to the product. Pending operator decision on direction. No production code changed; harness presets only. **(Superseded 2026-06-20 — see ENG-BLOCK-PERSCOPE-01 at top of this section: reframed as a regression, midday-only block shipped, operator declined the personal filter.)**
 
+### SOCIAL-01 — In-app Facebook publishing system (2026-07-09)
+
+**Operator goal:** post daily slates + user-friendly briefs from the app to the HitMaster Facebook page/groups with caption generation, to grow followers + Pro subscriptions. **Context:** page is currently RECOMMENDED again (operator, 7/9 — won back via correct posting); the system encodes the Brand Rehab Skill Brief v2 discipline mechanically so the recommendation never depends on manual judgment.
+
+**Meta API facts the design rests on (web-researched + verified 2026-07-09):** Graph v25.0; single-operator app posting to its own page = Standard Access, Live mode, NO App Review/Business Verification; long-lived Page tokens never expire; native scheduling 10min–30d; **Groups API removed 2024-04-22 — no compliant tool can auto-post to groups** (Buffer/Hootsuite do "reminder publishing"); Meta policy prohibits prefilling share messages → clipboard-paste is the sanctioned group flow; gambling policy requiring licensure is ads-only, organic analytics content is governed only by the recommendation classifier.
+
+**Architecture — two lanes, one safety engine:**
+- **Page lane (Tier 1, API):** `supabase/functions/fb-publish` v1 (verify_jwt=true, X-Admin-Key gate shared with subscriber-admin; FB_PAGE_ID/FB_PAGE_TOKEN in function secrets, token never touches the client). Actions: ping/status/publish_page_text/publish_page_photo/log_assist/list_posts. **Text-only in the v1 UI** (report card + signal announcement — the brief's sanctioned public formats). Server-side Tier-1 vocab lint refuses violations unless explicit logged override; photo action additionally REQUIRES twoQAck {q1:false,q2:false} (Two-Question filter, mechanical).
+- **Group lane (Tiers 2/3/4, assisted):** copy caption (expo-clipboard) → generate image via existing export pipeline (public-redacted or pro mode) → open group URL → log handoff. Same-day duplicate-caption check at handoff (brief Tier-3 spam rule) via caption_hash.
+- **`social_posts` table** (migration `social_publishing_v1`): full forensic log — tier, destination, caption+hash, two_q_ack, override_used, fb_post_id, status. RLS enabled, anon/authenticated revoked, service-role only.
+- **`lib/social/brandLint.ts`** — tier-aware caption linter (brief §5 forbidden list + §6 translation-table suggestions; universal no-guarantees/hype/emoji-cap rules for ALL tiers; pick-formatted digits blocking on T1/T3, statistical counts advisory). **`lib/social/captions.ts`** — §10 templates as deterministic slot-fill engine with seeded synonym-pool variation (kind×date×variant). **`lib/social/reportCard.ts`** — faithful slate∩histories yesterday matches by jurisdiction + 30d verified total (never stored flags, BUG-162). **Self-consistency test: all 20 template variants lint-clean at their own tier; 6 adversarial cases behave tier-correctly.**
+- **`components/admin/PublishView.tsx`** — admin nav "📣 Publish": connection status, content-type cards (destination + tier locked per kind), caption editor with live lint chips + variation, page publish/schedule (tomorrow 8:15a ET), group assist steps, publish log.
+
+**Setup:** `docs/facebook_publishing_setup.md` — one-time Meta app + permanent Page token runbook (~20 min, operator-executed; status action verifies). Optional `app_config` keys `social_free_group_url`/`social_pro_url` for deep links.
+
+**Verified:** edge fn deployed v1 ACTIVE verify_jwt=true; auth gate smoke-tested (401 on no-key/wrong-key/no-JWT); tsc+eslint delta 0 (fb-publish Deno globals match existing edge-fn pattern).
+
+**Deferred (documented):** page photo posting UI (API action exists, gated by twoQAck — add UI when a brand-graphic pipeline exists); LLM-generated captions (template engine is deterministic + brand-safe by construction; revisit if variety becomes limiting); Instagram cross-posting.
+
 ### IMPORT-REHAB-02 — Daily Input import type RETIRED (2026-07-09)
 
 **Trigger:** operator, same day as IMPORT-REHAB-01: "why does the daily input tab exist, if the engine only requires results ledger?" — and it was right. Daily Input had written zero engine data since BUG-130 (2026-05-12); its entire daily product was the checklist checkmark confirming the paste was performed. Operator approved full removal ("remove entirely, and scope for any other removals").

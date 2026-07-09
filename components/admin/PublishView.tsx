@@ -44,7 +44,7 @@ import {
 import {
   captureAvailable, captureNodeToPng, captureNodeToPngNatural,
   downloadDataUrl, downloadAllSequential, shareToPhotosAvailable, shareDataUrlToPhotos,
-  buildFilename,
+  shareMultiFilesAvailable, shareDataUrlsToApps, buildFilename,
 } from '@/lib/captureExportImage';
 import { fetchPairScores } from '@/lib/pairUtils';
 import type { PickItem } from '@/components/PickCard';
@@ -124,6 +124,7 @@ function PublishInner() {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [imgProgress, setImgProgress] = useState<string | null>(null);
   const canShare = useMemo(() => shareToPhotosAvailable(), []);
+  const canShareAll = useMemo(() => shareMultiFilesAvailable(), []);
 
   // AI state
   const [aiAvailable, setAiAvailable] = useState<{ claude: boolean; gemini: boolean } | null>(null);
@@ -448,25 +449,69 @@ function PublishInner() {
     setResultMsg('↗ Facebook opened in a new tab — attach the saved image(s) and paste the caption.');
   }, [destUrl, surface, urls]);
 
-  const markHandedOff = useCallback(async () => {
+  const logHandoff = useCallback(async () => {
     if (!surface || !content) return;
-    setBusy(true);
     try {
       const r = await fbPublish.logAssist({
         caption, tier, kind: content,
         targetName: surface === 'cross' ? targetName : surface === 'pro' ? 'pro group' : 'free group',
         imageMeta: images.length > 0 ? { files: images.map(i => i.filename), count: images.length } : null,
       });
-      setResultMsg(r.duplicateToday
-        ? `⚠️ Logged — but this exact caption was already used today (${r.duplicates.map(d => d.target_name).join(', ')}). Vary it before posting elsewhere.`
-        : '✅ Handoff logged.');
+      if (r.duplicateToday) setResultMsg(`⚠️ Logged — but this exact caption was already used today (${r.duplicates.map(d => d.target_name).join(', ')}). Vary it before posting elsewhere.`);
       loadHistory();
+      return r;
+    } catch (e: any) {
+      setResultMsg(`❌ Log failed: ${String(e?.message ?? e)}`);
+    }
+  }, [surface, content, caption, tier, targetName, images, loadHistory]);
+
+  const markHandedOff = useCallback(async () => {
+    setBusy(true);
+    const r = await logHandoff();
+    if (r && !r.duplicateToday) setResultMsg('✅ Handoff logged.');
+    setBusy(false);
+  }, [logHandoff]);
+
+  // ── ONE-TAP (mobile): hand caption + all images to the Facebook app ──
+  // Meta has no Groups publish API and prohibits prefilled captions, so this is
+  // the closest compliant path: caption → clipboard, then the OS share sheet
+  // hands ALL images to the FB app in one gesture. Operator picks the group and
+  // pastes. Auto-logs on success.
+  const shareAllToFacebook = useCallback(async () => {
+    if (images.length === 0) { setResultMsg('❌ Build the images first.'); return; }
+    setBusy(true);
+    try {
+      await Clipboard.setStringAsync(caption);
+      await shareDataUrlsToApps(images.map(i => ({ dataUrl: i.dataUrl, filename: i.filename })), 'HitMaster ZK6');
+      await logHandoff();
+      setResultMsg('📋 Caption copied + images handed to Facebook. Pick your group, paste the caption, post.');
+    } catch (e: any) {
+      if (e?.name === 'AbortError') setResultMsg('Share cancelled.');
+      else setResultMsg(`❌ ${String(e?.message ?? e)}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [images, caption, logHandoff]);
+
+  // ── ONE-CLICK (desktop): copy caption + download all images + open group ──
+  // Desktop browsers can't share files into the FB web composer (cross-origin),
+  // so this collapses the manual prep into a single click; the operator then
+  // drags the downloaded images into the composer and pastes.
+  const prepAndOpen = useCallback(async () => {
+    setBusy(true);
+    try {
+      await Clipboard.setStringAsync(caption);
+      if (images.length > 0) await downloadAllSequential(images.map(i => ({ dataUrl: i.dataUrl, filename: i.filename })));
+      const url = destUrl?.trim() || (surface === 'pro' ? urls.pro : urls.free) || 'https://www.facebook.com/groups/';
+      openInNewTab(url);
+      await logHandoff();
+      setResultMsg(`🚀 Caption copied · ${images.length} image${images.length === 1 ? '' : 's'} downloading · group opened. Drag the images in, paste, post.`);
     } catch (e: any) {
       setResultMsg(`❌ ${String(e?.message ?? e)}`);
     } finally {
       setBusy(false);
     }
-  }, [surface, content, caption, tier, targetName, images, loadHistory]);
+  }, [caption, images, destUrl, surface, urls, logHandoff]);
 
   const publishableImage = images.length > 0 ? images[0] : undefined;
 
@@ -750,17 +795,47 @@ function PublishInner() {
                 </>
               )}
 
-              <View style={{ gap: 8, marginTop: 4 }}>
-                <TouchableOpacity style={st.btnPrimary} onPress={copyCaption}>
-                  <Text style={st.btnPrimaryText}>1️⃣ Copy Caption</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[st.btnPrimary, { opacity: destUrl.trim() ? 1 : 0.6 }]} disabled={!destUrl.trim()} onPress={openFacebook}>
-                  <Text style={st.btnPrimaryText}>
-                    2️⃣ Open {surface === 'cross' ? 'Destination Group' : SURFACE_LABELS[surface].label} ↗{Platform.OS === 'web' ? ' new tab' : ''}
+              {/* ONE-BUTTON flow — mobile shares everything to the FB app in one
+                  tap; desktop copies caption + downloads all + opens the group
+                  in one click. Groups have no publish API (Meta, 4/2024), so a
+                  human still picks the group + pastes the caption either way. */}
+              {canShareAll ? (
+                <TouchableOpacity
+                  style={[st.btnPrimary, { paddingVertical: 14, opacity: busy || images.length === 0 ? 0.5 : 1 }]}
+                  disabled={busy || images.length === 0}
+                  onPress={shareAllToFacebook}
+                >
+                  <Text style={[st.btnPrimaryText, { fontSize: 14 }]}>
+                    📤 Share All to Facebook {images.length > 0 ? `(${images.length} image${images.length === 1 ? '' : 's'} + caption)` : ''}
                   </Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[st.btnGhost, { opacity: busy ? 0.5 : 1 }]} disabled={busy} onPress={markHandedOff}>
-                  <Text style={st.btnGhostText}>3️⃣ Mark Posted (log + duplicate check)</Text>
+              ) : (
+                <TouchableOpacity
+                  style={[st.btnPrimary, { paddingVertical: 14, opacity: busy ? 0.5 : 1 }]}
+                  disabled={busy}
+                  onPress={prepAndOpen}
+                >
+                  <Text style={[st.btnPrimaryText, { fontSize: 14 }]}>
+                    🚀 Prep &amp; Open — copy caption · download {images.length} image{images.length === 1 ? '' : 's'} · open group
+                  </Text>
+                </TouchableOpacity>
+              )}
+              <Text style={{ fontSize: 9, color: colors.textTertiary, marginTop: 6, lineHeight: 13 }}>
+                {canShareAll
+                  ? 'One tap: the caption is copied and all images are handed to the Facebook app — pick your group and paste the caption (Meta blocks prefilled captions).'
+                  : 'One click does the prep. Desktop browsers can\'t inject files into the Facebook composer, so drag the downloaded images in and paste the copied caption. On a phone, this becomes a true one-tap share.'}
+              </Text>
+
+              {/* individual steps (fallback / à la carte) */}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                <TouchableOpacity style={[st.btnGhost, { flex: 1, minWidth: 100 }]} onPress={copyCaption}>
+                  <Text style={st.btnGhostText}>📋 Copy Caption</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[st.btnGhost, { flex: 1, minWidth: 100, opacity: destUrl.trim() ? 1 : 0.6 }]} disabled={!destUrl.trim()} onPress={openFacebook}>
+                  <Text style={st.btnGhostText}>Open {surface === 'cross' ? 'Group' : SURFACE_LABELS[surface].label} ↗</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[st.btnGhost, { flex: 1, minWidth: 100, opacity: busy ? 0.5 : 1 }]} disabled={busy} onPress={markHandedOff}>
+                  <Text style={st.btnGhostText}>✓ Mark Posted</Text>
                 </TouchableOpacity>
               </View>
             </Card>

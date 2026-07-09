@@ -227,3 +227,49 @@ export async function shareDataUrlToPhotos(
   };
   await nav.share({ files: [file], title, text: '' });
 }
+
+/**
+ * True if the browser can share MULTIPLE files via the Web Share API — the
+ * capability behind one-tap "share all images to the Facebook app" (iOS Safari,
+ * Android Chrome). Some browsers support single-file share but not multi; this
+ * probes with a 2-file set so callers know which flow to offer.
+ */
+export function shareMultiFilesAvailable(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const nav = navigator as Navigator & {
+    canShare?: (data: { files?: File[] }) => boolean;
+    share?: (data: { files?: File[] }) => Promise<void>;
+  };
+  if (typeof nav.share !== 'function' || typeof nav.canShare !== 'function') return false;
+  try {
+    const a = new File([new Uint8Array([0])], 'a.png', { type: 'image/png' });
+    const b = new File([new Uint8Array([0])], 'b.png', { type: 'image/png' });
+    return nav.canShare({ files: [a, b] });
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Hand a whole image set to the OS share sheet in one gesture — the closest
+ * compliant path to "post everything to Facebook at once" (Groups have no
+ * publish API; the operator still picks the group and pastes the caption inside
+ * the FB app, since Meta prohibits prefilled captions). Throws AbortError when
+ * the user dismisses the sheet (normal — swallow it).
+ */
+export async function shareDataUrlsToApps(
+  items: { dataUrl: string; filename: string }[],
+  title = 'HitMaster',
+): Promise<void> {
+  if (items.length === 0) throw new Error('No images to share.');
+  const files = items.map(it => dataUrlToFile(it.dataUrl, it.filename));
+  const nav = navigator as Navigator & {
+    canShare?: (data: { files?: File[] }) => boolean;
+    share: (data: { files?: File[]; title?: string }) => Promise<void>;
+  };
+  if (typeof nav.share !== 'function') throw new Error('Web Share API not available in this browser.');
+  if (typeof nav.canShare === 'function' && !nav.canShare({ files })) {
+    throw new Error('This image set cannot be shared here (too large, or multi-file share unsupported).');
+  }
+  await nav.share({ files, title });
+}

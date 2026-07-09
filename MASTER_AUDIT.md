@@ -248,6 +248,17 @@ Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`
 
 **Conclusion:** Not an engine bug. The shared slate is correctly surfacing high-value repeat-hitters; forcing them off degrades allday. The operator's real need ("don't show ME combos I've already closed") is a **personal closed-position filter**, best served by the existing `excludeComboSets` engine param — zero hit-rate cost to the product. Pending operator decision on direction. No production code changed; harness presets only. **(Superseded 2026-06-20 — see ENG-BLOCK-PERSCOPE-01 at top of this section: reframed as a regression, midday-only block shipped, operator declined the personal filter.)**
 
+### SOCIAL-07 — One-button group handoff (mobile one-tap / desktop one-click) (2026-07-09)
+
+**Operator friction:** the free-group flow required downloading each image + copying the caption + opening the group separately. Asked for one button to post images+caption to the group.
+
+**Research (re-verified 2026-07-09):** there is NO compliant way to auto-post to a Facebook group — Meta removed the Groups API 2024-04-22; Buffer/Hootsuite/Make/Zoho/Sprinklr all discontinued their group apps; "manual posting through Facebook is the only option." A literal one-click auto-post is impossible without ToS-violating browser automation (unacceptable for a twice-de-recommended page). So the fix collapses the manual sequence into a single action, adapting to device:
+- **Mobile (Web Share API multi-file, `shareMultiFilesAvailable()`):** `📤 Share All to Facebook` — copies the caption to the clipboard, then `shareDataUrlsToApps()` hands ALL images to the FB app in one gesture (`navigator.share({files:[…]})`). Operator picks the group and pastes the caption (Meta prohibits prefilled captions, so clipboard-paste is the sanctioned pattern). This is the closest compliant thing to one-tap posting.
+- **Desktop (no file-share into the FB web composer — cross-origin):** `🚀 Prep & Open` — one click copies the caption + downloads all images + opens the group in a new tab. Operator drags the images in and pastes.
+- Both auto-log the handoff (same-day duplicate-caption check preserved); the à-la-carte Copy / Open / Mark-Posted steps remain as a fallback row.
+
+New helpers in `lib/captureExportImage.ts`: `shareMultiFilesAvailable()`, `shareDataUrlsToApps(items, title)`. tsc/eslint delta 0.
+
 ### SOCIAL-06 — Brief is intraday live-results aware (2026-07-09)
 
 **Operator observation:** at 4:27pm ET with today's midday results imported, an evening/all-day brief still showed midday as an *upcoming recommended play* — stale, since midday already resolved.

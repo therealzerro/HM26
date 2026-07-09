@@ -248,6 +248,14 @@ Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`
 
 **Conclusion:** Not an engine bug. The shared slate is correctly surfacing high-value repeat-hitters; forcing them off degrades allday. The operator's real need ("don't show ME combos I've already closed") is a **personal closed-position filter**, best served by the existing `excludeComboSets` engine param — zero hit-rate cost to the product. Pending operator decision on direction. No production code changed; harness presets only. **(Superseded 2026-06-20 — see ENG-BLOCK-PERSCOPE-01 at top of this section: reframed as a regression, midday-only block shipped, operator declined the personal filter.)**
 
+### SOCIAL-08 — AI-cover rule + one-tap presets; Pro-group non-post diagnosed (2026-07-09)
+
+- **RULE (operator):** any AI-generated brand image is the COVER — position 0. `aiBrandImage` now prepends and dedupes (one cover max); `buildPostKit` preserves an existing AI cover at the front of the kit. Facebook uses the first image as the post cover / first slide.
+- **Convolutedness → one-tap presets:** new ⚡ QUICK POST row (Public Report Card / Free Slate Drop / Pro Slate Drop / Free Brief). A preset sets surface+content(+session) and generates the caption in one tap; routine becomes preset → Build Images → Publish/Share instead of ~6 selections.
+- **Pro-group non-post: NOT a code bug.** Pro caption generates + lints clean at tier 4; the mobile share path is identical to Free (shares images to the FB app, operator picks the group — destUrl unused). Diagnosis: Facebook-side — `social_pro_url = groups/hitmasterzk` (vanity) likely requires post approval (common for paid/pro groups → post pends invisibly), or the operator isn't an admin/member, or the vanity URL isn't a postable group. Flagged for operator verification; no code fix applicable (no Groups API to check membership/settings).
+
+tsc/eslint delta 0. Full-system enhancement roadmap presented to operator (auto-build presets, image reorder, Telegram/Discord expansion, video fast-follow, page scheduling).
+
 ### SOCIAL-07 — One-button group handoff (mobile one-tap / desktop one-click) (2026-07-09)
 
 **Operator friction:** the free-group flow required downloading each image + copying the caption + opening the group separately. Asked for one button to post images+caption to the group.

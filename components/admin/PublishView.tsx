@@ -267,6 +267,20 @@ function PublishInner() {
     buildCaption(surface, content, v, session);
   }, [surface, content, variant, session, buildCaption]);
 
+  // One-tap daily presets — configure surface+content(+session) and generate
+  // the caption in a single action, so the routine is: preset → Build → Share.
+  const applyPreset = useCallback((srf: Surface, cnt: ContentKind, sess?: SocialSession) => {
+    const s = sess ?? session;
+    setSurface(srf);
+    setContent(cnt);
+    if (sess) setSession(sess);
+    setVariant(0);
+    setImages([]);
+    setQ1No(false); setQ2No(false);
+    setResultMsg(`⚡ ${SURFACE_LABELS[srf].label} · ${CONTENT_LABELS[cnt].label} — caption ready. Build the images, then publish/share.`);
+    buildCaption(srf, cnt, 0, s);
+  }, [session, buildCaption]);
+
   // ── AI generation ──
   const aiCaption = useCallback(async () => {
     if (!surface || !content) return;
@@ -300,8 +314,11 @@ function PublishInner() {
         size: '1K',
       });
       const filename = `hm-ai-${surface}-${getTodayET()}.png`;
-      setImages(prev => [...prev, { label: 'AI Brand Image', filename, dataUrl: r.imageDataUrl }]);
-      setResultMsg(`✨ Brand image generated (rendered text: ${r.textStrings.join(' · ') || 'none'}). Review it, then answer the Two-Question filter before any page publish.`);
+      // RULE: the AI brand image is the COVER — always position 0. Replace any
+      // prior AI cover so there's never more than one, and it leads the set
+      // (Facebook uses the first image as the post cover / first slide).
+      setImages(prev => [{ label: 'AI Brand Image', filename, dataUrl: r.imageDataUrl }, ...prev.filter(i => !i.label.startsWith('AI'))]);
+      setResultMsg(`✨ Brand image generated → set as COVER (rendered text: ${r.textStrings.join(' · ') || 'none'}). Review it, then answer the Two-Question filter before any page publish.`);
     } catch (e: any) {
       setResultMsg(e?.code === 'composed_prompt_unsafe'
         ? `⛔ AI refused its own prompt: ${String(e?.detail ?? '')} — adjust the theme.`
@@ -370,9 +387,10 @@ function PublishInner() {
 
   const buildPostKit = useCallback(async () => {
     if (!surface || !content || !plan) return;
+    // Preserve any AI cover image at the front (RULE: AI image is the cover).
+    const preservedAI = images.filter(i => i.label.startsWith('AI'));
     setBusy(true);
     setResultMsg(null);
-    setImages([]);
     try {
       const out: ImageItem[] = [];
       if (plan.kind === 'brief') {
@@ -383,15 +401,16 @@ function PublishInner() {
         out.push(...await generateSlateImages(true));
         out.push(await generateBriefImage('group'));
       }
-      setImages(out);
-      setResultMsg(out.length ? `🖼️ ${out.length} image${out.length === 1 ? '' : 's'} ready below.` : 'No images for this combination.');
+      const final = [...preservedAI, ...out];
+      setImages(final);
+      setResultMsg(final.length ? `🖼️ ${final.length} image${final.length === 1 ? '' : 's'} ready${preservedAI.length ? ' (AI cover kept first)' : ''}.` : 'No images for this combination.');
     } catch (e) {
       setResultMsg(`❌ Image generation failed: ${String(e instanceof Error ? e.message : e)}`);
     } finally {
       setImgProgress(null);
       setBusy(false);
     }
-  }, [surface, content, plan, generateBriefImage, generateSlateImages]);
+  }, [surface, content, plan, images, generateBriefImage, generateSlateImages]);
 
   // ── PUBLIC lane (API) ──
   const publishToPage = useCallback(async (scheduledFor?: string, withImage?: ImageItem) => {
@@ -542,6 +561,30 @@ function PublishInner() {
           </View>
         )}
       </Card>
+
+      {/* QUICK POST — one-tap daily presets */}
+      <SectionTitle>⚡ QUICK POST</SectionTitle>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+        {([
+          { label: 'Public Report Card', icon: '📣', srf: 'public' as Surface, cnt: 'report_card' as ContentKind },
+          { label: 'Free Slate Drop', icon: '👥', srf: 'free' as Surface, cnt: 'slate_drop' as ContentKind, useSession: true },
+          { label: 'Pro Slate Drop', icon: '💎', srf: 'pro' as Surface, cnt: 'slate_drop' as ContentKind, useSession: true },
+          { label: 'Free Brief', icon: '📰', srf: 'free' as Surface, cnt: 'brief' as ContentKind },
+        ]).map(p => (
+          <TouchableOpacity
+            key={p.label}
+            style={{ flexGrow: 1, minWidth: '47%', flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: colors.primary + '55', backgroundColor: colors.primaryLight }}
+            onPress={() => applyPreset(p.srf, p.cnt, p.useSession ? session : undefined)}
+            activeOpacity={0.8}
+          >
+            <Text style={{ fontSize: 15 }}>{p.icon}</Text>
+            <Text style={{ fontSize: 11, fontWeight: '800', color: colors.primary, flex: 1 }}>{p.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <Text style={{ fontSize: 9, color: colors.textTertiary, marginBottom: 16, marginTop: -8 }}>
+        A preset sets the surface + content and generates the caption. Then: Build Images → Publish/Share. Slate presets use the {SESSION_UI[session]} session (change it in step 2).
+      </Text>
 
       {/* STEP 1 — WHERE */}
       <SectionTitle>1 · SURFACE — WHERE IS THIS GOING?</SectionTitle>

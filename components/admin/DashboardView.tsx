@@ -67,6 +67,18 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
   const [zk30HitBusy, setZk30HitBusy] = useState<boolean>(false);
   const [zk30HitStatus, setZk30HitStatus] = useState<string>('');
 
+  // Engine-eye data freshness (IMPORT-REHAB-01): what the engine ACTUALLY reads,
+  // not import-record timestamps. histories drive everything live (rebuilds,
+  // blocks, hit detection); datasets updated_at moves only when the Daily
+  // Workflow Step 1 rebuild recomputes ds_raw; the newest snapshot shows whether
+  // today's slates exist. times_drawn is CSV-frozen by design and never "stale".
+  const [freshness, setFreshness] = useState<{
+    lastMiddayDraw: string | null;
+    lastEveningDraw: string | null;
+    dsRawRebuiltAt: string | null;
+    latestSlateDate: string | null;
+  } | null>(null);
+
   useEffect(() => {
     const todayStart = new Date(getTodayET() + 'T05:00:00.000Z').toISOString();
     Promise.all([
@@ -76,9 +88,27 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
       fetchFromSupabase<any[]>({
         path: '/rest/v1/imports?type=in.(box_history,pair_history)&status=eq.completed&deleted_at=is.null&select=type,scope,horizon_label,created_at&order=created_at.desc&limit=500',
       }).catch(() => []),
-    ]).then(([daily, weekly]) => {
+      fetchFromSupabase<any[]>({
+        path: '/rest/v1/histories?select=date_et&session=eq.midday&order=date_et.desc&limit=1',
+      }).catch(() => []),
+      fetchFromSupabase<any[]>({
+        path: '/rest/v1/histories?select=date_et&session=eq.evening&order=date_et.desc&limit=1',
+      }).catch(() => []),
+      fetchFromSupabase<any[]>({
+        path: '/rest/v1/datasets_box?select=updated_at&class_id=eq.1&jurisdiction=is.null&deleted_at=is.null&order=updated_at.desc&limit=1',
+      }).catch(() => []),
+      fetchFromSupabase<any[]>({
+        path: '/rest/v1/slate_snapshots?select=slate_date&deleted_at=is.null&mode=neq.zk30&order=slate_date.desc&limit=1',
+      }).catch(() => []),
+    ]).then(([daily, weekly, midday, evening, rebuilt, slate]) => {
       setTodayImports(Array.isArray(daily) ? daily : []);
       setWeeklyImports(Array.isArray(weekly) ? weekly : []);
+      setFreshness({
+        lastMiddayDraw: midday?.[0]?.date_et ?? null,
+        lastEveningDraw: evening?.[0]?.date_et ?? null,
+        dsRawRebuiltAt: rebuilt?.[0]?.updated_at ?? null,
+        latestSlateDate: slate?.[0]?.slate_date ?? null,
+      });
     }).finally(() => setChecklistLoading(false));
   }, []);
 
@@ -427,6 +457,34 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
                 </View>
               ))}
             </View>
+          </Card>
+        );
+      })()}
+      {/* Engine data freshness — the inputs the engine actually reads (IMPORT-REHAB-01) */}
+      {freshness && (() => {
+        const today = getTodayET();
+        const yesterday = getYesterdayET();
+        const rebuiltDate = freshness.dsRawRebuiltAt ? String(freshness.dsRawRebuiltAt).slice(0, 10) : null;
+        const items = [
+          { label: 'Midday draws', value: freshness.lastMiddayDraw, ok: !!freshness.lastMiddayDraw && freshness.lastMiddayDraw >= yesterday },
+          { label: 'Evening draws', value: freshness.lastEveningDraw, ok: !!freshness.lastEveningDraw && freshness.lastEveningDraw >= yesterday },
+          { label: 'ds_raw rebuild', value: rebuiltDate, ok: !!rebuiltDate && rebuiltDate >= today },
+          { label: 'Latest slate', value: freshness.latestSlateDate, ok: !!freshness.latestSlateDate && freshness.latestSlateDate >= today },
+        ];
+        return (
+          <Card style={{ padding: 12, marginBottom: 8 }}>
+            <Text style={{ fontSize: 10, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1, marginBottom: 8 }}>ENGINE DATA FRESHNESS</Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {items.map(({ label, value, ok }) => (
+                <View key={label} style={{ flex: 1, backgroundColor: ok ? colors.successLight : colors.goldLight, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 6 }}>
+                  <Text style={{ fontSize: 8, fontWeight: '700', color: colors.textTertiary, marginBottom: 2 }}>{label.toUpperCase()}</Text>
+                  <Text style={{ fontSize: 10, fontWeight: '800', color: ok ? colors.success : colors.gold, fontFamily: theme.typography.fontFamily.mono }}>{value ?? '—'}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={{ fontSize: 9, color: colors.textTertiary, marginTop: 6, lineHeight: 13 }}>
+              Live engine inputs: histories (draws) · ds_raw (rebuilt by Daily Workflow Step 1) · newest slate. times_drawn is CSV-frozen by design — an old import badge does not mean the engine is stale.
+            </Text>
           </Card>
         );
       })()}

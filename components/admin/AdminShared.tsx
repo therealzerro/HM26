@@ -63,7 +63,7 @@ export function useImportTypes() {
   return useMemo(() => ([
     { id:'box_history', icon:'📦', label:'Box History', desc:'Unordered combo frequency data.\nOne file per scope × horizon (H01Y–H10Y).', color: colors.primary, headers:['Combo','Times Drawn','Expected','Last Seen','Draws Since'] },
     { id:'pair_history', icon:'🔗', label:'Pair History', desc:'Pair class frequency data.\nClasses 2–11, one file per class × scope × horizon.', color: colors.primary, headers:['Pair','TimesDrawn','LastSeen','DrawsSince'] },
-    { id:'daily_input', icon:'📅', label:'Daily Input', desc:'Today\'s draw results for DrawsSince rescoring.\nSame shape as Box History.', color: colors.gold, headers:['Combo','ComboSet','TimesDrawn','LastSeen','DrawsSince'] },
+    { id:'daily_input', icon:'📅', label:'Daily Input', desc:'Daily checklist marker + audit trail only.\nEngine data comes from Ledger + Daily Workflow.', color: colors.gold, headers:['Combo','ComboSet','TimesDrawn','LastSeen','DrawsSince'] },
     { id:'ledger', icon:'📋', label:'Results Ledger', desc:'Paste raw results from lotterypost.com.\nAuto-parses state names, dates, and digits.', color: colors.success, headers:['State Name (header)', 'Game\tDate\tResult (rows)'] },
   ]), [colors]);
 }
@@ -71,7 +71,7 @@ export function useImportTypes() {
 export const IMPORT_TYPES = [
   { id:'box_history', icon:'📦', label:'Box History', desc:'Unordered combo frequency data.\nOne file per scope × horizon (H01Y–H10Y).', color:theme.colors.primary, headers:['Combo','Times Drawn','Expected','Last Seen','Draws Since'] },
   { id:'pair_history', icon:'🔗', label:'Pair History', desc:'Pair class frequency data.\nClasses 2–11, one file per class × scope × horizon.', color:theme.colors.primary, headers:['Pair','TimesDrawn','LastSeen','DrawsSince'] },
-  { id:'daily_input', icon:'📅', label:'Daily Input', desc:'Today\'s draw results for DrawsSince rescoring.\nSame shape as Box History.', color:theme.colors.gold, headers:['Combo','ComboSet','TimesDrawn','LastSeen','DrawsSince'] },
+  { id:'daily_input', icon:'📅', label:'Daily Input', desc:'Daily checklist marker + audit trail only.\nEngine data comes from Ledger + Daily Workflow.', color:theme.colors.gold, headers:['Combo','ComboSet','TimesDrawn','LastSeen','DrawsSince'] },
   { id:'ledger', icon:'📋', label:'Results Ledger', desc:'Paste raw results from lotterypost.com.\nAuto-parses state names, dates, and digits.', color:theme.colors.success, headers:['State Name (header)', 'Game\tDate\tResult (rows)'] },
 ];
 

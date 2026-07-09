@@ -1,7 +1,7 @@
 import createContextHook from '@nkzw/create-context-hook';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
-import { fetchFromSupabase } from '@/lib/supabase';
+import { fetchFromSupabase, countFromSupabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { Scope, HorizonLabel, Import, AuditLog, ImportSummary, RegenerateResult } from '@/types/core';
 import { runHitDetectionForDates } from '@/lib/hitDetection';
@@ -9,7 +9,6 @@ import { runHitDetectionForDates } from '@/lib/hitDetection';
 type HitDetectionResult = { totalHits: number; scopeResults: Record<string, number>; ran: boolean };
 import { useScope } from '@/hooks/useScope';
 import { computeSlate } from '@/engines/zk6';
-import { HORIZON_WEIGHTS } from '@/constants/zk6';
 import { storage } from '@/lib/storage';
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
 import { useToast } from '@/components/Toast';
@@ -203,14 +202,19 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
         const timeoutPromise = new Promise<never>((_, reject) => {
           setTimeout(() => reject(new Error('Health metrics fetch timeout')), 3000);
         });
+        // IMPORT-REHAB-01: counts via Prefer: count=exact head requests — the
+        // previous array-length pattern silently capped at PostgREST's 1000-row
+        // ceiling regardless of the limit param, understating every count.
+        // percentile_maps/horizon_blends counts remain (tables still exist,
+        // frozen since their import writes were removed).
         const [boxCount, pairCount, percentileCount, blendCount, dailyCount, ledgerCount] = await Promise.race([
           Promise.allSettled([
-            fetchFromSupabase<any[]>({ path: `/rest/v1/datasets_box?select=id${scopeFilter}${deletedFilter}&limit=2000` }),
-            fetchFromSupabase<any[]>({ path: `/rest/v1/datasets_pair?select=id${scopeFilter}${deletedFilter}&limit=5000` }),
-            fetchFromSupabase<any[]>({ path: `/rest/v1/percentile_maps?select=id${scopeFilter}${deletedFilter}&limit=200` }),
-            fetchFromSupabase<any[]>({ path: `/rest/v1/horizon_blends?select=id${scopeFilter}${deletedFilter}&limit=200` }),
-            fetchFromSupabase<any[]>({ path: `/rest/v1/imports?select=id${scopeFilter}&type=eq.daily_input&status=eq.completed&limit=2000` }),
-            fetchFromSupabase<any[]>({ path: `/rest/v1/imports?select=id${scopeFilter}&type=eq.ledger&status=eq.completed&limit=2000` }),
+            countFromSupabase(`/rest/v1/datasets_box?select=id${scopeFilter}${deletedFilter}`),
+            countFromSupabase(`/rest/v1/datasets_pair?select=id${scopeFilter}${deletedFilter}`),
+            countFromSupabase(`/rest/v1/percentile_maps?select=id${scopeFilter}${deletedFilter}`),
+            countFromSupabase(`/rest/v1/horizon_blends?select=id${scopeFilter}${deletedFilter}`),
+            countFromSupabase(`/rest/v1/imports?select=id${scopeFilter}&type=eq.daily_input&status=eq.completed`),
+            countFromSupabase(`/rest/v1/imports?select=id${scopeFilter}&type=eq.ledger&status=eq.completed`),
           ]),
           timeoutPromise,
         ]);
@@ -232,12 +236,12 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
           missingHorizons: [],
           recentErrors: errorLogs.map(log => log.payload_meta?.error || 'Unknown error'),
           datasetCounts: {
-            boxEntries: boxCount.status === 'fulfilled' && Array.isArray(boxCount.value) ? boxCount.value.length : 0,
-            pairEntries: pairCount.status === 'fulfilled' && Array.isArray(pairCount.value) ? pairCount.value.length : 0,
-            percentileMaps: percentileCount.status === 'fulfilled' && Array.isArray(percentileCount.value) ? percentileCount.value.length : 0,
-            horizonBlends: blendCount.status === 'fulfilled' && Array.isArray(blendCount.value) ? blendCount.value.length : 0,
-            dailyImports: dailyCount.status === 'fulfilled' && Array.isArray(dailyCount.value) ? dailyCount.value.length : 0,
-            ledgerImports: ledgerCount.status === 'fulfilled' && Array.isArray(ledgerCount.value) ? ledgerCount.value.length : 0,
+            boxEntries: boxCount.status === 'fulfilled' ? boxCount.value : 0,
+            pairEntries: pairCount.status === 'fulfilled' ? pairCount.value : 0,
+            percentileMaps: percentileCount.status === 'fulfilled' ? percentileCount.value : 0,
+            horizonBlends: blendCount.status === 'fulfilled' ? blendCount.value : 0,
+            dailyImports: dailyCount.status === 'fulfilled' ? dailyCount.value : 0,
+            ledgerImports: ledgerCount.status === 'fulfilled' ? ledgerCount.value : 0,
           }
         };
       } catch (error) {
@@ -304,12 +308,6 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
           } catch (preDelErr) {
             console.log('[import] pre-delete warning (continuing):', preDelErr);
           }
-          try {
-            await fetchFromSupabase({ path: `/rest/v1/percentile_maps?class_id=eq.${targetClassId}&scope=eq.${encodeURIComponent(data.scope)}&horizon_label=eq.${encodeURIComponent(canonH)}`, method: 'DELETE' });
-          } catch (preDelPercErr) {
-            console.log('[import] pre-delete percentile map warning (continuing):', preDelPercErr);
-          }
-
           const makeRecords = () => data.rows.map(row => {
             const clampedDs = Math.min(row.drawsSince, p99Cap);
             const normalized = maxDs > 0 ? 1 - (clampedDs / maxDs) : 0;
@@ -387,62 +385,30 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
             await tryBatch(batch, 0);
           }
 
-          const percentileMap: Record<string, number> = {};
-          data.rows.forEach(row => {
-            const clampedDs = Math.min(row.drawsSince, p99Cap);
-            const normalized = maxDs > 0 ? 1 - (clampedDs / maxDs) : 0;
-            percentileMap[row.key] = normalized;
-          });
+          // IMPORT-REHAB-01 (2026-07-09): percentile_maps + horizon_blends writes
+          // removed. Grep-verified zero readers in the engine, edge fns, backfill,
+          // or any screen — the engine blends horizons live from HORIZON_WEIGHTS /
+          // app_config.horizon_weights. The tables remain in the DB (frozen) in
+          // case a rollback is ever needed; see MASTER_AUDIT IMPORT-REHAB-01.
 
-          await fetchFromSupabase({
-            path: '/rest/v1/percentile_maps?on_conflict=class_id,scope,horizon_label',
-            method: 'POST',
-            headers: { 'Prefer': 'resolution=merge-duplicates' },
-            body: {
-              import_id: importId,
-              class_id: targetClassId,
-              scope: data.scope,
-              horizon_label: canonH,
-              p99_cap: p99Cap,
-              percentile_map: percentileMap,
+          // Post-write tripwire (pair sibling of BUG-160's box check): the pair
+          // universe is fixed — 100 keys for position classes 2-4, 55 for
+          // co-occurrence classes 5-11. A count above that after upsert means
+          // duplicate/contaminated rows the engine would silently read.
+          if (data.type === 'pair_history') {
+            const expectedMax = targetClassId >= 2 && targetClassId <= 4 ? 100 : 55;
+            const jurFilter = data.jurisdiction ? `&jurisdiction=eq.${encodeURIComponent(data.jurisdiction)}` : '&jurisdiction=is.null';
+            const verifyRows = await fetchFromSupabase<{ id: string }[]>({
+              path: `/rest/v1/datasets_pair?select=id&class_id=eq.${targetClassId}&scope=eq.${encodeURIComponent(data.scope)}&horizon_label=eq.${encodeURIComponent(canonH)}&deleted_at=is.null${jurFilter}&limit=1100`,
+            });
+            const finalCount = Array.isArray(verifyRows) ? verifyRows.length : 0;
+            if (finalCount > expectedMax) {
+              throw new Error(
+                `Pair import wrote ${finalCount} rows for (class ${targetClassId}, ${data.scope}, ${canonH}); ` +
+                `expected ≤${expectedMax} unique pairs. Possible contamination — review datasets_pair before regenerating slates.`,
+              );
             }
-          });
-
-          // Build full available horizons for this class/scope from percentile_maps
-          let availableHorizons: HorizonLabel[] = [canonH];
-          try {
-            const pmRows = await fetchFromSupabase<Array<{ horizon_label: string }>>({
-              path: `/rest/v1/percentile_maps?select=horizon_label&class_id=eq.${targetClassId}&scope=eq.${encodeURIComponent(data.scope)}&deleted_at=is.null&limit=50`
-            });
-            const set = new Set<HorizonLabel>([canonH]);
-            (pmRows || []).forEach(r => {
-              const upper = String(r?.horizon_label ?? '').toUpperCase();
-              const m = upper.match(/^H0*([0-9]{1,2})Y$/);
-              if (m) {
-                const n = parseInt(m[1], 10);
-                if (n >= 1 && n <= 10) set.add((`H${String(n).padStart(2, '0')}Y`) as HorizonLabel);
-              }
-            });
-            availableHorizons = Array.from(set).sort();
-          } catch (mergeErr) {
-            console.log('[import] percentile_maps scan warn:', mergeErr);
           }
-
-          const weights: Record<HorizonLabel, number> = {} as Record<HorizonLabel, number>;
-          availableHorizons.forEach(h => { weights[h] = HORIZON_WEIGHTS[h] ?? 0; });
-
-          await fetchFromSupabase({
-            path: '/rest/v1/horizon_blends?on_conflict=class_id,scope',
-            method: 'POST',
-            headers: { 'Prefer': 'resolution=merge-duplicates' },
-            body: {
-              import_id: importId,
-              class_id: targetClassId,
-              scope: data.scope,
-              available_horizons: availableHorizons,
-              weights,
-            }
-          });
 
           await fetchFromSupabase({ path: `/rest/v1/imports?id=eq.${importId}`, method: 'PATCH', body: { status: 'completed' } });
 
@@ -525,17 +491,16 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
         // BUG-130 (2026-05-12): Old logic treated `data.combos` as a "today's hits"
         // flag list and incremented ds_raw by +1 for every non-matched box row.
         // The CSV's explicit `DrawsSince` column was discarded, so values drifted
-        // hundreds of days off from reality. Fix: this mutation is a no-op for now.
-        // ds_raw is rebuilt directly from histories via `npm run rebuild:datasets`.
-        // The import record (created above) is still useful as an audit trail of
-        // when daily_input CSVs were uploaded, and the CSV file itself is preserved
-        // in case we later redesign this path to use DrawsSince correctly.
+        // hundreds of days off from reality. Fix: this mutation writes NO dataset
+        // data — the engine's ds_raw is rebuilt from histories by the Daily
+        // Workflow button (Step 1), the sole rebuild trigger since REFACTOR-01.
+        // The import record above is the entire product of this mutation: it is
+        // the operator's daily-checklist marker (Dashboard "TODAY'S IMPORTS"
+        // pipeline card reads imports.type='daily_input' per scope) plus audit
+        // trail. IMPORT-REHAB-01 (2026-07-09) made that role explicit in the UI.
         console.log(
-          '[importDaily] CSV received with', data.combos.length, 'combos for scope',
-          data.scope, '— ds_raw updates suppressed (BUG-130).',
-          data.scope === 'evening'
-            ? 'Auto-rebuild will fire from onSuccess.'
-            : 'Manual rebuild via npm run rebuild:datasets, or wait for the evening import to trigger it.',
+          '[importDaily] checklist marker recorded:', data.combos.length, 'combos for scope',
+          data.scope, '— no dataset writes (BUG-130); ds_raw refreshes on the next Daily Workflow run.',
         );
 
         await fetchFromSupabase({ path: `/rest/v1/imports?id=eq.${importId}`, method: 'PATCH', body: { status: 'completed' } });
@@ -678,22 +643,49 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
           });
         }
 
-        // Batch insert in chunks of 50
+        // Dedupe on the histories unique key BEFORE batching — Postgres rejects
+        // an entire INSERT ... ON CONFLICT DO UPDATE statement if the same
+        // conflict key appears twice in one payload, which previously poisoned
+        // the whole 50-row batch (IMPORT-REHAB-01; the wizard and CLI already
+        // deduped, this shared path did not).
+        const seenKeys = new Set<string>();
+        const uniqueEntries = validEntries.filter(e => {
+          const k = `${e.jurisdiction}|${e.game}|${e.date_et}|${e.session}|${e.result_digits}`;
+          if (seenKeys.has(k)) return false;
+          seenKeys.add(k);
+          return true;
+        });
+        const inputDupes = validEntries.length - uniqueEntries.length;
+        if (inputDupes > 0) errors.push(`${inputDupes} duplicate row(s) in pasted input merged before insert`);
+
+        // Batch insert in chunks of 50 with retry/backoff on transient errors
+        // (parity with the box/pair import path — a single 429 no longer
+        // silently drops 50 draw results).
         const BATCH_SIZE = 50;
-        for (let i = 0; i < validEntries.length; i += BATCH_SIZE) {
-          const chunk = validEntries.slice(i, i + BATCH_SIZE);
-          try {
-            await fetchFromSupabase({
-              path: '/rest/v1/histories?on_conflict=jurisdiction,game,date_et,session,result_digits',
-              method: 'POST',
-              headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-              body: chunk
-            });
-            accepted += chunk.length;
-          } catch (insertError) {
-            console.error('[importLedger] Batch insert failed:', insertError);
-            rejected += chunk.length;
-            errors.push(`Batch insert failed: ${String(insertError)}`);
+        for (let i = 0; i < uniqueEntries.length; i += BATCH_SIZE) {
+          const chunk = uniqueEntries.slice(i, i + BATCH_SIZE);
+          let landed = false;
+          for (let attempt = 0; attempt < 3 && !landed; attempt++) {
+            try {
+              if (attempt > 0) await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 500));
+              await fetchFromSupabase({
+                path: '/rest/v1/histories?on_conflict=jurisdiction,game,date_et,session,result_digits',
+                method: 'POST',
+                headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+                body: chunk
+              });
+              landed = true;
+              accepted += chunk.length;
+            } catch (insertError) {
+              const msg = String(insertError instanceof Error ? insertError.message : insertError);
+              const isRetryable = /429|5\d\d|timed out/i.test(msg);
+              console.error(`[importLedger] Batch insert failed (attempt ${attempt + 1}):`, msg);
+              if (!isRetryable || attempt === 2) {
+                rejected += chunk.length;
+                errors.push(`Batch of ${chunk.length} rows FAILED after ${attempt + 1} attempt(s): ${msg.slice(0, 200)}`);
+                break;
+              }
+            }
           }
         }
 
@@ -728,10 +720,15 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
 
         // ── B. Hit detection — MUST be awaited to avoid race condition ──
         // This ensures detectHits only fires after successful 200 OK from DB.
+        // Result is attached to the summary so callers (wizard done-step) can
+        // show the outcome without firing a second detection pass.
         try {
-          await runHitDetectionAndRefresh(importedDates.length > 0 ? importedDates : undefined);
+          const hd = await runHitDetectionAndRefresh(importedDates.length > 0 ? importedDates : undefined);
+          (summary as any).hitDetectionRan = hd.ran;
+          (summary as any).totalHits = hd.totalHits;
         } catch (e) {
           console.log('[importLedger] hit detection error:', e);
+          (summary as any).hitDetectionRan = false;
         }
 
         console.log('[importLedger] Import completed:', { accepted, rejected, total: data.entries.length });
@@ -1058,7 +1055,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
       await del(`/rest/v1/histories?import_id=eq.${id}`);
       msg = 'Deleted ledger result entries.';
     } else if (importType === 'daily_input') {
-      msg = 'Daily input data is embedded in draws_since values and cannot be individually deleted. Re-import box history to reset. Import record removed.';
+      msg = 'Daily input imports are checklist/audit markers only (BUG-130) — no dataset rows exist to delete. Import record removed.';
     } else {
       await del(`/rest/v1/datasets_box?import_id=eq.${id}`);
       await del(`/rest/v1/datasets_pair?import_id=eq.${id}`);

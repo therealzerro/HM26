@@ -82,10 +82,6 @@ function RootLayoutNav() {
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen
-        name="import-wizard"
-        options={{ title: "Import Data", ...modalScreenOptions }}
-      />
-      <Stack.Screen
         name="admin-image-export"
         options={{ title: "Image Export", ...modalScreenOptions }}
       />

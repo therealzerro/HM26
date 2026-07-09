@@ -60,7 +60,7 @@ The HitMaster ZK6 Facebook page was de-recommended by Meta twice in May 2026 (ea
 **Does NOT apply to:**
 - Internal code identifiers — function names, variable names, type names, file names (`hitDetection.ts`, `HitHeroBand.tsx`, `hit_box`, `runHitDetectionAndRefresh` all stay).
 - Comments, audit log strings, `console.*` output, MASTER_AUDIT entries.
-- Admin/operator surfaces — `app/(tabs)/intelligence.tsx`, `app/(tabs)/admin.tsx`, `app/(tabs)/admin-imports.tsx`, `app/import-wizard.tsx`, `app/ledger-import.tsx`, and `components/admin/*`. These are internal tools; subscribers don't see them.
+- Admin/operator surfaces — `app/(tabs)/intelligence.tsx`, `app/(tabs)/admin.tsx`, `app/(tabs)/admin-imports.tsx`, and `components/admin/*`. These are internal tools; subscribers don't see them.
 - The brand name **HitMaster** / **HitMaster ZK6** itself — preserved everywhere as the wordmark.
 
 When editing user-facing strings, do not bulk-rename. Each replacement is per-string and context-sensitive (e.g. "Today's picks" → "Today's signals", but a button labeled "Detect hits" in admin tools stays).
@@ -80,7 +80,7 @@ When editing user-facing strings, do not bulk-rename. Each replacement is per-st
 The core pick-generation engine. Entry point: `computeSlate({ scope, weightsKey, excludeComboSets?, is_supplement? })`.
 
 Data flow:
-1. **Load data** — `loadEngineData(scope)` fetches box history, pair history, and daily input from Supabase across horizons H01Y–H10Y.
+1. **Load data** — `loadEngineData(scope)` fetches box history and pair history from Supabase across horizons H01Y–H10Y (national aggregate slice: `jurisdiction IS NULL`, box `class_id=1`, pair classes 2–11). The "Daily Input" import type does NOT feed the engine — it is an operator checklist/audit marker only (BUG-130); live freshness comes from `histories` via the Daily Workflow rebuild.
 2. **Score universe** — Every 3-digit combo (000–999) receives four normalized signals:
    - **BOX**: historical frequency + over-due pressure. Normalized via **max-norm** (not min-max).
    - **PBURST**: position pair signal. Uses `timesDrawn / maxTimesDrawn` (NOT `dsRaw` — that was bug ENG-05).
@@ -100,16 +100,12 @@ Key invariants:
 
 ### Data Hooks
 - `hooks/useSnapshot.tsx` — fetches and caches slate snapshots per scope.
-- `hooks/useDataIngestion.tsx` — handles all import flows (box history, pair history, daily input, ledger). Also contains an inline `runHitDetectionAndRefresh` used only for ledger imports.
+- `hooks/useDataIngestion.tsx` — the single mutation layer for all import flows (box history, pair history, daily input marker, ledger). Ledger imports from every surface (admin wizard + `npm run import:results` CLI) share `lib/parseLedger.ts` (which normalizes both tab and vertical lottery-post formats) and `importLedgerMutation` (conflict-key dedupe + retry/backoff). See MASTER_AUDIT IMPORT-REHAB-01.
 - `hooks/useAuth.tsx` — role-based access (`free | premium | admin`). Defaults to `free`; admin must be set explicitly via the triple-tap easter egg.
 - `hooks/useScope.tsx` — global scope state (`midday | evening | allday`).
 
 ### Hit Detection
-Two implementations exist (ARCH-05 / NEW-28):
-1. `lib/hitDetection.ts` — used by `admin.tsx` and `import-wizard.tsx`. Uses date-range snapshot queries with per-scope fallback.
-2. Inline in `hooks/useDataIngestion.tsx` — used only by ledger import flow.
-
-Unification is deferred; do not add a third path.
+One implementation: `lib/hitDetection.ts`, a thin client over the `run-hit-detection` edge function (service-role; BUG-145). All call sites — admin screens, ledger imports, the Daily Workflow, and the CLI — go through it. ARCH-05's second (inline) implementation was removed; do not add a parallel path.
 
 ### Supabase REST Pattern
 ```typescript

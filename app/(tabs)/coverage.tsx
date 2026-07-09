@@ -93,8 +93,11 @@ function CoverageScreen() {
           <Text style={styles.sheetTitle}>Details · Class {selected.classId} · {selected.horizon}</Text>
           <Text style={styles.sheetText}>Present: {matrix[selected.classId]?.[selected.horizon]?.present ? 'yes' : 'no'}</Text>
           <Text style={styles.sheetText}>Rows: {matrix[selected.classId]?.[selected.horizon]?.count ?? 0}</Text>
-          {matrix[selected.classId]?.[selected.horizon]?.lastImportId && (
-            <Text style={styles.sheetLink}>import_id: {matrix[selected.classId]?.[selected.horizon]?.lastImportId}</Text>
+          {matrix[selected.classId]?.[selected.horizon]?.lastImportAt && (
+            <Text style={styles.sheetLink}>Last imported: {String(matrix[selected.classId]?.[selected.horizon]?.lastImportAt).slice(0, 16).replace('T', ' ')}</Text>
+          )}
+          {matrix[selected.classId]?.[selected.horizon]?.lastRebuiltAt && (
+            <Text style={styles.sheetLink}>ds_raw rebuilt: {String(matrix[selected.classId]?.[selected.horizon]?.lastRebuiltAt).slice(0, 16).replace('T', ' ')}</Text>
           )}
           <View style={styles.sheetActions}>
             <TouchableOpacity style={styles.btnSecondary} onPress={() => setSelected(null)}>

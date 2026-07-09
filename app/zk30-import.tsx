@@ -4,7 +4,7 @@
 // operator already saves to assets/tx_history.txt), one click imports +
 // rebuilds datasets server-side via the import-tx-raw Edge Function.
 //
-// UX is deliberately leaner than app/import-wizard.tsx — the edge fn does
+// UX is deliberately leaner than the admin Import Wizard — the edge fn does
 // parsing, idempotent insert, and aggregate-rebuild in one round-trip, so
 // the screen is just: textarea → button → result panel.
 

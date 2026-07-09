@@ -207,16 +207,49 @@ function makeComboSet(digits: string): string {
   return `{${digits.split('').sort().join(',')}}`;
 }
 
+// ─── Vertical-format normalization ────────────────────────────────────────────
+// Some lottery-post exports emit each record as three lines (Game / Date /
+// Result) under a state header instead of one tab-separated line. The parser
+// treats any no-tab line as a state header, so those files parse to zero rows.
+// Fold Game+Date+Result triples into the tab format the parser expects; lines
+// already tab-separated (and state headers) pass through untouched.
+// Lifted from scripts/imports/import-results.ts (IMPORT-REHAB-01) so every
+// ledger path — app screens and CLI — accepts both export shapes.
+
+const DATE_LINE = /^(?:(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),\s+)?[A-Za-z]{3}\s+\d{1,2},?\s+\d{4}$/;
+const RESULT_LINE = /\d\s*-\s*\d\s*-\s*\d/;
+
+export function normalizeVerticalFormat(text: string): string {
+  const lines = text.split(/\r?\n/);
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const cur = lines[i].trim();
+    const next = (lines[i + 1] ?? '').trim();
+    const after = (lines[i + 2] ?? '').trim();
+    if (cur && !cur.includes('\t') && DATE_LINE.test(next) && RESULT_LINE.test(after)) {
+      out.push(`${cur}\t${next}\t${after}`);
+      i += 2;
+    } else {
+      out.push(lines[i]);
+    }
+  }
+  return out.join('\n');
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
-export function parseRawLedgerData(text: string): ParseLedgerResult {
+export function parseRawLedgerData(rawText: string): ParseLedgerResult {
   const rows: ParsedLedgerRow[] = [];
   const skipped: string[] = [];
 
   try {
-    if (!text || !text.trim()) return { rows, skipped };
+    if (!rawText || !rawText.trim()) return { rows, skipped };
 
-    // Corrected regex for splitting lines: handles 
+    // Accept both the tab-separated and vertical (Game/Date/Result triple-line)
+    // lottery-post export shapes — normalization is a no-op on tab input.
+    const text = normalizeVerticalFormat(rawText);
+
+    // Corrected regex for splitting lines: handles
     const lines = text.split(/\r?\n/);
     let currentAbbr: string | null = null;
     let currentStateFullName: string | null = null; // To store the full name for better context in 'jurisdiction'

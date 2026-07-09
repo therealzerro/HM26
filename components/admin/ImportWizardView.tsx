@@ -5,7 +5,6 @@ import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { parseRawLedgerData } from '@/lib/parseLedger';
 import { getTodayET } from '@/lib/dateUtils';
-import { runHitDetectionForDates } from '@/lib/hitDetection';
 import { Pill, SectionTitle, Card, useSt, HORIZONS, useImportTypes, PAIR_CLASSES, ImportRecord } from './AdminShared';
 
 // ─── Box History helpers ──────────────────────────────────────────────────────
@@ -446,88 +445,60 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
           rows: parsedData.rows ?? [],
         });
       } else if (importType === 'ledger') {
-        const rawEntries: any[] = parsedData.entries ?? [];
-        // No session coercion: preserve morning/night as their own sessions
-        // so they don't collide with midday/evening on the unique key. The
-        // engine ignores morning/night for scoring + hit detection (post
-        // BUG-134) so leaving them distinct is safe and preserves data.
-        // Deduplicate within the full set before batching — Postgres throws if
-        // the same conflict key appears twice in one ON CONFLICT DO UPDATE statement.
-        const seenKeys = new Set<string>();
-        const entries = rawEntries.filter((r: any) => {
-          const k = `${r.jurisdiction}|${r.game}|${r.date_et}|${r.session}|${r.result_digits}`;
-          if (seenKeys.has(k)) return false;
-          seenKeys.add(k);
-          return true;
-        });
-        const BATCH = 50;
-        let totalAccepted = 0;
-        let lastError = '';
-        for (let bi = 0; bi < entries.length; bi += BATCH) {
-          const chunk = entries.slice(bi, bi + BATCH);
-          try {
-            await fetchFromSupabase({
-              path: '/rest/v1/histories?on_conflict=jurisdiction,game,date_et,session,result_digits',
-              method: 'POST',
-              headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-              body: chunk,
-            });
-            totalAccepted += chunk.length;
-          } catch (e) {
-            lastError = e instanceof Error ? e.message : String(e);
-          }
-        }
+        // IMPORT-REHAB-01 (2026-07-09): the wizard's parallel direct-write path
+        // is gone — ledger commits delegate to useDataIngestion.importLedger,
+        // the single write path shared with the CLI importer. That path owns
+        // validation, conflict-key dedupe, retry/backoff batching, the imports
+        // record + audit log, and hit detection (BUG-149's trigger included).
+        const entries: any[] = parsedData.entries ?? [];
+        const hookSummary = await importLedger({ scope: config.scope, entries });
+
+        // Display-layer report (CLI parity): per-date/session counts, date
+        // range, in-range gap detection, date-mismatch check.
         const states = [...new Set(entries.map((r: any) => r.jurisdiction))];
         const dates = [...new Set(entries.map((r: any) => r.date_et))].sort() as string[];
         const dateRange = dates.length > 0
           ? (dates[0] + (dates.length > 1 ? ' – ' + dates[dates.length - 1] : ''))
           : '';
-        // Warn if parsed dates don't include the expected import date
+        const byDateSession = new Map<string, number>();
+        entries.forEach((r: any) => {
+          const k = `${r.date_et} ${r.session}`;
+          byDateSession.set(k, (byDateSession.get(k) ?? 0) + 1);
+        });
+        const dateReport = [...byDateSession.keys()].sort().map(k => `${k}: ${byDateSession.get(k)} rows`);
+        // A missing day inside the parsed range usually means the source text
+        // didn't copy fully — same check the CLI dry-run performs.
+        const gapWarnings: string[] = [];
+        if (dates.length > 1) {
+          const missing: string[] = [];
+          const t = new Date(`${dates[0]}T12:00:00Z`);
+          for (;;) {
+            t.setUTCDate(t.getUTCDate() + 1);
+            const iso = t.toISOString().slice(0, 10);
+            if (iso >= dates[dates.length - 1]) break;
+            if (!dates.includes(iso)) missing.push(iso);
+          }
+          if (missing.length > 0) gapWarnings.push(`⚠️ Days missing inside pasted range: ${missing.join(', ')} — source may not have copied fully`);
+        }
         const dateMismatchWarnings: string[] = [];
         if (config.import_date && dates.length > 0 && !dates.includes(config.import_date)) {
-          dateMismatchWarnings.push(`⚠️ Date mismatch: selected ${config.import_date} but parsed dates are ${dates.join(', ')}`);
+          dateMismatchWarnings.push(`⚠️ Date mismatch: selected ${config.import_date} but parsed dates are ${dateRange}`);
         }
-        // Log import with date/scope in file_meta
-        await fetchFromSupabase({
-          path: '/rest/v1/imports',
-          method: 'POST',
-          headers: { Prefer: 'return=minimal' },
-          body: {
-            type: 'ledger',
-            scope: config.scope,
-            counts: totalAccepted,
-            status: totalAccepted === 0 && entries.length > 0 ? 'failed' : 'completed',
-            error_text: totalAccepted === 0 && entries.length > 0 ? (lastError || 'all batches failed') : null,
-            file_meta: { import_date: config.import_date, scope: config.scope, dateRange, states: states.length },
-          },
-        }).catch(() => {/* non-fatal */});
-        // BUG-149 (2026-05-18): wire hit detection into the wizard's ledger path.
-        // useDataIngestion's importLedger does this automatically, but the wizard
-        // path had no trigger — every wizard ledger import left daily_intelligence
-        // hit_box/hit_straight at zero until the next pull-to-refresh somewhere
-        // else fired it. Run for the dates we just inserted, non-fatal on failure.
         const hitDetectionWarnings: string[] = [];
-        if (totalAccepted > 0 && dates.length > 0) {
-          try {
-            const hd = await runHitDetectionForDates(dates);
-            if (hd.ran && hd.totalHits > 0) {
-              hitDetectionWarnings.push(`✓ Hit detection: ${hd.totalHits} hit${hd.totalHits === 1 ? '' : 's'} found across ${dates.length} date${dates.length === 1 ? '' : 's'}`);
-            } else if (hd.ran) {
-              hitDetectionWarnings.push(`✓ Hit detection ran — 0 hits matched`);
-            } else {
-              hitDetectionWarnings.push(`⚠️ Hit detection failed to run — trigger manually from Home pull-to-refresh`);
-            }
-          } catch (e) {
-            hitDetectionWarnings.push(`⚠️ Hit detection error: ${String(e instanceof Error ? e.message : e)}`);
-          }
+        if (hookSummary.hitDetectionRan) {
+          hitDetectionWarnings.push(`✓ Hit detection: ${hookSummary.totalHits ?? 0} match${(hookSummary.totalHits ?? 0) === 1 ? '' : 'es'} across ${dates.length} date${dates.length === 1 ? '' : 's'}`);
+        } else {
+          hitDetectionWarnings.push(`⚠️ Hit detection did not run — trigger manually from Home pull-to-refresh`);
         }
         summary = {
-          id: 'ledger_' + Date.now(),
-          type: 'ledger',
-          accepted: totalAccepted,
-          rejected: entries.length - totalAccepted,
-          fixed: 0,
-          warnings: [...(lastError ? [lastError] : []), ...dateMismatchWarnings, ...hitDetectionWarnings],
+          ...hookSummary,
+          warnings: [
+            ...(hookSummary.warnings ?? []),
+            ...dateMismatchWarnings,
+            ...gapWarnings,
+            ...hitDetectionWarnings,
+            ...dateReport,
+          ],
           states: states.length,
           dateRange,
         };
@@ -787,23 +758,23 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
             </View>
             {result.warnings?.length > 0 && (
               <Card style={{ padding: 12, marginBottom: 10, backgroundColor: colors.goldLight, borderColor: colors.gold + '44' }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: colors.gold, marginBottom: 4 }}>⚠️ Warnings</Text>
-                {result.warnings.slice(0, 5).map((w: string, i: number) => <Text key={i} style={{ fontSize: 11, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>{w}</Text>)}
+                <Text style={{ fontSize: 11, fontWeight: '700', color: colors.gold, marginBottom: 4 }}>📋 Import Report</Text>
+                {result.warnings.slice(0, 14).map((w: string, i: number) => <Text key={i} style={{ fontSize: 11, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>{w}</Text>)}
               </Card>
             )}
             <Card style={{ padding: 14, marginBottom: 14, backgroundColor: colors.successLight, borderColor: colors.success + '33' }}>
               <Text style={{ fontSize: 12, fontWeight: '700', color: colors.success, marginBottom: 6 }}>✓ Supabase write confirmed</Text>
               {(importType === 'box_history' || importType === 'pair_history') ? (
                 <Text style={{ fontSize: 11, color: colors.textSecondary, lineHeight: 18 }}>
-                  P99 cap computed · Percentile map saved · Horizon blend updated{result.p99_cap ? ` · P99 cap: ${result.p99_cap}` : ''}{result.first_seen ? `\nFirst seen: ${result.first_seen} · Last seen: ${result.last_seen}` : ''}
+                  Canonical keys enforced · contamination tripwire passed{result.p99_cap ? ` · P99 cap: ${result.p99_cap}` : ''}{result.first_seen ? `\nFirst seen: ${result.first_seen} · Last seen: ${result.last_seen}` : ''}{'\n'}ds_raw refreshes on the next Daily Workflow run (Step 1)
                 </Text>
               ) : importType === 'ledger' ? (
                 <Text style={{ fontSize: 11, color: colors.textSecondary, lineHeight: 18 }}>
-                  {result.accepted} draw results inserted into histories · ON CONFLICT DO NOTHING applied for duplicates
+                  {result.accepted} draw results upserted into histories (duplicates merged on the unique key){result.dateRange ? `\nDates: ${result.dateRange} · ${result.states} state${result.states === 1 ? '' : 's'}` : ''}
                 </Text>
               ) : (
-                <Text style={{ fontSize: 11, color: colors.textSecondary }}>
-                  Daily input logged for scope: {config.scope}
+                <Text style={{ fontSize: 11, color: colors.textSecondary, lineHeight: 18 }}>
+                  Checklist marker recorded for {config.scope} — shows ✅ on the Dashboard pipeline card.{'\n'}No engine data is written by this import type (BUG-130); the engine reads histories + datasets, refreshed by the Daily Workflow.
                 </Text>
               )}
             </Card>

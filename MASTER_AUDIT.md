@@ -248,6 +248,15 @@ Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`
 
 **Conclusion:** Not an engine bug. The shared slate is correctly surfacing high-value repeat-hitters; forcing them off degrades allday. The operator's real need ("don't show ME combos I've already closed") is a **personal closed-position filter**, best served by the existing `excludeComboSets` engine param — zero hit-rate cost to the product. Pending operator decision on direction. No production code changed; harness presets only. **(Superseded 2026-06-20 — see ENG-BLOCK-PERSCOPE-01 at top of this section: reframed as a regression, midday-only block shipped, operator declined the personal filter.)**
 
+### SOCIAL-05 — Group-lane UX: destination picker, new-tab fix, richer brief (2026-07-09)
+
+Operator feedback while examining the free-group flow. Three fixes:
+- **"Open Facebook" opened nothing / same tab.** expo-linking `openURL` navigates the current tab (or no-ops) on web. New `openInNewTab()` uses `window.open('_blank')` on web, Linking native. The button now reliably spawns a new tab.
+- **No way to see/choose the posting path.** Added an editable POSTING DESTINATION field to every assisted lane (free/pro/cross), pre-filled from the surface's configured group URL (`app_config.social_*_url`), operator-overridable; cross-post defaults blank to paste the external target. The open button is now labeled with the specific destination ("Open Free Group ↗ / Open Pro Group ↗ / Open Destination Group ↗") and disabled until a URL is present, with an inline warning when the group URL isn't configured.
+- **Group brief needed better design + detail.** Redesigned `SocialBriefCard` group variant: header badge (⚡MEMBERS / 💎PRO), yesterday scorecard now renders per-session outcome WITH the matching combos as chips (STRAIGHT/BOX MATCH vocab §4a), today's plays as per-session cards with bold straight-order + box set + SGL/DBL multiplicity badge. New `groupTier` prop frames Free (Pro CTA footer) vs Pro (first-access, no pricing §6). Public variant unchanged.
+
+tsc/eslint delta 0.
+
 ### BUG-ALERT-WEB-01 — Alert.alert confirmations are no-ops on React Native Web (2026-07-09)
 
 **Symptom:** operator pressed "Publish Image + Caption" (and would have hit the same on every admin delete/clear/restore) → nothing happened, nothing posted.

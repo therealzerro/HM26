@@ -67,6 +67,19 @@ function mdLabel(iso: string): string {
   return `${parseInt(m, 10)}/${parseInt(d, 10)}`;
 }
 
+/**
+ * Open a URL in a real new browser tab on web. expo-linking's openURL
+ * navigates the CURRENT tab on web (or no-ops) — window.open('_blank') is the
+ * only reliable way to spawn a new tab so the operator keeps the app open.
+ */
+function openInNewTab(url: string): void {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.open === 'function') {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  } else {
+    Linking.openURL(url);
+  }
+}
+
 /** Tomorrow 08:15 ET — inside Meta's 10min-30d scheduling window. */
 function tomorrowMorningEtIso(): string {
   const d = new Date(`${getTodayET()}T08:15:00-04:00`);
@@ -129,11 +142,14 @@ function PublishInner() {
   // brief stage
   const briefRef = useRef<View | null>(null);
   const [briefData, setBriefData] = useState<SocialBriefData | null>(null);
-  const [briefRender, setBriefRender] = useState<{ variant: 'public' | 'group'; showProFooter: boolean } | null>(null);
+  const [briefRender, setBriefRender] = useState<{ variant: 'public' | 'group'; groupTier?: 'free' | 'pro' } | null>(null);
 
   // Two-Question filter (page photo posts)
   const [q1No, setQ1No] = useState(false);
   const [q2No, setQ2No] = useState(false);
+
+  // Group lane: the Facebook destination to open (editable — choose the path).
+  const [destUrl, setDestUrl] = useState('');
 
   const tier = surface ? SURFACE_TIER[surface] : 1;
   const lint: LintResult = useMemo(() => lintCaption(caption, tier), [caption, tier]);
@@ -301,7 +317,7 @@ function PublishInner() {
     const data = briefData ?? await buildSocialBrief();
     setBriefData(data);
     // §6: Pro footer only on the FREE variant; PRO surface gets no commercial framing.
-    setBriefRender({ variant: briefVariant, showProFooter: briefVariant === 'group' && surface === 'free' });
+    setBriefRender({ variant: briefVariant, groupTier: briefVariant === 'group' ? (surface === 'pro' ? 'pro' : 'free') : undefined });
     setImgProgress('Rendering brief card…');
     await raf(); await waitFonts(); await raf();
     const node = getStageNode(briefRef as any);
@@ -416,10 +432,21 @@ function PublishInner() {
     setResultMsg('📋 Caption copied — paste it inside Facebook.');
   }, [caption]);
 
-  const openFacebook = useCallback(() => {
-    const url = surface === 'pro' ? (urls.pro || urls.free) : surface === 'free' ? urls.free : undefined;
-    Linking.openURL(url || 'https://www.facebook.com/groups/');
+  // Default the destination to the configured group for the chosen surface.
+  // Free → free group; Pro → pro group; Cross → blank (operator pastes the
+  // external group they're cross-posting into). Operator can override any.
+  useEffect(() => {
+    if (!surface || surface === 'public') return;
+    if (surface === 'free') setDestUrl(urls.free ?? '');
+    else if (surface === 'pro') setDestUrl(urls.pro ?? urls.free ?? '');
+    else if (surface === 'cross') setDestUrl('');
   }, [surface, urls]);
+
+  const openFacebook = useCallback(() => {
+    const url = destUrl?.trim() || (surface === 'pro' ? urls.pro : urls.free) || 'https://www.facebook.com/groups/';
+    openInNewTab(url);
+    setResultMsg('↗ Facebook opened in a new tab — attach the saved image(s) and paste the caption.');
+  }, [destUrl, surface, urls]);
 
   const markHandedOff = useCallback(async () => {
     if (!surface || !content) return;
@@ -696,20 +723,41 @@ function PublishInner() {
           ) : (
             <Card style={{ padding: 12, marginBottom: 10 }}>
               <Text style={{ fontSize: 10, color: colors.textSecondary, lineHeight: 15, marginBottom: 10 }}>
-                Groups have no publish API (Meta removed it 4/2024). Build the images above, copy the caption, open Facebook, attach + paste, then log it. Clipboard-paste is the sanctioned pattern — Meta prohibits prefilled captions.
+                Groups have no publish API (Meta removed it 4/2024). Build the images above, copy the caption, open the destination, attach + paste, then log it. Clipboard-paste is the sanctioned pattern — Meta prohibits prefilled captions.
               </Text>
+
+              {/* Posting destination — choose/confirm the path */}
+              <Text style={st.fieldLabel}>
+                {surface === 'cross' ? 'POSTING DESTINATION — paste the target group URL' : `POSTING DESTINATION — ${SURFACE_LABELS[surface].label}`}
+              </Text>
+              <TextInput
+                style={[st.csvInput, { minHeight: 40, marginBottom: 6, fontSize: 11 }]}
+                value={destUrl}
+                onChangeText={setDestUrl}
+                placeholder={surface === 'cross' ? 'https://www.facebook.com/groups/…' : '(configure via app_config.social_*_url, or paste here)'}
+                placeholderTextColor={colors.textTertiary}
+                autoCapitalize="none"
+              />
+              {!destUrl.trim() && surface !== 'cross' && (
+                <Text style={{ fontSize: 9, color: colors.orange, marginBottom: 8 }}>
+                  ⚠️ No {surface} group URL configured — paste one above, or set app_config.{surface === 'pro' ? 'social_pro_url' : 'social_free_group_url'}.
+                </Text>
+              )}
               {surface === 'cross' && (
                 <>
                   <Text style={st.fieldLabel}>DESTINATION GROUP NAME (for the log)</Text>
-                  <TextInput style={[st.csvInput, { minHeight: 40, marginBottom: 10 }]} value={targetName} onChangeText={setTargetName} />
+                  <TextInput style={[st.csvInput, { minHeight: 40, marginBottom: 10 }]} value={targetName} onChangeText={setTargetName} placeholderTextColor={colors.textTertiary} />
                 </>
               )}
-              <View style={{ gap: 8 }}>
+
+              <View style={{ gap: 8, marginTop: 4 }}>
                 <TouchableOpacity style={st.btnPrimary} onPress={copyCaption}>
                   <Text style={st.btnPrimaryText}>1️⃣ Copy Caption</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={st.btnGhost} onPress={openFacebook}>
-                  <Text style={st.btnGhostText}>2️⃣ Open Facebook {Platform.OS === 'web' ? '(new tab)' : ''}</Text>
+                <TouchableOpacity style={[st.btnPrimary, { opacity: destUrl.trim() ? 1 : 0.6 }]} disabled={!destUrl.trim()} onPress={openFacebook}>
+                  <Text style={st.btnPrimaryText}>
+                    2️⃣ Open {surface === 'cross' ? 'Destination Group' : SURFACE_LABELS[surface].label} ↗{Platform.OS === 'web' ? ' new tab' : ''}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[st.btnGhost, { opacity: busy ? 0.5 : 1 }]} disabled={busy} onPress={markHandedOff}>
                   <Text style={st.btnGhostText}>3️⃣ Mark Posted (log + duplicate check)</Text>
@@ -767,7 +815,7 @@ function PublishInner() {
       /* translate (not extreme offset) keeps the node painted — extreme offsets
          get paint-culled and the capture comes back blank */
       <View style={{ position: 'absolute', top: 0, left: 0, transform: [{ translateX: 5000 }] as any, pointerEvents: 'none' }} collapsable={false}>
-        <SocialBriefCard ref={briefRef} data={briefData} variant={briefRender.variant} showProFooter={briefRender.showProFooter} />
+        <SocialBriefCard ref={briefRef} data={briefData} variant={briefRender.variant} groupTier={briefRender.groupTier} />
       </View>
     )}
     </View>

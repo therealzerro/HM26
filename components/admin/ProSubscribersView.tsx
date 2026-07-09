@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { alertAsync } from '@/lib/confirm';
 import { useTheme } from '@/lib/theme';
 import { Card, Pill, SectionTitle, useSt, timeAgo } from './AdminShared';
 import { AdminKeyGate } from './AdminKeyGate';
@@ -181,7 +182,7 @@ function AddManualForm({ onAdded }: { onAdded: () => void }) {
       setEmail('');
       onAdded();
     } catch (e) {
-      Alert.alert('Add failed', e instanceof Error ? e.message : String(e));
+      alertAsync('Add failed', e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -279,7 +280,7 @@ function ProSubscribersInner() {
       await subscriberAdmin.updateSubscriber({ id, ...patch } as any);
       setRows(prev => prev.map(r => r.id === id ? { ...r, ...patch } as ProSubscriber : r));
     } catch (e) {
-      Alert.alert('Update failed', e instanceof Error ? e.message : String(e));
+      alertAsync('Update failed', e instanceof Error ? e.message : String(e));
     }
   }, []);
 

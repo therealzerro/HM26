@@ -17,7 +17,8 @@
  */
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
+import { alertAsync } from '@/lib/confirm';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
@@ -171,14 +172,14 @@ export default function ProposalReviewView() {
         approvedBy: operatorId,
         acknowledgeRevert: true,
       });
-      Alert.alert(
+      alertAsync(
         'Applied',
         `${result.configKeysUpdated.length} app_config key${result.configKeysUpdated.length === 1 ? '' : 's'} updated. Press Regenerate to use the new weights.`,
       );
       closeModal();
       qc.invalidateQueries({ queryKey: Q_KEY });
     } catch (e) {
-      Alert.alert('Apply failed', String(e instanceof Error ? e.message : e));
+      alertAsync('Apply failed', String(e instanceof Error ? e.message : e));
     } finally {
       setBusy(false);
     }
@@ -196,7 +197,7 @@ export default function ProposalReviewView() {
       closeModal();
       qc.invalidateQueries({ queryKey: Q_KEY });
     } catch (e) {
-      Alert.alert('Dismiss failed', String(e instanceof Error ? e.message : e));
+      alertAsync('Dismiss failed', String(e instanceof Error ? e.message : e));
     } finally {
       setBusy(false);
     }
@@ -212,14 +213,14 @@ export default function ProposalReviewView() {
         revertedBy: operatorId,
         reason: reason || undefined,
       });
-      Alert.alert(
+      alertAsync(
         'Reverted',
         `${result.configKeysRestored.length} app_config key${result.configKeysRestored.length === 1 ? '' : 's'} restored. Press Regenerate to use the restored weights.`,
       );
       closeModal();
       qc.invalidateQueries({ queryKey: Q_KEY });
     } catch (e) {
-      Alert.alert('Revert failed', String(e instanceof Error ? e.message : e));
+      alertAsync('Revert failed', String(e instanceof Error ? e.message : e));
     } finally {
       setBusy(false);
     }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { alertAsync } from '@/lib/confirm';
 import { useTheme } from '@/lib/theme';
 import { Card, SectionTitle, useSt } from './AdminShared';
 import { AdminKeyGate } from './AdminKeyGate';
@@ -60,7 +61,7 @@ function SnapshotForm({ onSaved, latestActive }: { onSaved: () => void; latestAc
       setNotes('');
       onSaved();
     } catch (e) {
-      Alert.alert('Save failed', e instanceof Error ? e.message : String(e));
+      alertAsync('Save failed', e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }

@@ -1,7 +1,8 @@
 import { withAdminGate } from '@/components/RequireAdmin';
 import React, { useMemo, useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { confirmAsync, alertAsync } from '@/lib/confirm';
 import { useDataIngestion } from '@/hooks/useDataIngestion';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { theme } from '@/constants/theme';
@@ -48,7 +49,7 @@ function AdminImportsScreen() {
     try {
       await softDeleteImport(id);
     } catch (e) {
-      Alert.alert('Soft Delete Failed', String(e instanceof Error ? e.message : e));
+      alertAsync('Soft Delete Failed', String(e instanceof Error ? e.message : e));
     } finally {
       setWorkingId(null);
     }
@@ -134,24 +135,17 @@ function AdminImportsScreen() {
 
           await del('/rest/v1/imports?id=eq.' + imp.id);
 
-          Alert.alert('Success', 'Import deleted.');
+          alertAsync('Success', 'Import deleted.');
           loadImports();
         } catch(err) {
-          Alert.alert('Delete Error', String(err));
+          alertAsync('Delete Error', String(err));
         }
       };
 
       run();
     };
 
-    Alert.alert(
-      'Delete Import',
-      'Permanently delete this import and its data?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: confirmDelete }
-      ]
-    );
+    confirmAsync('Delete Import', 'Permanently delete this import and its data?', { confirmLabel: 'Delete', destructive: true }).then(ok => { if (ok) confirmDelete(); });
   };
 
   return (

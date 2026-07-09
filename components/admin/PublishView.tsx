@@ -22,7 +22,7 @@
  */
 
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert, Platform, Image as RNImage } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform, Image as RNImage } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
 import { useTheme } from '@/lib/theme';
@@ -51,6 +51,7 @@ import type { PickItem } from '@/components/PickCard';
 import { PublishStage } from '@/components/social/PublishStage';
 import { SocialBriefCard } from '@/components/social/SocialBriefCard';
 import { AdminKeyMissingError } from '@/lib/subscriberAdminClient';
+import { confirmAsync } from '@/lib/confirm';
 import { AdminKeyGate } from './AdminKeyGate';
 import { Pill, SectionTitle, Card, useSt, timeAgo } from './AdminShared';
 
@@ -64,23 +65,6 @@ interface ImageItem { label: string; filename: string; dataUrl: string }
 function mdLabel(iso: string): string {
   const [, m, d] = iso.split('-');
   return `${parseInt(m, 10)}/${parseInt(d, 10)}`;
-}
-
-/**
- * Web-safe confirm. Alert.alert's multi-button dialog is a no-op on React
- * Native Web (Expo web) — the onPress never fires, so anything gated behind it
- * silently does nothing. window.confirm works on web; Alert.alert works native.
- */
-function confirmAction(title: string, message: string): Promise<boolean> {
-  if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.confirm === 'function') {
-    return Promise.resolve(window.confirm(`${title}\n\n${message}`));
-  }
-  return new Promise((resolve) => {
-    Alert.alert(title, message, [
-      { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-      { text: 'OK', onPress: () => resolve(true) },
-    ]);
-  });
 }
 
 /** Tomorrow 08:15 ET — inside Meta's 10min-30d scheduling window. */
@@ -399,7 +383,7 @@ function PublishInner() {
     if (withImage && (!q1No || !q2No)) { setResultMsg('❌ Answer both Two-Question checkboxes (must be NO) before publishing an image.'); return; }
 
     const what = withImage ? `${withImage.label} + caption` : 'text-only post';
-    const ok = await confirmAction(
+    const ok = await confirmAsync(
       `${scheduledFor ? 'Schedule' : 'Publish'} ${what}${scheduledFor ? ' for tomorrow 8:15 AM ET' : ' NOW'}?`,
       'Via the Page API. The publish log records it.',
     );

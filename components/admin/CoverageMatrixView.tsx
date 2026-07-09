@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput } from 'react-native';
+import { alertAsync } from '@/lib/confirm';
 import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
@@ -97,13 +98,13 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
         .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
         .map(r => String(r.reason instanceof Error ? r.reason.message : r.reason));
       if (errors.length > 0) {
-        Alert.alert('Clear Partially Failed', errors.slice(0, 3).join('\n'));
+        alertAsync('Clear Partially Failed', errors.slice(0, 3).join('\n'));
       } else {
-        Alert.alert('Cleared', `Coverage data for ${clearModal.label} has been removed.`);
+        alertAsync('Cleared', `Coverage data for ${clearModal.label} has been removed.`);
       }
       await loadBoxPairData();
     } catch (e) {
-      Alert.alert('Clear Failed', String(e instanceof Error ? e.message : e));
+      alertAsync('Clear Failed', String(e instanceof Error ? e.message : e));
     } finally {
       setClearingScope(null);
     }

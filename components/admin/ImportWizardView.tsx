@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Modal, ActivityIndicator } from 'react-native';
+import { alertAsync } from '@/lib/confirm';
 import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
@@ -294,7 +295,7 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
         setStep(3);
       } catch (e) {
         setValidating(false);
-        Alert.alert('Parse Error', String(e instanceof Error ? e.message : e));
+        alertAsync('Parse Error', String(e instanceof Error ? e.message : e));
       }
     }, 80);
   }, [csvText, generateSample, importType]);
@@ -484,7 +485,7 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
       setImporting(false);
       const msg = String(e instanceof Error ? e.message : e);
       setCommitError(msg);
-      Alert.alert('Import Failed', msg);
+      alertAsync('Import Failed', msg);
     }
   }, [importType, config, parsedData, parsed, importHistory, importLedger, regenerateSlate]);
 

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { alertAsync } from '@/lib/confirm';
 import { useTheme } from '@/lib/theme';
 import { Card, Pill, SectionTitle, useSt, timeAgo } from './AdminShared';
 import { AdminKeyGate } from './AdminKeyGate';
@@ -25,7 +26,7 @@ function SubscriberPasteTab({ onCommitted }: { onCommitted: () => void }) {
       const churns = await subscriberAdmin.findPotentialChurns(parsed.subscribers.map(s => s.email));
       setPotentialChurns(churns);
     } catch (e) {
-      Alert.alert('Probe failed', e instanceof Error ? e.message : String(e));
+      alertAsync('Probe failed', e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -48,7 +49,7 @@ function SubscriberPasteTab({ onCommitted }: { onCommitted: () => void }) {
         warnings: parsed.warnings,
         errors: parsed.errors,
       });
-      Alert.alert(
+      alertAsync(
         'Import complete',
         `${res.created} new, ${res.updated} updated, ${res.skipped} skipped.` +
           (potentialChurns.length ? `\n\n${potentialChurns.length} active subs not in this import (potential churns — review manually).` : ''),
@@ -57,7 +58,7 @@ function SubscriberPasteTab({ onCommitted }: { onCommitted: () => void }) {
       setPotentialChurns([]);
       onCommitted();
     } catch (e) {
-      Alert.alert('Import failed', e instanceof Error ? e.message : String(e));
+      alertAsync('Import failed', e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -175,11 +176,11 @@ function InsightsPasteTab({ onCommitted }: { onCommitted: () => void }) {
         warnings: parsed.warnings,
         errors: parsed.errors,
       });
-      Alert.alert('Import complete', `${res.created} new contributors, ${res.updated} updated, ${res.snapshots_added} engagement snapshots added.`);
+      alertAsync('Import complete', `${res.created} new contributors, ${res.updated} updated, ${res.snapshots_added} engagement snapshots added.`);
       setRaw('');
       onCommitted();
     } catch (e) {
-      Alert.alert('Import failed', e instanceof Error ? e.message : String(e));
+      alertAsync('Import failed', e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }

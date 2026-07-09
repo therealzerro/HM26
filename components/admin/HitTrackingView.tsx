@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Share } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Share } from 'react-native';
+import { confirmAsync, alertAsync } from '@/lib/confirm';
 import { useRouter } from 'expo-router';
 import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
@@ -130,10 +131,10 @@ function PerformanceRow({
           method: 'PATCH',
           body: { deleted_at: new Date().toISOString() },
         });
-        Alert.alert('Deleted', 'Slate removed.');
+        alertAsync('Deleted', 'Slate removed.');
         onDeleted?.();
       } catch (e) {
-        Alert.alert('Failed', String(e));
+        alertAsync('Failed', String(e));
       } finally {
         setDeleting(false);
       }
@@ -158,18 +159,13 @@ function PerformanceRow({
       }
 
       if (!snapshotId) {
-        Alert.alert('Not Found', 'No snapshot found for this date and scope. It may have already been deleted.');
+        alertAsync('Not Found', 'No snapshot found for this date and scope. It may have already been deleted.');
         return;
       }
 
-      Alert.alert(
-        'Soft-delete slate?',
-        'Hides this slate from views. Recoverable from "Recently deleted" panel for 30 days.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Soft-delete', style: 'destructive', onPress: () => softDeleteById(snapshotId!) },
-        ]
-      );
+      if (await confirmAsync('Soft-delete slate?', 'Hides this slate from views. Recoverable from "Recently deleted" panel for 30 days.', { confirmLabel: 'Soft-delete', destructive: true })) {
+        softDeleteById(snapshotId!);
+      }
     };
 
     doDelete();
@@ -769,7 +765,7 @@ export default function HitTrackingView() {
         path: `/rest/v1/slate_snapshots?deleted_at=is.null&select=id,scope,mode,slate_date,updated_at_et,top_k_straights_json&order=updated_at_et.desc&limit=500`,
       });
       if (!Array.isArray(snaps) || snaps.length === 0) {
-        Alert.alert('No Duplicates', 'No snapshots found.'); return;
+        alertAsync('No Duplicates', 'No snapshots found.'); return;
       }
       // Phase 2 (B4 fix): keep 1 most recent per (slate_date, scope, mode).
       // Duplicates are bugs left over from race conditions in older regen
@@ -803,40 +799,28 @@ export default function HitTrackingView() {
         toDelete.push(...ranked.slice(1).map((s: any) => s.id));
       }
       if (toDelete.length === 0) {
-        Alert.alert('No Duplicates', 'No duplicate active snapshots found.'); return;
+        alertAsync('No Duplicates', 'No duplicate active snapshots found.'); return;
       }
-      Alert.alert(
-        'Soft-delete duplicates?',
-        `Found ${toDelete.length} duplicate snapshot(s). Keep 1 most recent per scope/mode/date (the one with hits, if any).`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Remove', style: 'destructive', onPress: async () => {
-            let deleted = 0;
-            let failed = 0;
-            for (const id of toDelete) {
-              try {
-                await fetchFromSupabase({
-                  path: `/rest/v1/slate_snapshots?id=eq.${id}`,
-                  method: 'PATCH',
-                  body: { deleted_at: new Date().toISOString() },
-                });
-                deleted++;
-              } catch {
-                failed++;
-              }
-            }
-            Alert.alert(
-              'Done',
-              failed > 0
-                ? `Removed ${deleted} snapshot(s). ${failed} failed — check RLS permissions.`
-                : `Removed ${deleted} duplicate snapshot(s).`
-            );
-            load();
-          }},
-        ]
-      );
+      if (await confirmAsync('Soft-delete duplicates?', `Found ${toDelete.length} duplicate snapshot(s). Keep 1 most recent per scope/mode/date (the one with hits, if any).`, { confirmLabel: 'Remove', destructive: true })) {
+        let deleted = 0;
+        let failed = 0;
+        for (const id of toDelete) {
+          try {
+            await fetchFromSupabase({
+              path: `/rest/v1/slate_snapshots?id=eq.${id}`,
+              method: 'PATCH',
+              body: { deleted_at: new Date().toISOString() },
+            });
+            deleted++;
+          } catch {
+            failed++;
+          }
+        }
+        alertAsync('Done', failed > 0 ? `Removed ${deleted} snapshot(s). ${failed} failed — check RLS permissions.` : `Removed ${deleted} duplicate snapshot(s).`);
+        load();
+      }
     } catch (e) {
-      Alert.alert('Error', String(e instanceof Error ? e.message : e));
+      alertAsync('Error', String(e instanceof Error ? e.message : e));
     }
   }, [load]);
 
@@ -892,7 +876,7 @@ export default function HitTrackingView() {
             const csv = [header, ...lines].join('\n');
             try {
               await Share.share({ message: csv, title: `zk6-performance-${getTodayET()}.csv` });
-            } catch (e) { Alert.alert('Share failed', String(e)); }
+            } catch (e) { alertAsync('Share failed', String(e)); }
           }}
           style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: colors.primary + '55', backgroundColor: colors.primaryLight }}
         >
@@ -1029,43 +1013,34 @@ function RecentlyDeletedPanel({ onRestored }: { onRestored?: () => void }) {
   useEffect(() => { if (expanded && rows.length === 0) load(); }, [expanded, rows.length, load]);
 
   const restore = useCallback((id: string, scope: string, slate_date: string, hash: string) => {
-    Alert.alert(
-      'Restore snapshot?',
-      `Brings ${scope} ${slate_date} (${hash?.slice(0,8)}) back as active. Other active snapshots for the same scope/date stay active — you may end up with duplicates.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Restore',
-          onPress: async () => {
-            setRestoringId(id);
-            try {
-              await fetchFromSupabase({
-                path: `/rest/v1/slate_snapshots?id=eq.${id}`,
-                method: 'PATCH',
-                body: { deleted_at: null },
-              });
-              await fetchFromSupabase({
-                path: '/rest/v1/audit_logs',
-                method: 'POST',
-                headers: { 'Prefer': 'return=minimal' },
-                body: {
-                  action: 'restore_snapshot',
-                  target: id,
-                  payload_meta: { scope, slate_date, hash, note: 'Phase 4 manual restore' },
-                },
-              });
-              Alert.alert('Restored', `${scope} ${slate_date} is active again.`);
-              setRows(prev => prev.filter(r => r.id !== id));
-              onRestored?.();
-            } catch (e) {
-              Alert.alert('Failed', String(e));
-            } finally {
-              setRestoringId(null);
-            }
+    (async () => {
+      if (!(await confirmAsync('Restore snapshot?', `Brings ${scope} ${slate_date} (${hash?.slice(0, 8)}) back as active. Other active snapshots for the same scope/date stay active — you may end up with duplicates.`, { confirmLabel: 'Restore' }))) return;
+      setRestoringId(id);
+      try {
+        await fetchFromSupabase({
+          path: `/rest/v1/slate_snapshots?id=eq.${id}`,
+          method: 'PATCH',
+          body: { deleted_at: null },
+        });
+        await fetchFromSupabase({
+          path: '/rest/v1/audit_logs',
+          method: 'POST',
+          headers: { 'Prefer': 'return=minimal' },
+          body: {
+            action: 'restore_snapshot',
+            target: id,
+            payload_meta: { scope, slate_date, hash, note: 'Phase 4 manual restore' },
           },
-        },
-      ],
-    );
+        });
+        alertAsync('Restored', `${scope} ${slate_date} is active again.`);
+        setRows(prev => prev.filter(r => r.id !== id));
+        onRestored?.();
+      } catch (e) {
+        alertAsync('Failed', String(e));
+      } finally {
+        setRestoringId(null);
+      }
+    })();
   }, [onRestored]);
 
   const hitsOf = (s: any) =>

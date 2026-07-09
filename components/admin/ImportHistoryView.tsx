@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { confirmAsync, alertAsync } from '@/lib/confirm';
 import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
@@ -47,14 +48,14 @@ export default function ImportHistoryView() {
   const handleSoftDelete = useCallback(async (id: string) => {
     setBusy(id, true);
     try { await softDeleteImport(id); await loadData(); }
-    catch (e) { Alert.alert('Delete Failed', String(e instanceof Error ? e.message : e)); }
+    catch (e) { alertAsync('Delete Failed', String(e instanceof Error ? e.message : e)); }
     finally { setBusy(id, false); }
   }, [softDeleteImport, loadData]);
 
   const handleUndo = useCallback(async (id: string) => {
     setBusy(id, true);
     try { await undoSoftDeleteImport(id); await loadData(); }
-    catch (e) { Alert.alert('Restore Failed', String(e instanceof Error ? e.message : e)); }
+    catch (e) { alertAsync('Restore Failed', String(e instanceof Error ? e.message : e)); }
     finally { setBusy(id, false); }
   }, [undoSoftDeleteImport, loadData]);
 
@@ -63,22 +64,18 @@ export default function ImportHistoryView() {
     const msg = isDaily
       ? 'Daily Input imports were checklist/audit markers only (retired type, BUG-130) — no data rows exist. The import record will be removed.\n\nContinue?'
       : 'This permanently removes the import and all its associated data rows. This cannot be undone.';
-    Alert.alert('Permanently Delete?', msg, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete Forever', style: 'destructive', onPress: async () => {
-        setBusy(id, true);
-        try {
-          const result = await hardDeleteImport(id, importType);
-          await loadData();
-          setExpanded(null);
-          if (result && result !== 'Deleted import and all associated dataset rows.') {
-            Alert.alert('Deleted', result);
-          }
-        }
-        catch (e) { Alert.alert('Hard Delete Failed', String(e instanceof Error ? e.message : e)); }
-        finally { setBusy(id, false); }
-      }},
-    ]);
+    (async () => {
+      if (!(await confirmAsync('Permanently Delete?', msg, { confirmLabel: 'Delete Forever', destructive: true }))) return;
+      setBusy(id, true);
+      try {
+        const result = await hardDeleteImport(id, importType);
+        await loadData();
+        setExpanded(null);
+        if (result && result !== 'Deleted import and all associated dataset rows.') alertAsync('Deleted', result);
+      }
+      catch (e) { alertAsync('Hard Delete Failed', String(e instanceof Error ? e.message : e)); }
+      finally { setBusy(id, false); }
+    })();
   }, [hardDeleteImport, loadData]);
 
   const filtered = data.filter(i => typeFilter === 'all' || i.type === typeFilter);
@@ -91,46 +88,34 @@ export default function ImportHistoryView() {
 
   const handleBulkSoftDelete = useCallback(() => {
     const ids = Array.from(selectedIds);
-    Alert.alert(
-      `Soft Delete ${ids.length} Import${ids.length > 1 ? 's' : ''}?`,
-      'Dataset rows will be hidden but not permanently removed. You can undo this.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Soft Delete', style: 'destructive', onPress: async () => {
-          setBulkBusy(true);
-          for (const id of ids) { try { await softDeleteImport(id); } catch {} }
-          setSelectedIds(new Set());
-          await loadData();
-          setBulkBusy(false);
-        }},
-      ],
-    );
+    (async () => {
+      if (!(await confirmAsync(`Soft Delete ${ids.length} Import${ids.length > 1 ? 's' : ''}?`, 'Dataset rows will be hidden but not permanently removed. You can undo this.', { confirmLabel: 'Soft Delete', destructive: true }))) return;
+      setBulkBusy(true);
+      for (const id of ids) { try { await softDeleteImport(id); } catch {} }
+      setSelectedIds(new Set());
+      await loadData();
+      setBulkBusy(false);
+    })();
   }, [selectedIds, softDeleteImport, loadData]);
 
   const handleBulkHardDelete = useCallback(() => {
     const ids = Array.from(selectedIds);
-    Alert.alert(
-      `Permanently Delete ${ids.length} Import${ids.length > 1 ? 's' : ''}?`,
-      'All dataset rows for these imports will be permanently removed. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete Forever', style: 'destructive', onPress: async () => {
-          setBulkBusy(true);
-          setBulkProgress({ done: 0, total: ids.length });
-          for (let i = 0; i < ids.length; i++) {
-            const id = ids[i];
-            const rec = data.find((d: any) => d.id === id);
-            try { await hardDeleteImport(id, rec?.type); } catch {}
-            setBulkProgress({ done: i + 1, total: ids.length });
-          }
-          setSelectedIds(new Set());
-          setBulkProgress(null);
-          await loadData();
-          setBulkBusy(false);
-          Alert.alert('Done', `Deleted ${ids.length} import${ids.length > 1 ? 's' : ''} and associated data rows.`);
-        }},
-      ],
-    );
+    (async () => {
+      if (!(await confirmAsync(`Permanently Delete ${ids.length} Import${ids.length > 1 ? 's' : ''}?`, 'All dataset rows for these imports will be permanently removed. This cannot be undone.', { confirmLabel: 'Delete Forever', destructive: true }))) return;
+      setBulkBusy(true);
+      setBulkProgress({ done: 0, total: ids.length });
+      for (let i = 0; i < ids.length; i++) {
+        const id = ids[i];
+        const rec = data.find((d: any) => d.id === id);
+        try { await hardDeleteImport(id, rec?.type); } catch {}
+        setBulkProgress({ done: i + 1, total: ids.length });
+      }
+      setSelectedIds(new Set());
+      setBulkProgress(null);
+      await loadData();
+      setBulkBusy(false);
+      alertAsync('Done', `Deleted ${ids.length} import${ids.length > 1 ? 's' : ''} and associated data rows.`);
+    })();
   }, [selectedIds, hardDeleteImport, loadData, data]);
 
   const statusColor = (s: string) =>

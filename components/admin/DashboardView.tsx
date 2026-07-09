@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { confirmAsync, alertAsync } from '@/lib/confirm';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQueryClient } from '@tanstack/react-query';
@@ -149,7 +150,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
     try {
       const res = await regenerateSlate(sc, 'balanced', force, date);
       if (res.status !== 'success') {
-        Alert.alert('Regeneration Failed', res.message);
+        alertAsync('Regeneration Failed', res.message);
       }
     } catch {}
     setRegeningScopeMap(m => ({ ...m, [sc]: false }));
@@ -628,11 +629,8 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
               <TouchableOpacity
                 key={date}
                 disabled={!!clearingIntel}
-                onPress={() => {
-                  Alert.alert('Clear Top 30', `Remove on_slate rows for ${date}?`, [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Clear', style: 'destructive', onPress: () => handleClearIntel(date) },
-                  ]);
+                onPress={async () => {
+                  if (await confirmAsync('Clear Top 30', `Remove on_slate rows for ${date}?`, { confirmLabel: 'Clear', destructive: true })) handleClearIntel(date);
                 }}
                 style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
                   paddingVertical: 10, borderRadius: 10, borderWidth: 1,

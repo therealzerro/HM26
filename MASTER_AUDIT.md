@@ -248,6 +248,19 @@ Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`
 
 **Conclusion:** Not an engine bug. The shared slate is correctly surfacing high-value repeat-hitters; forcing them off degrades allday. The operator's real need ("don't show ME combos I've already closed") is a **personal closed-position filter**, best served by the existing `excludeComboSets` engine param — zero hit-rate cost to the product. Pending operator decision on direction. No production code changed; harness presets only. **(Superseded 2026-06-20 — see ENG-BLOCK-PERSCOPE-01 at top of this section: reframed as a regression, midday-only block shipped, operator declined the personal filter.)**
 
+### BUG-ALERT-WEB-01 — Alert.alert confirmations are no-ops on React Native Web (2026-07-09)
+
+**Symptom:** operator pressed "Publish Image + Caption" (and would have hit the same on every admin delete/clear/restore) → nothing happened, nothing posted.
+
+**Root cause:** `Alert.alert(title, msg, [buttons])` (multi-button confirm) is a NO-OP on React Native Web (Expo web, which is the admin surface) — the dialog never renders and the button `onPress` never fires, so any action gated behind the confirm silently does nothing. The codebase already knew this in one spot (DashboardView uses a custom `RegenConfirmationModal` for regen) but every other confirm used `Alert.alert`. Single-arg info alerts are also unreliable on RN Web.
+
+**Fix:** new `lib/confirm.ts` — `confirmAsync(title, message?, {confirmLabel, destructive})` returns a Promise (window.confirm on web, Alert.alert native) and `alertAsync(title, message?)` (window.alert on web). Swept ALL admin surfaces:
+- **9 action-blocking multi-button confirms fixed** → `confirmAsync`: PublishView (page publish), ImportHistoryView (×3 delete), HitTrackingView (×3: soft-delete slate, soft-delete duplicates, restore), DashboardView (Clear Top 30), admin-imports (Delete Import). Each was silently dead on web.
+- **~18 info-only Alert.alert** → `alertAsync` across ImportWizardView, ProSubscribersView, CoverageMatrixView, ProposalReviewView, FunnelDashboardView, SubscriberImportView, DashboardView (RN-Web-reliable message display).
+- Unused `Alert` imports removed where fully replaced.
+
+**Verified:** tsc + eslint deltas vs HEAD = 0 (5 eslint / 9 tsc errors all pre-existing debt). Underlying photo-publish API separately proven live (real image → post_id, then deleted). **Note for future UI:** never gate an action behind `Alert.alert` on this app — use `confirmAsync`.
+
 ### SOCIAL-03 + SOCIAL-04 — Surface-first publishing model + AI content generation (2026-07-09)
 
 **SOCIAL-03 (operator-flagged gap):** the Publish UI coupled content-type to destination 1:1; the operator's model is **two independent axes — WHAT × WHERE** ("they all have different content"). Rebuilt: the operator picks the SURFACE first (📣 Public Page / 👥 Free Group / 💎 Pro Group / 🔁 Cross-Post), then the CONTENT (report card / announcement / slate drop / brief / custom), filtered by a validity matrix (`CONTENT_SURFACES`). The same content now renders per-surface: e.g. slate_drop = full kit on free (Pro CTA, All-Day exception) vs full kit + first-access framing on pro (NO pricing) vs mosaic tease + JOIN FREE on public (API photo behind Two-Question NO/NO) vs redacted + admin-respectful on cross. `captions.ts` rewritten as (content, surface) generators; report_card gained a groups variant with per-jurisdiction STRAIGHT MATCH / BOX MATCH lines (§4a vocab). **New lint rules:** `pro-no-pricing` + `pro-no-commercial` (tier 4) — §6 PRO forbids pricing and the old lint didn't enforce it. **Verified: 33/33 (content,surface,variant) captions lint-clean; §6 spot-checks all pass** (All-Day no-pitch, Pro no-pricing, public no-state-codes, group vocab-law labels).

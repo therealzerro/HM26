@@ -66,6 +66,23 @@ function mdLabel(iso: string): string {
   return `${parseInt(m, 10)}/${parseInt(d, 10)}`;
 }
 
+/**
+ * Web-safe confirm. Alert.alert's multi-button dialog is a no-op on React
+ * Native Web (Expo web) — the onPress never fires, so anything gated behind it
+ * silently does nothing. window.confirm works on web; Alert.alert works native.
+ */
+function confirmAction(title: string, message: string): Promise<boolean> {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.confirm === 'function') {
+    return Promise.resolve(window.confirm(`${title}\n\n${message}`));
+  }
+  return new Promise((resolve) => {
+    Alert.alert(title, message, [
+      { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+      { text: 'OK', onPress: () => resolve(true) },
+    ]);
+  });
+}
+
 /** Tomorrow 08:15 ET — inside Meta's 10min-30d scheduling window. */
 function tomorrowMorningEtIso(): string {
   const d = new Date(`${getTodayET()}T08:15:00-04:00`);
@@ -377,47 +394,36 @@ function PublishInner() {
 
   // ── PUBLIC lane (API) ──
   const publishToPage = useCallback(async (scheduledFor?: string, withImage?: ImageItem) => {
-    if (!content || !caption.trim()) return;
-    if (!lint.ok) {
-      Alert.alert('Caption blocked', 'Fix the blocking violations first — they protect the page recommendation.');
-      return;
-    }
-    if (withImage && (!q1No || !q2No)) {
-      Alert.alert('Two-Question filter', 'Answer both filter questions (must be NO) before publishing an image to the page.');
-      return;
-    }
+    if (!content || !caption.trim()) { setResultMsg('❌ Nothing to publish — pick content and a caption first.'); return; }
+    if (!lint.ok) { setResultMsg('❌ Caption blocked — fix the ⛔ violations above (they protect the page recommendation).'); return; }
+    if (withImage && (!q1No || !q2No)) { setResultMsg('❌ Answer both Two-Question checkboxes (must be NO) before publishing an image.'); return; }
+
     const what = withImage ? `${withImage.label} + caption` : 'text-only post';
-    Alert.alert(
+    const ok = await confirmAction(
       `${scheduledFor ? 'Schedule' : 'Publish'} ${what}${scheduledFor ? ' for tomorrow 8:15 AM ET' : ' NOW'}?`,
       'Via the Page API. The publish log records it.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: scheduledFor ? 'Schedule' : 'Publish',
-          onPress: async () => {
-            setBusy(true);
-            setResultMsg(null);
-            try {
-              const r = withImage
-                ? await fbPublish.publishPagePhoto({
-                    caption, kind: content, scheduledFor,
-                    imageDataUrl: withImage.dataUrl,
-                    twoQAck: { q1: false, q2: false },
-                    imageMeta: { filename: withImage.filename, source: `PublishView.${content}.${withImage.label}` },
-                  })
-                : await fbPublish.publishPageText({ message: caption, kind: content, scheduledFor });
-              setResultMsg(scheduledFor ? `🕗 Scheduled — post ID ${r.postId}` : `✅ Published — post ID ${r.postId}`);
-              loadHistory();
-            } catch (e: any) {
-              if (e?.code === 'tier1_lint_failed') setResultMsg(`❌ Server lint refused: ${(e.violations ?? []).join(', ')}`);
-              else setResultMsg(`❌ ${String(e?.message ?? e)}`);
-            } finally {
-              setBusy(false);
-            }
-          },
-        },
-      ],
     );
+    if (!ok) return;
+
+    setBusy(true);
+    setResultMsg('⏳ Publishing to the page…');
+    try {
+      const r = withImage
+        ? await fbPublish.publishPagePhoto({
+            caption, kind: content, scheduledFor,
+            imageDataUrl: withImage.dataUrl,
+            twoQAck: { q1: false, q2: false },
+            imageMeta: { filename: withImage.filename, source: `PublishView.${content}.${withImage.label}` },
+          })
+        : await fbPublish.publishPageText({ message: caption, kind: content, scheduledFor });
+      setResultMsg(scheduledFor ? `🕗 Scheduled — post ID ${r.postId}` : `✅ Published — post ID ${r.postId}`);
+      loadHistory();
+    } catch (e: any) {
+      if (e?.code === 'tier1_lint_failed') setResultMsg(`❌ Server lint refused: ${(e.violations ?? []).join(', ')}`);
+      else setResultMsg(`❌ ${String(e?.message ?? e)}`);
+    } finally {
+      setBusy(false);
+    }
   }, [content, caption, lint.ok, q1No, q2No, loadHistory]);
 
   // ── GROUP lanes (assisted) ──

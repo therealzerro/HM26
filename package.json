@@ -22,6 +22,7 @@
     "backfill:parity": "tsx scripts/backfill/parity-check.ts",
     "backfill:gaps": "tsx scripts/backfill/detect-gaps.ts",
     "backfill:slate": "tsx scripts/backfill/backfill-slate.ts",
+    "import:results": "tsx scripts/imports/import-results.ts",
     "calibrate:picks": "tsx scripts/calibration/fit_pick_probability.ts",
     "verify:hits": "tsx scripts/intel-tuning/verify-hits.ts",
     "cohort:overdue": "tsx scripts/cohort/overdue-cohort.ts",

@@ -42,7 +42,12 @@ export interface CaptionData {
   verified30d?: number;         // rolling 30-day verified total
   freeGroupUrl?: string;
   proUrl?: string;
+  proPrice?: string;            // Pro group price, config-driven (app_config.social_pro_price)
 }
+
+/** Fallback Pro-group price. Live value comes from app_config.social_pro_price. */
+export const DEFAULT_PRO_PRICE = '$2.49/mo';
+const PRICE_TOKEN = '{PRO_PRICE}';
 
 // seeded pick — cheap deterministic hash so variants cycle without RNG
 function seededIndex(seed: string, poolSize: number): number {
@@ -69,8 +74,8 @@ const CTA_FREE = [
   '👇 The free community gets the full breakdown.',
 ];
 const CTA_PRO = [
-  'Pro members get the inner-circle drops first ($0.99/mo).',
-  'Inner circle sees it first — Pro is $0.99/mo.',
+  `Pro members get the inner-circle drops first (${PRICE_TOKEN}).`,
+  `Inner circle sees it first — Pro is ${PRICE_TOKEN}.`,
   '',
 ];
 const GROUP_OPENERS = [
@@ -128,7 +133,7 @@ function groupDrop(d: CaptionData, variant: number): string {
   const e = pick(LIVE_EMOJI, seed, variant);
   const opener = pick(GROUP_OPENERS, seed + 'o', variant);
   const pro = d.proUrl
-    ? `\n\nNot in the Pro tier yet? ${d.proUrl} — $0.99/mo for inner-circle drops first.`
+    ? `\n\nNot in the Pro tier yet? ${d.proUrl} — ${PRICE_TOKEN} for inner-circle drops first.`
     : '';
   return [
     `${e} ${d.dateLabel} ${opener}`,
@@ -163,13 +168,15 @@ function proDrop(d: CaptionData, variant: number): string {
 }
 
 export function generateCaption(kind: CaptionKind, data: CaptionData, variant = 0): string {
+  let out: string;
   switch (kind) {
-    case 'signal_announce': return signalAnnounce(data, variant);
-    case 'report_card': return reportCard(data, variant);
-    case 'group_drop': return groupDrop(data, variant);
-    case 'cross_post': return crossPost(data, variant);
-    case 'pro_drop': return proDrop(data, variant);
+    case 'signal_announce': out = signalAnnounce(data, variant); break;
+    case 'report_card': out = reportCard(data, variant); break;
+    case 'group_drop': out = groupDrop(data, variant); break;
+    case 'cross_post': out = crossPost(data, variant); break;
+    case 'pro_drop': out = proDrop(data, variant); break;
   }
+  return out.split(PRICE_TOKEN).join(data.proPrice ?? DEFAULT_PRO_PRICE);
 }
 
 export const KIND_LABELS: Record<CaptionKind, { label: string; desc: string; dest: string }> = {

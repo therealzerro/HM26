@@ -68,7 +68,7 @@ function PublishInner() {
   const [busy, setBusy] = useState(false);
   const [resultMsg, setResultMsg] = useState<string | null>(null);
   const [history, setHistory] = useState<any[]>([]);
-  const [urls, setUrls] = useState<{ free?: string; pro?: string }>({});
+  const [urls, setUrls] = useState<{ free?: string; pro?: string; proPrice?: string }>({});
 
   const tier = kind ? KIND_TIER[kind] : 1;
   const lint: LintResult = useMemo(() => lintCaption(caption, tier), [caption, tier]);
@@ -94,13 +94,14 @@ function PublishInner() {
       loadHistory();
       try {
         const rows = await fetchFromSupabase<{ key: string; value: any }[]>({
-          path: '/rest/v1/app_config?key=in.(social_free_group_url,social_pro_url)&select=key,value',
+          path: '/rest/v1/app_config?key=in.(social_free_group_url,social_pro_url,social_pro_price)&select=key,value',
         });
-        const map: { free?: string; pro?: string } = {};
+        const map: { free?: string; pro?: string; proPrice?: string } = {};
         (rows ?? []).forEach(r => {
           const v = typeof r.value === 'string' ? r.value.replace(/^"|"$/g, '') : String(r.value ?? '');
           if (r.key === 'social_free_group_url') map.free = v;
           if (r.key === 'social_pro_url') map.pro = v;
+          if (r.key === 'social_pro_price') map.proPrice = v;
         });
         setUrls(map);
       } catch { /* optional */ }
@@ -113,7 +114,7 @@ function PublishInner() {
     setResultMsg(null);
     try {
       const today = getTodayET();
-      const data: CaptionData = { dateLabel: mdLabel(today), freeGroupUrl: urls.free, proUrl: urls.pro };
+      const data: CaptionData = { dateLabel: mdLabel(today), freeGroupUrl: urls.free, proUrl: urls.pro, proPrice: urls.proPrice };
       if (k === 'report_card') {
         const yesterday = getYesterdayET();
         const rc = await fetchReportCardData(yesterday);

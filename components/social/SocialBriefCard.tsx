@@ -112,13 +112,38 @@ export const SocialBriefCard = forwardRef<View, SocialBriefCardProps>(function S
           <Text style={styles.publicCta}>Full intelligence drops in the free community 👇</Text>
         </View>
       ) : (
-        /* GROUP: today's recommended plays per session, richly */
+        /* GROUP: today per session — RESOLVED sessions show their live outcome,
+           upcoming sessions show recommended plays (SOCIAL-06 intraday). */
         <View style={[styles.panel, { backgroundColor: C.panelHi }]}>
-          <Text style={styles.panelLabel}>{"TODAY'S RECOMMENDED PLAYS"}</Text>
+          <Text style={styles.panelLabel}>TODAY</Text>
           {data.scopes.map((s, idx) => (
             <View key={s.scope} style={[styles.playSection, idx < data.scopes.length - 1 && styles.playDivider]}>
-              <Text style={styles.playScope}>{s.label.toUpperCase()}</Text>
-              {s.todayPlays.length === 0 ? (
+              <View style={styles.playScopeRow}>
+                <Text style={styles.playScope}>{s.label.toUpperCase()}</Text>
+                {s.todayResolved && (
+                  <Text style={[styles.playState, { color: s.todayLive ? C.cyanSoft : s.todaySlateHit ? (s.todayStraight ? C.goldSoft : C.green) : C.textFaint }]}>
+                    {s.todayLive ? '● LIVE' : '✓ RESOLVED'}
+                  </Text>
+                )}
+              </View>
+
+              {s.todayResolved ? (
+                /* live/resolved outcome */
+                s.todaySlateHit ? (
+                  <View style={styles.resolvedRow}>
+                    <Text style={[styles.resolvedTag, { color: s.todayStraight ? C.goldSoft : C.green }]}>
+                      {s.todayStraight ? 'STRAIGHT MATCH' : 'BOX MATCH'}
+                    </Text>
+                    <View style={styles.yCombos}>
+                      {s.todayHittingCombos.slice(0, 4).map((c, i) => (
+                        <View key={i} style={styles.yChip}><Text style={styles.yChipText}>{setBraces(c)}</Text></View>
+                      ))}
+                    </View>
+                  </View>
+                ) : (
+                  <Text style={styles.resolvedMiss}>{s.todayLive ? 'no match yet — session live' : 'no match this session'}</Text>
+                )
+              ) : s.todayPlays.length === 0 ? (
                 <Text style={styles.playNone}>— no play surfaced —</Text>
               ) : (
                 <View style={{ gap: 6, marginTop: 4 }}>
@@ -213,7 +238,12 @@ const styles = StyleSheet.create({
   // today plays
   playSection: { paddingVertical: 8 },
   playDivider: { borderBottomWidth: 1, borderBottomColor: C.hair },
+  playScopeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   playScope: { color: C.cyanSoft, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
+  playState: { fontSize: 9, fontWeight: '900', letterSpacing: 0.8, fontFamily: MONO },
+  resolvedRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 5, flexWrap: 'wrap' },
+  resolvedTag: { fontSize: 11, fontWeight: '900', letterSpacing: 0.5, fontFamily: MONO },
+  resolvedMiss: { color: C.textFaint, fontSize: 11, marginTop: 5, fontStyle: 'italic' },
   playRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(168,85,247,0.10)', borderRadius: 10, borderWidth: 1, borderColor: C.purple + '33', paddingHorizontal: 12, paddingVertical: 7 },
   playDigits: { color: C.text, fontSize: 20, fontWeight: '900', fontFamily: MONO, letterSpacing: 2 },
   playSet: { color: C.textFaint, fontSize: 10, fontFamily: MONO },

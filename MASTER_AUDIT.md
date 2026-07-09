@@ -248,6 +248,12 @@ Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`
 
 **Conclusion:** Not an engine bug. The shared slate is correctly surfacing high-value repeat-hitters; forcing them off degrades allday. The operator's real need ("don't show ME combos I've already closed") is a **personal closed-position filter**, best served by the existing `excludeComboSets` engine param — zero hit-rate cost to the product. Pending operator decision on direction. No production code changed; harness presets only. **(Superseded 2026-06-20 — see ENG-BLOCK-PERSCOPE-01 at top of this section: reframed as a regression, midday-only block shipped, operator declined the personal filter.)**
 
+### SOCIAL-06 — Brief is intraday live-results aware (2026-07-09)
+
+**Operator observation:** at 4:27pm ET with today's midday results imported, an evening/all-day brief still showed midday as an *upcoming recommended play* — stale, since midday already resolved.
+
+**Fix:** `buildSocialBrief` now runs `fetchTodayResolution(today)` — a faithful slate∩histories join (never stored flags, BUG-162) for TODAY, per scope. A session is `todayResolved` once its draws are imported (midday/evening by session match; allday as soon as ANY draw lands, `todayLive` until both sessions have drawn). `SocialBriefScope` gains `todayResolved/todayLive/todaySlateHit/todayHittingCombos/todayStraight`. The group `SocialBriefCard` "TODAY" section now renders per session: **resolved → ✓ RESOLVED + STRAIGHT/BOX MATCH + the matching combos** (or "no match this session"); **allday partial → ● LIVE + matches-so-far**; **not-yet-drawn → the recommended plays** as before. Verified live: 7/9 shows midday-only draws (33) → midday resolves, evening stays upcoming, allday goes live. tsc/eslint delta 0.
+
 ### SOCIAL-05 — Group-lane UX: destination picker, new-tab fix, richer brief (2026-07-09)
 
 Operator feedback while examining the free-group flow. Three fixes:

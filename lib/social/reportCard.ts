@@ -12,8 +12,6 @@
 import { fetchFromSupabase } from '@/lib/supabase';
 import type { ReportCardMatch } from './captions';
 
-type Scope = 'midday' | 'evening' | 'allday';
-const SCOPES: Scope[] = ['midday', 'evening', 'allday'];
 
 interface SlateRow {
   scope: string;

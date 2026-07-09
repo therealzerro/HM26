@@ -248,6 +248,25 @@ Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`
 
 **Conclusion:** Not an engine bug. The shared slate is correctly surfacing high-value repeat-hitters; forcing them off degrades allday. The operator's real need ("don't show ME combos I've already closed") is a **personal closed-position filter**, best served by the existing `excludeComboSets` engine param — zero hit-rate cost to the product. Pending operator decision on direction. No production code changed; harness presets only. **(Superseded 2026-06-20 — see ENG-BLOCK-PERSCOPE-01 at top of this section: reframed as a regression, midday-only block shipped, operator declined the personal filter.)**
 
+### SOCIAL-02 — Full image↔publish integration + publishable brief (2026-07-09)
+
+**Operator ask:** "fully integrate the image export with the facebook publish — publishing a slate, all detail modals and the caption to a specific public page / free group / pro group path; a user-friendly brief facebook publishable is missing." Built as one delivery.
+
+**New components (all presentational/prop-driven, capture via the proven exporter pipeline):**
+- **`components/social/SocialBriefCard.tsx`** — the missing publishable brief. Two variants: `public` (§6-safe by construction: aggregate stats + jurisdiction COUNT, no digits/states/attribution/pricing; the 3-digit-capable 30d stat is OMITTED from the public IMAGE per Two-Question Q1 — it stays in captions, which aren't an OCR surface) and `group` (today's recommended plays with digits, per-session yesterday outcome using STRAIGHT MATCH / BOX MATCH vocab §4a, optional Pro footer — FREE only, never PRO per §6 no-commercial). Brand palette per brief v2 §7. Capture-stable colors.
+- **`lib/social/socialBrief.ts`** — brief data layer: reuses faithful `fetchReportCardData` (aggregate) + `computeBrief` (per-scope plays/yesterday). Consumer session labels Daytime/Nighttime/Continuous.
+- **`components/social/PublishStage.tsx`** — hidden 1080×1920 reel stage (slate composite + pick posters), redaction per surface. **Uses the exporter's paint-cull-safe pattern**: laid out at origin + `translateX(5000)` (extreme `left:-10000` offsets get paint-culled by Chrome/Safari → blank PNGs; `captureNodeToPng` neutralizes the transform at capture time). Scale-wrap geometry byte-matched to admin-image-export.
+- **`lib/social/publishImages.ts`** — shared loaders/helpers: `loadSlatePicks` (same snapshot query + rowToPickItem mapping as the exporter), stage geometry constants, `surfaceRedacts` (§6: public+cross → mosaic redaction, free/pro → full fidelity), raf/waitFonts/getStageNode.
+
+**PublishView integration (SOCIAL-01 v2):**
+- **Page kinds** (report card / announcement): "Generate Brief Image" → SocialBriefCard public variant → publish text-only OR image+caption via `publish_page_photo`, gated by an explicit Two-Question NO/NO checklist in the UI (server re-requires the ack). Schedule (tomorrow 8:15a ET) works for both.
+- **Free/Pro group drops**: session picker (midday/evening/allday) → "Build Post Kit" = slate composite + all 6 signal-card posters + group brief, captured in place with per-image progress, preview strip, per-image Save / Save-to-Photos, Download All. All-Day selection auto-sets the caption's no-Pro-pitch flag (§6).
+- **Cross-post**: kit = digit-redacted slate (mosaic + JOIN FREE banner) only.
+- Assisted flow simplified to: Build Kit → Copy Caption → Open Facebook → Mark Posted (handoff log now records generated filenames; same-day duplicate-caption check unchanged).
+- pair scores fetched imperatively per pick before capture (BUG-159 lesson — a useQuery would race the frame and bake zeros).
+
+**Verified:** tsc clean, eslint 0 errors on all new/changed files; 20/20 caption variants still lint-clean at tier. Live-render smoke of the capture path requires the web app (operator: build a kit once and eyeball the PNGs — geometry is byte-matched to the proven exporter, but this is the one thing static checks can't prove).
+
 ### BRAND-06 — SOCIAL-01 surface-discipline compliance fixes (2026-07-09)
 
 **Trigger:** operator supplied the 2026-06-29 brand-safety context update (surface-discipline spec §6 + locked vocab law §4a), which revealed SOCIAL-01's caption engine shipped with brand-safety violations. Fixed same session before further build.

@@ -129,10 +129,14 @@ ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 
 ## What the system enforces (and why)
 
-- **Page lane is text-only in v1.** The brief's sanctioned public formats
-  (yesterday's report card, signal announcement) are text posts — the
-  classifier reads images via OCR, so clean text posts carry near-zero
-  classifier risk. This is what re-earned the recommendation.
+- **Page lane: text posts + the brand-safe brief image only.** The brief's
+  sanctioned public formats (yesterday's report card, signal announcement)
+  publish as text, optionally with the SocialBriefCard PUBLIC variant —
+  aggregate counts only, no digits/state codes/attribution by construction.
+  Page images additionally require the Two-Question filter answered NO/NO
+  in the UI (and re-checked server-side). Slates and signal cards NEVER
+  publish to the page — the classifier reads images via OCR, and product-UI
+  images are what caused both de-recommendations.
 - **Tier-1 vocabulary lint runs twice** — full engine client-side with
   suggestions, subset server-side in the edge function. Blocking violations
   disable publish; a server refusal can be overridden only with an explicit,

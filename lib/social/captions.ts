@@ -74,11 +74,6 @@ const CTA_FREE = [
   '👇 Full reports live in the free community — link in bio.',
   '👇 The free community gets the full breakdown.',
 ];
-const CTA_PRO = [
-  `Pro members get the inner-circle drops first (${PRICE_TOKEN}).`,
-  `Inner circle sees it first — Pro is ${PRICE_TOKEN}.`,
-  '',
-];
 const GROUP_OPENERS = [
   'signals — published.',
   'intelligence drop — live.',
@@ -182,9 +177,9 @@ export function generateCaption(kind: CaptionKind, data: CaptionData, variant = 
 }
 
 export const KIND_LABELS: Record<CaptionKind, { label: string; desc: string; dest: string }> = {
-  report_card: { label: "Yesterday's Report Card", desc: 'Text-only verification post — counts + jurisdictions, no numbers', dest: 'Public page (API)' },
-  signal_announce: { label: 'Daily Intelligence — LIVE', desc: 'Announcement that today\'s reports are published (no numbers)', dest: 'Public page (API)' },
-  group_drop: { label: 'Free Group Signal Drop', desc: 'Daily drop caption for the slate image', dest: 'Free group (assisted)' },
-  cross_post: { label: 'Cross-Post', desc: 'Admin-respectful acquisition post for other groups', dest: 'Other groups (assisted)' },
-  pro_drop: { label: 'Pro Group Drop', desc: 'Premium full-fidelity drop caption', dest: 'Pro group (assisted)' },
+  report_card: { label: "Yesterday's Report Card", desc: 'Verification post — aggregate counts, no numbers. Text or brand-safe brief image.', dest: 'Public page (API)' },
+  signal_announce: { label: 'Daily Intelligence — LIVE', desc: 'Announcement that today\'s reports are published. Text or brief image.', dest: 'Public page (API)' },
+  group_drop: { label: 'Free Group Signal Drop', desc: 'Full post kit: slate + 6 signal cards + group brief + caption', dest: 'Free group (assisted)' },
+  cross_post: { label: 'Cross-Post', desc: 'Redacted slate (mosaic + JOIN FREE banner) + admin-respectful caption', dest: 'Other groups (assisted)' },
+  pro_drop: { label: 'Pro Group Drop', desc: 'Full-fidelity kit: slate + 6 signal cards + brief, first-access framing', dest: 'Pro group (assisted)' },
 };

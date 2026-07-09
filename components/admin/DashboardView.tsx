@@ -14,7 +14,7 @@ import { runHitDetectionAllScopes, runHitDetectionAndRefresh, HitDetectionResult
 import { runDailyRebuild, runDailyReport } from '@/lib/rebuildTrigger';
 import { RegenConfirmationModal } from '@/components/RegenConfirmationModal';
 import { computeZK30Slate } from '@/engines/zk30';
-import { Pill, SectionTitle, Card, timeAgo, MOCK_IMPORTS, useImportTypes, PAIR_CLASSES, ImportRecord } from './AdminShared';
+import { Pill, SectionTitle, Card, timeAgo, useImportTypes, PAIR_CLASSES, ImportRecord } from './AdminShared';
 import { ProposalRegenBanner } from './ProposalRegenBanner';
 
 export default function DashboardView({ setView, imports, healthMetrics, regenerateSlate, checkSlateLock, onOpenZK30Import }: {
@@ -27,7 +27,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
 }) {
   const { colors } = useTheme();
   const IMPORT_TYPES = useImportTypes();
-  const liveImports = (imports && imports.length > 0) ? imports : MOCK_IMPORTS;
+  const liveImports = imports ?? [];
   const completed = liveImports.filter(i => i.status === 'completed').length;
   const failed = liveImports.filter(i => i.status === 'failed').length;
   const totalAccepted = liveImports.reduce((s, i) => s + (i.accepted || 0), 0);
@@ -436,15 +436,15 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
       <SectionTitle>PIPELINE STATUS</SectionTitle>
       {/* Today's import health indicators */}
       {!checklistLoading && (() => {
-        const hasLedger  = todayImports.some((i: any) => i.type === 'ledger');
-        const hasMidday  = todayImports.some((i: any) => i.type === 'daily_input' && i.scope === 'midday');
-        const hasEvening = todayImports.some((i: any) => i.type === 'daily_input' && i.scope === 'evening');
-        const hasAllday  = todayImports.some((i: any) => i.type === 'daily_input' && i.scope === 'allday');
+        // IMPORT-REHAB-02: daily_input checkmarks removed with the import type —
+        // they only proved the ritual was performed, not that data landed. Real
+        // signals instead: ledger imported today + draws present per session.
+        const hasLedger = todayImports.some((i: any) => i.type === 'ledger');
+        const yEt = getYesterdayET();
         const items = [
           { label: 'Ledger',  ok: hasLedger },
-          { label: 'Midday',  ok: hasMidday },
-          { label: 'Evening', ok: hasEvening },
-          { label: 'All-Day', ok: hasAllday },
+          { label: 'Midday draws',  ok: !!freshness?.lastMiddayDraw && freshness.lastMiddayDraw >= yEt },
+          { label: 'Evening draws', ok: !!freshness?.lastEveningDraw && freshness.lastEveningDraw >= yEt },
         ];
         return (
           <Card style={{ padding: 12, marginBottom: 8 }}>
@@ -825,21 +825,18 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
           const isLateEvening = etHour >= 20;
           const checkItems = [
             { label: 'Results Ledger', type: 'ledger', scope: null, icon: '📋' },
-            { label: 'Daily Input — Midday', type: 'daily_input', scope: 'midday', icon: '☀️' },
-            { label: 'Daily Input — Evening', type: 'daily_input', scope: 'evening', icon: '🌙' },
-            { label: 'Daily Input — All Day', type: 'daily_input', scope: 'allday', icon: '◈' },
           ];
           return checkItems.map((item, i) => {
             const match = todayImports.find(r =>
               r.type === item.type && (item.scope == null || r.scope === item.scope)
             );
-            const isLate = item.scope === 'evening' && isLateEvening && !match;
+            const isLate = isLateEvening && !match;
             const statusIcon = match ? '✅' : isLate ? '🔴' : '⚠️';
             const statusColor = match ? colors.success : isLate ? colors.error : colors.orange;
             return (
               <TouchableOpacity
                 key={item.label}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderBottomWidth: i < 3 ? 1 : 0, borderBottomColor: colors.border }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderBottomWidth: 0, borderBottomColor: colors.border }}
                 onPress={() => { if (!match) setView('wizard'); }}
                 activeOpacity={match ? 1 : 0.7}
               >
@@ -927,6 +924,11 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
 
       <SectionTitle>RECENT IMPORTS</SectionTitle>
       <Card style={{ padding: 0 }}>
+        {liveImports.length === 0 && (
+          <View style={{ padding: 16, alignItems: 'center' }}>
+            <Text style={{ fontSize: 11, color: colors.textTertiary }}>No imports recorded yet</Text>
+          </View>
+        )}
         {liveImports.slice(0, 5).map((imp, i) => {
           const typeInfo = IMPORT_TYPES.find(t => t.id === imp.type);
           const sc = imp.status === 'completed' ? colors.success : imp.status === 'failed' ? colors.error : colors.textTertiary;

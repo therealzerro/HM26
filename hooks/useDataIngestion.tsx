@@ -15,7 +15,6 @@ import { useToast } from '@/components/Toast';
 
 interface DataIngestionState {
   importHistory: (data: HistoryImportData) => Promise<ImportSummary>;
-  importDailyInput: (data: DailyInputData) => Promise<ImportSummary>;
   importLedger: (data: LedgerImportData) => Promise<ImportSummary>;
   softDeleteImport: (id: string) => Promise<void>;
   undoSoftDeleteImport: (id: string) => Promise<void>;
@@ -47,13 +46,6 @@ interface HistoryImportData {
   }[];
 }
 
-interface DailyInputData {
-  scope: Scope;
-  combos: string[];
-  import_date?: string;
-  file_meta?: Record<string, any>;
-}
-
 interface LedgerImportData {
   scope: Scope;
   entries: {
@@ -73,10 +65,6 @@ interface HealthMetrics {
   datasetCounts: {
     boxEntries: number;
     pairEntries: number;
-    percentileMaps: number;
-    horizonBlends: number;
-    dailyImports: number;
-    ledgerImports: number;
   };
 }
 
@@ -205,16 +193,10 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
         // IMPORT-REHAB-01: counts via Prefer: count=exact head requests — the
         // previous array-length pattern silently capped at PostgREST's 1000-row
         // ceiling regardless of the limit param, understating every count.
-        // percentile_maps/horizon_blends counts remain (tables still exist,
-        // frozen since their import writes were removed).
-        const [boxCount, pairCount, percentileCount, blendCount, dailyCount, ledgerCount] = await Promise.race([
+        const [boxCount, pairCount] = await Promise.race([
           Promise.allSettled([
             countFromSupabase(`/rest/v1/datasets_box?select=id${scopeFilter}${deletedFilter}`),
             countFromSupabase(`/rest/v1/datasets_pair?select=id${scopeFilter}${deletedFilter}`),
-            countFromSupabase(`/rest/v1/percentile_maps?select=id${scopeFilter}${deletedFilter}`),
-            countFromSupabase(`/rest/v1/horizon_blends?select=id${scopeFilter}${deletedFilter}`),
-            countFromSupabase(`/rest/v1/imports?select=id${scopeFilter}&type=eq.daily_input&status=eq.completed`),
-            countFromSupabase(`/rest/v1/imports?select=id${scopeFilter}&type=eq.ledger&status=eq.completed`),
           ]),
           timeoutPromise,
         ]);
@@ -238,10 +220,6 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
           datasetCounts: {
             boxEntries: boxCount.status === 'fulfilled' ? boxCount.value : 0,
             pairEntries: pairCount.status === 'fulfilled' ? pairCount.value : 0,
-            percentileMaps: percentileCount.status === 'fulfilled' ? percentileCount.value : 0,
-            horizonBlends: blendCount.status === 'fulfilled' ? blendCount.value : 0,
-            dailyImports: dailyCount.status === 'fulfilled' ? dailyCount.value : 0,
-            ledgerImports: ledgerCount.status === 'fulfilled' ? ledgerCount.value : 0,
           }
         };
       } catch (error) {
@@ -466,84 +444,10 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
     }
   });
 
-  const importDailyMutation = useMutation<ImportSummary, Error, DailyInputData>({
-    mutationFn: async (data: DailyInputData) => {
-      if (!isAdmin) throw new Error('Admin access required');
-      console.log('[useDataIngestion] Importing daily input:', data.scope, data.combos.length);
-
-      const importRec = await fetchFromSupabase<Import[] | Import>({
-        path: '/rest/v1/imports',
-        method: 'POST',
-        headers: { 'Prefer': 'return=representation' },
-        body: {
-          type: 'daily_input',
-          scope: data.scope,
-          counts: data.combos.length,
-          status: 'processing',
-          created_by: getActorId(),
-          ...(data.file_meta ? { file_meta: data.file_meta } : {}),
-        }
-      });
-      const importId = Array.isArray(importRec) ? importRec[0]?.id : (importRec as Import | undefined)?.id;
-      if (!importId) throw new Error('Import creation did not return an ID');
-
-      try {
-        // BUG-130 (2026-05-12): Old logic treated `data.combos` as a "today's hits"
-        // flag list and incremented ds_raw by +1 for every non-matched box row.
-        // The CSV's explicit `DrawsSince` column was discarded, so values drifted
-        // hundreds of days off from reality. Fix: this mutation writes NO dataset
-        // data — the engine's ds_raw is rebuilt from histories by the Daily
-        // Workflow button (Step 1), the sole rebuild trigger since REFACTOR-01.
-        // The import record above is the entire product of this mutation: it is
-        // the operator's daily-checklist marker (Dashboard "TODAY'S IMPORTS"
-        // pipeline card reads imports.type='daily_input' per scope) plus audit
-        // trail. IMPORT-REHAB-01 (2026-07-09) made that role explicit in the UI.
-        console.log(
-          '[importDaily] checklist marker recorded:', data.combos.length, 'combos for scope',
-          data.scope, '— no dataset writes (BUG-130); ds_raw refreshes on the next Daily Workflow run.',
-        );
-
-        await fetchFromSupabase({ path: `/rest/v1/imports?id=eq.${importId}`, method: 'PATCH', body: { status: 'completed' } });
-        await fetchFromSupabase({
-          path: '/rest/v1/audit_logs',
-          method: 'POST',
-          body: {
-            actor_id: getActorId(),
-            action: 'import_daily',
-            target: data.scope,
-            payload_meta: { comboCount: data.combos.length },
-          }
-        });
-
-        const summary: ImportSummary = {
-          id: importId,
-          type: 'daily_input',
-          accepted: data.combos.length,
-          rejected: 0,
-          fixed: 0,
-          warnings: [],
-        } as ImportSummary;
-        return summary;
-      } catch (e) {
-        const message = String(e instanceof Error ? e.message : e);
-        try {
-          await fetchFromSupabase({ path: `/rest/v1/imports?id=eq.${importId}`, method: 'PATCH', body: { status: 'failed', error_text: message } });
-        } catch {}
-        throw new Error(message);
-      }
-    },
-    onSuccess: (_summary, variables) => {
-      queryClient.removeQueries({ queryKey: ['snapshot'] });
-      queryClient.invalidateQueries({ queryKey: ['snapshot'] });
-      queryClient.invalidateQueries({ queryKey: ['audit_logs'] });
-      queryClient.invalidateQueries({ queryKey: ['coverage'] });
-      queryClient.invalidateQueries({ queryKey: ['v_recent_ledger'] });
-      queryClient.invalidateQueries({ queryKey: ['daily_intelligence_hits'] });
-      // Rebuild + daily report no longer auto-chain from this import — both
-      // run only via the Daily Workflow button in DashboardView (operator's
-      // explicit one-click trigger). See MASTER_AUDIT.md → REFACTOR-01.
-    }
-  });
+  // IMPORT-REHAB-02 (2026-07-09): importDailyMutation removed. Daily Input
+  // wrote no engine data since BUG-130 (checklist marker only); the type is
+  // retired app-wide. Historic imports rows of type='daily_input' remain in
+  // the DB and stay visible/deletable in Import History.
 
   // ── runHitDetectionAndRefresh ─────────────────────────────────────────────────
   // Delegates to lib/hitDetection.ts for the core hit/snapshot/intelligence logic.
@@ -823,15 +727,12 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
       }
 
       const sinceCreated = lastSnapshotAt ? `&created_at=gt.${encodeURIComponent(lastSnapshotAt)}` : '';
-      const sinceUpdated = lastSnapshotAt ? `&updated_at=gt.${encodeURIComponent(lastSnapshotAt)}` : '';
       let changed = true;
       try {
         const checks = await Promise.all([
           fetchFromSupabase<any[]>({ path: `/rest/v1/datasets_box?select=id&scope=${scopeFilter}${sinceCreated}&limit=1` }),
           fetchFromSupabase<any[]>({ path: `/rest/v1/datasets_pair?select=id&scope=${scopeFilter}${sinceCreated}&limit=1` }),
-          fetchFromSupabase<any[]>({ path: `/rest/v1/percentile_maps?select=id&scope=${scopeFilter}${sinceUpdated}&limit=1` }),
-          fetchFromSupabase<any[]>({ path: `/rest/v1/horizon_blends?select=id&scope=${scopeFilter}${sinceUpdated}&limit=1` }),
-          fetchFromSupabase<any[]>({ path: `/rest/v1/imports?select=id&scope=${scopeFilter}&type=in.(daily_input,ledger)&status=eq.completed${lastSnapshotAt ? `&created_at=gt.${encodeURIComponent(lastSnapshotAt)}` : ''}&limit=1` }),
+          fetchFromSupabase<any[]>({ path: `/rest/v1/imports?select=id&scope=${scopeFilter}&type=eq.ledger&status=eq.completed${lastSnapshotAt ? `&created_at=gt.${encodeURIComponent(lastSnapshotAt)}` : ''}&limit=1` }),
         ]);
         const anyNew = checks.some(arr => Array.isArray(arr) && arr.length > 0);
         changed = lastSnapshotAt ? anyNew : true;
@@ -991,7 +892,6 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
 
   const refreshHealth = async () => { await healthQuery.refetch(); };
   const importHistory = (data: HistoryImportData) => importHistoryMutation.mutateAsync(data);
-  const importDailyInput = (data: DailyInputData) => importDailyMutation.mutateAsync(data);
   const importLedger = (data: LedgerImportData) => importLedgerMutation.mutateAsync(data);
   const regenerateSlate = async (scope: Scope, weightsKey?: 'balanced', force?: boolean, date?: string): Promise<RegenerateResult> => {
     try {
@@ -1005,8 +905,8 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
   };
 
   const isLoading = useMemo(() => {
-    return importHistoryMutation.isPending || importDailyMutation.isPending || importLedgerMutation.isPending || regenerateMutation.isPending;
-  }, [importHistoryMutation.isPending, importDailyMutation.isPending, importLedgerMutation.isPending, regenerateMutation.isPending]);
+    return importHistoryMutation.isPending || importLedgerMutation.isPending || regenerateMutation.isPending;
+  }, [importHistoryMutation.isPending, importLedgerMutation.isPending, regenerateMutation.isPending]);
 
   const softDeleteImport = useCallback(async (id: string) => {
     const nowIso = new Date().toISOString();
@@ -1118,7 +1018,6 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
 
   return useMemo(() => ({
     importHistory,
-    importDailyInput,
     importLedger,
     imports: importsQuery.data || [],
     auditLogs: auditQuery.data || [],
@@ -1131,11 +1030,10 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
     undoSoftDeleteImport,
     hardDeleteImport,
     clearAllImports,
-    lastImportSummary: importHistoryMutation.data ?? importLedgerMutation.data ?? importDailyMutation.data ?? null,
+    lastImportSummary: importHistoryMutation.data ?? importLedgerMutation.data ?? null,
     runHitDetectionAndRefresh,
   }), [
     importHistory,
-    importDailyInput,
     importLedger,
     importsQuery.data,
     auditQuery.data,

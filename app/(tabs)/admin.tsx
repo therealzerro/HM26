@@ -56,7 +56,7 @@ function AdminScreen() {
   const [view, setView] = useState('dashboard');
   const [wizardPreset, setWizardPreset] = useState<{ type: 'box_history' | 'pair_history'; jurisdiction: string } | null>(null);
   const { refreshSnapshot } = useSnapshot();
-  const { refreshHealth, regenerateSlate, checkSlateLock, imports, isLoading, healthMetrics, importHistory, importLedger, importDailyInput } = useDataIngestion();
+  const { refreshHealth, regenerateSlate, checkSlateLock, imports, isLoading, healthMetrics, importHistory, importLedger } = useDataIngestion();
   const { coveragePctH01Y, missingH01Y } = useCoverage();
   const { scope } = useScope();
 
@@ -90,7 +90,7 @@ function AdminScreen() {
       <View style={{ flex: 1 }}>
         {view === 'dashboard' && <DashboardView setView={setView} imports={imports ?? []} healthMetrics={healthMetrics} regenerateSlate={regenerateSlate} checkSlateLock={checkSlateLock} onOpenZK30Import={(type) => { setWizardPreset({ type, jurisdiction: 'TX' }); setView('wizard'); }} />}
         {view === 'brief' && <ErrorBoundary fallback="Brief view error"><BriefView /></ErrorBoundary>}
-        {view === 'wizard' && <ImportWizardView setView={setView} importHistory={importHistory} importLedger={importLedger} importDailyInput={importDailyInput} regenerateSlate={regenerateSlate} preset={wizardPreset} onClearPreset={() => setWizardPreset(null)} />}
+        {view === 'wizard' && <ImportWizardView setView={setView} importHistory={importHistory} importLedger={importLedger} regenerateSlate={regenerateSlate} preset={wizardPreset} onClearPreset={() => setWizardPreset(null)} />}
         {view === 'history' && <ImportHistoryView />}
         {view === 'matrix' && <ErrorBoundary fallback="Coverage matrix error"><CoverageMatrixView setView={setView} /></ErrorBoundary>}
         {view === 'health' && <HealthTestsView />}

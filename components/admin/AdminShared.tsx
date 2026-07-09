@@ -45,15 +45,6 @@ export interface ImportRecord {
 // ─── Constants ────────────────────────────────────────────────────────────────
 export const HORIZONS = ['H01Y','H02Y','H03Y','H04Y','H05Y','H06Y','H07Y','H08Y','H09Y','H10Y'];
 
-export const MOCK_IMPORTS: ImportRecord[] = [
-  { id:'i1', type:'box_history', class_id:1, horizon_label:'H01Y', scope:'midday', status:'completed', accepted:847, rejected:3, fixed:12, warnings:['3 rows had DS<0, auto-set to 0'], created_at:'2026-04-12T10:31:00', p99:287, first_seen:'2025-01-01', last_seen:'2026-04-12' },
-  { id:'i2', type:'pair_history', class_id:2, horizon_label:'H01Y', scope:'midday', status:'completed', accepted:612, rejected:0, fixed:4, warnings:[], created_at:'2026-04-12T10:35:00', p99:198, first_seen:'2025-01-01', last_seen:'2026-04-12' },
-  { id:'i3', type:'pair_history', class_id:3, horizon_label:'H01Y', scope:'midday', status:'completed', accepted:608, rejected:1, fixed:2, warnings:['1 pair key zero-padded'], created_at:'2026-04-12T10:38:00', p99:201, first_seen:'2025-01-01', last_seen:'2026-04-12' },
-  { id:'i4', type:'box_history', class_id:1, horizon_label:'H01Y', scope:'evening', status:'completed', accepted:831, rejected:5, fixed:9, warnings:['5 rows rejected: invalid date format'], created_at:'2026-04-11T18:20:00', p99:312, first_seen:'2025-01-02', last_seen:'2026-04-11' },
-  { id:'i5', type:'ledger', class_id:null, horizon_label:null, scope:'allday', status:'completed', accepted:1240, rejected:0, fixed:0, warnings:[], created_at:'2026-04-11T09:00:00', p99:null, first_seen:'2024-01-01', last_seen:'2026-04-11' },
-  { id:'i6', type:'daily_input', class_id:null, horizon_label:null, scope:'midday', status:'completed', accepted:22, rejected:0, fixed:0, warnings:[], created_at:'2026-04-13T14:00:00', p99:null, first_seen:null, last_seen:null },
-  { id:'i7', type:'box_history', class_id:1, horizon_label:'H02Y', scope:'allday', status:'failed', accepted:0, rejected:0, fixed:0, warnings:['Schema error: missing DrawsSince column'], created_at:'2026-04-10T11:00:00', p99:null, first_seen:null, last_seen:null },
-];
 
 // IMPORT_TYPES — color tokens resolved at consumption via useImportTypes().
 // Keeping the keys static here means dark-mode resolution is byte-identical
@@ -63,17 +54,9 @@ export function useImportTypes() {
   return useMemo(() => ([
     { id:'box_history', icon:'📦', label:'Box History', desc:'Unordered combo frequency data.\nOne file per scope × horizon (H01Y–H10Y).', color: colors.primary, headers:['Combo','Times Drawn','Expected','Last Seen','Draws Since'] },
     { id:'pair_history', icon:'🔗', label:'Pair History', desc:'Pair class frequency data.\nClasses 2–11, one file per class × scope × horizon.', color: colors.primary, headers:['Pair','TimesDrawn','LastSeen','DrawsSince'] },
-    { id:'daily_input', icon:'📅', label:'Daily Input', desc:'Daily checklist marker + audit trail only.\nEngine data comes from Ledger + Daily Workflow.', color: colors.gold, headers:['Combo','ComboSet','TimesDrawn','LastSeen','DrawsSince'] },
     { id:'ledger', icon:'📋', label:'Results Ledger', desc:'Paste raw results from lotterypost.com.\nAuto-parses state names, dates, and digits.', color: colors.success, headers:['State Name (header)', 'Game\tDate\tResult (rows)'] },
   ]), [colors]);
 }
-// Legacy static export — kept until callers migrate. Resolves to dark-mode colors.
-export const IMPORT_TYPES = [
-  { id:'box_history', icon:'📦', label:'Box History', desc:'Unordered combo frequency data.\nOne file per scope × horizon (H01Y–H10Y).', color:theme.colors.primary, headers:['Combo','Times Drawn','Expected','Last Seen','Draws Since'] },
-  { id:'pair_history', icon:'🔗', label:'Pair History', desc:'Pair class frequency data.\nClasses 2–11, one file per class × scope × horizon.', color:theme.colors.primary, headers:['Pair','TimesDrawn','LastSeen','DrawsSince'] },
-  { id:'daily_input', icon:'📅', label:'Daily Input', desc:'Daily checklist marker + audit trail only.\nEngine data comes from Ledger + Daily Workflow.', color:theme.colors.gold, headers:['Combo','ComboSet','TimesDrawn','LastSeen','DrawsSince'] },
-  { id:'ledger', icon:'📋', label:'Results Ledger', desc:'Paste raw results from lotterypost.com.\nAuto-parses state names, dates, and digits.', color:theme.colors.success, headers:['State Name (header)', 'Game\tDate\tResult (rows)'] },
-];
 
 export const PAIR_CLASSES = [
   {id:2, label:'Front Pair Straight (AB)'}, {id:3, label:'Back Pair Straight (BC)'}, {id:4, label:'Split Pair Straight (AC)'},

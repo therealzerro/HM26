@@ -118,11 +118,10 @@ function sortComboDigits(combo: string): string {
 }
 
 // ─── Import Wizard View ───────────────────────────────────────────────────────
-export default function ImportWizardView({ setView, importHistory, importLedger, importDailyInput, regenerateSlate, preset, onClearPreset }: {
+export default function ImportWizardView({ setView, importHistory, importLedger, regenerateSlate, preset, onClearPreset }: {
   setView: (v: string) => void;
   importHistory: (data: any) => Promise<any>;
   importLedger: (data: any) => Promise<any>;
-  importDailyInput: (data: any) => Promise<any>;
   regenerateSlate: (scope: any) => Promise<any>;
   preset?: { type: 'box_history' | 'pair_history'; jurisdiction: string } | null;
   onClearPreset?: () => void;
@@ -133,10 +132,6 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
   const [step, setStep] = useState(preset ? 1 : 0);
   const [importType, setImportType] = useState<string | null>(preset?.type ?? null);
   const todayDefault = useMemo(() => getTodayET(), []);
-  const yesterdayDefault = useMemo(() => {
-    const d = new Date(); d.setDate(d.getDate() - 1);
-    return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-  }, []);
   const [config, setConfig] = useState({ scope: 'midday', horizon: 'H01Y', class_id: 2, import_date: todayDefault });
   const [csvText, setCsvText] = useState('');
   const [parsed, setParsed] = useState<any>(null);
@@ -245,28 +240,6 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
           });
           setParsedData({ boxRows });
           setParsed({ headers: rawHeaders, totalRows: dataLines.filter(l => l.trim()).length, accepted, rejected, fixed, warnings, errors: [], fixes: [], sampleRows: boxRows.slice(0, 5).map(r => ({ Combo: r.key, 'Times Drawn': r.timesDrawn, Expected: r.expected, 'Last Seen': r.lastSeen, 'Draws Since': r.drawsSince })) });
-
-        } else if (importType === 'daily_input') {
-          const iCombo = idx('Combo'), iTimes = idx('TimesDrawn'), iLast = idx('LastSeen'), iDs = idx('DrawsSince');
-          if ([iCombo, iTimes, iLast, iDs].some(i => i < 0)) {
-            setParsed({ headers: rawHeaders, totalRows: 0, accepted: 0, rejected: 0, fixed: 0, warnings: ['Missing required columns: Combo, TimesDrawn, LastSeen, DrawsSince'], errors: [], fixes: [], sampleRows: [] });
-            setValidating(false); setStep(3); return;
-          }
-          const combos: string[] = [];
-          dataLines.forEach((line, i) => {
-            if (!line.trim()) return;
-            const c = (useTab ? line.split('\t') : line.split(',')).map(x => x.trim());
-            const combo = c[iCombo], timesDrawn = parseInt(c[iTimes], 10), lastSeen = c[iLast], rawDs = parseInt(c[iDs], 10);
-            if (!combo || isNaN(timesDrawn) || !lastSeen || isNaN(rawDs)) {
-              rejected++;
-              if (warnings.length < 5) warnings.push(`Row ${i + 2}: invalid or missing data`);
-              return;
-            }
-            accepted++;
-            combos.push(combo);
-          });
-          setParsedData({ combos });
-          setParsed({ headers: rawHeaders, totalRows: dataLines.filter(l => l.trim()).length, accepted, rejected, fixed, warnings, errors: [], fixes: [], sampleRows: combos.slice(0, 5).map(c => ({ Combo: c })) });
 
         } else if (importType === 'pair_history') {
           const iPair = idx('Pair'), iTimes = idx('TimesDrawn'), iLast = idx('LastSeen'), iDs = idx('DrawsSince');
@@ -502,13 +475,6 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
           states: states.length,
           dateRange,
         };
-      } else if (importType === 'daily_input') {
-        summary = await importDailyInput({
-          scope: config.scope,
-          combos: parsedData.combos ?? [],
-          import_date: config.import_date,
-          file_meta: { import_date: config.import_date, scope: config.scope },
-        });
       }
 
       setResult(summary);
@@ -520,7 +486,7 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
       setCommitError(msg);
       Alert.alert('Import Failed', msg);
     }
-  }, [importType, config, parsedData, parsed, importHistory, importLedger, importDailyInput, regenerateSlate]);
+  }, [importType, config, parsedData, parsed, importHistory, importLedger, regenerateSlate]);
 
   const steps = ['Type', 'Configure', 'Upload', 'Review', 'Done'];
 
@@ -553,9 +519,7 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
               {IMPORT_TYPES.map(t => (
                 <TouchableOpacity key={t.id} style={{ width: '47%' }} onPress={() => {
                   setImportType(t.id);
-                  // Daily input defaults to yesterday — most common case is importing yesterday's draws
-                  if (t.id === 'daily_input') setConfig(c => ({ ...c, import_date: yesterdayDefault }));
-                  else setConfig(c => ({ ...c, import_date: todayDefault }));
+                  setConfig(c => ({ ...c, import_date: todayDefault }));
                   setStep(1);
                 }} activeOpacity={0.8}>
                   <Card style={{ padding: 16, borderWidth: importType === t.id ? 2 : 1, borderColor: importType === t.id ? t.color : colors.border }}>
@@ -614,8 +578,8 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
               </>
             )}
 
-            {/* Date picker for daily_input and ledger */}
-            {(importType === 'daily_input' || importType === 'ledger') && (
+            {/* Date picker for ledger */}
+            {importType === 'ledger' && (
               <>
                 <Text style={st.fieldLabel}>IMPORT DATE</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
@@ -637,13 +601,6 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
                     })}
                   </View>
                 </ScrollView>
-                {importType === 'daily_input' && (
-                  <Card style={{ padding: 10, marginBottom: 14, backgroundColor: colors.primaryLight, borderColor: colors.primary + '28' }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: colors.primary }}>
-                      📅 This import will be tagged as date: {config.import_date} · scope: {config.scope}
-                    </Text>
-                  </Card>
-                )}
                 {importType === 'ledger' && (
                   <Card style={{ padding: 10, marginBottom: 14, backgroundColor: colors.tealLight, borderColor: colors.teal + '28' }}>
                     <Text style={{ fontSize: 11, fontWeight: '700', color: colors.teal }}>
@@ -660,7 +617,7 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
             <Card style={{ padding: 12, marginBottom: 18 }}>
               <Text style={{ fontSize: 11, fontWeight: '700', color: colors.text, marginBottom: 4 }}>Import will create:</Text>
               <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono }}>
-                {importType === 'box_history' ? 'Box Class (1)' : importType === 'pair_history' ? 'Pair Class (' + config.class_id + ')' : ''}{config.horizon ? ' · ' + config.horizon : ''} · Scope: {config.scope}{(importType === 'daily_input' || importType === 'ledger') ? ' · Date: ' + config.import_date : ''}
+                {importType === 'box_history' ? 'Box Class (1)' : importType === 'pair_history' ? 'Pair Class (' + config.class_id + ')' : ''}{config.horizon ? ' · ' + config.horizon : ''} · Scope: {config.scope}{importType === 'ledger' ? ' · Date: ' + config.import_date : ''}
               </Text>
             </Card>
             <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -772,11 +729,7 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
                 <Text style={{ fontSize: 11, color: colors.textSecondary, lineHeight: 18 }}>
                   {result.accepted} draw results upserted into histories (duplicates merged on the unique key){result.dateRange ? `\nDates: ${result.dateRange} · ${result.states} state${result.states === 1 ? '' : 's'}` : ''}
                 </Text>
-              ) : (
-                <Text style={{ fontSize: 11, color: colors.textSecondary, lineHeight: 18 }}>
-                  Checklist marker recorded for {config.scope} — shows ✅ on the Dashboard pipeline card.{'\n'}No engine data is written by this import type (BUG-130); the engine reads histories + datasets, refreshed by the Daily Workflow.
-                </Text>
-              )}
+              ) : null}
             </Card>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <TouchableOpacity style={st.btnPrimary} onPress={() => { setStep(0); setImportType(null); setParsed(null); setParsedData(null); setCsvText(''); setResult(null); setCommitError(null); }}>

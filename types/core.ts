@@ -9,6 +9,8 @@ export type Scope = 'midday' | 'evening' | 'allday';
 export type HorizonLabel = 'H01Y' | 'H02Y' | 'H03Y' | 'H04Y' | 'H05Y' | 
                            'H06Y' | 'H07Y' | 'H08Y' | 'H09Y' | 'H10Y';
 
+// 'daily_input' retired 2026-07-09 (IMPORT-REHAB-02) — kept in the union so
+// historic imports rows still deserialize; no new imports of this type exist.
 export type ImportType = 'box_history' | 'pair_history' | 'daily_input' | 'ledger';
 
 export interface ImportSummary {
@@ -51,14 +53,6 @@ export interface PairData {
   DrawsSince: number;
 }
 
-export interface DailyInputData {
-  Combo: string;
-  ComboSet: string;
-  TimesDrawn: number;
-  Expected?: number;
-  LastSeen: string;
-  DrawsSince: number;
-}
 
 export interface LedgerEntry {
   jurisdiction: string;

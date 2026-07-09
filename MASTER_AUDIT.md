@@ -248,6 +248,26 @@ Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`
 
 **Conclusion:** Not an engine bug. The shared slate is correctly surfacing high-value repeat-hitters; forcing them off degrades allday. The operator's real need ("don't show ME combos I've already closed") is a **personal closed-position filter**, best served by the existing `excludeComboSets` engine param — zero hit-rate cost to the product. Pending operator decision on direction. No production code changed; harness presets only. **(Superseded 2026-06-20 — see ENG-BLOCK-PERSCOPE-01 at top of this section: reframed as a regression, midday-only block shipped, operator declined the personal filter.)**
 
+### IMPORT-REHAB-02 — Daily Input import type RETIRED (2026-07-09)
+
+**Trigger:** operator, same day as IMPORT-REHAB-01: "why does the daily input tab exist, if the engine only requires results ledger?" — and it was right. Daily Input had written zero engine data since BUG-130 (2026-05-12); its entire daily product was the checklist checkmark confirming the paste was performed. Operator approved full removal ("remove entirely, and scope for any other removals").
+
+**Removed:**
+- Wizard: `daily_input` type card (both `useImportTypes` arrays), validate branch, commit branch, step-1 date-tag card, done-step copy, `yesterdayDefault` special-case.
+- Dashboard: three "Daily Input — Midday/Evening/All Day" checklist rows (checklist is now Results Ledger only, with the evening-overdue alert retargeted to it); PIPELINE STATUS card rewired from `imports.type='daily_input'` checkmarks to real signals — ledger imported today + midday/evening draws present in `histories` (from the IMPORT-REHAB-01 freshness fetch).
+- Coverage matrix: whole "Daily Input" tab (state, loader, lookups, 30-day grid, "picks may be stale" banner — which keyed off the marker, not data).
+- Import History: dedicated "Daily" filter chip (historic rows still render under All with the 📅 icon; hard-delete works with an honest message).
+- Hook: `importDailyMutation`, `importDailyInput` export, `DailyInputData` (both copies incl. `types/core.ts`), daily count in health metrics, `daily_input` in the regen delta-check (now ledger-only; also dropped the frozen percentile/blend delta probes).
+- **Bonus removals (the "anything else" sweep):** `MOCK_IMPORTS` fake-records fallback in DashboardView — an empty imports table now says "No imports recorded yet" instead of rendering seven fabricated April imports as if real; the unused legacy static `IMPORT_TYPES` export in AdminShared (zero importers).
+
+**Kept deliberately:** `'daily_input'` stays in the `ImportType` union + ImportHistory icon map + hardDeleteImport branch so historic `imports` rows (through 2026-07-09) still deserialize, render, and remain deletable. No DB changes.
+
+**Known dead-code residue (flagged, not removed):** `importHistoryMutation`'s `box_history` branch is now uncalled (wizard box uses the direct tripwired write) but is interleaved with the pair path rather than separable — removal would mean restructuring the mutation for zero behavior change. Revisit only if the mutation is touched again.
+
+**Operator's morning is now:** paste ledger → click Daily Workflow. Nothing else.
+
+**Verification:** tsc + eslint deltas vs HEAD: 0 (all remaining findings reproduce in untouched admin views).
+
 ### IMPORT-REHAB-01 — Import system aligned to what the engine actually reads (2026-07-09)
 
 **Trigger:** operator request post-OPS-03 ("repair and enhance the app's import system and screens to mirror what the engine actually currently uses, no old design; primary goal efficiency, accuracy"). Two mapping passes (full import-surface inventory + engine input-consumption inventory) diffed against each other; every claim below grep/DB-verified before change.

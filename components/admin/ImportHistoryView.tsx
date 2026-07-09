@@ -61,7 +61,7 @@ export default function ImportHistoryView() {
   const handleHardDelete = useCallback((id: string, importType?: string) => {
     const isDaily = importType === 'daily_input';
     const msg = isDaily
-      ? 'Daily input data is embedded in draws_since values and cannot be individually reversed. The import record will be removed.\n\nContinue?'
+      ? 'Daily Input imports were checklist/audit markers only (retired type, BUG-130) — no data rows exist. The import record will be removed.\n\nContinue?'
       : 'This permanently removes the import and all its associated data rows. This cannot be undone.';
     Alert.alert('Permanently Delete?', msg, [
       { text: 'Cancel', style: 'cancel' },
@@ -164,7 +164,7 @@ export default function ImportHistoryView() {
       <View style={{ backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border, padding: 10, flexDirection: 'row', alignItems: 'center' }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', gap: 4 }}>
-            {([['all','All'], ['box_history','Box'], ['pair_history','Pairs'], ['daily_input','Daily'], ['ledger','Ledger']] as [string,string][]).map(([id, lbl]) => (
+            {([['all','All'], ['box_history','Box'], ['pair_history','Pairs'], ['ledger','Ledger']] as [string,string][]).map(([id, lbl]) => (
               <TouchableOpacity key={id} style={[st.filterBtn, typeFilter === id && st.filterBtnOn]} onPress={() => setTypeFilter(id)}>
                 <Text style={[st.filterBtnText, typeFilter === id && { color: '#fff' }]}>{lbl}</Text>
               </TouchableOpacity>

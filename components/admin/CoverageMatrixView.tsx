@@ -12,7 +12,7 @@ import { SectionTitle, HORIZONS, PAIR_CLASSES, useSt, Card } from './AdminShared
 export default function CoverageMatrixView({ setView }: { setView: (v: string) => void }) {
   const { colors } = useTheme();
   const st = useSt();
-  const [matrixTab, setMatrixTab] = useState<'history' | 'daily_input' | 'results'>('history');
+  const [matrixTab, setMatrixTab] = useState<'history' | 'results'>('history');
 
   // ── Box/Pair History tab ──
   const [scopeTab, setScopeTab] = useState<'midday' | 'evening' | 'allday'>('midday');
@@ -25,9 +25,6 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
   const [clearConfirmText, setClearConfirmText] = useState('');
 
   // ── Daily Input tab ──
-  const [dailyImports, setDailyImports] = useState<{ scope: string; date: string }[]>([]);
-  const [dailyLoading, setDailyLoading] = useState(false);
-  const [dailyError, setDailyError] = useState<string | null>(null);
 
   // ── Results Ledger tab ──
   const [historyRows, setHistoryRows] = useState<{ date_et: string; session: string; jurisdiction: string }[]>([]);
@@ -112,26 +109,6 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
     }
   }, [clearModal, clearConfirmText, loadBoxPairData]);
 
-  const loadDailyData = useCallback(async () => {
-    setDailyLoading(true); setDailyError(null);
-    try {
-      const rows = await fetchFromSupabase<{ scope: string; created_at: string; file_meta: any }[]>({
-        path: '/rest/v1/imports?type=eq.daily_input&status=eq.completed&deleted_at=is.null&select=scope,created_at,file_meta&order=created_at.desc&limit=200',
-      });
-      setDailyImports((Array.isArray(rows) ? rows : []).map(r => {
-        // Use file_meta.import_date (the date the data is FOR), fall back to created_at date
-        let date = r.created_at ? r.created_at.split('T')[0] : '';
-        try {
-          const meta = typeof r.file_meta === 'string' ? JSON.parse(r.file_meta) : r.file_meta;
-          if (meta?.import_date) date = meta.import_date;
-        } catch {}
-        return { scope: r.scope, date };
-      }));
-    } catch (e) {
-      setDailyError(String(e instanceof Error ? e.message : e));
-    } finally { setDailyLoading(false); }
-  }, []);
-
   const loadHistoryData = useCallback(async () => {
     setHistoryLoading(true); setHistoryError(null);
     try {
@@ -162,24 +139,8 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
 
   useEffect(() => { loadBoxPairData(); }, [loadBoxPairData]);
   useEffect(() => {
-    if (matrixTab === 'daily_input') loadDailyData();
     if (matrixTab === 'results') loadHistoryData();
-  }, [matrixTab, loadDailyData, loadHistoryData]);
-
-  // ── Daily Input lookups ──
-  const dailySet = useMemo(() => {
-    const s = new Set<string>();
-    dailyImports.forEach(r => { if (r.date && r.scope) s.add(`${r.date}-${r.scope}`); });
-    return s;
-  }, [dailyImports]);
-  const last7DailyCount = useMemo(() => {
-    let count = 0;
-    last30Days.slice(0, 7).forEach(d => {
-      ['midday', 'evening', 'allday'].forEach(sc => { if (dailySet.has(`${d}-${sc}`)) count++; });
-    });
-    return count;
-  }, [dailySet, last30Days]);
-  const todayHasDailyInput = ['midday', 'evening', 'allday'].some(sc => dailySet.has(`${today}-${sc}`));
+  }, [matrixTab, loadHistoryData]);
 
   // ── Results lookups ──
   const resultsMap = useMemo(() => {
@@ -268,7 +229,6 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
       <View style={{ flexDirection: 'row', backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border, paddingHorizontal: 10, paddingVertical: 8, gap: 5 }}>
         {[
           { id: 'history', label: 'Box & Pair' },
-          { id: 'daily_input', label: 'Daily Input' },
           { id: 'results', label: 'Results' },
         ].map(t => (
           <TouchableOpacity
@@ -432,77 +392,6 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
             )}
           </ScrollView>
         )
-      )}
-
-      {/* ── Tab: Daily Input Coverage ── */}
-      {matrixTab === 'daily_input' && (
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-          <Text style={{ fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 4 }}>Daily Input Coverage</Text>
-          <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 12 }}>Last 30 days · GREEN = imported for that scope/day</Text>
-
-          <Card style={{ padding: 12, marginBottom: 8, backgroundColor: colors.primaryLight, borderColor: colors.primary + '33' }}>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: colors.primary }}>
-              Last 7 days: {last7DailyCount}/21 sessions imported
-            </Text>
-          </Card>
-
-          {!todayHasDailyInput && (
-            <Card style={{ padding: 12, marginBottom: 12, backgroundColor: colors.error + '15', borderColor: colors.error + '40' }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.error }}>
-                ⚠️ No daily input for today — ZK6 picks may be stale
-              </Text>
-            </Card>
-          )}
-
-          {dailyLoading ? (
-            <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 20 }} />
-          ) : dailyError ? (
-            <View style={{ alignItems: 'center', padding: 24, gap: 8 }}>
-              <Text style={{ fontSize: 24 }}>⚠️</Text>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: colors.error, textAlign: 'center' }}>{dailyError}</Text>
-              <TouchableOpacity style={st.btnPrimary} onPress={loadDailyData}><Text style={st.btnPrimaryText}>↺ Retry</Text></TouchableOpacity>
-            </View>
-          ) : (
-            <>
-              <View style={{ flexDirection: 'row', marginBottom: 6, paddingHorizontal: 2 }}>
-                <View style={{ width: 84 }}><Text style={{ fontSize: 9, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1 }}>DATE</Text></View>
-                {['MIDDAY', 'EVENING', 'ALL DAY'].map(sc => (
-                  <View key={sc} style={{ flex: 1, alignItems: 'center' }}>
-                    <Text style={{ fontSize: 8, fontWeight: '800', color: colors.textTertiary, letterSpacing: 0.5 }}>{sc}</Text>
-                  </View>
-                ))}
-              </View>
-              {last30Days.map(d => {
-                const isToday = d === today;
-                const isYday = d === yesterday;
-                return (
-                  <View key={d} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 3, paddingHorizontal: 2, backgroundColor: isToday ? colors.primaryLight + '55' : 'transparent', borderRadius: 6 }}>
-                    <View style={{ width: 84 }}>
-                      <Text style={{ fontSize: 10, color: isToday ? colors.primary : isYday ? colors.gold : colors.textSecondary, fontWeight: (isToday || isYday) ? '700' : '400', fontFamily: theme.typography.fontFamily.mono }}>
-                        {isToday ? 'Today' : isYday ? 'Yesterday' : formatDateShort(d)}
-                      </Text>
-                    </View>
-                    {(['midday', 'evening', 'allday'] as const).map(sc => {
-                      const has = dailySet.has(`${d}-${sc}`);
-                      return (
-                        <TouchableOpacity
-                          key={sc}
-                          style={{ flex: 1, marginHorizontal: 2, height: 28, borderRadius: 6, backgroundColor: has ? colors.successLight : colors.surfaceLight, borderWidth: 1, borderColor: has ? colors.success + '55' : colors.border + '44', alignItems: 'center', justifyContent: 'center' }}
-                          onPress={() => { if (!has) setView('wizard'); }}
-                          activeOpacity={has ? 1 : 0.65}
-                        >
-                          <Text style={{ fontSize: 11, color: has ? colors.success : colors.textTertiary }}>
-                            {has ? '✓' : '+'}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                );
-              })}
-            </>
-          )}
-        </ScrollView>
       )}
 
       {/* ── Tab: Results Ledger Coverage ── */}

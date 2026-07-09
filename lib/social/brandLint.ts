@@ -46,10 +46,9 @@ const STRICT_VOCAB: { re: RegExp; suggestion: string }[] = [
   { re: /\bhot picks\b/gi, suggestion: 'top signals / top patterns' },
   { re: /\btoday'?s picks\b/gi, suggestion: "today's signals / today's intelligence" },
   { re: /\bpicks?\b/gi, suggestion: 'signals / intelligence reports / data drops' },
-  { re: /\bhits?\b/gi, suggestion: 'patterns identified / signals matched / matches' },
   { re: /\bdaily heat\b/gi, suggestion: 'Daily Intelligence / Daily Data Drop' },
-  { re: /\bstraight\b/gi, suggestion: 'exact match' },
-  { re: /\bbox\b/gi, suggestion: 'partial match' },
+  { re: /\bstraight\b/gi, suggestion: 'STRAIGHT MATCH (exact)' },
+  { re: /\bbox\b/gi, suggestion: 'BOX MATCH (partial)' },
   { re: /\bplay(s|ed|ing)?\b/gi, suggestion: 'use / engage / apply' },
   { re: /\bgambl(e|ing|er)\b/gi, suggestion: '(remove — no gambling framing)' },
   { re: /\bbet(s|ting)?\b/gi, suggestion: '(remove — no gambling framing)' },
@@ -67,7 +66,18 @@ const UNIVERSAL_VOCAB: { re: RegExp; rule: string; suggestion: string }[] = [
   { re: /\bdon'?t miss out\b/gi, rule: 'no-urgency-hype', suggestion: 'calm, measured framing' },
   { re: /\blast chance\b/gi, rule: 'no-urgency-hype', suggestion: 'calm, measured framing' },
   { re: /\bact now\b/gi, rule: 'no-urgency-hype', suggestion: 'calm, measured framing' },
+  // Locked vocab law (§4a) — forbidden match labels on EVERY surface. The only
+  // approved labels are MATCH / BOX MATCH (box) and STRAIGHT MATCH (exact).
+  { re: /\bpartial match\b/gi, rule: 'vocab-law', suggestion: 'BOX MATCH' },
+  { re: /\bhits?\b/gi, rule: 'vocab-law', suggestion: 'MATCH / verified match' },
 ];
+
+/** US state abbreviations — for PUBLIC/cross-post attribution detection (§6). */
+const STATE_CODES = new Set([
+  'AZ','AR','CA','CO','CT','DE','FL','GA','ID','IL','IA','KS','KY','LA','MD','MI',
+  'MN','MS','MO','NE','NV','NJ','NM','NY','NC','ND','SC','SD','TN','TX','VA','VT',
+  'WA','WV','WI','DC',
+]);
 
 const EMOJI_RE = /\p{Extended_Pictographic}/gu;
 
@@ -116,6 +126,19 @@ export function lintCaption(caption: string, tier: SocialTier): LintResult {
             : 'no standalone 3-digit numbers on public/cross-post captions',
           blocking: !followedByWord,
         });
+      }
+    }
+
+    // §6 PUBLIC discipline (also cross-post to strangers): no pricing, no
+    // Pro/upgrade language, no state-code attribution.
+    const pricing = caption.match(/\$\s?\d|\/mo\b/i);
+    if (pricing) violations.push({ term: pricing[0], rule: 'public-no-pricing', suggestion: 'no pricing on public/cross-post (§6)', blocking: true });
+    const proLang = caption.match(/\b(pro tier|pro members?|inner[- ]circle|upgrade)\b/i);
+    if (proLang) violations.push({ term: proLang[0], rule: 'public-no-pro-language', suggestion: 'no Pro/upgrade language on public/cross-post (§6)', blocking: true });
+    for (const tok of caption.match(/\b[A-Z]{2}\b/g) ?? []) {
+      if (STATE_CODES.has(tok)) {
+        violations.push({ term: tok, rule: 'public-no-state-code', suggestion: 'no state-code attribution on public/cross-post (§6) — aggregate only', blocking: true });
+        break;
       }
     }
   }

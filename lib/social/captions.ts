@@ -37,12 +37,13 @@ export interface CaptionData {
   dateLabel: string;            // e.g. "7/9"
   totalSignals?: number;        // signals published yesterday (all scopes)
   verifiedCount?: number;       // signals that aligned with observed outcomes
-  jurisdictionCount?: number;   // distinct jurisdictions matched
-  matches?: ReportCardMatch[];  // per-jurisdiction lines (report card)
+  jurisdictionCount?: number;   // distinct jurisdictions matched (COUNT only — never listed on PUBLIC)
+  matches?: ReportCardMatch[];  // per-jurisdiction detail — FREE/PRO surfaces only, never PUBLIC (§6: no state codes/attribution)
   verified30d?: number;         // rolling 30-day verified total
   freeGroupUrl?: string;
   proUrl?: string;
   proPrice?: string;            // Pro group price, config-driven (app_config.social_pro_price)
+  allDay?: boolean;             // §6 FREE exception: the All-Day post is pure value — NO Pro pitch
 }
 
 /** Fallback Pro-group price. Live value comes from app_config.social_pro_price. */
@@ -96,35 +97,35 @@ function signalAnnounce(d: CaptionData, variant: number): string {
   const e = pick(LIVE_EMOJI, seed, variant);
   const method = pick(METHOD_PHRASES, seed + 'm', variant);
   const ctaFree = pick(CTA_FREE, seed + 'c', variant);
-  const ctaPro = pick(CTA_PRO, seed + 'p', variant);
+  // PUBLIC surface (§6): no pricing, no Pro/upgrade language. Free-community
+  // invite only — the Pro pitch lives in the FREE group, never on the page.
   return [
     `${e} ${d.dateLabel} daily intelligence — LIVE.`,
     '',
     `Today's pattern analysis is published in the community. ${method}`,
     '',
-    `${ctaFree}${ctaPro ? ' ' + ctaPro : ''}`,
+    ctaFree,
   ].join('\n');
 }
 
 function reportCard(d: CaptionData, variant: number): string {
   const seed = `rc-${d.dateLabel}`;
-  const lines: string[] = [`📊 Yesterday's report card — ${d.dateLabel}`, ''];
   const total = d.totalSignals ?? 0;
   const verified = d.verifiedCount ?? 0;
   const jx = d.jurisdictionCount ?? 0;
-  lines.push(
-    `Of ${total} signals across our daily intelligence reports, ${verified} aligned with observed outcomes across ${jx} jurisdiction${jx === 1 ? '' : 's'}:`,
+  // PUBLIC surface (§6): AGGREGATE ONLY. Jurisdiction COUNT is allowed; the
+  // per-state breakdown ("BOX MATCH — TN") is slate→draw attribution + state
+  // codes, both forbidden on public — that detail belongs to FREE/PRO. Vocab
+  // law (§4a): "matches" (approved), never "hits"/"partial".
+  const lines: string[] = [
+    `📊 Yesterday's report card — ${d.dateLabel}`,
     '',
-  );
-  for (const m of (d.matches ?? []).slice(0, 8)) {
-    lines.push(`• ${m.exact ? 'Exact match' : 'Partial match'} — ${m.jurisdiction}`);
-  }
-  if ((d.matches?.length ?? 0) > 8) lines.push(`• …and ${(d.matches!.length - 8)} more`);
-  lines.push('');
+    `Of ${total} signals across our daily intelligence reports, ${verified} aligned with observed outcomes across ${jx} jurisdiction${jx === 1 ? '' : 's'}.`,
+  ];
   if (d.verified30d != null) {
-    lines.push(`${d.verified30d} verified matches over the last 30 days. Methodology working as designed.`, '');
+    lines.push('', `${d.verified30d} verified matches over the last 30 days. Methodology working as designed.`);
   }
-  lines.push(pick(CTA_FREE, seed, variant).replace('link in bio.', 'full daily intelligence drops inside.'));
+  lines.push('', pick(CTA_FREE, seed, variant).replace('link in bio.', 'full daily intelligence drops inside.'));
   return lines.join('\n');
 }
 
@@ -132,7 +133,8 @@ function groupDrop(d: CaptionData, variant: number): string {
   const seed = `gd-${d.dateLabel}`;
   const e = pick(LIVE_EMOJI, seed, variant);
   const opener = pick(GROUP_OPENERS, seed + 'o', variant);
-  const pro = d.proUrl
+  // §6 FREE exception: the All-Day post is pure value — NO Pro pitch.
+  const pro = (d.proUrl && !d.allDay)
     ? `\n\nNot in the Pro tier yet? ${d.proUrl} — ${PRICE_TOKEN} for inner-circle drops first.`
     : '';
   return [

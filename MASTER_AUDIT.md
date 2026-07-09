@@ -248,6 +248,20 @@ Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`
 
 **Conclusion:** Not an engine bug. The shared slate is correctly surfacing high-value repeat-hitters; forcing them off degrades allday. The operator's real need ("don't show ME combos I've already closed") is a **personal closed-position filter**, best served by the existing `excludeComboSets` engine param — zero hit-rate cost to the product. Pending operator decision on direction. No production code changed; harness presets only. **(Superseded 2026-06-20 — see ENG-BLOCK-PERSCOPE-01 at top of this section: reframed as a regression, midday-only block shipped, operator declined the personal filter.)**
 
+### BRAND-06 — SOCIAL-01 surface-discipline compliance fixes (2026-07-09)
+
+**Trigger:** operator supplied the 2026-06-29 brand-safety context update (surface-discipline spec §6 + locked vocab law §4a), which revealed SOCIAL-01's caption engine shipped with brand-safety violations. Fixed same session before further build.
+
+**Violations found & fixed (`lib/social/captions.ts`, `brandLint.ts`, `supabase/functions/fb-publish`):**
+- **Vocab law (§4a, LOCKED):** public report-card caption emitted `• Exact match — TN` / `• Partial match — GA`. "Partial match" is forbidden; approved labels are MATCH / BOX MATCH (box) and STRAIGHT MATCH (exact). The lint's own *suggestion* strings also recommended "exact match"/"partial match" — self-defeating. Fixed suggestions; added `partial match` + `hits?` to UNIVERSAL (all-tier) blocking with correct replacements.
+- **§6 PUBLIC discipline:** the report card leaked **state codes + slate→draw attribution** (per-jurisdiction lines) and **signal_announce leaked pricing + Pro/upgrade language** — all forbidden on public. report_card is now aggregate-only (counts + jurisdiction COUNT, no per-state lines); signal_announce dropped the Pro CTA (free-community invite only). Added lint rules (tier 1/3): `public-no-pricing`, `public-no-pro-language`, `public-no-state-code` (curated US-abbr set).
+- **§6 FREE All-Day exception:** the All-Day free-group post must be pure value, no Pro pitch. Added `allDay` flag to CaptionData; group_drop suppresses the Pro CTA when set.
+- **Server-side mirror:** `fb-publish` tier1Violations extended with partial-match, pricing, Pro-language, pick-formatted digits, and state-code checks — the page is the API surface, so this is the last line before Meta's classifier. Redeployed.
+
+**Verified:** all 20 caption variants lint-clean at their own tier; §6 adversarial set (state codes / pricing / Pro-language / hit+partial vocab) all caught; All-Day drops Pro pitch. Confirmed the reel/label EXPORT (`SlatePosterCard`, `admin-image-export`) was ALREADY clean (no "partial match") — §4a's prior export bug stayed fixed; only the new social code had reintroduced it. tsc clean.
+
+**Not in scope (logged for the separate launch backlog, operator doc §4b/§4c):** Track Record row-render bug (BOX rows showing draw value in the pick column) and jurisdiction-count reconciliation (37/38 live vs "40" brand figure) — these are consumer-screen/track-record issues, not the social-publishing surface; flagged here so they aren't lost.
+
 ### SOCIAL-01 — In-app Facebook publishing system (2026-07-09)
 
 **Operator goal:** post daily slates + user-friendly briefs from the app to the HitMaster Facebook page/groups with caption generation, to grow followers + Pro subscriptions. **Context:** page is currently RECOMMENDED again (operator, 7/9 — won back via correct posting); the system encodes the Brand Rehab Skill Brief v2 discipline mechanically so the recommendation never depends on manual judgment.

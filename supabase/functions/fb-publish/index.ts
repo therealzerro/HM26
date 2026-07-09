@@ -58,24 +58,42 @@ function json(status: number, body: unknown): Response {
   });
 }
 
-// ── Tier-1 vocabulary lint (server-side defense-in-depth) ────────────────────
-// Subset of the Brand Rehab brief §5 forbidden list. The client runs the full
-// engine with suggestions; this guard exists so a bug or bypassed client can
-// never put forbidden vocabulary on the public page silently.
+// ── Tier-1 / PUBLIC surface lint (server-side defense-in-depth) ──────────────
+// The page is the API-published surface, so this guard is the last line before
+// Meta's classifier. Encodes the brief §5 forbidden list + the 2026-06-29
+// surface-discipline update §6 (PUBLIC: no digits, no draw results, no
+// slate→draw attribution, no state codes, no pricing, no Pro/upgrade language)
+// + the locked vocab law §4a (no HIT/HITS/PARTIAL MATCH). The client runs the
+// full engine with suggestions; this ensures a bug or bypassed client can
+// never put non-compliant content on the page silently.
 const TIER1_FORBIDDEN: RegExp[] = [
   /\blottery\b/i, /\blotto\b/i, /\bpick ?3\b/i,
   /\bwinning\b/i, /\bwinners?\b/i, /\bwon\b/i, /\bwin\b/i,
-  /\bpicks?\b/i, /\bhits?\b/i, /\bstraight\b/i, /\bbox\b/i,
+  /\bpicks?\b/i, /\bhits?\b/i, /\bpartial match\b/i, /\bstraight\b/i, /\bbox\b/i,
   /\bplay(s|ed|ing)?\b/i, /\bgambl(e|ing)\b/i, /\bbet(s|ting)?\b/i,
   /\bluck(y)?\b/i, /\bjackpot\b/i, /\bpayout\b/i, /\bfortune\b/i,
   /\bget rich\b/i, /\beasy money\b/i, /\bguaranteed\b/i,
+  // §6 PUBLIC: no pricing, no Pro/upgrade language
+  /\$\s?\d/, /\/mo\b/i, /\b(pro tier|pro members?|inner[- ]circle|upgrade)\b/i,
+  // §6 PUBLIC: no pick-formatted digits / draw results
+  /\d\s*[-·.]\s*\d\s*[-·.]\s*\d/, /\{\s*\d\s*,\s*\d\s*,\s*\d\s*\}/,
 ];
+
+const STATE_CODES = new Set([
+  'AZ','AR','CA','CO','CT','DE','FL','GA','ID','IL','IA','KS','KY','LA','MD','MI',
+  'MN','MS','MO','NE','NV','NJ','NM','NY','NC','ND','SC','SD','TN','TX','VA','VT',
+  'WA','WV','WI','DC',
+]);
 
 function tier1Violations(caption: string): string[] {
   const v: string[] = [];
   for (const re of TIER1_FORBIDDEN) {
     const m = caption.match(re);
     if (m) v.push(m[0]);
+  }
+  // §6 PUBLIC: no state-code attribution
+  for (const tok of caption.match(/\b[A-Z]{2}\b/g) ?? []) {
+    if (STATE_CODES.has(tok)) { v.push(tok); break; }
   }
   return v;
 }

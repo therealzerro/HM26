@@ -5,10 +5,19 @@
  * Matches the style of existing assets/zk6_jurisdiction_correlation_*.pdf.
  *
  * Usage:
- *   tsx scripts/generate-jurisdiction-report.ts            # today
- *   tsx scripts/generate-jurisdiction-report.ts 2026-06-10 # specific date
+ *   tsx scripts/generate-jurisdiction-report.ts                    # today, jurisdiction report
+ *   tsx scripts/generate-jurisdiction-report.ts 2026-06-10         # specific date
+ *   tsx scripts/generate-jurisdiction-report.ts --no-jurisdiction  # all-states pick-intelligence report
+ *   tsx scripts/generate-jurisdiction-report.ts 2026-06-25 --no-jurisdiction
  *
- * Output: assets/zk6_jurisdiction_correlation_<date>.pdf
+ * Output:
+ *   default          → assets/zk6_jurisdiction_correlation_<date>.pdf
+ *   --no-jurisdiction → assets/zk6_pick_intelligence_<date>.pdf
+ *
+ * --no-jurisdiction drops every state/jurisdiction table and instead ranks
+ * today's picks purely by calibrated P(hit) (CALIB-01), cross-scope
+ * convergence, and 14-day momentum — the view for an operator who plays all
+ * states, where which jurisdiction printed is irrelevant.
  *
  * Hooked into the morning brief workflow — Claude runs this after the
  * morning brief queries so the operator gets both the chat output AND
@@ -29,8 +38,9 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 
 // ----- Date handling --------------------------------------------------------
 
-const arg = process.argv[2];
-const reportDate = arg && /^\d{4}-\d{2}-\d{2}$/.test(arg) ? arg : isoDate(new Date());
+const noJurisdiction = process.argv.includes('--no-jurisdiction');
+const dateArg = process.argv.slice(2).find(a => /^\d{4}-\d{2}-\d{2}$/.test(a));
+const reportDate = dateArg ?? isoDate(new Date());
 
 function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -262,6 +272,247 @@ function round1(x: number): number {
   return Math.round(x * 10) / 10;
 }
 
+// ----- Pick-intelligence report (--no-jurisdiction) -------------------------
+//
+// State-agnostic view: ranks today's picks by calibrated P(hit) (CALIB-01),
+// cross-scope convergence, and 14d momentum. No jurisdiction tables — for an
+// operator playing all states, "which state printed" carries no information.
+
+interface Calib {
+  b: number; w: number[]; std: number[]; mean: number[];
+  base_rates: Record<string, number>; fitted_at: string;
+}
+
+// Replicates docs/queries/pick_probabilities.sql logistic, in TS.
+function pHitSingles(c: Calib, scope: string, box: number, pburst: number, co: number, dgc: number): number {
+  const ev = scope === 'evening' ? 1 : 0;
+  const md = scope === 'midday' ? 1 : 0;
+  const feats = [ev, md, box, pburst, co, dgc];
+  let z = c.b;
+  for (let i = 0; i < 6; i++) {
+    const std = c.std[i] || 1;
+    z += c.w[i] * ((feats[i] - c.mean[i]) / std);
+  }
+  return 1 / (1 + Math.exp(-z));
+}
+
+interface PickIntel {
+  scope: string; slatePos: number; combo: string; comboSet: string;
+  bestOrder: string; tag: string; hits14d: number; multiplicity: string;
+  pHit: number; stakeShare: number;
+  convScopes: string[];   // all scopes whose slate carries this comboSet today
+}
+
+async function buildPickReport() {
+  console.log(`[gen] Building pick-intelligence (all-states) report for ${reportDate}`);
+
+  // 1. Calibration coefficients
+  const cfgRows = await sb<{ value: any }[]>(
+    `/rest/v1/app_config?select=value&key=eq.pick_prob_calibration`,
+  );
+  if (!cfgRows.length) throw new Error('app_config.pick_prob_calibration not found');
+  const raw = cfgRows[0].value;
+  const calib: Calib = typeof raw === 'string' ? JSON.parse(raw) : raw;
+
+  // 2. Today's slates → comboSet / 14d / tag / slate position + convergence
+  const todaySlates = await sb<SlateRow[]>(
+    `/rest/v1/slate_snapshots?select=scope,slate_date,top_k_straights_json` +
+    `&deleted_at=is.null&mode=eq.balanced&slate_date=eq.${reportDate}` +
+    `&order=scope.asc&limit=10`,
+  );
+  if (!todaySlates.length) throw new Error(`No slates found for ${reportDate}`);
+
+  // (scope|combo) → slate metadata
+  const slateMeta = new Map<string, { slatePos: number; comboSet: string; bestOrder: string; tag: string; hits14d: number }>();
+  // comboSet → set of scopes carrying it today (convergence)
+  const convergence = new Map<string, Set<string>>();
+  for (const s of todaySlates) {
+    const picks = Array.isArray(s.top_k_straights_json) ? s.top_k_straights_json as any[] : [];
+    for (const p of picks) {
+      const combo = String(p.combo);
+      const comboSet = String(p.comboSet);
+      slateMeta.set(`${s.scope}|${combo}`, {
+        slatePos: Number(p.rank),
+        comboSet,
+        bestOrder: String(p.bestOrder ?? combo),
+        tag: String(p.tag ?? ''),
+        hits14d: Number(p.recentStateHits14d ?? 0),
+      });
+      if (!convergence.has(comboSet)) convergence.set(comboSet, new Set());
+      convergence.get(comboSet)!.add(s.scope);
+    }
+  }
+
+  // 3. daily_intelligence on-slate picks → signals (the calibration inputs)
+  interface DIRow {
+    scope: string; combo: string; best_order: string; multiplicity: string;
+    signal_box: string; signal_pburst: string; signal_co: string; signal_dgc: string;
+  }
+  const diRows = await sb<DIRow[]>(
+    `/rest/v1/daily_intelligence?select=scope,combo,best_order,multiplicity,signal_box,signal_pburst,signal_co,signal_dgc` +
+    `&mode=eq.balanced&on_slate=is.true&slate_date=eq.${reportDate}`,
+  );
+
+  // 4. Score each pick
+  const scored: PickIntel[] = [];
+  for (const d of diRows) {
+    const meta = slateMeta.get(`${d.scope}|${d.combo}`);
+    const box = parseFloat(d.signal_box), pb = parseFloat(d.signal_pburst);
+    const co = parseFloat(d.signal_co), dgc = parseFloat(d.signal_dgc);
+    const pHit = d.multiplicity !== 'singles'
+      ? (calib.base_rates[d.scope] ?? 0)
+      : pHitSingles(calib, d.scope, box, pb, co, dgc);
+    const comboSet = meta?.comboSet ?? '';
+    scored.push({
+      scope: d.scope,
+      slatePos: meta?.slatePos ?? 0,
+      combo: d.combo,
+      comboSet,
+      bestOrder: meta?.bestOrder ?? d.best_order ?? d.combo,
+      tag: meta?.tag ?? '',
+      hits14d: meta?.hits14d ?? 0,
+      multiplicity: d.multiplicity,
+      pHit,
+      stakeShare: 0,
+      convScopes: comboSet ? Array.from(convergence.get(comboSet) ?? []).sort() : [],
+    });
+  }
+
+  // 5. Stake share = p_hit normalized within scope
+  const scopeTotals = new Map<string, number>();
+  for (const p of scored) scopeTotals.set(p.scope, (scopeTotals.get(p.scope) ?? 0) + p.pHit);
+  for (const p of scored) {
+    const tot = scopeTotals.get(p.scope) ?? 0;
+    p.stakeShare = tot > 0 ? (p.pHit / tot) * 100 : 0;
+  }
+
+  // Board ranking: highest P(hit) first
+  scored.sort((a, b) => b.pHit - a.pHit || a.scope.localeCompare(b.scope) || a.slatePos - b.slatePos);
+
+  // Convergence groups (comboSets on >1 scope today)
+  const convGroups = Array.from(convergence.entries())
+    .filter(([, sc]) => sc.size > 1)
+    .map(([comboSet, sc]) => {
+      const members = scored.filter(p => p.comboSet === comboSet);
+      const maxP = Math.max(...members.map(m => m.pHit), 0);
+      return { comboSet, scopes: Array.from(sc).sort(), members, maxP };
+    })
+    .sort((a, b) => b.maxP - a.maxP);
+
+  return { calib, scored, convGroups };
+}
+
+function renderPickHtml(date: string, data: Awaited<ReturnType<typeof buildPickReport>>): string {
+  const { calib, scored, convGroups } = data;
+  const gen = new Date().toISOString().replace('T', ' ').slice(0, 16);
+
+  const fmtConv = (p: PickIntel) =>
+    p.convScopes.length > 1 ? p.convScopes.map(s => s[0].toUpperCase()).join('+') : '—';
+  const fmtTag = (t: string) => t ? t.charAt(0).toUpperCase() + t.slice(1) : '—';
+
+  const boardRows = scored.map((p, i) => `
+    <tr${p.convScopes.length > 1 ? ' class="conv"' : ''}>
+      <td>${i + 1}</td>
+      <td class="combo">${p.combo}</td>
+      <td>${p.scope} · r${p.slatePos}</td>
+      <td class="num"><b>${round1(p.pHit * 100)}%</b></td>
+      <td class="num">${round1(p.stakeShare)}%</td>
+      <td class="num">${p.hits14d}</td>
+      <td>${fmtConv(p)}</td>
+      <td>${fmtTag(p.tag)}</td>
+    </tr>`).join('');
+
+  const convRows = convGroups.map(g => {
+    const detail = g.members
+      .sort((a, b) => a.scope.localeCompare(b.scope))
+      .map(m => `${m.scope} r${m.slatePos} (${round1(m.pHit * 100)}%, ${m.bestOrder})`)
+      .join(' · ');
+    const setStr = g.comboSet.replace(/[{}]/g, '');
+    return `<tr>
+      <td class="combo">${setStr}</td>
+      <td>${g.scopes.map(s => s[0].toUpperCase()).join('+')}</td>
+      <td class="num">${round1(g.maxP * 100)}%</td>
+      <td class="detail">${detail}</td>
+    </tr>`;
+  }).join('');
+
+  // Ride recommendation: best convergent set, then best non-convergent by P(hit)
+  const primary = convGroups[0];
+  const topNonConv = scored.find(p => p.convScopes.length <= 1);
+  const ride = [];
+  if (primary) {
+    const setStr = primary.comboSet.replace(/[{}]/g, '');
+    const orders = Array.from(new Set(primary.members.map(m => m.bestOrder))).join(' / ');
+    ride.push(`<div class="takeaway">• <b>PRIMARY — ${setStr}</b> (box, all states). Strongest cross-scope convergence (${primary.scopes.join('+')}), peak calibrated P(hit) ${round1(primary.maxP * 100)}%. Two live draws on the same set. Straight kicker: ${orders}.</div>`);
+  }
+  if (topNonConv) {
+    ride.push(`<div class="takeaway">• <b>SECONDARY — ${topNonConv.combo}</b> (${topNonConv.scope}, box). Highest single-scope calibrated P(hit) ${round1(topNonConv.pHit * 100)}% with no convergence; 14d momentum ${topNonConv.hits14d}.</div>`);
+  }
+
+  // Calibration provenance + staleness
+  const fittedDate = String(calib.fitted_at).slice(0, 10);
+  const ageDays = Math.round((new Date(date + 'T12:00:00').getTime() - new Date(fittedDate + 'T12:00:00').getTime()) / 86400000);
+  const staleNote = ageDays > 14
+    ? `<div class="takeaway" style="color:#b00;">• ⚠️ Calibration is ${ageDays} days old (fitted ${fittedDate}). Refit: <code>npm run calibrate:picks</code> and re-check the Brier gate before trusting these probabilities.</div>`
+    : `<div class="takeaway">• Calibration fitted ${fittedDate} (${ageDays}d old) — fresh.</div>`;
+
+  return `<!doctype html>
+<html><head><meta charset="utf-8"><title>ZK6 Pick Intelligence Report</title>
+<style>
+  @page { size: letter; margin: 0.6in; }
+  body { font-family: 'Helvetica', 'Arial', sans-serif; color: #111; font-size: 10pt; line-height: 1.4; }
+  h1 { color: #1c4587; font-size: 22pt; margin: 0 0 4px 0; }
+  h2 { color: #1c4587; font-size: 14pt; margin: 16px 0 6px 0; }
+  .subhead { color: #555; font-size: 9pt; margin-bottom: 4px; }
+  .method { font-size: 9pt; color: #444; margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 10px 0; font-size: 9pt; }
+  th { background: #4a86e8; color: white; padding: 6px 8px; text-align: left; font-weight: 600; font-size: 9pt; }
+  td { padding: 5px 8px; border-bottom: 1px solid #e0e0e0; }
+  tr:nth-child(even) td { background: #f6f8fc; }
+  tr.conv td { background: #fff6e0 !important; }
+  td.combo { font-family: 'Courier New', monospace; font-weight: 600; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.detail { font-size: 8.5pt; color: #333; }
+  .narrative { font-size: 9.5pt; color: #333; margin: 4px 0 8px 0; }
+  .takeaway { margin: 4px 0; font-size: 10pt; }
+  .takeaway b { color: #1c4587; }
+  .legend { font-size: 8.5pt; color: #777; margin: 2px 0 8px 0; }
+  .source { margin-top: 18px; font-size: 8pt; color: #777; font-style: italic; border-top: 1px solid #ddd; padding-top: 6px; }
+</style></head>
+<body>
+
+<h1>ZK6 Pick Intelligence Report</h1>
+<div class="subhead">All-states view · Generated ${gen} UTC · report date ${date}</div>
+<div class="method">Methodology: picks are ranked by calibrated P(hit) — the CALIB-01 logistic probability that the combo box-matches at least one draw in its scope window today, across <b>all</b> jurisdictions. Jurisdiction/state tables are intentionally omitted: for all-states play, which state prints carries no actionable signal. Cross-scope convergence (same combo set on more than one scope's slate) and 14-day momentum are the tie-breakers.</div>
+
+<h2>1. Picks Ranked by Hit-Likelihood (state-agnostic)</h2>
+<table>
+<tr><th>#</th><th>Combo</th><th>Scope · Pos</th><th>P(hit)</th><th>Stake %</th><th>14d</th><th>Conv</th><th>Tag</th></tr>
+${boardRows}
+</table>
+<div class="legend">Stake % = P(hit) normalized within scope. Conv = scope set when the combo appears on more than one slate (highlighted rows). 14d = engine recentStateHits14d momentum.</div>
+
+<h2>2. Cross-Scope Convergence</h2>
+<div class="narrative">Combo sets carried on more than one scope's slate today — broadest daily coverage (multiple live draws on the same set).</div>
+<table>
+<tr><th>Combo Set</th><th>Scopes</th><th>Peak P(hit)</th><th>Detail (scope · pos · P(hit) · straight)</th></tr>
+${convRows || '<tr><td colspan="4"><em>No cross-scope convergence today.</em></td></tr>'}
+</table>
+
+<h2>3. Ride Recommendation</h2>
+<div class="narrative">For 1–2 max-bet combos ridden until a hit (operator's style), all states:</div>
+${ride.join('\n') || '<div class="takeaway">• No clear standout — see board above.</div>'}
+
+<h2>4. Notes</h2>
+${staleNote}
+<div class="takeaway">• These are calibrated estimates on 2026-05-13+ outcomes; the top bucket mildly over-predicts (validation: pred 17.7% vs actual 12.2%). Treat P(hit) ≥ 15% as "strong," not a promise.</div>
+<div class="takeaway">• Doubles/triples picks fall back to the scope base rate (off-model), not a per-pick estimate.</div>
+
+<div class="source">Source: slate_snapshots + daily_intelligence + app_config.pick_prob_calibration (Supabase, project hitmaster). Generated by scripts/generate-jurisdiction-report.ts --no-jurisdiction. Decision-layer only — nothing here feeds pick selection.</div>
+
+</body></html>`;
+}
+
 // ----- HTML template --------------------------------------------------------
 
 function renderHtml(date: string, data: Awaited<ReturnType<typeof buildReport>>): string {
@@ -374,16 +625,19 @@ ${leaderTakeaway ? `<div class="takeaway">• ${leaderTakeaway} Highest single-j
 // ----- Main -----------------------------------------------------------------
 
 async function main() {
-  const data = await buildReport();
+  const slug = noJurisdiction ? 'zk6_pick_intelligence' : 'zk6_jurisdiction_correlation';
 
-  const html = renderHtml(reportDate, data);
-  const tmpHtmlPath = `/tmp/zk6_jurisdiction_correlation_${reportDate}.html`;
+  const html = noJurisdiction
+    ? renderPickHtml(reportDate, await buildPickReport())
+    : renderHtml(reportDate, await buildReport());
+
+  const tmpHtmlPath = `/tmp/${slug}_${reportDate}.html`;
   writeFileSync(tmpHtmlPath, html);
   console.log(`[gen] HTML written: ${tmpHtmlPath}`);
 
   const outDir = join(process.cwd(), 'assets');
   mkdirSync(outDir, { recursive: true });
-  const pdfPath = join(outDir, `zk6_jurisdiction_correlation_${reportDate}.pdf`);
+  const pdfPath = join(outDir, `${slug}_${reportDate}.pdf`);
 
   console.log('[gen] Launching headless chromium...');
   const browser = await chromium.launch();

@@ -459,6 +459,30 @@ function PublishInner() {
     }
   }, [content, caption, lint.ok, q1No, q2No, loadHistory]);
 
+  const cancelScheduled = useCallback(async (p: any) => {
+    const ok = await confirmAsync(
+      'Cancel this scheduled post?',
+      `"${String(p.caption).slice(0, 60)}…" will be removed from the page queue before it publishes.`,
+    );
+    if (!ok) return;
+    setBusy(true);
+    setResultMsg('⏳ Cancelling scheduled post…');
+    try {
+      await fbPublish.cancelScheduled({ fbPostId: String(p.fb_post_id), rowId: String(p.id) });
+      setResultMsg('🗑️ Scheduled post cancelled — it will not publish.');
+      loadHistory();
+    } catch (e: any) {
+      if (e?.code === 'already_published') {
+        setResultMsg('ℹ️ Too late — that post already went live on the page. Nothing was deleted; the log row is now marked published.');
+        loadHistory();
+      } else if (e?.code === 'graph_check_failed' || e?.code === 'graph_delete_failed') {
+        setResultMsg('❌ Facebook refused the cancel — check the page, then refresh the log.');
+      } else setResultMsg(`❌ ${String(e?.message ?? e)}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [loadHistory]);
+
   // ── GROUP lanes (assisted) ──
   const copyCaption = useCallback(async () => {
     await Clipboard.setStringAsync(caption);
@@ -926,6 +950,15 @@ function PublishInner() {
             <Text style={{ fontSize: 9, color: colors.textTertiary }} numberOfLines={1}>
               {timeAgo(p.created_at)}{p.override_used ? ' · ⚠️ lint override' : ''} — {String(p.caption).slice(0, 80)}
             </Text>
+            {p.status === 'scheduled' && p.fb_post_id ? (
+              <TouchableOpacity
+                style={{ alignSelf: 'flex-start', marginTop: 5, paddingVertical: 3, paddingHorizontal: 8, borderRadius: 6, borderWidth: 1, borderColor: colors.error, opacity: busy ? 0.5 : 1 }}
+                disabled={busy}
+                onPress={() => cancelScheduled(p)}
+              >
+                <Text style={{ fontSize: 10, fontWeight: '700', color: colors.error }}>✕ Cancel scheduled post</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         ))}
       </Card>

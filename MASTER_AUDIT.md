@@ -248,6 +248,16 @@ Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`
 
 **Conclusion:** Not an engine bug. The shared slate is correctly surfacing high-value repeat-hitters; forcing them off degrades allday. The operator's real need ("don't show ME combos I've already closed") is a **personal closed-position filter**, best served by the existing `excludeComboSets` engine param — zero hit-rate cost to the product. Pending operator decision on direction. No production code changed; harness presets only. **(Superseded 2026-06-20 — see ENG-BLOCK-PERSCOPE-01 at top of this section: reframed as a regression, midday-only block shipped, operator declined the personal filter.)**
 
+### SOCIAL-09 — Cancel scheduled page posts, with live-post deletion guard (2026-07-10)
+
+**Feature (roadmap "page scheduling" follow-on):** scheduled page posts (tomorrow-8:15a ET buttons) previously had no in-app recall — once scheduled, the only way to pull one back was Meta Business Suite. New end-to-end cancel path:
+- **Edge fn `fb-publish` v7** — new `cancel_scheduled` action (Graph DELETE on the unpublished post id → log row PATCHed to `status='cancelled'`). Failed log PATCHes are surfaced to function logs instead of swallowed.
+- **`fbPublishClient.cancelScheduled({fbPostId, rowId})`** + PublishView: `✕ Cancel scheduled post` button on `status='scheduled'` rows in the publish log, behind `confirmAsync` (BUG-ALERT-WEB-01 pattern).
+
+**Safety guard (caught pre-ship, live data proved it):** nothing advances a `scheduled` log row when Meta auto-publishes at the scheduled time (live example: row `6057074c…`, scheduled 7/9 19:59 UTC, still `scheduled` after going live) — and Graph DELETE succeeds on LIVE posts too. Unguarded, a cancel click after publish time would have **silently deleted a live page post**. The action now GETs `?fields=is_published` first: `true` → refuses with `already_published`, self-heals the log row to `published` (UI explains + refreshes); check failure → refuses with `graph_check_failed` (never deletes unverified). The stale 7/9 row will self-heal on first operator interaction.
+
+**Verified:** `status='cancelled'` accepted by `social_posts` (live insert/delete probe — no CHECK constraint); tsc/eslint delta 0 (touched files clean; `Deno` globals pre-existing pattern); v7 ACTIVE, verify_jwt=true confirmed via smoke test (401 no-JWT, 401 wrong-admin-key). Full cancel path not exercisable locally (needs ADMIN_OPS_KEY + page token, server-side by design) — operator: first click on the stale 7/9 row should report "already published" and correct the log.
+
 ### SOCIAL-08 — AI-cover rule + one-tap presets; Pro-group non-post diagnosed (2026-07-09)
 
 - **RULE (operator):** any AI-generated brand image is the COVER — position 0. `aiBrandImage` now prepends and dedupes (one cover max); `buildPostKit` preserves an existing AI cover at the front of the kit. Facebook uses the first image as the post cover / first slide.

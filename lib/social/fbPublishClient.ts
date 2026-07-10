@@ -71,4 +71,6 @@ export const fbPublish = {
   logAssist: (p: { caption: string; tier: number; kind: string; targetName: string; imageMeta?: Record<string, unknown> | null }) =>
     callFbPublish<{ ok: boolean; duplicateToday: boolean; duplicates: { id: string; target_name: string }[] }>('log_assist', p),
   listPosts: (limit = 20) => callFbPublish<{ posts: any[] }>('list_posts', { limit }),
+  cancelScheduled: (p: { fbPostId: string; rowId?: string }) =>
+    callFbPublish<{ ok: boolean; cancelled: boolean }>('cancel_scheduled', p),
 };

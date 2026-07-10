@@ -34,7 +34,7 @@
  *
  * POST body: { action: string; payload?: Record<string, unknown> }
  * Actions: ping | status | publish_page_text | publish_page_photo |
- *          log_assist | list_posts
+ *          log_assist | list_posts | cancel_scheduled
  */
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -292,6 +292,51 @@ Deno.serve(async (req: Request) => {
           image_meta: imageMeta, status: 'assist_handoff',
         });
         return json(200, { ok: true, duplicateToday: Array.isArray(dups) && dups.length > 0, duplicates: dups });
+      }
+
+      case 'cancel_scheduled': {
+        // Pull back a scheduled page post before it publishes. Graph DELETE on
+        // the (unpublished) post id removes it; we then mark the log row
+        // 'cancelled'. rowId lets us reconcile the log even if the FB delete
+        // fails so the operator sees the true state.
+        if (!FB_PAGE_TOKEN) return json(400, { error: 'FB secrets not configured' });
+        const fbPostId = String(payload.fbPostId ?? '').trim();
+        const rowId = payload.rowId != null ? String(payload.rowId) : '';
+        if (!fbPostId) return json(400, { error: 'fbPostId required' });
+
+        const patchRow = async (fields: Record<string, unknown>) => {
+          if (!rowId) return;
+          const pr = await fetch(`${SUPABASE_URL}/rest/v1/social_posts?id=eq.${rowId}`, {
+            method: 'PATCH',
+            headers: { apikey: SERVICE_KEY, Authorization: 'Bearer ' + SERVICE_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+            body: JSON.stringify(fields),
+          });
+          if (!pr.ok) console.error('[fb-publish] cancel_scheduled log patch failed:', pr.status, await pr.text());
+        };
+
+        // GUARD: nothing advances the log row when Meta auto-publishes at the
+        // scheduled time, so 'scheduled' rows can be stale. Graph DELETE works
+        // on LIVE posts too — verify the post is still unpublished first, or a
+        // cancel click after publish time would silently remove a live page post.
+        const chk = await fetch(`${GRAPH}/${fbPostId}?fields=is_published&access_token=${encodeURIComponent(FB_PAGE_TOKEN)}`);
+        let chkBody: Record<string, unknown> = {};
+        try { chkBody = await chk.json(); } catch { /* non-JSON */ }
+        if (!chk.ok) {
+          return json(502, { error: 'graph_check_failed', detail: chkBody?.error ?? chkBody });
+        }
+        if (chkBody?.is_published === true) {
+          await patchRow({ status: 'published', error_text: null });
+          return json(409, { error: 'already_published' });
+        }
+
+        const r = await fetch(`${GRAPH}/${fbPostId}?access_token=${encodeURIComponent(FB_PAGE_TOKEN)}`, { method: 'DELETE' });
+        let body: Record<string, unknown> = {};
+        try { body = await r.json(); } catch { /* non-JSON */ }
+        const deleted = r.ok && body?.success !== false;
+
+        if (!deleted) return json(502, { error: 'graph_delete_failed', detail: body?.error ?? body });
+        await patchRow({ status: 'cancelled', error_text: 'cancelled by operator' });
+        return json(200, { ok: true, cancelled: true });
       }
 
       case 'list_posts': {

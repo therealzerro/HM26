@@ -504,6 +504,15 @@ Operator-approved follow-up to SCOPE-2026-07-23. Method: stored `slate_snapshots
 
 **Audited-clean (for future reference):** zero anon-write stragglers post-SEC-05 (every table write uses adminOpsFetch); no truthy-event bugs; no busy-state deadlocks; no dead routes; BriefView/zk30 share paths already natively correct via view-shot; modal-backdrop `onPress={()=>{}}` handlers are intentional; `AdaptiveLearningView` `window.filter` is a local variable, not the DOM global.
 
+### PUB-IOS-01 — Native iOS publish flow stabilized end-to-end (CLOSED 2026-07-23, operator-verified)
+
+Follow-through on BTN-AUDIT's native capture work — four device-tested iterations, full Pro-group all-day post confirmed working on iOS Expo Go (commits `9d15005`→`95d36e7`):
+1. **Verified Photos saves** — writeOnly iOS permission ("Add Photos Only"), file-integrity check, `createAssetAsync` (returned asset = proof-of-save), per-image error naming the exact file.
+2. **Camera-roll ordering** — native group flows save in REVERSE array order: Photos/FB picker list newest-first, so the AI cover (array pos 0) now appears FIRST in the attach picker, then slate → signal cards → brief in true post order.
+3. **OOM crash class eliminated** — captures held as multi-MB base64 in JS state + RN `Image` decoding all nine 1080×1920 thumbnails at full res (~75MB) jetsam-killed Expo Go on post. Fixes: view-shot `result:'tmpfile'` (file URIs, flat JS heap), AI cover persisted to cache file on arrival (with keep-in-memory fallback so a billed image is never dropped), `expo-image` thumbnails (display-size decode), 150ms breather between Photos saves, page-API publish reads base64 back only at send time (`toDataUrl`).
+4. **URI normalization** — iOS view-shot can return schemeless raw paths; save/read now branch on `data:` vs file reference and prefix `file://` where absent (was the "brief missing" all-fail abort). Stale captures (view-shot tmp wiped on app cold start / reload) now error explicitly: "expired — tap Build Images again".
+Also: AI image-gen client timeout 120s→180s (a server-successful, billed generation was lost to a client abort; `ai_generations` showed zero server-side errors all day). Operational note: any app reload between Build Images and posting requires a rebuild — captures don't survive reloads.
+
 ### BUG-167 — Engine Config Save always 23505s on existing keys: upsert missing on_conflict=key (FIXED 2026-07-23)
 
 **Symptom (operator smoke, SEC-05):** Save in EngineConfigView → `upstream 409 … duplicate key value violates unique constraint "app_config_key_key"` on `synergy_boost_on`. **Not a gateway/migration failure** — the 409 came from Postgres through a fully-working gateway path (auth + allowlist + proxy all passed), and the identical request fails on the old anon transport too.

@@ -60,6 +60,17 @@ const CONTENTS: ContentKind[] = ['report_card', 'signal_announce', 'slate_drop',
 const SESSIONS: SocialSession[] = ['midday', 'evening', 'allday'];
 const SESSION_UI: Record<SocialSession, string> = { midday: '☀️ Midday', evening: '🌙 Evening', allday: '◈ All-Day' };
 
+// QUICK POST presets. `key` doubles as the deep-link value:
+//   /admin?view=publish&preset=<key>&session=<midday|evening|allday>
+const QUICK_PRESETS: { key: string; label: string; icon: string; srf: Surface; cnt: ContentKind; useSession?: boolean }[] = [
+  { key: 'public_report', label: 'Public Report Card', icon: '📣', srf: 'public', cnt: 'report_card' },
+  { key: 'free_slate', label: 'Free Slate Drop', icon: '👥', srf: 'free', cnt: 'slate_drop', useSession: true },
+  { key: 'pro_slate', label: 'Pro Slate Drop', icon: '💎', srf: 'pro', cnt: 'slate_drop', useSession: true },
+  { key: 'free_brief', label: 'Free Brief', icon: '📰', srf: 'free', cnt: 'brief' },
+];
+
+export interface PublishDeepLinkPreset { preset: string; session?: string }
+
 interface ImageItem { label: string; filename: string; dataUrl: string }
 
 function mdLabel(iso: string): string {
@@ -100,12 +111,18 @@ function imagePlan(surface: Surface, content: ContentKind): { label: string; kin
   return { label: 'Digit-redacted mosaic slate + JOIN FREE banner (§6 sanctioned public variant).', kind: 'redacted_slate' };
 }
 
-function PublishInner() {
+interface PublishInnerProps {
+  initialPreset?: PublishDeepLinkPreset | null;
+  onPresetConsumed?: () => void;
+}
+
+function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
   const { colors } = useTheme();
   const st = useSt();
 
   const [pageStatus, setPageStatus] = useState<PageStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
+  const [configLoaded, setConfigLoaded] = useState(false);
   const [surface, setSurface] = useState<Surface | null>(null);
   const [content, setContent] = useState<ContentKind | null>(null);
   const [session, setSession] = useState<SocialSession>('midday');
@@ -196,6 +213,8 @@ function PublishInner() {
         });
         setUrls(map);
       } catch { /* optional */ }
+      // Deep-link autorun waits for this — captions need the group URLs above.
+      setConfigLoaded(true);
     })();
   }, [loadHistory]);
 
@@ -285,6 +304,24 @@ function PublishInner() {
     // Auto-build the images so the preset lands ready to publish/share.
     if (imagePlan(srf, cnt).kind !== 'none') buildPostKitRef.current?.(srf, cnt, s);
   }, [session, buildCaption]);
+
+  // Deep-link preset autorun (SOCIAL-11): /admin?view=publish&preset=free_slate
+  // &session=midday lands here with the preset already parsed by admin.tsx.
+  // Runs once, only after app_config URLs are loaded (captions embed them).
+  const autorunDone = useRef(false);
+  useEffect(() => {
+    if (!configLoaded || !initialPreset || autorunDone.current) return;
+    autorunDone.current = true;
+    onPresetConsumed?.();
+    const p = QUICK_PRESETS.find(q => q.key === initialPreset.preset);
+    if (!p) {
+      setResultMsg(`❌ Unknown preset "${initialPreset.preset}" — valid: ${QUICK_PRESETS.map(q => q.key).join(', ')}.`);
+      return;
+    }
+    const sess = (SESSIONS as string[]).includes(initialPreset.session ?? '')
+      ? initialPreset.session as SocialSession : undefined;
+    applyPreset(p.srf, p.cnt, p.useSession ? (sess ?? session) : undefined);
+  }, [configLoaded, initialPreset, onPresetConsumed, applyPreset, session]);
 
   // ── AI generation ──
   const aiCaption = useCallback(async () => {
@@ -484,10 +521,19 @@ function PublishInner() {
   }, [loadHistory]);
 
   // ── GROUP lanes (assisted) ──
+  // SOCIAL-10: group/cross lanes hard-gate on lint like the page lane does —
+  // a blocked caption must not leave the app via copy, share, or prep.
+  const lintBlocked = useCallback((): boolean => {
+    if (lint.ok) return false;
+    setResultMsg('❌ Caption blocked — fix the ⛔ violations above before it leaves the app (they protect every surface, not just the page).');
+    return true;
+  }, [lint.ok]);
+
   const copyCaption = useCallback(async () => {
+    if (lintBlocked()) return;
     await Clipboard.setStringAsync(caption);
     setResultMsg('📋 Caption copied — paste it inside Facebook.');
-  }, [caption]);
+  }, [caption, lintBlocked]);
 
   // Default the destination to the configured group for the chosen surface.
   // Free → free group; Pro → pro group; Cross → blank (operator pastes the
@@ -534,6 +580,7 @@ function PublishInner() {
   // hands ALL images to the FB app in one gesture. Operator picks the group and
   // pastes. Auto-logs on success.
   const shareAllToFacebook = useCallback(async () => {
+    if (lintBlocked()) return;
     if (images.length === 0) { setResultMsg('❌ Build the images first.'); return; }
     setBusy(true);
     try {
@@ -547,13 +594,14 @@ function PublishInner() {
     } finally {
       setBusy(false);
     }
-  }, [images, caption, logHandoff]);
+  }, [images, caption, logHandoff, lintBlocked]);
 
   // ── ONE-CLICK (desktop): copy caption + download all images + open group ──
   // Desktop browsers can't share files into the FB web composer (cross-origin),
   // so this collapses the manual prep into a single click; the operator then
   // drags the downloaded images into the composer and pastes.
   const prepAndOpen = useCallback(async () => {
+    if (lintBlocked()) return;
     setBusy(true);
     try {
       await Clipboard.setStringAsync(caption);
@@ -567,7 +615,7 @@ function PublishInner() {
     } finally {
       setBusy(false);
     }
-  }, [caption, images, destUrl, surface, urls, logHandoff]);
+  }, [caption, images, destUrl, surface, urls, logHandoff, lintBlocked]);
 
   const publishableImage = images.length > 0 ? images[0] : undefined;
 
@@ -602,14 +650,9 @@ function PublishInner() {
       {/* QUICK POST — one-tap daily presets */}
       <SectionTitle>⚡ QUICK POST</SectionTitle>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-        {([
-          { label: 'Public Report Card', icon: '📣', srf: 'public' as Surface, cnt: 'report_card' as ContentKind },
-          { label: 'Free Slate Drop', icon: '👥', srf: 'free' as Surface, cnt: 'slate_drop' as ContentKind, useSession: true },
-          { label: 'Pro Slate Drop', icon: '💎', srf: 'pro' as Surface, cnt: 'slate_drop' as ContentKind, useSession: true },
-          { label: 'Free Brief', icon: '📰', srf: 'free' as Surface, cnt: 'brief' as ContentKind },
-        ]).map(p => (
+        {QUICK_PRESETS.map(p => (
           <TouchableOpacity
-            key={p.label}
+            key={p.key}
             style={{ flexGrow: 1, minWidth: '47%', flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: colors.primary + '55', backgroundColor: colors.primaryLight }}
             onPress={() => applyPreset(p.srf, p.cnt, p.useSession ? session : undefined)}
             activeOpacity={0.8}
@@ -881,8 +924,8 @@ function PublishInner() {
                   human still picks the group + pastes the caption either way. */}
               {canShareAll ? (
                 <TouchableOpacity
-                  style={[st.btnPrimary, { paddingVertical: 14, opacity: busy || images.length === 0 ? 0.5 : 1 }]}
-                  disabled={busy || images.length === 0}
+                  style={[st.btnPrimary, { paddingVertical: 14, opacity: busy || images.length === 0 || !lint.ok ? 0.5 : 1 }]}
+                  disabled={busy || images.length === 0 || !lint.ok}
                   onPress={shareAllToFacebook}
                 >
                   <Text style={[st.btnPrimaryText, { fontSize: 14 }]}>
@@ -891,8 +934,8 @@ function PublishInner() {
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
-                  style={[st.btnPrimary, { paddingVertical: 14, opacity: busy ? 0.5 : 1 }]}
-                  disabled={busy}
+                  style={[st.btnPrimary, { paddingVertical: 14, opacity: busy || !lint.ok ? 0.5 : 1 }]}
+                  disabled={busy || !lint.ok}
                   onPress={prepAndOpen}
                 >
                   <Text style={[st.btnPrimaryText, { fontSize: 14 }]}>
@@ -908,7 +951,7 @@ function PublishInner() {
 
               {/* individual steps (fallback / à la carte) */}
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-                <TouchableOpacity style={[st.btnGhost, { flex: 1, minWidth: 100 }]} onPress={copyCaption}>
+                <TouchableOpacity style={[st.btnGhost, { flex: 1, minWidth: 100, opacity: lint.ok ? 1 : 0.5 }]} disabled={!lint.ok} onPress={copyCaption}>
                   <Text style={st.btnGhostText}>📋 Copy Caption</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[st.btnGhost, { flex: 1, minWidth: 100, opacity: destUrl.trim() ? 1 : 0.6 }]} disabled={!destUrl.trim()} onPress={openFacebook}>
@@ -986,10 +1029,10 @@ function PublishInner() {
   );
 }
 
-export default function PublishView() {
+export default function PublishView(props: PublishInnerProps) {
   return (
     <AdminKeyGate>
-      <PublishInner />
+      <PublishInner {...props} />
     </AdminKeyGate>
   );
 }

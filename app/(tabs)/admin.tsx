@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
 import { useSnapshot } from '@/hooks/useSnapshot';
@@ -28,7 +28,7 @@ import ProSubscribersView from '@/components/admin/ProSubscribersView';
 import SubscriberImportView from '@/components/admin/SubscriberImportView';
 import FunnelDashboardView from '@/components/admin/FunnelDashboardView';
 import BriefView from '@/components/admin/BriefView';
-import PublishView from '@/components/admin/PublishView';
+import PublishView, { PublishDeepLinkPreset } from '@/components/admin/PublishView';
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
 const NAV = [
@@ -55,7 +55,19 @@ const NAV = [
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 function AdminScreen() {
   const { colors } = useTheme();
-  const [view, setView] = useState('dashboard');
+  // Deep-link support (SOCIAL-11): /admin?view=publish&preset=free_slate&session=midday
+  // lets the operator bookmark a routine post — one tap replaces 5 navigation taps
+  // plus the preset tap. Params are read once at mount; in-app nav wins afterwards.
+  const params = useLocalSearchParams<{ view?: string; preset?: string; session?: string }>();
+  const [view, setView] = useState(() => {
+    const v = typeof params.view === 'string' ? params.view : '';
+    return NAV.some(n => n.id === v && !('route' in n && n.route)) ? v : 'dashboard';
+  });
+  const [publishPreset, setPublishPreset] = useState<PublishDeepLinkPreset | null>(() =>
+    typeof params.preset === 'string' && params.preset
+      ? { preset: params.preset, session: typeof params.session === 'string' ? params.session : undefined }
+      : null,
+  );
   const [wizardPreset, setWizardPreset] = useState<{ type: 'box_history' | 'pair_history'; jurisdiction: string } | null>(null);
   const { refreshSnapshot } = useSnapshot();
   const { refreshHealth, regenerateSlate, checkSlateLock, imports, isLoading, healthMetrics, importHistory, importLedger } = useDataIngestion();
@@ -92,7 +104,7 @@ function AdminScreen() {
       <View style={{ flex: 1 }}>
         {view === 'dashboard' && <DashboardView setView={setView} imports={imports ?? []} healthMetrics={healthMetrics} regenerateSlate={regenerateSlate} checkSlateLock={checkSlateLock} onOpenZK30Import={(type) => { setWizardPreset({ type, jurisdiction: 'TX' }); setView('wizard'); }} />}
         {view === 'brief' && <ErrorBoundary fallback="Brief view error"><BriefView /></ErrorBoundary>}
-        {view === 'publish' && <ErrorBoundary fallback="Publish view error"><PublishView /></ErrorBoundary>}
+        {view === 'publish' && <ErrorBoundary fallback="Publish view error"><PublishView initialPreset={publishPreset} onPresetConsumed={() => setPublishPreset(null)} /></ErrorBoundary>}
         {view === 'wizard' && <ImportWizardView setView={setView} importHistory={importHistory} importLedger={importLedger} regenerateSlate={regenerateSlate} preset={wizardPreset} onClearPreset={() => setWizardPreset(null)} />}
         {view === 'history' && <ImportHistoryView />}
         {view === 'matrix' && <ErrorBoundary fallback="Coverage matrix error"><CoverageMatrixView setView={setView} /></ErrorBoundary>}

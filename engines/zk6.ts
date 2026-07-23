@@ -134,13 +134,17 @@ async function fetchRaw(scopeEnc: string): Promise<{ boxRows: any[]; pairRows: a
   // client `limit`. The pair fetch was returning ~1000 of 1370+ rows per scope,
   // silently dropping the highest-class / oldest-horizon rows. Paginate via
   // offset until a page returns fewer than pageSize rows.
+  // BUG-166: every paginated order MUST carry a unique key — unordered (or
+  // date_et-only) pagination has unspecified tie order at page boundaries, so
+  // rows get dropped/duplicated after heap churn (the BUG-163 mechanism).
   const fetchPairRowsPaginated = async (): Promise<any[]> => {
     const all: any[] = [];
     const pageSize = 1000;
     for (let offset = 0; offset < 20000; offset += pageSize) {
       const page = await fetchFromSupabase<any[]>({
         path: `/rest/v1/datasets_pair?scope=eq.${scopeEnc}&deleted_at=is.null&jurisdiction=is.null` +
-              `&select=key,key_pair,class_id,ds_raw,times_drawn,horizon_label&limit=${pageSize}&offset=${offset}`,
+              `&select=key,key_pair,class_id,ds_raw,times_drawn,horizon_label` +
+              `&order=id.asc&limit=${pageSize}&offset=${offset}`,
       });
       const arr = Array.isArray(page) ? page : [];
       all.push(...arr);
@@ -341,7 +345,7 @@ async function fetchWarmingHistory(
       const page = await fetchFromSupabase<any[]>({
         path: `/rest/v1/histories?select=comboset_sorted,date_et` +
           `&date_et=gte.${fromDate}&date_et=lt.${todayEt}` +
-          `&order=date_et.desc&limit=${pageSize}&offset=${offset}`,
+          `&order=date_et.desc,id.desc&limit=${pageSize}&offset=${offset}`,
       });
       const arr = Array.isArray(page) ? page : [];
       for (const r of arr) {
@@ -378,7 +382,7 @@ async function fetchStateStrengthHistory(
       const page = await fetchFromSupabase<any[]>({
         path: `/rest/v1/histories?select=comboset_sorted,jurisdiction,date_et` +
           `&date_et=gte.${fromDate}&date_et=lt.${todayEt}` +
-          `&order=date_et.desc&limit=${pageSize}&offset=${offset}`,
+          `&order=date_et.desc,id.desc&limit=${pageSize}&offset=${offset}`,
       });
       const arr = Array.isArray(page) ? page : [];
       for (const r of arr) {
@@ -419,7 +423,7 @@ async function fetchStateAggregation(
       const page = await fetchFromSupabase<any[]>({
         path: `/rest/v1/histories?select=comboset_sorted,jurisdiction` +
           `&date_et=gte.${fromDate}&date_et=lt.${todayEt}` +
-          `&order=date_et.desc&limit=${pageSize}&offset=${offset}`,
+          `&order=date_et.desc,id.desc&limit=${pageSize}&offset=${offset}`,
       });
       const arr = Array.isArray(page) ? page : [];
       for (const r of arr) {
@@ -519,7 +523,7 @@ async function fetchHistoryOverrides(scope: Scope): Promise<{
     const pageSize = 1000;
     for (let offset = 0; offset < 20000; offset += pageSize) {
       const page = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/histories?select=result_digits,date_et${sessionClause}&order=date_et.desc&limit=${pageSize}&offset=${offset}`,
+        path: `/rest/v1/histories?select=result_digits,date_et${sessionClause}&order=date_et.desc,id.desc&limit=${pageSize}&offset=${offset}`,
       });
       const arr = Array.isArray(page) ? page : [];
       rows.push(...arr);
@@ -1210,17 +1214,23 @@ export async function computeSlate({
   const effectiveExcluded = new Set<string>(excludedCombos);
 
   // Source A: histories table (raw draw results from imports) — [blockFromEt, today]
+  // BUG-166: ordered + paginated — an unordered 1000-capped query returns an
+  // arbitrary subset once the block window outgrows the cap.
   try {
-    const recentWinners = await fetchFromSupabase<any[]>({
-      path: `/rest/v1/histories?date_et=gte.${blockFromEt}&date_et=lte.${todayEt}&select=result_digits&limit=1000`,
-    });
-    if (Array.isArray(recentWinners)) {
-      recentWinners.forEach(w => {
+    const pageSize = 1000;
+    for (let offset = 0; offset < 10000; offset += pageSize) {
+      const recentWinners = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/histories?date_et=gte.${blockFromEt}&date_et=lte.${todayEt}&select=result_digits` +
+          `&order=date_et.desc,id.desc&limit=${pageSize}&offset=${offset}`,
+      });
+      const arr = Array.isArray(recentWinners) ? recentWinners : [];
+      arr.forEach(w => {
         if (typeof w?.result_digits === 'string' && /^\d{3}$/.test(w.result_digits)) {
           todayHitComboSets.add(toComboSet(w.result_digits));
           effectiveExcluded.add(w.result_digits);
         }
       });
+      if (arr.length < pageSize) break;
     }
   } catch (e) {
     console.log('[zk6v2] histories exclusion fetch warn (non-fatal):', e);

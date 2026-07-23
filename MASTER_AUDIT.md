@@ -439,7 +439,7 @@ tsc/eslint delta 0.
 
 **CALIB-01 refit (brief Q6 dependency):** `pick_prob_calibration` was fitted 2026-06-24 (28d > 14d refit threshold). `npm run calibrate:picks` on the post-backfill dataset: n=5148, test Brier 0.03585 ≤ trivial 0.03667 → SHIPPABLE, monotone quintile reliability; payload applied to `app_config` 2026-07-22 (fitted_at 2026-07-22T20:55Z). Decision-layer only — no engine behavior change.
 
-### BUG-163 — `computeSlateAsOf` recompute is nondeterministic run-to-run (parity checker flip-flop; likely root of the ~1.7pp backtest noise) — OPEN, root-caused (2026-07-22)
+### BUG-163 — `computeSlateAsOf` recompute is nondeterministic run-to-run (parity checker flip-flop; root of the ~1.7pp backtest noise) — FIXED in harness (2026-07-23); prod mirrors tracked as BUG-166
 
 **Symptom:** With all writes settled (no imports, no hit detection running), consecutive read-only `backfill:parity` runs on the SAME date flip between 18/18 EXACT and 12-17/18 differs. Observed 7/22 on dates 2026-07-17/19/20/21/22 (e.g. 7/21: 14/18 → 18/18 → 12/18 → 18/18 across four runs minutes apart). Pre-backfill prod date 7/10 stable 3/3 EXACT. Same-config backtest replay run-to-run variance (~1.7pp, memory'd 2026-06) is almost certainly the same defect surfacing in aggregate.
 
@@ -449,7 +449,24 @@ tsc/eslint delta 0.
 
 **Impact:** perturbs BOX/pair aggregates by a handful of rows per run → occasionally flips a rank-5/6 tail pick in as-of recomputes. Parity "differs" verdicts on settled data are therefore unreliable evidence of snapshot drift; require a differs verdict to REPLICATE before acting on it. Prod edge fn shares the pagination pattern (BUG-152 mirror) — audit `compute-slate-zk6` for the same non-unique-order defect before assuming prod is immune.
 
-**Proposed fix (not shipped — harness change alters backtest numbers, needs its own baseline/candidate run per the engine-change rule):** append a unique tiebreaker to every paginated order (`order=date_et.desc,id.desc`) and give `fetchYesterdayResults` the same order+pagination treatment. After fix, re-measure backtest run-to-run variance — expect ~1.7pp noise to collapse, which tightens every future ship-gate margin.
+**Fix (shipped 2026-07-23, `scripts/backtest/replay.ts`):** unique `,id.desc` tiebreaker appended to the paginated order in `fetchHistoryRows` / `fetchWarmingHistory` / `fetchStateHistory`; `fetchYesterdayResults` rewritten with `order=date_et.desc,id.desc` + real pagination (was unordered `limit=2000`, silently capped at 1000). Plus a **third defect site the 7/22 root-cause missed**: `fetchPairRows` paginated `datasets_pair` with NO order at all — 1,370 rows/scope = a live page boundary, and the table is heap-churned by the daily rebuild, so this was an active noise source, not latent. Fixed with `order=id.asc`. tsc clean.
+
+**Validation (2026-07-23, `dbl_fix_singles6`, 30d window 2026-06-23→07-22, same-day runs):**
+- BASELINE (pre-fix, 2 identical runs): overall pick 24.1% vs 25.0%, overall slate 76.7% vs 77.8%, midday slate 53.3% vs 60.0% (6.7pp swing); the two runs even flagged different rank-inversion warnings. Noise replicated exactly as root-caused.
+- CANDIDATE (post-fix, 2 identical runs): **byte-identical output** — run-to-run variance collapsed to zero. Deterministic numbers: overall pick 22.4%, slate 73.3% (midday 60.0 / evening 80.0 / allday 80.0). Candidate sits 1.7–2.6pp below the noisy baseline band — within the known noise amplitude; the pre-fix band was flattered by arbitrary row drops/dupes. Engine math unchanged; this corrects the measuring stick, so the CANDIDATE≥BASELINE gate is satisfied in kind (baseline numbers were not real). All future ship-gates compare against deterministic reruns; the >2pp noise margin can be retired for same-day same-harness comparisons.
+- Parity checker (shares these loaders): 3× runs on 2026-07-21 now give identical verdicts (was 14/18→18/18→12/18→18/18 on 7/22).
+
+**Post-fix parity caveat (IMPORTANT — supersedes "differs must replicate"):** differs verdicts are now stable, but cross-day parity is confounded by the documented current-datasets approximation in `computeSlateAsOf` (times_drawn from today's `datasets_box`/`datasets_pair`, rebuilt every workflow morning). Verified 2026-07-23: prod control 7/10 (3/3 EXACT on 7/22) now stably mismatches evening/allday exactly like backfilled 7/21, with zero histories rows imported under either date's window since the writes — i.e. the mismatch is dataset-rebuild drift, not snapshot corruption. **Parity verdicts are only meaningful same-morning, against the same dataset build the writer used** (consistent with the existing DI-parity runbook). No snapshot rewrites indicated.
+
+### BUG-166 — production engine paths mirror the BUG-163 pagination defect — OPEN, audited (2026-07-23)
+
+BUG-163's follow-up audit confirmed prod is NOT immune. Both production compute paths carry the same defect sites as the pre-fix harness:
+- `engines/zk6.ts` (RN engine): `datasets_pair` pagination with no ORDER BY (~line 140); four `histories` loaders ordered by non-unique `date_et.desc` only (lines ~344, 381, 422, 522).
+- `supabase/functions/compute-slate-zk6` (edge fn, the live daily writer since v24): identical five sites (pair pagination ~line 433; histories loaders ~lines 577, 612, 649, 736).
+
+**Impact:** the daily slate compute can drop/duplicate rows at page boundaries after heap churn (imports + rebuilds happen every workflow morning, right before compute), occasionally flipping a rank-5/6 tail pick vs the complete-data answer. Same math, unstable input sample. Also means stored snapshots embed prod's own pagination sample — a deterministic checker can legitimately differ from them at the tail.
+
+**Proposed fix (NOT shipped — engine change, needs the full empirical-validation gate + edge deploy):** same treatment as the harness — `,id` tiebreaker on all `histories` paginated orders, `order=id.asc` on the pair pagination, in both `engines/zk6.ts` and the edge fn (keep structural parity between the two, per the consolidation lesson). Since the fixed harness IS the complete-data reference implementation, the backtest candidate for this change is definitionally the current deterministic backtest. Ship decision deferred to operator: touching the live daily writer warrants an explicit go, and deploy must re-verify `verify_jwt=true`.
 
 ### SCOPE-2026-07-23 — deep-scope audit findings (edge/UI/FB posting) — report: `docs/deep_scope_2026-07-23.md` (2026-07-23)
 

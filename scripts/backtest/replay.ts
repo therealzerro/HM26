@@ -62,7 +62,8 @@ async function fetchPairRows(scopeEnc: string): Promise<any[]> {
   for (let offset = 0; offset < 20000; offset += pageSize) {
     const page = await dbGet<any[]>(
       `/datasets_pair?scope=eq.${scopeEnc}&deleted_at=is.null&jurisdiction=is.null` +
-      `&select=key,key_pair,class_id,ds_raw,times_drawn,horizon_label&limit=${pageSize}&offset=${offset}`,
+      `&select=key,key_pair,class_id,ds_raw,times_drawn,horizon_label` +
+      `&order=id.asc&limit=${pageSize}&offset=${offset}`,
     );
     const arr = Array.isArray(page) ? page : [];
     all.push(...arr);
@@ -75,13 +76,16 @@ async function fetchHistoryRows(date: string, scope: Scope): Promise<any[]> {
   // BUG-152: PostgREST caps responses at 1000 rows; paginate to get the full
   // intended window. Mirrors the production fix planned for engines/zk6.ts +
   // compute-slate-zk6 edge fn.
+  // BUG-163: every paginated order in this file MUST carry a unique tiebreaker
+  // (`,id`) — date_et alone has ~76-way ties, and unspecified tie order at page
+  // boundaries drops/duplicates rows run-to-run (the ~1.7pp backtest noise).
   const sessionClause = scope === 'allday' ? '' : `&session=eq.${scope}`;
   const all: any[] = [];
   const pageSize = 1000;
   for (let offset = 0; offset < 20000; offset += pageSize) {
     const page = await dbGet<any[]>(
       `/histories?select=result_digits,date_et,session` +
-      `&date_et=lt.${date}${sessionClause}&order=date_et.desc&limit=${pageSize}&offset=${offset}`,
+      `&date_et=lt.${date}${sessionClause}&order=date_et.desc,id.desc&limit=${pageSize}&offset=${offset}`,
     );
     const rows = Array.isArray(page) ? page : [];
     all.push(...rows);
@@ -120,7 +124,7 @@ async function fetchWarmingHistory(
     const page = await dbGet<any[]>(
       `/histories?select=comboset_sorted,date_et` +
       `&date_et=gte.${fromDate}&date_et=lt.${date}${sessionClause}` +
-      `&order=date_et.desc&limit=${pageSize}&offset=${offset}`,
+      `&order=date_et.desc,id.desc&limit=${pageSize}&offset=${offset}`,
     );
     const rows = Array.isArray(page) ? page : [];
     for (const r of rows) {
@@ -153,7 +157,7 @@ async function fetchStateHistory(
     const page = await dbGet<any[]>(
       `/histories?select=comboset_sorted,jurisdiction,date_et` +
       `&date_et=gte.${fromDate}&date_et=lt.${date}` +
-      `&order=date_et.desc&limit=${pageSize}&offset=${offset}`,
+      `&order=date_et.desc,id.desc&limit=${pageSize}&offset=${offset}`,
     );
     const rows = Array.isArray(page) ? page : [];
     for (const r of rows) {
@@ -177,16 +181,23 @@ async function fetchYesterdayResults(date: string, blockDays = 1): Promise<Set<s
   const dStart = new Date(date + 'T12:00:00'); dStart.setDate(dStart.getDate() - blockDays);
   const fromDate = dStart.toISOString().split('T')[0];
   const toDate = dEnd.toISOString().split('T')[0];
-  const rows = await dbGet<any[]>(
-    `/histories?date_et=gte.${fromDate}&date_et=lte.${toDate}&select=result_digits&limit=2000`,
-  );
+  // BUG-163: PostgREST silently caps at 1000 rows regardless of `limit`, and an
+  // unordered capped query returns an arbitrary subset. Paginate with a unique
+  // order so widening blockDays past the 1000-row line can never go latent-wrong.
   const s = new Set<string>();
-  if (Array.isArray(rows)) {
-    for (const r of rows) {
+  const pageSize = 1000;
+  for (let offset = 0; offset < 20000; offset += pageSize) {
+    const rows = await dbGet<any[]>(
+      `/histories?date_et=gte.${fromDate}&date_et=lte.${toDate}&select=result_digits` +
+      `&order=date_et.desc,id.desc&limit=${pageSize}&offset=${offset}`,
+    );
+    const arr = Array.isArray(rows) ? rows : [];
+    for (const r of arr) {
       if (typeof r?.result_digits === 'string' && /^\d{3}$/.test(r.result_digits)) {
         s.add(toComboSet(r.result_digits));
       }
     }
+    if (arr.length < pageSize) break;
   }
   return s;
 }

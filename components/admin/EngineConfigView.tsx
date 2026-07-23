@@ -323,11 +323,12 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
         }
       }
 
-      // Single upsert POST. Prefer: resolution=merge-duplicates means existing
-      // rows get UPDATED on (key) primary-key conflict, new rows get INSERTED.
+      // Single upsert POST. BUG-167: app_config's PK is (id) with UNIQUE(key),
+      // so merge-duplicates alone resolves on the PK and still 23505s on the
+      // key constraint — on_conflict=key is required for a true key-upsert.
       const body = Object.entries(entries).map(([key, value]) => ({ key, value }));
       await adminOpsFetch({
-        path: '/rest/v1/app_config',
+        path: '/rest/v1/app_config?on_conflict=key',
         method: 'POST',
         prefer: 'resolution=merge-duplicates,return=minimal',
         body,

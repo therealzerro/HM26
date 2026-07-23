@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { goBackSafe } from '@/lib/safeBack';
 import { ChevronLeft, Check } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
 import { useTheme, type ColorTokens } from '@/lib/theme';
@@ -75,7 +76,7 @@ export default function PaywallScreen() {
         [
           {
             text: 'Get Started',
-            onPress: () => router.back()
+            onPress: () => goBackSafe()
           }
         ]
       );
@@ -97,7 +98,7 @@ export default function PaywallScreen() {
         [
           {
             text: 'Continue',
-            onPress: () => router.back()
+            onPress: () => goBackSafe()
           }
         ]
       );
@@ -112,7 +113,7 @@ export default function PaywallScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => goBackSafe()} style={styles.backButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <ChevronLeft size={24} color={colors.text} />
         </TouchableOpacity>
       </View>

@@ -484,13 +484,21 @@ Operator-approved follow-up to SCOPE-2026-07-23. Method: stored `slate_snapshots
 - Operator flow: save one home-screen bookmark per routine post (e.g. `…/admin?view=publish&preset=free_slate&session=midday`) → open → kit builds itself → Share All. **13 → ~7 taps.** Works because admin role persists (`withAdminGate` reads stored role; SEC-05 QW1) and `AdminKeyGate` holds the preset until the key gate passes.
 - Verification: filtered `tsc --noEmit` clean; eslint clean (pre-existing warnings only). P2 (chained "Next: Pro Group" reshare) remains the natural follow-up, not built.
 
+### BUG-167 — Engine Config Save always 23505s on existing keys: upsert missing on_conflict=key (FIXED 2026-07-23)
+
+**Symptom (operator smoke, SEC-05):** Save in EngineConfigView → `upstream 409 … duplicate key value violates unique constraint "app_config_key_key"` on `synergy_boost_on`. **Not a gateway/migration failure** — the 409 came from Postgres through a fully-working gateway path (auth + allowlist + proxy all passed), and the identical request fails on the old anon transport too.
+
+**Root cause:** `app_config` PK is `(id)` with `UNIQUE(key)` (verified live via pg_constraint). PostgREST's `Prefer: resolution=merge-duplicates` resolves conflicts on the **PK only** unless `?on_conflict=<col>` names the unique column — so the batch-upsert Save (shape introduced 2026-05-14, ENH-EC1 commit c2c7a60) has been latent-broken for any batch containing an existing key, i.e. essentially every save. (Config changes since then were shipped via SQL sessions, masking it.)
+
+**Fix:** `path: '/rest/v1/app_config?on_conflict=key'` in the Save upsert. Verified against live DB: same-value `INSERT … ON CONFLICT (key) DO UPDATE` no-op succeeds where the old shape 23505'd. Only site with this shape — `useDataIngestion`'s dataset upserts already carry `on_conflict=…` in their paths.
+
 ### BUG-166 — Verified Track Record back button dead after web refresh / direct entry (FIXED 2026-07-23)
 
 **Symptom (operator-reported):** navigation buttons on `/track-record` unresponsive. Root cause: the screen's back chevron was a bare `router.back()`, which **silently no-ops when there is no navigation history** — page refresh on web, direct URL entry, or first navigation after launch. The root-Stack modal header shows no back affordance in that state either, so the screen stranded the user entirely. Same failure class as the `admin-image-export` fix (which documented this exact expo-router behavior); track-record never got it.
 
 **Fix (`app/track-record.tsx`):** `handleBack` = `navigation.canGoBack() ? router.back() : router.replace('/(tabs)')` (try/catch fallback to replace), mirroring the admin-image-export idiom. Also added 10px `hitSlop` — the chevron's touch target was ~30px, under the 44px minimum, a plausible second contributor on mobile.
 
-**Same latent bug flagged, NOT fixed (consumer surfaces, awaiting go-ahead):** bare `router.back()` in `paywall.tsx` (3 sites), `coming-soon.tsx:134`, `replay.tsx:200`, `zk30-import.tsx:119`. Lower urgency — those are normally reached by in-app push so history exists — but any web refresh strands them identically.
+**All remaining screens fixed same day (operator: "fix all screens"):** new shared `lib/safeBack.ts::goBackSafe(fallback)` — `router.canGoBack() ? back() : replace(fallback)` — applied to `paywall.tsx` (3 sites), `coming-soon.tsx`, `replay.tsx`, `zk30-import.tsx` (fallback `/(tabs)/zk30`), each back chevron also gaining 10px hitSlop. `track-record.tsx` keeps its equivalent inline handler; `admin-image-export.tsx` keeps its original. No bare `router.back()` remains on stack screens.
 
 ### SOCIAL-12 — Chained "Next: Pro Group" one-tap re-share (SHIPPED 2026-07-23)
 

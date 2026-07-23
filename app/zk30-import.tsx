@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { goBackSafe } from '@/lib/safeBack';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   ChevronLeft, Upload, CheckCircle2, AlertCircle, FileText, ExternalLink,
@@ -116,7 +117,7 @@ export default function ZK30ImportScreen() {
     <View style={[s.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.iconBtn} accessibilityLabel="Back">
+        <TouchableOpacity onPress={() => goBackSafe('/(tabs)/zk30' as never)} style={s.iconBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityLabel="Back">
           <ChevronLeft size={22} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>

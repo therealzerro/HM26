@@ -4,6 +4,7 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
+import { goBackSafe } from '@/lib/safeBack';
 import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
 import { useSnapshot } from '@/hooks/useSnapshot';
@@ -84,7 +85,7 @@ function AdminScreen() {
           <Text style={{ fontSize: 14, fontWeight: '800', color: '#fff' }}>Creator Access</Text>
           <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', letterSpacing: 1.5 }}>ADMIN ONLY</Text>
         </View>
-        <TouchableOpacity onPress={() => router.back()} style={{ backgroundColor: 'rgba(255,255,255,0.18)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }}>
+        <TouchableOpacity onPress={() => goBackSafe()} style={{ backgroundColor: 'rgba(255,255,255,0.18)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }}>
           <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: '600' }}>← Exit</Text>
         </TouchableOpacity>
       </LinearGradient>

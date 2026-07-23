@@ -589,8 +589,8 @@ export default function AccountScreen() {
                   if (label === 'Sign Out') {
                     signOut().then(() => {
                       router.replace('/');
-                    });
-                    showToast('Signed out', 'info');
+                      showToast('Signed out', 'info');
+                    }).catch(() => showToast('Sign out failed — try again', 'error'));
                   } else if (!meta) {
                     showToast(`${label} — coming soon`, 'info');
                   }

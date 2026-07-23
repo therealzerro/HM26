@@ -899,7 +899,7 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
                             <Text style={[st.btnGhostText, { fontSize: 9 }]}>⬇ Save</Text>
                           </TouchableOpacity>
                           {canShare && (
-                            <TouchableOpacity style={[st.btnGhost, { paddingVertical: 4, paddingHorizontal: 8 }]} onPress={() => shareDataUrlToPhotos(img.dataUrl, img.filename).catch(() => {})}>
+                            <TouchableOpacity style={[st.btnGhost, { paddingVertical: 4, paddingHorizontal: 8 }]} onPress={() => shareDataUrlToPhotos(img.dataUrl, img.filename).catch((e: any) => { if (e?.name !== 'AbortError') setResultMsg(`❌ Save to Photos failed: ${String(e?.message ?? e)}`); })}>
                               <Text style={[st.btnGhostText, { fontSize: 9 }]}>📤 Photos</Text>
                             </TouchableOpacity>
                           )}

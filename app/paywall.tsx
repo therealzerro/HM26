@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { goBackSafe } from '@/lib/safeBack';
+import { alertAsync } from '@/lib/confirm';
 import { ChevronLeft, Check } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
 import { useTheme, type ColorTokens } from '@/lib/theme';
@@ -69,17 +70,20 @@ export default function PaywallScreen() {
     try {
       // TODO: wire RevenueCat SDK here
       await setRole('premium');
-      
-      Alert.alert(
-        'Welcome to Premium!',
-        'Your subscription is now active. Enjoy full access to HitMaster!',
-        [
-          {
-            text: 'Get Started',
-            onPress: () => goBackSafe()
-          }
-        ]
-      );
+
+      // Alert button callbacks never fire on RN-web (the dialog is a no-op),
+      // which stranded the user on the paywall after subscribing. Web: blocking
+      // window.alert then navigate; native: keep the button-driven flow.
+      if (Platform.OS === 'web') {
+        alertAsync('Welcome to Premium!', 'Your subscription is now active. Enjoy full access to HitMaster!');
+        goBackSafe();
+      } else {
+        Alert.alert(
+          'Welcome to Premium!',
+          'Your subscription is now active. Enjoy full access to HitMaster!',
+          [{ text: 'Get Started', onPress: () => goBackSafe() }],
+        );
+      }
     } catch (error) {
       console.error('Purchase failed:', error);
       Alert.alert('Purchase Failed', 'Please try again or contact support.');
@@ -91,17 +95,17 @@ export default function PaywallScreen() {
       // Phase 3: Live restore purchases (placeholder)
       // TODO: wire RevenueCat restore here
       await setRole('premium');
-      
-      Alert.alert(
-        'Purchases Restored',
-        'Your subscription has been restored successfully!',
-        [
-          {
-            text: 'Continue',
-            onPress: () => goBackSafe()
-          }
-        ]
-      );
+
+      if (Platform.OS === 'web') {
+        alertAsync('Purchases Restored', 'Your subscription has been restored successfully!');
+        goBackSafe();
+      } else {
+        Alert.alert(
+          'Purchases Restored',
+          'Your subscription has been restored successfully!',
+          [{ text: 'Continue', onPress: () => goBackSafe() }],
+        );
+      }
     } catch (error) {
       console.error('Restore failed:', error);
       Alert.alert('Restore Failed', 'No active subscriptions found.');

@@ -484,6 +484,26 @@ Operator-approved follow-up to SCOPE-2026-07-23. Method: stored `slate_snapshots
 - Operator flow: save one home-screen bookmark per routine post (e.g. `…/admin?view=publish&preset=free_slate&session=midday`) → open → kit builds itself → Share All. **13 → ~7 taps.** Works because admin role persists (`withAdminGate` reads stored role; SEC-05 QW1) and `AdminKeyGate` holds the preset until the key gate passes.
 - Verification: filtered `tsc --noEmit` clean; eslint clean (pre-existing warnings only). P2 (chained "Next: Pro Group" reshare) remains the natural follow-up, not built.
 
+### BTN-AUDIT-2026-07-23 — Full button-wiring deep scope (operator-requested) + iOS native image capture (SHIPPED)
+
+**Trigger:** "Build Images" dead on native iOS (operator now runs Expo Go after the SDK-54 fix; the whole posting flow previously assumed mobile web). Two parallel read-only audit agents swept every interactive control on consumer + admin surfaces.
+
+**1. Native iOS image capture (root fix, not a bandage):** `lib/captureExportImage.ts` was web-only (html-to-image over a DOM stage) — but react-native-view-shot, expo-sharing, expo-media-library, expo-file-system are ALL Expo Go-bundled, so the in-file "needs an EAS dev build" note was outdated. Native branches added: `captureAvailable()` true on native; capture via `captureRef` on the RN stage view (`getStageNode` returns the view ref on native); "download" = save to Photos (cache file → media-library, permission prompted on first use); `shareDataUrlToPhotos` = Photos save; platform-aware copy in PublishView (Prep flow: "saved to Photos — attach from camera roll"). Entire PublishView iOS blast radius (Build Images, Quick Post auto-build, Save/Download All, Prep & Open, Pro chain) now functional. `expo-media-library` + `expo-file-system` installed; media-library config plugin deliberately NOT added to app.config (Expo Go doesn't need it — required later for an EAS dev build).
+
+**2. Verified wiring defects fixed (consumer):**
+- `book.tsx` delete-list used multi-button `Alert.alert` — a NO-OP on RN-web (delete silently never fired) → `confirmAsync`.
+- `paywall.tsx` post-subscribe/post-restore navigation lived in Alert button callbacks — never fired on web, stranding the user on the paywall → platform-split (web: blocking alert + `goBackSafe`; native: unchanged).
+- Share buttons in `results.tsx` (unhandled rejection on web), `PickDetailModal`, `PickCard`, `HeatCheckModal` (silent no-ops on web) → new `lib/shareText.ts::shareTextSafe` (native share sheet / web navigator.share / clipboard fallback with "copied" feedback; never throws).
+- `account.tsx` Sign Out: toast now fires on success only; failure surfaces an error toast.
+
+**3. Verified wiring defects fixed (admin):**
+- Bare `router.back()` on the admin "← Exit" and zk30 header → `goBackSafe` (BUG-166 class).
+- `ImportHistoryView` bulk soft/hard delete swallowed every per-item failure then reported unconditional "Done" — could claim success when every delete threw → failures counted and reported honestly.
+- `EngineConfigView` Save & Regen and `DashboardView` per-scope regen swallowed thrown regen failures → surfaced via alert.
+- PublishView per-image "📤 Photos" swallowed all errors (incl. Photos-permission denial on the new native path) → surfaces to resultMsg (user-cancel still silent).
+
+**Audited-clean (for future reference):** zero anon-write stragglers post-SEC-05 (every table write uses adminOpsFetch); no truthy-event bugs; no busy-state deadlocks; no dead routes; BriefView/zk30 share paths already natively correct via view-shot; modal-backdrop `onPress={()=>{}}` handlers are intentional; `AdaptiveLearningView` `window.filter` is a local variable, not the DOM global.
+
 ### BUG-167 — Engine Config Save always 23505s on existing keys: upsert missing on_conflict=key (FIXED 2026-07-23)
 
 **Symptom (operator smoke, SEC-05):** Save in EngineConfigView → `upstream 409 … duplicate key value violates unique constraint "app_config_key_key"` on `synergy_boost_on`. **Not a gateway/migration failure** — the 409 came from Postgres through a fully-working gateway path (auth + allowlist + proxy all passed), and the identical request fails on the old anon transport too.

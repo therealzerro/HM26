@@ -1,8 +1,10 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Modal, Animated, Share, Easing, Dimensions, ScrollView,
+  Modal, Animated, Easing, Dimensions, ScrollView,
 } from 'react-native';
+import { shareTextSafe } from '@/lib/shareText';
+import { alertAsync } from '@/lib/confirm';
 import { storage } from '../lib/storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop, Rect } from 'react-native-svg';
@@ -289,7 +291,8 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
         `⚡ Intelligence is your edge.`,
         `📲 hitmaster.app  #ZK6 #DataIntelligence`,
       ].filter(Boolean).join('\n');
-      await Share.share({ message: lines });
+      const r = await shareTextSafe(lines);
+      if (r === 'copied') alertAsync('Copied to clipboard', 'Sharing is unavailable here — the text is on your clipboard.');
     } catch {}
   };
 

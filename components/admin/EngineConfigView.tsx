@@ -4,6 +4,7 @@ import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { adminOpsFetch } from '@/lib/adminOps';
+import { alertAsync } from '@/lib/confirm';
 import { SectionTitle, Card, useSt } from './AdminShared';
 import { ProposalRegenBanner } from './ProposalRegenBanner';
 
@@ -395,10 +396,12 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
     if (!regenerateSlate) return;
     setRegenning(true);
     const scopes: Array<'midday' | 'evening' | 'allday'> = ['midday', 'evening', 'allday'];
+    const failed: string[] = [];
     for (const sc of scopes) {
-      try { await regenerateSlate(sc); } catch {}
+      try { await regenerateSlate(sc); } catch { failed.push(sc); }
     }
     setRegenning(false);
+    if (failed.length > 0) alertAsync('Regen incomplete', `Regeneration failed for: ${failed.join(', ')}. Config was saved; retry those scopes.`);
   }, [handleSave, regenerateSlate]);
 
   // E5: Reset wipes UI to hardcoded defaults — destructive, can erase

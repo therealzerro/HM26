@@ -28,6 +28,7 @@ import {
 } from 'lucide-react-native';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { withAdminGate } from '@/components/RequireAdmin';
+import { goBackSafe } from '@/lib/safeBack';
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
 import { useTheme, type ColorTokens } from '@/lib/theme';
 import { storage } from '@/lib/storage';
@@ -515,7 +516,7 @@ function ZK30Screen() {
               3. ← date · scope · sessions → — date stepper row
           Back + info + refresh icons preserved on left/right. */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.iconBtn} accessibilityLabel="Back">
+        <TouchableOpacity onPress={() => goBackSafe()} style={s.iconBtn} accessibilityLabel="Back">
           <ChevronLeft size={22} color={colors.text} />
         </TouchableOpacity>
 

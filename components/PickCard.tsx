@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Share, Animated, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Platform } from 'react-native';
+import { shareTextSafe } from '@/lib/shareText';
+import { alertAsync } from '@/lib/confirm';
 import * as Haptics from 'expo-haptics';
 import { theme } from '@/constants/theme';
 import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
@@ -212,13 +214,12 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
 
   const handleShare = async () => {
     try {
-      await Share.share({
-        message:
-          `🎯 Today's ZK6 signal: ${pick.combo} (Energy ${pick.energy}/100)\n` +
-          `Powered by HitMaster ZK6™ Intelligence\n` +
-          `Get your daily signals: hitmaster.app\n` +
-          `#HitMaster #ZK6 #DataIntelligence`,
-      });
+      const r = await shareTextSafe(
+        `🎯 Today's ZK6 signal: ${pick.combo} (Energy ${pick.energy}/100)\n` +
+        `Powered by HitMaster ZK6™ Intelligence\n` +
+        `Get your daily signals: hitmaster.app\n` +
+        `#HitMaster #ZK6 #DataIntelligence`);
+      if (r === 'copied') alertAsync('Copied to clipboard', 'Sharing is unavailable here — the text is on your clipboard.');
     } catch { /* ignore */ }
   };
 

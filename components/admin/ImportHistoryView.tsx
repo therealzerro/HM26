@@ -91,10 +91,12 @@ export default function ImportHistoryView() {
     (async () => {
       if (!(await confirmAsync(`Soft Delete ${ids.length} Import${ids.length > 1 ? 's' : ''}?`, 'Dataset rows will be hidden but not permanently removed. You can undo this.', { confirmLabel: 'Soft Delete', destructive: true }))) return;
       setBulkBusy(true);
-      for (const id of ids) { try { await softDeleteImport(id); } catch {} }
+      let failed = 0;
+      for (const id of ids) { try { await softDeleteImport(id); } catch { failed++; } }
       setSelectedIds(new Set());
       await loadData();
       setBulkBusy(false);
+      if (failed > 0) alertAsync('Partial failure', `${failed} of ${ids.length} soft-deletes failed — check the admin key and retry.`);
     })();
   }, [selectedIds, softDeleteImport, loadData]);
 
@@ -104,17 +106,21 @@ export default function ImportHistoryView() {
       if (!(await confirmAsync(`Permanently Delete ${ids.length} Import${ids.length > 1 ? 's' : ''}?`, 'All dataset rows for these imports will be permanently removed. This cannot be undone.', { confirmLabel: 'Delete Forever', destructive: true }))) return;
       setBulkBusy(true);
       setBulkProgress({ done: 0, total: ids.length });
+      const failed: string[] = [];
       for (let i = 0; i < ids.length; i++) {
         const id = ids[i];
         const rec = data.find((d: any) => d.id === id);
-        try { await hardDeleteImport(id, rec?.type); } catch {}
+        try { await hardDeleteImport(id, rec?.type); } catch { failed.push(id); }
         setBulkProgress({ done: i + 1, total: ids.length });
       }
       setSelectedIds(new Set());
       setBulkProgress(null);
       await loadData();
       setBulkBusy(false);
-      alertAsync('Done', `Deleted ${ids.length} import${ids.length > 1 ? 's' : ''} and associated data rows.`);
+      // Honest outcome — the old unconditional 'Done' reported success even
+      // when every delete threw (e.g. missing admin key).
+      if (failed.length === 0) alertAsync('Done', `Deleted ${ids.length} import${ids.length > 1 ? 's' : ''} and associated data rows.`);
+      else alertAsync('Partial failure', `${failed.length} of ${ids.length} deletes failed — check the admin key and retry. The rest completed.`);
     })();
   }, [selectedIds, hardDeleteImport, loadData, data]);
 

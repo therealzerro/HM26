@@ -23,7 +23,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput,
-  TouchableOpacity, ScrollView, ActivityIndicator, Modal, Pressable, Share,
+  TouchableOpacity, ScrollView, ActivityIndicator, Modal, Pressable,
 } from 'react-native';
 import { NeonRefreshControl as RefreshControl } from '@/components/NeonRefreshControl';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -33,6 +33,8 @@ import { useFollowedStates } from '@/hooks/useFollowedStates';
 import { getYesterdayET } from '@/lib/dateUtils';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { theme } from '@/constants/theme';
+import { shareTextSafe } from '@/lib/shareText';
+import { alertAsync } from '@/lib/confirm';
 import { useTheme, type ColorTokens } from '@/lib/theme';
 import { Calendar, MoreHorizontal, Search, X, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { EmptyState } from '@/components/EmptyState';
@@ -774,9 +776,10 @@ export default function ResultsScreen() {
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    onPress={() => Share.share({
-                      message: `🎯 ZK6 MATCH! ${row.result_digits} — ${row.hits.map(h => h.hit_straight ? 'Straight' : 'Box').join(' & ')} match on ${row.date_et ?? ''} (${row.jurisdiction})`,
-                    })}
+                    onPress={async () => {
+                      const r = await shareTextSafe(`🎯 ZK6 MATCH! ${row.result_digits} — ${row.hits.map(h => h.hit_straight ? 'Straight' : 'Box').join(' & ')} match on ${row.date_et ?? ''} (${row.jurisdiction})`);
+                      if (r === 'copied') alertAsync('Copied to clipboard', 'Sharing is unavailable in this browser — the text is on your clipboard.');
+                    }}
                     style={s.shareBtn}
                   >
                     <Text style={s.shareBtnText}>↑</Text>

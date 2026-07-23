@@ -1,9 +1,11 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, Modal, TouchableOpacity, TextInput,
-  ActivityIndicator, KeyboardAvoidingView, Platform, Share,
+  ActivityIndicator, KeyboardAvoidingView, Platform,
   Animated, PanResponder, Dimensions, ScrollView, Keyboard,
 } from 'react-native';
+import { shareTextSafe } from '@/lib/shareText';
+import { alertAsync } from '@/lib/confirm';
 import { theme } from '@/constants/theme';
 import { useTheme, type ColorTokens } from '@/lib/theme';
 import { storage } from '@/lib/storage';
@@ -297,11 +299,8 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
     lines.push('Powered by HitMaster ZK6™ Intelligence');
     lines.push('Run your own signal check → https://hitmaster.app');
     const message = lines.join('\n');
-    try {
-      await Share.share({ message, title: `Signal Check: ${result.combo}` });
-    } catch {
-      // user cancelled — silent
-    }
+    const r = await shareTextSafe(message, `Signal Check: ${result.combo}`);
+    if (r === 'copied') alertAsync('Copied to clipboard', 'Sharing is unavailable here — the text is on your clipboard.');
   }, [result]);
 
   return (

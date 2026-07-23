@@ -8,6 +8,7 @@ import { router } from 'expo-router';
 import { theme } from '@/constants/theme';
 import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 import { storage } from '@/lib/storage';
+import { confirmAsync } from '@/lib/confirm';
 import { HeatCheckModal } from '@/components/HeatCheckModal';
 import { EmptyState } from '@/components/EmptyState';
 import { BookOpen } from 'lucide-react-native';
@@ -218,14 +219,13 @@ export default function NumberBookScreen() {
     setActiveId(sample.id);
   }, []);
 
-  const handleDelete = useCallback((id: string) => {
-    Alert.alert('Delete list?', 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => {
-        setLists(l => l.filter(x => x.id !== id));
-        setActiveId(a => a === id ? null : a);
-      }},
-    ]);
+  const handleDelete = useCallback(async (id: string) => {
+    // confirmAsync, not Alert.alert — multi-button Alert is a no-op on web
+    // (the Delete callback never fired there).
+    const ok = await confirmAsync('Delete list?', 'This cannot be undone.', { confirmLabel: 'Delete', destructive: true });
+    if (!ok) return;
+    setLists(l => l.filter(x => x.id !== id));
+    setActiveId(a => a === id ? null : a);
   }, []);
 
   const handleAddCombo = useCallback((combo: string, note: string) => {

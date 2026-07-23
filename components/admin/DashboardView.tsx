@@ -153,7 +153,9 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
       if (res.status !== 'success') {
         alertAsync('Regeneration Failed', res.message);
       }
-    } catch {}
+    } catch (e) {
+      alertAsync('Regeneration Failed', String(e instanceof Error ? e.message : e));
+    }
     setRegeningScopeMap(m => ({ ...m, [sc]: false }));
   }, [regenerateSlate, targetDateOption]);
 

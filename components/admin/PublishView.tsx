@@ -536,6 +536,16 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
     }
   }, [loadHistory]);
 
+  // Camera-roll save order (native): iOS Photos and Facebook's attach picker
+  // list NEWEST first, so saving in array order buried the AI cover at the
+  // end of the batch. Saving in REVERSE means the AI cover (array pos 0)
+  // saves last → newest → first in the picker, and the rest follow in true
+  // post order (slate, signal cards, brief). Web keeps array order — there
+  // the files are handed over directly and order = attachment order.
+  const photosSaveOrder = useCallback((imgs: ImageItem[]): ImageItem[] => (
+    Platform.OS === 'web' ? imgs : [...imgs].reverse()
+  ), []);
+
   // ── GROUP lanes (assisted) ──
   // SOCIAL-10: group/cross lanes hard-gate on lint like the page lane does —
   // a blocked caption must not leave the app via copy, share, or prep.
@@ -632,7 +642,7 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
     setBusy(true);
     try {
       await Clipboard.setStringAsync(caption);
-      if (images.length > 0) await downloadAllSequential(images.map(i => ({ dataUrl: i.dataUrl, filename: i.filename })));
+      if (images.length > 0) await downloadAllSequential(photosSaveOrder(images).map(i => ({ dataUrl: i.dataUrl, filename: i.filename })));
       const url = destUrl?.trim() || (surface === 'pro' ? urls.pro : urls.free) || 'https://www.facebook.com/groups/';
       openInNewTab(url);
       await logHandoff();
@@ -645,7 +655,7 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
     } finally {
       setBusy(false);
     }
-  }, [caption, images, destUrl, surface, urls, logHandoff, lintBlocked, crossTwoQBlocked, content]);
+  }, [caption, images, destUrl, surface, urls, logHandoff, lintBlocked, crossTwoQBlocked, content, photosSaveOrder]);
 
   // ── SOCIAL-12: one-tap Pro-group chain after a free-group handoff ──
   // Regenerates ONLY what differs by tier: the caption (pro template, no
@@ -674,7 +684,7 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
       if (canShareAll) {
         await shareDataUrlsToApps(proImages.map(i => ({ dataUrl: i.dataUrl, filename: i.filename })), 'HitMaster ZK6');
       } else {
-        if (proImages.length > 0) await downloadAllSequential(proImages.map(i => ({ dataUrl: i.dataUrl, filename: i.filename })));
+        if (proImages.length > 0) await downloadAllSequential(photosSaveOrder(proImages).map(i => ({ dataUrl: i.dataUrl, filename: i.filename })));
         openInNewTab(urls.pro || urls.free || 'https://www.facebook.com/groups/');
       }
       const r = await fbPublish.logAssist({
@@ -697,7 +707,7 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
       setImgProgress(null);
       setBusy(false);
     }
-  }, [content, session, images, composeCaption, generateBriefImage, urls, canShareAll, loadHistory]);
+  }, [content, session, images, composeCaption, generateBriefImage, urls, canShareAll, loadHistory, photosSaveOrder]);
 
   const publishableImage = images.length > 0 ? images[0] : undefined;
 
@@ -909,7 +919,7 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
                   </View>
                 </ScrollView>
                 {images.length > 1 && (
-                  <TouchableOpacity style={[st.btnGhost, { marginTop: 10 }]} onPress={() => downloadAllSequential(images.map(i => ({ dataUrl: i.dataUrl, filename: i.filename })))}>
+                  <TouchableOpacity style={[st.btnGhost, { marginTop: 10 }]} onPress={() => downloadAllSequential(photosSaveOrder(images).map(i => ({ dataUrl: i.dataUrl, filename: i.filename })))}>
                     <Text style={st.btnGhostText}>⬇ Download All ({images.length})</Text>
                   </TouchableOpacity>
                 )}

@@ -59,17 +59,29 @@ export function captureAvailable(): boolean {
  * AND the web-share "Save to Photos" path — on iOS the operator then
  * attaches the images from the camera roll inside the Facebook app.
  */
-async function saveDataUrlToPhotosNative(dataUrl: string, filename: string): Promise<void> {
+export async function saveDataUrlToPhotos(dataUrl: string, filename: string): Promise<void> {
   const MediaLibrary = await import('expo-media-library');
   const FileSystem = await import('expo-file-system/legacy');
-  const perm = await MediaLibrary.requestPermissionsAsync();
-  if (!perm.granted) throw new Error('Photos access denied — allow it in Settings to save images.');
+  // writeOnly=true → iOS shows the lighter "Add Photos Only" prompt, which
+  // avoids the limited-library selection flow that can wedge full-access
+  // requests. Saving needs nothing more.
+  const perm = await MediaLibrary.requestPermissionsAsync(true);
+  if (!perm.granted) throw new Error('Photos access denied — allow "Add Photos" for HitMaster in iOS Settings.');
   const comma = dataUrl.indexOf(',');
   const base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+  if (!base64 || base64.length < 100) throw new Error(`Capture for ${filename} is empty — rebuild the images.`);
   const uri = `${FileSystem.cacheDirectory}${filename}`;
   await FileSystem.writeAsStringAsync(uri, base64, { encoding: FileSystem.EncodingType.Base64 });
-  await MediaLibrary.saveToLibraryAsync(uri);
+  const info = await FileSystem.getInfoAsync(uri);
+  if (!info.exists || (info.size ?? 0) < 100) throw new Error(`Write failed for ${filename} (file missing/empty).`);
+  // createAssetAsync (not saveToLibraryAsync): it RETURNS the created asset,
+  // so a resolved call is proof the image is really in the camera roll.
+  const asset = await MediaLibrary.createAssetAsync(uri);
+  if (!asset?.id) throw new Error(`Photos did not accept ${filename}.`);
 }
+
+/** @deprecated internal alias — use saveDataUrlToPhotos */
+const saveDataUrlToPhotosNative = saveDataUrlToPhotos;
 
 /**
  * Capture the given DOM node as a 1080x1920 PNG and trigger a browser download.

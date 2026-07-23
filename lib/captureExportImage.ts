@@ -41,9 +41,34 @@ export function buildFilename(opts: {
   return `hm-${opts.type}-${opts.session}-${opts.date}-${opts.name}.png`;
 }
 
-/** True if image capture is available in the current runtime. */
+/**
+ * True if image capture is available in the current runtime.
+ * Web: html-to-image over the hidden DOM stage. Native (iOS/Android):
+ * react-native-view-shot — bundled in Expo Go since well before SDK 54, so
+ * no dev build is required (the old "web-only" note above is outdated).
+ */
 export function captureAvailable(): boolean {
-  return Platform.OS === 'web' && typeof document !== 'undefined';
+  if (Platform.OS === 'web') return typeof document !== 'undefined';
+  return true;
+}
+
+/**
+ * Native: persist a PNG dataURL into the user's Photos library
+ * (cache file → expo-media-library). Prompts for Photos permission on
+ * first use. This is the native equivalent of both the browser download
+ * AND the web-share "Save to Photos" path — on iOS the operator then
+ * attaches the images from the camera roll inside the Facebook app.
+ */
+async function saveDataUrlToPhotosNative(dataUrl: string, filename: string): Promise<void> {
+  const MediaLibrary = await import('expo-media-library');
+  const FileSystem = await import('expo-file-system/legacy');
+  const perm = await MediaLibrary.requestPermissionsAsync();
+  if (!perm.granted) throw new Error('Photos access denied — allow it in Settings to save images.');
+  const comma = dataUrl.indexOf(',');
+  const base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+  const uri = `${FileSystem.cacheDirectory}${filename}`;
+  await FileSystem.writeAsStringAsync(uri, base64, { encoding: FileSystem.EncodingType.Base64 });
+  await MediaLibrary.saveToLibraryAsync(uri);
 }
 
 /**
@@ -64,14 +89,23 @@ export function captureAvailable(): boolean {
  *
  * Throws on native; callers must guard with `captureAvailable()` first.
  */
-export async function captureNodeToPng(node: HTMLElement, filename: string): Promise<string> {
+export async function captureNodeToPng(node: HTMLElement | unknown, filename: string): Promise<string> {
   if (!captureAvailable()) {
-    throw new Error('Image export is web-only in this build. Open HitMaster on the web to use this feature.');
+    throw new Error('Image capture is unavailable in this runtime.');
   }
+  if (Platform.OS !== 'web') {
+    // Native: node is the RN View (getStageNode returns the ref target).
+    const { captureRef } = await import('react-native-view-shot');
+    return captureRef(node as never, {
+      format: 'png', quality: 1, result: 'data-uri',
+      width: EXPORT_WIDTH, height: EXPORT_HEIGHT,
+    });
+  }
+  const el = node as HTMLElement;
   // Diagnostic: blank captures are usually a sign that the node has zero
   // computed dimensions OR was never painted (paint-culled at extreme
   // off-screen positions). Log so the operator can verify in DevTools.
-  const rect = node.getBoundingClientRect();
+  const rect = el.getBoundingClientRect();
   // eslint-disable-next-line no-console
   console.log('[image-export] capture node rect:', {
     width: rect.width, height: rect.height, x: rect.x, y: rect.y, filename,
@@ -81,7 +115,7 @@ export async function captureNodeToPng(node: HTMLElement, filename: string): Pro
   }
   // Dynamic import keeps the native bundle clean.
   const { toPng } = await import('html-to-image');
-  const dataUrl = await toPng(node, {
+  const dataUrl = await toPng(el, {
     width: EXPORT_WIDTH,
     height: EXPORT_HEIGHT,
     pixelRatio: 1,
@@ -123,16 +157,22 @@ export function resolveWebNode(ref: { current: any } | null | undefined): HTMLEl
  *
  * Throws on native; callers must guard with `captureAvailable()` first.
  */
-export async function captureNodeToPngNatural(node: HTMLElement, pixelRatio = 2): Promise<string> {
+export async function captureNodeToPngNatural(node: HTMLElement | unknown, pixelRatio = 2): Promise<string> {
   if (!captureAvailable()) {
-    throw new Error('Image capture is web-only in this build. Open HitMaster on the web to save.');
+    throw new Error('Image capture is unavailable in this runtime.');
   }
-  const rect = node.getBoundingClientRect();
+  if (Platform.OS !== 'web') {
+    // Native: capture the RN view at its layout size (device scale applies).
+    const { captureRef } = await import('react-native-view-shot');
+    return captureRef(node as never, { format: 'png', quality: 1, result: 'data-uri' });
+  }
+  const el = node as HTMLElement;
+  const rect = el.getBoundingClientRect();
   if (rect.width === 0 || rect.height === 0) {
     throw new Error(`Capture node has zero dimensions (${rect.width}×${rect.height}).`);
   }
   const { toPng } = await import('html-to-image');
-  return toPng(node, { cacheBust: true, pixelRatio, backgroundColor: '#ffffff' });
+  return toPng(el, { cacheBust: true, pixelRatio, backgroundColor: '#ffffff' });
 }
 
 /**
@@ -141,6 +181,14 @@ export async function captureNodeToPngNatural(node: HTMLElement, pixelRatio = 2)
  * blocked as a batch.
  */
 export function downloadDataUrl(dataUrl: string, filename: string): void {
+  // Native: "download" = save into Photos (fire-and-forget; the batch path
+  // downloadAllSequential awaits and surfaces errors — this single-image
+  // variant logs instead so the Save button never throws unhandled).
+  if (Platform.OS !== 'web') {
+    saveDataUrlToPhotosNative(dataUrl, filename).catch(e =>
+      console.warn('[image-export] save to Photos failed:', String(e)));
+    return;
+  }
   if (typeof document === 'undefined') return;
   const link = document.createElement('a');
   link.href = dataUrl;
@@ -161,6 +209,12 @@ export async function downloadAllSequential(
   items: { dataUrl: string; filename: string }[],
   delayMs = 900,
 ): Promise<void> {
+  // Native: save every image into Photos, awaited so a permission denial
+  // or write failure propagates to the caller's error surface.
+  if (Platform.OS !== 'web') {
+    for (const it of items) await saveDataUrlToPhotosNative(it.dataUrl, it.filename);
+    return;
+  }
   for (let i = 0; i < items.length; i++) {
     downloadDataUrl(items[i].dataUrl, items[i].filename);
     if (i < items.length - 1) {
@@ -194,6 +248,7 @@ function dataUrlToFile(dataUrl: string, filename: string, type = 'image/png'): F
  * canShare() probe with a 1-byte File.
  */
 export function shareToPhotosAvailable(): boolean {
+  if (Platform.OS !== 'web') return true; // native: expo-media-library save
   if (typeof navigator === 'undefined') return false;
   const nav = navigator as Navigator & {
     canShare?: (data: { files?: File[] }) => boolean;
@@ -218,6 +273,10 @@ export async function shareDataUrlToPhotos(
   filename: string,
   title = 'HitMaster Slate Image',
 ): Promise<void> {
+  if (Platform.OS !== 'web') {
+    await saveDataUrlToPhotosNative(dataUrl, filename);
+    return;
+  }
   if (!shareToPhotosAvailable()) {
     throw new Error('Web Share API with files is not available in this browser.');
   }

@@ -389,7 +389,7 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
   // ── image generation (capture pipeline) ──
   // srf/sess are explicit so presets can auto-build without racing React state.
   const generateBriefImage = useCallback(async (briefVariant: 'public' | 'group', srf: Surface): Promise<ImageItem> => {
-    if (!captureAvailable()) throw new Error('Image capture is web-only. Open HitMaster on the web.');
+    if (!captureAvailable()) throw new Error('Image capture is unavailable in this runtime.');
     setImgProgress('Assembling brief data…');
     const data = await buildSocialBrief();
     setBriefData(data);
@@ -405,7 +405,7 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
   }, []);
 
   const generateSlateImages = useCallback(async (includePicks: boolean, srf: Surface, sess: SocialSession): Promise<ImageItem[]> => {
-    if (!captureAvailable()) throw new Error('Image capture is web-only. Open HitMaster on the web.');
+    if (!captureAvailable()) throw new Error('Image capture is unavailable in this runtime.');
     const redact = surfaceRedacts(srf);
     setStageRedact(redact);
     setStageSession(sess);
@@ -637,7 +637,9 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
       openInNewTab(url);
       await logHandoff();
       if (surface === 'free' && content && CONTENT_SURFACES[content].includes('pro')) setChainReady(true);
-      setResultMsg(`🚀 Caption copied · ${images.length} image${images.length === 1 ? '' : 's'} downloading · group opened. Drag the images in, paste, post.`);
+      setResultMsg(Platform.OS === 'web'
+        ? `🚀 Caption copied · ${images.length} image${images.length === 1 ? '' : 's'} downloading · group opened. Drag the images in, paste, post.`
+        : `🚀 Caption copied · ${images.length} image${images.length === 1 ? '' : 's'} saved to Photos · group opened. Attach from your camera roll, paste, post.`);
     } catch (e: any) {
       setResultMsg(`❌ ${String(e?.message ?? e)}`);
     } finally {
@@ -685,7 +687,9 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
         ? `⚠️ Shared + logged — but this exact caption was already used today (${r.duplicates.map(d => d.target_name).join(', ')}).`
         : canShareAll
           ? '💎 Pro caption copied + kit handed to Facebook — pick the Pro group, paste, post.'
-          : `💎 Pro caption copied · ${proImages.length} image${proImages.length === 1 ? '' : 's'} downloading · Pro group opened. Drag in, paste, post.`);
+          : Platform.OS === 'web'
+            ? `💎 Pro caption copied · ${proImages.length} image${proImages.length === 1 ? '' : 's'} downloading · Pro group opened. Drag in, paste, post.`
+            : `💎 Pro caption copied · ${proImages.length} image${proImages.length === 1 ? '' : 's'} saved to Photos · Pro group opened. Attach from camera roll, paste, post.`);
     } catch (e: any) {
       if (e?.name === 'AbortError') setResultMsg('Share cancelled — the rebuilt Pro kit is still loaded; use the share button to retry.');
       else setResultMsg(`❌ Pro chain failed: ${String(e?.message ?? e)}`);
@@ -1042,7 +1046,9 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
               <Text style={{ fontSize: 9, color: colors.textTertiary, marginTop: 6, lineHeight: 13 }}>
                 {canShareAll
                   ? 'One tap: the caption is copied and all images are handed to the Facebook app — pick your group and paste the caption (Meta blocks prefilled captions).'
-                  : 'One click does the prep. Desktop browsers can\'t inject files into the Facebook composer, so drag the downloaded images in and paste the copied caption. On a phone, this becomes a true one-tap share.'}
+                  : Platform.OS === 'web'
+                    ? 'One click does the prep. Desktop browsers can\'t inject files into the Facebook composer, so drag the downloaded images in and paste the copied caption. On a phone, this becomes a true one-tap share.'
+                    : 'One tap does the prep: caption copied, every image saved to Photos, Facebook opened. Attach the images from your camera roll and paste the caption.'}
               </Text>
 
               {/* SOCIAL-12: chained Pro re-share — appears once the free-group

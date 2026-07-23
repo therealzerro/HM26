@@ -119,10 +119,11 @@ export async function waitFonts(): Promise<void> {
   } catch { /* fonts API absent — proceed */ }
 }
 
-export function getStageNode(ref: { current: any }): HTMLElement | null {
-  if (Platform.OS !== 'web') return null;
+export function getStageNode(ref: { current: any }): HTMLElement | unknown | null {
   const cur: any = ref?.current;
   if (!cur) return null;
+  // Native: react-native-view-shot captures the RN view ref directly.
+  if (Platform.OS !== 'web') return cur;
   if (cur instanceof HTMLElement) return cur;
   if (typeof cur.getBoundingClientRect === 'function') return cur as HTMLElement;
   return null;

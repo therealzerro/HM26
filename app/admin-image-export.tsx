@@ -170,7 +170,7 @@ export default function AdminImageExportScreen() {
 
   const runExport = useCallback(async (mode: 'sample' | 'full') => {
     if (!captureAvailable()) {
-      setStatus({ kind: 'error', msg: 'Image export is web-only. Open HitMaster on the web (not iOS) to use this feature.' });
+      setStatus({ kind: 'error', msg: 'Image capture is unavailable in this runtime.' });
       return;
     }
     // Sample: 1 slate + 1 pick (visual review gate before generating the

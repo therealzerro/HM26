@@ -68,7 +68,7 @@ When editing user-facing strings, do not bulk-rename. Each replacement is per-st
 ## Architecture Overview
 
 ### Stack
-- **React Native / Expo** (SDK 52, Expo Router file-based routing)
+- **React Native / Expo** (SDK 54, Expo Router file-based routing)
 - **Supabase** backend — raw REST via `fetchFromSupabase()` in `lib/supabase.ts`. No Supabase JS SDK.
 - **TanStack React Query** for server-state caching. Cache invalidated via `queryClient.invalidateQueries()`.
 - **AsyncStorage** for local persistence (snapshots, settings, auth state).

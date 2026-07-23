@@ -6,6 +6,7 @@ import {
   getStoredAdminKey,
   setStoredAdminKey,
   clearStoredAdminKey,
+  unlockAdminOpsWithPin,
   subscriberAdmin,
   AdminKeyInvalidError,
 } from '@/lib/subscriberAdminClient';
@@ -23,6 +24,7 @@ export function AdminKeyGate({ children }: { children: React.ReactNode }) {
   const st = useSt();
   const [state, setState] = useState<'loading' | 'unlocked' | 'locked' | 'verifying'>('loading');
   const [input, setInput] = useState('');
+  const [pin, setPin] = useState('');
   const [err, setErr] = useState<string | null>(null);
 
   const probe = useCallback(async () => {
@@ -60,6 +62,22 @@ export function AdminKeyGate({ children }: { children: React.ReactNode }) {
     await probe();
   }, [input, probe]);
 
+  // SEC-05 quick unlock: 4-digit code → server exchanges it for the ops key
+  // (rate-limited server-side) → stored locally → normal probe.
+  const submitPin = useCallback(async () => {
+    if (pin.trim().length < 4) return;
+    setState('verifying');
+    setErr(null);
+    try {
+      await unlockAdminOpsWithPin(pin.trim());
+      setPin('');
+      await probe();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+      setState('locked');
+    }
+  }, [pin, probe]);
+
   if (state === 'loading') {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -75,11 +93,46 @@ export function AdminKeyGate({ children }: { children: React.ReactNode }) {
       <Card style={{ padding: 20, width: '100%', maxWidth: 480 }}>
         <Text style={[st.title, { marginBottom: 6 }]}>🔐 Admin Ops Key Required</Text>
         <Text style={[st.sub, { marginBottom: 16 }]}>
-          Subscriber data is gated by a server-side secret. Enter the value of{' '}
-          <Text style={{ fontFamily: 'monospace', color: colors.text }}>ADMIN_OPS_KEY</Text>{' '}
-          from the Supabase project secrets. The key is stored locally on this device only.
+          Operator writes are gated by a server-side secret, stored locally on this
+          device only. Quick unlock with your 4-digit code, or paste the full{' '}
+          <Text style={{ fontFamily: 'monospace', color: colors.text }}>ADMIN_OPS_KEY</Text>.
         </Text>
-        <Text style={st.fieldLabel}>Admin Ops Key</Text>
+
+        <Text style={st.fieldLabel}>QUICK UNLOCK — 4-DIGIT CODE</Text>
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+          <TextInput
+            value={pin}
+            onChangeText={setPin}
+            secureTextEntry
+            keyboardType="number-pad"
+            autoCapitalize="none"
+            autoCorrect={false}
+            maxLength={8}
+            placeholder="••••"
+            placeholderTextColor={colors.textTertiary}
+            onSubmitEditing={submitPin}
+            style={{
+              flex: 1,
+              borderWidth: 1.5,
+              borderColor: colors.border,
+              borderRadius: 10,
+              padding: 12,
+              fontSize: 16,
+              letterSpacing: 6,
+              color: colors.text,
+              backgroundColor: colors.surface,
+            }}
+          />
+          <TouchableOpacity
+            style={[st.btnPrimary, { paddingHorizontal: 18, justifyContent: 'center' }, (pin.trim().length < 4 || state === 'verifying') && { opacity: 0.5 }]}
+            disabled={pin.trim().length < 4 || state === 'verifying'}
+            onPress={submitPin}
+          >
+            <Text style={st.btnPrimaryText}>{state === 'verifying' ? '…' : 'Unlock'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={st.fieldLabel}>OR PASTE THE FULL KEY</Text>
         <TextInput
           value={input}
           onChangeText={setInput}

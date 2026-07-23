@@ -37,6 +37,27 @@ export async function clearStoredAdminKey(): Promise<void> {
   await AsyncStorage.removeItem(ADMIN_KEY_STORAGE);
 }
 
+/**
+ * SEC-05 quick unlock: exchange the 4-digit ADMIN_UNLOCK_PIN for the ops key
+ * via the admin-ops edge fn (server-side rate-limited) and store it locally —
+ * so the operator never types the long secret on a new device.
+ */
+export async function unlockAdminOpsWithPin(pin: string): Promise<void> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new Error('Supabase configuration missing');
+  const r = await fetch(`${SUPABASE_URL}/functions/v1/admin-ops`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify({ action: 'unlock', pin }),
+  });
+  const body: any = await r.json().catch(() => ({}));
+  if (!r.ok || !body?.adminKey) throw new Error(body?.error ?? `unlock failed (${r.status})`);
+  await setStoredAdminKey(String(body.adminKey));
+}
+
 async function callSubscriberAdmin<T = unknown>(
   action: string,
   payload: Record<string, unknown> = {}

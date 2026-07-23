@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
@@ -71,6 +71,21 @@ export default function TrackRecordScreen() {
   const { user } = useAuth();
   const isPro = user?.role !== 'free';
   const [detail, setDetail] = useState<PickItem | null>(null);
+  const navigation = useNavigation();
+
+  // router.back() silently no-ops with no prior history (direct URL load,
+  // page refresh on web, first navigation after launch) — the back chevron
+  // went dead and stranded the user. Same fix as admin-image-export: fall
+  // back to a replace into Home when there's nothing to pop.
+  const handleBack = useCallback(() => {
+    try {
+      const can: boolean = typeof navigation?.canGoBack === 'function' ? navigation.canGoBack() : false;
+      if (can) router.back();
+      else router.replace('/(tabs)');
+    } catch {
+      router.replace('/(tabs)');
+    }
+  }, [navigation]);
 
   // BUG-141 (2026-05-13): consolidated from a two-query merge
   // (daily_intelligence primary + adaptive_tracking secondary) into a single
@@ -163,7 +178,7 @@ export default function TrackRecordScreen() {
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn} accessibilityLabel="Back">
+        <TouchableOpacity onPress={handleBack} style={s.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityLabel="Back">
           <ChevronLeft size={22} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
+import { goBackSafe } from '@/lib/safeBack';
 import { Lock, Crown } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
 import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
@@ -90,7 +91,7 @@ export function PremiumGate({
         <TouchableOpacity style={styles.modalUpgradeButton} onPress={handleUpgrade}>
           <Text style={styles.modalUpgradeText}>Go {requiredTier}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => goBackSafe()}>
           <Text style={styles.maybeLaterText}>Maybe Later</Text>
         </TouchableOpacity>
       </View>

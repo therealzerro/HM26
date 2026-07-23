@@ -12,6 +12,7 @@ import { useDataIngestion } from '@/hooks/useDataIngestion';
 import { useScope } from '@/hooks/useScope';
 
 import { ErrorBoundary } from '@/components/admin/AdminShared';
+import { AdminKeyGate } from '@/components/admin/AdminKeyGate';
 import DashboardView from '@/components/admin/DashboardView';
 import ImportWizardView from '@/components/admin/ImportWizardView';
 import ImportHistoryView from '@/components/admin/ImportHistoryView';
@@ -100,7 +101,10 @@ function AdminScreen() {
         </ScrollView>
       </View>
 
-      {/* Content */}
+      {/* Content — one AdminKeyGate for the whole admin surface (SEC-05):
+          every view now writes through the admin-ops gateway, so the key is
+          required everywhere; enter it once per device and it's stored. */}
+      <AdminKeyGate>
       <View style={{ flex: 1 }}>
         {view === 'dashboard' && <DashboardView setView={setView} imports={imports ?? []} healthMetrics={healthMetrics} regenerateSlate={regenerateSlate} checkSlateLock={checkSlateLock} onOpenZK30Import={(type) => { setWizardPreset({ type, jurisdiction: 'TX' }); setView('wizard'); }} />}
         {view === 'brief' && <ErrorBoundary fallback="Brief view error"><BriefView /></ErrorBoundary>}
@@ -120,6 +124,7 @@ function AdminScreen() {
         {view === 'subscribers'  && <ErrorBoundary fallback="Subscribers view error"><ProSubscribersView /></ErrorBoundary>}
         {view === 'sub-import'   && <ErrorBoundary fallback="Subscriber import error"><SubscriberImportView /></ErrorBoundary>}
       </View>
+      </AdminKeyGate>
     </SafeAreaView>
   );
 }

@@ -68,18 +68,23 @@ export async function saveDataUrlToPhotos(dataUrl: string, filename: string): Pr
   const perm = await MediaLibrary.requestPermissionsAsync(true);
   if (!perm.granted) throw new Error('Photos access denied — allow "Add Photos" for HitMaster in iOS Settings.');
 
-  // Native captures are file:// URIs (view-shot tmpfile) — save directly,
-  // no base64 round-trip. Data URLs (AI image, web callers) get written out.
+  // Anything that is not a data: URL is a file reference (view-shot tmpfile
+  // — which iOS may return WITHOUT the file:// scheme). Data URLs (AI image,
+  // web callers) get written out to a cache file first.
   let uri = dataUrl;
-  if (!dataUrl.startsWith('file:')) {
+  if (dataUrl.startsWith('data:')) {
     const comma = dataUrl.indexOf(',');
     const base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
     if (!base64 || base64.length < 100) throw new Error(`Capture for ${filename} is empty — rebuild the images.`);
     uri = `${FileSystem.cacheDirectory}${filename}`;
     await FileSystem.writeAsStringAsync(uri, base64, { encoding: FileSystem.EncodingType.Base64 });
+  } else if (!uri.startsWith('file:')) {
+    uri = 'file://' + uri;
   }
   const info = await FileSystem.getInfoAsync(uri);
-  if (!info.exists || (info.size ?? 0) < 100) throw new Error(`File for ${filename} is missing/empty — rebuild the images.`);
+  // Stale-capture case: view-shot's temp folder is wiped on app cold start,
+  // so captures from before a reload point at deleted files.
+  if (!info.exists || (info.size ?? 0) < 100) throw new Error(`${filename} has expired (app reloaded since capture) — tap Build Images again.`);
   // createAssetAsync (not saveToLibraryAsync): it RETURNS the created asset,
   // so a resolved call is proof the image is really in the camera roll.
   const asset = await MediaLibrary.createAssetAsync(uri);
@@ -106,9 +111,10 @@ export async function persistDataUrlToFile(dataUrl: string, filename: string): P
  * page-API publish path, which ships base64 to the fb-publish edge fn.
  */
 export async function toDataUrl(uriOrDataUrl: string): Promise<string> {
-  if (!uriOrDataUrl.startsWith('file:')) return uriOrDataUrl;
+  if (uriOrDataUrl.startsWith('data:')) return uriOrDataUrl;
+  const uri = uriOrDataUrl.startsWith('file:') ? uriOrDataUrl : 'file://' + uriOrDataUrl;
   const FileSystem = await import('expo-file-system/legacy');
-  const base64 = await FileSystem.readAsStringAsync(uriOrDataUrl, { encoding: FileSystem.EncodingType.Base64 });
+  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
   return `data:image/png;base64,${base64}`;
 }
 
@@ -143,10 +149,13 @@ export async function captureNodeToPng(node: HTMLElement | unknown, filename: st
     // ~25MB+ of JS heap and OOM-killed Expo Go on iOS mid-flow; file URIs
     // keep the heap flat and RNImage renders file:// directly.
     const { captureRef } = await import('react-native-view-shot');
-    return captureRef(node as never, {
+    const out = await captureRef(node as never, {
       format: 'png', quality: 1, result: 'tmpfile',
       width: EXPORT_WIDTH, height: EXPORT_HEIGHT,
     });
+    // iOS can return a RAW path (no scheme) — normalize so every consumer
+    // (thumbnails, Photos save, page publish) sees a proper file:// URI.
+    return out.startsWith('file:') ? out : 'file://' + out;
   }
   const el = node as HTMLElement;
   // Diagnostic: blank captures are usually a sign that the node has zero
@@ -212,7 +221,8 @@ export async function captureNodeToPngNatural(node: HTMLElement | unknown, pixel
     // Native: capture the RN view at its layout size (device scale applies).
     // tmpfile for the same OOM reason as captureNodeToPng.
     const { captureRef } = await import('react-native-view-shot');
-    return captureRef(node as never, { format: 'png', quality: 1, result: 'tmpfile' });
+    const out = await captureRef(node as never, { format: 'png', quality: 1, result: 'tmpfile' });
+    return out.startsWith('file:') ? out : 'file://' + out;
   }
   const el = node as HTMLElement;
   const rect = el.getBoundingClientRect();

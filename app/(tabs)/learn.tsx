@@ -10,7 +10,7 @@ import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 
 const LEARN_MODULES = [
   {
-    id: 'what-is-pick3', icon: '🎰', title: 'What is a 3-digit draw?',
+    id: 'what-is-pick3', icon: '🔢', title: 'What is a 3-digit draw?',
     summary: 'The most popular daily state-run draw in America.',
     sections: [
       { title: 'The Basics', body: 'A 3-digit draw is a state-run game where you choose 3 digits (000–999). Each state runs it 1–2 times per day — a Midday draw and an Evening draw. You select 3 numbers and try to match the drawn combination from your state\'s official draw.' },

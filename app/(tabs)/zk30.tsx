@@ -27,6 +27,7 @@ import {
   RefreshCw, Layers, Grid3x3, List, Sparkles, Info, Play, X, TrendingUp, Share2,
 } from 'lucide-react-native';
 import { fetchFromSupabase } from '@/lib/supabase';
+import { withAdminGate } from '@/components/RequireAdmin';
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
 import { useTheme, type ColorTokens } from '@/lib/theme';
 import { storage } from '@/lib/storage';
@@ -210,7 +211,10 @@ function parsePicks(raw: ZK30PickItem[] | string | null | undefined): ZK30PickIt
 
 // ─── Screen ────────────────────────────────────────────────────────────────
 
-export default function ZK30Screen() {
+// BRAND-06: operator instrumentation — route-gated like the other operator
+// screens (the tab-bar entry is also admin-only in _layout.tsx, but the route
+// itself was reachable by direct URL/deep link without this).
+function ZK30Screen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const queryClient = useQueryClient();
@@ -1825,3 +1829,5 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
   gridArea: { flex: 1, gap: 6 },
   gridRowFlex: { flex: 1, flexDirection: 'row', gap: 6 },
 });
+
+export default withAdminGate(ZK30Screen);

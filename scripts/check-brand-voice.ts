@@ -80,7 +80,7 @@ const IN_SCOPE: string[] = [
 interface ForbiddenRule {
   pattern: RegExp;
   why: string;
-  source: 'CLAUDE.md' | 'v2-brief' | 'BRAND-03';
+  source: 'CLAUDE.md' | 'v2-brief' | 'BRAND-03' | 'BRAND-05';
 }
 
 const FORBIDDEN: ForbiddenRule[] = [
@@ -115,6 +115,14 @@ const FORBIDDEN: ForbiddenRule[] = [
   { pattern: /\bBox Match\b/,        why: 'use "MATCH" in result UI',        source: 'BRAND-03' },
   { pattern: /\bSTRAIGHT HIT\b/,     why: 'use STRAIGHT MATCH in result UI', source: 'BRAND-03' },
   { pattern: /\bBOX HIT\b/,          why: 'use MATCH in result UI',          source: 'BRAND-03' },
+  // BRAND-05 (2026-07-23): phrase-level rules missed the 7/23 regressions —
+  // bare EXACT/PARTIAL badge strings, a quoted 'HIT' count label, the 🎰
+  // emoji, and a hardcoded match-rate % claim. These forms are now banned.
+  { pattern: /[⭐🎯]\s*(EXACT|PARTIAL)\b/,        why: 'badge vocab — use STRAIGHT MATCH / MATCH (BRAND-04)', source: 'BRAND-05' },
+  { pattern: /["'](Exact|EXACT|Partial|PARTIAL)["']/, why: 'bare match-status literal — use Straight / Box (BRAND-04)', source: 'BRAND-05' },
+  { pattern: /["']HIT["']/,                       why: 'displayed hit-count label — use MATCH', source: 'BRAND-05' },
+  { pattern: /🎰/,                                why: 'slot-machine emoji is gambling imagery', source: 'BRAND-05' },
+  { pattern: /\d+(\.\d+)?%\s*match rate/i,        why: 'hardcoded rate claim — provenance-unsound (BUG-162); compute live or omit', source: 'BRAND-05' },
 ];
 
 // ────────────────────────────────────────────────────────────────────────────

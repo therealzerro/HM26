@@ -525,7 +525,7 @@ export default function NumberBookScreen() {
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1, minWidth: 0 }}>
                           <Text style={{ fontSize: 14 }}>🎯</Text>
                           <Text style={{ fontSize: 10, fontWeight: '800', color: colors.gold, fontFamily: theme.typography.fontFamily.monoBold }} numberOfLines={1}>
-                            {hitCount === 1 ? 'HIT' : `${hitCount}×`}{lastHit ? ` · ${lastHit.state} ${lastHit.session}` : ''}
+                            {hitCount === 1 ? 'MATCH' : `${hitCount}×`}{lastHit ? ` · ${lastHit.state} ${lastHit.session}` : ''}
                           </Text>
                         </View>
                       ) : (

@@ -4,6 +4,7 @@ import { View, StyleSheet } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
+import { useAuth } from '@/hooks/useAuth';
 import { storage } from '@/lib/storage';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { Crown, Zap, ClipboardList, BookMarked, User, Target } from 'lucide-react-native';
@@ -42,7 +43,7 @@ function TabIcon({
       ]}
       accessible
       accessibilityRole="image"
-      accessibilityLabel={hasBadge ? `${label} — new hits` : label}
+      accessibilityLabel={hasBadge ? `${label} — new matches` : label}
     >
       <Icon
         size={focused ? 22 : 19}
@@ -104,6 +105,10 @@ function useUnviewedResultsHits(): boolean {
 export default function TabLayout() {
   const hasUnviewedHits = useUnviewedResultsHits();
   const { colors } = useTheme();
+  // BRAND-06: ZK30 is operator instrumentation — hidden from the tab bar for
+  // everyone except admin (defaults hidden while the stored role loads).
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   return (
     <Tabs
       sceneContainerStyle={{ backgroundColor: colors.background }}
@@ -169,6 +174,7 @@ export default function TabLayout() {
         options={{
           title: 'ZK30',
           tabBarIcon: ({ focused }) => <TabIcon Icon={Target} label="ZK30" focused={focused} />,
+          ...(isAdmin ? {} : { href: null }),
         }}
       />
       <Tabs.Screen

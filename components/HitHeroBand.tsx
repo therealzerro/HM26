@@ -102,7 +102,7 @@ function Tile({ item, onPress }: { item: HitHeroItem; onPress?: () => void }) {
       <View style={s.tileMetaRow}>
         <View style={s.tileTypeRow}>
           <Text style={[s.tileType, { color: accent }]}>
-            {isStraight ? '⭐ EXACT' : '🎯 PARTIAL'}
+            {isStraight ? '⭐ STRAIGHT MATCH' : '🎯 MATCH'}
           </Text>
           {item.scope && (
             <View style={[s.scopePill, { borderColor: accent + '55', backgroundColor: accent + '14' }]}>
@@ -128,7 +128,7 @@ function Tile({ item, onPress }: { item: HitHeroItem; onPress?: () => void }) {
         onPress={onPress}
         activeOpacity={0.85}
         accessibilityRole="button"
-        accessibilityLabel={`${isStraight ? 'Exact' : 'Partial'} match ${item.combo}${item.scope ? `, ${item.scope} scope` : ''}, tap for details`}
+        accessibilityLabel={`${isStraight ? 'Straight' : 'Box'} match ${item.combo}${item.scope ? `, ${item.scope} scope` : ''}, tap for details`}
       >
         {inner}
       </TouchableOpacity>

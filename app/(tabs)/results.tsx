@@ -764,7 +764,7 @@ export default function ResultsScreen() {
                     <Text style={s.hitBadgeText}>
                       {'🎯 ZK6 MATCH · '}
                       {row.hits.map(h => {
-                        const type  = h.hit_straight ? 'Exact' : 'Partial';
+                        const type  = h.hit_straight ? 'Straight' : 'Box';
                         const scope = h.scope ? h.scope.charAt(0).toUpperCase() + h.scope.slice(1) : '';
                         // Drop indicator rank — for K6 picks outside top-30 (BUG-127),
                         // rank can be 31+ which reads as a "top-30 leak" even though
@@ -775,7 +775,7 @@ export default function ResultsScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => Share.share({
-                      message: `🎯 ZK6 MATCH! ${row.result_digits} — ${row.hits.map(h => h.hit_straight ? 'Exact' : 'Partial').join(' & ')} match on ${row.date_et ?? ''} (${row.jurisdiction})`,
+                      message: `🎯 ZK6 MATCH! ${row.result_digits} — ${row.hits.map(h => h.hit_straight ? 'Straight' : 'Box').join(' & ')} match on ${row.date_et ?? ''} (${row.jurisdiction})`,
                     })}
                     style={s.shareBtn}
                   >

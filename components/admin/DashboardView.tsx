@@ -753,7 +753,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 13, fontWeight: '700', color: colors.text }}>ZK30 Hit Detection</Text>
             <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 2 }}>
-              POST to run-hit-detection-zk30 · cron runs nightly 23:30 ET
+              POST to run-hit-detection-zk30 · manual trigger only (all pg_cron removed — OPS-01)
             </Text>
           </View>
         </View>

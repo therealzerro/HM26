@@ -83,13 +83,11 @@ const SCOPE_LABELS: Record<string, string> = {
 // the first time the user's streak hits the milestone today.
 const STREAK_MILESTONES = [3, 7, 14, 30, 60, 90] as const;
 
-// Track Record band constants (enhancements §1.3) — backtest hit rate
-// measured 2026-05-27 on the current production stack (CONFIG-06 pure-H01Y
-// horizons + CONFIG-07 per-scope midday CO-heavy + ENH-BOA bestOrderFor
-// realignment). 30-day window 4/28–5/27, n=87 slates × 3 scopes, balanced
-// + floor=70. Per-scope: midday 51.7%, evening 72.4%, allday 93.1%.
-// Recent-hit count is today-only.
-const BACKTEST_HIT_RATE = 72.4;
+// BRAND-05 (2026-07-23): the hero band and Oracle+ gate no longer show a
+// stored match-rate percentage. The old BACKTEST_HIT_RATE (72.4) was the
+// evening-only number from a 2026-05-27 backtest inside the BUG-162 hit
+// inflation era — provenance unsound, and it rendered as a global rate.
+// The hero column now shows today's verified match count instead.
 // SCRUB-01 (2026-05-27): production is balanced-only during deep live testing.
 // Mode picker removed from consumer overflow sheet. The `mode` prop remains
 // threaded through the component tree for signature stability; always 'balanced'.
@@ -432,16 +430,17 @@ export default function HomeScreen() {
   // still count as one hit. Scope/session matching: allday matches any
   // session; midday/evening match strictly.
   const { data: todayHits = 0 } = useQuery<number>({
-    queryKey: ['track_record_today_hits_adaptive_v3', todayStr],
+    queryKey: ['track_record_today_hits_adaptive_v4', todayStr],
     queryFn: async () => {
       const rows = await fetchFromSupabase<{
         scope: string | null;
         combo: string | null;
         matched_session: string | null;
+        matched_state: string | null;
         hit_box: boolean | null;
         hit_straight: boolean | null;
       }[]>({
-        path: `/rest/v1/adaptive_tracking?slate_date=eq.${todayStr}&or=(hit_box.eq.true,hit_straight.eq.true)&mode=eq.balanced&select=scope,combo,matched_session,hit_box,hit_straight&limit=200`,
+        path: `/rest/v1/adaptive_tracking?slate_date=eq.${todayStr}&or=(hit_box.eq.true,hit_straight.eq.true)&mode=eq.balanced&select=scope,combo,matched_session,matched_state,hit_box,hit_straight&limit=200`,
       });
       // BUG-141 (2026-05-13): multi-state matches each count as a hit. Today
       // 916 hit in BOTH WI and ME,NH,VT → 2 distinct hits in the band, not 1.
@@ -806,9 +805,9 @@ export default function HomeScreen() {
           </View>
           <View style={s.heroDivider} />
           <View style={s.heroCol}>
-            <Text style={[s.heroColNum, { color: colors.cyan }]} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit>{BACKTEST_HIT_RATE}%</Text>
-            <Text style={s.heroColLabel}>MATCH RATE</Text>
-            <Text style={s.heroColMeta}>{todayHits} {todayHits === 1 ? 'match' : 'matches'} today</Text>
+            <Text style={[s.heroColNum, { color: colors.cyan }]} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit>{todayHits}</Text>
+            <Text style={s.heroColLabel}>{todayHits === 1 ? 'MATCH TODAY' : 'MATCHES TODAY'}</Text>
+            <Text style={s.heroColMeta}>verified vs official draws</Text>
           </View>
           {nextDrawIn ? (
             <>
@@ -926,7 +925,7 @@ export default function HomeScreen() {
             <View style={s.proGate}>
               <Text style={s.proGateLocked}>{items.filter(p => p.locked).length} of 6 signals hidden</Text>
               <Text style={s.proGateTitle}>You saw the free tier</Text>
-              <Text style={s.proGateDesc}>Oracle+ unlocks the full K6 slate at HitMaster's verified {BACKTEST_HIT_RATE}% match rate — plus the optimal straight order and deep analytics.</Text>
+              <Text style={s.proGateDesc}>Oracle+ unlocks the full K6 slate — plus the optimal straight order and deep analytics.</Text>
               <TouchableOpacity style={s.proGateBtn} onPress={() => setPaywallOpen(true)}>
                 <Text style={s.proGateBtnText}>Upgrade · $9.99/mo ♛</Text>
               </TouchableOpacity>

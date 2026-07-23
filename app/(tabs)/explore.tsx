@@ -507,7 +507,7 @@ export default function SlatesScreen() {
                     </View>
                     <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1, borderColor: isStraight ? colors.gold + '88' : colors.cyan + '88', backgroundColor: isStraight ? colors.gold + '18' : colors.cyan + '14' }}>
                       <Text style={{ fontSize: 8, fontWeight: '900', color: isStraight ? colors.gold : colors.cyan, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.4 }}>
-                        {isStraight ? '⭐ EXACT' : '🎯 PARTIAL'}
+                        {isStraight ? '⭐ STRAIGHT MATCH' : '🎯 MATCH'}
                       </Text>
                     </View>
                   </View>

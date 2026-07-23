@@ -48,5 +48,7 @@ export const aiContent = {
   generateCaption: (p: { surface: string; content: string; context?: string; priorCaptions?: string[] }) =>
     call<{ ok: boolean; caption: string; rationale: string }>('generate_caption', p),
   generateBrandImage: (p: { theme: string; surface: string; headline?: string; aspectRatio?: string; size?: string }) =>
-    call<{ ok: boolean; imageDataUrl: string; mime: string; geminiPrompt: string; textStrings: string[] }>('generate_brand_image', p, 120000),
+    // 180s — Claude compose + Gemini render occasionally exceeds 120s under
+    // load; the server kept succeeding (and billing) after client aborts.
+    call<{ ok: boolean; imageDataUrl: string; mime: string; geminiPrompt: string; textStrings: string[] }>('generate_brand_image', p, 180000),
 };

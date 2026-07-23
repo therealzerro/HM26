@@ -22,7 +22,11 @@
  */
 
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform, Image as RNImage } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform } from 'react-native';
+// expo-image, NOT RN Image: RN Image decodes each 1080×1920 capture at FULL
+// resolution (~8MB RAM each) just to render a 130px thumbnail — nine of them
+// OOM-killed Expo Go. expo-image downsamples to the displayed size.
+import { Image as ExpoImage } from 'expo-image';
 import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
 import { useTheme } from '@/lib/theme';
@@ -375,8 +379,14 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
       const filename = `hm-ai-${surface}-${getTodayET()}.png`;
       // Native: persist the base64 payload to a cache file immediately so a
       // multi-MB string never lives in React state (OOM guard — the captures
-      // are file URIs too). Web keeps the data URL.
-      const stored = Platform.OS === 'web' ? r.imageDataUrl : await persistDataUrlToFile(r.imageDataUrl, filename);
+      // are file URIs too). Web keeps the data URL. If the persist fails for
+      // any reason, KEEP the data URL — a generated (and billed) image must
+      // never be dropped by a bookkeeping step.
+      let stored = r.imageDataUrl;
+      if (Platform.OS !== 'web') {
+        try { stored = await persistDataUrlToFile(r.imageDataUrl, filename); }
+        catch (persistErr) { console.warn('[publish] AI image persist failed, keeping in memory:', String(persistErr)); }
+      }
       // RULE: the AI brand image is the COVER — always position 0. Replace any
       // prior AI cover so there's never more than one, and it leads the set
       // (Facebook uses the first image as the post cover / first slide).
@@ -908,7 +918,7 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
                   <View style={{ flexDirection: 'row', gap: 10 }}>
                     {images.map(img => (
                       <View key={img.filename} style={{ width: 130 }}>
-                        <RNImage source={{ uri: img.dataUrl }} style={{ width: 130, height: img.label.startsWith('Brief') ? 130 : 231, borderRadius: 8, backgroundColor: '#000' }} resizeMode="contain" />
+                        <ExpoImage source={{ uri: img.dataUrl }} style={{ width: 130, height: img.label.startsWith('Brief') ? 130 : 231, borderRadius: 8, backgroundColor: '#000' }} contentFit="contain" />
                         <Text style={{ fontSize: 9, fontWeight: '700', color: colors.text, marginTop: 4 }} numberOfLines={1}>{img.label}</Text>
                         <View style={{ flexDirection: 'row', gap: 4, marginTop: 4 }}>
                           <TouchableOpacity style={[st.btnGhost, { paddingVertical: 4, paddingHorizontal: 8 }]} onPress={() => downloadDataUrl(img.dataUrl, img.filename)}>

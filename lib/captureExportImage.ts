@@ -258,9 +258,14 @@ export async function downloadAllSequential(
   delayMs = 900,
 ): Promise<void> {
   // Native: save every image into Photos, awaited so a permission denial
-  // or write failure propagates to the caller's error surface.
+  // or write failure propagates to the caller's error surface. A short
+  // breather between saves lets the native image pipeline release each
+  // decoded bitmap before the next one (memory-pressure guard).
   if (Platform.OS !== 'web') {
-    for (const it of items) await saveDataUrlToPhotosNative(it.dataUrl, it.filename);
+    for (const it of items) {
+      await saveDataUrlToPhotosNative(it.dataUrl, it.filename);
+      await new Promise(resolve => setTimeout(resolve, 150));
+    }
     return;
   }
   for (let i = 0; i < items.length; i++) {

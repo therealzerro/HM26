@@ -67,17 +67,49 @@ export async function saveDataUrlToPhotos(dataUrl: string, filename: string): Pr
   // requests. Saving needs nothing more.
   const perm = await MediaLibrary.requestPermissionsAsync(true);
   if (!perm.granted) throw new Error('Photos access denied — allow "Add Photos" for HitMaster in iOS Settings.');
-  const comma = dataUrl.indexOf(',');
-  const base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
-  if (!base64 || base64.length < 100) throw new Error(`Capture for ${filename} is empty — rebuild the images.`);
-  const uri = `${FileSystem.cacheDirectory}${filename}`;
-  await FileSystem.writeAsStringAsync(uri, base64, { encoding: FileSystem.EncodingType.Base64 });
+
+  // Native captures are file:// URIs (view-shot tmpfile) — save directly,
+  // no base64 round-trip. Data URLs (AI image, web callers) get written out.
+  let uri = dataUrl;
+  if (!dataUrl.startsWith('file:')) {
+    const comma = dataUrl.indexOf(',');
+    const base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+    if (!base64 || base64.length < 100) throw new Error(`Capture for ${filename} is empty — rebuild the images.`);
+    uri = `${FileSystem.cacheDirectory}${filename}`;
+    await FileSystem.writeAsStringAsync(uri, base64, { encoding: FileSystem.EncodingType.Base64 });
+  }
   const info = await FileSystem.getInfoAsync(uri);
-  if (!info.exists || (info.size ?? 0) < 100) throw new Error(`Write failed for ${filename} (file missing/empty).`);
+  if (!info.exists || (info.size ?? 0) < 100) throw new Error(`File for ${filename} is missing/empty — rebuild the images.`);
   // createAssetAsync (not saveToLibraryAsync): it RETURNS the created asset,
   // so a resolved call is proof the image is really in the camera roll.
   const asset = await MediaLibrary.createAssetAsync(uri);
   if (!asset?.id) throw new Error(`Photos did not accept ${filename}.`);
+}
+
+/**
+ * Native: persist a base64 dataURL to a cache file and return its file://
+ * URI. Used to convert the AI brand image (which arrives as base64 from the
+ * edge fn) into a file so it isn't held as a multi-MB string in JS state.
+ */
+export async function persistDataUrlToFile(dataUrl: string, filename: string): Promise<string> {
+  const FileSystem = await import('expo-file-system/legacy');
+  const comma = dataUrl.indexOf(',');
+  const base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+  const uri = `${FileSystem.cacheDirectory}${filename}`;
+  await FileSystem.writeAsStringAsync(uri, base64, { encoding: FileSystem.EncodingType.Base64 });
+  return uri;
+}
+
+/**
+ * Read an image back to a base64 dataURL regardless of storage form —
+ * pass-through for data: URLs, file read for file:// URIs. Needed by the
+ * page-API publish path, which ships base64 to the fb-publish edge fn.
+ */
+export async function toDataUrl(uriOrDataUrl: string): Promise<string> {
+  if (!uriOrDataUrl.startsWith('file:')) return uriOrDataUrl;
+  const FileSystem = await import('expo-file-system/legacy');
+  const base64 = await FileSystem.readAsStringAsync(uriOrDataUrl, { encoding: FileSystem.EncodingType.Base64 });
+  return `data:image/png;base64,${base64}`;
 }
 
 /** @deprecated internal alias — use saveDataUrlToPhotos */
@@ -107,9 +139,12 @@ export async function captureNodeToPng(node: HTMLElement | unknown, filename: st
   }
   if (Platform.OS !== 'web') {
     // Native: node is the RN View (getStageNode returns the ref target).
+    // result 'tmpfile' (NOT 'data-uri') — 8 captures as base64 strings held
+    // ~25MB+ of JS heap and OOM-killed Expo Go on iOS mid-flow; file URIs
+    // keep the heap flat and RNImage renders file:// directly.
     const { captureRef } = await import('react-native-view-shot');
     return captureRef(node as never, {
-      format: 'png', quality: 1, result: 'data-uri',
+      format: 'png', quality: 1, result: 'tmpfile',
       width: EXPORT_WIDTH, height: EXPORT_HEIGHT,
     });
   }
@@ -175,8 +210,9 @@ export async function captureNodeToPngNatural(node: HTMLElement | unknown, pixel
   }
   if (Platform.OS !== 'web') {
     // Native: capture the RN view at its layout size (device scale applies).
+    // tmpfile for the same OOM reason as captureNodeToPng.
     const { captureRef } = await import('react-native-view-shot');
-    return captureRef(node as never, { format: 'png', quality: 1, result: 'data-uri' });
+    return captureRef(node as never, { format: 'png', quality: 1, result: 'tmpfile' });
   }
   const el = node as HTMLElement;
   const rect = el.getBoundingClientRect();

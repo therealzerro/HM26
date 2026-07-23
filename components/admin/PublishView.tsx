@@ -45,6 +45,7 @@ import {
   captureAvailable, captureNodeToPng, captureNodeToPngNatural,
   downloadDataUrl, downloadAllSequential, shareToPhotosAvailable, shareDataUrlToPhotos,
   shareMultiFilesAvailable, shareDataUrlsToApps, buildFilename,
+  persistDataUrlToFile, toDataUrl,
 } from '@/lib/captureExportImage';
 import { fetchPairScores } from '@/lib/pairUtils';
 import type { PickItem } from '@/components/PickCard';
@@ -372,10 +373,14 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
         size: '1K',
       });
       const filename = `hm-ai-${surface}-${getTodayET()}.png`;
+      // Native: persist the base64 payload to a cache file immediately so a
+      // multi-MB string never lives in React state (OOM guard — the captures
+      // are file URIs too). Web keeps the data URL.
+      const stored = Platform.OS === 'web' ? r.imageDataUrl : await persistDataUrlToFile(r.imageDataUrl, filename);
       // RULE: the AI brand image is the COVER — always position 0. Replace any
       // prior AI cover so there's never more than one, and it leads the set
       // (Facebook uses the first image as the post cover / first slide).
-      setImages(prev => [{ label: 'AI Brand Image', filename, dataUrl: r.imageDataUrl }, ...prev.filter(i => !i.label.startsWith('AI'))]);
+      setImages(prev => [{ label: 'AI Brand Image', filename, dataUrl: stored }, ...prev.filter(i => !i.label.startsWith('AI'))]);
       setResultMsg(`✨ Brand image generated → set as COVER (rendered text: ${r.textStrings.join(' · ') || 'none'}). Review it, then answer the Two-Question filter before any page publish.`);
     } catch (e: any) {
       setResultMsg(e?.code === 'composed_prompt_unsafe'
@@ -497,7 +502,8 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
       const r = withImage
         ? await fbPublish.publishPagePhoto({
             caption, kind: content, scheduledFor,
-            imageDataUrl: withImage.dataUrl,
+            // Native items are file:// URIs — the page API needs base64.
+            imageDataUrl: await toDataUrl(withImage.dataUrl),
             twoQAck: { q1: false, q2: false },
             imageMeta: { filename: withImage.filename, source: `PublishView.${content}.${withImage.label}` },
           })

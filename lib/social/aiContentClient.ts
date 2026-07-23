@@ -32,9 +32,9 @@ async function call<T = any>(action: string, payload: Record<string, unknown> = 
     if (r.status === 401) throw new AdminKeyInvalidError();
     const body = await r.json().catch(() => ({}));
     if (!r.ok) {
-      const err: Error & { code?: string; detail?: unknown } = new Error(body?.error ?? `ai-content ${action} failed (${r.status})`);
+      const err: Error & { code?: string; detail?: unknown } = new Error(body?.message ?? body?.error ?? `ai-content ${action} failed (${r.status})`);
       err.code = body?.error;
-      err.detail = body?.detail;
+      err.detail = body?.detail ?? body?.violations;
       throw err;
     }
     return body as T;

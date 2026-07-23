@@ -107,6 +107,63 @@ async function logGeneration(row: Record<string, unknown>): Promise<void> {
   if (!r.ok) console.error('[ai-content] ai_generations insert failed:', r.status, await r.text());
 }
 
+// ── Server-side caption lint (SOCIAL-10 residual, 2026-07-23) ────────────────
+// Compact tier-aware port of the client brandLint BLOCKING rules — the client
+// re-lints with the full engine + suggestions, but generation must never hand
+// back a caption that only client-side code stands between and Facebook.
+// Tier semantics (brief §4): public=1 & cross=3 STRICT; free=2 opted-in;
+// pro=4 opted-in but NO pricing/commercial framing.
+const LINT_TIER: Record<string, number> = { public: 1, free: 2, cross: 3, pro: 4 };
+
+const LINT_STRICT: RegExp[] = [
+  /\blottery\b/i, /\blotto\b/i, /\bpick ?3\b/i, /\bwinning numbers\b/i,
+  /\bwinners?\b/i, /\bwinning\b/i, /\bwon\b/i, /\bwin\b/i,
+  /\bdaily picks\b/i, /\bhot picks\b/i, /\btoday'?s picks\b/i, /\bpicks?\b/i,
+  /\bdaily heat\b/i, /\bstraight\b/i, /\bbox\b/i, /\bplay(s|ed|ing)?\b/i,
+  /\bgambl(e|ing|er)\b/i, /\bbet(s|ting)?\b/i, /\bluck(y)?\b/i, /\bfortune\b/i,
+  /\bjackpot\b/i, /\bpayout\b/i, /\bget rich\b/i, /\beasy money\b/i,
+  // §6 public/cross: no pricing, no Pro/upgrade language, no pick-format digits
+  /\$\s?\d/, /\/mo\b/i, /\b(pro tier|pro members?|inner[- ]circle|upgrade)\b/i,
+  /\d\s*[-·.]\s*\d\s*[-·.]\s*\d/, /\{\s*\d\s*,\s*\d\s*,\s*\d\s*\}/,
+];
+const LINT_UNIVERSAL: RegExp[] = [
+  /\bguaranteed( wins?| results?)?\b/i, /\bdon'?t miss out\b/i, /\blast chance\b/i,
+  /\bact now\b/i, /\bpartial match\b/i, /\bhits?\b/i,
+];
+const LINT_PRO: RegExp[] = [/\$\s?\d/, /\/mo\b/i, /\bupgrade\b/i, /\bsubscribe now\b/i];
+const LINT_STATE_CODES = new Set([
+  'AZ','AR','CA','CO','CT','DE','FL','GA','ID','IL','IA','KS','KY','LA','MD','MI',
+  'MN','MS','MO','NE','NV','NJ','NM','NY','NC','ND','SC','SD','TN','TX','VA','VT',
+  'WA','WV','WI','DC',
+]);
+
+function captionViolations(caption: string, surface: string): string[] {
+  const tier = LINT_TIER[surface] ?? 1;
+  const strict = tier === 1 || tier === 3;
+  const v: string[] = [];
+  const rules = [
+    ...LINT_UNIVERSAL,
+    ...(strict ? LINT_STRICT : []),
+    ...(tier === 4 ? LINT_PRO : []),
+  ];
+  for (const re of rules) {
+    const m = caption.match(re);
+    if (m) v.push(m[0]);
+  }
+  if (strict) {
+    for (const tok of caption.match(/\b[A-Z]{2}\b/g) ?? []) {
+      if (LINT_STATE_CODES.has(tok)) { v.push(tok); break; }
+    }
+    // Standalone 3-digit number not followed by a word (statistical counts
+    // like "131 verified matches" read as counts and pass).
+    const standalone = /(?<!\d)\d{3}(?!\d)(?!\s+[A-Za-z])/.exec(caption);
+    if (standalone) v.push(standalone[0]);
+  }
+  const emoji = (caption.match(/\p{Extended_Pictographic}/gu) ?? []).length;
+  if (emoji > 3) v.push(`${emoji} emoji (max 3)`);
+  return [...new Set(v)];
+}
+
 // ── Claude helpers ───────────────────────────────────────────────────────────
 function anthropic(): Anthropic {
   if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY secret not set');
@@ -193,31 +250,51 @@ Deno.serve(async (req: Request) => {
         const context = String(payload.context ?? '');          // live data summary from the client
         const priorCaptions = Array.isArray(payload.priorCaptions) ? (payload.priorCaptions as string[]).slice(0, 5) : [];
 
-        const { out, usage } = await claudeJson<{ caption: string; rationale: string }>(
-          BRAND_RULES,
-          `Write ONE Facebook caption.
+        const captionSchema = {
+          type: 'object',
+          properties: {
+            caption: { type: 'string', description: 'the caption text, ready to post' },
+            rationale: { type: 'string', description: 'one sentence: how it satisfies the surface rules' },
+          },
+          required: ['caption', 'rationale'],
+          additionalProperties: false,
+        };
+        const basePrompt = `Write ONE Facebook caption.
 Surface: ${surface.toUpperCase()}
 Content type: ${content}
 Live data (use faithfully, never invent numbers): ${context || '(none provided)'}
 ${priorCaptions.length ? `Do NOT resemble these recent captions (same-day variation rule):\n${priorCaptions.map(c => `- ${c.slice(0, 120)}`).join('\n')}` : ''}
-Length: 150-300 characters preferred. 1-3 emoji max.`,
-          {
-            type: 'object',
-            properties: {
-              caption: { type: 'string', description: 'the caption text, ready to post' },
-              rationale: { type: 'string', description: 'one sentence: how it satisfies the surface rules' },
-            },
-            required: ['caption', 'rationale'],
-            additionalProperties: false,
-          },
-        );
+Length: 150-300 characters preferred. 1-3 emoji max.`;
+
+        // Generate → server lint → one corrective retry → hard fail. The lint
+        // runs for EVERY surface (groups included), not just the page.
+        let { out, usage } = await claudeJson<{ caption: string; rationale: string }>(BRAND_RULES, basePrompt, captionSchema);
+        let violations = captionViolations(out.caption, surface);
+        let retried = false;
+        if (violations.length > 0) {
+          retried = true;
+          const retry = await claudeJson<{ caption: string; rationale: string }>(
+            BRAND_RULES,
+            `${basePrompt}
+
+Your previous attempt was REJECTED by the mechanical brand lint for these terms: ${violations.join(', ')}.
+Rewrite the caption without any of them (or their variants).`,
+            captionSchema,
+          );
+          out = retry.out;
+          usage = { input: usage.input + retry.usage.input, output: usage.output + retry.usage.output };
+          violations = captionViolations(out.caption, surface);
+        }
 
         await logGeneration({
           kind: 'caption', surface, model: CLAUDE_MODEL,
-          prompt_summary: `${content} caption, ctx ${context.slice(0, 120)}`,
-          output_summary: out.caption.slice(0, 300),
+          prompt_summary: `${content} caption, ctx ${context.slice(0, 120)}${retried ? ' [lint retry]' : ''}`,
+          output_summary: violations.length > 0 ? `LINT REJECTED: ${violations.join(', ')} | ${out.caption.slice(0, 240)}` : out.caption.slice(0, 300),
           tokens_in: usage.input, tokens_out: usage.output,
         });
+        if (violations.length > 0) {
+          return json(422, { error: 'caption_lint_failed', violations, message: `Server lint rejected the caption (after retry): ${violations.join(', ')}` });
+        }
         return json(200, { ok: true, caption: out.caption, rationale: out.rationale });
       }
 

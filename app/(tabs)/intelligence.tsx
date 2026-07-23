@@ -583,7 +583,9 @@ function IntelligenceScreen() {
       <SafeAreaView style={s.container}>
         <View style={s.center}>
           <Text style={s.errorText}>{error}</Text>
-          <TouchableOpacity style={s.reloadBtn} onPress={load}>
+          {/* BUG-165: don't pass the tap event into load(force?) — a truthy
+              event object counted as force=true and re-paged the full table. */}
+          <TouchableOpacity style={s.reloadBtn} onPress={() => load(true)}>
             <Text style={s.reloadBtnText}>↺ Retry</Text>
           </TouchableOpacity>
         </View>
@@ -918,7 +920,7 @@ function IntelligenceScreen() {
             />
           </View>
           <Text style={s.headerSub}>{d.total.toLocaleString()} picks tracked</Text>
-          <TouchableOpacity style={s.reloadBtn} onPress={load}>
+          <TouchableOpacity style={s.reloadBtn} onPress={() => load()}>
             <Text style={s.reloadBtnText}>↺ Refresh</Text>
           </TouchableOpacity>
         </View>

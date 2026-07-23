@@ -172,8 +172,13 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
   // Group lane: the Facebook destination to open (editable — choose the path).
   const [destUrl, setDestUrl] = useState('');
 
+  // SOCIAL-12 (P2 chain): after a completed free-group handoff, offer a 1-tap
+  // "Next: Pro Group" re-share that reuses the captured kit.
+  const [chainReady, setChainReady] = useState(false);
+
   const tier = surface ? SURFACE_TIER[surface] : 1;
   const lint: LintResult = useMemo(() => lintCaption(caption, tier), [caption, tier]);
+  const crossTwoQMissing = surface === 'cross' && images.length > 0 && (!q1No || !q2No);
   const isApiLane = surface === 'public';
   const validContents = surface ? CONTENTS.filter(c => CONTENT_SURFACES[c].includes(surface)) : [];
   const plan = surface && content ? imagePlan(surface, content) : null;
@@ -218,44 +223,53 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
     })();
   }, [loadHistory]);
 
+  // Pure caption composition — returns the text instead of setting state, so
+  // the Pro chain (SOCIAL-12) can build a caption for a surface it hasn't
+  // switched the UI to yet. buildCaption wraps this with the loading state.
+  const composeCaption = useCallback(async (srf: Surface, cnt: ContentKind, v: number, sess: SocialSession): Promise<{ text: string; data: CaptionData }> => {
+    const today = getTodayET();
+    const data: CaptionData = {
+      dateLabel: mdLabel(today),
+      freeGroupUrl: urls.free,
+      proUrl: urls.pro,
+      proPrice: urls.proPrice,
+      allDay: cnt === 'slate_drop' && srf === 'free' && sess === 'allday',
+      session: cnt === 'slate_drop' ? sess : undefined,
+    };
+    if (cnt === 'report_card' || cnt === 'brief') {
+      const yesterday = getYesterdayET();
+      const rc = await fetchReportCardData(yesterday);
+      data.dateLabel = cnt === 'report_card' ? mdLabel(yesterday) : data.dateLabel;
+      data.totalSignals = rc.totalSignals;
+      data.verifiedCount = rc.verifiedCount;
+      data.jurisdictionCount = rc.jurisdictionCount;
+      data.matches = rc.matches;
+      data.verified30d = rc.verified30d;
+    }
+    return { text: generateCaption(cnt, srf, data, v), data };
+  }, [urls]);
+
   const buildCaption = useCallback(async (srf: Surface, cnt: ContentKind, v: number, sess: SocialSession) => {
     setDataLoading(true);
     setDataNote(null);
     setResultMsg(null);
     try {
-      const today = getTodayET();
-      const data: CaptionData = {
-        dateLabel: mdLabel(today),
-        freeGroupUrl: urls.free,
-        proUrl: urls.pro,
-        proPrice: urls.proPrice,
-        allDay: cnt === 'slate_drop' && srf === 'free' && sess === 'allday',
-        session: cnt === 'slate_drop' ? sess : undefined,
-      };
-      if (cnt === 'report_card' || cnt === 'brief') {
-        const yesterday = getYesterdayET();
-        const rc = await fetchReportCardData(yesterday);
-        data.dateLabel = cnt === 'report_card' ? mdLabel(yesterday) : data.dateLabel;
-        data.totalSignals = rc.totalSignals;
-        data.verifiedCount = rc.verifiedCount;
-        data.jurisdictionCount = rc.jurisdictionCount;
-        data.matches = rc.matches;
-        data.verified30d = rc.verified30d;
-        if (cnt === 'report_card' && rc.verifiedCount === 0) setDataNote('⚠️ Zero verified matches yesterday — consider skipping the report card today.');
-      }
+      const { text, data } = await composeCaption(srf, cnt, v, sess);
+      if (cnt === 'report_card' && data.verifiedCount === 0) setDataNote('⚠️ Zero verified matches yesterday — consider skipping the report card today.');
       captionDataRef.current = data;
-      setCaption(generateCaption(cnt, srf, data, v));
+      setCaption(text);
     } catch (e) {
       setDataNote(`Data load failed: ${String(e instanceof Error ? e.message : e)}`);
     } finally {
       setDataLoading(false);
     }
-  }, [urls]);
+  }, [composeCaption]);
 
   const selectSurface = useCallback((s: Surface) => {
     setSurface(s);
     setImages([]);
     setQ1No(false); setQ2No(false);
+    setChainReady(false);
     setResultMsg(null);
     const stillValid = content && CONTENT_SURFACES[content].includes(s);
     if (stillValid && content) {
@@ -273,6 +287,7 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
     setVariant(0);
     setImages([]);
     setQ1No(false); setQ2No(false);
+    setChainReady(false);
     buildCaption(surface, c, 0, session);
   }, [surface, session, buildCaption]);
 
@@ -299,6 +314,7 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
     setVariant(0);
     setImages([]);
     setQ1No(false); setQ2No(false);
+    setChainReady(false);
     setResultMsg(`⚡ ${SURFACE_LABELS[srf].label} · ${CONTENT_LABELS[cnt].label} — building…`);
     buildCaption(srf, cnt, 0, s);
     // Auto-build the images so the preset lands ready to publish/share.
@@ -579,14 +595,25 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
   // the closest compliant path: caption → clipboard, then the OS share sheet
   // hands ALL images to the FB app in one gesture. Operator picks the group and
   // pastes. Auto-logs on success.
+  // Cross-posts carry images into groups we don't control — the v2 brief
+  // mandates the same Two-Question NO/NO ack as page photo posts.
+  const crossTwoQBlocked = useCallback((): boolean => {
+    if (surface === 'cross' && images.length > 0 && (!q1No || !q2No)) {
+      setResultMsg('❌ Answer both Two-Question checkboxes (must be NO) before cross-posting images.');
+      return true;
+    }
+    return false;
+  }, [surface, images.length, q1No, q2No]);
+
   const shareAllToFacebook = useCallback(async () => {
-    if (lintBlocked()) return;
+    if (lintBlocked() || crossTwoQBlocked()) return;
     if (images.length === 0) { setResultMsg('❌ Build the images first.'); return; }
     setBusy(true);
     try {
       await Clipboard.setStringAsync(caption);
       await shareDataUrlsToApps(images.map(i => ({ dataUrl: i.dataUrl, filename: i.filename })), 'HitMaster ZK6');
       await logHandoff();
+      if (surface === 'free' && content && CONTENT_SURFACES[content].includes('pro')) setChainReady(true);
       setResultMsg('📋 Caption copied + images handed to Facebook. Pick your group, paste the caption, post.');
     } catch (e: any) {
       if (e?.name === 'AbortError') setResultMsg('Share cancelled.');
@@ -594,14 +621,14 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
     } finally {
       setBusy(false);
     }
-  }, [images, caption, logHandoff, lintBlocked]);
+  }, [images, caption, logHandoff, lintBlocked, crossTwoQBlocked, surface, content]);
 
   // ── ONE-CLICK (desktop): copy caption + download all images + open group ──
   // Desktop browsers can't share files into the FB web composer (cross-origin),
   // so this collapses the manual prep into a single click; the operator then
   // drags the downloaded images into the composer and pastes.
   const prepAndOpen = useCallback(async () => {
-    if (lintBlocked()) return;
+    if (lintBlocked() || crossTwoQBlocked()) return;
     setBusy(true);
     try {
       await Clipboard.setStringAsync(caption);
@@ -609,13 +636,64 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
       const url = destUrl?.trim() || (surface === 'pro' ? urls.pro : urls.free) || 'https://www.facebook.com/groups/';
       openInNewTab(url);
       await logHandoff();
+      if (surface === 'free' && content && CONTENT_SURFACES[content].includes('pro')) setChainReady(true);
       setResultMsg(`🚀 Caption copied · ${images.length} image${images.length === 1 ? '' : 's'} downloading · group opened. Drag the images in, paste, post.`);
     } catch (e: any) {
       setResultMsg(`❌ ${String(e?.message ?? e)}`);
     } finally {
       setBusy(false);
     }
-  }, [caption, images, destUrl, surface, urls, logHandoff, lintBlocked]);
+  }, [caption, images, destUrl, surface, urls, logHandoff, lintBlocked, crossTwoQBlocked, content]);
+
+  // ── SOCIAL-12: one-tap Pro-group chain after a free-group handoff ──
+  // Regenerates ONLY what differs by tier: the caption (pro template, no
+  // pricing) and the brief card (its footer is tier-specific). Slate + signal
+  // card images are identical across group tiers and are reused as captured.
+  const chainToPro = useCallback(async () => {
+    if (!content || !CONTENT_SURFACES[content].includes('pro')) return;
+    setBusy(true);
+    setResultMsg('⏳ Re-targeting the kit at the Pro group…');
+    try {
+      const { text } = await composeCaption('pro', content, 0, session);
+      const proLint = lintCaption(text, SURFACE_TIER.pro);
+      setSurface('pro');
+      setCaption(text);
+      setQ1No(false); setQ2No(false);
+      if (!proLint.ok) {
+        setResultMsg('❌ Pro caption blocked by lint — fix the ⛔ violations above, then use the normal share button.');
+        return;
+      }
+      const kept = images.filter(i => !i.label.startsWith('Brief'));
+      const proImages = images.length !== kept.length
+        ? [...kept, await generateBriefImage('group', 'pro')]
+        : kept;
+      setImages(proImages);
+      await Clipboard.setStringAsync(text);
+      if (canShareAll) {
+        await shareDataUrlsToApps(proImages.map(i => ({ dataUrl: i.dataUrl, filename: i.filename })), 'HitMaster ZK6');
+      } else {
+        if (proImages.length > 0) await downloadAllSequential(proImages.map(i => ({ dataUrl: i.dataUrl, filename: i.filename })));
+        openInNewTab(urls.pro || urls.free || 'https://www.facebook.com/groups/');
+      }
+      const r = await fbPublish.logAssist({
+        caption: text, tier: SURFACE_TIER.pro, kind: content, targetName: 'pro group',
+        imageMeta: proImages.length > 0 ? { files: proImages.map(i => i.filename), count: proImages.length, chained_from: 'free' } : null,
+      });
+      loadHistory();
+      setChainReady(false);
+      setResultMsg(r.duplicateToday
+        ? `⚠️ Shared + logged — but this exact caption was already used today (${r.duplicates.map(d => d.target_name).join(', ')}).`
+        : canShareAll
+          ? '💎 Pro caption copied + kit handed to Facebook — pick the Pro group, paste, post.'
+          : `💎 Pro caption copied · ${proImages.length} image${proImages.length === 1 ? '' : 's'} downloading · Pro group opened. Drag in, paste, post.`);
+    } catch (e: any) {
+      if (e?.name === 'AbortError') setResultMsg('Share cancelled — the rebuilt Pro kit is still loaded; use the share button to retry.');
+      else setResultMsg(`❌ Pro chain failed: ${String(e?.message ?? e)}`);
+    } finally {
+      setImgProgress(null);
+      setBusy(false);
+    }
+  }, [content, session, images, composeCaption, generateBriefImage, urls, canShareAll, loadHistory]);
 
   const publishableImage = images.length > 0 ? images[0] : undefined;
 
@@ -918,14 +996,32 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
                 </>
               )}
 
+              {/* Two-Question filter — the v2 brief mandates it for cross-posts
+                  with images, same as page photo posts (SOCIAL-10 residual). */}
+              {surface === 'cross' && images.length > 0 && (
+                <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, marginBottom: 10 }}>
+                  <Text style={{ fontSize: 10, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1, marginBottom: 6 }}>
+                    TWO-QUESTION FILTER — MANDATORY FOR CROSS-POST IMAGES
+                  </Text>
+                  <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }} onPress={() => setQ1No(v => !v)}>
+                    <Text style={{ fontSize: 14 }}>{q1No ? '☑️' : '⬜'}</Text>
+                    <Text style={{ fontSize: 10, color: colors.text, flex: 1 }}>Q1 — NO 3-digit numbers are visible in any image (mosaic redaction counts as NO)</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} onPress={() => setQ2No(v => !v)}>
+                    <Text style={{ fontSize: 14 }}>{q2No ? '☑️' : '⬜'}</Text>
+                    <Text style={{ fontSize: 10, color: colors.text, flex: 1 }}>Q2 — NO forbidden vocabulary is rendered in any image</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
               {/* ONE-BUTTON flow — mobile shares everything to the FB app in one
                   tap; desktop copies caption + downloads all + opens the group
                   in one click. Groups have no publish API (Meta, 4/2024), so a
                   human still picks the group + pastes the caption either way. */}
               {canShareAll ? (
                 <TouchableOpacity
-                  style={[st.btnPrimary, { paddingVertical: 14, opacity: busy || images.length === 0 || !lint.ok ? 0.5 : 1 }]}
-                  disabled={busy || images.length === 0 || !lint.ok}
+                  style={[st.btnPrimary, { paddingVertical: 14, opacity: busy || images.length === 0 || !lint.ok || crossTwoQMissing ? 0.5 : 1 }]}
+                  disabled={busy || images.length === 0 || !lint.ok || crossTwoQMissing}
                   onPress={shareAllToFacebook}
                 >
                   <Text style={[st.btnPrimaryText, { fontSize: 14 }]}>
@@ -934,8 +1030,8 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
-                  style={[st.btnPrimary, { paddingVertical: 14, opacity: busy || !lint.ok ? 0.5 : 1 }]}
-                  disabled={busy || !lint.ok}
+                  style={[st.btnPrimary, { paddingVertical: 14, opacity: busy || !lint.ok || crossTwoQMissing ? 0.5 : 1 }]}
+                  disabled={busy || !lint.ok || crossTwoQMissing}
                   onPress={prepAndOpen}
                 >
                   <Text style={[st.btnPrimaryText, { fontSize: 14 }]}>
@@ -948,6 +1044,19 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
                   ? 'One tap: the caption is copied and all images are handed to the Facebook app — pick your group and paste the caption (Meta blocks prefilled captions).'
                   : 'One click does the prep. Desktop browsers can\'t inject files into the Facebook composer, so drag the downloaded images in and paste the copied caption. On a phone, this becomes a true one-tap share.'}
               </Text>
+
+              {/* SOCIAL-12: chained Pro re-share — appears once the free-group
+                  handoff is done. Reuses the captured kit; only the caption and
+                  the tier-specific brief card are rebuilt. */}
+              {chainReady && surface === 'free' && (
+                <TouchableOpacity
+                  style={[st.btnPrimary, { paddingVertical: 14, marginTop: 10, backgroundColor: colors.gold, opacity: busy ? 0.5 : 1 }]}
+                  disabled={busy}
+                  onPress={chainToPro}
+                >
+                  <Text style={[st.btnPrimaryText, { fontSize: 14 }]}>💎 Next: Pro Group — 1 tap, kit reused</Text>
+                </TouchableOpacity>
+              )}
 
               {/* individual steps (fallback / à la carte) */}
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>

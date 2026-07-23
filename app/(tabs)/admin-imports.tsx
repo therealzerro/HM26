@@ -5,6 +5,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator }
 import { confirmAsync, alertAsync } from '@/lib/confirm';
 import { useDataIngestion } from '@/hooks/useDataIngestion';
 import { fetchFromSupabase } from '@/lib/supabase';
+import { adminOpsFetch } from '@/lib/adminOps';
 import { theme } from '@/constants/theme';
 import { useTheme, type ColorTokens } from '@/lib/theme';
 import { Import } from '@/types/core';
@@ -104,7 +105,7 @@ function AdminImportsScreen() {
 
   const hardDeleteImport = (imp: Import) => {
     const confirmDelete = () => {
-      const del = (path: string) => fetchFromSupabase({ path, method: 'DELETE' });
+      const del = (path: string) => adminOpsFetch({ path, method: 'DELETE' });
 
       const run = async () => {
         try {

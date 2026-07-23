@@ -10,6 +10,7 @@ import { useSnapshot } from '@/hooks/useSnapshot';
 import { useDataIngestion } from '@/hooks/useDataIngestion';
 import { useScope } from '@/hooks/useScope';
 import { fetchFromSupabase } from '@/lib/supabase';
+import { adminOpsFetch } from '@/lib/adminOps';
 import { getTodayET, getTomorrowET, getYesterdayET } from '@/lib/dateUtils';
 import { runHitDetectionAllScopes, runHitDetectionAndRefresh, HitDetectionResult } from '@/lib/hitDetection';
 import { runDailyRebuild, runDailyReport } from '@/lib/rebuildTrigger';
@@ -372,7 +373,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
     setClearingIntel(date);
     setClearIntelResult(null);
     try {
-      await fetchFromSupabase({
+      await adminOpsFetch({
         path: `/rest/v1/daily_intelligence?slate_date=eq.${date}`,
         method: 'PATCH',
         body: { on_slate: false, hit_box: false, hit_straight: false },

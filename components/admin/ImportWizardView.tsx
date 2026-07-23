@@ -4,6 +4,7 @@ import { alertAsync } from '@/lib/confirm';
 import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
+import { adminOpsFetch } from '@/lib/adminOps';
 import { parseRawLedgerData } from '@/lib/parseLedger';
 import { getTodayET } from '@/lib/dateUtils';
 import { Pill, SectionTitle, Card, useSt, HORIZONS, useImportTypes, PAIR_CLASSES, ImportRecord } from './AdminShared';
@@ -342,10 +343,10 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
         let inserted = 0;
         for (let i = 0; i < records.length; i += CHUNK) {
           const batch = records.slice(i, i + CHUNK);
-          await fetchFromSupabase({
+          await adminOpsFetch({
             path: '/rest/v1/datasets_box?on_conflict=class_id,scope,horizon_label,key,jurisdiction',
             method: 'POST',
-            headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+            prefer: 'resolution=merge-duplicates,return=minimal',
             body: batch,
           });
           inserted += batch.length;
@@ -373,10 +374,10 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
         }
 
         // Log import record
-        const importRec = await fetchFromSupabase<any>({
+        const importRec = await adminOpsFetch<any>({
           path: '/rest/v1/imports',
           method: 'POST',
-          headers: { 'Prefer': 'return=representation' },
+          prefer: 'return=representation',
           body: {
             type: 'box_history',
             class_id: 1,

@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Modal, ActivityIndicator } fr
 import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
+import { adminOpsFetch } from '@/lib/adminOps';
 import { SectionTitle, Card, useSt } from './AdminShared';
 import { ProposalRegenBanner } from './ProposalRegenBanner';
 
@@ -325,10 +326,10 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
       // Single upsert POST. Prefer: resolution=merge-duplicates means existing
       // rows get UPDATED on (key) primary-key conflict, new rows get INSERTED.
       const body = Object.entries(entries).map(([key, value]) => ({ key, value }));
-      await fetchFromSupabase({
+      await adminOpsFetch({
         path: '/rest/v1/app_config',
         method: 'POST',
-        headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        prefer: 'resolution=merge-duplicates,return=minimal',
         body,
       });
       // Process scope-override deletes one at a time (rare — only on explicit
@@ -336,10 +337,10 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
       let deletedCount = 0;
       for (const key of scopeDeletes) {
         try {
-          await fetchFromSupabase({
+          await adminOpsFetch({
             path: `/rest/v1/app_config?key=eq.${encodeURIComponent(key)}`,
             method: 'DELETE',
-            headers: { 'Prefer': 'return=minimal' },
+            prefer: 'return=minimal',
           });
           deletedCount++;
         } catch (e) {
@@ -358,10 +359,10 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
       // changes" card at the top has fresh content. Best-effort — swallow
       // errors so the save flow doesn't fail if audit_logs is unreachable.
       try {
-        await fetchFromSupabase({
+        await adminOpsFetch({
           path: '/rest/v1/audit_logs',
           method: 'POST',
-          headers: { 'Prefer': 'return=minimal' },
+          prefer: 'return=minimal',
           body: {
             actor_id: null,
             action: 'config_change',

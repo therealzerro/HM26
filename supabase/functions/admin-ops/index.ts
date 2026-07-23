@@ -38,6 +38,7 @@ const ALLOWED_TABLES = new Set([
   'audit_logs',
   'horizon_blends',
   'percentile_maps',
+  'engine_runs',
 ]);
 
 const ALLOWED_METHODS = new Set(['POST', 'PATCH', 'DELETE']);

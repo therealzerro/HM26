@@ -21,6 +21,8 @@
  *   full before/after state. Every revert writes `weight_proposal_reverted`.
  */
 
+import { adminOpsFetch } from './adminOps';
+
 const SB_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://tgagarhwqbdcwoqhpapi.supabase.co';
 const SB_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
@@ -68,26 +70,25 @@ async function hasBeenApplied(proposalId: string): Promise<boolean> {
 }
 
 async function patchConfig(key: string, value: any): Promise<void> {
-  const body = JSON.stringify({
-    value: typeof value === 'string' ? value : JSON.stringify(value),
-    updated_at: new Date().toISOString(),
-  });
-  const res = await fetch(`${SB_URL}/rest/v1/app_config?key=eq.${encodeURIComponent(key)}`, {
+  // SEC-05: config writes go through the admin-ops gateway, not the anon key.
+  await adminOpsFetch({
+    path: `/rest/v1/app_config?key=eq.${encodeURIComponent(key)}`,
     method: 'PATCH',
-    headers: { ...JSON_HEADERS(), 'Prefer': 'return=minimal' },
-    body,
+    body: {
+      value: typeof value === 'string' ? value : JSON.stringify(value),
+      updated_at: new Date().toISOString(),
+    },
+    prefer: 'return=minimal',
   });
-  if (!res.ok) throw new Error(`patchConfig ${key} ${res.status}: ${await res.text()}`);
 }
 
 async function writeAuditLog(action: string, target: string, payload_meta: any, actor_id: string): Promise<string> {
-  const res = await fetch(`${SB_URL}/rest/v1/audit_logs`, {
+  const rows = await adminOpsFetch<any>({
+    path: '/rest/v1/audit_logs',
     method: 'POST',
-    headers: { ...JSON_HEADERS(), 'Prefer': 'return=representation' },
-    body: JSON.stringify({ actor_id, action, target, payload_meta }),
+    body: { actor_id, action, target, payload_meta },
+    prefer: 'return=representation',
   });
-  if (!res.ok) throw new Error(`writeAuditLog ${res.status}: ${await res.text()}`);
-  const rows = await res.json();
   const row = Array.isArray(rows) ? rows[0] : rows;
   return row?.id ?? '';
 }

@@ -15,6 +15,7 @@ import { Scope, SlateSnapshot, SlateDataStats, EngineMetadata } from '@/types/co
 import { getTodayET, getDaysAgoET } from '@/lib/dateUtils';
 import { K6_QUOTAS, PAIR_REPETITION_CAP } from '@/constants/zk6';
 import { fetchFromSupabase } from '@/lib/supabase';
+import { adminOpsFetch } from '@/lib/adminOps';
 import {
   H_ALL,
   HORIZON_WEIGHTS,
@@ -993,7 +994,7 @@ async function saveSlateSnapshot(snapshot: SlateSnapshot, extraFields?: Record<s
 
   const saveToAuditFallback = async (reason: string) => {
     try {
-      await fetchFromSupabase({
+      await adminOpsFetch({
         path: '/rest/v1/audit_logs',
         method: 'POST',
         body: {
@@ -1021,10 +1022,10 @@ async function saveSlateSnapshot(snapshot: SlateSnapshot, extraFields?: Record<s
   if (!isSupplementSave) {
     try {
       const effectiveSd = snapshot.slate_date ?? getTodayET();
-      await fetchFromSupabase<any>({
+      await adminOpsFetch<any>({
         path: `/rest/v1/slate_snapshots?scope=eq.${encodeURIComponent(snapshot.scope)}&slate_date=eq.${effectiveSd}&deleted_at=is.null`,
         method: 'PATCH',
-        headers: { 'Prefer': 'return=minimal' },
+        prefer: 'return=minimal',
         body: { deleted_at: new Date().toISOString() },
       });
     } catch (patchErr) {
@@ -1033,10 +1034,10 @@ async function saveSlateSnapshot(snapshot: SlateSnapshot, extraFields?: Record<s
   }
 
   try {
-    const res = await fetchFromSupabase<any>({
+    const res = await adminOpsFetch<any>({
       path: '/rest/v1/slate_snapshots',
       method: 'POST',
-      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+      prefer: 'resolution=merge-duplicates,return=representation',
       body: payload,
     });
     const dbId = Array.isArray(res) && res.length > 0
@@ -1067,6 +1068,8 @@ export async function computeSlate({
   // Flip EXPO_PUBLIC_USE_EDGE_ZK6=true after parity verification (Step 6).
   if (process.env.EXPO_PUBLIC_USE_EDGE_ZK6 === 'true') {
     console.log('[zk6v2] Edge Function mode — delegating to compute-slate-zk6');
+    // Edge-fn invocation, NOT a table write — stays on fetchFromSupabase
+    // (the admin-ops gateway only proxies /rest/v1/ table paths).
     const result = await fetchFromSupabase<SlateSnapshot>({
       path: '/functions/v1/compute-slate-zk6',
       method: 'POST',
@@ -1870,10 +1873,10 @@ export async function computeSlate({
   // Non-fatal: a telemetry write failure never blocks slate save.
   if (!is_supplement) {
     try {
-      await fetchFromSupabase({
+      await adminOpsFetch({
         path: '/rest/v1/engine_runs',
         method: 'POST',
-        headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        prefer: 'resolution=merge-duplicates,return=minimal',
         body: {
           slate_hash:           hash,
           scope,
@@ -2031,18 +2034,18 @@ export async function computeSlate({
         }));
 
       const diRows = [...top30Rows, ...extraK6Rows, ...hitOrphanRows];
-      const delErr = await fetchFromSupabase({
+      const delErr = await adminOpsFetch({
         path: `/rest/v1/daily_intelligence?slate_date=eq.${effectiveDate}&scope=eq.${encodeURIComponent(scope)}&mode=eq.${encodeURIComponent(weightsKey)}`,
         method: 'DELETE',
-        headers: { 'Prefer': 'return=minimal' },
+        prefer: 'return=minimal',
       }).then(() => null).catch((e: unknown) => e);
       if (delErr) {
         console.warn('[zk6v2] daily_intelligence DELETE failed (rows may already be absent):', String(delErr));
       }
-      await fetchFromSupabase({
+      await adminOpsFetch({
         path: '/rest/v1/daily_intelligence',
         method: 'POST',
-        headers: { 'Prefer': 'return=minimal' },
+        prefer: 'return=minimal',
         body: diRows,
       });
       console.log('[zk6v2] daily_intelligence: wrote', diRows.length, 'rows for scope:', scope, 'date:', effectiveDate, '(' + hitOrphanRows.length + ' hit-orphans appended)');
@@ -2114,10 +2117,10 @@ export async function computeSlate({
       // Idempotent: regen will overwrite via merge-duplicates on (slate_hash, rank, combo).
       // No unique constraint exists, so successive regens just append historical
       // rows — that's fine since slate_hash differs per regen.
-      await fetchFromSupabase({
+      await adminOpsFetch({
         path: '/rest/v1/adaptive_tracking',
         method: 'POST',
-        headers: { 'Prefer': 'return=minimal' },
+        prefer: 'return=minimal',
         body: atRows,
       });
       console.log('[zk6v2] adaptive_tracking: wrote', atRows.length, 'K6 primary rows');

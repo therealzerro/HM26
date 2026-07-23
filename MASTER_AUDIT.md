@@ -682,6 +682,14 @@ Full app sweep (operator-approved scope: subscriber surfaces + operator tooling 
 
 **Main work designed, not yet built:** `docs/sec05_write_gateway_design.md`. Write inventory shows every non-GET call is operator code except `push_tokens` (usePushNotifications) and `saved_slates` (book/explore) — so target posture is anon = read + those two narrowed writes; all operator writes via a new `admin-ops` edge gateway (ADMIN_OPS_KEY, ENH-FUNNEL pattern, server-side table/op allowlist); then drop anon write policies table-by-table as writers migrate (`app_config` first, but clear of the 6/13 ratification window). Est. ~2 days across sessions. **Pre-launch blocker.**
 
+**Step 1+2 update (2026-07-23, operator approved):** Gateway + client turned out to be already built (`supabase/functions/admin-ops` + `lib/adminOps.ts`, shipped ~6/11 — the 6/10 doc's "not built" note was stale). Today's session completed **step 2 — full writer migration**, previously at zero call sites:
+- `engine_runs` added to the gateway table allowlist (only write target missing); **admin-ops redeployed v6** via Supabase CLI, verify_jwt=true confirmed via list_edge_functions.
+- **60 write call sites migrated** `fetchFromSupabase` → `adminOpsFetch` (headers.Prefer → `prefer:`) across 10 files: `useDataIngestion` (30), `CoverageMatrixView` (8), `engines/zk6.ts` (7), `HitTrackingView` (4), `EngineConfigView` (3), `ImportWizardView` (2), `applyWeightUpdate` (2, was raw anon fetch), `DashboardView` (1), `intelligence.tsx` (1), `admin-imports.tsx` (1). Edge-fn POSTs (`/functions/v1/*`, incl. zk6's compute-slate call) deliberately untouched — the gateway proxies `/rest/v1/` only. zk30 writers, `push_tokens`, `saved_slates` untouched per design scope.
+- `engines/zk6.ts` note (engine-change rule): persistence-transport swap only — zero scoring/selection change, picks identical by construction; backtest harness never executes the RN write path (its refs to zk6.ts are comments). Filtered tsc clean. `zk6-parity` build gained an AsyncStorage shim (new import chain via adminOps) — bundle rebuilds clean.
+- All dynamic write paths verified against the allowlist (datasets_box/pair, percentile_maps, horizon_blends, imports, histories).
+
+**Remaining (step 3-4) — DO NOT SKIP THE SMOKE:** operator must exercise the real flows with the admin key entered (Daily Workflow, a ledger import, an Engine config save) BEFORE any policy drop — migrated writers now require the AdminKeyGate key and throw `AdminKeyMissingError` without it. Then drop anon/ALL write policies table-by-table (`app_config` first), re-run advisors + `npm run rls:smoke`, close.
+
 ---
 
 ### COHORT-01 — Standing Overdue-Reversion Cohort Harness (2026-06-10)

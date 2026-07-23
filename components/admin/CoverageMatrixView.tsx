@@ -4,6 +4,7 @@ import { alertAsync } from '@/lib/confirm';
 import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
+import { adminOpsFetch } from '@/lib/adminOps';
 import { useDataIngestion } from '@/hooks/useDataIngestion';
 import { useCoverage } from '@/hooks/useCoverage';
 import { getTodayET } from '@/lib/dateUtils';
@@ -79,18 +80,18 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
       let queries: Promise<any>[];
       if (scope === 'all') {
         queries = [
-          fetchFromSupabase({ path: `/rest/v1/datasets_box?id=not.is.null`, method: 'DELETE' }),
-          fetchFromSupabase({ path: `/rest/v1/datasets_pair?id=not.is.null`, method: 'DELETE' }),
-          fetchFromSupabase({ path: `/rest/v1/percentile_maps?id=not.is.null`, method: 'DELETE' }),
-          fetchFromSupabase({ path: `/rest/v1/horizon_blends?id=not.is.null`, method: 'DELETE' }),
+          adminOpsFetch({ path: `/rest/v1/datasets_box?id=not.is.null`, method: 'DELETE' }),
+          adminOpsFetch({ path: `/rest/v1/datasets_pair?id=not.is.null`, method: 'DELETE' }),
+          adminOpsFetch({ path: `/rest/v1/percentile_maps?id=not.is.null`, method: 'DELETE' }),
+          adminOpsFetch({ path: `/rest/v1/horizon_blends?id=not.is.null`, method: 'DELETE' }),
         ];
       } else {
         const enc = encodeURIComponent(scope);
         queries = [
-          fetchFromSupabase({ path: `/rest/v1/datasets_box?scope=eq.${enc}`, method: 'DELETE' }),
-          fetchFromSupabase({ path: `/rest/v1/datasets_pair?scope=eq.${enc}`, method: 'DELETE' }),
-          fetchFromSupabase({ path: `/rest/v1/percentile_maps?scope=eq.${enc}`, method: 'DELETE' }),
-          fetchFromSupabase({ path: `/rest/v1/horizon_blends?scope=eq.${enc}`, method: 'DELETE' }),
+          adminOpsFetch({ path: `/rest/v1/datasets_box?scope=eq.${enc}`, method: 'DELETE' }),
+          adminOpsFetch({ path: `/rest/v1/datasets_pair?scope=eq.${enc}`, method: 'DELETE' }),
+          adminOpsFetch({ path: `/rest/v1/percentile_maps?scope=eq.${enc}`, method: 'DELETE' }),
+          adminOpsFetch({ path: `/rest/v1/horizon_blends?scope=eq.${enc}`, method: 'DELETE' }),
         ];
       }
       const results = await Promise.allSettled(queries);

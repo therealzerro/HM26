@@ -2,6 +2,7 @@ import createContextHook from '@nkzw/create-context-hook';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import { fetchFromSupabase, countFromSupabase } from '@/lib/supabase';
+import { adminOpsFetch } from '@/lib/adminOps';
 import { useAuth } from '@/hooks/useAuth';
 import { Scope, HorizonLabel, Import, AuditLog, ImportSummary, RegenerateResult } from '@/types/core';
 import { runHitDetectionForDates } from '@/lib/hitDetection';
@@ -259,10 +260,10 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
         created_by: getActorId()
       };
 
-      const importRes = await fetchFromSupabase<Import[] | Import>({
+      const importRes = await adminOpsFetch<Import[] | Import>({
         path: '/rest/v1/imports',
         method: 'POST',
-        headers: { 'Prefer': 'return=representation' },
+        prefer: 'return=representation',
         body: importRecord
       });
       const importId = Array.isArray(importRes) ? importRes[0]?.id : (importRes as Import | undefined)?.id;
@@ -279,9 +280,9 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
           console.log('[import] override-delete previous horizon datasets', { classId: targetClassId, scope: data.scope, horizon: canonH });
           try {
             if (data.type === 'box_history') {
-              await fetchFromSupabase({ path: `/rest/v1/datasets_box?class_id=eq.1&scope=eq.${encodeURIComponent(data.scope)}&horizon_label=eq.${encodeURIComponent(canonH)}&jurisdiction=${data.jurisdiction ? `eq.${data.jurisdiction}` : 'is.null'}`, method: 'DELETE' });
+              await adminOpsFetch({ path: `/rest/v1/datasets_box?class_id=eq.1&scope=eq.${encodeURIComponent(data.scope)}&horizon_label=eq.${encodeURIComponent(canonH)}&jurisdiction=${data.jurisdiction ? `eq.${data.jurisdiction}` : 'is.null'}`, method: 'DELETE' });
             } else {
-              await fetchFromSupabase({ path: `/rest/v1/datasets_pair?class_id=eq.${targetClassId}&scope=eq.${encodeURIComponent(data.scope)}&horizon_label=eq.${encodeURIComponent(canonH)}&jurisdiction=${data.jurisdiction ? `eq.${data.jurisdiction}` : 'is.null'}`, method: 'DELETE' });
+              await adminOpsFetch({ path: `/rest/v1/datasets_pair?class_id=eq.${targetClassId}&scope=eq.${encodeURIComponent(data.scope)}&horizon_label=eq.${encodeURIComponent(canonH)}&jurisdiction=${data.jurisdiction ? `eq.${data.jurisdiction}` : 'is.null'}`, method: 'DELETE' });
             }
           } catch (preDelErr) {
             console.log('[import] pre-delete warning (continuing):', preDelErr);
@@ -338,10 +339,10 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
             try {
               const payloadBytes = new Blob([JSON.stringify(batch)]).size;
               console.log('[import] batch start', { rows: batch.length, payloadBytes });
-              await fetchFromSupabase({
+              await adminOpsFetch({
                 path: postPath,
                 method: 'POST',
-                headers: { 'Prefer': 'resolution=merge-duplicates' },
+                prefer: 'resolution=merge-duplicates',
                 body: batch,
               });
               console.log('[import] batch ok', { rows: batch.length, ms: Date.now() - started });
@@ -354,7 +355,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
                 await new Promise(r => setTimeout(r, backoff));
                 return tryBatch(batch, attempt + 1);
               }
-              await fetchFromSupabase({ path: `/rest/v1/imports?id=eq.${importId}`, method: 'PATCH', body: { status: 'failed', error_text: msg } });
+              await adminOpsFetch({ path: `/rest/v1/imports?id=eq.${importId}`, method: 'PATCH', body: { status: 'failed', error_text: msg } });
               throw e;
             }
           };
@@ -388,7 +389,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
             }
           }
 
-          await fetchFromSupabase({ path: `/rest/v1/imports?id=eq.${importId}`, method: 'PATCH', body: { status: 'completed' } });
+          await adminOpsFetch({ path: `/rest/v1/imports?id=eq.${importId}`, method: 'PATCH', body: { status: 'completed' } });
 
           const dates = data.rows.map(r => r.lastSeen).filter(Boolean);
           const sortedDates = [...dates].sort();
@@ -407,7 +408,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
             last_seen: sortedDates[sortedDates.length - 1],
           };
 
-          await fetchFromSupabase({
+          await adminOpsFetch({
             path: '/rest/v1/audit_logs',
             method: 'POST',
             body: {
@@ -424,7 +425,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
       } catch (e) {
         const message = String(e instanceof Error ? e.message : e);
         try {
-          await fetchFromSupabase({ path: `/rest/v1/imports?id=eq.${importId}`, method: 'PATCH', body: { status: 'failed', error_text: message } });
+          await adminOpsFetch({ path: `/rest/v1/imports?id=eq.${importId}`, method: 'PATCH', body: { status: 'failed', error_text: message } });
         } catch {}
         throw new Error(message);
       }
@@ -480,10 +481,10 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
       if (!isAdmin) throw new Error('Admin access required');
       console.log('[useDataIngestion] Importing ledger:', data.scope, data.entries.length);
 
-      const importRec = await fetchFromSupabase<Import[] | Import>({
+      const importRec = await adminOpsFetch<Import[] | Import>({
         path: '/rest/v1/imports',
         method: 'POST',
-        headers: { 'Prefer': 'return=representation' },
+        prefer: 'return=representation',
         body: {
           type: 'ledger',
           scope: data.scope,
@@ -572,10 +573,10 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
           for (let attempt = 0; attempt < 3 && !landed; attempt++) {
             try {
               if (attempt > 0) await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 500));
-              await fetchFromSupabase({
+              await adminOpsFetch({
                 path: '/rest/v1/histories?on_conflict=jurisdiction,game,date_et,session,result_digits',
                 method: 'POST',
-                headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+                prefer: 'resolution=merge-duplicates,return=minimal',
                 body: chunk
               });
               landed = true;
@@ -593,7 +594,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
           }
         }
 
-        await fetchFromSupabase({ path: `/rest/v1/imports?id=eq.${importRecId}`, method: 'PATCH', body: { status: 'completed' } });
+        await adminOpsFetch({ path: `/rest/v1/imports?id=eq.${importRecId}`, method: 'PATCH', body: { status: 'completed' } });
         
         const importedDates = Array.from(seenDates);
         const summary: ImportSummary = {
@@ -606,7 +607,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
           importedDates,
           rejectedSamples: rejectedSamples.length > 0 ? rejectedSamples : undefined,
         } as ImportSummary;
-        await fetchFromSupabase({ 
+        await adminOpsFetch({ 
           path: '/rest/v1/audit_logs', 
           method: 'POST', 
           body: { 
@@ -640,7 +641,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
       } catch (e) {
         const message = String(e instanceof Error ? e.message : e);
         try {
-          await fetchFromSupabase({ path: `/rest/v1/imports?id=eq.${importRecId}`, method: 'PATCH', body: { status: 'failed', error_text: message } });
+          await adminOpsFetch({ path: `/rest/v1/imports?id=eq.${importRecId}`, method: 'PATCH', body: { status: 'failed', error_text: message } });
         } catch {}
         throw new Error(message);
       }
@@ -801,7 +802,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
         });
 
         try {
-          await fetchFromSupabase({ path: '/rest/v1/audit_logs', method: 'POST', body: { actor_id: getActorId(), action: force ? 'regenerate_forced' : 'regenerate_slate', target: scope, payload_meta: { hash: snapshot.hash, top: snapshot.top_k_straights_json?.slice(0, 6), snapshotId: snapshot.id, forced: force } } });
+          await adminOpsFetch({ path: '/rest/v1/audit_logs', method: 'POST', body: { actor_id: getActorId(), action: force ? 'regenerate_forced' : 'regenerate_slate', target: scope, payload_meta: { hash: snapshot.hash, top: snapshot.top_k_straights_json?.slice(0, 6), snapshotId: snapshot.id, forced: force } } });
         } catch (e) {
           console.log('[regenerate] audit log error', e);
         }
@@ -910,12 +911,12 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
 
   const softDeleteImport = useCallback(async (id: string) => {
     const nowIso = new Date().toISOString();
-    try { await fetchFromSupabase({ path: `/rest/v1/datasets_box?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: nowIso } }); } catch {}
-    try { await fetchFromSupabase({ path: `/rest/v1/datasets_pair?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: nowIso } }); } catch {}
-    try { await fetchFromSupabase({ path: `/rest/v1/percentile_maps?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: nowIso } }); } catch {}
-    try { await fetchFromSupabase({ path: `/rest/v1/horizon_blends?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: nowIso } }); } catch {}
-    await fetchFromSupabase({ path: `/rest/v1/imports?id=eq.${id}`, method: 'PATCH', body: { status: 'deleted', deleted_at: nowIso } });
-    try { await fetchFromSupabase({ path: `/rest/v1/audit_logs`, method: 'POST', body: { actor_id: getActorId(), action: 'SoftDelete', target: id } }); } catch {}
+    try { await adminOpsFetch({ path: `/rest/v1/datasets_box?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: nowIso } }); } catch {}
+    try { await adminOpsFetch({ path: `/rest/v1/datasets_pair?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: nowIso } }); } catch {}
+    try { await adminOpsFetch({ path: `/rest/v1/percentile_maps?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: nowIso } }); } catch {}
+    try { await adminOpsFetch({ path: `/rest/v1/horizon_blends?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: nowIso } }); } catch {}
+    await adminOpsFetch({ path: `/rest/v1/imports?id=eq.${id}`, method: 'PATCH', body: { status: 'deleted', deleted_at: nowIso } });
+    try { await adminOpsFetch({ path: `/rest/v1/audit_logs`, method: 'POST', body: { actor_id: getActorId(), action: 'SoftDelete', target: id } }); } catch {}
     queryClient.invalidateQueries({ queryKey: ['imports'] });
     queryClient.invalidateQueries({ queryKey: ['health_metrics'] });
     queryClient.invalidateQueries({ queryKey: ['coverage'] });
@@ -924,12 +925,12 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
   }, [queryClient]);
 
   const undoSoftDeleteImport = useCallback(async (id: string) => {
-    try { await fetchFromSupabase({ path: `/rest/v1/datasets_box?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: null } }); } catch {}
-    try { await fetchFromSupabase({ path: `/rest/v1/datasets_pair?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: null } }); } catch {}
-    try { await fetchFromSupabase({ path: `/rest/v1/percentile_maps?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: null } }); } catch {}
-    try { await fetchFromSupabase({ path: `/rest/v1/horizon_blends?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: null } }); } catch {}
-    await fetchFromSupabase({ path: `/rest/v1/imports?id=eq.${id}`, method: 'PATCH', body: { status: 'completed', deleted_at: null } });
-    try { await fetchFromSupabase({ path: `/rest/v1/audit_logs`, method: 'POST', body: { actor_id: getActorId(), action: 'UndoSoftDelete', target: id } }); } catch {}
+    try { await adminOpsFetch({ path: `/rest/v1/datasets_box?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: null } }); } catch {}
+    try { await adminOpsFetch({ path: `/rest/v1/datasets_pair?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: null } }); } catch {}
+    try { await adminOpsFetch({ path: `/rest/v1/percentile_maps?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: null } }); } catch {}
+    try { await adminOpsFetch({ path: `/rest/v1/horizon_blends?import_id=eq.${id}`, method: 'PATCH', body: { deleted_at: null } }); } catch {}
+    await adminOpsFetch({ path: `/rest/v1/imports?id=eq.${id}`, method: 'PATCH', body: { status: 'completed', deleted_at: null } });
+    try { await adminOpsFetch({ path: `/rest/v1/audit_logs`, method: 'POST', body: { actor_id: getActorId(), action: 'UndoSoftDelete', target: id } }); } catch {}
     queryClient.invalidateQueries({ queryKey: ['imports'] });
     queryClient.invalidateQueries({ queryKey: ['health_metrics'] });
     queryClient.invalidateQueries({ queryKey: ['coverage'] });
@@ -938,7 +939,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
   }, [queryClient]);
 
   const hardDeleteImport = useCallback(async (id: string, importType?: string): Promise<string> => {
-    const del = (path: string) => fetchFromSupabase({ path, method: 'DELETE' });
+    const del = (path: string) => adminOpsFetch({ path, method: 'DELETE' });
 
     let msg = '';
     if (importType === 'box_history') {
@@ -965,7 +966,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
     }
 
     await del(`/rest/v1/imports?id=eq.${id}`);
-    try { await fetchFromSupabase({ path: `/rest/v1/audit_logs`, method: 'POST', body: { actor_id: getActorId(), action: 'HardDelete', target: id } }); } catch {}
+    try { await adminOpsFetch({ path: `/rest/v1/audit_logs`, method: 'POST', body: { actor_id: getActorId(), action: 'HardDelete', target: id } }); } catch {}
     queryClient.invalidateQueries({ queryKey: ['imports'] });
     queryClient.invalidateQueries({ queryKey: ['health_metrics'] });
     queryClient.invalidateQueries({ queryKey: ['coverage'] });
@@ -987,7 +988,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
     ];
 
     const results = await Promise.allSettled(
-      tables.map(path => fetchFromSupabase({ path, method: 'DELETE' }))
+      tables.map(path => adminOpsFetch({ path, method: 'DELETE' }))
     );
 
     const errors = results
@@ -995,7 +996,7 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
       .map(r => String(r.reason instanceof Error ? r.reason.message : r.reason));
 
     try {
-      await fetchFromSupabase({
+      await adminOpsFetch({
         path: '/rest/v1/audit_logs',
         method: 'POST',
         body: { actor_id: getActorId(), action: 'ClearAllImports', target: 'all' },

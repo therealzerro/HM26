@@ -10,6 +10,7 @@ import { router } from 'expo-router';
 import { theme } from '@/constants/theme';
 import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
+import { adminOpsFetch } from '@/lib/adminOps';
 import { backfillIntelHits, BackfillProgress } from '@/lib/backfillIntelHits';
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
 import { useScope } from '@/hooks/useScope';
@@ -544,10 +545,10 @@ function IntelligenceScreen() {
 
   const applySuggestion = useCallback(async (key: string, value: string) => {
     try {
-      await fetchFromSupabase({
+      await adminOpsFetch({
         path: `/rest/v1/app_config?key=eq.${encodeURIComponent(key)}`,
         method: 'PATCH',
-        headers: { 'Prefer': 'return=minimal' },
+        prefer: 'return=minimal',
         body: { value: String(value) },
       });
       Alert.alert('Applied ✓', 'Engine config updated. Regenerate slates to apply.');

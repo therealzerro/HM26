@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
+import { adminOpsFetch } from '@/lib/adminOps';
 import { getTodayET } from '@/lib/dateUtils';
 import { SectionTitle, Card, useSt } from './AdminShared';
 
@@ -126,7 +127,7 @@ function PerformanceRow({
     const softDeleteById = async (id: string) => {
       setDeleting(true);
       try {
-        await fetchFromSupabase({
+        await adminOpsFetch({
           path: `/rest/v1/slate_snapshots?id=eq.${id}`,
           method: 'PATCH',
           body: { deleted_at: new Date().toISOString() },
@@ -806,7 +807,7 @@ export default function HitTrackingView() {
         let failed = 0;
         for (const id of toDelete) {
           try {
-            await fetchFromSupabase({
+            await adminOpsFetch({
               path: `/rest/v1/slate_snapshots?id=eq.${id}`,
               method: 'PATCH',
               body: { deleted_at: new Date().toISOString() },
@@ -1017,15 +1018,15 @@ function RecentlyDeletedPanel({ onRestored }: { onRestored?: () => void }) {
       if (!(await confirmAsync('Restore snapshot?', `Brings ${scope} ${slate_date} (${hash?.slice(0, 8)}) back as active. Other active snapshots for the same scope/date stay active — you may end up with duplicates.`, { confirmLabel: 'Restore' }))) return;
       setRestoringId(id);
       try {
-        await fetchFromSupabase({
+        await adminOpsFetch({
           path: `/rest/v1/slate_snapshots?id=eq.${id}`,
           method: 'PATCH',
           body: { deleted_at: null },
         });
-        await fetchFromSupabase({
+        await adminOpsFetch({
           path: '/rest/v1/audit_logs',
           method: 'POST',
-          headers: { 'Prefer': 'return=minimal' },
+          prefer: 'return=minimal',
           body: {
             action: 'restore_snapshot',
             target: id,

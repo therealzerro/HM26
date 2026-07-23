@@ -33,6 +33,10 @@ export async function buildLocalEngine() {
     alias: {
       'expo-constants': pathResolve(__dirname, 'shim-expo-constants.mjs'),
       'react-native':   pathResolve(__dirname, 'shim-empty.mjs'),
+      // SEC-05: engines/zk6 persistence now imports lib/adminOps →
+      // lib/subscriberAdminClient → AsyncStorage; shim it for the Node bundle
+      // (parity runs never execute the write path).
+      '@react-native-async-storage/async-storage': pathResolve(__dirname, 'shim-empty.mjs'),
     },
     tsconfigRaw: JSON.stringify({
       compilerOptions: {

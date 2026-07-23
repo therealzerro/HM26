@@ -51,7 +51,7 @@ import { storage } from '@/lib/storage';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { scopeAccent } from '@/lib/scopeAccent';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
+import { getTodayET } from '@/lib/dateUtils';
 import { RegenConfirmationModal } from '@/components/RegenConfirmationModal';
 import { ScopeSegment } from '@/components/ScopeSegment';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -60,7 +60,6 @@ import { FreshnessLine } from '@/components/FreshnessLine';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { useToast } from '@/components/Toast';
 import { NeonRefreshControl } from '@/components/NeonRefreshControl';
-import { runHitDetectionAllScopes } from '@/lib/hitDetection';
 
 function toComboSet(combo: string) { return '{' + combo.split('').sort().join(',') + '}'; }
 
@@ -214,17 +213,18 @@ export default function SlatesScreen() {
     finally { setIsRegenLoading(false); }
   }, [regenerateSlate, scope, wKey, refreshSnapshot, queryClient, showToast]);
 
+  // OBS-PULL-HITDET (2026-07-23): pull-to-refresh is a READ gesture — it
+  // refetches the snapshot and hit queries from the DB. It must NOT invoke
+  // run-hit-detection (previously 2 service-role edge calls per gesture from
+  // any anon client — amplification + latency). Hit flags are stamped by the
+  // Daily Workflow, ledger imports, and admin triggers; consumers only read.
   const handlePullRefresh = useCallback(async () => {
     setIsPullRefreshing(true);
     try {
-      const today = getTodayET();
-      const yesterday = getYesterdayET();
-      await Promise.all([
-        runHitDetectionAllScopes(today).catch(() => null),
-        runHitDetectionAllScopes(yesterday).catch(() => null),
-      ]);
       await refreshSnapshot();
       queryClient.invalidateQueries({ queryKey: ['snapshot'] });
+      queryClient.invalidateQueries({ queryKey: ['hit_feed_today_adaptive'] });
+      queryClient.invalidateQueries({ queryKey: ['hits_today_scope'] });
     } catch { /* ignore */ }
     setIsPullRefreshing(false);
   }, [refreshSnapshot, queryClient]);

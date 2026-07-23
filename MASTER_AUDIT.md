@@ -464,6 +464,16 @@ Three read-only background audits (operator-requested). Full detail + ranked pro
 - **Stale operator string (FIXED 2026-07-23):** `DashboardView.tsx` ZK30 hit-detection subtitle claimed a nightly 23:30 ET cron — now reads "manual trigger only (all pg_cron removed — OPS-01)".
 - **Engine scope outcome (no new levers):** midday rank-1-2 inversion replicated a 3rd time on clean-era data (pos1-2 10.5% vs pos3-6 22.1%, z≈2.5) — decision-layer action path only; evening 6/06 sweep candidates re-measured weak/moot (TD −27pp did not replicate; DGC≥0.85 bucket no longer exists on-slate; zero doubles selected all era ⇒ `evening_doubles_promote` moot); jurisdiction concentration null (r=−0.12 half-split) ⇒ ENH-AUDIT v1 display only. SIGNAL-INFO-01 reconfirmed live.
 
+### ENG-MIDDAY-POS-01 — midday pos1-2 inversion: 4th confirmation on extended faithful window (2026-07-23)
+
+Operator-approved follow-up to SCOPE-2026-07-23. Method: stored `slate_snapshots` (midday, balanced, national, `deleted_at IS NULL`, one per date) with position = `top_k_straights_json` ordinality; box hit = comboSet ∩ `histories` (session=midday strictly), dates restricted to those with imported midday results. Pure SQL over settled data — no stored hit flags (BUG-162-safe), no replay loaders (BUG-163 pagination noise n/a).
+
+- **Headline (singles-only, 2026-05-01 → 2026-07-22, 82 slate-days):** pos1-2 **11.0%** (18/164) vs pos3-6 **20.5%** (65/317), **z≈2.6** (p≈0.004 one-sided). Clean-era subset alone reproduces the deep-scope numbers exactly (10.5% vs 22.1%, 43 days).
+- Per-position shape (full window, n=95 days): pos1 12.6%, pos2 9.5%, pos3 17.9%, pos4 22.1%, pos5 16.8%, pos6 13.7% — a hump: positions 3-5 carry the slate, top-2 suppressed, not a monotonic gradient.
+- Era breakdown: May 6.7% vs 18.3% (z≈2.1) and clean era 10.5% vs 22.1% (z≈2.5) agree; Jun 1-9 reversed on 9 days (noise-scale); April excluded from the headline — 13 slate-days, 23.9 draws/day vs ~32 later (coverage confound), 35% doubles in pos3-6, and the era is contaminated per the information-ceiling analysis.
+- Multiplicity confound ruled out in the direction that matters: the few non-singles (Apr 18, May-era 11) sat in pos3-6 — depressing that bucket — and pos3-6 still wins.
+- **Decision-layer guidance (no engine change):** midday bets should come from slate positions 3-5, not 1-2. This is a bet-selection rule only — subscriber slate composition/order unchanged. Follow-up candidate: add slate position as a CALIB-01 feature at next `calibrate:picks` refit (needs its own Brier gate); not built.
+
 ### SOCIAL-11 — Deep-link preset autorun: bookmark → ready-to-share post kit (SHIPPED 2026-07-23)
 
 **Problem.** Best-path group posting was 13 mobile taps (deep-scope report Part 1), 5 of them pure navigation (Account → triple-tap → Publish → preset). Group handoff used exactly once in prod since ship — step count above operator tolerance.

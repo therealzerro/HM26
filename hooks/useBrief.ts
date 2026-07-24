@@ -14,7 +14,9 @@ export function useBrief() {
 
   const query = useQuery<BriefData>({
     queryKey: ['brief', runDate],
-    queryFn: () => computeBrief(runDate as string),
+    // middayPosRule: admin brief enforces the midday pos 1–2 exclusion in
+    // recommended play; the social/group path calls computeBrief without it.
+    queryFn: () => computeBrief(runDate as string, { middayPosRule: true }),
     enabled: runDate != null,
     staleTime: 5 * 60 * 1000,   // 5 min — brief reflects current DB state
     gcTime: 30 * 60 * 1000,

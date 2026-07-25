@@ -11,6 +11,8 @@ import { getTodayET } from '@/lib/dateUtils';
 interface SnapshotState {
   snapshot: SlateSnapshot | null;
   isLoading: boolean;
+  /** True only when the fetch path threw — not when the DB cleanly has no slate. */
+  loadError: boolean;
   lastUpdate: string | null;
   coveragePercentage: number;
   refreshSnapshot: () => Promise<void>;
@@ -25,6 +27,11 @@ export const [SnapshotProvider, useSnapshot] = createContextHook<SnapshotState>(
   const [snapshot, setSnapshot] = useState<SlateSnapshot | null>(null);
   const [hasLiveData, setHasLiveData] = useState<boolean>(false);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  // DESIGN-02 T1.3: the queryFn deliberately swallows errors (fallback-chain
+  // design), which made a failed fetch indistinguishable from "no slate".
+  // loadError=true only when the fetch path threw — not when the DB cleanly
+  // has no snapshot for the scope.
+  const [loadError, setLoadError] = useState<boolean>(false);
   const [supplementalPicks, setSupplementalPicks] = useState<TopKStraightRow[]>([]);
 
   const normalizeScope = (s: string): Scope => {
@@ -194,6 +201,7 @@ export const [SnapshotProvider, useSnapshot] = createContextHook<SnapshotState>(
             topKSample: Array.isArray(live.top_k_straights_json) ? live.top_k_straights_json.slice(0, 3) : [],
           });
           setHasLiveData(true);
+          setLoadError(false);
           try { await storage.setItem(`snapshot-${scope}`, JSON.stringify(live)); } catch (err) { console.log('[useSnapshot] Cache write error:', err); }
           try { if (live.id) await storage.setItem(`lastSnapshotId-${scope}`, live.id); } catch {}
           return live;
@@ -201,10 +209,12 @@ export const [SnapshotProvider, useSnapshot] = createContextHook<SnapshotState>(
 
         console.log('[useSnapshot] No snapshot found for scope:', scope);
         setHasLiveData(false);
+        setLoadError(false);
         return null;
       } catch (error) {
         console.log('[useSnapshot] Fetch error:', error);
         setHasLiveData(false);
+        setLoadError(true);
         return null;
       }
     },
@@ -323,6 +333,7 @@ export const [SnapshotProvider, useSnapshot] = createContextHook<SnapshotState>(
     return {
       snapshot,
       isLoading: snapshotQuery.isLoading && !isInitialized,
+      loadError,
       lastUpdate,
       coveragePercentage,
       refreshSnapshot,
@@ -330,5 +341,5 @@ export const [SnapshotProvider, useSnapshot] = createContextHook<SnapshotState>(
       activePicks,
       supplementalPicks,
     };
-  }, [snapshot, snapshotQuery.isLoading, isInitialized, lastUpdate, coveragePercentage, refreshSnapshot, hasLiveData, supplementalPicks]);
+  }, [snapshot, snapshotQuery.isLoading, isInitialized, loadError, lastUpdate, coveragePercentage, refreshSnapshot, hasLiveData, supplementalPicks]);
 });

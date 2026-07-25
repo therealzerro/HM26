@@ -60,6 +60,7 @@ import { FreshnessLine } from '@/components/FreshnessLine';
 import { InfoTooltip } from '@/components/InfoTooltip';
 import { useToast } from '@/components/Toast';
 import { NeonRefreshControl } from '@/components/NeonRefreshControl';
+import { NeonSkeleton } from '@/components/NeonSkeleton';
 
 function toComboSet(combo: string) { return '{' + combo.split('').sort().join(',') + '}'; }
 
@@ -73,7 +74,7 @@ type Tab = 'picks' | 'hits' | 'more';
 export default function SlatesScreen() {
   const { colors } = useTheme();
   const s = useMemo(() => makeS(colors), [colors]);
-  const { snapshot, refreshSnapshot } = useSnapshot();
+  const { snapshot, refreshSnapshot, isLoading: slateLoading, loadError: slateLoadError } = useSnapshot();
   const { scope, setScope } = useScope();
   const { regenerateSlate, checkSlateLock } = useDataIngestion();
   const { user } = useAuth();
@@ -400,7 +401,29 @@ export default function SlatesScreen() {
       />
 
       {/* ──────────────── TAB: SLATE ──────────────── */}
-      {tab === 'picks' && (
+      {/* DESIGN-02 T1.3: real loading + error states. Before this, load
+          rendered six fake '---' cards and a failed fetch was visually
+          identical to an empty slate. */}
+      {tab === 'picks' && slateLoading && !snapshot && (
+        <View style={{ flex: 1, paddingHorizontal: theme.layout.screenInset, paddingTop: 14 }}>
+          <NeonSkeleton variant="card" count={4} />
+        </View>
+      )}
+      {tab === 'picks' && !slateLoading && slateLoadError && !snapshot && (
+        <View style={{ flex: 1, paddingHorizontal: theme.layout.screenInset, paddingTop: 24, alignItems: 'center' }}>
+          <Text style={{ fontSize: 13, color: colors.textSecondary, textAlign: 'center', marginBottom: 12 }}>
+            Couldn't load today's slate. Check your connection.
+          </Text>
+          <TouchableOpacity
+            onPress={() => refreshSnapshot()}
+            accessibilityRole="button"
+            style={{ paddingHorizontal: 18, paddingVertical: 10, borderRadius: theme.borderRadius.md, borderWidth: 1, borderColor: colors.cyan + theme.alpha.border, backgroundColor: colors.cyan + theme.alpha.soft }}
+          >
+            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.cyan }}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {tab === 'picks' && !(slateLoading && !snapshot) && !(!slateLoading && slateLoadError && !snapshot) && (
         <>
           {viewMode === 'compact' ? (
             // Grid view (2×3) — SCREENSHOT SURFACE. Per the brand, all 6

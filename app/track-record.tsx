@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { NeonSkeleton } from '@/components/NeonSkeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useNavigation } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
@@ -188,10 +189,10 @@ export default function TrackRecordScreen() {
       </View>
 
       {isLoading ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-          <ActivityIndicator color={colors.cyan} />
+        <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 12, gap: 10 }}>
+          <NeonSkeleton variant="row" count={7} />
           <LoadingPhrase
-            style={{ color: colors.textSecondary, fontSize: 12 }}
+            style={{ color: colors.textSecondary, fontSize: 12, textAlign: 'center' }}
             phrases={[
               '🧾 Pulling verified matches…',
               '🧾 Cross-checking against draws…',

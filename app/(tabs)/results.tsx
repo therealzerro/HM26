@@ -38,6 +38,7 @@ import { alertAsync } from '@/lib/confirm';
 import { useTheme, type ColorTokens } from '@/lib/theme';
 import { Calendar, MoreHorizontal, Search, X, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { EmptyState } from '@/components/EmptyState';
+import { NeonSkeleton } from '@/components/NeonSkeleton';
 import { SessionFilter } from '@/components/SessionFilter';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { HitHeroBand, type HitHeroItem } from '@/components/HitHeroBand';
@@ -975,9 +976,8 @@ export default function ResultsScreen() {
 
       {/* ── List (the hero) ── */}
       {ledgerLoading ? (
-        <View style={s.loadingWrap}>
-          <ActivityIndicator color={colors.purple} size="large" />
-          <Text style={s.loadingText}>Loading draws…</Text>
+        <View style={{ paddingHorizontal: theme.layout.screenInset, paddingTop: 12 }}>
+          <NeonSkeleton variant="row" count={8} />
         </View>
       ) : clusterView ? (
         <ScrollView style={s.flatList} contentContainerStyle={s.list}>

@@ -102,6 +102,10 @@ function RootLayoutNav() {
         options={{ title: "Verified Track Record", ...modalScreenOptions }}
       />
       <Stack.Screen
+        name="pattern-explorer"
+        options={{ title: "Pattern Explorer", ...modalScreenOptions }}
+      />
+      <Stack.Screen
         name="zk30-import"
         options={{
           title: "ZK30 TX Import",

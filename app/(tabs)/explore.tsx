@@ -554,6 +554,19 @@ export default function SlatesScreen() {
             </View>
             <Text style={{ fontSize: 18, color: colors.textTertiary }}>›</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.bigAction, { marginTop: 8 }]}
+            onPress={() => router.push('/pattern-explorer')}
+            accessibilityRole="button"
+            accessibilityLabel="Open Pattern Explorer — search pattern history and frequency baselines"
+          >
+            <Text style={{ fontSize: 20 }}>🔎</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.bigActionTitle}>Pattern Explorer</Text>
+              <Text style={s.bigActionSub}>Any pattern's appearance history · observed vs expected</Text>
+            </View>
+            <Text style={{ fontSize: 18, color: colors.textTertiary }}>›</Text>
+          </TouchableOpacity>
 
           {/* ── Group: Account ── */}
           <Text style={[s.moreGroupTitle, { marginTop: 22 }]}>ACCOUNT</Text>

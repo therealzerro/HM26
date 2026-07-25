@@ -30,6 +30,7 @@ import ProSubscribersView from '@/components/admin/ProSubscribersView';
 import SubscriberImportView from '@/components/admin/SubscriberImportView';
 import FunnelDashboardView from '@/components/admin/FunnelDashboardView';
 import BriefView from '@/components/admin/BriefView';
+import AnalyticsView from '@/components/admin/AnalyticsView';
 import PublishView, { PublishDeepLinkPreset } from '@/components/admin/PublishView';
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
@@ -43,6 +44,7 @@ const NAV = [
   { id:'health', icon:'⚡', label:'Health' },
   { id:'engine', icon:'⚙️', label:'Engine' },
   { id:'performance', icon:'🎯', label:'Performance' },
+  { id:'analytics', icon:'🔎', label:'Analytics' },
   { id:'nationwide', icon:'🌎', label:'Nationwide' },
   { id:'adaptive', icon:'🧠', label:'Learning' },
   { id:'intelligence', icon:'🔬', label:'Intelligence' },
@@ -116,6 +118,7 @@ function AdminScreen() {
         {view === 'health' && <HealthTestsView />}
         {view === 'engine' && <EngineConfigView regenerateSlate={regenerateSlate} onOpenProposals={() => setView('proposals')} />}
         {view === 'performance' && <HitTrackingView />}
+        {view === 'analytics' && <ErrorBoundary fallback="Analytics view error"><AnalyticsView /></ErrorBoundary>}
         {view === 'nationwide' && <NationwideAdminView />}
         {view === 'adaptive' && <AdaptiveLearningView setView={setView} />}
         {view === 'intelligence' && <IntelligenceRouteView />}

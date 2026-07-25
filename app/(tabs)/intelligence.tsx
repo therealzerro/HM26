@@ -8,7 +8,7 @@ import { NeonRefreshControl as RefreshControl } from '@/components/NeonRefreshCo
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { theme } from '@/constants/theme';
-import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
+import { useTheme, heatColor, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { adminOpsFetch } from '@/lib/adminOps';
 import { backfillIntelHits, BackfillProgress } from '@/lib/backfillIntelHits';
@@ -354,10 +354,7 @@ function SlateRow({ row }: { row: IntelRow }) {
   const showStraight = row.hit_straight && scopeValid;
   const showBox = row.hit_box && !row.hit_straight && scopeValid;
   const energy = Math.round(row.energy_score ?? 0);
-  const eColor = energy >= 80 ? colors.error
-    : energy >= 65 ? colors.orange
-    : energy >= 45 ? colors.gold
-    : colors.textTertiary;
+  const eColor = heatColor(energy, colors);
 
   return (
     <View style={[ss.row, isK6 && ss.rowK6]}>

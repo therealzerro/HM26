@@ -32,9 +32,11 @@ function TabIcon({
       style={[
         staticStyles.iconWrap,
         focused && {
-          backgroundColor: 'rgba(43,255,204,0.12)',
+          // DESIGN-02 T1.2: was hardcoded rgba copies of dark cyan — the pill
+          // stayed neon-teal in light mode while the icon flipped.
+          backgroundColor: colors.cyan + theme.alpha.soft,
           borderWidth: 1,
-          borderColor: 'rgba(43,255,204,0.45)',
+          borderColor: colors.cyan + theme.alpha.strong,
           shadowColor: colors.cyan,
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.55,
@@ -122,7 +124,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.textTertiary,
         tabBarStyle: {
           backgroundColor: colors.surface2,
-          borderTopColor: 'rgba(155,91,255,0.18)',
+          borderTopColor: colors.purple + theme.alpha.soft,
           borderTopWidth: 1.5,
           height: 64 + insets.bottom,
           paddingTop: 6,

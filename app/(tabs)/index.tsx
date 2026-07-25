@@ -34,7 +34,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RefreshCw, MoreHorizontal, X } from 'lucide-react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
-import { useTheme, type ColorTokens } from '@/lib/theme';
+import { useTheme, heatColor, type ColorTokens } from '@/lib/theme';
 import { useSnapshot } from '@/hooks/useSnapshot';
 import { useDataIngestion } from '@/hooks/useDataIngestion';
 import { useScope } from '@/hooks/useScope';
@@ -69,10 +69,7 @@ import { BrandMark } from '@/components/BrandMark';
 
 function toComboSet(combo: string) { return '{' + combo.split('').sort().join(',') + '}'; }
 function energyColor(e: number, colors: ColorTokens) {
-  if (e >= 80) return colors.hot;
-  if (e >= 65) return colors.amber;
-  if (e >= 45) return colors.gold;
-  return colors.textTertiary;
+  return heatColor(e, colors);
 }
 
 const SCOPE_LABELS: Record<string, string> = {
@@ -248,7 +245,7 @@ function OverflowSheet({
 }
 const makeOs = (colors: ColorTokens) => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colors.bgElevated, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, paddingBottom: 36, gap: 12, borderTopWidth: 1.5, borderColor: colors.purple + '44' },
+  sheet: { backgroundColor: colors.bgElevated, borderTopLeftRadius: theme.borderRadius.sheet, borderTopRightRadius: theme.borderRadius.sheet, padding: 20, paddingBottom: 36, gap: 12, borderTopWidth: 1.5, borderColor: colors.purple + '44' },
   handle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border, marginBottom: 6 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   heading: { fontSize: 18, fontWeight: '900', color: colors.text },

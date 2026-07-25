@@ -9,7 +9,7 @@ import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '@/constants/theme';
-import { useTheme, type ColorTokens } from '@/lib/theme';
+import { useTheme, heatTier, heatLabel, type ColorTokens } from '@/lib/theme';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 
 interface EnergyMeterProps {
@@ -17,29 +17,23 @@ interface EnergyMeterProps {
   size?: number;
 }
 
-// Aligned with PickCard.heatInfo: 90 ON FIRE → 80 BLAZING → 65 HOT → 45 WARM → COOL
+// Canonical scale: lib/theme/heat.ts (DESIGN-02 T1.1). The former local COOL
+// color was cyan; it now follows the shared textTertiary like every surface.
 function energyColor(e: number, colors: ColorTokens) {
-  if (e >= 90) return colors.hot;
-  if (e >= 80) return colors.amber;
-  if (e >= 65) return colors.orange;
-  if (e >= 45) return colors.gold;
-  return colors.cyan;
+  return heatTier(e, colors).color;
 }
 
 function energyLabel(e: number) {
-  if (e >= 90) return 'ON FIRE';
-  if (e >= 80) return 'BLAZING';
-  if (e >= 65) return 'HOT';
-  if (e >= 45) return 'WARM';
-  return 'COOL';
+  return heatLabel(e);
 }
 
 function energyGradient(e: number, colors: ColorTokens): [string, string] {
-  if (e >= 90) return [colors.hot,    colors.amber];
-  if (e >= 80) return [colors.amber,  colors.gold];
-  if (e >= 65) return [colors.orange, colors.gold];
-  if (e >= 45) return [colors.gold,   colors.cyan];
-  return        [colors.cyan,   colors.purple];
+  const key = heatTier(e, colors).key;
+  if (key === 'onfire')  return [colors.hot,    colors.amber];
+  if (key === 'blazing') return [colors.amber,  colors.gold];
+  if (key === 'hot')     return [colors.orange, colors.gold];
+  if (key === 'warm')    return [colors.gold,   colors.cyan];
+  return                        [colors.cyan,   colors.purple];
 }
 
 export function EnergyMeter({ value, size = 80 }: EnergyMeterProps) {

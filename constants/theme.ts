@@ -125,6 +125,19 @@ export const theme = {
     chip:   10,
     bar:    2,
     banner: 8,
+    sheet:  22,   // bottom sheets / floating panels (DESIGN-02 T1.4 — was 20/22/24 ad hoc)
+  },
+
+  // Hex-alpha suffixes for `colors.X + theme.alpha.Y` tints (DESIGN-02 T1.4).
+  // Only valid on 6-digit hex tokens — never append to rgba() tokens like
+  // `colors.card`. Replaces the ad-hoc '22'/'55'-style literals (29 distinct
+  // suffixes existed); new code picks from this 5-step scale.
+  alpha: {
+    faint:  '0F',  //  6% — hairlines, subtle washes
+    soft:   '1F',  // 12% — tinted fills, chips
+    tint:   '33',  // 20% — active-state fills
+    border: '55',  // 33% — tinted borders
+    strong: '73',  // 45% — emphasized borders / glows
   },
 
   // Layout tokens (design.md step 2). Every screen's horizontal inset

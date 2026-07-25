@@ -4,7 +4,7 @@ import { shareTextSafe } from '@/lib/shareText';
 import { alertAsync } from '@/lib/confirm';
 import * as Haptics from 'expo-haptics';
 import { theme } from '@/constants/theme';
-import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
+import { useTheme, heatTier, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 import { SignalBar } from './SignalBar';
 import { EnergyMeter } from './EnergyMeter';
 import { storage } from '@/lib/storage';
@@ -49,23 +49,19 @@ function formatGenTime(iso?: string): string | null {
   try {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return null;
-    return d.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York' }) + ' ET';
+    return d.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true }) + ' ET';
   } catch { return null; }
 }
 
 const SCOPE_LABELS: Record<string, string> = { midday: 'Midday', evening: 'Evening', allday: 'All Day' };
 
 // ─── Heat rating ──────────────────────────────────────────────────────────────
-function heatInfo(e: number, colors: ColorTokens): { label: string; emoji: string; color: string } {
-  if (e >= 90) return { label: 'ON FIRE',  emoji: '🔥', color: colors.hot    };
-  if (e >= 80) return { label: 'BLAZING',  emoji: '⚡', color: colors.amber  };
-  if (e >= 65) return { label: 'HOT',      emoji: '✦',  color: colors.orange };
-  if (e >= 45) return { label: 'WARM',     emoji: '◈',  color: colors.gold   };
-  return         { label: 'COOL',     emoji: '❄',  color: colors.textTertiary };
-}
+// Canonical scale lives in lib/theme/heat.ts (DESIGN-02 T1.1) — this file's
+// former local ramp was promoted there verbatim.
+const heatInfo = heatTier;
 
 function tempColorFor(energy: number, colors: ColorTokens): string {
-  return heatInfo(energy, colors).color;
+  return heatTier(energy, colors).color;
 }
 
 // ─── WHY THIS PICK summary ────────────────────────────────────────────────────

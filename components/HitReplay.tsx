@@ -21,7 +21,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { theme } from '@/constants/theme';
-import { useTheme, type ColorTokens } from '@/lib/theme';
+import { useTheme, heatColor, type ColorTokens } from '@/lib/theme';
 
 interface Props {
   pick: {
@@ -35,10 +35,7 @@ interface Props {
 }
 
 function tempColor(t: number, colors: ColorTokens) {
-  if (t >= 80) return colors.hot;
-  if (t >= 60) return colors.warm;
-  if (t >= 40) return colors.mild;
-  return colors.cold;
+  return heatColor(t, colors);
 }
 
 export function HitReplay({ pick }: Props) {

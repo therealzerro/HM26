@@ -20,3 +20,5 @@ export { darkShadows, lightShadows } from './shadows';
 export type { ShadowTokens } from './shadows';
 export { darkGradients, lightGradients } from './gradients';
 export type { GradientTokens } from './gradients';
+export { heatTier, heatColor, heatLabel } from './heat';
+export type { HeatTier, HeatTierKey } from './heat';

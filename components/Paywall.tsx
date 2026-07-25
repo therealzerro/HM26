@@ -136,8 +136,8 @@ const makeS = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create(
   },
   sheet: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: theme.borderRadius.sheet,
+    borderTopRightRadius: theme.borderRadius.sheet,
     borderWidth: 1,
     borderColor: colors.border,
     maxHeight: '92%',

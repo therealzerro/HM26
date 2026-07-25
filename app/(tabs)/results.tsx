@@ -38,6 +38,7 @@ import { alertAsync } from '@/lib/confirm';
 import { useTheme, type ColorTokens } from '@/lib/theme';
 import { Calendar, MoreHorizontal, Search, X, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { EmptyState } from '@/components/EmptyState';
+import { SessionFilter } from '@/components/SessionFilter';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { HitHeroBand, type HitHeroItem } from '@/components/HitHeroBand';
 import { MissDayCard } from '@/components/MissDayCard';
@@ -918,20 +919,9 @@ export default function ResultsScreen() {
           </TouchableOpacity>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}
             style={s.filterRow} contentContainerStyle={s.filterRowContent}>
-            {[
-              { key: 'all',     label: 'All',     icon: '⚡' },
-              { key: 'midday',  label: 'Mid',     icon: '☀️' },
-              { key: 'evening', label: 'Eve',     icon: '🌙' },
-            ].map(f => {
-              const active = sessionFilter === f.key;
-              return (
-                <TouchableOpacity key={f.key} onPress={() => setSessionFilter(f.key)}
-                  style={[s.filterBtn, active && s.filterBtnActive]}>
-                  <Text style={s.filterIcon}>{f.icon}</Text>
-                  <Text style={[s.filterText, active && s.filterTextActive]}>{f.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
+            {/* DESIGN-02 T1.4: shared SessionFilter (design.md step 5) replaces
+                the inline pills; 44pt effective targets via hitSlop */}
+            <SessionFilter value={sessionFilter} onChange={setSessionFilter} />
           </ScrollView>
           <Text style={s.drawCount}>{filtered.length}</Text>
           <TouchableOpacity

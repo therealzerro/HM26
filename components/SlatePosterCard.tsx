@@ -13,25 +13,21 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Lock } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
-import { useTheme, type ColorTokens } from '@/lib/theme';
+import { useTheme, heatColor, heatLabel, type ColorTokens } from '@/lib/theme';
 import { PickItem } from './PickCard';
 import { RedactedDigitRow } from './pickVisuals';
 import { formatHitContext } from '@/lib/hitToPickItem';
 
 const REDACT_LOCK_GOLD = '#FFD700';
 
+// DESIGN-02 T1.1: former local 80/60/40 ramp (HOT/WARM/MILD/COLD) replaced by
+// the canonical scale so the poster matches the list/grid at the same energy.
 function tempColorForEnergy(e: number, colors: ColorTokens): string {
-  if (e >= 80) return colors.hot;
-  if (e >= 60) return colors.warm;
-  if (e >= 40) return colors.mild;
-  return colors.cold;
+  return heatColor(e, colors);
 }
 
 function tempLabel(e: number): string {
-  if (e >= 80) return 'HOT';
-  if (e >= 60) return 'WARM';
-  if (e >= 40) return 'MILD';
-  return 'COLD';
+  return heatLabel(e);
 }
 
 interface SlatePosterCardProps {

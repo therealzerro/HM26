@@ -692,7 +692,7 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
 
   // Slate display controls sheet
   sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colors.bgElevated, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32, borderTopWidth: 1.5, borderColor: colors.purple + '44', gap: 12 },
+  sheet: { backgroundColor: colors.bgElevated, borderTopLeftRadius: theme.borderRadius.sheet, borderTopRightRadius: theme.borderRadius.sheet, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32, borderTopWidth: 1.5, borderColor: colors.purple + '44', gap: 12 },
   sheetHandle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border, marginBottom: 8 },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   sheetTitle: { fontSize: 16, fontWeight: '900', color: colors.text },

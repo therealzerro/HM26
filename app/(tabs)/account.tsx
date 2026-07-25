@@ -666,7 +666,8 @@ const makeS = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create(
   sectionLabel: {
     fontSize: 10, fontWeight: '900',
     color: colors.cyan,
-    fontFamily: theme.typography.fontFamily.mono,
+    // monoBold — was the lone `mono` outlier among the tabs' section titles
+    fontFamily: theme.typography.fontFamily.monoBold,
     letterSpacing: 1.5,
     marginBottom: 10,
   },

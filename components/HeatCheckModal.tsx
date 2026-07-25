@@ -7,7 +7,7 @@ import {
 import { shareTextSafe } from '@/lib/shareText';
 import { alertAsync } from '@/lib/confirm';
 import { theme } from '@/constants/theme';
-import { useTheme, type ColorTokens } from '@/lib/theme';
+import { useTheme, heatColor, type ColorTokens } from '@/lib/theme';
 import { storage } from '@/lib/storage';
 import { useAuth } from '@/hooks/useAuth';
 import { isPremium, getTodayET } from '@/lib/dateUtils';
@@ -52,12 +52,11 @@ function verdictText(energy: number | null, drawsSince: number | null): string {
   return '❄ LOW — Weak signal, not recommended';
 }
 
+// DESIGN-02 T1.1: color follows the canonical heat scale; verdictText keeps
+// its own copy thresholds (verdict semantics, not temperature vocabulary).
 function verdictColor(energy: number | null, colors: ColorTokens): string {
   if (energy == null) return colors.textTertiary;
-  if (energy >= 85) return colors.error;
-  if (energy >= 70) return colors.orange;
-  if (energy >= 50) return colors.gold;
-  return colors.textTertiary;
+  return heatColor(energy, colors);
 }
 
 interface Props {

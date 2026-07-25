@@ -356,8 +356,9 @@ export async function computeBrief(date: string, opts: { middayPosRule?: boolean
     if (pf?.pick1Tag === 'overdue') {
       flags.push(`Pick #1 ${pf.pick1Combo} is overdue-tagged — the convergence/footprint picks above usually carry stronger evidence than the headline #1.`);
     }
-    if (picks.length && picks.every(p => p.pHit < 7)) {
-      flags.push(`Structurally soft scope today: every calibrated P(hit) < 7%.`);
+    // CALIB-02 scale: on-slate-calibrated levels run ~15-35% by scope (was ~1-10% on the old top-30-pool scale).
+    if (picks.length && picks.every(p => p.pHit < 12)) {
+      flags.push(`Structurally soft scope today: every calibrated P(hit) < 12%.`);
     }
     if (calibAgeDays != null && calibAgeDays > 14) {
       flags.push(`⚠️ Calibration ${calibAgeDays}d old — run npm run calibrate:picks and re-check the Brier gate before trusting P(hit).`);

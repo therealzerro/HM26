@@ -31,7 +31,9 @@ WITH yesterday_perf AS (
       WHERE di2.slate_date = di.slate_date AND di2.scope = di.scope
         AND di2.on_slate AND di2.mode = 'balanced'
     ) THEN combo END) AS pick1_combo,
-    MAX(CASE WHEN on_slate AND rank = (
+    -- MIN, not MAX: 'HIT' < 'MISS' lexicographically, so the pick-1 row's verdict
+    -- wins iff it hit; MAX made every other row's 'MISS' dominate (BUG-168)
+    MIN(CASE WHEN on_slate AND rank = (
       SELECT MIN(rank) FROM daily_intelligence di2
       WHERE di2.slate_date = di.slate_date AND di2.scope = di.scope
         AND di2.on_slate AND di2.mode = 'balanced'
@@ -292,13 +294,16 @@ today) and `stake_share_pct` (p_hit normalized within scope).
 Use it in the brief's allocation section: split each scope's budget by
 `stake_share_pct` instead of equal-weighting the tiers. Caveats to repeat in
 the brief when relevant:
-- These are estimates calibrated on 2026-05-13+ data; validation showed mild
-  over-prediction in the top bucket (pred 17.7% vs actual 12.2%) — treat
-  p_hit ≥ 15% as "strong," not as a promise.
+- CALIB-02 (2026-07-24): the model is fit on on-slate picks (the apply
+  population), so `p_hit_pct` is a real per-scope session probability —
+  typical levels midday ~15-17%, evening ~19-20%, allday ~33-35%. Trust the
+  levels; within-scope pick-to-pick ordering is noise-grade (SIGNAL-INFO-01),
+  so don't present small p_hit differences as meaningful.
 - If the coefficients are older than ~14 days (check `fitted_at` in the
   app_config row), flag "calibration stale — run `npm run calibrate:picks`,
   review the gate line (test Brier ≤ trivial), then update the app_config row."
-- Doubles picks show the scope base rate (off-model), not a per-pick estimate.
+- Doubles picks show the stored scope base rate, pre-halved for doubles' 3-of-6
+  permutation coverage — not a per-pick estimate.
 
 ---
 
@@ -359,21 +364,20 @@ T3 and T4: collapsed mention only — "X picks in T3/T4, full table available on
 ══════════════════════════════════════════════════════════════════════
 [4] RECOMMENDED ALLOCATION — for budget of $5-7 (default)
 ──────────────────────────────────────────────────────────────────────
-Top-down from T1:
+Top-down from T1. **The operator bets each combo across the ENTIRE session
+board (all live draws), never per-state** — jurisdiction footprints are
+evidence for which combo, not where to place. Frame allocation in units:
 
-  $2 — [pick from T1×Convergence or first T1 standout]
-       Box + Straight ([straight_order])
-       Best states: [top 2-3 from report_top_jurisdictions]
+  Board economics: [session] board ≈ [N] draws × $0.25 = $[N/4]/unit.
+  Payouts per hitting draw: straight 900:1 = $225/unit, box 150:1 = $37.50/unit.
+  Win probability = calibrated per-scope session p_hit from Query 6.
 
-  $2 — [next T1 pick]
-       Box only
-       Best states: [...]
+  Leg 1 — [T1×Convergence pick]: [n]S + [n]B on the [session] board,
+          straight order [straight_order], p(≥1 box in session) = [p_hit]%
+  Leg 2 (optional) — [next T1 pick]: [n]B on the [session] board
 
-  $1 — [first T2 pick]
-       Box only
-       State: [strongest single state]
-
-[If operator says specific budget, scale accordingly]
+Converge on 1-2 named legs (operator style: max bet, ride until hit, max
+3 days), not a portfolio split. [Scale unit counts to stated budget]
 
 ══════════════════════════════════════════════════════════════════════
 [5] RED FLAGS / NOTES

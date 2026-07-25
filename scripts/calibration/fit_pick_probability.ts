@@ -2,7 +2,15 @@
  * fit_pick_probability.ts — CALIB-01 (2026-06-10)
  *
  * Fits a logistic model P(pick hits ≥1 box match) on adjudicated
- * daily_intelligence top-30 rows (post-artifact era, 2026-05-13+).
+ * daily_intelligence ON-SLATE rows (post-artifact era, 2026-05-13+; labels
+ * repaired under BUG-162 on 2026-06-10).
+ *
+ * CALIB-02 (2026-07-24): the pool is on_slate=true rows only — the apply
+ * population. The original rank<=30 pool was ~85% non-slate rows, which hit
+ * detection never stamps (structural zeros, 0/1168 in July), so the model
+ * centered at the pool rate (~4%) instead of the pick rate (~15-35%). Worse,
+ * midday on-slate picks sit at ranks 31-36 since the reorder-window change
+ * and had fallen out of the rank<=30 pool entirely.
  *
  * Purpose: decision-layer calibration for the operator's morning brief —
  * turns engine ranks into calibrated probabilities so stake allocation can be
@@ -11,13 +19,15 @@
  * Features: scope dummies (evening, midday; allday = reference) + the four
  * normalized signals as stored at slate-gen time. draws_since is deliberately
  * EXCLUDED (ds_raw scale changed at DATA-01 2026-06-03 — era-inconsistent).
- * Multiplicity excluded: top-30 pool is 100% singles in the training window;
- * doubles fall back to scope base rate at apply time.
+ * Pool is singles-only (every on-slate pick since 6/10 is a single); doubles
+ * fall back to a halved scope base rate at apply time (a specific double
+ * covers 3 of 6 permutations).
  *
- * Validation: walk-forward (train ≤ 2026-05-31, test 2026-06-01+). Ship gate:
- * test Brier ≤ trivial baseline (per-scope train-era hit rate). Prints the
- * app_config JSON for `pick_prob_calibration`; the operator/assistant writes
- * it via SQL after review — this script never writes to the DB.
+ * Validation: walk-forward (train ≤ 2026-06-30, test 2026-07-01+). Ship gate:
+ * test Brier ≤ trivial baseline (per-scope train-era on-slate hit rate).
+ * Prints the app_config JSON for `pick_prob_calibration`; the
+ * operator/assistant writes it via SQL after review — this script never
+ * writes to the DB.
  *
  * Run: npm run calibrate:picks
  */
@@ -32,7 +42,7 @@ interface Row {
 }
 
 const FEATURES = ['evening', 'midday', 'box', 'pburst', 'co', 'dgc'] as const;
-const TRAIN_END = '2026-05-31';
+const TRAIN_END = '2026-06-30';
 const FROM_DATE = '2026-05-13';
 
 async function fetchRows(): Promise<Row[]> {
@@ -41,7 +51,7 @@ async function fetchRows(): Promise<Row[]> {
   for (let offset = 0; offset < 20000; offset += pageSize) {
     const page = await dbGet<any[]>(
       `/daily_intelligence?select=slate_date,scope,signal_box,signal_pburst,signal_co,signal_dgc,hit_box,hit_straight` +
-      `&mode=eq.balanced&rank=lte.30&multiplicity=not.is.null` +
+      `&mode=eq.balanced&on_slate=is.true&multiplicity=eq.singles` +
       `&slate_date=gte.${FROM_DATE}&order=slate_date.asc,scope.asc,rank.asc` +
       `&limit=${pageSize}&offset=${offset}`,
     );
@@ -163,7 +173,7 @@ async function main() {
   // the walk-forward gate is judged on the train/test split above).
   const full = fitLogistic(rows.map(featurize), rows.map(r => r.hit ? 1 : 0));
   const payload = {
-    version: 'CALIB-01',
+    version: 'CALIB-02',
     fitted_at: new Date().toISOString(),
     training_window: { from: FROM_DATE, to: rows[rows.length - 1]?.slate_date ?? null, n: rows.length },
     validation: {
@@ -179,7 +189,8 @@ async function main() {
     w: full.w.map(v => Number(v.toFixed(6))),
     mean: full.mean.map(v => Number(v.toFixed(6))),
     std: full.std.map(v => Number(v.toFixed(6))),
-    base_rates: Object.fromEntries(Object.entries(scopeRate).map(([k, v]) => [k, Number(v.toFixed(4))])),
+    // Doubles fallback: half the singles rate (3 of 6 permutations covered).
+    base_rates: Object.fromEntries(Object.entries(scopeRate).map(([k, v]) => [k, Number((v * 0.5).toFixed(4))])),
   };
   console.log('\n[calib] app_config pick_prob_calibration payload:\n' + JSON.stringify(payload));
 }

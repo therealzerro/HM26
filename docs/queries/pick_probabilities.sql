@@ -5,15 +5,16 @@
 -- (fit + walk-forward-validated by `npm run calibrate:picks`; ship gate:
 -- test Brier ≤ trivial per-scope baseline).
 --
--- Notes for the operator:
---   • p_hit_pct = estimated probability this pick box-matches ≥1 draw in its
---     scope window today. Estimates, not guarantees — the model is calibrated
---     on 2026-05-13+ outcomes and slightly over-predicts the top bucket
---     (Q5 pred 17.7% vs actual 12.2% in validation). Refit weekly.
+-- Notes for the operator (CALIB-02, 2026-07-24 — pool repointed to on-slate picks):
+--   • p_hit_pct = calibrated probability this pick box-matches ≥1 draw in its
+--     scope window today. Fit on ON-SLATE picks only (the apply population);
+--     July walk-forward levels: midday pred 17.1% vs actual 17.7%, evening
+--     19.7/18.8, allday 33.9/35.4. Levels are trustworthy; within-scope
+--     pick-to-pick ORDERING is noise-grade (SIGNAL-INFO-01).
 --   • stake_share_pct = p_hit normalized within scope. For EV-weighted
 --     allocation multiply each pick's p_hit by your payout structure first.
---   • Doubles/triples picks fall back to the scope base rate (they're absent
---     from the training pool).
+--   • Doubles/triples fall back to the stored scope base rate, which is
+--     pre-halved (a specific double covers 3 of 6 permutations).
 --   • Decision-layer only: nothing here feeds back into pick selection.
 
 WITH calib AS (

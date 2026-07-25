@@ -1,8 +1,8 @@
 // components/SignalBar.tsx
 // ───────────────────────────────────────────────────────────
-// Drop-in replacement. Matches HITMASTER_UI_DATA_SPECS.md
-//   • Track width is fixed at 60px (the max fill width)
-//   • Fill width = value × 60px (no flex stretch)
+//   • Track flexes to the available row width; fill is value %
+//     (DESIGN-02 T1.6 — the old fixed 60px track stranded dead
+//     space on wide cards)
 //   • Fill border-radius matches the track (2px)
 //   • Native glow under fill via shadow props
 // ───────────────────────────────────────────────────────────
@@ -17,13 +17,10 @@ interface SignalBarProps {
   color: string;
 }
 
-const BAR_MAX = 60;   // spec — max fill width in px
-
 export function SignalBar({ label, value, color }: SignalBarProps) {
   const { colors } = useTheme();
   const s = useMemo(() => makeS(colors), [colors]);
   const pct = Math.min(Math.max(value, 0), 1);
-  const fillW = pct * BAR_MAX;
   const valuePct = Math.round(pct * 100);
 
   return (
@@ -40,7 +37,7 @@ export function SignalBar({ label, value, color }: SignalBarProps) {
           style={[
             s.fill,
             {
-              width: fillW,
+              width: `${valuePct}%`,
               backgroundColor: color,
               // iOS-friendly glow
               shadowColor: color,
@@ -75,7 +72,7 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
     textTransform: 'uppercase',
   },
   track: {
-    width: BAR_MAX,         // ← fixed; was flex:1
+    flex: 1,
     height: 4,
     backgroundColor: colors.surfaceLight,
     borderRadius: 2,

@@ -783,6 +783,9 @@ export default function ResultsScreen() {
                       if (r === 'copied') alertAsync('Copied to clipboard', 'Sharing is unavailable in this browser — the text is on your clipboard.');
                     }}
                     style={s.shareBtn}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Share this match"
                   >
                     <Text style={s.shareBtnText}>↑</Text>
                   </TouchableOpacity>

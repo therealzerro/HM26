@@ -75,6 +75,77 @@ export function DescriptiveNote() {
 export const fmtExpected = (n: number) => (n >= 100 ? Math.round(n).toString() : n.toFixed(1));
 export const fmtRatio = (r: number) => `${r.toFixed(2)}×`;
 
+/**
+ * Diverging bar around the 1.0× baseline (observed/expected). Clamped to
+ * [0, 2] for display; over-expectation fills right in cyan, under fills left
+ * in neutral — deliberately not hot/cold colors (descriptive, not a signal).
+ */
+export function RatioBar({ ratio, width = 56 }: { ratio: number; width?: number }) {
+  const { colors } = useTheme();
+  const clamped = Math.max(0, Math.min(2, ratio));
+  const delta = clamped - 1; // −1 … +1
+  const half = Math.abs(delta) * 50; // % of the track
+  const over = delta >= 0;
+  return (
+    <View
+      style={{
+        width,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: colors.surfaceLight,
+        overflow: 'hidden',
+      }}
+    >
+      <View
+        style={{
+          position: 'absolute',
+          left: over ? '50%' : `${50 - half}%`,
+          width: `${half}%`,
+          top: 0,
+          bottom: 0,
+          backgroundColor: over ? colors.cyan : colors.textTertiary,
+        }}
+      />
+      <View
+        style={{
+          position: 'absolute',
+          left: '50%',
+          width: 1,
+          top: 0,
+          bottom: 0,
+          backgroundColor: colors.border,
+        }}
+      />
+    </View>
+  );
+}
+
+/** Proportional count bar (value vs the list max). */
+export function CountBar({ value, max }: { value: number; max: number }) {
+  const { colors } = useTheme();
+  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+  return (
+    <View
+      style={{
+        flex: 1,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: colors.surfaceLight,
+        overflow: 'hidden',
+      }}
+    >
+      <View
+        style={{
+          width: `${pct}%`,
+          height: '100%',
+          borderRadius: 2,
+          backgroundColor: colors.cyan,
+        }}
+      />
+    </View>
+  );
+}
+
 export const useAnalyticsStyles = () => {
   const { colors } = useTheme();
   return useMemo(() => makeStyles(colors), [colors]);
@@ -114,6 +185,12 @@ const makeStyles = (colors: ColorTokens) =>
     cell: { fontSize: 11, color: colors.textSecondary },
     cellDim: { fontSize: 10, color: colors.textTertiary },
     label: { fontSize: 11, fontWeight: '600', color: colors.textSecondary, marginBottom: 4 },
-    bigStat: { fontSize: 20, fontWeight: '800', color: colors.text },
+    bigStat: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: colors.text,
+      // monoBold — tabular digits, matching the app's numeric convention
+      fontFamily: theme.typography.fontFamily.monoBold,
+    },
     error: { fontSize: 12, color: colors.error ?? '#e5484d', marginVertical: 8 },
   });

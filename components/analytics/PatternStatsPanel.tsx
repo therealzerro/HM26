@@ -25,6 +25,7 @@ import {
   DescriptiveNote,
   fmtExpected,
   fmtRatio,
+  RatioBar,
   useAnalyticsStyles,
 } from './analyticsShared';
 
@@ -124,10 +125,10 @@ export default function PatternStatsPanel() {
 
       {!isLoading && !error && (
         <View style={[st.statRow, { borderBottomWidth: 0, paddingVertical: 2 }]}>
-          <Text style={[st.cellDim, { width: 64 }]}>pattern</Text>
-          <Text style={[st.cellDim, { width: 46, textAlign: 'right' }]}>obs</Text>
-          <Text style={[st.cellDim, { width: 46, textAlign: 'right' }]}>exp</Text>
-          <Text style={[st.cellDim, { width: 52, textAlign: 'right' }]}>ratio</Text>
+          <Text style={[st.cellDim, { width: 56 }]}>pattern</Text>
+          <Text style={[st.cellDim, { width: 40, textAlign: 'right' }]}>obs</Text>
+          <Text style={[st.cellDim, { width: 40, textAlign: 'right' }]}>exp</Text>
+          <Text style={[st.cellDim, { width: 92, textAlign: 'center' }]}>vs expected</Text>
           <Text style={[st.cellDim, { flex: 1, textAlign: 'right' }]}>gap (draws)</Text>
         </View>
       )}
@@ -136,12 +137,17 @@ export default function PatternStatsPanel() {
 
   const renderRow = ({ item }: { item: StatRow }) => (
     <View style={st.statRow}>
-      <Text style={[st.mono, { width: 64 }]}>{item.key}</Text>
-      <Text style={[st.cell, { width: 46, textAlign: 'right' }]}>{item.observed}</Text>
-      <Text style={[st.cellDim, { width: 46, textAlign: 'right' }]}>
+      <Text style={[st.mono, { width: 56 }]}>{item.key}</Text>
+      <Text style={[st.cell, { width: 40, textAlign: 'right' }]}>{item.observed}</Text>
+      <Text style={[st.cellDim, { width: 40, textAlign: 'right' }]}>
         {fmtExpected(item.expected)}
       </Text>
-      <Text style={[st.cell, { width: 52, textAlign: 'right' }]}>{fmtRatio(item.ratio)}</Text>
+      {/* DESIGN-02 T1.5: the ratio — the whole point of the table — gets a
+          diverging bar around the 1.0× baseline, not just a number */}
+      <View style={{ width: 92, alignItems: 'center', gap: 2 }}>
+        <Text style={[st.cell, { fontSize: 10 }]}>{fmtRatio(item.ratio)}</Text>
+        <RatioBar ratio={item.ratio} width={80} />
+      </View>
       <Text style={[st.cellDim, { flex: 1, textAlign: 'right' }]}>
         {item.lastSeen ? item.drawsSince.toLocaleString() : 'never'}
       </Text>

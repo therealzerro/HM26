@@ -15,6 +15,7 @@ import { computeFootprint } from '@/lib/analytics/patternStats';
 import {
   Chip,
   ChipRow,
+  CountBar,
   DescriptiveNote,
   fmtExpected,
   fmtRatio,
@@ -178,7 +179,8 @@ export default function FootprintPanel() {
                   <Text style={[st.mono, { width: 90, fontSize: 12 }]} numberOfLines={1}>
                     {j.jurisdiction}
                   </Text>
-                  <Text style={[st.cell, { width: 40 }]}>×{j.count}</Text>
+                  <Text style={[st.cell, { width: 36 }]}>×{j.count}</Text>
+                  <CountBar value={j.count} max={result.byJurisdiction[0].count} />
                   <Text style={st.cellDim}>last {j.lastDate}</Text>
                 </View>
               ))}

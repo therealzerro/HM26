@@ -372,6 +372,7 @@ export default function SlatesScreen() {
                 onPress={() => setViewMode(vm as any)}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: viewMode === vm }}
+                hitSlop={{ top: 10, bottom: 10 }}
               >
                 <Text style={[s.viewToggleText, viewMode === vm && s.viewToggleTextOn]}>{lbl}</Text>
               </TouchableOpacity>
@@ -412,7 +413,7 @@ export default function SlatesScreen() {
       {tab === 'picks' && !slateLoading && slateLoadError && !snapshot && (
         <View style={{ flex: 1, paddingHorizontal: theme.layout.screenInset, paddingTop: 24, alignItems: 'center' }}>
           <Text style={{ fontSize: 13, color: colors.textSecondary, textAlign: 'center', marginBottom: 12 }}>
-            Couldn't load today's slate. Check your connection.
+            Unable to load the current slate. Check your connection.
           </Text>
           <TouchableOpacity
             onPress={() => refreshSnapshot()}

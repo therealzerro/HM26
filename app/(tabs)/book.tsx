@@ -516,7 +516,7 @@ export default function NumberBookScreen() {
                         hitCount > 0 && { borderColor: colors.gold + '66', borderWidth: 1.5, backgroundColor: colors.gold + '10' },
                       ]}
                     >
-                      <TouchableOpacity onPress={() => handleStar(item.combo)}>
+                      <TouchableOpacity onPress={() => handleStar(item.combo)} hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={item.starred ? 'Unstar' : 'Star'}>
                         <Text style={{ fontSize: 16 }}>{item.starred ? '⭐' : '☆'}</Text>
                       </TouchableOpacity>
                       <Text style={s.comboNum}>{item.combo}</Text>
@@ -534,10 +534,11 @@ export default function NumberBookScreen() {
                       <TouchableOpacity
                         onPress={() => { setHeatCheckCombo(item.combo); setHeatCheckOpen(true); }}
                         style={{ paddingHorizontal: 7, paddingVertical: 3, backgroundColor: colors.primaryLight, borderRadius: 7, borderWidth: 1, borderColor: colors.primary + '33' }}
+                        hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
                       >
                         <Text style={{ fontSize: 10, fontWeight: '700', color: colors.primary }}>🔍</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity onPress={() => handleDeleteCombo(item.combo)}>
+                      <TouchableOpacity onPress={() => handleDeleteCombo(item.combo)} hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Remove number">
                         <Text style={{ color: colors.textTertiary, fontSize: 16 }}>×</Text>
                       </TouchableOpacity>
                     </View>

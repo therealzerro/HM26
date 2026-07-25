@@ -28,7 +28,9 @@
 
 **Validation:** pure-function smoke test (probability sums = 1 exactly, pair-presence sum = 2.71, footprint/session/dedupe/positional assertions) all passed; filtered `tsc --noEmit` zero errors in new/edited files; eslint zero errors in new files; check:brand-voice 34 files clean. Format checks done against live rows before build (doubles keep dup digits `{2,4,4}`; `histories.id` is UUID).
 
-**Review:** neutral-by-design UX addition (no edge claimed) — no metric watch window per standing rule. Operator smoke on device pending (Expo Go).
+**Review:** neutral-by-design UX addition (no edge claimed) — no metric watch window per standing rule.
+
+**Post-ship double-check (same day):** operator smoke PASSED on web + mobile. REST pagination parity verified end-to-end with the anon key: the exact drawWindow fetch loop returned 6,632 rows / 6,632 unique ids over 7 pages, equal to SQL `COUNT(*)` for the same predicate, with top-5 comboset counts byte-identical — no RLS truncation, no offset drift. Two error-path defects found in review and fixed: "Pull to retry" copy with no RefreshControl → tappable "Tap to retry" (wired to refetch) in both panels; FootprintPanel no longer renders zero-row results under an error banner; PatternStatsPanel no longer shows "0 draws in window" while loading.
 
 ### OPS-LOCKFILE-01 — Dual-lockfile drift: stale package-lock.json removed ✅ (2026-07-25)
 

@@ -6,7 +6,7 @@
 // strings must stay brand-safe.
 
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '@/lib/theme';
 import { useDrawWindow } from '@/hooks/useDrawWindow';
 import { WINDOW_LABELS, type SessionFilter, type WindowKey } from '@/lib/analytics/drawWindow';
@@ -47,7 +47,7 @@ export default function PatternStatsPanel() {
   const [multFilter, setMultFilter] = useState<'all' | Multiplicity>('all');
   const [pairMode, setPairMode] = useState<PairMode>('any');
   const [sort, setSort] = useState<StatSort>('observed');
-  const { rows, isLoading, error } = useDrawWindow(win);
+  const { rows, isLoading, error, refetch } = useDrawWindow(win);
 
   const stats = useMemo(
     () =>
@@ -102,10 +102,12 @@ export default function PatternStatsPanel() {
             <Chip key={s.id} label={s.label} active={sort === s.id} onPress={() => setSort(s.id)} />
           ))}
         </ChipRow>
-        <Text style={st.cellDim}>
-          {stats.totalDraws.toLocaleString()} draws in window · expected = draws × per-draw
-          probability
-        </Text>
+        {!isLoading && !error && (
+          <Text style={st.cellDim}>
+            {stats.totalDraws.toLocaleString()} draws in window · expected = draws × per-draw
+            probability
+          </Text>
+        )}
       </View>
 
       {isLoading && (
@@ -114,7 +116,11 @@ export default function PatternStatsPanel() {
           <Text style={[st.cellDim, { marginTop: 8 }]}>Loading drawing history…</Text>
         </View>
       )}
-      {error && <Text style={st.error}>Could not load drawing history. Pull to retry.</Text>}
+      {error && (
+        <TouchableOpacity onPress={() => refetch()}>
+          <Text style={st.error}>Could not load drawing history. Tap to retry.</Text>
+        </TouchableOpacity>
+      )}
 
       {!isLoading && !error && (
         <View style={[st.statRow, { borderBottomWidth: 0, paddingVertical: 2 }]}>

@@ -32,7 +32,7 @@ export default function FootprintPanel() {
   const [submitted, setSubmitted] = useState<string | null>(null);
   const [win, setWin] = useState<WindowKey>('90d');
   const [session, setSession] = useState<SessionFilter>('all');
-  const { rows, isLoading, error } = useDrawWindow(win);
+  const { rows, isLoading, error, refetch } = useDrawWindow(win);
 
   const result = useMemo(
     () => (submitted ? computeFootprint(rows, submitted, session) : null),
@@ -109,9 +109,13 @@ export default function FootprintPanel() {
           <Text style={[st.cellDim, { marginTop: 8 }]}>Loading drawing history…</Text>
         </View>
       )}
-      {error && <Text style={st.error}>Could not load drawing history. Pull to retry.</Text>}
+      {error && (
+        <TouchableOpacity onPress={() => refetch()}>
+          <Text style={st.error}>Could not load drawing history. Tap to retry.</Text>
+        </TouchableOpacity>
+      )}
 
-      {!isLoading && result && (
+      {!isLoading && !error && result && (
         <>
           <View style={st.card}>
             <Text style={st.sectionTitle}>

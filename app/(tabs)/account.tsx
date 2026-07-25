@@ -246,7 +246,7 @@ export default function AccountScreen() {
   const tierColor = isFree ? colors.free : tier === 'PRO' ? colors.premium : colors.admin;
 
   return (
-    <SafeAreaView style={s.container} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={s.container} edges={['top', 'left', 'right', 'bottom']}>
       <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
 
         {/* ── Hero ── */}

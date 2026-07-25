@@ -279,7 +279,7 @@ export default function NumberBookScreen() {
   }, [activeList]);
 
   return (
-    <SafeAreaView style={s.container} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={s.container} edges={['top', 'left', 'right', 'bottom']}>
       <View style={s.layout}>
         {/* ── Left Sidebar ── */}
         <View style={s.sidebar}>

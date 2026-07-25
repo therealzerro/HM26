@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import React, { useEffect, useMemo, useState, ComponentType } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
@@ -109,6 +110,10 @@ export default function TabLayout() {
   // everyone except admin (defaults hidden while the stored role loads).
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  // DESIGN-02 T0.4: the fixed height:64 ignored the home-indicator inset, so
+  // labels sat in the gesture zone on notched devices. Zero-inset devices are
+  // unchanged (64 + 0).
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       sceneContainerStyle={{ backgroundColor: colors.background }}
@@ -119,9 +124,9 @@ export default function TabLayout() {
           backgroundColor: colors.surface2,
           borderTopColor: 'rgba(155,91,255,0.18)',
           borderTopWidth: 1.5,
-          height: 64,
+          height: 64 + insets.bottom,
           paddingTop: 6,
-          paddingBottom: 8,
+          paddingBottom: 8 + insets.bottom,
           shadowColor: colors.purple,
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.25,

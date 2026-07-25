@@ -87,7 +87,9 @@ function RootLayoutNav() {
       />
       <Stack.Screen
         name="paywall"
-        options={{ title: "Premium", ...modalScreenOptions }}
+        // headerShown:false — the screen renders its own back chevron; the
+        // native title bar doubled the header and top inset (DESIGN-02 T0.3)
+        options={{ title: "Premium", headerShown: false, ...modalScreenOptions }}
       />
       <Stack.Screen
         name="coming-soon"
@@ -95,11 +97,11 @@ function RootLayoutNav() {
       />
       <Stack.Screen
         name="replay"
-        options={{ title: "Replay", ...modalScreenOptions }}
+        options={{ title: "Replay", headerShown: false, ...modalScreenOptions }}
       />
       <Stack.Screen
         name="track-record"
-        options={{ title: "Verified Track Record", ...modalScreenOptions }}
+        options={{ title: "Verified Track Record", headerShown: false, ...modalScreenOptions }}
       />
       <Stack.Screen
         name="pattern-explorer"

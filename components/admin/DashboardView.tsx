@@ -390,14 +390,21 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
     }
   }, [queryClient]);
 
+  // DESIGN-02 T0.6: this grid had drifted to a stale subset of admin.tsx's NAV
+  // (missing Brief/Publish/Analytics/Proposals); keep it a curated superset of
+  // the daily flow, and keep new NAV entries mirrored here.
   const ACTIONS = [
-    { view:'wizard', icon:'📥', title:'Import Wizard', desc:'Box History · Pair History\nDaily Input · Results Ledger' },
+    { view:'brief', icon:'📰', title:'Brief', desc:'Full cross-scope morning brief\nScope cards · share PNGs' },
+    { view:'publish', icon:'📣', title:'Publish', desc:'Slate graphics · captions\nsurface presets · Pro chain' },
+    { view:'wizard', icon:'📥', title:'Import Wizard', desc:'Box History · Pair History\nResults Ledger' },
     { view:'history', icon:'🗂', title:'Import History', desc:'Browse, review, soft-delete\nand undo past imports' },
     { view:'matrix', icon:'📊', title:'Coverage Matrix', desc:'H01Y–H10Y presence per class\nClick gaps to import' },
     { view:'health', icon:'⚡', title:'Health Tests', desc:'Connection · Snapshots\nDeterminism · Import status' },
     { view:'engine', icon:'⚙️', title:'Engine Config', desc:'Signal weights · Rail controls\nDrawing confidence · Defaults' },
+    { view:'analytics', icon:'🔎', title:'Analytics', desc:'Footprint search\nObserved vs expected patterns' },
     { view:'adaptive', icon:'🧠', title:'Adaptive Learning', desc:'Track hit rates · Bayesian\nweight suggestions' },
     { view:'performance', icon:'🎯', title:'Performance', desc:'Slate vs ledger hit rates\nAll-time stats · Hit streaks' },
+    { view:'proposals', icon:'🧾', title:'Proposals', desc:'Review · apply · block\nengine change proposals' },
     { view:'nationwide', icon:'🌎', title:'Nationwide Play', desc:'Configure Pro feature URL\nfor multi-state play guide' },
   ];
 

@@ -74,7 +74,6 @@ const IN_SCOPE: string[] = [
   'components/MissDayCard.tsx',
   'components/LockedPicksSummary.tsx',
   'components/Paywall.tsx',
-  'components/SlateCard.tsx',
   'components/TrialOfferBanner.tsx',
 ];
 

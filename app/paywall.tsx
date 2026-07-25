@@ -10,11 +10,10 @@ import { useTheme, type ColorTokens } from '@/lib/theme';
 import { SubscriptionPlan } from '@/types/core';
 import { useAuth } from '@/hooks/useAuth';
 
-// Verified hit rate — measured 2026-05-27 on the current production stack
-// (CONFIG-06 pure-H01Y + CONFIG-07 per-scope midday CO-heavy + ENH-BOA
-// bestOrderFor realignment). 30-day window 4/28–5/27, n=87 slates × 3 scopes,
-// balanced + floor=70. Mirrors the headline shown in the Home unified hero (§1.3).
-const VERIFIED_HIT_RATE = 72.4;
+// BRAND-05 / DESIGN-02 (2026-07-25): the stored 72.4% match-rate headline was
+// removed — same reasoning as the Home hero (evening-only number from a
+// backtest inside the BUG-162 hit-inflation era; provenance unsound). The
+// paywall sells capability, not a rate.
 
 interface PlanOption {
   id: SubscriptionPlan;
@@ -123,12 +122,10 @@ export default function PaywallScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Hero Section — verified-rate claim, no marketing fluff */}
+        {/* Hero Section — capability-led, no rate claims (BRAND-05) */}
         <View style={styles.hero}>
-          <Text style={styles.heroBigNum} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit>{VERIFIED_HIT_RATE}%</Text>
-          <Text style={styles.heroBigSub}>verified match rate</Text>
-          <Text style={styles.heroCompare}>vs ~7% random chance</Text>
           <Text style={styles.heroTitle}>Unlock the full K6 slate</Text>
+          <Text style={styles.heroBigSub}>Six daily signals · verified outcomes · full pattern analytics</Text>
         </View>
 
         {/* Feature Comparison */}
@@ -237,26 +234,13 @@ const makeStyles = (colors: ColorTokens) => StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
     gap: 4,
   },
-  heroBigNum: {
-    fontSize: 64,
-    fontWeight: '900',
-    color: colors.cyan,
-    fontFamily: theme.typography.fontFamily.monoBold,
-    letterSpacing: -2,
-    lineHeight: 68,
-  },
   heroBigSub: {
     fontSize: 13,
     color: colors.textSecondary,
     fontFamily: theme.typography.fontFamily.mono,
     letterSpacing: 0.4,
-    marginBottom: 6,
-  },
-  heroCompare: {
-    fontSize: 12,
-    color: colors.textTertiary,
-    fontStyle: 'italic',
-    marginBottom: 18,
+    textAlign: 'center',
+    marginTop: 6,
   },
   heroTitle: {
     fontSize: theme.typography.fontSize.xl,

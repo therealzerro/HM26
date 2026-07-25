@@ -64,7 +64,7 @@ function fmtWeightSet(w: any): string {
 
 export default function ProposalReviewView() {
   const { colors } = useTheme();
-  const s = useSt(colors);
+  const s = useSt();
   const qc = useQueryClient();
   const { user } = useAuth();
   const operatorId = user?.id ?? 'unknown_operator';
@@ -237,7 +237,7 @@ export default function ProposalReviewView() {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: 16 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ padding: 16 }}>
       <Text style={{ fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 4 }}>
         Weight Proposals
       </Text>
@@ -246,7 +246,7 @@ export default function ProposalReviewView() {
       </Text>
 
       {/* ── Section 1: Pending ── */}
-      <SectionTitle>PENDING ({pending.length})</SectionTitle>
+      <SectionTitle>{`PENDING (${pending.length})`}</SectionTitle>
       {pending.length === 0 && (
         <Card style={{ padding: 14, marginBottom: 14 }}>
           <Text style={{ fontSize: 12, color: colors.textSecondary }}>
@@ -318,7 +318,7 @@ export default function ProposalReviewView() {
       })}
 
       {/* ── Section 2: Recently Applied ── */}
-      <SectionTitle>RECENTLY APPLIED ({applied.length})</SectionTitle>
+      <SectionTitle>{`RECENTLY APPLIED (${applied.length})`}</SectionTitle>
       {applied.length === 0 && (
         <Card style={{ padding: 14, marginBottom: 14 }}>
           <Text style={{ fontSize: 12, color: colors.textSecondary }}>No proposals applied yet.</Text>
@@ -353,7 +353,7 @@ export default function ProposalReviewView() {
       })}
 
       {/* ── Section 3: Blocked ── */}
-      <SectionTitle>BLOCKED ({blocked.length})</SectionTitle>
+      <SectionTitle>{`BLOCKED (${blocked.length})`}</SectionTitle>
       {blocked.length === 0 && (
         <Card style={{ padding: 14, marginBottom: 14 }}>
           <Text style={{ fontSize: 12, color: colors.textSecondary }}>No blocked proposals.</Text>
@@ -396,7 +396,7 @@ export default function ProposalReviewView() {
       {/* ── Modals ── */}
       <Modal visible={!!modal} transparent animationType="fade" onRequestClose={closeModal}>
         <View style={{ flex: 1, backgroundColor: '#000a', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <View style={{ width: '100%', maxWidth: 460, backgroundColor: colors.bg, borderRadius: 14, padding: 20, borderWidth: 1, borderColor: colors.border }}>
+          <View style={{ width: '100%', maxWidth: 460, backgroundColor: colors.bgElevated, borderRadius: 14, padding: 20, borderWidth: 1, borderColor: colors.border }}>
             {modal?.kind === 'apply' && (() => {
               const pm = modal.proposal.payload_meta ?? {};
               const revertOps = pm.revert_ops ?? [];

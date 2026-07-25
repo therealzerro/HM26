@@ -67,7 +67,7 @@ export default function LearnScreen() {
   const activeModule = LEARN_MODULES.find(m => m.id === activeId) ?? null;
 
   return (
-    <SafeAreaView style={s.container} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={s.container} edges={['top', 'left', 'right', 'bottom']}>
       <View style={s.layout}>
         {/* ── Module list (sidebar) ── */}
         <View style={s.sidebar}>

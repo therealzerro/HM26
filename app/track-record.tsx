@@ -15,6 +15,7 @@ import { PickDetailModal } from '@/components/PickDetailModal';
 import type { PickItem } from '@/components/PickCard';
 import { hitRowToPickItem } from '@/lib/hitToPickItem';
 import { useAuth } from '@/hooks/useAuth';
+import { useCountUp } from '@/hooks/useCountUp';
 
 const SCOPE_LABEL: Record<string, string> = { midday: 'Midday', evening: 'Evening', allday: 'All Day' };
 const SCOPE_ICON: Record<string, string> = { midday: '☀️', evening: '🌙', allday: '◈' };
@@ -287,9 +288,12 @@ export default function TrackRecordScreen() {
 function SummaryStat({ value, label, color }: { value: number; label: string; color: string }) {
   const { colors } = useTheme();
   const s = useMemo(() => makeS(colors), [colors]);
+  // DESIGN-02 T2 (2.1): summary numbers count up 0→value (~600ms ease-out);
+  // snaps to the final value under Reduce Motion. Number only — label static.
+  const display = useCountUp(value);
   return (
     <View style={s.summaryStat}>
-      <Text style={[s.summaryValue, { color }]}>{value}</Text>
+      <Text style={[s.summaryValue, { color }]}>{display}</Text>
       <Text style={s.summaryLabel}>{label}</Text>
     </View>
   );

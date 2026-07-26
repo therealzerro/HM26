@@ -2,7 +2,9 @@ import React, { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
 } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { theme } from '@/constants/theme';
@@ -63,6 +65,8 @@ export default function LearnScreen() {
   const s = useMemo(() => makeS(colors, shadows), [colors, shadows]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [expandedSection, setExpandedSection] = useState<number | null>(null);
+  // DESIGN-02 T2 (2.1): section accordion fade; no-op on Reduce Motion.
+  const reduceMotion = useReduceMotion();
 
   const activeModule = LEARN_MODULES.find(m => m.id === activeId) ?? null;
 
@@ -170,7 +174,9 @@ export default function LearnScreen() {
                     <Text style={s.sectionArrow}>{expandedSection === i ? '▲' : '▼'}</Text>
                   </View>
                   {expandedSection === i && (
-                    <Text style={s.sectionBody}>{section.body}</Text>
+                    <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(160)}>
+                      <Text style={s.sectionBody}>{section.body}</Text>
+                    </Animated.View>
                   )}
                 </TouchableOpacity>
               ))}

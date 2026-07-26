@@ -31,7 +31,7 @@ import { NeonRefreshControl as RefreshControl } from '@/components/NeonRefreshCo
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { RefreshCw, MoreHorizontal, X } from 'lucide-react-native';
+import { RefreshCw, MoreHorizontal, Search, X } from 'lucide-react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
 import { useTheme, heatColor, type ColorTokens } from '@/lib/theme';
@@ -42,7 +42,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { DrawTicker } from '@/components/DrawTicker';
 import { PickCard, PickItem } from '@/components/PickCard';
 import { PickDetailModal } from '@/components/PickDetailModal';
-import { Paywall } from '@/components/Paywall';
+import { router } from 'expo-router';
 import { HeatCheckModal } from '@/components/HeatCheckModal';
 import { HeatCheckFAB } from '@/components/HeatCheckFAB';
 import { HitCelebrationOverlay } from '@/components/HitCelebrationOverlay';
@@ -66,6 +66,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { HitCard } from '@/components/HitCard';
 import { FreshnessLine } from '@/components/FreshnessLine';
 import { BrandMark } from '@/components/BrandMark';
+import { useCountUp } from '@/hooks/useCountUp';
 
 function toComboSet(combo: string) { return '{' + combo.split('').sort().join(',') + '}'; }
 function energyColor(e: number, colors: ColorTokens) {
@@ -223,7 +224,8 @@ function OverflowSheet({
           <Text style={os.sectionTitle}>Live data</Text>
           <DrawTicker scope={scope} />
           <TouchableOpacity style={os.actionRow} onPress={() => { onClose(); setTimeout(onHeatCheck, 200); }}>
-            <Text style={os.actionEmoji}>🔍</Text>
+            {/* DESIGN-02 T2: lucide icon instead of 🔍 emoji in this mixed row */}
+            <Search size={16} color={colors.text} />
             <Text style={os.actionLabel}>Signal Check any combo</Text>
           </TouchableOpacity>
 
@@ -257,7 +259,6 @@ const makeOs = (colors: ColorTokens) => StyleSheet.create({
   modeBtnTextOn: { color: colors.purple },
   modeBtnSub: { fontSize: 9, color: colors.textTertiary + '88', marginTop: 1 },
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
-  actionEmoji: { fontSize: 18 },
   actionLabel: { fontSize: 13, fontWeight: '700', color: colors.text },
   statusLine: { fontSize: 11, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono, lineHeight: 17 },
   disclaimer: { fontSize: 11, color: colors.textTertiary, lineHeight: 18 },
@@ -279,7 +280,6 @@ export default function HomeScreen() {
   // SCRUB-01: mode state kept for downstream signature compat; always 'balanced'.
   const [mode, setMode] = useState<'balanced'>('balanced');
   const [detail, setDetail] = useState<PickItem | null>(null);
-  const [paywallOpen, setPaywallOpen] = useState(false);
   const [regenOpen, setRegenOpen] = useState(false);
   const [regenMsg, setRegenMsg] = useState('');
   const [heatCheckOpen, setHeatCheckOpen] = useState(false);
@@ -666,6 +666,9 @@ export default function HomeScreen() {
   const hasData = Array.isArray(snapshot?.top_k_straights_json) && (snapshot?.top_k_straights_json?.length ?? 0) > 0;
   const avgColor = energyColor(avgEnergy, colors);
   const nextDrawIn = useDrawCountdown(scope);
+  // DESIGN-02 T2 (2.1): hero verified-match count animates 0→n (~600ms
+  // ease-out); returns the target immediately under Reduce Motion.
+  const todayHitsDisplay = useCountUp(todayHits);
 
   // ── Coffee mode (enhancements §3.5) — ultra-minimal Home ────────────────
   if (coffeeMode) {
@@ -699,7 +702,7 @@ export default function HomeScreen() {
                 return (
                   <TouchableOpacity
                     key={`coffee-${pick.rank}-${pick.combo}`}
-                    onPress={() => locked ? setPaywallOpen(true) : setDetail(pick)}
+                    onPress={() => locked ? router.push('/paywall') : setDetail(pick)}
                     activeOpacity={0.85}
                     style={{ width: '48%', backgroundColor: colors.card, borderRadius: theme.borderRadius.lg, borderWidth: isHit ? 2 : 1.5, borderColor: borderC, padding: 14, alignItems: 'center', shadowColor: shadowC, shadowOpacity: isHit ? 0.8 : 0.35, shadowRadius: isHit ? 14 : 10, shadowOffset: { width: 0, height: 0 }, overflow: 'hidden' }}
                   >
@@ -742,7 +745,6 @@ export default function HomeScreen() {
           <PickDetailModal pick={detail} scope={scope} isPro={currentTier !== 'FREE'}
             onClose={() => setDetail(null)} onHeatCheck={() => { setDetail(null); setHeatCheckOpen(true); }} />
         )}
-        <Paywall visible={paywallOpen} onClose={() => setPaywallOpen(false)} />
         <HeatCheckModal visible={heatCheckOpen} onClose={() => setHeatCheckOpen(false)} initialCombo="" scope={scope} />
       </View>
     );
@@ -802,7 +804,7 @@ export default function HomeScreen() {
           </View>
           <View style={s.heroDivider} />
           <View style={s.heroCol}>
-            <Text style={[s.heroColNum, { color: colors.cyan }]} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit>{todayHits}</Text>
+            <Text style={[s.heroColNum, { color: colors.cyan }]} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit>{todayHitsDisplay}</Text>
             <Text style={s.heroColLabel}>{todayHits === 1 ? 'MATCH TODAY' : 'MATCHES TODAY'}</Text>
             <Text style={s.heroColMeta}>verified vs official draws</Text>
           </View>
@@ -866,7 +868,7 @@ export default function HomeScreen() {
             pickRank={visibleHit.rank}
             pickCombo={visibleHit.combo}
             hitType={visibleHit.hitType}
-            onUpgrade={() => setPaywallOpen(true)}
+            onUpgrade={() => router.push('/paywall')}
             onDismiss={handleDismissTrialOffer}
           />
         )}
@@ -883,7 +885,8 @@ export default function HomeScreen() {
             )}
             {(!hasData || snapshotLoading) && (
               <TouchableOpacity style={s.generateBtn} onPress={handleRequestRegen} disabled={isRegenLoading}>
-                <RefreshCw size={14} color={colors.text} />
+                {/* DESIGN-02 T2 (2.7): icon matches the '#fff' label on purple */}
+                <RefreshCw size={14} color="#fff" />
                 <Text style={s.generateBtnText}>{isRegenLoading ? 'Generating…' : 'Generate'}</Text>
               </TouchableOpacity>
             )}
@@ -904,15 +907,15 @@ export default function HomeScreen() {
             const unlocked = items.filter(p => !p.locked);
             const handleAdTap = (_rank: number) => {
               showToast('👁 Watch-to-unlock launches soon — upgrade for instant access', 'info');
-              setPaywallOpen(true);
+              router.push('/paywall');
             };
             return (
               <>
                 {locked.length > 0 && (
-                  <LockedPicksSummary lockedPicks={locked} onUnlock={() => setPaywallOpen(true)} onWatchAd={handleAdTap} />
+                  <LockedPicksSummary lockedPicks={locked} onUnlock={() => router.push('/paywall')} onWatchAd={handleAdTap} />
                 )}
                 {unlocked.map(pick => (
-                  <PickCard key={`${pick.rank}-${pick.combo}`} pick={pick} onTap={() => setDetail(pick)} onUnlock={() => setPaywallOpen(true)} />
+                  <PickCard key={`${pick.rank}-${pick.combo}`} pick={pick} onTap={() => setDetail(pick)} onUnlock={() => router.push('/paywall')} />
                 ))}
               </>
             );
@@ -923,7 +926,7 @@ export default function HomeScreen() {
               <Text style={s.proGateLocked}>{items.filter(p => p.locked).length} of 6 signals hidden</Text>
               <Text style={s.proGateTitle}>You saw the free tier</Text>
               <Text style={s.proGateDesc}>Oracle+ unlocks the full K6 slate — plus the optimal straight order and deep analytics.</Text>
-              <TouchableOpacity style={s.proGateBtn} onPress={() => setPaywallOpen(true)}>
+              <TouchableOpacity style={s.proGateBtn} onPress={() => router.push('/paywall')}>
                 <Text style={s.proGateBtnText}>Upgrade · $9.99/mo ♛</Text>
               </TouchableOpacity>
             </View>
@@ -958,7 +961,6 @@ export default function HomeScreen() {
         <PickDetailModal pick={detail} scope={scope} isPro={currentTier !== 'FREE'}
           onClose={() => setDetail(null)} onHeatCheck={() => { setDetail(null); setHeatCheckOpen(true); }} />
       )}
-      <Paywall visible={paywallOpen} onClose={() => setPaywallOpen(false)} />
       <HeatCheckModal visible={heatCheckOpen} onClose={() => setHeatCheckOpen(false)} initialCombo="" scope={scope} />
       <HeatCheckFAB onPress={() => setHeatCheckOpen(true)} />
       <OnboardingModal

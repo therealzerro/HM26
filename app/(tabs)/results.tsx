@@ -26,6 +26,7 @@ import {
   TouchableOpacity, ScrollView, ActivityIndicator, Modal, Pressable,
 } from 'react-native';
 import { NeonRefreshControl as RefreshControl } from '@/components/NeonRefreshControl';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { storage } from '@/lib/storage';
@@ -48,6 +49,7 @@ import { PickDetailModal } from '@/components/PickDetailModal';
 import type { PickItem } from '@/components/PickCard';
 import { hitRowToPickItem } from '@/lib/hitToPickItem';
 import { useAuth } from '@/hooks/useAuth';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 
 // Local D color alias map removed (design.md step 6) — every reference
 // now uses colors.* directly so grep-for-cyan finds this file.
@@ -345,6 +347,8 @@ export default function ResultsScreen() {
   // E2: inline-replay expand state — row id (`${jurisdiction}-${session}-${date}`)
   // of the currently-expanded hit card, or null. Only one row open at a time.
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  // DESIGN-02 T2 (2.1): replay expansion fades; no-op on Reduce Motion.
+  const reduceMotion = useReduceMotion();
 
   const { followed: followedStates, toPostgrestFilter } = useFollowedStates();
   const jurisdictionFilter = toPostgrestFilter(); // already in `&jurisdiction=in.(...)` form
@@ -819,9 +823,14 @@ export default function ResultsScreen() {
             <Text style={[s.resultDigits, { color: digitColor }]}>{row.result_digits}</Text>
           </View>
 
-          {/* E2: inline HitReplay revealed on tap */}
+          {/* E2: inline HitReplay revealed on tap — DESIGN-02 T2 (2.1):
+              fade in/out instead of instant mount; no-ops on Reduce Motion. */}
           {isExpanded && hit && (
-            <View style={{ marginTop: 12 }}>
+            <Animated.View
+              entering={reduceMotion ? undefined : FadeIn.duration(150)}
+              exiting={reduceMotion ? undefined : FadeOut.duration(100)}
+              style={{ marginTop: 12 }}
+            >
               <HitReplay
                 pick={{
                   combo: hit.combo,
@@ -832,7 +841,7 @@ export default function ResultsScreen() {
                   temperature: replayTemp,
                 }}
               />
-            </View>
+            </Animated.View>
           )}
         </View>
       </View>

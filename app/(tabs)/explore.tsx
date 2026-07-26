@@ -27,6 +27,7 @@
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { RefreshCw, Settings, X } from 'lucide-react-native';
@@ -40,7 +41,6 @@ import { PickCard, PickItem } from '@/components/PickCard';
 import { SlatePosterCard } from '@/components/SlatePosterCard';
 import { LockedPicksSummary } from '@/components/LockedPicksSummary';
 import { PickDetailModal } from '@/components/PickDetailModal';
-import { Paywall } from '@/components/Paywall';
 import { HeatCheckModal } from '@/components/HeatCheckModal';
 import { HeatCheckFAB } from '@/components/HeatCheckFAB';
 import { CosmicBackground } from '@/components/CosmicBackground';
@@ -61,6 +61,7 @@ import { InfoTooltip } from '@/components/InfoTooltip';
 import { useToast } from '@/components/Toast';
 import { NeonRefreshControl } from '@/components/NeonRefreshControl';
 import { NeonSkeleton } from '@/components/NeonSkeleton';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 
 function toComboSet(combo: string) { return '{' + combo.split('').sort().join(',') + '}'; }
 
@@ -81,6 +82,11 @@ export default function SlatesScreen() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
+  // DESIGN-02 T2 (2.1): tab/view swaps get a 160ms fade-in. All entering
+  // animations no-op when the OS Reduce Motion setting is on.
+  const reduceMotion = useReduceMotion();
+  const tabFadeIn = reduceMotion ? undefined : FadeIn.duration(160);
+
   // tabs
   const [tab, setTab] = useState<Tab>('picks');
   const [controlsSheetOpen, setControlsSheetOpen] = useState(false);
@@ -91,7 +97,6 @@ export default function SlatesScreen() {
   const [fMult, setFMult] = useState<'all' | 'singles' | 'doubles'>('all');
   const [sort, setSort] = useState<'rank' | 'energy' | 'freq'>('rank');
   const [detail, setDetail] = useState<PickItem | null>(null);
-  const [paywallOpen, setPaywallOpen] = useState(false);
   const [heatCheckOpen, setHeatCheckOpen] = useState(false);
   const [heatCheckCombo, setHeatCheckCombo] = useState('');
   const [regenOpen, setRegenOpen] = useState(false);
@@ -320,7 +325,9 @@ export default function SlatesScreen() {
   }, [savingSlate, rawItems, scope]);
 
   return (
-    <SafeAreaView style={s.container} edges={['top', 'left', 'right', 'bottom']}>
+    // DESIGN-02 T2 (2.2): no 'bottom' edge — the tab bar already reserves
+    // that space; the extra inset was dead space above it.
+    <SafeAreaView style={s.container} edges={['top', 'left', 'right']}>
       <CosmicBackground />
       {/* ── Header (shared ScreenHeader — design.md step 3; freshness via FreshnessLine — step 5) ── */}
       <ScreenHeader
@@ -347,23 +354,17 @@ export default function SlatesScreen() {
       />
 
 
-      {/* ── Big segmented scope control (shared ScopeSegment — design.md step 1) ── */}
+      {/* ── Big segmented scope control (shared ScopeSegment — design.md step 1) ──
+          DESIGN-02 T2 (2.2): the old timestamp/view-toggle meta row is folded
+          into this band — the view toggle sits at the right end, and the
+          generation time already lives in the ScreenHeader subtitle
+          (FreshnessLine renders "slate generated h:mm ET"). Grid mode gains
+          the whole meta row's height back for the screenshot frame. */}
       {tab === 'picks' && (
         <View style={s.scopeBigRowWrap}>
-          <ScopeSegment value={scope as any} onChange={setScope as any} size="tall" />
-        </View>
-      )}
-
-      {/* ── Generation timestamp + view toggle (in screenshot frame) ── */}
-      {tab === 'picks' && (
-        <View style={s.scopeMetaRow}>
-          {snapshot?.updated_at_et ? (
-            <Text style={s.scopeTimestampInline}>
-              Generated {new Date(snapshot.updated_at_et).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true })} ET
-            </Text>
-          ) : (
-            <View style={{ flex: 1 }} />
-          )}
+          <View style={{ flex: 1 }}>
+            <ScopeSegment value={scope as any} onChange={setScope as any} size="tall" />
+          </View>
           <View style={s.viewToggle}>
             {([['list', 'List'], ['compact', 'Grid']] as const).map(([vm, lbl]) => (
               <TouchableOpacity
@@ -381,8 +382,8 @@ export default function SlatesScreen() {
         </View>
       )}
 
-      {/* §4.2 last-hit pill */}
-      <LastHitPill />
+      {/* §4.2 last-hit pill — hidden on the grid screenshot surface (2.2) */}
+      {!(tab === 'picks' && viewMode === 'compact') && <LastHitPill />}
 
       {/* ── TAB BAR ── */}
       <View style={s.tabBar}>
@@ -425,7 +426,10 @@ export default function SlatesScreen() {
         </View>
       )}
       {tab === 'picks' && !(slateLoading && !snapshot) && !(!slateLoading && slateLoadError && !snapshot) && (
-        <>
+        // Keyed by viewMode so the fade re-runs on both tab switch (mount)
+        // and list↔grid swap (remount). Grid tiles themselves get NO entering
+        // animation — the 2×3 grid is a screenshot surface.
+        <Animated.View key={`picks-${viewMode}`} entering={tabFadeIn} style={{ flex: 1 }}>
           {viewMode === 'compact' ? (
             // Grid view (2×3) — SCREENSHOT SURFACE. Per the brand, all 6
             // picks must fit on one screen with no scroll. Rows take equal
@@ -436,7 +440,7 @@ export default function SlatesScreen() {
                 {[0, 1, 2].map(row => (
                   <View key={row} style={s.gridRow}>
                     {filtered.slice(row * 2, row * 2 + 2).map(pick => (
-                      <SlatePosterCard key={`grid-${pick.rank}`} pick={pick} onPress={() => pick.locked ? setPaywallOpen(true) : setDetail(pick)} />
+                      <SlatePosterCard key={`grid-${pick.rank}`} pick={pick} onPress={() => pick.locked ? router.push('/paywall') : setDetail(pick)} />
                     ))}
                     {filtered.slice(row * 2, row * 2 + 2).length < 2 && <View style={{ flex: 1 }} />}
                   </View>
@@ -454,30 +458,37 @@ export default function SlatesScreen() {
                 const unlocked = filtered.filter(p => !p.locked);
                 const handleAdTap = (_rank: number) => {
                   showToast('👁 Watch-to-unlock launches soon — upgrade for instant access', 'info');
-                  setPaywallOpen(true);
+                  router.push('/paywall');
                 };
                 return (
                   <>
                     {locked.length > 0 && (
-                      <LockedPicksSummary lockedPicks={locked} onUnlock={() => setPaywallOpen(true)} onWatchAd={handleAdTap} />
+                      <LockedPicksSummary lockedPicks={locked} onUnlock={() => router.push('/paywall')} onWatchAd={handleAdTap} />
                     )}
                     {unlocked.map((pick, i) => (
-                      <PickCard
-                        key={`${pick.rank}-${pick.combo}-${i}`} pick={pick}
-                        onTap={() => setDetail(pick)}
-                        onUnlock={() => setPaywallOpen(true)}
-                      />
+                      // 2.1 list-view card stagger (list view ONLY — never grid)
+                      <Animated.View
+                        key={`${pick.rank}-${pick.combo}-${i}`}
+                        entering={reduceMotion ? undefined : FadeIn.duration(160).delay(Math.min(i * 40, 240))}
+                      >
+                        <PickCard
+                          pick={pick}
+                          onTap={() => setDetail(pick)}
+                          onUnlock={() => router.push('/paywall')}
+                        />
+                      </Animated.View>
                     ))}
                   </>
                 );
               })()}
             </ScrollView>
           )}
-        </>
+        </Animated.View>
       )}
 
       {/* ──────────────── TAB: LIVE ──────────────── */}
       {tab === 'hits' && (
+        <Animated.View key="tab-hits" entering={tabFadeIn} style={{ flex: 1 }}>
         <ScrollView style={s.content} contentContainerStyle={s.listContent}>
           <Text style={s.sectionTitle}>Live draw ticker</Text>
           <DrawTicker scope={scope} />
@@ -549,10 +560,12 @@ export default function SlatesScreen() {
             </View>
           </TouchableOpacity>
         </ScrollView>
+        </Animated.View>
       )}
 
       {/* ──────────────── TAB: MORE ──────────────── */}
       {tab === 'more' && (
+        <Animated.View key="tab-more" entering={tabFadeIn} style={{ flex: 1 }}>
         <ScrollView style={s.content} contentContainerStyle={s.listContent}>
 
           {/* ── Group: Slate actions ── */}
@@ -607,7 +620,7 @@ export default function SlatesScreen() {
             <View style={s.upsellCard}>
               <Text style={s.upsellTitle}>♛ Unlock your full K6 Slate</Text>
               <Text style={s.upsellDesc}>Pro unlocks all 6 signals, optimal straights, pattern analysis.</Text>
-              <TouchableOpacity style={s.upsellBtn} onPress={() => setPaywallOpen(true)}>
+              <TouchableOpacity style={s.upsellBtn} onPress={() => router.push('/paywall')}>
                 <Text style={s.upsellBtnText}>♛ Begin Pro Trial · $4.99</Text>
               </TouchableOpacity>
             </View>
@@ -616,6 +629,7 @@ export default function SlatesScreen() {
           {/* ── Footer ── */}
           <Text style={s.disclaimer}>HitMaster signals are for analytical research only. Use responsibly.</Text>
         </ScrollView>
+        </Animated.View>
       )}
 
       {/* ── modals ── */}
@@ -669,7 +683,6 @@ export default function SlatesScreen() {
           onClose={() => setDetail(null)}
           onHeatCheck={(combo) => { setDetail(null); setHeatCheckCombo(combo); setHeatCheckOpen(true); }} />
       )}
-      <Paywall visible={paywallOpen} onClose={() => setPaywallOpen(false)} />
       <HeatCheckModal visible={heatCheckOpen} onClose={() => setHeatCheckOpen(false)} initialCombo={heatCheckCombo} scope={scope} />
       {/* FAB hidden on compact (grid) view so screenshots stay clean. */}
       {tab === 'picks' && viewMode !== 'compact' && (
@@ -702,9 +715,9 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
   // Big scope segmented control (screenshot-friendly)
   // Wrapper preserves the surrounding band: bg-elevated, bottom border,
   // padding around the shared ScopeSegment. (Component itself is layout-only.)
-  scopeBigRowWrap: { backgroundColor: colors.bgElevated, borderBottomWidth: 1, borderBottomColor: colors.border, paddingHorizontal: theme.layout.screenInset, paddingTop: 10, paddingBottom: 10 },
-  scopeMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: theme.layout.screenInset, paddingTop: 6, paddingBottom: 6, backgroundColor: colors.bgElevated, borderBottomWidth: 1, borderBottomColor: colors.border },
-  scopeTimestampInline: { flex: 1, fontSize: 10, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono, letterSpacing: 0.4 },
+  // DESIGN-02 T2 (2.2): band is now a row — ScopeSegment (flex) + view toggle.
+  // The old scopeMetaRow/scopeTimestampInline styles were removed with the row.
+  scopeBigRowWrap: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.bgElevated, borderBottomWidth: 1, borderBottomColor: colors.border, paddingHorizontal: theme.layout.screenInset, paddingTop: 10, paddingBottom: 10 },
   viewToggle: { flexDirection: 'row', backgroundColor: colors.background, borderRadius: 8, padding: 2, gap: 1, borderWidth: 1, borderColor: colors.border },
   viewToggleBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
   viewToggleBtnOn: { backgroundColor: colors.purple + '20', borderWidth: 1, borderColor: colors.purple + '66' },

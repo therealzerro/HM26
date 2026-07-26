@@ -73,7 +73,6 @@ const IN_SCOPE: string[] = [
   'components/BudgetPlanner.tsx',
   'components/MissDayCard.tsx',
   'components/LockedPicksSummary.tsx',
-  'components/Paywall.tsx',
   'components/TrialOfferBanner.tsx',
   'components/SessionFilter.tsx',
   'components/SectionTitle.tsx',

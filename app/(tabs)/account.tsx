@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch,
 } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -20,6 +21,7 @@ import { useSavedHits } from '@/hooks/useSavedHits';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useZK30ViewMode } from '@/lib/zk30/viewMode';
 import type { ViewMode as ZK30ViewMode } from '@/lib/zk30/labelMaps';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 
 const GLOSSARY = [
   { term: 'ZK6™ Engine', def: 'HitMaster\'s proprietary intelligence engine — a multi-dimensional pattern recognition system trained on years of public draw data. Signals are ranked by Oracle Score (signal convergence strength), not guarantees.' },
@@ -128,6 +130,8 @@ export default function AccountScreen() {
   const s = useMemo(() => makeS(colors, shadows), [colors, shadows]);
   const tog = useMemo(() => makeTog(colors), [colors]);
   const [glossOpen, setGlossOpen] = useState<number | null>(null);
+  // DESIGN-02 T2 (2.1): glossary accordion fade; no-op on Reduce Motion.
+  const reduceMotion = useReduceMotion();
   // Notification preferences (enhancements §1.4 — persistence only).
   // Delivery (local schedules + push-on-hit) ships in next iteration; for now
   // we persist the user's choices so their setup carries across app restarts.
@@ -561,7 +565,13 @@ export default function AccountScreen() {
                     {glossOpen === i ? '▲' : '›'}
                   </Text>
                 </TouchableOpacity>
-                {glossOpen === i && <Text style={s.glossDef}>{g.def}</Text>}
+                {/* DESIGN-02 T2 (2.1): fade in the revealed definition;
+                    no-op on Reduce Motion. */}
+                {glossOpen === i && (
+                  <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(160)}>
+                    <Text style={s.glossDef}>{g.def}</Text>
+                  </Animated.View>
+                )}
               </View>
             ))}
           </View>
@@ -715,7 +725,9 @@ const makeS = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create(
     borderRadius: theme.borderRadius.tile,
     paddingVertical: 13, alignItems: 'center', marginBottom: 8,
   },
-  upgradeBtnText: { color: colors.text, fontWeight: '700', fontSize: 14 },
+  // DESIGN-02 T2 (2.7): white label on the purple button — colors.text was
+  // dark-on-purple in light mode; #fff passes on both purple variants at bold weight.
+  upgradeBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   trialBtn: { alignItems: 'center', paddingVertical: 6 },
   trialBtnText: { fontSize: 12, color: colors.cyan, fontWeight: '600' },
 

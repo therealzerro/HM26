@@ -9,11 +9,16 @@ import { theme } from '@/constants/theme';
 import { useTheme, type ColorTokens } from '@/lib/theme';
 import { SubscriptionPlan } from '@/types/core';
 import { useAuth } from '@/hooks/useAuth';
+import { BrandMark } from '@/components/BrandMark';
 
 // BRAND-05 / DESIGN-02 (2026-07-25): the stored 72.4% match-rate headline was
 // removed — same reasoning as the Home hero (evening-only number from a
 // backtest inside the BUG-162 hit-inflation era; provenance unsound). The
 // paywall sells capability, not a rate.
+//
+// DESIGN-02 T2 (2.6): this route is now the ONLY paywall — the modal
+// components/Paywall.tsx was deleted and Home/Slates route here instead.
+// Do not reintroduce a second paywall implementation.
 
 interface PlanOption {
   id: SubscriptionPlan;
@@ -74,11 +79,11 @@ export default function PaywallScreen() {
       // which stranded the user on the paywall after subscribing. Web: blocking
       // window.alert then navigate; native: keep the button-driven flow.
       if (Platform.OS === 'web') {
-        alertAsync('Welcome to Premium!', 'Your subscription is now active. Enjoy full access to HitMaster!');
+        alertAsync('Welcome to Oracle+!', 'Your subscription is now active. Enjoy full access to HitMaster!');
         goBackSafe();
       } else {
         Alert.alert(
-          'Welcome to Premium!',
+          'Welcome to Oracle+!',
           'Your subscription is now active. Enjoy full access to HitMaster!',
           [{ text: 'Get Started', onPress: () => goBackSafe() }],
         );
@@ -124,18 +129,19 @@ export default function PaywallScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Hero Section — capability-led, no rate claims (BRAND-05) */}
         <View style={styles.hero}>
+          <BrandMark size="lg" style={{ marginBottom: 10 }} />
           <Text style={styles.heroTitle}>Unlock the full K6 slate</Text>
           <Text style={styles.heroBigSub}>Six daily signals · verified outcomes · full pattern analytics</Text>
         </View>
 
         {/* Feature Comparison */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Premium Features</Text>
+          <Text style={styles.sectionTitle}>Oracle+ Features</Text>
           <View style={styles.comparisonTable}>
             <View style={styles.comparisonHeader}>
               <Text style={styles.comparisonHeaderText}>Feature</Text>
               <Text style={styles.comparisonHeaderText}>Free</Text>
-              <Text style={styles.comparisonHeaderText}>Premium</Text>
+              <Text style={styles.comparisonHeaderText}>Oracle+</Text>
             </View>
             {featureComparison.map((item, index) => (
               <View key={item.feature} style={styles.comparisonRow}>
@@ -195,6 +201,10 @@ export default function PaywallScreen() {
           <TouchableOpacity style={styles.restoreButton} onPress={handleRestore}>
             <Text style={styles.restoreButtonText}>Restore Purchase</Text>
           </TouchableOpacity>
+
+          <Text style={styles.disclaimer}>
+            For analytical research only. Not financial advice. Use responsibly.
+          </Text>
 
           <View style={styles.legalLinks}>
             <TouchableOpacity>
@@ -333,7 +343,9 @@ const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   planBadgeText: {
     fontSize: theme.typography.fontSize.xs,
     fontWeight: 'bold',
-    color: colors.text,
+    // DESIGN-02 T2 (2.7): fixed dark ink on the gold badge — colors.text was
+    // white-on-gold in dark mode, the worst contrast pair in the app.
+    color: '#1E1B4B',
   },
   planTitle: {
     fontSize: theme.typography.fontSize.lg,
@@ -378,7 +390,9 @@ const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   subscribeButtonText: {
     fontSize: theme.typography.fontSize.lg,
     fontWeight: 'bold',
-    color: colors.text,
+    // DESIGN-02 T2 (2.7): white label on the primary button — colors.text was
+    // dark-on-purple in light mode; #fff passes on both purple variants.
+    color: '#fff',
   },
   restoreButton: {
     alignItems: 'center',
@@ -388,6 +402,13 @@ const makeStyles = (colors: ColorTokens) => StyleSheet.create({
     fontSize: theme.typography.fontSize.md,
     color: colors.primary,
     fontWeight: '600',
+  },
+  disclaimer: {
+    fontSize: theme.typography.fontSize.xs,
+    color: colors.textTertiary,
+    textAlign: 'center',
+    marginTop: theme.spacing.sm,
+    lineHeight: 16,
   },
   legalLinks: {
     flexDirection: 'row',

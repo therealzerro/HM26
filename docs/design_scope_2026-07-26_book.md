@@ -2,7 +2,14 @@
 
 > Operator request: "propose a full, more UI-friendly Number Book / learning-systems screen —
 > it is currently ugly and confusing." Consumer surface → scoped only; ships on green-light.
-> **Status: PROPOSED — awaiting operator green-light + §5 decisions.**
+> **Status: SHIPPED 2026-07-26 (green-light same day; §5 decisions ratified: A = states
+> picker shipped, B = stays free + "Pro exclusive" claim softened, C = sample list kept).
+> Validation: filtered tsc 0 · eslint 0 on touched files · check:brand-voice 0. Shipped
+> alongside: DrawTicker schedule refresh (AZ Midday 2:29 PM added — new drawing; AZ Evening
+> 9:45→8:45 PM; MS Midday 1:29→3:15 PM; MS Evening 7:29→10:00 PM — verified vs the 7/26
+> Lottery Post capture) and pattern-explorer `?combo=` prefill for Book deep-links.
+> Remaining: operator device walkthrough (light + dark) of Book index/detail, Learn, and
+> the states picker.**
 
 ## 1. Diagnosis — why it feels ugly and confusing
 

@@ -1,9 +1,16 @@
+// app/(tabs)/book.tsx — Number Book (BOOK-01 redesign, 2026-07-26)
+//
+// Mobile-first single-pane rebuild of the old 220px-sidebar master-detail
+// layout (docs/design_scope_2026-07-26_book.md). Two views in one route:
+// index (list of lists) ⇄ detail, switched on `activeId` — same in-file
+// pattern learn.tsx uses. Storage schema (`number_book_lists`,
+// `saved_slates`) is unchanged; existing lists load as-is.
+
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { theme } from '@/constants/theme';
 import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
@@ -11,8 +18,17 @@ import { storage } from '@/lib/storage';
 import { confirmAsync } from '@/lib/confirm';
 import { HeatCheckModal } from '@/components/HeatCheckModal';
 import { EmptyState } from '@/components/EmptyState';
-import { BookOpen } from 'lucide-react-native';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { SectionTitle } from '@/components/SectionTitle';
+import { ScopeSegment } from '@/components/ScopeSegment';
+import { scopeAccent } from '@/lib/scopeAccent';
+import { heatTier } from '@/lib/theme/heat';
+import {
+  BookOpen, Plus, Star, Trash2, Flame, ChevronLeft, ChevronRight,
+  GraduationCap, Sparkles, Zap, Lock, MapPin, Target,
+} from 'lucide-react-native';
 import { useSavedHits } from '@/hooks/useSavedHits';
+import { JURISDICTION_GROUPS } from '@/hooks/useFollowedStates';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { getTodayET } from '@/lib/dateUtils';
 
@@ -20,57 +36,143 @@ function toSet(combo: string) {
   return '{' + combo.split('').sort().join(',') + '}';
 }
 
-const scopeIcon = (s: string) => s === 'midday' ? '☀️' : s === 'evening' ? '🌙' : '◈';
-const scopeColor = (s: string, colors: ColorTokens) =>
-  s === 'midday' ? colors.gold : s === 'evening' ? colors.primary : colors.teal;
+function daysAgo(dateEt: string): string {
+  const today = getTodayET();
+  if (dateEt === today) return 'today';
+  const diff = Math.round((Date.parse(today) - Date.parse(dateEt)) / 86400000);
+  if (diff === 1) return 'yesterday';
+  return `${diff}d ago`;
+}
+
+const SCOPE_LABEL: Record<string, string> = { midday: 'Midday', evening: 'Evening', allday: 'All Day' };
 
 const COMING_FEATURES = [
-  { icon: '🗺', title: 'Slate by State', desc: 'Filter today\'s K6 Slate to only your selected states.', tier: 'PLUS' },
-  { icon: '🎯', title: 'Straight-Arrangement Slate', desc: 'Dedicated straight-only intelligence slate powered by ZK6.', tier: 'PLUS' },
-  { icon: '4️⃣', title: '4-digit Box (coming)', desc: '4-digit box intelligence — ZK6 expanding to 4-digit analysis.', tier: 'PLUS' },
-  { icon: '⭐', title: '4-digit Straight (coming)', desc: '4-digit straight slate signals with optimal arrangement.', tier: 'PLUS' },
+  { title: 'Slate by State', desc: 'Filter today\'s K6 Slate to only your selected states.' },
+  { title: 'Straight-Arrangement Slate', desc: 'Dedicated straight-only intelligence slate powered by ZK6.' },
+  { title: '4-digit Box', desc: '4-digit box intelligence — ZK6 expanding to 4-digit analysis.' },
+  { title: '4-digit Straight', desc: '4-digit straight slate signals with optimal arrangement.' },
 ];
 
 interface ComboItem { combo: string; note: string; starred: boolean; energy?: number; hitBox?: boolean; hitStraight?: boolean; }
 interface BookList { id: string; name: string; scope: string; states: string[]; combos: ComboItem[]; type?: 'custom' | 'saved_slate'; savedAt?: string; }
 
+// ─── State picker chips (shared by create + edit) ────────────────────────────
+function StateChips({ selected, onToggle }: { selected: string[]; onToggle: (code: string) => void }) {
+  const { colors } = useTheme();
+  return (
+    <View>
+      {JURISDICTION_GROUPS.map(g => (
+        <View key={g.label} style={{ marginBottom: 8 }}>
+          <Text style={{ fontSize: 9, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1, marginBottom: 5, textTransform: 'uppercase' }}>{g.label}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5 }}>
+            {g.codes.map(code => {
+              const on = selected.includes(code);
+              return (
+                <TouchableOpacity
+                  key={code}
+                  onPress={() => onToggle(code)}
+                  style={{
+                    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 99, borderWidth: 1,
+                    borderColor: on ? colors.primary + theme.alpha.border : colors.border,
+                    backgroundColor: on ? colors.primaryLight : 'transparent',
+                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: on }}
+                  accessibilityLabel={`${code}${on ? ', selected' : ''}`}
+                >
+                  <Text style={{ fontSize: 11, fontWeight: on ? '800' : '600', color: on ? colors.primary : colors.textSecondary }}>{code}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 // ─── Create List Modal ────────────────────────────────────────────────────────
-function CreateListModal({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string, scope: string) => void }) {
+function CreateListModal({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string, scope: string, states: string[]) => void }) {
   const { colors, shadows } = useTheme();
   const m = useMemo(() => makeM(colors, shadows), [colors, shadows]);
   const [name, setName] = useState('');
-  const [scope, setScope] = useState('allday');
+  const [scope, setScope] = useState<'midday' | 'evening' | 'allday'>('allday');
+  const [states, setStates] = useState<string[]>([]);
+  const [showStates, setShowStates] = useState(false);
+
+  const toggleState = (code: string) =>
+    setStates(prev => prev.includes(code) ? prev.filter(x => x !== code) : [...prev, code]);
 
   return (
     <Modal transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={m.backdrop} activeOpacity={1} onPress={onClose}>
         <TouchableOpacity activeOpacity={1} style={m.card} onPress={() => {}}>
-          <Text style={m.title}>✦ Create New List</Text>
-          <TextInput
-            style={[m.input, name ? { borderColor: colors.primary } : {}]}
-            value={name}
-            onChangeText={setName}
-            placeholder="List name (e.g. NY Evening Signals)"
-            placeholderTextColor={colors.textTertiary}
-          />
-          <View style={{ flexDirection: 'row', gap: 6, marginBottom: 18 }}>
-            {[['midday', '☀️ Midday'], ['evening', '🌙 Evening'], ['allday', '◈ All Day']].map(([id, lbl]) => (
-              <TouchableOpacity
-                key={id} style={[m.scopeBtn, scope === id && m.scopeBtnOn]}
-                onPress={() => setScope(id)}
-              >
-                <Text style={[m.scopeBtnText, scope === id && m.scopeBtnTextOn]}>{lbl}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Text style={m.title}>Create New List</Text>
+          <ScrollView style={{ maxHeight: 420 }} keyboardShouldPersistTaps="handled">
+            <TextInput
+              style={[m.input, name ? { borderColor: colors.primary } : {}]}
+              value={name}
+              onChangeText={setName}
+              placeholder="List name (e.g. NY Evening Signals)"
+              placeholderTextColor={colors.textTertiary}
+            />
+            <ScopeSegment value={scope} onChange={setScope} size="compact" style={{ marginBottom: 12 }} />
+            <TouchableOpacity
+              style={m.statesRow}
+              onPress={() => setShowStates(v => !v)}
+              accessibilityRole="button"
+              accessibilityLabel="Choose states"
+            >
+              <MapPin size={14} color={colors.textSecondary} />
+              <Text style={{ flex: 1, fontSize: 12, color: colors.textSecondary, fontWeight: '600' }}>
+                {states.length === 0 ? 'States: all (tap to choose)' : `States: ${states.join(', ')}`}
+              </Text>
+              <ChevronRight size={14} color={colors.textTertiary} style={{ transform: [{ rotate: showStates ? '90deg' : '0deg' }] }} />
+            </TouchableOpacity>
+            {showStates && <View style={{ marginBottom: 12 }}><StateChips selected={states} onToggle={toggleState} /></View>}
+          </ScrollView>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
             <TouchableOpacity
               style={[m.btn, { backgroundColor: colors.primary, opacity: name.trim() ? 1 : 0.5 }]}
-              onPress={() => { if (name.trim()) onCreate(name.trim(), scope); }}
+              onPress={() => { if (name.trim()) onCreate(name.trim(), scope, states); }}
               disabled={!name.trim()}
             >
               {/* white-on-primary: intentional in both modes (LIGHT-01) */}
               <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Create List</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[m.btn, { backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border }]} onPress={onClose}>
+              <Text style={{ color: colors.textSecondary, fontWeight: '600', fontSize: 13 }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
+// ─── Edit States Modal (detail header → tap the state tags) ──────────────────
+function EditStatesModal({ initial, onClose, onSave }: { initial: string[]; onClose: () => void; onSave: (states: string[]) => void }) {
+  const { colors, shadows } = useTheme();
+  const m = useMemo(() => makeM(colors, shadows), [colors, shadows]);
+  const [states, setStates] = useState<string[]>(initial);
+  const toggleState = (code: string) =>
+    setStates(prev => prev.includes(code) ? prev.filter(x => x !== code) : [...prev, code]);
+
+  return (
+    <Modal transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity style={m.backdrop} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity activeOpacity={1} style={m.card} onPress={() => {}}>
+          <Text style={m.title}>List States</Text>
+          <Text style={{ fontSize: 11, color: colors.textTertiary, marginBottom: 12 }}>
+            Tag this list to the states you follow. Leave empty for all states.
+          </Text>
+          <ScrollView style={{ maxHeight: 380 }}>
+            <StateChips selected={states} onToggle={toggleState} />
+          </ScrollView>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+            <TouchableOpacity style={[m.btn, { backgroundColor: colors.primary }]} onPress={() => onSave(states)}>
+              {/* white-on-primary: intentional in both modes (LIGHT-01) */}
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Save</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[m.btn, { backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border }]} onPress={onClose}>
               <Text style={{ color: colors.textSecondary, fontWeight: '600', fontSize: 13 }}>Cancel</Text>
@@ -94,7 +196,7 @@ function AddNumberModal({ onClose, onAdd }: { onClose: () => void; onAdd: (combo
     <Modal transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={m.backdrop} activeOpacity={1} onPress={onClose}>
         <TouchableOpacity activeOpacity={1} style={m.card} onPress={() => {}}>
-          <Text style={m.title}>＋ Add Number</Text>
+          <Text style={m.title}>Add Number</Text>
           <TextInput
             style={[m.comboInput, valid ? { borderColor: colors.primary } : {}]}
             value={combo}
@@ -137,16 +239,13 @@ const makeM = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create(
   title: { fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 14 },
   input: { width: '100%', padding: 10, borderRadius: 9, borderWidth: 1.5, borderColor: colors.border, fontSize: 13, color: colors.text, backgroundColor: colors.surface, marginBottom: 10 },
   comboInput: { width: '100%', padding: 12, borderRadius: 9, borderWidth: 1.5, borderColor: colors.border, fontSize: 28, fontWeight: '900', color: colors.text, backgroundColor: colors.surface, marginBottom: 10, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 6, textAlign: 'center' },
-  scopeBtn: { flex: 1, paddingVertical: 7, paddingHorizontal: 6, borderRadius: 9, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center' },
-  scopeBtnOn: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
-  scopeBtnText: { fontSize: 11, fontWeight: '500', color: colors.textSecondary },
-  scopeBtnTextOn: { color: colors.primary, fontWeight: '700' },
+  statesRow: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 9, borderWidth: 1, borderColor: colors.border, marginBottom: 10 },
   btn: { flex: 1, paddingVertical: 10, borderRadius: theme.borderRadius.lg, alignItems: 'center' },
 });
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function NumberBookScreen() {
-  const { colors, shadows, gradients } = useTheme();
+  const { colors, shadows } = useTheme();
   const s = useMemo(() => makeS(colors, shadows), [colors, shadows]);
   const [lists, setLists] = useState<BookList[]>([]);
 
@@ -161,10 +260,13 @@ export default function NumberBookScreen() {
   const [listsLoaded, setListsLoaded] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [showEditStates, setShowEditStates] = useState(false);
   const [heatCheckOpen, setHeatCheckOpen] = useState(false);
   const [heatCheckCombo, setHeatCheckCombo] = useState('');
 
-  // Load custom lists + saved slates from storage on mount
+  // Load custom lists + saved slates from storage on mount. Unlike the old
+  // sidebar layout we do NOT auto-select the first list — the index IS the
+  // home view now.
   useEffect(() => {
     (async () => {
       let custom: BookList[] = [];
@@ -178,11 +280,7 @@ export default function NumberBookScreen() {
         if (raw) saved = JSON.parse(raw);
       } catch {}
       const existingIds = new Set(custom.map((l: BookList) => l.id));
-      const merged = [...custom, ...saved.filter((s: BookList) => !existingIds.has(s.id))];
-      if (merged.length > 0) {
-        setLists(merged);
-        setActiveId(merged[0].id);
-      }
+      setLists([...custom, ...saved.filter((s: BookList) => !existingIds.has(s.id))]);
       setListsLoaded(true);
     })();
   }, []);
@@ -195,9 +293,11 @@ export default function NumberBookScreen() {
   }, [lists, listsLoaded]);
 
   const activeList = lists.find(l => l.id === activeId) ?? null;
+  const customLists = lists.filter(l => l.type !== 'saved_slate');
+  const savedSlateLists = lists.filter(l => l.type === 'saved_slate');
 
-  const handleCreate = useCallback((name: string, scope: string) => {
-    const newList: BookList = { id: Date.now() + '', name, scope, states: [], combos: [] };
+  const handleCreate = useCallback((name: string, scope: string, states: string[]) => {
+    const newList: BookList = { id: Date.now() + '', name, scope, states, combos: [] };
     setLists(l => [...l, newList]);
     setActiveId(newList.id);
     setShowCreate(false);
@@ -254,13 +354,19 @@ export default function NumberBookScreen() {
       : x));
   }, [activeList]);
 
+  const handleSaveStates = useCallback((states: string[]) => {
+    if (!activeList) return;
+    setLists(l => l.map(x => x.id === activeList.id ? { ...x, states } : x));
+    setShowEditStates(false);
+  }, [activeList]);
+
   const handleAddFromSlate = useCallback(async () => {
     if (!activeList) return;
     const scope = activeList.scope === 'midday' || activeList.scope === 'evening' ? activeList.scope : 'allday';
     try {
       const today = getTodayET();
       const rows = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/slate_snapshots?scope=eq.${scope}&slate_date=eq.${today}&deleted_at=is.null&mode=neq.zk30&order=updated_at_et.desc.nullslast&limit=1&select=top_k_straights_json`,
+        path: `/rest/v1/slate_snapshots?scope=eq.${scope}&slate_date=eq.${today}&deleted_at=is.null&mode=eq.balanced&order=updated_at_et.desc.nullslast&limit=1&select=top_k_straights_json`,
       });
       const picks: any[] = Array.isArray(rows?.[0]?.top_k_straights_json) ? rows![0].top_k_straights_json.slice(0, 6) : [];
       if (picks.length === 0) {
@@ -281,293 +387,314 @@ export default function NumberBookScreen() {
     }
   }, [activeList]);
 
-  return (
-    <SafeAreaView style={s.container} edges={['top', 'left', 'right', 'bottom']}>
-      <View style={s.layout}>
-        {/* ── Left Sidebar ── */}
-        <View style={s.sidebar}>
-          <LinearGradient
-            colors={gradients.header}
-            start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
-            style={s.sidebarHeader}
-          >
-            <Text style={s.sidebarTitle}>📖 Number <Text style={{ color: colors.primary }}>Book</Text></Text>
-            <Text style={s.sidebarSub}>Your personal number collection</Text>
-          </LinearGradient>
+  // Matched combos surface first (most matches on top); the rest keep
+  // insertion order. This is the match-intel promotion from the scope doc.
+  const orderedCombos = useMemo(() => {
+    if (!activeList) return [];
+    const withHits = activeList.combos.filter(c => (savedHits.hitsByCombo.get(c.combo) ?? 0) > 0);
+    const rest = activeList.combos.filter(c => (savedHits.hitsByCombo.get(c.combo) ?? 0) === 0);
+    withHits.sort((a, b) => (savedHits.hitsByCombo.get(b.combo) ?? 0) - (savedHits.hitsByCombo.get(a.combo) ?? 0));
+    return [...withHits, ...rest];
+  }, [activeList, savedHits.hitsByCombo]);
 
-          <ScrollView style={s.sidebarList}>
-            <Text style={s.listSectionLabel}>MY LISTS</Text>
-            {lists.filter(l => l.type !== 'saved_slate').map(lst => {
-              const on = activeId === lst.id;
+  const listMatchCount = useCallback((l: BookList) =>
+    l.combos.reduce((sum, c) => sum + (savedHits.hitsByCombo.get(c.combo) ?? 0), 0),
+  [savedHits.hitsByCombo]);
+
+  // ── Shared bits ──
+  const whatsNextCard = (
+    <View style={s.nextCard}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <Sparkles size={14} color={colors.primary} />
+        <Text style={s.nextCardTitle}>{"What's next in Number Book"}</Text>
+        <View style={s.plusBadge}><Text style={s.plusBadgeText}>PLUS</Text></View>
+      </View>
+      {COMING_FEATURES.map(f => (
+        <Text key={f.title} style={s.nextCardLine} numberOfLines={1}>
+          <Text style={{ fontWeight: '700', color: colors.textSecondary }}>{f.title}</Text>
+          <Text style={{ color: colors.textTertiary }}>  ·  {f.desc}</Text>
+        </Text>
+      ))}
+    </View>
+  );
+
+  // ── Index view ──
+  const renderIndex = () => (
+    <>
+      <ScreenHeader
+        title="Number Book"
+        subtitle={
+          customLists.length === 0
+            ? 'Your personal number collection'
+            : `${customLists.length} ${customLists.length === 1 ? 'list' : 'lists'} · ${allSavedCombos.length} numbers${savedHits.totalHits > 0 ? ` · ${savedHits.totalHits} matches (30d)` : ''}`
+        }
+        rightSlot={
+          customLists.length > 0 ? (
+            <TouchableOpacity style={s.headerBtn} onPress={() => setShowCreate(true)} accessibilityRole="button" accessibilityLabel="New list">
+              <Plus size={14} color={colors.primary} />
+              <Text style={s.headerBtnText}>New</Text>
+            </TouchableOpacity>
+          ) : undefined
+        }
+      />
+      <ScrollView contentContainerStyle={s.indexContent}>
+        {customLists.length === 0 ? (
+          /* Welcome / onboarding */
+          <View>
+            <View style={s.welcomeHero}>
+              <View style={s.welcomeIcon}><BookOpen size={34} color={colors.primary} /></View>
+              <Text style={s.welcomeTitle}>Your Number Book</Text>
+              <Text style={s.welcomeDesc}>Save the numbers you track, organize them by scope and state, and see when they match a drawing — automatically.</Text>
+              <TouchableOpacity style={s.createBtn} onPress={() => setShowCreate(true)}>
+                {/* white-on-cosmic: intentional in both modes (LIGHT-01) */}
+                <Text style={s.createBtnText}>Create Your First List</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.sampleBtn} onPress={handleCreateSample} accessibilityRole="button" accessibilityLabel="Try a sample list">
+                <Text style={s.sampleBtnText}>Or try a sample list →</Text>
+              </TouchableOpacity>
+            </View>
+            {whatsNextCard}
+            <Text style={s.proLine}>Oracle+ unlocks Slate by State and 4-digit analytics first.</Text>
+          </View>
+        ) : (
+          <View>
+            <SectionTitle style={{ marginBottom: 8 }}>MY LISTS</SectionTitle>
+            {customLists.map(lst => {
+              const accent = scopeAccent(lst.scope, colors);
+              const matches = listMatchCount(lst);
               return (
-                <TouchableOpacity
-                  key={lst.id}
-                  style={[s.listRow, on && s.listRowOn]}
-                  onPress={() => setActiveId(lst.id)}
-                >
-                  <Text style={{ fontSize: 14 }}>{scopeIcon(lst.scope)}</Text>
+                <TouchableOpacity key={lst.id} style={s.listCard} onPress={() => setActiveId(lst.id)} activeOpacity={0.8}>
+                  <View style={[s.listAccent, { backgroundColor: accent }]} />
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={[s.listName, on && { color: colors.primary }]} numberOfLines={1}>{lst.name}</Text>
-                    <Text style={s.listMeta}>{lst.combos.length} numbers{lst.states.length ? ' · ' + lst.states.slice(0, 2).join(', ') : ''}</Text>
+                    <Text style={s.listCardName} numberOfLines={1}>{lst.name}</Text>
+                    <Text style={s.listCardMeta} numberOfLines={1}>
+                      {lst.combos.length} {lst.combos.length === 1 ? 'number' : 'numbers'} · {SCOPE_LABEL[lst.scope] ?? lst.scope}
+                      {lst.states.length > 0 ? ` · ${lst.states.slice(0, 3).join(', ')}${lst.states.length > 3 ? '…' : ''}` : ''}
+                    </Text>
                   </View>
-                  <TouchableOpacity onPress={() => handleDelete(lst.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <Text style={{ color: colors.textTertiary, fontSize: 16 }}>×</Text>
+                  {matches > 0 && (
+                    <View style={s.matchPill}>
+                      <Target size={10} color={colors.gold} />
+                      <Text style={s.matchPillText}>{matches}</Text>
+                    </View>
+                  )}
+                  <TouchableOpacity onPress={() => handleDelete(lst.id)} style={s.iconBtn} accessibilityRole="button" accessibilityLabel={`Delete ${lst.name}`}>
+                    <Trash2 size={15} color={colors.textTertiary} />
                   </TouchableOpacity>
+                  <ChevronRight size={16} color={colors.textTertiary} />
                 </TouchableOpacity>
               );
             })}
 
-            {lists.some(l => l.type === 'saved_slate') && (
+            {savedSlateLists.length > 0 && (
               <>
-                <Text style={[s.listSectionLabel, { marginTop: 12 }]}>SAVED SLATES</Text>
-                {lists.filter(l => l.type === 'saved_slate').map(lst => {
-                  const on = activeId === lst.id;
-                  return (
-                    <TouchableOpacity
-                      key={lst.id}
-                      style={[s.listRow, on && s.listRowOn, { borderColor: on ? colors.gold + '55' : colors.gold + '22', borderWidth: 1, backgroundColor: on ? colors.goldLight : 'transparent' }]}
-                      onPress={() => setActiveId(lst.id)}
-                    >
-                      <Text style={{ fontSize: 14 }}>⭐</Text>
-                      <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={[s.listName, { color: on ? colors.gold : colors.text }]} numberOfLines={1}>{lst.name}</Text>
-                        <Text style={s.listMeta}>{lst.combos.length} signals · Saved slate</Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
+                <SectionTitle tone="gold" style={{ marginTop: 14, marginBottom: 8 }}>SAVED SLATES</SectionTitle>
+                {savedSlateLists.map(lst => (
+                  <TouchableOpacity key={lst.id} style={[s.listCard, s.savedCard]} onPress={() => setActiveId(lst.id)} activeOpacity={0.8}>
+                    <Star size={15} color={colors.gold} fill={colors.gold} />
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={[s.listCardName, { color: colors.gold }]} numberOfLines={1}>{lst.name}</Text>
+                      <Text style={s.listCardMeta}>{lst.combos.length} signals · saved slate</Text>
+                    </View>
+                    <ChevronRight size={16} color={colors.textTertiary} />
+                  </TouchableOpacity>
+                ))}
               </>
             )}
 
-            <TouchableOpacity style={s.newListBtn} onPress={() => setShowCreate(true)}>
-              <Text style={{ fontSize: 16, color: colors.primary }}>＋</Text>
-              <Text style={s.newListBtnText}>New List</Text>
-            </TouchableOpacity>
-
-            {/* Learn Center — relocated here from the tab bar; ZK30 took the
-                Learn slot. Visual treatment matches the New List button so
-                operators read it as another sidebar action, not a marketing
-                CTA. */}
-            <TouchableOpacity
-              style={[s.newListBtn, { borderColor: colors.gold + '44', backgroundColor: colors.goldLight }]}
-              onPress={() => router.push('/(tabs)/learn')}
-              accessibilityRole="button"
-              accessibilityLabel="Open Learn Center"
-            >
-              <Text style={{ fontSize: 14 }}>🎓</Text>
-              <Text style={[s.newListBtnText, { color: colors.gold }]}>Learn Center</Text>
-            </TouchableOpacity>
-
-            {/* Coming Soon */}
-            <Text style={[s.listSectionLabel, { marginTop: 16 }]}>✦ COMING SOON</Text>
-            {COMING_FEATURES.map(f => (
-              <View key={f.title} style={s.comingRow}>
-                <Text style={{ fontSize: 12 }}>{f.icon}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.comingTitle}>{f.title}</Text>
-                  <View style={s.plusBadge}><Text style={s.plusBadgeText}>PLUS</Text></View>
-                </View>
+            {/* Learn Center — relocated from the tab bar; ZK30 took its slot */}
+            <TouchableOpacity style={s.learnCard} onPress={() => router.push('/(tabs)/learn')} accessibilityRole="button" accessibilityLabel="Open Learn Center" activeOpacity={0.8}>
+              <View style={s.learnIcon}><GraduationCap size={17} color={colors.gold} /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.learnTitle}>Learn Center</Text>
+                <Text style={s.listCardMeta}>3-digit draws from zero to expert</Text>
               </View>
-            ))}
-          </ScrollView>
+              <ChevronRight size={16} color={colors.textTertiary} />
+            </TouchableOpacity>
+
+            {whatsNextCard}
+          </View>
+        )}
+      </ScrollView>
+    </>
+  );
+
+  // ── Detail view (custom list) ──
+  const renderDetail = (lst: BookList) => {
+    const accent = scopeAccent(lst.scope, colors);
+    const listHitCount = listMatchCount(lst);
+    const hitPicks = lst.combos.filter(c => savedHits.hitsByCombo.has(c.combo)).length;
+    const lastListHit = orderedCombos.length > 0 ? savedHits.lastHitByCombo.get(orderedCombos[0].combo) : undefined;
+
+    return (
+      <>
+        <View style={s.detailHeader}>
+          <TouchableOpacity style={s.backBtn} onPress={() => setActiveId(null)} accessibilityRole="button" accessibilityLabel="Back to my book">
+            <ChevronLeft size={18} color={colors.textSecondary} />
+            <Text style={s.backText}>My Book</Text>
+          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity style={s.addBtn} onPress={() => setShowAdd(true)}>
+              {/* white-on-primary: intentional in both modes (LIGHT-01) */}
+              <Plus size={13} color="#fff" />
+              <Text style={s.addBtnText}>Add</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.slateBtn} onPress={handleAddFromSlate}>
+              <Zap size={13} color={colors.teal} />
+              <Text style={[s.addBtnText, { color: colors.teal }]}>From Slate</Text>
+            </TouchableOpacity>
+          </View>
         </View>
+        <ScrollView contentContainerStyle={s.panelContent}>
+          <Text style={s.panelTitle}>{lst.name}</Text>
+          <View style={{ flexDirection: 'row', gap: 5, flexWrap: 'wrap', marginTop: 6, marginBottom: 14, alignItems: 'center' }}>
+            <View style={[s.scopeTag, { borderColor: accent + theme.alpha.tint, backgroundColor: accent + theme.alpha.soft }]}>
+              <Text style={[s.scopeTagText, { color: accent }]}>{SCOPE_LABEL[lst.scope] ?? lst.scope}</Text>
+            </View>
+            <TouchableOpacity
+              style={s.stateTag}
+              onPress={() => setShowEditStates(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Edit list states"
+            >
+              <MapPin size={10} color={colors.textTertiary} />
+              <Text style={s.stateTagText}>{lst.states.length === 0 ? 'All states' : lst.states.join(' · ')}</Text>
+            </TouchableOpacity>
+          </View>
 
-        {/* ── Right Panel ── */}
-        <View style={s.panel}>
-          {!activeList ? (
-            /* Welcome */
-            <ScrollView contentContainerStyle={s.welcomeContent}>
-              <View style={s.welcomeHero}>
-                <Text style={{ fontSize: 48, marginBottom: 10 }}>📖</Text>
-                <Text style={s.welcomeTitle}>Your Number Book</Text>
-                <Text style={s.welcomeDesc}>Save your favorite numbers, organize by scope and state, and be first for powerful new features.</Text>
-                <TouchableOpacity style={s.createBtn} onPress={() => setShowCreate(true)}>
-                  <Text style={s.createBtnText}>✦ Create Your First List</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={s.sampleBtn} onPress={handleCreateSample} accessibilityRole="button" accessibilityLabel="Try a sample list">
-                  <Text style={s.sampleBtnText}>Or try a sample list →</Text>
-                </TouchableOpacity>
+          {listHitCount > 0 && (
+            <View style={s.activityCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <Target size={15} color={colors.gold} />
+                <Text style={s.activityTitle}>30-DAY ACTIVITY</Text>
               </View>
+              <Text style={s.activityLine}>
+                {listHitCount} {listHitCount === 1 ? 'match' : 'matches'} across {hitPicks} {hitPicks === 1 ? 'signal' : 'signals'}
+                {lastListHit ? ` · last: ${lastListHit.state} ${lastListHit.session} ${daysAgo(lastListHit.date)}` : ''}
+              </Text>
+            </View>
+          )}
 
-              {/* Coming features grid */}
-              <Text style={[s.listSectionLabel, { marginHorizontal: 0, marginBottom: 10 }]}>✦ COMING SOON — PLUS</Text>
-              <View style={s.comingGrid}>
-                {COMING_FEATURES.map(f => (
-                  <View key={f.title} style={s.comingCard}>
-                    <Text style={{ fontSize: 24, marginBottom: 6 }}>{f.icon}</Text>
-                    <Text style={s.comingCardTitle}>{f.title}</Text>
-                    <Text style={s.comingCardDesc}>{f.desc}</Text>
-                  </View>
-                ))}
-              </View>
-
-              {/* Pro upsell */}
-              <LinearGradient colors={[colors.cosmicLight, colors.goldLight]} style={s.upsellCard}>
-                <Text style={{ fontSize: 26, marginBottom: 6 }}>🏆</Text>
-                <Text style={s.upsellTitle}>Number Book is Pro exclusive</Text>
-                <Text style={s.upsellDesc}>Save unlimited lists, organize by state, get first access to Slate by State & 4-digit analytics.</Text>
-                <TouchableOpacity style={s.upsellBtn} onPress={() => router.push('/paywall')}>
-                  <Text style={s.upsellBtnText}>Unlock Oracle+ ♛</Text>
+          {lst.combos.length === 0 ? (
+            <EmptyState
+              icon={BookOpen}
+              title="No numbers saved yet"
+              message="Add combos you want to track and check against your daily slate."
+              action={
+                <TouchableOpacity style={s.addBtnOutline} onPress={() => setShowAdd(true)}>
+                  <Text style={s.addBtnOutlineText}>Add your first number</Text>
                 </TouchableOpacity>
-              </LinearGradient>
-            </ScrollView>
-          ) : activeList.type === 'saved_slate' ? (
-            /* Saved Slate Detail — locked, gold bordered */
-            <ScrollView contentContainerStyle={s.panelContent}>
-              <View style={[s.panelHeader, { borderWidth: 1.5, borderColor: colors.gold + '55', backgroundColor: colors.goldLight, borderRadius: theme.borderRadius.lg, padding: 14, marginBottom: 14 }]}>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <Text style={{ fontSize: 18 }}>⭐</Text>
-                    <Text style={[s.panelTitle, { color: colors.gold }]}>{activeList.name}</Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', gap: 5, flexWrap: 'wrap' }}>
-                    <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 99, backgroundColor: colors.gold + '25', borderWidth: 1, borderColor: colors.gold + '40' }}>
-                      <Text style={{ fontSize: 9, fontWeight: '800', color: colors.gold }}>SAVED SLATE</Text>
-                    </View>
-                    {activeList.savedAt && (
-                      <View style={s.stateTag}>
-                        <Text style={s.stateTagText}>Saved {new Date(activeList.savedAt).toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' })}</Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-              </View>
-              <View style={{ backgroundColor: colors.goldLight, borderRadius: theme.borderRadius.md, padding: 10, marginBottom: 14, borderWidth: 1, borderColor: colors.gold + '33' }}>
-                <Text style={{ fontSize: 11, color: colors.gold, fontWeight: '600' }}>🔒 This is a saved slate record — signals are static and cannot be changed.</Text>
-              </View>
-              {activeList.combos.map((item, i) => (
-                <View key={item.combo} style={[s.comboRow, { borderColor: colors.gold + '44', borderWidth: 1.5 }]}>
-                  <Text style={{ fontSize: 16 }}>{item.hitStraight ? '⭐' : item.hitBox ? '✅' : '◈'}</Text>
-                  <Text style={s.comboNum}>{item.combo}</Text>
-                  <Text style={s.comboSet}>{toSet(item.combo)}</Text>
-                  <Text style={s.comboNote} numberOfLines={1}>{item.note || ''}</Text>
-                </View>
-              ))}
-            </ScrollView>
+              }
+            />
           ) : (
-            /* List Detail */
-            <ScrollView contentContainerStyle={s.panelContent}>
-              <View style={s.panelHeader}>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <Text style={{ fontSize: 20 }}>{scopeIcon(activeList.scope)}</Text>
-                    <Text style={s.panelTitle}>{activeList.name}</Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', gap: 5, flexWrap: 'wrap' }}>
-                    <View style={[s.scopeTag, { borderColor: scopeColor(activeList.scope, colors) + '40', backgroundColor: scopeColor(activeList.scope, colors) + '15' }]}>
-                      <Text style={[s.scopeTagText, { color: scopeColor(activeList.scope, colors) }]}>{activeList.scope}</Text>
-                    </View>
-                    {activeList.states.map(st => (
-                      <View key={st} style={s.stateTag}>
-                        <Text style={s.stateTagText}>{st}</Text>
-                      </View>
-                    ))}
-                    {activeList.states.length === 0 && (
-                      <View style={s.stateTag}><Text style={s.stateTagText}>All States</Text></View>
-                    )}
-                  </View>
-                </View>
-                <View style={{ gap: 6 }}>
-                  <TouchableOpacity style={s.addBtn} onPress={() => setShowAdd(true)}>
-                    <Text style={s.addBtnText}>＋ Add Number</Text>
+            orderedCombos.map(item => {
+              const hitCount = savedHits.hitsByCombo.get(item.combo) ?? 0;
+              const lastHit = savedHits.lastHitByCombo.get(item.combo);
+              const tier = typeof item.energy === 'number' ? heatTier(item.energy, colors) : null;
+              return (
+                <View key={item.combo} style={[s.comboRow, hitCount > 0 && s.comboRowHit]}>
+                  <TouchableOpacity onPress={() => handleStar(item.combo)} style={s.iconBtn} accessibilityRole="button" accessibilityLabel={item.starred ? 'Unstar' : 'Star'}>
+                    <Star size={17} color={item.starred ? colors.gold : colors.textTertiary} fill={item.starred ? colors.gold : 'transparent'} />
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[s.addBtn, { backgroundColor: colors.teal + '18', borderColor: colors.teal + '55', borderWidth: 1 }]}
-                    onPress={handleAddFromSlate}
-                  >
-                    <Text style={[s.addBtnText, { color: colors.teal }]}>⚡ Add from Slate</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {(() => {
-                const listHitCount = activeList.combos.reduce(
-                  (sum, c) => sum + (savedHits.hitsByCombo.get(c.combo) ?? 0),
-                  0,
-                );
-                const hitPicks = activeList.combos.filter(c => savedHits.hitsByCombo.has(c.combo)).length;
-                if (listHitCount === 0) return null;
-                return (
-                  <View style={{ marginBottom: 12, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: colors.gold + '15', borderRadius: theme.borderRadius.md, borderWidth: 1, borderColor: colors.gold + '40', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Text style={{ fontSize: 16 }}>🎯</Text>
-                    <Text style={{ fontSize: 12, fontWeight: '800', color: colors.gold, fontFamily: theme.typography.fontFamily.monoBold, flex: 1 }}>
-                      {listHitCount} {listHitCount === 1 ? 'MATCH' : 'MATCHES'} across {hitPicks} {hitPicks === 1 ? 'signal' : 'signals'} (last 30 days)
-                    </Text>
-                  </View>
-                );
-              })()}
-              {activeList.combos.length === 0 ? (
-                <EmptyState
-                  icon={BookOpen}
-                  title="No numbers saved yet"
-                  message="Add combos you want to track and check against your daily slate."
-                  action={
-                    <TouchableOpacity style={s.addBtnOutline} onPress={() => setShowAdd(true)}>
-                      <Text style={s.addBtnOutlineText}>Add your first number</Text>
-                    </TouchableOpacity>
-                  }
-                />
-              ) : (
-                activeList.combos.map(item => {
-                  const hitCount = savedHits.hitsByCombo.get(item.combo) ?? 0;
-                  const lastHit = savedHits.lastHitByCombo.get(item.combo);
-                  return (
-                    <View
-                      key={item.combo}
-                      style={[
-                        s.comboRow,
-                        hitCount > 0 && { borderColor: colors.gold + '66', borderWidth: 1.5, backgroundColor: colors.gold + '10' },
-                      ]}
-                    >
-                      <TouchableOpacity onPress={() => handleStar(item.combo)} hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={item.starred ? 'Unstar' : 'Star'}>
-                        <Text style={{ fontSize: 16 }}>{item.starred ? '⭐' : '☆'}</Text>
-                      </TouchableOpacity>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <Text style={s.comboNum}>{item.combo}</Text>
                       <Text style={s.comboSet}>{toSet(item.combo)}</Text>
-                      {hitCount > 0 ? (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1, minWidth: 0 }}>
-                          <Text style={{ fontSize: 14 }}>🎯</Text>
-                          <Text style={{ fontSize: 10, fontWeight: '800', color: colors.gold, fontFamily: theme.typography.fontFamily.monoBold }} numberOfLines={1}>
-                            {hitCount === 1 ? 'MATCH' : `${hitCount}×`}{lastHit ? ` · ${lastHit.state} ${lastHit.session}` : ''}
-                          </Text>
+                      {tier && (
+                        <View style={[s.energyChip, { borderColor: tier.color + theme.alpha.border, backgroundColor: tier.color + theme.alpha.faint }]}>
+                          <Text style={[s.energyChipText, { color: tier.color }]}>{Math.round(item.energy!)}</Text>
                         </View>
-                      ) : (
-                        <Text style={s.comboNote} numberOfLines={1}>{item.note || 'No note'}</Text>
                       )}
-                      <TouchableOpacity
-                        onPress={() => { setHeatCheckCombo(item.combo); setHeatCheckOpen(true); }}
-                        style={{ paddingHorizontal: 7, paddingVertical: 3, backgroundColor: colors.primaryLight, borderRadius: 7, borderWidth: 1, borderColor: colors.primary + '33' }}
-                        hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
-                      >
-                        <Text style={{ fontSize: 10, fontWeight: '700', color: colors.primary }}>🔍</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => handleDeleteCombo(item.combo)} hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="Remove number">
-                        <Text style={{ color: colors.textTertiary, fontSize: 16 }}>×</Text>
-                      </TouchableOpacity>
                     </View>
-                  );
-                })
-              )}
-
-              {/* Coming features for list */}
-              <View style={s.divider} />
-              <Text style={[s.listSectionLabel, { marginHorizontal: 0, marginBottom: 10 }]}>✦ COMING FEATURES FOR THIS LIST</Text>
-              <View style={s.comingGrid}>
-                {COMING_FEATURES.map(f => (
-                  <View key={f.title} style={s.comingCard}>
-                    <Text style={{ fontSize: 20, marginBottom: 4 }}>{f.icon}</Text>
-                    <Text style={s.comingCardTitle}>{f.title}</Text>
-                    <View style={s.comingSoonBadge}><Text style={s.comingSoonBadgeText}>Coming Soon</Text></View>
+                    {hitCount > 0 && lastHit ? (
+                      <TouchableOpacity
+                        onPress={() => router.push({ pathname: '/pattern-explorer', params: { combo: item.combo } })}
+                        accessibilityRole="button"
+                        accessibilityLabel={`View full history for ${item.combo}`}
+                      >
+                        <Text style={s.matchLine} numberOfLines={1}>
+                          {hitCount === 1 ? 'MATCH' : `${hitCount}× MATCHES`} · {lastHit.state} {lastHit.session} {daysAgo(lastHit.date)}
+                          <Text style={{ color: colors.primary }}>  Full history →</Text>
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <Text style={s.comboNote} numberOfLines={1}>{item.note || 'No note'}</Text>
+                    )}
                   </View>
-                ))}
-              </View>
-            </ScrollView>
+                  <TouchableOpacity
+                    onPress={() => { setHeatCheckCombo(item.combo); setHeatCheckOpen(true); }}
+                    style={s.iconBtn}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Heat check ${item.combo}`}
+                  >
+                    <Flame size={17} color={colors.primary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleDeleteCombo(item.combo)} style={s.iconBtn} accessibilityRole="button" accessibilityLabel="Remove number">
+                    <Trash2 size={16} color={colors.textTertiary} />
+                  </TouchableOpacity>
+                </View>
+              );
+            })
+          )}
+        </ScrollView>
+      </>
+    );
+  };
+
+  // ── Detail view (saved slate — read-only record) ──
+  const renderSavedSlate = (lst: BookList) => (
+    <>
+      <View style={s.detailHeader}>
+        <TouchableOpacity style={s.backBtn} onPress={() => setActiveId(null)} accessibilityRole="button" accessibilityLabel="Back to my book">
+          <ChevronLeft size={18} color={colors.textSecondary} />
+          <Text style={s.backText}>My Book</Text>
+        </TouchableOpacity>
+      </View>
+      <ScrollView contentContainerStyle={s.panelContent}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Star size={18} color={colors.gold} fill={colors.gold} />
+          <Text style={[s.panelTitle, { color: colors.gold }]}>{lst.name}</Text>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 5, flexWrap: 'wrap', marginTop: 6, marginBottom: 12 }}>
+          {lst.savedAt && (
+            <View style={s.stateTag}>
+              <Text style={s.stateTagText}>Saved {new Date(lst.savedAt).toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' })}</Text>
+            </View>
           )}
         </View>
-      </View>
+        <View style={s.lockNote}>
+          <Lock size={12} color={colors.gold} />
+          <Text style={s.lockNoteText}>Saved slate record — signals are static and cannot be changed.</Text>
+        </View>
+        {lst.combos.map(item => (
+          <View key={item.combo} style={[s.comboRow, { borderColor: colors.gold + theme.alpha.tint }]}>
+            {item.hitStraight
+              ? <Star size={16} color={colors.gold} fill={colors.gold} />
+              : item.hitBox
+                ? <Target size={16} color={colors.teal} />
+                : <View style={{ width: 16 }} />}
+            <Text style={s.comboNum}>{item.combo}</Text>
+            <Text style={s.comboSet}>{toSet(item.combo)}</Text>
+            <Text style={[s.comboNote, { flex: 1 }]} numberOfLines={1}>{item.note || ''}</Text>
+          </View>
+        ))}
+      </ScrollView>
+    </>
+  );
+
+  return (
+    <SafeAreaView style={s.container} edges={['top', 'left', 'right', 'bottom']}>
+      {!activeList
+        ? renderIndex()
+        : activeList.type === 'saved_slate'
+          ? renderSavedSlate(activeList)
+          : renderDetail(activeList)}
 
       {showCreate && <CreateListModal onClose={() => setShowCreate(false)} onCreate={handleCreate} />}
       {showAdd && <AddNumberModal onClose={() => setShowAdd(false)} onAdd={handleAddCombo} />}
+      {showEditStates && activeList && (
+        <EditStatesModal initial={activeList.states} onClose={() => setShowEditStates(false)} onSave={handleSaveStates} />
+      )}
       <HeatCheckModal
         visible={heatCheckOpen}
         onClose={() => setHeatCheckOpen(false)}
@@ -580,65 +707,69 @@ export default function NumberBookScreen() {
 
 const makeS = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  layout: { flex: 1, flexDirection: 'row' },
 
-  // Sidebar
-  sidebar: { width: 220, backgroundColor: colors.surface, borderRightWidth: 1, borderRightColor: colors.border },
-  sidebarHeader: { padding: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
-  sidebarTitle: { fontSize: 15, fontWeight: '900', color: colors.text, marginBottom: 2 },
-  sidebarSub: { fontSize: 11, color: colors.textTertiary },
-  sidebarList: { flex: 1, padding: 8 },
-  listSectionLabel: { fontSize: 9, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1.5, paddingHorizontal: 8, paddingVertical: 8, textTransform: 'uppercase' },
-  listRow: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 10, marginBottom: 3, borderWidth: 1, borderColor: 'transparent' },
-  listRowOn: { backgroundColor: colors.primaryLight, borderColor: colors.primary + '33' },
-  listName: { fontSize: 12, fontWeight: '700', color: colors.text },
-  listMeta: { fontSize: 10, color: colors.textTertiary },
-  newListBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 9, borderRadius: 10, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.border, marginTop: 6 },
-  newListBtnText: { fontSize: 12, color: colors.textSecondary },
-  comingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, marginBottom: 3, backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border },
-  comingTitle: { fontSize: 10, fontWeight: '700', color: colors.text },
-  plusBadge: { backgroundColor: colors.primaryLight, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 99, marginTop: 2 },
+  // Index
+  indexContent: { padding: theme.layout.screenInset, paddingBottom: 32 },
+  headerBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: colors.primary + theme.alpha.border, backgroundColor: colors.primaryLight },
+  headerBtnText: { fontSize: 12, fontWeight: '700', color: colors.primary },
+  listCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.surface, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 8, ...shadows.glow },
+  listAccent: { width: 4, alignSelf: 'stretch', borderRadius: 2 },
+  listCardName: { fontSize: 14, fontWeight: '700', color: colors.text },
+  listCardMeta: { fontSize: 11, color: colors.textTertiary, marginTop: 2 },
+  savedCard: { borderColor: colors.gold + theme.alpha.tint },
+  matchPill: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 99, backgroundColor: colors.gold + theme.alpha.soft, borderWidth: 1, borderColor: colors.gold + theme.alpha.tint },
+  matchPillText: { fontSize: 10, fontWeight: '800', color: colors.gold, fontFamily: theme.typography.fontFamily.monoBold },
+  learnCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.goldLight, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: colors.gold + theme.alpha.tint, padding: 14, marginTop: 14, marginBottom: 8 },
+  learnIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold + theme.alpha.soft },
+  learnTitle: { fontSize: 13, fontWeight: '700', color: colors.gold },
+  nextCard: { backgroundColor: colors.surface, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: colors.border, padding: 14, marginTop: 8 },
+  nextCardTitle: { fontSize: 12, fontWeight: '800', color: colors.text, flex: 1 },
+  nextCardLine: { fontSize: 11, lineHeight: 18 },
+  plusBadge: { backgroundColor: colors.primaryLight, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 99 },
   plusBadgeText: { fontSize: 8, fontWeight: '800', color: colors.primary },
-
-  // Right panel
-  panel: { flex: 1, backgroundColor: colors.background },
-  panelContent: { padding: 18, paddingBottom: 32 },
-  panelHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14, gap: 10 },
-  panelTitle: { fontSize: 18, fontWeight: '900', color: colors.text },
-  scopeTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 99, borderWidth: 1 },
-  scopeTagText: { fontSize: 10, fontWeight: '700' },
-  stateTag: { backgroundColor: colors.surfaceLight, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 99 },
-  stateTagText: { fontSize: 9, color: colors.textTertiary, fontWeight: '600' },
-  addBtn: { backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 7, borderRadius: theme.borderRadius.md },
-  addBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 }, // white-on-primary: intentional in both modes (LIGHT-01)
-  comboRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.surface, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: colors.border, padding: 12, marginBottom: 8, ...shadows.glow },
-  comboNum: { fontSize: 20, fontWeight: '900', color: colors.text, letterSpacing: 3, fontFamily: theme.typography.fontFamily.monoBold, minWidth: 56 },
-  comboSet: { fontSize: 10, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
-  comboNote: { flex: 1, fontSize: 11, color: colors.textSecondary },
-  emptyState: { alignItems: 'center', paddingVertical: 32 },
-  emptyTitle: { fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: 12 },
-  addBtnOutline: { borderWidth: 1.5, borderColor: colors.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: theme.borderRadius.lg },
-  addBtnOutlineText: { color: colors.primary, fontWeight: '700', fontSize: 13 },
-  divider: { height: 1, backgroundColor: colors.border, marginVertical: 16 },
-  comingGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-  comingCard: { flex: 1, minWidth: 130, backgroundColor: colors.surface, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: colors.border, padding: 12, ...shadows.glow },
-  comingCardTitle: { fontSize: 11, fontWeight: '700', color: colors.text, marginBottom: 4 },
-  comingCardDesc: { fontSize: 10, color: colors.textSecondary, lineHeight: 15 },
-  comingSoonBadge: { backgroundColor: colors.primaryLight, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 99, marginTop: 4 },
-  comingSoonBadgeText: { fontSize: 8, fontWeight: '800', color: colors.primary },
+  proLine: { fontSize: 11, color: colors.textTertiary, textAlign: 'center', marginTop: 14 },
 
   // Welcome
-  welcomeContent: { padding: 20, paddingBottom: 32 },
-  welcomeHero: { alignItems: 'center', paddingVertical: 24, marginBottom: 16 },
+  welcomeHero: { alignItems: 'center', paddingVertical: 24, marginBottom: 8 },
+  welcomeIcon: { width: 72, height: 72, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primaryLight, marginBottom: 14 },
   welcomeTitle: { fontSize: 20, fontWeight: '900', color: colors.text, marginBottom: 8 },
   welcomeDesc: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', maxWidth: 300, lineHeight: 20, marginBottom: 16 },
-  createBtn: { backgroundColor: colors.cosmic, paddingHorizontal: 22, paddingVertical: 11, borderRadius: 11 },
+  createBtn: { backgroundColor: colors.cosmic, paddingHorizontal: 22, paddingVertical: 12, borderRadius: 11 },
   createBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 }, // white-on-cosmic: intentional in both modes (LIGHT-01)
   sampleBtn: { marginTop: 10, paddingHorizontal: 16, paddingVertical: 8 },
   sampleBtnText: { color: colors.textSecondary, fontWeight: '600', fontSize: 12 },
-  upsellCard: { borderRadius: theme.borderRadius.xl, padding: 18, alignItems: 'center', borderWidth: 1.5, borderColor: colors.primary + '33', marginTop: 8 },
-  upsellTitle: { fontSize: 13, fontWeight: '800', color: colors.text, marginBottom: 4 },
-  upsellDesc: { fontSize: 11, color: colors.textSecondary, textAlign: 'center', marginBottom: 12, lineHeight: 18 },
-  upsellBtn: { backgroundColor: colors.gold, paddingHorizontal: 18, paddingVertical: 9, borderRadius: theme.borderRadius.lg },
-  upsellBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 }, // white on gold accent fill: intentional in both modes (LIGHT-01)
+
+  // Detail
+  detailHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: theme.layout.screenInset, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 6, paddingRight: 10 },
+  backText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
+  panelContent: { padding: theme.layout.screenInset, paddingBottom: 32 },
+  panelTitle: { fontSize: 20, fontWeight: '900', color: colors.text },
+  scopeTag: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 99, borderWidth: 1 },
+  scopeTagText: { fontSize: 10, fontWeight: '800' },
+  stateTag: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surfaceLight, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 99, borderWidth: 1, borderColor: colors.border },
+  stateTagText: { fontSize: 10, color: colors.textTertiary, fontWeight: '600' },
+  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: theme.borderRadius.md },
+  addBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 }, // white-on-primary: intentional in both modes (LIGHT-01)
+  slateBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.teal + theme.alpha.soft, borderColor: colors.teal + theme.alpha.border, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, borderRadius: theme.borderRadius.md },
+
+  activityCard: { backgroundColor: colors.goldLight, borderRadius: theme.borderRadius.md, borderWidth: 1, borderColor: colors.gold + theme.alpha.tint, padding: 12, marginBottom: 12 },
+  activityTitle: { fontSize: 10, fontWeight: '800', color: colors.gold, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold },
+  activityLine: { fontSize: 12, color: colors.text, fontWeight: '600' },
+
+  comboRow: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.surface, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: colors.border, paddingVertical: 10, paddingHorizontal: 8, marginBottom: 8, ...shadows.glow },
+  comboRowHit: { borderColor: colors.gold + theme.alpha.border, backgroundColor: colors.gold + theme.alpha.faint },
+  comboNum: { fontSize: 22, fontWeight: '900', color: colors.text, letterSpacing: 3, fontFamily: theme.typography.fontFamily.monoBold },
+  comboSet: { fontSize: 10, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
+  comboNote: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
+  matchLine: { fontSize: 10, fontWeight: '800', color: colors.gold, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 3 },
+  energyChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 7, borderWidth: 1 },
+  energyChipText: { fontSize: 9, fontWeight: '800', fontFamily: theme.typography.fontFamily.monoBold },
+  iconBtn: { padding: 9, alignItems: 'center', justifyContent: 'center' },
+
+  addBtnOutline: { borderWidth: 1.5, borderColor: colors.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: theme.borderRadius.lg },
+  addBtnOutlineText: { color: colors.primary, fontWeight: '700', fontSize: 13 },
+
+  lockNote: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.goldLight, borderRadius: theme.borderRadius.md, padding: 10, marginBottom: 14, borderWidth: 1, borderColor: colors.gold + theme.alpha.tint },
+  lockNoteText: { fontSize: 11, color: colors.gold, fontWeight: '600', flex: 1 },
 });

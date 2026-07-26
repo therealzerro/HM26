@@ -7,6 +7,7 @@
 
 import React, { useState } from 'react';
 import { View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@/lib/theme';
 import { PremiumGate } from '@/components/PremiumGate';
 import { Chip, ChipRow } from '@/components/analytics/analyticsShared';
@@ -16,6 +17,9 @@ import PatternStatsPanel from '@/components/analytics/PatternStatsPanel';
 export default function PatternExplorerScreen() {
   const { colors } = useTheme();
   const [tab, setTab] = useState<'footprint' | 'stats'>('footprint');
+  // BOOK-01: Number Book match rows deep-link here with ?combo= prefilled.
+  const { combo } = useLocalSearchParams<{ combo?: string }>();
+  const initialQuery = typeof combo === 'string' ? combo : undefined;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.surface2 }}>
@@ -38,7 +42,7 @@ export default function PatternExplorerScreen() {
             />
           </ChipRow>
         </View>
-        {tab === 'footprint' ? <FootprintPanel /> : <PatternStatsPanel />}
+        {tab === 'footprint' ? <FootprintPanel initialQuery={initialQuery} /> : <PatternStatsPanel />}
       </PremiumGate>
     </View>
   );

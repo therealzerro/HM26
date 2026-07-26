@@ -26,11 +26,12 @@ const SESSIONS: SessionFilter[] = ['all', 'midday', 'evening'];
 const WINDOWS: WindowKey[] = ['30d', '90d', 'clean'];
 const APPEARANCE_DISPLAY_CAP = 40;
 
-export default function FootprintPanel() {
+export default function FootprintPanel({ initialQuery }: { initialQuery?: string } = {}) {
   const { colors } = useTheme();
   const st = useAnalyticsStyles();
-  const [input, setInput] = useState('');
-  const [submitted, setSubmitted] = useState<string | null>(null);
+  const prefill = initialQuery && /^\d{3}$/.test(initialQuery) ? initialQuery : null;
+  const [input, setInput] = useState(prefill ?? '');
+  const [submitted, setSubmitted] = useState<string | null>(prefill);
   const [win, setWin] = useState<WindowKey>('90d');
   const [session, setSession] = useState<SessionFilter>('all');
   const { rows, isLoading, error, refetch } = useDrawWindow(win);

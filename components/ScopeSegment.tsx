@@ -69,6 +69,9 @@ export function ScopeSegment({ value, onChange, size = 'tall', style }: Props) {
                 { color: active ? accent : colors.textSecondary },
                 active && { fontWeight: '900' },
               ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
             >
               {SCOPE_LABELS[sc]}
             </Text>
@@ -92,8 +95,10 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
   btnCompact: {
     flex: 1,
     paddingVertical: 8,
+    paddingHorizontal: 4,
     borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: 'transparent',
@@ -101,8 +106,10 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
   btnTall: {
     flex: 1,
     paddingVertical: 12,
+    paddingHorizontal: 4,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.bgElevated,
     borderWidth: 1,
     borderColor: colors.border,
@@ -113,6 +120,7 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
     color: colors.textSecondary,
     fontFamily: theme.typography.fontFamily.monoBold,
     letterSpacing: 0.3,
+    textAlign: 'center',
   },
   textTall: {
     fontSize: 13,
@@ -120,5 +128,6 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
     color: colors.textSecondary,
     fontFamily: theme.typography.fontFamily.monoBold,
     letterSpacing: 0.5,
+    textAlign: 'center',
   },
 });

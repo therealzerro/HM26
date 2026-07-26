@@ -174,11 +174,16 @@ export async function computeBrief(date: string, opts: { middayPosRule?: boolean
   // Daily Workflow freshness (OPS-01: Step 5 is the sole writer; no crons).
   // Only meaningful when the brief is for today — historical updated_at values
   // can't reconstruct whether the workflow was on time back then.
+  // "Ran today" = the report row was stamped on today's ET calendar date. A
+  // fixed age window is wrong here: the workflow runs ~5am ET, so by evening a
+  // perfectly good run is >12h old and was being flagged NOT RUN TODAY.
   const reportUpdatedAt = reportRows?.length
     ? reportRows.map(r => String(r.updated_at)).sort().slice(-1)[0]
     : null;
-  const workflowStale = date === getTodayET()
-    && (!reportUpdatedAt || Date.now() - new Date(reportUpdatedAt).getTime() > 12 * 3600_000);
+  const reportStampedET = reportUpdatedAt
+    ? new Date(reportUpdatedAt).toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+    : null;
+  const workflowStale = date === getTodayET() && reportStampedET !== date;
 
   const calib = calRows?.length ? (typeof calRows[0].value === 'string' ? JSON.parse(calRows[0].value) : calRows[0].value) : null;
   const calibFittedAt = calib?.fitted_at ?? null;

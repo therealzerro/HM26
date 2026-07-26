@@ -28,6 +28,7 @@
 - **NOT shipped, deliberately:** 3.1 (remains the DESIGN-01 light-Phase-3 signal-hue pass), 3.5 beyond token cleanup (no expo-blur adopted), **3.6 ZK30 palette — excluded under the ZK6-first gate (ARCH-06)**.
 - **tsc-zero cleanup** — the 4 pre-existing errors noted in the T1 validation are now fixed: Tabs `sceneContainerStyle` → `screenOptions.sceneStyle` (RN v7 rename), background Image `pointerEvents` via wrapper View, HitReplay prop narrowing, DashboardView's stale 3-arg `regenerateSlate` prop type.
 - **Validation:** filtered `tsc --noEmit` = **zero errors**; `check:brand-voice` 34 files clean; eslint — 34 errors repo-wide, all pre-existing `react/no-unescaped-entities` on copy verified present at HEAD (none introduced; candidate for a later mechanical sweep). Neutral-by-design; no metric watch window. Operator smoke recommended: admin domain nav, Brief PNG export on device, /paywall route from Home/Slates locked cards, light-mode CTA contrast, fingerprint screen in light mode.
+- **Operator smoke findings (7/25 evening):** (1) Brief tab false "NOT RUN TODAY" — pre-existing threshold bug exposed by evening use, fixed as **BUG-169**; (2) the 2.2 headroom fold squeezed ScopeSegment's tall pills (view toggle now shares the band) so midday/evening/allday labels wrapped off-center — fixed in the shared component (centered text, single-line with auto-shrink, horizontal padding), benefits Home too.
 
 **T0 (commit `c5e00ee`):** paywall's retired 72.4% headline removed (BRAND-05 parity; BUG-162-era provenance); ProposalReviewView transparent-render fixed (`colors.bg` didn't exist — view root + confirm dialog had no background; `useSt()` arity + 3 SectionTitle contract violations; cleared 7 live tsc errors); double headers killed on replay/track-record/paywall (`headerShown:false`); top safe-area added to Account/Learn/Book; tab bar height/padding now include the bottom inset; five orphaned components deleted (SlateCard was also broken — passed `channel` to SignalBar's `label`); Dashboard ACTIONS grid re-synced with NAV (was missing 11 of 19 destinations; stale "Daily Input" copy dropped).
 
@@ -622,6 +623,14 @@ Follow-through on BTN-AUDIT's native capture work — four device-tested iterati
 3. **OOM crash class eliminated** — captures held as multi-MB base64 in JS state + RN `Image` decoding all nine 1080×1920 thumbnails at full res (~75MB) jetsam-killed Expo Go on post. Fixes: view-shot `result:'tmpfile'` (file URIs, flat JS heap), AI cover persisted to cache file on arrival (with keep-in-memory fallback so a billed image is never dropped), `expo-image` thumbnails (display-size decode), 150ms breather between Photos saves, page-API publish reads base64 back only at send time (`toDataUrl`).
 4. **URI normalization** — iOS view-shot can return schemeless raw paths; save/read now branch on `data:` vs file reference and prefix `file://` where absent (was the "brief missing" all-fail abort). Stale captures (view-shot tmp wiped on app cold start / reload) now error explicitly: "expired — tap Build Images again".
 Also: AI image-gen client timeout 120s→180s (a server-successful, billed generation was lost to a client abort; `ai_generations` showed zero server-side errors all day). Operational note: any app reload between Build Images and posting requires a rebuild — captures don't survive reloads.
+
+### BUG-169 — In-app Brief "NOT RUN TODAY" false positive: workflow freshness used a 12-hour age window (FIXED 2026-07-26)
+
+**Symptom (operator smoke, DESIGN-02 T2/T3):** admin Brief tab flagged the Daily Workflow "NOT RUN TODAY" on the evening of 7/25 — but `engine_daily_report` shows the workflow ran at 09:05 UTC (~5:05am ET) that morning and stamped both the 7/24 and 7/25 rows.
+
+**Root cause:** `lib/brief/computeBrief.ts` judged freshness as `updated_at` within the last **12 hours**. The workflow runs ~5am ET (OPS-01: manual click before 8:30am), so from ~5pm ET onward every perfectly good run aged past the window and the brief cried stale for the rest of the day. Data and wiring were fine; only the threshold semantics were wrong. (Shipped with ADMIN-BRIEF-01 7/24; first surfaced by an evening brief check.)
+
+**Fix:** freshness is now calendar-based — the report row's `updated_at` converted to its ET date must equal today's ET date. No age window. Display string in BriefView unchanged.
 
 ### BUG-168 — Morning-brief Query 1 `pick1_outcome` always reports MISS (FIXED 2026-07-25)
 

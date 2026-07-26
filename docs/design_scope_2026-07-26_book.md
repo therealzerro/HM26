@@ -8,8 +8,7 @@
 > alongside: DrawTicker schedule refresh (AZ Midday 2:29 PM added — new drawing; AZ Evening
 > 9:45→8:45 PM; MS Midday 1:29→3:15 PM; MS Evening 7:29→10:00 PM — verified vs the 7/26
 > Lottery Post capture) and pattern-explorer `?combo=` prefill for Book deep-links.
-> Remaining: operator device walkthrough (light + dark) of Book index/detail, Learn, and
-> the states picker.**
+> Operator device smoke test PASSED 2026-07-26 — BOOK-01 CLOSED, no open items.**
 
 ## 1. Diagnosis — why it feels ugly and confusing
 

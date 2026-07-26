@@ -21,7 +21,7 @@
 - **Upsell dedupe:** COMING SOON grid ×3 → one "What's next" card. `mode=neq.zk30` slate read → `mode=eq.balanced`.
 - **Storage untouched:** `number_book_lists` / `saved_slates` schemas unchanged; existing lists load as-is; saved-slate records stay read-only.
 - **Shipped alongside — DrawTicker schedule refresh** (operator-flagged, verified vs the 2026-07-26 Lottery Post capture): **AZ Midday 2:29 PM added** (new drawing, did not exist at build time), AZ Evening 9:45→**8:45 PM**, MS Midday 1:29→**3:15 PM**, MS Evening 7:29→**10:00 PM**. Data pipeline unaffected (sessions come from ledger imports; AZ midday already flowing into `histories`). Morning/night draws (TN Morning, GA/DC Night, TX 4-draw) remain deliberately un-ticked (two-bucket display simplification, pre-existing).
-- **Validation:** filtered `tsc --noEmit` 0 errors; eslint 0 problems on touched files; `check:brand-voice` 34 files, 0 findings. Neutral-by-design (no engine contact). **Open: operator device walkthrough (light+dark) of both screens.**
+- **Validation:** filtered `tsc --noEmit` 0 errors; eslint 0 problems on touched files; `check:brand-voice` 34 files, 0 findings. Neutral-by-design (no engine contact). **Operator device smoke test passed same day — CLOSED, no open items.**
 
 ### LIGHT-01 — Light-mode signal-hue/defect pass: DESIGN-01 Phase 3 closed out (2026-07-26) ✅
 

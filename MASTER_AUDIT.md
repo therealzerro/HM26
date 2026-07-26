@@ -11,6 +11,17 @@
 
 ---
 
+### SOCIAL-13 — publish pipeline aligned to the free-group depth rule (2026-07-26) ✅
+
+**Trigger:** content-agent conflict review (7/26) surfaced that the locked content strategy — free group gets the **All-Day drop FULL** but **Midday/Evening drops REDACTED** (the Pro conversion frame) — was never implemented in the publish pipeline: `surfaceRedacts` covered only public+cross, so free-group session drops exported full digits. Operator ordered alignment.
+
+- `lib/social/publishImages.ts` — `surfaceRedacts(surface, session?)`: public/cross always redact; **free redacts midday/evening only**; free all-day + pro stay full fidelity.
+- `components/PublishView.tsx` — `imagePlan()` is session-aware (free slate_drop: full kit on all-day, redacted kit + no brief on midday/evening); redacted free kits **exclude the group brief image** (it carries full digits and would defeat the redaction); stage passes a banner variant.
+- `components/PublicExportBanner.tsx` — gains `variant`: `'public'` = classic "FULL SLATE INSIDE · JOIN FREE"; `'pro_upsell'` = "FULL SESSION DROP · FIRST IN PRO" for the free group's redacted session drops (JOIN FREE is the wrong CTA for people already in the group).
+- `components/social/PublishStage.tsx` — threads `bannerVariant` to both banner sites.
+- `lib/social/captions.ts` — free slate_drop caption is session-aware: midday/evening sells the gap ("Top-line signals below. The unredacted session drop goes live first in the Pro tier." + Pro CTA at $2.49/mo); all-day keeps the full-drop pure-value caption (no Pro pitch, unchanged rule).
+- Validation: filtered tsc 0; eslint 0 errors on touched files (1 pre-existing warning); `check:brand-voice` 0 findings. Operator-surface only — no consumer UI, no engine contact. Same-day companions: Brand Brief revised to **v2.1** ($2.49/mo Pro-group price ×7, match-vocab table/templates aligned to the §4a caption law) and the marketing handoff PDF to v1.2 (five content-agent conflict rulings).
+
 ### BOOK-01 — Number Book + Learn Center mobile-first relayout (2026-07-26) ✅
 
 **Scope doc:** `docs/design_scope_2026-07-26_book.md` (operator-requested deep scope, green-lit same day with recommendations ratified). Root cause was structural: both `book.tsx` and `learn.tsx` rendered a fixed 220/230px desktop sidebar + detail pane on phones, leaving ~170pt of content width — every symptom (9-11pt type, crammed rows, tiny glyph buttons) followed from that.

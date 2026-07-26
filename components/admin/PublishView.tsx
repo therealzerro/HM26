@@ -110,16 +110,22 @@ function tomorrowMorningEtIso(): string {
   return d.toISOString();
 }
 
-/** What images each (surface, content) combination produces. */
-function imagePlan(surface: Surface, content: ContentKind): { label: string; kind: 'none' | 'brief' | 'slate' | 'kit' | 'redacted_slate' } {
+/** What images each (surface, content, session) combination produces. */
+function imagePlan(surface: Surface, content: ContentKind, session?: SocialSession): { label: string; kind: 'none' | 'brief' | 'slate' | 'kit' | 'redacted_slate' } {
   if (content === 'signal_announce' || content === 'custom') return { label: 'No generated image — text (or attach an AI brand image below).', kind: 'none' };
   if (content === 'brief' || content === 'report_card') {
     return surface === 'public'
       ? { label: 'Brand-safe brief card (aggregate — no digits/states by construction).', kind: 'brief' }
       : { label: 'Group brief card (full detail, surface-appropriate footer).', kind: 'brief' };
   }
-  // slate_drop
-  if (surface === 'free' || surface === 'pro') return { label: `Full post kit: slate + all 6 signal cards + group brief (${surface === 'pro' ? 'PRO fidelity' : 'free-group fidelity'}).`, kind: 'kit' };
+  // slate_drop — SOCIAL-13 free-group depth rule: All-Day = full free kit;
+  // Midday/Evening free drops are digit-redacted (the Pro conversion frame).
+  if (surface === 'pro') return { label: 'Full post kit: slate + all 6 signal cards + group brief (PRO fidelity).', kind: 'kit' };
+  if (surface === 'free') {
+    return session === 'allday'
+      ? { label: 'Full post kit: slate + all 6 signal cards + group brief (free All-Day = the full free drop; no Pro pitch).', kind: 'kit' }
+      : { label: 'Redacted kit: mosaic slate + redacted signal cards + FIRST-IN-PRO banner (free Midday/Evening rule — no brief).', kind: 'kit' };
+  }
   return { label: 'Digit-redacted mosaic slate + JOIN FREE banner (§6 sanctioned public variant).', kind: 'redacted_slate' };
 }
 
@@ -171,6 +177,7 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
   const [stageSlateDate, setStageSlateDate] = useState<string>(() => getTodayET());
   const [stageSession, setStageSession] = useState<SocialSession>('midday');
   const [stageRedact, setStageRedact] = useState(false);
+  const [stageBannerVariant, setStageBannerVariant] = useState<'public' | 'pro_upsell'>('public');
 
   // brief stage
   const briefRef = useRef<View | null>(null);
@@ -193,7 +200,7 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
   const crossTwoQMissing = surface === 'cross' && images.length > 0 && (!q1No || !q2No);
   const isApiLane = surface === 'public';
   const validContents = surface ? CONTENTS.filter(c => CONTENT_SURFACES[c].includes(surface)) : [];
-  const plan = surface && content ? imagePlan(surface, content) : null;
+  const plan = surface && content ? imagePlan(surface, content, session) : null;
   const needsSession = content === 'slate_drop';
 
   const loadHistory = useCallback(async () => {
@@ -330,7 +337,7 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
     setResultMsg(`⚡ ${SURFACE_LABELS[srf].label} · ${CONTENT_LABELS[cnt].label} — building…`);
     buildCaption(srf, cnt, 0, s);
     // Auto-build the images so the preset lands ready to publish/share.
-    if (imagePlan(srf, cnt).kind !== 'none') buildPostKitRef.current?.(srf, cnt, s);
+    if (imagePlan(srf, cnt, s).kind !== 'none') buildPostKitRef.current?.(srf, cnt, s);
   }, [session, buildCaption]);
 
   // Deep-link preset autorun (SOCIAL-11): /admin?view=publish&preset=free_slate
@@ -428,8 +435,10 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
 
   const generateSlateImages = useCallback(async (includePicks: boolean, srf: Surface, sess: SocialSession): Promise<ImageItem[]> => {
     if (!captureAvailable()) throw new Error('Image capture is unavailable in this runtime.');
-    const redact = surfaceRedacts(srf);
+    const redact = surfaceRedacts(srf, sess);
     setStageRedact(redact);
+    // Free-group redacted session drops upsell PRO; public/cross keep JOIN FREE.
+    setStageBannerVariant(srf === 'free' ? 'pro_upsell' : 'public');
     setStageSession(sess);
     setImgProgress(`Loading ${sess} slate…`);
     const { picks, slateDate } = await loadSlatePicks(sess);
@@ -472,7 +481,7 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
     const cnt = cntArg ?? content;
     const sess = sessArg ?? session;
     if (!srf || !cnt) return;
-    const pl = imagePlan(srf, cnt);
+    const pl = imagePlan(srf, cnt, sess);
     if (pl.kind === 'none') return;
     // Preserve any AI cover image at the front (RULE: AI image is the cover).
     const preservedAI = images.filter(i => i.label.startsWith('AI'));
@@ -486,7 +495,9 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
         out.push(...await generateSlateImages(false, srf, sess));
       } else if (pl.kind === 'kit') {
         out.push(...await generateSlateImages(true, srf, sess));
-        out.push(await generateBriefImage('group', srf));
+        // SOCIAL-13: the group brief carries full digits — exclude it from
+        // redacted free Midday/Evening kits (it would defeat the redaction).
+        if (!surfaceRedacts(srf, sess)) out.push(await generateBriefImage('group', srf));
       }
       const final = [...preservedAI, ...out];
       setImages(final);
@@ -1196,6 +1207,7 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
       session={stageSession}
       slateDate={stageSlateDate}
       redact={stageRedact}
+      bannerVariant={stageBannerVariant}
     />
     {briefRender && briefData && (
       /* translate (not extreme offset) keeps the node painted — extreme offsets

@@ -21,6 +21,9 @@ import { theme } from '@/constants/theme';
 interface PublicExportBannerProps {
   /** Fixed banner height in pixels (default 150 per spec). */
   height?: number;
+  /** Copy variant — 'public' (JOIN FREE) or 'pro_upsell' for the free group's
+   *  redacted Midday/Evening drops (SOCIAL-13). */
+  variant?: 'public' | 'pro_upsell';
 }
 
 // ── Geometry constants ──────────────────────────────────────────────────────
@@ -40,10 +43,15 @@ const SAFETY_FACTOR             = 0.97;      // headroom for subpixel slack + bo
 // U+FE0E (VARIATION SELECTOR-15) forces a text-style glyph for ⚡ instead of
 // the OS emoji-font substitution, which would ignore our gold color.
 const BOLT = '⚡︎';
-const SEG_PRIMARY = 'FULL SLATE INSIDE';
 const SEG_DIVIDER = '  ·  ';
-const SEG_CTA     = 'JOIN FREE';
 const SEG_GAP     = '  ';
+// Per-variant copy (SOCIAL-13): 'public' is the classic public/cross-post
+// JOIN FREE banner; 'pro_upsell' rides the FREE group's redacted Midday/
+// Evening drops, where the CTA is the Pro tier, not the free group.
+const SEGMENTS: Record<'public' | 'pro_upsell', { primary: string; cta: string }> = {
+  public:     { primary: 'FULL SLATE INSIDE',  cta: 'JOIN FREE' },
+  pro_upsell: { primary: 'FULL SESSION DROP',  cta: 'FIRST IN PRO' },
+};
 
 const NAVY  = '#0A1525';
 const WHITE = '#FFFFFF';
@@ -75,13 +83,14 @@ function measureLogicalWidth(text: string, fontSize: number, letterSpacing: numb
   return w;
 }
 
-export function PublicExportBanner({ height = 150 }: PublicExportBannerProps) {
+export function PublicExportBanner({ height = 150, variant = 'public' }: PublicExportBannerProps) {
   const [fontSize, setFontSize] = useState<number>(BASE_FONT_SIZE);
+  const seg = SEGMENTS[variant];
 
   useLayoutEffect(() => {
     if (Platform.OS !== 'web') return;
     const family   = theme.typography.fontFamily.monoBold;
-    const fullText = SEG_PRIMARY + SEG_DIVIDER + SEG_CTA + SEG_GAP + BOLT;
+    const fullText = seg.primary + SEG_DIVIDER + seg.cta + SEG_GAP + BOLT;
     const ls       = 1.2;
 
     // 1) Probe at BASE_FONT_SIZE → measured logical width.
@@ -120,7 +129,7 @@ export function PublicExportBanner({ height = 150 }: PublicExportBannerProps) {
     });
 
     if (fitted !== BASE_FONT_SIZE) setFontSize(fitted);
-  }, []);
+  }, [seg.primary, seg.cta]);
 
   const boltSize = fontSize * BOLT_RATIO;
 
@@ -129,9 +138,9 @@ export function PublicExportBanner({ height = 150 }: PublicExportBannerProps) {
       <View style={styles.topRule} />
       <View style={styles.content}>
         <Text style={[styles.text, { fontSize }]} numberOfLines={1} ellipsizeMode="clip">
-          <Text style={styles.primary}>{SEG_PRIMARY}</Text>
+          <Text style={styles.primary}>{seg.primary}</Text>
           <Text style={styles.divider}>{SEG_DIVIDER}</Text>
-          <Text style={styles.cta}>{SEG_CTA}</Text>
+          <Text style={styles.cta}>{seg.cta}</Text>
           <Text>{SEG_GAP}</Text>
           <Text style={[styles.bolt, { fontSize: boltSize }]}>{BOLT}</Text>
         </Text>

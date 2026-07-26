@@ -8,8 +8,10 @@
  * The same content produces DIFFERENT captions per surface:
  *   PUBLIC — aggregate only; no digits, no state codes, no attribution,
  *            no pricing, no Pro/upgrade language.
- *   FREE   — full digits + attribution OK; pricing ($2.49/mo) + Pro CTA OK
- *            (EXCEPTION: the All-Day post is pure value — no Pro pitch).
+ *   FREE   — attribution OK; pricing ($2.49/mo) + Pro CTA OK. Depth rule
+ *            (SOCIAL-13): the All-Day drop is FULL (and pure value — no Pro
+ *            pitch); Midday/Evening drops are DIGIT-REDACTED — the unredacted
+ *            session drops are the Pro tier's conversion frame.
  *   PRO    — full unredacted, first-access framing, NO commercial/pricing.
  *   CROSS  — public-strict vocabulary + admin-respectful framing + variation.
  *
@@ -192,6 +194,20 @@ function slateDrop(d: CaptionData, surface: Surface, variant: number): string {
     }
     case 'free': {
       const opener = pick(GROUP_OPENERS, seed + 'o', variant);
+      // SOCIAL-13 depth rule: All-Day is the FULL free drop (pure value, no
+      // Pro pitch — proCta already suppresses on allDay). Midday/Evening free
+      // drops ship redacted assets, so the caption sells the gap instead of
+      // promising a full report.
+      const redactedSession = d.session === 'midday' || d.session === 'evening';
+      if (redactedSession) {
+        return [
+          `${e} ${d.dateLabel}${sess ? ' ' + sess : ''} ${opener}`,
+          '',
+          'Top-line signals below. The unredacted session drop goes live first in the Pro tier.',
+          '',
+          '👇 Members: redacted preview below.',
+        ].join('\n') + proCta(d);
+      }
       return [
         `${e} ${d.dateLabel}${sess ? ' ' + sess : ''} ${opener}`,
         '',
@@ -267,7 +283,7 @@ export function generateCaption(content: ContentKind, surface: Surface, data: Ca
 
 export const SURFACE_LABELS: Record<Surface, { label: string; icon: string; desc: string; lane: 'api' | 'assist' }> = {
   public: { label: 'Public Page', icon: '📣', desc: 'Classifier scrutiny — aggregate only, no digits/states/pricing. Direct API.', lane: 'api' },
-  free: { label: 'Free Group', icon: '👥', desc: 'Opted-in — full digits + Pro CTA allowed (All-Day = pure value).', lane: 'assist' },
+  free: { label: 'Free Group', icon: '👥', desc: 'Opted-in — All-Day FULL (pure value); Midday/Evening redacted + Pro CTA (SOCIAL-13).', lane: 'assist' },
   pro: { label: 'Pro Group', icon: '💎', desc: 'Paying members — full fidelity, first-access framing, NO pricing.', lane: 'assist' },
   cross: { label: 'Cross-Post', icon: '🔁', desc: 'Other groups — redacted assets, admin-respectful, vary captions.', lane: 'assist' },
 };

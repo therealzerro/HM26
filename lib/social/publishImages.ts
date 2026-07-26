@@ -19,10 +19,15 @@ import {
 export type Surface = 'public' | 'free' | 'pro' | 'cross';
 export type SocialSession = 'midday' | 'evening' | 'allday';
 
-// Redaction rule (§6): PUBLIC + cross-post get the mosaic-picks variant; the
-// FREE and PRO groups get full fidelity (opted-in audiences).
-export function surfaceRedacts(surface: Surface): boolean {
-  return surface === 'public' || surface === 'cross';
+// Redaction rule (§6, revised 2026-07-26 — SOCIAL-13): PUBLIC + cross-post
+// always get the mosaic-picks variant. The FREE group's Midday/Evening drops
+// are ALSO redacted — the All-Day drop is the full free post (pure value, no
+// Pro pitch); unredacted session drops are the Pro tier's exclusive. That gap
+// is the conversion frame. PRO is never redacted.
+export function surfaceRedacts(surface: Surface, session?: SocialSession): boolean {
+  if (surface === 'public' || surface === 'cross') return true;
+  if (surface === 'free') return session === 'midday' || session === 'evening';
+  return false;
 }
 
 // Reel-stage geometry — identical to admin-image-export so output matches.

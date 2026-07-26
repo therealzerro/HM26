@@ -3,9 +3,10 @@
    ----------------------------------------------------------------------------
    Mirrors the admin image-export stage: renders a slate composite or a single
    pick poster off-screen at exact export dimensions so html-to-image reads
-   pixel-perfect output via the forwarded ref. Redaction (mosaic picks + JOIN
-   FREE banner) is applied for PUBLIC / cross-post surfaces (§6); FREE/PRO get
-   full fidelity.
+   pixel-perfect output via the forwarded ref. Redaction (mosaic picks +
+   banner) applies to PUBLIC / cross-post surfaces AND the free group's
+   Midday/Evening drops (§6 revised — SOCIAL-13); the free All-Day drop and
+   PRO get full fidelity. Banner copy follows `bannerVariant`.
    ============================================================================ */
 
 import React, { forwardRef } from 'react';
@@ -36,10 +37,13 @@ export interface PublishStageProps {
   session: SocialSession;
   slateDate: string;
   redact: boolean;
+  /** Banner copy when redacting: 'public' (JOIN FREE) for public/cross,
+   *  'pro_upsell' for the free group's redacted session drops (SOCIAL-13). */
+  bannerVariant?: 'public' | 'pro_upsell';
 }
 
 export const PublishStage = forwardRef<View, PublishStageProps>(function PublishStage(
-  { mode, picks, pick, pairScores, session, slateDate, redact }, ref,
+  { mode, picks, pick, pairScores, session, slateDate, redact, bannerVariant = 'public' }, ref,
 ) {
   const { colors } = useTheme();
   const s = makeStyles(colors);
@@ -71,7 +75,7 @@ export const PublishStage = forwardRef<View, PublishStageProps>(function Publish
           </View>
           {redact && (
             <>
-              <PublicExportBanner height={LOGICAL_BANNER_HEIGHT} />
+              <PublicExportBanner height={LOGICAL_BANNER_HEIGHT} variant={bannerVariant} />
               <View style={[s.safeBuffer, { height: LOGICAL_SAFE_BUFFER }]} />
             </>
           )}
@@ -89,7 +93,7 @@ export const PublishStage = forwardRef<View, PublishStageProps>(function Publish
           />
           {redact && (
             <>
-              <PublicExportBanner height={LOGICAL_BANNER_HEIGHT} />
+              <PublicExportBanner height={LOGICAL_BANNER_HEIGHT} variant={bannerVariant} />
               <View style={[s.safeBuffer, { height: LOGICAL_SAFE_BUFFER }]} />
             </>
           )}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { alertAsync } from '@/lib/confirm';
+import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
 import { Card, SectionTitle, useSt } from './AdminShared';
 import { AdminKeyGate } from './AdminKeyGate';
@@ -144,7 +145,7 @@ function RecentConversions({ subs }: { subs: ProSubscriber[] }) {
       <SectionTitle>{`Recent Conversions (14d): ${recent.length}`}</SectionTitle>
       {recent.map(r => (
         <View key={r.id} style={{ flexDirection: 'row', paddingVertical: 4, borderTopWidth: 1, borderTopColor: colors.border, gap: 8 }}>
-          <Text style={{ flex: 2, fontSize: 11, color: colors.text, fontFamily: 'monospace' }}>{maskEmail(r.email)}</Text>
+          <Text style={{ flex: 2, fontSize: 11, color: colors.text, fontFamily: theme.typography.fontFamily.mono }}>{maskEmail(r.email)}</Text>
           <Text style={{ flex: 1, fontSize: 11, color: colors.textSecondary }}>{r.date_subscribed}</Text>
           {r.acquisition_source && r.acquisition_source !== 'unknown' && (
             <Text style={{ fontSize: 10, color: colors.textTertiary }}>{r.acquisition_source.replace(/_/g, ' ')}</Text>

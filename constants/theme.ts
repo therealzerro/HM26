@@ -100,14 +100,6 @@ export const theme = {
     lg:  24,
     xl:  32,
     xxl: 48,
-    // token aliases
-    s1:  4,
-    s2:  8,
-    s3:  12,
-    s4:  16,
-    s5:  20,
-    s6:  24,
-    s8:  32,
   },
 
   borderRadius: {
@@ -157,22 +149,16 @@ export const theme = {
       monoBold:'JetBrainsMono_700Bold',
       tabular: 'JetBrainsMono_400Regular',
     },
+    // t-shirt scale only — semantic aliases (eyebrow/body/card/h1/h2/stat/
+    // combo/hero) pruned 2026-07-26 at zero usages (DESIGN-02 T3.3 policy).
     fontSize: {
-      eyebrow: 10,
       xs:      11,
       sm:      13,
-      body:    13,
       md:      15,
-      card:    16,
-      h2:      18,
       lg:      17,
-      h1:      24,
       xl:      22,
-      stat:    32,
       xxl:     28,
-      combo:   38,
       xxxl:    36,
-      hero:    72,
     },
   },
 
@@ -182,16 +168,6 @@ export const theme = {
     slow:   350,
     pulse:  900,
     hit:    1400,
-  },
-
-  letterSpacing: {
-    tight:  -0.3,
-    normal:  0,
-    wide:    0.5,
-    wider:   1,
-    widest:  1.5,
-    combo:   3,    // 3-digit pick combos
-    comboLg: 6,    // large combo inputs / displays
   },
 
   gradients: {

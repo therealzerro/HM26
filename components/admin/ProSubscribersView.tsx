@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { alertAsync } from '@/lib/confirm';
+import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
 import { Card, Pill, SectionTitle, useSt, timeAgo } from './AdminShared';
 import { AdminKeyGate } from './AdminKeyGate';
@@ -58,7 +59,7 @@ function SubscriberRow({
     <View style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
       <TouchableOpacity onPress={onToggle} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10 }}>
         <View style={{ flex: 2 }}>
-          <Text style={{ fontSize: 12, color: colors.text, fontFamily: 'monospace' }}>
+          <Text style={{ fontSize: 12, color: colors.text, fontFamily: theme.typography.fontFamily.mono }}>
             {revealEmail ? row.email : maskEmail(row.email)}
           </Text>
           {row.facebook_name && (

@@ -64,7 +64,7 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
     paddingBottom: 12,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
+    borderBottomColor: colors.border,
   },
   topRow: {
     flexDirection: 'row',

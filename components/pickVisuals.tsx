@@ -77,7 +77,7 @@ export function EnergyArc({ value, size = 80, animate = true }: { value: number;
             <Stop offset="100%" stopColor={accent}   />
           </SvgGradient>
         </Defs>
-        <Circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={7} />
+        <Circle cx={cx} cy={cy} r={r} fill="none" stroke={D.text + theme.alpha.faint} strokeWidth={7} />
         <Circle
           cx={cx} cy={cy} r={r} fill="none"
           stroke="url(#earc)" strokeWidth={7}
@@ -101,7 +101,7 @@ const makeSp = (D: DTokens) => StyleSheet.create({
   label:  { fontSize: 7, fontWeight: '900', letterSpacing: 1 },
   val:    { fontSize: 22, fontWeight: '900', fontFamily: D.monoBold, lineHeight: 24 },
   suffix: { fontSize: 11, fontWeight: '700' },
-  track:  { width: '100%', height: 3, backgroundColor: 'rgba(255,255,255,0.09)', borderRadius: 2, overflow: 'hidden' },
+  track:  { width: '100%', height: 3, backgroundColor: D.text + theme.alpha.faint, borderRadius: 2, overflow: 'hidden' },
   fill:   { height: 3, borderRadius: 2 },
 });
 
@@ -184,8 +184,8 @@ export function RedactedDigitRow({
 
 // ─── WhyRow ──────────────────────────────────────────────────────────────────
 const makeWy = (D: DTokens) => StyleSheet.create({
-  row:      { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-  iconBox:  { width: 32, height: 32, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.07)', alignItems: 'center', justifyContent: 'center' },
+  row:      { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: D.glassBorder },
+  iconBox:  { width: 32, height: 32, borderRadius: 9, backgroundColor: D.text + theme.alpha.faint, alignItems: 'center', justifyContent: 'center' },
   icon:     { fontSize: 16 },
   text:     { flex: 1 },
   label:    { fontSize: 11, fontWeight: '700', color: D.text, lineHeight: 14 },

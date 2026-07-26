@@ -31,9 +31,10 @@
       handles both shapes.
    ────────────────────────────────────────────────────────────────────────── */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { theme } from '@/constants/theme';
+import { useTheme, type ColorTokens } from '@/lib/theme';
 
 export interface FingerprintStats {
   totalSnapshots: number;
@@ -51,25 +52,27 @@ export interface FingerprintStats {
 interface Props { stats: FingerprintStats }
 
 export function EngineFingerprintScreen({ stats }: Props) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeStyles(colors), [colors]);
   const total = stats.tempBuckets.hot + stats.tempBuckets.warm
               + stats.tempBuckets.mild + stats.tempBuckets.cold;
   const tempPct = (k: keyof FingerprintStats['tempBuckets']) =>
     (stats.tempBuckets[k] / total) * 100;
 
   const tempBars = [
-    { label: 'HOT',  v: stats.tempBuckets.hot,  pct: tempPct('hot'),  color: theme.colors.hot },
-    { label: 'WARM', v: stats.tempBuckets.warm, pct: tempPct('warm'), color: theme.colors.warm },
-    { label: 'MILD', v: stats.tempBuckets.mild, pct: tempPct('mild'), color: theme.colors.mild },
-    { label: 'COLD', v: stats.tempBuckets.cold, pct: tempPct('cold'), color: theme.colors.cold },
+    { label: 'HOT',  v: stats.tempBuckets.hot,  pct: tempPct('hot'),  color: colors.hot },
+    { label: 'WARM', v: stats.tempBuckets.warm, pct: tempPct('warm'), color: colors.warm },
+    { label: 'MILD', v: stats.tempBuckets.mild, pct: tempPct('mild'), color: colors.mild },
+    { label: 'COLD', v: stats.tempBuckets.cold, pct: tempPct('cold'), color: colors.cold },
   ];
 
   const signalBars: Array<{ k: string; v: number; color: string; note: string }> = [
-    { k:'BOX',    v:stats.avgSignals.BOX,    color:theme.colors.cyan,   note:'frequency'   },
-    { k:'PBURST', v:stats.avgSignals.PBURST, color:theme.colors.rose,   note:'momentum'    },
-    { k:'CO',     v:stats.avgSignals.CO,     color:theme.colors.purple, note:'cluster'     },
+    { k:'BOX',    v:stats.avgSignals.BOX,    color:colors.cyan,   note:'frequency'   },
+    { k:'PBURST', v:stats.avgSignals.PBURST, color:colors.rose,   note:'momentum'    },
+    { k:'CO',     v:stats.avgSignals.CO,     color:colors.purple, note:'cluster'     },
   ];
   if (typeof stats.avgSignals.DGC === 'number') {
-    signalBars.push({ k:'DGC', v:stats.avgSignals.DGC, color:theme.colors.gold, note:'consistency' });
+    signalBars.push({ k:'DGC', v:stats.avgSignals.DGC, color:colors.gold, note:'consistency' });
   }
 
   return (
@@ -85,17 +88,17 @@ export function EngineFingerprintScreen({ stats }: Props) {
       <View style={s.kpiRow}>
         <Kpi label="SLATE RATE" value={`${stats.slateHitRate.toFixed(1)}%`}
              sub={`${stats.slatesWithHit} of ${stats.totalSnapshots} slates · ≥1 hit`}
-             color={theme.colors.cyan}/>
+             color={colors.cyan}/>
         <Kpi label="PICK RATE" value={`${stats.hitRate.toFixed(2)}%`}
              sub={`${stats.hits} of ${stats.totalPicks} picks`}
-             color={theme.colors.cyan}/>
+             color={colors.cyan}/>
         <Kpi label="SCOPES" value={String(stats.scopes.length)}
-             sub={stats.scopes.join(' · ')} color={theme.colors.purple}/>
+             sub={stats.scopes.join(' · ')} color={colors.purple}/>
         <Kpi label="SINGLES"
              value={`${Math.round(stats.multiplicity.singles / stats.totalPicks * 100)}%`}
-             sub={`${stats.multiplicity.singles} of ${stats.totalPicks}`} color={theme.colors.gold}/>
+             sub={`${stats.multiplicity.singles} of ${stats.totalPicks}`} color={colors.gold}/>
         <Kpi label="HOT PICKS" value={`${Math.round(tempPct('hot'))}%`}
-             sub={`${stats.tempBuckets.hot} of ${total}`} color={theme.colors.hot}/>
+             sub={`${stats.tempBuckets.hot} of ${total}`} color={colors.hot}/>
       </View>
 
       {/* Temperature distribution */}
@@ -143,8 +146,10 @@ export function EngineFingerprintScreen({ stats }: Props) {
 function Kpi({ label, value, sub, color }: {
   label: string; value: string; sub: string; color: string;
 }) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeStyles(colors), [colors]);
   return (
-    <View style={[s.kpi, { borderColor: color + '55', shadowColor: color }]}>
+    <View style={[s.kpi, { borderColor: color + theme.alpha.border, shadowColor: color }]}>
       <Text style={s.kpiLabel}>{label}</Text>
       <Text style={[s.kpiValue, { color, textShadowColor: color }]}>{value}</Text>
       <Text style={s.kpiSub}>{sub}</Text>
@@ -213,27 +218,29 @@ export function computeFingerprint(
   };
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.colors.background },
+// Mode-aware style factory (see components/EmptyState.tsx for the idiom).
+// Static `theme` supplies mode-independent typography tokens only.
+const makeStyles = (colors: ColorTokens) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.background },
   content: { padding: 18, gap: 18 },
   eyebrow: {
     fontSize: 11, letterSpacing: 2, textTransform: 'uppercase',
-    color: theme.colors.purple,
+    color: colors.purple,
     fontFamily: theme.typography.fontFamily.bold,
   },
   h1: {
-    fontSize: 22, color: '#fff', marginTop: 4,
+    fontSize: 22, color: colors.text, marginTop: 4,
     fontFamily: theme.typography.fontFamily.bold,
   },
   kpiRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   kpi: {
     flexGrow: 1, flexBasis: '46%', padding: 12, borderRadius: 10, borderWidth: 1,
-    backgroundColor: theme.colors.surface2 ?? 'rgba(20,12,38,0.72)',
+    backgroundColor: colors.surface2,
     shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.35, shadowRadius: 12,
   },
   kpiLabel: {
     fontSize: 9, letterSpacing: 1.4, textTransform: 'uppercase',
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontFamily: theme.typography.fontFamily.bold,
   },
   kpiValue: {
@@ -242,18 +249,18 @@ const s = StyleSheet.create({
     textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 10,
   },
   kpiSub: {
-    fontSize: 10, color: theme.colors.textSecondary, marginTop: 2,
+    fontSize: 10, color: colors.textSecondary, marginTop: 2,
     fontFamily: theme.typography.fontFamily.regular,
   },
   section: { gap: 10 },
   sectionTitle: {
     fontSize: 10, letterSpacing: 1.6, textTransform: 'uppercase',
-    color: theme.colors.textTertiary,
+    color: colors.textTertiary,
     fontFamily: theme.typography.fontFamily.bold,
   },
   tempBarTrack: {
     flexDirection: 'row', height: 14, borderRadius: 7, overflow: 'hidden',
-    backgroundColor: '#1a0f2e',
+    backgroundColor: colors.surface2,
   },
   tempLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   tempLegendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -262,10 +269,10 @@ const s = StyleSheet.create({
     fontSize: 9, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 1,
   },
   legendValue: {
-    fontSize: 9, color: '#fff', fontFamily: theme.typography.fontFamily.monoBold,
+    fontSize: 9, color: colors.text, fontFamily: theme.typography.fontFamily.monoBold,
   },
   legendPct: {
-    fontSize: 9, color: theme.colors.textTertiary,
+    fontSize: 9, color: colors.textTertiary,
     fontFamily: theme.typography.fontFamily.regular,
   },
   signalRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -274,14 +281,14 @@ const s = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.monoBold,
   },
   signalTrack: {
-    flex: 1, height: 6, borderRadius: 3, backgroundColor: '#1a0f2e', overflow: 'hidden',
+    flex: 1, height: 6, borderRadius: 3, backgroundColor: colors.surface2, overflow: 'hidden',
   },
   signalValue: {
-    width: 40, textAlign: 'right', fontSize: 10, color: '#fff',
+    width: 40, textAlign: 'right', fontSize: 10, color: colors.text,
     fontFamily: theme.typography.fontFamily.monoBold,
   },
   signalNote: {
-    width: 90, fontSize: 9, color: theme.colors.textTertiary,
+    width: 90, fontSize: 9, color: colors.textTertiary,
     fontFamily: theme.typography.fontFamily.monoBold,
   },
 });

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { alertAsync } from '@/lib/confirm';
+import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
 import { Card, Pill, SectionTitle, useSt, timeAgo } from './AdminShared';
 import { AdminKeyGate } from './AdminKeyGate';
@@ -92,7 +93,7 @@ function SubscriberPasteTab({ onCommitted }: { onCommitted: () => void }) {
           <SectionTitle>Preview</SectionTitle>
           {parsed.subscribers.slice(0, 20).map((s, i) => (
             <View key={i} style={{ flexDirection: 'row', paddingVertical: 4, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border, gap: 10 }}>
-              <Text style={{ flex: 2, fontSize: 11, color: colors.text, fontFamily: 'monospace' }}>{maskEmail(s.email)}</Text>
+              <Text style={{ flex: 2, fontSize: 11, color: colors.text, fontFamily: theme.typography.fontFamily.mono }}>{maskEmail(s.email)}</Text>
               <Text style={{ flex: 1, fontSize: 11, color: colors.textSecondary }}>{s.date_subscribed}</Text>
             </View>
           ))}
@@ -129,7 +130,7 @@ function SubscriberPasteTab({ onCommitted }: { onCommitted: () => void }) {
           <Text style={st.sub}>Active subs not present in this import. Review and mark as churned manually if confirmed.</Text>
           {potentialChurns.map(c => (
             <View key={c.id} style={{ flexDirection: 'row', paddingVertical: 4, borderTopWidth: 1, borderTopColor: colors.border, gap: 10 }}>
-              <Text style={{ flex: 2, fontSize: 11, color: colors.text, fontFamily: 'monospace' }}>{maskEmail(c.email)}</Text>
+              <Text style={{ flex: 2, fontSize: 11, color: colors.text, fontFamily: theme.typography.fontFamily.mono }}>{maskEmail(c.email)}</Text>
               <Text style={{ flex: 1, fontSize: 11, color: colors.textSecondary }}>since {c.date_subscribed}</Text>
             </View>
           ))}
@@ -310,7 +311,7 @@ function HistoryTab({ refreshKey }: { refreshKey: number }) {
                 {r.records_processed} processed · {r.records_created} new · {r.records_updated} updated · {r.records_skipped} skipped
               </Text>
               {r.source_filename && (
-                <Text style={{ fontSize: 9, color: colors.textTertiary, fontFamily: 'monospace' }}>{r.source_filename}</Text>
+                <Text style={{ fontSize: 9, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono }}>{r.source_filename}</Text>
               )}
             </View>
           ))}

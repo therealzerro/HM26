@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { View, Text, ActivityIndicator, StyleSheet, Image } from "react-native";
@@ -64,13 +65,17 @@ function RootLayoutNav() {
 
   return (
     <View style={{ flex: 1, backgroundColor: isLight ? 'transparent' : colors.background }}>
+      {/* DESIGN-01 remainder 5: status bar icons track the resolved scheme —
+          dark scheme → light icons, light scheme → dark icons. */}
+      <StatusBar style={isLight ? 'dark' : 'light'} />
       {isLight && (
-        <Image
-          source={require('@/assets/background_2.png')}
-          style={[StyleSheet.absoluteFillObject, { opacity: 0.2 }]}
-          resizeMode="cover"
-          pointerEvents="none"
-        />
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <Image
+            source={require('@/assets/background_2.png')}
+            style={[StyleSheet.absoluteFillObject, { opacity: 0.2 }]}
+            resizeMode="cover"
+          />
+        </View>
       )}
       <Stack
       screenOptions={{

@@ -226,7 +226,7 @@ const makeS = (D: DTokens) => StyleSheet.create({
     width: 30, height: 36,
     borderRadius: 7,
     borderWidth: 1, borderColor: D.glassBorder,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: D.text + theme.alpha.faint,
     alignItems: 'center', justifyContent: 'center',
   },
   posDigit: { fontSize: 15, fontWeight: '900', color: D.text, fontFamily: theme.typography.fontFamily.monoBold, lineHeight: 17 },
@@ -234,7 +234,7 @@ const makeS = (D: DTokens) => StyleSheet.create({
   posLabel: { fontSize: 6, color: D.textDim, fontWeight: '700', letterSpacing: 0.5, marginTop: 1 },
 
   heroRight: { alignItems: 'flex-end', gap: 3 },
-  boxBadge: { paddingHorizontal: 6, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: D.glassBorder, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center' },
+  boxBadge: { paddingHorizontal: 6, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: D.glassBorder, backgroundColor: D.text + theme.alpha.faint, alignItems: 'center' },
   boxBadgeLabel: { fontSize: 6, fontWeight: '900', color: D.textDim, letterSpacing: 1 },
   boxBadgeCombo: { fontSize: 10, fontWeight: '900', color: D.text, fontFamily: theme.typography.fontFamily.mono, marginTop: 1 },
   heroMeta: { fontSize: 7, color: D.textSub, fontWeight: '800', letterSpacing: 1.2, marginTop: 1 },
@@ -244,7 +244,7 @@ const makeS = (D: DTokens) => StyleSheet.create({
   rankRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rankChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, borderWidth: 1 },
   rankNum: { fontSize: 9, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 1.2 },
-  multChip: { paddingHorizontal: 7, paddingVertical: 4, borderRadius: 999, borderWidth: 1, borderColor: D.glassBorder, backgroundColor: 'rgba(255,255,255,0.04)' },
+  multChip: { paddingHorizontal: 7, paddingVertical: 4, borderRadius: 999, borderWidth: 1, borderColor: D.glassBorder, backgroundColor: D.text + theme.alpha.faint },
   multTxt: { fontSize: 8, fontWeight: '900', letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold },
 
   // Confidence
@@ -255,7 +255,7 @@ const makeS = (D: DTokens) => StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 9,
   },
   confLabel: { fontSize: 7, fontWeight: '900', color: D.textDim, letterSpacing: 1.2 },
-  confTrack: { flex: 1, height: 6, backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 3, overflow: 'hidden' },
+  confTrack: { flex: 1, height: 6, backgroundColor: D.text + theme.alpha.faint, borderRadius: 3, overflow: 'hidden' },
   confFill:  { height: 6, borderRadius: 3, backgroundColor: D.cyan },
   confScore: { fontSize: 12, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
 

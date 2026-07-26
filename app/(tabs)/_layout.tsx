@@ -118,8 +118,9 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   return (
     <Tabs
-      sceneContainerStyle={{ backgroundColor: colors.background }}
       screenOptions={{
+        // RN v7 renamed the navigator-level sceneContainerStyle prop to sceneStyle.
+        sceneStyle: { backgroundColor: colors.background },
         tabBarActiveTintColor: colors.cyan,
         tabBarInactiveTintColor: colors.textTertiary,
         tabBarStyle: {

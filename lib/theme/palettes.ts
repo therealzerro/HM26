@@ -103,6 +103,30 @@ export type ColorTokens = { [K in keyof typeof darkColors]: string };
 // Light palette — soft warm white surfaces with light cards. Each token MUST
 // exist on both palettes; signal channel hues are darkened to WCAG-AA-passing
 // variants while keeping the hue family (BOX-is-teal, CO-is-purple, etc.).
+//
+// ┌─ DESIGN-02 T3 — WCAG contrast pass (2026-07-25) ─────────────────────────┐
+// │ Computed WCAG 2.x contrast ratios for every hue used as text/icon color, │
+// │ against page bg #f7f5fb AND white cards #ffffff. Target: ≥4.5:1 on both  │
+// │ (these hues render at tiny sizes — 7-13pt — where even bold text needs   │
+// │ the 4.5:1 normal-text threshold; the 3:1 large-text exemption only       │
+// │ applies at ≥18pt regular / ≥14pt bold, which almost nothing here is).    │
+// │                                                                          │
+// │ Token        before    vs bg / white     after     vs bg / white         │
+// │ cyan/teal    #0e9f7a   3.10 / 3.36  →   #0a7d60   4.72 / 5.10           │
+// │ rose         #cc1e72   4.86 / 5.26      (kept — passes)                  │
+// │ amber        #cc501e   4.10 / 4.44  →   #bf4a1c   4.61 / 4.99           │
+// │ gold         #b68d00   2.85 / 3.09  →   #8f6b00   4.54 / 4.92           │
+// │ purple       #7a3fd6   5.53 / 5.98      (kept — passes)                  │
+// │ blue         #1078d0   4.20 / 4.55  →   #0e70c4   4.70 / 5.08           │
+// │ hot/error    #d12d24   4.72 / 5.11      (kept — passes)                  │
+// │ warm/warning #c79400   2.53 / 2.74  →   #8a6900   4.73 / 5.12           │
+// │ mild/success #1f9d3f   3.26 / 3.53  →   #187a31   5.02 / 5.43           │
+// │ cold/free    #9aa0a6   2.44 / 2.64  →   #6c7278   4.50 / 4.87           │
+// │                                                                          │
+// │ Derived rgba tints (tealLight/goldLight/successLight/neutral*) re-based  │
+// │ on the new hues — they are fills, not text, so no ratio requirement,     │
+// │ but keeping the derivation honest avoids hue drift inside chips.         │
+// └──────────────────────────────────────────────────────────────────────────┘
 export const lightColors: ColorTokens = {
   // Surfaces — warm off-white. Avoid pure #fff for the page bg (too harsh
   // next to the saturated signal colors); the slight warmth lines up with the
@@ -122,43 +146,44 @@ export const lightColors: ColorTokens = {
   textTertiary:  'rgba(18,10,31,0.50)',
 
   // Signal channels — deepened to WCAG-AA-passing variants on #f7f5fb bg AND
-  // #ffffff cards. Hue family preserved so channel coding stays intuitive.
-  cyan:   '#0e9f7a',  // deep teal (was #2bffcc neon teal on dark)
+  // #ffffff cards (see ratio table above). Hue family preserved so channel
+  // coding stays intuitive.
+  cyan:   '#0a7d60',  // deep teal (was #2bffcc neon teal on dark)
   rose:   '#cc1e72',  // deep rose (was #ff3d9a hot pink on dark)
-  amber:  '#cc501e',  // deep amber (was #ff6a2b on dark)
-  gold:   '#b68d00',  // deep gold (was #ffd93d on dark)
+  amber:  '#bf4a1c',  // deep amber (was #ff6a2b on dark)
+  gold:   '#8f6b00',  // deep gold (was #ffd93d on dark)
   purple: '#7a3fd6',  // deep purple (was #9b5bff on dark)
-  blue:   '#1078d0',  // deep blue (was #22a3ff on dark)
+  blue:   '#0e70c4',  // deep blue (was #22a3ff on dark)
 
-  BOX:    '#0e9f7a',  // = cyan
+  BOX:    '#0a7d60',  // = cyan
   PBURST: '#cc1e72',  // = rose
   CO:     '#7a3fd6',  // = purple
-  DGC:    '#b68d00',  // = gold
+  DGC:    '#8f6b00',  // = gold
 
-  freqSignal:    '#0e9f7a',
+  freqSignal:    '#0a7d60',
   momoSignal:    '#cc1e72',
   patternSignal: '#7a3fd6',
-  consistSignal: '#b68d00',
-  hotStreak:     '#cc501e',
+  consistSignal: '#8f6b00',
+  hotStreak:     '#bf4a1c',
   brand:         '#7a3fd6',
   // Tinted neutrals — same deep bases as cyan/amber at 10% alpha. Visible on
   // both light bg and white cards.
-  neutralCool:   'rgba(14,159,122,0.10)',
-  neutralWarm:   'rgba(204,80,30,0.10)',
+  neutralCool:   'rgba(10,125,96,0.10)',
+  neutralWarm:   'rgba(191,74,28,0.10)',
 
   hot:  '#d12d24',
-  warm: '#c79400',
-  mild: '#1f9d3f',
-  cold: '#9aa0a6',
+  warm: '#8a6900',
+  mild: '#187a31',
+  cold: '#6c7278',
 
-  success:      '#1f9d3f',
-  successLight: 'rgba(31,157,63,0.12)',
+  success:      '#187a31',
+  successLight: 'rgba(24,122,49,0.12)',
   error:        '#d12d24',
   errorLight:   'rgba(209,45,36,0.12)',
-  warning:      '#c79400',
+  warning:      '#8a6900',
 
-  free:    '#9aa0a6',
-  premium: '#b68d00',
+  free:    '#6c7278',
+  premium: '#8f6b00',
   admin:   '#7a3fd6',
 
   // surface2 is "one layer above background" — in light, that's a soft tint
@@ -173,17 +198,17 @@ export const lightColors: ColorTokens = {
   surface:      '#ffffff',
   surfaceLight: 'rgba(20,12,38,0.04)',
   surfaceMuted: 'rgba(20,12,38,0.02)',
-  crownGold:    '#b68d00',
-  dataBlue:     '#1078d0',
-  dataGreen:    '#1f9d3f',
-  dataYellow:   '#b68d00',
+  crownGold:    '#8f6b00',
+  dataBlue:     '#0e70c4',
+  dataGreen:    '#187a31',
+  dataYellow:   '#8f6b00',
   dataPurple:   '#7a3fd6',
-  orange:       '#cc501e',
-  teal:         '#0e9f7a',
-  tealLight:    'rgba(14,159,122,0.10)',
+  orange:       '#bf4a1c',
+  teal:         '#0a7d60',
+  tealLight:    'rgba(10,125,96,0.10)',
   cosmic:       '#7a3fd6',
   cosmicLight:  'rgba(122,63,214,0.10)',
-  goldLight:    'rgba(182,141,0,0.12)',
+  goldLight:    'rgba(143,107,0,0.12)',
   roseLight:    'rgba(204,30,114,0.10)',
 };
 

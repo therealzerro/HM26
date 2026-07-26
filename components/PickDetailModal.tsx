@@ -124,12 +124,12 @@ const makeMx = (D: DTokens) => StyleSheet.create({
   headerCell: { flex: 1, alignItems: 'center' },
   headerPair: { fontSize: 14, fontWeight: '900', color: D.text, fontFamily: D.monoBold },
   headerSub:  { fontSize: 7, color: D.textDim, letterSpacing: 0.5 },
-  dataRow:    { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  dataRow:    { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: D.glassBorder },
   rowLabel:   { width: 76 },
   rowIcon:    { fontSize: 11 },
   rowText:    { fontSize: 8, color: D.textSub, fontWeight: '700', letterSpacing: 0.5, marginTop: 1 },
   cell:       { flex: 1, paddingHorizontal: 5, gap: 3 },
-  track:      { height: 6, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden' },
+  track:      { height: 6, backgroundColor: D.text + theme.alpha.faint, borderRadius: 3, overflow: 'hidden' },
   fill:       { height: 6, borderRadius: 3 },
   scoreText:  { fontSize: 10, fontWeight: '800', fontFamily: D.mono, textAlign: 'center' },
 });
@@ -449,7 +449,7 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
     <View style={ct.pad}>
       {/* Hit replay — shown when this pick has already hit */}
       {pick.hitType && pick.hitResult && (
-        <HitReplay pick={{ ...pick, temperature: pick.energy }} />
+        <HitReplay pick={{ ...pick, hitType: pick.hitType, hitResult: pick.hitResult, temperature: pick.energy }} />
       )}
       {/* Straight vs Box bet cards — payouts per actual player logic (2026-05-12):
           $0.25 stake; straight wins $225; box wins by multiplicity (singles
@@ -698,9 +698,9 @@ const makeCt = (D: DTokens) => StyleSheet.create({
   // Confidence band
   confBand:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14, backgroundColor: D.glass, borderRadius: 10, borderWidth: 1, borderColor: D.glassBorder, paddingHorizontal: 12, paddingVertical: 10 },
   confLabel:  { fontSize: 8, fontWeight: '900', color: D.textDim, letterSpacing: 1.5, width: 92 },
-  confTrack:  { flex: 1, height: 4, backgroundColor: 'rgba(255,255,255,0.09)', borderRadius: 2, overflow: 'hidden' },
+  confTrack:  { flex: 1, height: 4, backgroundColor: D.text + theme.alpha.faint, borderRadius: 2, overflow: 'hidden' },
   confFill:   { height: 4, borderRadius: 2, backgroundColor: D.cyan },
-  confScore:  { fontSize: 13, fontWeight: '900', fontFamily: 'JetBrainsMono_700Bold', width: 36, textAlign: 'right' },
+  confScore:  { fontSize: 13, fontWeight: '900', fontFamily: D.monoBold, width: 36, textAlign: 'right' },
 
   // Signal row
   signalRow:  { flexDirection: 'row', gap: 6 },
@@ -729,13 +729,13 @@ const makeCt = (D: DTokens) => StyleSheet.create({
   // Drawn row
   drawnRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 10, backgroundColor: D.surface, borderRadius: 10, padding: 10, borderWidth: 1, borderColor: D.glassBorder },
   drawnLabel: { fontSize: 9, color: D.textDim },
-  drawnVal:   { fontSize: 14, fontWeight: '900', fontFamily: 'JetBrainsMono_700Bold' },
+  drawnVal:   { fontSize: 14, fontWeight: '900', fontFamily: D.monoBold },
 
   // Bet cards
   betRow:          { flexDirection: 'row', gap: 10, marginBottom: 12 },
   betCard:         { flex: 1, backgroundColor: D.glass, borderRadius: 14, borderWidth: 1.5, padding: 14, gap: 3, alignItems: 'center' },
   betType:         { fontSize: 9, fontWeight: '900', letterSpacing: 2.5 },
-  betCombo:        { fontSize: 28, fontWeight: '900', fontFamily: 'JetBrainsMono_700Bold', marginVertical: 4 },
+  betCombo:        { fontSize: 28, fontWeight: '900', fontFamily: D.monoBold, marginVertical: 4 },
   betBetLine:      { fontSize: 10, color: D.textDim, fontWeight: '600' },
   betBetNum:       { color: D.text, fontWeight: '800' },
   betPayout:       { fontSize: 18, fontWeight: '900', color: D.text },
@@ -757,17 +757,17 @@ const makeS = (D: DTokens) => StyleSheet.create({
 
   // Safe area top + drag handle
   topArea:      { backgroundColor: D.bg, alignItems: 'center', paddingBottom: 8 },
-  dragHandle:   { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)' },
+  dragHandle:   { width: 36, height: 4, borderRadius: 2, backgroundColor: D.borderMed },
 
   // Header
-  header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: D.glassBorder },
   headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   rankBadge:    { width: 24, height: 24, borderRadius: 12, backgroundColor: D.gold + '22', borderWidth: 1, borderColor: D.gold + '55', alignItems: 'center', justifyContent: 'center' },
   rankText:     { fontSize: 10, fontWeight: '900', color: D.gold },
   headerTitle:  { fontSize: 14, fontWeight: '900', color: D.text, letterSpacing: 0.5 },
   // Close / share buttons — 44×44 touch area with visible inner circle
   closeBtn:     { padding: 4 },
-  closeBtnInner:{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
+  closeBtnInner:{ width: 44, height: 44, borderRadius: 22, backgroundColor: D.text + theme.alpha.soft, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: D.borderMed },
   closeX:       { fontSize: 15, color: D.text, fontWeight: '800' },
 
   // Hero
@@ -820,9 +820,9 @@ const makeS = (D: DTokens) => StyleSheet.create({
   heroEnergyLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
   heroCenter:      { flex: 1, alignItems: 'center', gap: 5 },
   heroBestLabel:   { fontSize: 8, fontWeight: '900', color: D.cyan, letterSpacing: 2 },
-  heroDigits:      { fontSize: 22, fontWeight: '900', fontFamily: 'JetBrainsMono_700Bold', letterSpacing: 1, lineHeight: 26 },
+  heroDigits:      { fontSize: 22, fontWeight: '900', fontFamily: D.monoBold, letterSpacing: 1, lineHeight: 26 },
   posRow:          { flexDirection: 'row', gap: 5 },
-  posBox:          { width: 28, height: 34, borderRadius: 7, borderWidth: 1.5, borderColor: D.glassBorder, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.04)' },
+  posBox:          { width: 28, height: 34, borderRadius: 7, borderWidth: 1.5, borderColor: D.glassBorder, alignItems: 'center', justifyContent: 'center', backgroundColor: D.text + theme.alpha.faint },
   posDigit:        { fontSize: 13, fontWeight: '900', color: D.textDim, fontFamily: D.monoBold },
   posLabel:        { fontSize: 7, color: D.textDim },
   heroRight:       { alignItems: 'center', gap: 5 },

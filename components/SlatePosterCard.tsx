@@ -213,7 +213,9 @@ const makeGt = (colors: ColorTokens) => StyleSheet.create({
     flexDirection: 'row', alignItems: 'baseline', gap: 3,
     paddingHorizontal: 6, paddingVertical: 1,
     borderRadius: 999, borderWidth: 1,
-    backgroundColor: 'rgba(20,12,38,0.55)',
+    // Scheme-correct chip fill: dark ink chip on dark, soft tint on light —
+    // the temp hue text stays readable in both modes (DESIGN-02 T3 glass).
+    backgroundColor: colors.surface2,
     shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 6,
   },
   tempLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 0.8, fontFamily: theme.typography.fontFamily.monoBold },
@@ -253,13 +255,13 @@ const makeGt = (colors: ColorTokens) => StyleSheet.create({
   signalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   signalKey: { fontSize: 8, fontWeight: '900', letterSpacing: 0.4, fontFamily: theme.typography.fontFamily.monoBold },
   signalVal: { fontSize: 9, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
-  barTrack: { height: 2.5, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden' },
+  barTrack: { height: 2.5, backgroundColor: colors.border, borderRadius: 2, overflow: 'hidden' },
   barFill: {
     height: 2.5, borderRadius: 2,
     shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 4,
   },
 
-  lockedRow: { marginTop: 'auto', alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.06)' },
+  lockedRow: { marginTop: 'auto', alignSelf: 'flex-start', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: colors.surfaceLight },
   lockedText: { fontSize: 10, color: colors.textTertiary, fontWeight: '700' },
 
   hitStampWrap: {

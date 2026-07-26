@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
 import { Card, useSt } from './AdminShared';
 import {
@@ -95,7 +96,7 @@ export function AdminKeyGate({ children }: { children: React.ReactNode }) {
         <Text style={[st.sub, { marginBottom: 16 }]}>
           Operator writes are gated by a server-side secret, stored locally on this
           device only. Quick unlock with your 4-digit code, or paste the full{' '}
-          <Text style={{ fontFamily: 'monospace', color: colors.text }}>ADMIN_OPS_KEY</Text>.
+          <Text style={{ fontFamily: theme.typography.fontFamily.mono, color: colors.text }}>ADMIN_OPS_KEY</Text>.
         </Text>
 
         <Text style={st.fieldLabel}>QUICK UNLOCK — 4-DIGIT CODE</Text>

@@ -1,7 +1,7 @@
 # Light-Mode Signal-Hue Pass — Scope (2026-07-26)
 
 > DESIGN-01 Phase 3 completion / DESIGN-02 item 3.1. Scoped 2026-07-26 (palette verification +
-> full consumer-file inventory). **Status: SHIPPED 2026-07-26 as LIGHT-01 (operator green-light received; Decision A = mode-lock all 4 export surfaces, Decision B = operator walkthrough gate). Sole open item: the Decision-B light-mode device walkthrough (§5 list).**
+> full consumer-file inventory). **Status: CLOSED 2026-07-26 as LIGHT-01 (operator green-light received; Decision A = mode-lock all 4 export surfaces, Decision B = operator walkthrough gate). Decision-B walkthrough PASSED 2026-07-26 — no open items.**
 
 ## 1. Status correction — this is much smaller than the books say
 

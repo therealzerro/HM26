@@ -1,12 +1,13 @@
 import { withAdminGate } from '@/components/RequireAdmin';
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { goBackSafe } from '@/lib/safeBack';
 import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
+import { storage } from '@/lib/storage';
 import { useSnapshot } from '@/hooks/useSnapshot';
 import { useCoverage } from '@/hooks/useCoverage';
 import { useDataIngestion } from '@/hooks/useDataIngestion';
@@ -34,27 +35,42 @@ import AnalyticsView from '@/components/admin/AnalyticsView';
 import PublishView, { PublishDeepLinkPreset } from '@/components/admin/PublishView';
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
-const NAV = [
-  { id:'dashboard', icon:'🏠', label:'Dashboard' },
-  { id:'brief', icon:'📰', label:'Brief' },
-  { id:'publish', icon:'📣', label:'Publish' },
-  { id:'wizard', icon:'📥', label:'Import' },
-  { id:'history', icon:'🗂', label:'History' },
-  { id:'matrix', icon:'📊', label:'Coverage' },
-  { id:'health', icon:'⚡', label:'Health' },
-  { id:'engine', icon:'⚙️', label:'Engine' },
-  { id:'performance', icon:'🎯', label:'Performance' },
-  { id:'analytics', icon:'🔎', label:'Analytics' },
-  { id:'nationwide', icon:'🌎', label:'Nationwide' },
-  { id:'adaptive', icon:'🧠', label:'Learning' },
-  { id:'intelligence', icon:'🔬', label:'Intelligence' },
-  { id:'fingerprint',  icon:'🧬', label:'Fingerprint'  },
-  { id:'proposals',    icon:'🧾', label:'Proposals'   },
-  { id:'funnel',       icon:'📈', label:'Funnel'      },
-  { id:'subscribers',  icon:'👥', label:'Subscribers' },
-  { id:'sub-import',   icon:'📧', label:'Sub Import'  },
-  { id:'image-export', icon:'🖼', label:'Image Export', route:'/admin-image-export' as unknown as Parameters<typeof router.push>[0] },
+// DESIGN-02 T2/T3: four labeled domains in one horizontal scroller. Every id is
+// load-bearing (deep links: /admin?view=<id>) — never rename them.
+type NavItem = { id: string; icon: string; label: string; route?: Parameters<typeof router.push>[0] };
+const NAV_GROUPS: { domain: string; items: NavItem[] }[] = [
+  { domain: 'PIPELINE', items: [
+    { id:'wizard', icon:'📥', label:'Import' },
+    { id:'history', icon:'🗂', label:'History' },
+    { id:'matrix', icon:'📊', label:'Coverage' },
+    { id:'health', icon:'⚡', label:'Health' },
+    { id:'nationwide', icon:'🌎', label:'Nationwide' },
+  ]},
+  { domain: 'ENGINE', items: [
+    { id:'engine', icon:'⚙️', label:'Engine' },
+    { id:'performance', icon:'🎯', label:'Performance' },
+    { id:'adaptive', icon:'🧠', label:'Learning' },
+    { id:'intelligence', icon:'🔬', label:'Intelligence' },
+    { id:'fingerprint',  icon:'🧬', label:'Fingerprint'  },
+    { id:'proposals',    icon:'🧾', label:'Proposals'   },
+  ]},
+  { domain: 'GROWTH', items: [
+    { id:'publish', icon:'📣', label:'Publish' },
+    { id:'funnel',       icon:'📈', label:'Funnel'      },
+    { id:'subscribers',  icon:'👥', label:'Subscribers' },
+    { id:'sub-import',   icon:'📧', label:'Sub Import'  },
+  ]},
+  { domain: 'REPORTS', items: [
+    { id:'dashboard', icon:'🏠', label:'Dashboard' },
+    { id:'brief', icon:'📰', label:'Brief' },
+    { id:'analytics', icon:'🔎', label:'Analytics' },
+    // Route chip: navigates away and can never show active — ' ↗' marks it external.
+    { id:'image-export', icon:'🖼', label:'Image Export ↗', route:'/admin-image-export' as unknown as Parameters<typeof router.push>[0] },
+  ]},
 ];
+const NAV: NavItem[] = NAV_GROUPS.flatMap(g => g.items);
+const isViewId = (v: string) => NAV.some(n => n.id === v && !n.route);
+const LAST_VIEW_KEY = 'hm:admin-last-view';
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 function AdminScreen() {
@@ -63,10 +79,45 @@ function AdminScreen() {
   // lets the operator bookmark a routine post — one tap replaces 5 navigation taps
   // plus the preset tap. Params are read once at mount; in-app nav wins afterwards.
   const params = useLocalSearchParams<{ view?: string; preset?: string; session?: string }>();
-  const [view, setView] = useState(() => {
+  const [view, setViewState] = useState(() => {
     const v = typeof params.view === 'string' ? params.view : '';
-    return NAV.some(n => n.id === v && !('route' in n && n.route)) ? v : 'dashboard';
+    return isViewId(v) ? v : 'dashboard';
   });
+  // Last-view persistence: URL param wins; otherwise restore the stored view.
+  const urlHadView = useRef(typeof params.view === 'string' && isViewId(params.view));
+  useEffect(() => {
+    if (urlHadView.current) return;
+    storage.getItem(LAST_VIEW_KEY).then(v => { if (v && isViewId(v)) setViewState(v); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const setView = useCallback((id: string) => {
+    setViewState(id);
+    storage.setItem(LAST_VIEW_KEY, id);
+  }, []);
+
+  // Scroll-into-view: chip x is relative to its group column, so absolute
+  // position = group x + chip x (both recorded via onLayout).
+  const navScrollRef = useRef<ScrollView>(null);
+  const navGroupX = useRef<Record<string, number>>({});
+  const navChipX = useRef<Record<string, { x: number; w: number }>>({});
+  const navScrolledOnce = useRef(false);
+  const { width: winW } = useWindowDimensions();
+  const scrollNavToChip = useCallback((id: string, animated: boolean) => {
+    const group = NAV_GROUPS.find(g => g.items.some(n => n.id === id));
+    const chip = navChipX.current[id];
+    if (!group || !chip) return;
+    const abs = (navGroupX.current[group.domain] ?? 0) + chip.x;
+    navScrollRef.current?.scrollTo({ x: Math.max(0, abs - (winW - chip.w) / 2), animated });
+  }, [winW]);
+  useEffect(() => {
+    // Layout events land after first paint — defer the mount scroll a tick.
+    const t = setTimeout(() => {
+      scrollNavToChip(view, navScrolledOnce.current);
+      navScrolledOnce.current = true;
+    }, navScrolledOnce.current ? 0 : 120);
+    return () => clearTimeout(t);
+  }, [view, scrollNavToChip]);
+
   const [publishPreset, setPublishPreset] = useState<PublishDeepLinkPreset | null>(() =>
     typeof params.preset === 'string' && params.preset
       ? { preset: params.preset, session: typeof params.session === 'string' ? params.session : undefined }
@@ -92,14 +143,36 @@ function AdminScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      {/* Horizontal nav */}
+      {/* Horizontal nav — grouped by domain */}
       <View style={{ backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 6, gap: 4, flexDirection: 'row' }}>
-          {NAV.map(n => (
-            <TouchableOpacity key={n.id} style={[{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9, flexDirection: 'row', alignItems: 'center', gap: 5 }, view === n.id && { backgroundColor: colors.primaryLight }]} onPress={() => 'route' in n && n.route ? router.push(n.route) : setView(n.id)}>
-              <Text style={{ fontSize: 13 }}>{n.icon}</Text>
-              <Text style={{ fontSize: 11, fontWeight: view === n.id ? '700' : '400', color: view === n.id ? colors.primary : colors.textSecondary }}>{n.label}</Text>
-            </TouchableOpacity>
+        <ScrollView ref={navScrollRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 5, flexDirection: 'row', alignItems: 'flex-end' }}>
+          {NAV_GROUPS.map((g, gi) => (
+            <React.Fragment key={g.domain}>
+              {gi > 0 && <View style={{ width: 1, alignSelf: 'stretch', marginVertical: 4, marginHorizontal: 6, backgroundColor: colors.border }} />}
+              <View onLayout={e => { navGroupX.current[g.domain] = e.nativeEvent.layout.x; }}>
+                <Text style={{ fontSize: 8, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1.5, marginLeft: 12, marginBottom: 2 }}>{g.domain}</Text>
+                <View style={{ flexDirection: 'row', gap: 4 }}>
+                  {g.items.map(n => {
+                    const active = view === n.id;
+                    return (
+                      <TouchableOpacity
+                        key={n.id}
+                        onLayout={e => { navChipX.current[n.id] = { x: e.nativeEvent.layout.x, w: e.nativeEvent.layout.width }; }}
+                        style={[
+                          { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9, flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: 'transparent' },
+                          active && { backgroundColor: colors.primaryLight, borderColor: colors.primary },
+                        ]}
+                        onPress={() => n.route ? router.push(n.route) : setView(n.id)}
+                      >
+                        <Text style={{ fontSize: 13 }}>{n.icon}</Text>
+                        <Text style={{ fontSize: 11, fontWeight: active ? '700' : '400', color: active ? colors.primary : colors.textSecondary }}>{n.label}</Text>
+                        {active && <View style={{ position: 'absolute', bottom: 2, left: 10, right: 10, height: 2, borderRadius: 1, backgroundColor: colors.primary }} />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            </React.Fragment>
           ))}
         </ScrollView>
       </View>

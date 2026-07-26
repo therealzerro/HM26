@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
 import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
@@ -10,6 +10,20 @@ import { ProposalRegenBanner } from './ProposalRegenBanner';
 
 type ScopeName = 'midday' | 'evening' | 'allday';
 const SCOPE_NAMES: ScopeName[] = ['midday', 'evening', 'allday'];
+
+// DESIGN-02 T3.4: anchor chips — one per SectionTitle group, in render order.
+const ANCHOR_SECTIONS = [
+  { key: 'weights',   label: 'Weights' },
+  { key: 'perScope',  label: 'Per-Scope' },
+  { key: 'rails',     label: 'K6 Rails' },
+  { key: 'synergy',   label: 'Synergy' },
+  { key: 'scope',     label: 'Default Scope' },
+  { key: 'horizons',  label: 'Horizons' },
+  { key: 'pressure',  label: 'Pressure' },
+  { key: 'diversity', label: 'Diversity' },
+  { key: 'adaptive',  label: 'Adaptive' },
+] as const;
+type AnchorKey = typeof ANCHOR_SECTIONS[number]['key'];
 
 // ─── Engine Config View ───────────────────────────────────────────────────────
 export default function EngineConfigView({ regenerateSlate, onOpenProposals }: { regenerateSlate?: (scope: any, weightsKey?: any) => Promise<any>; onOpenProposals?: () => void }) {
@@ -150,6 +164,17 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
     } catch (e) {
       console.warn('[engine-config] load recent changes failed:', e);
     }
+  }, []);
+
+  // Anchor nav: section y captured via onLayout on each section wrapper
+  // (wrappers are direct children of the scroll content, so layout.y is
+  // already in scroll-content coordinates).
+  const scrollRef = useRef<ScrollView>(null);
+  const sectionY = useRef<Record<string, number>>({});
+  const onSectionLayout = useCallback((key: AnchorKey) =>
+    (e: { nativeEvent: { layout: { y: number } } }) => { sectionY.current[key] = e.nativeEvent.layout.y; }, []);
+  const jumpToSection = useCallback((key: AnchorKey) => {
+    scrollRef.current?.scrollTo({ y: Math.max(0, (sectionY.current[key] ?? 0) - 8), animated: true });
   }, []);
 
   const w = presets[wPreset] ?? DEFAULT_PRESETS.balanced;
@@ -453,10 +478,25 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
   }
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+    <View style={{ flex: 1 }}>
+      {/* Fixed header + anchor-chip row (DESIGN-02 T3.4) — stays put while the
+          config sections scroll underneath. */}
+      <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+        <Text style={{ fontSize: 17, fontWeight: '800', color: colors.text, marginBottom: 4 }}>⚙️ ZK6 Engine Configuration</Text>
+        <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 10 }}>Proprietary settings — creator access only.</Text>
+      </View>
+      <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8, gap: 6, flexDirection: 'row' }}>
+          {ANCHOR_SECTIONS.map(s => (
+            <TouchableOpacity key={s.key} onPress={() => jumpToSection(s.key)} style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceLight }}>
+              <Text style={{ fontSize: 10, fontWeight: '600', color: colors.textSecondary }}>{s.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+    <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
       <ProposalRegenBanner onOpenProposals={onOpenProposals} />
-      <Text style={{ fontSize: 17, fontWeight: '800', color: colors.text, marginBottom: 4 }}>⚙️ ZK6 Engine Configuration</Text>
-      <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: loadError ? 8 : 16 }}>Proprietary settings — creator access only.</Text>
 
       {loadError && (
         <Card style={{ padding: 10, marginBottom: 14, backgroundColor: colors.goldLight, borderColor: colors.gold + '44' }}>
@@ -510,6 +550,7 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
         </Card>
       )}
 
+      <View onLayout={onSectionLayout('weights')}>
       <SectionTitle>SIGNAL WEIGHTS</SectionTitle>
       <Card style={{ padding: 14, marginBottom: 16 }}>
         {/* SCRUB-01 (2026-05-27): production is balanced-only. Preset selector
@@ -545,6 +586,7 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
           })()}
         </View>
       </Card>
+      </View>
 
       {/* ENGINE-UI-01 (2026-06-06): per-scope weight overrides — read-only.
           Production engine reads `engine_weights_balanced_${scope}` FIRST and
@@ -552,6 +594,7 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
           card surfaces what's actually running per scope. To change values,
           add a CONFIG-XX entry + backtest + SQL ship per MASTER_AUDIT — the
           Reset button does NOT touch these rows. */}
+      <View onLayout={onSectionLayout('perScope')}>
       <SectionTitle>PER-SCOPE OVERRIDES (LIVE)</SectionTitle>
       <Card style={{ padding: 12, marginBottom: 16 }}>
         <Text style={{ fontSize: 10, color: colors.textTertiary, marginBottom: 10, lineHeight: 14 }}>
@@ -599,7 +642,9 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
           );
         })}
       </Card>
+      </View>
 
+      <View onLayout={onSectionLayout('rails')}>
       <SectionTitle>K6 RAIL CONTROLS</SectionTitle>
       <Card style={{ paddingHorizontal: 16 }}>
         <ToggleRow icon="3️⃣" label="Allow Triples in K6" sub="Currently off — triples have very low historical frequency" on={triplesOn} onChange={setTriplesOn} />
@@ -649,8 +694,10 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
           </View>
         </View>
       </Card>
+      </View>
 
       {/* ── Signal Synergy Matrix (Tier 4) ── */}
+      <View onLayout={onSectionLayout('synergy')}>
       <SectionTitle>SIGNAL SYNERGY MATRIX</SectionTitle>
       <Card style={{ paddingHorizontal: 16, paddingVertical: 14, marginBottom: 16 }}>
         <ToggleRow
@@ -677,7 +724,9 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
           </View>
         </View>
       </Card>
+      </View>
 
+      <View onLayout={onSectionLayout('scope')}>
       <SectionTitle>DEFAULT SCOPE</SectionTitle>
       <Card style={{ padding: 14, marginBottom: 16 }}>
         <Text style={{ fontSize: 12, fontWeight: '600', color: colors.text, marginBottom: 8 }}>Default Scope on App Launch</Text>
@@ -689,8 +738,10 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
           ))}
         </View>
       </Card>
+      </View>
 
       {/* ── Horizon Weights ── */}
+      <View onLayout={onSectionLayout('horizons')}>
       <SectionTitle>HORIZON WEIGHTS</SectionTitle>
       <Card style={{ padding: 14, marginBottom: 16 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -727,8 +778,10 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
           );
         })}
       </Card>
+      </View>
 
       {/* ── Draws Since Pressure ── */}
+      <View onLayout={onSectionLayout('pressure')}>
       <SectionTitle>DRAWS SINCE PRESSURE</SectionTitle>
       <Card style={{ paddingHorizontal: 16, paddingVertical: 14, marginBottom: 16 }}>
         <View>
@@ -748,8 +801,10 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
           </View>
         </View>
       </Card>
+      </View>
 
       {/* ── Diversity Rails (enhanced) ── */}
+      <View onLayout={onSectionLayout('diversity')}>
       <SectionTitle>DIVERSITY RAILS</SectionTitle>
       <Card style={{ paddingHorizontal: 16 }}>
         <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border }}>
@@ -829,8 +884,10 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
           })}
         </View>
       </Card>
+      </View>
 
       {/* ── ENH-AFL-2: Adaptive Signal Weights (debug surface) ── */}
+      <View onLayout={onSectionLayout('adaptive')}>
       <SectionTitle>ADAPTIVE SIGNAL WEIGHTS (ENH-AFL-2)</SectionTitle>
       <Card style={{ paddingHorizontal: 16, paddingVertical: 14, marginBottom: 16 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -884,6 +941,7 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
           button (Step 2/4).
         </Text>
       </Card>
+      </View>
 
       {/* E2 (2026-05-13): removed the Slate Generation Schedule section.
           auto_gen_slates / morning_gen_time / evening_gen_time were never
@@ -1068,5 +1126,6 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
         </Modal>
       )}
     </ScrollView>
+    </View>
   );
 }

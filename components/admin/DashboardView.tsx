@@ -23,7 +23,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
   setView: (v: string) => void;
   imports: any[];
   healthMetrics: any;
-  regenerateSlate: (scope: any, weightsKey?: any, force?: boolean) => Promise<any>;
+  regenerateSlate: (scope: any, weightsKey?: any, force?: boolean, date?: string) => Promise<any>;
   checkSlateLock: (scope: any, date?: string) => Promise<boolean>;
   onOpenZK30Import: (type: 'box_history' | 'pair_history') => void;
 }) {

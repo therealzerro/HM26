@@ -76,6 +76,13 @@ const QUICK_PRESETS: { key: string; label: string; icon: string; srf: Surface; c
 
 export interface PublishDeepLinkPreset { preset: string; session?: string }
 
+// DESIGN-02 T2.5: stepper strip labels (mirrors sections 1·SURFACE → 5·PUBLISH).
+const PUB_STEPS = ['Surface', 'Content', 'Caption', 'Images', 'Publish'];
+// "Published" is derived from the success-result prefixes of the five terminal
+// actions (page publish/schedule, handoff log, share-all, prep&open, Pro chain)
+// — purely visual, so a fragile match only under-reports the ✓.
+const PUB_DONE_RE = /^(✅|🕗|🚀|💎|⚠️ Logged|⚠️ Shared|📋 Caption copied \+)/;
+
 interface ImageItem { label: string; filename: string; dataUrl: string }
 
 function mdLabel(iso: string): string {
@@ -727,9 +734,40 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
 
   const publishableImage = images.length > 0 ? images[0] : undefined;
 
+  // ── Step indicator (T2.5) — visual only, derived from selection state ──
+  const stepsDone = [
+    !!surface,
+    !!content,
+    caption.trim().length > 0,
+    images.length > 0,
+    !!resultMsg && PUB_DONE_RE.test(resultMsg),
+  ];
+  const activeStep = stepsDone.indexOf(false); // -1 = every step satisfied
+
   return (
     <View style={{ flex: 1 }}>
     <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 60 }}>
+      {/* Step indicator — mirrors ImportWizardView's stepper; no flow gating */}
+      <View style={{ marginBottom: 16 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+            {PUB_STEPS.map((s, i) => {
+              const done = stepsDone[i];
+              const active = i === activeStep;
+              return (
+                <View key={s} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: done ? colors.success : active ? colors.primary : colors.surfaceLight, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: done ? colors.success : active ? colors.primary : colors.border }}>
+                    <Text style={{ fontSize: 9, fontWeight: '700', color: done || active ? '#fff' : colors.textTertiary }}>{done ? '✓' : i + 1}</Text>
+                  </View>
+                  <Text style={{ fontSize: 10, color: active ? colors.primary : done ? colors.success : colors.textTertiary, fontWeight: active ? '700' : '400' }}>{s}</Text>
+                  {i < PUB_STEPS.length - 1 && <View style={{ width: 16, height: 2, backgroundColor: done ? colors.success : colors.border }} />}
+                </View>
+              );
+            })}
+          </View>
+        </ScrollView>
+      </View>
+
       {/* Connection */}
       <SectionTitle>CONNECTIONS</SectionTitle>
       <Card style={{ padding: 12, marginBottom: 14 }}>

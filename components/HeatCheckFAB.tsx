@@ -46,5 +46,6 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
     elevation: 8,
   },
   icon: { fontSize: 16 },
+  // '#fff' on the saturated amber fill is correct in both modes (LIGHT-01)
   label: { color: '#fff', fontWeight: '900', fontSize: 12, letterSpacing: 0.6 },
 });

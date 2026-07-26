@@ -234,7 +234,7 @@ export default function TrackRecordScreen() {
                 <View style={s.dayBadge}><Text style={s.dayBadgeText}>{dateHits.length} {dateHits.length === 1 ? 'match' : 'matches'}</Text></View>
               </View>
               {dateHits.map((h, i) => {
-                const tint = scopeAccent(h.scope);
+                const tint = scopeAccent(h.scope, colors);
                 const sessIcon = SESSION_ICON[(h.hit_session ?? '').toLowerCase()] ?? '◈';
                 const isStraight = !!h.hit_straight;
                 return (

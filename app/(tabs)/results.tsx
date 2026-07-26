@@ -291,6 +291,7 @@ const makeHs = (colors: ColorTokens) => StyleSheet.create({
   sub2: { fontSize: 11, color: colors.textTertiary, marginTop: 2 },
 });
 const makeSs = (colors: ColorTokens) => StyleSheet.create({
+  // scrim stays dark in both modes (LIGHT-01)
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.bgElevated, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, paddingBottom: 36, gap: 12, borderTopWidth: 1.5, borderColor: colors.purple + '44' },
   handle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border, marginBottom: 6 },

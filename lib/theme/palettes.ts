@@ -121,7 +121,9 @@ export type ColorTokens = { [K in keyof typeof darkColors]: string };
 // │ hot/error    #d12d24   4.72 / 5.11      (kept — passes)                  │
 // │ warm/warning #c79400   2.53 / 2.74  →   #8a6900   4.73 / 5.12           │
 // │ mild/success #1f9d3f   3.26 / 3.53  →   #187a31   5.02 / 5.43           │
-// │ cold/free    #9aa0a6   2.44 / 2.64  →   #6c7278   4.50 / 4.87           │
+// │ cold/free    #9aa0a6   2.44 / 2.64  →   #686e74   4.77 / 5.16           │
+// │   (#6c7278 from the 7/25 pass sat exactly at 4.50 vs bg — re-nudged     │
+// │    7/26 for margin, LIGHT-01)                                            │
 // │                                                                          │
 // │ Derived rgba tints (tealLight/goldLight/successLight/neutral*) re-based  │
 // │ on the new hues — they are fills, not text, so no ratio requirement,     │
@@ -174,7 +176,7 @@ export const lightColors: ColorTokens = {
   hot:  '#d12d24',
   warm: '#8a6900',
   mild: '#187a31',
-  cold: '#6c7278',
+  cold: '#686e74',
 
   success:      '#187a31',
   successLight: 'rgba(24,122,49,0.12)',
@@ -182,7 +184,7 @@ export const lightColors: ColorTokens = {
   errorLight:   'rgba(209,45,36,0.12)',
   warning:      '#8a6900',
 
-  free:    '#6c7278',
+  free:    '#686e74',
   premium: '#8f6b00',
   admin:   '#7a3fd6',
 

@@ -84,7 +84,18 @@ export default function FootprintPanel() {
               justifyContent: 'center',
             }}
           >
-            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Search</Text>
+            {/* Enabled: '#fff' on the saturated primary fill is correct in both
+                modes (LIGHT-01). Disabled: the fill is colors.border, so the
+                label needs theme ink to stay readable on light. */}
+            <Text
+              style={{
+                color: /^\d{3}$/.test(input) ? '#fff' : colors.textTertiary,
+                fontWeight: '700',
+                fontSize: 13,
+              }}
+            >
+              Search
+            </Text>
           </TouchableOpacity>
         </View>
         <ChipRow>

@@ -46,7 +46,7 @@ export function ScopeSegment({ value, onChange, size = 'tall', style }: Props) {
     <View style={[s.row, isCompact && s.rowCompact, style]}>
       {(['midday', 'evening', 'allday'] as const).map(sc => {
         const active = value === sc;
-        const accent = scopeAccent(sc);
+        const accent = scopeAccent(sc, colors);
         return (
           <TouchableOpacity
             key={sc}

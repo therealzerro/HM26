@@ -57,7 +57,7 @@ function Toggle({ on, onChange, label, sub }: { on: boolean; onChange: (v: boole
         value={on}
         onValueChange={onChange}
         trackColor={{ false: colors.border, true: colors.purple }}
-        thumbColor="#fff"
+        thumbColor="#fff" // white switch thumb reads correctly in both modes (LIGHT-01)
       />
     </View>
   );
@@ -319,7 +319,8 @@ export default function AccountScreen() {
               <View style={s.divider} />
               {/* FREE vs PRO comparison */}
               <View style={s.compareGrid}>
-                <View style={[s.compareRow, { backgroundColor: 'rgba(255,255,255,0.04)' }]}>
+                {/* LIGHT-01: white-alpha fill was invisible on light cards — surfaceLight adapts per mode */}
+                <View style={[s.compareRow, { backgroundColor: colors.surfaceLight }]}>
                   <Text style={[s.compareFeature, { fontSize: 9, color: colors.textTertiary, letterSpacing: 1.2 }]}>FEATURE</Text>
                   <Text style={[s.compareFreeTxt, { fontWeight: '800', color: colors.textSecondary }]}>FREE</Text>
                   <Text style={[s.compareProTxt, { color: colors.purple, fontWeight: '800' }]}>ORACLE+</Text>
@@ -782,7 +783,7 @@ const makeS = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create(
   },
   roleBtnOn: { backgroundColor: colors.purple, borderColor: colors.purple },
   roleBtnText: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
-  roleBtnTextOn: { color: '#fff', fontWeight: '700' },
+  roleBtnTextOn: { color: '#fff', fontWeight: '700' }, // white-on-purple (roleBtnOn): intentional in both modes (LIGHT-01)
 
   footer: { alignItems: 'center', paddingTop: 8, paddingBottom: 16, gap: 5 },
   footerLogo: { fontSize: 14, fontWeight: '900', color: colors.text, letterSpacing: 1 },

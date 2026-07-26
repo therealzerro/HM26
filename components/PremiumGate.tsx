@@ -161,6 +161,7 @@ const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
+    // scrim stays dark in both modes (LIGHT-01)
     backgroundColor: 'rgba(0,0,0,0.8)',
     justifyContent: 'center',
     alignItems: 'center',

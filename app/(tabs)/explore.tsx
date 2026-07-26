@@ -340,6 +340,7 @@ export default function SlatesScreen() {
                 style={[s.generateBtn, isPro && creditsRemaining === 0 && { opacity: 0.4 }]}
                 onPress={handleRequestRegen} disabled={isRegenLoading || (isPro && creditsRemaining <= 0)}
               >
+                {/* white icon on purple generateBtn: intentional in both modes (LIGHT-01) */}
                 <RefreshCw size={12} color="#fff" />
                 <Text style={s.generateBtnText}>{isRegenLoading ? '…' : 'Generate'}</Text>
               </TouchableOpacity>
@@ -525,7 +526,7 @@ export default function SlatesScreen() {
             <View style={{ gap: 5 }}>
               {feedHitsValid.map((h, i) => {
                 const sessIcon = h.matched_session === 'midday' ? '☀️' : h.matched_session === 'evening' ? '🌙' : '◈';
-                const tint = scopeAccent(h.scope);
+                const tint = scopeAccent(h.scope, colors);
                 const isStraight = !!h.hit_straight;
                 return (
                   <View key={`${h.scope}-${h.combo}-${h.matched_state}-${h.matched_session}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, backgroundColor: tint + '0E', borderRadius: 8, borderLeftWidth: 3, borderLeftColor: tint }}>
@@ -702,7 +703,7 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
   // header layout moved to components/ScreenHeader.tsx (design.md step 3).
   title: { fontSize: 22, fontWeight: '900', color: colors.text, lineHeight: 26, fontFamily: theme.typography.fontFamily.bold },
   generateBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.purple, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
-  generateBtnText: { color: '#fff', fontWeight: '700', fontSize: 11 },
+  generateBtnText: { color: '#fff', fontWeight: '700', fontSize: 11 }, // white-on-purple: intentional in both modes (LIGHT-01)
 
   // tabs
   tabBar: { flexDirection: 'row', backgroundColor: colors.background, paddingHorizontal: theme.layout.screenInset, paddingVertical: 8, gap: 6, borderBottomWidth: 1, borderBottomColor: colors.border },
@@ -728,6 +729,7 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
   iconBtn: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border, marginLeft: 6 },
 
   // Slate display controls sheet
+  // scrim stays dark in both modes (LIGHT-01)
   sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.bgElevated, borderTopLeftRadius: theme.borderRadius.sheet, borderTopRightRadius: theme.borderRadius.sheet, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32, borderTopWidth: 1.5, borderColor: colors.purple + '44', gap: 12 },
   sheetHandle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border, marginBottom: 8 },
@@ -779,10 +781,11 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
   upsellTitle: { fontSize: 13, fontWeight: '800', color: colors.text, marginBottom: 4 },
   upsellDesc: { fontSize: 12, color: colors.textSecondary, textAlign: 'center', marginBottom: 12, lineHeight: 18 },
   upsellBtn: { backgroundColor: colors.purple, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 11 },
-  upsellBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  upsellBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 }, // white-on-purple: intentional in both modes (LIGHT-01)
 
   disclaimer: { fontSize: 11, color: colors.textTertiary, lineHeight: 18 },
 
+  // scrim stays dark in both modes (LIGHT-01)
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', justifyContent: 'center', padding: 20 },
   modalCard: { width: '100%', maxWidth: 400, backgroundColor: colors.bgElevated, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: colors.border, padding: 20 },
   modalTitle: { fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 8 },

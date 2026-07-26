@@ -10,13 +10,18 @@
      - No data fetching (callers pass pairScores via prop, default 0/0/0)
      - No animations (EnergyArc gets animate=false for deterministic capture)
      - No interaction handlers
+
+   LIGHT-01: posters are brand share artifacts — MODE-LOCKED to the dark
+   palette by operator decision. A light phone theme must not produce light
+   posters, so D is built from darkColors, never from useTheme().
    ============================================================================ */
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Lock } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
+import { darkColors, heatTier } from '@/lib/theme';
 import { PickItem } from './PickCard';
-import { EnergyArc, SignalPill, WhyRow, RedactedGlyph, RedactedDigitRow, useD, type DTokens } from './pickVisuals';
+import { EnergyArc, SignalPill, WhyRow, RedactedGlyph, RedactedDigitRow, makeD, type DTokens } from './pickVisuals';
 import { getPairs } from '../lib/pairUtils';
 
 const REDACT_LOCK_GOLD = '#FFD700';
@@ -33,22 +38,20 @@ interface PickPosterCardProps {
 }
 
 export function PickPosterCard({ pick, scope, pairScores, redact = false, height }: PickPosterCardProps) {
-  const D = useD();
+  // LIGHT-01 mode lock: dark palette regardless of the phone's theme.
+  const D = useMemo(() => makeD(darkColors), []);
   const s = useMemo(() => makeS(D), [D]);
 
   const bestOrder = pick.bestOrder ?? pick.combo ?? '000';
   const pairs     = useMemo(() => getPairs(bestOrder), [bestOrder]);
 
-  const energyLabel =
-    pick.energy >= 90 ? 'ON FIRE'    :
-    pick.energy >= 80 ? 'BLAZING'    :
-    pick.energy >= 65 ? 'HOT SIGNAL' :
-    pick.energy >= 45 ? 'WARM'       : 'COOL';
-
-  const energyColor =
-    pick.energy >= 90 ? D.hot   :
-    pick.energy >= 75 ? D.amber :
-    pick.energy >= 60 ? D.gold  : D.cyan;
+  // DESIGN-02 T1.1: canonical heat scale (90/80/65/45) replaces the former
+  // inline 90/75/60 color ramp. Label keeps the poster's 'HOT SIGNAL' wording
+  // for the hot tier (locked vocabulary — heat.ts invariant is thresholds +
+  // colors, not copy).
+  const tier = heatTier(pick.energy, darkColors);
+  const energyLabel = tier.key === 'hot' ? 'HOT SIGNAL' : tier.label;
+  const energyColor = tier.color;
 
   const confidence = pick.energy;
   const ps = pairScores ?? { front: 0, back: 0, split: 0 };
@@ -61,7 +64,7 @@ export function PickPosterCard({ pick, scope, pairScores, redact = false, height
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <View style={s.hero}>
         <View style={s.heroLeft}>
-          <EnergyArc value={pick.energy} size={72} animate={false} />
+          <EnergyArc value={pick.energy} size={72} animate={false} palette={darkColors} />
           <Text style={[s.heroEnergyLabel, { color: energyColor }]}>{energyLabel}</Text>
         </View>
 
@@ -135,10 +138,10 @@ export function PickPosterCard({ pick, scope, pairScores, redact = false, height
       {/* ── Signal breakdown ────────────────────────────────────────────── */}
       <Text style={s.sectionTitle}>SIGNAL BREAKDOWN</Text>
       <View style={s.signalRow}>
-        <SignalPill label="FREQ"    value={pick.signals.BOX}      color={D.cyan}   />
-        <SignalPill label="MOMO"    value={pick.signals.PBURST}   color={D.rose}   />
-        <SignalPill label="PATTERN" value={pick.signals.CO}       color={D.purple} />
-        <SignalPill label="CONSIST" value={pick.signals.DGC ?? 0} color={D.gold}   />
+        <SignalPill label="FREQ"    value={pick.signals.BOX}      color={D.cyan}   palette={darkColors} />
+        <SignalPill label="MOMO"    value={pick.signals.PBURST}   color={D.rose}   palette={darkColors} />
+        <SignalPill label="PATTERN" value={pick.signals.CO}       color={D.purple} palette={darkColors} />
+        <SignalPill label="CONSIST" value={pick.signals.DGC ?? 0} color={D.gold}   palette={darkColors} />
       </View>
 
       {/* ── Why this order ──────────────────────────────────────────────── */}
@@ -148,16 +151,19 @@ export function PickPosterCard({ pick, scope, pairScores, redact = false, height
           icon="📈" label={`Front pair  ${redact ? '??' :pairs.front}`}
           desc={redact ? 'Pair signal hidden — full content for subscribers' : `${pairs.front} surging — highest recent frequency in front position`}
           score={ps.front}
+          palette={darkColors}
         />
         <WhyRow
           icon="⚙️" label={`Back pair  ${redact ? '??' :pairs.back}`}
           desc={redact ? 'Pair signal hidden — full content for subscribers' : `${pairs.back} has strong digit co-occurrence in back position`}
           score={ps.back}
+          palette={darkColors}
         />
         <WhyRow
           icon="🔗" label={`Split pair  ${redact ? '??' :pairs.split}`}
           desc={redact ? 'Pair signal hidden — full content for subscribers' : `${pairs.split} confirms alignment across all 3 signal channels`}
           score={ps.split}
+          palette={darkColors}
         />
       </View>
 

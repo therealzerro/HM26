@@ -119,6 +119,7 @@ export function HitCelebrationOverlay({ visible, onDismiss, rank, digits, jurisd
 }
 
 const makeStyles = (colors: ColorTokens) => StyleSheet.create({
+  // scrim stays dark in both modes (LIGHT-01)
   backdrop: { flex: 1, backgroundColor: 'rgba(10,6,19,0.92)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   card: {
     backgroundColor: colors.bgElevated,

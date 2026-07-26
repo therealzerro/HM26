@@ -368,6 +368,7 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
                 disabled={loading || combo.trim().length !== 3}
               >
                 {loading ? (
+                  // '#fff' spinner on the saturated primary fill — correct in both modes (LIGHT-01)
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
                   <Text style={s.checkBtnText}>Check</Text>
@@ -538,6 +539,7 @@ export function HeatCheckModal({ visible, onClose, initialCombo = '', scope = 'm
 
 const makeS = (colors: ColorTokens) => StyleSheet.create({
   backdrop: {
+    // scrim stays dark in both modes (LIGHT-01)
     flex: 1, backgroundColor: 'rgba(0,0,0,0.55)',
     justifyContent: 'flex-end',
   },
@@ -566,8 +568,8 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
   closeBtn: { padding: 0 },
   closeBtnInner: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)',
+    backgroundColor: colors.surfaceLight,
+    borderWidth: 1, borderColor: colors.borderMed,
     alignItems: 'center', justifyContent: 'center',
   },
   closeX: { fontSize: 16, color: colors.text, fontWeight: '800' },
@@ -593,6 +595,7 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   checkBtnDisabled: { opacity: 0.45 },
+  // '#fff' on the saturated primary fill is correct in both modes (LIGHT-01)
   checkBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
   errorText: { fontSize: 12, color: colors.error, marginBottom: 8 },
   rateLimitBox: {
@@ -630,5 +633,6 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: colors.primary,
   },
+  // '#fff' on the saturated primary fill is correct in both modes (LIGHT-01)
   shareBtnText: { color: '#fff', fontWeight: '800', fontSize: 13, letterSpacing: 0.3 },
 });

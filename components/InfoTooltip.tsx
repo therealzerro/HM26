@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { theme } from '@/constants/theme';
-import { useTheme, type ColorTokens } from '@/lib/theme';
+import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 
 interface InfoTooltipProps {
   term: string;
@@ -10,8 +10,8 @@ interface InfoTooltipProps {
 }
 
 export function InfoTooltip({ term, definition, size = 15 }: InfoTooltipProps) {
-  const { colors } = useTheme();
-  const tt = useMemo(() => makeTt(colors), [colors]);
+  const { colors, shadows } = useTheme();
+  const tt = useMemo(() => makeTt(colors, shadows), [colors, shadows]);
   const [visible, setVisible] = useState(false);
 
   return (
@@ -49,7 +49,7 @@ export function InfoTooltip({ term, definition, size = 15 }: InfoTooltipProps) {
   );
 }
 
-const makeTt = (colors: ColorTokens) => StyleSheet.create({
+const makeTt = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create({
   btn: {
     backgroundColor: colors.surfaceLight,
     borderWidth: 1,
@@ -65,6 +65,7 @@ const makeTt = (colors: ColorTokens) => StyleSheet.create({
   },
   backdrop: {
     flex: 1,
+    // scrim stays dark in both modes (LIGHT-01)
     backgroundColor: 'rgba(0,0,0,0.65)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -78,8 +79,7 @@ const makeTt = (colors: ColorTokens) => StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderMed,
     padding: 22,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5, shadowRadius: 20, elevation: 12,
+    ...shadows.medium,
   },
   term: {
     fontSize: 15,
@@ -105,6 +105,7 @@ const makeTt = (colors: ColorTokens) => StyleSheet.create({
     alignItems: 'center',
   },
   closeText: {
+    // '#fff' on the saturated primary fill is correct in both modes (LIGHT-01)
     color: '#fff',
     fontWeight: '700',
     fontSize: 14,

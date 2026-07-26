@@ -208,6 +208,7 @@ export function PickExplainerModal({ visible, onClose, pick }: Props) {
 }
 
 const makeS = (colors: ColorTokens) => StyleSheet.create({
+  // scrim stays dark in both modes (LIGHT-01)
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.surface,
@@ -223,8 +224,8 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
   closeBtn: { padding: 0 },
   closeBtnInner: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)',
+    backgroundColor: colors.surfaceLight,
+    borderWidth: 1, borderColor: colors.borderMed,
     alignItems: 'center', justifyContent: 'center',
   },
   closeX: { fontSize: 16, color: colors.text, fontWeight: '800' },

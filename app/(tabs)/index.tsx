@@ -184,6 +184,7 @@ function OnboardingModal({
   );
 }
 const makeOb = (colors: ColorTokens) => StyleSheet.create({
+  // scrim stays dark in both modes (LIGHT-01)
   backdrop: { flex: 1, backgroundColor: '#0009', alignItems: 'center', justifyContent: 'center', padding: 28 },
   card: { width: '100%', maxWidth: 380, borderRadius: theme.borderRadius.xxl, padding: 28, alignItems: 'center', borderWidth: 1.5, borderColor: colors.purple + '44' },
   title: { fontSize: 20, fontWeight: '900', color: colors.text, textAlign: 'center', marginBottom: 12 },
@@ -192,7 +193,7 @@ const makeOb = (colors: ColorTokens) => StyleSheet.create({
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.border },
   dotActive: { backgroundColor: colors.purple, width: 18 },
   btn: { backgroundColor: colors.purple, borderRadius: 13, paddingHorizontal: 28, paddingVertical: 13, width: '100%', alignItems: 'center' },
-  btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  btnText: { color: '#fff', fontWeight: '700', fontSize: 15 }, // white-on-purple: intentional in both modes (LIGHT-01)
   previewWrap: { width: '100%', flexDirection: 'row', justifyContent: 'center', gap: 10, marginBottom: 18 },
   previewPill: { flex: 1, alignItems: 'center', backgroundColor: colors.bgElevated, borderRadius: theme.borderRadius.tile, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: colors.cyan + '55' },
   previewRank: { fontSize: 10, fontWeight: '900', color: colors.cyan, letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold, marginBottom: 4 },
@@ -246,6 +247,7 @@ function OverflowSheet({
   );
 }
 const makeOs = (colors: ColorTokens) => StyleSheet.create({
+  // scrim stays dark in both modes (LIGHT-01)
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.bgElevated, borderTopLeftRadius: theme.borderRadius.sheet, borderTopRightRadius: theme.borderRadius.sheet, padding: 20, paddingBottom: 36, gap: 12, borderTopWidth: 1.5, borderColor: colors.purple + '44' },
   handle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border, marginBottom: 6 },
@@ -800,7 +802,7 @@ export default function HomeScreen() {
             <Text style={[s.heroColNum, { color: avgColor }]} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit>{avgEnergy}</Text>
             <Text style={s.heroColLabel}>AVG ENERGY</Text>
             <Text style={s.heroColMeta}>{isFree ? '2 of 6' : '6 signals'}</Text>
-            <Text style={[s.heroColMeta, { color: scopeAccent(scope), fontWeight: '700' }]}>{SCOPE_LABELS[scope] ?? scope}</Text>
+            <Text style={[s.heroColMeta, { color: scopeAccent(scope, colors), fontWeight: '700' }]}>{SCOPE_LABELS[scope] ?? scope}</Text>
           </View>
           <View style={s.heroDivider} />
           <View style={s.heroCol}>
@@ -996,7 +998,7 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
   title: { fontSize: 22, fontWeight: '900', color: colors.text, lineHeight: 26, fontFamily: theme.typography.fontFamily.bold },
   subtitle: { fontSize: 12, color: colors.textTertiary, marginTop: 2, fontFamily: theme.typography.fontFamily.mono },
   tierBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99 },
-  tierText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
+  tierText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 0.5 }, // white on saturated tier fill (free/premium/admin): intentional in both modes (LIGHT-01)
   streakBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.amber + '18', borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: colors.amber + '55' },
   streakText: { fontSize: 10, fontWeight: '800', color: colors.amber, fontFamily: theme.typography.fontFamily.monoBold },
   streakNext: { fontSize: 9, color: colors.amber + 'AA', fontFamily: theme.typography.fontFamily.mono },
@@ -1037,7 +1039,7 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
   confPillText: { fontSize: 9, fontWeight: '900', letterSpacing: 1.2, fontFamily: theme.typography.fontFamily.monoBold },
   confSub: { fontSize: 11, color: colors.textTertiary, marginTop: -6, marginBottom: 10 },
   generateBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.purple, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 },
-  generateBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
+  generateBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 }, // white-on-purple: intentional in both modes (LIGHT-01)
   loadingCard: { backgroundColor: colors.card, borderRadius: theme.borderRadius.card, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
   loadingText: { fontSize: 13, color: colors.textTertiary },
 
@@ -1046,8 +1048,9 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
   proGateTitle: { fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 6 },
   proGateDesc: { fontSize: 12, color: colors.textSecondary, textAlign: 'center', marginBottom: 14, lineHeight: 18 },
   proGateBtn: { backgroundColor: colors.purple, paddingHorizontal: 24, paddingVertical: 11, borderRadius: 13 },
-  proGateBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  proGateBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 }, // white-on-purple: intentional in both modes (LIGHT-01)
 
+  // scrim stays dark in both modes (LIGHT-01)
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', justifyContent: 'center', padding: 20 },
   modalCard: { width: '100%', maxWidth: 400, backgroundColor: colors.bgElevated, borderRadius: theme.borderRadius.card, borderWidth: 1, borderColor: colors.border, padding: 20 },
   modalTitle: { fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 8 },

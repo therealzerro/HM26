@@ -111,14 +111,14 @@ function SkeletonBody({
   );
 }
 
-const block: ViewStyle = {
-  backgroundColor: 'rgba(155,91,255,0.18)',
-  borderRadius: 6,
-};
-
 const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   wrap: { gap: 12 },
-  block,
+  // LIGHT-01: shimmer blocks tint from the theme purple — neon haze in dark,
+  // soft brand tint on light (was hard-coded rgba(155,91,255,…)).
+  block: {
+    backgroundColor: colors.purple + theme.alpha.soft,
+    borderRadius: 6,
+  },
   card: {
     backgroundColor: colors.card,
     borderRadius: 16,
@@ -159,7 +159,7 @@ const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   },
   splashLogo: {
     width: 88, height: 88, borderRadius: 44,
-    backgroundColor: 'rgba(155,91,255,0.28)',
+    backgroundColor: colors.purple + theme.alpha.tint,
   },
 });
 

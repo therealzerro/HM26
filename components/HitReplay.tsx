@@ -82,8 +82,10 @@ function DigitGroup({ label, digits, color, variant }: {
           ]}>
             <Text style={[
               s.digit,
+              // Solid cell = saturated accent fill → dark ink stays locked in
+              // both modes (LIGHT-01). Ghost cell = low-alpha tint → theme ink.
               isSolid ? { color: '#0a0613' }
-                      : { color: '#fff', textShadowColor: color },
+                      : { color: colors.text, textShadowColor: color },
             ]}>{d}</Text>
           </View>
         ))}
@@ -95,7 +97,7 @@ function DigitGroup({ label, digits, color, variant }: {
 const makeS = (colors: ColorTokens) => StyleSheet.create({
   card: {
     padding: 14, borderRadius: 14, borderWidth: 1,
-    backgroundColor: colors.surface2 ?? 'rgba(20,12,38,0.72)',
+    backgroundColor: colors.surface2,
     shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 16,
     gap: 10,
   },

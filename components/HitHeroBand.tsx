@@ -160,7 +160,9 @@ function DigitGroup({ digits, accent, variant }: {
               : { backgroundColor: accent + '14', borderWidth: 1, borderColor: accent + '55' },
           ]}
         >
-          <Text style={[s.digit, isSolid ? { color: '#0a0613' } : { color: '#ffffff' }]}>{d}</Text>
+          {/* Solid cell = saturated accent fill → dark ink stays locked in
+              both modes (LIGHT-01). Ghost cell = low-alpha tint → theme ink. */}
+          <Text style={[s.digit, isSolid ? { color: '#0a0613' } : { color: colors.text }]}>{d}</Text>
         </View>
       ))}
     </View>

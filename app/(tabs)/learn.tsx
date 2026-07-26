@@ -237,7 +237,7 @@ const makeS = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create(
   ctaTitle: { fontSize: 13, fontWeight: '800', color: colors.text, marginBottom: 4 },
   ctaDesc: { fontSize: 11, color: colors.textSecondary, marginBottom: 12 },
   ctaBtn: { backgroundColor: colors.primary, paddingHorizontal: 18, paddingVertical: 9, borderRadius: theme.borderRadius.lg },
-  ctaBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  ctaBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 }, // white-on-primary: intentional in both modes (LIGHT-01)
 
   moduleContent: { padding: 22, paddingBottom: 40 },
   backBtn: { marginBottom: 16 },
@@ -257,5 +257,5 @@ const makeS = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create(
   proTeaserTitle: { fontSize: 14, fontWeight: '800', color: colors.text, marginBottom: 6, textAlign: 'center' },
   proTeaserDesc: { fontSize: 12, color: colors.textSecondary, textAlign: 'center', lineHeight: 18, marginBottom: 12 },
   proTeaserBtn: { backgroundColor: colors.gold, paddingHorizontal: 18, paddingVertical: 9, borderRadius: theme.borderRadius.lg },
-  proTeaserBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  proTeaserBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 }, // white on gold accent fill: intentional in both modes (LIGHT-01)
 });

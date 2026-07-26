@@ -9,7 +9,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import { theme } from '@/constants/theme';
-import { useTheme, type ColorTokens } from '@/lib/theme';
+import { heatColor, useTheme, type ColorTokens } from '@/lib/theme';
 
 export type DTokens = {
   bg: string; surface: string; glass: string; glassBorder: string; borderMed: string;
@@ -48,8 +48,12 @@ export function useD(): DTokens {
 // ─── EnergyArc ───────────────────────────────────────────────────────────────
 // `animate` defaults to true (existing modal behavior). Posters pass false
 // to keep the capture deterministic.
-export function EnergyArc({ value, size = 80, animate = true }: { value: number; size?: number; animate?: boolean }) {
-  const D = useD();
+// `palette` overrides the mode-aware theme palette — the mode-locked posters
+// (LIGHT-01) pass darkColors; mode-aware surfaces (PickDetailModal) omit it.
+export function EnergyArc({ value, size = 80, animate = true, palette }: { value: number; size?: number; animate?: boolean; palette?: ColorTokens }) {
+  const { colors: themeColors } = useTheme();
+  const colors = palette ?? themeColors;
+  const D = useMemo(() => makeD(colors), [colors]);
   const pulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     if (animate && value >= 80) {
@@ -66,7 +70,10 @@ export function EnergyArc({ value, size = 80, animate = true }: { value: number;
   const circ  = 2 * Math.PI * r;
   const dash  = circ * Math.min(1, Math.max(0, value) / 100);
   const gap   = circ - dash;
-  const accent = value >= 90 ? D.hot : value >= 75 ? D.amber : value >= 60 ? D.gold : D.cyan;
+  // DESIGN-02 T1.1: former local 90/75/60 ramp (hot/amber/gold/cyan) replaced
+  // by the canonical heat scale (90/80/65/45) so the same energy score maps to
+  // the same color everywhere.
+  const accent = heatColor(value, colors);
 
   return (
     <Animated.View style={{ transform: [{ scale: animate && value >= 80 ? pulse : 1 }] }}>
@@ -105,8 +112,9 @@ const makeSp = (D: DTokens) => StyleSheet.create({
   fill:   { height: 3, borderRadius: 2 },
 });
 
-export function SignalPill({ label, value, color }: { label: string; value: number; color: string }) {
-  const D = useD();
+export function SignalPill({ label, value, color, palette }: { label: string; value: number; color: string; palette?: ColorTokens }) {
+  const { colors: themeColors } = useTheme();
+  const D = useMemo(() => makeD(palette ?? themeColors), [palette, themeColors]);
   const sp = useMemo(() => makeSp(D), [D]);
   const pct = Math.round(value * 100);
   return (
@@ -194,8 +202,9 @@ const makeWy = (D: DTokens) => StyleSheet.create({
   badgeNum: { fontSize: 13, fontWeight: '900', fontFamily: D.monoBold },
 });
 
-export function WhyRow({ icon, label, desc, score }: { icon: string; label: string; desc: string; score: number }) {
-  const D = useD();
+export function WhyRow({ icon, label, desc, score, palette }: { icon: string; label: string; desc: string; score: number; palette?: ColorTokens }) {
+  const { colors: themeColors } = useTheme();
+  const D = useMemo(() => makeD(palette ?? themeColors), [palette, themeColors]);
   const wy = useMemo(() => makeWy(D), [D]);
   const c = score >= 70 ? D.cyan : score >= 40 ? D.gold : D.textDim;
   return (

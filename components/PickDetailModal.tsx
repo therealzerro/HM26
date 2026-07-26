@@ -161,7 +161,7 @@ function TabBar({ active, onPress }: { active: Tab; onPress: (t: Tab) => void })
 const makeTb = (D: DTokens) => StyleSheet.create({
   bar:            { flexDirection: 'row', backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.glassBorder },
   tab:            { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 13, position: 'relative' },
-  tabActive:      { backgroundColor: 'rgba(43,255,204,0.04)' },
+  tabActive:      { backgroundColor: D.cyan + theme.alpha.faint },
   tabIcon:        { fontSize: 13 },
   tabLabel:       { fontSize: 10, fontWeight: '700', color: D.textDim, letterSpacing: 1.5 },
   tabLabelActive: { color: D.cyan },
@@ -752,6 +752,7 @@ const makeCt = (D: DTokens) => StyleSheet.create({
 });
 
 const makeS = (D: DTokens) => StyleSheet.create({
+  // scrim stays dark in both modes (LIGHT-01)
   overlay:  { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)' },
   sheet:    { flex: 1, backgroundColor: D.bg },
 

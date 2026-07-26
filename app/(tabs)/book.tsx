@@ -69,6 +69,7 @@ function CreateListModal({ onClose, onCreate }: { onClose: () => void; onCreate:
               onPress={() => { if (name.trim()) onCreate(name.trim(), scope); }}
               disabled={!name.trim()}
             >
+              {/* white-on-primary: intentional in both modes (LIGHT-01) */}
               <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Create List</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[m.btn, { backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border }]} onPress={onClose}>
@@ -116,6 +117,7 @@ function AddNumberModal({ onClose, onAdd }: { onClose: () => void; onAdd: (combo
               onPress={() => { if (valid) onAdd(combo, note); }}
               disabled={!valid}
             >
+              {/* white-on-primary: intentional in both modes (LIGHT-01) */}
               <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Add Number</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[m.btn, { backgroundColor: colors.surfaceLight, borderWidth: 1, borderColor: colors.border }]} onPress={onClose}>
@@ -129,6 +131,7 @@ function AddNumberModal({ onClose, onAdd }: { onClose: () => void; onAdd: (combo
 }
 
 const makeM = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create({
+  // scrim stays dark in both modes (LIGHT-01) — indigo-tinted full-screen modal backdrop
   backdrop: { flex: 1, backgroundColor: '#1E1B4B77', alignItems: 'center', justifyContent: 'center', padding: 20 },
   card: { width: '100%', maxWidth: 380, backgroundColor: colors.surface, borderRadius: theme.borderRadius.xl, borderWidth: 1, borderColor: colors.border, padding: 22, ...shadows.medium },
   title: { fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 14 },
@@ -607,7 +610,7 @@ const makeS = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create(
   stateTag: { backgroundColor: colors.surfaceLight, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 99 },
   stateTagText: { fontSize: 9, color: colors.textTertiary, fontWeight: '600' },
   addBtn: { backgroundColor: colors.primary, paddingHorizontal: 12, paddingVertical: 7, borderRadius: theme.borderRadius.md },
-  addBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
+  addBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 }, // white-on-primary: intentional in both modes (LIGHT-01)
   comboRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.surface, borderRadius: theme.borderRadius.lg, borderWidth: 1, borderColor: colors.border, padding: 12, marginBottom: 8, ...shadows.glow },
   comboNum: { fontSize: 20, fontWeight: '900', color: colors.text, letterSpacing: 3, fontFamily: theme.typography.fontFamily.monoBold, minWidth: 56 },
   comboSet: { fontSize: 10, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
@@ -630,12 +633,12 @@ const makeS = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create(
   welcomeTitle: { fontSize: 20, fontWeight: '900', color: colors.text, marginBottom: 8 },
   welcomeDesc: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', maxWidth: 300, lineHeight: 20, marginBottom: 16 },
   createBtn: { backgroundColor: colors.cosmic, paddingHorizontal: 22, paddingVertical: 11, borderRadius: 11 },
-  createBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  createBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 }, // white-on-cosmic: intentional in both modes (LIGHT-01)
   sampleBtn: { marginTop: 10, paddingHorizontal: 16, paddingVertical: 8 },
   sampleBtnText: { color: colors.textSecondary, fontWeight: '600', fontSize: 12 },
   upsellCard: { borderRadius: theme.borderRadius.xl, padding: 18, alignItems: 'center', borderWidth: 1.5, borderColor: colors.primary + '33', marginTop: 8 },
   upsellTitle: { fontSize: 13, fontWeight: '800', color: colors.text, marginBottom: 4 },
   upsellDesc: { fontSize: 11, color: colors.textSecondary, textAlign: 'center', marginBottom: 12, lineHeight: 18 },
   upsellBtn: { backgroundColor: colors.gold, paddingHorizontal: 18, paddingVertical: 9, borderRadius: theme.borderRadius.lg },
-  upsellBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  upsellBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 }, // white on gold accent fill: intentional in both modes (LIGHT-01)
 });

@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useRef, useState, useMem
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '@/constants/theme';
-import { useTheme, type ColorTokens } from '@/lib/theme';
+import { useTheme, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -13,8 +13,8 @@ const ToastContext = createContext<ToastCtx>({ showToast: () => {} });
 export function useToast() { return useContext(ToastContext); }
 
 function ToastItem({ toast, onHide }: { toast: ToastMsg; onHide: () => void }) {
-  const { colors } = useTheme();
-  const st = useMemo(() => makeSt(colors), [colors]);
+  const { colors, shadows } = useTheme();
+  const st = useMemo(() => makeSt(colors, shadows), [colors, shadows]);
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(16)).current;
 
@@ -46,8 +46,8 @@ function ToastItem({ toast, onHide }: { toast: ToastMsg; onHide: () => void }) {
 }
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const { colors } = useTheme();
-  const st = useMemo(() => makeSt(colors), [colors]);
+  const { colors, shadows } = useTheme();
+  const st = useMemo(() => makeSt(colors, shadows), [colors, shadows]);
   const [toasts, setToasts] = useState<ToastMsg[]>([]);
   const insets  = useSafeAreaInsets();
   const counter = useRef(0);
@@ -71,7 +71,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-const makeSt = (colors: ColorTokens) => StyleSheet.create({
+const makeSt = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create({
   container: {
     position: 'absolute', left: 16, right: 16, gap: 8, zIndex: 9999,
   },
@@ -82,8 +82,7 @@ const makeSt = (colors: ColorTokens) => StyleSheet.create({
     borderWidth: 1, borderColor: colors.borderMed,
     borderLeftWidth: 4,
     paddingHorizontal: 12, paddingVertical: 11,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5, shadowRadius: 12, elevation: 8,
+    ...shadows.medium,
   },
   iconBadge: {
     width: 22, height: 22, borderRadius: 11,

@@ -18,8 +18,10 @@ interface SignalBarProps {
 }
 
 export function SignalBar({ label, value, color }: SignalBarProps) {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const s = useMemo(() => makeS(colors), [colors]);
+  // Signal-hue glow reads as a colored smear on light surfaces — dark mode only (LIGHT-01)
+  const isLight = scheme === 'light';
   const pct = Math.min(Math.max(value, 0), 1);
   const valuePct = Math.round(pct * 100);
 
@@ -39,13 +41,13 @@ export function SignalBar({ label, value, color }: SignalBarProps) {
             {
               width: `${valuePct}%`,
               backgroundColor: color,
-              // iOS-friendly glow
+              // iOS-friendly glow (dark mode only)
               shadowColor: color,
               shadowOffset: { width: 0, height: 0 },
-              shadowOpacity: 0.7,
+              shadowOpacity: isLight ? 0 : 0.7,
               shadowRadius: 6,
               // Android — elevation only renders on opaque, so use a subtle one
-              ...(Platform.OS === 'android' ? { elevation: 2 } : null),
+              ...(Platform.OS === 'android' && !isLight ? { elevation: 2 } : null),
             },
           ]}
         />

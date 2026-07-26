@@ -80,6 +80,7 @@ export function RegenConfirmationModal({
 const makeStyles = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.create({
   backdrop: {
     flex: 1,
+    // scrim stays dark in both modes (LIGHT-01)
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     padding: 20,
@@ -150,6 +151,7 @@ const makeStyles = (colors: ColorTokens, shadows: ShadowTokens) => StyleSheet.cr
   },
   btnTextConfirm: {
     fontWeight: '700',
+    // '#fff' on the saturated primary/error fill is correct in both modes (LIGHT-01)
     color: '#fff',
   },
 });

@@ -289,7 +289,9 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
         )}
 
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-          {/* Rank badge with medal */}
+          {/* Rank badge with medal. Silver/bronze are literal metal materials
+              (not signals) — kept mode-locked; the medal emoji carries the
+              content so the fills stay legible on white too (LIGHT-01). */}
           <View style={[
             s.rankBadge,
             pick.rank === 1 ? { backgroundColor: colors.gold }
@@ -300,6 +302,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
             {MEDAL[pick.rank] ? (
               <Text style={{ fontSize: 18 }}>{MEDAL[pick.rank]}</Text>
             ) : (
+              // '#fff' on the saturated medal fill is correct in both modes (LIGHT-01)
               <Text style={[s.rankText, { color: pick.rank <= 3 ? '#fff' : colors.textTertiary }]}>
                 #{pick.rank}
               </Text>
@@ -352,6 +355,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
             <View style={s.signalDots}>
               {convergingSignals.map(sig => (
                 <View key={sig.key} style={[s.sigDot, { backgroundColor: sig.on ? sig.color : colors.border }]}>
+                  {/* '#fff' on the saturated signal fill is correct in both modes (LIGHT-01) */}
                   <Text style={[s.sigDotLabel, { color: sig.on ? '#fff' : colors.textTertiary }]}>{sig.key}</Text>
                 </View>
               ))}

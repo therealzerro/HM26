@@ -192,5 +192,5 @@ const makeStyles = (colors: ColorTokens) =>
       // monoBold — tabular digits, matching the app's numeric convention
       fontFamily: theme.typography.fontFamily.monoBold,
     },
-    error: { fontSize: 12, color: colors.error ?? '#e5484d', marginVertical: 8 },
+    error: { fontSize: 12, color: colors.error, marginVertical: 8 },
   });

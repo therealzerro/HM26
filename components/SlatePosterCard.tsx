@@ -8,12 +8,16 @@
    INVARIANT: rendering with no `redact` prop (or redact=false) must produce
    pixel-identical output to the prior inline GridTile. The only conditional
    behavior added is the redacted-digits substitution when redact=true.
+
+   LIGHT-01: posters are brand share artifacts — MODE-LOCKED to the dark
+   palette by operator decision. A light phone theme must not produce light
+   posters, so colors come from darkColors, never from useTheme().
    ============================================================================ */
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Lock } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
-import { useTheme, heatColor, heatLabel, type ColorTokens } from '@/lib/theme';
+import { darkColors, heatColor, heatLabel, type ColorTokens } from '@/lib/theme';
 import { PickItem } from './PickCard';
 import { RedactedDigitRow } from './pickVisuals';
 import { formatHitContext } from '@/lib/hitToPickItem';
@@ -38,7 +42,8 @@ interface SlatePosterCardProps {
 }
 
 export function SlatePosterCard({ pick, onPress, redact = false }: SlatePosterCardProps) {
-  const { colors } = useTheme();
+  // LIGHT-01 mode lock: dark palette regardless of the phone's theme.
+  const colors = darkColors;
   const gt = useMemo(() => makeGt(colors), [colors]);
   const tc       = tempColorForEnergy(pick.energy, colors);
   const tLabel   = tempLabel(pick.energy);

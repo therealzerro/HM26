@@ -413,6 +413,17 @@ Default to **$5-7** allocation. Operator can say "morning brief budget $X" to ov
   - Lead with T2 in the Recommended Allocation
   - Add note: "No T1 picks today — all bets are T2-evidence (engine signal only, no historical jurisdiction footprint)"
 
+### When the brief date is a Sunday
+Several states don't draw on Sundays (source: Lottery Post schedule panel, captured 2026-07-26 — `assets/Screen Shot 2026-07-26 at 4.04.57 PM.png`):
+- **Fully dark**: TX (all 4 draws), WV, PR (PR not ingested anyway)
+- **Midday-dark, evening live**: TN (Morning + Midday off), SC (Midday off), AR (Midday off)
+- Net ingested-board impact: **midday −6 draws** (TN×2, TX×2, SC, AR), **evening −3 draws** (TX×2, WV), allday −9.
+
+Apply:
+1. Section 4 board economics must use the Sunday-reduced draw counts — fewer draws lowers both the unit cost and the true session p(≥1 hit) below the Q6 fitted p_hit (which averages across all days).
+2. Discount T1 jurisdiction-footprint evidence resting mainly on that session's dark states (especially TX — a 4-draw contributor; TN/SC/AR for midday legs).
+3. Monday's Yesterday Validation: judge Sunday sessions against the smaller board before flagging a 0-hit day.
+
 ### When evening 7d match rate < 75%
 - Add red flag in Section 5: "Evening 7d match rate is [X]% (vs 30d baseline [Y]%) — CONFIG-15 may need partial revert (CO 0 → 10). Run: `UPDATE app_config SET value='{...with CO=10...}' WHERE key='engine_weights_balanced_evening';`"
 

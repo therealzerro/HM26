@@ -2,6 +2,31 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
+## 2026-07-26 — evening session (Sunday board)
+
+Slate basis: 7/26 K6 (workflow run 9:28am ET, engine v2.1). Sunday board: TX (×2) + WV dark → **~39 evening draws, $9.75/unit**. Midday (27-draw Sunday board): midday K6 0/6 (2nd straight — tripwire watch if Monday repeats); allday r1 {1,4,6} boxed AZ midday 416 → **146 leg CLOSED by convention** (day 2, no payout — wager was evening-board only; same structural forfeit as {2,3,5} on 7/22).
+
+### Core position — full evening board (~39 draws, $9.75/unit)
+
+| Combo (straight order) | Provenance | Units | Cost | If straight hits | If box-only hits |
+|---|---|---|---|---|---|
+| **195** {1,5,9} | **RIDE day 2 of 3** (opened 7/25); ad r3 today, 90d top-10 = 13 (**DC:4**, NM:3) | 3S + 4B | $68.25 | $825 | $150 |
+| **706** {0,6,7} | fresh leg replacing closed 146; **T1 Standout × Convergence** (ad r6 + mid r5), 90d top-10 = 15 (NY:3, TN:3), engine 14d = 6 | 3S + 4B | $68.25 | $825 | $150 |
+
+### Night totals
+
+- Staked: **$136.50** at 39-draw pricing
+- P(≥1 leg boxes tonight): ~37% (each ~20% on the 39-draw board) · P(≥1 straight): ~7%
+- EV framing (standing BUG-162/SIGNAL-INFO-01 truth): all products ≈ 90% RTP; expected night ≈ −$13.65. Footprint/convergence chose *which* combos, not the rate.
+- Ride convention: max bet, ride until hit, max 3 days; hit closes the leg. 195 must hit by 7/27 evening or it expires.
+
+### Resolution (pending — import evening results, then update)
+
+| Leg | Result | Payout |
+|---|---|---|
+| 195 (3S+4B) | — | — |
+| 706 (3S+4B) | — | — |
+
 ## 2026-07-25 — evening session
 
 Slate basis: 7/25 evening K6 + allday K6 (workflow run 5:05am ET, engine v2.1). Midday (33 draws): midday K6 0/6; allday r2 {1,4,5} boxed (AR 154) and r5 {0,2,4} hit **straight** (CT 240, engine best order) — both legs closed by convention, excluded tonight.
@@ -20,12 +45,14 @@ Slate basis: 7/25 evening K6 + allday K6 (workflow run 5:05am ET, engine v2.1). 
 - EV framing (standing BUG-162/SIGNAL-INFO-01 truth): all products ≈ 90% RTP; expected night ≈ −$14.70. Convergence/footprint chose *which* combos, not the rate.
 - Ride convention: max bet, ride until hit, max 3 days; hit closes the leg.
 
-### Resolution (pending — import evening results, then update)
+### Resolution (results imported; verified vs histories 2026-07-26)
 
 | Leg | Result | Payout |
 |---|---|---|
-| 146 (3S+4B) | — | — |
-| 195 (3S+4B) | — | — |
+| 146 (3S+4B) | 0 — {1,4,6} absent from all 42 evening draws | $0 |
+| 195 (3S+4B) | 0 — {1,5,9} absent from all 42 evening draws | $0 |
+
+**Net: −$147.00.** Both legs unhit → eligible to ride (day 2 of max 3) into 7/26 evening.
 
 ## 2026-07-22 — evening session
 

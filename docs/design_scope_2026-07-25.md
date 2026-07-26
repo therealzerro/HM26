@@ -1,7 +1,10 @@
 # Aesthetics & Visual Design — Deep Scope (2026-07-25)
 
-> **Status update (same day):** T0 + T1 green-lit and SHIPPED — see DESIGN-02 in MASTER_AUDIT.md
-> (commits `c5e00ee`, `4ee5f88`, `9b72371`, + slice 3). T2 and T3 remain proposed-only.
+> **Status update (2026-07-26):** T0 + T1 SHIPPED 7/25 (commits `c5e00ee`, `4ee5f88`, `9b72371`, `ba9e233`);
+> T2 + T3 SHIPPED 7/26 (commits `793c4be`, `5a8837d`, `ee20835`) — all items except 3.1 (remains the
+> DESIGN-01 light-Phase-3 path), 3.5 beyond token cleanup (no blur adopted), and 3.6 (ZK30 palette,
+> deliberately excluded under the ZK6-first gate / ARCH-06). 3.2/3.3 shipped as the policies below,
+> not bulk migrations. See DESIGN-02 in MASTER_AUDIT.md.
 
 Method: three parallel audit agents — (1) theme/token layer, (2) consumer screens, (3) admin surfaces + MASTER_AUDIT design-debt history. All findings carry file:line evidence. This document is the synthesis; nothing here has been changed yet except where noted.
 
@@ -55,6 +58,12 @@ Method: three parallel audit agents — (1) theme/token layer, (2) consumer scre
 | 3.4 | **EngineConfigView findability** — 1072 lines, 10 sections, one flat scroll, no anchors/collapse/search. Section jump-chips or collapsibles. |
 | 3.5 | **Glass strategy** — no blur exists anywhere; "glass" is faked with white rgba that vanishes in light mode. Either adopt expo-blur where it matters (pick-detail flow) or replace with tokenized borders/tints that survive both modes. |
 | 3.6 | **ZK30 palette integration** — third palette, hardcoded, not mode-aware; CO channel is purple in ZK6 and blue in ZK30. Already deferred to "v2.0 public launch" (ARCH-06) — leave parked until ZK30 work resumes, but the CO hue conflict is worth resolving whenever ZK30 reopens. |
+
+## Adopted policies (T3.2 / T3.3 — decided 2026-07-25 with the T2/T3 execution)
+
+**Iconography (3.2):** consumer surfaces converge on **lucide-react-native**; emoji remains legitimate on admin/operator surfaces (it works there and admin is brand-exempt). Not a bulk migration — the rule is: (a) never introduce a NEW emoji icon on a consumer surface, (b) when touching a consumer row that mixes emoji + lucide, swap the emoji to the lucide equivalent, (c) typographic dingbats used as data glyphs (✦ ◈ ❄ in the heat scale) are fine — they tint with `color`; true emoji (🔥 ⚡) in data scales are grandfathered until the heat-scale display is next redesigned. Session glyphs (☀️ 🌙) are brand vocabulary and stay.
+
+**Typography (3.3):** loaded Inter faces top out at 700 — `fontWeight: '800'/'900'` render via the 700 face when a fontFamily is set, and inconsistently when not. Convention for NEW code: weight '700' + explicit family (`bold`/`monoBold`) for emphasis; mono is ALWAYS `theme.typography.fontFamily.mono`/`monoBold` (never raw 'JetBrainsMono_700Bold', never 'monospace'). Existing 800/900 declarations are left alone (visual no-op churn). Dead tokens (letterSpacing block, spacing s-aliases, semantic font sizes with zero usages) pruned from constants/theme.ts — new sizes use the t-shirt scale.
 
 ## Standing constraints honored (not re-proposed / not contradicted)
 

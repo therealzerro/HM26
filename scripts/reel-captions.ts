@@ -29,8 +29,6 @@
  * (SOCIAL-13); Pro = first-access framing, never pricing.
  */
 
-export type ReelCaptionKind = 'allday_pro' | 'allday_free' | 'verify';
-
 export interface ReceiptsData {
   date: string;            // the receipts date (ET ISO)
   totalSignals: number;    // signals across all scopes that day
@@ -150,31 +148,22 @@ function dayOfYear(iso: string): number {
   return Math.floor((d.getTime() - jan1) / 86_400_000);
 }
 
-// ── templates ─────────────────────────────────────────────────────────────────
-// VERIFY + FREE are qualitative by ruling: dates only, no verification
-// numbers, no state attributions. PRO carries the real numbers.
-
-const VERIFY_TEMPLATES: ((m: string) => string)[] = [
-  m => `Receipts are in 🧾 ${m}'s signals, graded against the real results. Watch the tape, then check it against your own state.`,
-  m => `No talk, just the tape: ${m}'s board, verified in the open. The reel is the receipt. 📊`,
-  m => `Posted first, graded after — that's the whole routine. ${m}'s verification breakdown is in the reel.`,
-  m => `${m}'s board, graded 🧾 We publish before the results and grade in the open. See how the day closed.`,
-  m => `If a signal doesn't verify, you see that too. ${m}'s tape is up — every outcome on the record.`,
-  m => `Scoreboard check 📊 ${m}'s signals are graded and on the record. Tomorrow's board drops in the morning.`,
-  m => `The data speaks for itself — ${m}'s verification tape is up. Watch it, then pull your own state's results and compare.`,
-  m => `Another day on the record 🧾 Every signal from ${m}, checked in the open. Watch, verify, repeat.`,
-];
-
-const ALLDAY_FREE_TEMPLATES: ((m: string) => string)[] = [
-  m => `Today's All-Day board is live 🔆 Six signals, every session, coast to coast. Run your state against the reel.`,
-  m => `Fresh six for ${m} — one board covering day and night sessions. Full breakdown above ⬆️`,
-  m => `The engine doesn't sleep 📊 ${m}'s six All-Day signals are posted. Grade us yourself tomorrow — every outcome goes on the record.`,
-  m => `New day, new board: six pattern signals for ${m}, live now. Yesterday's tape is already graded in the open.`,
-  m => `All-Day intelligence for ${m} just dropped — six signals built from national pattern data, verified in the open every morning after.`,
-  m => `Six signals. 40+ states & provinces. One reel 🎬 ${m}'s All-Day board is up — watch the signal-by-signal breakdown.`,
-  m => `${m}'s All-Day drop is in. Watch all six signals, find your state, and check the receipts tomorrow.`,
-  m => `Board's set for ${m} ☀️🌙 Six All-Day signals covering both sessions — the breakdown's in the reel.`,
-];
+// ── template registry ─────────────────────────────────────────────────────────
+// THE standing caption engine for ALL pipeline content (operator directive
+// 2026-07-27: every current and future content type requiring captions uses
+// this system — never one-off caption strings in a pipeline script).
+//
+// HOW TO ADD A NEW CONTENT KIND:
+//   1. Add one entry to CAPTION_REGISTRY below:
+//      - templates: 8+ viewer-friendly variants, clean against the universal
+//        tier-2/4 rules (no guarantees/urgency/"hit(s)"; ≤2 emoji)
+//      - offset: unique, so kinds never pair the same style on the same day
+//      - realNumbers: true ONLY for pro-audience surfaces (operator ruling:
+//        real verification numbers are pro-only; everything else stays
+//        qualitative — c.pro is null unless realNumbers is set, so a
+//        qualitative template CANNOT leak numbers by construction)
+//      - fallback: required when realNumbers (used if the receipts fetch fails)
+//   2. Nothing else — buildReelCaption() and the publish flow pick it up.
 
 interface ProCtx {
   reelMd: string;
@@ -185,6 +174,19 @@ interface ProCtx {
   jxCount: number;
   straightJx: string[];
   v30: number;
+}
+
+interface TemplateCtx {
+  reelMd: string;        // the content date label, e.g. "7/27"
+  pro: ProCtx | null;    // real-numbers context — ONLY for realNumbers kinds
+  seed: number;
+}
+
+interface KindSpec {
+  offset: number;
+  realNumbers: boolean;
+  templates: ((c: TemplateCtx) => string)[];
+  fallback?: (reelMd: string) => string;
 }
 
 /** "— including a STRAIGHT MATCH in GA" / "…MATCHES in GA and TX" / "" */
@@ -209,41 +211,73 @@ function credLine(c: ProCtx, seed: number): string {
   return `Every signal gets graded against observed outcomes — the record is public.`;
 }
 
-const ALLDAY_PRO_TEMPLATES: ((c: ProCtx, s: number) => string)[] = [
-  (c, s) => `Pro first look 💎 ${c.reelMd}'s All-Day six are on your board before anywhere else. ${credLine(c, s)}`,
-  (c, s) => `You see it first: the ${c.reelMd} All-Day board, all six signals in full detail. ${credLine(c, s)}`,
-  (c, s) => `Early access delivered — six All-Day signals for ${c.reelMd}, straight from the engine. ${credLine(c, s)}`,
-  (c, s) => `The ${c.reelMd} board is yours before the crowd 💎 Six signals, both sessions covered. ${credLine(c, s)}`,
-  (c, s) => `First in, as always: ${c.reelMd}'s All-Day intelligence, all six signals in full. ${credLine(c, s)}`,
-  (c, s) => `Pro drop for ${c.reelMd} is live — six signals, complete detail, zero waiting. ${credLine(c, s)}`,
-  (c, s) => `Your head start for ${c.reelMd} 💎 The full All-Day six, posted here first. ${credLine(c, s)}`,
-  (c, s) => `Before the rest of the room sees the board: ${c.reelMd}'s six All-Day signals, full breakdown inside. ${credLine(c, s)}`,
-];
+const CAPTION_REGISTRY = {
+  // Qualitative by ruling: dates only, no verification numbers, no states.
+  verify: {
+    offset: 0,
+    realNumbers: false,
+    templates: [
+      c => `Receipts are in 🧾 ${c.reelMd}'s signals, graded against the real results. Watch the tape, then check it against your own state.`,
+      c => `No talk, just the tape: ${c.reelMd}'s board, verified in the open. The reel is the receipt. 📊`,
+      c => `Posted first, graded after — that's the whole routine. ${c.reelMd}'s verification breakdown is in the reel.`,
+      c => `${c.reelMd}'s board, graded 🧾 We publish before the results and grade in the open. See how the day closed.`,
+      c => `If a signal doesn't verify, you see that too. ${c.reelMd}'s tape is up — every outcome on the record.`,
+      c => `Scoreboard check 📊 ${c.reelMd}'s signals are graded and on the record. Tomorrow's board drops in the morning.`,
+      c => `The data speaks for itself — ${c.reelMd}'s verification tape is up. Watch it, then pull your own state's results and compare.`,
+      c => `Another day on the record 🧾 Every signal from ${c.reelMd}, checked in the open. Watch, verify, repeat.`,
+    ],
+  },
+  // Qualitative by ruling; pure value, no Pro pitch (SOCIAL-13).
+  allday_free: {
+    offset: 3,
+    realNumbers: false,
+    templates: [
+      c => `Today's All-Day board is live 🔆 Six signals, every session, coast to coast. Run your state against the reel.`,
+      c => `Fresh six for ${c.reelMd} — one board covering day and night sessions. Full breakdown above ⬆️`,
+      c => `The engine doesn't sleep 📊 ${c.reelMd}'s six All-Day signals are posted. Grade us yourself tomorrow — every outcome goes on the record.`,
+      c => `New day, new board: six pattern signals for ${c.reelMd}, live now. Yesterday's tape is already graded in the open.`,
+      c => `All-Day intelligence for ${c.reelMd} just dropped — six signals built from national pattern data, verified in the open every morning after.`,
+      c => `Six signals. 40+ states & provinces. One reel 🎬 ${c.reelMd}'s All-Day board is up — watch the signal-by-signal breakdown.`,
+      c => `${c.reelMd}'s All-Day drop is in. Watch all six signals, find your state, and check the receipts tomorrow.`,
+      c => `Board's set for ${c.reelMd} ☀️🌙 Six All-Day signals covering both sessions — the breakdown's in the reel.`,
+    ],
+  },
+  // The ONLY realNumbers kind: first-access framing, never pricing.
+  allday_pro: {
+    offset: 5,
+    realNumbers: true,
+    fallback: m => `First access: the ${m} All-Day board. Six signals straight from the engine, in full detail. 📊`,
+    templates: [
+      c => `Pro first look 💎 ${c.reelMd}'s All-Day six are on your board before anywhere else. ${credLine(c.pro!, c.seed)}`,
+      c => `You see it first: the ${c.reelMd} All-Day board, all six signals in full detail. ${credLine(c.pro!, c.seed)}`,
+      c => `Early access delivered — six All-Day signals for ${c.reelMd}, straight from the engine. ${credLine(c.pro!, c.seed)}`,
+      c => `The ${c.reelMd} board is yours before the crowd 💎 Six signals, both sessions covered. ${credLine(c.pro!, c.seed)}`,
+      c => `First in, as always: ${c.reelMd}'s All-Day intelligence, all six signals in full. ${credLine(c.pro!, c.seed)}`,
+      c => `Pro drop for ${c.reelMd} is live — six signals, complete detail, zero waiting. ${credLine(c.pro!, c.seed)}`,
+      c => `Your head start for ${c.reelMd} 💎 The full All-Day six, posted here first. ${credLine(c.pro!, c.seed)}`,
+      c => `Before the rest of the room sees the board: ${c.reelMd}'s six All-Day signals, full breakdown inside. ${credLine(c.pro!, c.seed)}`,
+    ],
+  },
+} satisfies Record<string, KindSpec>;
 
-// Offsets keep the three captions from pairing the same template index on the
-// same day (they'd read as copy-paste across groups otherwise — the same-day
-// duplicate-caption rule exists for a reason).
-const KIND_OFFSET: Record<ReelCaptionKind, number> = { verify: 0, allday_free: 3, allday_pro: 5 };
-
-/** Static fallback — pro only, used when the receipts fetch fails outright. */
-const PRO_FALLBACK = (m: string) =>
-  `First access: the ${m} All-Day board. Six signals straight from the engine, in full detail. 📊`;
+export type ReelCaptionKind = keyof typeof CAPTION_REGISTRY;
 
 export function buildReelCaption(kind: ReelCaptionKind, reelDate: string, receipts: ReceiptsData | null): string {
-  const seed = dayOfYear(reelDate) + KIND_OFFSET[kind];
+  const spec: KindSpec = CAPTION_REGISTRY[kind];
+  const seed = dayOfYear(reelDate) + spec.offset;
   const reelMd = md(reelDate);
-  if (kind === 'verify') return VERIFY_TEMPLATES[seed % VERIFY_TEMPLATES.length](reelMd);
-  if (kind === 'allday_free') return ALLDAY_FREE_TEMPLATES[seed % ALLDAY_FREE_TEMPLATES.length](reelMd);
-  if (!receipts) return PRO_FALLBACK(reelMd);
-  const ctx: ProCtx = {
-    reelMd,
-    rcptMd: md(receipts.date),
-    t: receipts.totalSignals,
-    v: receipts.verifiedCount,
-    jxAll: [...receipts.straightJx, ...receipts.boxJx],
-    jxCount: receipts.straightJx.length + receipts.boxJx.length,
-    straightJx: receipts.straightJx,
-    v30: receipts.verified30d,
-  };
-  return ALLDAY_PRO_TEMPLATES[seed % ALLDAY_PRO_TEMPLATES.length](ctx, seed);
+  if (spec.realNumbers && !receipts) return (spec.fallback ?? (m => m))(reelMd);
+  const pro: ProCtx | null = spec.realNumbers && receipts
+    ? {
+        reelMd,
+        rcptMd: md(receipts.date),
+        t: receipts.totalSignals,
+        v: receipts.verifiedCount,
+        jxAll: [...receipts.straightJx, ...receipts.boxJx],
+        jxCount: receipts.straightJx.length + receipts.boxJx.length,
+        straightJx: receipts.straightJx,
+        v30: receipts.verified30d,
+      }
+    : null;
+  return spec.templates[seed % spec.templates.length]({ reelMd, pro, seed });
 }

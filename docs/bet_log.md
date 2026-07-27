@@ -20,12 +20,14 @@ Slate basis: 7/26 K6 (workflow run 9:28am ET, engine v2.1). Sunday board: TX (×
 - EV framing (standing BUG-162/SIGNAL-INFO-01 truth): all products ≈ 90% RTP; expected night ≈ −$13.65. Footprint/convergence chose *which* combos, not the rate.
 - Ride convention: max bet, ride until hit, max 3 days; hit closes the leg. 195 must hit by 7/27 evening or it expires.
 
-### Resolution (pending — import evening results, then update)
+### Resolution (results imported; verified vs histories 2026-07-27 — board ran 40 draws, one over the 39 estimate)
 
 | Leg | Result | Payout |
 |---|---|---|
-| 195 (3S+4B) | — | — |
-| 706 (3S+4B) | — | — |
+| 195 (3S+4B) | 0 — {1,5,9} absent from all 40 evening draws | $0 |
+| 706 (3S+4B) | **BOX — DE drew 760** (bet order 706, so box only) | **$150.00** (4B × $37.50) |
+
+**Net: +$13.50** at the logged 39-draw stake ($136.50); if the book charged the live 40-draw board ($140.00), net +$10.00 — confirm ticket cost. **706 leg CLOSED by hit** (convention). **195 unhit through day 2 — 7/27 evening is its final ride day (day 3 of 3), then it expires.** First positive night in the log (7/22 −$407.75, 7/25 −$147.00, 7/26 +$13.50).
 
 ## 2026-07-25 — evening session
 

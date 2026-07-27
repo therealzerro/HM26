@@ -84,6 +84,37 @@ npm run reel:verify
 
 
 ----------------------------------------------------------------
+PANEL BUILD (only when panel artwork is added or replaced)
+----------------------------------------------------------------
+
+npm run panel:build
+
+    Preps the rotating promo panels that appear in the empty
+    space at the bottom of each pick-detail modal. Drop new
+    artwork into assets/marketing/panels/, run this, then run
+    npm run reel:check.
+
+    Each panel is cropped to its artwork band automatically, so
+    the band's shape is flexible and anything below it (like a
+    generator watermark) is discarded. Edges are feathered, so
+    the panel's own background colour doesn't have to match the
+    app — full-bleed artwork works fine.
+
+    A different panel shows on each of the six modals; which one
+    leads rotates by date, so every panel gets the opening slot
+    once every six days. Adding a seventh panel needs no code
+    change. A missing panel is skipped with a warning — it never
+    blocks the daily run.
+
+    IMPORTANT: panel copy is cleared by hand and locked to the
+    file. If artwork is replaced, reel:check FAILS until the copy
+    is re-read and re-approved — that's deliberate, it's the only
+    thing stopping unreviewed words reaching a reel. To approve:
+    npm run panel:build -- --print-hashes, then paste the new
+    hash into scripts/panel-config.ts.
+
+
+----------------------------------------------------------------
 ENDCARD BUILD (only when a motion file or copy changes)
 ----------------------------------------------------------------
 

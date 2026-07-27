@@ -55,6 +55,13 @@ in carrier (voiceover) and endcard branding.
                grid (all six on screen), then each signal tapped in rank
                order 1→6: modal opens, ~2.0s hold on digits/energy/
                confidence/breakdown, close. Hard cuts between modals.
+  9.6 – 21.6   PANEL LAYER — a rotating branded panel is composited into the
+               empty band below the "RESOLVED IN" card during each of the six
+               modal segments (measured dead zone y 1492–1919; panels are
+               centred in it, always at y ≥ 1500). One panel per modal,
+               changing on the modal boundaries. Panels do NOT appear over
+               the grid push-in (no usable space there) and are absent from
+               the 1:1 cut by geometry, not by a special case.
   21.6 – 28.1  OUTRO (6.5s) — the endcard's FIRST 6.5s, hard cut in:
                smoke rise → bolt snap (~22.8s, its crack lands exactly on
                the snap) → lockup resolves → calm hold.
@@ -242,6 +249,28 @@ per-day by hand, not AI-freestyled.
     allday_free_endcard.mp4       Free endcard
     verif_carrier.mp4             Verify reel audio bed (9.2s used)
     verif_endcard.mp4             Verify bolt endcard
+    panels/panel_*.png            Rotating promo panels (6): brand, signals,
+                                  coverage, anchor, app, zk30. Source art;
+                                  panels/built/ is generated, not source.
+
+  PANEL DELIVERY SPEC (assets/marketing/panels/):
+  - ~3:2 PNG whose CENTRED horizontal band is the artwork. The band is
+    detected and cropped automatically, so the band's own aspect is free
+    (delivered set ranges 2.97:1 to 4.40:1) — each panel keeps its native
+    height rather than being squeezed to one strip size.
+  - Anything below the band (e.g. a generator watermark) is discarded.
+  - Backing colour does NOT need to match the app: every panel is
+    feathered on all four edges, which is what makes full-bleed artwork
+    sit natively. Both black-backed and full-bleed purple panels work.
+  - TIER-NEUTRAL, no exceptions: the All-Day body is shared by the Pro and
+    Free reels, so no pricing, no upgrade CTA, no Pro pitch.
+  - Copy is cleared MANUALLY and pinned to the file's sha256. Changing a
+    panel's artwork voids its clearance and `reel:check` fails until it is
+    re-reviewed and re-pinned (npm run panel:build -- --print-hashes).
+  - After a drop-in: `npm run panel:build`, then `npm run reel:check`.
+  - The set is expected to grow past six; rotation adapts with no code
+    change. A missing panel is dropped from the day's rotation with a
+    warning — it never blocks a run.
   Replacing any of these with a spec-compliant upgrade requires zero code
   changes — drop-in by filename. Longer (~16.4s) All-Day carriers are the
   standing request: they unlock wall-to-wall narration mode.

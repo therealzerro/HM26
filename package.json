@@ -36,7 +36,8 @@
     "reel:allday": "tsx scripts/render-allday-body.ts && tsx scripts/assemble-allday-reels.ts && tsx scripts/publish-reels.ts allday",
     "reel:publish": "tsx scripts/publish-reels.ts",
     "reel:check": "tsx scripts/check-reel-assets.ts",
-    "endcard:build": "tsx scripts/build-endcard.ts"
+    "endcard:build": "tsx scripts/build-endcard.ts",
+    "panel:build": "tsx scripts/build-panels.ts"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

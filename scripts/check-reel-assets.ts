@@ -19,6 +19,8 @@ import { existsSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { resolveCarrier, orphanedParts, audioDur } from './reel-carrier';
+import { available, rotation, rotationDegenerate, sourcePath, builtPath, sha256 } from './reel-panels';
+import { PANELS, MODAL_COUNT, ZONE_TOP, ZONE_BOTTOM, PANEL_W, CROP_SAFE_TOP } from './panel-config';
 
 const ASSETS = resolve('assets/marketing');
 const OPEN = 1.2, BODY = 16.0, CARD = 6.5; // assembler constants (body measured at runtime; 16.0 = current renderer)
@@ -223,6 +225,53 @@ function checkVerify(): void {
   }
 }
 
+// MKT-11: panels are composited, so they bypass the renderer's in-frame
+// vocabulary guard. Clearance is manual and PINNED TO THE FILE HASH — a changed
+// PNG voids its clearance here rather than shipping unreviewed copy.
+function checkPanels(): void {
+  const zoneH = ZONE_BOTTOM - ZONE_TOP + 1;
+  let usableCount = 0;
+  for (const p of PANELS) {
+    const src = sourcePath(ASSETS, p);
+    if (!existsSync(src)) {
+      // Non-blocking by contract: rotation drops it and the run continues.
+      add('WARN', p.file, `not delivered — dropped from the rotation (${p.label})`);
+      continue;
+    }
+    const actual = sha256(src);
+    if (!p.sha256) {
+      add('FAIL', p.file, `no clearance hash pinned — review the copy, then run npm run panel:build -- --print-hashes`);
+      continue;
+    }
+    if (actual !== p.sha256) {
+      add('FAIL', p.file, `artwork changed since clearance ${p.cleared} (hash ${actual.slice(0, 12)}… ≠ ${p.sha256.slice(0, 12)}…) — re-review the copy and re-pin the hash`);
+      continue;
+    }
+    const built = builtPath(ASSETS, p);
+    if (!existsSync(built)) {
+      add('WARN', p.file, `cleared but not built — run npm run panel:build (dropped from rotation until then)`);
+      continue;
+    }
+    const [w, h] = probe(built, `-select_streams v:0 -show_entries stream=width,height -of csv=p=0`).split(',').map(Number);
+    if (w !== PANEL_W) { add('FAIL', p.file, `built ${w}x${h} — width must be ${PANEL_W}`); continue; }
+    if (h > zoneH) { add('FAIL', p.file, `built height ${h} exceeds the ${zoneH}px dead zone`); continue; }
+    const y = Math.max(CROP_SAFE_TOP, Math.round(ZONE_TOP + (zoneH - h) / 2));
+    if (y < CROP_SAFE_TOP) { add('FAIL', p.file, `would sit at y=${y}, above the 1:1 crop line ${CROP_SAFE_TOP} — panel would appear in the square cut`); continue; }
+    usableCount++;
+    add('PASS', p.file, `${w}x${h} @ y=${y} · cleared ${p.cleared} · ${p.label}`);
+  }
+  if (usableCount === 0) {
+    add('WARN', 'panels', 'none usable — reels assemble without the panel layer');
+    return;
+  }
+  if (rotationDegenerate(usableCount)) {
+    add('WARN', 'panels', `${usableCount} panels with a ${MODAL_COUNT}-modal stride cycles through only a couple of distinct subsets — add or remove one for daily variety`);
+  }
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }).replace(/-/g, '');
+  const seq = rotation(today, available(ASSETS).usable);
+  add('PASS', 'panels', `today's sequence: ${seq.map((p, i) => `${i + 1}·${p.label}`).join('  ')}`);
+}
+
 // MKT-07: smoke-render the slate stamp so a broken renderer (moved font files,
 // playwright update) fails HERE instead of aborting the daily assembly.
 function checkStamp(): void {
@@ -248,6 +297,7 @@ const freeCarrier = checkAlldayCarrier('free');
 checkAlldayEndcard('pro', proCarrier);
 checkAlldayEndcard('free', freeCarrier);
 checkVerify();
+checkPanels();
 checkStamp();
 
 const ICON = { PASS: '✅', WARN: '⚠️ ', FAIL: '⛔' } as const;

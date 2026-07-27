@@ -16,14 +16,22 @@
  * Auth: service role from .env.backtest (same contract as the backfill
  * writer — never logged, never bundled).
  *
- * Usage: tsx scripts/publish-reels.ts <allday|verify> [YYYYMMDD]
+ * Captions (MKT-05): built per-run by scripts/reel-captions.ts — creative
+ * daily rotation; real verification numbers appear ONLY in the pro caption
+ * (operator ruling 2026-07-27, gambling-adjacent safety).
+ *
+ * Usage: tsx scripts/publish-reels.ts <allday|verify> [YYYYMMDD] [flags]
  *   allday defaults to today ET; verify defaults to yesterday ET — the same
  *   stamps their assemblers write.
+ *   --preview        print the captions that would ship, write nothing
+ *   --captions-only  refresh captions on existing rows (no uploads, keeps
+ *                    status/posted flags — for tweaking after the fact)
  */
 import { config as loadEnv } from 'dotenv';
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
+import { buildReelCaption, fetchReceiptsData, shiftDate, ReceiptsData } from './reel-captions';
 
 loadEnv({ path: '.env.backtest' });
 
@@ -48,22 +56,16 @@ function etDate(offsetDays: number): string {
 
 const mode = process.argv[2];
 if (mode !== 'allday' && mode !== 'verify') {
-  console.error('Usage: tsx scripts/publish-reels.ts <allday|verify> [YYYYMMDD]');
+  console.error('Usage: tsx scripts/publish-reels.ts <allday|verify> [YYYYMMDD] [--preview] [--captions-only]');
   process.exit(1);
 }
+const restArgs = process.argv.slice(3);
+const PREVIEW = restArgs.includes('--preview');
+const CAPTIONS_ONLY = restArgs.includes('--captions-only');
+const stampArg = restArgs.find((a) => !a.startsWith('--'));
 const defaultIso = mode === 'verify' ? etDate(-1) : etDate(0);
-const stamp = process.argv[3] ?? defaultIso.replace(/-/g, '');
+const stamp = stampArg ?? defaultIso.replace(/-/g, '');
 const isoDate = `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`;
-const mdLabel = `${parseInt(stamp.slice(4, 6), 10)}/${parseInt(stamp.slice(6, 8), 10)}`;
-
-// Caption drafts are TIER-2 (free group) safe — MATCH vocab, no forbidden
-// terms, no pricing. The operator edits per-target in the Reels view, where
-// the full brandLint engine runs before anything leaves the app.
-const CAPTIONS: Record<Kind, string> = {
-  allday_free: `All-Day intelligence for ${mdLabel} is live — six pattern signals from the ZK6 engine, full breakdown in the reel. Today's data drop is in the group. 📊`,
-  allday_pro: `First access: the ${mdLabel} All-Day signal set. Six pattern signals straight from the engine — full detail before anyone else sees it. 📊`,
-  verify: `Receipts from ${mdLabel} — every signal checked against observed outcomes, on the record. Watch the verification breakdown. 📊`,
-};
 
 interface ReelFiles { kind: Kind; video: string; video1x1: string; sheet: string }
 
@@ -88,6 +90,31 @@ function reelFiles(): ReelFiles[] {
 
 function svcHeaders(extra: Record<string, string> = {}): Record<string, string> {
   return { apikey: SVC_KEY!, Authorization: `Bearer ${SVC_KEY}`, ...extra };
+}
+
+async function sbGet<T = any>(path: string): Promise<T> {
+  const res = await fetch(`${SUPABASE_URL}${path}`, { headers: svcHeaders() });
+  if (!res.ok) throw new Error(`GET ${path.split('?')[0]} → HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  return (await res.json()) as T;
+}
+
+/**
+ * Captions for this run. Receipts (real numbers) feed ONLY the pro caption;
+ * the reel date's day-before is the freshest fully-resolved day for allday.
+ * A receipts failure degrades to the pro fallback — never blocks the upload.
+ */
+async function buildCaptions(kinds: Kind[]): Promise<Record<string, string>> {
+  let receipts: ReceiptsData | null = null;
+  if (kinds.includes('allday_pro')) {
+    try {
+      receipts = await fetchReceiptsData(shiftDate(isoDate, -1), sbGet);
+    } catch (e) {
+      console.warn('[publish-reels] receipts fetch failed — pro caption uses fallback:', String(e).slice(0, 200));
+    }
+  }
+  const out: Record<string, string> = {};
+  for (const k of kinds) out[k] = buildReelCaption(k, isoDate, receipts);
+  return out;
 }
 
 async function uploadFile(localPath: string, storagePath: string, contentType: string): Promise<void> {
@@ -136,7 +163,33 @@ async function prune(): Promise<void> {
   else console.log(`  🧹 pruned ${rows.length} reel(s) older than ${PRUNE_DAYS}d (${paths.length} objects).`);
 }
 
+/** --captions-only: refresh the draft on an existing row; status untouched. */
+async function updateCaptionOnly(kind: Kind, caption: string): Promise<void> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/marketing_reels?reel_date=eq.${isoDate}&kind=eq.${kind}`, {
+    method: 'PATCH',
+    headers: svcHeaders({ 'Content-Type': 'application/json', Prefer: 'return=representation' }),
+    body: JSON.stringify({ caption, updated_at: new Date().toISOString() }),
+  });
+  if (!res.ok) throw new Error(`caption update ${kind} → HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const rows = await res.json();
+  console.log(Array.isArray(rows) && rows.length > 0
+    ? `  ✔ caption refreshed (${kind} · ${isoDate})`
+    : `  – no row for ${kind} · ${isoDate} (run the full publish first)`);
+}
+
 async function main(): Promise<void> {
+  const kinds: Kind[] = mode === 'verify' ? ['verify'] : ['allday_pro', 'allday_free'];
+  const captions = await buildCaptions(kinds);
+
+  if (PREVIEW) {
+    for (const k of kinds) console.log(`\n── ${k} · ${isoDate} ──\n${captions[k]}`);
+    return;
+  }
+  if (CAPTIONS_ONLY) {
+    for (const k of kinds) await updateCaptionOnly(k, captions[k]);
+    return;
+  }
+
   const targets = reelFiles().filter((t) => {
     if (!existsSync(t.video)) {
       console.warn(`[publish-reels] skip ${t.kind}: ${basename(t.video)} not found (assembler not run for ${stamp}?).`);
@@ -173,7 +226,7 @@ async function main(): Promise<void> {
       video_1x1_path: video1x1Path,
       sheet_path: sheetPath,
       duration_s: Number.isFinite(duration) ? +duration.toFixed(2) : null,
-      caption: CAPTIONS[t.kind],
+      caption: captions[t.kind],
       status: 'ready',
       posted_at: null,
       target_name: null,

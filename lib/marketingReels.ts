@@ -100,14 +100,60 @@ export async function saveReelToPhotos(videoUrl: string, filename: string): Prom
 }
 
 /**
- * Web download: the storage endpoint serves CORS `*`, so fetch → blob →
- * object-URL keeps the `download` attribute working cross-origin (a bare
- * anchor to another origin ignores it and navigates instead).
+ * ── Web lane (two-step by necessity) ─────────────────────────────────────────
+ * Browsers only honor window.open / anchor-download / navigator.share inside a
+ * user gesture's transient-activation window, and an ~8MB video fetch outlives
+ * it — the original one-tap flow fetched first and then silently lost the
+ * download AND the group tab (operator-reported 7/27). So the web flow is:
+ * step 1 fetches the blob into state (no gesture-sensitive API involved),
+ * step 2's actions run on a FRESH tap with the file already in memory.
  */
-export async function downloadReelWeb(videoUrl: string, filename: string): Promise<void> {
-  const res = await fetch(videoUrl);
-  if (!res.ok) throw new Error(`Video download failed (HTTP ${res.status}).`);
-  const blob = await res.blob();
+
+/** Step 1: pull the mp4 into memory. Storage serves CORS `*` (verified). */
+export async function fetchReelBlob(videoUrl: string): Promise<Blob> {
+  let res: Response;
+  try {
+    res = await fetch(videoUrl);
+  } catch (e) {
+    throw new Error(`Video fetch failed (network/CORS): ${String(e instanceof Error ? e.message : e)}`);
+  }
+  if (!res.ok) throw new Error(`Video fetch failed (HTTP ${res.status}).`);
+  return await res.blob();
+}
+
+/**
+ * Can this browser hand a VIDEO FILE to the native share sheet? True on iOS
+ * Safari 15+ and Android Chrome — where the sheet includes "Save Video"
+ * (→ Photos) and direct app targets like Facebook. This IS the web
+ * save-to-photos path. Probed with an mp4 File specifically: image-file
+ * support (shareMultiFilesAvailable) does not imply video-file support.
+ */
+export function canWebShareVideo(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const nav = navigator as Navigator & { canShare?: (d: { files?: File[] }) => boolean; share?: unknown };
+  if (typeof nav.share !== 'function' || typeof nav.canShare !== 'function') return false;
+  try {
+    return nav.canShare({ files: [new File([new Uint8Array([0])], 'probe.mp4', { type: 'video/mp4' })] });
+  } catch {
+    return false;
+  }
+}
+
+/** Step 2a (fresh tap): native sheet with the real file — Save Video / FB. */
+export async function webShareReel(blob: Blob, filename: string): Promise<void> {
+  const nav = navigator as Navigator & {
+    canShare?: (d: { files?: File[] }) => boolean;
+    share: (d: { files?: File[]; title?: string }) => Promise<void>;
+  };
+  const files = [new File([blob], filename, { type: 'video/mp4' })];
+  if (typeof nav.canShare === 'function' && !nav.canShare({ files })) {
+    throw new Error('This browser cannot share video files — use Download instead.');
+  }
+  await nav.share({ files, title: 'HitMaster ZK6' });
+}
+
+/** Step 2b (fresh tap): object-URL anchor download — the desktop path. */
+export function downloadReelBlobWeb(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   try {
     const a = document.createElement('a');
@@ -117,6 +163,6 @@ export async function downloadReelWeb(videoUrl: string, filename: string): Promi
     a.click();
     a.remove();
   } finally {
-    setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 }

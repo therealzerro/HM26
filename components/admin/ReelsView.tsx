@@ -29,7 +29,8 @@ import { SURFACE_TIER } from '@/lib/social/captions';
 import { fbPublish } from '@/lib/social/fbPublishClient';
 import {
   MarketingReel, ReelKind, fetchReels, reelPublicUrl,
-  markReelPosted, shareReelToApps, saveReelToPhotos, downloadReelWeb,
+  markReelPosted, shareReelToApps, saveReelToPhotos,
+  fetchReelBlob, canWebShareVideo, webShareReel, downloadReelBlobWeb,
 } from '@/lib/marketingReels';
 import { Pill, SectionTitle, Card, useSt, timeAgo } from './AdminShared';
 
@@ -71,6 +72,11 @@ function ReelCard({ reel, urls, onPosted }: { reel: MarketingReel; urls: GroupUr
   const [q2No, setQ2No] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  // Web lane: the mp4 is fetched into memory FIRST (step 1) so the share /
+  // download / group-tab actions each run inside a fresh tap's transient
+  // activation — gesture-sensitive APIs silently no-op otherwise.
+  const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
+  const webCanShare = Platform.OS === 'web' && canWebShareVideo();
 
   const tier = SURFACE_TIER[target];
   const lint = lintCaption(caption, tier);
@@ -135,22 +141,63 @@ function ReelCard({ reel, urls, onPosted }: { reel: MarketingReel; urls: GroupUr
     }
   }, [caption, videoUrl, filename, logAndMark]);
 
-  const prepAndOpen = useCallback(async () => {
+  // ── Web lane ──
+  // Step 1: fetch only — no gesture-sensitive API, so it may take as long as
+  // the network needs without costing us the later tap's activation.
+  const prepareVideo = useCallback(async () => {
     setBusy(true);
-    setMsg('⏳ Downloading video…');
+    setMsg('⏳ Fetching video…');
     try {
-      await Clipboard.setStringAsync(caption);
-      await downloadReelWeb(videoUrl, filename);
-      const dest = (target === 'pro' ? urls.pro : urls.free) || 'https://www.facebook.com/groups/';
-      if (target !== 'cross') openInNewTab(dest);
-      const dupNote = await logAndMark();
-      setMsg(`🚀 Caption copied · video downloading${target !== 'cross' ? ' · group opened' : ''}. Attach the mp4, paste, post.${dupNote}`);
+      const blob = await fetchReelBlob(videoUrl);
+      setVideoBlob(blob);
+      setMsg(`✅ Video ready (${(blob.size / 1e6).toFixed(1)}MB) — now Save/Share or Download below.`);
     } catch (e: any) {
       setMsg(`❌ ${String(e?.message ?? e)}`);
     } finally {
       setBusy(false);
     }
-  }, [caption, videoUrl, filename, target, urls, logAndMark]);
+  }, [videoUrl]);
+
+  // Step 2a (mobile web): native sheet with the actual file — on iPhone the
+  // sheet's "Save Video" writes it to Photos; Facebook is a direct target too.
+  // Clipboard + share fire immediately on the tap, before any await.
+  const saveShareWeb = useCallback(async () => {
+    if (!videoBlob) return;
+    setBusy(true);
+    try {
+      Clipboard.setStringAsync(caption).catch(() => {});
+      await webShareReel(videoBlob, filename);
+      const dupNote = await logAndMark();
+      setMsg(`💾 Caption copied. In the sheet: "Save Video" puts it in Photos, or share straight into Facebook — then paste, post.${dupNote}`);
+    } catch (e: any) {
+      if (e?.name === 'AbortError') setMsg('Share cancelled — the video stays prepared.');
+      else setMsg(`❌ ${String(e?.message ?? e)}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [videoBlob, caption, filename, logAndMark]);
+
+  // Step 2b (desktop web): object-URL download, synchronous inside the tap.
+  const downloadWeb = useCallback(async () => {
+    if (!videoBlob) return;
+    setBusy(true);
+    try {
+      downloadReelBlobWeb(videoBlob, filename);
+      Clipboard.setStringAsync(caption).catch(() => {});
+      const dupNote = await logAndMark();
+      setMsg(`⬇️ Video downloading · caption copied. Attach the mp4 in the composer, paste, post.${dupNote}`);
+    } catch (e: any) {
+      setMsg(`❌ ${String(e?.message ?? e)}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [videoBlob, caption, filename, logAndMark]);
+
+  // Its own button so window.open runs synchronously inside the tap — bundling
+  // it after an await was exactly what the popup blocker ate.
+  const openGroup = useCallback(() => {
+    openInNewTab((target === 'pro' ? urls.pro : urls.free) || 'https://www.facebook.com/groups/');
+  }, [target, urls]);
 
   return (
     <Card style={{ padding: 12, marginBottom: 14 }}>
@@ -237,8 +284,10 @@ function ReelCard({ reel, urls, onPosted }: { reel: MarketingReel; urls: GroupUr
 
       {/* actions — assisted lane only (Groups have no publish API). Native
           primary = Save to Photos: the FB composer reliably attaches from the
-          camera roll but often drops a share-sheet video. */}
-      <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+          camera roll but often drops a share-sheet video. Web = two steps:
+          Prepare fetches the mp4, then Save/Share / Download / Group each run
+          on a fresh tap (transient activation — see web-lane note above). */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
         {Platform.OS !== 'web' ? (
           <>
             <TouchableOpacity style={[st.btnPrimary, { flex: 1, opacity: canSend ? 1 : 0.5 }]} disabled={!canSend} onPress={saveAndOpen}>
@@ -248,10 +297,30 @@ function ReelCard({ reel, urls, onPosted }: { reel: MarketingReel; urls: GroupUr
               <Text style={st.btnGhostText}>📤 Share…</Text>
             </TouchableOpacity>
           </>
-        ) : (
-          <TouchableOpacity style={[st.btnPrimary, { flex: 1, opacity: canSend ? 1 : 0.5 }]} disabled={!canSend} onPress={prepAndOpen}>
-            <Text style={st.btnPrimaryText}>{busy ? '⏳ …' : '🚀 Prep & Open (caption + mp4 + group)'}</Text>
+        ) : videoBlob === null ? (
+          <TouchableOpacity style={[st.btnPrimary, { flex: 1, opacity: busy ? 0.5 : 1 }]} disabled={busy} onPress={prepareVideo}>
+            <Text style={st.btnPrimaryText}>{busy ? '⏳ Fetching…' : '⬇️ Prepare Video (step 1 of 2)'}</Text>
           </TouchableOpacity>
+        ) : (
+          <>
+            {webCanShare && (
+              <TouchableOpacity style={[st.btnPrimary, { flex: 1, opacity: canSend ? 1 : 0.5 }]} disabled={!canSend} onPress={saveShareWeb}>
+                <Text style={st.btnPrimaryText}>{busy ? '⏳ …' : '💾 Save / Share Video'}</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[webCanShare ? st.btnGhost : st.btnPrimary, !webCanShare && { flex: 1 }, { opacity: canSend ? 1 : 0.5 }]}
+              disabled={!canSend}
+              onPress={downloadWeb}
+            >
+              <Text style={webCanShare ? st.btnGhostText : st.btnPrimaryText}>⬇️ Download mp4</Text>
+            </TouchableOpacity>
+            {target !== 'cross' && (
+              <TouchableOpacity style={st.btnGhost} onPress={openGroup}>
+                <Text style={st.btnGhostText}>↗ Group</Text>
+              </TouchableOpacity>
+            )}
+          </>
         )}
       </View>
       {msg && <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 8, lineHeight: 15 }}>{msg}</Text>}
@@ -304,8 +373,9 @@ export default function ReelsView() {
       </View>
       <Text style={{ fontSize: 9, color: colors.textTertiary, marginBottom: 14, lineHeight: 13 }}>
         Populated by npm run reel:allday / reel:verify. Storyboard = contact sheet; ▶ opens the mp4.
-        Flow: pick target → edit caption (lint gates it) → one tap copies the caption, hands over the
-        video, opens the group, and logs the handoff. Storage self-prunes after 30 days.
+        Flow: pick target → edit caption (lint gates it) → on device: Save to Photos + attach inside
+        Facebook; on web: Prepare Video, then Save/Share (phone sheet → “Save Video” = Photos) or
+        Download (desktop). Handoffs are logged; storage self-prunes after 30 days.
       </Text>
 
       {reels === null && <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 30 }} />}

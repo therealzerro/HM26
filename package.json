@@ -32,7 +32,8 @@
     "sync:edge-shared": "cp -f lib/engineCore.ts supabase/functions/_shared/engineCore.ts && cp -f lib/dateUtils.ts supabase/functions/_shared/dateUtils.ts && echo 'OK supabase/functions/_shared/ synced from lib/'",
     "check:edge-shared": "diff -q lib/engineCore.ts supabase/functions/_shared/engineCore.ts && diff -q lib/dateUtils.ts supabase/functions/_shared/dateUtils.ts && echo 'OK supabase/functions/_shared/ in sync with lib/'",
     "backfill:di": "tsx scripts/backfill/backfill-di.ts",
-    "reel:verify": "tsx scripts/render-verification-reel.ts && tsx scripts/assemble-verification-reel.ts"
+    "reel:verify": "tsx scripts/render-verification-reel.ts && tsx scripts/assemble-verification-reel.ts",
+    "reel:allday": "tsx scripts/render-allday-body.ts && tsx scripts/assemble-allday-reels.ts"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

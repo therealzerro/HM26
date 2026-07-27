@@ -11,6 +11,16 @@
 
 ---
 
+### MKT-03 — All-Day daily signal drop reels, Pro + Free (2026-07-27) ✅
+
+**Work order:** discovery-first, gated; builds on MKT-01/02 rig. Marketing tooling only.
+
+- **Phase 0:** Slates → All Day renders at 1080×1920 premium view with real live data — premium state achieved by priming the app's OWN AsyncStorage `user` key (localStorage on web) in the isolated headless profile; zero entitlement code touched; scope selected by clicking the app's real All-Day tab. Verified: 6 full cards, zero "Watch ad"/"HIDDEN"/"Oracle+ only" strings; vocabulary pre-flight CLEAN (zero Exact/Partial). Awareness flag ratified: card honesty footer ("973 picks at 90-100 energy hit 5% historically") renders in-frame — real app content, group/App-Store distribution only.
+- **Phase 1 rev 3 (operator-directed: grid view + tap through ALL SIX pick modals; length at agent discretion) — `scripts/render-allday-body.ts`:** body = 16.0s: 4.0s Ken-Burns eased push-in over the full 2×3 GRID (all six picks on screen; rendered from a 3×-resolution still, never upscales) → then for each pick 1→6 in rank order: real tile tap → PickDetailModal settles → 2.0s hold (digits · energy · confidence · breakdown · resolved-in) → close. Hard cuts between modals; per-modal `PICK #n` identity verification + in-frame vocab guard. Abort rails: anon REST slate precheck, grid-overflow, modal-open, vocab (exit 1 each). Optional `[YYYY-MM-DD]` arg re-anchors the browser clock for off-hours sample renders (real data for that slate date); daily production omits it.
+- **BRAND-04 residual found & fixed (operator-approved consumer edit):** the six-modal vocab guard caught `PickDetailModal`'s conditional INTEL footer rendering "· {n} exact" — only when a pick had straight resolutions, which is why every earlier probe passed. Fixed to "· {n} straight" (`components/PickDetailModal.tsx`); `check:brand-voice` gained an MKT-03 rule for template-embedded lowercase match-status counts (`${…} exact/partial`). 34 files, 0 findings; filtered tsc 0. ("Exact order only" on the PLAY tab is a bet-type descriptor, never mounted in reel frames — left as-is.)
+- **Phase 2 rev 3 — `scripts/assemble-allday-reels.ts`** (`npm run reel:allday`): total **19.7s** per variant — lockup dissolve open 1.2s → body 16.0s → endcard final 2.5s hard cut. Audio: carrier narration spans min(carrier length, open+body); the endcard's front-loaded sting (played from its start) bridges the remainder and decays into the lockup — all real assets, no loops. Assembler auto-uses longer carriers in full and prints a NOTE recommending ~17.2s carriers for wall-to-wall narration; aborts if the bridge exceeds endcard audio. Outputs pro/free + 1×1 cuts + 6-frame contact sheets; never auto-posts.
+- **QC (first pair, 2026-07-26 data):** durations exactly 19.700s; six modals verified in rank order; −14.6 / −15.6 LUFS (free's quieter sting-tail drags integrated slightly under target — retune when longer carriers land); lockup bookends, no black frames; pick #1 tile + modal carry the live "MATCH 416 · 7/26 AZ Midday" stamp. Free-reel endcard copy aligns with the SOCIAL-13 depth rule.
+
 ### MKT-02 — "Yesterday's Receipts" daily verification reel pipeline (2026-07-27) ✅
 
 **Work order:** discovery-first, gated; builds on MKT-01. Marketing tooling only — no engine/edge/consumer code.

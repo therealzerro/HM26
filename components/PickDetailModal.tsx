@@ -385,7 +385,7 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
             </View>
             <Text style={ct.trailMeta}>
               {resolutionTotals.total} match{resolutionTotals.total === 1 ? '' : 'es'} across {resolutionTotals.states} jurisdiction{resolutionTotals.states === 1 ? '' : 's'}
-              {resolutionTotals.exact > 0 ? ` · ${resolutionTotals.exact} exact` : ''}
+              {resolutionTotals.exact > 0 ? ` · ${resolutionTotals.exact} straight` : ''}
               {resolutionStates.length > 6 ? ' · top 6 shown' : ''}
             </Text>
           </>

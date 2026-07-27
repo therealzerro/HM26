@@ -1,0 +1,112 @@
+================================================================
+HITMASTER REEL COMMANDS — copy/paste reference
+================================================================
+Rule: this file is ALWAYS updated when a reel command is added or
+changed. Every command has a description. (Last updated 2026-07-27)
+
+PREREQ for the two main commands: the Expo dev server must be
+running first (the render step drives the real app in a browser):
+
+    npm run start-tunnel
+
+
+----------------------------------------------------------------
+DAILY DRIVERS (the two you run every day)
+----------------------------------------------------------------
+
+npm run reel:allday
+
+    Makes BOTH All-Day reels (Pro + Free) for TODAY: renders the
+    grid + six signal-modal tap-through from the live app,
+    assembles the 23.7s reels (open, body, endcard outro, VO +
+    hum bed), writes 9:16 + 1:1 cuts + contact sheets to
+    assets/marketing/allday_reels/, then AUTO-UPLOADS the finals
+    to the app — they appear in Admin → Reels within seconds,
+    with fresh daily captions (real numbers in the Pro caption
+    only).
+
+
+npm run reel:verify
+
+    Makes YESTERDAY's "Receipts" verification reel (10s): renders
+    the verification breakdown from the live app, assembles with
+    the bolt open + endcard, writes to
+    assets/marketing/verify_reels/, then AUTO-UPLOADS to
+    Admin → Reels with a fresh caption. Aborts on purpose if
+    yesterday had zero verified matches (no receipts = no reel).
+
+
+----------------------------------------------------------------
+CAPTION TOOLS (no video work — safe anytime)
+----------------------------------------------------------------
+
+npm run reel:publish -- allday --preview
+
+    PRINTS today's All-Day Pro + Free captions without writing
+    or uploading anything. Use it to see what will ship.
+
+
+npm run reel:publish -- verify --preview
+
+    Same preview for yesterday's verify-reel caption.
+
+
+npm run reel:publish -- allday --captions-only
+
+    Regenerates and SAVES fresh captions onto today's All-Day
+    reels already in Admin → Reels — does NOT re-upload video and
+    does NOT reset a reel you already marked posted.
+
+
+npm run reel:publish -- verify --captions-only
+
+    Same caption refresh for yesterday's verify reel.
+
+
+----------------------------------------------------------------
+RE-PUBLISH / BACKFILL (when files exist but the app row is wrong)
+----------------------------------------------------------------
+
+npm run reel:publish -- allday
+
+    Re-uploads today's All-Day finals from assets/marketing/ and
+    re-registers them in Admin → Reels. NOTE: resets the reel's
+    status to "ready" and rewrites the caption (a re-publish is
+    treated as a new reel).
+
+
+npm run reel:publish -- verify
+
+    Same re-upload for yesterday's verify reel.
+
+
+----------------------------------------------------------------
+PAST DATES (add a date stamp to any command above)
+----------------------------------------------------------------
+
+Date format is YYYYMMDD. Examples:
+
+npm run reel:publish -- allday 20260726 --preview
+
+    Preview the captions the 7/26 All-Day reels would get.
+
+npm run reel:publish -- verify 20260725
+
+    Re-upload the 7/25 verify reel (files must still exist in
+    assets/marketing/verify_reels/).
+
+npx tsx scripts/assemble-allday-reels.ts 20260726
+
+    Re-assemble the 7/26 All-Day reels from an already-rendered
+    body (advanced — normally reel:allday does this for you).
+
+
+----------------------------------------------------------------
+GOOD TO KNOW
+----------------------------------------------------------------
+- Everything uploaded lands in the app: Admin → GROWTH → 🎬 Reels.
+- Phone posting: Save to Photos + Open Group, attach from camera
+  roll inside Facebook. Web: Prepare Video → Save/Share.
+- Uploaded reels auto-delete from storage after 30 days.
+- Captions rotate style automatically every day; re-running the
+  same day gives the same caption.

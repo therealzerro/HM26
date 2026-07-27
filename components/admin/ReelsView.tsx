@@ -389,7 +389,10 @@ export default function ReelsView() {
           <Text style={{ fontSize: 11, color: colors.textSecondary }}>No reels registered yet — run npm run reel:allday or reel:verify.</Text>
         </Card>
       )}
-      {reels?.map(r => <ReelCard key={r.id} reel={r} urls={urls} onPosted={load} />)}
+      {/* Key includes updated_at: a server-side caption refresh (pipeline
+          --captions-only, re-publish) must remount the card so the editor
+          re-seeds — useState(reel.caption) only reads the prop on mount. */}
+      {reels?.map(r => <ReelCard key={`${r.id}:${r.updated_at}`} reel={r} urls={urls} onPosted={load} />)}
     </ScrollView>
   );
 }

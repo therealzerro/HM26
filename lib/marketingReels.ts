@@ -32,6 +32,7 @@ export interface MarketingReel {
   posted_at: string | null;
   target_name: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 /** Public storage URL for a bucket-relative path (bucket is public-read). */

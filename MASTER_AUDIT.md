@@ -11,6 +11,31 @@
 
 ---
 
+### MKT-10 — Endcards: split motion from text (native-1080 lockup) (2026-07-27) 🚧 tooling shipped, Phase 1/2 await motion files
+
+**Work order:** operator-directed. Filed as "MKT-06" but MKT-01–09 are all in use, so this lane is **MKT-10** — operator approved the renumber, as with MKT-08.
+
+**Problem.** Endcards are generated at the tool's 720×1280 ceiling with the wordmark BAKED into the pixels; reels assemble at 1080×1920, so every run stretched that type 1.5×, inventing more than half the pixels of the one element that must read as premium — immediately after native-1080 UI footage. **Fix:** motion stays generated and soft (resampling is invisible on smoke/glow); the lockup is rendered natively and composited. The real return is that copy stops being an asset — a variant becomes a config entry, so the Midday/Evening session wave needs **zero new endcard generations**.
+
+- **`scripts/endcard-config.ts`** — variant registry (motion file + 3 lines + output name) plus brand-fixed layout. Layout is deliberately NOT per-variant: position/type/fade are fixed, only words change. `midday_pro` / `evening_pro` already point at `endcard_motion_pro.mp4`.
+- **`scripts/build-endcard.ts`** (`npm run endcard:build [variant|all]`) — lanczos-upscales the motion, renders the lockup natively at 1080×1920 in Inter (the app's brand face), composites with the text fading 4.5→6.5s then opaque and static to the final frame, and **stream-copies the motion audio (`-c:a copy`)** so the crack stays sample-aligned to the visual snap. Writes the filename the assemblers already read — **no assembler changes**. Missing motion file → SKIP, so it's inert until assets land. First overwrite of a delivered baked endcard preserves it as `<name>_baked_backup.mp4`.
+- **Font-fallback trap, hit live during discovery:** rendering via `page.setContent()` silently produced the entire lockup in a **serif** — file:// `@font-face` URLs are blocked from about:blank's origin. The builder loads a real file:// page and asserts `document.fonts.check()` before trusting the screenshot, same as MKT-07.
+- **No ML upscaler, deliberately.** None present in-env (no realesrgan/waifu2x/basicsr, 2 cores). Recommended against installing one and operator concurred: the sharpness win here is entirely the text split, so torch + weights would buy pixels nobody can evaluate on smoke.
+
+**Two shipping defects found during Phase 0 discovery, both fixed:**
+
+- **DOUBLE-CRACK (audible, was shipping).** `BED_SRC_START = 2.0` was commented "post-crack", but the bolt crack measures at **4.25s** — so the hum-bed window ran straight through it and replayed the crack under the modals. Measured in the live 7/27 Pro reel: a **−2.7 dB transient at 17.25s** (after the VO ends at 15.0s), then the real snap again at 25.9s. The viewer heard the bolt snap twice. **Fix:** the bed now sources the endcard's **pre-crack tension hum (0.0–3.9s)** — the only crack-free, level-steady material in the asset (the post-crack hum decays to −46 dB by 9.5s, so it is unusable as a bed). Since 3.9s is shorter than the gap it must fill, the bed is extended as a **palindrome** (segment + its reverse): the seam is level-matched by construction where a plain loop would click. Verified: generated bed 6.60s, peak −18.2 dB (was ~0 dB), no seam transient. The assembler's abort relaxed accordingly — it now needs only the source window to exist, not audio as long as the gap.
+- **1:1 CROP SLICING LINE 3 (visible, was shipping).** The square cutdown keeps y 420–1500; the baked line 3 sat at ~1500–1540, so `VERIFIED TOMORROW MORNING` was cut through the letterforms in every 1:1 reel. Now fixed by construction — the lockup sits at y 1240–1400 and the builder **measures the laid-out block and aborts** if it would cross the crop line, rather than trusting constants to stay in sync.
+
+- **`reel:check` guard:** asserts the endcard's loudest transient falls OUTSIDE the hum-bed window, so a future endcard that moves its crack forward can't silently reintroduce the double-crack. Verified to discriminate: old window 2.0–8.6s peaks at 0.0 dB → FAIL; new window 0.0–3.9s peaks at −16.3 dB → PASS.
+- **Stale contract line corrected:** "final frame = settled lockup (it opens every reel via the 1.2s dissolve)" predates MKT-08 — the Anchor intro opens reels now and the final frame is only read on the legacy fallback path. Requirement kept (fallback insurance + it is the last thing a viewer sees), reason updated.
+- **Motion spec tightened before generation:** the clear band is **y 1152–1498 (60–78% of frame height)**, not "the lower half" — text cannot go below the crop line. Operator confirmed and the endcard prompts were updated accordingly.
+- Builder verified end-to-end against a synthetic motion file (trap-cleaned, throwaway output — no live endcard touched): 1080×1920 out, audio stream-copied unchanged, lockup block ends y=1400, and all three lines survive the 1:1 centre crop.
+
+**Remaining:** Phase 1 (build pro + free from the real `endcard_motion_pro.mp4` / `endcard_motion_free.mp4`, deliver 1:1 check + 100% final-frame still, run `reel:check`) and Phase 2 (session variants + handoff §7 inventory) — both blocked on the motion files, which are queued behind the carrier VOs.
+
+---
+
 ### MKT-09 — Multi-part carrier VOs (drop-in `_pt2` join) (2026-07-27) ✅
 
 **Work order:** operator-directed. The VO generator caps clips at ~10s, so long wall-to-wall carriers must be delivered as numbered parts. Naming locked by the operator for the coming session waves; this makes the drop-in pattern actually work end-to-end. Marketing tooling only.

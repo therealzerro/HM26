@@ -32,6 +32,32 @@ const REELS = join(ASSETS, 'allday_reels');
 const sh = (c: string) => execSync(c, { stdio: 'inherit' });
 const EASED = `'st(0,(1-P)*(1-P)*(3-2*(1-P)));A*(1-ld(0))+B*ld(0)'`; // xfade P counts DOWN
 
+/**
+ * MKT-10: build a `bedLen`-second hum bed from the endcard's crack-free window.
+ * The window (3.9s) is usually shorter than the gap it must fill, so it is
+ * extended as a PALINDROME (segment + its reverse): the seam is level-matched
+ * by construction, where a plain loop would click on the level discontinuity.
+ * `inLabel` is the endcard audio input, `outLabel` the finished bed.
+ */
+function humBed(inLabel: string, bedLen: number, outLabel: string): string {
+  const seg = +(BED_SRC_END - BED_SRC_START).toFixed(2);
+  const pairs = Math.max(1, Math.ceil(bedLen / (2 * seg)));
+  let f =
+    `${inLabel}atrim=${BED_SRC_START}:${BED_SRC_END},asetpts=PTS-STARTPTS,aresample=48000[bs];` +
+    `[bs]asplit=2[bsa][bsb];[bsb]areverse[bsr];[bsa][bsr]concat=n=2:v=0:a=1[bp];`;
+  if (pairs > 1) {
+    const labels = Array.from({ length: pairs }, (_, i) => `[bq${i}]`);
+    f += `[bp]asplit=${pairs}${labels.join('')};${labels.join('')}concat=n=${pairs}:v=0:a=1[bl];`;
+  } else {
+    f += `[bp]anull[bl];`;
+  }
+  return (
+    f +
+    `[bl]atrim=0:${bedLen.toFixed(2)},asetpts=PTS-STARTPTS,volume=0.8,` +
+    `afade=t=in:st=0:d=${XFADE_A},afade=t=out:st=${(bedLen - 0.25).toFixed(2)}:d=0.25${outLabel}`
+  );
+}
+
 const stamp = process.argv[2] ?? new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }).replace(/-/g, '');
 const body = join(REELS, `ui_allday_${stamp}.mp4`);
 if (!existsSync(body)) {
@@ -40,7 +66,13 @@ if (!existsSync(body)) {
 }
 const bodyDur = parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${body}"`).toString());
 const OPEN = 1.2, CARD = 6.5;          // endcard outro: formation + lockup resolve + hold
-const BED_SRC_START = 2.0;              // endcard audio hum begins here (post-crack)
+// MKT-10: the hum bed is sourced from the endcard's PRE-crack tension hum.
+// The bolt crack lands at ~4.3s (measured; contract-pinned), so the old
+// BED_SRC_START=2.0 window ran straight through it and dragged the crack into
+// mid-reel — the viewer heard the bolt snap twice, once under the modals and
+// again in the real outro. 0.0-3.9s is crack-free and level-steady; reel:check
+// asserts the endcard's loudest transient falls outside this window.
+const BED_SRC_START = 0.0, BED_SRC_END = 3.9;
 const XFADE_A = 0.4;                    // voice→bed audio crossfade-ish join fades
 
 const intro = probeAnchorIntro(ASSETS);
@@ -82,8 +114,10 @@ for (const v of ['pro', 'free'] as const) {
     : +Math.min(carrierDur - 0.2, voiceWindow).toFixed(2);
   const bedLen = overlap ? 0 : +(voiceWindow - voiceSpan).toFixed(2);
   const endcardAudioDur = parseFloat(execSync(`ffprobe -v error -select_streams a:0 -show_entries format=duration -of csv=p=0 "${endcard}"`).toString());
-  if (endcardAudioDur < Math.max(CARD, BED_SRC_START + bedLen)) {
-    console.error(`ABORT(${v}): endcard audio ${endcardAudioDur}s too short for outro ${CARD}s / bed ${bedLen}s.`);
+  // The bed now palindrome-fills from a fixed window, so it no longer needs
+  // endcard audio as long as the gap — only the window itself must exist.
+  if (endcardAudioDur < Math.max(CARD, BED_SRC_END)) {
+    console.error(`ABORT(${v}): endcard audio ${endcardAudioDur}s too short for outro ${CARD}s / bed source window ${BED_SRC_END}s.`);
     process.exit(1);
   }
   if (overlap) {
@@ -132,11 +166,7 @@ for (const v of ['pro', 'free'] as const) {
         `[3:a]atrim=0:${voiceSpan},asetpts=PTS-STARTPTS,aresample=48000,` +
         `afade=t=in:st=0:d=0.01,afade=t=out:st=${(voiceSpan - 0.25).toFixed(2)}:d=0.25,` +
         `adelay=${msVoice}|${msVoice}[voice];` +
-        (bedLen > 0.05
-          ? `[4:a]atrim=${BED_SRC_START}:${(BED_SRC_START + bedLen).toFixed(2)},asetpts=PTS-STARTPTS,aresample=48000,volume=0.8,` +
-            `afade=t=in:st=0:d=${XFADE_A},afade=t=out:st=${(bedLen - 0.25).toFixed(2)}:d=0.25,` +
-            `adelay=${msBed}|${msBed}[bed];`
-          : ``) +
+        (bedLen > 0.05 ? humBed('[4:a]', bedLen, `,adelay=${msBed}|${msBed}[bed];`) : ``) +
         `[2:a]atrim=0:${CARD},asetpts=PTS-STARTPTS,aresample=48000,` +
         `afade=t=in:st=0:d=0.05,afade=t=out:st=${(CARD - 0.4).toFixed(2)}:d=0.4,` +
         `adelay=${msOutro}|${msOutro}[outroaud];` +
@@ -150,10 +180,7 @@ for (const v of ['pro', 'free'] as const) {
         `[voice][outroaud]amix=inputs=2:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]" `
       : `[3:a]atrim=0:${voiceSpan},asetpts=PTS-STARTPTS,aresample=48000,` +
     `afade=t=in:st=0:d=0.01,afade=t=out:st=${(voiceSpan - XFADE_A).toFixed(2)}:d=${XFADE_A}[voice];` +
-    (bedLen > 0.05
-      ? `[4:a]atrim=${BED_SRC_START}:${(BED_SRC_START + bedLen).toFixed(2)},asetpts=PTS-STARTPTS,aresample=48000,volume=0.8,` +
-        `afade=t=in:st=0:d=${XFADE_A},afade=t=out:st=${(bedLen - 0.25).toFixed(2)}:d=0.25[bed];`
-      : ``) +
+    (bedLen > 0.05 ? humBed('[4:a]', bedLen, `[bed];`) : ``) +
     `[2:a]atrim=0:${CARD},asetpts=PTS-STARTPTS,aresample=48000,` +
     `afade=t=in:st=0:d=0.05,afade=t=out:st=${(CARD - 0.4).toFixed(2)}:d=0.4[cardaud];` +
     (bedLen > 0.05

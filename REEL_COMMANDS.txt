@@ -84,6 +84,29 @@ npm run reel:verify
 
 
 ----------------------------------------------------------------
+ENDCARD BUILD (only when a motion file or copy changes)
+----------------------------------------------------------------
+
+npm run endcard:build            (all variants)
+npm run endcard:build allday_pro (one variant)
+
+    Builds an endcard from a TEXT-FREE motion clip plus its copy
+    in scripts/endcard-config.ts. The wordmark is rendered fresh
+    at full 1080x1920 and laid over the motion, so the type is
+    razor sharp instead of being stretched up from 720.
+
+    This means COPY IS NO LONGER AN ASSET: to change a line, edit
+    the string in endcard-config.ts and re-run — no new video
+    generation. Midday/Evening reuse the SAME pro motion file, so
+    session endcards cost nothing but a config entry.
+
+    Safe to re-run: a variant whose motion file hasn't been
+    delivered is skipped, and the first time a hand-made endcard
+    is replaced it's preserved as <name>_baked_backup.mp4.
+    Run npm run reel:check afterwards.
+
+
+----------------------------------------------------------------
 CAPTION TOOLS (no video work — safe anytime)
 ----------------------------------------------------------------
 

@@ -21,7 +21,8 @@ import { join, resolve } from 'node:path';
 import { resolveCarrier, orphanedParts, audioDur } from './reel-carrier';
 
 const ASSETS = resolve('assets/marketing');
-const OPEN = 1.2, BODY = 16.0, CARD = 6.5, BED_SRC_START = 2.0; // assembler constants (body measured at runtime; 16.0 = current renderer)
+const OPEN = 1.2, BODY = 16.0, CARD = 6.5; // assembler constants (body measured at runtime; 16.0 = current renderer)
+const BED_SRC_START = 0.0, BED_SRC_END = 3.9; // MKT-10: crack-free hum-bed window
 // MKT-08: with an active anchor intro the VO enters at introDur−0.4, so the
 // usable VO window (on the CARRIER's own timeline) shrinks 17.2 → 16.4s and
 // the overlap fade-out deadline 18.3 → 17.5s. Set by checkAnchorIntro().
@@ -133,19 +134,26 @@ function checkAlldayEndcard(variant: 'pro' | 'free', carrierDur: number | null):
   const s = streams(p);
   if (!Number.isFinite(s.vDur) || s.vDur < CARD) return add('FAIL', name, `video ${s.vDur?.toFixed(1)}s < ${CARD}s outro window`);
   if (!s.hasAudio) return add('FAIL', name, 'no audio stream — assembler filter graph requires one');
-  // Audio requirement mirrors the assembler abort: outro always needs CARD;
-  // short carriers additionally need the hum bed from BED_SRC_START.
-  let audioNeed = CARD;
-  if (carrierDur != null && carrierDur < voiceWindow() - 0.05) {
-    const voiceSpan = Math.min(carrierDur - 0.2, voiceWindow());
-    audioNeed = Math.max(CARD, BED_SRC_START + (voiceWindow() - voiceSpan));
-  }
+  // Audio requirement mirrors the assembler abort: the outro always needs CARD.
+  // MKT-10: the bed palindrome-fills from a fixed window, so a short carrier
+  // no longer inflates the requirement — only the window itself must exist.
+  const needsBed = carrierDur != null && carrierDur < voiceWindow() - 0.05;
+  const audioNeed = needsBed ? Math.max(CARD, BED_SRC_END) : CARD;
   if (s.aDur + 0.05 < audioNeed) return add('FAIL', name, `audio ${s.aDur.toFixed(1)}s < required ${audioNeed.toFixed(1)}s (outro/bed)`);
   add('PASS', name, `video ${s.vDur.toFixed(1)}s · audio ${s.aDur.toFixed(1)}s (need ${audioNeed.toFixed(1)}s)`);
   if (s.h < 1920) add('WARN', name, `${s.w}x${s.h} — will be upscaled to 1080x1920 (deliver native 1080x1920 for full sharpness)`);
   if (s.fps < 30) add('WARN', name, `${s.fps.toFixed(0)}fps — assembler duplicates to 60fps (motion slightly steppy; 30-60fps source preferred)`);
   const crack = peakDb(p, 0, CARD);
   if (crack < -12) add('WARN', name, `no strong transient in first ${CARD}s (peak ${crack.toFixed(1)}dB) — bolt-snap crack may be missing/weak`);
+  // MKT-10 guard: the hum bed is lifted from BED_SRC_START-BED_SRC_END and
+  // replayed under the modals, so the crack must NOT fall inside that window.
+  // When it did (the old 2.0s start), the reel played the bolt snap twice.
+  if (needsBed) {
+    const inBed = peakDb(p, BED_SRC_START, BED_SRC_END);
+    if (inBed > crack - 6) {
+      add('FAIL', name, `loudest transient (${inBed.toFixed(1)}dB) falls inside the hum-bed window ${BED_SRC_START}-${BED_SRC_END}s — the bolt crack would be replayed under the modals. Keep the crack after ${BED_SRC_END}s.`);
+    }
+  }
 }
 
 /**

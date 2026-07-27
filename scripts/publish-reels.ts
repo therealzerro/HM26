@@ -1,0 +1,188 @@
+/**
+ * publish-reels — MKT-04: push finished reel finals to Supabase so the admin
+ * Reels view can preview + hand them to Facebook from any device.
+ *
+ * Runs automatically as the last step of `npm run reel:allday` / `reel:verify`.
+ * Uploads ONLY the finals (9:16 + 1:1 + contact sheet, ~8-15MB/day) to the
+ * public `marketing-reels` bucket and upserts one marketing_reels row per
+ * variant with a lint-safe tier-2 caption draft. Re-running a date replaces
+ * the files (x-upsert) and resets the row to 'ready' — a re-render IS a new
+ * reel, so a stale caption edit or posted flag must not survive it.
+ *
+ * Retention: rows older than PRUNE_DAYS get their storage objects deleted and
+ * flip to status='archived' (the log row itself is kept). Keeps the bucket at
+ * a steady few hundred MB.
+ *
+ * Auth: service role from .env.backtest (same contract as the backfill
+ * writer — never logged, never bundled).
+ *
+ * Usage: tsx scripts/publish-reels.ts <allday|verify> [YYYYMMDD]
+ *   allday defaults to today ET; verify defaults to yesterday ET — the same
+ *   stamps their assemblers write.
+ */
+import { config as loadEnv } from 'dotenv';
+import { execSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { basename, join, resolve } from 'node:path';
+
+loadEnv({ path: '.env.backtest' });
+
+const SUPABASE_URL = process.env.SUPABASE_URL?.replace(/\/$/, '');
+const SVC_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!SUPABASE_URL || !SVC_KEY) {
+  console.error('[publish-reels] Missing .env.backtest credentials (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).');
+  process.exit(1);
+}
+
+const BUCKET = 'marketing-reels';
+const PRUNE_DAYS = 30;
+const ASSETS = resolve('assets/marketing');
+
+type Kind = 'allday_pro' | 'allday_free' | 'verify';
+
+function etDate(offsetDays: number): string {
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  now.setDate(now.getDate() + offsetDays);
+  return now.toLocaleDateString('en-CA');
+}
+
+const mode = process.argv[2];
+if (mode !== 'allday' && mode !== 'verify') {
+  console.error('Usage: tsx scripts/publish-reels.ts <allday|verify> [YYYYMMDD]');
+  process.exit(1);
+}
+const defaultIso = mode === 'verify' ? etDate(-1) : etDate(0);
+const stamp = process.argv[3] ?? defaultIso.replace(/-/g, '');
+const isoDate = `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`;
+const mdLabel = `${parseInt(stamp.slice(4, 6), 10)}/${parseInt(stamp.slice(6, 8), 10)}`;
+
+// Caption drafts are TIER-2 (free group) safe — MATCH vocab, no forbidden
+// terms, no pricing. The operator edits per-target in the Reels view, where
+// the full brandLint engine runs before anything leaves the app.
+const CAPTIONS: Record<Kind, string> = {
+  allday_free: `All-Day intelligence for ${mdLabel} is live — six pattern signals from the ZK6 engine, full breakdown in the reel. Today's data drop is in the group. 📊`,
+  allday_pro: `First access: the ${mdLabel} All-Day signal set. Six pattern signals straight from the engine — full detail before anyone else sees it. 📊`,
+  verify: `Receipts from ${mdLabel} — every signal checked against observed outcomes, on the record. Watch the verification breakdown. 📊`,
+};
+
+interface ReelFiles { kind: Kind; video: string; video1x1: string; sheet: string }
+
+function reelFiles(): ReelFiles[] {
+  if (mode === 'verify') {
+    const dir = join(ASSETS, 'verify_reels');
+    return [{
+      kind: 'verify',
+      video: join(dir, `verify_reel_${stamp}.mp4`),
+      video1x1: join(dir, `verify_reel_${stamp}_1x1.mp4`),
+      sheet: join(dir, `verify_reel_${stamp}_contact.png`),
+    }];
+  }
+  const dir = join(ASSETS, 'allday_reels');
+  return (['pro', 'free'] as const).map((v) => ({
+    kind: `allday_${v}` as Kind,
+    video: join(dir, `allday_${v}_${stamp}.mp4`),
+    video1x1: join(dir, `allday_${v}_${stamp}_1x1.mp4`),
+    sheet: join(dir, `allday_${v}_${stamp}_contact.png`),
+  }));
+}
+
+function svcHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  return { apikey: SVC_KEY!, Authorization: `Bearer ${SVC_KEY}`, ...extra };
+}
+
+async function uploadFile(localPath: string, storagePath: string, contentType: string): Promise<void> {
+  const body = readFileSync(localPath);
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${storagePath}`, {
+    method: 'POST',
+    headers: svcHeaders({ 'Content-Type': contentType, 'x-upsert': 'true' }),
+    // Buffer is a Uint8Array at runtime; TS's DOM BodyInit just can't see it.
+    body: new Uint8Array(body) as unknown as BodyInit,
+  });
+  if (!res.ok) throw new Error(`upload ${storagePath} → HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  console.log(`  ↑ ${storagePath} (${(body.length / 1e6).toFixed(1)}MB)`);
+}
+
+async function upsertRow(row: Record<string, unknown>): Promise<void> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/marketing_reels?on_conflict=reel_date,kind`, {
+    method: 'POST',
+    headers: svcHeaders({ 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }),
+    body: JSON.stringify(row),
+  });
+  if (!res.ok) throw new Error(`marketing_reels upsert → HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
+}
+
+async function prune(): Promise<void> {
+  const cutoff = etDate(-PRUNE_DAYS);
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/marketing_reels?reel_date=lt.${cutoff}&status=neq.archived&select=id,video_path,video_1x1_path,sheet_path`,
+    { headers: svcHeaders() },
+  );
+  if (!res.ok) { console.warn(`[publish-reels] prune query failed (${res.status}) — skipping.`); return; }
+  const rows: { id: string; video_path: string; video_1x1_path: string | null; sheet_path: string | null }[] = await res.json();
+  if (rows.length === 0) return;
+  const paths = rows.flatMap((r) => [r.video_path, r.video_1x1_path, r.sheet_path]).filter(Boolean) as string[];
+  const del = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}`, {
+    method: 'DELETE',
+    headers: svcHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ prefixes: paths }),
+  });
+  if (!del.ok) { console.warn(`[publish-reels] prune delete failed (${del.status}) — rows left unarchived for retry.`); return; }
+  const patch = await fetch(`${SUPABASE_URL}/rest/v1/marketing_reels?id=in.(${rows.map((r) => `"${r.id}"`).join(',')})`, {
+    method: 'PATCH',
+    headers: svcHeaders({ 'Content-Type': 'application/json', Prefer: 'return=minimal' }),
+    body: JSON.stringify({ status: 'archived', updated_at: new Date().toISOString() }),
+  });
+  if (!patch.ok) console.warn(`[publish-reels] prune archive-flag failed (${patch.status}).`);
+  else console.log(`  🧹 pruned ${rows.length} reel(s) older than ${PRUNE_DAYS}d (${paths.length} objects).`);
+}
+
+async function main(): Promise<void> {
+  const targets = reelFiles().filter((t) => {
+    if (!existsSync(t.video)) {
+      console.warn(`[publish-reels] skip ${t.kind}: ${basename(t.video)} not found (assembler not run for ${stamp}?).`);
+      return false;
+    }
+    return true;
+  });
+  if (targets.length === 0) { console.error('[publish-reels] nothing to publish — aborting.'); process.exit(1); }
+
+  for (const t of targets) {
+    console.log(`${t.kind} · ${isoDate}`);
+    const prefix = `${t.kind}/${stamp}`;
+    const videoPath = `${prefix}/${basename(t.video)}`;
+    await uploadFile(t.video, videoPath, 'video/mp4');
+
+    let video1x1Path: string | null = null;
+    if (existsSync(t.video1x1)) {
+      video1x1Path = `${prefix}/${basename(t.video1x1)}`;
+      await uploadFile(t.video1x1, video1x1Path, 'video/mp4');
+    }
+    let sheetPath: string | null = null;
+    if (existsSync(t.sheet)) {
+      sheetPath = `${prefix}/${basename(t.sheet)}`;
+      await uploadFile(t.sheet, sheetPath, 'image/png');
+    }
+
+    const duration = parseFloat(
+      execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${t.video}"`).toString(),
+    );
+    await upsertRow({
+      reel_date: isoDate,
+      kind: t.kind,
+      video_path: videoPath,
+      video_1x1_path: video1x1Path,
+      sheet_path: sheetPath,
+      duration_s: Number.isFinite(duration) ? +duration.toFixed(2) : null,
+      caption: CAPTIONS[t.kind],
+      status: 'ready',
+      posted_at: null,
+      target_name: null,
+      updated_at: new Date().toISOString(),
+    });
+    console.log(`  ✔ registered — visible in Admin → Reels`);
+  }
+
+  await prune();
+}
+
+main().catch((e) => { console.error('[publish-reels]', e); process.exit(1); });

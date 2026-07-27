@@ -33,6 +33,7 @@ import FunnelDashboardView from '@/components/admin/FunnelDashboardView';
 import BriefView from '@/components/admin/BriefView';
 import AnalyticsView from '@/components/admin/AnalyticsView';
 import PublishView, { PublishDeepLinkPreset } from '@/components/admin/PublishView';
+import ReelsView from '@/components/admin/ReelsView';
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
 // DESIGN-02 T2/T3: four labeled domains in one horizontal scroller. Every id is
@@ -56,6 +57,7 @@ const NAV_GROUPS: { domain: string; items: NavItem[] }[] = [
   ]},
   { domain: 'GROWTH', items: [
     { id:'publish', icon:'📣', label:'Publish' },
+    { id:'reels', icon:'🎬', label:'Reels' },
     { id:'funnel',       icon:'📈', label:'Funnel'      },
     { id:'subscribers',  icon:'👥', label:'Subscribers' },
     { id:'sub-import',   icon:'📧', label:'Sub Import'  },
@@ -138,6 +140,11 @@ function AdminScreen() {
           <Text style={{ fontSize: 14, fontWeight: '800', color: '#fff' }}>Creator Access</Text>
           <Text style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', letterSpacing: 1.5 }}>ADMIN ONLY</Text>
         </View>
+        {view !== 'dashboard' && (
+          <TouchableOpacity onPress={() => setView('dashboard')} style={{ backgroundColor: 'rgba(255,255,255,0.18)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }}>
+            <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: '600' }}>🏠 Dashboard</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity onPress={() => goBackSafe()} style={{ backgroundColor: 'rgba(255,255,255,0.18)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }}>
           <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: '600' }}>← Exit</Text>
         </TouchableOpacity>
@@ -185,6 +192,7 @@ function AdminScreen() {
         {view === 'dashboard' && <DashboardView setView={setView} imports={imports ?? []} healthMetrics={healthMetrics} regenerateSlate={regenerateSlate} checkSlateLock={checkSlateLock} onOpenZK30Import={(type) => { setWizardPreset({ type, jurisdiction: 'TX' }); setView('wizard'); }} />}
         {view === 'brief' && <ErrorBoundary fallback="Brief view error"><BriefView /></ErrorBoundary>}
         {view === 'publish' && <ErrorBoundary fallback="Publish view error"><PublishView initialPreset={publishPreset} onPresetConsumed={() => setPublishPreset(null)} /></ErrorBoundary>}
+        {view === 'reels' && <ErrorBoundary fallback="Reels view error"><ReelsView /></ErrorBoundary>}
         {view === 'wizard' && <ImportWizardView setView={setView} importHistory={importHistory} importLedger={importLedger} regenerateSlate={regenerateSlate} preset={wizardPreset} onClearPreset={() => setWizardPreset(null)} />}
         {view === 'history' && <ImportHistoryView />}
         {view === 'matrix' && <ErrorBoundary fallback="Coverage matrix error"><CoverageMatrixView setView={setView} /></ErrorBoundary>}

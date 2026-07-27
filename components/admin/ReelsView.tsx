@@ -1,0 +1,297 @@
+/**
+ * ReelsView — MKT-04 in-app reel publishing (GROWTH · 🎬 Reels).
+ *
+ * The reel pipelines (npm run reel:allday / reel:verify) end by uploading
+ * their finals to the public `marketing-reels` bucket and registering them in
+ * marketing_reels (scripts/publish-reels.ts). This view lists those rows so
+ * the operator can post a reel from any device without touching the repo:
+ * contact-sheet preview (no video player dependency — the sheet IS the
+ * storyboard), caption edit behind the full brandLint engine, then the same
+ * assisted handoff contract as PublishView: caption → clipboard, video file →
+ * OS share sheet (native) or browser download + group tab (web), handoff
+ * logged via fb-publish log_assist (same-day duplicate-caption trail), row
+ * flipped to 'posted' through the admin-ops gateway.
+ *
+ * Surface discipline (Brand Rehab v2): reels carry full digits, so the lanes
+ * here are the group/cross ASSIST lanes only — there is deliberately no page
+ * (API) lane. Cross-posts hard-gate on the Two-Question NO/NO ack, same as
+ * PublishView; digit-bearing reels honestly fail Q1 and stay in the groups.
+ */
+
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform, Linking } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
+import * as Clipboard from 'expo-clipboard';
+import { useTheme } from '@/lib/theme';
+import { fetchFromSupabase } from '@/lib/supabase';
+import { lintCaption } from '@/lib/social/brandLint';
+import { SURFACE_TIER } from '@/lib/social/captions';
+import { fbPublish } from '@/lib/social/fbPublishClient';
+import {
+  MarketingReel, ReelKind, fetchReels, reelPublicUrl,
+  markReelPosted, shareReelToApps, downloadReelWeb,
+} from '@/lib/marketingReels';
+import { Pill, SectionTitle, Card, useSt, timeAgo } from './AdminShared';
+
+type Target = 'free' | 'pro' | 'cross';
+
+const KIND_UI: Record<ReelKind, { icon: string; label: string; defaultTarget: Target; sheetAspect: number }> = {
+  // sheetAspect = frames × (270/480) — the assemblers hstack fixed 270×480 frames.
+  allday_pro: { icon: '💎', label: 'All-Day · Pro', defaultTarget: 'pro', sheetAspect: 6 * (270 / 480) },
+  allday_free: { icon: '👥', label: 'All-Day · Free', defaultTarget: 'free', sheetAspect: 6 * (270 / 480) },
+  verify: { icon: '🧾', label: 'Receipts · Verify', defaultTarget: 'free', sheetAspect: 4 * (270 / 480) },
+};
+
+const TARGET_UI: Record<Target, { label: string; name: string }> = {
+  free: { label: '👥 Free Group', name: 'free group' },
+  pro: { label: '💎 Pro Group', name: 'pro group' },
+  cross: { label: '🔁 Cross-Post', name: 'cross-post' },
+};
+
+/** Same rationale as PublishView.openInNewTab — expo-linking navigates the
+ *  CURRENT tab on web; window.open is the only way to keep the app open. */
+function openInNewTab(url: string): void {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.open === 'function') {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  } else {
+    Linking.openURL(url);
+  }
+}
+
+interface GroupUrls { free?: string; pro?: string }
+
+function ReelCard({ reel, urls, onPosted }: { reel: MarketingReel; urls: GroupUrls; onPosted: () => void }) {
+  const { colors } = useTheme();
+  const st = useSt();
+  const ui = KIND_UI[reel.kind];
+
+  const [caption, setCaption] = useState(reel.caption);
+  const [target, setTarget] = useState<Target>(ui.defaultTarget);
+  const [q1No, setQ1No] = useState(false);
+  const [q2No, setQ2No] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const tier = SURFACE_TIER[target];
+  const lint = lintCaption(caption, tier);
+  const videoUrl = reelPublicUrl(reel.video_path);
+  const filename = reel.video_path.split('/').pop() ?? `${reel.kind}_${reel.reel_date}.mp4`;
+  const crossBlocked = target === 'cross' && (!q1No || !q2No);
+  const canSend = !busy && caption.trim().length > 0 && lint.ok && !crossBlocked;
+
+  const logAndMark = useCallback(async (): Promise<string> => {
+    const r = await fbPublish.logAssist({
+      caption, tier, kind: 'reel',
+      targetName: TARGET_UI[target].name,
+      imageMeta: { files: [filename], video: true, reel_kind: reel.kind, reel_date: reel.reel_date },
+    });
+    try {
+      await markReelPosted(reel.id, TARGET_UI[target].name);
+      onPosted();
+    } catch (e) {
+      // The handoff already happened and is logged — a failed status flip is
+      // bookkeeping, not a lost post. Surface it without failing the action.
+      console.log('[reels] markReelPosted failed:', e);
+    }
+    return r.duplicateToday
+      ? ` ⚠️ This exact caption was already used today (${r.duplicates.map((d: any) => d.target_name).join(', ')}) — vary it before posting elsewhere.`
+      : '';
+  }, [caption, tier, target, filename, reel, onPosted]);
+
+  const shareNative = useCallback(async () => {
+    setBusy(true);
+    setMsg('⏳ Fetching video…');
+    try {
+      await Clipboard.setStringAsync(caption);
+      await shareReelToApps(videoUrl, filename);
+      const dupNote = await logAndMark();
+      setMsg(`📋 Caption copied + video handed to Facebook. Pick your group, paste, post.${dupNote}`);
+    } catch (e: any) {
+      if (e?.name === 'AbortError') setMsg('Share cancelled.');
+      else setMsg(`❌ ${String(e?.message ?? e)}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [caption, videoUrl, filename, logAndMark]);
+
+  const prepAndOpen = useCallback(async () => {
+    setBusy(true);
+    setMsg('⏳ Downloading video…');
+    try {
+      await Clipboard.setStringAsync(caption);
+      await downloadReelWeb(videoUrl, filename);
+      const dest = (target === 'pro' ? urls.pro : urls.free) || 'https://www.facebook.com/groups/';
+      if (target !== 'cross') openInNewTab(dest);
+      const dupNote = await logAndMark();
+      setMsg(`🚀 Caption copied · video downloading${target !== 'cross' ? ' · group opened' : ''}. Attach the mp4, paste, post.${dupNote}`);
+    } catch (e: any) {
+      setMsg(`❌ ${String(e?.message ?? e)}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [caption, videoUrl, filename, target, urls, logAndMark]);
+
+  return (
+    <Card style={{ padding: 12, marginBottom: 14 }}>
+      {/* header */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <Text style={{ fontSize: 16 }}>{ui.icon}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 13, fontWeight: '800', color: colors.text }}>{ui.label}</Text>
+          <Text style={{ fontSize: 10, color: colors.textTertiary }}>
+            {reel.reel_date}{reel.duration_s ? ` · ${reel.duration_s}s` : ''} · uploaded {timeAgo(reel.created_at)}
+          </Text>
+        </View>
+        {reel.status === 'posted'
+          ? <Pill label={`✓ posted → ${reel.target_name ?? '?'}${reel.posted_at ? ` · ${timeAgo(reel.posted_at)}` : ''}`} color={colors.success} />
+          : <Pill label="ready" color={colors.gold} />}
+      </View>
+
+      {/* contact-sheet storyboard + watch links */}
+      {reel.sheet_path && (
+        <ExpoImage
+          source={{ uri: reelPublicUrl(reel.sheet_path) }}
+          style={{ width: '100%', aspectRatio: ui.sheetAspect, borderRadius: 8, backgroundColor: colors.surfaceLight, marginBottom: 8 }}
+          contentFit="contain"
+        />
+      )}
+      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+        <TouchableOpacity style={st.btnGhost} onPress={() => openInNewTab(videoUrl)}>
+          <Text style={st.btnGhostText}>▶ Watch 9:16</Text>
+        </TouchableOpacity>
+        {reel.video_1x1_path && (
+          <TouchableOpacity style={st.btnGhost} onPress={() => openInNewTab(reelPublicUrl(reel.video_1x1_path!))}>
+            <Text style={st.btnGhostText}>▶ 1:1 cut</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* target */}
+      <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8 }}>
+        {(Object.keys(TARGET_UI) as Target[]).map(t => (
+          <TouchableOpacity key={t} style={[st.optBtn, target === t && st.optBtnOn]} onPress={() => { setTarget(t); setQ1No(false); setQ2No(false); setMsg(null); }}>
+            <Text style={[st.optBtnText, target === t && st.optBtnTextOn]}>{TARGET_UI[t].label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* caption + lint */}
+      <TextInput
+        style={[st.csvInput, { minHeight: 90, height: undefined, fontSize: 12, lineHeight: 17 }]}
+        value={caption}
+        onChangeText={setCaption}
+        multiline
+        textAlignVertical="top"
+      />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+        <Pill label={`tier ${tier}`} color={colors.textTertiary} />
+        <Pill label={lint.ok ? '✓ lint clean' : `${lint.violations.filter(v => v.blocking).length} blocking`} color={lint.ok ? colors.success : colors.error} />
+      </View>
+      {lint.violations.length > 0 && (
+        <Card style={{ padding: 8, marginTop: 6, backgroundColor: colors.errorLight, borderColor: colors.error + '33' }}>
+          {lint.violations.map((v, i) => (
+            <Text key={i} style={{ fontSize: 10, color: v.blocking ? colors.error : colors.orange, lineHeight: 15 }}>
+              {v.blocking ? '⛔' : '⚠️'} “{v.term}” ({v.rule}){v.suggestion ? ` → ${v.suggestion}` : ''}
+            </Text>
+          ))}
+        </Card>
+      )}
+
+      {/* Two-Question filter — v2 brief mandates the NO/NO ack for cross-posts
+          (content leaving surfaces we control). Reels carry full digits, so a
+          cross-post honestly fails Q1 — that is the filter working. */}
+      {target === 'cross' && (
+        <Card style={{ padding: 10, marginTop: 8, backgroundColor: colors.goldLight, borderColor: colors.gold + '44' }}>
+          <Text style={{ fontSize: 10, fontWeight: '800', color: colors.gold, marginBottom: 6 }}>TWO-QUESTION FILTER — both must be NO to cross-post</Text>
+          <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }} onPress={() => setQ1No(v => !v)}>
+            <Text style={{ fontSize: 14 }}>{q1No ? '☑️' : '⬜'}</Text>
+            <Text style={{ fontSize: 10, color: colors.text, flex: 1 }}>Q1 — NO 3-digit numbers are visible in any frame of the video</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} onPress={() => setQ2No(v => !v)}>
+            <Text style={{ fontSize: 14 }}>{q2No ? '☑️' : '⬜'}</Text>
+            <Text style={{ fontSize: 10, color: colors.text, flex: 1 }}>Q2 — NO forbidden vocabulary is rendered or spoken in the video</Text>
+          </TouchableOpacity>
+        </Card>
+      )}
+
+      {/* actions — assisted lane only (Groups have no publish API) */}
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+        {Platform.OS !== 'web' ? (
+          <TouchableOpacity style={[st.btnPrimary, { flex: 1, opacity: canSend ? 1 : 0.5 }]} disabled={!canSend} onPress={shareNative}>
+            <Text style={st.btnPrimaryText}>{busy ? '⏳ …' : '📤 Share Video to Facebook'}</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={[st.btnPrimary, { flex: 1, opacity: canSend ? 1 : 0.5 }]} disabled={!canSend} onPress={prepAndOpen}>
+            <Text style={st.btnPrimaryText}>{busy ? '⏳ …' : '🚀 Prep & Open (caption + mp4 + group)'}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      {msg && <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 8, lineHeight: 15 }}>{msg}</Text>}
+    </Card>
+  );
+}
+
+export default function ReelsView() {
+  const { colors } = useTheme();
+  const st = useSt();
+  const [reels, setReels] = useState<MarketingReel[] | null>(null);
+  const [urls, setUrls] = useState<GroupUrls>({});
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      setReels(await fetchReels());
+    } catch (e: any) {
+      setError(String(e?.message ?? e));
+      setReels([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+    (async () => {
+      try {
+        const rows = await fetchFromSupabase<{ key: string; value: any }[]>({
+          path: '/rest/v1/app_config?key=in.(social_free_group_url,social_pro_url)&select=key,value',
+        });
+        const map: GroupUrls = {};
+        (rows ?? []).forEach(r => {
+          const v = typeof r.value === 'string' ? r.value.replace(/^"|"$/g, '') : String(r.value ?? '');
+          if (r.key === 'social_free_group_url') map.free = v;
+          if (r.key === 'social_pro_url') map.pro = v;
+        });
+        setUrls(map);
+      } catch { /* group links optional — buttons fall back to /groups/ */ }
+    })();
+  }, [load]);
+
+  return (
+    <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 60 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+        <View style={{ flex: 1 }}><SectionTitle>🎬 REELS — PIPELINE OUTPUT</SectionTitle></View>
+        <TouchableOpacity style={st.btnGhost} onPress={load}>
+          <Text style={st.btnGhostText}>↻ Refresh</Text>
+        </TouchableOpacity>
+      </View>
+      <Text style={{ fontSize: 9, color: colors.textTertiary, marginBottom: 14, lineHeight: 13 }}>
+        Populated by npm run reel:allday / reel:verify. Storyboard = contact sheet; ▶ opens the mp4.
+        Flow: pick target → edit caption (lint gates it) → one tap copies the caption, hands over the
+        video, opens the group, and logs the handoff. Storage self-prunes after 30 days.
+      </Text>
+
+      {reels === null && <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 30 }} />}
+      {error && (
+        <Card style={{ padding: 10, marginBottom: 10, backgroundColor: colors.errorLight, borderColor: colors.error + '33' }}>
+          <Text style={{ fontSize: 11, color: colors.error }}>Load failed: {error}</Text>
+        </Card>
+      )}
+      {reels?.length === 0 && !error && (
+        <Card style={{ padding: 16, alignItems: 'center' }}>
+          <Text style={{ fontSize: 11, color: colors.textSecondary }}>No reels registered yet — run npm run reel:allday or reel:verify.</Text>
+        </Card>
+      )}
+      {reels?.map(r => <ReelCard key={r.id} reel={r} urls={urls} onPosted={load} />)}
+    </ScrollView>
+  );
+}

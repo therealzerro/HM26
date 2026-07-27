@@ -40,6 +40,7 @@ const ALLOWED_TABLES = new Set([
   'horizon_blends',
   'percentile_maps',
   'engine_runs',
+  'marketing_reels',
 ]);
 
 const ALLOWED_METHODS = new Set(['POST', 'PATCH', 'DELETE']);

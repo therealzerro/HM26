@@ -1,0 +1,216 @@
+================================================================================
+HITMASTER ZK6 — DAILY REEL SYSTEM
+Content Agent Handoff · 2026-07-27 · v1.0
+================================================================================
+Read this before proposing or producing ANY reel-related asset or enhancement.
+Companion docs:
+  - assets/HitMaster_Brand_Rehab_Skill_Brief_v2.md  (brand law — canonical)
+  - assets/marketing/AllDay_Reel_Endcard_Revision_Brief_2026-07-27.md (endcard contract)
+  - REEL_COMMANDS.txt (repo root — operator command reference)
+
+
+--------------------------------------------------------------------------------
+1. WHAT THE SYSTEM IS
+--------------------------------------------------------------------------------
+A fully automated daily video pipeline. Two commands produce, assemble, upload,
+and stage everything; the operator posts from their phone with two taps.
+
+  npm run reel:allday   → TWO reels for TODAY (Pro variant + Free variant),
+                          23.7s each: the All-Day signal board + all six
+                          signal detail modals, captured from the LIVE app
+                          with real data.
+
+  npm run reel:verify   → ONE reel for YESTERDAY (10.0s): "Receipts" —
+                          yesterday's verification breakdown. Intentionally
+                          refuses to build on zero-match days (no receipts,
+                          no reel).
+
+Each run ends by auto-uploading the finals to the app backend. They appear in
+the operator's Admin → Reels screen seconds later with a fresh, auto-written
+caption (see §5). NOTHING auto-posts to Facebook — a human always completes
+the post (platform rule + brand-safety rule).
+
+Everything is captured from the real product UI — no mockups, no comps. The
+renderer drives the actual app, verifies each signal modal is the right one,
+and runs an in-frame vocabulary guard; any violation aborts the render.
+
+
+--------------------------------------------------------------------------------
+2. REEL ANATOMY — ALL-DAY (Pro + Free, 23.7s @ 1080×1920 60fps)
+--------------------------------------------------------------------------------
+Both variants share one UI body render; they differ in carrier (voiceover) and
+endcard branding.
+
+  TIMELINE (t in seconds)
+  0.0 – 1.2    OPEN — settled brand lockup (pulled from the endcard's final
+               frame), 1.2s eased dissolve into the UI.
+  1.2 – 17.2   BODY (16.0s) — 4.0s slow push-in over the full 2×3 signal
+               grid (all six on screen), then each signal tapped in rank
+               order 1→6: modal opens, ~2.0s hold on digits/energy/
+               confidence/breakdown, close. Hard cuts between modals.
+  17.2 – 23.7  OUTRO (6.5s) — the endcard's FIRST 6.5s, hard cut in:
+               smoke rise → bolt snap (~18.4s, its crack lands exactly on
+               the snap) → lockup resolves → calm hold.
+
+  AUDIO (two automatic modes, loudness −14 LUFS integrated):
+  - LONG CARRIER (VO ≥ ~17.2s) — "overlap mode": the voice plays wall-to-
+    wall over open+body and may ride up to 1.1s into the smoke rise, but
+    must finish before the 18.4s bolt snap. The endcard's own synced outro
+    audio is mixed in from 17.2s. Carrier content past the VO is DISCARDED
+    (generated tracks are unreliable after their voice ends).
+  - SHORT CARRIER (VO ~10s) — the voice covers the grid + first modals;
+    the endcard's hum swell (its audio after the crack) is pulled forward
+    as a low bed under the remaining modals, then the endcard plays its
+    outro natively.
+
+  WHAT THIS MEANS FOR CARRIER PRODUCTION (your main deliverable):
+  - Target VO length: ~17.2s for wall-to-wall narration (preferred), or
+    ~10s accepting the hum-bed remainder. Anything between works; the
+    assembler adapts automatically and prints which mode it used.
+  - Write VO to the visual beat map: 0–1.2 brand open → 1.2–5.2 the full
+    board (six signals on screen) → 5.2 onward, one signal detail roughly
+    every 2s → if long-form, final line can land over the smoke rise.
+  - Never script the VO to reference the bolt snap or anything after it —
+    that space belongs to the endcard's synced sound.
+  - Two variants every time: PRO (first-access framing, never pricing) and
+    FREE (pure value — the All-Day drop carries NO Pro pitch, per the
+    SOCIAL-13 depth rule).
+
+  ENDCARD CONTRACT (full spec in the endcard revision brief):
+  - Final frame must be the settled lockup (it is reused as the reel's
+    opening frame — the loop is intentional).
+  - First 6.5s must be the formation sequence (used as the outro).
+  - Audio must be front-loaded and synced to the visual snap; the
+    assembler hard-aborts if endcard audio is too short for the outro/bed.
+
+
+--------------------------------------------------------------------------------
+3. REEL ANATOMY — VERIFY / "RECEIPTS" (10.0s @ 1080×1920 60fps)
+--------------------------------------------------------------------------------
+  0.0 – 1.2    OPEN — settled bolt lockup (from verif_endcard's tail),
+               1.2s eased dissolve into the UI.
+  1.2 – 7.5    BODY (6.3s) — yesterday's verification breakdown captured
+               from the live app.
+  7.5 – 10.0   CLOSE — final 2.5s of verif_endcard (static lockup), hard cut.
+  AUDIO        verif_carrier's track across the full 10.0s, −14 LUFS,
+               de-click edge fades. No other sound.
+
+  - Builds for YESTERDAY by default. If yesterday had zero verified
+    matches, the pipeline aborts on purpose — we never fake receipts.
+
+
+--------------------------------------------------------------------------------
+4. AFTER ASSEMBLY — THE AUTOMATIC PUBLISH CHAIN
+--------------------------------------------------------------------------------
+Per reel, three finals are produced and uploaded (working files stay local):
+  - 9:16 master        e.g. allday_pro_20260727.mp4 / verify_reel_20260726.mp4
+  - 1:1 feed cut       …_1x1.mp4 (center crop)
+  - contact sheet PNG  …_contact.png (the storyboard strip)
+
+Upload target: public storage (bucket "marketing-reels"), registered in the
+app's database one row per (date, kind). kind ∈ allday_pro | allday_free |
+verify. Storage self-prunes after 30 days (the log rows are kept).
+
+The operator's Admin → Reels screen then offers, per reel:
+  - contact-sheet storyboard preview + buttons to watch the 9:16 / 1:1
+  - target selector: Free Group / Pro Group / Cross-Post
+  - the auto-written caption in an editor, gated by the full brand-lint
+    engine (a blocking vocabulary violation disables the send buttons)
+  - Two-Question NO/NO checkboxes, required for cross-posts (reels show
+    real digits, so cross-posts honestly fail Q1 — that is the filter
+    working; reels live in the groups)
+  - posting flows: phone = Save to Photos + Open Group (attach from camera
+    roll inside Facebook — the only reliable FB video path); web =
+    Prepare Video, then Save/Share (native sheet) or Download
+  - every handoff is logged centrally with same-day duplicate-caption
+    detection across all surfaces
+
+There is deliberately NO public-page (API) lane for reels and NO auto-posting.
+
+
+--------------------------------------------------------------------------------
+5. THE CAPTION SYSTEM (matters for any copy you propose)
+--------------------------------------------------------------------------------
+Captions are generated at publish time by a template engine — not written
+per-day by hand, not AI-freestyled.
+
+  ROTATION — each content kind has 8 template families. The day's date picks
+  the template deterministically: a different style every day, never the
+  same style on two kinds the same day (protects the duplicate-caption
+  rule), and re-running the same date reproduces the same caption exactly.
+
+  THE NUMBERS POLICY (operator ruling, absolute):
+  - PRO caption ONLY may contain real performance data: verified counts,
+    state attributions, STRAIGHT MATCH callouts, 30-day totals. These are
+    computed fresh from the verified results record (yesterday's board
+    checked against actual observed draws — never cached flags).
+  - FREE and VERIFY captions are QUALITATIVE: dates and framing only. No
+    counts, no state names, no match claims with numbers. The video shows
+    the receipts; the caption text a classifier reads stays clean. This is
+    gambling-adjacency protection — do not ask for exceptions.
+
+  VOICE RULES for any template you propose:
+  - The product noun is "signals". Always. (Never picks/plays/numbers.)
+  - Match vocabulary: MATCH / BOX MATCH / STRAIGHT MATCH. Never "hit(s)",
+    never "partial match", never win/won/winning.
+  - No guarantees, no urgency hype ("don't miss out", "act now"), max ~2
+    emoji, viewer-friendly plain language — receipts-and-record energy,
+    not hype.
+  - Free All-Day captions never pitch Pro. Pro captions never mention
+    pricing.
+  - Approved coverage claims: "40+ states & provinces" or "39 tracked
+    feeds" (never "40+ jurisdictions").
+
+  PROPOSING NEW TEMPLATES: deliver lines as text following the rules above,
+  tagged by kind (pro / free / verify). Engineering adds them to the
+  registry — template count per kind can grow beyond 8; rotation adapts.
+
+  New content types (future reels/posts) get their own registry entry with
+  the same contract. The realNumbers flag is structural: a non-pro template
+  physically cannot access performance data.
+
+
+--------------------------------------------------------------------------------
+6. HARD CONSTRAINTS (non-negotiable, from the brand brief)
+--------------------------------------------------------------------------------
+  - The Facebook page is under algorithmic probation (de-recommended twice,
+    appeals denied). Public page = brand-only; reels and their captions are
+    GROUP content (free = conversion funnel, pro = paid room).
+  - Two-Question filter is mandatory before anything leaves surfaces we
+    control (cross-posts): Q1 no 3-digit numbers visible, Q2 no forbidden
+    vocabulary rendered/spoken. Both must be NO.
+  - Pro group price is $2.49/mo where pricing is allowed (free-group copy);
+    NO app subscription price in any ad or caption.
+  - The in-frame vocabulary guard and the caption lint are enforcement, not
+    suggestions — plan assets so they pass, don't plan appeals.
+
+
+--------------------------------------------------------------------------------
+7. CURRENT ASSET INVENTORY (what you own / can replace)
+--------------------------------------------------------------------------------
+  assets/marketing/
+    allday_pro_carrier.mp4        Pro VO carrier (10s class, backup exists)
+    allday_free_carrier.mp4       Free VO carrier (10s class, backup exists)
+    allday_pro_endcard.mp4        Pro endcard (open frame + outro + audio)
+    allday_free_endcard.mp4       Free endcard
+    verif_carrier.mp4             Verify reel audio bed (10s)
+    verif_endcard.mp4             Verify bolt endcard
+  Replacing any of these with a spec-compliant upgrade requires zero code
+  changes — drop-in by filename. Longer (~17.2s) All-Day carriers are the
+  standing request: they unlock wall-to-wall narration mode.
+
+  Outputs land in assets/marketing/allday_reels/ and verify_reels/ and are
+  pushed to GitHub after every run.
+
+
+--------------------------------------------------------------------------------
+8. ENHANCEMENT LANES (where new work plugs in cleanly)
+--------------------------------------------------------------------------------
+  - New/longer carriers and endcards: file drop-in, spec in §2/§3.
+  - New caption templates: text delivery, spec in §5.
+  - New reel formats or content types: each needs (a) a render/assemble
+    script pair, (b) a caption registry entry, (c) a kind added to the
+    publish pipeline — the storage/app/posting chain then works unchanged.
+  - Do NOT propose: auto-posting, public-page reel lanes, captions that
+    move numbers outside pro, or bypassing the lint/Two-Question gates.
+================================================================================

@@ -29,7 +29,7 @@ import { SURFACE_TIER } from '@/lib/social/captions';
 import { fbPublish } from '@/lib/social/fbPublishClient';
 import {
   MarketingReel, ReelKind, fetchReels, reelPublicUrl,
-  markReelPosted, shareReelToApps, downloadReelWeb,
+  markReelPosted, shareReelToApps, saveReelToPhotos, downloadReelWeb,
 } from '@/lib/marketingReels';
 import { Pill, SectionTitle, Card, useSt, timeAgo } from './AdminShared';
 
@@ -98,6 +98,27 @@ function ReelCard({ reel, urls, onPosted }: { reel: MarketingReel; urls: GroupUr
       : '';
   }, [caption, tier, target, filename, reel, onPosted]);
 
+  // PRIMARY native path: the FB app frequently drops a share-sheet video
+  // (composer opens without it), so the dependable flow is camera roll →
+  // attach inside Facebook. Copies caption, saves the mp4 to Photos, opens
+  // the destination group, logs the handoff.
+  const saveAndOpen = useCallback(async () => {
+    setBusy(true);
+    setMsg('⏳ Saving video to Photos…');
+    try {
+      await Clipboard.setStringAsync(caption);
+      await saveReelToPhotos(videoUrl, filename);
+      const dest = (target === 'pro' ? urls.pro : urls.free) || 'https://www.facebook.com/groups/';
+      if (target !== 'cross') openInNewTab(dest);
+      const dupNote = await logAndMark();
+      setMsg(`💾 Video saved to Photos · caption copied${target !== 'cross' ? ' · group opened' : ''}. In Facebook: attach the video from your camera roll, paste, post.${dupNote}`);
+    } catch (e: any) {
+      setMsg(`❌ ${String(e?.message ?? e)}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [caption, videoUrl, filename, target, urls, logAndMark]);
+
   const shareNative = useCallback(async () => {
     setBusy(true);
     setMsg('⏳ Fetching video…');
@@ -105,7 +126,7 @@ function ReelCard({ reel, urls, onPosted }: { reel: MarketingReel; urls: GroupUr
       await Clipboard.setStringAsync(caption);
       await shareReelToApps(videoUrl, filename);
       const dupNote = await logAndMark();
-      setMsg(`📋 Caption copied + video handed to Facebook. Pick your group, paste, post.${dupNote}`);
+      setMsg(`📋 Caption copied + video handed over. If Facebook's composer opens WITHOUT the video, use Save to Photos instead.${dupNote}`);
     } catch (e: any) {
       if (e?.name === 'AbortError') setMsg('Share cancelled.');
       else setMsg(`❌ ${String(e?.message ?? e)}`);
@@ -214,12 +235,19 @@ function ReelCard({ reel, urls, onPosted }: { reel: MarketingReel; urls: GroupUr
         </Card>
       )}
 
-      {/* actions — assisted lane only (Groups have no publish API) */}
+      {/* actions — assisted lane only (Groups have no publish API). Native
+          primary = Save to Photos: the FB composer reliably attaches from the
+          camera roll but often drops a share-sheet video. */}
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
         {Platform.OS !== 'web' ? (
-          <TouchableOpacity style={[st.btnPrimary, { flex: 1, opacity: canSend ? 1 : 0.5 }]} disabled={!canSend} onPress={shareNative}>
-            <Text style={st.btnPrimaryText}>{busy ? '⏳ …' : '📤 Share Video to Facebook'}</Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity style={[st.btnPrimary, { flex: 1, opacity: canSend ? 1 : 0.5 }]} disabled={!canSend} onPress={saveAndOpen}>
+              <Text style={st.btnPrimaryText}>{busy ? '⏳ …' : '💾 Save to Photos + Open Group'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[st.btnGhost, { opacity: canSend ? 1 : 0.5 }]} disabled={!canSend} onPress={shareNative}>
+              <Text style={st.btnGhostText}>📤 Share…</Text>
+            </TouchableOpacity>
+          </>
         ) : (
           <TouchableOpacity style={[st.btnPrimary, { flex: 1, opacity: canSend ? 1 : 0.5 }]} disabled={!canSend} onPress={prepAndOpen}>
             <Text style={st.btnPrimaryText}>{busy ? '⏳ …' : '🚀 Prep & Open (caption + mp4 + group)'}</Text>

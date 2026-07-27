@@ -80,6 +80,26 @@ export async function shareReelToApps(videoUrl: string, filename: string): Promi
 }
 
 /**
+ * Native: save the reel into the camera roll. This is the RELIABLE Facebook
+ * path — the FB app frequently drops a video handed over via the share sheet
+ * (composer opens without it preloaded), but attaching from Photos always
+ * works. Mirrors saveDataUrlToPhotos: writeOnly permission → cache download →
+ * createAssetAsync (returns the asset, so a resolved call is proof the video
+ * is really in the roll).
+ */
+export async function saveReelToPhotos(videoUrl: string, filename: string): Promise<void> {
+  const MediaLibrary = await import('expo-media-library');
+  const FileSystem = await import('expo-file-system/legacy');
+  const perm = await MediaLibrary.requestPermissionsAsync(true);
+  if (!perm.granted) throw new Error('Photos access denied — allow "Add Photos" for HitMaster in iOS Settings.');
+  const dest = `${FileSystem.cacheDirectory}${filename}`;
+  const dl = await FileSystem.downloadAsync(videoUrl, dest);
+  if (dl.status !== 200) throw new Error(`Video download failed (HTTP ${dl.status}).`);
+  const asset = await MediaLibrary.createAssetAsync(dl.uri);
+  if (!asset?.id) throw new Error(`Photos did not accept ${filename}.`);
+}
+
+/**
  * Web download: the storage endpoint serves CORS `*`, so fetch → blob →
  * object-URL keeps the `download` attribute working cross-origin (a bare
  * anchor to another origin ignores it and navigates instead).

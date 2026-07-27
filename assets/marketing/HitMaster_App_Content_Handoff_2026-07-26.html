@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>HitMaster — App Content Handoff</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #1a1a24; font-size: 10.5pt; line-height: 1.5; }
+  .page { page-break-after: always; padding: 36pt 44pt; }
+  .page:last-child { page-break-after: auto; }
+  h1 { font-size: 24pt; font-weight: 900; margin-bottom: 6pt; }
+  h2 { font-size: 15pt; font-weight: 800; color: #6d28d9; border-bottom: 2pt solid #6d28d9; padding-bottom: 3pt; margin: 14pt 0 8pt; }
+  h3 { font-size: 11.5pt; font-weight: 800; margin: 10pt 0 4pt; }
+  p { margin-bottom: 6pt; }
+  ul, ol { margin: 0 0 6pt 16pt; }
+  li { margin-bottom: 2pt; }
+  table { width: 100%; border-collapse: collapse; margin: 6pt 0 10pt; font-size: 9pt; }
+  th { background: #1E1B4B; color: #fff; text-align: left; padding: 4pt 6pt; }
+  td { border: 0.5pt solid #c9c9d4; padding: 4pt 6pt; vertical-align: top; }
+  .cover { background: #0A0A0F; color: #fff; height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 60pt; }
+  .cover h1 { font-size: 30pt; color: #fff; }
+  .cover .accent { color: #A855F7; }
+  .cover .gold { color: #FBBF24; }
+  .cover p { color: #b8b8cc; font-size: 11pt; max-width: 420pt; }
+  .tag { display: inline-block; background: #ede9fe; color: #6d28d9; font-weight: 800; font-size: 7.5pt; padding: 1pt 6pt; border-radius: 8pt; margin-right: 4pt; letter-spacing: 0.5pt; }
+  .tag.gold { background: #fef3c7; color: #b45309; }
+  .tag.red { background: #fee2e2; color: #b91c1c; }
+  .tag.green { background: #d1fae5; color: #047857; }
+  .callout { background: #f5f3ff; border-left: 3pt solid #A855F7; padding: 6pt 10pt; margin: 8pt 0; font-size: 9.5pt; }
+  .callout.warn { background: #fff7ed; border-color: #ea580c; }
+  .callout.danger { background: #fef2f2; border-color: #dc2626; }
+  .screenrow { display: flex; gap: 14pt; margin-bottom: 10pt; }
+  .screenrow img { width: 130pt; border-radius: 8pt; border: 1pt solid #d4d4e0; }
+  .screenrow .txt { flex: 1; }
+  .benefit { color: #047857; font-weight: 700; }
+  .mono { font-family: 'Courier New', monospace; font-size: 8.5pt; background: #f1f1f6; padding: 0 3pt; }
+  .quote { font-style: italic; color: #444; }
+  .small { font-size: 8.5pt; color: #555; }
+  .footer { position: fixed; bottom: 14pt; right: 44pt; font-size: 7.5pt; color: #999; }
+</style></head><body>
+
+<!-- ═══════════ COVER ═══════════ -->
+<div class="page cover">
+  <h1>HITMASTER <span class="accent">ZK6</span></h1>
+  <h1 style="font-size:16pt; margin-bottom:20pt;">App Content Handoff <span class="gold">— for the Content Agent</span></h1>
+  <p><b>Purpose:</b> the complete factual reference for producing ad scripts and Gemini generation prompts (10s / 30s / 90s / 2-minute formats) that convert knowledgeable daily-draw players into: (1) free community group members, (2) Pro group subscribers ($2.49/mo), and (3) app users.</p>
+  <p style="margin-top:10pt;"><b>Use WITH the Brand Rehab Skill Brief v2</b> (HitMaster_Brand_Rehab_Skill_Brief_v2.md). The brief is the rulebook — vocabulary, filters, visual specs, Gemini prompt conventions. This document is the product truth — screens, features, benefits, exact copy, pricing, and 18 real device screenshots.</p>
+  <p style="margin-top:10pt; color:#FBBF24;"><b>If this document and the brief ever conflict on a compliance rule, the brief wins.</b> Pricing note: the brief was revised to v2.1 on 7/26 — Pro group is <b>$2.49/mo</b> in both documents; earlier copies printing $0.99 are obsolete.</p>
+  <p style="margin-top:26pt; font-size:9pt;">Version 1.2 · Generated 2026-07-26 (v1.1: Pro price $2.49/mo; v1.2: content-agent conflict rulings — vocab law, free-group depth, app-price rule, jurisdiction units) · Screenshots captured live from build v2.0 (ZK6 engine v2.1)</p>
+</div>
+
+<!-- ═══════════ 1. POSITIONING ═══════════ -->
+<div class="page">
+<h2>1 · Positioning &amp; Audience</h2>
+<p><b>What HitMaster is (say this):</b> a <b>data intelligence and analytics platform</b> for daily 3-digit draw games — comparable to ESPN Stats, FiveThirtyEight, or Yahoo Finance, but for numerical pattern analysis. The ZK6™ engine analyzes years of public draw data across <b>39 tracked jurisdiction feeds — spanning 40+ states &amp; provinces (Tri-State and Western Canada feeds each cover multiple states/provinces) — with 76 tracked draws every day</b> and publishes six ranked daily signals per session, then <b>verifies every signal against official observed outcomes</b> — receipts, not promises.</p>
+<p><b>What it is not (never say):</b> a lottery prediction service, a way to win, a gambling product. It sells <i>analysis and verification</i>, not outcomes. No rate claims, no guarantees ever.</p>
+<h3>The audience</h3>
+<p>Knowledgeable daily-draw players. They already understand box vs straight, midday vs evening sessions, and state-by-state games. <b>Do not educate down to them — respect their expertise.</b> What wins them: methodology transparency ("here's WHY this signal"), verification receipts (draw-by-draw, state-by-state), and coverage breadth (their state plus dozens of others). What loses them: hype, guru framing, "guaranteed" anything — this audience has seen every scam; the anti-hype, stats-desk voice IS the differentiator.</p>
+<h3>The three conversion objectives (keep them distinct!)</h3>
+<table>
+<tr><th>Objective</th><th>Product</th><th>Price</th><th>Role in funnel</th></tr>
+<tr><td><b>1. Join the free group</b></td><td>Free Community Facebook Group</td><td>Free</td><td>Primary conversion funnel. Daily drops (All-Day FULL; Midday/Evening redacted — see §2 depth rule), results, pattern breakdowns. Opted-in audience — rich product content allowed here.</td></tr>
+<tr><td><b>2. Join the Pro group</b></td><td>Pro Facebook Group (inner circle)</td><td><b>$2.49/mo</b></td><td>Premium community: intelligence drops first, exclusive deep dives, behind-the-scenes app build, locked-in launch perks.</td></tr>
+<tr><td><b>3. Download the app</b></td><td>HitMaster app (App Store / Google Play — pre-launch: "Coming Soon")</td><td>Free download (Seeker tier); <b>Oracle+</b> in-app: $4.99 5-day · $9.99/mo · $89.99/yr</td><td>The product itself. Free tier is a real experience (2 of 6 signals + full results ledger + verification).</td></tr>
+</table>
+<div class="callout danger"><b>⚠ PRICING — DO NOT CONFLATE.</b> The <b>$2.49/mo is ONLY the Pro Facebook group</b>. The app's paid tier is <b>Oracle+</b> at $4.99 (5-day access, no auto-renew), $9.99/mo, or $89.99/yr (badge: BEST VALUE, save 25%). An ad that says "get the full app for $2.49" is factually wrong and creates refund/complaint risk. Scripts must attach each price to its correct product. <b>App pricing in ads:</b> the live in-app paywall is the ONLY citable source ($4.99 5-day pass · $9.99/mo · $89.99/yr). A "$4.99/mo iOS launch price" is NOT in the shipped product — do not put any app subscription price in ad copy until the operator confirms final launch pricing; say "free download — upgrade in-app" instead.</div>
+<h3>Approved one-liners (safe everywhere)</h3>
+<ul>
+<li>"Smarter data, sharper signals."</li>
+<li>"Six daily signals. Verified against official outcomes. Every day."</li>
+<li>"The intelligence layer for daily draw analysis — coverage across 40+ states &amp; provinces, 76 draws a day."</li>
+<li>"We publish the signals before the draw, and the receipts after. Methodology, not mystery."</li>
+<li>"No hype. No guarantees. Just pattern analysis you can check yourself."</li>
+</ul>
+<div class="footer">HitMaster App Content Handoff · 2026-07-26</div>
+</div>
+
+<!-- ═══════════ 2. OFFER LADDER ═══════════ -->
+<div class="page">
+<h2>2 · What Each Membership Actually Gets (facts for scripts)</h2>
+<h3>Free app tier — "Seeker"</h3>
+<ul>
+<li>2 of 6 daily signals per session (ranked #5–#6; the top 4 are hidden), with full signal cards: energy score, why-this-signal reasons, convergence dots, history stats</li>
+<li><b>Full Results Ledger</b> — every official draw across all 39 tracked feeds, 7-day history, search/filter, match badges, replay animations (NOT paywalled — a genuinely useful free tool)</li>
+<li>Verified Track Record + 7-day Replay — full access</li>
+<li>Number Book — unlimited personal lists that auto-report matches over 30 days</li>
+<li>1 Signal Check per day (look up any 3-digit combo's full signal profile)</li>
+<li>Learn Center, followed-states filtering, light/dark/system themes, draw countdowns, streaks</li>
+</ul>
+<h3>Oracle+ (app paid tier) adds</h3>
+<ul>
+<li>All 6 signals per session + the <b>optimal straight arrangement</b> for each</li>
+<li>Unlimited Signal Checks · full pair-intelligence analytics in every pick detail</li>
+<li>Pattern Explorer — any pattern's full appearance history + observed-vs-expected frequency across every tracked jurisdiction</li>
+<li>Budget Planner across all 6 signals · slate save · 3 slate regenerations/day · real-time updates (free tier: 15-min delay)</li>
+</ul>
+<h3>Free Facebook group gets</h3>
+<ul><li>Daily signal drops, yesterday's verified results with real numbers, pattern breakdowns, jurisdiction analysis, verification receipts — free, in an opted-in space</li>
+<li><b>Depth rule (locked strategy):</b> the <b>All-Day drop is FULL</b>; <b>Midday and Evening drops are redacted</b> in the free group — that gap IS the conversion frame ("the full session drops live in Pro"). Note: the free All-Day post carries no Pro pitch by rule (pure value). Frame free-group ads around the full All-Day drop; frame Pro-group ads around unredacted Midday + Evening + first access.</li></ul>
+<h3>Pro Facebook group ($2.49/mo) adds</h3>
+<ul><li>Intelligence drops first (before the free group) · exclusive deep dives · behind-the-scenes app build · direct line to founders · locked-in launch perks · premium verified-receipt graphics</li></ul>
+<h3>Exact in-app CTA strings (reuse verbatim in scripts if useful)</h3>
+<table>
+<tr><th>Where</th><th>String</th></tr>
+<tr><td>Home gate</td><td>"You saw the free tier" · "Oracle+ unlocks the full K6 slate — plus the optimal straight order and deep analytics." · "Upgrade · $9.99/mo ♛"</td></tr>
+<tr><td>Slates upsell</td><td>"♛ Unlock your full K6 Slate" · "Pro unlocks all 6 signals, optimal straights, pattern analysis." · "♛ Begin Pro Trial · $4.99"</td></tr>
+<tr><td>Profile</td><td>"Try 5 days for $4.99 → then $9.99/mo, cancel anytime"</td></tr>
+<tr><td>Locked picks</td><td>"4 HIDDEN PICKS · Top-ranked · Oracle+ only" · "♛ Or upgrade for full access →"</td></tr>
+<tr><td>Paywall hero</td><td>"Unlock the full K6 slate" · "Six daily signals · verified outcomes · full pattern analytics"</td></tr>
+<tr><td>Pro group pitch (brief §10, price corrected)</td><td>"🔥 Join the inner circle for $2.49/mo: daily intelligence drops first, exclusive deep dives, behind-the-scenes app build, and locked-in launch perks." <i>(Brief v2 prints an outdated $.99 — use $2.49.)</i></td></tr>
+</table>
+<div class="callout"><b>Trust fact for scripts:</b> the paywall deliberately makes <b>no hit-rate claim</b> — "the paywall sells capability, not a rate." Mirror that discipline in ads: never invent a percentage. The only rate-like statement allowed in-app is the per-energy-band honesty footer (e.g. "245 picks at 90–100 energy hit 76% historically"), which only renders with ≥50 samples — do NOT lift these numbers into ads; they change daily.</div>
+<div class="footer">HitMaster App Content Handoff · 2026-07-26</div>
+</div>
+
+<!-- ═══════════ 3. SCREENS ═══════════ -->
+<div class="page">
+<h2>3 · Screen-by-Screen — Features &amp; Benefits</h2>
+<p class="small">Screenshots: live captures, iPhone viewport, dark theme (brand default). Files in <span class="mono">assets/marketing/screencaps_2026-07-26/</span> — <span class="mono">free_*.png</span> and <span class="mono">premium_*.png</span> versions of each screen. <b>All product-UI screenshots are Tier 2/4/5 assets only (groups + App Store listing) — never public page or paid Meta placements.</b></p>
+
+<div class="screenrow">
+  <img src="screencaps_2026-07-26/premium_home.png">
+  <div class="txt">
+    <h3>Home — "Today's Signals" <span class="tag">ALL USERS</span></h3>
+    <p>The daily ritual screen. Scope switcher (Midday ☀️ / Evening 🌙 / All Day ◈), LAST MATCH pill (combo · state · when), hero stats (avg energy · verified matches today · live next-draw countdown), 30-day energy sparkline, then the six ranked signal cards — each with best-straight digits, box set, WHY THIS SIGNAL reasons, 4-signal convergence dots, all-time match count, and an energy meter.</p>
+    <p><span class="benefit">Benefit angle:</span> "Open one screen each morning and the day's analysis is done — ranked, explained, and time-stamped before the first draw."</p>
+    <p class="small">Free: sees signals #5–#6 + "4 HIDDEN PICKS" rows. Delight: match-day celebration overlay with share; daily streaks with monthly streak freeze; after-8PM daily recap card; loss days get an honest "here's what got close" card.</p>
+  </div>
+</div>
+<div class="screenrow">
+  <img src="screencaps_2026-07-26/free_slates.png">
+  <div class="txt">
+    <h3>Slates — "ZK6 Signals" <span class="tag">ALL USERS</span> <span class="tag gold">CONVERSION SURFACE</span></h3>
+    <p>Three tabs: <b>Signals</b> (list view or a 2×3 screenshot-friendly grid), <b>Matches</b> (live draw ticker + today's confirmed matches across all scopes/jurisdictions), <b>More</b> (save slate, 7-day replay, Pattern Explorer). Filter singles/doubles, sort by rank/energy/frequency.</p>
+    <p><span class="benefit">Benefit angle:</span> "A live match feed across every jurisdiction — see the engine's work verified in real time, state by state."</p>
+    <p class="small">The free view (shown) is the single best conversion visual in the app: "4 HIDDEN PICKS · Top-ranked · Oracle+ only" directly above a fully-detailed STRONG SIGNAL card — the value gap is visible, not claimed.</p>
+  </div>
+</div>
+<div class="screenrow">
+  <img src="screencaps_2026-07-26/premium_results.png">
+  <div class="txt">
+    <h3>Results Ledger <span class="tag green">FREE — NO GATING</span></h3>
+    <p>Day-by-day official draw ledger, all tracked jurisdictions, 7-day tabs with hit dots (gold = straight landed, cyan = box). Search any state/game/digits, session filters, cluster view (groups draws by box-set), MATCHES TODAY hero band with WE-PICKED ➜ DRAWN tiles, inline replay animation per match, share buttons, day stats sheet.</p>
+    <p><span class="benefit">Benefit angle:</span> "Every draw in the country, one screen — and every ZK6 match stamped right on the official result. Check our work yourself."</p>
+    <p class="small">Entirely free — lead with this for app-download ads: the ledger alone replaces checking 5 state sites.</p>
+  </div>
+</div>
+<div class="footer">HitMaster App Content Handoff · 2026-07-26</div>
+</div>
+
+<div class="page">
+<div class="screenrow">
+  <img src="screencaps_2026-07-26/premium_track-record.png">
+  <div class="txt">
+    <h3>Verified Track Record <span class="tag green">FREE</span> <span class="tag gold">TRUST SURFACE</span></h3>
+    <p>"Last 30 days · ZK6 K6 matches, draw-by-draw." Summary stats (MATCHES · STRAIGHT · BOX · DAYS, across N jurisdictions), then a day-grouped receipt stream: every confirmed match with the digits, ⭐ STRAIGHT / 🎯 BOX tag, and "Drew {result} in {state} {session}". Straight matches show the actual drawn order.</p>
+    <p><span class="benefit">Benefit angle:</span> "Receipts, draw-by-draw. Not a marketing number — a list you can cross-check against your state's official results."</p>
+    <p class="small">Matches are verified mechanically: box = same 3 digits any order vs the official draw; straight = exact order; session-gated (an evening signal can never be credited to a midday draw). This mechanism is a script-worthy differentiator.</p>
+  </div>
+</div>
+<div class="screenrow">
+  <img src="screencaps_2026-07-26/premium_book.png">
+  <div class="txt">
+    <h3>Number Book <span class="tag green">FREE</span></h3>
+    <p>Personal number collections: create lists by scope + states (region-grouped picker), add numbers manually or pull today's 6 signals in one tap, star favorites. Every saved number is auto-checked against 30 days of real draws — matched numbers rise to the top with "3× MATCHES · NY evening 2d ago" and a full-history link. Saved slates become read-only records.</p>
+    <p><span class="benefit">Benefit angle:</span> "Your personal numbers, tracked automatically. If your birthday combo matched in any state you follow, the Book already knows."</p>
+    <p class="small">Speaks directly to how this audience already behaves (everyone has personal numbers) — strong app-download hook.</p>
+  </div>
+</div>
+<div class="screenrow">
+  <img src="screencaps_2026-07-26/premium_pattern-explorer.png">
+  <div class="txt">
+    <h3>Pattern Explorer <span class="tag gold">ORACLE+ ONLY</span></h3>
+    <p>Research surface: <b>Footprint</b> (any 3-digit pattern's full appearance history — jurisdictions, orderings, observed-vs-expected, 30d/90d windows, session filter) and <b>Frequency</b> (all 220 unordered sets and digit pairs vs mathematical baselines, sortable by ratio/gap).</p>
+    <p><span class="benefit">Benefit angle:</span> "The research desk: any pattern's complete history against its mathematical expectation — across every tracked jurisdiction."</p>
+    <p class="small">Free users see the upgrade gate (free_pattern-explorer.png shows it — useful conversion visual).</p>
+  </div>
+</div>
+<div class="footer">HitMaster App Content Handoff · 2026-07-26</div>
+</div>
+
+<div class="page">
+<div class="screenrow">
+  <img src="screencaps_2026-07-26/premium_learn.png">
+  <div class="txt">
+    <h3>Learn Center <span class="tag green">FREE</span></h3>
+    <p>Five plain-English modules: What is a 3-digit draw? · Box vs Straight · Daily Drawing Times (76 draws/day) · States &amp; Regions (in-app copy says "40+ jurisdictions"; in ads use "40+ states &amp; provinces" — see §1) · How ZK6 Works For You. Includes the responsible-use framing: "data-driven analysis… NOT a guarantee of outcomes. Every draw is independent. Use responsibly, within your means."</p>
+    <p><span class="benefit">Benefit angle (secondary):</span> for ads, Learn signals legitimacy — the platform teaches methodology instead of selling mystery.</p>
+  </div>
+</div>
+<div class="screenrow">
+  <img src="screencaps_2026-07-26/premium_account.png">
+  <div class="txt">
+    <h3>Profile <span class="tag">ALL USERS</span></h3>
+    <p>Tier status (Seeker / Oracle+ ♛), activity stats, followed-states picker (filters Results, Match Feed, Track Record, and Number Book to your states), light/dark/system themes, coffee mode (chrome-free 6-signal grid), notification controls (next-draw alert 15 min before · slate ready · match alert), ZK6 glossary, and the free-vs-Oracle+ comparison table.</p>
+    <p><span class="benefit">Benefit angle:</span> "Follow your states and the whole app filters to them — alerts 15 minutes before your draw."</p>
+  </div>
+</div>
+<div class="screenrow">
+  <img src="screencaps_2026-07-26/premium_paywall.png">
+  <div class="txt">
+    <h3>Paywall — "/paywall" <span class="tag">REFERENCE</span></h3>
+    <p>Hero: "Unlock the full K6 slate · Six daily signals · verified outcomes · full pattern analytics." Feature table (Full K6 Slate, Signal Checks 1/day→Unlimited, Budget Planner, Live Updates 15-min delay→Real-time, Detailed Reasons, Previous Matches). Plans: 5-Day $4.99 (no auto-renew) · Monthly $9.99 · Annual $89.99 (BEST VALUE). Disclaimer: "For analytical research only. Not financial advice. Use responsibly."</p>
+    <p class="small">Use this screen as the factual source for any price/feature claim in an ad. Note again: no hit-rate claim appears here — by design.</p>
+  </div>
+</div>
+<h3>Also available (not pictured inline)</h3>
+<ul class="small">
+<li><b>Replay</b> (free) — last 7 days of slates vs actual draws, day by day, per-scope match pills</li>
+<li><b>Signal Check modal</b> — any combo's full profile: energy verdict, draws-ago, all-time matches, expected-every-N-draws, pair signals; free 1/day, Oracle+ unlimited; shareable</li>
+<li><b>Pick Detail modal</b> — INTEL (confidence, signal breakdown, why-this-order, resolved-in states) / PAIRS (pair matrix, Oracle+) / PLAY (bet cards $0.25 → $225 straight / $37.50 box, replay, save, share)</li>
+<li><b>Signal Explainer</b> — "How this signal was made": the engine scored every combo, ranked by weighted signal sum, rail filters listed, "{combo} survived all six selection passes" — kills the "is this random?" suspicion</li>
+<li><b>Budget Planner</b> — enter a budget, pick sessions and 1-vs-32 states, get a per-signal box/straight allocation with cost and potential-match math</li>
+<li><b>Draw Ticker</b> — live countdown to the next of 76 daily draws with the two after it</li>
+</ul>
+<div class="footer">HitMaster App Content Handoff · 2026-07-26</div>
+</div>
+
+<!-- ═══════════ 4. COMPLIANCE ═══════════ -->
+<div class="page">
+<h2>4 · Compliance for Ad Production (condensed from Brief v2 — brief wins on conflict)</h2>
+<div class="callout danger"><b>THE RULE THAT GOVERNS EVERYTHING:</b> the classifier reads every image and video frame via OCR. Captions are clean; images leak. <b>Check the frame, not the caption.</b> Both May de-recommendations came from product-UI imagery with real 3-digit numbers and gambling vocabulary visible in the pixels.</div>
+<h3>Destination decides the rules</h3>
+<table>
+<tr><th>Where the ad will run</th><th>Rules</th></tr>
+<tr><td><b>Paid Meta placements / public FB page / boosted posts</b></td><td>STRICT (Tier-1): must pass the Two-Question Filter — NO 3-digit numbers visible in any frame, NO forbidden vocabulary rendered on screen (HITS · STRAIGHT · BOX · PICKS · WIN · LUCKY · BET · JACKPOT · LOTTERY · MIDDAY/EVENING as session labels, etc.). No product-UI screenshots. Use abstract data visuals, hash placeholders (###), brand graphics.</td></tr>
+<tr><td><b>Inside the free group / Pro group / cross-posts from the group</b></td><td>Relaxed (Tier-2/3/4): product UI, real numbers, box/straight vocabulary allowed — audience opted in. Still: no guarantees, no minors, caption variation across cross-posted groups.</td></tr>
+<tr><td><b>App Store / Google Play listing</b></td><td>Product UI with numbers OK (expected by reviewers). Position as data analytics. NOTHING implying guaranteed outcomes.</td></tr>
+<tr><td><b>Non-Meta channels (YouTube/TikTok)</b></td><td>Meta classifier doesn't apply, but keep the brand voice (no hype, no guarantees, no casino imagery) — clips get re-shared into Meta surfaces, so default to Tier-1-clean unless produced explicitly for in-group use.</td></tr>
+</table>
+<div class="callout warn"><b>Default posture for THIS ad set:</b> produce every master ad Two-Question-clean (no 3-digit numbers on screen, no forbidden words rendered), so any cut can run anywhere. Then optionally produce in-group variants that show real product UI. A "subscriber exclusive" badge does NOT protect an asset — if numbers are visible, it's group-only.</div>
+<h3>Vocabulary translation (for scripts &amp; on-screen text)</h3>
+<table>
+<tr><th>Never (public)</th><th>Say instead</th></tr>
+<tr><td>hits / winning numbers</td><td>patterns identified · signals matched · verified matches · predictions verified</td></tr>
+<tr><td>picks / daily picks / hot picks</td><td>daily signals · intelligence reports · data drops · top signals</td></tr>
+<tr><td>lottery / lotto / Pick 3</td><td>daily draw games · 3-digit draws · numerical pattern analysis</td></tr>
+<tr><td>lottery players</td><td>users · community · members · the crew</td></tr>
+<tr><td>play / bet</td><td>use · engage · apply</td></tr>
+<tr><td>win / winners</td><td>succeed · outperform · gain advantage</td></tr>
+<tr><td>straight/box as status labels</td><td>STRAIGHT MATCH / BOX MATCH / MATCH — the locked caption law (never "exact match"/"partial match"; "partial match" is banned). Caption text only: these labels must never be rendered inside public/paid-placement images (Two-Question Filter).</td></tr>
+<tr><td>lucky / jackpot / payout</td><td>(omit — no replacement, cut the concept)</td></tr>
+</table>
+<h3>Visual rules for generated footage</h3>
+<ul>
+<li>Brand palette strict: electric purple #A855F7–#C084FC · metallic gold #FBBF24–#F59E0B · deep black #0A0A0F to navy #1E1B4B · cyan #06B6D4 data accents · white text. Lightning bolt motif 2-3× per asset.</li>
+<li>Approved: abstract data streams, signal waves, holographic dashboards WITHOUT real numbers, cosmic/portal, vault/lock for "inside the group", real people focused at screens, clean-desk lifestyle.</li>
+<li>Forbidden: cash/money imagery, tickets, scratch-offs, dice/cards/chips/slots, "WINNER" graphics, dollar-sign decor, red 3-digit pick cards.</li>
+<li>Music 70–90 BPM confident/measured; NO casino fanfares, slot bells, cash registers. Voiceover calm and confident; cowboy voice sparingly for community clips only.</li>
+<li>Every ad ends with: HitMaster ZK6 wordmark + lightning bolt + "Coming Soon — App Store &amp; Google Play" (pre-launch) + the required disclaimer line (below).</li>
+</ul>
+<h3>Required in every ad (any length, any destination)</h3>
+<ul>
+<li>On-screen or spoken: <b>"For analytical research only. Not a guarantee of outcomes. Use responsibly."</b> (18+ audience targeting on paid placements.)</li>
+<li>No invented statistics, no rate claims, no income implications, no urgency-screaming ("last chance!", caps-lock, &gt;3 emoji).</li>
+</ul>
+<h3>Gemini generation reminders (full conventions in Brief v2 §8-9)</h3>
+<ul>
+<li>Natural-language scene prose, not tag soup; every rendered text string in quotes + "must be spelled exactly as written"; hex palette listed; aspect ratio last line.</li>
+<li>ALWAYS end prompts with the Universal Prohibition Clause (no citation tags / bracketed metadata / 3-digit numbers / forbidden vocab / gambling imagery). Generate in a FRESH chat.</li>
+<li>Video reality: AI tools produce 6–8s coherent clips. A 30s ad = ~4 scenes; 90s = ~12; 2-min = ~15–18 scenes stitched. Lock the hardest scene first; budget 3-5 generations per scene. Use "Thinking"-class image model for brand assets.</li>
+</ul>
+<div class="footer">HitMaster App Content Handoff · 2026-07-26</div>
+</div>
+
+<!-- ═══════════ 5. AD FORMAT GUIDANCE ═══════════ -->
+<div class="page">
+<h2>5 · Ad Format Playbook — 10s / 30s / 90s / 2-min × 3 objectives</h2>
+<p class="small">Formats: 9:16 vertical 1080×1920 primary; 1:1 and 4:5 cuts for feed. These are structural recipes — the content agent owns the creative execution.</p>
+<h3>10 seconds — single-hook cutdown (paid placement workhorse)</h3>
+<table>
+<tr><th>Objective</th><th>Structure (approved-vocab example)</th></tr>
+<tr><td>Free group</td><td>Hook (0-3s): "Six daily signals. Verified against official outcomes." → Proof flash (3-7s): abstract signal wave resolving to a ✓ → CTA (7-10s): "The full drops are free in the community. Link below." + wordmark + disclaimer.</td></tr>
+<tr><td>Pro group</td><td>"The inner circle sees the drops first." → vault opening on abstract data → "$2.49/mo. Founders inside." + wordmark.</td></tr>
+<tr><td>App</td><td>"Every draw in the country. One screen." → dashboard silhouette (### placeholders) → "HitMaster — coming to App Store &amp; Google Play."</td></tr>
+</table>
+<h3>30 seconds — hook → proof → CTA</h3>
+<p>Arc: (0-5s) audience-respecting hook ("You already track the numbers. We built the desk.") → (5-18s) methodology montage: 40+ states &amp; provinces · 76 draws/day · six ranked signals each morning · every signal checked against the official result → (18-25s) trust beat: "Receipts published daily. No guarantees, ever — that's the point." → (25-30s) objective CTA + wordmark + disclaimer. For in-group variants only: real screen recordings of Results Ledger match badges and the Track Record stream are the strongest 5 seconds available.</p>
+<h3>90 seconds — the story ad (group content / YouTube)</h3>
+<p>Five-act: (1) The problem — checking five state sites, guru pages full of hype, nobody shows receipts (10s). (2) The engine — ZK6 scores every 3-digit set 000–999 on four signals, ranks six per session, time-stamped before the draw (20s). (3) The verification — session-gated matching vs official outcomes; Track Record receipts draw-by-draw (20s). (4) The tour — Home ritual → live match feed → Number Book auto-tracking personal numbers → Pattern Explorer research desk (25s, product UI in group versions / abstract in public versions). (5) The ladder — free community → Pro inner circle $2.49/mo → app with Oracle+ (10s) + closing brand + disclaimer (5s).</p>
+<h3>2 minutes — the deep explainer (group pinned post / YouTube / launch asset)</h3>
+<p>Extended 90s arc plus: the Learn Center philosophy (we teach the method), a real morning walkthrough narrated calmly ("7 AM: the slate is generated and time-stamped — here's what the engine surfaced and why"), the honesty positioning as the climax ("Every draw is independent. Anyone promising outcomes is lying to you. We publish analysis and we publish receipts — you judge."), then the full three-tier CTA. This length lives where the audience already opted in — it can carry real product UI throughout the group version.</p>
+<h3>CTA lines per objective (approved vocab)</h3>
+<ul>
+<li><b>Free group:</b> "Full daily intelligence drops, free, in the community — link below." / "No fees. No hype. If it's a fit for your crew, come see the receipts."</li>
+<li><b>Pro group:</b> "Inner circle: drops first, deep dives, the app build behind the scenes — $2.49/mo." / "Lock in launch perks before the app ships."</li>
+<li><b>App:</b> "HitMaster — coming soon to App Store &amp; Google Play. The free tier is real: the ledger, the receipts, two daily signals." / "Download free. Upgrade to Oracle+ when the preview convinces you: 5 days for $4.99."</li>
+</ul>
+<h3>Screenshot asset manifest (18 files)</h3>
+<table>
+<tr><th>File (free_ / premium_)</th><th>Shows</th><th>Best use</th></tr>
+<tr><td>home</td><td>Daily ritual: hero stats, countdown, signal cards (premium = all 6, free = locked rows)</td><td>App ads (group), App Store shot #1</td></tr>
+<tr><td>slates</td><td>Signals workspace; free version shows the HIDDEN PICKS conversion gap</td><td>Oracle+ conversion (group), App Store #2</td></tr>
+<tr><td>results</td><td>Official ledger + match badges</td><td>Trust beat (group), App Store #3</td></tr>
+<tr><td>track-record</td><td>30-day receipt stream + summary stats</td><td>Trust beat (group), App Store #4</td></tr>
+<tr><td>book</td><td>Personal lists with auto-match reporting</td><td>App-download hook (group), App Store #5</td></tr>
+<tr><td>pattern-explorer</td><td>Premium = research desk; free = upgrade gate</td><td>Oracle+ conversion (group)</td></tr>
+<tr><td>learn / account / paywall</td><td>Education, profile+states, pricing</td><td>Reference; App Store #6 (learn or account)</td></tr>
+</table>
+<p class="small"><b>All 18 are Tier 2/4/5 only</b> (they contain real 3-digit numbers and session labels). For public/paid placements, commission Gemini abstract equivalents using §4 rules.</p>
+<h3>Framed App-Store shots (ready to submit / reuse in group ads)</h3>
+<p class="small">Six device-framed composites at the App Store 6.7" spec (1290×2796) live in <span class="mono">assets/marketing/appstore_shots_2026-07-26/</span>: 01 Home ("Six daily signals, ranked &amp; explained") · 02 Signals ("See why, not just what") · 03 Ledger ("Every draw in the country. One ledger.") · 04 Track Record ("Receipts, draw by draw") · 05 Number Book ("Your numbers, tracked automatically") · 06 Pattern Explorer ("Research any pattern's full history"). Regenerate anytime: <span class="mono">npx tsx scripts/render-appstore-shots.ts assets/marketing/appstore-shots.html &lt;outdir&gt;</span>. Same tier restriction as the raw captures: App Store listing + groups only.</p>
+<div class="footer">HitMaster App Content Handoff · 2026-07-26</div>
+</div>
+</body></html>

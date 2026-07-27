@@ -16,6 +16,7 @@
  */
 import { execSync } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const ASSETS = resolve('assets/marketing');
@@ -140,11 +141,30 @@ function checkVerify(): void {
   }
 }
 
+// MKT-07: smoke-render the slate stamp so a broken renderer (moved font files,
+// playwright update) fails HERE instead of aborting the daily assembly.
+function checkStamp(): void {
+  const name = 'render-reel-stamp';
+  const probePng = join(tmpdir(), 'reel-stamp-probe.png');
+  try {
+    execSync(`npx tsx scripts/render-reel-stamp.ts drop 20260101 ALL-DAY "${probePng}"`, { stdio: 'pipe' });
+    const [w, h, fmt] = probe(probePng, `-select_streams v:0 -show_entries stream=width,height,pix_fmt -of csv=p=0`).split(',');
+    if (w !== '1080' || h !== '1920') return add('FAIL', name, `probe stamp is ${w}x${h} — expected 1080x1920`);
+    if (!fmt.includes('rgba')) return add('FAIL', name, `probe stamp pix_fmt ${fmt} — transparency lost, chip would blank the frame`);
+    add('PASS', name, 'probe stamp rendered 1080x1920 rgba (JetBrains Mono loaded)');
+  } catch (e) {
+    add('FAIL', name, `stamp renderer errored — ${String((e as any).stderr ?? e).slice(0, 200)}`);
+  } finally {
+    try { execSync(`rm -f "${probePng}"`); } catch { /* best-effort */ }
+  }
+}
+
 const proCarrier = checkAlldayCarrier('pro');
 const freeCarrier = checkAlldayCarrier('free');
 checkAlldayEndcard('pro', proCarrier);
 checkAlldayEndcard('free', freeCarrier);
 checkVerify();
+checkStamp();
 
 const ICON = { PASS: '✅', WARN: '⚠️ ', FAIL: '⛔' } as const;
 for (const f of findings) console.log(`${ICON[f.level]} ${f.asset} — ${f.msg}`);

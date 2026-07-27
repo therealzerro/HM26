@@ -39,6 +39,12 @@ const sh = (c: string) => execSync(c, { stdio: 'inherit' });
 // xfade P counts DOWN 1→0 — ease on q=(1-P) so the dissolve runs bolt→ui.
 const EASED = `'st(0,(1-P)*(1-P)*(3-2*(1-P)));A*(1-ld(0))+B*ld(0)'`;
 
+// MKT-07 slate stamp: "✓ VERIFIED RESULTS" + yesterday's date, burned over the
+// UI segment (cross-scope page, so no scope tag). Overlay layer only — the
+// rotating carrier/endcard assets stay date-agnostic.
+const stampPng = join(REELS, `_stamp_${stamp}.png`);
+sh(`npx tsx scripts/render-reel-stamp.ts verify ${stamp} - "${stampPng}"`);
+
 // 1. Settled lockup frame from the endcard tail (also used by the open).
 sh(`ffmpeg -y -loglevel error -sseof -0.1 -i "${join(ASSETS, 'verif_endcard.mp4')}" -frames:v 1 -vf "scale=1080:1920:flags=lanczos" "${bolt}"`);
 
@@ -49,12 +55,15 @@ sh(
   `-i "${ui}" ` +                                           // [1] ui segment 6.3s
   `-sseof -2.5 -i "${join(ASSETS, 'verif_endcard.mp4')}" ` + // [2] endcard tail
   `-i "${join(ASSETS, 'verif_carrier.mp4')}" ` +            // [3] carrier (audio)
+  `-loop 1 -framerate 60 -t 10 -i "${stampPng}" ` +          // [4] slate stamp
   `-filter_complex "` +
   `[0:v]format=yuv420p,setsar=1,fps=60,settb=AVTB[bolt];` +
   `[1:v]tpad=start_duration=1.2:start_mode=clone,format=yuv420p,setsar=1,fps=60,settb=AVTB[uix];` +
   `[bolt][uix]xfade=transition=custom:expr=${EASED}:duration=1.2:offset=0[openbody];` +
   `[2:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=2.5,setpts=PTS-STARTPTS[card];` +
-  `[openbody][card]concat=n=2:v=1:a=0[v];` +
+  `[openbody][card]concat=n=2:v=1:a=0[vraw];` +
+  `[4:v]format=rgba,fade=t=in:st=0.9:d=0.4:alpha=1,fade=t=out:st=7.0:d=0.45:alpha=1[stmp];` +
+  `[vraw][stmp]overlay=0:0,format=yuv420p[v];` +
   `[3:a]atrim=0:10,asetpts=PTS-STARTPTS,aresample=48000,` +
   `afade=t=in:st=0:d=0.01,afade=t=out:st=9.99:d=0.01,loudnorm=I=-14:TP=-1.5:LRA=11[a]" ` +
   `-map "[v]" -map "[a]" -t 10 -r 60 -c:v libx264 -profile:v high -crf 18 -pix_fmt yuv420p ` +

@@ -3,7 +3,7 @@ HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
 changed. Every command has a description. (Last updated 2026-07-27 —
-added the DAILY RUN PROCEDURE)
+slate stamp burned into every reel; reel:check now smoke-tests it)
 
 
 ----------------------------------------------------------------
@@ -64,7 +64,10 @@ npm run reel:allday
     assets/marketing/allday_reels/, then AUTO-UPLOADS the finals
     to the app — they appear in Admin → Reels within seconds,
     with fresh daily captions (real numbers in the Pro caption
-    only).
+    only). Every cut carries the SLATE STAMP: a burned-in chip
+    ("TODAY'S DATA DROP / MON · JUL 27 · ALL-DAY") generated
+    automatically from the slate date — never edit it by hand,
+    it always matches the data on screen.
 
 
 npm run reel:verify
@@ -75,6 +78,8 @@ npm run reel:verify
     assets/marketing/verify_reels/, then AUTO-UPLOADS to
     Admin → Reels with a fresh caption. Aborts on purpose if
     yesterday had zero verified matches (no receipts = no reel).
+    Carries its own green SLATE STAMP ("✓ VERIFIED RESULTS /
+    SUN · JUL 26") — same auto-generated chip, receipts flavor.
 
 
 ----------------------------------------------------------------
@@ -114,8 +119,15 @@ npm run reel:check
     assembler's contract BEFORE you build: catches corrupt/
     placeholder files (GitHub renames!), missing audio, too-short
     video/audio, voiceover that would get cut mid-phrase, weak
-    bolt-crack audio, and low-resolution sources. ⛔ = do not
-    assemble; ⚠️ = works but quality note. Takes ~15 seconds.
+    bolt-crack audio, and low-resolution sources. Also test-
+    renders the slate stamp chip so a broken stamp renderer
+    fails here, not mid-assembly. ⛔ = do not assemble;
+    ⚠️ = works but quality note. Takes ~20 seconds.
+
+    NOTE for new carriers/endcards/VOs: none of them carry a
+    date — the slate stamp is overlaid at assembly time, so
+    rotating variations stay evergreen. Never bake a date, day
+    name, or "today" visual into a generated asset.
 
 
 ----------------------------------------------------------------

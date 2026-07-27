@@ -35,6 +35,13 @@ const BED_SRC_START = 2.0;              // endcard audio hum begins here (post-c
 const XFADE_A = 0.4;                    // voice→bed audio crossfade-ish join fades
 const total = +(OPEN + bodyDur + CARD).toFixed(3);   // 23.7 with the 16.0s body
 
+// MKT-07 slate stamp: day·scope·purpose chip burned over the body (shared by
+// both variants). Derived from the same `stamp` the body was rendered for, so
+// it can never disagree with the on-screen data. Overlay layer only — the
+// rotating carriers/endcards/VOs stay date-agnostic.
+const stampPng = join(REELS, `_stamp_${stamp}.png`);
+sh(`npx tsx scripts/render-reel-stamp.ts drop ${stamp} ALL-DAY "${stampPng}"`);
+
 for (const v of ['pro', 'free'] as const) {
   const endcard = join(ASSETS, `allday_${v}_endcard.mp4`);
   const carrier = join(ASSETS, `allday_${v}_carrier.mp4`);
@@ -72,12 +79,17 @@ for (const v of ['pro', 'free'] as const) {
     `ffmpeg -y -loglevel error ` +
     `-loop 1 -framerate 60 -t ${OPEN} -i "${lockup}" -i "${body}" -i "${endcard}" ` +
     `-i "${carrier}" -i "${endcard}" ` +
+    `-loop 1 -framerate 60 -t ${total} -i "${stampPng}" ` +
     `-filter_complex "` +
     `[0:v]format=yuv420p,setsar=1,fps=60,settb=AVTB[lk];` +
     `[1:v]tpad=start_duration=${OPEN}:start_mode=clone,format=yuv420p,setsar=1,fps=60,settb=AVTB[uix];` +
     `[lk][uix]xfade=transition=custom:expr=${EASED}:duration=${OPEN}:offset=0[openbody];` +
     `[2:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=${CARD},setpts=PTS-STARTPTS[cardv];` +
-    `[openbody][cardv]concat=n=2:v=1:a=0[vid];` +
+    `[openbody][cardv]concat=n=2:v=1:a=0[vraw];` +
+    // Stamp rides the body only: in as the open dissolve settles, out before
+    // the 17.2s endcard cut so the lockup stays clean.
+    `[5:v]format=rgba,fade=t=in:st=1.1:d=0.45:alpha=1,fade=t=out:st=${(OPEN + bodyDur - 0.55).toFixed(2)}:d=0.5:alpha=1[stmp];` +
+    `[vraw][stmp]overlay=0:0,format=yuv420p[vid];` +
     (overlap
       ? `[3:a]atrim=0:${voiceSpan},asetpts=PTS-STARTPTS,aresample=48000,` +
         `afade=t=in:st=0:d=0.01,afade=t=out:st=${(voiceSpan - 0.25).toFixed(2)}:d=0.25[voice];` +

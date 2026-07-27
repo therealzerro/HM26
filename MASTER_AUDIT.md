@@ -11,6 +11,16 @@
 
 ---
 
+### MKT-07 — Slate stamp: burned-in day·scope·purpose provenance chip on every reel (2026-07-27) ✅
+
+**Work order:** operator-directed ("prominently show viewers each content represents a specific day, scope, and purpose — a creative timestamp; we'll be rotating carriers/endcards/VOs"). Marketing tooling only — no engine/edge/consumer code.
+
+- **Design decision: the stamp is an overlay layer composited at assembly time, never part of any asset.** Rotating carriers/endcards/VOs stay date-agnostic and evergreen (rule added to REEL_COMMANDS.txt: never bake a date/day/"today" visual into a generated asset). Text derives from the same `stamp` (YYYYMMDD) the assemblers already validate against `slate_snapshots` — never hand-typed, cannot disagree with the on-screen data.
+- **`scripts/render-reel-stamp.ts`** — renders a transparent 1080×1920 PNG chip via playwright using the app's real JetBrains Mono ttfs (from `@expo-google-fonts`, loaded via file:// page — `setContent` silently falls back to serif; renderer aborts if the font check fails). Two purposes, fixed layout/position, accent-only variation: `drop` = cyan #2bffcc "TODAY'S DATA DROP / MON · JUL 27 · ALL-DAY"; `verify` = green #34c759 "✓ VERIFIED RESULTS / SUN · JUL 26" (no scope tag — /track-record is cross-scope). Chip top at y=470: inside the band surviving the 1:1 `crop=1080:1080:0:420` AND below 9:16 platform top UI, so both cuts show it.
+- **Assemblers:** `assemble-allday-reels.ts` (input [5], alpha-fade in 1.1–1.55s as the open dissolve settles, out by 17.15s before the endcard cut) and `assemble-verification-reel.ts` (input [4], in 0.9–1.3s, out by 7.45s before the endcard tail) — stamp rides the body only, lockup/outro stay clean. Contact sheets pick it up automatically (QC visibility).
+- **`reel:check`** gained a stamp smoke-render (probe PNG must be 1080×1920 rgba) so a broken renderer (moved font files, playwright update) fails at preflight, not mid-assembly.
+- Verified by full re-assembly of the 7/27 All-Day pair + 7/26 verify reel from the existing bodies; frame inspection at fade-in/mid-body/fade-out in both 9:16 and 1:1. Note: the copies posted earlier on 7/27 remain unstamped; stamps appear from the next daily run.
+
 ### MKT-06 — Daily-post QC audit + reel asset preflight (2026-07-27) ✅
 
 **Work order:** operator-directed ("ensure current reel assembly is acceptable for daily post and high quality"; more endcard/carrier swaps incoming). Auto-run-after-Daily-Workflow idea scoped and PARKED by operator.

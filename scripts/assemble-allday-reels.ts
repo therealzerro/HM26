@@ -41,15 +41,25 @@ for (const v of ['pro', 'free'] as const) {
   // Voice spans min(carrier length, open+body); the endcard's hum (audio from
   // BED_SRC_START, after its crack) beds any remaining gap before the outro.
   const carrierDur = parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${carrier}"`).toString());
-  const voiceSpan = +Math.min(carrierDur - 0.2, OPEN + bodyDur).toFixed(2);
-  const bedLen = +(OPEN + bodyDur - voiceSpan).toFixed(2);
+  // OVERLAP MODE (long carriers): voice may finish naturally over the rising
+  // smoke (up to 1.1s past the 17.2s scene cut, always ending before the 18.4s
+  // bolt snap); the endcard's synced outro audio is MIXED in from 17.2s. Any
+  // carrier content after the voice window is discarded (generated tracks have
+  // proven unreliable past their VO).
+  const overlap = carrierDur >= OPEN + bodyDur - 0.05;
+  const voiceSpan = overlap
+    ? +Math.min(carrierDur - 0.1, OPEN + bodyDur + 1.1).toFixed(2)
+    : +Math.min(carrierDur - 0.2, OPEN + bodyDur).toFixed(2);
+  const bedLen = overlap ? 0 : +(OPEN + bodyDur - voiceSpan).toFixed(2);
   const endcardAudioDur = parseFloat(execSync(`ffprobe -v error -select_streams a:0 -show_entries format=duration -of csv=p=0 "${endcard}"`).toString());
   if (endcardAudioDur < Math.max(CARD, BED_SRC_START + bedLen)) {
     console.error(`ABORT(${v}): endcard audio ${endcardAudioDur}s too short for outro ${CARD}s / bed ${bedLen}s.`);
     process.exit(1);
   }
-  if (bedLen > 0.05) {
-    console.log(`NOTE(${v}): carrier VO covers 0-${voiceSpan}s; endcard hum beds ${voiceSpan}-${(OPEN + bodyDur).toFixed(1)}s (modals after the VO). A ~${(OPEN + bodyDur).toFixed(1)}s carrier would carry voice wall-to-wall.`);
+  if (overlap) {
+    console.log(`NOTE(${v}): long carrier (${carrierDur.toFixed(1)}s) — voice plays 0-${voiceSpan}s (tail rides the smoke rise), endcard outro audio mixed from 17.2s; carrier content beyond ${voiceSpan}s discarded.`);
+  } else if (bedLen > 0.05) {
+    console.log(`NOTE(${v}): carrier VO covers 0-${voiceSpan}s; endcard hum beds ${voiceSpan}-${(OPEN + bodyDur).toFixed(1)}s (modals after the VO). A full ~${total}s track would replace all reel audio.`);
   }
   const lockup = join(REELS, `_lockup_${v}.png`);
   const out = join(REELS, `allday_${v}_${stamp}.mp4`);
@@ -68,7 +78,14 @@ for (const v of ['pro', 'free'] as const) {
     `[lk][uix]xfade=transition=custom:expr=${EASED}:duration=${OPEN}:offset=0[openbody];` +
     `[2:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=${CARD},setpts=PTS-STARTPTS[cardv];` +
     `[openbody][cardv]concat=n=2:v=1:a=0[vid];` +
-    `[3:a]atrim=0:${voiceSpan},asetpts=PTS-STARTPTS,aresample=48000,` +
+    (overlap
+      ? `[3:a]atrim=0:${voiceSpan},asetpts=PTS-STARTPTS,aresample=48000,` +
+        `afade=t=in:st=0:d=0.01,afade=t=out:st=${(voiceSpan - 0.25).toFixed(2)}:d=0.25[voice];` +
+        `[2:a]atrim=0:${CARD},asetpts=PTS-STARTPTS,aresample=48000,` +
+        `afade=t=in:st=0:d=0.05,afade=t=out:st=${(CARD - 0.4).toFixed(2)}:d=0.4,` +
+        `adelay=${Math.round((OPEN + bodyDur) * 1000)}|${Math.round((OPEN + bodyDur) * 1000)}[outroaud];` +
+        `[voice][outroaud]amix=inputs=2:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]" `
+      : `[3:a]atrim=0:${voiceSpan},asetpts=PTS-STARTPTS,aresample=48000,` +
     `afade=t=in:st=0:d=0.01,afade=t=out:st=${(voiceSpan - XFADE_A).toFixed(2)}:d=${XFADE_A}[voice];` +
     (bedLen > 0.05
       ? `[4:a]atrim=${BED_SRC_START}:${(BED_SRC_START + bedLen).toFixed(2)},asetpts=PTS-STARTPTS,aresample=48000,volume=0.8,` +
@@ -78,7 +95,7 @@ for (const v of ['pro', 'free'] as const) {
     `afade=t=in:st=0:d=0.05,afade=t=out:st=${(CARD - 0.4).toFixed(2)}:d=0.4[cardaud];` +
     (bedLen > 0.05
       ? `[voice][bed][cardaud]concat=n=3:v=0:a=1,loudnorm=I=-14:TP=-1.5:LRA=11[a]" `
-      : `[voice][cardaud]concat=n=2:v=0:a=1,loudnorm=I=-14:TP=-1.5:LRA=11[a]" `) +
+      : `[voice][cardaud]concat=n=2:v=0:a=1,loudnorm=I=-14:TP=-1.5:LRA=11[a]" `)) +
     `-map "[vid]" -map "[a]" -t ${total} -r 60 -c:v libx264 -profile:v high -crf 18 -pix_fmt yuv420p ` +
     `-c:a aac -ar 48000 -movflags +faststart "${out}"`,
   );

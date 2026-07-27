@@ -11,6 +11,17 @@
 
 ---
 
+### MKT-01 — UI ad-clip render rig + 30s ad assembly (2026-07-27) ✅
+
+**Work order:** discovery-first, gated. Marketing tooling only — no engine/edge/consumer code touched.
+
+- **Phase 0 (discovery):** both target screens (Results Ledger, Verified Track Record) render correctly at 540×960@2× = 1080×1920, dark, real prod data (`EXPO_PUBLIC_USE_EDGE_ZK6=true`; rendered rows cross-checked against `histories`/`adaptive_tracking` SQL). **Vocabulary pre-flight CLEAN**: full-scroll DOM dumps of both screens grepped — zero "Partial"/"Exact" match-status labels (BRAND-05's sweep held; work order's BRAND-03/04 concern was stale). Tooling: playwright 1.60 + ffmpeg 6.1.1.
+- **Phase 1 — `scripts/render-ad-clip.ts`:** deterministic frame renderer — per-frame cosine-eased scroll positions set programmatically (no wall-clock recording), 480 screenshots → `ui_raw.mp4` (1080×1920, 60fps, exactly 8.000s, H.264/yuv420p). Beat map: ledger eased scroll w/ MATCH badge pass-through (f000-179) → single-frame SPA hard cut (f180) → stats-band hold (f180-299) → eased receipt scroll (f300-449) → hold (f450-479). Re-runs are pixel-deterministic.
+- **Phase 2 — `scripts/assemble-ad.ts`:** bolt frame extracted from clipA tail; clipB = 2.0s smoothstep-eased dissolve (xfade custom expr — note: **xfade `P` counts down 1→0**, expression eases on `1-P`) into ui_raw f0 clone, ui content plays 2.0-10.0s; carrier.mp4 audio track muxed as clipB's only sound (trimmed 10.000s, 10ms de-click edge fades); clipA/C conformed 720×1280@24 → 1080×1920@60 lanczos; A+B+C concat + single-pass loudnorm → `master_30s.mp4` (exactly 30.000s, H.264 High, AAC 48k) + 1080×1080 and 1080×1350 center-crop feed cuts + 5-frame contact sheet.
+- **QC:** ui fidelity master↔source render PSNR 45.2 dB (encode-only); A/B seam bolt-frame match 36.9 dB; joins click-free by construction; first/last frames non-black (contact sheet); measured output loudness −15.1 LUFS / −1.1 dBTP (within single-pass ±1 LU of the −14 target, per work order tolerance).
+- **Distribution note:** clipB contains real digits + session labels → per the 7/26 rulings this master is a **group/App-Store asset**; public-page/paid-Meta use requires a Two-Question-clean B-segment variant.
+- Outputs in `assets/marketing/screenvideos_2026-07-27/` (untracked by convention); scripts committed.
+
 ### SOCIAL-13 — publish pipeline aligned to the free-group depth rule (2026-07-26) ✅
 
 **Trigger:** content-agent conflict review (7/26) surfaced that the locked content strategy — free group gets the **All-Day drop FULL** but **Midday/Evening drops REDACTED** (the Pro conversion frame) — was never implemented in the publish pipeline: `surfaceRedacts` covered only public+cross, so free-group session drops exported full digits. Operator ordered alignment.

@@ -234,14 +234,28 @@ function ReelCard({ reel, urls, onPosted }: { reel: MarketingReel; urls: GroupUr
         )}
       </View>
 
-      {/* target */}
+      {/* target — rows carrying a pro draft (verify) swap the caption to the
+          matching variant on switch: free draft is qualitative, pro draft has
+          the real numbers (MKT-05b). Allday rows keep the edit in place. */}
       <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8 }}>
         {(Object.keys(TARGET_UI) as Target[]).map(t => (
-          <TouchableOpacity key={t} style={[st.optBtn, target === t && st.optBtnOn]} onPress={() => { setTarget(t); setQ1No(false); setQ2No(false); setMsg(null); }}>
+          <TouchableOpacity
+            key={t}
+            style={[st.optBtn, target === t && st.optBtnOn]}
+            onPress={() => {
+              setTarget(t); setQ1No(false); setQ2No(false); setMsg(null);
+              if (reel.caption_pro) setCaption(t === 'pro' ? reel.caption_pro : reel.caption);
+            }}
+          >
             <Text style={[st.optBtnText, target === t && st.optBtnTextOn]}>{TARGET_UI[t].label}</Text>
           </TouchableOpacity>
         ))}
       </View>
+      {reel.caption_pro != null && (
+        <Text style={{ fontSize: 9, color: colors.textTertiary, marginBottom: 6, marginTop: -2 }}>
+          This reel has two caption drafts — switching Free/Pro loads the matching one (Pro carries the real numbers).
+        </Text>
+      )}
 
       {/* caption + lint */}
       <TextInput

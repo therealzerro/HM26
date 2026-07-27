@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-07-27 · v1.0
+Content Agent Handoff · 2026-07-27 · v1.1 (verify reel: per-target captions)
 ================================================================================
 Read this before proposing or producing ANY reel-related asset or enhancement.
 Companion docs:
@@ -140,14 +140,28 @@ per-day by hand, not AI-freestyled.
   rule), and re-running the same date reproduces the same caption exactly.
 
   THE NUMBERS POLICY (operator ruling, absolute):
-  - PRO caption ONLY may contain real performance data: verified counts,
+  - PRO captions ONLY may contain real performance data: verified counts,
     state attributions, STRAIGHT MATCH callouts, 30-day totals. These are
     computed fresh from the verified results record (yesterday's board
     checked against actual observed draws — never cached flags).
-  - FREE and VERIFY captions are QUALITATIVE: dates and framing only. No
-    counts, no state names, no match claims with numbers. The video shows
-    the receipts; the caption text a classifier reads stays clean. This is
-    gambling-adjacency protection — do not ask for exceptions.
+  - FREE captions are QUALITATIVE. They may DESCRIBE matches creatively,
+    but only in descriptor language — scale words ("a verified MATCH" /
+    "multiple verified MATCHES" / "a stack of verified MATCHES"), spread
+    words ("across several state boards" / "from coast to coast"), and
+    STRAIGHT MATCH presence ("one of them a dead-on STRAIGHT MATCH").
+    Never counts, never state names. The video shows the receipts; the
+    caption text a classifier reads stays clean. Gambling-adjacency
+    protection — do not ask for exceptions.
+  - THE VERIFY REEL CARRIES TWO DRAFTS (one reel, two rooms): a free-group
+    draft (qualitative description, above) and a pro-group draft (full
+    precision). In the operator's Reels screen, switching the target
+    between Free and Pro loads the matching draft automatically.
+    Example, same day (7/24):
+      FREE: "Grade day: 7/24 closed with a stack of verified MATCHES from
+             coast to coast — one of them a dead-on STRAIGHT MATCH. Pull
+             your state's results and compare."
+      PRO:  "Graded in full: 7 MATCHES across 7 states on 7/24 — including
+             a STRAIGHT MATCH in PA. 🧾"
 
   VOICE RULES for any template you propose:
   - The product noun is "signals". Always. (Never picks/plays/numbers.)

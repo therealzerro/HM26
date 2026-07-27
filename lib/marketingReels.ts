@@ -27,7 +27,8 @@ export interface MarketingReel {
   video_1x1_path: string | null;
   sheet_path: string | null;
   duration_s: number | null;
-  caption: string;
+  caption: string;              // free-group draft
+  caption_pro: string | null;   // pro-group draft (verify rows only — MKT-05b)
   status: ReelStatus;
   posted_at: string | null;
   target_name: string | null;

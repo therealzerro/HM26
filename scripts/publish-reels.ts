@@ -99,21 +99,34 @@ async function sbGet<T = any>(path: string): Promise<T> {
 }
 
 /**
- * Captions for this run. Receipts (real numbers) feed ONLY the pro caption;
- * the reel date's day-before is the freshest fully-resolved day for allday.
- * A receipts failure degrades to the pro fallback — never blocks the upload.
+ * Captions for this run. Receipts feed the pro captions (real numbers) and
+ * the free verify caption (qualitative descriptors only). Receipts date:
+ * verify grades its own reel date; allday uses the day before (today's
+ * board isn't resolved when the reel ships). A receipts failure degrades to
+ * fallbacks — never blocks the upload.
+ *
+ * Verify rows carry TWO drafts (MKT-05b): `caption` = free group,
+ * `caption_pro` = pro group. Allday rows are already split per variant.
  */
-async function buildCaptions(kinds: Kind[]): Promise<Record<string, string>> {
+interface CaptionSet { caption: string; caption_pro: string | null }
+
+async function buildCaptions(kinds: Kind[]): Promise<Record<string, CaptionSet>> {
   let receipts: ReceiptsData | null = null;
-  if (kinds.includes('allday_pro')) {
+  if (kinds.includes('allday_pro') || kinds.includes('verify')) {
+    const receiptsDate = mode === 'verify' ? isoDate : shiftDate(isoDate, -1);
     try {
-      receipts = await fetchReceiptsData(shiftDate(isoDate, -1), sbGet);
+      receipts = await fetchReceiptsData(receiptsDate, sbGet);
     } catch (e) {
-      console.warn('[publish-reels] receipts fetch failed — pro caption uses fallback:', String(e).slice(0, 200));
+      console.warn('[publish-reels] receipts fetch failed — captions use fallbacks:', String(e).slice(0, 200));
     }
   }
-  const out: Record<string, string> = {};
-  for (const k of kinds) out[k] = buildReelCaption(k, isoDate, receipts);
+  const out: Record<string, CaptionSet> = {};
+  for (const k of kinds) {
+    out[k] = {
+      caption: buildReelCaption(k, isoDate, receipts),
+      caption_pro: k === 'verify' ? buildReelCaption('verify_pro', isoDate, receipts) : null,
+    };
+  }
   return out;
 }
 
@@ -163,12 +176,12 @@ async function prune(): Promise<void> {
   else console.log(`  🧹 pruned ${rows.length} reel(s) older than ${PRUNE_DAYS}d (${paths.length} objects).`);
 }
 
-/** --captions-only: refresh the draft on an existing row; status untouched. */
-async function updateCaptionOnly(kind: Kind, caption: string): Promise<void> {
+/** --captions-only: refresh the drafts on an existing row; status untouched. */
+async function updateCaptionOnly(kind: Kind, set: CaptionSet): Promise<void> {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/marketing_reels?reel_date=eq.${isoDate}&kind=eq.${kind}`, {
     method: 'PATCH',
     headers: svcHeaders({ 'Content-Type': 'application/json', Prefer: 'return=representation' }),
-    body: JSON.stringify({ caption, updated_at: new Date().toISOString() }),
+    body: JSON.stringify({ caption: set.caption, caption_pro: set.caption_pro, updated_at: new Date().toISOString() }),
   });
   if (!res.ok) throw new Error(`caption update ${kind} → HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const rows = await res.json();
@@ -182,7 +195,10 @@ async function main(): Promise<void> {
   const captions = await buildCaptions(kinds);
 
   if (PREVIEW) {
-    for (const k of kinds) console.log(`\n── ${k} · ${isoDate} ──\n${captions[k]}`);
+    for (const k of kinds) {
+      console.log(`\n── ${k} · ${isoDate} ──\n${captions[k].caption}`);
+      if (captions[k].caption_pro) console.log(`\n── ${k} (PRO draft) · ${isoDate} ──\n${captions[k].caption_pro}`);
+    }
     return;
   }
   if (CAPTIONS_ONLY) {
@@ -226,7 +242,8 @@ async function main(): Promise<void> {
       video_1x1_path: video1x1Path,
       sheet_path: sheetPath,
       duration_s: Number.isFinite(duration) ? +duration.toFixed(2) : null,
-      caption: captions[t.kind],
+      caption: captions[t.kind].caption,
+      caption_pro: captions[t.kind].caption_pro,
       status: 'ready',
       posted_at: null,
       target_name: null,

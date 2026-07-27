@@ -134,8 +134,8 @@ function listJx(arr: string[], max = 3): string {
   const names = arr.map(fmtJx);
   const head = names.slice(0, max);
   const extra = names.length - head.length;
-  const joined = head.length <= 1 ? (head[0] ?? '') : `${head.slice(0, -1).join(', ')} and ${head[head.length - 1]}`;
-  return extra > 0 ? `${joined} and ${extra} more` : joined;
+  if (extra > 0) return `${head.join(', ')} and ${extra} more`;
+  return head.length <= 1 ? (head[0] ?? '') : `${head.slice(0, -1).join(', ')} and ${head[head.length - 1]}`;
 }
 
 function plural(n: number, one: string, many: string): string {
@@ -176,17 +176,43 @@ interface ProCtx {
   v30: number;
 }
 
+/**
+ * Qualitative match description — the free-surface way to "describe
+ * yesterday's matches" (operator 2026-07-27) WITHOUT real numbers or state
+ * attributions: scale words, spread words, and STRAIGHT MATCH presence only.
+ */
+interface QualCtx {
+  matchPhrase: string;     // "a verified MATCH" / "multiple verified MATCHES" / "a stack of verified MATCHES"
+  spreadPhrase: string;    // "" / " across several state boards" / " from coast to coast"
+  straightPhrase: string;  // "" / " — one of them a dead-on STRAIGHT MATCH" / " — including dead-on STRAIGHT MATCHES"
+}
+
+function makeQualCtx(r: ReceiptsData): QualCtx {
+  const jxCount = r.straightJx.length + r.boxJx.length;
+  return {
+    matchPhrase: r.verifiedCount === 1 ? 'a verified MATCH'
+      : r.verifiedCount <= 3 ? 'multiple verified MATCHES'
+      : 'a stack of verified MATCHES',
+    spreadPhrase: jxCount <= 1 ? '' : jxCount <= 3 ? ' across several state boards' : ' from coast to coast',
+    straightPhrase: r.straightJx.length === 0 ? ''
+      : r.straightJx.length === 1 ? ' — one of them a dead-on STRAIGHT MATCH'
+      : ' — including dead-on STRAIGHT MATCHES',
+  };
+}
+
 interface TemplateCtx {
   reelMd: string;        // the content date label, e.g. "7/27"
   pro: ProCtx | null;    // real-numbers context — ONLY for realNumbers kinds
+  q: QualCtx | null;     // qualitative context — ONLY for qualitativeReceipts kinds
   seed: number;
 }
 
 interface KindSpec {
   offset: number;
-  realNumbers: boolean;
+  realNumbers: boolean;            // templates see counts/states (PRO surfaces only)
+  qualitativeReceipts?: boolean;   // templates see descriptor words, never numbers
   templates: ((c: TemplateCtx) => string)[];
-  fallback?: (reelMd: string) => string;
+  fallback?: (reelMd: string) => string;   // used when receipts are needed but unavailable
 }
 
 /** "— including a STRAIGHT MATCH in GA" / "…MATCHES in GA and TX" / "" */
@@ -212,19 +238,40 @@ function credLine(c: ProCtx, seed: number): string {
 }
 
 const CAPTION_REGISTRY = {
-  // Qualitative by ruling: dates only, no verification numbers, no states.
+  // FREE verify draft — describes yesterday's matches CREATIVELY but
+  // qualitatively (scale/spread/straight-presence words, never counts or
+  // states — the numbers-pro-only ruling holds).
   verify: {
     offset: 0,
     realNumbers: false,
+    qualitativeReceipts: true,
+    fallback: m => `Receipts are in 🧾 ${m}'s signals, graded against the real results in the open. Watch the tape, then check your own state.`,
     templates: [
-      c => `Receipts are in 🧾 ${c.reelMd}'s signals, graded against the real results. Watch the tape, then check it against your own state.`,
-      c => `No talk, just the tape: ${c.reelMd}'s board, verified in the open. The reel is the receipt. 📊`,
-      c => `Posted first, graded after — that's the whole routine. ${c.reelMd}'s verification breakdown is in the reel.`,
-      c => `${c.reelMd}'s board, graded 🧾 We publish before the results and grade in the open. See how the day closed.`,
-      c => `If a signal doesn't verify, you see that too. ${c.reelMd}'s tape is up — every outcome on the record.`,
-      c => `Scoreboard check 📊 ${c.reelMd}'s signals are graded and on the record. Tomorrow's board drops in the morning.`,
-      c => `The data speaks for itself — ${c.reelMd}'s verification tape is up. Watch it, then pull your own state's results and compare.`,
-      c => `Another day on the record 🧾 Every signal from ${c.reelMd}, checked in the open. Watch, verify, repeat.`,
+      c => `Receipts are in 🧾 ${c.reelMd} put ${c.q!.matchPhrase} on the record${c.q!.spreadPhrase}${c.q!.straightPhrase}. Watch the tape, then check your state.`,
+      c => `The tape doesn't lie: ${c.q!.matchPhrase} verified${c.q!.spreadPhrase} on ${c.reelMd}${c.q!.straightPhrase}. The reel is the receipt. 📊`,
+      c => `${c.reelMd}, graded: ${c.q!.matchPhrase}${c.q!.spreadPhrase}${c.q!.straightPhrase}. Posted before the results, checked after — always in the open.`,
+      c => `Last night's board came back with ${c.q!.matchPhrase}${c.q!.spreadPhrase}${c.q!.straightPhrase} 🧾 Breakdown's in the reel.`,
+      c => `Grade day: ${c.reelMd} closed with ${c.q!.matchPhrase}${c.q!.spreadPhrase}${c.q!.straightPhrase}. Pull your state's results and compare.`,
+      c => `Scoreboard check 📊 ${c.q!.matchPhrase} on ${c.reelMd}'s board${c.q!.spreadPhrase}${c.q!.straightPhrase}. Tomorrow's signals drop in the morning.`,
+      c => `The record grew again: ${c.q!.matchPhrase} from ${c.reelMd}${c.q!.spreadPhrase}${c.q!.straightPhrase}. Watch it verified, board by board. 🧾`,
+      c => `Signals in, results in, ${c.q!.matchPhrase} out${c.q!.spreadPhrase}${c.q!.straightPhrase} — that's ${c.reelMd} on the record. 📊`,
+    ],
+  },
+  // PRO verify draft — the same reel, full precision: counts, states,
+  // STRAIGHT MATCH attributions, 30-day totals.
+  verify_pro: {
+    offset: 2,
+    realNumbers: true,
+    fallback: m => `Pro receipts for ${m}: every signal graded against observed outcomes, board by board, in the reel. 🧾`,
+    templates: [
+      c => `Pro receipts, full detail: ${c.pro!.v} of ${c.pro!.t} signals verified on ${c.pro!.rcptMd} across ${c.pro!.jxCount} ${plural(c.pro!.jxCount, 'state', 'states')}${straightLine(c.pro!)}. 🧾`,
+      c => `${c.pro!.rcptMd}, graded: ${c.pro!.v} verified ${plural(c.pro!.v, 'MATCH', 'MATCHES')} — ${listJx(c.pro!.jxAll)}${straightLine(c.pro!)}. The tape's in the reel.`,
+      c => `Numbers on the table: ${c.pro!.v}/${c.pro!.t} verified in ${listJx(c.pro!.jxAll)}${straightLine(c.pro!)}. That's ${c.pro!.v30} over the last 30 days. 💎`,
+      c => `${c.pro!.rcptMd} closed at ${c.pro!.v} verified across ${c.pro!.jxCount} ${plural(c.pro!.jxCount, 'state', 'states')}${straightLine(c.pro!)}. Full breakdown, board by board.`,
+      c => `Your receipts: ${c.pro!.v} of ${c.pro!.t} signals matched on ${c.pro!.rcptMd}${straightLine(c.pro!)}. 30-day record: ${c.pro!.v30} verified. 💎`,
+      c => `On the record for ${c.pro!.rcptMd}: ${c.pro!.v} verified in ${listJx(c.pro!.jxAll)}${straightLine(c.pro!)}. Watch it graded in the open.`,
+      c => `Graded in full: ${c.pro!.v} ${plural(c.pro!.v, 'MATCH', 'MATCHES')} across ${c.pro!.jxCount} ${plural(c.pro!.jxCount, 'state', 'states')} on ${c.pro!.rcptMd}${straightLine(c.pro!)}. 🧾`,
+      c => `${c.pro!.v} verified, ${c.pro!.jxCount} ${plural(c.pro!.jxCount, 'state', 'states')}, zero spin${straightLine(c.pro!)} — ${c.pro!.rcptMd}'s tape inside.`,
     ],
   },
   // Qualitative by ruling; pure value, no Pro pitch (SOCIAL-13).
@@ -266,7 +313,12 @@ export function buildReelCaption(kind: ReelCaptionKind, reelDate: string, receip
   const spec: KindSpec = CAPTION_REGISTRY[kind];
   const seed = dayOfYear(reelDate) + spec.offset;
   const reelMd = md(reelDate);
-  if (spec.realNumbers && !receipts) return (spec.fallback ?? (m => m))(reelMd);
+  const needsReceipts = spec.realNumbers || spec.qualitativeReceipts;
+  // No data, or a zero-match day (the verify assembler aborts on those, but a
+  // stray --captions-only run must not fabricate match language) → fallback.
+  if (needsReceipts && (!receipts || receipts.verifiedCount === 0)) {
+    return (spec.fallback ?? (m => m))(reelMd);
+  }
   const pro: ProCtx | null = spec.realNumbers && receipts
     ? {
         reelMd,
@@ -279,5 +331,6 @@ export function buildReelCaption(kind: ReelCaptionKind, reelDate: string, receip
         v30: receipts.verified30d,
       }
     : null;
-  return spec.templates[seed % spec.templates.length]({ reelMd, pro, seed });
+  const q: QualCtx | null = spec.qualitativeReceipts && receipts ? makeQualCtx(receipts) : null;
+  return spec.templates[seed % spec.templates.length]({ reelMd, pro, q, seed });
 }

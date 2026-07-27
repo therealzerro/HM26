@@ -2,7 +2,8 @@
 HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
-changed. Every command has a description. (Last updated 2026-07-27)
+changed. Every command has a description. (Last updated 2026-07-27 —
+added reel:check)
 
 PREREQ for the two main commands: the Expo dev server must be
 running first (the render step drives the real app in a browser):
@@ -61,6 +62,20 @@ npm run reel:publish -- allday --captions-only
 npm run reel:publish -- verify --captions-only
 
     Same caption refresh for yesterday's verify reel.
+
+
+----------------------------------------------------------------
+ASSET CHECK (run after replacing any endcard or carrier)
+----------------------------------------------------------------
+
+npm run reel:check
+
+    Preflight-validates every endcard + carrier against the
+    assembler's contract BEFORE you build: catches corrupt/
+    placeholder files (GitHub renames!), missing audio, too-short
+    video/audio, voiceover that would get cut mid-phrase, weak
+    bolt-crack audio, and low-resolution sources. ⛔ = do not
+    assemble; ⚠️ = works but quality note. Takes ~15 seconds.
 
 
 ----------------------------------------------------------------

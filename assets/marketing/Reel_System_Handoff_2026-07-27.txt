@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-07-27 · v1.1 (verify reel: per-target captions)
+Content Agent Handoff · 2026-07-27 · v1.2 (asset delivery spec + preflight)
 ================================================================================
 Read this before proposing or producing ANY reel-related asset or enhancement.
 Companion docs:
@@ -212,6 +212,22 @@ per-day by hand, not AI-freestyled.
   Replacing any of these with a spec-compliant upgrade requires zero code
   changes — drop-in by filename. Longer (~17.2s) All-Day carriers are the
   standing request: they unlock wall-to-wall narration mode.
+
+  DELIVERY SPEC (every replacement file):
+  - Resolution: native 1080×1920 (9:16). Current endcards are 720×1280
+    and get upscaled — it works, but costs sharpness. This is the #1
+    quality upgrade available.
+  - Frame rate: 30-60fps (24fps gets frame-duplicated to 60; slightly
+    steppy motion on the energy effects).
+  - All-Day carriers: VO must FINISH (hit silence) by ~17.8s — the
+    assembler hard-fades at 18.3s and anything still talking gets cut.
+    Content after the VO is discarded by design.
+  - Endcards: keep audio in the file, front-loaded, crack synced to the
+    visual snap; final frame = settled lockup (it opens the reel).
+  - After any swap, engineering runs `npm run reel:check` — a preflight
+    that verifies all of the above mechanically (corrupt files, missing
+    audio, durations, VO-chop risk, weak crack, resolution) before
+    anything is assembled. Deliver to pass it clean.
 
   Outputs land in assets/marketing/allday_reels/ and verify_reels/ and are
   pushed to GitHub after every run.

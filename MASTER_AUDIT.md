@@ -11,6 +11,14 @@
 
 ---
 
+### MKT-06 — Daily-post QC audit + reel asset preflight (2026-07-27) ✅
+
+**Work order:** operator-directed ("ensure current reel assembly is acceptable for daily post and high quality"; more endcard/carrier swaps incoming). Auto-run-after-Daily-Workflow idea scoped and PARKED by operator.
+
+- **QC audit results (current 7/27 reels):** loudness pro −15.3 / free −14.7 / verify −14.6 LUFS vs −14 target — within platform-renormalization tolerance, acceptable; pro drags low because the new endcard's formation stretch is quiet (watch item, not defect). VO chop check: pro speech ends 17.5s, free 17.9s — both hit silence before the 18.3s hard fade, no mid-phrase cuts; free carrier's post-19.5s content is discarded by design. Encoding: h264 high / yuv420p / 60fps / +faststart / AAC 48k — platform-spec for FB/IG reels. **Quality ceiling identified: all three endcards are 720×1280 @ 24fps (upscaled to 1080×1920@60)** — native-resolution replacements are the #1 available upgrade, now specced in the handoff doc (v1.2).
+- **`npm run reel:check` (`scripts/check-reel-assets.ts`):** mechanical preflight encoding the assembler contracts — placeholder/corrupt file detection (<100KB — the GitHub web-rename failure mode), stream presence, video/audio duration minimums (incl. bed-mode audio need computed from the actual carrier length), overlap-vs-bed mode prediction, VO-active-at-fade chop risk (silencedetect), crack-transient presence (peak dB in outro window), resolution/fps warnings. ⛔ FAIL = exit 1 / do not assemble; ⚠️ WARN = assembles with quality note. Current inventory: 0 fail, 5 warn (all resolution/fps upscale notes).
+- REEL_COMMANDS.txt + handoff doc v1.2 updated (asset delivery spec: 1080×1920, 30-60fps, VO finished by ~17.8s, run reel:check after swaps).
+
 ### MKT-05 — Data-driven daily reel captions (2026-07-27) ✅
 
 **Work order:** operator-directed ("utilize the briefs to customize captions… viewer friendly… change creatively daily"), with two mid-build rulings: (1) **real verification numbers appear ONLY in the pro caption** (gambling-adjacent safety — free/verify captions stay qualitative; the video carries the receipts, the caption text a classifier reads stays clean); (2) the product noun is always **"signals"**.

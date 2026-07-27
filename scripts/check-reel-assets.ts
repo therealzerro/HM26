@@ -18,6 +18,7 @@ import { execSync } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { resolveCarrier, orphanedParts, audioDur } from './reel-carrier';
 
 const ASSETS = resolve('assets/marketing');
 const OPEN = 1.2, BODY = 16.0, CARD = 6.5, BED_SRC_START = 2.0; // assembler constants (body measured at runtime; 16.0 = current renderer)
@@ -147,10 +148,34 @@ function checkAlldayEndcard(variant: 'pro' | 'free', carrierDur: number | null):
   if (crack < -12) add('WARN', name, `no strong transient in first ${CARD}s (peak ${crack.toFixed(1)}dB) — bolt-snap crack may be missing/weak`);
 }
 
+/**
+ * MKT-09: resolve a carrier's delivered parts and report the join. Returns the
+ * path the assembler will read (the join when parts exist, else the base file).
+ */
+function checkCarrierParts(base: string, name: string): string {
+  const orphans = orphanedParts(ASSETS, base);
+  for (const o of orphans) {
+    add('FAIL', o.split('/').pop()!, `unreachable — an earlier part is missing, so this audio would be silently dropped and the narration would have a hole. Deliver the missing ${base}_ptN.mp4.`);
+  }
+  const res = resolveCarrier(ASSETS, base);
+  if (res.joined) {
+    const list = res.parts.map(x => x.split('/').pop()).join(' + ');
+    const durs = res.parts.map(x => audioDur(x));
+    add('PASS', name, `${res.parts.length} parts joined (${list}) — ${durs.map(d => d.toFixed(1) + 's').join(' + ')}`);
+  }
+  return res.path;
+}
+
 function checkAlldayCarrier(variant: 'pro' | 'free'): number | null {
-  const name = `allday_${variant}_carrier.mp4`;
-  const p = exists(name);
-  if (!p) return null;
+  const base = `allday_${variant}_carrier`;
+  let name = `${base}.mp4`;
+  const p0 = exists(name);
+  if (!p0) return null;
+  // MKT-09: validate what the assembler will actually read — the JOIN when
+  // parts were delivered, not just part 1. Checking part 1 alone would clear a
+  // carrier whose narration overruns the ceiling only after the join.
+  const p = checkCarrierParts(base, name);
+  if (p !== p0) name = `${base}.mp4 + parts`;
   const s = streams(p);
   if (!s.hasAudio) { add('FAIL', name, 'no audio stream — the carrier IS the voiceover'); return null; }
   const dur = s.aDur;
@@ -169,8 +194,9 @@ function checkAlldayCarrier(variant: 'pro' | 'free'): number | null {
 }
 
 function checkVerify(): void {
-  const c = exists('verif_carrier.mp4');
-  if (c) {
+  const c0 = exists('verif_carrier.mp4');
+  if (c0) {
+    const c = checkCarrierParts('verif_carrier', 'verif_carrier.mp4');
     const s = streams(c);
     // MKT-08: with the intro active the carrier enters at introDur−0.4 and
     // covers to the end, so the need is a flat 9.2s regardless of intro length

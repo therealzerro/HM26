@@ -25,6 +25,7 @@ import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { probeAnchorIntro, INTRO_DISSOLVE, INTRO_VO_LEAD } from './reel-intro';
+import { resolveCarrier } from './reel-carrier';
 
 const ASSETS = resolve('assets/marketing');
 const REELS = join(ASSETS, 'allday_reels');
@@ -56,7 +57,13 @@ sh(`npx tsx scripts/render-reel-stamp.ts drop ${stamp} ALL-DAY "${stampPng}"`);
 
 for (const v of ['pro', 'free'] as const) {
   const endcard = join(ASSETS, `allday_${v}_endcard.mp4`);
-  const carrier = join(ASSETS, `allday_${v}_carrier.mp4`);
+  // MKT-09: a carrier delivered as parts (…_carrier.mp4 + …_carrier_pt2.mp4)
+  // is joined first; a single-file carrier resolves to itself unchanged.
+  const carrierRes = resolveCarrier(ASSETS, `allday_${v}_carrier`);
+  const carrier = carrierRes.path;
+  if (carrierRes.joined) {
+    console.log(`NOTE(${v}): carrier joined from ${carrierRes.parts.length} parts (${carrierRes.parts.map(p => p.split('/').pop()).join(' + ')}).`);
+  }
   // Voice spans min(carrier length, open+body); the endcard's hum (audio from
   // BED_SRC_START, after its crack) beds any remaining gap before the outro.
   const carrierDur = parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${carrier}"`).toString());

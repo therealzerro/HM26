@@ -21,6 +21,7 @@ import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { probeAnchorIntro, INTRO_DISSOLVE, INTRO_VO_LEAD } from './reel-intro';
+import { resolveCarrier } from './reel-carrier';
 
 const ASSETS = resolve('assets/marketing');
 const REELS = join(ASSETS, 'verify_reels');
@@ -59,6 +60,11 @@ const dissolve = intro ? INTRO_DISSOLVE : 1.2;
 const total = +(openDur + uiDur + 2.5).toFixed(2);   // legacy 10.0
 const voiceStart = intro ? +(openDur - INTRO_VO_LEAD).toFixed(2) : 0;
 const carrierNeed = +(total - voiceStart).toFixed(2); // 9.2 with intro (any length), 10.0 legacy
+// MKT-09: joins verif_carrier.mp4 + verif_carrier_pt2.mp4 … when parts exist.
+const verifCarrier = resolveCarrier(ASSETS, 'verif_carrier');
+if (verifCarrier.joined) {
+  console.log(`NOTE: carrier joined from ${verifCarrier.parts.length} parts (${verifCarrier.parts.map(p => p.split('/').pop()).join(' + ')}).`);
+}
 const msVoice = Math.round(voiceStart * 1000);
 
 // 1. Settled lockup frame from the endcard tail (legacy open only).
@@ -72,7 +78,7 @@ sh(
     : `-loop 1 -framerate 60 -t 1.2 -i "${bolt}" `) +        // [0] bolt still
   `-i "${ui}" ` +                                           // [1] ui segment 6.3s
   `-sseof -2.5 -i "${join(ASSETS, 'verif_endcard.mp4')}" ` + // [2] endcard tail
-  `-i "${join(ASSETS, 'verif_carrier.mp4')}" ` +            // [3] carrier (audio)
+  `-i "${verifCarrier.path}" ` +                            // [3] carrier (audio, MKT-09 parts-aware)
   `-loop 1 -framerate 60 -t ${total} -i "${stampPng}" ` +    // [4] slate stamp
   `-filter_complex "` +
   (intro

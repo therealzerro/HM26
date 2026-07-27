@@ -32,3 +32,6 @@ assets/Facebook_*.csv
 assets/Facebook_*.tsv
 assets/supporter_emails_*.csv
 assets/supporter_emails_*.tsv
+
+# MKT-09: generated multi-part carrier joins (derived from the delivered parts)
+assets/marketing/_carrier_joined/

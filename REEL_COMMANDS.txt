@@ -3,7 +3,8 @@ HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
 changed. Every command has a description. (Last updated 2026-07-27 —
-slate stamp burned into every reel; reel:check now smoke-tests it)
+Anchor intro now opens every reel: All-Day 28.1s, verify 14.4s;
+reel:check validates the intro and falls back safely if it's missing)
 
 
 ----------------------------------------------------------------
@@ -59,7 +60,7 @@ npm run reel:allday
 
     Makes BOTH All-Day reels (Pro + Free) for TODAY: renders the
     grid + six signal-modal tap-through from the live app,
-    assembles the 29.0s reels (Anchor intro, body, endcard outro,
+    assembles the 28.1s reels (Anchor intro, body, endcard outro,
     VO + hum bed), writes 9:16 + 1:1 cuts + contact sheets to
     assets/marketing/allday_reels/, then AUTO-UPLOADS the finals
     to the app — they appear in Admin → Reels within seconds,
@@ -72,7 +73,7 @@ npm run reel:allday
 
 npm run reel:verify
 
-    Makes YESTERDAY's "Receipts" verification reel (15.3s): renders
+    Makes YESTERDAY's "Receipts" verification reel (14.4s): renders
     the verification breakdown from the live app, assembles with
     the Anchor intro + endcard, writes to
     assets/marketing/verify_reels/, then AUTO-UPLOADS to
@@ -128,6 +129,14 @@ npm run reel:check
     date — the slate stamp is overlaid at assembly time, so
     rotating variations stay evergreen. Never bake a date, day
     name, or "today" visual into a generated asset.
+
+    MULTI-PART CARRIERS: if a VO comes back as two ~10s clips,
+    just drop them in as allday_pro_carrier.mp4 +
+    allday_pro_carrier_pt2.mp4 (…_pt3 etc. if needed) — the
+    pipeline joins them automatically, in order, before
+    assembling. Nothing else to run. reel:check validates the
+    JOINED track, so a VO that overruns the ceiling only after
+    the join is still caught here. Works for verify too.
 
 
 ----------------------------------------------------------------

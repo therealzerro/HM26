@@ -59,8 +59,8 @@ npm run reel:allday
 
     Makes BOTH All-Day reels (Pro + Free) for TODAY: renders the
     grid + six signal-modal tap-through from the live app,
-    assembles the 23.7s reels (open, body, endcard outro, VO +
-    hum bed), writes 9:16 + 1:1 cuts + contact sheets to
+    assembles the 29.0s reels (Anchor intro, body, endcard outro,
+    VO + hum bed), writes 9:16 + 1:1 cuts + contact sheets to
     assets/marketing/allday_reels/, then AUTO-UPLOADS the finals
     to the app — they appear in Admin → Reels within seconds,
     with fresh daily captions (real numbers in the Pro caption
@@ -72,9 +72,9 @@ npm run reel:allday
 
 npm run reel:verify
 
-    Makes YESTERDAY's "Receipts" verification reel (10s): renders
+    Makes YESTERDAY's "Receipts" verification reel (15.3s): renders
     the verification breakdown from the live app, assembles with
-    the bolt open + endcard, writes to
+    the Anchor intro + endcard, writes to
     assets/marketing/verify_reels/, then AUTO-UPLOADS to
     Admin → Reels with a fresh caption. Aborts on purpose if
     yesterday had zero verified matches (no receipts = no reel).

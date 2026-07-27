@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-07-27 · v1.2 (asset delivery spec + preflight)
+Content Agent Handoff · 2026-07-27 · v1.3 (anchor intro lane live)
 ================================================================================
 Read this before proposing or producing ANY reel-related asset or enhancement.
 Companion docs:
@@ -16,11 +16,11 @@ A fully automated daily video pipeline. Two commands produce, assemble, upload,
 and stage everything; the operator posts from their phone with two taps.
 
   npm run reel:allday   → TWO reels for TODAY (Pro variant + Free variant),
-                          23.7s each: the All-Day signal board + all six
-                          signal detail modals, captured from the LIVE app
-                          with real data.
+                          29.0s each: the Anchor intro + the All-Day signal
+                          board + all six signal detail modals, captured from
+                          the LIVE app with real data.
 
-  npm run reel:verify   → ONE reel for YESTERDAY (10.0s): "Receipts" —
+  npm run reel:verify   → ONE reel for YESTERDAY (15.3s): "Receipts" —
                           yesterday's verification breakdown. Intentionally
                           refuses to build on zero-match days (no receipts,
                           no reel).
@@ -36,27 +36,40 @@ and runs an in-frame vocabulary guard; any violation aborts the render.
 
 
 --------------------------------------------------------------------------------
-2. REEL ANATOMY — ALL-DAY (Pro + Free, 23.7s @ 1080×1920 60fps)
+2. REEL ANATOMY — ALL-DAY (Pro + Free, 29.0s @ 1080×1920 60fps)
 --------------------------------------------------------------------------------
-Both variants share one UI body render; they differ in carrier (voiceover) and
-endcard branding.
+Both variants share one UI body render AND one shared Anchor intro; they differ
+in carrier (voiceover) and endcard branding.
 
   TIMELINE (t in seconds)
-  0.0 – 1.2    OPEN — settled brand lockup (pulled from the endcard's final
-               frame), 1.2s eased dissolve into the UI.
-  1.2 – 17.2   BODY (16.0s) — 4.0s slow push-in over the full 2×3 signal
+  0.0 – 6.5    INTRO — "The Anchor" (anchor_intro.mp4, shared by every reel
+               kind). Internal beats: 0.0–0.5 the Anchor settled at the desk
+               → 0.5–2.0 raises the phone → 2.0–3.0 camera dives into the
+               screen → 3.0–6.5 full-frame purple smoke. Its own audio is a
+               single whoosh sting rising at 1.0, peaking ~2.5, decayed to
+               silence by 5.0.
+  5.7 – 6.5    0.8s eased dissolve from the intro's smoke into the UI body
+               (overlaps the tail of the intro — not extra time).
+  6.5 – 22.5   BODY (16.0s) — 4.0s slow push-in over the full 2×3 signal
                grid (all six on screen), then each signal tapped in rank
                order 1→6: modal opens, ~2.0s hold on digits/energy/
                confidence/breakdown, close. Hard cuts between modals.
-  17.2 – 23.7  OUTRO (6.5s) — the endcard's FIRST 6.5s, hard cut in:
-               smoke rise → bolt snap (~18.4s, its crack lands exactly on
+  22.5 – 29.0  OUTRO (6.5s) — the endcard's FIRST 6.5s, hard cut in:
+               smoke rise → bolt snap (~23.7s, its crack lands exactly on
                the snap) → lockup resolves → calm hold.
 
+  If anchor_intro.mp4 is absent or fails preflight, the assembler silently
+  falls back to the legacy 1.2s lockup open and the reel is 23.7s. The daily
+  run can never block on the intro.
+
   AUDIO (two automatic modes, loudness −14 LUFS integrated):
-  - LONG CARRIER (VO ≥ ~17.2s) — "overlap mode": the voice plays wall-to-
-    wall over open+body and may ride up to 1.1s into the smoke rise, but
-    must finish before the 18.4s bolt snap. The endcard's own synced outro
-    audio is mixed in from 17.2s. Carrier content past the VO is DISCARDED
+  The intro carries its own sting from 0.0 to 6.5. The carrier VO enters at
+  6.1 (0.4s before the dissolve completes) — so carrier time 0 sits at reel
+  time 6.1, and every VO length below is measured in CARRIER-LOCAL seconds.
+  - LONG CARRIER (VO ≥ ~16.4s) — "overlap mode": the voice plays wall-to-
+    wall over the body and may ride up to 1.1s into the smoke rise, but
+    must finish before the 23.7s bolt snap. The endcard's own synced outro
+    audio is mixed in from 22.5s. Carrier content past the VO is DISCARDED
     (generated tracks are unreliable after their voice ends).
   - SHORT CARRIER (VO ~10s) — the voice covers the grid + first modals;
     the endcard's hum swell (its audio after the crack) is pulled forward
@@ -64,12 +77,16 @@ endcard branding.
     outro natively.
 
   WHAT THIS MEANS FOR CARRIER PRODUCTION (your main deliverable):
-  - Target VO length: ~17.2s for wall-to-wall narration (preferred), or
+  - Target VO length: ~16.4s for wall-to-wall narration (preferred), or
     ~10s accepting the hum-bed remainder. Anything between works; the
     assembler adapts automatically and prints which mode it used.
-  - Write VO to the visual beat map: 0–1.2 brand open → 1.2–5.2 the full
-    board (six signals on screen) → 5.2 onward, one signal detail roughly
-    every 2s → if long-form, final line can land over the smoke rise.
+  - Write VO to the visual beat map, in CARRIER-LOCAL time: 0–0.4 lands
+    under the last of the dissolve → 0.4–4.4 the full board (six signals
+    on screen) → 4.4 onward, one signal detail roughly every 2s → if
+    long-form, final line can land over the smoke rise.
+  - Do NOT write VO for the intro. The Anchor beat is deliberately
+    voiceless — it carries its own sting and the reel's first words land
+    as the grid appears.
   - Never script the VO to reference the bolt snap or anything after it —
     that space belongs to the endcard's synced sound.
   - Two variants every time: PRO (first-access framing, never pricing) and
@@ -85,15 +102,20 @@ endcard branding.
 
 
 --------------------------------------------------------------------------------
-3. REEL ANATOMY — VERIFY / "RECEIPTS" (10.0s @ 1080×1920 60fps)
+3. REEL ANATOMY — VERIFY / "RECEIPTS" (15.3s @ 1080×1920 60fps)
 --------------------------------------------------------------------------------
-  0.0 – 1.2    OPEN — settled bolt lockup (from verif_endcard's tail),
-               1.2s eased dissolve into the UI.
-  1.2 – 7.5    BODY (6.3s) — yesterday's verification breakdown captured
+  0.0 – 6.5    INTRO — the SAME Anchor intro as the All-Day reels (one file
+               serves every reel kind), 0.8s dissolve from its smoke tail.
+  6.5 – 12.8   BODY (6.3s) — yesterday's verification breakdown captured
                from the live app.
-  7.5 – 10.0   CLOSE — final 2.5s of verif_endcard (static lockup), hard cut.
-  AUDIO        verif_carrier's track across the full 10.0s, −14 LUFS,
-               de-click edge fades. No other sound.
+  12.8 – 15.3  CLOSE — final 2.5s of verif_endcard (static lockup), hard cut.
+  AUDIO        The intro's own sting 0.0–6.5; verif_carrier enters at 6.1
+               and covers to the end, −14 LUFS, de-click edge fades. The
+               carrier therefore needs 9.2s of usable track — and that
+               figure is FLAT regardless of how long the intro is.
+
+  Without a usable intro this reverts to the legacy 1.2s bolt open and a
+  10.0s reel needing a 10.0s carrier.
 
   - Builds for YESTERDAY by default. If yesterday had zero verified
     matches, the pipeline aborts on purpose — we never fake receipts.
@@ -203,15 +225,39 @@ per-day by hand, not AI-freestyled.
 7. CURRENT ASSET INVENTORY (what you own / can replace)
 --------------------------------------------------------------------------------
   assets/marketing/
+    anchor_intro.mp4              THE ANCHOR intro — shared by EVERY reel
+                                  kind (all-day pro, all-day free, verify).
+                                  6.5s, trimmed from the 10s master.
+    anchor_intro_master_10s.mp4   Delivered 10s master, kept so the trim is
+                                  reproducible. NOT read by the pipeline.
+    anchor_reference.png          Character reference still for the Anchor
+                                  (regeneration/continuity — not composited).
     allday_pro_carrier.mp4        Pro VO carrier (10s class, backup exists)
     allday_free_carrier.mp4       Free VO carrier (10s class, backup exists)
     allday_pro_endcard.mp4        Pro endcard (open frame + outro + audio)
     allday_free_endcard.mp4       Free endcard
-    verif_carrier.mp4             Verify reel audio bed (10s)
+    verif_carrier.mp4             Verify reel audio bed (9.2s used)
     verif_endcard.mp4             Verify bolt endcard
   Replacing any of these with a spec-compliant upgrade requires zero code
-  changes — drop-in by filename. Longer (~17.2s) All-Day carriers are the
+  changes — drop-in by filename. Longer (~16.4s) All-Day carriers are the
   standing request: they unlock wall-to-wall narration mode.
+
+  ANCHOR INTRO DELIVERY SPEC (the one asset shared by every reel):
+  - Duration 3.5–6.5s, hard-enforced. The 2026-07-27 delivery arrived at
+    10.0s and was trimmed 1.0→7.5s to fit; anything outside the window is
+    REJECTED by preflight and the reel silently falls back to the legacy
+    open. Deliver inside the window or expect a trim.
+  - Must END on full-frame smoke. The dissolve reads the final ~0.5s as its
+    bed. The 10s master pulled the camera back OUT to the newsroom over its
+    last 2.5s — a beautiful shot that is unusable as an ending, and the
+    reason the trim exists. Do not "complete" the move; end inside the smoke.
+  - Embedded audio REQUIRED — it is the only sound before the VO enters.
+    Start and end it at true silence; the assembler's fades assume that.
+  - Must survive a 1:1 CENTRE CROP (keeps y 420–1500 of 1920) for the
+    square cutdown. Keep the visor, the gesture and the phone inside that
+    band; the top of the head may clip.
+  - Same resolution/frame-rate spec as everything else (native 1080×1920,
+    30–60fps). The current file is 720×1280 24fps and gets upscaled.
 
   DELIVERY SPEC (every replacement file):
   - Resolution: native 1080×1920 (9:16). Current endcards are 720×1280
@@ -219,9 +265,11 @@ per-day by hand, not AI-freestyled.
     quality upgrade available.
   - Frame rate: 30-60fps (24fps gets frame-duplicated to 60; slightly
     steppy motion on the energy effects).
-  - All-Day carriers: VO must FINISH (hit silence) by ~17.8s — the
-    assembler hard-fades at 18.3s and anything still talking gets cut.
-    Content after the VO is discarded by design.
+  - All-Day carriers: VO must FINISH (hit silence) by ~17.0s of carrier —
+    the assembler hard-fades at 17.5s and anything still talking gets cut.
+    (This tightened from 17.8/18.3 when the intro lane went live; the
+    current free carrier still runs to ~17.5s and needs a trim.) Content
+    after the VO is discarded by design.
   - Endcards: keep audio in the file, front-loaded, crack synced to the
     visual snap; final frame = settled lockup (it opens the reel).
   - After any swap, engineering runs `npm run reel:check` — a preflight

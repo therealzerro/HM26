@@ -21,7 +21,12 @@ import { join, resolve } from 'node:path';
 
 const ASSETS = resolve('assets/marketing');
 const OPEN = 1.2, BODY = 16.0, CARD = 6.5, BED_SRC_START = 2.0; // assembler constants (body measured at runtime; 16.0 = current renderer)
-const VOICE_HARD_END = OPEN + BODY + 1.1; // 18.3s — overlap-mode fade-out deadline
+// MKT-08: with an active anchor intro the VO enters at introDur−0.4, so the
+// usable VO window (on the CARRIER's own timeline) shrinks 17.2 → 16.4s and
+// the overlap fade-out deadline 18.3 → 17.5s. Set by checkAnchorIntro().
+let INTRO_ACTIVE = false;
+const voiceWindow = () => (INTRO_ACTIVE ? BODY + 0.4 : OPEN + BODY);
+const voiceHardEnd = () => voiceWindow() + 1.1;
 
 interface Finding { level: 'PASS' | 'WARN' | 'FAIL'; asset: string; msg: string }
 const findings: Finding[] = [];
@@ -81,6 +86,45 @@ function exists(name: string): string | null {
   return p;
 }
 
+/** Avg per-frame luma spread (YHIGH−YLOW) over the file's final 0.5s. */
+function tailLumaSpread(file: string): number {
+  const out = execSync(
+    `ffmpeg -sseof -0.5 -i "${file}" -vf "signalstats,metadata=print" -f null - 2>&1 | grep -oE "Y(HIGH|LOW)=[0-9.]+" || true`,
+    { shell: '/bin/bash' },
+  ).toString();
+  const hi = [...out.matchAll(/YHIGH=([\d.]+)/g)].map(m => parseFloat(m[1]));
+  const lo = [...out.matchAll(/YLOW=([\d.]+)/g)].map(m => parseFloat(m[1]));
+  if (!hi.length || hi.length !== lo.length) return 999;
+  return hi.reduce((a, v, i) => a + (v - lo[i]), 0) / hi.length;
+}
+
+// MKT-08: anchor intro contract. Missing = fine (legacy open, note only);
+// present-but-defective = loud FAIL, since assemblers silently fall back.
+// Returns whether the intro lane will actually be ACTIVE at assembly.
+function checkAnchorIntro(): boolean {
+  const name = 'anchor_intro.mp4';
+  const p = join(ASSETS, name);
+  if (!existsSync(p)) {
+    add('PASS', name, 'not present — reels assemble with the legacy endcard-lockup open (intro lane dormant)');
+    return false;
+  }
+  const size = statSync(p).size;
+  if (size < 100_000) { add('FAIL', name, `file is ${size} bytes — placeholder/corrupt (assemblers will fall back to the legacy open)`); return false; }
+  const s = streams(p);
+  let ok = true;
+  if (!s.hasAudio) { add('FAIL', name, 'no audio stream — intro audio is load-bearing before the VO enters'); ok = false; }
+  if (!Number.isFinite(s.vDur) || s.vDur < 3.5 || s.vDur > 6.5) { add('FAIL', name, `video ${s.vDur?.toFixed(1)}s outside the 3.5-6.5s intro window`); ok = false; }
+  if (s.w < 720 || s.h < 1280) { add('FAIL', name, `${s.w}x${s.h} — below the 720x1280 minimum`); ok = false; }
+  if (!ok) { add('WARN', name, 'defective — assemblers fall back to the legacy open (daily reels still build)'); return false; }
+  add('PASS', name, `video ${s.vDur.toFixed(1)}s · audio ${s.aDur.toFixed(1)}s — intro lane ACTIVE (allday ${(s.vDur + 22.5).toFixed(1)}s, verify ${(s.vDur + 8.8).toFixed(1)}s)`);
+  if (s.h < 1920) add('WARN', name, `${s.w}x${s.h} — will be upscaled to 1080x1920`);
+  if (s.fps < 30) add('WARN', name, `${s.fps.toFixed(0)}fps — duplicated to 60fps`);
+  const spread = tailLumaSpread(p);
+  if (spread > 170) add('FAIL', name, `final 0.5s luma spread ${spread.toFixed(0)} — not near-uniform smoke; the dissolve into the UI will pop`);
+  else if (spread > 120) add('WARN', name, `final 0.5s luma spread ${spread.toFixed(0)} — dissolve source is busy (target: full-frame smoke)`);
+  return spread <= 170;
+}
+
 function checkAlldayEndcard(variant: 'pro' | 'free', carrierDur: number | null): void {
   const name = `allday_${variant}_endcard.mp4`;
   const p = exists(name);
@@ -91,9 +135,9 @@ function checkAlldayEndcard(variant: 'pro' | 'free', carrierDur: number | null):
   // Audio requirement mirrors the assembler abort: outro always needs CARD;
   // short carriers additionally need the hum bed from BED_SRC_START.
   let audioNeed = CARD;
-  if (carrierDur != null && carrierDur < OPEN + BODY - 0.05) {
-    const voiceSpan = Math.min(carrierDur - 0.2, OPEN + BODY);
-    audioNeed = Math.max(CARD, BED_SRC_START + (OPEN + BODY - voiceSpan));
+  if (carrierDur != null && carrierDur < voiceWindow() - 0.05) {
+    const voiceSpan = Math.min(carrierDur - 0.2, voiceWindow());
+    audioNeed = Math.max(CARD, BED_SRC_START + (voiceWindow() - voiceSpan));
   }
   if (s.aDur + 0.05 < audioNeed) return add('FAIL', name, `audio ${s.aDur.toFixed(1)}s < required ${audioNeed.toFixed(1)}s (outro/bed)`);
   add('PASS', name, `video ${s.vDur.toFixed(1)}s · audio ${s.aDur.toFixed(1)}s (need ${audioNeed.toFixed(1)}s)`);
@@ -110,16 +154,16 @@ function checkAlldayCarrier(variant: 'pro' | 'free'): number | null {
   const s = streams(p);
   if (!s.hasAudio) { add('FAIL', name, 'no audio stream — the carrier IS the voiceover'); return null; }
   const dur = s.aDur;
-  const overlap = dur >= OPEN + BODY - 0.05;
-  const voiceSpan = overlap ? Math.min(dur - 0.1, VOICE_HARD_END) : Math.min(dur - 0.2, OPEN + BODY);
-  const mode = overlap ? `overlap (voice 0-${voiceSpan.toFixed(1)}s, wall-to-wall)` : `hum-bed (voice 0-${voiceSpan.toFixed(1)}s, endcard hum beds the rest)`;
-  add('PASS', name, `audio ${dur.toFixed(1)}s → ${mode}`);
+  const overlap = dur >= voiceWindow() - 0.05;
+  const voiceSpan = overlap ? Math.min(dur - 0.1, voiceHardEnd()) : Math.min(dur - 0.2, voiceWindow());
+  const mode = overlap ? `overlap (voice 0-${voiceSpan.toFixed(1)}s of carrier, wall-to-wall)` : `hum-bed (voice 0-${voiceSpan.toFixed(1)}s of carrier, endcard hum beds the rest)`;
+  add('PASS', name, `audio ${dur.toFixed(1)}s → ${mode}${INTRO_ACTIVE ? ' · intro-shifted window' : ''}`);
   // VO-chop risk: is there actual signal (not silence) at the fade point?
   const sil = silences(p);
   const fadeStart = voiceSpan - 0.25;
   const inSilence = sil.some(x => x.start <= fadeStart && x.end >= voiceSpan);
   if (!inSilence && dur > voiceSpan + 0.05) {
-    add('WARN', name, `audio still active at the ${voiceSpan.toFixed(1)}s fade — narration may cut mid-phrase (script the VO to finish by ${(overlap ? VOICE_HARD_END - 0.5 : OPEN + BODY - 0.5).toFixed(1)}s)`);
+    add('WARN', name, `audio still active at the ${voiceSpan.toFixed(1)}s fade — narration may cut mid-phrase (script the VO to finish by ${(overlap ? voiceHardEnd() - 0.5 : voiceWindow() - 0.5).toFixed(1)}s of carrier)`);
   }
   return dur;
 }
@@ -128,9 +172,13 @@ function checkVerify(): void {
   const c = exists('verif_carrier.mp4');
   if (c) {
     const s = streams(c);
-    if (!s.hasAudio) add('FAIL', 'verif_carrier.mp4', 'no audio stream — it supplies the entire reel soundtrack');
-    else if (s.aDur + 0.05 < 10) add('FAIL', 'verif_carrier.mp4', `audio ${s.aDur.toFixed(1)}s < 10.0s — reel goes silent early (nothing aborts on this)`);
-    else add('PASS', 'verif_carrier.mp4', `audio ${s.aDur.toFixed(1)}s (10.0s used)`);
+    // MKT-08: with the intro active the carrier enters at introDur−0.4 and
+    // covers to the end, so the need is a flat 9.2s regardless of intro length
+    // (intro audio carries everything before that). Legacy need is 10.0s.
+    const need = INTRO_ACTIVE ? 9.2 : 10.0;
+    if (!s.hasAudio) add('FAIL', 'verif_carrier.mp4', 'no audio stream — it supplies the reel soundtrack after the intro');
+    else if (s.aDur + 0.05 < need) add('FAIL', 'verif_carrier.mp4', `audio ${s.aDur.toFixed(1)}s < ${need.toFixed(1)}s — reel goes silent early (nothing aborts on this)`);
+    else add('PASS', 'verif_carrier.mp4', `audio ${s.aDur.toFixed(1)}s (${need.toFixed(1)}s used${INTRO_ACTIVE ? ', intro-shifted' : ''})`);
   }
   const e = exists('verif_endcard.mp4');
   if (e) {
@@ -159,6 +207,8 @@ function checkStamp(): void {
   }
 }
 
+// Intro FIRST — it sets INTRO_ACTIVE, which shifts the carrier VO window.
+INTRO_ACTIVE = checkAnchorIntro();
 const proCarrier = checkAlldayCarrier('pro');
 const freeCarrier = checkAlldayCarrier('free');
 checkAlldayEndcard('pro', proCarrier);

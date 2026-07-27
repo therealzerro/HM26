@@ -13,10 +13,18 @@
 //                endcard native audio from t=0 at the outro (crack synced).
 //                All real assets, no loops. Longer carriers auto-shrink the bed.
 //
+// MKT-08: when assets/marketing/anchor_intro.mp4 is present, it REPLACES the
+// lockup open — intro plays full length, its final smoke dissolves (0.8s) into
+// the body, intro's own audio runs until the carrier VO enters 0.4s before the
+// dissolve completes. Everything downstream shifts by (introDur − 1.2); the
+// endcard outro is untouched. Missing/unusable intro → legacy open, identical
+// output (see scripts/reel-intro.ts).
+//
 // Usage: tsx scripts/assemble-allday-reels.ts [YYYYMMDD]  (default today ET)
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { probeAnchorIntro, INTRO_DISSOLVE, INTRO_VO_LEAD } from './reel-intro';
 
 const ASSETS = resolve('assets/marketing');
 const REELS = join(ASSETS, 'allday_reels');
@@ -33,7 +41,11 @@ const bodyDur = parseFloat(execSync(`ffprobe -v error -show_entries format=durat
 const OPEN = 1.2, CARD = 6.5;          // endcard outro: formation + lockup resolve + hold
 const BED_SRC_START = 2.0;              // endcard audio hum begins here (post-crack)
 const XFADE_A = 0.4;                    // voice→bed audio crossfade-ish join fades
-const total = +(OPEN + bodyDur + CARD).toFixed(3);   // 23.7 with the 16.0s body
+
+const intro = probeAnchorIntro(ASSETS);
+const openDur = intro ? intro.dur : OPEN;      // body starts here in both modes
+const dissolve = intro ? INTRO_DISSOLVE : OPEN;
+const total = +(openDur + bodyDur + CARD).toFixed(3);   // 23.7 legacy with the 16.0s body
 
 // MKT-07 slate stamp: day·scope·purpose chip burned over the body (shared by
 // both variants). Derived from the same `stamp` the body was rendered for, so
@@ -49,48 +61,80 @@ for (const v of ['pro', 'free'] as const) {
   // BED_SRC_START, after its crack) beds any remaining gap before the outro.
   const carrierDur = parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${carrier}"`).toString());
   // OVERLAP MODE (long carriers): voice may finish naturally over the rising
-  // smoke (up to 1.1s past the 17.2s scene cut, always ending before the 18.4s
-  // bolt snap); the endcard's synced outro audio is MIXED in from 17.2s. Any
+  // smoke (up to 1.1s past the scene cut, always ending before the bolt snap);
+  // the endcard's synced outro audio is MIXED in from the scene cut. Any
   // carrier content after the voice window is discarded (generated tracks have
   // proven unreliable past their VO).
-  const overlap = carrierDur >= OPEN + bodyDur - 0.05;
+  // With the intro, the VO enters at (openDur − 0.4) instead of 0, so the
+  // usable VO window is bodyDur+0.4 (+1.1 overlap allowance) — 17.5s ceiling.
+  const voiceStart = intro ? +(openDur - INTRO_VO_LEAD).toFixed(2) : 0;
+  const voiceWindow = +(openDur + bodyDur - voiceStart).toFixed(2);
+  const overlap = carrierDur >= voiceWindow - 0.05;
   const voiceSpan = overlap
-    ? +Math.min(carrierDur - 0.1, OPEN + bodyDur + 1.1).toFixed(2)
-    : +Math.min(carrierDur - 0.2, OPEN + bodyDur).toFixed(2);
-  const bedLen = overlap ? 0 : +(OPEN + bodyDur - voiceSpan).toFixed(2);
+    ? +Math.min(carrierDur - 0.1, voiceWindow + 1.1).toFixed(2)
+    : +Math.min(carrierDur - 0.2, voiceWindow).toFixed(2);
+  const bedLen = overlap ? 0 : +(voiceWindow - voiceSpan).toFixed(2);
   const endcardAudioDur = parseFloat(execSync(`ffprobe -v error -select_streams a:0 -show_entries format=duration -of csv=p=0 "${endcard}"`).toString());
   if (endcardAudioDur < Math.max(CARD, BED_SRC_START + bedLen)) {
     console.error(`ABORT(${v}): endcard audio ${endcardAudioDur}s too short for outro ${CARD}s / bed ${bedLen}s.`);
     process.exit(1);
   }
   if (overlap) {
-    console.log(`NOTE(${v}): long carrier (${carrierDur.toFixed(1)}s) — voice plays 0-${voiceSpan}s (tail rides the smoke rise), endcard outro audio mixed from 17.2s; carrier content beyond ${voiceSpan}s discarded.`);
+    console.log(`NOTE(${v}): long carrier (${carrierDur.toFixed(1)}s) — voice plays ${voiceStart}-${(voiceStart + voiceSpan).toFixed(1)}s (tail rides the smoke rise), endcard outro audio mixed from ${(openDur + bodyDur).toFixed(1)}s; carrier content beyond ${voiceSpan}s discarded.`);
   } else if (bedLen > 0.05) {
-    console.log(`NOTE(${v}): carrier VO covers 0-${voiceSpan}s; endcard hum beds ${voiceSpan}-${(OPEN + bodyDur).toFixed(1)}s (modals after the VO). A full ~${total}s track would replace all reel audio.`);
+    console.log(`NOTE(${v}): carrier VO covers ${voiceStart}-${(voiceStart + voiceSpan).toFixed(1)}s; endcard hum beds to ${(openDur + bodyDur).toFixed(1)}s (modals after the VO). A full ~${total}s track would replace all reel audio.`);
   }
   const lockup = join(REELS, `_lockup_${v}.png`);
   const out = join(REELS, `allday_${v}_${stamp}.mp4`);
   const out1x1 = join(REELS, `allday_${v}_${stamp}_1x1.mp4`);
   const sheet = join(REELS, `allday_${v}_${stamp}_contact.png`);
 
-  sh(`ffmpeg -y -loglevel error -sseof -0.1 -i "${endcard}" -frames:v 1 -vf "scale=1080:1920:flags=lanczos" "${lockup}"`);
+  if (!intro) sh(`ffmpeg -y -loglevel error -sseof -0.1 -i "${endcard}" -frames:v 1 -vf "scale=1080:1920:flags=lanczos" "${lockup}"`);
 
+  const msVoice = Math.round(voiceStart * 1000);
+  const msBed = Math.round((voiceStart + voiceSpan) * 1000);
+  const msOutro = Math.round((openDur + bodyDur) * 1000);
   sh(
     `ffmpeg -y -loglevel error ` +
-    `-loop 1 -framerate 60 -t ${OPEN} -i "${lockup}" -i "${body}" -i "${endcard}" ` +
+    (intro
+      ? `-i "${intro.path}" -i "${body}" -i "${endcard}" `
+      : `-loop 1 -framerate 60 -t ${OPEN} -i "${lockup}" -i "${body}" -i "${endcard}" `) +
     `-i "${carrier}" -i "${endcard}" ` +
     `-loop 1 -framerate 60 -t ${total} -i "${stampPng}" ` +
     `-filter_complex "` +
-    `[0:v]format=yuv420p,setsar=1,fps=60,settb=AVTB[lk];` +
-    `[1:v]tpad=start_duration=${OPEN}:start_mode=clone,format=yuv420p,setsar=1,fps=60,settb=AVTB[uix];` +
-    `[lk][uix]xfade=transition=custom:expr=${EASED}:duration=${OPEN}:offset=0[openbody];` +
+    (intro
+      ? `[0:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=${openDur},setpts=PTS-STARTPTS[lk];`
+      : `[0:v]format=yuv420p,setsar=1,fps=60,settb=AVTB[lk];`) +
+    // Pad = dissolve only: xfade aligns input2's t=0 at `offset`, so the clone
+    // covers exactly the crossfade window and real body motion starts at
+    // openDur. Legacy (dissolve=OPEN, offset=0) is byte-identical to before.
+    `[1:v]tpad=start_duration=${dissolve}:start_mode=clone,format=yuv420p,setsar=1,fps=60,settb=AVTB[uix];` +
+    `[lk][uix]xfade=transition=custom:expr=${EASED}:duration=${dissolve}:offset=${+(openDur - dissolve).toFixed(2)}[openbody];` +
     `[2:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=${CARD},setpts=PTS-STARTPTS[cardv];` +
     `[openbody][cardv]concat=n=2:v=1:a=0[vraw];` +
     // Stamp rides the body only: in as the open dissolve settles, out before
-    // the 17.2s endcard cut so the lockup stays clean.
-    `[5:v]format=rgba,fade=t=in:st=1.1:d=0.45:alpha=1,fade=t=out:st=${(OPEN + bodyDur - 0.55).toFixed(2)}:d=0.5:alpha=1[stmp];` +
+    // the endcard cut so the lockup stays clean.
+    `[5:v]format=rgba,fade=t=in:st=${+(openDur - 0.1).toFixed(2)}:d=0.45:alpha=1,fade=t=out:st=${(openDur + bodyDur - 0.55).toFixed(2)}:d=0.5:alpha=1[stmp];` +
     `[vraw][stmp]overlay=0:0,format=yuv420p[vid];` +
-    (overlap
+    (intro
+      // Intro mode: everything positioned by adelay and amixed — intro's own
+      // audio 0→openDur, VO enters at openDur−0.4, hum bed fills any VO gap,
+      // endcard outro audio from the scene cut (crack stays synced).
+      ? `[0:a]atrim=0:${openDur},asetpts=PTS-STARTPTS,aresample=48000,apad=whole_dur=${openDur},` +
+        `afade=t=in:st=0:d=0.01,afade=t=out:st=${(openDur - 0.3).toFixed(2)}:d=0.3[introaud];` +
+        `[3:a]atrim=0:${voiceSpan},asetpts=PTS-STARTPTS,aresample=48000,` +
+        `afade=t=in:st=0:d=0.01,afade=t=out:st=${(voiceSpan - 0.25).toFixed(2)}:d=0.25,` +
+        `adelay=${msVoice}|${msVoice}[voice];` +
+        (bedLen > 0.05
+          ? `[4:a]atrim=${BED_SRC_START}:${(BED_SRC_START + bedLen).toFixed(2)},asetpts=PTS-STARTPTS,aresample=48000,volume=0.8,` +
+            `afade=t=in:st=0:d=${XFADE_A},afade=t=out:st=${(bedLen - 0.25).toFixed(2)}:d=0.25,` +
+            `adelay=${msBed}|${msBed}[bed];`
+          : ``) +
+        `[2:a]atrim=0:${CARD},asetpts=PTS-STARTPTS,aresample=48000,` +
+        `afade=t=in:st=0:d=0.05,afade=t=out:st=${(CARD - 0.4).toFixed(2)}:d=0.4,` +
+        `adelay=${msOutro}|${msOutro}[outroaud];` +
+        `[introaud][voice]${bedLen > 0.05 ? '[bed]' : ''}[outroaud]amix=inputs=${bedLen > 0.05 ? 4 : 3}:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]" `
+      : overlap
       ? `[3:a]atrim=0:${voiceSpan},asetpts=PTS-STARTPTS,aresample=48000,` +
         `afade=t=in:st=0:d=0.01,afade=t=out:st=${(voiceSpan - 0.25).toFixed(2)}:d=0.25[voice];` +
         `[2:a]atrim=0:${CARD},asetpts=PTS-STARTPTS,aresample=48000,` +
@@ -114,7 +158,9 @@ for (const v of ['pro', 'free'] as const) {
 
   sh(`ffmpeg -y -loglevel error -i "${out}" -vf "crop=1080:1080:0:420" -c:v libx264 -profile:v high -crf 18 -pix_fmt yuv420p -c:a copy -movflags +faststart "${out1x1}"`);
 
-  const STAMPS = [0, 3, 6.5, 12, 18.6, 23.3];
+  // Same beats relative to the (possibly intro-shifted) timeline — legacy
+  // openDur=1.2 reproduces the original [0, 3, 6.5, 12, 18.6, 23.3].
+  const STAMPS = [0, openDur + 1.8, openDur + 5.3, openDur + 10.8, openDur + bodyDur + 1.4, total - 0.4].map(t => +t.toFixed(1));
   STAMPS.forEach((t, i) => sh(`ffmpeg -y -loglevel error -ss ${t} -i "${out}" -frames:v 1 -vf "scale=270:480" "${join(REELS, `_cs_${v}${i}.png`)}"`));
   sh(`ffmpeg -y -loglevel error ${STAMPS.map((_, i) => `-i "${join(REELS, `_cs_${v}${i}.png`)}"`).join(' ')} -filter_complex "[0][1][2][3][4][5]hstack=6" "${sheet}"`);
 

@@ -3,16 +3,56 @@ HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
 changed. Every command has a description. (Last updated 2026-07-27 —
-added reel:check)
-
-PREREQ for the two main commands: the Expo dev server must be
-running first (the render step drives the real app in a browser):
-
-    npm run start-tunnel
+added the DAILY RUN PROCEDURE)
 
 
 ----------------------------------------------------------------
-DAILY DRIVERS (the two you run every day)
+DAILY RUN PROCEDURE (every morning, in this order)
+----------------------------------------------------------------
+
+STEP 1 — TERMINAL A: open the port for the day (leave it running)
+
+    npm run start-tunnel
+
+    Starts the app dev server on port 8081 with the tunnel. The
+    reel renderers drive the real app through this port, so it
+    must be up BEFORE any reel command — and you just leave this
+    terminal open all day. If reels fail with "connection
+    refused" or the render hangs on a blank page, this terminal
+    is the first thing to check.
+
+STEP 2 — ADMIN APP: run the Full Daily Workflow (before 8:30 ET)
+
+    (in the app: Admin → Dashboard → ⚡ Full Daily Workflow)
+
+    Not a terminal command — but it MUST finish before Step 3:
+    it grades yesterday (the verify reel's receipts) and builds
+    today's boards (the All-Day reel's content). Reels run
+    before the workflow = stale or missing data.
+
+STEP 3 — TERMINAL B: build + publish the day's reels
+
+    npm run reel:verify
+    npm run reel:allday
+
+    Run in that order (receipts first, then today's drop).
+    SUCCESS = each command ends with "✔ registered — visible in
+    Admin → Reels" per reel. FAILURE = red ABORT/error text in
+    the terminal — nothing uploads on a failure, and a zero-match
+    day makes reel:verify abort on purpose (skip it, no receipts
+    that day).
+
+STEP 4 — PHONE: post from Admin → 🎬 Reels
+
+    Pick target → caption's already drafted (Pro carries the
+    numbers) → Save to Photos + Open Group → attach, paste, post.
+
+NOTE: if you replaced any endcard/carrier since yesterday, run
+`npm run reel:check` between Step 2 and Step 3.
+
+
+----------------------------------------------------------------
+DAILY DRIVERS (the two commands in Step 3, in detail)
 ----------------------------------------------------------------
 
 npm run reel:allday

@@ -316,3 +316,30 @@ For mobile apps, you'll configure your app's deep linking scheme in `app.json`.
 Rork builds fully native mobile apps using React Native and Expo - the same technology stack used by Discord, Shopify, Coinbase, Instagram, and nearly 30% of the top 100 apps on the App Store.
 
 Your Rork app is production-ready and can be published to both the App Store and Google Play Store. You can also export your app to run on the web, making it truly cross-platform.
+
+## Daily verification reel (MKT-02)
+
+One command produces the daily "Yesterday's Receipts" 10s vertical reel from
+REAL Verified Track Record data (never mocked):
+
+```bash
+npm run reel:verify
+```
+
+- **Requires the dev server running** (`npm run start-tunnel`) — the rig renders
+  the live Expo web build headlessly.
+- Computes yesterday in ET, renders the Track Record positioned at yesterday's
+  day group (deterministic eased-scroll frames, 60fps), then assembles:
+  1.2s bolt-lockup dissolve → 6.3s receipts segment → 2.5s end card, with
+  `assets/marketing/verif_carrier.mp4` audio at −14 LUFS.
+- **Zero-match days abort by design** (`ABORT: no confirmed matches for <date>`)
+  — no reel is produced, nothing is faked.
+- Output: `assets/marketing/verify_reels/verify_reel_YYYYMMDD.mp4` (9:16) +
+  `_1x1.mp4` feed cut + `_contact.png` sheet. Prints date, row count rendered,
+  and duration. **Never auto-posts.**
+- Stages are flag-separable: `tsx scripts/render-verification-reel.ts` (UI
+  segment only) / `tsx scripts/assemble-verification-reel.ts [YYYYMMDD]`
+  (assembly only, e.g. to re-cut an already-rendered day).
+- Distribution: reels contain real digits + session labels → free/Pro group
+  and App Store use only, never public-page or paid-Meta placements
+  (Brand Brief v2.1 Two-Question Filter).

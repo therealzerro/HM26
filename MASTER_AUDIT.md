@@ -11,6 +11,16 @@
 
 ---
 
+### MKT-02 — "Yesterday's Receipts" daily verification reel pipeline (2026-07-27) ✅
+
+**Work order:** discovery-first, gated; builds on MKT-01. Marketing tooling only — no engine/edge/consumer code.
+
+- **Phase 0:** rig renders Track Record at 1080×1920 with live prod data; yesterday's (ET) day group present with real receipts; screen counts reproduce the app's (scope × combo × matched_state) dedupe vs `adaptive_tracking`; vocabulary pre-flight re-confirmed CLEAN (zero Exact/Partial labels; MATCH/STRAIGHT/BOX only); `verif_carrier.mp4` + `verif_endcard.mp4` probed (720×1280@24, 10s, audio).
+- **Phase 1 — `scripts/render-verification-reel.ts`** (`npm run reel:verify`): computes yesterday ET; locates yesterday's day group in the rendered DOM; **aborts with exit 1 on zero-match days** (no reel, nothing faked); deterministic 378-frame render → `ui_verify_YYYYMMDD.mp4` (6.300s, 1080×1920@60): 1.0s hold on stats band + header → eased scroll through yesterday's rows (rate-capped 1.5 VH/4s) → 1.0s hold. Operator-ratified judgment calls: small-group glide floor (groups fitting one viewport get a gentle header-to-top drift instead of a frozen segment) and prior-day rows visible below yesterday's group in the final hold.
+- **Phase 2 — `scripts/assemble-verification-reel.ts`:** bolt open decided as **settled-lockup frame + 1.2s eased dissolve** (endcard's first 1.2s is smoke only — bolt not yet formed; formation cut joined poorly); body = ui segment (plays 1.2–7.5s); final 2.5s of endcard hard-cut at 7.5s; carrier audio only across the full 10.0s (10ms de-click fades, single-pass loudnorm). Outputs `verify_reel_YYYYMMDD.mp4` (exactly 10.000s) + `_1x1.mp4` (1080×1080) + contact sheet.
+- **QC (first reel, 2026-07-25 — 6 rows):** ui fidelity PSNR 44.3 dB (encode-only); first/last frames non-black (lockup bookends); measured −14.9 LUFS / −1.4 dBTP; duration 10.000s. End card carries the correct $2.49/MO Pro price.
+- **Phase 3:** README block added (single-command flow, dev-server prerequisite, abort semantics, never auto-posts, group/App-Store-only distribution). `npm run reel:verify` chains render→assemble; stages runnable standalone.
+
 ### MKT-01 — UI ad-clip render rig + 30s ad assembly (2026-07-27) ✅
 
 **Work order:** discovery-first, gated. Marketing tooling only — no engine/edge/consumer code touched.

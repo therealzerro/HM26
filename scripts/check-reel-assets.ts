@@ -21,7 +21,7 @@ import { join, resolve } from 'node:path';
 import { resolveCarrier, orphanedParts, audioDur } from './reel-carrier';
 import { available, sourcePath, publicPath, sha256, clearanceFor } from './reel-panels';
 import { PANELS, PANEL_W, PUBLIC_DIR } from './panel-config';
-import { MODAL_COUNT, panelSequence, rotationDegenerate } from '../constants/reelPanels';
+import { MODAL_COUNT, PANEL_URL_BASE, panelSequence, rotationDegenerate } from '../constants/reelPanels';
 
 const ASSETS = resolve('assets/marketing');
 const OPEN = 1.2, BODY = 16.0, CARD = 6.5; // assembler constants (body measured at runtime; 16.0 = current renderer)
@@ -62,6 +62,22 @@ function peakDb(file: string, from: number, to: number): number {
   ).toString();
   const m = out.match(/max_volume:\s*(-?[\d.]+) dB/);
   return m ? parseFloat(m[1]) : -99;
+}
+
+/** Dev-server origin the renderers drive (BASE in render-allday-body.ts). */
+const DEV_BASE = 'http://localhost:8081';
+
+/** HTTP status / content-type / bytes for a URL. code 0 = unreachable. */
+function httpProbe(url: string): { code: number; type: string; len: number } {
+  try {
+    const out = execSync(
+      `curl -s -o /dev/null --max-time 6 -w "%{http_code} %{content_type} %{size_download}" "${url}" || true`,
+      { shell: '/bin/bash' },
+    ).toString().trim().split(/\s+/);
+    return { code: parseInt(out[0], 10) || 0, type: out[1] ?? '', len: parseInt(out[2], 10) || 0 };
+  } catch {
+    return { code: 0, type: '', len: 0 };
+  }
 }
 
 /** Silence windows (start,end) via silencedetect — for VO-end analysis. */
@@ -272,8 +288,30 @@ function checkPanels(): void {
   if (renderer === '0') {
     add('FAIL', 'panels', 'render-allday-body.ts no longer sets hm:reel-capture — panels would silently vanish from every reel');
   }
+  // On-disk presence is NOT enough: the app fetches panels over HTTP from the
+  // dev server. If Expo is up but not serving public/, every modal renders
+  // without a panel and NOTHING errors — the reel just quietly loses them.
+  // A dead server is only a WARN: the render itself aborts loudly on connection
+  // refused, so that case is already covered and reel:check may legitimately be
+  // run before the server is started.
+  const usable = available().usable;
+  if (httpProbe(`${DEV_BASE}/`).code === 0) {
+    add('WARN', 'panels', `dev server unreachable at ${DEV_BASE} — cannot verify panels are actually served (start it before rendering; the render aborts on its own if it is still down)`);
+  } else {
+    let served = 0;
+    for (const p of usable) {
+      const rel = `${PANEL_URL_BASE}/${p.file}`;
+      const r = httpProbe(`${DEV_BASE}${rel}`);
+      if (r.code !== 200) add('FAIL', p.file, `dev server returned HTTP ${r.code} for ${rel} — the modal would render with no panel and nothing would error`);
+      else if (!r.type.startsWith('image/')) add('FAIL', p.file, `dev server served content-type "${r.type}" for ${rel} — not an image (public/ probably isn't being served)`);
+      else if (r.len < 1024) add('FAIL', p.file, `dev server served only ${r.len} bytes for ${rel}`);
+      else served++;
+    }
+    if (served === usable.length) add('PASS', 'panels', `all ${served} served over HTTP from ${DEV_BASE}${PANEL_URL_BASE}/`);
+  }
+
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-  const seq = panelSequence(today, available().usable);
+  const seq = panelSequence(today, usable);
   add('PASS', 'panels', `today's sequence: ${seq.map((p, i) => `${i + 1}·${p.label}`).join('  ')}`);
 }
 

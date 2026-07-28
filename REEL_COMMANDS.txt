@@ -181,8 +181,11 @@ npm run reel:check
     video/audio, voiceover that would get cut mid-phrase, weak
     bolt-crack audio, and low-resolution sources. Also test-
     renders the slate stamp chip so a broken stamp renderer
-    fails here, not mid-assembly. ⛔ = do not assemble;
-    ⚠️ = works but quality note. Takes ~20 seconds.
+    fails here, not mid-assembly. It also FETCHES each promo
+    panel from the running dev server — a panel can be sitting
+    on disk and still not be served, which would quietly produce
+    reels with no panels and no error anywhere. ⛔ = do not
+    assemble; ⚠️ = works but quality note. Takes ~20 seconds.
 
     NOTE for new carriers/endcards/VOs: none of them carry a
     date — the slate stamp is overlaid at assembly time, so

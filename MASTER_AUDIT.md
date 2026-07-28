@@ -11,6 +11,52 @@
 
 ---
 
+### MKT-19 — Brand motion rotation: stinger + endcard (amends MKT-10, MKT-12; mirrors MKT-17) 🔍 PHASE 0 REPORTED · BUILD HELD
+
+**ID.** Work order arrived as "MKT-18" with the ID assumed free. It is not — MKT-18 is body provenance, shipped the same day. The order also said it superseded "the earlier stinger-only MKT-18 draft" and to fold it in; **no such draft was ever recorded here** (content agent confirmed: it was a work order handed to the operator, never tracked), and the MKT-18 that does exist is unrelated. Pure ID collision, nothing to merge. Renumbered **MKT-19** on content-agent ruling.
+
+**Assets.** All four arrived despite the order describing them as pending: `stinger_motion_strike`, `stinger_motion_circuit`, `endcard_motion_pro_alt`, `endcard_motion_free_alt` — all 720×1280 24fps, **all 10.005s**, not the 4.0s/10.0s stated. That is the generator's 10s preset for the **third** lane running (cf. MKT-17's intros, MKT-16's public intro). For endcards 10s is the contract; for stingers it is harmless because `STINGER_DUR` uses only the first 3.0s — but it means the described beat times cannot be assumed and must be measured, which is how the circuit defect below was found.
+
+**Phase 0 item 1 — contract validation.** Stingers: all three open on full-frame smoke (luma spread 60–67) and present a usable dissolve source at 3.0s (89–111). Endcards: three of four crack on spec (4.3–4.5s vs ~4.3 target); all four end fully static (tail luma delta 0.17–0.20), so the fallback-open path is safe from any motion. Two defects:
+
+- **`stinger_motion_circuit` has TWO transients**, −4.8 dB at **1.4s** (flood-to-white, the intended hero beat, slightly late) and −4.7 dB at **2.7s** (gold pulse). The second is the problem: the lockup is already out by 2.4s (`TEXT_OUT_START` 2.2 + 0.2), so the pulse fires on an empty frame 0.3s before the cut to the body — a hard transient immediately ahead of the dissolve, reading as a pop. Strike and the incumbent both peak once, cleanly, at 1.2s. **Ruling: fix in audio, not by regeneration** — per-motion audio tail fade from ~2.45s so the pulse is under the floor by 2.7s, preserving the 2.3s smoke-return whoosh. Widening `STINGER_DUR` was considered and rejected: changing reel length to suppress a transient is the wrong trade.
+- **`endcard_motion_pro_alt` derives NO usable bed.** Its RMS climbs monotonically into the crack (−51.5 dB at 0s → −22.0 at 3.5s → −11.3 at 4.5s); the pre-crack candidate spans ~30 dB against `MAX_BED_SPREAD` of 20, and palindroming it would swell-and-fade under the modals. Inherent to the concept — "rings align and release" *is* a build-up. Only reachable in hum-bed mode, and every current carrier is ~20.4s wall-to-wall, so it works today; but the assembler ABORTs on a null bed, so a short pro-tier carrier would kill the run.
+
+**Ruling on pro_alt — do NOT accept-and-document; make the resolver bed-aware.** Rationale recorded because it is the general principle: a note reading "pro-tier carriers must stay wall-to-wall" is exactly the class of constraint that rots — the same way `BED_SRC_START` rotted the moment a second endcard arrived, and the way REEL_COMMANDS went on claiming panels were capture-only for a day after the gate was removed. And the failure is not silent, it is an abort on a morning when a carrier happens to come in short. So: **per-motion bed metadata derived at build time; when `needsBed` is true, motions with no usable bed drop from that day's rotation with a logged warning; when false they participate normally.** Converts a hard abort into graceful degradation, matches the existing missing-panel and missing-intro patterns, and generalises to any future build-up motion. pro_alt stays in the set, no regeneration.
+
+**Phase 0 item 2 — bed derivation is CLEAN, not a blocker.** `bedWindow(file, within)` profiles fresh per call, no cache, no module state, and is called on the **built endcard** rather than the motion, in both the assembler and `reel:check`. MKT-10's derive-don't-hardcode ruling holds. Derived windows: pro 0–4.0s @ −27.6 dB · **pro_alt none** · free 0–3.9s @ −29.3 dB · free_alt 0–4.1s @ −24.5 dB.
+
+**NEW — beds are mixed RAW, and that is a real inconsistency (content-agent question, confirmed).** `humBed()` applies a fixed `volume=0.8` and nothing else; the `loudnorm=I=-14` runs on the FINAL MIX after `amix`, so it normalises the whole track and cannot correct the bed's level *relative to the VO*. With native bed RMS spanning −24.5 to −29.3 dB, hum-bed days vary by up to **4.8 dB** in bed loudness purely on which motion the date selects. Fix is nearly free because `bedWindow` already returns the window's measured `rms`: apply a compensating gain to a target instead of the flat 0.8. Folded into Phase 1.
+
+**Phase 0 item 4 — join invariant PASSES across the full matrix.** MKT-12's crossfade exists because two smoke fields differed by ΔSAT 21. Measured across all 9 intro × stinger pairs: max **ΔSAT 7.7**, ΔY 10.0, ΔHUE 18.9 — all comfortably absorbed by the existing 0.3s `INTRO_XFADE`. Independent rotation is safe, no pair needs special handling. (The order said these butt-cut; they have not since MKT-12. Conclusion unchanged, mechanism corrected — accepted by the content agent.)
+
+**Phase 0 item 5 — carrier timing unaffected.** `voiceWindow = bodyDur + 0.4`, and `bodyDur` comes from the body render alone; stinger length feeds `openDur` and total reel length, never `bodyDur`. The 0.32s margin and the 18.4–20.0s safe band cannot move. Formality, confirmed.
+
+**Phase 0 item 3 — build strategy: (a) PREBUILT, approved.** Matrix is **37 built files** (stingers 7 kinds × 3 motions = 21; endcards 4 pro-tier × 2 + 4 free-tier × 2 = 16) against 9 today, counting public kinds as landing. (b) would add ~9 Playwright renders to a run that is operator-triggered before 8:30am ET and is the only trigger — the point of least slack. Prebuilt artifacts are also inspectable *before* a run rather than during it, which is the stronger argument. `checkStrays()` scales fine since it builds its expected set from the registries; a partial matrix producing one WARN per missing combination is the intended signal, not noise.
+
+**FILENAME CASCADE — enumerated before changing the shape, and it is not uniform.** `${kind}_endcard.mp4` must become motion-encoded. Every reader:
+
+| # | Site | Role | Note |
+|---|---|---|---|
+| 1 | `assemble-allday-reels.ts:127` | outro source **and** bed source | feeds the fallback lockup at :176 and the input at :185 via the same const — one change fixes all three |
+| 2 | `assemble-verification-reel.ts:84` | **fallback open** — endcard final frame | **hardcoded literal**, not via a variable |
+| 3 | `assemble-verification-reel.ts:93` | verify close (final 2.5s) | second independent literal |
+| 4 | `check-reel-assets.ts:319` | `checkSlateEndcard` | |
+| 5 | `check-reel-assets.ts:408-413` | verify endcard validation | literal `verif_endcard.mp4` |
+| 6 | `check-reel-assets.ts:546` | `checkScopes` dormant probe | |
+| 7 | `check-reel-assets.ts` `checkStrays()` | expected-set enumeration | derives from `ENDCARDS[].out` |
+| 8 | `build-endcard.ts:103,112` | writes `v.out` + `_baked_backup` name | |
+
+**The content agent predicted the fallback would be the missed reader, and it is the worst of the eight** — `assemble-verification-reel.ts:84` is an inline literal read twice over, not a variable, so a resolver applied only to the slate assembler would leave verify silently reading an unversioned name on the one path that exists to catch failures.
+
+**Also found: the built-name pattern is NOT `${kind}_endcard.mp4` uniformly.** `ENDCARDS.verify.out` is **`verif_endcard.mp4`** (no "y"). So a resolver composing `${kind}_endcard_${motion}.mp4` would be wrong for verify; it must derive from the registry's `out` field (`out.replace(/\.mp4$/, '_<motion>.mp4')`). Relatedly `check-reel-assets.ts:546` already builds `${kind}_endcard.mp4` and would be wrong for verify — latent today only because `checkScopes` iterates scopes × variants and never reaches `verify`.
+
+**Phase 1 scope agreed:** one shared resolver over (variant, kind, date) used by both configs, date-derived offset on the same `dayOfYear` basis as MKT-17 and the caption engine; tier pairing enforced in the resolver, never by convention (pro set → allday_pro/midday_pro/evening_pro/verify; free set → allday_free + public kinds); verify keeps a fixed INTRO for tonal reasons but DOES rotate its endcard, since no such concern applies at the close; same-day allday_pro/free may draw the same stinger motion (different rooms, and their endcard motions differ by tier anyway) — no cross-kind spacing. Graceful degradation: missing motion drops with a warning, empty set falls back to the incumbent, total stinger failure assembles with no stinger; **an endcard is not optional — failure to resolve one fails loudly.**
+
+**GATE: held.** Nothing built, no files touched.
+
+---
+
 ### MKT-18 — Body provenance: the capture date travels inside the file (amends MKT-07) ✅ SHIPPED
 
 **ID verified free** (`grep MKT-18` → 0 hits). Marketing pipeline only, no engine or consumer surface. Operator-approved same day, shipped ~15h ahead of the next daily run.

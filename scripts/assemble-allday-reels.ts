@@ -90,12 +90,11 @@ const XFADE_A = 0.4;                    // voice→bed audio crossfade-ish join 
 // pick-detail modal (capture-gated) and are captured as part of the UI by
 // render-allday-body.ts, so the assembler needs no panel layer at all — it only
 // needs the modal segment plan for contact-sheet sampling.
-const intro = probeAnchorIntro(ASSETS);
 // MKT-12: the branded stinger sits between the intro and the body. It is
 // per-variant (the headline differs), so openDur/total are resolved inside the
 // variant loop below rather than once here.
-const openBase = intro ? intro.dur : OPEN;
-const dissolve = intro ? INTRO_DISSOLVE : OPEN;
+// MKT-17: the INTRO is per-variant too now — slate kinds rotate, public kinds
+// take a fixed file — so it resolves in the loop alongside the stinger.
 
 // MKT-07 slate stamp: day·scope·purpose chip burned over the body (shared by
 // both variants). Derived from the same `stamp` the body was rendered for, so
@@ -104,8 +103,16 @@ const dissolve = intro ? INTRO_DISSOLVE : OPEN;
 const stampPng = join(REELS, `_stamp_${stamp}.png`);
 sh(`npx tsx scripts/render-reel-stamp.ts drop ${stamp} ${SPEC.stampLabel} "${stampPng}"`);
 
+const isoDate = `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`;
+
 for (const v of SPEC.variants) {
   const kind = reelKind(SCOPE, v);
+  // MKT-17: resolved per kind and per DATE (not "today"), so re-running an old
+  // stamp reproduces that day's intro exactly, the same contract the caption
+  // and panel rotations already honour.
+  const intro = probeAnchorIntro(ASSETS, kind, isoDate);
+  const openBase = intro ? intro.dur : OPEN;
+  const dissolve = intro ? INTRO_DISSOLVE : OPEN;
   // MKT-12: prebuilt per-variant stinger. Missing/disabled → null and the reel
   // assembles exactly as before. Crossfaded into, so it adds dur − INTRO_XFADE.
   const sting = probeStinger(ASSETS, kind);

@@ -11,6 +11,33 @@
 
 ---
 
+### MKT-17 — Anchor intro rotation + per-kind resolution (amends MKT-08) ✅ PHASE 1 SHIPPED
+
+**Work order:** operator-directed, discovery-first. **ID verified free.** Marketing pipeline only. Scope widened by operator ruling mid-flight: per-kind selection and rotation are one mechanism, so they were built together rather than twice.
+
+**Phase 0 — all three new intro deliveries were 10.000s, not the 6.0s stated.** `anchor_intro_deadpan` and `anchor_intro_powerup` measured 10.000s video / 10.005s audio (720×1280 24fps), matching `anchor_intro_public`. Operator root-caused it: the generator only outputs at 4/6/8/10s presets and "5.5s" rounded to 10. **Had this shipped unexamined, `probeAnchorIntro` would have rejected both new variants (>6.5s), each would have dropped from the rotation with a logged warning, and the set would have silently collapsed to a rotation of one** — the graceful degradation working perfectly while the feature did nothing.
+
+**Trims applied** per the operator's rule (find where smoke fills the frame, out-point 0.6s later, in-point 6.0s earlier; slide the window if it runs past the ends). Masters preserved as `*_master_10s.mp4`.
+
+- **`anchor_intro_public`** — smoke fills 5–7s, then **pulls back out to the newsroom at 8–9s**, exactly the MKT-08 tail failure. Window slid to **IN 0.0 / OUT 6.0**: opens on the visor igniting in darkness (the intended cold-audience hook, audio present from frame 1 at −37.9 dB mean) and lands mid-smoke. Tail luma spread **92** (≤120 pass; reference 64).
+- **`anchor_intro_deadpan`** — smoke from ~5s and holds to 9s, no pull-back. **IN 0.0 / OUT 6.0** preserves the whole sheet gag (the comedy is the setup) and lands on smoke. Tail spread **89**. ⚠️ Opens quiet: −56.2 dB mean / −38.7 max over the first 0.3s — technically present, but far softer than public's −37.9, and MKT-08's "audio up from frame 1" ruling was explicitly about autoplay retention. Flagged, not blocking.
+- **`anchor_intro_powerup` — REJECTED, cannot be trimmed into compliance.** It never reaches full-frame smoke: 5.6–6.5s is smoke *inside a phone* with the bezel and notch still framing it, and by 6.8s it has pulled back to the newsroom. No 6.0s window ends on a usable dissolve bed, and dissolving from a framed handset would ghost the phone outline through the UI body. **Needs regeneration with the camera pushing fully into the screen**, as public and deadpan both do at 4→5s.
+
+Both trimmed intros verified through the **1:1 centre crop** (`crop=1080:1080:0:420`): visor, gesture, phone and the deadpan sheet all sit inside the keep band.
+
+**Phase 0 item 4 — carrier timing invariance, CONFIRMED with a caveat.** `voiceWindow = openDur + bodyDur − voiceStart` with `voiceStart = openDur − 0.4` reduces to `bodyDur + 0.4` = **19.4s regardless of intro length**, so carrier authoring is untouched by rotation. But `voiceStart` *itself* shifts with intro length (it is anchored 0.4s before the dissolve completes) — 7.93s on a 5.6s intro, 8.33s on a 6.0s one. Consequence: **total reel duration now varies by intro**, 33.83s vs 34.23s. Nothing downstream breaks (contact-sheet stamps and the outro derive from `openDur`), but daily reel length is no longer a constant.
+
+**Phase 1 — built.**
+- **`scripts/anchor-intros.ts`** — ordered rotation + fixed-kind map + `introCandidates(kind, dateISO)`. Rotation uses the same clock-free `dayIndex` as the caption and panel engines, so re-running a date reproduces that date's intro exactly.
+- **Graceful degradation falls out of the data structure** rather than being coded: `introCandidates` returns an ORDERED list and the probe takes the first usable file, so a missing/defective member drops for that day, an exhausted list returns null, and the assembler lands on the legacy 1.2s open. **Public kinds never fall through into the rotation** — a public cut must not silently acquire the deadpan gag; they degrade only to the standard intro.
+- **`probeAnchorIntro(assetsDir, kind, dateISO)`** replaces the hardcoded filename. Defaulted args preserve MKT-08 behaviour for any un-migrated caller.
+- Resolution moved **inside the variant loop** in the assembler (it was resolved once outside) because the intro is now per-kind, and keyed on the reel's **stamp date, not "today"**, so a re-run of an old date is reproducible.
+- Verified: slate kinds alternate standard/deadpan by date; same-day pro/free draw the same intro (accepted — different rooms, no cross-kind spacing); verify is always standard; public is always `anchor_intro_public`.
+
+**Phase 2 NOT done (separate gate):** `reel:check` still validates only `anchor_intro.mp4`, so a defective rotation member currently degrades with a log line rather than failing preflight. `allIntroFiles()` is exported ready for it. Docs + run-summary print also pending.
+
+---
+
 ### MKT-16 — Public asset integration + redaction overlay 🔍 PHASE 0 REPORTED · BUILD HELD
 
 **Work order:** operator-directed, discovery-first. Marketing pipeline only. **ID verified free** (`grep MKT-16` → 0 hits; MKT-01–13 shipped, MKT-14 parked, MKT-15 Phase 1 shipped). Depends on MKT-15 Phase 2 for the masked capture; Phase 1 config is independent.

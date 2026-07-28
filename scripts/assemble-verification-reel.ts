@@ -56,7 +56,7 @@ const stampPng = join(REELS, `_stamp_${stamp}.png`);
 sh(`npx tsx scripts/render-reel-stamp.ts verify ${stamp} - "${stampPng}"`);
 
 const uiDur = +parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${ui}"`).toString()).toFixed(2);
-const intro = probeAnchorIntro(ASSETS);
+const intro = probeAnchorIntro(ASSETS, 'verify');
 // MKT-12: wired but DISABLED for verify by config — the body is only 6.3s, so a
 // 5.6s intro plus a 3.0s stinger would put more branding on screen than
 // receipts. Enabling it later is a config flip, no code change.

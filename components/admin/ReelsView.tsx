@@ -526,13 +526,18 @@ export default function ReelsView() {
   const [error, setError] = useState<string | null>(null);
   const [showOlder, setShowOlder] = useState(false);
 
-  // Only TODAY's reels are actionable — a previous day's reel has either been
-  // posted or been superseded by the next morning's run, and every stale card
-  // pushes the live ones further down a phone screen. Older reels stay one tap
-  // away rather than being hidden: they are still the record of what shipped.
+  // "Current" = produced by TODAY'S RUN, keyed on updated_at — NOT on
+  // reel_date. The verify reel is dated D−1 BY DESIGN (it grades yesterday), so
+  // a reel_date filter hides every verify reel forever, which is exactly the
+  // bug this replaced. updated_at is the honest signal: the publisher stamps it
+  // on every upload, so it answers "did this morning's run produce this?"
+  // regardless of which date the content is about.
+  const etDay = (iso: string) =>
+    new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-  const current = (reels ?? []).filter(r => r.reel_date >= todayET);
-  const older = (reels ?? []).filter(r => r.reel_date < todayET);
+  const isCurrent = (r: MarketingReel) => etDay(r.updated_at) === todayET;
+  const current = (reels ?? []).filter(isCurrent);
+  const older = (reels ?? []).filter(r => !isCurrent(r));
 
   const load = useCallback(async () => {
     setError(null);
@@ -575,7 +580,8 @@ export default function ReelsView() {
         Flow: pick target → edit caption (lint gates it) → on device: Save to Photos + attach inside
         Facebook; on web: Prepare Video, then Save/Share (phone sheet → “Save Video” = Photos) or
         Download (desktop). Handoffs are logged; storage self-prunes after 30 days.
-        Today’s reels show by default — earlier days are one tap below.
+        This run’s reels show by default — earlier ones are one tap below. (The verify reel is
+        dated yesterday by design: it grades yesterday’s board.)
       </Text>
 
       {reels === null && <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 30 }} />}

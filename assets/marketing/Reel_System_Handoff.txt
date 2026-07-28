@@ -2,6 +2,14 @@
 HITMASTER ZK6 — DAILY REEL SYSTEM
 Content Agent Handoff · 2026-07-28 · v1.6
 ================================================================================
+⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
+`assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
+`assets/marketing/Reel_System_Handoff.txt`. The old name carried its CREATION
+date, not its content date, so a file revised through v1.3 → v1.5 → v1.6 still
+read "07-27" and looked nine days stale when it was current. The date is gone
+from the name for good — **the version is the header line above, and nowhere
+else.** Bookmark the new path; the old one no longer exists.
+
 Read this before proposing or producing ANY reel-related asset or enhancement.
 Companion docs:
   - assets/HitMaster_Brand_Rehab_Skill_Brief_v2.md  (brand law — canonical)
@@ -583,6 +591,11 @@ per-day by hand, not AI-freestyled.
   Nothing changes for you — no new asset, no new step. It does mean a reel can
   no longer be re-stamped to a different day by renaming its body, so if you
   ever want a past day rebuilt, ask for a re-render rather than a rename.
+  STATUS: every CURRENT body carries its tag (all four re-rendered 2026-07-28
+  evening and verified: allday/midday/evening 2026-07-28, verify 2026-07-27,
+  each matching its filename). Bodies from earlier days still carry nothing —
+  re-assembling one of those prints a note and proceeds exactly as before,
+  which is the intended floor, not a defect.
 
   FILENAMES ARE LOAD-BEARING — `reel:check` now scans for near-misses.
   Every asset is read by EXACT filename from a registry. A name that is

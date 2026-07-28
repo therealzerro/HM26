@@ -303,8 +303,10 @@ npm run reel:check
     filename used to produce a clean, correct-LOOKING reel of the
     wrong day's board, with nothing erroring. If you want a past
     day rebuilt, RE-RENDER it — do not rename a body file.
-    Bodies rendered before 7/28 carry no tag; those print a note
-    and assemble as before.
+    All four current bodies were re-rendered on the evening of
+    7/28 and carry their tag. Bodies from earlier days carry
+    none; re-assembling one of those prints a note and proceeds
+    as before, which is intended, not a fault.
 
     MULTI-PART CARRIERS: if a VO comes back as two ~10s clips,
     just drop them in as allday_pro_carrier.mp4 +

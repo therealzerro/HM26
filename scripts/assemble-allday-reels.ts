@@ -23,10 +23,13 @@
 // Usage: tsx scripts/assemble-allday-reels.ts [YYYYMMDD]  (default today ET)
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { probeAnchorIntro, INTRO_DISSOLVE, INTRO_VO_LEAD } from './reel-intro';
 import { resolveCarrier } from './reel-carrier';
 import { MODAL_COUNT, GRID_DUR, MODAL_HOLD, modalWindow } from '../constants/reelPanels';
+import { probeStinger, stingerAdds } from './reel-stinger';
+import { bedWindow, type BedWindow } from './reel-bed';
+import { STINGERS, STINGER_DUR, INTRO_XFADE } from './stinger-config';
 
 const ASSETS = resolve('assets/marketing');
 const REELS = join(ASSETS, 'allday_reels');
@@ -40,11 +43,11 @@ const EASED = `'st(0,(1-P)*(1-P)*(3-2*(1-P)));A*(1-ld(0))+B*ld(0)'`; // xfade P 
  * by construction, where a plain loop would click on the level discontinuity.
  * `inLabel` is the endcard audio input, `outLabel` the finished bed.
  */
-function humBed(inLabel: string, bedLen: number, outLabel: string): string {
-  const seg = +(BED_SRC_END - BED_SRC_START).toFixed(2);
+function humBed(inLabel: string, bedLen: number, outLabel: string, bed: BedWindow): string {
+  const seg = +(bed.end - bed.start).toFixed(2);
   const pairs = Math.max(1, Math.ceil(bedLen / (2 * seg)));
   let f =
-    `${inLabel}atrim=${BED_SRC_START}:${BED_SRC_END},asetpts=PTS-STARTPTS,aresample=48000[bs];` +
+    `${inLabel}atrim=${bed.start}:${bed.end},asetpts=PTS-STARTPTS,aresample=48000[bs];` +
     `[bs]asplit=2[bsa][bsb];[bsb]areverse[bsr];[bsa][bsr]concat=n=2:v=0:a=1[bp];`;
   if (pairs > 1) {
     const labels = Array.from({ length: pairs }, (_, i) => `[bq${i}]`);
@@ -67,13 +70,11 @@ if (!existsSync(body)) {
 }
 const bodyDur = parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${body}"`).toString());
 const OPEN = 1.2, CARD = 6.5;          // endcard outro: formation + lockup resolve + hold
-// MKT-10: the hum bed is sourced from the endcard's PRE-crack tension hum.
-// The bolt crack lands at ~4.3s (measured; contract-pinned), so the old
-// BED_SRC_START=2.0 window ran straight through it and dragged the crack into
-// mid-reel — the viewer heard the bolt snap twice, once under the modals and
-// again in the real outro. 0.0-3.9s is crack-free and level-steady; reel:check
-// asserts the endcard's loudest transient falls outside this window.
-const BED_SRC_START = 0.0, BED_SRC_END = 3.9;
+// MKT-10: the hum-bed window is DERIVED from each endcard (scripts/reel-bed.ts)
+// rather than hardcoded. The previous constant was measured on the Pro endcard
+// and generalised — and was already wrong for Free, whose crack lands at ~1.0s
+// inside it. Deriving means a replaced motion file cannot silently poison the
+// bed by moving its snap.
 const XFADE_A = 0.4;                    // voice→bed audio crossfade-ish join fades
 
 // MKT-11: promo panels are NOT composited here. They render inside the app's
@@ -81,9 +82,11 @@ const XFADE_A = 0.4;                    // voice→bed audio crossfade-ish join 
 // render-allday-body.ts, so the assembler needs no panel layer at all — it only
 // needs the modal segment plan for contact-sheet sampling.
 const intro = probeAnchorIntro(ASSETS);
-const openDur = intro ? intro.dur : OPEN;      // body starts here in both modes
+// MKT-12: the branded stinger sits between the intro and the body. It is
+// per-variant (the headline differs), so openDur/total are resolved inside the
+// variant loop below rather than once here.
+const openBase = intro ? intro.dur : OPEN;
 const dissolve = intro ? INTRO_DISSOLVE : OPEN;
-const total = +(openDur + bodyDur + CARD).toFixed(3);   // 23.7 legacy with the 16.0s body
 
 // MKT-07 slate stamp: day·scope·purpose chip burned over the body (shared by
 // both variants). Derived from the same `stamp` the body was rendered for, so
@@ -93,6 +96,12 @@ const stampPng = join(REELS, `_stamp_${stamp}.png`);
 sh(`npx tsx scripts/render-reel-stamp.ts drop ${stamp} ALL-DAY "${stampPng}"`);
 
 for (const v of ['pro', 'free'] as const) {
+  // MKT-12: prebuilt per-variant stinger. Missing/disabled → null and the reel
+  // assembles exactly as before. Crossfaded into, so it adds dur − INTRO_XFADE.
+  const sting = probeStinger(ASSETS, `allday_${v}`);
+  const openDur = +(openBase + stingerAdds(sting)).toFixed(3);
+  const total = +(openDur + bodyDur + CARD).toFixed(3);
+  if (sting) console.log(`NOTE(${v}): stinger ${STINGERS[`allday_${v}`].lines[1]} — open ${openBase}s + ${stingerAdds(sting)}s = ${openDur}s, reel ${total}s.`);
   const endcard = join(ASSETS, `allday_${v}_endcard.mp4`);
   // MKT-09: a carrier delivered as parts (…_carrier.mp4 + …_carrier_pt2.mp4)
   // is joined first; a single-file carrier resolves to itself unchanged.
@@ -119,12 +128,19 @@ for (const v of ['pro', 'free'] as const) {
     : +Math.min(carrierDur - 0.2, voiceWindow).toFixed(2);
   const bedLen = overlap ? 0 : +(voiceWindow - voiceSpan).toFixed(2);
   const endcardAudioDur = parseFloat(execSync(`ffprobe -v error -select_streams a:0 -show_entries format=duration -of csv=p=0 "${endcard}"`).toString());
-  // The bed now palindrome-fills from a fixed window, so it no longer needs
-  // endcard audio as long as the gap — only the window itself must exist.
-  if (endcardAudioDur < Math.max(CARD, BED_SRC_END)) {
-    console.error(`ABORT(${v}): endcard audio ${endcardAudioDur}s too short for outro ${CARD}s / bed source window ${BED_SRC_END}s.`);
+  if (endcardAudioDur < CARD) {
+    console.error(`ABORT(${v}): endcard audio ${endcardAudioDur}s too short for the ${CARD}s outro.`);
     process.exit(1);
   }
+  // Derived per endcard; null means no crack-free, level-steady stretch exists
+  // (true of the Free endcard today). Fail rather than replay the bolt crack
+  // under the modals — the fix is a long wall-to-wall carrier, not a worse bed.
+  const bed = bedLen > 0.05 ? bedWindow(endcard, CARD) : null;
+  if (bedLen > 0.05 && !bed) {
+    console.error(`ABORT(${v}): ${basename(endcard)} has no usable hum-bed window (crack too early, or its audio decays away). This variant needs a wall-to-wall carrier.`);
+    process.exit(1);
+  }
+  if (bed) console.log(`NOTE(${v}): hum bed ← ${bed.mode}-crack ${bed.start}-${bed.end}s (crack measured at ${bed.crackAt}s, mean ${bed.rms}dB).`);
   if (overlap) {
     console.log(`NOTE(${v}): long carrier (${carrierDur.toFixed(1)}s) — voice plays ${voiceStart}-${(voiceStart + voiceSpan).toFixed(1)}s (tail rides the smoke rise), endcard outro audio mixed from ${(openDur + bodyDur).toFixed(1)}s; carrier content beyond ${voiceSpan}s discarded.`);
   } else if (bedLen > 0.05) {
@@ -147,10 +163,20 @@ for (const v of ['pro', 'free'] as const) {
       : `-loop 1 -framerate 60 -t ${OPEN} -i "${lockup}" -i "${body}" -i "${endcard}" `) +
     `-i "${carrier}" -i "${endcard}" ` +
     `-loop 1 -framerate 60 -t ${total} -i "${stampPng}" ` +
+    // MKT-12: stinger takes input [6] — appended so [0]-[5] and every hardcoded
+    // index in the graph below are undisturbed.
+    (sting ? `-i "${sting.path}" ` : ``) +
     `-filter_complex "` +
     (intro
-      ? `[0:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=${openDur},setpts=PTS-STARTPTS[lk];`
-      : `[0:v]format=yuv420p,setsar=1,fps=60,settb=AVTB[lk];`) +
+      ? `[0:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=${openBase},setpts=PTS-STARTPTS[lk0];`
+      : `[0:v]format=yuv420p,setsar=1,fps=60,settb=AVTB[lk0];`) +
+    // Intro smoke → stinger smoke. Both are full-frame smoke but NOT the same
+    // smoke (saturation 98.5 vs 119.8, different texture), so a hard cut pops —
+    // hence a short dissolve rather than the butt-cut Phase 0 assumed.
+    (sting
+      ? `[6:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=${STINGER_DUR},setpts=PTS-STARTPTS[stg];` +
+        `[lk0][stg]xfade=transition=fade:duration=${INTRO_XFADE}:offset=${+(openBase - INTRO_XFADE).toFixed(2)}[lk];`
+      : `[lk0]null[lk];`) +
     // Pad = dissolve only: xfade aligns input2's t=0 at `offset`, so the clone
     // covers exactly the crossfade window and real body motion starts at
     // openDur. Legacy (dissolve=OPEN, offset=0) is byte-identical to before.
@@ -166,16 +192,23 @@ for (const v of ['pro', 'free'] as const) {
       // Intro mode: everything positioned by adelay and amixed — intro's own
       // audio 0→openDur, VO enters at openDur−0.4, hum bed fills any VO gap,
       // endcard outro audio from the scene cut (crack stays synced).
-      ? `[0:a]atrim=0:${openDur},asetpts=PTS-STARTPTS,aresample=48000,apad=whole_dur=${openDur},` +
-        `afade=t=in:st=0:d=0.01,afade=t=out:st=${(openDur - 0.3).toFixed(2)}:d=0.3[introaud];` +
+      ? `[0:a]atrim=0:${openBase},asetpts=PTS-STARTPTS,aresample=48000,apad=whole_dur=${openBase},` +
+        `afade=t=in:st=0:d=0.01,afade=t=out:st=${(openBase - 0.3).toFixed(2)}:d=0.3[introaud];` +
+        // Stinger keeps its own impact at its native position; it lands well
+        // before the VO enters and ~22-25s clear of the endcard crack.
+        (sting
+          ? `[6:a]atrim=0:${STINGER_DUR},asetpts=PTS-STARTPTS,aresample=48000,` +
+            `afade=t=out:st=${(STINGER_DUR - 0.25).toFixed(2)}:d=0.25,` +
+            `adelay=${Math.round((openBase - INTRO_XFADE) * 1000)}|${Math.round((openBase - INTRO_XFADE) * 1000)}[stgaud];`
+          : ``) +
         `[3:a]atrim=0:${voiceSpan},asetpts=PTS-STARTPTS,aresample=48000,` +
         `afade=t=in:st=0:d=0.01,afade=t=out:st=${(voiceSpan - 0.25).toFixed(2)}:d=0.25,` +
         `adelay=${msVoice}|${msVoice}[voice];` +
-        (bedLen > 0.05 ? humBed('[4:a]', bedLen, `,adelay=${msBed}|${msBed}[bed];`) : ``) +
+        (bed ? humBed('[4:a]', bedLen, `,adelay=${msBed}|${msBed}[bed];`, bed) : ``) +
         `[2:a]atrim=0:${CARD},asetpts=PTS-STARTPTS,aresample=48000,` +
         `afade=t=in:st=0:d=0.05,afade=t=out:st=${(CARD - 0.4).toFixed(2)}:d=0.4,` +
         `adelay=${msOutro}|${msOutro}[outroaud];` +
-        `[introaud][voice]${bedLen > 0.05 ? '[bed]' : ''}[outroaud]amix=inputs=${bedLen > 0.05 ? 4 : 3}:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]" `
+        `[introaud]${sting ? '[stgaud]' : ''}[voice]${bedLen > 0.05 ? '[bed]' : ''}[outroaud]amix=inputs=${(bedLen > 0.05 ? 4 : 3) + (sting ? 1 : 0)}:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]" `
       : overlap
       ? `[3:a]atrim=0:${voiceSpan},asetpts=PTS-STARTPTS,aresample=48000,` +
         `afade=t=in:st=0:d=0.01,afade=t=out:st=${(voiceSpan - 0.25).toFixed(2)}:d=0.25[voice];` +
@@ -185,7 +218,7 @@ for (const v of ['pro', 'free'] as const) {
         `[voice][outroaud]amix=inputs=2:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]" `
       : `[3:a]atrim=0:${voiceSpan},asetpts=PTS-STARTPTS,aresample=48000,` +
     `afade=t=in:st=0:d=0.01,afade=t=out:st=${(voiceSpan - XFADE_A).toFixed(2)}:d=${XFADE_A}[voice];` +
-    (bedLen > 0.05 ? humBed('[4:a]', bedLen, `[bed];`) : ``) +
+    (bed ? humBed('[4:a]', bedLen, `[bed];`, bed) : ``) +
     `[2:a]atrim=0:${CARD},asetpts=PTS-STARTPTS,aresample=48000,` +
     `afade=t=in:st=0:d=0.05,afade=t=out:st=${(CARD - 0.4).toFixed(2)}:d=0.4[cardaud];` +
     (bedLen > 0.05

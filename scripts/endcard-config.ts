@@ -29,6 +29,15 @@ export const ENDCARDS: Record<string, EndcardVariant> = {
     lines: ['HITMASTER ZK6', "TODAY'S FULL DROP — FREE", 'VERIFIED TOMORROW MORNING'],
     out: 'allday_free_endcard.mp4',
   },
+  // Verify reuses the pro motion too. Its close is the endcard's FINAL 2.5s, so
+  // the lockup must be opaque by (duration − 2.5s) — at 5.2s it clears a 10s
+  // motion by 2.3s. Verify never touches endcard AUDIO (its soundtrack is
+  // verif_carrier), so the crack/bed contract does not apply to it at all.
+  verify: {
+    motion: 'endcard_motion_pro.mp4',
+    lines: ['HITMASTER ZK6', "YESTERDAY'S RECEIPTS", 'VERIFIED FROM PUBLISHED RESULTS'],
+    out: 'verif_endcard.mp4',
+  },
   // Phase 2 — session wave. Same pro motion file, zero new generations.
   midday_pro: {
     motion: 'endcard_motion_pro.mp4',
@@ -51,8 +60,15 @@ export const ENDCARDS: Record<string, EndcardVariant> = {
 export const LOCKUP_TOP = 1240;
 export const CROP_SAFE_BOTTOM = 1500;
 
-/** Fade the lockup in over the settle, opaque and static from here to the end. */
+/**
+ * Lockup fade-in. The All-Day outro is the endcard's FIRST 6.5s, so a 2.0s fade
+ * from 4.5s reached full opacity on the reel's LAST FRAME and was never held —
+ * the brand card resolved exactly as the reel ended. 0.7s puts it fully opaque
+ * at 5.2s, leaving ~1.3s of settled lockup on screen. (Operator caught this
+ * before any motion file was generated; motion is cut to keep the text band
+ * clear from 4.5s onward.)
+ */
 export const TEXT_FADE_IN = 4.5;
-export const TEXT_FADE_DUR = 2.0;   // fully opaque by 6.5s
+export const TEXT_FADE_DUR = 0.7;   // fully opaque by 5.2s, held to 6.5s
 
 export const OUT_W = 1080, OUT_H = 1920;

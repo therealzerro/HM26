@@ -22,6 +22,8 @@ import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { probeAnchorIntro, INTRO_DISSOLVE, INTRO_VO_LEAD } from './reel-intro';
 import { resolveCarrier } from './reel-carrier';
+import { probeStinger, stingerAdds } from './reel-stinger';
+import { STINGER_DUR, INTRO_XFADE } from './stinger-config';
 
 const ASSETS = resolve('assets/marketing');
 const REELS = join(ASSETS, 'verify_reels');
@@ -55,7 +57,12 @@ sh(`npx tsx scripts/render-reel-stamp.ts verify ${stamp} - "${stampPng}"`);
 
 const uiDur = +parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${ui}"`).toString()).toFixed(2);
 const intro = probeAnchorIntro(ASSETS);
-const openDur = intro ? intro.dur : 1.2;
+// MKT-12: wired but DISABLED for verify by config — the body is only 6.3s, so a
+// 5.6s intro plus a 3.0s stinger would put more branding on screen than
+// receipts. Enabling it later is a config flip, no code change.
+const sting = probeStinger(ASSETS, 'verify');
+const openBase = intro ? intro.dur : 1.2;
+const openDur = +(openBase + stingerAdds(sting)).toFixed(2);
 const dissolve = intro ? INTRO_DISSOLVE : 1.2;
 const total = +(openDur + uiDur + 2.5).toFixed(2);   // legacy 10.0
 const voiceStart = intro ? +(openDur - INTRO_VO_LEAD).toFixed(2) : 0;
@@ -80,10 +87,15 @@ sh(
   `-sseof -2.5 -i "${join(ASSETS, 'verif_endcard.mp4')}" ` + // [2] endcard tail
   `-i "${verifCarrier.path}" ` +                            // [3] carrier (audio, MKT-09 parts-aware)
   `-loop 1 -framerate 60 -t ${total} -i "${stampPng}" ` +    // [4] slate stamp
+  (sting ? `-i "${sting.path}" ` : ``) +                     // [5] stinger (MKT-12)
   `-filter_complex "` +
   (intro
-    ? `[0:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=${openDur},setpts=PTS-STARTPTS[bolt];`
-    : `[0:v]format=yuv420p,setsar=1,fps=60,settb=AVTB[bolt];`) +
+    ? `[0:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=${openBase},setpts=PTS-STARTPTS[bolt0];`
+    : `[0:v]format=yuv420p,setsar=1,fps=60,settb=AVTB[bolt0];`) +
+  (sting
+    ? `[5:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=${STINGER_DUR},setpts=PTS-STARTPTS[stg];` +
+      `[bolt0][stg]xfade=transition=fade:duration=${INTRO_XFADE}:offset=${+(openBase - INTRO_XFADE).toFixed(2)}[bolt];`
+    : `[bolt0]null[bolt];`) +
   // Pad = dissolve only (see assemble-allday-reels.ts); legacy is unchanged.
   `[1:v]tpad=start_duration=${dissolve}:start_mode=clone,format=yuv420p,setsar=1,fps=60,settb=AVTB[uix];` +
   `[bolt][uix]xfade=transition=custom:expr=${EASED}:duration=${dissolve}:offset=${+(openDur - dissolve).toFixed(2)}[openbody];` +
@@ -93,12 +105,17 @@ sh(
   `[vraw][stmp]overlay=0:0,format=yuv420p[v];` +
   (intro
     // Intro audio 0→openDur, carrier enters 0.4s before the dissolve completes.
-    ? `[0:a]atrim=0:${openDur},asetpts=PTS-STARTPTS,aresample=48000,apad=whole_dur=${openDur},` +
-      `afade=t=in:st=0:d=0.01,afade=t=out:st=${(openDur - 0.3).toFixed(2)}:d=0.3[introaud];` +
+    ? `[0:a]atrim=0:${openBase},asetpts=PTS-STARTPTS,aresample=48000,apad=whole_dur=${openBase},` +
+      `afade=t=in:st=0:d=0.01,afade=t=out:st=${(openBase - 0.3).toFixed(2)}:d=0.3[introaud];` +
+      (sting
+        ? `[5:a]atrim=0:${STINGER_DUR},asetpts=PTS-STARTPTS,aresample=48000,` +
+          `afade=t=out:st=${(STINGER_DUR - 0.25).toFixed(2)}:d=0.25,` +
+          `adelay=${Math.round((openBase - INTRO_XFADE) * 1000)}|${Math.round((openBase - INTRO_XFADE) * 1000)}[stgaud];`
+        : ``) +
       `[3:a]atrim=0:${carrierNeed},asetpts=PTS-STARTPTS,aresample=48000,` +
       `afade=t=in:st=0:d=0.01,afade=t=out:st=${(carrierNeed - 0.01).toFixed(2)}:d=0.01,` +
       `adelay=${msVoice}|${msVoice}[carr];` +
-      `[introaud][carr]amix=inputs=2:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]" `
+      `[introaud]${sting ? '[stgaud]' : ''}[carr]amix=inputs=${sting ? 3 : 2}:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]" `
     : `[3:a]atrim=0:${carrierNeed},asetpts=PTS-STARTPTS,aresample=48000,` +
       `afade=t=in:st=0:d=0.01,afade=t=out:st=${(carrierNeed - 0.01).toFixed(2)}:d=0.01,loudnorm=I=-14:TP=-1.5:LRA=11[a]" `) +
   `-map "[v]" -map "[a]" -t ${total} -r 60 -c:v libx264 -profile:v high -crf 18 -pix_fmt yuv420p ` +

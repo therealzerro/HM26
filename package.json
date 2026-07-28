@@ -37,7 +37,8 @@
     "reel:publish": "tsx scripts/publish-reels.ts",
     "reel:check": "tsx scripts/check-reel-assets.ts",
     "endcard:build": "tsx scripts/build-endcard.ts",
-    "panel:build": "tsx scripts/build-panels.ts"
+    "panel:build": "tsx scripts/build-panels.ts",
+    "stinger:build": "tsx scripts/build-stinger.ts"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

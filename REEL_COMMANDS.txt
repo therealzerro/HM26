@@ -3,7 +3,7 @@ HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
 changed. Every command has a description. (Last updated 2026-07-27 —
-Anchor intro now opens every reel: All-Day 31.1s, verify 14.4s;
+Anchor intro + branded stinger open All-Day (33.8s); verify 14.4s;
 reel:check validates the intro and falls back safely if it's missing)
 
 
@@ -60,7 +60,7 @@ npm run reel:allday
 
     Makes BOTH All-Day reels (Pro + Free) for TODAY: renders the
     grid + six signal-modal tap-through from the live app,
-    assembles the 31.1s reels (Anchor intro, body, endcard outro,
+    assembles the 33.8s reels (Anchor intro, stinger, body, endcard,
     VO + hum bed), writes 9:16 + 1:1 cuts + contact sheets to
     assets/marketing/allday_reels/, then AUTO-UPLOADS the finals
     to the app — they appear in Admin → Reels within seconds,
@@ -118,6 +118,30 @@ npm run panel:build
     npm run panel:build -- --print-hashes, then paste the new
     hash into scripts/panel-config.ts.
 
+
+----------------------------------------------------------------
+STINGER BUILD (only when the motion clip or its copy changes)
+----------------------------------------------------------------
+
+npm run stinger:build            (all variants)
+npm run stinger:build allday_pro (one variant)
+
+    Builds the short branded beat that plays between the Anchor
+    intro and the app footage — smoke pulls into the bolt, the
+    wordmark and headline resolve, smoke sweeps back.
+
+    Like the endcards, the text is rendered fresh at full size
+    rather than baked into the clip, so changing a headline is a
+    string edit in scripts/stinger-config.ts and a re-run — no new
+    video generation. Adding Midday/Evening later is config only.
+
+    Each variant is prebuilt here so the daily run never pays for
+    it. Verify is deliberately switched OFF (enabled:false) — its
+    body is only 6.3s, so intro + stinger would put more branding
+    on screen than receipts. Flip the flag if that changes.
+
+    A missing or unbuilt stinger is skipped with a note and the
+    reel assembles exactly as before — it never blocks a run.
 
 ----------------------------------------------------------------
 ENDCARD BUILD (only when a motion file or copy changes)

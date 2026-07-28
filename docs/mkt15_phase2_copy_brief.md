@@ -48,6 +48,58 @@ covers `PickDetailModal` only. Poster exports stay as they are unless separately
 
 ---
 
+## SECOND REQUEST — the digit mask (operator ruling: extreme blur + the bolt)
+
+Copy is settled. This is the remaining Phase 2 input: **one asset and three decisions.**
+
+### Why we're asking at all
+
+There is **no usable bolt mark in the repo.** Checked: `app-icon.png` is 2048×2048 but
+*fully opaque* (alpha 255 everywhere — a filled square, not a mark); `_bolt_lockup.png` and
+`boltframe.png` are full 1080×1920 RGB frames with no alpha; everywhere else the bolt is
+either baked into generated video/artwork or is the emoji glyph `⚡︎`. None of those can
+overlay a digit block.
+
+### 1. The asset — bolt mark
+
+- **Transparent PNG, ≥1024×1024**, square canvas, bolt centred, ~10% padding on all sides.
+  One high-res file; engineering scales it per site.
+- **SVG as well if you have it** — it would stay crisp at every size and cost nothing.
+- **No background, no baked-in drop shadow.** Glow is a decision below, not a bake-in — if
+  it is in the file we cannot tune it against the blur underneath.
+- Must read against a **dark, blurred, mid-tone** field, not a flat colour.
+
+### 2. Three decisions
+
+| | Question | Why it matters |
+|---|---|---|
+| a | **Fill:** solid white · brand cyan `#2bffcc` · gradient · the endcard bolt's exact look? | It sits over a blur, so contrast behaves differently than on the endcard's black |
+| b | **Placement:** one bolt per masked number, one per card, or one per screen? | The grid shows six numbers at once; six bolts may read as noise, one may read as a watermark |
+| c | **Scale + opacity** relative to the block it covers (e.g. 60% of block height, 90% opacity) | Too small reads as a bug, too large hides that there is a number there at all |
+
+**Sizes it must cover** (measured live, CSS px — the capture renders at 2×): the modal hero
+row `7 · 9 · 5` is **126×26** (22px type); the per-position boxes and the grid-tile digits
+are smaller. A single 1024² asset covers all of them.
+
+### 3. What we are NOT asking you to decide — and one thing worth knowing
+
+**Blur radius is an engineering property, not a look, and we will not implement it as a
+blur of the real digits.**
+
+An extreme blur *of the actual numbers* is still derived from those numbers: at high
+contrast a blurred 3-digit block is often still readable at a glance, and it is
+recoverable by sharpening. The public cut would then be carrying the digits in a weaker
+envelope rather than not carrying them.
+
+So the implementation will **never render the real digits in capture mode** — it draws a
+placeholder block, blurs *that*, and lays the bolt over it. **Visually identical to what
+you asked for**, but the digits never reach the pixels, which makes the frame-by-frame Q1
+pass a fact rather than a judgement call about how much blur is enough.
+
+Nothing changes in what you supply.
+
+---
+
 ## Original request (for the record)
 
 **What this is:** a fill-in-the-blank list. Engineering needs **replacement words** for

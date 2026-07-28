@@ -1,7 +1,11 @@
-// MKT-03 Phase 1 (rev 2, operator-directed) — All-Day signal-drop body.
+// MKT-03 Phase 1 (rev 2, operator-directed) — signal-drop body.
 //
-// Renders ui_allday_YYYYMMDD.mp4 (1080x1920, 60fps, exactly 16.0s = 960 frames)
-// from the live Slates screen, All Day scope, premium view, GRID mode:
+// MKT-13: scope-parameterized. `--scope=midday|evening` renders that session's
+// board instead; with no flag this is the All-Day renderer exactly as before
+// (same scope filter, same tab, same ui_allday_* output, same directory).
+//
+// Renders ui_<scope>_YYYYMMDD.mp4 (1080x1920, 60fps, exactly 16.0s = 960 frames)
+// from the live Slates screen, the scope's tab, premium view, GRID mode:
 //
 //   f000-f239  0.0-4.0s   full 2x3 slate grid — slow eased push-in (Ken Burns
 //                         1.00→1.10 from a 3x-resolution still; never upscales)
@@ -9,11 +13,11 @@
 //   2.0s hold on modal top (digits · energy · confidence · breakdown) → close.
 //   Hard cuts between modals. Body = 16.0s = 960 frames.
 //
-// REAL DATA ONLY. Aborts (exit 1) if today's (ET) All-Day slate is absent
+// REAL DATA ONLY. Aborts (exit 1) if today's (ET) slate for the scope is absent
 // (anon REST precheck + rendered-DOM guards).
 //
-// Usage: tsx scripts/render-allday-body.ts [outDir] [YYYY-MM-DD]
-//   outDir default assets/marketing/allday_reels; optional date re-anchors the
+// Usage: tsx scripts/render-allday-body.ts [outDir] [YYYY-MM-DD] [--scope=…]
+//   outDir default assets/marketing/<scope>_reels; optional date re-anchors the
 //   browser clock to that day 7:30 PM ET (real data for that slate date —
 //   used for off-hours sample renders; daily production omits it).
 import { chromium } from 'playwright';
@@ -21,9 +25,13 @@ import { mkdirSync, copyFileSync, rmSync, readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { REEL_SCOPES, parseScopeFlag, positionals } from './reel-scopes';
 
 const BASE = 'http://localhost:8081';
-const OUT_DIR = resolve(process.argv[2] ?? 'assets/marketing/allday_reels');
+const ARGS = positionals(process.argv.slice(2));
+const SCOPE = parseScopeFlag(process.argv);
+const SPEC = REEL_SCOPES[SCOPE];
+const OUT_DIR = resolve(ARGS[0] ?? `assets/marketing/${SPEC.dir}`);
 const FPS = 60;
 const VIEW_H = 960;
 const GRID_FRAMES = 240;        // 4.0s zoompan segment
@@ -44,7 +52,7 @@ async function slateExists(dateISO: string): Promise<boolean> {
   const key = env.match(/EXPO_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)?.[1];
   if (!url || !key) return false;
   const res = await fetch(
-    `${url}/rest/v1/slate_snapshots?scope=eq.allday&mode=eq.balanced&slate_date=eq.${dateISO}&deleted_at=is.null&select=top_k_straights_json`,
+    `${url}/rest/v1/slate_snapshots?scope=eq.${SCOPE}&mode=eq.balanced&slate_date=eq.${dateISO}&deleted_at=is.null&select=top_k_straights_json`,
     { headers: { apikey: key, Authorization: `Bearer ${key}` } },
   );
   if (!res.ok) return false;
@@ -76,28 +84,48 @@ const initScript = (fakeMs: number | null) => {
 async function openAlldayGrid(page: import('playwright').Page) {
   await page.goto(BASE + '/explore', { waitUntil: 'networkidle', timeout: 180_000 });
   await page.waitForTimeout(5_000);
-  await page.getByRole('tab', { name: /All Day/ }).first().click();
+  const tab = page.getByRole('tab', { name: SPEC.tab }).first();
+  await tab.click();
   await page.waitForTimeout(3_000);
+  // MKT-13: the ONLY way this lane can go wrong quietly is capturing one scope's
+  // board into another scope's filename — every downstream check (grid fills the
+  // screen, six modals open, stamp renders) passes just as happily on the wrong
+  // board. So assert the tab actually took rather than trusting the click.
+  //
+  // Read the LABEL, not aria-selected: react-native-web does not emit
+  // aria-selected for accessibilityState on a TouchableOpacity — it folds the
+  // state into the accessible name instead, so ScopeSegment's active tab is
+  // "☀️ Midday scope, selected" and the inactive ones are "🌙 Evening scope".
+  // (The bottom tab bar DOES carry aria-selected, but that markup comes from
+  // React Navigation, not from accessibilityState — measured 2026-07-28.)
+  const label = (await tab.getAttribute('aria-label')) ?? '';
+  if (!/,\s*selected\b/.test(label)) {
+    console.error(
+      `ABORT: the ${SPEC.stampLabel} scope tab did not become selected (aria-label="${label}") — ` +
+      `the capture would show a different scope's board under a ${SCOPE} filename.`,
+    );
+    process.exit(1);
+  }
   await page.getByText('Grid', { exact: true }).first().click();
   await page.waitForTimeout(3_000);
 }
 
 (async () => {
-  const dateISO = process.argv[3] ?? todayET();
+  const dateISO = ARGS[1] ?? todayET();
   const stamp = dateISO.replace(/-/g, '');
   // Shift the browser clock when rendering a non-current date (23:30 UTC = 7:30 PM ET).
-  const fakeMs = process.argv[3] ? Date.parse(`${dateISO}T23:30:00Z`) : null;
+  const fakeMs = ARGS[1] ? Date.parse(`${dateISO}T23:30:00Z`) : null;
 
   if (!(await slateExists(dateISO))) {
-    console.error(`ABORT: no All-Day slate for ${dateISO} — run the Daily Workflow first; no reel body rendered.`);
+    console.error(`ABORT: no ${SPEC.stampLabel} slate for ${dateISO} — run the Daily Workflow first; no reel body rendered.`);
     process.exit(1);
   }
 
-  const WORK = join(tmpdir(), `allday-frames-${stamp}`);
+  const WORK = join(tmpdir(), `${SCOPE}-frames-${stamp}`);
   rmSync(WORK, { recursive: true, force: true });
   mkdirSync(WORK, { recursive: true });
   mkdirSync(OUT_DIR, { recursive: true });
-  const outMp4 = join(OUT_DIR, `ui_allday_${stamp}.mp4`);
+  const outMp4 = join(OUT_DIR, `ui_${SCOPE}_${stamp}.mp4`);
   const gridStill = join(WORK, 'grid_still.png');
   const fname = (i: number) => join(WORK, `frame_${String(i).padStart(4, '0')}.png`);
 
@@ -196,5 +224,5 @@ async function openAlldayGrid(page: import('playwright').Page) {
   );
   rmSync(WORK, { recursive: true, force: true });
   const dur = execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${outMp4}"`).toString().trim();
-  console.log(`allday body: ${outMp4} · date ${dateISO} · grid(6 picks)+pick#1 modal · ${dur}s`);
+  console.log(`${SCOPE} body: ${outMp4} · date ${dateISO} · grid(6 picks)+six modals · ${dur}s`);
 })();

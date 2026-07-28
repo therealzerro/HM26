@@ -16,7 +16,10 @@ import { adminOpsFetch } from '@/lib/adminOps';
 const extra = Constants.expoConfig?.extra || {};
 const SUPABASE_URL = extra.supabaseUrl ?? process.env.EXPO_PUBLIC_SUPABASE_URL;
 
-export type ReelKind = 'allday_pro' | 'allday_free' | 'verify';
+// MKT-13: session kinds are pro-only (the free group gets midday/evening
+// redacted). Mirrors the marketing_reels_kind_check constraint — adding one
+// here without widening that CHECK makes the publisher fail at upsert.
+export type ReelKind = 'allday_pro' | 'allday_free' | 'verify' | 'midday_pro' | 'evening_pro';
 export type ReelStatus = 'ready' | 'posted' | 'archived';
 
 export interface MarketingReel {

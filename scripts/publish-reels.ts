@@ -20,18 +20,22 @@
  * daily rotation; real verification numbers appear ONLY in the pro caption
  * (operator ruling 2026-07-27, gambling-adjacent safety).
  *
- * Usage: tsx scripts/publish-reels.ts <allday|verify> [YYYYMMDD] [flags]
- *   allday defaults to today ET; verify defaults to yesterday ET — the same
- *   stamps their assemblers write.
+ * Usage: tsx scripts/publish-reels.ts <allday|midday|evening|verify> [YYYYMMDD] [flags]
+ *   the slate modes default to today ET; verify defaults to yesterday ET — the
+ *   same stamps their assemblers write.
  *   --preview        print the captions that would ship, write nothing
  *   --captions-only  refresh captions on existing rows (no uploads, keeps
  *                    status/posted flags — for tweaking after the fact)
+ *
+ * MKT-13: midday/evening publish exactly like allday, from the same scope
+ * registry — pro variant only (see scripts/reel-scopes.ts).
  */
 import { config as loadEnv } from 'dotenv';
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
-import { buildReelCaption, fetchReceiptsData, shiftDate, ReceiptsData } from './reel-captions';
+import { buildReelCaption, fetchReceiptsData, shiftDate, kindNeedsReceipts, ReceiptsData, ReelCaptionKind } from './reel-captions';
+import { REEL_SCOPES, isScope, reelKind, type Scope } from './reel-scopes';
 
 loadEnv({ path: '.env.backtest' });
 
@@ -46,7 +50,8 @@ const BUCKET = 'marketing-reels';
 const PRUNE_DAYS = 30;
 const ASSETS = resolve('assets/marketing');
 
-type Kind = 'allday_pro' | 'allday_free' | 'verify';
+/** Every kind is a caption-registry key — the two lists cannot drift apart. */
+type Kind = Extract<ReelCaptionKind, 'allday_pro' | 'allday_free' | 'verify' | 'midday_pro' | 'evening_pro'>;
 
 function etDate(offsetDays: number): string {
   const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
@@ -54,9 +59,9 @@ function etDate(offsetDays: number): string {
   return now.toLocaleDateString('en-CA');
 }
 
-const mode = process.argv[2];
-if (mode !== 'allday' && mode !== 'verify') {
-  console.error('Usage: tsx scripts/publish-reels.ts <allday|verify> [YYYYMMDD] [--preview] [--captions-only]');
+const mode = process.argv[2] ?? '';
+if (mode !== 'verify' && !isScope(mode)) {
+  console.error('Usage: tsx scripts/publish-reels.ts <allday|midday|evening|verify> [YYYYMMDD] [--preview] [--captions-only]');
   process.exit(1);
 }
 const restArgs = process.argv.slice(3);
@@ -79,13 +84,17 @@ function reelFiles(): ReelFiles[] {
       sheet: join(dir, `verify_reel_${stamp}_contact.png`),
     }];
   }
-  const dir = join(ASSETS, 'allday_reels');
-  return (['pro', 'free'] as const).map((v) => ({
-    kind: `allday_${v}` as Kind,
-    video: join(dir, `allday_${v}_${stamp}.mp4`),
-    video1x1: join(dir, `allday_${v}_${stamp}_1x1.mp4`),
-    sheet: join(dir, `allday_${v}_${stamp}_contact.png`),
-  }));
+  const spec = REEL_SCOPES[mode as Scope];
+  const dir = join(ASSETS, spec.dir);
+  return spec.variants.map((v) => {
+    const kind = reelKind(spec.scope, v) as Kind;
+    return {
+      kind,
+      video: join(dir, `${kind}_${stamp}.mp4`),
+      video1x1: join(dir, `${kind}_${stamp}_1x1.mp4`),
+      sheet: join(dir, `${kind}_${stamp}_contact.png`),
+    };
+  });
 }
 
 function svcHeaders(extra: Record<string, string> = {}): Record<string, string> {
@@ -112,7 +121,7 @@ interface CaptionSet { caption: string; caption_pro: string | null }
 
 async function buildCaptions(kinds: Kind[]): Promise<Record<string, CaptionSet>> {
   let receipts: ReceiptsData | null = null;
-  if (kinds.includes('allday_pro') || kinds.includes('verify')) {
+  if (kinds.some(kindNeedsReceipts)) {
     const receiptsDate = mode === 'verify' ? isoDate : shiftDate(isoDate, -1);
     try {
       receipts = await fetchReceiptsData(receiptsDate, sbGet);
@@ -191,7 +200,7 @@ async function updateCaptionOnly(kind: Kind, set: CaptionSet): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const kinds: Kind[] = mode === 'verify' ? ['verify'] : ['allday_pro', 'allday_free'];
+  const kinds: Kind[] = reelFiles().map((t) => t.kind);
   const captions = await buildCaptions(kinds);
 
   if (PREVIEW) {

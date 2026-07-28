@@ -26,6 +26,12 @@ export const STINGERS: Record<string, StingerVariant> = {
   // of branding against 6.3s of content — branding outweighing the receipts.
   // Operator ruling 2026-07-28: verify carries no stinger.
   verify:      { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', "YESTERDAY'S RECEIPTS"], enabled: false },
+  // MKT-13 session wave. Same motion, same layout — only the headline differs,
+  // which is the whole point of rendering the lockup natively. Pro-only by
+  // content strategy (scripts/reel-scopes.ts), so there is no *_free entry to
+  // add here: a free session reel would need a redacted capture, not a headline.
+  midday_pro:  { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', 'MIDDAY · FIRST LOOK'], enabled: true },
+  evening_pro: { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', 'EVENING · FIRST LOOK'], enabled: true },
 };
 
 // ── Timing (seconds, within the stinger) ────────────────────────────────────

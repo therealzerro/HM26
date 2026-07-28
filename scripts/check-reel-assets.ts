@@ -24,6 +24,8 @@ import { bedWindow } from './reel-bed';
 import { available, sourcePath, builtPath, sha256, clearanceFor } from './reel-panels';
 import { PANELS, PANEL_W } from './panel-config';
 import { MODAL_COUNT, PANEL_BUCKET, panelUrl, panelSequence, rotationDegenerate } from '../constants/reelPanels';
+import { STINGERS, STINGER_DUR, INTRO_XFADE, stingerFile } from './stinger-config';
+import { REEL_SCOPES, SCOPES, reelKind } from './reel-scopes';
 
 // The app resolves panel URLs from EXPO_PUBLIC_SUPABASE_URL; load it so the
 // bucket probe below checks the same origin the app will.
@@ -151,8 +153,8 @@ function checkAnchorIntro(): boolean {
   return spread <= 170;
 }
 
-function checkAlldayEndcard(variant: 'pro' | 'free', carrierDur: number | null): void {
-  const name = `allday_${variant}_endcard.mp4`;
+function checkSlateEndcard(kind: string, carrierDur: number | null): void {
+  const name = `${kind}_endcard.mp4`;
   const p = exists(name);
   if (!p) return;
   const s = streams(p);
@@ -201,8 +203,8 @@ function checkCarrierParts(base: string, name: string): string {
   return res.path;
 }
 
-function checkAlldayCarrier(variant: 'pro' | 'free'): number | null {
-  const base = `allday_${variant}_carrier`;
+function checkSlateCarrier(kind: string): number | null {
+  const base = `${kind}_carrier`;
   let name = `${base}.mp4`;
   const p0 = exists(name);
   if (!p0) return null;
@@ -338,12 +340,62 @@ function checkStamp(): void {
   }
 }
 
+/**
+ * MKT-12: a stinger that is configured-and-enabled but never built assembles
+ * SILENTLY without branding (probeStinger never throws, by design). That is the
+ * right runtime behaviour and the wrong preflight behaviour — the daily run
+ * would just quietly lose the brand beat — so surface it here.
+ */
+function checkStingers(): void {
+  for (const [variant, cfg] of Object.entries(STINGERS)) {
+    if (!cfg.enabled) continue;
+    const file = stingerFile(variant);
+    const p = join(ASSETS, file);
+    if (!existsSync(p)) {
+      add('WARN', file, `enabled for ${variant} but not built — run npm run stinger:build ${variant} (the reel assembles without the branded beat)`);
+      continue;
+    }
+    if (statSync(p).size < 100_000) { add('FAIL', file, `${statSync(p).size} bytes — placeholder/corrupt`); continue; }
+    const s = streams(p);
+    if (!Number.isFinite(s.vDur) || s.vDur < STINGER_DUR - 0.05) {
+      add('FAIL', file, `video ${s.vDur?.toFixed(1)}s < the ${STINGER_DUR}s window the assembler trims to`);
+    } else if (!s.hasAudio) {
+      add('FAIL', file, 'no audio stream — the stinger impact is load-bearing');
+    } else {
+      add('PASS', file, `video ${s.vDur.toFixed(1)}s · "${cfg.lines[1]}" — adds ${(STINGER_DUR - INTRO_XFADE).toFixed(1)}s to ${variant}`);
+    }
+  }
+}
+
+/**
+ * MKT-13: every scope × variant the assemblers can build.
+ *
+ * DORMANT-SAFE, same contract as the MKT-08 intro and MKT-09 parts: a scope with
+ * NO assets delivered is a note, not a failure — otherwise adding the session
+ * registry would have started failing the daily All-Day preflight for assets
+ * nobody has yet. A scope with SOME assets is checked in full, so a half
+ * delivery is still a loud FAIL rather than a silent half-reel.
+ */
+function checkScopes(): void {
+  for (const scope of SCOPES) {
+    for (const v of REEL_SCOPES[scope].variants) {
+      const kind = reelKind(scope, v);
+      const hasCarrier = existsSync(join(ASSETS, `${kind}_carrier.mp4`));
+      const hasEndcard = existsSync(join(ASSETS, `${kind}_endcard.mp4`));
+      if (!hasCarrier && !hasEndcard) {
+        add('PASS', kind, `no assets delivered — dormant (npm run reel:${scope} would abort until a carrier + endcard land)`);
+        continue;
+      }
+      const carrier = checkSlateCarrier(kind);
+      checkSlateEndcard(kind, carrier);
+    }
+  }
+}
+
 // Intro FIRST — it sets INTRO_ACTIVE, which shifts the carrier VO window.
 INTRO_ACTIVE = checkAnchorIntro();
-const proCarrier = checkAlldayCarrier('pro');
-const freeCarrier = checkAlldayCarrier('free');
-checkAlldayEndcard('pro', proCarrier);
-checkAlldayEndcard('free', freeCarrier);
+checkScopes();
+checkStingers();
 checkVerify();
 checkPanels();
 checkStamp();

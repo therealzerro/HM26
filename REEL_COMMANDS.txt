@@ -2,9 +2,10 @@
 HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
-changed. Every command has a description. (Last updated 2026-07-27 —
-Anchor intro + branded stinger open All-Day (33.8s); verify 14.4s;
-reel:check validates the intro and falls back safely if it's missing)
+changed. Every command has a description. (Last updated 2026-07-28 —
+SESSION WAVE LIVE: reel:midday + reel:evening join reel:allday, all
+33.8s; Anchor intro + branded stinger open every drop; verify 14.4s;
+reel:check now validates all four scope/variant kinds + the stingers)
 
 
 ----------------------------------------------------------------
@@ -35,8 +36,10 @@ STEP 3 — TERMINAL B: build + publish the day's reels
 
     npm run reel:verify
     npm run reel:allday
+    npm run reel:midday      (optional — session wave, Pro only)
+    npm run reel:evening     (optional — session wave, Pro only)
 
-    Run in that order (receipts first, then today's drop).
+    Run in that order (receipts first, then today's drops).
     SUCCESS = each command ends with "✔ registered — visible in
     Admin → Reels" per reel. FAILURE = red ABORT/error text in
     the terminal — nothing uploads on a failure, and a zero-match
@@ -81,6 +84,46 @@ npm run reel:verify
     yesterday had zero verified matches (no receipts = no reel).
     Carries its own green SLATE STAMP ("✓ VERIFIED RESULTS /
     SUN · JUL 26") — same auto-generated chip, receipts flavor.
+
+
+----------------------------------------------------------------
+SESSION WAVE — the Midday and Evening drops
+----------------------------------------------------------------
+
+npm run reel:midday
+npm run reel:evening
+
+    Same reel as All-Day, built from that SESSION's board instead:
+    renders the Midday (or Evening) grid + six signal modals from
+    the live app, assembles the identical 33.8s shape (Anchor intro,
+    stinger, body, endcard, VO + hum bed), and auto-uploads to
+    Admin → Reels. Outputs land in assets/marketing/midday_reels/
+    and evening_reels/. The slate stamp reads "TUE · JUL 28 ·
+    MIDDAY" / "· EVENING" so the three daily drops can never be
+    confused with each other.
+
+    PRO ONLY — on purpose, not an oversight. The free group gets
+    the All-Day drop in full but Midday/Evening REDACTED (that's
+    the Pro conversion frame the publish pipeline already
+    enforces), so a full-fidelity free session reel would give
+    away exactly what the redaction withholds. A free session reel
+    would need a redacted CAPTURE, not just another variant.
+
+    TIMING: these read "before the session runs", so midday is a
+    morning post and evening an afternoon one. Nothing enforces
+    that — both default to TODAY's board whenever you run them.
+
+    Everything else behaves like reel:allday: same preflight
+    (npm run reel:check covers all four kinds), same caption engine
+    (each kind draws a different template family the same day, so
+    the three Pro posts never read alike), same Admin → Reels
+    handoff. Each has its own carrier + endcard + stinger, so a
+    missing session asset only blocks that session.
+
+    A wrong-scope capture is the one silent failure this could
+    have had — the render now ASSERTS the scope tab actually
+    took, and aborts rather than filing one board under another
+    board's name.
 
 
 ----------------------------------------------------------------

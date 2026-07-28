@@ -41,7 +41,15 @@ const KIND_UI: Record<ReelKind, { icon: string; label: string; defaultTarget: Ta
   allday_pro: { icon: '💎', label: 'All-Day · Pro', defaultTarget: 'pro', sheetAspect: 6 * (270 / 480) },
   allday_free: { icon: '👥', label: 'All-Day · Free', defaultTarget: 'free', sheetAspect: 6 * (270 / 480) },
   verify: { icon: '🧾', label: 'Receipts · Verify', defaultTarget: 'free', sheetAspect: 4 * (270 / 480) },
+  // MKT-13 session wave. Pro-only: the free group gets midday/evening redacted,
+  // so these default to the pro group rather than free.
+  midday_pro: { icon: '☀️', label: 'Midday · Pro', defaultTarget: 'pro', sheetAspect: 6 * (270 / 480) },
+  evening_pro: { icon: '🌙', label: 'Evening · Pro', defaultTarget: 'pro', sheetAspect: 6 * (270 / 480) },
 };
+
+/** A kind with no UI entry would crash the whole Reels tab on `ui.defaultTarget`
+ *  rather than degrading to one unrenderable card. Fall back instead. */
+const FALLBACK_KIND_UI = { icon: '🎬', label: 'Reel', defaultTarget: 'pro' as Target, sheetAspect: 6 * (270 / 480) };
 
 const TARGET_UI: Record<Target, { label: string; name: string }> = {
   free: { label: '👥 Free Group', name: 'free group' },
@@ -64,7 +72,7 @@ interface GroupUrls { free?: string; pro?: string }
 function ReelCard({ reel, urls, onPosted }: { reel: MarketingReel; urls: GroupUrls; onPosted: () => void }) {
   const { colors } = useTheme();
   const st = useSt();
-  const ui = KIND_UI[reel.kind];
+  const ui = KIND_UI[reel.kind] ?? FALLBACK_KIND_UI;
 
   const [caption, setCaption] = useState(reel.caption);
   const [target, setTarget] = useState<Target>(ui.defaultTarget);

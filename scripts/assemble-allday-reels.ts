@@ -20,7 +20,12 @@
 // endcard outro is untouched. Missing/unusable intro → legacy open, identical
 // output (see scripts/reel-intro.ts).
 //
-// Usage: tsx scripts/assemble-allday-reels.ts [YYYYMMDD]  (default today ET)
+// MKT-13: scope-parameterized. `--scope=midday|evening` assembles that session's
+// reels (pro only — see scripts/reel-scopes.ts for why sessions have no free
+// variant); with no flag this is the All-Day assembler exactly as before, down
+// to the output filenames.
+//
+// Usage: tsx scripts/assemble-allday-reels.ts [YYYYMMDD] [--scope=…]  (default today ET, allday)
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
@@ -30,9 +35,12 @@ import { MODAL_COUNT, GRID_DUR, MODAL_HOLD, modalWindow } from '../constants/ree
 import { probeStinger, stingerAdds } from './reel-stinger';
 import { bedWindow, type BedWindow } from './reel-bed';
 import { STINGERS, STINGER_DUR, INTRO_XFADE } from './stinger-config';
+import { REEL_SCOPES, parseScopeFlag, positionals, reelKind } from './reel-scopes';
 
 const ASSETS = resolve('assets/marketing');
-const REELS = join(ASSETS, 'allday_reels');
+const SCOPE = parseScopeFlag(process.argv);
+const SPEC = REEL_SCOPES[SCOPE];
+const REELS = join(ASSETS, SPEC.dir);
 const sh = (c: string) => execSync(c, { stdio: 'inherit' });
 const EASED = `'st(0,(1-P)*(1-P)*(3-2*(1-P)));A*(1-ld(0))+B*ld(0)'`; // xfade P counts DOWN
 
@@ -62,10 +70,11 @@ function humBed(inLabel: string, bedLen: number, outLabel: string, bed: BedWindo
   );
 }
 
-const stamp = process.argv[2] ?? new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }).replace(/-/g, '');
-const body = join(REELS, `ui_allday_${stamp}.mp4`);
+const stamp = positionals(process.argv.slice(2))[0]
+  ?? new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }).replace(/-/g, '');
+const body = join(REELS, `ui_${SCOPE}_${stamp}.mp4`);
 if (!existsSync(body)) {
-  console.error(`ABORT: ${body} not found — run the body render first (npm run reel:allday).`);
+  console.error(`ABORT: ${body} not found — run the body render first (npm run reel:${SCOPE}).`);
   process.exit(1);
 }
 const bodyDur = parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${body}"`).toString());
@@ -93,19 +102,20 @@ const dissolve = intro ? INTRO_DISSOLVE : OPEN;
 // it can never disagree with the on-screen data. Overlay layer only — the
 // rotating carriers/endcards/VOs stay date-agnostic.
 const stampPng = join(REELS, `_stamp_${stamp}.png`);
-sh(`npx tsx scripts/render-reel-stamp.ts drop ${stamp} ALL-DAY "${stampPng}"`);
+sh(`npx tsx scripts/render-reel-stamp.ts drop ${stamp} ${SPEC.stampLabel} "${stampPng}"`);
 
-for (const v of ['pro', 'free'] as const) {
+for (const v of SPEC.variants) {
+  const kind = reelKind(SCOPE, v);
   // MKT-12: prebuilt per-variant stinger. Missing/disabled → null and the reel
   // assembles exactly as before. Crossfaded into, so it adds dur − INTRO_XFADE.
-  const sting = probeStinger(ASSETS, `allday_${v}`);
+  const sting = probeStinger(ASSETS, kind);
   const openDur = +(openBase + stingerAdds(sting)).toFixed(3);
   const total = +(openDur + bodyDur + CARD).toFixed(3);
-  if (sting) console.log(`NOTE(${v}): stinger ${STINGERS[`allday_${v}`].lines[1]} — open ${openBase}s + ${stingerAdds(sting)}s = ${openDur}s, reel ${total}s.`);
-  const endcard = join(ASSETS, `allday_${v}_endcard.mp4`);
+  if (sting) console.log(`NOTE(${v}): stinger ${STINGERS[kind].lines[1]} — open ${openBase}s + ${stingerAdds(sting)}s = ${openDur}s, reel ${total}s.`);
+  const endcard = join(ASSETS, `${kind}_endcard.mp4`);
   // MKT-09: a carrier delivered as parts (…_carrier.mp4 + …_carrier_pt2.mp4)
   // is joined first; a single-file carrier resolves to itself unchanged.
-  const carrierRes = resolveCarrier(ASSETS, `allday_${v}_carrier`);
+  const carrierRes = resolveCarrier(ASSETS, `${kind}_carrier`);
   const carrier = carrierRes.path;
   if (carrierRes.joined) {
     console.log(`NOTE(${v}): carrier joined from ${carrierRes.parts.length} parts (${carrierRes.parts.map(p => p.split('/').pop()).join(' + ')}).`);
@@ -147,9 +157,9 @@ for (const v of ['pro', 'free'] as const) {
     console.log(`NOTE(${v}): carrier VO covers ${voiceStart}-${(voiceStart + voiceSpan).toFixed(1)}s; endcard hum beds to ${(openDur + bodyDur).toFixed(1)}s (modals after the VO). A full ~${total}s track would replace all reel audio.`);
   }
   const lockup = join(REELS, `_lockup_${v}.png`);
-  const out = join(REELS, `allday_${v}_${stamp}.mp4`);
-  const out1x1 = join(REELS, `allday_${v}_${stamp}_1x1.mp4`);
-  const sheet = join(REELS, `allday_${v}_${stamp}_contact.png`);
+  const out = join(REELS, `${kind}_${stamp}.mp4`);
+  const out1x1 = join(REELS, `${kind}_${stamp}_1x1.mp4`);
+  const sheet = join(REELS, `${kind}_${stamp}_contact.png`);
 
   if (!intro) sh(`ffmpeg -y -loglevel error -sseof -0.1 -i "${endcard}" -frames:v 1 -vf "scale=1080:1920:flags=lanczos" "${lockup}"`);
 
@@ -246,5 +256,5 @@ for (const v of ['pro', 'free'] as const) {
   sh(`ffmpeg -y -loglevel error ${inputs} -filter_complex "[0][1][2][3]hstack=4[r0];[4][5][6][7]hstack=4[r1];[r0][r1]vstack=2" "${sheet}"`);
 
   const dur = execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${out}"`).toString().trim();
-  console.log(`${v.toUpperCase()} reel: ${out} · duration ${dur}s · 1x1 + contact sheet written`);
+  console.log(`${kind.toUpperCase()} reel: ${out} · duration ${dur}s · 1x1 + contact sheet written`);
 }

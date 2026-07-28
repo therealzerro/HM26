@@ -237,6 +237,40 @@ function credLine(c: ProCtx, seed: number): string {
   return `Every signal gets graded against observed outcomes — the record is public.`;
 }
 
+/**
+ * MKT-13 — session-wave (Midday / Evening) PRO captions.
+ *
+ * Built from one factory rather than two hand-written blocks: the two sessions
+ * differ only in the board's name and when it lands, and 16 near-identical
+ * templates would drift apart on the first edit. Offsets stay UNIQUE per kind,
+ * so the same day never draws the same template family for midday, evening and
+ * all-day — the three pro posts read as three different messages.
+ *
+ * Pro-only by content strategy (see scripts/reel-scopes.ts): the free group gets
+ * session drops REDACTED, so there is no free session caption kind to write.
+ *
+ * Session words ("Midday"/"Evening") are safe here — brandLint treats session
+ * labels as strict-tier only (public page / cross-posts), and these are group
+ * captions. Real numbers are allowed because this is a pro surface.
+ */
+function sessionProKind(label: string, when: string, offset: number): KindSpec {
+  return {
+    offset,
+    realNumbers: true,
+    fallback: m => `First access: the ${m} ${label} board. Six signals straight from the engine, in full detail. 📊`,
+    templates: [
+      c => `Pro first look 💎 The ${label} board for ${c.reelMd} is on your screen before ${when}. ${credLine(c.pro!, c.seed)}`,
+      c => `${c.reelMd} ${label}: six signals, full detail, posted early as always. ${credLine(c.pro!, c.seed)}`,
+      c => `Your ${label} board is live — all six signals for ${c.reelMd}, nothing held back. ${credLine(c.pro!, c.seed)}`,
+      c => `Ahead of ${when}: the complete ${label} six for ${c.reelMd} 💎 ${credLine(c.pro!, c.seed)}`,
+      c => `${label} intelligence for ${c.reelMd} just landed — six signals built from national pattern data. ${credLine(c.pro!, c.seed)}`,
+      c => `First in, as always: ${c.reelMd}'s ${label} board, all six signals in full. ${credLine(c.pro!, c.seed)}`,
+      c => `The ${label} session board for ${c.reelMd} is yours now, in complete detail 💎 ${credLine(c.pro!, c.seed)}`,
+      c => `Six ${label} signals for ${c.reelMd}, straight from the engine and graded in the open tomorrow. ${credLine(c.pro!, c.seed)}`,
+    ],
+  };
+}
+
 const CAPTION_REGISTRY = {
   // FREE verify draft — describes yesterday's matches CREATIVELY but
   // qualitatively (scale/spread/straight-presence words, never counts or
@@ -305,9 +339,24 @@ const CAPTION_REGISTRY = {
       c => `Before the rest of the room sees the board: ${c.reelMd}'s six All-Day signals, full breakdown inside. ${credLine(c.pro!, c.seed)}`,
     ],
   },
+  // MKT-13 session wave — offsets 7 and 11 keep all three pro kinds (5/7/11) on
+  // different templates the same day.
+  midday_pro: sessionProKind('Midday', 'the daytime boards run', 7),
+  evening_pro: sessionProKind('Evening', 'tonight’s boards run', 11),
 } satisfies Record<string, KindSpec>;
 
 export type ReelCaptionKind = keyof typeof CAPTION_REGISTRY;
+
+/**
+ * Does this kind's caption need the receipts join? Asked by publish-reels so it
+ * fetches once per run and only when something will actually read it. Derived
+ * from the registry rather than an enumerated list — a new kind added above is
+ * picked up here automatically instead of silently losing its numbers.
+ */
+export function kindNeedsReceipts(kind: ReelCaptionKind): boolean {
+  const spec: KindSpec = CAPTION_REGISTRY[kind];
+  return Boolean(spec.realNumbers || spec.qualitativeReceipts);
+}
 
 export function buildReelCaption(kind: ReelCaptionKind, reelDate: string, receipts: ReceiptsData | null): string {
   const spec: KindSpec = CAPTION_REGISTRY[kind];

@@ -681,6 +681,7 @@ export default function SlatesScreen() {
 
       {detail && (
         <PickDetailModal pick={detail} scope={scope} isPro={!isFree}
+          slateDate={snapshot?.slate_date ?? todayStr}
           onClose={() => setDetail(null)}
           onHeatCheck={(combo) => { setDetail(null); setHeatCheckCombo(combo); setHeatCheckOpen(true); }} />
       )}

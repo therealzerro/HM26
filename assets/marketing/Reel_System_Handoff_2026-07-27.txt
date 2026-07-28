@@ -55,13 +55,14 @@ in carrier (voiceover) and endcard branding.
                grid (all six on screen), then each signal tapped in rank
                order 1→6: modal opens, ~2.0s hold on digits/energy/
                confidence/breakdown, close. Hard cuts between modals.
-  9.6 – 21.6   PANEL LAYER — a rotating branded panel is composited into the
-               empty band below the "RESOLVED IN" card during each of the six
-               modal segments (measured dead zone y 1492–1919; panels are
-               centred in it, always at y ≥ 1500). One panel per modal,
-               changing on the modal boundaries. Panels do NOT appear over
-               the grid push-in (no usable space there) and are absent from
-               the 1:1 cut by geometry, not by a special case.
+  9.6 – 21.6   PANELS — a rotating branded panel sits below the "RESOLVED IN"
+               card in each of the six pick-detail modals. It is NOT added to
+               the video: it is a real element of the app screen, so it is
+               captured along with everything else. A different panel appears
+               on each modal; which one leads rotates by date. Panels appear
+               in the modals only — the grid push-in has no room for one.
+               IMPORTANT: the panel is visible ONLY while the reel renderer is
+               driving the app. Subscribers never see it.
   21.6 – 28.1  OUTRO (6.5s) — the endcard's FIRST 6.5s, hard cut in:
                smoke rise → bolt snap (~22.8s, its crack lands exactly on
                the snap) → lockup resolves → calm hold.
@@ -257,7 +258,7 @@ per-day by hand, not AI-freestyled.
   - ~3:2 PNG whose CENTRED horizontal band is the artwork. The band is
     detected and cropped automatically, so the band's own aspect is free
     (delivered set ranges 2.97:1 to 4.40:1) — each panel keeps its native
-    height rather than being squeezed to one strip size.
+    height; the app lays it out full-width and derives the height.
   - Anything below the band (e.g. a generator watermark) is discarded.
   - Backing colour does NOT need to match the app: every panel is
     feathered on all four edges, which is what makes full-bleed artwork

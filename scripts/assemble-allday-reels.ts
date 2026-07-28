@@ -26,8 +26,7 @@ import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { probeAnchorIntro, INTRO_DISSOLVE, INTRO_VO_LEAD } from './reel-intro';
 import { resolveCarrier } from './reel-carrier';
-import { available, rotation, rotationDegenerate, builtPath, modalWindow } from './reel-panels';
-import { PANELS, MODAL_COUNT, ZONE_TOP, ZONE_BOTTOM, CROP_SAFE_TOP } from './panel-config';
+import { MODAL_COUNT, GRID_DUR, MODAL_HOLD, modalWindow } from '../constants/reelPanels';
 
 const ASSETS = resolve('assets/marketing');
 const REELS = join(ASSETS, 'allday_reels');
@@ -77,32 +76,10 @@ const OPEN = 1.2, CARD = 6.5;          // endcard outro: formation + lockup reso
 const BED_SRC_START = 0.0, BED_SRC_END = 3.9;
 const XFADE_A = 0.4;                    // voice→bed audio crossfade-ish join fades
 
-// MKT-11: rotating promo panels in the pick-detail dead zone. Resolved once —
-// the sequence is identical for both variants because they share one body.
-// Panels composite at ASSEMBLY (inside the per-variant loop below), so a future
-// tier-specific set costs a second array in panel-config, not a second render.
-const GRID_DUR = 4.0, MODAL_HOLD = 2.0;   // render-allday-body.ts segment plan
-const PANEL_XFADE = process.argv.includes('--panel-xfade') ? 0.15 : 0;
-const panelAvail = available(ASSETS);
-panelAvail.dropped.forEach(d => console.log(`NOTE: panel dropped — ${d}`));
-const panelSeq = rotation(stamp, panelAvail.usable);
-if (rotationDegenerate(panelAvail.usable.length)) {
-  console.log(`NOTE: ${panelAvail.usable.length} panels with a ${MODAL_COUNT}-modal stride only ever reaches a couple of distinct subsets — add or remove one to restore daily variety.`);
-}
-if (panelSeq.length) {
-  console.log(`panels (${panelAvail.usable.length}/${PANELS.length} usable${PANEL_XFADE ? ', 0.15s crossfade' : ', hard cut'}):`);
-  panelSeq.forEach((p, i) => console.log(`   modal ${i + 1} → ${p.label}  [${p.file}]`));
-} else {
-  console.log('NOTE: no usable panels — assembling without the panel layer.');
-}
-// Panels keep their native band height (they differ), so each is centred in the
-// dead zone individually rather than assuming one strip size.
-const panelHeights: Record<string, number> = {};
-for (const p of panelAvail.usable) {
-  panelHeights[p.file] = parseInt(
-    execSync(`ffprobe -v error -select_streams v -show_entries stream=height -of csv=p=0 "${builtPath(ASSETS, p)}"`).toString().trim(), 10);
-}
-
+// MKT-11: promo panels are NOT composited here. They render inside the app's
+// pick-detail modal (capture-gated) and are captured as part of the UI by
+// render-allday-body.ts, so the assembler needs no panel layer at all — it only
+// needs the modal segment plan for contact-sheet sampling.
 const intro = probeAnchorIntro(ASSETS);
 const openDur = intro ? intro.dur : OPEN;      // body starts here in both modes
 const dissolve = intro ? INTRO_DISSOLVE : OPEN;
@@ -170,9 +147,6 @@ for (const v of ['pro', 'free'] as const) {
       : `-loop 1 -framerate 60 -t ${OPEN} -i "${lockup}" -i "${body}" -i "${endcard}" `) +
     `-i "${carrier}" -i "${endcard}" ` +
     `-loop 1 -framerate 60 -t ${total} -i "${stampPng}" ` +
-    // MKT-11 panels occupy [6..] — appended after the stamp so inputs [0]-[5]
-    // and every hardcoded index in the graph below are undisturbed.
-    panelSeq.map(p => `-loop 1 -framerate 60 -t ${total} -i "${builtPath(ASSETS, p)}" `).join('') +
     `-filter_complex "` +
     (intro
       ? `[0:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=${openDur},setpts=PTS-STARTPTS[lk];`
@@ -187,25 +161,7 @@ for (const v of ['pro', 'free'] as const) {
     // Stamp rides the body only: in as the open dissolve settles, out before
     // the endcard cut so the lockup stays clean.
     `[5:v]format=rgba,fade=t=in:st=${+(openDur - 0.1).toFixed(2)}:d=0.45:alpha=1,fade=t=out:st=${(openDur + bodyDur - 0.55).toFixed(2)}:d=0.5:alpha=1[stmp];` +
-    // Panels: one per modal segment, centred in the measured dead zone, each
-    // gated to its own window. Chained BEFORE the stamp so the stamp stays on
-    // top (they don't overlap — stamp y432-650, panels y>=1500 — but the order
-    // keeps that true if either ever moves). Sitting at y>=1500 also means the
-    // 1:1 centre crop (keeps y 420-1500) excludes them with no extra work.
-    panelSeq.map((p, i) => {
-      const [t0, t1] = modalWindow(openDur, GRID_DUR, MODAL_HOLD, i);
-      const h = panelHeights[p.file];
-      const y = Math.max(CROP_SAFE_TOP, Math.round(ZONE_TOP + (ZONE_BOTTOM - ZONE_TOP + 1 - h) / 2));
-      const src = `[${6 + i}:v]format=rgba` +
-        // Crossfade variant overlaps the gate by the fade length at both ends so
-        // the ramps land inside the neighbouring segment rather than clipping.
-        (PANEL_XFADE
-          ? `,fade=t=in:st=${t0.toFixed(2)}:d=${PANEL_XFADE}:alpha=1,fade=t=out:st=${(t1 - PANEL_XFADE).toFixed(2)}:d=${PANEL_XFADE}:alpha=1`
-          : ``) + `[pn${i}];`;
-      const gate = PANEL_XFADE ? `between(t,${t0.toFixed(2)},${t1.toFixed(2)})` : `between(t,${t0.toFixed(2)},${(t1 - 0.001).toFixed(3)})`;
-      return `${src}[${i === 0 ? 'vraw' : `vp${i - 1}`}][pn${i}]overlay=0:${y}:enable='${gate}'[vp${i}];`;
-    }).join('') +
-    `[${panelSeq.length ? `vp${panelSeq.length - 1}` : 'vraw'}][stmp]overlay=0:0,format=yuv420p[vid];` +
+    `[vraw][stmp]overlay=0:0,format=yuv420p[vid];` +
     (intro
       // Intro mode: everything positioned by adelay and amixed — intro's own
       // audio 0→openDur, VO enters at openDur−0.4, hum bed fills any VO gap,
@@ -243,22 +199,18 @@ for (const v of ['pro', 'free'] as const) {
 
   // Same beats relative to the (possibly intro-shifted) timeline — legacy
   // openDur=1.2 reproduces the original [0, 3, 6.5, 12, 18.6, 23.3].
-  // MKT-11: sample the MIDPOINT of every modal so all six panel placements are
-  // verifiable in one artifact (the old 6-wide strip caught only modals 1 and 4).
-  // Intro + endcard bookend it, keeping the reel arc visible; the grid tile was
-  // dropped as the least informative — no panel, no stamp change.
-  const STAMPS = panelSeq.length
-    ? [0,
-       ...Array.from({ length: MODAL_COUNT }, (_, i) => modalWindow(openDur, GRID_DUR, MODAL_HOLD, i)[0] + MODAL_HOLD / 2),
-       total - 0.4].map(t => +t.toFixed(1))
-    : [0, openDur + 1.8, openDur + 5.3, openDur + 10.8, openDur + bodyDur + 1.4, total - 0.4].map(t => +t.toFixed(1));
+  // MKT-11: sample the MIDPOINT of every modal (the old 6-wide strip caught
+  // only modals 1 and 4), so all six in-UI panel placements are verifiable in
+  // one artifact. Intro + endcard bookend it, keeping the reel arc visible; the
+  // grid tile was dropped as least informative — no panel, no stamp change.
+  const STAMPS = [
+    0,
+    ...Array.from({ length: MODAL_COUNT }, (_, i) => modalWindow(openDur, GRID_DUR, MODAL_HOLD, i)[0] + MODAL_HOLD / 2),
+    total - 0.4,
+  ].map(t => +t.toFixed(1));
   STAMPS.forEach((t, i) => sh(`ffmpeg -y -loglevel error -ss ${t} -i "${out}" -frames:v 1 -vf "scale=270:480" "${join(REELS, `_cs_${v}${i}.png`)}"`));
   const inputs = STAMPS.map((_, i) => `-i "${join(REELS, `_cs_${v}${i}.png`)}"`).join(' ');
-  sh(
-    STAMPS.length === 8
-      ? `ffmpeg -y -loglevel error ${inputs} -filter_complex "[0][1][2][3]hstack=4[r0];[4][5][6][7]hstack=4[r1];[r0][r1]vstack=2" "${sheet}"`
-      : `ffmpeg -y -loglevel error ${inputs} -filter_complex "[0][1][2][3][4][5]hstack=6" "${sheet}"`,
-  );
+  sh(`ffmpeg -y -loglevel error ${inputs} -filter_complex "[0][1][2][3]hstack=4[r0];[4][5][6][7]hstack=4[r1];[r0][r1]vstack=2" "${sheet}"`);
 
   const dur = execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${out}"`).toString().trim();
   console.log(`${v.toUpperCase()} reel: ${out} · duration ${dur}s · 1x1 + contact sheet written`);

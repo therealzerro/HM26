@@ -17,6 +17,7 @@ import { HitReplay } from './HitReplay';
 import { getPairs, fetchPairScores } from '../lib/pairUtils';
 import { EnergyArc, SignalPill, WhyRow } from './pickVisuals';
 import { formatHitContext } from '../lib/hitToPickItem';
+import { ReelPromoPanel } from './ReelPromoPanel';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -175,10 +176,12 @@ interface PickDetailModalProps {
   isPro: boolean;
   onClose: () => void;
   onHeatCheck?: (combo: string) => void;
+  /** Slate date (YYYY-MM-DD). Only used to seed the capture-only panel rotation. */
+  slateDate?: string;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
-export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: PickDetailModalProps) {
+export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slateDate }: PickDetailModalProps) {
   const { D, ct, s } = useStyles();
   const [tab, setTab]       = useState<Tab>('INTEL');
   const [savedMsg, setSavedMsg] = useState('');
@@ -391,6 +394,10 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck }: Pi
           </>
         )}
       </View>
+
+      {/* MKT-11: rotating brand panel — renders ONLY during reel capture, so
+          subscribers never see it. Null in the shipped app. */}
+      {slateDate && <ReelPromoPanel rank={pick.rank} dateISO={slateDate} />}
     </View>
   );
 

@@ -19,8 +19,9 @@ import { existsSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { resolveCarrier, orphanedParts, audioDur } from './reel-carrier';
-import { available, rotation, rotationDegenerate, sourcePath, builtPath, sha256 } from './reel-panels';
-import { PANELS, MODAL_COUNT, ZONE_TOP, ZONE_BOTTOM, PANEL_W, CROP_SAFE_TOP } from './panel-config';
+import { available, sourcePath, publicPath, sha256, clearanceFor } from './reel-panels';
+import { PANELS, PANEL_W, PUBLIC_DIR } from './panel-config';
+import { MODAL_COUNT, panelSequence, rotationDegenerate } from '../constants/reelPanels';
 
 const ASSETS = resolve('assets/marketing');
 const OPEN = 1.2, BODY = 16.0, CARD = 6.5; // assembler constants (body measured at runtime; 16.0 = current renderer)
@@ -225,50 +226,54 @@ function checkVerify(): void {
   }
 }
 
-// MKT-11: panels are composited, so they bypass the renderer's in-frame
-// vocabulary guard. Clearance is manual and PINNED TO THE FILE HASH — a changed
-// PNG voids its clearance here rather than shipping unreviewed copy.
+// MKT-11: panels render INSIDE the app's pick-detail modal during capture, so
+// they are not a video layer — what must hold is that the app can load them
+// (published under public/) and that their copy is still cleared. Clearance is
+// manual and PINNED TO THE FILE HASH, because no OCR exists in-env and OCR
+// misses stylized type; a changed PNG voids clearance here rather than shipping.
 function checkPanels(): void {
-  const zoneH = ZONE_BOTTOM - ZONE_TOP + 1;
   let usableCount = 0;
   for (const p of PANELS) {
     const src = sourcePath(ASSETS, p);
     if (!existsSync(src)) {
-      // Non-blocking by contract: rotation drops it and the run continues.
+      // Non-blocking by contract: the app drops it from the rotation.
       add('WARN', p.file, `not delivered — dropped from the rotation (${p.label})`);
       continue;
     }
+    const cl = clearanceFor(p);
+    if (!cl?.sha256) {
+      add('FAIL', p.file, 'no clearance hash pinned — review the copy, then run npm run panel:build -- --print-hashes');
+      continue;
+    }
     const actual = sha256(src);
-    if (!p.sha256) {
-      add('FAIL', p.file, `no clearance hash pinned — review the copy, then run npm run panel:build -- --print-hashes`);
+    if (actual !== cl.sha256) {
+      add('FAIL', p.file, `artwork changed since clearance ${cl.cleared} (hash ${actual.slice(0, 12)}… ≠ ${cl.sha256.slice(0, 12)}…) — re-review the copy and re-pin the hash`);
       continue;
     }
-    if (actual !== p.sha256) {
-      add('FAIL', p.file, `artwork changed since clearance ${p.cleared} (hash ${actual.slice(0, 12)}… ≠ ${p.sha256.slice(0, 12)}…) — re-review the copy and re-pin the hash`);
+    const pub = publicPath(p);
+    if (!existsSync(pub)) {
+      add('WARN', p.file, `cleared but not published to ${PUBLIC_DIR} — run npm run panel:build (app drops it from the rotation until then)`);
       continue;
     }
-    const built = builtPath(ASSETS, p);
-    if (!existsSync(built)) {
-      add('WARN', p.file, `cleared but not built — run npm run panel:build (dropped from rotation until then)`);
-      continue;
-    }
-    const [w, h] = probe(built, `-select_streams v:0 -show_entries stream=width,height -of csv=p=0`).split(',').map(Number);
-    if (w !== PANEL_W) { add('FAIL', p.file, `built ${w}x${h} — width must be ${PANEL_W}`); continue; }
-    if (h > zoneH) { add('FAIL', p.file, `built height ${h} exceeds the ${zoneH}px dead zone`); continue; }
-    const y = Math.max(CROP_SAFE_TOP, Math.round(ZONE_TOP + (zoneH - h) / 2));
-    if (y < CROP_SAFE_TOP) { add('FAIL', p.file, `would sit at y=${y}, above the 1:1 crop line ${CROP_SAFE_TOP} — panel would appear in the square cut`); continue; }
+    const [w, h] = probe(pub, `-select_streams v:0 -show_entries stream=width,height -of csv=p=0`).split(',').map(Number);
+    if (w !== PANEL_W) { add('FAIL', p.file, `published ${w}x${h} — width must be ${PANEL_W}`); continue; }
     usableCount++;
-    add('PASS', p.file, `${w}x${h} @ y=${y} · cleared ${p.cleared} · ${p.label}`);
+    add('PASS', p.file, `${w}x${h} · cleared ${cl.cleared} · ${p.label}`);
   }
   if (usableCount === 0) {
-    add('WARN', 'panels', 'none usable — reels assemble without the panel layer');
+    add('WARN', 'panels', 'none usable — the modal renders without a panel');
     return;
   }
   if (rotationDegenerate(usableCount)) {
     add('WARN', 'panels', `${usableCount} panels with a ${MODAL_COUNT}-modal stride cycles through only a couple of distinct subsets — add or remove one for daily variety`);
   }
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }).replace(/-/g, '');
-  const seq = rotation(today, available(ASSETS).usable);
+  // The renderer must actually unlock the panel, or the whole lane is inert.
+  const renderer = execSync(`grep -c "hm:reel-capture" scripts/render-allday-body.ts || true`, { shell: '/bin/bash' }).toString().trim();
+  if (renderer === '0') {
+    add('FAIL', 'panels', 'render-allday-body.ts no longer sets hm:reel-capture — panels would silently vanish from every reel');
+  }
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const seq = panelSequence(today, available().usable);
   add('PASS', 'panels', `today's sequence: ${seq.map((p, i) => `${i + 1}·${p.label}`).join('  ')}`);
 }
 

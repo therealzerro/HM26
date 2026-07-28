@@ -89,10 +89,15 @@ PANEL BUILD (only when panel artwork is added or replaced)
 
 npm run panel:build
 
-    Preps the rotating promo panels that appear in the empty
-    space at the bottom of each pick-detail modal. Drop new
-    artwork into assets/marketing/panels/, run this, then run
-    npm run reel:check.
+    Preps the rotating promo panels that appear at the bottom of
+    each pick-detail modal. Drop new artwork into
+    assets/marketing/panels/, run this, then npm run reel:check.
+
+    The panel is a real part of the app screen, not something
+    pasted onto the video — so it shows up in reels simply
+    because the camera sees it. It is switched ON only while the
+    reel renderer is driving the app: subscribers never see a
+    panel in the product.
 
     Each panel is cropped to its artwork band automatically, so
     the band's shape is flexible and anything below it (like a

@@ -53,6 +53,10 @@ async function slateExists(dateISO: string): Promise<boolean> {
 const initScript = (fakeMs: number | null) => {
   try {
     window.localStorage.setItem('user', JSON.stringify({ id: 'default', role: 'premium' }));
+    // MKT-11: unlocks the rotating promo panel in the pick-detail modal. ONLY
+    // set here — the shipped app never sets it, so subscribers never see a
+    // panel. Panels are served from public/reel-panels/ by the dev server.
+    window.localStorage.setItem('hm:reel-capture', '1');
     window.localStorage.setItem('hm:theme-mode', 'dark');
     window.localStorage.setItem('onboarding_complete', 'true');
   } catch {}

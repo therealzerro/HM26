@@ -404,6 +404,21 @@ per-day by hand, not AI-freestyled.
   - Backing colour does NOT need to match the app: every panel is
     feathered on all four edges, which is what makes full-bleed artwork
     sit natively. Both black-backed and full-bleed purple panels work.
+  - ⚠ DUAL-CONTEXT BY DEFAULT (standing rule, 2026-07-28). Every panel is now
+    read BOTH by a reel viewer who does not have the app AND by a paying
+    subscriber inside it. Write every panel's copy so it is true in both
+    rooms. If a panel is ever capture-only again that will be stated
+    explicitly; absent that, assume dual-context.
+    THE LIVE EXAMPLE: panel_app.png says "THE APP IS COMING / APP STORE ·
+    GOOGLE PLAY" — correct for a reel, but it tells a subscriber reading it
+    inside the product that the product does not exist. It clears the brand
+    lint (no forbidden vocabulary), which is the point: this class of failure
+    is invisible to every automated check we have. Approved replacement,
+    pending regenerated artwork: "SIX SIGNALS. EVERY MORNING." /
+    "RANKED · EXPLAINED · VERIFIED". Not urgent, not blocking.
+    Note panel copy is BAKED PIXELS, unlike endcard and stinger copy — MKT-10
+    made those config strings, panels were never converted. So a wording fix
+    here costs a regeneration, and it is worth getting right the first time.
   - TIER-NEUTRAL, no exceptions: no pricing, no upgrade CTA, no Pro pitch.
     TWO independent reasons now — (1) one body render feeds both the Pro and
     Free reels, and (2) since 2026-07-28 the panels are APP-WIDE, so a paying
@@ -457,6 +472,16 @@ per-day by hand, not AI-freestyled.
     The 20.0s figure is the target; 20.5s is the hard fade. Preflight
     measures the JOIN, so an overrun is caught before assembly.
 
+  - ⚠ THAT EXTRA ROOM IS NOT SPENDABLE. The correction is real against
+    v1.5's arithmetic but NOT against what the generator delivers: this
+    voice runs ~35% longer than scripted timings. public_carrier_pt2's
+    last word was written for 6.9s and came back at 9.32s, so against the
+    corrected ~9.65s ceiling the delivered pair has ~0.33s of ACTUAL and
+    ~0.25s of SCRIPTED headroom. The public carrier is effectively FULL.
+    Do not plan a longer CTA on the strength of the corrected number.
+    Practical rule (content agent, 2026-07-28): script carrier VO to about
+    70% of whatever the real ceiling is, and treat any scripted timing as
+    advisory until it comes back measured.
   - HOW MUCH ROOM IS ACTUALLY LEFT: on the current public pair the last
     word ends at 19.694s of the join, 0.32s before the fade. That margin
     is set by the CARRIER, not the body — a LONGER body does not consume
@@ -489,12 +514,25 @@ per-day by hand, not AI-freestyled.
   - EVERY member of the set must satisfy this whole spec. Preflight now
     validates all of them, not just the standard file, and a defective
     member is a hard FAIL rather than a silent drop.
-  - NOT EVERY CLIP CAN BE TRIMMED INTO COMPLIANCE. `anchor_intro_powerup`
-    was rejected outright: it never reaches full-frame smoke (5.6–6.5s is
-    smoke INSIDE a phone, bezel and notch still framing it) and by 6.8s it
-    has pulled back to the newsroom, so no 6.0s window ends on a usable
-    dissolve bed. Generate the camera pushing FULLY into the screen, as
-    public and deadpan both do at 4→5s.
+  - NOT EVERY CLIP CAN BE TRIMMED INTO COMPLIANCE — and this is the one
+    failure mode the numbers do not catch. `anchor_intro_powerup` was
+    rejected outright. Swept frame-by-frame across every candidate
+    out-point from 5.0s to 10.0s: the smoke is ALWAYS inside the phone,
+    with the bezel and notch still in shot, and at ~7.0s the clip hard-cuts
+    to a wide newsroom. There is therefore no window anywhere in the file
+    that ends on a usable dissolve bed — it is a REGENERATION, not a trim,
+    and no choice of in/out point rescues it.
+    ⚠ It PASSED the luma-spread check (105 at out 6.0s, inside the ≤120
+    band) because that check measures UNIFORMITY, and smoke on a phone
+    screen is just as uniform as smoke filling the frame. Dissolving from
+    it would have ghosted a handset outline through the UI body. A second
+    check now flags a dark border (edge-vs-centre brightness: powerup 41%
+    vs standard 117% / public 90% / deadpan 75%) — but it is a WARN asking
+    for an eye check, not a substitute for one.
+    WHAT TO GENERATE INSTEAD: the camera must push FULLY into the screen so
+    the handset leaves frame entirely, as public and deadpan both do at
+    4→5s. The delivered ending must be smoke edge to edge with no device
+    visible anywhere in the frame.
   - Must END on full-frame smoke. The dissolve reads the final ~0.5s as its
     bed. The 10s master pulled the camera back OUT to the newsroom over its
     last 2.5s — a beautiful shot that is unusable as an ending, and the

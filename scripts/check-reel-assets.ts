@@ -130,6 +130,36 @@ function tailLumaSpread(file: string): number {
 }
 
 /**
+ * Ratio of the darker outer edge column to the centre, over the final 0.5s.
+ *
+ * Blind spot this exists to cover: `tailLumaSpread` measures UNIFORMITY, and
+ * smoke rendered inside a phone screen is just as uniform as smoke filling the
+ * frame — `anchor_intro_powerup` measured 105 at its candidate out-point,
+ * comfortably inside the ≤120 pass band, while every frame still had the
+ * handset bezel and notch around it. Dissolving from that would ghost a phone
+ * outline through the UI body. The spread check cannot see it; a dark border
+ * can be seen, because a bezel is two near-black columns the centre does not
+ * have.
+ *
+ * Measured at each intro's own dissolve bed: powerup 0.41 (out 6.0s) / 0.36
+ * (6.5s) against standard 1.17, public 0.90, deadpan 0.75.
+ */
+function tailEdgeRatio(file: string): number {
+  const y = (crop: string): number => {
+    const out = execSync(
+      `ffmpeg -sseof -0.5 -i "${file}" -vf "crop=${crop},signalstats,metadata=print" -f null - 2>&1 | grep -oE "YAVG=[0-9.]+" || true`,
+      { shell: '/bin/bash' },
+    ).toString();
+    const v = [...out.matchAll(/YAVG=([\d.]+)/g)].map(m => parseFloat(m[1]));
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : NaN;
+  };
+  const centre = y('iw*0.5:ih*0.5:iw*0.25:ih*0.25');
+  if (!Number.isFinite(centre) || centre <= 0) return 1;
+  const edge = Math.min(y('iw*0.04:ih:0:0'), y('iw*0.04:ih:iw*0.96:0'));
+  return Number.isFinite(edge) ? edge / centre : 1;
+}
+
+/**
  * MKT-08 intro contract, MKT-17 applied to EVERY file the rotation can reach.
  *
  * Checking only the legacy filename was safe when there was one intro. With a
@@ -173,6 +203,13 @@ function checkIntros(): boolean {
     if (s.h < 1920) add('WARN', name, `${s.w}x${s.h} — will be upscaled to 1080x1920`);
     if (s.fps < 30) add('WARN', name, `${s.fps.toFixed(0)}fps — duplicated to 60fps`);
     if (spread > 120) add('WARN', name, `final 0.5s luma spread ${spread.toFixed(0)} — dissolve source is busy (target: full-frame smoke)`);
+    // WARN, never FAIL: this is a heuristic tuned against ONE known-bad file,
+    // and a legitimately dark-edged smoke frame would trip it. It asks for the
+    // eye check that actually caught powerup — it does not substitute for it.
+    const edge = tailEdgeRatio(p);
+    if (edge < 0.6) {
+      add('WARN', name, `dissolve bed is ${(edge * 100).toFixed(0)}% as bright at the edges as at the centre (passing intros: 75-117%) — the smoke may be INSIDE a device frame rather than filling the frame. The luma-spread check cannot see this. Look at the last frame: if a bezel is visible it will ghost through the UI body and the clip needs regenerating, not trimming.`);
+    }
   }
 
   // What actually plays today, per kind — the run-summary line the operator

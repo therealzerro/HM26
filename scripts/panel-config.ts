@@ -27,6 +27,19 @@ export const CLEARANCE: Record<string, PanelClearance> = {
   'panel_signals.png':  { cleared: '2026-07-27', sha256: 'e1a13a10f3ddf7eaac363ea9b39fb77befd66d3c2faf94a79c2b9cb6a82461f9' },
   'panel_coverage.png': { cleared: '2026-07-27', sha256: 'd2131c7f441ddd31ac0372df56d2d5683eb0eb12066d238d6d31bb9376eb77dd' },
   'panel_anchor.png':   { cleared: '2026-07-27', sha256: 'c60f1d524bfc2f58dfdadfbb14348476d6153c27f906b646e6a3a14abe8f4565' },
+  // ⚠ COPY IS STALE — awaiting regenerated artwork (content agent, 2026-07-28).
+  // Reads "THE APP IS COMING / APP STORE · GOOGLE PLAY", written for a reel
+  // viewer who does not have the app. Since the capture gate was removed on
+  // 2026-07-28 (MKT-11) panels are APP-WIDE, so a paying subscriber now reads
+  // this INSIDE the app and is told the app does not exist yet. Clearance still
+  // holds — no forbidden vocabulary — so this is not a lint failure and does not
+  // block a run; it is a context failure the lint cannot see.
+  // Approved replacement, pending a new source image:
+  //   SIX SIGNALS. EVERY MORNING.
+  //   RANKED · EXPLAINED · VERIFIED
+  // Copy is BAKED PIXELS here (unlike endcards/stingers, where MKT-10 made copy
+  // a config string), so this cannot be fixed by editing a line — it needs the
+  // regenerated PNG, a fresh clearance date and a new hash.
   'panel_app.png':      { cleared: '2026-07-27', sha256: '3e968aa61b67961014019f7a063ce2f2aca6faa2d5baffe00dd2f2402ffa5ea9' },
   'panel_zk30.png':     { cleared: '2026-07-27', sha256: '6bdea3fa148fcf6ce5c3a2a25e57a4297d7f0045ca1afa8450be376473ed9723' },
 };

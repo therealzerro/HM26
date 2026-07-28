@@ -79,13 +79,21 @@ export const SOCIAL_PLATFORMS: Record<PlatformId, SocialPlatform> = {
     // configured and cannot dangle if the channel is renamed.
     deepLink: 'https://t.me/share/url?url={url}&text={text}',
     appOpen: 'https://t.me/',
-    tier: 3,
+    // Operator ruling 2026-07-28: the Telegram channel IS the Pro room, so it
+    // is tier 4 — the same class as the FB pro group, not a cross-post. Pro
+    // captions (real counts, state attributions, STRAIGHT MATCH callouts) are
+    // sanctioned here; at tier 3 every one of them was blocked.
+    tier: 4,
     maxLen: 1024,        // Telegram media-caption ceiling
     hashtags: [],
     allowsLinks: true,
-    // Tier map treats any new surface as cross-post class, and a Telegram
-    // channel may be public. Two checkboxes is the cheap side of that bet.
-    requiresTwoQuestion: true,
+    // NOT required, and deliberately so. A pro reel shows digits BY DESIGN, so
+    // Q1 ("no 3-digit numbers visible") is false every single time — requiring
+    // the ack here would train the operator to tick it untruthfully, which
+    // corrodes the filter on the cross-post and public surfaces where it does
+    // real work. Same reason the FB pro/free group targets never asked for it;
+    // only cross-posts do.
+    requiresTwoQuestion: false,
     enabled: true,
   },
   youtube: {

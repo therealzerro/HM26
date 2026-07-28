@@ -295,6 +295,17 @@ npm run reel:check
     rotating variations stay evergreen. Never bake a date, day
     name, or "today" visual into a generated asset.
 
+    THE BODY DOES carry its date, and the assembler checks it
+    (MKT-18). Each render writes the captured date inside the
+    ui_<scope>_<date>.mp4 file; assembly aborts if that does not
+    match the date it is about to stamp on screen. This closes a
+    real hole: renaming or copying a body to another day's
+    filename used to produce a clean, correct-LOOKING reel of the
+    wrong day's board, with nothing erroring. If you want a past
+    day rebuilt, RE-RENDER it — do not rename a body file.
+    Bodies rendered before 7/28 carry no tag; those print a note
+    and assemble as before.
+
     MULTI-PART CARRIERS: if a VO comes back as two ~10s clips,
     just drop them in as allday_pro_carrier.mp4 +
     allday_pro_carrier_pt2.mp4 (…_pt3 etc. if needed) — the

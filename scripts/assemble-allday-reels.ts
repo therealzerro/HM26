@@ -36,6 +36,7 @@ import { probeStinger, stingerAdds } from './reel-stinger';
 import { bedWindow, type BedWindow } from './reel-bed';
 import { STINGERS, STINGER_DUR, INTRO_XFADE } from './stinger-config';
 import { REEL_SCOPES, parseScopeFlag, positionals, reelKind } from './reel-scopes';
+import { assertBodyDate } from './reel-provenance';
 
 const ASSETS = resolve('assets/marketing');
 const SCOPE = parseScopeFlag(process.argv);
@@ -72,11 +73,17 @@ function humBed(inLabel: string, bedLen: number, outLabel: string, bed: BedWindo
 
 const stamp = positionals(process.argv.slice(2))[0]
   ?? new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }).replace(/-/g, '');
+const isoDate = `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`;
 const body = join(REELS, `ui_${SCOPE}_${stamp}.mp4`);
 if (!existsSync(body)) {
   console.error(`ABORT: ${body} not found — run the body render first (npm run reel:${SCOPE}).`);
   process.exit(1);
 }
+// MKT-18: the existence check above is not enough — it validates a FILENAME.
+// Assert the body's own recorded capture date matches the date about to be
+// burned onto it, so a copied or renamed body cannot be published wearing
+// someone else's day. See scripts/reel-provenance.ts for the incident.
+assertBodyDate(body, isoDate, `npm run reel:${SCOPE}`);
 const bodyDur = parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${body}"`).toString());
 const OPEN = 1.2, CARD = 6.5;          // endcard outro: formation + lockup resolve + hold
 // MKT-10: the hum-bed window is DERIVED from each endcard (scripts/reel-bed.ts)
@@ -102,8 +109,6 @@ const XFADE_A = 0.4;                    // voice→bed audio crossfade-ish join 
 // rotating carriers/endcards/VOs stay date-agnostic.
 const stampPng = join(REELS, `_stamp_${stamp}.png`);
 sh(`npx tsx scripts/render-reel-stamp.ts drop ${stamp} ${SPEC.stampLabel} "${stampPng}"`);
-
-const isoDate = `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`;
 
 for (const v of SPEC.variants) {
   const kind = reelKind(SCOPE, v);

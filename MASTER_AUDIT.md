@@ -11,6 +11,24 @@
 
 ---
 
+### MKT-18 — Body provenance: the capture date travels inside the file (amends MKT-07) ✅ SHIPPED
+
+**ID verified free** (`grep MKT-18` → 0 hits). Marketing pipeline only, no engine or consumer surface. Operator-approved same day, shipped ~15h ahead of the next daily run.
+
+**The defect.** MKT-07's stamp chip claims it "can never disagree with the on-screen data" because the chip and the body both derive from the same `stamp` argument. That was true only because the renderer and assembler are normally run as a pair. **The assembler verified nothing**: it took `stamp` from argv, checked that `ui_<scope>_<stamp>.mp4` merely EXISTED, and burned that date over whatever those pixels were. The guarantee rested on a **filename** — the one thing in this pipeline that has now failed three times (MKT-06's 2-byte web rename, MKT-16's `_pt_`, and this). `assemble-verification-reel.ts` had the identical gap, and on a receipts reel it is worse: it would publish one day's outcomes under another day's "✓ VERIFIED RESULTS" chip.
+
+**How it surfaced.** The 7/29-stamped All-Day reels found in the working tree were not merely stale test artifacts. `md5sum` showed `ui_allday_20260728/29/30.mp4` are **byte-identical** — the body was copied to the next two days' filenames to exercise the MKT-17 rotation — and `slate_snapshots` has **no 7/29 row at all**. The assembler produced clean, well-formed reels of *Tuesday's* six signals wearing a `WED · JUL 29` chip, with nothing erroring anywhere. Deleted (verified unpublished first: no `marketing_reels` rows for 7/29, so nothing reached storage or the admin screen).
+
+**Why not just query the slate.** Asserting "a slate exists for the stamp date" catches this incident and nothing more — once the next day's slate lands, a copied body passes again. The real invariant is narrower: **the stamp date must equal the date the body was captured for**, and only the body can answer that. So `scripts/reel-provenance.ts` has the renderers write the capture date into the file's own container metadata (`hm_reel_date`) and both assemblers read it back before doing any work. Copying or renaming a body now carries its original date with it.
+
+**Severity split, deliberate:** MISMATCH → `process.exit(1)` (a reel about to claim the wrong day has no safe reading). MISSING → NOTE and continue, because bodies rendered before the tag existed carry nothing and hard-failing would break re-assembly of any earlier day for no safety gain; it degrades to exactly the old behaviour, which is the correct floor, and the note names the fix so the untagged population drains.
+
+**⚠️ THE GUARD WAS INERT ON FIRST WRITE — caught only because it was tested against a real mismatch.** The mp4 muxer writes only keys from its own standard set and **silently drops arbitrary ones**: `-metadata hm_reel_date=…` produced a file with no tag, no warning, exit 0. Every body would have carried nothing, `readProvenance` would have returned null forever, and `assertBodyDate` would have taken its untagged-warn path on every run — a guard that reads as present in source and protects nothing. Fix is `-movflags +faststart+use_metadata_tags`, now emitted by `provenanceArgs()` itself rather than left to each caller, since movflags is one combined option and a caller declaring its own `+faststart` would silently drop the other half. **Lesson for any future preflight: a guard that has never been shown to FAIL has not been tested.**
+
+**Verified** by unit-testing the helper rather than the pipeline (the first attempt invoked a full assembly, which needlessly rebuilt the day's already-uploaded reels — killed, artifacts removed, tracked files restored from git): round-trip through the real `provenanceArgs`/`readProvenance` returns `2026-07-28`; **the tag survives a copy to a 7/31 filename**, which is precisely the 7/29 attack; the untagged production body reads null. All three `assertBodyDate` paths exercised — match continues (exit 0), untagged NOTEs and continues (exit 0), mismatch ABORTs (exit 1) with the captured-vs-stamp dates named. Filtered `tsc --noEmit` 0 errors in `scripts/`.
+
+---
+
 ### MKT-17 — Anchor intro rotation + per-kind resolution (amends MKT-08) ✅ PHASES 1 + 2 SHIPPED
 
 **Work order:** operator-directed, discovery-first. **ID verified free.** Marketing pipeline only. Scope widened by operator ruling mid-flight: per-kind selection and rotation are one mechanism, so they were built together rather than twice.

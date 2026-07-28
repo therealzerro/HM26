@@ -571,6 +571,19 @@ per-day by hand, not AI-freestyled.
     audio, durations, VO-chop risk, weak crack, resolution) before
     anything is assembled. Deliver to pass it clean.
 
+  THE DATE CHIP IS NOW VERIFIED AGAINST THE FOOTAGE (MKT-18, 2026-07-28).
+  Previous versions of this doc said the stamp "can never disagree with the
+  on-screen data". That was an assumption, not a check: the assembler took the
+  date from its argument, confirmed a body file with that name EXISTED, and
+  burned the date over whatever those pixels were. Copy a body to another
+  day's filename and you got a clean, correct-looking reel of the wrong day's
+  board — which is exactly what happened on 7/28 while testing the intro
+  rotation. Each renderer now writes the captured date INSIDE the body file
+  and both assemblers read it back: a mismatch aborts, naming both dates.
+  Nothing changes for you — no new asset, no new step. It does mean a reel can
+  no longer be re-stamped to a different day by renaming its body, so if you
+  ever want a past day rebuilt, ask for a re-render rather than a rename.
+
   FILENAMES ARE LOAD-BEARING — `reel:check` now scans for near-misses.
   Every asset is read by EXACT filename from a registry. A name that is
   almost right is the worst case in this system, because nothing errors:

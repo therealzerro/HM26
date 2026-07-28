@@ -20,6 +20,7 @@ import { mkdirSync, copyFileSync, rmSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { provenanceArgs } from './reel-provenance';
 
 const BASE = 'http://localhost:8081';
 const OUT_DIR = resolve(process.argv[2] ?? 'assets/marketing/verify_reels');
@@ -148,7 +149,10 @@ function yesterdayET(): string {
 
   execSync(
     `ffmpeg -y -loglevel error -framerate ${FPS} -i "${join(WORK, 'frame_%04d.png')}" ` +
-    `-frames:v 378 -c:v libx264 -pix_fmt yuv420p -r ${FPS} -crf 18 -movflags +faststart "${outMp4}"`,
+    `-frames:v 378 -c:v libx264 -pix_fmt yuv420p -r ${FPS} -crf 18 ` +
+    // MKT-18: same provenance tag as the slate bodies — the verify assembler
+    // had the identical gap (stamp from argv, existence check only).
+    `${provenanceArgs(dateISO)} "${outMp4}"`,
     { stdio: 'inherit' },
   );
   rmSync(WORK, { recursive: true, force: true });

@@ -26,6 +26,7 @@ import { execSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { REEL_SCOPES, parseScopeFlag, positionals } from './reel-scopes';
+import { provenanceArgs } from './reel-provenance';
 
 const BASE = 'http://localhost:8081';
 const ARGS = positionals(process.argv.slice(2));
@@ -219,7 +220,10 @@ async function openAlldayGrid(page: import('playwright').Page) {
   execSync(
     `ffmpeg -y -loglevel error -i "${join(WORK, 'grid_seg.mp4')}" -i "${join(WORK, 'modal_seg.mp4')}" ` +
     `-filter_complex "[0:v]settb=AVTB[a];[1:v]settb=AVTB[b];[a][b]concat=n=2:v=1:a=0[v]" -map "[v]" ` +
-    `-r ${FPS} -c:v libx264 -pix_fmt yuv420p -crf 18 -movflags +faststart "${outMp4}"`,
+    `-r ${FPS} -c:v libx264 -pix_fmt yuv420p -crf 18 ` +
+    // MKT-18: record WHICH DATE these pixels are of, inside the file, so the
+    // assembler can refuse to stamp a different one over them.
+    `${provenanceArgs(dateISO)} "${outMp4}"`,
     { stdio: 'inherit' },
   );
   rmSync(WORK, { recursive: true, force: true });

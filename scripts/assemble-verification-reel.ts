@@ -19,6 +19,7 @@
 //   (defaults to yesterday ET; expects ui_verify_<stamp>.mp4 already rendered)
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { assertBodyDate } from './reel-provenance';
 import { join, resolve } from 'node:path';
 import { probeAnchorIntro, INTRO_DISSOLVE, INTRO_VO_LEAD } from './reel-intro';
 import { resolveCarrier } from './reel-carrier';
@@ -40,6 +41,11 @@ if (!existsSync(ui)) {
   console.error(`ABORT: ${ui} not found — run the render step first (npm run reel:verify).`);
   process.exit(1);
 }
+// MKT-18: the check above validates a FILENAME, not the pixels. Verify had the
+// identical gap as the slate assembler — a body copied to another day's name
+// would be stamped with that day's "✓ VERIFIED RESULTS" chip, which on a
+// receipts reel means publishing one day's outcomes as another's.
+assertBodyDate(ui, `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`, 'npm run reel:verify');
 const out = join(REELS, `verify_reel_${stamp}.mp4`);
 const out1x1 = join(REELS, `verify_reel_${stamp}_1x1.mp4`);
 const bolt = join(REELS, `_bolt_lockup.png`);

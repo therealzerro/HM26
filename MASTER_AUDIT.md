@@ -11,6 +11,16 @@
 
 ---
 
+### MKT-14 — Brand attribution in the slate stamp (amends MKT-07) ⏸️ PARKED
+
+**ID RESERVED — do not reuse.** Full work order parked verbatim at `docs/mkt14_work_order_parked.md`. Operator instruction 2026-07-28: hold until the social expansion (`docs/social_expansion_scope_2026-07-28.md`) completes; resume only on explicit go-ahead. Nothing built, no code touched.
+
+**Shape:** extend MKT-07's stamp chip with a version-agnostic "HITMASTER ZK" brand string rather than adding a bottom-right watermark overlay. **A previously drafted MKT-14 (standalone bottom-right watermark on brand segments) is SUPERSEDED and must not be built** — it was never committed, so the parked doc is its only record. Two load-bearing reasons: (1) every short-form platform stacks its own chrome bottom-right, so a mark there is buried on all of them, and the universal safe zone is ~900×1400 centred; (2) brand segments already carry the wordmark — the BODY is what gets clipped and reposted and is the only part with no brand on it. MKT-07's chip already sits at y=470, inside both the 1:1 keep band and the safe zone, rides the body only, and renders text natively.
+
+**Why parking is coherent rather than just a delay:** the position argument is derived from the YouTube/TikTok/Reddit/Instagram safe zones, and that platform set is still a proposal pending three operator decisions. Landing attribution after the platform set is settled means the constraint is fixed rather than assumed.
+
+---
+
 ### MKT-13 — Session wave: Midday + Evening reels (2026-07-28) ✅
 
 **Work order:** operator-directed — "wire the session wave pipeline". The assets had already landed (carriers + `_pt2` parts and endcards for both sessions, built overnight by MKT-09/MKT-10) but **nothing downstream consumed them**: a grep for `midday_pro`/`evening_pro` across `scripts/` hit only `endcard-config.ts`. Marketing pipeline + one admin surface + one CHECK constraint. ID confirmed free (MKT-01–12 in use).

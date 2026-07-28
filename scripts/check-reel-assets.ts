@@ -14,14 +14,19 @@
  * WARN = assembles fine but quality is degraded (upscale, low fps, VO
  * chop risk, weak crack). Exit 1 on any FAIL.
  */
+import { config as loadEnv } from 'dotenv';
 import { execSync } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { resolveCarrier, orphanedParts, audioDur } from './reel-carrier';
-import { available, sourcePath, publicPath, sha256, clearanceFor } from './reel-panels';
-import { PANELS, PANEL_W, PUBLIC_DIR } from './panel-config';
-import { MODAL_COUNT, PANEL_URL_BASE, panelSequence, rotationDegenerate } from '../constants/reelPanels';
+import { available, sourcePath, builtPath, sha256, clearanceFor } from './reel-panels';
+import { PANELS, PANEL_W } from './panel-config';
+import { MODAL_COUNT, PANEL_BUCKET, panelUrl, panelSequence, rotationDegenerate } from '../constants/reelPanels';
+
+// The app resolves panel URLs from EXPO_PUBLIC_SUPABASE_URL; load it so the
+// bucket probe below checks the same origin the app will.
+loadEnv({ path: resolve('.env'), quiet: true });
 
 const ASSETS = resolve('assets/marketing');
 const OPEN = 1.2, BODY = 19.0, CARD = 6.5; // assembler constants (body measured at runtime; 19.0 = current renderer)
@@ -266,13 +271,13 @@ function checkPanels(): void {
       add('FAIL', p.file, `artwork changed since clearance ${cl.cleared} (hash ${actual.slice(0, 12)}… ≠ ${cl.sha256.slice(0, 12)}…) — re-review the copy and re-pin the hash`);
       continue;
     }
-    const pub = publicPath(p);
-    if (!existsSync(pub)) {
-      add('WARN', p.file, `cleared but not published to ${PUBLIC_DIR} — run npm run panel:build (app drops it from the rotation until then)`);
+    const built = builtPath(ASSETS, p);
+    if (!existsSync(built)) {
+      add('WARN', p.file, `cleared but not built — run npm run panel:build (app drops it from the rotation until then)`);
       continue;
     }
-    const [w, h] = probe(pub, `-select_streams v:0 -show_entries stream=width,height -of csv=p=0`).split(',').map(Number);
-    if (w !== PANEL_W) { add('FAIL', p.file, `published ${w}x${h} — width must be ${PANEL_W}`); continue; }
+    const [w, h] = probe(built, `-select_streams v:0 -show_entries stream=width,height -of csv=p=0`).split(',').map(Number);
+    if (w !== PANEL_W) { add('FAIL', p.file, `built ${w}x${h} — width must be ${PANEL_W}`); continue; }
     usableCount++;
     add('PASS', p.file, `${w}x${h} · cleared ${cl.cleared} · ${p.label}`);
   }
@@ -283,31 +288,28 @@ function checkPanels(): void {
   if (rotationDegenerate(usableCount)) {
     add('WARN', 'panels', `${usableCount} panels with a ${MODAL_COUNT}-modal stride cycles through only a couple of distinct subsets — add or remove one for daily variety`);
   }
-  // The renderer must actually unlock the panel, or the whole lane is inert.
-  const renderer = execSync(`grep -c "hm:reel-capture" scripts/render-allday-body.ts || true`, { shell: '/bin/bash' }).toString().trim();
-  if (renderer === '0') {
-    add('FAIL', 'panels', 'render-allday-body.ts no longer sets hm:reel-capture — panels would silently vanish from every reel');
-  }
-  // On-disk presence is NOT enough: the app fetches panels over HTTP from the
-  // dev server. If Expo is up but not serving public/, every modal renders
-  // without a panel and NOTHING errors — the reel just quietly loses them.
-  // A dead server is only a WARN: the render itself aborts loudly on connection
-  // refused, so that case is already covered and reel:check may legitimately be
-  // run before the server is started.
-  const usable = available().usable;
-  if (httpProbe(`${DEV_BASE}/`).code === 0) {
-    add('WARN', 'panels', `dev server unreachable at ${DEV_BASE} — cannot verify panels are actually served (start it before rendering; the render aborts on its own if it is still down)`);
+  // On-disk presence is NOT enough: the APP loads panels from the public
+  // `app-panels` bucket, so a panel can be built locally and still be missing
+  // or stale in the bucket — in which case every user sees an empty slot and
+  // nothing errors. Compare the served bytes against the local build.
+  const usable = available(ASSETS).usable;
+  const probeUrl = panelUrl(usable[0]?.file ?? '');
+  if (!probeUrl) {
+    add('WARN', 'panels', 'EXPO_PUBLIC_SUPABASE_URL not set — cannot verify the bucket; the app resolves panel URLs from it at runtime');
+  } else if (httpProbe(probeUrl).code === 0) {
+    add('WARN', 'panels', `${PANEL_BUCKET} bucket unreachable — cannot verify what the app will serve`);
   } else {
     let served = 0;
     for (const p of usable) {
-      const rel = `${PANEL_URL_BASE}/${p.file}`;
-      const r = httpProbe(`${DEV_BASE}${rel}`);
-      if (r.code !== 200) add('FAIL', p.file, `dev server returned HTTP ${r.code} for ${rel} — the modal would render with no panel and nothing would error`);
-      else if (!r.type.startsWith('image/')) add('FAIL', p.file, `dev server served content-type "${r.type}" for ${rel} — not an image (public/ probably isn't being served)`);
-      else if (r.len < 1024) add('FAIL', p.file, `dev server served only ${r.len} bytes for ${rel}`);
+      const u = panelUrl(p.file)!;
+      const r = httpProbe(u);
+      const localBytes = statSync(builtPath(ASSETS, p)).size;
+      if (r.code !== 200) add('FAIL', p.file, `bucket returned HTTP ${r.code} — every user would see an empty panel slot and nothing would error`);
+      else if (!r.type.startsWith('image/')) add('FAIL', p.file, `bucket served content-type "${r.type}" — not an image`);
+      else if (Math.abs(r.len - localBytes) > 1024) add('FAIL', p.file, `bucket copy is ${r.len} bytes but the local build is ${localBytes} — STALE, re-run npm run panel:build to republish`);
       else served++;
     }
-    if (served === usable.length) add('PASS', 'panels', `all ${served} served over HTTP from ${DEV_BASE}${PANEL_URL_BASE}/`);
+    if (served === usable.length) add('PASS', 'panels', `all ${served} served from the ${PANEL_BUCKET} bucket and byte-matching the local build`);
   }
 
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });

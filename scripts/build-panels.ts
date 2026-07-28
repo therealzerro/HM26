@@ -9,18 +9,60 @@
 // there is no strip to fit and forcing a common aspect would only distort or
 // crop the artwork.
 //
-// Output goes straight to public/reel-panels/ — the one copy the app loads by
-// URI during capture. Nothing is bundled into the native app.
+// Built artwork is uploaded to the public `app-panels` Supabase bucket, which
+// is what the app loads at runtime on web AND native. Nothing is bundled, so
+// swapping artwork needs no app release.
 //
 // Usage: tsx scripts/build-panels.ts [--print-hashes]
+import { config as loadEnv } from 'dotenv';
 import { execSync } from 'node:child_process';
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { PANELS, PANEL_W, FEATHER, PUBLIC_DIR } from './panel-config';
-import { sourcePath, publicPath, sha256 } from './reel-panels';
+import { PANELS, PANEL_W, FEATHER, BUILT_DIR } from './panel-config';
+import { PANEL_BUCKET } from '../constants/reelPanels';
+import { sourcePath, builtPath, sha256 } from './reel-panels';
+
+// Service-role creds for the bucket upload live here, same as publish-reels.
+loadEnv({ path: resolve('.env.backtest'), quiet: true });
 
 const ASSETS = resolve('assets/marketing');
 const printHashes = process.argv.includes('--print-hashes');
+
+/**
+ * Publish built artwork to the public `app-panels` bucket — what the app loads
+ * at runtime. Service-role credentials come from .env.backtest, the same source
+ * publish-reels.ts uses; anon has no write path to storage (SEC-05).
+ *
+ * Upload failure is a WARNING, not an abort: the local build is still correct
+ * and re-running picks up where it left off. A stale bucket surfaces in
+ * reel:check, which fetches each panel and compares it to the local file.
+ */
+async function uploadAll(): Promise<void> {
+  const url = process.env.SUPABASE_URL?.replace(/\/$/, '');
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    console.log('⚠️  SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set — built locally but NOT uploaded. The app will keep serving whatever is already in the bucket.');
+    return;
+  }
+  let ok = 0;
+  for (const p of PANELS) {
+    const f = builtPath(ASSETS, p);
+    if (!existsSync(f)) continue;
+    const body = readFileSync(f);
+    const res = await fetch(`${url}/storage/v1/object/${PANEL_BUCKET}/${p.file}`, {
+      method: 'POST',
+      headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'image/png', 'x-upsert': 'true' },
+      body: new Uint8Array(body) as unknown as BodyInit,
+    });
+    if (!res.ok) {
+      console.log(`⚠️  ${p.file} — upload failed HTTP ${res.status}: ${(await res.text()).slice(0, 160)}`);
+      continue;
+    }
+    console.log(`  ↑ ${PANEL_BUCKET}/${p.file} (${(body.length / 1e3).toFixed(0)}KB)`);
+    ok++;
+  }
+  console.log(`${ok}/${PANELS.length} published to the ${PANEL_BUCKET} bucket — live in the app immediately.`);
+}
 
 /**
  * Largest contiguous run of rows carrying artwork. Uses the longest run rather
@@ -50,7 +92,7 @@ print(y0, y1, a.shape[1], a.shape[0])
 }
 
 
-mkdirSync(resolve(PUBLIC_DIR), { recursive: true });
+mkdirSync(join(ASSETS, BUILT_DIR), { recursive: true });
 
 let warned = 0;
 const hashes: string[] = [];
@@ -68,7 +110,7 @@ for (const p of PANELS) {
 
   const finalH = outH;
 
-  const dst = publicPath(p);
+  const dst = builtPath(ASSETS, p);
   // Feather all four edges via a geq alpha ramp so the panel dissolves into the
   // app background whatever its own backing is.
   const f = FEATHER;
@@ -81,12 +123,13 @@ for (const p of PANELS) {
     { stdio: 'inherit' },
   );
 
-  console.log(`✔ ${p.label.padEnd(16)} ${p.file.padEnd(20)} band y${band.y0}-${band.y1} → ${PANEL_W}x${finalH}  (feathered ${FEATHER}px → ${PUBLIC_DIR}/)`);
+  console.log(`✔ ${p.label.padEnd(16)} ${p.file.padEnd(20)} band y${band.y0}-${band.y1} → ${PANEL_W}x${finalH}  (feathered ${FEATHER}px)`);
   hashes.push(`  { file: '${p.file}', ... sha256: '${sha256(src)}' },`);
 }
 
-console.log(`\n${PANELS.length - warned}/${PANELS.length} panels built → ${PUBLIC_DIR}/`);
+console.log(`\n${PANELS.length - warned}/${PANELS.length} panels built.`);
 if (printHashes) {
   console.log('\nClearance hashes (paste into scripts/panel-config.ts after reviewing the artwork):');
   hashes.forEach(h => console.log(h));
 }
+void uploadAll();

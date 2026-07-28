@@ -42,6 +42,6 @@ export const PANEL_W = 1080;
 export const FEATHER = 10;
 /** Source artwork directory, under assets/marketing/. */
 export const SRC_DIR = 'panels';
-/** The single build output: what the app loads by URI. Never require()d, so the
- *  ~3.3MB of capture-only artwork is not bundled into the native app. */
-export const PUBLIC_DIR = 'public/reel-panels';
+/** Local build output. Uploaded to the public `app-panels` bucket, which is
+ *  what the app actually loads — nothing is bundled into the app. */
+export const BUILT_DIR = 'panels/built';

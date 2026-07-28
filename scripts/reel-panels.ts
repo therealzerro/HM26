@@ -6,18 +6,16 @@
 // they are readable, and whether their copy is still cleared.
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { PANELS, CLEARANCE, SRC_DIR, PUBLIC_DIR } from './panel-config';
+import { join } from 'node:path';
+import { PANELS, CLEARANCE, SRC_DIR, BUILT_DIR } from './panel-config';
 import type { ReelPanel } from '../constants/reelPanels';
-
-const ROOT = resolve('.');
 
 export function sourcePath(assetsDir: string, p: ReelPanel): string {
   return join(assetsDir, SRC_DIR, p.file);
 }
-/** Where the app actually loads it from, relative to the repo root. */
-export function publicPath(p: ReelPanel): string {
-  return join(ROOT, PUBLIC_DIR, p.file);
+/** Local built artwork — the file that gets uploaded to the bucket. */
+export function builtPath(assetsDir: string, p: ReelPanel): string {
+  return join(assetsDir, BUILT_DIR, p.file);
 }
 
 export function sha256(file: string): string {
@@ -38,13 +36,13 @@ export interface PanelAvailability {
  * Panels the APP will actually be able to load — i.e. present under public/.
  * A missing one is dropped from that day's rotation rather than blocking.
  */
-export function available(): PanelAvailability {
+export function available(assetsDir: string): PanelAvailability {
   const usable: ReelPanel[] = [];
   const dropped: string[] = [];
   for (const p of PANELS) {
-    const f = publicPath(p);
+    const f = builtPath(assetsDir, p);
     if (!existsSync(f)) {
-      dropped.push(`${p.file} — not published to ${PUBLIC_DIR} (run npm run panel:build)`);
+      dropped.push(`${p.file} — not built (run npm run panel:build)`);
       continue;
     }
     // Catches the truncated/renamed-through-a-web-UI failure mode that has

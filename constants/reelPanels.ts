@@ -6,21 +6,27 @@
 // so it moves with the modal. A video overlay is pinned to a measured y-offset
 // and would silently overlap content the next time the modal's height changes.
 //
-// WHY CAPTURE-GATED: render-allday-body.ts drives the REAL app as a premium
-// user, so anything unconditionally added to this modal would be seen by every
-// paying subscriber. Promo panels in a paid surface is a product decision, not
-// a marketing one — so they render only when the renderer sets the flag below.
+// APP-WIDE as of 2026-07-28 (operator decision). Panels render for every user,
+// free and subscribed. They were briefly capture-gated so only the reel renderer
+// saw them; that gate is removed. The slot is destined to become a monetised
+// placement — free users served ads, subscribers served in-house panels — so it
+// is a product surface now, not a marketing overlay.
 //
-// WHY URIs AND NOT require(): a static require() would bundle ~3.4MB of
-// capture-only artwork into the native app for every user. These resolve
-// against the web dev server's public/ directory, which is the only place
-// capture ever runs, so Metro never bundles them and native never sees them.
+// WHY A REMOTE URL AND NOT require(): a static require() would bundle ~3.3MB
+// into the app and make every artwork change an app release. Panels are served
+// from the public `app-panels` Supabase bucket instead — works on web AND
+// native, costs no app size, and lets the slot be re-pointed server-side when
+// the ad/in-house split lands. (public/ was the previous home; it is web-only
+// in Expo Router, so those URIs were dead in a native build.)
 
-/** localStorage/AsyncStorage key the renderer sets before the page loads. */
-export const CAPTURE_FLAG_KEY = 'hm:reel-capture';
+/** Public bucket the app loads panel artwork from. */
+export const PANEL_BUCKET = 'app-panels';
 
-/** Web path panels are served from (public/ is served at the web root). */
-export const PANEL_URL_BASE = '/reel-panels';
+/** Absolute URL for a panel file, or null if the Supabase URL is unavailable. */
+export function panelUrl(file: string): string | null {
+  const base = (process.env.EXPO_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
+  return base ? `${base}/storage/v1/object/public/${PANEL_BUCKET}/${file}` : null;
+}
 
 export interface ReelPanel {
   /** Filename in public/reel-panels/ (and assets/marketing/panels/ as source). */

@@ -1,6 +1,7 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-07-27 · v1.4 (session wave live — MKT-13)
+Content Agent Handoff · 2026-07-28 · v1.5 (session wave live; panels are now
+APP-WIDE — §2 correction; new §9 status board)
 ================================================================================
 Read this before proposing or producing ANY reel-related asset or enhancement.
 Companion docs:
@@ -59,10 +60,12 @@ and runs an in-frame vocabulary guard; any violation aborts the render.
 
 
 --------------------------------------------------------------------------------
-2. REEL ANATOMY — ALL-DAY (Pro + Free, 33.8s @ 1080×1920 60fps)
+2. REEL ANATOMY — SLATE DROPS (33.8s @ 1080×1920 60fps)
 --------------------------------------------------------------------------------
-Both variants share one UI body render AND one shared Anchor intro; they differ
-in carrier (voiceover) and endcard branding.
+Covers All-Day (Pro + Free) AND the Midday/Evening session drops (Pro only) —
+they are the SAME reel built from a different board, so this one anatomy is the
+whole spec for all four. Variants share one UI body render per scope and one
+shared Anchor intro; they differ in carrier (voiceover) and endcard/stinger copy.
 
   TIMELINE (t in seconds)
   0.0 – 5.6    INTRO — "The Anchor" (anchor_intro.mp4, shared by every reel
@@ -90,8 +93,15 @@ in carrier (voiceover) and endcard branding.
                captured along with everything else. A different panel appears
                on each modal; which one leads rotates by date. Panels appear
                in the modals only — the grid push-in has no room for one.
-               IMPORTANT: the panel is visible ONLY while the reel renderer is
-               driving the app. Subscribers never see it.
+               ⚠ CHANGED 2026-07-28 — PANELS ARE APP-WIDE. An earlier version
+               of this doc said the panel was visible only while the renderer
+               was driving the app and that "subscribers never see it". That
+               capture gate was REMOVED by operator decision: every user now
+               sees these panels, free and paying, and the slot is destined to
+               become a monetised placement (ads for free users, in-house
+               panels for subscribers). Treat panel copy as PRODUCT surface,
+               not marketing overlay — a paying subscriber reads it, so it
+               must survive that room, not just a reel frame.
   27.3 – 33.8  OUTRO (6.5s) — the endcard's FIRST 6.5s, hard cut in:
                smoke rise → bolt snap → lockup resolves → calm hold.
                THE SNAP TIME DIFFERS PER ENDCARD — it is a property of the
@@ -187,7 +197,10 @@ Per reel, three finals are produced and uploaded (working files stay local):
 
 Upload target: public storage (bucket "marketing-reels"), registered in the
 app's database one row per (date, kind). kind ∈ allday_pro | allday_free |
-verify. Storage self-prunes after 30 days (the log rows are kept).
+verify | midday_pro | evening_pro. Storage self-prunes after 30 days (the log
+rows are kept). The kind list is enforced by a database CHECK constraint AND
+needs a matching entry in the admin Reels screen — see §8 before proposing a
+new reel kind.
 
 The operator's Admin → Reels screen then offers, per reel:
   - contact-sheet storyboard preview + buttons to watch the 9:16 / 1:1
@@ -216,6 +229,10 @@ per-day by hand, not AI-freestyled.
   the template deterministically: a different style every day, never the
   same style on two kinds the same day (protects the duplicate-caption
   rule), and re-running the same date reproduces the same caption exactly.
+  Kinds today: allday_pro, allday_free, verify (free draft), verify_pro,
+  midday_pro, evening_pro. The three PRO slate kinds are spaced so they never
+  draw the same template family on the same day — a subscriber who sees the
+  Midday, Evening and All-Day posts reads three different messages.
 
   THE NUMBERS POLICY (operator ruling, absolute):
   - PRO captions ONLY may contain real performance data: verified counts,
@@ -320,8 +337,15 @@ per-day by hand, not AI-freestyled.
   - Backing colour does NOT need to match the app: every panel is
     feathered on all four edges, which is what makes full-bleed artwork
     sit natively. Both black-backed and full-bleed purple panels work.
-  - TIER-NEUTRAL, no exceptions: the All-Day body is shared by the Pro and
-    Free reels, so no pricing, no upgrade CTA, no Pro pitch.
+  - TIER-NEUTRAL, no exceptions: no pricing, no upgrade CTA, no Pro pitch.
+    TWO independent reasons now — (1) one body render feeds both the Pro and
+    Free reels, and (2) since 2026-07-28 the panels are APP-WIDE, so a paying
+    subscriber sees them inside the product. A "subscribe" pitch shown to
+    someone who already subscribes is the failure this rule prevents.
+  - Artwork is served to the app from the public `app-panels` bucket (not
+    bundled), so a swap reaches users without an app release — and equally,
+    a panel that is built locally but not republished is invisible to
+    everyone. `reel:check` compares the served bytes to the local build.
   - Copy is cleared MANUALLY and pinned to the file's sha256. Changing a
     panel's artwork voids its clearance and `reel:check` fails until it is
     re-reviewed and re-pinned (npm run panel:build -- --print-hashes).
@@ -339,8 +363,8 @@ per-day by hand, not AI-freestyled.
 
       allday_pro_carrier.mp4  +  allday_pro_carrier_pt2.mp4  [+ _pt3 …]
 
-  Works for every carrier (all-day pro/free, verify). Audio only is
-  joined — the carriers' video is discarded by design. Rules:
+  Works for EVERY carrier (all-day pro/free, midday, evening, verify). Audio
+  only is joined — the carriers' video is discarded by design. Rules:
   - A 0.35s breath is inserted automatically at each part boundary, on
     top of whatever silence the parts already carry. You do NOT need to
     pad the end of part 1 or the start of part 2 — start part 2's first
@@ -399,8 +423,8 @@ per-day by hand, not AI-freestyled.
     audio, durations, VO-chop risk, weak crack, resolution) before
     anything is assembled. Deliver to pass it clean.
 
-  Outputs land in assets/marketing/allday_reels/ and verify_reels/ and are
-  pushed to GitHub after every run.
+  Outputs land in assets/marketing/allday_reels/, midday_reels/,
+  evening_reels/ and verify_reels/, and are pushed to GitHub after every run.
 
 
 --------------------------------------------------------------------------------
@@ -408,9 +432,69 @@ per-day by hand, not AI-freestyled.
 --------------------------------------------------------------------------------
   - New/longer carriers and endcards: file drop-in, spec in §2/§3.
   - New caption templates: text delivery, spec in §5.
-  - New reel formats or content types: each needs (a) a render/assemble
-    script pair, (b) a caption registry entry, (c) a kind added to the
-    publish pipeline — the storage/app/posting chain then works unchanged.
+  - A new SCOPE/variant of the existing slate reel is nearly free: an endcard
+    config entry, a stinger config entry, a caption kind, a scope registry
+    entry — plus TWO things that fail late if forgotten: the database kind
+    CHECK constraint (publish fails at upsert AFTER a successful render and
+    upload) and the admin Reels KIND_UI entry (an unknown kind used to crash
+    the whole Reels tab; there is a fallback now, but add the entry).
+    Endcards and stingers for a new session cost NO new video generation —
+    they reuse the shared motion files with different copy.
+  - A genuinely new reel FORMAT still needs (a) a render/assemble script
+    pair, (b) a caption registry entry, (c) the kind additions above — the
+    storage/app/posting chain then works unchanged.
   - Do NOT propose: auto-posting, public-page reel lanes, captions that
-    move numbers outside pro, or bypassing the lint/Two-Question gates.
+    move numbers outside pro, bypassing the lint/Two-Question gates, or a
+    full-fidelity FREE Midday/Evening reel (see §9 — it would defeat the
+    redaction rule that makes the sessions a Pro benefit).
+
+
+--------------------------------------------------------------------------------
+9. WHERE THE SYSTEM STANDS (2026-07-28) — READ THIS FOR CURRENT STATE
+--------------------------------------------------------------------------------
+BUILT AND RUNNING DAILY:
+  MKT-01  UI ad-clip render rig + 30s ad assembly
+  MKT-02  Verify / "Receipts" reel pipeline
+  MKT-03  All-Day dual reels (Pro + Free)
+  MKT-04  In-app publishing → storage → Admin → Reels handoff
+  MKT-05  Data-driven caption engine (+05b: verify carries free & pro drafts)
+  MKT-06  Preflight (npm run reel:check) + daily-post QC audit
+  MKT-07  Slate stamp — burned-in day · scope · purpose chip on every cut
+  MKT-08  "The Anchor" branded intro, shared by every reel kind (5.6s)
+  MKT-09  Multi-part carrier VOs (_pt2 …) auto-joined with a 0.35s breath
+  MKT-10  Endcards: motion and text split — COPY IS NO LONGER AN ASSET
+  MKT-11  Rotating promo panels — now APP-WIDE (see §2 warning)
+  MKT-12  Branded stinger between the intro and the UI body
+  MKT-13  Session wave — Midday + Evening reels (2026-07-28)
+
+DAILY OUTPUT TODAY: up to four reels — verify (14.4s), All-Day Pro + Free
+(33.8s), and optionally Midday and Evening (33.8s, Pro only). All four auto-
+publish to Admin → Reels with drafted captions. Nothing auto-posts, ever.
+
+THE SESSION WAVE IS PRO-ONLY, AND THAT IS A RULING:
+  The free group gets the All-Day drop in FULL but Midday/Evening REDACTED —
+  that gap is the Pro conversion frame, and the publish pipeline already
+  enforces it for image kits. A full-fidelity free session reel would hand
+  away exactly what the redaction withholds. If a free session reel is ever
+  wanted it requires a REDACTED CAPTURE (digits masked in the UI), which is a
+  real build — not a config entry. Do not propose it as "just another
+  variant".
+
+WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
+  1. NATIVE 1080×1920 SOURCE ASSETS. Every delivered motion file to date is
+     720×1280 24fps and gets upscaled + frame-duplicated. This is the single
+     biggest quality gap left and the only remaining preflight warning class.
+  2. Session carriers are currently pro-only and generic. Session-specific VO
+     ("the midday board", "tonight's board") would read better than reusing
+     All-Day framing.
+  3. More panels. The rotation adapts with no code change; six is the current
+     set and the slot is now a product surface, so the copy bar is higher.
+  4. More caption templates per kind (8 today, can grow; rotation adapts).
+
+WHAT IS DELIBERATELY NOT BUILT:
+  - Auto-posting to Facebook (platform + brand-safety rule).
+  - A public-page reel lane (page is brand-only, under probation).
+  - Free session reels (above).
+  - A stinger on the verify reel — its body is 6.3s, so intro + stinger would
+    put more branding on screen than receipts. Flag exists, set to off.
 ================================================================================

@@ -11,6 +11,42 @@
 
 ---
 
+### MKT-16 — Public asset integration + redaction overlay 🔍 PHASE 0 REPORTED · BUILD HELD
+
+**Work order:** operator-directed, discovery-first. Marketing pipeline only. **ID verified free** (`grep MKT-16` → 0 hits; MKT-01–13 shipped, MKT-14 parked, MKT-15 Phase 1 shipped). Depends on MKT-15 Phase 2 for the masked capture; Phase 1 config is independent.
+
+**Build held at the gate: four delivery findings, two of which change the plan.** One fixed, one resolved in our favour, two need a ruling.
+
+**1. `public_carrier_pt_.mp4` — misnamed, and it would have failed SILENTLY. FIXED.** The joiner matches `${base}_pt${n}.mp4` (n≥2), so `_pt_` matches nothing: `carrierParts()` would return part 1 alone and — the sharp edge — `orphanedParts()` scans the *same* `_pt2…_pt9` pattern, so it would not have been flagged as an orphan either. Net effect: the CTA (part 2) silently dropped, `reel:check` reporting a healthy single-file carrier, and nothing anywhere erroring. This is precisely the failure class MKT-09's orphan guard exists to catch, defeated by a filename typo. **Renamed to `public_carrier_pt2.mp4`; join now resolves to 2 parts, 20.360s.** Worth noting the pattern is now the third GitHub-web-style delivery mangling in this lane (cf. MKT-06's 2-byte endcard).
+
+**2. CARRIER CEILING — reconciled, and the answer REVERSES the work order's assumption. Do NOT extend the CTA.**
+
+The handoff's multi-part rule is arithmetically wrong: it states "10.0 + 7.0 = the 20.0s carrier ceiling", which is 17.0. Measured against the code rather than the docs:
+
+| quantity | value | source |
+|---|---|---|
+| `voiceWindow` = `bodyDur + INTRO_VO_LEAD` | **19.4s** | 19.0 + 0.4; independent of intro/stinger length (the MKT-12 structural result) |
+| overlap threshold | 19.35s | `carrierDur >= voiceWindow − 0.05` |
+| `voiceSpan` (overlap) = `min(dur−0.1, window+1.1)` | **20.26s** | hard end 20.5s |
+| fade-out begins | **20.01s** | `voiceSpan − 0.25` |
+| delivered joined FILE | **20.360s** | 10.005 + 0.35 breath + 10.005 |
+| delivered joined LAST WORD | **19.678s** | silencedetect: p2 speech ends 9.323s |
+| **margin to fade** | **0.33s** | — |
+
+**It passes — but with 0.33s of margin, not the ~2.7s assumed.** The work order's "delivered pair lands at ~17.25s joined" is off by ~2.4s: part 2's speech runs to 9.32s, not ~7.0s. **There is no room to extend part 2.** Correct rule for the docs: with part 1 at 10.005s and the 0.35s breath, part 2's last word may land as late as **~9.65s of part 2** for the 20.0s target (10.15s against the 20.5s hard fade) — i.e. a ~10s part 2 may use essentially its full length, which is what this delivery does.
+
+**3. `anchor_intro_public.mp4` is 10.005s, NOT the 5.5s claimed — and "NO TRIM required" is false.** It is outside the hard 3.5–6.5s contract, so `probeAnchorIntro` would reject it and the assembler would fall back to the legacy lockup open. **This is MKT-08 repeating exactly**: that delivery also arrived at 10.0s against the same window and was trimmed 1.9→7.5s. Needs the same treatment and the same operator ruling on where to cut.
+
+**4. There is no per-kind intro capability — the public intro would be IGNORED.** `probeAnchorIntro(assetsDir)` reads a hardcoded `anchor_intro.mp4`; the intro is shared by every reel kind by design (MKT-08: "one shared file for ALL reel kinds"). So even trimmed, `anchor_intro_public.mp4` is never read. Supporting a public intro is a **new capability not called for in the work order** — small (a per-variant lookup mirroring `stingerFile()`), but it is a build item, not config.
+
+**BRAND BOLT CHECK — the work order's premise is falsified; use the delivered PNG.** There is no existing brand bolt vector to match: `lib/zk30/svg/` contains only `TexasOutline.tsx`, there is no bolt `<path>` anywhere in `lib/`, `components/` or `constants/`, and the app's bolt is the emoji glyph `⚡︎` (`PublicExportBanner.tsx`). The repo's other bolt images are unusable as overlays — `app-icon.png` is 2048² but **fully opaque** (alpha 255 everywhere), and `_bolt_lockup.png` / `boltframe.png` are full-frame RGB with no alpha. **Verdict: use `bolt_mark_2048.png` (2048×2048 RGBA, verified).** There is no two-bolt divergence risk because there is no incumbent.
+
+**Also short-delivered:** `bolt_mark.svg` and `bolt_mark_1024.png` are listed in the work order but **were not delivered**; only the 2048 PNG arrived. Not blocking (2048 downscales cleanly to every site measured), but the SVG would be worth having before the overlay work, since the mark is scaled to six grid cells and one modal row.
+
+**Held for a ruling:** the intro trim point (#3) and whether to build per-kind intro support (#4). Building the Phase 1 assembly test against a known-rejected intro would validate nothing about the intro path.
+
+---
+
 ### MKT-15 — Social handoff buttons (assisted, no API integration) ✅ PHASE 1 SHIPPED · PHASE 2 BLOCKED
 
 **Work order:** operator-directed, discovery-first. **SUPERSEDES the phasing in `docs/social_expansion_scope_2026-07-28.md`** — operator ruling: **no platform API integrations**. The lane is save-to-device → tap a button landing as close to the platform's post screen as possible → finish by hand. The existing FB flow ("Save to Photos + Open Group") extended to N platforms. Marketing pipeline + admin UI only. **Phase 0 is report-only; nothing built.**

@@ -11,6 +11,52 @@
 
 ---
 
+### MKT-15 — Social handoff buttons (assisted, no API integration) 🔍 PHASE 0 REPORTED
+
+**Work order:** operator-directed, discovery-first. **SUPERSEDES the phasing in `docs/social_expansion_scope_2026-07-28.md`** — operator ruling: **no platform API integrations**. The lane is save-to-device → tap a button landing as close to the platform's post screen as possible → finish by hand. The existing FB flow ("Save to Photos + Open Group") extended to N platforms. Marketing pipeline + admin UI only. **Phase 0 is report-only; nothing built.**
+
+**Research findings recorded so they are not rediscovered** (operator-supplied, and they retire the API phases of the superseded scope): YouTube API is not an option even if wanted — videos from unverified API projects are **locked private, not appealable, not publishable from Studio**. TikTok's draft API requires the base app review before real accounts can authorize — weeks of process to place a file in the operator's own drafts. And the verify/"Receipts" reel **does not clear Q1** — the Track Record screen shows real digits. Only brand assets are Q1-clean without a redacted cut.
+
+**Mechanical constraint (operator):** no URL scheme can attach a video file. Every path is save-to-camera-roll then pick-in-app; deep links only shortcut which screen opens. Do not over-invest in them.
+
+#### Phase 0 item 1 — Q2/Q1 audit. **THE GATE IS RED.**
+
+Method: strings were not read off source. The live app was driven (premium, dark, All-Day grid + all six pick modals), `document.body.innerText` captured per screen, and **every line run through the real `lintCaption` engine at tier 1 (strict/public)** — plus the composited layers (stamp, stinger, endcard, panel registry). This is literally "every string that reaches the pixels".
+
+**Composited layers — effectively clean.** All five endcard copy sets: **zero** collisions. Stamp purpose lines ("TODAY'S DATA DROP", "✓ VERIFIED RESULTS"): **zero**. The only composited hits are session labels — the stamp's date line (`· ALL-DAY` / `· MIDDAY` / `· EVENING`) and three of the four enabled stinger headlines (`ALL-DAY · FIRST LOOK`, `ALL-DAY · FULL DROP`, `MIDDAY · FIRST LOOK`, `EVENING · FIRST LOOK`). `YESTERDAY'S RECEIPTS` is clean.
+
+**In-frame UI — four BLOCKING vocabulary terms, structural, on all six modals:**
+
+| Term | Rule | Where | Sites |
+|---|---|---|---|
+| `PICK` | forbidden-vocab | `PICK #n · ZK6` header | 6 |
+| `STRAIGHT` | forbidden-vocab | `⚡ BEST STRAIGHT` | 6 |
+| `BOX` | forbidden-vocab | `BOX SET` | 6 |
+| `PLAY` | forbidden-vocab | the PLAY tab | 6 |
+| `straight` | forbidden-vocab | resolution trail, `· 1 straight` | 2 |
+| `ALLDAY` / `Midday` / `Evening` | session-label | scope badge + scope tabs, grid AND modals | 13+ |
+| `TX`,`TN`,`SC`,`MS`,`CO` | public-no-state-code | resolution trail attributions | 5 |
+| digits | three-digit-number | pick digits, `{0,1,4}` box sets, `100°`/`100%` | 20 lines |
+
+**Consequence — this is the headline finding: masking digits is NOT sufficient.** Phase 2 as scoped ("digits masked in the UI at render time") would clear Q1 and leave **four blocking Q2 terms plus session labels and state attributions** on every frame of the body. A public cut requires a **relabelled capture mode**, not merely a redacted one.
+
+**This is a tier mismatch, not a bug.** BRAND-01 deliberately tuned the consumer UI for subscriber surfaces (tier 2/4), where `MATCH` / `STRAIGHT MATCH` / `BOX` are the *sanctioned* vocabulary — BRAND-04 even fixed `exact` → `straight` on purpose. Tier 1 forbids the bare words. The app's vocabulary is correct for its audience and only collides when that footage is exported to a public surface. So the fix belongs in a capture-mode override, **not** in the consumer UI (which would violate the subscriber-surfaces-hands-off rule).
+
+**One thing digit-masking does buy:** `session-label` is coded `blocking: /\d{3}/.test(text)` — it is blocking only when digits are present. Masking digits downgrades every session-label hit from blocking to advisory on its own.
+
+#### Phase 0 items 2–5
+
+- **2. Panels: PASS, with the method stated.** Registry labels lint clean. The artwork copy is baked pixels and there is **no OCR in-env**, so this audit cannot machine-verify it — clearance remains manual + sha256-pinned, and all six are currently cleared (2026-07-27) and hash-matching. Read visually off the contact sheets they carry brand/《four signals》/coverage/data-desk/app-coming/ZK30 copy — no forbidden terms, no pricing, no digits. Tier-neutral by rule (MKT-11).
+- **3. Deep links: NOT TESTED — cannot be, from here.** This is a Linux codespace with no iOS/Android device; "test on the operator's device and report what actually lands where" is not executable by me. Documented and stable: **X** `https://x.com/intent/post?text=` (prefills text), **Reddit** `https://www.reddit.com/r/{sub}/submit?title=`, **Telegram** `https://t.me/share/url?url=&text=`. Undocumented and version-dependent: YouTube, TikTok, Instagram native schemes — recommend shipping the plain app-open for those rather than a scheme that silently fails. **Operator device test required before Phase 1 ships these.**
+- **4. Save-to-Photos generalises AS-IS.** `saveReelToPhotos(videoUrl, filename)` is already platform-agnostic (cache download → `MediaLibrary.createAssetAsync`, asset id verified as proof-of-roll); nothing in it is FB-specific. Clipboard is `expo-clipboard` `setStringAsync`, already used in ReelsView. The web lane's two-step transient-activation pattern (MKT-04) also carries over unchanged.
+- **5. 30fps transcode: measured 83s per reel** (1080×1920 60→30fps, CRF 18, audio copied; 16MB→16MB). **But it is not needed under this work order.** The ~30fps ceiling is a constraint of Reddit's *API* upload path; the assisted lane hands Reddit a file from the camera roll, which its app ingests and re-encodes like any other video. **Recommend not building it** — the operator's no-API ruling retires the requirement. Measurement kept on record in case the API path is ever revisited.
+
+#### Recommendation before Phase 1
+
+Phase 1 (the handoff lane) is **not blocked** by the red gate — it is platform plumbing and can ship against existing group destinations. **Phase 2 is blocked** and is now materially larger than scoped: a relabelled + redacted capture mode. Suggest Phase 1 proceeds and Phase 2 is re-scoped with the vocabulary override list above as its acceptance criteria.
+
+---
+
 ### MKT-14 — Brand attribution in the slate stamp (amends MKT-07) ⏸️ PARKED
 
 **ID RESERVED — do not reuse.** Full work order parked verbatim at `docs/mkt14_work_order_parked.md`. Operator instruction 2026-07-28: hold until the social expansion (`docs/social_expansion_scope_2026-07-28.md`) completes; resume only on explicit go-ahead. Nothing built, no code touched.

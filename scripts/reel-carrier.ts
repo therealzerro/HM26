@@ -19,6 +19,21 @@ import { join } from 'node:path';
 
 export const CARRIER_CACHE = '_carrier_joined';
 
+/**
+ * Silence inserted at each part boundary, in seconds.
+ *
+ * The join was originally a pure butt-splice ("no gap inserted, no silence
+ * trimmed") on the theory that any pause should be baked into the parts. In
+ * practice the 2026-07-27 delivery landed part 2's first word only ~0.4s after
+ * part 1's last word — because, under the then-17.0s ceiling, part 2 had been
+ * asked to start early to save room. At this voice's unhurried pace 0.4s reads
+ * as the next thought crowding the previous one. The ceiling has since widened
+ * to 20.0s, so the room exists; this spends a little of it on the breath.
+ *
+ * Keep it small: it is charged against the joined-VO ceiling like any speech.
+ */
+export const SEAM_GAP = 0.35;
+
 export interface ResolvedCarrier {
   /** Path the assembler should actually read. */
   path: string;
@@ -77,9 +92,13 @@ export function resolveCarrier(assetsDir: string, base: string): ResolvedCarrier
   if (stale) {
     // aformat per input: the concat filter requires every input to share a
     // sample rate and channel layout, and generated clips routinely differ.
+    // SEAM_GAP is appended to every part except the last (see the constant).
     const inputs = parts.map(p => `-i "${p}"`).join(' ');
     const pre = parts
-      .map((_, i) => `[${i}:a]aformat=sample_rates=48000:channel_layouts=stereo,aresample=48000[a${i}];`)
+      .map((_, i) =>
+        `[${i}:a]aformat=sample_rates=48000:channel_layouts=stereo,aresample=48000` +
+        (i < parts.length - 1 && SEAM_GAP > 0 ? `,apad=pad_dur=${SEAM_GAP}` : '') +
+        `[a${i}];`)
       .join('');
     const chain = parts.map((_, i) => `[a${i}]`).join('');
     execSync(

@@ -297,9 +297,12 @@ per-day by hand, not AI-freestyled.
 
   Works for every carrier (all-day pro/free, verify). Audio only is
   joined — the carriers' video is discarded by design. Rules:
-  - Parts are butt-spliced with NO gap inserted and NO silence trimmed.
-    Any pause you want between part 1's last word and part 2's first
-    word must be baked into the parts themselves.
+  - A 0.35s breath is inserted automatically at each part boundary, on
+    top of whatever silence the parts already carry. You do NOT need to
+    pad the end of part 1 or the start of part 2 — start part 2's first
+    word promptly and the joiner supplies the pause. (The 7/27 delivery
+    started part 2 at 0.2s, which left only a 0.4s gap after part 1's
+    last word and read as crowded at this voice's pace.)
   - **The ceiling applies to the JOIN, not to each part.** With part 1 at
     10.0s, part 2's final word must land by ~7.0s of part 2 (10.0 + 7.0
     = the 20.0s carrier ceiling). Preflight measures the join, so an

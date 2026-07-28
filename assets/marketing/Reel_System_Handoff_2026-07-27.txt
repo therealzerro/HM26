@@ -64,8 +64,13 @@ in carrier (voiceover) and endcard branding.
                IMPORTANT: the panel is visible ONLY while the reel renderer is
                driving the app. Subscribers never see it.
   21.6 – 28.1  OUTRO (6.5s) — the endcard's FIRST 6.5s, hard cut in:
-               smoke rise → bolt snap (~22.8s, its crack lands exactly on
-               the snap) → lockup resolves → calm hold.
+               smoke rise → bolt snap → lockup resolves → calm hold.
+               THE SNAP TIME DIFFERS PER ENDCARD — it is a property of the
+               asset, not of the timeline. Measured 2026-07-27:
+                 Pro  — crack at 4.25s of the endcard → ~25.9s of the reel
+                 Free — crack at ~1.0s  of the endcard → ~22.6s of the reel
+               (An earlier version of this doc quoted a single "~22.8s" for
+               both. That was never measured for Pro and was wrong by 3s.)
 
   If anchor_intro.mp4 is absent or fails preflight, the assembler silently
   falls back to the legacy 1.2s lockup open and the reel is 23.7s. The daily
@@ -79,13 +84,21 @@ in carrier (voiceover) and endcard branding.
   length, so retiming the intro never re-opens the carrier spec.
   - LONG CARRIER (VO ≥ ~16.4s) — "overlap mode": the voice plays wall-to-
     wall over the body and may ride up to 1.1s into the smoke rise, but
-    must finish before the 22.8s bolt snap. The endcard's own synced outro
-    audio is mixed in from 21.6s. Carrier content past the VO is DISCARDED
+    must finish before the endcard's bolt snap (see the timeline above —
+    Pro ~25.9s, Free ~22.6s). The endcard's own synced outro audio is
+    mixed in from 21.6s. Carrier content past the VO is DISCARDED
     (generated tracks are unreliable after their voice ends).
+    In practice the 17.5s carrier fade bites first, so that is the number
+    to script to — not the snap.
   - SHORT CARRIER (VO ~10s) — the voice covers the grid + first modals;
-    the endcard's hum swell (its audio after the crack) is pulled forward
-    as a low bed under the remaining modals, then the endcard plays its
-    outro natively.
+    the endcard's PRE-crack tension hum is looped as a palindrome and laid
+    under the remaining modals, then the endcard plays its outro natively.
+    ⚠ THE FREE ENDCARD CANNOT SUPPLY A BED. Its crack lands at ~1.0s and
+    its audio then decays monotonically to silence by 8.0s, so there is no
+    crack-free stretch with usable level. Free therefore REQUIRES a long
+    (wall-to-wall) carrier; on a short one, preflight fails rather than
+    replaying the bolt crack under the modals. Pro is unaffected — its
+    crack is at 4.25s, leaving 0-3.9s clean.
 
   WHAT THIS MEANS FOR CARRIER PRODUCTION (your main deliverable):
   - Target VO length: ~16.4s for wall-to-wall narration (preferred), or

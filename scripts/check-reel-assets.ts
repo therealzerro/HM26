@@ -16,7 +16,7 @@
  */
 import { config as loadEnv } from 'dotenv';
 import { execSync } from 'node:child_process';
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, statSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { resolveCarrier, orphanedParts, audioDur } from './reel-carrier';
@@ -25,7 +25,10 @@ import { available, sourcePath, builtPath, sha256, clearanceFor } from './reel-p
 import { PANELS, PANEL_W } from './panel-config';
 import { MODAL_COUNT, PANEL_BUCKET, panelUrl, panelSequence, rotationDegenerate } from '../constants/reelPanels';
 import { STINGERS, STINGER_DUR, INTRO_XFADE, stingerFile } from './stinger-config';
+import { ENDCARDS } from './endcard-config';
 import { REEL_SCOPES, SCOPES, reelKind } from './reel-scopes';
+import { allIntroFiles, introCandidates } from './anchor-intros';
+import { INTRO_MIN, INTRO_MAX } from './reel-intro';
 
 // The app resolves panel URLs from EXPO_PUBLIC_SUPABASE_URL; load it so the
 // bucket probe below checks the same origin the app will.
@@ -126,31 +129,153 @@ function tailLumaSpread(file: string): number {
   return hi.reduce((a, v, i) => a + (v - lo[i]), 0) / hi.length;
 }
 
-// MKT-08: anchor intro contract. Missing = fine (legacy open, note only);
-// present-but-defective = loud FAIL, since assemblers silently fall back.
-// Returns whether the intro lane will actually be ACTIVE at assembly.
-function checkAnchorIntro(): boolean {
-  const name = 'anchor_intro.mp4';
-  const p = join(ASSETS, name);
-  if (!existsSync(p)) {
-    add('PASS', name, 'not present — reels assemble with the legacy endcard-lockup open (intro lane dormant)');
-    return false;
+/**
+ * MKT-08 intro contract, MKT-17 applied to EVERY file the rotation can reach.
+ *
+ * Checking only the legacy filename was safe when there was one intro. With a
+ * rotating set a defective member is worse than a missing one: it drops for the
+ * day with a log line nobody reads, and the reel quietly opens on something
+ * else. So the split is deliberate —
+ *   MISSING  → WARN. The resolver's ordered fallback handles it by design.
+ *   DEFECTIVE→ FAIL. "A bad variant must fail preflight rather than silently
+ *              degrading a run" (work order).
+ *
+ * Returns whether the intro lane will be ACTIVE for SLATE reels today, which is
+ * what shifts the carrier VO window.
+ */
+function checkIntros(): boolean {
+  const files = allIntroFiles();
+  const usable = new Set<string>();
+
+  for (const name of files) {
+    const p = join(ASSETS, name);
+    if (!existsSync(p)) {
+      add('WARN', name, 'not delivered — drops from the intro selection; the resolver falls back (missing is degradable, defective is not)');
+      continue;
+    }
+    const size = statSync(p).size;
+    if (size < 100_000) { add('FAIL', name, `file is ${size} bytes — placeholder/corrupt`); continue; }
+    const s = streams(p);
+    let ok = true;
+    if (!s.hasAudio) { add('FAIL', name, 'no audio stream — intro audio is load-bearing before the VO enters'); ok = false; }
+    if (!Number.isFinite(s.vDur) || s.vDur < INTRO_MIN || s.vDur > INTRO_MAX) {
+      add('FAIL', name, `video ${s.vDur?.toFixed(2)}s outside the ${INTRO_MIN}-${INTRO_MAX}s intro window — the generator's 10s preset is the usual cause; trim it`);
+      ok = false;
+    }
+    if (s.w < 720 || s.h < 1280) { add('FAIL', name, `${s.w}x${s.h} — below the 720x1280 minimum`); ok = false; }
+    const spread = tailLumaSpread(p);
+    if (spread > 170) { add('FAIL', name, `final 0.5s luma spread ${spread.toFixed(0)} — not near-uniform smoke; the dissolve into the UI will pop`); ok = false; }
+    if (!ok) continue;
+
+    usable.add(name);
+    // Reel total = intro + stinger(2.7 after its crossfade) + body(19.0) + outro(6.5).
+    add('PASS', name, `video ${s.vDur.toFixed(2)}s · audio ${s.aDur.toFixed(2)}s · tail spread ${spread.toFixed(0)} — slate reel ${(s.vDur + 28.2).toFixed(2)}s`);
+    if (s.h < 1920) add('WARN', name, `${s.w}x${s.h} — will be upscaled to 1080x1920`);
+    if (s.fps < 30) add('WARN', name, `${s.fps.toFixed(0)}fps — duplicated to 60fps`);
+    if (spread > 120) add('WARN', name, `final 0.5s luma spread ${spread.toFixed(0)} — dissolve source is busy (target: full-frame smoke)`);
   }
-  const size = statSync(p).size;
-  if (size < 100_000) { add('FAIL', name, `file is ${size} bytes — placeholder/corrupt (assemblers will fall back to the legacy open)`); return false; }
-  const s = streams(p);
-  let ok = true;
-  if (!s.hasAudio) { add('FAIL', name, 'no audio stream — intro audio is load-bearing before the VO enters'); ok = false; }
-  if (!Number.isFinite(s.vDur) || s.vDur < 3.5 || s.vDur > 6.5) { add('FAIL', name, `video ${s.vDur?.toFixed(1)}s outside the 3.5-6.5s intro window`); ok = false; }
-  if (s.w < 720 || s.h < 1280) { add('FAIL', name, `${s.w}x${s.h} — below the 720x1280 minimum`); ok = false; }
-  if (!ok) { add('WARN', name, 'defective — assemblers fall back to the legacy open (daily reels still build)'); return false; }
-  add('PASS', name, `video ${s.vDur.toFixed(1)}s · audio ${s.aDur.toFixed(1)}s — intro lane ACTIVE (allday ${(s.vDur + 22.5).toFixed(1)}s, verify ${(s.vDur + 8.8).toFixed(1)}s)`);
-  if (s.h < 1920) add('WARN', name, `${s.w}x${s.h} — will be upscaled to 1080x1920`);
-  if (s.fps < 30) add('WARN', name, `${s.fps.toFixed(0)}fps — duplicated to 60fps`);
-  const spread = tailLumaSpread(p);
-  if (spread > 170) add('FAIL', name, `final 0.5s luma spread ${spread.toFixed(0)} — not near-uniform smoke; the dissolve into the UI will pop`);
-  else if (spread > 120) add('WARN', name, `final 0.5s luma spread ${spread.toFixed(0)} — dissolve source is busy (target: full-frame smoke)`);
-  return spread <= 170;
+
+  // What actually plays today, per kind — the run-summary line the operator
+  // reads. Resolved from the same registry the assembler uses, so it cannot
+  // disagree with what gets built.
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const shown: string[] = [];
+  let slateActive = false;
+  for (const kind of ['allday_pro', 'verify', 'allday_public']) {
+    const pick = introCandidates(kind, today).find(c => usable.has(c.file));
+    shown.push(`${kind} → ${pick ? `${pick.file} [${pick.label}]` : 'LEGACY OPEN'}`);
+    if (kind === 'allday_pro' && pick) slateActive = true;
+  }
+  add('PASS', 'intro selection', `today (${today}): ${shown.join('  ·  ')}`);
+  return slateActive;
+}
+
+/**
+ * MKT-16 lesson, generalised: a carrier part whose name ALMOST matches the
+ * multi-part pattern is a silent-drop class. `public_carrier_pt_.mp4` matched
+ * neither `carrierParts` (`_pt2`…`_ptN`) nor `orphanedParts` (same pattern), so
+ * it would have been dropped with preflight still reporting a healthy
+ * single-file carrier. That is the second silent-drop this system has had, so
+ * near-miss names are now a hard FAIL.
+ */
+function checkPartNaming(): void {
+  const bad = readdirSync(ASSETS).filter(f => /_pt/i.test(f) && !/_pt\d+\.mp4$/.test(f));
+  for (const f of bad) {
+    add('FAIL', f, 'name contains "_pt" but does not match _pt<N>.mp4 — invisible to BOTH the joiner and the orphan scan, so its audio would be silently dropped. Rename it.');
+  }
+}
+
+/**
+ * Files nothing reads, on purpose. Listed WITH a reason so the exemption is
+ * visible in the run summary instead of being an invisible allowlist that rots.
+ * Remove an entry the moment its reason expires.
+ */
+const UNREFERENCED_OK: Record<string, string> = {
+  'anchor_intro_powerup.mp4':
+    'REJECTED by MKT-17 — never reaches full-frame smoke (5.6-6.5s is smoke inside a phone, bezel still framing it). Awaiting regeneration with the camera pushing fully into the screen.',
+  'public_carrier.mp4': 'MKT-16 public cut — delivered, kind not registered yet (Phase 1 pending).',
+  'public_carrier_pt2.mp4': 'MKT-16 public cut — part 2 of the above.',
+  'watermark_source.mp4': 'MKT-14 source, parked with the lane.',
+};
+
+/** Preserved generation masters and pre-swap backups — structurally unread. */
+const ARCHIVE_RE = /(_master(_\d+s)?|_backup)\.mp4$/i;
+
+/**
+ * Stray-asset scan — the general form of the `_pt_` failure above.
+ *
+ * Every other check in this file starts from a REGISTRY and asks "is the file
+ * it names healthy?". That direction cannot see a file the registries never
+ * name, so a delivery landing as `allday_pro_endcard_final.mp4` produces a
+ * clean preflight and a reel built from the previous week's endcard. Four
+ * near-miss classes share that shape — endcard, stinger, carrier and intro —
+ * and one is worse: if BOTH the carrier and endcard of a kind are misnamed,
+ * checkScopes() reports it as healthy-DORMANT rather than missing.
+ *
+ * So this scans the other way: enumerate every filename the registries can
+ * produce, diff it against what is on disk, and report the remainder. WARN not
+ * FAIL — an unread file breaks nothing today; it means an asset was delivered
+ * and is not reaching a reel, which is a question for the operator, not a
+ * reason to block the daily run.
+ */
+function checkStrays(): void {
+  const referenced = new Set<string>();
+
+  for (const v of Object.values(ENDCARDS)) { referenced.add(v.out); referenced.add(v.motion); }
+  for (const [variant, cfg] of Object.entries(STINGERS)) {
+    // Disabled variants included deliberately: a prebuilt stinger for a kind
+    // whose flag is currently off is intended to sit there, not a stray.
+    referenced.add(stingerFile(variant));
+    referenced.add(cfg.motion);
+  }
+  const carrierBases = [
+    ...SCOPES.flatMap(s => REEL_SCOPES[s].variants.map(v => `${reelKind(s, v)}_carrier`)),
+    'verif_carrier',
+  ];
+  for (const base of carrierBases) {
+    referenced.add(`${base}.mp4`);
+    for (let n = 2; n <= 9; n++) referenced.add(`${base}_pt${n}.mp4`);
+  }
+  for (const f of allIntroFiles()) referenced.add(f);
+
+  const known: string[] = [];
+  for (const f of readdirSync(ASSETS)) {
+    if (!f.endsWith('.mp4') || referenced.has(f) || ARCHIVE_RE.test(f)) continue;
+    const reason = UNREFERENCED_OK[f];
+    if (reason) { known.push(`${f} — ${reason}`); continue; }
+    add('WARN', f, 'no registry references this file — it is delivered but reaches no reel. A near-miss filename (endcard/stinger/carrier/intro) lands here instead of erroring, so check the spelling against the registry; if it is deliberate, add it to UNREFERENCED_OK with a reason.');
+  }
+  for (const k of known) add('PASS', 'unreferenced (known)', k);
+
+  // Same scan for panel source art, whose registry is PANELS.
+  const panelDir = join(ASSETS, 'panels');
+  if (existsSync(panelDir)) {
+    const namedPanels = new Set(PANELS.map(p => p.file));
+    for (const f of readdirSync(panelDir)) {
+      if (!f.endsWith('.png') || namedPanels.has(f)) continue;
+      add('WARN', `panels/${f}`, 'not in the panel registry — it will never enter the rotation. Add it to REEL_PANELS (with a clearance hash) or remove it.');
+    }
+  }
 }
 
 function checkSlateEndcard(kind: string, carrierDur: number | null): void {
@@ -393,7 +518,9 @@ function checkScopes(): void {
 }
 
 // Intro FIRST — it sets INTRO_ACTIVE, which shifts the carrier VO window.
-INTRO_ACTIVE = checkAnchorIntro();
+INTRO_ACTIVE = checkIntros();
+checkPartNaming();
+checkStrays();
 checkScopes();
 checkStingers();
 checkVerify();

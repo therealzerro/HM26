@@ -1,13 +1,30 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-07-28 · v1.5 (session wave live; panels are now
-APP-WIDE — §2 correction; new §9 status board)
+Content Agent Handoff · 2026-07-28 · v1.6
 ================================================================================
 Read this before proposing or producing ANY reel-related asset or enhancement.
 Companion docs:
   - assets/HitMaster_Brand_Rehab_Skill_Brief_v2.md  (brand law — canonical)
   - assets/marketing/AllDay_Reel_Endcard_Revision_Brief_2026-07-27.md (endcard contract)
+  - docs/mkt15_phase2_copy_brief.md (public copy set — DELIVERED + the bolt request)
   - REEL_COMMANDS.txt (repo root — operator command reference)
+
+WHAT CHANGED IN v1.6 (six corrections; v1.5 is wrong on all six)
+  1. THE MULTI-PART CARRIER CEILING IN v1.5 IS ARITHMETICALLY WRONG. It said
+     "10.0 + 7.0 = the 20.0s carrier ceiling", which is 17.0. Corrected in §7 —
+     part 2's last word may land as late as ~9.65s. Read that entry before
+     writing another carrier; you have ~2.6s more room than v1.5 implied.
+  2. REEL DURATION IS NO LONGER A CONSTANT. 33.83s or 34.20s depending on which
+     intro the day's rotation draws. §1, §2.
+  3. THE INTRO IS NO LONGER ONE SHARED FILE. It is resolved PER REEL KIND, and
+     slate reels rotate over a set. §2, §7 (MKT-17).
+  4. NEW INTRO DELIVERY SPEC — the generator only emits at 4/6/8/10s presets, so
+     EVERY intro delivered to date has arrived at 10.005s against a 6.5s
+     ceiling. Trimming is now the expected path, not an incident. §7.
+  5. PUBLIC REEL KINDS are in flight and NOT built. §10 states exactly what
+     exists so nothing gets proposed against them prematurely.
+  6. `reel:check` now runs a STRAY-ASSET SCAN — a delivered file that no
+     registry reads is reported instead of sitting silently unused. §7.
 
 
 --------------------------------------------------------------------------------
@@ -16,19 +33,26 @@ Companion docs:
 A fully automated daily video pipeline. Two commands produce, assemble, upload,
 and stage everything; the operator posts from their phone with two taps.
 
-  npm run reel:allday   → TWO reels for TODAY (Pro variant + Free variant),
-                          33.8s each: Anchor intro + branded stinger + the
-                          All-Day signal board + all six signal detail
-                          modals, captured from the LIVE app with real data.
+  npm run reel:allday   → TWO reels for TODAY (Pro variant + Free variant):
+                          Anchor intro + branded stinger + the All-Day signal
+                          board + all six signal detail modals, captured from
+                          the LIVE app with real data.
 
   npm run reel:verify   → ONE reel for YESTERDAY (14.4s): "Receipts" —
                           yesterday's verification breakdown. Intentionally
                           refuses to build on zero-match days (no receipts,
                           no reel).
 
-  npm run reel:midday   → ONE reel each (33.8s), PRO ONLY: the identical
-  npm run reel:evening    All-Day shape built from that SESSION's board.
-                          Added 2026-07-28 (MKT-13).
+  npm run reel:midday   → ONE reel each, PRO ONLY: the identical All-Day shape
+  npm run reel:evening    built from that SESSION's board. Added 2026-07-28
+                          (MKT-13).
+
+  ⚠ SLATE REEL LENGTH IS NOT A CONSTANT (changed 2026-07-28, MKT-17). It is
+  33.83s or 34.20s depending on which intro the day's rotation draws — the
+  standard intro is 5.625s, the deadpan is 6.000s. v1.5's flat "33.8s each" is
+  retired. Nothing you write is affected: the usable VO window is bodyDur+0.4
+  and is INDEPENDENT of intro length (see §2), so carrier specs do not move.
+  Only the finished file's duration does.
 
 SESSION WAVE (MKT-13) — read before proposing session content. Midday and
 Evening are NOT a different reel: they are the same reel parameterized by
@@ -60,21 +84,41 @@ and runs an in-frame vocabulary guard; any violation aborts the render.
 
 
 --------------------------------------------------------------------------------
-2. REEL ANATOMY — SLATE DROPS (33.8s @ 1080×1920 60fps)
+2. REEL ANATOMY — SLATE DROPS (33.83s or 34.20s @ 1080×1920 60fps)
 --------------------------------------------------------------------------------
 Covers All-Day (Pro + Free) AND the Midday/Evening session drops (Pro only) —
 they are the SAME reel built from a different board, so this one anatomy is the
-whole spec for all four. Variants share one UI body render per scope and one
-shared Anchor intro; they differ in carrier (voiceover) and endcard/stinger copy.
+whole spec for all four. Variants share one UI body render per scope; they
+differ in carrier (voiceover) and endcard/stinger copy.
+
+Times below are quoted for the 5.6s standard intro. On a 6.0s rotation member
+every timestamp after the intro shifts 0.4s later and the reel is 34.20s.
 
   TIMELINE (t in seconds)
-  0.0 – 5.6    INTRO — "The Anchor" (anchor_intro.mp4, shared by every reel
-               kind). Opens ON the gesture — frame 1 is the Anchor already
-               holding the phone up, smoke live on its screen. Internal
-               beats: 0.0–1.1 presents the phone to camera → 1.1–2.1 camera
-               dives into the screen → 2.1–5.6 full-frame purple smoke. Its
-               own audio is a single whoosh sting, present from frame 1,
-               peaking ~2.0, decayed to silence by 5.0.
+  0.0 – 5.6    INTRO — "The Anchor". Opens ON the gesture — frame 1 is the
+               Anchor already holding the phone up, smoke live on its screen.
+               Internal beats: 0.0–1.1 presents the phone to camera →
+               1.1–2.1 camera dives into the screen → 2.1–5.6 full-frame
+               purple smoke. Its own audio is a single whoosh sting, present
+               from frame 1, peaking ~2.0, decayed to silence by 5.0.
+
+               ⚠ CHANGED 2026-07-28 (MKT-17) — THE INTRO IS NO LONGER ONE
+               SHARED FILE. v1.5 said "anchor_intro.mp4, shared by every reel
+               kind". It is now resolved PER KIND:
+                 slate reels  — ROTATE over a set, currently [standard,
+                                deadpan], picked by a date-derived offset.
+                                Both pro and free draw the SAME intro on a
+                                given day (different rooms, so no spacing is
+                                needed). Re-running a past date reproduces
+                                that date's intro exactly.
+                 verify       — always standard. A deadpan gag ahead of
+                                yesterday's receipts is a tonal mismatch.
+                 public kinds — always anchor_intro_public.mp4, and they
+                                NEVER fall through into the rotation: a
+                                public cut must not silently acquire the
+                                deadpan gag.
+               Growing the rotation is one line of config plus a delivered
+               file — see the delivery spec in §7 before proposing one.
   5.3 – 8.3    STINGER — the intro's smoke crossfades (0.3s) into a branded
                beat: smoke condenses into the bolt, the wordmark + variant
                headline resolve natively, then the smoke sweeps back and
@@ -113,14 +157,20 @@ shared Anchor intro; they differ in carrier (voiceover) and endcard/stinger copy
                (An earlier version of this doc quoted a single "~22.8s" for
                both. That was never measured for Pro and was wrong by 3s.)
 
-  If anchor_intro.mp4 is absent or fails preflight, the assembler silently
-  falls back to the legacy 1.2s lockup open and the reel is 26.7s. The daily
-  run can never block on the intro.
+  DEGRADATION, IN ORDER (the daily run can never block on the intro):
+  a missing or defective rotation member drops out of THAT DAY with a logged
+  warning and the next candidate is used; if every candidate is unusable the
+  assembler falls back to the legacy 1.2s lockup open and the reel is 26.7s.
+  Note the asymmetry, which is deliberate: preflight treats a MISSING intro as
+  a warning (the fallback handles it) but a DEFECTIVE one as a hard FAIL — a
+  bad variant must fail before assembly rather than quietly degrading a run.
 
   AUDIO (two automatic modes, loudness −14 LUFS integrated):
   The intro carries its own sting, and the stinger its own impact. The
-  carrier VO enters at 7.9 (0.4s before the dissolve completes) — so carrier
-  time 0 sits at reel time 7.9, and every VO length below is measured in CARRIER-LOCAL seconds.
+  carrier VO enters 0.4s before the dissolve completes — at 7.9 on the 5.6s
+  intro, 8.3 on a 6.0s one. Carrier time 0 sits at whichever of those it is,
+  and every VO length below is measured in CARRIER-LOCAL seconds, which is
+  exactly why the rotation does not touch your specs.
   The usable VO window is bodyDur+0.4 = 19.4s and is INDEPENDENT of intro
   length, so retiming the intro never re-opens the carrier spec.
   - LONG CARRIER (VO ≥ ~19.4s) — "overlap mode": the voice plays wall-to-
@@ -170,8 +220,10 @@ shared Anchor intro; they differ in carrier (voiceover) and endcard/stinger copy
 --------------------------------------------------------------------------------
 3. REEL ANATOMY — VERIFY / "RECEIPTS" (14.4s @ 1080×1920 60fps)
 --------------------------------------------------------------------------------
-  0.0 – 5.6    INTRO — the SAME Anchor intro as the All-Day reels (one file
-               serves every reel kind), 0.8s dissolve from its smoke tail.
+  0.0 – 5.6    INTRO — the STANDARD Anchor intro, always. Verify is a fixed
+               kind and never draws a rotation member (MKT-17); its length is
+               therefore stable at 5.6s and so is the 14.4s total. 0.8s
+               dissolve from the smoke tail.
   5.6 – 11.9   BODY (6.3s) — yesterday's verification breakdown captured
                from the live app.
   11.9 – 14.4  CLOSE — final 2.5s of verif_endcard (static lockup), hard cut.
@@ -298,11 +350,26 @@ per-day by hand, not AI-freestyled.
 7. CURRENT ASSET INVENTORY (what you own / can replace)
 --------------------------------------------------------------------------------
   assets/marketing/
-    anchor_intro.mp4              THE ANCHOR intro — shared by EVERY reel
-                                  kind (all-day pro, all-day free, verify).
-                                  5.6s, trimmed 1.9→7.5s of the 10s master.
-    anchor_intro_master_10s.mp4   Delivered 10s master, kept so the trim is
-                                  reproducible. NOT read by the pipeline.
+    anchor_intro.mp4              THE ANCHOR intro, "standard" — rotation
+                                  member AND the fallback every kind
+                                  degrades to. 5.6s, trimmed 1.9→7.5s.
+    anchor_intro_deadpan.mp4      Rotation member, 6.0s (IN 0.0 / OUT 6.0).
+                                  Keeps the whole sheet gag. ⚠ opens quiet
+                                  (−56.2 dB mean over the first 0.3s vs
+                                  public's −37.9) — flagged, not blocking,
+                                  but louder would be better next time.
+    anchor_intro_public.mp4       Fixed intro for the PUBLIC kinds, 6.0s
+                                  (IN 0.0 / OUT 6.0). Opens on the visor
+                                  igniting in darkness — the cold-audience
+                                  hook — audio present from frame 1. The
+                                  only intro cleared for a public surface;
+                                  never swapped for a rotation member.
+    anchor_intro_powerup.mp4      REJECTED, see the delivery spec below.
+                                  Present but unregistered; awaiting
+                                  regeneration.
+    anchor_intro_*_master_10s.mp4 Delivered 10s masters, kept so the trims
+                                  stay reproducible. NOT read by the
+                                  pipeline.
     anchor_reference.png          Character reference still for the Anchor
                                   (regeneration/continuity — not composited).
     allday_pro_carrier.mp4        Pro VO carrier (10s class, backup exists)
@@ -354,8 +421,10 @@ per-day by hand, not AI-freestyled.
     change. A missing panel is dropped from the day's rotation with a
     warning — it never blocks a run.
   Replacing any of these with a spec-compliant upgrade requires zero code
-  changes — drop-in by filename. Longer (~19.4s) All-Day carriers are the
-  standing request: they unlock wall-to-wall narration mode.
+  changes — drop-in by filename, subject to the filename rule below.
+  (v1.5 listed "longer ~19.4s All-Day carriers" as the standing request. That
+  is DONE — every slate carrier now ships as a joined ~20.4s pair and runs
+  wall-to-wall with nothing discarded. The current standing asks are in §9.)
 
   MULTI-PART CARRIERS (when the generator caps clips at ~10s):
   Deliver a long carrier as numbered parts and the pipeline joins them
@@ -371,20 +440,61 @@ per-day by hand, not AI-freestyled.
     word promptly and the joiner supplies the pause. (The 7/27 delivery
     started part 2 at 0.2s, which left only a 0.4s gap after part 1's
     last word and read as crowded at this voice's pace.)
-  - **The ceiling applies to the JOIN, not to each part.** With part 1 at
-    10.0s, part 2's final word must land by ~7.0s of part 2 (10.0 + 7.0
-    = the 20.0s carrier ceiling). Preflight measures the join, so an
-    overrun is caught before assembly.
+  - **The ceiling applies to the JOIN, not to each part.**
+    ⚠ CORRECTED 2026-07-28 — v1.5 said "part 2's final word must land by
+    ~7.0s of part 2 (10.0 + 7.0 = the 20.0s carrier ceiling)". That is
+    arithmetically wrong: 10.0 + 7.0 is 17.0, and it cost you ~2.6s of
+    usable narration. Measured against the code:
+
+        part 1                 10.005s   (generator's 10s preset)
+        + breath                0.350s   (inserted automatically)
+        + part 2               10.005s
+        = joined file          20.360s
+        assembler fade begins  20.010s
+        so the LAST WORD must land by ~9.65s OF PART 2.
+
+    In other words a ~10s part 2 may use essentially its full length.
+    The 20.0s figure is the target; 20.5s is the hard fade. Preflight
+    measures the JOIN, so an overrun is caught before assembly.
+
+  - HOW MUCH ROOM IS ACTUALLY LEFT: on the current public pair the last
+    word ends at 19.694s of the join, 0.32s before the fade. That margin
+    is set by the CARRIER, not the body — a LONGER body does not consume
+    it. The risk runs the other way: if a body render comes in SHORTER
+    than ~18.4s the fade moves earlier and the margin inverts. Safe band
+    for the delivered pair is a body of 18.4s–20.0s (today: 19.0s). If a
+    future capture leaves that band the fix is a shorter part 2, never a
+    trimmed audio tail.
   - A _pt3 delivered without a _pt2 is a hard FAIL, not a silent skip —
     dropping it would leave a hole in the narration.
   - The join is generated into assets/marketing/_carrier_joined/ and is
     rebuilt whenever a part changes. It is not source; don't edit it.
 
-  ANCHOR INTRO DELIVERY SPEC (the one asset shared by every reel):
-  - Duration 3.5–6.5s, hard-enforced. The 2026-07-27 delivery arrived at
-    10.0s and was trimmed 1.9→7.5s (5.6s) to fit; anything outside the
-    window is REJECTED by preflight and the reel silently falls back to the
-    legacy open. Deliver inside the window or expect a trim.
+  ANCHOR INTRO DELIVERY SPEC (now a SET, not one file — see §2):
+  - ⚠ EXPECT TO BE TRIMMED, AND SAY SO IN THE DELIVERY NOTE. The generator
+    only emits at 4/6/8/10s presets, so "5.5s" rounds to 10. Every intro
+    delivered to date — the 7/27 original, deadpan, powerup and public —
+    arrived at 10.005s against a 6.5s ceiling. This is now the expected
+    path, not an incident. Masters are preserved as *_master_10s.mp4 so
+    the trim stays reproducible; they are NOT read by the pipeline.
+    Do NOT state a duration you have not measured: v1.5-era deliveries were
+    described as "5.5s, NO TRIM required" while measuring 10.005s, and on a
+    rotating set that is worse than it sounds — a rejected member drops
+    silently and the set collapses toward one intro while appearing to work.
+  - THE TRIM RULE (apply it yourself if you can): find where smoke fills the
+    frame, set the out-point 0.6s later, set the in-point 6.0s earlier, and
+    slide the window if it runs past either end.
+  - Duration 3.5–6.5s, hard-enforced. Anything outside the window is
+    REJECTED by preflight; that member drops from the day's rotation.
+  - EVERY member of the set must satisfy this whole spec. Preflight now
+    validates all of them, not just the standard file, and a defective
+    member is a hard FAIL rather than a silent drop.
+  - NOT EVERY CLIP CAN BE TRIMMED INTO COMPLIANCE. `anchor_intro_powerup`
+    was rejected outright: it never reaches full-frame smoke (5.6–6.5s is
+    smoke INSIDE a phone, bezel and notch still framing it) and by 6.8s it
+    has pulled back to the newsroom, so no 6.0s window ends on a usable
+    dissolve bed. Generate the camera pushing FULLY into the screen, as
+    public and deadpan both do at 4→5s.
   - Must END on full-frame smoke. The dissolve reads the final ~0.5s as its
     bed. The 10s master pulled the camera back OUT to the newsroom over its
     last 2.5s — a beautiful shot that is unusable as an ending, and the
@@ -423,6 +533,29 @@ per-day by hand, not AI-freestyled.
     audio, durations, VO-chop risk, weak crack, resolution) before
     anything is assembled. Deliver to pass it clean.
 
+  FILENAMES ARE LOAD-BEARING — `reel:check` now scans for near-misses.
+  Every asset is read by EXACT filename from a registry. A name that is
+  almost right is the worst case in this system, because nothing errors:
+  the registry finds nothing, the previous week's file stays in place, and
+  the reel builds and publishes looking correct. It has happened twice —
+  a 2-byte endcard from a GitHub web rename (MKT-06) and
+  `public_carrier_pt_.mp4`, which matched neither the joiner's `_ptN`
+  pattern nor the orphan scan that exists to catch exactly that (MKT-16).
+  Two guards now close the class:
+  - a `_pt` name that is not `_pt<N>.mp4` is a hard FAIL;
+  - a STRAY SCAN enumerates every filename the registries can produce and
+    reports anything on disk that no registry reads. That covers all four
+    near-miss shapes — endcard, stinger, carrier, intro — plus panel source
+    art, and it closes the one genuinely silent hole: if BOTH the carrier
+    and endcard of a kind were misnamed, the kind used to report a healthy
+    "dormant, no assets delivered" and say nothing else.
+    A stray is a WARN, not a FAIL — it breaks nothing today, it just means
+    something you delivered is not reaching a reel. Deliberate exceptions
+    (the rejected powerup intro, the not-yet-registered public carrier) are
+    listed WITH their reason so the exemption stays visible.
+  Practical upshot: if you deliver an asset and the next `reel:check` names
+  it as unreferenced, the filename is wrong — not the file.
+
   Outputs land in assets/marketing/allday_reels/, midday_reels/,
   evening_reels/ and verify_reels/, and are pushed to GitHub after every run.
 
@@ -460,16 +593,23 @@ BUILT AND RUNNING DAILY:
   MKT-05  Data-driven caption engine (+05b: verify carries free & pro drafts)
   MKT-06  Preflight (npm run reel:check) + daily-post QC audit
   MKT-07  Slate stamp — burned-in day · scope · purpose chip on every cut
-  MKT-08  "The Anchor" branded intro, shared by every reel kind (5.6s)
+  MKT-08  "The Anchor" branded intro (superseded by MKT-17 — see §2)
   MKT-09  Multi-part carrier VOs (_pt2 …) auto-joined with a 0.35s breath
   MKT-10  Endcards: motion and text split — COPY IS NO LONGER AN ASSET
   MKT-11  Rotating promo panels — now APP-WIDE (see §2 warning)
   MKT-12  Branded stinger between the intro and the UI body
   MKT-13  Session wave — Midday + Evening reels (2026-07-28)
+  MKT-17  Per-kind intro resolution + rotation (2026-07-28) — see §2
 
-DAILY OUTPUT TODAY: up to four reels — verify (14.4s), All-Day Pro + Free
-(33.8s), and optionally Midday and Evening (33.8s, Pro only). All four auto-
-publish to Admin → Reels with drafted captions. Nothing auto-posts, ever.
+IN FLIGHT, NOT BUILT — do not propose against these yet; §10 has the detail:
+  MKT-14  Brand attribution in the slate stamp .......... PARKED (untouched)
+  MKT-15  Social handoff buttons ....... Phase 1 SHIPPED · Phase 2 BLOCKED
+  MKT-16  Public asset integration + redaction ....... Phase 0, build held
+
+DAILY OUTPUT TODAY: up to four reels — verify (14.4s), All-Day Pro + Free, and
+optionally Midday and Evening (Pro only). Slate reels are 33.83s or 34.20s
+depending on the day's intro. All four auto-publish to Admin → Reels with
+drafted captions. Nothing auto-posts, ever.
 
 THE SESSION WAVE IS PRO-ONLY, AND THAT IS A RULING:
   The free group gets the All-Day drop in FULL but Midday/Evening REDACTED —
@@ -483,13 +623,26 @@ THE SESSION WAVE IS PRO-ONLY, AND THAT IS A RULING:
 WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
   1. NATIVE 1080×1920 SOURCE ASSETS. Every delivered motion file to date is
      720×1280 24fps and gets upscaled + frame-duplicated. This is the single
-     biggest quality gap left and the only remaining preflight warning class.
-  2. Session carriers are currently pro-only and generic. Session-specific VO
+     biggest quality gap left and the only remaining preflight warning class
+     (10 of 10 current warnings are this, across 3 intros and 4 endcards).
+  2. MIDDAY + EVENING ENDCARD COPY — 2 lines each, the smallest real gap on
+     this list. Their captions and stingers are genuinely distinct, but both
+     endcards still carry allday_pro's lines verbatim ("FIRST ACCESS.
+     ALWAYS." / "VERIFIED TOMORROW MORNING"), so a Pro subscriber reads the
+     same close three times a day. Config strings over the existing motion
+     file — zero generation, a text edit and a re-run.
+  3. Session carriers are currently pro-only and generic. Session-specific VO
      ("the midday board", "tonight's board") would read better than reusing
      All-Day framing.
-  3. More panels. The rotation adapts with no code change; six is the current
+  4. A LOUDER OPEN ON ROTATION MEMBERS. Deadpan opens at −56.2 dB mean over
+     its first 0.3s against the standard intro's −37.9. MKT-08's "audio up
+     from frame 1" rule is about autoplay retention, and a near-silent open
+     spends it.
+  5. More panels. The rotation adapts with no code change; six is the current
      set and the slot is now a product surface, so the copy bar is higher.
-  4. More caption templates per kind (8 today, can grow; rotation adapts).
+  6. More caption templates per kind (8 today, can grow; rotation adapts).
+  7. More intro rotation members. The set is 2. Same delivery spec as §7 —
+     and read the trim rule there before generating.
 
 WHAT IS DELIBERATELY NOT BUILT:
   - Auto-posting to Facebook (platform + brand-safety rule).
@@ -497,4 +650,91 @@ WHAT IS DELIBERATELY NOT BUILT:
   - Free session reels (above).
   - A stinger on the verify reel — its body is 6.3s, so intro + stinger would
     put more branding on screen than receipts. Flag exists, set to off.
+
+
+--------------------------------------------------------------------------------
+10. IN FLIGHT — WHAT EXISTS AND WHAT DOES NOT (2026-07-28)
+--------------------------------------------------------------------------------
+Added in v1.6 because three lanes are now partly delivered, and "an asset is in
+the repo" has been mistaken for "the pipeline reads it". Nothing in this section
+is running daily.
+
+MKT-15 — SOCIAL HANDOFF. Phase 1 SHIPPED.
+  A platform registry + a caption transform + one row per platform in Admin →
+  Reels: shaped-caption preview, char budget, per-platform lint, Two-Question
+  checkboxes, one "Save + Copy + Open" tap. `npm run social:dryrun` is the
+  off-device gate.
+  ENABLED: Telegram only — a room we own, so no classifier decides whether we
+  are gambling-adjacent there. It is tier 4 (the Pro room), not a cross-post.
+  REGISTERED BUT DISABLED: YouTube, TikTok, Reddit, X — all four blocked on
+  Phase 2's public cut, each declaring asset:'redacted' so the dependency
+  lives in the registry rather than a comment. Instagram is disabled by
+  STANDING RULING, not a gate: it needs a linked FB Page and Meta review
+  against a page de-recommended twice, and Meta enforces across linked
+  accounts. Phase 2 does not unblock it.
+  THE MECHANICAL CEILING, worth internalising before proposing anything here:
+  no URL scheme on any platform can attach a video file. Every path is
+  save-to-camera-roll then pick-in-app; deep links only choose which screen
+  opens. The CLIPBOARD is the real value, because retyping a platform-shaped
+  caption is the actual friction.
+  ⚠ STILL OWED: an operator DEVICE test. The deep links are documented-scheme
+  research, not observed behaviour — this is a Linux codespace with no phone.
+  X / Reddit / Telegram carry templates; YouTube / TikTok / Instagram are
+  deliberately plain app-open, because an undocumented scheme that silently
+  fails is worse than a link that honestly just opens the app.
+
+MKT-15 — PHASE 2, THE PUBLIC CUT. BLOCKED, and bigger than first scoped.
+  The headline finding: MASKING DIGITS IS NOT SUFFICIENT. The body is a screen
+  recording of the real app, and the live audit (every on-screen string run
+  through the real lint engine at tier 1) found four BLOCKING vocabulary terms
+  structurally present on all six modals — PICK, STRAIGHT, BOX, PLAY — plus
+  session labels and state-code attributions. A public cut needs a RELABELLED
+  capture mode, not merely a redacted one.
+  This is a TIER MISMATCH, NOT A BUG. Those words are the sanctioned
+  vocabulary for the paying subscribers the app is built for. The fix is a
+  capture-mode override and NEVER an edit to the consumer UI.
+  COPY IS SETTLED — the eight-slot public set is delivered and approved; see
+  docs/mkt15_phase2_copy_brief.md. Notably slot 3 ships as "ANY ORDER", not
+  "SET": the brief's character-count rule was a bad proxy for pixel width, and
+  measured on the live modal the chip has 86px of content width against
+  "ANY ORDER"'s 55px. Paired with "BEST ORDER" it teaches itself.
+  THE REDACTION IS NOT A BLUR OF THE DIGITS. The look is extreme blur + the
+  bolt, as ruled — but capture mode never RENDERS the real digits: it draws a
+  placeholder block, blurs that, and lays the bolt over it. A blur or mosaic
+  derived from the true pixels is recoverable by sharpening across only 1,000
+  combinations, and a high-contrast blurred 3-digit block is often readable at
+  a glance anyway. Drawing a placeholder makes the frame-by-frame Q1 pass a
+  fact rather than a judgement about how much blur is enough. Nothing changes
+  in what you supply.
+  ⚠ STILL OWED FROM CONTENT: the three bolt decisions (fill, placement,
+  scale+opacity) and bolt_mark.svg if it exists — only the 2048 PNG arrived.
+  ⚠ ALSO WORTH AUDITING: the PLAN tab CONTENTS are unaudited. The renderer
+  captures each modal at its DEFAULT tab and never clicks through, so only the
+  tab label is exposed today. The day a tab-switch beat is added to the
+  capture, an un-audited surface enters frame. Better to have the list first.
+
+MKT-16 — PUBLIC ASSET INTEGRATION. Phase 0 only; build held.
+  DELIVERED AND USABLE: anchor_intro_public.mp4 (trimmed, passing preflight),
+  public_carrier.mp4 + _pt2 (joined, 20.360s, passing), bolt_mark_2048.png.
+  NOT BUILT: the public reel KINDS themselves. allday_public / midday_public /
+  evening_public exist at exactly ONE of five registration points — the intro
+  registry (MKT-17 pre-registered them). They are absent from the endcard
+  config, the stinger config, the scope registry, the caption registry and the
+  database kind CHECK constraint. So: the public assets are real, and no
+  command builds a public reel today. Do not write public captions or public
+  endcard copy against a kind that cannot yet be published.
+
+MKT-14 — SLATE-STAMP BRAND ATTRIBUTION. Parked, cleanly.
+  Nothing built, no code touched; the work order is parked verbatim at
+  docs/mkt14_work_order_parked.md and resumes only on explicit go-ahead. The
+  earlier bottom-right watermark version is SUPERSEDED and must not be built —
+  every short-form platform stacks its own chrome bottom-right, so a mark
+  there is buried on all of them.
+
+FREE-GROUP MIDDAY / EVENING REEL — not a lane, and nothing is assumed.
+  It is the second payoff of the masked capture, but it is not registered
+  anywhere (§9's PRO-ONLY ruling still stands until it is). When it is built
+  it needs its OWN endcard and carrier — Pro CTA and $2.49 pricing, not the
+  free-community CTA, and NOT inherited from the public set. Those have not
+  been written and will not be invented.
 ================================================================================

@@ -3,9 +3,13 @@ HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
 changed. Every command has a description. (Last updated 2026-07-28 —
-SESSION WAVE LIVE: reel:midday + reel:evening join reel:allday, all
-33.8s; Anchor intro + branded stinger open every drop; verify 14.4s;
-reel:check now validates all four scope/variant kinds + the stingers)
+SESSION WAVE LIVE: reel:midday + reel:evening join reel:allday;
+Anchor intro + branded stinger open every drop; verify 14.4s.
+NEW: the intro now ROTATES per reel kind, so slate reels are 33.83s
+OR 34.20s depending on the day's intro — no longer a flat 33.8s.
+reel:check validates all four scope/variant kinds, the stingers,
+every intro in the rotation, and now flags STRAY ASSETS — files no
+registry reads. Panels are APP-WIDE, not capture-only.)
 
 
 ----------------------------------------------------------------
@@ -138,9 +142,12 @@ npm run panel:build
 
     The panel is a real part of the app screen, not something
     pasted onto the video — so it shows up in reels simply
-    because the camera sees it. It is switched ON only while the
-    reel renderer is driving the app: subscribers never see a
-    panel in the product.
+    because the camera sees it. NOTE (corrected 2026-07-28):
+    panels are APP-WIDE. An earlier version of this file said the
+    capture gate kept them hidden from subscribers; that gate was
+    removed, so every user sees them and panel copy is a PRODUCT
+    surface — it has to survive a paying subscriber reading it,
+    not just a reel frame.
 
     Each panel is cropped to its artwork band automatically, so
     the band's shape is flexible and anything below it (like a
@@ -295,6 +302,25 @@ npm run reel:check
     assembling. Nothing else to run. reel:check validates the
     JOINED track, so a VO that overruns the ceiling only after
     the join is still caught here. Works for verify too.
+
+    INTROS: every file the rotation can reach is validated, not
+    just anchor_intro.mp4. A MISSING one is a warning (that day
+    falls through to the next candidate); a DEFECTIVE one is a
+    hard ⛔, because a bad variant that merely "drops with a log
+    line" means the reel quietly opens on something else. The
+    summary prints which intro each kind resolves to today.
+
+    STRAY ASSETS: reel:check also reports files that no registry
+    reads. This is the "almost-right filename" guard, and it is
+    the one failure this system keeps repeating — a name that is
+    close but wrong makes NOTHING error: the registry finds
+    nothing, last week's file stays in place, and the reel builds
+    and publishes looking correct. Covers endcards, stingers,
+    carriers, intros and panel art. ⚠️ not ⛔ — it means an asset
+    you were sent is not reaching a reel. If you drop a file in
+    and reel:check names it as unreferenced, the FILENAME is
+    wrong, not the file. Deliberate exceptions are listed with
+    their reason (e.g. the rejected powerup intro).
 
 
 ----------------------------------------------------------------

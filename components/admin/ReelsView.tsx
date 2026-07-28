@@ -524,6 +524,15 @@ export default function ReelsView() {
   const [reels, setReels] = useState<MarketingReel[] | null>(null);
   const [urls, setUrls] = useState<GroupUrls>({});
   const [error, setError] = useState<string | null>(null);
+  const [showOlder, setShowOlder] = useState(false);
+
+  // Only TODAY's reels are actionable — a previous day's reel has either been
+  // posted or been superseded by the next morning's run, and every stale card
+  // pushes the live ones further down a phone screen. Older reels stay one tap
+  // away rather than being hidden: they are still the record of what shipped.
+  const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const current = (reels ?? []).filter(r => r.reel_date >= todayET);
+  const older = (reels ?? []).filter(r => r.reel_date < todayET);
 
   const load = useCallback(async () => {
     setError(null);
@@ -566,6 +575,7 @@ export default function ReelsView() {
         Flow: pick target → edit caption (lint gates it) → on device: Save to Photos + attach inside
         Facebook; on web: Prepare Video, then Save/Share (phone sheet → “Save Video” = Photos) or
         Download (desktop). Handoffs are logged; storage self-prunes after 30 days.
+        Today’s reels show by default — earlier days are one tap below.
       </Text>
 
       {reels === null && <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 30 }} />}
@@ -582,7 +592,31 @@ export default function ReelsView() {
       {/* Key includes updated_at: a server-side caption refresh (pipeline
           --captions-only, re-publish) must remount the card so the editor
           re-seeds — useState(reel.caption) only reads the prop on mount. */}
-      {reels?.map(r => <ReelCard key={`${r.id}:${r.updated_at}`} reel={r} urls={urls} onPosted={load} />)}
+      {current.map(r => <ReelCard key={`${r.id}:${r.updated_at}`} reel={r} urls={urls} onPosted={load} />)}
+
+      {reels !== null && current.length === 0 && older.length > 0 && (
+        <Card style={{ padding: 14, alignItems: 'center', marginBottom: 10 }}>
+          <Text style={{ fontSize: 11, color: colors.textSecondary, textAlign: 'center' }}>
+            No reels for today yet — run npm run reel:allday.
+          </Text>
+        </Card>
+      )}
+
+      {older.length > 0 && (
+        <>
+          <TouchableOpacity
+            style={[st.btnGhost, { marginTop: 6, alignSelf: 'center' }]}
+            onPress={() => setShowOlder(v => !v)}
+          >
+            <Text style={st.btnGhostText}>
+              {showOlder ? '▲ Hide' : `▼ Show`} {older.length} earlier reel{older.length === 1 ? '' : 's'}
+            </Text>
+          </TouchableOpacity>
+          {showOlder && older.map(r => (
+            <ReelCard key={`${r.id}:${r.updated_at}`} reel={r} urls={urls} onPosted={load} />
+          ))}
+        </>
+      )}
     </ScrollView>
   );
 }

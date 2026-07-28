@@ -24,7 +24,7 @@ import { PANELS, PANEL_W, PUBLIC_DIR } from './panel-config';
 import { MODAL_COUNT, PANEL_URL_BASE, panelSequence, rotationDegenerate } from '../constants/reelPanels';
 
 const ASSETS = resolve('assets/marketing');
-const OPEN = 1.2, BODY = 16.0, CARD = 6.5; // assembler constants (body measured at runtime; 16.0 = current renderer)
+const OPEN = 1.2, BODY = 19.0, CARD = 6.5; // assembler constants (body measured at runtime; 19.0 = current renderer)
 const BED_SRC_START = 0.0, BED_SRC_END = 3.9; // MKT-10: crack-free hum-bed window
 // MKT-08: with an active anchor intro the VO enters at introDur−0.4, so the
 // usable VO window (on the CARRIER's own timeline) shrinks 17.2 → 16.4s and

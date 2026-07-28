@@ -16,7 +16,7 @@ A fully automated daily video pipeline. Two commands produce, assemble, upload,
 and stage everything; the operator posts from their phone with two taps.
 
   npm run reel:allday   → TWO reels for TODAY (Pro variant + Free variant),
-                          28.1s each: the Anchor intro + the All-Day signal
+                          31.1s each: the Anchor intro + the All-Day signal
                           board + all six signal detail modals, captured from
                           the LIVE app with real data.
 
@@ -36,7 +36,7 @@ and runs an in-frame vocabulary guard; any violation aborts the render.
 
 
 --------------------------------------------------------------------------------
-2. REEL ANATOMY — ALL-DAY (Pro + Free, 28.1s @ 1080×1920 60fps)
+2. REEL ANATOMY — ALL-DAY (Pro + Free, 31.1s @ 1080×1920 60fps)
 --------------------------------------------------------------------------------
 Both variants share one UI body render AND one shared Anchor intro; they differ
 in carrier (voiceover) and endcard branding.
@@ -51,11 +51,11 @@ in carrier (voiceover) and endcard branding.
                peaking ~2.0, decayed to silence by 5.0.
   4.8 – 5.6    0.8s eased dissolve from the intro's smoke into the UI body
                (overlaps the tail of the intro — not extra time).
-  5.6 – 21.6   BODY (16.0s) — 4.0s slow push-in over the full 2×3 signal
+  5.6 – 24.6   BODY (19.0s) — 4.0s slow push-in over the full 2×3 signal
                grid (all six on screen), then each signal tapped in rank
-               order 1→6: modal opens, ~2.0s hold on digits/energy/
+               order 1→6: modal opens, 2.5s hold on digits/energy/
                confidence/breakdown, close. Hard cuts between modals.
-  9.6 – 21.6   PANELS — a rotating branded panel sits below the "RESOLVED IN"
+  9.6 – 24.6   PANELS — a rotating branded panel sits below the "RESOLVED IN"
                card in each of the six pick-detail modals. It is NOT added to
                the video: it is a real element of the app screen, so it is
                captured along with everything else. A different panel appears
@@ -63,32 +63,32 @@ in carrier (voiceover) and endcard branding.
                in the modals only — the grid push-in has no room for one.
                IMPORTANT: the panel is visible ONLY while the reel renderer is
                driving the app. Subscribers never see it.
-  21.6 – 28.1  OUTRO (6.5s) — the endcard's FIRST 6.5s, hard cut in:
+  24.6 – 31.1  OUTRO (6.5s) — the endcard's FIRST 6.5s, hard cut in:
                smoke rise → bolt snap → lockup resolves → calm hold.
                THE SNAP TIME DIFFERS PER ENDCARD — it is a property of the
                asset, not of the timeline. Measured 2026-07-27:
-                 Pro  — crack at 4.25s of the endcard → ~25.9s of the reel
-                 Free — crack at ~1.0s  of the endcard → ~22.6s of the reel
+                 Pro  — crack at 4.25s of the endcard → ~28.9s of the reel
+                 Free — crack at ~1.0s  of the endcard → ~25.6s of the reel
                (An earlier version of this doc quoted a single "~22.8s" for
                both. That was never measured for Pro and was wrong by 3s.)
 
   If anchor_intro.mp4 is absent or fails preflight, the assembler silently
-  falls back to the legacy 1.2s lockup open and the reel is 23.7s. The daily
+  falls back to the legacy 1.2s lockup open and the reel is 26.7s. The daily
   run can never block on the intro.
 
   AUDIO (two automatic modes, loudness −14 LUFS integrated):
   The intro carries its own sting from 0.0 to 5.6. The carrier VO enters at
   5.2 (0.4s before the dissolve completes) — so carrier time 0 sits at reel
   time 5.2, and every VO length below is measured in CARRIER-LOCAL seconds.
-  The usable VO window is bodyDur+0.4 = 16.4s and is INDEPENDENT of intro
+  The usable VO window is bodyDur+0.4 = 19.4s and is INDEPENDENT of intro
   length, so retiming the intro never re-opens the carrier spec.
-  - LONG CARRIER (VO ≥ ~16.4s) — "overlap mode": the voice plays wall-to-
+  - LONG CARRIER (VO ≥ ~19.4s) — "overlap mode": the voice plays wall-to-
     wall over the body and may ride up to 1.1s into the smoke rise, but
     must finish before the endcard's bolt snap (see the timeline above —
-    Pro ~25.9s, Free ~22.6s). The endcard's own synced outro audio is
-    mixed in from 21.6s. Carrier content past the VO is DISCARDED
+    Pro ~28.9s, Free ~25.6s). The endcard's own synced outro audio is
+    mixed in from 24.6s. Carrier content past the VO is DISCARDED
     (generated tracks are unreliable after their voice ends).
-    In practice the 17.5s carrier fade bites first, so that is the number
+    In practice the 20.5s carrier fade bites first, so that is the number
     to script to — not the snap.
   - SHORT CARRIER (VO ~10s) — the voice covers the grid + first modals;
     the endcard's PRE-crack tension hum is looped as a palindrome and laid
@@ -101,7 +101,7 @@ in carrier (voiceover) and endcard branding.
     crack is at 4.25s, leaving 0-3.9s clean.
 
   WHAT THIS MEANS FOR CARRIER PRODUCTION (your main deliverable):
-  - Target VO length: ~16.4s for wall-to-wall narration (preferred), or
+  - Target VO length: ~19.4s for wall-to-wall narration (preferred), or
     ~10s accepting the hum-bed remainder. Anything between works; the
     assembler adapts automatically and prints which mode it used.
   - Write VO to the visual beat map, in CARRIER-LOCAL time: 0–0.4 lands
@@ -286,7 +286,7 @@ per-day by hand, not AI-freestyled.
     change. A missing panel is dropped from the day's rotation with a
     warning — it never blocks a run.
   Replacing any of these with a spec-compliant upgrade requires zero code
-  changes — drop-in by filename. Longer (~16.4s) All-Day carriers are the
+  changes — drop-in by filename. Longer (~19.4s) All-Day carriers are the
   standing request: they unlock wall-to-wall narration mode.
 
   MULTI-PART CARRIERS (when the generator caps clips at ~10s):
@@ -302,7 +302,7 @@ per-day by hand, not AI-freestyled.
     word must be baked into the parts themselves.
   - **The ceiling applies to the JOIN, not to each part.** With part 1 at
     10.0s, part 2's final word must land by ~7.0s of part 2 (10.0 + 7.0
-    = the 17.0s carrier ceiling). Preflight measures the join, so an
+    = the 20.0s carrier ceiling). Preflight measures the join, so an
     overrun is caught before assembly.
   - A _pt3 delivered without a _pt2 is a hard FAIL, not a silent skip —
     dropping it would leave a hole in the narration.
@@ -337,11 +337,14 @@ per-day by hand, not AI-freestyled.
     quality upgrade available.
   - Frame rate: 30-60fps (24fps gets frame-duplicated to 60; slightly
     steppy motion on the energy effects).
-  - All-Day carriers: VO must FINISH (hit silence) by ~17.0s of carrier —
-    the assembler hard-fades at 17.5s and anything still talking gets cut.
-    (This tightened from 17.8/18.3 when the intro lane went live; the
-    current free carrier still runs to ~17.5s and needs a trim.) Content
-    after the VO is discarded by design.
+  - All-Day carriers: VO must FINISH (hit silence) by ~20.0s of carrier —
+    the assembler hard-fades at 20.5s and anything still talking gets cut.
+    (History: 17.8/18.3 originally → tightened to 17.0/17.5 when the
+    Anchor intro pushed the VO start later → widened to 20.0/20.5 on
+    2026-07-27 when the modal hold went 2.0→2.5s. The window was widened
+    to fit the narration rather than cutting it a third time; both
+    delivered carriers now pass wall-to-wall with nothing discarded.)
+    Content after the VO is discarded by design.
   - Endcards: keep audio in the file, front-loaded, crack synced to the
     visual snap; final frame = settled lockup (it opens the reel).
   - After any swap, engineering runs `npm run reel:check` — a preflight

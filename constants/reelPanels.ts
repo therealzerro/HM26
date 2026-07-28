@@ -48,7 +48,7 @@ export const REEL_PANELS: ReelPanel[] = [
 /** Modal segments in the All-Day body — one panel each. */
 export const MODAL_COUNT = 6;
 /** render-allday-body.ts segment plan, in seconds. */
-export const GRID_DUR = 4.0, MODAL_HOLD = 2.0;
+export const GRID_DUR = 4.0, MODAL_HOLD = 2.5;
 
 /** Day index matching reel-captions' dayOfYear — clock-free UTC math. */
 export function dayIndex(iso: string): number {

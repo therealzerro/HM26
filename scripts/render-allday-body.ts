@@ -27,9 +27,11 @@ const OUT_DIR = resolve(process.argv[2] ?? 'assets/marketing/allday_reels');
 const FPS = 60;
 const VIEW_H = 960;
 const GRID_FRAMES = 240;        // 4.0s zoompan segment
-const MODAL_HOLD = 120;         // 2.0s per pick modal
+const MODAL_HOLD = 150;         // 2.5s per pick modal (MKT-09: widened from
+                                // 2.0s so the wall-to-wall VO window fits the
+                                // ~19.5s carriers the voice agent produces)
 const PICKS = 6;
-const TOTAL = GRID_FRAMES + PICKS * MODAL_HOLD;   // 960 = 16.0s
+const TOTAL = GRID_FRAMES + PICKS * MODAL_HOLD;   // 1140 = 19.0s
 const easeInOut = (t: number) => (1 - Math.cos(Math.PI * Math.min(Math.max(t, 0), 1))) / 2;
 
 function todayET(): string {

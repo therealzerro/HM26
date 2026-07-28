@@ -85,6 +85,14 @@
 
 ### MKT-09 — Multi-part carrier VOs (drop-in `_pt2` join) (2026-07-27) ✅
 
+**Amendment (2026-07-27): modal hold widened 2.0s → 2.5s so the VO window fits the narration, instead of cutting the narration a third time.**
+
+- The `_pt2` join worked first try on delivery — both pairs concatenated automatically, 10.0s + 10.0s → 20.0s, overlap mode, no intervention. The **timing** did not: two successive rounds of carriers came back with part 2 speaking to ~9.4–9.75s against a 7.0s requirement, which would have cut ~2.25s — the entire closing line — off both reels.
+- **Diagnosed as structural, not a scripting slip.** The voice agent consistently produces ~19.5s of narration; the window was 16.4s. A third correction round would likely have produced a third near-miss. Fix: `MODAL_HOLD` 120→150 frames → body **16.0s → 19.0s**, VO window **16.4s → 19.4s**, All-Day reels **28.1s → 31.1s**. Three constants (`render-allday-body.ts`, `constants/reelPanels.ts`, `check-reel-assets.ts`), no regeneration, the agent's copy ships intact. Both carriers now report `voice 0-19.9s, wall-to-wall` with the VO-chop warnings cleared (preflight 9 warns → 7).
+- **Side effect worth recording: it also fixed a Free-endcard audio collision.** With the 16.0s body the VO ended at 22.7s and Free's bolt crack fired at 22.6s — the snap landed *underneath* the final line. At 19.0s the VO ends ~25.1s and Free's crack sits at ~25.6s, measured clear on the built reel.
+- Trade-off accepted: 2.5s is a long hold on a static modal frame (the renderer duplicates one captured frame per segment). If it drags on playback the remedy is shorter VO copy, not reverting the hold.
+- Superseded round-1 carriers were parked and discarded; delivered set is live.
+
 **Work order:** operator-directed. The VO generator caps clips at ~10s, so long wall-to-wall carriers must be delivered as numbered parts. Naming locked by the operator for the coming session waves; this makes the drop-in pattern actually work end-to-end. Marketing tooling only.
 
 - **`scripts/reel-carrier.ts`** — `resolveCarrier(assetsDir, base)` collects `<base>.mp4`, `<base>_pt2.mp4`, `<base>_pt3.mp4` … in order and concatenates them into a cached join at `assets/marketing/_carrier_joined/<base>_joined.m4a`, rebuilt only when a part is newer. **Audio only** — every consumer uses the carrier's audio and discards its video (carriers are a static bolt on purple by design), so a bare `.m4a` is the right artifact and skips a pointless video re-encode. Each input is `aformat`-normalised to 48k stereo first, because the concat filter requires matching sample rate/layout and generated clips routinely differ.

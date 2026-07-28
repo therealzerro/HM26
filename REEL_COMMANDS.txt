@@ -210,6 +210,35 @@ npm run endcard:build allday_pro (one variant)
 
 
 ----------------------------------------------------------------
+SOCIAL HANDOFF (no video work — safe anytime)
+----------------------------------------------------------------
+
+npm run social:dryrun
+npm run social:dryrun -- 2026-07-28 --all
+
+    PRINTS the handoff bundle the Admin → Reels screen would produce
+    for a day's reels, per platform: the platform-shaped caption,
+    its title/body split, the character budget, the tier lint, and
+    the exact URL the "Open" button would hit. Read-only — writes
+    nothing, posts nothing, opens nothing.
+
+    Use it to check a caption OFF-DEVICE before you're standing in
+    the app with your thumb over a button. It catches the two
+    silent failures: a caption truncated to fit (X's 280 ceiling is
+    the usual culprit) and a deep link that resolves to something
+    broken.
+
+    Default date is today; --all also lists the disabled platforms
+    with the reason each is disabled.
+
+    ASSISTED ONLY — there is no platform API and no send button.
+    Every path is: save the mp4 to your camera roll, copy the
+    caption, open the app, attach and post by hand. Telegram is
+    live; YouTube/TikTok/Reddit/X are registered but disabled until
+    the public cut lands (MKT-15 Phase 2); Instagram stays off.
+
+
+----------------------------------------------------------------
 CAPTION TOOLS (no video work — safe anytime)
 ----------------------------------------------------------------
 

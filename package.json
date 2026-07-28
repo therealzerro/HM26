@@ -38,6 +38,7 @@
     "reel:evening": "tsx scripts/render-allday-body.ts --scope=evening && tsx scripts/assemble-allday-reels.ts --scope=evening && tsx scripts/publish-reels.ts evening",
     "reel:publish": "tsx scripts/publish-reels.ts",
     "reel:check": "tsx scripts/check-reel-assets.ts",
+    "social:dryrun": "tsx scripts/social-handoff-dryrun.ts",
     "endcard:build": "tsx scripts/build-endcard.ts",
     "panel:build": "tsx scripts/build-panels.ts",
     "stinger:build": "tsx scripts/build-stinger.ts"

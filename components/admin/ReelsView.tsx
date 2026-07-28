@@ -33,6 +33,10 @@ import {
   fetchReelBlob, canWebShareVideo, webShareReel, downloadReelBlobWeb,
 } from '@/lib/marketingReels';
 import { Pill, SectionTitle, Card, useSt, timeAgo } from './AdminShared';
+import {
+  SOCIAL_PLATFORMS, PLATFORM_IDS, platformCaption, platformLink,
+  type SocialPlatform,
+} from '@/constants/socialPlatforms';
 
 type Target = 'free' | 'pro' | 'cross';
 
@@ -68,6 +72,152 @@ function openInNewTab(url: string): void {
 }
 
 interface GroupUrls { free?: string; pro?: string }
+
+/**
+ * MKT-15 — one assisted handoff row per registered platform.
+ *
+ * Assisted ONLY: save the mp4 to the camera roll, copy a platform-shaped
+ * caption, open the app, finish by hand. There is no send button because there
+ * is no API — and no URL scheme can attach a video, so the deep link only
+ * chooses the landing screen. The clipboard is the part that actually saves
+ * work.
+ *
+ * A disabled platform still renders, greyed, WITH ITS REASON. Hiding it would
+ * make a deliberate ruling (Instagram) look like an oversight, and would hide
+ * that the four public surfaces are waiting on Phase 2 rather than missing.
+ */
+function PlatformHandoffRow({
+  platform: p, reel, caption, videoUrl, filename, onLogged,
+}: {
+  platform: SocialPlatform;
+  reel: MarketingReel;
+  caption: string;
+  videoUrl: string;
+  filename: string;
+  onLogged: () => void;
+}) {
+  const { colors } = useTheme();
+  const st = useSt();
+  const [q1No, setQ1No] = useState(false);
+  const [q2No, setQ2No] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const shaped = platformCaption(p, caption);
+  const lint = lintCaption(shaped.clipboard, p.tier);
+  const gateOk = !p.requiresTwoQuestion || (q1No && q2No);
+  const canSend = p.enabled && !busy && gateOk && lint.ok && shaped.clipboard.trim().length > 0;
+  const link = platformLink(p, {
+    text: shaped.clipboard, title: shaped.title, url: videoUrl,
+  });
+
+  const log = useCallback(async () => {
+    // platform rides in imageMeta — social_posts.platform is a generated column
+    // over it, so this is the field that populates the log (see the MKT-15
+    // migration for why it is generated rather than plain).
+    await fbPublish.logAssist({
+      caption: shaped.clipboard, tier: p.tier, kind: 'reel',
+      targetName: p.label,
+      imageMeta: {
+        files: [filename], video: true, platform: p.id,
+        reel_kind: reel.kind, reel_date: reel.reel_date, assisted: 'social_handoff',
+      },
+    }).catch((e: any) => { console.log('[reels] platform logAssist failed:', e); });
+    onLogged();
+  }, [shaped.clipboard, p, filename, reel, onLogged]);
+
+  // One tap running all three in sequence — the operator's stated preference.
+  // Save FIRST: it is the step that can fail (permissions), and failing before
+  // the app opens is far better than opening a composer with nothing to attach.
+  const runAll = useCallback(async () => {
+    setBusy(true);
+    setMsg('⏳ Saving video to Photos…');
+    try {
+      await saveReelToPhotos(videoUrl, filename);
+      await Clipboard.setStringAsync(shaped.clipboard);
+      openInNewTab(link);
+      await log();
+      setMsg(`💾 Saved to Photos · caption copied · ${p.label} opened. Attach the video from your camera roll, paste, post.`);
+    } catch (e: any) {
+      setMsg(`❌ ${String(e?.message ?? e)}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [videoUrl, filename, shaped.clipboard, link, log, p.label]);
+
+  const copyOnly = useCallback(async () => {
+    await Clipboard.setStringAsync(shaped.clipboard);
+    setMsg('📋 Caption copied.');
+  }, [shaped.clipboard]);
+
+  return (
+    <Card style={{ padding: 10, marginTop: 8, opacity: p.enabled ? 1 : 0.55 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Text style={{ fontSize: 14 }}>{p.icon}</Text>
+        <Text style={{ fontSize: 12, fontWeight: '800', color: colors.text, flex: 1 }}>{p.label}</Text>
+        <Pill label={`tier ${p.tier}`} color={colors.textTertiary} />
+        {p.enabled
+          ? <Pill label={lint.ok ? '✓ lint' : `${lint.violations.filter(v => v.blocking).length} blocking`} color={lint.ok ? colors.success : colors.error} />
+          : <Pill label="disabled" color={colors.textTertiary} />}
+      </View>
+
+      {!p.enabled ? (
+        <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 6, lineHeight: 15 }}>{p.disabledReason}</Text>
+      ) : (
+        <>
+          {shaped.title != null && (
+            <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 6 }} numberOfLines={2}>
+              <Text style={{ fontWeight: '800' }}>Title: </Text>{shaped.title}
+            </Text>
+          )}
+          <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 4, lineHeight: 15 }} numberOfLines={4}>
+            {shaped.clipboard}
+          </Text>
+          <Text style={{ fontSize: 9, color: shaped.truncated ? colors.orange : colors.textTertiary, marginTop: 4 }}>
+            {shaped.clipboard.length}/{p.maxLen} chars{shaped.truncated ? ' · TRUNCATED to fit' : ''}
+            {p.deepLink ? '' : ' · opens the app (no compose deep link)'}
+          </Text>
+          {lint.violations.filter(v => v.blocking).map((v, i) => (
+            <Text key={i} style={{ fontSize: 9, color: colors.error, marginTop: 2 }}>⛔ “{v.term}” ({v.rule})</Text>
+          ))}
+
+          {p.requiresTwoQuestion && (
+            <View style={{ marginTop: 8 }}>
+              <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }} onPress={() => setQ1No(v => !v)}>
+                <Text style={{ fontSize: 13 }}>{q1No ? '☑️' : '⬜'}</Text>
+                <Text style={{ fontSize: 9, color: colors.text, flex: 1 }}>Q1 — NO 3-digit numbers visible in any frame</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} onPress={() => setQ2No(v => !v)}>
+                <Text style={{ fontSize: 13 }}>{q2No ? '☑️' : '⬜'}</Text>
+                <Text style={{ fontSize: 9, color: colors.text, flex: 1 }}>Q2 — NO forbidden vocabulary rendered or spoken</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+            {Platform.OS !== 'web' ? (
+              <TouchableOpacity style={[st.btnPrimary, { flex: 1, opacity: canSend ? 1 : 0.5 }]} disabled={!canSend} onPress={runAll}>
+                <Text style={st.btnPrimaryText}>{busy ? '⏳ …' : `💾 Save + Copy + Open ${p.label}`}</Text>
+              </TouchableOpacity>
+            ) : (
+              // Web deliberately does NOT duplicate the transient-activation
+              // dance: use the reel's own Prepare/Download above for the file.
+              <>
+                <TouchableOpacity style={[st.btnGhost, { opacity: gateOk ? 1 : 0.5 }]} disabled={!gateOk} onPress={copyOnly}>
+                  <Text style={st.btnGhostText}>📋 Copy caption</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[st.btnGhost, { opacity: gateOk ? 1 : 0.5 }]} disabled={!gateOk} onPress={() => { openInNewTab(link); void log(); }}>
+                  <Text style={st.btnGhostText}>↗ Open {p.label}</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+          {msg && <Text style={{ fontSize: 9, color: colors.textSecondary, marginTop: 6, lineHeight: 14 }}>{msg}</Text>}
+        </>
+      )}
+    </Card>
+  );
+}
 
 function ReelCard({ reel, urls, onPosted }: { reel: MarketingReel; urls: GroupUrls; onPosted: () => void }) {
   const { colors } = useTheme();
@@ -346,6 +496,24 @@ function ReelCard({ reel, urls, onPosted }: { reel: MarketingReel; urls: GroupUr
         )}
       </View>
       {msg && <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 8, lineHeight: 15 }}>{msg}</Text>}
+
+      {/* MKT-15 — assisted handoff to the other platforms. Same lane as the FB
+          rows above (save → copy → open → finish by hand), one row per
+          registered platform, disabled ones shown with their reason. */}
+      <Text style={{ fontSize: 9, fontWeight: '800', color: colors.textTertiary, marginTop: 14, letterSpacing: 1 }}>
+        OTHER PLATFORMS — ASSISTED HANDOFF
+      </Text>
+      {PLATFORM_IDS.map(id => (
+        <PlatformHandoffRow
+          key={id}
+          platform={SOCIAL_PLATFORMS[id]}
+          reel={reel}
+          caption={caption}
+          videoUrl={videoUrl}
+          filename={filename}
+          onLogged={onPosted}
+        />
+      ))}
     </Card>
   );
 }

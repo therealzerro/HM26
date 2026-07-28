@@ -11,7 +11,7 @@
 
 ---
 
-### MKT-15 — Social handoff buttons (assisted, no API integration) 🔍 PHASE 0 REPORTED
+### MKT-15 — Social handoff buttons (assisted, no API integration) ✅ PHASE 1 SHIPPED · PHASE 2 BLOCKED
 
 **Work order:** operator-directed, discovery-first. **SUPERSEDES the phasing in `docs/social_expansion_scope_2026-07-28.md`** — operator ruling: **no platform API integrations**. The lane is save-to-device → tap a button landing as close to the platform's post screen as possible → finish by hand. The existing FB flow ("Save to Photos + Open Group") extended to N platforms. Marketing pipeline + admin UI only. **Phase 0 is report-only; nothing built.**
 
@@ -53,7 +53,45 @@ Method: strings were not read off source. The live app was driven (premium, dark
 
 #### Recommendation before Phase 1
 
-Phase 1 (the handoff lane) is **not blocked** by the red gate — it is platform plumbing and can ship against existing group destinations. **Phase 2 is blocked** and is now materially larger than scoped: a relabelled + redacted capture mode. Suggest Phase 1 proceeds and Phase 2 is re-scoped with the vocabulary override list above as its acceptance criteria.
+Phase 1 (the handoff lane) is **not blocked** by the red gate — it is platform plumbing and can ship against existing group destinations. **Phase 2 is blocked** and is now materially larger than scoped: a relabelled + redacted capture mode. Suggest Phase 1 proceeds and Phase 2 is re-scoped with the vocabulary override list above as its acceptance criteria. **Operator gate ruling 2026-07-28: accepted — Phase 1 proceeds, Phase 2 takes the list as acceptance criteria.**
+
+#### Phase 1 — THE HANDOFF LANE ✅ SHIPPED 2026-07-28
+
+- **`constants/socialPlatforms.ts`** — the registry, mirroring `reel-scopes.ts`. Per platform: asset variant, caption shape, deep-link template or null, tier, char ceilings, hashtags, link policy, Two-Question requirement, enabled flag + reason. **Deviation from the work order's literal path** (`scripts/social-platforms.ts`), flagged and deliberate: the handoff runs in the admin app and the gate is a node script, so both an RN screen and a script import it — a registry under `scripts/` cannot be imported by the app at all. This is the split MKT-11 already established (shared ordering in `constants/reelPanels.ts`, build-only clearance in `scripts/panel-config.ts`).
+- **Enablement:** Telegram **enabled** (a room we own — no classifier decides whether we are gambling-adjacent there — so it ships against the same digit-bearing cut the FB groups already take). YouTube / TikTok / Reddit / X **registered but disabled**, each declaring `asset:'redacted'` so the Phase 2 dependency lives in the registry rather than a comment. Instagram disabled with cause, and explicitly **not** a Phase 2 unblock.
+- **Caption transform** over the existing kinds (not a kind per platform × reel kind — that product is combinatorial). Strips links where they are dead text, appends hashtags, splits title/body, clamps to each platform's ceiling **on a word boundary**. Order is deliberate: strip → reserve hashtag room → clamp, because clamp-then-append can push the result back over the limit, which is exactly the silent failure X's 280 ceiling would produce. Hashtag sets are **mechanical only** (`#Shorts` classifies a YouTube upload; it is not brand copy) — editorial sets are content-agent copy and are left empty rather than invented, the same rule Phase 2 applies to replacement vocabulary.
+- **Admin → Reels** gains one row per registered platform: shaped-caption preview, char budget with a truncation warning, per-platform tier lint, Two-Question checkboxes, and a single `Save + Copy + Open` tap. **Save runs FIRST** — it is the step that can fail on permissions, and failing before the app opens beats opening a composer with nothing to attach. Disabled platforms still render, greyed, **with their reason**: hiding them would make a standing ruling (Instagram) look like an oversight and hide that four surfaces are waiting on Phase 2 rather than missing. Web deliberately does not duplicate the transient-activation dance — it offers Copy + Open and defers the file to the reel's own Prepare/Download.
+- **Logging** — `social_posts.platform`, added as a **GENERATED** column over `image_meta->>'platform'` (migration `mkt15_social_posts_platform_column`). `fb-publish`'s `log_assist` writes a fixed field list with `image_meta` as the only caller-controlled passthrough, so a plain column could not be populated without editing that edge function — outside this work order's scope. Generated yields a real, queryable, indexed column with zero edge change and no way to drift from the payload that produced it.
+- **`npm run social:dryrun`** (`scripts/social-handoff-dryrun.ts`) — the gate. Read-only; prints the exact bundle the admin screen would produce per reel × platform, so a silently-truncated caption or a broken deep link is caught off-device.
+
+**GATE RESULT — passed, and it immediately found something.** 4 reels × 6 platforms. Telegram clean on the free caption; **all three PRO captions blocked** at tier 3 on `STRAIGHT` and state codes (`GA`). That is not a defect — the pro captions legitimately carry pro-tier vocabulary, and Telegram was registered at tier 3 (cross-post class) because a Telegram channel may be public. Per the work order's own instruction ("if the gate blocks a reel that is information about the content; do not weaken it to make a phase pass") the tier was **left at 3**. **Open decision for the operator:** if the Telegram channel is the Pro room it is tier 4 and the pro captions pass unchanged; if it is a public broadcast channel tier 3 is correct and those captions need pro numbers stripped. One-line registry change either way.
+
+**Validation:** filtered `tsc --noEmit` **0 errors**; eslint clean on both touched app files; dry run green.
+
+#### Phase 2 — REDACTED **AND RELABELLED** PUBLIC CUT ⛔ BLOCKED (re-scoped 2026-07-28)
+
+**Acceptance criteria: every row below resolves to clear, verified frame-by-frame on a rendered public cut. Not "reviewed" — empty. The public variant does not ship with a single known violation.**
+
+| # | Violation | Where | Fix class | Copy needed from content agent? |
+|---|---|---|---|---|
+| 1 | digits (pick digits, `{0,1,4}` box sets) | grid + all 6 modals | capture-mode digit mask | no |
+| 2 | `PICK` | `PICK #n · ZK6` header ×6 | capture-mode relabel | **YES** |
+| 3 | `STRAIGHT` | `⚡ BEST STRAIGHT` ×6 | capture-mode relabel | **YES** |
+| 4 | `BOX` | `BOX SET` ×6 | capture-mode relabel | **YES** |
+| 5 | `PLAY` | PLAY tab ×6 | capture-mode relabel | **YES** |
+| 6 | `straight` (lowercase) | resolution trail, `· 1 straight` | capture-mode relabel | **YES** (may reuse #3) |
+| 7 | state codes `TX TN SC MS CO` | resolution-trail attributions | suppress in capture mode | no |
+| 8 | `ALLDAY` badge, `Midday`/`Evening` tabs | grid + modals | suppress or relabel | **YES if relabelled** |
+| 9 | `· ALL-DAY` / `· MIDDAY` / `· EVENING` | MKT-07 stamp date line | public copy-set override | **YES** |
+| 10 | `ALL-DAY · FIRST LOOK` etc. | 3 of 4 stinger headlines | public copy-set override | **YES** |
+
+Rows 9–10 are **config entries against the existing motion files — zero new video generation** (MKT-10/MKT-12 already made copy a config string). Rows 2–6 and 8 are a capture-mode override layer; **do not invent replacement copy** — any row marked YES goes back to the content agent first.
+
+**The fix belongs in a capture-mode override, NEVER in the consumer UI.** BRAND-01 tuned that vocabulary for subscriber surfaces on purpose (BRAND-04 even changed `exact` → `straight` deliberately); editing it would break the subscriber surfaces the app actually serves, and violates the hands-off rule.
+
+**One free win:** `session-label` is coded `blocking: /\d{3}/.test(text)`, so the digit mask alone downgrades rows 8–10 from blocking to advisory. They still want fixing per the brief's "prefer omitting", but they do not gate the phase once digits are gone.
+
+**ALSO UNLOCKS the free-group Midday/Evening reel** (handoff §9, [[MKT-13]] recorded the same dependency) — one build, two payoffs.
 
 ---
 

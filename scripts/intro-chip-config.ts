@@ -25,6 +25,16 @@ export const CHIP_LABELS: Record<string, { text: string; accent: string }> = {
   allday_free:    { text: 'ALL-DAY',             accent: DROP },
   midday_pro:     { text: 'MIDDAY',              accent: DROP },
   evening_pro:    { text: 'EVENING',             accent: DROP },
+  // MKT-26 free session kinds. Same text as their pro siblings, exactly as
+  // `allday_free` mirrors `allday_pro` — the chip names the SCOPE, and session
+  // vocabulary is sanctioned at tier 2 (only PUBLIC must drop it, which is what
+  // the three `*_public` rows below are for). Missing until 2026-07-29: the
+  // assembler's `intro && CHIP_LABELS[kind]` guard yields null for an unlisted
+  // kind, so the free cuts assembled with NO chip while their pro siblings
+  // carried one — silently, since a null chip is also how a legacy build opts
+  // out. A per-kind registry is only as complete as the last kind added to it.
+  midday_free:    { text: 'MIDDAY',              accent: DROP },
+  evening_free:   { text: 'EVENING',             accent: DROP },
   verify:         { text: "YESTERDAY'S RESULTS", accent: VERIFY },
   allday_public:  { text: 'THE FULL BOARD',      accent: DROP },
   midday_public:  { text: 'THE FULL BOARD',      accent: DROP },

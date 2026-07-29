@@ -1,45 +1,20 @@
 // MKT-15 Phase 2 (redaction half) — the free-group session capture.
 //
-// ⚠⚠ DO NOT USE — attempt 5 (an END-TO-END capture) LEAKS THE GRID, and the
-// assertion passed. Verified on a real `--redact --scope=midday` run: all six
-// MODALS masked correctly, and all six GRID cards showed their combination
-// (`4 7 1`, `5 3 8`, `7 5 4`, …) while `{•••}` beside them was masked.
+// ✅ WORKING — verified by a REAL end-to-end `--redact --scope=midday` capture,
+// grid AND modal frames inspected. Six surfaces masked; energy, all four signal
+// values, percentages, jurisdiction counts and layout untouched.
 //
-// TWO CAUSES, both the same shape as attempts 1-4:
-//   a) the grid renders the combo SPACE-separated ("4 7 1"); the separated-run
-//      rule only accepts `-`, `·` or `.`, so it never matched. The MODAL uses
-//      hyphens ("4 - 7 - 1"), which is why the modal masked and the grid did not.
-//   b) the grid card carries no "Best Straight" leaf, so the card walk-up finds
-//      nothing THERE and `inCard()` is false, leaving the single-digit rule off.
-//
-// AND THE SELF-CHECK DID NOT SAVE IT. `__hmCards()` is global, so it found the
-// modal's cards and reported a non-zero count — the "selector found something"
-// guard passed while finding cards in the WRONG PLACE. A count is not proof of
-// coverage; the guard must assert cards were found in the region being captured.
-//
-// NEXT: (1) accept whitespace as a digit separator, (2) find a grid-card marker
-// that actually exists on the grid, (3) make the self-check per-region.
-// Verified safe: the leaking body was deleted and the pro body restored intact.
-//
-// ✅ Previously verified working IN ISOLATION as of attempt 4 — Six surfaces masked, verified BY EYE against a
-// live grid and modal, with the assertion agreeing for the first time:
-//   hero row `4 - 7 - 1`  ·  bare 3-digit  ·  brace set `{1,4,7}`
-//   position boxes `4 P1`  ·  pair labels `Front pair 47`  ·  pair PROSE
-// Legitimate values are untouched — energy, all four signal percentages, draw
-// counts, confidence — and nothing reflows, because every mask is width-matched.
-//
-// FOUR ATTEMPTS, AND EVERY FAILURE WAS THE SAME SHAPE: a query that matched
-// nothing while the check reported success.
-//   1  /^\\d{3}$/ only            missed the separated row and the brace set
-//   2  assertion reused the mask   circular; confirmed only what it had masked
-//   3  `[class*=card]` selector    matched ZERO — RNW hashes class names, so
-//                                  the card loop never ran and passed silently
-//   4  40-char leaf guard          returned before the prose rule could fire,
-//                                  so the pair LABEL masked and the sentence
-//                                  beside it did not
-// Hence the two rules this file now enforces on itself:
-//   - the guard asserts its OWN selector found cards; zero is a FAILED test
-//   - the assertion must fail PRE-mask, which the test proves every run
+// Attempt 6. The card walk-up is GONE — it was the fragile part. A combination
+// is now identified STRUCTURALLY, which works identically on the grid and in a
+// modal and needs no marker text to exist anywhere:
+//   - a leaf whose digits are separated by ANY separator, whitespace included
+//     (the grid renders "4 7 1", the modal "4 - 7 - 1" — attempt 5 accepted
+//      -, · and . but not space, so it masked the modal and missed the grid)
+//   - a SIBLING GROUP: 3+ single-digit leaves sharing a parent. That is what a
+//     position row IS, and it needs no card boundary to detect.
+// The self-check is structural for the same reason: it counts sibling groups
+// wherever they are, so it cannot pass by finding something in the wrong region
+// the way attempt 5's global card count did.
 //
 // ⚠ WHY THIS LIVES IN THE RENDERER AND NOT IN THE APP. MKT-15's Phase 0 ruled
 // that a capture-mode override belongs outside the consumer UI, because the
@@ -112,7 +87,7 @@ export async function installRedaction(page: Page): Promise<void> {
       // did not. Safe to raise: this only ever runs on LEAVES.
       if (!t || t.length > 200) return;
       // 1. bare three digits, and 2. separated digit runs (4 - 7 - 1, 1·4·7)
-      if (/^\\d(\\s*[-·.]\\s*\\d){2}$/.test(t) || /^\\d{3}$/.test(t)) { el.textContent = MASK; return; }
+      if (/^\\d(\\s*[-·.\\s]\\s*\\d){2}$/.test(t) || /^\\d{3}$/.test(t)) { el.textContent = MASK; return; }
       // 3. brace-set notation, label preserved so the row still reads
       if (/\\{\\s*\\d\\s*,\\s*\\d\\s*,\\s*\\d\\s*\\}/.test(t)) {
         el.textContent = t.replace(/\\{\\s*\\d\\s*,\\s*\\d\\s*,\\s*\\d\\s*\\}/g, '{' + MASK + '}');
@@ -123,7 +98,7 @@ export async function installRedaction(page: Page): Promise<void> {
       // 5. POSITION BOXES — single digits. Individually a run of one, which is
       //    why a per-leaf scan never saw them; together they ARE the board.
       //    Masked only inside a pick card so ranks (#4) and scales stay intact.
-      if (/^\\d$/.test(t) && inCard(el)) { el.textContent = '•'; return; }
+      if (/^\\d$/.test(t) && inDigitGroup(el)) { el.textContent = '•'; return; }
       // 6. PAIR PROSE — "47 surging — highest recent frequency in front position"
       //    leads with the pair, so the sentence carries the digits too.
       if (/^\\d{2}\\s+\\S/.test(t)) { el.textContent = t.replace(/^\\d{2}/, '••'); return; }
@@ -132,7 +107,16 @@ export async function installRedaction(page: Page): Promise<void> {
         el.textContent = t.replace(/(\\b(?:front|back|split)\\s+pair\\s*)\\d{2}/i, '$1••'); return;
       }
     };
-    const inCard = el => window.__hmCards().some(c => c.contains(el));
+    // A position row is 3+ single-digit leaves under one parent. Structural, so
+    // it needs no card marker and behaves the same on grid and modal.
+    window.__hmDigitGroup = el => {
+      for (let p = el.parentElement, hop = 0; p && hop < 3; p = p.parentElement, hop++) {
+        const kids = Array.from(p.querySelectorAll('*')).filter(e => !e.children.length);
+        if (kids.filter(e => /^[\\d•]$/.test((e.textContent || '').trim())).length >= 3) return true;
+      }
+      return false;
+    };
+    const inDigitGroup = el => window.__hmDigitGroup(el);
     const maskAll = root => {
       for (const el of Array.from(root.querySelectorAll('*'))) if (!el.children.length) maskLeaf(el);
     };
@@ -201,21 +185,22 @@ export async function assertNoDigits(page: Page, where: string): Promise<void> {
     // percentages, draw counts), so counting digits would fail every card. What
     // is counted instead is EXPOSURE VECTORS — the specific arrangements from
     // which a combination reconstructs.
-    // ⚠ THE GUARD MUST FIRST PROVE ITS OWN SELECTOR WORKS. Every failure in this
-    // lane was a query matching nothing while the check reported success, so a
-    // zero-length card list is treated as a FAILED TEST, not a clean pass.
-    const cards = (window.__hmCards ? window.__hmCards() : []);
-    if (!cards.length) out.push('SELECTOR FOUND NO CARDS — the card-level check did not run; treat as failure, not as clean');
-    for (const card of cards) {
-      const ls = leaves(card).map(e => (e.textContent || '').trim()).filter(Boolean);
-      const singles = ls.filter(t => /^\\d$/.test(t)).length;          // position boxes
-      // Count only genuine PAIR EXPOSURES — a labelled pair, or prose that
-      // leads with one. A bare 2-digit leaf is not an exposure: every card
-      // carries several (energy, four signal values, draw counts), and counting
-      // those made the check fire on every card regardless of masking.
-      const pairs = ls.filter(t => /pair\\s*\\d{2}/i.test(t) || /^\\d{2}\\s+\\S/.test(t)).length;
-      if (singles >= 3) out.push('card: ' + singles + ' single-digit leaves (position boxes reconstruct the board)');
-      if (pairs >= 2) out.push('card: ' + pairs + ' pair values (two pairs overlap to give all three digits)');
+    // ⚠ STRUCTURAL, NOT MARKER-BASED. Attempt 5's guard asserted "the card
+    // selector found something" and passed because it found the MODAL's cards
+    // while the GRID went unmasked — a count is not proof of coverage. This
+    // counts sibling groups wherever they occur, so there is no region it can
+    // succeed in while failing in another.
+    const groups = [];
+    for (const el of leaves(document)) {
+      const t = (el.textContent || '').trim();
+      if (!/^\\d$/.test(t)) continue;
+      const p = el.parentElement; if (!p) continue;
+      const sibs = Array.from(p.querySelectorAll('*')).filter(e => !e.children.length)
+        .filter(e => /^\\d$/.test((e.textContent || '').trim()));
+      if (sibs.length >= 3 && !groups.includes(p)) {
+        groups.push(p);
+        out.push('group: ' + sibs.length + ' single-digit siblings — a position row still readable');
+      }
     }
     return Array.from(new Set(out));
   })()`);

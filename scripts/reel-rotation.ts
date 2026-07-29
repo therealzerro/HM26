@@ -41,3 +41,36 @@ export const ROTATION_SALT = {
   endcard: 3,
   carrier: 5,
 } as const;
+
+/**
+ * Per-kind offset, so a lane SPREADS across the day's reels instead of moving
+ * through them in lockstep.
+ *
+ * THE PROBLEM THIS FIXES (operator, 2026-07-29). Every lane rotated on the date
+ * alone, so on any given morning every reel drew the SAME member. Measured on
+ * 2026-07-29 across six kinds: 1 distinct stinger, 2 distinct endcards, 3
+ * distinct intros — all four slate reels opened on the identical intro, stinger
+ * and endcard. Someone following both the Pro and Free rooms saw the same six
+ * seconds twice before breakfast.
+ *
+ * `index` is the kind's position within THAT LANE'S OWN consumer list — not a
+ * global kind index. This matters and was got wrong first: a global index gives
+ * uneven spread once a lane serves a non-contiguous subset (the endcard pro tier
+ * is kinds 0, 2, 3, 4 of the global order, which collapses to 0,0,1,0 against a
+ * 2-motion pool). Indexing within the lane guarantees an even walk across
+ * whatever pool that lane has.
+ *
+ * Where the pool is at least as large as the lane's consumer count, every reel
+ * gets a DISTINCT member. Where it is smaller, they spread as evenly as the
+ * pool allows — which is the honest ceiling, and the asset counts needed to
+ * reach full distinctness are recorded in the audit.
+ */
+export function laneRotate<T>(set: T[], dateISO: string, salt: number, index: number): T[] {
+  return rotateByDate(set, dateISO, salt + index);
+}
+
+/** Position of `kind` in a lane's consumer list; 0 when absent (single-kind lanes). */
+export function laneIndex(kinds: string[], kind: string): number {
+  const i = kinds.indexOf(kind);
+  return i >= 0 ? i : 0;
+}

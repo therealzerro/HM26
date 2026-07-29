@@ -13,7 +13,7 @@
 // decides, and there is no code path that takes a motion from the other set.
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { rotateByDate, ROTATION_SALT } from './reel-rotation';
+import { rotateByDate, laneRotate, laneIndex, ROTATION_SALT } from './reel-rotation';
 
 export type Tier = 'pro' | 'free';
 
@@ -86,6 +86,12 @@ export const ENDCARD_MOTIONS: Record<Tier, MotionVariant[]> = {
  */
 const PRO_KINDS = new Set(['allday_pro', 'midday_pro', 'evening_pro', 'verify']);
 
+/** Kinds per tier, in a stable order — the endcard lane's spread axis. */
+export const ENDCARD_KINDS: Record<Tier, string[]> = {
+  pro: ['allday_pro', 'midday_pro', 'evening_pro', 'verify'],
+  free: ['allday_free', 'allday_public', 'midday_public', 'evening_public'],
+};
+
 export function tierFor(kind: string): Tier {
   return PRO_KINDS.has(kind) ? 'pro' : 'free';
 }
@@ -154,9 +160,18 @@ export function builtStingerName(variant: string, tag: string): string {
  * drawing the same stinger motion is accepted (different rooms, and their
  * endcards differ by tier anyway), so no cross-kind spacing is applied.
  */
-export function stingerMotionsFor(_kind: string, dateISO: string): MotionVariant[] {
-  return rotateByDate(STINGER_MOTIONS, dateISO, ROTATION_SALT.stinger);
+export function stingerMotionsFor(kind: string, dateISO: string): MotionVariant[] {
+  // MKT-19 + operator 2026-07-29: spread across kinds, not just across dates.
+  // Every kind used to draw the same motion each morning (measured: 1 distinct
+  // across 6 kinds). Indexed within STINGER_KINDS so the walk is even.
+  return laneRotate(STINGER_MOTIONS, dateISO, ROTATION_SALT.stinger, laneIndex(STINGER_KINDS, kind));
 }
+
+/** Kinds that carry a stinger, in a stable order — the stinger lane's spread axis. */
+export const STINGER_KINDS = [
+  'allday_pro', 'allday_free', 'midday_pro', 'evening_pro',
+  'allday_public', 'midday_public', 'evening_public',
+];
 
 /**
  * Endcard motions for a kind, in preference order, tier-locked.
@@ -175,7 +190,12 @@ export function endcardMotionsFor(
   dateISO: string,
   opts: { needsBed?: boolean; meta?: Record<string, MotionMeta> } = {},
 ): MotionVariant[] {
-  const ordered = rotateByDate(ENDCARD_MOTIONS[tierFor(kind)], dateISO, ROTATION_SALT.endcard);
+  // Spread within the TIER, because the pool is tier-locked — indexing on a
+  // global kind order collapses the pro tier (kinds 0,2,3,4) onto one motion.
+  const tier = tierFor(kind);
+  const ordered = laneRotate(
+    ENDCARD_MOTIONS[tier], dateISO, ROTATION_SALT.endcard, laneIndex(ENDCARD_KINDS[tier], kind),
+  );
   if (!opts.needsBed) return ordered;
   const meta = opts.meta ?? {};
   // Unknown (not yet derived) is treated as USABLE: the assembler still probes

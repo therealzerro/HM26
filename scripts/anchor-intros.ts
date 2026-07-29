@@ -11,7 +11,7 @@
 // uses, so re-running a given date reproduces that date's intro exactly. Growing
 // the set is a line here and nothing else.
 
-import { rotateByDate, ROTATION_SALT } from './reel-rotation';
+import { laneRotate, laneIndex, ROTATION_SALT } from './reel-rotation';
 
 export interface IntroVariant {
   file: string;
@@ -57,6 +57,13 @@ export const INTRO_ROTATION: IntroVariant[] = [
 export const INTRO_DEFAULT = 'anchor_intro.mp4';
 
 /**
+ * Slate kinds that draw from the rotation, in a stable order — the intro lane's
+ * spread axis. verify and the public kinds are absent because they are FIXED
+ * (below) and never draw from the pool.
+ */
+export const SLATE_KINDS = ['allday_pro', 'allday_free', 'midday_pro', 'evening_pro'];
+
+/**
  * Kinds that do NOT rotate.
  *
  * verify — a deadpan gag ahead of yesterday's receipts is a tonal mismatch.
@@ -97,7 +104,7 @@ export function introCandidates(kind: string, dateISO: string): IntroVariant[] {
 
   // MKT-20: the shared rotation helper. Identical to the inline version it
   // replaces (salt 0), so no date's intro changes.
-  const ordered = rotateByDate(INTRO_ROTATION, dateISO, ROTATION_SALT.intro);
+  const ordered = laneRotate(INTRO_ROTATION, dateISO, ROTATION_SALT.intro, laneIndex(SLATE_KINDS, kind));
   if (!ordered.some(v => v.file === INTRO_DEFAULT)) {
     ordered.push({ file: INTRO_DEFAULT, label: 'standard (fallback)' });
   }

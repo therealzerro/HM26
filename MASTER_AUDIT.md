@@ -11,6 +11,106 @@
 
 ---
 
+### MKT-23 — Asset wave: intros, motions, session carrier, endcard copy 🔍 PHASE 0 REPORTED · GATE HELD
+
+**⚠ ID COLLISION, AND IT IS MINE.** The order specified MKT-22 and asked me to verify. `MKT-22` has **no audit heading** — but I stamped it across **9 code locations** in commit `3fbd7a4` (the intro identity chip) earlier the same day and **never wrote the audit entry**. So the ID was free in the audit and taken in the code, which is exactly the failure the audit exists to prevent, committed by the party maintaining it. **Recorded as a rule: an ID is claimed by the AUDIT, not by a code comment — stamping one without an entry is how a lane gets orphaned** (cf. MKT-19, renumbered for the same class of collision arriving from the other direction).
+
+**Resolution: the chip KEEPS MKT-22** (already committed, pushed and referenced in 9 sites — renaming buys nothing and touches working code), **this wave becomes MKT-23**, and the missing MKT-22 entry is owed. Flagged rather than silently renumbered because the order named MKT-22 explicitly.
+
+**Item 1 — TRIMS. All three pass; three different windows, as the v1.7 rule predicts.** All three carry **audio from frame 1** (first-0.25s max −34.1 / −22.1 / −36.4 dB) — standing ask #4 addressed — and none contains a scene cut, so there is no picture-cut / audio-onset split of the kind `arrival` had.
+
+| intro | trim | tail spread | edge | verdict |
+|---|---|---|---|---|
+| `powerup` | **IN 0.0 / OUT 6.0** | 69 | 0.96 | regeneration **CONFIRMED FIXED** — handset gone by 5.6s |
+| `board` | **IN 0.0 / OUT 6.0** | 87 | 0.77 | wall audit clean (below) |
+| `verify` | **IN 0.0 / OUT 5.6** | ~70 | ~0.89 | 5.6s matches standard's 5.625s, so verify's timeline does not shift |
+
+All three end on full-frame smoke and survive the 1:1 centre crop (visor, gesture and phone inside y420–1500; helmet crown clips, which is permitted).
+
+**⚠ A BLIND SPOT IN `tailEdgeRatio`, found on powerup.** At 4.5s the handset bezel is plainly visible, yet the edge ratio reads **0.82** — comfortably above the 0.6 warn. The heuristic compares outer columns against centre, and when the phone fills the frame those outer columns are *phone screen*, not dark bezel. It detects a handset that is small in frame (the original powerup, 0.41) and misses one that is large. Recorded: the metric bounds the out-point from below only after the push-in completes, so the eye check remains load-bearing exactly as MKT-17 concluded.
+
+**Wall audit — CLEAN.** Inspected at 2.5× across 0.2 / 0.9 / 1.8 / 2.6s: sine waveforms, dot-matrix particle fields, a faint square grid, scattered point lights. **No glyphs, numerals, axis labels or legends.** Safe for public kinds to draw from this rotation.
+
+**Item 2 — BED VALIDATION: BOTH PASS. Standing ask #8 CLOSES.**
+
+| motion | window | mean RMS | crack |
+|---|---|---|---|
+| `pro` (incumbent) | pre 0–4.0s | −27.6 dB | 4.4s |
+| `pro_alt` | — | **none** | — |
+| **`pro_steady`** | pre 0–4.0s | **−29.1 dB** | 4.4s |
+| **`pro_lattice`** | pre 0–3.8s | **−41.1 dB** | 4.2s |
+
+Pro tier goes from **1 of 2** bed-viable to **3 of 4** — the redundancy gap is closed and a short-carrier Pro morning no longer collapses to a single motion.
+
+**⚠ But `lattice` fails LEVEL-MATCHING even though it passes bedWindow.** MKT-19 matches every bed to a −27.6 dB reference with a ±6 dB clamp, on the stated principle that "a motion needing more is a defect, not a level". Lattice needs **+13.5 dB** and is clamped at +6, so it lands **7.5 dB quiet** — audibly softer on lattice days. Two options, operator's call: respec lattice's audio ~13 dB hotter, or accept a quieter bed on its days. **Steady has no such issue** (needs +1.5 dB, applied in full), so ask #8 closes on steady alone regardless.
+
+**Item 3 — TRANSIENT SWEEP. `fracture` passes outright; `imprint` passes on the substance and exposes a limitation in the guard.**
+
+| motion | detector | measured envelope (≤3.0s) |
+|---|---|---|
+| `stinger_motion` | 1 @ 1.2s | peak −1.1 dB @ 1.2s, range 36.6 dB |
+| `strike` | **0** | peak −2.5 dB @ 1.2s, range 33.7 dB |
+| `circuit` | **3** @ 1.4 / 2.2 / **2.7s** | the known defect |
+| **`fracture`** | **1 @ 1.1s** (+17.3 over floor) | peak −0.7 dB, range 17.3 dB ✅ |
+| **`imprint`** | **0** | peak −1.0 dB @ 1.1s, range **51.6 dB** — the largest in the set |
+
+**The detector is blind to gradual attacks, and nobody should read "0 transients" as "no beat".** It requires a 12 dB rise over the preceding **0.4s**; a motion that ramps in over longer has an already-high lookback floor, so prominence stays low however loud the peak. That is why `strike` — which ships daily — also reports 0. Both `imprint` and `strike` have a single clean hero beat at 1.1–1.2s. **`imprint` therefore satisfies the one-transient rule on the substance**, and the acceptance criterion should be read as "exactly one hero beat, none after ~2.4s", not "exactly one detector hit".
+
+**`circuit`'s authored fade still validates.** The sweep confirms the 2.7s transient it was written against (`audioFadeAgainst: 2.7`), so the correction remains justified per MKT-19's derived-vs-authored rule. The sweep also surfaces a **third** transient at 2.2s that MKT-19 did not record — it lands while the lockup is still fading out (`TEXT_OUT_START` 2.2 + 0.2), so it is not the empty-frame pop and the 2.45s fade remains the right cut.
+
+**Item 4 — MIDDAY CARRIER: measured, and it has the TIGHTEST margin in the fleet.**
+
+| quantity | value |
+|---|---|
+| part 1 file duration | 10.005s |
+| part 2 last word | 9.470s |
+| joined total | 20.360s |
+| fade begins | 20.010s |
+| joined last word | 19.826s |
+| **margin** | **+0.184s** |
+
+Positive and in overlap mode, so it ships — but against pro **+0.449**, free **+0.331** and public **+0.331**, midday has roughly *half* the slack of the next tightest. It confirms the order's own warning: part 2's last word at 9.470s sits 0.18s inside the ~9.65s ceiling. **Not a defect; a note that this pair has no room for a re-cut that runs longer.**
+
+**The feared worse defect did NOT occur.** The pre-overwrite file (`md5 ca1d977a`) is **not** a byte copy of `allday_pro_carrier` (`be05152c`), `allday_free_carrier` (`2b8aeb9a`) or `evening_pro_carrier` (`69ad83f6`). So the Midday reel was not speaking All-Day framing verbatim; it was distinct generic VO, consistent with how §9 ask #3 described it.
+
+**Item 5 — PANEL: already complete, ahead of this order.** `panel_app` was re-cleared, rebuilt and published earlier the same day (`fe4c220`, `e3ea937`). New copy verified by eye at tier 1: Q1 clean (no numerals — "SIX" is a word), Q2 clean, and **the `GOOGLE PLAY` token is gone**, which moots the allowlist question ruled on earlier. Band detection cropped y287–736 with nothing clipped. **No `panel_app2.png` on disk** — only `panel_app.png`. The rebuild also surfaced and closed a hole in the clearance chain (built-vs-source was never compared, so a re-pin without a rebuild produced a green preflight and a stale product surface).
+
+**Item 6 — MATRIX RE-DECISION: prebuild still wins, and the count was never the argument.**
+
+| state | stingers | endcards | total |
+|---|---|---|---|
+| now | 15 | 10 | **25** |
+| after this wave (5 stinger / 4+2 endcard motions) | 25 | 18 | **43** |
+| once public registers | 40 | 24 | **64** |
+
+(The order estimated ~59; the actual figure is **64**, because public adds three stinger variants *and* three free-tier endcard kinds.)
+
+**The trade is unchanged because it was never about file count — it is about where the cost lands.** Building at run time moves ~10 Playwright renders into a window that is operator-triggered before 08:30 ET and is the only trigger in the system: the point of least slack. That risk does not shrink as the matrix grows. Prebuild's cost — build time when motions or copy change — sits off the critical path, and prebuilt artifacts remain inspectable *before* a run rather than during it.
+
+**What HAS changed is disk.** The current 22 built files are **128 MB**; 43 files is ~250 MB and 64 is ~380 MB of git-tracked binaries. **If that becomes the real constraint the answer is not run-time building — it is not committing the matrix at all.** Every built file is fully derived from a motion plus config, so it is reproducible by `npm run stinger:build` / `endcard:build`; it is in git today by convention, not necessity. That is a smaller, safer change than moving renders into the morning window, and it is the one to reach for first.
+
+**GATE: held.** Nothing registered, no config changed, no matrix rebuilt. Three items need a ruling before Phase 1: the **ID resolution**, **lattice's 7.5 dB quiet bed**, and whether **`imprint`** is accepted on the substance reading of the one-transient rule.
+
+---
+
+### MKT-22 — Intro identity chip (extends MKT-17; complements the MKT-19/20 rotation lanes) ✅ SHIPPED
+
+**⚠ THIS ENTRY WAS WRITTEN LATE, and that is the finding.** The work shipped in `3fbd7a4` with `MKT-22` stamped across 9 code sites and **no audit entry**, which left the ID free in the audit and taken in the code — surfaced the same day when the next work order specified MKT-22 and asked for it to be verified (see [[MKT-23]]). **An ID is claimed by the AUDIT, not by a code comment.** Recorded because this is the exact class MKT-19 was renumbered for, arriving from the opposite direction, and committed by the party maintaining the register.
+
+**What it is.** A small plate over the anchor's right shoulder naming the drop — `ALL-DAY` / `MIDDAY` / `EVENING` / `YESTERDAY'S RESULTS` — so the day's reels are distinguishable from their first second rather than from the stinger headline at 2.7s. Operator-requested after the lane-spreading fix (`6d994d3`) left intros at 5 of 6 distinct, with a **permanent** collision: `verify` pins to `anchor_intro.mp4` and a slate kind draws that same file daily. The chip closes the readability half at zero generation cost; MKT-23's `anchor_intro_verify` closes the footage half.
+
+**⚠ Public takes `THE FULL BOARD`, never a session word**, encoded in the registry rather than left to the call site — the MKT-15 copy brief ruled session vocabulary blocking for public surfaces, and a chip is a new way to put it back on screen.
+
+**Geometry measured, not guessed.** Viewer's right (the left is occupied in three of four rotation members — the phone in `anchor_intro`/`arrival`, the sheet in `deadpan`); y 664, lowered from a first attempt at 548 where it sat at visor height and the long verify label crowded the helmet; inside the 1:1 crop band so it survives the square cutdown. **The plate is the contrast guarantee, not decoration** — `deadpan` is a calm studio wall and `monitors` is a bright screen bank with no anchor at all for its first ~2s. Same ruling as MKT-21's bolt: a mark over an unknown underlay gets a scrim. Window 0.40–2.65s, clear of the intro→stinger crossfade at `openBase−0.3`.
+
+**⚠ A REAL BUG, CAUGHT BY RUNNING IT.** `render-intro-chip.ts` is a CLI, so its argv parsing executes at module load — the assembler's `import { CHIP_LABELS }` therefore RAN the CLI with the assembler's own argv, printed a usage error and exited before a single frame was assembled. Config now lives in `intro-chip-config.ts` and executables import it, which is the shape every other lane already uses (`panel-config`, `stinger-config`, `endcard-config`, `carrier-config`). **That convention exists for this reason**; it had simply never been violated before.
+
+Chip input is appended LAST with a computed index in both assemblers, because the stinger input is conditional — a hardcoded index would take the stinger's slot on a stinger-less kind and overlay the wrong stream.
+
+**Verified on a real assembler run:** absent at 0.30s, full 0.70–1.50s, fading at 2.55s, gone by 2.90s; legible on all four intro underlays including the bright screen bank. Today's All-Day pair was re-assembled to test, then the published versions restored and **md5-verified against storage** — the 7/29 reels do not carry the chip; it lands on the next run. **Not runtime-tested: the verify assembler path** — wired identically and typechecking, but `reel:verify` was not re-run, so tomorrow's receipts reel is its first exercise.
+
+---
+
 ### MKT-21 — Generated evergreen reel bodies (relates to MKT-15 Phase 2, MKT-16) 🔍 PHASE 0 REPORTED · BUILD HELD · **ASSETS REJECTED**
 
 **ID verified free** (`grep MKT-21` → 0 hits). Marketing pipeline only. All four files present, all 10.005s / 720×1280 / 24fps / AAC 48 kHz.

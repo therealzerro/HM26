@@ -5,11 +5,35 @@
 // day group. Deterministic frame capture (MKT-01 pattern): eased scroll
 // positions computed per frame, no wall-clock recording.
 //
-// Segment beat map:
+// Segment beat map (MKT-25 — restaged; total frame count UNCHANGED at 378):
 //   f000-f059  0.0-1.0s  static — summary stats band + yesterday header visible
-//   f060-f317  1.0-5.3s  one eased scroll through yesterday's receipt rows
-//                        (rate-capped at 1.5 viewport-heights per 4s)
-//   f318-f377  5.3-6.3s  static — last rows
+//   f060-f119  1.0-2.0s  eased scroll to the first featured row
+//   f120-f199  2.0-3.3s  HOLD on it, with a slow push-in
+//   f200-f239  3.3-4.0s  ease out and travel to the second featured row
+//   f240-f319  4.0-5.3s  HOLD on it, with a slow push-in
+//   f320-f377  5.3-6.3s  ease back out and settle
+//
+// WHY THIS REPLACED A SINGLE 4.3s SCROLL (operator: "the verify reel is boring").
+// A continuous crawl gives the eye nothing to land on, and every row passes at
+// the same weight — so the strongest evidence reads exactly like the weakest.
+// Holding on two rows lets a viewer actually READ one, and each ledger row
+// already carries both halves of the claim on one line ("681 · BOX All Day ·
+// Drew 186 in CT evening" is the call AND the outcome).
+//
+// FRAME COUNT IS DELIBERATELY UNCHANGED. `carrierNeed = uiDur + 2.9` against a
+// 10.005s verif_carrier caps the body at 7.105s, so there is only 0.81s of
+// headroom; restaging had to happen INSIDE the existing 6.3s rather than extend
+// it. Keeping 378 frames means the carrier, the reel length and the stamp
+// window are all untouched by this change.
+//
+// STRAIGHTS ARE FEATURED FIRST. They are the strongest evidence on the screen,
+// and they are scarce — 2026-07-28 had 11 matched rows and only 2 straights.
+//
+// THE BEAT MAP IS DATA-ADAPTIVE, unlike every other reel in the pipeline. Slate
+// reels always have exactly 6 picks; verify has whatever yesterday produced.
+// With 2+ featurable rows it holds on two; with 1 it holds on that one for both
+// beats (a longer, slower push rather than a jump to nothing); with 0 rows the
+// script already aborts and no reel is made.
 //
 // REAL DATA ONLY: if yesterday has no confirmed matches (no day group in the
 // rendered DOM), this script ABORTS with exit code 1 and renders nothing.
@@ -26,7 +50,12 @@ const BASE = 'http://localhost:8081';
 const OUT_DIR = resolve(process.argv[2] ?? 'assets/marketing/verify_reels');
 const FPS = 60;
 const VIEW_H = 960;                     // CSS px @2 DPR => 1920
-const SCROLL_FRAMES = 258;              // 4.3s
+const SCROLL_FRAMES = 258;              // 4.3s (legacy single-scroll path)
+/** MKT-25 beat boundaries, in frames. Sum must stay 378. */
+const B = { hold0: 60, travel1: 120, hold1: 200, travel2: 240, hold2: 320, end: 378 };
+/** Push-in at the peak of a hold. Modest on purpose — this is a ledger, not a
+ *  reveal, and a hard zoom on a receipts reel reads as salesmanship. */
+const ZOOM_MAX = 1.28;
 const MAX_SCROLL = 1.5 * VIEW_H * (4.3 / 4);   // spec rate cap over the scroll window
 const easeInOut = (t: number) => (1 - Math.cos(Math.PI * Math.min(Math.max(t, 0), 1))) / 2;
 
@@ -94,13 +123,51 @@ function yesterdayET(): string {
       .filter(d => /^\d+ match(es)?$/.test((d.textContent ?? '').trim()) && d.children.length === 0)
       .map(d => ({ n: Number((d.textContent ?? '').trim().split(' ')[0]), top: d.getBoundingClientRect().top - sRect.top + scroller!.scrollTop }));
     const chip = chips.find(c => Math.abs(c.top - yTop) < 60);
+    // MKT-25: locate yesterday's individual matched rows so the beat map can
+    // hold on them.
+    //
+    // ⚠ ANCHOR ON THE COMBO, NOT THE BADGE — two earlier attempts failed here.
+    // (1) Matching any element containing /STRAIGHT|BOX/ found only the 8400-char
+    //     page wrappers, because the row itself carries no such text node.
+    // (2) Matching a bare STRAIGHT/BOX leaf found exactly two, both at y=60 —
+    //     the summary band's stat tiles, above the day header.
+    // The row badge is a nested <span>, which querySelectorAll('div') cannot
+    // see at all. The COMBO is the stable anchor: a 3-digit leaf ~23px tall,
+    // one per row, and semantically the thing the row is about.
+    const groupEnd = after[0]?.top ?? scroller.scrollHeight;
+    const rows: Array<{ top: number; height: number; straight: boolean }> = [];
+    const all = Array.from(document.querySelectorAll('*')) as HTMLElement[];
+    const combos = all.filter(d => d.children.length === 0 && /^\d{3}$/.test((d.textContent ?? '').trim()));
+    for (const leaf of combos) {
+      const lr = leaf.getBoundingClientRect();
+      if (lr.height < 16 || lr.height > 34) continue;              // combo-sized
+      const lTop = lr.top - sRect.top + scroller!.scrollTop;
+      if (lTop < yTop || lTop >= groupEnd) continue;               // yesterday only
+      // Walk up to the row container so the hold frames the whole line, not
+      // just the digits.
+      let el: HTMLElement | null = leaf, row: HTMLElement | null = null;
+      for (let hop = 0; el && hop < 6; hop++) {
+        const h = el.getBoundingClientRect().height;
+        if (h >= 36 && h <= 160) { row = el; break; }
+        el = el.parentElement;
+      }
+      const target = row ?? leaf;
+      const r = target.getBoundingClientRect();
+      const top = r.top - sRect.top + scroller!.scrollTop;
+      if (rows.some(x => Math.abs(x.top - top) < 20)) continue;
+      // STRAIGHT is read from the row's full text, which DOES include the
+      // nested span even though the span is not itself selectable as a div.
+      rows.push({ top, height: r.height, straight: /\bSTRAIGHT\b/.test((target.textContent ?? '').trim()) });
+    }
+    rows.sort((a, b) => a.top - b.top);
     return {
       found: true,
       scrollHeight: scroller.scrollHeight,
       clientHeight: scroller.clientHeight,
       yTop,
-      nextTop: after[0]?.top ?? scroller.scrollHeight,
+      nextTop: groupEnd,
       rowCount: chip ? chip.n : -1,
+      rows,
     };
   }, dateISO);
 
@@ -110,7 +177,10 @@ function yesterdayET(): string {
     await browser.close();
     process.exit(1);
   }
-  const L = layout as { scrollHeight: number; clientHeight: number; yTop: number; nextTop: number; rowCount: number };
+  const L = layout as {
+    scrollHeight: number; clientHeight: number; yTop: number; nextTop: number; rowCount: number;
+    rows: Array<{ top: number; height: number; straight: boolean }>;
+  };
 
   // Anchor: keep the stats band in frame when yesterday's header is already
   // near the top; otherwise pull the header to ~45% of the viewport.
@@ -130,20 +200,103 @@ function yesterdayET(): string {
   const setScroll = (px: number) =>
     page.evaluate(y => { const el = (window as any).__adScroll; if (el) el.scrollTop = y; }, px);
 
-  // f000-f059: static hold at anchor.
-  await setScroll(anchor);
-  await page.waitForTimeout(400);
-  await page.screenshot({ path: fname(0) });
-  for (let f = 1; f < 60; f++) copyFileSync(fname(0), fname(f));
+  /**
+   * Zoom by CSS transform on the scroller, NOT by cropping the captured frame.
+   *
+   * The browser re-rasterises text at the transformed scale, so a held row stays
+   * crisp; cropping a 1080x1920 capture and scaling it back up would soften
+   * exactly the text the hold exists to let someone read. `transform-origin` is
+   * set to the row's centre so the push-in converges on it rather than on the
+   * middle of the viewport.
+   */
+  const setZoom = (k: number, originYpx: number) =>
+    page.evaluate(({ k, y }) => {
+      const el = (window as any).__adScroll as HTMLElement | undefined;
+      if (!el) return;
+      el.style.transformOrigin = `50% ${y}px`;
+      el.style.transform = k === 1 ? '' : `scale(${k})`;
+    }, { k, y: originYpx });
 
-  // f060-f317: eased scroll.
-  for (let f = 60; f < 60 + SCROLL_FRAMES; f++) {
-    await setScroll(anchor + dist * easeInOut((f - 60) / (SCROLL_FRAMES - 1)));
-    await page.screenshot({ path: fname(f) });
+  // MKT-25: choose the featured rows — straights first, then the earliest boxes,
+  // and always in document order once chosen so the camera never travels
+  // backwards up the ledger (which reads as a mistake, not a beat).
+  const straights = L.rows.filter(r => r.straight);
+  const boxes = L.rows.filter(r => !r.straight);
+  const featured = [...straights, ...boxes].slice(0, 2).sort((a, b) => a.top - b.top);
+  const restaged = featured.length >= 1;
+  console.log(
+    `date=${dateISO} rows=${L.rowCount} detected=${L.rows.length} ` +
+    `(straight=${straights.length}) featured=${featured.length} anchor=${Math.round(anchor)}`,
+  );
+
+  if (!restaged) {
+    // No row was detectable — fall back to the legacy single scroll rather than
+    // produce a frozen segment. The DOM shape is the only thing that can break
+    // this, and a boring reel beats no reel.
+    console.log('NOTE: no rows detected — falling back to the legacy single scroll.');
+    await setScroll(anchor);
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: fname(0) });
+    for (let f = 1; f < 60; f++) copyFileSync(fname(0), fname(f));
+    for (let f = 60; f < 60 + SCROLL_FRAMES; f++) {
+      await setScroll(anchor + dist * easeInOut((f - 60) / (SCROLL_FRAMES - 1)));
+      await page.screenshot({ path: fname(f) });
+    }
+    for (let f = 318; f < 378; f++) copyFileSync(fname(317), fname(f));
+  } else {
+    // With one featurable row, both holds land on it — a single longer, slower
+    // push rather than a travel to nothing.
+    const rowA = featured[0];
+    const rowB = featured[1] ?? featured[0];
+    // Scroll position that puts a row at ~42% of the viewport: high enough to
+    // read, low enough that the rows above it still give context.
+    const parkFor = (r: { top: number; height: number }) =>
+      Math.max(0, Math.min(r.top + r.height / 2 - 0.42 * VIEW_H, L.scrollHeight - L.clientHeight));
+    const parkA = parkFor(rowA), parkB = parkFor(rowB);
+    const originFor = (r: { top: number; height: number }, park: number) => r.top + r.height / 2 - park;
+
+    const shoot = async (f: number, scroll: number, k: number, origin: number) => {
+      await setScroll(scroll);
+      await setZoom(k, origin);
+      await page.screenshot({ path: fname(f) });
+    };
+
+    // f000-f059 — static at anchor, no zoom. The stats band is the credibility
+    // frame; it should not be moving or magnified.
+    await setScroll(anchor);
+    await setZoom(1, 0);
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: fname(0) });
+    for (let f = 1; f < B.hold0; f++) copyFileSync(fname(0), fname(f));
+
+    // f060-f119 — ease from the anchor to row A.
+    for (let f = B.hold0; f < B.travel1; f++) {
+      const t = easeInOut((f - B.hold0) / (B.travel1 - B.hold0 - 1));
+      await shoot(f, anchor + (parkA - anchor) * t, 1, originFor(rowA, parkA));
+    }
+    // f120-f199 — hold on row A, easing the push-in across the whole hold.
+    for (let f = B.travel1; f < B.hold1; f++) {
+      const t = easeInOut((f - B.travel1) / (B.hold1 - B.travel1 - 1));
+      await shoot(f, parkA, 1 + (ZOOM_MAX - 1) * t, originFor(rowA, parkA));
+    }
+    // f200-f239 — release the zoom and travel to row B.
+    for (let f = B.hold1; f < B.travel2; f++) {
+      const t = easeInOut((f - B.hold1) / (B.travel2 - B.hold1 - 1));
+      await shoot(f, parkA + (parkB - parkA) * t, ZOOM_MAX + (1 - ZOOM_MAX) * t, originFor(rowA, parkA));
+    }
+    // f240-f319 — hold on row B with its own push-in.
+    for (let f = B.travel2; f < B.hold2; f++) {
+      const t = easeInOut((f - B.travel2) / (B.hold2 - B.travel2 - 1));
+      await shoot(f, parkB, 1 + (ZOOM_MAX - 1) * t, originFor(rowB, parkB));
+    }
+    // f320-f377 — ease back out and settle, so the cut to the endcard lands on
+    // a still, unmagnified frame rather than mid-move.
+    for (let f = B.hold2; f < B.end; f++) {
+      const t = easeInOut((f - B.hold2) / (B.end - B.hold2 - 1));
+      await shoot(f, parkB, ZOOM_MAX + (1 - ZOOM_MAX) * t, originFor(rowB, parkB));
+    }
+    await setZoom(1, 0);
   }
-
-  // f318-f377: static hold on last rows.
-  for (let f = 318; f < 378; f++) copyFileSync(fname(317), fname(f));
 
   await browser.close();
 

@@ -792,7 +792,23 @@ function checkScopes(): void {
       // MKT-20: resolve from the registry, never compose — a kind whose
       // incumbent is absent but whose rotation members are present still has a
       // carrier, and verify's file is `verif_carrier.mp4`.
-      const hasCarrier = (CARRIERS[kind]?.set ?? []).some(cv => existsSync(join(ASSETS, cv.file)));
+      // ⚠ A KIND THE ASSEMBLER WILL ATTEMPT MUST HAVE A CARRIER CONFIG. This is
+      // the gap that broke the daily run on 2026-07-29: `free` was added to the
+      // midday/evening scope variants without a CARRIERS entry, so preflight
+      // reported "dormant, 0 fail" — a missing config read as "no assets
+      // delivered yet" — while `resolveCarrier` process.exit(1)'d at assembly,
+      // AFTER the pro variant had already built and published.
+      //
+      // Dormant and unconfigured are NOT the same state. Dormant means the
+      // registry knows about this kind and its files have not arrived; missing
+      // config means the assembler will abort the moment it reaches this kind.
+      // Every scope variant here is one the assembler WILL try to build, so a
+      // missing entry is a hard FAIL rather than a note.
+      if (!CARRIERS[kind]) {
+        add('FAIL', kind, `registered as a scope variant but has NO carrier config — resolveCarrier aborts the run at this kind (after earlier variants have already built and published). Add it to CARRIERS in carrier-config.ts, or remove the variant from reel-scopes.ts until its carrier exists.`);
+        continue;
+      }
+      const hasCarrier = CARRIERS[kind].set.some(cv => existsSync(join(ASSETS, cv.file)));
       // MKT-19: same fix — resolve, do not construct (see checkSlateEndcard).
       const ecSpec = ENDCARDS[kind];
       const hasEndcard = Boolean(ecSpec) && (

@@ -49,6 +49,25 @@ export const ENDCARDS: Record<string, EndcardVariant> = {
     lines: ['HITMASTER ZK6', 'AHEAD OF THE EVENING DRAW', 'RECEIPTS AT SUNUP'],
     out: 'evening_pro_endcard.mp4',
   },
+
+  // ── MKT-15 P2 — free-group session kinds ────────────────────────────────
+  // ⚠ COPY IS PROVISIONAL AND NEEDS CONTENT-AGENT SIGN-OFF. Registered so the
+  // lane is structurally complete; the words are mine, not the brand's.
+  //
+  // The conversion frame these must carry (MKT-13 ruling): the free group sees
+  // the BOARD and not the numbers, and the numbers are what Pro buys. So the
+  // close has to name the withholding rather than hide it — a redacted reel
+  // that does not say why it is redacted reads as broken, not as a teaser.
+  midday_free: {
+    motion: 'endcard_motion_free.mp4',
+    out: 'midday_free_endcard.mp4',
+    lines: ['HITMASTER ZK6', 'THE BOARD, NOT THE NUMBERS', 'FULL SIX IN PRO'],
+  },
+  evening_free: {
+    motion: 'endcard_motion_free.mp4',
+    out: 'evening_free_endcard.mp4',
+    lines: ['HITMASTER ZK6', 'THE BOARD, NOT THE NUMBERS', 'FULL SIX IN PRO'],
+  },
 };
 
 // ── Brand-fixed layout ──────────────────────────────────────────────────────

@@ -801,6 +801,22 @@ per-day by hand, not AI-freestyled.
     impact, the endcard crack and its bed).
   - Same resolution/frame-rate spec as everything else below.
 
+  ⚠ FILENAME RULE — NAME THE DESTINATION, UNAMBIGUOUSLY (adopted 2026-07-29).
+  A delivered file's name must say which SURFACE it is for, using the word this
+  handoff already uses for that surface. MKT-21's four bodies were named
+  `group_body_*` but meant CROSS-POST; "group" means the free/Pro rooms (tier
+  2/4) everywhere else in this document, so the names said the opposite of what
+  they meant and the assets were assessed against Pro-room rules for two full
+  rounds before the mismatch surfaced.
+  This is the FOURTH filename failure in this lane and the first of its kind.
+  MKT-06's 2-byte web rename and MKT-16's `_pt_` were MANGLED names; MKT-19's
+  `verif_endcard` was a NON-UNIFORM name. This one was well-formed, correctly
+  spelled, and simply meant something else in our own vocabulary — so no
+  automated check can ever catch it. Only the convention can.
+  Use: public · cross · free · pro · verify. Not: group, room, tier, social.
+  If a file serves two surfaces, name the requirement they share, not one of
+  them — cross-post and public are one requirement, so `public_*` covers both.
+
   DELIVERY SPEC (every replacement file):
   - Resolution: native 1080×1920 (9:16). Current endcards are 720×1280
     and get upscaled — it works, but costs sharpness. This is the #1

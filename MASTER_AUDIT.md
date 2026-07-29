@@ -11,6 +11,26 @@
 
 ---
 
+## ⏭️ RESUME HERE — session close 2026-07-29
+
+**Everything below is committed and pushed. `reel:check` 0 fail / 49 warn** (all warns are the standing 720×1280 / 24fps source-quality note on matrix members, plus four rejected MKT-21 bodies carrying printed reasons).
+
+**START WITH:** the **MKT-15 P2 RELABEL** — spec and traps are written up in this file under its own heading. Public needs **no new assets**: the copy set is approved, the injection mechanism is proven, and `public_carrier` + `_pt2` already validate. **Chase the `ON FIRE` band enum from the content agent first** — it gates the public capture copy set and sits on that critical path.
+
+**SHIPPED TODAY:** MKT-19 (motion rotation) · MKT-20 (carrier rotation) · MKT-22 (intro chip) · MKT-23 (asset wave: 6 intros, 5 stinger motions, 4 pro endcard motions, per-kind endcard copy) · MKT-25 (verify restaging — the board it posted, then the ledger) · panel_app re-clearance + a new clearance-chain guard · lane spreading (distinctness 5/6→**6/6** intro, 3/6→**5/6** stinger, 4/6→**6/6** endcard, measured on FILE not label) · **MKT-15 P2 redaction working end-to-end** · free-group kinds registered with migration applied.
+
+**FREE-GROUP SESSION REEL — one thing left.** Redaction ✅, registration ✅, migration ✅, endcard/stinger config ✅, matrix built ✅. **Blocked only on two carrier VOs** (`midday_free_carrier`, `evening_free_carrier`) — budget-gated. They must NOT inherit the pro carriers: first-access framing is barred for the free tier under SOCIAL-13. ⚠ Its endcard/stinger COPY is mine and needs content-agent sign-off (`THE BOARD, NOT THE NUMBERS` / `FULL SIX IN PRO`).
+
+**ALSO UNBLOCKED, no assets needed:** the per-platform caption registry. `platformCaption` shapes copy but cannot author it, so Telegram receives the Facebook caption verbatim. Building it turns MKT-24 Phase 2 into config rather than construction.
+
+**BUDGET-GATED:** free-group carriers · `evening_pro_carrier` · verify carrier rotation · `lattice` audio respec (optional; re-qualifies itself automatically).
+
+**⚠ CARRY THIS FORWARD — it cost six attempts today.** Every failure in the capture lane had one shape: *a query matched nothing, or matched in the wrong region, and the check reported success.* What caught all six was inspecting pixels, never a green check. Two rules earned the hard way: **a guard must prove its own selector found something IN THE REGION IT IS PROTECTING**, and **only a full capture with frames inspected counts as verification** — isolation tests on `/explore` passed twice and leaked in real renders.
+
+**UNWATCHED:** nobody has viewed today's reels in motion. The MKT-25 board hold (2.5s) and the board→ledger cut are pacing judgements verified frame-by-frame only. Tomorrow's run is also the first to exercise the new endcard copy, the six-member intro pool and the chip on all four slate kinds together.
+
+---
+
 ### MKT-15 P2 RELABEL — implementation spec (redaction half DONE, relabel NOT STARTED)
 
 **Written as a spec rather than started, because the relabel needs a full `--redact --relabel` capture with frames inspected to verify, and isolation testing on `/explore` produced two false passes during the redaction work.** The traps below cost six attempts to find; they are recorded so the next pass does not re-pay for them.

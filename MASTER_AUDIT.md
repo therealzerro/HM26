@@ -11,6 +11,94 @@
 
 ---
 
+### MKT-20 — Carrier rotation: All-Day pro + free part 1 (extends MKT-09; mirrors MKT-19) 🔍 PHASE 0 REPORTED · BUILD HELD
+
+**ID verified free** (`grep MKT-20` → 0 hits across audit, scripts and docs). MKT-18 is body provenance, MKT-19 is brand motion rotation. Marketing pipeline only — no engine, no edge functions, no `sync_agents`.
+
+**Assets — all six DELIVERED** (09:10 ET 2026-07-29), contrary to the order's "pending". All six are **10.005s, AAC 48 kHz stereo, h264 video track present** — byte-for-duration identical to the two incumbents and to both shared part 2s. The 10.005s (not 10.000s) is the generator's standard across this entire pipeline. **The duration invariant holds exactly**, which is what makes everything below fall out cleanly.
+
+**Phase 0 item 1 — carrier resolution, every reader.** The base is composed from the kind and part 2 is derived by appending `_pt<N>`. Nine sites:
+
+| # | Site | Role |
+|---|---|---|
+| 1 | `reel-carrier.ts` `carrierParts()` | **the derivation itself** — `${base}_pt${n}.mp4`, stops at first gap |
+| 2 | `reel-carrier.ts` `orphanedParts()` | same pattern, scans `_pt2…_pt9` |
+| 3 | `reel-carrier.ts` `resolveCarrier()` | join cache key `${base}_joined.m4a` |
+| 4 | `assemble-allday-reels.ts:168` | `resolveCarrier(ASSETS, \`${kind}_carrier\`)` — composed from kind |
+| 5 | `assemble-verification-reel.ts:84` | `'verif_carrier'` literal |
+| 6 | `check-reel-assets.ts:435` | `checkSlateCarrier` — `const base = \`${kind}_carrier\`` |
+| 7 | `check-reel-assets.ts:464` | `checkCarrierParts('verif_carrier', …)` literal |
+| 8 | `check-reel-assets.ts:308-313` | `checkStrays` expected set — composes base + `_pt2…_pt9` |
+| 9 | `check-reel-assets.ts:688` | `checkScopes` `hasCarrier` existence probe |
+
+**⚠ THE FAILURE MODE IS NO LONGER THE ONE THE WORK ORDER DESCRIBES — MKT-19 SHIPPED IN BETWEEN, AND IT MADE THIS WORSE, NOT BETTER.** The order traces: unpaired carrier → hum-bed mode → `endcard_motion_pro_alt` has no bed → **assembler ABORTS**. That was true when the order was written. It is not true now. MKT-19 Phase 1 made the endcard resolver **bed-aware**: on a hum-bed day it re-resolves to the bed-viable subset, so `pro_alt` silently drops out and `pro std` — which has a bed — is used instead. Traced against the current code at `assemble-allday-reels.ts:202-214`:
+
+- unpaired carrier resolves at **10.005s**
+- `overlap = carrierDur >= voiceWindow − 0.05` → 10.005 ≥ **19.350** → **FALSE**
+- `voiceSpan = min(10.005 − 0.2, 19.4)` = 9.805 → `bedLen` = **9.595s**
+- bed-aware re-resolve swaps `pro_alt` → `pro std`, `bedWindow` returns non-null → **no abort**
+
+**Net: the reel assembles, publishes, and is half narration.** ~9.8s of VO followed by 9.6s of hum bed under the modals, on *every* morning the pairing breaks — rather than a loud failure on the subset of mornings the date happens to pick `pro_alt`. A hard abort on some days has become a silent degradation on all of them. **This strengthens the explicit-pair ruling rather than weakening it**, and it is the same lesson as MKT-19's own preflight gap: a graceful-degradation path added for one reason will absorb a fault arriving from another direction and hide it.
+
+Also recorded: the order's "~17.15s overlap threshold" is **19.350s** against today's 19.0s body (`voiceWindow = bodyDur + 0.4`, threshold `− 0.05`). The mechanism is exactly as described; the number is stale and would have propagated.
+
+**And preflight would not catch it.** `checkSlateCarrier` (site 6) resolves `${kind}_carrier` — the *incumbent* base — so it validates the incumbent pairing and passes green no matter which variant the date actually selects. Confirms Phase 2's per-variant validation is load-bearing, not tidiness.
+
+**Phase 0 item 2 — all six validate.** Exactly 10.005s, audio present, AAC 48 kHz stereo. Voice-end and the natural tail each variant contributes to the seam:
+
+| file | voice-end | natural tail | effective seam (0.35 + tail) |
+|---|---|---|---|
+| `allday_pro_carrier` (incumbent) | 9.691 | 0.314 | 0.664 |
+| `_stamp` | 9.622 | 0.383 | 0.733 |
+| `_room` | 9.769 | 0.236 | **0.586** |
+| `_overnight` | 9.712 | 0.293 | 0.643 |
+| `allday_free_carrier` (incumbent) | 9.770 | 0.235 | **0.585** |
+| `_open` | 9.578 | 0.427 | **0.777** |
+| `_method` | 9.706 | 0.299 | 0.649 |
+| `_check` | 9.662 | 0.343 | 0.693 |
+
+All end in clean silence to EOF — no breath, no trailing tone. **New finding: the seam breath is NOT constant across the rotation.** `SEAM_GAP` is a fixed 0.35s, but the audible pause is 0.35 + whatever tail the variant carries, so it ranges **0.586s to 0.777s** — a 0.19s spread depending on which part 1 the date picks. Both extremes are bracketed by shipping assets (the free incumbent is itself 0.585), so nothing here is out of family; recorded because "the seam is 0.35s" is the kind of constant that will later be read as exact.
+
+⚠ **Measurement caveat worth keeping.** `silencedetect` at `d=0.25` reported two files as having no trailing silence at all, and at `d=0.08` put the free part 2's voice-end at 9.893s. Both were artifacts: the free part 2 sits on a **−49.4 dB noise floor**, so a −50 dB threshold reads the floor as speech, and a short `d` catches mid-sentence dips. Sweeping thresholds −35/−40/−45/−50 at `d=0.15` gives 9.319/9.324/9.333/9.351 — stable to 0.03s. Every number above is from the stable setting. The two part 2s differ by ~19 dB in noise floor (pro −68.7, free −49.4), which is why one threshold does not serve both.
+
+**Phase 0 item 3 — joined duration and margin, measured not calculated.** All eight pairings were actually built, replicating `resolveCarrier`'s filter exactly (per-input `aformat`/`aresample`, `apad=0.35` on all but the last, `concat`):
+
+| tier | joined file | last word | fade begins | margin |
+|---|---|---|---|---|
+| pro — all four part 1s | **20.360s** | **19.561s** | 20.010s | **+0.449s** |
+| free — all four part 1s | **20.360s** | **19.680s** | 20.010s | **+0.331s** |
+
+**Identical within tier across every variant, to the millisecond** — which is the whole point of the 10.005s invariant and confirms it empirically. The free tier's +0.331s reproduces the MKT-16-era margin exactly. Rotation costs nothing here.
+
+**Phase 0 item 4 — `bodyDur` is untouchable, confirmed.** `bodyDur` is probed from the body file at `assemble-allday-reels.ts:120`, *before* the variant loop and from a different file entirely; `carrierDur` is probed at :175 inside it. `voiceWindow = openDur + bodyDur − voiceStart` reduces to `bodyDur + 0.4`. No carrier value reaches it. The 18.4–20.0s safe band cannot move. Formality, as expected.
+
+**Phase 0 item 5 — `checkStrays` is structurally safe; the hazard is elsewhere.** `checkStrays` is a **one-way scan**: it walks `readdirSync(ASSETS)` and reports files *not* in the expected set. It never warns about expected-but-missing. So enumerating a rotation set that shares a part 2 cannot produce a partial-matrix WARN from this function, whatever names are added — and adding a per-variant `_pt2` name to the expected set would be harmless, merely useless. **The five-spurious-warnings risk lives in the NEW per-variant validation Phase 2 adds**, which by analogy with MKT-19's `checkSlateEndcard` would warn per missing member. That check must key part 2 to the **tier**, not to the variant. Confirmed empirically: the six delivered files currently produce exactly six stray WARNs (`reel:check` 0 fail / 35 warn), which is the correct signal for assets that reach no reel yet.
+
+**Recommendation on the derive-by-name question (order left it to us): MIGRATE EVERYTHING TO EXPLICIT PAIRS.** Keeping two mechanisms means the next reader has to know which kinds are rotating to know which rule applies, and site 8's expected-set builder would have to encode that fork too. More decisively, derive-by-name is *itself* the defect class here — it is what makes an unpaired variant look like a legitimate single-file carrier rather than an error, and it is the same root as MKT-16's `_pt_` incident where a filename typo silently dropped part 2. An explicit `(part1, part2)` pair makes "this carrier has a second part" a fact in config rather than an inference from a string, so a missing part 2 is a resolvable question at preflight instead of a shorter carrier at assembly. Cost is small: five call sites, and the non-rotating kinds become one-line entries naming their own `_pt2`.
+
+**ACCEPTANCE — seam voice match: measured as a PROXY, decision still needs the ear.** F0, spectral centroid and integrated loudness against each tier's shared part 2:
+
+| tier / file | F0 Hz | ΔF0 vs pt2 | centroid | Δcentroid | LUFS |
+|---|---|---|---|---|---|
+| **pro** `_pt2` (reference) | 106.7 | — | 1359 | — | −20.2 |
+| `allday_pro_carrier` (ships today) | 130.1 | +23.4 | 1420 | +61 | −22.1 |
+| `_stamp` | 114.3 | **+7.6** | 1401 | +42 | −21.0 |
+| `_room` | 124.0 | +17.3 | 1415 | +56 | −19.3 |
+| `_overnight` | 116.8 | +10.1 | 1449 | +90 | −21.0 |
+| **free** `_pt2` (reference) | 106.7 | — | 1138 | — | −21.5 |
+| `allday_free_carrier` (ships today) | 126.0 | +19.3 | 1343 | +205 | −21.9 |
+| `_open` | 115.1 | **+8.4** | 1307 | +169 | −21.2 |
+| `_method` | 111.9 | +5.2 | **1490** | **+352** | **−19.5** |
+| `_check` | 116.8 | +10.1 | 1308 | +170 | −20.2 |
+
+**The result that matters: every one of the six new variants sits CLOSER to its shared part 2 on pitch than the part 1 that ships today.** The accepted baseline already carries +23.4 Hz (pro) and +19.3 Hz (free) of drift, so no new variant is an outlier against what is demonstrably tolerable. **One flag for the ear: `_method`** — the largest timbre gap in either tier (+352 centroid, brighter than even the free incumbent's +205) and the loudest of the free set at −19.5 LUFS, 2.0 dB above its part 2. If any variant fails the listen, it is that one.
+
+**These are weak proxies and are not the acceptance test.** Whole-clip F0 varies with intonation and emphasis, not only with voice identity, so a matched number does not prove a matched seam. **Eight seam audition clips were built** — last 2.0s of part 1 + the real 0.35s pad + first 3.0s of part 2, exactly what the join produces — including both incumbents as the reference for "what an accepted seam sounds like": `<scratchpad>/seams/{pro,free}_{0_INCUMBENT,…}.m4a`. **No variant is proposed for acceptance or exclusion on these numbers.**
+
+**GATE: held.** No files changed, no config touched, nothing built. Awaiting approval, plus the listening result on the eight seam clips (and specifically on `_method`).
+
+---
+
 ### MKT-19 — Brand motion rotation: stinger + endcard (amends MKT-10, MKT-12; mirrors MKT-17) ✅ PHASE 1 SHIPPED
 
 **Phase 1 built 2026-07-29 to the Phase 0 scope below, which is preserved unedited as the record of what was ruled before anything was written.** Marketing pipeline only; no engine or consumer surface. Strategy (a) prebuilt, as approved: the matrix is **22 built files** (12 stingers = 4 enabled variants × 3 motions; 10 endcards = 5 kinds × 2 tier motions), not the 37 Phase 0 projected — that figure counted the public kinds as landing, and they are still unregistered. `reel:check` 0 fail / 25 warn; filtered `tsc --noEmit` 0 errors.

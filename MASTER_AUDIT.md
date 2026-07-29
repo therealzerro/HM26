@@ -95,7 +95,31 @@ The regression, recorded because the cause is reusable: adding `free` to the SCO
 
 **Detection is STRUCTURAL, not component-scoped**, which is what closes the `PickCard` class of gap for good: a leaf whose digits are separated by any separator, plus any SIBLING GROUP of 3+ single-digit leaves under one parent. No marker text, no class selector, no component list — so it behaves identically on grid and modal and cannot be defeated by a surface nobody enumerated.
 
-**(a) NOT ANSWERED — and not claimable.** Only **four frames** were sampled, not the grid push-in plus all six modals. By this lane's own MKT-21 standard that is a spot check: attempts 4 and 5 of the redaction both passed spot checks and leaked in real renders. **The gate stands.**
+**(a) ANSWERED 2026-07-29 — GATE CLEARED. The combination is NOT RECOVERABLE by any route.**
+
+**STORED RECORD.** Reviewed by Claude Opus 5 against a real `--redact --scope=midday` body rendered the same day. Density: **10 frames — 4 across the grid push-in (0.3 / 1.6 / 2.8 / 3.9s) and one at each of the six modal HOLDS (5.6 / 7.9 / 10.2 / 12.5 / 14.8 / 17.1s)**, chosen at the settling moments because MKT-21 established that generated and rendered content leaks when it settles, not while it moves. Reconstruction attempted by every route named in the work order:
+
+| route | finding |
+|---|---|
+| hero digits | `• • •` — all six grid cards AND all six modals |
+| **set chip** | `{•••}` — grid and modal both. The no-arithmetic vector is closed |
+| position boxes | `• • •`, `P1/P2/P3` labels intact |
+| pair labels | `Front / Back / Split pair ••` |
+| pair prose | `•• surging …`, `•• has strong digit co-occurrence …`, `•• confirms alignment …` |
+| resolution trail | state × count only (`CO 1×`, `NY 1×`, `DC 1×`) — carries no combination |
+| **arithmetic across surfaces** | nothing to combine: every digit-bearing surface is masked, so no pair of surfaces yields a third value |
+
+**The claim being made is the stronger one the order asked for** — not "no digits visible" but "the combination is not recoverable". Deliberately preserved and confirmed present: energy values, ZK6 confidence, all four signal-breakdown percentages, heat badges, jurisdiction counts, panels, and the full prose STRUCTURE — the methodology signal free members are being shown survives intact; only the values are withheld.
+
+**Item 2 — CARRIER MARGINS MEASURED, and they improved substantially.** Confirmed rather than assumed, per the order:
+
+| pair | joined | last word | margin |
+|---|---|---|---|
+| `midday_pro` (reference, fleet's thinnest) | 20.360 | 19.826 | **+0.184** |
+| **`midday_free`** | 20.360 | 18.768 | **+1.242** |
+| **`evening_free`** | 20.360 | 17.540 | **+2.470** |
+
+Joined durations identical at 20.360s, so the MKT-20 invariant holds. The new pair carry **6.8×** and **13.4×** midday_pro's headroom — the tighter scripting worked, and neither is at risk from this voice's ~35% overrun.
 
 ---
 

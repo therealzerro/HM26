@@ -15,7 +15,7 @@
 // deep links only choose which screen opens; the CLIPBOARD is the real value,
 // because retyping a platform-shaped caption is the actual friction.
 
-import type { SocialTier } from '@/lib/social/brandLint';
+import { EMOJI_RE, type SocialTier } from '@/lib/social/brandLint';
 
 export type PlatformId = 'telegram' | 'youtube' | 'tiktok' | 'reddit' | 'x' | 'instagram';
 
@@ -207,6 +207,108 @@ export interface HandoffCaption {
 
 const URL_RE = /\bhttps?:\/\/\S+/gi;
 
+/**
+ * ── MKT-24 · THE PRO-ROOM RESHAPING RULE (tier 4) ────────────────────────────
+ *
+ * Telegram is the Pro room, and Pro surface law is: never a commercial pitch,
+ * never pricing, never upgrade language. Before this, `platformCaption` shaped
+ * only LENGTH and HASHTAGS, so a caption reached tier 4 verbatim — and the row
+ * is fed the operator's live editor text, which for every free-defaulting kind
+ * is the FREE draft. Paying members were one tap from being sold what they
+ * already own.
+ *
+ * ⚠ THIS IS A RESHAPING RULE, NOT A TEMPLATE SET, and it deliberately splits in
+ * two. The split is what keeps it safe:
+ *
+ *   1. THIS TRANSFORM strips only the UNCONDITIONAL markers — pricing, explicit
+ *      upgrade/subscribe verbs, pinned-post pointers, and CTAs. Every one is a
+ *      fixed lexical shape, so it cannot eat a receipts sentence. Real
+ *      performance data (counts, state attributions, STRAIGHT MATCH callouts)
+ *      is SANCTIONED at tier 4 and must survive untouched.
+ *
+ *   2. `platformAcceptsAudience` REFUSES free-written captions outright, which
+ *      is what handles the class this transform deliberately does not chase:
+ *      implicit Pro-as-destination framing ("the digits are the Pro side of the
+ *      line", "the complete six live in Pro"). Catching that lexically would
+ *      mean matching bare "Pro" — and "Pro first look" is sanctioned
+ *      first-access framing on a pro caption. Any predicate wide enough to
+ *      catch the former mangles the latter, so the audience gate carries it
+ *      instead of a regex.
+ *
+ * Note that brandLint §6 already BLOCKS `$N` / `/mo` / "upgrade" at tier 4, so
+ * the send button was disabled rather than silently wrong for that subset. A
+ * block is not the same as a fix: it stops the post without producing a usable
+ * one, and it says nothing about pinned-post language or CTAs, which are
+ * unguarded. Stripping here means the row lints clean AND reads correctly.
+ */
+
+/** Sentence-level kill list. A sentence carrying any of these is dropped whole —
+ *  excising a phrase mid-sentence leaves grammatical debris on the clipboard. */
+const PRO_ROOM_DROP: Array<{ re: RegExp; why: string }> = [
+  { re: /\$\s?\d|\/mo\b|\bper month\b/i,                     why: 'pricing' },
+  { re: /\bupgrade\b|\bsubscribe\b|\bsign up\b|\bjoin pro\b/i, why: 'upgrade verb' },
+  { re: /\bpinned\b/i,                                        why: 'pinned-post pointer' },
+  // CTA: there is nowhere to convert to inside a room they are already in.
+  { re: /\b(link in bio|tap in|check your state|don't miss|drop a comment|DM us|follow along)\b/i, why: 'CTA' },
+];
+
+/** Plainer register than Facebook: fewer emoji, no hashtags, no exclamation
+ *  pile-ups. Keeps the FIRST emoji so the post is not stripped to grey text. */
+function plainerRegister(text: string): string {
+  let out = text.replace(/(^|\s)#[\w]+/g, '').replace(/[ \t]{2,}/g, ' ');
+  const emoji = out.match(EMOJI_RE) ?? [];
+  if (emoji.length > 1) {
+    let seen = 0;
+    out = out.replace(EMOJI_RE, m => (++seen === 1 ? m : ''));
+  }
+  return out.replace(/\s+([.,!?])/g, '$1').replace(/[ \t]{2,}/g, ' ').trim();
+}
+
+/** Split on sentence ends AND newlines, keeping the terminator with its clause. */
+function sentences(text: string): string[] {
+  return text.split(/(?<=[.!?])\s+|\n+/).map(s => s.trim()).filter(Boolean);
+}
+
+/**
+ * Reshape a caption for the Pro room. Exported so the dry-run harness and any
+ * future tier-4 platform get the identical rule rather than a second copy.
+ */
+export function proRoomCaption(caption: string): { text: string; dropped: string[] } {
+  const dropped: string[] = [];
+  const kept = sentences(caption).filter(s => {
+    const hit = PRO_ROOM_DROP.find(d => d.re.test(s));
+    if (hit) { dropped.push(`${hit.why}: "${s}"`); return false; }
+    return true;
+  });
+  return { text: plainerRegister(kept.join(' ')), dropped };
+}
+
+/**
+ * Is this reel's caption allowed on this platform at all?
+ *
+ * A free-group teaser has no meaning in the Pro room: strip its CTA and what
+ * remains sells nothing to people who already bought, and the free VERIFY draft
+ * is deliberately qualitative — handing it to Pro withholds the very counts that
+ * room is entitled to. Refusing is the correct outcome, not transforming.
+ *
+ * ⚠ REFUSAL IS EXPRESSED AS A REASON, NOT A BOOLEAN, because the handoff rows
+ * render disabled platforms WITH their cause — a silently missing row reads as
+ * an oversight rather than a ruling (the same argument the Instagram entry
+ * makes).
+ */
+export function platformAcceptsAudience(
+  p: SocialPlatform,
+  audience: 'free' | 'pro',
+): { ok: true } | { ok: false; reason: string } {
+  if (p.tier === 4 && audience === 'free') {
+    return {
+      ok: false,
+      reason: 'Free-group caption — the Pro room needs the pro draft, not a teaser written to sell it.',
+    };
+  }
+  return { ok: true };
+}
+
 /** Trim to a word boundary rather than mid-word; only when actually over. */
 function clamp(s: string, max: number): { text: string; truncated: boolean } {
   if (s.length <= max) return { text: s, truncated: false };
@@ -225,6 +327,10 @@ function clamp(s: string, max: number): { text: string; truncated: boolean } {
  */
 export function platformCaption(p: SocialPlatform, caption: string): HandoffCaption {
   let text = (caption ?? '').trim();
+  // MKT-24: tier 4 is an owned room, so the reshaping runs BEFORE length work —
+  // dropping a pricing sentence changes what has to be clamped, and clamping
+  // first could truncate the marker out of view while leaving the pitch intact.
+  if (p.tier === 4) text = proRoomCaption(text).text;
   if (!p.allowsLinks) text = text.replace(URL_RE, '').replace(/[ \t]{2,}/g, ' ').trim();
 
   const tags = p.hashtags.filter(h => !new RegExp(`(^|\\s)${h}\\b`, 'i').test(text));

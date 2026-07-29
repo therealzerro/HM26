@@ -26,6 +26,10 @@
  *   --preview        print the captions that would ship, write nothing
  *   --captions-only  refresh captions on existing rows (no uploads, keeps
  *                    status/posted flags — for tweaking after the fact)
+ *   --variant=free   publish ONE variant of the scope, leaving its sibling's row
+ *                    untouched. Required whenever a sibling has already been
+ *                    posted — see parseVariantFlag in reel-scopes.ts for why
+ *                    re-upserting it is destructive.
  *
  * MKT-13: midday/evening publish exactly like allday, from the same scope
  * registry — pro variant only (see scripts/reel-scopes.ts).
@@ -35,7 +39,7 @@ import { execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { buildReelCaption, fetchReceiptsData, shiftDate, kindNeedsReceipts, ReceiptsData, ReelCaptionKind } from './reel-captions';
-import { REEL_SCOPES, isScope, reelKind, type Scope } from './reel-scopes';
+import { REEL_SCOPES, isScope, reelKind, parseVariantFlag, type Scope } from './reel-scopes';
 
 loadEnv({ path: '.env.backtest' });
 
@@ -81,6 +85,11 @@ if (mode !== 'verify' && !isScope(mode)) {
 const restArgs = process.argv.slice(3);
 const PREVIEW = restArgs.includes('--preview');
 const CAPTIONS_ONLY = restArgs.includes('--captions-only');
+const ONLY_VARIANT = parseVariantFlag(process.argv);
+if (ONLY_VARIANT && mode === 'verify') {
+  console.error('ABORT: --variant is meaningless for verify (one kind, no variants).');
+  process.exit(1);
+}
 const stampArg = restArgs.find((a) => !a.startsWith('--'));
 const defaultIso = mode === 'verify' ? etDate(-1) : etDate(0);
 const stamp = stampArg ?? defaultIso.replace(/-/g, '');
@@ -100,7 +109,12 @@ function reelFiles(): ReelFiles[] {
   }
   const spec = REEL_SCOPES[mode as Scope];
   const dir = join(ASSETS, spec.dir);
-  return spec.variants.map((v) => {
+  const variants = ONLY_VARIANT ? spec.variants.filter((v) => v === ONLY_VARIANT) : spec.variants;
+  if (variants.length === 0) {
+    console.error(`ABORT: scope "${mode}" declares no "${ONLY_VARIANT}" variant.`);
+    process.exit(1);
+  }
+  return variants.map((v) => {
     const kind = reelKind(spec.scope, v) as Kind;
     return {
       kind,

@@ -174,6 +174,33 @@ export function parseScopeFlag(argv: string[]): Scope {
   return val;
 }
 
+/**
+ * `--variant=free|pro` restricts a run to ONE variant of the scope. Absent →
+ * every variant, which is what every pre-MKT-26 invocation does.
+ *
+ * ⚠ THIS EXISTS TO DEFUSE THE PUBLISH UPSERT TRAP, and the trap is worth stating
+ * because the flag looks like a mere convenience. `publish-reels` upserts on
+ * (reel_date, kind) and DELIBERATELY resets status/posted_at/target_name — a
+ * re-render is a new reel, so a stale posted flag must not survive it. Correct
+ * per kind, destructive across siblings: publishing the free session reel after
+ * the pro one has already gone out re-upserts BOTH rows and wipes the pro row's
+ * posted stamp, losing the record that it shipped.
+ *
+ * A filter is preferable to flipping `redactedVariants` back and forth (the
+ * other way to publish one sibling), because a re-flip is a manual step someone
+ * has to remember and a filter is a property of the invocation.
+ */
+export function parseVariantFlag(argv: string[]): Variant | null {
+  const flag = argv.find(a => a.startsWith('--variant='));
+  if (!flag) return null;
+  const val = flag.slice('--variant='.length).trim().toLowerCase();
+  if (val !== 'pro' && val !== 'free') {
+    console.error(`ABORT: unknown --variant=${val} — expected pro | free.`);
+    process.exit(1);
+  }
+  return val;
+}
+
 /** Positional args with every --flag stripped, so flags can go anywhere. */
 export function positionals(argv: string[]): string[] {
   return argv.filter(a => !a.startsWith('--'));

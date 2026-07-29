@@ -79,7 +79,12 @@ const STATE_CODES = new Set([
   'WA','WV','WI','DC',
 ]);
 
-const EMOJI_RE = /\p{Extended_Pictographic}/gu;
+/** Exported so the tier-4 register rule (constants/socialPlatforms.ts) thins
+ *  emoji by the SAME definition this file caps them by — two copies would drift
+ *  and the reshaped caption would fail the lint that shaped it. Safe to share:
+ *  every consumer uses .match/.replace, which reset lastIndex; a bare .test on a
+ *  /g regex would not. */
+export const EMOJI_RE = /\p{Extended_Pictographic}/gu;
 
 /** Session labels paired with numbers are Tier-1 forbidden (brief §5). */
 const SESSION_LABEL_RE = /\b(midday|evening|all-?day)\b/gi;

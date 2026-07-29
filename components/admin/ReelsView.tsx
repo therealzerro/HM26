@@ -28,13 +28,14 @@ import { lintCaption } from '@/lib/social/brandLint';
 import { SURFACE_TIER } from '@/lib/social/captions';
 import { fbPublish } from '@/lib/social/fbPublishClient';
 import {
-  MarketingReel, ReelKind, fetchReels, reelPublicUrl,
+  MarketingReel, ReelKind, REEL_KIND_AUDIENCE, fetchReels, reelPublicUrl,
   markReelPosted, shareReelToApps, saveReelToPhotos,
   fetchReelBlob, canWebShareVideo, webShareReel, downloadReelBlobWeb,
 } from '@/lib/marketingReels';
 import { Pill, SectionTitle, Card, useSt, timeAgo } from './AdminShared';
 import {
   SOCIAL_PLATFORMS, PLATFORM_IDS, platformCaption, platformLink,
+  platformAcceptsAudience,
   type SocialPlatform,
 } from '@/constants/socialPlatforms';
 
@@ -45,10 +46,18 @@ const KIND_UI: Record<ReelKind, { icon: string; label: string; defaultTarget: Ta
   allday_pro: { icon: '💎', label: 'All-Day · Pro', defaultTarget: 'pro', sheetAspect: 6 * (270 / 480) },
   allday_free: { icon: '👥', label: 'All-Day · Free', defaultTarget: 'free', sheetAspect: 6 * (270 / 480) },
   verify: { icon: '🧾', label: 'Receipts · Verify', defaultTarget: 'free', sheetAspect: 4 * (270 / 480) },
-  // MKT-13 session wave. Pro-only: the free group gets midday/evening redacted,
-  // so these default to the pro group rather than free.
+  // MKT-13 session wave, MKT-26 free half.
+  //
+  // ⚠ THE FREE ROWS DEFAULT TO 'free', AND GETTING THAT WRONG IS A BUSINESS BUG,
+  // NOT A COSMETIC ONE. These reels exist to be a conversion teaser: the board
+  // shown, the digits masked. Landing one in the PRO group hands paying members a
+  // deliberately incomplete version of what they already bought — and the default
+  // target is what the operator taps through without reading, so the wrong
+  // default is the one that actually ships.
   midday_pro: { icon: '☀️', label: 'Midday · Pro', defaultTarget: 'pro', sheetAspect: 6 * (270 / 480) },
   evening_pro: { icon: '🌙', label: 'Evening · Pro', defaultTarget: 'pro', sheetAspect: 6 * (270 / 480) },
+  midday_free: { icon: '☀️', label: 'Midday · Free', defaultTarget: 'free', sheetAspect: 6 * (270 / 480) },
+  evening_free: { icon: '🌙', label: 'Evening · Free', defaultTarget: 'free', sheetAspect: 6 * (270 / 480) },
 };
 
 /** A kind with no UI entry would crash the whole Reels tab on `ui.defaultTarget`
@@ -87,11 +96,13 @@ interface GroupUrls { free?: string; pro?: string }
  * that the four public surfaces are waiting on Phase 2 rather than missing.
  */
 function PlatformHandoffRow({
-  platform: p, reel, caption, videoUrl, filename, onLogged,
+  platform: p, reel, caption, captionAudience, videoUrl, filename, onLogged,
 }: {
   platform: SocialPlatform;
   reel: MarketingReel;
   caption: string;
+  /** Which room the loaded draft was WRITTEN for — gates tier-4 platforms. */
+  captionAudience: 'free' | 'pro';
   videoUrl: string;
   filename: string;
   onLogged: () => void;
@@ -106,7 +117,11 @@ function PlatformHandoffRow({
   const shaped = platformCaption(p, caption);
   const lint = lintCaption(shaped.clipboard, p.tier);
   const gateOk = !p.requiresTwoQuestion || (q1No && q2No);
-  const canSend = p.enabled && !busy && gateOk && lint.ok && shaped.clipboard.trim().length > 0;
+  // MKT-24: the audience gate is separate from `enabled` — the PLATFORM is fine,
+  // this CAPTION is the wrong one for it. Shown with its reason so a refusal
+  // reads as a ruling rather than a broken row.
+  const accepts = platformAcceptsAudience(p, captionAudience);
+  const canSend = p.enabled && accepts.ok && !busy && gateOk && lint.ok && shaped.clipboard.trim().length > 0;
   const link = platformLink(p, {
     text: shaped.clipboard, title: shaped.title, url: videoUrl,
   });
@@ -156,13 +171,20 @@ function PlatformHandoffRow({
         <Text style={{ fontSize: 14 }}>{p.icon}</Text>
         <Text style={{ fontSize: 12, fontWeight: '800', color: colors.text, flex: 1 }}>{p.label}</Text>
         <Pill label={`tier ${p.tier}`} color={colors.textTertiary} />
-        {p.enabled
-          ? <Pill label={lint.ok ? '✓ lint' : `${lint.violations.filter(v => v.blocking).length} blocking`} color={lint.ok ? colors.success : colors.error} />
-          : <Pill label="disabled" color={colors.textTertiary} />}
+        {!p.enabled
+          ? <Pill label="disabled" color={colors.textTertiary} />
+          : !accepts.ok
+            ? <Pill label="wrong draft" color={colors.orange} />
+            : <Pill label={lint.ok ? '✓ lint' : `${lint.violations.filter(v => v.blocking).length} blocking`} color={lint.ok ? colors.success : colors.error} />}
       </View>
 
       {!p.enabled ? (
         <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 6, lineHeight: 15 }}>{p.disabledReason}</Text>
+      ) : !accepts.ok ? (
+        <Text style={{ fontSize: 10, color: colors.orange, marginTop: 6, lineHeight: 15 }}>
+          🚫 {accepts.reason}
+          {reel.caption_pro != null ? ' Switch the target above to 💎 Pro to load it.' : ''}
+        </Text>
       ) : (
         <>
           {shaped.title != null && (
@@ -509,6 +531,11 @@ function ReelCard({ reel, urls, onPosted }: { reel: MarketingReel; urls: GroupUr
           platform={SOCIAL_PLATFORMS[id]}
           reel={reel}
           caption={caption}
+          // Which draft is LOADED, not which kind this is: a verify row switched
+          // to Pro is carrying the pro draft and is legitimately Pro-room copy.
+          // Derived from the toggle rather than by comparing text, so an operator
+          // edit to the pro draft does not silently re-classify it as free.
+          captionAudience={target === 'pro' && reel.caption_pro != null ? 'pro' : REEL_KIND_AUDIENCE[reel.kind]}
           videoUrl={videoUrl}
           filename={filename}
           onLogged={onPosted}

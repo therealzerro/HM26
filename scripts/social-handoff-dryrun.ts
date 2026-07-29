@@ -16,7 +16,9 @@ import { config as loadEnv } from 'dotenv';
 import { lintCaption } from '../lib/social/brandLint';
 import {
   SOCIAL_PLATFORMS, PLATFORM_IDS, platformCaption, platformLink,
+  platformAcceptsAudience,
 } from '../constants/socialPlatforms';
+import { REEL_KIND_AUDIENCE, type ReelKind } from '../constants/reelKinds';
 
 loadEnv({ path: '.env.backtest', quiet: true });
 
@@ -44,7 +46,7 @@ interface Reel { reel_date: string; kind: string; caption: string; caption_pro: 
   if (!reels.length) { console.error(`[dryrun] no reels registered for ${date}.`); process.exit(1); }
 
   const bucket = `${SUPABASE_URL}/storage/v1/object/public/marketing-reels`;
-  let blocked = 0, truncated = 0;
+  let blocked = 0, truncated = 0, refused = 0;
 
   console.log(`\n═══ SOCIAL HANDOFF DRY RUN · ${date} · ${reels.length} reel(s) ═══`);
 
@@ -54,18 +56,31 @@ interface Reel { reel_date: string; kind: string; caption: string; caption_pro: 
     for (const id of PLATFORM_IDS) {
       const p = SOCIAL_PLATFORMS[id];
       if (!p.enabled && !SHOW_ALL) continue;
-      // The pro draft is what a pro-tier surface would carry; everything else
-      // takes the default caption, mirroring the admin screen's target switch.
-      const source = r.caption_pro ?? r.caption ?? '';
+      // ⚠ MODELS WHAT THE SCREEN ACTUALLY LOADS, WHICH IS NOT WHAT THIS LINE
+      // USED TO ASSUME. It read `caption_pro ?? caption`, i.e. "a pro surface
+      // gets the pro draft" — an optimistic model of the app. ReelCard seeds its
+      // editor from `reel.caption` and only swaps in the pro draft when the
+      // operator moves the target toggle, so a tier-4 platform row was in fact
+      // being fed the FREE draft on every free-defaulting kind. A gate harness
+      // that simulates the app it wishes it had cannot catch that class, which
+      // is why MKT-24's Telegram violation survived the Phase 1 gate.
+      const audience = REEL_KIND_AUDIENCE[r.kind as ReelKind] ?? 'free';
+      const source = r.caption ?? '';
+      const accepts = platformAcceptsAudience(p, audience);
       const shaped = platformCaption(p, source);
       const lint = lintCaption(shaped.clipboard, p.tier);
       const hard = lint.violations.filter(v => v.blocking);
       if (hard.length) blocked++;
+      if (!accepts.ok) refused++;
       if (shaped.truncated) truncated++;
 
       const state = p.enabled ? 'ENABLED ' : 'disabled';
       console.log(`\n  ${p.icon} ${p.label.padEnd(16)} [${state}] asset=${p.asset} tier=${p.tier} shape=${p.captionShape}`);
       if (!p.enabled) { console.log(`     ↳ ${p.disabledReason}`); continue; }
+      if (!accepts.ok) {
+        console.log(`     GATE  🚫 REFUSED (caption written for: ${audience}) — ${accepts.reason}`);
+        continue;
+      }
       if (shaped.title != null) console.log(`     TITLE (${shaped.title.length}/${p.maxTitleLen}): ${shaped.title}`);
       console.log(`     BODY  (${shaped.clipboard.length}/${p.maxLen})${shaped.truncated ? '  ⚠️ TRUNCATED' : ''}: ${shaped.clipboard.replace(/\n/g, ' ⏎ ').slice(0, 160)}`);
       console.log(`     LINT  ${hard.length ? `⛔ ${hard.map(v => `${v.term}(${v.rule})`).join(', ')}` : '✓ clean'}`);
@@ -76,6 +91,7 @@ interface Reel { reel_date: string; kind: string; caption: string; caption_pro: 
   console.log(`\n\n═══ SUMMARY ═══`);
   console.log(`enabled platforms : ${PLATFORM_IDS.filter(i => SOCIAL_PLATFORMS[i].enabled).map(i => SOCIAL_PLATFORMS[i].label).join(', ') || '(none)'}`);
   console.log(`blocked by lint   : ${blocked}`);
+  console.log(`refused by gate   : ${refused}  (wrong-audience draft for a tier-4 room)`);
   console.log(`truncated captions: ${truncated}`);
   console.log(`\nAssisted lane only — nothing here posts. A human completes every post.\n`);
 })();

@@ -12,14 +12,22 @@
 import Constants from 'expo-constants';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { adminOpsFetch } from '@/lib/adminOps';
+import type { ReelKind } from '@/constants/reelKinds';
 
 const extra = Constants.expoConfig?.extra || {};
 const SUPABASE_URL = extra.supabaseUrl ?? process.env.EXPO_PUBLIC_SUPABASE_URL;
 
-// MKT-13: session kinds are pro-only (the free group gets midday/evening
-// redacted). Mirrors the marketing_reels_kind_check constraint — adding one
-// here without widening that CHECK makes the publisher fail at upsert.
-export type ReelKind = 'allday_pro' | 'allday_free' | 'verify' | 'midday_pro' | 'evening_pro';
+// MKT-13's "session kinds are pro-only" was SUPERSEDED by MKT-26 (2026-07-29):
+// the free group does get midday/evening, from a digits-masked capture. What
+// stayed barred is a FULL-FIDELITY free session reel, which is a property of the
+// capture (scripts/reel-redact.ts), not of the kind union.
+//
+// ReelKind and REEL_KIND_AUDIENCE now live in constants/reelKinds.ts so a node
+// script can read them without pulling React Native in through this module's
+// expo-constants import — re-exported here because every existing consumer
+// imports them from this path.
+export type { ReelKind } from '@/constants/reelKinds';
+export { REEL_KIND_AUDIENCE } from '@/constants/reelKinds';
 export type ReelStatus = 'ready' | 'posted' | 'archived';
 
 export interface MarketingReel {

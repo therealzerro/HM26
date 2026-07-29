@@ -3,6 +3,11 @@ HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
 changed. Every command has a description. (Last updated 2026-07-28 —
+UPDATED 2026-07-29 — four things rotate independently now (intro, stinger
+motion, endcard motion, carrier opening), every reel carries an identity chip
+over the anchor's shoulder, and the verify reel opens on the board it posted
+before showing the ledger. Details in the sections below.
+
 SESSION WAVE LIVE: reel:midday + reel:evening join reel:allday;
 Anchor intro + branded stinger open every drop; verify 14.4s.
 NEW: the intro now ROTATES per reel kind, so slate reels are 33.83s
@@ -38,7 +43,10 @@ STEP 2 — ADMIN APP: run the Full Daily Workflow (before 8:30 ET)
 
 STEP 3 — TERMINAL B: build + publish the day's reels
 
-    npm run reel:verify
+    npm run reel:verify        (now opens on THE BOARD WE POSTED —
+                                yesterday's six picks as published,
+                                landed ones marked with what they
+                                drew — then cuts to the ledger)
     npm run reel:allday
     npm run reel:midday      (optional — session wave, Pro only)
     npm run reel:evening     (optional — session wave, Pro only)
@@ -96,6 +104,19 @@ SESSION WAVE — the Midday and Evening drops
 
 npm run reel:midday
 npm run reel:evening
+
+    ⚠ PRO ONLY, and the free variant is deliberately switched OFF.
+    A free-group session reel is registered in every other respect —
+    endcard copy, stinger copy, built matrix, and the database kind
+    constraint all admit midday_free / evening_free — but its CARRIER
+    does not exist yet, and a missing carrier aborts the run rather
+    than degrading. So `free` is off in scripts/reel-scopes.ts, which
+    is the single switch: deliver the two carrier VOs, add them to
+    carrier-config.ts, restore 'free', and the lane is live. They
+    must NOT reuse the pro carriers — first-access framing is barred
+    for the free tier.
+    reel:check FAILS loudly if that variant is ever switched on
+    before its carrier config exists, which is how it was found.
 
     Same reel as All-Day, built from that SESSION's board instead:
     renders the Midday (or Evening) grid + six signal modals from
@@ -185,9 +206,9 @@ npm run stinger:build allday_pro (one variant)
     string edit in scripts/stinger-config.ts and a re-run — no new
     video generation. Adding Midday/Evening later is config only.
 
-    MKT-19: there are now THREE stinger motions (bolt condense,
-    strike, circuit) and this builds every variant against every
-    one of them — one file per pair, named
+    MKT-19/23: there are now FIVE stinger motions (bolt condense,
+    strike, circuit, fracture, imprint) and this builds every
+    variant against every one of them — one file per pair, named
     stinger_<variant>_<tag>.mp4. The daily run picks by DATE, so
     it never renders anything; that's why the matrix is prebuilt.
 
@@ -217,9 +238,17 @@ npm run endcard:build allday_pro (one variant)
     generation. Midday/Evening reuse the SAME pro motion file, so
     session endcards cost nothing but a config entry.
 
-    MKT-19: each variant is now built against every motion in ITS
-    TIER — pro kinds (All-Day Pro, Midday, Evening, Verify) get the
-    pro motions, free kinds get the free ones, and nothing crosses.
+    MKT-19/23: each variant is now built against every motion in ITS
+    TIER — pro kinds (All-Day Pro, Midday, Evening, Verify) now have
+    FOUR (converging threads, vault rings, scrolling waveform, node
+    lattice), free kinds TWO, and nothing crosses.
+    ⚠ Two pro motions are BED-INELIGIBLE and drop only on short-carrier
+    days: vault rings has no level-steady window at all, and node
+    lattice has one 13.5dB below the reference (beyond the ±6dB
+    match clamp), so it would ship audibly quiet. Both play normally
+    on wall-to-wall days, which is every day currently. The verdict
+    is DERIVED at build time — respec a motion's audio and it
+    re-qualifies itself on the next run, with nothing to un-flag.
     Files are named <variant-out>_<tag>.mp4, derived from the
     registry's own output name rather than composed from the kind,
     because verify's is verif_endcard.mp4 with no "y".
@@ -245,6 +274,21 @@ FORCING ONE MOTION (review / gate only — not for a daily run)
 npm run reel:allday -- --stinger-motion=circuit
 npm run reel:allday -- --endcard-motion=alt
 npm run reel:allday -- --carrier=allday_pro_carrier_room.mp4
+
+    And, separately, the REDACTION flag on the body renderer:
+
+npm run render-allday-body -- --scope=midday --redact
+
+    Masks every rendering of the combination in the captured board —
+    the hero row, the position boxes, the box set, the pair labels
+    and the pair prose — while leaving energy, the four signal
+    values, percentages and layout untouched. Built for the
+    free-group session reels, whose whole conversion frame is that
+    the board is shown and the numbers are not.
+    It asserts BEFORE frame 0 and aborts if anything survives, so a
+    leak costs nothing rather than 960 rendered frames.
+    ⚠ The app is NOT modified — this is DOM injection at capture
+    time, so there is no code path a subscriber can reach.
 
     Overrides the date rotation for one assembly so a specific
     combination can be watched end to end. The motion flags take a

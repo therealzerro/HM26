@@ -30,7 +30,7 @@ import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { probeAnchorIntro, INTRO_DISSOLVE, INTRO_VO_LEAD } from './reel-intro';
-import { resolveCarrier } from './reel-carrier';
+import { resolveCarrier, OVERLAP_EPSILON, carrierBoundarySlack, BOUNDARY_WARN_AT } from './reel-carrier';
 import { MODAL_COUNT, GRID_DUR, MODAL_HOLD, modalWindow } from '../constants/reelPanels';
 import { probeStinger, stingerAdds } from './reel-stinger';
 import { bedWindow, type BedWindow } from './reel-bed';
@@ -189,7 +189,14 @@ for (const v of SPEC.variants) {
   // usable VO window is bodyDur+0.4 (+1.1 overlap allowance) — 17.5s ceiling.
   const voiceStart = intro ? +(openDur - INTRO_VO_LEAD).toFixed(2) : 0;
   const voiceWindow = +(openDur + bodyDur - voiceStart).toFixed(2);
-  const overlap = carrierDur >= voiceWindow - 0.05;
+  // MKT-21: named epsilon, and exact equality resolves to OVERLAP by decision —
+  // see OVERLAP_EPSILON. The slack is logged whenever it is thin, because a
+  // silent flip to hum-bed mode halves the narration and nothing else reports it.
+  const overlap = carrierDur >= voiceWindow - OVERLAP_EPSILON;
+  const slack = carrierBoundarySlack(carrierDur, voiceWindow);
+  if (Math.abs(slack) < BOUNDARY_WARN_AT) {
+    console.log(`NOTE(${v}): carrier is ${slack >= 0 ? '' : '-'}${Math.abs(slack).toFixed(4)}s from the overlap/hum-bed boundary — mode "${overlap ? 'overlap' : 'hum-bed'}" is decided on a tie. A re-encode or a slightly longer body would flip it.`);
+  }
   const voiceSpan = overlap
     ? +Math.min(carrierDur - 0.1, voiceWindow + 1.1).toFixed(2)
     : +Math.min(carrierDur - 0.2, voiceWindow).toFixed(2);

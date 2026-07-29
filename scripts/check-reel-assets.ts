@@ -19,7 +19,7 @@ import { execSync } from 'node:child_process';
 import { existsSync, statSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { resolveCarrier, undeclaredParts, carrierCandidates, audioDur } from './reel-carrier';
+import { resolveCarrier, undeclaredParts, carrierCandidates, audioDur, OVERLAP_EPSILON, carrierBoundarySlack, BOUNDARY_WARN_AT } from './reel-carrier';
 import { CARRIERS, allCarrierFiles, PART1_DUR_TOLERANCE } from './carrier-config';
 import { bedWindow } from './reel-bed';
 import { available, sourcePath, builtPath, sha256, clearanceFor } from './reel-panels';
@@ -507,10 +507,17 @@ function checkSlateCarrier(kind: string): number | null {
   const s = streams(p);
   if (!s.hasAudio) { add('FAIL', name, 'no audio stream — the carrier IS the voiceover'); return null; }
   const dur = s.aDur;
-  const overlap = dur >= voiceWindow() - 0.05;
+  const overlap = dur >= voiceWindow() - OVERLAP_EPSILON;
   const voiceSpan = overlap ? Math.min(dur - 0.1, voiceHardEnd()) : Math.min(dur - 0.2, voiceWindow());
   const mode = overlap ? `overlap (voice 0-${voiceSpan.toFixed(1)}s of carrier, wall-to-wall)` : `hum-bed (voice 0-${voiceSpan.toFixed(1)}s of carrier, endcard hum beds the rest)`;
   add('PASS', name, `audio ${dur.toFixed(1)}s → ${mode}${INTRO_ACTIVE ? ' · intro-shifted window' : ''}`);
+  // MKT-21: proximity to the overlap/hum-bed flip. Thin slack is not a defect
+  // today, but it means the mode is decided by a tie rather than a margin, and
+  // a flip halves the narration with nothing else reporting it.
+  const slack = carrierBoundarySlack(dur, voiceWindow());
+  if (Math.abs(slack) < BOUNDARY_WARN_AT) {
+    add('WARN', name, `only ${Math.abs(slack).toFixed(4)}s from the overlap/hum-bed boundary (threshold ${(voiceWindow() - OVERLAP_EPSILON).toFixed(3)}s) — "${overlap ? 'overlap' : 'hum-bed'}" is decided on a tie. A re-encode, a container rewrite or a slightly longer body would flip the reel into the other mode silently.`);
+  }
   // VO-chop risk: is there actual signal (not silence) at the fade point?
   const sil = silences(p);
   const fadeStart = voiceSpan - 0.25;

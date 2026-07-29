@@ -45,6 +45,40 @@ export const CARRIER_CACHE = '_carrier_joined';
  */
 export const SEAM_GAP = 0.35;
 
+/**
+ * How far a carrier may fall SHORT of the voice window and still be treated as
+ * wall-to-wall ("overlap mode") rather than switching to hum-bed mode.
+ *
+ * `overlap = carrierDur >= voiceWindow - OVERLAP_EPSILON`
+ *
+ * ⚠ EXACT EQUALITY RESOLVES TO OVERLAP, and that is a decision, not an accident
+ * of `>=`. Overlap is the safe side: it plays the voice wall-to-wall and needs
+ * no hum bed at all, whereas hum-bed mode has a failure path (a motion with no
+ * usable bed — MKT-19). When the two are indistinguishable, take the branch that
+ * cannot abort.
+ *
+ * WHY THIS IS NAMED RATHER THAN INLINE (MKT-21 Phase 0). A ~20.0s body puts the
+ * comparison at exact equality: bodyDur 20.010 → voiceWindow 20.410 → threshold
+ * 20.360, against a joined carrier of exactly 20.360. It currently resolves to
+ * overlap — but on a tie, and a tie is not a margin. A body 0.01s longer, or a
+ * carrier a few milliseconds shorter after a re-encode or container rewrite,
+ * flips the whole reel into hum-bed mode silently. Today's live bodies are 19.0s
+ * so there is ~1.0s of slack and nothing is at risk; this exists so that the day
+ * a body approaches the carrier length, the mode is something someone chose.
+ *
+ * `carrierBoundarySlack()` reports the distance to the flip so preflight can warn
+ * before the coin lands the other way.
+ */
+export const OVERLAP_EPSILON = 0.05;
+
+/** Seconds of headroom before `overlap` flips. Negative = already hum-bed. */
+export function carrierBoundarySlack(carrierDur: number, voiceWindow: number): number {
+  return +(carrierDur - (voiceWindow - OVERLAP_EPSILON)).toFixed(4);
+}
+
+/** True when the carrier is close enough to the flip to be worth reporting. */
+export const BOUNDARY_WARN_AT = 0.05;
+
 export interface ResolvedCarrier {
   /** Path the assembler should actually read. */
   path: string;

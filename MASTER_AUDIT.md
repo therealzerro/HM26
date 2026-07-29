@@ -23,6 +23,8 @@ The regression, recorded because the cause is reusable: adding `free` to the SCO
 
 **⚠ AND `reel:check` DID NOT CATCH IT — gap still open.** Preflight reported those kinds as *dormant, 0 fail* while the assembler hard-aborted on them, because it probes for file existence rather than resolving a carrier the way the assembler does. A kind can therefore read clean in preflight and break the run. **Worth closing: preflight should call the same resolver the assembler calls.** This is the same shape as the six redaction failures — a check looking at something adjacent to the real thing and reporting success.
 
+**NEXT SESSION STARTS HERE — [[MKT-26]], gate held.** Four free-session carriers have landed (all 10.005s). Do in order: **(1)** complete Phase 0 item 1(a) — a full contact sheet across the grid push-in AND all six modals of a real redacted body, attempting reconstruction by every named route (hero digits · set chip · pair labels · pair prose · resolution trail · arithmetic across surfaces) and recording who looked and how. Item 1(b) is already answered and the two vectors the order flags are closed. **(2)** measure all four carrier margins — do not assume they improved on midday_pro's +0.184s. **(3)** check whether `midday_free`/`evening_free` have caption entries at all; they probably do not, and that is a live defect. **(4)** Phase 1 copy is agreed and unambiguous; it needs an endcard matrix rebuild.
+
 **THEN:** the **MKT-15 P2 RELABEL** — spec and traps are written up in this file under its own heading. Public needs **no new assets**: the copy set is approved, the injection mechanism is proven, and `public_carrier` + `_pt2` already validate. **Chase the `ON FIRE` band enum from the content agent first** — it gates the public capture copy set and sits on that critical path.
 
 **SHIPPED TODAY:** MKT-19 (motion rotation) · MKT-20 (carrier rotation) · MKT-22 (intro chip) · MKT-23 (asset wave: 6 intros, 5 stinger motions, 4 pro endcard motions, per-kind endcard copy) · MKT-25 (verify restaging — the board it posted, then the ledger) · panel_app re-clearance + a new clearance-chain guard · lane spreading (distinctness 5/6→**6/6** intro, 3/6→**5/6** stinger, 4/6→**6/6** endcard, measured on FILE not label) · **MKT-15 P2 redaction working end-to-end** · free-group kinds registered with migration applied.
@@ -65,6 +67,45 @@ The regression, recorded because the cause is reusable: adding `free` to the SCO
 **ORDER OF WORK:** relabel injection (grid + modal variants) → full `--relabel` capture, frames inspected → registration (endcard, stinger, carrier, scope, caption) → `marketing_reels_kind_check` migration LAST within the change but not left out of it.
 
 **STILL OWED BY THE CONTENT AGENT:** the `ON FIRE` band enum. It gates the public capture copy set and is on this critical path — worth chasing before starting.
+
+---
+
+### MKT-26 — Free session carriers + conversion-frame verification 🔍 GATE HELD · NOT STARTED
+
+**⚠ ID: the order specified MKT-25, which is TAKEN.** MKT-25 is the verify reel restaging, created earlier the same day and shipped. Checked both registers per the rule this project adopted after I stamped MKT-22 in code without an audit entry: **an ID is claimed by the audit entry, not by a code comment.** `MKT-26` verified free — 0 hits in audit and code. Renumbered; nothing was stamped before checking.
+
+**ASSETS LANDED.** All four carriers present, all **10.005s** — so the MKT-20 part-1 duration invariant holds at file level. Margins NOT yet measured, and the order is right that they must be: midday_pro's +0.184s is the thinnest in the fleet and this voice runs ~35% long against script.
+
+---
+
+**⛔ PHASE 0 ITEM 1 — THE GATE. Partially answered; (a) outstanding.**
+
+**(b) ANSWERED — what the redaction masks. Six surfaces, and the set chip is one of them.** Verified on a real `--redact --scope=midday` capture:
+
+| surface | result |
+|---|---|
+| hero row — `4 - 7 - 1` **and** space-separated `4 7 1` | `• • •` |
+| bare 3-digit leaves | `•••` |
+| **brace set chip** — grid cards *and* modal | `{•••}` |
+| position boxes | `• • •`, `P1/P2/P3` intact |
+| pair **labels** | `Front pair ••` |
+| pair **prose** | `•• surging — highest recent frequency in front position` |
+
+**Both vectors the order flags are closed.** The set chip — digits unordered, no arithmetic needed — masks on both surfaces. The pair-row reconstruction route masks at label *and* prose, which was the miss surface the order correctly predicted a string-level approach would have.
+
+**Detection is STRUCTURAL, not component-scoped**, which is what closes the `PickCard` class of gap for good: a leaf whose digits are separated by any separator, plus any SIBLING GROUP of 3+ single-digit leaves under one parent. No marker text, no class selector, no component list — so it behaves identically on grid and modal and cannot be defeated by a surface nobody enumerated.
+
+**(a) NOT ANSWERED — and not claimable.** Only **four frames** were sampled, not the grid push-in plus all six modals. By this lane's own MKT-21 standard that is a spot check: attempts 4 and 5 of the redaction both passed spot checks and leaked in real renders. **The gate stands.**
+
+---
+
+**REMAINING PHASE 0, none started:** carrier margins ×4 · scope+tier binding (structurally enforced by `CARRIERS` being keyed per kind, but unverified for these entries) · VO price check · caption registry — ⚠ suspect `midday_free`/`evening_free` currently INHERIT nothing and have no entries at all, which is the live defect the order anticipates; they are the inverse case to `allday_free`, which is bound by the no-Pro-pitch rule while these two exist to sell the gap.
+
+**PHASE 1 COPY — accepted as specified, replacing my provisional lines.** Endcard `DIGITS COVERED HERE` / `FULL SIX IN PRO · $2.49/MO`; stingers `MIDDAY · THE BOARD` / `EVENING · THE BOARD`. **The correction on my copy is right and I should have caught it**: §5's voice rule bars *numbers* as a product noun — "the product noun is signals, always" — so `THE BOARD, NOT THE NUMBERS` would have failed the lint sitting next to it. `DIGITS` is the system's own term for the withheld values. ⚠ Copy change requires an endcard matrix REBUILD (builds are per variant × motion).
+
+**RECORDED FOR SCOPE — the public relabel is the DELTA, not a re-derivation.** Free needs digits withheld; public needs that **plus** vocabulary relabelled, because `BOX`/`STRAIGHT`/`PLAY` are sanctioned in the free room (tier 2) and forbidden outside it. The redaction already built is a strict subset of the public capture, so the remaining public work is the relabel alone.
+
+**ON FIRE ENUM — SUPPLIED** (`lib/theme/heat.ts`): **ON FIRE** ≥90 · **BLAZING** ≥80 · **HOT** ≥65 · **WARM** ≥45 · **COOL** <45, with emoji 🔥 ⚡ ✦ ◈ ❄. Three complications for whoever writes the replacements: the modal reimplements the ladder inline and renders **`HOT SIGNAL`** where `heat.ts` says `HOT` (a second `Best Straight`/`BEST STRAIGHT`-shaped trap); `PickPosterCard` carries a third variant for poster exports; and **the emoji carry the same heat signal as the words**, so a neutral word set with 🔥 beside it only half-solves it. ZK30 has its own four-rung ladder (`components/zk30/types.ts`) — out of reel scope, but a replacement set that generalises is worth more than one tuned to these five.
 
 ---
 

@@ -23,7 +23,23 @@ The regression, recorded because the cause is reusable: adding `free` to the SCO
 
 **⚠ AND `reel:check` DID NOT CATCH IT — gap still open.** Preflight reported those kinds as *dormant, 0 fail* while the assembler hard-aborted on them, because it probes for file existence rather than resolving a carrier the way the assembler does. A kind can therefore read clean in preflight and break the run. **Worth closing: preflight should call the same resolver the assembler calls.** This is the same shape as the six redaction failures — a check looking at something adjacent to the real thing and reporting success.
 
-**NEXT SESSION STARTS HERE — [[MKT-26]], gate held.** Four free-session carriers have landed (all 10.005s). Do in order: **(1)** complete Phase 0 item 1(a) — a full contact sheet across the grid push-in AND all six modals of a real redacted body, attempting reconstruction by every named route (hero digits · set chip · pair labels · pair prose · resolution trail · arithmetic across surfaces) and recording who looked and how. Item 1(b) is already answered and the two vectors the order flags are closed. **(2)** measure all four carrier margins — do not assume they improved on midday_pro's +0.184s. **(3)** check whether `midday_free`/`evening_free` have caption entries at all; they probably do not, and that is a live defect. **(4)** Phase 1 copy is agreed and unambiguous; it needs an endcard matrix rebuild.
+**NEXT SESSION STARTS HERE — [[MKT-26]], GATE CLEARED. Three mechanical steps, then the lane ships.**
+
+Everything hard is done: redaction verified non-recoverable across all seven surfaces with a stored record, four carriers delivered and measured (+1.242s and +2.470s, against midday_pro's +0.184s), endcard/stinger config registered, matrix built, migration applied.
+
+**STEP 1 — caption registry.** Check whether `midday_free` / `evening_free` have entries at all. They probably have NONE, which is the live defect the work order anticipated. These are the INVERSE case to `allday_free`: that kind is bound by the no-Pro-pitch rule, while these two exist to sell the gap. They need their own templates with unique rotation offsets — the content agent will supply on request. **Do not let them inherit `allday_free`'s.**
+
+**STEP 2 — Phase 1 copy, then REBUILD.** Replace my provisional lines with the agreed set:
+`endcard` → `HITMASTER ZK6` / `DIGITS COVERED HERE` / `FULL SIX IN PRO · $2.49/MO`
+`stinger` → `MIDDAY · THE BOARD` · `EVENING · THE BOARD`
+⚠ Copy changes require an **endcard matrix rebuild** — builds are per (variant × motion).
+(Why `NUMBERS` → `DIGITS`: §5 bars *numbers* as a product noun — "the product noun is signals, always" — so my provisional line would have failed the lint beside it.)
+
+**STEP 3 — REGISTER, AND THE ORDER MATTERS.** Add the four carriers to `CARRIERS` in `carrier-config.ts` **FIRST**, then restore `'free'` to the midday/evening variants in `reel-scopes.ts`. Doing it the other way round is what broke the daily run on 2026-07-29 — and preflight now FAILS loudly on exactly that mistake, so it will stop you rather than let it through to the morning.
+
+**THEN ASSEMBLE:** one reel per new kind, contact sheets over grid + all six modals (the same discipline that cleared the gate), and update handoff §2, §7, §9 (⚠ the PRO-ONLY session ruling is SUPERSEDED — record what replaced it) and §10.
+
+---
 
 **THEN:** the **MKT-15 P2 RELABEL** — spec and traps are written up in this file under its own heading. Public needs **no new assets**: the copy set is approved, the injection mechanism is proven, and `public_carrier` + `_pt2` already validate. **Chase the `ON FIRE` band enum from the content agent first** — it gates the public capture copy set and sits on that critical path.
 

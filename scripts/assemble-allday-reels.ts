@@ -33,7 +33,7 @@ import { probeAnchorIntro, INTRO_DISSOLVE, INTRO_VO_LEAD } from './reel-intro';
 import { resolveCarrier, OVERLAP_EPSILON, carrierBoundarySlack, BOUNDARY_WARN_AT } from './reel-carrier';
 import { MODAL_COUNT, GRID_DUR, MODAL_HOLD, modalWindow } from '../constants/reelPanels';
 import { probeStinger, stingerAdds } from './reel-stinger';
-import { bedWindow, type BedWindow } from './reel-bed';
+import { bedWindow, BED_TARGET_RMS, BED_MIX_DB, MAX_BED_CORRECTION, type BedWindow } from './reel-bed';
 import { STINGERS, STINGER_DUR, INTRO_XFADE } from './stinger-config';
 import { REEL_SCOPES, parseScopeFlag, positionals, reelKind } from './reel-scopes';
 import { assertBodyDate } from './reel-provenance';
@@ -86,18 +86,6 @@ function humBed(inLabel: string, bedLen: number, outLabel: string, bed: BedWindo
   );
 }
 
-/**
- * Reference bed level, dB RMS. This is the incumbent Pro endcard's measured
- * window — the level that has been shipping and is approved by ear, so matching
- * to it changes nothing about the reels that already sound right and only pulls
- * the outliers into line.
- */
-const BED_TARGET_RMS = -27.6;
-/** The historical flat `volume=0.8`, preserved as the mix balance. */
-const BED_MIX_DB = -1.94;
-/** Never correct by more than this: a motion needing more is a defect, not a
- *  level, and boosting it that hard would raise its noise floor with it. */
-const MAX_BED_CORRECTION = 6;
 function clampDb(db: number): number {
   return Math.max(-MAX_BED_CORRECTION, Math.min(MAX_BED_CORRECTION, db));
 }

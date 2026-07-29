@@ -35,18 +35,18 @@ export const ENDCARDS: Record<string, EndcardVariant> = {
   // verif_carrier), so the crack/bed contract does not apply to it at all.
   verify: {
     motion: 'endcard_motion_pro.mp4',
-    lines: ['HITMASTER ZK6', "YESTERDAY'S RECEIPTS", 'VERIFIED FROM PUBLISHED RESULTS'],
+    lines: ['HITMASTER ZK6', 'THE RECORD, DRAW BY DRAW', 'CHECK OUR WORK'],
     out: 'verif_endcard.mp4',
   },
   // Phase 2 — session wave. Same pro motion file, zero new generations.
   midday_pro: {
     motion: 'endcard_motion_pro.mp4',
-    lines: ['HITMASTER ZK6', 'FIRST ACCESS. ALWAYS.', 'VERIFIED TOMORROW MORNING'],
+    lines: ['HITMASTER ZK6', 'AHEAD OF THE MIDDAY DRAW', 'RECEIPTS IN THE MORNING'],
     out: 'midday_pro_endcard.mp4',
   },
   evening_pro: {
     motion: 'endcard_motion_pro.mp4',
-    lines: ['HITMASTER ZK6', 'FIRST ACCESS. ALWAYS.', 'VERIFIED TOMORROW MORNING'],
+    lines: ['HITMASTER ZK6', 'AHEAD OF THE EVENING DRAW', 'RECEIPTS AT SUNUP'],
     out: 'evening_pro_endcard.mp4',
   },
 };

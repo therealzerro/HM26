@@ -60,6 +60,13 @@ export const STINGER_MOTIONS: MotionVariant[] = [
   { file: 'stinger_motion.mp4', tag: 'std', label: 'bolt condense' },
   { file: 'stinger_motion_strike.mp4', tag: 'strike', label: 'strike' },
   { file: 'stinger_motion_circuit.mp4', tag: 'circuit', label: 'circuit', audioFadeFrom: 2.45, audioFadeAgainst: 2.7 },
+  // MKT-23. Both cleared on the ONE-HERO-BEAT rule: fracture 1.1s, imprint 1.1s,
+  // neither with anything after 2.4s. Note imprint reads ZERO on the prominence
+  // detector — it ramps in over more than the 0.4s lookback, so the detector
+  // cannot see it, exactly as it cannot see `strike` (which ships daily). The
+  // criterion is one hero beat with nothing after ~2.4s, not one detector hit.
+  { file: 'stinger_motion_fracture.mp4', tag: 'fracture', label: 'fracture' },
+  { file: 'stinger_motion_imprint.mp4', tag: 'imprint', label: 'imprint' },
 ];
 
 /** Endcard motions, PER TIER. Crossing these sets is the failure this prevents. */
@@ -67,6 +74,14 @@ export const ENDCARD_MOTIONS: Record<Tier, MotionVariant[]> = {
   pro: [
     { file: 'endcard_motion_pro.mp4', tag: 'std', label: 'converging threads' },
     { file: 'endcard_motion_pro_alt.mp4', tag: 'alt', label: 'vault rings' },
+    // MKT-23 — the two that close standing ask #8. steady beds cleanly at
+    // −29.1dB. lattice derives a window at −41.1dB and is therefore marked
+    // BED-INELIGIBLE by the derivation (it needs +13.5dB against a ±6dB clamp),
+    // so it plays normally on wall-to-wall days and drops on hum-bed ones. That
+    // is a correct state, not a compromise: shipping it 7.5dB quiet would
+    // re-introduce, worse, the level inconsistency MKT-19 item E closed.
+    { file: 'endcard_motion_pro_steady.mp4', tag: 'steady', label: 'scrolling waveform' },
+    { file: 'endcard_motion_pro_lattice.mp4', tag: 'lattice', label: 'node lattice' },
   ],
   free: [
     { file: 'endcard_motion_free.mp4', tag: 'std', label: 'blooming eddies' },
@@ -116,6 +131,8 @@ export interface MotionMeta {
   bedRms: number | null;
   crackAt: number | null;
   derivedAt: string;
+  /** Why a bed is unusable, when it is — printed by reel:check. */
+  bedNote?: string;
 }
 
 export function readMotionMeta(assetsDir: string): Record<string, MotionMeta> {

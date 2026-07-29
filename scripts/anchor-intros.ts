@@ -51,6 +51,15 @@ export const INTRO_ROTATION: IntroVariant[] = [
   { file: 'anchor_intro_deadpan.mp4', label: 'deadpan' },
   { file: 'anchor_intro_arrival.mp4', label: 'arrival' },
   { file: 'anchor_intro_monitors.mp4', label: 'monitors' },
+  // MKT-23. powerup is the REGENERATION of the file MKT-17 rejected: the old cut
+  // never reached full-frame smoke (bezel in shot at every candidate out-point).
+  // The rebuild pushes fully into the screen and the handset is gone by 5.6s.
+  { file: 'anchor_intro_powerup.mp4', label: 'powerup' },
+  // board is the first STAGING change in the set — the Anchor standing at a
+  // wall-sized display rather than seated. Its wall was audited at 2.5x across
+  // four timestamps for glyphs and numerals and is clean, which matters because
+  // public kinds will eventually draw from this rotation.
+  { file: 'anchor_intro_board.mp4', label: 'board' },
 ];
 
 /** Fallback when the rotation is empty or every member is unusable. */
@@ -71,7 +80,14 @@ export const SLATE_KINDS = ['allday_pro', 'allday_free', 'midday_pro', 'evening_
  *          surface; it must never be swapped for a rotation member.
  */
 export const FIXED_INTRO: Record<string, string> = {
-  verify: 'anchor_intro.mp4',
+  // MKT-23: repointed off anchor_intro.mp4. Verify pinning to a ROTATION member
+  // was a permanent collision, not a rotational one — a slate kind drew that
+  // same file every single day, and a label-based count read 6/6 while the file
+  // count was 5/6. Verify still does NOT rotate: a deadpan gag ahead of
+  // yesterday's receipts is a tonal mismatch and that ruling is unchanged.
+  // Trimmed to 5.625s / 135 frames, exactly matching standard, so verify's
+  // timeline does not shift.
+  verify: 'anchor_intro_verify.mp4',
   allday_public: 'anchor_intro_public.mp4',
   midday_public: 'anchor_intro_public.mp4',
   evening_public: 'anchor_intro_public.mp4',

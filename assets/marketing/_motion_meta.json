@@ -3,24 +3,38 @@
     "bedUsable": true,
     "bedRms": -27.6,
     "crackAt": 4.4,
-    "derivedAt": "2026-07-28"
+    "derivedAt": "2026-07-29"
   },
   "endcard_motion_pro_alt.mp4": {
     "bedUsable": false,
     "bedRms": null,
     "crackAt": null,
-    "derivedAt": "2026-07-28"
+    "derivedAt": "2026-07-29",
+    "bedNote": "no crack-free level-steady window"
   },
   "endcard_motion_free.mp4": {
     "bedUsable": true,
     "bedRms": -29.3,
     "crackAt": 4.3,
-    "derivedAt": "2026-07-28"
+    "derivedAt": "2026-07-29"
   },
   "endcard_motion_free_alt.mp4": {
     "bedUsable": true,
     "bedRms": -24.5,
     "crackAt": 4.5,
-    "derivedAt": "2026-07-28"
+    "derivedAt": "2026-07-29"
+  },
+  "endcard_motion_pro_steady.mp4": {
+    "bedUsable": true,
+    "bedRms": -29.1,
+    "crackAt": 4.4,
+    "derivedAt": "2026-07-29"
+  },
+  "endcard_motion_pro_lattice.mp4": {
+    "bedUsable": false,
+    "bedRms": -41.1,
+    "crackAt": 4.2,
+    "derivedAt": "2026-07-29",
+    "bedNote": "window at -41.1dB needs 13.5dB to reach the reference — beyond the clamp, would ship quiet"
   }
 }

@@ -25,7 +25,7 @@ import {
   ENDCARD_MOTIONS, tierFor, builtEndcardName, readMotionMeta,
   MOTION_META_FILE, type MotionVariant, type MotionMeta,
 } from './brand-motion';
-import { bedWindow } from './reel-bed';
+import { bedWindow, bedLevelReachable, BED_TARGET_RMS } from './reel-bed';
 import {
   ENDCARDS, LOCKUP_TOP, CROP_SAFE_BOTTOM, TEXT_FADE_IN, TEXT_FADE_DUR, OUT_W, OUT_H,
   type EndcardVariant,
@@ -152,15 +152,23 @@ async function build(key: string, v: EndcardVariant, mv: MotionVariant): Promise
   // variant sharing a motion shares its verdict.
   if (!DERIVED[mv.file]) {
     const b = bedWindow(out, CARD_WINDOW);
+    // MKT-23: a window that EXISTS is not enough — it must also be reachable
+    // from the reference level within the clamp, or it ships audibly quiet.
+    const reachable = b ? bedLevelReachable(b.rms) : false;
     DERIVED[mv.file] = {
-      bedUsable: Boolean(b),
+      bedUsable: Boolean(b) && reachable,
       bedRms: b ? b.rms : null,
       crackAt: b ? b.crackAt : null,
       derivedAt: STAMP,
+      bedNote: !b ? 'no crack-free level-steady window'
+        : !reachable ? `window at ${b.rms}dB needs ${(BED_TARGET_RMS - b.rms).toFixed(1)}dB to reach the reference — beyond the clamp, would ship quiet`
+        : undefined,
     };
     console.log(
-      b
+      b && reachable
         ? `  bed: ${b.mode} ${b.start}-${b.end}s @ ${b.rms}dB (crack ${b.crackAt}s)`
+        : b
+        ? `  bed: INELIGIBLE — ${b.rms}dB needs ${(BED_TARGET_RMS - b.rms).toFixed(1)}dB, beyond the clamp. Drops on hum-bed days; plays normally on wall-to-wall ones.`
         : `  bed: NONE — this motion drops from the rotation on hum-bed days (MKT-19). Wall-to-wall carriers are unaffected.`,
     );
   }

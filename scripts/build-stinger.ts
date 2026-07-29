@@ -105,8 +105,49 @@ function transients(file: string, within: number): number[] {
  * degrades a brand beat, it does not break a reel, and failing the build would
  * block the daily run over a cosmetic regression.
  */
+/**
+ * MKT-23 — the ATTACK-SHAPE-BLIND check, and why it exists.
+ *
+ * `transients()` scores by PROMINENCE: a 12 dB rise over the preceding 0.4s. A
+ * motion that ramps in over longer has an already-high lookback floor, so a
+ * genuinely loud beat scores near zero. Measured: `imprint` reports 0 transients
+ * while peaking at −1.0 dB with a 51.6 dB range, and `strike` — shipping daily —
+ * reports 0 the same way.
+ *
+ * So "0 transients" means "no 12 dB rise over 0.4s", NOT "no transients". That
+ * is the same shape as "no numerals found" reading as comprehensive when it is
+ * only a search result (MKT-21). A gradual-attack beat at 2.7s — the circuit
+ * defect with a soft attack — would sail straight through the prominence pass.
+ *
+ * This second pass ignores attack shape entirely: any late-window peak that
+ * stands more than LATE_PEAK_OVER_FLOOR above the clip's own quiet floor is
+ * flagged for a human listen. It cannot distinguish a musical swell from a hit,
+ * which is exactly why it asks for an ear rather than failing the build.
+ */
+const LATE_PEAK_OVER_FLOOR = 18;
+
+function latePeakFlag(motionPath: string, usedWindow: number, from: number): string | null {
+  const p = peaks(motionPath).filter(([t]) => t <= usedWindow);
+  if (!p.length) return null;
+  const floor = Math.min(...p.map(([, d]) => d));
+  const late = p.filter(([t]) => t >= from);
+  if (!late.length) return null;
+  const [t, db] = late.reduce((a, b) => (b[1] > a[1] ? b : a));
+  return db - floor >= LATE_PEAK_OVER_FLOOR ? `${t.toFixed(1)}s at ${db.toFixed(1)}dB (${(db - floor).toFixed(1)}dB over this clip's floor)` : null;
+}
+
 function audioFilter(mv: MotionVariant, motionPath: string, usedWindow: number): string {
   const found = transients(motionPath, usedWindow);
+  // Attack-shape-blind second opinion — see above. Runs regardless of whether
+  // the prominence pass found anything, because its whole point is the case the
+  // prominence pass cannot see.
+  const blind = latePeakFlag(motionPath, usedWindow, 2.4);
+  if (blind && !mv.audioFadeFrom) {
+    console.log(
+      `  ⚠️  ${mv.file}: LATE PEAK at ${blind} — after the lockup is out (2.4s). ` +
+      `The prominence pass may not have flagged this if the attack is gradual; LISTEN before shipping.`,
+    );
+  }
   // A transient inside the final stretch of the used window is the defect class:
   // it fires after the lockup is gone and lands against the dissolve.
   const LATE = 0.6;

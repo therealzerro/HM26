@@ -99,6 +99,38 @@ function usable(s: Slice[]): { ok: boolean; rms: number; spr: number } {
  * `within` seconds (the outro span). Returns null when neither candidate is
  * usable — the caller must fail rather than guess.
  */
+/**
+ * Reference bed level, dB RMS — the incumbent Pro endcard's measured window,
+ * i.e. the level that has been shipping and is approved by ear.
+ */
+export const BED_TARGET_RMS = -27.6;
+/** The historical flat `volume=0.8`, preserved as the mix balance. */
+export const BED_MIX_DB = -1.94;
+/**
+ * Never correct by more than this. MKT-19's stated principle: "a motion needing
+ * more is a defect, not a level, and boosting it that hard would raise its noise
+ * floor with it."
+ */
+export const MAX_BED_CORRECTION = 6;
+
+/**
+ * Can this bed be brought to the reference level within the clamp?
+ *
+ * MKT-23 ruling. `endcard_motion_pro_lattice` derives a perfectly good window at
+ * −41.1 dB, so bedWindow() passes it — but it needs +13.5 dB against a ±6 dB
+ * clamp and would ship 7.5 dB quiet. That re-introduces, worse, the very bug
+ * MKT-19 item E closed (beds varying 4.8 dB by motion), and it is invisible in
+ * preview exactly as pro_alt's audio shape was.
+ *
+ * DERIVED rather than authored, deliberately: a motion whose audio is respec'd
+ * hotter re-qualifies itself on the next `endcard:build` with nobody having to
+ * remember to remove a hand-written flag. Same reasoning as the bed verdict it
+ * sits beside.
+ */
+export function bedLevelReachable(rms: number): boolean {
+  return Math.abs(BED_TARGET_RMS - rms) <= MAX_BED_CORRECTION;
+}
+
 export function bedWindow(file: string, within: number): BedWindow | null {
   const slices = profile(file);
   if (!slices.length) return null;

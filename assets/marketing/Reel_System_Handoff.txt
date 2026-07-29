@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-07-29 · v1.8
+Content Agent Handoff · 2026-07-29 · v1.9
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -16,6 +16,34 @@ Companion docs:
   - assets/marketing/AllDay_Reel_Endcard_Revision_Brief_2026-07-27.md (endcard contract)
   - docs/mkt15_phase2_copy_brief.md (public copy set — DELIVERED + the bolt request)
   - REEL_COMMANDS.txt (repo root — operator command reference)
+
+WHAT CHANGED IN v1.9 (MKT-22/23 — asset wave + the intro chip)
+  A. THE INTRO NOW CARRIES AN IDENTITY CHIP over the anchor's right shoulder —
+     ALL-DAY / MIDDAY / EVENING / YESTERDAY'S RESULTS, and THE FULL BOARD on
+     public. 0.40-2.65s. Reels are now identifiable from their first second
+     rather than from the stinger headline at 2.7s. §2.
+  B. INTRO ROTATION IS 6 (standard, deadpan, arrival, monitors, powerup, board).
+     powerup is the REGENERATION of the clip MKT-17 rejected and is now clean.
+     board is the first STAGING change in the set — the Anchor standing at a
+     wall-sized display. Its wall was audited for glyphs and numerals: clean.
+  C. ⚠ VERIFY NO LONGER SHARES AN INTRO. It was pinned to anchor_intro.mp4,
+     which a slate kind also drew every single day — a permanent collision that
+     a label-based count hid (it read 6/6 while the FILE count was 5/6). Verify
+     now takes anchor_intro_verify.mp4, trimmed to 5.625s so its timeline is
+     unchanged. It still does NOT rotate; the tonal ruling is unchanged.
+  D. PRO ENDCARD COPY IS NOW PER KIND — standing ask #2 CLOSED. Midday, Evening
+     and Verify no longer read All-Day's close. Verify's now describes what it
+     IS rather than promising verification on the verification reel.
+  E. STINGER MOTIONS 3 -> 5 (+ fracture, imprint), PRO ENDCARD MOTIONS 2 -> 4
+     (+ steady, lattice). Standing ask #8 CLOSED — the pro tier now has two
+     bed-viable motions instead of one.
+  F. ⚠ lattice is BED-INELIGIBLE and that is deliberate. Its bed exists but sits
+     at -41.1dB, needing +13.5dB against a ±6dB clamp, so it would ship audibly
+     quiet. It plays normally on wall-to-wall days and drops on hum-bed ones.
+     Respec its audio ~13dB hotter and it re-qualifies itself automatically.
+  G. MIDDAY CARRIER is now scope-named VO. ⚠ Its margin is +0.184s — roughly
+     HALF the next tightest (free/public +0.331, pro +0.449). It ships, but
+     there is no room for a re-cut that runs longer.
 
 WHAT CHANGED IN v1.8 (MKT-20 — the All-Day carrier OPENING now rotates)
   A. ALL-DAY PART 1 IS A SET, PART 2 IS NOT. Three alternate openings per tier
@@ -953,7 +981,10 @@ WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
      ALL 25 current warnings are this one issue, now across 3 intros, 7
      motions and the built matrix. MKT-19 did not make the problem worse; it
      made its size visible, since every rotation member is now checked.
-  2. MIDDAY + EVENING ENDCARD COPY — 2 lines each, the smallest real gap on
+  2. ✅ CLOSED 2026-07-29 (MKT-23). Midday, Evening and Verify now carry their
+     own endcard closes; a Pro subscriber no longer reads the same words three
+     times a day. Original entry kept below for the reasoning.
+     MIDDAY + EVENING ENDCARD COPY — 2 lines each, the smallest real gap on
      this list. Their captions and stingers are genuinely distinct, but both
      endcards still carry allday_pro's lines verbatim ("FIRST ACCESS.
      ALWAYS." / "VERIFIED TOMORROW MORNING"), so a Pro subscriber reads the
@@ -969,7 +1000,9 @@ WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
   5. More panels. The rotation adapts with no code change; six is the current
      set and the slot is now a product surface, so the copy bar is higher.
   6. More caption templates per kind (8 today, can grow; rotation adapts).
-  7. More intro rotation members. The set is 4 (standard, deadpan, arrival,
+  7. ✅ LARGELY CLOSED 2026-07-29 (MKT-23) — the set is now 6 and powerup's
+     regeneration landed clean. Original entry:
+     More intro rotation members. The set is 4 (standard, deadpan, arrival,
      monitors) as of 2026-07-29 — this ask is much less urgent than it was.
      Same delivery spec as §7; read the trim rule there before generating.
      The outstanding one is still `powerup`, which needs REGENERATION, not a
@@ -981,7 +1014,11 @@ WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
      negatives and describing the final beat as a STATE rather than a
      prohibition cleared it. Third refusal in this class traced to the same
      cause — negatives trigger them, scene descriptions do not.
-  8. A PRO ENDCARD MOTION THAT CAN BED — ⏳ PROMPT WRITTEN, AWAITING BUDGET.
+  8. ✅ CLOSED 2026-07-29 (MKT-23) — `endcard_motion_pro_steady` beds cleanly at
+     -29.1dB, so the pro tier has two bed-viable motions and a short-carrier Pro
+     day no longer collapses to one. `lattice` also landed but is bed-INELIGIBLE
+     (see v1.9 note F). Original entry kept for the reasoning:
+     A PRO ENDCARD MOTION THAT CAN BED — ⏳ PROMPT WRITTEN, AWAITING BUDGET.
      The pro set is 2 but only 1 (std) has a usable hum bed, because pro_alt
      is a build-up, so on a short-carrier Pro day the rotation collapses to a
      single motion. Not broken and not urgent — every current carrier is

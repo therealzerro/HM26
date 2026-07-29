@@ -48,7 +48,7 @@ Also recorded: **the X assignment was more conservative than necessary.** X was 
 
 ---
 
-### MKT-23 — Asset wave: intros, motions, session carrier, endcard copy 🔍 PHASE 0 REPORTED · GATE HELD
+### MKT-23 — Asset wave: intros, motions, session carrier, endcard copy ✅ PHASES 1 + 2 SHIPPED
 
 **⚠ ID COLLISION, AND IT IS MINE.** The order specified MKT-22 and asked me to verify. `MKT-22` has **no audit heading** — but I stamped it across **9 code locations** in commit `3fbd7a4` (the intro identity chip) earlier the same day and **never wrote the audit entry**. So the ID was free in the audit and taken in the code, which is exactly the failure the audit exists to prevent, committed by the party maintaining it. **Recorded as a rule: an ID is claimed by the AUDIT, not by a code comment — stamping one without an entry is how a lane gets orphaned** (cf. MKT-19, renumbered for the same class of collision arriving from the other direction).
 
@@ -127,6 +127,39 @@ Positive and in overlap mode, so it ships — but against pro **+0.449**, free *
 **What HAS changed is disk.** The current 22 built files are **128 MB**; 43 files is ~250 MB and 64 is ~380 MB of git-tracked binaries. **If that becomes the real constraint the answer is not run-time building — it is not committing the matrix at all.** Every built file is fully derived from a motion plus config, so it is reproducible by `npm run stinger:build` / `endcard:build`; it is in git today by convention, not necessity. That is a smaller, safer change than moving renders into the morning window, and it is the one to reach for first.
 
 **GATE: held.** Nothing registered, no config changed, no matrix rebuilt. Three items need a ruling before Phase 1: the **ID resolution**, **lattice's 7.5 dB quiet bed**, and whether **`imprint`** is accepted on the substance reading of the one-transient rule.
+
+---
+
+#### PHASES 1 + 2 SHIPPED 2026-07-29 — all three rulings applied
+
+`reel:check` **0 fail / 45 warn** (the added warnings are the 720×1280 / 24fps source note on newly-built matrix members). Matrix rebuilt to 43 files.
+
+**DISTINCTNESS, re-measured on FILE not label** — the measurement discipline that caught the verify collision in the first place:
+
+| lane | before | after |
+|---|---|---|
+| intro | 5/6 | **6/6** |
+| stinger | 3/6 | **5/6** |
+| endcard | 4/6 | **6/6** |
+
+Stable across 7/30, 7/31 and 8/1. Intro reaches 6/6 because verify no longer draws a rotation member; endcard reaches 6/6 on a pro pool of 4; stinger sits at 5/6 because six kinds over five motions must pair somewhere — that is the pool ceiling, not a bug.
+
+**Lattice: BED-INELIGIBLE, implemented as DERIVED rather than authored.** `bedUsable` now requires the window to be *reachable* from the −27.6 dB reference inside the ±6 dB clamp, so lattice drops out on its own and **re-qualifies itself automatically if its audio is respec'd** — nobody has to remember to clear a flag. The derived metadata now distinguishes the two different failure reasons, which it previously could not: `pro_alt` records *"no crack-free level-steady window"*, `lattice` records *"window at −41.1dB needs 13.5dB to reach the reference — beyond the clamp, would ship quiet"*. Pro tier ends with **2 of 4** bed-viable (std, steady), up from 1 of 2 — **standing ask #8 closes on steady alone**, exactly as ruled.
+
+**⚠ THE NEW ATTACK-SHAPE-BLIND CHECK FIRED, AND IT FALSIFIES THE PREMISE IMPRINT WAS ACCEPTED ON.** Imprint was accepted on the reframed rule — *"one hero beat, none after ~2.4s"* — because the prominence pass could not see its gradual attack. The second pass, added at the content agent's suggestion precisely for that blind spot, reports:
+
+- **`imprint`** — LATE PEAK at **2.8s**, −7.4 dB, **45.2 dB over its own floor**
+- **`strike`** — LATE PEAK at **2.6s**, −6.0 dB, 30.1 dB over floor
+
+**Imprint therefore does have something after 2.4s** — the lockup is out by then and the cut to body lands at 3.0s, which is the circuit defect's exact shape arriving with a soft attack. The content agent predicted this case in the same message that suggested the check: *"a gradual-attack transient at 2.7s would sail through today."* It did, and now it does not.
+
+**But the finding cuts both ways, and `strike` is why.** Strike carries the same class of late peak at 2.6s and **ships daily with no reported pop** — and MKT-19 ruled explicitly on this: *"The incumbent has shipped daily for weeks with its 2.8s peak and nobody has ever remarked on it, which is the evidence that a broad swell is not the defect."* So a late peak is not self-evidently a defect; sharpness relative to the surrounding material is what made circuit pop, and this check deliberately cannot measure that.
+
+**Left registered, flagged for the listen, NOT silently accepted.** Removing imprint unilaterally would overturn an explicit operator acceptance on a metric that also flags a known-good shipping asset. But the basis of that acceptance has changed and is recorded as such. **Open ask: audition `imprint` at 2.6–3.0s against `strike` — if they read the same, both are swells and the threshold wants raising; if imprint pops and strike does not, imprint needs an authored fade like circuit's.** Until then the flag will fire on both every build, which is itself a reason to resolve it rather than let a permanent warning train the eye to skim.
+
+**Also shipped:** three intros trimmed (`powerup` and `board` IN 0.0/OUT 6.0; `verify` at 5.625s/135 frames, byte-matching standard so verify's timeline cannot shift), rotation 4→6, verify repointed off `anchor_intro.mp4`, pro endcard copy per kind (**standing ask #2 closed** — Midday, Evening and Verify no longer read All-Day's close, and Verify's now describes what it *is* rather than promising verification on the verification reel), midday's scope-named carrier already wired through the existing registry entry. Handoff → **v1.9**; asks #2, #7 and #8 closed.
+
+**Not runtime-verified:** no reel was assembled against the new matrix — today's five are published and were deliberately not rewritten. Tomorrow's run is the first real exercise of the new copy, the six-member intro pool and the chip on the verify path.
 
 ---
 

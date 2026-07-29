@@ -11,6 +11,63 @@
 
 ---
 
+### MKT-21 — Generated evergreen reel bodies (relates to MKT-15 Phase 2, MKT-16) 🔍 PHASE 0 REPORTED · BUILD HELD · **ASSETS REJECTED**
+
+**ID verified free** (`grep MKT-21` → 0 hits). Marketing pipeline only. All four files present, all 10.005s / 720×1280 / 24fps / AAC 48 kHz.
+
+**HEADLINE: the strategic premise is FALSIFIED, and three of the four files cannot ship to any surface.** The order's case for unblocking the public lane is *"A generated body renders no text at all, so that finding does not apply to it."* The footage renders a great deal of text, and it is worse than what a live capture would show — a live capture renders real, brand-reviewed strings, whereas these render **fabricated numbers, misspelled words, all four §10-blocking terms, money framing, and a hard-baked date**. The public lane is **not** unblocked by these assets.
+
+**Verification 1 — `public_body_pt1`: it IS the regeneration, and it still FAILS Q1.** `md5` differs from `group_body_pt1`, so it is not the leaked file renamed, and the pick digit row is genuinely smoke-locked — the regeneration did the job it was asked to do. But a **seven-segment readout in the modal header stays legible** through the resolve window. Swept frame-by-frame at 24fps (not spot-checked — the order is right that these leak at settling): dim all-segment ghost cells on the left, **bright white glyphs on the right** reading **`8.18` at 6.90–6.98s**, then `8.88` / `8.0` through 8.0s. The middle glyph at 6.90s has only two segments lit, so it is a distinguishable numeral rather than an all-segments placeholder. Per the stated test — *any* legible numeral — it fails. It also renders `SYSTEM CONFIDENCE` with **75% / 89% / 95%**, and four tile labels of which two are generator gibberish (`NOWQ`, `CONSEET`). **Verdict: not the leaked file, but not clean either.**
+
+**Verification 2 — placeholder CONFIRMED.** `group_body_pt2` and `public_body_pt2` are byte-identical (`md5 3aa0c15d5552f31d102275986cbf4998`). But recording it as a temporary exemption is moot, because —
+
+**Verification 4 (NOT IN THE ORDER) — `public_body_pt2` is the WORST of the four, and it is currently doing double duty as both tiers' part 2.** "Ledger scroll, resolves Verified Track Record only" is true only from ~5.0s. Its first four seconds render, crisply legible at native resolution:
+
+- **0.5s** — an `Analytics` screen: **`True Nots 5064`**, **`+13.698`** in gain-green, **`Final Rate $61,1.82`**, **`+12.79%`** in gain-green. That is an **investment-return dashboard**: a dollar balance with a green percentage gain.
+- **2.0s** — `BEST STRAIGNT` (misspelled), **`1 · 9 · 6`**, `0 9 5` with position labels, **`BOX SET $2,5,54`**, `ALLDAY`, `94 ENERGY`, **`ON FIRE`**, tab bar **`INTEL / PAIRS / PLAY`**, and **`Generated  Jul 29, 2026 at 4:48 AM`**.
+
+So one file carries **all four of MKT-16 §10's blocking terms** (STRAIGHT, BOX, PLAY, and a digit row), **money-with-gains framing**, **heat language**, and a **baked date**. For a page de-recommended twice as gambling-adjacent, `$61,1.82 / +12.79%` in profit-green is the most dangerous frame in the set. The baked date independently destroys the "evergreen" claim and violates MKT-07's standing rule that dates are overlaid at assembly and **never** baked into an asset — and it is *today's* date, so it is wrong tomorrow.
+
+**Verification 3 — `group_body_pt1` CONFIRMED, and worse than "invented digits".** Legible from 6.0–9.5s: `BEST STRAIGNT` (misspelled), **`1 · 8 · 5`**, `1 P1 / 2 F2 / 5 F3`, `ON FIRE`, and — the sharp part — values that **drift between frames**: `BOX SET {1,7,8} → {1,8,8} → {2,9,9} → {2,7,8}` and `ALLDAY 1235 → 1195 → 1395`. Not merely fabricated but *unstable*, so a viewer who scrubs sees the board change. It also puts STRAIGHT and BOX on screen, which is the §10 blocker the order believed did not apply here.
+
+**Recommendation: reject all four for registration; regenerate.** The two operator decisions the order asks for are largely moot until assets exist that pass Q1/Q2 — a decision about whether generated bodies *replace or rotate alongside* live captures cannot sensibly be taken against files that cannot ship either way. Worth stating for the regeneration brief: the failure is not that the generator added digits, it is that **it reproduced the app's real chrome, including its vocabulary**, and no prompt-level "smoke-lock the numbers" instruction addresses labels, tab bars, currency or a rendered timestamp. Only ~5.0–10.0s of `public_body_pt2` is clean.
+
+---
+
+**Phase 0 item 1 — naming collision: NOT a risk, and MKT-20 is why.** Probed all three vectors: body files appearing in the carrier registry **0**, flagged as undeclared carrier parts **0**, reachable as a carrier candidate **0**. `checkPartNaming`'s `/_pt/i` guard passes `_pt1`/`_pt2` (they match `_pt<N>.mp4`), so no false FAIL either. This is safe **because** MKT-20 replaced derive-by-name with explicit pairing the day before — under derivation this would have been a live name-space question rather than a non-issue. **Recommended convention for body parts: `_seg<N>`** (`group_body_seg1.mp4`). It shares no substring with `_pt`, so it can never be drawn into the carrier guard, and it reads as a different class at a glance. Verified `group_body_seg1.mp4` passes the naming guard cleanly.
+
+**Phase 0 item 2 — the margin does NOT improve, and the threshold has ZERO slack.** Computed from the code, both cases:
+
+| body | bodyDur | voiceWindow | overlap threshold | carrier | overlap | fade@ | margin |
+|---|---|---|---|---|---|---|---|
+| live | 19.000 | 19.400 | 19.350 | 20.360 | true | 20.010 | **+0.332** |
+| generated | 20.010 | 20.410 | **20.360** | **20.360** | true | 20.010 | **+0.332** |
+
+**Identical.** The order expects an improvement; there is none, because `voiceSpan` is already pinned by `carrierDur − 0.1`, not by `voiceWindow` — once the carrier is the binding constraint the body length is irrelevant. **The real finding is the threshold: `voiceWindow − 0.05` = 20.360 = `carrierDur` exactly, giving 0.000000s of slack.** The generated body sits precisely on the overlap boundary. A body one frame longer, a carrier a millisecond shorter, or a future part delivered at 10.006s flips `overlap` to FALSE and silently switches the reel to hum-bed mode. And **20.010s is 0.010s ABOVE the 18.4–20.0s safe band's upper bound** — not touching it, marginally past it.
+
+**Phase 0 item 3 — both overlays, with recommendations.**
+- **MKT-07 slate stamp — SUPPRESS for generated bodies.** The stamp's guarantee is that the chip cannot disagree with the footage. An evergreen body has no day for it to agree *with*, so stamping the assembly date would manufacture exactly the false claim MKT-18 was built to prevent — a viewer reads the chip as "this is the board for that date". Suppression is the only option that keeps the guarantee true. (This also means a generated-body reel is not a dated artifact at all, which is the operator decision the order flags.)
+- **MKT-18 provenance — EXEMPT EXPLICITLY, do not lean on the current behaviour.** Today a generated body carries no tag, so `readProvenance` returns null and `assertBodyDate` takes its MISSING path: NOTE and continue, exit 0. That degrades safely *by accident*. Relying on it is wrong, because the MISSING path exists to drain a legacy population of untagged live bodies — so a generated body and a genuinely untagged live body become indistinguishable to the guard, and the population never drains. Recommend the renderer-equivalent stamp `hm_body_kind=generated` (alongside the existing `hm_reel_date`) with `assertBodyDate` branching on it explicitly.
+
+**Phase 0 item 4 — panels: confirmed absent, nothing breaks.** Panels are captured as part of the app screen (§2), never composited, so a generated body carries none. Nothing downstream reads a panel from the body: `checkPanels` validates the source art and the bucket independently of body source, and the assembler has no panel input. The run summary should state `panels: none (generated body)` so their absence is visible rather than inferred.
+
+**Phase 0 item 5 — registration gap: 1 of 6 code points, plus the DB.**
+
+| point | allday_public | midday_public | evening_public |
+|---|---|---|---|
+| `anchor-intros` FIXED_INTRO | ✅ | ✅ | ✅ |
+| `endcard-config` ENDCARDS | — | — | — |
+| `stinger-config` STINGERS | — | — | — |
+| `carrier-config` CARRIERS | — | — | — |
+| `reel-scopes` variants | — | — | — |
+| caption registry | — | — | — |
+
+Plus **`marketing_reels_kind_check`**, queried live: `CHECK (kind = ANY (ARRAY['allday_pro','allday_free','verify','midday_pro','evening_pro']))` — public kinds are **rejected at upsert**, which is precisely the MKT-13 late-failure mode (render succeeds, upload succeeds, publish fails at the last step). **The KIND_UI half of that lesson IS covered**: `FALLBACK_KIND_UI` now exists in `components/admin/ReelsView.tsx:56`, so an unknown kind degrades to a generic card instead of crashing the whole Reels tab. The constraint is the remaining late failure and must be widened in the same change that registers the kinds.
+
+**GATE: held.** No files changed, nothing registered, nothing built. Awaiting the regeneration decision; the two operator questions in the order are recorded but are not answerable against these files.
+
+---
+
 ### MKT-20 — Carrier rotation: All-Day pro + free part 1 (extends MKT-09; mirrors MKT-19) ✅ PHASES 1 + 2 SHIPPED
 
 **Approved and built 2026-07-29 to the Phase 0 scope below, preserved unedited.** `reel:check` 0 fail / 29 warn (the six stray WARNs are gone — the files are registered). Filtered `tsc --noEmit` 0 errors. Today resolves `allday_pro` → `_room`, `allday_free` → `_method`.

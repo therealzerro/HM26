@@ -23,6 +23,8 @@
 
 **✅ [[MKT-27]] verify reel — readable holds SHIPPED.** Body 6.3s → **8.6-14.0s**, derived from the row selection. STRAIGHT rows hold 2.0s, box rows 1.6s, up to three. **Three defects found by RENDERING, not by reading** — centre-origin zoom clipped the combo digits off the left edge, the pan logged `0→0px` (2.0s frozen behind a summary hold at the same scroll), and the summary push ended zoomed into a beat that opened unzoomed. **Stinger stays `enabled:false`** — the ratio condition is cleared on paper (64% branding → 44-56%) but `stinger_verify.mp4` does not exist and `probeStinger` degrades *silently* on a missing build, so flipping first ships a stinger-less reel that reports success. Two steps left: `npm run stinger:build verify`, then the flag.
 
+**🔍 [[MKT-28]] SCOPED, not started** — operator-authorised as its own scope: the FIVE heat ladders (two say `HOT SIGNAL` where canonical says `HOT`; Heat Check runs 85/70/50 against canonical 90/80/65/45), `PickDetailModal`'s surviving pre-DESIGN-02 90/75/60 colour ramp, and the redaction over-mask that eats a signal value of exactly `100`. **The public relabel is gated on 28a** — the "ON FIRE enum" is five ladders and they must agree with each other. Full entry below, including the two redaction blind spots to record while fixing 28c.
+
 **⚠ CARRIER GAP, MEASURED: 6.49s.** On a 13.60s body the audio ends at 15.24s of a 21.73s reel. `apad` now keeps the audio STREAM as long as the container (it was ~6.5s short — legal mp4, but a platform transcoder is entitled to mishandle it). **The gap is independent of the stinger** (`carrierNeed` derives from `uiDur`, not `openDur`). A `verif_carrier_pt2` of **~7.0s** closes it on every day including the 14.0s worst case; until one exists the silence under the closing holds is deliberate.
 
 ---
@@ -154,6 +156,38 @@ Joined durations identical at 20.360s, so the MKT-20 invariant holds. The new pa
 ---
 
 **REMAINING PHASE 0 — ✅ CLOSED 2026-07-29.** Caption registry defect CONFIRMED as suspected (both kinds had zero entries) and fixed; carrier margins measured (above); scope+tier binding verified; copy shipped. Detail in the SHIPPED section immediately below.
+
+---
+
+### MKT-28 — Heat-vocabulary reconciliation + redaction over-mask 🔍 SCOPED · NOT STARTED
+
+**ID verified free** (`grep MKT-28` → 0 hits in audit and code before stamping; MKT-27 is the verify holds). Operator-authorised 2026-07-29 as its own scope, split out of the MKT-26 reconstruction check so neither item rides on a publish.
+
+**Two independent defects. Neither blocks any reel. Both are consumer-facing.**
+
+---
+
+**28a — FIVE heat ladders, not one.** DESIGN-02 T1.1 (2026-07-25) consolidated six energy→heat *color* ramps onto `heatTier` in `lib/theme/heat.ts`, and deliberately left LABELS out of the invariant ("surfaces with their own locked vocabulary may keep their labels and consume only `color`"). That concession has since spread. What exists now:
+
+| # | Site | Rungs |
+|---|---|---|
+| A | `lib/theme/heat.ts:26` — canonical | `≥90 ON FIRE 🔥 · ≥80 BLAZING ⚡ · ≥65 HOT ✦ · ≥45 WARM ◈ · <45 COOL ❄` |
+| B | `PickDetailModal.tsx:202` — inline | `≥90 ON FIRE · ≥80 BLAZING · ≥65 HOT SIGNAL · ≥45 WARM · <45 COOL` |
+| C | `PickPosterCard.tsx:53` | `heatTier` labels, except tier `hot` → `HOT SIGNAL` |
+| D | `HeatCheckModal.tsx:46` — verdicts | `≥85 🔥 BLAZING SIGNAL · ≥70 ✦ STRONG SIGNAL · ≥50 ◈ MODERATE · >200 draws ⚠️ OVERDUE · else ❄ LOW` |
+| E | `PickCard.tsx:287` — streak banner | `🔥 STRONG SIGNAL — Energy {n}/100` |
+
+Two real inconsistencies fall out. **B and C say `HOT SIGNAL` where A says `HOT`** — same rung, two words, and B is the ladder that appears in every reel modal. **D uses 85/70/50 against A's 90/80/65/45**, so one energy reads `BLAZING` on the grid and `STRONG SIGNAL` in Heat Check; D's copy thresholds were explicitly ruled verdict semantics rather than temperature vocabulary, which is defensible in isolation and confusing in aggregate.
+
+**⚠ THE PUBLIC RELABEL DEPENDS ON THIS, WHICH IS WHY IT IS SCOPED NOW.** MKT-15 P2's relabel needs neutral equivalents for the whole band vocabulary, and the request was for "the ON FIRE enum" as though it were one thing. It is five, and they must agree with each other or the public cut reads inconsistently between grid and modal. All five ladders supplied verbatim to the content agent 2026-07-29; one reconciled neutral vocabulary is owed back before the relabel capture is built.
+
+**28b — `PickDetailModal` still carries the pre-DESIGN-02 color ramp.** `PickDetailModal.tsx:208` is an inline `90/75/60` ramp over `D.hot / D.amber / D.gold / D.cyan`; the file imports no `heatTier` at all. `PickPosterCard` was migrated in the same T1.1 batch (its comment records the 90/75/60 → canonical move) and the modal was missed — so the exact defect T1.1 existed to remove survives in the highest-traffic surface, and the modal's own LABEL thresholds (90/80/65/45) disagree with its COLOR thresholds. An energy of 78 labels `HOT SIGNAL` and colours as the 75-band.
+
+**28c — redaction over-masks a signal value the gate record says is KEPT.** On the free session GRID, a signal value of exactly `100` renders as `•••`: mask rule 1 in `scripts/reel-redact.ts` matches `^\d{3}$` on any childless leaf, and a grid signal value is one. Confirmed by direct comparison of `ui_midday_20260729.mp4` and `ui_midday_redacted_20260729.mp4` at the same frame — pick #5's CO reads `100` full-fidelity and `•••` redacted. The MKT-26 gate record lists all four signal percentages among what the free cut *deliberately keeps*, so this removes methodology the operator signed off as shown.
+
+It survives in the MODAL because there the value is a text node in an element that HAS element children, and `maskLeaf` only runs on childless elements. **Fix carefully:** the obvious narrowing (skip 3-digit leaves inside a signal row) must not open a path for a bare combination leaf, which is rule 1's actual job. A `100`-valued percentage and a combination are the same string; only context separates them.
+
+**⚠ AND RECORD THE ADJACENT BLIND SPOT WHILE FIXING IT.** Because `maskLeaf` and `assertNoDigits` both walk leaves only, **any three-digit run rendered as mixed content evades the mask AND the assert.** Demonstrated benignly today: `100%` survives unmasked in all six modals and the assert never fires. Nothing renders a combination that way now, and nothing guarantees it stays that way. Separately: the pair route (`Front 09` + `Back 94` → `0-9-4`) is covered by the mask's enumerated spellings with **no assert backstop at all**, since a two-digit run trips neither of the assert's two passes — it holds today only because each pair label and each prose sentence is its own leaf, so rule 7's non-global `replace` never has to match twice in one node.
 
 ---
 

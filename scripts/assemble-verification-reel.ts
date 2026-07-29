@@ -80,8 +80,9 @@ const dissolve = intro ? INTRO_DISSOLVE : 1.2;
 const total = +(openDur + uiDur + 2.5).toFixed(2);   // legacy 10.0
 const voiceStart = intro ? +(openDur - INTRO_VO_LEAD).toFixed(2) : 0;
 const carrierNeed = +(total - voiceStart).toFixed(2); // 9.2 with intro (any length), 10.0 legacy
-// MKT-09: joins verif_carrier.mp4 + verif_carrier_pt2.mp4 … when parts exist.
-const verifCarrier = resolveCarrier(ASSETS, 'verif_carrier');
+// MKT-09/MKT-20: resolved from the carrier registry by KIND. Verify declares no
+// continuation, so this is a genuine single-part carrier and resolves to itself.
+const verifCarrier = resolveCarrier(ASSETS, 'verify', `${stamp.slice(0,4)}-${stamp.slice(4,6)}-${stamp.slice(6,8)}`);
 if (verifCarrier.joined) {
   console.log(`NOTE: carrier joined from ${verifCarrier.parts.length} parts (${verifCarrier.parts.map(p => p.split('/').pop()).join(' + ')}).`);
 }

@@ -19,7 +19,8 @@ import { execSync } from 'node:child_process';
 import { existsSync, statSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { resolveCarrier, orphanedParts, audioDur } from './reel-carrier';
+import { resolveCarrier, undeclaredParts, carrierCandidates, audioDur } from './reel-carrier';
+import { CARRIERS, allCarrierFiles, PART1_DUR_TOLERANCE } from './carrier-config';
 import { bedWindow } from './reel-bed';
 import { available, sourcePath, builtPath, sha256, clearanceFor } from './reel-panels';
 import { PANELS, PANEL_W } from './panel-config';
@@ -304,14 +305,12 @@ function checkStrays(): void {
     referenced.add(cfg.motion);
     for (const m of STINGER_MOTIONS) referenced.add(builtStingerName(variant, m.tag));
   }
-  const carrierBases = [
-    ...SCOPES.flatMap(s => REEL_SCOPES[s].variants.map(v => `${reelKind(s, v)}_carrier`)),
-    'verif_carrier',
-  ];
-  for (const base of carrierBases) {
-    referenced.add(`${base}.mp4`);
-    for (let n = 2; n <= 9; n++) referenced.add(`${base}_pt${n}.mp4`);
-  }
+  // MKT-20: enumerate the carrier REGISTRY — every part-1 rotation member plus
+  // each kind's shared continuation. Deliberately NOT the old `_pt2…_pt9` sweep
+  // per base: that swept name space pre-blessed any continuation number, so an
+  // undeclared `_pt3` counted as referenced and reached no reel silently. It is
+  // now a stray here and a FAIL in checkCarrierSet.
+  for (const f of allCarrierFiles()) referenced.add(f);
   for (const f of allIntroFiles()) referenced.add(f);
 
   const known: string[] = [];
@@ -413,34 +412,98 @@ function checkOneEndcard(kind: string, name: string, needsBed: boolean, bedExemp
   }
 }
 
+// MKT-09's `checkCarrierParts` was removed by MKT-20. It existed to report the
+// derived join and to surface parts orphaned behind a gap — both of which were
+// artefacts of derive-by-name. Under explicit pairing there is no gap to fall
+// behind: the join is reported by checkSlateCarrier against the day's resolved
+// part 1, and a continuation the config does not declare is caught by
+// `undeclaredParts` as a FAIL rather than being silently swept up by a
+// `_pt2…_pt9` name sweep. Verified by injection, not assumed (see MKT-20).
+
 /**
- * MKT-09: resolve a carrier's delivered parts and report the join. Returns the
- * path the assembler will read (the join when parts exist, else the base file).
+ * MKT-20 — validate EVERY part 1 in a kind's set, plus the shared continuation.
+ *
+ * Three jobs, and the first two are new. (a) Every rotation member is checked,
+ * not just the one today draws, for the same reason as the endcard matrix: a
+ * defect found on the morning it ships is a preflight that ran too late.
+ * (b) The DURATION INVARIANT is asserted — every part 1 in a set must be the
+ * same length, because the continuation's offset in the join is part 1's FILE
+ * duration. A variant delivered longer or shorter shifts the VO ceiling on the
+ * one morning in four that it plays, and looks like nothing on the other three.
+ * (c) The shared continuation is REQUIRED where declared: missing it does not
+ * shorten the reel, it converts the run to hum-bed mode and publishes half a
+ * narration, so it fails here rather than at assembly.
  */
-function checkCarrierParts(base: string, name: string): string {
-  const orphans = orphanedParts(ASSETS, base);
-  for (const o of orphans) {
-    add('FAIL', o.split('/').pop()!, `unreachable — an earlier part is missing, so this audio would be silently dropped and the narration would have a hole. Deliver the missing ${base}_ptN.mp4.`);
+function checkCarrierSet(kind: string): void {
+  const spec = CARRIERS[kind];
+  if (!spec) return;
+  // Undeclared `_ptN` — MKT-09's orphan guard, re-pointed at explicit pairing.
+  for (const f of undeclaredParts(ASSETS, kind)) {
+    add('FAIL', f, `named as a continuation but NOT declared in carrier-config.ts for ${kind} — explicit pairing means it will simply never be read, and the reel ships missing that narration. Add it to the kind's \`rest\`, or rename it.`);
   }
-  const res = resolveCarrier(ASSETS, base);
-  if (res.joined) {
-    const list = res.parts.map(x => x.split('/').pop()).join(' + ');
-    const durs = res.parts.map(x => audioDur(x));
-    add('PASS', name, `${res.parts.length} parts joined (${list}) — ${durs.map(d => d.toFixed(1) + 's').join(' + ')}`);
+  for (const f of spec.rest) {
+    if (!existsSync(join(ASSETS, f))) {
+      add('FAIL', f, `declared continuation for ${kind} is MISSING. This does not merely shorten the carrier: it drops the reel below the ${voiceWindow().toFixed(2)}s overlap threshold, engages hum-bed mode, and publishes a reel with roughly half its narration replaced by hum — with nothing erroring. Deliver it or remove it from carrier-config.ts.`);
+    }
   }
-  return res.path;
+  // Duration invariant, asserted against entry 0 (the incumbent) rather than a
+  // hardcoded 10.005 so a future set delivered at another length still holds.
+  //
+  // NOTE the deliberate use of raw existsSync rather than the shared `exists()`
+  // helper: that helper REPORTS a missing file as a FAIL, which is right for a
+  // singleton asset and wrong for a rotation member. A missing member is a WARN
+  // by contract — the resolver walks past it — and routing it through `exists()`
+  // emitted both a FAIL and the WARN, blocking the run on an asset whose whole
+  // point is to be optional. Caught by injection, not by reading.
+  const refPath = spec.set[0] ? join(ASSETS, spec.set[0].file) : '';
+  const refDur = refPath && existsSync(refPath) ? audioDur(refPath) : NaN;
+  for (const v of spec.set) {
+    const p = join(ASSETS, v.file);
+    if (!existsSync(p)) {
+      add('WARN', v.file, `not delivered — "${v.label}" drops from ${kind}'s rotation on the days it comes up; the next candidate is used`);
+      continue;
+    }
+    // Corrupt/placeholder IS a hard failure even for an optional member: it
+    // resolves as present and then produces a broken reel (MKT-06's 2-byte
+    // endcard). Only ABSENCE is the tolerated state.
+    const size = statSync(p).size;
+    if (size < 100_000) { add('FAIL', v.file, `file is ${size} bytes — placeholder/corrupt`); continue; }
+    const s = streams(p);
+    if (!s.hasAudio) { add('FAIL', v.file, 'no audio stream — the carrier IS the voiceover'); continue; }
+    const d = audioDur(p);
+    if (Number.isFinite(refDur) && Math.abs(d - refDur) > PART1_DUR_TOLERANCE) {
+      add('FAIL', v.file, `${d.toFixed(3)}s against the set's ${refDur.toFixed(3)}s (${spec.set[0].file}). Every part 1 in a set must match: the continuation's offset is part 1's FILE duration, so this variant silently moves the VO ceiling on the days it plays and looks correct on every other day.`);
+    } else {
+      add('PASS', v.file, `${d.toFixed(3)}s · "${v.label}"${spec.set.length > 1 ? ` — ${kind} rotation member` : ''}`);
+    }
+  }
+  const pick = carrierCandidates(kind, TODAY).find(v => existsSync(join(ASSETS, v.file)));
+  add(
+    pick ? 'PASS' : 'FAIL',
+    `${kind} carrier selection`,
+    pick
+      ? `today (${TODAY}): ${pick.file} [${pick.label}]${spec.rest.length ? ` + ${spec.rest.join(' + ')}` : ' (single part)'}`
+      : `nothing resolves — the carrier IS the voiceover, so the assembler will abort. Deliver ${spec.set[0]?.file ?? 'a part 1'}.`,
+  );
 }
 
 function checkSlateCarrier(kind: string): number | null {
-  const base = `${kind}_carrier`;
-  let name = `${base}.mp4`;
-  const p0 = exists(name);
-  if (!p0) return null;
-  // MKT-09: validate what the assembler will actually read — the JOIN when
-  // parts were delivered, not just part 1. Checking part 1 alone would clear a
-  // carrier whose narration overruns the ceiling only after the join.
-  const p = checkCarrierParts(base, name);
-  if (p !== p0) name = `${base}.mp4 + parts`;
+  const spec = CARRIERS[kind];
+  if (!spec) return null;
+  checkCarrierSet(kind);
+  // Validate what the assembler will ACTUALLY read for today — the join, using
+  // today's resolved part 1, not the incumbent. Checking part 1 alone would
+  // clear a carrier whose narration overruns the ceiling only after the join.
+  const pick = carrierCandidates(kind, TODAY).find(v => existsSync(join(ASSETS, v.file)));
+  if (!pick) return null;
+  if (spec.rest.some(f => !existsSync(join(ASSETS, f)))) return null;  // already FAILed above
+  const res = resolveCarrier(ASSETS, kind, TODAY);
+  const p = res.path;
+  let name = pick.file;
+  if (res.joined) {
+    add('PASS', name, `${res.parts.length} parts joined (${res.parts.map(x => x.split('/').pop()).join(' + ')}) — ${res.parts.map(x => audioDur(x).toFixed(1) + 's').join(' + ')}`);
+    name = `${pick.file} + parts`;
+  }
   const s = streams(p);
   if (!s.hasAudio) { add('FAIL', name, 'no audio stream — the carrier IS the voiceover'); return null; }
   const dur = s.aDur;
@@ -459,9 +522,11 @@ function checkSlateCarrier(kind: string): number | null {
 }
 
 function checkVerify(): void {
+  checkCarrierSet('verify');
   const c0 = exists('verif_carrier.mp4');
   if (c0) {
-    const c = checkCarrierParts('verif_carrier', 'verif_carrier.mp4');
+    // MKT-20: verify declares no continuation, so this resolves to itself.
+    const c = resolveCarrier(ASSETS, 'verify', TODAY).path;
     const s = streams(c);
     // MKT-08: with the intro active the carrier enters at introDur−0.4 and
     // covers to the end, so the need is a flat 9.2s regardless of intro length
@@ -685,7 +750,10 @@ function checkScopes(): void {
   for (const scope of SCOPES) {
     for (const v of REEL_SCOPES[scope].variants) {
       const kind = reelKind(scope, v);
-      const hasCarrier = existsSync(join(ASSETS, `${kind}_carrier.mp4`));
+      // MKT-20: resolve from the registry, never compose — a kind whose
+      // incumbent is absent but whose rotation members are present still has a
+      // carrier, and verify's file is `verif_carrier.mp4`.
+      const hasCarrier = (CARRIERS[kind]?.set ?? []).some(cv => existsSync(join(ASSETS, cv.file)));
       // MKT-19: same fix — resolve, do not construct (see checkSlateEndcard).
       const ecSpec = ENDCARDS[kind];
       const hasEndcard = Boolean(ecSpec) && (

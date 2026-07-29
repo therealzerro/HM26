@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-07-29 · v1.7
+Content Agent Handoff · 2026-07-29 · v1.8
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -16,6 +16,31 @@ Companion docs:
   - assets/marketing/AllDay_Reel_Endcard_Revision_Brief_2026-07-27.md (endcard contract)
   - docs/mkt15_phase2_copy_brief.md (public copy set — DELIVERED + the bolt request)
   - REEL_COMMANDS.txt (repo root — operator command reference)
+
+WHAT CHANGED IN v1.8 (MKT-20 — the All-Day carrier OPENING now rotates)
+  A. ALL-DAY PART 1 IS A SET, PART 2 IS NOT. Three alternate openings per tier
+     rotate by date; the methodology sign-off repeats every day the way a
+     broadcast segment ends the same way every night. This is deliberate — do
+     NOT propose generating six part 2s to "finish" it. §2, §7.
+  B. THE PAIRING IS NOW EXPLICIT, not derived from part 1's filename. You do not
+     need to name an alternate anything in particular for it to find its part 2;
+     it is declared in scripts/carrier-config.ts. What you DO need is to say
+     which kind and tier a delivery is for.
+  C. ⚠ EVERY PART 1 IN A SET MUST BE THE SAME LENGTH — all six alternates are
+     10.005s, matching the incumbents. This is load-bearing, not tidiness: part
+     2's offset in the join is part 1's FILE duration, so an alternate delivered
+     at a different length moves the VO ceiling on the one morning in four that
+     it plays and looks perfect on the other three. Preflight now FAILS on it.
+  D. FOUR THINGS NOW ROTATE INDEPENDENTLY — intro, stinger motion, endcard
+     motion, carrier opening. They are uncorrelated on purpose; the spread is
+     the point. Nothing you script needs to account for the combination.
+  E. THE SEAM BREATH IS NOT A CONSTANT. The pipeline inserts 0.35s, but what a
+     listener hears is 0.35s plus whatever tail your part 1 already carries —
+     measured 0.586s to 0.777s across the current set. Do not treat "0.35s" as
+     the audible pause when scripting a hand-off between parts.
+  F. SCOPE PAIRING IS ENFORCED IN CODE. An All-Day carrier cannot reach the
+     Midday or Evening reel — those name their own scope aloud and have their
+     own carriers. Verified across 60 date probes, not asserted.
 
 WHAT CHANGED IN v1.7 (MKT-19 — the brand motion is now a SET)
   A. THE STINGER AND THE ENDCARD ROTATE, like the intro already did. Motion is
@@ -258,6 +283,16 @@ every timestamp after the intro shifts 0.4s later and the reel is 34.20s.
     automatically; preflight reports how many motions per tier can bed, and
     FAILS only if a whole tier has none.
 
+  ⚠ THE ALL-DAY OPENING ROTATES (MKT-20, 2026-07-29). Part 1 is a SET of
+  four per tier (incumbent + three alternates) picked by date; part 2 is
+  SHARED and plays every day. That split is deliberate and is not an
+  unfinished job: part 1 is the greeting and rotates, part 2 is the
+  methodology sign-off and repeats, the way a broadcast segment ends the
+  same way every night. Do NOT propose generating six part 2s to
+  "complete" it. Midday, Evening and Verify do not rotate — one carrier
+  each — and an All-Day carrier can never reach them, since every one of
+  these says "All-Day" aloud.
+
   WHAT THIS MEANS FOR CARRIER PRODUCTION (your main deliverable):
   - Target VO length: ~19.4s for wall-to-wall narration (preferred), or
     ~10s accepting the hum-bed remainder. Anything between works; the
@@ -461,8 +496,19 @@ per-day by hand, not AI-freestyled.
                                   pipeline.
     anchor_reference.png          Character reference still for the Anchor
                                   (regeneration/continuity — not composited).
-    allday_pro_carrier.mp4        Pro VO carrier (10s class, backup exists)
-    allday_free_carrier.mp4       Free VO carrier (10s class, backup exists)
+    allday_pro_carrier.mp4        Pro VO carrier part 1 — the INCUMBENT, and
+                                  the fallback the rotation lands on.
+    allday_pro_carrier_stamp.mp4  MKT-20 rotation members (part 1 only):
+    allday_pro_carrier_room.mp4   "board's up and it's stamped" / "the room
+    allday_pro_carrier_overnight  where it lands first" / "engine ran all
+                                  night". All 10.005s, all joined to the SAME
+                                  allday_pro_carrier_pt2.mp4.
+    allday_free_carrier.mp4       Free VO carrier part 1 — the INCUMBENT.
+    allday_free_carrier_open.mp4  MKT-20 rotation members (part 1 only):
+    allday_free_carrier_method    "nothin' held back" / "every one shows its
+    allday_free_carrier_check     reasonin'" / "come back and check the work".
+                                  All 10.005s, all joined to the SAME
+                                  allday_free_carrier_pt2.mp4.
     allday_pro_endcard.mp4        Pro endcard (open frame + outro + audio)
     allday_free_endcard.mp4       Free endcard
     verif_carrier.mp4             Verify reel audio bed (9.2s used)
@@ -564,7 +610,23 @@ per-day by hand, not AI-freestyled.
       allday_pro_carrier.mp4  +  allday_pro_carrier_pt2.mp4  [+ _pt3 …]
 
   Works for EVERY carrier (all-day pro/free, midday, evening, verify). Audio
-  only is joined — the carriers' video is discarded by design. Rules:
+  only is joined — the carriers' video is discarded by design.
+
+  ⚠ CHANGED 2026-07-29 (MKT-20) — THE PAIRING IS NO LONGER DERIVED FROM THE
+  FILENAME. It used to be: the joiner read part 1 and went hunting for
+  "<that name>_pt2.mp4". It is now declared per kind in
+  scripts/carrier-config.ts, because rotating part 1 breaks derivation — an
+  alternate opening would send it looking for a part 2 that will never exist.
+  What that meant in practice is worth knowing, because it is why the rule
+  changed rather than being patched: the unpaired carrier would resolve at
+  ~10s, fall below the overlap threshold, silently switch the reel to hum-bed
+  mode, and PUBLISH a reel with roughly half its narration replaced by hum.
+  Nothing would error and preflight would pass.
+  For you this is simpler, not harder: an alternate part 1 can be named
+  anything, and it does not need its own part 2. What you must state on
+  delivery is which KIND and TIER it belongs to.
+
+  Rules:
   - A 0.35s breath is inserted automatically at each part boundary, on
     top of whatever silence the parts already carry. You do NOT need to
     pad the end of part 1 or the start of part 2 — start part 2's first
@@ -606,8 +668,22 @@ per-day by hand, not AI-freestyled.
     for the delivered pair is a body of 18.4s–20.0s (today: 19.0s). If a
     future capture leaves that band the fix is a shorter part 2, never a
     trimmed audio tail.
-  - A _pt3 delivered without a _pt2 is a hard FAIL, not a silent skip —
-    dropping it would leave a hole in the narration.
+  - A continuation the config does not declare is a hard FAIL, not a silent
+    skip. Under derivation this was "a _pt3 without a _pt2"; under explicit
+    pairing it is any `<part1>_ptN.mp4` on disk that carrier-config.ts does
+    not list. Either way the reason is the same — dropping it would leave a
+    hole in the narration — and either way it blocks the run rather than
+    shipping quietly.
+  - ⚠ EVERY PART 1 IN A ROTATION SET MUST BE THE SAME LENGTH (MKT-20).
+    Part 2's offset in the join is part 1's FILE duration, not its voice-end,
+    so a variant delivered at 9.2s or 11s moves the ceiling on the mornings
+    it plays and looks perfect on the others. Preflight FAILS on a mismatch,
+    measured against the incumbent rather than a hardcoded 10.005s.
+  - ⚠ THE 0.35s BREATH IS NOT THE AUDIBLE PAUSE. It is what the joiner
+    INSERTS; a listener hears 0.35s plus whatever tail part 1 already carries.
+    Across the current All-Day set that lands between 0.586s and 0.777s. Both
+    extremes are bracketed by carriers that already ship, so nothing needs
+    fixing — but do not script a hand-off assuming an exact 0.35s gap.
   - The join is generated into assets/marketing/_carrier_joined/ and is
     rebuilt whenever a part changes. It is not source; don't edit it.
 
@@ -826,6 +902,7 @@ BUILT AND RUNNING DAILY:
   MKT-17  Per-kind intro resolution + rotation (2026-07-28) — see §2
   MKT-18  Body provenance — the capture date travels inside the file
   MKT-19  Brand motion rotation: stinger + endcard (2026-07-29) — see §2
+  MKT-20  Carrier rotation — All-Day part 1, pro + free (2026-07-29) — §2, §7
 
 IN FLIGHT, NOT BUILT — do not propose against these yet; §10 has the detail:
   MKT-14  Brand attribution in the slate stamp .......... PARKED (untouched)

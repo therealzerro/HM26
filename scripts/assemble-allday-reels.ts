@@ -106,7 +106,11 @@ const flagVal = (name: string): string | undefined =>
   process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1];
 const FORCE_STING = flagVal('stinger-motion');
 const FORCE_CARD = flagVal('endcard-motion');
-if (FORCE_STING || FORCE_CARD) console.log(`NOTE: motion override — stinger=${FORCE_STING ?? 'rotation'} endcard=${FORCE_CARD ?? 'rotation'}`);
+/** MKT-20: --carrier=<part-1 filename> forces one carrier open, for review. */
+const FORCE_CARRIER = flagVal('carrier');
+if (FORCE_STING || FORCE_CARD || FORCE_CARRIER) {
+  console.log(`NOTE: rotation override — stinger=${FORCE_STING ?? 'rotation'} endcard=${FORCE_CARD ?? 'rotation'} carrier=${FORCE_CARRIER ?? 'rotation'}`);
+}
 const body = join(REELS, `ui_${SCOPE}_${stamp}.mp4`);
 if (!existsSync(body)) {
   console.error(`ABORT: ${body} not found — run the body render first (npm run reel:${SCOPE}).`);
@@ -163,9 +167,12 @@ for (const v of SPEC.variants) {
   // the endcard re-resolved if the narrowed set differs.
   let ec = resolveEndcard(ASSETS, kind, isoDate, false, FORCE_CARD);
   let endcard = ec.path;
-  // MKT-09: a carrier delivered as parts (…_carrier.mp4 + …_carrier_pt2.mp4)
-  // is joined first; a single-file carrier resolves to itself unchanged.
-  const carrierRes = resolveCarrier(ASSETS, `${kind}_carrier`);
+  // MKT-09: a carrier delivered as parts is joined first.
+  // MKT-20: keyed on the KIND, not a composed `${kind}_carrier` base — part 1
+  // rotates and its continuation is looked up explicitly, because deriving the
+  // continuation from a rotating part-1 name resolves to nothing and degrades
+  // into a published half-narration reel rather than an error.
+  const carrierRes = resolveCarrier(ASSETS, kind, isoDate, FORCE_CARRIER);
   const carrier = carrierRes.path;
   if (carrierRes.joined) {
     console.log(`NOTE(${v}): carrier joined from ${carrierRes.parts.length} parts (${carrierRes.parts.map(p => p.split('/').pop()).join(' + ')}).`);
@@ -212,8 +219,16 @@ for (const v of SPEC.variants) {
     console.error(`ABORT(${v}): ${basename(endcard)} has no usable hum-bed window (crack too early, or its audio decays away). No motion in this tier could supply one — deliver a wall-to-wall carrier, or a motion with a level-steady pre-crack window.`);
     process.exit(1);
   }
-  // MKT-19 run summary: the day's three rotating brand beats, in one line.
-  console.log(`NOTE(${v}): brand motion → intro ${intro ? intro.label : 'legacy open'} · stinger ${sting?.motion ? sting.motion.label : (sting ? 'unversioned' : 'none')} · endcard ${ec.motion.label} [${ec.name}].`);
+  // MKT-19/MKT-20 run summary: the day's FOUR independently rotating beats, in
+  // one line. They are deliberately uncorrelated — the combinatorial spread is
+  // the point — so this line is the only place the day's actual combination is
+  // visible, and it is what an operator reads back when a reel sounds wrong.
+  console.log(
+    `NOTE(${v}): rotation → intro ${intro ? intro.label : 'legacy open'}` +
+    ` · stinger ${sting?.motion ? sting.motion.label : (sting ? 'unversioned' : 'none')}` +
+    ` · endcard ${ec.motion.label} [${ec.name}]` +
+    ` · carrier ${carrierRes.variant.label} [${carrierRes.variant.file}].`,
+  );
   if (bed) console.log(`NOTE(${v}): hum bed ← ${bed.mode}-crack ${bed.start}-${bed.end}s (crack measured at ${bed.crackAt}s, mean ${bed.rms}dB).`);
   if (overlap) {
     console.log(`NOTE(${v}): long carrier (${carrierDur.toFixed(1)}s) — voice plays ${voiceStart}-${(voiceStart + voiceSpan).toFixed(1)}s (tail rides the smoke rise), endcard outro audio mixed from ${(openDur + bodyDur).toFixed(1)}s; carrier content beyond ${voiceSpan}s discarded.`);

@@ -11,7 +11,7 @@
 // uses, so re-running a given date reproduces that date's intro exactly. Growing
 // the set is a line here and nothing else.
 
-import { dayIndex } from '../constants/reelPanels';
+import { rotateByDate, ROTATION_SALT } from './reel-rotation';
 
 export interface IntroVariant {
   file: string;
@@ -95,8 +95,9 @@ export function introCandidates(kind: string, dateISO: string): IntroVariant[] {
   }
   if (INTRO_ROTATION.length === 0) return [{ file: INTRO_DEFAULT, label: 'standard' }];
 
-  const start = dayIndex(dateISO) % INTRO_ROTATION.length;
-  const ordered = INTRO_ROTATION.map((_, i) => INTRO_ROTATION[(start + i) % INTRO_ROTATION.length]);
+  // MKT-20: the shared rotation helper. Identical to the inline version it
+  // replaces (salt 0), so no date's intro changes.
+  const ordered = rotateByDate(INTRO_ROTATION, dateISO, ROTATION_SALT.intro);
   if (!ordered.some(v => v.file === INTRO_DEFAULT)) {
     ordered.push({ file: INTRO_DEFAULT, label: 'standard (fallback)' });
   }

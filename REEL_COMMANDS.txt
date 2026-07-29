@@ -244,11 +244,20 @@ FORCING ONE MOTION (review / gate only — not for a daily run)
 
 npm run reel:allday -- --stinger-motion=circuit
 npm run reel:allday -- --endcard-motion=alt
+npm run reel:allday -- --carrier=allday_pro_carrier_room.mp4
 
     Overrides the date rotation for one assembly so a specific
-    combination can be watched end to end. Both flags take a motion
+    combination can be watched end to end. The motion flags take a
     TAG (std | strike | circuit for stingers, std | alt for
-    endcards) and can be combined.
+    endcards); --carrier takes a part-1 FILENAME from that kind's
+    set, because carriers are named per variant rather than tagged.
+    All three can be combined.
+
+    FOUR things now rotate independently — intro, stinger motion,
+    endcard motion and carrier part 1 — and they are deliberately
+    uncorrelated. The assembler prints the day's actual combination
+    on one "rotation →" line per variant; that line is the thing to
+    read back when a reel sounds wrong.
 
     Use these instead of changing the date. A faked date would trip
     MKT-18's provenance guard — correctly, since the body carries

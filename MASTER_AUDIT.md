@@ -11,7 +11,36 @@
 
 ---
 
-### MKT-20 — Carrier rotation: All-Day pro + free part 1 (extends MKT-09; mirrors MKT-19) 🔍 PHASE 0 REPORTED · BUILD HELD
+### MKT-20 — Carrier rotation: All-Day pro + free part 1 (extends MKT-09; mirrors MKT-19) ✅ PHASES 1 + 2 SHIPPED
+
+**Approved and built 2026-07-29 to the Phase 0 scope below, preserved unedited.** `reel:check` 0 fail / 29 warn (the six stray WARNs are gone — the files are registered). Filtered `tsc --noEmit` 0 errors. Today resolves `allday_pro` → `_room`, `allday_free` → `_method`.
+
+**Explicit pairing shipped, everything migrated** — the recommendation, approved. `scripts/carrier-config.ts` declares per kind an ordered part-1 `set` plus a shared `rest`. Derive-by-name is gone from every site. The five non-rotating kinds became one-line entries naming their own continuation rather than a second mechanism, so a reader no longer has to know which kinds rotate before knowing which pairing rule applies.
+
+**Scope pairing is structural, not enforced.** The set is keyed by kind and no cross-kind lookup exists anywhere, so `allday_pro_carrier_room.mp4` is not merely *forbidden* from reaching `midday_pro` — it is unreachable. Verified by probing `midday_pro`, `evening_pro` and `verify` across 60 dates: zero leaks. Tier crossing likewise (no pro carrier reachable from `allday_free`, per SOCIAL-13).
+
+**ONE rotation helper now serves all four lanes** — `scripts/reel-rotation.ts`, with the salts (`intro 0, stinger 0, endcard 3, carrier 5`) kept together so a new lane cannot silently reuse one. This is the third lane, which is the point at which the shared helper stops being premature: the lanes must agree on what a date means or re-running a past date reproduces some beats and not others. **The refactor was verified behaviour-preserving before anything was added** — intro/stinger/endcard picks for 7/28–7/31 are byte-identical to the pre-refactor values recorded in MKT-19.
+
+**The duration invariant is asserted, and asserted relatively.** Every part 1 in a set must match entry 0's length within 0.05s. Measured against a hardcoded 10.005 it would have been correct today and wrong for the first set delivered at another length; measured against the incumbent it stays true. All eight All-Day part 1s are 10.005s, so joined length (20.360s) and margin (+0.449s pro / +0.331s free) are identical whichever variant the date draws — confirmed by building all eight joins, not by arithmetic.
+
+**Degradation asymmetry, which is the substance of this ticket.** A missing part 1 WARNs and drops for the day. A missing declared continuation **FAILs at preflight and ABORTs at assembly** — because it does not shorten the reel, it converts the run to hum-bed mode and publishes half a narration with nothing erroring.
+
+**⚠ A GUARD WAS REMOVED, AND ITS REPLACEMENT WAS VERIFIED RATHER THAN ASSUMED.** MKT-09's `orphanedParts`/`checkCarrierParts` existed to catch a part stranded behind a gap — an artefact of derivation with no meaning under explicit pairs. But deleting it would have opened a new hole: `checkStrays` swept `_pt2…_pt9` per base into its *expected* set, so an undeclared `allday_pro_carrier_pt3.mp4` counted as referenced and would have reached no reel silently. Both were changed together — the sweep replaced by enumeration of the registry, and a dedicated `undeclaredParts` FAIL added, since `_pt<N>` naming makes the intent unambiguous and the general stray WARN would be too weak. Injection-tested: an undeclared `_pt3` now produces both the stray WARN and a hard FAIL.
+
+**⚠ INJECTION FOUND A REAL BUG IN THE NEW CODE — a missing rotation member FAILED the run.** `checkCarrierSet` used the shared `exists()` helper, which *reports* a missing file as a FAIL. Correct for a singleton asset, wrong for a rotation member whose entire contract is to be optional: the result was a WARN *and* a FAIL, blocking the daily run on an absent alternate. Now uses a raw `existsSync`, with a size check retained so **absence is tolerated but corruption is not** (MKT-06's 2-byte endcard is the reason). This was invisible by reading and is exactly what MKT-18's "a guard never shown to FAIL has not been tested" is for — except here the guard fired when it should not have.
+
+**Five injection tests, all restored afterwards and re-verified at 0 fail:** undeclared `_pt3` → FAIL; declared continuation missing → preflight FAIL *and* assembly ABORT with the half-narration consequence named; a variant truncated to 8.083s → FAIL naming the set's 10.005s reference; rotation member absent → WARN only, run stays safe; rotation member corrupt (4 KB) → FAIL. Plus `--carrier=` rejecting an unknown filename and honouring a valid one.
+
+**Preflight now validates every part 1 in every set**, not just today's pick, and prints the day's selection per kind — the same reason as MKT-19's endcard matrix: a defect found on the morning it ships is a preflight that ran too late.
+
+**Docs.** `REEL_COMMANDS.txt` gains `--carrier=` beside the two motion overrides (it takes a filename, not a tag, because carriers are named per variant). Handoff → **v1.8**: §2 anatomy states the rotate/repeat split *and why it is not an unfinished job*, §7 inventory lists the six, and the multi-part spec records three things the content agent would otherwise get wrong — that an alternate needs no part 2 of its own, that every part 1 in a set must share a length, and that **the 0.35s breath is not the audible pause** (it is 0.35s plus part 1's own tail, 0.586–0.777s across the current set).
+
+**ACCEPTANCE — the listening test is still OPEN and nothing was excluded on numbers.** All six are registered and live. The Phase 0 proxies stand: every alternate sits closer to its shared part 2 on pitch than the part 1 shipping today, so none is an outlier against what is demonstrably tolerable — but `_method` remains the one flagged for the ear (+352 centroid, −19.5 LUFS, the largest timbre and level gap in either tier), and **today's date resolves `allday_free` to exactly that variant**. Eight seam audition clips are built. Excluding a variant is a one-line deletion from its set in `carrier-config.ts`; no other change is needed.
+
+<details>
+<summary><strong>Phase 0 report (2026-07-29) — preserved as ruled, unedited</strong></summary>
+
+### MKT-20 — Phase 0 discovery
 
 **ID verified free** (`grep MKT-20` → 0 hits across audit, scripts and docs). MKT-18 is body provenance, MKT-19 is brand motion rotation. Marketing pipeline only — no engine, no edge functions, no `sync_agents`.
 
@@ -95,7 +124,9 @@ All end in clean silence to EOF — no breath, no trailing tone. **New finding: 
 
 **These are weak proxies and are not the acceptance test.** Whole-clip F0 varies with intonation and emphasis, not only with voice identity, so a matched number does not prove a matched seam. **Eight seam audition clips were built** — last 2.0s of part 1 + the real 0.35s pad + first 3.0s of part 2, exactly what the join produces — including both incumbents as the reference for "what an accepted seam sounds like": `<scratchpad>/seams/{pro,free}_{0_INCUMBENT,…}.m4a`. **No variant is proposed for acceptance or exclusion on these numbers.**
 
-**GATE: held.** No files changed, no config touched, nothing built. Awaiting approval, plus the listening result on the eight seam clips (and specifically on `_method`).
+**GATE: held.** No files changed, no config touched, nothing built. Awaiting approval, plus the listening result on the eight seam clips (and specifically on `_method`). *(Approved and built same day — see the Phases 1 + 2 record above.)*
+
+</details>
 
 ---
 

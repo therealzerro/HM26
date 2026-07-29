@@ -13,7 +13,7 @@
 // decides, and there is no code path that takes a motion from the other set.
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { dayIndex } from '../constants/reelPanels';
+import { rotateByDate, ROTATION_SALT } from './reel-rotation';
 
 export type Tier = 'pro' | 'free';
 
@@ -142,19 +142,9 @@ export function builtStingerName(variant: string, tag: string): string {
 }
 
 // ── Resolution ──────────────────────────────────────────────────────────────
-/**
- * Rotate an ordered set by a date-derived offset.
- *
- * Returns the WHOLE list in preference order rather than one pick — the same
- * shape MKT-17 uses, and the reason graceful degradation falls out for free:
- * the caller walks it and takes the first usable file, so a missing member
- * drops for that day instead of taking the run down.
- */
-function rotate<T>(set: T[], dateISO: string, salt: number): T[] {
-  if (set.length === 0) return [];
-  const start = (dayIndex(dateISO) + salt) % set.length;
-  return set.map((_, i) => set[(start + i) % set.length]);
-}
+// MKT-20 moved the rotation itself to scripts/reel-rotation.ts, shared with the
+// intro and carrier lanes. Behaviour is unchanged — the helper is this function
+// verbatim — but the three lanes can no longer drift on what a date means.
 
 /**
  * Stinger motions for a kind, in preference order.
@@ -165,7 +155,7 @@ function rotate<T>(set: T[], dateISO: string, salt: number): T[] {
  * endcards differ by tier anyway), so no cross-kind spacing is applied.
  */
 export function stingerMotionsFor(_kind: string, dateISO: string): MotionVariant[] {
-  return rotate(STINGER_MOTIONS, dateISO, 0);
+  return rotateByDate(STINGER_MOTIONS, dateISO, ROTATION_SALT.stinger);
 }
 
 /**
@@ -185,7 +175,7 @@ export function endcardMotionsFor(
   dateISO: string,
   opts: { needsBed?: boolean; meta?: Record<string, MotionMeta> } = {},
 ): MotionVariant[] {
-  const ordered = rotate(ENDCARD_MOTIONS[tierFor(kind)], dateISO, 3);
+  const ordered = rotateByDate(ENDCARD_MOTIONS[tierFor(kind)], dateISO, ROTATION_SALT.endcard);
   if (!opts.needsBed) return ordered;
   const meta = opts.meta ?? {};
   // Unknown (not yet derived) is treated as USABLE: the assembler still probes

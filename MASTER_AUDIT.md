@@ -11,6 +11,35 @@
 
 ---
 
+### MKT-15 P2 RELABEL — implementation spec (redaction half DONE, relabel NOT STARTED)
+
+**Written as a spec rather than started, because the relabel needs a full `--redact --relabel` capture with frames inspected to verify, and isolation testing on `/explore` produced two false passes during the redaction work.** The traps below cost six attempts to find; they are recorded so the next pass does not re-pay for them.
+
+**STATE: public needs NO new assets.** The eight-slot copy set is delivered and approved, the injection mechanism is built and proven (`scripts/reel-redact.ts`), and `public_carrier.mp4` + `_pt2` already exist and validate at 20.360s joined. What remains is the relabel injection, six registration points, and a migration — all code and config. **Public is now the more finishable lane than the free-group one**, which waits on two carrier VOs.
+
+**THE SLOT SET, and the trap in it.** The approved replacements are `PICK #1 · ZK6`→`SIGNAL #1`, `⚡ BEST STRAIGHT`→`⚡ BEST ORDER`, `BOX SET`→`ANY ORDER`, `PLAY`→`PLAN`, `· 1 straight`→`· 1 in order`, scope badge and stamp scope tag DROP, stinger headline per-variant.
+
+⚠ **THE GRID AND THE MODAL SPELL THEM DIFFERENTLY, and a case-insensitive match is NOT sufficient** — one is a different string, not a casing variant:
+
+| grid (`PickCard`) | modal (`PickDetailModal`) |
+|---|---|
+| `⚡ Best Straight` (Title Case) | `⚡ BEST STRAIGHT` |
+| `Box: {1,4,7}` — **different string** | `BOX SET` |
+
+**TRAPS, all paid for during the redaction work:**
+1. **`page.evaluate` bodies must be STRINGS.** tsx/esbuild wraps named function expressions in a `__name` helper that does not exist in the page context; a normal arrow-function evaluate dies with `ReferenceError: __name is not defined`.
+2. **RNW hashes class names.** There is no `[class*=card]` to select and no data attribute. Prefer STRUCTURAL detection over marker/selector lookups — that is what finally made the redaction work.
+3. **A `MutationObserver` is mandatory.** React re-mounts on every one of the six modal opens; a one-shot sweep relabels the grid and lets every modal render raw.
+4. **Leaf length guards bite.** A 40-char guard silently skipped ~50-char prose. Guards belong high (200) since these only ever run on leaves.
+5. **The self-check must be per-region.** A global "found something" count passed while an entire region went untreated.
+6. **Only a full capture counts as verification.** Attempts 4 and 5 both passed by eye on `/explore` and leaked in a real render.
+
+**ORDER OF WORK:** relabel injection (grid + modal variants) → full `--relabel` capture, frames inspected → registration (endcard, stinger, carrier, scope, caption) → `marketing_reels_kind_check` migration LAST within the change but not left out of it.
+
+**STILL OWED BY THE CONTENT AGENT:** the `ON FIRE` band enum. It gates the public capture copy set and is on this critical path — worth chasing before starting.
+
+---
+
 ### MKT-25 — Verify reel restaging: show the "before", not just the "after" 🔍 SCOPED · NOT STARTED
 
 **ID verified free** (`grep MKT-25` → 0 hits). Marketing pipeline only — renderer and assembler. Operator-raised: *"the verify reel is boring and should at least include some zooms of yesterday's slates with matching stamps."*

@@ -1,32 +1,21 @@
 // MKT-15 Phase 2 (redaction half) — the free-group session capture.
 //
-// ⚠⚠ INCOMPLETE — DO NOT REGISTER OR USE. This masks only ONE of at least three
-// digit surfaces. Verified against the live grid: it caught "LAST MATCH •••" and
-// left BOTH renderings of the actual combination on screen —
-//   the hero row `4 - 7 - 1`  (each digit is its OWN leaf, so /^\d{3}$/ never
-//                              matches it)
-//   the set badge `Box: {1,4,7}`  (brace notation, same three digits)
-// A free-group session reel built on this would hand away precisely what it
-// exists to withhold, on every card.
+// ⚠⚠ STILL INCOMPLETE — DO NOT REGISTER. Four surfaces are now masked (bare
+// 3-digit, separated hero row, brace set, pair label) and the assertion is no
+// longer circular — it FAILS pre-mask, which is proven in test. But the eye
+// check found two surfaces that BOTH the mask and the assertion miss, because
+// they are distributed across leaves rather than contained in one:
+//     position boxes   `4 P1` · `7 P2` · `1 P3`     three single-digit leaves
+//     pair rows        `Front pair 47` · `Back pair 71` · `Split pair 41`
+// Either reconstructs the combination by inspection. The assertion cannot see
+// them because every leaf holds a run of 1 or 2 digits and it scans per leaf.
 //
-// ⚠⚠ AND THE ASSERTION DID NOT CATCH IT, WHICH IS THE REAL LESSON. `assertNoDigits`
-// searched with the SAME predicate the mask used, so it could only ever confirm
-// what the mask had already handled. It reported "no 3-digit leaf found" — true,
-// and meaningless. This is MKT-21's finding arriving inside the guard rather
-// than inside the asset: "no numerals found" is a search result, not a property.
-// A redaction assertion MUST search a BROADER space than the mask covers, or it
-// is circular by construction.
-//
-// TO FINISH: mask (a) per-digit leaf runs that form a combo row, (b) brace-set
-// notation /\{\d,\d,\d\}/, (c) pair strings; then assert on a pattern that
-// looks for ANY run of 3+ digits with arbitrary separators, plus an OCR-free
-// pixel check is not available so the eye check stays mandatory.
-//
-// Masks every 3-digit combination in the captured DOM so the free-group Midday
-// and Evening reels can show the BOARD without giving away the numbers. That
-// gap is the Pro conversion frame: the free group sees the shape of the day's
-// board and the fact that it is ranked and explained, and gets the digits the
-// next morning in the receipts reel — or now, by subscribing.
+// ⚠⚠ A PER-LEAF ASSERTION IS STRUCTURALLY INCAPABLE OF CATCHING THIS. The fix
+// is not a better regex — it is to aggregate at CARD level: collect every digit
+// inside a card container, and fail if the multiset can form a 3-digit
+// combination. This is the same pair-rows finding already recorded against
+// MKT-15 Phase 2 for the public lane, arriving here because the two lanes share
+// the capture. Fixing it here fixes it for both.
 //
 // ⚠ WHY THIS LIVES IN THE RENDERER AND NOT IN THE APP. MKT-15's Phase 0 ruled
 // that a capture-mode override belongs outside the consumer UI, because the
@@ -64,17 +53,30 @@ export async function installRedaction(page: Page): Promise<void> {
   // ⚠ PASSED AS A STRING, NOT A FUNCTION, AND THAT IS LOAD-BEARING. tsx/esbuild
   // wraps named function expressions with a `__name` helper that does not exist
   // in the page context, so a normal `page.evaluate(() => {...})` containing any
-  // named arrow dies with "ReferenceError: __name is not defined". A string body
-  // is never transformed. Same trap applies to anything else this file adds.
+  // named arrow dies with "ReferenceError: __name is not defined".
   await page.evaluate(`(() => {
     const MASK = ${JSON.stringify(MASK)};
-    const isCombo = t => /^\\d{3}$/.test((t || '').trim());
-    const maskAll = root => {
-      const all = root.querySelectorAll('*');
-      for (const el of all) {
-        if (el.children.length) continue;
-        if (isCombo(el.textContent)) el.textContent = MASK;
+    // THE COMBINATION IS RENDERED FOUR DIFFERENT WAYS on one card. A first
+    // attempt masked only the first and left the other three on screen:
+    //   "681"            bare 3-digit leaf
+    //   "4 - 7 - 1"      hero row, each digit its own leaf joined by separators
+    //   "Box: {1,4,7}"   set notation behind a label
+    //   "Pair 14"        two of the three digits
+    const maskLeaf = el => {
+      const t = (el.textContent || '').trim();
+      if (!t || t.length > 40) return;
+      // 1. bare three digits, and 2. separated digit runs (4 - 7 - 1, 1·4·7)
+      if (/^\\d(\\s*[-·.]\\s*\\d){2}$/.test(t) || /^\\d{3}$/.test(t)) { el.textContent = MASK; return; }
+      // 3. brace-set notation, label preserved so the row still reads
+      if (/\\{\\s*\\d\\s*,\\s*\\d\\s*,\\s*\\d\\s*\\}/.test(t)) {
+        el.textContent = t.replace(/\\{\\s*\\d\\s*,\\s*\\d\\s*,\\s*\\d\\s*\\}/g, '{' + MASK + '}');
+        return;
       }
+      // 4. pair strings — only two digits, but they narrow the board sharply
+      if (/^pair\\s*\\d{2}$/i.test(t)) { el.textContent = t.replace(/\\d{2}/, '••'); return; }
+    };
+    const maskAll = root => {
+      for (const el of Array.from(root.querySelectorAll('*'))) if (!el.children.length) maskLeaf(el);
     };
     maskAll(document);
     // A MutationObserver is required rather than a one-shot pass: the body
@@ -85,7 +87,7 @@ export async function installRedaction(page: Page): Promise<void> {
       for (const m of muts) {
         if (m.type === 'characterData' && m.target.parentElement) {
           const el = m.target.parentElement;
-          if (!el.children.length && isCombo(el.textContent)) el.textContent = MASK;
+          if (!el.children.length) maskLeaf(el);
         }
         for (const n of Array.from(m.addedNodes)) if (n.nodeType === 1) maskAll(n);
       }
@@ -96,8 +98,23 @@ export async function installRedaction(page: Page): Promise<void> {
 }
 
 /**
- * Fail the render if any 3-digit leaf survives. Returns the offending strings so
- * the error names what leaked rather than just asserting that something did.
+ * Fail the render if any combination survives, ANYWHERE, in any arrangement.
+ *
+ * ⚠ THIS DELIBERATELY SEARCHES A BROADER SPACE THAN THE MASK COVERS, and that is
+ * the whole point. The previous version used the mask's own predicate, so it
+ * could only ever confirm what the mask had already handled — it reported "no
+ * 3-digit leaf found" while `4 - 7 - 1` and `{1,4,7}` were plainly on screen.
+ * A circular assertion reads exactly like a passing one.
+ *
+ * The rule here is shape-independent: strip only the characters that can
+ * separate digits WITHIN a combination, then flag any run of EXACTLY three.
+ * That catches arrangements nobody enumerated — `1·4·7`, `{1 4 7}`, `1/4/7` —
+ * which is the class the mask is trying to cover, rather than the list of
+ * spellings it happens to know about.
+ *
+ * Runs of 1, 2 and 4+ are ignored on purpose: energies, draw counts and pair
+ * values are two digits, and dates carry four-digit years. A run of exactly
+ * three is what a combination is.
  */
 export async function assertNoDigits(page: Page, where: string): Promise<void> {
   const leaked: string[] = await page.evaluate(`(() => {
@@ -105,13 +122,24 @@ export async function assertNoDigits(page: Page, where: string): Promise<void> {
     for (const el of Array.from(document.querySelectorAll('*'))) {
       if (el.children.length) continue;
       const t = (el.textContent || '').trim();
-      if (/^\\d{3}$/.test(t)) out.push(t);
+      if (!t || t.length > 60) continue;
+      // ONE carve-out, and it is kept to a single shape on purpose: a
+      // percentage is not a combination, and "100%" is a real confidence value
+      // that would otherwise block every render. Carve-outs are how an
+      // assertion erodes into the circular one this replaced, so this is the
+      // only exclusion and it is removed BEFORE the digit scan rather than
+      // allow-listed after it.
+      const t2 = t.replace(/\\d{1,3}\\s*%/g, '');
+      const flat = t2.replace(/[\\s\\-·.,{}\\/]/g, '');
+      const runs = flat.match(/\\d+/g) || [];
+      if (runs.some(r => r.length === 3)) out.push(t);
     }
     return Array.from(new Set(out));
   })()`);
   if (leaked.length) {
     throw new Error(
-      `ABORT (${where}): redaction incomplete — ${leaked.length} unmasked combination(s) still in the DOM: ${leaked.join(', ')}.\n` +
+      `ABORT (${where}): redaction incomplete — ${leaked.length} leaf/leaves still contain a 3-digit run:\n` +
+      leaked.map(x => `         "${x}"`).join('\n') + '\n' +
       `       A free-group session reel exists to WITHHOLD these. Rendering anyway would hand away the Pro conversion frame.`,
     );
   }

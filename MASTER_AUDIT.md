@@ -11,33 +11,31 @@
 
 ---
 
-## ⏭️ RESUME HERE — session close 2026-07-29
+## ⏭️ RESUME HERE — session close 2026-07-29 (late)
 
-**Everything below is committed and pushed. `reel:check` 0 fail / 49 warn** (all warns are the standing 720×1280 / 24fps source-quality note on matrix members, plus four rejected MKT-21 bodies carrying printed reasons).
+**✅ [[MKT-26]] SHIPPED — the free-group session reels are LIVE end to end.** `reel:midday` and `reel:evening` each now build TWO reels: the Pro one, plus a FREE one cut from a separate REDACTED capture. **Six reels a day, not four.** Full entry below; the short version is that the handover's three mechanical steps were all real, and a fourth thing was wrong that the handover did not know about.
 
-**✅ FIXED 2026-07-29 — the daily run is safe.** `free` was reverted off the midday/evening scope variants, so `reel:midday` and `reel:evening` build their pro variant and exit clean, exactly as they did this morning. Preflight 0 fail / 45 warn.
+**⚠ READ THIS BEFORE TOUCHING THE SESSION LANE — the body is no longer one file per scope.** It was, and switching the free variant on without changing that would have published the **unredacted** board to the free group while `reel:check` reported 0 fail. Redacted kinds now read `ui_<scope>_redacted_<stamp>.mp4`; the full-fidelity name is unchanged. Each body carries an `hm_reel_redacted` tag and the assembler asserts it against the kind consuming it. **An untagged body is treated as full-fidelity and a redacted kind REFUSES it** — which caught a real byte-identical copy of the pro body wearing a redacted filename on its first run.
 
-The regression, recorded because the cause is reusable: adding `free` to the SCOPE VARIANTS made the assembler try to build a kind whose CARRIER does not exist, and MKT-20 made a missing carrier fail LOUDLY by design. That produced a hard abort partway through the command — after the pro variant had already built and published — rather than a dormant lane. Nothing was lost, but the command exited non-zero.
+**THE DAILY RUN IS SAFE and it now takes about twice as long per session** — the Playwright capture happens twice per session scope. `reel:check` 0 fail / 49 warn (all the standing 720×1280 / 24fps source note, +4 from the two new endcards, plus the four rejected MKT-21 bodies carrying printed reasons).
 
-**Everything else stays registered and is harmless while dormant**: endcard copy, stinger copy, the built matrix, and the `marketing_reels_kind_check` migration all admit `midday_free` / `evening_free`. **The scope variant is now the single switch** — deliver the two carriers, add them to `CARRIERS`, restore `'free'`, and the lane is live. That switch and its preconditions are documented at the site in `reel-scopes.ts`.
+**UNWATCHED — carry this forward.** Nobody has viewed any of today's six reels in motion. The free session cuts are verified frame-by-frame and by contact sheet, never played. Tomorrow's run is also the first to exercise the new free endcard copy, the free carriers and the redacted capture together on a live morning.
 
-**⚠ AND `reel:check` DID NOT CATCH IT — gap still open.** Preflight reported those kinds as *dormant, 0 fail* while the assembler hard-aborted on them, because it probes for file existence rather than resolving a carrier the way the assembler does. A kind can therefore read clean in preflight and break the run. **Worth closing: preflight should call the same resolver the assembler calls.** This is the same shape as the six redaction failures — a check looking at something adjacent to the real thing and reporting success.
+---
 
-**NEXT SESSION STARTS HERE — [[MKT-26]], GATE CLEARED. Three mechanical steps, then the lane ships.**
+**⚠ STILL OPEN — `reel:check` CANNOT SEE THE REDACTION, and this is the same gap in a new place.**
 
-Everything hard is done: redaction verified non-recoverable across all seven surfaces with a stored record, four carriers delivered and measured (+1.242s and +2.470s, against midday_pro's +0.184s), endcard/stinger config registered, matrix built, migration applied.
+Preflight validates ASSETS. It has no way to know whether a body is redacted, because the body does not exist when preflight runs. The assembler is the only thing asserting it. That is the correct division, but it means **a green preflight says nothing about the free lane's core safety property** — exactly the "check adjacent to the real thing" shape that has now cost this lane seven attempts.
 
-**STEP 1 — caption registry.** Check whether `midday_free` / `evening_free` have entries at all. They probably have NONE, which is the live defect the work order anticipated. These are the INVERSE case to `allday_free`: that kind is bound by the no-Pro-pitch rule, while these two exist to sell the gap. They need their own templates with unique rotation offsets — the content agent will supply on request. **Do not let them inherit `allday_free`'s.**
+The earlier gap in this same block — preflight probing file existence rather than resolving a carrier the way the assembler does — **was closed** (commit `9b187d1`); it is what would now stop the 7/29 carrier regression.
 
-**STEP 2 — Phase 1 copy, then REBUILD.** Replace my provisional lines with the agreed set:
-`endcard` → `HITMASTER ZK6` / `DIGITS COVERED HERE` / `FULL SIX IN PRO · $2.49/MO`
-`stinger` → `MIDDAY · THE BOARD` · `EVENING · THE BOARD`
-⚠ Copy changes require an **endcard matrix rebuild** — builds are per (variant × motion).
-(Why `NUMBERS` → `DIGITS`: §5 bars *numbers* as a product noun — "the product noun is signals, always" — so my provisional line would have failed the lint beside it.)
+**Worth doing next:** a post-assembly check that samples frames from a finished `*_free` session reel and runs the `assertNoDigits` predicate over OCR, or failing that (no OCR in-env), at minimum asserts the published row's kind against the body tag it was built from.
 
-**STEP 3 — REGISTER, AND THE ORDER MATTERS.** Add the four carriers to `CARRIERS` in `carrier-config.ts` **FIRST**, then restore `'free'` to the midday/evening variants in `reel-scopes.ts`. Doing it the other way round is what broke the daily run on 2026-07-29 — and preflight now FAILS loudly on exactly that mistake, so it will stop you rather than let it through to the morning.
+---
 
-**THEN ASSEMBLE:** one reel per new kind, contact sheets over grid + all six modals (the same discipline that cleared the gate), and update handoff §2, §7, §9 (⚠ the PRO-ONLY session ruling is SUPERSEDED — record what replaced it) and §10.
+**THEN:** the **MKT-15 P2 RELABEL** — spec and traps under its own heading below. Public needs **no new assets**: copy set approved, injection mechanism proven, `public_carrier` + `_pt2` already validate. **The `ON FIRE` band enum has now been SUPPLIED** (see the MKT-26 entry), so that blocker is cleared.
+
+⚠ **And the public lane inherits MKT-26's structure**: public kinds will need their own `redactedVariants` entry and their own body capture, because relabel is a *different* capture again — not a variant of the redacted one.
 
 ---
 
@@ -139,7 +137,67 @@ Joined durations identical at 20.360s, so the MKT-20 invariant holds. The new pa
 
 ---
 
-**REMAINING PHASE 0, none started:** carrier margins ×4 · scope+tier binding (structurally enforced by `CARRIERS` being keyed per kind, but unverified for these entries) · VO price check · caption registry — ⚠ suspect `midday_free`/`evening_free` currently INHERIT nothing and have no entries at all, which is the live defect the order anticipates; they are the inverse case to `allday_free`, which is bound by the no-Pro-pitch rule while these two exist to sell the gap.
+**REMAINING PHASE 0 — ✅ CLOSED 2026-07-29.** Caption registry defect CONFIRMED as suspected (both kinds had zero entries) and fixed; carrier margins measured (above); scope+tier binding verified; copy shipped. Detail in the SHIPPED section immediately below.
+
+---
+
+### MKT-26 — SHIPPED 2026-07-29. Free-group session reels live end to end.
+
+**Midday is built and verified. Evening followed the same path.** The three mechanical steps from the handover ran in the order it specified, and that order mattered — but the lane did not turn out to be mechanical, because a fourth thing was wrong that nothing in the handover anticipated.
+
+**STEP 1 — caption registry. The suspected defect was real, and it had a second half nobody had looked at.** `midday_free` / `evening_free` had no entries at all, exactly as the order predicted. What the order did not predict: `scripts/publish-reels.ts` narrows its `Kind` to an explicit five-kind `Extract<...>` union, and `reelFiles()` builds its kind with `reelKind(...) as Kind` — a **CAST**. So the missing registry entry would not have been a type error. It would have type-checked clean, rendered, assembled, uploaded, and then died in `buildReelCaption` reading `.realNumbers` off `undefined` — at PUBLISH time, with the video already on disk. The `Extract` guards one direction (a name listed but not registered is silently dropped); the cast defeats the other. Both halves fixed in the same change, and the asymmetry is now documented at the site.
+
+Templates are the **inverse** of `allday_free`, per the order: that kind is bound by the no-Pro-pitch rule because it IS the value gift, while these two exist to sell the gap. **Pricing is carried in half the set** — sanctioned because the free group is tier 2, the only tier `brandLint` §6 permits pricing on (tier 1/3 and tier 4 are all barred). Verified with the real `lintCaption` over 8 consecutive dates rather than against the spec they were written to: **8/8 distinct per kind, no same-morning template pairing between the two, and tier 1 correctly REJECTS them.** Offsets 17 and 22 — the note at the site records that what actually has to be distinct is `offset % templates.length`, not the offset (`evening_pro`'s 11 already collides with `allday_free`'s 3 mod 8; harmless, but the old comment claimed otherwise).
+
+**STEP 2 — Phase 1 copy shipped, matrix rebuilt.** `DIGITS COVERED HERE` / `FULL SIX IN PRO · $2.49/MO`. Frames extracted at 5.6s and read rather than trusting the builder's "lockup rendered natively" log: copy renders sans-serif (not the MKT-10 serif trap), block ends y=1400 against the 1500 crop line, so the longer line 3 did not overflow. Stinger copy was already the agreed set; only its PROVISIONAL marker moved.
+
+**STEP 3 — carriers registered FIRST, then the variant flag.** Margins measured before registration. Preflight after the flip: **0 fail / 49 warn**, the 4 new warnings being the standing 24fps source note on the two rebuilt endcards.
+
+---
+
+**⛔ AND THEN THE REAL BLOCKER, which the handover did not know about: THE BODY WAS PER-SCOPE, NOT PER-VARIANT.**
+
+`assemble-allday-reels.ts` resolved ONE body — `ui_<scope>_<stamp>.mp4` — at line 106, **outside** the variant loop, and `--redact` appeared **nowhere** in the assembler, the preflight, the publisher or the npm scripts. `reel:midday` rendered a single full-fidelity capture and every variant read it.
+
+**So completing the handover's three steps and running the command would have published the UNREDACTED midday board to the free group** — the precise thing MKT-13 barred and this entire lane exists to prevent.
+
+**⚠ AND NOTHING WOULD HAVE CAUGHT IT.** The carrier resolves. The endcard resolves. The stamp renders. The contact sheet generates. `reel:check` reports 0 fail. Every one of those validates an **asset**, and the defect was **inside the capture**. This is the seventh instance of the shape this lane keeps paying for — *a check adjacent to the real thing, reporting success* — and the first one where the failure would have been a brand-safety breach rather than a bad render.
+
+**THE FIX, in two parts because either alone is insufficient:**
+- **The body is now resolved per variant** inside the loop. Redacted kinds take `ui_<scope>_redacted_<stamp>.mp4`; the full-fidelity name is **UNCHANGED**, so All-Day and both session pro variants read and write exactly the file they always have and every historical body stays reachable.
+- **A redaction state travels INSIDE the file** — `hm_reel_redacted`, the same mechanism as MKT-18's date tag — and the assembler asserts it against the kind consuming it. The filename says it too, but a filename is the one thing in this pipeline that has now proven unreliable four times.
+
+**The missing-tag case is deliberately ASYMMETRIC**, and that asymmetry is the whole safety property. Expected-not-redacted + no tag → fine, every pre-MKT-26 body is full-fidelity, degrades to old behaviour. Expected-redacted + no tag → **FATAL**, because absence means full-fidelity and warning-and-continuing would publish the board.
+
+**IT CAUGHT A LIVE LANDMINE ON ITS FIRST RUN.** An untracked `ui_midday_redacted_20260729.mp4` was sitting in the working tree — **byte-identical (md5 `7323ec21…`) to the full-fidelity body**, a copy wearing a redacted name. Under the old code it would have been assembled and published. Deleted; the real capture is 2263495 bytes against the copy's 2489352.
+
+---
+
+**VERIFICATION — pixels, not green checks, per the rule this lane earned the hard way.**
+
+Grid at 1.6s/3.9s and modals at 5.25/10.25/17.75s inspected on the real redacted body: `• • •` heroes, `{•••}` set chips on grid AND modal, `• • •` position boxes with P1/P2/P3 intact, `Front/Back/Split pair ••`, masked pair prose, resolution trail carrying state × count only. Preserved as designed: energy, ZK6 confidence, all four signal percentages, heat badges, jurisdiction counts, panels, full prose structure. Contact sheet clean across all six modals; endcard carries the new copy.
+
+**The decisive check was the two FINAL reels side by side** at the same timestamp — same date, same scope, **identical signal values (71/52/97/78)** — with `midday_free` masked and `midday_pro` showing `4 7 1` / `{1,4,7}`. That is the two lanes proven separate on the published artifacts, not on the inputs.
+
+**Rotations diverged as intended:** pro drew deadpan/strike/vault rings, free drew monitors/fracture/rising tide. Both 34.20s.
+
+---
+
+**⚠ A SECOND FINDING, and it invalidates a stated premise of the redaction assert.**
+
+The evening redacted render **aborted pre-capture** on `102×` — a resolution-trail multiplicity count on two `ON FIRE` cards. `assertNoDigits` documented that "energies, draw counts and pair values are two digits", so a run of exactly three means a combination. **That premise was false**: a jurisdiction resolved 102 times, and the count rendered three digits.
+
+Not a leak — those cards' combinations were `1·0·4` and `8·0·5`, neither of which is 102 — so the assert was right to stop and the premise was wrong. **Resolved with a second SHAPE-based carve-out** (`N×`), parallel to the existing `N%` one, stripped before the scan rather than allow-listed after. Chosen over masking the counts because the gate record lists jurisdiction counts among the things the free cut *deliberately keeps*; masking them would have removed a methodology signal that was signed off as visible. Regression-tested: all 9 combination arrangements still flag (`471`, `4 - 7 - 1`, `{1,4,7}`, `1·4·7`, `1/4/7`, …), all 11 legitimate values pass.
+
+**Why it surfaced only on evening: the boards differ in CONTENT.** Midday that day had no card with a 3-digit resolution count. **A scope passing this class of guard proves nothing about the next scope** — recorded because it generalises well beyond this assert.
+
+**Known limit, deliberately NOT carved:** a bare `/100` denominator leaf exists in the DOM and would trip the assert. It did not reach it in any run measured. Carving a third shape on suspicion is how this predicate erodes back into the circular one it replaced; it aborts before frame 0, so the cost of being wrong is a re-run.
+
+**One more trap paid for:** everything inside `assertNoDigits` sits in a **template literal**, so a backtick in a *comment* terminates the string and dumps its contents into TypeScript as source. Cost one failed render (`TS1127: Invalid character`). Flagged in-place.
+
+---
+
+**OBSERVED, not fixed — cosmetic over-redaction.** The structural detector masks legitimate 3-digit *values* when they appear as bare leaves: a `100` signal reading shows as `•••` in the compact grid bar while the modal renders `100%` intact. Over-redaction, so the safe direction, and it withholds nothing that matters — but it is an inconsistency between two surfaces showing the same datum.
 
 **PHASE 1 COPY — accepted as specified, replacing my provisional lines.** Endcard `DIGITS COVERED HERE` / `FULL SIX IN PRO · $2.49/MO`; stingers `MIDDAY · THE BOARD` / `EVENING · THE BOARD`. **The correction on my copy is right and I should have caught it**: §5's voice rule bars *numbers* as a product noun — "the product noun is signals, always" — so `THE BOARD, NOT THE NUMBERS` would have failed the lint sitting next to it. `DIGITS` is the system's own term for the withheld values. ⚠ Copy change requires an endcard matrix REBUILD (builds are per variant × motion).
 

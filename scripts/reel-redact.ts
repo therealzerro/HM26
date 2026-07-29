@@ -157,6 +157,17 @@ export async function installRedaction(page: Page): Promise<void> {
  * Runs of 1, 2 and 4+ are ignored on purpose: energies, draw counts and pair
  * values are two digits, and dates carry four-digit years. A run of exactly
  * three is what a combination is.
+ *
+ * ⚠ "DRAW COUNTS ARE TWO DIGITS" WAS AN ASSUMPTION, AND IT WAS FALSE.
+ * Found 2026-07-29 (MKT-26): the evening board aborted this assert on `102×`,
+ * a resolution-trail multiplicity count on two ON FIRE cards. Not a leak — the
+ * combinations on those cards were 1·0·4 and 8·0·5 — but a real three-digit run
+ * on screen, so the assert was right to stop and the premise was wrong.
+ *
+ * It surfaced only on evening because midday's board that day had no card with
+ * a 3-digit resolution count. That is worth remembering about this whole class
+ * of guard: the boards differ in CONTENT, so a scope passing proves nothing
+ * about the next one.
  */
 export async function assertNoDigits(page: Page, where: string): Promise<void> {
   const leaked: string[] = await page.evaluate(`(() => {
@@ -167,11 +178,41 @@ export async function assertNoDigits(page: Page, where: string): Promise<void> {
     for (const el of leaves(document)) {
       const t = (el.textContent || '').trim();
       if (!t || t.length > 60) continue;
-      // ONE carve-out, kept to a single shape: a percentage is not a
-      // combination, and "100%" is a real confidence value. Removed BEFORE the
-      // scan rather than allow-listed after, because allow-lists are how an
-      // assertion erodes back into the circular one this replaced.
-      const flat = t.replace(/\\d{1,3}\\s*%/g, '').replace(/[\\s\\-·.,{}\\/]/g, '');
+      // TWO carve-outs, each kept to a single SHAPE rather than a set of
+      // values. Both are removed BEFORE the scan rather than allow-listed
+      // after, because allow-lists are how an assertion erodes back into the
+      // circular one this replaced.
+      //
+      //   N%  a percentage is not a combination — "100%" is a real confidence.
+      //   N×  a MULTIPLICITY COUNT is not a combination either. The resolution
+      //       trail renders "GA 102×" meaning 102 resolutions, and the gate
+      //       record lists jurisdiction counts among the things the free cut
+      //       DELIBERATELY KEEPS, so masking them instead would have removed a
+      //       methodology signal the operator signed off on showing.
+      //
+      // The count form is anchored to a boundary and requires the marker to
+      // FOLLOW the digits, so it can only ever cancel a genuine count chip. A
+      // combination never renders with a trailing multiplication sign — it
+      // renders as a bare run, a separated hero row, or brace-set notation, all
+      // of which still trip this scan. The marker is U+00D7, the sign the UI
+      // actually emits, not the letter x.
+      //
+      // ⚠ NO BACKTICKS ANYWHERE IN THIS BLOCK. Everything from the evaluate(
+      // call down is inside a TEMPLATE LITERAL, so a backtick in a comment
+      // terminates the string and dumps its contents into TypeScript as source.
+      // Cost a failed render to find; the surrounding comments use "quotes".
+      //
+      // DELIBERATELY NOT CARVED: a bare "/100" denominator leaf, which exists
+      // in the DOM (the energy scale splits across leaves) and WOULD trip this.
+      // It did not reach the assert in any run measured on 2026-07-29, and
+      // carving a third shape on suspicion is exactly how this predicate erodes.
+      // If it ever aborts a render, that is the guard working — it fires before
+      // frame 0, so it costs nothing but a re-run to come back and widen this
+      // with evidence.
+      const flat = t
+        .replace(/\\d{1,3}\\s*%/g, '')
+        .replace(/(^|\\s)\\d{1,3}\\s*\\u00d7/g, '$1')
+        .replace(/[\\s\\-·.,{}\\/]/g, '');
       if ((flat.match(/\\d+/g) || []).some(r => r.length === 3)) out.push('leaf: ' + t);
     }
 

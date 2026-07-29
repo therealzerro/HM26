@@ -52,6 +52,21 @@ export interface ReelScopeSpec {
   stampLabel: string;
   /** Variants assembled, in build order. Drives the assembler + publisher. */
   variants: Variant[];
+  /**
+   * MKT-26 — variants whose body must be captured with digits MASKED.
+   *
+   * Stated per scope rather than derived from a rule like "free sessions are
+   * redacted", for the same reason carrier-config states its pairing per kind:
+   * a derived rule means the next reader has to know the rule before knowing
+   * what a kind does, and the one place it is wrong is invisible. Empty for
+   * All-Day — the free group gets that board IN FULL, which is the value gift.
+   *
+   * A variant listed here changes the BODY FILE the assembler reads, so pro and
+   * free stop sharing one capture. That sharing is why the free session lane
+   * could not simply be switched on: `reel:midday` rendered one full-fidelity
+   * body and every variant read it.
+   */
+  redactedVariants?: Variant[];
   /** assets/marketing subdirectory for the body render and the finals. */
   dir: string;
 }
@@ -82,6 +97,7 @@ export const REEL_SCOPES: Record<Scope, ReelScopeSpec> = {
     // registry entry (and the publish-reels Kind union with it) → THEN this
     // flag. This flag is the last one turned, never the first.
     variants: ['pro', 'free'],
+    redactedVariants: ['free'],
     dir: 'midday_reels',
   },
   evening: {
@@ -90,6 +106,7 @@ export const REEL_SCOPES: Record<Scope, ReelScopeSpec> = {
     stampLabel: 'EVENING',
     // See the midday note above — same state, same switch, enabled together.
     variants: ['pro', 'free'],
+    redactedVariants: ['free'],
     dir: 'evening_reels',
   },
 };
@@ -108,6 +125,36 @@ export function isScope(s: string): s is Scope {
  */
 export function reelKind(scope: Scope, variant: Variant): string {
   return `${scope}_${variant}`;
+}
+
+/** Does this kind's body need a digits-masked capture? */
+export function bodyRedacted(scope: Scope, variant: Variant): boolean {
+  return (REEL_SCOPES[scope].redactedVariants ?? []).includes(variant);
+}
+
+/**
+ * The body capture filename for a kind — MKT-26.
+ *
+ * ⚠ THE FULL-FIDELITY NAME IS UNCHANGED (`ui_<scope>_<stamp>.mp4`) AND THAT IS
+ * DELIBERATE. Every non-redacted kind — all of All-Day, both session pro
+ * variants — keeps reading and writing exactly the file it always has, so the
+ * daily run and any re-assembly of an earlier day are byte-identical to before
+ * this lane. Only a redacted kind takes the suffixed name, and only redacted
+ * kinds are new. A blanket rename would have made every historical body
+ * unreachable to buy nothing.
+ *
+ * The distinct filename is what lets both captures coexist for the same scope
+ * and date; the REDACT_TAG inside the file is what makes the assembler's
+ * assertion true about the pixels rather than the path. Both, not either.
+ */
+export function bodyFileFor(scope: Scope, redacted: boolean, stamp: string): string {
+  return redacted ? `ui_${scope}_redacted_${stamp}.mp4` : `ui_${scope}_${stamp}.mp4`;
+}
+
+/** The body a KIND consumes. The renderer names its output with the primitive
+ *  above, keyed on the actual capture mode, so the two cannot disagree. */
+export function bodyFile(scope: Scope, variant: Variant, stamp: string): string {
+  return bodyFileFor(scope, bodyRedacted(scope, variant), stamp);
 }
 
 /**

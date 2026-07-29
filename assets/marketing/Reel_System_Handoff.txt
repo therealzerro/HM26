@@ -179,10 +179,39 @@ and runs an in-frame vocabulary guard; any violation aborts the render.
 --------------------------------------------------------------------------------
 2. REEL ANATOMY — SLATE DROPS (33.83s or 34.20s @ 1080×1920 60fps)
 --------------------------------------------------------------------------------
-Covers All-Day (Pro + Free) AND the Midday/Evening session drops (Pro only) —
-they are the SAME reel built from a different board, so this one anatomy is the
-whole spec for all four. Variants share one UI body render per scope; they
-differ in carrier (voiceover) and endcard/stinger copy.
+Covers All-Day (Pro + Free) AND the Midday/Evening session drops (Pro + Free as
+of MKT-26) — they are the SAME reel built from a different board, so this one
+anatomy is the whole spec for all six. Variants differ in carrier (voiceover)
+and endcard/stinger copy.
+
+⚠ CHANGED 2026-07-29 (MKT-26) — VARIANTS NO LONGER ALWAYS SHARE ONE BODY.
+v1.9 said "variants share one UI body render per scope". True for All-Day, where
+Pro and Free legitimately show the same board. NOT true for the sessions: their
+FREE variant is cut from a separate REDACTED capture with every digit masked, so
+each session scope renders TWO bodies.
+
+  ui_<scope>_<stamp>.mp4           full-fidelity — Pro (unchanged name)
+  ui_<scope>_redacted_<stamp>.mp4  digits masked — Free sessions only
+
+WHY THIS IS ENFORCED AND NOT LEFT TO CONVENTION. Before MKT-26 the assembler
+resolved ONE body per scope, outside the variant loop. Switching the free
+session variant on without changing that would have handed the full-fidelity
+board to the free group — and nothing would have caught it, because the carrier
+resolves, the endcard resolves, the stamp renders, the contact sheet generates
+and preflight reports 0 fail. Every one of those validates an ASSET; the defect
+was inside the capture. So each body now carries an `hm_reel_redacted` tag in
+its own container metadata (same mechanism as MKT-18's date tag) and the
+assembler asserts it against the kind consuming it. A body with no tag is
+treated as full-fidelity, which means a renamed copy cannot pose as redacted —
+a stray copy of the Pro body was in fact caught this way on 2026-07-29.
+
+WHAT THE REDACTION MASKS (structural detection — no marker text, no class
+selector, so it cannot be defeated by a surface nobody enumerated): the hero
+row, bare 3-digit leaves, the {•••} brace set chip on BOTH grid and modal, the
+position boxes, pair LABELS and pair PROSE. Verified non-recoverable across all
+seven digit-bearing surfaces at ten settling frames.
+KEPT: energy, ZK6 confidence, all four signal percentages, heat badges,
+jurisdiction counts, panels, and the full prose structure.
 
 Times below are quoted for the 5.6s standard intro. On a 6.0s rotation member
 every timestamp after the intro shifts 0.4s later and the reel is 34.20s.
@@ -336,8 +365,18 @@ every timestamp after the intro shifts 0.4s later and the reel is 34.20s.
   - Never script the VO to reference the bolt snap or anything after it —
     that space belongs to the endcard's synced sound.
   - Two variants every time: PRO (first-access framing, never pricing) and
-    FREE (pure value — the All-Day drop carries NO Pro pitch, per the
-    SOCIAL-13 depth rule).
+    FREE. ⚠ THE FREE BRIEF IS NOT ONE BRIEF — it splits by scope, and the
+    two halves are near-opposites:
+      ALL-DAY FREE  — pure value, NO Pro pitch at all (SOCIAL-13 depth rule).
+                      This is the value gift; do not sell against it.
+      SESSION FREE  — exists TO sell the gap (MKT-26). The board is shown and
+                      the digits are withheld, so the VO must NAME the
+                      withholding: a redacted reel that doesn't say why it is
+                      redacted reads as broken, not as a teaser. Pricing is
+                      permitted here and nowhere else — the free group is
+                      tier 2, the only tier brandLint §6 allows it on.
+      Session free carriers must NOT reuse the Pro ones: first-access framing
+      is barred below Pro.
 
   ENDCARD CONTRACT (full spec in the endcard revision brief):
   - Final frame must be the settled lockup (it is reused as the reel's
@@ -543,10 +582,28 @@ per-day by hand, not AI-freestyled.
     verif_endcard.mp4             Verify bolt endcard
     midday_pro_carrier.mp4        Midday VO carrier (+ _pt2, auto-joined)
     evening_pro_carrier.mp4       Evening VO carrier (+ _pt2, auto-joined)
+    midday_free_carrier.mp4       MKT-26 — FREE-tier session VO (+ _pt2 each).
+    evening_free_carrier.mp4      Scripted SEPARATELY from the Pro pair, not
+                                  cut down from it: first-access framing is
+                                  barred below Pro (SOCIAL-13), and these have
+                                  to name the withholding instead. Part 1 is
+                                  10.005s like the rest of the fleet, so the
+                                  MKT-20 duration invariant holds. Margins are
+                                  the FLEET'S ROOMIEST — +1.242s (midday) and
+                                  +2.470s (evening) against midday_pro's
+                                  +0.184s, which is the tightest.
     midday_pro_endcard.mp4        Midday endcard — built from the SHARED
     evening_pro_endcard.mp4       endcard_motion_pro.mp4 with different copy,
                                   i.e. zero new video generation (MKT-10's
                                   whole payoff). Same for their stingers.
+    midday_free_endcard.mp4       MKT-26 — free session closes, built from
+    evening_free_endcard.mp4      endcard_motion_free.mp4. Copy: "DIGITS
+                                  COVERED HERE" / "FULL SIX IN PRO · $2.49/MO".
+                                  ⚠ THE ONLY ENDCARDS CARRYING A PRICE. The
+                                  free group is tier 2, the one tier brandLint
+                                  §6 permits pricing on — never reuse these
+                                  anywhere else. Also note "DIGITS", not
+                                  "numbers": §5 bars numbers as a product noun.
     endcard_motion_pro.mp4        PRO-tier endcard motions (MKT-19 set).
     endcard_motion_pro_alt.mp4    std = converging threads · alt = vault
                                   rings. Used by All-Day Pro, Midday,
@@ -954,33 +1011,49 @@ BUILT AND RUNNING DAILY:
   MKT-18  Body provenance — the capture date travels inside the file
   MKT-19  Brand motion rotation: stinger + endcard (2026-07-29) — see §2
   MKT-20  Carrier rotation — All-Day part 1, pro + free (2026-07-29) — §2, §7
+  MKT-22  Intro identity chip (2026-07-29) — §2
+  MKT-23  Asset wave: 6 intros, 5 stinger + 4 endcard motions, per-kind copy
+  MKT-25  Verify restaging — the board it posted, then the ledger (2026-07-29)
+  MKT-26  FREE-GROUP SESSION REELS (2026-07-29) — redacted Midday/Evening drops
+          for the free group. Supersedes the pro-only ruling; see below and §2.
 
 IN FLIGHT, NOT BUILT — do not propose against these yet; §10 has the detail:
   MKT-14  Brand attribution in the slate stamp .......... PARKED (untouched)
   MKT-15  Social handoff buttons ....... Phase 1 SHIPPED · Phase 2 BLOCKED
   MKT-16  Public asset integration + redaction ....... Phase 0, build held
 
-DAILY OUTPUT TODAY: up to four reels — verify (14.4s), All-Day Pro + Free, and
-optionally Midday and Evening (Pro only). Slate reels are 33.83s or 34.20s
-depending on the day's intro. All four auto-publish to Admin → Reels with
+DAILY OUTPUT TODAY: up to SIX reels — verify (14.4s), All-Day Pro + Free, and
+optionally Midday and Evening, each now Pro + Free. Slate reels are 33.83s or
+34.20s depending on the day's intro. All auto-publish to Admin → Reels with
 drafted captions. Nothing auto-posts, ever.
 
-THE SESSION WAVE IS PRO-ONLY, AND THAT IS A RULING:
-  The free group gets the All-Day drop in FULL but Midday/Evening REDACTED —
-  that gap is the Pro conversion frame, and the publish pipeline already
-  enforces it for image kits. A full-fidelity free session reel would hand
-  away exactly what the redaction withholds. If a free session reel is ever
-  wanted it requires a REDACTED CAPTURE (digits masked in the UI), which is a
-  real build — not a config entry. Do not propose it as "just another
-  variant".
+⚠ THE PRO-ONLY SESSION RULING IS SUPERSEDED (MKT-26, 2026-07-29) — BUT NOT
+REPEALED. Read the distinction before proposing anything against it:
+  The gap it protected is unchanged. The free group still gets the All-Day
+  drop in FULL and Midday/Evening WITHHELD — that gap is the Pro conversion
+  frame, and the publish pipeline still enforces it for image kits.
+  What changed is that MKT-13 named the precondition that would change the
+  answer — "a free session reel needs a REDACTED CAPTURE, not just another
+  variant entry" — and MKT-15 P2 built exactly that. So the free session reels
+  now ship REDACTED: every digit of the combination masked, on the grid and in
+  all six modals.
+  A FULL-FIDELITY FREE SESSION REEL REMAINS BARRED. That half of the ruling
+  never lifted, and the pipeline now refuses it structurally rather than by
+  convention (§2, the redaction tag).
+  WHAT THE FREE CUT KEEPS, deliberately: energy, ZK6 confidence, all four
+  signal percentages, heat badges, jurisdiction counts and the entire prose
+  structure. Only the values are withheld. The methodology is the gift; the
+  digits are the gap Pro closes.
 
 WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
   1. NATIVE 1080×1920 SOURCE ASSETS. Every delivered motion file to date is
      720×1280 24fps and gets upscaled + frame-duplicated. This is the single
      biggest quality gap left and the only remaining preflight warning class —
-     ALL 25 current warnings are this one issue, now across 3 intros, 7
-     motions and the built matrix. MKT-19 did not make the problem worse; it
-     made its size visible, since every rotation member is now checked.
+     ALL 49 current warnings are this one issue (plus the four rejected MKT-21
+     bodies carrying printed reasons), now across the intro pool, the motion
+     sets and the built matrix. MKT-19 did not make the problem worse; it made
+     its size visible, since every rotation member is now checked, and MKT-26
+     added four more by building two new endcards from the same 24fps sources.
   2. ✅ CLOSED 2026-07-29 (MKT-23). Midday, Evening and Verify now carry their
      own endcard closes; a Pro subscriber no longer reads the same words three
      times a day. Original entry kept below for the reasoning.
@@ -990,9 +1063,15 @@ WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
      ALWAYS." / "VERIFIED TOMORROW MORNING"), so a Pro subscriber reads the
      same close three times a day. Config strings over the existing motion
      file — zero generation, a text edit and a re-run.
-  3. Session carriers are currently pro-only and generic. Session-specific VO
+  3. ✅ CLOSED 2026-07-29 (MKT-23 + MKT-26). Both sessions carry their own
+     scripted VO, and the free tier now has its own pair on top — scripted
+     separately from Pro, because first-access framing is barred below Pro
+     (SOCIAL-13). Original entry:
+     Session carriers are currently pro-only and generic. Session-specific VO
      ("the midday board", "tonight's board") would read better than reusing
      All-Day framing.
+     ⏳ STILL OPEN in this family: `evening_pro_carrier` has no rotation set
+     (one part-1 file), and the verify carrier has none either. Budget-gated.
   4. A LOUDER OPEN ON ROTATION MEMBERS. Deadpan opens at −56.2 dB mean over
      its first 0.3s against the standard intro's −37.9. MKT-08's "audio up
      from frame 1" rule is about autoplay retention, and a near-silent open
@@ -1029,7 +1108,8 @@ WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
 WHAT IS DELIBERATELY NOT BUILT:
   - Auto-posting to Facebook (platform + brand-safety rule).
   - A public-page reel lane (page is brand-only, under probation).
-  - Free session reels (above).
+  - FULL-FIDELITY free session reels. The REDACTED ones ship as of MKT-26;
+    an unmasked one is still barred and the assembler refuses it (§2).
   - A stinger on the verify reel — its body is 6.3s, so intro + stinger would
     put more branding on screen than receipts. Flag exists, set to off.
 

@@ -25,7 +25,7 @@ import { mkdirSync, copyFileSync, rmSync, readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { REEL_SCOPES, parseScopeFlag, positionals } from './reel-scopes';
+import { REEL_SCOPES, parseScopeFlag, positionals, bodyFileFor } from './reel-scopes';
 import { provenanceArgs } from './reel-provenance';
 import { installRedaction, assertNoDigits } from './reel-redact';
 
@@ -42,6 +42,18 @@ const SCOPE = parseScopeFlag(process.argv);
  */
 const REDACT = process.argv.includes('--redact');
 const SPEC = REEL_SCOPES[SCOPE];
+// MKT-26: `--redact` on a scope that has no redacted variant would render a
+// masked capture nothing will ever read — and, before bodyFileFor keyed the
+// name on the capture mode, would have written it OVER the full-fidelity body
+// that scope's reels do read. Refuse rather than produce an orphan.
+if (REDACT && !(SPEC.redactedVariants ?? []).length) {
+  console.error(
+    `ABORT: --redact passed for scope "${SCOPE}", which declares no redacted variants.\n` +
+    `       Nothing would consume the masked capture. Add the variant to redactedVariants\n` +
+    `       in scripts/reel-scopes.ts first, or drop the flag.`,
+  );
+  process.exit(1);
+}
 const OUT_DIR = resolve(ARGS[0] ?? `assets/marketing/${SPEC.dir}`);
 const FPS = 60;
 const VIEW_H = 960;
@@ -148,7 +160,11 @@ async function openAlldayGrid(page: import('playwright').Page) {
   rmSync(WORK, { recursive: true, force: true });
   mkdirSync(WORK, { recursive: true });
   mkdirSync(OUT_DIR, { recursive: true });
-  const outMp4 = join(OUT_DIR, `ui_${SCOPE}_${stamp}.mp4`);
+  // MKT-26: a redacted capture is a DIFFERENT body, not the same body with a
+  // flag — pro and free session reels need both to exist for the same scope and
+  // date. `bodyFile` keeps the full-fidelity name exactly as it was, so nothing
+  // that already works changes name.
+  const outMp4 = join(OUT_DIR, bodyFileFor(SCOPE, REDACT, stamp));
   const gridStill = join(WORK, 'grid_still.png');
   const fname = (i: number) => join(WORK, `frame_${String(i).padStart(4, '0')}.png`);
 
@@ -245,7 +261,11 @@ async function openAlldayGrid(page: import('playwright').Page) {
     `-r ${FPS} -c:v libx264 -pix_fmt yuv420p -crf 18 ` +
     // MKT-18: record WHICH DATE these pixels are of, inside the file, so the
     // assembler can refuse to stamp a different one over them.
-    `${provenanceArgs(dateISO)} "${outMp4}"`,
+    // MKT-26: record WHETHER these pixels are masked, for the same reason —
+    // so the assembler can refuse to hand a full-fidelity body to a free
+    // session kind. The filename says it too; the tag is what makes the
+    // assertion about the capture rather than the path.
+    `${provenanceArgs(dateISO, REDACT)} "${outMp4}"`,
     { stdio: 'inherit' },
   );
   rmSync(WORK, { recursive: true, force: true });

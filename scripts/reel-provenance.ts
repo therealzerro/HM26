@@ -31,6 +31,25 @@ import { execSync } from 'node:child_process';
 export const DATE_TAG = 'hm_reel_date';
 
 /**
+ * MKT-26 — container tag recording whether the capture was REDACTED.
+ *
+ * Same argument as the date tag, applied to the other property of a body that
+ * cannot be recovered by looking at the filename. Until MKT-26 there was exactly
+ * one body per scope and both variants read it, so `--redact` could not be
+ * expressed in the pipeline at all: `reel:midday` rendered a full-fidelity board
+ * and the assembler handed it to every variant. Enabling the free session
+ * variant on top of that would have published the UNREDACTED board to the free
+ * group — while preflight reported 0 fail, because preflight validates assets,
+ * not what is inside the capture.
+ *
+ * A filename could carry this (`ui_midday_free_…`), and it does — but a filename
+ * is the one thing in this pipeline that has proven unreliable three times now
+ * (MKT-06's rename, MKT-16's `_pt_`, MKT-18's copied body). The tag is what makes
+ * the assertion about the PIXELS rather than the path.
+ */
+export const REDACT_TAG = 'hm_reel_redacted';
+
+/**
  * ffmpeg args that stamp `dateISO` into the output. Append before the path,
  * and do NOT pass a separate `-movflags` — this emits its own.
  *
@@ -44,8 +63,9 @@ export const DATE_TAG = 'hm_reel_date';
  * here because movflags is one combined option; splitting it across two flags
  * means the last one wins and the other is lost.
  */
-export function provenanceArgs(dateISO: string): string {
-  return `-movflags +faststart+use_metadata_tags -metadata ${DATE_TAG}="${dateISO}"`;
+export function provenanceArgs(dateISO: string, redacted = false): string {
+  return `-movflags +faststart+use_metadata_tags -metadata ${DATE_TAG}="${dateISO}"` +
+    ` -metadata ${REDACT_TAG}="${redacted ? '1' : '0'}"`;
 }
 
 /** The capture date recorded in `file`, or null if it carries no tag. */
@@ -89,4 +109,60 @@ export function assertBodyDate(file: string, stampISO: string, rerunCmd: string)
     );
     process.exit(1);
   }
+}
+
+/** '1' | '0' as recorded in `file`, or null if it carries no tag. */
+export function readRedacted(file: string): boolean | null {
+  try {
+    const out = execSync(
+      `ffprobe -v error -show_entries format_tags=${REDACT_TAG} -of default=nw=1:nk=1 "${file}"`,
+    ).toString().trim();
+    return out === '1' ? true : out === '0' ? false : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Assert a body's redaction state matches what the kind about to consume it
+ * requires.
+ *
+ * ⚠ THE MISSING-TAG CASE IS ASYMMETRIC ON PURPOSE, and that asymmetry is the
+ * whole safety property. MKT-18 could treat an untagged body as "warn and
+ * continue" because the worst case was an unverifiable date. Here the two
+ * directions are not comparable:
+ *
+ *   • expected NOT redacted, tag missing → fine. Every body rendered before
+ *     MKT-26 is a full-fidelity capture, so absence means exactly what the
+ *     caller expects. Degrades to the old behaviour, which is the correct floor.
+ *   • expected REDACTED, tag missing → FATAL. Absence means the body predates
+ *     the tag, and every such body is full-fidelity. Warning and continuing here
+ *     publishes the unredacted board to the free group, which is the failure
+ *     this lane exists to prevent. There is no reading of an untagged body that
+ *     is safe to treat as redacted.
+ *
+ * A tag that is present and WRONG is fatal in both directions — that is a body
+ * whose pixels disagree with the kind consuming them.
+ */
+export function assertBodyRedaction(file: string, expected: boolean, rerunCmd: string): void {
+  const actual = readRedacted(file);
+  const name = file.split('/').pop();
+  if (actual === expected) return;
+  if (actual === null && !expected) {
+    console.log(
+      `NOTE: ${name} carries no ${REDACT_TAG} tag (rendered before MKT-26) — assuming full-fidelity, ` +
+      `which is what every pre-MKT-26 body is. Re-render for the guarantee: ${rerunCmd}`,
+    );
+    return;
+  }
+  console.error(
+    actual === null
+      ? `ABORT: ${name} carries no ${REDACT_TAG} tag, but this kind requires a REDACTED body.\n` +
+        `       An untagged body predates MKT-26 and is full-fidelity — assembling it would publish the\n` +
+        `       board's digits to the free group. Render the redacted capture: ${rerunCmd}`
+      : `ABORT: ${name} is ${actual ? 'REDACTED' : 'FULL-FIDELITY'}, but this kind requires a ` +
+        `${expected ? 'REDACTED' : 'FULL-FIDELITY'} body.\n` +
+        `       Render the right capture: ${rerunCmd}`,
+  );
+  process.exit(1);
 }

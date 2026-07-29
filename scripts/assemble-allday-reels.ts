@@ -21,9 +21,12 @@
 // output (see scripts/reel-intro.ts).
 //
 // MKT-13: scope-parameterized. `--scope=midday|evening` assembles that session's
-// reels (pro only — see scripts/reel-scopes.ts for why sessions have no free
-// variant); with no flag this is the All-Day assembler exactly as before, down
-// to the output filenames.
+// reels; with no flag this is the All-Day assembler exactly as before, down to
+// the output filenames.
+//
+// MKT-26: sessions are no longer pro-only. Their FREE variant assembles from a
+// separate REDACTED body (`ui_<scope>_redacted_<stamp>.mp4`) — see resolveBody
+// below, and scripts/reel-scopes.ts for the ruling that replaced MKT-13's.
 //
 // Usage: tsx scripts/assemble-allday-reels.ts [YYYYMMDD] [--scope=…]  (default today ET, allday)
 import { execSync } from 'node:child_process';
@@ -35,8 +38,8 @@ import { MODAL_COUNT, GRID_DUR, MODAL_HOLD, modalWindow } from '../constants/ree
 import { probeStinger, stingerAdds } from './reel-stinger';
 import { bedWindow, BED_TARGET_RMS, BED_MIX_DB, MAX_BED_CORRECTION, type BedWindow } from './reel-bed';
 import { STINGERS, STINGER_DUR, INTRO_XFADE } from './stinger-config';
-import { REEL_SCOPES, parseScopeFlag, positionals, reelKind } from './reel-scopes';
-import { assertBodyDate } from './reel-provenance';
+import { REEL_SCOPES, parseScopeFlag, positionals, reelKind, bodyFile, bodyRedacted, type Variant } from './reel-scopes';
+import { assertBodyDate, assertBodyRedaction } from './reel-provenance';
 import { resolveEndcard } from './reel-endcard';
 import { CHIP_LABELS } from './intro-chip-config';
 
@@ -103,17 +106,50 @@ const FORCE_CARRIER = flagVal('carrier');
 if (FORCE_STING || FORCE_CARD || FORCE_CARRIER) {
   console.log(`NOTE: rotation override — stinger=${FORCE_STING ?? 'rotation'} endcard=${FORCE_CARD ?? 'rotation'} carrier=${FORCE_CARRIER ?? 'rotation'}`);
 }
-const body = join(REELS, `ui_${SCOPE}_${stamp}.mp4`);
-if (!existsSync(body)) {
-  console.error(`ABORT: ${body} not found — run the body render first (npm run reel:${SCOPE}).`);
-  process.exit(1);
+/**
+ * MKT-26 — THE BODY IS RESOLVED PER VARIANT, not once per scope.
+ *
+ * It used to be a single `ui_<scope>_<stamp>.mp4` read by every variant, which
+ * was correct while pro and free showed the same board. It stopped being correct
+ * the moment a free session reel had to show a REDACTED one: `reel:midday`
+ * renders a full-fidelity capture, and the old code would have handed that same
+ * file to `midday_free` and published the board's digits to the free group.
+ *
+ * ⚠ AND NOTHING WOULD HAVE CAUGHT IT. The carrier resolves, the endcard
+ * resolves, the stamp renders, the contact sheet generates, preflight reports
+ * 0 fail — because every one of those validates an ASSET, and the defect is
+ * inside the capture. It is the same shape as the six redaction failures this
+ * lane already paid for: a check adjacent to the real thing, reporting success.
+ *
+ * So the resolution moved into the loop and both properties of the body are now
+ * asserted against the kind consuming it — the date (MKT-18) and the redaction
+ * state (MKT-26), each read from the file's own container metadata.
+ */
+function resolveBody(v: Variant): { path: string; dur: number } {
+  const redacted = bodyRedacted(SCOPE, v);
+  const path = join(REELS, bodyFile(SCOPE, v, stamp));
+  const rerun = `npm run reel:${SCOPE}`;
+  if (!existsSync(path)) {
+    console.error(
+      `ABORT: ${path} not found — run the body render first (${rerun}).` +
+      (redacted
+        ? `\n       ${reelKind(SCOPE, v)} needs the REDACTED capture:\n` +
+          `       npx tsx scripts/render-allday-body.ts --scope=${SCOPE} --redact`
+        : ''),
+    );
+    process.exit(1);
+  }
+  // MKT-18: the existence check above is not enough — it validates a FILENAME.
+  // Assert the body's own recorded capture date matches the date about to be
+  // burned onto it, so a copied or renamed body cannot be published wearing
+  // someone else's day. See scripts/reel-provenance.ts for the incident.
+  assertBodyDate(path, isoDate, rerun);
+  // MKT-26: and the same for redaction — a filename can be renamed into place,
+  // the tag cannot.
+  assertBodyRedaction(path, redacted, rerun);
+  const dur = parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${path}"`).toString());
+  return { path, dur };
 }
-// MKT-18: the existence check above is not enough — it validates a FILENAME.
-// Assert the body's own recorded capture date matches the date about to be
-// burned onto it, so a copied or renamed body cannot be published wearing
-// someone else's day. See scripts/reel-provenance.ts for the incident.
-assertBodyDate(body, isoDate, `npm run reel:${SCOPE}`);
-const bodyDur = parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${body}"`).toString());
 const OPEN = 1.2, CARD = 6.5;          // endcard outro: formation + lockup resolve + hold
 // MKT-10: the hum-bed window is DERIVED from each endcard (scripts/reel-bed.ts)
 // rather than hardcoded. The previous constant was measured on the Pro endcard
@@ -141,6 +177,13 @@ sh(`npx tsx scripts/render-reel-stamp.ts drop ${stamp} ${SPEC.stampLabel} "${sta
 
 for (const v of SPEC.variants) {
   const kind = reelKind(SCOPE, v);
+  // MKT-26: per-variant body — see resolveBody. Pro and free session reels read
+  // DIFFERENT captures (full-fidelity vs redacted); All-Day's variants both
+  // resolve to the same unchanged file, so nothing about that path moves.
+  const { path: body, dur: bodyDur } = resolveBody(v);
+  if (bodyRedacted(SCOPE, v)) {
+    console.log(`NOTE(${v}): REDACTED body — ${body.split('/').pop()} (digits masked; tag verified).`);
+  }
   // MKT-17: resolved per kind and per DATE (not "today"), so re-running an old
   // stamp reproduces that day's intro exactly, the same contract the caption
   // and panel rotations already honour.

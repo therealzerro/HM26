@@ -8,6 +8,10 @@ motion, endcard motion, carrier opening), every reel carries an identity chip
 over the anchor's shoulder, and the verify reel opens on the board it posted
 before showing the ledger. Details in the sections below.
 
+FREE SESSION REELS LIVE (2026-07-29): reel:midday and reel:evening
+each now build TWO reels — Pro, plus a FREE one cut from a REDACTED
+capture where every digit is masked. Six reels a day, not four.
+
 SESSION WAVE LIVE: reel:midday + reel:evening join reel:allday;
 Anchor intro + branded stinger open every drop; verify 14.4s.
 NEW: the intro now ROTATES per reel kind, so slate reels are 33.83s
@@ -48,8 +52,11 @@ STEP 3 — TERMINAL B: build + publish the day's reels
                                 landed ones marked with what they
                                 drew — then cuts to the ledger)
     npm run reel:allday
-    npm run reel:midday      (optional — session wave, Pro only)
-    npm run reel:evening     (optional — session wave, Pro only)
+    npm run reel:midday      (optional — session wave; builds
+                                BOTH the Pro and the redacted Free
+                                reel, so it takes about twice as
+                                long as reel:allday)
+    npm run reel:evening     (optional — same, Evening board)
 
     Run in that order (receipts first, then today's drops).
     SUCCESS = each command ends with "✔ registered — visible in
@@ -105,18 +112,18 @@ SESSION WAVE — the Midday and Evening drops
 npm run reel:midday
 npm run reel:evening
 
-    ⚠ PRO ONLY, and the free variant is deliberately switched OFF.
-    A free-group session reel is registered in every other respect —
-    endcard copy, stinger copy, built matrix, and the database kind
-    constraint all admit midday_free / evening_free — but its CARRIER
-    does not exist yet, and a missing carrier aborts the run rather
-    than degrading. So `free` is off in scripts/reel-scopes.ts, which
-    is the single switch: deliver the two carrier VOs, add them to
-    carrier-config.ts, restore 'free', and the lane is live. They
-    must NOT reuse the pro carriers — first-access framing is barred
-    for the free tier.
-    reel:check FAILS loudly if that variant is ever switched on
-    before its carrier config exists, which is how it was found.
+    ⚠ EACH OF THESE NOW BUILDS TWO REELS — a Pro one and a FREE one
+    (MKT-26, live 2026-07-29). They are not the same video: the free
+    variant is assembled from a separate REDACTED capture in which
+    every digit on the board is masked.
+
+    So each command renders the body TWICE — once full-fidelity for
+    Pro, once with --redact for Free — and the assembler picks the
+    right one per variant. That is why the command is longer than
+    reel:allday's, where both variants legitimately share one body.
+
+    Runtime is therefore roughly double reel:allday's, since the
+    Playwright capture is the slow part and it happens twice.
 
     Same reel as All-Day, built from that SESSION's board instead:
     renders the Midday (or Evening) grid + six signal modals from
@@ -127,12 +134,22 @@ npm run reel:evening
     MIDDAY" / "· EVENING" so the three daily drops can never be
     confused with each other.
 
-    PRO ONLY — on purpose, not an oversight. The free group gets
-    the All-Day drop in full but Midday/Evening REDACTED (that's
-    the Pro conversion frame the publish pipeline already
-    enforces), so a full-fidelity free session reel would give
-    away exactly what the redaction withholds. A free session reel
-    would need a redacted CAPTURE, not just another variant.
+    WHAT THE FREE SESSION REEL SHOWS, and what it doesn't. The
+    free group gets the All-Day drop in full, but Midday/Evening
+    REDACTED — that's the Pro conversion frame the publish
+    pipeline already enforces for the image kits, and the reel now
+    matches it. Masked: the hero digits, the {•••} set chip on
+    both grid and modal, the position boxes, and the pair labels
+    AND their prose. Deliberately KEPT: energy, ZK6 confidence,
+    all four signal percentages, heat badges, jurisdiction counts
+    and the whole prose structure. The methodology is the gift;
+    the digits are the gap Pro closes.
+
+    ⚠ A FULL-FIDELITY FREE SESSION REEL IS STILL BARRED. What
+    changed is that the redacted capture now exists — not the
+    ruling. If you ever see a free session reel with digits on
+    screen, something is broken; the assembler is supposed to
+    refuse (see the redaction tag note under the render command).
 
     TIMING: these read "before the session runs", so midday is a
     morning post and evening an afternoon one. Nothing enforces
@@ -289,6 +306,23 @@ npm run render-allday-body -- --scope=midday --redact
     leak costs nothing rather than 960 rendered frames.
     ⚠ The app is NOT modified — this is DOM injection at capture
     time, so there is no code path a subscriber can reach.
+
+    You rarely need to run this by hand — reel:midday and
+    reel:evening already run it as their second step.
+
+    ⚠ IT WRITES A DIFFERENT FILE, and that matters. Full-fidelity
+    captures stay ui_<scope>_<stamp>.mp4 (unchanged, so nothing
+    historical moves); a redacted one is ui_<scope>_redacted_<stamp>
+    .mp4. Both exist for the same scope and date because the Pro and
+    Free reels of that session need different bodies.
+
+    The file also carries an hm_reel_redacted tag inside its own
+    container metadata, and the assembler ASSERTS it against the kind
+    consuming it (same mechanism as the MKT-18 date tag). A body that
+    is missing the tag is treated as full-fidelity, so it can never be
+    passed off as redacted by renaming it — which is exactly how a
+    stray copy of the Pro body got caught wearing a "_redacted_" name
+    on 2026-07-29.
 
     Overrides the date rotation for one assembly so a specific
     combination can be watched end to end. The motion flags take a

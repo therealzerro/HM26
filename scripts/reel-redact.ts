@@ -1,6 +1,27 @@
 // MKT-15 Phase 2 (redaction half) — the free-group session capture.
 //
-// ✅ WORKING as of attempt 4. Six surfaces masked, verified BY EYE against a
+// ⚠⚠ DO NOT USE — attempt 5 (an END-TO-END capture) LEAKS THE GRID, and the
+// assertion passed. Verified on a real `--redact --scope=midday` run: all six
+// MODALS masked correctly, and all six GRID cards showed their combination
+// (`4 7 1`, `5 3 8`, `7 5 4`, …) while `{•••}` beside them was masked.
+//
+// TWO CAUSES, both the same shape as attempts 1-4:
+//   a) the grid renders the combo SPACE-separated ("4 7 1"); the separated-run
+//      rule only accepts `-`, `·` or `.`, so it never matched. The MODAL uses
+//      hyphens ("4 - 7 - 1"), which is why the modal masked and the grid did not.
+//   b) the grid card carries no "Best Straight" leaf, so the card walk-up finds
+//      nothing THERE and `inCard()` is false, leaving the single-digit rule off.
+//
+// AND THE SELF-CHECK DID NOT SAVE IT. `__hmCards()` is global, so it found the
+// modal's cards and reported a non-zero count — the "selector found something"
+// guard passed while finding cards in the WRONG PLACE. A count is not proof of
+// coverage; the guard must assert cards were found in the region being captured.
+//
+// NEXT: (1) accept whitespace as a digit separator, (2) find a grid-card marker
+// that actually exists on the grid, (3) make the self-check per-region.
+// Verified safe: the leaking body was deleted and the pro body restored intact.
+//
+// ✅ Previously verified working IN ISOLATION as of attempt 4 — Six surfaces masked, verified BY EYE against a
 // live grid and modal, with the assertion agreeing for the first time:
 //   hero row `4 - 7 - 1`  ·  bare 3-digit  ·  brace set `{1,4,7}`
 //   position boxes `4 P1`  ·  pair labels `Front pair 47`  ·  pair PROSE

@@ -379,6 +379,8 @@ Both trimmed intros verified through the **1:1 centre crop** (`crop=1080:1080:0:
 
 ### MKT-16 — Public asset integration + redaction overlay 🔍 PHASE 0 REPORTED · BUILD HELD
 
+**2026-07-29 — Phase 1 is now blocked ONLY on the body, and its two held items are resolved.** MKT-16's Phase 0 was held on the intro trim point and on whether to build per-kind intro support; **MKT-17 did both** (trimmed to 6.0s, per-kind resolution shipped, `allday_public` pre-registered in `FIXED_INTRO` — the 1 of 6). Registration and assembly land as **MKT-16 Phase 1**, in the same change as the capture mode, whose discovery is recorded under **[[MKT-15]] Phase 2 execution** — see that entry for the six Phase 0 findings, in particular the `PickCard` grid gap, which changes the scope of the override.
+
 **Work order:** operator-directed, discovery-first. Marketing pipeline only. **ID verified free** (`grep MKT-16` → 0 hits; MKT-01–13 shipped, MKT-14 parked, MKT-15 Phase 1 shipped). Depends on MKT-15 Phase 2 for the masked capture; Phase 1 config is independent.
 
 **Build held at the gate: four delivery findings, two of which change the plan.** One fixed, one resolved in our favour, two need a ruling.
@@ -496,6 +498,39 @@ Rows 9–10 are **config entries against the existing motion files — zero new 
 **One free win:** `session-label` is coded `blocking: /\d{3}/.test(text)`, so the digit mask alone downgrades rows 8–10 from blocking to advisory. They still want fixing per the brief's "prefer omitting", but they do not gate the phase once digits are gone.
 
 **ALSO UNLOCKS the free-group Midday/Evening reel** (handoff §9, [[MKT-13]] recorded the same dependency) — one build, two payoffs.
+
+---
+
+#### PHASE 2 EXECUTION — Phase 0 discovery 2026-07-29 🔍 REPORTED · GATE HELD
+
+**ID CONFIRMED, no new number.** The work order recommended landing as **MKT-15 Phase 2 execution + MKT-16 Phase 1**, cross-referenced, rather than a fresh MKT-22 that would orphan both. Verified rather than agreed: MKT-15's own Phase 0 states *"masking digits is NOT sufficient … a public cut requires a relabelled capture mode"* with an operator gate ruling accepting the vocabulary list as Phase 2's acceptance criteria; MKT-16 states *"Depends on MKT-15 Phase 2 for the masked capture; Phase 1 config is independent."* The split is exactly as proposed. **Also: MKT-16's two held items are now resolved** — it was held on the intro trim point and on whether to build per-kind intro support, and MKT-17 did both (trimmed to 6.0s, per-kind resolution shipped, `allday_public` pre-registered). MKT-16 Phase 1 is blocked only on the body.
+
+**Item 1 — the override channel already exists and is proven.** `render-allday-body.ts` configures the app *before load* via `page.addInitScript` + `localStorage` (it already sets `user` role `premium`, `hm:theme-mode` dark, `onboarding_complete`). A capture-mode flag is the same channel — set only by the renderer, never by a real client — so it satisfies the subscriber-surfaces-hands-off rule by construction: the consumer UI is unchanged for every actual user. No existing capture flag survives (MKT-11's panel gate was removed), so the flag itself is new, but the mechanism is not.
+
+**⚠ Item 2 — BLOCKING FINDING. The eight slots cover the MODAL; the first 4.0s of every body is the GRID.** `render-allday-body.ts`'s own spec: `f000-f239  0.0-4.0s  full 2x3 slate grid`. That renders **`PickCard.tsx`**, a different component from `PickDetailModal.tsx`, and the copy brief's implementation note says explicitly that *"the capture-mode override covers `PickDetailModal` only."* `PickCard` carries **parallel copy in different casing plus its own digits**:
+
+| grid (`PickCard`) | modal (`PickDetailModal`) | note |
+|---|---|---|
+| `⚡ Best Straight` (`:316`) | `⚡ BEST STRAIGHT` (`:641`) | **Title Case** — a case-sensitive override misses it |
+| `Box: {comboSet}` (`:333`) | `BOX SET` (`:663`) | a *different string*, not a casing variant |
+| combo digits (`:317`) + `{comboSet}` | digits at `:648`, `:651-653`, `:664`, `:480`, `:495` | six cards' worth on the grid |
+| rendered timestamp (`:339`) | timestamp strip | not in the eight-slot set at all |
+
+As scoped, **the opening 4.0s of every public reel would carry six sets of real digits and two forbidden terms**. The override must cover `PickCard` as well, and the slot list needs a second column for grid casing. This is the single largest gap found and it is a scoping gap, not a defect.
+
+**Item 3 — the upstream-placeholder pattern ALREADY EXISTS in the codebase, and is exactly right.** `PickCard.tsx:222-231` — the Oracle+ locked card — takes an **early return** and renders `•  •  •` *instead of* the combo. The digit expression is never evaluated, so no digit is drawn to be found. That is precisely the property §10 requires and the reason this path is provable where MKT-21's was not: it is not a mask composited over a rendered digit, it is a branch taken before the digit exists. **Reusable as the model.** Digit surfaces the override must cover, enumerated: `PickDetailModal` `:480`, `:495`, `:648`, `:651-653`, `:664`, plus the share/copy templates at `:283-284` and the pair strings at `:303-305` (PAIRS tab); and `PickCard`'s combo and `Box:` line.
+
+**Item 4 — the stamp needs NO new code.** `render-reel-stamp.ts` already accepts `scope "-"` to omit the tag — *"the verify reel is cross-scope"* — and builds its date line as `[DAY · MON D]` concatenated with `scopeArg === '-' ? [] : [scope]`. Slot 7 is therefore a **call-site argument**, not a renderer change, and no session word can survive because the tag is simply absent from the array. The brief's own note that "omission has precedent" is correct and the precedent is executable today.
+
+**Item 5 — panels: all six pass Q1, five pass Q2 cleanly, ONE needs an operator ruling.** Reviewed by eye at tier 1 (copy is baked pixels; `panel-config.ts` stores only clearance dates and hashes, so there is nothing to read):
+
+- `panel_brand` ✅✅ · `panel_signals` ✅✅ (`FOUR SIGNALS. ONE VERDICT.` / `FREQ · MOMO · PATTERN · CONSIST`) · `panel_anchor` ✅✅ · `panel_zk30` ✅✅
+- `panel_coverage` ✅✅ — `EVERY DRAW IN THE COUNTRY` / `39 TRACKED FEEDS · 40+ STATES & PROVINCES`. Numbers are present but **none is 3-digit**, so Q1 passes as coded; `DRAW` is not on the forbidden list and is used in the sanctioned observed-outcome sense.
+- ⚠ **`panel_app`** — `THE APP IS COMING` / `APP STORE · **GOOGLE PLAY**`. Q1 ✅. Q2 renders the token **PLAY** as part of a proper noun. A strict token lint fails it; a human reads a store name; the copy brief notes the classifier "reads the whole pattern rather than isolated words", which argues it passes. **Reported, not decided.** Compounding it: this panel is *already mid-replacement* under MKT-17 (approved copy `SIX SIGNALS. EVERY MORNING.` / `RANKED · EXPLAINED · VERIFIED`, pending regenerated artwork), so its public-context suitability is a moving target regardless of the ruling.
+
+**Item 6 — cadence cost: the difference is NOT config, it is CARRIERS.** One kind vs three is the same six registration points either way, ×3 — trivial. The real asymmetry: **only ONE public carrier exists.** `public_carrier.mp4` + `_pt2` are on disk; there is no `midday_public_carrier` or `evening_public_carrier`. So three public kinds would either need **two further VO deliveries**, or all three would share one carrier — identical narration on three reels a day across four platforms that run near-duplicate detection, which is the precise failure the copy brief's slot-8 note exists to avoid. **This supports the order's own recommendation**: register `allday_public` first; sessions become a carrier-delivery question, not a registration one.
+
+**GATE: held.** Nothing registered, no migration, no capture-mode code. The two items needing a ruling before Phase 1: the `PickCard` scope widening (item 2) and `panel_app`'s `GOOGLE PLAY` token (item 5).
 
 ---
 

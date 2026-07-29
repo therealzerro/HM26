@@ -263,6 +263,19 @@ const UNREFERENCED_OK: Record<string, string> = {
   'public_carrier.mp4': 'MKT-16 public cut — delivered, kind not registered yet (Phase 1 pending).',
   'public_carrier_pt2.mp4': 'MKT-16 public cut — part 2 of the above.',
   'watermark_source.mp4': 'MKT-14 source, parked with the lane.',
+  // MKT-21 — the generated-body class, assessed and REJECTED 2026-07-29. Listed
+  // so four warnings read as a decision rather than a backlog, the same way
+  // anchor_intro_powerup does. Deliberately NOT deleted: they are the evidence
+  // for the ruling, and a future proposal to retry generated bodies should be
+  // able to look at what actually came back.
+  'public_body_pt1.mp4':
+    'MKT-21 REJECTED — seven-segment readout legible 6.9-8.0s (reads 8.18), plus SYSTEM CONFIDENCE percentages and gibberish labels (NOWQ, CONSEET). Fails the any-legible-numeral standard. NB it would likely PASS the coded Q1/Q2 — 8.18 is not a 3-digit number — which is why the gate is not the control here.',
+  'public_body_pt2.mp4':
+    'MKT-21 REJECTED — first 4s render an investment-return dashboard (True Nots 5064, $61,1.82, +12.79% in gain-green), the four blocking terms (STRAIGHT, BOX, PLAY, digit rows) and a baked date (Jul 29, 2026 at 4:48 AM). Fails Q1 and Q2. Only ~5.0-10.0s of it is clean.',
+  'group_body_pt1.mp4':
+    'MKT-21 REJECTED — fabricated digits that DRIFT between frames (BOX SET {1,7,8}->{1,8,8}->{2,9,9}), STRAIGHT and BOX on screen. Named "group" but intended for CROSS-POST, where both Two-Question answers must be NO; fails both.',
+  'group_body_pt2.mp4':
+    'MKT-21 REJECTED — byte-identical to public_body_pt2 (placeholder made when generation budget ran out), so it inherits every failure above.',
 };
 
 /** Preserved generation masters and pre-swap backups — structurally unread. */

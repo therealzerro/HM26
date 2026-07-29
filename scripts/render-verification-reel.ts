@@ -5,13 +5,17 @@
 // day group. Deterministic frame capture (MKT-01 pattern): eased scroll
 // positions computed per frame, no wall-clock recording.
 //
-// Segment beat map (MKT-25 — restaged; total frame count UNCHANGED at 378):
-//   f000-f059  0.0-1.0s  static — summary stats band + yesterday header visible
-//   f060-f119  1.0-2.0s  eased scroll to the first featured row
-//   f120-f199  2.0-3.3s  HOLD on it, with a slow push-in
-//   f200-f239  3.3-4.0s  ease out and travel to the second featured row
-//   f240-f319  4.0-5.3s  HOLD on it, with a slow push-in
-//   f320-f377  5.3-6.3s  ease back out and settle
+// Segment beat map (MKT-25 option 2 — total frame count UNCHANGED at 378):
+//   f000-f149  0.0-2.5s  THE BOARD WE POSTED — yesterday's six picks as
+//                        published, landed ones marked with their result.
+//                        Composited from slate_snapshots (see
+//                        render-verify-slate.ts), because the app cannot show
+//                        a past slate.
+//   f150-f209  2.5-3.5s  ledger: static, then travel to the first featured row
+//   f210-f269  3.5-4.5s  HOLD with a slow push-in
+//   f270-f299  4.5-5.0s  release and travel to the second featured row
+//   f300-f359  5.0-6.0s  HOLD with a slow push-in
+//   f360-f377  6.0-6.3s  ease back out and settle
 //
 // WHY THIS REPLACED A SINGLE 4.3s SCROLL (operator: "the verify reel is boring").
 // A continuous crawl gives the eye nothing to land on, and every row passes at
@@ -45,6 +49,7 @@ import { execSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { provenanceArgs } from './reel-provenance';
+import { renderSlateFrames } from './render-verify-slate';
 
 const BASE = 'http://localhost:8081';
 const OUT_DIR = resolve(process.argv[2] ?? 'assets/marketing/verify_reels');
@@ -52,7 +57,7 @@ const FPS = 60;
 const VIEW_H = 960;                     // CSS px @2 DPR => 1920
 const SCROLL_FRAMES = 258;              // 4.3s (legacy single-scroll path)
 /** MKT-25 beat boundaries, in frames. Sum must stay 378. */
-const B = { hold0: 60, travel1: 120, hold1: 200, travel2: 240, hold2: 320, end: 378 };
+const B = { slate: 150, travelA: 210, holdA: 270, travelB: 300, holdB: 360, end: 378 };
 /** Push-in at the peak of a hold. Modest on purpose — this is a ledger, not a
  *  reveal, and a hard zoom on a receipts reel reads as salesmanship. */
 const ZOOM_MAX = 1.28;
@@ -261,38 +266,38 @@ function yesterdayET(): string {
       await page.screenshot({ path: fname(f) });
     };
 
-    // f000-f059 — static at anchor, no zoom. The stats band is the credibility
-    // frame; it should not be moving or magnified.
-    await setScroll(anchor);
-    await setZoom(1, 0);
-    await page.waitForTimeout(400);
-    await page.screenshot({ path: fname(0) });
-    for (let f = 1; f < B.hold0; f++) copyFileSync(fname(0), fname(f));
+    // f000-f149 — THE BOARD WE POSTED. Composited from the snapshot, because
+    // the app cannot display a past slate. This is the half the reel was
+    // missing: without it a viewer sees outcomes with no evidence they were
+    // called in advance, which is the only thing that makes a record mean
+    // anything.
+    const landed = await renderSlateFrames(WORK, fname, 0, B.slate, dateISO);
+    console.log(`slate segment: ${landed} of 6 landed — rendered f000-f${B.slate - 1}`);
 
-    // f060-f119 — ease from the anchor to row A.
-    for (let f = B.hold0; f < B.travel1; f++) {
-      const t = easeInOut((f - B.hold0) / (B.travel1 - B.hold0 - 1));
+    // Ledger from here. Park on row A first so the cut out of the board lands
+    // on the evidence rather than on the top of the list.
+    for (let f = B.slate; f < B.travelA; f++) {
+      const t = easeInOut((f - B.slate) / (B.travelA - B.slate - 1));
       await shoot(f, anchor + (parkA - anchor) * t, 1, originFor(rowA, parkA));
     }
-    // f120-f199 — hold on row A, easing the push-in across the whole hold.
-    for (let f = B.travel1; f < B.hold1; f++) {
-      const t = easeInOut((f - B.travel1) / (B.hold1 - B.travel1 - 1));
+    // f210-f269 — hold on row A with a push-in.
+    for (let f = B.travelA; f < B.holdA; f++) {
+      const t = easeInOut((f - B.travelA) / (B.holdA - B.travelA - 1));
       await shoot(f, parkA, 1 + (ZOOM_MAX - 1) * t, originFor(rowA, parkA));
     }
-    // f200-f239 — release the zoom and travel to row B.
-    for (let f = B.hold1; f < B.travel2; f++) {
-      const t = easeInOut((f - B.hold1) / (B.travel2 - B.hold1 - 1));
+    // f270-f299 — release and travel to row B.
+    for (let f = B.holdA; f < B.travelB; f++) {
+      const t = easeInOut((f - B.holdA) / (B.travelB - B.holdA - 1));
       await shoot(f, parkA + (parkB - parkA) * t, ZOOM_MAX + (1 - ZOOM_MAX) * t, originFor(rowA, parkA));
     }
-    // f240-f319 — hold on row B with its own push-in.
-    for (let f = B.travel2; f < B.hold2; f++) {
-      const t = easeInOut((f - B.travel2) / (B.hold2 - B.travel2 - 1));
+    // f300-f359 — hold on row B.
+    for (let f = B.travelB; f < B.holdB; f++) {
+      const t = easeInOut((f - B.travelB) / (B.holdB - B.travelB - 1));
       await shoot(f, parkB, 1 + (ZOOM_MAX - 1) * t, originFor(rowB, parkB));
     }
-    // f320-f377 — ease back out and settle, so the cut to the endcard lands on
-    // a still, unmagnified frame rather than mid-move.
-    for (let f = B.hold2; f < B.end; f++) {
-      const t = easeInOut((f - B.hold2) / (B.end - B.hold2 - 1));
+    // f360-f377 — settle, so the cut to the endcard lands on a still frame.
+    for (let f = B.holdB; f < B.end; f++) {
+      const t = easeInOut((f - B.holdB) / (B.end - B.holdB - 1));
       await shoot(f, parkB, ZOOM_MAX + (1 - ZOOM_MAX) * t, originFor(rowB, parkB));
     }
     await setZoom(1, 0);

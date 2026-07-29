@@ -11,6 +11,41 @@
 
 ---
 
+### MKT-25 — Verify reel restaging: show the "before", not just the "after" 🔍 SCOPED · NOT STARTED
+
+**ID verified free** (`grep MKT-25` → 0 hits). Marketing pipeline only — renderer and assembler. Operator-raised: *"the verify reel is boring and should at least include some zooms of yesterday's slates with matching stamps."*
+
+**THE REAL PROBLEM IS NOT PACE, IT IS THAT THE REEL SHOWS HALF ITS OWN ARGUMENT.** The body is 6.3s of `1.0s static → one 4.3s eased scroll → 1.0s static` — a single continuous ledger crawl, which is monotonous. But the sharper issue is editorial: the brand's entire claim, and literally MKT-24's caption template 7, is *"Analysis published before. Receipts published after. That order is the only thing that makes a record worth reading."* **The receipts reel currently shows only the "after."** A viewer sees outcomes with no evidence they were called in advance, which is the one thing that makes a track record mean anything.
+
+**⚠ BLOCKER — THE APP CANNOT DISPLAY A PAST SLATE.** The data exists: `slate_snapshots` holds 2026-07-28 for all three scopes, 6 picks each, `admin_published`. But `useSnapshot()` returns the *current* slate and `app/(tabs)/explore.tsx` queries `slate_date=eq.${todayStr}` — hardcoded to today. There is no historical view, so the renderer has nothing to point a camera at. **Capturing "yesterday's slate" from the live app is not possible without a change to a consumer data path**, which is the thing this lane has consistently kept its hands off.
+
+**⚠ SECOND CONSTRAINT, AND IT IS TIGHTER THAN IT LOOKS — THE BODY CAN ONLY GROW 0.81s.** `uiDur` is measured from the body rather than hardcoded, so the assembler adapts — but the carrier does not. `carrierNeed = uiDur + 2.9`, against `verif_carrier` at 10.005s:
+
+| body | carrier need | |
+|---|---|---|
+| 6.3s (today) | 9.20s | |
+| 6.8s | 9.70s | |
+| **7.105s** | **10.005s** | **the ceiling** |
+| 7.2s | 10.10s | ⛔ carrier runs out |
+
+**So restaging must happen INSIDE ~6.3–7.1s.** Slate zooms cannot be appended; they must displace scroll time. Going beyond 7.1s requires a new, longer verify carrier — which is a content deliverable, not a code change.
+
+**THIRD CONSTRAINT — THE BEAT MAP MUST BE DATA-ADAPTIVE, unlike every other reel.** Slate reels always have exactly 6 picks. Verify does not: 2026-07-28 produced **11 matched rows, distributed 6 all-day / 4 evening / 1 midday, of which only 2 were straight**. A beat map that holds on "the three best matches" is fine on an 11-row day and impossible on a 2-row one, and the reel already aborts on zero-match days by design. Any restaging has to degrade gracefully across that range.
+
+**THREE PATHS, in cost order.**
+
+1. **RESTAGE WHAT IS ALREADY THERE — recommended first.** The ledger rows already carry both halves: `681 · BOX All Day · Drew 186 in CT evening` is the call *and* the outcome on one line. Replace the single 4.3s scroll with hold-and-zoom beats on two or three matched rows — straights first, since they are the strongest evidence and 7/28 had exactly 2. Renderer-only, no new data, no consumer change, fits inside the 0.81s headroom. Directly answers "boring" by giving the eye something to land on.
+2. **COMPOSE SLATE ZOOMS FROM DATA.** Draw yesterday's six picks from `slate_snapshots` and their match status from `adaptive_tracking`, styled to match the app, as a composited segment. Sidesteps the blocker entirely and delivers the true before/after. New render code, and it introduces a second surface that must stay visually in step with the app — a maintenance cost the pipeline does not currently carry anywhere.
+3. **RENDER-ONLY DATE OVERRIDE.** The renderer already configures the app pre-load via `localStorage` (role, theme, onboarding), so a capture-context slate-date flag would let it show a past board without shipping a historical browser to users. Same channel as MKT-15's relabelled capture — **but that one only swaps strings, whereas this changes a data path on a subscriber surface.** Highest risk of the three, and it would want the same treatment MKT-15 Phase 2 is getting.
+
+**RECOMMENDATION: (1), then (2) if it still reads flat.** (1) is renderer-only, fits the headroom, and fixes the stated complaint. (2) is the one that actually delivers the before/after thesis, and is worth doing properly rather than cheaply. **(3) should be avoided unless both fail** — a consumer data path is the boundary this lane has held throughout.
+
+**Open questions before Phase 0.** Whether "matching stamps" means the MKT-07 slate stamp carrying yesterday's date (which it already can — the stamp is composited at assembly with any date) or something new on the zoom itself. Whether a longer verify carrier is wanted, since that is what unlocks anything beyond 7.1s. And what the floor is on a thin day — one matched row with a hold on it may read better than a scroll, or may read as padding.
+
+**NOT STARTED.** Scoped only; no renderer changes, no assembler changes.
+
+---
+
 ### MKT-24 — Public captions + platform transform content 🔍 PHASE 1 REPORTED · PHASE 2 HELD
 
 **ID verified free** (`grep MKT-24` → 0 hits; MKT-22 is the intro chip, MKT-23 the asset wave). Caption registry and platform transforms only — no assembler changes, no migrations.

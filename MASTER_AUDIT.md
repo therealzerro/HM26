@@ -11,7 +11,23 @@
 
 ---
 
-## ⏭️ RESUME HERE — session close 2026-07-29 (late)
+## ⏭️ RESUME HERE — session close 2026-07-29 (latest — content-agent ruling pass)
+
+**Three lanes landed; ONE PUBLISH IS STILL HELD and it is not held on code.**
+
+**✅ [[MKT-26]] code half — DONE.** `ReelKind` widened with `midday_free`/`evening_free` (the DB CHECK already accepted both, so the union was the only thing barring registration); `KIND_UI` entries added with `defaultTarget: 'free'`; the stale "session kinds are pro-only" comments corrected in both files. New `publish-reels --variant=pro|free` defuses the upsert trap: `on_conflict=(reel_date,kind)` deliberately resets `status`/`posted_at`, which is correct per kind and destructive across siblings — publishing the free session reel after the pro one shipped would have wiped the pro row's posted stamp. A filter is a property of the invocation; a `redactedVariants` re-flip is a step someone has to remember.
+
+**✅ RECONSTRUCTION CHECK — PASSED on pixels, all 14 surfaces.** The gate was *not* "are the hero digits masked" but "is the COMBINATION RECOVERABLE by any route". Inspected the grid + all six modals for BOTH scopes at settling frames, against the full-fidelity capture as ground truth (midday pick #1 = `4-7-1`, exposed seven ways unredacted). Every route closed: box set → `{•••}`, position boxes → `•`, hero row → dots, `Front/Back/Split pair NN` → `••`, the pair PROSE under each row → `•• surging…`, resolution trail carries jurisdiction + `1×` counts only. **No arithmetic path either** — the pairs are the only two-digit route and all three are masked. Publish is cleared on this axis. **Two real findings, neither a leak — see MKT-26 addendum.**
+
+**⚠ [[MKT-24]] TELEGRAM WAS A LIVE VIOLATION — now closed.** Telegram is tier 4 (the Pro room) and `platformCaption` shaped only length and hashtags, so captions reached it verbatim. `ReelsView` feeds the platform rows the **live editor caption**, which for every free-defaulting kind is `reel.caption` — the FREE draft. Fixed in two parts, deliberately split: a **transform** that drops pricing / upgrade-verb / pinned-post / CTA sentences whole (real performance data survives verbatim — asserted against the live captions), and an **audience gate** that REFUSES free-written drafts on tier-4 platforms. The gate carries the class the transform cannot: implicit Pro-as-destination framing ("the digits are the Pro side of the line") has no lexical signature that does not also mangle sanctioned "Pro first look" copy.
+
+**✅ [[MKT-27]] verify reel — readable holds SHIPPED.** Body 6.3s → **8.6-14.0s**, derived from the row selection. STRAIGHT rows hold 2.0s, box rows 1.6s, up to three. **Three defects found by RENDERING, not by reading** — centre-origin zoom clipped the combo digits off the left edge, the pan logged `0→0px` (2.0s frozen behind a summary hold at the same scroll), and the summary push ended zoomed into a beat that opened unzoomed. **Stinger stays `enabled:false`** — the ratio condition is cleared on paper (64% branding → 44-56%) but `stinger_verify.mp4` does not exist and `probeStinger` degrades *silently* on a missing build, so flipping first ships a stinger-less reel that reports success. Two steps left: `npm run stinger:build verify`, then the flag.
+
+**⚠ CARRIER GAP, MEASURED: 6.49s.** On a 13.60s body the audio ends at 15.24s of a 21.73s reel. `apad` now keeps the audio STREAM as long as the container (it was ~6.5s short — legal mp4, but a platform transcoder is entitled to mishandle it). **The gap is independent of the stinger** (`carrierNeed` derives from `uiDur`, not `openDur`). A `verif_carrier_pt2` of **~7.0s** closes it on every day including the 14.0s worst case; until one exists the silence under the closing holds is deliberate.
+
+---
+
+## ⏭️ Previous — session close 2026-07-29 (late)
 
 **✅ [[MKT-26]] SHIPPED — the free-group session reels are LIVE end to end.** `reel:midday` and `reel:evening` each now build TWO reels: the Pro one, plus a FREE one cut from a separate REDACTED capture. **Six reels a day, not four.** Full entry below; the short version is that the handover's three mechanical steps were all real, and a fourth thing was wrong that the handover did not know about.
 
@@ -140,6 +156,16 @@ Joined durations identical at 20.360s, so the MKT-20 invariant holds. The new pa
 **REMAINING PHASE 0 — ✅ CLOSED 2026-07-29.** Caption registry defect CONFIRMED as suspected (both kinds had zero entries) and fixed; carrier margins measured (above); scope+tier binding verified; copy shipped. Detail in the SHIPPED section immediately below.
 
 ---
+
+### MKT-26 ADDENDUM (2026-07-29, later) — reconstruction check PASSED; two findings that are NOT leaks
+
+**Method.** 7 settling frames per scope (grid + six modal holds — each modal hold is a single frozen screenshot repeated, so one frame per hold is the whole hold), both scopes, compared against the full-fidelity capture of the same date. Ground truth: midday pick #1 is `4-7-1`, and the unredacted modal exposes it **seven ways** — hero row, three position boxes, `BOX SET {1,4,7}`, `Front pair 47`, `Back pair 71`, `Split pair 41`, and the prose under each pair row repeating the value. All seven masked in the redacted capture, on every card, on both scopes.
+
+**Why the pair route was the one worth checking.** `assertNoDigits` flags runs of EXACTLY three digits and counts single-digit sibling groups. **A two-digit pair trips neither.** So the pairs — the route that reassembles the combination exactly (`Front 09` + `Back 94` → `0-9-4`) — are protected by the MASK's enumerated spellings alone, with no assert backstop. They held here because each pair label and each prose sentence is its own DOM leaf, so the non-global `replace` in rule 7 never has to match twice in one node. **That is a property of the current markup, not of the rule.** If those three pairs are ever rendered into one leaf, rule 7 masks the first and leaves two, and nothing downstream will notice.
+
+**FINDING 1 — over-mask (cosmetic, live).** On the midday GRID, pick #5's CO value renders as `•••`. It is `100` — a bare three-digit leaf, so mask rule 1 eats it. The gate record lists the four signal percentages among the things the free cut DELIBERATELY KEEPS, so this removes a methodology value that was signed off as shown. It survives in the MODAL because there the value is a text node in an element that has element children, and `maskLeaf` only runs on childless elements. **That same asymmetry is a blind spot worth naming:** any three-digit run rendered as mixed content evades both the mask AND the assert (demonstrated benignly by `100%` surviving in every modal). No combination is currently rendered that way.
+
+**FINDING 2 — the free session reels ship with NO intro identity chip.** `CHIP_LABELS` (scripts/intro-chip-config.ts) has `allday_free`, `midday_pro`, `evening_pro` — but no `midday_free`/`evening_free`. The assembler's `intro && CHIP_LABELS[kind]` guard silently yields `null`, so `_chip_midday_pro.png` exists on disk and `_chip_midday_free.png` does not. Verified in the finals: the pro cut carries the "MIDDAY" chip at 1.5s, the free cut carries nothing. Not a leak — a missing brand element, and **the same shape as the KIND_UI gap**: a per-kind registry that the MKT-26 enablement did not widen. Two config lines, no assets.
 
 ### MKT-26 — SHIPPED 2026-07-29. Free-group session reels live end to end.
 

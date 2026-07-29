@@ -44,6 +44,10 @@ WHAT CHANGED IN v1.7 (MKT-19 — the brand motion is now a SET)
   F. NEW DELIVERY SPEC FOR MOTIONS in §7, and a review command in
      REEL_COMMANDS.txt (`--stinger-motion=` / `--endcard-motion=`) for watching
      one specific combination end to end.
+  G. TWO NEW INTROS TRIMMED AND ADDED — the rotation is 4, not 2 (standard,
+     deadpan, arrival, monitors). Both arrived at 10.005s as always. Note
+     their trims DIFFER (IN 2.0 and IN 0.0): the trim rule is a rule about
+     the footage, not a fixed window. §2, §7.
 
 WHAT CHANGED IN v1.6 (six corrections; v1.5 is wrong on all six)
   1. THE MULTI-PART CARRIER CEILING IN v1.5 IS ARITHMETICALLY WRONG. It said
@@ -142,7 +146,9 @@ every timestamp after the intro shifts 0.4s later and the reel is 34.20s.
                SHARED FILE. v1.5 said "anchor_intro.mp4, shared by every reel
                kind". It is now resolved PER KIND:
                  slate reels  — ROTATE over a set, currently [standard,
-                                deadpan], picked by a date-derived offset.
+                                deadpan, arrival, monitors], picked by a
+                                date-derived offset. (arrival + monitors
+                                added 2026-07-29.)
                                 Both pro and free draw the SAME intro on a
                                 given day (different rooms, so no spacing is
                                 needed). Re-running a past date reproduces
@@ -419,6 +425,28 @@ per-day by hand, not AI-freestyled.
                                   (−56.2 dB mean over the first 0.3s vs
                                   public's −37.9) — flagged, not blocking,
                                   but louder would be better next time.
+    anchor_intro_arrival.mp4      Rotation member, 6.0s (IN 2.0 / OUT 8.0).
+                                  Added 2026-07-29. THE SHOT `powerup` WAS
+                                  SUPPOSED TO BE: the camera pushes fully
+                                  into the handset and it leaves frame
+                                  entirely by 5.0s, so the close is real
+                                  full-frame smoke (tail spread 71, edge
+                                  0.93). Its master opened on ~1.7s of
+                                  near-static desk over DIGITAL SILENCE, so
+                                  the in-point is the AUDIO onset (2.0s),
+                                  not the picture cut (1.667s) — cutting on
+                                  the picture would have opened the reel on
+                                  a third of a second of nothing.
+    anchor_intro_monitors.mp4     Rotation member, 6.0s (IN 0.0 / OUT 6.0).
+                                  Added 2026-07-29. Audio from frame 1
+                                  (-34.3 dB), so no slide was needed. Opens
+                                  on the MONITOR WALL rather than the
+                                  Anchor — a deliberate variation, and the
+                                  only rotation member that does. ⚠ its
+                                  master pulls back OUT to the newsroom from
+                                  ~7.0s (the MKT-08 tail failure), so the
+                                  out-point must stay ahead of that; there
+                                  is no usable bed anywhere after 7.0s.
     anchor_intro_public.mp4       Fixed intro for the PUBLIC kinds, 6.0s
                                   (IN 0.0 / OUT 6.0). Opens on the visor
                                   igniting in darkness — the cold-audience
@@ -597,6 +625,18 @@ per-day by hand, not AI-freestyled.
   - THE TRIM RULE (apply it yourself if you can): find where smoke fills the
     frame, set the out-point 0.6s later, set the in-point 6.0s earlier, and
     slide the window if it runs past either end.
+  - ⚠ REFINED 2026-07-29: THE IN-POINT FOLLOWS THE AUDIO, NOT THE PICTURE.
+    `arrival`'s master hard-cuts from a static desk to the Anchor at 1.667s,
+    but its audio does not start until 2.0s. Cutting on the picture cut —
+    the obvious choice, and what the rule literally says — would have opened
+    the reel on 0.33s of digital silence, which is the exact autoplay-
+    retention failure the head trim exists to prevent. So: find the picture
+    cut AND the audio onset, and take the LATER of the two. Check this every
+    time; two of the five intros to date have had a silent head, and it is
+    invisible unless you measure it (a waveform look is enough).
+  - THE TWO TRIMS DONE ON 2026-07-29 WERE DIFFERENT (IN 2.0 vs IN 0.0) from
+    the same 10.005s delivery shape. Do not read any previous trim's numbers
+    as the spec — they are a result, not a setting.
   - Duration 3.5–6.5s, hard-enforced. Anything outside the window is
     REJECTED by preflight; that member drops from the day's rotation.
   - EVERY member of the set must satisfy this whole spec. Preflight now
@@ -829,8 +869,11 @@ WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
   5. More panels. The rotation adapts with no code change; six is the current
      set and the slot is now a product surface, so the copy bar is higher.
   6. More caption templates per kind (8 today, can grow; rotation adapts).
-  7. More intro rotation members. The set is 2. Same delivery spec as §7 —
-     and read the trim rule there before generating.
+  7. More intro rotation members. The set is 4 (standard, deadpan, arrival,
+     monitors) as of 2026-07-29 — this ask is much less urgent than it was.
+     Same delivery spec as §7; read the trim rule there before generating.
+     The outstanding one is still `powerup`, which needs REGENERATION, not a
+     trim — and `arrival` now shows exactly what that shot should look like.
   8. A PRO ENDCARD MOTION THAT CAN BED. The pro set is 2 but only 1 of them
      (std) has a usable hum bed, because pro_alt is a build-up. So on a
      short-carrier Pro day the rotation collapses to a single motion. Not

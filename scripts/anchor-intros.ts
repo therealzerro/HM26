@@ -28,10 +28,29 @@ export interface IntroVariant {
  * 6.0s window ends on a usable dissolve bed. Registering it would either fail
  * preflight every morning or ghost a handset outline through the UI body. Add it
  * here once it is regenerated with the camera pushing fully into the screen.
+ *
+ * `arrival` and `monitors` (added 2026-07-29) are both trimmed from 10.005s
+ * masters, as every intro delivery has been. Their trims are NOT the same and
+ * the difference is the point — the trim rule is a rule about the footage, not
+ * a fixed window:
+ *   arrival  IN 2.0 / OUT 8.0. Its master opens on ~1.7s of near-static desk
+ *            over DIGITAL SILENCE, then hard-cuts to the Anchor at 1.667s with
+ *            the audio swelling in at 2.0s. Cutting at the picture cut would
+ *            have opened the reel on a third of a second of silence, so the
+ *            in-point is the AUDIO onset instead. This is `anchor_intro`'s own
+ *            history repeating — its master wasted ~1.9s the same way.
+ *            It is the shot `powerup` failed to deliver: the camera pushes
+ *            fully into the handset and it leaves frame entirely by 5.0s.
+ *   monitors IN 0.0 / OUT 6.0. Audio from frame 1, so no slide needed. Its
+ *            master pulls back OUT to the newsroom from ~7.0s — the MKT-08
+ *            tail failure — so the out-point must stay ahead of that; there is
+ *            no usable bed anywhere after 7.0s.
  */
 export const INTRO_ROTATION: IntroVariant[] = [
   { file: 'anchor_intro.mp4', label: 'standard' },
   { file: 'anchor_intro_deadpan.mp4', label: 'deadpan' },
+  { file: 'anchor_intro_arrival.mp4', label: 'arrival' },
+  { file: 'anchor_intro_monitors.mp4', label: 'monitors' },
 ];
 
 /** Fallback when the rotation is empty or every member is unusable. */

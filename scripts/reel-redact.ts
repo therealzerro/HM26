@@ -1,21 +1,31 @@
 // MKT-15 Phase 2 (redaction half) — the free-group session capture.
 //
-// ⚠⚠ STILL INCOMPLETE — DO NOT REGISTER. Four surfaces are now masked (bare
-// 3-digit, separated hero row, brace set, pair label) and the assertion is no
-// longer circular — it FAILS pre-mask, which is proven in test. But the eye
-// check found two surfaces that BOTH the mask and the assertion miss, because
-// they are distributed across leaves rather than contained in one:
-//     position boxes   `4 P1` · `7 P2` · `1 P3`     three single-digit leaves
-//     pair rows        `Front pair 47` · `Back pair 71` · `Split pair 41`
-// Either reconstructs the combination by inspection. The assertion cannot see
-// them because every leaf holds a run of 1 or 2 digits and it scans per leaf.
+// ⚠⚠ INCOMPLETE — DO NOT REGISTER. Third attempt; still leaks, and the failure
+// mode has been IDENTICAL every time: a selector or pattern that matches nothing,
+// producing a green check over a readable board.
+//   attempt 1  /^\d{3}$/ only            -> missed `4 - 7 - 1` and `{1,4,7}`
+//   attempt 2  assertion reused the mask  -> circular; confirmed only what it masked
+//   attempt 3  card selector matched ZERO -> the card-level loop never ran
+// Attempt 3's selector was `[data-hm-card],[class*=card]`. React Native Web
+// HASHES class names, so there is no `card` substring to match and no data
+// attribute to find. The loop iterated an empty list and reported success.
 //
-// ⚠⚠ A PER-LEAF ASSERTION IS STRUCTURALLY INCAPABLE OF CATCHING THIS. The fix
-// is not a better regex — it is to aggregate at CARD level: collect every digit
-// inside a card container, and fail if the multiset can form a 3-digit
-// combination. This is the same pair-rows finding already recorded against
-// MKT-15 Phase 2 for the public lane, arriving here because the two lanes share
-// the capture. Fixing it here fixes it for both.
+// STILL VISIBLE after attempt 3:
+//   position boxes  `4 P1` · `7 P2` · `1 P3`    (mask gated on the dead selector)
+//   pair prose      `47 surging — …` / `71 has strong …` / `41 confirms …`
+// (`Front pair ••` DOES mask — the label rule works, the prose rule does not.)
+//
+// THE FIX IS A REAL CARD BOUNDARY, not a better regex. Walk UP from a stable
+// in-card leaf — `BEST STRAIGHT` is one — to the first ancestor of card-like
+// height, exactly the technique that worked for the verify ledger rows in
+// MKT-25. Everything else here is sound and tested: the per-leaf assertion is
+// non-circular and PROVEN to fail pre-mask, the MutationObserver holds through
+// modal re-mounts, and four surfaces do mask correctly.
+//
+// ⚠ META-LESSON, worth more than this file: every failure in this lane has been
+// a query that matched nothing while the check reported success. Any DOM-based
+// guard must first assert that its own selector FOUND something — a zero-length
+// match is a failed test, not a passed one.
 //
 // ⚠ WHY THIS LIVES IN THE RENDERER AND NOT IN THE APP. MKT-15's Phase 0 ruled
 // that a capture-mode override belongs outside the consumer UI, because the
@@ -74,6 +84,17 @@ export async function installRedaction(page: Page): Promise<void> {
       }
       // 4. pair strings — only two digits, but they narrow the board sharply
       if (/^pair\\s*\\d{2}$/i.test(t)) { el.textContent = t.replace(/\\d{2}/, '••'); return; }
+      // 5. POSITION BOXES — single digits. Individually a run of one, which is
+      //    why a per-leaf scan never saw them; together they ARE the board.
+      //    Masked only inside a pick card so ranks (#4) and scales stay intact.
+      if (/^\\d$/.test(t) && el.closest('[data-hm-card],[class*=card]')) { el.textContent = '•'; return; }
+      // 6. PAIR PROSE — "47 surging — highest recent frequency in front position"
+      //    leads with the pair, so the sentence carries the digits too.
+      if (/^\\d{2}\\s+\\S/.test(t)) { el.textContent = t.replace(/^\\d{2}/, '••'); return; }
+      // 7. "Front pair 47" style labels where the digits trail a word.
+      if (/\\b(front|back|split)\\s+pair\\s*\\d{2}\\b/i.test(t)) {
+        el.textContent = t.replace(/(\\b(?:front|back|split)\\s+pair\\s*)\\d{2}/i, '$1••'); return;
+      }
     };
     const maskAll = root => {
       for (const el of Array.from(root.querySelectorAll('*'))) if (!el.children.length) maskLeaf(el);
@@ -119,28 +140,45 @@ export async function installRedaction(page: Page): Promise<void> {
 export async function assertNoDigits(page: Page, where: string): Promise<void> {
   const leaked: string[] = await page.evaluate(`(() => {
     const out = [];
-    for (const el of Array.from(document.querySelectorAll('*'))) {
-      if (el.children.length) continue;
+    const leaves = root => Array.from(root.querySelectorAll('*')).filter(e => !e.children.length);
+
+    // ── PASS 1 — per leaf: any run of EXACTLY three digits, any arrangement.
+    for (const el of leaves(document)) {
       const t = (el.textContent || '').trim();
       if (!t || t.length > 60) continue;
-      // ONE carve-out, and it is kept to a single shape on purpose: a
-      // percentage is not a combination, and "100%" is a real confidence value
-      // that would otherwise block every render. Carve-outs are how an
-      // assertion erodes into the circular one this replaced, so this is the
-      // only exclusion and it is removed BEFORE the digit scan rather than
-      // allow-listed after it.
-      const t2 = t.replace(/\\d{1,3}\\s*%/g, '');
-      const flat = t2.replace(/[\\s\\-·.,{}\\/]/g, '');
-      const runs = flat.match(/\\d+/g) || [];
-      if (runs.some(r => r.length === 3)) out.push(t);
+      // ONE carve-out, kept to a single shape: a percentage is not a
+      // combination, and "100%" is a real confidence value. Removed BEFORE the
+      // scan rather than allow-listed after, because allow-lists are how an
+      // assertion erodes back into the circular one this replaced.
+      const flat = t.replace(/\\d{1,3}\\s*%/g, '').replace(/[\\s\\-·.,{}\\/]/g, '');
+      if ((flat.match(/\\d+/g) || []).some(r => r.length === 3)) out.push('leaf: ' + t);
+    }
+
+    // ── PASS 2 — CARD LEVEL. A per-leaf scan is structurally incapable of
+    // catching digits DISTRIBUTED across leaves: the position boxes are three
+    // separate single-digit leaves and the pair rows are three 2-digit ones, so
+    // every individual run is length 1 or 2 and nothing ever trips pass 1 —
+    // while the board is plainly readable on screen.
+    //
+    // Cards legitimately contain many digits (energy, four signal values,
+    // percentages, draw counts), so counting digits would fail every card. What
+    // is counted instead is EXPOSURE VECTORS — the specific arrangements from
+    // which a combination reconstructs.
+    const cards = Array.from(document.querySelectorAll('[data-hm-card],[class*=card]'));
+    for (const card of cards) {
+      const ls = leaves(card).map(e => (e.textContent || '').trim()).filter(Boolean);
+      const singles = ls.filter(t => /^\\d$/.test(t)).length;          // position boxes
+      const pairs = ls.filter(t => /^\\d{2}$/.test(t) || /pair\\s*\\d{2}/i.test(t)).length;
+      if (singles >= 3) out.push('card: ' + singles + ' single-digit leaves (position boxes reconstruct the board)');
+      if (pairs >= 2) out.push('card: ' + pairs + ' pair values (two pairs overlap to give all three digits)');
     }
     return Array.from(new Set(out));
   })()`);
   if (leaked.length) {
     throw new Error(
-      `ABORT (${where}): redaction incomplete — ${leaked.length} leaf/leaves still contain a 3-digit run:\n` +
-      leaked.map(x => `         "${x}"`).join('\n') + '\n' +
-      `       A free-group session reel exists to WITHHOLD these. Rendering anyway would hand away the Pro conversion frame.`,
+      `ABORT (${where}): redaction incomplete — ${leaked.length} exposure(s):\n` +
+      leaked.map(x => `         ${x}`).join('\n') + '\n' +
+      `       A free-group session reel exists to WITHHOLD the board. Rendering anyway would hand away the Pro conversion frame.`,
     );
   }
 }

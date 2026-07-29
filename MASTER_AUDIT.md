@@ -534,6 +534,48 @@ As scoped, **the opening 4.0s of every public reel would carry six sets of real 
 
 ---
 
+#### Component enumeration — answered from the REAL captured body, 2026-07-29
+
+Content-agent ruling: do not patch `PickCard` in, **enumerate every component in any captured frame** so the slot table is demonstrably complete. Done empirically rather than from source — today's `ui_allday_20260729.mp4` was built this morning, so the actual pixels were read rather than the components inferred. **All four flagged candidates are IN FRAME; none is settled by the push-in crop.** Two further leaks were found that no string list would have caught.
+
+**Grid phase (0.0–4.0s, `PickCard` + the Slates screen chrome):**
+
+| element | in frame | verdict |
+|---|---|---|
+| **(a) session tabs** — `☀️ Midday · 🌙 Evening · ◆ All Day` | **0.0–4.0s, throughout** | Q2 session labels. Slot 6 ruled DROP; these need **suppression**, not translation |
+| **(b) rendered timestamp** — `ZK6 v2.0 · slate generated 4:48 AM ET` | **0.0–~2.0s**, cropped by the push-in after | MKT-21 taxonomy class 4. Must go |
+| **(c) `ON FIRE 99°`** heat badge | **every card, throughout** | judgement call — flagged, not asserted |
+| **(d) signal bars** — `B 90 P 85 C 68 D 94` | every card, throughout | **Q1-clean confirmed**: values are 2-digit and separated by letter labels, so no 3-digit run forms at capture scale |
+| six combos `1 9 5` … + six comboSets `{1,5,9}` … | throughout | the Q1 core, as reported |
+| `List / Grid`, `Signals / Matches / More`, `🔄 Generate` + gear, bottom tab bar | throughout | clean (`Matches` is sanctioned) |
+
+**Modal phase (4.0–19.0s, `PickDetailModal` + panel):** `ON FIRE` and the timestamp **recur here too** — the modal renders `Generated  Jul 29, 2026, 4:48 AM`, a *fuller* date than the grid's. `panel_signals` appears in-frame and is clean, confirming item 5's panel finding against a real capture rather than the source PNG.
+
+**⚠ NEW LEAK 1 — THE PAIR ROWS RECONSTRUCT THE COMBINATION, so placeholdering the hero digits is NOT sufficient.** The INTEL tab's `WHY THIS ORDER` block renders, for pick `0·9·4`:
+
+> `Front pair 09` — *"09 surging — highest recent frequency in front position"*
+> `Back pair 94` — *"94 has strong digit co-occurrence in back position"*
+> `Split pair 04` — *"04 confirms alignment across all 3 signal channels"*
+
+Six occurrences of 2-digit pairs, in labels *and* repeated in prose. Individually each is Q1-clean; **together they reassemble 0-9-4 by inspection.** A reader who cannot see the hero digits can still recover the combination. This is Q1 defeated by arithmetic rather than by rendering, and no string-level slot list would surface it — it took reading a real frame. **The override must placeholder the pair values and the prose that repeats them**, or suppress the block for public capture.
+
+**⚠ NEW LEAK 2 — the modal's timestamp is a full date, not just a time.** The grid shows `4:48 AM ET`; the modal shows `Jul 29, 2026, 4:48 AM`. Same class as (b) but strictly worse, and it is the *exact* element MKT-21's `public_body_pt2` reproduced from a reference screenshot — confirming that generator's baked date was faithfully copied from real UI rather than invented.
+
+**Grid copy column, per the ruling** (`Box:` gets its own row — a different string, not a casing variant):
+
+| component | current | public |
+|---|---|---|
+| `PickCard` | `⚡ Best Straight` | `⚡ Best Order` |
+| `PickCard` | `Box: {comboSet}` | `Any order: {placeholder}` |
+
+Preserves the BEST/ANY teaching pair on both surfaces.
+
+**RULING 2 accepted — `panel_app` is not whitelisted.** Its MKT-17 replacement copy (`SIX SIGNALS. EVERY MORNING.` / `RANKED · EXPLAINED · VERIFIED`) is dual-context correct *and* removes `GOOGLE PLAY` entirely; one regeneration closes both problems. **Principle decided: option (b), avoid platform names in public copy.** An allowlist is the more expensive choice in the way that matters — it is a permanent exception that must be maintained, and a reviewer who has seen `PLAY` allowed once reads past it the next time; exceptions erode the check they sit in. Platform names also buy very little on a CTA, so the post-launch endcard line 3 becomes `DOWNLOAD FREE` or `FREE IN THE APP STORES`. **If a store name ever does prove necessary**, option (a) should be implemented as an exact-phrase, case-sensitive match that **prints its exemption** the way `UNREFERENCED_OK` does — never a silent token skip.
+
+**CADENCE confirmed: `allday_public` only.** Sessions need their own public carriers, which are not written, and must **not** inherit the All-Day public carrier — it says "the board" generically, which reads as All-Day by placement even though it names no scope.
+
+---
+
 ### MKT-14 — Brand attribution in the slate stamp (amends MKT-07) ⏸️ PARKED
 
 **ID RESERVED — do not reuse.** Full work order parked verbatim at `docs/mkt14_work_order_parked.md`. Operator instruction 2026-07-28: hold until the social expansion (`docs/social_expansion_scope_2026-07-28.md`) completes; resume only on explicit go-ahead. Nothing built, no code touched.

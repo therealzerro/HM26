@@ -22,9 +22,26 @@ export interface StingerVariant {
 export const STINGERS: Record<string, StingerVariant> = {
   allday_pro:  { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', 'ALL-DAY · FIRST LOOK'], enabled: true },
   allday_free: { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', 'ALL-DAY · FULL DROP'], enabled: true },
-  // Verify's body is only 6.3s. A 5.6s intro plus a 3.0s stinger would put 8.6s
-  // of branding against 6.3s of content — branding outweighing the receipts.
-  // Operator ruling 2026-07-28: verify carries no stinger.
+  // ⚠ APPROVED, NOT YET FLIPPED — and the ORDER is the operator's condition.
+  //
+  // Operator ruling 2026-07-28 barred a verify stinger on ratio grounds: a 5.6s
+  // intro + 3.0s stinger + 2.5s close is 11.1s of branding against a 6.3s body,
+  // i.e. 64% branding on the one reel whose entire credibility rests on showing
+  // receipts. Ruling 2026-07-29 APPROVES the stinger but keeps that condition
+  // binding, because two things were asked for in the same breath and the second
+  // is the prerequisite for the first: longer match holds, then the stinger.
+  //
+  // MKT-27 built the holds (scripts/render-verification-reel.ts) — the body is
+  // now 8.6-14.0s depending on the row selection, which puts branding at 44-56%
+  // and ~48% on the typical two-straight day. That clears the condition on
+  // paper. Two mechanical steps remain before this flips:
+  //   1. one real render, to confirm the measured body length and that the holds
+  //      land on rows rather than between them
+  //   2. `npm run stinger:build verify` — no stinger_verify*.mp4 exists yet, and
+  //      probeStinger DEGRADES GRACEFULLY on a missing build (NOTE, not abort),
+  //      so flipping this first would produce a stinger-less reel that reports
+  //      success. The flag is the last thing turned, never the first — the same
+  //      ordering lesson MKT-26 learned the hard way with the free carriers.
   verify:      { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', "YESTERDAY'S RECEIPTS"], enabled: false },
   // MKT-13 session wave. Same motion, same layout — only the headline differs,
   // which is the whole point of rendering the lockup natively. Pro-only by

@@ -80,7 +80,29 @@ const openDur = +(openBase + stingerAdds(sting)).toFixed(2);
 const dissolve = intro ? INTRO_DISSOLVE : 1.2;
 const total = +(openDur + uiDur + 2.5).toFixed(2);   // legacy 10.0
 const voiceStart = intro ? +(openDur - INTRO_VO_LEAD).toFixed(2) : 0;
-const carrierNeed = +(total - voiceStart).toFixed(2); // 9.2 with intro (any length), 10.0 legacy
+const carrierNeed = +(total - voiceStart).toFixed(2); // uiDur + 2.5 + INTRO_VO_LEAD
+// MKT-27: THE CARRIER NO LONGER COVERS THE WHOLE REEL, AND THAT IS A RULING, NOT
+// A BUG. The readable-holds rewrite put the body at 8.6-14.0s, so `carrierNeed`
+// (11.5-16.9s) now exceeds the 10.005s verif_carrier on every day. The atrim
+// below simply yields the whole track and the reel plays out under the closing
+// holds in silence — the operator's stated option, on the grounds that on a
+// receipts reel the footage is the argument.
+//
+// Two consequences worth stating rather than discovering:
+//   • The gap is INDEPENDENT OF THE STINGER. carrierNeed derives from uiDur and
+//     the VO lead, not from openDur, and the stinger carries its own audio over
+//     the intro — so enabling it does not widen the silence by a frame.
+//   • apad in the filtergraph is what keeps the AUDIO STREAM as long as the
+//     container. Without it the stream ended ~6.5s early, which is legal mp4 but
+//     is the kind of thing a platform transcoder is entitled to mishandle.
+// A verif_carrier_pt2 of ~7.0s would close it on every day (see the handover
+// note for the arithmetic); until one exists the silence is deliberate.
+if (carrierNeed > 10.005) {
+  console.log(
+    `NOTE(verify): carrier covers ${(voiceStart + 10.005).toFixed(2)}s of a ${total}s reel — ` +
+    `${(carrierNeed - 10.005).toFixed(2)}s plays under the closing holds in silence (MKT-27, by ruling).`,
+  );
+}
 // MKT-09/MKT-20: resolved from the carrier registry by KIND. Verify declares no
 // continuation, so this is a genuine single-part carrier and resolves to itself.
 const verifCarrier = resolveCarrier(ASSETS, 'verify', `${stamp.slice(0,4)}-${stamp.slice(4,6)}-${stamp.slice(6,8)}`);
@@ -143,9 +165,11 @@ sh(
       `[3:a]atrim=0:${carrierNeed},asetpts=PTS-STARTPTS,aresample=48000,` +
       `afade=t=in:st=0:d=0.01,afade=t=out:st=${(carrierNeed - 0.01).toFixed(2)}:d=0.01,` +
       `adelay=${msVoice}|${msVoice}[carr];` +
-      `[introaud]${sting ? '[stgaud]' : ''}[carr]amix=inputs=${sting ? 3 : 2}:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]" `
+      `[introaud]${sting ? '[stgaud]' : ''}[carr]amix=inputs=${sting ? 3 : 2}:duration=longest:normalize=0,` +
+      `loudnorm=I=-14:TP=-1.5:LRA=11,apad=whole_dur=${total}[a]" `
     : `[3:a]atrim=0:${carrierNeed},asetpts=PTS-STARTPTS,aresample=48000,` +
-      `afade=t=in:st=0:d=0.01,afade=t=out:st=${(carrierNeed - 0.01).toFixed(2)}:d=0.01,loudnorm=I=-14:TP=-1.5:LRA=11[a]" `) +
+      `afade=t=in:st=0:d=0.01,afade=t=out:st=${(carrierNeed - 0.01).toFixed(2)}:d=0.01,` +
+      `loudnorm=I=-14:TP=-1.5:LRA=11,apad=whole_dur=${total}[a]" `) +
   `-map "[v]" -map "[a]" -t ${total} -r 60 -c:v libx264 -profile:v high -crf 18 -pix_fmt yuv420p ` +
   `-c:a aac -ar 48000 -movflags +faststart "${out}"`,
 );
@@ -153,9 +177,15 @@ sh(
 // 3. 1:1 feed cut (center crop).
 sh(`ffmpeg -y -loglevel error -i "${out}" -vf "crop=1080:1080:0:420" -c:v libx264 -profile:v high -crf 18 -pix_fmt yuv420p -c:a copy -movflags +faststart "${out1x1}"`);
 
-// 4. Contact sheet — same beats on the (possibly intro-shifted) timeline;
-// legacy openDur=1.2 reproduces the original [0, 1.5, 5, 8].
-const STAMPS = [0, openDur + 0.3, openDur + 3.8, openDur + uiDur + 0.5].map(t => +t.toFixed(1));
+// 4. Contact sheet — open, the board, a featured hold, the close.
+//
+// MKT-27: the third stamp was a fixed `openDur + 3.8`, chosen when the body was
+// always 6.3s and 3.8s in landed on a hold. The body is now 8.6-14.0s depending
+// on the row selection, and that offset would land in the pan on every day —
+// making the storyboard show motion blur where the evidence should be. Taken as
+// a FRACTION of the body instead: 0.62 sits inside the second hold across the
+// whole range, which is the frame most worth reviewing.
+const STAMPS = [0, openDur + 0.3, openDur + uiDur * 0.62, openDur + uiDur + 0.5].map(t => +t.toFixed(1));
 STAMPS.forEach((t, i) => sh(`ffmpeg -y -loglevel error -ss ${t} -i "${out}" -frames:v 1 -vf "scale=270:480" "${join(REELS, `_cs${i}.png`)}"`));
 sh(`ffmpeg -y -loglevel error ${STAMPS.map((_, i) => `-i "${join(REELS, `_cs${i}.png`)}"`).join(' ')} -filter_complex "[0][1][2][3]hstack=4" "${sheet}"`);
 

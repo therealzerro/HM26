@@ -1,43 +1,62 @@
 // MKT-02 Phase 1 — "Yesterday's Receipts" UI segment renderer.
 //
-// Renders ui_verify_YYYYMMDD.mp4 (1080x1920, 60fps, exactly 6.3s = 378 frames)
-// from the live Verified Track Record screen, positioned at YESTERDAY's (ET)
-// day group. Deterministic frame capture (MKT-01 pattern): eased scroll
-// positions computed per frame, no wall-clock recording.
+// Renders ui_verify_YYYYMMDD.mp4 (1080x1920, 60fps) from the live Verified Track
+// Record screen, positioned at YESTERDAY's (ET) day group. Deterministic frame
+// capture (MKT-01 pattern): eased scroll positions computed per frame, no
+// wall-clock recording.
 //
-// Segment beat map (MKT-25 option 2 — total frame count UNCHANGED at 378):
-//   f000-f149  0.0-2.5s  THE BOARD WE POSTED — yesterday's six picks as
-//                        published, landed ones marked with their result.
-//                        Composited from slate_snapshots (see
-//                        render-verify-slate.ts), because the app cannot show
-//                        a past slate.
-//   f150-f209  2.5-3.5s  ledger: static, then travel to the first featured row
-//   f210-f269  3.5-4.5s  HOLD with a slow push-in
-//   f270-f299  4.5-5.0s  release and travel to the second featured row
-//   f300-f359  5.0-6.0s  HOLD with a slow push-in
-//   f360-f377  6.0-6.3s  ease back out and settle
+// ── MKT-27 (2026-07-29): READABLE HOLDS. Beat map and LENGTH both rewritten ──
 //
-// WHY THIS REPLACED A SINGLE 4.3s SCROLL (operator: "the verify reel is boring").
-// A continuous crawl gives the eye nothing to land on, and every row passes at
-// the same weight — so the strongest evidence reads exactly like the weakest.
-// Holding on two rows lets a viewer actually READ one, and each ledger row
-// already carries both halves of the claim on one line ("681 · BOX All Day ·
-// Drew 186 in CT evening" is the call AND the outcome).
+// Operator ruling: "a viewer must read a row completely, digits, badge and
+// 'Drew X in Y', with no pause." MKT-25's restaging kept the total at 378 frames
+// and split the ledger time across two 1.0s holds, which is under a reading pass
+// for a ten-word line — the reel stopped being boring without becoming legible.
 //
-// FRAME COUNT IS DELIBERATELY UNCHANGED. `carrierNeed = uiDur + 2.9` against a
-// 10.005s verif_carrier caps the body at 7.105s, so there is only 0.81s of
-// headroom; restaging had to happen INSIDE the existing 6.3s rather than extend
-// it. Keeping 378 frames means the carrier, the reel length and the stamp
-// window are all untouched by this change.
+// THE 378-FRAME CONSTRAINT WAS SELF-IMPOSED AND IS NOW LIFTED. MKT-25 froze the
+// count because `carrierNeed = uiDur + 2.9` against a 10.005s verif_carrier caps
+// the body at 7.105s of COVERED audio. That is a cap on the VO, not on the reel:
+// the assembler derives total, stamp windows and contact sheet from uiDur, so a
+// longer body assembles correctly and simply runs past the end of the carrier.
+// Trading silence under the closing holds for legibility is the operator's call
+// (see the gap arithmetic in the handover note); the renderer no longer pretends
+// the ceiling is structural.
 //
-// STRAIGHTS ARE FEATURED FIRST. They are the strongest evidence on the screen,
-// and they are scarce — 2026-07-28 had 11 matched rows and only 2 straights.
+// Beat map — frame counts, @60fps. N = featured rows (1-3):
+//   slate      150   2.50s  THE BOARD WE POSTED — yesterday's six picks as
+//                           published, landed ones marked with their result.
+//                           Composited from slate_snapshots (see
+//                           render-verify-slate.ts), because the app cannot show
+//                           a past slate. This is the half that makes a record
+//                           mean anything: outcomes with no evidence they were
+//                           called in advance prove nothing.
+//   summary    120   2.00s  the summary band, held with a barely-there push
+//   scroll     120   2.00s  ONE slow eased pan down the day group into row 1
+//   per row  96/120  1.6/2.0s  HOLD with a push-in — 2.0s for a STRAIGHT,
+//                           1.6s for a box. Straights are the strongest proof
+//                           in the reel and get the longest holds (ruling).
+//   travel      36   0.60s  between consecutive holds, zoom released
+//   settle      18   0.30s  release the last zoom so the cut to the endcard
+//                           lands on a still frame
+//
+// So the body is 8.6-14.0s depending on what yesterday produced — printed by
+// this script and consumed by the assembler, never assumed anywhere.
+//
+// WHY HOLDS AND NOT A CRAWL (operator: "the verify reel is boring", MKT-25). A
+// continuous scroll gives the eye nothing to land on and passes every row at the
+// same weight, so the strongest evidence reads exactly like the weakest. Each
+// ledger row already carries both halves of the claim on one line ("681 · BOX
+// All Day · Drew 186 in CT evening" is the call AND the outcome) — it only needs
+// long enough on screen to be read.
+//
+// STRAIGHTS ARE FEATURED FIRST, and they are scarce: 2026-07-28 had 11 matched
+// rows and only 2 straights. Boxes backfill to three so the ledger beat does not
+// collapse to a single hold on a thin day.
 //
 // THE BEAT MAP IS DATA-ADAPTIVE, unlike every other reel in the pipeline. Slate
 // reels always have exactly 6 picks; verify has whatever yesterday produced.
-// With 2+ featurable rows it holds on two; with 1 it holds on that one for both
-// beats (a longer, slower push rather than a jump to nothing); with 0 rows the
-// script already aborts and no reel is made.
+// With 0 detectable rows it degrades to board + summary + one pan (no holds to
+// place) rather than aborting; with no confirmed matches at all it still aborts
+// and no reel is made.
 //
 // REAL DATA ONLY: if yesterday has no confirmed matches (no day group in the
 // rendered DOM), this script ABORTS with exit code 1 and renders nothing.
@@ -55,13 +74,51 @@ const BASE = 'http://localhost:8081';
 const OUT_DIR = resolve(process.argv[2] ?? 'assets/marketing/verify_reels');
 const FPS = 60;
 const VIEW_H = 960;                     // CSS px @2 DPR => 1920
-const SCROLL_FRAMES = 258;              // 4.3s (legacy single-scroll path)
-/** MKT-25 beat boundaries, in frames. Sum must stay 378. */
-const B = { slate: 150, travelA: 210, holdA: 270, travelB: 300, holdB: 360, end: 378 };
+/** MKT-27 beat sizes, in frames. The TOTAL is derived from these plus the row
+ *  selection — nothing downstream may hardcode a frame count. */
+const F_SLATE = 150;        // 2.50s — the board we posted
+const F_SUMMARY = 120;      // 2.00s — summary band hold
+const F_PAN = 120;          // 2.00s — one eased pan into the first featured row
+const F_HOLD_STRAIGHT = 120; // 2.00s — a straight is the strongest proof here
+const F_HOLD_BOX = 96;       // 1.60s — still a full reading pass for one line
+const F_TRAVEL = 36;        // 0.60s — between holds
+const F_SETTLE = 18;        // 0.30s — release the zoom before the endcard cut
+/** At most three holds: a fourth pushes the body past 16s, where the reel stops
+ *  reading as a receipt and starts reading as a list. */
+const MAX_FEATURED = 3;
 /** Push-in at the peak of a hold. Modest on purpose — this is a ledger, not a
  *  reveal, and a hard zoom on a receipts reel reads as salesmanship. */
 const ZOOM_MAX = 1.28;
-const MAX_SCROLL = 1.5 * VIEW_H * (4.3 / 4);   // spec rate cap over the scroll window
+/**
+ * Comfortable pan distance for the 2.0s scroll beat (~625 px/s at VIEW_H=960).
+ *
+ * A long day group can put the first featured row several screens down, and
+ * covering that in 2.0s is a blur rather than a pan. Past this distance the beat
+ * STARTS closer instead of moving faster — a cut from the summary band to a
+ * lower position, then the same slow pan. Keeping the beat length fixed is what
+ * makes the body duration a function of the row selection alone, which is what
+ * the operator has to reason about.
+ */
+const MAX_PAN_PX = 1200;
+/**
+ * Below this, the pan beat has nowhere to go and is DROPPED — its frames are
+ * redistributed to the inter-hold travels instead.
+ *
+ * ⚠ FOUND BY RENDERING, NOT BY READING. The first real render of this beat map
+ * logged `pan 0→0px`: yesterday's group started at the top of the page and its
+ * first featured row sat inside the opening viewport, so `parkFor` clamped to 0
+ * and the "slow eased pan" was two seconds of frozen frame — stacked directly
+ * behind a summary hold that is also at scrollTop 0, for 4.0s of stillness on a
+ * reel whose entire complaint was being boring.
+ *
+ * Dropping the beat rather than forcing motion is the right answer because there
+ * genuinely is nothing above row 1 to traverse. The ledger still gets traversed:
+ * the travels between holds move DOWN through the group, and with the pan's
+ * frames folded into them they become slow legible pans instead of 0.6s hops.
+ * Total body length is unchanged either way, which is what keeps the carrier
+ * arithmetic predictable.
+ */
+const MIN_PAN_PX = 120;
 const easeInOut = (t: number) => (1 - Math.cos(Math.PI * Math.min(Math.max(t, 0), 1))) / 2;
 
 function yesterdayET(): string {
@@ -187,21 +244,6 @@ function yesterdayET(): string {
     rows: Array<{ top: number; height: number; straight: boolean }>;
   };
 
-  // Anchor: keep the stats band in frame when yesterday's header is already
-  // near the top; otherwise pull the header to ~45% of the viewport.
-  const HEADER_MARGIN = 40;
-  const HEADER_TOP_PAD = 90;
-  const anchor = L.yTop <= 0.85 * VIEW_H ? 0 : Math.max(0, L.yTop - 0.45 * VIEW_H);
-  // Scroll end — the larger of:
-  //   (a) yesterday's last row near the bottom of the viewport (big groups), or
-  //   (b) yesterday's header glided up to near the top (small groups that fit
-  //       one viewport — guarantees gentle motion instead of a frozen segment).
-  const endTargetRaw = Math.max(L.nextTop - VIEW_H + HEADER_MARGIN, L.yTop - HEADER_TOP_PAD, anchor);
-  const maxEnd = Math.min(anchor + MAX_SCROLL, L.scrollHeight - L.clientHeight);
-  const endTarget = Math.min(endTargetRaw, maxEnd);
-  const dist = endTarget - anchor;
-  console.log(`date=${dateISO} rows=${L.rowCount} anchor=${Math.round(anchor)} scroll=${Math.round(dist)}px`);
-
   const setScroll = (px: number) =>
     page.evaluate(y => { const el = (window as any).__adScroll; if (el) el.scrollTop = y; }, px);
 
@@ -210,104 +252,191 @@ function yesterdayET(): string {
    *
    * The browser re-rasterises text at the transformed scale, so a held row stays
    * crisp; cropping a 1080x1920 capture and scaling it back up would soften
-   * exactly the text the hold exists to let someone read. `transform-origin` is
-   * set to the row's centre so the push-in converges on it rather than on the
-   * middle of the viewport.
+   * exactly the text the hold exists to let someone read.
+   *
+   * ⚠ THE ORIGIN IS TOP-LEFT AND FIXED. MKT-25 set it to the featured row's
+   * centre (`50% ${y}px`), which reads well in the abstract and fails twice on
+   * this screen — both found by inspecting a real render at the zoom peak, not by
+   * reading the code:
+   *
+   *   1. THE COMBO DIGITS CLIP OFF THE LEFT EDGE. A row is left-aligned and its
+   *      combo is the leftmost element (x≈30 of 540). Scaling 1.28 about the
+   *      horizontal centre maps x=30 to x=-37 — so the first thing lost is the
+   *      digits, on a reel whose stated requirement is that a viewer can read
+   *      "digits, badge and 'Drew X in Y'".
+   *   2. THE SCALED SCROLLER RIDES UP OVER THE PAGE HEADER. Any k>1 about an
+   *      origin below the top moves the scroller's top edge to originY*(1-k) < 0,
+   *      and the "Verified Track Record" title sits outside the scroller, so the
+   *      stats band renders through it.
+   *
+   * Anchoring at 0% 0 fixes both by construction: x=0 and y=0 are fixed points,
+   * so nothing crops on the left and nothing rises over the header. The featured
+   * row is then held in frame by COMPENSATING THE SCROLL as k changes — see
+   * `parkAt`. Vertical framing becomes the scroll's job and magnification the
+   * zoom's, rather than both fighting over the same transform.
    */
-  const setZoom = (k: number, originYpx: number) =>
-    page.evaluate(({ k, y }) => {
+  const setZoom = (k: number) =>
+    page.evaluate(({ k }) => {
       const el = (window as any).__adScroll as HTMLElement | undefined;
       if (!el) return;
-      el.style.transformOrigin = `50% ${y}px`;
+      el.style.transformOrigin = '0% 0';
       el.style.transform = k === 1 ? '' : `scale(${k})`;
-    }, { k, y: originYpx });
+    }, { k });
 
-  // MKT-25: choose the featured rows — straights first, then the earliest boxes,
+  // MKT-27: choose the featured rows — straights first, then the earliest boxes,
   // and always in document order once chosen so the camera never travels
   // backwards up the ledger (which reads as a mistake, not a beat).
   const straights = L.rows.filter(r => r.straight);
   const boxes = L.rows.filter(r => !r.straight);
-  const featured = [...straights, ...boxes].slice(0, 2).sort((a, b) => a.top - b.top);
-  const restaged = featured.length >= 1;
+  const featured = [...straights, ...boxes]
+    .slice(0, MAX_FEATURED)
+    .sort((a, b) => a.top - b.top);
+
+  // ── Beat plan. Built BEFORE any capture so the frame total is known up front
+  // and the same arithmetic prints in the log the operator reads. ──
+  const holdFor = (r: { straight: boolean }) => (r.straight ? F_HOLD_STRAIGHT : F_HOLD_BOX);
+
+  /**
+   * Scroll position that puts a row at ~42% of the viewport AT ZOOM k: high
+   * enough to read, low enough that the rows above it still give context.
+   *
+   * The /k is what makes the top-left-anchored zoom hold its subject. With the
+   * origin pinned at 0,0 a row at content offset P renders at (P - scroll)*k, so
+   * keeping it at a fixed fraction of the viewport means the scroll must ease
+   * DOWN as the push-in eases IN. The two moves are ~90px apart over a hold and
+   * read as one gentle settle rather than two gestures.
+   *
+   * Clamped at 0: rows in the first viewport of a group cannot be pulled to 42%
+   * because there is nothing above them to scroll away. They land higher instead,
+   * which is correct — the alternative is scrolling the group's own header off
+   * screen to satisfy a number.
+   */
+  const maxScroll = Math.max(0, L.scrollHeight - L.clientHeight);
+  const parkAt = (r: { top: number; height: number }, k: number) =>
+    Math.max(0, Math.min(r.top + r.height / 2 - (0.42 * VIEW_H) / k, maxScroll));
+  const parks = featured.map(r => parkAt(r, 1));
+  // Where the pan begins. The summary band sits at scrollTop 0 by construction
+  // (it is the page header), so a group within one comfortable pan reads as one
+  // continuous move from the band down into the evidence.
+  const panTo = parks[0] ?? Math.min(Math.max(0, L.yTop - 0.45 * VIEW_H), maxScroll);
+  const panFrom = Math.max(0, panTo - MAX_PAN_PX);
+  const panning = panTo - panFrom >= MIN_PAN_PX;
+  // Dropped pan → its frames go to the travels, so the body length does not
+  // depend on which branch was taken. With one featured row there is no travel
+  // to give them to, so they fall back into that row's hold.
+  const gaps = Math.max(1, featured.length - 1);
+  const panFrames = panning ? F_PAN : 0;
+  const spare = panning ? 0 : Math.floor(F_PAN / gaps);
+  const travelFrames = featured.length > 1 ? F_TRAVEL + spare : F_TRAVEL;
+  const holdBonus = featured.length > 1 ? 0 : spare;
+
+  const ledgerFrames = featured.length
+    ? featured.reduce((n, r) => n + holdFor(r), 0) + holdBonus
+      + (featured.length - 1) * travelFrames + F_SETTLE
+    : F_SETTLE;
+  // Any frames lost to the floor divisions above land in the settle, so TOTAL is
+  // exactly what gets captured.
+  const TOTAL = F_SLATE + F_SUMMARY + panFrames + ledgerFrames
+    + (panning ? 0 : F_PAN - spare * gaps);
+
   console.log(
-    `date=${dateISO} rows=${L.rowCount} detected=${L.rows.length} ` +
-    `(straight=${straights.length}) featured=${featured.length} anchor=${Math.round(anchor)}`,
+    `date=${dateISO} rows=${L.rowCount} detected=${L.rows.length} straight=${straights.length} ` +
+    `featured=${featured.length} [${featured.map(r => (r.straight ? 'STRAIGHT' : 'box')).join(', ')}]`,
+  );
+  console.log(
+    `beat plan: ${TOTAL} frames = ${(TOTAL / FPS).toFixed(2)}s ` +
+    `(slate ${F_SLATE} + summary ${F_SUMMARY} + pan ${panFrames} + ledger ${ledgerFrames}) · ` +
+    (panning
+      ? `pan ${Math.round(panFrom)}→${Math.round(panTo)}px`
+      : `pan DROPPED (only ${Math.round(panTo - panFrom)}px available) — travels widened to ${travelFrames}f`),
   );
 
-  if (!restaged) {
-    // No row was detectable — fall back to the legacy single scroll rather than
-    // produce a frozen segment. The DOM shape is the only thing that can break
-    // this, and a boring reel beats no reel.
-    console.log('NOTE: no rows detected — falling back to the legacy single scroll.');
-    await setScroll(anchor);
-    await page.waitForTimeout(400);
-    await page.screenshot({ path: fname(0) });
-    for (let f = 1; f < 60; f++) copyFileSync(fname(0), fname(f));
-    for (let f = 60; f < 60 + SCROLL_FRAMES; f++) {
-      await setScroll(anchor + dist * easeInOut((f - 60) / (SCROLL_FRAMES - 1)));
-      await page.screenshot({ path: fname(f) });
-    }
-    for (let f = 318; f < 378; f++) copyFileSync(fname(317), fname(f));
-  } else {
-    // With one featurable row, both holds land on it — a single longer, slower
-    // push rather than a travel to nothing.
-    const rowA = featured[0];
-    const rowB = featured[1] ?? featured[0];
-    // Scroll position that puts a row at ~42% of the viewport: high enough to
-    // read, low enough that the rows above it still give context.
-    const parkFor = (r: { top: number; height: number }) =>
-      Math.max(0, Math.min(r.top + r.height / 2 - 0.42 * VIEW_H, L.scrollHeight - L.clientHeight));
-    const parkA = parkFor(rowA), parkB = parkFor(rowB);
-    const originFor = (r: { top: number; height: number }, park: number) => r.top + r.height / 2 - park;
+  const shoot = async (f: number, scroll: number, k: number) => {
+    await setScroll(scroll);
+    await setZoom(k);
+    await page.screenshot({ path: fname(f) });
+  };
 
-    const shoot = async (f: number, scroll: number, k: number, origin: number) => {
-      await setScroll(scroll);
-      await setZoom(k, origin);
-      await page.screenshot({ path: fname(f) });
-    };
+  // ── f000+ — THE BOARD WE POSTED. Composited from the snapshot, because the app
+  // cannot display a past slate. Rendered on EVERY path including the no-rows
+  // degrade: it does not depend on row detection, and it is the half that makes
+  // the record mean anything, so losing it to a DOM change would be the worst
+  // possible thing to drop. (MKT-25 rendered it only on the restaged path.)
+  const landed = await renderSlateFrames(WORK, fname, 0, F_SLATE, dateISO);
+  console.log(`slate segment: ${landed} of 6 landed — rendered f000-f${F_SLATE - 1}`);
 
-    // f000-f149 — THE BOARD WE POSTED. Composited from the snapshot, because
-    // the app cannot display a past slate. This is the half the reel was
-    // missing: without it a viewer sees outcomes with no evidence they were
-    // called in advance, which is the only thing that makes a record mean
-    // anything.
-    const landed = await renderSlateFrames(WORK, fname, 0, B.slate, dateISO);
-    console.log(`slate segment: ${landed} of 6 landed — rendered f000-f${B.slate - 1}`);
-
-    // Ledger from here. Park on row A first so the cut out of the board lands
-    // on the evidence rather than on the top of the list.
-    for (let f = B.slate; f < B.travelA; f++) {
-      const t = easeInOut((f - B.slate) / (B.travelA - B.slate - 1));
-      await shoot(f, anchor + (parkA - anchor) * t, 1, originFor(rowA, parkA));
-    }
-    // f210-f269 — hold on row A with a push-in.
-    for (let f = B.travelA; f < B.holdA; f++) {
-      const t = easeInOut((f - B.travelA) / (B.holdA - B.travelA - 1));
-      await shoot(f, parkA, 1 + (ZOOM_MAX - 1) * t, originFor(rowA, parkA));
-    }
-    // f270-f299 — release and travel to row B.
-    for (let f = B.holdA; f < B.travelB; f++) {
-      const t = easeInOut((f - B.holdA) / (B.travelB - B.holdA - 1));
-      await shoot(f, parkA + (parkB - parkA) * t, ZOOM_MAX + (1 - ZOOM_MAX) * t, originFor(rowA, parkA));
-    }
-    // f300-f359 — hold on row B.
-    for (let f = B.travelB; f < B.holdB; f++) {
-      const t = easeInOut((f - B.travelB) / (B.holdB - B.travelB - 1));
-      await shoot(f, parkB, 1 + (ZOOM_MAX - 1) * t, originFor(rowB, parkB));
-    }
-    // f360-f377 — settle, so the cut to the endcard lands on a still frame.
-    for (let f = B.holdB; f < B.end; f++) {
-      const t = easeInOut((f - B.holdB) / (B.end - B.holdB - 1));
-      await shoot(f, parkB, ZOOM_MAX + (1 - ZOOM_MAX) * t, originFor(rowB, parkB));
-    }
-    await setZoom(1, 0);
+  // ── summary band — held at the top of the page with a barely-there push, so
+  // the totals land before any individual row is argued from.
+  //
+  // The push goes IN AND BACK OUT across the beat rather than ending zoomed. It
+  // used to end at 1.04 while the next beat opened at 1.00, which is a visible
+  // scale pop on a cut between two frames of the same static content — and with
+  // the pan dropped those two beats are adjacent at the same scroll position,
+  // where the pop is at its most obvious.
+  const SUMMARY_ZOOM = 1.04;
+  for (let f = F_SLATE; f < F_SLATE + F_SUMMARY; f++) {
+    const raw = (f - F_SLATE) / (F_SUMMARY - 1);
+    const t = easeInOut(raw < 0.5 ? raw * 2 : (1 - raw) * 2);
+    await shoot(f, 0, 1 + (SUMMARY_ZOOM - 1) * t);
   }
+
+  // ── one slow eased pan into the first featured row (when there is distance).
+  const panStart = F_SLATE + F_SUMMARY;
+  for (let f = panStart; f < panStart + panFrames; f++) {
+    const t = easeInOut((f - panStart) / (panFrames - 1));
+    await shoot(f, panFrom + (panTo - panFrom) * t, 1);
+  }
+
+  let cursor = panStart + panFrames;
+  if (!featured.length) {
+    // No row was detectable — the DOM shape is the only thing that can break
+    // row anchoring, and board + summary + pan is still a coherent reel. Freeze
+    // the settle rather than invent holds with nowhere to land.
+    console.log('NOTE: no rows detected — board + summary + pan only, no holds.');
+    await shoot(cursor, panTo, 1);
+    for (let f = cursor + 1; f < TOTAL; f++) copyFileSync(fname(cursor), fname(f));
+  } else {
+    for (let i = 0; i < featured.length; i++) {
+      const row = featured[i];
+      const hold = holdFor(row) + holdBonus;
+      // Hold — push in across the whole beat, with the scroll easing down in
+      // step so the row stays planted at its framing fraction (see parkAt).
+      for (let f = cursor; f < cursor + hold; f++) {
+        const t = easeInOut((f - cursor) / (hold - 1));
+        const k = 1 + (ZOOM_MAX - 1) * t;
+        await shoot(f, parkAt(row, k), k);
+      }
+      cursor += hold;
+      // Travel to the next row, releasing the zoom on the way out. Both ends are
+      // re-parked at the CURRENT k so the move lands exactly where the next
+      // hold's first frame will be — otherwise the cut into it jumps.
+      if (i < featured.length - 1) {
+        const next = featured[i + 1];
+        for (let f = cursor; f < cursor + travelFrames; f++) {
+          const t = easeInOut((f - cursor) / (travelFrames - 1));
+          const k = ZOOM_MAX + (1 - ZOOM_MAX) * t;
+          await shoot(f, parkAt(row, k) + (parkAt(next, k) - parkAt(row, k)) * t, k);
+        }
+        cursor += travelFrames;
+      }
+    }
+    // Settle, so the cut to the endcard lands on a still frame.
+    const lastRow = featured[featured.length - 1];
+    for (let f = cursor; f < TOTAL; f++) {
+      const t = easeInOut((f - cursor) / (TOTAL - cursor - 1));
+      const k = ZOOM_MAX + (1 - ZOOM_MAX) * t;
+      await shoot(f, parkAt(lastRow, k), k);
+    }
+  }
+  await setZoom(1);
 
   await browser.close();
 
   execSync(
     `ffmpeg -y -loglevel error -framerate ${FPS} -i "${join(WORK, 'frame_%04d.png')}" ` +
-    `-frames:v 378 -c:v libx264 -pix_fmt yuv420p -r ${FPS} -crf 18 ` +
+    // MKT-27: the count is the PLAN's, not a constant. A hardcoded 378 against a
+    // longer plan silently truncated the reel mid-hold.
+    `-frames:v ${TOTAL} -c:v libx264 -pix_fmt yuv420p -r ${FPS} -crf 18 ` +
     // MKT-18: same provenance tag as the slate bodies — the verify assembler
     // had the identical gap (stamp from argv, existence check only).
     `${provenanceArgs(dateISO)} "${outMp4}"`,

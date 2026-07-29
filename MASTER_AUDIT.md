@@ -76,6 +76,17 @@ Plus **`marketing_reels_kind_check`**, queried live: `CHECK (kind = ANY (ARRAY['
 
 **3. Group variant dropped.** Group reels already carry the real live capture; `group_body_pt1`/`pt2` were only ever a stylised alternative, and `group_body_pt1`'s board drifting between frames is disqualifying on its own. No group generated-body class will be built.
 
+**⚠ THE DECISIVE ARGUMENT AGAINST A GENERATED PUBLIC BODY IS EPISTEMIC, NOT AESTHETIC — record this before revisiting the lane.** For GENERATED content, "no legible numeral" is an empirical claim about frames, and the best any reviewer can ever honestly say is *"I found none."* For RENDERED content, MKT-15 Phase 2's capture mode draws a placeholder block instead of digits, so **no digit is ever drawn to be found** — the negative becomes a property of the code rather than an observation about output. For a page de-recommended twice with no margin left, that difference outweighs production value. **Phase 2 is not merely the better-looking path; it is the only one on which the Q1 claim is provable.** Both agents converged on this independently and it is the reason to hold the line if a generated public body is ever proposed again.
+
+**Q1 RECORDS MUST NAME THE TAXONOMY SEARCHED, not just the density.** "No numerals found at 24fps" reads as comprehensive and is not — a numeral sweep would not by itself have caught `NOWQ`/`CONSEET`, `$61,1.82`, or the baked `Jul 29, 2026 at 4:48 AM`. MKT-21 surfaced **four distinct failure classes**, and a stored Q1 record (the control Phase 2 would need) must enumerate which were searched so a future gap is visible as an *unsearched class* rather than invisible as a clean pass:
+
+1. **fabricated numerals** — invented combinations, and worse when they drift between frames
+2. **misspelled brand vocabulary** — `BEST STRAIGNT`, `NOWQ`, `CONSEET`, `True Nots`
+3. **currency and gain framing** — `$61,1.82`, `+12.79%` in gain-green, `BOX SET $2,5,54`
+4. **rendered dates** — `Generated Jul 29, 2026 at 4:48 AM`, which also breaks MKT-07's never-bake-a-date rule and any "evergreen" claim
+
+Also to record for method: the review that found all four was by eye over extracted frames. That is the correct test and no automated check in this pipeline would have caught classes 2–4 — but it means a Q1 pass is always "none found by a named reviewer at a named density across named classes", never "none present".
+
 **Recommendation recorded on the abstract-only reshoot: do NOT commission it yet, and it is not a capability gap.** An abstract body cannot show the product, and the intro, stinger and endcard are *already* abstract brand motion — so a public reel built that way is ~34s of brand motion with no product in it, of which the body would be ~20s of more of the same. The thing that makes a public cut worth a cold viewer's attention is showing the product, and only MKT-15 Phase 2's relabelled capture delivers that. Separately, **"the public lane becomes buildable now" was never true even with clean assets**: registration stands at 1 of 6 code points plus the DB constraint, so a public reel could not have been built this week in any case. Generation budget is exhausted, which costs nothing here.
 
 ---

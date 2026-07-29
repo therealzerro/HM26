@@ -771,7 +771,14 @@ per-day by hand, not AI-freestyled.
     assembler measures each one rather than assuming.
   - ENDCARD MOTIONS NEED A LEVEL-STEADY STRETCH BEFORE THE CRACK. On a
     short-carrier day the pre-crack audio is looped as a palindrome to bed
-    the modals, so the window must not swing more than ~20 dB. A build-up
+    the modals, so the window must not swing more than ~20 dB.
+    ⚠ THE SPEC IS ABOUT AUDIO SHAPE ONLY (2026-07-29). `pro_alt` failed on
+    its SOUND, not its visuals — "rings align and release" is a fine thing
+    to look at. So the visual concept is free to be as interesting as you
+    like, provided the audio holds roughly CONSTANT from 0 to ~4.0s and
+    then cracks. State the intended audio shape in the delivery note; it is
+    the half that decides whether a motion can bed, and it is invisible in
+    a preview. A build-up
     concept — "rings align and release", anything that swells continuously
     into the release — has no such stretch BY CONSTRUCTION and will be
     dropped from short-carrier days. That is handled gracefully, not an
@@ -951,12 +958,20 @@ WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
      Same delivery spec as §7; read the trim rule there before generating.
      The outstanding one is still `powerup`, which needs REGENERATION, not a
      trim — and `arrival` now shows exactly what that shot should look like.
-  8. A PRO ENDCARD MOTION THAT CAN BED. The pro set is 2 but only 1 of them
-     (std) has a usable hum bed, because pro_alt is a build-up. So on a
-     short-carrier Pro day the rotation collapses to a single motion. Not
-     broken and not urgent — every current carrier is wall-to-wall — but the
-     pro tier has no redundancy the day that changes. A second bedable pro
-     motion fixes it; see the motion delivery spec in §7.
+     ⏳ Its regeneration prompt is written and held with the operator, ready
+     to run when budget returns. Note for anyone writing prompts in this
+     asset class: the earlier attempt was REFUSED by the generator, traced to
+     a CRITICAL block enumerating what must not appear in frame. Removing the
+     negatives and describing the final beat as a STATE rather than a
+     prohibition cleared it. Third refusal in this class traced to the same
+     cause — negatives trigger them, scene descriptions do not.
+  8. A PRO ENDCARD MOTION THAT CAN BED — ⏳ PROMPT WRITTEN, AWAITING BUDGET.
+     The pro set is 2 but only 1 (std) has a usable hum bed, because pro_alt
+     is a build-up, so on a short-carrier Pro day the rotation collapses to a
+     single motion. Not broken and not urgent — every current carrier is
+     wall-to-wall — but the pro tier has no redundancy the day that changes.
+     A prompt targeting a LEVEL-STEADY 0-4.0s window was delivered to the
+     operator 2026-07-29 and runs when generation budget returns.
 
 WHAT IS DELIBERATELY NOT BUILT:
   - Auto-posting to Facebook (platform + brand-safety rule).

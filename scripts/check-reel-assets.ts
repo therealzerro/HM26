@@ -613,6 +613,25 @@ function checkPanels(): void {
       add('WARN', p.file, `cleared but not built — run npm run panel:build (app drops it from the rotation until then)`);
       continue;
     }
+    // ⚠ THE HOLE IN THE MIDDLE OF THE CLEARANCE CHAIN, found 2026-07-29 by
+    // walking into it. The chain was: source hash == pinned hash (clearance),
+    // and bucket bytes == built bytes (delivery). Both passed, and the artwork
+    // being SERVED was still the old copy — because nothing checked that the
+    // build was produced from the source that got cleared. Re-pinning a hash
+    // without rebuilding therefore produced a fully green preflight while every
+    // subscriber still read the superseded panel.
+    //
+    // FAIL, not WARN: a stale build means the cleared copy is not the copy on
+    // screen, which is a clearance violation rather than a missing artifact —
+    // and clearance failures are FAILs everywhere else in this function.
+    // mtime rather than a content hash because the build re-encodes (crop,
+    // feather, resize), so built bytes never equal source bytes by design;
+    // freshness is the only comparable property. Same staleness test the
+    // carrier join cache uses.
+    if (statSync(built).mtimeMs < statSync(src).mtimeMs) {
+      add('FAIL', p.file, `built artwork is OLDER than the cleared source — the copy that was reviewed is NOT the copy being served. Run npm run panel:build to rebuild and upload.`);
+      continue;
+    }
     const [w, h] = probe(built, `-select_streams v:0 -show_entries stream=width,height -of csv=p=0`).split(',').map(Number);
     if (w !== PANEL_W) { add('FAIL', p.file, `built ${w}x${h} — width must be ${PANEL_W}`); continue; }
     usableCount++;

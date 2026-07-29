@@ -40,7 +40,16 @@ export const CLEARANCE: Record<string, PanelClearance> = {
   // Copy is BAKED PIXELS here (unlike endcards/stingers, where MKT-10 made copy
   // a config string), so this cannot be fixed by editing a line — it needs the
   // regenerated PNG, a fresh clearance date and a new hash.
-  'panel_app.png':      { cleared: '2026-07-27', sha256: '3e968aa61b67961014019f7a063ce2f2aca6faa2d5baffe00dd2f2402ffa5ea9' },
+  // Re-cleared 2026-07-29 after the MKT-17 replacement artwork landed. Copy is
+  // now "SIX SIGNALS. EVERY MORNING." / "RANKED · EXPLAINED · VERIFIED",
+  // replacing "THE APP IS COMING / APP STORE · GOOGLE PLAY". That old copy had
+  // two independent problems and this closes both: it told a paying subscriber,
+  // inside the product, that the product did not exist yet (the dual-context
+  // rule, broken by the 7/28 app-wide gate removal); and it rendered the token
+  // PLAY inside "GOOGLE PLAY", which would have forced a linter exception on
+  // any public surface. Reviewed by eye at tier 1 — no numerals at all (Q1),
+  // and SIGNALS / RANKED / EXPLAINED / VERIFIED are all sanctioned (Q2).
+  'panel_app.png':      { cleared: '2026-07-29', sha256: '1af55fbb045c07400d1a29ff437aa469419c9d1ba434538652654c55677b8e22' },
   'panel_zk30.png':     { cleared: '2026-07-27', sha256: '6bdea3fa148fcf6ce5c3a2a25e57a4297d7f0045ca1afa8450be376473ed9723' },
 };
 

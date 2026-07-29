@@ -47,7 +47,11 @@ export const REEL_PANELS: ReelPanel[] = [
   { file: 'panel_signals.png',  label: 'Four signals' },
   { file: 'panel_coverage.png', label: 'Coverage map' },
   { file: 'panel_anchor.png',   label: 'The Data Desk' },
-  { file: 'panel_app.png',      label: 'App coming' },
+  // Filename kept: it is the clearance key, the bucket object name and the
+  // built-artifact name, so renaming it would void clearance and orphan the
+  // uploaded object for a cosmetic gain. The LABEL tracks the copy, which
+  // changed 2026-07-29 from "THE APP IS COMING" to "SIX SIGNALS. EVERY MORNING."
+  { file: 'panel_app.png',      label: 'Six signals' },
   { file: 'panel_zk30.png',     label: 'ZK30 teaser' },
 ];
 

@@ -21,6 +21,7 @@ import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { assertBodyDate } from './reel-provenance';
 import { resolveEndcard } from './reel-endcard';
+import { CHIP_LABELS } from './intro-chip-config';
 import { join, resolve } from 'node:path';
 import { probeAnchorIntro, INTRO_DISSOLVE, INTRO_VO_LEAD } from './reel-intro';
 import { resolveCarrier } from './reel-carrier';
@@ -86,6 +87,11 @@ const verifCarrier = resolveCarrier(ASSETS, 'verify', `${stamp.slice(0,4)}-${sta
 if (verifCarrier.joined) {
   console.log(`NOTE: carrier joined from ${verifCarrier.parts.length} parts (${verifCarrier.parts.map(p => p.split('/').pop()).join(' + ')}).`);
 }
+// MKT-22: intro identity chip — "YESTERDAY'S RESULTS", green accent to match
+// the verify stamp. Only with an intro active; the legacy open is a bolt still.
+const chipPng = intro && CHIP_LABELS.verify ? join(REELS, `_chip_verify.png`) : null;
+if (chipPng) sh(`npx tsx scripts/render-intro-chip.ts verify "${chipPng}"`);
+
 const msVoice = Math.round(voiceStart * 1000);
 
 // 1. Settled lockup frame from the endcard tail (legacy open only).
@@ -102,6 +108,9 @@ sh(
   `-i "${verifCarrier.path}" ` +                            // [3] carrier (audio, MKT-09 parts-aware)
   `-loop 1 -framerate 60 -t ${total} -i "${stampPng}" ` +    // [4] slate stamp
   (sting ? `-i "${sting.path}" ` : ``) +                     // [5] stinger (MKT-12)
+  // MKT-22: chip LAST, index computed — the stinger input is conditional, so a
+  // hardcoded index would take the stinger's slot on a stinger-less build.
+  (chipPng ? `-loop 1 -framerate 60 -t ${total} -i "${chipPng}" ` : ``) +
   `-filter_complex "` +
   (intro
     ? `[0:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=${openBase},setpts=PTS-STARTPTS[bolt0];`
@@ -116,7 +125,12 @@ sh(
   `[2:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=2.5,setpts=PTS-STARTPTS[card];` +
   `[openbody][card]concat=n=2:v=1:a=0[vraw];` +
   `[4:v]format=rgba,fade=t=in:st=${+(openDur - 0.3).toFixed(2)}:d=0.4:alpha=1,fade=t=out:st=${+(openDur + uiDur - 0.5).toFixed(2)}:d=0.45:alpha=1[stmp];` +
-  `[vraw][stmp]overlay=0:0,format=yuv420p[v];` +
+  `[vraw][stmp]overlay=0:0,format=yuv420p[vst];` +
+  // MKT-22: chip rides the intro only, out well before the crossfade.
+  (chipPng
+    ? `[${sting ? 6 : 5}:v]format=rgba,fade=t=in:st=0.40:d=0.25:alpha=1,` +
+      `fade=t=out:st=2.40:d=0.25:alpha=1[chip];[vst][chip]overlay=0:0,format=yuv420p[v];`
+    : `[vst]null[v];`) +
   (intro
     // Intro audio 0→openDur, carrier enters 0.4s before the dissolve completes.
     ? `[0:a]atrim=0:${openBase},asetpts=PTS-STARTPTS,aresample=48000,apad=whole_dur=${openBase},` +

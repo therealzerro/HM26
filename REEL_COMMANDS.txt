@@ -185,13 +185,20 @@ npm run stinger:build allday_pro (one variant)
     string edit in scripts/stinger-config.ts and a re-run — no new
     video generation. Adding Midday/Evening later is config only.
 
-    Each variant is prebuilt here so the daily run never pays for
-    it. Verify is deliberately switched OFF (enabled:false) — its
-    body is only 6.3s, so intro + stinger would put more branding
-    on screen than receipts. Flip the flag if that changes.
+    MKT-19: there are now THREE stinger motions (bolt condense,
+    strike, circuit) and this builds every variant against every
+    one of them — one file per pair, named
+    stinger_<variant>_<tag>.mp4. The daily run picks by DATE, so
+    it never renders anything; that's why the matrix is prebuilt.
+
+    Verify is deliberately switched OFF (enabled:false) — its body
+    is only 6.3s, so intro + stinger would put more branding on
+    screen than receipts. Flip the flag if that changes.
 
     A missing or unbuilt stinger is skipped with a note and the
-    reel assembles exactly as before — it never blocks a run.
+    reel assembles exactly as before — it never blocks a run. With
+    a rotation that now applies per MOTION: an unbuilt motion drops
+    out of that day and the next one in the order is used.
 
 ----------------------------------------------------------------
 ENDCARD BUILD (only when a motion file or copy changes)
@@ -210,10 +217,47 @@ npm run endcard:build allday_pro (one variant)
     generation. Midday/Evening reuse the SAME pro motion file, so
     session endcards cost nothing but a config entry.
 
+    MKT-19: each variant is now built against every motion in ITS
+    TIER — pro kinds (All-Day Pro, Midday, Evening, Verify) get the
+    pro motions, free kinds get the free ones, and nothing crosses.
+    Files are named <variant-out>_<tag>.mp4, derived from the
+    registry's own output name rather than composed from the kind,
+    because verify's is verif_endcard.mp4 with no "y".
+
+    This run also DERIVES each motion's hum-bed verdict and writes
+    assets/marketing/_motion_meta.json. Short-carrier days need a
+    bed under the modals, and a build-up motion has no level-steady
+    stretch to supply one; those motions drop from the rotation on
+    those days only. Nothing to maintain by hand — re-running the
+    build re-derives it, so a regenerated motion clears its own
+    verdict. Commit the JSON with the built files.
+
     Safe to re-run: a variant whose motion file hasn't been
     delivered is skipped, and the first time a hand-made endcard
     is replaced it's preserved as <name>_baked_backup.mp4.
     Run npm run reel:check afterwards.
+
+
+----------------------------------------------------------------
+FORCING ONE MOTION (review / gate only — not for a daily run)
+----------------------------------------------------------------
+
+npm run reel:allday -- --stinger-motion=circuit
+npm run reel:allday -- --endcard-motion=alt
+
+    Overrides the date rotation for one assembly so a specific
+    combination can be watched end to end. Both flags take a motion
+    TAG (std | strike | circuit for stingers, std | alt for
+    endcards) and can be combined.
+
+    Use these instead of changing the date. A faked date would trip
+    MKT-18's provenance guard — correctly, since the body carries
+    the day it was captured for — and that guard is not something
+    to work around.
+
+    An unknown tag, or one outside the kind's tier, ABORTS rather
+    than quietly falling back, so a typo can't produce a reel that
+    silently reports the combination it didn't run.
 
 
 ----------------------------------------------------------------

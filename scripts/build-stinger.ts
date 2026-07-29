@@ -15,6 +15,7 @@ import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { STINGER_MOTIONS, builtStingerName, FADE_TARGET_TOLERANCE, type MotionVariant } from './brand-motion';
 import {
   STINGERS, STINGER_DUR, TEXT_IN_START, TEXT_IN_DUR, TEXT_OUT_START, TEXT_OUT_DUR,
   LINE_STAGGER, TEXT_SCALE_FROM, TEXT_FPS, LOCKUP_TOP, CROP_SAFE_BOTTOM,
@@ -30,6 +31,115 @@ const MED = `${FONT_DIR}/500Medium/Inter_500Medium.ttf`;
 
 /** Eased 0..1 — matches the reel's other motion (cosine ease-in-out). */
 const ease = (t: number) => (1 - Math.cos(Math.PI * Math.min(Math.max(t, 0), 1))) / 2;
+
+/**
+ * MKT-19 — authored per-motion audio correction.
+ *
+ * Only `stinger_motion_circuit` declares one. It carries a second transient (a
+ * gold pulse at 2.7s) on top of its hero beat at 1.4s; the lockup is out by
+ * 2.4s, so the pulse fires on an empty frame 0.3s before the cut to the body and
+ * reads as a pop against the dissolve. Fading from 2.45s to silence by 2.70s
+ * removes it while leaving the 2.3s smoke-return whoosh intact.
+ *
+ * Reaching true silence before the stinger ends is not a compromise here — the
+ * carrier VO is already running underneath by this point, and the assembler
+ * crossfades into the body regardless.
+ */
+const FADE_TO_SILENCE = 0.25;
+
+/** Per-0.1s peak envelope of a file's audio, in dB. */
+function peaks(file: string): Array<[number, number]> {
+  const out = execSync(
+    `ffmpeg -hide_banner -v error -i "${file}" -af "aformat=channel_layouts=mono,asetnsamples=4800,` +
+      `astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.Peak_level:file=-" -f null - 2>/dev/null || true`,
+    { shell: '/bin/bash' },
+  ).toString();
+  const r: Array<[number, number]> = [];
+  let t = 0;
+  for (const l of out.split('\n')) {
+    const pt = l.match(/pts_time:([\d.]+)/); if (pt) t = parseFloat(pt[1]);
+    const v = l.match(/Peak_level=(-?[\d.]+|-?inf)/);
+    if (v) r.push([+t.toFixed(1), v[1] === '-inf' ? -120 : parseFloat(v[1])]);
+  }
+  return r;
+}
+
+/**
+ * Transients by PROMINENCE — how far a peak jumps above the floor just before
+ * it — not by absolute level.
+ *
+ * Calibrated against the real set, because the first cut of this used "any local
+ * maximum above -12dB" and immediately warned on two healthy assets. Measured
+ * over 2.2-3.0s:
+ *   circuit   -21.9dB -> -4.7dB  = 17.2dB rise   the gold pulse. A pop.
+ *   incumbent -12.4dB -> -6.7dB  =  5.6dB rise   the smoke-return swell.
+ *   strike    -13.0dB -> -6.0dB  =  7.0dB rise   the smoke-return swell.
+ * The incumbent has shipped daily for weeks with its 2.8s peak and nobody has
+ * ever remarked on it, which is the evidence that a broad swell is not the
+ * defect. What makes circuit a pop is the SHARPNESS of the rise, so that is what
+ * gets measured. A guard that cries wolf on two of three assets would train the
+ * operator to skim past it — worse than no guard.
+ */
+const PROMINENCE_DB = 12;
+const PROMINENCE_LOOKBACK = 0.4;
+function transients(file: string, within: number): number[] {
+  const p = peaks(file).filter(([t]) => t <= within);
+  const out: number[] = [];
+  for (let i = 1; i < p.length - 1; i++) {
+    const [t, db] = p[i];
+    if (db < p[i - 1][1] || db <= p[i + 1][1]) continue;          // local max only
+    const back = p.filter(([bt]) => bt >= t - PROMINENCE_LOOKBACK && bt < t);
+    if (!back.length) continue;
+    const floor = Math.min(...back.map(([, d]) => d));
+    if (db - floor >= PROMINENCE_DB) out.push(t);
+  }
+  return out;
+}
+
+/**
+ * MKT-19 ruling: the build owns the correction's continued justification.
+ *
+ * Re-derives this motion's transients and checks the authored fade still earns
+ * its place. Returns the ffmpeg audio filter, or '' when the correction should
+ * not be applied. Warnings are printed rather than thrown — a stale correction
+ * degrades a brand beat, it does not break a reel, and failing the build would
+ * block the daily run over a cosmetic regression.
+ */
+function audioFilter(mv: MotionVariant, motionPath: string, usedWindow: number): string {
+  const found = transients(motionPath, usedWindow);
+  // A transient inside the final stretch of the used window is the defect class:
+  // it fires after the lockup is gone and lands against the dissolve.
+  const LATE = 0.6;
+  const late = found.filter(t => t >= usedWindow - LATE);
+
+  if (mv.audioFadeFrom == null) {
+    if (late.length) {
+      console.log(
+        `  ⚠️  ${mv.file}: uncovered transient(s) at ${late.map(t => t + 's').join(', ')} — inside the last ${LATE}s of the ${usedWindow}s window, ` +
+        `so they fire after the lockup is out and land against the dissolve. This is the circuit defect in a new asset; consider an authored fade.`,
+      );
+    }
+    return '';
+  }
+
+  const target = mv.audioFadeAgainst;
+  const stillThere = target == null || found.some(t => Math.abs(t - target) <= FADE_TARGET_TOLERANCE);
+  if (!stillThere) {
+    console.log(
+      `  ⚠️  ${mv.file}: authored fade targets a transient at ${target}s, but none was re-derived there ` +
+      `(found: ${found.length ? found.map(t => t + 's').join(', ') : 'none'}). The asset appears to have been regenerated — ` +
+      `NOT applying the fade. Remove audioFadeFrom/audioFadeAgainst from brand-motion.ts.`,
+    );
+    return '';
+  }
+  // Anything late the fade does not actually reach is still worth reporting.
+  const uncovered = late.filter(t => t < mv.audioFadeFrom!);
+  if (uncovered.length) {
+    console.log(`  ⚠️  ${mv.file}: transient(s) at ${uncovered.map(t => t + 's').join(', ')} land BEFORE the fade starts (${mv.audioFadeFrom}s) — not suppressed.`);
+  }
+  console.log(`  audio: fade from ${mv.audioFadeFrom}s (target transient at ${target}s re-derived, justified)`);
+  return `-af "afade=t=out:st=${mv.audioFadeFrom}:d=${FADE_TO_SILENCE}"`;
+}
 
 /** Per-line opacity + scale at time `t` within the stinger. */
 function lineState(t: number, index: number): { opacity: number; scale: number } {
@@ -89,12 +199,13 @@ async function openPage(lines: [string, string]): Promise<{ page: Page; close: (
   return { page, close: async () => { await browser.close(); rmSync(tmpHtml, { force: true }); } };
 }
 
-async function build(key: string, v: StingerVariant): Promise<void> {
-  const motion = join(ASSETS, v.motion);
-  const out = join(ASSETS, stingerFile(key));
+async function build(key: string, v: StingerVariant, mv: MotionVariant): Promise<void> {
+  const motion = join(ASSETS, mv.file);
+  const outName = builtStingerName(key, mv.tag);
+  const out = join(ASSETS, outName);
   if (!v.enabled) { console.log(`SKIP ${key}: enabled:false — this reel kind assembles with no stinger.`); return; }
-  if (!existsSync(motion)) { console.log(`SKIP ${key}: ${v.motion} not delivered yet.`); return; }
-  console.log(`${key} → ${stingerFile(key)}  (motion: ${v.motion})`);
+  if (!existsSync(motion)) { console.log(`SKIP ${key}/${mv.tag}: ${mv.file} not delivered yet.`); return; }
+  console.log(`${key}/${mv.tag} → ${outName}  (motion: ${mv.file} — ${mv.label})`);
 
   const frameDir = join(tmpdir(), `stinger-frames-${key}`);
   rmSync(frameDir, { recursive: true, force: true });
@@ -133,7 +244,7 @@ async function build(key: string, v: StingerVariant): Promise<void> {
       `[1:v]format=rgba,fps=60,tpad=start_duration=${TEXT_IN_START}:start_mode=add:color=0x00000000,` +
       `tpad=stop_duration=${STINGER_DUR}:stop_mode=add:color=0x00000000,trim=duration=${STINGER_DUR},setpts=PTS-STARTPTS[txt];` +
       `[mot][txt]overlay=0:0:format=auto,format=yuv420p,trim=duration=${STINGER_DUR},setpts=PTS-STARTPTS[v]" ` +
-      `-map "[v]" -map 0:a -c:v libx264 -profile:v high -crf 17 -pix_fmt yuv420p ` +
+      `-map "[v]" -map 0:a ${audioFilter(mv, motion, STINGER_DUR)} -c:v libx264 -profile:v high -crf 17 -pix_fmt yuv420p ` +
       `-c:a aac -b:a 192k -ar 48000 -t ${STINGER_DUR} -movflags +faststart "${out}"`,
   );
   rmSync(frameDir, { recursive: true, force: true });
@@ -147,6 +258,7 @@ async function build(key: string, v: StingerVariant): Promise<void> {
   for (const k of keys) {
     const v = STINGERS[k];
     if (!v) { console.error(`ABORT: unknown variant "${k}". Known: ${Object.keys(STINGERS).join(', ')}`); process.exit(1); }
-    await build(k, v);
+    // MKT-19: one built stinger per (variant x motion).
+    for (const mv of STINGER_MOTIONS) await build(k, v, mv);
   }
 })();

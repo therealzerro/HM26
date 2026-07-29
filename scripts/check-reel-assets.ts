@@ -26,6 +26,12 @@ import { PANELS, PANEL_W } from './panel-config';
 import { MODAL_COUNT, PANEL_BUCKET, panelUrl, panelSequence, rotationDegenerate } from '../constants/reelPanels';
 import { STINGERS, STINGER_DUR, INTRO_XFADE, stingerFile } from './stinger-config';
 import { ENDCARDS } from './endcard-config';
+import {
+  STINGER_MOTIONS, ENDCARD_MOTIONS, allMotionFiles, tierFor,
+  builtEndcardName, builtStingerName, readMotionMeta,
+} from './brand-motion';
+import { endcardCandidates } from './reel-endcard';
+import { stingerCandidates } from './reel-stinger';
 import { REEL_SCOPES, SCOPES, reelKind } from './reel-scopes';
 import { allIntroFiles, introCandidates } from './anchor-intros';
 import { INTRO_MIN, INTRO_MAX } from './reel-intro';
@@ -35,6 +41,9 @@ import { INTRO_MIN, INTRO_MAX } from './reel-intro';
 loadEnv({ path: resolve('.env'), quiet: true });
 
 const ASSETS = resolve('assets/marketing');
+/** ET date, no clock — the same basis the rotations use, so the reported
+ *  selection is what a run this morning actually resolves. */
+const TODAY = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 const OPEN = 1.2, BODY = 19.0, CARD = 6.5; // assembler constants (body measured at runtime; 19.0 = current renderer)
 // MKT-08: with an active anchor intro the VO enters at introDur−0.4, so the
 // usable VO window (on the CARRIER's own timeline) shrinks 17.2 → 16.4s and
@@ -278,12 +287,22 @@ const ARCHIVE_RE = /(_master(_\d+s)?|_backup)\.mp4$/i;
 function checkStrays(): void {
   const referenced = new Set<string>();
 
-  for (const v of Object.values(ENDCARDS)) { referenced.add(v.out); referenced.add(v.motion); }
+  for (const [kind, v] of Object.entries(ENDCARDS)) {
+    referenced.add(v.out);        // pre-MKT-19 unversioned build (resolver's last resort)
+    referenced.add(v.motion);
+    // MKT-19: the built matrix. Derived with builtEndcardName from the registry
+    // `out` field — the SAME call the resolver uses — so the expected set cannot
+    // disagree with what the assembler reads. Constructing these independently
+    // is how checkStrays would start reporting phantom strays for verify.
+    for (const m of ENDCARD_MOTIONS[tierFor(kind)]) referenced.add(builtEndcardName(v.out, m.tag));
+  }
+  for (const m of allMotionFiles()) referenced.add(m);
   for (const [variant, cfg] of Object.entries(STINGERS)) {
     // Disabled variants included deliberately: a prebuilt stinger for a kind
     // whose flag is currently off is intended to sit there, not a stray.
-    referenced.add(stingerFile(variant));
+    referenced.add(stingerFile(variant));   // pre-MKT-19 unversioned build
     referenced.add(cfg.motion);
+    for (const m of STINGER_MOTIONS) referenced.add(builtStingerName(variant, m.tag));
   }
   const carrierBases = [
     ...SCOPES.flatMap(s => REEL_SCOPES[s].variants.map(v => `${reelKind(s, v)}_carrier`)),
@@ -315,8 +334,54 @@ function checkStrays(): void {
   }
 }
 
+/**
+ * MKT-19 — check EVERY built endcard the rotation can reach, not just today's.
+ *
+ * Checking only the resolved pick would leave tomorrow's endcard unvalidated
+ * until tomorrow, which is a preflight that finds a defect on the morning it
+ * ships rather than the morning before. Same MKT-17 asymmetry: MISSING is a WARN
+ * (the ordered resolver walks past it) but DEFECTIVE is a FAIL, because a
+ * defective member drops the day it comes up, with a log line nobody reads.
+ */
 function checkSlateEndcard(kind: string, carrierDur: number | null): void {
-  const name = `${kind}_endcard.mp4`;
+  const spec = ENDCARDS[kind];
+  if (!spec) return;
+  const needsBed = carrierDur != null && carrierDur < voiceWindow() - 0.05;
+  const meta = readMotionMeta(ASSETS);
+  const set = ENDCARD_MOTIONS[tierFor(kind)];
+  // Bed viability is a property of the MOTION and is what the resolver filters
+  // on, so a build-up motion must not be failed for lacking a bed on a hum-bed
+  // day — it correctly drops out. Only the motions the resolver could actually
+  // land on get the bed requirement applied.
+  const bedViable = (m: { file: string }) => meta[m.file]?.bedUsable !== false;
+  for (const m of set) {
+    const built = builtEndcardName(spec.out, m.tag);
+    if (!existsSync(join(ASSETS, built))) {
+      add('WARN', built, `not built — ${m.label} drops from ${kind}'s rotation on the days it comes up. Run npm run endcard:build ${kind}`);
+      continue;
+    }
+    checkOneEndcard(kind, built, needsBed && bedViable(m), needsBed && !bedViable(m) ? m.label : null);
+  }
+  // The pre-MKT-19 unversioned build is the resolver's last resort, so it is
+  // still load-bearing while it exists and is still checked.
+  if (existsSync(join(ASSETS, spec.out))) checkOneEndcard(kind, spec.out, needsBed, null);
+
+  // What this kind actually closes on today — same candidate ordering the
+  // assembler walks, taken from the resolver rather than re-derived here.
+  const cands = endcardCandidates(ASSETS, kind, TODAY, needsBed) ?? [];
+  const pick = cands.find(c => existsSync(join(ASSETS, c.name)));
+  if (pick) {
+    add('PASS', `${kind} endcard selection`, `today (${TODAY}): ${pick.name} [${pick.motion.label}]${needsBed ? ' · bed-aware (short carrier)' : ''}`);
+  } else {
+    add('FAIL', `${kind} endcard selection`, `nothing resolves — tried ${cands.map(c => c.name).join(', ')}. A reel cannot assemble without a close; the assembler will abort. Run npm run endcard:build ${kind}`);
+  }
+}
+
+/**
+ * `bedExempt` names the motion when a hum-bed day is expected to skip this file
+ * rather than require a bed of it — reported so the drop is visible, not silent.
+ */
+function checkOneEndcard(kind: string, name: string, needsBed: boolean, bedExempt: string | null): void {
   const p = exists(name);
   if (!p) return;
   const s = streams(p);
@@ -325,7 +390,6 @@ function checkSlateEndcard(kind: string, carrierDur: number | null): void {
   // Audio requirement mirrors the assembler abort: the outro always needs CARD.
   // MKT-10: the bed palindrome-fills from a fixed window, so a short carrier
   // no longer inflates the requirement — only the window itself must exist.
-  const needsBed = carrierDur != null && carrierDur < voiceWindow() - 0.05;
   const audioNeed = CARD;
   if (s.aDur + 0.05 < audioNeed) return add('FAIL', name, `audio ${s.aDur.toFixed(1)}s < required ${audioNeed.toFixed(1)}s (outro/bed)`);
   add('PASS', name, `video ${s.vDur.toFixed(1)}s · audio ${s.aDur.toFixed(1)}s (need ${audioNeed.toFixed(1)}s)`);
@@ -337,7 +401,9 @@ function checkSlateEndcard(kind: string, carrierDur: number | null): void {
   // "does the crack avoid a fixed window" but "does a usable window exist at
   // all". Null means the crack is too early or the audio decays away — the
   // assembler aborts rather than replaying the bolt snap under the modals.
-  if (needsBed) {
+  if (bedExempt) {
+    add('PASS', name, `no hum bed by design (${bedExempt} is a build-up) — MKT-19 drops it from ${kind}'s rotation on this short-carrier day rather than aborting`);
+  } else if (needsBed) {
     const bed = bedWindow(p, CARD);
     if (!bed) {
       add('FAIL', name, `no usable hum-bed window (loudest transient at ${peakDb(p, 0, CARD).toFixed(1)}dB leaves no crack-free, level-steady stretch) — this variant needs a wall-to-wall carrier, not a shorter one`);
@@ -405,13 +471,32 @@ function checkVerify(): void {
     else if (s.aDur + 0.05 < need) add('FAIL', 'verif_carrier.mp4', `audio ${s.aDur.toFixed(1)}s < ${need.toFixed(1)}s — reel goes silent early (nothing aborts on this)`);
     else add('PASS', 'verif_carrier.mp4', `audio ${s.aDur.toFixed(1)}s (${need.toFixed(1)}s used${INTRO_ACTIVE ? ', intro-shifted' : ''})`);
   }
-  const e = exists('verif_endcard.mp4');
-  if (e) {
+  // MKT-19 — verify's endcard rotates too, and this was the eighth reader: a
+  // hardcoded `verif_endcard.mp4`, the same literal the verify assembler used
+  // twice. Left alone it would have validated the unversioned build while the
+  // assembler read a motion-tagged one — a green preflight on a file the run
+  // never opens, on the single reel whose job is to catch failures. Verify never
+  // beds (its soundtrack is verif_carrier), so needsBed is false.
+  const cands = endcardCandidates(ASSETS, 'verify', TODAY, false) ?? [];
+  for (const c of cands) {
+    const e = exists(c.name);
+    if (!e) {
+      if (!c.legacy) add('WARN', c.name, `not built — ${c.motion.label} drops from verify's rotation on the days it comes up. Run npm run endcard:build verify`);
+      continue;
+    }
     const s = streams(e);
-    if (!Number.isFinite(s.vDur) || s.vDur < 2.5) add('FAIL', 'verif_endcard.mp4', `video ${s.vDur?.toFixed(1)}s < 2.5s tail window`);
-    else add('PASS', 'verif_endcard.mp4', `video ${s.vDur.toFixed(1)}s (last 2.5s + tail frame used; audio not used)`);
-    if (s.h < 1920) add('WARN', 'verif_endcard.mp4', `${s.w}x${s.h} — will be upscaled to 1080x1920`);
+    if (!Number.isFinite(s.vDur) || s.vDur < 2.5) add('FAIL', c.name, `video ${s.vDur?.toFixed(1)}s < 2.5s tail window`);
+    else add('PASS', c.name, `video ${s.vDur.toFixed(1)}s (last 2.5s + tail frame used; audio not used)`);
+    if (s.h < 1920) add('WARN', c.name, `${s.w}x${s.h} — will be upscaled to 1080x1920`);
   }
+  const pick = cands.find(c => existsSync(join(ASSETS, c.name)));
+  add(
+    pick ? 'PASS' : 'FAIL',
+    'verify endcard selection',
+    pick
+      ? `today (${TODAY}): ${pick.name} [${pick.motion.label}] — supplies the close and, on the legacy path, the fallback open frame`
+      : `nothing resolves — tried ${cands.map(c => c.name).join(', ')}. Run npm run endcard:build verify`,
+  );
 }
 
 // MKT-11: panels render INSIDE the app's pick-detail modal during capture, so
@@ -508,24 +593,82 @@ function checkStamp(): void {
  * right runtime behaviour and the wrong preflight behaviour — the daily run
  * would just quietly lose the brand beat — so surface it here.
  */
+/**
+ * MKT-19 — validate every motion in every set, and guard the empty-set edge.
+ *
+ * Two jobs. First, the same reasoning as the intro set: with rotation a
+ * defective member is worse than a missing one, because it degrades a day
+ * quietly. Second, and this is the one that can only bite at 08:29 on a
+ * short-carrier morning: the bed-aware resolver filters to bed-viable motions
+ * when a hum bed is needed, and if a whole TIER has none the filtered set is
+ * empty. It currently falls back to the incumbent, which only helps because the
+ * pro incumbent happens to have a usable bed — luck, not a guarantee, and it
+ * evaporates the day the incumbent is replaced. So assert it here, where it is
+ * cheap, rather than discovering it there.
+ */
+function checkMotions(): void {
+  const meta = readMotionMeta(ASSETS);
+  for (const f of allMotionFiles()) {
+    const p = join(ASSETS, f);
+    if (!existsSync(p)) { add('WARN', f, 'not delivered — drops from its rotation; the resolver falls back'); continue; }
+    if (statSync(p).size < 100_000) { add('FAIL', f, `${statSync(p).size} bytes — placeholder/corrupt`); continue; }
+    const st = streams(p);
+    if (!st.hasAudio) { add('FAIL', f, 'no audio stream — motion audio is load-bearing (stinger impact / endcard crack)'); continue; }
+    const m = meta[f];
+    const bedNote = m ? (m.bedUsable ? `bed ok @ ${m.bedRms}dB` : 'NO BED — drops on hum-bed days only') : 'bed not yet derived (run endcard:build)';
+    add('PASS', f, `video ${st.vDur.toFixed(2)}s · audio ${st.aDur.toFixed(2)}s · ${bedNote}`);
+    if (st.h < 1920) add('WARN', f, `${st.w}x${st.h} — will be upscaled to 1080x1920`);
+  }
+  // The empty-set guard, per tier.
+  for (const tier of ['pro', 'free'] as const) {
+    const set = ENDCARD_MOTIONS[tier];
+    const delivered = set.filter(m => existsSync(join(ASSETS, m.file)));
+    const viable = delivered.filter(m => meta[m.file]?.bedUsable !== false);
+    if (!delivered.length) {
+      add('FAIL', `${tier} endcard motions`, 'no motion in this tier is delivered — reels of this tier cannot close');
+    } else if (!viable.length) {
+      add('FAIL', `${tier} endcard motions`, `NONE of the ${delivered.length} delivered motions has a usable hum bed. A short carrier on a ${tier}-tier kind would leave the bed-aware resolver with an empty set and abort the run. Deliver a motion with a level-steady pre-crack window, or keep ${tier} carriers wall-to-wall.`);
+    } else {
+      add('PASS', `${tier} endcard motions`, `${viable.length}/${delivered.length} bed-viable (${viable.map(m => m.tag).join(', ')}) — short-carrier days can always resolve a close`);
+    }
+  }
+}
+
 function checkStingers(): void {
   for (const [variant, cfg] of Object.entries(STINGERS)) {
     if (!cfg.enabled) continue;
-    const file = stingerFile(variant);
-    const p = join(ASSETS, file);
-    if (!existsSync(p)) {
-      add('WARN', file, `enabled for ${variant} but not built — run npm run stinger:build ${variant} (the reel assembles without the branded beat)`);
-      continue;
-    }
-    if (statSync(p).size < 100_000) { add('FAIL', file, `${statSync(p).size} bytes — placeholder/corrupt`); continue; }
-    const s = streams(p);
-    if (!Number.isFinite(s.vDur) || s.vDur < STINGER_DUR - 0.05) {
-      add('FAIL', file, `video ${s.vDur?.toFixed(1)}s < the ${STINGER_DUR}s window the assembler trims to`);
-    } else if (!s.hasAudio) {
-      add('FAIL', file, 'no audio stream — the stinger impact is load-bearing');
-    } else {
-      add('PASS', file, `video ${s.vDur.toFixed(1)}s · "${cfg.lines[1]}" — adds ${(STINGER_DUR - INTRO_XFADE).toFixed(1)}s to ${variant}`);
-    }
+    // MKT-19: every built member of the rotation, plus the unversioned build
+    // while it survives as the resolver's last resort. Checking only today's
+    // pick would validate one of three files and call the set healthy.
+    for (const m of STINGER_MOTIONS) checkOneStinger(variant, cfg, builtStingerName(variant, m.tag), m.label);
+    if (existsSync(join(ASSETS, stingerFile(variant)))) checkOneStinger(variant, cfg, stingerFile(variant), null);
+
+    const cands = stingerCandidates(variant, TODAY);
+    const pick = cands.find(c => existsSync(join(ASSETS, c.name)));
+    add(
+      pick ? 'PASS' : 'WARN',
+      `${variant} stinger selection`,
+      pick
+        ? `today (${TODAY}): ${pick.name} [${pick.motion ? pick.motion.label : 'unversioned build'}]`
+        : `nothing built (tried ${cands.map(c => c.name).join(', ')}) — the reel assembles without the branded beat. Run npm run stinger:build ${variant}`,
+    );
+  }
+}
+
+function checkOneStinger(variant: string, cfg: (typeof STINGERS)[string], file: string, label: string | null): void {
+  const p = join(ASSETS, file);
+  if (!existsSync(p)) {
+    add('WARN', file, `not built — ${label ?? 'the unversioned build'} drops from ${variant}'s rotation on the days it comes up. Run npm run stinger:build ${variant}`);
+    return;
+  }
+  if (statSync(p).size < 100_000) { add('FAIL', file, `${statSync(p).size} bytes — placeholder/corrupt`); return; }
+  const s = streams(p);
+  if (!Number.isFinite(s.vDur) || s.vDur < STINGER_DUR - 0.05) {
+    add('FAIL', file, `video ${s.vDur?.toFixed(1)}s < the ${STINGER_DUR}s window the assembler trims to`);
+  } else if (!s.hasAudio) {
+    add('FAIL', file, 'no audio stream — the stinger impact is load-bearing');
+  } else {
+    add('PASS', file, `video ${s.vDur.toFixed(1)}s · "${cfg.lines[1]}"${label ? ` · ${label}` : ''} — adds ${(STINGER_DUR - INTRO_XFADE).toFixed(1)}s to ${variant}`);
   }
 }
 
@@ -543,7 +686,12 @@ function checkScopes(): void {
     for (const v of REEL_SCOPES[scope].variants) {
       const kind = reelKind(scope, v);
       const hasCarrier = existsSync(join(ASSETS, `${kind}_carrier.mp4`));
-      const hasEndcard = existsSync(join(ASSETS, `${kind}_endcard.mp4`));
+      // MKT-19: same fix — resolve, do not construct (see checkSlateEndcard).
+      const ecSpec = ENDCARDS[kind];
+      const hasEndcard = Boolean(ecSpec) && (
+        existsSync(join(ASSETS, ecSpec.out)) ||
+        ENDCARD_MOTIONS[tierFor(kind)].some(m => existsSync(join(ASSETS, builtEndcardName(ecSpec.out, m.tag))))
+      );
       if (!hasCarrier && !hasEndcard) {
         add('PASS', kind, `no assets delivered — dormant (npm run reel:${scope} would abort until a carrier + endcard land)`);
         continue;
@@ -558,6 +706,7 @@ function checkScopes(): void {
 INTRO_ACTIVE = checkIntros();
 checkPartNaming();
 checkStrays();
+checkMotions();
 checkScopes();
 checkStingers();
 checkVerify();

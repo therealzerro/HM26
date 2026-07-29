@@ -22,12 +22,23 @@ import { copyFileSync, existsSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import {
+  ENDCARD_MOTIONS, tierFor, builtEndcardName, readMotionMeta,
+  MOTION_META_FILE, type MotionVariant, type MotionMeta,
+} from './brand-motion';
+import { bedWindow } from './reel-bed';
+import {
   ENDCARDS, LOCKUP_TOP, CROP_SAFE_BOTTOM, TEXT_FADE_IN, TEXT_FADE_DUR, OUT_W, OUT_H,
   type EndcardVariant,
 } from './endcard-config';
 
 const ASSETS = resolve('assets/marketing');
 const sh = (c: string) => execSync(c, { stdio: 'inherit' });
+
+/** Outro window the bed must be found within — mirrors the assembler's CARD. */
+const CARD_WINDOW = 6.5;
+/** Date-only stamp; no clock, so a rebuild of the same day is reproducible. */
+const STAMP = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+const DERIVED: Record<string, MotionMeta> = {};
 
 const FONT_DIR = resolve('node_modules/@expo-google-fonts/inter');
 const BOLD = `${FONT_DIR}/700Bold/Inter_700Bold.ttf`;
@@ -98,20 +109,21 @@ async function renderLockup(lines: [string, string, string], out: string): Promi
   }
 }
 
-async function build(key: string, v: EndcardVariant): Promise<void> {
-  const motion = join(ASSETS, v.motion);
-  const out = join(ASSETS, v.out);
+async function build(key: string, v: EndcardVariant, mv: MotionVariant): Promise<void> {
+  const motion = join(ASSETS, mv.file);
+  const outName = builtEndcardName(v.out, mv.tag);
+  const out = join(ASSETS, outName);
   if (!existsSync(motion)) {
-    console.log(`SKIP ${key}: ${v.motion} not delivered yet — leaving ${v.out} as-is.`);
+    console.log(`SKIP ${key}/${mv.tag}: ${mv.file} not delivered yet — leaving ${outName} as-is.`);
     return;
   }
-  console.log(`${key} → ${v.out}  (motion: ${v.motion})`);
+  console.log(`${key}/${mv.tag} → ${outName}  (motion: ${mv.file} — ${mv.label})`);
 
   // One-time preservation of a delivered baked endcard before it is replaced
   // by a built one; the motion file becomes the source of truth from here.
   const backup = join(ASSETS, v.out.replace(/\.mp4$/, '_baked_backup.mp4'));
-  if (existsSync(out) && !existsSync(backup)) {
-    copyFileSync(out, backup);
+  if (existsSync(join(ASSETS, v.out)) && !existsSync(backup)) {
+    copyFileSync(join(ASSETS, v.out), backup);
     console.log(`  preserved previous baked endcard → ${v.out.replace(/\.mp4$/, '_baked_backup.mp4')}`);
   }
 
@@ -130,7 +142,28 @@ async function build(key: string, v: EndcardVariant): Promise<void> {
       `-c:a copy -shortest -movflags +faststart "${out}"`,
   );
   const dur = execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${out}"`).toString().trim();
-  console.log(`  ✔ ${v.out} · ${(+dur).toFixed(2)}s · text fades ${TEXT_FADE_IN}-${TEXT_FADE_IN + TEXT_FADE_DUR}s, opaque to final frame`);
+  console.log(`  ✔ ${outName} · ${(+dur).toFixed(2)}s · text fades ${TEXT_FADE_IN}-${TEXT_FADE_IN + TEXT_FADE_DUR}s, opaque to final frame`);
+
+  // MKT-19: DERIVE the hum-bed verdict here, at build time, and cache it per
+  // MOTION. The resolver has to know whether a motion can bed BEFORE it picks
+  // one, and bedWindow() is a two-pass ffmpeg profile — far too expensive to run
+  // across the whole set on every assembly. Keyed by motion (not by built file)
+  // because the built endcard copies the motion's audio unchanged, so every
+  // variant sharing a motion shares its verdict.
+  if (!DERIVED[mv.file]) {
+    const b = bedWindow(out, CARD_WINDOW);
+    DERIVED[mv.file] = {
+      bedUsable: Boolean(b),
+      bedRms: b ? b.rms : null,
+      crackAt: b ? b.crackAt : null,
+      derivedAt: STAMP,
+    };
+    console.log(
+      b
+        ? `  bed: ${b.mode} ${b.start}-${b.end}s @ ${b.rms}dB (crack ${b.crackAt}s)`
+        : `  bed: NONE — this motion drops from the rotation on hum-bed days (MKT-19). Wall-to-wall carriers are unaffected.`,
+    );
+  }
 }
 
 (async () => {
@@ -142,6 +175,14 @@ async function build(key: string, v: EndcardVariant): Promise<void> {
       console.error(`ABORT: unknown variant "${k}". Known: ${Object.keys(ENDCARDS).join(', ')}`);
       process.exit(1);
     }
-    await build(k, v);
+    // MKT-19: one built artifact per (variant x motion), tier-locked. Strategy
+    // (a) — prebuild the matrix so the daily run, which is operator-triggered
+    // before 08:30 ET and is the only trigger, pays nothing for rotation.
+    for (const mv of ENDCARD_MOTIONS[tierFor(k)]) await build(k, v, mv);
   }
+  // Merge rather than overwrite: building a single variant must not discard
+  // verdicts derived for motions this run did not touch.
+  const merged = { ...readMotionMeta(ASSETS), ...DERIVED };
+  writeFileSync(join(ASSETS, MOTION_META_FILE), JSON.stringify(merged, null, 2) + '\n');
+  console.log(`\nmotion metadata → ${MOTION_META_FILE} (${Object.keys(merged).length} motions)`);
 })();

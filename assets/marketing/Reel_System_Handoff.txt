@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-07-28 · v1.6
+Content Agent Handoff · 2026-07-29 · v1.7
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -16,6 +16,34 @@ Companion docs:
   - assets/marketing/AllDay_Reel_Endcard_Revision_Brief_2026-07-27.md (endcard contract)
   - docs/mkt15_phase2_copy_brief.md (public copy set — DELIVERED + the bolt request)
   - REEL_COMMANDS.txt (repo root — operator command reference)
+
+WHAT CHANGED IN v1.7 (MKT-19 — the brand motion is now a SET)
+  A. THE STINGER AND THE ENDCARD ROTATE, like the intro already did. Motion is
+     a set of files; copy stays per-variant config. Three stinger motions, two
+     endcard motions PER TIER. §2, §7.
+  B. TIER PAIRING IS ENFORCED IN CODE, not by convention. Pro kinds (All-Day
+     Pro, Midday, Evening, Verify) can only draw pro endcard motions; free and
+     public kinds only free ones. You cannot propose a "pro motion on the free
+     close" — there is no path for it.
+  C. v1.6 §2 WAS WRONG ABOUT THE FREE ENDCARD. It said Free cannot supply a hum
+     bed and therefore REQUIRES a wall-to-wall carrier. That described the old
+     BAKED endcard, which cracked at ~1.0s; the motion-built one cracks at 4.3s
+     and beds cleanly at −29.3 dB. Free has no such restriction. Corrected in
+     §2 — if you shelved a ~10s Free carrier idea because of that line, it is
+     back on the table.
+  D. THE REAL BED RESTRICTION IS PER MOTION, not per tier, and it is handled
+     automatically. A build-up motion (one that swells continuously into the
+     crack) has no level-steady stretch to loop, so it simply drops out of the
+     rotation on short-carrier days and plays normally on wall-to-wall ones.
+     Today that is `endcard_motion_pro_alt` (vault rings). Nothing for you to
+     track — but it is why a delivered motion may not appear on a given day.
+  E. BED LEVEL IS NOW MATCHED ACROSS MOTIONS. Beds were mixed raw at a flat
+     gain, so hum-bed days varied by up to 4.8 dB purely on which motion the
+     date drew. They are now level-matched to a reference. Audible consistency
+     only; no spec of yours changes.
+  F. NEW DELIVERY SPEC FOR MOTIONS in §7, and a review command in
+     REEL_COMMANDS.txt (`--stinger-motion=` / `--endcard-motion=`) for watching
+     one specific combination end to end.
 
 WHAT CHANGED IN v1.6 (six corrections; v1.5 is wrong on all six)
   1. THE MULTI-PART CARRIER CEILING IN v1.5 IS ARITHMETICALLY WRONG. It said
@@ -133,6 +161,12 @@ every timestamp after the intro shifts 0.4s later and the reel is 34.20s.
                refills the frame. It both OPENS and CLOSES on smoke, which is
                why the existing dissolve below needs no change.
                Per-variant copy; prebuilt by npm run stinger:build.
+               ⚠ v1.7 — THE MOTION ROTATES. Three motions (bolt condense,
+               strike, circuit), picked by date on the same clock-free basis
+               as the intro and panels, shared across tiers because a
+               stinger carries no tier signal. Copy is unaffected: the
+               headline is still per-variant config, rendered over whichever
+               motion the day draws.
   7.5 – 8.3    0.8s eased dissolve from the stinger's smoke into the UI body
                (overlaps the tail — not extra time).
   8.3 – 27.3   BODY (19.0s) — 4.0s slow push-in over the full 2×3 signal
@@ -160,6 +194,16 @@ every timestamp after the intro shifts 0.4s later and the reel is 34.20s.
                asset, not of the timeline. Measured 2026-07-27:
                  Pro  — crack at 4.4s of the endcard → ~31.7s of the reel
                  Free — crack at 4.3s of the endcard → ~31.6s of the reel
+               ⚠ v1.7 — THE ENDCARD MOTION ROTATES TOO, per tier. Measured
+               across the full built set 2026-07-29:
+                 Pro  std (converging threads) 4.4s  ·  alt (vault rings) 4.2s
+                 Free std (blooming eddies)    4.3s  ·  alt (rising tide)  4.5s
+               So the snap lands in a 4.2–4.5s band whichever motion the day
+               draws — a 0.3s spread, which nothing in a carrier script is
+               tight enough to notice. Do NOT treat any of these as a fixed
+               number: the assembler measures each endcard it uses, and the
+               band is here so you know the size of the variance, not so you
+               can script to a value.
                (Both rebuilt from motion files 7/28; the old baked Free
                 endcard cracked at ~1.0s, which is why it could not bed.)
                (An earlier version of this doc quoted a single "~22.8s" for
@@ -192,12 +236,21 @@ every timestamp after the intro shifts 0.4s later and the reel is 34.20s.
   - SHORT CARRIER (VO ~10s) — the voice covers the grid + first modals;
     the endcard's PRE-crack tension hum is looped as a palindrome and laid
     under the remaining modals, then the endcard plays its outro natively.
-    ⚠ THE FREE ENDCARD CANNOT SUPPLY A BED. Its crack lands at ~1.0s and
-    its audio then decays monotonically to silence by 8.0s, so there is no
-    crack-free stretch with usable level. Free therefore REQUIRES a long
-    (wall-to-wall) carrier; on a short one, preflight fails rather than
-    replaying the bolt crack under the modals. Pro is unaffected — its
-    crack is at 4.25s, leaving 0-3.9s clean.
+    ⚠ CORRECTED IN v1.7 — the "Free cannot bed" rule is GONE. v1.6 said the
+    Free endcard's crack lands at ~1.0s with the audio decaying to silence,
+    so Free REQUIRED a wall-to-wall carrier. That was true of the old BAKED
+    endcard and stopped being true when it was rebuilt from its motion file
+    on 7/28: the built Free endcard cracks at 4.3s and beds at −29.3 dB.
+    Both tiers bed fine. A ~10s Free carrier is a legitimate option again.
+    The bed is DERIVED per endcard at build time, never hardcoded — which
+    is exactly why this correction happened automatically in the code and
+    only the prose was stale.
+    The restriction that DOES exist is per MOTION, not per tier: a motion
+    that swells continuously into its crack has no level-steady stretch to
+    loop, so on short-carrier days it drops from the rotation and another
+    motion is used. Today that is endcard_motion_pro_alt. Handled
+    automatically; preflight reports how many motions per tier can bed, and
+    FAILS only if a whole tier has none.
 
   WHAT THIS MEANS FOR CARRIER PRODUCTION (your main deliverable):
   - Target VO length: ~19.4s for wall-to-wall narration (preferred), or
@@ -392,13 +445,40 @@ per-day by hand, not AI-freestyled.
     evening_pro_endcard.mp4       endcard_motion_pro.mp4 with different copy,
                                   i.e. zero new video generation (MKT-10's
                                   whole payoff). Same for their stingers.
-    endcard_motion_pro.mp4        Text-free endcard motion, shared by the pro
-    endcard_motion_free.mp4       and free/session endcards.
-    stinger_motion.mp4            Text-free stinger motion, shared by all
-                                  stinger variants.
-    stinger_<variant>.mp4         Prebuilt per-variant stingers (allday_pro,
-                                  allday_free, midday_pro, evening_pro).
-                                  Generated by `npm run stinger:build`.
+    endcard_motion_pro.mp4        PRO-tier endcard motions (MKT-19 set).
+    endcard_motion_pro_alt.mp4    std = converging threads · alt = vault
+                                  rings. Used by All-Day Pro, Midday,
+                                  Evening AND Verify. ⚠ pro_alt is a build-up
+                                  and supplies NO hum bed, so it drops from
+                                  the rotation on short-carrier days only.
+    endcard_motion_free.mp4       FREE-tier endcard motions (MKT-19 set).
+    endcard_motion_free_alt.mp4   std = blooming eddies · alt = rising tide.
+                                  Used by All-Day Free and the public kinds.
+                                  Both bed fine.
+    stinger_motion.mp4            Text-free stinger motions (MKT-19 set),
+    stinger_motion_strike.mp4     shared across ALL variants and both tiers —
+    stinger_motion_circuit.mp4    a stinger carries no tier signal. std =
+                                  bolt condense · strike · circuit.
+                                  ⚠ circuit carries a second transient (a
+                                  gold pulse at 2.7s) that fires after the
+                                  lockup is already out. It is corrected in
+                                  the BUILD with an audio tail fade from
+                                  2.45s, not by regeneration; the build
+                                  re-derives the transient each run and warns
+                                  if it moves or a new one appears.
+    _motion_meta.json             DERIVED per-motion bed verdicts, written by
+                                  `npm run endcard:build`. Not hand-edited —
+                                  a regenerated motion clears its own verdict
+                                  on the next build.
+    stinger_<variant>_<tag>.mp4   Prebuilt stinger matrix: every variant
+                                  (allday_pro, allday_free, midday_pro,
+                                  evening_pro) × every motion tag. Generated
+                                  by `npm run stinger:build`.
+    <variant>_endcard_<tag>.mp4   Prebuilt endcard matrix: every variant ×
+                                  every motion in ITS TIER. Generated by
+                                  `npm run endcard:build`. The untagged
+                                  `<variant>_endcard.mp4` files remain as the
+                                  resolver's last-resort fallback.
     panels/panel_*.png            Rotating promo panels (6): brand, signals,
                                   coverage, anchor, app, zk30. Source art;
                                   panels/built/ is generated, not source.
@@ -558,6 +638,46 @@ per-day by hand, not AI-freestyled.
   - Same resolution/frame-rate spec as everything else (native 1080×1920,
     30–60fps). The current file is 720×1280 24fps and gets upscaled.
 
+  BRAND MOTION DELIVERY SPEC — stinger + endcard motions (MKT-19, new in v1.7):
+  - MOTIONS ARE TEXT-FREE. Never bake a wordmark, headline or date into one.
+    Copy is rendered fresh at 1080×1920 over the motion at build time, which
+    is what makes a headline change a string edit instead of a regeneration.
+    A motion arriving with type in it cannot be used at all.
+  - EXPECT 10.005s, as with the intros — the generator's 4/6/8/10s presets.
+    That is FINE here and needs no trim: endcards contract for 10s, and a
+    stinger uses only its first 3.0s. But it means the beat times you were
+    briefed for will not be the beat times delivered, so state what you
+    MEASURED, never what you intended. Every MKT-19 delivery was described
+    as 4.0s/10.0s and every one arrived at 10.005s.
+  - ENDCARD MOTIONS: the crack (the bolt snap) should land ~4.3s, and the
+    clip must END fully static — the final frame is reused as the reel's
+    opening frame. The delivered set lands 4.2–4.5s, which is fine; the
+    assembler measures each one rather than assuming.
+  - ENDCARD MOTIONS NEED A LEVEL-STEADY STRETCH BEFORE THE CRACK. On a
+    short-carrier day the pre-crack audio is looped as a palindrome to bed
+    the modals, so the window must not swing more than ~20 dB. A build-up
+    concept — "rings align and release", anything that swells continuously
+    into the release — has no such stretch BY CONSTRUCTION and will be
+    dropped from short-carrier days. That is handled gracefully, not an
+    abort, so a build-up is an acceptable delivery; just know it buys a
+    motion that only plays on some days. Two build-ups in the same tier
+    would be a hard preflight FAIL.
+  - STINGER MOTIONS: must open on full-frame smoke and present a usable
+    dissolve bed at 3.0s (it is crossfaded into the body). ONE transient
+    only, and it must land before ~2.2s. A second beat after the lockup
+    has faded out fires on an empty frame and reads as a pop — this is the
+    `circuit` defect, corrected in the build with an audio fade rather than
+    a regeneration, but do not rely on that: a motion whose hero beat is
+    late, or which pulses twice, is fighting the timeline.
+  - TIER MATTERS FOR ENDCARDS ONLY. Say which tier a delivered endcard
+    motion is for. Pro motions read as vault/precision/institutional; free
+    motions as open/tidal/inviting. They can never cross — the code will
+    not allow it — so a motion delivered to the wrong tier is simply the
+    wrong asset.
+  - Embedded audio REQUIRED on both kinds; it is load-bearing (the stinger
+    impact, the endcard crack and its bed).
+  - Same resolution/frame-rate spec as everything else below.
+
   DELIVERY SPEC (every replacement file):
   - Resolution: native 1080×1920 (9:16). Current endcards are 720×1280
     and get upscaled — it works, but costs sharpness. This is the #1
@@ -647,7 +767,7 @@ per-day by hand, not AI-freestyled.
 
 
 --------------------------------------------------------------------------------
-9. WHERE THE SYSTEM STANDS (2026-07-28) — READ THIS FOR CURRENT STATE
+9. WHERE THE SYSTEM STANDS (2026-07-29) — READ THIS FOR CURRENT STATE
 --------------------------------------------------------------------------------
 BUILT AND RUNNING DAILY:
   MKT-01  UI ad-clip render rig + 30s ad assembly
@@ -664,6 +784,8 @@ BUILT AND RUNNING DAILY:
   MKT-12  Branded stinger between the intro and the UI body
   MKT-13  Session wave — Midday + Evening reels (2026-07-28)
   MKT-17  Per-kind intro resolution + rotation (2026-07-28) — see §2
+  MKT-18  Body provenance — the capture date travels inside the file
+  MKT-19  Brand motion rotation: stinger + endcard (2026-07-29) — see §2
 
 IN FLIGHT, NOT BUILT — do not propose against these yet; §10 has the detail:
   MKT-14  Brand attribution in the slate stamp .......... PARKED (untouched)
@@ -687,8 +809,10 @@ THE SESSION WAVE IS PRO-ONLY, AND THAT IS A RULING:
 WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
   1. NATIVE 1080×1920 SOURCE ASSETS. Every delivered motion file to date is
      720×1280 24fps and gets upscaled + frame-duplicated. This is the single
-     biggest quality gap left and the only remaining preflight warning class
-     (10 of 10 current warnings are this, across 3 intros and 4 endcards).
+     biggest quality gap left and the only remaining preflight warning class —
+     ALL 25 current warnings are this one issue, now across 3 intros, 7
+     motions and the built matrix. MKT-19 did not make the problem worse; it
+     made its size visible, since every rotation member is now checked.
   2. MIDDAY + EVENING ENDCARD COPY — 2 lines each, the smallest real gap on
      this list. Their captions and stingers are genuinely distinct, but both
      endcards still carry allday_pro's lines verbatim ("FIRST ACCESS.
@@ -707,6 +831,12 @@ WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
   6. More caption templates per kind (8 today, can grow; rotation adapts).
   7. More intro rotation members. The set is 2. Same delivery spec as §7 —
      and read the trim rule there before generating.
+  8. A PRO ENDCARD MOTION THAT CAN BED. The pro set is 2 but only 1 of them
+     (std) has a usable hum bed, because pro_alt is a build-up. So on a
+     short-carrier Pro day the rotation collapses to a single motion. Not
+     broken and not urgent — every current carrier is wall-to-wall — but the
+     pro tier has no redundancy the day that changes. A second bedable pro
+     motion fixes it; see the motion delivery spec in §7.
 
 WHAT IS DELIBERATELY NOT BUILT:
   - Auto-posting to Facebook (platform + brand-safety rule).

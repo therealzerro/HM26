@@ -37,6 +37,7 @@ import { bedWindow, type BedWindow } from './reel-bed';
 import { STINGERS, STINGER_DUR, INTRO_XFADE } from './stinger-config';
 import { REEL_SCOPES, parseScopeFlag, positionals, reelKind } from './reel-scopes';
 import { assertBodyDate } from './reel-provenance';
+import { resolveEndcard } from './reel-endcard';
 
 const ASSETS = resolve('assets/marketing');
 const SCOPE = parseScopeFlag(process.argv);
@@ -64,16 +65,48 @@ function humBed(inLabel: string, bedLen: number, outLabel: string, bed: BedWindo
   } else {
     f += `[bp]anull[bl];`;
   }
+  // MKT-19: LEVEL-MATCH the bed instead of applying a flat gain.
+  //
+  // This was `volume=0.8` for every endcard. The final loudnorm runs on the
+  // MIXED track, so it normalises the whole reel and cannot correct the bed's
+  // level relative to the VO — meaning bed loudness varied with whichever motion
+  // the date happened to select. Measured across the set: -24.5 to -29.3 dB, a
+  // 4.8 dB swing on hum-bed days, for no reason a listener could attribute to
+  // anything. bedWindow() already measures the window's RMS, so the correction
+  // is arithmetic on data we compute anyway.
+  const correction = clampDb(BED_TARGET_RMS - bed.rms);
   return (
     f +
-    `[bl]atrim=0:${bedLen.toFixed(2)},asetpts=PTS-STARTPTS,volume=0.8,` +
+    `[bl]atrim=0:${bedLen.toFixed(2)},asetpts=PTS-STARTPTS,volume=${(correction + BED_MIX_DB).toFixed(2)}dB,` +
     `afade=t=in:st=0:d=${XFADE_A},afade=t=out:st=${(bedLen - 0.25).toFixed(2)}:d=0.25${outLabel}`
   );
+}
+
+/**
+ * Reference bed level, dB RMS. This is the incumbent Pro endcard's measured
+ * window — the level that has been shipping and is approved by ear, so matching
+ * to it changes nothing about the reels that already sound right and only pulls
+ * the outliers into line.
+ */
+const BED_TARGET_RMS = -27.6;
+/** The historical flat `volume=0.8`, preserved as the mix balance. */
+const BED_MIX_DB = -1.94;
+/** Never correct by more than this: a motion needing more is a defect, not a
+ *  level, and boosting it that hard would raise its noise floor with it. */
+const MAX_BED_CORRECTION = 6;
+function clampDb(db: number): number {
+  return Math.max(-MAX_BED_CORRECTION, Math.min(MAX_BED_CORRECTION, db));
 }
 
 const stamp = positionals(process.argv.slice(2))[0]
   ?? new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }).replace(/-/g, '');
 const isoDate = `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`;
+/** MKT-19 gate overrides: --stinger-motion=<tag> / --endcard-motion=<tag>. */
+const flagVal = (name: string): string | undefined =>
+  process.argv.find(a => a.startsWith(`--${name}=`))?.split('=')[1];
+const FORCE_STING = flagVal('stinger-motion');
+const FORCE_CARD = flagVal('endcard-motion');
+if (FORCE_STING || FORCE_CARD) console.log(`NOTE: motion override — stinger=${FORCE_STING ?? 'rotation'} endcard=${FORCE_CARD ?? 'rotation'}`);
 const body = join(REELS, `ui_${SCOPE}_${stamp}.mp4`);
 if (!existsSync(body)) {
   console.error(`ABORT: ${body} not found — run the body render first (npm run reel:${SCOPE}).`);
@@ -120,11 +153,16 @@ for (const v of SPEC.variants) {
   const dissolve = intro ? INTRO_DISSOLVE : OPEN;
   // MKT-12: prebuilt per-variant stinger. Missing/disabled → null and the reel
   // assembles exactly as before. Crossfaded into, so it adds dur − INTRO_XFADE.
-  const sting = probeStinger(ASSETS, kind);
+  const sting = probeStinger(ASSETS, kind, isoDate, FORCE_STING);
   const openDur = +(openBase + stingerAdds(sting)).toFixed(3);
   const total = +(openDur + bodyDur + CARD).toFixed(3);
   if (sting) console.log(`NOTE(${v}): stinger ${STINGERS[kind].lines[1]} — open ${openBase}s + ${stingerAdds(sting)}s = ${openDur}s, reel ${total}s.`);
-  const endcard = join(ASSETS, `${kind}_endcard.mp4`);
+  // MKT-19: resolved through the shared resolver, never composed from `kind` —
+  // the built names are not uniform (verify's is `verif_endcard.mp4`). Whether
+  // the day needs a bed is a property of the CARRIER, so it is decided below and
+  // the endcard re-resolved if the narrowed set differs.
+  let ec = resolveEndcard(ASSETS, kind, isoDate, false, FORCE_CARD);
+  let endcard = ec.path;
   // MKT-09: a carrier delivered as parts (…_carrier.mp4 + …_carrier_pt2.mp4)
   // is joined first; a single-file carrier resolves to itself unchanged.
   const carrierRes = resolveCarrier(ASSETS, `${kind}_carrier`);
@@ -157,11 +195,25 @@ for (const v of SPEC.variants) {
   // Derived per endcard; null means no crack-free, level-steady stretch exists
   // (true of the Free endcard today). Fail rather than replay the bolt crack
   // under the modals — the fix is a long wall-to-wall carrier, not a worse bed.
+  // MKT-19: whether a bed is needed is a property of the CARRIER, and it is only
+  // known here. Re-resolve against the bed-viable subset so a build-up motion
+  // (no level-steady stretch — endcard_motion_pro_alt) drops out for the day
+  // instead of aborting the run. On wall-to-wall days nothing changes.
+  if (bedLen > 0.05) {
+    const bedEc = resolveEndcard(ASSETS, kind, isoDate, true, FORCE_CARD);
+    if (bedEc.path !== endcard) {
+      console.log(`NOTE(${v}): short carrier needs a hum bed — endcard re-resolved ${ec.name} → ${bedEc.name} (${bedEc.motion.label}).`);
+      ec = bedEc;
+      endcard = ec.path;
+    }
+  }
   const bed = bedLen > 0.05 ? bedWindow(endcard, CARD) : null;
   if (bedLen > 0.05 && !bed) {
-    console.error(`ABORT(${v}): ${basename(endcard)} has no usable hum-bed window (crack too early, or its audio decays away). This variant needs a wall-to-wall carrier.`);
+    console.error(`ABORT(${v}): ${basename(endcard)} has no usable hum-bed window (crack too early, or its audio decays away). No motion in this tier could supply one — deliver a wall-to-wall carrier, or a motion with a level-steady pre-crack window.`);
     process.exit(1);
   }
+  // MKT-19 run summary: the day's three rotating brand beats, in one line.
+  console.log(`NOTE(${v}): brand motion → intro ${intro ? intro.label : 'legacy open'} · stinger ${sting?.motion ? sting.motion.label : (sting ? 'unversioned' : 'none')} · endcard ${ec.motion.label} [${ec.name}].`);
   if (bed) console.log(`NOTE(${v}): hum bed ← ${bed.mode}-crack ${bed.start}-${bed.end}s (crack measured at ${bed.crackAt}s, mean ${bed.rms}dB).`);
   if (overlap) {
     console.log(`NOTE(${v}): long carrier (${carrierDur.toFixed(1)}s) — voice plays ${voiceStart}-${(voiceStart + voiceSpan).toFixed(1)}s (tail rides the smoke rise), endcard outro audio mixed from ${(openDur + bodyDur).toFixed(1)}s; carrier content beyond ${voiceSpan}s discarded.`);

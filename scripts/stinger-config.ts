@@ -32,9 +32,12 @@ export const STINGERS: Record<string, StingerVariant> = {
   // add here: a free session reel would need a redacted capture, not a headline.
   midday_pro:  { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', 'MIDDAY · FIRST LOOK'], enabled: true },
   evening_pro: { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', 'EVENING · FIRST LOOK'], enabled: true },
-  // MKT-15 P2 free-group session kinds. ⚠ COPY PROVISIONAL — content-agent
-  // sign-off needed. Session vocabulary is retained deliberately: the free group
-  // is tier 2, where it is sanctioned; only PUBLIC must drop it.
+  // MKT-26 free-group session kinds. COPY SIGNED OFF 2026-07-29 as written —
+  // these two were already the agreed lines, so only the endcard copy moved.
+  // Session vocabulary is retained deliberately: the free group is tier 2, where
+  // it is sanctioned; only PUBLIC must drop it.
+  // `THE BOARD` rather than `FIRST LOOK` is the tier distinction — first-access
+  // framing is barred for the free tier under SOCIAL-13.
   midday_free:  { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', 'MIDDAY · THE BOARD'], enabled: true },
   evening_free: { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', 'EVENING · THE BOARD'], enabled: true },
 };

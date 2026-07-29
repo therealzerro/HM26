@@ -50,8 +50,22 @@ const BUCKET = 'marketing-reels';
 const PRUNE_DAYS = 30;
 const ASSETS = resolve('assets/marketing');
 
-/** Every kind is a caption-registry key — the two lists cannot drift apart. */
-type Kind = Extract<ReelCaptionKind, 'allday_pro' | 'allday_free' | 'verify' | 'midday_pro' | 'evening_pro'>;
+/**
+ * Every kind is a caption-registry key — the two lists cannot drift apart.
+ *
+ * ⚠ THE `Extract` PROTECTS ONE DIRECTION ONLY, and MKT-26 got caught by the
+ * other. A name listed here but absent from the registry is silently dropped
+ * from the union (that is the guard working). But `reelFiles()` builds its kind
+ * with `reelKind(...) as Kind` — a CAST — so a scope variant enabled in
+ * reel-scopes.ts without an entry here type-checks clean and then dies in
+ * buildReelCaption reading `.realNumbers` off undefined, at PUBLISH time, after
+ * the render and assembly have already succeeded. Widen this union in the same
+ * change as the registry entry, never after.
+ */
+type Kind = Extract<
+  ReelCaptionKind,
+  'allday_pro' | 'allday_free' | 'verify' | 'midday_pro' | 'evening_pro' | 'midday_free' | 'evening_free'
+>;
 
 function etDate(offsetDays: number): string {
   const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));

@@ -101,6 +101,24 @@ export const CARRIERS: Record<string, CarrierSpec> = {
     set: [{ file: 'evening_pro_carrier.mp4', label: 'incumbent' }],
     rest: ['evening_pro_carrier_pt2.mp4'],
   },
+  // MKT-26 — free-group session carriers. Delivered 2026-07-29, measured before
+  // registration: part 1 at 10.005s each (so the MKT-20 invariant holds), joined
+  // 20.360s, last word at 18.768s (midday) and 17.540s (evening) — margins of
+  // +1.242s and +2.470s against midday_pro's +0.184s, the thinnest in the fleet.
+  //
+  // ⚠ THESE ARE SCRIPTED SEPARATELY FROM THE PRO PAIR AND MUST STAY THAT WAY.
+  // A pro carrier here would narrate first access, which SOCIAL-13 bars for the
+  // free tier — the free room is being sold the gap, not given the head start.
+  // The registry's per-kind keying is what makes that structural: no code path
+  // can reach midday_pro_carrier.mp4 from midday_free.
+  midday_free: {
+    set: [{ file: 'midday_free_carrier.mp4', label: 'incumbent' }],
+    rest: ['midday_free_carrier_pt2.mp4'],
+  },
+  evening_free: {
+    set: [{ file: 'evening_free_carrier.mp4', label: 'incumbent' }],
+    rest: ['evening_free_carrier_pt2.mp4'],
+  },
   // Genuinely single-part: verify's 10s bed is the whole soundtrack.
   verify: {
     set: [{ file: 'verif_carrier.mp4', label: 'incumbent' }],

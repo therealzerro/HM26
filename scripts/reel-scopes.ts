@@ -10,17 +10,32 @@
 // byte-identical to before this lane — same scope filter, same tab, same output
 // names, same directory. Sessions are additive.
 //
-// WHY SESSIONS ARE PRO-ONLY (operator content strategy, see SOCIAL-13 + the
-// publish-pipeline redaction rule in lib/social/publishImages.ts):
+// ⚠ THE PRO-ONLY SESSION RULING (MKT-13, 2026-07-28) IS SUPERSEDED — MKT-26,
+// 2026-07-29. Recorded rather than deleted, because what replaced it is narrower
+// than "sessions are free now" and the distinction is load-bearing.
+//
+// The original reasoning still holds where it applied:
 //   • the free group gets the ALL-DAY drop in full — that's the value gift
 //   • the free group gets Midday/Evening REDACTED — that's the Pro conversion
-//     frame, and `surfaceRedacts(surface, session)` already enforces it for the
-//     image kits
-// A full-fidelity free session reel would hand away exactly what the redaction
-// rule withholds, so it is deliberately NOT built. That is a decision recorded
-// here, not an asset that failed to arrive: the delivered carriers and endcards
-// for this wave are pro-only too. If a free session reel is ever wanted it needs
-// a redacted CAPTURE (digits masked in the UI), not just another variant entry.
+//     frame, and `surfaceRedacts(surface, session)` enforces it for the image
+//     kits
+// MKT-13 concluded from this that a free session reel must not be built, because
+// a FULL-FIDELITY one would hand away exactly what the redaction withholds. It
+// also named the precondition that would change the answer: such a reel "needs a
+// redacted CAPTURE (digits masked in the UI), not just another variant entry."
+//
+// MKT-15 P2 built that capture, and MKT-26 verified it against the stronger
+// claim — not "no digits visible" but "the combination is NOT RECOVERABLE by any
+// route", checked across all seven digit-bearing surfaces (hero row, bare
+// leaves, brace set chip on grid AND modal, position boxes, pair labels, pair
+// prose, resolution trail) at ten settling frames. Detection is STRUCTURAL, so
+// it cannot be defeated by a surface nobody enumerated.
+//
+// So the free session reels ship REDACTED, and deliberately keep everything that
+// is not a digit: energy values, ZK6 confidence, all four signal percentages,
+// heat badges, jurisdiction counts and the full prose structure. The methodology
+// is the gift; the digits are the gap Pro closes. A full-fidelity free session
+// reel remains barred — that part of the ruling never lifted.
 
 export type Scope = 'allday' | 'midday' | 'evening';
 export type Variant = 'pro' | 'free';
@@ -53,33 +68,28 @@ export const REEL_SCOPES: Record<Scope, ReelScopeSpec> = {
     scope: 'midday',
     tab: /Midday/,
     stampLabel: 'MIDDAY',
-    // ⚠ `free` DELIBERATELY ABSENT, and this is the switch that turns the
-    // free-group session reel on.
+    // MKT-26 — `free` ENABLED 2026-07-29, last of the four switches.
     //
-    // MKT-15 P2 built the redacted capture MKT-13 said this lane needed, and the
-    // free kinds are otherwise fully registered — endcard copy, stinger copy,
-    // built matrix, and the marketing_reels kind constraint all admit
-    // midday_free / evening_free. What does NOT exist yet is their CARRIER, and
-    // MKT-20 made a missing carrier fail LOUDLY rather than degrade.
+    // ⚠ THE ORDER THIS WAS DONE IN IS THE POINT, and it is recorded because the
+    // reverse order broke the daily run earlier the same day. `free` was added
+    // here while the carriers were still undelivered; MKT-20 makes a missing
+    // carrier fail LOUDLY by design, so the result was not a dormant lane but a
+    // HARD ABORT partway through `reel:midday` — after the pro variant had
+    // already built and published. Nothing was lost; the command exited
+    // non-zero.
     //
-    // Adding `free` here before the carriers landed therefore did not produce a
-    // dormant lane — it made `reel:midday` and `reel:evening` ABORT partway,
-    // after their pro variant had already built and published. Nothing was lost,
-    // but the command exited non-zero every morning.
-    //
-    // TO ENABLE: deliver midday_free_carrier + _pt2 (and the evening pair), add
-    // them to CARRIERS in carrier-config.ts, then restore `'free'` here. They
-    // must NOT inherit the pro carriers — first-access framing is barred for the
-    // free tier under SOCIAL-13.
-    variants: ['pro'],
+    // So the sequence is: carriers on disk → registered in CARRIERS → caption
+    // registry entry (and the publish-reels Kind union with it) → THEN this
+    // flag. This flag is the last one turned, never the first.
+    variants: ['pro', 'free'],
     dir: 'midday_reels',
   },
   evening: {
     scope: 'evening',
     tab: /Evening/,
     stampLabel: 'EVENING',
-    // See the midday note above — same state, same switch.
-    variants: ['pro'],
+    // See the midday note above — same state, same switch, enabled together.
+    variants: ['pro', 'free'],
     dir: 'evening_reels',
   },
 };

@@ -50,23 +50,31 @@ export const ENDCARDS: Record<string, EndcardVariant> = {
     out: 'evening_pro_endcard.mp4',
   },
 
-  // ── MKT-15 P2 — free-group session kinds ────────────────────────────────
-  // ⚠ COPY IS PROVISIONAL AND NEEDS CONTENT-AGENT SIGN-OFF. Registered so the
-  // lane is structurally complete; the words are mine, not the brand's.
+  // ── MKT-26 — free-group session kinds. COPY SIGNED OFF 2026-07-29. ───────
   //
-  // The conversion frame these must carry (MKT-13 ruling): the free group sees
-  // the BOARD and not the numbers, and the numbers are what Pro buys. So the
-  // close has to name the withholding rather than hide it — a redacted reel
-  // that does not say why it is redacted reads as broken, not as a teaser.
+  // The conversion frame these carry (MKT-13 ruling): the free group sees the
+  // BOARD and not the digits, and the digits are what Pro buys. So the close has
+  // to name the withholding rather than hide it — a redacted reel that does not
+  // say why it is redacted reads as broken, not as a teaser.
+  //
+  // ⚠ "DIGITS", NOT "NUMBERS", and the correction is load-bearing. The
+  // provisional line was `THE BOARD, NOT THE NUMBERS`, which §5 bars: the
+  // product noun is signals, always, so *numbers* cannot be used as one. It
+  // would have failed the lint sitting next to it. `DIGITS` is the system's own
+  // term for the withheld values — same word the captions use.
+  //
+  // Pricing on the endcard is sanctioned because the free group is tier 2, the
+  // only surface where brandLint §6 permits it (public/cross-post and Pro are
+  // all barred). These endcards must never be reused on another tier.
   midday_free: {
     motion: 'endcard_motion_free.mp4',
     out: 'midday_free_endcard.mp4',
-    lines: ['HITMASTER ZK6', 'THE BOARD, NOT THE NUMBERS', 'FULL SIX IN PRO'],
+    lines: ['HITMASTER ZK6', 'DIGITS COVERED HERE', 'FULL SIX IN PRO · $2.49/MO'],
   },
   evening_free: {
     motion: 'endcard_motion_free.mp4',
     out: 'evening_free_endcard.mp4',
-    lines: ['HITMASTER ZK6', 'THE BOARD, NOT THE NUMBERS', 'FULL SIX IN PRO'],
+    lines: ['HITMASTER ZK6', 'DIGITS COVERED HERE', 'FULL SIX IN PRO · $2.49/MO'],
   },
 };
 

@@ -271,6 +271,48 @@ function sessionProKind(label: string, when: string, offset: number): KindSpec {
   };
 }
 
+/**
+ * MKT-26 — free-group session (Midday / Evening) captions.
+ *
+ * THE INVERSE CASE TO `allday_free`, and they must not inherit from it.
+ * `allday_free` is bound by SOCIAL-13's no-Pro-pitch rule because it IS the
+ * value gift — the free group gets that board in full. These two are the
+ * opposite: the free group gets the session boards REDACTED, so these captions
+ * exist to name the withholding and sell the gap. A redacted reel whose caption
+ * does not say why it is redacted reads as broken, not as a teaser.
+ *
+ * PRICING IS SANCTIONED HERE, and this is the only caption kind where that is
+ * true. brandLint §6 bars pricing on tier 1/3 (public/cross-post) and on tier 4
+ * (Pro — they already bought); the free group is tier 2, "the only surface where
+ * pricing is allowed". Carried in half the set rather than all eight so the room
+ * is not read the same price eight days running.
+ *
+ * QUALITATIVE, with no receipts dependency — matching `allday_free` rather than
+ * `verify`. These are slate reels that ship in the morning against an ungraded
+ * board, and the numbers-are-pro-only ruling (2026-07-27) rules out the real
+ * counts regardless. No receipts read means no fallback path to get wrong.
+ *
+ * "DIGITS", never "numbers": §5 bars *numbers* as a product noun — the product
+ * noun is signals, always — so the withheld values are digits, which is the
+ * system's own term for them. Same correction the Phase 1 endcard copy carries.
+ */
+function sessionFreeKind(label: string, when: string, offset: number): KindSpec {
+  return {
+    offset,
+    realNumbers: false,
+    templates: [
+      c => `The ${label} board for ${c.reelMd} is up 🔆 You get the whole breakdown — signal strength, confidence, the reasoning behind each one. The digits stay covered here.`,
+      c => `Six ${label} signals for ${c.reelMd}, methodology wide open and digits covered. Pro reads the same board in full at $2.49/mo.`,
+      c => `Here's how the ${label} board reads for ${c.reelMd}: every signal's pattern breakdown, in the open. The digits themselves are the Pro side of the line 💎`,
+      c => `${c.reelMd} ${label}: the reasoning is yours, the digits are covered. Pro sees all six in full detail — $2.49/mo, same board, nothing masked.`,
+      c => `The ${label} board lands before ${when} 📊 This room sees the structure — signal strength, confidence, state coverage. Pro sees the digits.`,
+      c => `Watch the ${label} six get built for ${c.reelMd} — pair analysis, co-occurrence, draw-gap consistency, all of it. Digits covered; Pro reads them straight through at $2.49/mo.`,
+      c => `Every ${label} signal for ${c.reelMd} shows its work. What's covered is the digits — that's the line between this room and Pro 💎 $2.49/mo.`,
+      c => `${label} intelligence for ${c.reelMd}, posted before ${when}. Full methodology in the open, digits covered. The complete six live in Pro.`,
+    ],
+  };
+}
+
 const CAPTION_REGISTRY = {
   // FREE verify draft — describes yesterday's matches CREATIVELY but
   // qualitatively (scale/spread/straight-presence words, never counts or
@@ -343,6 +385,20 @@ const CAPTION_REGISTRY = {
   // different templates the same day.
   midday_pro: sessionProKind('Midday', 'the daytime boards run', 7),
   evening_pro: sessionProKind('Evening', 'tonight’s boards run', 11),
+  // MKT-26 free-group session wave.
+  //
+  // ⚠ WHAT ACTUALLY HAS TO BE DISTINCT IS `offset % templates.length`, not the
+  // offset — the index is `(dayOfYear + offset) % N`. Every set here is 8 long,
+  // so the live values mod 8 are: verify 0, verify_pro 2, allday_free 3,
+  // allday_pro 5, midday_pro 7, evening_pro 3. 17 and 22 give 1 and 6 — free of
+  // each other, which is the pairing that matters (these two post the same
+  // morning to the same room), and free of every other kind besides.
+  //
+  // (evening_pro's 11 already lands on 3 alongside allday_free. Harmless — they
+  // index into different template arrays — but it is why the rule is stated
+  // properly here rather than left as "offsets are unique".)
+  midday_free: sessionFreeKind('Midday', 'the daytime boards run', 17),
+  evening_free: sessionFreeKind('Evening', 'tonight’s boards run', 22),
 } satisfies Record<string, KindSpec>;
 
 export type ReelCaptionKind = keyof typeof CAPTION_REGISTRY;

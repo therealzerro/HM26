@@ -15,9 +15,13 @@
 
 **Everything below is committed and pushed. `reel:check` 0 fail / 49 warn** (all warns are the standing 720×1280 / 24fps source-quality note on matrix members, plus four rejected MKT-21 bodies carrying printed reasons).
 
-**⚠ FIRST, FIX THIS — I BROKE THE DAILY RUN.** `reel:midday` and `reel:evening` now **ABORT partway** with `no carrier config for kind "midday_free" / "evening_free"`. Cause: registering the free-group kinds added `free` to the midday/evening SCOPE VARIANTS (so the assembler tries to build them) without a matching `CARRIERS` entry, and MKT-20 made a missing carrier fail loudly by design. The PRO reels build and publish fine first, so nothing is lost — but both commands exit non-zero and tomorrow's run shows red.
-**FIX: revert `free` from the midday/evening variants in `reel-scopes.ts`** until their carriers exist. Everything else registered (endcard, stinger, migration, matrix) can stay — it is dormant and harmless. Re-adding the variant is one line when the carriers land.
-**⚠ AND `reel:check` DID NOT CATCH IT** — it reports those kinds as *dormant*, which is a different code path from what the assembler does. A kind can be "dormant, 0 fail" in preflight and a hard abort at assembly. Worth closing that gap: preflight should resolve a carrier the same way the assembler does.
+**✅ FIXED 2026-07-29 — the daily run is safe.** `free` was reverted off the midday/evening scope variants, so `reel:midday` and `reel:evening` build their pro variant and exit clean, exactly as they did this morning. Preflight 0 fail / 45 warn.
+
+The regression, recorded because the cause is reusable: adding `free` to the SCOPE VARIANTS made the assembler try to build a kind whose CARRIER does not exist, and MKT-20 made a missing carrier fail LOUDLY by design. That produced a hard abort partway through the command — after the pro variant had already built and published — rather than a dormant lane. Nothing was lost, but the command exited non-zero.
+
+**Everything else stays registered and is harmless while dormant**: endcard copy, stinger copy, the built matrix, and the `marketing_reels_kind_check` migration all admit `midday_free` / `evening_free`. **The scope variant is now the single switch** — deliver the two carriers, add them to `CARRIERS`, restore `'free'`, and the lane is live. That switch and its preconditions are documented at the site in `reel-scopes.ts`.
+
+**⚠ AND `reel:check` DID NOT CATCH IT — gap still open.** Preflight reported those kinds as *dormant, 0 fail* while the assembler hard-aborted on them, because it probes for file existence rather than resolving a carrier the way the assembler does. A kind can therefore read clean in preflight and break the run. **Worth closing: preflight should call the same resolver the assembler calls.** This is the same shape as the six redaction failures — a check looking at something adjacent to the real thing and reporting success.
 
 **THEN:** the **MKT-15 P2 RELABEL** — spec and traps are written up in this file under its own heading. Public needs **no new assets**: the copy set is approved, the injection mechanism is proven, and `public_carrier` + `_pt2` already validate. **Chase the `ON FIRE` band enum from the content agent first** — it gates the public capture copy set and sits on that critical path.
 

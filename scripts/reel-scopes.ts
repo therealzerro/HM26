@@ -53,18 +53,33 @@ export const REEL_SCOPES: Record<Scope, ReelScopeSpec> = {
     scope: 'midday',
     tab: /Midday/,
     stampLabel: 'MIDDAY',
-    // MKT-15 P2: `free` added once the redacted capture existed. The free group
-    // sees the BOARD and not the numbers — that gap is the Pro conversion frame,
-    // and MKT-13 recorded it as needing a redacted capture rather than "just
-    // another variant". It now has one.
-    variants: ['pro', 'free'],
+    // ⚠ `free` DELIBERATELY ABSENT, and this is the switch that turns the
+    // free-group session reel on.
+    //
+    // MKT-15 P2 built the redacted capture MKT-13 said this lane needed, and the
+    // free kinds are otherwise fully registered — endcard copy, stinger copy,
+    // built matrix, and the marketing_reels kind constraint all admit
+    // midday_free / evening_free. What does NOT exist yet is their CARRIER, and
+    // MKT-20 made a missing carrier fail LOUDLY rather than degrade.
+    //
+    // Adding `free` here before the carriers landed therefore did not produce a
+    // dormant lane — it made `reel:midday` and `reel:evening` ABORT partway,
+    // after their pro variant had already built and published. Nothing was lost,
+    // but the command exited non-zero every morning.
+    //
+    // TO ENABLE: deliver midday_free_carrier + _pt2 (and the evening pair), add
+    // them to CARRIERS in carrier-config.ts, then restore `'free'` here. They
+    // must NOT inherit the pro carriers — first-access framing is barred for the
+    // free tier under SOCIAL-13.
+    variants: ['pro'],
     dir: 'midday_reels',
   },
   evening: {
     scope: 'evening',
     tab: /Evening/,
     stampLabel: 'EVENING',
-    variants: ['pro', 'free'],
+    // See the midday note above — same state, same switch.
+    variants: ['pro'],
     dir: 'evening_reels',
   },
 };

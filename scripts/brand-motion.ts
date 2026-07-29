@@ -104,7 +104,7 @@ const PRO_KINDS = new Set(['allday_pro', 'midday_pro', 'evening_pro', 'verify'])
 /** Kinds per tier, in a stable order — the endcard lane's spread axis. */
 export const ENDCARD_KINDS: Record<Tier, string[]> = {
   pro: ['allday_pro', 'midday_pro', 'evening_pro', 'verify'],
-  free: ['allday_free', 'allday_public', 'midday_public', 'evening_public'],
+  free: ['allday_free', 'midday_free', 'evening_free', 'allday_public', 'midday_public', 'evening_public'],
 };
 
 export function tierFor(kind: string): Tier {
@@ -186,7 +186,7 @@ export function stingerMotionsFor(kind: string, dateISO: string): MotionVariant[
 
 /** Kinds that carry a stinger, in a stable order — the stinger lane's spread axis. */
 export const STINGER_KINDS = [
-  'allday_pro', 'allday_free', 'midday_pro', 'evening_pro',
+  'allday_pro', 'allday_free', 'midday_pro', 'evening_pro', 'midday_free', 'evening_free',
   'allday_public', 'midday_public', 'evening_public',
 ];
 

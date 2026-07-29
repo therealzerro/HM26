@@ -70,7 +70,7 @@ export const INTRO_DEFAULT = 'anchor_intro.mp4';
  * spread axis. verify and the public kinds are absent because they are FIXED
  * (below) and never draw from the pool.
  */
-export const SLATE_KINDS = ['allday_pro', 'allday_free', 'midday_pro', 'evening_pro'];
+export const SLATE_KINDS = ['allday_pro', 'allday_free', 'midday_pro', 'evening_pro', 'midday_free', 'evening_free'];
 
 /**
  * Kinds that do NOT rotate.

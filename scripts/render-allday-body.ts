@@ -27,10 +27,20 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { REEL_SCOPES, parseScopeFlag, positionals } from './reel-scopes';
 import { provenanceArgs } from './reel-provenance';
+import { installRedaction, assertNoDigits } from './reel-redact';
 
 const BASE = 'http://localhost:8081';
 const ARGS = positionals(process.argv.slice(2));
 const SCOPE = parseScopeFlag(process.argv);
+/**
+ * MKT-15 P2 — `--redact` masks every rendering of the combination in the
+ * captured DOM. Used by the FREE-GROUP session reels, whose whole conversion
+ * frame is that the board is shown and the numbers are not.
+ *
+ * The app is not modified: this is DOM injection, so there is no code path a
+ * real subscriber can reach and no flag to leak.
+ */
+const REDACT = process.argv.includes('--redact');
 const SPEC = REEL_SCOPES[SCOPE];
 const OUT_DIR = resolve(ARGS[0] ?? `assets/marketing/${SPEC.dir}`);
 const FPS = 60;
@@ -88,6 +98,18 @@ async function openAlldayGrid(page: import('playwright').Page) {
   const tab = page.getByRole('tab', { name: SPEC.tab }).first();
   await tab.click();
   await page.waitForTimeout(3_000);
+  // MKT-15 P2 — install the mask BEFORE any frame is captured, and keep it
+  // installed: a MutationObserver re-masks as React re-mounts digits when each
+  // of the six modals opens. Installed after the scope tab so the board it
+  // masks is the board that will be captured.
+  if (REDACT) {
+    await installRedaction(page);
+    await page.waitForTimeout(800);
+    // Assert immediately rather than at the end. A leak found after 960 frames
+    // is a leak that already exists on disk; found here, nothing was written.
+    await assertNoDigits(page, `${SCOPE} grid (pre-capture)`);
+    console.log(`REDACTED capture — board masked and asserted clean before frame 0.`);
+  }
   // MKT-13: the ONLY way this lane can go wrong quietly is capturing one scope's
   // board into another scope's filename — every downstream check (grid fills the
   // screen, six modals open, stamp renders) passes just as happily on the wrong

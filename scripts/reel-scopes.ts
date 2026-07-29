@@ -53,14 +53,18 @@ export const REEL_SCOPES: Record<Scope, ReelScopeSpec> = {
     scope: 'midday',
     tab: /Midday/,
     stampLabel: 'MIDDAY',
-    variants: ['pro'],
+    // MKT-15 P2: `free` added once the redacted capture existed. The free group
+    // sees the BOARD and not the numbers — that gap is the Pro conversion frame,
+    // and MKT-13 recorded it as needing a redacted capture rather than "just
+    // another variant". It now has one.
+    variants: ['pro', 'free'],
     dir: 'midday_reels',
   },
   evening: {
     scope: 'evening',
     tab: /Evening/,
     stampLabel: 'EVENING',
-    variants: ['pro'],
+    variants: ['pro', 'free'],
     dir: 'evening_reels',
   },
 };

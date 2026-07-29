@@ -11,6 +11,43 @@
 
 ---
 
+### MKT-24 — Public captions + platform transform content 🔍 PHASE 1 REPORTED · PHASE 2 HELD
+
+**ID verified free** (`grep MKT-24` → 0 hits; MKT-22 is the intro chip, MKT-23 the asset wave). Caption registry and platform transforms only — no assembler changes, no migrations.
+
+**CAPTION LINT — all eight pass tier 1, and the lint was run as the authority rather than the spec they were written to.** "Wrote it to spec" is not a test, so every template went through the real `lintCaption(caption, 1)` (strict/public):
+
+| # | chars | lint | # | chars | lint |
+|---|---|---|---|---|---|
+| 1 | 180 | ✅ | 5 | 192 | ✅ |
+| 2 | 163 | ✅ | 6 | 160 | ✅ |
+| 3 | 148 | ✅ | 7 | 141 | ✅ |
+| 4 | 143 | ✅ | 8 | 132 | ✅ |
+
+Reddit title (79) and body (140) also clean. Nothing trips. Worth recording that `draw`, `results`, `combination` and `board` all pass — none is on the forbidden list, and the surrounding register is methodology rather than prediction, which is the thing the classifier reads.
+
+**⚠ THE LINT WAS NEVER THE BINDING CONSTRAINT — LENGTH IS, and the original platform assignment collided with its own ceiling.** TikTok was specified as templates **5 and 6** because education framing is mandatory there; those are the two LONGEST in the set — 192 and 160 against a ~150 effective ceiling, i.e. 42 and 10 over. The templates that actually fit ~150 are **3, 4, 7, 8**, and of those, 4 ("Everybody's got a method. Not everybody shows their work") and 7 ("Analysis published before. Receipts published after") carry the strongest methodology register. **Operator ruling: TikTok reassigned to 4 and 7.** The education requirement and the length ceiling are satisfiable together — just not by 5 and 6.
+
+Also recorded: **the X assignment was more conservative than necessary.** X was limited to 4/7/8 as "the short ones", but the longest template is 192 against a 280 ceiling — **all eight fit X**. That is headroom available if the walkthrough framing is wanted there.
+
+| platform | shape | assignment | state |
+|---|---|---|---|
+| Telegram | caption, 1024 | (existing kinds — see below) | **ENABLED** |
+| X | ≤280 | any of 1–8 (all fit) | disabled |
+| TikTok | ~150 effective | **4 and 7** (was 5, 6) | disabled |
+| YouTube Shorts | title + body | first clause → title, remainder + CTA → body | disabled |
+| Reddit | title + body | **own copy, not a transform** | disabled |
+
+**PHASE 1 — the Telegram transform IS a pass-through, confirmed empirically.** `platformCaption()` for Telegram trims, skips URL-stripping (`allowsLinks: true`), appends no tags (`hashtags: []`) and clamps at 1024. Live `social:dryrun` output measures **132 / 175 / 196 chars**, so the clamp never fires and **Telegram receives the Facebook caption verbatim**.
+
+**Precision on what kind of gap that is: stylistic, not compliance.** What reaches Telegram is already tier-4 appropriate — real counts, state attributions, `STRAIGHT MATCH` callouts — and the lint passes clean, because the Telegram channel IS the Pro room (operator ruling 2026-07-28). What is wrong is only that the copy is *shaped* for a Meta room ("Your head start for 7/29 💎") when Telegram is an owned surface with no classifier to satisfy. **The mechanism shapes; it does not author** — and there is no per-platform copy registry for it to draw from. That registry is the actual missing piece, and it is the same shape the public templates will need.
+
+**PHASE 2 — HELD, lands WITH public registration.** The eight templates, the four disabled platforms' transforms and Reddit's bespoke copy all wait on the public kind, per the 2026-07-29 recommendation: a migration widening the kind CHECK for a lane that cannot run, plus preflight warnings meaning "not built yet", would dilute the signal against the existing warning count. **Reddit is not a transform** — templates 1–8 read as announcements, which is what the 90/10 rule and per-subreddit moderation punish; its title carries no CTA and the body's methodology explainer earns the mention.
+
+**PHASE 3 — HASHTAGS DEFERRED, deliberately, and flagged as an open ask rather than an oversight.** A single gambling-adjacent tag undoes the education framing that makes the content FYP-eligible at all, and tag behaviour shifts over time. Needs research against current platform behaviour, then a copy pass — a separate exercise from caption authoring.
+
+---
+
 ### MKT-23 — Asset wave: intros, motions, session carrier, endcard copy 🔍 PHASE 0 REPORTED · GATE HELD
 
 **⚠ ID COLLISION, AND IT IS MINE.** The order specified MKT-22 and asked me to verify. `MKT-22` has **no audit heading** — but I stamped it across **9 code locations** in commit `3fbd7a4` (the intro identity chip) earlier the same day and **never wrote the audit entry**. So the ID was free in the audit and taken in the code, which is exactly the failure the audit exists to prevent, committed by the party maintaining it. **Recorded as a rule: an ID is claimed by the AUDIT, not by a code comment — stamping one without an entry is how a lane gets orphaned** (cf. MKT-19, renumbered for the same class of collision arriving from the other direction).

@@ -124,16 +124,54 @@ function transients(file: string, within: number): number[] {
  * flagged for a human listen. It cannot distinguish a musical swell from a hit,
  * which is exactly why it asks for an ear rather than failing the build.
  */
-const LATE_PEAK_OVER_FLOOR = 18;
+/**
+ * RETUNED 2026-07-29 after auditioning imprint against strike. The first cut
+ * keyed on peak-over-clip-floor at 18dB and flagged TWO of four motions,
+ * including `strike`, which ships daily with no reported pop — the same
+ * cry-wolf failure MKT-19 hit with its first prominence attempt.
+ *
+ * The measurement that actually separates them is neither attack rate nor peak
+ * height. Both were tested and both fail:
+ *   attack rate  imprint 38 dB/s, incumbent 40, circuit 53, strike 61 — strike
+ *                is STEEPER than the known pop, so this ranks them backwards.
+ *   peak height  all four within 2.7dB of each other.
+ * What separates them is WHAT THE BEAT ARRIVES ON TOP OF:
+ *   circuit    prior material -32.7dB  <- near-silent: an isolated event
+ *   strike     prior material -15.2dB  <- crest on the smoke-return whoosh
+ *   imprint    prior material -13.0dB  <- crest, loudest of the four
+ *   incumbent  prior material -15.1dB  <- crest
+ * Circuit's beat fires into a quiet field, which is exactly why MKT-19
+ * described it landing "on an empty frame" — the frame is empty and so is the
+ * track. The other three are crests on material already playing, which is why
+ * nobody has ever remarked on them.
+ *
+ * 17.6dB of separation between circuit and the next quietest, so the threshold
+ * sits in open space rather than being fitted to one asset.
+ */
+/**
+ * ⚠ THRESHOLD MUST MATCH THE RESOLUTION IT IS EVALUATED AT. The separation above
+ * was measured at 10ms buckets, where circuit's prior material reads -32.7dB —
+ * but `peaks()` runs at 100ms (asetnsamples=4800), and at that resolution the
+ * same stretch reads -24.5dB, because a coarser bucket takes the loudest sample
+ * in each 100ms rather than the quiet troughs between. Set at -25 from the 10ms
+ * figures, the check cleared circuit — the exact asset it exists to catch.
+ * Re-derived at the resolution the code actually uses: circuit -24.5 against
+ * strike -11.3, imprint -10.1, incumbent -11.7, fracture -8.1. A 12.8dB gap, so
+ * -18 sits in open space rather than being fitted to circuit.
+ */
+const QUIET_BEFORE_DB = -18;
+const PRIOR_FROM = 1.8, PRIOR_TO = 2.3;
 
 function latePeakFlag(motionPath: string, usedWindow: number, from: number): string | null {
   const p = peaks(motionPath).filter(([t]) => t <= usedWindow);
   if (!p.length) return null;
-  const floor = Math.min(...p.map(([, d]) => d));
   const late = p.filter(([t]) => t >= from);
-  if (!late.length) return null;
+  const prior = p.filter(([t]) => t >= PRIOR_FROM && t <= PRIOR_TO).map(([, d]) => d);
+  if (!late.length || !prior.length) return null;
   const [t, db] = late.reduce((a, b) => (b[1] > a[1] ? b : a));
-  return db - floor >= LATE_PEAK_OVER_FLOOR ? `${t.toFixed(1)}s at ${db.toFixed(1)}dB (${(db - floor).toFixed(1)}dB over this clip's floor)` : null;
+  const material = prior.sort((a, b) => a - b)[Math.floor(prior.length / 2)];   // median
+  if (material > QUIET_BEFORE_DB) return null;   // a crest on material, not an isolated hit
+  return `${t.toFixed(1)}s at ${db.toFixed(1)}dB, arriving after the track drops to ${material.toFixed(1)}dB — an isolated beat in a quiet field, not a crest on the smoke return`;
 }
 
 function audioFilter(mv: MotionVariant, motionPath: string, usedWindow: number): string {

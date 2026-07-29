@@ -155,7 +155,20 @@ Stable across 7/30, 7/31 and 8/1. Intro reaches 6/6 because verify no longer dra
 
 **But the finding cuts both ways, and `strike` is why.** Strike carries the same class of late peak at 2.6s and **ships daily with no reported pop** — and MKT-19 ruled explicitly on this: *"The incumbent has shipped daily for weeks with its 2.8s peak and nobody has ever remarked on it, which is the evidence that a broad swell is not the defect."* So a late peak is not self-evidently a defect; sharpness relative to the surrounding material is what made circuit pop, and this check deliberately cannot measure that.
 
-**Left registered, flagged for the listen, NOT silently accepted.** Removing imprint unilaterally would overturn an explicit operator acceptance on a metric that also flags a known-good shipping asset. But the basis of that acceptance has changed and is recorded as such. **Open ask: audition `imprint` at 2.6–3.0s against `strike` — if they read the same, both are swells and the threshold wants raising; if imprint pops and strike does not, imprint needs an authored fade like circuit's.** Until then the flag will fire on both every build, which is itself a reason to resolve it rather than let a permanent warning train the eye to skim.
+**RESOLVED 2026-07-29 — imprint is a SWELL, and it is accepted on a measured basis rather than a detector gap.** Auditioned against strike with circuit as the known-bad reference. Two candidate discriminators were tested and both FAILED:
+
+| motion | attack rate | peak | **prior material 1.8–2.3s** |
+|---|---|---|---|
+| **circuit** (pops) | 53 dB/s | −4.7 | **−32.7 dB** |
+| strike (ships clean) | **61 dB/s** | −6.0 | −15.2 dB |
+| imprint (in question) | 38 dB/s | −7.4 | **−13.0 dB** |
+| incumbent (ships clean) | 40 dB/s | −6.7 | −15.1 dB |
+
+**Attack rate ranks them backwards** — strike is *steeper* than the known pop. **Peak height separates nothing** — all four sit within 2.7 dB. What separates them is **what the beat arrives on top of**: circuit's fires after the track has dropped to −32.7 dB, an isolated event in a quiet field, which is precisely why MKT-19 described it landing "on an empty frame" — the frame is empty and so is the track. The other three are crests on the smoke-return whoosh already playing. **Imprint has the loudest prior material of the four**, so it is the *least* like circuit of anything in the set. Accepted; no fade needed.
+
+**The check was retuned on that finding and now fires on circuit alone**, where before it flagged two of four including a known-good shipping asset — the same cry-wolf failure MKT-19 hit with its first prominence attempt.
+
+**⚠ AND THE FIRST RETUNE WAS WRONG, caught by testing it.** The threshold was derived from 10 ms measurements (circuit −32.7 dB) but `peaks()` runs at **100 ms** buckets, where the same stretch reads −24.5 dB, because a coarser bucket takes the loudest sample rather than the quiet troughs. Set at −25 from the fine-resolution figures, the check **cleared circuit — the one asset it exists to catch**. Re-derived at the resolution the code actually runs at (−24.5 against −11.7 next quietest, a 12.8 dB gap) and set to −18. **Lesson worth keeping: a threshold is only meaningful at the resolution it is evaluated at**, and deriving one from a finer measurement than the implementation uses produces a guard that reads as calibrated and catches nothing. Removing imprint unilaterally would overturn an explicit operator acceptance on a metric that also flags a known-good shipping asset. But the basis of that acceptance has changed and is recorded as such. *(The open ask this raised was resolved the same day — see above.)*
 
 **Also shipped:** three intros trimmed (`powerup` and `board` IN 0.0/OUT 6.0; `verify` at 5.625s/135 frames, byte-matching standard so verify's timeline cannot shift), rotation 4→6, verify repointed off `anchor_intro.mp4`, pro endcard copy per kind (**standing ask #2 closed** — Midday, Evening and Verify no longer read All-Day's close, and Verify's now describes what it *is* rather than promising verification on the verification reel), midday's scope-named carrier already wired through the existing registry entry. Handoff → **v1.9**; asks #2, #7 and #8 closed.
 

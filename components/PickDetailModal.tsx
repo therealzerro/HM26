@@ -11,7 +11,7 @@ import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop, Rect } from 're
 import { useQuery } from '@tanstack/react-query';
 import { fetchFromSupabase } from '../lib/supabase';
 import { theme } from '../constants/theme';
-import { useTheme, type ColorTokens } from '../lib/theme';
+import { useTheme, heatTier, heatLabelDetailed, type ColorTokens } from '../lib/theme';
 import { PickItem } from './PickCard';
 import { HitReplay } from './HitReplay';
 import { getPairs, fetchPairScores } from '../lib/pairUtils';
@@ -183,6 +183,7 @@ interface PickDetailModalProps {
 // ─── Main component ───────────────────────────────────────────────────────────
 export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slateDate }: PickDetailModalProps) {
   const { D, ct, s } = useStyles();
+  const { colors } = useTheme();
   const [tab, setTab]       = useState<Tab>('INTEL');
   const [savedMsg, setSavedMsg] = useState('');
   const slideAnim = useRef(new Animated.Value(SCREEN_H)).current;
@@ -199,16 +200,22 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slat
   const bestOrder   = pick.bestOrder ?? pick.combo ?? '000';
   const pairs       = useMemo(() => getPairs(bestOrder), [bestOrder]);
 
-  const energyLabel =
-    pick.energy >= 90 ? 'ON FIRE'    :
-    pick.energy >= 80 ? 'BLAZING'    :
-    pick.energy >= 65 ? 'HOT SIGNAL' :
-    pick.energy >= 45 ? 'WARM'       : 'COOL';
-
-  const energyColor =
-    pick.energy >= 90 ? D.hot   :
-    pick.energy >= 75 ? D.amber :
-    pick.energy >= 60 ? D.gold  : D.cyan;
+  // MKT-28b — onto the canonical heat scale. This file was the last holdout of
+  // the pre-DESIGN-02 ramp, and its two ladders DISAGREED WITH EACH OTHER: the
+  // label thresholds were already canonical (90/80/65/45) while the colour ramp
+  // was still the old 90/75/60, so an energy of 78 read "HOT SIGNAL" in the
+  // 80-band colour and 50 read "WARM" in the sub-scale cyan. PickPosterCard was
+  // migrated in the T1.1 batch and this one was missed — the exact defect that
+  // batch existed to remove, surviving in the highest-traffic surface.
+  //
+  // 'HOT SIGNAL' comes from the shared heatLabelDetailed override, which
+  // PickPosterCard also uses (MKT-28a) — it was the same ternary inlined in two
+  // files. heat.ts's invariant is thresholds + colours, not copy, and changing a
+  // rendered subscriber string is a separate decision from fixing a ramp. Every
+  // label this renders is byte-identical to before.
+  const tier = heatTier(pick.energy, colors);
+  const energyLabel = heatLabelDetailed(tier);
+  const energyColor = tier.color;
 
   // Shared helper: query + class-id mapping + max-norm. Same code path as
   // the admin image export, so the live modal and the exported PNG render

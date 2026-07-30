@@ -19,7 +19,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Lock } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
-import { darkColors, heatTier } from '@/lib/theme';
+import { darkColors, heatTier, heatLabelDetailed } from '@/lib/theme';
 import { PickItem } from './PickCard';
 import { EnergyArc, SignalPill, WhyRow, RedactedGlyph, RedactedDigitRow, makeD, type DTokens } from './pickVisuals';
 import { getPairs } from '../lib/pairUtils';
@@ -50,7 +50,7 @@ export function PickPosterCard({ pick, scope, pairScores, redact = false, height
   // for the hot tier (locked vocabulary — heat.ts invariant is thresholds +
   // colors, not copy).
   const tier = heatTier(pick.energy, darkColors);
-  const energyLabel = tier.key === 'hot' ? 'HOT SIGNAL' : tier.label;
+  const energyLabel = heatLabelDetailed(tier);
   const energyColor = tier.color;
 
   const confidence = pick.energy;

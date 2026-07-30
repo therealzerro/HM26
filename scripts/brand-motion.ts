@@ -53,7 +53,39 @@ export interface MotionVariant {
    * class arriving in a different asset).
    */
   audioFadeAgainst?: number;
+  /**
+   * Non-empty = this motion is REGISTERED BUT HELD: the resolver skips it, the
+   * builder will not build it, and preflight reports it as a deliberate
+   * exemption with this reason. Exists so a defective delivery can keep its
+   * registration (the wiring is done, the intent is recorded) without any
+   * routine command re-arming the defective file. Clearing the hold is the
+   * LAST step after a re-delivery measures clean — the stinger-flag lesson.
+   */
+  held?: string;
 }
+
+/**
+ * VERIFY'S PINNED STINGER MOTION — content-agent ruling, confirmed 2026-07-30
+ * (option a). Verify's value at this beat is being tonally DISTINCT from the
+ * slate drops: the closing-bell seal — a gold ring sealing around an already-
+ * standing bolt — says "session closed, results final", which is true of
+ * yesterday's receipts and false of every 8:30am drop. So verify does not
+ * rotate here anymore; it pins to seal, mirroring its fixed intro (MKT-17),
+ * with the shared rotation as the FALLBACK while the built clip is absent.
+ * Delivered 2026-07-29 19:16; not a member of the shared set on purpose — a
+ * slate drop must never draw the bell.
+ */
+export const VERIFY_SEAL_MOTION: MotionVariant = {
+  file: 'stinger_motion_seal.mp4', tag: 'seal', label: 'closing-bell seal',
+  // Measured 2026-07-30 on the 7/29 delivery: the bell lands at 2.7s at
+  // −3.5dB — AFTER the lockup is out (2.4s) and directly over the carrier VO
+  // onset (stinger-local 2.6s), mid-dissolve into the body. A window slide
+  // does not rescue it (the bolt is already forming at 0.7s, so a later
+  // window breaks the smoke-only open) and an authored fade would delete the
+  // bell, which is the entire concept. Regeneration asked: ring sealed and
+  // bell STRUCK by ~2.0s of the clip, decay under the smoke return.
+  held: 'bell at 2.7s / −3.5dB — post-lockup, over the VO onset. Awaiting regeneration (bell by ~2.0s).',
+};
 
 /** Stinger motions. Shared across tiers — a stinger carries no tier signal. */
 export const STINGER_MOTIONS: MotionVariant[] = [
@@ -181,7 +213,22 @@ export function stingerMotionsFor(kind: string, dateISO: string): MotionVariant[
   // MKT-19 + operator 2026-07-29: spread across kinds, not just across dates.
   // Every kind used to draw the same motion each morning (measured: 1 distinct
   // across 6 kinds). Indexed within STINGER_KINDS so the walk is even.
-  return laneRotate(STINGER_MOTIONS, dateISO, ROTATION_SALT.stinger, laneIndex(STINGER_KINDS, kind));
+  const rotation = laneRotate(STINGER_MOTIONS, dateISO, ROTATION_SALT.stinger, laneIndex(STINGER_KINDS, kind));
+  // Verify pins to seal (see VERIFY_SEAL_MOTION); the rotation is its fallback,
+  // so a missing/unbuilt/HELD seal degrades to exactly the pre-pin behaviour.
+  if (kind === 'verify' && !VERIFY_SEAL_MOTION.held) return [VERIFY_SEAL_MOTION, ...rotation];
+  return rotation;
+}
+
+/**
+ * The motion set to BUILD and VALIDATE for a kind. The shared set plus, for
+ * verify only, the pinned seal. Kept separate from stingerMotionsFor so build
+ * and preflight enumerate the same files the resolver can ever name — the
+ * stray scan's contract.
+ */
+export function stingerMotionSetFor(kind: string): MotionVariant[] {
+  if (kind === 'verify' && !VERIFY_SEAL_MOTION.held) return [VERIFY_SEAL_MOTION, ...STINGER_MOTIONS];
+  return STINGER_MOTIONS;
 }
 
 /** Kinds that carry a stinger, in a stable order — the stinger lane's spread axis. */
@@ -226,6 +273,7 @@ export function endcardMotionsFor(
 export function allMotionFiles(): string[] {
   return [...new Set([
     ...STINGER_MOTIONS.map(m => m.file),
+    VERIFY_SEAL_MOTION.file,
     ...ENDCARD_MOTIONS.pro.map(m => m.file),
     ...ENDCARD_MOTIONS.free.map(m => m.file),
   ])];

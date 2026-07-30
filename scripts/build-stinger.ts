@@ -15,7 +15,7 @@ import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { STINGER_MOTIONS, builtStingerName, FADE_TARGET_TOLERANCE, type MotionVariant } from './brand-motion';
+import { stingerMotionSetFor, builtStingerName, FADE_TARGET_TOLERANCE, type MotionVariant } from './brand-motion';
 import {
   STINGERS, STINGER_DUR, TEXT_IN_START, TEXT_IN_DUR, TEXT_OUT_START, TEXT_OUT_DUR,
   LINE_STAGGER, TEXT_SCALE_FROM, TEXT_FPS, LOCKUP_TOP, CROP_SAFE_BOTTOM,
@@ -337,7 +337,14 @@ async function build(key: string, v: StingerVariant, mv: MotionVariant): Promise
   for (const k of keys) {
     const v = STINGERS[k];
     if (!v) { console.error(`ABORT: unknown variant "${k}". Known: ${Object.keys(STINGERS).join(', ')}`); process.exit(1); }
-    // MKT-19: one built stinger per (variant x motion).
-    for (const mv of STINGER_MOTIONS) await build(k, v, mv);
+    // MKT-19: one built stinger per (variant x motion). The set is per kind —
+    // verify's includes its pinned seal (never built for a slate kind).
+    for (const mv of stingerMotionSetFor(k)) {
+      if (!existsSync(join(ASSETS, mv.file))) {
+        console.log(`  SKIP ${builtStingerName(k, mv.tag)} — motion source ${mv.file} not delivered`);
+        continue;
+      }
+      await build(k, v, mv);
+    }
   }
 })();

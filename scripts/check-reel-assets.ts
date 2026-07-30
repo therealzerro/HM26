@@ -28,8 +28,8 @@ import { MODAL_COUNT, PANEL_BUCKET, panelUrl, panelSequence, rotationDegenerate 
 import { STINGERS, STINGER_DUR, INTRO_XFADE, stingerFile } from './stinger-config';
 import { ENDCARDS } from './endcard-config';
 import {
-  STINGER_MOTIONS, ENDCARD_MOTIONS, allMotionFiles, tierFor,
-  builtEndcardName, builtStingerName, readMotionMeta,
+  stingerMotionSetFor, ENDCARD_MOTIONS, allMotionFiles, tierFor,
+  builtEndcardName, builtStingerName, readMotionMeta, VERIFY_SEAL_MOTION,
 } from './brand-motion';
 import { endcardCandidates } from './reel-endcard';
 import { stingerCandidates } from './reel-stinger';
@@ -316,7 +316,8 @@ function checkStrays(): void {
     // whose flag is currently off is intended to sit there, not a stray.
     referenced.add(stingerFile(variant));   // pre-MKT-19 unversioned build
     referenced.add(cfg.motion);
-    for (const m of STINGER_MOTIONS) referenced.add(builtStingerName(variant, m.tag));
+    // Per-kind set: verify's includes its pinned seal (MKT-29).
+    for (const m of stingerMotionSetFor(variant)) referenced.add(builtStingerName(variant, m.tag));
   }
   // MKT-20: enumerate the carrier REGISTRY — every part-1 rotation member plus
   // each kind's shared continuation. Deliberately NOT the old `_pt2…_pt9` sweep
@@ -731,6 +732,12 @@ function checkMotions(): void {
   const meta = readMotionMeta(ASSETS);
   for (const f of allMotionFiles()) {
     const p = join(ASSETS, f);
+    // A held motion is a deliberate exemption, not a defect — report it with
+    // its reason so the hold stays visible instead of reading as a stray.
+    if (f === VERIFY_SEAL_MOTION.file && VERIFY_SEAL_MOTION.held) {
+      add('WARN', f, `REGISTERED BUT HELD — ${VERIFY_SEAL_MOTION.held}`);
+      continue;
+    }
     if (!existsSync(p)) { add('WARN', f, 'not delivered — drops from its rotation; the resolver falls back'); continue; }
     if (statSync(p).size < 100_000) { add('FAIL', f, `${statSync(p).size} bytes — placeholder/corrupt`); continue; }
     const st = streams(p);
@@ -761,7 +768,7 @@ function checkStingers(): void {
     // MKT-19: every built member of the rotation, plus the unversioned build
     // while it survives as the resolver's last resort. Checking only today's
     // pick would validate one of three files and call the set healthy.
-    for (const m of STINGER_MOTIONS) checkOneStinger(variant, cfg, builtStingerName(variant, m.tag), m.label);
+    for (const m of stingerMotionSetFor(variant)) checkOneStinger(variant, cfg, builtStingerName(variant, m.tag), m.label);
     if (existsSync(join(ASSETS, stingerFile(variant)))) checkOneStinger(variant, cfg, stingerFile(variant), null);
 
     const cands = stingerCandidates(variant, TODAY);

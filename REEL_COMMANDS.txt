@@ -324,12 +324,33 @@ npm run render-allday-body -- --scope=midday --redact
     stray copy of the Pro body got caught wearing a "_redacted_" name
     on 2026-07-29.
 
+    And the PUBLIC capture mode (MKT-30, 2026-07-30):
+
+npm run render-allday-body -- --scope=midday --redact --relabel
+
+    The PUBLIC cut: redaction PLUS the tier-1 copy swaps (SIGNAL #N /
+    BEST ORDER / ANY ORDER / PLAN / "in order"), session labels
+    dropped, state codes suppressed (counts kept), heat vocabulary
+    swapped, and masked combinations rendered as a blurred
+    placeholder block with the gold bolt over it — the blur is never
+    derived from real digits. Every rendered string is run through
+    the REAL brand-lint engine at tier 1, per modal, and the render
+    aborts on ANY blocking violation — including any visible 3-digit
+    run ("100%", "102×" — Q1 is absolute at tier 1).
+    --relabel REQUIRES --redact; it aborts alone.
+    Output: ui_<scope>_public_<stamp>.mp4, tagged hm_reel_public.
+    ⚠ NOTHING CONSUMES IT YET — the public kinds are MKT-16, still
+    held at its gate. This command exists so the capture is proven
+    ahead of that build; running it is validation, not production.
+
     Overrides the date rotation for one assembly so a specific
     combination can be watched end to end. The motion flags take a
-    TAG (std | strike | circuit for stingers, std | alt for
-    endcards); --carrier takes a part-1 FILENAME from that kind's
-    set, because carriers are named per variant rather than tagged.
-    All three can be combined.
+    TAG (stingers: std | strike | circuit | fracture | imprint —
+    verify also pins `seal`, REGISTERED BUT HELD pending its
+    regeneration; endcards: std | alt | steady | lattice for pro,
+    std | alt for free); --carrier takes a part-1 FILENAME from that
+    kind's set, because carriers are named per variant rather than
+    tagged. All three can be combined.
 
     FOUR things now rotate independently — intro, stinger motion,
     endcard motion and carrier part 1 — and they are deliberately

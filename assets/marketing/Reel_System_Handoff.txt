@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-07-29 · v1.9
+Content Agent Handoff · 2026-07-30 · v2.0
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -16,6 +16,73 @@ Companion docs:
   - assets/marketing/AllDay_Reel_Endcard_Revision_Brief_2026-07-27.md (endcard contract)
   - docs/mkt15_phase2_copy_brief.md (public copy set — DELIVERED + the bolt request)
   - REEL_COMMANDS.txt (repo root — operator command reference)
+
+WHAT CHANGED IN v2.0 (2026-07-30 — content-agent ruling pass + MKT-29/30)
+  A. ⚠ SEAL IS VERIFY'S PINNED STINGER MOTION — ruling option (a) confirmed —
+     BUT THE DELIVERED CLIP IS HELD on a measured defect: the bell lands at
+     2.7s at −3.5dB, AFTER the lockup is out (2.4s) and directly over the
+     carrier VO onset (2.6s), mid-dissolve. A window slide does not rescue it
+     (the bolt is already forming at 0.7s of the master, so a later window
+     breaks the smoke-only open) and fading the bell deletes the concept.
+     The pin is WIRED with the shared rotation as fallback; the registration
+     carries `held:` with the reason, so no routine stinger:build can re-arm
+     the defective clip. REGENERATION ASK: ring sealed and bell STRUCK by
+     ~2.0s of the clip, decay under the smoke return. §3, §7.
+  B. RESULTS chip / RECEIPTS stinger on verify is DELIBERATE, ruled 2026-07-30
+     — identification in plain language at 0.4s, brand framing at 5.6s,
+     escalation not repetition. Recorded so nobody "corrects" it. §3.
+  C. VERIFY HAS A SHORT SIGN-OFF SLOT: `verif_carrier_signoff_short.mp4`
+     (~3.0s, budget-gated, NOT YET DELIVERED). The resolver walks full pt2 →
+     short → part 1 alone, each playing WHOLE or not at all. ⚠ The name is a
+     SLOT, deliberately not `_ptN` — that namespace belongs to the joiner and
+     its orphan scan. Fit math: part 1 is fixed at 10.005s + 0.35s breath, so
+     ≤2.3s of speech covers every day with a featured row; ~3.0s starts
+     losing the 1-box days. §3, §7.
+     Also corrected: the 0-straight drop is a pure DURATION consequence — pt2
+     was written badge-agnostic on purpose. v1.9's "fits worst" rationale was
+     wrong and is retired.
+  D. MKT-28 COPY DECISIONS CLOSED (operator-delegated): canonical HOT wins —
+     HOT SIGNAL is retired on the detail surfaces; Heat Check keeps its
+     verdict WORDING on renested thresholds (80/65/45). The reconciled state
+     the public relabel writes against is now: ONE temperature ladder
+     (ON FIRE/BLAZING/HOT/WARM/COOL at 90/80/65/45), ONE verdict set
+     (BLAZING SIGNAL/STRONG SIGNAL/MODERATE/OVERDUE/LOW), one banner phrase.
+     ⏳ The content agent owes the neutral public vocabulary for those 11
+     slots — the LAST copy input the public cut needs.
+  E. MKT-15 P2 PUBLIC CAPTURE MODE IS BUILT (`--redact --relabel`): the eight
+     delivered copy slots injected at capture, session labels dropped, state
+     codes suppressed, and the ruled look — masked combinations become a
+     blurred PLACEHOLDER block with the gold bolt (60% height, 85% opacity,
+     one per masked number; blur never derived from real digits). ⚠ Q1 IS
+     ABSOLUTE at tier 1, probed against the real lint engine: "100", "100%"
+     and "102×" ALL block, so remaining 3-digit runs are structurally HIDDEN
+     — the free cut's kept-methodology carve-outs do not carry to public.
+     Heat neutrals ship as PROVISIONAL config strings until D's set lands.
+     Not registered anywhere (MKT-16 stays held) — a validated capture
+     awaiting the five registration points. §10.
+  F. REGENERATED powerup + deadpan VALIDATED AND SERVING (both trimmed
+     IN 0.0 / OUT 6.3 with a 0.4s tail fade to silence; masters kept).
+     deadpan's onset — its one job — measures −46.6dB mean / −18.0dB max
+     over the first 0.3s (old: −56.2; public reference: −37.9): mid-fleet
+     now, standing ask #4 CLOSED. powerup's device exits by ~5.4s against
+     the redesign's 5.0s spec — recorded overshoot, ruled a PASS because
+     the OUT-6.3 dissolve bed (5.8-6.3) is clean smoke with ~0.9s margin.
+     Its REJECTED status is lifted; the rotation is 6 with all six serving.
+     ⚠ SLATE REELS NOW RUN 33.83-34.53s (intros 5.63-6.33s).
+  G. lattice IS BED-VIABLE (−31.4dB) — its bed was respec'd +10dB locally
+     (0-3.6s, ramp to unity before the 4.2s crack) so the residual sits
+     inside the ±6dB clamp; endcard:build re-derived the verdict on its own.
+     The pro tier now has THREE bed-viable motions (std, steady, lattice).
+     v1.9 note F is retired.
+  H. REDACTION HARDENED: the mask and assert now cover MIXED CONTENT (a run
+     split across text nodes and elements), rule 7's pair replace is global,
+     and a pass-3 backstop asserts that post-mask NO text mentioning "pair"
+     still carries a two-digit run. The two blind spots the MKT-26 addendum
+     named are closed, fail-closed.
+  I. BUDGET STATE: generation balance is ZERO. Queue when it returns, in
+     order: ① seal regeneration (note A) · ② verif_carrier_signoff_short
+     (note C) · ③ evening_pro carrier rotation pair. The 1080×1920 upscale
+     pilot (standing ask #1) is also blocked on the same balance.
 
 WHAT CHANGED IN v1.9 (MKT-22/23 — asset wave + the intro chip)
   A. THE INTRO NOW CARRIES AN IDENTITY CHIP over the anchor's right shoulder —
@@ -145,11 +212,12 @@ and stage everything; the operator posts from their phone with two taps.
                           masked one.
 
   ⚠ SLATE REEL LENGTH IS NOT A CONSTANT (changed 2026-07-28, MKT-17). It is
-  33.83s or 34.20s depending on which intro the day's rotation draws — the
-  standard intro is 5.625s, the deadpan is 6.000s. v1.5's flat "33.8s each" is
-  retired. Nothing you write is affected: the usable VO window is bodyDur+0.4
-  and is INDEPENDENT of intro length (see §2), so carrier specs do not move.
-  Only the finished file's duration does.
+  33.83-34.53s depending on which intro the day's rotation draws — the pool
+  spans 5.63s (standard) to 6.33s (deadpan, powerup — the two 2026-07-30
+  regenerations). v1.5's flat "33.8s each" is retired. Nothing you write is
+  affected: the usable VO window is bodyDur+0.4 and is INDEPENDENT of intro
+  length (see §2), so carrier specs do not move. Only the finished file's
+  duration does.
 
 SESSION WAVE (MKT-13) — read before proposing session content. Midday and
 Evening are NOT a different reel: they are the same reel parameterized by
@@ -203,7 +271,7 @@ and runs an in-frame vocabulary guard; any violation aborts the render.
 
 
 --------------------------------------------------------------------------------
-2. REEL ANATOMY — SLATE DROPS (33.83s or 34.20s @ 1080×1920 60fps)
+2. REEL ANATOMY — SLATE DROPS (33.83-34.53s @ 1080×1920 60fps)
 --------------------------------------------------------------------------------
 Covers All-Day (Pro + Free) AND the Midday/Evening session drops (Pro + Free as
 of MKT-26) — they are the SAME reel built from a different board, so this one
@@ -239,8 +307,9 @@ seven digit-bearing surfaces at ten settling frames.
 KEPT: energy, ZK6 confidence, all four signal percentages, heat badges,
 jurisdiction counts, panels, and the full prose structure.
 
-Times below are quoted for the 5.6s standard intro. On a 6.0s rotation member
-every timestamp after the intro shifts 0.4s later and the reel is 34.20s.
+Times below are quoted for the 5.6s standard intro. On a longer rotation
+member every timestamp after the intro shifts by the difference (up to 0.7s
+on the 6.33s members) and the reel runs up to 34.53s.
 
   TIMELINE (t in seconds)
   0.0 – 5.6    INTRO — "The Anchor". Opens ON the gesture — frame 1 is the
@@ -254,9 +323,12 @@ every timestamp after the intro shifts 0.4s later and the reel is 34.20s.
                SHARED FILE. v1.5 said "anchor_intro.mp4, shared by every reel
                kind". It is now resolved PER KIND:
                  slate reels  — ROTATE over a set, currently [standard,
-                                deadpan, arrival, monitors], picked by a
-                                date-derived offset. (arrival + monitors
-                                added 2026-07-29.)
+                                deadpan, arrival, monitors, powerup, board],
+                                picked by a date-derived offset. (arrival +
+                                monitors added 2026-07-29; powerup + board
+                                completed the six the same day; powerup and
+                                deadpan REGENERATED and revalidated
+                                2026-07-30.)
                                 Both pro and free draw the SAME intro on a
                                 given day (different rooms, so no spacing is
                                 needed). Re-running a past date reproduces
@@ -431,7 +503,17 @@ every timestamp after the intro shifts 0.4s later and the reel is 34.20s.
 
   0.0 – 5.6    INTRO — the STANDARD Anchor intro, always. Verify draws a FIXED
                intro and never a rotation member (MKT-17), so the OPEN is stable.
-               ⚠ Its STINGER does rotate — see the note under AUDIO.
+               ⚠ Its STINGER is ruled the same way as of 2026-07-30 (MKT-29):
+               PINNED to the closing-bell seal — "session closed, results
+               final" is true of receipts and false of every 8:30am drop —
+               with the shared rotation as fallback. The delivered seal is
+               HELD on a measured defect (bell 2.7s, over the VO onset); until
+               its regeneration lands, verify draws the rotation in practice.
+               ⚠ THE CHIP SAYS "YESTERDAY'S RESULTS", THE STINGER SAYS
+               "YESTERDAY'S RECEIPTS" — DELIBERATE, ruled 2026-07-30. The chip
+               identifies the reel in cold-viewer language at 0.4s; the
+               stinger frames it in brand language at 5.6s. Escalation, not
+               repetition. Do not "correct" either to match the other.
   5.6 – 8.3    STINGER (MKT-12, ENABLED for verify 2026-07-29) —
                "HITMASTER ZK6 / YESTERDAY'S RECEIPTS", 3.0s crossfaded 0.3s
                into the intro's smoke, so it ADDS 2.7s. Barred until MKT-27
@@ -448,11 +530,18 @@ every timestamp after the intro shifts 0.4s later and the reel is 34.20s.
                last hold and the close, joined with a 0.35s breath). Joined
                16.02s against a need of bodyDur+2.9, leaving ~0.5s of silence
                at the very close — down from 6.5s.
-               ⚠ THE WINDOW MOVES, so pt2 plays WHOLE OR NOT AT ALL. On a
-               0-straight day the window is too short and pt2 is DROPPED
-               entirely rather than cut mid-word (~5.7s of silence instead).
-               That boundary is deliberate: pt2's middle line lands on a held
-               STRAIGHT row, so the days it drops are the days it fits worst.
+               ⚠ THE WINDOW MOVES, so the close resolves BY WINDOW (updated
+               2026-07-30): full pt2 when it fits → the SHORT sign-off
+               (verif_carrier_signoff_short.mp4, ~3.0s, budget-gated, not yet
+               delivered) when it does not → part 1 alone (silence) only if
+               neither fits. Every step plays WHOLE or not at all — never cut
+               mid-word.
+               ⚠ CORRECTED 2026-07-30 (content agent): the 0-straight drop is
+               a pure DURATION consequence, NOT a content mismatch — pt2's
+               copy is badge-agnostic by design ("that one's on the record"
+               works over a box MATCH exactly as well). v1.9's "fits worst"
+               rationale was wrong, which is exactly why a short variant
+               closes the gap cleanly.
                The audio stream is padded to the full container length, which
                it was not before (legal mp4, but transcoder-hostile).
                ⚠ The stinger does NOT widen the gap — need derives from the
@@ -593,11 +682,16 @@ per-day by hand, not AI-freestyled.
     anchor_intro.mp4              THE ANCHOR intro, "standard" — rotation
                                   member AND the fallback every kind
                                   degrades to. 5.6s, trimmed 1.9→7.5s.
-    anchor_intro_deadpan.mp4      Rotation member, 6.0s (IN 0.0 / OUT 6.0).
-                                  Keeps the whole sheet gag. ⚠ opens quiet
-                                  (−56.2 dB mean over the first 0.3s vs
-                                  public's −37.9) — flagged, not blocking,
-                                  but louder would be better next time.
+    anchor_intro_deadpan.mp4      Rotation member, 6.3s (IN 0.0 / OUT 6.3 +
+                                  0.4s tail fade). REGENERATED 2026-07-30 to
+                                  fix its quiet open — its one job, and it
+                                  did it: first 0.3s now −46.6dB mean /
+                                  −18.0dB max (old −56.2; public reference
+                                  −37.9) — mid-fleet, hotter max than public.
+                                  New beat map: gag open, phone raise
+                                  2.5-3.3s, dive 3.3s, device out by 5.7s,
+                                  bed 5.8-6.3 clean. Chip zone clear (the
+                                  note sits center-low through 0.40-2.65s).
     anchor_intro_arrival.mp4      Rotation member, 6.0s (IN 2.0 / OUT 8.0).
                                   Added 2026-07-29. THE SHOT `powerup` WAS
                                   SUPPOSED TO BE: the camera pushes fully
@@ -626,9 +720,18 @@ per-day by hand, not AI-freestyled.
                                   hook — audio present from frame 1. The
                                   only intro cleared for a public surface;
                                   never swapped for a rotation member.
-    anchor_intro_powerup.mp4      REJECTED, see the delivery spec below.
-                                  Present but unregistered; awaiting
-                                  regeneration.
+    anchor_intro_powerup.mp4      ✅ CLEARED 2026-07-30 — the third generation
+                                  (redesigned: 3.0s dive) passed the eye
+                                  check the first two failed. 6.3s (IN 0.0 /
+                                  OUT 6.3 + 0.4s tail fade). One recorded
+                                  overshoot: the device fully exits at ~5.4s
+                                  against the redesign's 5.0s spec (left rail
+                                  visible at 5.25) — ruled a PASS because
+                                  every frame from 5.5s is edge-to-edge smoke
+                                  and the dissolve bed (5.8-6.3) is clean
+                                  with ~0.9s margin. Onset −35.6dB mean, the
+                                  hottest open in the fleet. Serving in the
+                                  rotation of 6.
     anchor_intro_*_master_10s.mp4 Delivered 10s masters, kept so the trims
                                   stay reproducible. NOT read by the
                                   pipeline.
@@ -673,6 +776,17 @@ per-day by hand, not AI-freestyled.
                                   variants plus the unversioned fallback.
                                   Verify's stinger ROTATES by reel date even
                                   though its intro does not.
+    verif_carrier_signoff_short   DECLARED SLOT, NOT YET DELIVERED (budget-
+      .mp4                        gated). ~3.0s sign-off-only variant of pt2,
+                                  used when the day's window cannot take the
+                                  16.02s full join. ⚠ Deliberately NOT a
+                                  `_ptN` name — that namespace belongs to the
+                                  joiner and its orphan scan. Delivery: the
+                                  usual 10.005s master, trimmed to speech,
+                                  master kept (verif_carrier_pt2 convention).
+                                  ≤2.3s of speech covers every day with a
+                                  featured row; ~3.0s starts losing 1-box
+                                  days.
     verif_endcard.mp4             Verify bolt endcard
     midday_pro_carrier.mp4        Midday VO carrier (+ _pt2, auto-joined)
     evening_pro_carrier.mp4       Evening VO carrier (+ _pt2, auto-joined)
@@ -698,12 +812,18 @@ per-day by hand, not AI-freestyled.
                                   §6 permits pricing on — never reuse these
                                   anywhere else. Also note "DIGITS", not
                                   "numbers": §5 bars numbers as a product noun.
-    endcard_motion_pro.mp4        PRO-tier endcard motions (MKT-19 set).
-    endcard_motion_pro_alt.mp4    std = converging threads · alt = vault
-                                  rings. Used by All-Day Pro, Midday,
-                                  Evening AND Verify. ⚠ pro_alt is a build-up
-                                  and supplies NO hum bed, so it drops from
-                                  the rotation on short-carrier days only.
+    endcard_motion_pro.mp4        PRO-tier endcard motions (MKT-19/23 set of
+    endcard_motion_pro_alt.mp4    FOUR). std = converging threads · alt =
+    endcard_motion_pro_steady.mp4 vault rings · steady = scrolling waveform ·
+    endcard_motion_pro_lattice    lattice = node lattice. Used by All-Day
+      .mp4                        Pro, Midday, Evening AND Verify. ⚠ pro_alt
+                                  is a build-up and supplies NO hum bed, so
+                                  it drops from the rotation on short-carrier
+                                  days only. lattice was bed-INELIGIBLE until
+                                  2026-07-30 — its bed was respec'd +10dB
+                                  locally and re-qualified itself at −31.4dB,
+                                  so the tier now has THREE bed-viable
+                                  motions (std, steady, lattice).
     endcard_motion_free.mp4       FREE-tier endcard motions (MKT-19 set).
     endcard_motion_free_alt.mp4   std = blooming eddies · alt = rising tide.
                                   Used by All-Day Free and the public kinds.
@@ -712,6 +832,20 @@ per-day by hand, not AI-freestyled.
     stinger_motion_strike.mp4     shared across ALL variants and both tiers —
     stinger_motion_circuit.mp4    a stinger carries no tier signal. std =
                                   bolt condense · strike · circuit.
+    stinger_motion_seal.mp4       ⚠ REGISTERED BUT HELD (MKT-29) — verify's
+                                  PINNED motion, never in the shared set (a
+                                  slate drop must never draw the bell). The
+                                  7/29 delivery fails acceptance, measured:
+                                  bell at 2.7s / −3.5dB, after lockup-out and
+                                  over the VO onset. No trim rescues it (bolt
+                                  already forming at 0.7s; a later window
+                                  breaks the smoke-only open) and fading the
+                                  bell deletes the concept. Regeneration ask:
+                                  ring sealed + bell STRUCK by ~2.0s, decay
+                                  under the smoke return. The hold lives in
+                                  brand-motion.ts (`held:`); clearing it is
+                                  the LAST step after the re-delivery
+                                  measures clean.
                                   ⚠ circuit carries a second transient (a
                                   gold pulse at 2.7s) that fires after the
                                   lockup is already out. It is corrected in
@@ -1122,6 +1256,17 @@ BUILT AND RUNNING DAILY:
           plainer register) and free-written drafts are REFUSED outright rather
           than transformed. Real performance data survives untouched; it is
           sanctioned at tier 4. Affects nothing you write for Facebook.
+  MKT-28  HEAT COPY DECISIONS CLOSED (2026-07-30) — canonical HOT wins on the
+          detail surfaces; Heat Check keeps verdict wording on renested
+          thresholds (80/65/45). What remains is the CONTENT AGENT's neutral
+          public vocabulary — 11 slots (5 temperature + 5 verdict + 1 banner).
+  MKT-29  VERIFY STINGER PINNED TO SEAL (2026-07-30) — wired with rotation
+          fallback; the delivered clip is HELD pending regeneration (v2.0
+          note A). Verify draws the rotation until it lands.
+  MKT-30  PUBLIC CAPTURE MODE BUILT (2026-07-30) — `--redact --relabel`
+          renders the tier-1-clean public body with the bolt look, audited
+          per modal by the real lint engine. Unregistered by design; MKT-16's
+          five registration points are the remaining build (v2.0 note E).
 
 IN FLIGHT, NOT BUILT — do not propose against these yet; §10 has the detail:
   MKT-14  Brand attribution in the slate stamp .......... PARKED (untouched)
@@ -1130,8 +1275,8 @@ IN FLIGHT, NOT BUILT — do not propose against these yet; §10 has the detail:
 
 DAILY OUTPUT TODAY: up to SEVEN reels — verify (22.1-27.5s, variable by row
 count since MKT-27), All-Day Pro + Free, and Midday and Evening, each now Pro +
-Free. Slate reels are 33.83s or 34.20s depending on the day's intro. All auto-publish to Admin → Reels with
-drafted captions. Nothing auto-posts, ever.
+Free. Slate reels are 33.83-34.53s depending on the day's intro. All
+auto-publish to Admin → Reels with drafted captions. Nothing auto-posts, ever.
 
 ⚠ THE PRO-ONLY SESSION RULING IS SUPERSEDED (MKT-26, 2026-07-29) — BUT NOT
 REPEALED. Read the distinction before proposing anything against it:
@@ -1178,8 +1323,11 @@ WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
      All-Day framing.
      ⏳ STILL OPEN in this family: `evening_pro_carrier` has no rotation set
      (one part-1 file), and the verify carrier has none either. Budget-gated.
-  4. A LOUDER OPEN ON ROTATION MEMBERS. Deadpan opens at −56.2 dB mean over
-     its first 0.3s against the standard intro's −37.9. MKT-08's "audio up
+  4. ✅ CLOSED 2026-07-30 — deadpan's regeneration fixed its open (−46.6dB
+     mean / −18.0dB max over the first 0.3s; the max is now the hottest in
+     the fleet). Original entry kept for the reasoning:
+     A LOUDER OPEN ON ROTATION MEMBERS. Deadpan opens at −56.2 dB mean over
+     its first 0.3s against the public intro's −37.9. MKT-08's "audio up
      from frame 1" rule is about autoplay retention, and a near-silent open
      spends it.
   5. More panels. The rotation adapts with no code change; six is the current
@@ -1254,6 +1402,21 @@ MKT-15 — SOCIAL HANDOFF. Phase 1 SHIPPED.
   X / Reddit / Telegram carry templates; YouTube / TikTok / Instagram are
   deliberately plain app-open, because an undocumented scheme that silently
   fails is worse than a link that honestly just opens the app.
+
+MKT-15 — PHASE 2, THE PUBLIC CUT. ⚠ UPDATED 2026-07-30 (MKT-30): THE CAPTURE
+MODE IS BUILT. `render-allday-body --redact --relabel` produces the public
+body: eight copy slots swapped at capture, session labels dropped, state codes
+suppressed (counts kept), heat vocabulary swapped (PROVISIONAL neutrals — see
+below), masked combinations rendered as blurred placeholder + gold bolt (60%
+height, 85% opacity, one per masked number), and EVERY rendered string run
+through the real tier-1 lint engine per modal with an EMPTY acceptance bar.
+Q1 is absolute at tier 1 — "100", "100%" and "102×" all block, so remaining
+3-digit runs are structurally hidden. Bodies carry an `hm_reel_public` tag for
+the eventual assembler to assert. The bolt decisions are made (gold gradient
+per palette §7, centered, 60%/85%). WHAT REMAINS: ① the content agent's
+reconciled neutral heat vocabulary (drops into HEAT_RELABEL verbatim — the
+LAST copy input), ② MKT-16's five registration points, still held. The
+original scoping below is kept for the record.
 
 MKT-15 — PHASE 2, THE PUBLIC CUT. BLOCKED, and bigger than first scoped.
   The headline finding: MASKING DIGITS IS NOT SUFFICIENT. The body is a screen

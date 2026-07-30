@@ -79,7 +79,7 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 ---
 
-### MKT-15 P2 RELABEL — implementation spec (redaction half DONE, relabel NOT STARTED)
+### MKT-15 P2 RELABEL — ✅ BUILT 2026-07-30 as MKT-30 (`--redact --relabel`); spec below kept for the record
 
 **Written as a spec rather than started, because the relabel needs a full `--redact --relabel` capture with frames inspected to verify, and isolation testing on `/explore` produced two false passes during the redaction work.** The traps below cost six attempts to find; they are recorded so the next pass does not re-pay for them.
 
@@ -165,7 +165,11 @@ Joined durations identical at 20.360s, so the MKT-20 invariant holds. The new pa
 
 ---
 
-### MKT-28 — Heat-vocabulary reconciliation + redaction over-mask ✅ ENGINEERING DONE 2026-07-30 · COPY DECISIONS OWED
+### MKT-28 — Heat-vocabulary reconciliation + redaction over-mask ✅ CLOSED 2026-07-30 (copy decisions ruled)
+
+**COPY DECISIONS CLOSED 2026-07-30, operator-delegated.** (1) Canonical **HOT wins** — `heatLabelDetailed()` collapses to `tier.label` on every rung; the seam function stays for the day a divergence is ever ruled back in. The ladder is a five-rung temperature scale and `HOT SIGNAL` broke its parallelism on one rung, on two surfaces. ⚠ This changed a rendered subscriber string (every reel modal now reads `HOT`). (2) **Heat Check keeps its verdict WORDING, loses its private thresholds** — 85/70/50 → 80/65/45, nesting inside the canonical bands so no energy ever reads hotter in Heat Check than on the grid. Filtered tsc 0. What remains is the CONTENT AGENT's neutral public vocabulary — 11 slots (5 temperature + 5 verdict + 1 banner), written against the post-fix reconciled state, dropping verbatim into `HEAT_RELABEL` in `scripts/reel-relabel.ts` (MKT-30).
+
+Original entry:
 
 **28b SHIPPED.** `PickDetailModal` migrated onto `heatTier`. It was the last holdout of the pre-DESIGN-02 ramp and its two ladders disagreed with each other — canonical label thresholds (90/80/65/45) against the old colour ramp (90/75/60) — so energy 70 rendered the 65-band LABEL in the 60-band COLOUR. Verified by re-rendering the real modal: pick #2 at energy 70 keeps the label `HOT SIGNAL` byte-identical and moves gold → orange, so the band it says and the band it looks are now the same band. App-side tsc 0.
 

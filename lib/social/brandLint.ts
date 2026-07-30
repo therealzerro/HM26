@@ -72,8 +72,11 @@ const UNIVERSAL_VOCAB: { re: RegExp; rule: string; suggestion: string }[] = [
   { re: /\bhits?\b/gi, rule: 'vocab-law', suggestion: 'MATCH / verified match' },
 ];
 
-/** US state abbreviations — for PUBLIC/cross-post attribution detection (§6). */
-const STATE_CODES = new Set([
+/** US state abbreviations — for PUBLIC/cross-post attribution detection (§6).
+ *  Exported (MKT-16) so the public capture's state suppression hides exactly
+ *  the set this lint flags — two lists would drift, and the relabelled frame
+ *  would fail the audit that shaped it. */
+export const STATE_CODES = new Set([
   'AZ','AR','CA','CO','CT','DE','FL','GA','ID','IL','IA','KS','KY','LA','MD','MI',
   'MN','MS','MO','NE','NV','NJ','NM','NY','NC','ND','SC','SD','TN','TX','VA','VT',
   'WA','WV','WI','DC',

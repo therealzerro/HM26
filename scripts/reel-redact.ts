@@ -182,7 +182,13 @@ export async function installRedaction(page: Page): Promise<void> {
     };
     const inDigitGroup = el => window.__hmDigitGroup(el);
     const maskAll = root => {
-      for (const el of Array.from(root.querySelectorAll('*'))) {
+      // ⚠ querySelectorAll returns DESCENDANTS ONLY — the root itself must be
+      // processed too, or an individually-appended leaf element (React does
+      // this on incremental renders) is swept as a root with no descendants
+      // and nothing masks it. Found 2026-07-30 via the relabel's twin sweep.
+      const els = Array.from(root.querySelectorAll('*'));
+      if (root.nodeType === 1) els.unshift(root);
+      for (const el of els) {
         if (!el.children.length) { maskLeaf(el); continue; }
         // Mixed content: direct text nodes of an element that HAS children.
         for (const n of Array.from(el.childNodes)) if (n.nodeType === 3) maskTextNode(n);
@@ -202,7 +208,14 @@ export async function installRedaction(page: Page): Promise<void> {
         }
         for (const n of Array.from(m.addedNodes)) {
           if (n.nodeType === 1) maskAll(n);
-          else if (n.nodeType === 3 && n.parentElement && n.parentElement.children.length) maskTextNode(n);
+          // An appended text node whose parent is CHILDLESS fell through both
+          // branches here (children counts elements, not text nodes) — the
+          // parent leaf must be re-masked (2026-07-30, same class as the
+          // relabel's appended-node gap).
+          else if (n.nodeType === 3 && n.parentElement) {
+            if (n.parentElement.children.length) maskTextNode(n);
+            else maskLeaf(n.parentElement);
+          }
         }
       }
     });
@@ -294,9 +307,19 @@ export async function assertNoDigits(page: Page, where: string): Promise<void> {
       // mask, and it is permitted because a divergence here presents as an
       // intermittent abort on the one day a signal tops out.
       if (/^\\d{1,3}$/.test(t) && window.__hmSignalValue && window.__hmSignalValue(el)) continue;
+      // THIRD LEXICAL SHAPE — "+N", widened WITH EVIDENCE per this file's own
+      // rule (MKT-16, 2026-07-30): the All-Day grid's hit-dot overflow reads
+      // "+169" when a pick's draw count tops 3 digits, and six such leaves
+      // aborted the first public render. A plus-prefixed run is a COUNT — no
+      // surface renders a combination with a + prefix — and draw counts are in
+      // the free cut's deliberate keep-class, so the shape is stripped before
+      // the scan exactly as "N%" and "N×" are. The public cut is unaffected:
+      // the relabel still hides ANY leaf carrying a visible 3-digit run
+      // (Q1 absolute), so "+169" never reaches a public frame either way.
       const flat = t
         .replace(/\\d{1,3}\\s*%/g, '')
         .replace(/(^|\\s)\\d{1,3}\\s*\\u00d7/g, '$1')
+        .replace(/(^|\\s)\\+\\d{1,3}(?=\\s|$)/g, '$1')
         .replace(/[\\s\\-·.,{}\\/]/g, '');
       if ((flat.match(/\\d+/g) || []).some(r => r.length === 3)) out.push('leaf: ' + t);
     }
@@ -317,9 +340,12 @@ export async function assertNoDigits(page: Page, where: string): Promise<void> {
       if (!direct.some(n => /\\d/.test(n.textContent || ''))) continue;
       const t = (el.textContent || '').trim();
       if (!t || t.length > 60) continue;
+      // Same three shape strips as pass 1 — the "+N" count carve-out (MKT-16)
+      // applies to the concatenation for the same reason "N%" and "N×" do.
       const flat = t
         .replace(/\\d{1,3}\\s*%/g, '')
         .replace(/(^|\\s)\\d{1,3}\\s*\\u00d7/g, '$1')
+        .replace(/(^|\\s)\\+\\d{1,3}(?=\\s|$)/g, '$1')
         .replace(/[\\s\\-·.,{}\\/]/g, '');
       if ((flat.match(/\\d+/g) || []).some(r => r.length === 3)) out.push('mixed: ' + t);
     }

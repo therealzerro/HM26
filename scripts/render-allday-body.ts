@@ -139,11 +139,19 @@ async function openAlldayGrid(page: import('playwright').Page) {
     await assertNoDigits(page, `${SCOPE} grid (pre-capture)`);
     console.log(`REDACTED capture — board masked and asserted clean before frame 0.`);
   }
+  // The relabel installs HERE (before any capture, observer re-applies on
+  // every re-render) but its AUDIT runs after the Grid toggle below. The tab
+  // lands on LIST view first, and the list renders vocabulary the grid never
+  // shows (SignalBar BOX/CO labels, the "Box: {…}" set line, LastHitPill's
+  // state attribution, the energy-band footer) — none of which reaches a
+  // captured frame, because only the grid and the modals are ever
+  // screenshotted. Auditing the list fails renders on pixels that cannot
+  // exist (found 2026-07-30: six list-only violations, zero on the grid).
+  // The acceptance bar is unchanged — zero violations across every CAPTURED
+  // frame, still asserted before frame 0.
   if (RELABEL) {
     await installRelabel(page);
     await page.waitForTimeout(800);
-    await assertPublicClean(page, `${SCOPE} grid (pre-capture)`);
-    console.log(`PUBLIC capture — relabelled and lint-audited clean before frame 0.`);
   }
   // MKT-13: the ONLY way this lane can go wrong quietly is capturing one scope's
   // board into another scope's filename — every downstream check (grid fills the
@@ -166,6 +174,10 @@ async function openAlldayGrid(page: import('playwright').Page) {
   }
   await page.getByText('Grid', { exact: true }).first().click();
   await page.waitForTimeout(3_000);
+  if (RELABEL) {
+    await assertPublicClean(page, `${SCOPE} grid (pre-capture)`);
+    console.log(`PUBLIC capture — relabelled and lint-audited clean before frame 0.`);
+  }
 }
 
 (async () => {

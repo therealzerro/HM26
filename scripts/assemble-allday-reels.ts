@@ -38,7 +38,7 @@ import { MODAL_COUNT, GRID_DUR, MODAL_HOLD, modalWindow } from '../constants/ree
 import { probeStinger, stingerAdds } from './reel-stinger';
 import { bedWindow, BED_TARGET_RMS, BED_MIX_DB, MAX_BED_CORRECTION, type BedWindow } from './reel-bed';
 import { STINGERS, STINGER_DUR, INTRO_XFADE } from './stinger-config';
-import { REEL_SCOPES, parseScopeFlag, positionals, reelKind, bodyFile, captureModeFor, type Variant } from './reel-scopes';
+import { REEL_SCOPES, parseScopeFlag, parseVariantFlag, positionals, reelKind, bodyFile, captureModeFor, type Variant } from './reel-scopes';
 import { assertBodyDate, assertBodyRedaction, assertBodyPublic } from './reel-provenance';
 import { resolveEndcard } from './reel-endcard';
 import { CHIP_LABELS } from './intro-chip-config';
@@ -186,7 +186,17 @@ const XFADE_A = 0.4;                    // voice→bed audio crossfade-ish join 
 const stampPng = join(REELS, `_stamp_${stamp}.png`);
 sh(`npx tsx scripts/render-reel-stamp.ts drop ${stamp} ${SPEC.stampLabel} "${stampPng}"`);
 
-for (const v of SPEC.variants) {
+// MKT-16: same --variant filter publish-reels carries, one step earlier — a
+// one-off assembly of a single sibling must not rebuild the others' finals
+// (and then tempt a full re-publish, which resets their posted rows).
+const ONLY_VARIANT = parseVariantFlag(process.argv);
+const VARIANTS = ONLY_VARIANT ? SPEC.variants.filter(v => v === ONLY_VARIANT) : SPEC.variants;
+if (VARIANTS.length === 0) {
+  console.error(`ABORT: scope "${SCOPE}" declares no "${ONLY_VARIANT}" variant.`);
+  process.exit(1);
+}
+
+for (const v of VARIANTS) {
   const kind = reelKind(SCOPE, v);
   // MKT-26: per-variant body — see resolveBody. Pro and free session reels read
   // DIFFERENT captures (full-fidelity vs redacted); All-Day's variants both

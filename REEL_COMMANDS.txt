@@ -65,6 +65,25 @@ STEP 3 — TERMINAL B: build + publish the day's reels
     day makes reel:verify abort on purpose (skip it, no receipts
     that day).
 
+    OR, ALL FOUR AT ONCE, DISCONNECT-PROOF (added 2026-07-30):
+
+npm run reel:daily
+npm run reel:daily -- --from=midday      (resume a partial run)
+
+    Runs verify → allday → midday → evening DETACHED (setsid +
+    nohup): closing the terminal, dropping the connection, or the
+    launching session dying does NOT stop it — the pipelines keep
+    running on the codespace VM. Each kind publishes as it
+    completes, so a mid-list failure loses nothing already
+    registered; the log names the resume command. Logs land in
+    ~/.hm26_reel_runs/ — watch with:
+        tail -f "$(ls -t ~/.hm26_reel_runs/*.log | head -1)"
+    It checks the dev server on :8081 BEFORE detaching and refuses
+    to start without it. A verify abort (zero-match day) does not
+    stop the slate kinds; a slate-kind failure stops the run so
+    the log ends at the failure. Still operator-TRIGGERED — this
+    is a detachment tool, not a scheduler (OPS-01 stands).
+
 STEP 4 — PHONE: post from Admin → 🎬 Reels
 
     Pick target → caption's already drafted (Pro carries the

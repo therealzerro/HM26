@@ -121,9 +121,37 @@ export async function installRedaction(page: Page): Promise<void> {
       //    leads with the pair, so the sentence carries the digits too.
       if (/^\\d{2}\\s+\\S/.test(t)) { el.textContent = t.replace(/^\\d{2}/, '••'); return; }
       // 7. "Front pair 47" style labels where the digits trail a word.
+      //    GLOBAL since 2026-07-30: the non-global replace held only because
+      //    each pair label is its own leaf today. If the three pairs are ever
+      //    rendered into one leaf, a single replace masks the first and ships
+      //    the other two — the exact hole the MKT-26 addendum named.
       if (/\\b(front|back|split)\\s+pair\\s*\\d{2}\\b/i.test(t)) {
-        el.textContent = t.replace(/(\\b(?:front|back|split)\\s+pair\\s*)\\d{2}/i, '$1••'); return;
+        el.textContent = t.replace(/(\\b(?:front|back|split)\\s+pair\\s*)\\d{2}/gi, '$1••'); return;
       }
+    };
+    // ── TEXT-NODE MASK (2026-07-30) — the mixed-content hole, mask half.
+    // maskLeaf runs on CHILDLESS elements only, so a 3-digit run rendered as a
+    // text node beside element siblings (mixed content) was invisible to it.
+    // Nothing renders a combination that way today; this exists so a markup
+    // change cannot start to. HIGH-CONFIDENCE SHAPES ONLY — bare and separated
+    // runs inside one text node. Anything subtler is the assert's job: an abort
+    // is recoverable, a silent over-mask of kept methodology is 28c again.
+    //   ⚠ THE 28c CARVE-OUT, mixed-content form: the modal signal value is a
+    //   text node ("100") whose NEXT SIBLING is the percent suffix element —
+    //   probed 2026-07-30 (SignalPill renders {pct}<Text>%</Text>). A bare run
+    //   whose following sibling starts with % or the multiply sign is a kept
+    //   value, not a combination.
+    const maskTextNode = node => {
+      const t = (node.textContent || '').trim();
+      if (!t || t.length > 200) return;
+      if (/^\\d{3}$/.test(t)) {
+        const sib = node.nextSibling;
+        const sibText = sib ? ((sib.textContent || '').trim()) : '';
+        if (/^[%\\u00d7]/.test(sibText)) return;
+        if (node.parentElement && window.__hmSignalValue(node.parentElement)) return;
+        node.textContent = MASK; return;
+      }
+      if (/^\\d(\\s*[-·.\\s]\\s*\\d){2}$/.test(t)) { node.textContent = MASK; return; }
     };
     // MKT-28c — is this leaf one of the four SIGNAL VALUES (BOX / PBURST / CO /
     // DGC) rather than part of a combination?
@@ -154,7 +182,11 @@ export async function installRedaction(page: Page): Promise<void> {
     };
     const inDigitGroup = el => window.__hmDigitGroup(el);
     const maskAll = root => {
-      for (const el of Array.from(root.querySelectorAll('*'))) if (!el.children.length) maskLeaf(el);
+      for (const el of Array.from(root.querySelectorAll('*'))) {
+        if (!el.children.length) { maskLeaf(el); continue; }
+        // Mixed content: direct text nodes of an element that HAS children.
+        for (const n of Array.from(el.childNodes)) if (n.nodeType === 3) maskTextNode(n);
+      }
     };
     maskAll(document);
     // A MutationObserver is required rather than a one-shot pass: the body
@@ -166,8 +198,12 @@ export async function installRedaction(page: Page): Promise<void> {
         if (m.type === 'characterData' && m.target.parentElement) {
           const el = m.target.parentElement;
           if (!el.children.length) maskLeaf(el);
+          else maskTextNode(m.target);
         }
-        for (const n of Array.from(m.addedNodes)) if (n.nodeType === 1) maskAll(n);
+        for (const n of Array.from(m.addedNodes)) {
+          if (n.nodeType === 1) maskAll(n);
+          else if (n.nodeType === 3 && n.parentElement && n.parentElement.children.length) maskTextNode(n);
+        }
       }
     });
     obs.observe(document.body, { childList: true, subtree: true, characterData: true });
@@ -192,7 +228,9 @@ export async function installRedaction(page: Page): Promise<void> {
  *
  * Runs of 1, 2 and 4+ are ignored on purpose: energies, draw counts and pair
  * values are two digits, and dates carry four-digit years. A run of exactly
- * three is what a combination is.
+ * three is what a combination is. (Two-digit runs get ONE targeted exception —
+ * pass 3 flags any surviving run beside the word "pair", because the pair
+ * route reassembles the combination exactly and had no assert behind it.)
  *
  * ⚠ "DRAW COUNTS ARE TWO DIGITS" WAS AN ASSUMPTION, AND IT WAS FALSE.
  * Found 2026-07-29 (MKT-26): the evening board aborted this assert on `102×`,
@@ -263,6 +301,29 @@ export async function assertNoDigits(page: Page, where: string): Promise<void> {
       if ((flat.match(/\\d+/g) || []).some(r => r.length === 3)) out.push('leaf: ' + t);
     }
 
+    // ── PASS 1b — MIXED CONTENT (2026-07-30). Pass 1 walks childless leaves,
+    // so a run distributed across an element's DIRECT text nodes and children
+    // ("100" beside its % span — or, the day markup drifts, a combination
+    // rendered the same way) evaded the assert entirely; the MKT-26 addendum
+    // demonstrated it benignly with 100% surviving in every modal. This pass
+    // runs the SAME lexical rule over the concatenated text of every element
+    // that has both element children and digit-bearing direct text nodes. The
+    // percent and multiply strips work unchanged on the concatenation — that is
+    // exactly why the value+suffix split ("100" + "%") stays excused with no
+    // new carve-out to erode.
+    for (const el of Array.from(document.querySelectorAll('*'))) {
+      if (!el.children.length) continue;
+      const direct = Array.from(el.childNodes).filter(n => n.nodeType === 3);
+      if (!direct.some(n => /\\d/.test(n.textContent || ''))) continue;
+      const t = (el.textContent || '').trim();
+      if (!t || t.length > 60) continue;
+      const flat = t
+        .replace(/\\d{1,3}\\s*%/g, '')
+        .replace(/(^|\\s)\\d{1,3}\\s*\\u00d7/g, '$1')
+        .replace(/[\\s\\-·.,{}\\/]/g, '');
+      if ((flat.match(/\\d+/g) || []).some(r => r.length === 3)) out.push('mixed: ' + t);
+    }
+
     // ── PASS 2 — CARD LEVEL. A per-leaf scan is structurally incapable of
     // catching digits DISTRIBUTED across leaves: the position boxes are three
     // separate single-digit leaves and the pair rows are three 2-digit ones, so
@@ -289,6 +350,31 @@ export async function assertNoDigits(page: Page, where: string): Promise<void> {
         groups.push(p);
         out.push('group: ' + sibs.length + ' single-digit siblings — a position row still readable');
       }
+    }
+
+    // ── PASS 3 — PAIR BACKSTOP (2026-07-30). The pair route is the one that
+    // reassembles the combination EXACTLY (front 09 + back 94 gives 0-9-4) and
+    // until now it was covered by the mask's enumerated spellings with no
+    // assert behind them — a two-digit run trips neither pass above, so if the
+    // pair markup ever merges into one leaf, the mask's replace runs short and
+    // nothing downstream notices. The invariant this asserts is small and
+    // post-mask absolute: after masking, NO text mentioning "pair" may still
+    // carry a two-digit run. Every sanctioned pair rendering ends up as bullet
+    // characters, so a surviving run beside that word is a masked-route failure
+    // regardless of which spelling produced it.
+    for (const el of Array.from(document.querySelectorAll('*'))) {
+      const isLeaf = !el.children.length;
+      const hasDigitText = Array.from(el.childNodes).some(n => n.nodeType === 3 && /\\d/.test(n.textContent || ''));
+      if (!isLeaf && !hasDigitText) continue;
+      const t = (el.textContent || '').trim();
+      if (!t || t.length > 200) continue;
+      if (!/\\bpair\\b/i.test(t)) continue;
+      // Same strips as pass 1: a pair row may legitimately carry a KEPT
+      // percentage score beside its masked digits — a percentage is not a pair.
+      const flat = t
+        .replace(/\\d{1,3}\\s*%/g, '')
+        .replace(/(^|\\s)\\d{1,3}\\s*\\u00d7/g, '$1');
+      if (/\\d{2}/.test(flat)) out.push('pair: ' + t);
     }
     return Array.from(new Set(out));
   })()`);

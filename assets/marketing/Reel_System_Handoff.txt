@@ -131,7 +131,7 @@ and stage everything; the operator posts from their phone with two taps.
                           board + all six signal detail modals, captured from
                           the LIVE app with real data.
 
-  npm run reel:verify   → ONE reel for YESTERDAY (19.4-24.8s — VARIABLE, see
+  npm run reel:verify   → ONE reel for YESTERDAY (22.1-27.5s — VARIABLE, see
                           §3): "Receipts" — yesterday's verification
                           breakdown. Intentionally refuses to build on
                           zero-match days (no receipts, no reel).
@@ -413,7 +413,7 @@ every timestamp after the intro shifts 0.4s later and the reel is 34.20s.
 
 
 --------------------------------------------------------------------------------
-3. REEL ANATOMY — VERIFY / "RECEIPTS" (19.4-24.8s @ 1080×1920 60fps)
+3. REEL ANATOMY — VERIFY / "RECEIPTS" (22.1-27.5s @ 1080×1920 60fps)
 --------------------------------------------------------------------------------
   ⚠ THE VERIFY BODY IS NO LONGER A FIXED LENGTH (changed 2026-07-29, MKT-27).
   v1.7 documented a 6.3s body, a 14.4s total and a flat 9.2s carrier need. All
@@ -429,23 +429,34 @@ every timestamp after the intro shifts 0.4s later and the reel is 34.20s.
   Up to THREE featured rows, straights first, boxes backfilling. Straights get
   the longest holds by ruling — they are the strongest proof in the reel.
 
-  0.0 – 5.6    INTRO — the STANDARD Anchor intro, always. Verify is a fixed
-               kind and never draws a rotation member (MKT-17), so the OPEN is
-               still stable at 5.6s. The TOTAL no longer is.
-               0.8s dissolve from the smoke tail.
-  5.6 – …      BODY — 8.6s to 14.0s. Reference render 2026-07-28: 11 matched
-               rows, 2 straights → 3 featured → 13.60s body, 21.73s reel.
+  0.0 – 5.6    INTRO — the STANDARD Anchor intro, always. Verify draws a FIXED
+               intro and never a rotation member (MKT-17), so the OPEN is stable.
+               ⚠ Its STINGER does rotate — see the note under AUDIO.
+  5.6 – 8.3    STINGER (MKT-12, ENABLED for verify 2026-07-29) —
+               "HITMASTER ZK6 / YESTERDAY'S RECEIPTS", 3.0s crossfaded 0.3s
+               into the intro's smoke, so it ADDS 2.7s. Barred until MKT-27
+               because 11.1s of branding against a 6.3s body was 64%; the
+               longer body brought that to 44%.
+  8.3 – …      BODY — 8.6s to 14.0s. Reference render 2026-07-28: 11 matched
+               rows, 2 straights → 3 featured → 13.60s body, 24.43s reel.
                In practice any day with 3+ matched rows lands 12.80-14.00s.
   … – +2.5     CLOSE — final 2.5s of verif_endcard (static lockup), hard cut.
-  AUDIO        The intro's own sting 0.0–5.6; verif_carrier enters 0.4s before
-               the dissolve completes, −14 LUFS, de-click edge fades.
-               ⚠ THE CARRIER NO LONGER COVERS THE REEL. Need is bodyDur+2.9 =
-               11.5-16.9s against a 10.005s part 1, so 1.3-6.9s plays in
-               SILENCE under the closing holds. That is an operator ruling, not
-               a defect — on a receipts reel the footage is the argument. A
-               ~5.3s verif_carrier_pt2 is SPECIFIED and PENDING; see §7.
+  AUDIO        The intro's own sting, then the stinger's own impact, then the
+               carrier VO 0.4s before the dissolve completes. −14 LUFS.
+               TWO PARTS since 2026-07-29: verif_carrier (10.005s, the day's
+               read) + verif_carrier_pt2 (5.67s, an EVERGREEN sign-off over the
+               last hold and the close, joined with a 0.35s breath). Joined
+               16.02s against a need of bodyDur+2.9, leaving ~0.5s of silence
+               at the very close — down from 6.5s.
+               ⚠ THE WINDOW MOVES, so pt2 plays WHOLE OR NOT AT ALL. On a
+               0-straight day the window is too short and pt2 is DROPPED
+               entirely rather than cut mid-word (~5.7s of silence instead).
+               That boundary is deliberate: pt2's middle line lands on a held
+               STRAIGHT row, so the days it drops are the days it fits worst.
                The audio stream is padded to the full container length, which
                it was not before (legal mp4, but transcoder-hostile).
+               ⚠ The stinger does NOT widen the gap — need derives from the
+               body, and the stinger carries its own audio over the intro.
 
   Without a usable intro this reverts to the legacy 1.2s bolt open; the body
   and carrier arithmetic above are unchanged, only the open shortens.
@@ -639,16 +650,29 @@ per-day by hand, not AI-freestyled.
     allday_pro_endcard.mp4        Pro endcard (open frame + outro + audio)
     allday_free_endcard.mp4       Free endcard
     verif_carrier.mp4             Verify VO part 1 — 10.005s, ALL of it used.
-                                  Single-part today (`rest: []`).
-    verif_carrier_pt2.mp4         ⏳ SPECIFIED, NOT DELIVERED (MKT-27). ~5.3s
-                                  evergreen sign-off closing the 1.3-6.9s
-                                  silence. ⚠ DO NOT add it to CARRIERS.verify
-                                  .rest until the file is on disk — a DECLARED
-                                  continuation that is missing is a hard
-                                  preflight FAIL and aborts the daily run.
-                                  Needs a fits-whole join rule with it (play
-                                  it entire or drop it) because atrim would
-                                  otherwise cut it mid-word on thin days.
+                                  The day's read: board, summary, first holds.
+    verif_carrier_pt2.mp4         ✅ DELIVERED 2026-07-29 (MKT-27). 5.67s
+                                  EVERGREEN sign-off — plays unchanged every
+                                  day, like All-Day's shared part 2. Covers the
+                                  last hold and the close.
+                                  ⚠ TRIMMED FROM ITS 10s MASTER. Delivered at
+                                  the generator's fixed 10.005s with ~1.7s of
+                                  leading digital silence and a decay tail; the
+                                  seam breath would have become ~2s of dead
+                                  air. Trimmed to speech, master kept as
+                                  verif_carrier_signoff_master_10s.mp4 (same
+                                  convention as the 10s anchor masters). If it
+                                  is ever regenerated, trim it again — do not
+                                  register a raw 10s master.
+                                  ⚠ ITS NAME MAY NOT CONTAIN "_pt" ANYWHERE
+                                  EXCEPT AS _pt<N>.mp4 — the master was first
+                                  called *_pt2_master_10s.mp4 and preflight
+                                  correctly FAILED it as invisible to both the
+                                  joiner and the orphan scan.
+    stinger_verify*.mp4           ✅ BUILT + ENABLED 2026-07-29. Five rotation
+                                  variants plus the unversioned fallback.
+                                  Verify's stinger ROTATES by reel date even
+                                  though its intro does not.
     verif_endcard.mp4             Verify bolt endcard
     midday_pro_carrier.mp4        Midday VO carrier (+ _pt2, auto-joined)
     evening_pro_carrier.mp4       Evening VO carrier (+ _pt2, auto-joined)
@@ -1086,11 +1110,13 @@ BUILT AND RUNNING DAILY:
   MKT-25  Verify restaging — the board it posted, then the ledger (2026-07-29)
   MKT-26  FREE-GROUP SESSION REELS (2026-07-29) — redacted Midday/Evening drops
           for the free group. Supersedes the pro-only ruling; see below and §2.
-  MKT-27  VERIFY READABLE HOLDS (2026-07-29) — the verify body stops being a
-          fixed 6.3s and becomes 8.6-14.0s built from the row selection, so a
-          matched row can actually be read. Straights hold longest. Retires the
-          14.4s total and the flat 9.2s carrier need; introduces a deliberate
-          1.3-6.9s silence and the pending verif_carrier_pt2. See §3, §7, §9.
+  MKT-27  VERIFY READABLE HOLDS + PT2 + STINGER (2026-07-29) — the verify body
+          stops being a fixed 6.3s and becomes 8.6-14.0s built from the row
+          selection, so a matched row can actually be read. Straights hold
+          longest. Retires the 14.4s total and the flat 9.2s carrier need.
+          verif_carrier_pt2 (5.67s evergreen sign-off) cut the resulting silence
+          from 6.5s to ~0.5s, and the stinger was unblocked and enabled once the
+          branding ratio fell from 64% to 44%. See §3, §7, §9.
   MKT-24  TELEGRAM IS THE PRO ROOM (2026-07-29) — tier-4 captions are now
           RESHAPED (pricing / upgrade / pinned-post / CTA sentences dropped,
           plainer register) and free-written drafts are REFUSED outright rather
@@ -1102,7 +1128,7 @@ IN FLIGHT, NOT BUILT — do not propose against these yet; §10 has the detail:
   MKT-15  Social handoff buttons ....... Phase 1 SHIPPED · Phase 2 BLOCKED
   MKT-16  Public asset integration + redaction ....... Phase 0, build held
 
-DAILY OUTPUT TODAY: up to SEVEN reels — verify (19.4-24.8s, variable by row
+DAILY OUTPUT TODAY: up to SEVEN reels — verify (22.1-27.5s, variable by row
 count since MKT-27), All-Day Pro + Free, and Midday and Evening, each now Pro +
 Free. Slate reels are 33.83s or 34.20s depending on the day's intro. All auto-publish to Admin → Reels with
 drafted captions. Nothing auto-posts, ever.
@@ -1190,15 +1216,12 @@ WHAT IS DELIBERATELY NOT BUILT:
   - A public-page reel lane (page is brand-only, under probation).
   - FULL-FIDELITY free session reels. The REDACTED ones ship as of MKT-26;
     an unmasked one is still barred and the assembler refuses it (§2).
-  - A stinger on the verify reel — ⚠ APPROVED 2026-07-29, NOT YET ON. The
-    ratio objection is answered: MKT-27's longer body moved branding from 64%
-    to 44-56%, and the operator's condition was explicitly "the holds first,
-    then the stinger". Two steps left, in this order: `npm run stinger:build
-    verify` (no stinger_verify*.mp4 exists), THEN flip STINGERS.verify.enabled.
-    Not the other way round — probeStinger degrades SILENTLY on a missing
-    build, so flipping first ships a stinger-less reel that reports success.
-    Note the stinger does NOT widen the carrier gap: need derives from the
-    body, and the stinger carries its own audio over the intro.
+  - (CLEARED 2026-07-29) A stinger on the verify reel — now LIVE. Kept here for
+    the reasoning: it was barred on ratio grounds (64% branding against a 6.3s
+    body), and the operator's condition was "the holds first, then the stinger".
+    MKT-27 delivered the holds, branding fell to 44%, the clips were built, and
+    only then was the flag flipped — that order is the durable lesson, since
+    probeStinger degrades SILENTLY on a missing build.
 
 
 --------------------------------------------------------------------------------

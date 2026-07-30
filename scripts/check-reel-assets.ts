@@ -545,16 +545,33 @@ function checkVerify(): void {
   checkCarrierSet('verify');
   const c0 = exists('verif_carrier.mp4');
   if (c0) {
-    // MKT-20: verify declares no continuation, so this resolves to itself.
-    const c = resolveCarrier(ASSETS, 'verify', TODAY).path;
-    const s = streams(c);
-    // MKT-08: with the intro active the carrier enters at introDur−0.4 and
-    // covers to the end, so the need is a flat 9.2s regardless of intro length
-    // (intro audio carries everything before that). Legacy need is 10.0s.
-    const need = INTRO_ACTIVE ? 9.2 : 10.0;
+    // ⚠ THERE IS NO SINGLE "NEED" FOR VERIFY ANY MORE (MKT-27). This asserted a
+    // flat 9.2s, which was true while the body was a fixed 6.3s. The body is now
+    // 8.6-14.0s built from the row selection, so the need is bodyDur+2.9 =
+    // 11.5-16.9s and preflight CANNOT know which — the body has not been
+    // rendered when this runs.
+    //
+    // So the check stops pretending to verify coverage and verifies the two
+    // things it actually can: that part 1 exists with audio at roughly its
+    // declared length, and that a declared continuation joins. The coverage
+    // PICTURE is reported rather than asserted, because on short days the
+    // uncovered tail is a deliberate ruling and failing on it would be noise.
+    // The assembler prints the real number for the day it builds.
+    const resolved = resolveCarrier(ASSETS, 'verify', TODAY);
+    const s = streams(resolved.path);
+    const P1_FLOOR = 9.0;
     if (!s.hasAudio) add('FAIL', 'verif_carrier.mp4', 'no audio stream — it supplies the reel soundtrack after the intro');
-    else if (s.aDur + 0.05 < need) add('FAIL', 'verif_carrier.mp4', `audio ${s.aDur.toFixed(1)}s < ${need.toFixed(1)}s — reel goes silent early (nothing aborts on this)`);
-    else add('PASS', 'verif_carrier.mp4', `audio ${s.aDur.toFixed(1)}s (${need.toFixed(1)}s used${INTRO_ACTIVE ? ', intro-shifted' : ''})`);
+    else if (!resolved.joined && s.aDur + 0.05 < P1_FLOOR) {
+      add('FAIL', 'verif_carrier.mp4', `audio ${s.aDur.toFixed(1)}s < ${P1_FLOOR.toFixed(1)}s — part 1 is short, the opening beats go silent`);
+    } else {
+      // Mirrors resolveCarrier's fits-whole gate: the join is used only when the
+      // day's window can take it whole.
+      const bodyCovered = +(s.aDur - 2.9).toFixed(1);
+      add('PASS', 'verif_carrier.mp4',
+        `audio ${s.aDur.toFixed(2)}s${resolved.joined ? ` (joined: ${resolved.parts.map(p => p.split('/').pop()).join(' + ')})` : ' (part 1 alone)'}` +
+        ` — fully covers a body up to ${bodyCovered.toFixed(1)}s; longer bodies play the remainder in silence, ` +
+        `and on days the window cannot take the join whole the continuation is dropped (MKT-27)`);
+    }
   }
   // MKT-19 — verify's endcard rotates too, and this was the eighth reader: a
   // hardcoded `verif_endcard.mp4`, the same literal the verify assembler used

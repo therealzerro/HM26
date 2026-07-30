@@ -208,11 +208,9 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slat
   // migrated in the T1.1 batch and this one was missed — the exact defect that
   // batch existed to remove, surviving in the highest-traffic surface.
   //
-  // 'HOT SIGNAL' comes from the shared heatLabelDetailed override, which
-  // PickPosterCard also uses (MKT-28a) — it was the same ternary inlined in two
-  // files. heat.ts's invariant is thresholds + colours, not copy, and changing a
-  // rendered subscriber string is a separate decision from fixing a ramp. Every
-  // label this renders is byte-identical to before.
+  // The label comes from the shared heatLabelDetailed seam (MKT-28a), which
+  // PickPosterCard also uses. Ruling 2026-07-30: canonical 'HOT' wins — the
+  // old 'HOT SIGNAL' override is retired in heat.ts, one edit for both files.
   const tier = heatTier(pick.energy, colors);
   const energyLabel = heatLabelDetailed(tier);
   const energyColor = tier.color;

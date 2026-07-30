@@ -46,9 +46,8 @@ export function PickPosterCard({ pick, scope, pairScores, redact = false, height
   const pairs     = useMemo(() => getPairs(bestOrder), [bestOrder]);
 
   // DESIGN-02 T1.1: canonical heat scale (90/80/65/45) replaces the former
-  // inline 90/75/60 color ramp. Label keeps the poster's 'HOT SIGNAL' wording
-  // for the hot tier (locked vocabulary — heat.ts invariant is thresholds +
-  // colors, not copy).
+  // inline 90/75/60 color ramp. Label via the shared heatLabelDetailed seam —
+  // canonical on every rung since the MKT-28 ruling (2026-07-30).
   const tier = heatTier(pick.energy, darkColors);
   const energyLabel = heatLabelDetailed(tier);
   const energyColor = tier.color;

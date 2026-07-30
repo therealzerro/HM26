@@ -45,15 +45,18 @@ interface HeatCheckResult {
 
 function verdictText(energy: number | null, drawsSince: number | null): string {
   if (energy == null) return 'No signal data found for this combo';
-  if (energy >= 85) return '🔥 BLAZING SIGNAL — High-confidence signal';
-  if (energy >= 70) return '✦ STRONG SIGNAL — Box arrangement recommended';
-  if (energy >= 50) return '◈ MODERATE — Box arrangement only';
+  // MKT-28 ruling (2026-07-30): verdict WORDING is its own vocabulary, but the
+  // thresholds nest inside the canonical heatTier bands (80/65/45) so no energy
+  // ever reads hotter here than on the grid. Do not reintroduce private cuts.
+  if (energy >= 80) return '🔥 BLAZING SIGNAL — High-confidence signal';
+  if (energy >= 65) return '✦ STRONG SIGNAL — Box arrangement recommended';
+  if (energy >= 45) return '◈ MODERATE — Box arrangement only';
   if (drawsSince != null && drawsSince > 200) return '⚠️ OVERDUE — Pressure building, conservative arrangement';
   return '❄ LOW — Weak signal, not recommended';
 }
 
-// DESIGN-02 T1.1: color follows the canonical heat scale; verdictText keeps
-// its own copy thresholds (verdict semantics, not temperature vocabulary).
+// DESIGN-02 T1.1 / MKT-28: color follows the canonical heat scale; verdictText
+// keeps its own WORDING (verdict semantics) on canonical thresholds.
 function verdictColor(energy: number | null, colors: ColorTokens): string {
   if (energy == null) return colors.textTertiary;
   return heatColor(energy, colors);

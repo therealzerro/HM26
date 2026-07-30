@@ -36,24 +36,14 @@ export function heatColor(energy: number, colors: ColorTokens): string {
 }
 
 /**
- * The DETAIL-SURFACE label: identical to `tier.label` except the hot rung reads
- * 'HOT SIGNAL'.
- *
- * ⚠ THIS EXISTS TO HOLD ONE DIVERGENCE IN ONE PLACE, not to bless it. MKT-28a
- * found FIVE heat vocabularies in the app: this module, PickDetailModal's inline
- * ladder, PickPosterCard's override, HeatCheckModal's verdict ladder (which also
- * runs different thresholds — 85/70/50) and PickCard's streak banner. Two of
- * them independently overrode the hot rung to 'HOT SIGNAL' with the same
- * inline ternary, which is a copy decision duplicated as code.
- *
- * Centralising it changes nothing on screen and makes the eventual reconciliation
- * a single edit. **Whether 'HOT SIGNAL' or 'HOT' wins is a copy decision and is
- * NOT settled here** — it is owed back as part of the public-relabel neutral
- * vocabulary, which has to cover all five ladders or the public cut reads
- * inconsistently between grid and modal.
+ * The DETAIL-SURFACE label. MKT-28a ruling (2026-07-30): canonical 'HOT' wins —
+ * the ladder is a five-rung temperature scale and 'HOT SIGNAL' broke its
+ * parallelism on exactly one rung. The function stays as the one seam where a
+ * detail-surface divergence would live if one is ever ruled back in; today it
+ * is the canonical label on every rung.
  */
 export function heatLabelDetailed(tier: HeatTier): string {
-  return tier.key === 'hot' ? 'HOT SIGNAL' : tier.label;
+  return tier.label;
 }
 
 /** Label without needing a palette (for text-only call sites). */

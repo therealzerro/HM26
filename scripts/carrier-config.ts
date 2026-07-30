@@ -119,10 +119,22 @@ export const CARRIERS: Record<string, CarrierSpec> = {
     set: [{ file: 'evening_free_carrier.mp4', label: 'incumbent' }],
     rest: ['evening_free_carrier_pt2.mp4'],
   },
-  // Genuinely single-part: verify's 10s bed is the whole soundtrack.
+  // MKT-27: no longer single-part. Part 1 (10.005s) covers the board, the
+  // summary band and the first holds; `_pt2` (5.67s) is an EVERGREEN sign-off
+  // over the last hold and the close, and plays unchanged every day — the same
+  // relationship All-Day's shared part 2 has to its rotating part 1.
+  //
+  // ⚠ VERIFY IS THE ONE KIND WHOSE WINDOW MOVES. The body is data-adaptive, so
+  // the usable VO window is 11.5-16.9s depending on how many rows were matched
+  // and how many were straights. The join is 16.02s, which fits on any day with
+  // at least one STRAIGHT among the featured rows and not on a 0-straight day —
+  // where the assembler drops part 2 whole rather than cutting the sign-off
+  // mid-word (`resolveCarrier(..., needSec)`). That boundary is a happy accident
+  // worth keeping: part 2's middle line lands on a held STRAIGHT row, so the
+  // days it is dropped are exactly the days its copy fits worst.
   verify: {
     set: [{ file: 'verif_carrier.mp4', label: 'incumbent' }],
-    rest: [],
+    rest: ['verif_carrier_pt2.mp4'],
   },
 };
 

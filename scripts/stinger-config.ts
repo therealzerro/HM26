@@ -31,18 +31,20 @@ export const STINGERS: Record<string, StingerVariant> = {
   // binding, because two things were asked for in the same breath and the second
   // is the prerequisite for the first: longer match holds, then the stinger.
   //
-  // MKT-27 built the holds (scripts/render-verification-reel.ts) — the body is
-  // now 8.6-14.0s depending on the row selection, which puts branding at 44-56%
-  // and ~48% on the typical two-straight day. That clears the condition on
-  // paper. Two mechanical steps remain before this flips:
-  //   1. one real render, to confirm the measured body length and that the holds
-  //      land on rows rather than between them
-  //   2. `npm run stinger:build verify` — no stinger_verify*.mp4 exists yet, and
-  //      probeStinger DEGRADES GRACEFULLY on a missing build (NOTE, not abort),
-  //      so flipping this first would produce a stinger-less reel that reports
-  //      success. The flag is the last thing turned, never the first — the same
-  //      ordering lesson MKT-26 learned the hard way with the free carriers.
-  verify:      { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', "YESTERDAY'S RECEIPTS"], enabled: false },
+  // ✅ ENABLED 2026-07-29, and only AFTER both preconditions were met — in this
+  // order, which is the part worth remembering:
+  //   1. MKT-27 built the holds. The body is now 8.6-14.0s from the row
+  //      selection, putting branding at 44-56% (~45% on the reference render)
+  //      against the 64% that earned the original refusal. Verified by a real
+  //      render, not by arithmetic on intended lengths.
+  //   2. `npm run stinger:build verify` produced the clips. probeStinger
+  //      DEGRADES GRACEFULLY on a missing build (NOTE, not abort), so flipping
+  //      this flag first would have shipped a stinger-less reel that reported
+  //      success — the same ordering lesson MKT-26 learned the hard way with the
+  //      free session carriers. The flag is the last thing turned, never first.
+  // Note the stinger does NOT widen the carrier gap: `carrierNeed` derives from
+  // the body, and the stinger carries its own audio over the intro.
+  verify:      { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', "YESTERDAY'S RECEIPTS"], enabled: true },
   // MKT-13 session wave. Same motion, same layout — only the headline differs,
   // which is the whole point of rendering the lockup natively. Pro-only by
   // content strategy (scripts/reel-scopes.ts), so there is no *_free entry to

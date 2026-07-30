@@ -24,7 +24,7 @@ import { resolveEndcard } from './reel-endcard';
 import { CHIP_LABELS } from './intro-chip-config';
 import { join, resolve } from 'node:path';
 import { probeAnchorIntro, INTRO_DISSOLVE, INTRO_VO_LEAD } from './reel-intro';
-import { resolveCarrier } from './reel-carrier';
+import { resolveCarrier, audioDur } from './reel-carrier';
 import { probeStinger, stingerAdds } from './reel-stinger';
 import { STINGER_DUR, INTRO_XFADE } from './stinger-config';
 
@@ -70,11 +70,20 @@ const stampPng = join(REELS, `_stamp_${stamp}.png`);
 sh(`npx tsx scripts/render-reel-stamp.ts verify ${stamp} - "${stampPng}"`);
 
 const uiDur = +parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${ui}"`).toString()).toFixed(2);
+// ⚠ THE INTRO IS DELIBERATELY DATE-LESS AND THE STINGER IS NOT. Verify draws a
+// FIXED intro by MKT-17 ruling (its own anchor_intro_verify.mp4, never a
+// rotation member), so passing a date here would be wrong. The stinger has no
+// such ruling — and omitting the date was a real divergence, caught by preflight
+// on 2026-07-29: `reel:check` reported "verify stinger selection → imprint"
+// while this assembler was resolving the unversioned fallback, because
+// stingerCandidates builds its rotation from dateISO and gets an empty list
+// without one. Preflight reporting a beat the assembler will not use is exactly
+// the failure the "check the RESOLVED file, not the incumbent" rule exists to
+// prevent, so verify now rotates like every other kind.
 const intro = probeAnchorIntro(ASSETS, 'verify');
-// MKT-12: wired but DISABLED for verify by config — the body is only 6.3s, so a
-// 5.6s intro plus a 3.0s stinger would put more branding on screen than
-// receipts. Enabling it later is a config flip, no code change.
-const sting = probeStinger(ASSETS, 'verify');
+// MKT-12 wired this; MKT-27 ENABLED it, once the readable-holds body made the
+// branding ratio defensible (64% → 44%). See stinger-config for the ordering.
+const sting = probeStinger(ASSETS, 'verify', `${stamp.slice(0,4)}-${stamp.slice(4,6)}-${stamp.slice(6,8)}`);
 const openBase = intro ? intro.dur : 1.2;
 const openDur = +(openBase + stingerAdds(sting)).toFixed(2);
 const dissolve = intro ? INTRO_DISSOLVE : 1.2;
@@ -95,19 +104,29 @@ const carrierNeed = +(total - voiceStart).toFixed(2); // uiDur + 2.5 + INTRO_VO_
 //   • apad in the filtergraph is what keeps the AUDIO STREAM as long as the
 //     container. Without it the stream ended ~6.5s early, which is legal mp4 but
 //     is the kind of thing a platform transcoder is entitled to mishandle.
-// A verif_carrier_pt2 of ~7.0s would close it on every day (see the handover
-// note for the arithmetic); until one exists the silence is deliberate.
-if (carrierNeed > 10.005) {
-  console.log(
-    `NOTE(verify): carrier covers ${(voiceStart + 10.005).toFixed(2)}s of a ${total}s reel — ` +
-    `${(carrierNeed - 10.005).toFixed(2)}s plays under the closing holds in silence (MKT-27, by ruling).`,
-  );
-}
-// MKT-09/MKT-20: resolved from the carrier registry by KIND. Verify declares no
-// continuation, so this is a genuine single-part carrier and resolves to itself.
-const verifCarrier = resolveCarrier(ASSETS, 'verify', `${stamp.slice(0,4)}-${stamp.slice(4,6)}-${stamp.slice(6,8)}`);
+// `verif_carrier_pt2` (landed 2026-07-29) closes most of it — see below.
+//
+// MKT-09/MKT-20: resolved from the carrier registry by KIND.
+// MKT-27: `carrierNeed` is passed so the pt2 sign-off plays WHOLE or is dropped
+// — see resolveCarrier's needSec note for why verify is the only kind that does.
+const verifCarrier = resolveCarrier(
+  ASSETS, 'verify', `${stamp.slice(0,4)}-${stamp.slice(4,6)}-${stamp.slice(6,8)}`, undefined, carrierNeed,
+);
 if (verifCarrier.joined) {
   console.log(`NOTE: carrier joined from ${verifCarrier.parts.length} parts (${verifCarrier.parts.map(p => p.split('/').pop()).join(' + ')}).`);
+}
+// Report the ACTUAL uncovered tail, from the carrier that resolved rather than
+// from an assumed part-1 length — the whole point of the pt2 lane is that this
+// number changes, and a hardcoded 10.005 would keep printing the old gap.
+{
+  const covered = Math.min(audioDur(verifCarrier.path), carrierNeed);
+  const gap = +(carrierNeed - covered).toFixed(2);
+  console.log(
+    gap > 0.05
+      ? `NOTE(verify): VO covers ${(voiceStart + covered).toFixed(2)}s of a ${total}s reel — ` +
+        `${gap.toFixed(2)}s plays in silence at the close (MKT-27, by ruling).`
+      : `NOTE(verify): VO covers the full ${total}s reel (${verifCarrier.joined ? 'joined' : 'single-part'} carrier).`,
+  );
 }
 // MKT-22: intro identity chip — "YESTERDAY'S RESULTS", green accent to match
 // the verify stamp. Only with an intro active; the legacy open is a bolt still.

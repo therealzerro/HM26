@@ -147,7 +147,29 @@ export function undeclaredParts(assetsDir: string, kind: string): string[] {
  * hum-bed mode and publish half a narration, so it aborts here and is a FAIL at
  * preflight. That asymmetry is the whole point of MKT-20.
  */
-export function resolveCarrier(assetsDir: string, kind: string, dateISO = '', forceFile?: string): ResolvedCarrier {
+export function resolveCarrier(
+  assetsDir: string,
+  kind: string,
+  dateISO = '',
+  forceFile?: string,
+  /**
+   * MKT-27 — usable VO window in seconds, for kinds whose continuation must play
+   * WHOLE or not at all. Omit to get the pre-MKT-27 behaviour exactly.
+   *
+   * ⚠ THIS IS DELIBERATELY OPT-IN, because "the carrier is longer than the
+   * window" means opposite things in the two lanes. For a SLATE reel it is
+   * normal and intended: those carriers are written wall-to-wall and the
+   * assembler discards the tail after the voice has already finished ("carrier
+   * content beyond 20.26s discarded"). For VERIFY it is a hazard: the body is
+   * data-adaptive (MKT-27), so the window moves day to day, and part 2 is a
+   * short fixed sign-off — a window 1s shy of the join does not clip a designed
+   * tail, it cuts the sign-off mid-word.
+   *
+   * So verify passes its need and takes part 1 alone on days the sign-off will
+   * not fit; every other kind passes nothing and is unaffected.
+   */
+  needSec?: number,
+): ResolvedCarrier {
   const spec = CARRIERS[kind];
   if (!spec) {
     console.error(`ABORT: no carrier config for kind "${kind}" — known: ${Object.keys(CARRIERS).join(', ')}.`);
@@ -191,6 +213,19 @@ export function resolveCarrier(assetsDir: string, kind: string, dateISO = '', fo
 
   const parts = [join(assetsDir, variant.file), ...spec.rest.map(f => join(assetsDir, f))];
   if (parts.length <= 1) return { path: parts[0], parts, joined: false, variant };
+
+  // MKT-27 fits-whole gate (opt-in via needSec — see the parameter's note).
+  if (needSec != null) {
+    const joinDur = parts.reduce((s, p) => s + audioDur(p), 0) + SEAM_GAP * (parts.length - 1);
+    if (joinDur > needSec + BOUNDARY_WARN_AT) {
+      console.log(
+        `NOTE(${kind}): continuation DROPPED for this run — the join is ${joinDur.toFixed(2)}s ` +
+        `against a ${needSec.toFixed(2)}s window, so it would be cut ${(joinDur - needSec).toFixed(2)}s ` +
+        `short of the end. Part 1 alone; the tail plays in silence rather than mid-word.`,
+      );
+      return { path: parts[0], parts: [parts[0]], joined: false, variant };
+    }
+  }
 
   const cacheDir = join(assetsDir, CARRIER_CACHE);
   mkdirSync(cacheDir, { recursive: true });

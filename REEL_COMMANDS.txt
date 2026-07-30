@@ -20,7 +20,11 @@ cut is the only one the four public platforms may ever receive,
 and reel:check FAILS without its stored Q1/Q2 gate record.
 
 SESSION WAVE LIVE: reel:midday + reel:evening join reel:allday;
-Anchor intro + branded stinger open every drop; verify 14.4s.
+Anchor intro + branded stinger open every drop; verify is
+data-adaptive (~19-25s: body 8.6-14.0s from the row selection).
+MKT-31: verify has its own identity — seal stinger (FIXED, no
+rotation), receipts-dominant lockup, persistent gold date ribbon
+on the body, gold endcard CTA (tagged verif_endcard_<tag> builds).
 NEW: the intro now ROTATES per reel kind, so slate reels are 33.83s
 OR 34.20s depending on the day's intro — no longer a flat 33.8s.
 reel:check validates all four scope/variant kinds, the stingers,
@@ -267,9 +271,13 @@ npm run stinger:build allday_pro (one variant)
     stinger_<variant>_<tag>.mp4. The daily run picks by DATE, so
     it never renders anything; that's why the matrix is prebuilt.
 
-    Verify is deliberately switched OFF (enabled:false) — its body
-    is only 6.3s, so intro + stinger would put more branding on
-    screen than receipts. Flip the flag if that changes.
+    Verify is LIVE (MKT-27 flipped it once the readable-holds body
+    made the branding ratio defensible) and, since MKT-31, is FIXED
+    to the seal motion — rotation no longer serves verify at all. A
+    missing/defective seal BUILD degrades to NO stinger (never a
+    slate motion); a re-armed held: field returns it to rotation.
+    Its lockup is headline-dominant: YESTERDAY'S RECEIPTS large,
+    wordmark small in gold beneath.
 
     A missing or unbuilt stinger is skipped with a note and the
     reel assembles exactly as before — it never blocks a run. With
@@ -384,8 +392,8 @@ npm run render-allday-body -- --scope=midday --redact --relabel
     Overrides the date rotation for one assembly so a specific
     combination can be watched end to end. The motion flags take a
     TAG (stingers: std | strike | circuit | fracture | imprint —
-    verify also pins `seal`, REGISTERED BUT HELD pending its
-    regeneration; endcards: std | alt | steady | lattice for pro,
+    verify is FIXED to `seal`, hold CLEARED 2026-07-30 on a clean
+    re-delivery measurement; endcards: std | alt | steady | lattice for pro,
     std | alt for free); --carrier takes a part-1 FILENAME from that
     kind's set, because carriers are named per variant rather than
     tagged. All three can be combined.

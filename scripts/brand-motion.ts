@@ -77,14 +77,12 @@ export interface MotionVariant {
  */
 export const VERIFY_SEAL_MOTION: MotionVariant = {
   file: 'stinger_motion_seal.mp4', tag: 'seal', label: 'closing-bell seal',
-  // Measured 2026-07-30 on the 7/29 delivery: the bell lands at 2.7s at
-  // −3.5dB — AFTER the lockup is out (2.4s) and directly over the carrier VO
-  // onset (stinger-local 2.6s), mid-dissolve into the body. A window slide
-  // does not rescue it (the bolt is already forming at 0.7s, so a later
-  // window breaks the smoke-only open) and an authored fade would delete the
-  // bell, which is the entire concept. Regeneration asked: ring sealed and
-  // bell STRUCK by ~2.0s of the clip, decay under the smoke return.
-  held: 'bell at 2.7s / −3.5dB — post-lockup, over the VO onset. Awaiting regeneration (bell by ~2.0s).',
+  // HOLD CLEARED 2026-07-30 — the re-delivery (operator, via GitHub rename;
+  // 4.01s) measures CLEAN against the regeneration ask: energy peak −17.4dB
+  // at 1.10s (struck well before the ~2.0s bound), smooth decay under the
+  // smoke return, nothing after 2.4s above −19.2dB. The 7/29 delivery's
+  // defect (bell at 2.7s / −3.5dB, post-lockup, over the VO onset) is gone.
+  // Per the standing rule, this field was cleared LAST, after the measurement.
 };
 
 /** Stinger motions. Shared across tiers — a stinger carries no tier signal. */
@@ -214,9 +212,13 @@ export function stingerMotionsFor(kind: string, dateISO: string): MotionVariant[
   // Every kind used to draw the same motion each morning (measured: 1 distinct
   // across 6 kinds). Indexed within STINGER_KINDS so the walk is even.
   const rotation = laneRotate(STINGER_MOTIONS, dateISO, ROTATION_SALT.stinger, laneIndex(STINGER_KINDS, kind));
-  // Verify pins to seal (see VERIFY_SEAL_MOTION); the rotation is its fallback,
-  // so a missing/unbuilt/HELD seal degrades to exactly the pre-pin behaviour.
-  if (kind === 'verify' && !VERIFY_SEAL_MOTION.held) return [VERIFY_SEAL_MOTION, ...rotation];
+  // MKT-31 item 5 — verify's stinger motion is FIXED to the seal, REPLACING
+  // rotation for this kind (matching its fixed intro): the shared five no
+  // longer serve verify at all. A missing or defective seal BUILD degrades to
+  // NO stinger (probeStinger's graceful null), never to a slate motion — the
+  // same semantics as the fixed intro's legacy-open fallback. While the seal
+  // is HELD, verify draws the rotation, which is the pre-seal behaviour.
+  if (kind === 'verify' && !VERIFY_SEAL_MOTION.held) return [VERIFY_SEAL_MOTION];
   return rotation;
 }
 

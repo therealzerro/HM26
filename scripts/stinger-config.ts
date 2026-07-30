@@ -17,6 +17,16 @@ export interface StingerVariant {
   lines: [string, string];
   /** false = this reel kind assembles with no stinger at all. */
   enabled: boolean;
+  /**
+   * MKT-31 — 'headline-dominant' INVERTS the hierarchy: lines[1] renders as
+   * the large top line (~35% over the standard wordmark size) with lines[0]
+   * small beneath it. Verify-only: the date claim is what a scroller needs to
+   * catch, and the brand is already everywhere else. Slate kinds stay standard.
+   */
+  layout?: 'headline-dominant';
+  /** MKT-31 — hex colour for the SUBORDINATE line (verify: gold #FBBF24 — the
+   *  results-desk accent; every slate surface leads purple/white). */
+  subAccent?: string;
 }
 
 export const STINGERS: Record<string, StingerVariant> = {
@@ -44,7 +54,10 @@ export const STINGERS: Record<string, StingerVariant> = {
   //      free session carriers. The flag is the last thing turned, never first.
   // Note the stinger does NOT widen the carrier gap: `carrierNeed` derives from
   // the body, and the stinger carries its own audio over the intro.
-  verify:      { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', "YESTERDAY'S RECEIPTS"], enabled: true },
+  // MKT-31 item 1: hierarchy INVERTED for verify only — YESTERDAY'S RECEIPTS
+  // dominant, wordmark small and gold beneath (item 4). Config + layout, zero
+  // generation.
+  verify:      { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', "YESTERDAY'S RECEIPTS"], enabled: true, layout: 'headline-dominant', subAccent: '#FBBF24' },
   // MKT-13 session wave. Same motion, same layout — only the headline differs,
   // which is the whole point of rendering the lockup natively. Pro-only by
   // content strategy (scripts/reel-scopes.ts), so there is no *_free entry to

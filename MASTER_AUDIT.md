@@ -11,7 +11,13 @@
 
 ---
 
-## ⏭️ RESUME HERE — session close 2026-07-29 (latest — content-agent ruling pass)
+## ⏭️ RESUME HERE — session close 2026-07-30 (evening — MKT-31 verify identity package SHIPPED)
+
+**✅ [[MKT-31]] SHIPPED — all six items + the gate.** Verify no longer reads as a shorter slate drop: (1) stinger hierarchy INVERTED (`layout: 'headline-dominant'` — "YESTERDAY'S RECEIPTS" at ~62px dominant, wordmark small in gold beneath); (2) the verify stamp became a persistent gold date ribbon ("YESTERDAY'S RECEIPTS · WED · JUL 29") riding EVERY body frame, fade-out moved to the endcard cut; (3) the endcard diagnosis — **NOT the legacy baked build; the operator's report was against a cut the pipeline had already healed**: reels through the 7/27 cut closed on stale pre-MKT-23 copy ("VERIFIED FROM PUBLISHED RESULTS"); MKT-23's matrix rebuild (7/29 14:03) fixed the tagged builds, and the 7/28 cut already shipped correct copy in the contract band. The surviving defect was the unversioned last-resort fallback `verif_endcard.mp4` (Jul 28), still carrying stale copy — refreshed with the std build. Matrix rebuilt today for the item-4 gold CTA (`endcard:build verify` → std/alt/steady/lattice, 10.01s, text opaque 5.2s→final, band ends y=1400 < 1500); (4) gold `#FBBF24` accents on ribbon + stinger line 2 + endcard line 3 + intro chip (chip accent must track `render-reel-stamp` PURPOSES); (5) **seal HOLD CLEARED on measurement** — re-delivery peaks −17.4dB at **1.10s** (bound was ~2.0s), nothing after 2.4s above −19.2dB; seal is now verify's FIXED stinger motion REPLACING rotation (missing/defective build → NO stinger, never a slate motion; a re-armed `held:` → rotation returns); (6) pt2 sign-off collision: MOOT today (pt2 dropped as over-window 16.02s vs 13.50s); the queued ~3.0s short sign-off ends before the endcard cut → no collision with item 3. **Gate reel assembled for 20260729: 21.43s, seal stinger + gold ribbon + lattice tagged endcard all resolved.** NOT republished — the 10:08 published cut stands; the next Daily Workflow run ships the new identity. Known cosmetic carry-over: the ribbon overlaps the first receipt row's match line during the body scroll — pre-dates MKT-31 (same stamp geometry as every shipped verify reel; spec pinned y≈470). Cross-ref [[MKT-27]] (readable holds, carrier window), MKT-29 (seal pin + `held:` pattern — recorded in `brand-motion.ts` and the 7/30 session trail; this entry documents its resolution), [[MKT-10]]/[[MKT-19]] (endcard rig + rotation), [[MKT-23]] (copy).
+
+---
+
+## ⏭️ Previous — session close 2026-07-29 (content-agent ruling pass)
 
 **Three lanes landed; ONE PUBLISH IS STILL HELD and it is not held on code.**
 
@@ -105,6 +111,26 @@ The earlier gap in this same block — preflight probing file existence rather t
 **ORDER OF WORK:** relabel injection (grid + modal variants) → full `--relabel` capture, frames inspected → registration (endcard, stinger, carrier, scope, caption) → `marketing_reels_kind_check` migration LAST within the change but not left out of it.
 
 **STILL OWED BY THE CONTENT AGENT:** the `ON FIRE` band enum. It gates the public capture copy set and is on this critical path — worth chasing before starting.
+
+---
+
+### MKT-31 — Verify identity package (2026-07-30) ✅ SHIPPED
+
+**ID verified free** (`grep MKT-31` → audit 0 / code 0 before stamping). Spec: verify read as a shorter slate drop — standard rotation intro, the same five stinger motions as every slate reel, same bolt endcard grammar, its one distinct asset (the seal bell) held. Six items; work spanned two sessions (session-limit cut mid-run; items 1/2/4/5 landed in the first, item 3 + gate + close-out in the second).
+
+**Item 1 — stinger hierarchy inverted, verify only.** New `layout: 'headline-dominant'` on `StingerVariant`: lines[1] renders as the ~62px dominant top line, lines[0] small beneath in `subAccent`. DOM ids stay l0=top/l1=bottom so the stagger animates the dominant line first in both layouts. Slate kinds untouched.
+
+**Item 2 — persistent date ribbon.** `render-reel-stamp` verify purpose is now the ribbon itself: "YESTERDAY'S RECEIPTS · <day> · <date>", gold. The assembler keeps it up for the FULL body — fade-out moved from 0.5s-before-the-endcard to AT the endcard cut. Real date from reel_date (provenance); Q1-clean — a date is not a draw value.
+
+**Item 3 — endcard DIAGNOSED, not guessed — and the answer to the spec's question is NO, it was not the legacy baked build.** Verified on pixels from git history and the published cuts: the MKT-19 tagged matrix (`verif_endcard_<tag>.mp4`) has existed for verify since MKT-19 Phase 1 and carried the correct MKT-23 copy at the contract band since MKT-23's matrix rebuild (**2026-07-29 14:03**). The published **7/27 cut** (assembled Jul 28, pre-rebuild) is what the operator saw: it closes on stale copy ("VERIFIED FROM PUBLISHED RESULTS"). The **7/28 cut** (assembled Jul 29 23:59, post-rebuild) already closes on "THE RECORD, DRAW BY DRAW / CHECK OUR WORK" in-band — the report was against a cut the pipeline had already healed. Position was never the defect: LOCKUP_TOP 1240, block to ~1400, crop line 1500, on both the stale and correct builds. **One live defect found and fixed:** the unversioned last-resort fallback `verif_endcard.mp4` (Jul 28 04:05) still carried the pre-MKT-23 copy — dormant while the tagged builds exist, but the resolver reaches it if they ever go missing, and it would have shipped stale copy without gold. Refreshed with the std build. Matrix rebuilt for the item-4 gold CTA: std/alt/steady/lattice, all 10.01s, text fades 4.5–5.2s then opaque to final frame — slots into the assembler's existing `-sseof -2.5` tail read unchanged. 100% band crop delivered: MKT-23 copy + gold CTA rendering.
+
+**Item 4 — gold accent `#FBBF24` (the results-desk accent), verify only:** ribbon, stinger line 2 (`subAccent`), endcard line 3 (new `line3Accent` on `EndcardVariant`), and the intro chip — the chip accent must track `render-reel-stamp` PURPOSES or the intro and body disagree about what reel this is. Every slate surface keeps leading purple/cyan.
+
+**Item 5 — seal hold CLEARED on measurement, then the binding tightened.** The 7/30 re-delivery (4.01s, operator GitHub-rename path — probed real, 2.68MB/3.0s built output) measures clean against the regeneration ask: energy peak −17.4dB at **1.10s** (bound ~2.0s), smooth decay under the smoke return, nothing after 2.4s above −19.2dB. The 7/29 defect (bell 2.7s/−3.5dB over the VO onset) is gone. Per the standing rule the `held:` field was cleared LAST. Binding restated in `stingerMotionsFor`: seal is verify's FIXED motion **replacing** rotation (was: seal + rotation fallback) — a missing/defective seal BUILD degrades to NO stinger via `probeStinger`'s null, never to a slate motion; a re-armed `held:` returns verify to rotation (pre-seal behaviour). The five rotation verify stingers were also rebuilt with the item-1 layout so a future re-arm serves the new identity, not the old.
+
+**Item 6 (report-only) — pt2 sign-off vs the ribbon/endcard: no conflict.** Today pt2 is DROPPED whole by the MKT-27 fits-whole gate (join 16.02s vs 13.50s window) so nothing plays over the close at all. The queued ~3.0s `verif_carrier_signoff_short` (budget item ②) would join ~13.0s, fit the window, and end before the endcard cut — sign-off lands over ribbon-bearing body frames (sanctioned) and never over the item-3 endcard text.
+
+**GATE — assembled 20260729 with the full package: 21.43s.** Seal stinger resolved, gold ribbon start/mid/end of body verified on frames, lattice tagged endcard resolved, endcard 100% crop clean. **Not republished** — the morning's posted cut stands (posted stamps are not wiped for re-cuts, MKT-27 precedent); the next Daily Workflow run ships this identity live. Carry-over noted: the ribbon overlaps the first receipt row's match line mid-scroll — pre-existing stamp geometry (y≈470, pinned by spec), not introduced here; candidate for MKT-25's restaging if it bothers the operator.
 
 ---
 

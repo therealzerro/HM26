@@ -165,7 +165,10 @@ sh(
   `[bolt][uix]xfade=transition=custom:expr=${EASED}:duration=${dissolve}:offset=${+(openDur - dissolve).toFixed(2)}[openbody];` +
   `[2:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=2.5,setpts=PTS-STARTPTS[card];` +
   `[openbody][card]concat=n=2:v=1:a=0[vraw];` +
-  `[4:v]format=rgba,fade=t=in:st=${+(openDur - 0.3).toFixed(2)}:d=0.4:alpha=1,fade=t=out:st=${+(openDur + uiDur - 0.5).toFixed(2)}:d=0.45:alpha=1[stmp];` +
+  // MKT-31 item 2: the ribbon rides EVERY body frame a viewer could land on —
+  // fade-out now begins AT the endcard cut (was 0.5s before it), so the claim
+  // holds through the last hold and dissolves into the close.
+  `[4:v]format=rgba,fade=t=in:st=${+(openDur - 0.3).toFixed(2)}:d=0.4:alpha=1,fade=t=out:st=${+(openDur + uiDur).toFixed(2)}:d=0.45:alpha=1[stmp];` +
   `[vraw][stmp]overlay=0:0,format=yuv420p[vst];` +
   // MKT-22: chip rides the intro only, out well before the crossfade.
   (chipPng

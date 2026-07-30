@@ -16,6 +16,9 @@ export interface EndcardVariant {
   lines: [string, string, string];
   /** Output filename — what the assemblers already read. */
   out: string;
+  /** MKT-31 — hex colour for line 3 (verify: gold #FBBF24, the results-desk
+   *  accent). Unset = the standard white at .86 opacity. */
+  line3Accent?: string;
 }
 
 export const ENDCARDS: Record<string, EndcardVariant> = {
@@ -37,6 +40,8 @@ export const ENDCARDS: Record<string, EndcardVariant> = {
     motion: 'endcard_motion_pro.mp4',
     lines: ['HITMASTER ZK6', 'THE RECORD, DRAW BY DRAW', 'CHECK OUR WORK'],
     out: 'verif_endcard.mp4',
+    // MKT-31 item 4 — verify-only gold accent on the CTA line.
+    line3Accent: '#FBBF24',
   },
   // Phase 2 — session wave. Same pro motion file, zero new generations.
   midday_pro: {

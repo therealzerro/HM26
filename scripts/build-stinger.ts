@@ -231,9 +231,18 @@ function lineState(t: number, index: number): { opacity: number; scale: number }
   };
 }
 
-async function openPage(lines: [string, string]): Promise<{ page: Page; close: () => Promise<void> }> {
+async function openPage(v: StingerVariant): Promise<{ page: Page; close: () => Promise<void> }> {
+  const lines = v.lines;
   for (const f of [BOLD, MED]) if (!existsSync(f)) throw new Error(`brand font missing: ${f}`);
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // MKT-31 — 'headline-dominant' inverts the hierarchy: lines[1] is the LARGE
+  // top line (46px × 1.35 ≈ 62px) and lines[0] sits small beneath it, in the
+  // variant's subAccent when one is set. DOM ids stay l0=top/l1=bottom so the
+  // stagger animates the dominant line first in both layouts.
+  const inverted = v.layout === 'headline-dominant';
+  const topText = inverted ? lines[1] : lines[0];
+  const subText = inverted ? lines[0] : lines[1];
+  const subColor = v.subAccent ?? '#ffffff';
   const html = `<!doctype html><html><head><style>
     @font-face { font-family: BRAND; src: url('file://${BOLD}'); font-weight: 700; }
     @font-face { font-family: BRAND; src: url('file://${MED}');  font-weight: 500; }
@@ -242,12 +251,13 @@ async function openPage(lines: [string, string]): Promise<{ page: Page; close: (
     .lockup { position: absolute; top: ${LOCKUP_TOP}px; left: 0; width: ${OUT_W}px;
               text-align: center; font-family: BRAND; color: #ffffff; }
     .l { transform-origin: 50% 50%; }
-    .l1 { font-weight: 700; font-size: 46px; letter-spacing: 1.4px; }
-    .l2 { font-weight: 500; font-size: 24px; letter-spacing: 2.4px; margin-top: 14px; }
+    .l1 { font-weight: 700; font-size: ${inverted ? 62 : 46}px; letter-spacing: ${inverted ? 1.2 : 1.4}px; }
+    .l2 { font-weight: 500; font-size: ${inverted ? 22 : 24}px; letter-spacing: 2.4px; margin-top: 14px;
+          color: ${subColor}; }
   </style></head><body>
     <div class="lockup">
-      <div class="l l1" id="l0">${esc(lines[0])}</div>
-      <div class="l l2" id="l1">${esc(lines[1])}</div>
+      <div class="l l1" id="l0">${esc(topText)}</div>
+      <div class="l l2" id="l1">${esc(subText)}</div>
     </div>
   </body></html>`;
 
@@ -290,7 +300,7 @@ async function build(key: string, v: StingerVariant, mv: MotionVariant): Promise
   rmSync(frameDir, { recursive: true, force: true });
   mkdirSync(frameDir, { recursive: true });
 
-  const { page, close } = await openPage(v.lines);
+  const { page, close } = await openPage(v);
   try {
     // Only the animated window needs frames; before it the lockup is absent and
     // after it the smoke has refilled, so both ends are pure transparency.

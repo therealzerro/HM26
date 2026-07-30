@@ -22,7 +22,11 @@ import { join, resolve } from 'node:path';
 
 const PURPOSES = {
   drop:   { eyebrow: "TODAY'S DATA DROP", accent: '#2bffcc' },
-  verify: { eyebrow: '✓ VERIFIED RESULTS', accent: '#34c759' },
+  // MKT-31 items 2+4 — the verify stamp IS the persistent date ribbon:
+  // "YESTERDAY'S RECEIPTS · <day> · <date>", gold (the results-desk accent —
+  // verify's subject is the gold moment; every slate surface leads cyan).
+  // The assembler keeps it up for the FULL body and fades it into the close.
+  verify: { eyebrow: "YESTERDAY'S RECEIPTS", accent: '#FBBF24' },
 } as const;
 
 const [, , purposeArg, ymd, scopeArg, outArg] = process.argv;

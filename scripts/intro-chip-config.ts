@@ -18,7 +18,9 @@
 
 /** Accents match render-reel-stamp's PURPOSES, so the chip and the stamp on a
  *  given reel agree about what kind of reel it is. */
-const DROP = '#2bffcc', VERIFY = '#34c759';
+// MKT-31 item 4: verify's accent is GOLD — it must track the verify stamp
+// (render-reel-stamp PURPOSES), which moved to #FBBF24 with the date ribbon.
+const DROP = '#2bffcc', VERIFY = '#FBBF24';
 
 export const CHIP_LABELS: Record<string, { text: string; accent: string }> = {
   allday_pro:     { text: 'ALL-DAY',             accent: DROP },

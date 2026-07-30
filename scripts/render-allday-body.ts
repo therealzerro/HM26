@@ -25,9 +25,10 @@ import { mkdirSync, copyFileSync, rmSync, readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { REEL_SCOPES, parseScopeFlag, positionals, bodyFileFor } from './reel-scopes';
+import { REEL_SCOPES, parseScopeFlag, positionals, bodyFileFor, bodyFileForMode } from './reel-scopes';
 import { provenanceArgs } from './reel-provenance';
 import { installRedaction, assertNoDigits } from './reel-redact';
+import { installRelabel, assertPublicClean, RELABEL_SLOTS } from './reel-relabel';
 
 const BASE = 'http://localhost:8081';
 const ARGS = positionals(process.argv.slice(2));
@@ -41,12 +42,29 @@ const SCOPE = parseScopeFlag(process.argv);
  * real subscriber can reach and no flag to leak.
  */
 const REDACT = process.argv.includes('--redact');
+/**
+ * MKT-15 P2 — `--relabel` produces the PUBLIC cut: redaction PLUS the tier-1
+ * copy swaps, session-label drops, state-code suppression and the bolt-over-
+ * placeholder look. Implies redaction; refuse a relabel-only invocation — a
+ * relabelled capture with live digits is not a thing any surface may consume.
+ */
+const RELABEL = process.argv.includes('--relabel');
+if (RELABEL && !REDACT) {
+  console.error('ABORT: --relabel requires --redact — the public cut is redact + relabel, never relabel alone.');
+  process.exit(1);
+}
 const SPEC = REEL_SCOPES[SCOPE];
 // MKT-26: `--redact` on a scope that has no redacted variant would render a
 // masked capture nothing will ever read — and, before bodyFileFor keyed the
 // name on the capture mode, would have written it OVER the full-fidelity body
 // that scope's reels do read. Refuse rather than produce an orphan.
-if (REDACT && !(SPEC.redactedVariants ?? []).length) {
+//
+// The PUBLIC capture is exempt from that gate ON PURPOSE: no public kind is
+// registered yet (MKT-16 is held at its gate), so a public body is currently
+// always an orphan — that is its intended state, a validated capture waiting
+// for the five registration points. It writes a mode-keyed name that collides
+// with nothing.
+if (REDACT && !RELABEL && !(SPEC.redactedVariants ?? []).length) {
   console.error(
     `ABORT: --redact passed for scope "${SCOPE}", which declares no redacted variants.\n` +
     `       Nothing would consume the masked capture. Add the variant to redactedVariants\n` +
@@ -122,6 +140,12 @@ async function openAlldayGrid(page: import('playwright').Page) {
     await assertNoDigits(page, `${SCOPE} grid (pre-capture)`);
     console.log(`REDACTED capture — board masked and asserted clean before frame 0.`);
   }
+  if (RELABEL) {
+    await installRelabel(page);
+    await page.waitForTimeout(800);
+    await assertPublicClean(page, `${SCOPE} grid (pre-capture)`);
+    console.log(`PUBLIC capture — relabelled and lint-audited clean before frame 0.`);
+  }
   // MKT-13: the ONLY way this lane can go wrong quietly is capturing one scope's
   // board into another scope's filename — every downstream check (grid fills the
   // screen, six modals open, stamp renders) passes just as happily on the wrong
@@ -164,7 +188,7 @@ async function openAlldayGrid(page: import('playwright').Page) {
   // flag — pro and free session reels need both to exist for the same scope and
   // date. `bodyFile` keeps the full-fidelity name exactly as it was, so nothing
   // that already works changes name.
-  const outMp4 = join(OUT_DIR, bodyFileFor(SCOPE, REDACT, stamp));
+  const outMp4 = join(OUT_DIR, RELABEL ? bodyFileForMode(SCOPE, 'public', stamp) : bodyFileFor(SCOPE, REDACT, stamp));
   const gridStill = join(WORK, 'grid_still.png');
   const fname = (i: number) => join(WORK, `frame_${String(i).padStart(4, '0')}.png`);
 
@@ -225,17 +249,27 @@ async function openAlldayGrid(page: import('playwright').Page) {
   for (let i = 0; i < PICKS; i++) {
     await page.mouse.click(TILES[i][0], TILES[i][1]);
     await page.waitForTimeout(2_000);   // slide-up + queries settle
-    const modal = await page.evaluate((rank: number) => {
+    // Under --relabel the injected swaps have already rewritten the header by
+    // the time this reads it, so the assertion targets the PUBLIC strings —
+    // asserting PICK/BEST STRAIGHT would fail on exactly the frames that are
+    // correct.
+    const marks = RELABEL
+      ? { head: `${RELABEL_SLOTS.cardHeader}${i + 1}`, label: RELABEL_SLOTS.bestLabel }
+      : { head: `PICK #${i + 1}`, label: 'BEST STRAIGHT' };
+    const modal = await page.evaluate(({ head, label }: { head: string; label: string }) => {
       const text = document.body.innerText;
-      const ok = new RegExp(`PICK #${rank}`).test(text) && /BEST STRAIGHT/i.test(text);
+      const ok = text.includes(head) && new RegExp(label, 'i').test(text);
       const divs = Array.from(document.querySelectorAll('div'));
       let scroller: HTMLDivElement | null = null;
       for (const d of divs) if (d.scrollHeight > d.clientHeight + 50 && (!scroller || d.scrollHeight > scroller.scrollHeight)) scroller = d;
       if (scroller) { (scroller.style as any).scrollBehavior = 'auto'; (window as any).__adScroll = scroller; }
       return { ok, vocab: (text.match(/\b(partial|exact)\b/gi) ?? []).length };
-    }, i + 1);
-    if (!modal.ok) { console.error(`ABORT: PICK #${i + 1} modal did not open from its grid tile.`); process.exit(1); }
+    }, marks);
+    if (!modal.ok) { console.error(`ABORT: ${marks.head} modal did not open from its grid tile.`); process.exit(1); }
     if (modal.vocab > 0) { console.error('ABORT: banned match-status vocabulary rendered in modal — BRAND-04 blocking stop.'); process.exit(1); }
+    // Public cut: every modal is a fresh mount, so the audit runs per modal —
+    // the acceptance bar is zero violations across every captured frame.
+    if (RELABEL) await assertPublicClean(page, `${SCOPE} modal #${i + 1}`);
 
     await setScroll(0);
     await page.waitForTimeout(300);
@@ -265,7 +299,7 @@ async function openAlldayGrid(page: import('playwright').Page) {
     // so the assembler can refuse to hand a full-fidelity body to a free
     // session kind. The filename says it too; the tag is what makes the
     // assertion about the capture rather than the path.
-    `${provenanceArgs(dateISO, REDACT)} "${outMp4}"`,
+    `${provenanceArgs(dateISO, REDACT, RELABEL)} "${outMp4}"`,
     { stdio: 'inherit' },
   );
   rmSync(WORK, { recursive: true, force: true });

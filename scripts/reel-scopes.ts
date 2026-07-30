@@ -148,7 +148,20 @@ export function bodyRedacted(scope: Scope, variant: Variant): boolean {
  * assertion true about the pixels rather than the path. Both, not either.
  */
 export function bodyFileFor(scope: Scope, redacted: boolean, stamp: string): string {
-  return redacted ? `ui_${scope}_redacted_${stamp}.mp4` : `ui_${scope}_${stamp}.mp4`;
+  return bodyFileForMode(scope, redacted ? 'redacted' : 'full', stamp);
+}
+
+/** Capture mode of a body file. `public` = redacted + relabelled (MKT-15 P2). */
+export type CaptureMode = 'full' | 'redacted' | 'public';
+
+/**
+ * Mode-keyed body filename — the single primitive when MKT-16 registers the
+ * public kinds, so the renderer and the eventual public assembler cannot
+ * disagree on the name. `full` and `redacted` are byte-identical to the
+ * two-state function above, which delegates here.
+ */
+export function bodyFileForMode(scope: Scope, mode: CaptureMode, stamp: string): string {
+  return mode === 'full' ? `ui_${scope}_${stamp}.mp4` : `ui_${scope}_${mode}_${stamp}.mp4`;
 }
 
 /** The body a KIND consumes. The renderer names its output with the primitive

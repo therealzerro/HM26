@@ -50,6 +50,15 @@ export const DATE_TAG = 'hm_reel_date';
 export const REDACT_TAG = 'hm_reel_redacted';
 
 /**
+ * MKT-15 P2 — container tag recording that a capture is the PUBLIC cut
+ * (redacted AND relabelled). Written now so every public body carries it from
+ * day one; the MKT-16 public assembler must assert it the same way the free
+ * session kinds assert REDACT_TAG — a redacted-but-not-relabelled body posing
+ * as public would carry tier-1 vocabulary onto a public feed.
+ */
+export const PUBLIC_TAG = 'hm_reel_public';
+
+/**
  * ffmpeg args that stamp `dateISO` into the output. Append before the path,
  * and do NOT pass a separate `-movflags` — this emits its own.
  *
@@ -63,9 +72,10 @@ export const REDACT_TAG = 'hm_reel_redacted';
  * here because movflags is one combined option; splitting it across two flags
  * means the last one wins and the other is lost.
  */
-export function provenanceArgs(dateISO: string, redacted = false): string {
+export function provenanceArgs(dateISO: string, redacted = false, isPublic = false): string {
   return `-movflags +faststart+use_metadata_tags -metadata ${DATE_TAG}="${dateISO}"` +
-    ` -metadata ${REDACT_TAG}="${redacted ? '1' : '0'}"`;
+    ` -metadata ${REDACT_TAG}="${redacted ? '1' : '0'}"` +
+    (isPublic ? ` -metadata ${PUBLIC_TAG}="1"` : '');
 }
 
 /** The capture date recorded in `file`, or null if it carries no tag. */

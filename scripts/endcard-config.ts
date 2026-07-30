@@ -19,6 +19,16 @@ export interface EndcardVariant {
   /** MKT-31 — hex colour for line 3 (verify: gold #FBBF24, the results-desk
    *  accent). Unset = the standard white at .86 opacity. */
   line3Accent?: string;
+  /** MKT-31 addendum 2 — per-variant lockup top, OVERRIDING the shared
+   *  LOCKUP_TOP band by operator ruling. Verify: 880 — tucked under the
+   *  deepest settled bolt across the pro rotation (alt's vault rings reach
+   *  y≈827; std 760, lattice 751, steady 604), measured clean on all four
+   *  motions from 5.2s (text-opaque) to the 6.5s cut: zone 880-1040 carries
+   *  ≤1.3% pixels above L40, max L77 (alt's soft ring glow). Slate kinds
+   *  stay on the shared band — it exists so rotating text lands on clean
+   *  background WITHOUT per-motion measurement; an override buys its
+   *  placement with exactly that measurement, per motion, at build time. */
+  lockupTop?: number;
 }
 
 export const ENDCARDS: Record<string, EndcardVariant> = {
@@ -42,6 +52,8 @@ export const ENDCARDS: Record<string, EndcardVariant> = {
     out: 'verif_endcard.mp4',
     // MKT-31 item 4 — verify-only gold accent on the CTA line.
     line3Accent: '#FBBF24',
+    // MKT-31 addendum 2 — see lockupTop's doc for the measurements.
+    lockupTop: 880,
   },
   // Phase 2 — session wave. Same pro motion file, zero new generations.
   midday_pro: {

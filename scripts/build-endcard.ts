@@ -53,7 +53,7 @@ const MED = `${FONT_DIR}/500Medium/Inter_500Medium.ttf`;
  * back to a serif. That failure is visually plausible and completely wrong, so
  * the font is asserted before the screenshot is trusted.
  */
-async function renderLockup(lines: [string, string, string], out: string, line3Accent?: string): Promise<void> {
+async function renderLockup(lines: [string, string, string], out: string, line3Accent?: string, lockupTop?: number): Promise<void> {
   for (const f of [BOLD, MED]) {
     if (!existsSync(f)) throw new Error(`brand font missing: ${f}`);
   }
@@ -64,7 +64,7 @@ async function renderLockup(lines: [string, string, string], out: string, line3A
     * { margin: 0; padding: 0; }
     body { width: ${OUT_W}px; height: ${OUT_H}px; background: transparent; overflow: hidden; }
     .lockup {
-      position: absolute; top: ${LOCKUP_TOP}px; left: 0; width: ${OUT_W}px;
+      position: absolute; top: ${lockupTop ?? LOCKUP_TOP}px; left: 0; width: ${OUT_W}px;
       text-align: center; font-family: BRAND; color: #ffffff;
     }
     .l1 { font-weight: 700; font-size: 58px; letter-spacing: 1.5px; }
@@ -129,7 +129,7 @@ async function build(key: string, v: EndcardVariant, mv: MotionVariant): Promise
   }
 
   const png = join(tmpdir(), `endcard-lockup-${key}.png`);
-  await renderLockup(v.lines, png, v.line3Accent);
+  await renderLockup(v.lines, png, v.line3Accent, v.lockupTop);
 
   // Motion upscaled with lanczos: the sharpness that matters is the type, and
   // that is native. An ML upscaler would add a heavy dependency to improve

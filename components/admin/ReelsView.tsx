@@ -241,7 +241,14 @@ function PlatformHandoffRow({
   );
 }
 
-function ReelCard({ reel, urls, onPosted }: { reel: MarketingReel; urls: GroupUrls; onPosted: () => void }) {
+function ReelCard({ reel, urls, onPosted, expanded, onToggle }: {
+  reel: MarketingReel; urls: GroupUrls; onPosted: () => void;
+  /** Accordion state lives in the parent: with up to seven reels a day, seven
+   *  fully-expanded cards (each with its platform rows) was a wall of scroll.
+   *  Collapsed = one tappable summary row; all posting logic renders only when
+   *  expanded. Hooks stay unconditional — only the JSX branches. */
+  expanded: boolean; onToggle: () => void;
+}) {
   const { colors } = useTheme();
   const st = useSt();
   const ui = KIND_UI[reel.kind] ?? FALLBACK_KIND_UI;
@@ -252,6 +259,9 @@ function ReelCard({ reel, urls, onPosted }: { reel: MarketingReel; urls: GroupUr
   const [q2No, setQ2No] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  // MKT-15 rows collapsed by default — they are the long tail of the card
+  // (one row per registered platform, disabled ones included by design).
+  const [showPlatforms, setShowPlatforms] = useState(false);
   // Web lane: the mp4 is fetched into memory FIRST (step 1) so the share /
   // download / group-tab actions each run inside a fresh tap's transient
   // activation — gesture-sensitive APIs silently no-op otherwise.
@@ -379,10 +389,32 @@ function ReelCard({ reel, urls, onPosted }: { reel: MarketingReel; urls: GroupUr
     openInNewTab((target === 'pro' ? urls.pro : urls.free) || 'https://www.facebook.com/groups/');
   }, [target, urls]);
 
+  // Collapsed: one summary row — everything the operator needs to decide
+  // whether to open it (which reel, posted where, how stale), nothing else.
+  if (!expanded) {
+    return (
+      <TouchableOpacity onPress={onToggle}>
+        <Card style={{ padding: 12, marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Text style={{ fontSize: 16 }}>{ui.icon}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.text }}>{ui.label}</Text>
+            <Text style={{ fontSize: 9, color: colors.textTertiary }}>
+              {reel.reel_date}{reel.duration_s ? ` · ${reel.duration_s}s` : ''} · uploaded {timeAgo(reel.created_at)}
+            </Text>
+          </View>
+          {reel.status === 'posted'
+            ? <Pill label={`✓ ${reel.target_name ?? 'posted'}`} color={colors.success} />
+            : <Pill label="ready" color={colors.gold} />}
+          <Text style={{ fontSize: 12, color: colors.textTertiary }}>▸</Text>
+        </Card>
+      </TouchableOpacity>
+    );
+  }
+
   return (
     <Card style={{ padding: 12, marginBottom: 14 }}>
-      {/* header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+      {/* header — tapping it collapses the card back to its summary row */}
+      <TouchableOpacity onPress={onToggle} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <Text style={{ fontSize: 16 }}>{ui.icon}</Text>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 13, fontWeight: '800', color: colors.text }}>{ui.label}</Text>
@@ -393,7 +425,8 @@ function ReelCard({ reel, urls, onPosted }: { reel: MarketingReel; urls: GroupUr
         {reel.status === 'posted'
           ? <Pill label={`✓ posted → ${reel.target_name ?? '?'}${reel.posted_at ? ` · ${timeAgo(reel.posted_at)}` : ''}`} color={colors.success} />
           : <Pill label="ready" color={colors.gold} />}
-      </View>
+        <Text style={{ fontSize: 12, color: colors.textTertiary }}>▾</Text>
+      </TouchableOpacity>
 
       {/* contact-sheet storyboard + watch links */}
       {reel.sheet_path && (
@@ -521,11 +554,19 @@ function ReelCard({ reel, urls, onPosted }: { reel: MarketingReel; urls: GroupUr
 
       {/* MKT-15 — assisted handoff to the other platforms. Same lane as the FB
           rows above (save → copy → open → finish by hand), one row per
-          registered platform, disabled ones shown with their reason. */}
-      <Text style={{ fontSize: 9, fontWeight: '800', color: colors.textTertiary, marginTop: 14, letterSpacing: 1 }}>
-        OTHER PLATFORMS — ASSISTED HANDOFF
-      </Text>
-      {PLATFORM_IDS.map(id => (
+          registered platform, disabled ones shown with their reason. Behind a
+          disclosure: with seven reels a day, seven always-open platform lists
+          (~49 rows) buried the Facebook lane the operator uses every morning. */}
+      <TouchableOpacity
+        onPress={() => setShowPlatforms(v => !v)}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 }}
+      >
+        <Text style={{ fontSize: 10, color: colors.textTertiary }}>{showPlatforms ? '▾' : '▸'}</Text>
+        <Text style={{ fontSize: 9, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1 }}>
+          OTHER PLATFORMS — ASSISTED HANDOFF ({PLATFORM_IDS.filter(id => SOCIAL_PLATFORMS[id].enabled).length} enabled of {PLATFORM_IDS.length})
+        </Text>
+      </TouchableOpacity>
+      {showPlatforms && PLATFORM_IDS.map(id => (
         <PlatformHandoffRow
           key={id}
           platform={SOCIAL_PLATFORMS[id]}
@@ -552,6 +593,12 @@ export default function ReelsView() {
   const [urls, setUrls] = useState<GroupUrls>({});
   const [error, setError] = useState<string | null>(null);
   const [showOlder, setShowOlder] = useState(false);
+  // Accordion: at most one card open. Until the operator touches it, the first
+  // unposted reel of the current run is auto-expanded — land on the screen and
+  // the next actionable reel is already open.
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [touched, setTouched] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'ready' | 'posted'>('all');
 
   // "Current" = produced by TODAY'S RUN, keyed on updated_at — NOT on
   // reel_date. The verify reel is dated D−1 BY DESIGN (it grades yesterday), so
@@ -565,6 +612,16 @@ export default function ReelsView() {
   const isCurrent = (r: MarketingReel) => etDay(r.updated_at) === todayET;
   const current = (reels ?? []).filter(isCurrent);
   const older = (reels ?? []).filter(r => !isCurrent(r));
+
+  // Same composite the remount key uses, so expansion survives nothing it
+  // shouldn't: a server-side caption refresh changes updated_at and the card
+  // both remounts AND re-collapses, which is correct — it is a new upload.
+  const keyOf = (r: MarketingReel) => `${r.id}:${r.updated_at}`;
+  const firstReady = current.find(r => r.status !== 'posted');
+  const effectiveExpanded = touched ? expandedKey : (firstReady ? keyOf(firstReady) : null);
+  const toggle = (k: string) => { setTouched(true); setExpandedKey(effectiveExpanded === k ? null : k); };
+  const postedCount = current.filter(r => r.status === 'posted').length;
+  const shown = filter === 'all' ? current : current.filter(r => (filter === 'posted') === (r.status === 'posted'));
 
   const load = useCallback(async () => {
     setError(null);
@@ -608,7 +665,8 @@ export default function ReelsView() {
         Facebook; on web: Prepare Video, then Save/Share (phone sheet → “Save Video” = Photos) or
         Download (desktop). Handoffs are logged; storage self-prunes after 30 days.
         This run’s reels show by default — earlier ones are one tap below. (The verify reel is
-        dated yesterday by design: it grades yesterday’s board.)
+        dated yesterday by design: it grades yesterday’s board.) Tap a row to open or close it;
+        the next unposted reel opens automatically.
       </Text>
 
       {reels === null && <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 30 }} />}
@@ -622,10 +680,53 @@ export default function ReelsView() {
           <Text style={{ fontSize: 11, color: colors.textSecondary }}>No reels registered yet — run npm run reel:allday or reel:verify.</Text>
         </Card>
       )}
+
+      {/* Posting progress for this run — the morning's answer to "what's left?"
+          at a glance: one tick per reel, green when it has gone out. */}
+      {current.length > 0 && (
+        <Card style={{ padding: 10, marginBottom: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Text style={{ fontSize: 11, fontWeight: '800', color: postedCount === current.length ? colors.success : colors.text }}>
+              {postedCount === current.length ? '✅' : '📤'} {postedCount} of {current.length} posted
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', flex: 1 }}>
+              {current.map(r => {
+                const ui = KIND_UI[r.kind] ?? FALLBACK_KIND_UI;
+                const posted = r.status === 'posted';
+                return (
+                  <TouchableOpacity key={keyOf(r)} onPress={() => toggle(keyOf(r))}>
+                    <Text style={{ fontSize: 11, opacity: posted ? 1 : 0.85 }}>
+                      {ui.icon}{posted ? '✓' : '·'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <View style={{ flexDirection: 'row', gap: 4 }}>
+              {(['all', 'ready', 'posted'] as const).map(f => (
+                <TouchableOpacity key={f} style={[st.optBtn, filter === f && st.optBtnOn]} onPress={() => setFilter(f)}>
+                  <Text style={[st.optBtnText, filter === f && st.optBtnTextOn]}>{f}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </Card>
+      )}
+
       {/* Key includes updated_at: a server-side caption refresh (pipeline
           --captions-only, re-publish) must remount the card so the editor
           re-seeds — useState(reel.caption) only reads the prop on mount. */}
-      {current.map(r => <ReelCard key={`${r.id}:${r.updated_at}`} reel={r} urls={urls} onPosted={load} />)}
+      {shown.map(r => (
+        <ReelCard
+          key={keyOf(r)} reel={r} urls={urls} onPosted={load}
+          expanded={effectiveExpanded === keyOf(r)} onToggle={() => toggle(keyOf(r))}
+        />
+      ))}
+      {reels !== null && current.length > 0 && shown.length === 0 && (
+        <Card style={{ padding: 12, alignItems: 'center', marginBottom: 10 }}>
+          <Text style={{ fontSize: 10, color: colors.textSecondary }}>No {filter} reels in this run.</Text>
+        </Card>
+      )}
 
       {reels !== null && current.length === 0 && older.length > 0 && (
         <Card style={{ padding: 14, alignItems: 'center', marginBottom: 10 }}>
@@ -646,7 +747,10 @@ export default function ReelsView() {
             </Text>
           </TouchableOpacity>
           {showOlder && older.map(r => (
-            <ReelCard key={`${r.id}:${r.updated_at}`} reel={r} urls={urls} onPosted={load} />
+            <ReelCard
+              key={keyOf(r)} reel={r} urls={urls} onPosted={load}
+              expanded={effectiveExpanded === keyOf(r)} onToggle={() => toggle(keyOf(r))}
+            />
           ))}
         </>
       )}

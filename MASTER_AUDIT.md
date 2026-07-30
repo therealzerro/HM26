@@ -23,7 +23,7 @@
 
 **✅ [[MKT-27]] verify reel — readable holds SHIPPED.** Body 6.3s → **8.6-14.0s**, derived from the row selection. STRAIGHT rows hold 2.0s, box rows 1.6s, up to three. **Three defects found by RENDERING, not by reading** — centre-origin zoom clipped the combo digits off the left edge, the pan logged `0→0px` (2.0s frozen behind a summary hold at the same scroll), and the summary push ended zoomed into a beat that opened unzoomed. **Stinger stays `enabled:false`** — the ratio condition is cleared on paper (64% branding → 44-56%) but `stinger_verify.mp4` does not exist and `probeStinger` degrades *silently* on a missing build, so flipping first ships a stinger-less reel that reports success. Two steps left: `npm run stinger:build verify`, then the flag.
 
-**🔍 [[MKT-28]] SCOPED, not started** — operator-authorised as its own scope: the FIVE heat ladders (two say `HOT SIGNAL` where canonical says `HOT`; Heat Check runs 85/70/50 against canonical 90/80/65/45), `PickDetailModal`'s surviving pre-DESIGN-02 90/75/60 colour ramp, and the redaction over-mask that eats a signal value of exactly `100`. **The public relabel is gated on 28a** — the "ON FIRE enum" is five ladders and they must agree with each other. Full entry below, including the two redaction blind spots to record while fixing 28c.
+**✅ [[MKT-28]] ENGINEERING DONE 2026-07-30 — two copy decisions owed back.** 28b: `PickDetailModal` migrated off the surviving pre-DESIGN-02 90/75/60 ramp, which disagreed with its own label thresholds (energy 70 = 65-band label in a 60-band colour). 28a: the `HOT SIGNAL` override centralised as `heatLabelDetailed()` — nothing on screen changed, but reconciling it later is now one edit. 28c: the redaction over-mask fixed structurally after PROBING the DOM, with the matching carve-out added to the assert (without it the surviving `100` aborts the render). **Still owed, and deliberately not decided unilaterally:** whether `HOT SIGNAL` or `HOT` wins, and whether Heat Check keeps its own 85/70/50 — both are copy, both ride with the public-relabel vocabulary, which must cover all five ladders at once. Full entry below.
 
 **✅ [[MKT-27]] CLOSED — pt2 landed, stinger LIVE. Silence 6.49s → 0.49s, branding 64% → 44.3%, reel 24.43s.** The pt2 arrived at the generator's fixed 10.005s with ~1.7s of leading digital silence and a decay tail — registering it raw would have made the 0.35s seam breath into ~2s of dead air, so it was trimmed to its 5.67s of speech with the master kept (MKT-08's convention for the 10s anchor masters). New **fits-whole gate**: `resolveCarrier` takes an optional `needSec` and drops a continuation whole rather than letting `atrim` cut it mid-word. Opt-in, because "carrier longer than the window" means opposite things per lane — a slate carrier's tail is *designed* to be discarded after the voice ends, while verify's window MOVES with the data-adaptive body. Boundary lands so pt2 plays on any day with ≥1 STRAIGHT among the featured rows, which is also the day its copy fits best; a 0-straight day drops it and takes ~5.7s of silence instead. Stinger built first, flag flipped second — `probeStinger` degrades *silently* on a missing build, so the reverse order ships a stinger-less reel that reports success.
 
@@ -165,7 +165,22 @@ Joined durations identical at 20.360s, so the MKT-20 invariant holds. The new pa
 
 ---
 
-### MKT-28 — Heat-vocabulary reconciliation + redaction over-mask 🔍 SCOPED · NOT STARTED
+### MKT-28 — Heat-vocabulary reconciliation + redaction over-mask ✅ ENGINEERING DONE 2026-07-30 · COPY DECISIONS OWED
+
+**28b SHIPPED.** `PickDetailModal` migrated onto `heatTier`. It was the last holdout of the pre-DESIGN-02 ramp and its two ladders disagreed with each other — canonical label thresholds (90/80/65/45) against the old colour ramp (90/75/60) — so energy 70 rendered the 65-band LABEL in the 60-band COLOUR. Verified by re-rendering the real modal: pick #2 at energy 70 keeps the label `HOT SIGNAL` byte-identical and moves gold → orange, so the band it says and the band it looks are now the same band. App-side tsc 0.
+
+**28a PARTIALLY SHIPPED — the code half only, and that is the correct boundary.** The `HOT SIGNAL` override was the same ternary inlined in `PickDetailModal` and `PickPosterCard`: a copy decision duplicated as code. Centralised as `heatLabelDetailed()` in `lib/theme/heat.ts`. **Nothing on screen changed** — the point is that reconciling it later is one edit rather than a hunt.
+
+**⚠ TWO DIVERGENCES ARE COPY DECISIONS AND ARE STILL OPEN.** They were deliberately NOT folded into a ramp fix, because changing a rendered subscriber string is not the same class of change:
+  1. **`HOT SIGNAL` vs `HOT`** on the same rung — the detail surfaces say one, the canonical ladder the other.
+  2. **HeatCheckModal's 85/70/50** against canonical 90/80/65/45. Its own comment argues these are *verdict* semantics rather than temperature vocabulary, which is defensible in isolation and confusing in aggregate — one energy reads `BLAZING` on the grid and `STRONG SIGNAL` in Heat Check.
+Both are owed back **with the public-relabel neutral vocabulary**, which has to cover all five ladders at once or the public cut reads inconsistently between grid and modal. All five were supplied verbatim to the content agent 2026-07-29.
+
+**28c SHIPPED.** See the fix note under the entry below — and note the method: the DOM was PROBED before the predicate was written, which is what turned "a 3-digit leaf might be a signal value" into "all 24 grid digit leaves are signal values, and the combination is not among them because the hero row is one leaf reading `0 4 9`". The bare-three-digit branch had no legitimate target on the grid at all.
+
+---
+
+### MKT-28 — original scope (2026-07-29)
 
 **ID verified free** (`grep MKT-28` → 0 hits in audit and code before stamping; MKT-27 is the verify holds). Operator-authorised 2026-07-29 as its own scope, split out of the MKT-26 reconstruction check so neither item rides on a publish.
 

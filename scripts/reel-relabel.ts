@@ -28,6 +28,21 @@ import type { Page } from 'playwright';
 import { lintCaption, STATE_CODES } from '../lib/social/brandLint';
 
 /**
+ * COMPLETE 50+DC state set for the CAPTURE side — suppression and the
+ * attribution-shape audit. brandLint's STATE_CODES is deliberately partial
+ * (its token check runs over free prose, and IN/OK/OR/ME/OH/HI collide with
+ * English words); the first public render proved the gap when an "OK 1×"
+ * Oklahoma chip sailed through it. Here both consumers apply the set ONLY to
+ * attribution-SHAPED strings (every token two-letter-code-shaped), where no
+ * English word can collide — so the capture is strictly harder to pass than
+ * the caption lint, never easier.
+ */
+const STATE_CODES_COMPLETE = new Set([
+  ...STATE_CODES,
+  'AL','AK','HI','IN','MA','ME','MT','NH','OH','OK','OR','PA','RI','UT','WY',
+]);
+
+/**
  * The eight-slot public copy set — DELIVERED and approved. Slots 6-7 are
  * drops, handled structurally below; slot 8 (stinger headline) is
  * stinger-config territory and not a capture concern.
@@ -80,6 +95,9 @@ export const HEAT_RELABEL: Record<string, string> = {
   'COOL': 'BASE BAND',
   '🔥': '',
   '❄': '',
+  // Rule 3 of the delivered set: numeric values SURVIVE, symbols do not —
+  // 'ON FIRE 99°' → 'PEAK BAND 99'. The degree sign reads as temperature.
+  '°': '',
 };
 
 /** Bolt overlay — gold gradient per palette §7, the ruled decisions:
@@ -105,7 +123,7 @@ export async function installRelabel(page: Page): Promise<void> {
   // the page context (same constraint as installRedaction; see its note).
   await page.evaluate(`(() => {
     const HEAT = new Map(${heat});
-    const STATES = new Set(${JSON.stringify([...STATE_CODES])});
+    const STATES = new Set(${JSON.stringify([...STATE_CODES_COMPLETE])});
     const BOLT = ${JSON.stringify(BOLT_URI)};
     // The PURE string swaps — slots 1-5 + slot 7's trailing-scope strip, the
     // in-string state suppression, and the heat vocabulary. Shared between the
@@ -326,6 +344,7 @@ export async function assertPublicClean(page: Page, where: string): Promise<void
     return Array.from(out);
   })()`);
   const violations: string[] = [];
+  const COMPLETE = STATE_CODES_COMPLETE;
   for (const t of texts) {
     const lint = lintCaption(t, 1);
     for (const v of lint.violations.filter(x => x.blocking)) {
@@ -333,6 +352,15 @@ export async function assertPublicClean(page: Page, where: string): Promise<void
     }
     if (/^\s*(ALL-?DAY|MIDDAY|EVENING)\s*$/i.test(t)) violations.push(`"${t}" — session label survived the drop`);
     if (/\b[A-Z]{2}\s*\d{1,3}\s*×/.test(t)) violations.push(`"${t}" — state attribution survived suppression`);
+    // Attribution-SHAPED strings against the COMPLETE state set — this is the
+    // audit half of the suppression above, and it must use the same set and
+    // the same shape rule or an OK/ME/NH chip passes the gate the way "OK 1×"
+    // did on the first public render. Shape-gated, so caps prose ("RESOLVED
+    // IN · LAST 30 DAYS") can never collide.
+    const toks = t.trim().split(/[,\s/·]+/).filter(Boolean);
+    if (toks.length >= 1 && toks.every(x => /^[A-Z]{2}$/.test(x)) && toks.some(x => COMPLETE.has(x))) {
+      violations.push(`"${t}" — state attribution (complete-set) survived suppression`);
+    }
   }
   if (violations.length) {
     throw new Error(

@@ -77,6 +77,14 @@ const UNIVERSAL_VOCAB: { re: RegExp; rule: string; suggestion: string }[] = [
  *  the set this lint flags — two lists would drift, and the relabelled frame
  *  would fail the audit that shaped it. */
 export const STATE_CODES = new Set([
+  // ⚠ DELIBERATELY PARTIAL — this token check runs over free English prose,
+  // and the omitted codes are the word collisions: IN, OK, OR, ME, OH, HI …
+  // appear inside ordinary caps copy ("RESOLVED IN"), so listing them would
+  // flag every heading. The CAPTURE side cannot accept that gap — an "OK 1×"
+  // attribution chip passed this check on the first public render (MKT-16,
+  // 2026-07-30) — so scripts/reel-relabel.ts carries a COMPLETE 50+DC set and
+  // applies it only to attribution-SHAPED strings, where no English word can
+  // collide. Widen THAT set, not this one, for capture coverage.
   'AZ','AR','CA','CO','CT','DE','FL','GA','ID','IL','IA','KS','KY','LA','MD','MI',
   'MN','MS','MO','NE','NV','NJ','NM','NY','NC','ND','SC','SD','TN','TX','VA','VT',
   'WA','WV','WI','DC',

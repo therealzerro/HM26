@@ -185,6 +185,12 @@ const XFADE_A = 0.4;                    // voice→bed audio crossfade-ish join 
 // rotating carriers/endcards/VOs stay date-agnostic.
 const stampPng = join(REELS, `_stamp_${stamp}.png`);
 sh(`npx tsx scripts/render-reel-stamp.ts drop ${stamp} ${SPEC.stampLabel} "${stampPng}"`);
+// MKT-16: the PUBLIC cut's stamp drops the scope tag — session words are
+// blocking on public surfaces (the same ruling that makes the chip say THE
+// FULL BOARD, and the same scope-less form the verify stamp already uses).
+// The stamp is composited at assembly, AFTER every capture-time audit, so
+// this is the one layer those audits structurally cannot see.
+const publicStampPng = join(REELS, `_stamp_public_${stamp}.png`);
 
 // MKT-16: same --variant filter publish-reels carries, one step earlier — a
 // one-off assembly of a single sibling must not rebuild the others' finals
@@ -194,6 +200,9 @@ const VARIANTS = ONLY_VARIANT ? SPEC.variants.filter(v => v === ONLY_VARIANT) : 
 if (VARIANTS.length === 0) {
   console.error(`ABORT: scope "${SCOPE}" declares no "${ONLY_VARIANT}" variant.`);
   process.exit(1);
+}
+if (VARIANTS.some(v => captureModeFor(SCOPE, v) === 'public')) {
+  sh(`npx tsx scripts/render-reel-stamp.ts drop ${stamp} - "${publicStampPng}"`);
 }
 
 for (const v of VARIANTS) {
@@ -323,7 +332,7 @@ for (const v of VARIANTS) {
       ? `-i "${intro.path}" -i "${body}" -i "${endcard}" `
       : `-loop 1 -framerate 60 -t ${OPEN} -i "${lockup}" -i "${body}" -i "${endcard}" `) +
     `-i "${carrier}" -i "${endcard}" ` +
-    `-loop 1 -framerate 60 -t ${total} -i "${stampPng}" ` +
+    `-loop 1 -framerate 60 -t ${total} -i "${bodyMode === 'public' ? publicStampPng : stampPng}" ` +
     // MKT-12: stinger takes input [6] — appended so [0]-[5] and every hardcoded
     // index in the graph below are undisturbed.
     (sting ? `-i "${sting.path}" ` : ``) +

@@ -1,0 +1,16 @@
+{
+  "allday_public": {
+    "date": "2026-07-30",
+    "body": "ui_allday_public_20260730.mp4",
+    "who": "Claude Fable 5 (Claude Code), MKT-16 registration session 2026-07-30 — assertPublicClean (the live tier-1 lintCaption engine plus the structural checks it cannot express) at capture per surface, plus a human-readable frame pass on the assembled finals by the same session.",
+    "density": "Every rendered string on the grid and on each of the six modals at capture time (50-98 strings per surface, 7 surfaces; each modal hold is a single frozen frame, so per-surface equals per-frame). On the assembled reel: full-res grid frame, full-res modal frame, and the 8-frame contact sheet (intro, six modal midpoints, endcard close) read by eye.",
+    "classes": {
+      "fabricated_numerals": "CODE PROPERTY — the body is a screen capture of the live app over the day's real slate; nothing generates numerals. Every visible 3-digit run is structurally hidden at capture (Q1-absolute numeric suppression, asserted per surface); surviving numerals are 2-digit methodology values.",
+      "misspelled_brand_vocabulary": "INSPECTED — full-res frames and contact sheet read; the wordmark renders HITMASTER ZK6 correctly on stinger, endcard and panels; the body contains native UI type only, no generated text.",
+      "currency_and_gain_framing": "INSPECTED — no currency or gain framing in body or panels; the tier-1 lint additionally blocks pricing tokens per string at capture.",
+      "rendered_dates": "CODE PROPERTY — brand assets are date-agnostic (MKT-07: dates overlay at assembly, never baked); the assembly stamp derives from the validated slate stamp and drops the scope tag for this kind; the body's only date is the board's own generation timestamp, equal to the content date by the MKT-18 date-tag assertion.",
+      "reconstructable_values": "INSPECTED + STRUCTURAL — the combination renders as a blurred placeholder plus bolt (never derived from the real pixels), position boxes, pair labels, pair prose and set chips masked across all seven digit-bearing routes (MKT-26 reconstruction standard); state attribution suppressed against the COMPLETE 50+DC set (the caption lint's partial set missed an OK 1× chip on the first render) with jurisdiction counts kept."
+    },
+    "basis": "Classes fabricated_numerals and rendered_dates are code properties for this rendered body and are recorded as such, not as inspections. Known-visible and accepted: the scope segment tabs (Midday / Evening / All Day) remain on the grid frame — advisory class per brief §5, since session words are hard-forbidden only when paired with digits and every digit is masked; recorded rather than hidden."
+  }
+}

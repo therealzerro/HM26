@@ -144,7 +144,9 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 **COST, as ordered: +4.0s.** Gate reel 21.43 → **25.43s**; verify's envelope becomes ~23.4–28.8s (open 8.33 + body 8.6–14.0 + 6.5). **Consequence: pt2 eligibility widened** — `carrierNeed` for this body went 13.50→17.50s, the 16.02s join now fits-whole, so the sign-off PLAYS (VO covers 23.94s of 25.43; silence at the close 3.49→1.49s) and ends at ~23.9s, just before the lockup settles opaque at ~24.1s — "Signals first. Receipts after." lands over the formation and finishes as CHECK OUR WORK resolves. No collision with the item-3 text; item 6's boundary holds.
 
-**Republished** (2026-07-30 ~19:55Z) — the 25.43s cut is what Admin → Reels serves; row reset to `ready` again by the upsert. Carry-over noted: the ribbon overlaps the first receipt row's match line mid-scroll — pre-existing stamp geometry (y≈470, pinned by spec), not introduced here; candidate for MKT-25's restaging if it bothers the operator.
+**Republished** (2026-07-30 ~19:55Z) — the 25.43s cut is what Admin → Reels serves; row reset to `ready` again by the upsert.
+
+**Lane regen 7/27+7/28 (2026-07-30 ~20:25Z):** both reassembled on the new pipeline and republished for lane consistency (21.13s / 28.43s); the operator countermanded mid-run but both had already completed — kept rather than spending another cycle reverting. ⚠ 7/28's REAL posted stamp (7/29 20:11Z) was wiped by its republish upsert and the storage file is no longer the cut that was posted; restore the stamp via the gateway only if the operator wants the history back. Carry-over noted: the ribbon overlaps the first receipt row's match line mid-scroll — pre-existing stamp geometry (y≈470, pinned by spec), not introduced here; candidate for MKT-25's restaging if it bothers the operator.
 
 ---
 

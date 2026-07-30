@@ -68,7 +68,7 @@ const ASSETS = resolve('assets/marketing');
  */
 type Kind = Extract<
   ReelCaptionKind,
-  'allday_pro' | 'allday_free' | 'verify' | 'midday_pro' | 'evening_pro' | 'midday_free' | 'evening_free'
+  'allday_pro' | 'allday_free' | 'verify' | 'midday_pro' | 'evening_pro' | 'midday_free' | 'evening_free' | 'allday_public'
 >;
 
 function etDate(offsetDays: number): string {

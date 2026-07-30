@@ -38,8 +38,8 @@ import { MODAL_COUNT, GRID_DUR, MODAL_HOLD, modalWindow } from '../constants/ree
 import { probeStinger, stingerAdds } from './reel-stinger';
 import { bedWindow, BED_TARGET_RMS, BED_MIX_DB, MAX_BED_CORRECTION, type BedWindow } from './reel-bed';
 import { STINGERS, STINGER_DUR, INTRO_XFADE } from './stinger-config';
-import { REEL_SCOPES, parseScopeFlag, positionals, reelKind, bodyFile, bodyRedacted, type Variant } from './reel-scopes';
-import { assertBodyDate, assertBodyRedaction } from './reel-provenance';
+import { REEL_SCOPES, parseScopeFlag, positionals, reelKind, bodyFile, captureModeFor, type Variant } from './reel-scopes';
+import { assertBodyDate, assertBodyRedaction, assertBodyPublic } from './reel-provenance';
 import { resolveEndcard } from './reel-endcard';
 import { CHIP_LABELS } from './intro-chip-config';
 
@@ -126,15 +126,23 @@ if (FORCE_STING || FORCE_CARD || FORCE_CARRIER) {
  * state (MKT-26), each read from the file's own container metadata.
  */
 function resolveBody(v: Variant): { path: string; dur: number } {
-  const redacted = bodyRedacted(SCOPE, v);
+  // MKT-16: three capture modes now, not two — full / redacted / public
+  // (redacted + relabelled). The mode decides the filename AND which container
+  // tags must hold; both come from the same registry call so they cannot drift.
+  const mode = captureModeFor(SCOPE, v);
   const path = join(REELS, bodyFile(SCOPE, v, stamp));
-  const rerun = `npm run reel:${SCOPE}`;
+  const rerun = mode === 'public'
+    ? `npx tsx scripts/render-allday-body.ts --scope=${SCOPE} --redact --relabel`
+    : `npm run reel:${SCOPE}`;
   if (!existsSync(path)) {
     console.error(
       `ABORT: ${path} not found — run the body render first (${rerun}).` +
-      (redacted
+      (mode === 'redacted'
         ? `\n       ${reelKind(SCOPE, v)} needs the REDACTED capture:\n` +
           `       npx tsx scripts/render-allday-body.ts --scope=${SCOPE} --redact`
+        : mode === 'public'
+        ? `\n       ${reelKind(SCOPE, v)} needs the PUBLIC capture:\n` +
+          `       npx tsx scripts/render-allday-body.ts --scope=${SCOPE} --redact --relabel`
         : ''),
     );
     process.exit(1);
@@ -145,8 +153,11 @@ function resolveBody(v: Variant): { path: string; dur: number } {
   // someone else's day. See scripts/reel-provenance.ts for the incident.
   assertBodyDate(path, isoDate, rerun);
   // MKT-26: and the same for redaction — a filename can be renamed into place,
-  // the tag cannot.
-  assertBodyRedaction(path, redacted, rerun);
+  // the tag cannot. The public cut is redact + relabel, so it must carry BOTH
+  // tags (MKT-16): a redacted-but-not-relabelled body posing as public would
+  // put tier-1 vocabulary on a public feed.
+  assertBodyRedaction(path, mode !== 'full', rerun);
+  if (mode === 'public') assertBodyPublic(path, rerun);
   const dur = parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${path}"`).toString());
   return { path, dur };
 }
@@ -181,8 +192,11 @@ for (const v of SPEC.variants) {
   // DIFFERENT captures (full-fidelity vs redacted); All-Day's variants both
   // resolve to the same unchanged file, so nothing about that path moves.
   const { path: body, dur: bodyDur } = resolveBody(v);
-  if (bodyRedacted(SCOPE, v)) {
+  const bodyMode = captureModeFor(SCOPE, v);
+  if (bodyMode === 'redacted') {
     console.log(`NOTE(${v}): REDACTED body — ${body.split('/').pop()} (digits masked; tag verified).`);
+  } else if (bodyMode === 'public') {
+    console.log(`NOTE(${v}): PUBLIC body — ${body.split('/').pop()} (redacted + relabelled; both tags verified).`);
   }
   // MKT-17: resolved per kind and per DATE (not "today"), so re-running an old
   // stamp reproduces that day's intro exactly, the same contract the caption

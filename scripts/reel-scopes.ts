@@ -38,7 +38,7 @@
 // reel remains barred — that part of the ruling never lifted.
 
 export type Scope = 'allday' | 'midday' | 'evening';
-export type Variant = 'pro' | 'free';
+export type Variant = 'pro' | 'free' | 'public';
 
 export interface ReelScopeSpec {
   scope: Scope;
@@ -67,6 +67,16 @@ export interface ReelScopeSpec {
    * body and every variant read it.
    */
   redactedVariants?: Variant[];
+  /**
+   * MKT-16 — variants whose body must be the PUBLIC capture: redacted AND
+   * relabelled (`--redact --relabel`, MKT-15 P2 / MKT-30). Stated per scope for
+   * exactly the reason redactedVariants is: a derived rule ("the public variant
+   * is public") hides the one place it would be wrong. A variant listed here
+   * reads the mode-keyed body file and the assembler asserts the PUBLIC_TAG
+   * inside it — a redacted-but-not-relabelled body posing as public would carry
+   * tier-1 vocabulary onto a public feed.
+   */
+  publicVariants?: Variant[];
   /** assets/marketing subdirectory for the body render and the finals. */
   dir: string;
 }
@@ -76,7 +86,15 @@ export const REEL_SCOPES: Record<Scope, ReelScopeSpec> = {
     scope: 'allday',
     tab: /All Day/,
     stampLabel: 'ALL-DAY',
-    variants: ['pro', 'free'],
+    // MKT-16 (2026-07-30) — `public` registered, the 1 of 3 public kinds that
+    // ships. midday_public / evening_public stay UNREGISTERED: no session
+    // carriers exist and three daily public reels is the cadence risk already
+    // ruled against. Same ordering discipline as MKT-26: carriers on disk →
+    // CARRIERS → caption registry + publish Kind union + DB kind CHECK
+    // (landed FIRST this time, operator ruling — it is the late-failure
+    // point) → THEN this entry, which is what turns the lane on.
+    variants: ['pro', 'free', 'public'],
+    publicVariants: ['public'],
     dir: 'allday_reels',
   },
   midday: {
@@ -133,6 +151,16 @@ export function bodyRedacted(scope: Scope, variant: Variant): boolean {
 }
 
 /**
+ * MKT-16 — the capture mode a kind's body must be in. `public` wins over
+ * `redacted` (the public cut IS redacted, plus the relabel); listing a variant
+ * in both would be a config error, not a tie to break.
+ */
+export function captureModeFor(scope: Scope, variant: Variant): CaptureMode {
+  if ((REEL_SCOPES[scope].publicVariants ?? []).includes(variant)) return 'public';
+  return bodyRedacted(scope, variant) ? 'redacted' : 'full';
+}
+
+/**
  * The body capture filename for a kind — MKT-26.
  *
  * ⚠ THE FULL-FIDELITY NAME IS UNCHANGED (`ui_<scope>_<stamp>.mp4`) AND THAT IS
@@ -167,7 +195,7 @@ export function bodyFileForMode(scope: Scope, mode: CaptureMode, stamp: string):
 /** The body a KIND consumes. The renderer names its output with the primitive
  *  above, keyed on the actual capture mode, so the two cannot disagree. */
 export function bodyFile(scope: Scope, variant: Variant, stamp: string): string {
-  return bodyFileFor(scope, bodyRedacted(scope, variant), stamp);
+  return bodyFileForMode(scope, captureModeFor(scope, variant), stamp);
 }
 
 /**
@@ -207,8 +235,8 @@ export function parseVariantFlag(argv: string[]): Variant | null {
   const flag = argv.find(a => a.startsWith('--variant='));
   if (!flag) return null;
   const val = flag.slice('--variant='.length).trim().toLowerCase();
-  if (val !== 'pro' && val !== 'free') {
-    console.error(`ABORT: unknown --variant=${val} — expected pro | free.`);
+  if (val !== 'pro' && val !== 'free' && val !== 'public') {
+    console.error(`ABORT: unknown --variant=${val} — expected pro | free | public.`);
     process.exit(1);
   }
   return val;

@@ -58,6 +58,12 @@ const KIND_UI: Record<ReelKind, { icon: string; label: string; defaultTarget: Ta
   evening_pro: { icon: '🌙', label: 'Evening · Pro', defaultTarget: 'pro', sheetAspect: 6 * (270 / 480) },
   midday_free: { icon: '☀️', label: 'Midday · Free', defaultTarget: 'free', sheetAspect: 6 * (270 / 480) },
   evening_free: { icon: '🌙', label: 'Evening · Free', defaultTarget: 'free', sheetAspect: 6 * (270 / 480) },
+  // MKT-16 — the public reel. Default target 'cross' is the point, not a
+  // convenience: this cut exists for surfaces we do NOT own, its caption is
+  // tier-1 copy, and cross-post is the target class that forces the
+  // Two-Question NO/NO ack. Landing it in a group by default would waste the
+  // one reel written for strangers on rooms that already have better cuts.
+  allday_public: { icon: '📡', label: 'All-Day · Public', defaultTarget: 'cross', sheetAspect: 6 * (270 / 480) },
 };
 
 /** A kind with no UI entry would crash the whole Reels tab on `ui.defaultTarget`
@@ -102,7 +108,7 @@ function PlatformHandoffRow({
   reel: MarketingReel;
   caption: string;
   /** Which room the loaded draft was WRITTEN for — gates tier-4 platforms. */
-  captionAudience: 'free' | 'pro';
+  captionAudience: 'free' | 'pro' | 'public';
   videoUrl: string;
   filename: string;
   onLogged: () => void;

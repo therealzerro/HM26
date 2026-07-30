@@ -399,6 +399,43 @@ const CAPTION_REGISTRY = {
   // properly here rather than left as "offsets are unique".)
   midday_free: sessionFreeKind('Midday', 'the daytime boards run', 17),
   evening_free: sessionFreeKind('Evening', 'tonight’s boards run', 22),
+  /**
+   * MKT-16 / MKT-24 Phase 2 — the PUBLIC kind. The eight templates are the
+   * DELIVERED set (content agent, MKT-24 work order 2026-07-29), registered
+   * verbatim now that the kind exists — writing them was safe then, registering
+   * them waited for this change.
+   *
+   * ⚠ TIER 1 DISCIPLINE, not the group rules every other kind is written to:
+   * these go to public platforms, so the full strict lint applies — no digits,
+   * no state names, no match counts, no session words, no pricing, no Pro CTA.
+   * Funnel-to-Free only; methodology-forward because TikTok and YouTube both
+   * penalise prediction framing and education framing is the reach strategy.
+   * All eight verified through the real lintCaption(…, 1) — MKT-24 recorded it,
+   * re-run at registration.
+   *
+   * STATIC BY DESIGN: no template renders the date or any receipt datum, so
+   * there is no receipts dependency and no fallback path to get wrong. Rotation
+   * still applies (dayOfYear + offset).
+   *
+   * Offset 4 — the ONE free residue mod 8: verify 0, verify_pro 2,
+   * allday_free 3, allday_pro 5, midday_pro 7, evening_pro 11→3,
+   * midday_free 17→1, evening_free 22→6. What must be distinct is
+   * `offset % templates.length` (see the MKT-26 note above).
+   */
+  allday_public: {
+    offset: 4,
+    realNumbers: false,
+    templates: [
+      () => `Six signals, ranked and published before the first draw — then checked against the official results the next morning. That's the whole method. Full board's free in the community. ⚡`,
+      () => `We publish the analysis first and the receipts after. No guarantees, no rate claims, just a record you can check yourself. The full board is free in the community.`,
+      () => `Pattern analysis across 40+ states & provinces, every single day. Six signals ranked, each one explained. Full board lives free in the community. 🤠`,
+      () => `Everybody's got a method. Not everybody shows their work. Ours gets graded against official results every morning — and the full board is free.`,
+      () => `How pattern analysis works: score every combination, rank the top six, time-stamp them before the draw, then check them against what actually happened. Full walkthrough, free in the community.`,
+      () => `The engine runs overnight. Six signals come out ranked, explained, and stamped before the first draw — and nothing changes after. Come see the board. It's free.`,
+      () => `Analysis published before. Receipts published after. That order is the only thing that makes a record worth reading. Free in the community. ⚡`,
+      () => `No fees, no hype, no promises. Just the day's analysis and yesterday's receipts. If that's your kind of thing, the community's free.`,
+    ],
+  },
 } satisfies Record<string, KindSpec>;
 
 export type ReelCaptionKind = keyof typeof CAPTION_REGISTRY;

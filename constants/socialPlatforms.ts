@@ -298,12 +298,20 @@ export function proRoomCaption(caption: string): { text: string; dropped: string
  */
 export function platformAcceptsAudience(
   p: SocialPlatform,
-  audience: 'free' | 'pro',
+  audience: 'free' | 'pro' | 'public',
 ): { ok: true } | { ok: false; reason: string } {
   if (p.tier === 4 && audience === 'free') {
     return {
       ok: false,
       reason: 'Free-group caption — the Pro room needs the pro draft, not a teaser written to sell it.',
+    };
+  }
+  // MKT-16: public copy is funnel-to-Free by design ("the community's free").
+  // Pointing paying members at the free community undersells what they bought.
+  if (p.tier === 4 && audience === 'public') {
+    return {
+      ok: false,
+      reason: 'Public caption — written to funnel strangers into the free community; the Pro room gets the pro draft.',
     };
   }
   return { ok: true };

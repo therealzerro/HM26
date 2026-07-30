@@ -16,7 +16,7 @@
  */
 import { config as loadEnv } from 'dotenv';
 import { execSync } from 'node:child_process';
-import { existsSync, statSync, readdirSync } from 'node:fs';
+import { existsSync, statSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { resolveCarrier, undeclaredParts, carrierCandidates, audioDur, OVERLAP_EPSILON, carrierBoundarySlack, BOUNDARY_WARN_AT } from './reel-carrier';
@@ -33,7 +33,7 @@ import {
 } from './brand-motion';
 import { endcardCandidates } from './reel-endcard';
 import { stingerCandidates } from './reel-stinger';
-import { REEL_SCOPES, SCOPES, reelKind } from './reel-scopes';
+import { REEL_SCOPES, SCOPES, reelKind, captureModeFor } from './reel-scopes';
 import { allIntroFiles, introCandidates } from './anchor-intros';
 import { INTRO_MIN, INTRO_MAX } from './reel-intro';
 
@@ -260,8 +260,9 @@ function checkPartNaming(): void {
 const UNREFERENCED_OK: Record<string, string> = {
   'anchor_intro_powerup.mp4':
     'REJECTED by MKT-17 — never reaches full-frame smoke (5.6-6.5s is smoke inside a phone, bezel still framing it). Awaiting regeneration with the camera pushing fully into the screen.',
-  'public_carrier.mp4': 'MKT-16 public cut — delivered, kind not registered yet (Phase 1 pending).',
-  'public_carrier_pt2.mp4': 'MKT-16 public cut — part 2 of the above.',
+  // MKT-16 (2026-07-30): public_carrier.mp4 + _pt2 left this list — they are
+  // registered under allday_public in carrier-config.ts and are now validated
+  // like every other carrier pair.
   'watermark_source.mp4': 'MKT-14 source, parked with the lane.',
   // MKT-21 — the generated-body class, assessed and REJECTED 2026-07-29. Listed
   // so four warnings read as a decision rather than a backlog, the same way
@@ -864,12 +865,48 @@ function checkScopes(): void {
   }
 }
 
+/**
+ * MKT-16 — a PUBLIC kind may not publish without its stored Q1/Q2 record:
+ * who looked, at what density, and the classes searched (fabricated numerals ·
+ * misspelled brand vocabulary · currency and gain framing · rendered dates ·
+ * reconstructable values). The record is a property of the KIND's capture
+ * pipeline, kept in assets/marketing/_public_gate_records.json and committed
+ * with the change that registers the kind. Missing or hollow → hard FAIL,
+ * because a public reel with no recorded inspection is exactly the
+ * green-check-adjacent-to-the-real-thing failure this lane keeps paying for.
+ * Classes guaranteed by code rather than by looking must SAY so in `basis` —
+ * an inspection record that silently mixes the two overstates what was seen.
+ */
+const GATE_RECORDS_FILE = '_public_gate_records.json';
+function checkPublicGateRecords(): void {
+  const publicKinds = SCOPES.flatMap(scope =>
+    REEL_SCOPES[scope].variants
+      .filter(v => captureModeFor(scope, v) === 'public')
+      .map(v => reelKind(scope, v)),
+  );
+  if (publicKinds.length === 0) return;
+  const p = join(ASSETS, GATE_RECORDS_FILE);
+  let records: Record<string, { who?: string; density?: string; classes?: Record<string, string>; basis?: string }> = {};
+  if (existsSync(p)) {
+    try { records = JSON.parse(readFileSync(p, 'utf8')); } catch { /* handled below as missing */ }
+  }
+  for (const kind of publicKinds) {
+    const r = records[kind];
+    if (!r || !r.who || !r.density || !r.classes || Object.keys(r.classes).length < 5) {
+      add('FAIL', kind, `public kind has no stored Q1/Q2 gate record (${GATE_RECORDS_FILE}) — who looked, at what density, and all five classes searched are required before this kind may publish.`);
+    } else {
+      add('PASS', kind, `Q1/Q2 gate record present (${r.who.slice(0, 60)}${r.who.length > 60 ? '…' : ''}; ${Object.keys(r.classes).length} classes).`);
+    }
+  }
+}
+
 // Intro FIRST — it sets INTRO_ACTIVE, which shifts the carrier VO window.
 INTRO_ACTIVE = checkIntros();
 checkPartNaming();
 checkStrays();
 checkMotions();
 checkScopes();
+checkPublicGateRecords();
 checkStingers();
 checkVerify();
 checkPanels();

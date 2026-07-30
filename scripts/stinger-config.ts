@@ -59,6 +59,11 @@ export const STINGERS: Record<string, StingerVariant> = {
   // framing is barred for the free tier under SOCIAL-13.
   midday_free:  { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', 'MIDDAY · THE BOARD'], enabled: true },
   evening_free: { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', 'EVENING · THE BOARD'], enabled: true },
+  // MKT-16 — the public kind. Shared motion set (a stinger carries no tier
+  // signal). Headline is copy-brief slot 8's delivered value: session words
+  // are BLOCKING on public surfaces, so the scope differentiation lives here
+  // as THE FULL BOARD — the same string as the intro chip, on purpose.
+  allday_public: { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', 'THE FULL BOARD'], enabled: true },
 };
 
 // ── Timing (seconds, within the stinger) ────────────────────────────────────

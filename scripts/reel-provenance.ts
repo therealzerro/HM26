@@ -121,6 +121,40 @@ export function assertBodyDate(file: string, stampISO: string, rerunCmd: string)
   }
 }
 
+/** '1' as recorded in `file`, or null if it carries no PUBLIC_TAG. */
+export function readPublic(file: string): boolean | null {
+  try {
+    const out = execSync(
+      `ffprobe -v error -show_entries format_tags=${PUBLIC_TAG} -of default=nw=1:nk=1 "${file}"`,
+    ).toString().trim();
+    return out === '1' ? true : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * MKT-16 — assert a body IS the public cut before a public kind consumes it.
+ *
+ * There is no lenient direction here at all: this is only ever called for a
+ * kind that requires the public capture, and an absent tag means the file is
+ * NOT one (the renderer has written PUBLIC_TAG on every public body since the
+ * mode existed — there is no untagged-but-public generation to grandfather).
+ * A redacted-but-not-relabelled body posing as public would carry tier-1
+ * vocabulary onto a public feed, which is the failure this lane exists to
+ * prevent. Callers assert redaction separately (the public cut is redact +
+ * relabel; both tags must hold).
+ */
+export function assertBodyPublic(file: string, rerunCmd: string): void {
+  if (readPublic(file) === true) return;
+  console.error(
+    `ABORT: ${file.split('/').pop()} carries no ${PUBLIC_TAG} tag, but this kind requires the PUBLIC\n` +
+    `       (redacted + relabelled) capture. A non-public body here would put tier-1 vocabulary on a\n` +
+    `       public feed. Render the public cut: ${rerunCmd}`,
+  );
+  process.exit(1);
+}
+
 /** '1' | '0' as recorded in `file`, or null if it carries no tag. */
 export function readRedacted(file: string): boolean | null {
   try {

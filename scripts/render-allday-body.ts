@@ -59,11 +59,10 @@ const SPEC = REEL_SCOPES[SCOPE];
 // name on the capture mode, would have written it OVER the full-fidelity body
 // that scope's reels do read. Refuse rather than produce an orphan.
 //
-// The PUBLIC capture is exempt from that gate ON PURPOSE: no public kind is
-// registered yet (MKT-16 is held at its gate), so a public body is currently
-// always an orphan — that is its intended state, a validated capture waiting
-// for the five registration points. It writes a mode-keyed name that collides
-// with nothing.
+// The PUBLIC capture is exempt from that gate ON PURPOSE: it writes a
+// mode-keyed name that collides with nothing, and since MKT-16 registration
+// (2026-07-30) `allday_public` consumes it — the assembler asserts both the
+// REDACT and PUBLIC container tags before stamping it.
 if (REDACT && !RELABEL && !(SPEC.redactedVariants ?? []).length) {
   console.error(
     `ABORT: --redact passed for scope "${SCOPE}", which declares no redacted variants.\n` +

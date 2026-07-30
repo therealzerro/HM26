@@ -76,6 +76,19 @@ export const ENDCARDS: Record<string, EndcardVariant> = {
     out: 'evening_free_endcard.mp4',
     lines: ['HITMASTER ZK6', 'DIGITS COVERED HERE', 'FULL SIX IN PRO · $2.49/MO'],
   },
+
+  // ── MKT-16 — the public kind. FREE-TIER MOTION SET (tierFor ruling in
+  // brand-motion.ts: public kinds are free-tier — a pro motion on a public
+  // close would carry first-access grammar to strangers). Copy is tier-1
+  // discipline, the opposite constraint from the free session cards: NO
+  // pricing (brandLint §6 bars it outside tier 2), no session word, no Pro
+  // language — the close is the community funnel and nothing else. This
+  // endcard must never be reused on a group tier; it undersells them.
+  allday_public: {
+    motion: 'endcard_motion_free.mp4',
+    out: 'allday_public_endcard.mp4',
+    lines: ['HITMASTER ZK6', 'THE FULL BOARD IS FREE', 'JOIN THE COMMUNITY'],
+  },
 };
 
 // ── Brand-fixed layout ──────────────────────────────────────────────────────

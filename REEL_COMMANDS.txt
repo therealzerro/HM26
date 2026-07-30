@@ -10,7 +10,14 @@ before showing the ledger. Details in the sections below.
 
 FREE SESSION REELS LIVE (2026-07-29): reel:midday and reel:evening
 each now build TWO reels — Pro, plus a FREE one cut from a REDACTED
-capture where every digit is masked. Six reels a day, not four.
+capture where every digit is masked.
+
+PUBLIC REEL LIVE (2026-07-30, MKT-16): reel:allday now builds a
+THIRD cut — allday_public, from the --redact --relabel PUBLIC
+capture (digits masked AND tier-1 vocabulary swapped). EIGHT reels
+a day: verify + All-Day ×3 + Midday ×2 + Evening ×2. The public
+cut is the only one the four public platforms may ever receive,
+and reel:check FAILS without its stored Q1/Q2 gate record.
 
 SESSION WAVE LIVE: reel:midday + reel:evening join reel:allday;
 Anchor intro + branded stinger open every drop; verify 14.4s.
@@ -99,17 +106,29 @@ DAILY DRIVERS (the two commands in Step 3, in detail)
 
 npm run reel:allday
 
-    Makes BOTH All-Day reels (Pro + Free) for TODAY: renders the
-    grid + six signal-modal tap-through from the live app,
-    assembles the 33.8s reels (Anchor intro, stinger, body, endcard,
-    VO + hum bed), writes 9:16 + 1:1 cuts + contact sheets to
+    Makes all THREE All-Day reels (Pro + Free + PUBLIC — MKT-16,
+    live 2026-07-30) for TODAY: renders the grid + six signal-modal
+    tap-through from the live app TWICE — once full-fidelity
+    (shared by Pro and Free) and once with --redact --relabel for
+    the PUBLIC cut (digits masked as placeholder+bolt, tier-1
+    vocabulary swapped, session labels and state codes gone, every
+    string audited by the real lint engine at capture) — assembles
+    the ~34s reels (Anchor intro, stinger, body, endcard, VO + hum
+    bed), writes 9:16 + 1:1 cuts + contact sheets to
     assets/marketing/allday_reels/, then AUTO-UPLOADS the finals
     to the app — they appear in Admin → Reels within seconds,
     with fresh daily captions (real numbers in the Pro caption
-    only). Every cut carries the SLATE STAMP: a burned-in chip
+    only; the public caption is a tier-1 template, no numbers, no
+    date). Every cut carries the SLATE STAMP: a burned-in chip
     ("TODAY'S DATA DROP / MON · JUL 27 · ALL-DAY") generated
     automatically from the slate date — never edit it by hand,
     it always matches the data on screen.
+
+    The PUBLIC reel defaults to the Cross-Post target in Admin →
+    Reels (Two-Question NO/NO ack required) and is the only cut
+    the four public platforms (YouTube / TikTok / Reddit / X) may
+    ever receive. reel:check FAILS if the kind's stored Q1/Q2
+    gate record (_public_gate_records.json) is missing.
 
 
 npm run reel:verify

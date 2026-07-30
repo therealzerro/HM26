@@ -21,7 +21,8 @@
 export type ReelKind =
   | 'allday_pro' | 'allday_free' | 'verify'
   | 'midday_pro' | 'evening_pro'
-  | 'midday_free' | 'evening_free';
+  | 'midday_free' | 'evening_free'
+  | 'allday_public';
 
 /**
  * WHICH ROOM EACH KIND'S STORED CAPTION WAS WRITTEN FOR — MKT-24.
@@ -38,7 +39,7 @@ export type ReelKind =
  * call site resolves the audience from the LOADED draft rather than from the
  * kind alone.
  */
-export const REEL_KIND_AUDIENCE: Record<ReelKind, 'free' | 'pro'> = {
+export const REEL_KIND_AUDIENCE: Record<ReelKind, 'free' | 'pro' | 'public'> = {
   allday_pro: 'pro',
   allday_free: 'free',
   verify: 'free',
@@ -46,4 +47,9 @@ export const REEL_KIND_AUDIENCE: Record<ReelKind, 'free' | 'pro'> = {
   evening_pro: 'pro',
   midday_free: 'free',
   evening_free: 'free',
+  // MKT-16: written for tier 1 — strict-lint copy, funnel-to-Free only. Not
+  // 'free': the free-group audience means "written for a room that opted in";
+  // this caption was written for strangers, and the tier-4 gate must refuse it
+  // for its own reason (a join-the-free-community CTA undersells paying members).
+  allday_public: 'public',
 };

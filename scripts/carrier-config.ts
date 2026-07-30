@@ -80,10 +80,11 @@ export interface CarrierSpec {
  * would imply first-access positioning the Free All-Day drop is not allowed to
  * carry (SOCIAL-13 depth rule).
  *
- * PUBLIC KINDS ARE DELIBERATELY ABSENT. `public_carrier.mp4` + `_pt2` are on
- * disk but MKT-16 is held at its gate, and registering them here would quietly
- * advance that lane — it would also silence the UNREFERENCED_OK entries that
- * currently explain, in the preflight output, why those two files sit unread.
+ * MKT-16 (2026-07-30): `allday_public` is REGISTERED — the hold cleared when
+ * the validated public body existed to verify against (--redact --relabel,
+ * MKT-30). midday_public / evening_public remain absent: no session carriers
+ * exist, and three daily public reels is the cadence risk already ruled
+ * against. Their UNREFERENCED_OK days are over for the two registered files.
  */
 export const CARRIERS: Record<string, CarrierSpec> = {
   allday_pro: {
@@ -130,6 +131,16 @@ export const CARRIERS: Record<string, CarrierSpec> = {
   evening_free: {
     set: [{ file: 'evening_free_carrier.mp4', label: 'incumbent' }],
     rest: ['evening_free_carrier_pt2.mp4'],
+  },
+  // MKT-16 — the public All-Day pair. Measured before registration (MKT-23
+  // item 4 table): part 1 10.005s (the MKT-20 invariant holds), joined
+  // 20.360s, margin +0.331s — identical to allday_free's, which is the
+  // tier-rotation invariant confirming itself. Tier-neutral VO by design:
+  // a public feed gets neither first-access framing nor the free-room gap
+  // pitch, so neither sibling's pair could be reused here.
+  allday_public: {
+    set: [{ file: 'public_carrier.mp4', label: 'incumbent' }],
+    rest: ['public_carrier_pt2.mp4'],
   },
   // MKT-27: no longer single-part. Part 1 (10.005s) covers the board, the
   // summary band and the first holds; `_pt2` (5.67s) is an EVERGREEN sign-off

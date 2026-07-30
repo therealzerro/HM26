@@ -576,8 +576,13 @@ function checkVerify(): void {
     // The SHORT sign-off slot: optional by design, so absence is a WARN with
     // its reason, never a FAIL — the lane it upgrades already ships without it.
     for (const f of CARRIERS.verify.restShort ?? []) {
-      const e = exists(f);
-      if (!e) { add('WARN', f, 'declared but not delivered (budget-gated) — 0-straight days close in ~5.7s of silence until it lands'); continue; }
+      // NOT exists(): that helper FAILs on absence, and the short slot is
+      // optional by design — absence is a WARN with its budget-gated reason.
+      if (!existsSync(join(ASSETS, f))) {
+        add('WARN', f, 'declared but not delivered (budget-gated) — 0-straight days close in ~5.7s of silence until it lands');
+        continue;
+      }
+      const e = join(ASSETS, f);
       const ss = streams(e);
       if (!ss.hasAudio) add('FAIL', f, 'no audio stream — the short sign-off IS audio');
       else if (ss.aDur > 5.0) add('FAIL', f, `audio ${ss.aDur.toFixed(2)}s — the short slot exists to fit windows the 16.02s full join cannot; trim to speech (~3.0s), master kept, same convention as verif_carrier_pt2`);

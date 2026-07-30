@@ -604,8 +604,8 @@ function checkVerify(): void {
       continue;
     }
     const s = streams(e);
-    if (!Number.isFinite(s.vDur) || s.vDur < 2.5) add('FAIL', c.name, `video ${s.vDur?.toFixed(1)}s < 2.5s tail window`);
-    else add('PASS', c.name, `video ${s.vDur.toFixed(1)}s (last 2.5s + tail frame used; audio not used)`);
+    if (!Number.isFinite(s.vDur) || s.vDur < 6.5) add('FAIL', c.name, `video ${s.vDur?.toFixed(1)}s < 6.5s outro window (MKT-31 addendum)`);
+    else add('PASS', c.name, `video ${s.vDur.toFixed(1)}s (first 6.5s used as the outro + tail frame for the legacy open; audio not used)`);
     if (s.h < 1920) add('WARN', c.name, `${s.w}x${s.h} — will be upscaled to 1080x1920`);
   }
   const pick = cands.find(c => existsSync(join(ASSETS, c.name)));

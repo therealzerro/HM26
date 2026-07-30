@@ -5,7 +5,14 @@
 //              (Chosen over the endcard's first 1.2s, which is smoke only —
 //              the bolt hasn't formed yet; a formation cut joined poorly.)
 //   [1.2-7.5s] ui_verify_YYYYMMDD.mp4 (6.3s, from render-verification-reel).
-//   [7.5-10s]  final 2.5s of verif_endcard.mp4 (static lockup), hard cut.
+//   [then]     the endcard's FIRST 6.5s as a true outro (MKT-31 addendum) —
+//              formation fills the frame, text fades in 4.5-5.2s, settled
+//              hold to the cut. The old window was the LAST 2.5s: a hard cut
+//              to the settled composition, whose bolt ends ~y756 while the
+//              text band starts 1150 — ~500px of static dead frame on every
+//              proven motion, which is why the close read as stranded. The
+//              endcard's audio stays unused (verify's ruling: carrier, then
+//              silence); the settled tail frame still serves the legacy open.
 //   Audio:     verif_carrier.mp4 track across the full 10.0s, -14 LUFS,
 //              10ms de-click edge fades — no other sound.
 //
@@ -70,6 +77,10 @@ const stampPng = join(REELS, `_stamp_${stamp}.png`);
 sh(`npx tsx scripts/render-reel-stamp.ts verify ${stamp} - "${stampPng}"`);
 
 const uiDur = +parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${ui}"`).toString()).toFixed(2);
+// MKT-31 addendum: the outro takes the endcard's FIRST 6.5s (All-Day's proven
+// window) instead of its last 2.5s. 6.5 covers formation + text fade (4.5-5.2)
+// + a settled hold, and matches assemble-allday-reels' CARD.
+const CARD = 6.5;
 // ⚠ THE INTRO IS DELIBERATELY DATE-LESS AND THE STINGER IS NOT. Verify draws a
 // FIXED intro by MKT-17 ruling (its own anchor_intro_verify.mp4, never a
 // rotation member), so passing a date here would be wrong. The stinger has no
@@ -87,9 +98,13 @@ const sting = probeStinger(ASSETS, 'verify', `${stamp.slice(0,4)}-${stamp.slice(
 const openBase = intro ? intro.dur : 1.2;
 const openDur = +(openBase + stingerAdds(sting)).toFixed(2);
 const dissolve = intro ? INTRO_DISSOLVE : 1.2;
-const total = +(openDur + uiDur + 2.5).toFixed(2);   // legacy 10.0
+const total = +(openDur + uiDur + CARD).toFixed(2);
 const voiceStart = intro ? +(openDur - INTRO_VO_LEAD).toFixed(2) : 0;
-const carrierNeed = +(total - voiceStart).toFixed(2); // uiDur + 2.5 + INTRO_VO_LEAD
+// uiDur + CARD + INTRO_VO_LEAD. ⚠ The wider window changes pt2 eligibility:
+// days whose join was dropped against the old uiDur+2.5 window can now take it
+// whole, so the sign-off plays out over the endcard formation — ending before
+// the lockup settles (text opaque at openDur+uiDur+5.2).
+const carrierNeed = +(total - voiceStart).toFixed(2);
 // MKT-27: THE CARRIER NO LONGER COVERS THE WHOLE REEL, AND THAT IS A RULING, NOT
 // A BUG. The readable-holds rewrite put the body at 8.6-14.0s, so `carrierNeed`
 // (11.5-16.9s) now exceeds the 10.005s verif_carrier on every day. The atrim
@@ -145,7 +160,7 @@ sh(
     ? `-i "${intro.path}" `                                  // [0] anchor intro
     : `-loop 1 -framerate 60 -t 1.2 -i "${bolt}" `) +        // [0] bolt still
   `-i "${ui}" ` +                                           // [1] ui segment 6.3s
-  `-sseof -2.5 -i "${vEndcard.path}" ` + // [2] endcard tail
+  `-i "${vEndcard.path}" ` + // [2] endcard — first CARD seconds (MKT-31 addendum)
   `-i "${verifCarrier.path}" ` +                            // [3] carrier (audio, MKT-09 parts-aware)
   `-loop 1 -framerate 60 -t ${total} -i "${stampPng}" ` +    // [4] slate stamp
   (sting ? `-i "${sting.path}" ` : ``) +                     // [5] stinger (MKT-12)
@@ -163,7 +178,7 @@ sh(
   // Pad = dissolve only (see assemble-allday-reels.ts); legacy is unchanged.
   `[1:v]tpad=start_duration=${dissolve}:start_mode=clone,format=yuv420p,setsar=1,fps=60,settb=AVTB[uix];` +
   `[bolt][uix]xfade=transition=custom:expr=${EASED}:duration=${dissolve}:offset=${+(openDur - dissolve).toFixed(2)}[openbody];` +
-  `[2:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=2.5,setpts=PTS-STARTPTS[card];` +
+  `[2:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=${CARD},setpts=PTS-STARTPTS[card];` +
   `[openbody][card]concat=n=2:v=1:a=0[vraw];` +
   // MKT-31 item 2: the ribbon rides EVERY body frame a viewer could land on —
   // fade-out now begins AT the endcard cut (was 0.5s before it), so the claim
@@ -207,7 +222,9 @@ sh(`ffmpeg -y -loglevel error -i "${out}" -vf "crop=1080:1080:0:420" -c:v libx26
 // making the storyboard show motion blur where the evidence should be. Taken as
 // a FRACTION of the body instead: 0.62 sits inside the second hold across the
 // whole range, which is the frame most worth reviewing.
-const STAMPS = [0, openDur + 0.3, openDur + uiDur * 0.62, openDur + uiDur + 0.5].map(t => +t.toFixed(1));
+// Fourth stamp: the settled close (text opaque from +5.2s of the outro), not
+// the formation smoke the old tail-window stamp landed on.
+const STAMPS = [0, openDur + 0.3, openDur + uiDur * 0.62, total - 0.7].map(t => +t.toFixed(1));
 STAMPS.forEach((t, i) => sh(`ffmpeg -y -loglevel error -ss ${t} -i "${out}" -frames:v 1 -vf "scale=270:480" "${join(REELS, `_cs${i}.png`)}"`));
 sh(`ffmpeg -y -loglevel error ${STAMPS.map((_, i) => `-i "${join(REELS, `_cs${i}.png`)}"`).join(' ')} -filter_complex "[0][1][2][3]hstack=4" "${sheet}"`);
 

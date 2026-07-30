@@ -21,7 +21,9 @@ and reel:check FAILS without its stored Q1/Q2 gate record.
 
 SESSION WAVE LIVE: reel:midday + reel:evening join reel:allday;
 Anchor intro + branded stinger open every drop; verify is
-data-adaptive (~19-25s: body 8.6-14.0s from the row selection).
+data-adaptive (~23-29s: body 8.6-14.0s from the row selection,
+plus the 6.5s endcard outro — MKT-31 addendum moved verify off
+the old static 2.5s tail window onto All-Day's formation window).
 MKT-31: verify has its own identity — seal stinger (FIXED, no
 rotation), receipts-dominant lockup, persistent gold date ribbon
 on the body, gold endcard CTA (tagged verif_endcard_<tag> builds).

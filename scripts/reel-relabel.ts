@@ -21,9 +21,9 @@
 //
 // ⚠ EVERY REPLACEMENT STRING BELOW IS CONFIG, not code. The eight-slot set is
 // the DELIVERED public copy (docs/mkt15_phase2_copy_brief.md, approved
-// 2026-07-28). The heat vocabulary is PROVISIONAL — the content agent owes one
-// reconciled neutral set covering all ladders (MKT-28); when it lands, editing
-// HEAT_RELABEL is the entire change.
+// 2026-07-28). The heat vocabulary is the DELIVERED MKT-28 neutral set
+// (2026-07-30) — canonical band scale over the reconciled ladders; see the
+// note on HEAT_RELABEL below for the mapping and its one matcher constraint.
 import type { Page } from 'playwright';
 import { lintCaption } from '../lib/social/brandLint';
 
@@ -46,19 +46,40 @@ export const RELABEL_SLOTS = {
 } as const;
 
 /**
- * PROVISIONAL neutral heat vocabulary — placeholder values so the capture mode
- * validates end to end. ⚠ NOT the content agent's reconciled set; theirs
- * replaces these verbatim when it lands (they have the five-ladder table).
- * Keys are matched as whole phrases, longest first.
+ * MKT-28 — the DELIVERED neutral vocabulary (content agent, 2026-07-30),
+ * replacing the provisional set outright. Canonical band scale, mapped by RANK
+ * against the post-reconciliation ladders (three remain: the canonical
+ * temperature ladder on grid meter / modal banner / poster card, the Heat
+ * Check verdicts, and the streak banner):
+ *
+ *   temperature: ON FIRE→PEAK BAND · BLAZING→HIGH BAND · HOT→MID BAND ·
+ *                WARM→LOW BAND · COOL→BASE BAND
+ *   verdicts:    BLAZING SIGNAL→PEAK SIGNAL; STRONG SIGNAL / MODERATE /
+ *                OVERDUE / LOW are already neutral and KEEP their strings —
+ *                no entry needed, and none may be added for LOW (WARM maps to
+ *                'LOW BAND', so a LOW entry would re-match inside it).
+ *   banner:      🔥 STRONG SIGNAL — … keeps STRONG SIGNAL; the flame drops.
+ *
+ * Numeric values SURVIVE, symbols do not ('ON FIRE 99°' → 'PEAK BAND 99');
+ * the flame and ice glyphs carry the temperature register and are DROPPED,
+ * not swapped. The whole temperature register (fire/flame/hot/heat/cold/ice…)
+ * is banned in any public-slot string — target register is a market-data
+ * terminal: bands, levels, readings.
+ *
+ * Keys are matched as whole phrases, longest first (BLAZING SIGNAL must win
+ * over BLAZING). Heat Check never enters the current capture (the renderer
+ * opens the six pick modals only); its verdict entries are defense-in-depth
+ * for the day it does.
  */
 export const HEAT_RELABEL: Record<string, string> = {
   'BLAZING SIGNAL': 'PEAK SIGNAL',
-  'ON FIRE': 'PEAK',
-  'BLAZING': 'ELEVATED',
-  'HOT': 'ACTIVE',
-  'WARM': 'MODERATE',
-  'COOL': 'LOW',
-  '🔥': '⚡',
+  'ON FIRE': 'PEAK BAND',
+  'BLAZING': 'HIGH BAND',
+  'HOT': 'MID BAND',
+  'WARM': 'LOW BAND',
+  'COOL': 'BASE BAND',
+  '🔥': '',
+  '❄': '',
 };
 
 /** Bolt overlay — gold gradient per palette §7, the ruled decisions:

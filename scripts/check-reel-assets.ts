@@ -573,6 +573,16 @@ function checkVerify(): void {
         ` — fully covers a body up to ${bodyCovered.toFixed(1)}s; longer bodies play the remainder in silence, ` +
         `and on days the window cannot take the join whole the continuation is dropped (MKT-27)`);
     }
+    // The SHORT sign-off slot: optional by design, so absence is a WARN with
+    // its reason, never a FAIL — the lane it upgrades already ships without it.
+    for (const f of CARRIERS.verify.restShort ?? []) {
+      const e = exists(f);
+      if (!e) { add('WARN', f, 'declared but not delivered (budget-gated) — 0-straight days close in ~5.7s of silence until it lands'); continue; }
+      const ss = streams(e);
+      if (!ss.hasAudio) add('FAIL', f, 'no audio stream — the short sign-off IS audio');
+      else if (ss.aDur > 5.0) add('FAIL', f, `audio ${ss.aDur.toFixed(2)}s — the short slot exists to fit windows the 16.02s full join cannot; trim to speech (~3.0s), master kept, same convention as verif_carrier_pt2`);
+      else add('PASS', f, `audio ${ss.aDur.toFixed(2)}s — short sign-off; used when the full join cannot fit the day's window`);
+    }
   }
   // MKT-19 — verify's endcard rotates too, and this was the eighth reader: a
   // hardcoded `verif_endcard.mp4`, the same literal the verify assembler used

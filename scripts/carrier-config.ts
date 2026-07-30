@@ -52,6 +52,18 @@ export interface CarrierSpec {
    * preflight FAIL, never a silently shorter carrier — see the trace above.
    */
   rest: string[];
+  /**
+   * OPTIONAL shorter continuation, tried when `rest` does not fit the usable
+   * window (kinds that pass `needSec` — today only verify, whose body is
+   * data-adaptive). Resolution walks full → short → part 1 alone; each step
+   * plays WHOLE or not at all, never cut mid-word.
+   *
+   * Unlike `rest`, an absent restShort file is NOT an abort: it is an optional
+   * upgrade over silence, and the lane it upgrades already ships without it.
+   * ⚠ Name must NOT contain `_pt` (the joiner/orphan-scan namespace) — this is
+   * a sibling SLOT, not a numbered part.
+   */
+  restShort?: string[];
 }
 
 /**
@@ -128,13 +140,22 @@ export const CARRIERS: Record<string, CarrierSpec> = {
   // the usable VO window is 11.5-16.9s depending on how many rows were matched
   // and how many were straights. The join is 16.02s, which fits on any day with
   // at least one STRAIGHT among the featured rows and not on a 0-straight day —
-  // where the assembler drops part 2 whole rather than cutting the sign-off
-  // mid-word (`resolveCarrier(..., needSec)`). That boundary is a happy accident
-  // worth keeping: part 2's middle line lands on a held STRAIGHT row, so the
-  // days it is dropped are exactly the days its copy fits worst.
+  // where the resolver walks full → short → part 1 alone, each step playing
+  // WHOLE or not at all (`resolveCarrier(..., needSec)`).
+  //
+  // ⚠ CORRECTED 2026-07-30 (content agent): the drop is a pure DURATION
+  // consequence, NOT a content mismatch. pt2's copy was written badge-agnostic
+  // on purpose — "that one's on the record" works over a box MATCH exactly as
+  // well as a straight — precisely because this VO plays unchanged daily. An
+  // earlier note here claimed the dropped days were the days it fit worst;
+  // that rationale was wrong, which is why a ~3.0s short sign-off cleanly
+  // closes the 0-straight gap. The short slot is declared below and is
+  // budget-gated: sign-off only, "Signals first. Receipts after.", trimmed to
+  // speech from its 10.005s master like verif_carrier_pt2 was.
   verify: {
     set: [{ file: 'verif_carrier.mp4', label: 'incumbent' }],
     rest: ['verif_carrier_pt2.mp4'],
+    restShort: ['verif_carrier_signoff_short.mp4'],
   },
 };
 
@@ -156,6 +177,6 @@ export const PART1_DUR_TOLERANCE = 0.05;
 /** Every carrier file any kind can reference — what reel:check enumerates. */
 export function allCarrierFiles(): string[] {
   return [...new Set(
-    Object.values(CARRIERS).flatMap(c => [...c.set.map(v => v.file), ...c.rest]),
+    Object.values(CARRIERS).flatMap(c => [...c.set.map(v => v.file), ...c.rest, ...(c.restShort ?? [])]),
   )];
 }

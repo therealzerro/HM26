@@ -211,27 +211,54 @@ export function resolveCarrier(
     process.exit(1);
   }
 
-  const parts = [join(assetsDir, variant.file), ...spec.rest.map(f => join(assetsDir, f))];
-  if (parts.length <= 1) return { path: parts[0], parts, joined: false, variant };
-
   // MKT-27 fits-whole gate (opt-in via needSec — see the parameter's note).
-  if (needSec != null) {
-    const joinDur = parts.reduce((s, p) => s + audioDur(p), 0) + SEAM_GAP * (parts.length - 1);
-    if (joinDur > needSec + BOUNDARY_WARN_AT) {
-      console.log(
-        `NOTE(${kind}): continuation DROPPED for this run — the join is ${joinDur.toFixed(2)}s ` +
-        `against a ${needSec.toFixed(2)}s window, so it would be cut ${(joinDur - needSec).toFixed(2)}s ` +
-        `short of the end. Part 1 alone; the tail plays in silence rather than mid-word.`,
-      );
-      return { path: parts[0], parts: [parts[0]], joined: false, variant };
+  // Walk: full continuation → short continuation → part 1 alone. Each step
+  // plays WHOLE or not at all; the short slot (restShort, optional and never
+  // required on disk) exists to close the ~5.7s silent tail the full sign-off
+  // leaves behind on the days it cannot fit.
+  let rest = spec.rest;
+  let shortUsed = false;
+  if (needSec != null && rest.length) {
+    const joinDurOf = (files: string[]) => {
+      const ps = [join(assetsDir, variant.file), ...files.map(f => join(assetsDir, f))];
+      return ps.reduce((s, p) => s + audioDur(p), 0) + SEAM_GAP * (ps.length - 1);
+    };
+    const fullDur = joinDurOf(rest);
+    if (fullDur > needSec + BOUNDARY_WARN_AT) {
+      const short = (spec.restShort ?? []).length &&
+        (spec.restShort ?? []).every(f => existsSync(join(assetsDir, f)))
+        ? spec.restShort! : null;
+      const shortDur = short ? joinDurOf(short) : null;
+      if (short && shortDur != null && shortDur <= needSec + BOUNDARY_WARN_AT) {
+        console.log(
+          `NOTE(${kind}): full continuation does not fit (${fullDur.toFixed(2)}s vs ` +
+          `${needSec.toFixed(2)}s window) — using SHORT sign-off ${short.join(', ')} ` +
+          `(join ${shortDur.toFixed(2)}s).`,
+        );
+        rest = short;
+        shortUsed = true;
+      } else {
+        console.log(
+          `NOTE(${kind}): continuation DROPPED for this run — the join is ${fullDur.toFixed(2)}s ` +
+          `against a ${needSec.toFixed(2)}s window, so it would be cut ${(fullDur - needSec).toFixed(2)}s ` +
+          `short of the end.${short ? '' : spec.restShort?.length ? ' (Short sign-off declared but not delivered.)' : ''} ` +
+          `Part 1 alone; the tail plays in silence rather than mid-word.`,
+        );
+        const p1 = join(assetsDir, variant.file);
+        return { path: p1, parts: [p1], joined: false, variant };
+      }
     }
   }
+
+  const parts = [join(assetsDir, variant.file), ...rest.map(f => join(assetsDir, f))];
+  if (parts.length <= 1) return { path: parts[0], parts, joined: false, variant };
 
   const cacheDir = join(assetsDir, CARRIER_CACHE);
   mkdirSync(cacheDir, { recursive: true });
   // Keyed on the PART-1 variant, so the four All-Day pro joins coexist instead
-  // of overwriting each other under a shared kind-level name.
-  const out = join(cacheDir, `${basename(variant.file, '.mp4')}_joined.m4a`);
+  // of overwriting each other under a shared kind-level name. The short join
+  // gets its own suffix — full and short must never share a cache entry.
+  const out = join(cacheDir, `${basename(variant.file, '.mp4')}_joined${shortUsed ? '_short' : ''}.m4a`);
 
   const stale =
     !existsSync(out) ||

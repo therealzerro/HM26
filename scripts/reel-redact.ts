@@ -87,6 +87,24 @@ export async function installRedaction(page: Page): Promise<void> {
       // did not. Safe to raise: this only ever runs on LEAVES.
       if (!t || t.length > 200) return;
       // 1. bare three digits, and 2. separated digit runs (4 - 7 - 1, 1·4·7)
+      //
+      // ⚠ THE BARE BRANCH SKIPS SIGNAL VALUES — MKT-28c. It used to eat a grid
+      // signal value of exactly 100, rendering it as the mask. That is the one
+      // value in 0-100 that is three digits, and the gate record lists all four
+      // signal percentages among the things the free cut DELIBERATELY KEEPS, so
+      // masking it removed methodology the operator signed off on showing.
+      //
+      // Discriminated STRUCTURALLY, not by value: a signal value's parent holds
+      // exactly its one-letter key and the number ("B"/"71"), which is a shape a
+      // combination never has. Verified against the live DOM 2026-07-30 — all 24
+      // digit leaves on the grid are signal values with a B/P/C/D sibling, and
+      // the combination is NOT among them: the grid hero row is a single leaf
+      // reading "0 4 9", caught by the SEPARATED pattern above, and the box set
+      // is brace notation caught by rule 3. So on the grid the bare branch has
+      // no legitimate target at all; its real targets are the modal's bare leaves.
+      // This cannot unmask a combination unless the UI starts labelling one with
+      // a single signal key, which would be a different bug entirely.
+      if (/^\\d{1,3}$/.test(t) && isSignalValue(el)) return;
       if (/^\\d(\\s*[-·.\\s]\\s*\\d){2}$/.test(t) || /^\\d{3}$/.test(t)) { el.textContent = MASK; return; }
       // 3. brace-set notation, label preserved so the row still reads
       if (/\\{\\s*\\d\\s*,\\s*\\d\\s*,\\s*\\d\\s*\\}/.test(t)) {
@@ -107,6 +125,24 @@ export async function installRedaction(page: Page): Promise<void> {
         el.textContent = t.replace(/(\\b(?:front|back|split)\\s+pair\\s*)\\d{2}/i, '$1••'); return;
       }
     };
+    // MKT-28c — is this leaf one of the four SIGNAL VALUES (BOX / PBURST / CO /
+    // DGC) rather than part of a combination?
+    //
+    // Shared by the mask and the assert on purpose. The assert is the reason it
+    // has to be shared: once the mask stops eating a value of 100, that bare
+    // three-digit run stays on screen, and the assert's pass 1 flags any run of
+    // exactly three — so the SAME predicate has to excuse it there or the render
+    // aborts before frame 0. Two copies of this test would drift and the drift
+    // would present as an intermittent abort on the one day a signal hits 100.
+    window.__hmSignalValue = el => {
+      const p = el.parentElement;
+      if (!p) return false;
+      const kids = Array.from(p.children).filter(c => !c.children.length);
+      if (kids.length !== 2) return false;
+      const label = (kids[0].textContent || '').trim();
+      return kids[1] === el && /^[BPCD]$/.test(label);
+    };
+    const isSignalValue = el => window.__hmSignalValue(el);
     // A position row is 3+ single-digit leaves under one parent. Structural, so
     // it needs no card marker and behaves the same on grid and modal.
     window.__hmDigitGroup = el => {
@@ -209,6 +245,17 @@ export async function assertNoDigits(page: Page, where: string): Promise<void> {
       // If it ever aborts a render, that is the guard working — it fires before
       // frame 0, so it costs nothing but a re-run to come back and widen this
       // with evidence.
+      //
+      // ⚠ THE THIRD CARVE-OUT IS STRUCTURAL, NOT LEXICAL — MKT-28c. A grid
+      // signal value of exactly 100 is now left UNMASKED on purpose (it is
+      // methodology the free cut keeps), so it reaches this scan as a genuine
+      // three-digit run. It is excused by the same __hmSignalValue predicate the
+      // mask uses — the label-sibling shape — rather than by allow-listing the
+      // string "100", which would also excuse a combination that happened to be
+      // 100. This is the one place the assert is permitted to know about the
+      // mask, and it is permitted because a divergence here presents as an
+      // intermittent abort on the one day a signal tops out.
+      if (/^\\d{1,3}$/.test(t) && window.__hmSignalValue && window.__hmSignalValue(el)) continue;
       const flat = t
         .replace(/\\d{1,3}\\s*%/g, '')
         .replace(/(^|\\s)\\d{1,3}\\s*\\u00d7/g, '$1')

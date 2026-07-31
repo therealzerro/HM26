@@ -14,8 +14,9 @@
 set -u
 
 ORDER=(verify allday midday evening)
-FROM="${1#--from=}"
-[ "$FROM" = "${1:-}" ] && FROM=""   # no --from given
+ARG="${1:-}"                 # set -u: a bare $1 aborts the documented no-arg form
+FROM="${ARG#--from=}"
+[ "$FROM" = "$ARG" ] && FROM=""   # no --from given
 
 LOGDIR="$HOME/.hm26_reel_runs"
 mkdir -p "$LOGDIR"

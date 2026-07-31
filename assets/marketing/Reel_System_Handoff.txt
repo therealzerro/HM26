@@ -361,10 +361,15 @@ on the 6.33s members) and the reel runs up to 34.53s.
                                 completed the six the same day; powerup and
                                 deadpan REGENERATED and revalidated
                                 2026-07-30.)
-                                Both pro and free draw the SAME intro on a
-                                given day (different rooms, so no spacing is
-                                needed). Re-running a past date reproduces
-                                that date's intro exactly.
+                                ⚠ CORRECTED IN v2.1 (observed 7/31, confirmed
+                                against laneRotate's contract): pro and free
+                                draw DIFFERENT members on the same day — the
+                                rotation is lane-spread per kind so every reel
+                                gets a DISTINCT intro where the pool allows.
+                                An earlier "both draw the SAME intro" line
+                                described the pre-lane behaviour and is
+                                retired. Re-running a past date still
+                                reproduces that date's intros exactly.
                  verify       — always standard. A deadpan gag ahead of
                                 yesterday's receipts is a tonal mismatch.
                  public kinds — always anchor_intro_public.mp4, and they

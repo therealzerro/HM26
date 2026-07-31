@@ -145,8 +145,12 @@ if (verifCarrier.joined) {
 }
 // MKT-22: intro identity chip — "YESTERDAY'S RESULTS", green accent to match
 // the verify stamp. Only with an intro active; the legacy open is a bolt still.
-const chipPng = intro && CHIP_LABELS.verify ? join(REELS, `_chip_verify.png`) : null;
-if (chipPng) sh(`npx tsx scripts/render-intro-chip.ts verify "${chipPng}"`);
+// MKT-35: dated from `stamp` — which for verify IS yesterday (the receipts'
+// content date, provenance-asserted above), so the chip's date line agrees
+// with its own YESTERDAY'S RESULTS heading and distinguishes the save from
+// the same morning's All-Day drop in a camera roll.
+const chipPng = intro && CHIP_LABELS.verify ? join(REELS, `_chip_verify_${stamp}.png`) : null;
+if (chipPng) sh(`npx tsx scripts/render-intro-chip.ts verify "${chipPng}" ${stamp}`);
 
 const msVoice = Math.round(voiceStart * 1000);
 
@@ -185,10 +189,12 @@ sh(
   // holds through the last hold and dissolves into the close.
   `[4:v]format=rgba,fade=t=in:st=${+(openDur - 0.3).toFixed(2)}:d=0.4:alpha=1,fade=t=out:st=${+(openDur + uiDur).toFixed(2)}:d=0.45:alpha=1[stmp];` +
   `[vraw][stmp]overlay=0:0,format=yuv420p[vst];` +
-  // MKT-22: chip rides the intro only, out well before the crossfade.
+  // MKT-22/MKT-35: chip rides the intro only — FULL OPACITY FROM FRAME ONE
+  // (frame one is the camera-roll thumbnail; no fade-in by ruling), hold to
+  // 2.65s, then the existing fade, out well before the crossfade.
   (chipPng
-    ? `[${sting ? 6 : 5}:v]format=rgba,fade=t=in:st=0.40:d=0.25:alpha=1,` +
-      `fade=t=out:st=2.40:d=0.25:alpha=1[chip];[vst][chip]overlay=0:0,format=yuv420p[v];`
+    ? `[${sting ? 6 : 5}:v]format=rgba,` +
+      `fade=t=out:st=2.65:d=0.25:alpha=1[chip];[vst][chip]overlay=0:0,format=yuv420p[v];`
     : `[vst]null[v];`) +
   (intro
     // Intro audio 0→openDur, carrier enters 0.4s before the dissolve completes.

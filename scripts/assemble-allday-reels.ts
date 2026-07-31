@@ -44,9 +44,12 @@ import { resolveEndcard } from './reel-endcard';
 import { CHIP_LABELS } from './intro-chip-config';
 
 const ASSETS = resolve('assets/marketing');
-/** MKT-22 intro chip window. Fully clear of the intro→stinger crossfade, which
- *  begins at openBase−0.3 (5.3s on the 5.6s intro, 5.7s on a 6.0s one). */
-const CHIP_IN = 0.40, CHIP_OUT = 2.40;
+/** MKT-22 intro chip window, revised by MKT-35: FULL OPACITY FROM FRAME ONE —
+ *  frame one is the camera-roll thumbnail, and a chip that fades in at 0.40s
+ *  is invisible exactly where the operator picks a save. No fade-in; hold to
+ *  2.65s, then the existing 0.25s fade. Still fully clear of the
+ *  intro→stinger crossfade at openBase−0.3 (5.3s on the 5.6s intro). */
+const CHIP_OUT = 2.65;
 const SCOPE = parseScopeFlag(process.argv);
 const SPEC = REEL_SCOPES[SCOPE];
 const REELS = join(ASSETS, SPEC.dir);
@@ -320,8 +323,11 @@ for (const v of VARIANTS) {
   // MKT-22: the intro identity chip. Rendered per kind, and ONLY when an intro
   // is active — the legacy 1.2s open is a bolt still with no anchor and nothing
   // to sit a shoulder chip on.
-  const chipPng = intro && CHIP_LABELS[kind] ? join(REELS, `_chip_${kind}.png`) : null;
-  if (chipPng) sh(`npx tsx scripts/render-intro-chip.ts ${kind} "${chipPng}"`);
+  // MKT-35: the chip is DATED from the same provenance-asserted `stamp` as the
+  // body — never the render clock. Per-day PNG name so a stale same-kind chip
+  // from a prior day can never be picked up by -y overwrite races.
+  const chipPng = intro && CHIP_LABELS[kind] ? join(REELS, `_chip_${kind}_${stamp}.png`) : null;
+  if (chipPng) sh(`npx tsx scripts/render-intro-chip.ts ${kind} "${chipPng}" ${stamp}`);
 
   const msVoice = Math.round(voiceStart * 1000);
   const msBed = Math.round((voiceStart + voiceSpan) * 1000);
@@ -362,11 +368,12 @@ for (const v of VARIANTS) {
     // the endcard cut so the lockup stays clean.
     `[5:v]format=rgba,fade=t=in:st=${+(openDur - 0.1).toFixed(2)}:d=0.45:alpha=1,fade=t=out:st=${(openDur + bodyDur - 0.55).toFixed(2)}:d=0.5:alpha=1[stmp];` +
     `[vraw][stmp]overlay=0:0,format=yuv420p[vidst];` +
-    // MKT-22: chip rides the INTRO only — in once the opening beat has landed,
-    // fully out well before the intro→stinger crossfade at openBase−0.3 so it
-    // can never ghost through the dissolve.
+    // MKT-22/MKT-35: chip rides the INTRO only — FULL OPACITY FROM FRAME ONE
+    // (frame one is the thumbnail; no fade-in by ruling), out well before the
+    // intro→stinger crossfade at openBase−0.3 so it can never ghost through
+    // the dissolve.
     (chipPng
-      ? `[${sting ? 7 : 6}:v]format=rgba,fade=t=in:st=${CHIP_IN}:d=0.25:alpha=1,` +
+      ? `[${sting ? 7 : 6}:v]format=rgba,` +
         `fade=t=out:st=${CHIP_OUT}:d=0.25:alpha=1[chip];` +
         `[vidst][chip]overlay=0:0,format=yuv420p[vid];`
       : `[vidst]null[vid];`) +

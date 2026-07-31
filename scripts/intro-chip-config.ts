@@ -22,6 +22,26 @@
 // (render-reel-stamp PURPOSES), which moved to #FBBF24 with the date ribbon.
 const DROP = '#2bffcc', VERIFY = '#FBBF24';
 
+/**
+ * MKT-35 Phase 3 — the DATED identity chip. The chip carries a second line
+ * ("THU · JUL 31" — gold, smaller, letter-spaced) so same-day saves are
+ * distinguishable in a camera roll AT THE THUMBNAIL, which is frame one. The
+ * assemblers render the chip at FULL OPACITY FROM FRAME ONE (no fade-in) for
+ * exactly that reason — a chip that appears at 0.40s is invisible where the
+ * operator needs it. Date comes from the assembler's provenance-asserted
+ * `stamp` (verify's stamp is yesterday — the receipts' content date — by
+ * design), NEVER from the render clock.
+ *
+ * ⚠ FUTURE AD KINDS ARE EXCLUDED BY DESIGN. An evergreen ad has no day for a
+ * date to agree with — stamping one would manufacture the MKT-18 false-claim
+ * class (a viewer reads the chip as "this is the board for that date"). Same
+ * ruling as MKT-21's stamp suppression for generated bodies. Encoded here so
+ * the ad lane inherits the exclusion when it exists, rather than each call
+ * site remembering it.
+ */
+export const datedChipExcluded = (kind: string): boolean =>
+  kind === 'ad' || kind.startsWith('ad_');
+
 export const CHIP_LABELS: Record<string, { text: string; accent: string }> = {
   allday_pro:     { text: 'ALL-DAY',             accent: DROP },
   allday_free:    { text: 'ALL-DAY',             accent: DROP },

@@ -23,16 +23,33 @@ import { chromium } from 'playwright';
 import { existsSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { CHIP_LABELS } from './intro-chip-config';
+import { CHIP_LABELS, datedChipExcluded } from './intro-chip-config';
 
 
-const [, , kindArg, outArg] = process.argv;
+const [, , kindArg, outArg, stampArg] = process.argv;
 const spec = CHIP_LABELS[kindArg ?? ''];
 if (!spec || !outArg) {
-  console.error(`Usage: tsx scripts/render-intro-chip.ts <kind> <out.png>\n  kinds: ${Object.keys(CHIP_LABELS).join(', ')}`);
+  console.error(`Usage: tsx scripts/render-intro-chip.ts <kind> <out.png> [YYYYMMDD]\n  kinds: ${Object.keys(CHIP_LABELS).join(', ')}`);
+  process.exit(1);
+}
+if (stampArg && !/^\d{8}$/.test(stampArg)) {
+  console.error(`ABORT: stamp must be YYYYMMDD, got "${stampArg}". The date line comes from the assembler's provenance-asserted stamp, never a clock.`);
   process.exit(1);
 }
 const out = resolve(outArg);
+
+// MKT-35 Phase 3 — the date line. Format is exactly "THU · JUL 31" (no year).
+// Verify's stamp is yesterday — the receipts' content date — so the chip
+// agrees with its own YESTERDAY'S RESULTS heading by construction. Ad kinds
+// are excluded in config (datedChipExcluded): evergreen footage must never
+// carry a date (the MKT-18 false-claim class).
+const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+let dateLine: string | null = null;
+if (stampArg && !datedChipExcluded(kindArg)) {
+  const d = new Date(`${stampArg.slice(0, 4)}-${stampArg.slice(4, 6)}-${stampArg.slice(6, 8)}T12:00:00Z`);
+  dateLine = `${DAYS[d.getUTCDay()]} · ${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
+}
 
 const FONT_DIR = resolve('node_modules/@expo-google-fonts/jetbrains-mono');
 const mono700 = `${FONT_DIR}/700Bold/JetBrainsMono_700Bold.ttf`;
@@ -72,10 +89,12 @@ const html = `<!doctype html><html><head><style>
     box-shadow: 0 0 26px rgba(0, 0, 0, 0.5);
     white-space: nowrap;
   }
-  .bar { width: 5px; height: 30px; border-radius: 3px; background: ${spec.accent}; box-shadow: 0 0 12px ${spec.accent}aa; }
+  .bar { width: 5px; height: ${dateLine ? 58 : 30}px; border-radius: 3px; background: ${spec.accent}; box-shadow: 0 0 12px ${spec.accent}aa; }
+  .col { display: flex; flex-direction: column; gap: 6px; }
   .txt { font: 700 30px JBM; letter-spacing: 3px; color: #ffffff; }
+  .date { font: 700 22px JBM; letter-spacing: 4px; color: #FBBF24; }
 </style></head><body>
-  <div class="wrap"><div class="chip"><div class="bar"></div><div class="txt">${spec.text}</div></div></div>
+  <div class="wrap"><div class="chip"><div class="bar"></div><div class="col"><div class="txt">${spec.text}</div>${dateLine ? `<div class="date">${dateLine}</div>` : ''}</div></div></div>
 </body></html>`;
 
 (async () => {
@@ -95,5 +114,5 @@ const html = `<!doctype html><html><head><style>
     console.error('ABORT: JetBrains Mono failed to load — the chip would render in a fallback face.');
     process.exit(1);
   }
-  console.log(`intro chip: ${out} · ${kindArg} · "${spec.text}"`);
+  console.log(`intro chip: ${out} · ${kindArg} · "${spec.text}"${dateLine ? ` · "${dateLine}"` : ' · undated'}`);
 })();

@@ -13,7 +13,7 @@
 
 ## ⏭️ RESUME HERE — session close 2026-07-31 (MKT-32 carrier wave gated: 1 of 5 deliveries survives)
 
-**STATE AT CLOSE:** the 7/30–7/31 carrier drops were measured and gated. **Survivor: `evening_free_carrier_pt2.mp4`** (margin +0.359s, content clean, voice proxies in family) — live in place, replaced incumbent kept as `evening_free_carrier_part2_20260729_backup.mp4`. **Four rejections**, each parked on disk with its measured defect in `UNREFERENCED_OK` (check-reel-assets.ts) and detailed in the MKT-32 entry below: allday_free pt2 (+0.088s vs the +0.184s floor), midday_free pt2 (+0.114s), evening_pro pt2 (~+0.10 + dirty tail; incumbent restored from git), verif_carrier_signoff_short (2.05s dead pause, 4.03s vs the ≤2.3s line). `reel:check` green; incumbents serve everywhere except evening_free.
+**STATE AT CLOSE (superseded same day by the MKT-32 ADDENDUM below):** the 7/30–7/31 carrier drops were measured and gated; survivor evening_free pt2 live. **The four rejections were subsequently ALL SALVAGED BY EDIT (2026-07-31 PM)** — see the MKT-32 ADDENDUM entry: signoff slot filled, evening_pro/allday_free/midday_free pt2s swapped in above the +0.184s floor. `reel:check` green. **Open on resume:** ① gate `verif_carrier_part1_candidate_20260731.mp4` (recovered from the corrupted 7/31 web delivery; whisper env needs repair first) then swap-or-reject; ② dated-identity-chip work order (renumber — MKT-33/34 taken); ③ operator cold-listen of scratchpad `mkt32b/audition/` clips is the only ear-check outstanding.
 
 **OPEN — RESPEC ASKS FOR THE CONTENT AGENT (route with the measured defects):**
 1. allday_free + midday_free pt2 respecs: same close lines, last word by ~9.47s of part 2 (target margin ≥ +0.184s at silencedetect −35dB).
@@ -173,6 +173,25 @@ The earlier gap in this same block — preflight probing file existence rather t
 **Gate actions (all files probed after every move — the MKT-06 rename-corruption lesson):** evening_free pt2 LIVE, replaced incumbent kept as `evening_free_carrier_part2_20260729_backup.mp4` (ARCHIVE_RE-exempt); allday `.MP4` duplicate deleted (take already parked as the redelivery file); midday take parked as `midday_free_carrier_part2_rejected_20260730.mp4`; evening_pro incumbent pt2 **restored from git**, rejected take parked as `evening_pro_carrier_part2_rejected_20260731.mp4`; signoff take parked as `verif_carrier_signoff_short_rejected_20260731.mp4` (slot returns to empty/budget-gated WARN, which is the correct shipping state). All four parks registered in `UNREFERENCED_OK` with their measured defects (the MKT-21 evidence pattern). **`reel:check` green end-to-end**; `_carrier_joined/` cache regenerates on mtime so the restored evening_pro join self-heals on next run.
 
 **Phase 2/3 residue:** the short-slot resolver walk (full pt2 → short → part 1 alone) needs no build — wired and verified in MKT-27/v2.0-C; the 1-box-day pickup simulation is DEFERRED to a passing take (simulating with a rejected asset proves nothing). evening_pro **part 1 never arrived** — the incumbent is already scope-named at 10.005s, so the pair's remaining asks are the pt2 respec + the still-open §9 rotation-set gap. The "last scope-naming asymmetry" does NOT retire this session. Naming note for the respec deliveries: `part2` spelled out in parked names (the `_pt` rule allows `_pt<N>.mp4` only); a fresh delivery must land at the exact registry name, lowercase `.mp4`. Cross-ref [[MKT-20]] (margins, seam method, duration law), [[MKT-27]] (fits-whole gate), [[MKT-29]]/[[MKT-31]] (verify identity), [[MKT-26]] (session conversion frame), SOCIAL-13.
+
+---
+
+### MKT-32 ADDENDUM — salvage by edit, no regeneration (2026-07-31 PM) ✅ 4 OF 4 SALVAGED · +1 incident
+
+Operator ruling: rescue the four rejected takes by trim/edit where the defect is mechanical. Outcome beat the order's own expectation ("two to four of four is success"): **all four salvaged, registered, preflight green.** Method per file recorded in `UNREFERENCED_OK` (check-reel-assets.ts); raw takes stay parked as masters/evidence; incumbents kept as `*_part2_<date>_backup.mp4`.
+
+| file | edit | result (floor +0.184s) |
+|---|---|---|
+| verif_carrier_signoff_short | 2.05s dead pause spliced to 0.215s beat, 40ms room-tone crossfade, tight tail (file 2.47s, join ~12.8s) | last word **2.218s** ≤ 2.3s — SLOT FILLED |
+| evening_pro pt2 | tail gate (gate-only margin **+0.052s** — the tail was NOT eating the margin, the read is long) + both inter-line gaps −80ms | **+0.212s** |
+| allday_free pt2 | both inter-line gaps −80ms (remain ~1.0s) + tail gate | **+0.248s** |
+| midday_free pt2 | two largest gaps −60ms (remain 0.51/0.65s ≥ 0.35s floor) + tail gate | **+0.234s** |
+
+All margins from faithful production-filtergraph joins, silencedetect −35dB/d=0.4. Every word transcript-verified intact (faster-whisper small.en); all six pt2 seams measure step ~0.0003 (room-tone splices, no clicks); signoff splice zone continuous at −53.8dBFS, single natural inhale kept. Audition clips staged in session scratchpad `mkt32b/audition/` — operator cold-listen outstanding but non-blocking (MKT-32 evening_free precedent). Gap-floor rule honored: no gap shaved below 0.35s.
+
+**INCIDENT, same afternoon — GitHub web renames corrupted two more binaries (running total 4 for this path).** Operator uploaded a new verify part 1 (`gemini_generated_video_89F59AED.mp4`, 2.63MB, intact in commit 1b55470) then web-renamed it to `assets/verif_carrier.mp4` — wrong directory AND corrupted to a 2-byte stub — and web-renamed the incumbent to `verif_carrierx.mp4`, which ALSO corrupted (moov-less). Verify lane was dead (no part 1 resolves → assembler abort). Recovery: incumbent bytes restored from git to `verif_carrier.mp4` (serving, lane green); delivery bytes recovered from the upload commit and parked intact as `verif_carrier_part1_candidate_20260731.mp4` with an `UNREFERENCED_OK` entry — **UNGATED**: content transcript + voice-family proxies still owed (whisper env broke mid-session: httpx/click conflict), then swap-or-reject per the operator's evident intent. Both corrupt stubs removed. Rule for future deliveries recorded in handoff v2.2: never rename binaries in the GitHub web UI.
+
+Handoff bumped to v2.2: the four v2.1 respec asks RETIRED; outstanding generation list = verify part-1 candidate gate (not a regen), evening_pro part 1 (unchanged), anchor_intro_powerup (unchanged). Queued next session: candidate gate; renumbered dated-identity-chip work order (arrived as "MKT-33" but MKT-33/34 are claimed — renumber before stamping). Cross-ref [[MKT-32]], [[MKT-27]], [[MKT-20]].
 
 ---
 

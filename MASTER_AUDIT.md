@@ -138,6 +138,12 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 ---
 
+### MKT-33 — Day captions PDF on the Reels screen (2026-07-31) ✅ SHIPPED
+
+**ID verified free** (`grep MKT-33` → audit 0 / code 0 before stamping). Operator ask: one downloadable file on Admin → Reels with ALL of the day's captions in a single PDF. Built: `scripts/render-captions-pdf.ts` (exported `generateAndUploadCaptionsPdf`) — queries the day's `marketing_reels` rows by **updated_at ET-day** (the ReelsView "current run" semantics — a `reel_date` filter would exclude verify forever, the [[reel_date]]-is-content-date lesson), renders per-kind cards (free + pro drafts where `caption_pro` exists) via the render-handoff-pdf rig (HTML → `file://` → Chromium `page.pdf`, NOT setContent — the MKT-10 serif lesson), uploads to `captions/<YYYYMMDD>.pdf` in the public `marketing-reels` bucket. **Hooked into every publish path** in `publish-reels.ts` — full publish AND `--captions-only` (the run that changes captions is the one that must re-render the sheet) — wrapped best-effort so a sheet failure never fails a publish. Standalone: `npm run reel:captions-pdf [-- --day=YYYY-MM-DD]`. Own retention: prunes `captions/` objects past 30 days (row prune only deletes row-referenced paths). UI: `ReelsView` shows a "🧾 Captions PDF" ghost button next to Refresh, **only after a HEAD probe confirms today's object exists** (no dead button before the morning run); opens via `openInNewTab` (web new-tab / native Linking). **Infra: bucket `allowed_mime_types` widened `["video/mp4","image/png"]` → `+"application/pdf"`** (upload 415'd without it — PUT /storage/v1/bucket, verified). Gate: filtered tsc 0; generated 7/30's sheet live (10 caption sets), public URL serves `application/pdf` HTTP 200, pdftotext content verified. Captions in the PDF are the lint-gated drafts on the rows — no new copy surface. Cross-ref [[MKT-04]] (publish chain), [[MKT-05]]/05b (caption engine, verify dual drafts).
+
+---
+
 ### MKT-32 — Carrier wave gate: three free sign-offs + verify short slot + evening pro pair (2026-07-31) ✅ GATED — 1 of 5 survives
 
 **ID verified free** (`grep MKT-32` → audit 0 / code 0 before stamping). Work order: validate the 7/30 free-tier pt2 overwrites before the next daily run, plus the two budget-queue deliveries (verify short sign-off, evening_pro pair) on arrival. Marketing pipeline only — no engine, no edge functions.

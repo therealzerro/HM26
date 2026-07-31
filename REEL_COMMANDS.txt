@@ -472,6 +472,23 @@ npm run reel:publish -- verify --captions-only
     Same caption refresh for yesterday's verify reel.
 
 
+npm run reel:captions-pdf
+npm run reel:captions-pdf -- --day=2026-07-30
+
+    Builds ONE PDF containing every caption from the day's run
+    (all kinds, free + pro drafts where a row carries both) and
+    uploads it to the marketing-reels bucket at
+    captions/<YYYYMMDD>.pdf. The Admin → Reels screen shows a
+    "🧾 Captions PDF" download button whenever the day's file
+    exists. You normally never run this by hand — every publish
+    (including --captions-only refreshes) regenerates it
+    automatically; --day rebuilds a past run day's sheet (rows
+    must still be inside the 30-day retention). "Day" means the
+    RUN day (updated_at, ET) — the verify reel is included even
+    though it is dated yesterday. Old sheets self-prune with
+    everything else after 30 days. (MKT-33)
+
+
 ----------------------------------------------------------------
 ASSET CHECK (run after replacing any endcard or carrier)
 ----------------------------------------------------------------

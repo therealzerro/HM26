@@ -629,6 +629,14 @@ export default function ReelsView() {
   const postedCount = current.filter(r => r.status === 'posted').length;
   const shown = filter === 'all' ? current : current.filter(r => (filter === 'posted') === (r.status === 'posted'));
 
+  // MKT-33 — the day captions sheet: one PDF with every caption from today's
+  // run, written by publish-reels to captions/<YYYYMMDD>.pdf in the public
+  // bucket. Shown only when the object actually exists (HEAD probe) — a dead
+  // download button on a morning the publisher hasn't run yet is worse than
+  // no button.
+  const captionsPdfUrl = reelPublicUrl(`captions/${todayET.replace(/-/g, '')}.pdf`);
+  const [captionsPdfOk, setCaptionsPdfOk] = useState(false);
+
   const load = useCallback(async () => {
     setError(null);
     try {
@@ -637,7 +645,11 @@ export default function ReelsView() {
       setError(String(e?.message ?? e));
       setReels([]);
     }
-  }, []);
+    try {
+      const head = await fetch(captionsPdfUrl, { method: 'HEAD' });
+      setCaptionsPdfOk(head.ok);
+    } catch { setCaptionsPdfOk(false); }
+  }, [captionsPdfUrl]);
 
   useEffect(() => {
     load();
@@ -661,6 +673,11 @@ export default function ReelsView() {
     <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 60 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
         <View style={{ flex: 1 }}><SectionTitle>🎬 REELS — PIPELINE OUTPUT</SectionTitle></View>
+        {captionsPdfOk && (
+          <TouchableOpacity style={[st.btnGhost, { marginRight: 6 }]} onPress={() => openInNewTab(captionsPdfUrl)}>
+            <Text style={st.btnGhostText}>🧾 Captions PDF</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity style={st.btnGhost} onPress={load}>
           <Text style={st.btnGhostText}>↻ Refresh</Text>
         </TouchableOpacity>

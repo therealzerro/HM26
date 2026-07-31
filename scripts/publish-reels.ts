@@ -40,6 +40,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { buildReelCaption, fetchReceiptsData, shiftDate, kindNeedsReceipts, ReceiptsData, ReelCaptionKind } from './reel-captions';
 import { REEL_SCOPES, isScope, reelKind, parseVariantFlag, type Scope } from './reel-scopes';
+import { generateAndUploadCaptionsPdf } from './render-captions-pdf';
 
 loadEnv({ path: '.env.backtest' });
 
@@ -240,6 +241,7 @@ async function main(): Promise<void> {
   }
   if (CAPTIONS_ONLY) {
     for (const k of kinds) await updateCaptionOnly(k, captions[k]);
+    await refreshCaptionsPdf(); // the refresh that changes captions is exactly the one that must re-render the sheet
     return;
   }
 
@@ -290,6 +292,16 @@ async function main(): Promise<void> {
   }
 
   await prune();
+  await refreshCaptionsPdf();
+}
+
+/** MKT-33 — day captions sheet. Best-effort: a sheet failure never fails a publish. */
+async function refreshCaptionsPdf(): Promise<void> {
+  try {
+    await generateAndUploadCaptionsPdf();
+  } catch (e) {
+    console.warn('[publish-reels] captions PDF refresh failed (non-blocking):', String(e).slice(0, 200));
+  }
 }
 
 main().catch((e) => { console.error('[publish-reels]', e); process.exit(1); });

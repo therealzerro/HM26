@@ -54,9 +54,9 @@ export async function loadSlate(dateISO: string, scope = 'allday'): Promise<Slat
   const picks = snaps[0]?.top_k_straights_json ?? [];
   if (!picks.length) throw new Error(`no published slate for ${dateISO} / ${scope}`);
 
-  const at = await rest<Array<{ combo: string }>>(
+  const at = await rest<Array<{ combo: string; hit_straight: boolean }>>(
     `/rest/v1/adaptive_tracking?slate_date=eq.${dateISO}&scope=eq.${scope}&mode=eq.balanced` +
-    `&or=(hit_box.eq.true,hit_straight.eq.true)&select=combo&limit=200`,
+    `&or=(hit_box.eq.true,hit_straight.eq.true)&select=combo,hit_straight&limit=200`,
   );
   const fromLedger = new Set(at.map(r => r.combo));
   const fromSnapshot = new Set(picks.filter(p => p.hitType).map(p => p.combo));
@@ -69,6 +69,49 @@ export async function loadSlate(dateISO: string, scope = 'allday'): Promise<Slat
       `       A receipts reel must not contradict its own ledger on screen. Fix the data, do not render.`,
     );
   }
+
+  // MKT-35: the cross-check must agree on the match TYPE, not just the set.
+  // The board renders straights gold and the ledger segment renders them
+  // "⭐ STRAIGHT" from adaptive_tracking — a type disagreement puts two
+  // different claims about the same pick on screen in one reel. A combo
+  // counts as straight in the ledger if ANY of its state rows is straight
+  // (the snapshot's hitType is the straight-preferred primary).
+  const straightInLedger = new Set(at.filter(r => r.hit_straight).map(r => r.combo));
+  for (const p of picks) {
+    if (!p.hitType) continue;
+    const ledgerStraight = straightInLedger.has(p.combo);
+    const snapStraight = p.hitType === 'straight';
+    if (ledgerStraight !== snapStraight) {
+      throw new Error(
+        `ABORT: match TYPE disagreement for ${p.combo} (${dateISO}/${scope}): ` +
+        `snapshot says ${p.hitType}, adaptive_tracking says ${ledgerStraight ? 'straight' : 'box'}. ` +
+        `Fix the data, do not render.`,
+      );
+    }
+  }
+
+  // MKT-35 fail-closed assert: a pick whose POSTED permutation (bestOrder is
+  // what every consumer surface displays; combo is the engine enumeration
+  // index) equals the draw MUST carry the straight annotation, and a straight
+  // annotation MUST mean posted == drawn. This is the claim the reel makes —
+  // "matches marked" — and the one thing a viewer can check frame by frame.
+  for (const p of picks) {
+    if (!p.hitType || !p.hitResult) continue;
+    const posted = p.bestOrder ?? p.combo;
+    if (posted === p.hitResult && p.hitType !== 'straight') {
+      throw new Error(
+        `ABORT: posted ${posted} equals draw ${p.hitResult} but hitType is '${p.hitType}' ` +
+        `(rank ${p.rank}, ${dateISO}/${scope}). A posted-exact match must render STRAIGHT. Fix the data, do not render.`,
+      );
+    }
+    if (p.hitType === 'straight' && posted !== p.hitResult) {
+      throw new Error(
+        `ABORT: hitType 'straight' but posted ${posted} != draw ${p.hitResult} ` +
+        `(rank ${p.rank}, ${dateISO}/${scope}). The straight claim must be checkable on screen. Fix the data, do not render.`,
+      );
+    }
+  }
+
   return picks.sort((a, b) => a.rank - b.rank);
 }
 
@@ -82,12 +125,16 @@ function html(picks: SlatePick[], dateISO: string): string {
   const landed = picks.filter(p => p.hitType).length;
   const rows = picks.map(p => {
     const hit = Boolean(p.hitType);
+    // MKT-35: straights are the board's strongest proof and must be identified
+    // AS straights here, upstream of the ledger's holds — gold, matching the
+    // verify identity (MKT-31) and the ledger's ⭐ STRAIGHT. Box stays green.
+    const straight = p.hitType === 'straight';
     const digits = (p.bestOrder ?? p.combo).split('').map(c => `<i>${c}</i>`).join('');
     const right = hit
-      ? `<div class="res"><div class="rlab">DREW</div><div class="rval">${p.hitResult ?? ''}</div>
+      ? `<div class="res"><div class="rlab">${straight ? 'DREW · STRAIGHT' : 'DREW'}</div><div class="rval">${p.hitResult ?? ''}</div>
          <div class="rwhere">${(p.hitState ?? '').toUpperCase()} · ${(p.hitSession ?? '').toUpperCase()}</div></div>`
       : `<div class="res pending"><div class="rlab">NO MATCH</div></div>`;
-    return `<div class="row ${hit ? 'hit' : ''}">
+    return `<div class="row ${hit ? 'hit' : ''}${straight ? ' straight' : ''}">
       <div class="rank">#${p.rank}</div><div class="digits">${digits}</div>
       <div class="set">${p.comboSet ?? ''}</div>${right}</div>`;
   }).join('');
@@ -104,10 +151,13 @@ function html(picks: SlatePick[], dateISO: string): string {
     .row{display:flex;align-items:center;gap:22px;padding:38px 28px;border-radius:20px;flex:1;
          background:#0e1120;border:1px solid #1d2236}
     .row.hit{background:#0d1a17;border-color:#2bffcc55;box-shadow:0 0 30px #2bffcc18}
+    .row.hit.straight{background:#1a150d;border-color:#fbbf2455;box-shadow:0 0 30px #fbbf2418}
     .rank{font-weight:700;font-size:26px;color:#5a6076;width:52px}
     .digits{display:flex;gap:12px}
     .digits i{font-style:normal;font-weight:700;font-size:58px;letter-spacing:1px}
     .row.hit .digits i{color:#2bffcc}
+    .row.hit.straight .digits i{color:#fbbf24}
+    .row.hit.straight .rlab{color:#fbbf24}
     .set{font-weight:500;font-size:25px;color:#6f7590;flex:1}
     .res{text-align:right;min-width:210px}
     .rlab{font-weight:500;font-size:19px;letter-spacing:4px;color:#2bffcc}

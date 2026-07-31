@@ -1,0 +1,250 @@
+SYNC ANSWERS — Claude Code → content agent, 2026-07-31
+Answers only, per your header. No fixes applied, nothing committed.
+Sources: MASTER_AUDIT.md (authoritative), Reel_System_Handoff.txt v2.2,
+scripts/* and assets/marketing/* as they sit on disk right now.
+
+Headline on section A: your premise is half right. MKT-31 + both addenda
+SHIPPED 2026-07-30 and are operator-accepted — fully documented in
+MASTER_AUDIT (main entry + geometry addendum + lockup-ruling addendum 2,
+plus the 7/30 session-close block). What is true is that the HANDOFF is
+the stale artifact: `MKT-31` appears NOWHERE in Reel_System_Handoff.txt
+v2.2 — not the changelog, not §7, not §9. Doc gap, not missing work.
+One exception: your Addendum-2 item 1 (the classifier) never landed
+anywhere — see answer 1.
+
+────────────────────────────────────────────────────────────────
+A. MKT-31 STATUS, IN YOUR PRIORITY ORDER
+────────────────────────────────────────────────────────────────
+1. STRAIGHT-MATCH CLASSIFIER — ⛔ OPEN. No fix has landed and the item
+   has no MASTER_AUDIT entry at all; it was never ingested (the 7/31
+   session was consumed by the MKT-32 carrier salvage + the web-rename
+   corruption recovery). What I verified today:
+   - The board segment is a capture of /track-record. The badge is
+     rendered directly from `adaptive_tracking.hit_straight`
+     (app/track-record.tsx:239,257 — `isStraight ? '⭐ STRAIGHT' : '🎯 BOX'`).
+     No client-side classification; the defect is upstream in the stored
+     flag, written by the `run-hit-detection` edge function.
+   - Plausible mechanism (UNVERIFIED against the actual 7/30 rows —
+     answers-only, so no DB forensics run): per BUG-155, hit detection
+     compares `result_digits` against **bestOrder**, not the displayed
+     combo, so a row whose posted combo equals the draw exactly can
+     still carry `hit_straight = false` when bestOrder differs. That is
+     consistent with 094/094 and 415/415 rendering green BOX.
+   - Your §3 concern is confirmed structurally: the reel renderer keys
+     BOTH the 2.0s straight hold AND straights-first featuring off the
+     same row text (`/\bSTRAIGHT\b/`, render-verification-reel.ts:222,297),
+     so a misclassified straight also loses its featured slot and gets
+     the shorter box hold. The defect propagates through the whole
+     proof chain, as you said.
+   - Needs a bug ID + audit entry when the work order arrives.
+
+2. ENDCARD GEOMETRY — SHIPPED, but by neither of the two routes you
+   list, because the diagnosis refuted both:
+   - The motion-swap fix was a NO-OP: verify already points at
+     endcard_motion_pro (same file as allday_pro), pixels measurably
+     identical. And the dead gap (bolt bottom ~756 → text top 1253)
+     exists on the settled frame of EVERY motion in the set (pro 756,
+     alt 812, lattice 751; steady same mid-gap). Position was never out
+     of contract — LOCKUP_TOP 1240 rendered 1253–1395, inside the
+     1150–1500 band, on both the stale and correct builds.
+   - Actual fix, two parts:
+     (a) Addendum 1: the real defect was the WINDOW. Verify's outro now
+         takes the endcard's FIRST 6.5s (All-Day's proven window) instead
+         of the last 2.5s static tail. Formation fills the frame, text
+         fades in 4.5–5.2s, reel ends at endcard t≈6.4s. Cost +4.0s;
+         live cut went 21.43 → 25.43s.
+     (b) Addendum 2 (operator ruling, same evening): operator rejected
+         the band-compliant placement a second time; ruling overrides
+         the shared reserved band FOR VERIFY ONLY. New per-variant
+         `lockupTop` on EndcardVariant — verify = 880, from measurement
+         (zone y 880–1040 clean on all four motions from text-opaque
+         5.2s to the 6.5s cut; ≤1.3% pixels above L40, max L77).
+   - CURRENT RENDERED Y-RANGE: block 880 → 1040 (build-asserted),
+     crop line 1500. Slate kinds untouched at shared 1240.
+   - Note: 7/27 and 7/28 lane reels still carry the old band placement;
+     their regen was countermanded as waste — regen on request only.
+
+3. DATE RIBBON — STILL COLLIDING; per-segment placement did NOT land.
+   MKT-31 item 2 made the ribbon persistent for the FULL body (fade-out
+   moved to the endcard cut), pinned at the spec'd y≈470. The audit
+   records the overlap with the first receipt row's match line
+   mid-scroll explicitly, as a known cosmetic carry-over that pre-dates
+   MKT-31 (same stamp geometry as every shipped verify reel), flagged
+   as a candidate for MKT-25's restaging if it bothers the operator.
+   So: acknowledged, tracked, unfixed.
+
+4. STINGER INVERSION + GOLD — BOTH SHIPPED (items 1 and 4).
+   - `layout: 'headline-dominant'` on StingerVariant: "YESTERDAY'S
+     RECEIPTS" ~62px dominant top line, wordmark small in gold beneath.
+     Slate kinds untouched. The five rotation verify stingers were also
+     rebuilt with the new layout so a future `held:` re-arm serves the
+     new identity.
+   - Gold #FBBF24, verify only: ribbon + stinger line 2 (subAccent) +
+     endcard line 3 (line3Accent) + intro chip. Slate surfaces keep
+     purple/cyan.
+
+────────────────────────────────────────────────────────────────
+B. THE SEAL
+────────────────────────────────────────────────────────────────
+5. Answer: (b) — MEASURED AND CLEARED 2026-07-30; the doc is stale.
+   Measurements on the 7/30 re-delivery (4.01s file, probed real):
+   energy peak −17.4dB at 1.10s (bound was ~2.0s), smooth decay under
+   the smoke return, nothing after 2.4s above −19.2dB. The 7/29 defect
+   (bell 2.7s / −3.5dB over the VO onset) is gone. `held:` cleared LAST
+   per the standing rule. No silent-regen + muxed-bell fallback needed.
+   Binding also TIGHTENED beyond what your docs describe: seal is now
+   verify's FIXED stinger motion REPLACING rotation (was seal + rotation
+   fallback). A missing/defective seal build degrades to NO stinger via
+   probeStinger's null — never a slate motion; a re-armed `held:`
+   returns verify to rotation. Handoff §7 (stinger_motion_seal "HELD",
+   bell 2.7s), §9 MKT-29 ("HELD pending regeneration") and v2.0 note A
+   are all stale on this and should be struck by the work order.
+
+────────────────────────────────────────────────────────────────
+C. WHAT SHIPPED IN YOUR COPY
+────────────────────────────────────────────────────────────────
+6. THE 11 SLOTS, AS SHIPPED (MASTER_AUDIT MKT-28 final entry; live map
+   in scripts/reel-relabel.ts HEAT_RELABEL):
+
+   | # | slot              | surface                          | current                | shipped |
+   | 1 | temperature ≥90   | grid meter · modal banner · poster | ON FIRE              | PEAK BAND |
+   | 2 | temperature ≥80   | 〃                               | BLAZING                | HIGH BAND |
+   | 3 | temperature ≥65   | 〃                               | HOT                    | MID BAND |
+   | 4 | temperature ≥45   | 〃                               | WARM                   | LOW BAND |
+   | 5 | temperature <45   | 〃                               | COOL                   | BASE BAND |
+   | 6 | verdict ≥80       | Heat Check                       | 🔥 BLAZING SIGNAL      | PEAK SIGNAL (🔥 drops) |
+   | 7 | verdict ≥65       | Heat Check                       | ✦ STRONG SIGNAL        | KEEP — already neutral |
+   | 8 | verdict ≥45       | Heat Check                       | ◈ MODERATE             | KEEP — already neutral |
+   | 9 | verdict >200 draws| Heat Check                       | ⚠️ OVERDUE             | KEEP — flagged: fits none of the four verdict rules; kept rather than guessed |
+   | 10| verdict else      | Heat Check                       | ❄ LOW                  | LOW (❄ drops); deliberately NO map entry — matcher is substring-based and WARM→'LOW BAND' would be corrupted by a LOW entry |
+   | 11| streak banner     | grid card                        | 🔥 STRONG SIGNAL — Energy {n}/100 | STRONG SIGNAL — … (🔥 drops). As rendered the leaf carries /100, so the Q1-absolute numeric layer hides it in any public frame anyway; entry exists for the day the denominator changes |
+
+   DIVERGENCES FROM YOUR MAPPING RULES — the ones you asked for:
+   - Slots 7/8: your CLIMBING / EASING were NOT used. STRONG SIGNAL and
+     MODERATE kept their existing strings on the recorded ground that
+     they are already neutral — the relabel map only replaces
+     non-neutral terms, and extra entries are matcher risk.
+   - Slot 9: OVERDUE kept as-is, explicitly flagged in the audit as
+     fitting none of the four verdict rules (not a scale rung, not
+     rising/cooling, not temperature register) — kept rather than
+     guessed. If you want it on the canonical scale, that is an open
+     copy decision, not an oversight.
+   - Slot 10: LOW survives by OMISSION, not by entry (substring-matcher
+     constraint above). Same rendered result, different mechanism.
+   - Your rules that DID ship verbatim: rank mapping, one enum = one
+     string, numerics survive, ° dropped (caught live: grid chip
+     rendered "PEAK BAND 99°"), 🔥/❄ dropped not swapped, temperature
+     register banned. Matcher is longest-phrase-first (BLAZING SIGNAL
+     before BLAZING). All 11 verified through the real lintCaption at
+     tier 1. Public copy should match the SHIPPED column above.
+
+7. PUBLIC REEL — LIVE, in the daily sequence, nothing posted anywhere.
+   - allday_public registered at all five points + the DB kind CHECK
+     (migration landed FIRST by operator ruling); assembled and
+     published 7/30: allday_public_20260730.mp4, 34.20s (6.0 public
+     intro + 2.7 stinger + 19.0 public body + 6.5 endcard), row `ready`.
+     reel:daily now builds EIGHT reels; the public body renders third.
+   - Q1/Q2 gate record stored (assets/marketing/_public_gate_records.json);
+     reel:check FAILs the public kind without it — verified live.
+   - POSTED: nothing, anywhere. "Published" = Admin → Reels
+     storage/row only. YouTube / TikTok / Reddit / X: gate condition
+     (asset:'redacted') MET, so they are UNBLOCKABLE — and ALL FOUR
+     remain DISABLED, none flipped. Enabling is operator-only, one
+     platform at a time, Two-Question checkboxes on every handoff.
+     Instagram stays do-not-build (Meta cross-enforcement).
+   - midday_public / evening_public deliberately stay unregistered (no
+     session carriers; three daily public reels was ruled a cadence
+     risk).
+
+────────────────────────────────────────────────────────────────
+D. WHAT YOU'RE HOLDING WORK BEHIND
+────────────────────────────────────────────────────────────────
+8. FIRST-6.5s WINDOW — ALREADY EXECUTED, 7/30, as MKT-31 Addendum 1
+   (detail in answer 2a). Verify's outro takes the endcard's FIRST 6.5s;
+   reel extended +4.0s (envelope now ~23.4–28.8s); endcard audio stays
+   unused (verify's ruling: carrier, then silence). Side effect you
+   should know: carrierNeed for the gate body went 13.50 → 17.50s, so
+   pt2 eligibility widened and the sign-off now plays over the
+   formation.
+   → DO NOT RETIRE the three motion prompts. Formation motion is now
+   visible on verify by construction, and level-steady 0–4s is
+   bed-viable. Two constraints to fold in before commissioning:
+   (a) Addendum-2 rule: any new motion joining verify's rotation must
+       re-measure the lockup zone y 880–1040 clean from text-opaque
+       5.2s to the 6.5s cut (accepted bar: ≤~1.3% of pixels above L40).
+       Builds are 10.01s, text fade 4.5–5.2s.
+   (b) Generation budget: Higgsfield balance was 0 at the 7/30 close —
+       confirm balance before commissioning any of the three.
+
+9. MKT-33 (dated identity chip) — RECEIVED 7/31, QUEUED, NOT STARTED.
+   One blocker before stamping: the ID must be RENUMBERED — MKT-33 was
+   claimed the same day by the day-captions-PDF ship, and MKT-34 is also
+   taken. The order sits in the queue for next session ("② dated-
+   identity-chip work order (renumber)" in the audit's open-on-resume
+   list). The frame-one-no-fade/camera-roll-thumbnail rationale is
+   understood as the load-bearing half; nothing built yet.
+
+10. VERIFY PART 1 CANDIDATE — nothing needed FROM YOU; the gate is
+    blocked on our side. State: the delivery was recovered intact from
+    the upload commit (the web-rename had corrupted it to a 2-byte
+    stub) and is parked as verif_carrier_part1_candidate_20260731.mp4
+    with an UNREFERENCED_OK entry, UNGATED. Incumbent restored from git
+    and serving; lane green. Owed for the gate: content transcript +
+    voice-family proxies — the whisper env broke mid-session
+    (httpx/click conflict) and needs repair. Your operator-cold-listen
+    alternative (candidate → pt2 back to back, one sitting or reject)
+    is ACCEPTED as a legitimate gate — it matches the already-
+    outstanding mkt32b/audition cold-listen pattern; if the operator
+    does it, we ship on that and backfill the transcript record when
+    the env is fixed. Your scripted lines read clean against the
+    forbidden sweep as written.
+    ⚠ SEQUENCING AGREED: A.1 is OPEN (answer 1), so the candidate does
+    NOT swap into a live build until the classifier is fixed or the
+    operator explicitly waives — "matches marked" over a board that
+    under-marks straights is exactly the exposure you flagged.
+
+────────────────────────────────────────────────────────────────
+E. DOC AUTHORITY + HOUSEKEEPING
+────────────────────────────────────────────────────────────────
+11. AUTHORITY RULE: MASTER_AUDIT.md is the project's single source of
+    truth; the handoff CHANGELOG notes (v2.0/v2.1/v2.2, newest wins)
+    are next; the handoff BODY sections (§7/§9/§10) were never re-synced
+    after 7/28–7/30 and are the stale layer. Your three calls, ruled:
+    - powerup: B.3 is WRONG — strike it / mark CLOSED. Trust §7 + v2.0
+      note F. Verified in code today: INTRO_ROTATION in
+      scripts/anchor-intros.ts includes anchor_intro_powerup (the
+      regeneration, "handset gone by 5.6s"), rotation of 6, and
+      reel:check ran green through the 7/31 session. ⚠ The staleness
+      also leaked into MASTER_AUDIT's own v2.2 close-out line
+      ("outstanding generation list … anchor_intro_powerup (unchanged)")
+      — that line needs the same strike; without it a future session
+      queues a regeneration for a serving asset, exactly as you warn.
+    - §9 MKT-28 ("11 slots owed by content"): STALE — v2.1 D correct.
+      Delivered 7/30, landed in HEAT_RELABEL, fully closed (table in
+      answer 6). §9's MKT-30 line ("unregistered by design") is stale
+      the same way.
+    - §10 MKT-16 ("Phase 0 only, build held", header 2026-07-28):
+      STALE — v2.1 D correct. Phase 1+3 shipped 7/30, allday_public
+      live end to end (answer 7). Also stale nearby: the "IN FLIGHT,
+      NOT BUILT" list still holds MKT-16, and "DAILY OUTPUT TODAY: up
+      to SEVEN reels" is now EIGHT.
+    A handoff-body resync (plus adding MKT-31 + addenda, per section A)
+    should be an explicit item in your work order.
+
+12. STRAY-ASSET STATUS:
+    - The five ad intros (ad_intro_thought/_paper/_wall/_arrives/
+      _building): ABSENT ENTIRELY. Not on disk anywhere in the repo
+      (repo-wide find, node_modules excluded), therefore not in the
+      stray scan either — there is nothing for it to report. If these
+      were delivered, they never landed in the repository; they need
+      re-delivery. Per the standing rule from the 7/31 incident (4
+      corrupted binaries running total): direct upload at the exact
+      final name, NEVER a GitHub-web rename, and probe after landing.
+    - The designated sixth, anchor_intro_public.mp4: ON DISK and no
+      longer unregistered — MKT-16 claimed it 7/30 as allday_public's
+      fixed intro and it serves daily. If the Wave-2 ad lane needs a
+      dedicated intro it either shares this asset or gets a new one;
+      "parked awaiting the ad lane" no longer describes it.
+    - The three verify endcard motions (lock/bullseye · burst/shockwave
+      · ascent/rising ledger): ABSENT — correct, held per your item 8.
+      When commissioned, note the two constraints in answer 8.

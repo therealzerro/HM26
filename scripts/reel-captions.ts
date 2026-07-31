@@ -267,6 +267,11 @@ function sessionProKind(label: string, when: string, offset: number): KindSpec {
       c => `First in, as always: ${c.reelMd}'s ${label} board, all six signals in full. ${credLine(c.pro!, c.seed)}`,
       c => `The ${label} session board for ${c.reelMd} is yours now, in complete detail 💎 ${credLine(c.pro!, c.seed)}`,
       c => `Six ${label} signals for ${c.reelMd}, straight from the engine and graded in the open tomorrow. ${credLine(c.pro!, c.seed)}`,
+      // MKT-37 — templates 9-12, delivered 2026-07-31 ({scope} → label).
+      () => `${label} board is set. Six signals ranked and stamped ahead of the draw.`,
+      () => `${label}: six signals, four measures behind each. First look, same as always.`,
+      () => `Published before the ${label} draw, graded at sunup. That order is the whole method. ⚡`,
+      () => `${label} board's live — ranked, explained, on the record.`,
     ],
   };
 }
@@ -309,6 +314,12 @@ function sessionFreeKind(label: string, when: string, offset: number): KindSpec 
       c => `Watch the ${label} six get built for ${c.reelMd} — pair analysis, co-occurrence, draw-gap consistency, all of it. Digits covered; Pro reads them straight through at $2.49/mo.`,
       c => `Every ${label} signal for ${c.reelMd} shows its work. What's covered is the digits — that's the line between this room and Pro 💎 $2.49/mo.`,
       c => `${label} intelligence for ${c.reelMd}, posted before ${when}. Full methodology in the open, digits covered. The complete six live in Pro.`,
+      // MKT-37 — templates 9-12, delivered 2026-07-31 ({scope} → label; pricing
+      // sanctioned at tier 2, carried in 9 and 12 per the delivered set).
+      () => `${label} board is up — ranked, explained, digits covered. Pro reads them before the draw. $2.49/mo.`,
+      () => `You're seeing the whole method here: six signals, four measures each. The digits stay covered on this one — Pro has them now.`,
+      () => `Everything but the digits. Cover comes off in the morning for everyone; Pro isn't waiting.`,
+      () => `${label} signals ranked and explained. The values are the gap — that's what Pro closes. $2.49/mo.`,
     ],
   };
 }
@@ -331,6 +342,19 @@ const CAPTION_REGISTRY = {
       c => `Scoreboard check 📊 ${c.q!.matchPhrase} on ${c.reelMd}'s board${c.q!.spreadPhrase}${c.q!.straightPhrase}. Tomorrow's signals drop in the morning.`,
       c => `The record grew again: ${c.q!.matchPhrase} from ${c.reelMd}${c.q!.spreadPhrase}${c.q!.straightPhrase}. Watch it verified, board by board. 🧾`,
       c => `Signals in, results in, ${c.q!.matchPhrase} out${c.q!.spreadPhrase}${c.q!.straightPhrase} — that's ${c.reelMd} on the record. 📊`,
+      // MKT-37 — delivered 2026-07-31. THREE of the four registered: the
+      // delivered #9 ("Grade day: {date} closed with…") duplicates shipped
+      // template 5 verbatim once the scale words go through makeQualCtx —
+      // NOT registered; a replacement line is owed (reported, not silently
+      // rewritten). Scale words wired to QualCtx so no line can overclaim on
+      // a 1-match day.
+      c => `Yesterday's board, checked in the open — ${c.q!.matchPhrase}${c.q!.spreadPhrase}. The record's public for a reason. 🧾`,
+      () => `We published these before the draw. Here's how they graded, every row.`,
+      // Delivered #12 is CONDITIONAL on a straight by order — gated
+      // STRUCTURALLY: straightPhrase is non-empty ONLY when the verified
+      // record contains one (makeQualCtx), so a false straight claim cannot
+      // render regardless of which day the rotation draws this.
+      c => `Receipts for ${c.reelMd}: ${c.q!.matchPhrase}${c.q!.spreadPhrase}${c.q!.straightPhrase}. Check it yourself.`,
     ],
   },
   // PRO verify draft — the same reel, full precision: counts, states,
@@ -348,6 +372,13 @@ const CAPTION_REGISTRY = {
       c => `On the record for ${c.pro!.rcptMd}: ${c.pro!.v} verified in ${listJx(c.pro!.jxAll)}${straightLine(c.pro!)}. Watch it graded in the open.`,
       c => `Graded in full: ${c.pro!.v} ${plural(c.pro!.v, 'MATCH', 'MATCHES')} across ${c.pro!.jxCount} ${plural(c.pro!.jxCount, 'state', 'states')} on ${c.pro!.rcptMd}${straightLine(c.pro!)}. 🧾`,
       c => `${c.pro!.v} verified, ${c.pro!.jxCount} ${plural(c.pro!.jxCount, 'state', 'states')}, zero spin${straightLine(c.pro!)} — ${c.pro!.rcptMd}'s tape inside.`,
+      // MKT-37 — templates 9-12, delivered 2026-07-31. {n_straight} clauses
+      // render ONLY when a straight exists — "including 0 STRAIGHT" is a
+      // sentence no receipts caption should ever say.
+      c => `Graded in full: ${c.pro!.v} ${plural(c.pro!.v, 'MATCH', 'MATCHES')} across ${c.pro!.jxCount} ${plural(c.pro!.jxCount, 'state', 'states')} on ${c.pro!.rcptMd}${c.pro!.straightJx.length ? `, including ${c.pro!.straightJx.length} STRAIGHT` : ''}. Draw by draw below. 🧾`,
+      c => `${c.pro!.rcptMd} receipts: ${c.pro!.v} ${plural(c.pro!.v, 'MATCH', 'MATCHES')} on the board we published the morning before. Every row checked against official results.`,
+      c => `Yesterday's record — ${c.pro!.v} ${plural(c.pro!.v, 'MATCH', 'MATCHES')} across ${c.pro!.jxCount} ${plural(c.pro!.jxCount, 'state', 'states')}${c.pro!.straightJx.length ? `, ${c.pro!.straightJx.length} of them dead-on` : ''}. 30-day total now ${c.pro!.v30}.`,
+      c => `Published first, graded after. ${c.pro!.rcptMd}: ${c.pro!.v} ${plural(c.pro!.v, 'MATCH', 'MATCHES')}${c.pro!.straightJx.length ? `, ${c.pro!.straightJx.length} STRAIGHT` : ''}, all attributed. ⚡`,
     ],
   },
   // Qualitative by ruling; pure value, no Pro pitch (SOCIAL-13).
@@ -363,6 +394,11 @@ const CAPTION_REGISTRY = {
       c => `Six signals. 40+ states & provinces. One reel 🎬 ${c.reelMd}'s All-Day board is up — watch the signal-by-signal breakdown.`,
       c => `${c.reelMd}'s All-Day drop is in. Watch all six signals, find your state, and check the receipts tomorrow.`,
       c => `Board's set for ${c.reelMd} ☀️🌙 Six All-Day signals covering both sessions — the breakdown's in the reel.`,
+      // MKT-37 — templates 9-12, delivered 2026-07-31 (pure value, SOCIAL-13).
+      () => `Full board, free: six signals ranked, with the reasoning behind every one. Grade it against tomorrow's receipts.`,
+      () => `Six signals, four measures each, nothing held back. This is the whole method.`,
+      () => `Today's board is yours — ranked, explained, published before the draw. Come back in the morning and check the work.`,
+      () => `Every signal shows why it ranked where it did. That's the part most methods never show. ⚡`,
     ],
   },
   // The ONLY realNumbers kind: first-access framing, never pricing.
@@ -379,6 +415,11 @@ const CAPTION_REGISTRY = {
       c => `Pro drop for ${c.reelMd} is live — six signals, complete detail, zero waiting. ${credLine(c.pro!, c.seed)}`,
       c => `Your head start for ${c.reelMd} 💎 The full All-Day six, posted here first. ${credLine(c.pro!, c.seed)}`,
       c => `Before the rest of the room sees the board: ${c.reelMd}'s six All-Day signals, full breakdown inside. ${credLine(c.pro!, c.seed)}`,
+      // MKT-37 — templates 9-12, delivered 2026-07-31.
+      () => `Board's up. Six signals ranked, every one time-stamped before the first draw. Reasoning included, as always. ⚡`,
+      () => `Today's six are live — energy, momentum, pattern and consistency scored across 40+ states & provinces. You see them first.`,
+      () => `Ranked, explained, locked. Nothing changes after the stamp — that's the whole point of publishing early.`,
+      () => `The engine ran overnight. Six signals out, first look yours. 🤠`,
     ],
   },
   // MKT-13 session wave — offsets 7 and 11 keep all three pro kinds (5/7/11) on
@@ -388,15 +429,22 @@ const CAPTION_REGISTRY = {
   // MKT-26 free-group session wave.
   //
   // ⚠ WHAT ACTUALLY HAS TO BE DISTINCT IS `offset % templates.length`, not the
-  // offset — the index is `(dayOfYear + offset) % N`. Every set here is 8 long,
-  // so the live values mod 8 are: verify 0, verify_pro 2, allday_free 3,
-  // allday_pro 5, midday_pro 7, evening_pro 3. 17 and 22 give 1 and 6 — free of
-  // each other, which is the pairing that matters (these two post the same
-  // morning to the same room), and free of every other kind besides.
+  // offset — the index is `(dayOfYear + offset) % N`.
   //
-  // (evening_pro's 11 already lands on 3 alongside allday_free. Harmless — they
-  // index into different template arrays — but it is why the rule is stated
-  // properly here rather than left as "offsets are unique".)
+  // ⚠ RE-VERIFIED AT 12 (MKT-37 grew most sets 8 → 12; verify-free is 11 — its
+  // delivered #9 duplicated a shipped line and awaits a replacement;
+  // allday_public stays 8). The sets that share a FAMILY, mod their length 12:
+  //   pro trio     — allday_pro 5, midday_pro 7, evening_pro 11: pairwise
+  //                  distinct, so the three pro posts never read as the same
+  //                  message on one day. HOLDS with no re-spacing.
+  //   free sessions — midday_free 17→5, evening_free 22→10: distinct. HOLDS.
+  // New harmless cross-FAMILY coincidence at 12: midday_free (5) lands beside
+  // allday_pro (5) — different template arrays, same class as the documented
+  // evening_pro/allday_free collision at 8 below.
+  //
+  // (Historical, at 8: evening_pro's 11 landed on 3 alongside allday_free —
+  // harmless, different arrays — which is why the rule is stated properly here
+  // rather than left as "offsets are unique".)
   midday_free: sessionFreeKind('Midday', 'the daytime boards run', 17),
   evening_free: sessionFreeKind('Evening', 'tonight’s boards run', 22),
   /**

@@ -860,12 +860,36 @@ per-day by hand, not AI-freestyled.
                                   ~7.0s (the MKT-08 tail failure), so the
                                   out-point must stay ahead of that; there
                                   is no usable bed anywhere after 7.0s.
-    anchor_intro_public.mp4       Fixed intro for the PUBLIC kinds, 6.0s
-                                  (IN 0.0 / OUT 6.0). Opens on the visor
-                                  igniting in darkness — the cold-audience
-                                  hook — audio present from frame 1. The
-                                  only intro cleared for a public surface;
-                                  never swapped for a rotation member.
+    anchor_intro_public.mp4       Fixed intro for the PUBLIC kinds, 6.000s.
+                                  ⚠ REPLACED 2026-07-31 (MKT-36): the 7/31
+                                  regeneration BEAT the incumbent on the
+                                  comparative gate and serves. Trim IN 0.4 /
+                                  OUT 6.4 of the 10.005s master (smoke fills
+                                  frame 5.8s + 0.6; anchor ghosts back
+                                  through the smoke from ~6.6s so the out
+                                  cannot slide later; in = out − 6.0 lands on
+                                  the ignition flare — opens on motion).
+                                  Measured vs incumbent: onset first 0.3s
+                                  −20.2dB mean / −10.4 max (incumbent −37.9
+                                  — the new open is the fleet's hottest);
+                                  bed 5.9-6.4 clean full smoke; edge/centre
+                                  93-96% (incumbent 90-91%); tail last 0.2s
+                                  −45.7/−31.8 (incumbent −34.7/−25.0);
+                                  double tail fade 5.2/0.8 + 5.6/0.4.
+                                  720×1280 24fps — NOT the requested native
+                                  1080×1920; §9 ask #1 stays open, ceiling
+                                  confirmed a 4th time. CHIP ZONE measured
+                                  clean AT 0.0s (frame one, per MKT-35's
+                                  no-fade chip) through 2.65s — seated
+                                  mid-shot leaves the upper-right clear;
+                                  better than the old helmet-close-up open.
+                                  Incumbent + old master parked as
+                                  *_incumbent_backup.mp4 (rollback). Opens
+                                  on the visor igniting in darkness — the
+                                  cold-audience hook — audio present from
+                                  frame 1. The only intro cleared for a
+                                  public surface; never swapped for a
+                                  rotation member.
     anchor_intro_powerup.mp4      ✅ CLEARED 2026-07-30 — the third generation
                                   (redesigned: 3.0s dive) passed the eye
                                   check the first two failed. 6.3s (IN 0.0 /

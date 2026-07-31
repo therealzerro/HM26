@@ -18,7 +18,7 @@
  * PublishView; digit-bearing reels honestly fail Q1 and stay in the groups.
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform, Linking } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import * as Clipboard from 'expo-clipboard';
@@ -102,7 +102,7 @@ interface GroupUrls { free?: string; pro?: string }
  * that the four public surfaces are waiting on Phase 2 rather than missing.
  */
 function PlatformHandoffRow({
-  platform: p, reel, caption, captionAudience, videoUrl, filename, onLogged,
+  platform: p, reel, caption, captionAudience, videoUrl, filename, freeGroupUrl, onLogged,
 }: {
   platform: SocialPlatform;
   reel: MarketingReel;
@@ -111,6 +111,8 @@ function PlatformHandoffRow({
   captionAudience: 'free' | 'pro' | 'public';
   videoUrl: string;
   filename: string;
+  /** MKT-37: substitution target for platform content sets ({free_group_url}). */
+  freeGroupUrl?: string;
   onLogged: () => void;
 }) {
   const { colors } = useTheme();
@@ -120,13 +122,27 @@ function PlatformHandoffRow({
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const shaped = platformCaption(p, caption);
+  // MKT-37: platforms with a dedicated content set (YouTube) rotate on the
+  // reel's CONTENT date — the same dayOfYear convention as the caption
+  // engine, never the render clock.
+  const dayNum = useMemo(() => {
+    const d = new Date(`${reel.reel_date}T12:00:00Z`);
+    const jan1 = Date.UTC(d.getUTCFullYear(), 0, 1);
+    return Math.floor((d.getTime() - jan1) / 86_400_000);
+  }, [reel.reel_date]);
+  const shaped = platformCaption(p, caption, { dayNum, freeGroupUrl });
   const lint = lintCaption(shaped.clipboard, p.tier);
   const gateOk = !p.requiresTwoQuestion || (q1No && q2No);
   // MKT-24: the audience gate is separate from `enabled` — the PLATFORM is fine,
   // this CAPTION is the wrong one for it. Shown with its reason so a refusal
   // reads as a ruling rather than a broken row.
   const accepts = platformAcceptsAudience(p, captionAudience);
+  // MKT-37: a tier-1 (public) platform taking a NON-public CUT is the exact
+  // mismatch the *_public build exists to prevent — free/pro cuts carry real
+  // digits and tier-2 vocabulary and cannot honestly clear Q1. WARN, not
+  // block (the operator may have a reason); the 7/30-31 YouTube posts are
+  // why this line exists.
+  const kindMismatch = p.tier === 1 && !String(reel.kind).endsWith('_public');
   const canSend = p.enabled && accepts.ok && !busy && gateOk && lint.ok && shaped.clipboard.trim().length > 0;
   const link = platformLink(p, {
     text: shaped.clipboard, title: shaped.title, url: videoUrl,
@@ -208,6 +224,14 @@ function PlatformHandoffRow({
           {lint.violations.filter(v => v.blocking).map((v, i) => (
             <Text key={i} style={{ fontSize: 9, color: colors.error, marginTop: 2 }}>⛔ “{v.term}” ({v.rule})</Text>
           ))}
+
+          {kindMismatch && (
+            <Text style={{ fontSize: 9, color: colors.orange, marginTop: 6, lineHeight: 14 }}>
+              ⚠ This is the {reel.kind} cut — it carries real digits and tier-2 vocabulary and cannot
+              clear Q1 on a public surface. The public build (allday_public: placeholder digits,
+              relabelled) exists for exactly this platform.
+            </Text>
+          )}
 
           {p.requiresTwoQuestion && (
             <View style={{ marginTop: 8 }}>
@@ -504,6 +528,15 @@ function ReelCard({ reel, urls, onPosted, expanded, onToggle }: {
       {target === 'cross' && (
         <Card style={{ padding: 10, marginTop: 8, backgroundColor: colors.goldLight, borderColor: colors.gold + '44' }}>
           <Text style={{ fontSize: 10, fontWeight: '800', color: colors.gold, marginBottom: 6 }}>TWO-QUESTION FILTER — both must be NO to cross-post</Text>
+          {!String(reel.kind).endsWith('_public') && (
+            // MKT-37: kind guard at the handoff — a non-public cut on a
+            // surface we don't control carries real digits and cannot
+            // honestly clear Q1. WARN, not block.
+            <Text style={{ fontSize: 9, color: colors.orange, marginBottom: 6, lineHeight: 14 }}>
+              ⚠ This is the {reel.kind} cut. It carries real digits, so Q1 cannot honestly be NO —
+              the public build (allday_public) is the one made for surfaces we don’t control.
+            </Text>
+          )}
           <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }} onPress={() => setQ1No(v => !v)}>
             <Text style={{ fontSize: 14 }}>{q1No ? '☑️' : '⬜'}</Text>
             <Text style={{ fontSize: 10, color: colors.text, flex: 1 }}>Q1 — NO 3-digit numbers are visible in any frame of the video</Text>
@@ -585,6 +618,7 @@ function ReelCard({ reel, urls, onPosted, expanded, onToggle }: {
           captionAudience={target === 'pro' && reel.caption_pro != null ? 'pro' : REEL_KIND_AUDIENCE[reel.kind]}
           videoUrl={videoUrl}
           filename={filename}
+          freeGroupUrl={urls.free}
           onLogged={onPosted}
         />
       ))}

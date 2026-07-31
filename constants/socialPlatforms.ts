@@ -107,7 +107,14 @@ export const SOCIAL_PLATFORMS: Record<PlatformId, SocialPlatform> = {
     tier: 1,
     maxLen: 5000,        // description
     maxTitleLen: 100,
-    hashtags: ['#Shorts'],
+    // MKT-37: the delivered tag ruling — three, in the DESCRIPTION, never the
+    // title. #Shorts earns format categorisation; the other two place the
+    // content in an analytics context rather than a gambling one. NO
+    // lottery/numbers/daily-draw/winning/luck tags — one gambling-adjacent tag
+    // undoes the education framing that makes the content recommendable. If
+    // tag research later shows a reach cost to being this conservative, that
+    // is a decision to revisit with data, not a default to loosen.
+    hashtags: ['#Shorts', '#DataAnalysis', '#PatternAnalysis'],
     allowsLinks: true,
     requiresTwoQuestion: true,
     enabled: false,
@@ -317,6 +324,57 @@ export function platformAcceptsAudience(
   return { ok: true };
 }
 
+/**
+ * ── MKT-37 · YOUTUBE SHORTS CONTENT SET (allday_public, tier 1) ──────────────
+ *
+ * Delivered by the content agent 2026-07-31. Registered as a PER-PLATFORM
+ * CONTENT SET consumed by the transform — not new caption kinds — so a future
+ * platform inherits the mechanism (Reddit will still need its own COPY when
+ * enabled: its 90/10 rule punishes announcement register, and every template
+ * here is an announcement).
+ *
+ * Titles and descriptions rotate INDEPENDENTLY so pairings vary: title cycles
+ * 8 by day; the description index advances its 4-cycle by one extra step each
+ * time the title cycle wraps, so all 32 pairings appear over 32 days instead
+ * of the same 8 forever.
+ *
+ * Deliberately absent from every field (content-agent ruling, recorded): no
+ * digits-as-values, no session words, no BOX/STRAIGHT/PLAY, no pricing, no
+ * Pro CTA, and no MATCH vocabulary at all — the methodology framing carries
+ * the same weight without testing whether the bare term clears tier 1.
+ */
+export const YT_SHORTS_TITLES: string[] = [
+  'Six signals, ranked before the draw',
+  'How we score daily 3-digit draw patterns',
+  'The board we publish before results come in',
+  'Ranked, explained, and checked the next morning',
+  'What pattern analysis actually looks like',
+  'Published first. Verified after.',
+  'Six signals a day, across 40+ states & provinces',
+  'Our method, start to finish',
+];
+
+export const YT_SHORTS_DESCRIPTIONS: string[] = [
+  `Every morning our engine scores combinations across 40+ states & provinces and publishes six ranked signals — before the first draw. The next morning we check every one against the official results and publish the record.\nThe full board is free in our community: {free_group_url}`,
+  `This is pattern analysis, not prediction. Six signals ranked by four measures — energy, momentum, pattern and consistency — published and time-stamped before the draw, then graded against official results the following morning.\nFull board, free: {free_group_url}`,
+  `No fees, no promises. We publish the analysis first and the receipts after, every day, across 40+ states & provinces. You can check every one of them yourself.\nJoin free: {free_group_url}`,
+  `Most methods never show their work. Ours publishes six ranked signals before the draw, explains the reasoning behind each, then grades them against the official results in the open.\nThe whole method is free in our community: {free_group_url}`,
+];
+
+/** Day-rotated YouTube fields. dayNum = any stable content-date day number
+ *  (the caption engine's dayOfYear convention); never a render clock. */
+export function youtubeShortsFields(
+  dayNum: number,
+  freeGroupUrl?: string,
+): { title: string; description: string } {
+  const title = YT_SHORTS_TITLES[dayNum % YT_SHORTS_TITLES.length];
+  const dLen = YT_SHORTS_DESCRIPTIONS.length;
+  const dIdx = (dayNum % dLen + Math.floor(dayNum / YT_SHORTS_TITLES.length)) % dLen;
+  const description = YT_SHORTS_DESCRIPTIONS[dIdx]
+    .replace('{free_group_url}', (freeGroupUrl ?? '').trim() || 'link in our profile');
+  return { title, description };
+}
+
 /** Trim to a word boundary rather than mid-word; only when actually over. */
 function clamp(s: string, max: number): { text: string; truncated: boolean } {
   if (s.length <= max) return { text: s, truncated: false };
@@ -333,7 +391,22 @@ function clamp(s: string, max: number): { text: string; truncated: boolean } {
  * clamp-then-append sequence can push the result back over the ceiling, which
  * is precisely the silent failure X's 280 limit would produce.
  */
-export function platformCaption(p: SocialPlatform, caption: string): HandoffCaption {
+export function platformCaption(
+  p: SocialPlatform,
+  caption: string,
+  // MKT-37: platform content-set context. When a platform has a dedicated set
+  // (YouTube today), the stored caption is REPLACED by the set — the set was
+  // written for that surface's three fields, the caption for a one-field
+  // composer. Optional so every existing call site keeps its behaviour.
+  ctx?: { dayNum?: number; freeGroupUrl?: string },
+): HandoffCaption {
+  if (p.id === 'youtube' && ctx?.dayNum != null) {
+    const yt = youtubeShortsFields(ctx.dayNum, ctx.freeGroupUrl);
+    const tags = p.hashtags.filter(h => !new RegExp(`(^|\\s)${h}\\b`, 'i').test(yt.description));
+    const t = clamp(yt.title, p.maxTitleLen ?? p.maxLen);
+    const b = clamp(yt.description + (tags.length ? `\n\n${tags.join(' ')}` : ''), p.maxLen);
+    return { title: t.text, body: b.text, clipboard: b.text || t.text, truncated: t.truncated || b.truncated };
+  }
   let text = (caption ?? '').trim();
   // MKT-24: tier 4 is an owned room, so the reshaping runs BEFORE length work —
   // dropping a pricing sentence changes what has to be clamped, and clamping

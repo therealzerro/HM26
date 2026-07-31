@@ -713,6 +713,18 @@ on the 6.33s members) and the reel runs up to 34.53s.
 --------------------------------------------------------------------------------
 3. REEL ANATOMY — VERIFY / "RECEIPTS" (~23.4-28.8s @ 1080×1920 60fps — envelope updated 2026-07-30, MKT-31 addendum)
 --------------------------------------------------------------------------------
+  ⚠ SINCE MKT-40 THIS PIPELINE EMITS TWO CUTS PER DAY. Everything below
+  describes the GROUP cut (real digits, tier 2/4). The PUBLIC cut
+  (verify_public) shares the same beat map, carrier, seal stinger and gold
+  ribbon, and differs in exactly five ways: (1) body is the MASKED capture —
+  digits dotted upstream, EXACT ORDER / ANY ORDER vocabulary, sessions +
+  states dropped, rollup reframed to structural stats, fail-closed sweep
+  audit + PUBLIC_TAG assertion; (2) intro is the cold-open public file, not
+  verify's fixed group intro; (3) chip reads YESTERDAY'S RECORD (gold,
+  dated); (4) endcard is its own free-motion matrix — PUBLISHED FIRST.
+  CHECKED AFTER. / SEE THE FULL RECORD FREE — on the SHARED band (the 880
+  tuck fails on the free motions, measured); (5) captions/YT set are its
+  own tier-1 deliveries. v2.6 has the summary; the audit entry the detail.
   ⚠ THE VERIFY BODY IS NO LONGER A FIXED LENGTH (changed 2026-07-29, MKT-27).
   v1.7 documented a 6.3s body, a 14.4s total and a flat 9.2s carrier need. All
   three are retired. The operator ruled that a viewer must be able to read a
@@ -834,8 +846,8 @@ Per reel, three finals are produced and uploaded (working files stay local):
 
 Upload target: public storage (bucket "marketing-reels"), registered in the
 app's database one row per (date, kind). kind ∈ allday_pro | allday_free |
-allday_public | verify | midday_pro | evening_pro | midday_free |
-evening_free.
+allday_public | verify | verify_public | midday_pro | evening_pro |
+midday_free | evening_free.
 ⚠ RETENTION IS KEEP-CURRENT-ONLY (MKT-38, operator directive 2026-07-31):
 when a kind's new-day version publishes, every OLDER version of that kind is
 DELETED — storage objects removed, row archived (posted history kept), local
@@ -1621,6 +1633,16 @@ BUILT AND RUNNING DAILY:
           descriptions/tags as a per-platform transform; caption pools
           grown to 12 everywhere (verify-free's #9 replacement arrived
           later same day); handoff kind guard. v2.4 note C.
+  MKT-38  KEEP-CURRENT-ONLY RETENTION (2026-07-31) ✅ — supersession per
+          kind on publish; 674MB local + 20 bucket rows retro-freed.
+          v2.5 note A; §4 has the rule.
+  MKT-39  COST AUDIT (2026-07-31) 📊 + ADDENDUM — numbers only, then the
+          operator retired the 1:1 cut (zero logged use; 37% of bucket).
+          Reports in repo root. The crop BAND stays binding (§ delivery
+          spec).
+  MKT-40  verify_public (2026-07-31) ✅ BUILT & LIVE same day as its
+          Phase 0 — the masked public grading half; two public reels/day.
+          v2.6 notes A-D; audit entry has the full build detail.
 
 IN FLIGHT, NOT BUILT — do not propose against these yet; §10 has the detail:
   MKT-14  Brand attribution in the slate stamp .......... PARKED (untouched)
@@ -1629,10 +1651,11 @@ IN FLIGHT, NOT BUILT — do not propose against these yet; §10 has the detail:
           moved out of this list by v2.3. Platforms unblockable, none
           flipped (operator-only, per-platform).
 
-DAILY OUTPUT TODAY: up to EIGHT reels — verify (~23.4-28.8s, variable by row
-count since MKT-27), All-Day Pro + Free + PUBLIC (allday_public, 34.20s, live
-since 7/30 — reel:daily renders its body third), and Midday and Evening, each
-Pro + Free. Slate reels are 33.83-34.53s depending on the day's intro. All
+DAILY OUTPUT TODAY: up to NINE reels — verify + verify_public (~23-29s
+each, variable by row count since MKT-27; the public half is the masked
+grading cut, live since 7/31 — reel:verify builds both), All-Day Pro + Free +
+PUBLIC (allday_public, 34.20s, live since 7/30 — reel:daily renders its body
+third), and Midday and Evening, each Pro + Free. Slate reels are 33.83-34.53s depending on the day's intro. All
 auto-publish to Admin → Reels with drafted captions. Nothing auto-posts, ever.
 
 ⚠ THE PRO-ONLY SESSION RULING IS SUPERSEDED (MKT-26, 2026-07-29) — BUT NOT

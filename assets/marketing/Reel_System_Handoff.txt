@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-07-31 · v2.2
+Content Agent Handoff · 2026-07-31 · v2.3
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -16,6 +16,49 @@ Companion docs:
   - assets/marketing/AllDay_Reel_Endcard_Revision_Brief_2026-07-27.md (endcard contract)
   - docs/mkt15_phase2_copy_brief.md (public copy set — DELIVERED + the bolt request)
   - REEL_COMMANDS.txt (repo root — operator command reference)
+
+WHAT CHANGED IN v2.3 (2026-07-31 — MKT-35 doc resync: MKT-31 recorded, stale body struck)
+  A. ⚠ MKT-31 — THE VERIFY IDENTITY PACKAGE — WAS ABSENT FROM THIS DOC
+     ENTIRELY despite shipping 2026-07-30, operator-accepted. Recorded now
+     (changelog here, ledger §9, anatomy §3, assets §7). The package: (1)
+     verify stinger hierarchy INVERTED — "YESTERDAY'S RECEIPTS" dominant
+     ~62px, wordmark small in gold beneath (headline-dominant layout, verify
+     only); (2) persistent gold DATE RIBBON ("YESTERDAY'S RECEIPTS · <day> ·
+     <date>") riding every body frame, fade-out at the endcard cut; (3)
+     endcard matrix rebuilt with gold CTA; the stale unversioned fallback
+     verif_endcard.mp4 refreshed; (4) gold #FBBF24 accents (ribbon, stinger
+     line 2, endcard line 3, intro chip) — verify only, slates keep
+     purple/cyan; (5) SEAL CLEARED — see B; (6) sign-off boundary confirmed.
+  B. ✅ THE SEAL HOLD IS CLEARED (2026-07-30, measured): the re-delivery
+     peaks −17.4dB at 1.10s (bound ~2.0s), nothing after 2.4s above −19.2dB;
+     the 7/29 defect (bell 2.7s/−3.5dB over the VO onset) is gone. Binding
+     TIGHTENED: seal is verify's FIXED stinger motion REPLACING rotation —
+     a missing/defective build degrades to NO stinger via probeStinger's
+     null, NEVER to a slate motion; a re-armed `held:` returns verify to
+     rotation. §7's HELD entry and v2.0 note A are superseded by this note.
+  C. ⚠ MKT-31 ADDENDUM (geometry, blocking postability): verify's outro now
+     takes the endcard's FIRST 6.5s (All-Day's proven window; was the last
+     2.5s static tail). Reel +4.0s; envelope ~23.4-28.8s; carrierNeed for
+     the reference body 13.50→17.50s so the full pt2 fits-whole again.
+     ADDENDUM 2 (operator ruling): verify's endcard lockup is tucked under
+     the bolt at per-variant lockupTop 880 (block renders 880-1040) —
+     OVERRIDING the shared 1150-1500 reserved band for verify only; slate
+     kinds stay at LOCKUP_TOP 1240. The zone was re-purchased with
+     measurements (≤1.3% pixels above L40 across all four motions, 5.2s→6.5s
+     cut); ANY new motion joining verify's rotation must re-run them.
+     Do not "correct" 880 back to the band — it is a ruling, not a bug.
+  D. STALE BODY STRUCK by MKT-35: v2.2 note B.3 (powerup — it serves in the
+     rotation of 6 since 7/30, v2.0 note F was correct); §9 MKT-28/MKT-30
+     remaining-work clauses (both closed in v2.1); §10's MKT-16 block and
+     the IN-FLIGHT list (Phase 1+3 shipped 7/30 — allday_public is LIVE,
+     daily output is EIGHT reels); §3's seal-held and 2.5s-close text.
+  E. MKT-35 P1 (same day): the verify BOARD segment now renders straights
+     GOLD with "DREW · STRAIGHT" (was one green treatment for every match —
+     the 7/30 board showed two straights as plain matches). Fail-closed
+     asserts added: posted==drawn must carry the straight annotation, and
+     the board/ledger must agree on match TYPE, else the render aborts.
+     Data layer verified correct on live rows — bestOrder IS the posted
+     permutation; no backfill was needed (all defect classes: 0 rows).
 
 WHAT CHANGED IN v2.2 (2026-07-31 PM — MKT-32 ADDENDUM salvage pass + web-rename incident)
   A. ✅ ALL FOUR v2.1-note-A REJECTIONS WERE SALVAGED BY EDIT AND ARE LIVE —
@@ -44,8 +87,10 @@ WHAT CHANGED IN v2.2 (2026-07-31 PM — MKT-32 ADDENDUM salvage pass + web-renam
         Upload under the final name, or rename via CLI, and probe after.
      2. evening_pro PART 1 — never delivered (v2.1 note C still stands);
         scope-named incumbent serves. §9 rotation-set gap also still open.
-     3. anchor_intro_powerup — MKT-17 rejection, still awaiting regeneration
-        (unchanged).
+     3. [STRUCK in v2.3 — STALE. powerup's regeneration was validated and
+        SERVES in the rotation of 6 since 2026-07-30 (v2.0 note F, §7).
+        This line contradicted both and leaked into the audit's close-out;
+        both struck by MKT-35. It owes nothing.]
      No other reel asset is awaiting delivery or regeneration.
 
 WHAT CHANGED IN v2.1 (2026-07-31 — MKT-32 carrier wave gate; audit entry has the tables)
@@ -77,7 +122,10 @@ WHAT CHANGED IN v2.1 (2026-07-31 — MKT-32 carrier wave gate; audit entry has t
      neutrals in the public cut are the REAL set now, not provisional.
 
 WHAT CHANGED IN v2.0 (2026-07-30 — content-agent ruling pass + MKT-29/30)
-  A. ⚠ SEAL IS VERIFY'S PINNED STINGER MOTION — ruling option (a) confirmed —
+  A. [SUPERSEDED by v2.3 note B — the hold CLEARED on the 7/30 re-delivery
+     (peak −17.4dB at 1.10s) and the seal is now verify's FIXED motion
+     REPLACING rotation. Kept for the record:]
+     ⚠ SEAL IS VERIFY'S PINNED STINGER MOTION — ruling option (a) confirmed —
      BUT THE DELIVERED CLIP IS HELD on a measured defect: the bell lands at
      2.7s at −3.5dB, AFTER the lockup is out (2.4s) and directly over the
      carrier VO onset (2.6s), mid-dissolve. A window slide does not rescue it
@@ -553,7 +601,7 @@ on the 6.33s members) and the reel runs up to 34.53s.
 
 
 --------------------------------------------------------------------------------
-3. REEL ANATOMY — VERIFY / "RECEIPTS" (22.1-27.5s @ 1080×1920 60fps)
+3. REEL ANATOMY — VERIFY / "RECEIPTS" (~23.4-28.8s @ 1080×1920 60fps — envelope updated 2026-07-30, MKT-31 addendum)
 --------------------------------------------------------------------------------
   ⚠ THE VERIFY BODY IS NO LONGER A FIXED LENGTH (changed 2026-07-29, MKT-27).
   v1.7 documented a 6.3s body, a 14.4s total and a flat 9.2s carrier need. All
@@ -573,10 +621,15 @@ on the 6.33s members) and the reel runs up to 34.53s.
                intro and never a rotation member (MKT-17), so the OPEN is stable.
                ⚠ Its STINGER is ruled the same way as of 2026-07-30 (MKT-29):
                PINNED to the closing-bell seal — "session closed, results
-               final" is true of receipts and false of every 8:30am drop —
-               with the shared rotation as fallback. The delivered seal is
-               HELD on a measured defect (bell 2.7s, over the VO onset); until
-               its regeneration lands, verify draws the rotation in practice.
+               final" is true of receipts and false of every 8:30am drop.
+               ✅ CLEARED 2026-07-30 (MKT-31 item 5): the re-delivery measures
+               clean (peak −17.4dB at 1.10s, nothing after 2.4s above
+               −19.2dB) and the seal SERVES as verify's FIXED motion
+               REPLACING rotation — a missing/defective build degrades to NO
+               stinger, never a slate motion; a re-armed `held:` restores
+               rotation. The stinger renders headline-dominant (MKT-31 item
+               1): "YESTERDAY'S RECEIPTS" ~62px on top, wordmark small in
+               gold beneath — verify only.
                ⚠ THE CHIP SAYS "YESTERDAY'S RESULTS", THE STINGER SAYS
                "YESTERDAY'S RECEIPTS" — DELIBERATE, ruled 2026-07-30. The chip
                identifies the reel in cold-viewer language at 0.4s; the
@@ -590,19 +643,44 @@ on the 6.33s members) and the reel runs up to 34.53s.
   8.3 – …      BODY — 8.6s to 14.0s. Reference render 2026-07-28: 11 matched
                rows, 2 straights → 3 featured → 13.60s body, 24.43s reel.
                In practice any day with 3+ matched rows lands 12.80-14.00s.
-  … – +2.5     CLOSE — final 2.5s of verif_endcard (static lockup), hard cut.
+  … – +6.5     CLOSE — ⚠ CHANGED 2026-07-30 (MKT-31 addendum, blocking
+               postability): the FIRST 6.5s of the endcard, All-Day's proven
+               window (was: last 2.5s, a hard cut to a static stranded
+               lockup). Formation fills the frame, text fades in 4.5-5.2s
+               under living motion, the reel ends at endcard t≈6.4s — never
+               reaching the barren 10s tail. Endcard audio stays unused
+               (verify's ruling: carrier, then silence). Cost as ordered:
+               +4.0s to the reel.
+               ⚠ LOCKUP RULING (addendum 2, operator, 2026-07-30): verify's
+               endcard text is tucked under the bolt at per-variant
+               lockupTop 880 — block renders y 880-1040 — OVERRIDING the
+               shared 1150-1500 reserved band for verify only (slates stay
+               at 1240). Re-purchased with measurements: zone clean on all
+               four motions from text-opaque 5.2s to the 6.5s cut (≤1.3%
+               pixels above L40, max L77). Any NEW motion joining verify's
+               rotation must re-measure that zone before it serves. Do not
+               "fix" 880 back to the band.
+               A persistent gold DATE RIBBON (MKT-31 item 2) rides EVERY body
+               frame — "YESTERDAY'S RECEIPTS · <day> · <date>", real date
+               from reel_date — and fades out AT the endcard cut.
+               The BOARD segment (MKT-35, 2026-07-31) renders straights GOLD
+               with "DREW · STRAIGHT"; box matches stay green. Posted==drawn
+               must carry the straight annotation or the render aborts.
   AUDIO        The intro's own sting, then the stinger's own impact, then the
                carrier VO 0.4s before the dissolve completes. −14 LUFS.
                TWO PARTS since 2026-07-29: verif_carrier (10.005s, the day's
                read) + verif_carrier_pt2 (5.67s, an EVERGREEN sign-off over the
                last hold and the close, joined with a 0.35s breath). Joined
-               16.02s against a need of bodyDur+2.9, leaving ~0.5s of silence
-               at the very close — down from 6.5s.
+               16.02s against a need of bodyDur+6.9 (the 6.5s close moved
+               the window — MKT-31 addendum: carrierNeed for the reference
+               body 13.50→17.50s, so the full pt2 fits-whole again; VO
+               covers 23.94s of the 25.43s reference cut, silence at the
+               close 1.49s).
                ⚠ THE WINDOW MOVES, so the close resolves BY WINDOW (updated
                2026-07-30): full pt2 when it fits → the SHORT sign-off
-               (verif_carrier_signoff_short.mp4, ~3.0s, budget-gated, not yet
-               delivered) when it does not → part 1 alone (silence) only if
-               neither fits. Every step plays WHOLE or not at all — never cut
+               (verif_carrier_signoff_short.mp4, ~2.2s of speech — slot
+               FILLED 2026-07-31 by the MKT-32 addendum splice) when it does
+               not → part 1 alone (silence) only if neither fits. Every step plays WHOLE or not at all — never cut
                mid-word.
                ⚠ CORRECTED 2026-07-30 (content agent): the 0-straight drop is
                a pure DURATION consequence, NOT a content mismatch — pt2's
@@ -855,7 +933,21 @@ per-day by hand, not AI-freestyled.
                                   ≤2.3s of speech covers every day with a
                                   featured row; ~3.0s starts losing 1-box
                                   days.
-    verif_endcard.mp4             Verify bolt endcard
+    verif_endcard.mp4             Verify bolt endcard (unversioned last-resort
+                                  fallback; refreshed by MKT-31 — the tagged
+                                  matrix verif_endcard_<tag>.mp4 is what
+                                  serves). ⚠ VERIFY GEOMETRY IS RULED
+                                  (MKT-31 addendum 2, 2026-07-30): lockup at
+                                  per-variant lockupTop 880 (block 880-1040),
+                                  OVERRIDING the shared 1150-1500 band —
+                                  verify only, slates stay at 1240. The
+                                  outro takes the endcard's FIRST 6.5s, so
+                                  any NEW verify endcard motion must
+                                  (a) be bed-viable under text from 4.5s and
+                                  (b) re-measure the 880-1040 zone clean
+                                  from text-opaque 5.2s to the 6.5s cut
+                                  (accepted bar ≤1.3% pixels above L40)
+                                  before it serves. Do not restore 1240.
     midday_pro_carrier.mp4        Midday VO carrier (+ _pt2, auto-joined)
     evening_pro_carrier.mp4       Evening VO carrier (+ _pt2, auto-joined)
     midday_free_carrier.mp4       MKT-26 — FREE-tier session VO (+ _pt2 each).
@@ -913,20 +1005,26 @@ per-day by hand, not AI-freestyled.
     stinger_motion_strike.mp4     shared across ALL variants and both tiers —
     stinger_motion_circuit.mp4    a stinger carries no tier signal. std =
                                   bolt condense · strike · circuit.
-    stinger_motion_seal.mp4       ⚠ REGISTERED BUT HELD (MKT-29) — verify's
-                                  PINNED motion, never in the shared set (a
-                                  slate drop must never draw the bell). The
-                                  7/29 delivery fails acceptance, measured:
-                                  bell at 2.7s / −3.5dB, after lockup-out and
-                                  over the VO onset. No trim rescues it (bolt
-                                  already forming at 0.7s; a later window
-                                  breaks the smoke-only open) and fading the
-                                  bell deletes the concept. Regeneration ask:
-                                  ring sealed + bell STRUCK by ~2.0s, decay
-                                  under the smoke return. The hold lives in
-                                  brand-motion.ts (`held:`); clearing it is
-                                  the LAST step after the re-delivery
-                                  measures clean.
+    stinger_motion_seal.mp4       ✅ SERVING — verify's FIXED motion (MKT-29
+                                  pin, MKT-31 item 5 clearance 2026-07-30),
+                                  never in the shared set (a slate drop must
+                                  never draw the bell). The 7/30 re-delivery
+                                  measures clean: energy peak −17.4dB at
+                                  1.10s (bound ~2.0s), smooth decay under
+                                  the smoke return, nothing after 2.4s above
+                                  −19.2dB; the 7/29 defect (bell 2.7s/−3.5dB
+                                  over the VO onset) is gone. `held:` was
+                                  cleared LAST, per the standing rule.
+                                  ⚠ BINDING (tightened at clearance): seal
+                                  REPLACES rotation for verify — a missing or
+                                  defective build degrades to NO stinger via
+                                  probeStinger's null, never to a slate
+                                  motion; re-arming `held:` in
+                                  brand-motion.ts returns verify to rotation
+                                  (the five rotation verify stingers were
+                                  rebuilt with the MKT-31 headline-dominant
+                                  layout so a re-arm serves the new
+                                  identity).
                                   ⚠ circuit carries a second transient (a
                                   gold pulse at 2.7s) that fires after the
                                   lockup is already out. It is corrected in
@@ -1339,24 +1437,37 @@ BUILT AND RUNNING DAILY:
           sanctioned at tier 4. Affects nothing you write for Facebook.
   MKT-28  HEAT COPY DECISIONS CLOSED (2026-07-30) — canonical HOT wins on the
           detail surfaces; Heat Check keeps verdict wording on renested
-          thresholds (80/65/45). What remains is the CONTENT AGENT's neutral
-          public vocabulary — 11 slots (5 temperature + 5 verdict + 1 banner).
-  MKT-29  VERIFY STINGER PINNED TO SEAL (2026-07-30) — wired with rotation
-          fallback; the delivered clip is HELD pending regeneration (v2.0
-          note A). Verify draws the rotation until it lands.
+          thresholds (80/65/45). ✅ FULLY CLOSED same day (v2.1 note D): the
+          11 neutral slots were DELIVERED and landed verbatim in
+          HEAT_RELABEL; the shipped table is in the MKT-28 audit entry.
+          Nothing remains owed.
+  MKT-29  VERIFY STINGER PINNED TO SEAL (2026-07-30) — ✅ RESOLVED: the hold
+          CLEARED on the 7/30 re-delivery (v2.3 note B); seal is verify's
+          FIXED motion REPLACING rotation. §7 has the measurements.
   MKT-30  PUBLIC CAPTURE MODE BUILT (2026-07-30) — `--redact --relabel`
           renders the tier-1-clean public body with the bolt look, audited
-          per modal by the real lint engine. Unregistered by design; MKT-16's
-          five registration points are the remaining build (v2.0 note E).
+          per modal by the real lint engine. ✅ REGISTERED same day: MKT-16's
+          five points landed 7/30 (v2.1 note D); allday_public is LIVE.
+  MKT-31  VERIFY IDENTITY PACKAGE (2026-07-30) ✅ SHIPPED + 2 ADDENDA,
+          operator-accepted — headline-dominant stinger, persistent gold
+          date ribbon, gold accents, seal cleared, FIRST-6.5s endcard
+          window, lockupTop 880 ruling. v2.3 notes A-C; audit entry has the
+          full detail. Was absent from this doc until v2.3.
+  MKT-35  CLASSIFIER + RESYNC + DATED CHIP (2026-07-31, in flight) — board
+          straight treatment shipped (v2.3 note E); this doc resync; the
+          dated identity chip (absorbs the withdrawn standalone order).
 
 IN FLIGHT, NOT BUILT — do not propose against these yet; §10 has the detail:
   MKT-14  Brand attribution in the slate stamp .......... PARKED (untouched)
   MKT-15  Social handoff buttons ....... Phase 1 SHIPPED · Phase 2 BLOCKED
-  MKT-16  Public asset integration + redaction ....... Phase 0, build held
+  MKT-16  ✅ SHIPPED 2026-07-30 (Phase 1+3) — allday_public LIVE end to end;
+          moved out of this list by v2.3. Platforms unblockable, none
+          flipped (operator-only, per-platform).
 
-DAILY OUTPUT TODAY: up to SEVEN reels — verify (22.1-27.5s, variable by row
-count since MKT-27), All-Day Pro + Free, and Midday and Evening, each now Pro +
-Free. Slate reels are 33.83-34.53s depending on the day's intro. All
+DAILY OUTPUT TODAY: up to EIGHT reels — verify (~23.4-28.8s, variable by row
+count since MKT-27), All-Day Pro + Free + PUBLIC (allday_public, 34.20s, live
+since 7/30 — reel:daily renders its body third), and Midday and Evening, each
+Pro + Free. Slate reels are 33.83-34.53s depending on the day's intro. All
 auto-publish to Admin → Reels with drafted captions. Nothing auto-posts, ever.
 
 ⚠ THE PRO-ONLY SESSION RULING IS SUPERSEDED (MKT-26, 2026-07-29) — BUT NOT
@@ -1454,7 +1565,7 @@ WHAT IS DELIBERATELY NOT BUILT:
 
 
 --------------------------------------------------------------------------------
-10. IN FLIGHT — WHAT EXISTS AND WHAT DOES NOT (2026-07-28)
+10. IN FLIGHT — WHAT EXISTS AND WHAT DOES NOT (2026-07-31, resynced by v2.3)
 --------------------------------------------------------------------------------
 Added in v1.6 because three lanes are now partly delivered, and "an asset is in
 the repo" has been mistaken for "the pipeline reads it". Nothing in this section
@@ -1494,10 +1605,11 @@ through the real tier-1 lint engine per modal with an EMPTY acceptance bar.
 Q1 is absolute at tier 1 — "100", "100%" and "102×" all block, so remaining
 3-digit runs are structurally hidden. Bodies carry an `hm_reel_public` tag for
 the eventual assembler to assert. The bolt decisions are made (gold gradient
-per palette §7, centered, 60%/85%). WHAT REMAINS: ① the content agent's
-reconciled neutral heat vocabulary (drops into HEAT_RELABEL verbatim — the
-LAST copy input), ② MKT-16's five registration points, still held. The
-original scoping below is kept for the record.
+per palette §7, centered, 60%/85%). [v2.3: BOTH remaining items CLOSED
+2026-07-30 — ① the neutral heat vocabulary was delivered and serves in
+HEAT_RELABEL (11-slot table in the MKT-28 audit entry), ② MKT-16's five
+registration points landed and allday_public is LIVE. Nothing remains here.]
+The original scoping below is kept for the record.
 
 MKT-15 — PHASE 2, THE PUBLIC CUT. BLOCKED, and bigger than first scoped.
   The headline finding: MASKING DIGITS IS NOT SUFFICIENT. The body is a screen
@@ -1529,16 +1641,21 @@ MKT-15 — PHASE 2, THE PUBLIC CUT. BLOCKED, and bigger than first scoped.
   tab label is exposed today. The day a tab-switch beat is added to the
   capture, an un-audited surface enters frame. Better to have the list first.
 
-MKT-16 — PUBLIC ASSET INTEGRATION. Phase 0 only; build held.
+MKT-16 — PUBLIC ASSET INTEGRATION. ✅ PHASE 1+3 SHIPPED 2026-07-30 (v2.3).
+  allday_public is LIVE END TO END: registered at all five points + the DB
+  kind CHECK (migration landed FIRST, operator ruling), assembled
+  (34.20s: 6.0 public intro + 2.7 stinger + 19.0 public body + 6.5 endcard)
+  and published daily — reel:daily builds EIGHT reels. The stored Q1/Q2 gate
+  record (_public_gate_records.json) is REQUIRED before the kind publishes;
+  reel:check FAILs a public kind without it. YouTube/TikTok/Reddit/X have
+  their asset:'redacted' condition MET and are UNBLOCKABLE — none flipped;
+  enabling is operator-only, one platform at a time, Two-Question checkboxes
+  on every handoff. Instagram stays do-not-build (Meta cross-enforcement).
+  midday_public / evening_public stay UNREGISTERED by ruling (no session
+  carriers; three daily public reels is a cadence risk).
+  [Original Phase 0 scoping kept below for the record — superseded:]
   DELIVERED AND USABLE: anchor_intro_public.mp4 (trimmed, passing preflight),
   public_carrier.mp4 + _pt2 (joined, 20.360s, passing), bolt_mark_2048.png.
-  NOT BUILT: the public reel KINDS themselves. allday_public / midday_public /
-  evening_public exist at exactly ONE of five registration points — the intro
-  registry (MKT-17 pre-registered them). They are absent from the endcard
-  config, the stinger config, the scope registry, the caption registry and the
-  database kind CHECK constraint. So: the public assets are real, and no
-  command builds a public reel today. Do not write public captions or public
-  endcard copy against a kind that cannot yet be published.
 
 MKT-14 — SLATE-STAMP BRAND ATTRIBUTION. Parked, cleanly.
   Nothing built, no code touched; the work order is parked verbatim at

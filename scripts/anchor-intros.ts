@@ -22,12 +22,11 @@ export interface IntroVariant {
 /**
  * The rotating set, for SLATE reels only (allday/midday/evening, pro + free).
  *
- * `anchor_intro_powerup.mp4` is deliberately ABSENT. It was delivered but never
- * reaches full-frame smoke — from 5.6-6.5s it is smoke inside a phone (bezel and
- * notch still framing it) and by 6.8s it has pulled back to the newsroom, so no
- * 6.0s window ends on a usable dissolve bed. Registering it would either fail
- * preflight every morning or ghost a handset outline through the UI body. Add it
- * here once it is regenerated with the camera pushing fully into the screen.
+ * `anchor_intro_powerup.mp4` is the MKT-23 REGENERATION, in the set since
+ * 2026-07-30 — see the entry at its line below. (The original delivery was
+ * rejected by MKT-17 for never reaching full-frame smoke; a stale "awaiting
+ * regeneration" claim about it survived into two handoffs and the audit's
+ * v2.2 close-out before MKT-35 struck it.)
  *
  * `arrival` and `monitors` (added 2026-07-29) are both trimmed from 10.005s
  * masters, as every intro delivery has been. Their trims are NOT the same and

@@ -258,8 +258,6 @@ function checkPartNaming(): void {
  * Remove an entry the moment its reason expires.
  */
 const UNREFERENCED_OK: Record<string, string> = {
-  'anchor_intro_powerup.mp4':
-    'REJECTED by MKT-17 — never reaches full-frame smoke (5.6-6.5s is smoke inside a phone, bezel still framing it). Awaiting regeneration with the camera pushing fully into the screen.',
   // MKT-16 (2026-07-30): public_carrier.mp4 + _pt2 left this list — they are
   // registered under allday_public in carrier-config.ts and are now validated
   // like every other carrier pair.

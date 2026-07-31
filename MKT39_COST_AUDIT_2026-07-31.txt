@@ -1,0 +1,115 @@
+MKT-39 — PIPELINE COST AUDIT · 2026-07-31
+Research only. All figures MEASURED (storage.objects, pg_total_relation_size,
+social_posts, the 7/31 detached run log) — nothing estimated unless marked,
+nothing changed. Numbers for the operator to decide on; no recommendations
+except where flagged.
+
+────────────────────────────────────────────────────────────────
+1. STORAGE — ACTUAL AND STEADY-STATE
+────────────────────────────────────────────────────────────────
+marketing-reels bucket: 214.0 MB · 26 objects (post-MKT-38 supersession,
+every kind holding exactly its newest cut):
+
+  artifact         files   total     per-file range
+  9:16 master        8    131.0 MB   15.0 – 18.6 MB
+  1:1 cut            8     78.4 MB    8.4 – 12.0 MB
+  contact sheet      8      4.7 MB    0.4 – 0.7 MB
+  captions PDFs      2      0.2 MB    ~0.1 MB/day
+
+Per kind (9:16 + 1:1 + sheet): verify 31.0 · midday_free 29.1 · allday_public
+26.9 · allday_free 26.7 · evening_free 26.7 · midday_pro 24.8 · evening_pro
+24.8 · allday_pro 24.1 MB.
+
+READ: steady state is FLAT at ~210-220 MB ± daily encode variance. The only
+accumulator left is the captions PDFs (own 30-day retention → caps near
+3 MB). Archived rows keep metadata only — no object survives supersession.
+
+Local codespace disk: assets/marketing/ = 909 MB total.
+  - 237 MB = reel output dirs (current-day finals + bodies + rig art —
+    exactly what the daily sweep leaves behind).
+  - 672 MB = the standing asset library (carriers, intros, stinger/endcard
+    motions, masters). Never swept; grows only when new assets are
+    delivered.
+
+────────────────────────────────────────────────────────────────
+2. QUOTA AND SHARED RESOURCES
+────────────────────────────────────────────────────────────────
+DATABASE: 40 MB total. Marketing tables ≈ 0.2 MB (~0.5%): marketing_reels
+98 KB + social_posts 123 KB. Engine data ≈ 19.4 MB: datasets_box 6.3 ·
+slate_snapshots 4.3 · histories 3.1 · daily_intelligence 2.8 · datasets_pair
+2.4 · adaptive_tracking 0.6.
+READ: in the DATABASE the reels are a rounding error against the engine —
+plainly. The pools ARE shared (one Supabase project), and the split inverts
+by resource: marketing is ~98% of STORAGE (217 MB vs ~0 app files) and
+~0.5% of DB.
+
+PLAN LIMITS: the tier is not queryable from this session — one dashboard
+glance needed to confirm. Against the FREE tier (500 MB DB / 1 GB storage /
+5 GB egress/mo): DB 8% · storage 22% · egress ~80% worst case (see below).
+Against PRO (8 GB / 100 GB / 250 GB): everything under 3%. Neither tier's
+DB or storage is threatened.
+
+EGRESS ATTRIBUTION — your read is CONFIRMED IN CODE. Zero references to the
+marketing-reels bucket exist outside components/admin; reels are never
+served to subscribers. Egress = the operator's own preview/download flow:
+~8 files × ~16 MB ≈ 130 MB/day ≈ ~4 GB/month worst case (every file
+downloaded once daily; previews stream partially). Platform count does NOT
+change it — each post is one download regardless of destinations.
+⚠ The one flag in this report: IF the project is on the free tier, the
+operator's own posting flow is the DOMINANT egress consumer and ~4 GB/mo
+brushes the 5 GB cap. On Pro it is nothing. Confirm the tier.
+
+app-panels bucket: 3.2 MB · 6 PNGs. This IS the one app-wide-served
+marketing asset — but its per-user cost is currently ZERO in practice:
+user_sessions and push_tokens both count 0 registered devices (app
+distribution still gated on Apple Dev). At launch: ~3.2 MB per uncached app
+load → ~320 MB/day per 100 uncached daily users (estimate, marked as such).
+
+────────────────────────────────────────────────────────────────
+3. ARTIFACTS NOBODY USES
+────────────────────────────────────────────────────────────────
+1:1 FEED CUT: 0 of 48 logged assisted posts reference a _1x1 file. The
+handoff flow structurally hands the 9:16 (filename derives from video_path);
+the 1:1's entire surface is a single "open in new tab" ghost button in
+Admin → Reels, and taps on it are NOT logged — so "never used" is
+answerable only by the operator, but no log has ever seen it used.
+Cost if unused: 78.4 MB = 37% of bucket storage + 8 of the daily run's
+encodes. Reported, not decided.
+
+CONTACT SHEETS: CONFIRMED USED — the sheet IS the card preview in
+Admin → Reels by design (no video-player dependency). 4.7 MB, read daily.
+
+PARKED / BACKUP / MASTER FILES: 25 files · 85 MB, local and in git — 10s
+masters, incumbent backups, rejected takes (MKT-21/32 evidence), the
+ungated verify part-1 candidate. That is the price of the
+evidence-and-rollback policy as it stands.
+
+────────────────────────────────────────────────────────────────
+4. RUN COST
+────────────────────────────────────────────────────────────────
+FULL 8-REEL DAILY RUN: ~65 minutes wall-clock. 7/31 log: 10:19:17 start →
+11:24 final write; verify → allday(×3) → midday(×2) → evening(×2), all
+EXIT 0, publishes + captions PDF included.
+
+USER-FACING IMPACT: none — confirmed rather than assumed. The run drives a
+LOCAL Expo dev server for captures and writes only to the marketing bucket
+and marketing/log tables. Its database touches are read-only
+snapshot/tracking queries (trivial volume); no consumer table is written
+and no serving path is exercised. (And "subscribers" today = 0 registered
+devices.)
+
+NINTH KIND: linear — +1 body capture (~3-5 min) + 1 assembly (~2-4 min) +
+~25 MB of uploads per added kind; no superlinear coupling (per-kind loops,
+shared steps amortized). The eventual AD kind is CHEAPER than linear: an
+evergreen body needs no daily capture — assembly only, and if truly static,
+only when its assets change rather than daily.
+
+────────────────────────────────────────────────────────────────
+BOTTOM LINE
+────────────────────────────────────────────────────────────────
+Nothing alarming. The two numbers most worth a decision:
+  ① the 1:1 cut — 37% of bucket storage + 8 daily encodes for an artifact
+    with zero logged use;
+  ② the plan tier — one dashboard glance settles whether operator egress
+    (~4 GB/mo worst case) matters at all.
+Both are the operator's call.

@@ -261,7 +261,8 @@ const UNREFERENCED_OK: Record<string, string> = {
   // MKT-16 (2026-07-30): public_carrier.mp4 + _pt2 left this list — they are
   // registered under allday_public in carrier-config.ts and are now validated
   // like every other carrier pair.
-  'watermark_source.mp4': 'MKT-14 source, parked with the lane.',
+  'watermark_source.mp4':
+    'PERMANENTLY UNREFERENCED (MKT-14 shipped 2026-07-31). This was the anchor-helmet badge for the Phase-2 watermark design, which the bolt ruling superseded: attribution rides the slate stamp\'s brand line, so no second overlay and no badge asset is ever read. Kept as delivery evidence only — this entry is NOT pending work, and the file can be deleted without affecting any reel.',
   'verif_carrier_part1_candidate_20260731.mp4':
     'UNGATED CANDIDATE — operator delivered a new verify part 1 via GitHub web 2026-07-31 (upload 1b55470, then two web renames that CORRUPTED both the delivery and the shelved incumbent to unreadable stubs; real bytes recovered from the upload commit). Probes clean, 10.005s law holds, VO end 9.568s, clean tail. NOT registered: content transcript + voice-family gate still owed (whisper env broke mid-session). Incumbent verif_carrier.mp4 restored from git and serving. Gate this file, then swap or reject.',
   // MKT-32 — the 2026-07-30/31 carrier drops, validated and gated 2026-07-31.

@@ -158,9 +158,19 @@ function html(picks: SlatePick[], dateISO: string, publicCut = false): string {
        renders y 100-220, glow to ~281; at the push-in's max scale (1.045,
        origin 42%) content top 328 rises to ~322 — the band y 0-300 stays clear
        of every card, digit and badge through the whole move. Measured, not
-       eyeballed; re-measure if the ribbon grows or the push-in changes. */
+       eyeballed; re-measure if the ribbon grows or the push-in changes.
+
+       MKT-14 (2026-07-31): the ribbon GREW — exactly the case the line above
+       says to re-measure for. The brand line extends the chip 219px -> 265px,
+       so at the board segment's -370 offset it now reaches y327, i.e. 27px INTO
+       the first card. Padding 328 -> 375 restores the clearance (content top
+       375 rises to ~368 at max scale; 48px clear of the 300 band). Costs ~47px
+       of card height across the 6 rows, which .row's flex:1 absorbs evenly.
+       Chosen over shifting the assembler's offset to -416: that would have put
+       the ribbon top at y16, under the platform top chrome on every short-form
+       surface — hiding the brand line is the one outcome MKT-14 cannot accept. */
     body{width:1080px;height:1920px;background:#07080f;font-family:JBM;color:#fff;
-         padding:328px 56px 84px;display:flex;flex-direction:column;gap:30px}
+         padding:375px 56px 84px;display:flex;flex-direction:column;gap:30px}
     .hd{display:flex;flex-direction:column;gap:10px;margin-bottom:6px}
     .eyebrow{font-weight:500;font-size:30px;letter-spacing:7px;color:#2bffcc}
     .title{font-weight:700;font-size:62px;letter-spacing:1px}

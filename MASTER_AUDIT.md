@@ -15,8 +15,9 @@
 
 **STATE AT CLOSE.** Seven scopes closed today. **[[MKT-35]]** (straight-match classifier — mechanism REFUTED on live data, the defect was the board renderer, backfill 0 rows; + frame-one dated chip, per-segment ribbon, slot 9 LONG GAP), **[[MKT-36]]** (new `anchor_intro_public` won the comparative gate and serves; 2 more binaries eaten by GitHub-web renames — running total SIX), **[[MKT-37]]** (YouTube per-platform transform, caption pools 8→12, handoff kind guard), **[[MKT-38]]** (keep-current-only retention; 674MB local + 20 bucket rows reclaimed), **[[MKT-39]]** (cost audit → operator retired the 1:1 cut: 0 of 48 logged posts used it), **[[MKT-40]]** (`verify_public` — Phase 0 → built → published in one day; two public reels/day is now the shipped state). Working tree clean, everything pushed. `reel:check` 0 fail.
 
-**⛔ OPEN — BLOCKING A BUILD:**
-1. **[[MKT-14]] is HELD AT ITS PHASE-0 GATE** pending two operator rulings: ① the version string — the parked order mandates **"HITMASTER ZK"** (version-agnostic, "must survive ZK30 and ZK50") against the new decision's **"HITMASTER ZK6"**; ② the verify board-segment collision fix — deepen the board's top padding (328→~375) or shift the ribbon offset (−370→~−416). Full report: `MKT14_PHASE0_2026-07-31.txt`. Everything else in Phase 1 is unblocked and costed.
+**✅ CLOSED SINCE THAT CLOSE (2026-07-31, late):**
+- **[[MKT-14]] SHIPPED.** Both gate rulings given: ① brand string = **`HITMASTER ZK6`** (the stinger and endcard in the same reel already render it, so the version-agnostic alternative would have disagreed with its own bookends); ② board collision = **padding 328→375**, not the −416 offset shift, which would have put the ribbon under platform top chrome. Brand line built into `render-reel-stamp.ts`, geometry re-measured pre/post across all four date-line lengths (width unchanged everywhere), board clearance confirmed at 40px by a real render. **The line reaches reels only on the next assembly — today's nine cuts predate it.** Full entry below.
+- **[[MKT-41]] REPUBLISHED.** The MKT-41 cuts were built (verify 20:00, verify_public 20:08) and committed but never pushed to storage — both rows still served the 19:03 cuts, i.e. the 880 tuck and the silent close MKT-41 exists to fix. Republished 21:30Z, byte-exact with the commit (18,624,744 / 20,315,451). Both rows were `ready`/unposted, so the documented reset-on-republish destroyed nothing.
 
 **OPEN — OPERATOR DECISIONS, nothing blocking:**
 2. **Verify part-1 candidate** (`verif_carrier_part1_candidate_20260731.mp4`): whisper env HEALED, transcript matches the script exactly → **content gate PASSES**, and MKT-35 satisfied the sequencing condition. Only the voice-family check + swap-or-reject remain.
@@ -156,7 +157,39 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 ---
 
-### MKT-14 — Slate-stamp brand attribution 🔍 PHASE 0 REPORTED · BUILD HELD AT THE GATE (2026-07-31)
+### MKT-14 — Slate-stamp brand attribution ✅ SHIPPED — BOTH GATE RULINGS GIVEN, PHASE 1 BUILT (2026-07-31)
+
+**PHASE 1 — BUILT AND MEASURED. The gate cleared on two operator rulings:**
+
+**① VERSION STRING → `HITMASTER ZK6`** (decision 1 upheld; the parked order's version-agnostic "HITMASTER ZK" is overridden). The argument that settled it is one Phase 0 did not weigh: *within a single reel* the stinger (5.7–8.7s) and the endcard lockup (32.2–34.2s) both already render `HITMASTER ZK6`, so a body stamp reading `HITMASTER ZK` would disagree with its own bookends. The parked order's ZK30/ZK50 concern is real but is a **fleet-wide** wordmark question — if the wordmark ever leaves ZK6, three surfaces change together, and `render-reel-stamp.ts` names the other two in `BRAND_STRING`'s doc comment so the next person finds them.
+
+**② BOARD COLLISION → (a) padding 328 → 375** (`render-verify-slate.ts`). Chosen over shifting the assembler offset to −416: that was the cheaper edit (one number, no re-render) but would have put the ribbon top at y16, **under the platform top chrome on every short-form surface** — hiding the brand line is the one outcome this ticket cannot accept. The ~47px of card height is absorbed evenly by `.row`'s `flex:1`.
+
+**BUILD — `scripts/render-reel-stamp.ts`.** Brand line added BELOW the date line (28px JBM 700, ~67% of the date line) with the bolt inlined from `assets/marketing/bolt_mark.svg` and filled with the chip's purpose accent. **Inlined rather than `<img>` because an external SVG cannot be recoloured by the host page** — but the file is still read from disk and its path geometry asserted against the constant the chip was measured with, so a redrawn mark **aborts the render** instead of silently shifting the band. The `file://` + `document.fonts.check()` load path is untouched (MKT-10 silent-serif lesson).
+
+**VERIFICATION — MEASURED, and it corrected a Phase 0 artefact.** Alpha bounding boxes, pre- vs post-, across all four date-line lengths:
+
+| kind | before | after | width |
+|---|---|---|---|
+| allday / midday | y432–650 x166–913 | y432–**694** x166–913 | **unchanged** |
+| evening (widest) | y432–650 x152–927 | y432–**694** x152–927 | **unchanged** |
+| verify (narrowest) | y432–650 x250–829 | y432–**694** x250–829 | **unchanged** |
+
+All four sit inside the 1:1 keep band (420–1500). **Phase 0's drop figure `x152–928` was the EVENING date line, not a universal drop width** — `ALLDAY` is one mono character shorter, so the allday chip is 29px narrower. Phase 0's number was the worst case and it reproduces at x152–927 (1px). The "width unchanged" claim is now empirical rather than inferred: the brand line is shorter than the date line in *every* kind, including the narrowest.
+
+**The board collision is cleared against a REAL RENDER, not arithmetic.** A throwaway probe drove `renderSlateFrames` at both ends of the push-in and read the topmost non-background pixel: content top **y383** at scale 1.000, **y364** at 1.045 (the worst case). Chip at the −370 offset occupies y62–324 ⇒ **40px clearance**, reserved band y0–300 intact. This also cross-validates Phase 0 — its "content top 315" is exactly what padding 328 yields at the same scale, so the two measurements agree about a surface neither could see directly.
+
+**Ad kind — no code owed.** Phase 0 answered this as report-not-decide, and the answer holds: no ad kind exists in any assembler lane, and the stamp is only rendered by the allday/session/verify assemblers, so an evergreen body receives no in-body attribution by construction. `datedChipExcluded` remains a *separate* mechanism (the intro chip) resting on the same MKT-18 false-claim principle.
+
+**`watermark_source.mp4` exemption rewritten** — the bolt ruling makes it permanently unreferenced, so `UNREFERENCED_OK` now says so outright instead of "parked with the lane", which read as pending work. Phase 0 item (b) closed.
+
+**Gates:** filtered `npx tsc --noEmit` clean on all three touched files; `reel:check` **0 fail**, stamp probe renders 1080×1920 rgba with JetBrains Mono loaded.
+
+**⚠ NOT REBUILT.** The brand line reaches reels only on the next assembly — today's nine cuts predate it. No regen was run (standing rule: snapshots/reels are not regenerated unasked).
+
+---
+
+**Phase 0 report follows, as filed 2026-07-31 (both ⛔ items above are now ruled):**
 
 **UNPARKED on operator go-ahead** (parked 2026-07-28 pending the social expansion; the trigger to resume is that content is now on a public platform and the reels drove the 7/31 growth, so they will be reposted). ID was already reserved by the parked order — no collision. Full report: `MKT14_PHASE0_2026-07-31.txt`. Discovery only; no renderer or assembler change.
 

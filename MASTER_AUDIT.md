@@ -11,7 +11,20 @@
 
 ---
 
-## ⏭️ RESUME HERE — session close 2026-07-30 (evening — MKT-31 + both addenda SHIPPED, operator-accepted)
+## ⏭️ RESUME HERE — session close 2026-07-31 (MKT-32 carrier wave gated: 1 of 5 deliveries survives)
+
+**STATE AT CLOSE:** the 7/30–7/31 carrier drops were measured and gated. **Survivor: `evening_free_carrier_pt2.mp4`** (margin +0.359s, content clean, voice proxies in family) — live in place, replaced incumbent kept as `evening_free_carrier_part2_20260729_backup.mp4`. **Four rejections**, each parked on disk with its measured defect in `UNREFERENCED_OK` (check-reel-assets.ts) and detailed in the MKT-32 entry below: allday_free pt2 (+0.088s vs the +0.184s floor), midday_free pt2 (+0.114s), evening_pro pt2 (~+0.10 + dirty tail; incumbent restored from git), verif_carrier_signoff_short (2.05s dead pause, 4.03s vs the ≤2.3s line). `reel:check` green; incumbents serve everywhere except evening_free.
+
+**OPEN — RESPEC ASKS FOR THE CONTENT AGENT (route with the measured defects):**
+1. allday_free + midday_free pt2 respecs: same close lines, last word by ~9.47s of part 2 (target margin ≥ +0.184s at silencedetect −35dB).
+2. evening_pro pt2 respec: keep "Receipts at sunup, partners" (endcard echo CONFIRMED — line 3 still reads RECEIPTS AT SUNUP); land last word ~9.2s, END IN CLEAN SILENCE to EOF.
+3. evening_pro **part 1 was never delivered** — incumbent (10.005s, already scope-named "Evening, partners…") serves; the §9 rotation-set gap stands.
+4. verif_carrier_signoff_short regen: ONE CONTINUOUS READ of "Signals first. Receipts after.", speech span ≤2.3s. Resolver wiring already verified (v2.0 note C); pickup simulation deferred to a passing take.
+5. Seam ear-check (non-blocking): evening_free new pt2 is −2.7 dB quieter than its part 1 (old pt2 was +0.8); audition clips in the session scratchpad `seams/`.
+
+---
+
+## ⏭️ Previous — session close 2026-07-30 (evening — MKT-31 + both addenda SHIPPED, operator-accepted)
 
 **STATE AT CLOSE:** the live 7/29 verify reel (25.43s, republished ~20:45Z) carries the FULL verify identity and the operator confirmed the endcard fix on sight. Stack: seal stinger (FIXED, rotation retired), receipts-dominant inverted lockup, persistent gold date ribbon, 6.5s endcard formation outro (addendum 1 — was the static 2.5s tail), endcard lockup tucked under the bolt at per-variant `lockupTop: 880` (addendum 2 — operator ruling overrode the shared 1240 band; measurements in the entry). Detail in the MKT-31 entry + two addenda below.
 
@@ -122,6 +135,32 @@ The earlier gap in this same block — preflight probing file existence rather t
 **ORDER OF WORK:** relabel injection (grid + modal variants) → full `--relabel` capture, frames inspected → registration (endcard, stinger, carrier, scope, caption) → `marketing_reels_kind_check` migration LAST within the change but not left out of it.
 
 **STILL OWED BY THE CONTENT AGENT:** the `ON FIRE` band enum. It gates the public capture copy set and is on this critical path — worth chasing before starting.
+
+---
+
+### MKT-32 — Carrier wave gate: three free sign-offs + verify short slot + evening pro pair (2026-07-31) ✅ GATED — 1 of 5 survives
+
+**ID verified free** (`grep MKT-32` → audit 0 / code 0 before stamping). Work order: validate the 7/30 free-tier pt2 overwrites before the next daily run, plus the two budget-queue deliveries (verify short sign-off, evening_pro pair) on arrival. Marketing pipeline only — no engine, no edge functions.
+
+**DELIVERY-STATE FINDING FIRST: the "three overwrites" premise was false for 2 of 3.** The allday and midday drops landed as **`.MP4`** (uppercase) beside their lowercase incumbents — on this case-sensitive FS the registry (`carrier-config.ts` exact-name lookup) could not see them, and the stray scan couldn't either (`f.endsWith('.mp4')`). Only evening_free actually overwrote in place. Had all three passed, "live the moment the next run fires" would still have been wrong for two of them. The allday `.MP4` was also **byte-identical** to the already-parked `allday_free_carrier_part2_redelivery_20260730.mp4` (same take delivered twice; duplicate deleted).
+
+**Method (matches the recorded-floor convention):** last word = final `silencedetect noise=-35dB:d=0.4` silence_start; join = part 1 (10.005s file duration, v1.8 offset law) + 0.35s breath + pt2; margin = 20.010s assembler fade − last word of join. Faithful test joins built with the production ffmpeg filtergraph. All four allday_free part-1 rotation members **measured** 10.005s (law confirmed, one join measurement covers the set); midday/evening part 1s and evening_pro part 1 likewise 10.005s.
+
+| delivery | joined | last word (join) | margin | floor +0.184 | verdict |
+|---|---|---|---|---|---|
+| allday_free pt2 (.MP4) | 20.360s | 19.922s | **+0.088s** | ✗ | **REJECT** |
+| midday_free pt2 (.MP4) | 20.360s | 19.896s | **+0.114s** | ✗ | **REJECT** |
+| evening_free pt2 (in place) | 20.360s | 19.651s | **+0.359s** | ✓ | **PASS — LIVE** |
+| evening_pro pt2 (in place) | 20.360s | ~19.91s (audio >−35dB to ~9.55s pt2-local, decay to silence only by ~9.8s) | ~**+0.10s** | ✗ | **REJECT** — also non-silent tail where fleet convention is clean silence to EOF; preflight VO-chop WARN territory |
+| verif_carrier_signoff_short | n/a (slot) | speech onset ~0.0s, last word **4.03s** | n/a | ≤2.3s line | **REJECT** — 2.05s dead pause between "Signals first." and "Receipts after."; regeneration as one continuous read, NOT a trim |
+
+**VO content checks at listen (faster-whisper small.en, word timestamps), not from script — all five clean on vocabulary:** no price spoken anywhere (pricing stays in endcard config); allday_free carries NO Pro pitch (SOCIAL-13) and closes on the verify-habit route ("Grade it against the mornin' receipts" — ASR renders "Graded against", same audio); both sessions carry the conversion frame (midday: "Them digits are sittin' under that cover right now. Pro's already readin' 'em…"; evening: "That cover comes off at sunup — for everybody. Pro ain't waitin'…"). Forbidden sweep — pick/picks/numbers/straight/box/play/hit/hits/win/winning/lottery/bet/luck/jackpot: **zero occurrences** in all five transcripts ("digits" is the sanctioned noun and is what's spoken). evening_pro pt2's read confirms the **endcard echo**: "…Receipts at sunup, partners" against endcard line 3 `RECEIPTS AT SUNUP` (verified still in `endcard-config.ts` — MKT-31 did not touch it).
+
+**Seam auditions (MKT-20 proxy method — F0 median / spectral centroid / integrated LUFS vs the tier's part 1s; proxies flag, the ear decides):** evening_free NEW pt2 vs its part 1: F0 −12.7 Hz (accepted incumbent pairs carry ±19–23 Hz), centroid −38 Hz (negligible), **LUFS −2.7 dB quieter** (old pt2 was +0.8 dB) — the one ear-flag, non-blocking by the `_method` precedent (2.0 dB shipped); A/B audition clips built (session scratchpad `seams/`, NEW vs OLD-incumbent seam). Rejected takes' proxies recorded for the respec: evening_pro pt2 F0 −20.4 Hz vs part 1, in family; no seam outlier anywhere — every rejection is on margin/tail/pause, not voice.
+
+**Gate actions (all files probed after every move — the MKT-06 rename-corruption lesson):** evening_free pt2 LIVE, replaced incumbent kept as `evening_free_carrier_part2_20260729_backup.mp4` (ARCHIVE_RE-exempt); allday `.MP4` duplicate deleted (take already parked as the redelivery file); midday take parked as `midday_free_carrier_part2_rejected_20260730.mp4`; evening_pro incumbent pt2 **restored from git**, rejected take parked as `evening_pro_carrier_part2_rejected_20260731.mp4`; signoff take parked as `verif_carrier_signoff_short_rejected_20260731.mp4` (slot returns to empty/budget-gated WARN, which is the correct shipping state). All four parks registered in `UNREFERENCED_OK` with their measured defects (the MKT-21 evidence pattern). **`reel:check` green end-to-end**; `_carrier_joined/` cache regenerates on mtime so the restored evening_pro join self-heals on next run.
+
+**Phase 2/3 residue:** the short-slot resolver walk (full pt2 → short → part 1 alone) needs no build — wired and verified in MKT-27/v2.0-C; the 1-box-day pickup simulation is DEFERRED to a passing take (simulating with a rejected asset proves nothing). evening_pro **part 1 never arrived** — the incumbent is already scope-named at 10.005s, so the pair's remaining asks are the pt2 respec + the still-open §9 rotation-set gap. The "last scope-naming asymmetry" does NOT retire this session. Naming note for the respec deliveries: `part2` spelled out in parked names (the `_pt` rule allows `_pt<N>.mp4` only); a fresh delivery must land at the exact registry name, lowercase `.mp4`. Cross-ref [[MKT-20]] (margins, seam method, duration law), [[MKT-27]] (fits-whole gate), [[MKT-29]]/[[MKT-31]] (verify identity), [[MKT-26]] (session conversion frame), SOCIAL-13.
 
 ---
 

@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-07-30 · v2.0
+Content Agent Handoff · 2026-07-31 · v2.1
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -17,6 +17,34 @@ Companion docs:
   - docs/mkt15_phase2_copy_brief.md (public copy set — DELIVERED + the bolt request)
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
+WHAT CHANGED IN v2.1 (2026-07-31 — MKT-32 carrier wave gate; audit entry has the tables)
+  A. ⚠ THE 7/30–7/31 CARRIER DROPS WERE GATED: ONE OF FIVE SURVIVES.
+     LIVE: evening_free_carrier_pt2 — margin +0.359s, content clean, voice in
+     family (one non-blocking ear-flag: −2.7dB quieter than its part 1).
+     REJECTED, parked on disk with reasons in UNREFERENCED_OK: allday_free pt2
+     (+0.088s vs the +0.184s floor), midday_free pt2 (+0.114s), evening_pro pt2
+     (~+0.10s AND a non-silent tail to ~9.8s — end part 2s in clean silence),
+     and verif_carrier_signoff_short (a 2.05s dead pause mid-line puts the last
+     word at 4.03s from onset vs the ≤2.3s acceptance — regeneration as ONE
+     CONTINUOUS READ, not a trim). Incumbents serve everywhere but evening_free.
+     RESPEC ASKS: same close lines; last word by ~9.47s of part 2 (sessions) /
+     ~9.2s (evening_pro, keep "Receipts at sunup, partners" — the endcard echo
+     is confirmed); clean silence to EOF.
+  B. ⚠ DELIVER TO THE EXACT REGISTRY NAME, LOWERCASE .mp4. Two of the three
+     "overwrites" landed as `.MP4` (uppercase) BESIDE their incumbents — the
+     registry reads exact names on a case-sensitive filesystem, so both were
+     invisible to the joiner AND to the stray scan, and the incumbents kept
+     serving with nothing erroring. The fifth filename failure in this lane,
+     and a new class again: correct name, wrong case.
+  C. evening_pro PART 1 WAS NOT DELIVERED (only its pt2 came). The incumbent
+     is already scope-named ("Evening, partners…") at 10.005s, so the pair's
+     open items are the pt2 respec above and §9's rotation-set gap. The
+     scope-naming asymmetry item does NOT retire yet.
+  D. v2.0 notes D and E are CLOSED: MKT-28 shipped (the 11 HEAT_RELABEL slots
+     reconciled, table + lint gate), MKT-16 registered allday_public and the
+     public reel assembles daily with its stored Q1/Q2 gate record — the heat
+     neutrals in the public cut are the REAL set now, not provisional.
+
 WHAT CHANGED IN v2.0 (2026-07-30 — content-agent ruling pass + MKT-29/30)
   A. ⚠ SEAL IS VERIFY'S PINNED STINGER MOTION — ruling option (a) confirmed —
      BUT THE DELIVERED CLIP IS HELD on a measured defect: the bell lands at
@@ -32,7 +60,8 @@ WHAT CHANGED IN v2.0 (2026-07-30 — content-agent ruling pass + MKT-29/30)
      — identification in plain language at 0.4s, brand framing at 5.6s,
      escalation not repetition. Recorded so nobody "corrects" it. §3.
   C. VERIFY HAS A SHORT SIGN-OFF SLOT: `verif_carrier_signoff_short.mp4`
-     (~3.0s, budget-gated, NOT YET DELIVERED). The resolver walks full pt2 →
+     (~3.0s, budget-gated — first take DELIVERED 7/31 and REJECTED on the
+     2.3s line, see v2.1 note A; the slot is empty again). The resolver walks full pt2 →
      short → part 1 alone, each playing WHOLE or not at all. ⚠ The name is a
      SLOT, deliberately not `_ptN` — that namespace belongs to the joiner and
      its orphan scan. Fit math: part 1 is fixed at 10.005s + 0.35s breath, so
@@ -41,7 +70,8 @@ WHAT CHANGED IN v2.0 (2026-07-30 — content-agent ruling pass + MKT-29/30)
      Also corrected: the 0-straight drop is a pure DURATION consequence — pt2
      was written badge-agnostic on purpose. v1.9's "fits worst" rationale was
      wrong and is retired.
-  D. MKT-28 COPY DECISIONS CLOSED (operator-delegated): canonical HOT wins —
+  D. [CLOSED in v2.1 — the 11 neutral slots landed and serve in the public
+     cut; see v2.1 note D] MKT-28 COPY DECISIONS CLOSED (operator-delegated): canonical HOT wins —
      HOT SIGNAL is retired on the detail surfaces; Heat Check keeps its
      verdict WORDING on renested thresholds (80/65/45). The reconciled state
      the public relabel writes against is now: ONE temperature ladder
@@ -49,7 +79,9 @@ WHAT CHANGED IN v2.0 (2026-07-30 — content-agent ruling pass + MKT-29/30)
      (BLAZING SIGNAL/STRONG SIGNAL/MODERATE/OVERDUE/LOW), one banner phrase.
      ⏳ The content agent owes the neutral public vocabulary for those 11
      slots — the LAST copy input the public cut needs.
-  E. MKT-15 P2 PUBLIC CAPTURE MODE IS BUILT (`--redact --relabel`): the eight
+  E. [CLOSED in v2.1 — MKT-16's five registration points landed 7/30;
+     allday_public assembles and publishes daily with its stored Q1/Q2 gate
+     record; heat neutrals are the real set] MKT-15 P2 PUBLIC CAPTURE MODE IS BUILT (`--redact --relabel`): the eight
      delivered copy slots injected at capture, session labels dropped, state
      codes suppressed, and the ruled look — masked combinations become a
      blurred PLACEHOLDER block with the gold bolt (60% height, 85% opacity,
@@ -776,8 +808,8 @@ per-day by hand, not AI-freestyled.
                                   variants plus the unversioned fallback.
                                   Verify's stinger ROTATES by reel date even
                                   though its intro does not.
-    verif_carrier_signoff_short   DECLARED SLOT, NOT YET DELIVERED (budget-
-      .mp4                        gated). ~3.0s sign-off-only variant of pt2,
+    verif_carrier_signoff_short   DECLARED SLOT, EMPTY (first take rejected
+      .mp4                        7/31 — v2.1 note A). ~3.0s sign-off-only variant of pt2,
                                   used when the day's window cannot take the
                                   16.02s full join. ⚠ Deliberately NOT a
                                   `_ptN` name — that namespace belongs to the
@@ -796,10 +828,23 @@ per-day by hand, not AI-freestyled.
                                   barred below Pro (SOCIAL-13), and these have
                                   to name the withholding instead. Part 1 is
                                   10.005s like the rest of the fleet, so the
-                                  MKT-20 duration invariant holds. Margins are
-                                  the FLEET'S ROOMIEST — +1.242s (midday) and
-                                  +2.470s (evening) against midday_pro's
-                                  +0.184s, which is the tightest.
+                                  MKT-20 duration invariant holds. Margins:
+                                  midday +1.242s (incumbent pt2 — its 7/30
+                                  respec REJECTED at +0.114s, parked);
+                                  evening +0.359s since MKT-32 (7/30 pt2
+                                  REPLACED in place — close: "Tonight's the
+                                  one that counts, partner."; old pt2 kept as
+                                  *_part2_20260729_backup). ⚠ The free session
+                                  pt2s' target frame is now the STRONGER
+                                  live-and-running-out conversion framing
+                                  ("cover comes off at sunup / Pro ain't
+                                  waitin'") vs the flat gap statement they
+                                  replaced — the allday_free pt2 respec
+                                  ("Grade it against the mornin' receipts",
+                                  REJECTED 7/30 at +0.088s, parked as the
+                                  _redelivery file) stays PURE VALUE, no Pro
+                                  pitch (SOCIAL-13). Floor for any respec:
+                                  beat midday_pro's +0.184s.
     midday_pro_endcard.mp4        Midday endcard — built from the SHARED
     evening_pro_endcard.mp4       endcard_motion_pro.mp4 with different copy,
                                   i.e. zero new video generation (MKT-10's

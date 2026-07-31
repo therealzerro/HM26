@@ -264,6 +264,16 @@ const UNREFERENCED_OK: Record<string, string> = {
   // registered under allday_public in carrier-config.ts and are now validated
   // like every other carrier pair.
   'watermark_source.mp4': 'MKT-14 source, parked with the lane.',
+  // MKT-32 — the 2026-07-30/31 carrier drops, validated and gated 2026-07-31.
+  // Rejections are kept as evidence for the respec, same as the MKT-21 bodies.
+  'allday_free_carrier_part2_redelivery_20260730.mp4':
+    'MKT-32 REJECTED — margin +0.088s vs the +0.184s floor (VO end 19.922s of the join, silencedetect −35dB). The 7/30 .MP4 drop was byte-identical to this file; incumbent pt2 stays live. Awaiting a respec that lands the last word by ~9.47s of part 2.',
+  'midday_free_carrier_part2_rejected_20260730.mp4':
+    'MKT-32 REJECTED — margin +0.114s vs the +0.184s floor (VO end 19.896s of the join). Incumbent pt2 stays live. Same respec ask as the allday reject.',
+  'evening_pro_carrier_part2_rejected_20260731.mp4':
+    'MKT-32 REJECTED — audio above −35dB to ~9.55s of part 2 (margin ~+0.10, below the +0.184s floor) and a non-silent decay tail to 9.8s where the fleet convention is clean silence to EOF; preflight would WARN VO-active-at-fade. Incumbent pt2 restored from git. NB the delivered read confirms the RECEIPTS AT SUNUP endcard echo — keep that line in the respec.',
+  'verif_carrier_signoff_short_rejected_20260731.mp4':
+    'MKT-32 REJECTED — the read carries a 2.05s dead pause between "Signals first." and "Receipts after.": last word 4.03s from speech onset vs the ≤2.3s acceptance line (v2.0 note C). A regeneration as one continuous read, not a trim. Slot returns to empty/budget-gated.',
   // MKT-21 — the generated-body class, assessed and REJECTED 2026-07-29. Listed
   // so four warnings read as a decision rather than a backlog, the same way
   // anchor_intro_powerup does. Deliberately NOT deleted: they are the evidence

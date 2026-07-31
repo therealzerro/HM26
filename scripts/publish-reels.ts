@@ -89,8 +89,12 @@ const restArgs = process.argv.slice(3);
 const PREVIEW = restArgs.includes('--preview');
 const CAPTIONS_ONLY = restArgs.includes('--captions-only');
 const ONLY_VARIANT = parseVariantFlag(process.argv);
-if (ONLY_VARIANT && mode === 'verify') {
-  console.error('ABORT: --variant is meaningless for verify (one kind, no variants).');
+// MKT-40: verify HAS a variant now — `--variant=public` publishes ONLY
+// verify_public, leaving the verify row untouched (the MKT-26 upsert trap:
+// re-upserting an already-posted sibling wipes its posted stamp). `--variant=pro`
+// keeps the inverse meaning: the group cut alone.
+if (ONLY_VARIANT === 'free' && mode === 'verify') {
+  console.error('ABORT: verify has no "free" variant — use --variant=public or --variant=pro (the group cut).');
   process.exit(1);
 }
 const stampArg = restArgs.find((a) => !a.startsWith('--'));
@@ -103,7 +107,7 @@ interface ReelFiles { kind: Kind; video: string; video1x1: string; sheet: string
 function reelFiles(): ReelFiles[] {
   if (mode === 'verify') {
     const dir = join(ASSETS, 'verify_reels');
-    return [{
+    const both: ReelFiles[] = [{
       kind: 'verify',
       video: join(dir, `verify_reel_${stamp}.mp4`),
       video1x1: join(dir, `verify_reel_${stamp}_1x1.mp4`),
@@ -117,6 +121,9 @@ function reelFiles(): ReelFiles[] {
       video1x1: join(dir, `verify_public_${stamp}_1x1.mp4`),
       sheet: join(dir, `verify_public_${stamp}_contact.png`),
     }];
+    if (ONLY_VARIANT === 'public') return both.filter((t) => t.kind === 'verify_public');
+    if (ONLY_VARIANT === 'pro') return both.filter((t) => t.kind === 'verify');
+    return both;
   }
   const spec = REEL_SCOPES[mode as Scope];
   const dir = join(ASSETS, spec.dir);

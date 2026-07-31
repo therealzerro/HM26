@@ -60,10 +60,15 @@ STEP 2 — ADMIN APP: run the Full Daily Workflow (before 8:30 ET)
 
 STEP 3 — TERMINAL B: build + publish the day's reels
 
-    npm run reel:verify        (now opens on THE BOARD WE POSTED —
+    npm run reel:verify        (opens on THE BOARD WE POSTED —
                                 yesterday's six picks as published,
                                 landed ones marked with what they
-                                drew — then cuts to the ledger)
+                                drew — then cuts to the ledger.
+                                Since MKT-40 it builds TWO cuts:
+                                the group reel AND verify_public,
+                                the masked public grading half —
+                                digits dotted, EXACT ORDER / ANY
+                                ORDER vocabulary, cold-open intro)
     npm run reel:allday
     npm run reel:midday      (optional — session wave; builds
                                 BOTH the Pro and the redacted Free
@@ -139,14 +144,26 @@ npm run reel:allday
 
 npm run reel:verify
 
-    Makes YESTERDAY's "Receipts" verification reel (14.4s): renders
-    the verification breakdown from the live app, assembles with
-    the Anchor intro + endcard, writes to
-    assets/marketing/verify_reels/, then AUTO-UPLOADS to
-    Admin → Reels with a fresh caption. Aborts on purpose if
+    Makes YESTERDAY's "Receipts" verification reels — TWO cuts
+    since MKT-40 (~23-29s each, variable by row count):
+      1. verify         — the group cut: real digits, gold
+                          STRAIGHT / BOX ledger, verify intro.
+      2. verify_public  — the PUBLIC grading half: board + ledger
+                          digits masked to dots, EXACT ORDER /
+                          ANY ORDER vocabulary, sessions + states
+                          dropped, rollup reframed to structural
+                          stats, cold-open public intro, its own
+                          endcard (PUBLISHED FIRST. CHECKED
+                          AFTER.). Renderer runs a fail-closed
+                          sweep audit; the assembler asserts the
+                          PUBLIC_TAG inside the body.
+    Both write to assets/marketing/verify_reels/ and AUTO-UPLOAD
+    to Admin → Reels with fresh captions ({free_group_url} is
+    substituted from app_config at publish). Aborts on purpose if
     yesterday had zero verified matches (no receipts = no reel).
-    Carries its own green SLATE STAMP ("✓ VERIFIED RESULTS /
-    SUN · JUL 26") — same auto-generated chip, receipts flavor.
+    Single-cut publish (e.g. after a re-render): append
+    --variant=public or --variant=pro to publish-reels to leave
+    the sibling row's posted stamp untouched.
 
 
 ----------------------------------------------------------------

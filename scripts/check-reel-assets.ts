@@ -606,18 +606,28 @@ function checkVerify(): void {
   // assembler read a motion-tagged one — a green preflight on a file the run
   // never opens, on the single reel whose job is to catch failures. Verify never
   // beds (its soundtrack is verif_carrier), so needsBed is false.
-  const cands = endcardCandidates(ASSETS, 'verify', TODAY, false) ?? [];
-  for (const c of cands) {
-    const e = exists(c.name);
-    if (!e) {
-      if (!c.legacy) add('WARN', c.name, `not built — ${c.motion.label} drops from verify's rotation on the days it comes up. Run npm run endcard:build verify`);
-      continue;
+  // MKT-40: verify_public closes on its own endcard matrix (free motions,
+  // shared-band lockup) — same validation, same rotation semantics.
+  for (const vKind of ['verify', 'verify_public']) {
+    const kCands = endcardCandidates(ASSETS, vKind, TODAY, false) ?? [];
+    for (const c of kCands) {
+      const e = exists(c.name);
+      if (!e) {
+        if (!c.legacy) add('WARN', c.name, `not built — ${c.motion.label} drops from ${vKind}'s rotation on the days it comes up. Run npm run endcard:build ${vKind}`);
+        continue;
+      }
+      const s = streams(e);
+      if (!Number.isFinite(s.vDur) || s.vDur < 6.5) add('FAIL', c.name, `video ${s.vDur?.toFixed(1)}s < 6.5s outro window (MKT-31 addendum)`);
+      else add('PASS', c.name, `video ${s.vDur.toFixed(1)}s (first 6.5s used as the outro + tail frame for the legacy open; audio not used)`);
+      if (s.h < 1920) add('WARN', c.name, `${s.w}x${s.h} — will be upscaled to 1080x1920`);
     }
-    const s = streams(e);
-    if (!Number.isFinite(s.vDur) || s.vDur < 6.5) add('FAIL', c.name, `video ${s.vDur?.toFixed(1)}s < 6.5s outro window (MKT-31 addendum)`);
-    else add('PASS', c.name, `video ${s.vDur.toFixed(1)}s (first 6.5s used as the outro + tail frame for the legacy open; audio not used)`);
-    if (s.h < 1920) add('WARN', c.name, `${s.w}x${s.h} — will be upscaled to 1080x1920`);
+    if (vKind === 'verify_public') {
+      const kPick = kCands.find(c => existsSync(join(ASSETS, c.name)));
+      add(kPick ? 'PASS' : 'FAIL', 'verify_public endcard selection',
+        kPick ? `today (${TODAY}): ${kPick.name}` : `no verify_public endcard resolves — run npm run endcard:build verify_public`);
+    }
   }
+  const cands = endcardCandidates(ASSETS, 'verify', TODAY, false) ?? [];
   const pick = cands.find(c => existsSync(join(ASSETS, c.name)));
   add(
     pick ? 'PASS' : 'FAIL',
@@ -894,6 +904,12 @@ function checkPublicGateRecords(): void {
       .filter(v => captureModeFor(scope, v) === 'public')
       .map(v => reelKind(scope, v)),
   );
+  // MKT-40: verify_public lives OUTSIDE the scope registry (the verify
+  // pipeline is its own renderer/assembler pair), so it must be named here
+  // explicitly — deriving public kinds from REEL_SCOPES alone would leave
+  // the one non-slate public kind ungated, which is precisely the
+  // green-check-adjacent failure this check exists to prevent.
+  publicKinds.push('verify_public');
   if (publicKinds.length === 0) return;
   const p = join(ASSETS, GATE_RECORDS_FILE);
   let records: Record<string, { who?: string; density?: string; classes?: Record<string, string>; basis?: string }> = {};

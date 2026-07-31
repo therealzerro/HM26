@@ -12,5 +12,19 @@
       "reconstructable_values": "INSPECTED + STRUCTURAL — the combination renders as a blurred placeholder plus bolt (never derived from the real pixels), position boxes, pair labels, pair prose and set chips masked across all seven digit-bearing routes (MKT-26 reconstruction standard); state attribution suppressed against the COMPLETE 50+DC set (the caption lint's partial set missed an OK 1× chip on the first render) with jurisdiction counts kept."
     },
     "basis": "Classes fabricated_numerals and rendered_dates are code properties for this rendered body and are recorded as such, not as inspections. Known-visible and accepted: the scope segment tabs (Midday / Evening / All Day) remain on the grid frame — advisory class per brief §5, since session words are hard-forbidden only when paired with digits and every digit is masked; recorded rather than hidden."
+  },
+  "verify_public": {
+    "date": "2026-07-30",
+    "body": "ui_verify_public_20260730.mp4",
+    "who": "Claude Fable 5 (Claude Code), MKT-40 registration session 2026-07-31 — the renderer's fail-closed public sweep audit (digit runs, match vocabulary, session labels, state attributions, asserted over every rendered leaf before any frame encodes), plus a human-readable frame pass on exact frames of the rendered body by the same session.",
+    "density": "The sweep audit covers every rendered text leaf on /track-record post-sweep (structural, not enumerated). By eye: exact frames 0, 75 and 148 of the board segment and frame 155 plus five sampled hold/travel frames (1.2-12.8s) of the ledger segment at full resolution.",
+    "classes": {
+      "fabricated_numerals": "CODE PROPERTY — the board segment is composited from the day's real slate_snapshots row (placeholder dots rendered UPSTREAM, digits never drawn); the ledger is a screen capture of the live app with every 3-digit leaf replaced before capture. The rollup band is reframed to structurally-bounded stats (DAYS ≤31, JURISDICTIONS ≤51, '40+', '6') sourced from the page's own values — reframed, never fabricated.",
+      "misspelled_brand_vocabulary": "INSPECTED — wordmark and public relabels (EXACT ORDER / ANY ORDER) render correctly on the sampled frames; body is native UI type plus the board compositor's JetBrains Mono.",
+      "currency_and_gain_framing": "INSPECTED — none present; the delivered caption set additionally lint-clean at tier 1.",
+      "rendered_dates": "CODE PROPERTY + INSPECTED — day headers de-yeared to 'JUL 30' form by the sweep (replaced, not hidden, so measured row positions survive); the board's PUBLISHED eyebrow uses the same year-less form; the body carries the MKT-18 date tag equal to the content date and the PUBLIC_TAG the assembler asserts.",
+      "reconstructable_values": "STRUCTURAL — both digit columns masked upstream on the board (posted dots, drawn dots, set chip dots) and every ledger combo/result replaced; state attribution collapsed to 'verified against the official draw'; session words and icons stripped. No digit-bearing surface survives, so no pair of surfaces yields a value."
+    },
+    "basis": "The gold EXACT ORDER treatment survives masking as color + label (the MKT-35 hierarchy); the eye-checkable posted==drawn identity is deliberately absent on this cut — the caption set routes verification to the free community record, per the Phase 0 item-3 ruling (option i, no fabricated sameness cue). Match-type vocabulary on this cut is EXACT ORDER / ANY ORDER / matches-count chips only."
   }
 }

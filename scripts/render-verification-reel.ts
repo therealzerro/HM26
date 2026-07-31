@@ -253,24 +253,29 @@ function yesterdayET(): string {
   // fail-closed audit aborts the render on any surviving digit run,
   // match-vocabulary token, session word or state attribution.
   if (PUBLIC) {
-    const violations = await page.evaluate(() => {
-      const SCOPE_WORDS = /\b(Midday|Evening|All Day)\b/g;
-      const ICONS = /[☀️🌙◈🌅🌑]/gu;
-      // 1. Summary band → structurally two-digit stats. Values sourced from
+    // ⚠ STRING-EVALUATED, not a function: tsx/esbuild injects `__name` helpers
+    // into nested function expressions inside page.evaluate callbacks, which
+    // do not exist in the browser context (ReferenceError at run time). A
+    // template-literal IIFE bypasses the transform entirely.
+    const violations = await page.evaluate(`(() => {
+      const SCOPE_WORDS = /\\b(Midday|Evening|All Day)\\b/g;
+      const ICONS = /[\\u2600-\\u27BF\\u{1F300}-\\u{1FAFF}\\uFE0F\\u25C8]/gu;
+      // 1. Summary band -> structurally two-digit stats. Values sourced from
       // the page itself (days from the DAYS cell, jurisdictions from the sub
-      // line) — reframed, never fabricated.
-      const leaves = (Array.from(document.querySelectorAll('*')) as HTMLElement[])
-        .filter(e => e.children.length === 0 && (e.textContent ?? '').trim().length > 0);
-      const labelOf = (t: string) => leaves.find(e => (e.textContent ?? '').trim() === t);
-      const cellFor = (label: HTMLElement | undefined) => label?.parentElement ?? null;
-      const valueLeaf = (cell: HTMLElement | null, label: HTMLElement) =>
-        cell ? (Array.from(cell.children) as HTMLElement[]).find(c => c !== label) ?? null : null;
+      // line) -- reframed, never fabricated.
+      const leaves = Array.from(document.querySelectorAll('*'))
+        .filter(e => e.children.length === 0 && (e.textContent || '').trim().length > 0);
+      const labelOf = t => leaves.find(e => (e.textContent || '').trim() === t);
+      const cellFor = label => (label && label.parentElement) || null;
+      const valueLeaf = (cell, label) =>
+        cell ? (Array.from(cell.children).find(c => c !== label) || null) : null;
       const dLab = labelOf('DAYS'); const mLab = labelOf('MATCHES');
       const sLab = labelOf('STRAIGHT'); const bLab = labelOf('BOX');
-      const days = dLab ? (valueLeaf(cellFor(dLab), dLab)?.textContent ?? '').trim() : '';
-      const sub = leaves.find(e => /^Across \d+ jurisdictions/.test((e.textContent ?? '').trim()));
-      const jx = sub ? (sub.textContent ?? '').match(/Across (\d+) jurisdictions/)?.[1] ?? '' : '';
-      const setCell = (label: HTMLElement | undefined, value: string, newLabel: string) => {
+      const days = dLab ? ((valueLeaf(cellFor(dLab), dLab) || {}).textContent || '').trim() : '';
+      const sub = leaves.find(e => /^Across \\d+ jurisdictions/.test((e.textContent || '').trim()));
+      const jxM = sub ? (sub.textContent || '').match(/Across (\\d+) jurisdictions/) : null;
+      const jx = jxM ? jxM[1] : '';
+      const setCell = (label, value, newLabel) => {
         if (!label) return;
         const v = valueLeaf(cellFor(label), label);
         if (v) v.textContent = value;
@@ -281,44 +286,53 @@ function yesterdayET(): string {
       setCell(bLab, '40+', 'STATES COVERED');
       setCell(dLab, '6', 'SIGNALS DAILY');
       if (sub) sub.textContent = 'GRADED IN PUBLIC · EVERY MORNING';
-      // 2. Text-node sweep over the whole document: digits → dots, match
-      // vocabulary → public set, attribution collapsed, sessions/icons
-      // stripped, ISO day headers de-yeared (replaced, not hidden).
+      // 2a. ELEMENT-level pass for the attribution line FIRST: "Drew {digits}
+      // in {state} {session}" renders as SEVERAL text nodes inside one leaf
+      // (each interpolation is its own node — the MKT-30 appended-node
+      // lesson), so a node-by-node rule leaves the " in NC midday" sibling
+      // standing. Setting textContent on the LEAF collapses all of them.
+      for (const e of leaves) {
+        if (/^Drew\\b/.test((e.textContent || '').trim())) {
+          e.textContent = 'Drew \\u2022\\u2022\\u2022 \\u00b7 verified against the official draw';
+        }
+      }
+      // 2b. Text-node sweep: digits -> dots, match vocabulary -> public set,
+      // attribution collapsed, sessions/icons stripped, ISO day headers
+      // de-yeared (REPLACED, never hidden -- hiding reflows the page and
+      // invalidates every measured row top).
       const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-      const texts: Text[] = [];
-      for (let n = walker.nextNode(); n; n = walker.nextNode()) texts.push(n as Text);
+      const texts = [];
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) texts.push(n);
       for (const t of texts) {
-        let s = t.textContent ?? '';
+        const s = t.textContent || '';
         if (!s.trim()) continue;
-        const iso = s.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
-        if (iso) { s = `${MONTHS[+iso[2] - 1]} ${+iso[3]}`; t.textContent = s; continue; }
-        if (/^Drew\b/.test(s.trim())) { t.textContent = 'Drew ••• · verified against the official draw'; continue; }
-        if (/^\d{3}$/.test(s.trim())) { t.textContent = '•••'; continue; }
-        let out = s
-          .replace(/\bSTRAIGHT\b/g, 'EXACT ORDER')
-          .replace(/\bBOX\b/g, 'ANY ORDER')
+        const iso = s.trim().match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+        if (iso) { t.textContent = MONTHS[+iso[2] - 1] + ' ' + (+iso[3]); continue; }
+        if (/^Drew\\b/.test(s.trim())) { t.textContent = 'Drew \\u2022\\u2022\\u2022 \\u00b7 verified against the official draw'; continue; }
+        if (/^\\d{3}$/.test(s.trim())) { t.textContent = '\\u2022\\u2022\\u2022'; continue; }
+        const out = s
+          .replace(/\\bSTRAIGHT\\b/g, 'EXACT ORDER')
+          .replace(/\\bBOX\\b/g, 'ANY ORDER')
           .replace(SCOPE_WORDS, '')
           .replace(ICONS, '')
-          .replace(/[ \t]{2,}/g, ' ');
+          .replace(/[ \\t]{2,}/g, ' ');
         if (out !== s) t.textContent = out;
       }
-      // 3. FAIL-CLOSED AUDIT — prove the sweep found what it protects.
-      const bad: string[] = [];
-      const nowLeaves = (Array.from(document.querySelectorAll('*')) as HTMLElement[])
-        .filter(e => e.children.length === 0 && (e.textContent ?? '').trim().length > 0);
+      // 3. FAIL-CLOSED AUDIT -- prove the sweep found what it protects.
+      const bad = [];
+      const nowLeaves = Array.from(document.querySelectorAll('*'))
+        .filter(e => e.children.length === 0 && (e.textContent || '').trim().length > 0
+          && e.tagName !== 'STYLE' && e.tagName !== 'SCRIPT' && e.tagName !== 'NOSCRIPT');
       for (const e of nowLeaves) {
-        const txt = (e.textContent ?? '').trim();
-        if (/\d{3}/.test(txt)) bad.push(`digit-run: "${txt.slice(0, 60)}"`);
-        if (/\b(STRAIGHT|BOX)\b/.test(txt)) bad.push(`match-vocab: "${txt.slice(0, 60)}"`);
-        // Session words as the UI capitalises them. "morning" at large is
-        // sanctioned copy (the public captions use it); the blocked tokens
-        // are the session labels themselves.
-        if (/\b(Midday|Evening|MIDDAY|EVENING)\b/.test(txt)) bad.push(`session: "${txt.slice(0, 60)}"`);
-        if (/\bin [A-Z]{2}\b/.test(txt)) bad.push(`state-attribution: "${txt.slice(0, 60)}"`);
+        const txt = (e.textContent || '').trim();
+        if (/\\d{3}/.test(txt)) bad.push('digit-run: "' + txt.slice(0, 60) + '"');
+        if (/\\b(STRAIGHT|BOX)\\b/.test(txt)) bad.push('match-vocab: "' + txt.slice(0, 60) + '"');
+        if (/\\b(Midday|Evening|MIDDAY|EVENING)\\b/.test(txt)) bad.push('session: "' + txt.slice(0, 60) + '"');
+        if (/\\bin [A-Z]{2}\\b/.test(txt)) bad.push('state-attribution: "' + txt.slice(0, 60) + '"');
       }
       return bad;
-    });
+    })()`) as string[];
     if (violations.length) {
       console.error(`ABORT: public sweep incomplete — ${violations.length} violation(s):\n  ` + violations.slice(0, 12).join('\n  '));
       await browser.close();

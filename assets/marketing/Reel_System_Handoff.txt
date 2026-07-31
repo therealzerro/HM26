@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-07-31 · v2.5
+Content Agent Handoff · 2026-07-31 · v2.6
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -16,6 +16,34 @@ Companion docs:
   - assets/marketing/AllDay_Reel_Endcard_Revision_Brief_2026-07-27.md (endcard contract)
   - docs/mkt15_phase2_copy_brief.md (public copy set — DELIVERED + the bolt request)
   - REEL_COMMANDS.txt (repo root — operator command reference)
+
+WHAT CHANGED IN v2.6 (2026-07-31 PM — MKT-40: verify_public LIVE)
+  A. ✅ verify_public — THE GRADING HALF OF THE PUBLIC PAIR — IS BUILT,
+     PUBLISHED AND IN THE DAILY SEQUENCE (reel:verify builds both cuts).
+     Your delivered copy is live verbatim: endcard (PUBLISHED FIRST.
+     CHECKED AFTER. / SEE THE FULL RECORD FREE, gold CTA), chip
+     YESTERDAY'S RECORD (gold, dated, frame one), stinger shares verify's
+     YESTERDAY'S RECEIPTS seal builds (headline-dominant extended by the
+     recorded ruling), 8 captions ({free_group_url} substituted from
+     app_config at publish), and your own YouTube set (6 titles / 3
+     descriptions — never inherits allday_public's).
+  B. Phase-0 decisions as shipped: rollup reframed STRUCTURAL (DAYS ·
+     JURISDICTIONS · 40+ STATES COVERED · 6 SIGNALS DAILY — no unbounded
+     totals; option c); no fabricated sameness cue (option i) — the gold
+     EXACT ORDER treatment carries the hierarchy as color + label; the
+     carrier pair is SHARED (your suspected free win, confirmed by
+     transcript: the spoken lines are Q2-clean); lockup stays on the
+     SHARED BAND — the 880 tuck was re-measured on the free motions per
+     the standing rule and FAILED (10% px >L40, max L255).
+  C. Match vocabulary on the public cut, as finalised: EXACT ORDER /
+     ANY ORDER (bare badge forms; your MATCH-suffixed forms lint clean
+     and remain available for prose), DREW · EXACT ORDER on the board,
+     sessions + state codes dropped, attribution reads "Drew ••• ·
+     verified against the official draw", day headers de-yeared.
+     Q1/Q2 gate record stored; reel:check FAILs the kind without it.
+  D. Cadence: TWO public reels/day is now the shipped state (the
+     publish-then-grade pair complete). Operator can pull it back to
+     alternating by skipping the public verify publish on any day.
 
 WHAT CHANGED IN v2.5 (2026-07-31 PM — MKT-38 retention)
   A. ⚠ REELS RETENTION IS NOW KEEP-CURRENT-ONLY (MKT-38, operator directive:

@@ -69,10 +69,15 @@ export const RELABEL_SLOTS = {
  *
  *   temperature: ON FIRE→PEAK BAND · BLAZING→HIGH BAND · HOT→MID BAND ·
  *                WARM→LOW BAND · COOL→BASE BAND
- *   verdicts:    BLAZING SIGNAL→PEAK SIGNAL; STRONG SIGNAL / MODERATE /
- *                OVERDUE / LOW are already neutral and KEEP their strings —
- *                no entry needed, and none may be added for LOW (WARM maps to
- *                'LOW BAND', so a LOW entry would re-match inside it).
+ *   verdicts:    BLAZING SIGNAL→PEAK SIGNAL; OVERDUE→LONG GAP (delivered
+ *                2026-07-31, MKT-35 — slot 9's flag resolved; LONG GAP at 8
+ *                chars is narrower than the kept STRONG SIGNAL so it fits
+ *                every chip that string fits, and OVERDUE collides with no
+ *                other key or replacement — checked per the slot-10 lesson);
+ *                STRONG SIGNAL / MODERATE / LOW are already neutral and KEEP
+ *                their strings — no entry needed, and none may be added for
+ *                LOW (WARM maps to 'LOW BAND', so a LOW entry would re-match
+ *                inside it).
  *   banner:      🔥 STRONG SIGNAL — … keeps STRONG SIGNAL; the flame drops.
  *
  * Numeric values SURVIVE, symbols do not ('ON FIRE 99°' → 'PEAK BAND 99');
@@ -93,8 +98,13 @@ export const HEAT_RELABEL: Record<string, string> = {
   'HOT': 'MID BAND',
   'WARM': 'LOW BAND',
   'COOL': 'BASE BAND',
+  'OVERDUE': 'LONG GAP',
   '🔥': '',
   '❄': '',
+  // MKT-35: the OVERDUE verdict's ⚠️ drops with the register, same as 🔥/❄ —
+  // both forms, with and without the emoji variation selector.
+  '⚠️': '',
+  '⚠': '',
   // Rule 3 of the delivered set: numeric values SURVIVE, symbols do not —
   // 'ON FIRE 99°' → 'PEAK BAND 99'. The degree sign reads as temperature.
   '°': '',

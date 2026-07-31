@@ -138,6 +138,16 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 ---
 
+### MKT-38 — Reels supersession retention (2026-07-31) ✅ SHIPPED + retro-applied
+
+**ID verified free** (`grep MKT-38` → audit 0 / code 0). Operator directive: storage pressure from the reels system — "always delete yesterday's reel when a new day's version is created." Local disk was at 86% with ~880MB of accumulated finals/bodies; the bucket only had the 30-day prune.
+
+**Shipped in `publish-reels.ts`, two halves:** (1) `supersedeOlder(kind, newIso)` — after a kind's new-day upsert succeeds, every OLDER row of that kind loses its storage objects and flips to `archived` (row kept: posted history survives, the video does not). **⚠ Per-kind and relative to the NEW row's own reel_date, never a today-based window — verify rows are dated D−1 by design, and a 1-day date-window rule would delete the verify reel the morning it ships** (the [[reel_date]]-is-content-date trap, dodged by construction). The 30-day `prune()` stays as backstop for kinds that stop publishing. (2) `sweepLocal()` — deletes scope-dir files whose embedded stamp is older than the run's stamp: per-kind finals only for kinds that just PUBLISHED (a `--variant` run can never sweep an unrebuilt sibling), shared per-day artifacts (`ui_*`, `_stamp_*`, `_chip_*`) only on full runs. Masters/backups live in assets/marketing root and are untouched by construction. Sweep matcher validated in a no-delete simulation against the real directories before wiring (current-day kept everywhere).
+
+**Retro-applied the same day:** local one-off removed 114 stale files / freed 674MB (86%→84%); bucket one-off superseded 20 rows (60 objects) — every kind now keeps exactly its newest cut (verify keeps 7/30, its content date). Filtered tsc 0. Note: git HISTORY still grows with every committed mp4 — supersession caps the working tree and bucket, not `.git`; a history rewrite is a separate decision nobody has asked for. Cross-ref [[MKT-04]] (publish chain + prune), [[MKT-33]] (captions PDF has its own 30d retention, untouched).
+
+---
+
 ### MKT-37 — YouTube caption set + template expansion 8→12 (2026-07-31) ✅ SHIPPED (one line owed back)
 
 **ID verified free** (`grep MKT-37` → audit 0 / code 0 before stamping). Content-agent text delivery; no render/assembler changes.

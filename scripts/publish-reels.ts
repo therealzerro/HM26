@@ -36,7 +36,7 @@
  */
 import { config as loadEnv } from 'dotenv';
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { buildReelCaption, fetchReceiptsData, shiftDate, kindNeedsReceipts, ReceiptsData, ReelCaptionKind } from './reel-captions';
 import { REEL_SCOPES, isScope, reelKind, parseVariantFlag, type Scope } from './reel-scopes';
@@ -189,6 +189,74 @@ async function upsertRow(row: Record<string, unknown>): Promise<void> {
   if (!res.ok) throw new Error(`marketing_reels upsert → HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
 }
 
+/**
+ * MKT-38 — supersession retention (operator directive 2026-07-31: storage
+ * pressure from the reels system — "always delete yesterday's reel when a new
+ * day's version is created").
+ *
+ * When a kind's new-day publish succeeds, every OLDER row of that same kind
+ * loses its storage objects and flips to 'archived' (the row itself is kept —
+ * posted history survives, the video does not). ⚠ Per-kind and relative to the
+ * NEW row's own reel_date, NEVER a today-based date window: verify rows are
+ * dated D−1 by design, so a 1-day date-window rule would delete the verify
+ * reel the very morning it ships. The 30-day prune below stays as the backstop
+ * for kinds that stop publishing.
+ */
+async function supersedeOlder(kind: Kind, newIso: string): Promise<void> {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/marketing_reels?kind=eq.${kind}&reel_date=lt.${newIso}&status=neq.archived&select=id,video_path,video_1x1_path,sheet_path`,
+    { headers: svcHeaders() },
+  );
+  if (!res.ok) { console.warn(`[publish-reels] supersede query failed (${res.status}) — skipping.`); return; }
+  const rows: { id: string; video_path: string; video_1x1_path: string | null; sheet_path: string | null }[] = await res.json();
+  if (rows.length === 0) return;
+  const paths = rows.flatMap((r) => [r.video_path, r.video_1x1_path, r.sheet_path]).filter(Boolean) as string[];
+  const del = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}`, {
+    method: 'DELETE',
+    headers: svcHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ prefixes: paths }),
+  });
+  if (!del.ok) { console.warn(`[publish-reels] supersede delete failed (${del.status}) — rows left for the 30d prune to retry.`); return; }
+  const patch = await fetch(`${SUPABASE_URL}/rest/v1/marketing_reels?id=in.(${rows.map((r) => `"${r.id}"`).join(',')})`, {
+    method: 'PATCH',
+    headers: svcHeaders({ 'Content-Type': 'application/json', Prefer: 'return=minimal' }),
+    body: JSON.stringify({ status: 'archived', updated_at: new Date().toISOString() }),
+  });
+  if (!patch.ok) console.warn(`[publish-reels] supersede archive-flag failed (${patch.status}).`);
+  else console.log(`  🧹 superseded ${rows.length} older ${kind} reel(s) (${paths.length} objects deleted).`);
+}
+
+/**
+ * MKT-38 — local-disk half of supersession. The codespace was at 86% with
+ * ~880MB of accumulated finals/bodies; deleting the bucket copy while the
+ * working tree keeps every day's mp4 solves nothing locally.
+ *
+ * Deletes any file in the scope dir whose name embeds an 8-digit stamp OLDER
+ * than this run's stamp, in two classes:
+ *   • per-kind finals (`<kind>_<stamp>*`, verify's `verify_reel_<stamp>*`) —
+ *     only for kinds that just PUBLISHED, so a --variant run can never sweep a
+ *     sibling that wasn't rebuilt;
+ *   • shared per-day artifacts (`ui_*`, `_stamp_*`, `_chip_*`) — only on FULL
+ *     runs, same reasoning.
+ * Masters/backups are safe by construction: they live in assets/marketing
+ * root, not the scope dirs, and carry no stamp older than today's run there.
+ */
+function sweepLocal(dir: string, publishedKinds: Kind[], curStamp: string, fullRun: boolean): void {
+  let removed = 0;
+  for (const f of readdirSync(dir)) {
+    const m = f.match(/(\d{8})/);
+    if (!m || m[1] >= curStamp) continue;
+    const isKindFile = publishedKinds.some((k) =>
+      k === 'verify' ? f.startsWith('verify_reel_') : f.startsWith(`${k}_`));
+    const isShared = /^(ui_|_stamp_|_chip_)/.test(f);
+    if (isKindFile || (fullRun && isShared)) {
+      rmSync(join(dir, f), { force: true });
+      removed++;
+    }
+  }
+  if (removed > 0) console.log(`  🧹 removed ${removed} stale local file(s) from ${basename(dir)}/`);
+}
+
 async function prune(): Promise<void> {
   const cutoff = etDate(-PRUNE_DAYS);
   const res = await fetch(
@@ -289,7 +357,13 @@ async function main(): Promise<void> {
       updated_at: new Date().toISOString(),
     });
     console.log(`  ✔ registered — visible in Admin → Reels`);
+    // MKT-38: the new day's version is up — the older ones are superseded.
+    await supersedeOlder(t.kind, isoDate);
   }
+
+  // MKT-38: local half. dir is common to every target in a run (one scope).
+  const dir = mode === 'verify' ? join(ASSETS, 'verify_reels') : join(ASSETS, REEL_SCOPES[mode as Scope].dir);
+  sweepLocal(dir, targets.map((t) => t.kind), stamp, !ONLY_VARIANT);
 
   await prune();
   await refreshCaptionsPdf();

@@ -342,12 +342,16 @@ const CAPTION_REGISTRY = {
       c => `Scoreboard check 📊 ${c.q!.matchPhrase} on ${c.reelMd}'s board${c.q!.spreadPhrase}${c.q!.straightPhrase}. Tomorrow's signals drop in the morning.`,
       c => `The record grew again: ${c.q!.matchPhrase} from ${c.reelMd}${c.q!.spreadPhrase}${c.q!.straightPhrase}. Watch it verified, board by board. 🧾`,
       c => `Signals in, results in, ${c.q!.matchPhrase} out${c.q!.spreadPhrase}${c.q!.straightPhrase} — that's ${c.reelMd} on the record. 📊`,
-      // MKT-37 — delivered 2026-07-31. THREE of the four registered: the
-      // delivered #9 ("Grade day: {date} closed with…") duplicates shipped
-      // template 5 verbatim once the scale words go through makeQualCtx —
-      // NOT registered; a replacement line is owed (reported, not silently
-      // rewritten). Scale words wired to QualCtx so no line can overclaim on
-      // a 1-match day.
+      // MKT-37 — delivered 2026-07-31. The originally-delivered #9 ("Grade
+      // day: {date} closed with…") duplicated shipped template 5 verbatim
+      // once its scale words went through makeQualCtx and was NOT
+      // registered; the REPLACEMENT below arrived same day and completes
+      // the set at 12. Scale words wired to QualCtx so no line can
+      // overclaim on a 1-match day.
+      c => {
+        const m = c.q!.matchPhrase;
+        return `Every signal on yesterday's board went up before the draw and got checked after. ${m.charAt(0).toUpperCase()}${m.slice(1)}${c.q!.spreadPhrase}. That's the whole method, in public.`;
+      },
       c => `Yesterday's board, checked in the open — ${c.q!.matchPhrase}${c.q!.spreadPhrase}. The record's public for a reason. 🧾`,
       () => `We published these before the draw. Here's how they graded, every row.`,
       // Delivered #12 is CONDITIONAL on a straight by order — gated
@@ -431,9 +435,10 @@ const CAPTION_REGISTRY = {
   // ⚠ WHAT ACTUALLY HAS TO BE DISTINCT IS `offset % templates.length`, not the
   // offset — the index is `(dayOfYear + offset) % N`.
   //
-  // ⚠ RE-VERIFIED AT 12 (MKT-37 grew most sets 8 → 12; verify-free is 11 — its
-  // delivered #9 duplicated a shipped line and awaits a replacement;
-  // allday_public stays 8). The sets that share a FAMILY, mod their length 12:
+  // ⚠ RE-VERIFIED AT 12 (MKT-37 grew the sets 8 → 12; verify-free reached 12
+  // on 2026-07-31 when the #9 replacement arrived — its first delivery
+  // duplicated a shipped line; allday_public stays 8). The sets that share a
+  // FAMILY, mod their length 12:
   //   pro trio     — allday_pro 5, midday_pro 7, evening_pro 11: pairwise
   //                  distinct, so the three pro posts never read as the same
   //                  message on one day. HOLDS with no re-spacing.

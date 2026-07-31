@@ -30,8 +30,8 @@ WHAT CHANGED IN v2.5 (2026-07-31 PM — MKT-38 retention)
   B. Status note: the verify PIPELINE repairs (gold straight board, asserts,
      per-segment ribbon, frame-one dated chip) are all live in code; the
      first fully-repaired PUBLISHED verify cut is the next morning run's.
-     Open on verify: part-1 VO candidate gate (whisper env), and the
-     verify-free caption #9 replacement line (owed from content).
+     Open on verify: part-1 VO candidate gate (whisper env). (The
+     verify-free #9 replacement line arrived later on 7/31 — closed.)
   C. ⚠ THE 1:1 FEED CUT IS RETIRED (MKT-39 cost audit → operator ruling,
      2026-07-31). Zero logged use across 48 assisted posts; it was 37% of
      bucket storage and 8 encodes per run. All existing 1:1 objects deleted,
@@ -76,10 +76,11 @@ WHAT CHANGED IN v2.4 (2026-07-31 PM — MKT-35 shipped in full · MKT-36 intro s
         independently (all 32 pairings over 32 days), tags ruling recorded
         (#Shorts #DataAnalysis #PatternAnalysis — description only, never
         the title, no gambling-adjacent tags). {free_group_url} wired.
-     2. Caption templates grew 8 → 12 per kind (§5). EXCEPTION: verify-free
-        is 11 — the delivered #9 duplicated shipped template 5 verbatim;
-        a replacement line is OWED FROM CONTENT rather than rewritten
-        silently. verify-free #12's straight claim is structurally gated
+     2. Caption templates grew 8 → 12 per kind (§5). verify-free reached 12
+        later the same day — the first-delivered #9 duplicated shipped
+        template 5 verbatim and was not registered; the replacement
+        ("Every signal on yesterday's board went up before the draw…")
+        arrived and closed the set. verify-free #12's straight claim is structurally gated
         (it renders only via straightPhrase, which only exists on days the
         record contains a straight). Spacing re-verified at 12: HOLDS
         (pro trio residues 5/7/11). 196 rendered captions + the full YT
@@ -1590,8 +1591,8 @@ BUILT AND RUNNING DAILY:
           the measurements. Still 720×1280 (ask #1 open).
   MKT-37  YOUTUBE SET + TEMPLATES 8→12 (2026-07-31) ✅ SHIPPED — YT titles/
           descriptions/tags as a per-platform transform; caption pools
-          grown (verify-free 11: one replacement line owed); handoff kind
-          guard. v2.4 note C.
+          grown to 12 everywhere (verify-free's #9 replacement arrived
+          later same day); handoff kind guard. v2.4 note C.
 
 IN FLIGHT, NOT BUILT — do not propose against these yet; §10 has the detail:
   MKT-14  Brand attribution in the slate stamp .......... PARKED (untouched)
@@ -1665,9 +1666,10 @@ WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
      spends it.
   5. More panels. The rotation adapts with no code change; six is the current
      set and the slot is now a product surface, so the copy bar is higher.
-  6. ✅ GREW 2026-07-31 (MKT-37): 12 per kind (verify-free 11 — one
-     replacement line owed; allday_public stays 8). Rotation adapted with
-     no code change, spacing re-verified at 12. Can grow further.
+  6. ✅ GREW 2026-07-31 (MKT-37): 12 per kind (allday_public stays 8;
+     verify-free's #9 replacement arrived same day and closed its set at
+     12). Rotation adapted with no code change, spacing re-verified at 12.
+     Can grow further.
   7. ✅ LARGELY CLOSED 2026-07-29 (MKT-23) — the set is now 6 and powerup's
      regeneration landed clean. Original entry:
      More intro rotation members. The set is 4 (standard, deadpan, arrival,

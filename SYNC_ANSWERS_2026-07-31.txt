@@ -173,7 +173,7 @@ D. WHAT YOU'RE HOLDING WORK BEHIND
        re-measure the lockup zone y 880–1040 clean from text-opaque
        5.2s to the 6.5s cut (accepted bar: ≤~1.3% of pixels above L40).
        Builds are 10.01s, text fade 4.5–5.2s.
-   (b) Generation budget: Higgsfield balance was 0 at the 7/30 close —
+   (b) Generation budget: generation balance (GEMINI OMNI — corrected 7/31; earlier notes said Higgsfield) was 0 at the 7/30 close —
        confirm balance before commissioning any of the three.
 
 9. MKT-33 (dated identity chip) — RECEIVED 7/31, QUEUED, NOT STARTED.

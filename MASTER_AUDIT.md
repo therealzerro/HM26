@@ -33,7 +33,7 @@
 2. 7/28's REAL posted stamp (7/29 20:11Z) was wiped by its republish; restorable via the gateway, but storage no longer holds the posted cut.
 3. 7/27 + 7/28 reels carry the new identity but the OLD endcard band placement (their re-regen was countermanded as waste) — regen on request only.
 4. The recovered `allday_free_carrier_part2_redelivery_20260730.mp4` is still unregistered — operator decision pending.
-5. Budget queue on Higgsfield top-up (balance 0): ① `verif_carrier_signoff_short` (~3.0s) ② evening_pro carrier rotation pair; 1080p upscale pilot waits with them.
+5. Budget queue on Gemini Omni top-up (balance 0 — the video generator; "Higgsfield" in earlier notes was a misnomer, corrected 2026-07-31): ① `verif_carrier_signoff_short` (~3.0s) ② evening_pro carrier rotation pair; 1080p upscale pilot waits with them.
 
 **STANDING CONSTRAINT ADDED THIS SESSION:** any new motion joining verify's ENDCARD rotation must re-measure zone y 880–1040 clean before shipping (the shared band's no-measurement guarantee is spent for this kind); and verify's STINGER degrades to none — never a slate motion — if the seal build is missing.
 
@@ -135,6 +135,12 @@ The earlier gap in this same block — preflight probing file existence rather t
 **ORDER OF WORK:** relabel injection (grid + modal variants) → full `--relabel` capture, frames inspected → registration (endcard, stinger, carrier, scope, caption) → `marketing_reels_kind_check` migration LAST within the change but not left out of it.
 
 **STILL OWED BY THE CONTENT AGENT:** the `ON FIRE` band enum. It gates the public capture copy set and is on this critical path — worth chasing before starting.
+
+---
+
+### MKT-39 — Pipeline cost audit (2026-07-31) 📊 RESEARCH ONLY — numbers reported, nothing changed
+
+**ID verified free.** Measured, not estimated: bucket via `storage.objects`, DB via `pg_total_relation_size`, run time from the 7/31 detached log, artifact usage from `social_posts`. Headline numbers (full report delivered in-session): marketing-reels bucket **214.0MB** post-MKT-38 (9:16 131.0 · 1:1 78.4 · contacts 4.7 · caption PDFs 0.2) and structurally FLAT — the only accumulator is captions PDFs (~0.1MB/day, 30d cap ≈ 3MB). DB 40MB total, of which marketing tables are **~0.2MB (~0.5%)** — engine data (datasets/snapshots/histories/DI) is ~19.4MB; the reels are a rounding error against the engine in the DB and ~98% of STORAGE, but both are far under any plan tier. **Egress: reels are operator-only, confirmed in code** — zero references to the marketing-reels bucket outside `components/admin`; nothing is served to subscribers, and `user_sessions`/`push_tokens` = 0 devices today (app distribution still gated on Apple Dev), so app-panels (3.2MB, the one app-wide-served marketing asset) currently costs ~nothing per day too. **The 1:1 cut: 0 of 48 logged assisted posts reference a `_1x1` file** — the handoff flow structurally hands the 9:16; the 1:1's only surface is one untracked open-in-new-tab button; it is 37% of bucket storage + 8 daily encodes. Taps are not logged, so "never used" is answerable only by the operator — reported, not decided. Full 8-reel daily run: **~65 min wall-clock** (10:19→11:24, all EXIT 0), touching only the local dev server + marketing bucket/tables — invisible to app users. A 9th kind scales linearly; an evergreen ad kind is cheaper than linear (no daily body capture). No recommendations issued — nothing alarming; the operator decides. Cross-ref [[MKT-38]] (retention), [[MKT-33]] (PDF retention).
 
 ---
 

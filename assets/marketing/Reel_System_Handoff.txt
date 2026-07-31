@@ -256,7 +256,12 @@ WHAT CHANGED IN v2.0 (2026-07-30 — content-agent ruling pass + MKT-29/30)
      and a pass-3 backstop asserts that post-mask NO text mentioning "pair"
      still carries a two-digit run. The two blind spots the MKT-26 addendum
      named are closed, fail-closed.
-  I. BUDGET STATE: generation balance is ZERO. Queue when it returns, in
+  I. BUDGET STATE: generation balance is ZERO — the balance is GEMINI OMNI
+     (corrected 2026-07-31: earlier notes said "Higgsfield"; Omni is the
+     video generator for EVERY asset in this project — carriers, intros,
+     stinger/endcard motions, forthcoming ad bodies. ChatGPT is the IMAGE
+     generator — panels, covers, banner — and is not budget-gated the same
+     way). Queue when it returns, in
      order: ① seal regeneration (note A) · ② verif_carrier_signoff_short
      (note C) · ③ evening_pro carrier rotation pair. The 1080×1920 upscale
      pilot (standing ask #1) is also blocked on the same balance.
@@ -355,7 +360,8 @@ WHAT CHANGED IN v1.6 (six corrections; v1.5 is wrong on all six)
      intro the day's rotation draws. §1, §2.
   3. THE INTRO IS NO LONGER ONE SHARED FILE. It is resolved PER REEL KIND, and
      slate reels rotate over a set. §2, §7 (MKT-17).
-  4. NEW INTRO DELIVERY SPEC — the generator only emits at 4/6/8/10s presets, so
+  4. NEW INTRO DELIVERY SPEC — the generator (GEMINI OMNI — every video asset
+     in this project) only emits at 4/6/8/10s presets, so
      EVERY intro delivered to date has arrived at 10.005s against a 6.5s
      ceiling. Trimming is now the expected path, not an incident. §7.
   5. PUBLIC REEL KINDS are in flight and NOT built. §10 states exactly what
@@ -1605,7 +1611,7 @@ WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
      FOURTH TIME 2026-07-31: the MKT-36 public-intro regeneration was
      explicitly requested at native 1080×1920 and still came back 720×1280 —
      the generator ceiling is real, and the upscale pilot (blocked on
-     Higgsfield balance) is the only remaining path; stop spending
+     Gemini Omni balance) is the only remaining path; stop spending
      deliveries chasing native. This is the single
      biggest quality gap left and the only remaining preflight warning class —
      ALL 49 current warnings are this one issue (plus the four rejected MKT-21

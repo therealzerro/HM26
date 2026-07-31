@@ -156,7 +156,7 @@ if (verifCarrier.joined) {
   console.log(
     gap > 0.05
       ? `NOTE(verify): VO covers ${(voiceStart + covered).toFixed(2)}s of a ${total}s reel — ` +
-        `${gap.toFixed(2)}s plays in silence at the close (MKT-27, by ruling).`
+        `the last ${gap.toFixed(2)}s carries the endcard's own audio (MKT-41; it was silence until then).`
       : `NOTE(verify): VO covers the full ${total}s reel (${verifCarrier.joined ? 'joined' : 'single-part'} carrier).`,
   );
 }
@@ -236,7 +236,17 @@ sh(
       `[3:a]atrim=0:${carrierNeed},asetpts=PTS-STARTPTS,aresample=48000,` +
       `afade=t=in:st=0:d=0.01,afade=t=out:st=${(carrierNeed - 0.01).toFixed(2)}:d=0.01,` +
       `adelay=${msVoice}|${msVoice}[carr];` +
-      `[introaud]${sting ? '[stgaud]' : ''}[carr]amix=inputs=${sting ? 3 : 2}:duration=longest:normalize=0,` +
+      // MKT-41 — THE ENDCARD'S OWN AUDIO, mixed at the outro cut. MKT-31 ruled
+      // "carrier, then silence" when the close was a 2.5s STATIC tail with
+      // nothing to hear. Addendum 1 replaced it with the endcard's first 6.5s
+      // — a formation with its own sting — so that ruling started discarding a
+      // real beat and left up to 4.5s of dead air at the close. Slate reels
+      // have always mixed this ([outroaud], 4-input amix); verify was the only
+      // kind that did not. Same shape as assemble-allday-reels.
+      `[2:a]atrim=0:${CARD},asetpts=PTS-STARTPTS,aresample=48000,` +
+      `afade=t=in:st=0:d=0.05,afade=t=out:st=${(CARD - 0.4).toFixed(2)}:d=0.4,` +
+      `adelay=${Math.round((openDur + uiDur) * 1000)}|${Math.round((openDur + uiDur) * 1000)}[outroaud];` +
+      `[introaud]${sting ? '[stgaud]' : ''}[carr][outroaud]amix=inputs=${sting ? 4 : 3}:duration=longest:normalize=0,` +
       `loudnorm=I=-14:TP=-1.5:LRA=11,apad=whole_dur=${total}[a]" `
     : `[3:a]atrim=0:${carrierNeed},asetpts=PTS-STARTPTS,aresample=48000,` +
       `afade=t=in:st=0:d=0.01,afade=t=out:st=${(carrierNeed - 0.01).toFixed(2)}:d=0.01,` +

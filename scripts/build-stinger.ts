@@ -248,7 +248,7 @@ async function openPage(v: StingerVariant): Promise<{ page: Page; close: () => P
     @font-face { font-family: BRAND; src: url('file://${MED}');  font-weight: 500; }
     * { margin: 0; padding: 0; }
     body { width: ${OUT_W}px; height: ${OUT_H}px; background: transparent; overflow: hidden; }
-    .lockup { position: absolute; top: ${LOCKUP_TOP}px; left: 0; width: ${OUT_W}px;
+    .lockup { position: absolute; top: ${v.lockupTop ?? LOCKUP_TOP}px; left: 0; width: ${OUT_W}px;
               text-align: center; font-family: BRAND; color: #ffffff; }
     .l { transform-origin: 50% 50%; }
     .l1 { font-weight: 700; font-size: ${inverted ? 62 : 46}px; letter-spacing: ${inverted ? 1.2 : 1.4}px; }

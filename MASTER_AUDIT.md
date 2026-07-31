@@ -142,6 +142,20 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 ---
 
+### MKT-41 — Verify stinger/endcard text placement + missing endcard audio (2026-07-31) ✅ FIXED
+
+**ID verified free.** Operator report against the rebuilt verify pair: intro-stinger text misplaced, outro-stinger (endcard) text misplaced, and the outro missing sound — all three on BOTH verify cuts. Diagnosed on frames against the slate reels as the reference (the fleet the operator is happy with), not from the code's intent.
+
+**1 — STINGER TEXT STRANDED.** `build-stinger.ts` used the SHARED `LOCKUP_TOP` (1240) for every variant. That is tuned to the SLATE motions, whose bolt strikes DOWN into an impact ring at ~y795, so text at 1240 reads as the motion's landing. The SEAL is the opposite composition — a small ring settling high, mark ending ~y738 — so the same 1240 left a **~600px void** between mark and text. Fixed with a per-variant `lockupTop` on `StingerVariant` (mirroring the endcard's), verify = **820**, measured not guessed: zone y820-1000 is clean through the text's whole on-screen window (mean L15-21, 0% above L40 at t=1.2-2.0s; the seal's late smoke bloom starts after the text is out). verify_public SHARES the built verify stinger clips, so one build fixed both. Built block ends y=935 < 1500.
+
+**2 — ENDCARD TEXT: THE MKT-31 ADDENDUM-2 TUCK IS WITHDRAWN.** `lockupTop: 880` put verify's close ~350px above every other kind's and left the lower half of frame empty. The deeper defect is that **880 was measured against ONE motion's settled bolt while the endcard ROTATES** — across the pro set the bolt bottoms at 604-827, so a fixed tuck lands 130-280px from the mark depending on the day. Reverted to the shared band, which is motion-independent by construction — exactly the guarantee the override spent. verify_public was already 1240, so **all nine kinds now close identically**. ⚠ This reverses a 2026-07-30 operator ruling *on the operator's own later report*; recorded here and in memory so the earlier "never fix back to 1240" note is not re-applied.
+
+**3 — ENDCARD AUDIO WAS NEVER MIXED.** Confirmed in code, not inferred: the slate assembler mixes `[outroaud]` in a 4-input amix; the verify assembler mixed only 3 (intro + stinger + carrier) and never touched input `[2]`'s audio. MKT-31 ruled "carrier, then silence" when the close was a 2.5s STATIC tail with nothing to hear — addendum 1 then replaced it with the endcard's first 6.5s, a formation **with its own sting**, so the ruling started discarding a real beat and leaving up to 4.5s of dead air. Now mixed at the outro cut with the slate's exact shape (fade in 0.05, out at CARD−0.4). Measured after: last 3s went from silence to **−14.4dB mean / −1.2 max** (verify) and **−13.5 / −1.1** (verify_public). The stale "plays in silence" NOTE was corrected too.
+
+**REBUILT AND VERIFIED:** `stinger:build verify` + `endcard:build verify` (+ unversioned `verif_endcard.mp4` fallback refreshed — the MKT-31 stale-fallback lesson), both cuts reassembled (28.43s / 28.80s, unchanged), frame-checked on the stinger and endcard beats. Filtered tsc 0. ⚠ NOT republished — the storage rows still carry the pre-fix cuts; the next `reel:verify` or an explicit publish ships these. Legacy no-intro branch still has no endcard audio (dead path, unchanged). Cross-ref [[MKT-31]] (both addenda), [[MKT-40]] (verify_public), [[MKT-12]] (stinger rig).
+
+---
+
 ### MKT-14 — Slate-stamp brand attribution 🔍 PHASE 0 REPORTED · BUILD HELD AT THE GATE (2026-07-31)
 
 **UNPARKED on operator go-ahead** (parked 2026-07-28 pending the social expansion; the trigger to resume is that content is now on a public platform and the reels drove the 7/31 growth, so they will be reposted). ID was already reserved by the parked order — no collision. Full report: `MKT14_PHASE0_2026-07-31.txt`. Discovery only; no renderer or assembler change.

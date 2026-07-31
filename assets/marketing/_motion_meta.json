@@ -3,13 +3,13 @@
     "bedUsable": true,
     "bedRms": -27.6,
     "crackAt": 4.4,
-    "derivedAt": "2026-07-30"
+    "derivedAt": "2026-07-31"
   },
   "endcard_motion_pro_alt.mp4": {
     "bedUsable": false,
     "bedRms": null,
     "crackAt": null,
-    "derivedAt": "2026-07-30",
+    "derivedAt": "2026-07-31",
     "bedNote": "no crack-free level-steady window"
   },
   "endcard_motion_free.mp4": {
@@ -28,12 +28,12 @@
     "bedUsable": true,
     "bedRms": -29.1,
     "crackAt": 4.4,
-    "derivedAt": "2026-07-30"
+    "derivedAt": "2026-07-31"
   },
   "endcard_motion_pro_lattice.mp4": {
     "bedUsable": true,
     "bedRms": -31.4,
     "crackAt": 4.2,
-    "derivedAt": "2026-07-30"
+    "derivedAt": "2026-07-31"
   }
 }

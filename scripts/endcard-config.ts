@@ -52,8 +52,16 @@ export const ENDCARDS: Record<string, EndcardVariant> = {
     out: 'verif_endcard.mp4',
     // MKT-31 item 4 — verify-only gold accent on the CTA line.
     line3Accent: '#FBBF24',
-    // MKT-31 addendum 2 — see lockupTop's doc for the measurements.
-    lockupTop: 880,
+    // MKT-41 (2026-07-31): the addendum-2 `lockupTop: 880` tuck is WITHDRAWN
+    // on operator report — verify's close read wrong against the fleet. 880
+    // was measured against ONE motion's settled bolt, but the endcard ROTATES:
+    // across the pro set the bolt bottoms at 604-827, so a fixed tuck lands
+    // 130-280px from the mark depending on the day, while every other kind
+    // sits at the shared band. Today's cut (alt / vault rings) put the text
+    // ~350px above the slate reels' and left the lower half of frame empty.
+    // Back on the shared band, which is motion-independent by construction —
+    // the property the override spent. verify_public was already 1240, so all
+    // nine kinds now close identically.
   },
   // Phase 2 — session wave. Same pro motion file, zero new generations.
   midday_pro: {

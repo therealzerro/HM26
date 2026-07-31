@@ -27,6 +27,23 @@ export interface StingerVariant {
   /** MKT-31 — hex colour for the SUBORDINATE line (verify: gold #FBBF24 — the
    *  results-desk accent; every slate surface leads purple/white). */
   subAccent?: string;
+  /**
+   * MKT-41 — per-variant lockup top, OVERRIDING the shared LOCKUP_TOP.
+   *
+   * The shared 1240 is tuned to the SLATE stinger motions, whose bolt strikes
+   * DOWN into an impact ring at ~y795 — so text at 1240 reads as the natural
+   * landing of the motion. The SEAL is a different composition: a small ring
+   * that settles high (mark ends ~y738) and leaves the lower two-thirds empty,
+   * so the same 1240 stranded the text ~500px below the mark with a void
+   * between them. Measured, not guessed: zone y820-1000 is clean through the
+   * text's whole on-screen window (mean L15-21, 0% above L40 at t=1.2-2.0s;
+   * the late smoke bloom starts after the text is out).
+   *
+   * ⚠ A new motion on a variant that sets this MUST re-measure — the same
+   * bargain the endcard band makes: an override buys placement with a
+   * per-motion measurement instead of a guarantee.
+   */
+  lockupTop?: number;
 }
 
 export const STINGERS: Record<string, StingerVariant> = {
@@ -57,7 +74,9 @@ export const STINGERS: Record<string, StingerVariant> = {
   // MKT-31 item 1: hierarchy INVERTED for verify only — YESTERDAY'S RECEIPTS
   // dominant, wordmark small and gold beneath (item 4). Config + layout, zero
   // generation.
-  verify:      { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', "YESTERDAY'S RECEIPTS"], enabled: true, layout: 'headline-dominant', subAccent: '#FBBF24' },
+  // MKT-41: lockupTop 820 tucks the lockup under the SEAL's ring. verify_public
+  // shares these built clips (same text, same pin), so this fixes both cuts.
+  verify:      { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', "YESTERDAY'S RECEIPTS"], enabled: true, layout: 'headline-dominant', subAccent: '#FBBF24', lockupTop: 820 },
   // MKT-13 session wave. Same motion, same layout — only the headline differs,
   // which is the whole point of rendering the lockup natively. Pro-only by
   // content strategy (scripts/reel-scopes.ts), so there is no *_free entry to

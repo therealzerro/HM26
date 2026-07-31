@@ -187,8 +187,19 @@ sh(
   // MKT-31 item 2: the ribbon rides EVERY body frame a viewer could land on —
   // fade-out now begins AT the endcard cut (was 0.5s before it), so the claim
   // holds through the last hold and dissolves into the close.
-  `[4:v]format=rgba,fade=t=in:st=${+(openDur - 0.3).toFixed(2)}:d=0.4:alpha=1,fade=t=out:st=${+(openDur + uiDur).toFixed(2)}:d=0.45:alpha=1[stmp];` +
-  `[vraw][stmp]overlay=0:0,format=yuv420p[vst];` +
+  // MKT-35 P4: PER-SEGMENT PLACEMENT. During the BOARD segment (the body's
+  // first 2.50s — F_SLATE=150 frames in render-verification-reel) the ribbon
+  // at its spec y=470 crossed the #1/#2 cards, so it rides at y-370 (plate
+  // y 100-220) inside the band the board renderer now reserves (clear y
+  // 0-300 through the push-in, measured). It returns to y=470 exactly at the
+  // board→summary hard cut — a position change on a scene cut reads as
+  // staging, not a glitch. The ledger segment keeps the spec placement; the
+  // ribbon must never cross a card, a digit or a badge.
+  `[4:v]format=rgba,split=2[st0][st1];` +
+  `[st0]fade=t=in:st=${+(openDur - 0.3).toFixed(2)}:d=0.4:alpha=1[stA];` +
+  `[st1]fade=t=out:st=${+(openDur + uiDur).toFixed(2)}:d=0.45:alpha=1[stB];` +
+  `[vraw][stA]overlay=0:-370:enable='lt(t,${+(openDur + 2.5).toFixed(2)})'[vbrd];` +
+  `[vbrd][stB]overlay=0:0:enable='gte(t,${+(openDur + 2.5).toFixed(2)})',format=yuv420p[vst];` +
   // MKT-22/MKT-35: chip rides the intro only — FULL OPACITY FROM FRAME ONE
   // (frame one is the camera-roll thumbnail; no fade-in by ruling), hold to
   // 2.65s, then the existing fade, out well before the crossfade.

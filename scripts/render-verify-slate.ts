@@ -142,8 +142,15 @@ function html(picks: SlatePick[], dateISO: string): string {
     @font-face{font-family:JBM;src:url('file://${FONT}/700Bold/JetBrainsMono_700Bold.ttf');font-weight:700}
     @font-face{font-family:JBM;src:url('file://${FONT}/500Medium/JetBrainsMono_500Medium.ttf');font-weight:500}
     *{margin:0;padding:0;box-sizing:border-box}
+    /* MKT-35 P4: top padding reserves the RIBBON BAND. The assembler moves the
+       gold date ribbon to y=100 during this segment (it collided with the #1/#2
+       cards at its spec y=470 once MKT-25 put the board first). Ribbon plate
+       renders y 100-220, glow to ~281; at the push-in's max scale (1.045,
+       origin 42%) content top 328 rises to ~322 — the band y 0-300 stays clear
+       of every card, digit and badge through the whole move. Measured, not
+       eyeballed; re-measure if the ribbon grows or the push-in changes. */
     body{width:1080px;height:1920px;background:#07080f;font-family:JBM;color:#fff;
-         padding:96px 56px 84px;display:flex;flex-direction:column;gap:30px}
+         padding:328px 56px 84px;display:flex;flex-direction:column;gap:30px}
     .hd{display:flex;flex-direction:column;gap:10px;margin-bottom:6px}
     .eyebrow{font-weight:500;font-size:30px;letter-spacing:7px;color:#2bffcc}
     .title{font-weight:700;font-size:62px;letter-spacing:1px}

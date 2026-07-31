@@ -417,7 +417,16 @@ for (const v of VARIANTS) {
     `-c:a aac -ar 48000 -movflags +faststart "${out}"`,
   );
 
-  sh(`ffmpeg -y -loglevel error -i "${out}" -vf "crop=1080:1080:0:420" -c:v libx264 -profile:v high -crf 18 -pix_fmt yuv420p -c:a copy -movflags +faststart "${out1x1}"`);
+  // MKT-39 addendum (operator, 2026-07-31): the 1:1 feed cut is RETIRED from
+  // assembly — 0 of 48 logged posts ever referenced one, and it was 37% of
+  // bucket storage plus 8 encodes per daily run. Every consumer is
+  // null-tolerant (publish existsSync-guards it, retention filters null,
+  // ReelsView hides the button), so nothing else changes. To resurrect for a
+  // platform that genuinely needs 1:1, re-add:
+  //   sh(`ffmpeg -y -loglevel error -i "${out}" -vf "crop=1080:1080:0:420"
+  //       -c:v libx264 -profile:v high -crf 18 -pix_fmt yuv420p -c:a copy
+  //       -movflags +faststart "${out1x1}"`);
+  void out1x1;
 
   // Same beats relative to the (possibly intro-shifted) timeline — legacy
   // openDur=1.2 reproduces the original [0, 3, 6.5, 12, 18.6, 23.3].
@@ -435,5 +444,5 @@ for (const v of VARIANTS) {
   sh(`ffmpeg -y -loglevel error ${inputs} -filter_complex "[0][1][2][3]hstack=4[r0];[4][5][6][7]hstack=4[r1];[r0][r1]vstack=2" "${sheet}"`);
 
   const dur = execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${out}"`).toString().trim();
-  console.log(`${kind.toUpperCase()} reel: ${out} · duration ${dur}s · 1x1 + contact sheet written`);
+  console.log(`${kind.toUpperCase()} reel: ${out} · duration ${dur}s · contact sheet written (1:1 retired, MKT-39)`);
 }

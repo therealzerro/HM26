@@ -3,8 +3,10 @@
  * Reels view can preview + hand them to Facebook from any device.
  *
  * Runs automatically as the last step of `npm run reel:allday` / `reel:verify`.
- * Uploads ONLY the finals (9:16 + 1:1 + contact sheet, ~8-15MB/day) to the
- * public `marketing-reels` bucket and upserts one marketing_reels row per
+ * Uploads ONLY the finals (9:16 + contact sheet — the 1:1 cut was RETIRED by
+ * the MKT-39 addendum 2026-07-31, zero logged use; the video1x1 path below is
+ * kept and existsSync-guarded so resurrecting the cut needs no change here)
+ * to the public `marketing-reels` bucket and upserts one marketing_reels row per
  * variant with a lint-safe tier-2 caption draft. Re-running a date replaces
  * the files (x-upsert) and resets the row to 'ready' — a re-render IS a new
  * reel, so a stale caption edit or posted flag must not survive it.

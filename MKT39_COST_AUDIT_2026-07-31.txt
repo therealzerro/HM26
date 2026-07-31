@@ -109,7 +109,28 @@ BOTTOM LINE
 ────────────────────────────────────────────────────────────────
 Nothing alarming. The two numbers most worth a decision:
   ① the 1:1 cut — 37% of bucket storage + 8 daily encodes for an artifact
-    with zero logged use;
+    with zero logged use;  → DECIDED, see addendum below.
   ② the plan tier — one dashboard glance settles whether operator egress
     (~4 GB/mo worst case) matters at all.
-Both are the operator's call.
+
+────────────────────────────────────────────────────────────────
+ADDENDUM — 2026-07-31: OPERATOR RULED ON ①, 1:1 CUT RETIRED
+────────────────────────────────────────────────────────────────
+Executed same day:
+  - Bucket: all 1:1 objects DELETED and every row's video_1x1_path nulled
+    (31 references cleared — 8 live objects plus stale paths on archived
+    rows). Bucket drops 214.0 → 135.6 MB; steady state now ~135 MB.
+  - Local: 9 _1x1.mp4 files removed (89 MB).
+  - Assembly: the 1:1 encode is REMOVED from both assemblers (8 fewer
+    encodes per daily run; wall-clock drops a few minutes). Every consumer
+    was already null-tolerant — publish existsSync-guards the upload,
+    retention filters null paths, the admin button hides itself — so no
+    other code changed, and the resurrect recipe is commented at the
+    removal site in assemble-allday-reels.ts if a platform ever genuinely
+    needs a 1:1 master (none of the six registered platforms declares one;
+    platform apps letterbox 9:16 themselves).
+Revised artifact table (steady state):
+  9:16 master     8   131.0 MB
+  contact sheet   8     4.7 MB
+  captions PDFs  ~30    ≤3 MB (30-day cap)
+  TOTAL              ~135-140 MB flat

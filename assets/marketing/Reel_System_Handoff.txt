@@ -32,6 +32,15 @@ WHAT CHANGED IN v2.5 (2026-07-31 PM — MKT-38 retention)
      first fully-repaired PUBLISHED verify cut is the next morning run's.
      Open on verify: part-1 VO candidate gate (whisper env), and the
      verify-free caption #9 replacement line (owed from content).
+  C. ⚠ THE 1:1 FEED CUT IS RETIRED (MKT-39 cost audit → operator ruling,
+     2026-07-31). Zero logged use across 48 assisted posts; it was 37% of
+     bucket storage and 8 encodes per run. All existing 1:1 objects deleted,
+     rows nulled, local files removed, encode dropped from both assemblers.
+     Bucket steady state 214 → ~135 MB. ⚠ The 1:1 centre-crop BAND
+     (y 420-1500) in the delivery spec remains BINDING — it anchors the chip
+     zone and every composition clearance; do not relax it, and a future 1:1
+     need is a code resurrect (recipe at the removal site), not an asset
+     respec.
 
 WHAT CHANGED IN v2.4 (2026-07-31 PM — MKT-35 shipped in full · MKT-36 intro swap · MKT-37 captions)
   A. ✅ MKT-35 SHIPPED IN FULL (was "in flight" in v2.3):
@@ -786,7 +795,12 @@ on the 6.33s members) and the reel runs up to 34.53s.
 --------------------------------------------------------------------------------
 Per reel, three finals are produced and uploaded (working files stay local):
   - 9:16 master        e.g. allday_pro_20260727.mp4 / verify_reel_20260726.mp4
-  - 1:1 feed cut       …_1x1.mp4 (center crop)
+  - 1:1 feed cut       RETIRED (MKT-39 addendum, operator, 2026-07-31): zero
+                       logged use across 48 assisted posts; was 37% of bucket
+                       storage + 8 encodes/run. No registered platform
+                       declares a 1:1 asset — platform apps letterbox 9:16
+                       themselves. Resurrect recipe commented in
+                       assemble-allday-reels.ts.
   - contact sheet PNG  …_contact.png (the storyboard strip)
 
 Upload target: public storage (bucket "marketing-reels"), registered in the
@@ -812,7 +826,8 @@ pro one has already gone out re-upserts BOTH rows and wipes the pro row's
 posted stamp. Use `publish-reels midday --variant=free`.
 
 The operator's Admin → Reels screen then offers, per reel:
-  - contact-sheet storyboard preview + buttons to watch the 9:16 / 1:1
+  - contact-sheet storyboard preview + a button to watch the 9:16 (the 1:1
+    button hides itself now that the cut is retired)
   - target selector: Free Group / Pro Group / Cross-Post
   - the auto-written caption in an editor, gated by the full brand-lint
     engine (a blocking vocabulary violation disables the send buttons)
@@ -1347,7 +1362,11 @@ per-day by hand, not AI-freestyled.
   - Embedded audio REQUIRED — it is the only sound before the VO enters.
     END it at true silence (the assembler's dissolve fade assumes that); it
     may start hot.
-  - Must survive a 1:1 CENTRE CROP (keeps y 420–1500 of 1920) for the
+  - Must survive a 1:1 CENTRE CROP (keeps y 420–1500 of 1920). ⚠ The band
+    REMAINS BINDING even though the 1:1 output cut was retired (MKT-39
+    addendum): the identity chip and every composition clearance are
+    measured inside it, and a future 1:1 resurrect must not trigger a
+    re-delivery of the whole fleet. Originally specified for the
     square cutdown. Keep the visor, the gesture and the phone inside that
     band; the top of the head may clip.
   - Same resolution/frame-rate spec as everything else (native 1080×1920,

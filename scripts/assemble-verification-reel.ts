@@ -228,8 +228,10 @@ sh(
   `-c:a aac -ar 48000 -movflags +faststart "${out}"`,
 );
 
-// 3. 1:1 feed cut (center crop).
-sh(`ffmpeg -y -loglevel error -i "${out}" -vf "crop=1080:1080:0:420" -c:v libx264 -profile:v high -crf 18 -pix_fmt yuv420p -c:a copy -movflags +faststart "${out1x1}"`);
+// 3. 1:1 feed cut — RETIRED (MKT-39 addendum, operator, 2026-07-31): zero
+// logged use across 48 posts; consumers are all null-tolerant. See the
+// matching note in assemble-allday-reels.ts for the resurrect recipe.
+void out1x1;
 
 // 4. Contact sheet — open, the board, a featured hold, the close.
 //
@@ -246,4 +248,4 @@ STAMPS.forEach((t, i) => sh(`ffmpeg -y -loglevel error -ss ${t} -i "${out}" -fra
 sh(`ffmpeg -y -loglevel error ${STAMPS.map((_, i) => `-i "${join(REELS, `_cs${i}.png`)}"`).join(' ')} -filter_complex "[0][1][2][3]hstack=4" "${sheet}"`);
 
 const dur = execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${out}"`).toString().trim();
-console.log(`reel: ${out} · duration ${dur}s · 1x1 cut + contact sheet written`);
+console.log(`reel: ${out} · duration ${dur}s · contact sheet written (1:1 retired, MKT-39)`);

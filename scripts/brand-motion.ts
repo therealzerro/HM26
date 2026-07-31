@@ -134,7 +134,8 @@ const PRO_KINDS = new Set(['allday_pro', 'midday_pro', 'evening_pro', 'verify'])
 /** Kinds per tier, in a stable order — the endcard lane's spread axis. */
 export const ENDCARD_KINDS: Record<Tier, string[]> = {
   pro: ['allday_pro', 'midday_pro', 'evening_pro', 'verify'],
-  free: ['allday_free', 'midday_free', 'evening_free', 'allday_public', 'midday_public', 'evening_public'],
+  // MKT-40: verify_public is free-tier at the close like every public kind.
+  free: ['allday_free', 'midday_free', 'evening_free', 'allday_public', 'midday_public', 'evening_public', 'verify_public'],
 };
 
 export function tierFor(kind: string): Tier {
@@ -218,7 +219,9 @@ export function stingerMotionsFor(kind: string, dateISO: string): MotionVariant[
   // NO stinger (probeStinger's graceful null), never to a slate motion — the
   // same semantics as the fixed intro's legacy-open fallback. While the seal
   // is HELD, verify draws the rotation, which is the pre-seal behaviour.
-  if (kind === 'verify' && !VERIFY_SEAL_MOTION.held) return [VERIFY_SEAL_MOTION];
+  // MKT-40: verify_public inherits the seal pin — it is the same reel's
+  // identity on a public surface (ruling recorded in the Phase 0 report).
+  if ((kind === 'verify' || kind === 'verify_public') && !VERIFY_SEAL_MOTION.held) return [VERIFY_SEAL_MOTION];
   return rotation;
 }
 
@@ -229,7 +232,7 @@ export function stingerMotionsFor(kind: string, dateISO: string): MotionVariant[
  * stray scan's contract.
  */
 export function stingerMotionSetFor(kind: string): MotionVariant[] {
-  if (kind === 'verify' && !VERIFY_SEAL_MOTION.held) return [VERIFY_SEAL_MOTION, ...STINGER_MOTIONS];
+  if ((kind === 'verify' || kind === 'verify_public') && !VERIFY_SEAL_MOTION.held) return [VERIFY_SEAL_MOTION, ...STINGER_MOTIONS];
   return STINGER_MOTIONS;
 }
 

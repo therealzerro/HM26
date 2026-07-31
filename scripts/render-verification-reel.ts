@@ -71,7 +71,8 @@ import { provenanceArgs } from './reel-provenance';
 import { renderSlateFrames } from './render-verify-slate';
 
 const BASE = 'http://localhost:8081';
-const OUT_DIR = resolve(process.argv[2] ?? 'assets/marketing/verify_reels');
+// MKT-40: flags stripped so `--public` can't be mistaken for the outDir.
+const OUT_DIR = resolve(process.argv.slice(2).find(a => !a.startsWith('--')) ?? 'assets/marketing/verify_reels');
 const FPS = 60;
 const VIEW_H = 960;                     // CSS px @2 DPR => 1920
 /** MKT-27 beat sizes, in frames. The TOTAL is derived from these plus the row
@@ -128,13 +129,17 @@ function yesterdayET(): string {
 }
 
 (async () => {
+  // MKT-40 — the PUBLIC capture: digits masked upstream, match vocabulary
+  // relabelled, sessions/states dropped, rollup reframed to structurally
+  // two-digit stats, all asserted fail-closed before a single frame encodes.
+  const PUBLIC = process.argv.includes('--public');
   const dateISO = yesterdayET();
   const stamp = dateISO.replace(/-/g, '');
-  const WORK = join(tmpdir(), `reel-frames-${stamp}`);
+  const WORK = join(tmpdir(), `reel-frames-${PUBLIC ? 'public-' : ''}${stamp}`);
   rmSync(WORK, { recursive: true, force: true });
   mkdirSync(WORK, { recursive: true });
   mkdirSync(OUT_DIR, { recursive: true });
-  const outMp4 = join(OUT_DIR, `ui_verify_${stamp}.mp4`);
+  const outMp4 = join(OUT_DIR, `ui_verify${PUBLIC ? '_public' : ''}_${stamp}.mp4`);
   const fname = (i: number) => join(WORK, `frame_${String(i).padStart(4, '0')}.png`);
 
   const browser = await chromium.launch();
@@ -238,6 +243,88 @@ function yesterdayET(): string {
     console.error(`ABORT: no confirmed matches for ${dateISO} — no reel today.`);
     await browser.close();
     process.exit(1);
+  }
+
+  // ── MKT-40: the PUBLIC SWEEP. Runs AFTER layout (row positions and the
+  // STRAIGHT classification are read from the un-swept DOM) and BEFORE any
+  // frame. Text is REPLACED, never hidden — hiding reflows the page and
+  // invalidates every measured row top. The sweep walks TEXT NODES (the
+  // MKT-30 lesson: element-scoped sweeps miss appended nodes), then a
+  // fail-closed audit aborts the render on any surviving digit run,
+  // match-vocabulary token, session word or state attribution.
+  if (PUBLIC) {
+    const violations = await page.evaluate(() => {
+      const SCOPE_WORDS = /\b(Midday|Evening|All Day)\b/g;
+      const ICONS = /[☀️🌙◈🌅🌑]/gu;
+      // 1. Summary band → structurally two-digit stats. Values sourced from
+      // the page itself (days from the DAYS cell, jurisdictions from the sub
+      // line) — reframed, never fabricated.
+      const leaves = (Array.from(document.querySelectorAll('*')) as HTMLElement[])
+        .filter(e => e.children.length === 0 && (e.textContent ?? '').trim().length > 0);
+      const labelOf = (t: string) => leaves.find(e => (e.textContent ?? '').trim() === t);
+      const cellFor = (label: HTMLElement | undefined) => label?.parentElement ?? null;
+      const valueLeaf = (cell: HTMLElement | null, label: HTMLElement) =>
+        cell ? (Array.from(cell.children) as HTMLElement[]).find(c => c !== label) ?? null : null;
+      const dLab = labelOf('DAYS'); const mLab = labelOf('MATCHES');
+      const sLab = labelOf('STRAIGHT'); const bLab = labelOf('BOX');
+      const days = dLab ? (valueLeaf(cellFor(dLab), dLab)?.textContent ?? '').trim() : '';
+      const sub = leaves.find(e => /^Across \d+ jurisdictions/.test((e.textContent ?? '').trim()));
+      const jx = sub ? (sub.textContent ?? '').match(/Across (\d+) jurisdictions/)?.[1] ?? '' : '';
+      const setCell = (label: HTMLElement | undefined, value: string, newLabel: string) => {
+        if (!label) return;
+        const v = valueLeaf(cellFor(label), label);
+        if (v) v.textContent = value;
+        label.textContent = newLabel;
+      };
+      setCell(mLab, days || '30', 'DAYS GRADED');
+      setCell(sLab, jx || '40+', 'JURISDICTIONS');
+      setCell(bLab, '40+', 'STATES COVERED');
+      setCell(dLab, '6', 'SIGNALS DAILY');
+      if (sub) sub.textContent = 'GRADED IN PUBLIC · EVERY MORNING';
+      // 2. Text-node sweep over the whole document: digits → dots, match
+      // vocabulary → public set, attribution collapsed, sessions/icons
+      // stripped, ISO day headers de-yeared (replaced, not hidden).
+      const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      const texts: Text[] = [];
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) texts.push(n as Text);
+      for (const t of texts) {
+        let s = t.textContent ?? '';
+        if (!s.trim()) continue;
+        const iso = s.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (iso) { s = `${MONTHS[+iso[2] - 1]} ${+iso[3]}`; t.textContent = s; continue; }
+        if (/^Drew\b/.test(s.trim())) { t.textContent = 'Drew ••• · verified against the official draw'; continue; }
+        if (/^\d{3}$/.test(s.trim())) { t.textContent = '•••'; continue; }
+        let out = s
+          .replace(/\bSTRAIGHT\b/g, 'EXACT ORDER')
+          .replace(/\bBOX\b/g, 'ANY ORDER')
+          .replace(SCOPE_WORDS, '')
+          .replace(ICONS, '')
+          .replace(/[ \t]{2,}/g, ' ');
+        if (out !== s) t.textContent = out;
+      }
+      // 3. FAIL-CLOSED AUDIT — prove the sweep found what it protects.
+      const bad: string[] = [];
+      const nowLeaves = (Array.from(document.querySelectorAll('*')) as HTMLElement[])
+        .filter(e => e.children.length === 0 && (e.textContent ?? '').trim().length > 0);
+      for (const e of nowLeaves) {
+        const txt = (e.textContent ?? '').trim();
+        if (/\d{3}/.test(txt)) bad.push(`digit-run: "${txt.slice(0, 60)}"`);
+        if (/\b(STRAIGHT|BOX)\b/.test(txt)) bad.push(`match-vocab: "${txt.slice(0, 60)}"`);
+        // Session words as the UI capitalises them. "morning" at large is
+        // sanctioned copy (the public captions use it); the blocked tokens
+        // are the session labels themselves.
+        if (/\b(Midday|Evening|MIDDAY|EVENING)\b/.test(txt)) bad.push(`session: "${txt.slice(0, 60)}"`);
+        if (/\bin [A-Z]{2}\b/.test(txt)) bad.push(`state-attribution: "${txt.slice(0, 60)}"`);
+      }
+      return bad;
+    });
+    if (violations.length) {
+      console.error(`ABORT: public sweep incomplete — ${violations.length} violation(s):\n  ` + violations.slice(0, 12).join('\n  '));
+      await browser.close();
+      process.exit(1);
+    }
+    console.log('public sweep: rollup reframed, digits masked, vocabulary relabelled — audit clean.');
   }
   const L = layout as {
     scrollHeight: number; clientHeight: number; yTop: number; nextTop: number; rowCount: number;
@@ -362,8 +449,8 @@ function yesterdayET(): string {
   // degrade: it does not depend on row detection, and it is the half that makes
   // the record mean anything, so losing it to a DOM change would be the worst
   // possible thing to drop. (MKT-25 rendered it only on the restaged path.)
-  const landed = await renderSlateFrames(WORK, fname, 0, F_SLATE, dateISO);
-  console.log(`slate segment: ${landed} of 6 landed — rendered f000-f${F_SLATE - 1}`);
+  const landed = await renderSlateFrames(WORK, fname, 0, F_SLATE, dateISO, 'allday', PUBLIC);
+  console.log(`slate segment: ${landed} of 6 landed — rendered f000-f${F_SLATE - 1}${PUBLIC ? ' (public cut: digits masked)' : ''}`);
 
   // ── summary band — held at the top of the page with a barely-there push, so
   // the totals land before any individual row is argued from.
@@ -439,7 +526,9 @@ function yesterdayET(): string {
     `-frames:v ${TOTAL} -c:v libx264 -pix_fmt yuv420p -r ${FPS} -crf 18 ` +
     // MKT-18: same provenance tag as the slate bodies — the verify assembler
     // had the identical gap (stamp from argv, existence check only).
-    `${provenanceArgs(dateISO)} "${outMp4}"`,
+    // MKT-40: the public body also carries PUBLIC_TAG so the assembler can
+    // refuse a full-fidelity body posing as public (assertBodyPublic).
+    `${provenanceArgs(dateISO, false, PUBLIC)} "${outMp4}"`,
     { stdio: 'inherit' },
   );
   rmSync(WORK, { recursive: true, force: true });

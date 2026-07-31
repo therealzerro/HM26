@@ -343,34 +343,67 @@ export function platformAcceptsAudience(
  * Pro CTA, and no MATCH vocabulary at all — the methodology framing carries
  * the same weight without testing whether the bare term clears tier 1.
  */
-export const YT_SHORTS_TITLES: string[] = [
-  'Six signals, ranked before the draw',
-  'How we score daily 3-digit draw patterns',
-  'The board we publish before results come in',
-  'Ranked, explained, and checked the next morning',
-  'What pattern analysis actually looks like',
-  'Published first. Verified after.',
-  'Six signals a day, across 40+ states & provinces',
-  'Our method, start to finish',
-];
+export interface YtShortsSet { titles: string[]; descriptions: string[] }
 
-export const YT_SHORTS_DESCRIPTIONS: string[] = [
-  `Every morning our engine scores combinations across 40+ states & provinces and publishes six ranked signals — before the first draw. The next morning we check every one against the official results and publish the record.\nThe full board is free in our community: {free_group_url}`,
-  `This is pattern analysis, not prediction. Six signals ranked by four measures — energy, momentum, pattern and consistency — published and time-stamped before the draw, then graded against official results the following morning.\nFull board, free: {free_group_url}`,
-  `No fees, no promises. We publish the analysis first and the receipts after, every day, across 40+ states & provinces. You can check every one of them yourself.\nJoin free: {free_group_url}`,
-  `Most methods never show their work. Ours publishes six ranked signals before the draw, explains the reasoning behind each, then grades them against the official results in the open.\nThe whole method is free in our community: {free_group_url}`,
-];
+/**
+ * MKT-40: PER-KIND YouTube sets. verify_public must NOT inherit
+ * allday_public's — that set describes a board being published, this one
+ * describes it being graded, and rotating them against the wrong footage is a
+ * caption that contradicts the video (content-agent ruling, recorded).
+ */
+export const YT_SHORTS_SETS: Record<string, YtShortsSet> = {
+  allday_public: {
+    titles: [
+      'Six signals, ranked before the draw',
+      'How we score daily 3-digit draw patterns',
+      'The board we publish before results come in',
+      'Ranked, explained, and checked the next morning',
+      'What pattern analysis actually looks like',
+      'Published first. Verified after.',
+      'Six signals a day, across 40+ states & provinces',
+      'Our method, start to finish',
+    ],
+    descriptions: [
+      `Every morning our engine scores combinations across 40+ states & provinces and publishes six ranked signals — before the first draw. The next morning we check every one against the official results and publish the record.\nThe full board is free in our community: {free_group_url}`,
+      `This is pattern analysis, not prediction. Six signals ranked by four measures — energy, momentum, pattern and consistency — published and time-stamped before the draw, then graded against official results the following morning.\nFull board, free: {free_group_url}`,
+      `No fees, no promises. We publish the analysis first and the receipts after, every day, across 40+ states & provinces. You can check every one of them yourself.\nJoin free: {free_group_url}`,
+      `Most methods never show their work. Ours publishes six ranked signals before the draw, explains the reasoning behind each, then grades them against the official results in the open.\nThe whole method is free in our community: {free_group_url}`,
+    ],
+  },
+  // MKT-40 — delivered 2026-07-31 (docs/verify_public_copy_delivery_2026-07-31.md).
+  verify_public: {
+    titles: [
+      'We grade yesterday’s signals in public',
+      'Published before the draw. Checked after.',
+      'What happens the morning after we post',
+      'Our record, checked against official results',
+      'How we grade our own pattern analysis',
+      'The receipts, every single morning',
+    ],
+    descriptions: [
+      `Every morning we check the previous day's six signals against the official results and publish what happened. Nothing edited, nothing retroactive.\nThe full record is free in our community: {free_group_url}`,
+      `We publish pattern analysis before the draw and grade it after. This is the grading half — the same board, checked in the open, across 40+ states & provinces.\nSee the full record free: {free_group_url}`,
+      `Most methods never show what happened next. Ours gets checked every morning and the record stays public.\nFree to read: {free_group_url}`,
+    ],
+  },
+};
 
-/** Day-rotated YouTube fields. dayNum = any stable content-date day number
- *  (the caption engine's dayOfYear convention); never a render clock. */
+/** Day-rotated YouTube fields for a KIND with a registered set (null if the
+ *  kind has none). dayNum = the caption engine's content-date dayOfYear
+ *  convention; never a render clock. Title and description rotate
+ *  independently — the description cycle advances one extra step per title
+ *  cycle wrap so every pairing appears. */
 export function youtubeShortsFields(
+  kind: string,
   dayNum: number,
   freeGroupUrl?: string,
-): { title: string; description: string } {
-  const title = YT_SHORTS_TITLES[dayNum % YT_SHORTS_TITLES.length];
-  const dLen = YT_SHORTS_DESCRIPTIONS.length;
-  const dIdx = (dayNum % dLen + Math.floor(dayNum / YT_SHORTS_TITLES.length)) % dLen;
-  const description = YT_SHORTS_DESCRIPTIONS[dIdx]
+): { title: string; description: string } | null {
+  const set = YT_SHORTS_SETS[kind];
+  if (!set) return null;
+  const title = set.titles[dayNum % set.titles.length];
+  const dLen = set.descriptions.length;
+  const dIdx = (dayNum % dLen + Math.floor(dayNum / set.titles.length)) % dLen;
+  const description = set.descriptions[dIdx]
     .replace('{free_group_url}', (freeGroupUrl ?? '').trim() || 'link in our profile');
   return { title, description };
 }
@@ -394,18 +427,21 @@ function clamp(s: string, max: number): { text: string; truncated: boolean } {
 export function platformCaption(
   p: SocialPlatform,
   caption: string,
-  // MKT-37: platform content-set context. When a platform has a dedicated set
-  // (YouTube today), the stored caption is REPLACED by the set — the set was
-  // written for that surface's three fields, the caption for a one-field
-  // composer. Optional so every existing call site keeps its behaviour.
-  ctx?: { dayNum?: number; freeGroupUrl?: string },
+  // MKT-37/40: platform content-set context. When a platform has a dedicated
+  // PER-KIND set (YouTube today), the stored caption is REPLACED by the set —
+  // the set was written for that surface's three fields, the caption for a
+  // one-field composer. Optional so every existing call site keeps its
+  // behaviour; a kind without a set falls through to the generic transform.
+  ctx?: { dayNum?: number; freeGroupUrl?: string; kind?: string },
 ): HandoffCaption {
-  if (p.id === 'youtube' && ctx?.dayNum != null) {
-    const yt = youtubeShortsFields(ctx.dayNum, ctx.freeGroupUrl);
-    const tags = p.hashtags.filter(h => !new RegExp(`(^|\\s)${h}\\b`, 'i').test(yt.description));
-    const t = clamp(yt.title, p.maxTitleLen ?? p.maxLen);
-    const b = clamp(yt.description + (tags.length ? `\n\n${tags.join(' ')}` : ''), p.maxLen);
-    return { title: t.text, body: b.text, clipboard: b.text || t.text, truncated: t.truncated || b.truncated };
+  if (p.id === 'youtube' && ctx?.dayNum != null && ctx.kind) {
+    const yt = youtubeShortsFields(ctx.kind, ctx.dayNum, ctx.freeGroupUrl);
+    if (yt) {
+      const tags = p.hashtags.filter(h => !new RegExp(`(^|\\s)${h}\\b`, 'i').test(yt.description));
+      const t = clamp(yt.title, p.maxTitleLen ?? p.maxLen);
+      const b = clamp(yt.description + (tags.length ? `\n\n${tags.join(' ')}` : ''), p.maxLen);
+      return { title: t.text, body: b.text, clipboard: b.text || t.text, truncated: t.truncated || b.truncated };
+    }
   }
   let text = (caption ?? '').trim();
   // MKT-24: tier 4 is an owned room, so the reshaping runs BEFORE length work —

@@ -90,6 +90,9 @@ export const FIXED_INTRO: Record<string, string> = {
   allday_public: 'anchor_intro_public.mp4',
   midday_public: 'anchor_intro_public.mp4',
   evening_public: 'anchor_intro_public.mp4',
+  // MKT-40: the grading half opens on the same cold-audience hook as every
+  // public kind — the visor ignition, not verify's group-facing fixed intro.
+  verify_public: 'anchor_intro_public.mp4',
 };
 
 /** Today in ET, matching every other date-derived rotation in the pipeline. */

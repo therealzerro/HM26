@@ -71,7 +71,7 @@ const ASSETS = resolve('assets/marketing');
  */
 type Kind = Extract<
   ReelCaptionKind,
-  'allday_pro' | 'allday_free' | 'verify' | 'midday_pro' | 'evening_pro' | 'midday_free' | 'evening_free' | 'allday_public'
+  'allday_pro' | 'allday_free' | 'verify' | 'midday_pro' | 'evening_pro' | 'midday_free' | 'evening_free' | 'allday_public' | 'verify_public'
 >;
 
 function etDate(offsetDays: number): string {
@@ -108,6 +108,14 @@ function reelFiles(): ReelFiles[] {
       video: join(dir, `verify_reel_${stamp}.mp4`),
       video1x1: join(dir, `verify_reel_${stamp}_1x1.mp4`),
       sheet: join(dir, `verify_reel_${stamp}_contact.png`),
+    }, {
+      // MKT-40 — the public grading half. existsSync-filtered downstream, so
+      // a day where the public variant wasn't assembled publishes verify
+      // alone rather than aborting.
+      kind: 'verify_public',
+      video: join(dir, `verify_public_${stamp}.mp4`),
+      video1x1: join(dir, `verify_public_${stamp}_1x1.mp4`),
+      sheet: join(dir, `verify_public_${stamp}_contact.png`),
     }];
   }
   const spec = REEL_SCOPES[mode as Scope];
@@ -160,10 +168,31 @@ async function buildCaptions(kinds: Kind[]): Promise<Record<string, CaptionSet>>
       console.warn('[publish-reels] receipts fetch failed — captions use fallbacks:', String(e).slice(0, 200));
     }
   }
+  // MKT-40: {free_group_url} substitution — verify_public's delivered
+  // templates carry the token so the stored drafts are final text everywhere
+  // they surface (UI, captions PDF, handoff). Sourced from app_config, never
+  // hardcoded; on a fetch failure the token-bearing tail degrades to a clean
+  // sentence end rather than shipping a literal "{free_group_url}".
+  let freeUrl = '';
+  if (kinds.some((k) => k.endsWith('_public'))) {
+    try {
+      const rows = await sbGet<{ key: string; value: string }[]>(
+        `/rest/v1/app_config?key=eq.social_free_group_url&select=key,value`,
+      );
+      freeUrl = String(rows?.[0]?.value ?? '').replace(/^"|"$/g, '').trim();
+    } catch (e) {
+      console.warn('[publish-reels] social_free_group_url fetch failed — captions degrade:', String(e).slice(0, 120));
+    }
+  }
+  const subUrl = (text: string): string =>
+    freeUrl
+      ? text.replace(/\{free_group_url\}/g, freeUrl)
+      : text.replace(/[:\s]*\{free_group_url\}/g, '.').replace(/\.\./g, '.');
+
   const out: Record<string, CaptionSet> = {};
   for (const k of kinds) {
     out[k] = {
-      caption: buildReelCaption(k, isoDate, receipts),
+      caption: subUrl(buildReelCaption(k, isoDate, receipts)),
       caption_pro: k === 'verify' ? buildReelCaption('verify_pro', isoDate, receipts) : null,
     };
   }

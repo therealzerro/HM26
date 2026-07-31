@@ -106,6 +106,22 @@ export const ENDCARDS: Record<string, EndcardVariant> = {
     out: 'allday_public_endcard.mp4',
     lines: ['HITMASTER ZK6', 'THE FULL BOARD IS FREE', 'JOIN THE COMMUNITY'],
   },
+
+  // ── MKT-40 — verify_public: the grading half of the public pair. FREE-TIER
+  // motion set (tierFor: public kinds are free-tier). Copy delivered
+  // 2026-07-31 (docs/verify_public_copy_delivery_2026-07-31.md), tier-1
+  // lint-clean. Line 3 keeps verify's gold — the identity accent, not
+  // vocabulary. ⚠ NO lockupTop override: verify's 880 tuck was MEASURED on
+  // the PRO motions; the free set FAILS that zone (10% px >L40, max L255 at
+  // 5.2-6.4s — measured 2026-07-31 per the addendum-2 standing rule), so
+  // verify_public stays on the shared band, which guarantees clean
+  // background without per-motion measurement.
+  verify_public: {
+    motion: 'endcard_motion_free.mp4',
+    out: 'verify_public_endcard.mp4',
+    lines: ['HITMASTER ZK6', 'PUBLISHED FIRST. CHECKED AFTER.', 'SEE THE FULL RECORD FREE'],
+    line3Accent: '#FBBF24',
+  },
 };
 
 // ── Brand-fixed layout ──────────────────────────────────────────────────────

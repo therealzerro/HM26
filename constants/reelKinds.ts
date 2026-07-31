@@ -22,7 +22,7 @@ export type ReelKind =
   | 'allday_pro' | 'allday_free' | 'verify'
   | 'midday_pro' | 'evening_pro'
   | 'midday_free' | 'evening_free'
-  | 'allday_public';
+  | 'allday_public' | 'verify_public';
 
 /**
  * WHICH ROOM EACH KIND'S STORED CAPTION WAS WRITTEN FOR — MKT-24.
@@ -52,4 +52,7 @@ export const REEL_KIND_AUDIENCE: Record<ReelKind, 'free' | 'pro' | 'public'> = {
   // this caption was written for strangers, and the tier-4 gate must refuse it
   // for its own reason (a join-the-free-community CTA undersells paying members).
   allday_public: 'public',
+  // MKT-40: same tier-1 discipline and funnel as allday_public — the grading
+  // half of the public pair.
+  verify_public: 'public',
 };

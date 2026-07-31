@@ -58,6 +58,11 @@ export const CHIP_LABELS: Record<string, { text: string; accent: string }> = {
   midday_free:    { text: 'MIDDAY',              accent: DROP },
   evening_free:   { text: 'EVENING',             accent: DROP },
   verify:         { text: "YESTERDAY'S RESULTS", accent: VERIFY },
+  // MKT-40: deliberately NOT "YESTERDAY'S RESULTS" — that stays tier-2/4;
+  // "results" reads gambling-adjacent to a cold viewer and a classifier, and
+  // the chip is the first thing both see. RECORD is the analytics register.
+  // Gold accent: the verify identity carries to its public half.
+  verify_public:  { text: "YESTERDAY'S RECORD",  accent: VERIFY },
   allday_public:  { text: 'THE FULL BOARD',      accent: DROP },
   midday_public:  { text: 'THE FULL BOARD',      accent: DROP },
   evening_public: { text: 'THE FULL BOARD',      accent: DROP },

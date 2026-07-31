@@ -26,7 +26,7 @@
 //   (defaults to yesterday ET; expects ui_verify_<stamp>.mp4 already rendered)
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { assertBodyDate } from './reel-provenance';
+import { assertBodyDate, assertBodyPublic } from './reel-provenance';
 import { resolveEndcard } from './reel-endcard';
 import { CHIP_LABELS } from './intro-chip-config';
 import { join, resolve } from 'node:path';
@@ -44,8 +44,13 @@ function yesterdayET(): string {
   return now.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }).replace(/-/g, '');
 }
 
-const stamp = process.argv[2] ?? yesterdayET();
-const ui = join(REELS, `ui_verify_${stamp}.mp4`);
+// MKT-40: `--variant=public` assembles the PUBLIC grading half — masked body,
+// public intro, its own endcard copy — sharing verify's carrier, stinger
+// (seal) and ribbon. Everything else in this file is common to both kinds.
+const PUBLIC = process.argv.includes('--variant=public');
+const KIND = PUBLIC ? 'verify_public' : 'verify';
+const stamp = process.argv.slice(2).find(a => !a.startsWith('--')) ?? yesterdayET();
+const ui = join(REELS, `ui_verify${PUBLIC ? '_public' : ''}_${stamp}.mp4`);
 if (!existsSync(ui)) {
   console.error(`ABORT: ${ui} not found — run the render step first (npm run reel:verify).`);
   process.exit(1);
@@ -55,16 +60,19 @@ if (!existsSync(ui)) {
 // would be stamped with that day's "✓ VERIFIED RESULTS" chip, which on a
 // receipts reel means publishing one day's outcomes as another's.
 assertBodyDate(ui, `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`, 'npm run reel:verify');
+// MKT-40: a full-fidelity body posing as public would carry real digits onto
+// a public feed — the tag is written by the renderer's --public path only.
+if (PUBLIC) assertBodyPublic(ui, 'tsx scripts/render-verification-reel.ts --public');
 // MKT-19: the two reads below were inline `verif_endcard.mp4` literals — the
 // close AND the legacy fallback open, which takes the endcard's final frame.
 // Both now resolve through the shared resolver. Verify never uses a hum bed (its
 // soundtrack is verif_carrier), so needsBed is false.
-const vEndcard = resolveEndcard(ASSETS, 'verify', `${stamp.slice(0,4)}-${stamp.slice(4,6)}-${stamp.slice(6,8)}`, false);
-console.log(`NOTE(verify): endcard motion → ${vEndcard.motion.label} [${vEndcard.name}].`);
-const out = join(REELS, `verify_reel_${stamp}.mp4`);
-const out1x1 = join(REELS, `verify_reel_${stamp}_1x1.mp4`);
+const vEndcard = resolveEndcard(ASSETS, KIND, `${stamp.slice(0,4)}-${stamp.slice(4,6)}-${stamp.slice(6,8)}`, false);
+console.log(`NOTE(${KIND}): endcard motion → ${vEndcard.motion.label} [${vEndcard.name}].`);
+const out = join(REELS, PUBLIC ? `verify_public_${stamp}.mp4` : `verify_reel_${stamp}.mp4`);
+const out1x1 = join(REELS, PUBLIC ? `verify_public_${stamp}_1x1.mp4` : `verify_reel_${stamp}_1x1.mp4`);
 const bolt = join(REELS, `_bolt_lockup.png`);
-const sheet = join(REELS, `verify_reel_${stamp}_contact.png`);
+const sheet = join(REELS, PUBLIC ? `verify_public_${stamp}_contact.png` : `verify_reel_${stamp}_contact.png`);
 const sh = (c: string) => execSync(c, { stdio: 'inherit' });
 
 // xfade P counts DOWN 1→0 — ease on q=(1-P) so the dissolve runs bolt→ui.
@@ -91,9 +99,15 @@ const CARD = 6.5;
 // without one. Preflight reporting a beat the assembler will not use is exactly
 // the failure the "check the RESOLVED file, not the incumbent" rule exists to
 // prevent, so verify now rotates like every other kind.
-const intro = probeAnchorIntro(ASSETS, 'verify');
+// MKT-40: the public half opens on the cold-audience public intro; the group
+// half keeps verify's own fixed file. Both are FIXED_INTRO entries.
+const intro = probeAnchorIntro(ASSETS, KIND);
 // MKT-12 wired this; MKT-27 ENABLED it, once the readable-holds body made the
 // branding ratio defensible (64% → 44%). See stinger-config for the ordering.
+// MKT-40: DELIBERATELY 'verify' for both kinds — verify_public SHARES the
+// built stinger files (identical text "HITMASTER ZK6 / YESTERDAY'S RECEIPTS",
+// same seal pin, same headline-dominant layout). A per-kind build here would
+// duplicate byte-identical clips and widen the stray-scan surface for nothing.
 const sting = probeStinger(ASSETS, 'verify', `${stamp.slice(0,4)}-${stamp.slice(4,6)}-${stamp.slice(6,8)}`);
 const openBase = intro ? intro.dur : 1.2;
 const openDur = +(openBase + stingerAdds(sting)).toFixed(2);
@@ -124,6 +138,9 @@ const carrierNeed = +(total - voiceStart).toFixed(2);
 // MKT-09/MKT-20: resolved from the carrier registry by KIND.
 // MKT-27: `carrierNeed` is passed so the pt2 sign-off plays WHOLE or is dropped
 // — see resolveCarrier's needSec note for why verify is the only kind that does.
+// MKT-40: 'verify' for both kinds — the carrier pair is SHARED (Phase 0 free
+// win: the spoken lines transcribe Q2-clean at tier 1, so the public half
+// costs zero generation).
 const verifCarrier = resolveCarrier(
   ASSETS, 'verify', `${stamp.slice(0,4)}-${stamp.slice(4,6)}-${stamp.slice(6,8)}`, undefined, carrierNeed,
 );
@@ -149,8 +166,8 @@ if (verifCarrier.joined) {
 // content date, provenance-asserted above), so the chip's date line agrees
 // with its own YESTERDAY'S RESULTS heading and distinguishes the save from
 // the same morning's All-Day drop in a camera roll.
-const chipPng = intro && CHIP_LABELS.verify ? join(REELS, `_chip_verify_${stamp}.png`) : null;
-if (chipPng) sh(`npx tsx scripts/render-intro-chip.ts verify "${chipPng}" ${stamp}`);
+const chipPng = intro && CHIP_LABELS[KIND] ? join(REELS, `_chip_${KIND}_${stamp}.png`) : null;
+if (chipPng) sh(`npx tsx scripts/render-intro-chip.ts ${KIND} "${chipPng}" ${stamp}`);
 
 const msVoice = Math.round(voiceStart * 1000);
 

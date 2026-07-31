@@ -118,7 +118,7 @@ export async function loadSlate(dateISO: string, scope = 'allday'): Promise<Slat
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
-function html(picks: SlatePick[], dateISO: string): string {
+function html(picks: SlatePick[], dateISO: string, publicCut = false): string {
   const d = new Date(dateISO + 'T12:00:00Z');
   const when = `${DAYS[d.getUTCDay()]} · ${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
   const FONT = resolve('node_modules/@expo-google-fonts/jetbrains-mono');
@@ -129,14 +129,24 @@ function html(picks: SlatePick[], dateISO: string): string {
     // AS straights here, upstream of the ledger's holds — gold, matching the
     // verify identity (MKT-31) and the ledger's ⭐ STRAIGHT. Box stays green.
     const straight = p.hitType === 'straight';
-    const digits = (p.bestOrder ?? p.combo).split('').map(c => `<i>${c}</i>`).join('');
+    // MKT-40 public cut: digits NEVER render — placeholder dots upstream (the
+    // MKT-30 pattern: a placeholder is a fact, a blur is a judgement). Match
+    // vocabulary relabels to the public set (EXACT ORDER, per the shipped
+    // BEST ORDER / ANY ORDER slots); state + session attribution drops
+    // (tier-1 blocks both). The gold/green treatment survives, which is what
+    // keeps the MKT-35 hierarchy readable on the masked cut.
+    const digitSrc = (p.bestOrder ?? p.combo).split('');
+    const digits = digitSrc.map(c => `<i>${publicCut ? '•' : c}</i>`).join('');
+    const setChip = publicCut ? '{ • • • }' : (p.comboSet ?? '');
+    const drewVal = publicCut ? '•••' : (p.hitResult ?? '');
+    const drewLab = straight ? (publicCut ? 'DREW · EXACT ORDER' : 'DREW · STRAIGHT') : 'DREW';
     const right = hit
-      ? `<div class="res"><div class="rlab">${straight ? 'DREW · STRAIGHT' : 'DREW'}</div><div class="rval">${p.hitResult ?? ''}</div>
-         <div class="rwhere">${(p.hitState ?? '').toUpperCase()} · ${(p.hitSession ?? '').toUpperCase()}</div></div>`
+      ? `<div class="res"><div class="rlab">${drewLab}</div><div class="rval">${drewVal}</div>
+         ${publicCut ? '' : `<div class="rwhere">${(p.hitState ?? '').toUpperCase()} · ${(p.hitSession ?? '').toUpperCase()}</div>`}</div>`
       : `<div class="res pending"><div class="rlab">NO MATCH</div></div>`;
     return `<div class="row ${hit ? 'hit' : ''}${straight ? ' straight' : ''}">
       <div class="rank">#${p.rank}</div><div class="digits">${digits}</div>
-      <div class="set">${p.comboSet ?? ''}</div>${right}</div>`;
+      <div class="set">${setChip}</div>${right}</div>`;
   }).join('');
   return `<!doctype html><html><head><style>
     @font-face{font-family:JBM;src:url('file://${FONT}/700Bold/JetBrainsMono_700Bold.ttf');font-weight:700}
@@ -184,10 +194,11 @@ function html(picks: SlatePick[], dateISO: string): string {
 /** Render `frames` PNGs of the board with a slow push-in, into `dir`. */
 export async function renderSlateFrames(
   dir: string, fname: (i: number) => string, from: number, frames: number, dateISO: string, scope = 'allday',
+  publicCut = false,
 ): Promise<number> {
   const picks = await loadSlate(dateISO, scope);
-  const tmp = join(tmpdir(), `verify-slate-${dateISO}.html`);
-  writeFileSync(tmp, html(picks, dateISO));
+  const tmp = join(tmpdir(), `verify-slate-${dateISO}${publicCut ? '-public' : ''}.html`);
+  writeFileSync(tmp, html(picks, dateISO, publicCut));
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
   await page.goto(`file://${tmp}`, { waitUntil: 'networkidle' });

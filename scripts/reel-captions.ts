@@ -489,6 +489,38 @@ const CAPTION_REGISTRY = {
       () => `No fees, no hype, no promises. Just the day's analysis and yesterday's receipts. If that's your kind of thing, the community's free.`,
     ],
   },
+  /**
+   * MKT-40 — verify_public: the grading half of the public pair. The eight
+   * DELIVERED templates (content agent 2026-07-31,
+   * docs/verify_public_copy_delivery_2026-07-31.md), registered verbatim.
+   * Tier-1 discipline, stricter than the free verify draft: NO match counts,
+   * NO state names, NO digits, NO match-type vocabulary — these describe the
+   * RITUAL and invite the audit. #5 is the ONE that names the masking (the
+   * deliberate 1-in-8 dose — more and the cut reads as withholding).
+   *
+   * `{free_group_url}` is substituted at PUBLISH time from
+   * app_config.social_free_group_url (publish-reels), so the stored drafts
+   * are final text everywhere they surface. STATIC otherwise: no receipts
+   * dependency, no fallback path to get wrong.
+   *
+   * Offset 6 — free residue mod 8 among the 8-length sets (allday_public
+   * holds 4); distinct from verify (0) and verify_pro (2) mod 12 is not the
+   * binding rule (different families), but 6 avoids those too.
+   */
+  verify_public: {
+    offset: 6,
+    realNumbers: false,
+    templates: [
+      () => `Yesterday's board, graded against the official results — every signal we published before the draw, checked after it. The full record is free: {free_group_url}`,
+      () => `We publish six ranked signals every morning and check every one of them the next day, in public. Come read the record yourself: {free_group_url}`,
+      () => `This is what accountability looks like in pattern analysis: published first, graded after, nothing edited in between. Free to check: {free_group_url}`,
+      () => `Anyone can claim a method. We post ours before the draw and grade it after — same time, every day, across 40+ states & provinces. {free_group_url}`,
+      () => `Yesterday's signals, checked against what actually drew. The values are covered here — they're open in the community: {free_group_url}`,
+      () => `No edits, no retroactive claims. The board goes up before the draw and gets graded the next morning where anyone can see it. {free_group_url}`,
+      () => `Every morning we grade the day before. That's the whole product — the analysis, then the receipts. Read the record free: {free_group_url}`,
+      () => `Published before. Checked after. That order is the only thing that makes a record worth reading. See it in full: {free_group_url}`,
+    ],
+  },
 } satisfies Record<string, KindSpec>;
 
 export type ReelCaptionKind = keyof typeof CAPTION_REGISTRY;

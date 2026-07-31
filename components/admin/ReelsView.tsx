@@ -64,6 +64,9 @@ const KIND_UI: Record<ReelKind, { icon: string; label: string; defaultTarget: Ta
   // Two-Question NO/NO ack. Landing it in a group by default would waste the
   // one reel written for strangers on rooms that already have better cuts.
   allday_public: { icon: '📡', label: 'All-Day · Public', defaultTarget: 'cross', sheetAspect: 6 * (270 / 480) },
+  // MKT-40 — the grading half of the public pair. Verify's contact sheet is 4
+  // frames wide (open / board / hold / close), same as verify's.
+  verify_public: { icon: '🧾', label: 'Verify · Public', defaultTarget: 'cross', sheetAspect: 4 * (270 / 480) },
 };
 
 /** A kind with no UI entry would crash the whole Reels tab on `ui.defaultTarget`
@@ -130,7 +133,7 @@ function PlatformHandoffRow({
     const jan1 = Date.UTC(d.getUTCFullYear(), 0, 1);
     return Math.floor((d.getTime() - jan1) / 86_400_000);
   }, [reel.reel_date]);
-  const shaped = platformCaption(p, caption, { dayNum, freeGroupUrl });
+  const shaped = platformCaption(p, caption, { dayNum, freeGroupUrl, kind: reel.kind });
   const lint = lintCaption(shaped.clipboard, p.tier);
   const gateOk = !p.requiresTwoQuestion || (q1No && q2No);
   // MKT-24: the audience gate is separate from `enabled` — the PLATFORM is fine,

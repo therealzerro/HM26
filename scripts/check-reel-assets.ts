@@ -264,6 +264,8 @@ const UNREFERENCED_OK: Record<string, string> = {
   // registered under allday_public in carrier-config.ts and are now validated
   // like every other carrier pair.
   'watermark_source.mp4': 'MKT-14 source, parked with the lane.',
+  'anchor_intro_public_candidate_20260731.mp4':
+    'MKT-36 UNGATED CANDIDATE — regenerated public intro delivered via GitHub web 2026-07-31 (upload 8bbd22c, then THREE web renames that corrupted BOTH the delivery and the shelved incumbent to 2-byte stubs — running total 6 for this path; real bytes recovered from the upload commit). Probes clean: 720×1280 24fps h264+aac, 10.005s (NOT the requested native 1080×1920 — generator ceiling confirmed, §9 ask #1 stays open). NOT registered: comparative acceptance vs the incumbent still owed (audio onset, dissolve bed, luma spread, crop band, chip zone at 0.0s, Q1/Q2 sweep). Incumbent anchor_intro_public.mp4 restored from git (c0bcb42, 6.000s trim) and serving; rollback copy at *_incumbent_backup.mp4.',
   'verif_carrier_part1_candidate_20260731.mp4':
     'UNGATED CANDIDATE — operator delivered a new verify part 1 via GitHub web 2026-07-31 (upload 1b55470, then two web renames that CORRUPTED both the delivery and the shelved incumbent to unreadable stubs; real bytes recovered from the upload commit). Probes clean, 10.005s law holds, VO end 9.568s, clean tail. NOT registered: content transcript + voice-family gate still owed (whisper env broke mid-session). Incumbent verif_carrier.mp4 restored from git and serving. Gate this file, then swap or reject.',
   // MKT-32 — the 2026-07-30/31 carrier drops, validated and gated 2026-07-31.

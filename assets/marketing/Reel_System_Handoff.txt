@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-07-31 · v2.3
+Content Agent Handoff · 2026-07-31 · v2.4
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -16,6 +16,56 @@ Companion docs:
   - assets/marketing/AllDay_Reel_Endcard_Revision_Brief_2026-07-27.md (endcard contract)
   - docs/mkt15_phase2_copy_brief.md (public copy set — DELIVERED + the bolt request)
   - REEL_COMMANDS.txt (repo root — operator command reference)
+
+WHAT CHANGED IN v2.4 (2026-07-31 PM — MKT-35 shipped in full · MKT-36 intro swap · MKT-37 captions)
+  A. ✅ MKT-35 SHIPPED IN FULL (was "in flight" in v2.3):
+     1. DATED IDENTITY CHIP — the intro chip now carries a second line
+        ("FRI · JUL 31" — 22px, gold, letter-spaced) and renders at FULL
+        OPACITY FROM FRAME ONE, no fade-in (frame one is the camera-roll
+        thumbnail — the load-bearing half); hold to 2.65s, then the 0.25s
+        fade. Date from the assembler's provenance-asserted stamp, never a
+        clock; verify chips YESTERDAY (its stamp is the content date by
+        construction). Ad kinds are EXCLUDED in config (datedChipExcluded —
+        an evergreen ad must never carry a date, the MKT-18 class). Chip
+        zone re-verified AT 0.0s across all seven intro files: all pass.
+        ⚠ Any §-text that says the chip appears "at 0.4s" is historical.
+     2. RIBBON PER-SEGMENT PLACEMENT — during the BOARD segment the gold
+        ribbon rides at y 100-220 inside a band the board renderer now
+        reserves (board content top-padding 96→328; clear y 0-300 measured
+        through the push-in); it returns to spec y 470 exactly at the
+        board→summary scene cut. It never crosses a card, digit or badge.
+     3. Slot 9 of the heat vocabulary: OVERDUE → LONG GAP (⚠️ drops, both
+        VS16 forms), collision-checked, lint-clean at tier 1.
+  B. ✅ MKT-36 — anchor_intro_public REPLACED (serving-asset swap, won the
+     comparative gate). ⚠ The delivery path ATE TWO MORE BINARIES (running
+     total SIX): the 7/31 GitHub-web renames corrupted the delivery AND the
+     shelved incumbent to 2-byte stubs — the public lane's only intro was
+     dead on disk until both were restored from git. §7 has the full
+     measurements (trim IN 0.4/OUT 6.4; onset −20.2dB mean, the fleet's
+     hottest open; chip zone clean from frame one). Rollbacks parked as
+     *_incumbent_backup.mp4. Still 720×1280 — ask #1 stays open, generator
+     ceiling confirmed a FOURTH time; the upscale pilot is the only path.
+  C. ✅ MKT-37 — YOUTUBE SET + TEMPLATE EXPANSION:
+     1. YouTube Shorts content set registered as a PER-PLATFORM TRANSFORM
+        (constants/socialPlatforms.ts): 8 titles + 4 descriptions rotating
+        independently (all 32 pairings over 32 days), tags ruling recorded
+        (#Shorts #DataAnalysis #PatternAnalysis — description only, never
+        the title, no gambling-adjacent tags). {free_group_url} wired.
+     2. Caption templates grew 8 → 12 per kind (§5). EXCEPTION: verify-free
+        is 11 — the delivered #9 duplicated shipped template 5 verbatim;
+        a replacement line is OWED FROM CONTENT rather than rewritten
+        silently. verify-free #12's straight claim is structurally gated
+        (it renders only via straightPhrase, which only exists on days the
+        record contains a straight). Spacing re-verified at 12: HOLDS
+        (pro trio residues 5/7/11). 196 rendered captions + the full YT
+        set: ZERO lint trips.
+     3. HANDOFF KIND GUARD — ReelsView now WARNs (non-blocking) when a
+        non-public cut is pointed at a tier-1 platform or the cross target:
+        free/pro cuts carry real digits and cannot honestly clear Q1.
+        Context: the operator posted to YouTube 7/30 + 7/31; the DB shows
+        allday_public handed to the cross-post lane both days (the correct
+        file), but the DB records targets, not platforms — operator
+        confirmation of which files went up is still worthwhile.
 
 WHAT CHANGED IN v2.3 (2026-07-31 — MKT-35 doc resync: MKT-31 recorded, stale body struck)
   A. ⚠ MKT-31 — THE VERIFY IDENTITY PACKAGE — WAS ABSENT FROM THIS DOC
@@ -632,9 +682,12 @@ on the 6.33s members) and the reel runs up to 34.53s.
                gold beneath — verify only.
                ⚠ THE CHIP SAYS "YESTERDAY'S RESULTS", THE STINGER SAYS
                "YESTERDAY'S RECEIPTS" — DELIBERATE, ruled 2026-07-30. The chip
-               identifies the reel in cold-viewer language at 0.4s; the
-               stinger frames it in brand language at 5.6s. Escalation, not
-               repetition. Do not "correct" either to match the other.
+               identifies the reel in cold-viewer language FROM FRAME ONE
+               (MKT-35: full opacity, no fade-in — frame one is the
+               camera-roll thumbnail; it also carries yesterday's date in
+               gold); the stinger frames it in brand language at 5.6s.
+               Escalation, not repetition. Do not "correct" either to match
+               the other, and do not reintroduce a chip fade-in.
   5.6 – 8.3    STINGER (MKT-12, ENABLED for verify 2026-07-29) —
                "HITMASTER ZK6 / YESTERDAY'S RECEIPTS", 3.0s crossfaded 0.3s
                into the intro's smoke, so it ADDS 2.7s. Barred until MKT-27
@@ -1477,9 +1530,19 @@ BUILT AND RUNNING DAILY:
           date ribbon, gold accents, seal cleared, FIRST-6.5s endcard
           window, lockupTop 880 ruling. v2.3 notes A-C; audit entry has the
           full detail. Was absent from this doc until v2.3.
-  MKT-35  CLASSIFIER + RESYNC + DATED CHIP (2026-07-31, in flight) — board
-          straight treatment shipped (v2.3 note E); this doc resync; the
-          dated identity chip (absorbs the withdrawn standalone order).
+  MKT-35  CLASSIFIER + RESYNC + DATED CHIP + RIBBON (2026-07-31) ✅ SHIPPED
+          IN FULL — board straight treatment (v2.3 note E: data layer was
+          CORRECT, the board renderer was the defect; no backfill existed),
+          the v2.3 doc resync, the frame-one dated identity chip, the
+          per-segment ribbon, slot 9 LONG GAP. v2.4 note A.
+  MKT-36  anchor_intro_public REPLACED (2026-07-31) ✅ — regeneration won
+          the comparative gate and serves; two more binaries eaten by
+          GitHub-web renames on the way in (total 6). v2.4 note B; §7 has
+          the measurements. Still 720×1280 (ask #1 open).
+  MKT-37  YOUTUBE SET + TEMPLATES 8→12 (2026-07-31) ✅ SHIPPED — YT titles/
+          descriptions/tags as a per-platform transform; caption pools
+          grown (verify-free 11: one replacement line owed); handoff kind
+          guard. v2.4 note C.
 
 IN FLIGHT, NOT BUILT — do not propose against these yet; §10 has the detail:
   MKT-14  Brand attribution in the slate stamp .......... PARKED (untouched)
@@ -1514,7 +1577,12 @@ REPEALED. Read the distinction before proposing anything against it:
 
 WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
   1. NATIVE 1080×1920 SOURCE ASSETS. Every delivered motion file to date is
-     720×1280 24fps and gets upscaled + frame-duplicated. This is the single
+     720×1280 24fps and gets upscaled + frame-duplicated. ⚠ CONFIRMED A
+     FOURTH TIME 2026-07-31: the MKT-36 public-intro regeneration was
+     explicitly requested at native 1080×1920 and still came back 720×1280 —
+     the generator ceiling is real, and the upscale pilot (blocked on
+     Higgsfield balance) is the only remaining path; stop spending
+     deliveries chasing native. This is the single
      biggest quality gap left and the only remaining preflight warning class —
      ALL 49 current warnings are this one issue (plus the four rejected MKT-21
      bodies carrying printed reasons), now across the intro pool, the motion
@@ -1548,7 +1616,9 @@ WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
      spends it.
   5. More panels. The rotation adapts with no code change; six is the current
      set and the slot is now a product surface, so the copy bar is higher.
-  6. More caption templates per kind (8 today, can grow; rotation adapts).
+  6. ✅ GREW 2026-07-31 (MKT-37): 12 per kind (verify-free 11 — one
+     replacement line owed; allday_public stays 8). Rotation adapted with
+     no code change, spacing re-verified at 12. Can grow further.
   7. ✅ LARGELY CLOSED 2026-07-29 (MKT-23) — the set is now 6 and powerup's
      regeneration landed clean. Original entry:
      More intro rotation members. The set is 4 (standard, deadpan, arrival,

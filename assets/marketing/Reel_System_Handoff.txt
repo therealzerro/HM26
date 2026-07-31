@@ -1830,8 +1830,12 @@ MKT-15 — PHASE 2, THE PUBLIC CUT. BLOCKED, and bigger than first scoped.
   a glance anyway. Drawing a placeholder makes the frame-by-frame Q1 pass a
   fact rather than a judgement about how much blur is enough. Nothing changes
   in what you supply.
-  ⚠ STILL OWED FROM CONTENT: the three bolt decisions (fill, placement,
-  scale+opacity) and bolt_mark.svg if it exists — only the 2048 PNG arrived.
+  ✅ CLOSED 2026-07-31 (MKT-14 Phase 0): the three bolt decisions shipped with
+  MKT-30 (gold gradient per palette §7, centred, 60% height / 85% opacity),
+  and bolt_mark.svg was NEVER actually outstanding — it has been on disk and
+  TRACKED IN GIT since 2026-07-28 (commit 407a914, MKT-17), same geometry and
+  white fill as the copy re-delivered with the MKT-14 order. This line was
+  wrong from the day it was written.
   ⚠ ALSO WORTH AUDITING: the PLAN tab CONTENTS are unaudited. The renderer
   captures each modal at its DEFAULT tab and never clicks through, so only the
   tab label is exposed today. The day a tab-switch beat is added to the

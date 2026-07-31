@@ -1,0 +1,160 @@
+MKT-14 — SLATE-STAMP BRAND ATTRIBUTION · PHASE 0 REPORT · 2026-07-31
+Discovery only. No renderer change, no assembler change, nothing built.
+All figures MEASURED (live lint engine, rendered prototypes, alpha bounding
+boxes, real public-body frames). Held at the gate per the work order.
+
+Prototype artefacts (scratchpad, not committed):
+  mkt14_probe.ts · mkt14_drop28.png · mkt14_verify28.png · mkt14_drop26.png
+
+════════════════════════════════════════════════════════════════
+1. STAMP VISIBILITY — PERSISTENT ACROSS THE WHOLE BODY (good news)
+════════════════════════════════════════════════════════════════
+The stamp does NOT appear briefly per segment. It rides the ENTIRE body on
+both pipelines, so the brand line inherits persistence at ZERO extra cost —
+the work order's contingency ("what would it cost to make the brand line
+persistent") is moot.
+
+  SLATE kinds   fade in  openDur-0.10 (d 0.45)
+                fade out openDur+bodyDur-0.55 (d 0.50)
+                allday 34.2s: visible ~8.6 -> 27.65s = 19.0s = 56% of reel
+  VERIFY kinds  fade in  openDur-0.30 (d 0.40)
+                fade out AT the endcard cut, openDur+uiDur (d 0.45) [MKT-31]
+                28.8s: visible ~8.4 -> 22.75s = 14.35s = 50% of reel
+
+WORDMARK COVERAGE MAP after MKT-14 (allday, 34.2s):
+  0.0  - 5.7   intro .............. identity chip only (kind + date, NO
+                                    wordmark)  -> UNMARKED
+  5.7  - 8.7   stinger ............ renders HITMASTER ZK6            ✓
+  8.6  - 27.65 BODY ............... the stamp — where MKT-14 lands   ✓ NEW
+  27.65- 32.2  endcard formation ... text not yet faded in -> UNMARKED
+  32.2 - 34.2  endcard lockup ...... renders HITMASTER ZK6           ✓
+
+READ: MKT-14 covers the single largest window (56%) and it is exactly the
+clipped/screenshotted/reposted part. The two residual gaps are brand-segment
+footage (anchor + smoke), not data. EVERY frame containing the board, the
+ledger or the picks is attributed.
+
+════════════════════════════════════════════════════════════════
+2. TIER-1 LINT — NO EXEMPTION EXISTS, AND NONE IS NEEDED
+════════════════════════════════════════════════════════════════
+The rule is `\bhits?\b` — WORD-BOUNDARY anchored. "HITMASTER" was never a
+match anywhere; there is no wordmark carve-out to inherit or lose.
+
+  ✓ "HITMASTER ZK6"     clean at tiers 1, 2, 4
+  ✓ "⚡ HITMASTER ZK6"   clean at tiers 1, 2, 4
+  ✓ "HITMASTER"         clean at tiers 1, 2, 4
+  ⛔ "HIT"  /  "hits"    BLOCK at every tier (vocab-law) — as designed
+
+TWO FURTHER POINTS, both belt-and-braces:
+  - The SUBSTRING-based matcher the order refers to is HEAT_RELABEL in
+    scripts/reel-relabel.ts. It runs on the app CAPTURE. The stamp
+    composites at ASSEMBLY, after capture, so it never passes through it.
+  - Stamp text never passes through lintCaption at all — it is a rendered
+    overlay, not a caption. reel:check smoke-renders the stamp but does not
+    lint its text.
+
+════════════════════════════════════════════════════════════════
+3. COLLISION AUDIT — one BLOCKING, one latent, one unmeasured
+════════════════════════════════════════════════════════════════
+⛔ BLOCKING — VERIFY BOARD SEGMENT. The gold ribbon IS the stamp (MKT-31
+   merged them), so the brand line lands inside the ribbon. During the board
+   segment the assembler renders it at offset -370:
+
+     extended chip at -370 ....... y  62 -> 327
+     board reserved clear band ... y   0 -> 300
+     board content top @max zoom . y 315
+
+   => 27px INTO the first board card. (Unextended today: 62->281, 19px clear
+   of the band, 34px clear of content.) Two fixes, costs stated, NOT chosen:
+     (a) deepen the board's top padding 328 -> ~375. Costs ~47px of card
+         height across 6 rows. Safe; no geometry moves.
+     (b) shift the board-segment offset -370 -> ~-416. One number in the
+         assembler, no board re-render — but puts the ribbon top at y16,
+         tight to the frame edge and under platform TOP chrome.
+
+LATENT — DATED IDENTITY CHIP (MKT-35). No live collision: temporally
+   disjoint (chip frame-one -> 2.65s; stamp from 8.4s). But spatially the
+   extended chip reaches y697 and the identity chip occupies y664-774 — a
+   ~33px overlap held apart ONLY by timing. Recorded so a future window
+   change does not discover it the hard way.
+
+UNMEASURED — PUBLIC BOLT BAND. Measurement interrupted. Observed: the stamp
+   ALREADY overlaps the modal tab row on public cuts (the PAIRS label sits
+   behind it) — existing behaviour, not introduced by MKT-14. What remains
+   is the occupancy of the new 46px band (y651-697) on public body frames.
+
+════════════════════════════════════════════════════════════════
+4. THE 1:1 BAND (y 420-1500) — PASSES, WITH A HARD CONSTRAINT
+════════════════════════════════════════════════════════════════
+  current chip  drop   y 432-651 (h 219) · x 152-928 (w 776)
+                verify y 432-651 (h 219) · x 250-830 (w 580)
+  WITH brand line (28px + bolt, below the date line):
+                drop   y 432-697 (h 265) · x 152-928  — WIDTH UNCHANGED
+                verify y 432-697 (h 265) · x 250-830  — WIDTH UNCHANGED
+  (26px variant measures y432-695 — 2px narrower band, no material gain.)
+
+  ✓ 432-697 sits fully inside 420-1500.
+  ⚠ ONLY 12px OF HEADROOM ABOVE (432 vs 420). The brand line MUST be added
+    BELOW the date line. The parked order's alternative — a kicker line
+    ABOVE the existing two — would breach the 1:1 band and is DEAD.
+  ⚠ Width is unchanged because "⚡ HITMASTER ZK6" is narrower than the date
+    line at 60-70% scale. No new safe-zone work, exactly as decision 2
+    intended.
+  NOTE (from the parked Phase 0): the chip's right edge is x928, which is
+    NOT left of x720 (TikTok's at-risk right third). Pre-existing — the chip
+    is centred — and MKT-14 does not worsen it. Reported, not actioned.
+
+════════════════════════════════════════════════════════════════
+5. THE PARKED ORDER — NOT MOSTLY DEAD. THREE LIVE ITEMS.
+════════════════════════════════════════════════════════════════
+docs/mkt14_work_order_parked.md already SUPERSEDED the bottom-right version
+itself, for the same two reasons (platform chrome; the body is what gets
+clipped). No conflict there — the new order re-decides it identically.
+
+  a. ⚠ DIRECT CONFLICT, OPERATOR RULING NEEDED. The parked order mandates
+     "HITMASTER ZK", never "ZK6" — version-agnostic BY DESIGN: "It must
+     survive ZK30 and ZK50 without a copy change." Decision 1 specifies
+     "⚡ HITMASTER ZK6". engines/zk30.ts is a real parallel build in this
+     repo. This is the one item that will not be guessed.
+  b. PHASE 2 ANCHOR-HELMET BADGE (watermark_source.mp4, delivered 7/28,
+     currently parked in UNREFERENCED_OK) — superseded by the bolt decision.
+     If confirmed, that file becomes permanently unreferenced and its
+     exemption entry should say so rather than implying pending work.
+  c. STILL BINDING: keep the file:// + document.fonts.check() load path,
+     never setContent (the MKT-10 silent-serif lesson). The Phase 0
+     prototype honoured it; Phase 1 must too.
+  Also carried forward: session cuts pass a different stampLabel through the
+  same renderer, so the nine-kind contact sheet in Phase 2 covers the parked
+  order's "confirm a session cut" note.
+
+════════════════════════════════════════════════════════════════
+PHASE 1 PRE-QUESTION — THE AD KIND (report, not decide)
+════════════════════════════════════════════════════════════════
+A precedent already exists, and it is stronger than datedChipExcluded:
+MKT-21/MKT-07 ruled the slate stamp SUPPRESSED for generated/evergreen
+bodies — an evergreen body has no day for the chip to agree with, so
+stamping it manufactures exactly the MKT-18 false-claim class.
+=> Under an IN-STAMP design the ad kind receives NO in-body attribution at
+all; its only wordmark is the endcard close. datedChipExcluded is a separate
+mechanism (the identity chip) resting on the same principle. If attribution
+on the ad lane matters, that argues for a SECOND mechanism there — not for
+changing this one.
+
+════════════════════════════════════════════════════════════════
+bolt_mark.svg — ALREADY DELIVERED, AND §10 WAS ALREADY STALE
+════════════════════════════════════════════════════════════════
+The file has existed at assets/marketing/bolt_mark.svg since 2026-07-28 and
+has been TRACKED IN GIT since commit 407a914 (MKT-17). Same path geometry,
+same white fill as the SVG in the work order; the delivered version's extra
+root-level fill="none" is inert given the path carries its own fill.
+NOT overwritten — a tracked file was not replaced to change nothing.
+§10's "STILL OWED FROM CONTENT ... bolt_mark.svg" line has therefore been
+wrong since 7/28 and is struck by this session.
+
+════════════════════════════════════════════════════════════════
+GATE STATUS — HELD. TWO BLOCKING DECISIONS BEFORE PHASE 1:
+  ① the version string: "HITMASTER ZK" (parked, version-agnostic) vs
+    "HITMASTER ZK6" (new decision 1).
+  ② the verify board-segment fix: (a) deepen board padding, or
+    (b) shift the ribbon offset.
+Everything else in Phase 1 is unblocked and costed.

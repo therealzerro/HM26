@@ -11,18 +11,22 @@
 
 ---
 
-## ⏭️ RESUME HERE — session close 2026-07-31 (MKT-32 carrier wave gated: 1 of 5 deliveries survives)
+## ⏭️ RESUME HERE — session close 2026-07-31 (LATE: MKT-35→40 shipped, MKT-14 held at its gate)
 
-**STATE AT CLOSE (superseded same day by the MKT-32 ADDENDUM below):** the 7/30–7/31 carrier drops were measured and gated; survivor evening_free pt2 live. **The four rejections were subsequently ALL SALVAGED BY EDIT (2026-07-31 PM)** — see the MKT-32 ADDENDUM entry: signoff slot filled, evening_pro/allday_free/midday_free pt2s swapped in above the +0.184s floor. `reel:check` green. **Open on resume:** ① gate `verif_carrier_part1_candidate_20260731.mp4` (recovered from the corrupted 7/31 web delivery; whisper env needs repair first) then swap-or-reject; ② dated-identity-chip work order (renumber — MKT-33/34 taken); ③ operator cold-listen of scratchpad `mkt32b/audition/` clips is the only ear-check outstanding.
+**STATE AT CLOSE.** Seven scopes closed today. **[[MKT-35]]** (straight-match classifier — mechanism REFUTED on live data, the defect was the board renderer, backfill 0 rows; + frame-one dated chip, per-segment ribbon, slot 9 LONG GAP), **[[MKT-36]]** (new `anchor_intro_public` won the comparative gate and serves; 2 more binaries eaten by GitHub-web renames — running total SIX), **[[MKT-37]]** (YouTube per-platform transform, caption pools 8→12, handoff kind guard), **[[MKT-38]]** (keep-current-only retention; 674MB local + 20 bucket rows reclaimed), **[[MKT-39]]** (cost audit → operator retired the 1:1 cut: 0 of 48 logged posts used it), **[[MKT-40]]** (`verify_public` — Phase 0 → built → published in one day; two public reels/day is now the shipped state). Working tree clean, everything pushed. `reel:check` 0 fail.
 
-**OPEN — RESPEC ASKS FOR THE CONTENT AGENT (route with the measured defects):**
-1. allday_free + midday_free pt2 respecs: same close lines, last word by ~9.47s of part 2 (target margin ≥ +0.184s at silencedetect −35dB).
-2. evening_pro pt2 respec: keep "Receipts at sunup, partners" (endcard echo CONFIRMED — line 3 still reads RECEIPTS AT SUNUP); land last word ~9.2s, END IN CLEAN SILENCE to EOF.
-3. evening_pro **part 1 was never delivered** — incumbent (10.005s, already scope-named "Evening, partners…") serves; the §9 rotation-set gap stands.
-4. verif_carrier_signoff_short regen: ONE CONTINUOUS READ of "Signals first. Receipts after.", speech span ≤2.3s. Resolver wiring already verified (v2.0 note C); pickup simulation deferred to a passing take.
-5. Seam ear-check (non-blocking): evening_free new pt2 is −2.7 dB quieter than its part 1 (old pt2 was +0.8); audition clips in the session scratchpad `seams/`.
+**⛔ OPEN — BLOCKING A BUILD:**
+1. **[[MKT-14]] is HELD AT ITS PHASE-0 GATE** pending two operator rulings: ① the version string — the parked order mandates **"HITMASTER ZK"** (version-agnostic, "must survive ZK30 and ZK50") against the new decision's **"HITMASTER ZK6"**; ② the verify board-segment collision fix — deepen the board's top padding (328→~375) or shift the ribbon offset (−370→~−416). Full report: `MKT14_PHASE0_2026-07-31.txt`. Everything else in Phase 1 is unblocked and costed.
 
----
+**OPEN — OPERATOR DECISIONS, nothing blocking:**
+2. **Verify part-1 candidate** (`verif_carrier_part1_candidate_20260731.mp4`): whisper env HEALED, transcript matches the script exactly → **content gate PASSES**, and MKT-35 satisfied the sequencing condition. Only the voice-family check + swap-or-reject remain.
+3. **Cadence**: two public reels/day (allday_public + verify_public) shipped as a *default*, never explicitly ruled. Pull back by skipping the public verify publish on any day.
+4. **Supabase plan tier**: one dashboard glance settles whether ~4GB/month of operator egress matters (free-tier cap is 5GB; on Pro it is nothing).
+5. **YouTube 7/30–31**: the DB shows `allday_public` handed to the cross-post lane both days (the correct file), but it records targets, not platforms — worth confirming what actually went up.
+6. Carried from 7/30, unchanged: 7/28's real posted stamp was wiped by a republish (restorable via the gateway; storage no longer holds that cut); 7/27+7/28 reels carry the new identity but the OLD endcard band placement (regen on request only).
+7. **Gemini Omni balance 0** — the video generator ("Higgsfield" in pre-7/31 notes was a misnomer). Queue: evening_pro carrier rotation pair; 1080p upscale pilot. ⚠ MKT-36 confirmed the 720×1280 ceiling a FOURTH time — native 1080×1920 is not obtainable from the generator; the upscale pilot is the only path.
+
+**STANDING CONSTRAINTS ADDED TODAY:** the 1:1 crop band (y420-1500) remains BINDING even though the 1:1 output was retired (it anchors the chip zone and every composition clearance); reels keep only the CURRENT cut per kind (older ones exist solely as archived rows + git history); any new motion joining verify's ENDCARD rotation must still re-measure zone y880-1040 — and the MKT-40 build proved the point by MEASURING that the 880 tuck FAILS on the free motions, so verify_public sits on the shared band.
 
 ## ⏭️ Previous — session close 2026-07-30 (evening — MKT-31 + both addenda SHIPPED, operator-accepted)
 
@@ -135,6 +139,28 @@ The earlier gap in this same block — preflight probing file existence rather t
 **ORDER OF WORK:** relabel injection (grid + modal variants) → full `--relabel` capture, frames inspected → registration (endcard, stinger, carrier, scope, caption) → `marketing_reels_kind_check` migration LAST within the change but not left out of it.
 
 **STILL OWED BY THE CONTENT AGENT:** the `ON FIRE` band enum. It gates the public capture copy set and is on this critical path — worth chasing before starting.
+
+---
+
+### MKT-14 — Slate-stamp brand attribution 🔍 PHASE 0 REPORTED · BUILD HELD AT THE GATE (2026-07-31)
+
+**UNPARKED on operator go-ahead** (parked 2026-07-28 pending the social expansion; the trigger to resume is that content is now on a public platform and the reels drove the 7/31 growth, so they will be reposted). ID was already reserved by the parked order — no collision. Full report: `MKT14_PHASE0_2026-07-31.txt`. Discovery only; no renderer or assembler change.
+
+**(1) THE QUESTION THAT DECIDED THE SHAPE — ANSWERED FAVOURABLY. The stamp rides the ENTIRE body on both pipelines**, so the brand line inherits persistence at zero cost and the order's contingency is moot: slate kinds fade in `openDur−0.1` / out `openDur+bodyDur−0.55` (allday: ~8.6→27.65s = **56%** of 34.2s); verify kinds in `openDur−0.3` / out **at** the endcard cut (MKT-31) (~8.4→22.75s = **50%** of 28.8s). Coverage map after MKT-14: intro 0→5.7s unmarked (the identity chip carries no wordmark), stinger 5.7→8.7s wordmark, **body = the new mark**, endcard formation ~4.5s unmarked, endcard lockup wordmark. Both residual gaps are brand-segment footage; **every frame containing board/ledger/picks is attributed**.
+
+**(2) LINT — there is no exemption and none is needed.** The rule is `\bhits?\b`, **word-boundary anchored**, so `HITMASTER` never matched: `HITMASTER ZK6` and `⚡ HITMASTER ZK6` clean at tiers 1/2/4, bare `HIT`/`hits` block at all three. The substring-based matcher the order feared is `HEAT_RELABEL` (reel-relabel.ts) which runs on the app **capture**; the stamp composites at assembly, after capture, and its text never passes through `lintCaption` at all.
+
+**(3) COLLISIONS — one BLOCKING.** ⛔ **Verify board segment**: the ribbon IS the stamp (MKT-31 merged them), and at the board's `−370` offset the extended chip renders **y 62→327** against a reserved clear band of 0–300 with content top at 315 — **27px into the first board card** (unextended: 62→281). Two costed fixes, neither chosen: deepen board top padding 328→~375 (~47px of card height, safe), or shift the offset to ~−416 (one number, but ribbon top at y16 sits under platform top chrome). **Latent**: the extended chip (to y697) spatially overlaps the MKT-35 identity chip (y664–774) by ~33px — held apart *only* by disjoint timing (chip ≤2.65s, stamp ≥8.4s); recorded so a future window change doesn't rediscover it. **Unmeasured** (interrupted): occupancy of the new 46px band on public frames — though the stamp *already* overlaps the modal tab row today, pre-existing.
+
+**(4) 1:1 BAND — passes with a hard constraint.** Extended chip measures **y 432–697**, inside 420–1500, **width unchanged** (x152–928 drop / 250–830 verify) because the brand line is narrower than the date line at 60–70% scale — so decision 2's "no new safe-zone work" holds. But only **12px of headroom above** (432 vs 420): the brand line **must go below** the date line, which **kills the parked order's kicker-line-above alternative**. Noted: the chip's right edge (x928) does not clear x720 (TikTok's at-risk third) — pre-existing, unchanged by MKT-14.
+
+**(5) THE PARKED ORDER IS NOT MOSTLY DEAD.** It already superseded bottom-right itself for the same two reasons. Three live items: **⚠ a DIRECT CONFLICT — it mandates "HITMASTER ZK", never "ZK6", version-agnostic by design ("must survive ZK30 and ZK50 without a copy change"), against decision 1's `HITMASTER ZK6`; `engines/zk30.ts` is a real parallel build, so this needs an operator ruling and was not guessed**; the Phase-2 anchor-helmet badge (`watermark_source.mp4`, delivered, parked in UNREFERENCED_OK) is superseded by the bolt decision, making that file permanently unreferenced; and the still-binding `file://` + `document.fonts.check()` load path (never `setContent` — the MKT-10 silent-serif lesson), which the Phase-0 prototype honoured.
+
+**AD KIND (pre-question, reported not decided):** a stronger precedent than `datedChipExcluded` already exists — **MKT-21/MKT-07 suppress the stamp for generated/evergreen bodies** (no day for the chip to agree with → the MKT-18 false-claim class). So under an in-stamp design the ad kind gets **no in-body attribution**; its only wordmark is the endcard. If that matters, it argues for a second mechanism on that lane, not a change here.
+
+**`bolt_mark.svg` WAS ALREADY DELIVERED — and §10 has been wrong since 7/28.** The file has existed at `assets/marketing/bolt_mark.svg` since 2026-07-28 and **tracked in git since 407a914 (MKT-17)**, with identical path geometry and white fill; the work order's copy differs only by an inert root `fill="none"`. **Not overwritten** — a tracked file was not replaced to change nothing. The handoff's "STILL OWED FROM CONTENT … bolt_mark.svg" line is struck by this session.
+
+**GATE HELD. Two blocking decisions before Phase 1:** ① the version string (`HITMASTER ZK` vs `HITMASTER ZK6`); ② the verify board-segment fix (deepen padding vs shift offset). Everything else in Phase 1 is unblocked and costed. Cross-ref [[MKT-07]] (the stamp), [[MKT-31]] (ribbon merge, board offset), [[MKT-35]] (identity chip), [[MKT-39]] (1:1 band still binding), [[MKT-21]] (evergreen stamp suppression).
 
 ---
 

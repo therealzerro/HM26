@@ -264,14 +264,16 @@ const UNREFERENCED_OK: Record<string, string> = {
   // registered under allday_public in carrier-config.ts and are now validated
   // like every other carrier pair.
   'watermark_source.mp4': 'MKT-14 source, parked with the lane.',
+  'verif_carrier_part1_candidate_20260731.mp4':
+    'UNGATED CANDIDATE — operator delivered a new verify part 1 via GitHub web 2026-07-31 (upload 1b55470, then two web renames that CORRUPTED both the delivery and the shelved incumbent to unreadable stubs; real bytes recovered from the upload commit). Probes clean, 10.005s law holds, VO end 9.568s, clean tail. NOT registered: content transcript + voice-family gate still owed (whisper env broke mid-session). Incumbent verif_carrier.mp4 restored from git and serving. Gate this file, then swap or reject.',
   // MKT-32 — the 2026-07-30/31 carrier drops, validated and gated 2026-07-31.
   // Rejections are kept as evidence for the respec, same as the MKT-21 bodies.
   'allday_free_carrier_part2_redelivery_20260730.mp4':
-    'MKT-32 REJECTED — margin +0.088s vs the +0.184s floor (VO end 19.922s of the join, silencedetect −35dB). The 7/30 .MP4 drop was byte-identical to this file; incumbent pt2 stays live. Awaiting a respec that lands the last word by ~9.47s of part 2.',
+    'MKT-32 ADDENDUM SALVAGED 2026-07-31 — slow read, so the only edit lever was the two inter-line gaps: tightened 80ms each (room-tone crossfades, seam step ~0.0003; gaps remain ~1.00/1.06s) + tail gated. Joined margin +0.088 → +0.248s vs the +0.184s floor; words intact by transcript. Edited copy registered at allday_free_carrier_pt2.mp4 (incumbent kept as *_part2_20260728_backup). This raw take stays parked as master/evidence.',
   'midday_free_carrier_part2_rejected_20260730.mp4':
-    'MKT-32 REJECTED — margin +0.114s vs the +0.184s floor (VO end 19.896s of the join). Incumbent pt2 stays live. Same respec ask as the allday reject.',
+    'MKT-32 ADDENDUM SALVAGED 2026-07-31 — two largest inter-line gaps tightened 60ms each (gaps remain 0.51/0.65s ≥ the 0.35s floor) + tail gated. Joined margin +0.114 → +0.234s vs the +0.184s floor; words intact by transcript. Edited copy registered at midday_free_carrier_pt2.mp4 (incumbent kept as *_part2_20260729_backup). This raw take stays parked as master/evidence.',
   'evening_pro_carrier_part2_rejected_20260731.mp4':
-    'MKT-32 REJECTED — audio above −35dB to ~9.55s of part 2 (margin ~+0.10, below the +0.184s floor) and a non-silent decay tail to 9.8s where the fleet convention is clean silence to EOF; preflight would WARN VO-active-at-fade. Incumbent pt2 restored from git. NB the delivered read confirms the RECEIPTS AT SUNUP endcard echo — keep that line in the respec.',
+    'MKT-32 ADDENDUM SALVAGED 2026-07-31 — tail gated to digital silence from last word +0.15s (gate-only margin +0.052s: the tail was NOT eating the margin, the read is long) + the two inter-line gaps tightened 80ms each (crossfades in room tone, seam step ~0.0003; gaps remain 0.85/0.79s). Joined margin +0.212s vs the +0.184s floor; words intact by transcript incl. the RECEIPTS AT SUNUP echo. Edited copy registered at evening_pro_carrier_pt2.mp4 (incumbent kept as *_part2_20260728_backup). This raw take stays parked as master/evidence.',
   'verif_carrier_signoff_short_rejected_20260731.mp4':
     'MKT-32 ADDENDUM SALVAGED 2026-07-31 — the defect was a 2.05s DEAD pause (no voice content), so an edit could remove it: spliced to a 0.215s beat + the natural inhale (40ms crossfade in room tone, max sample-step 0.005 at −53.8dBFS across the splice). Edited copy registered at verif_carrier_signoff_short.mp4, last word 2.218s ≤ the 2.3s line. This raw 10.005s take stays parked as the master/evidence per the delivery convention.',
   // MKT-21 — the generated-body class, assessed and REJECTED 2026-07-29. Listed

@@ -157,6 +157,30 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 ---
 
+### MKT-42 — Stinger lockup strand: per-motion placement + a preflight gate ✅ SHIPPED (2026-07-31)
+
+**Operator reported evening_pro's stinger text reading wrong — "the same issue" as the verify stinger MKT-41 had just fixed. It was the same defect, and it was never an evening problem.** Today evening_pro rotated onto `imprint`; measured at the settled read (t=1.8s, centre 60%): mark bottom **y863**, lockup at the shared **1330**, i.e. **478px of near-black void** (mean L13.8) between the mark and the text. `circuit` measures the same (y866 / 475px / L11.7).
+
+**THE NUMBERS ARE IDENTICAL ACROSS KINDS ON THE SAME MOTION** — `allday_free_circuit`, `allday_public_circuit` and `evening_free_circuit` all read mark y866 / gap 475 / L11.7. **The defect is a property of the MOTION, not the reel kind**, which is why the existing config could not express the fix: `lockupTop` is keyed per *variant*. MKT-41 could put 820 on the `verify` variant only because verify is **pinned to the seal** — one kind, one motion. A rotating kind draws a different motion daily. Three of today's live reels carried it: allday_free, allday_public (circuit) and evening_pro (imprint).
+
+**FIX 1 — `MOTION_LOCKUP`, resolved motion-first** (`MOTION_LOCKUP[tag] ?? variant.lockupTop ?? LOCKUP_TOP`). `build()` already had the motion in scope; only `openPage()` needed it. **circuit → 950**, measured against its own settle: text block y950-1060 is clean at 0.9-1.1s (≤0.3% above L40) and from 1.5s (0.0%), with a 32.9% transient at t=1.2 that is the motion's hero beat landing *behind* the text — the same read `strike` ships with daily.
+
+**FIX 2 — `imprint` RETIRED from the rotation** (commented, not deleted, with the measurements inline). Unlike circuit this is **not** a placement problem: its bloom is full-frame through the fade-in — 99.3 / 100 / 95.8 / 56.0 / 58.6% of the text block above L40 at t=0.9→1.3, clearing only at 1.5s — and *every* band tested (900-1100, 1000-1200, 1100-1300, 1330-1500) is 60-99% over the same span. There is nowhere on the frame to put white text. Moving `TEXT_IN_START` to 1.5 leaves ~0.7s of readable hold against the standard 0.9s and needs a per-motion **timing** override; that second mechanism was deliberately not built for one clip. The 8 built per-kind clips were deleted; the **source motion is kept** and carries an `UNREFERENCED_OK` reason so the decision stays reversible and its rationale cannot rot.
+
+**⚠ ASSET REPLACEMENT WAS CONSIDERED AND REJECTED, on the operator's question.** Regeneration is blocked (Gemini Omni balance 0, queue ahead of it) and would return at the same 720×1280 ceiling MKT-36 confirmed a fourth time. Editing the clips — the MKT-32 salvage-not-regen precedent — would mean shifting the frame ~230px down (cropping the top, opening a gap at the bottom) or zooming ~1.15× into footage already upscaled 1.5×; audio salvage was lossless trimming, this is resampling video to fake a composition it does not have. **Moving two numbers beat replacing two assets**, and neither asset route would have fixed imprint anyway.
+
+**FIX 3 — `checkMotionLockup()`, the gate that did not exist.** Per rotation motion: sample the raw clip at t=1.8s (motion time maps 1:1 onto stinger time, so there is no built text to contaminate the read), find the mark's settle, and WARN when the resolved lockup sits more than **380px** below it. Frames come out as raw **PGM** parsed inline — `pngjs` is present in node_modules but is not a declared dependency, so it was not imported.
+
+**A WASH CHECK WAS BUILT FIRST AND CUT — worth recording, because it looked obviously right.** Scoring "text block too bright behind the lockup" flags `std` (5/8 sampled frames) and `fracture` (8/8), both of which ship daily with the lockup sitting on lit smoke. **Brightness behind the lockup is the house look, not the defect** — a guard firing on two healthy motions is the same cry-wolf trap MKT-19's first prominence pass and MKT-23's first late-peak pass each fell into. Likewise the first strand cut sampled the *end* of the text window, where the smoke has dispersed and every mark reads high; that flagged healthy `strike` at 454px. Sampling mid-hold fixed it.
+
+**Threshold sits in open space, not fitted to one asset:** std 36 · fracture 1 · circuit 83 (at its new 950) · seal 122 · strike 222 ‖ **380** ‖ circuit 463 (at the old 1330) · imprint 467. **241px between the worst pass and the best fail.**
+
+**Gates:** filtered `npx tsc --noEmit` clean on all four touched files; all 33 stinger clips rebuilt (circuit's lockup block now ends y1049 vs y1429 elsewhere); rebuilt circuit frame confirms the lockup tucked under the bolt with the void gone.
+
+**⚠ NOT REBUILT.** Today's allday_free / allday_public / evening_pro cuts still carry the stranded lockup — the fix reaches reels on the next assembly.
+
+---
+
 ### MKT-14 — Slate-stamp brand attribution ✅ SHIPPED — BOTH GATE RULINGS GIVEN, PHASE 1 BUILT (2026-07-31)
 
 **PHASE 1 — BUILT AND MEASURED. The gate cleared on two operator rulings:**

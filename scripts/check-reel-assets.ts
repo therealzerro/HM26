@@ -25,10 +25,10 @@ import { bedWindow } from './reel-bed';
 import { available, sourcePath, builtPath, sha256, clearanceFor } from './reel-panels';
 import { PANELS, PANEL_W } from './panel-config';
 import { MODAL_COUNT, PANEL_BUCKET, panelUrl, panelSequence, rotationDegenerate } from '../constants/reelPanels';
-import { STINGERS, STINGER_DUR, INTRO_XFADE, stingerFile } from './stinger-config';
+import { STINGERS, STINGER_DUR, INTRO_XFADE, stingerFile, LOCKUP_TOP, MOTION_LOCKUP } from './stinger-config';
 import { ENDCARDS } from './endcard-config';
 import {
-  stingerMotionSetFor, ENDCARD_MOTIONS, allMotionFiles, tierFor,
+  stingerMotionSetFor, STINGER_MOTIONS, ENDCARD_MOTIONS, allMotionFiles, tierFor,
   builtEndcardName, builtStingerName, readMotionMeta, VERIFY_SEAL_MOTION,
 } from './brand-motion';
 import { endcardCandidates } from './reel-endcard';
@@ -261,6 +261,8 @@ const UNREFERENCED_OK: Record<string, string> = {
   // MKT-16 (2026-07-30): public_carrier.mp4 + _pt2 left this list — they are
   // registered under allday_public in carrier-config.ts and are now validated
   // like every other carrier pair.
+  'stinger_motion_imprint.mp4':
+    'RETIRED FROM THE ROTATION 2026-07-31 (MKT-42) — the SOURCE motion is kept deliberately so the decision stays reversible; its 8 built per-kind clips were deleted because they reached no reel. The clip itself is not defective: its bloom is full-frame through the lockup fade-in (95-100% of the text block above L40 at t=0.9-1.1s, clearing only at 1.5s), so no MOTION_LOCKUP value can place readable text over it — restoring it needs a per-motion TIMING override, not a placement one. See the commented entry in brand-motion.ts STINGER_MOTIONS.',
   'watermark_source.mp4':
     'PERMANENTLY UNREFERENCED (MKT-14 shipped 2026-07-31). This was the anchor-helmet badge for the Phase-2 watermark design, which the bolt ruling superseded: attribution rides the slate stamp\'s brand line, so no second overlay and no badge asset is ever read. Kept as delivery evidence only — this entry is NOT pending work, and the file can be deleted without affecting any reel.',
   'verif_carrier_part1_candidate_20260731.mp4':
@@ -310,6 +312,92 @@ const ARCHIVE_RE = /(_master(_\d+s)?|_backup)\.mp4$/i;
  * and is not reaching a reel, which is a question for the operator, not a
  * reason to block the daily run.
  */
+/**
+ * MKT-42 — THE STRAND GATE. Does each rotation motion's mark actually LAND where
+ * that motion's lockup sits?
+ *
+ * The gap this catches shipped unmeasured for weeks. `circuit` and `imprint`
+ * settle their mark at y~865 while the shared LOCKUP_TOP puts text at 1330,
+ * opening ~470px of empty frame between the two — the lockup reads as stranded
+ * rather than as the landing of the motion. It is the same defect MKT-41 fixed
+ * on the seal by hand, and nothing would have caught the next one.
+ *
+ * WHAT IS **NOT** MEASURED, and why — a wash check was built first and CUT.
+ * Scoring "text block too bright behind the lockup" flags `std` (5/8 sampled
+ * frames) and `fracture` (8/8), both of which ship daily with the lockup sitting
+ * directly on lit smoke. That is the house look, not a defect, so brightness
+ * cannot be the discriminator; a guard firing on two healthy motions would train
+ * the operator to skim past it (the same cry-wolf trap MKT-19's first prominence
+ * pass and MKT-23's first late-peak pass both fell into). The strand is what the
+ * operator actually reported, so the strand is what is measured.
+ *
+ * MEASURED AT t=1.8s — mid-hold, with the lockup settled. Not at the end of the
+ * window: by ~2.3s the smoke has dispersed and every motion's mark reads high,
+ * which made an end-of-window sample flag `strike` (a healthy motion) at 454px.
+ * Motion time maps 1:1 onto stinger time (build-stinger trims from 0), so the
+ * raw clip can be measured directly, with no built text to contaminate the read.
+ *
+ * THRESHOLD 380px sits in open space rather than being fitted to one asset:
+ *   std 36 · fracture 1 · seal 122 · circuit 83 (at its new 950) · strike 222
+ *   ————————————————— 380 —————————————————
+ *   circuit 463 (at the old 1330) · imprint 467
+ * 241px of separation between the worst pass and the best fail.
+ */
+const STRAND_WARN_AT = 380;
+const STRAND_PROBE_T = 1.8;
+
+/** Last row carrying mark-bright pixels, from a raw PGM frame. Centre 60% only —
+ *  the edge smoke framing is present in every motion and is not the mark. */
+function markBottom(pgm: Buffer, above: number): number {
+  // P5 header: "P5\n<w> <h>\n<max>\n" then w*h raw bytes.
+  const head = pgm.subarray(0, 64).toString('latin1');
+  const m = head.match(/^P5\s+(\d+)\s+(\d+)\s+(\d+)\s/);
+  if (!m) return -1;
+  const [w, h] = [+m[1], +m[2]];
+  const off = m[0].length;
+  for (let y = Math.min(above, h) - 1; y >= 0; y--) {
+    let bright = 0;
+    for (let x = 0; x < w; x++) if (pgm[off + y * w + x] > 150 && ++bright > 3) return y;
+  }
+  return -1;
+}
+
+function checkMotionLockup(): void {
+  const seen = new Set<string>();
+  for (const mv of [...STINGER_MOTIONS, ...(VERIFY_SEAL_MOTION.held ? [] : [VERIFY_SEAL_MOTION])]) {
+    if (seen.has(mv.tag)) continue;
+    seen.add(mv.tag);
+    const file = join(ASSETS, mv.file);
+    if (!existsSync(file)) continue;   // absence is already reported elsewhere
+
+    // Resolution mirrors build-stinger exactly: motion map, then the per-variant
+    // override (only the pinned seal has one), then the shared constant.
+    const variantTop = mv.tag === VERIFY_SEAL_MOTION.tag ? STINGERS.verify?.lockupTop : undefined;
+    const top = MOTION_LOCKUP[mv.tag] ?? variantTop ?? LOCKUP_TOP;
+
+    const out = join(tmpdir(), `strand-${mv.tag}.pgm`);
+    try {
+      execSync(
+        `ffmpeg -y -v error -ss ${STRAND_PROBE_T} -i "${file}" ` +
+          `-vf "scale=1080:1920:flags=lanczos,crop=648:1920:216:0,format=gray" ` +
+          `-frames:v 1 -f image2 -c:v pgm "${out}"`,
+      );
+    } catch {
+      add('WARN', mv.file, `strand gate could not sample t=${STRAND_PROBE_T}s — clip shorter than the lockup window?`);
+      continue;
+    }
+    const mb = markBottom(readFileSync(out), top);
+    if (mb < 0) { add('WARN', mv.file, `strand gate found no mark above the lockup at y${top} — is this clip blank at t=${STRAND_PROBE_T}s?`); continue; }
+    const gap = top - mb;
+    const src = MOTION_LOCKUP[mv.tag] !== undefined ? 'MOTION_LOCKUP' : variantTop !== undefined ? 'variant' : 'shared';
+    if (gap > STRAND_WARN_AT) {
+      add('WARN', mv.file, `LOCKUP STRANDED — mark settles y${mb} but the lockup sits at y${top} (${src}), leaving ${gap}px of empty frame between them (>${STRAND_WARN_AT}). Give this motion a MOTION_LOCKUP entry measured against its own settle, or drop it from STINGER_MOTIONS. See MKT-42.`);
+    } else {
+      add('PASS', mv.file, `strand ${gap}px — mark y${mb} → lockup y${top} (${src})`);
+    }
+  }
+}
+
 function checkStrays(): void {
   const referenced = new Set<string>();
 
@@ -930,6 +1018,7 @@ function checkPublicGateRecords(): void {
 // Intro FIRST — it sets INTRO_ACTIVE, which shifts the carrier VO window.
 INTRO_ACTIVE = checkIntros();
 checkPartNaming();
+checkMotionLockup();
 checkStrays();
 checkMotions();
 checkScopes();

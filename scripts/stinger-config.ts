@@ -46,6 +46,32 @@ export interface StingerVariant {
   lockupTop?: number;
 }
 
+/**
+ * MKT-42 — PER-MOTION lockup top, the highest-priority override.
+ *
+ * Resolution order is MOTION_LOCKUP[tag] ?? variant.lockupTop ?? LOCKUP_TOP,
+ * and the order matters: the defect this fixes is a property of the MOTION, not
+ * the reel kind. MKT-41 could put 820 on the `verify` VARIANT only because
+ * verify is PINNED to the seal (stingerMotionSetFor) — one kind, one motion. A
+ * rotating kind draws a different motion every day, so no per-variant constant
+ * can be right for all of them, and `circuit` proved it: measured identically
+ * (mark bottom y866, 475px void, L11.7) on allday_free, allday_public and
+ * evening_free, because the kind was never what varied.
+ *
+ * ⚠ A tag listed here is a MEASURED claim about one motion clip. Re-measure if
+ * the clip is ever redelivered under the same tag — the number does not travel
+ * with the name. `npm run reel:check` now enforces this (see checkMotionLockup).
+ */
+export const MOTION_LOCKUP: Record<string, number> = {
+  // Bolt settles at y866 and the frame below it is empty, so the shared 1330
+  // stranded the lockup 475px beneath the mark with a void between. 950 tucks
+  // it under the settle. Text block y950-1060 measured across the whole
+  // on-screen window: clean at 0.9-1.1s (≤0.3% above L40) and from 1.5s (0.0%),
+  // with a 32.9% transient at t=1.2 that is the motion's own hero beat landing
+  // behind the text — the same read `strike` ships with daily, not a wash.
+  circuit: 950,
+};
+
 export const STINGERS: Record<string, StingerVariant> = {
   allday_pro:  { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', 'ALL-DAY · FIRST LOOK'], enabled: true },
   allday_free: { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', 'ALL-DAY · FULL DROP'], enabled: true },

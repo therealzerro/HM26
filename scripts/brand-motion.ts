@@ -96,7 +96,25 @@ export const STINGER_MOTIONS: MotionVariant[] = [
   // cannot see it, exactly as it cannot see `strike` (which ships daily). The
   // criterion is one hero beat with nothing after ~2.4s, not one detector hit.
   { file: 'stinger_motion_fracture.mp4', tag: 'fracture', label: 'fracture' },
-  { file: 'stinger_motion_imprint.mp4', tag: 'imprint', label: 'imprint' },
+  // ⛔ `imprint` RETIRED FROM THE ROTATION 2026-07-31 (MKT-42) — kept here as a
+  // comment, not deleted, because the clip is fine and the reason is specific.
+  //
+  //   { file: 'stinger_motion_imprint.mp4', tag: 'imprint', label: 'imprint' },
+  //
+  // Its bloom is FULL-FRAME through the lockup's fade-in, so unlike `circuit`
+  // this is not a placement problem and MOTION_LOCKUP cannot fix it. Measured %
+  // of the text block above L40, at the best available band (y950-1060):
+  //   t0.9 99.3 · t1.0 100 · t1.1 95.8 · t1.2 56.0 · t1.3 58.6 · t1.4 10.2 · t1.5 0.0
+  // Every other band tested (900-1100, 1000-1200, 1100-1300, 1330-1500) is 60-99%
+  // over the same span — there is nowhere on the frame to put white text. It only
+  // clears at 1.5s, and moving TEXT_IN_START that late leaves ~0.7s of readable
+  // hold against the standard 0.9s, which needs a per-motion TIMING override —
+  // a second mechanism, deliberately not built for one clip.
+  //
+  // To restore: uncomment the line, and either accept the wash or add the timing
+  // override. Do not restore it silently on the assumption the clip was the
+  // problem — the clip renders correctly; it is the text over it that cannot be
+  // read. `npm run reel:check` would now catch this at delivery (checkMotionLockup).
 ];
 
 /** Endcard motions, PER TIER. Crossing these sets is the failure this prevents. */

@@ -18,7 +18,7 @@ import { join, resolve } from 'node:path';
 import { stingerMotionSetFor, builtStingerName, FADE_TARGET_TOLERANCE, type MotionVariant } from './brand-motion';
 import {
   STINGERS, STINGER_DUR, TEXT_IN_START, TEXT_IN_DUR, TEXT_OUT_START, TEXT_OUT_DUR,
-  LINE_STAGGER, TEXT_SCALE_FROM, TEXT_FPS, LOCKUP_TOP, CROP_SAFE_BOTTOM,
+  LINE_STAGGER, TEXT_SCALE_FROM, TEXT_FPS, LOCKUP_TOP, MOTION_LOCKUP, CROP_SAFE_BOTTOM,
   OUT_W, OUT_H, stingerFile, type StingerVariant,
 } from './stinger-config';
 
@@ -231,8 +231,12 @@ function lineState(t: number, index: number): { opacity: number; scale: number }
   };
 }
 
-async function openPage(v: StingerVariant): Promise<{ page: Page; close: () => Promise<void> }> {
+async function openPage(v: StingerVariant, mv: MotionVariant): Promise<{ page: Page; close: () => Promise<void> }> {
   const lines = v.lines;
+  // MKT-42 — motion first: the strand/wash this guards against is a property of
+  // the motion clip, not the reel kind. See MOTION_LOCKUP's doc for why the
+  // per-variant override cannot express it for a rotating kind.
+  const lockupTop = MOTION_LOCKUP[mv.tag] ?? v.lockupTop ?? LOCKUP_TOP;
   for (const f of [BOLD, MED]) if (!existsSync(f)) throw new Error(`brand font missing: ${f}`);
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   // MKT-31 — 'headline-dominant' inverts the hierarchy: lines[1] is the LARGE
@@ -248,7 +252,7 @@ async function openPage(v: StingerVariant): Promise<{ page: Page; close: () => P
     @font-face { font-family: BRAND; src: url('file://${MED}');  font-weight: 500; }
     * { margin: 0; padding: 0; }
     body { width: ${OUT_W}px; height: ${OUT_H}px; background: transparent; overflow: hidden; }
-    .lockup { position: absolute; top: ${v.lockupTop ?? LOCKUP_TOP}px; left: 0; width: ${OUT_W}px;
+    .lockup { position: absolute; top: ${lockupTop}px; left: 0; width: ${OUT_W}px;
               text-align: center; font-family: BRAND; color: #ffffff; }
     .l { transform-origin: 50% 50%; }
     .l1 { font-weight: 700; font-size: ${inverted ? 62 : 46}px; letter-spacing: ${inverted ? 1.2 : 1.4}px; }
@@ -300,7 +304,7 @@ async function build(key: string, v: StingerVariant, mv: MotionVariant): Promise
   rmSync(frameDir, { recursive: true, force: true });
   mkdirSync(frameDir, { recursive: true });
 
-  const { page, close } = await openPage(v);
+  const { page, close } = await openPage(v, mv);
   try {
     // Only the animated window needs frames; before it the lockup is absent and
     // after it the smoke has refilled, so both ends are pure transparency.

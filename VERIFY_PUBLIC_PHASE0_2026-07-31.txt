@@ -1,0 +1,157 @@
+verify_public — PHASE 0 SCOPING REPORT · 2026-07-31
+Report only; nothing built. ID: MKT-40 is the next free ID (verified in audit
+and code) and is reserved by this report for the build. Copy is staged at
+docs/verify_public_copy_delivery_2026-07-31.md (21 items, 0 lint trips).
+Confirmed: this is a PARALLEL capture build — render-verification-reel drives
+/track-record + the board compositor; MKT-30's --redact --relabel covers
+neither surface.
+
+────────────────────────────────────────────────────────────────
+1. ROLLUP COUNTS — measured, and the delivered read is right
+────────────────────────────────────────────────────────────────
+The summary band TODAY renders: 154 MATCHES · 30 STRAIGHT · 124 BOX ·
+29 DAYS · "Across 38 jurisdictions". 154 and 124 are three-digit runs —
+Q1-blocked as-is.
+
+Options, with numbers:
+(a) 7-DAY WINDOW: today = 35 / 8 / 27 · 21 jurisdictions · 6 days — all
+    two-digit. Empirically safe with ~3× margin (needs >14 matches/day vs
+    the current ~5/day to break), but NOT structural — would need a "99+"
+    clamp assert to make Q1 safety a code property.
+(b) COUNTS DROPPED → "ACROSS 40+ STATES & PROVINCES" (lint-clean) plus the
+    two STRUCTURALLY-bounded stats: DAYS (≤31 by construction) and
+    JURISDICTIONS (≤51 by construction). Zero unbounded numbers on screen.
+(c) HYBRID FRAMING, structural only: e.g. "30 DAYS GRADED · 38
+    JURISDICTIONS · EVERY MORNING PUBLIC" — keeps real numbers, drops every
+    unbounded total (MATCHES/BOX/STRAIGHT).
+READ: (b)/(c) are the only structurally-safe shapes; (a) needs the clamp.
+The persuasive loss of dropping totals is real, but the delivered caption
+set already routes persuasion to "read the record free" — the funnel absorbs
+it. Your call which shape.
+
+────────────────────────────────────────────────────────────────
+2. MATCH-TYPE STRING INVENTORY — complete, both segments
+────────────────────────────────────────────────────────────────
+BOARD (render-verify-slate composite):
+  "DREW · STRAIGHT" (gold rows) → proposed "DREW · EXACT ORDER"  ✓ lints
+  "DREW" (green box rows)        — clean, keep
+  "NO MATCH"                     — clean, keep
+  "{n} OF 6 LANDED · RECEIPTS BELOW" — clean (single digits), keep
+  header block ("THE BOARD WE POSTED" etc.) — clean
+
+LEDGER (/track-record capture):
+  row badges "⭐ STRAIGHT" / "🎯 BOX"     → "⭐ EXACT ORDER" / "🎯 ANY ORDER"
+  summary labels "STRAIGHT" / "BOX"      → "EXACT ORDER" / "ANY ORDER"
+      (⚠ width: 11 chars into a 9px letter-spaced label row — measure at
+      build, same discipline as the ANY ORDER chip measurement)
+  summary label "MATCHES"                — lints clean at tier 1, keep
+  row scope words "Midday/Evening/All Day" + icons  → DROPPED (session
+      labels are tier-1 blocked)
+  row meta "Drew {digits} in {NC} {midday}" → digits MASKED, state code
+      SUPPRESSED (STATE_CODES_COMPLETE, attribution-shaped), session word
+      DROPPED
+  day badge "{n} matches"                — keep (n bounded small per day)
+  subtitle "Last 30 days · ZK6 K6 matches, draw-by-draw" — lints clean
+  accessibility labels ("Straight match on {combo} in {state}…") — RNW folds
+      these into aria-label DOM text (MKT-13 lesson): the sweep must process
+      them like any text node (MKT-30 root+appended lesson applies)
+NOTE: the literal strings "STRAIGHT MATCH"/"BOX MATCH" do not appear
+on-screen — the BARE badge forms do, so the relabel set needs the bare keys;
+longest-phrase-first matcher discipline applies (slot-10 lesson), and
+"EXACT ORDER MATCH"/"ANY ORDER MATCH" re-match no existing key. All proposed
+replacements lint clean at tier 1.
+
+────────────────────────────────────────────────────────────────
+3. MASKING + THE GOLD TREATMENT — survives visually, loses evidence
+────────────────────────────────────────────────────────────────
+With BOTH digit columns masked, an exact-order board row retains: gold card
+wash + gold border/glow + gold masked digit blocks + gold "DREW · EXACT
+ORDER" vs green "DREW". The MKT-35 hierarchy SURVIVES as color + label — a
+viewer can still tell the rows apart at a glance.
+What collapses is the EVIDENCE: the eye-checkable identity of posted vs
+drawn digits — the reel's strongest proof — becomes an asserted claim.
+Options:
+  (i)  ACCEPT — the caption set routes verification to the free record,
+       which is the funnel working as designed;
+  (ii) MIRRORED-PLACEHOLDER CUE — render the SAME masked-block pattern in
+       both columns on exact-order rows so "sameness" reads without digits.
+       The underlying digits ARE identical, so the cue is truthful — but it
+       is a designed visual, and whether a stylized sameness cue is
+       acceptable on a receipts surface is YOUR ruling, not mine;
+  (iii) any partial digit reveal — NOT an option, Q1 is absolute.
+
+────────────────────────────────────────────────────────────────
+4. CARRIER — FREE WIN CONFIRMED (measured, not assumed)
+────────────────────────────────────────────────────────────────
+Whisper env is HEALED (faster-whisper small.en runs again). Transcripts at
+listen:
+  verif_carrier.mp4:      "Mornin' partner, yesterday's receipts are in,
+                           checked against the official draw, every last
+                           one, the data don't lie."
+  verif_carrier_pt2.mp4:  "That one's on the record. Signals first.
+                           Receipts after."
+  signoff_short:          "Signals first. Receipts after."
+Zero Q2 blockers spoken — no straight/box/play/hit(s), no session words, no
+state names, no counts, no pricing; both lines lint clean at tier 1.
+→ verify_public SHARES the existing carrier pair at ZERO Omni cost. The
+build is CHEAP, not blocked; the balance-at-zero constraint does not bite.
+
+BONUS FINDING, same tool: the parked part-1 CANDIDATE transcribes exactly to
+its script — "Morning, yesterday's board graded in the open. Every call we
+posted checked against what drew. Matches marked, nothing hid." (last word
+9.42s; forbidden sweep clean; the A.1 sequencing condition is now satisfied
+since MKT-35 fixed the board). The candidate's CONTENT gate PASSES; only the
+voice-family check + your swap-or-reject remain. Separate decision from this
+order — flagged, not acted on.
+
+────────────────────────────────────────────────────────────────
+5. REGISTRATION INVENTORY (build items when greenlit, MKT-16 precedent)
+────────────────────────────────────────────────────────────────
+Migration FIRST: widen marketing_reels kind CHECK. Then the five points +
+plumbing: carrier-config (shared verif_carrier + _pt2), endcard matrix
+(free-tier motions × delivered copy), stinger builds ("HITMASTER ZK6 /
+YESTERDAY'S RECEIPTS" × motions, headline-dominant per the recorded ruling),
+scope/variant registry + captureModeFor, caption registry entry (8 delivered
+templates; offset chosen at build under the residue rule), publish-reels
+Kind union (widen in the SAME change — the MKT-26 lesson), ReelsView
+KIND_UI (MKT-13 lesson), reel:daily addition, YouTube per-kind transform set
+(mechanism exists; needs the per-kind content-set map — verify_public must
+NOT inherit allday_public's set), stored Q1/Q2 gate record before first
+publish (the existing reel:check public gate and the MKT-37 handoff kind
+guard both key on the `_public` suffix, so verify_public inherits both —
+verified assumption to re-check at build). THE big engineering item is the
+parallel public capture for the verify renderer: upstream placeholder digits
+on board + ledger, the item-2 relabel set, state suppression, session drop,
+item-1 count reframing, and a body tag + assembler assert (hm_reel_public
+pattern).
+Two config decisions flagged for the build order: (α) does verify_public
+inherit the SEAL as its fixed stinger motion (my read: yes — same reel
+identity; but the MKT-31 binding says "verify only"), (β) chip accent —
+verify's gold or the public kinds' cyan (copy delivery specifies the TEXT
+only).
+
+────────────────────────────────────────────────────────────────
+6. CADENCE — facts for your decision, no choice made
+────────────────────────────────────────────────────────────────
+Registering makes TWO public reels/day. Facts on each side:
+  FOR two-a-day: the two cuts are the two halves of the delivered thesis —
+  allday_public publishes the board, verify_public grades it; "published
+  first, checked after" only demonstrates itself if both halves appear.
+  Shorts cadence of 2/day is unremarkable platform-side. Cost is trivial
+  (item 7), and the midday/evening_public refusal was about THREE session
+  cuts of the SAME kind of content — this is a different content half, not
+  a third copy of the same one.
+  FOR alternating: one public post/day is the established rhythm; the
+  operator's posting workload doubles with two; an alternating schedule
+  halves both but breaks the publish-then-grade pairing and makes the
+  record look intermittent to a cold viewer.
+Operator decides.
+
+────────────────────────────────────────────────────────────────
+7. COST — confirmed
+────────────────────────────────────────────────────────────────
++1 kind ≈ +16-19 MB bucket steady state (9:16 + contact sheet; no 1:1 —
+retired) and ~+4-7 min run time (second verify-surface render + one
+assembly). Linear, per MKT-39; carrier sharing makes generation cost zero.
+
+GATE HONORED: items 1-6 reported; nothing built; awaiting the build order.

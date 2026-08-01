@@ -60,16 +60,24 @@ export interface StingerVariant {
  *
  * ⚠ A tag listed here is a MEASURED claim about one motion clip. Re-measure if
  * the clip is ever redelivered under the same tag — the number does not travel
- * with the name. `npm run reel:check` now enforces this (see checkMotionLockup).
+ * with the name. ⚠ NOTHING AUTOMATED CHECKS THIS — the MKT-42 strand gate that
+ * did was deleted by MKT-45 along with the values, because its pass condition
+ * was the rejected criterion. Placement is a whole-frame judgement by eye.
  */
 export const MOTION_LOCKUP: Record<string, number> = {
-  // Bolt settles at y866 and the frame below it is empty, so the shared 1330
-  // stranded the lockup 475px beneath the mark with a void between. 950 tucks
-  // it under the settle. Text block y950-1060 measured across the whole
-  // on-screen window: clean at 0.9-1.1s (≤0.3% above L40) and from 1.5s (0.0%),
-  // with a 32.9% transient at t=1.2 that is the motion's own hero beat landing
-  // behind the text — the same read `strike` ships with daily, not a wash.
-  circuit: 950,
+  // ⛔ EMPTIED 2026-08-01 ON OPERATOR REVIEW — every variant is back on the
+  // shared 1330. `circuit: 950` shipped for about an hour and was rejected
+  // alongside the endcard tucks, on the same ruling.
+  //
+  // The measurement was right and the criterion was wrong. Circuit's bolt does
+  // settle at y866, and the text at 1330 is 475px below it — but closing that
+  // gap drags the mark+text group into the upper half of frame and leaves the
+  // lower half dead. FRAME BALANCE WINS; the space between a high-settling mark
+  // and the lockup is the motion's own negative space, not a strand to remove.
+  //
+  // ⚠ DO NOT RE-ADD FROM A GAP MEASUREMENT. The mechanism stays because it is
+  // sound, but a value belongs here only for a motion whose whole-frame
+  // composition needs it. See ENDCARD_MOTION_LOCKUP for the parallel ruling.
 };
 
 export const STINGERS: Record<string, StingerVariant> = {
@@ -100,9 +108,13 @@ export const STINGERS: Record<string, StingerVariant> = {
   // MKT-31 item 1: hierarchy INVERTED for verify only — YESTERDAY'S RECEIPTS
   // dominant, wordmark small and gold beneath (item 4). Config + layout, zero
   // generation.
-  // MKT-41: lockupTop 820 tucks the lockup under the SEAL's ring. verify_public
-  // shares these built clips (same text, same pin), so this fixes both cuts.
-  verify:      { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', "YESTERDAY'S RECEIPTS"], enabled: true, layout: 'headline-dominant', subAccent: '#FBBF24', lockupTop: 820 },
+  // MKT-41's `lockupTop: 820` (tuck under the SEAL's ring) is REMOVED 2026-08-01
+  // on operator review — the opening title read out of place in the shipped cut
+  // for the same reason the endcard tucks did: it lifts the group into the top
+  // half and empties the bottom. Verify is back on the shared band with the
+  // rest of the fleet. verify_public shares these built clips, so both cuts move
+  // together.
+  verify:      { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', "YESTERDAY'S RECEIPTS"], enabled: true, layout: 'headline-dominant', subAccent: '#FBBF24' },
   // MKT-13 session wave. Same motion, same layout — only the headline differs,
   // which is the whole point of rendering the lockup natively. Pro-only by
   // content strategy (scripts/reel-scopes.ts), so there is no *_free entry to

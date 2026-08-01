@@ -175,13 +175,27 @@ export const CROP_SAFE_BOTTOM = 1500;
  * 1240 is the defect, not a safe default.
  */
 export const ENDCARD_MOTION_LOCKUP: Record<string, number> = {
-  'endcard_motion_pro.mp4':         860,   // content y770
-  'endcard_motion_pro_alt.mp4':     910,   // content y824
-  'endcard_motion_pro_steady.mp4':  700,   // content y613 — the worst strand
-  'endcard_motion_pro_lattice.mp4': 850,   // content y760
-  // Free motions intentionally absent: measured 240-275px, inside the healthy
-  // band, so they stay on the shared constant rather than gaining an override
-  // nobody has a reason to maintain.
+  // ⛔ EMPTIED 2026-08-01 ON OPERATOR REVIEW — every kind is back on the shared
+  // 1240 band. The tucked values (pro 860 · pro_alt 910 · pro_steady 700 ·
+  // pro_lattice 850) shipped for roughly an hour and were REJECTED on sight.
+  //
+  // WHY THEY WERE WRONG, because the measurements were not: the mark really
+  // does settle at y613-824 and the text really was 416-627px below it. But
+  // "distance from the mark" is the wrong quantity. Driving it to zero pulls
+  // the whole mark+text group into the upper ~55% of frame and leaves ~890px of
+  // dead space beneath — which is EXACTLY the defect MKT-41 named when it
+  // withdrew verify's 880 tuck ("left the lower half of frame empty"). MKT-41
+  // was right; MKT-44 overrode it and reproduced the defect it had fixed.
+  //
+  // The real constraint: the mark is baked into a generated motion and cannot
+  // move, so text placement trades "near the mark" against "balanced in frame".
+  // The operator's ruling is that FRAME BALANCE WINS and the space between mark
+  // and text is the motion's own negative space, not a defect.
+  //
+  // ⚠ DO NOT RE-ADD ENTRIES FROM A GAP MEASUREMENT ALONE. The mechanism is kept
+  // because it is sound — a per-motion override keyed by FILE — but a value
+  // belongs here only for a motion whose composition genuinely needs it, judged
+  // on the whole frame, not on the gap.
 };
 
 /**

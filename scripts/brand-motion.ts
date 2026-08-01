@@ -114,7 +114,8 @@ export const STINGER_MOTIONS: MotionVariant[] = [
   // To restore: uncomment the line, and either accept the wash or add the timing
   // override. Do not restore it silently on the assumption the clip was the
   // problem — the clip renders correctly; it is the text over it that cannot be
-  // read. `npm run reel:check` would now catch this at delivery (checkMotionLockup).
+  // read. ⚠ No preflight catches this: the gate that would have (MKT-42's
+  // checkMotionLockup) was deleted by MKT-45. Check a frame by eye.
 ];
 
 /** Endcard motions, PER TIER. Crossing these sets is the failure this prevents. */

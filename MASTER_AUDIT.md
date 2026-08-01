@@ -232,6 +232,36 @@ Exact scripted lines. **No time-of-day words in pt1** — the point of the rewri
 
 ---
 
+#### MKT-46 Q1/Q2 SWEEP — ⏸ PARKED MID-SWEEP (2026-08-01). PHASE 1 NOT STARTED.
+
+**⛔ NOTHING WAS APPLIED. No trims, no gate record stored, no code written.** The delivered assets are untouched on disk exactly as committed in `6474f46`. Resume from here.
+
+**⛔ FINDING 1 — FIVE OF NINE SEGMENTS OPEN ON A FABRICATED-ANALYTICS SHOT.** A generated "suited android in a control room" opening is baked into the head of `datadesk_seg1`, `wholefree_seg1`, `first_seg1`, `fivesites_seg1` and `fivesites_seg2`, smoke-wiping into the real scene.
+
+**`ad_body_datadesk_seg1` (F3) — ⛔ REJECTED BY OPERATOR.** Full-screen wall of fabricated dashboards, legible at native res: numerals `3330.76`, `3.0.45`, `CNT 353K`, `3383/3395/88.996`, `63/10.36`; invented glyphs `MOTE N RO…`, `FOSGA`, `Cxxt24xx`, `Ctesnet/xemuct`, `CX13…`. Rising bar charts + ticker-style decimals also read as gain framing. **Unfixable by trim — the robot at the wall IS the F3 concept.** Regeneration or drop.
+
+**MEASURED ROBOT-END BOUNDARIES** (the trim the operator then authorized): `fivesites_seg1` <0.9s · `fivesites_seg2` <0.9s · `wholefree_seg1` ~1.8s · **`first_seg1` ~2.9s** (cross-dissolves, still ghosting at 2.5, clear by 3.0).
+
+**⛔ FINDING 2 — THE AUTHORIZED HEAD TRIM IS IMPOSSIBLE. THIS IS THE BLOCKER.** `faster-whisper` word timestamps show **speech begins at 0.00 in all four** segments — the VO is one continuous scripted read across the full 10s and the robot visual sits on top of its opening. Every authorized cut lands inside the first line:
+- `first_seg1` −2.9s deletes *"Right now, for first light, the board's already set."* — the whole premise
+- `wholefree_seg1` −1.8s deletes *"Six signals ranked every reason showing…"*
+- `fivesites_seg1` −0.9s lands **mid-word** ("morning," spans 0.80–1.14)
+- `fivesites_seg2` −0.9s deletes *"…or one desk."*
+
+A video-only trim desyncs; an A/V trim destroys the read. **Do not "just trim" on resume — this was authorized and then withdrawn on this evidence.**
+
+**TWO PATHS (operator parked before choosing):** ① reject + regenerate the four affected segments batched with F3 (five total; scripts exist, VO is good); ② **cover the head, keep the audio** — hold/crossfade the segment's own post-wipe footage or house smoke over the first 0.9/1.8/2.9s while the VO runs under. Path ② changes no duration, so the 38-39% branding math survives. My lean recorded: ② for F1/F5, ① for P2 (2.9s of cover is a third of the body, and it is the ONLY `ad_pro` asset).
+
+**✅ POSITIVE — THE AUDIO IS THE ASSET WORTH SAVING.** All four transcripts are brand-clean: no forbidden vocabulary, no currency, no dates, no numerals spoken as results. *"Graded in the open"*, *"nothing hid"*, *"come check the work"*, *"the community's free, partner"* are on-voice. Whatever path is taken, **preserve these reads**.
+
+**✅ `ad_body_shechecks_seg1` (F4) PASSES the phone-screen property** — angled away in every frame, screen resolves as an undifferentiated bright rectangle. Opens on smoke, no robot, no numerals. `showwork_seg1/2` open on pure abstract smoke, no robot.
+
+**⚠ SWEEP INCOMPLETE — DO NOT TREAT AS A PASS.** Not yet reviewed: post-head frames of `showwork_seg1/2` and `shechecks_seg2`, and **all five intros are entirely unswept**. The free pool's clean count is provisional and could still shrink, which is why no gate record was stored.
+
+**⚠ TRIM MATH, if path ② or a trim ever proceeds:** the endcard is fixed at 6.5s while the body shrinks, so 1-part branding rises — F5 39.4%→44.2%, **P2 39.4%→47.8%** (the band that barred verify's stinger for a month). Only relevant to trims; path ② leaves durations intact.
+
+---
+
 ### MKT-45 — Lockup tucks REVERSED on operator ruling: frame balance beats gap-to-mark ✅ SHIPPED (2026-08-01)
 
 **⛔ THIS REVERSES [[MKT-42]] AND [[MKT-44]] IN FULL, AND [[MKT-41]] ITEM 1. All three shipped within about four hours and were rejected on sight.** The operator's evidence frames are kept at `assets/marketing/screenshot_intro.png` (verify stinger, lockup at 820) and `screenshot_outro.png` (endcard, tucked). They show the defect plainly: the mark and its text sit as a tight group in the upper ~55% of frame and the lower ~45% is dead space.

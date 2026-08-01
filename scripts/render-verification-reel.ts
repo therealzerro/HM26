@@ -122,10 +122,30 @@ const MAX_PAN_PX = 1200;
 const MIN_PAN_PX = 120;
 const easeInOut = (t: number) => (1 - Math.cos(Math.PI * Math.min(Math.max(t, 0), 1))) / 2;
 
+/**
+ * ⚠ THE `timeZone` OPTION MUST NOT APPEAR ON THE OUTPUT FORMAT — that was a
+ * DOUBLE CONVERSION and it graded the wrong day (fixed 2026-08-01).
+ *
+ * Line 1 already rebases the instant into ET wall-clock: `toLocaleString` gives
+ * the ET reading, and re-parsing it produces a Date whose *container-local*
+ * (UTC) fields ARE the ET fields. From that point on the value is no longer a
+ * true instant, so formatting it with `timeZone: 'America/New_York'` shifts it
+ * a SECOND time — another −4h. Below 04:00 ET that extra shift crosses
+ * midnight backwards and yields D−2.
+ *
+ * It only ever misfired between 00:00 and 03:59 ET, which is why it survived:
+ * the daily run happens ~08:30 ET. It surfaced on 2026-08-01 at 01:06 ET, when
+ * the renderer built 07-30 while `publish-reels` (which omits the option, and
+ * is the correct form) looked for 07-31 — so verify assembled stale receipts
+ * and published nothing.
+ *
+ * Keep this identical to `etDate()` in publish-reels.ts and to the assembler's
+ * copy; all three must agree or the pipeline silently splits like it did here.
+ */
 function yesterdayET(): string {
   const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
   now.setDate(now.getDate() - 1);
-  return now.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  return now.toLocaleDateString('en-CA');
 }
 
 (async () => {

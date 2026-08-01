@@ -38,10 +38,18 @@ import { STINGER_DUR, INTRO_XFADE } from './stinger-config';
 const ASSETS = resolve('assets/marketing');
 const REELS = join(ASSETS, 'verify_reels');
 
+/**
+ * ⚠ NO `timeZone` ON THE OUTPUT FORMAT — see the long note on the identical
+ * function in render-verification-reel.ts. Line 1 already rebases into ET
+ * wall-clock, so formatting with the timezone shifts a second time and returns
+ * D−2 below 04:00 ET. Fixed 2026-08-01, when this and the renderer agreed on
+ * 07-30 while publish-reels correctly wanted 07-31 — the renderer, the
+ * assembler and the publisher must all compute the same day.
+ */
 function yesterdayET(): string {
   const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
   now.setDate(now.getDate() - 1);
-  return now.toLocaleDateString('en-CA', { timeZone: 'America/New_York' }).replace(/-/g, '');
+  return now.toLocaleDateString('en-CA').replace(/-/g, '');
 }
 
 // MKT-40: `--variant=public` assembles the PUBLIC grading half — masked body,

@@ -71,6 +71,32 @@ WHAT CHANGED IN v2.7 (2026-08-01 early AM — MKT-41→45; THE 880 RULING IS DEA
   G. MKT-14 SHIPPED (7/31) — the slate stamp now carries the brand line
      "HITMASTER ZK6" BELOW the date line. It is no longer parked; the §10
      IN-FLIGHT entry below is struck.
+  H. MKT-46 AD LANE — PHASE 0 ANSWERED, PHASE 1 AUTHORISED (2026-08-01).
+     14 files delivered and ALL 14 PROBE CLEAN (9 body segments + 5 intros;
+     h264+aac, 10.000s video / 10.005s audio, 720×1280) — the first
+     delivery on this path with zero eaten binaries. There is NO sixth
+     intro: the five are thought · paper · wall · arrives · building.
+     Confirmed shape — TWO kinds (ad_free / ad_pro, forced by the caption
+     registry keying on kind alone); NO stinger ever; intro on 2-PART
+     bodies only (both anatomies land 38-39% branding vs 60% with full
+     furniture); stamp = BRAND LINE ALONE, no date, no scope (a date on
+     evergreen footage is the MKT-18 false-claim class); "body supplies
+     audio" as an EXPLICIT kind property, never inferred from an absent
+     carrier (absent carrier has historically meant hum-bed mode, and that
+     inference firing on an ad is the silent-degradation class).
+     ⚠ THE 5:1 FREE:PRO RATIO IS A **DISPATCH PROPERTY, NOT A POOL
+     PROPERTY** — do not try to encode it. With two kinds each rotating its
+     own pool, exposure is governed by how often the OPERATOR publishes
+     each kind, and that lives in operator behaviour, not config. Standing
+     operator default: **ad_pro goes to the FREE GROUP ONLY and
+     infrequently** — it is an upgrade pitch and the pinned upgrade video
+     already carries that job permanently. **ad_free is the workhorse.**
+     ⚠ RETENTION WOULD HAVE KILLED THE POOL TWICE: supersedeOlder() deletes
+     the previous ad on the next publish, AND prune() is NOT kind-filtered,
+     so an evergreen ad dies at 30 days even unsuperseded — it would have
+     looked like it worked, then quietly emptied. Both get kind-test
+     exemptions plus a reel:check assert that FAILS if an ad kind is
+     reachable by either path.
 
 WHAT CHANGED IN v2.6 (2026-07-31 PM — MKT-40: verify_public LIVE)
   A. ✅ verify_public — THE GRADING HALF OF THE PUBLIC PAIR — IS BUILT,
@@ -89,7 +115,10 @@ WHAT CHANGED IN v2.6 (2026-07-31 PM — MKT-40: verify_public LIVE)
      carrier pair is SHARED (your suspected free win, confirmed by
      transcript: the spoken lines are Q2-clean); lockup stays on the
      SHARED BAND — the 880 tuck was re-measured on the free motions per
-     the standing rule and FAILED (10% px >L40, max L255).
+     the then-standing rule and FAILED (10% px >L40, max L255).
+     ⛔ THE CONCLUSION STILL HOLDS (shared band) but the RULE behind it is
+     dead: as of MKT-45 there is no 880 tuck anywhere and nothing to
+     re-measure. See v2.7 notes A/B.
   C. Match vocabulary on the public cut, as finalised: EXACT ORDER /
      ANY ORDER (bare badge forms; your MATCH-suffixed forms lint clean
      and remain available for prose), DREW · EXACT ORDER on the board,
@@ -780,8 +809,10 @@ on the 6.33s members) and the reel runs up to 34.53s.
   audit + PUBLIC_TAG assertion; (2) intro is the cold-open public file, not
   verify's fixed group intro; (3) chip reads YESTERDAY'S RECORD (gold,
   dated); (4) endcard is its own free-motion matrix — PUBLISHED FIRST.
-  CHECKED AFTER. / SEE THE FULL RECORD FREE — on the SHARED band (the 880
-  tuck fails on the free motions, measured); (5) captions/YT set are its
+  CHECKED AFTER. / SEE THE FULL RECORD FREE — on the SHARED band (as of
+  MKT-45 EVERY kind is, verify included; the parenthetical that used to
+  read "the 880 tuck fails on the free motions" is now moot — there is no
+  tuck anywhere); (5) captions/YT set are its
   own tier-1 deliveries. v2.6 has the summary; the audit entry the detail.
   ⚠ THE VERIFY BODY IS NO LONGER A FIXED LENGTH (changed 2026-07-29, MKT-27).
   v1.7 documented a 6.3s body, a 14.4s total and a flat 9.2s carrier need. All
@@ -852,9 +883,15 @@ on the 6.33s members) and the reel runs up to 34.53s.
   AUDIO        The intro's own sting, then the stinger's own impact, then the
                carrier VO 0.4s before the dissolve completes. −14 LUFS.
                TWO PARTS since 2026-07-29: verif_carrier (10.005s, the day's
-               read) + verif_carrier_pt2 (5.67s, an EVERGREEN sign-off over the
-               last hold and the close, joined with a 0.35s breath). Joined
-               16.02s against a need of bodyDur+6.9 (the 6.5s close moved
+               read) + verif_carrier_pt2 (an EVERGREEN sign-off over the
+               last hold and the close, joined with a 0.35s breath).
+               ⚠ BOTH FILES WERE REPLACED 2026-08-01 (MKT-43) as a designed
+               SAME-SESSION pair — pt2 is now 6.542s, NOT 5.667s, and the
+               join is 16.897s, NOT 16.02s. pt2 got LONGER (slower read,
+               wider gaps), which cuts both ways: coverage improves to a
+               body of 13.9s, while short-body days fall back to
+               signoff_short more often. v2.7 note F has the spoken lines.
+               Measured against a need of bodyDur+6.9 (the 6.5s close moved
                the window — MKT-31 addendum: carrierNeed for the reference
                body 13.50→17.50s, so the full pt2 fits-whole again; VO
                covers 23.94s of the 25.43s reference cut, silence at the
@@ -1121,10 +1158,24 @@ per-day by hand, not AI-freestyled.
     allday_free_endcard.mp4       Free endcard
     verif_carrier.mp4             Verify VO part 1 — 10.005s, ALL of it used.
                                   The day's read: board, summary, first holds.
-    verif_carrier_pt2.mp4         ✅ DELIVERED 2026-07-29 (MKT-27). 5.67s
-                                  EVERGREEN sign-off — plays unchanged every
-                                  day, like All-Day's shared part 2. Covers the
-                                  last hold and the close.
+                                  ⚠ REPLACED 2026-08-01 (MKT-43) — this is a
+                                  NEW recording, not the 7/29 one. Head lead
+                                  kept at 10.005s deliberately: the signoff
+                                  fit math depends on it. Serves BOTH verify
+                                  and verify_public, so a defect here reaches
+                                  a tier-1 surface.
+    verif_carrier_pt2.mp4         ⚠ REPLACED 2026-08-01 (MKT-43) — **6.542s,
+                                  NOT the 5.67s this entry read through v2.6.**
+                                  Generated in the SAME session as the new
+                                  part 1 to fix the seam where the two read as
+                                  different men. EVERGREEN sign-off — plays
+                                  unchanged every day, like All-Day's shared
+                                  part 2. Covers the last hold and the close.
+                                  Longer than its predecessor (slower read,
+                                  wider inter-line gaps), so the join moved
+                                  15.995s → 16.897s. ⛔ THE SEAM ITSELF IS
+                                  UNVERIFIED — it is an ear gate, not a
+                                  measurement, and it is still owed.
                                   ⚠ TRIMMED FROM ITS 10s MASTER. Delivered at
                                   the generator's fixed 10.005s with ~1.7s of
                                   leading digital silence and a decay tail; the
@@ -1143,10 +1194,20 @@ per-day by hand, not AI-freestyled.
                                   variants plus the unversioned fallback.
                                   Verify's stinger ROTATES by reel date even
                                   though its intro does not.
-    verif_carrier_signoff_short   DECLARED SLOT, EMPTY (first take rejected
-      .mp4                        7/31 — v2.1 note A). ~3.0s sign-off-only variant of pt2,
-                                  used when the day's window cannot take the
-                                  16.02s full join. ⚠ Deliberately NOT a
+    verif_carrier_signoff_short   ⚠ SLOT FILLED 2026-07-31 by the MKT-32
+      .mp4                        addendum splice (this entry read "DECLARED
+                                  SLOT, EMPTY" through v2.6 — stale, and it
+                                  contradicted §3, which already said
+                                  FILLED). 2.47s of audio. Sign-off-only
+                                  variant of pt2, used when the day's window
+                                  cannot take the now-16.897s full join —
+                                  which is MORE often since MKT-43 lengthened
+                                  pt2. ⛔ IT IS FROM THE OLD CARRIER SESSION
+                                  FAMILY and has NOT been auditioned against
+                                  the new pt1; if it reads as a different
+                                  man, pull it from the resolver (degrading
+                                  to part-1-alone) and regenerate it inside
+                                  the new pair's session. ⚠ Deliberately NOT a
                                   `_ptN` name — that namespace belongs to the
                                   joiner and its orphan scan. Delivery: the
                                   usual 10.005s master, trimmed to speech,
@@ -1157,18 +1218,18 @@ per-day by hand, not AI-freestyled.
     verif_endcard.mp4             Verify bolt endcard (unversioned last-resort
                                   fallback; refreshed by MKT-31 — the tagged
                                   matrix verif_endcard_<tag>.mp4 is what
-                                  serves). ⚠ VERIFY GEOMETRY IS RULED
-                                  (MKT-31 addendum 2, 2026-07-30): lockup at
-                                  per-variant lockupTop 880 (block 880-1040),
-                                  OVERRIDING the shared 1150-1500 band —
-                                  verify only, slates stay at 1240. The
-                                  outro takes the endcard's FIRST 6.5s, so
-                                  any NEW verify endcard motion must
-                                  (a) be bed-viable under text from 4.5s and
-                                  (b) re-measure the 880-1040 zone clean
-                                  from text-opaque 5.2s to the 6.5s cut
-                                  (accepted bar ≤1.3% pixels above L40)
-                                  before it serves. Do not restore 1240.
+                                  serves). ⛔ THE MKT-31 ADDENDUM-2 GEOMETRY
+                                  RULING IS STRUCK — REVERSED 2026-08-01 BY
+                                  MKT-45. Verify's endcard lockup is on the
+                                  SHARED 1240, same as every other kind;
+                                  there is no per-variant 880 and no
+                                  880-1040 tuck zone. The outro still takes
+                                  the endcard's FIRST 6.5s, so a NEW verify
+                                  endcard motion must still (a) be
+                                  bed-viable under text from 4.5s — but
+                                  requirement (b), re-measuring the tuck
+                                  zone, is RETIRED with the tuck. See v2.7
+                                  notes A/B.
     midday_pro_carrier.mp4        Midday VO carrier (+ _pt2, auto-joined)
     evening_pro_carrier.mp4       Evening VO carrier (+ _pt2, auto-joined)
     midday_free_carrier.mp4       MKT-26 — FREE-tier session VO (+ _pt2 each).
@@ -1652,7 +1713,8 @@ BUILT AND RUNNING DAILY:
           stops being a fixed 6.3s and becomes 8.6-14.0s built from the row
           selection, so a matched row can actually be read. Straights hold
           longest. Retires the 14.4s total and the flat 9.2s carrier need.
-          verif_carrier_pt2 (5.67s evergreen sign-off) cut the resulting silence
+          verif_carrier_pt2 (5.67s as delivered by MKT-27; REPLACED at 6.542s
+          by MKT-43 on 8/01 — see §7) cut the resulting silence
           from 6.5s to ~0.5s, and the stinger was unblocked and enabled once the
           branding ratio fell from 64% to 44%. See §3, §7, §9.
   MKT-24  TELEGRAM IS THE PRO ROOM (2026-07-29) — tier-4 captions are now
@@ -1676,8 +1738,10 @@ BUILT AND RUNNING DAILY:
   MKT-31  VERIFY IDENTITY PACKAGE (2026-07-30) ✅ SHIPPED + 2 ADDENDA,
           operator-accepted — headline-dominant stinger, persistent gold
           date ribbon, gold accents, seal cleared, FIRST-6.5s endcard
-          window, lockupTop 880 ruling. v2.3 notes A-C; audit entry has the
-          full detail. Was absent from this doc until v2.3.
+          window. v2.3 notes A-C; audit entry has the full detail. Was
+          absent from this doc until v2.3. ⛔ ITS lockupTop 880 RULING IS
+          REVERSED by MKT-45 (2026-08-01) — everything else in the package
+          stands.
   MKT-35  CLASSIFIER + RESYNC + DATED CHIP + RIBBON (2026-07-31) ✅ SHIPPED
           IN FULL — board straight treatment (v2.3 note E: data layer was
           CORRECT, the board renderer was the defect; no backfill existed),
@@ -1701,9 +1765,46 @@ BUILT AND RUNNING DAILY:
   MKT-40  verify_public (2026-07-31) ✅ BUILT & LIVE same day as its
           Phase 0 — the masked public grading half; two public reels/day.
           v2.6 notes A-D; audit entry has the full build detail.
+  MKT-41  VERIFY STINGER/ENDCARD PLACEMENT + MISSING ENDCARD AUDIO
+          (2026-07-31) — MIXED OUTCOME. Item 3 (the endcard close was
+          SILENT — the verify assembler mixed 3 inputs where the slate
+          assembler mixes 4, so up to 4.5s of dead air) ✅ FIXED AND
+          STANDS. Item 2 (withdrawing verify's 880 endcard tuck to the
+          shared band) ✅ VINDICATED — MKT-44 briefly overrode it and
+          reproduced the exact defect item 2 named. Item 1 (stinger
+          lockupTop 820) ⛔ REVERSED by MKT-45.
+  MKT-42  STINGER PER-MOTION LOCKUP + STRAND GATE (2026-07-31) ⛔ REVERSED
+          by MKT-45 next morning. Its durable findings survive: lockup
+          behaviour is a property of the MOTION, not the reel kind
+          (circuit measured identically across three kinds); `imprint`
+          stays RETIRED for a TIMING defect, not placement (its bloom is
+          full-frame through the fade-in) — do not restore it assuming
+          the clip was bad.
+  MKT-43  VERIF_CARRIER SAME-SESSION PAIR (2026-08-01) ✅ SHIPPED ON
+          MEASURABLE GATES — new pt1+pt2 generated as one designed pair to
+          fix the seam where they read as different men. Transcript-clean,
+          no time-of-day words in pt1 by design. ⚠ TWO EAR GATES STILL
+          OWED (the seam itself; whether signoff_short still matches). See
+          v2.7 note F for the spoken lines and the new durations.
+  MKT-44  ENDCARD PER-MOTION LOCKUP (2026-08-01) ⛔ REVERSED by MKT-45 the
+          same day. Durable finding worth keeping: endcard motion TAGS
+          REPEAT ACROSS TIERS (`std` is a different file for pro and
+          free), so any endcard-motion map must key on the FILE, never the
+          tag — tag-keying silently applies a pro measurement to a free
+          motion.
+  MKT-45  THE TUCKS REVERSED (2026-08-01) ✅ SHIPPED — frame balance beats
+          distance-to-mark; all kinds back on the shared bands; both
+          override maps kept EMPTY with do-not-re-add warnings; the 380px
+          strand gate DELETED rather than retuned. 45 stingers + 16
+          endcards + 7 reels rebuilt. v2.7 notes A-E. ⚠ Read v2.7 A before
+          acting on ANY geometry note elsewhere in this file.
 
 IN FLIGHT, NOT BUILT — do not propose against these yet; §10 has the detail:
-  MKT-14  Brand attribution in the slate stamp .......... PARKED (untouched)
+  MKT-14  ✅ SHIPPED 2026-07-31 — no longer parked. The slate stamp carries
+          the brand line "HITMASTER ZK6" BELOW the date line (both gate
+          rulings given: that exact string, and board clearance solved by
+          padding 328→375 rather than an offset shift). Moved out of this
+          list by v2.7.
   MKT-15  Social handoff buttons ....... Phase 1 SHIPPED · Phase 2 BLOCKED
   MKT-16  ✅ SHIPPED 2026-07-30 (Phase 1+3) — allday_public LIVE end to end;
           moved out of this list by v2.3. Platforms unblockable, none

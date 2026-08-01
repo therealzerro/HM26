@@ -165,6 +165,36 @@ npm run reel:verify
     --variant=public or --variant=pro to publish-reels to leave
     the sibling row's posted stamp untouched.
 
+    ⚠ REPUBLISHING AN EARLIER DAY NEEDS AN EXPLICIT DATE.
+    publish-reels resolves the date ITSELF from the ET clock —
+    today for slate kinds, D−1 for verify — and silently skips
+    with "not found (assembler not run?)" when the files on disk
+    are dated differently. Pass the stamp positionally:
+
+        npx tsx scripts/publish-reels.ts verify   20260730
+        npx tsx scripts/publish-reels.ts allday   20260731
+        npx tsx scripts/publish-reels.ts midday   20260731 --variant=pro
+        npx tsx scripts/publish-reels.ts evening  20260731 --variant=pro
+
+    This bites hardest just after ET midnight, when a session that
+    BUILT reels before the rollover tries to publish them after it
+    — the whole run no-ops and reports success. Cost it caused
+    once (2026-08-01): a full four-command republish that uploaded
+    nothing.
+
+    ⚠ ffprobe EVERY REBUILT FINAL BEFORE COMMITTING OR PUBLISHING.
+    A truncated encode — the classic being a session that dies
+    mid-write — leaves a file of entirely plausible SIZE with no
+    moov atom, i.e. unplayable. A size check passes it; only a
+    probe catches it. reel:check does NOT probe assembled finals
+    (it validates source assets), so nothing upstream will save
+    you. On 2026-08-01 a 9.2MB corrupt midday_pro was committed and
+    uploaded over a live posted object before publish-reels' own
+    post-upload probe caught it:
+
+        ffprobe -v error -show_entries format=duration \
+          -of csv=p=0 assets/marketing/<dir>/<final>.mp4
+
 
 ----------------------------------------------------------------
 SESSION WAVE — the Midday and Evening drops

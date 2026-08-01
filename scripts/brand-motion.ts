@@ -120,17 +120,44 @@ export const STINGER_MOTIONS: MotionVariant[] = [
 
 /** Endcard motions, PER TIER. Crossing these sets is the failure this prevents. */
 export const ENDCARD_MOTIONS: Record<Tier, MotionVariant[]> = {
+  // MKT-47 (2026-08-01) — THE PRO SET WAS REPLACED WHOLESALE. The four former
+  // concepts (std "converging threads", alt "vault rings", steady "scrolling
+  // waveform", lattice "node lattice") are RETIRED, not superseded in place.
+  //
+  // WHY, because it is the finding: they settled their content at y613-824,
+  // leaving 416-627px between the form and the lockup at the shared 1240 band,
+  // while the free motions settle y966-1000 and read correctly at 240-274px.
+  // No text position can win against footage that settles too high — that is
+  // what produced the whole MKT-41→45 tuck-and-revert cycle. ⚠ ALL FOUR WERE
+  // REGENERATED FROM CORRECTED PROMPTS AND STILL LANDED AT 43-49%, which is
+  // the evidence that the CONCEPTS settle high regardless of prompt. Both the
+  // incumbents and the regenerations are kept as *_incumbent_backup.mp4 /
+  // *_regen_backup.mp4 so a future session proposing to revive one can see it
+  // was tried twice.
+  //
+  // The replacements settle 50.3-52.5% against free's 50.4-52.0%, so the shared
+  // 1240 reads as the form's landing on EVERY kind in the system — the first
+  // time that has been true. ⚠ Do NOT populate ENDCARD_MOTION_LOCKUP for these
+  // (v2.7 notes A/D): the fix is the footage, and the band does not move.
+  //
+  // A fifth delivery, `anvil`, PASSED composition (50.3%) and was DROPPED: its
+  // form dips to y1192, only 48px above the lockup, and the measurement tracks
+  // the form rather than the smoke drifting around it — an intermittent overlap
+  // that reads fine in the frame you check and wrong in the one you do not.
+  // Kept as endcard_motion_pro_anvil_backup.mp4.
+  //
+  // BED: discharge/ignite/lock are bed-viable (corrections −0.1/+3.3/+3.2dB —
+  // discharge is the best-bedding motion in the system). reveal derives a
+  // window at −43.2dB and is BED-INELIGIBLE: it needs +15.6dB against the ±6dB
+  // clamp, WORSE than lattice's +13.5dB, so it must not be force-bedded for
+  // exactly the MKT-19 item E reason. It plays on wall-to-wall days and drops
+  // on hum-bed ones. Three viable clears the ≥2 floor — better than the set it
+  // replaces, which had only two.
   pro: [
-    { file: 'endcard_motion_pro.mp4', tag: 'std', label: 'converging threads' },
-    { file: 'endcard_motion_pro_alt.mp4', tag: 'alt', label: 'vault rings' },
-    // MKT-23 — the two that close standing ask #8. steady beds cleanly at
-    // −29.1dB. lattice derives a window at −41.1dB and is therefore marked
-    // BED-INELIGIBLE by the derivation (it needs +13.5dB against a ±6dB clamp),
-    // so it plays normally on wall-to-wall days and drops on hum-bed ones. That
-    // is a correct state, not a compromise: shipping it 7.5dB quiet would
-    // re-introduce, worse, the level inconsistency MKT-19 item E closed.
-    { file: 'endcard_motion_pro_steady.mp4', tag: 'steady', label: 'scrolling waveform' },
-    { file: 'endcard_motion_pro_lattice.mp4', tag: 'lattice', label: 'node lattice' },
+    { file: 'endcard_motion_pro_reveal.mp4', tag: 'reveal', label: 'turbulence clearing' },
+    { file: 'endcard_motion_pro_discharge.mp4', tag: 'discharge', label: 'single strike' },
+    { file: 'endcard_motion_pro_ignite.mp4', tag: 'ignite', label: 'seed ignition' },
+    { file: 'endcard_motion_pro_lock.mp4', tag: 'lock', label: 'sealing ring' },
   ],
   free: [
     { file: 'endcard_motion_free.mp4', tag: 'std', label: 'blooming eddies' },

@@ -35,5 +35,30 @@
     "bedRms": -31.4,
     "crackAt": 4.2,
     "derivedAt": "2026-07-31"
+  },
+  "endcard_motion_pro_reveal.mp4": {
+    "bedUsable": false,
+    "bedRms": -43.2,
+    "crackAt": 3.7,
+    "derivedAt": "2026-08-01",
+    "bedNote": "window at -43.2dB needs 15.6dB to reach the reference — beyond the clamp, would ship quiet"
+  },
+  "endcard_motion_pro_discharge.mp4": {
+    "bedUsable": true,
+    "bedRms": -27.5,
+    "crackAt": 3.7,
+    "derivedAt": "2026-08-01"
+  },
+  "endcard_motion_pro_ignite.mp4": {
+    "bedUsable": true,
+    "bedRms": -30.9,
+    "crackAt": 3.7,
+    "derivedAt": "2026-08-01"
+  },
+  "endcard_motion_pro_lock.mp4": {
+    "bedUsable": true,
+    "bedRms": -30.8,
+    "crackAt": 3.8,
+    "derivedAt": "2026-08-01"
   }
 }

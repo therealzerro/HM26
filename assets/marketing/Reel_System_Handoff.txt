@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-01 · v2.7
+Content Agent Handoff · 2026-08-01 · v2.8
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -1267,18 +1267,47 @@ per-day by hand, not AI-freestyled.
                                   §6 permits pricing on — never reuse these
                                   anywhere else. Also note "DIGITS", not
                                   "numbers": §5 bars numbers as a product noun.
-    endcard_motion_pro.mp4        PRO-tier endcard motions (MKT-19/23 set of
-    endcard_motion_pro_alt.mp4    FOUR). std = converging threads · alt =
-    endcard_motion_pro_steady.mp4 vault rings · steady = scrolling waveform ·
-    endcard_motion_pro_lattice    lattice = node lattice. Used by All-Day
-      .mp4                        Pro, Midday, Evening AND Verify. ⚠ pro_alt
-                                  is a build-up and supplies NO hum bed, so
-                                  it drops from the rotation on short-carrier
-                                  days only. lattice was bed-INELIGIBLE until
-                                  2026-07-30 — its bed was respec'd +10dB
-                                  locally and re-qualified itself at −31.4dB,
-                                  so the tier now has THREE bed-viable
-                                  motions (std, steady, lattice).
+    endcard_motion_pro_reveal.mp4 PRO-tier endcard motions — ⚠ REPLACED
+    endcard_motion_pro_discharge  WHOLESALE 2026-08-01 (MKT-47). The MKT-19/23
+      .mp4                        set of four (std converging threads · alt
+    endcard_motion_pro_ignite.mp4 vault rings · steady scrolling waveform ·
+    endcard_motion_pro_lock.mp4   lattice node lattice) is RETIRED — those
+                                  concepts settled their content at y613-824,
+                                  leaving 416-627px between form and lockup
+                                  at the shared 1240 band. ⚠ ALL FOUR WERE
+                                  REGENERATED FROM CORRECTED PROMPTS AND STILL
+                                  LANDED AT 43-49% — the concepts settle high
+                                  regardless of prompt. Do not propose
+                                  reviving one; it was tried twice and both
+                                  attempts are kept as *_incumbent_backup and
+                                  *_regen_backup.
+                                  The new set settles 50.3-52.5% against
+                                  free's 50.4-52.0%, so the shared 1240 reads
+                                  as the form's LANDING on every kind — the
+                                  first time that is true. THE FIX WAS THE
+                                  FOOTAGE, NOT THE GEOMETRY: the band did not
+                                  move and ENDCARD_MOTION_LOCKUP stays empty.
+                                  reveal = turbulence clearing · discharge =
+                                  single strike · ignite = seed ignition ·
+                                  lock = sealing ring. Used by All-Day Pro,
+                                  Midday, Evening AND Verify.
+                                  BED: discharge −27.5dB (−0.1dB correction,
+                                  the best bedder in the system) · ignite
+                                  −30.9dB · lock −30.8dB — all viable.
+                                  ⚠ reveal is bed-INELIGIBLE at −43.2dB: it
+                                  needs +15.6dB against the ±6dB clamp, WORSE
+                                  than lattice's +13.5dB, so it must NOT be
+                                  force-bedded (MKT-19 item E). It plays
+                                  wall-to-wall and drops on hum-bed days.
+                                  THREE bed-viable, up from two.
+                                  ⚠ A fifth delivery, `anvil`, passed
+                                  composition (50.3%) and was DROPPED — it
+                                  dips to y1192, 48px above the lockup, and
+                                  drifting smoke would close that gap on some
+                                  frames and not others.
+                                  Impacts land 3.55-3.90s, earlier than the
+                                  old ~4.3s band; the assembler derives the
+                                  bed window per endcard so this is handled.
     endcard_motion_free.mp4       FREE-tier endcard motions (MKT-19 set).
     endcard_motion_free_alt.mp4   std = blooming eddies · alt = rising tide.
                                   Used by All-Day Free and the public kinds.
@@ -1894,7 +1923,18 @@ WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
      negatives and describing the final beat as a STATE rather than a
      prohibition cleared it. Third refusal in this class traced to the same
      cause — negatives trigger them, scene descriptions do not.
-  8. ✅ CLOSED 2026-07-29 (MKT-23) — `endcard_motion_pro_steady` beds cleanly at
+  8. ✅ RE-CLOSED 2026-08-01 (MKT-47) AT A HIGHER COUNT — the pro tier was
+     replaced wholesale and now runs FOUR motions with THREE bed-viable
+     (discharge −27.5dB, ignite −30.9dB, lock −30.8dB); `reveal` is
+     bed-INELIGIBLE at −43.2dB and must not be force-bedded (+15.6dB against a
+     ±6dB clamp, worse than lattice's +13.5dB). The motions this entry closed
+     on — std/steady/lattice — are all retired. ⚠ THE FREE TIER IS NOW THE
+     THIN ONE: two motions (free +1.7dB, free_alt −3.1dB — both viable) serving
+     All-Day Free AND both public kinds, i.e. three daily reels on a two-motion
+     rotation, and the public cuts are the ones reaching cold audiences. When
+     generation budget next allows, FREE-tier motions are the better spend than
+     a fifth pro motion. Prior closure kept for the reasoning:
+     ✅ CLOSED 2026-07-29 (MKT-23) — `endcard_motion_pro_steady` beds cleanly at
      -29.1dB, so the pro tier has two bed-viable motions and a short-carrier Pro
      day no longer collapses to one. `lattice` also landed but is bed-INELIGIBLE
      (see v1.9 note F). Original entry kept for the reasoning:

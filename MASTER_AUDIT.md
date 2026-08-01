@@ -211,6 +211,42 @@ Exact scripted lines. **No time-of-day words in pt1** — the point of the rewri
 
 ---
 
+### MKT-47 — Pro endcard set replaced wholesale: THE FIX IS THE FOOTAGE ✅ SHIPPED (2026-08-01)
+
+**ID verified free** — 0 hits in this file and in code before stamping.
+
+**THE FINDING THAT ENDS THE MKT-41→45 CYCLE.** The four pro endcard concepts settled their content at **y613-824**, leaving 416-627px between the form and the lockup at the shared 1240 band; the free motions settle **y966-1000** and read correctly at 240-274px. **No text position can win against footage that settles too high** — tucking the text emptied the bottom half (rejected), leaving it stranded it (also wrong). ⚠ **All four were REGENERATED from corrected prompts and still landed at 43-49%** — that is the evidence that the CONCEPTS settle high regardless of prompt, and the reason they were retired rather than re-regenerated.
+
+**RETIRED:** `std` (converging threads) · `alt` (vault rings) · `steady` (scrolling waveform) · `lattice` (node lattice).
+**REGISTERED:** `reveal` (turbulence clearing) · `discharge` (single strike) · `ignite` (seed ignition) · `lock` (sealing ring) — measured **50.3-52.5%** against free's 50.4-52.0%. **The shared 1240 now reads as the form's landing on EVERY kind in the system — the first time that is true.** `ENDCARD_MOTION_LOCKUP` stays EMPTY per [[MKT-45]]; the band did not move.
+
+**DROPPED — `anvil`**, despite passing composition at 50.3%. It dips to y1192, **48px** above the lockup, and the measurement tracks the FORM, not the smoke drifting around it — an intermittent overlap reads fine in the frame you check and wrong in the one you do not.
+
+**BED GATE** (run on motions, confirmed identical on the built endcards):
+
+| motion | verdict | RMS | correction |
+|---|---|---|---|
+| `discharge` | BEDABLE | −27.5dB | **−0.1dB — best bedder in the system** |
+| `ignite` | BEDABLE | −30.9dB | +3.3dB |
+| `lock` | BEDABLE | −30.8dB | +3.2dB |
+| `reveal` | ⛔ INELIGIBLE | −43.2dB | **+15.6dB** |
+
+⚠ **`reveal` MUST NOT be force-bedded** — +15.6dB is worse than lattice's +13.5dB and would re-introduce the MKT-19 item E level inconsistency. It plays wall-to-wall and drops on hum-bed days, the same correct state lattice held. **3 of 4 viable clears the ≥2 floor and beats the retired set, which had 2.** ⚠ The operator's prediction inverted: `discharge`/`ignite` were expected to fail and `reveal` to pass.
+
+**FREE TIER CHECKED as ordered:** `free` +1.7dB, `free_alt` −3.1dB — **both viable.** Its issue is pool SIZE (2 motions across 3 daily kinds incl. both public cuts), not viability.
+
+**STATIC TAIL** (baseline, known-good motions: 0.43-1.74): `reveal` 0.86 ✅ · `discharge` 1.59 · `lock` 2.47 marginal · `ignite` **4.71 fails (~3× baseline)**. **Kept all four by ruling** — the deviation touches only the legacy fallback-open frame, not the served first-6.5s outro. ⚠ Prediction inverted again: `reveal`/`lock` were the flagged risks; `reveal` is cleanest and `ignite` (unflagged) fails.
+
+**IMPACTS land 3.55-3.90s** (spec ~3.6s, earlier than the documented ~4.3s band). The assembler derives the bed window PER endcard, so the earlier landing is handled — confirmed by the build printing the same windows the gate measured. One outlier among the retired set: old `endcard_motion_pro` peaked at 1.90s, another mark against that concept.
+
+**BACKUPS KEPT AS A SET:** 4 `*_incumbent_backup` + 4 `*_regen_backup` + `anvil`. `ARCHIVE_RE` exempts them by pattern, so **no `UNREFERENCED_OK` entries** ([[MKT-43]] lesson — they would be dead config). 16 retired built endcards deleted; free-tier and unversioned fallbacks verified intact first.
+
+**Verified:** matrix rebuilt 4 kinds × 4 motions = 16; lockup block ends y1400 inside the 1500 crop line; `reel:check` **0 fail / 69 warn**, no new warning class; filtered tsc clean; 100% crops eye-checked across all four kinds.
+
+⚠ **REBUILD OWED:** today's four pro cuts published before this and still carry the retired endcards. Only the FOUR PRO KINDS need it — free/public draw untouched motions — and it is **re-assembly only**, no re-capture.
+
+---
+
 ### MKT-46 — The Ad Reel Lane (Wave 2) · PHASE 0 ANSWERED, PHASE 1 AUTHORISED (2026-08-01)
 
 **ID verified free** — 0 hits for `MKT-46` in this file and in code before stamping.

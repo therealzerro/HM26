@@ -16,7 +16,7 @@
 **STATE.** [[MKT-43]] (verif_carrier same-session pair) and [[MKT-44]] (per-motion endcard lockup) shipped overnight. **The operator then rejected the tucked placement on sight, and [[MKT-45]] reverted all of it** — stinger `MOTION_LOCKUP`, endcard `ENDCARD_MOTION_LOCKUP`, verify's `lockupTop: 820`, and the 380px strand gate. Everything is back on the shared bands. 45 stingers + 16 endcards + 6 reels rebuilt; `reel:check` 0 fail / 51 warn; filtered tsc clean.
 
 **OPEN — IN ORDER:**
-1. **`evening_pro` + `evening_free` 2026-07-31 NOT REBUILT** — assembled 01:32/01:37Z, before the revert, so they are the only two finals still carrying the rejected placement.
+1. ~~evening rebuild~~ **DONE 03:50Z.** `evening_pro` rebuilt and fixed (it drew `circuit` + pro `std`); `evening_free` rebuilt byte-identical because it was never affected. **Every local final is now on the restored bands.**
 2. **Nothing republished.** Every live `marketing_reels` row still serves a pre-revert cut (newest publish 01:42Z). Six rebuilds sit unpublished. ⚠ Exclude `midday_pro` 7/31 unless explicitly asked — it is `posted` and a republish wipes the real stamp.
 3. **[[MKT-43]] SEAM LISTEN still OWED** — the "one man, one room, one sitting" judgement on the new carrier pair is an ear gate, unmeasurable, and the pair is serving. Rollback = restore both `*_incumbent_backup.mp4` and reassemble.
 4. **[[MKT-43]] `signoff_short` NOT AUDITIONED** — old session family, may read as a different man behind the new pt1.
@@ -233,7 +233,12 @@ Exact scripted lines. **No time-of-day words in pt1** — the point of the rewri
 
 **REBUILT:** 45 stingers and 16 endcards on the restored bands (01:45–02:15Z). Six reels reassembled: `verify` · `verify_public` · `allday_pro` · `allday_free` · `allday_public` · `midday_pro` (02:29–02:53Z). Filtered `npx tsc --noEmit` clean; `npm run reel:check` **0 fail / 51 warn**.
 
-**⚠ TWO REELS NOT YET REBUILT AT TIME OF WRITING:** `evening_pro_20260731` (built 01:32Z) and `evening_free_20260731` (01:37Z) were both assembled *before* the revert and still carry the rejected placement. They are the only two finals that do.
+**EVENING REBUILT (03:45–03:50Z) — and only ONE of the two was ever affected.** Both were reassembled from the existing 01:24/01:27 body captures (bodies are independent of lockup config, so no re-capture); the assembler was run directly rather than via `npm run reel:evening`, whose last step publishes.
+
+- **`evening_pro` 34.533s / 14,997,759B — was genuinely broken and is fixed.** It rotated onto **`circuit`** for the stinger (the one motion that had a `MOTION_LOCKUP` entry, 950) and the **`std`** pro endcard (860). Best available test case, and both are back on the shared bands with the frame balanced. Frame-checked at t=8.13s (stinger settled) and t=34.03s (endcard opaque window).
+- **`evening_free` 33.833s / 17,337,057B — rebuilt BYTE-IDENTICAL** (sha256 `0f7ec767…`, rewritten 03:50:20 and diffing empty against the pre-rebuild commit). **It was never affected**: it drew `bolt condense` for the stinger, which had no `MOTION_LOCKUP` entry, and the `blooming eddies` FREE endcard, and free motions were deliberately absent from `ENDCARD_MOTION_LOCKUP`. ⚠ An earlier note in this session said both evening cuts carried the defect — **that was wrong**, and the identical rebuild is the proof. It also confirms the assembler is byte-deterministic given identical inputs.
+
+**Scope of the original defect, corrected:** only kinds that rotated onto `circuit` (stinger) or a PRO endcard motion ever carried a tuck. Free-tier stinger/endcard combinations were untouched throughout.
 
 **⛔ NOTHING REPUBLISHED — EVERY LIVE ROW STILL SERVES THE REJECTED CUT.** The newest publish is `evening_pro` at 01:42Z, one minute before the revert; `verify`/`verify_public` at 01:20Z and the three allday rows at 00:09Z all predate it. The six local rebuilds are unpublished. ⚠ `midday_pro` 2026-07-31 is `posted` — republishing it wipes a real posted stamp (the 7/28 lesson), so it must be excluded from any republish that is not explicitly asked for.
 

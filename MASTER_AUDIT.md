@@ -240,7 +240,17 @@ Exact scripted lines. **No time-of-day words in pt1** — the point of the rewri
 
 **Scope of the original defect, corrected:** only kinds that rotated onto `circuit` (stinger) or a PRO endcard motion ever carried a tuck. Free-tier stinger/endcard combinations were untouched throughout.
 
-**⛔ NOTHING REPUBLISHED — EVERY LIVE ROW STILL SERVES THE REJECTED CUT.** The newest publish is `evening_pro` at 01:42Z, one minute before the revert; `verify`/`verify_public` at 01:20Z and the three allday rows at 00:09Z all predate it. The six local rebuilds are unpublished. ⚠ `midday_pro` 2026-07-31 is `posted` — republishing it wipes a real posted stamp (the 7/28 lesson), so it must be excluded from any republish that is not explicitly asked for.
+**⛔ REPUBLISH 04:19-04:20Z — 6 OF 7 LANDED, AND THE 7th EXPOSED A CORRUPT BINARY I HAD ALREADY COMMITTED.**
+
+Registered: `verify` + `verify_public` (2026-07-30), `allday_pro` + `allday_free` + `allday_public` (2026-07-31), `evening_pro` (2026-07-31). All six probed clean by the publisher before registration.
+
+**⛔ `midday_pro_20260731.mp4` IS CORRUPT — "moov atom not found", 9,175,088B, no readable moov.** It was written 02:53Z by the *previous* session and is almost certainly a **truncated encode from the session dying mid-write** — the same event that ended that session. **It was corrupt in commit `a316313`**, i.e. I committed a broken binary: the pre-commit screen checked file SIZE only (`< 20000B`), and 9.2MB passed a size check while being unplayable. **The standing rule is to ffprobe, not to size-check** — I applied it to the evening finals and not to the six earlier rebuilds. The publisher's own post-upload ffprobe is what caught it.
+
+**DAMAGE + REPAIR.** The corrupt file uploaded (9.2MB) to `midday_pro/20260731/midday_pro_20260731.mp4` — the exact path the **posted** 7/31 row points at — before the probe aborted the run. So a live posted row briefly served an unplayable video. The abort happened *before* the row upsert, so **`posted_at 2026-07-31 12:15:45.433+00` and `target_name "pro group"` survived untouched**. Repaired by restoring the valid blob from `d613af0` (34.200s / 15,363,458B, matching the row's recorded `duration_s`) both locally and to storage (HTTP 200; re-downloaded and re-probed from the public URL: 15,363,458B / 34.2s). Storage is byte-restored to its pre-incident state.
+
+⚠ **`reel:check` does NOT probe assembled finals** — it validates source assets. Nothing in the rig would have caught this; only the publisher did, after upload. A pre-commit ffprobe over changed finals is the missing guard.
+
+**NO FURTHER PUBLISHING — operator directive 04:2xZ:** the 8/01 cuts will be published after imports + the Daily Workflow run. The six rows above stay as published; `midday_pro` keeps its original 7/31 posted cut. The newest publish is `evening_pro` at 01:42Z, one minute before the revert; `verify`/`verify_public` at 01:20Z and the three allday rows at 00:09Z all predate it. The six local rebuilds are unpublished. ⚠ `midday_pro` 2026-07-31 is `posted` — republishing it wipes a real posted stamp (the 7/28 lesson), so it must be excluded from any republish that is not explicitly asked for.
 
 ---
 

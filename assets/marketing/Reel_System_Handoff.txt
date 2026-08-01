@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-07-31 · v2.6
+Content Agent Handoff · 2026-08-01 · v2.7
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -16,6 +16,61 @@ Companion docs:
   - assets/marketing/AllDay_Reel_Endcard_Revision_Brief_2026-07-27.md (endcard contract)
   - docs/mkt15_phase2_copy_brief.md (public copy set — DELIVERED + the bolt request)
   - REEL_COMMANDS.txt (repo root — operator command reference)
+
+WHAT CHANGED IN v2.7 (2026-08-01 early AM — MKT-41→45; THE 880 RULING IS DEAD)
+  A. ⛔⛔ **EVERY LOCKUP TUCK IS REVERSED. ALL KINDS ARE ON THE SHARED BANDS:
+     STINGER 1330, ENDCARD 1240.** Read this before you act on ANY older
+     geometry note in this file. Over roughly four hours on 7/31→8/01 three
+     changes shipped that tucked lockup text up under the mark — MKT-41
+     (verify stinger 820), MKT-42 (stinger circuit 950), MKT-44 (endcard
+     per-motion 700/850/860/910) — and the operator rejected all of it on
+     sight. **MKT-45 reverted the lot.**
+     THE REASON, because it governs future work: the measurements were
+     RIGHT (marks settle y613-866; text really was 416-627px below) but the
+     CRITERION was wrong. "Distance from the mark" is not the quantity to
+     minimise. Closing it drags the mark+text group into the upper ~55% of
+     frame and leaves the lower ~45% dead. **FRAME BALANCE WINS. The space
+     under a high-settling mark is the motion's own negative space, not a
+     defect to be closed.** Operator evidence frames are committed at
+     assets/marketing/screenshot_intro.png and screenshot_outro.png.
+  B. ⛔ THE "DO NOT FIX 880 BACK TO 1240" RULING IS ITSELF REVERSED. It
+     appears in at least six places in this document (v2.3 note C addendum 2,
+     §3's CLOSE block, §7's verif_endcard entry, the MKT-31 ledger line, and
+     the verify_public differences list). Every one of them is struck inline
+     below. **1240 is now correct for verify too, and verify closes
+     identically to the whole fleet.** The old requirement that a new verify
+     endcard motion re-measure the 880-1040 zone is retired with it — there
+     is no tuck zone to re-purchase.
+  C. ⚠ NOTHING AUTOMATED CHECKS LOCKUP PLACEMENT ANY MORE, and that is
+     accepted, not an oversight. MKT-42's 380px "strand gate" in reel:check
+     was DELETED rather than retuned, because its pass condition IS the
+     rejected criterion — it would now fail the entire healthy fleet every
+     run. Placement is a whole-frame composition judgement. **Check a frame
+     by eye; do not propose rebuilding the gate.**
+  D. The per-motion override MECHANISM survives, empty, in both configs
+     (MOTION_LOCKUP by tag, ENDCARD_MOTION_LOCKUP by motion FILE). A value
+     belongs there only for a motion whose WHOLE-FRAME composition needs it.
+     **Never populate either from a gap measurement.**
+  E. Scope of the defect, corrected: only kinds that rotated onto `circuit`
+     (stinger) or a PRO endcard motion ever carried a tuck. Free-tier
+     stinger/endcard combinations were never affected — proven when
+     evening_free's rebuild came out BYTE-IDENTICAL (sha256 0f7ec767…).
+  F. NEW VERIFY CARRIER PAIR (MKT-43) — verif_carrier.mp4 + its pt2 were
+     replaced 8/01 as a designed SAME-SESSION pair, fixing the seam where
+     pt1 and pt2 read as different men. Spoken lines, transcript-verified
+     and tier-1 clean: pt1 "Yesterday's board graded in the open. / Every
+     call we posted checked against what drew. / Matches marked, nothing
+     hid." pt2 "That one's on the record. / Signals first. / Receipts
+     after." **NO TIME-OF-DAY WORDS in pt1 — deliberate, so verify may post
+     at any hour.** pt2 is LONGER than the incumbent (6.542s vs 5.667s), so
+     the join moved 15.995s → 16.897s: coverage improves (bodies up to
+     13.9s) but short-body days fall back to signoff_short more often.
+     ⚠ TWO EAR GATES REMAIN OWED and cannot be measured — (1) the pt1/pt2
+     seam itself, (2) whether signoff_short (OLD session family) still reads
+     as the same man behind the new pt1.
+  G. MKT-14 SHIPPED (7/31) — the slate stamp now carries the brand line
+     "HITMASTER ZK6" BELOW the date line. It is no longer parked; the §10
+     IN-FLIGHT entry below is struck.
 
 WHAT CHANGED IN v2.6 (2026-07-31 PM — MKT-40: verify_public LIVE)
   A. ✅ verify_public — THE GRADING HALF OF THE PUBLIC PAIR — IS BUILT,
@@ -144,13 +199,16 @@ WHAT CHANGED IN v2.3 (2026-07-31 — MKT-35 doc resync: MKT-31 recorded, stale b
      takes the endcard's FIRST 6.5s (All-Day's proven window; was the last
      2.5s static tail). Reel +4.0s; envelope ~23.4-28.8s; carrierNeed for
      the reference body 13.50→17.50s so the full pt2 fits-whole again.
-     ADDENDUM 2 (operator ruling): verify's endcard lockup is tucked under
-     the bolt at per-variant lockupTop 880 (block renders 880-1040) —
-     OVERRIDING the shared 1150-1500 reserved band for verify only; slate
-     kinds stay at LOCKUP_TOP 1240. The zone was re-purchased with
-     measurements (≤1.3% pixels above L40 across all four motions, 5.2s→6.5s
-     cut); ANY new motion joining verify's rotation must re-run them.
-     Do not "correct" 880 back to the band — it is a ruling, not a bug.
+     ⛔ ADDENDUM 2 IS STRUCK — REVERSED 2026-08-01 BY MKT-45 (see v2.7 note
+     A/B). It read: "verify's endcard lockup is tucked under the bolt at
+     per-variant lockupTop 880 (block 880-1040), OVERRIDING the shared band
+     for verify only; do not correct 880 back to the band." **A later
+     operator ruling reversed it. Verify's endcard is on the SHARED 1240
+     with every other kind, and the re-measure-the-880-1040-zone
+     requirement for new verify motions is retired.** Frame balance beats
+     distance-to-mark; the space under the bolt is the motion's own
+     negative space. The rest of MKT-31 addendum 1 (the FIRST-6.5s window)
+     stands unchanged.
   D. STALE BODY STRUCK by MKT-35: v2.2 note B.3 (powerup — it serves in the
      rotation of 6 since 7/30, v2.0 note F was correct); §9 MKT-28/MKT-30
      remaining-work clauses (both closed in v2.1); §10's MKT-16 block and
@@ -776,15 +834,15 @@ on the 6.33s members) and the reel runs up to 34.53s.
                reaching the barren 10s tail. Endcard audio stays unused
                (verify's ruling: carrier, then silence). Cost as ordered:
                +4.0s to the reel.
-               ⚠ LOCKUP RULING (addendum 2, operator, 2026-07-30): verify's
-               endcard text is tucked under the bolt at per-variant
-               lockupTop 880 — block renders y 880-1040 — OVERRIDING the
-               shared 1150-1500 reserved band for verify only (slates stay
-               at 1240). Re-purchased with measurements: zone clean on all
-               four motions from text-opaque 5.2s to the 6.5s cut (≤1.3%
-               pixels above L40, max L77). Any NEW motion joining verify's
-               rotation must re-measure that zone before it serves. Do not
-               "fix" 880 back to the band.
+               ⛔ THE 880 LOCKUP RULING IS STRUCK — REVERSED 2026-08-01 BY
+               MKT-45. Verify's endcard text sits on the SHARED 1240 band,
+               identical to every other kind. The tuck (lockupTop 880,
+               block y880-1040) shipped twice and was rejected on sight
+               both times: it lifts the mark+text group into the top half
+               and empties the bottom. **Frame balance wins.** There is no
+               longer a tuck zone, so a NEW verify endcard motion no longer
+               needs to re-measure y880-1040 — it only has to be bed-viable
+               under text from 4.5s, like every other kind. See v2.7 A/B.
                A persistent gold DATE RIBBON (MKT-31 item 2) rides EVERY body
                frame — "YESTERDAY'S RECEIPTS · <day> · <date>", real date
                from reel_date — and fades out AT the endcard cut.

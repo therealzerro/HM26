@@ -26,7 +26,7 @@ import { available, sourcePath, builtPath, sha256, clearanceFor } from './reel-p
 import { PANELS, PANEL_W } from './panel-config';
 import { MODAL_COUNT, PANEL_BUCKET, panelUrl, panelSequence, rotationDegenerate } from '../constants/reelPanels';
 import { STINGERS, STINGER_DUR, INTRO_XFADE, stingerFile, LOCKUP_TOP, MOTION_LOCKUP } from './stinger-config';
-import { ENDCARDS } from './endcard-config';
+import { ENDCARDS, ENDCARD_MOTION_LOCKUP, LOCKUP_TOP as ENDCARD_LOCKUP_TOP } from './endcard-config';
 import {
   stingerMotionSetFor, STINGER_MOTIONS, ENDCARD_MOTIONS, allMotionFiles, tierFor,
   builtEndcardName, builtStingerName, readMotionMeta, VERIFY_SEAL_MOTION,
@@ -394,6 +394,42 @@ function checkMotionLockup(): void {
       add('WARN', mv.file, `LOCKUP STRANDED — mark settles y${mb} but the lockup sits at y${top} (${src}), leaving ${gap}px of empty frame between them (>${STRAND_WARN_AT}). Give this motion a MOTION_LOCKUP entry measured against its own settle, or drop it from STINGER_MOTIONS. See MKT-42.`);
     } else {
       add('PASS', mv.file, `strand ${gap}px — mark y${mb} → lockup y${top} (${src})`);
+    }
+  }
+
+  // MKT-44 — the same gate over ENDCARD motions. Sampled at 6.0s, inside the
+  // text's opaque window (5.2s → the 6.5s cut) rather than at the fade, for the
+  // same reason the stinger pass samples mid-hold. Endcard motions are PER TIER
+  // and their tags repeat across tiers, so both the map and this loop key on the
+  // motion FILE — the same trap the config doc warns about.
+  const seenCard = new Set<string>();
+  for (const [tier, motions] of Object.entries(ENDCARD_MOTIONS)) {
+    for (const mv of motions) {
+      if (seenCard.has(mv.file)) continue;
+      seenCard.add(mv.file);
+      const file = join(ASSETS, mv.file);
+      if (!existsSync(file)) continue;
+      const top = ENDCARD_MOTION_LOCKUP[mv.file] ?? ENDCARD_LOCKUP_TOP;
+      const out = join(tmpdir(), `strand-card-${mv.tag}-${tier}.pgm`);
+      try {
+        execSync(
+          `ffmpeg -y -v error -ss 6.0 -i "${file}" ` +
+            `-vf "scale=1080:1920:flags=lanczos,crop=648:1920:216:0,format=gray" ` +
+            `-frames:v 1 -f image2 -c:v pgm "${out}"`,
+        );
+      } catch {
+        add('WARN', mv.file, 'endcard strand gate could not sample t=6.0s — clip shorter than the outro window?');
+        continue;
+      }
+      const mb = markBottom(readFileSync(out), top);
+      if (mb < 0) { add('WARN', mv.file, `endcard strand gate found no content above the lockup at y${top}`); continue; }
+      const gap = top - mb;
+      const src = ENDCARD_MOTION_LOCKUP[mv.file] !== undefined ? 'ENDCARD_MOTION_LOCKUP' : 'shared';
+      if (gap > STRAND_WARN_AT) {
+        add('WARN', mv.file, `ENDCARD LOCKUP STRANDED (${tier}) — content settles y${mb} but the lockup sits at y${top} (${src}), leaving ${gap}px of empty frame (>${STRAND_WARN_AT}). Measure this motion and add it to ENDCARD_MOTION_LOCKUP. See MKT-44.`);
+      } else {
+        add('PASS', mv.file, `endcard strand ${gap}px (${tier}) — content y${mb} → lockup y${top} (${src})`);
+      }
     }
   }
 }

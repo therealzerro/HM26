@@ -142,6 +142,49 @@ export const LOCKUP_TOP = 1240;
 export const CROP_SAFE_BOTTOM = 1500;
 
 /**
+ * MKT-44 — PER-MOTION endcard lockup top. Same shape as the stinger's
+ * MOTION_LOCKUP (MKT-42) and shipped for the same reason: a single constant
+ * measured against one motion cannot be right for a ROTATING set.
+ *
+ * ⚠ KEYED BY MOTION **FILE**, NOT TAG — deliberately different from the stinger
+ * map. Stinger tags are globally unique (one shared set); endcard tags REPEAT
+ * across tiers, so `std` is `endcard_motion_pro.mp4` for a pro kind and
+ * `endcard_motion_free.mp4` for a free one. Keying by tag would silently apply a
+ * pro measurement to a free motion.
+ *
+ * MEASURED across the text's whole opaque window (5.2s → the 6.5s cut), content
+ * bottom vs the shared 1240 — every PRO motion stranded, every FREE motion did
+ * not, which is exactly the split the operator reported (evening_pro, midday_pro
+ * and verify are three of the four `ENDCARD_KINDS.pro` entries):
+ *
+ *   PRO   steady  y613 → strand 627px      FREE  free      y966 → 274px  ok
+ *         lattice y760 → strand 480px            free_alt  y1000 → 240px ok
+ *         std     y770 → strand 470px
+ *         alt     y824 → strand 416px
+ *
+ * Tuck values are content-bottom + ~90px, and each candidate block was measured
+ * dark through the same window (worst 1.6% above L40, means L9.6-23.5).
+ *
+ * ⚠ THIS SUPERSEDES MKT-41's WITHDRAWAL OF VERIFY'S 880 TUCK. That withdrawal
+ * was right that a FIXED tuck drifts across a rotating set (130-280px), but it
+ * moved verify onto the shared 1240 — a 416-627px strand — making verify
+ * consistently broken with the fleet rather than fixing the fleet. Per-motion
+ * placement is what the 880 ruling was reaching for; this delivers it.
+ *
+ * ⚠ A NEW PRO ENDCARD MOTION MUST BE MEASURED AND ADDED HERE. Falling through to
+ * 1240 is the defect, not a safe default.
+ */
+export const ENDCARD_MOTION_LOCKUP: Record<string, number> = {
+  'endcard_motion_pro.mp4':         860,   // content y770
+  'endcard_motion_pro_alt.mp4':     910,   // content y824
+  'endcard_motion_pro_steady.mp4':  700,   // content y613 — the worst strand
+  'endcard_motion_pro_lattice.mp4': 850,   // content y760
+  // Free motions intentionally absent: measured 240-275px, inside the healthy
+  // band, so they stay on the shared constant rather than gaining an override
+  // nobody has a reason to maintain.
+};
+
+/**
  * Lockup fade-in. The All-Day outro is the endcard's FIRST 6.5s, so a 2.0s fade
  * from 4.5s reached full opacity on the reel's LAST FRAME and was never held —
  * the brand card resolved exactly as the reel ended. 0.7s puts it fully opaque

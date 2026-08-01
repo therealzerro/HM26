@@ -157,6 +157,33 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 ---
 
+### MKT-44 — Endcard lockup strand: per-motion placement, and MKT-41's withdrawal reversed ✅ SHIPPED (2026-08-01)
+
+**Operator reported the endcard band reading wrong on evening_pro, midday_pro AND verify.** Those are three of the four entries in `ENDCARD_KINDS.pro` — the tier shares one endcard motion set, which is the whole finding. Measured content-bottom against the shared `LOCKUP_TOP` 1240 across the text's opaque window (5.2s → the 6.5s cut):
+
+| PRO motion | content bottom | strand | | FREE motion | content bottom | strand |
+|---|---|---|---|---|---|---|
+| steady (scrolling waveform) | y613 | **627px** | | free (blooming eddies) | y966 | 274px ok |
+| lattice (node lattice) | y760 | **480px** | | free_alt (rising tide) | y1000 | 240px ok |
+| std (converging threads) | y770 | **470px** | | | | |
+| alt (vault rings) | y824 | **416px** | | | | |
+
+**Every pro motion strands past the 380px threshold; both free motions pass** — exactly the split the operator reported, and the reason allday_free/public never looked wrong. The band itself is dark (0-2.4% above L40), so this is purely a strand, not a contrast problem.
+
+**⚠ THIS REVERSES MKT-41's WITHDRAWAL OF VERIFY'S 880 TUCK, and the earlier ruling was closer to right.** MKT-31 addendum 2 set verify's endcard to `lockupTop: 880`, which against these motions yields strands of **56-267px** — the free tier's healthy range. MKT-41 withdrew it to the shared 1240 reasoning that a *fixed* tuck drifts 130-280px across a rotating set. **That reasoning was correct and the remedy was not**: it moved verify from a 56-267px strand to a 416-627px one, making verify *consistently broken with the fleet* instead of fixing the fleet. Per-motion placement is what the 880 ruling was reaching for.
+
+**FIX — `ENDCARD_MOTION_LOCKUP`**, same shape as MKT-42's stinger map, resolved `ENDCARD_MOTION_LOCKUP[mv.file] ?? v.lockupTop ?? LOCKUP_TOP`. Values are content-bottom + ~90px, each candidate block measured dark through the same window (worst 1.6% above L40): **steady 700 · lattice 850 · std 860 · alt 910**. Free motions deliberately absent — they measure healthy, so they stay on the shared constant rather than gaining an override nobody has a reason to maintain.
+
+**⚠ KEYED BY MOTION FILE, NOT TAG — a deliberate difference from the stinger map.** Stinger tags are globally unique (one shared set). Endcard tags **repeat across tiers**: `std` is `endcard_motion_pro.mp4` for a pro kind and `endcard_motion_free.mp4` for a free one. Keying by tag would have silently applied a pro measurement to a free motion.
+
+**GATE EXTENDED.** `checkMotionLockup()` now runs the same strand test over endcard motions, sampled at 6.0s (inside the opaque window, not at the fade — the same mid-hold reasoning as the stinger pass), keyed on file and reported per tier. This is the check whose absence let all four pro motions ship stranded.
+
+**Verified:** rebuilt endcards land at block-end y1014 (std, top 860), y1064 (alt, 910) and y1394 (free, shared 1240); a rebuilt `verif_endcard_alt` frame shows the lockup tucked under the bolt with the void gone. Filtered `npx tsc --noEmit` clean.
+
+**⚠ NOT REBUILT.** Every reel published before this — including tonight's verify and allday cuts — still carries the stranded endcard. The fix reaches reels on the next assembly.
+
+---
+
 ### MKT-42 — Stinger lockup strand: per-motion placement + a preflight gate ✅ SHIPPED (2026-07-31)
 
 **Operator reported evening_pro's stinger text reading wrong — "the same issue" as the verify stinger MKT-41 had just fixed. It was the same defect, and it was never an evening problem.** Today evening_pro rotated onto `imprint`; measured at the settled read (t=1.8s, centre 60%): mark bottom **y863**, lockup at the shared **1330**, i.e. **478px of near-black void** (mean L13.8) between the mark and the text. `circuit` measures the same (y866 / 475px / L11.7).

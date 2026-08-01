@@ -27,7 +27,7 @@ import {
 } from './brand-motion';
 import { bedWindow, bedLevelReachable, BED_TARGET_RMS } from './reel-bed';
 import {
-  ENDCARDS, LOCKUP_TOP, CROP_SAFE_BOTTOM, TEXT_FADE_IN, TEXT_FADE_DUR, OUT_W, OUT_H,
+  ENDCARDS, LOCKUP_TOP, ENDCARD_MOTION_LOCKUP, CROP_SAFE_BOTTOM, TEXT_FADE_IN, TEXT_FADE_DUR, OUT_W, OUT_H,
   type EndcardVariant,
 } from './endcard-config';
 
@@ -129,7 +129,9 @@ async function build(key: string, v: EndcardVariant, mv: MotionVariant): Promise
   }
 
   const png = join(tmpdir(), `endcard-lockup-${key}.png`);
-  await renderLockup(v.lines, png, v.line3Accent, v.lockupTop);
+  // MKT-44 — motion first: the strand is a property of the motion clip, not
+  // the reel kind. Keyed by FILE because endcard tags repeat across tiers.
+  await renderLockup(v.lines, png, v.line3Accent, ENDCARD_MOTION_LOCKUP[mv.file] ?? v.lockupTop);
 
   // Motion upscaled with lanczos: the sharpness that matters is the type, and
   // that is native. An ML upscaler would add a heavy dependency to improve

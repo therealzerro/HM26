@@ -157,6 +157,44 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 ---
 
+### MKT-43 — verif_carrier pair replacement, same-session family ⚠ SHIPPED ON MEASURABLE GATES · SEAM LISTEN OWED (2026-08-01)
+
+**⚠ ID REASSIGNED.** The work order was written as MKT-41, but 41 and 42 were consumed earlier the same session (41 = verify stinger tuck + endcard band + endcard audio; 42 = per-motion stinger lockup). `grep MKT-43` returned 0 hits in both audit and code, so this took 43 per the order's own instruction.
+
+**WHAT LANDED:** `verif_carrier.mp4` + `verif_carrier_pt2.mp4`, generated 2026-08-01 as a designed pair in one Omni session — the fix for the seam defect reported twice (7/30, 8/01), where the serving pt1 read as a different man from pt2 because they came from separate sessions. **This carrier serves BOTH `verify` and `verify_public`**, so a defect reaches a tier-1 surface.
+
+**PHASE 0 — integrity + rollback.** Both real mp4s (h264 10.000s + AAC 10.005s, 48kHz stereo); exact lowercase names, no `.MP4` strays. Incumbents recovered from git HEAD (the delivery had already overwritten the serving files) as `verif_carrier_incumbent_backup.mp4` (2,693,127B / 10.005s) and `verif_carrier_part2_incumbent_backup.mp4` (680,544B / 5.667s) — **revertible as a pair**. Delivered masters kept at `verif_carrier_master_10s.mp4` / `verif_carrier_part2_master_10s.mp4`. **No `UNREFERENCED_OK` entries added, deliberately**: `ARCHIVE_RE` already exempts `_master(_Ns)?|_backup` by pattern, so an entry would be dead config that never prints.
+
+**⚠ MY FIRST BACKUP NAMES FAILED THE PREFLIGHT, AND THE GATE WAS RIGHT.** They were `verif_carrier_pt2_*`, which contains `_pt` but does not match `_pt<N>.mp4` — invisible to both the joiner and the orphan scan. Renamed to the `part2` convention the other carrier backups already use. Caught by MKT-44's run, not by inspection.
+
+**PHASE 1 — trim and measure.**
+
+| | new | incumbent | delta |
+|---|---|---|---|
+| pt1 onset / last word | 0.820s / **9.260s** | 1.240s / 9.060s | speech 0.42s earlier, ends +0.20s later |
+| pt2 speech span | 6.24s | 5.42s | **+0.82s** |
+| pt2 inter-line gaps | 1.38 / 1.56s | 1.22 / 1.14s | +0.16 / +0.42s |
+
+**pt1 kept at 10.005s — head NOT trimmed.** The order's "trim to speech onset" conflicts with its own "10.005s file law", and the incumbent settles it: the incumbent pt1 is *itself* 10.005s with a 1.24s lead, i.e. the serving convention keeps the lead and the signoff fit math (10.005 + 0.35 + ≤2.3s) depends on it. Trimming would have silently broken that ceiling. pt2 trimmed to 6.542s with a 0.180s lead — **identical to the incumbent's 0.180s**.
+
+**⚠ THE ORDER'S PT2 EXPECTATION INVERTED.** It anticipated a shorter pt2 widening the days the full sign-off fits; the new pt2 is **longer** (slower read, wider gaps — the same shape MKT-32 salvaged by tightening gaps 80ms). Join goes **15.995s → 16.897s**. Both ends move: coverage IMPROVES (a body up to **13.9s** vs 13.1s, and the assembled reel's silent tail fell **4.49s → 3.68s**), while short-body days are likelier to fall back to `signoff_short`. An earlier one-sided reading of this — "fewer days get the full sign-off" — was only the short-body half.
+
+**Item 6 — tails digitally silent (−120dB)** on both, via `atrim`+`apad`. ⚠ The first attempt used `volume=enable='gte(t,X)':volume=0` and **silently did nothing** (tail still −46.7dB); it was caught only by re-measuring *after the gate point* rather than after the last word. Measure the region you claim to have changed.
+
+**PHASE 2 — content gate PASSES** (transcribed with `faster-whisper` 1.2.1, which is installed despite the earlier "whisper env broke" note):
+- pt1: *"Yesterday's board graded in the open. / Every call we posted checked against what drew. / Matches marked nothing hid."*
+- pt2: *"That one's on the record. / Signals first. / Receipts after."*
+
+Exact scripted lines. **No time-of-day words in pt1** — the point of the rewrite, so verify may post at any hour. No direct address, no counts/dates/states, no forbidden vocabulary; `Matches` is sanctioned MATCH vocab. **Tier-1 clean as spoken**, which the shared carrier requires. Onset (item 10): pt2 −21.7dB RMS vs the incumbent's −23.4dB, effectively matched; pt1 opens near-silent (−81.4dB) because its lead-in is intact by design.
+
+**⛔ ITEM 7 — THE SEAM — NOT VERIFIED. This is a cold listen and cannot be measured.** Everything measurable passed, and the pair is serving, but the binary "one man, one room, one sitting" judgement is the operator's ear and remains OWED. Rollback is one command: restore both `*_incumbent_backup.mp4` over the serving names and re-assemble. **If it fails, the finding is that same-session generation does not guarantee voice continuity**, which reopens the TTS question.
+
+**⛔ ITEM 8 — signoff_short NOT AUDITIONED.** `verif_carrier_signoff_short.mp4` is from the OLD session family and may now read as a different man behind this pt1. Same ear-gate problem. Options if it clashes, in order: pull it from the resolver (degrades to part-1-alone on short days, the pre-MKT-32 state) and flag regeneration **as part of this pair's family** — one line, last word ≤1.8s, same narrator block, generated in the same session as any future verify VO.
+
+**PHASE 3 — shipped.** Both cuts assembled at existing registry names, no config change: `verify` 28.433s / 18,694,713B, `verify_public` 28.800s / 20,342,008B. They also carry MKT-44's endcard fix and MKT-14's brand line. `reel:check` 0 fail. **These are the cuts a seam rejection would roll back.**
+
+---
+
 ### MKT-44 — Endcard lockup strand: per-motion placement, and MKT-41's withdrawal reversed ✅ SHIPPED (2026-08-01)
 
 **Operator reported the endcard band reading wrong on evening_pro, midday_pro AND verify.** Those are three of the four entries in `ENDCARD_KINDS.pro` — the tier shares one endcard motion set, which is the whole finding. Measured content-bottom against the shared `LOCKUP_TOP` 1240 across the text's opaque window (5.2s → the 6.5s cut):

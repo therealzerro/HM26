@@ -27,23 +27,28 @@ There is no automated test suite (see ARCH-03 in MASTER_AUDIT.md).
 
 ## Engine Changes — Empirical Validation Required (Code AND Config)
 
-Any change to files matching `engines/*.ts`, `lib/engineCore.ts`, `supabase/functions/compute-slate-*/`, `constants/zk6.ts`, OR rows in `app_config` affecting engine behavior, **MUST** be preceded by:
+Any change to files matching `engines/*.ts`, `lib/engineCore.ts`, `supabase/functions/compute-slate-*/`, `constants/zk6.ts`, OR rows in `app_config` affecting engine behavior, **MUST** pass this gate (v2, 2026-08-02 — supersedes the single-window v1; rationale in MASTER_AUDIT ENG-TOP30-01):
 
-1. Backtest with existing math/config over last 30 days → **BASELINE** recorded in audit
-2. Backtest with proposed math/config over SAME 30 days → **CANDIDATE** recorded in audit
-3. Merge only if CANDIDATE ≥ BASELINE on overall hit rate, OR explicit user override with stated reason and planned review date
+**0. Pre-flight — parity before sweep.** Query live `app_config` (per-scope overrides are invisible in the Engine UI) and verify the newest `prod_parity_*` preset in `scripts/backtest/configs.ts` still matches it. If live config drifted, refresh the parity preset FIRST and spread all candidates from it. (Lesson: every sweep from 6/11–8/1 replayed evening under stale CO=0 weights.)
+
+**1. Signal claims need universe evidence before a sweep.** A "signal/rail X is costing or gaining hits" hypothesis built from selected-pick or selected-set diffs is hypothesis-grade only (those diffs run z≈2 on pure noise routinely). Confirm at universe level first — cohort or AUC over all 220 combosets — before spending a backtest on it. Universe-flat → the hypothesis is dead regardless of how the selected diff looks.
+
+**2. Backtest BOTH windows.** 30d AND 60d, `--end-date` = last complete draw day. Record BASELINE and CANDIDATE in the audit with **both lenses** — pick-hit % AND slate-hit % (any-hit accounting = `total_hits`; `hits_box` alone is box-only), per-scope and overall.
 
 ```bash
-# Run baseline before any engine/config change:
-npm run backtest:replay -- --days 30 --config default
-
-# Run candidate after proposing the change:
-npm run backtest:replay -- --days 30 --config <new-preset-name>
+npm run backtest:replay -- --days 30 --end-date <yesterday> --config <parity>,<candidates>
+npm run backtest:replay -- --days 60 --end-date <yesterday> --config <parity>,<candidates>
 ```
+
+**3. Ship rule.**
+- **Eligible:** CANDIDATE ≥ BASELINE on slate AND pick rate, sign-consistent across both windows, and the win exceeds the noise floor (~3.3pp slate = 1 slate/30d; ~1.7pp pick).
+- **Noise:** sign flips between windows, or |Δ| inside the noise floor → not an accuracy win. May still ship for a non-accuracy reason (UX/texture/rotation), but only with the measured cost stated and the operator explicitly accepting it — "neutral-by-design" is not assumable, it must be measured (the 6/22 rotation levers measured neutral on evening/allday; the same port to midday measured −13.4pp/−6.7pp and was rejected).
+- **Refuted:** CANDIDATE < BASELINE sign-consistently → record the verdict in MASTER_AUDIT so it is never re-proposed. Check existing verdicts (SIGNAL-INFO-01 weight configs, cooldown relaxation, doubles floor, synergy, STATE_STR-as-shipped, pressure rescale) before proposing anything.
+- **Override:** explicit user override remains available — stated reason + written rollback condition + planned review date. Before judging a live config against its review window, count the days it was actually live (era contamination rule).
 
 Config changes are tracked with **CONFIG-XX** entries in `MASTER_AUDIT.md` (parallel to BUG-XX). The 2026-05-09 Gemini CLI incident (CONFIG-01) is the canonical example of what happens without this process — 3 days of degraded picks, no audit trail, required forensic recovery.
 
-**No engine change ships without a hit-rate number attached.**
+**No engine change ships without a hit-rate number attached — and no "neutral" change ships without a measured cost.**
 
 ## Brand voice — public-facing strings
 

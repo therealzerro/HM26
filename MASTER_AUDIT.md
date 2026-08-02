@@ -2555,6 +2555,10 @@ Follow-through on BTN-AUDIT's native capture work — four device-tested iterati
 4. **URI normalization** — iOS view-shot can return schemeless raw paths; save/read now branch on `data:` vs file reference and prefix `file://` where absent (was the "brief missing" all-fail abort). Stale captures (view-shot tmp wiped on app cold start / reload) now error explicitly: "expired — tap Build Images again".
 Also: AI image-gen client timeout 120s→180s (a server-successful, billed generation was lost to a client abort; `ai_generations` showed zero server-side errors all day). Operational note: any app reload between Build Images and posting requires a rebuild — captures don't survive reloads.
 
+### PROC-GATE-02 — Engine validation gate evolved to v2 (2026-08-02)
+
+CLAUDE.md's Engine Changes gate rewritten based on ENG-TOP30-01's lessons. v1 = single 30-day window, "CANDIDATE ≥ BASELINE on overall hit rate" — which passes noise (cd_mid3 lost 30d, won 60d), is lens-ambiguous (pick vs slate; any-hit vs box-only), tolerated 7 weeks of parity drift (evening CO=0 in every preset), and let "neutral-by-design" changes skip measurement (midday rotation port measured −13.4pp, not neutral). v2 adds: (0) parity pre-flight vs live app_config before any sweep; (1) universe-level confirmation before backtesting signal/rail hypotheses; (2) dual-window 30d+60d with dual-lens recording; (3) ship rule with sign-consistency + noise floor (~3.3pp slate / ~1.7pp pick), a measured-cost path for texture changes, a refuted-verdicts registry check, and the existing override path (+ era-contamination rule for review windows). Closing line extended: no "neutral" change ships without a measured cost.
+
 ### ENG-TOP30-01 — Top-30 vs picks audit, all scopes + rail sweep (CLOSED 2026-08-02, no ship)
 
 **Question (operator):** which top-30 combos hit but weren't picks, why, and is there a tune-up in it.

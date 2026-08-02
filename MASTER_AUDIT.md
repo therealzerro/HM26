@@ -2555,6 +2555,32 @@ Follow-through on BTN-AUDIT's native capture work — four device-tested iterati
 4. **URI normalization** — iOS view-shot can return schemeless raw paths; save/read now branch on `data:` vs file reference and prefix `file://` where absent (was the "brief missing" all-fail abort). Stale captures (view-shot tmp wiped on app cold start / reload) now error explicitly: "expired — tap Build Images again".
 Also: AI image-gen client timeout 120s→180s (a server-successful, billed generation was lost to a client abort; `ai_generations` showed zero server-side errors all day). Operational note: any app reload between Build Images and posting requires a rebuild — captures don't survive reloads.
 
+### ENG-MIDDAY-COLD-01 — Midday slate cold-streak investigation (CLOSED 2026-08-02, no defect)
+
+**Trigger:** operator-perceived collapse in midday slate hit rate (three consecutive 0/6 days 7/29–7/31, 8-day stretch 7/25–8/1 at 3/48 picks = 6.2%). Investigated per the tripwire convention ([[project_allday_tripwire]] analog).
+
+**Method (BUG-162-safe):** recomputed every hit from `slate_snapshots.top_k_straights_json` comboSets vs `histories` comboset_sorted on (date_et, session=midday), 2026-06-01→08-01, no stored hit flags. Compared against a **mix-aware random baseline**: per day, P(random combo of the pick's multiplicity class matches ≥1 of that day's distinct drawn combosets) — singles universe 120, doubles 90.
+
+**Finding: no regression exists. Midday is exactly at chance, where it has been all along (SIGNAL-INFO-01).**
+
+| Window | Slate actual | Slate baseline | Pick actual | Pick baseline | Pick z |
+|---|---|---|---|---|---|
+| June (30d) | 70.0% | 67.5% | 18.3% | 17.3% | +0.37 |
+| Jul 1–15 | 60.0% | 67.0% | 17.8% | 17.1% | +0.18 |
+| Jul 16–8/1 | 64.7% | 68.0% | 14.7% | 17.4% | −0.72 |
+| 7/25–8/1 (the streak) | 37.5% | 67.8% | 6.2% | 17.3% | −2.02 |
+
+Cumulative 6/1–8/1: picks 64/372 (17.2%) vs baseline 17.3%; slates 41/62 (66.1%) vs 67.5%. The streak's post-hoc probability: P(≤3/48 in a *fixed* 8-day window) = 2.4%, but ≈18% that *some* such window appears in 62 days, and ~2 runs of three consecutive 0/6 days are **expected** per 62 days at chance. Ordinary-bad variance, same verdict as the 7/22 bet-log post-mortem.
+
+**Ruled out (all verified live, not from audit claims):** config change — `engine_weights_balanced_midday` CO=64 untouched since 5/27, `recent_hit_cooldown_midday=10` since 5/13 (CONFIG-05); the 7/23 14:44 UTC app_config batch was an Engine-UI re-save of identical values. Data staleness — 8/2 snapshot generated 10:38 ET with lastSeen dates through 7/20; midday feeds steady at 33/day (27 Sundays per dark-state schedule); no import gaps 7/15–8/1. HIT-PERSIST yesterday-block — functioning (0 day-after-hit re-picks in all of July).
+
+**Structural context (why midday will always read as the worst scope):**
+1. **Lower baseline by session size.** Midday averages ~29.7 distinct drawn combosets/day vs evening ~37.9 (fewer feeds draw midday). Chance slate rate ≈67% vs evening's ≈75%+. Midday trailing evening is arithmetic, not engine quality.
+2. **Rank-1 inversion persists** (5th directional confirmation): July pos-1 hit 2/32 days (6.3%, z≈−1.6 vs baseline); positions 1–3 = 12.5% vs positions 4–6 = 19.8%. The 7/23 deep-scope guidance — bet midday positions 4–6 only (1-indexed) — remains correct; the pos-4–6 band performed at/above baseline in July.
+3. **Near-frozen slate.** July midday: 44 unique combos over 192 picks, day-to-day carryover 3.39/6 (evening 1.97, allday 2.06 — both got the 6/22 rotation levers; midday deliberately did not). `{4,6,9}` sat on the slate 23 of 32 days and hit once (7/27). EV-neutral under uniformity, but it concentrates drought pain: a cold slate stays the *same* cold slate for weeks. All 192 July picks were singles (known doubles-starvation, [[project_doubles_allocation_diag]]).
+
+**Action:** none applied. Options if streak pain recurs: (a) port stale2 + 3-day post-hit block to midday — hit-rate-neutral by the 6/22 evidence, pure rotation/texture change, no review window needed per the neutral-by-design convention; (b) the only genuine accuracy lever remains ENH-AUDIT per-state (already highest engine priority). Do **not** re-propose weight configs as accuracy levers (SIGNAL-INFO-01).
+
 ### BUG-171 — Morning-brief rolling rates silently computed over a short denominator: `daily_intelligence` has 16 missing slate-days (FIXED 2026-08-02)
 
 **Symptom (found while fixing [[BUG-170]]):** Query 1's `rate_30d_pct` read 62.5% for midday on 8/2. 62.5% = 15/**24** — the window was 24 days, not 30, with no indication in the output.

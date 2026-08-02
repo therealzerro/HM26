@@ -2555,6 +2555,31 @@ Follow-through on BTN-AUDIT's native capture work — four device-tested iterati
 4. **URI normalization** — iOS view-shot can return schemeless raw paths; save/read now branch on `data:` vs file reference and prefix `file://` where absent (was the "brief missing" all-fail abort). Stale captures (view-shot tmp wiped on app cold start / reload) now error explicitly: "expired — tap Build Images again".
 Also: AI image-gen client timeout 120s→180s (a server-successful, billed generation was lost to a client abort; `ai_generations` showed zero server-side errors all day). Operational note: any app reload between Build Images and posting requires a rebuild — captures don't survive reloads.
 
+### ENG-TOP30-01 — Top-30 vs picks audit, all scopes + rail sweep (CLOSED 2026-08-02, no ship)
+
+**Question (operator):** which top-30 combos hit but weren't picks, why, and is there a tune-up in it.
+
+**Data-model note first:** `daily_intelligence` top-30 rows are **permutations**, not combos — e.g. 7/31 midday ranks 1–6 were all six perms of `{2,3,6}`. The top-30 typically covers only ~8–12 distinct combosets. All analysis below deduped to distinct sets (best perm rank), hits recomputed from `histories` (BUG-162 rule), window 6/1–8/1 (49 DI days; BUG-171 gaps excluded), mode=balanced.
+
+**Why hitting top-30 sets weren't picks: cooldown, essentially 100%.** Every one of the 93 hitting non-picked top-30 sets since 7/15 (and all but 1 across the full window) had `draws_since` under the cooldown (midday 10d, evening/allday 20d). The DI top is CO/BOX-dominated → recently-drawn sets; the cooldown rail excludes exactly those; picks come from the ds-tail. Per-scope hit rates of the cooldown-blocked sets vs picks (singles, vs mix-aware baseline): midday blocked **20.5%** vs picks **14.7%** (baseline 17.0%; two-prop z≈1.85); evening 20.5% vs 19.3% (baseline 22.0%); allday 32.6% vs 34.8% (baseline 35.3%). Only midday showed a suggestive gap.
+
+**Disambiguator 1 — universe cohorts (fresh, 5/15–8/1, scope-sliced ds):** P(hit | days-since-seen) is **FLAT** in every scope (midday 17.2/17.6/16.9/17.1/15.4% across ds 1-3/4-6/7-9/10-14/15-20). Re-confirms [[project_overdue_reversion_tested_flat]] on current data — no ds-based edge exists in either direction; the blocked-set 20.5% is conditioning noise.
+
+**Disambiguator 2 — backtest sweep** (per CLAUDE.md gate; new presets in `scripts/backtest/configs.ts`, replays `replay-2026-08-02T15-52-44.csv` + 60d follow-up). Any-hit accounting, 30d ending 8/1, pick%/slate%:
+
+| Config | midday | evening | allday | OVERALL |
+|---|---|---|---|---|
+| **BASELINE prod_parity_2026_08_02** | 18.3/76.7 | 23.9/70.0 | 34.4/90.0 | **25.6/78.9** |
+| cd_mid7 (midday cd 10→7) | 12.2/53.3 | = | = | 23.5/71.1 ❌ |
+| cd_mid5 | 15.0/53.3 | = | = | 24.4/71.1 ❌ |
+| cd_mid3 | 19.4/70.0 | = | = | 25.9/76.7 ❌ (60d: +3.3pp midday — sign flips across windows = noise) |
+| midday_rot (port stale2+3d block to midday) | 15.6/63.3 | = | = | 24.6/74.4 ❌ (60d: −6.7pp midday — negative in BOTH windows) |
+| allday_cd30 (widen allday cd 20→30) | = | = | = | = (byte-identical: dead knob, non-binding) |
+
+**Verdicts:** (1) Midday cooldown relaxation **REFUTED** — do not re-propose; the cooldown is not costing hits (universe flat) and relaxed variants replay worse. (2) The rotation port to midday is **not hit-rate-neutral** (−13.4pp/−6.7pp midday slate in 30d/60d windows) — port only with that cost accepted explicitly. (3) `allday_cd30` is a no-op — cooldown ≥20 never binds on allday selection. (4) Rank-1 inversion reproduced in replay (midday r1 13.3% < r2 20.0%) — per-state (ENH-AUDIT) remains the only genuine accuracy lever.
+
+**Harness parity fix (shipped, analysis-infra only):** every preset spread from `prod_parity_2026_06_10` replayed **evening under CO=0** — stale since the 6/11 partial CO restore (live evening = BOX 50.625/PBURST 28.125/CO 10/DGC 11.25). New `prod_parity_2026_08_02` = `stale2` stack + live evening weights; future sweeps must spread from it. Relative comparisons in past sweeps remain valid (both arms shared the stale weights), but absolute evening replay numbers from 6/11–8/1 sweeps are mildly mis-parameterized.
+
 ### ENG-MIDDAY-COLD-01 — Midday slate cold-streak investigation (CLOSED 2026-08-02, no defect)
 
 **Trigger:** operator-perceived collapse in midday slate hit rate (three consecutive 0/6 days 7/29–7/31, 8-day stretch 7/25–8/1 at 3/48 picks = 6.2%). Investigated per the tripwire convention ([[project_allday_tripwire]] analog).

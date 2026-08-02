@@ -3466,4 +3466,42 @@ export const CONFIGS: Record<string, EngineConfig> = {
   get cd_w7()  { return { ...this.dbl_fix_singles6, recentHitCooldown: 7 }; },
   get cd_w5()  { return { ...this.dbl_fix_singles6, recentHitCooldown: 5 }; },
   get cd_w3()  { return { ...this.dbl_fix_singles6, recentHitCooldown: 3 }; },
+
+  // ENG-MIDDAY-COLD-01 follow-up (2026-08-02): parity refresh + rail sweep.
+  // prod_parity_2026_06_10's evening weights predate the 6/11 partial CO restore
+  // (live engine_weights_balanced_evening = BOX 50.625 / PBURST 28.125 / CO 10 /
+  // DGC 11.25 since 2026-06-11), so every preset spread from it replays evening
+  // under CO=0. Refreshed parity = stale2 selection stack + live evening weights.
+  get prod_parity_2026_08_02() {
+    const base = this.stale2;
+    return {
+      ...base,
+      presetByScope: {
+        ...base.presetByScope,
+        evening: {
+          balanced:     { BOX: 0.50625, PBURST: 0.28125, CO: 0.100, DGC: 0.1125 },
+          conservative: { BOX: 0.50625, PBURST: 0.28125, CO: 0.100, DGC: 0.1125 },
+          aggressive:   { BOX: 0.50625, PBURST: 0.28125, CO: 0.100, DGC: 0.1125 },
+        },
+      },
+    };
+  },
+  // Midday cooldown relaxation: the DI top-30 audit showed every hitting top-30
+  // non-pick is cooldown-blocked, and midday blocked sets hit 20.5% vs picks
+  // 14.7% (hypothesis-grade z≈1.85; universe P(hit|ds) is FLAT, so the expected
+  // true effect is zero — this sweep is the disambiguator, not confirmation).
+  get cd_mid7() { return { ...this.prod_parity_2026_08_02, recentHitCooldownByScope: { midday: 7 } }; },
+  get cd_mid5() { return { ...this.prod_parity_2026_08_02, recentHitCooldownByScope: { midday: 5 } }; },
+  get cd_mid3() { return { ...this.prod_parity_2026_08_02, recentHitCooldownByScope: { midday: 3 } }; },
+  // Rotation port: midday gets the evening/allday texture levers (3-day post-hit
+  // block + stale2). Expectation: hit-rate-neutral; this measures the cost.
+  get midday_rot() {
+    return {
+      ...this.prod_parity_2026_08_02,
+      recentHitBlockDaysByScope: { midday: 3, evening: 3, allday: 3 },
+      slateStalenessThresholdByScope: { midday: 2, evening: 2, allday: 2 },
+    };
+  },
+  // Allday cooldown widen probe (blocked allday sets ran −1.1z under baseline).
+  get allday_cd30() { return { ...this.prod_parity_2026_08_02, recentHitCooldownByScope: { midday: 10, allday: 30 } }; },
 };

@@ -10,6 +10,21 @@
 - `morning brief` with no date → use `CURRENT_DATE` for today, `CURRENT_DATE - 1` for yesterday
 - `morning brief for 2026-06-10` → use the explicit date for today, derive yesterday by subtracting 1
 
+**Data-model note — slate position (BUG-170, 2026-08-02):**
+Slate position comes from `slate_snapshots.top_k_straights_json` only. Two
+different fields are both named `rank`; they are not interchangeable:
+
+| field | meaning | range |
+|---|---|---|
+| `top_k_straights_json[].rank` | **slate position** — equals array ordinality | always 1–6 |
+| `daily_intelligence.rank` | top-30 indicator ordering | 1–30, and 31+ for on-slate picks that fell outside the top 30 |
+
+Never derive "pick #1" from `daily_intelligence.rank`. Midday routinely places
+its whole slate outside the DI top 30 (8/1 ranks were 31–36; 7/31's pos-6 pick
+carried DI rank 21 while pos 1 carried 31), so `MIN(rank)` returns an arbitrary
+position. Use `daily_intelligence` for hit flags and signal values, joined on
+`(slate_date, mode, scope, combo)` — never for ordering.
+
 ---
 
 ## Query 1 — Yesterday's Validation
@@ -19,29 +34,46 @@ Verifies yesterday's report row is current + reports per-scope hit rate vs basel
 **OPS-01 (2026-06-11): there are no pg_cron jobs anymore.** `engine_daily_report` is written only by Daily Workflow Step 5 (operator clicks before 8:30am ET, after importing results + input). A stale/missing report row means the workflow hasn't run yet today — not a cron failure.
 
 ```sql
-WITH yesterday_perf AS (
+-- BUG-170: slate order comes from the snapshot, NOT daily_intelligence.rank.
+-- daily_intelligence is joined only for hit flags, on (date, mode, scope, combo).
+WITH slate_picks AS (
+  SELECT
+    s.scope,
+    (p.value ->> 'rank')::int AS slate_pos,   -- == array ordinality, always 1..6
+    (p.value ->> 'combo')     AS combo
+  FROM slate_snapshots s,
+       LATERAL jsonb_array_elements(s.top_k_straights_json) p
+  WHERE s.slate_date = (CURRENT_DATE - INTERVAL '1 day')
+    AND s.deleted_at IS NULL
+    AND s.mode = 'balanced'
+),
+pick_outcomes AS (
+  SELECT
+    sp.scope, sp.slate_pos, sp.combo,
+    COALESCE(di.hit_box OR di.hit_straight, false) AS is_hit
+  FROM slate_picks sp
+  LEFT JOIN daily_intelligence di
+    ON di.slate_date = (CURRENT_DATE - INTERVAL '1 day')
+   AND di.mode  = 'balanced'
+   AND di.scope = sp.scope
+   AND di.combo = sp.combo
+),
+yesterday_perf AS (
   SELECT
     scope,
-    COUNT(*) FILTER (WHERE on_slate) AS slate_picks,
-    SUM((on_slate AND (hit_box OR hit_straight))::int) AS pick_hits,
-    MAX(CASE WHEN on_slate AND (hit_box OR hit_straight) THEN 1 ELSE 0 END) AS slate_had_hit,
-    -- pick #1 specifically (lowest rank with on_slate=true)
-    MAX(CASE WHEN on_slate AND rank = (
-      SELECT MIN(rank) FROM daily_intelligence di2
-      WHERE di2.slate_date = di.slate_date AND di2.scope = di.scope
-        AND di2.on_slate AND di2.mode = 'balanced'
-    ) THEN combo END) AS pick1_combo,
-    -- MIN, not MAX: 'HIT' < 'MISS' lexicographically, so the pick-1 row's verdict
-    -- wins iff it hit; MAX made every other row's 'MISS' dominate (BUG-168)
-    MIN(CASE WHEN on_slate AND rank = (
-      SELECT MIN(rank) FROM daily_intelligence di2
-      WHERE di2.slate_date = di.slate_date AND di2.scope = di.scope
-        AND di2.on_slate AND di2.mode = 'balanced'
-    ) AND (hit_box OR hit_straight) THEN 'HIT' ELSE 'MISS' END) AS pick1_outcome
-  FROM daily_intelligence di
-  WHERE slate_date = (CURRENT_DATE - INTERVAL '1 day')
-    AND mode = 'balanced'
-  GROUP BY scope, slate_date
+    COUNT(*)         AS slate_picks,
+    SUM(is_hit::int) AS pick_hits,
+    MAX(is_hit::int) AS slate_had_hit,
+    MAX(combo) FILTER (WHERE slate_pos = 1) AS pick1_combo,
+    CASE WHEN bool_or(is_hit AND slate_pos = 1) THEN 'HIT' ELSE 'MISS' END AS pick1_outcome,
+    -- which positions actually carried the day (feeds the position-inversion work)
+    COALESCE(
+      STRING_AGG(slate_pos::text || ':' || combo, ', ' ORDER BY slate_pos)
+        FILTER (WHERE is_hit),
+      '—'
+    ) AS hit_positions
+  FROM pick_outcomes
+  GROUP BY scope
 ),
 report_row AS (
   SELECT scope, hits_count, straights_count, boxes_count, rate, updated_at
@@ -49,20 +81,46 @@ report_row AS (
   WHERE slate_date = (CURRENT_DATE - INTERVAL '1 day')
 ),
 baselines AS (
-  -- 7d and 30d match rates for the per-scope comparison
+  -- 7d / 30d slate match rates, from snapshots × histories.
+  -- BUG-171: the old version derived these from daily_intelligence.on_slate.
+  -- DI is missing 16 slate-days since 2026-04-18 (including a contiguous
+  -- 07-01→07-08 block); those days dropped out of the DENOMINATOR entirely, so
+  -- a "30d" rate was silently computed over as few as 24 days. Snapshots and
+  -- histories are both complete. This also matches how lib/brief/computeBrief.ts
+  -- rolls its windows, so the SQL brief and the in-app Brief tab now agree.
   SELECT
     scope,
-    ROUND(100.0 * COUNT(*) FILTER (WHERE slate_date >= CURRENT_DATE - INTERVAL '7 days' AND slate_had_hit = 1) /
-          NULLIF(COUNT(*) FILTER (WHERE slate_date >= CURRENT_DATE - INTERVAL '7 days'), 0)::numeric, 1) AS rate_7d_pct,
-    ROUND(100.0 * COUNT(*) FILTER (WHERE slate_date >= CURRENT_DATE - INTERVAL '30 days' AND slate_had_hit = 1) /
-          NULLIF(COUNT(*) FILTER (WHERE slate_date >= CURRENT_DATE - INTERVAL '30 days'), 0)::numeric, 1) AS rate_30d_pct
+    COUNT(*) FILTER (WHERE d_back <= 7)  AS days_7d,
+    COUNT(*) FILTER (WHERE d_back <= 30) AS days_30d,
+    ROUND(100.0 * COUNT(*) FILTER (WHERE d_back <= 7  AND slate_had_hit = 1)
+          / NULLIF(COUNT(*) FILTER (WHERE d_back <= 7),  0)::numeric, 1) AS rate_7d_pct,
+    ROUND(100.0 * COUNT(*) FILTER (WHERE d_back <= 30 AND slate_had_hit = 1)
+          / NULLIF(COUNT(*) FILTER (WHERE d_back <= 30), 0)::numeric, 1) AS rate_30d_pct
   FROM (
-    SELECT scope, slate_date, MAX((hit_box OR hit_straight)::int) AS slate_had_hit
-    FROM daily_intelligence
-    WHERE on_slate AND mode = 'balanced'
-      AND slate_date >= CURRENT_DATE - INTERVAL '30 days'
-      AND slate_date < CURRENT_DATE
-    GROUP BY scope, slate_date
+    SELECT
+      s.scope,
+      s.slate_date,
+      (CURRENT_DATE - s.slate_date) AS d_back,
+      MAX(CASE WHEN EXISTS (
+            SELECT 1 FROM histories h
+            WHERE h.date_et          = s.slate_date
+              AND h.comboset_sorted  = (p.value ->> 'comboSet')
+              -- allday matches ANY draw that day; midday/evening are strict
+              AND (s.scope = 'allday' OR h.session = s.scope)
+          ) THEN 1 ELSE 0 END) AS slate_had_hit
+    FROM slate_snapshots s,
+         LATERAL jsonb_array_elements(s.top_k_straights_json) p
+    WHERE s.deleted_at IS NULL AND s.mode = 'balanced'
+      AND s.slate_date >= CURRENT_DATE - INTERVAL '30 days'
+      AND s.slate_date <  CURRENT_DATE
+      -- drop days this scope was fully dark (Sunday closures) so they can't
+      -- count as misses
+      AND EXISTS (
+        SELECT 1 FROM histories h2
+        WHERE h2.date_et = s.slate_date
+          AND (s.scope = 'allday' OR h2.session = s.scope)
+      )
+    GROUP BY s.scope, s.slate_date
   ) per_slate
   GROUP BY scope
 )
@@ -73,12 +131,20 @@ SELECT
   y.slate_had_hit AS slate_hit_yn,
   y.pick1_combo,
   y.pick1_outcome,
+  y.hit_positions,
   r.hits_count AS report_hits,
   r.updated_at AS report_updated_at,
   b.rate_7d_pct,
+  b.days_7d,
   b.rate_30d_pct,
+  b.days_30d,
   CASE
-    WHEN r.updated_at IS NULL OR r.updated_at < NOW() - INTERVAL '12 hours'
+    -- calendar-based, not a 12h age window: the workflow runs ~5-6am ET, so an
+    -- age window cried stale on every good run from ~5pm ET onward (BUG-169
+    -- fixed this in computeBrief.ts; the runbook kept the old semantics)
+    WHEN r.updated_at IS NULL
+      OR (r.updated_at AT TIME ZONE 'America/New_York')::date
+         <> (NOW() AT TIME ZONE 'America/New_York')::date
       THEN 'REPORT STALE — Daily Workflow Step 5 has not run yet today'
     WHEN y.slate_had_hit = 1
       THEN 'OK'
@@ -91,10 +157,12 @@ ORDER BY y.scope;
 ```
 
 **Interpret:**
-- `pick1_outcome = HIT` → reorder sort working as designed
+- `pick1_combo` / `pick1_outcome` are **slate position 1**, read from the snapshot — see the data-model note above. `pick1_outcome = HIT` → reorder sort working as designed
+- `hit_positions` lists `pos:combo` for every pick that matched. This is the feed for the midday position-inversion work — check whether hits keep landing at positions 3–6
 - `report_hits < pick_hits` AND report row fresh → Step 5 mis-aggregating (BUG-EDR lineage) — investigate
-- `report_updated_at` > 12 hours old or row missing → workflow not yet run today; the brief's hit numbers come from `daily_intelligence` and remain valid, but remind the operator to click Daily Workflow
+- `report_updated_at` not on today's ET calendar date, or row missing → workflow not yet run today; the brief's hit numbers come from `daily_intelligence` and remain valid, but remind the operator to click Daily Workflow
 - Per-scope `rate_7d_pct` vs `rate_30d_pct`: if 7d trails 30d by > 10pp, scope is regressing
+- `days_7d` / `days_30d` are the actual denominators. They should read 7 and 30; anything lower means missing snapshots or a scope-dark stretch, and the rate is over a shorter window than its label implies
 
 ---
 
@@ -320,17 +388,21 @@ MORNING BRIEF — [today_date]
 ──────────────────────────────────────────────────────────────────────
 Pre-flight: [PASS / FAIL with details from Query 1.status]
 
-Per-scope performance:
-  midday   pick #1 = [combo] → [HIT/MISS]   pick hits: [n]/6   slate hit: [Y/N]
-  evening  pick #1 = [combo] → [HIT/MISS]   pick hits: [n]/6   slate hit: [Y/N]
-  allday   pick #1 = [combo] → [HIT/MISS]   pick hits: [n]/6   slate hit: [Y/N]
+Per-scope performance (pick # = SLATE POSITION, from the snapshot):
+  midday   pos1 = [combo] → [HIT/MISS]   pick hits: [n]/6   slate hit: [Y/N]
+  evening  pos1 = [combo] → [HIT/MISS]   pick hits: [n]/6   slate hit: [Y/N]
+  allday   pos1 = [combo] → [HIT/MISS]   pick hits: [n]/6   slate hit: [Y/N]
+
+Which positions hit (from hit_positions):
+  midday   [pos:combo, …]   evening  [pos:combo, …]   allday  [pos:combo, …]
 
 Slate-level rolling rates:
-  midday   7d: [X]%  vs  30d: [Y]%   (drift: ±Zpp)
-  evening  7d: [X]%  vs  30d: [Y]%   (drift: ±Zpp)   [⚠️ if evening 7d < 75]
-  allday   7d: [X]%  vs  30d: [Y]%   (drift: ±Zpp)
+  midday   7d: [X]% (n=[days_7d])  vs  30d: [Y]% (n=[days_30d])   (drift: ±Zpp)
+  evening  7d: [X]% (n=[days_7d])  vs  30d: [Y]% (n=[days_30d])   (drift: ±Zpp)   [⚠️ if evening 7d < 75]
+  allday   7d: [X]% (n=[days_7d])  vs  30d: [Y]% (n=[days_30d])   (drift: ±Zpp)
+  [flag if either n is below its label]
 
-[Reorder validation: how many pick #1s hit / 3]
+[Reorder validation: how many pos-1 picks hit / 3]
 [CONFIG-15 evening check: still holding / regressing — recommendation if regressing]
 
 ══════════════════════════════════════════════════════════════════════

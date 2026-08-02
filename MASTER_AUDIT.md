@@ -2555,6 +2555,28 @@ Follow-through on BTN-AUDIT's native capture work — four device-tested iterati
 4. **URI normalization** — iOS view-shot can return schemeless raw paths; save/read now branch on `data:` vs file reference and prefix `file://` where absent (was the "brief missing" all-fail abort). Stale captures (view-shot tmp wiped on app cold start / reload) now error explicitly: "expired — tap Build Images again".
 Also: AI image-gen client timeout 120s→180s (a server-successful, billed generation was lost to a client abort; `ai_generations` showed zero server-side errors all day). Operational note: any app reload between Build Images and posting requires a rebuild — captures don't survive reloads.
 
+### BUG-171 — Morning-brief rolling rates silently computed over a short denominator: `daily_intelligence` has 16 missing slate-days (FIXED 2026-08-02)
+
+**Symptom (found while fixing [[BUG-170]]):** Query 1's `rate_30d_pct` read 62.5% for midday on 8/2. 62.5% = 15/**24** — the window was 24 days, not 30, with no indication in the output.
+
+**Root cause:** the `baselines` CTE derived slate membership *and* the day list from `daily_intelligence` (`WHERE on_slate`). DI is missing 16 slate-days between 2026-04-18 and 2026-08-01 — 4/18, 5/2, 5/6, 6/15, 6/20, 6/21, 6/22, 6/30, and a contiguous **7/1→7/8** block. `slate_snapshots` and `histories` both have full coverage on every one of those dates, so the days existed and drew; only the DI rows are absent. Because the CTE grouped over DI rows, a missing day vanished from the numerator *and* the denominator, quietly shrinking the window. Recomputed over the true 30 days: allday 95.8→**96.7**, evening 79.2→**83.3**, midday 62.5→**60.0**. 7d windows were unaffected (no gaps in the last 7 days), so the 7d-vs-30d drift comparison the runbook keys its regression flag on was reading against a biased baseline.
+
+Not investigated: *why* DI is missing those days. Snapshots exist for all of them, so it is a DI-write gap, not a workflow no-run. The 7/1→7/8 block ends the day before IMPORT-REHAB-02 retired the Daily Input import type (2026-07-09) — suggestive, not established. Left open; the brief no longer depends on it.
+
+**Fix:** `baselines` now computes from `slate_snapshots × histories` (the same sources `lib/brief/computeBrief.ts` rolls its windows over, so the SQL brief and the in-app Brief tab agree by construction). Days where the scope was fully dark are excluded from the denominator rather than counted as misses, and the query now returns `days_7d` / `days_30d` so a short window is visible instead of silent. DI is still used for yesterday's per-pick hit flags, joined on `(slate_date, mode, scope, combo)`.
+
+**Also fixed in the same pass:** the runbook's staleness check still used a 12-hour age window — the exact semantics BUG-169 replaced in `computeBrief.ts` — so a brief run after ~5pm ET would call a perfectly good morning run STALE. Now calendar-based on the ET date, matching the code.
+
+### BUG-170 — Morning-brief Query 1 read "pick #1" from `daily_intelligence.rank`, which is not slate position (FIXED 2026-08-02)
+
+**Symptom (caught during the 8/2 brief):** Query 1 reported evening pick #1 = 637 → HIT for 8/1. Evening slate position 1 was **104**, and it missed; 637 sat at position **5**. All three scopes' pick-1 lines were wrong that day (0/3 pos-1 picks actually hit, not 1/3).
+
+**Root cause:** two different fields are both named `rank`, and Query 1 used the wrong one. `top_k_straights_json[].rank` is slate position and always runs 1–6 (verified: it equals array ordinality on every snapshot checked). `daily_intelligence.rank` is the top-30 indicator ordering — and on-slate picks that score outside the top 30 get appended at 31+. Midday does this routinely: on 8/1 its six on-slate DI ranks were 31–36, and on 7/31 the pos-6 pick carried DI rank 21 while pos 1 carried 31. So `MIN(rank)` returned an arbitrary slate position, not the first one. This is the third defect in the same three lines ([[BUG-168]] was the string-`MAX` inversion in the adjacent `pick1_outcome` expression) — the underlying mistake both times was treating `daily_intelligence` as an ordered projection of the slate.
+
+**Blast radius:** the runbook's `pick1_combo`/`pick1_outcome` columns and the template's "Reorder validation: how many pick #1s hit" line, on every brief since the runbook was written. Past briefs' pick-1 lines are unreliable — re-derive from `slate_snapshots` if that history matters. **Not affected:** Query 3 (already used `(p ->> 'rank')` from the snapshot — correct), and `lib/brief/computeBrief.ts`, which reads `picks[0]` off the snapshot array and was right all along. No code change was needed.
+
+**Fix:** Query 1 now derives position from `slate_snapshots` via a `slate_picks` CTE and joins `daily_intelligence` only for hit flags, on `(slate_date, mode, scope, combo)`. Added a `hit_positions` column (`pos:combo` for every matching pick) to feed the midday position-inversion work, and a data-model note at the top of `docs/morning_brief.md` stating the rule: `daily_intelligence` is for hit flags and signal values, never for ordering.
+
 ### BUG-169 — In-app Brief "NOT RUN TODAY" false positive: workflow freshness used a 12-hour age window (FIXED 2026-07-26)
 
 **Symptom (operator smoke, DESIGN-02 T2/T3):** admin Brief tab flagged the Daily Workflow "NOT RUN TODAY" on the evening of 7/25 — but `engine_daily_report` shows the workflow ran at 09:05 UTC (~5:05am ET) that morning and stamped both the 7/24 and 7/25 rows.

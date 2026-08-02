@@ -2555,6 +2555,17 @@ Follow-through on BTN-AUDIT's native capture work — four device-tested iterati
 4. **URI normalization** — iOS view-shot can return schemeless raw paths; save/read now branch on `data:` vs file reference and prefix `file://` where absent (was the "brief missing" all-fail abort). Stale captures (view-shot tmp wiped on app cold start / reload) now error explicitly: "expired — tap Build Images again".
 Also: AI image-gen client timeout 120s→180s (a server-successful, billed generation was lost to a client abort; `ai_generations` showed zero server-side errors all day). Operational note: any app reload between Build Images and posting requires a rebuild — captures don't survive reloads.
 
+### ENG-ROT-MID-01 — Rotation levers ported to midday (SHIPPED 2026-08-02, edge v50, measured-cost path)
+
+Midday joins the 6/22 rotation levers: `RECENT_HIT_BLOCK_DAYS.midday` 1→3 and `SLATE_STALENESS_DAYS.midday` 0→2, in both `supabase/functions/compute-slate-zk6/index.ts` (deployed v50, verify_jwt confirmed enforced post-deploy) and the `engines/zk6.ts` mirror. Filtered tsc clean; `check:edge-shared` in sync. No slate regen — **takes effect at the next Daily Workflow run**.
+
+**Gate v2 record (measured-cost path, NOT an accuracy ship):**
+- **BASELINE** `prod_parity_2026_08_02`: midday pick/slate 18.3%/76.7% (30d), slate 75.0% (60d).
+- **CANDIDATE** `midday_rot`: midday 15.6%/63.3% (30d), slate 68.3% (60d) → measured replay cost **−13.4pp/−6.7pp midday slate**, sign-consistent. Expected true cost ≈ 0 under the flat universe (ENG-TOP30-01 cohorts) — the replay numbers are the honest worst case, the flat-universe argument is the expected case.
+- **Stated reason (operator-accepted 2026-08-02, explicit choice):** slate variety/texture — July midday ran 3.39/6 day-to-day carryover with `{4,6,9}` on 23 of 32 slates; stale2 structurally caps any comboset at 2 consecutive appearances and a hit now retires a combo for 3 days instead of 1.
+- **Rollback condition:** revert both maps (midday→1, midday→0) + redeploy if the live midday slate rate over the review window runs ≤50% (vs the ~67% chance baseline, ~10% false-trigger at n=14), OR on operator call if the texture win isn't felt worth it.
+- **Review date: 2026-08-16.** Success metric (texture, the thing actually being bought): day-to-day midday pick carryover drops from ~3.4/6 to ≤2.5/6 and no comboset exceeds 2 consecutive slates. Hit-rate metric watched via the dual lens as usual.
+
 ### PROC-GATE-02 — Engine validation gate evolved to v2 (2026-08-02)
 
 CLAUDE.md's Engine Changes gate rewritten based on ENG-TOP30-01's lessons. v1 = single 30-day window, "CANDIDATE ≥ BASELINE on overall hit rate" — which passes noise (cd_mid3 lost 30d, won 60d), is lens-ambiguous (pick vs slate; any-hit vs box-only), tolerated 7 weeks of parity drift (evening CO=0 in every preset), and let "neutral-by-design" changes skip measurement (midday rotation port measured −13.4pp, not neutral). v2 adds: (0) parity pre-flight vs live app_config before any sweep; (1) universe-level confirmation before backtesting signal/rail hypotheses; (2) dual-window 30d+60d with dual-lens recording; (3) ship rule with sign-consistency + noise floor (~3.3pp slate / ~1.7pp pick), a measured-cost path for texture changes, a refuted-verdicts registry check, and the existing override path (+ era-contamination rule for review windows). Closing line extended: no "neutral" change ships without a measured cost.

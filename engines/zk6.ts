@@ -1195,7 +1195,8 @@ export async function computeSlate({
   // 6/10→6/18 (HIT-PERSIST-01).
   //
   // ENG-BLOCK-PERSCOPE-02 (2026-06-22): widen the per-scope recent-hit hard block.
-  // midday keeps yesterday+today (ENG-BLOCK-PERSCOPE-01, +10.7..+13.8pp). evening +
+  // ENG-ROT-MID-01 (2026-08-02): midday joins the 3-day block (was yesterday+today per
+  // ENG-BLOCK-PERSCOPE-01) — measured-cost texture ship, see MASTER_AUDIT. evening +
   // allday move from today-only to a 3-DAY block ([D-3, today]) so a combo that just
   // drew cannot return to the next 1–3 slates — the operator's "after a combo hits it
   // should cool down, not instantly return". 30d backtest (dbl_fix_singles6 baseline
@@ -1208,7 +1209,7 @@ export async function computeSlate({
   // allday flat. Same non-relaxable hard block (todayHitComboSets) — never relaxed by
   // any K6 pass. CAVEAT: this only rotates combos that HIT; never-hitting overdue
   // repeaters (923/298) need the separate staleness lever (ENG-STALE-01, in progress).
-  const RECENT_HIT_BLOCK_DAYS: Record<string, number> = { midday: 1, evening: 3, allday: 3 };
+  const RECENT_HIT_BLOCK_DAYS: Record<string, number> = { midday: 3, evening: 3, allday: 3 };
   const blockFromEt = getDaysAgoET(RECENT_HIT_BLOCK_DAYS[scope] ?? 1);
   const todayHitComboSets = new Set<string>();
   const effectiveExcluded = new Set<string>(excludedCombos);
@@ -1269,8 +1270,8 @@ export async function computeSlate({
   // are forced to rotate — the hit-based block above can't catch them (they don't hit).
   // 30d backtest: hit-rate-NEUTRAL within noise (rotation is a mechanical guarantee, not
   // a hit-rate bet; SIGNAL-INFO-01). K6-only (matches the backtest); DI top-30 untouched.
-  // midday already rotates (=0). Mirror in supabase/functions/compute-slate-zk6.
-  const SLATE_STALENESS_DAYS: Record<string, number> = { midday: 0, evening: 2, allday: 2 };
+  // midday joined 2026-08-02 (ENG-ROT-MID-01, stale2). Mirror in supabase/functions/compute-slate-zk6.
+  const SLATE_STALENESS_DAYS: Record<string, number> = { midday: 2, evening: 2, allday: 2 };
   const staleComboSets = new Set<string>();
   const staleN = SLATE_STALENESS_DAYS[scope] ?? 0;
   if (staleN > 0) {

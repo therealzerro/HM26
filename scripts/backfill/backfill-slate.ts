@@ -114,8 +114,8 @@ async function freshestSnapshotDate(excludeDate: string): Promise<string | null>
  */
 function applyNewRotationRules(cfg: any): void {
   cfg.excludeYesterdayHits = true;
-  cfg.recentHitBlockDaysByScope = { midday: 1, evening: 3, allday: 3 };
-  cfg.slateStalenessThresholdByScope = { midday: 0, evening: 2, allday: 2 };
+  cfg.recentHitBlockDaysByScope = { midday: 3, evening: 3, allday: 3 };
+  cfg.slateStalenessThresholdByScope = { midday: 2, evening: 2, allday: 2 };
 }
 
 /** Recompute a recent real snapshot and confirm membership+rank match. Validates the

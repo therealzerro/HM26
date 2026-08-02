@@ -60,8 +60,8 @@ function parseArgs(argv: string[]): Record<string, string> {
 
 function applyNewRotationRules(cfg: any): void {
   cfg.excludeYesterdayHits = true;
-  cfg.recentHitBlockDaysByScope = { midday: 1, evening: 3, allday: 3 };
-  cfg.slateStalenessThresholdByScope = { midday: 0, evening: 2, allday: 2 };
+  cfg.recentHitBlockDaysByScope = { midday: 3, evening: 3, allday: 3 };
+  cfg.slateStalenessThresholdByScope = { midday: 2, evening: 2, allday: 2 };
 }
 
 async function fetchRecentSlateSets(scope: Scope, date: string, n: number): Promise<string[][]> {

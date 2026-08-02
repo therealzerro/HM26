@@ -32,8 +32,8 @@ const SCOPES: Scope[] = ['midday', 'evening', 'allday'];
  */
 function applyNewRotationRules(cfg: any): void {
   cfg.excludeYesterdayHits = true;
-  cfg.recentHitBlockDaysByScope = { midday: 1, evening: 3, allday: 3 };
-  cfg.slateStalenessThresholdByScope = { midday: 0, evening: 2, allday: 2 };
+  cfg.recentHitBlockDaysByScope = { midday: 3, evening: 3, allday: 3 };
+  cfg.slateStalenessThresholdByScope = { midday: 2, evening: 2, allday: 2 };
 }
 
 /** Canonical (latest-per-date) prior slate sets feeding the staleness block — mirrors

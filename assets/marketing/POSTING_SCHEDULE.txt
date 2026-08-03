@@ -1,0 +1,89 @@
+HITMASTER ZK6 — DAILY POSTING SCHEDULE (v1, 2026-08-02)
+
+THREE SURFACES, THREE CLOCKS
+  PRO    utility clock   — earliest possible, always ahead of the draw.
+                           They paid for first access; every minute early
+                           is the product working.
+  FREE   conversion clock— the covered board must land BEFORE the draw it
+                           covers, or the gap is theoretical.
+  PUBLIC attention clock — masked cut, no draw deadline. Post when cold
+                           audiences browse, not when draws happen.
+
+────────────────────────────────────────────────────────────
+SESSION 1 · 8:30 AM ET — the morning stack (4 handoffs)
+────────────────────────────────────────────────────────────
+  PRO   1. allday_pro      today's board, first access
+  PRO   2. midday_pro      ahead of every midday draw
+  PRO   3. verify (pro)    yesterday graded, full precision
+  FREE  4. verify (free)   yesterday graded, qualitative
+
+  ⚠ ORDER IS THE BRAND LINE. Boards first, receipts after — the posting
+  order embodies "Signals first. Receipts after." A paying member should
+  never scroll past yesterday to reach today.
+  Free opens its day on PROOF. It is the most persuasive thing we make and
+  it costs nothing to lead with.
+
+────────────────────────────────────────────────────────────
+SESSION 2 · 10:30 AM ET — the contrast pair (2 handoffs, FREE room)
+────────────────────────────────────────────────────────────
+  FREE  5. allday_free     the full board, everything visible
+  FREE  6. midday_free     the same product, digits covered
+
+  ⚠ POST THESE BACK TO BACK, IN THIS ORDER. The juxtaposition IS the pitch:
+  total generosity, then the one thing withheld. Split across hours and the
+  contrast is lost; reverse them and a member's first impression of the day
+  is withholding.
+  ⚠ HARD DEADLINE: midday_free must be up before the earliest midday draw
+  (~12:30 ET). 10:30 gives ~2 hours of margin.
+
+────────────────────────────────────────────────────────────
+SESSION 3 · 4:30 PM ET — SAME-DAY MIDDAY VERIFY (conditional)
+────────────────────────────────────────────────────────────
+  PRO/FREE  midday verify, when results can be imported and run in time.
+
+  ⚠ THIS IS THE HIGHEST-CONVERSION SLOT IN THE SYSTEM and it does not exist
+  yet. A free member saw the covered midday board at 10:30. The draw
+  happened. This closes that loop in SIX HOURS instead of twenty-four.
+  Every other verify proves the method in the abstract; this one proves the
+  specific board they were shown this morning. Build it when you can.
+
+────────────────────────────────────────────────────────────
+SESSION 4 · 5:30 PM ET — the evening pair (2 handoffs)
+────────────────────────────────────────────────────────────
+  PRO   7. evening_pro     ahead of every evening draw
+  FREE  8. evening_free    digits covered, ahead of the draw
+
+  ⚠ HARD DEADLINE: before the earliest evening draw (~6:30 ET). 5:30 is
+  safer than 5:45 — some jurisdictions cut earlier than you'd expect.
+
+────────────────────────────────────────────────────────────
+SESSION 5 · 7:00 PM ET — public (1 handoff)
+────────────────────────────────────────────────────────────
+  PUBLIC  9. ONE cut, ALTERNATING DAILY: allday_public / verify_public
+          → YouTube Shorts + cross-post, same time every day.
+
+  ⚠ ONE PER DAY, NOT TWO. Two public cuts daily was flagged as a cadence
+  risk at registration and it still is. Alternating gives one consistent
+  slot, more variety across the week, and half the repetition risk on a
+  channel with no history.
+  ⚠ 7 PM BECAUSE THE PUBLIC CUT HAS NO DEADLINE. It is masked — nothing in
+  it expires at a draw time. So it should post when strangers scroll, which
+  is evening, not when the board was generated.
+
+────────────────────────────────────────────────────────────
+WHAT THIS FIXES IN THE CURRENT ORDER
+────────────────────────────────────────────────────────────
+  · free midday was posting TWICE (9am and 10am) — one is a duplicate.
+  · free allday landed AFTER free midday, so the gap arrived before the
+    gift. A new member's first impression was a covered board.
+  · public posts were split 9am/5pm with no rhythm — the one surface that
+    rewards a consistent daily slot had none.
+  · the Pro room got three reels in a burst with no internal order; now it
+    reads boards-then-receipts.
+
+IF A SESSION HAS TO BE SKIPPED, drop in this order:
+  1. Public (evergreen — tomorrow is fine)
+  2. Free All-Day (habit, not urgency)
+  3. Verify (proof keeps)
+  NEVER SKIP: any board ahead of its own draw. Pro paid for that, and
+  "stamped before the draw" is the whole claim.

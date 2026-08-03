@@ -20,13 +20,23 @@
 // setContent — the MKT-10 serif lesson), print with Chromium. Web-safe system
 // sans only; no brand fonts, this is an operator sheet, not a public asset.
 import { config as loadEnv } from 'dotenv';
-import { writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const BUCKET = 'marketing-reels';
 const PRUNE_DAYS = 30; // matches publish-reels row/object retention
+
+/**
+ * The posting schedule rides along as PAGE 1 (operator ask, 2026-08-03): the
+ * sheet already answers "what do I post" — the schedule answers "when, in
+ * what order". Read VERBATIM from the canonical file at render time so the
+ * PDF can never drift from the doc; a missing file skips the page rather
+ * than failing the sheet (same best-effort contract as the rest of this
+ * script). Update POSTING_SCHEDULE.txt, not this file, to change it.
+ */
+const SCHEDULE_FILE = join('assets', 'marketing', 'POSTING_SCHEDULE.txt');
 
 /** Operator-facing labels, kept in step with ReelsView's KIND_UI. */
 const KIND_LABEL: Record<string, string> = {
@@ -59,6 +69,7 @@ const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 function buildHtml(rows: Row[], dayISO: string): string {
+  const schedule = existsSync(SCHEDULE_FILE) ? readFileSync(SCHEDULE_FILE, 'utf8') : '';
   const cards = rows.map((r) => {
     const label = KIND_LABEL[r.kind] ?? `🎬 ${r.kind}`;
     const pro = r.caption_pro
@@ -80,9 +91,12 @@ function buildHtml(rows: Row[], dayISO: string): string {
     .meta { font-weight: 400; color: #888; font-size: 10px; }
     .tag { font-size: 8.5px; font-weight: 700; letter-spacing: 1px; color: #7c3aed; margin: 6px 0 2px; }
     pre { font-family: inherit; font-size: 11px; line-height: 1.45; white-space: pre-wrap; margin: 4px 0 0; }
+    .schedule { page-break-after: always; }
+    .schedule pre { font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 8px; line-height: 1.35; white-space: pre; }
   </style></head><body>
     <h1>HITMASTER ZK6 — DAY CAPTIONS</h1>
     <div class="sub">Run day ${esc(dayISO)} (ET) · ${rows.length} caption set${rows.length === 1 ? '' : 's'} · internal operator sheet — captions are the lint-gated drafts on the registered rows</div>
+    ${schedule ? `<section class="schedule"><h2>📋 Posting schedule <span class="meta">· verbatim from ${esc(SCHEDULE_FILE)}</span></h2><pre>${esc(schedule)}</pre></section>` : ''}
     ${cards}
   </body></html>`;
 }

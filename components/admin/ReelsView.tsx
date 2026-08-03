@@ -73,6 +73,32 @@ const KIND_UI: Record<ReelKind, { icon: string; label: string; defaultTarget: Ta
  *  rather than degrading to one unrenderable card. Fall back instead. */
 const FALLBACK_KIND_UI = { icon: '🎬', label: 'Reel', defaultTarget: 'pro' as Target, sheetAspect: 6 * (270 / 480) };
 
+/**
+ * Daily posting schedule (v1, 2026-08-02) — COMPACT MIRROR of
+ * assets/marketing/POSTING_SCHEDULE.txt, which is canonical and rides
+ * verbatim as page 1 of the Captions PDF. The app cannot read repo files at
+ * runtime, so this is a copy by necessity: when the schedule doc changes,
+ * update BOTH. Times are ET. Kinds reference KIND_UI so a renamed kind
+ * surfaces here as a type error, not a stale label.
+ */
+const POSTING_SCHEDULE: {
+  time: string; title: string; kinds: ReelKind[]; note?: string; warn?: string;
+}[] = [
+  { time: '8:30 AM', title: 'Morning stack', kinds: ['allday_pro', 'midday_pro', 'verify'],
+    note: 'verify posts to BOTH rooms: pro (full precision) then free (qualitative).',
+    warn: 'Order is the brand line — boards first, receipts after.' },
+  { time: '10:30 AM', title: 'Free contrast pair', kinds: ['allday_free', 'midday_free'],
+    warn: 'Back to back, THIS order — generosity, then the one thing withheld. midday_free must be up before ~12:30 ET.' },
+  { time: '4:30 PM', title: 'Same-day midday verify', kinds: [],
+    note: 'Conditional — highest-conversion slot; not built yet.' },
+  { time: '5:30 PM', title: 'Evening pair', kinds: ['evening_pro', 'evening_free'],
+    warn: 'Before the earliest evening draw (~6:30 ET) — some jurisdictions cut early.' },
+  { time: '7:00 PM', title: 'Public', kinds: ['allday_public', 'verify_public'],
+    note: 'ONE cut per day, ALTERNATING between these — not both. No draw deadline; posts when strangers scroll.' },
+];
+const SCHEDULE_SKIP_ORDER =
+  'If a session must drop: ① public ② free all-day ③ verify. NEVER skip a board ahead of its own draw.';
+
 const TARGET_UI: Record<Target, { label: string; name: string }> = {
   free: { label: '👥 Free Group', name: 'free group' },
   pro: { label: '💎 Pro Group', name: 'pro group' },
@@ -642,6 +668,7 @@ export default function ReelsView() {
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
   const [filter, setFilter] = useState<'all' | 'ready' | 'posted'>('all');
+  const [schedOpen, setSchedOpen] = useState(false);
 
   // "Current" = produced by TODAY'S RUN, keyed on updated_at — NOT on
   // reel_date. The verify reel is dated D−1 BY DESIGN (it grades yesterday), so
@@ -772,6 +799,38 @@ export default function ReelsView() {
           </View>
         </Card>
       )}
+
+      {/* Posting schedule (v1) — collapsed by default so the pipeline stays
+          the screen's subject; the full verbatim text is page 1 of the
+          Captions PDF. Mirror of assets/marketing/POSTING_SCHEDULE.txt. */}
+      <Card style={{ padding: 10, marginBottom: 10 }}>
+        <TouchableOpacity onPress={() => setSchedOpen(o => !o)} accessibilityRole="button">
+          <Text style={{ fontSize: 11, fontWeight: '800', color: colors.text }}>
+            📋 Posting schedule — 5 sessions, ET {schedOpen ? '▾' : '▸'}
+          </Text>
+        </TouchableOpacity>
+        {schedOpen && (
+          <View style={{ marginTop: 8, gap: 8 }}>
+            {POSTING_SCHEDULE.map(s => (
+              <View key={s.time}>
+                <Text style={{ fontSize: 11, color: colors.text }}>
+                  <Text style={{ fontWeight: '800' }}>{s.time}</Text>
+                  {'  '}{s.title}
+                  {s.kinds.length > 0 && (
+                    <Text style={{ color: colors.textSecondary }}>
+                      {'  ·  '}
+                      {s.kinds.map(k => `${(KIND_UI[k] ?? FALLBACK_KIND_UI).icon} ${(KIND_UI[k] ?? FALLBACK_KIND_UI).label}`).join('  →  ')}
+                    </Text>
+                  )}
+                </Text>
+                {s.note && <Text style={{ fontSize: 9.5, color: colors.textTertiary, lineHeight: 13, marginTop: 1 }}>{s.note}</Text>}
+                {s.warn && <Text style={{ fontSize: 9.5, color: colors.warning ?? colors.textTertiary, lineHeight: 13, marginTop: 1 }}>⚠ {s.warn}</Text>}
+              </View>
+            ))}
+            <Text style={{ fontSize: 9.5, color: colors.textTertiary, lineHeight: 13 }}>{SCHEDULE_SKIP_ORDER}</Text>
+          </View>
+        )}
+      </Card>
 
       {/* Key includes updated_at: a server-side caption refresh (pipeline
           --captions-only, re-publish) must remount the card so the editor

@@ -211,6 +211,26 @@ Exact scripted lines. **No time-of-day words in pt1** — the point of the rewri
 
 ---
 
+### MKT-48 — Nine-asset drop, four independent lanes: 5 registered, 3 rejected, 1 blocked on tier ruling (2026-08-03)
+
+**ID verified free** — 0 hits in this file and in code before stamping. All 9 files probed clean on delivery (720×1280, 10.005s, video+audio). Gated across three sessions (5c074cb1 → 311f76ae → 47e70a86 all died mid-work; harness + measurements recovered from transcripts each time — `measure_motion.py`/`bed_gate.ts` preserved at `~/.claude/jobs/5c074cb1/tmp/`).
+
+**LANE A — free endcard motions (tide / bloom / updraft): 2 of 3 REGISTERED, free pool 2→4.** Form-tracking gate (thresh 200; refs calibrate 49.3/50.9 vs the 50-53 band):
+- `bloom` **PASS** — 47.0/47.0 settle, deepest-after-4s 47.3 (rock-stable), band_max 119, static 0.36. Bed: BEDABLE post-crack.
+- `tide` **PASS with recorded deviation** — 38.9/38.8: hard gates all clean (deepest 53.7, band dark 19.2/161, static 0.73) but the form floats ~11pp above the family band with an undersized bolt. Registered as an atmospheric alternate composition. Bed: BEDABLE +4.4dB. (Tide was the deliberate level-steady bed-safe member — it PASSING validates the spec.)
+- `updraft` ⛔ **REJECTED** — 54.5/54.8 breaches the 53 ceiling on both settle frames; luminous particles drift into the text band (band_max 232, brightest of family) = the [[MKT-47]] anvil intermittent-overlap class. Independently bed-INELIGIBLE (−9.9dB vs ±6 clamp — never force-bed, the reveal precedent). Kept as `*_rejected_20260803.mp4`.
+The prior sessions' suspicion that a generator watermark polluted the numbers was CHECKED AND WRONG: the watermark sits at ~x83% width, outside the metric's central-60% column crop. The raw numbers were real form positions.
+
+**LANE B — P1 "Covered vs Uncovered" ad pair: ⛔ PAIR REJECTED on Q1.** seg1 is clean alone (twin 5×2 cloche panels VISIBLY IDENTICAL pre-smoke, symmetric full coverage at end). seg2's reveal resolves the port lights into **eight serif letterform O/zero glyphs held ~40% of runtime on an ornate dark board** — readable characters pattern-matching a digit board, the [[MKT-46]] F3 fabricated-numerals precedent. Final bolt-emblem frame is fine; the path there is not pure light. Verdict is PAIR-level by order. `ad_pro` stays 1 body; the 5:1 ratio is a dispatch property and was not touched. Files kept as `ad_body_covered_seg*_rejected_20260803.mp4`.
+
+**LANE C — `endcard_motion_ad_open`: ⛔ REGISTRATION BLOCKED ON OPERATOR TIER RULING.** Measures gate-clean: 42.6/42.6 settle (stable, tide-like high composition), deepest 42.6, band_max 112 (cleanest of family), static 0.79, bed BEDABLE +4.5dB. Options: (a) free shared, (b) free ad-restricted, (c) both tiers. Held in `UNREFERENCED_OK` as UNGATED CANDIDATE until the ruling.
+
+**LANE D — evening_pro carrier rotation (landed / dusk / last): ALL 3 REGISTERED, evening_pro joins the All-Day rotation shape (set of 4, incumbent = entry 0 + fallback).** All part 1s 10.005s (MKT-20 invariant vs entry 0). Tail margins to the shared pt2 join: 0.453/0.565/0.522s — all clear of the +0.184s fleet floor, **no [[MKT-32]] gap-tighten needed**. Scope binding audible ("Evening partners" opens all three); transcripts brand-clean ("tonight's board just landed", "engine's done its work", "last board of the day"). Voice family at the seam (f0, last voiced 1.2s of pt1 vs first 1.6s of pt2 at 104.6): incumbent Δ8.1 (serving reference), landed Δ10.5, dusk Δ10.9, last Δ0.0 — all within ~3Hz of the accepted seam, IQRs overlapping. No new pt2 — all three join the EXISTING `evening_pro_carrier_pt2.mp4`. ⚠ The final one-man-one-room ear confirmation on assembled reels remains the operator's, per the [[MKT-43]] item-7 convention.
+
+**Cross-ref:** [[MKT-47]] (composition gate + anvil precedent + reveal force-bed bar), [[MKT-46]] (F3 numerals precedent, ad pool), [[MKT-20]] (carrier rotation shape + duration invariant), [[MKT-32]] (margin floor), [[MKT-19]] (derived `_motion_meta.json`).
+
+---
+
 ### MKT-47 — Pro endcard set replaced wholesale: THE FIX IS THE FOOTAGE ✅ SHIPPED (2026-08-01)
 
 **ID verified free** — 0 hits in this file and in code before stamping.
@@ -295,6 +315,8 @@ A video-only trim desyncs; an A/V trim destroys the read. **Do not "just trim" o
 **⚠ SWEEP INCOMPLETE — DO NOT TREAT AS A PASS.** Not yet reviewed: post-head frames of `showwork_seg1/2` and `shechecks_seg2`, and **all five intros are entirely unswept**. The free pool's clean count is provisional and could still shrink, which is why no gate record was stored.
 
 **⚠ TRIM MATH, if path ② or a trim ever proceeds:** the endcard is fixed at 6.5s while the body shrinks, so 1-part branding rises — F5 39.4%→44.2%, **P2 39.4%→47.8%** (the band that barred verify's stinger for a month). Only relevant to trims; path ② leaves durations intact.
+
+**P1 LEDGER (2026-08-03, [[MKT-48]] Lane B):** the "Covered vs Uncovered" pair delivered as the second `ad_pro` body was **⛔ PAIR REJECTED on Q1** — seg2's reveal resolves into eight serif letterform O/zero glyphs on an ornate board (~40% of runtime), the F3 fabricated-numerals class. seg1 alone passes (identical twin panels, symmetric coverage) but the verdict is pair-level. `ad_pro` remains 1 body (P2, itself pending the head-cover decision above). Files kept as `ad_body_covered_seg*_rejected_20260803.mp4`.
 
 ---
 

@@ -162,6 +162,20 @@ export const ENDCARD_MOTIONS: Record<Tier, MotionVariant[]> = {
   free: [
     { file: 'endcard_motion_free.mp4', tag: 'std', label: 'blooming eddies' },
     { file: 'endcard_motion_free_alt.mp4', tag: 'alt', label: 'rising tide' },
+    // MKT-48 (2026-08-03) — free pool widened 2→4. Form-tracking gate (thresh
+    // 200, refs measure 49.3/50.9): bloom 47.0/47.0, deepest-after-4s 47.3 —
+    // stable, no band collision, band_max 119. tide 38.9/38.8 — hard gates
+    // clean (deepest 53.7, band dark, static 0.73) but the form floats ~11pp
+    // above the 50-53 family band with an undersized bolt; PASSED as an
+    // atmospheric alternate composition with the deviation recorded. Bed:
+    // tide +4.4dB correction, bloom bedable post-crack (derived meta confirms
+    // on build). A third delivery, `updraft`, was REJECTED: 54.5/54.8 breaches
+    // the 53 ceiling on both settle frames and its particles drift into the
+    // text band (band_max 232, brightest of family) — the anvil intermittent-
+    // overlap failure mode — and it is bed-ineligible (−9.9dB vs the ±6 clamp).
+    // Kept as endcard_motion_free_updraft_rejected_20260803.mp4.
+    { file: 'endcard_motion_free_tide.mp4', tag: 'tide', label: 'drifting tide' },
+    { file: 'endcard_motion_free_bloom.mp4', tag: 'bloom', label: 'radial bloom' },
   ],
 };
 

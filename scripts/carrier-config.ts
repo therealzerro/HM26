@@ -110,8 +110,23 @@ export const CARRIERS: Record<string, CarrierSpec> = {
     set: [{ file: 'midday_pro_carrier.mp4', label: 'incumbent' }],
     rest: ['midday_pro_carrier_pt2.mp4'],
   },
+  // MKT-48 (2026-08-03) — evening_pro joins the rotation (All-Day shape: the
+  // incumbent stays entry 0 and last-resort fallback). Measured before
+  // registration: all three part 1s at 10.005s (MKT-20 invariant holds against
+  // entry 0); tail margins to the shared pt2 join 0.453/0.565/0.522s — all
+  // clear of the +0.184s fleet floor with no gap-tighten needed. Scope binding
+  // audible ("Evening partners" opens all three). Voice family at the seam:
+  // pt2 opens at f0 med 104.6; incumbent exits at 112.7 (Δ8.1, the serving
+  // reference); landed 115.1 / dusk 115.5 / last 104.6 — all within ~3Hz of
+  // the accepted seam delta, IQRs overlapping. All three join the EXISTING
+  // shared pt2 — no new continuation was delivered or needed.
   evening_pro: {
-    set: [{ file: 'evening_pro_carrier.mp4', label: 'incumbent' }],
+    set: [
+      { file: 'evening_pro_carrier.mp4', label: 'incumbent' },
+      { file: 'evening_pro_carrier_landed.mp4', label: "tonight's board just landed" },
+      { file: 'evening_pro_carrier_dusk.mp4', label: "engine's done its work" },
+      { file: 'evening_pro_carrier_last.mp4', label: 'last board of the day' },
+    ],
     rest: ['evening_pro_carrier_pt2.mp4'],
   },
   // MKT-26 — free-group session carriers. Delivered 2026-07-29, measured before

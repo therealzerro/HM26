@@ -277,6 +277,15 @@ const UNREFERENCED_OK: Record<string, string> = {
     'MKT-32 ADDENDUM SALVAGED 2026-07-31 — tail gated to digital silence from last word +0.15s (gate-only margin +0.052s: the tail was NOT eating the margin, the read is long) + the two inter-line gaps tightened 80ms each (crossfades in room tone, seam step ~0.0003; gaps remain 0.85/0.79s). Joined margin +0.212s vs the +0.184s floor; words intact by transcript incl. the RECEIPTS AT SUNUP echo. Edited copy registered at evening_pro_carrier_pt2.mp4 (incumbent kept as *_part2_20260728_backup). This raw take stays parked as master/evidence.',
   'verif_carrier_signoff_short_rejected_20260731.mp4':
     'MKT-32 ADDENDUM SALVAGED 2026-07-31 — the defect was a 2.05s DEAD pause (no voice content), so an edit could remove it: spliced to a 0.215s beat + the natural inhale (40ms crossfade in room tone, max sample-step 0.005 at −53.8dBFS across the splice). Edited copy registered at verif_carrier_signoff_short.mp4, last word 2.218s ≤ the 2.3s line. This raw 10.005s take stays parked as the master/evidence per the delivery convention.',
+  // MKT-48 — the 2026-08-03 nine-asset drop's non-registrations.
+  'endcard_motion_ad_open.mp4':
+    'UNGATED CANDIDATE (MKT-48) — measures gate-clean (form-bottom 42.6/42.6 stable, deepest-after-4s 42.6, band_max 112 cleanest of family, static 0.79; bed BEDABLE +4.5dB) but registration is BLOCKED on an operator tier ruling: (a) free shared, (b) free ad-restricted, (c) both tiers. Do not register until the ruling lands; then add to brand-motion.ts per the ruling or reject.',
+  'endcard_motion_free_updraft_rejected_20260803.mp4':
+    'MKT-48 REJECTED — form-bottom 54.5/54.8 breaches the 53 ceiling on both settle frames and luminous particles drift into the text band (band_max 232, brightest of family): the anvil intermittent-overlap failure mode. Independently bed-INELIGIBLE (−9.9dB vs the ±6dB clamp — never force-bed, the reveal precedent). Kept as evidence; tide and bloom from the same delivery registered.',
+  'ad_body_covered_seg1_rejected_20260803.mp4':
+    'MKT-48 PAIR REJECTED on Q1 — this seg1 is clean on its own (twin 5×2 cloche panels visibly identical pre-smoke, symmetric coverage at the end) but the verdict is PAIR-level by order and seg2 fails. Kept as evidence beside the MKT-21 bodies.',
+  'ad_body_covered_seg2_rejected_20260803.mp4':
+    'MKT-48 PAIR REJECTED on Q1 — the reveal resolves the port lights into eight serif letterform O/zero glyphs held ~40% of runtime on an ornate dark board: readable characters that pattern-match a digit board (the MKT-46 F3 fabricated-numerals precedent). The final bolt-emblem frame is fine; the path there is not pure light.',
   // MKT-21 — the generated-body class, assessed and REJECTED 2026-07-29. Listed
   // so four warnings read as a decision rather than a backlog, the same way
   // anchor_intro_powerup does. Deliberately NOT deleted: they are the evidence

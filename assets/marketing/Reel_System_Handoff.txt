@@ -757,9 +757,12 @@ on the 6.33s members) and the reel runs up to 34.53s.
   unfinished job: part 1 is the greeting and rotates, part 2 is the
   methodology sign-off and repeats, the way a broadcast segment ends the
   same way every night. Do NOT propose generating six part 2s to
-  "complete" it. Midday, Evening and Verify do not rotate — one carrier
-  each — and an All-Day carrier can never reach them, since every one of
-  these says "All-Day" aloud.
+  "complete" it. ⚠ UPDATED 2026-08-03 (MKT-48): EVENING PRO NOW ROTATES
+  TOO — a set of four on the same All-Day shape (incumbent = entry 0 and
+  fallback; landed / dusk / last as alternates), all joined to the SAME
+  shared pt2. Midday and Verify still do not rotate — one carrier each —
+  and cross-scope reach remains impossible, since every one of these says
+  its scope aloud.
 
   WHAT THIS MEANS FOR CARRIER PRODUCTION (your main deliverable):
   - Target VO length: ~19.4s for wall-to-wall narration (preferred), or
@@ -1231,7 +1234,18 @@ per-day by hand, not AI-freestyled.
                                   zone, is RETIRED with the tuck. See v2.7
                                   notes A/B.
     midday_pro_carrier.mp4        Midday VO carrier (+ _pt2, auto-joined)
-    evening_pro_carrier.mp4       Evening VO carrier (+ _pt2, auto-joined)
+    evening_pro_carrier.mp4       Evening VO carrier part 1 — the INCUMBENT
+                                  and fallback (+ shared _pt2, auto-joined).
+    evening_pro_carrier_landed    MKT-48 rotation members (part 1 only):
+    evening_pro_carrier_dusk      "tonight's board just landed" / "engine's
+    evening_pro_carrier_last      done its work" / "last board of the day".
+                                  All 10.005s, all joined to the SAME
+                                  evening_pro_carrier_pt2.mp4. Tail margins
+                                  0.453/0.565/0.522s vs the +0.184s floor;
+                                  seam f0 within ~3Hz of the incumbent's
+                                  accepted delta. Ear confirmation on
+                                  assembled reels stays owed (MKT-43 item-7
+                                  convention).
     midday_free_carrier.mp4       MKT-26 — FREE-tier session VO (+ _pt2 each).
     evening_free_carrier.mp4      Scripted SEPARATELY from the Pro pair, not
                                   cut down from it: first-access framing is
@@ -1308,10 +1322,28 @@ per-day by hand, not AI-freestyled.
                                   Impacts land 3.55-3.90s, earlier than the
                                   old ~4.3s band; the assembler derives the
                                   bed window per endcard so this is handled.
-    endcard_motion_free.mp4       FREE-tier endcard motions (MKT-19 set).
-    endcard_motion_free_alt.mp4   std = blooming eddies · alt = rising tide.
-                                  Used by All-Day Free and the public kinds.
-                                  Both bed fine.
+    endcard_motion_free.mp4       FREE-tier endcard motions (MKT-19 set,
+    endcard_motion_free_alt.mp4   widened 2→4 by MKT-48 2026-08-03).
+    endcard_motion_free_tide.mp4  std = blooming eddies · alt = rising tide ·
+    endcard_motion_free_bloom.mp4 tide = drifting tide · bloom = radial
+                                  bloom. Serves ALL free-tier kinds (session
+                                  frees + publics + verify_public). All four
+                                  bed-viable (tide +4.4dB, bloom post-crack).
+                                  ⚠ tide's form settles ~39% vs the 50-53
+                                  family band — registered as an atmospheric
+                                  alternate with the deviation recorded. A
+                                  third delivery (updraft) was REJECTED:
+                                  breaches the 53 ceiling, particles drift
+                                  into the text band (the anvil class), and
+                                  bed-ineligible −9.9dB. Kept as
+                                  *_rejected_20260803.mp4.
+    endcard_motion_ad_open.mp4    ⛔ UNGATED CANDIDATE (MKT-48) — measures
+                                  gate-clean (42.6 stable settle, band_max
+                                  112, bed +4.5dB) but registration is
+                                  BLOCKED on an operator tier ruling:
+                                  (a) free shared / (b) free ad-restricted /
+                                  (c) both tiers. Do not register until the
+                                  ruling lands.
     stinger_motion.mp4            Text-free stinger motions (MKT-19 set),
     stinger_motion_strike.mp4     shared across ALL variants and both tiers —
     stinger_motion_circuit.mp4    a stinger carries no tier signal. std =
@@ -1894,8 +1926,12 @@ WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
      Session carriers are currently pro-only and generic. Session-specific VO
      ("the midday board", "tonight's board") would read better than reusing
      All-Day framing.
-     ⏳ STILL OPEN in this family: `evening_pro_carrier` has no rotation set
-     (one part-1 file), and the verify carrier has none either. Budget-gated.
+     ✅ EVENING HALF CLOSED 2026-08-03 (MKT-48): `evening_pro_carrier` now
+     rotates — a set of four (incumbent + landed/dusk/last), all 10.005s,
+     all joined to the existing shared pt2, margins 0.453-0.565s vs the
+     +0.184s floor, seam f0 within ~3Hz of the incumbent's accepted delta.
+     ⏳ STILL OPEN in this family: the verify carrier has no rotation set.
+     Budget-gated.
   4. ✅ CLOSED 2026-07-30 — deadpan's regeneration fixed its open (−46.6dB
      mean / −18.0dB max over the first 0.3s; the max is now the hottest in
      the fleet). Original entry kept for the reasoning:
@@ -1923,7 +1959,13 @@ WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
      negatives and describing the final beat as a STATE rather than a
      prohibition cleared it. Third refusal in this class traced to the same
      cause — negatives trigger them, scene descriptions do not.
-  8. ✅ RE-CLOSED 2026-08-01 (MKT-47) AT A HIGHER COUNT — the pro tier was
+  8. ✅ RE-CLOSED AGAIN 2026-08-03 (MKT-48) — THE FREE TIER IS NO LONGER
+     THIN: the free pool widened 2→4 (tide +4.4dB bedable, bloom bedable
+     post-crack — all four members bed-viable), so the free-tier kinds no
+     longer run three-plus daily reels on a two-motion rotation. A third
+     delivery (updraft) was rejected on composition + bed-ineligibility;
+     see the MKT-48 audit entry. Prior re-closure kept for the reasoning:
+     ✅ RE-CLOSED 2026-08-01 (MKT-47) AT A HIGHER COUNT — the pro tier was
      replaced wholesale and now runs FOUR motions with THREE bed-viable
      (discharge −27.5dB, ignite −30.9dB, lock −30.8dB); `reveal` is
      bed-INELIGIBLE at −43.2dB and must not be force-bedded (+15.6dB against a

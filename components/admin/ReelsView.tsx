@@ -33,6 +33,7 @@ import {
   fetchReelBlob, canWebShareVideo, webShareReel, downloadReelBlobWeb,
 } from '@/lib/marketingReels';
 import { Pill, SectionTitle, Card, useSt, timeAgo } from './AdminShared';
+import { POSTING_SESSIONS, SCHEDULE_SKIP_ORDER } from '@/constants/postingSchedule';
 import {
   SOCIAL_PLATFORMS, PLATFORM_IDS, platformCaption, platformLink,
   platformAcceptsAudience,
@@ -73,31 +74,10 @@ const KIND_UI: Record<ReelKind, { icon: string; label: string; defaultTarget: Ta
  *  rather than degrading to one unrenderable card. Fall back instead. */
 const FALLBACK_KIND_UI = { icon: '🎬', label: 'Reel', defaultTarget: 'pro' as Target, sheetAspect: 6 * (270 / 480) };
 
-/**
- * Daily posting schedule (v1, 2026-08-02) — COMPACT MIRROR of
- * assets/marketing/POSTING_SCHEDULE.txt, which is canonical and rides
- * verbatim as page 1 of the Captions PDF. The app cannot read repo files at
- * runtime, so this is a copy by necessity: when the schedule doc changes,
- * update BOTH. Times are ET. Kinds reference KIND_UI so a renamed kind
- * surfaces here as a type error, not a stale label.
- */
-const POSTING_SCHEDULE: {
-  time: string; title: string; kinds: ReelKind[]; note?: string; warn?: string;
-}[] = [
-  { time: '8:30 AM', title: 'Morning stack', kinds: ['allday_pro', 'midday_pro', 'verify'],
-    note: 'verify posts to BOTH rooms: pro (full precision) then free (qualitative).',
-    warn: 'Order is the brand line — boards first, receipts after.' },
-  { time: '10:30 AM', title: 'Free contrast pair', kinds: ['allday_free', 'midday_free'],
-    warn: 'Back to back, THIS order — generosity, then the one thing withheld. midday_free must be up before ~12:30 ET.' },
-  { time: '4:30 PM', title: 'Same-day midday verify', kinds: [],
-    note: 'Conditional — highest-conversion slot; not built yet.' },
-  { time: '5:30 PM', title: 'Evening pair', kinds: ['evening_pro', 'evening_free'],
-    warn: 'Before the earliest evening draw (~6:30 ET) — some jurisdictions cut early.' },
-  { time: '7:00 PM', title: 'Public', kinds: ['allday_public', 'verify_public'],
-    note: 'ONE cut per day, ALTERNATING between these — not both. No draw deadline; posts when strangers scroll.' },
-];
-const SCHEDULE_SKIP_ORDER =
-  'If a session must drop: ① public ② free all-day ③ verify. NEVER skip a board ahead of its own draw.';
+// Daily posting schedule — data shared with the captions PDF's page-1 card
+// via constants/postingSchedule.ts (structured mirror of the canonical
+// POSTING_SCHEDULE.txt). Kinds arrive as plain strings there, so lookups
+// below go through KIND_UI with the fallback.
 
 const TARGET_UI: Record<Target, { label: string; name: string }> = {
   free: { label: '👥 Free Group', name: 'free group' },
@@ -811,7 +791,7 @@ export default function ReelsView() {
         </TouchableOpacity>
         {schedOpen && (
           <View style={{ marginTop: 8, gap: 8 }}>
-            {POSTING_SCHEDULE.map(s => (
+            {POSTING_SESSIONS.map(s => (
               <View key={s.time}>
                 <Text style={{ fontSize: 11, color: colors.text }}>
                   <Text style={{ fontWeight: '800' }}>{s.time}</Text>
@@ -819,12 +799,12 @@ export default function ReelsView() {
                   {s.kinds.length > 0 && (
                     <Text style={{ color: colors.textSecondary }}>
                       {'  ·  '}
-                      {s.kinds.map(k => `${(KIND_UI[k] ?? FALLBACK_KIND_UI).icon} ${(KIND_UI[k] ?? FALLBACK_KIND_UI).label}`).join('  →  ')}
+                      {s.kinds.map(k => `${(KIND_UI[k as ReelKind] ?? FALLBACK_KIND_UI).icon} ${(KIND_UI[k as ReelKind] ?? FALLBACK_KIND_UI).label}`).join('  →  ')}
                     </Text>
                   )}
                 </Text>
+                {s.deadline && <Text style={{ fontSize: 9.5, color: colors.warning ?? colors.textTertiary, lineHeight: 13, marginTop: 1 }}>⏰ {s.deadline}</Text>}
                 {s.note && <Text style={{ fontSize: 9.5, color: colors.textTertiary, lineHeight: 13, marginTop: 1 }}>{s.note}</Text>}
-                {s.warn && <Text style={{ fontSize: 9.5, color: colors.warning ?? colors.textTertiary, lineHeight: 13, marginTop: 1 }}>⚠ {s.warn}</Text>}
               </View>
             ))}
             <Text style={{ fontSize: 9.5, color: colors.textTertiary, lineHeight: 13 }}>{SCHEDULE_SKIP_ORDER}</Text>

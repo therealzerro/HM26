@@ -20,23 +20,22 @@
 // setContent — the MKT-10 serif lesson), print with Chromium. Web-safe system
 // sans only; no brand fonts, this is an operator sheet, not a public asset.
 import { config as loadEnv } from 'dotenv';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { POSTING_SESSIONS, SCHEDULE_SKIP_ORDER, postingOrder } from '../constants/postingSchedule';
 
 const BUCKET = 'marketing-reels';
 const PRUNE_DAYS = 30; // matches publish-reels row/object retention
 
-/**
- * The posting schedule rides along as PAGE 1 (operator ask, 2026-08-03): the
- * sheet already answers "what do I post" — the schedule answers "when, in
- * what order". Read VERBATIM from the canonical file at render time so the
- * PDF can never drift from the doc; a missing file skips the page rather
- * than failing the sheet (same best-effort contract as the rest of this
- * script). Update POSTING_SCHEDULE.txt, not this file, to change it.
- */
-const SCHEDULE_FILE = join('assets', 'marketing', 'POSTING_SCHEDULE.txt');
+// The posting schedule rides as PAGE 1 (operator ask, 2026-08-03; redesigned
+// same day: ONE page, large type — the sheet answers "what do I post", the
+// cover answers "when, in what order", readable at arm's length). Data comes
+// from constants/postingSchedule.ts, shared with the Reels screen; the
+// reasoning prose stays in assets/marketing/POSTING_SCHEDULE.txt. The
+// caption cards below it are SORTED INTO POSTING ORDER and grouped under
+// session headers, so the PDF reads top-to-bottom as the operator's day.
 
 /** Operator-facing labels, kept in step with ReelsView's KIND_UI. */
 const KIND_LABEL: Record<string, string> = {
@@ -48,7 +47,14 @@ const KIND_LABEL: Record<string, string> = {
   evening_pro: '🌙 Evening · PRO',
   evening_free: '🌙 Evening · FREE',
   verify: '🧾 Verify — Receipts',
+  verify_public: '🌐 Verify · PUBLIC (cross-post)',
 };
+
+/** Session a kind posts in, for the caption-card group headers. */
+function sessionOf(kind: string): { time: string; title: string } | null {
+  const s = POSTING_SESSIONS.find(x => x.kinds.includes(kind));
+  return s ? { time: s.time, title: s.title } : null;
+}
 
 interface Row {
   reel_date: string; kind: string; caption: string; caption_pro: string | null;
@@ -76,14 +82,46 @@ const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 function buildHtml(rows: Row[], dayISO: string): string {
-  const schedule = existsSync(SCHEDULE_FILE) ? readFileSync(SCHEDULE_FILE, 'utf8') : '';
-  const cards = rows.map((r) => {
+  // ── Page 1: the schedule card. One page, large type, times ET. ──────────
+  const sessions = POSTING_SESSIONS.map((s) => {
+    const reels = s.kinds.length
+      ? `<div class="reels">${s.kinds.map((k) => `<span class="reel">${esc(KIND_LABEL[k] ?? `🎬 ${k}`)}</span>`).join('<span class="arrow">→</span>')}</div>`
+      : '';
+    return `<div class="sess${s.kinds.length ? '' : ' dim'}">
+      <div class="t">${esc(s.time)}</div>
+      <div class="body">
+        <div class="title">${esc(s.title)}</div>
+        ${reels}
+        ${s.deadline ? `<div class="dl">⏰ ${esc(s.deadline)}</div>` : ''}
+        ${s.note ? `<div class="note">${esc(s.note)}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('\n');
+  const schedulePage = `<div class="sched">
+    <div class="schedhead">
+      <h1>POSTING SCHEDULE</h1>
+      <div class="sub">all times EASTERN · v1 · canonical prose: assets/marketing/POSTING_SCHEDULE.txt</div>
+    </div>
+    ${sessions}
+    <div class="skip">${esc(SCHEDULE_SKIP_ORDER)}</div>
+  </div>`;
+
+  // ── Caption cards, sorted into POSTING ORDER and grouped by session. ────
+  const ordered = [...rows].sort((a, b) => postingOrder(a.kind) - postingOrder(b.kind));
+  let lastSession = '';
+  const cards = ordered.map((r) => {
     const label = KIND_LABEL[r.kind] ?? `🎬 ${r.kind}`;
     const pro = r.caption_pro
       ? `<div class="tag">PRO GROUP DRAFT</div><pre>${esc(r.caption_pro)}</pre>`
       : '';
     const freeTag = r.caption_pro ? '<div class="tag">FREE GROUP DRAFT</div>' : '';
-    return `<section>
+    const sess = sessionOf(r.kind);
+    const sessKey = sess ? `${sess.time} — ${sess.title}` : 'Unscheduled';
+    const header = sessKey !== lastSession
+      ? `<div class="sesshead">🕐 ${esc(sessKey)}</div>`
+      : '';
+    lastSession = sessKey;
+    return `${header}<section>
       <h2>${esc(label)} <span class="meta">· board date ${esc(r.reel_date)} · ${esc(r.status)}</span></h2>
       ${freeTag}<pre>${esc(r.caption)}</pre>${pro}
     </section>`;
@@ -98,12 +136,27 @@ function buildHtml(rows: Row[], dayISO: string): string {
     .meta { font-weight: 400; color: #888; font-size: 10px; }
     .tag { font-size: 8.5px; font-weight: 700; letter-spacing: 1px; color: #7c3aed; margin: 6px 0 2px; }
     pre { font-family: inherit; font-size: 11px; line-height: 1.45; white-space: pre-wrap; margin: 4px 0 0; }
-    .schedule { page-break-after: always; }
-    .schedule pre { font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 8px; line-height: 1.35; white-space: pre; }
+    /* Page 1 — the schedule card. Sized to hold five sessions + footer on one
+       Letter page at arm's-length type; do not add prose here, it lives in
+       POSTING_SCHEDULE.txt. */
+    .sched { page-break-after: always; }
+    .schedhead h1 { font-size: 34px; margin: 6px 0 3px; }
+    .schedhead .sub { font-size: 13px; margin-bottom: 16px; }
+    .sess { display: flex; gap: 20px; padding: 24px 2px; border-bottom: 2px solid #eee; }
+    .sess.dim { opacity: 0.5; }
+    .sess .t { flex: 0 0 152px; font-size: 31px; font-weight: 800; letter-spacing: -0.5px; }
+    .sess .title { font-size: 20px; font-weight: 700; margin-bottom: 7px; }
+    .sess .reels { font-size: 17.5px; line-height: 1.65; }
+    .sess .reel { font-weight: 600; white-space: nowrap; }
+    .sess .arrow { color: #999; margin: 0 9px; }
+    .sess .dl { font-size: 16.5px; font-weight: 800; color: #b91c1c; margin-top: 7px; }
+    .sess .note { font-size: 13.5px; color: #555; line-height: 1.45; margin-top: 6px; }
+    .skip { font-size: 15px; font-weight: 700; margin-top: 20px; padding: 14px 16px; background: #f4f4f5; border-radius: 8px; }
+    .sesshead { font-size: 13px; font-weight: 800; letter-spacing: 0.5px; margin: 14px 0 6px; color: #444; }
   </style></head><body>
+    ${schedulePage}
     <h1>HITMASTER ZK6 — DAY CAPTIONS</h1>
-    <div class="sub">Run day ${esc(dayISO)} · generated ${esc(etNow())} ET · ${rows.length} caption set${rows.length === 1 ? '' : 's'} · internal operator sheet — captions are the lint-gated drafts on the registered rows</div>
-    ${schedule ? `<section class="schedule"><h2>📋 Posting schedule <span class="meta">· verbatim from ${esc(SCHEDULE_FILE)}</span></h2><pre>${esc(schedule)}</pre></section>` : ''}
+    <div class="sub">Run day ${esc(dayISO)} · generated ${esc(etNow())} ET · ${rows.length} caption set${rows.length === 1 ? '' : 's'} · internal operator sheet — captions are the lint-gated drafts on the registered rows, in posting order</div>
     ${cards}
   </body></html>`;
 }

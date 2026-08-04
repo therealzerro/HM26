@@ -176,6 +176,11 @@ export const ENDCARD_MOTIONS: Record<Tier, MotionVariant[]> = {
     // Kept as endcard_motion_free_updraft_rejected_20260803.mp4.
     { file: 'endcard_motion_free_tide.mp4', tag: 'tide', label: 'drifting tide' },
     { file: 'endcard_motion_free_bloom.mp4', tag: 'bloom', label: 'radial bloom' },
+    // MKT-48 Lane C — held as UNGATED CANDIDATE until the operator tier
+    // ruling landed 2026-08-03: (a) FREE SHARED. Gate-clean before the hold
+    // cleared: 42.6/42.6 settle (stable), deepest 42.6, band_max 112 (the
+    // cleanest of the family), static 0.79, bed BEDABLE +4.5dB.
+    { file: 'endcard_motion_ad_open.mp4', tag: 'adopen', label: 'ad open' },
   ],
 };
 

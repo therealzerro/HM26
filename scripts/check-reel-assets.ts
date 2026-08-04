@@ -278,8 +278,8 @@ const UNREFERENCED_OK: Record<string, string> = {
   'verif_carrier_signoff_short_rejected_20260731.mp4':
     'MKT-32 ADDENDUM SALVAGED 2026-07-31 — the defect was a 2.05s DEAD pause (no voice content), so an edit could remove it: spliced to a 0.215s beat + the natural inhale (40ms crossfade in room tone, max sample-step 0.005 at −53.8dBFS across the splice). Edited copy registered at verif_carrier_signoff_short.mp4, last word 2.218s ≤ the 2.3s line. This raw 10.005s take stays parked as the master/evidence per the delivery convention.',
   // MKT-48 — the 2026-08-03 nine-asset drop's non-registrations.
-  'endcard_motion_ad_open.mp4':
-    'UNGATED CANDIDATE (MKT-48) — measures gate-clean (form-bottom 42.6/42.6 stable, deepest-after-4s 42.6, band_max 112 cleanest of family, static 0.79; bed BEDABLE +4.5dB) but registration is BLOCKED on an operator tier ruling: (a) free shared, (b) free ad-restricted, (c) both tiers. Do not register until the ruling lands; then add to brand-motion.ts per the ruling or reject.',
+  // (endcard_motion_ad_open left this list 2026-08-03: operator ruled
+  // (a) free shared, and it is registered in brand-motion.ts.)
   'endcard_motion_free_updraft_rejected_20260803.mp4':
     'MKT-48 REJECTED — form-bottom 54.5/54.8 breaches the 53 ceiling on both settle frames and luminous particles drift into the text band (band_max 232, brightest of family): the anvil intermittent-overlap failure mode. Independently bed-INELIGIBLE (−9.9dB vs the ±6dB clamp — never force-bed, the reveal precedent). Kept as evidence; tide and bloom from the same delivery registered.',
   'ad_body_covered_seg1_rejected_20260803.mp4':

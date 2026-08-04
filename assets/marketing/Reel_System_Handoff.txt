@@ -1323,12 +1323,14 @@ per-day by hand, not AI-freestyled.
                                   old ~4.3s band; the assembler derives the
                                   bed window per endcard so this is handled.
     endcard_motion_free.mp4       FREE-tier endcard motions (MKT-19 set,
-    endcard_motion_free_alt.mp4   widened 2→4 by MKT-48 2026-08-03).
+    endcard_motion_free_alt.mp4   widened 2→5 by MKT-48 2026-08-03).
     endcard_motion_free_tide.mp4  std = blooming eddies · alt = rising tide ·
     endcard_motion_free_bloom.mp4 tide = drifting tide · bloom = radial
-                                  bloom. Serves ALL free-tier kinds (session
-                                  frees + publics + verify_public). All four
-                                  bed-viable (tide +4.4dB, bloom post-crack).
+                                  bloom · adopen = ad open (see its own
+                                  entry below). Serves ALL free-tier kinds
+                                  (session frees + publics + verify_public).
+                                  All five bed-viable (tide +4.4dB, bloom
+                                  post-crack, adopen +4.5dB).
                                   ⚠ tide's form settles ~39% vs the 50-53
                                   family band — registered as an atmospheric
                                   alternate with the deviation recorded. A
@@ -1337,13 +1339,11 @@ per-day by hand, not AI-freestyled.
                                   into the text band (the anvil class), and
                                   bed-ineligible −9.9dB. Kept as
                                   *_rejected_20260803.mp4.
-    endcard_motion_ad_open.mp4    ⛔ UNGATED CANDIDATE (MKT-48) — measures
-                                  gate-clean (42.6 stable settle, band_max
-                                  112, bed +4.5dB) but registration is
-                                  BLOCKED on an operator tier ruling:
-                                  (a) free shared / (b) free ad-restricted /
-                                  (c) both tiers. Do not register until the
-                                  ruling lands.
+    endcard_motion_ad_open.mp4    ✅ REGISTERED (MKT-48, tag adopen) — the
+                                  operator tier ruling landed 2026-08-03:
+                                  (a) FREE SHARED, the 5th free motion.
+                                  Gate-clean (42.6 stable settle, band_max
+                                  112 cleanest of family, bed +4.5dB).
     stinger_motion.mp4            Text-free stinger motions (MKT-19 set),
     stinger_motion_strike.mp4     shared across ALL variants and both tiers —
     stinger_motion_circuit.mp4    a stinger carries no tier signal. std =
@@ -1960,11 +1960,12 @@ WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
      prohibition cleared it. Third refusal in this class traced to the same
      cause — negatives trigger them, scene descriptions do not.
   8. ✅ RE-CLOSED AGAIN 2026-08-03 (MKT-48) — THE FREE TIER IS NO LONGER
-     THIN: the free pool widened 2→4 (tide +4.4dB bedable, bloom bedable
-     post-crack — all four members bed-viable), so the free-tier kinds no
-     longer run three-plus daily reels on a two-motion rotation. A third
-     delivery (updraft) was rejected on composition + bed-ineligibility;
-     see the MKT-48 audit entry. Prior re-closure kept for the reasoning:
+     THIN: the free pool widened 2→5 (tide +4.4dB bedable, bloom bedable
+     post-crack, ad_open +4.5dB after the same-day tier ruling — all five
+     members bed-viable), so the free-tier kinds no longer run three-plus
+     daily reels on a two-motion rotation. A third endcard delivery
+     (updraft) was rejected on composition + bed-ineligibility; see the
+     MKT-48 audit entry. Prior re-closure kept for the reasoning:
      ✅ RE-CLOSED 2026-08-01 (MKT-47) AT A HIGHER COUNT — the pro tier was
      replaced wholesale and now runs FOUR motions with THREE bed-viable
      (discharge −27.5dB, ignite −30.9dB, lock −30.8dB); `reveal` is

@@ -65,6 +65,13 @@ function creds(): { url: string; key: string } {
 
 const etDay = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 
+/** Generation clock for the sheet's face, in Eastern time — the operator's
+ *  wall clock. Any timestamp a PDF viewer shows from file metadata is UTC,
+ *  which reads wrong on a phone at posting time; this one is authoritative.
+ *  America/New_York, not a fixed offset, so it tracks EST/EDT correctly. */
+const etNow = () =>
+  new Date().toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' });
+
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -95,7 +102,7 @@ function buildHtml(rows: Row[], dayISO: string): string {
     .schedule pre { font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 8px; line-height: 1.35; white-space: pre; }
   </style></head><body>
     <h1>HITMASTER ZK6 — DAY CAPTIONS</h1>
-    <div class="sub">Run day ${esc(dayISO)} (ET) · ${rows.length} caption set${rows.length === 1 ? '' : 's'} · internal operator sheet — captions are the lint-gated drafts on the registered rows</div>
+    <div class="sub">Run day ${esc(dayISO)} · generated ${esc(etNow())} ET · ${rows.length} caption set${rows.length === 1 ? '' : 's'} · internal operator sheet — captions are the lint-gated drafts on the registered rows</div>
     ${schedule ? `<section class="schedule"><h2>📋 Posting schedule <span class="meta">· verbatim from ${esc(SCHEDULE_FILE)}</span></h2><pre>${esc(schedule)}</pre></section>` : ''}
     ${cards}
   </body></html>`;

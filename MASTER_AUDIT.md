@@ -281,6 +281,18 @@ Full-combination depth per kind:
 
 **Standing asset asks this measurement makes precise** (generation-budget gated, nothing actioned): stinger 4 → **7** for a distinct member per rotating kind daily; free endcard pool is adequate at 5 once Finding 4 is resolved; `midday_pro` / `midday_free` / `evening_free` / `public` remain **single-entry carrier sets**, so those rooms hear the identical VO opening every day. The three pending intros (`coffee` / `juggle` / `guest`) would take the intro pool 6 → 9.
 
+### BRAND-07 — Brand domain hitmasterzk.com secured + registered globally (2026-08-06)
+
+**ID verified free** (`grep BRAND-07` → 0 in audit and code). Operator secured **hitmasterzk.com** and directed global registration. DNS confirmed resolving (registrar-forwarding IPs 3.33.130.190 / 15.197.148.33) before recording.
+
+**REGISTERED WHERE EVERY FUTURE CONSUMER READS ONE KEY:** `app_config.brand_domain` = `"hitmasterzk.com"` (row a731eac7, created 2026-08-06 17:41 UTC via service role, same write path as the panel/caption scripts — the Supabase MCP was not connected this session). Value is JSON-string-encoded matching the `social_*_url` convention; provenance in the row's `description`. This parallels how `social_free_group_url` / `social_pro_url` already feed captions and the publish flow by substitution at publish time — the domain is a config fact, not a hardcode.
+
+**⚠ DELIBERATELY NOT WIRED TO ANY SURFACE.** No caption template, endcard, panel, app copy, store metadata or deep link consumes it yet. Every wiring is a separate per-surface decision under the brand law: Two-Question filter + audience tier map before the domain appears on ANYTHING public (a domain on a public asset is an invitation — which tier it invites into is exactly the kind of call the tier map exists for), and consumer-surface copy stays hands-off without an explicit ask. Natural future consumers, each its own ask: caption `{brand_domain}` substitution slot (mechanism exists — publish-time substitution in publish-reels), endcard CTA line (content-agent copy + regeneration), YT/TikTok description links (socialPlatforms.ts, gated behind the social-expansion decisions), app.config.ts associated domains / universal links (parked on Apple Dev account per ENH backlog), App Store metadata (parked, same).
+
+**Rollback:** delete the `app_config` row — nothing reads it, so removal is zero-impact until a consumer ships (and any consumer must state its own rollback).
+
+---
+
 ### MKT-49 ADDENDUM — Finding 4 fixed + the pinned lanes became registration-ready sets ✅ SHIPPED (2026-08-06, same day)
 
 **1. FINDING 4 FIXED — `ENDCARD_KINDS.free` reordered: LIVE KINDS FIRST, DORMANT LAST.** `verify_public` moved from index 6 to index 4 (ahead of the unregistered `midday_public` / `evening_public`), breaking the mod-5 congruence with `midday_free`. Verified: the free endcard lane is now 5 live kinds over 5 motions, **each distinct every day** — the invariant suite's same-day-distinctness check, which failed on this pair even under the OLD algorithm, now passes, and today's endcard row is 9/9 distinct. This re-phases `verify_public`'s close (accepted — it is the fix). **The rule, recorded at the constant so it survives**: kinds that build stay ahead of kinds listed for future registration, so a dormant entry can never shift a live kind's offset into congruence. Registering the session publics later APPENDS after the live block — no live kind moves, which keeps the "registering later is a no-op" promise the old order broke in spirit.

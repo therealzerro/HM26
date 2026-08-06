@@ -118,6 +118,17 @@ your next assets are ONE-LINE registrations)
      (variant-scoped; allday_pro, the midday pair and verify_public kept
      their morning cuts). Verify's furniture resolves on its STAMP date
      (D-1), by design — reel_date = content date, as ever.
+  I. BRAND DOMAIN SECURED (2026-08-06, BRAND-07): hitmasterzk.com is ours,
+     DNS-confirmed, registered as app_config.brand_domain — one key every
+     future consumer reads, same substitution pattern as the group URLs.
+     ⚠ NOT WIRED TO ANY SURFACE YET, deliberately. Before the domain
+     appears on ANY public asset (endcard CTA, caption, YT description,
+     panel): Two-Question filter + tier-map ruling per surface — a domain
+     on a public asset is an invitation, and which tier it invites into is
+     a ruling, not a default. If you are drafting copy that wants a URL,
+     propose it against a tier; do not bake the domain into generated
+     footage (evergreen assets never carry claims that can go stale —
+     same law as dates, MKT-18 class).
 
 WHAT CHANGED IN v2.7 (2026-08-01 early AM — MKT-41→45; THE 880 RULING IS DEAD)
   A. ⛔⛔ **EVERY LOCKUP TUCK IS REVERSED. ALL KINDS ARE ON THE SHARED BANDS:

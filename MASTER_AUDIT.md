@@ -294,6 +294,8 @@ Full-combination depth per kind:
 
 **What lands where when assets arrive** (the whole point — registration is one line each): seal variant → `VERIFY_SEAL_MOTIONS` entry + `stinger:build` + MOTION_LOCKUP measurement; public intro → clearance gate first, then a `PUBLIC_INTROS` entry; the three pending slate intros (`coffee`/`juggle`/`guest`) → `INTRO_ROTATION` entries per the content agent's addendum (trims, chip re-verification at 0.0s). Everything else on the ask list (stinger 7, session carriers) was already one-line registries.
 
+**Handoff bumped to v2.9** (2026-08-06): full MKT-49 block (notes A–H — mechanics, detector commands, Finding 4 + the live-kinds-first rule, the one-line registration points with the clearance-first bar on `PUBLIC_INTROS`, exact asset asks with the depth table, retroactivity, the 8/06 reassembly); registry resync note G corrects the staleness that produced the content agent's 8/02 report (free pool 5, evening_pro rotation serving, updraft rejected, Covered pair generated-and-rejected — ad wave NOT 11/11); inline strikes at §2 (intro "date-derived offset" + "verify always standard", stale since MKT-23), §3/§7 (seal "FIXED" → set of one), §10 items 2/C (evening_pro part 1 "never delivered", stale since MKT-48 Lane D); §8 gains the rotation-member registration lane. Historical changelog blocks left as era records per the doc's own convention.
+
 ---
 
 ### MKT-48 — Nine-asset drop, four independent lanes: 5 registered, 3 rejected, 1 blocked on tier ruling (2026-08-03)

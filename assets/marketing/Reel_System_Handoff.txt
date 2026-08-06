@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-01 · v2.8
+Content Agent Handoff · 2026-08-06 · v2.9
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -16,6 +16,95 @@ Companion docs:
   - assets/marketing/AllDay_Reel_Endcard_Revision_Brief_2026-07-27.md (endcard contract)
   - docs/mkt15_phase2_copy_brief.md (public copy set — DELIVERED + the bolt request)
   - REEL_COMMANDS.txt (repo root — operator command reference)
+
+WHAT CHANGED IN v2.9 (2026-08-06 — MKT-49: the rotation stopped repeating, and
+your next assets are ONE-LINE registrations)
+  A. WHY: the operator noticed intros/stingers/endcards recurring across a few
+     days of watching. Measured from the live registries, the whole nine-reel
+     stinger assignment was IDENTICAL every 4 days without end, and every 4th
+     morning all three rotating carriers landed on "incumbent" at once (the
+     carrier lane had missed the 7/29 per-kind spread fix). Root cause: a
+     date-offset walk over a set of n repeats with period exactly n — the
+     PAIRINGS recur, not just the assets.
+  B. THE SCHEDULE IS NOW RESHUFFLED PER CYCLE. Every member still plays
+     exactly once per n-day block (usage stays perfectly even), but the order
+     is redrawn each cycle, so the same arrangement no longer returns on a
+     fixed loop. Still clock-free and deterministic per date. Residual, by
+     arithmetic: a pool of n admits only (n-1)! distinct daily patterns — SIX
+     for a pool of 4 — so the stinger and carrier lanes still show ONE 6-day
+     recurrence a year. ⚠ RETROACTIVE (operator-approved): re-running a past
+     date reproduces its BODY exactly (MKT-18 untouched) but not its
+     intro/stinger/endcard/carrier. Published reels keep what they shipped.
+  C. TWO NEW SURFACES REPORT THIS SO IT NEVER AGAIN TAKES DAYS OF WATCHING:
+       npm run reel:rotation     the schedule days ahead, per lane per kind,
+                                 plus distinct-arrangement depth per kind
+       reel:check                now warns when any lane's closest identical
+                                 arrangement is under 7 days apart, when an
+                                 asset plays on 2+ reels today (and WHICH
+                                 cause: pool too small vs config defect), and
+                                 flags kinds with under a fortnight of
+                                 distinct arrangements
+     Both read the SCHEDULE (candidate[0]); a missing file shifting a day's
+     pick is reported separately by the per-asset checks, same as ever.
+  D. ⚠ FINDING 4, FIXED — verify_public and midday_free had drawn the SAME
+     free endcard EVERY DAY since MKT-40: the free spread axis listed the two
+     dormant session publics BETWEEN live kinds, putting verify_public at
+     index 6 ≡ midday_free's 1 (mod the 5-motion pool). THE RULE THAT CAME
+     OUT OF IT, now applied at every spread axis: LIVE KINDS FIRST, DORMANT
+     LAST — a dormant entry must never sit where it can shift a live kind's
+     offset. Registering a dormant kind later APPENDS; nothing live moves.
+  E. ⚠⚠ THE PINNED LANES ARE NOW SETS — READ THIS BEFORE PROPOSING VERIFY OR
+     PUBLIC ASSETS, IT CHANGES WHAT IS POSSIBLE. The rulings pin verify and
+     the public kinds AWAY FROM THE SLATE ROTATION; they never said "one file
+     forever". With every lane it uses pinned to a set of one, verify had
+     FOUR distinct full arrangements, ever, and allday_public — the cold
+     audience, where novelty matters most — had 20 (worst in the fleet;
+     allday_free has 221). What is now open, each a ONE-LINE registration:
+       - SEAL VARIANTS (same closing-bell concept, different cuts) →
+         VERIFY_SEAL_MOTIONS in brand-motion.ts. verify + verify_public
+         spread across the set, so on multi-variant days the two halves draw
+         different cuts of the same bell. Per-variant: stinger:build + a
+         MOTION_LOCKUP measurement per tag (MKT-41's 820 was only ever safe
+         because the set had one member). A slate kind still cannot reach
+         the seal — nothing else looks the set up.
+       - A SECOND PUBLIC INTRO → PUBLIC_INTROS in anchor-intros.ts. ⚠ THE
+         CLEARANCE GATE COMES FIRST: members feed four public kinds, so the
+         full MKT-30 Q1/Q2 + glyph/numeral sweep, per file, evidenced,
+         BEFORE the line is added. A slate member being clean is NOT
+         clearance. The morning's two public reels then open on different
+         cleared hooks.
+     The drop-in path was verified with simulated members BEFORE any asset
+     exists: rotation, same-day spread, no slate leakage into public or
+     seal, per-member holds, fallback ordering, and reel:check's depth
+     numbers all follow automatically. Single-member behaviour is
+     byte-identical to the old pins, so nothing changed today.
+  F. ASSET ASKS, NOW EXACT (generation-gated; nothing commissioned): stinger
+     4 → 7 buys a distinct motion per rotating kind daily (at 4, three
+     motions double up every single day — the thing the operator was seeing);
+     free endcard pool is ADEQUATE at 5 now that D is fixed — retire any
+     "free tier is thin" framing; midday_pro / midday_free / evening_free /
+     public carriers are SINGLE-ENTRY sets (those rooms hear the identical
+     VO opening every day); the three intros on the operator's device
+     (coffee / juggle / guest) take the slate pool 6 → 9 and are pure
+     drop-ins. Depth after this session: allday_free 221 · allday_pro 211 ·
+     evening_pro 203 · evening_free 113 · midday_free 112 · midday_pro 94 ·
+     allday_public 20 · verify_public 5 · verify 4. The last three move ONLY
+     with the E-lane assets.
+  G. REGISTRY RESYNC (your 8/02 status report ran stale against these —
+     recorded so this document stops being the source of that): free endcard
+     pool is FIVE (tide + bloom + adopen registered; adopen free-shared by
+     operator ruling 8/03); evening_pro carrier rotation is SERVING (landed /
+     dusk / last + incumbent); updraft REJECTED 8/03 (54.5/54.8 breaches the
+     53 ceiling, band_max 232, bed −9.9dB); the "Covered vs Uncovered" ad
+     pair was GENERATED and PAIR-REJECTED on Q1 8/03 (seg2 resolves eight
+     serif O/zero glyphs — F3 class; files kept as *_rejected_20260803) —
+     ad_pro remains 1 body, the wave is NOT 11/11. Full detail: MASTER_AUDIT
+     MKT-48 and the MKT-49 entry + addendum.
+  H. 8/06 note: allday_free, allday_public, evening_pro, evening_free and
+     group verify were REASSEMBLED and republished under the new schedule
+     (variant-scoped; allday_pro, the midday pair and verify_public kept
+     their morning cuts). Verify's furniture resolves on its STAMP date
+     (D-1), by design — reel_date = content date, as ever.
 
 WHAT CHANGED IN v2.7 (2026-08-01 early AM — MKT-41→45; THE 880 RULING IS DEAD)
   A. ⛔⛔ **EVERY LOCKUP TUCK IS REVERSED. ALL KINDS ARE ON THE SHARED BANDS:
@@ -276,8 +365,13 @@ WHAT CHANGED IN v2.2 (2026-07-31 PM — MKT-32 ADDENDUM salvage pass + web-renam
         git and is serving — verify lane is green today.
         ⚠ FUTURE DELIVERIES: never rename binaries in the GitHub web UI.
         Upload under the final name, or rename via CLI, and probe after.
-     2. evening_pro PART 1 — never delivered (v2.1 note C still stands);
-        scope-named incumbent serves. §9 rotation-set gap also still open.
+     2. ~~evening_pro PART 1 — never delivered (v2.1 note C still stands);
+        scope-named incumbent serves. §9 rotation-set gap also still open.~~
+        STRUCK in v2.9 — STALE since 8/03: MKT-48 Lane D delivered and
+        REGISTERED landed/dusk/last; evening_pro runs the All-Day rotation
+        shape (set of 4, incumbent = entry 0 + fallback), all part 1s
+        10.005s, joining the EXISTING pt2. This line fed the 8/02 status
+        report's staleness (v2.9 note G).
      3. [STRUCK in v2.3 — STALE. powerup's regeneration was validated and
         SERVES in the rotation of 6 since 2026-07-30 (v2.0 note F, §7).
         This line contradicted both and leaked into the audit's close-out;
@@ -303,10 +397,12 @@ WHAT CHANGED IN v2.1 (2026-07-31 — MKT-32 carrier wave gate; audit entry has t
      invisible to the joiner AND to the stray scan, and the incumbents kept
      serving with nothing erroring. The fifth filename failure in this lane,
      and a new class again: correct name, wrong case.
-  C. evening_pro PART 1 WAS NOT DELIVERED (only its pt2 came). The incumbent
-     is already scope-named ("Evening, partners…") at 10.005s, so the pair's
-     open items are the pt2 respec above and §9's rotation-set gap. The
-     scope-naming asymmetry item does NOT retire yet.
+  C. ~~evening_pro PART 1 WAS NOT DELIVERED (only its pt2 came). The
+     incumbent is already scope-named ("Evening, partners…") at 10.005s, so
+     the pair's open items are the pt2 respec above and §9's rotation-set
+     gap. The scope-naming asymmetry item does NOT retire yet.~~ STRUCK in
+     v2.9 — superseded 8/03 by MKT-48 Lane D: three rotation part 1s
+     (landed/dusk/last) delivered, measured and SERVING. See v2.9 note G.
   D. v2.0 notes D and E are CLOSED: MKT-28 shipped (the 11 HEAT_RELABEL slots
      reconciled, table + lint gate), MKT-16 registered allday_public and the
      public reel assembles daily with its stored Q1/Q2 gate record — the heat
@@ -632,7 +728,12 @@ on the 6.33s members) and the reel runs up to 34.53s.
                kind". It is now resolved PER KIND:
                  slate reels  — ROTATE over a set, currently [standard,
                                 deadpan, arrival, monitors, powerup, board],
-                                picked by a date-derived offset. (arrival +
+                                picked by a date-derived offset — ⚠ v2.9:
+                                the offset walk is now RESHUFFLED per cycle
+                                (v2.9 note B); even usage and per-kind
+                                distinctness hold, but the ORDER is no
+                                longer fixed and past dates are not
+                                furniture-reproducible. (arrival +
                                 monitors added 2026-07-29; powerup + board
                                 completed the six the same day; powerup and
                                 deadpan REGENERATED and revalidated
@@ -646,12 +747,21 @@ on the 6.33s members) and the reel runs up to 34.53s.
                                 described the pre-lane behaviour and is
                                 retired. Re-running a past date still
                                 reproduces that date's intros exactly.
-                 verify       — always standard. A deadpan gag ahead of
-                                yesterday's receipts is a tonal mismatch.
-                 public kinds — always anchor_intro_public.mp4, and they
-                                NEVER fall through into the rotation: a
-                                public cut must not silently acquire the
-                                deadpan gag.
+                 verify       — ~~always standard~~ its own fixed file,
+                                anchor_intro_verify.mp4 since MKT-23 (the
+                                "always standard" here predated it). A
+                                deadpan gag ahead of yesterday's receipts
+                                is a tonal mismatch — unchanged.
+                 public kinds — anchor_intro_public.mp4, and they NEVER
+                                fall through into the rotation: a public
+                                cut must not silently acquire the deadpan
+                                gag. ⚠ v2.9: "always ONE file" is retired —
+                                these are now SETS (VERIFY_INTROS /
+                                PUBLIC_INTROS); a second CLEARED public
+                                intro registers as one line and the public
+                                kinds rotate + spread across it. The
+                                never-into-the-slate-rotation bar is
+                                unchanged and structural. See v2.9 note E.
                Growing the rotation is one line of config plus a delivered
                file — see the delivery spec in §7 before proposing one.
   5.3 – 8.3    STINGER — the intro's smoke crossfades (0.3s) into a branded
@@ -838,10 +948,14 @@ on the 6.33s members) and the reel runs up to 34.53s.
                final" is true of receipts and false of every 8:30am drop.
                ✅ CLEARED 2026-07-30 (MKT-31 item 5): the re-delivery measures
                clean (peak −17.4dB at 1.10s, nothing after 2.4s above
-               −19.2dB) and the seal SERVES as verify's FIXED motion
-               REPLACING rotation — a missing/defective build degrades to NO
-               stinger, never a slate motion; a re-armed `held:` restores
-               rotation. The stinger renders headline-dominant (MKT-31 item
+               −19.2dB) and the seal SERVES as verify's motion REPLACING
+               rotation — a missing/defective build degrades to NO stinger,
+               never a slate motion; a re-armed `held:` restores rotation.
+               ⚠ v2.9: "FIXED" is now a SET (VERIFY_SEAL_MOTIONS) of one —
+               seal VARIANTS (same bell concept, different cuts) register
+               as one line and verify + verify_public spread across them.
+               Everything else in this paragraph holds per member,
+               including per-member `held:`. See v2.9 note E. The stinger renders headline-dominant (MKT-31 item
                1): "YESTERDAY'S RECEIPTS" ~62px on top, wordmark small in
                gold beneath — verify only.
                ⚠ THE CHIP SAYS "YESTERDAY'S RESULTS", THE STINGER SAYS
@@ -1348,10 +1462,12 @@ per-day by hand, not AI-freestyled.
     stinger_motion_strike.mp4     shared across ALL variants and both tiers —
     stinger_motion_circuit.mp4    a stinger carries no tier signal. std =
                                   bolt condense · strike · circuit.
-    stinger_motion_seal.mp4       ✅ SERVING — verify's FIXED motion (MKT-29
-                                  pin, MKT-31 item 5 clearance 2026-07-30),
+    stinger_motion_seal.mp4       ✅ SERVING — verify's motion (MKT-29 pin,
+                                  MKT-31 item 5 clearance 2026-07-30),
                                   never in the shared set (a slate drop must
-                                  never draw the bell). The 7/30 re-delivery
+                                  never draw the bell). ⚠ v2.9: sole member
+                                  of VERIFY_SEAL_MOTIONS — variants welcome,
+                                  one line each (v2.9 note E). The 7/30 re-delivery
                                   measures clean: energy peak −17.4dB at
                                   1.10s (bound ~2.0s), smooth decay under
                                   the smoke return, nothing after 2.4s above
@@ -1727,6 +1843,16 @@ per-day by hand, not AI-freestyled.
 --------------------------------------------------------------------------------
   - New/longer carriers and endcards: file drop-in, spec in §2/§3.
   - New caption templates: text delivery, spec in §5.
+  - v2.9 — ROTATION MEMBERS, all one-line registrations (see v2.9 notes E/F
+    for what each buys and the exact asks): slate intro → INTRO_ROTATION ·
+    stinger motion → STINGER_MOTIONS (ask: 4 → 7) · free/pro endcard motion
+    → ENDCARD_MOTIONS (free is adequate at 5) · carrier part-1 variant →
+    the kind's CARRIERS set (midday/evening_free/public are single-entry) ·
+    seal variant → VERIFY_SEAL_MOTIONS · public intro → PUBLIC_INTROS
+    (clearance FIRST). After any drop: npm run reel:check validates it,
+    npm run reel:rotation shows it entering the schedule. ⚠ Spread-axis
+    lists follow LIVE-KINDS-FIRST (v2.9 note D) — never insert a dormant
+    kind ahead of a live one.
   - A new SCOPE/variant of the existing slate reel is nearly free: an endcard
     config entry, a stinger config entry, a caption kind, a scope registry
     entry — plus TWO things that fail late if forgotten: the database kind

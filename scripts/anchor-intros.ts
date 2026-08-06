@@ -72,27 +72,63 @@ export const INTRO_DEFAULT = 'anchor_intro.mp4';
 export const SLATE_KINDS = ['allday_pro', 'allday_free', 'midday_pro', 'evening_pro', 'midday_free', 'evening_free'];
 
 /**
- * Kinds that do NOT rotate.
+ * PINNED INTRO SETS — kinds that never draw the slate rotation.
  *
  * verify — a deadpan gag ahead of yesterday's receipts is a tonal mismatch.
- * public — cold-audience hook, and it is the only intro cleared for a public
- *          surface; it must never be swapped for a rotation member.
+ * public — cold-audience hook, and these are the only intros cleared for a
+ *          public surface; a rotation member must never be swapped in.
+ *
+ * MKT-49 (2026-08-06): SETS, not single filenames. The rulings above pin these
+ * kinds AWAY FROM THE SLATE ROTATION; they never said "one file forever", and
+ * reading them that way had left the public cut — the cold-audience surface,
+ * where novelty matters most — as the most static thing in the system (20
+ * distinct arrangements against allday_free's 221). A second CLEARED public
+ * intro or a verify variant registers as one line in the right set and rotates
+ * like every lane, spread across the set's sharers. With one member the
+ * behaviour is byte-identical to the old pin.
+ *
+ * ⚠ Members of PUBLIC_INTROS must be PUBLIC-CLEARED (the MKT-30 Q1/Q2 bar,
+ * glyph/numeral sweep) BEFORE registration, exactly as anchor_intro_public
+ * was. This set feeding four public kinds is precisely why the slate rotation
+ * must never leak in here — and why a rotation member being clean is not
+ * enough: clearance is per-file, evidenced, and recorded.
  */
-export const FIXED_INTRO: Record<string, string> = {
+export const VERIFY_INTROS: string[] = [
   // MKT-23: repointed off anchor_intro.mp4. Verify pinning to a ROTATION member
   // was a permanent collision, not a rotational one — a slate kind drew that
   // same file every single day, and a label-based count read 6/6 while the file
-  // count was 5/6. Verify still does NOT rotate: a deadpan gag ahead of
-  // yesterday's receipts is a tonal mismatch and that ruling is unchanged.
-  // Trimmed to 5.625s / 135 frames, exactly matching standard, so verify's
-  // timeline does not shift.
-  verify: 'anchor_intro_verify.mp4',
-  allday_public: 'anchor_intro_public.mp4',
-  midday_public: 'anchor_intro_public.mp4',
-  evening_public: 'anchor_intro_public.mp4',
+  // count was 5/6. Verify still does NOT draw the slate rotation: a deadpan gag
+  // ahead of yesterday's receipts is a tonal mismatch and that ruling is
+  // unchanged. Trimmed to 5.625s / 135 frames, exactly matching standard, so
+  // verify's timeline does not shift.
+  'anchor_intro_verify.mp4',
+];
+
+export const PUBLIC_INTROS: string[] = [
+  'anchor_intro_public.mp4',
+];
+
+/**
+ * Which pinned set each non-rotating kind draws. Kinds sharing a set (by
+ * reference — that identity is what defines the sharer group) spread across it
+ * in declaration order, so on multi-member days the day's public reels open on
+ * different cleared hooks rather than the same one twice.
+ */
+export const FIXED_INTRO: Record<string, string[]> = {
+  verify: VERIFY_INTROS,
+  // ⚠ LIVE KINDS FIRST, DORMANT LAST — the MKT-49 Finding 4 rule, applied here
+  // the day the sharer order started to matter. Declaration order is the
+  // spread axis, and the two kinds that BUILD (allday_public, verify_public)
+  // must be adjacent at the head: with the dormant session publics between
+  // them, the live pair sits at indices 0 and 3 — congruent mod 3, so on a
+  // future 3-member set the morning's two public reels would open on the SAME
+  // hook every day, which is the exact defect Finding 4 fixed at the endcard.
+  allday_public: PUBLIC_INTROS,
   // MKT-40: the grading half opens on the same cold-audience hook as every
   // public kind — the visor ignition, not verify's group-facing fixed intro.
-  verify_public: 'anchor_intro_public.mp4',
+  verify_public: PUBLIC_INTROS,
+  midday_public: PUBLIC_INTROS,
+  evening_public: PUBLIC_INTROS,
 };
 
 /** Today in ET, matching every other date-derived rotation in the pipeline. */
@@ -111,12 +147,20 @@ export function todayET(): string {
  */
 export function introCandidates(kind: string, dateISO: string): IntroVariant[] {
   const fixed = FIXED_INTRO[kind];
-  if (fixed) {
-    // Fixed kinds never fall back into the rotation — a public reel must not
-    // silently acquire the deadpan gag — but they may fall back to the default.
-    return fixed === INTRO_DEFAULT
-      ? [{ file: fixed, label: kind }]
-      : [{ file: fixed, label: kind }, { file: INTRO_DEFAULT, label: 'standard (fallback)' }];
+  if (fixed && fixed.length) {
+    // Pinned kinds never fall back into the slate rotation — a public reel
+    // must not silently acquire the deadpan gag — but they may fall back to
+    // the default. Multi-member sets rotate among THEMSELVES (every candidate
+    // ahead of the default is a member of the same cleared set), spread
+    // across the kinds sharing this set so two public reels on one morning
+    // open on different cleared hooks where the set allows.
+    const sharers = Object.keys(FIXED_INTRO).filter(k => FIXED_INTRO[k] === fixed);
+    const ordered = laneRotate(fixed, dateISO, ROTATION_SALT.intro, laneIndex(sharers, kind))
+      .map(f => ({ file: f, label: f === fixed[0] ? kind : f.replace(/^anchor_intro_?|\.mp4$/g, '') }));
+    if (!ordered.some(v => v.file === INTRO_DEFAULT)) {
+      ordered.push({ file: INTRO_DEFAULT, label: 'standard (fallback)' });
+    }
+    return ordered;
   }
   if (INTRO_ROTATION.length === 0) return [{ file: INTRO_DEFAULT, label: 'standard' }];
 
@@ -133,7 +177,7 @@ export function introCandidates(kind: string, dateISO: string): IntroVariant[] {
 export function allIntroFiles(): string[] {
   return [...new Set([
     ...INTRO_ROTATION.map(v => v.file),
-    ...Object.values(FIXED_INTRO),
+    ...Object.values(FIXED_INTRO).flat(),
     INTRO_DEFAULT,
   ])];
 }

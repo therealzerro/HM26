@@ -29,7 +29,7 @@ import { STINGERS, STINGER_DUR, INTRO_XFADE, stingerFile } from './stinger-confi
 import { ENDCARDS } from './endcard-config';
 import {
   stingerMotionSetFor, ENDCARD_MOTIONS, allMotionFiles, tierFor,
-  builtEndcardName, builtStingerName, readMotionMeta, VERIFY_SEAL_MOTION,
+  builtEndcardName, builtStingerName, readMotionMeta, heldMotionReasons,
 } from './brand-motion';
 import { endcardCandidates } from './reel-endcard';
 import { stingerCandidates } from './reel-stinger';
@@ -779,12 +779,16 @@ function checkStamp(): void {
  */
 function checkMotions(): void {
   const meta = readMotionMeta(ASSETS);
+  // A held motion is a deliberate exemption, not a defect — report it with
+  // its reason so the hold stays visible instead of reading as a stray.
+  // MKT-49: sourced from every registry rather than the one seal file, so a
+  // hold on any future member (seal variant, endcard motion) reports the same
+  // way without this loop needing to know it exists.
+  const held = heldMotionReasons();
   for (const f of allMotionFiles()) {
     const p = join(ASSETS, f);
-    // A held motion is a deliberate exemption, not a defect — report it with
-    // its reason so the hold stays visible instead of reading as a stray.
-    if (f === VERIFY_SEAL_MOTION.file && VERIFY_SEAL_MOTION.held) {
-      add('WARN', f, `REGISTERED BUT HELD — ${VERIFY_SEAL_MOTION.held}`);
+    if (held[f]) {
+      add('WARN', f, `REGISTERED BUT HELD — ${held[f]}`);
       continue;
     }
     if (!existsSync(p)) { add('WARN', f, 'not delivered — drops from its rotation; the resolver falls back'); continue; }

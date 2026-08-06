@@ -52,7 +52,8 @@ export interface StingerVariant {
  * Resolution order is MOTION_LOCKUP[tag] ?? variant.lockupTop ?? LOCKUP_TOP,
  * and the order matters: the defect this fixes is a property of the MOTION, not
  * the reel kind. MKT-41 could put 820 on the `verify` VARIANT only because
- * verify is PINNED to the seal (stingerMotionSetFor) — one kind, one motion. A
+ * verify drew exactly one motion (the seal — a set of one until MKT-49; any
+ * future seal VARIANT needs its own MOTION_LOCKUP measurement, per tag). A
  * rotating kind draws a different motion every day, so no per-variant constant
  * can be right for all of them, and `circuit` proved it: measured identically
  * (mark bottom y866, 475px void, L11.7) on allday_free, allday_public and

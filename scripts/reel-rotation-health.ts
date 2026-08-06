@@ -23,7 +23,7 @@ import { CARRIERS } from './carrier-config';
 import { carrierCandidates } from './reel-carrier';
 import { INTRO_ROTATION, FIXED_INTRO, introCandidates } from './anchor-intros';
 import {
-  STINGER_MOTIONS, ENDCARD_MOTIONS, VERIFY_SEAL_MOTION,
+  STINGER_MOTIONS, ENDCARD_MOTIONS, SEAL_KINDS, liveSealMotions,
   stingerMotionsFor, endcardMotionsFor, tierFor,
 } from './brand-motion';
 import { REEL_SCOPES, SCOPES, reelKind } from './reel-scopes';
@@ -78,7 +78,7 @@ export const LANES: Lane[] = [
       const f = this.pick(k, d);
       return f ? idx(INTRO_ROTATION, v => v.file === f) : 0;
     },
-    poolSize: k => (FIXED_INTRO[k] ? 1 : INTRO_ROTATION.length),
+    poolSize: k => FIXED_INTRO[k]?.length ?? INTRO_ROTATION.length,
   },
   {
     name: 'stinger',
@@ -88,9 +88,11 @@ export const LANES: Lane[] = [
       const t = this.pick(k, d);
       return t ? idx(STINGER_MOTIONS, m => m.tag === t) : 0;
     },
-    // verify + verify_public pin to the seal (MKT-31/40) — a standing ruling,
-    // reported as a pool of 1 rather than treated as a defect.
-    poolSize: k => ((k === 'verify' || k === 'verify_public') && !VERIFY_SEAL_MOTION.held ? 1 : STINGER_MOTIONS.length),
+    // verify + verify_public take the seal SET (MKT-31/40/49) — a standing
+    // ruling, reported at the set's true size rather than treated as a defect.
+    // While every member is held they draw the shared rotation (pre-seal
+    // behaviour), so the pool is the rotation's in that state.
+    poolSize: k => (SEAL_KINDS.includes(k) && liveSealMotions().length ? liveSealMotions().length : STINGER_MOTIONS.length),
   },
   {
     name: 'endcard',

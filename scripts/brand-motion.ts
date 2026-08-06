@@ -65,25 +65,45 @@ export interface MotionVariant {
 }
 
 /**
- * VERIFY'S PINNED STINGER MOTION — content-agent ruling, confirmed 2026-07-30
+ * VERIFY'S SEAL STINGER MOTIONS — content-agent ruling, confirmed 2026-07-30
  * (option a). Verify's value at this beat is being tonally DISTINCT from the
  * slate drops: the closing-bell seal — a gold ring sealing around an already-
  * standing bolt — says "session closed, results final", which is true of
- * yesterday's receipts and false of every 8:30am drop. So verify does not
- * rotate here anymore; it pins to seal, mirroring its fixed intro (MKT-17),
- * with the shared rotation as the FALLBACK while the built clip is absent.
- * Delivered 2026-07-29 19:16; not a member of the shared set on purpose — a
+ * yesterday's receipts and false of every 8:30am drop. So verify does not draw
+ * the shared rotation; it takes the seal, mirroring its fixed intro (MKT-17),
+ * with the shared rotation as the FALLBACK while no seal build is usable.
+ * Delivered 2026-07-29 19:16; not members of the shared set on purpose — a
  * slate drop must never draw the bell.
+ *
+ * MKT-49 (2026-08-06): a SET, not a single pin. The ruling pins verify to the
+ * seal CONCEPT, not to one file — and with every lane verify uses pinned to a
+ * set of one, verify had exactly FOUR distinct full arrangements, ever (the
+ * pro endcard rotation being its only moving part). New seal VARIANTS — same
+ * closing-bell concept, different cuts — register as one line here and rotate
+ * exactly like every other lane, spread across verify and verify_public via
+ * SEAL_KINDS. With one member the behaviour is byte-identical to the pin.
+ * A slate kind still cannot reach any of these; the set is only served to
+ * SEAL_KINDS and nothing else looks it up.
  */
-export const VERIFY_SEAL_MOTION: MotionVariant = {
-  file: 'stinger_motion_seal.mp4', tag: 'seal', label: 'closing-bell seal',
-  // HOLD CLEARED 2026-07-30 — the re-delivery (operator, via GitHub rename;
-  // 4.01s) measures CLEAN against the regeneration ask: energy peak −17.4dB
-  // at 1.10s (struck well before the ~2.0s bound), smooth decay under the
-  // smoke return, nothing after 2.4s above −19.2dB. The 7/29 delivery's
-  // defect (bell at 2.7s / −3.5dB, post-lockup, over the VO onset) is gone.
-  // Per the standing rule, this field was cleared LAST, after the measurement.
-};
+export const VERIFY_SEAL_MOTIONS: MotionVariant[] = [
+  {
+    file: 'stinger_motion_seal.mp4', tag: 'seal', label: 'closing-bell seal',
+    // HOLD CLEARED 2026-07-30 — the re-delivery (operator, via GitHub rename;
+    // 4.01s) measures CLEAN against the regeneration ask: energy peak −17.4dB
+    // at 1.10s (struck well before the ~2.0s bound), smooth decay under the
+    // smoke return, nothing after 2.4s above −19.2dB. The 7/29 delivery's
+    // defect (bell at 2.7s / −3.5dB, post-lockup, over the VO onset) is gone.
+    // Per the standing rule, this field was cleared LAST, after the measurement.
+  },
+];
+
+/** Kinds the seal set serves, in a stable order — its spread axis. */
+export const SEAL_KINDS = ['verify', 'verify_public'];
+
+/** The seal members currently in service — held ones drop out here. */
+export function liveSealMotions(): MotionVariant[] {
+  return VERIFY_SEAL_MOTIONS.filter(m => !m.held);
+}
 
 /** Stinger motions. Shared across tiers — a stinger carries no tier signal. */
 export const STINGER_MOTIONS: MotionVariant[] = [
@@ -200,7 +220,21 @@ const PRO_KINDS = new Set(['allday_pro', 'midday_pro', 'evening_pro', 'verify'])
 export const ENDCARD_KINDS: Record<Tier, string[]> = {
   pro: ['allday_pro', 'midday_pro', 'evening_pro', 'verify'],
   // MKT-40: verify_public is free-tier at the close like every public kind.
-  free: ['allday_free', 'midday_free', 'evening_free', 'allday_public', 'midday_public', 'evening_public', 'verify_public'],
+  //
+  // MKT-49 FINDING 4 (fixed 2026-08-06): LIVE KINDS FIRST, DORMANT KINDS LAST.
+  // verify_public used to sit at index 6, after the two unregistered session
+  // publics — and 6 ≡ 1 (mod the 5-motion free pool), which is midday_free's
+  // index. Congruent offsets on a shared pool draw the SAME member, so those
+  // two kinds closed on an identical endcard EVERY DAY, permanently — the
+  // per-kind spread was undone for exactly one pair, invisibly, by list order.
+  //
+  // The rule that prevents a recurrence: kinds that actually build stay ahead
+  // of kinds listed for future registration, so a dormant entry can never
+  // shift a live kind's offset into congruence. Registering midday_public /
+  // evening_public later APPENDS to the live block's tail — no live kind
+  // moves, which keeps the "registering them later is a no-op" promise above
+  // (the promise the old order broke in spirit while keeping to the letter).
+  free: ['allday_free', 'midday_free', 'evening_free', 'allday_public', 'verify_public', 'midday_public', 'evening_public'],
 };
 
 export function tierFor(kind: string): Tier {
@@ -278,15 +312,21 @@ export function stingerMotionsFor(kind: string, dateISO: string): MotionVariant[
   // Every kind used to draw the same motion each morning (measured: 1 distinct
   // across 6 kinds). Indexed within STINGER_KINDS so the walk is even.
   const rotation = laneRotate(STINGER_MOTIONS, dateISO, ROTATION_SALT.stinger, laneIndex(STINGER_KINDS, kind));
-  // MKT-31 item 5 — verify's stinger motion is FIXED to the seal, REPLACING
-  // rotation for this kind (matching its fixed intro): the shared five no
-  // longer serve verify at all. A missing or defective seal BUILD degrades to
-  // NO stinger (probeStinger's graceful null), never to a slate motion — the
-  // same semantics as the fixed intro's legacy-open fallback. While the seal
-  // is HELD, verify draws the rotation, which is the pre-seal behaviour.
-  // MKT-40: verify_public inherits the seal pin — it is the same reel's
-  // identity on a public surface (ruling recorded in the Phase 0 report).
-  if ((kind === 'verify' || kind === 'verify_public') && !VERIFY_SEAL_MOTION.held) return [VERIFY_SEAL_MOTION];
+  // MKT-31 item 5 — verify's stinger motion is the seal SET, REPLACING the
+  // rotation for this kind (matching its fixed intro): the shared five never
+  // serve verify while any seal member is live. A missing or defective seal
+  // BUILD degrades to NO stinger (probeStinger's graceful null), never to a
+  // slate motion — the same semantics as the fixed intro's legacy-open
+  // fallback. While EVERY seal member is HELD, verify draws the rotation,
+  // which is the pre-seal behaviour.
+  // MKT-40: verify_public inherits the seal — it is the same reel's identity
+  // on a public surface (ruling recorded in the Phase 0 report). MKT-49: the
+  // two halves spread across the seal set like any lane, so on multi-variant
+  // days they draw different cuts of the same bell.
+  const seal = liveSealMotions();
+  if (SEAL_KINDS.includes(kind) && seal.length) {
+    return laneRotate(seal, dateISO, ROTATION_SALT.stinger, laneIndex(SEAL_KINDS, kind));
+  }
   return rotation;
 }
 
@@ -297,7 +337,7 @@ export function stingerMotionsFor(kind: string, dateISO: string): MotionVariant[
  * stray scan's contract.
  */
 export function stingerMotionSetFor(kind: string): MotionVariant[] {
-  if ((kind === 'verify' || kind === 'verify_public') && !VERIFY_SEAL_MOTION.held) return [VERIFY_SEAL_MOTION, ...STINGER_MOTIONS];
+  if (SEAL_KINDS.includes(kind) && liveSealMotions().length) return [...liveSealMotions(), ...STINGER_MOTIONS];
   return STINGER_MOTIONS;
 }
 
@@ -343,8 +383,17 @@ export function endcardMotionsFor(
 export function allMotionFiles(): string[] {
   return [...new Set([
     ...STINGER_MOTIONS.map(m => m.file),
-    VERIFY_SEAL_MOTION.file,
+    ...VERIFY_SEAL_MOTIONS.map(m => m.file),
     ...ENDCARD_MOTIONS.pro.map(m => m.file),
     ...ENDCARD_MOTIONS.free.map(m => m.file),
   ])];
+}
+
+/** Hold reason per file, across every motion registry — for preflight. */
+export function heldMotionReasons(): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const m of [...STINGER_MOTIONS, ...VERIFY_SEAL_MOTIONS, ...ENDCARD_MOTIONS.pro, ...ENDCARD_MOTIONS.free]) {
+    if (m.held) out[m.file] = m.held;
+  }
+  return out;
 }

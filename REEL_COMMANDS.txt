@@ -3,6 +3,12 @@ HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
 changed. Every command has a description. (Last updated 2026-07-28 —
+UPDATED 2026-08-06 (MKT-49) — NEW COMMAND `npm run reel:rotation` shows
+what every reel will draw for days ahead, and reel:check now warns when
+the schedule repeats inside a week. The carrier lane no longer collapses
+onto every kind's incumbent one morning in four, and all four lanes
+reshuffle each cycle instead of walking a fixed loop. See ROTATION
+SCHEDULE below.
 UPDATED 2026-07-29 — four things rotate independently now (intro, stinger
 motion, endcard motion, carrier opening), every reel carries an identity chip
 over the anchor's shoulder, and the verify reel opens on the board it posted
@@ -598,6 +604,58 @@ npm run reel:check
     and reel:check names it as unreferenced, the FILENAME is
     wrong, not the file. Deliberate exceptions are listed with
     their reason (e.g. the rejected powerup intro).
+
+    ROTATION HEALTH (added 2026-08-06, MKT-49): reel:check now
+    also asks whether the SCHEDULE varies, not just whether the
+    assets are valid — the question that was missing when the
+    operator noticed intros and stingers recurring by watching
+    the drops. Per lane it reports the pool size, how many kinds
+    rotate, and how far apart the closest two mornings with an
+    IDENTICAL arrangement are; ⚠️ if that is under 7 days. It
+    also flags any asset playing on more than one reel today,
+    and says which of the two causes it is: a pool genuinely
+    smaller than the number of kinds (needs assets) or two kinds
+    mapped to the same offset (needs a config fix, no assets).
+    All ⚠️, never ⛔ — a short cycle degrades the drop, it never
+    breaks an assembly. Run npm run reel:rotation to see it.
+
+
+----------------------------------------------------------------
+ROTATION SCHEDULE (what each reel will draw, days ahead)
+----------------------------------------------------------------
+
+npm run reel:rotation
+
+    Prints what every reel kind is SCHEDULED to draw — intro,
+    stinger, endcard, carrier — for the next 14 days, plus how
+    many distinct full combinations each kind cycles through.
+    Read-only: builds nothing, touches no asset, safe any time.
+
+    This is the companion to reel:check's rotation warnings.
+    The check says "the stinger lane's closest repeat is 6 days
+    apart"; this shows the days, so the claim can be read rather
+    than trusted. Use it when a drop feels repetitive, before
+    asking for new assets (it tells you which lane is actually
+    thin), and after registering any new asset to confirm it
+    entered the rotation.
+
+    npm run reel:rotation -- --days 30
+    npm run reel:rotation -- --from 2026-08-01 --days 7
+    npm run reel:rotation -- --lane stinger
+
+    ⚠ It shows the SCHEDULE, not the outcome. Every lane resolves
+    by walking its candidates and taking the first file actually
+    on disk, so a MISSING member shifts that day's pick and this
+    table will not show it — reel:check reports missing assets
+    separately. A rotation that looks healthy only because a file
+    is missing is not healthy.
+
+    ⚠ The carrier lane's "repeats" column counts kinds sharing a
+    SET POSITION, not a shared file. Carrier sets are per-kind
+    and disjoint (an All-Day carrier cannot reach the Evening
+    reel), so a file collision is impossible there; what matters
+    is every kind sitting on its incumbent the same morning,
+    which is what used to happen every 4th day before MKT-49.
 
 
 ----------------------------------------------------------------

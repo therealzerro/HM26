@@ -36,6 +36,7 @@ import { stingerCandidates } from './reel-stinger';
 import { REEL_SCOPES, SCOPES, reelKind, captureModeFor } from './reel-scopes';
 import { allIntroFiles, introCandidates } from './anchor-intros';
 import { INTRO_MIN, INTRO_MAX } from './reel-intro';
+import { LANES, dailyKinds, laneReport, comboPeriod, PERIOD_WARN_BELOW } from './reel-rotation-health';
 
 // The app resolves panel URLs from EXPO_PUBLIC_SUPABASE_URL; load it so the
 // bucket probe below checks the same origin the app will.
@@ -938,6 +939,74 @@ function checkPublicGateRecords(): void {
   }
 }
 
+/**
+ * MKT-49 — does the schedule actually vary, or is every asset valid and the
+ * rotation still on a short loop?
+ *
+ * Every other check here answers "is this asset usable". None answered "will a
+ * viewer see the same arrangement twice this week", which is how the 2026-08-06
+ * repetition was found — by watching, not by preflight. Warnings only: a short
+ * cycle degrades the drop, it never breaks an assembly.
+ */
+function checkRotationHealth(): void {
+  const kinds = dailyKinds();
+  for (const lane of LANES) {
+    const r = laneReport(lane, TODAY, 1, kinds);
+    if (!r.rotating.length) {
+      add('PASS', `${lane.name} rotation`, `no rotating kind — every consumer is pinned by ruling`);
+      continue;
+    }
+    const pools = [...new Set(r.rotating.map(k => r.poolSizes[k]))].sort((a, b) => a - b).join('/');
+    const cycle = r.period ? `${r.period}-day cycle` : 'no fixed cycle';
+    const recur = r.minGap
+      ? `closest identical arrangement ${r.minGap}d apart (${r.minGapAt?.[0]} → ${r.minGapAt?.[1]})`
+      : 'never repeats a full arrangement';
+    const detail = `${r.rotating.length} rotating kinds · pool ${pools} · ${cycle} · ${recur}`;
+
+    // Driven by minGap, not period — see the LaneReport.minGap note for why the
+    // period alone stopped being a sufficient signal.
+    if (r.minGap && r.minGap < PERIOD_WARN_BELOW) {
+      const forever = r.period && r.period === r.minGap
+        ? ` and it does so on a FIXED ${r.period}-day cycle, without end`
+        : ' (isolated — the schedule has no fixed cycle)';
+      add('WARN', `${lane.name} rotation`, `${detail} — a daily viewer sees the same arrangement twice inside a week${forever}. Widen the pool or de-correlate the schedule.`);
+    } else {
+      add('PASS', `${lane.name} rotation`, detail);
+    }
+
+    const day = r.rows[0];
+    for (const rep of day.repeated) {
+      if (!lane.sharedPool) {
+        add('WARN', `${lane.name} rotation`, `today ${rep.member} — ${rep.times} rotating kinds sit at the same set position, i.e. moving in lockstep`);
+        continue;
+      }
+      // ⚠ DIAGNOSE, DO NOT ASSUME MORE ASSETS. A collision on a shared pool has
+      // two quite different causes and the earlier message asserted the first
+      // one unconditionally — telling the operator to generate 9 endcard
+      // motions when the actual free-tier collision is a spread-axis defect
+      // that no number of new assets would fix.
+      const drewIt = kinds.filter(k => lane.poolSize(k) > 1 && lane.pick(k, TODAY) === rep.member);
+      const pool = Math.max(...drewIt.map(k => lane.poolSize(k)));
+      // Consumers competing for THIS member's pool — i.e. same pool size, since
+      // the endcard lane's two tiers draw from separate pools of their own.
+      const competing = r.rotating.filter(k => lane.poolSize(k) === pool).length;
+      const why = pool < competing
+        ? `pool of ${pool} serving ${competing} kinds — forced; ${competing} members needed for a distinct one each`
+        : `pool of ${pool} is large enough for its ${competing} kinds, so this is NOT an asset shortage — the lane's spread axis maps two kinds to the same offset. Check the kind list feeding laneIndex for this lane`;
+      add('WARN', `${lane.name} rotation`, `today ${rep.member} plays on ${drewIt.join(' + ')} — ${why}`);
+    }
+  }
+
+  // Per-kind combination depth — the number that says how much variety a single
+  // room's follower actually gets, which no per-lane number can show.
+  const combos = dailyKinds()
+    .map(k => ({ k, p: comboPeriod(k, TODAY) }))
+    .sort((a, b) => a.p - b.p);
+  const thin = combos.filter(c => c.p > 0 && c.p < PERIOD_WARN_BELOW);
+  add(thin.length ? 'WARN' : 'PASS', 'rotation depth',
+    `distinct full combinations per kind — ${combos.map(c => `${c.k} ${c.p || '>200'}`).join(' · ')}`);
+}
+
 // Intro FIRST — it sets INTRO_ACTIVE, which shifts the carrier VO window.
 INTRO_ACTIVE = checkIntros();
 checkPartNaming();
@@ -949,6 +1018,7 @@ checkStingers();
 checkVerify();
 checkPanels();
 checkStamp();
+checkRotationHealth();
 
 const ICON = { PASS: '✅', WARN: '⚠️ ', FAIL: '⛔' } as const;
 for (const f of findings) console.log(`${ICON[f.level]} ${f.asset} — ${f.msg}`);

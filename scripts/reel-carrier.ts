@@ -18,8 +18,8 @@
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, statSync } from 'node:fs';
 import { basename, join } from 'node:path';
-import { CARRIERS, type CarrierVariant } from './carrier-config';
-import { rotateByDate, ROTATION_SALT } from './reel-rotation';
+import { CARRIERS, CARRIER_KINDS, type CarrierVariant } from './carrier-config';
+import { laneRotate, laneIndex, ROTATION_SALT } from './reel-rotation';
 
 export const CARRIER_CACHE = '_carrier_joined';
 
@@ -103,7 +103,10 @@ export function carrierCandidates(kind: string, dateISO: string, forceFile?: str
   const spec = CARRIERS[kind];
   if (!spec) return [];
   if (forceFile) return spec.set.filter(v => v.file === forceFile || v.file === `${forceFile}.mp4`);
-  const ordered = rotateByDate(spec.set, dateISO, ROTATION_SALT.carrier);
+  // Spread across kinds, not just across dates — see CARRIER_KINDS for the
+  // lockstep collapse this closes and for why the axis lists only rotating
+  // kinds. Was `rotateByDate` (no kind index) from MKT-20 until 2026-08-06.
+  const ordered = laneRotate(spec.set, dateISO, ROTATION_SALT.carrier, laneIndex(CARRIER_KINDS, kind));
   const incumbent = spec.set[0];
   if (incumbent && !ordered.some(v => v.file === incumbent.file)) ordered.push(incumbent);
   return ordered;

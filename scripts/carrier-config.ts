@@ -186,6 +186,39 @@ export const CARRIERS: Record<string, CarrierSpec> = {
 };
 
 /**
+ * Kinds that carry a ROTATING part 1, in a stable order — the carrier lane's
+ * spread axis. Counterpart to STINGER_KINDS / ENDCARD_KINDS.
+ *
+ * THE DEFECT THIS CLOSES (measured 2026-08-06). MKT-20 built this lane on
+ * `rotateByDate` and the per-kind spread that landed for the other three lanes
+ * on 2026-07-29 never reached it — `laneRotate` was added to the shared helper
+ * and this call site kept the older one. So every rotating set advanced in
+ * LOCKSTEP, and because entry 0 of each is the incumbent, all three landed on
+ * their incumbent on the same morning once every four days:
+ *
+ *   2026-08-03  engine ran all night │ come back and check │ last board of the day
+ *   2026-08-04  incumbent            │ incumbent           │ incumbent      ← collapse
+ *
+ * That is the exact failure the header of reel-rotation.ts says the shared
+ * helper exists to prevent, arriving through the one lane that did not use it.
+ *
+ * NOTE THE STRUCTURAL DIFFERENCE from the other lanes, because it changes what
+ * "spread" means here. Stinger and endcard kinds share ONE pool, so spreading
+ * stops two kinds drawing the same file. Carrier sets are per-kind and disjoint
+ * — `allday_pro` structurally cannot reach an evening carrier — so nothing here
+ * can collide on a file. What spreads is the POSITION within each kind's own
+ * set, which is what stops every room hearing its most-familiar opening on the
+ * same morning.
+ *
+ * Single-entry kinds are deliberately absent: `laneIndex` returns 0 for an
+ * absent kind and a set of one cannot de-phase, so listing them would add
+ * nothing and invite the impression that it does. APPENDING a kind here is
+ * safe; INSERTING one re-phases every kind below it and changes which carrier
+ * past dates resolve to.
+ */
+export const CARRIER_KINDS = ['allday_pro', 'allday_free', 'evening_pro'];
+
+/**
  * PART 1 FILES IN A SET MUST ALL BE THE SAME LENGTH, and preflight asserts it.
  *
  * The continuation's offset in the join is part 1's FILE duration, not its

@@ -13,7 +13,7 @@
 // decides, and there is no code path that takes a motion from the other set.
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { rotateByDate, laneRotate, laneIndex, ROTATION_SALT } from './reel-rotation';
+import { laneRotate, laneIndex, ROTATION_SALT } from './reel-rotation';
 
 export type Tier = 'pro' | 'free';
 

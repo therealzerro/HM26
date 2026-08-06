@@ -39,6 +39,7 @@
     "reel:daily": "bash scripts/run-daily-reels.sh",
     "reel:publish": "tsx scripts/publish-reels.ts",
     "reel:check": "tsx scripts/check-reel-assets.ts",
+    "reel:rotation": "tsx scripts/show-rotation.ts",
     "reel:captions-pdf": "tsx scripts/render-captions-pdf.ts",
     "social:dryrun": "tsx scripts/social-handoff-dryrun.ts",
     "endcard:build": "tsx scripts/build-endcard.ts",

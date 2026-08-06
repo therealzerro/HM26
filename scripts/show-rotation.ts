@@ -17,7 +17,7 @@
  * separately. See the header of reel-rotation-health.ts.
  */
 import {
-  LANES, dailyKinds, laneReport, comboPeriod, addDays, PERIOD_WARN_BELOW,
+  LANES, dailyKinds, laneReport, comboDistinct, comboPeriod, addDays, PERIOD_WARN_BELOW,
 } from './reel-rotation-health';
 
 const argv = process.argv.slice(2);
@@ -96,11 +96,15 @@ for (const lane of lanes) {
 }
 
 if (!only) {
-  console.log('═══ COMBINATION DEPTH — distinct (intro × stinger × endcard × carrier) per kind');
-  for (const k of kinds.map(k => ({ k, p: comboPeriod(k, from) })).sort((a, b) => a.p - b.p)) {
-    const mark = k.p > 0 && k.p < PERIOD_WARN_BELOW ? ' ⚠' : '';
-    console.log(`  ${k.k.padEnd(16)} ${String(k.p || '>200').padStart(4)} distinct${mark}`);
+  console.log('═══ COMBINATION DEPTH — intro × stinger × endcard × carrier, per kind');
+  console.log('  kind             distinct   repeats after');
+  for (const k of kinds.map(k => ({ k, n: comboDistinct(k, from), p: comboPeriod(k, from) })).sort((a, b) => a.n - b.n)) {
+    const mark = k.n < 14 ? ' ⚠ thin' : '';
+    console.log(`  ${k.k.padEnd(16)} ${String(k.n).padStart(6)}   ${k.p ? `${k.p}d` : '>300d'}${mark}`);
   }
-  console.log(`\n  A kind's follower sees its whole arrangement repeat after this many days.`);
+  console.log(`\n  DISTINCT is how many arrangements the assets can produce — the number to`);
+  console.log(`  budget against. REPEATS AFTER is how long the schedule takes to come back`);
+  console.log(`  round, which the reshuffle stretches. A kind can be thin and still never`);
+  console.log(`  visibly repeat; only new assets raise the left-hand column.`);
 }
 console.log(`\n  Window: ${from} → ${addDays(from, days - 1)}\n`);

@@ -36,7 +36,7 @@ import { stingerCandidates } from './reel-stinger';
 import { REEL_SCOPES, SCOPES, reelKind, captureModeFor } from './reel-scopes';
 import { allIntroFiles, introCandidates } from './anchor-intros';
 import { INTRO_MIN, INTRO_MAX } from './reel-intro';
-import { LANES, dailyKinds, laneReport, comboPeriod, PERIOD_WARN_BELOW } from './reel-rotation-health';
+import { LANES, dailyKinds, laneReport, comboDistinct, PERIOD_WARN_BELOW } from './reel-rotation-health';
 
 // The app resolves panel URLs from EXPO_PUBLIC_SUPABASE_URL; load it so the
 // bucket probe below checks the same origin the app will.
@@ -997,14 +997,23 @@ function checkRotationHealth(): void {
     }
   }
 
-  // Per-kind combination depth — the number that says how much variety a single
-  // room's follower actually gets, which no per-lane number can show.
+  // Per-kind combination depth — how much variety a single room's follower
+  // actually gets, which no per-lane number can show.
+  //
+  // ⚠ Reports DISTINCT arrangements, not the repeat period. They coincide only
+  // under a fixed walk; after MKT-49's reshuffle a kind with four arrangements
+  // can cycle them for years without repeating, and printing that period as
+  // "distinct" claims variety the assets do not have.
   const combos = dailyKinds()
-    .map(k => ({ k, p: comboPeriod(k, TODAY) }))
-    .sort((a, b) => a.p - b.p);
-  const thin = combos.filter(c => c.p > 0 && c.p < PERIOD_WARN_BELOW);
+    .map(k => ({ k, n: comboDistinct(k, TODAY) }))
+    .sort((a, b) => a.n - b.n);
+  // A kind with fewer arrangements than a fortnight of drops is thin no matter
+  // how well the schedule spaces them — that is an ASSET finding, not a
+  // scheduling one, and it is the only lever left for the pinned kinds.
+  const thin = combos.filter(c => c.n < 14);
   add(thin.length ? 'WARN' : 'PASS', 'rotation depth',
-    `distinct full combinations per kind — ${combos.map(c => `${c.k} ${c.p || '>200'}`).join(' · ')}`);
+    `distinct full arrangements per kind — ${combos.map(c => `${c.k} ${c.n}`).join(' · ')}` +
+    (thin.length ? ` — ${thin.map(c => c.k).join(', ')} below a fortnight; every lane they use is pinned by ruling, so only new assets move these` : ''));
 }
 
 // Intro FIRST — it sets INTRO_ACTIVE, which shifts the carrier VO window.

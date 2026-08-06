@@ -253,7 +253,31 @@ export function laneReport(lane: Lane, startISO: string, days: number, kinds = d
   return { lane: lane.name, kinds, rotating, poolSizes, rows, period, minGap, minGapAt, maxRepeat, poolNeeded };
 }
 
-/** Distinct full (intro × stinger × endcard × carrier) combinations for a kind. */
+/**
+ * How many DISTINCT full arrangements a kind can actually show.
+ *
+ * ⚠ NOT THE SAME AS `comboPeriod`, and conflating them overstates the win.
+ * Under a fixed modulo walk the two coincide — the schedule cycles through
+ * every combination it has, so the repeat period IS the distinct count. Once
+ * the schedule is reshuffled they diverge completely: a kind with four
+ * arrangements can visit them in an order that does not repeat for years, and
+ * reporting that period as "distinct combinations" would claim variety the
+ * assets cannot deliver. `verify` reads 4 here and >200 there.
+ *
+ * This is the number to budget assets against. The period is the number to
+ * judge whether the schedule feels repetitive.
+ */
+export function comboDistinct(kind: string, startISO: string): number {
+  const anchor = periodAnchor(startISO);
+  const seen = new Set<string>();
+  for (let i = 0; i < PERIOD_SCAN; i++) {
+    const d = addDays(anchor, i);
+    seen.add(LANES.map(l => l.pick(kind, d) ?? '-').join('|'));
+  }
+  return seen.size;
+}
+
+/** Days before a kind's full arrangement sequence repeats. See comboDistinct. */
 export function comboPeriod(kind: string, startISO: string): number {
   const anchor = periodAnchor(startISO);
   const sig = (i: number) => {

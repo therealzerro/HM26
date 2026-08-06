@@ -241,7 +241,21 @@ Exact scripted lines. **No time-of-day words in pt1** — the point of the rewri
 | endcard | 4 pro / 5 free | 9 | 20-day cycle | no fixed cycle · closest repeat 94d |
 | carrier | 4 | 3 | **4-day fixed cycle** + total collapse every 4th day | no fixed cycle · closest repeat 6d (isolated) |
 
-Full-combination depth per kind went from **verify 4 · pro kinds 12 · allday_public 20 · free kinds 60** to **>200 on every kind**.
+Full-combination depth per kind:
+
+| kind | before | after | note |
+|---|---|---|---|
+| allday_free | 60 | **221** | |
+| allday_pro | 12 | **211** | |
+| evening_pro | 12 | **203** | |
+| evening_free | 60 | **113** | single-entry carrier |
+| midday_free | 60 | **112** | single-entry carrier |
+| midday_pro | 12 | **94** | single-entry carrier |
+| allday_public | 20 | **20 — unchanged** | fixed intro + single carrier |
+| verify_public | 5 | **5 — unchanged** | fixed intro + pinned seal + single carrier |
+| verify | 4 | **4 — unchanged** | as above |
+
+⚠ **DISTINCT ARRANGEMENTS IS NOT THE REPEAT PERIOD, and the first cut of this entry conflated them** — it claimed ">200 on every kind", which was the period. Under a fixed modulo walk the two coincide (the schedule cycles through everything it has, so the period IS the count). After the reshuffle they diverge completely: `verify` visits its FOUR arrangements in an order that does not repeat for 300+ days. Reporting that as ">200 distinct" claims variety the assets cannot deliver. `comboDistinct()` now reports the count and `comboPeriod()` the period, and both are printed side by side. **The three pinned kinds gained nothing from this work and could not have** — every lane they use is a set of one by ruling, and a reshuffle cannot vary what has one member. They move only with assets.
 
 **FINDING 1 — the carrier lane never got the 2026-07-29 per-kind spread fix.** `reel-carrier.ts` called `rotateByDate` (no kind index) while the other three lanes moved to `laneRotate`. All three rotating sets advanced in lockstep and, because entry 0 of each is the incumbent, **all three landed on their incumbent on the same morning once every four days** (8/04, 8/08, 8/12 …) — the "everything sounds the same today" day. This is the exact failure the header of `reel-rotation.ts` says the shared helper exists to prevent, arriving through the one lane that did not use it. Fixed by adding `CARRIER_KINDS` as the lane's spread axis. ⚠ Note the structural difference recorded at that constant: carrier sets are **per-kind and disjoint**, so no file collision is possible and what spreads is the POSITION within each kind's own set.
 

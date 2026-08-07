@@ -129,7 +129,10 @@ export async function buildSocialBrief(today = getTodayET()): Promise<SocialBrie
   const yesterday = getYesterdayET();
   const [rc, brief, todayRes] = await Promise.all([
     fetchReportCardData(yesterday),
-    computeBrief(today),
+    // MKT-50 (2026-08-07): published plays honor the same midday pos 1–2
+    // exclusion as the operator brief. Before this, 8 of the prior 14 days'
+    // published Daytime plays included positions the operator rule strikes.
+    computeBrief(today, { middayPosRule: true }),
     fetchTodayResolution(today),
   ]);
 

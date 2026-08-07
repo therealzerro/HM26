@@ -149,11 +149,12 @@ function tierOf(footprint90: number, multiScope: boolean, tag: string): { tier: 
 }
 
 // ── main ─────────────────────────────────────────────────────────────────────
-// opts.middayPosRule: when true (admin BriefView), midday slate positions 1–2
-// are excluded from per-scope `play`. Default false so buildSocialBrief — which
-// publishes `play` to the subscriber groups — keeps its exact prior behavior
-// (subscriber surfaces are hands-off). `excluded`/`allocation`/flags are
-// admin-only consumers and always honor the rule.
+// opts.middayPosRule: when true, midday slate positions 1–2 are excluded from
+// per-scope `play`. Both callers pass true — admin BriefView, and since MKT-50
+// (2026-08-07) buildSocialBrief too, so published subscriber plays honor the
+// same exclusion the operator brief enforces. Default stays false (explicit
+// opt-in) so a new caller can't silently inherit the rule without choosing it.
+// `excluded`/`allocation`/flags always honor the rule regardless.
 export async function computeBrief(date: string, opts: { middayPosRule?: boolean } = {}): Promise<BriefData> {
   const middayPosRule = opts.middayPosRule ?? false;
   const YEST = addDays(date, -1);

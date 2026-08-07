@@ -6,8 +6,11 @@
  * brief in two surface variants governed by the 2026-06-29 §6 discipline:
  *   PUBLIC  — aggregate only: counts + jurisdiction COUNT, no digits, no state
  *             codes, no attribution, no pricing.  (passes Two-Question)
- *   GROUP   — full: today's recommended plays (digits), yesterday's outcome
- *             per session with STRAIGHT MATCH / BOX MATCH vocab (§4a).
+ *   GROUP   — yesterday's outcome per session with STRAIGHT MATCH / BOX MATCH
+ *             vocab (§4a) + resolved intraday outcomes. The UNRESOLVED-session
+ *             pair (todayPlays digits) renders for the PRO tier only (MKT-50
+ *             addendum); free sees a locked teaser. Gating lives in the card —
+ *             the data here is tier-independent and cached across tiers.
  *
  * Reuses faithful, read-only sources: reportCard (slate∩histories aggregate)
  * and computeBrief (per-scope plays + yesterday). Never stored hit flags.

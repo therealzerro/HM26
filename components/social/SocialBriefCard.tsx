@@ -143,6 +143,11 @@ export const SocialBriefCard = forwardRef<View, SocialBriefCardProps>(function S
                 ) : (
                   <Text style={styles.resolvedMiss}>{s.todayLive ? 'no match yet — session live' : 'no match this session'}</Text>
                 )
+              ) : !isPro ? (
+                /* MKT-50 addendum: the unresolved-session pair is Pro-only.
+                   Free keeps the receipts (yesterday + resolved outcomes) —
+                   the upcoming combinations are the thing Pro pays for. */
+                <Text style={styles.playLocked}>🔒 today's combinations release in Pro first</Text>
               ) : s.todayPlays.length === 0 ? (
                 <Text style={styles.playNone}>— no signal surfaced —</Text>
               ) : (
@@ -307,6 +312,7 @@ const styles = StyleSheet.create({
   playDigits: { color: C.text, fontSize: 20, fontWeight: '900', fontFamily: MONO, letterSpacing: 2 },
   playSet: { color: C.textFaint, fontSize: 10, fontFamily: MONO },
   playNone: { color: C.textFaint, fontSize: 12, marginTop: 4, fontStyle: 'italic' },
+  playLocked: { color: C.goldSoft, fontSize: 11, fontWeight: '700', marginTop: 5 },
   multChip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, borderWidth: 1 },
   multText: { fontSize: 9, fontWeight: '900', letterSpacing: 0.6, fontFamily: MONO },
 

@@ -15,6 +15,12 @@
                        framing and NO pricing (§6).
 
    Cosmic brand palette (Brief v2 §7). Capture-stable colors.
+
+   FORMAT (MKT-50 addendum 3, 2026-08-07): fixed 960×960 — 1:1 photo, exported
+   at 1920×1920 by the pixelRatio-2 capture. The body is a variant-aware
+   two-column pack: pro = [yesterday + today | concentration + notes],
+   free/public = [yesterday | today]. The prior 480-wide tall scroll was
+   unreadable at feed scale.
    ============================================================================ */
 
 import React, { forwardRef } from 'react';
@@ -66,55 +72,43 @@ export const SocialBriefCard = forwardRef<View, SocialBriefCardProps>(function S
   const isPro = groupTier === 'pro';
   const proFooter = groupTier ? groupTier === 'free' : !!showProFooter;
 
-  return (
-    <View ref={ref} collapsable={false} style={styles.card}>
-      {/* Header / wordmark */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.brand}>HITMASTER <Text style={{ color: C.cyan }}>ZK6</Text></Text>
-          <Text style={styles.kicker}>
-            {isPublic ? 'DAILY INTELLIGENCE' : isPro ? 'INNER-CIRCLE BRIEF' : 'MEMBER BRIEF'} · {data.todayLabel}
-          </Text>
-        </View>
-        <View style={[styles.badge, { borderColor: isPro ? C.gold : isPublic ? C.cyan : C.purple }]}>
-          <Text style={[styles.badgeText, { color: isPro ? C.goldSoft : isPublic ? C.cyanSoft : C.purpleSoft }]}>
-            {isPublic ? '⚡ LIVE' : isPro ? '💎 PRO' : '⚡ MEMBERS'}
-          </Text>
-        </View>
+  /* Panels are built once, then packed into the 1:1 two-column body below
+     (MKT-50 addendum 3): pro = [yesterday+today | concentration+notes],
+     free/public = [yesterday | today]. */
+  const yesterdayPanel = (
+    /* Yesterday scorecard — aggregate stats (safe every surface) */
+    <View style={styles.panel}>
+      <Text style={styles.panelLabel}>YESTERDAY · {data.yesterdayLabel}</Text>
+      <View style={styles.statRow}>
+        <Stat value={`${data.verifiedCount}/${data.totalSignals}`} label="signals aligned" color={C.green} />
+        <Stat value={`${data.jurisdictionCount}`} label="jurisdictions" color={C.cyan} />
+        {!isPublic && <Stat value={`${data.verified30d}`} label="verified · 30d" color={C.gold} />}
       </View>
-
-      {/* Yesterday scorecard — aggregate stats (safe every surface) */}
-      <View style={styles.panel}>
-        <Text style={styles.panelLabel}>YESTERDAY · {data.yesterdayLabel}</Text>
-        <View style={styles.statRow}>
-          <Stat value={`${data.verifiedCount}/${data.totalSignals}`} label="signals aligned" color={C.green} />
-          <Stat value={`${data.jurisdictionCount}`} label="jurisdictions" color={C.cyan} />
-          {!isPublic && <Stat value={`${data.verified30d}`} label="verified · 30d" color={C.gold} />}
-        </View>
-        {isPublic ? (
-          <Text style={styles.aggLine}>
-            {data.verifiedCount} of {data.totalSignals} daily-intelligence signals aligned with observed outcomes.
-          </Text>
-        ) : (
-          /* GROUP: per-session outcome WITH the matching combos */
-          <View style={{ marginTop: 4 }}>
-            {data.scopes.map((s) => <YesterdayRow key={s.scope} s={s} />)}
-          </View>
-        )}
-      </View>
-
       {isPublic ? (
-        <View style={styles.panel}>
-          <Text style={styles.panelLabel}>TODAY</Text>
-          <Text style={styles.publicBody}>
-            {"Today's cross-jurisdictional analysis is published. Real-time signal processing across the full national dataset."}
-          </Text>
-          <Text style={styles.publicCta}>Full intelligence drops in the free community 👇</Text>
-        </View>
+        <Text style={styles.aggLine}>
+          {data.verifiedCount} of {data.totalSignals} daily-intelligence signals aligned with observed outcomes.
+        </Text>
       ) : (
-        /* GROUP: today per session — RESOLVED sessions show their live outcome,
-           upcoming sessions show recommended plays (SOCIAL-06 intraday). */
-        <View style={[styles.panel, { backgroundColor: C.panelHi }]}>
+        /* GROUP: per-session outcome WITH the matching combos */
+        <View style={{ marginTop: 4 }}>
+          {data.scopes.map((s) => <YesterdayRow key={s.scope} s={s} />)}
+        </View>
+      )}
+    </View>
+  );
+
+  const todayPanel = isPublic ? (
+    <View style={styles.panel}>
+      <Text style={styles.panelLabel}>TODAY</Text>
+      <Text style={styles.publicBody}>
+        {"Today's cross-jurisdictional analysis is published. Real-time signal processing across the full national dataset."}
+      </Text>
+      <Text style={styles.publicCta}>Full intelligence drops in the free community 👇</Text>
+    </View>
+  ) : (
+    /* GROUP: today per session — RESOLVED sessions show their live outcome,
+       upcoming sessions show recommended plays (SOCIAL-06 intraday). */
+    <View style={[styles.panel, { backgroundColor: C.panelHi }]}>
           <Text style={styles.panelLabel}>TODAY</Text>
           {data.scopes.map((s, idx) => (
             <View key={s.scope} style={[styles.playSection, idx < data.scopes.length - 1 && styles.playDivider]}>
@@ -167,11 +161,11 @@ export const SocialBriefCard = forwardRef<View, SocialBriefCardProps>(function S
             </View>
           ))}
         </View>
-      )}
+  );
 
-      {/* PRO depth (MKT-50) — observation language only: the model's behavior
-          is described, never prescribed. §4-relabel ruling 2026-08-07. */}
-      {!isPublic && isPro && data.pro && (
+  /* PRO depth (MKT-50) — observation language only: the model's behavior
+     is described, never prescribed. §4-relabel ruling 2026-08-07. */
+  const proPanels = !isPublic && isPro && data.pro ? (
         <>
           <View style={styles.panel}>
             <Text style={styles.panelLabel}>WHERE THE MODEL CONCENTRATES</Text>
@@ -190,8 +184,11 @@ export const SocialBriefCard = forwardRef<View, SocialBriefCardProps>(function S
                   <View style={{ flex: 1 }} />
                   <Text style={styles.concScopes}>{c.scopeLabels.join(' + ').toUpperCase()}</Text>
                 </View>
-                <Text style={styles.concMeta}>
-                  90-day activity {c.footprint90}{c.stateFootprint ? ` · ${c.stateFootprint}` : ''}
+                {/* top-3 states keeps this a single line — the square has no
+                    room for a wrapped meta row, and 3 carries the message */}
+                <Text style={styles.concMeta} numberOfLines={1}>
+                  90-day activity {c.footprint90}
+                  {c.stateFootprint ? ` · ${c.stateFootprint.split(', ').slice(0, 3).join(', ')}` : ''}
                 </Text>
               </View>
             ))}
@@ -226,7 +223,36 @@ export const SocialBriefCard = forwardRef<View, SocialBriefCardProps>(function S
             </Text>
           </View>
         </>
-      )}
+  ) : null;
+
+  return (
+    <View ref={ref} collapsable={false} style={styles.card}>
+      {/* Header / wordmark */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.brand}>HITMASTER <Text style={{ color: C.cyan }}>ZK6</Text></Text>
+          <Text style={styles.kicker}>
+            {isPublic ? 'DAILY INTELLIGENCE' : isPro ? 'INNER-CIRCLE BRIEF' : 'MEMBER BRIEF'} · {data.todayLabel}
+          </Text>
+        </View>
+        <View style={[styles.badge, { borderColor: isPro ? C.gold : isPublic ? C.cyan : C.purple }]}>
+          <Text style={[styles.badgeText, { color: isPro ? C.goldSoft : isPublic ? C.cyanSoft : C.purpleSoft }]}>
+            {isPublic ? '⚡ LIVE' : isPro ? '💎 PRO' : '⚡ MEMBERS'}
+          </Text>
+        </View>
+      </View>
+
+      {/* 1:1 body — two columns packed inside the fixed square (MKT-50
+          addendum 3: the tall single-column scroll was unreadable in-feed). */}
+      <View style={styles.cols}>
+        <View style={styles.col}>
+          {yesterdayPanel}
+          {isPro ? todayPanel : null}
+        </View>
+        <View style={styles.col}>
+          {isPro ? proPanels : todayPanel}
+        </View>
+      </View>
 
       {/* Footer */}
       <View style={styles.footer}>
@@ -271,65 +297,74 @@ function Stat({ value, label, color }: { value: string; label: string; color: st
 const MONO = 'monospace';
 
 const styles = StyleSheet.create({
-  card: { width: 480, backgroundColor: C.bg, padding: 26, borderRadius: 22, borderWidth: 1, borderColor: C.panelEdge },
+  // 1:1 photo format (MKT-50 addendum 3) — 960pt square → 1920×1920 PNG at the
+  // capture pipeline's pixelRatio 2. Fixed height makes the square true by
+  // construction; overflow hidden clips rather than breaking the aspect.
+  // Type scale is ~1.4× the retired 480-wide tall card — filling the square at
+  // readable feed size is the point of the format switch.
+  card: { width: 960, height: 960, backgroundColor: C.bg, padding: 28, borderRadius: 26, borderWidth: 1, borderColor: C.panelEdge, overflow: 'hidden' },
+  // overflow hidden on the column band, not just the card: a long column may
+  // clip its last panel edge, but it can never push the footer off the square.
+  cols: { flex: 1, flexDirection: 'row', gap: 14, overflow: 'hidden' },
+  col: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
-  brand: { color: C.text, fontSize: 23, fontWeight: '900', letterSpacing: 0.5 },
-  kicker: { color: C.purpleSoft, fontSize: 10.5, fontWeight: '800', letterSpacing: 2, marginTop: 4 },
-  badge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1.5, backgroundColor: 'rgba(255,255,255,0.03)' },
-  badgeText: { fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  brand: { color: C.text, fontSize: 32, fontWeight: '900', letterSpacing: 0.5 },
+  kicker: { color: C.purpleSoft, fontSize: 15, fontWeight: '800', letterSpacing: 2.5, marginTop: 5 },
+  badge: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, borderWidth: 2, backgroundColor: 'rgba(255,255,255,0.03)' },
+  badgeText: { fontSize: 14, fontWeight: '900', letterSpacing: 1.2 },
 
-  panel: { backgroundColor: C.panel, borderRadius: 16, borderWidth: 1, borderColor: C.panelEdge, padding: 16, marginBottom: 12 },
-  panelLabel: { color: C.textDim, fontSize: 10, fontWeight: '800', letterSpacing: 1.5, marginBottom: 12 },
+  panel: { backgroundColor: C.panel, borderRadius: 18, borderWidth: 1, borderColor: C.panelEdge, padding: 20, marginBottom: 14 },
+  panelLabel: { color: C.textDim, fontSize: 14, fontWeight: '800', letterSpacing: 2, marginBottom: 14 },
 
-  statRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-  stat: { flex: 1, alignItems: 'center', paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.03)' },
-  statValue: { fontSize: 26, fontWeight: '900', fontFamily: MONO },
-  statLabel: { color: C.textFaint, fontSize: 8.5, fontWeight: '700', letterSpacing: 0.5, marginTop: 2, textAlign: 'center' },
-  aggLine: { color: C.textDim, fontSize: 12, lineHeight: 18 },
+  statRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  stat: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)' },
+  statValue: { fontSize: 36, fontWeight: '900', fontFamily: MONO },
+  statLabel: { color: C.textFaint, fontSize: 12, fontWeight: '700', letterSpacing: 0.5, marginTop: 3, textAlign: 'center' },
+  aggLine: { color: C.textDim, fontSize: 17, lineHeight: 25 },
 
-  publicBody: { color: C.text, fontSize: 14, lineHeight: 21, marginBottom: 10 },
-  publicCta: { color: C.gold, fontSize: 13, fontWeight: '800' },
+  publicBody: { color: C.text, fontSize: 20, lineHeight: 30, marginBottom: 12 },
+  publicCta: { color: C.gold, fontSize: 18, fontWeight: '800' },
 
   // yesterday per-session
-  yRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderTopWidth: 1, borderTopColor: C.hair },
-  yScope: { width: 78, color: C.purpleSoft, fontSize: 11, fontWeight: '800' },
-  yCombos: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
-  yChip: { backgroundColor: 'rgba(52,211,153,0.12)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1 },
-  yChipText: { color: C.green, fontSize: 9, fontFamily: MONO, fontWeight: '700' },
-  yDash: { color: C.textFaint, fontSize: 12 },
-  yTag: { width: 96, textAlign: 'right', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.4, fontFamily: MONO },
+  yRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 9, borderTopWidth: 1, borderTopColor: C.hair },
+  yScope: { width: 110, color: C.purpleSoft, fontSize: 15, fontWeight: '800' },
+  yCombos: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  yChip: { backgroundColor: 'rgba(52,211,153,0.12)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
+  yChipText: { color: C.green, fontSize: 13, fontFamily: MONO, fontWeight: '700' },
+  yDash: { color: C.textFaint, fontSize: 16 },
+  yTag: { width: 130, textAlign: 'right', fontSize: 12, fontWeight: '900', letterSpacing: 0.5, fontFamily: MONO },
 
   // today plays
-  playSection: { paddingVertical: 8 },
+  playSection: { paddingVertical: 11 },
   playDivider: { borderBottomWidth: 1, borderBottomColor: C.hair },
   playScopeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  playScope: { color: C.cyanSoft, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
-  playState: { fontSize: 9, fontWeight: '900', letterSpacing: 0.8, fontFamily: MONO },
-  resolvedRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 5, flexWrap: 'wrap' },
-  resolvedTag: { fontSize: 11, fontWeight: '900', letterSpacing: 0.5, fontFamily: MONO },
-  resolvedMiss: { color: C.textFaint, fontSize: 11, marginTop: 5, fontStyle: 'italic' },
-  playRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(168,85,247,0.10)', borderRadius: 10, borderWidth: 1, borderColor: C.purple + '33', paddingHorizontal: 12, paddingVertical: 7 },
-  playDigits: { color: C.text, fontSize: 20, fontWeight: '900', fontFamily: MONO, letterSpacing: 2 },
-  playSet: { color: C.textFaint, fontSize: 10, fontFamily: MONO },
-  playNone: { color: C.textFaint, fontSize: 12, marginTop: 4, fontStyle: 'italic' },
-  playLocked: { color: C.goldSoft, fontSize: 11, fontWeight: '700', marginTop: 5 },
-  multChip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, borderWidth: 1 },
-  multText: { fontSize: 9, fontWeight: '900', letterSpacing: 0.6, fontFamily: MONO },
+  playScope: { color: C.cyanSoft, fontSize: 14, fontWeight: '900', letterSpacing: 2 },
+  playState: { fontSize: 12.5, fontWeight: '900', letterSpacing: 1, fontFamily: MONO },
+  resolvedRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 7, flexWrap: 'wrap' },
+  resolvedTag: { fontSize: 15, fontWeight: '900', letterSpacing: 0.6, fontFamily: MONO },
+  resolvedMiss: { color: C.textFaint, fontSize: 15, marginTop: 7, fontStyle: 'italic' },
+  playRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(168,85,247,0.10)', borderRadius: 12, borderWidth: 1, borderColor: C.purple + '33', paddingHorizontal: 16, paddingVertical: 10 },
+  playDigits: { color: C.text, fontSize: 28, fontWeight: '900', fontFamily: MONO, letterSpacing: 2.5 },
+  playSet: { color: C.textFaint, fontSize: 14, fontFamily: MONO },
+  playNone: { color: C.textFaint, fontSize: 16, marginTop: 5, fontStyle: 'italic' },
+  playLocked: { color: C.goldSoft, fontSize: 15, fontWeight: '700', marginTop: 7 },
+  multChip: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
+  multText: { fontSize: 12.5, fontWeight: '900', letterSpacing: 0.8, fontFamily: MONO },
 
   // PRO depth panels (MKT-50)
-  concCaption: { color: C.textFaint, fontSize: 8.5, fontWeight: '800', letterSpacing: 1.2, marginTop: -8, marginBottom: 10 },
-  concRow: { backgroundColor: 'rgba(251,191,36,0.06)', borderRadius: 10, borderWidth: 1, borderColor: C.gold + '33', paddingHorizontal: 12, paddingVertical: 8 },
-  concHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  concEyebrow: { fontSize: 8.5, fontWeight: '900', letterSpacing: 0.8, flexShrink: 1 },
-  weightChip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: C.gold + '99' },
-  weightText: { color: C.goldSoft, fontSize: 9, fontWeight: '900', letterSpacing: 0.6, fontFamily: MONO },
-  concScopes: { color: C.cyanSoft, fontSize: 8.5, fontWeight: '800', letterSpacing: 0.8 },
-  concMeta: { color: C.textDim, fontSize: 9.5, fontFamily: MONO, marginTop: 4 },
-  concLegend: { color: C.textFaint, fontSize: 9.5, lineHeight: 14, marginTop: 10 },
-  noteLine: { color: C.textDim, fontSize: 10.5, lineHeight: 16, marginBottom: 8 },
+  concCaption: { color: C.textFaint, fontSize: 12, fontWeight: '800', letterSpacing: 1.5, marginTop: -10, marginBottom: 12 },
+  concRow: { backgroundColor: 'rgba(251,191,36,0.06)', borderRadius: 12, borderWidth: 1, borderColor: C.gold + '33', paddingHorizontal: 16, paddingVertical: 11 },
+  concHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  concEyebrow: { fontSize: 12, fontWeight: '900', letterSpacing: 1, flexShrink: 1 },
+  weightChip: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8, borderWidth: 1, borderColor: C.gold + '99' },
+  weightText: { color: C.goldSoft, fontSize: 12.5, fontWeight: '900', letterSpacing: 0.8, fontFamily: MONO },
+  concScopes: { color: C.cyanSoft, fontSize: 12, fontWeight: '800', letterSpacing: 1 },
+  concMeta: { color: C.textDim, fontSize: 13, fontFamily: MONO, marginTop: 5 },
+  concLegend: { color: C.textFaint, fontSize: 13, lineHeight: 19, marginTop: 12 },
+  noteLine: { color: C.textDim, fontSize: 14.5, lineHeight: 22, marginBottom: 10 },
   noteLead: { color: C.text, fontWeight: '800' },
 
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
-  footerBrand: { color: C.textFaint, fontSize: 11, fontWeight: '700' },
-  footerPro: { color: C.gold, fontSize: 11, fontWeight: '800' },
+  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 },
+  footerBrand: { color: C.textFaint, fontSize: 15, fontWeight: '700' },
+  footerPro: { color: C.gold, fontSize: 15, fontWeight: '800' },
 });

@@ -144,7 +144,7 @@ export const SocialBriefCard = forwardRef<View, SocialBriefCardProps>(function S
                   <Text style={styles.resolvedMiss}>{s.todayLive ? 'no match yet — session live' : 'no match this session'}</Text>
                 )
               ) : s.todayPlays.length === 0 ? (
-                <Text style={styles.playNone}>— no play surfaced —</Text>
+                <Text style={styles.playNone}>— no signal surfaced —</Text>
               ) : (
                 <View style={{ gap: 6, marginTop: 4 }}>
                   {s.todayPlays.map((p, i) => (
@@ -162,6 +162,65 @@ export const SocialBriefCard = forwardRef<View, SocialBriefCardProps>(function S
             </View>
           ))}
         </View>
+      )}
+
+      {/* PRO depth (MKT-50) — observation language only: the model's behavior
+          is described, never prescribed. §4-relabel ruling 2026-08-07. */}
+      {!isPublic && isPro && data.pro && (
+        <>
+          <View style={styles.panel}>
+            <Text style={styles.panelLabel}>WHERE THE MODEL CONCENTRATES</Text>
+            <Text style={styles.concCaption}>ALL STATES · ANY ORDER · 3-DAY WINDOW</Text>
+            {data.pro.concentration.map((c, i) => (
+              <View key={i} style={[styles.concRow, i > 0 && { marginTop: 8 }]}>
+                <View style={styles.concHead}>
+                  <Text style={[styles.concEyebrow, { color: c.weight >= 2 ? C.goldSoft : C.purpleSoft }]}>
+                    {c.weight >= 2 ? 'HIGHEST CONCENTRATION' : 'LOWER CONCENTRATION'} · ANY ORDER{c.exactOrder ? ' + EXACT ORDER' : ''}
+                  </Text>
+                  <View style={styles.weightChip}><Text style={styles.weightText}>×{c.weight}</Text></View>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 3 }}>
+                  <Text style={styles.playDigits}>{c.digits}</Text>
+                  <Text style={styles.playSet}>{setBraces(c.comboSet)}</Text>
+                  <View style={{ flex: 1 }} />
+                  <Text style={styles.concScopes}>{c.scopeLabels.join(' + ').toUpperCase()}</Text>
+                </View>
+                <Text style={styles.concMeta}>
+                  90-day activity {c.footprint90}{c.stateFootprint ? ` · ${c.stateFootprint}` : ''}
+                </Text>
+              </View>
+            ))}
+            {data.pro.concentration.length === 0 && (
+              <Text style={styles.playNone}>— no concentration surfaced today —</Text>
+            )}
+            <Text style={styles.concLegend}>
+              The model concentrates on 1–2 combinations and carries them up to 3 days; a match closes that leg.
+              State codes show where a combination appeared in the last 90 days — recent activity, not a recommendation.
+            </Text>
+          </View>
+
+          <View style={styles.panel}>
+            <Text style={styles.panelLabel}>ANALYST NOTES</Text>
+            {data.pro.daytimeNote && (
+              <Text style={styles.noteLine}>
+                <Text style={styles.noteLead}>Daytime structure: </Text>
+                ranks 1–2 in the Daytime session have underperformed ranks 3–5 — a pattern confirmed four separate
+                times. The combinations above already reflect that exclusion.
+              </Text>
+            )}
+            {data.pro.rank1Total > 0 && (
+              <Text style={styles.noteLine}>
+                <Text style={styles.noteLead}>Rank-1 check: </Text>
+                rank-1 signals matched in {data.pro.rank1Matched} of {data.pro.rank1Total} sessions yesterday.
+              </Text>
+            )}
+            <Text style={[styles.noteLine, { marginBottom: 0 }]}>
+              <Text style={styles.noteLead}>What the ranking means: </Text>
+              these signals are ranked to maximise match probability. They are not ranked for profitability, and no
+              analysis changes the underlying odds.
+            </Text>
+          </View>
+        </>
       )}
 
       {/* Footer */}
@@ -250,6 +309,19 @@ const styles = StyleSheet.create({
   playNone: { color: C.textFaint, fontSize: 12, marginTop: 4, fontStyle: 'italic' },
   multChip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, borderWidth: 1 },
   multText: { fontSize: 9, fontWeight: '900', letterSpacing: 0.6, fontFamily: MONO },
+
+  // PRO depth panels (MKT-50)
+  concCaption: { color: C.textFaint, fontSize: 8.5, fontWeight: '800', letterSpacing: 1.2, marginTop: -8, marginBottom: 10 },
+  concRow: { backgroundColor: 'rgba(251,191,36,0.06)', borderRadius: 10, borderWidth: 1, borderColor: C.gold + '33', paddingHorizontal: 12, paddingVertical: 8 },
+  concHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  concEyebrow: { fontSize: 8.5, fontWeight: '900', letterSpacing: 0.8, flexShrink: 1 },
+  weightChip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: C.gold + '99' },
+  weightText: { color: C.goldSoft, fontSize: 9, fontWeight: '900', letterSpacing: 0.6, fontFamily: MONO },
+  concScopes: { color: C.cyanSoft, fontSize: 8.5, fontWeight: '800', letterSpacing: 0.8 },
+  concMeta: { color: C.textDim, fontSize: 9.5, fontFamily: MONO, marginTop: 4 },
+  concLegend: { color: C.textFaint, fontSize: 9.5, lineHeight: 14, marginTop: 10 },
+  noteLine: { color: C.textDim, fontSize: 10.5, lineHeight: 16, marginBottom: 8 },
+  noteLead: { color: C.text, fontWeight: '800' },
 
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   footerBrand: { color: C.textFaint, fontSize: 11, fontWeight: '700' },

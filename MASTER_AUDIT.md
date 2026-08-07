@@ -228,6 +228,30 @@ Exact scripted lines. **No time-of-day words in pt1** — the point of the rewri
 
 ---
 
+### MKT-50 — Morning Brief → Pro-group deliverable: pos-rule divergence fixed, SocialBriefCard Pro depth, lint scope ✅ SHIPPED (2026-08-07)
+
+**ID verified free** — 0 hits above MKT-49 in this file and in code before stamping. Full rulings in the 2026-08-07 work-order session; the operator brief itself (BriefView/FullBriefCard) is ruled **internal-only and untouched** — the deliverable is SocialBriefCard's Pro variant.
+
+**FINDING (fixed first, outranked the brief work) — published Pro plays contradicted the midday pos 1–2 rule.** `buildSocialBrief` called `computeBrief` WITHOUT `middayPosRule`, so the Pro/free group cards could publish midday slate positions 1–2 — the exact positions the operator brief strikes as a 4×-confirmed structural inversion (z≈2.6). **Measured before fixing (14-day reconstruction, 7/24→8/6, same data + play scoring as computeBrief): 8/14 days' published Daytime plays would have differed under the rule; on 8/04 BOTH published plays were pos 1–2 (135 #2, 160 #1) and would have been replaced entirely.** Operator-ruled: fix ships regardless, delta on record. Fix = `computeBrief(today, { middayPosRule: true })` in `lib/social/socialBrief.ts` (commit cd49906). Play semantics otherwise untouched; `allocation` always honored the rule already.
+
+**RULING 1 — §4 allocation: (b) RELABEL TO OBSERVATION.** (a) keep-as-is is unfixable (no compliant synonym for "max stake" → the vocabulary lane never closes); (c) remove throws away the most differentiated Pro content. Approved mapping, applied to what ships in the Pro card: `RECOMMENDED PLAY` → `WHERE THE MODEL CONCENTRATES`; `2 UNITS · BOX + STRAIGHT` → `HIGHEST CONCENTRATION · ANY ORDER + EXACT ORDER`; `1 UNIT · BOX` → `LOWER CONCENTRATION · ANY ORDER`; ride footer → "The model concentrates on 1–2 combinations and carries them up to 3 days; a match closes that leg." The 2/2/1 weightings SURVIVE as model concentration (×2/×1 chips) — every number kept, every imperative removed. **The distinction: describing what the model did is analysis; telling a member what to stake is advice.**
+
+**RULING 2 — build target: EXTEND SocialBriefCard, do not sanitize FullBriefCard.** The consumer card already had public/free/pro variants and MATCH vocab; the operator brief stays blunt. Shipped Pro-only additions (`lib/social/socialBrief.ts` `SocialBriefProInsights` + `components/social/SocialBriefCard.tsx`):
+1. **Daytime inversion note** — "ranks 1–2 in the Daytime session have underperformed ranks 3–5 — confirmed four separate times; the combinations above already reflect that exclusion" (item ranked most valuable in the document by ruling).
+2. **EV disclosure, member language, bug ID stripped** — "these signals are ranked to maximise match probability. They are not ranked for profitability, and no analysis changes the underlying odds." (BUG-162/"house edge"/"RTP"/"bet" all gone; the honesty survives.)
+3. **Rank-1 check** — "rank-1 signals matched in X of N sessions yesterday" (the evidence for note 1).
+4. **Concentration panel** per Ruling 1, sourced from `brief.allocation` (pos-rule always honored).
+5. **State footprints** ("CT:3, MI:3") with legend: "recent activity, not a recommendation" — the structural answer to the week's seven member state-scope questions.
+NOT moved, by ruling: workflow timestamps, engine versions, calib footer, `calibrate:picks` command names, BUG IDs. Also fixed in-place: "— no play surfaced —" → "— no signal surfaced —" (avoid-list word on the member surface).
+
+**RULING 3 — badge semantics (recorded for any future consumer use):** the FullBriefCard §1 badge is `y.slateHit` (any of 6 matched), the ✓/✗ is rank-1 — consumer surfaces must say `SLATE MATCH`/`NO MATCH` and label the rank-1 glyph explicitly. The Pro card carries this via the explicit "Rank-1 check" line; FullBriefCard keeps `HIT`/`MISS` (internal instrument, by ruling exempt).
+
+**RULING 4 — lint scope:** `components/social/SocialBriefCard.tsx` + `lib/social/socialBrief.ts` added to `check-brand-voice.ts` IN_SCOPE (36 files, 0 findings, gate green). App-code tsc stays at 0 (all remaining errors are the known supabase/functions Deno noise).
+
+⚠ Residual: `buildSocialBrief`'s per-scope `todayPlays` still surfaces to BOTH group tiers (free + pro) — the new depth panels are pro-gated, the play pair is not; that split predates MKT-50 and was not in scope. The chat runbook (`docs/morning_brief.md`) and jurisdiction PDF remain operator artifacts; `scripts/generate-morning-brief-pdf.ts` is a frozen 6/26 snapshot, not a live generator.
+
+---
+
 ### MKT-49 — Rotation repetition: carrier lockstep fixed, schedule de-correlated, detector added ✅ SHIPPED (2026-08-06)
 
 **ID verified free** — 0 hits in this file and in code before stamping. Operator report: intros, stingers and endcards "being used more than twice" across several days of watching. Confirmed by resolving every lane for all 9 daily kinds straight from the live registries — the repetition was real and it was arithmetic, not a bad asset.

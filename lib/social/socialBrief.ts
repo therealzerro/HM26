@@ -40,6 +40,27 @@ export interface SocialBriefScope {
   todayStraight: boolean;        // any today match was an exact (best-order) match
 }
 
+// MKT-50 Pro-variant depth (2026-08-07). Observation language only — model
+// concentration is DESCRIBED (what the model did), never prescribed (what a
+// member should do). Weightings mirror the operator brief's 2/2/1 allocation,
+// which always honors the midday pos 1–2 exclusion.
+export interface SocialBriefConcentration {
+  weight: number;          // model concentration weighting (2/2/1)
+  digits: string;          // exact-order display form, e.g. "0-5-8"
+  comboSet: string;        // sorted-set digits, e.g. "058"
+  exactOrder: boolean;     // strongest leg also carries the exact-order form
+  scopeLabels: string[];   // consumer labels: Daytime / Nighttime / Continuous
+  footprint90: number;     // 90d appearances across top-10 active jurisdictions
+  stateFootprint: string;  // "CT:3, MI:3" — recent activity, NOT a recommendation
+}
+
+export interface SocialBriefProInsights {
+  concentration: SocialBriefConcentration[];
+  rank1Matched: number;    // yesterday's rank-1 outcomes across sessions…
+  rank1Total: number;      // …evidence line for the Daytime structural note
+  daytimeNote: boolean;    // Daytime session live today → show the inversion note
+}
+
 export interface SocialBriefData {
   todayLabel: string;            // "7/9"
   yesterdayLabel: string;        // "7/8"
@@ -50,6 +71,8 @@ export interface SocialBriefData {
   verified30d: number;
   // GROUP detail
   scopes: SocialBriefScope[];
+  // PRO detail (rendered only by the pro group tier)
+  pro: SocialBriefProInsights;
 }
 
 const SCOPE_LABEL: Record<Scope, string> = {
@@ -159,6 +182,21 @@ export async function buildSocialBrief(today = getTodayET()): Promise<SocialBrie
     };
   });
 
+  const pro: SocialBriefProInsights = {
+    concentration: (brief.allocation ?? []).map((a) => ({
+      weight: a.units,
+      digits: fmtBestOrder(a.bestOrder ?? a.combo),
+      comboSet: setToDigits(a.comboSet),
+      exactOrder: a.withStraight,
+      scopeLabels: a.scopes.map((s) => SCOPE_LABEL[s]),
+      footprint90: a.footprint90,
+      stateFootprint: a.topJx ?? '',
+    })),
+    rank1Matched: brief.reorder.hit,
+    rank1Total: brief.reorder.total,
+    daytimeNote: brief.scopes.midday?.preflight?.status !== 'MISSING',
+  };
+
   return {
     todayLabel: md(today),
     yesterdayLabel: md(yesterday),
@@ -167,5 +205,6 @@ export async function buildSocialBrief(today = getTodayET()): Promise<SocialBrie
     jurisdictionCount: rc.jurisdictionCount,
     verified30d: rc.verified30d,
     scopes,
+    pro,
   };
 }

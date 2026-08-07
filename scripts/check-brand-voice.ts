@@ -76,6 +76,10 @@ const IN_SCOPE: string[] = [
   'components/TrialOfferBanner.tsx',
   'components/SessionFilter.tsx',
   'components/SectionTitle.tsx',
+  // MKT-50 (2026-08-07): the social brief is a published member surface (Pro
+  // group deliverable) generated from shared code — lint it like consumer UI.
+  'components/social/SocialBriefCard.tsx',
+  'lib/social/socialBrief.ts',
 ];
 
 // ────────────────────────────────────────────────────────────────────────────

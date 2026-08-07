@@ -18,7 +18,7 @@
  * PublishView; digit-bearing reels honestly fail Q1 and stay in the groups.
  */
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform, Linking } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import * as Clipboard from 'expo-clipboard';
@@ -33,6 +33,14 @@ import {
   fetchReelBlob, canWebShareVideo, webShareReel, downloadReelBlobWeb,
 } from '@/lib/marketingReels';
 import { Pill, SectionTitle, Card, useSt, timeAgo } from './AdminShared';
+import { buildSocialBrief, type SocialBriefData } from '@/lib/social/socialBrief';
+import { SocialBriefCard } from '@/components/social/SocialBriefCard';
+import { raf, waitFonts } from '@/lib/social/publishImages';
+import {
+  captureAvailable, captureNodeToPngNatural, downloadDataUrl, resolveWebNode,
+  shareToPhotosAvailable, shareDataUrlToPhotos,
+} from '@/lib/captureExportImage';
+import { getTodayET } from '@/lib/dateUtils';
 import { POSTING_SESSIONS, SCHEDULE_SKIP_ORDER } from '@/constants/postingSchedule';
 import {
   SOCIAL_PLATFORMS, PLATFORM_IDS, platformCaption, platformLink,
@@ -635,6 +643,128 @@ function ReelCard({ reel, urls, onPosted, expanded, onToggle }: {
   );
 }
 
+/**
+ * Social brief PNG export, in the posting flow instead of a detour through the
+ * Publish console — the reel and the brief card go to the same rooms in the
+ * same session. Variants mirror PublishView's generateBriefImage exactly:
+ * public (aggregate only, no digits), free group (Pro CTA footer), pro group
+ * (MKT-50 depth panels). Capture = same offscreen-stage pattern; translate
+ * (not extreme offset) keeps the node painted so the PNG isn't blank.
+ */
+const BRIEF_TIERS = [
+  { key: 'pro', label: '💎 Pro', variant: 'group', groupTier: 'pro' },
+  { key: 'free', label: '👥 Free', variant: 'group', groupTier: 'free' },
+  { key: 'public', label: '📡 Public', variant: 'public', groupTier: undefined },
+] as const;
+type BriefTier = (typeof BRIEF_TIERS)[number];
+
+function SocialBriefExport() {
+  const { colors } = useTheme();
+  const st = useSt();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [briefData, setBriefData] = useState<SocialBriefData | null>(null);
+  const [render, setRender] = useState<{ variant: 'public' | 'group'; groupTier?: 'free' | 'pro' } | null>(null);
+  const [img, setImg] = useState<{ label: string; filename: string; dataUrl: string } | null>(null);
+  const briefRef = useRef<View | null>(null);
+  const canPhotos = useMemo(() => shareToPhotosAvailable(), []);
+
+  const generate = useCallback(async (t: BriefTier, fresh?: SocialBriefData | null) => {
+    if (busy) return;
+    if (!captureAvailable()) { setMsg('❌ Image capture is unavailable in this runtime.'); return; }
+    setBusy(t.key); setImg(null); setMsg('Assembling brief data…');
+    try {
+      // Data is variant-independent, so one build serves all three tiers; the
+      // ↻ button rebuilds when draws have landed since.
+      const data = fresh ?? briefData ?? await buildSocialBrief();
+      setBriefData(data);
+      setRender({ variant: t.variant, groupTier: t.groupTier });
+      setMsg('Rendering card…');
+      await raf(); await waitFonts(); await raf();
+      const node = Platform.OS === 'web' ? resolveWebNode(briefRef) : briefRef.current;
+      if (!node) throw new Error('Brief capture stage not mounted');
+      const dataUrl = await captureNodeToPngNatural(node, 2);
+      const filename = `hm-brief-${t.key}-${getTodayET()}.png`;
+      setImg({ label: t.label, filename, dataUrl });
+      downloadDataUrl(dataUrl, filename);
+      setMsg(Platform.OS === 'web' ? `✅ ${t.label} brief downloaded — ${filename}` : `✅ ${t.label} brief saved to Photos.`);
+    } catch (e: any) {
+      setMsg(`❌ ${String(e?.message ?? e)}`);
+    } finally {
+      setRender(null);
+      setBusy(null);
+    }
+  }, [busy, briefData]);
+
+  return (
+    <Card style={{ padding: 10, marginBottom: 10 }}>
+      <TouchableOpacity onPress={() => setOpen(o => !o)} accessibilityRole="button">
+        <Text style={{ fontSize: 11, fontWeight: '800', color: colors.text }}>
+          📰 Social brief — PNG {open ? '▾' : '▸'}
+        </Text>
+      </TouchableOpacity>
+      {open && (
+        <View style={{ marginTop: 8 }}>
+          <Text style={{ fontSize: 9, color: colors.textTertiary, lineHeight: 13, marginBottom: 8 }}>
+            Same card the Publish console builds — tap a tier to capture and download/save it.
+            Pro carries the MKT-50 depth panels; Free adds the Pro CTA footer; Public is
+            aggregate-only (no digits, no state codes) and is the only cut safe outside the groups.
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            {BRIEF_TIERS.map(t => (
+              <TouchableOpacity
+                key={t.key}
+                style={[st.btnGhost, busy === t.key && { opacity: 0.5 }]}
+                disabled={!!busy}
+                onPress={() => generate(t)}
+              >
+                <Text style={st.btnGhostText}>{busy === t.key ? '⏳' : '⬇'} {t.label}</Text>
+              </TouchableOpacity>
+            ))}
+            {briefData && (
+              <TouchableOpacity
+                style={[st.btnGhost, !!busy && { opacity: 0.5 }]}
+                disabled={!!busy}
+                onPress={() => {
+                  setBriefData(null); setImg(null);
+                  setMsg('Data cleared — next tap rebuilds from live tables.');
+                }}
+              >
+                <Text style={st.btnGhostText}>↻ Rebuild data</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          {img && Platform.OS === 'web' && (
+            <View style={{ flexDirection: 'row', gap: 6, marginTop: 8 }}>
+              <TouchableOpacity style={st.btnGhost} onPress={() => downloadDataUrl(img.dataUrl, img.filename)}>
+                <Text style={st.btnGhostText}>⬇ Download again</Text>
+              </TouchableOpacity>
+              {canPhotos && (
+                <TouchableOpacity
+                  style={st.btnGhost}
+                  onPress={() => shareDataUrlToPhotos(img.dataUrl, img.filename).catch((e: any) => {
+                    if (e?.name !== 'AbortError') setMsg(`❌ Save to Photos failed: ${String(e?.message ?? e)}`);
+                  })}
+                >
+                  <Text style={st.btnGhostText}>📲 Save to Photos</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+          {msg && <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 6 }}>{msg}</Text>}
+        </View>
+      )}
+      {/* hidden capture stage — mirrors PublishView's brief stage */}
+      {render && briefData && (
+        <View style={{ position: 'absolute', top: 0, left: 0, transform: [{ translateX: 5000 }] as any, pointerEvents: 'none' }} collapsable={false}>
+          <SocialBriefCard ref={briefRef} data={briefData} variant={render.variant} groupTier={render.groupTier} />
+        </View>
+      )}
+    </Card>
+  );
+}
+
 export default function ReelsView() {
   const { colors } = useTheme();
   const st = useSt();
@@ -811,6 +941,9 @@ export default function ReelsView() {
           </View>
         )}
       </Card>
+
+      {/* Social brief PNG — download/share without leaving the posting flow. */}
+      <SocialBriefExport />
 
       {/* Key includes updated_at: a server-side caption refresh (pipeline
           --captions-only, re-publish) must remount the card so the editor

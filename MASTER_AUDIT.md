@@ -248,6 +248,8 @@ NOT moved, by ruling: workflow timestamps, engine versions, calib footer, `calib
 
 **RULING 4 — lint scope:** `components/social/SocialBriefCard.tsx` + `lib/social/socialBrief.ts` added to `check-brand-voice.ts` IN_SCOPE (36 files, 0 findings, gate green). App-code tsc stays at 0 (all remaining errors are the known supabase/functions Deno noise).
 
+**ADDENDUM (same day, operator-requested):** the social brief is now exportable from the **Reels screen** — `SocialBriefExport` card in `components/admin/ReelsView.tsx` (collapsed, below the posting schedule). One tap per tier (💎 Pro / 👥 Free / 📡 Public) builds `buildSocialBrief()`, captures `SocialBriefCard` via the same offscreen-stage pattern as PublishView's `generateBriefImage` (translate-5000 stage, `captureNodeToPngNatural` ×2), and downloads (web) / saves to Photos (native), with Download-again + Save-to-Photos follow-ups and a data-rebuild button. Brief data is cached per visit across tiers; ↻ clears it. PublishView's brief lane is unchanged.
+
 ⚠ Residual: `buildSocialBrief`'s per-scope `todayPlays` still surfaces to BOTH group tiers (free + pro) — the new depth panels are pro-gated, the play pair is not; that split predates MKT-50 and was not in scope. The chat runbook (`docs/morning_brief.md`) and jurisdiction PDF remain operator artifacts; `scripts/generate-morning-brief-pdf.ts` is a frozen 6/26 snapshot, not a live generator.
 
 ---

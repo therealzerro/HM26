@@ -61,16 +61,30 @@ export function captureAvailable(): boolean {
  */
 export async function saveDataUrlToPhotos(dataUrl: string, filename: string): Promise<void> {
   const MediaLibrary = await import('expo-media-library');
-  const FileSystem = await import('expo-file-system/legacy');
   // writeOnly=true → iOS shows the lighter "Add Photos Only" prompt, which
   // avoids the limited-library selection flow that can wedge full-access
   // requests. Saving needs nothing more.
   const perm = await MediaLibrary.requestPermissionsAsync(true);
   if (!perm.granted) throw new Error('Photos access denied — allow "Add Photos" for HitMaster in iOS Settings.');
 
-  // Anything that is not a data: URL is a file reference (view-shot tmpfile
-  // — which iOS may return WITHOUT the file:// scheme). Data URLs (AI image,
-  // web callers) get written out to a cache file first.
+  const uri = await resolveLocalFileUri(dataUrl, filename);
+  // createAssetAsync (not saveToLibraryAsync): it RETURNS the created asset,
+  // so a resolved call is proof the image is really in the camera roll.
+  const asset = await MediaLibrary.createAssetAsync(uri);
+  if (!asset?.id) throw new Error(`Photos did not accept ${filename}.`);
+}
+
+/**
+ * Native: normalize a capture reference to a verified on-disk file:// URI.
+ * Anything that is not a data: URL is already a file reference (view-shot
+ * tmpfile — which iOS may return WITHOUT the file:// scheme). Data URLs (AI
+ * image, web callers) get written out to a cache file first.
+ *
+ * Shared by the Photos-save and share-sheet paths so both reject an empty or
+ * expired capture with the same message instead of handing the OS a dead path.
+ */
+async function resolveLocalFileUri(dataUrl: string, filename: string): Promise<string> {
+  const FileSystem = await import('expo-file-system/legacy');
   let uri = dataUrl;
   if (dataUrl.startsWith('data:')) {
     const comma = dataUrl.indexOf(',');
@@ -85,10 +99,7 @@ export async function saveDataUrlToPhotos(dataUrl: string, filename: string): Pr
   // Stale-capture case: view-shot's temp folder is wiped on app cold start,
   // so captures from before a reload point at deleted files.
   if (!info.exists || (info.size ?? 0) < 100) throw new Error(`${filename} has expired (app reloaded since capture) — tap Build Images again.`);
-  // createAssetAsync (not saveToLibraryAsync): it RETURNS the created asset,
-  // so a resolved call is proof the image is really in the camera roll.
-  const asset = await MediaLibrary.createAssetAsync(uri);
-  if (!asset?.id) throw new Error(`Photos did not accept ${filename}.`);
+  return uri;
 }
 
 /**
@@ -348,6 +359,38 @@ export async function shareDataUrlToPhotos(
     share: (data: { files?: File[]; title?: string; text?: string }) => Promise<void>;
   };
   await nav.share({ files: [file], title, text: '' });
+}
+
+/**
+ * Hand ONE captured image to the OS share sheet — the single-asset twin of
+ * shareDataUrlsToApps, and the direct analogue of the reel card's Share…
+ * button. Unlike shareDataUrlToPhotos this has a real NATIVE path
+ * (expo-sharing), so on iOS the sheet's app targets — Facebook, Messages,
+ * Files — are reachable, not just the camera roll.
+ *
+ * Throws AbortError when the user dismisses the sheet (normal — swallow it).
+ */
+export async function shareDataUrlToApps(
+  dataUrl: string,
+  filename: string,
+  title = 'HitMaster ZK6',
+): Promise<void> {
+  if (Platform.OS !== 'web') {
+    const Sharing = await import('expo-sharing');
+    if (!(await Sharing.isAvailableAsync().catch(() => false))) {
+      throw new Error('Share sheet unavailable in this runtime — use Save to Photos instead.');
+    }
+    const uri = await resolveLocalFileUri(dataUrl, filename);
+    await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: title });
+    return;
+  }
+  if (!shareToPhotosAvailable()) {
+    throw new Error('Web Share API with files is not available in this browser.');
+  }
+  const nav = navigator as Navigator & {
+    share: (data: { files?: File[]; title?: string; text?: string }) => Promise<void>;
+  };
+  await nav.share({ files: [dataUrlToFile(dataUrl, filename)], title, text: '' });
 }
 
 /**

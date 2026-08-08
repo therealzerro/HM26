@@ -228,6 +228,22 @@ Exact scripted lines. **No time-of-day words in pt1** — the point of the rewri
 
 ---
 
+### MKT-52 — Save/share lane extended to the captions PDF + social brief PNG ✅ SHIPPED (2026-08-08)
+
+**ID verified free** — 0 hits above MKT-51 in audit or code before stamping. Operator ask: "the save and share feature applied to this captions pdf and social brief png on the reels screen, same function that the reels have." Admin surface (`components/admin/ReelsView.tsx`) — no consumer copy touched.
+
+**The reel lane, generalized (`lib/marketingReels.ts`).** The mp4 helpers were mime-hardcoded. Each is now mime-parameterized with the reel-named function kept as a thin wrapper, so `ReelCard`'s call sites and behavior are byte-identical: `shareAssetToApps(url, filename, mime)` ← `shareReelToApps`; `fetchAssetBlob(url, label)` ← `fetchReelBlob`; `canWebShareFileType(mime, probeName)` ← `canWebShareVideo` (+ new `canWebSharePdf`); `webShareFile(blob, filename, mime)` ← `webShareReel`; `downloadBlobWeb` ← `downloadReelBlobWeb`. The video-file probe genuinely needed splitting — image-file share support does not imply video, and neither implies PDF.
+
+**Captions PDF — new `CaptionsPdfExport` card.** Previously the only affordance was the header's open-in-new-tab button (kept, unchanged). The card carries the same two lanes as a reel card: native → OS share sheet via expo-sharing; web → two-step Prepare (blob into state) then Save/Share or Download. **The two-step web flow is not optional** — the fetch outlives the tap's transient-activation window, which is exactly what silently ate the download AND the group tab in the 7/27 operator report. ⚠ A PDF has **no camera-roll destination** (MediaLibrary rejects non-media), so the share sheet ("Save to Files", Books, Mail) is its only on-device save path — do not add a Save-to-Photos button here. Card renders only behind the existing HEAD probe (`captionsPdfOk`), so it stays hidden on a morning the publisher hasn't run. Verified live: `captions/20260808.pdf` → 200, `application/pdf`, 120,499B, `access-control-allow-origin: *` (the web lane needs that CORS header).
+
+**Social brief PNG.** The follow-up button row was gated `Platform.OS === 'web'`, so **native had no buttons at all** past the initial capture. Now both platforms get the pair: web = Download again + Save/Share; native = Save to Photos + Share…. New `shareDataUrlToApps` in `lib/captureExportImage.ts` is the single-asset twin of `shareDataUrlsToApps` and, unlike `shareDataUrlToPhotos`, has a real native branch (expo-sharing) — so on iOS the sheet's app targets (Facebook, Messages, Files) are reachable, not just the camera roll.
+
+**Honesty fix (real defect, not cosmetic).** `generate()` called `downloadDataUrl`, whose native branch is fire-and-forget: a denied Photos permission only `console.warn`ed while the operator was told "✅ brief saved to Photos." The native path now awaits `saveDataUrlToPhotos`, so a permission denial surfaces as an error instead of a false success. Extracted `resolveLocalFileUri` from `saveDataUrlToPhotos` (error strings preserved verbatim) so the save and share paths share one empty/expired-capture guard rather than handing the OS a dead file path.
+
+Gates: app-code tsc 0 errors (67 remaining are the pre-existing `Deno` edge-function set, all under `supabase/functions/`); lint 0 new findings in touched files; check:brand-voice 36 files / 0 findings. **Not verified on-device** — both native lanes (expo-sharing sheet, Photos permission) are Expo Go paths that can't be exercised from this codespace; web lanes are reachable in the browser.
+
+---
+
 ### MKT-51 — Verified Track Record: integrity hardening + capture-rig contract ✅ SHIPPED (2026-08-07)
 
 **ID verified free** — 0 hits above MKT-50 in audit or code before stamping. Source: the MKT-51 scope report (same session). The screen is the nightly verify-reel live set (MKT-02 + verify_public), so Tier B (integrity) and Tier C (capture contract) shipped together by operator order; Tier A content items NOT built (await per-item ruling).

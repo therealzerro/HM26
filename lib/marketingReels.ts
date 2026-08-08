@@ -75,21 +75,34 @@ export async function markReelPosted(id: string, targetName: string): Promise<vo
 }
 
 /**
- * Native share: pull the mp4 into the app cache, then hand the FILE to the
+ * Native share: pull the asset into the app cache, then hand the FILE to the
  * OS share sheet (Facebook needs a local file — it cannot ingest a URL from
  * the sheet). Caller copies the caption to the clipboard first, same
  * assisted-lane contract as the PublishView image flow.
+ *
+ * mimeType-parameterized so one lane serves the reel mp4s AND the day's
+ * captions PDF — the PDF has no camera-roll destination (MediaLibrary rejects
+ * non-media), so the share sheet (Files / Books / Mail) is its ONLY save path.
  */
-export async function shareReelToApps(videoUrl: string, filename: string): Promise<void> {
+export async function shareAssetToApps(
+  assetUrl: string,
+  filename: string,
+  mimeType: string,
+): Promise<void> {
   const Sharing = await import('expo-sharing');
   if (!(await Sharing.isAvailableAsync().catch(() => false))) {
     throw new Error('Share sheet unavailable in this runtime — use the desktop Prep & Open flow.');
   }
   const FileSystem = await import('expo-file-system/legacy');
   const dest = `${FileSystem.cacheDirectory}${filename}`;
-  const dl = await FileSystem.downloadAsync(videoUrl, dest);
-  if (dl.status !== 200) throw new Error(`Video download failed (HTTP ${dl.status}).`);
-  await Sharing.shareAsync(dl.uri, { mimeType: 'video/mp4', dialogTitle: 'HitMaster ZK6' });
+  const dl = await FileSystem.downloadAsync(assetUrl, dest);
+  if (dl.status !== 200) throw new Error(`Download failed (HTTP ${dl.status}).`);
+  await Sharing.shareAsync(dl.uri, { mimeType, dialogTitle: 'HitMaster ZK6' });
+}
+
+/** The reel lane: shareAssetToApps pinned to video/mp4. */
+export async function shareReelToApps(videoUrl: string, filename: string): Promise<void> {
+  await shareAssetToApps(videoUrl, filename, 'video/mp4');
 }
 
 /**
@@ -122,16 +135,24 @@ export async function saveReelToPhotos(videoUrl: string, filename: string): Prom
  * step 2's actions run on a FRESH tap with the file already in memory.
  */
 
-/** Step 1: pull the mp4 into memory. Storage serves CORS `*` (verified). */
-export async function fetchReelBlob(videoUrl: string): Promise<Blob> {
+/**
+ * Step 1: pull a bucket asset into memory. Storage serves CORS `*` (verified).
+ * `label` only shapes the error text — mp4 and PDF share one code path.
+ */
+export async function fetchAssetBlob(assetUrl: string, label = 'Video'): Promise<Blob> {
   let res: Response;
   try {
-    res = await fetch(videoUrl);
+    res = await fetch(assetUrl);
   } catch (e) {
-    throw new Error(`Video fetch failed (network/CORS): ${String(e instanceof Error ? e.message : e)}`);
+    throw new Error(`${label} fetch failed (network/CORS): ${String(e instanceof Error ? e.message : e)}`);
   }
-  if (!res.ok) throw new Error(`Video fetch failed (HTTP ${res.status}).`);
+  if (!res.ok) throw new Error(`${label} fetch failed (HTTP ${res.status}).`);
   return await res.blob();
+}
+
+/** The reel lane: fetchAssetBlob with video wording. */
+export async function fetchReelBlob(videoUrl: string): Promise<Blob> {
+  return fetchAssetBlob(videoUrl, 'Video');
 }
 
 /**
@@ -141,32 +162,45 @@ export async function fetchReelBlob(videoUrl: string): Promise<Blob> {
  * save-to-photos path. Probed with an mp4 File specifically: image-file
  * support (shareMultiFilesAvailable) does not imply video-file support.
  */
-export function canWebShareVideo(): boolean {
+export function canWebShareFileType(mimeType: string, probeName = 'probe'): boolean {
   if (typeof navigator === 'undefined') return false;
   const nav = navigator as Navigator & { canShare?: (d: { files?: File[] }) => boolean; share?: unknown };
   if (typeof nav.share !== 'function' || typeof nav.canShare !== 'function') return false;
   try {
-    return nav.canShare({ files: [new File([new Uint8Array([0])], 'probe.mp4', { type: 'video/mp4' })] });
+    return nav.canShare({ files: [new File([new Uint8Array([0])], probeName, { type: mimeType })] });
   } catch {
     return false;
   }
 }
 
+export function canWebShareVideo(): boolean {
+  return canWebShareFileType('video/mp4', 'probe.mp4');
+}
+
+/** True if this browser can hand a PDF FILE to the native share sheet. */
+export function canWebSharePdf(): boolean {
+  return canWebShareFileType('application/pdf', 'probe.pdf');
+}
+
 /** Step 2a (fresh tap): native sheet with the real file — Save Video / FB. */
-export async function webShareReel(blob: Blob, filename: string): Promise<void> {
+export async function webShareFile(blob: Blob, filename: string, mimeType: string): Promise<void> {
   const nav = navigator as Navigator & {
     canShare?: (d: { files?: File[] }) => boolean;
     share: (d: { files?: File[]; title?: string }) => Promise<void>;
   };
-  const files = [new File([blob], filename, { type: 'video/mp4' })];
+  const files = [new File([blob], filename, { type: mimeType })];
   if (typeof nav.canShare === 'function' && !nav.canShare({ files })) {
-    throw new Error('This browser cannot share video files — use Download instead.');
+    throw new Error(`This browser cannot share ${mimeType} files — use Download instead.`);
   }
   await nav.share({ files, title: 'HitMaster ZK6' });
 }
 
+export async function webShareReel(blob: Blob, filename: string): Promise<void> {
+  await webShareFile(blob, filename, 'video/mp4');
+}
+
 /** Step 2b (fresh tap): object-URL anchor download — the desktop path. */
-export function downloadReelBlobWeb(blob: Blob, filename: string): void {
+export function downloadBlobWeb(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   try {
     const a = document.createElement('a');
@@ -178,4 +212,8 @@ export function downloadReelBlobWeb(blob: Blob, filename: string): void {
   } finally {
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
+}
+
+export function downloadReelBlobWeb(blob: Blob, filename: string): void {
+  downloadBlobWeb(blob, filename);
 }

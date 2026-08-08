@@ -31,6 +31,7 @@ import {
   MarketingReel, ReelKind, REEL_KIND_AUDIENCE, fetchReels, reelPublicUrl,
   markReelPosted, shareReelToApps, saveReelToPhotos,
   fetchReelBlob, canWebShareVideo, webShareReel, downloadReelBlobWeb,
+  shareAssetToApps, fetchAssetBlob, canWebSharePdf, webShareFile, downloadBlobWeb,
 } from '@/lib/marketingReels';
 import { Pill, SectionTitle, Card, useSt, timeAgo } from './AdminShared';
 import { buildSocialBrief, type SocialBriefData } from '@/lib/social/socialBrief';
@@ -38,7 +39,7 @@ import { SocialBriefCard } from '@/components/social/SocialBriefCard';
 import { raf, waitFonts } from '@/lib/social/publishImages';
 import {
   captureAvailable, captureNodeToPngNatural, downloadDataUrl, resolveWebNode,
-  shareToPhotosAvailable, shareDataUrlToPhotos,
+  shareToPhotosAvailable, shareDataUrlToApps, saveDataUrlToPhotos,
 } from '@/lib/captureExportImage';
 import { getTodayET } from '@/lib/dateUtils';
 import { POSTING_SESSIONS, SCHEDULE_SKIP_ORDER } from '@/constants/postingSchedule';
@@ -658,6 +659,121 @@ const BRIEF_TIERS = [
 ] as const;
 type BriefTier = (typeof BRIEF_TIERS)[number];
 
+/**
+ * MKT-33 captions sheet — the reel card's save/share lane applied to the PDF.
+ *
+ * Native: straight to the OS share sheet. A PDF has no camera-roll destination
+ * (MediaLibrary rejects non-media), so the sheet IS its save path — "Save to
+ * Files", Books, Mail.
+ *
+ * Web: two-step for the same reason the video lane is two-step — the fetch
+ * outlives the tap's transient activation, so Prepare loads the blob and the
+ * follow-up buttons each run inside a fresh gesture.
+ */
+function CaptionsPdfExport({ url, filename }: { url: string; filename: string }) {
+  const { colors } = useTheme();
+  const st = useSt();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const webCanShare = Platform.OS === 'web' && canWebSharePdf();
+
+  const shareNative = useCallback(async () => {
+    setBusy(true);
+    setMsg('⏳ Fetching PDF…');
+    try {
+      await shareAssetToApps(url, filename, 'application/pdf');
+      setMsg('📤 Handed to the share sheet — "Save to Files" keeps a copy on the device.');
+    } catch (e: any) {
+      if (e?.name === 'AbortError') setMsg('Share cancelled.');
+      else setMsg(`❌ ${String(e?.message ?? e)}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [url, filename]);
+
+  const prepare = useCallback(async () => {
+    setBusy(true);
+    setMsg('⏳ Fetching PDF…');
+    try {
+      const b = await fetchAssetBlob(url, 'Captions PDF');
+      setPdfBlob(b);
+      setMsg(`✅ PDF ready (${(b.size / 1e6).toFixed(2)}MB) — now Save/Share or Download.`);
+    } catch (e: any) {
+      setMsg(`❌ ${String(e?.message ?? e)}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [url]);
+
+  const saveShareWeb = useCallback(async () => {
+    if (!pdfBlob) return;
+    setBusy(true);
+    try {
+      await webShareFile(pdfBlob, filename, 'application/pdf');
+      setMsg('💾 In the sheet: "Save to Files" stores it on the device.');
+    } catch (e: any) {
+      if (e?.name === 'AbortError') setMsg('Share cancelled — the PDF stays prepared.');
+      else setMsg(`❌ ${String(e?.message ?? e)}`);
+    } finally {
+      setBusy(false);
+    }
+  }, [pdfBlob, filename]);
+
+  const download = useCallback(() => {
+    if (!pdfBlob) return;
+    downloadBlobWeb(pdfBlob, filename);
+    setMsg(`⬇️ ${filename} downloading.`);
+  }, [pdfBlob, filename]);
+
+  return (
+    <Card style={{ padding: 10, marginBottom: 10 }}>
+      <TouchableOpacity onPress={() => setOpen(o => !o)} accessibilityRole="button">
+        <Text style={{ fontSize: 11, fontWeight: '800', color: colors.text }}>
+          🧾 Captions sheet — PDF {open ? '▾' : '▸'}
+        </Text>
+      </TouchableOpacity>
+      {open && (
+        <View style={{ marginTop: 8 }}>
+          <Text style={{ fontSize: 9, color: colors.textTertiary, lineHeight: 13, marginBottom: 8 }}>
+            Every caption from today’s run in one sheet, plus the page-1 posting schedule.
+            {Platform.OS === 'web'
+              ? ' Prepare loads the file, then Save/Share hands it to the OS sheet or Download writes it to disk.'
+              : ' Share hands the file to the OS sheet — “Save to Files” keeps a copy on the device.'}
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+            <TouchableOpacity style={st.btnGhost} onPress={() => openInNewTab(url)}>
+              <Text style={st.btnGhostText}>👁 Open</Text>
+            </TouchableOpacity>
+            {Platform.OS !== 'web' ? (
+              <TouchableOpacity style={[st.btnPrimary, busy && { opacity: 0.5 }]} disabled={busy} onPress={shareNative}>
+                <Text style={st.btnPrimaryText}>{busy ? '⏳ …' : '📤 Share PDF…'}</Text>
+              </TouchableOpacity>
+            ) : !pdfBlob ? (
+              <TouchableOpacity style={[st.btnPrimary, busy && { opacity: 0.5 }]} disabled={busy} onPress={prepare}>
+                <Text style={st.btnPrimaryText}>{busy ? '⏳ …' : '① Prepare PDF'}</Text>
+              </TouchableOpacity>
+            ) : (
+              <>
+                {webCanShare && (
+                  <TouchableOpacity style={[st.btnPrimary, busy && { opacity: 0.5 }]} disabled={busy} onPress={saveShareWeb}>
+                    <Text style={st.btnPrimaryText}>{busy ? '⏳ …' : '💾 Save / Share PDF'}</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity style={webCanShare ? st.btnGhost : st.btnPrimary} onPress={download}>
+                  <Text style={webCanShare ? st.btnGhostText : st.btnPrimaryText}>⬇ Download PDF</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+          {msg && <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 6 }}>{msg}</Text>}
+        </View>
+      )}
+    </Card>
+  );
+}
+
 function SocialBriefExport() {
   const { colors } = useTheme();
   const st = useSt();
@@ -668,7 +784,7 @@ function SocialBriefExport() {
   const [render, setRender] = useState<{ variant: 'public' | 'group'; groupTier?: 'free' | 'pro' } | null>(null);
   const [img, setImg] = useState<{ label: string; filename: string; dataUrl: string } | null>(null);
   const briefRef = useRef<View | null>(null);
-  const canPhotos = useMemo(() => shareToPhotosAvailable(), []);
+  const canShare = useMemo(() => shareToPhotosAvailable(), []);
 
   const generate = useCallback(async (t: BriefTier, fresh?: SocialBriefData | null) => {
     if (busy) return;
@@ -687,8 +803,16 @@ function SocialBriefExport() {
       const dataUrl = await captureNodeToPngNatural(node, 2);
       const filename = `hm-brief-${t.key}-${getTodayET()}.png`;
       setImg({ label: t.label, filename, dataUrl });
-      downloadDataUrl(dataUrl, filename);
-      setMsg(Platform.OS === 'web' ? `✅ ${t.label} brief downloaded — ${filename}` : `✅ ${t.label} brief saved to Photos.`);
+      if (Platform.OS === 'web') {
+        downloadDataUrl(dataUrl, filename);
+        setMsg(`✅ ${t.label} brief downloaded — ${filename}. Save / Share hands the same PNG to the OS sheet.`);
+      } else {
+        // AWAITED, unlike downloadDataUrl's fire-and-forget native branch: a
+        // denied Photos permission used to console.warn while the operator was
+        // told "saved to Photos". The claim now matches what actually happened.
+        await saveDataUrlToPhotos(dataUrl, filename);
+        setMsg(`✅ ${t.label} brief saved to Photos — or tap Share… to hand it straight to Facebook.`);
+      }
     } catch (e: any) {
       setMsg(`❌ ${String(e?.message ?? e)}`);
     } finally {
@@ -707,7 +831,8 @@ function SocialBriefExport() {
       {open && (
         <View style={{ marginTop: 8 }}>
           <Text style={{ fontSize: 9, color: colors.textTertiary, lineHeight: 13, marginBottom: 8 }}>
-            Same card the Publish console builds — tap a tier to capture and download/save it.
+            Same card the Publish console builds — tap a tier to capture it, then save or hand it
+            to the OS share sheet.
             Pro carries the MKT-50 depth panels; Free adds the Pro CTA footer; Public is
             aggregate-only (no digits, no state codes) and is the only cut safe outside the groups.
           </Text>
@@ -735,19 +860,33 @@ function SocialBriefExport() {
               </TouchableOpacity>
             )}
           </View>
-          {img && Platform.OS === 'web' && (
-            <View style={{ flexDirection: 'row', gap: 6, marginTop: 8 }}>
-              <TouchableOpacity style={st.btnGhost} onPress={() => downloadDataUrl(img.dataUrl, img.filename)}>
-                <Text style={st.btnGhostText}>⬇ Download again</Text>
-              </TouchableOpacity>
-              {canPhotos && (
+          {/* Same save/share lane the reel cards use, on both platforms: web
+              gets download + the OS sheet, native gets camera roll + the OS
+              sheet (which is where Facebook lives). */}
+          {img && (
+            <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+              {Platform.OS === 'web' ? (
+                <TouchableOpacity style={st.btnGhost} onPress={() => downloadDataUrl(img.dataUrl, img.filename)}>
+                  <Text style={st.btnGhostText}>⬇ Download again</Text>
+                </TouchableOpacity>
+              ) : (
                 <TouchableOpacity
                   style={st.btnGhost}
-                  onPress={() => shareDataUrlToPhotos(img.dataUrl, img.filename).catch((e: any) => {
-                    if (e?.name !== 'AbortError') setMsg(`❌ Save to Photos failed: ${String(e?.message ?? e)}`);
-                  })}
+                  onPress={() => saveDataUrlToPhotos(img.dataUrl, img.filename)
+                    .then(() => setMsg(`💾 ${img.label} brief saved to Photos — ${img.filename}`))
+                    .catch((e: any) => setMsg(`❌ Save to Photos failed: ${String(e?.message ?? e)}`))}
                 >
                   <Text style={st.btnGhostText}>📲 Save to Photos</Text>
+                </TouchableOpacity>
+              )}
+              {canShare && (
+                <TouchableOpacity
+                  style={st.btnGhost}
+                  onPress={() => shareDataUrlToApps(img.dataUrl, img.filename).catch((e: any) => {
+                    if (e?.name !== 'AbortError') setMsg(`❌ Share failed: ${String(e?.message ?? e)}`);
+                  })}
+                >
+                  <Text style={st.btnGhostText}>{Platform.OS === 'web' ? '📤 Save / Share' : '📤 Share…'}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -942,7 +1081,11 @@ export default function ReelsView() {
         )}
       </Card>
 
-      {/* Social brief PNG — download/share without leaving the posting flow. */}
+      {/* Captions PDF + social brief PNG — save/share without leaving the
+          posting flow, same lane as the reel cards below. */}
+      {captionsPdfOk && (
+        <CaptionsPdfExport url={captionsPdfUrl} filename={`hm-captions-${todayET}.pdf`} />
+      )}
       <SocialBriefExport />
 
       {/* Key includes updated_at: a server-side caption refresh (pipeline

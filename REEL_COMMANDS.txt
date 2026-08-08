@@ -603,7 +603,15 @@ npm run reel:check
     you were sent is not reaching a reel. If you drop a file in
     and reel:check names it as unreferenced, the FILENAME is
     wrong, not the file. Deliberate exceptions are listed with
-    their reason (e.g. the rejected powerup intro).
+    their reason (e.g. the MKT-48 rejected updraft endcard motion,
+    or the MKT-21 generated bodies — both kept as the evidence for
+    their ruling).
+    ⚠ NOT powerup. `anchor_intro_powerup.mp4` is a LIVE rotation
+    member (the MKT-23 regeneration, in the set since 2026-07-30);
+    only the original MKT-17-rejected delivery was ever an
+    exception. This file used to cite it as the example, which read
+    as "a rejected intro is playing" when the free All-Day reel
+    drew it on 8/7. Corrected 2026-08-07.
 
     ROTATION HEALTH (added 2026-08-06, MKT-49): reel:check now
     also asks whether the SCHEDULE varies, not just whether the

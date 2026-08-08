@@ -38,7 +38,16 @@ const SCOPE_LABEL: Record<string, string> = { midday: 'Midday', evening: 'Evenin
 const SCOPE_ICON: Record<string, string> = { midday: '☀️', evening: '🌙', allday: '◈' };
 const SESSION_ICON: Record<string, string> = { morning: '🌅', midday: '☀️', evening: '🌙', night: '🌑' };
 
-const WINDOW_DAYS = 30;
+// MKT-51 Tier A: member-selectable window. 30 stays the default — it is what
+// the capture rigs expect (capture mode also hides the controls entirely).
+const WINDOW_OPTIONS = [7, 30, 90] as const;
+const DEFAULT_WINDOW = 30;
+// BUG-162 era floor: stored hit flags before the 2026-06-10 detection fix are
+// inflated (~30% phantom rows). A "verified" surface must never render that
+// era, so long windows clamp here — the 90d option stops clamping naturally
+// once 90 days have elapsed past the fix.
+const ERA_FLOOR = '2026-06-11';
+type ScopeFilter = 'all' | 'midday' | 'evening' | 'allday';
 
 interface HitRow {
   slate_date: string;
@@ -86,10 +95,21 @@ const FETCH_LIMIT = 1000;
 export default function TrackRecordScreen() {
   const { colors } = useTheme();
   const s = useMemo(() => makeS(colors), [colors]);
-  const sinceDate = useMemo(() => getDaysAgoET(WINDOW_DAYS - 1), []);
   // MKT-51 capture contract: rigs pass ?capture=1 for deterministic frames.
   const params = useLocalSearchParams<{ capture?: string }>();
   const captureMode = params.capture === '1';
+
+  const [windowDays, setWindowDays] = useState<number>(DEFAULT_WINDOW);
+  const [scopeFilter, setScopeFilter] = useState<ScopeFilter>('all');
+  const { sinceDate, eraClamped } = useMemo(() => {
+    const raw = getDaysAgoET(windowDays - 1);
+    return raw < ERA_FLOOR ? { sinceDate: ERA_FLOOR, eraClamped: true } : { sinceDate: raw, eraClamped: false };
+  }, [windowDays]);
+  // Honest window label: while the era floor bites, "last 90 days" would
+  // overclaim — say what the data actually covers instead.
+  const windowLabel = eraClamped
+    ? `since ${new Date(ERA_FLOOR + 'T12:00:00').toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' })}`
+    : `last ${windowDays} days`;
   const { followed, toPostgrestFilter } = useFollowedStates();
   const stateFilter = toPostgrestFilter().replace('jurisdiction=', 'hit_state=');
   const { user } = useAuth();
@@ -180,31 +200,52 @@ export default function TrackRecordScreen() {
     return merged;
   }, [hitRows]);
 
-  // Group by date for the stream layout
+  // MKT-51 Tier A: scope chips filter client-side — summary and stream both
+  // reflect the filter so the numbers never disagree with the rows shown.
+  const scoped = useMemo(
+    () => (scopeFilter === 'all' ? validHits : validHits.filter(h => h.scope === scopeFilter)),
+    [validHits, scopeFilter],
+  );
+
+  // Group by date for the stream layout. MKT-51 Tier A: STRAIGHTS FIRST within
+  // each day — same editorial rule as the verify reel (MKT-27: straights are
+  // the strongest proof and lead). Session order breaks ties.
   const grouped = useMemo(() => {
     const sessionOrder: Record<string, number> = { morning: 0, midday: 1, evening: 2, night: 3 };
     const byDate = new Map<string, HitRow[]>();
-    for (const h of validHits) {
+    for (const h of scoped) {
       if (!byDate.has(h.slate_date)) byDate.set(h.slate_date, []);
       byDate.get(h.slate_date)!.push(h);
     }
     for (const arr of byDate.values()) {
       arr.sort((a, b) =>
+        (b.hit_straight ? 1 : 0) - (a.hit_straight ? 1 : 0) ||
         (sessionOrder[(a.hit_session ?? '').toLowerCase()] ?? 9) - (sessionOrder[(b.hit_session ?? '').toLowerCase()] ?? 9),
       );
     }
     return [...byDate.entries()];
-  }, [validHits]);
+  }, [scoped]);
 
   // Header summary
   const summary = useMemo(() => {
-    const totalHits = validHits.length;
-    const straightHits = validHits.filter(h => h.hit_straight).length;
+    const totalHits = scoped.length;
+    const straightHits = scoped.filter(h => h.hit_straight).length;
     const boxHits = totalHits - straightHits;
-    const distinctDates = new Set(validHits.map(h => h.slate_date)).size;
-    const distinctStates = new Set(validHits.map(h => h.hit_state).filter(Boolean)).size;
+    const distinctDates = new Set(scoped.map(h => h.slate_date)).size;
+    const distinctStates = new Set(scoped.map(h => h.hit_state).filter(Boolean)).size;
     return { totalHits, straightHits, boxHits, distinctDates, distinctStates };
-  }, [validHits]);
+  }, [scoped]);
+
+  // MKT-51 Tier A: DAYS denominator. Complete days = window start through
+  // yesterday; today joins the denominator only once it has a match (a
+  // partial day with nothing yet must not read as a miss at 9am).
+  const daysDen = useMemo(() => {
+    const complete = Math.max(0, Math.round(
+      (Date.parse(getYesterdayET() + 'T12:00:00') - Date.parse(sinceDate + 'T12:00:00')) / 86400000,
+    ) + 1);
+    const todayMatched = scoped.some(h => h.slate_date === getTodayET());
+    return complete + (todayMatched ? 1 : 0);
+  }, [scoped, sinceDate]);
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
@@ -214,9 +255,43 @@ export default function TrackRecordScreen() {
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={s.title}>Verified Track Record</Text>
-          <Text style={s.subtitle}>Last {WINDOW_DAYS} days · verified signal matches, draw-by-draw</Text>
+          <Text style={s.subtitle}>{windowLabel} · verified signal matches, draw-by-draw</Text>
         </View>
       </View>
+
+      {/* MKT-51 Tier A controls — hidden under ?capture=1 so reel frames stay
+          clean and the rig always captures the 30d/all default layout. */}
+      {!captureMode && (
+        <View style={s.controlsRow}>
+          {WINDOW_OPTIONS.map(w => (
+            <TouchableOpacity
+              key={w}
+              style={[s.pill, windowDays === w && s.pillOn]}
+              onPress={() => setWindowDays(w)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: windowDays === w }}
+              accessibilityLabel={`Show last ${w} days`}
+            >
+              <Text style={[s.pillText, windowDays === w && s.pillTextOn]}>{w}D</Text>
+            </TouchableOpacity>
+          ))}
+          <View style={s.controlsDivider} />
+          {(['all', 'midday', 'evening', 'allday'] as const).map(sc => (
+            <TouchableOpacity
+              key={sc}
+              style={[s.pill, scopeFilter === sc && s.pillOn]}
+              onPress={() => setScopeFilter(sc)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: scopeFilter === sc }}
+              accessibilityLabel={sc === 'all' ? 'All scopes' : SCOPE_LABEL[sc]}
+            >
+              <Text style={[s.pillText, scopeFilter === sc && s.pillTextOn]}>
+                {sc === 'all' ? 'All' : `${SCOPE_ICON[sc]} ${SCOPE_LABEL[sc]}`}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       {isLoading ? (
         <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 12, gap: 10 }}>
@@ -230,10 +305,10 @@ export default function TrackRecordScreen() {
             ]}
           />
         </View>
-      ) : validHits.length === 0 ? (
+      ) : scoped.length === 0 ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
           <Text style={{ fontSize: 32, marginBottom: 10 }}>🧾</Text>
-          <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 6 }}>No verified matches in the last {WINDOW_DAYS} days</Text>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 6 }}>No verified matches {windowLabel}{scopeFilter !== 'all' ? ` for ${SCOPE_LABEL[scopeFilter]}` : ''}</Text>
           <Text style={{ fontSize: 12, color: colors.textSecondary, textAlign: 'center' }}>
             Matches will appear here as your slate matches real draws.
           </Text>
@@ -249,10 +324,12 @@ export default function TrackRecordScreen() {
               <View style={s.summaryDivider} />
               <SummaryStat value={summary.boxHits} label="BOX" color={colors.cyan} snap={captureMode} />
               <View style={s.summaryDivider} />
-              <SummaryStat value={summary.distinctDates} label="DAYS" color={colors.purple} snap={captureMode} />
+              {/* Tier A: numerator/denominator — matched days over elapsed days.
+                  The denominator is what turns "29" into a claim worth reading. */}
+              <SummaryStat value={summary.distinctDates} suffix={`/${daysDen}`} label="DAYS" color={colors.purple} snap={captureMode} />
             </View>
             <Text style={s.summarySub}>
-              Across {summary.distinctStates} jurisdictions · last {WINDOW_DAYS} days
+              Across {summary.distinctStates} jurisdictions · {windowLabel}
               {truncated ? ` · showing the most recent ${FETCH_LIMIT} matches` : ''}
             </Text>
           </View>
@@ -297,11 +374,26 @@ export default function TrackRecordScreen() {
                         Drew {h.hit_result || '???'} in {h.hit_state || '??'} {h.hit_session || ''}
                       </Text>
                     </View>
+                    {/* Tier A: published slate position — the receipt's "called
+                        in advance at slot N" half. rank is 1–6 (slate ordinality
+                        in adaptive_tracking, verified 2026-08-07). */}
+                    {h.rank >= 1 && h.rank <= 6 && (
+                      <View style={s.rankChip} accessibilityLabel={`Slate position ${h.rank}`}>
+                        <Text style={s.rankChipText}>#{h.rank}</Text>
+                      </View>
+                    )}
                   </TouchableOpacity>
                 );
               })}
             </View>
           ))}
+
+          {/* Tier A: brand attribution (MKT-14 pattern) so organic member
+              screenshots of the stream self-attribute. Tier-neutral copy. */}
+          <View style={s.brandFooter}>
+            <Text style={s.brandWordmark}>HITMASTER <Text style={{ color: colors.cyan }}>ZK6</Text></Text>
+            <Text style={s.brandFooterMeta}>verified daily · {getTodayET()}</Text>
+          </View>
         </ScrollView>
       )}
 
@@ -317,7 +409,7 @@ export default function TrackRecordScreen() {
   );
 }
 
-function SummaryStat({ value, label, color, snap }: { value: number; label: string; color: string; snap?: boolean }) {
+function SummaryStat({ value, label, color, snap, suffix }: { value: number; label: string; color: string; snap?: boolean; suffix?: string }) {
   const { colors } = useTheme();
   const s = useMemo(() => makeS(colors), [colors]);
   // DESIGN-02 T2 (2.1): summary numbers count up 0→value (~600ms ease-out);
@@ -327,7 +419,7 @@ function SummaryStat({ value, label, color, snap }: { value: number; label: stri
   const display = useCountUp(value, snap ? { duration: 0 } : undefined);
   return (
     <View style={s.summaryStat}>
-      <Text style={[s.summaryValue, { color }]}>{display}</Text>
+      <Text style={[s.summaryValue, { color }]}>{display}{suffix ?? ''}</Text>
       <Text style={s.summaryLabel}>{label}</Text>
     </View>
   );
@@ -357,7 +449,21 @@ const makeS = (colors: ColorTokens) => StyleSheet.create({
   dayBadge: { marginLeft: 'auto', backgroundColor: colors.gold + '22', borderWidth: 1, borderColor: colors.gold + '66', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 99 },
   dayBadgeText: { fontSize: 9, fontWeight: '900', color: colors.gold, fontFamily: theme.typography.fontFamily.monoBold },
 
+  // MKT-51 Tier A controls
+  controlsRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border },
+  controlsDivider: { width: 1, height: 18, backgroundColor: colors.border, marginHorizontal: 2 },
+  pill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 99, borderWidth: 1, borderColor: colors.border },
+  pillOn: { borderColor: colors.primary, backgroundColor: colors.primary + '18' },
+  pillText: { fontSize: 10, fontWeight: '700', color: colors.textSecondary },
+  pillTextOn: { color: colors.primary, fontWeight: '900' },
+
   hitRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 10, backgroundColor: colors.card, borderRadius: 10, borderLeftWidth: 3, borderColor: colors.border, borderWidth: 1 },
+  rankChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  rankChipText: { fontSize: 9, fontWeight: '900', color: colors.textTertiary, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 0.4 },
+
+  brandFooter: { alignItems: 'center', gap: 2, marginTop: 10, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border },
+  brandWordmark: { fontSize: 11, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 2 },
+  brandFooterMeta: { fontSize: 9, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono },
   hitSessIcon: { fontSize: 16 },
   hitCombo: { fontSize: 18, fontWeight: '900', color: colors.text, fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 3, minWidth: 60 },
   hitMain: { fontSize: 11, color: colors.textSecondary },

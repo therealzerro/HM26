@@ -245,6 +245,16 @@ Exact scripted lines. **No time-of-day words in pt1** — the point of the rewri
 
 Gates: check:brand-voice 36 files / 0 findings; app-code tsc 0. Subscriber-surface edits operator-ordered ("do tier B and C now, MKT-51").
 
+**ADDENDUM — TIER A SHIPPED (same night, operator: "do tier A, all of it except the share button"):**
+1. **Straights-first day ordering** — each day group sorts `hit_straight` first, session order as tiebreak; aligns the live set with the reel's editorial rule (MKT-27). Reel-safe: the renderer discovers rows from the DOM by position+text, so reordering just makes its featured rows contiguous.
+2. **DAYS denominator** — stat now renders `matched/elapsed` (e.g. 29/29). Denominator = complete days (window start → yesterday); today joins it ONLY once it has a match, so a quiet morning never reads as a miss.
+3. **Rank chip** — `#N` chip per row (slate ordinality 1–6, guarded to that range): the "called in advance at a published slot" half of the receipt.
+4. **Brand footer** — MKT-14-pattern wordmark ("HITMASTER ZK6" + "verified daily · date") at the end of the stream so organic member screenshots self-attribute. Below the reel's capture zone (yesterday's group is near the top).
+5. **Window toggle (7/30/90) + scope chips (All/Midday/Evening/All Day)** — scope filters client-side and drives BOTH summary and stream (numbers can never disagree with rows). ⚠ **BUG-162 era floor**: long windows clamp `sinceDate` to **2026-06-11** — stored hit flags before the 6/10 detection fix are inflated, and a "verified" surface must never render that era. While clamped the header/summary say "since Jun 11" instead of "last 90 days"; the clamp self-expires as days elapse. Controls are HIDDEN under `?capture=1`, so reel frames keep the 30d/all default layout.
+NOT built: the in-app share button (tier-map ruling still open). Note for the reels: the summary DAYS stat now shows the denominator in tonight's verify bodies — intended.
+
+Gates re-run: check:brand-voice 0 findings; app-code tsc 0.
+
 ---
 
 ### MKT-50 — Morning Brief → Pro-group deliverable: pos-rule divergence fixed, SocialBriefCard Pro depth, lint scope ✅ SHIPPED (2026-08-07)

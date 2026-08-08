@@ -1,8 +1,24 @@
+/**
+ * Verified Track Record — consumer receipts stream, and the LIVE SET for the
+ * nightly verify reels (MKT-02 render-verification-reel.ts + its --public cut).
+ *
+ * CAPTURE CONTRACT (MKT-51) — the reel rigs depend on this screen nightly:
+ *  · The heading text "Verified Track Record" is a rig anchor — renaming it
+ *    breaks that night's verify reels.
+ *  · `?capture=1` puts the screen in deterministic-capture mode: summary
+ *    count-up snaps to final values (no animation frames). Rigs pass it.
+ *  · Stable anchors: summary band = testID/nativeID "tr-summary"; each day
+ *    group = nativeID "day-<YYYY-MM-DD>" (DOM id on web) so rigs can
+ *    scrollIntoView instead of computing pixel offsets.
+ *  · ALL digits must stay in TEXT nodes (no images/SVG numerals): the
+ *    verify_public redaction sweep (MKT-30) masks text nodes only, and its
+ *    abort is the last gate before a tier-1 surface.
+ */
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { NeonSkeleton } from '@/components/NeonSkeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useNavigation } from 'expo-router';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '@/constants/theme';
@@ -16,6 +32,7 @@ import type { PickItem } from '@/components/PickCard';
 import { hitRowToPickItem } from '@/lib/hitToPickItem';
 import { useAuth } from '@/hooks/useAuth';
 import { useCountUp } from '@/hooks/useCountUp';
+import { getDaysAgoET, getTodayET, getYesterdayET } from '@/lib/dateUtils';
 
 const SCOPE_LABEL: Record<string, string> = { midday: 'Midday', evening: 'Evening', allday: 'All Day' };
 const SCOPE_ICON: Record<string, string> = { midday: '☀️', evening: '🌙', allday: '◈' };
@@ -49,25 +66,30 @@ function scopeMatchesSession(scope: string, session: string): boolean {
   return s === d;
 }
 
+// MKT-51: ET end to end via dateUtils. The old versions did the date
+// arithmetic in the DEVICE timezone and only formatted in ET, so a
+// late-evening West-coast or overseas viewer got a shifted window and a
+// wrong Today/Yesterday label.
 function formatDateLabel(date: string): string {
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-  if (date === today) return 'Today';
-  const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-  if (date === yesterday.toLocaleDateString('en-CA', { timeZone: 'America/New_York' })) return 'Yesterday';
+  if (date === getTodayET()) return 'Today';
+  if (date === getYesterdayET()) return 'Yesterday';
   const d = new Date(date + 'T12:00:00');
   return d.toLocaleDateString('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-function lastNDates(n: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - (n - 1));
-  return d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-}
+// PostgREST hard-caps every GET at 1000 rows; asking for exactly that gives
+// ~6× headroom over current volume (~160 matches/30d) AND makes truncation
+// detectable: length === FETCH_LIMIT ⇒ the oldest days fell off, and the
+// summary says so instead of silently under-claiming the window.
+const FETCH_LIMIT = 1000;
 
 export default function TrackRecordScreen() {
   const { colors } = useTheme();
   const s = useMemo(() => makeS(colors), [colors]);
-  const sinceDate = useMemo(() => lastNDates(WINDOW_DAYS), []);
+  const sinceDate = useMemo(() => getDaysAgoET(WINDOW_DAYS - 1), []);
+  // MKT-51 capture contract: rigs pass ?capture=1 for deterministic frames.
+  const params = useLocalSearchParams<{ capture?: string }>();
+  const captureMode = params.capture === '1';
   const { followed, toPostgrestFilter } = useFollowedStates();
   const stateFilter = toPostgrestFilter().replace('jurisdiction=', 'hit_state=');
   const { user } = useAuth();
@@ -113,15 +135,22 @@ export default function TrackRecordScreen() {
     signal_co: number | null; signal_burst: number | null;
     energy_score: number | null;
   }>>({
-    queryKey: ['verified_track_record_adaptive_v2', sinceDate, followed.join(',')],
+    // MKT-51: mode pinned to balanced. The old in.(balanced,conservative,
+    // aggressive) filter was a latent phantom-match vector — the served slate
+    // is balanced-only, so the day another mode starts writing tracking rows,
+    // this screen would have shown "verified" matches from slates no
+    // subscriber ever saw. (Verified 2026-08-07: all rows were balanced, so
+    // pinning changes nothing displayed today.)
+    queryKey: ['verified_track_record_adaptive_v3', sinceDate, followed.join(',')],
     queryFn: async () => {
       const rows = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/adaptive_tracking?slate_date=gte.${sinceDate}&matched_state=not.is.null&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${atStateFilter}&select=slate_date,scope,combo,combo_set,rank,matched_state,matched_session,hit_box,hit_straight,actual_result,signal_box,signal_pburst,signal_co,signal_burst,energy_score&order=slate_date.desc&limit=500`,
+        path: `/rest/v1/adaptive_tracking?slate_date=gte.${sinceDate}&matched_state=not.is.null&or=(hit_box.eq.true,hit_straight.eq.true)&mode=eq.balanced${atStateFilter}&select=slate_date,scope,combo,combo_set,rank,matched_state,matched_session,hit_box,hit_straight,actual_result,signal_box,signal_pburst,signal_co,signal_burst,energy_score&order=slate_date.desc&limit=${FETCH_LIMIT}`,
       });
       return Array.isArray(rows) ? rows : [];
     },
     staleTime: 5 * 60 * 1000,
   });
+  const truncated = hitRows.length >= FETCH_LIMIT;
 
   // Same scope-validity gate as Results (BUG-132 defense in depth). De-dupe
   // by (date, scope, combo, matched_state) so true duplicates collapse but
@@ -185,7 +214,7 @@ export default function TrackRecordScreen() {
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={s.title}>Verified Track Record</Text>
-          <Text style={s.subtitle}>Last {WINDOW_DAYS} days · ZK6 K6 matches, draw-by-draw</Text>
+          <Text style={s.subtitle}>Last {WINDOW_DAYS} days · verified signal matches, draw-by-draw</Text>
         </View>
       </View>
 
@@ -212,22 +241,25 @@ export default function TrackRecordScreen() {
       ) : (
         <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
           {/* Summary band */}
-          <View style={s.summaryCard}>
+          <View style={s.summaryCard} testID="tr-summary" nativeID="tr-summary">
             <View style={s.summaryRow}>
-              <SummaryStat value={summary.totalHits} label="MATCHES" color={colors.cyan} />
+              <SummaryStat value={summary.totalHits} label="MATCHES" color={colors.cyan} snap={captureMode} />
               <View style={s.summaryDivider} />
-              <SummaryStat value={summary.straightHits} label="STRAIGHT" color={colors.gold} />
+              <SummaryStat value={summary.straightHits} label="STRAIGHT" color={colors.gold} snap={captureMode} />
               <View style={s.summaryDivider} />
-              <SummaryStat value={summary.boxHits} label="BOX" color={colors.cyan} />
+              <SummaryStat value={summary.boxHits} label="BOX" color={colors.cyan} snap={captureMode} />
               <View style={s.summaryDivider} />
-              <SummaryStat value={summary.distinctDates} label="DAYS" color={colors.purple} />
+              <SummaryStat value={summary.distinctDates} label="DAYS" color={colors.purple} snap={captureMode} />
             </View>
-            <Text style={s.summarySub}>Across {summary.distinctStates} jurisdictions · last {WINDOW_DAYS} days</Text>
+            <Text style={s.summarySub}>
+              Across {summary.distinctStates} jurisdictions · last {WINDOW_DAYS} days
+              {truncated ? ` · showing the most recent ${FETCH_LIMIT} matches` : ''}
+            </Text>
           </View>
 
-          {/* Stream */}
+          {/* Stream — nativeID per day group is a rig scroll anchor (MKT-51) */}
           {grouped.map(([date, dateHits]) => (
-            <View key={date} style={s.daySection}>
+            <View key={date} style={s.daySection} nativeID={`day-${date}`} testID={`tr-day-${date}`}>
               <View style={s.dayHeader}>
                 <Text style={s.dayLabel}>{formatDateLabel(date)}</Text>
                 <Text style={s.dayDate}>{date}</Text>
@@ -285,12 +317,14 @@ export default function TrackRecordScreen() {
   );
 }
 
-function SummaryStat({ value, label, color }: { value: number; label: string; color: string }) {
+function SummaryStat({ value, label, color, snap }: { value: number; label: string; color: string; snap?: boolean }) {
   const { colors } = useTheme();
   const s = useMemo(() => makeS(colors), [colors]);
   // DESIGN-02 T2 (2.1): summary numbers count up 0→value (~600ms ease-out);
-  // snaps to the final value under Reduce Motion. Number only — label static.
-  const display = useCountUp(value);
+  // snaps to the final value under Reduce Motion — and under ?capture=1
+  // (MKT-51), where an animation frame would leak nondeterminism into the
+  // verify reel's frame capture. duration 0 hits useCountUp's snap guard.
+  const display = useCountUp(value, snap ? { duration: 0 } : undefined);
   return (
     <View style={s.summaryStat}>
       <Text style={[s.summaryValue, { color }]}>{display}</Text>

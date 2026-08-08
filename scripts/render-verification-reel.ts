@@ -179,9 +179,14 @@ function yesterdayET(): string {
     } catch {}
   });
 
-  await page.goto(BASE + '/track-record', { waitUntil: 'networkidle', timeout: 180_000 });
+  // MKT-51: ?capture=1 = the screen's deterministic-capture contract — the
+  // summary count-up snaps to final values, so no animation frame can leak
+  // into the captured body. The screen also exposes nativeID anchors
+  // (#tr-summary, #day-<date>) as a sturdier alternative to the geometric
+  // scroller/day-group discovery below if it ever breaks.
+  await page.goto(BASE + '/track-record?capture=1', { waitUntil: 'networkidle', timeout: 180_000 });
   await page.getByText('Verified Track Record').waitFor({ timeout: 60_000 });
-  await page.waitForTimeout(4_000);     // queries + count-ups fully settle
+  await page.waitForTimeout(4_000);     // queries fully settle (count-up snaps under capture=1)
 
   // Locate yesterday's day group and the following group in the rendered DOM.
   const layout = await page.evaluate((iso: string) => {

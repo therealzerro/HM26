@@ -228,6 +228,25 @@ Exact scripted lines. **No time-of-day words in pt1** — the point of the rewri
 
 ---
 
+### MKT-51 — Verified Track Record: integrity hardening + capture-rig contract ✅ SHIPPED (2026-08-07)
+
+**ID verified free** — 0 hits above MKT-50 in audit or code before stamping. Source: the MKT-51 scope report (same session). The screen is the nightly verify-reel live set (MKT-02 + verify_public), so Tier B (integrity) and Tier C (capture contract) shipped together by operator order; Tier A content items NOT built (await per-item ruling).
+
+**TIER B — integrity (`app/track-record.tsx`):**
+1. **Mode pinned `eq.balanced`** (was `in.(balanced,conservative,aggressive)`) — latent phantom-match vector: served slates are balanced-only, so a future non-balanced tracking row would have displayed a "verified" match no subscriber ever saw. Verified pre-change: all 159 rows in the 30d window were balanced → pinning changes nothing displayed today. queryKey bumped v3.
+2. **ET-safe dates** — window start via `getDaysAgoET`, Today/Yesterday labels via `getTodayET`/`getYesterdayET` (old code did arithmetic in DEVICE timezone, formatted in ET → shifted window for late-evening west/overseas viewers).
+3. **Truncation honesty** — fetch limit 500→1000 (the PostgREST hard cap; ~6× current volume) and `length === limit` now appends "showing the most recent 1000 matches" to the summary instead of silently dropping the OLDEST days under a "last 30 days" header.
+4. **Subtitle jargon** — "ZK6 K6 matches" → "verified signal matches" (consumer surface; "K6" was engine-internal).
+
+**TIER C — capture contract (screen header comment documents all of it):**
+1. **`?capture=1`** = deterministic-capture mode: summary count-up snaps (duration 0 hits useCountUp's snap guard) so no animation frame leaks into the reel body. `render-verification-reel.ts` now navigates with it.
+2. **Stable anchors** — summary band `testID/nativeID "tr-summary"`; each day group `nativeID "day-<YYYY-MM-DD>"` (DOM id on web) so rigs can scrollIntoView instead of geometric scroller discovery. Existing rigs untouched beyond the URL; anchors are the documented fallback.
+3. **Text-node contract documented** — digits must never move into images/SVG: the MKT-30 public sweep masks text nodes only and its abort is the last gate before tier 1. ⚠ The heading string "Verified Track Record" is a rig waitFor anchor — renaming it breaks that night's reels.
+
+Gates: check:brand-voice 36 files / 0 findings; app-code tsc 0. Subscriber-surface edits operator-ordered ("do tier B and C now, MKT-51").
+
+---
+
 ### MKT-50 — Morning Brief → Pro-group deliverable: pos-rule divergence fixed, SocialBriefCard Pro depth, lint scope ✅ SHIPPED (2026-08-07)
 
 **ID verified free** — 0 hits above MKT-49 in this file and in code before stamping. Full rulings in the 2026-08-07 work-order session; the operator brief itself (BriefView/FullBriefCard) is ruled **internal-only and untouched** — the deliverable is SocialBriefCard's Pro variant.

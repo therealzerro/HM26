@@ -1,0 +1,261 @@
+ASSET STATE REPORT — 2026-08-13 (ET)
+Checked against LIVE REGISTRIES (anchor-intros.ts, brand-motion.ts,
+endcard-config.ts, carrier-config.ts, stinger-config.ts) + a fresh
+`npm run reel:check` (exit 0 — 0 FAIL / 94 WARN) and `npm run reel:rotation`,
+both run 2026-08-13. Report only — nothing was built, registered or changed.
+
+════════════════════════════════════════════════════════════════════════════
+1. SLATE INTRO ROTATION (INTRO_ROTATION, anchor-intros.ts) — 6 members
+════════════════════════════════════════════════════════════════════════════
+Your belief CONFIRMED: pool is 6, and coffee / juggle / guest are NOT in the
+repo — no file matching those names exists anywhere in assets/marketing.
+All 6 members probe PASS (usable) and all are serving in rotation; none held.
+
+  file                        label     trim (recorded)         on-disk dur  serving today (2026-08-13)
+  --------------------------  --------  ----------------------  -----------  --------------------------
+  anchor_intro.mp4            standard  IN 1.9 / OUT 7.5        5.63s        evening_free
+  anchor_intro_deadpan.mp4    deadpan   IN 0.0 / OUT 6.0 (*)    6.33s        evening_pro
+  anchor_intro_arrival.mp4    arrival   IN 2.0 / OUT 8.0        6.00s        allday_free
+  anchor_intro_monitors.mp4   monitors  IN 0.0 / OUT 6.0        6.00s        allday_pro
+  anchor_intro_powerup.mp4    powerup   IN 0.0 / OUT 6.0 (*)    6.33s        midday_free
+  anchor_intro_board.mp4      board     IN 0.0 / OUT 6.0        6.00s        midday_pro
+
+  (*) discrepancy worth knowing: deadpan and powerup measure 6.33s on disk
+  against the audit's recorded OUT 6.0 (arrival/monitors/board measure 6.00
+  exactly). Both pass the 3.5–6.5s intro window either way; flagged so your
+  list doesn't inherit the 6.0 figure as a byte-fact.
+
+  powerup is the MKT-23 REGENERATION (in the set since 2026-07-30) — the
+  original delivery was rejected (never reached full-frame smoke) and any
+  stale "awaiting regeneration" claim is dead (struck by MKT-35).
+  All six masters preserved as anchor_intro*_master_10s.mp4 (archive-exempt).
+
+════════════════════════════════════════════════════════════════════════════
+2. THE OTHER INTRO SETS — one file each, NO second member has landed
+════════════════════════════════════════════════════════════════════════════
+  set             members                    on-disk dur  notes
+  --------------  -------------------------  -----------  -------------------------------
+  VERIFY_INTROS   anchor_intro_verify.mp4    5.63s        trim IN 0.0/OUT 5.6 (135 frames,
+                                                          matches standard so verify's
+                                                          timeline does not shift)
+  PUBLIC_INTROS   anchor_intro_public.mp4    6.00s        serves allday_public, verify_public,
+                                                          + dormant midday/evening_public
+
+Both are MKT-49 SETS (a second member registers as one line), but nothing new
+has landed since v2.9 — each set still has exactly one file. Reminder pinned
+in the registry: PUBLIC_INTROS members must be PUBLIC-CLEARED (MKT-30 Q1/Q2
+bar, glyph/numeral sweep) BEFORE registration.
+(anchor_intro_public_incumbent_backup.mp4 on disk is a pre-swap backup of the
+same slot, not a second member.)
+
+════════════════════════════════════════════════════════════════════════════
+3. STINGER MOTIONS — shared pool still 4; nothing new has arrived
+════════════════════════════════════════════════════════════════════════════
+Shared rotation (STINGER_MOTIONS), serving 7 rotating kinds:
+  stinger_motion.mp4           std       bolt condense
+  stinger_motion_strike.mp4    strike    strike
+  stinger_motion_circuit.mp4   circuit   circuit (authored audio fade from
+                                         2.45s against the 2.7s gold pulse)
+  stinger_motion_fracture.mp4  fracture  fracture
+
+Seal set (VERIFY_SEAL_MOTIONS, serves verify + verify_public ONLY):
+  stinger_motion_seal.mp4      seal      closing-bell seal (hold cleared
+                                         2026-07-30; serving)
+
+Retired, on disk, not counted: stinger_motion_imprint.mp4 (MKT-42 — bloom is
+full-frame through the lockup fade-in; restoring needs a per-motion TIMING
+override, never a silent re-add).
+
+v2.9 note F status: the 4 → 7 ask is UNMET and the live run confirms the need:
+with 4 motions over 7 kinds, reel:check reports 3 forced same-file repeats
+EVERY day (today: fracture on allday_pro+midday_free, circuit on
+allday_free+evening_free, strike on allday_public+midday_pro), and the
+closest identical stinger arrangement is 6 days apart (inside-a-week WARN).
+No new stinger motion is on disk (the stray scan shows none unregistered).
+
+════════════════════════════════════════════════════════════════════════════
+4. ENDCARD MOTIONS — pro 4 / free 5, CONFIRMED as you have them
+════════════════════════════════════════════════════════════════════════════
+PRO (ENDCARD_MOTIONS.pro) — 3/4 bed-viable:
+  endcard_motion_pro_reveal.mp4     reveal     turbulence clearing  NO BED —
+                                               bed-ineligible (−43.2dB window,
+                                               needs +15.6dB vs ±6dB clamp);
+                                               drops on hum-bed days only
+  endcard_motion_pro_discharge.mp4  discharge  single strike        bed ok @ −27.5dB
+  endcard_motion_pro_ignite.mp4     ignite     seed ignition        bed ok @ −30.9dB
+  endcard_motion_pro_lock.mp4       lock       sealing ring         bed ok @ −30.8dB
+
+FREE (ENDCARD_MOTIONS.free) — 5/5 bed-viable:
+  endcard_motion_free.mp4           std        blooming eddies      bed ok @ −29.3dB
+  endcard_motion_free_alt.mp4       alt        rising tide          bed ok @ −24.5dB
+  endcard_motion_free_tide.mp4      tide       drifting tide        bed ok @ −32.0dB
+  endcard_motion_free_bloom.mp4     bloom      radial bloom         bed ok @ −22.5dB
+  endcard_motion_ad_open.mp4        adopen     ad open              bed ok @ −32.1dB
+                                               (MKT-48 Lane C ruling (a): FREE
+                                               SHARED — registered, serving)
+
+The four RETIRED pro concepts (std/alt/steady/lattice, MKT-47) and the
+dropped anvil are NOT in the registry — but plain-name copies of four of them
+are still on disk as strays (see §7).
+
+════════════════════════════════════════════════════════════════════════════
+5. CARRIERS (CARRIERS, carrier-config.ts) — per kind, part-1 set + pt2
+════════════════════════════════════════════════════════════════════════════
+  kind           part-1 set (entry 0 = incumbent/fallback)              continuation
+  -------------  ------------------------------------------------------ ------------------------------
+  allday_pro     4: incumbent · stamp · room · overnight                allday_pro_carrier_pt2.mp4
+  allday_free    4: incumbent · open · method · check                   allday_free_carrier_pt2.mp4
+  evening_pro    4: incumbent · landed · dusk · last  ← CONFIRMED       evening_pro_carrier_pt2.mp4
+  midday_pro     1: incumbent  ← still single-entry                     midday_pro_carrier_pt2.mp4
+  midday_free    1: incumbent  ← still single-entry                     midday_free_carrier_pt2.mp4
+  evening_free   1: incumbent  ← still single-entry                     evening_free_carrier_pt2.mp4
+  allday_public  1: public_carrier.mp4  ← still single-entry            public_carrier_pt2.mp4
+  verify         1: verif_carrier.mp4                                   verif_carrier_pt2.mp4
+                 + restShort: verif_carrier_signoff_short.mp4 (2.47s, delivered, serving on 0-straight days)
+
+All part 1s probe 10.005s (duration invariant holds set-wide). Every
+declared pt2 exists and joins (20.36s slate joins; verify join 16.82s).
+midday_public / evening_public remain unregistered by ruling (cadence risk).
+
+════════════════════════════════════════════════════════════════════════════
+6. AD LANE — ⚠ THERE IS NO ad_free / ad_pro REGISTRY IN THE REPO
+════════════════════════════════════════════════════════════════════════════
+This is the one place your list and the live state genuinely diverge in KIND:
+MKT-46 is PHASE 0 ANSWERED / PHASE 1 NOT STARTED, and the Q1/Q2 sweep is
+⏸ PARKED MID-SWEEP (2026-08-01). No CARRIERS/ENDCARDS/caption/DB-kind entry
+for ad_free or ad_pro exists anywhere in code. Everything below is DELIVERED
+BUT UNREGISTERED — all of it surfaces in the stray scan (§7).
+
+Bodies on disk (segment files):
+  ad_free concepts — 5 delivered:
+    datadesk  (seg1)        ⛔ REJECTED BY OPERATOR (F3 fabricated-analytics
+                            wall; unfixable by trim — regeneration or drop)
+    wholefree (seg1)        robot head ~1.8s; head-trim IMPOSSIBLE (VO from
+                            0.00s) — parked between cover-the-head / regen
+    first... see ad_pro below
+    fivesites (seg1+seg2)   robot heads <0.9s each; same parked decision
+    shechecks (seg1+seg2)   seg1 PASSES phone-screen property; seg2 unswept
+    showwork  (seg1+seg2)   opens clean; post-head frames unswept
+  ad_pro — 1 body: first_seg1 (P2; robot head ~2.9s, pending the same parked
+    decision — it is the ONLY ad_pro asset). P1 "Covered vs Uncovered" pair
+    REJECTED on Q1 2026-08-03, kept as ad_body_covered_seg*_rejected_20260803.
+
+  So: your "ad_free at 5 bodies" matches the 5 free concepts on disk ONLY if
+  you count the rejected datadesk; the viable free pool is 4 concepts and
+  PROVISIONAL (sweep incomplete — shechecks_seg2 and showwork post-head
+  frames never reviewed). "ad_pro at 1" CONFIRMED.
+
+Ad intros — 5 on disk, ALL still unreferenced strays (no registry exists to
+hold them, and they are ENTIRELY UNSWEPT per the parked MKT-46 sweep):
+  ad_intro_arrives / _building / _paper / _thought / _wall
+
+════════════════════════════════════════════════════════════════════════════
+7. ⚠ STRAY SCAN (reel:check, 2026-08-13) — every unreferenced file
+════════════════════════════════════════════════════════════════════════════
+Result: 0 FAIL. 18 TRUE STRAYS (delivered, reaching no reel, NOT in
+UNREFERENCED_OK), every one with the same printed reason:
+  "no registry references this file — it is delivered but reaches no reel.
+   A near-miss filename (endcard/stinger/carrier/intro) lands here instead
+   of erroring, so check the spelling against the registry; if it is
+   deliberate, add it to UNREFERENCED_OK with a reason."
+
+  Ad bodies (9):   ad_body_datadesk_seg1.mp4 · ad_body_first_seg1.mp4 ·
+                   ad_body_fivesites_seg1.mp4 · ad_body_fivesites_seg2.mp4 ·
+                   ad_body_shechecks_seg1.mp4 · ad_body_shechecks_seg2.mp4 ·
+                   ad_body_showwork_seg1.mp4 · ad_body_showwork_seg2.mp4 ·
+                   ad_body_wholefree_seg1.mp4
+  Ad intros (5):   ad_intro_arrives.mp4 · ad_intro_building.mp4 ·
+                   ad_intro_paper.mp4 · ad_intro_thought.mp4 ·
+                   ad_intro_wall.mp4
+  Retired pro endcard motions, plain-name copies (4):
+                   endcard_motion_pro_alt.mp4 · endcard_motion_pro_anvil.mp4 ·
+                   endcard_motion_pro_lattice.mp4 · endcard_motion_pro_steady.mp4
+                   (the MKT-47 retirement kept *_incumbent_backup /
+                   *_regen_backup / anvil_backup copies, which are
+                   archive-exempt — these plain-name extras are not)
+
+For your gap analysis: the 14 ad files are "delivered but never reached a
+registry" by DESIGN (Phase 1 not started), not by misnaming. The 4 plain-name
+pro motions are retirement leftovers, not deliveries.
+
+Known-unreferenced (in UNREFERENCED_OK, reported PASS with reasons): the two
+covered_seg rejects, updraft reject, imprint, watermark_source, the four
+MKT-32 salvage masters, verif part-1 candidate, and the four MKT-21 bodies
+(public/group_body_pt1/2). Archive-pattern files (*_master*, *_backup) are
+structurally exempt from the scan.
+
+════════════════════════════════════════════════════════════════════════════
+8. HELD / REJECTED / PARKED — names the incoming batch must not collide with
+════════════════════════════════════════════════════════════════════════════
+HELD (registered, resolver skips): NONE — the seal's hold was cleared
+2026-07-30; heldMotionReasons() is empty today.
+
+UNGATED CANDIDATE (do not overwrite, do not re-deliver under this name):
+  verif_carrier_part1_candidate_20260731.mp4 — probes clean, content gate
+  PASSED (MKT-40 item 4), voice-family gate + operator swap-or-reject still
+  owed. Incumbent verif_carrier.mp4 is serving.
+
+RETIRED (reversible by decision, never by silent redelivery):
+  stinger_motion_imprint.mp4 — needs a per-motion timing override to return.
+  endcard_motion_pro std/alt/steady/lattice concepts — retired MKT-47; tried
+  twice (incumbent + regen both settle y613-824); anvil dropped (form dips to
+  y1192). Do not deliver new endcard motions under these names.
+
+REJECTED, kept as evidence (never reuse these names or re-propose the file):
+  ad_body_datadesk_seg1.mp4 (F3 — operator reject; plain name, no _rejected
+    suffix — a new "datadesk" delivery would collide)
+  ad_body_covered_seg1/2_rejected_20260803.mp4 (P1 pair, Q1)
+  endcard_motion_free_updraft_rejected_20260803.mp4 (53-ceiling breach + bed-ineligible)
+  public_body_pt1/pt2.mp4, group_body_pt1/pt2.mp4 (MKT-21 generated bodies)
+  midday_free/evening_pro _carrier_part2_rejected_*.mp4 and
+  verif_carrier_signoff_short_rejected_20260731.mp4 (MKT-32 salvage masters —
+  their EDITED copies are what serve)
+
+PARKED DECISIONS the batch could collide with:
+  MKT-46 head-cover-vs-regen for wholefree/fivesites×2/first (path ① regen
+  would arrive as NEW segment files — naming must not shadow the parked ones)
+  anchor_intro_powerup.mp4 — the name now belongs to the SERVING regeneration;
+  a third delivery under it would need fresh trim + edge measurement.
+  watermark_source.mp4 — permanently unreferenced, deletable, never pending.
+
+════════════════════════════════════════════════════════════════════════════
+9. ROTATION DEPTH (npm run reel:rotation, window 2026-08-13 → 08-26)
+════════════════════════════════════════════════════════════════════════════
+Per lane:
+  lane     pool      kinds rotating  closest identical arrangement
+  -------  --------  --------------  -------------------------------------
+  INTRO    6         6               36d apart — healthy
+  STINGER  4 shared  7               6d apart ⚠ inside a week; 3 forced
+                                     same-file repeats EVERY day
+  ENDCARD  4 pro/5 free  9           94d apart — healthy
+  CARRIER  4 (per-kind)  3           6d apart ⚠ inside a week (lockstep of
+                                     set POSITIONS, files are disjoint)
+
+Distinct full arrangements per kind (intro × stinger × endcard × carrier):
+  verify          4   ⚠ thin (below a fortnight)
+  verify_public   5   ⚠ thin (below a fortnight)
+  allday_public  20
+  midday_pro     94
+  midday_free   112
+  evening_free  113
+  evening_pro   203
+  allday_pro    211
+  allday_free   221
+
+Where incoming assets buy the most (from the live numbers, not the handoff):
+  1. STINGER MOTIONS — the v2.9 note F 4→7 ask is the binding constraint:
+     7 members ends the forced daily repeats AND the 6-day arrangement echo.
+  2. SEAL VARIANTS + verify-lane members — verify (4) and verify_public (5)
+     are the thinnest kinds in the system; every lane they use is pinned by
+     ruling, so ONLY new set members (seal cuts, verify intro variant,
+     public intro) move them.
+  3. PUBLIC INTROS — allday_public at 20 is the thinnest non-verify kind;
+     a second cleared public intro is one registry line (clearance first).
+  4. SESSION CARRIERS — midday_pro / midday_free / evening_free /
+     allday_public are still single-entry; part-1 variants join the existing
+     shared pt2 at zero continuation cost (evening_pro precedent, MKT-48).
+
+════════════════════════════════════════════════════════════════════════════
+Raw command outputs preserved this session (scratchpad, not committed):
+  reel_check_full.txt (295 lines) · reel_rotation_full.txt
+Nothing was fixed, registered, renamed, deleted or anticipated.

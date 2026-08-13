@@ -322,7 +322,18 @@ NOT moved, by ruling: workflow timestamps, engine versions, calib footer, `calib
 
 ---
 
-### DESIGN-03 — Visual deep scope: Slates screen + Pick Detail Modal — 10 findings, 11 ranked suggestions, capture-contract map 📋 SCOPE ONLY (2026-08-13)
+### DESIGN-03 — Visual deep scope: Slates screen + Pick Detail Modal — 10 findings, 11 ranked suggestions, capture-contract map 📋 SCOPE → ✅ EXECUTED (2026-08-13)
+
+**ADDENDUM (same day) — operator ordered "execute all"; shipped, operator smoke test PENDING.** Files: PickDetailModal.tsx, SlatePosterCard.tsx, pickVisuals.tsx. Filtered tsc 0; check:brand-voice 36 files / 0 findings; handoff bumped to v3.2 (note A — tomorrow's reel bodies LOOK different; rig contract untouched and re-verified by read).
+- **S1 (the credibility fix):** PAIRS tab rebuilt on measured data ONLY — one PairStrengthRow per pair from fetchPairScores (classes 2/3/4, H01Y); the fabricated 4-row matrix (whole-pick signals × hardcoded constants presented as per-pair data) is DELETED. **S2:** WHY THIS ORDER copy tiers with the score (≥70 leading / 40-69 supporting / <40 quiet). **S3:** "ZK6 CONFIDENCE" → "ENERGY PERCENTILE" (the value IS pick.energy).
+- **S4 (rulings applied under "execute all" — operator can veto at smoke test):** ACTION tab (was PLAY), "Entry"/"Pays"/"ANY ORDER" (was Bet/Win/SAFE PLAY; amounts + utility unchanged); share text drops the un-owned `hitmaster.app` line (hitmasterzk.com wiring still needs its tier ruling — nothing wired).
+- **S5:** typography floor — 7-8pt micro-labels → 9-10pt across modal hero/strips, tile chips, shared pickVisuals leaves (propagates to the export poster BY DESIGN — the shared-leaf invariant); layout bands deliberately NOT merged (captured-composition stability; the tsStrip band survives). **F9:** hardcoded "ZK6 v2.1" hero line removed. **S6:** modal chrome emoji → lucide (tabs Zap/Link2/Target, Share2, Clock, BookMarked); WhyRow content bullets keep emoji (shared surface, deliberate). **S7:** modal honors Reduce Motion (was screen-only). **F10:** useWindowDimensions replaces module-scope Dimensions; REDACT_LOCK_GOLD + lock-badge border read darkColors.gold.
+- **S9/S10 (grid tiles — GEOMETRY FROZEN, within-tile only):** signal bars 2.5→4px; rank chip carries the scope accent (midday gold / evening purple / allday cyan; falls back to heat color without a scope) — heat semantics stay on badge + digits per scopeAccent's own contract.
+- **Deferred, stated:** S11 list-view polish ideas (PickCard glow, LastHitPill, DrawTicker — lowest priority, unspecified designs; separate order) and S5's band-merge variant. **Verification path:** operator smoke test (grid both view modes × 3 scopes, modal all 3 tabs, light+dark, free+pro) → then eye-check the next daily run's grid still + one modal frame against handoff v3.2 note A.
+
+---
+
+### DESIGN-03 (original scope) — 10 findings, 11 ranked suggestions, capture-contract map (2026-08-13)
 
 **ID verified free** (audit 0 / code 0). Full read of explore.tsx + PickDetailModal + SlatePosterCard + pickVisuals AGAINST the capture rig (render-allday-body.ts) — these surfaces are the nightly reel body, so the scope's first deliverable is the CONSTRAINT MAP: 11 rig-contract items extracted line-by-line (grid tile-center click coordinates, no-scroll abort, close-button position, PICK #N / BEST STRAIGHT text anchors, digits-in-text-nodes for redaction, INTEL-tab-at-scrollTop-0 = the captured composition). Report: `docs/visual_scope_slates_modal_2026-08-13.md`. Nothing changed — suggestions await per-item orders.
 

@@ -18,11 +18,13 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Lock } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
 import { darkColors, heatColor, heatLabel, type ColorTokens } from '@/lib/theme';
+import { scopeAccent } from '@/lib/scopeAccent';
 import { PickItem } from './PickCard';
 import { RedactedDigitRow } from './pickVisuals';
 import { formatHitContext } from '@/lib/hitToPickItem';
 
-const REDACT_LOCK_GOLD = '#FFD700';
+// DESIGN-03 F10: gold reads from the (mode-locked) palette, not a hex twin.
+const REDACT_LOCK_GOLD = darkColors.gold;
 
 // DESIGN-02 T1.1: former local 80/60/40 ramp (HOT/WARM/MILD/COLD) replaced by
 // the canonical scale so the poster matches the list/grid at the same energy.
@@ -79,11 +81,22 @@ export function SlatePosterCard({ pick, onPress, redact = false }: SlatePosterCa
       activeOpacity={onPress ? 0.85 : 1}
       disabled={!onPress}
     >
-      {/* Top: rank chip + temp badge */}
+      {/* Top: rank chip + temp badge.
+          DESIGN-03 S10: the rank chip carries the SCOPE accent (midday gold /
+          evening purple / allday cyan, dark palette — the card is mode-locked)
+          so the three scopes' grids — and their reels — read distinct at a
+          glance. Heat semantics stay on the temp badge + digits; scopeAccent
+          is an identity tint only, per its own contract. Falls back to the
+          heat color when the pick carries no scope. */}
       <View style={gt.topRow}>
-        <View style={[gt.rankChip, { borderColor: tc + '66', backgroundColor: tc + '14' }]}>
-          <Text style={[gt.rankNum, { color: tc }]}>#{pick.rank}</Text>
-        </View>
+        {(() => {
+          const sa = pick.snapshotScope ? scopeAccent(pick.snapshotScope, colors) : tc;
+          return (
+            <View style={[gt.rankChip, { borderColor: sa + '66', backgroundColor: sa + '14' }]}>
+              <Text style={[gt.rankNum, { color: sa }]}>#{pick.rank}</Text>
+            </View>
+          );
+        })()}
         <View style={{ flex: 1 }} />
         <View style={[gt.tempBadge, { borderColor: tc, shadowColor: tc }]}>
           <Text style={[gt.tempLabel, { color: tc }]}>{tLabel}</Text>
@@ -223,7 +236,7 @@ const makeGt = (colors: ColorTokens) => StyleSheet.create({
     backgroundColor: colors.surface2,
     shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 6,
   },
-  tempLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 0.8, fontFamily: theme.typography.fontFamily.monoBold },
+  tempLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 0.8, fontFamily: theme.typography.fontFamily.monoBold },
   tempNum:   { fontSize: 9,  fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
 
   digits: {
@@ -247,22 +260,22 @@ const makeGt = (colors: ColorTokens) => StyleSheet.create({
     borderRadius: 11,
     backgroundColor: 'rgba(20,12,38,0.8)',
     borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.6)',
+    borderColor: darkColors.gold + '99',
     alignItems: 'center', justifyContent: 'center',
   },
 
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   comboSet: { flex: 1, fontSize: 9, color: colors.textSecondary, fontFamily: theme.typography.fontFamily.mono },
-  mult: { fontSize: 8, fontWeight: '900', letterSpacing: 1, fontFamily: theme.typography.fontFamily.monoBold },
+  mult: { fontSize: 9, fontWeight: '900', letterSpacing: 1, fontFamily: theme.typography.fontFamily.monoBold },
 
   signalGrid: { flexDirection: 'row', columnGap: 4, marginTop: 'auto' },
   signalCell: { flex: 1, gap: 1 },
   signalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  signalKey: { fontSize: 8, fontWeight: '900', letterSpacing: 0.4, fontFamily: theme.typography.fontFamily.monoBold },
+  signalKey: { fontSize: 9, fontWeight: '900', letterSpacing: 0.4, fontFamily: theme.typography.fontFamily.monoBold },
   signalVal: { fontSize: 9, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold },
-  barTrack: { height: 2.5, backgroundColor: colors.border, borderRadius: 2, overflow: 'hidden' },
+  barTrack: { height: 4, backgroundColor: colors.border, borderRadius: 2, overflow: 'hidden' },
   barFill: {
-    height: 2.5, borderRadius: 2,
+    height: 4, borderRadius: 2,
     shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 4,
   },
 
@@ -296,7 +309,7 @@ const makeGt = (colors: ColorTokens) => StyleSheet.create({
     marginTop: 1,
   },
   hitStampContext: {
-    fontSize: 8, fontWeight: '800',
+    fontSize: 9, fontWeight: '800',
     fontFamily: theme.typography.fontFamily.monoBold,
     letterSpacing: 0.8,
     marginTop: 1,

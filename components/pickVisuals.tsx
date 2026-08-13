@@ -95,7 +95,7 @@ export function EnergyArc({ value, size = 80, animate = true, palette }: { value
       <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ fontSize: 20, fontWeight: '900', color: accent, fontFamily: D.monoBold, lineHeight: 22 }}>{value}</Text>
-          <Text style={{ fontSize: 7, color: D.textDim, fontWeight: '700', letterSpacing: 0.5 }}>ENERGY</Text>
+          <Text style={{ fontSize: 9, color: D.textDim, fontWeight: '700', letterSpacing: 0.5 }}>ENERGY</Text>
         </View>
       </View>
     </Animated.View>
@@ -105,7 +105,7 @@ export function EnergyArc({ value, size = 80, animate = true, palette }: { value
 // ─── SignalPill ──────────────────────────────────────────────────────────────
 const makeSp = (D: DTokens) => StyleSheet.create({
   card:   { flex: 1, backgroundColor: D.glass, borderRadius: 10, borderWidth: 1, borderColor: D.glassBorder, paddingVertical: 10, paddingHorizontal: 8, gap: 4, alignItems: 'center' },
-  label:  { fontSize: 7, fontWeight: '900', letterSpacing: 1 },
+  label:  { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
   val:    { fontSize: 22, fontWeight: '900', fontFamily: D.monoBold, lineHeight: 24 },
   suffix: { fontSize: 11, fontWeight: '700' },
   track:  { width: '100%', height: 3, backgroundColor: D.text + theme.alpha.faint, borderRadius: 2, overflow: 'hidden' },
@@ -197,7 +197,7 @@ const makeWy = (D: DTokens) => StyleSheet.create({
   icon:     { fontSize: 16 },
   text:     { flex: 1 },
   label:    { fontSize: 11, fontWeight: '700', color: D.text, lineHeight: 14 },
-  desc:     { fontSize: 9, color: D.textDim, marginTop: 2, lineHeight: 12 },
+  desc:     { fontSize: 10, color: D.textDim, marginTop: 2, lineHeight: 13 },
   badge:    { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8, borderWidth: 1 },
   badgeNum: { fontSize: 13, fontWeight: '900', fontFamily: D.monoBold },
 });

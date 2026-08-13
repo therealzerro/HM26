@@ -1,8 +1,10 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Modal, Animated, Easing, Dimensions, ScrollView,
+  Modal, Animated, Easing, useWindowDimensions, ScrollView,
 } from 'react-native';
+import { Zap, Link2, Target, Share2, Clock, BookMarked } from 'lucide-react-native';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { shareTextSafe } from '@/lib/shareText';
 import { alertAsync } from '@/lib/confirm';
 import { storage } from '../lib/storage';
@@ -19,7 +21,8 @@ import { EnergyArc, SignalPill, WhyRow } from './pickVisuals';
 import { formatHitContext } from '../lib/hitToPickItem';
 import { ReelPromoPanel } from './ReelPromoPanel';
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+// DESIGN-03 F10: window dimensions read per-render via useWindowDimensions
+// (the module-scope Dimensions.get snapshot went stale on rotation/resize).
 
 // Active design tokens — same shape as the original `D` map but resolved
 // per render through useTheme so the modal flips with light/dark mode.
@@ -63,8 +66,9 @@ function useStyles() {
 // ─── Gradient accent line ─────────────────────────────────────────────────────
 function GradientLine() {
   const { D } = useStyles();
+  const { width } = useWindowDimensions();
   return (
-    <Svg width={SCREEN_W} height={3} style={{ display: 'flex' }}>
+    <Svg width={width} height={3} style={{ display: 'flex' }}>
       <Defs>
         <SvgGradient id="gline" x1="0" y1="0" x2="1" y2="0">
           <Stop offset="0%"   stopColor={D.purple} stopOpacity={0.7} />
@@ -73,85 +77,70 @@ function GradientLine() {
           <Stop offset="100%" stopColor={D.rose}   stopOpacity={0.7} />
         </SvgGradient>
       </Defs>
-      <Rect x={0} y={0} width={SCREEN_W} height={3} fill="url(#gline)" />
+      <Rect x={0} y={0} width={width} height={3} fill="url(#gline)" />
     </Svg>
   );
 }
 
 // EnergyArc + SignalPill moved to ./pickVisuals so PickPosterCard can reuse them.
 
-// ─── Pair matrix header + rows ────────────────────────────────────────────────
-function PairMatrixHeader({ labels }: { labels: string[] }) {
+// ─── Pair strength rows ───────────────────────────────────────────────────────
+// DESIGN-03 S1 (2026-08-13): the old 4-row "matrix" rendered FABRICATED
+// percentages — hardcoded multipliers (PBURST×92/×70/×30, BOX×95/60/45,
+// DGC×88/55/40) styled identically to real data. Replaced with one honest
+// row per pair, driven entirely by fetchPairScores (position-pair classes
+// 2/3/4, H01Y national dataset, max-normed within the pick). No synthetic
+// numbers may enter this card — if a value is not measured, it is not shown.
+function PairStrengthRow({ pair, role, score }: { pair: string; role: string; score: number }) {
   const { D, mx } = useStyles();
-  return (
-    <View style={mx.headerRow}>
-      <View style={{ width: 76 }}>
-        <Text style={{ fontSize: 8, color: D.textDim, fontWeight: '700' }}>SIGNAL</Text>
-      </View>
-      {labels.map(l => (
-        <View key={l} style={mx.headerCell}>
-          <Text style={mx.headerPair}>{l}</Text>
-          <Text style={mx.headerSub}>pair</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-function PairProgressRow({ icon, label, scores }: { icon: string; label: string; scores: number[] }) {
-  const { D, mx } = useStyles();
+  const c = score >= 70 ? D.cyan : score >= 40 ? D.gold : D.textDim;
   return (
     <View style={mx.dataRow}>
       <View style={mx.rowLabel}>
-        <Text style={mx.rowIcon}>{icon}</Text>
-        <Text style={mx.rowText}>{label}</Text>
+        <Text style={mx.rowPair}>{pair}</Text>
+        <Text style={mx.rowRole}>{role}</Text>
       </View>
-      {scores.map((score, i) => {
-        const c = score >= 70 ? D.cyan : score >= 40 ? D.gold : D.textDim;
-        return (
-          <View key={i} style={mx.cell}>
-            <View style={mx.track}>
-              <View style={[mx.fill, { width: `${Math.min(100, score)}%` as any, backgroundColor: c }]} />
-            </View>
-            <Text style={[mx.scoreText, { color: c }]}>{score}%</Text>
-          </View>
-        );
-      })}
+      <View style={mx.cell}>
+        <View style={mx.track}>
+          <View style={[mx.fill, { width: `${Math.min(100, score)}%` as any, backgroundColor: c }]} />
+        </View>
+      </View>
+      <Text style={[mx.scoreText, { color: c }]}>{score}%</Text>
     </View>
   );
 }
 const makeMx = (D: DTokens) => StyleSheet.create({
-  headerRow:  { flexDirection: 'row', alignItems: 'flex-end', paddingBottom: 10, borderBottomWidth: 1.5, borderBottomColor: D.borderMed, marginBottom: 2 },
-  headerCell: { flex: 1, alignItems: 'center' },
-  headerPair: { fontSize: 14, fontWeight: '900', color: D.text, fontFamily: D.monoBold },
-  headerSub:  { fontSize: 7, color: D.textDim, letterSpacing: 0.5 },
-  dataRow:    { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: D.glassBorder },
-  rowLabel:   { width: 76 },
-  rowIcon:    { fontSize: 11 },
-  rowText:    { fontSize: 8, color: D.textSub, fontWeight: '700', letterSpacing: 0.5, marginTop: 1 },
-  cell:       { flex: 1, paddingHorizontal: 5, gap: 3 },
-  track:      { height: 6, backgroundColor: D.text + theme.alpha.faint, borderRadius: 3, overflow: 'hidden' },
-  fill:       { height: 6, borderRadius: 3 },
-  scoreText:  { fontSize: 10, fontWeight: '800', fontFamily: D.mono, textAlign: 'center' },
+  dataRow:    { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: D.glassBorder, gap: 10 },
+  rowLabel:   { width: 64 },
+  rowPair:    { fontSize: 16, fontWeight: '900', color: D.text, fontFamily: D.monoBold, letterSpacing: 2 },
+  rowRole:    { fontSize: 9, color: D.textDim, letterSpacing: 0.5, marginTop: 1 },
+  cell:       { flex: 1 },
+  track:      { height: 8, backgroundColor: D.text + theme.alpha.faint, borderRadius: 4, overflow: 'hidden' },
+  fill:       { height: 8, borderRadius: 4 },
+  scoreText:  { fontSize: 12, fontWeight: '800', fontFamily: D.mono, width: 42, textAlign: 'right' },
 });
 
 // WhyRow moved to ./pickVisuals so PickPosterCard can reuse it.
 
 // ─── Tab bar ──────────────────────────────────────────────────────────────────
+// DESIGN-03 S6: lucide icons replace emoji (platform-variant rendering — the
+// captured tab bar looked different on the capture host than on devices).
+// S4 ruling batch: the third tab's LABEL is ACTION (was PLAY — brand-brief
+// avoid-list verb); the internal key stays 'PLAY' so no state plumbing moves.
 type Tab = 'INTEL' | 'PAIRS' | 'PLAY';
-const TABS: { key: Tab; icon: string; label: string }[] = [
-  { key: 'INTEL', icon: '⚡', label: 'INTEL' },
-  { key: 'PAIRS', icon: '🔗', label: 'PAIRS' },
-  { key: 'PLAY',  icon: '🎯', label: 'PLAY'  },
+const TABS: { key: Tab; Icon: typeof Zap; label: string }[] = [
+  { key: 'INTEL', Icon: Zap,    label: 'INTEL'  },
+  { key: 'PAIRS', Icon: Link2,  label: 'PAIRS'  },
+  { key: 'PLAY',  Icon: Target, label: 'ACTION' },
 ];
 
 function TabBar({ active, onPress }: { active: Tab; onPress: (t: Tab) => void }) {
-  const { tb } = useStyles();
+  const { D, tb } = useStyles();
   return (
     <View style={tb.bar}>
       {TABS.map(t => (
         <TouchableOpacity key={t.key} style={[tb.tab, active === t.key && tb.tabActive]} onPress={() => onPress(t.key)} activeOpacity={0.7}>
-          <Text style={tb.tabIcon}>{t.icon}</Text>
+          <t.Icon size={13} color={active === t.key ? D.cyan : D.textDim} />
           <Text style={[tb.tabLabel, active === t.key && tb.tabLabelActive]}>{t.label}</Text>
           {active === t.key && <View style={tb.indicator} />}
         </TouchableOpacity>
@@ -163,7 +152,6 @@ const makeTb = (D: DTokens) => StyleSheet.create({
   bar:            { flexDirection: 'row', backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.glassBorder },
   tab:            { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 13, position: 'relative' },
   tabActive:      { backgroundColor: D.cyan + theme.alpha.faint },
-  tabIcon:        { fontSize: 13 },
   tabLabel:       { fontSize: 10, fontWeight: '700', color: D.textDim, letterSpacing: 1.5 },
   tabLabelActive: { color: D.cyan },
   indicator:      { position: 'absolute', bottom: 0, left: 20, right: 20, height: 2, backgroundColor: D.cyan, borderRadius: 1 },
@@ -184,16 +172,19 @@ interface PickDetailModalProps {
 export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slateDate }: PickDetailModalProps) {
   const { D, ct, s } = useStyles();
   const { colors } = useTheme();
+  const { height: screenH } = useWindowDimensions();
   const [tab, setTab]       = useState<Tab>('INTEL');
   const [savedMsg, setSavedMsg] = useState('');
-  const slideAnim = useRef(new Animated.Value(SCREEN_H)).current;
+  const slideAnim = useRef(new Animated.Value(screenH)).current;
   const fadeAnim  = useRef(new Animated.Value(0)).current;
   const insets    = useSafeAreaInsets();
+  // DESIGN-03 S7: the screen honors OS Reduce Motion; the modal now does too.
+  const reduceMotion = useReduceMotion();
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(slideAnim, { toValue: 0, duration: 340, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.timing(fadeAnim,  { toValue: 1, duration: 280, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: reduceMotion ? 0 : 340, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(fadeAnim,  { toValue: 1, duration: reduceMotion ? 0 : 280, useNativeDriver: true }),
     ]).start();
   }, []);
 
@@ -297,7 +288,10 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slat
         hitsInfo,
         ``,
         `⚡ Intelligence is your edge.`,
-        `📲 hitmaster.app  #ZK6 #DataIntelligence`,
+        // DESIGN-03 F5: the old line linked hitmaster.app — neither the
+        // wordmark nor the secured domain (hitmasterzk.com), whose wiring
+        // needs a per-surface tier ruling first. Hashtags stand alone.
+        `#HitMasterZK6 #DataIntelligence`,
       ].filter(Boolean).join('\n');
       const r = await shareTextSafe(lines);
       if (r === 'copied') alertAsync('Copied to clipboard', 'Sharing is unavailable here — the text is on your clipboard.');
@@ -326,9 +320,11 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slat
   // ── INTEL tab ──────────────────────────────────────────────────────────────
   const renderIntel = () => (
     <View style={ct.pad}>
-      {/* Confidence band */}
+      {/* Energy percentile band — DESIGN-03 S3: this value IS pick.energy
+          (percentile rank of the pick's score across the 1000-combo universe);
+          the old "ZK6 CONFIDENCE" label named it as something it is not. */}
       <View style={ct.confBand}>
-        <Text style={ct.confLabel}>ZK6 CONFIDENCE</Text>
+        <Text style={ct.confLabel}>ENERGY PERCENTILE</Text>
         <View style={ct.confTrack}>
           <View style={[ct.confFill, { width: `${confidence}%` as any }]} />
         </View>
@@ -346,24 +342,28 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slat
         <SignalPill label="CONSIST" value={pick.signals.DGC ?? 0} color={D.gold}   />
       </View>
 
-      {/* Why this order */}
+      {/* Why this order — DESIGN-03 S2: copy is TIERED BY THE MEASURED SCORE
+          (≥70 leading / 40-69 supporting / <40 quiet). The old strings
+          asserted "surging" and "confirms alignment" at any score. */}
       <Text style={[ct.sectionTitle, { marginTop: 14 }]}>WHY THIS ORDER</Text>
       <View style={ct.whyCard}>
-        <WhyRow
-          icon="📈" label={`Front pair  ${pairs.front}`}
-          desc={`${pairs.front} surging — highest recent frequency in front position`}
-          score={pairScores.front}
-        />
-        <WhyRow
-          icon="⚙️" label={`Back pair  ${pairs.back}`}
-          desc={`${pairs.back} has strong digit co-occurrence in back position`}
-          score={pairScores.back}
-        />
-        <WhyRow
-          icon="🔗" label={`Split pair  ${pairs.split}`}
-          desc={`${pairs.split} confirms alignment across all 3 signal channels`}
-          score={pairScores.split}
-        />
+        {([
+          ['📈', 'Front pair', pairs.front, pairScores.front, 'front'],
+          ['⚙️', 'Back pair', pairs.back, pairScores.back, 'back'],
+          ['🔗', 'Split pair', pairs.split, pairScores.split, 'split'],
+        ] as const).map(([icon, role, pair, score, pos]) => (
+          <WhyRow
+            key={pos}
+            icon={icon}
+            label={`${role}  ${pair}`}
+            desc={
+              score >= 70 ? `${pair} leads this pick's ${pos}-position pairs in the 1-year dataset`
+              : score >= 40 ? `${pair} carries supporting weight in the ${pos} position`
+              : `${pair} is quiet in the ${pos} position — the order leans on the other pairs`
+            }
+            score={score}
+          />
+        ))}
       </View>
 
       {/* Resolution trail — where this signal has appeared in the last 30d */}
@@ -407,37 +407,30 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slat
   );
 
   // ── PAIRS tab ──────────────────────────────────────────────────────────────
+  // DESIGN-03 S1: every number on this tab is now MEASURED — the three
+  // position-pair strengths from datasets_pair (classes 2/3/4, H01Y national
+  // slice, max-normed within the pick). The old 4-row matrix multiplied
+  // whole-pick signals by hardcoded constants and presented the results as
+  // per-pair data; nothing synthetic renders here any more.
   const renderPairs = () => (
     <View style={ct.pad}>
-      <Text style={ct.sectionTitle}>PAIR INTELLIGENCE MATRIX</Text>
-      <Text style={ct.subtitle}>Signal strength per digit pair · cyan ≥ 70% · gold ≥ 40%</Text>
+      <Text style={ct.sectionTitle}>POSITION PAIR STRENGTH</Text>
+      <Text style={ct.subtitle}>
+        Measured share of this pick's strongest position pair · {scope.toUpperCase()} dataset · 1-year window
+      </Text>
 
       <View style={ct.matrixCard}>
-        <PairMatrixHeader labels={pairLabels} />
-        <PairProgressRow
-          icon="⚡" label="MOMENTUM"
-          scores={[Math.round(pick.signals.PBURST * 92), Math.round(pick.signals.PBURST * 70), Math.round(pick.signals.PBURST * 30)]}
-        />
-        <PairProgressRow
-          icon="🔄" label="PATTERN"
-          scores={[Math.round(pick.signals.CO * 100), pairScores.back, pairScores.split]}
-        />
-        <PairProgressRow
-          icon="📊" label="FREQUENCY"
-          scores={[Math.round(pick.signals.BOX * 95), Math.round(pick.signals.BOX * 60), Math.round(pick.signals.BOX * 45)]}
-        />
-        <PairProgressRow
-          icon="📐" label="CONSIST."
-          scores={[Math.round((pick.signals.DGC ?? 0) * 88), Math.round((pick.signals.DGC ?? 0) * 55), Math.round((pick.signals.DGC ?? 0) * 40)]}
-        />
+        <PairStrengthRow pair={pairLabels[0]} role="front"  score={pairScores.front} />
+        <PairStrengthRow pair={pairLabels[1]} role="back"   score={pairScores.back}  />
+        <PairStrengthRow pair={pairLabels[2]} role="split"  score={pairScores.split} />
       </View>
 
       {/* Legend */}
       <View style={ct.legendRow}>
         {[
-          { color: D.cyan,    label: '≥ 70%  Strong'   },
-          { color: D.gold,    label: '≥ 40%  Moderate' },
-          { color: D.textDim, label: '< 40%  Weak'     },
+          { color: D.cyan,    label: '≥ 70%  Leading'    },
+          { color: D.gold,    label: '≥ 40%  Supporting' },
+          { color: D.textDim, label: '< 40%  Quiet'      },
         ].map(l => (
           <View key={l.label} style={ct.legendItem}>
             <View style={[ct.legendDot, { backgroundColor: l.color }]} />
@@ -453,6 +446,11 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slat
         <Text style={ct.drawnLabel}>Scope</Text>
         <Text style={[ct.drawnVal, { color: D.gold }]}>{scope.toUpperCase()}</Text>
       </View>
+
+      <Text style={ct.pairsFootnote}>
+        The best-straight order maximizes the combined strength of all three
+        position pairs. Whole-pick signal channels live on the INTEL tab.
+      </Text>
     </View>
   );
 
@@ -463,10 +461,13 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slat
       {pick.hitType && pick.hitResult && (
         <HitReplay pick={{ ...pick, hitType: pick.hitType, hitResult: pick.hitResult, temperature: pick.energy }} />
       )}
-      {/* Straight vs Box bet cards — payouts per actual player logic (2026-05-12):
-          $0.25 stake; straight wins $225; box wins by multiplicity (singles
+      {/* Straight vs Box cards — amounts per actual player logic (2026-05-12):
+          $0.25 entry; straight pays $225; box pays by multiplicity (singles
           $37.50 / doubles $75 / triples $225). Multiplicity derived from
-          unique-digit count when pick.multiplicity isn't set. */}
+          unique-digit count when pick.multiplicity isn't set.
+          DESIGN-03 S4 (2026-08-13): vocabulary moved off the brand avoid list
+          ("Bet"→"Entry", "Win"→"Pays", "SAFE PLAY"→"ANY ORDER") — the numbers
+          and the utility are unchanged. */}
       {(() => {
         const uniq = new Set((pick.combo ?? '').split('')).size;
         const mult = (pick.multiplicity ?? '').toLowerCase() ||
@@ -483,8 +484,8 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slat
                 adjustsFontSizeToFit
                 minimumFontScale={0.6}
               >{bestOrder}</Text>
-              <Text style={ct.betBetLine}>Bet <Text style={ct.betBetNum}>$0.25</Text></Text>
-              <Text style={ct.betPayout}>Win $225</Text>
+              <Text style={ct.betBetLine}>Entry <Text style={ct.betBetNum}>$0.25</Text></Text>
+              <Text style={ct.betPayout}>Pays $225</Text>
               <Text style={ct.betNote}>Exact order only</Text>
               <View style={[ct.betBadge, { backgroundColor: D.cyan + '18', borderColor: D.cyan + '44' }]}>
                 <Text style={[ct.betBadgeText, { color: D.cyan }]}>ZK6 BEST ORDER</Text>
@@ -498,11 +499,11 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slat
                 adjustsFontSizeToFit
                 minimumFontScale={0.6}
               >{pick.comboSet}</Text>
-              <Text style={ct.betBetLine}>Bet <Text style={ct.betBetNum}>$0.25</Text></Text>
-              <Text style={ct.betPayout}>Win ${boxWin % 1 === 0 ? boxWin : boxWin.toFixed(2)}</Text>
+              <Text style={ct.betBetLine}>Entry <Text style={ct.betBetNum}>$0.25</Text></Text>
+              <Text style={ct.betPayout}>Pays ${boxWin % 1 === 0 ? boxWin : boxWin.toFixed(2)}</Text>
               <Text style={ct.betNote}>Any order · {boxLabel}</Text>
               <View style={[ct.betBadge, { backgroundColor: D.gold + '18', borderColor: D.gold + '44' }]}>
-                <Text style={[ct.betBadgeText, { color: D.gold }]}>SAFE PLAY</Text>
+                <Text style={[ct.betBadgeText, { color: D.gold }]}>ANY ORDER</Text>
               </View>
             </View>
           </View>
@@ -531,21 +532,21 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slat
             }
           }}
         >
-          <Text style={ct.actionBtnIcon}>📖</Text>
+          <BookMarked size={17} color={D.gold} />
           <Text style={[ct.actionBtnText, { color: D.gold }]}>Save to Number Book</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[ct.actionBtn, { backgroundColor: D.purple + '18', borderColor: D.purple + '88' }]}
           onPress={() => { onClose(); onHeatCheck?.(pick.combo ?? ''); }}
         >
-          <Text style={ct.actionBtnIcon}>⚡</Text>
+          <Zap size={17} color={D.purple} />
           <Text style={[ct.actionBtnText, { color: D.purple }]}>Run Signal Check</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[ct.actionBtn, { backgroundColor: D.glass, borderColor: D.glassBorder }]}
           onPress={handleShare}
         >
-          <Text style={ct.actionBtnIcon}>📤</Text>
+          <Share2 size={17} color={D.textSub} />
           <Text style={[ct.actionBtnText, { color: D.textSub }]}>Share This Signal</Text>
         </TouchableOpacity>
       </View>
@@ -592,7 +593,7 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slat
               activeOpacity={0.7}
             >
               <View style={s.closeBtnInner}>
-                <Text style={{ fontSize: 16 }}>📤</Text>
+                <Share2 size={16} color={D.text} />
               </View>
             </TouchableOpacity>
           </View>
@@ -669,13 +670,16 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slat
                 <Text style={s.boxBadgeCombo}>{pick.comboSet}</Text>
               </View>
               <Text style={s.heroMeta}>{scope.toUpperCase()}</Text>
-              <Text style={s.heroVersion}>ZK6 v2.1</Text>
+              {/* DESIGN-03 F9: the hardcoded "ZK6 v2.1" line is gone — it
+                  drifted silently from the real engine version. Version info
+                  is an operator concern; the hero right column thins to the
+                  BOX SET badge + scope. */}
             </View>
           </View>
 
           {/* ── Timestamp strip ── */}
           <View style={s.tsStrip}>
-            <Text style={s.tsClock}>🕐</Text>
+            <Clock size={11} color={D.textDim} />
             <Text style={s.tsLabel}>Generated</Text>
             <Text style={s.tsValue}>{generatedAt}</Text>
           </View>
@@ -702,14 +706,19 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slat
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
+// DESIGN-03 S5: typography floor pass — micro-labels raised off the 7-8pt
+// floor (a11y ≈11pt guidance; these are also the pixels the 1080×1920 reels
+// show at phone size). Digits/heroes untouched; layout bands untouched so the
+// captured composition shifts by type size only.
 const makeCt = (D: DTokens) => StyleSheet.create({
   pad:          { padding: 16 },
-  sectionTitle: { fontSize: 9, fontWeight: '900', color: D.cyan, letterSpacing: 2, marginBottom: 8 },
-  subtitle:     { fontSize: 9, color: D.textDim, marginTop: -4, marginBottom: 10 },
+  sectionTitle: { fontSize: 10, fontWeight: '900', color: D.cyan, letterSpacing: 2, marginBottom: 8 },
+  subtitle:     { fontSize: 10, color: D.textDim, marginTop: -4, marginBottom: 10, lineHeight: 14 },
+  pairsFootnote:{ fontSize: 10, color: D.textDim, marginTop: 12, lineHeight: 14, textAlign: 'center' },
 
-  // Confidence band
+  // Energy percentile band
   confBand:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14, backgroundColor: D.glass, borderRadius: 10, borderWidth: 1, borderColor: D.glassBorder, paddingHorizontal: 12, paddingVertical: 10 },
-  confLabel:  { fontSize: 8, fontWeight: '900', color: D.textDim, letterSpacing: 1.5, width: 92 },
+  confLabel:  { fontSize: 9, fontWeight: '900', color: D.textDim, letterSpacing: 1.2, width: 108 },
   confTrack:  { flex: 1, height: 4, backgroundColor: D.text + theme.alpha.faint, borderRadius: 2, overflow: 'hidden' },
   confFill:   { height: 4, borderRadius: 2, backgroundColor: D.cyan },
   confScore:  { fontSize: 13, fontWeight: '900', fontFamily: D.monoBold, width: 36, textAlign: 'right' },
@@ -726,7 +735,7 @@ const makeCt = (D: DTokens) => StyleSheet.create({
   trailPill:   { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: D.surface, borderWidth: 1, borderColor: D.glassBorder },
   trailState:  { fontSize: 11, fontWeight: '900', color: D.text, fontFamily: D.monoBold, letterSpacing: 0.5 },
   trailCount:  { fontSize: 10, fontWeight: '800', color: D.textSub, fontFamily: D.mono },
-  trailMeta:   { fontSize: 9, color: D.textDim, marginTop: 2 },
+  trailMeta:   { fontSize: 10, color: D.textDim, marginTop: 2 },
   trailEmpty:  { fontSize: 11, color: D.textDim, fontStyle: 'italic', textAlign: 'center', paddingVertical: 6 },
 
   // Matrix card
@@ -736,24 +745,24 @@ const makeCt = (D: DTokens) => StyleSheet.create({
   legendRow:  { flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 10 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendDot:  { width: 7, height: 7, borderRadius: 3.5 },
-  legendText: { fontSize: 9, color: D.textDim },
+  legendText: { fontSize: 10, color: D.textDim },
 
   // Drawn row
   drawnRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 10, backgroundColor: D.surface, borderRadius: 10, padding: 10, borderWidth: 1, borderColor: D.glassBorder },
-  drawnLabel: { fontSize: 9, color: D.textDim },
+  drawnLabel: { fontSize: 10, color: D.textDim },
   drawnVal:   { fontSize: 14, fontWeight: '900', fontFamily: D.monoBold },
 
   // Bet cards
   betRow:          { flexDirection: 'row', gap: 10, marginBottom: 12 },
   betCard:         { flex: 1, backgroundColor: D.glass, borderRadius: 14, borderWidth: 1.5, padding: 14, gap: 3, alignItems: 'center' },
-  betType:         { fontSize: 9, fontWeight: '900', letterSpacing: 2.5 },
+  betType:         { fontSize: 10, fontWeight: '900', letterSpacing: 2.5 },
   betCombo:        { fontSize: 28, fontWeight: '900', fontFamily: D.monoBold, marginVertical: 4 },
-  betBetLine:      { fontSize: 10, color: D.textDim, fontWeight: '600' },
+  betBetLine:      { fontSize: 11, color: D.textDim, fontWeight: '600' },
   betBetNum:       { color: D.text, fontWeight: '800' },
   betPayout:       { fontSize: 18, fontWeight: '900', color: D.text },
-  betNote:         { fontSize: 9, color: D.textDim },
+  betNote:         { fontSize: 10, color: D.textDim },
   betBadge:        { marginTop: 8, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 7, borderWidth: 1 },
-  betBadgeText:    { fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  betBadgeText:    { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
 
   // Action buttons
   actionStack:     { gap: 8 },
@@ -822,7 +831,7 @@ const makeS = (D: DTokens) => StyleSheet.create({
     marginTop: 1,
   },
   hitStampContext: {
-    fontSize: 8, fontWeight: '800',
+    fontSize: 9, fontWeight: '800',
     color: D.success,
     fontFamily: D.monoBold,
     letterSpacing: 0.6,
@@ -830,26 +839,24 @@ const makeS = (D: DTokens) => StyleSheet.create({
     opacity: 0.95,
   },
   heroLeft:        { alignItems: 'center', gap: 5 },
-  heroEnergyLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
+  heroEnergyLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
   heroCenter:      { flex: 1, alignItems: 'center', gap: 5 },
-  heroBestLabel:   { fontSize: 8, fontWeight: '900', color: D.cyan, letterSpacing: 2 },
+  heroBestLabel:   { fontSize: 9, fontWeight: '900', color: D.cyan, letterSpacing: 2 },
   heroDigits:      { fontSize: 22, fontWeight: '900', fontFamily: D.monoBold, letterSpacing: 1, lineHeight: 26 },
   posRow:          { flexDirection: 'row', gap: 5 },
   posBox:          { width: 28, height: 34, borderRadius: 7, borderWidth: 1.5, borderColor: D.glassBorder, alignItems: 'center', justifyContent: 'center', backgroundColor: D.text + theme.alpha.faint },
   posDigit:        { fontSize: 13, fontWeight: '900', color: D.textDim, fontFamily: D.monoBold },
-  posLabel:        { fontSize: 7, color: D.textDim },
+  posLabel:        { fontSize: 9, color: D.textDim },
   heroRight:       { alignItems: 'center', gap: 5 },
   boxBadge:        { backgroundColor: D.gold + '18', borderRadius: 9, borderWidth: 1, borderColor: D.gold + '44', paddingHorizontal: 10, paddingVertical: 6, alignItems: 'center' },
-  boxBadgeLabel:   { fontSize: 7, fontWeight: '900', color: D.gold, letterSpacing: 1.5 },
+  boxBadgeLabel:   { fontSize: 9, fontWeight: '900', color: D.gold, letterSpacing: 1.5 },
   boxBadgeCombo:   { fontSize: 17, fontWeight: '900', color: D.text, fontFamily: D.monoBold, letterSpacing: 2 },
-  heroMeta:        { fontSize: 8, color: D.textDim, fontWeight: '700', letterSpacing: 1 },
-  heroVersion:     { fontSize: 8, color: D.cyan + 'AA', fontWeight: '600' },
+  heroMeta:        { fontSize: 9, color: D.textDim, fontWeight: '700', letterSpacing: 1 },
 
   // Timestamp strip
   tsStrip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 6, backgroundColor: D.surface, borderBottomWidth: 1, borderBottomColor: D.glassBorder },
-  tsClock: { fontSize: 11 },
-  tsLabel: { fontSize: 9, color: D.textDim, fontWeight: '700', letterSpacing: 1 },
-  tsValue: { flex: 1, fontSize: 10, color: D.textSub, fontFamily: D.mono, textAlign: 'right' },
+  tsLabel: { fontSize: 10, color: D.textDim, fontWeight: '700', letterSpacing: 1 },
+  tsValue: { flex: 1, fontSize: 11, color: D.textSub, fontFamily: D.mono, textAlign: 'right' },
 
   // Content
   content: { flex: 1 },

@@ -322,6 +322,16 @@ NOT moved, by ruling: workflow timestamps, engine versions, calib footer, `calib
 
 ---
 
+### ENG-PERSTATE-P0 — Per-state engine Phase 0: the accuracy hypothesis MEASURES OUT — no estimable substrate at any granularity 📋 MEASURED, NOTHING BUILT (2026-08-13)
+
+**ID verified free** (audit 0 / code 0). Read-only measurement on the full-coverage era (4/1→8/12, 9,223 draws, 39 jurisdictions). Full report: `docs/perstate_phase0_2026-08-13.md`. Executes ENG-DEEPSCOPE-01 P1 on operator order ("go on p1").
+
+**Three-level verdict:** (1) NO per-jurisdiction dataset rows exist (datasets_box/pair jurisdiction slices = 0 rows) — a per-state engine would build from histories directly; (2) comboset-level per-state frequency is data-starved ~20× (median state: 252 draws, 141 of 220 sets seen, ~1.1 draws/set) — noise by construction; (3) positional digit-level bias — the one estimable granularity, and where real per-state draw mechanics would surface — is **UNIFORM at universe level**: 117 (state×position) chi-square tests, 3 exceed the 95% criterion vs ~5.9 expected by chance, 0 exceed 99%. STATE_STR (recency) stays falsified, not retested. **No backtest spent — there is no candidate to test.** Consistent with and extends SIGNAL-INFO-01/02: the draws are fair per-state too.
+
+**Consequence:** the ENH-AUDIT "per-state is the path" priority is RE-SCOPED from engine accuracy (dead at Phase 0) to per-state PRODUCT surfaces — playability guidance (33 midday vs 39 evening jurisdictions; evening-only: MN,OK,QC,W.Canada,WA,WV; Sunday 29/37) and per-state receipts (adaptive_tracking.matched_state already carries it). The engine accuracy backlog after Phase 0 is EMPTY — exactly where the ceiling verdict said it was. Remaining engine work is robustness only: P4 (gated), P5 (next deploy), P6 (verified missing from computeBrief.ts's flag set — small add when ordered).
+
+---
+
 ### ENG-DEEPSCOPE-01 — Full ZK6 stack read: 8 defects/risks ranked, 3 candidate defects refuted on evidence, 6 proposals (0 accuracy levers) 📋 SCOPE → P2+P3 SHIPPED (2026-08-13)
 
 **ADDENDUM (same day) — P2 + P3 SHIPPED on operator order ("do p3 and p2 now"); ⏳ EDGE DEPLOY PENDING on expired CLI tokens.**

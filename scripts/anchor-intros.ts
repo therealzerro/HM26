@@ -73,12 +73,15 @@ export const INTRO_ROTATION: IntroVariant[] = [
   // through the smoke from ~6.6s and fully returns to the room by ~7.5s, so
   // any re-trim must keep the out-point at or before ~6.3s.
   { file: 'anchor_intro_window.mp4', label: 'window' },
-  // ⚠ anchor_intro_arrive.mp4 is DELIVERED, TRIMMED AND GATED-OUT, not
-  // registered: its desk-front display shows a legible "S" letterform from
-  // frame 0 (the camera-roll thumbnail frame) to ~1.2s — the same wall bar
-  // board's audit set for this rotation. Every fix is a creative call the
-  // operator owns (IN≈1.35 clears the glyph but deletes the empty-desk beat
-  // that is the clip's concept). See UNREFERENCED_OK and MKT-54.
+  // arrive was delivered with the pair above and GATED for a day: its
+  // desk-front display shows a legible "S" letterform from frame 0 (the
+  // thumbnail frame) to ~1.2s. ⚠ OPERATOR RULING 2026-08-13: ACCEPTED as
+  // set dressing — a news-desk bug, not a digit board — keeping the
+  // empty-desk beat intact. The acceptance is for THIS rotation's group
+  // tiers; if this pool ever feeds a public kind, arrive needs a fresh
+  // Q1/Q2 ruling (the letterform is on the poster frame). IN 0.310 is the
+  // AUDIO ONSET — the master opens on 0.31s of silence over the empty desk.
+  { file: 'anchor_intro_arrive.mp4', label: 'arrive' },
 ];
 
 /** Fallback when the rotation is empty or every member is unusable. */

@@ -17,22 +17,25 @@ Companion docs:
   - docs/mkt15_phase2_copy_brief.md (public copy set — DELIVERED + the bolt request)
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
-WHAT CHANGED IN v3.0 (2026-08-13 — MKT-54: slate intro pool 6 → 8; one member
-delivered and HELD; a SEVENTH delivery failure class)
+WHAT CHANGED IN v3.0 (2026-08-13 — MKT-54: slate intro pool 6 → 9; the arrive
+hold cleared by operator ruling the same day; a SEVENTH delivery failure class)
   A. TWO NEW SLATE INTROS REGISTERED — `guest` (the pool's first TWO-SHOT: a
      bronze, rounder, older domestic-model robot in a burgundy robe beside the
      Anchor; both figures verified inside the 1:1 band) and `window` (back to
-     camera at a pre-dawn city; skyline glyph-swept clean). INTRO_ROTATION is
-     [standard, deadpan, arrival, monitors, powerup, board, guest, window].
+     camera at a pre-dawn city; skyline glyph-swept clean). With note B's
+     ruling INTRO_ROTATION is [standard, deadpan, arrival, monitors, powerup,
+     board, guest, window, arrive].
      Trims, measured not assumed: guest IN 0.0/OUT 6.2 (6.21s), window IN
      0.0/OUT 6.2 (6.21s) — window's master ghosts its pull-back through the
      smoke from ~6.6s, so any re-trim must keep OUT ≤ ~6.3s.
-  B. ⚠ `arrive` DELIVERED, TRIMMED (IN 0.310/OUT 6.510, every technical gate
-     passing) AND GATED-OUT: its desk-front display carries a legible white
-     "S" letterform from FRAME ONE (the camera-roll thumbnail) to ~1.2s — the
-     no-glyph wall bar `board` was audited against. Operator ruling owed:
-     accept as set dressing / re-trim IN≈1.35 (clears the glyph, DELETES the
-     empty-desk beat that is the concept) / regenerate. See UNREFERENCED_OK.
+  B. `arrive` DELIVERED, TRIMMED (IN 0.310/OUT 6.510, every technical gate
+     passing), GATED for a day on a legible white "S" letterform riding its
+     desk-front display from FRAME ONE (the thumbnail) to ~1.2s — then
+     ⚠ OPERATOR RULING same day: ACCEPTED as set dressing (a news-desk bug,
+     not a digit board), keeping the empty-desk beat intact. REGISTERED —
+     the pool is NINE. The acceptance covers the slate rotation's group
+     tiers only: if this pool ever feeds a public kind, arrive needs a
+     fresh Q1/Q2 ruling, because the letterform is on the poster frame.
   C. ⚠ DELIVERY-PATH FAILURE CLASSES — now SEVEN. This drop added two events:
      (1) WRONG CONTAINER EXTENSION — all three landed as `.mov`. A .mov is
      invisible to the registry exactly as the `.MP4`-uppercase incident was:
@@ -784,10 +787,10 @@ on the 6.33s members) and the reel runs up to 34.53s.
                kind". It is now resolved PER KIND:
                  slate reels  — ROTATE over a set, currently [standard,
                                 deadpan, arrival, monitors, powerup, board,
-                                guest, window] (guest + window added
-                                2026-08-13, MKT-54 — v3.0 note A; `arrive`
-                                delivered the same day and HELD on a
-                                frame-one letterform ruling, v3.0 note B),
+                                guest, window, arrive] (all three added
+                                2026-08-13, MKT-54 — v3.0 notes A/B;
+                                `arrive`'s frame-one letterform hold was
+                                cleared by operator ruling the same day),
                                 picked by a date-derived offset — ⚠ v2.9:
                                 the offset walk is now RESHUFFLED per cycle
                                 (v2.9 note B); even usage and per-kind
@@ -1301,18 +1304,23 @@ per-day by hand, not AI-freestyled.
                                   windows only, no signage or numerals.
                                   Chip sits on the dark sky — the best
                                   chip contrast in the pool.
-    anchor_intro_arrive.mp4       ⚠ DELIVERED, TRIMMED, NOT REGISTERED
-                                  (MKT-54 hold). IN 0.310 (audio onset; the
-                                  master opens on 0.31s of silence over the
-                                  empty desk) / OUT 6.510, 6.25s; walk-in
-                                  0.5-2.0s, seated 2.5s, dive complete
-                                  5.6s, bed clean (spread 69, edge 0.94);
-                                  pull-back starts ~7.9s. HELD because the
-                                  desk-front display shows a legible white
-                                  "S" letterform frame 0 → ~1.2s, including
-                                  FRAME ONE (the thumbnail). Ruling owed:
-                                  accept / re-trim IN≈1.35 (kills the
-                                  empty-desk beat) / regenerate. Master at
+    anchor_intro_arrive.mp4       Rotation member, 6.25s (IN 0.310 / OUT
+                                  6.510). Added 2026-08-13 (MKT-54). IN is
+                                  the AUDIO ONSET — the master opens on
+                                  0.31s of silence over the empty desk.
+                                  Empty-desk beat, walk-in 0.5-2.0s, seated
+                                  2.5s, dive complete 5.6s, bed clean
+                                  (spread 69, edge 0.94); master pull-back
+                                  starts ~7.9s. ⚠ Its desk-front display
+                                  shows a legible white "S" letterform
+                                  frame 0 → ~1.2s INCLUDING FRAME ONE (the
+                                  thumbnail) — held for a day, then
+                                  ACCEPTED by operator ruling 2026-08-13
+                                  as set dressing (news-desk bug, not a
+                                  digit board). Acceptance covers group
+                                  tiers only: a future public use of this
+                                  rotation re-opens the Q1/Q2 question for
+                                  this member specifically. Master at
                                   anchor_intro_arrive_master_10s.mp4.
     anchor_intro_public.mp4       Fixed intro for the PUBLIC kinds, 6.000s.
                                   ⚠ REPLACED 2026-07-31 (MKT-36): the 7/31
@@ -2183,10 +2191,11 @@ WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
      Can grow further.
   7. ✅ LARGELY CLOSED 2026-07-29 (MKT-23) — the set is now 6 and powerup's
      regeneration landed clean. Original entry:
-     More intro rotation members. The set is 8 as of 2026-08-13 (standard,
-     deadpan, arrival, monitors, powerup, board, guest, window — MKT-54;
-     `arrive` delivered and held, v3.0 note B) — this ask is largely served;
-     the regen queue's coffee/juggle/reveal would take it to 11.
+     More intro rotation members. The set is 9 as of 2026-08-13 (standard,
+     deadpan, arrival, monitors, powerup, board, guest, window, arrive —
+     MKT-54; arrive's one-day hold cleared by ruling, v3.0 note B) — this
+     ask is served; the regen queue's coffee/juggle/reveal would take it
+     to 12.
      ⚠ ROBOT GUESTS ARE AN OPEN LANE, HUMAN GUESTS ARE CLOSED: three attempts
      at the guest shot with a HUMAN second figure were refused by the
      generator; the all-robot two-shot cleared first try. The block is the

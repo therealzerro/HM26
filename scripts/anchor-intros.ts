@@ -59,6 +59,26 @@ export const INTRO_ROTATION: IntroVariant[] = [
   // four timestamps for glyphs and numerals and is clean, which matters because
   // public kinds will eventually draw from this rotation.
   { file: 'anchor_intro_board.mp4', label: 'board' },
+  // MKT-54 (2026-08-13). guest is the pool's first TWO-SHOT — a bronze,
+  // rounder, older domestic-model robot (amber visor slab, burgundy robe, mug)
+  // beside the Anchor. Both figures and the raised phone verified inside the
+  // 1:1 band y420-1500; wall audited at 2x, chart smudges only, no glyphs.
+  // ⚠ Generator lore recorded in the audit: three HUMAN-guest attempts were
+  // refused; the all-robot two-shot cleared first try. Robot guests are an
+  // open lane; human guests are closed.
+  { file: 'anchor_intro_guest.mp4', label: 'guest' },
+  // window opens back-to-camera at a pre-dawn city — skyline swept at 2x
+  // across four timestamps: bokeh lit windows only, no signage or numerals.
+  // IN 0.0 (audio from frame 1) / OUT 6.2 — its master GHOSTS THE PULL-BACK
+  // through the smoke from ~6.6s and fully returns to the room by ~7.5s, so
+  // any re-trim must keep the out-point at or before ~6.3s.
+  { file: 'anchor_intro_window.mp4', label: 'window' },
+  // ⚠ anchor_intro_arrive.mp4 is DELIVERED, TRIMMED AND GATED-OUT, not
+  // registered: its desk-front display shows a legible "S" letterform from
+  // frame 0 (the camera-roll thumbnail frame) to ~1.2s — the same wall bar
+  // board's audit set for this rotation. Every fix is a creative call the
+  // operator owns (IN≈1.35 clears the glyph but deletes the empty-desk beat
+  // that is the clip's concept). See UNREFERENCED_OK and MKT-54.
 ];
 
 /** Fallback when the rotation is empty or every member is unusable. */

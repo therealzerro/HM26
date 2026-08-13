@@ -605,7 +605,9 @@ npm run reel:check
     wrong, not the file. Deliberate exceptions are listed with
     their reason (e.g. the MKT-48 rejected updraft endcard motion,
     or the MKT-21 generated bodies — both kept as the evidence for
-    their ruling).
+    their ruling; since 2026-08-13 also anchor_intro_arrive.mp4 —
+    MKT-54 hold, trimmed and technically clean but gated on a
+    legible "S" letterform at frame one, operator ruling owed).
     ⚠ NOT powerup. `anchor_intro_powerup.mp4` is a LIVE rotation
     member (the MKT-23 regeneration, in the set since 2026-07-30);
     only the original MKT-17-rejected delivery was ever an

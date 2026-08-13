@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-06 · v2.9
+Content Agent Handoff · 2026-08-13 · v3.0
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -16,6 +16,38 @@ Companion docs:
   - assets/marketing/AllDay_Reel_Endcard_Revision_Brief_2026-07-27.md (endcard contract)
   - docs/mkt15_phase2_copy_brief.md (public copy set — DELIVERED + the bolt request)
   - REEL_COMMANDS.txt (repo root — operator command reference)
+
+WHAT CHANGED IN v3.0 (2026-08-13 — MKT-54: slate intro pool 6 → 8; one member
+delivered and HELD; a SEVENTH delivery failure class)
+  A. TWO NEW SLATE INTROS REGISTERED — `guest` (the pool's first TWO-SHOT: a
+     bronze, rounder, older domestic-model robot in a burgundy robe beside the
+     Anchor; both figures verified inside the 1:1 band) and `window` (back to
+     camera at a pre-dawn city; skyline glyph-swept clean). INTRO_ROTATION is
+     [standard, deadpan, arrival, monitors, powerup, board, guest, window].
+     Trims, measured not assumed: guest IN 0.0/OUT 6.2 (6.21s), window IN
+     0.0/OUT 6.2 (6.21s) — window's master ghosts its pull-back through the
+     smoke from ~6.6s, so any re-trim must keep OUT ≤ ~6.3s.
+  B. ⚠ `arrive` DELIVERED, TRIMMED (IN 0.310/OUT 6.510, every technical gate
+     passing) AND GATED-OUT: its desk-front display carries a legible white
+     "S" letterform from FRAME ONE (the camera-roll thumbnail) to ~1.2s — the
+     no-glyph wall bar `board` was audited against. Operator ruling owed:
+     accept as set dressing / re-trim IN≈1.35 (clears the glyph, DELETES the
+     empty-desk beat that is the concept) / regenerate. See UNREFERENCED_OK.
+  C. ⚠ DELIVERY-PATH FAILURE CLASSES — now SEVEN. This drop added two events:
+     (1) WRONG CONTAINER EXTENSION — all three landed as `.mov`. A .mov is
+     invisible to the registry exactly as the `.MP4`-uppercase incident was:
+     nothing errors, the pool silently stays at its old size. Remux is
+     `-c copy` when the streams are already h264/aac (they were — measure,
+     don't assume). (2) The GitHub-web rename struck AGAIN: all three .movs
+     were destroyed to 2-byte stubs by upload-then-rename; real bytes
+     recovered from the upload commits. Deliver at the FINAL lowercase
+     name, exact extension, direct upload, never a web rename.
+  D. ⚠ PROMPT-NOTES FACT (belongs with §9 ask #7's negatives note): THREE
+     prior attempts at the guest shot with a HUMAN guest were REFUSED by the
+     generator; the all-robot version cleared on the FIRST try. The block is
+     the second HUMAN, not the two-shot composition. Robot guests, reaction
+     shots and two-hander comedy are an OPEN LANE provided every figure in
+     frame is a machine; human guests remain closed.
 
 WHAT CHANGED IN v2.9 (2026-08-06 — MKT-49: the rotation stopped repeating, and
 your next assets are ONE-LINE registrations)
@@ -751,7 +783,11 @@ on the 6.33s members) and the reel runs up to 34.53s.
                SHARED FILE. v1.5 said "anchor_intro.mp4, shared by every reel
                kind". It is now resolved PER KIND:
                  slate reels  — ROTATE over a set, currently [standard,
-                                deadpan, arrival, monitors, powerup, board],
+                                deadpan, arrival, monitors, powerup, board,
+                                guest, window] (guest + window added
+                                2026-08-13, MKT-54 — v3.0 note A; `arrive`
+                                delivered the same day and HELD on a
+                                frame-one letterform ruling, v3.0 note B),
                                 picked by a date-derived offset — ⚠ v2.9:
                                 the offset walk is now RESHUFFLED per cycle
                                 (v2.9 note B); even usage and per-kind
@@ -1235,6 +1271,49 @@ per-day by hand, not AI-freestyled.
                                   ~7.0s (the MKT-08 tail failure), so the
                                   out-point must stay ahead of that; there
                                   is no usable bed anywhere after 7.0s.
+    anchor_intro_guest.mp4        Rotation member, 6.21s (IN 0.0 / OUT 6.2).
+                                  Added 2026-08-13 (MKT-54). The pool's
+                                  first TWO-SHOT: bronze, rounder, older
+                                  domestic-model robot — amber visor slab,
+                                  burgundy robe, mug — beside the Anchor;
+                                  reads as a different MAKE, not a recolour
+                                  (operator may overrule). Nod exchange,
+                                  phone raise ~4.0s (raised by the ANCHOR
+                                  in the delivered footage, not the guest
+                                  as briefed — cosmetic, recorded), dive
+                                  complete 5.6s, bed 5.7-6.2 clean (spread
+                                  80, edge 0.96). Audio from frame 1
+                                  (first 0.3s −50.3 mean / −38.5 max —
+                                  quiet open, deadpan-class). Both figures
+                                  + phone verified inside y420-1500. Wall
+                                  glyph-swept at 2x: chart smudges only.
+    anchor_intro_window.mp4       Rotation member, 6.21s (IN 0.0 / OUT 6.2).
+                                  Added 2026-08-13 (MKT-54). Back to camera
+                                  at a pre-dawn city, turn ~2.3s, phone
+                                  raise ~2.6s, dive complete ~5.5s, bed
+                                  5.7-6.2 clean (spread 60, edge 0.90).
+                                  Audio from frame 1 (−51.3 mean / −35.6
+                                  max). ⚠ Its master GHOSTS THE PULL-BACK
+                                  through the smoke from ~6.6s (fully back
+                                  in the room by ~7.5s) — any re-trim must
+                                  keep OUT ≤ ~6.3s. Skyline glyph-swept at
+                                  2x across four timestamps: bokeh lit
+                                  windows only, no signage or numerals.
+                                  Chip sits on the dark sky — the best
+                                  chip contrast in the pool.
+    anchor_intro_arrive.mp4       ⚠ DELIVERED, TRIMMED, NOT REGISTERED
+                                  (MKT-54 hold). IN 0.310 (audio onset; the
+                                  master opens on 0.31s of silence over the
+                                  empty desk) / OUT 6.510, 6.25s; walk-in
+                                  0.5-2.0s, seated 2.5s, dive complete
+                                  5.6s, bed clean (spread 69, edge 0.94);
+                                  pull-back starts ~7.9s. HELD because the
+                                  desk-front display shows a legible white
+                                  "S" letterform frame 0 → ~1.2s, including
+                                  FRAME ONE (the thumbnail). Ruling owed:
+                                  accept / re-trim IN≈1.35 (kills the
+                                  empty-desk beat) / regenerate. Master at
+                                  anchor_intro_arrive_master_10s.mp4.
     anchor_intro_public.mp4       Fixed intro for the PUBLIC kinds, 6.000s.
                                   ⚠ REPLACED 2026-07-31 (MKT-36): the 7/31
                                   regeneration BEAT the incumbent on the
@@ -1663,6 +1742,13 @@ per-day by hand, not AI-freestyled.
     rebuilt whenever a part changes. It is not source; don't edit it.
 
   ANCHOR INTRO DELIVERY SPEC (now a SET, not one file — see §2):
+  - ⚠ EXACT FILENAME INCLUDES THE EXTENSION, lowercase `.mp4`. The 8/13 drop
+    landed as `.mov` — a wrong container extension is invisible to the
+    registry exactly as the `.MP4`-uppercase incident was: nothing errors,
+    the pool silently stays at its old size until someone notices. If a
+    delivery arrives as .mov, PROBE FIRST — when the streams are already
+    h264/aac the remux is a lossless `-c copy`; anything else is a real
+    transcode and a quality question that must be reported, not absorbed.
   - ⚠ EXPECT TO BE TRIMMED, AND SAY SO IN THE DELIVERY NOTE. The generator
     only emits at 4/6/8/10s presets, so "5.5s" rounds to 10. Every intro
     delivered to date — the 7/27 original, deadpan, powerup and public —
@@ -2097,8 +2183,15 @@ WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
      Can grow further.
   7. ✅ LARGELY CLOSED 2026-07-29 (MKT-23) — the set is now 6 and powerup's
      regeneration landed clean. Original entry:
-     More intro rotation members. The set is 4 (standard, deadpan, arrival,
-     monitors) as of 2026-07-29 — this ask is much less urgent than it was.
+     More intro rotation members. The set is 8 as of 2026-08-13 (standard,
+     deadpan, arrival, monitors, powerup, board, guest, window — MKT-54;
+     `arrive` delivered and held, v3.0 note B) — this ask is largely served;
+     the regen queue's coffee/juggle/reveal would take it to 11.
+     ⚠ ROBOT GUESTS ARE AN OPEN LANE, HUMAN GUESTS ARE CLOSED: three attempts
+     at the guest shot with a HUMAN second figure were refused by the
+     generator; the all-robot two-shot cleared first try. The block is the
+     second human, not the composition — write two-hander prompts with every
+     figure a machine (and keep the no-negatives phrasing below).
      Same delivery spec as §7; read the trim rule there before generating.
      The outstanding one is still `powerup`, which needs REGENERATION, not a
      trim — and `arrival` now shows exactly what that shot should look like.

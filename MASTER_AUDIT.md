@@ -322,6 +322,18 @@ NOT moved, by ruling: workflow timestamps, engine versions, calib footer, `calib
 
 ---
 
+### ENG-DEEPSCOPE-01 — Full ZK6 stack read: 8 defects/risks ranked, 3 candidate defects refuted on evidence, 6 proposals (0 accuracy levers) 📋 SCOPE ONLY (2026-08-13)
+
+**ID verified free** (audit 0 / code 0). Read in full: engines/zk6.ts, lib/engineCore.ts, compute-slate-zk6/index.ts, constants/zk6.ts, hitDetection, dateUtils; live path = EDGE (flag true). Full report: `docs/engine_scope_2026-08-13.md`. Nothing changed; report only.
+
+**Refuted before claiming (§A — do not re-chase):** (1) the `mode=neq.zk30` staleness filter is ALIVE — live zk6 rows carry mode='balanced' via a DB default the engine never writes (the coupling is the finding, not a defect); (2) `_shared/engineCore.ts` + dateUtils are byte-identical to lib/ today; (3) the unpaginated box fetch has 4.5× headroom (220 rows/horizon live-counted, not the "1000 combos" the comments claim).
+
+**Ranked findings (§B):** D1 client/edge drift in history-override day arithmetic (client UTC-anchored — reorders picks after 8PM ET on the fallback path; edge correct); D2 slate `drawsSince` shows the stale import value while DI shows the history-corrected one; D3 unknown scope silently normalizes to allday and OVERWRITES allday's snapshot+DI (destructive-on-typo); D4 DI DELETE→INSERT window (regen heals; make visible); D5 `mode` exists only via DB default — 1-line explicit write defuses a silent ENG-STALE-01 kill; D6 comment rot (row counts, sort keys); D7 supplements feed the staleness block (semantics note, operator preference); D8 history fetch scans ALL of histories unbounded — 9,377 rows today, silent 20k truncation ceiling lands ~Dec 2026–Feb 2027 and the first casualty is DGC's input (weight 0.10, live) — the gate-relevant one.
+
+**Proposals (§D, registry-filtered — no weight sweeps, no freshness, no overdue, no STATE_STR/pressure/synergy/doubles/cooldown re-opens):** P1 per-state Phase 0 (the promoted ENH-AUDIT path; read-only scoping first); P2 `engine:parity` harness (sha-guard the _shared copies + golden vectors — would have caught D1 mechanically); P3 hardening batch D1/D2/D3/D5/D6 (verify-identical, no gate); P4 history date floor at 2026-04-01 — GATE-BOUND (changes DGC input; 30d+60d both lenses, expected neutral, ships as measured-cost robustness or not at all); P5 ENG-AUDIT-02 completion at the next edge deploy; P6 DI row-count red flag in the workflow/Brief (check ADMIN-BRIEF-02 first).
+
+---
+
 ### MKT-54 — Batch A slate intros: 2 registered (pool 6→8), 1 gated on a frame-one letterform, 2 delivery-path failures recorded ✅ SHIPPED (2026-08-13)
 
 **⚠ ID: the work order arrived stamped "MKT-50", which is CLAIMED** (MKT-50 = Pro brief rulings; 51/52 also claimed) — and **MKT-53 is stamped in code with NO audit entry** (`components/social/SocialBriefCard.tsx:22`, layout note dated 2026-08-09): the exact orphaned-ID class MKT-23 recorded ("an ID is claimed by the AUDIT, not by a code comment"). 53's audit entry is still owed by whoever shipped that layout; this work took **MKT-54**, first free in both audit and code.

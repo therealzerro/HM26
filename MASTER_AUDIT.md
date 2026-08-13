@@ -322,6 +322,14 @@ NOT moved, by ruling: workflow timestamps, engine versions, calib footer, `calib
 
 ---
 
+### DESIGN-03 — Visual deep scope: Slates screen + Pick Detail Modal — 10 findings, 11 ranked suggestions, capture-contract map 📋 SCOPE ONLY (2026-08-13)
+
+**ID verified free** (audit 0 / code 0). Full read of explore.tsx + PickDetailModal + SlatePosterCard + pickVisuals AGAINST the capture rig (render-allday-body.ts) — these surfaces are the nightly reel body, so the scope's first deliverable is the CONSTRAINT MAP: 11 rig-contract items extracted line-by-line (grid tile-center click coordinates, no-scroll abort, close-button position, PICK #N / BEST STRAIGHT text anchors, digits-in-text-nodes for redaction, INTEL-tab-at-scrollTop-0 = the captured composition). Report: `docs/visual_scope_slates_modal_2026-08-13.md`. Nothing changed — suggestions await per-item orders.
+
+**Headline findings:** F1 the PAIRS matrix renders FABRICATED percentages (hardcoded multipliers ×92/×70/×30 styled identically to the one real row) — a credibility liability on a check-our-work product, real data exists to replace it; F2 WhyRow copy asserts claims independent of scores; F3 "ZK6 CONFIDENCE" is energy percentile relabeled; F4 PLAY-tab "Bet/Win/SAFE PLAY" vocabulary predates the brand brief — operator ruling requested, not unilaterally changed; F5 share text carries `hitmaster.app` (neither wordmark nor the secured hitmasterzk.com; domain wiring needs a tier ruling) — smallest fix is dropping the line; F6 7-8pt micro-typography below the a11y floor on the captured hero; F7 modal ignores reduce-motion (screen honors it); F8 emoji/lucide icon split. **Suggestions ranked in 3 tiers** (data-honesty → legibility/coherence → grid within-tile-only), each tagged capture-safe / capture-impact / needs-ruling; grid GEOMETRY frozen (tile centers are rig click targets); execution shape = test body render + eye-check BEFORE any daily run consumes a capture-impact change, content-agent handoff note for reel-visible items.
+
+---
+
 ### ENG-PERSTATE-P0 — Per-state engine Phase 0: the accuracy hypothesis MEASURES OUT — no estimable substrate at any granularity 📋 MEASURED, NOTHING BUILT (2026-08-13)
 
 **ID verified free** (audit 0 / code 0). Read-only measurement on the full-coverage era (4/1→8/12, 9,223 draws, 39 jurisdictions). Full report: `docs/perstate_phase0_2026-08-13.md`. Executes ENG-DEEPSCOPE-01 P1 on operator order ("go on p1").

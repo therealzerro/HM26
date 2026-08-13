@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-13 · v3.0
+Content Agent Handoff · 2026-08-13 · v3.1
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -16,6 +16,37 @@ Companion docs:
   - assets/marketing/AllDay_Reel_Endcard_Revision_Brief_2026-07-27.md (endcard contract)
   - docs/mkt15_phase2_copy_brief.md (public copy set — DELIVERED + the bolt request)
   - REEL_COMMANDS.txt (repo root — operator command reference)
+
+WHAT CHANGED IN v3.1 (2026-08-13, same day — content-agent doc audit: seven
+corrections, and the MKT-50→54 ID GAP EXPLAINED with a ledger)
+  A. ⚠ THE ID GAP IS REAL WORK, NOT DRIFT. The 8/13 work order arrived
+     stamped "MKT-50"; the number was already consumed — 50 through 53 were
+     claimed by the SOCIAL-BRIEF / TRACK-RECORD lanes, which live in
+     MASTER_AUDIT and never crossed this doc because they are not reel
+     assets. Ledger, so the gap stops looking like a hole:
+       MKT-50  Morning Brief → Pro-group deliverable (SocialBriefCard Pro
+               depth, pos-rule divergence fix, lint scope). SHIPPED 8/07.
+       MKT-51  Verified Track Record: integrity hardening + capture-rig
+               contract — ⚠ REEL-ADJACENT: the track-record screen IS the
+               nightly verify-reel live set, and ?capture=1 + day-<date>
+               anchors are rig contract. SHIPPED 8/07.
+       MKT-52  Save/share lane for the captions PDF + social brief PNG on
+               the admin Reels screen. SHIPPED 8/08.
+       MKT-53  SocialBriefCard per-variant layout (8/09) — ⚠ code-stamped
+               with NO audit entry; the entry is owed (the MKT-23
+               orphaned-ID class). Recorded in MKT-54's audit entry.
+     This batch therefore took MKT-54, first free in both audit and code.
+  B. `guest` phone-raise divergence RESTATED AS A MEANING CHANGE, not merely
+     cosmetic (§7 entry updated): the shot reads as the Anchor presenting TO
+     a guest, not a guest endorsing the product — a different beat. Accepted
+     for the slate rotation; re-evaluate if the member is ever proposed for
+     a public or ad surface.
+  C. Staleness struck: §7 powerup "rotation of 6" → the count lives in §2;
+     §9 ask #7's retained "powerup needs REGENERATION" paragraph marked
+     HISTORICAL (regenerated + serving since 7/30); §2 stinger anatomy
+     "three motions" → four shared + the seal set; §10's MKT-14 "Parked"
+     block marked SHIPPED 7/31 (the §9 in-flight list was already right);
+     pasted-path typo in §7's endcard anvil note cleaned.
 
 WHAT CHANGED IN v3.0 (2026-08-13 — MKT-54: slate intro pool 6 → 9; the arrive
 hold cleared by operator ruling the same day; a SEVENTH delivery failure class)
@@ -833,12 +864,15 @@ on the 6.33s members) and the reel runs up to 34.53s.
                refills the frame. It both OPENS and CLOSES on smoke, which is
                why the existing dissolve below needs no change.
                Per-variant copy; prebuilt by npm run stinger:build.
-               ⚠ v1.7 — THE MOTION ROTATES. Three motions (bolt condense,
-               strike, circuit), picked by date on the same clock-free basis
+               ⚠ v1.7 — THE MOTION ROTATES. FOUR shared motions as of
+               MKT-23 (bolt condense, strike, circuit, fracture; `imprint`
+               retired 7/31), picked by date on the same clock-free basis
                as the intro and panels, shared across tiers because a
-               stinger carries no tier signal. Copy is unaffected: the
-               headline is still per-variant config, rendered over whichever
-               motion the day draws.
+               stinger carries no tier signal — plus the SEAL set, which
+               serves verify/verify_public ONLY and replaces the rotation
+               for those kinds (§3). Copy is unaffected: the headline is
+               still per-variant config, rendered over whichever motion
+               the day draws.
   7.5 – 8.3    0.8s eased dissolve from the stinger's smoke into the UI body
                (overlaps the tail — not extra time).
   8.3 – 27.3   BODY (19.0s) — 4.0s slow push-in over the full 2×3 signal
@@ -1281,9 +1315,15 @@ per-day by hand, not AI-freestyled.
                                   burgundy robe, mug — beside the Anchor;
                                   reads as a different MAKE, not a recolour
                                   (operator may overrule). Nod exchange,
-                                  phone raise ~4.0s (raised by the ANCHOR
-                                  in the delivered footage, not the guest
-                                  as briefed — cosmetic, recorded), dive
+                                  phone raise ~4.0s — ⚠ raised by the
+                                  ANCHOR, not the guest as briefed. v3.1:
+                                  recorded as a MEANING CHANGE, not merely
+                                  cosmetic — the shot reads as the Anchor
+                                  presenting TO a guest, not a guest
+                                  ENDORSING the product. A different beat.
+                                  Accepted for the slate rotation;
+                                  re-evaluate before any public or ad use
+                                  of this member. Dive
                                   complete 5.6s, bed 5.7-6.2 clean (spread
                                   80, edge 0.96). Audio from frame 1
                                   (first 0.3s −50.3 mean / −38.5 max —
@@ -1363,7 +1403,9 @@ per-day by hand, not AI-freestyled.
                                   and the dissolve bed (5.8-6.3) is clean
                                   with ~0.9s margin. Onset −35.6dB mean, the
                                   hottest open in the fleet. Serving in the
-                                  rotation of 6.
+                                  rotation (the live count lives in §2 —
+                                  nine as of v3.1; this entry stops
+                                  hardcoding it).
     anchor_intro_*_master_10s.mp4 Delivered 10s masters, kept so the trims
                                   stay reproducible. NOT read by the
                                   pipeline.
@@ -1543,7 +1585,7 @@ per-day by hand, not AI-freestyled.
                                   composition (50.3%) and was DROPPED — it
                                   dips to y1192, 48px above the lockup, and
                                   drifting smoke would close that gap on some
-                                  frames aassets/marketing/Reel_System_Handoff.txtnd not others.
+                                  frames and not others.
                                   Impacts land 3.55-3.90s, earlier than the
                                   old ~4.3s band; the assembler derives the
                                   bed window per endcard so this is handled.
@@ -2202,10 +2244,13 @@ WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
      second human, not the composition — write two-hander prompts with every
      figure a machine (and keep the no-negatives phrasing below).
      Same delivery spec as §7; read the trim rule there before generating.
-     The outstanding one is still `powerup`, which needs REGENERATION, not a
-     trim — and `arrival` now shows exactly what that shot should look like.
-     ⏳ Its regeneration prompt is written and held with the operator, ready
-     to run when budget returns. Note for anyone writing prompts in this
+     ~~The outstanding one is still `powerup`, which needs REGENERATION, not
+     a trim — and `arrival` now shows exactly what that shot should look
+     like. ⏳ Its regeneration prompt is written and held with the operator,
+     ready to run when budget returns.~~ ⚠ HISTORICAL (struck v3.1): the
+     powerup regeneration RAN, was validated, and has SERVED in the rotation
+     since 2026-07-30 (v2.0 note F; §7 entry). Nothing about powerup is
+     outstanding. Note for anyone writing prompts in this
      asset class: the earlier attempt was REFUSED by the generator, traced to
      a CRITICAL block enumerating what must not appear in frame. Removing the
      negatives and describing the final beat as a STATE rather than a
@@ -2351,12 +2396,13 @@ MKT-16 — PUBLIC ASSET INTEGRATION. ✅ PHASE 1+3 SHIPPED 2026-07-30 (v2.3).
   DELIVERED AND USABLE: anchor_intro_public.mp4 (trimmed, passing preflight),
   public_carrier.mp4 + _pt2 (joined, 20.360s, passing), bolt_mark_2048.png.
 
-MKT-14 — SLATE-STAMP BRAND ATTRIBUTION. Parked, cleanly.
-  Nothing built, no code touched; the work order is parked verbatim at
-  docs/mkt14_work_order_parked.md and resumes only on explicit go-ahead. The
-  earlier bottom-right watermark version is SUPERSEDED and must not be built —
-  every short-form platform stacks its own chrome bottom-right, so a mark
-  there is buried on all of them.
+MKT-14 — SLATE-STAMP BRAND ATTRIBUTION. ✅ SHIPPED 2026-07-31 (v2.7 note G;
+  this block was the stale half of a struck pair until v3.1 — §9's in-flight
+  list already said so). The brand line rides the slate stamp BELOW the date
+  line; the earlier bottom-right watermark version is SUPERSEDED and must not
+  be built — every short-form platform stacks its own chrome bottom-right, so
+  a mark there is buried on all of them. `watermark_source.mp4` is delivery
+  evidence only, permanently unreferenced, deletable.
 
 FREE-GROUP MIDDAY / EVENING REEL — not a lane, and nothing is assumed.
   It is the second payoff of the masked capture, but it is not registered

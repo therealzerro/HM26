@@ -415,6 +415,19 @@ function normalizeScope(s: string): Scope {
   return 'allday';
 }
 
+/**
+ * ENG-DEEPSCOPE-01 P3/D3 (2026-08-13): strict variant for the WRITE path.
+ * This function soft-deletes and replaces the target scope's snapshot + DI
+ * rows — a malformed body ({}, a typo'd scope, a truncated retry) previously
+ * normalized to 'allday' and silently overwrote the real allday slate for the
+ * day. The handler 400s instead. Mirror of engines/zk6.ts normalizeScopeStrict.
+ */
+function normalizeScopeStrict(s: string): Scope | null {
+  const v = String(s ?? '').toLowerCase().replace(/[-\s_]/g, '');
+  if (v === 'midday' || v === 'evening' || v === 'allday') return v;
+  return null;
+}
+
 async function fetchRaw(scopeEnc: string): Promise<{ boxRows: unknown[]; pairRows: unknown[] }> {
   const boxFetches = H_ALL.map(h =>
     sbGet<unknown[]>(
@@ -783,7 +796,12 @@ async function computeSlate(params: {
   // to balanced in production. Persisted as 'balanced' on every snapshot/AT row.
   const { targetDate, excludeComboSets = [], is_supplement = false } = params;
   const weightsKey = 'balanced';
-  const scope = normalizeScope(params.scope);
+  // ENG-DEEPSCOPE-01 P3/D3: reject unknown scopes before any read or write.
+  const strictScope = normalizeScopeStrict(params.scope);
+  if (!strictScope) {
+    throw new Error(`unknown scope "${String(params.scope)}" — expected midday | evening | allday`);
+  }
+  const scope = strictScope;
   const now   = new Date().toISOString();
   const todayEt = getTodayET();
   const effectiveDate = targetDate || todayEt;
@@ -1231,7 +1249,10 @@ async function computeSlate(params: {
       // Position-pair maximised arrangement (engineCore.bestOrderFor). Parity with engines/zk6.ts.
       bestOrder: bestOrderFor(x.combo, ds.pairData, horizonWeights),
       confidence: Math.round(scopeConfidence * 100),
-      drawsSince: ds.dsRawMap.get(x.normKey) ?? (br as any)?.ds_raw ?? null,
+      // ENG-DEEPSCOPE-01 P3/D2 (2026-08-13): history-corrected map, matching
+      // the DI top-30 rows (dsRawMap showed the stale import-time value
+      // whenever histories was fresher). dsRaw below stays raw by design.
+      drawsSince: ds.drawsSinceMap.get(x.normKey) ?? (br as any)?.ds_raw ?? null,
       timesDrawn: (br as any)?.times_drawn ?? ds.timesDrawnMap.get(x.normKey) ?? 0,
       dsRaw:      (br as any)?.ds_raw ?? ds.dsRawMap.get(x.normKey) ?? 0,
       lastSeen:   ds.lastSeenMap.get(x.normKey) ?? (br as any)?.last_seen ?? null,
@@ -1263,7 +1284,14 @@ async function computeSlate(params: {
   }));
 
   const payload: Record<string, unknown> = {
-    scope, horizons_present_json: horizonsMeta,
+    scope,
+    // ENG-DEEPSCOPE-01 P3/D5 (2026-08-13): written EXPLICITLY — previously
+    // filled only by a DB-side default, and ENG-STALE-01's `mode=neq.zk30`
+    // filter silently drops NULL-mode rows (SQL <> semantics). Losing the
+    // default would have killed the staleness block with no error. Same value
+    // the default supplies today; byte-identical rows.
+    mode: weightsKey,
+    horizons_present_json: horizonsMeta,
     weights_json: { ...weights, _mode: weightsKey },
     top_k_straights_json: topKStraights,
     top_k_boxes_json: k6.map(x => x.normKey),
@@ -1511,6 +1539,13 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
   try {
     const body = await req.json();
+    // ENG-DEEPSCOPE-01 P3/D3: bad scope is a caller error → 400, before any
+    // read or write happens. computeSlate re-checks (defense in depth).
+    if (!normalizeScopeStrict(body?.scope)) {
+      const msg = `unknown scope "${String(body?.scope)}" — expected midday | evening | allday`;
+      console.error('[edge-zk6] rejected:', msg);
+      return new Response(JSON.stringify({ error: msg }), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } });
+    }
     const result = await computeSlate(body);
     return new Response(JSON.stringify(result), { headers: { ...cors, 'Content-Type': 'application/json' } });
   } catch (err) {

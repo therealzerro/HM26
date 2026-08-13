@@ -322,7 +322,12 @@ NOT moved, by ruling: workflow timestamps, engine versions, calib footer, `calib
 
 ---
 
-### ENG-DEEPSCOPE-01 — Full ZK6 stack read: 8 defects/risks ranked, 3 candidate defects refuted on evidence, 6 proposals (0 accuracy levers) 📋 SCOPE ONLY (2026-08-13)
+### ENG-DEEPSCOPE-01 — Full ZK6 stack read: 8 defects/risks ranked, 3 candidate defects refuted on evidence, 6 proposals (0 accuracy levers) 📋 SCOPE → P2+P3 SHIPPED (2026-08-13)
+
+**ADDENDUM (same day) — P2 + P3 SHIPPED on operator order ("do p3 and p2 now"); ⏳ EDGE DEPLOY PENDING on expired CLI tokens.**
+- **P3 hardening, both paths:** D1 client `fetchHistoryOverrides` now uses the edge's ET-midnight anchor + `Math.round` verbatim (was UTC-day floor — reordered picks after 8PM ET on the fallback path); D2 slate pick `drawsSince` reads the history-corrected `drawsSinceMap` on both paths (was stale `dsRawMap`; `dsRaw` field stays raw by design); D3 `normalizeScopeStrict` added to both paths — client `computeSlate` throws on unknown scope, edge handler 400s BEFORE any read/write (was: silent normalize-to-allday + overwrite); D5 `mode: 'balanced'` written explicitly in both snapshot payloads (was DB-default-only — the ENG-STALE-01 `neq` NULL-kill fuse); D6 comment rot fixed (220-rows reality, Pass-2 sort claim).
+- **P2 `npm run engine:parity`:** copy guard (sha256 lib/ ↔ `_shared/` for engineCore + dateUtils, hard FAIL on drift) + **55 golden-vector checks** through every pure engineCore function, frozen against the 8/13 line-verified state (legacy/p95ramp/percentile pressure branches, pair taper edges, synergy fire/no-fire, adaptive clamp+renorm, ENG-04 hash determinism + frozen value BC917FD, DGC edge cases, state-strength min-draws gate). Complements the pre-existing heavyweight `zk6:parity` sandbox harness (which remains the end-to-end check). All 55 pass; filtered tsc 0.
+- **Verification state:** client changes are dormant until app rebuild (edge flag on) — zero live-path risk today. Edge changes are CODE DONE, DEPLOY PENDING (CLI 401 — both stored access tokens expired; ENG-BLOCK-PERSCOPE-02 precedent for this state). Deploy plan on re-auth: `npx supabase functions deploy compute-slate-zk6 --project-ref tgagarhwqbdcwoqhpapi` → confirm verify_jwt unchanged → **full `zk6:parity` run (sandbox 2099 dates) expecting ZERO diffs** as the post-deploy proof. Until deployed, the live edge simply keeps its current behavior — nothing half-applied.
 
 **ID verified free** (audit 0 / code 0). Read in full: engines/zk6.ts, lib/engineCore.ts, compute-slate-zk6/index.ts, constants/zk6.ts, hitDetection, dateUtils; live path = EDGE (flag true). Full report: `docs/engine_scope_2026-08-13.md`. Nothing changed; report only.
 

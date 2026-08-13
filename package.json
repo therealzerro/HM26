@@ -44,7 +44,8 @@
     "social:dryrun": "tsx scripts/social-handoff-dryrun.ts",
     "endcard:build": "tsx scripts/build-endcard.ts",
     "panel:build": "tsx scripts/build-panels.ts",
-    "stinger:build": "tsx scripts/build-stinger.ts"
+    "stinger:build": "tsx scripts/build-stinger.ts",
+    "engine:parity": "tsx scripts/engine-parity.ts"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

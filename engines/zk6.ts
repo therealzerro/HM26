@@ -113,15 +113,31 @@ export function normalizeScope(s: string): Scope {
   return 'allday';
 }
 
+/**
+ * ENG-DEEPSCOPE-01 P3/D3 (2026-08-13): strict variant for WRITE paths.
+ * normalizeScope's silent anything→allday default is fine for display reads,
+ * but computeSlate WRITES: a typo'd scope would soft-delete and replace the
+ * real allday snapshot + daily_intelligence for the day. Returns null instead
+ * of guessing; computeSlate throws before touching any data.
+ */
+export function normalizeScopeStrict(s: string): Scope | null {
+  const v = String(s ?? '').toLowerCase().replace(/[-\s_]/g, '');
+  if (v === 'midday' || v === 'evening' || v === 'allday') return v;
+  return null;
+}
+
 export let lastScopeFallback: string | null = null;
 
 
 // ─── Data Fetch ───────────────────────────────────────────────────────────────
 
 async function fetchRaw(scopeEnc: string): Promise<{ boxRows: any[]; pairRows: any[] }> {
-  // Fetch box data per-horizon in parallel — PostgREST caps single queries at 1000 rows,
-  // and allday scope has 10,000 box rows (1000 combos × 10 horizons). Fetching each
-  // horizon separately guarantees all 10 horizons are loaded regardless of server limit.
+  // Fetch box data per-horizon in parallel — PostgREST caps single queries at
+  // 1000 rows. The national box slice is 220 COMBOSET rows per horizon per
+  // scope (live-counted 2026-08-13, ENG-DEEPSCOPE-01 §A3 — an earlier comment
+  // here claimed "1000 combos × 10 horizons", which was never the post-rebuild
+  // shape). Per-horizon fetches keep each response at 220 rows, 4.5× under
+  // the cap, so all 10 horizons load regardless of server limit.
   const boxHorizonFetches = H_ALL.map(h =>
     fetchFromSupabase<any[]>({
       path: `/rest/v1/datasets_box?class_id=eq.1&scope=eq.${scopeEnc}` +
@@ -533,13 +549,19 @@ async function fetchHistoryOverrides(scope: Scope): Promise<{
     const dsOverride = new Map<string, number>();
     const lsOverride = new Map<string, string>();
     const hitDatesMap = new Map<string, number[]>();
-    const todayDays = Math.floor(Date.now() / 86400000);
+    // ENG-DEEPSCOPE-01 P3/D1 (2026-08-13): anchored to the ET calendar day,
+    // VERBATIM parity with compute-slate-zk6 (index.ts fetchHistoryOverrides).
+    // The prior Math.floor(Date.now()/86400000) was a UTC-day anchor that
+    // incremented at 8PM ET — this map feeds the cooldown gate AND the K6
+    // reorder's primary sort key (ds desc), so an evening run on this fallback
+    // path could order the same six picks differently than the edge.
+    const todayMs = new Date(getTodayET() + 'T00:00:00').getTime();
     rows.forEach((row) => {
       if (typeof row?.result_digits !== 'string' || !/^\d{3}$/.test(row.result_digits)) return;
       const cs = toComboSet(row.result_digits);
       if (!dsOverride.has(cs)) {
         const rowMs = row.date_et ? new Date(String(row.date_et)).getTime() : 0;
-        const actualDs = rowMs > 0 ? Math.max(0, todayDays - Math.floor(rowMs / 86400000)) : 999;
+        const actualDs = rowMs > 0 ? Math.max(0, Math.round((todayMs - rowMs) / 86400000)) : 999;
         dsOverride.set(cs, actualDs);
         lsOverride.set(cs, String(row.date_et));
       }
@@ -983,6 +1005,13 @@ async function saveSlateSnapshot(snapshot: SlateSnapshot, extraFields?: Record<s
 
   const payload: Record<string, unknown> = {
     scope: snapshot.scope,
+    // ENG-DEEPSCOPE-01 P3/D5 (2026-08-13): written EXPLICITLY. The column was
+    // previously filled only by a DB-side default — and ENG-STALE-01's prior-
+    // slate query filters `mode=neq.zk30`, whose SQL `<>` semantics silently
+    // drop NULL rows. If that default is ever lost (schema migration, fresh
+    // environment), the staleness block dies with no error. Same value the
+    // default supplies today; byte-identical rows.
+    mode: snapshot.mode ?? 'balanced',
     horizons_present_json: snapshot.horizons_present_json,
     weights_json: snapshot.weights_json,
     top_k_straights_json: snapshot.top_k_straights_json,
@@ -1083,7 +1112,14 @@ export async function computeSlate({
     return result;
   }
 
-  const scope: Scope = normalizeScope(rawScope);
+  // ENG-DEEPSCOPE-01 P3/D3: computeSlate WRITES — reject unknown scopes rather
+  // than silently computing (and overwriting) allday. Typed callers never hit
+  // this; it exists for untyped call sites and malformed workflow invocations.
+  const strictScope = normalizeScopeStrict(rawScope);
+  if (!strictScope) {
+    throw new Error(`computeSlate: unknown scope "${String(rawScope)}" — expected midday | evening | allday`);
+  }
+  const scope: Scope = strictScope;
   const now = new Date().toISOString();
   const todayEt = getTodayET();
   const effectiveDate = targetDate || todayEt;
@@ -1498,7 +1534,10 @@ export async function computeSlate({
 
   // ── 6. Two-pass K6 selection ──────────────────────────────────────────────────
   // Pass 1: real data combos (timesDrawn > 0), full diversity rails, sorted by score.
-  // Pass 2: fill any remaining slots with placeholder combos sorted by PBURST only.
+  // Pass 2: fill any remaining slots with placeholder combos, sorted by the same
+  // finalScore (which for zero-history combos reduces to their PBURST/CO pair
+  // signals — BOX is masked to 0). An earlier comment claimed "sorted by PBURST
+  // only"; the sort has always been finalScore (ENG-DEEPSCOPE-01 §D6).
 
   const realIdx: number[] = [];
   const placeholderIdx: number[] = [];
@@ -1790,7 +1829,12 @@ export async function computeSlate({
       rank: idx + 1,
       bestOrder: bestOrderFor(x.combo, ds.pairData, horizonWeights),
       confidence: Math.round(scopeConfidence * 100),
-      drawsSince: ds.dsRawMap.get(x.normKey) ?? boxRow?.ds_raw ?? null,
+      // ENG-DEEPSCOPE-01 P3/D2 (2026-08-13): history-corrected map, matching
+      // the DI top-30 rows — dsRawMap here showed the stale import-time value
+      // whenever histories was fresher, so the slate card and the Intel row
+      // disagreed about the same combo's overdue-ness. dsRaw below stays raw
+      // by design (it is the dataset diagnostic, not the display field).
+      drawsSince: ds.drawsSinceMap.get(x.normKey) ?? boxRow?.ds_raw ?? null,
       timesDrawn: boxRow?.times_drawn ?? ds.timesDrawnMap.get(x.normKey) ?? 0,
       dsRaw: boxRow?.ds_raw ?? ds.dsRawMap.get(x.normKey) ?? 0,
       lastSeen: ds.lastSeenMap.get(x.normKey) ?? boxRow?.last_seen ?? null,

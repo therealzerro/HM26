@@ -10,7 +10,8 @@
 //      empty middle (transform only: NO reflow, tile geometry and the rig's
 //      click targets are untouched) and given a dark drop-shadow + soft glow,
 //      so the digits survive platform re-compression.
-//   2. NOTATION STRIP — a band over the bottom tab bar listing the six
+//   2. NOTATION STRIP — a band over the Signals/Matches/More tab row (top of
+//      the frame, MKT-56c; was the bottom tab bar) listing the six
 //      combinations in rank order (#1…#6), large monospace, one line to copy.
 //      Digits are read back FROM THE RENDERED GRID (the same digit-row shapes
 //      reel-redact.ts detects: one "6 8 1" leaf, or 3 single-digit sibling
@@ -83,13 +84,17 @@ export async function installNotation(page: Page, scopeLabel: string): Promise<s
     const strip = document.createElement('div');
     strip.id = ID;
     strip.setAttribute('aria-hidden', 'true');
-    strip.style.cssText = 'position:fixed;left:0;right:0;bottom:0;height:84px;z-index:2147483647;' +
+    // MKT-56c: the band sits OVER the Signals/Matches/More tab row (CSS y
+    // ~131–197 — between the scope tabs and the tile tops), not over the
+    // bottom tab bar: operator ruling from the 8/16 smoke test — the picks
+    // list belongs at the top of the frame, read before the tiles.
+    strip.style.cssText = 'position:fixed;left:0;right:0;top:131px;height:66px;z-index:2147483647;' +
       'background:#0a0714;' +
-      'border-top:1px solid rgba(255,255,255,0.16);box-sizing:border-box;padding:8px 14px 8px;' +
+      'border-top:1px solid rgba(255,255,255,0.16);border-bottom:1px solid rgba(255,255,255,0.16);box-sizing:border-box;padding:6px 14px 5px;' +
       'font-family:' + font + ';color:#fff;display:flex;flex-direction:column;justify-content:center;';
     const head = document.createElement('div');
     head.textContent = LABEL.toUpperCase() + ' · 6 SIGNALS · RANK ORDER';
-    head.style.cssText = 'font-size:10px;letter-spacing:1.6px;color:rgba(255,255,255,0.62);text-align:center;margin-bottom:5px;';
+    head.style.cssText = 'font-size:9px;letter-spacing:1.6px;color:rgba(255,255,255,0.62);text-align:center;margin-bottom:3px;line-height:1;';
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-end;';
     combos.forEach((c, i) => {
@@ -97,10 +102,10 @@ export async function installNotation(page: Page, scopeLabel: string): Promise<s
       cell.style.cssText = 'display:flex;flex-direction:column;align-items:center;white-space:nowrap;';
       const rank = document.createElement('div');
       rank.textContent = '#' + (i + 1);
-      rank.style.cssText = 'font-size:10px;color:rgba(255,255,255,0.55);letter-spacing:0.5px;line-height:1;margin-bottom:2px;';
+      rank.style.cssText = 'font-size:9px;color:rgba(255,255,255,0.55);letter-spacing:0.5px;line-height:1;margin-bottom:2px;';
       const dig = document.createElement('div');
       dig.textContent = c;
-      dig.style.cssText = 'font-size:31px;font-weight:800;letter-spacing:5px;margin-right:-5px;line-height:1;color:#ffffff;white-space:nowrap;' +
+      dig.style.cssText = 'font-size:29px;font-weight:800;letter-spacing:5px;margin-right:-5px;line-height:1;color:#ffffff;white-space:nowrap;' +
         'text-shadow:0 2px 0 rgba(0,0,0,0.9),0 0 10px rgba(255,255,255,0.18);';
       cell.appendChild(rank); cell.appendChild(dig); row.appendChild(cell);
     });

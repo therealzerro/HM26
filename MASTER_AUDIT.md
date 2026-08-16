@@ -443,6 +443,8 @@ Tail parity checked against the pool rather than asserted: serving members SPLIT
 
 **Gating:** installed only when `!REDACT`; the module also refuses if it sees any `•••` mask leaf. Redacted / public cuts are byte-for-byte the MKT-56 path (no strip, no timer). Vocabulary on the strip is member-tier safe (SIGNALS / RANK ORDER — no "picks", no match-status words). Filtered tsc: 0.
 
+**MKT-56c — smoke-test corrections (same day, operator visual review of the published evening pro):** (1) the "TODAY'S DATA DROP" stamp chip (y=470, 187px core) was covering the now-larger #1/#2 digits — `render-reel-stamp.ts` gains a per-purpose `top`: **drop 604** (empty middle of tile row 1, between the nudged set labels and the signal bars; verified clear on the assembled frame), verify unchanged at 470. (2) Notation band moved from the bottom tab bar to **over the Signals/Matches/More tab row** (CSS top 131, height 66; type 29px) — operator ruling: the picks list reads at the top, before the tiles. Evening pro 2026-08-16 rebuilt + re-published a second time for the visual smoke test.
+
 **Downstream notes:** `Reel_System_Handoff.txt` bumped v3.3 with the timeline shift (panels now appear from body+10.0s; carrier VO lines that reference "tapping in" at ~4s of body are 6s early and should be re-timed or written scene-agnostic). Verify reels use a different renderer and are unaffected. `assemble-allday-reels.ts` header comment corrected (it still said 16.0s push-in).
 
 ---

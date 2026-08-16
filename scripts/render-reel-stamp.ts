@@ -29,12 +29,18 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const PURPOSES = {
-  drop:   { eyebrow: "TODAY'S DATA DROP", accent: '#2bffcc' },
+  // MKT-56c (2026-08-16) — `top` per purpose. The drop chip used to sit at
+  // y=470, which after MKT-56b's 1.3× tile digits put it squarely over picks
+  // #1/#2 (operator smoke test). It now sits in the empty middle of tile row 1
+  // (chip core 187px tall; free zone ≈605–790 between the nudged {a,b,c} set
+  // labels and the signal bars). Verify keeps 470 — different layout, and the
+  // 1:1 keep-band note above is history (1:1 cut retired, MKT-39).
+  drop:   { eyebrow: "TODAY'S DATA DROP", accent: '#2bffcc', top: 604 },
   // MKT-31 items 2+4 — the verify stamp IS the persistent date ribbon:
   // "YESTERDAY'S RECEIPTS · <day> · <date>", gold (the results-desk accent —
   // verify's subject is the gold moment; every slate surface leads cyan).
   // The assembler keeps it up for the FULL body and fades it into the close.
-  verify: { eyebrow: "YESTERDAY'S RECEIPTS", accent: '#FBBF24' },
+  verify: { eyebrow: "YESTERDAY'S RECEIPTS", accent: '#FBBF24', top: 470 },
 } as const;
 
 // MKT-14 — the brand string, ruled 2026-07-31. "ZK6", not the version-agnostic
@@ -102,7 +108,7 @@ const html = `<!doctype html><html><head><style>
   * { margin: 0; padding: 0; }
   body { width: 1080px; height: 1920px; background: transparent; overflow: hidden; }
   .chip {
-    position: absolute; top: 470px; left: 50%; transform: translateX(-50%);
+    position: absolute; top: ${purpose.top}px; left: 50%; transform: translateX(-50%);
     display: flex; flex-direction: column; align-items: center; gap: 7px;
     padding: 20px 40px; border-radius: 24px;
     background: rgba(8, 10, 22, 0.74);

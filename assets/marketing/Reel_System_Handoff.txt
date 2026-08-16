@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-13 · v3.2
+Content Agent Handoff · 2026-08-16 · v3.3
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -16,6 +16,33 @@ Companion docs:
   - assets/marketing/AllDay_Reel_Endcard_Revision_Brief_2026-07-27.md (endcard contract)
   - docs/mkt15_phase2_copy_brief.md (public copy set — DELIVERED + the bolt request)
   - REEL_COMMANDS.txt (repo root — operator command reference)
+
+WHAT CHANGED IN v3.3 (2026-08-16 — MKT-56: BODY GRID IS A STATIC STILL, no
+zoom; grid 4.0→10.0s, modals 2.5→1.5s each; body total STILL 19.0s)
+  A. ⚠ MEMBER-REPORTED. Members write the six picks down off the reel's
+     slate frame, and the 4.0s Ken Burns push-in (1.00→1.10 zoompan) was
+     (a) moving the digits under them and (b) too short to notate six
+     three-digit picks from. Operator ruling 8/16: the grid scene is a
+     STILL — no zoom, no pan, no ease — held 10.0s. To keep the body at
+     exactly 19.0s (so nothing downstream moves: VO window, stamp fades,
+     endcard hum-bed/outro mix, check-reel-assets BODY=19.0, carrier
+     ceilings), the six modal holds are shortened 2.5s→1.5s each. Modal
+     content is unchanged (digits · energy · breakdown at scrollTop 0), it
+     simply moves faster; the pick-detail scene is 9.0s (was 15.0s).
+  B. Timeline shift INSIDE the body only: grid 8.3–18.3s, modals 18.3–27.3s
+     (was grid 8.3–12.3, modals 12.3–27.3). Panels (§ below) still appear
+     from the first modal, i.e. from 18.3s now. VO copy that narrated the
+     modals over 12.3–27.3s now lands mostly on the still — the WORDS still
+     fit (window unchanged) but if a carrier says "tap in" at ~4s of body it
+     is now 6s early; re-time modal-specific lines to body+10.0s or write
+     them scene-agnostic. Verify reels are unaffected (different renderer).
+  C. Rig: the separate 3x still + zoompan pass is gone; the grid frame is
+     captured at native 1080x1920 in the same context the modals open from,
+     and the whole body is one PNG sequence → one encode. Provenance tags
+     (hm_reel_date / hm_reel_redacted / public) unchanged. Reference render
+     8/16: 1140 frames, 19.000s, PSNR 46 dB grid-first vs grid-last frame
+     (identical content), hard cut at 10.0s. Applies to allday/midday/evening
+     bodies and all three capture modes (full, --redact, --redact --relabel).
 
 WHAT CHANGED IN v3.2 (2026-08-13, same day — DESIGN-03: the APP SURFACES the
 reels capture were visually revised; tomorrow's bodies LOOK different)
@@ -908,16 +935,18 @@ on the 6.33s members) and the reel runs up to 34.53s.
                the day draws.
   7.5 – 8.3    0.8s eased dissolve from the stinger's smoke into the UI body
                (overlaps the tail — not extra time).
-  8.3 – 27.3   BODY (19.0s) — 4.0s slow push-in over the full 2×3 signal
-               grid (all six on screen), then each signal tapped in rank
-               order 1→6: modal opens, 2.5s hold on digits/energy/
+  8.3 – 27.3   BODY (19.0s) — 10.0s STATIC still of the full 2×3 signal
+               grid (all six on screen, NO zoom/pan — v3.3/MKT-56, members
+               notate the picks off this frame), then each signal tapped in
+               rank order 1→6: modal opens, 1.5s hold on digits/energy/
                confidence/breakdown, close. Hard cuts between modals.
-  12.3 – 27.3  PANELS — a rotating branded panel sits below the "RESOLVED IN"
+               (Was 4.0s push-in + 6×2.5s until 2026-08-16.)
+  18.3 – 27.3  PANELS — a rotating branded panel sits below the "RESOLVED IN"
                card in each of the six pick-detail modals. It is NOT added to
                the video: it is a real element of the app screen, so it is
                captured along with everything else. A different panel appears
                on each modal; which one leads rotates by date. Panels appear
-               in the modals only — the grid push-in has no room for one.
+               in the modals only — the grid still has no room for one.
                ⚠ CHANGED 2026-07-28 — PANELS ARE APP-WIDE. An earlier version
                of this doc said the panel was visible only while the renderer
                was driving the app and that "subscribers never see it". That

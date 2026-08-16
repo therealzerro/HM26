@@ -4,14 +4,21 @@
 // board instead; with no flag this is the All-Day renderer exactly as before
 // (same scope filter, same tab, same ui_allday_* output, same directory).
 //
-// Renders ui_<scope>_YYYYMMDD.mp4 (1080x1920, 60fps, exactly 16.0s = 960 frames)
+// Renders ui_<scope>_YYYYMMDD.mp4 (1080x1920, 60fps, exactly 19.0s = 1140 frames)
 // from the live Slates screen, the scope's tab, premium view, GRID mode:
 //
-//   f000-f239  0.0-4.0s   full 2x3 slate grid — slow eased push-in (Ken Burns
-//                         1.00→1.10 from a 3x-resolution still; never upscales)
+//   f0000-f0599  0.0-10.0s  full 2x3 slate grid — STATIC still, no motion.
+//                           MKT-56 (2026-08-16): members write the six picks
+//                           down off this frame; the previous 4.0s Ken Burns
+//                           push-in (1.00→1.10 zoompan) drifted the digits and
+//                           was too short to notate from. Zoom REMOVED, hold
+//                           widened 4.0→10.0s.
 //   then, per pick 1..6 (rank order): real tile tap → PickDetailModal settles →
-//   2.0s hold on modal top (digits · energy · confidence · breakdown) → close.
-//   Hard cuts between modals. Body = 16.0s = 960 frames.
+//   1.5s hold on modal top (digits · energy · confidence · breakdown) → close.
+//   Hard cuts between modals. Body = 19.0s = 1140 frames — the total is
+//   unchanged from the 4.0s+6×2.5s layout so every downstream timing (VO
+//   window, stamp fades, endcard mix, check-reel-assets BODY) is untouched;
+//   the grid gain is paid for entirely by the modal holds (2.5→1.5s each).
 //
 // REAL DATA ONLY. Aborts (exit 1) if today's (ET) slate for the scope is absent
 // (anon REST precheck + rendered-DOM guards).
@@ -74,13 +81,15 @@ if (REDACT && !RELABEL && !(SPEC.redactedVariants ?? []).length) {
 const OUT_DIR = resolve(ARGS[0] ?? `assets/marketing/${SPEC.dir}`);
 const FPS = 60;
 const VIEW_H = 960;
-const GRID_FRAMES = 240;        // 4.0s zoompan segment
-const MODAL_HOLD = 150;         // 2.5s per pick modal (MKT-09: widened from
-                                // 2.0s so the wall-to-wall VO window fits the
-                                // ~19.5s carriers the voice agent produces)
+const GRID_FRAMES = 600;        // 10.0s STATIC grid hold (MKT-56: was a 4.0s
+                                // zoompan push-in — members could not notate
+                                // the six picks off a moving 4s frame)
+const MODAL_HOLD = 90;          // 1.5s per pick modal (MKT-56: 2.5→1.5s pays
+                                // for the wider grid hold; MKT-09 had widened
+                                // 2.0→2.5s for the ~19.5s carriers, and TOTAL
+                                // is still 19.0s so that VO window is intact)
 const PICKS = 6;
-const TOTAL = GRID_FRAMES + PICKS * MODAL_HOLD;   // 1140 = 19.0s
-const easeInOut = (t: number) => (1 - Math.cos(Math.PI * Math.min(Math.max(t, 0), 1))) / 2;
+const TOTAL = GRID_FRAMES + PICKS * MODAL_HOLD;   // 1140 = 19.0s (unchanged)
 
 function todayET(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
@@ -200,44 +209,14 @@ async function openAlldayGrid(page: import('playwright').Page) {
   // date. `bodyFile` keeps the full-fidelity name exactly as it was, so nothing
   // that already works changes name.
   const outMp4 = join(OUT_DIR, RELABEL ? bodyFileForMode(SCOPE, 'public', stamp) : bodyFileFor(SCOPE, REDACT, stamp));
-  const gridStill = join(WORK, 'grid_still.png');
   const fname = (i: number) => join(WORK, `frame_${String(i).padStart(4, '0')}.png`);
 
   const browser = await chromium.launch();
 
-  // ── Pass 1: 3x-resolution grid still (zoom headroom for the push-in) ──
-  {
-    const ctx = await browser.newContext({
-      viewport: { width: 540, height: VIEW_H }, deviceScaleFactor: 3,
-      colorScheme: 'dark', isMobile: true, hasTouch: true,
-    });
-    const page = await ctx.newPage();
-    await page.addInitScript(initScript, fakeMs);
-    await openAlldayGrid(page);
-    const gridCheck = await page.evaluate(() => {
-      const divs = Array.from(document.querySelectorAll('div'));
-      let scroller: HTMLDivElement | null = null;
-      for (const d of divs) if (d.scrollHeight > d.clientHeight + 20 && (!scroller || d.scrollHeight > scroller.scrollHeight)) scroller = d;
-      return { overflow: scroller ? scroller.scrollHeight - scroller.clientHeight : 0 };
-    });
-    if (gridCheck.overflow > 8) {
-      console.error(`ABORT: grid view unexpectedly scrolls (${gridCheck.overflow}px overflow) — not the one-screen slate surface.`);
-      process.exit(1);
-    }
-    await page.screenshot({ path: gridStill });   // 1620x2880
-    await ctx.close();
-  }
-
-  // ── Grid segment: eased Ken Burns push-in from the still ──
-  execSync(
-    `ffmpeg -y -loglevel error -loop 1 -i "${gridStill}" -vf ` +
-    `"zoompan=z='1+0.10*(0.5-0.5*cos(PI*min(on/${GRID_FRAMES - 1},1)))'` +
-    `:x='iw/2-(iw/zoom/2)':y='ih*0.55-(ih/zoom/2)':d=${GRID_FRAMES}:s=1080x1920:fps=${FPS}" ` +
-    `-frames:v ${GRID_FRAMES} -c:v libx264 -pix_fmt yuv420p -crf 18 "${join(WORK, 'grid_seg.mp4')}"`,
-    { stdio: 'inherit' },
-  );
-
-  // ── Pass 2: modal capture (2x context = native 1080x1920 frames) ──
+  // ── Single capture context (2x = native 1080x1920 frames) ──
+  // MKT-56: the grid is a static hold now, so the separate 3x-resolution
+  // still + zoompan pass is gone — the grid frame is captured here, in the
+  // same context the modals open from, and copied across its hold.
   const ctx = await browser.newContext({
     viewport: { width: 540, height: VIEW_H }, deviceScaleFactor: 2,
     colorScheme: 'dark', isMobile: true, hasTouch: true,
@@ -245,6 +224,19 @@ async function openAlldayGrid(page: import('playwright').Page) {
   const page = await ctx.newPage();
   await page.addInitScript(initScript, fakeMs);
   await openAlldayGrid(page);
+  const gridCheck = await page.evaluate(() => {
+    const divs = Array.from(document.querySelectorAll('div'));
+    let scroller: HTMLDivElement | null = null;
+    for (const d of divs) if (d.scrollHeight > d.clientHeight + 20 && (!scroller || d.scrollHeight > scroller.scrollHeight)) scroller = d;
+    return { overflow: scroller ? scroller.scrollHeight - scroller.clientHeight : 0 };
+  });
+  if (gridCheck.overflow > 8) {
+    console.error(`ABORT: grid view unexpectedly scrolls (${gridCheck.overflow}px overflow) — not the one-screen slate surface.`);
+    process.exit(1);
+  }
+  await page.screenshot({ path: fname(0) });   // 1080x1920, no zoom headroom needed
+  for (let f = 1; f < GRID_FRAMES; f++) copyFileSync(fname(0), fname(f));
+  console.log(`captured grid still hold (${GRID_FRAMES} frames, ${(GRID_FRAMES / FPS).toFixed(1)}s, static)`);
 
   // Grid tile centers (2x3, CSS px) and the modal close button.
   const TILES: Array<[number, number]> = [
@@ -294,16 +286,10 @@ async function openAlldayGrid(page: import('playwright').Page) {
   }
   await browser.close();
 
-  // ── Modal segment + concat with the grid segment ──
+  // ── One frame sequence (grid hold + six modal holds) → body ──
   execSync(
-    `ffmpeg -y -loglevel error -start_number ${GRID_FRAMES} -framerate ${FPS} -i "${join(WORK, 'frame_%04d.png')}" ` +
-    `-frames:v ${TOTAL - GRID_FRAMES} -c:v libx264 -pix_fmt yuv420p -r ${FPS} -crf 18 "${join(WORK, 'modal_seg.mp4')}"`,
-    { stdio: 'inherit' },
-  );
-  execSync(
-    `ffmpeg -y -loglevel error -i "${join(WORK, 'grid_seg.mp4')}" -i "${join(WORK, 'modal_seg.mp4')}" ` +
-    `-filter_complex "[0:v]settb=AVTB[a];[1:v]settb=AVTB[b];[a][b]concat=n=2:v=1:a=0[v]" -map "[v]" ` +
-    `-r ${FPS} -c:v libx264 -pix_fmt yuv420p -crf 18 ` +
+    `ffmpeg -y -loglevel error -start_number 0 -framerate ${FPS} -i "${join(WORK, 'frame_%04d.png')}" ` +
+    `-frames:v ${TOTAL} -c:v libx264 -pix_fmt yuv420p -r ${FPS} -crf 18 ` +
     // MKT-18: record WHICH DATE these pixels are of, inside the file, so the
     // assembler can refuse to stamp a different one over them.
     // MKT-26: record WHETHER these pixels are masked, for the same reason —
@@ -315,5 +301,5 @@ async function openAlldayGrid(page: import('playwright').Page) {
   );
   rmSync(WORK, { recursive: true, force: true });
   const dur = execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${outMp4}"`).toString().trim();
-  console.log(`${SCOPE} body: ${outMp4} · date ${dateISO} · grid(6 picks)+six modals · ${dur}s`);
+  console.log(`${SCOPE} body: ${outMp4} · date ${dateISO} · grid still 10.0s (6 picks, no zoom)+six modals 1.5s · ${dur}s`);
 })();

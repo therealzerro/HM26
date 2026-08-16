@@ -425,6 +425,21 @@ Tail parity checked against the pool rather than asserted: serving members SPLIT
 
 ---
 
+### MKT-56 — Reel body: slate grid is a STATIC still (zoom removed, 4.0→10.0s), modals 2.5→1.5s; body stays 19.0s ✅ SHIPPED (2026-08-16)
+
+**ID verified free** (audit 0 / code 0 before stamping). Member report via operator: on the daily UI reels, the slate-open scene zooms (4.0s Ken Burns 1.00→1.10 `zoompan` push-in over the 2×3 grid), so members trying to write the six picks down are chasing moving digits and lose the frame after 4s. Ruling: still, no zoom, long enough to notate; recover the time from the pick-detail modal scene.
+
+**Fix (`scripts/render-allday-body.ts`, all scopes / all capture modes):**
+- `GRID_FRAMES` 240→600 (4.0→10.0s) and the segment is a **static still** — the 3x-resolution still + ffmpeg `zoompan` pass is deleted; the grid frame is captured at native 1080×1920 in the same context the modals open from and copied across the hold. The one-screen no-scroll guard is kept (moved into that context).
+- `MODAL_HOLD` 150→90 (2.5→1.5s per pick). `TOTAL` remains 1140 frames = **19.0s exactly**, so nothing downstream moves: `check-reel-assets` BODY=19.0, assembler VO window / stamp fades / endcard mix (all measure `bodyDur` at runtime anyway), MKT-09 carrier ceilings. Only the internal split changes (grid 0–10.0s, modals 10.0–19.0s; was 0–4.0 / 4.0–19.0).
+- Body is now one PNG sequence → one encode (no grid_seg/modal_seg concat); provenance tags (MKT-18/26) unchanged. `easeInOut` helper (zoom-only) removed.
+
+**Verified 8/16 (scratchpad render, allday, full-fidelity):** 1140 frames · 1080×1920 · 60fps · 19.000000s · `hm_reel_date=2026-08-16` · PSNR 46 dB between grid frame 0.0s and 9.95s (identical content, encoder drift only) vs 15 dB against the 10.05s modal frame (hard cut where expected). Frame eye-check: all six picks full-frame legible. Filtered tsc: 0. Not committed to `assets/marketing/*_reels` — first production bodies come from the next daily run.
+
+**Downstream notes:** `Reel_System_Handoff.txt` bumped v3.3 with the timeline shift (panels now appear from body+10.0s; carrier VO lines that reference "tapping in" at ~4s of body are 6s early and should be re-timed or written scene-agnostic). Verify reels use a different renderer and are unaffected. `assemble-allday-reels.ts` header comment corrected (it still said 16.0s push-in).
+
+---
+
 ### MKT-55 — DESIGN-03 modal prose broke the public capture ("pick" leaked into tier-1 audit); prose-form pick→signal swap added to the relabeler ✅ SHIPPED (2026-08-14)
 
 **ID verified free** (audit 0 / code 0). The 8/14 daily run's `reel:allday` public render ABORTED fail-closed at modal #1: DESIGN-03 (7436064, 2026-08-13) rewrote the Pick Detail Modal's WHY THIS ORDER prose, and its ≥70-score tier reads "`{pair} leads this pick's {pos}-position pairs in the 1-year dataset`" — the first PROSE surface to carry the word "pick", which is tier-1 forbidden vocab. `assertPublicClean` flagged all three positions (front/back/split all scored ≥70 on the 8/14 allday board) before frame 0, exactly as designed — the guard cost nothing and caught a real leak.

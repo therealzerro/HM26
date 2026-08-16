@@ -3,7 +3,7 @@
 // Per variant v ∈ {pro, free}:
 //   [0.0-1.2s]   settled lockup frame from allday_<v>_endcard.mp4 tail,
 //                1.2s smoothstep-eased dissolve into the body's frame 0.
-//   [1.2-17.2s]  ui_allday_YYYYMMDD.mp4 (16.0s: grid push-in → six modals).
+//   [1.2-20.2s]  ui_allday_YYYYMMDD.mp4 (19.0s: 10.0s static grid still → six 1.5s modals; MKT-56).
 //   [17.2-23.7s] the endcard's FIRST 6.5s as a true outro, hard cut in:
 //                smoke rise → bolt snap (its resonant crack lands ON the snap,
 //                endcard's own synced audio) → lockup resolves → calm hold.

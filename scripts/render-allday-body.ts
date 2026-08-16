@@ -36,6 +36,7 @@ import { REEL_SCOPES, parseScopeFlag, positionals, bodyFileFor, bodyFileForMode 
 import { provenanceArgs } from './reel-provenance';
 import { installRedaction, assertNoDigits } from './reel-redact';
 import { installRelabel, assertPublicClean, RELABEL_SLOTS } from './reel-relabel';
+import { installNotation, removeNotation, notationTimerFilter } from './reel-notation';
 
 const BASE = 'http://localhost:8081';
 const ARGS = positionals(process.argv.slice(2));
@@ -234,7 +235,18 @@ async function openAlldayGrid(page: import('playwright').Page) {
     console.error(`ABORT: grid view unexpectedly scrolls (${gridCheck.overflow}px overflow) — not the one-screen slate surface.`);
     process.exit(1);
   }
+  // MKT-56b: member-legibility layer (emboss + notation strip) on the
+  // FULL-FIDELITY still only — never on a masked cut, where the digits are the
+  // thing being withheld. Read back from the rendered grid, so it cannot
+  // disagree with the tiles; abort if it does not find exactly six.
+  if (!REDACT) {
+    const combos = await installNotation(page, SPEC.stampLabel);
+    if (combos.length !== 6) { console.error(`ABORT: notation layer read ${combos.length} combos from the grid (expected 6).`); process.exit(1); }
+    await page.waitForTimeout(150);
+    console.log(`notation layer installed · ${combos.join(' ')}`);
+  }
   await page.screenshot({ path: fname(0) });   // 1080x1920, no zoom headroom needed
+  if (!REDACT) await removeNotation(page);     // the modals must not carry the strip
   for (let f = 1; f < GRID_FRAMES; f++) copyFileSync(fname(0), fname(f));
   console.log(`captured grid still hold (${GRID_FRAMES} frames, ${(GRID_FRAMES / FPS).toFixed(1)}s, static)`);
 
@@ -289,7 +301,10 @@ async function openAlldayGrid(page: import('playwright').Page) {
   // ── One frame sequence (grid hold + six modal holds) → body ──
   execSync(
     `ffmpeg -y -loglevel error -start_number 0 -framerate ${FPS} -i "${join(WORK, 'frame_%04d.png')}" ` +
-    `-frames:v ${TOTAL} -c:v libx264 -pix_fmt yuv420p -r ${FPS} -crf 18 ` +
+    `-frames:v ${TOTAL} ` +
+    // MKT-56b: hold-timer bar drains across the still on the full-fidelity cut.
+    (REDACT ? '' : `-filter_complex "${notationTimerFilter(GRID_FRAMES / FPS, FPS)}" -map "[v]" `) +
+    `-c:v libx264 -pix_fmt yuv420p -r ${FPS} -crf 18 ` +
     // MKT-18: record WHICH DATE these pixels are of, inside the file, so the
     // assembler can refuse to stamp a different one over them.
     // MKT-26: record WHETHER these pixels are masked, for the same reason —

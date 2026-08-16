@@ -36,7 +36,23 @@ zoom; grid 4.0→10.0s, modals 2.5→1.5s each; body total STILL 19.0s)
      fit (window unchanged) but if a carrier says "tap in" at ~4s of body it
      is now 6s early; re-time modal-specific lines to body+10.0s or write
      them scene-agnostic. Verify reels are unaffected (different renderer).
-  C. Rig: the separate 3x still + zoompan pass is gone; the grid frame is
+  C. ⚠ THE FULL-FIDELITY STILL NOW CARRIES A MEMBER-LEGIBILITY LAYER (MKT-56b,
+     same day; pro/member bodies only — NEVER on the redacted free-session or
+     public cuts, where the digits are the thing withheld):
+       · EMBOSS — tile digit rows scaled 1.3× with drop-shadow + glow (the
+         tile's {a,b,c} set label nudged down out of the way);
+       · NOTATION STRIP — an opaque band over the bottom tab bar: "ALL-DAY ·
+         6 SIGNALS · RANK ORDER" then #1…#6 with the six combinations, large
+         mono, one line — read back from the rendered grid, so it can never
+         disagree with the tiles; the render aborts unless it reads six;
+       · HOLD TIMER — a thin white bar along the bottom edge that drains
+         across the 10.0s hold, so a member sees how long the frame lasts.
+     All three are capture-time DOM injection / encode-time filters — the app
+     is not modified. The strip is removed before the modals are captured.
+     Content agent: the strip's vocabulary is fixed (SIGNALS / RANK ORDER);
+     if copy work is wanted there, it is a scripts/reel-notation.ts change,
+     not an app change, and it must stay off the avoid list.
+  D. Rig: the separate 3x still + zoompan pass is gone; the grid frame is
      captured at native 1080x1920 in the same context the modals open from,
      and the whole body is one PNG sequence → one encode. Provenance tags
      (hm_reel_date / hm_reel_redacted / public) unchanged. Reference render

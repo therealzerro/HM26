@@ -425,7 +425,7 @@ Tail parity checked against the pool rather than asserted: serving members SPLIT
 
 ---
 
-### MKT-56 — Reel body: slate grid is a STATIC still (zoom removed, 4.0→10.0s), modals 2.5→1.5s; body stays 19.0s ✅ SHIPPED (2026-08-16)
+### MKT-56 — Reel body: slate grid is a STATIC still (zoom removed, 4.0→10.0s) + member-legibility layer (emboss · notation strip · hold timer), modals 2.5→1.5s; body stays 19.0s ✅ SHIPPED (2026-08-16)
 
 **ID verified free** (audit 0 / code 0 before stamping). Member report via operator: on the daily UI reels, the slate-open scene zooms (4.0s Ken Burns 1.00→1.10 `zoompan` push-in over the 2×3 grid), so members trying to write the six picks down are chasing moving digits and lose the frame after 4s. Ruling: still, no zoom, long enough to notate; recover the time from the pick-detail modal scene.
 
@@ -435,6 +435,13 @@ Tail parity checked against the pool rather than asserted: serving members SPLIT
 - Body is now one PNG sequence → one encode (no grid_seg/modal_seg concat); provenance tags (MKT-18/26) unchanged. `easeInOut` helper (zoom-only) removed.
 
 **Verified 8/16 (scratchpad render, allday, full-fidelity):** 1140 frames · 1080×1920 · 60fps · 19.000000s · `hm_reel_date=2026-08-16` · PSNR 46 dB between grid frame 0.0s and 9.95s (identical content, encoder drift only) vs 15 dB against the 10.05s modal frame (hard cut where expected). Frame eye-check: all six picks full-frame legible. Filtered tsc: 0. Not committed to `assets/marketing/*_reels` — first production bodies come from the next daily run.
+
+**MKT-56b — member-legibility layer on the still (same day, `scripts/reel-notation.ts`, full-fidelity bodies only):** operator follow-up ("the picks are very important to the members — emboss, overlay, other enhancements"). Three additions, all capture-time DOM injection / encode-time filters — the app is untouched (MKT-15 P0 rule), so no subscriber code path and nothing to sync:
+1. **Emboss** — each grid tile's digit row is `transform: scale(1.3)` (no reflow: tile geometry and the rig's click targets unchanged) with a dark drop-shadow + soft glow so the digits survive platform re-compression; the tile's `{a,b,c}` box-set label is nudged 14px down into the tile's empty middle so the larger row does not crowd it.
+2. **Notation strip** — an opaque band over the bottom tab bar (84 CSS px) listing the six combinations in rank order (`#1…#6`, 31px mono, single line): "ALL-DAY · 6 SIGNALS · RANK ORDER". Digits are read back **from the rendered grid** (both digit-row shapes: one `"6 8 1"` leaf or three single-digit siblings), so the strip cannot disagree with the tiles; the render **aborts** unless it reads exactly six. Removed before the modals are captured (verified: modal frames carry no strip).
+3. **Hold timer** — a 6px white bar along the bottom edge that drains across the 10.0s hold (ffmpeg `color` source + `overlay=x='-W*t/10'`, `enable='lt(t,10)'`; note `drawbox`'s `t` is *thickness*, not time — first attempt did not animate). Measured: 1026 px lit at 0.5s → 540 at 5.0s → 10 at 9.9s → 0 at 10.5s.
+
+**Gating:** installed only when `!REDACT`; the module also refuses if it sees any `•••` mask leaf. Redacted / public cuts are byte-for-byte the MKT-56 path (no strip, no timer). Vocabulary on the strip is member-tier safe (SIGNALS / RANK ORDER — no "picks", no match-status words). Filtered tsc: 0.
 
 **Downstream notes:** `Reel_System_Handoff.txt` bumped v3.3 with the timeline shift (panels now appear from body+10.0s; carrier VO lines that reference "tapping in" at ~4s of body are 6s early and should be re-timed or written scene-agnostic). Verify reels use a different renderer and are unaffected. `assemble-allday-reels.ts` header comment corrected (it still said 16.0s push-in).
 

@@ -155,6 +155,18 @@ export async function installRelabel(page: Page): Promise<void> {
       // #2's word"), so the residual swap is the same vocabulary, not a new
       // decision. Ordered AFTER slot 2, which owns "BEST STRAIGHT".
       t = t.replace(/\\bstraights?\\b/gi, '${RELABEL_SLOTS.trailWord}');
+      // DESIGN-03 (2026-08-13) introduced lowercase "pick" into the modal's
+      // WHY THIS ORDER prose ("leads this pick's front-position pairs …") —
+      // the first prose surface to carry the word. Same vocabulary as slot 1
+      // (PICK → SIGNAL, the delivered tier-1 swap), applied case-preserving so
+      // any future prose form is covered. Ordered AFTER slot 1, which owns the
+      // PICK #N header form.
+      t = t.replace(/\\b(picks?)\\b/gi, m => {
+        const base = m.length === 5 ? 'signals' : 'signal';
+        if (m === m.toUpperCase()) return base.toUpperCase();
+        if (m[0] === m[0].toUpperCase()) return base[0].toUpperCase() + base.slice(1);
+        return base;
+      });
       // Slot 7 — provenance chip: strip only the trailing scope tag.
       t = t.replace(/\\s*·\\s*(ALL-?DAY|MIDDAY|EVENING)\\s*$/i, '');
       // State codes in the resolution trail: suppressed, counts kept — the

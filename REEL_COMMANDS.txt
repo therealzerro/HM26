@@ -3,6 +3,11 @@ HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
 changed. Every command has a description. (Last updated 2026-07-28 —
+UPDATED 2026-08-17 (MKT-57) — every slate reel body (allday/midday/evening,
+all cuts) now captures the coffee-mode HOME, not the Slates grid: 10.0s
+static still of the six tiles (emboss + notation band at the bottom of the
+black space, date chip above it) then the six modals. Capture-side only —
+the app is untouched. See reel:allday below.
 UPDATED 2026-08-06 (MKT-49) — NEW COMMAND `npm run reel:rotation` shows
 what every reel will draw for days ahead, and reel:check now warns when
 the schedule repeats inside a week. The carrier lane no longer collapses
@@ -124,8 +129,11 @@ DAILY DRIVERS (the two commands in Step 3, in detail)
 npm run reel:allday
 
     Makes all THREE All-Day reels (Pro + Free + PUBLIC — MKT-16,
-    live 2026-07-30) for TODAY: renders the grid + six signal-modal
-    tap-through from the live app TWICE — once full-fidelity
+    live 2026-07-30) for TODAY: renders the COFFEE-MODE HOME (MKT-57,
+    2026-08-16 — scope switcher · NEXT DRAW · 2×3 rank tiles; the
+    Slates GRID surface is retired as the body: too busy for new
+    members) as a 10.0s static still + six signal-modal tap-through
+    (tile centers read from the DOM) from the live app TWICE — once full-fidelity
     (shared by Pro and Free) and once with --redact --relabel for
     the PUBLIC cut (digits masked as placeholder+bolt, tier-1
     vocabulary swapped, session labels and state codes gone, every

@@ -425,6 +425,22 @@ Tail parity checked against the pool rather than asserted: serving members SPLIT
 
 ---
 
+### MKT-57 — Reel body captures the COFFEE-MODE HOME (not the Slates grid); notation band at bottom of the black space; stamp chip y=1000; DOM-read tile centers ✅ SHIPPED (2026-08-16, committed d907a18 2026-08-17)
+
+**ID verified free.** Operator ruling on the 8/16 evening pro smoke test (MKT-56c cut): the Slates GRID surface is too complicated for new members — signal bars, set labels, tab rows compete with the six digits. All three scopes' body captures move to the ultra-minimal coffee-mode Home (scope switcher · NEXT DRAW countdown · 2×3 rank tiles "#N / digits / ENERGY nn" · black space · tab bar). MKT-56b/56c band and chip positions are retired with the surface.
+
+**Fix (capture-side only — the app is untouched, MKT-15 P0 rule):**
+- `scripts/render-allday-body.ts`: init script sets `coffee_mode_enabled_v1=1` (AsyncStorage-on-web key from `hooks/useCoffeeMode.tsx`); `openAlldayGrid` → `openCoffeeHome` (goto `/`, scope tab click, aria-label "…, selected" assert kept); asserts the coffee Home actually rendered (`NEXT DRAW` text + exactly six `#1…#6` leaves) and the Grid toggle click is gone; **tile centers are read from the DOM** (`coffeeTileCenters`: the `#N` leaf's parent tile, sorted by rank — no hardcoded coordinates, works on the redacted cut since rank labels are never masked). Timeline unchanged (grid still 0–10.0s, six modals 10.0–19.0s, 19.0s body).
+- `scripts/reel-notation.ts`: emboss is layout-aware (coffee Home centres the digit row → scale 1.25× from centre-top and nudge the "ENERGY nn" line +8px so it stays inside the overflow-hidden tile; Slates grid path kept at 1.3× left-top with the `{a,b,c}` nudge). Notation band moves to the **bottom of the black space above the tab bar** (`position:fixed; left/right 16; bottom 84; height 112; radius 18`; head 11px, rank 11px, digits 30px). Operator ruling: band at the bottom of the black space, date chip above it.
+- `scripts/render-reel-stamp.ts`: `drop.top` 604 → **1000** (in the black space between tiles ~y932 and the band; covers nothing — the countdown zone 140–215 is too short for the 187px chip). Verify unchanged at 470.
+- `scripts/reel-redact.ts` `assertNoDigits`: fourth lexical carve-out **"ENERGY N"** — the coffee tile renders energy as one leaf `ENERGY 100` (Slates split label/value, which the structural carve-out excused). Anchored to the label so it can only cancel that one shape; a combination never renders behind the word ENERGY, and the public relabel still hides any leaf carrying a visible 3-digit run (Q1 absolute).
+
+**Verified 8/16:** evening pro re-rendered + re-published (third publish of that date) from the coffee Home; contact sheet: six tiles legible, chip below the tiles, band above the tab bar, six modals opened from DOM-read tile centers, endcard intact. Redacted/public cuts of the coffee Home first run in production on the 8/17 daily run — the redacted path only relies on the `#N` rank leaves (never masked) and the new ENERGY carve-out; if the 8/17 free/public cuts abort at the pre-capture assert, that is the first place to look.
+
+**Downstream:** `REEL_COMMANDS.txt` updated (allday/midday/evening body = coffee Home). `Reel_System_Handoff.txt` still describes the Slates grid scene at v3.3 — bump owed (panels/VO lines that reference the grid or "signal bars" are now scene-inaccurate).
+
+---
+
 ### MKT-56 — Reel body: slate grid is a STATIC still (zoom removed, 4.0→10.0s) + member-legibility layer (emboss · notation strip · hold timer), modals 2.5→1.5s; body stays 19.0s ✅ SHIPPED (2026-08-16)
 
 **ID verified free** (audit 0 / code 0 before stamping). Member report via operator: on the daily UI reels, the slate-open scene zooms (4.0s Ken Burns 1.00→1.10 `zoompan` push-in over the 2×3 grid), so members trying to write the six picks down are chasing moving digits and lose the frame after 4s. Ruling: still, no zoom, long enough to notate; recover the time from the pick-detail modal scene.

@@ -745,6 +745,7 @@ export default function HomeScreen() {
         {/* Modals still available */}
         {detail && (
           <PickDetailModal pick={detail} scope={scope} isPro={currentTier !== 'FREE'}
+            slateDate={snapshot?.slate_date ?? todayStr}
             onClose={() => setDetail(null)} onHeatCheck={() => { setDetail(null); setHeatCheckOpen(true); }} />
         )}
         <HeatCheckModal visible={heatCheckOpen} onClose={() => setHeatCheckOpen(false)} initialCombo="" scope={scope} />
@@ -961,6 +962,7 @@ export default function HomeScreen() {
 
       {detail && (
         <PickDetailModal pick={detail} scope={scope} isPro={currentTier !== 'FREE'}
+          slateDate={snapshot?.slate_date ?? todayStr}
           onClose={() => setDetail(null)} onHeatCheck={() => { setDetail(null); setHeatCheckOpen(true); }} />
       )}
       <HeatCheckModal visible={heatCheckOpen} onClose={() => setHeatCheckOpen(false)} initialCombo="" scope={scope} />

@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-16 · v3.3
+Content Agent Handoff · 2026-08-17 · v3.4
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -16,6 +16,59 @@ Companion docs:
   - assets/marketing/AllDay_Reel_Endcard_Revision_Brief_2026-07-27.md (endcard contract)
   - docs/mkt15_phase2_copy_brief.md (public copy set — DELIVERED + the bolt request)
   - REEL_COMMANDS.txt (repo root — operator command reference)
+
+WHAT CHANGED IN v3.4 (2026-08-17 — MKT-57: THE BODY'S FIRST SCENE IS NOW THE
+COFFEE-MODE HOME, not the Slates grid; ruled 8/16, first full daily run 8/17)
+  A. ⚠ THE CAPTURED SURFACE CHANGES. Operator ruling on the 8/16 evening-pro
+     smoke test: the Slates GRID (signal bars, {a,b,c} set labels, tab rows,
+     energy bands) is too complicated for a new member reading six digits off
+     a 10s frame. From 8/17 every slate reel body — allday / midday / evening,
+     Pro, Free-redacted and Public-relabelled — captures the app's COFFEE-MODE
+     HOME instead: scope switcher (top) · "NEXT DRAW · Nh NNm" · a 2×3 grid of
+     rank tiles, each "#N / digits / ENERGY nn" · a large black space · the
+     bottom tab bar. Nothing else on the frame. The still is still 10.0s and
+     the six modals (10.0–19.0s) are unchanged — the modal is the same Pick
+     Detail Modal opened from the coffee tile, so the panels, INTEL tab, and
+     everything in v3.2/v3.3 §B–D about the modals stands. Body = 19.0s exactly,
+     reel timeline unchanged (see the timeline block).
+  B. Member-legibility layer (v3.3 §C) is RE-LAID for the coffee frame:
+       · EMBOSS — the tile digit row is centred on the coffee tile, so it
+         scales 1.25× from centre-top (drop-shadow + glow as before) and the
+         "ENERGY nn" line nudges down 8px to stay inside the tile;
+       · NOTATION STRIP — now a rounded band at the BOTTOM of the black
+         space, above the tab bar (16px in from each edge, 112px tall, 30px
+         mono digits): "EVENING · 6 SIGNALS · RANK ORDER" then #1…#6. The
+         v3.3 "over the Signals/Matches/More tab row" position is RETIRED
+         with the Slates surface — that row does not exist on the coffee Home;
+       · "TODAY'S DATA DROP" stamp chip moved to y=1000 — in the black space
+         BELOW the tiles and ABOVE the band (operator ruling: band at the
+         bottom of the black space, date chip above it). It covers nothing.
+         Verify reels keep the chip at 470 (different renderer, unaffected).
+       · HOLD TIMER unchanged (bottom edge, drains across the 10.0s).
+     Still pro/member bodies only — never on redacted/public cuts.
+  C. Rig: no hardcoded tile coordinates any more — the six tap targets are
+     READ from the DOM (#N rank leaf → its parent tile → centre, sorted by
+     rank), so a coffee-grid layout change moves the taps with it. The
+     renderer ABORTS unless it sees the "NEXT DRAW" block and exactly six
+     #1…#6 tiles (guards against capturing the full Home by mistake). The
+     redaction lexical scan gained an "ENERGY N" carve-out (the coffee tile
+     renders energy as one leaf, "ENERGY 100"; the label is methodology the
+     free cut keeps, and no combination ever renders behind that word).
+     Capture-side only — coffee mode is switched on in the capture browser
+     via the app's own storage key; the app is not modified.
+  D. Content agent implications:
+       · Any VO / caption / carrier line that names "signal bars", "the set
+         label", "the Signals tab", "Grid view" or otherwise describes the
+         Slates board is now SCENE-INACCURATE for the still. Describe the
+         still as: six ranked tiles, energy under each, the countdown above,
+         the six combinations listed along the bottom. Modal-scene lines are
+         unaffected.
+       · The frame is far emptier and darker (black space ~y950–1790): panels
+         and lower-third ideas that were rejected for "no room on the grid
+         still" now have room — but the notation band and the date chip own
+         that space by ruling; propose before placing anything there.
+       · Reference: assets/marketing/evening_reels/evening_pro_20260816_contact.png
+         (third publish of 8/16 — the first coffee-Home body).
 
 WHAT CHANGED IN v3.3 (2026-08-16 — MKT-56: BODY GRID IS A STATIC STILL, no
 zoom; grid 4.0→10.0s, modals 2.5→1.5s each; body total STILL 19.0s)
@@ -955,9 +1008,11 @@ on the 6.33s members) and the reel runs up to 34.53s.
                the day draws.
   7.5 – 8.3    0.8s eased dissolve from the stinger's smoke into the UI body
                (overlaps the tail — not extra time).
-  8.3 – 27.3   BODY (19.0s) — 10.0s STATIC still of the full 2×3 signal
-               grid (all six on screen, NO zoom/pan — v3.3/MKT-56, members
-               notate the picks off this frame), then each signal tapped in
+  8.3 – 27.3   BODY (19.0s) — 10.0s STATIC still of the COFFEE-MODE HOME
+               (v3.4/MKT-57: scope switcher · NEXT DRAW · 2×3 rank tiles ·
+               black space with the notation band + date chip; was the Slates
+               2×3 signal grid until 2026-08-16; NO zoom/pan — v3.3/MKT-56,
+               members notate the picks off this frame), then each signal tapped in
                rank order 1→6: modal opens, 1.5s hold on digits/energy/
                confidence/breakdown, close. Hard cuts between modals.
                (Was 4.0s push-in + 6×2.5s until 2026-08-16.)
@@ -966,7 +1021,8 @@ on the 6.33s members) and the reel runs up to 34.53s.
                the video: it is a real element of the app screen, so it is
                captured along with everything else. A different panel appears
                on each modal; which one leads rotates by date. Panels appear
-               in the modals only — the grid still has no room for one.
+               in the modals only — the still carries the notation band and
+               date chip in its black space by ruling (v3.4), not a panel.
                ⚠ CHANGED 2026-07-28 — PANELS ARE APP-WIDE. An earlier version
                of this doc said the panel was visible only while the renderer
                was driving the app and that "subscribers never see it". That

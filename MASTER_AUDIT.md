@@ -437,7 +437,9 @@ Tail parity checked against the pool rather than asserted: serving members SPLIT
 
 **Verified 8/16:** evening pro re-rendered + re-published (third publish of that date) from the coffee Home; contact sheet: six tiles legible, chip below the tiles, band above the tab bar, six modals opened from DOM-read tile centers, endcard intact. Redacted/public cuts of the coffee Home first run in production on the 8/17 daily run — the redacted path only relies on the `#N` rank leaves (never masked) and the new ENERGY carve-out; if the 8/17 free/public cuts abort at the pre-capture assert, that is the first place to look.
 
-**Downstream:** `REEL_COMMANDS.txt` updated (allday/midday/evening body = coffee Home). `Reel_System_Handoff.txt` still describes the Slates grid scene at v3.3 — bump owed (panels/VO lines that reference the grid or "signal bars" are now scene-inaccurate).
+**MKT-57a — panels missing from the modal captures (found 8/17 on the first daily run, operator report):** `PickDetailModal` renders the MKT-11 `ReelPromoPanel` only when `slateDate` is passed; Explore passed it, Home's two mounts (`app/(tabs)/index.tsx`) never did, so the coffee-Home modals captured with no panel. Fix `0044ffb`: both Home mounts pass `slateDate={snapshot?.slate_date ?? todayStr}` (same expression as Explore). Panels are app-wide by the MKT-11 ruling, so this is Home coming into line, not a capture-only change. Filtered tsc 0. 8/17 verify/allday/midday published before the fix (no panel); evening rendered after; allday + midday re-run and re-published after the daily run finished.
+
+**Downstream:** `REEL_COMMANDS.txt` updated (allday/midday/evening body = coffee Home). `Reel_System_Handoff.txt` bumped to v3.4 (`57eaf38`).
 
 ---
 

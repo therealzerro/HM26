@@ -316,10 +316,18 @@ export async function assertNoDigits(page: Page, where: string): Promise<void> {
       // the scan exactly as "N%" and "N×" are. The public cut is unaffected:
       // the relabel still hides ANY leaf carrying a visible 3-digit run
       // (Q1 absolute), so "+169" never reaches a public frame either way.
+      // FOURTH LEXICAL SHAPE — "ENERGY N", widened WITH EVIDENCE (MKT-57,
+      // 2026-08-16): the body capture moved to the coffee-mode Home, whose
+      // tile renders its energy as ONE leaf "ENERGY 100" (the Slates grid
+      // split label and value, which the structural carve-out excused). A
+      // labelled energy value is methodology the free cut keeps; a
+      // combination never renders behind the word ENERGY. Anchored to the
+      // label so it can only ever cancel that one shape.
       const flat = t
         .replace(/\\d{1,3}\\s*%/g, '')
         .replace(/(^|\\s)\\d{1,3}\\s*\\u00d7/g, '$1')
         .replace(/(^|\\s)\\+\\d{1,3}(?=\\s|$)/g, '$1')
+        .replace(/(^|\\s)ENERGY\\s+\\d{1,3}(?=\\s|$)/g, '$1')
         .replace(/[\\s\\-·.,{}\\/]/g, '');
       if ((flat.match(/\\d+/g) || []).some(r => r.length === 3)) out.push('leaf: ' + t);
     }
@@ -346,6 +354,7 @@ export async function assertNoDigits(page: Page, where: string): Promise<void> {
         .replace(/\\d{1,3}\\s*%/g, '')
         .replace(/(^|\\s)\\d{1,3}\\s*\\u00d7/g, '$1')
         .replace(/(^|\\s)\\+\\d{1,3}(?=\\s|$)/g, '$1')
+        .replace(/(^|\\s)ENERGY\\s+\\d{1,3}(?=\\s|$)/g, '$1')
         .replace(/[\\s\\-·.,{}\\/]/g, '');
       if ((flat.match(/\\d+/g) || []).some(r => r.length === 3)) out.push('mixed: ' + t);
     }

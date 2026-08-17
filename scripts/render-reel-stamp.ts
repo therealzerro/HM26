@@ -35,7 +35,11 @@ const PURPOSES = {
   // (chip core 187px tall; free zone ≈605–790 between the nudged {a,b,c} set
   // labels and the signal bars). Verify keeps 470 — different layout, and the
   // 1:1 keep-band note above is history (1:1 cut retired, MKT-39).
-  drop:   { eyebrow: "TODAY'S DATA DROP", accent: '#2bffcc', top: 604 },
+  // MKT-57 (same day): the body is now the COFFEE-MODE HOME (tiles 252–932,
+  // black space 950–1790 above the tab bar). Chip goes into that black space
+  // at 1000 — covers nothing (the countdown zone 140–215 is too short for a
+  // 187px chip without clipping the scope tabs / tile tops).
+  drop:   { eyebrow: "TODAY'S DATA DROP", accent: '#2bffcc', top: 1000 },
   // MKT-31 items 2+4 — the verify stamp IS the persistent date ribbon:
   // "YESTERDAY'S RECEIPTS · <day> · <date>", gold (the results-desk accent —
   // verify's subject is the gold moment; every slate surface leads cyan).

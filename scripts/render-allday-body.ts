@@ -5,9 +5,12 @@
 // (same scope filter, same tab, same ui_allday_* output, same directory).
 //
 // Renders ui_<scope>_YYYYMMDD.mp4 (1080x1920, 60fps, exactly 19.0s = 1140 frames)
-// from the live Slates screen, the scope's tab, premium view, GRID mode:
+// from the live HOME screen in COFFEE MODE (MKT-57, 2026-08-16 — was the Slates
+// screen GRID view; the operator ruled the Slates surface too complicated for
+// new members, so all three scopes now capture the ultra-minimal coffee Home:
+// scope switcher · NEXT DRAW · 2×3 pick tiles · black space), premium view:
 //
-//   f0000-f0599  0.0-10.0s  full 2x3 slate grid — STATIC still, no motion.
+//   f0000-f0599  0.0-10.0s  coffee Home 2x3 pick grid — STATIC still, no motion.
 //                           MKT-56 (2026-08-16): members write the six picks
 //                           down off this frame; the previous 4.0s Ken Burns
 //                           push-in (1.00→1.10 zoompan) drifted the digits and
@@ -115,6 +118,9 @@ const initScript = (fakeMs: number | null) => {
     window.localStorage.setItem('user', JSON.stringify({ id: 'default', role: 'premium' }));
     window.localStorage.setItem('hm:theme-mode', 'dark');
     window.localStorage.setItem('onboarding_complete', 'true');
+    // MKT-57: capture the coffee-mode Home (AsyncStorage on web = localStorage,
+    // key from hooks/useCoffeeMode.tsx). Capture-side only — no app change.
+    window.localStorage.setItem('coffee_mode_enabled_v1', '1');
   } catch {}
   if (fakeMs) {
     const Real = Date;
@@ -131,8 +137,8 @@ const initScript = (fakeMs: number | null) => {
   }
 };
 
-async function openAlldayGrid(page: import('playwright').Page) {
-  await page.goto(BASE + '/explore', { waitUntil: 'networkidle', timeout: 180_000 });
+async function openCoffeeHome(page: import('playwright').Page) {
+  await page.goto(BASE + '/', { waitUntil: 'networkidle', timeout: 180_000 });
   await page.waitForTimeout(5_000);
   const tab = page.getByRole('tab', { name: SPEC.tab }).first();
   await tab.click();
@@ -146,34 +152,17 @@ async function openAlldayGrid(page: import('playwright').Page) {
     await page.waitForTimeout(800);
     // Assert immediately rather than at the end. A leak found after 960 frames
     // is a leak that already exists on disk; found here, nothing was written.
-    await assertNoDigits(page, `${SCOPE} grid (pre-capture)`);
+    await assertNoDigits(page, `${SCOPE} coffee grid (pre-capture)`);
     console.log(`REDACTED capture — board masked and asserted clean before frame 0.`);
   }
-  // The relabel installs HERE (before any capture, observer re-applies on
-  // every re-render) but its AUDIT runs after the Grid toggle below. The tab
-  // lands on LIST view first, and the list renders vocabulary the grid never
-  // shows (SignalBar BOX/CO labels, the "Box: {…}" set line, LastHitPill's
-  // state attribution, the energy-band footer) — none of which reaches a
-  // captured frame, because only the grid and the modals are ever
-  // screenshotted. Auditing the list fails renders on pixels that cannot
-  // exist (found 2026-07-30: six list-only violations, zero on the grid).
-  // The acceptance bar is unchanged — zero violations across every CAPTURED
-  // frame, still asserted before frame 0.
   if (RELABEL) {
     await installRelabel(page);
     await page.waitForTimeout(800);
   }
   // MKT-13: the ONLY way this lane can go wrong quietly is capturing one scope's
-  // board into another scope's filename — every downstream check (grid fills the
-  // screen, six modals open, stamp renders) passes just as happily on the wrong
-  // board. So assert the tab actually took rather than trusting the click.
-  //
-  // Read the LABEL, not aria-selected: react-native-web does not emit
-  // aria-selected for accessibilityState on a TouchableOpacity — it folds the
-  // state into the accessible name instead, so ScopeSegment's active tab is
-  // "☀️ Midday scope, selected" and the inactive ones are "🌙 Evening scope".
-  // (The bottom tab bar DOES carry aria-selected, but that markup comes from
-  // React Navigation, not from accessibilityState — measured 2026-07-28.)
+  // board into another scope's filename — so assert the tab actually took.
+  // Read the LABEL, not aria-selected (react-native-web folds accessibilityState
+  // into the accessible name: "🌙 Evening scope, selected").
   const label = (await tab.getAttribute('aria-label')) ?? '';
   if (!/,\s*selected\b/.test(label)) {
     console.error(
@@ -182,12 +171,35 @@ async function openAlldayGrid(page: import('playwright').Page) {
     );
     process.exit(1);
   }
-  await page.getByText('Grid', { exact: true }).first().click();
-  await page.waitForTimeout(3_000);
+  // MKT-57: assert we are on the COFFEE Home, not the full Home — the full
+  // Home renders a hero band / banners / sparkline and no "NEXT DRAW" block.
+  const coffee = await page.evaluate(() => {
+    const t = document.body.innerText;
+    return t.includes('NEXT DRAW') && (t.match(/^#[1-6]$/gm) ?? []).length === 6;
+  });
+  if (!coffee) { console.error('ABORT: coffee-mode Home did not render (no NEXT DRAW block / six rank tiles) — capture surface is wrong.'); process.exit(1); }
   if (RELABEL) {
-    await assertPublicClean(page, `${SCOPE} grid (pre-capture)`);
+    await assertPublicClean(page, `${SCOPE} coffee grid (pre-capture)`);
     console.log(`PUBLIC capture — relabelled and lint-audited clean before frame 0.`);
   }
+}
+
+/**
+ * MKT-57: tile centers are READ from the DOM (the "#N" rank leaf's parent is
+ * the tappable tile), sorted visually — no hardcoded coordinates, so a layout
+ * change in the coffee grid moves the taps with it. Works identically on the
+ * redacted cut (rank labels are never masked).
+ */
+async function coffeeTileCenters(page: import('playwright').Page): Promise<Array<[number, number]>> {
+  const tiles: Array<[number, number, number]> = await page.evaluate(() => {
+    const leaves = Array.from(document.querySelectorAll('*')).filter(e => !e.children.length);
+    return leaves
+      .filter(e => /^#[1-6]$/.test((e.textContent || '').trim()))
+      .map(e => { const r = (e.parentElement as HTMLElement).getBoundingClientRect(); return [Number((e.textContent || '').trim().slice(1)), r.left + r.width / 2, r.top + r.height / 2] as [number, number, number]; })
+      .sort((a, b) => a[0] - b[0]);
+  });
+  if (tiles.length !== 6) { console.error(`ABORT: found ${tiles.length} rank tiles on the coffee Home (expected 6).`); process.exit(1); }
+  return tiles.map(t => [t[1], t[2]]);
 }
 
 (async () => {
@@ -224,7 +236,7 @@ async function openAlldayGrid(page: import('playwright').Page) {
   });
   const page = await ctx.newPage();
   await page.addInitScript(initScript, fakeMs);
-  await openAlldayGrid(page);
+  await openCoffeeHome(page);
   const gridCheck = await page.evaluate(() => {
     const divs = Array.from(document.querySelectorAll('div'));
     let scroller: HTMLDivElement | null = null;
@@ -232,7 +244,7 @@ async function openAlldayGrid(page: import('playwright').Page) {
     return { overflow: scroller ? scroller.scrollHeight - scroller.clientHeight : 0 };
   });
   if (gridCheck.overflow > 8) {
-    console.error(`ABORT: grid view unexpectedly scrolls (${gridCheck.overflow}px overflow) — not the one-screen slate surface.`);
+    console.error(`ABORT: coffee Home unexpectedly scrolls (${gridCheck.overflow}px overflow) — not a one-screen surface.`);
     process.exit(1);
   }
   // MKT-56b: member-legibility layer (emboss + notation strip) on the
@@ -250,12 +262,8 @@ async function openAlldayGrid(page: import('playwright').Page) {
   for (let f = 1; f < GRID_FRAMES; f++) copyFileSync(fname(0), fname(f));
   console.log(`captured grid still hold (${GRID_FRAMES} frames, ${(GRID_FRAMES / FPS).toFixed(1)}s, static)`);
 
-  // Grid tile centers (2x3, CSS px) and the modal close button.
-  const TILES: Array<[number, number]> = [
-    [150, 310], [405, 310],
-    [150, 550], [405, 550],
-    [150, 777], [405, 777],
-  ];
+  // Tile centers (CSS px, read from the DOM — MKT-57) and the modal close button.
+  const TILES = await coffeeTileCenters(page);
   const CLOSE: [number, number] = [36, 63];
 
   const setScroll = (px: number) =>
@@ -280,7 +288,7 @@ async function openAlldayGrid(page: import('playwright').Page) {
       if (scroller) { (scroller.style as any).scrollBehavior = 'auto'; (window as any).__adScroll = scroller; }
       return { ok, vocab: (text.match(/\b(partial|exact)\b/gi) ?? []).length };
     }, marks);
-    if (!modal.ok) { console.error(`ABORT: ${marks.head} modal did not open from its grid tile.`); process.exit(1); }
+    if (!modal.ok) { console.error(`ABORT: ${marks.head} modal did not open from its coffee tile.`); process.exit(1); }
     if (modal.vocab > 0) { console.error('ABORT: banned match-status vocabulary rendered in modal — BRAND-04 blocking stop.'); process.exit(1); }
     // Public cut: every modal is a fresh mount, so the audit runs per modal —
     // the acceptance bar is zero violations across every captured frame.

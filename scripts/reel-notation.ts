@@ -10,8 +10,8 @@
 //      empty middle (transform only: NO reflow, tile geometry and the rig's
 //      click targets are untouched) and given a dark drop-shadow + soft glow,
 //      so the digits survive platform re-compression.
-//   2. NOTATION STRIP — a band over the Signals/Matches/More tab row (top of
-//      the frame, MKT-56c; was the bottom tab bar) listing the six
+//   2. NOTATION STRIP — a band at the bottom of the coffee Home's black space,
+//      above the tab bar (MKT-57; 56b/56c positions retired) listing the six
 //      combinations in rank order (#1…#6), large monospace, one line to copy.
 //      Digits are read back FROM THE RENDERED GRID (the same digit-row shapes
 //      reel-redact.ts detects: one "6 8 1" leaf, or 3 single-digit sibling
@@ -66,35 +66,43 @@ export async function installNotation(page: Page, scopeLabel: string): Promise<s
     // 1. EMBOSS — transform only, no reflow.
     const font = getComputedStyle(rows[0].kids[0]).fontFamily;
     for (const r of rows) {
-      r.el.style.transformOrigin = 'left top';
-      r.el.style.transform = 'scale(1.3)';
+      // MKT-57: layout-aware. The coffee Home centres its digit row in the
+      // tile (scale from centre, 1.25×, and nudge the "ENERGY nn" line down
+      // so it stays inside the overflow-hidden tile); the Slates grid
+      // left-aligns it (scale from the left, 1.3×, nudge the {a,b,c} set label).
+      const card = r.el.parentElement;
+      const cr = card ? card.getBoundingClientRect() : null;
+      const rr = r.el.getBoundingClientRect();
+      const centred = !!cr && Math.abs((rr.left - cr.left) - (cr.right - rr.right)) < 12;
+      r.el.style.transformOrigin = centred ? 'center top' : 'left top';
+      r.el.style.transform = centred ? 'scale(1.25)' : 'scale(1.3)';
       for (const k of r.kids) {
         k.style.textShadow = '0 2px 0 rgba(0,0,0,0.85), 0 3px 8px rgba(0,0,0,0.7), 0 0 14px rgba(255,80,60,0.45)';
       }
-      // The tile's box-set label "{1,6,8}" sits right under the digits; the
-      // 1.3× row would crowd it. Nudge it down into the tile's empty middle
-      // (transform only — nothing reflows).
-      const card = r.el.parentElement;
       if (card) {
-        const set = Array.from(card.querySelectorAll('*')).find(e => !e.children.length && /^\{\d,\d,\d\}$/.test((e.textContent || '').trim()));
+        const under = Array.from(card.querySelectorAll('*')).filter(e => !e.children.length);
+        const set = under.find(e => /^\{\d,\d,\d\}$/.test((e.textContent || '').trim()));
         if (set) set.style.transform = 'translateY(14px)';
+        const energy = under.find(e => /^ENERGY \d+$/.test((e.textContent || '').trim()));
+        if (energy) energy.style.transform = 'translateY(8px)';
       }
     }
     // 2. NOTATION STRIP over the tab bar.
     const strip = document.createElement('div');
     strip.id = ID;
     strip.setAttribute('aria-hidden', 'true');
-    // MKT-56c: the band sits OVER the Signals/Matches/More tab row (CSS y
-    // ~131–197 — between the scope tabs and the tile tops), not over the
-    // bottom tab bar: operator ruling from the 8/16 smoke test — the picks
-    // list belongs at the top of the frame, read before the tiles.
-    strip.style.cssText = 'position:fixed;left:0;right:0;top:131px;height:66px;z-index:2147483647;' +
-      'background:#0a0714;' +
-      'border-top:1px solid rgba(255,255,255,0.16);border-bottom:1px solid rgba(255,255,255,0.16);box-sizing:border-box;padding:6px 14px 5px;' +
+    // MKT-57: the capture is the COFFEE Home — the six tiles end ~CSS y 466
+    // and everything below down to the tab bar (~CSS 897) is black space.
+    // Operator ruling: the band lives at the BOTTOM of that black space,
+    // above the tab bar; the date chip (assembly stamp, y=1000px) sits above
+    // it. (MKT-56c had it over the Slates tab row — that surface is retired.)
+    strip.style.cssText = 'position:fixed;left:16px;right:16px;bottom:84px;height:112px;z-index:2147483647;' +
+      'background:#0a0714;border-radius:18px;' +
+      'border:1px solid rgba(255,255,255,0.16);box-sizing:border-box;padding:12px 16px 10px;' +
       'font-family:' + font + ';color:#fff;display:flex;flex-direction:column;justify-content:center;';
     const head = document.createElement('div');
     head.textContent = LABEL.toUpperCase() + ' · 6 SIGNALS · RANK ORDER';
-    head.style.cssText = 'font-size:9px;letter-spacing:1.6px;color:rgba(255,255,255,0.62);text-align:center;margin-bottom:3px;line-height:1;';
+    head.style.cssText = 'font-size:11px;letter-spacing:2px;color:rgba(255,255,255,0.62);text-align:center;margin-bottom:10px;line-height:1;';
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-end;';
     combos.forEach((c, i) => {
@@ -102,10 +110,10 @@ export async function installNotation(page: Page, scopeLabel: string): Promise<s
       cell.style.cssText = 'display:flex;flex-direction:column;align-items:center;white-space:nowrap;';
       const rank = document.createElement('div');
       rank.textContent = '#' + (i + 1);
-      rank.style.cssText = 'font-size:9px;color:rgba(255,255,255,0.55);letter-spacing:0.5px;line-height:1;margin-bottom:2px;';
+      rank.style.cssText = 'font-size:11px;color:rgba(255,255,255,0.55);letter-spacing:0.5px;line-height:1;margin-bottom:6px;';
       const dig = document.createElement('div');
       dig.textContent = c;
-      dig.style.cssText = 'font-size:29px;font-weight:800;letter-spacing:5px;margin-right:-5px;line-height:1;color:#ffffff;white-space:nowrap;' +
+      dig.style.cssText = 'font-size:30px;font-weight:800;letter-spacing:3px;margin-right:-3px;line-height:1;color:#ffffff;white-space:nowrap;' +
         'text-shadow:0 2px 0 rgba(0,0,0,0.9),0 0 10px rgba(255,255,255,0.18);';
       cell.appendChild(rank); cell.appendChild(dig); row.appendChild(cell);
     });

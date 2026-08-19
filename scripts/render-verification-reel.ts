@@ -177,7 +177,14 @@ function fmtGap(ms: number): string {
   // attribution; no masked build exists by ruling).
   const MIDDAY = process.argv.includes('--kind=verify_midday');
   if (MIDDAY && PUBLIC) { console.error('ABORT: verify_midday has no public cut (MKT-62 ruling) — drop --public.'); process.exit(1); }
-  const dateISO = MIDDAY ? todayET() : yesterdayET();
+  // `--date=YYYY-MM-DD` (verify_midday ONLY): re-run/test hook — builds the
+  // same-day cut for a past midday. The chip/ribbon/provenance all follow the
+  // date (assertBodyDate chain), so it cannot masquerade as today; publish
+  // still needs the explicit positional stamp. Never a daily-path input.
+  const dateArg = process.argv.find(a => a.startsWith('--date='))?.slice(7);
+  if (dateArg && !MIDDAY) { console.error('ABORT: --date is a verify_midday-only hook.'); process.exit(1); }
+  if (dateArg && !/^\d{4}-\d{2}-\d{2}$/.test(dateArg)) { console.error('ABORT: --date must be YYYY-MM-DD.'); process.exit(1); }
+  const dateISO = MIDDAY ? (dateArg ?? todayET()) : yesterdayET();
   const stamp = dateISO.replace(/-/g, '');
   const WORK = join(tmpdir(), `reel-frames-${PUBLIC ? 'public-' : MIDDAY ? 'midday-' : ''}${stamp}`);
   rmSync(WORK, { recursive: true, force: true });

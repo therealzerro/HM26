@@ -188,9 +188,9 @@ if (verifCarrier.joined) {
   const gap = +(carrierNeed - covered).toFixed(2);
   console.log(
     gap > 0.05
-      ? `NOTE(verify): VO covers ${(voiceStart + covered).toFixed(2)}s of a ${total}s reel — ` +
+      ? `NOTE(${KIND}): VO covers ${(voiceStart + covered).toFixed(2)}s of a ${total}s reel — ` +
         `the last ${gap.toFixed(2)}s carries the endcard's own audio (MKT-41; it was silence until then).`
-      : `NOTE(verify): VO covers the full ${total}s reel (${verifCarrier.joined ? 'joined' : 'single-part'} carrier).`,
+      : `NOTE(${KIND}): VO covers the full ${total}s reel (${verifCarrier.joined ? 'joined' : 'single-part'} carrier).`,
   );
 }
 // MKT-22: intro identity chip — "YESTERDAY'S RESULTS", green accent to match

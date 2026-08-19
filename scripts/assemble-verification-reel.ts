@@ -247,7 +247,15 @@ sh(
   // ribbon must never cross a card, a digit or a badge.
   `[4:v]format=rgba,split=2[st0][st1];` +
   `[st0]fade=t=in:st=${+(openDur - 0.3).toFixed(2)}:d=0.4:alpha=1[stA];` +
-  `[st1]fade=t=out:st=${+(openDur + uiDur).toFixed(2)}:d=0.45:alpha=1[stB];` +
+  // MKT-62: on verify_midday the ribbon rides the BOARD segment only and fades
+  // at the board→summary cut. Measured on the first live build (8/19, one
+  // featured row in the first viewport → scroll clamps at 0): the spec y=470
+  // ribbon covered "STRAIGHT · Midday / Drew 618 in NC" for the whole hold —
+  // the proof line, on the reel whose point is the proof. After the board the
+  // claim is carried by the timestamp pair + the "Today" group header, so the
+  // ribbon is redundant there. (Same latent geometry exists on verify on
+  // first-row-featured days — reported for ruling, NOT changed here.)
+  `[st1]fade=t=out:st=${+(openDur + (MIDDAY ? BOARD_SEG : uiDur)).toFixed(2)}:d=0.45:alpha=1[stB];` +
   // MKT-62: on the same-day kind the BOARD segment is longer by the cover-lift
   // (covered hold + lift precede the graded board's 2.5s) — the ribbon stays
   // at its board placement for the whole segment, then drops to spec at the

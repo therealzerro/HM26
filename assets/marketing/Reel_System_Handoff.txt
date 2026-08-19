@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-19 · v4.4
+Content Agent Handoff · 2026-08-19 · v4.5
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-08-19 (CONSOLIDATED SNAPSHOT, current to v4.4 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-08-19 (CONSOLIDATED SNAPSHOT, current to v4.5 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -262,8 +262,9 @@ G. OPEN / OWED — the standing list (everything else you may have read as
      7. MKT-15 operator DEVICE test of the social deep links — still owed.
      8. MKT-53 audit entry (SocialBriefCard per-variant layout) — owed by
         whoever shipped it; not a reel asset.
-    10. MKT-62 — THE MIDDAY VERIFY REEL: BUILT 8/19, first live build pending
-        the day's ledger. OWED: (a) the CAPTION FAMILY for `verify_midday`
+    10. MKT-62 — THE MIDDAY VERIFY REEL: SHIPPED 8/19 (first cut published
+        to Admin → Reels; operator posts by hand). MKT-62b WORK ORDER ISSUED
+        — see the v4.5 block and §8b. OWED: (a) the CAPTION FAMILY for `verify_midday`
         (free-room voice; no numbers; 12 lines like the fleet) — write it
         against the built reel + contact sheet; (b) a COPY PASS on the
         kind's provisional strings — covered board eyebrow/sub/foot ("POSTED
@@ -307,6 +308,19 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v4.5 (2026-08-19, night — MKT-62b WORK ORDER to the content
+agent: OFFICIAL-RESULTS-PAGE RECEIPTS in the same-day midday verify)
+  Issued by the operator after MKT-62 shipped. Full order is §8b (a new
+  section, so it sits with the enhancement lanes rather than in this era
+  block). Short form: an operator-imported screenshot of the OFFICIAL state
+  results page becomes a RECEIPT beat beside a featured row in verify_midday
+  — independent verification, not decoration. Engineering builds the upload
+  path + table + renderer beat; the content agent owes the CROP / BRAND-
+  FILTER rule for third-party wording, the beat's copy, and the Two-Question
+  answer in writing. Nothing is built yet. Your deliverables are listed under
+  "WHAT THE CONTENT AGENT OWES" in §8b; the engineering phases wait on them
+  where marked.
 
 WHAT CHANGED IN v4.4 (2026-08-19, late — PRECONDITION CHAIN for verify_midday,
 on the operator's ruling "it cannot be run unless midday results have been
@@ -3301,6 +3315,95 @@ per-day by hand, not AI-freestyled.
 
 
 --------------------------------------------------------------------------------
+8b. WORK ORDER — MKT-62b: OFFICIAL-RESULTS-PAGE RECEIPTS (issued 2026-08-19;
+    discovery-first, escalation gates, diff before commit; ID 62b reserved
+    under MKT-62, no separate number — it is the same reel's receipt beat)
+--------------------------------------------------------------------------------
+  WHY: the same-day midday verify (verify_midday) proves the GAP with the
+  two timestamps. What it does not yet carry is INDEPENDENT verification —
+  the viewer still takes our ledger's word for "Drew 618 in NC". A screenshot
+  of the state lottery's OWN results page, captured by the operator, framed
+  beside the row, makes the receipt checkable against a source we do not
+  control. That is the whole feature and the whole safety case.
+
+  ⛔ THE RULING THAT DEFINES THE FEATURE (content agent, 8/19 — stronger than
+  a preference): OPERATOR-CAPTURED OFFICIAL STATE RESULTS PAGES ONLY.
+  Nothing else enters the receipts bucket — no betting slips, no payout
+  screens, no dollar amounts, no third-party apps or aggregators, no
+  Lottery Post (ToS), no member-submitted images. A results page is
+  INDEPENDENT VERIFICATION and strengthens the record; a payout image is
+  CONSEQUENCE CONTENT, which was ruled sparingly / never scheduled / never
+  a lane — and building it into the renderer would make it a lane by
+  construction. ENCODE THIS IN THE UPLOAD PATH, not in a doc line: a
+  `source` field constrained to `official_state_results` (the only
+  accepted value at launch) and a `reviewed` flag the operator sets by
+  hand; the renderer consumes ONLY reviewed rows of that source.
+
+  SHAPE (engineering; ≈ migration + bucket policy + admin upload + renderer
+  beat — ~250 lines, no generation):
+    · storage bucket `reel-receipts` (service-role write via admin-ops,
+      SEC-05; public read like marketing-reels) — path
+      `<date>/<session>/<STATE>.png`;
+    · table `reel_receipts(id, date, session, state, path, source,
+      reviewed, note, uploaded_at)` with a CHECK on `source` and UNIQUE
+      (date, session, state);
+    · Admin → Reels: an "Add receipt" control on the day — pick date /
+      session / state, upload the PNG/JPG, see a thumbnail, tick REVIEWED
+      (the tick is the operator's attestation that it is the official page
+      and that any third-party wording is handled per the crop rule below);
+    · renderer (`render-verification-reel.ts --kind=verify_midday`): for
+      each FEATURED row, look up (date, 'midday', matched_state); if a
+      reviewed official row exists, add a RECEIPT beat — the screenshot
+      framed beside/under the held row for ~1.5s with an attribution line,
+      then back to the hold's last frame. Absent receipt = nothing changes;
+      a receipt on a NON-featured row is ignored (the reel stays ≤3 rows).
+      Beat adds body (lowers the furniture ratio), total +1.5s per receipt.
+    · reel:check: bucket reachable, every reviewed row's file present, no
+      row with an unknown `source`; stray files in the bucket WARN.
+    · DAILY VERIFY CONSUMES THE SAME BEAT ONLY AFTER IT IS PROVEN ON THE
+      RARE KIND (ruling) — not in this order.
+
+  PHASES + GATES:
+    0. DISCOVERY (engineering, report-and-wait): which states' official
+       pages the operator can actually capture same-day, at what size; the
+       frame the screenshot must fit (the held row is ~540×60 CSS px —
+       receipt needs its own card); whether the modal-chip lint ("8/19 NC
+       Midday" state code) touches this kind (it does not — verify_midday
+       is tier 2 — but say so in the report).
+    1. THE CROP / BRAND-FILTER RULE ← CONTENT AGENT (blocks phase 2). State
+       pages say "WINNING NUMBERS", "Pick 3", "PAYOUT", "JACKPOT" in their
+       own pixels — the vocabulary law broken by someone else. Options to
+       rule between: (a) a mandatory crop to the draw line only (date,
+       session, the three digits) with the operator attesting the crop at
+       REVIEWED; (b) a frosted mask the renderer paints over a declared
+       header zone; (c) allow third-party wording uncropped because this
+       kind is tier-2 free-group and the wording is visibly NOT ours.
+       Engineering lean: (a) — a crop rule is checkable at upload; a mask
+       is a second system. Rule in writing.
+    2. BUILD (engineering): migration + bucket + admin control + renderer
+       beat + reel:check, behind a flag until the first reviewed receipt
+       exists.
+    3. COPY ← CONTENT AGENT: the attribution line under the receipt (what
+       it says, e.g. "OFFICIAL RESULTS · NC LOTTERY · MIDDAY" — no "win"
+       vocabulary, the state's name is legal at tier 2), and whether the
+       receipt beat gets its own VO sting or rides in silence.
+    4. TWO-QUESTION ← CONTENT AGENT, in writing, for the composite frame
+       (our ledger row + their page): both answers NO for the free room;
+       and the explicit statement that NO public/cross-post variant is
+       possible for a frame that carries a state's own results page.
+    5. VERIFY: first receipt captured by the operator → one live build →
+       contact sheet with the receipt frame at 100% crop → ruling → flag on.
+
+  WHAT THE CONTENT AGENT OWES (in order): phase 1 crop/brand-filter rule ·
+  phase 3 attribution copy + sting ruling · phase 4 Two-Question record ·
+  (still open from MKT-62) the verify_midday caption family + copy pass.
+  Engineering starts phase 0 on receipt of this file's next version and
+  phase 2 the moment phase 1 is ruled.
+
+  OUT OF SCOPE, explicitly: receipts on the daily verify (later, after it
+  is proven here); any member-facing upload; any automated fetch of state
+  pages (scraping — never); payout/consequence imagery of any kind.
+
 8. ENHANCEMENT LANES (where new work plugs in cleanly)
 --------------------------------------------------------------------------------
   - New/longer carriers and endcards: file drop-in, spec in §2/§3.

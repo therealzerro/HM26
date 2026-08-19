@@ -425,6 +425,28 @@ Tail parity checked against the pool rather than asserted: serving members SPLIT
 
 ---
 
+### MKT-58 — Stinger-session spec: measured answers to the content agent's nine pre-generation questions (lockup band, audio gates, serving-motion facts, pool-7 arithmetic) 📐 SPEC DELIVERED (2026-08-19; handoff v3.6)
+
+**ID verified free** (audit 0 / code 0). No code changed — this is a MEASUREMENT + RULING record so the three stinger motions (the 4→7 ask, the binding rotation constraint since MKT-49) are generated against numbers instead of the content agent's derived fractions. Answers live verbatim in `assets/marketing/Reel_System_Handoff.txt` v3.6 (Q1–Q9 + a consolidated generator brief); this entry is the durable summary.
+
+**Measured today** (luma at 1080×1920 on the serving masters; audio via the same `peaks()` pass `build-stinger.ts` uses — 100ms mono buckets; rotation simulated with the real `laneRotate` over 400 days):
+
+1. **Lockup band:** `LOCKUP_TOP` 1330; slate text block renders y≈1341–1422 (verify headline-dominant ≈1345–1389); hard limit block-bottom ≤ `CROP_SAFE_BOTTOM` 1500 (builder aborts). **No numeric clearance gate exists** (MKT-45 deleted the strand gate, `MOTION_LOCKUP` empty) — the brief is readability: band y1330–1430 ≤~35% px >L40 at 1.3s, ~0% from 2.0s. Serving values at 1.3/1.6/2.0s: std 34/28/1 · strike 11/0/0 · circuit 59/2/0 (bolt passing) · fracture 64/78/32 (accepted outer bound) · imprint 98/53/4 (rejected). Mark settle heights: std bolt y615–1294, circuit y866, seal ring ~y700–738 — high settles are negative space by ruling.
+2. **No bed check on stingers** — nothing analogous to `bedWindow()`/±6dB; "level-steady pre-transient audio" buys nothing. What runs (warnings only, 0–3.0s): 12dB/0.4s prominence detector (flags hits in the last 0.6s), attack-blind late-peak check (fires only when 1.8–2.3s median ≤ −18dB), assembler 0.25s fade-out + −14 LUFS. No open-level gate (serving opens −33.8 to −11.1 dB).
+3. **Serving motions:** std hero −1.1dB@1.2s, late −6.7@2.8 on −11.7 material · strike −2.5@1.2 (ramp, 0 prominence hits), −6.0@2.6 on −11.3 · circuit −4.8@1.4 + −21.9@2.2 + **−4.7@2.7 on −24.5 = the defect** (authored fade 2.45→2.7) · fracture −0.7@1.1, −2.8@2.7 on −8.1. Masters 720×1280/24fps; std/strike/circuit 10.000s, fracture 4.000s — all consumed 0–3.0s.
+4. **imprint's retirement was VISUAL, not audio:** track clean (−1.0@1.1, nothing isolated after 2.4); bloom covers the text band 99–100% at 0.9–1.1s, 56–59% at 1.2–1.3s, clearing only at 1.5s vs text-in 0.9–1.3. Rule: lower third dark by 1.3s.
+5. **Consumption:** motion trimmed `-t 3.0` at build, builds trimmed to `STINGER_DUR` at assembly; 0–0.3s under `INTRO_XFADE`, 2.2–3.0s is the 0.8s dissolve source. Anything past 3.0s is unread.
+6. **Seal pinning confirmed in code:** `stingerMotionsFor` returns `laneRotate(liveSealMotions())` for `SEAL_KINDS` = verify/verify_public whenever any seal member is live; `STINGER_MOTIONS` is never consulted for them. Adding members changes no verify arrangement.
+7. **Pool arithmetic (7 live stinger kinds):** pool 4 → 3 same-day doublings, arrangement echo 6d (today) · 5 → 2/7d · 6 → 1/36d · **7 → 0/119d** · 8 → 0/365d. Seven exactly clears the doubling; an eighth buys only echo length.
+8. **Registration:** one line in `STINGER_MOTIONS`; `STINGER_KINDS` (spread axis, live-kinds-first) untouched; day draws reshuffle on registration (inherent). Then `stinger:build` → `reel:check` → `reel:rotation`.
+9. **Names cleared:** `stinger_motion_etch / _shutter / _facet` — zero hits across scripts, constants, audit, handoff, assets. Noted: `reveal` is both a pro endcard tag and a queued intro filename (no resolver collision; advised a different word).
+
+**Consolidated brief handed over (v3.6 tail):** 4s preset 9:16; opens on full-frame smoke; ONE hero event peaking ~1.0–1.2s (may fill frame at peak); y1300–1450 dark by 1.3s through 2.2s, mark holds above ~y1294 anywhere; smoke refills by 3.0s; audio = one hit −1…−5dB at 1.0–1.4s then a continuous swell cresting 2.6–2.8s on ≥ −12dB material, no isolated hit after 2.4s; composition inside y420–1500; no glyphs/numerals (public kinds draw this pool); prompts as scene states, not negatives.
+
+**Follow-through:** on landing, measure each file against items 1–3 (band % at 1.3/1.6/2.0; late-peak/material; 0–3.0 smoke at both ends), register, rebuild, confirm `reel:rotation` reports the stinger lane's inside-a-week warning gone. Registration will be its own MKT-XX entry.
+
+---
+
 ### MKT-57 — Reel body captures the COFFEE-MODE HOME (not the Slates grid); notation band at bottom of the black space; stamp chip y=1000; DOM-read tile centers ✅ SHIPPED (2026-08-16, committed d907a18 2026-08-17)
 
 **ID verified free.** Operator ruling on the 8/16 evening pro smoke test (MKT-56c cut): the Slates GRID surface is too complicated for new members — signal bars, set labels, tab rows compete with the six digits. All three scopes' body captures move to the ultra-minimal coffee-mode Home (scope switcher · NEXT DRAW countdown · 2×3 rank tiles "#N / digits / ENERGY nn" · black space · tab bar). MKT-56b/56c band and chip positions are retired with the surface.

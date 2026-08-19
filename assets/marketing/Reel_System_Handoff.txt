@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-19 · v3.5
+Content Agent Handoff · 2026-08-19 · v3.6
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -131,9 +131,10 @@ G. OPEN / OWED — the standing list (everything else you may have read as
      1. NATIVE 1080×1920 source assets — generator ceiling confirmed 4×;
         upscale pilot is the only path; blocked on generation balance.
      2. STINGER MOTIONS 4 → 7 (the binding rotation constraint: at 4, three
-        motions double up daily). Tier-neutral shared pool, NOT the seal set;
-        one transient before ~2.2s, dissolve bed at 3.0s; names must not
-        collide with std/strike/circuit/fracture, never reuse imprint.
+        motions double up daily; SEVEN is the exact number that clears it —
+        v3.6 Q7). Tier-neutral shared pool, NOT the seal set. ⚠ THE FULL
+        MEASURED SPEC IS v3.6 (Q1–Q9) — brief to those numbers, not to the
+        one-line summary here. Names cleared: etch / shutter / facet.
      3. INTRO REGEN QUEUE 9 → 12: coffee (the 1.4–2.6s pause IS the joke),
         juggle (reject if the visor tracks the phone), reveal (trim ~OUT 7.4,
         6.5s ceiling wins). Prompts held by the operator; budget-gated.
@@ -176,6 +177,191 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v3.6 (2026-08-19, same day — ANSWERS to the content agent's
+nine pre-generation questions for the stinger session; MEASURED, no work done)
+  Method: the four serving motions (+ imprint, seal) were re-measured today at
+  1080×1920 (scaled) on luma, and on audio with the SAME peaks() pass the
+  builder uses (100ms buckets, mono). Rotation arithmetic was simulated with
+  the real laneRotate over 400 days. Nothing below is a recollection.
+
+  Q1. THE LOCKUP BAND, IN PIXELS (⛔ answered).
+      · Shared LOCKUP_TOP = 1330. The rendered slate text block (46px bold
+        wordmark + 14px gap + 24px medium headline) occupies y≈1341–1422 —
+        ~92px tall, centred, white. Verify's headline-dominant layout lays
+        the large gold/white line at y≈1345–1389 (+ small line beneath).
+      · HARD LIMIT: block bottom must stay ≤ 1500 (CROP_SAFE_BOTTOM — the
+        1:1 band y420–1500). The builder measures the laid-out block and
+        ABORTS past it. The bolt/mark may occupy y615–1294 (std's measured
+        extent); nothing requires the mark to reach the text.
+      · THERE IS NO NUMERIC CLEARANCE GATE. MKT-45 deleted the 380px strand
+        gate and emptied MOTION_LOCKUP; placement is a whole-frame judgement
+        by eye and every kind sits on 1330. So brief to the TEXT-READABILITY
+        numbers, not to a clearance: the band y1330–1430 must be DARK while
+        the text is up — measured serving values, % of band pixels > L40
+        (mean luma in brackets) at t = 1.3 / 1.6 / 2.0 / 2.2s:
+          std       34% (L40) · 28% (L38) ·  1% (L17) ·  1% (L16)
+          strike    11% (L26) ·  0% (L15) ·  0% (L14) ·  0% (L14)
+          circuit   59% (L63) ·  2% (L22) ·  0% (L17) ·  0% (L17)  ← 1.3s is
+                    the bolt passing through; clear by 1.6
+          fracture  64% (L79) · 78% (L75) · 32% (L44) · 19% (L38)  ← the
+                    brightest-under-text member and the OUTER BOUND that
+                    passed (accepted on the one-hero-beat rule; the text
+                    reads because the field is diffuse). Do not brief past it.
+          imprint   98% (L127)· 53% (L47) ·  4% (L16) ·  2% (L15)  ← REJECTED
+        Target for a new motion: ≤ ~35% / mean ≤ L45 at 1.3s, ≤ ~10% by 1.6s,
+        ~0% from 2.0s. Above the band, anything goes — the mark settle
+        heights in the fleet are y1294 (std bolt), y866 (circuit bolt), ~y700–
+        738 (seal ring); a high-settling mark with a void above the text is
+        the motion's negative space BY RULING (MKT-45), never a defect.
+      · Your "45–72% of height clear" (y864–1382) overlaps the text band by
+        ~50px and under-reaches it by ~40px; it passed on the seal because
+        the seal is dark everywhere below y~740 from 1.0s. Replace it with:
+        "y1300–1450 dark from 1.3s; composition inside y420–1500; mark may
+        settle anywhere above ~1294".
+
+  Q2. IS THERE A BED CHECK ON STINGERS? (⛔ answered) — NO. Nothing analogous
+      to bedWindow()/the ±6dB clamp runs on stingers; a stinger is never
+      looped or bedded. "Level-steady pre-transient audio" buys NOTHING
+      here — drop the constraint and take the better-sounding clip. What
+      DOES run on stinger audio, all WARNINGS (never a build fail) in
+      `npm run stinger:build`, over the USED window 0–3.0s only:
+        (a) PROMINENCE transient detector — a local peak ≥12dB above the
+            floor of the preceding 0.4s. Any such transient inside the LAST
+            0.6s (≥2.4s) is flagged "the circuit defect" (fires after the
+            lockup is out, lands on the dissolve). Authored fades are
+            per-motion config (circuit: afade from 2.45s, target 2.7s).
+        (b) ATTACK-BLIND late-peak check — if the median peak over 1.8–2.3s
+            is ≤ −18dB (a quiet field) AND any peak ≥2.4s exists, it is
+            flagged LISTEN. A late SWELL riding on material louder than
+            −18dB is NOT flagged (std/strike/fracture all crest at 2.6–2.8s
+            on −8 to −12dB material and ship daily).
+        (c) The assembler fades the stinger's audio to silence over its
+            last 0.25s (2.75–3.0s) and normalises the reel to −14 LUFS.
+      There is no gate on the OPEN level (the intro's sting is still
+      sounding through the 0.3s crossfade). Measured first-0.3s peaks: std
+      −32.3 · strike −27.1 · circuit −33.8 · fracture −11.1 dB — a spread of
+      21dB with no complaint, so open however the concept wants.
+      "Dissolve bed at 3.0s" in §G.2 was VISUAL shorthand — see Q5.
+
+  Q3. THE FOUR SERVING MOTIONS — measured.
+        tag       master            used   hero beat            late (≥2.4s)
+        std       10.000s v/10.005a 0–3.0  −1.1dB @1.2s (+12dB  −6.7dB @2.8s on
+                  720×1280 24fps            prominence hit)     −11.7 material
+        strike    10.000/10.005     0–3.0  −2.5dB @1.2s (ramps; −6.0dB @2.6s on
+                  720×1280 24fps            0 prominence hits)  −11.3 material
+        circuit   10.000/10.005     0–3.0  −4.8dB @1.4s; a 2nd  −4.7dB @2.7s on
+                  720×1280 24fps            hit −21.9 @2.2       −24.5 material
+                                                                 = THE DEFECT,
+                                                                 authored fade
+        fracture   4.000/4.010      0–3.0  −0.7dB @1.1s (+12dB  −2.8dB @2.7s on
+                  720×1280 24fps            prominence hit)     −8.1 material
+      What to MATCH: one hero beat between ~1.0 and ~1.4s (it lands under
+      the text-in at 0.9–1.3s), peaking −0.7 to −4.8dB; a smoke-return
+      swell from ~2.2s that CRESTS at 2.6–2.8s on top of material ≥ −12dB;
+      full-frame smoke at 0.0 and again from ~2.2s. What to AVOID: circuit's
+      shape — an isolated hit into a quiet (≤ −18dB) field after 2.4s; and
+      fracture's brightness under the text (Q1) — it passed, it is the edge.
+      All four are 720×1280/24fps (standing ask #1); fracture's 4.0s preset
+      is the cheapest delivery and loses nothing (Q5).
+
+  Q4. IMPRINT'S RETIREMENT — it was NOT audio timing. Imprint's track is
+      clean: one hero beat −1.0dB @1.1s, nothing isolated after 2.4s, late
+      crest −7.4dB @2.8s on −10.1 material (it reads 0 on the prominence
+      detector only because it ramps in over >0.4s, exactly like strike).
+      The defect is VISUAL TIMING: its bloom is FULL-FRAME through the
+      lockup's fade-in — band >L40: 99% @0.9 · 100% @1.0 · 96% @1.1 · 56%
+      @1.2 · 59% @1.3 · 10% @1.4 · 0% @1.5 — so white text at 1330 has
+      nowhere to sit until 1.5s, and moving TEXT_IN_START that late leaves
+      ~0.7s of readable hold (a per-motion TIMING override, deliberately
+      not built for one clip). Design rule, in numbers: the hero flash may
+      fill the frame at its peak (~1.0–1.1s) but the lower third (y1300–
+      1450) must be back under ~35% >L40 by 1.3s. std does exactly this
+      (100% @0.9 → 34% @1.3); imprint did not (56–59% @1.2–1.3).
+
+  Q5. CROSSFADE MECHANICS — the file is consumed 0–3.0s, FULL STOP. The
+      builder trims the motion at `-t 3.0` when it composites the lockup
+      (so the stinger_<kind>_<tag>.mp4 builds are 3.0s); the assembler then
+      trims those to STINGER_DUR again. Nothing resolves a window. Inside
+      the 3.0s: 0–0.3s is under the intro→stinger crossfade (INTRO_XFADE
+      0.3 — both sides full-frame smoke; the dissolve exists because the
+      two smokes differ in saturation, Δ21, so a butt-cut popped); text in
+      0.9–1.3, hold to 2.2, out 2.2–2.4; 2.2–3.0 is the stinger→body 0.8s
+      dissolve source and must be full-frame smoke returning. Your 3.0–4.0s
+      smoke tail is DEAD WEIGHT — unread — but the generator's 4s preset is
+      the floor, so it costs nothing extra to leave it; just do not design
+      anything into it. Both ends on smoke is the whole contract.
+
+  Q6. TIER-NEUTRALITY / SEAL PINNING — confirmed in code.
+      `stingerMotionsFor(kind)`: if kind ∈ SEAL_KINDS = ['verify',
+      'verify_public'] and any seal member is live (not `held:`), it returns
+      laneRotate over VERIFY_SEAL_MOTIONS ONLY — the shared STINGER_MOTIONS
+      array is never consulted for those kinds. The shared pool reaches
+      verify only if EVERY seal member is held (the documented pre-seal
+      fallback), which is a deliberate re-arm, not a side effect. Adding
+      three members to STINGER_MOTIONS changes NO verify / verify_public
+      arrangement (the seal lane is seeded and indexed on its own set).
+      The pool is tier-neutral by construction: no tier field, no tier
+      filter; every slate and public kind draws from it.
+
+  Q7. ROTATION ARITHMETIC — simulated with the real laneRotate, 400 days,
+      the 7 live stinger kinds (allday_pro/free/public, midday_pro/free,
+      evening_pro/free; STINGER_KINDS also lists the two dormant public
+      session kinds LAST, live-kinds-first):
+        pool 4 → max 3 same-day doublings, identical 7-kind arrangement
+                 recurs within 6d (today's measured state)
+        pool 5 → 2 doublings, echo 7d
+        pool 6 → 1 doubling, echo 36d
+        pool 7 → 0 doublings, echo 119d    ← SEVEN FULLY CLEARS IT
+        pool 8 → 0, echo 365d
+        pool 9 → 0, echo 365d
+      Mechanism: position = (dayclock + kindIndex) mod poolSize, so with
+      pool ≥ live kinds every kind lands on a distinct member every day.
+      Three files (4→7) is exactly the number; a fourth (→8) buys only the
+      arrangement-echo (119d → 365d). Deliver three; an eighth is a
+      nice-to-have, not a correction.
+
+  Q8. REGISTRATION SHAPE — one line each in STINGER_MOTIONS (brand-motion.ts):
+      `{ file: 'stinger_motion_<tag>.mp4', tag: '<tag>', label: '…' }`. It
+      does NOT touch the spread axis (STINGER_KINDS is untouched; it is the
+      consumer list, not the pool). What DOES happen, inherent and accepted:
+      widening a date-derived pool reshuffles every kind's draw from the
+      registration day (same as INTRO 6→9 did on 8/13) — nothing re-collides
+      because the collision count is a function of pool size (Q7), and at 7
+      it is zero. Then: `npm run stinger:build` (rebuilds 9 kinds × 7
+      motions + seal = ~66 clips, the build logs the Q2 warnings per file),
+      `npm run reel:check` (validates + stray scan; expect the 720×1280
+      warning class), `npm run reel:rotation` (shows the new schedule and
+      should report the stinger lane's inside-a-week warning GONE).
+
+  Q9. NAME CLEARANCE — etch / shutter / facet are CLEAR: zero hits in
+      scripts/, constants/, MASTER_AUDIT.md, this file and assets/marketing
+      (no registered, retired, parked, rejected or reserved file or tag in
+      any lane). Deliver as `stinger_motion_etch.mp4`, `stinger_motion_
+      shutter.mp4`, `stinger_motion_facet.mp4` — exact lowercase, .mp4,
+      direct upload (snapshot §H). Reserved/barred for reference: std,
+      strike, circuit, fracture, imprint (retired), seal (verify set); pro
+      endcard tags reveal/discharge/ignite/lock; free endcard tags std/alt/
+      tide/bloom/adopen (+ updraft rejected); intro labels standard/deadpan/
+      arrival/monitors/powerup/board/guest/window/arrive (+ coffee/juggle/
+      reveal queued — note `reveal` is ALSO a pro endcard tag; the intro
+      queue name predates the endcard and is an intro filename, not a
+      motion tag, so no resolver collision — but pick a different word if
+      you can).
+
+  BRIEF, CONSOLIDATED (what to hand the generator): 4s preset, 9:16,
+  720×1280 accepted (native 1080×1920 if the generator ever offers it);
+  opens on full-frame dense purple smoke (0–0.3s under the crossfade);
+  smoke condenses into ONE hero event peaking ~1.0–1.2s — the bolt/mark
+  may fill the frame at the peak; by 1.3s the lower third (y1300–1450) is
+  dark (≤35% >L40) and stays dark through 2.2s while the mark holds above
+  ~y1294 (anywhere — high settles are fine); from ~2.2s the smoke sweeps
+  back and refills the frame fully by 3.0s. AUDIO: one hit under the hero
+  event (−1 to −5dB, ~1.0–1.4s), then a continuous smoke-return swell
+  cresting 2.6–2.8s on material ≥ −12dB; NO isolated hit after 2.4s, no
+  silence-then-pop; open level free. Composition inside y420–1500; no
+  glyphs/numerals anywhere (public kinds draw this pool). Write as scene
+  states, not negatives.
 
 WHAT CHANGED IN v3.5 (2026-08-19 — MKT-57a Home modal panel; three production
 days on the coffee-Home body; FULL DOC RESYNC — the snapshot above is new)

@@ -98,6 +98,7 @@ STEP 3 — TERMINAL B: build + publish the day's reels
 
 npm run reel:daily
 npm run reel:daily -- --from=midday      (resume a partial run)
+    (verify_midday is NOT in this run — manual only; see its own block.)
 
     Runs verify → allday → midday → evening DETACHED (setsid +
     nohup): closing the terminal, dropping the connection, or the
@@ -189,6 +190,34 @@ npm run reel:verify
         npx tsx scripts/publish-reels.ts allday   20260731
         npx tsx scripts/publish-reels.ts midday   20260731 --variant=pro
         npx tsx scripts/publish-reels.ts evening  20260731 --variant=pro
+
+
+npm run reel:verify-midday            (MKT-62, 2026-08-19 — MANUAL ONLY)
+
+    THE SAME-DAY MIDDAY VERIFY — grades TODAY's MIDDAY board the
+    same afternoon (~4:30 PM ET, POSTING_SCHEDULE Session 3) for
+    the FREE ROOM: the board they saw COVERED this morning, cover
+    lifted, graded, with the two real timestamps on screen.
+    ⚠ NEVER part of reel:daily and never scheduled. Run it by
+    hand, ONLY after: (1) the midday ledger is imported and hit
+    detection has run (Daily Workflow / import:results), and
+    (2) midday_free was actually POSTED this morning (the reel
+    reads that row's posted_at as PUBLISHED). It ABORTS on
+    purpose if either is missing, or if today's midday board has
+    zero matches (~30% of days) — no gap to prove = no reel.
+    Chain: render (--kind=verify_midday: ?capture=1&scope=midday,
+    TODAY) → assemble (pinned rise intro / sameday carrier /
+    sameday endcard; NO stinger by ruling; chip + ribbon read
+    TODAY'S MIDDAY · GRADED) → publish verify_midday (FREE room;
+    --variant is refused — no public variant exists; retention-
+    exempt — keep-current-only and the 30d prune skip it).
+    Output: assets/marketing/verify_reels/verify_midday_<stamp>.mp4
+    + 5-frame contact sheet (open / covered / lifted / hold / close).
+    ⚠ FIRST PUBLISH needs the DB CHECK widened (operator step —
+    scripts/migrations/2026_08_19_mkt62_verify_midday_kind.sql in
+    the Supabase SQL editor); publish names that file if the
+    upsert is rejected. Re-publish an earlier day:
+        npx tsx scripts/publish-reels.ts verify_midday 20260819
 
     This bites hardest just after ET midnight, when a session that
     BUILT reels before the rollover tries to publish them after it

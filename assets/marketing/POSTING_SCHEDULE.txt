@@ -37,15 +37,20 @@ SESSION 2 · 10:30 AM ET — the contrast pair (2 handoffs, FREE room)
   (~12:30 ET). 10:30 gives ~2 hours of margin.
 
 ────────────────────────────────────────────────────────────
-SESSION 3 · 4:30 PM ET — SAME-DAY MIDDAY VERIFY (conditional)
+SESSION 3 · 4:30 PM ET — SAME-DAY MIDDAY VERIFY (conditional, MANUAL)
 ────────────────────────────────────────────────────────────
-  PRO/FREE  midday verify, when results can be imported and run in time.
+  FREE      verify_midday — `npm run reel:verify-midday` (MKT-62, built
+            2026-08-19). Pro at the operator's call (they had the digits).
 
-  ⚠ THIS IS THE HIGHEST-CONVERSION SLOT IN THE SYSTEM and it does not exist
-  yet. A free member saw the covered midday board at 10:30. The draw
-  happened. This closes that loop in SIX HOURS instead of twenty-four.
-  Every other verify proves the method in the abstract; this one proves the
-  specific board they were shown this morning. Build it when you can.
+  ⚠ THIS IS THE HIGHEST-CONVERSION SLOT IN THE SYSTEM. A free member saw
+  the covered midday board this morning (in practice ~8:14 AM — the reel
+  stamps the real posted_at). The draw happened. This closes that loop the
+  same afternoon — the two timestamps are ON SCREEN. Every other verify
+  proves the method in the abstract; this one proves the specific board
+  they were shown this morning, cover lifted.
+  ⚠ CONDITIONAL = only on days the midday ledger is imported + graded in
+  time AND today's midday board has ≥1 match (~70% of days). NEVER in
+  reel:daily, never scheduled — run by hand. Free room only; no public cut.
 
 ────────────────────────────────────────────────────────────
 SESSION 4 · 5:30 PM ET — the evening pair (2 handoffs)

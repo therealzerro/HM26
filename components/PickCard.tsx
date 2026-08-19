@@ -69,7 +69,7 @@ function whySummary(pick: PickItem): string {
   if (pick.synergy) return '⚡ Signal synergy: Multiple indicators aligned';
   const { BOX, PBURST, CO } = pick.signals;
   const parts: string[] = [];
-  if (BOX >= 0.65)    parts.push('high frequency');
+  if (BOX >= 0.65)    parts.push('high energy');
   if (PBURST >= 0.65) parts.push('pair momentum surging');
   if (CO >= 0.65)     parts.push('strong digit pattern');
   if (pick.drawsSince != null && pick.drawsSince > 200) parts.push(`overdue (${pick.drawsSince}d)`);
@@ -88,7 +88,10 @@ function pressureInfo(ds: number | undefined, td: number | undefined, colors: Co
 // ─── Signal description ───────────────────────────────────────────────────────
 export function signalDesc(label: string, value: number): string {
   const pct = value * 100;
-  if (label === 'Frequency') return pct >= 65 ? 'Strong historical pattern' : 'Low frequency signal';
+  // 'Frequency' kept as an alias — signal 1 was renamed Energy on visible
+  // surfaces (2026-08-19) and any straggler caller must not fall to the
+  // Pattern default.
+  if (label === 'Energy' || label === 'Frequency') return pct >= 65 ? 'Strong historical pattern' : 'Low energy signal';
   if (label === 'Momentum')  return pct >= 65 ? 'Pair momentum surging'     : 'Pair momentum quiet';
   return                            pct >= 65 ? 'Strong digit relationships' : 'Pattern signal weak';
 }

@@ -140,7 +140,7 @@ type OnboardingScreen =
 
 const ONBOARDING_BASE: OnboardingScreen[] = [
   { kind: 'text', emoji: '🏆', title: 'Welcome to HitMaster', body: 'Your daily numerical pattern analysis. The ZK6™ Engine analyzes years of public draw data to surface your highest-signal combinations.', btn: 'Next →' },
-  { kind: 'text', emoji: '⚡', title: 'Your Daily K6 Slate', body: 'Each morning your K6 Slate is powered by 3 signals — Frequency, Momentum, and Pattern — ranked by Energy Score.', btn: 'Next →' },
+  { kind: 'text', emoji: '⚡', title: 'Your Daily K6 Slate', body: 'Each morning your K6 Slate is powered by 3 signals — Energy, Momentum, and Pattern — ranked by Energy Score.', btn: 'Next →' },
   { kind: 'text', emoji: '🌟', title: 'Join 2,400+ Members', body: 'Members across 18 states use HitMaster daily. Upgrade to Oracle+ to see all 6 signals.', btn: 'Next →' },
   { kind: 'preview', emoji: '👇', title: 'Your free preview', body: 'A preview of today\'s ZK6 signals — yours on the free tier. Oracle+ unlocks all 6.', btn: 'See My Signals' },
 ];

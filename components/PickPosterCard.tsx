@@ -137,7 +137,7 @@ export function PickPosterCard({ pick, scope, pairScores, redact = false, height
       {/* ── Signal breakdown ────────────────────────────────────────────── */}
       <Text style={s.sectionTitle}>SIGNAL BREAKDOWN</Text>
       <View style={s.signalRow}>
-        <SignalPill label="FREQ"    value={pick.signals.BOX}      color={D.cyan}   palette={darkColors} />
+        <SignalPill label="ENERGY"  value={pick.signals.BOX}      color={D.cyan}   palette={darkColors} />
         <SignalPill label="MOMO"    value={pick.signals.PBURST}   color={D.rose}   palette={darkColors} />
         <SignalPill label="PATTERN" value={pick.signals.CO}       color={D.purple} palette={darkColors} />
         <SignalPill label="CONSIST" value={pick.signals.DGC ?? 0} color={D.gold}   palette={darkColors} />

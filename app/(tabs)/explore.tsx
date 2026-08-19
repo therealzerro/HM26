@@ -669,7 +669,10 @@ export default function SlatesScreen() {
 
             <Text style={s.sheetGroupLabel}>Sort by</Text>
             <View style={s.sheetGroupRow}>
-              {([['rank', 'Rank'], ['energy', 'Energy'], ['freq', 'Frequency']] as const).map(([id, lbl]) => (
+              {/* 'energy' sorts the composite (pick.energy) and keeps its full
+                  branded name; 'freq' sorts signal 1 (BOX), renamed Energy —
+                  the ids are storage/state values and deliberately unchanged. */}
+              {([['rank', 'Rank'], ['energy', 'Energy Score'], ['freq', 'Energy']] as const).map(([id, lbl]) => (
                 <TouchableOpacity key={id} style={[s.sheetChip, sort === id && s.sheetChipOnPurple]} onPress={() => setSort(id)}>
                   <Text style={[s.sheetChipText, sort === id && s.sheetChipTextOnPurple]}>{lbl}</Text>
                 </TouchableOpacity>

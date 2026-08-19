@@ -105,7 +105,7 @@ export function PickExplainerModal({ visible, onClose, pick }: Props) {
   if (!pick) return null;
 
   const signals: SignalRow[] = [
-    { key: 'BOX',    label: 'Frequency',       plain: 'how often this box-set hits', value: pick.signals.BOX,          color: colors.cyan },
+    { key: 'BOX',    label: 'Energy',          plain: 'how often this box-set hits', value: pick.signals.BOX,          color: colors.cyan },
     { key: 'PBURST', label: 'Pair Momentum',   plain: 'recent drawing of these pairs', value: pick.signals.PBURST,     color: colors.rose },
     { key: 'CO',     label: 'Co-occurrence',   plain: 'digits drawing together',       value: pick.signals.CO,         color: colors.purple },
     { key: 'DGC',    label: 'Consistency',     plain: 'signal stability across time',  value: pick.signals.DGC ?? 0,   color: colors.gold },

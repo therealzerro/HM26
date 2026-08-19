@@ -269,21 +269,24 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slat
   const handleShare = async () => {
     try {
       const drawsInfo = pick.drawsSince != null && pick.drawsSince < 500
-        ? `  Pressure  ${pick.drawsSince} draws since last hit`
+        ? `  Pressure      ${pick.drawsSince} draws since last hit`
         : null;
       const hitsInfo = pick.timesDrawn != null && pick.timesDrawn > 0
-        ? `  All-time  ${pick.timesDrawn}× hits`
+        ? `  All-time      ${pick.timesDrawn}× hits`
         : null;
       const lines = [
         `━━━━━ HITMASTER ZK6 ━━━━━`,
         `  ${bestOrder[0]} · ${bestOrder[1]} · ${bestOrder[2]}  ◀ ${energyLabel}`,
         `  Box: ${pick.comboSet}   Scope: ${scope.toUpperCase()}`,
         ``,
-        `  Energy    ${pick.energy}/100`,
-        `  Freq      ${Math.round(pick.signals.BOX * 100)}%`,
-        `  Momentum  ${Math.round(pick.signals.PBURST * 100)}%`,
-        `  Pattern   ${Math.round(pick.signals.CO * 100)}%`,
-        `  Consist.  ${Math.round((pick.signals.DGC ?? 0) * 100)}%`,
+        // Signal 1 is "Energy" (carrier vocab: energy · momentum · pattern ·
+        // consistency); the composite keeps its full "Energy Score" name so
+        // the two lines can't be read as one thing.
+        `  Energy Score  ${pick.energy}/100`,
+        `  Energy        ${Math.round(pick.signals.BOX * 100)}%`,
+        `  Momentum      ${Math.round(pick.signals.PBURST * 100)}%`,
+        `  Pattern       ${Math.round(pick.signals.CO * 100)}%`,
+        `  Consistency   ${Math.round((pick.signals.DGC ?? 0) * 100)}%`,
         drawsInfo,
         hitsInfo,
         ``,
@@ -336,7 +339,7 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slat
       {/* 4-signal strip */}
       <Text style={ct.sectionTitle}>SIGNAL BREAKDOWN</Text>
       <View style={ct.signalRow}>
-        <SignalPill label="FREQ"    value={pick.signals.BOX}      color={D.cyan}   />
+        <SignalPill label="ENERGY"  value={pick.signals.BOX}      color={D.cyan}   />
         <SignalPill label="MOMO"    value={pick.signals.PBURST}   color={D.rose}   />
         <SignalPill label="PATTERN" value={pick.signals.CO}       color={D.purple} />
         <SignalPill label="CONSIST" value={pick.signals.DGC ?? 0} color={D.gold}   />

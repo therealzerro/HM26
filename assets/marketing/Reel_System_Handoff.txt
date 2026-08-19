@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-19 · v4.0
+Content Agent Handoff · 2026-08-19 · v4.1
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-08-19 (v3.5 CONSOLIDATED SNAPSHOT — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-08-19 (CONSOLIDATED SNAPSHOT, current to v4.1 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -53,9 +53,10 @@ B. SLATE REEL ANATOMY (allday/midday/evening, all cuts; 1080×1920 60fps;
                 (MKT-22/35). verify draws VERIFY_INTROS (anchor_intro_verify),
                 public kinds draw PUBLIC_INTROS (anchor_intro_public) —
                 both are SETS of one and NEVER fall into the slate rotation.
-     ~5.3–8.3   STINGER — 3.0s, 0.3s crossfade into the intro smoke. FOUR
-                shared motions rotate (std/strike/circuit/fracture; imprint
-                retired); verify + verify_public draw the SEAL set instead.
+     ~5.3–8.3   STINGER — 3.0s, 0.3s crossfade into the intro smoke. SIX
+                shared motions rotate (std/strike/circuit/fracture + etch/
+                facet — MKT-58; imprint retired; shutter rejected, regen
+                pending); verify + verify_public draw the SEAL set instead.
                 Copy per kind (stinger-config.ts); lockup on the shared 1330
                 band (MKT-45 — no per-kind tucks, ever).
      8.3–27.3   BODY 19.0s = 10.0s STATIC STILL of the COFFEE-MODE HOME
@@ -71,7 +72,8 @@ B. SLATE REEL ANATOMY (allday/midday/evening, all cuts; 1080×1920 60fps;
                 abort unless six); "TODAY'S DATA DROP" stamp chip at y=1000
                 (above the band); HOLD TIMER draining along the bottom edge.
                 Capture-time DOM injection + encode filters — the APP IS NOT
-                MODIFIED by any of it. MKT-11 promo panels sit below the
+                MODIFIED by any of it. MKT-11 promo panels (SEVEN as of
+                MKT-60 8/19, served from the app-panels bucket) sit below the
                 "RESOLVED IN" card in every modal (app-wide product surface;
                 MKT-57a made Home's modal render them like Explore's).
      27.3–33.8  OUTRO — the endcard's FIRST 6.5s. Endcard motions rotate per
@@ -192,6 +194,41 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v4.1 (2026-08-19, session close — ledger of the day, cleanup,
+and what is waiting on the operator)
+  A. TODAY'S VERSIONS: v3.5 resync + snapshot · v3.6 stinger spec answers ·
+     v3.7 MKT-58 (etch/facet in, shutter out) · v3.8 MKT-59 (midday_pro ×4,
+     verify ×3, ledger held) · v3.9 MKT-61 (juggle in, coffee held) · v4.0
+     MKT-60 (panels 7, published) · this note. Commits 08b262a → 2c1a540 +
+     this one, all pushed. Audit entries MKT-58/59/60/61 written.
+  B. WAITING ON THE OPERATOR (rulings/ears — nothing blocks the daily run):
+       · shutter regen at the 4s preset (closes MKT-58 at 7);
+       · coffee: silent-head + short-hold ruling (three options, §7);
+       · verif_carrier_ledger cold listen (one-line registration);
+       · facet's 2.4s crest — ear;
+       · panel_zk30 "COMING SOON" and the stamp-chip-over-modals
+         observation (v4.0 §G and the side note);
+       · device check of the in-app panel rotation until the next release
+         (retired panel_signals.png is no longer served).
+  C. NEXT ASSET ASKS, in value order: shutter regen (stinger 6→7) · reveal
+     intro (10→12 with coffee) · panel_cadence (7→8) · carrier part-1 sets
+     for midday_free / evening_free / allday_public · a second public intro
+     or seal variant (clearance first). Generator lesson of the day, twice:
+     10s-preset masters pace their beats to 10s — brief the 4s/6s preset or
+     script beat timings against the 6.5s (intro) / 3.0s (stinger) cut.
+  D. ENVIRONMENT: faster-whisper (small, int8, CPU) is installed on the
+     codespace — carrier transcripts are measurable; the base/small.en
+     models were removed to save space, `small` kept. The detached dev
+     server started for the MKT-60 in-context capture was STOPPED (port
+     8081 free for the morning `start-tunnel`). Disk: ~4.5G free after
+     cleanup (the git pack is ~4.5G of binaries; a full gc needs more temp
+     space than the codespace has — do not run `git gc --prune` here, the
+     8/19 attempt was aborted at 99% disk and its temp pack removed).
+  E. UNTRACKED-BY-DESIGN: stinger_motion_shutter.mp4 is now committed as
+     the rejected evidence copy (same name the regen replaces — the
+     UNREFERENCED_OK entry names it); `_preview_pro_brief_2026-08-07.png` at
+     the repo root is an older untracked preview, left as found.
 
 WHAT CHANGED IN v4.0 (2026-08-19, same day — MKT-60 EXECUTED on the amended
 order: panel set 6 → 7 — panel_app art REGENERATED, receipts + measures NEW,

@@ -208,10 +208,69 @@ function fmtGap(ms: number): string {
       if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
       return r.json() as Promise<T>;
     };
+    // ── PRECONDITION CHAIN (operator ruling 2026-08-19: "the midday verify
+    // reel cannot be run unless midday results have been imported"). Each
+    // link is checked SEPARATELY so the abort names the actual missing step —
+    // "no rows" used to mean any of four different things.
+    //   1. midday LEDGER imported for today (histories, session=midday) …
+    //   2. … COMPLETELY — a partial import grades against a partial day and
+    //      the reel's "N matches" would be wrong by the evening (coverage vs
+    //      the trailing same-weekday median; Sundays run ~27 vs ~33);
+    //   3. the same-day WINDOW is still open — the evening ledger is NOT in
+    //      yet (after it, hit detection may re-stamp result_at and the reel
+    //      is no longer "before the evening draw"); --allow-late overrides;
+    //   4. HIT DETECTION has graded today's midday board (result_at on the
+    //      slate's adaptive_tracking rows — it stamps every row, not just
+    //      the matches);
+    //   5. the covered board was actually POSTED (midday_free.posted_at);
+    //   6. ≥1 midday match — an honest zero is an honest abort.
+    const ALLOW_PARTIAL = process.argv.includes('--allow-partial');
+    const ALLOW_LATE = process.argv.includes('--allow-late');
+    const countRows = async (path: string): Promise<number> => {
+      const r = await fetch(`${U}${path}`, { headers: { apikey: K, Authorization: `Bearer ${K}`, Prefer: 'count=exact', Range: '0-0' } });
+      const cr = r.headers.get('content-range') ?? '';
+      const m = cr.match(/\/(\d+)$/);
+      return m ? Number(m[1]) : 0;
+    };
+    const midRows = await countRows(`/rest/v1/histories?date_et=eq.${dateISO}&session=eq.midday&select=id`);
+    if (midRows === 0) {
+      console.error(`ABORT (precondition 1): the MIDDAY LEDGER for ${dateISO} is not imported (0 histories rows, session=midday). Import today's midday results first (Admin → import wizard or npm run import:results), let hit detection run, then re-run. No reel.`);
+      process.exit(1);
+    }
+    // 2. coverage vs the same weekday over the previous 4 weeks (falls back to
+    // the trailing 7 days if none) — partial imports are the silent failure.
+    const dow = new Date(dateISO + 'T12:00:00Z').getUTCDay();
+    const since = new Date(Date.parse(dateISO + 'T12:00:00Z') - 28 * 86400000).toISOString().slice(0, 10);
+    const hist = await get<Array<{ date_et: string }>>(`/rest/v1/histories?date_et=gte.${since}&date_et=lt.${dateISO}&session=eq.midday&select=date_et&limit=1000`);
+    const perDay = new Map<string, number>();
+    for (const h of hist) perDay.set(h.date_et, (perDay.get(h.date_et) ?? 0) + 1);
+    const sameDow = [...perDay.entries()].filter(([d]) => new Date(d + 'T12:00:00Z').getUTCDay() === dow).map(([, n]) => n).sort((a, b) => a - b);
+    const ref = sameDow.length ? sameDow[Math.floor(sameDow.length / 2)] : ([...perDay.values()].sort((a, b) => a - b)[Math.floor(perDay.size / 2)] ?? midRows);
+    if (midRows < Math.ceil(0.85 * ref)) {
+      const msg = `midday ledger for ${dateISO} looks PARTIAL: ${midRows} rows vs a same-weekday median of ${ref}. A reel graded against a partial day would be wrong by tonight.`;
+      if (!ALLOW_PARTIAL) { console.error(`ABORT (precondition 2): ${msg} Finish the import and re-run, or pass --allow-partial if the short count is real (holiday/dark states).`); process.exit(1); }
+      console.log(`WARN (precondition 2, overridden): ${msg}`);
+    } else {
+      console.log(`ledger coverage: ${midRows} midday rows for ${dateISO} (same-weekday median ${ref}) — complete.`);
+    }
+    // 3. same-day window: the evening ledger must not be in yet.
+    const eveRows = await countRows(`/rest/v1/histories?date_et=eq.${dateISO}&session=eq.evening&select=id`);
+    if (eveRows > 0) {
+      const msg = `the EVENING ledger for ${dateISO} is already imported (${eveRows} rows) — the same-day window has closed; "graded this afternoon, before the evening draw" is no longer the frame, and a re-grade may have moved result_at.`;
+      if (!ALLOW_LATE) { console.error(`ABORT (precondition 3): ${msg} Pass --allow-late only for an archive build you will not post as same-day.`); process.exit(1); }
+      console.log(`WARN (precondition 3, overridden): ${msg}`);
+    }
+    // 4. graded: hit detection stamps result_at on EVERY row of the slate.
+    const slateRows = await get<Array<{ result_at: string | null }>>(`/rest/v1/adaptive_tracking?slate_date=eq.${dateISO}&scope=eq.midday&mode=eq.balanced&select=result_at&limit=50`);
+    if (!slateRows.length) { console.error(`ABORT (precondition 0): no midday slate rows in adaptive_tracking for ${dateISO} — was the morning workflow run? No reel.`); process.exit(1); }
+    if (!slateRows.some(r => r.result_at)) {
+      console.error(`ABORT (precondition 4): the midday ledger is imported (${midRows} rows) but HIT DETECTION has not graded today's midday board (no result_at on its ${slateRows.length} tracking rows). Run hit detection (the import flow normally triggers it; Admin → detect), then re-run. No reel.`);
+      process.exit(1);
+    }
     const posted = await get<Array<{ posted_at: string | null; status: string }>>(
       `/rest/v1/marketing_reels?reel_date=eq.${dateISO}&kind=eq.midday_free&select=posted_at,status&limit=1`);
     if (!posted[0]?.posted_at) {
-      console.error(`ABORT: midday_free for ${dateISO} has no posted_at (${posted[0] ? `status ${posted[0].status}` : 'no row'}) — the covered board was never posted to the free room, so there is no gap to prove. No reel.`);
+      console.error(`ABORT (precondition 5): midday_free for ${dateISO} has no posted_at (${posted[0] ? `status ${posted[0].status}` : 'no row'}) — the covered board was never posted to the free room, so there is no gap to prove. No reel.`);
       process.exit(1);
     }
     const rows = await get<Array<{ combo: string; matched_state: string; matched_session: string | null; hit_straight: boolean; result_at: string | null }>>(
@@ -221,7 +280,7 @@ function fmtGap(ms: number): string {
     const uniq = mid.filter(r => { const k = `${r.combo}|${r.matched_state}`; if (seen.has(k)) return false; seen.add(k); return true; });
     const times = uniq.map(r => r.result_at ? Date.parse(r.result_at) : NaN).filter(Number.isFinite);
     if (!uniq.length || !times.length) {
-      console.error(`ABORT: no midday-session matched rows (with result_at) for ${dateISO} — hit detection has not graded today's midday board yet, or it graded 0. No reel.`);
+      console.error(`ABORT (precondition 6): today's midday board is graded and has ZERO midday-session matches for ${dateISO} — an honest zero; no gap to show. No reel.`);
       process.exit(1);
     }
     const publishedAt = new Date(posted[0].posted_at), gradedAt = new Date(Math.max(...times));

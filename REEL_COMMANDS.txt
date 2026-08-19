@@ -198,13 +198,20 @@ npm run reel:verify-midday            (MKT-62, 2026-08-19 — MANUAL ONLY)
     same afternoon (~4:30 PM ET, POSTING_SCHEDULE Session 3) for
     the FREE ROOM: the board they saw COVERED this morning, cover
     lifted, graded, with the two real timestamps on screen.
-    ⚠ NEVER part of reel:daily and never scheduled. Run it by
-    hand, ONLY after: (1) the midday ledger is imported and hit
-    detection has run (Daily Workflow / import:results), and
-    (2) midday_free was actually POSTED this morning (the reel
-    reads that row's posted_at as PUBLISHED). It ABORTS on
-    purpose if either is missing, or if today's midday board has
-    zero matches (~30% of days) — no gap to prove = no reel.
+    ⚠ NEVER part of reel:daily and never scheduled. IT CANNOT BE
+    RUN UNLESS THE MIDDAY RESULTS HAVE BEEN IMPORTED. Run order:
+      morning reel:daily → post midday_free + FLIP IT POSTED in
+      Admin → Reels (that writes posted_at = the reel's PUBLISHED)
+      → midday draws close (~3:30 PM ET latest) → import the
+      COMPLETE midday ledger → hit detection runs → THEN this
+      command (~4:30 PM) → hand off BEFORE the evening import.
+    The renderer checks each link and aborts naming the missing
+    one: (1) ledger not imported · (2) ledger PARTIAL (<85% of the
+    same-weekday median; --allow-partial if the short count is
+    real) · (3) evening ledger already in = same-day window closed
+    (--allow-late for an archive build only) · (4) imported but
+    hit detection hasn't graded · (5) midday_free never flipped
+    posted · (6) zero midday matches (~30% of days — honest abort).
     Chain: render (--kind=verify_midday: ?capture=1&scope=midday,
     TODAY) → assemble (pinned rise intro / sameday carrier /
     sameday endcard; NO stinger by ruling; chip + ribbon read

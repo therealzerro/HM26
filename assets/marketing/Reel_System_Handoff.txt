@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-19 · v4.3
+Content Agent Handoff · 2026-08-19 · v4.4
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-08-19 (CONSOLIDATED SNAPSHOT, current to v4.3 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-08-19 (CONSOLIDATED SNAPSHOT, current to v4.4 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -163,10 +163,38 @@ C2. SAME-DAY MIDDAY VERIFY ANATOMY (`verify_midday`, MKT-62 — ~21–27s,
                 both skip it). Captions PROVISIONAL (3 operator lines, offset
                 9, no numbers) — the real family is yours, against the built
                 reel (work order item 11).
-     ⚠ DB CHECK migration (`scripts/migrations/2026_08_19_mkt62_verify_
-       midday_kind.sql`) is an OPERATOR STEP — no DDL path from the build
-       env. Render + assemble work without it; publish names the file if
-       the upsert is rejected.
+     ⚠ DB CHECK: applied by the operator 8/19 (first cut PUBLISHED).
+     ⛔ PRECONDITIONS — THE REEL CANNOT BE RUN UNLESS THE MIDDAY RESULTS
+     HAVE BEEN IMPORTED (operator ruling 8/19). The kind sits at the END
+     of a chain and every link is now checked SEPARATELY by the renderer,
+     which names the missing one and aborts (v4.4):
+       0. the morning workflow ran (today's midday slate + tracking rows);
+       1. the MIDDAY LEDGER for today is imported (histories, session=
+          midday) — 0 rows → "import today's midday results first";
+       2. … COMPLETELY — row count vs the same-weekday median over 4 weeks
+          (weekdays ~33, Sundays ~27); <85% → ABORT as PARTIAL (a reel
+          graded against half a day says "1 match" when the day ends at
+          2 — the silent killer); --allow-partial only when the short
+          count is real (holiday/dark states);
+       3. the SAME-DAY WINDOW is open — the EVENING ledger is NOT in yet
+          (after it, "graded this afternoon, before the evening draw" is
+          no longer the frame and a re-grade can move result_at);
+          --allow-late only for an archive build never posted as same-day;
+       4. HIT DETECTION has graded today's midday board (result_at on the
+          slate's tracking rows — it stamps every row, not just matches);
+          imported-but-ungraded → "run hit detection";
+       5. the covered board was POSTED — midday_free.posted_at, which is
+          written when the operator flips the row POSTED in Admin → Reels
+          (load-bearing: an unflipped row = abort; 8/17 and 8/18 show
+          null after the MKT-57a re-publish reset it);
+       6. ≥1 midday-session match — an honest zero is an honest abort
+          (~30% of days).
+     RUN ORDER, operator: morning reel:daily (midday_free built) → post it
+     and FLIP POSTED → midday draws close (~3:30 PM ET at the latest) →
+     import the COMPLETE midday ledger → hit detection → `npm run
+     reel:verify-midday` (~4:30 PM) → hand off from Admin → Reels BEFORE
+     the evening import/draw. Never the other way round, never on a
+     partial import, never after the evening ledger.
 
 D. CARRIERS (your main deliverable; spec §2/§7): rotating sets —
    allday_pro ×4, allday_free ×4, evening_pro ×4, midday_pro ×4 (MKT-59,
@@ -279,6 +307,28 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v4.4 (2026-08-19, late — PRECONDITION CHAIN for verify_midday,
+on the operator's ruling "it cannot be run unless midday results have been
+imported"; plus the coffee-mode GENERATED stamp)
+  A. The renderer now checks SIX links separately and aborts naming the one
+     that is missing (C2 lists them): ledger imported → ledger COMPLETE
+     (same-weekday median, 85% floor; Sunday 27 vs weekday 33 handled) →
+     same-day window open (evening ledger not in) → hit detection graded
+     (result_at on the slate rows) → midday_free POSTED → ≥1 match.
+     Overrides exist only for the two judgment calls (--allow-partial,
+     --allow-late) and are documented as such. Verified both ways: 8/16
+     (evening in) aborts at link 3; today passes all six.
+  B. Home coffee mode: the NEXT DRAW countdown is GONE — replaced by the
+     slate GENERATED stamp (ET, time-first: "7:11 AM · AUG 19"), because a
+     countdown frozen in a captured reel is meaningless and a generation
+     stamp is checkable. reel-redact gained a clock-shape carve-out (the
+     first format, "AUG 19, 7:11 AM", flattened to "197" and aborted the
+     public capture); render-allday-body's coffee detector keys on
+     "GENERATED" now. Takes effect on tomorrow's run. Latent note: a PUBLIC
+     body rendered AFTER a match is graded fails the relabel lint on the
+     modal's state chip — the morning run is before any match, so nothing
+     changes for the daily path.
 
 WHAT CHANGED IN v4.3 (2026-08-19, evening — MKT-62 THE MIDDAY VERIFY REEL:
 built on the work order + six rulings; first live build waits on the ledger)

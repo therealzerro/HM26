@@ -325,10 +325,11 @@ built on the work order + six rulings; first live build waits on the ledger)
      claim after). ⚠ The same geometry is latent on VERIFY on first-row-
      featured days (8/18's sheet shows it) — a ruling is owed: fade at the
      summary cut there too, or move the ribbon on collision days.
-     WAITING: the DB CHECK migration (publish was rejected 23514 as
-     predicted; mp4 + sheet already in the bucket, row pending) → then
-     `npx tsx scripts/publish-reels.ts verify_midday 20260819`; your
-     caption family + copy pass (§G.10).
+     PUBLISHED 2026-08-19 ~20:50Z once the operator applied the DB CHECK
+     (first paste dropped the leading ALTER TABLE → 42601; re-sent as two
+     one-line statements). Row registered in Admin → Reels (⏱️ Midday ·
+     Same-Day Verify, target free). WAITING on you: caption family + copy
+     pass (§G.10).
 
 WHAT CHANGED IN v4.2 (2026-08-19 — POST-BATCH REPORT to the content agent's
 fifteen questions; answers only, everything measured earlier today — the

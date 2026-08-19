@@ -41,7 +41,7 @@ import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { buildReelCaption, fetchReceiptsData, shiftDate, kindNeedsReceipts, ReceiptsData, ReelCaptionKind } from './reel-captions';
-import { REEL_SCOPES, isScope, reelKind, parseVariantFlag, type Scope } from './reel-scopes';
+import { REEL_SCOPES, RETENTION_EXEMPT_KINDS, isScope, reelKind, parseVariantFlag, type Scope } from './reel-scopes';
 import { generateAndUploadCaptionsPdf } from './render-captions-pdf';
 
 loadEnv({ path: '.env.backtest' });
@@ -71,8 +71,10 @@ const ASSETS = resolve('assets/marketing');
  */
 type Kind = Extract<
   ReelCaptionKind,
-  'allday_pro' | 'allday_free' | 'verify' | 'midday_pro' | 'evening_pro' | 'midday_free' | 'evening_free' | 'allday_public' | 'verify_public'
+  'allday_pro' | 'allday_free' | 'verify' | 'midday_pro' | 'evening_pro' | 'midday_free' | 'evening_free' | 'allday_public' | 'verify_public' | 'verify_midday'
 >;
+
+
 
 function etDate(offsetDays: number): string {
   const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
@@ -81,8 +83,13 @@ function etDate(offsetDays: number): string {
 }
 
 const mode = process.argv[2] ?? '';
-if (mode !== 'verify' && !isScope(mode)) {
-  console.error('Usage: tsx scripts/publish-reels.ts <allday|midday|evening|verify> [YYYYMMDD] [--preview] [--captions-only]');
+// MKT-62: `verify_midday` is a MODE of its own, never a variant of verify —
+// different day (today), different scope (midday), different trigger (manual).
+// run-daily-reels.sh's ORDER does not contain it, so a daily run cannot reach
+// this branch by accident.
+const MIDDAY_VERIFY = mode === 'verify_midday';
+if (mode !== 'verify' && !MIDDAY_VERIFY && !isScope(mode)) {
+  console.error('Usage: tsx scripts/publish-reels.ts <allday|midday|evening|verify|verify_midday> [YYYYMMDD] [--preview] [--captions-only]');
   process.exit(1);
 }
 const restArgs = process.argv.slice(3);
@@ -97,7 +104,17 @@ if (ONLY_VARIANT === 'free' && mode === 'verify') {
   console.error('ABORT: verify has no "free" variant — use --variant=public or --variant=pro (the group cut).');
   process.exit(1);
 }
+// MKT-62: FREE GROUP ONLY, NO PUBLIC VARIANT, NO CROSS-POST — the body renders
+// real posted and drawn digits with state attribution; it fails Q1 honestly
+// and no relabel fixes it. A variant flag here is a request for a kind that
+// must not exist (a masked build would be a separate MKT with its own rig).
+if (MIDDAY_VERIFY && ONLY_VARIANT) {
+  console.error('ABORT: verify_midday has no variants — free-group only by ruling (MKT-62). Drop --variant.');
+  process.exit(1);
+}
 const stampArg = restArgs.find((a) => !a.startsWith('--'));
+// verify grades D−1; verify_midday grades TODAY (the same-day cut) — its date
+// default is the one thing that must never be inherited from verify.
 const defaultIso = mode === 'verify' ? etDate(-1) : etDate(0);
 const stamp = stampArg ?? defaultIso.replace(/-/g, '');
 const isoDate = `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`;
@@ -105,6 +122,15 @@ const isoDate = `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`
 interface ReelFiles { kind: Kind; video: string; video1x1: string; sheet: string }
 
 function reelFiles(): ReelFiles[] {
+  if (MIDDAY_VERIFY) {
+    const dir = join(ASSETS, 'verify_reels');
+    return [{
+      kind: 'verify_midday',
+      video: join(dir, `verify_midday_${stamp}.mp4`),
+      video1x1: join(dir, `verify_midday_${stamp}_1x1.mp4`),
+      sheet: join(dir, `verify_midday_${stamp}_contact.png`),
+    }];
+  }
   if (mode === 'verify') {
     const dir = join(ASSETS, 'verify_reels');
     const both: ReelFiles[] = [{
@@ -168,7 +194,7 @@ interface CaptionSet { caption: string; caption_pro: string | null }
 async function buildCaptions(kinds: Kind[]): Promise<Record<string, CaptionSet>> {
   let receipts: ReceiptsData | null = null;
   if (kinds.some(kindNeedsReceipts)) {
-    const receiptsDate = mode === 'verify' ? isoDate : shiftDate(isoDate, -1);
+    const receiptsDate = mode === 'verify' || MIDDAY_VERIFY ? isoDate : shiftDate(isoDate, -1);
     try {
       receipts = await fetchReceiptsData(receiptsDate, sbGet);
     } catch (e) {
@@ -224,7 +250,15 @@ async function upsertRow(row: Record<string, unknown>): Promise<void> {
     headers: svcHeaders({ 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }),
     body: JSON.stringify(row),
   });
-  if (!res.ok) throw new Error(`marketing_reels upsert → HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  if (!res.ok) {
+    const body = (await res.text()).slice(0, 300);
+    // MKT-62: the kind CHECK is the late-failure point (MKT-16/40 precedent).
+    // Name the migration instead of leaving a bare 400 after a successful upload.
+    if (/marketing_reels_kind_check/.test(body)) {
+      throw new Error(`marketing_reels upsert rejected by marketing_reels_kind_check — apply scripts/migrations/2026_08_19_mkt62_verify_midday_kind.sql (operator step; no DDL path from this env), then re-run publish. ${body}`);
+    }
+    throw new Error(`marketing_reels upsert → HTTP ${res.status}: ${body}`);
+  }
 }
 
 /**
@@ -241,6 +275,10 @@ async function upsertRow(row: Record<string, unknown>): Promise<void> {
  * for kinds that stop publishing.
  */
 async function supersedeOlder(kind: Kind, newIso: string): Promise<void> {
+  // MKT-62: rare manual kinds keep every cut — nothing supersedes a same-day
+  // midday verify but the operator. (Per-kind query means this was already a
+  // no-op against OTHER kinds; the test makes the exemption explicit.)
+  if (RETENTION_EXEMPT_KINDS.includes(kind)) { console.log(`  (retention-exempt kind ${kind}: no supersession)`); return; }
   const res = await fetch(
     `${SUPABASE_URL}/rest/v1/marketing_reels?kind=eq.${kind}&reel_date=lt.${newIso}&status=neq.archived&select=id,video_path,video_1x1_path,sheet_path`,
     { headers: svcHeaders() },
@@ -297,8 +335,12 @@ function sweepLocal(dir: string, publishedKinds: Kind[], curStamp: string, fullR
 
 async function prune(): Promise<void> {
   const cutoff = etDate(-PRUNE_DAYS);
+  // MKT-62: kind-agnostic by design, so the exemption is in the QUERY — a
+  // rare kind's rows never enter the candidate set, whichever kind's publish
+  // triggered the prune.
+  const exempt = RETENTION_EXEMPT_KINDS.length ? `&kind=not.in.(${RETENTION_EXEMPT_KINDS.map((k) => `"${k}"`).join(',')})` : '';
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/marketing_reels?reel_date=lt.${cutoff}&status=neq.archived&select=id,video_path,video_1x1_path,sheet_path`,
+    `${SUPABASE_URL}/rest/v1/marketing_reels?reel_date=lt.${cutoff}&status=neq.archived${exempt}&select=id,video_path,video_1x1_path,sheet_path`,
     { headers: svcHeaders() },
   );
   if (!res.ok) { console.warn(`[publish-reels] prune query failed (${res.status}) — skipping.`); return; }
@@ -400,8 +442,10 @@ async function main(): Promise<void> {
   }
 
   // MKT-38: local half. dir is common to every target in a run (one scope).
-  const dir = mode === 'verify' ? join(ASSETS, 'verify_reels') : join(ASSETS, REEL_SCOPES[mode as Scope].dir);
-  sweepLocal(dir, targets.map((t) => t.kind), stamp, !ONLY_VARIANT);
+  const dir = mode === 'verify' || MIDDAY_VERIFY ? join(ASSETS, 'verify_reels') : join(ASSETS, REEL_SCOPES[mode as Scope].dir);
+  // MKT-62: a verify_midday publish never sweeps the SHARED per-day artifacts
+  // (ui_/stamp/chip) in verify_reels — the daily verify's D−1 body lives there.
+  sweepLocal(dir, targets.map((t) => t.kind), stamp, !ONLY_VARIANT && !MIDDAY_VERIFY);
 
   await prune();
   await refreshCaptionsPdf();

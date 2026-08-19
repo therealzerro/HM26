@@ -25,7 +25,7 @@
 // states, and the ledger lists each.
 import { chromium } from 'playwright';
 import { config as loadEnv } from 'dotenv';
-import { writeFileSync, rmSync } from 'node:fs';
+import { writeFileSync, rmSync, copyFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -118,13 +118,38 @@ export async function loadSlate(dateISO: string, scope = 'allday'): Promise<Slat
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
-function html(picks: SlatePick[], dateISO: string, publicCut = false): string {
+/**
+ * MKT-62 — per-board copy overrides for the same-day midday verify. The
+ * default board (verify) reads PUBLISHED <date> / SIX SIGNALS · RANKED BEFORE
+ * THE DRAW / N OF 6 LANDED · RECEIPTS BELOW. The midday kind supplies its own
+ * eyebrow/sub/foot per layer (covered vs graded) — copy is PROVISIONAL pending
+ * the content agent's pass (work order item 11).
+ */
+export interface BoardLabels { eyebrow?: string; sub?: string; foot?: string }
+
+/** MKT-62 cover-lift beat, in frames at 60fps: covered hold + the lift. Both
+ *  the renderer (frame plan) and the assembler (ribbon per-segment placement
+ *  — the board segment is longer on this kind) read these, so they cannot
+ *  drift apart. */
+export const F_COVER = 120;   // 2.00s — the board as the free room saw it, static
+export const F_LIFT = 30;     // 0.50s — the cover comes off (eased opacity)
+export const COVER_LIFT_SECONDS = (F_COVER + F_LIFT) / 60;
+
+/**
+ * `covered` (MKT-62): the board AS POSTED to the free room — digits and set
+ * masked, NO result column (the draw has not happened in this frame), the
+ * cover the member scrolled past this morning. Distinct from `publicCut`,
+ * which masks a GRADED board for a tier-1 surface. Only one may be set.
+ */
+function html(picks: SlatePick[], dateISO: string, publicCut = false, covered = false, labels: BoardLabels = {}, layerId = ''): string {
+  if (publicCut && covered) throw new Error('html(): publicCut and covered are mutually exclusive');
   const d = new Date(dateISO + 'T12:00:00Z');
   const when = `${DAYS[d.getUTCDay()]} · ${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
   const FONT = resolve('node_modules/@expo-google-fonts/jetbrains-mono');
   const landed = picks.filter(p => p.hitType).length;
   const rows = picks.map(p => {
-    const hit = Boolean(p.hitType);
+    // covered: nothing is graded yet in this frame — no hit styling, no result.
+    const hit = !covered && Boolean(p.hitType);
     // MKT-35: straights are the board's strongest proof and must be identified
     // AS straights here, upstream of the ledger's holds — gold, matching the
     // verify identity (MKT-31) and the ledger's ⭐ STRAIGHT. Box stays green.
@@ -136,11 +161,14 @@ function html(picks: SlatePick[], dateISO: string, publicCut = false): string {
     // (tier-1 blocks both). The gold/green treatment survives, which is what
     // keeps the MKT-35 hierarchy readable on the masked cut.
     const digitSrc = (p.bestOrder ?? p.combo).split('');
-    const digits = digitSrc.map(c => `<i>${publicCut ? '•' : c}</i>`).join('');
-    const setChip = publicCut ? '{ • • • }' : (p.comboSet ?? '');
+    const masked = publicCut || covered;
+    const digits = digitSrc.map(c => `<i>${masked ? '•' : c}</i>`).join('');
+    const setChip = masked ? '{ • • • }' : (p.comboSet ?? '');
     const drewVal = publicCut ? '•••' : (p.hitResult ?? '');
     const drewLab = straight ? (publicCut ? 'DREW · EXACT ORDER' : 'DREW · STRAIGHT') : 'DREW';
-    const right = hit
+    const right = covered
+      ? `<div class="res pending"><div class="rlab">COVERED</div></div>`
+      : hit
       ? `<div class="res"><div class="rlab">${drewLab}</div><div class="rval">${drewVal}</div>
          ${publicCut ? '' : `<div class="rwhere">${(p.hitState ?? '').toUpperCase()} · ${(p.hitSession ?? '').toUpperCase()}</div>`}</div>`
       : `<div class="res pending"><div class="rlab">NO MATCH</div></div>`;
@@ -169,7 +197,11 @@ function html(picks: SlatePick[], dateISO: string, publicCut = false): string {
        Chosen over shifting the assembler's offset to -416: that would have put
        the ribbon top at y16, under the platform top chrome on every short-form
        surface — hiding the brand line is the one outcome MKT-14 cannot accept. */
-    body{width:1080px;height:1920px;background:#07080f;font-family:JBM;color:#fff;
+    body{width:1080px;height:1920px;background:#07080f;font-family:JBM;color:#fff}
+    /* MKT-62: the board is a LAYER so a covered and a graded board can stack in
+       one page and dissolve by opacity (the cover-lift). The default render has
+       exactly one layer — byte-identical layout to the pre-MKT-62 body. */
+    .board{position:absolute;inset:0;width:1080px;height:1920px;background:#07080f;
          padding:375px 56px 84px;display:flex;flex-direction:column;gap:30px}
     .hd{display:flex;flex-direction:column;gap:10px;margin-bottom:6px}
     .eyebrow{font-weight:500;font-size:30px;letter-spacing:7px;color:#2bffcc}
@@ -193,22 +225,31 @@ function html(picks: SlatePick[], dateISO: string, publicCut = false): string {
     .res.pending .rlab{color:#454b60}
     .foot{margin-top:8px;font-weight:500;font-size:28px;color:#6f7590;letter-spacing:3px;text-align:center}
   </style></head><body>
-    <div class="hd"><div class="eyebrow">PUBLISHED ${when}</div>
+    <div class="board" ${layerId ? `id="${layerId}"` : ''}>
+    <div class="hd"><div class="eyebrow">${labels.eyebrow ?? `PUBLISHED ${when}`}</div>
       <div class="title">THE BOARD WE POSTED</div>
-      <div class="sub">SIX SIGNALS · RANKED BEFORE THE DRAW</div></div>
+      <div class="sub">${labels.sub ?? 'SIX SIGNALS · RANKED BEFORE THE DRAW'}</div></div>
     ${rows}
-    <div class="foot">${landed} OF ${picks.length} LANDED · RECEIPTS BELOW</div>
+    <div class="foot">${labels.foot ?? `${landed} OF ${picks.length} LANDED · RECEIPTS BELOW`}</div>
+    </div>
   </body></html>`;
+}
+
+/** Split a full page into (head-with-style, board-layer markup). */
+function splitPage(page: string): { head: string; board: string } {
+  const bodyAt = page.indexOf('<body>');
+  const endAt = page.lastIndexOf('</body>');
+  return { head: page.slice(0, bodyAt + '<body>'.length), board: page.slice(bodyAt + '<body>'.length, endAt) };
 }
 
 /** Render `frames` PNGs of the board with a slow push-in, into `dir`. */
 export async function renderSlateFrames(
   dir: string, fname: (i: number) => string, from: number, frames: number, dateISO: string, scope = 'allday',
-  publicCut = false,
+  publicCut = false, labels: BoardLabels = {},
 ): Promise<number> {
   const picks = await loadSlate(dateISO, scope);
-  const tmp = join(tmpdir(), `verify-slate-${dateISO}${publicCut ? '-public' : ''}.html`);
-  writeFileSync(tmp, html(picks, dateISO, publicCut));
+  const tmp = join(tmpdir(), `verify-slate-${dateISO}-${scope}${publicCut ? '-public' : ''}.html`);
+  writeFileSync(tmp, html(picks, dateISO, publicCut, false, labels));
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
   await page.goto(`file://${tmp}`, { waitUntil: 'networkidle' });
@@ -222,6 +263,82 @@ export async function renderSlateFrames(
     const k = 1 + 0.045 * ease(i / Math.max(1, frames - 1));
     await page.evaluate(s => { document.body.style.transform = `scale(${s})`; document.body.style.transformOrigin = '50% 42%'; }, k);
     await page.screenshot({ path: fname(from + i) });
+  }
+  await browser.close();
+  rmSync(tmp, { force: true });
+  return picks.filter(p => p.hitType).length;
+}
+
+/**
+ * MKT-62 — THE COVER COMING OFF. The body opens on the board AS THE FREE ROOM
+ * SAW IT this morning (digits covered, no results), holds `coverFrames`, then
+ * the cover LIFTS over `liftFrames` (opacity cross-dissolve, eased) into the
+ * GRADED board, which then runs its normal slow push-in for `slateFrames`.
+ *
+ * One Playwright page, two stacked `.board` layers — the dissolve is a CSS
+ * opacity on the top layer, so both boards are pixel-registered (same layout,
+ * same rows, same rank order) and nothing moves but the cover. Option (a) of
+ * the Phase 0 report, ruled in 2026-08-19: proven masking machinery, no second
+ * browser session, no cross-layout dissolve.
+ *
+ * Returns the landed count (same contract as renderSlateFrames).
+ */
+export async function renderCoverLiftFrames(
+  dir: string, fname: (i: number) => string, from: number,
+  coverFrames: number, liftFrames: number, slateFrames: number,
+  dateISO: string, scope: string, coveredLabels: BoardLabels, gradedLabels: BoardLabels,
+): Promise<number> {
+  const picks = await loadSlate(dateISO, scope);
+  const graded = splitPage(html(picks, dateISO, false, false, gradedLabels, 'graded'));
+  const covered = splitPage(html(picks, dateISO, false, true, coveredLabels, 'cover'));
+  const page_ = `${graded.head}${graded.board}${covered.board}</body></html>`;
+  const tmp = join(tmpdir(), `verify-slate-${dateISO}-${scope}-coverlift.html`);
+  writeFileSync(tmp, page_);
+  const browser = await chromium.launch();
+  const page = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
+  await page.goto(`file://${tmp}`, { waitUntil: 'networkidle' });
+  await page.evaluate(() => (document as any).fonts.ready);
+  const ok = await page.evaluate(() => (document as any).fonts.check('700 62px JBM'));
+  if (!ok) { await browser.close(); throw new Error('JetBrains Mono failed to load — the board would render in a fallback face.'); }
+  // Fail-closed: the cover layer must carry NO digit run and NO result — the
+  // whole beat is that the free room saw nothing graded this morning.
+  const leak = await page.evaluate(() => {
+    const el = document.getElementById('cover'); if (!el) return ['no cover layer'];
+    const bad: string[] = [];
+    for (const n of Array.from(el.querySelectorAll('*')) as HTMLElement[]) {
+      if (n.children.length) continue;
+      const t = (n.textContent ?? '').trim();
+      if (/^\d{3}$/.test(t) || /^\d$/.test(t)) bad.push('digit: ' + t);
+      if (/DREW|STRAIGHT|LANDED/.test(t)) bad.push('result: ' + t);
+    }
+    return bad;
+  });
+  if (leak.length) { await browser.close(); throw new Error(`ABORT: covered board leaks graded content — ${leak.slice(0, 6).join(' · ')}`); }
+  const ease = (t: number) => (1 - Math.cos(Math.PI * Math.min(Math.max(t, 0), 1))) / 2;
+  const setState = (coverOpacity: number, k: number) => page.evaluate(({ o, k }) => {
+    const c = document.getElementById('cover') as HTMLElement; c.style.opacity = String(o);
+    for (const id of ['cover', 'graded']) {
+      const b = document.getElementById(id) as HTMLElement;
+      b.style.transform = `scale(${k})`; b.style.transformOrigin = '50% 42%';
+    }
+  }, { o: coverOpacity, k });
+  let f = from;
+  // 1. covered hold — static (this is a remembered frame, not a reveal).
+  await setState(1, 1);
+  await page.screenshot({ path: fname(f) });
+  for (let i = 1; i < coverFrames; i++) { copyFileSync(fname(from), fname(from + i)); }
+  f = from + coverFrames;
+  // 2. the lift — eased opacity 1→0 on the cover, both layers at k=1.
+  for (let i = 0; i < liftFrames; i++) {
+    await setState(1 - ease((i + 1) / liftFrames), 1);
+    await page.screenshot({ path: fname(f + i) });
+  }
+  f += liftFrames;
+  // 3. graded board — the standard slow push-in (identical to renderSlateFrames).
+  for (let i = 0; i < slateFrames; i++) {
+    const k = 1 + 0.045 * ease(i / Math.max(1, slateFrames - 1));
+    await setState(0, k);
+    await page.screenshot({ path: fname(f + i) });
   }
   await browser.close();
   rmSync(tmp, { force: true });

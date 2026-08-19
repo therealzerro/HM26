@@ -507,6 +507,25 @@ const CAPTION_REGISTRY = {
    * holds 4); distinct from verify (0) and verify_pro (2) mod 12 is not the
    * binding rule (different families), but 6 avoids those too.
    */
+  /**
+   * MKT-62 — verify_midday: the SAME-DAY MIDDAY VERIFY (free group only by
+   * ruling; manual trigger; rare). ⚠ PROVISIONAL — three operator-written
+   * lines so the kind can publish; the content agent writes the real family
+   * against the BUILT reel (work order item 11: "on request once the kind's
+   * shape is settled"). Qualitative, no counts, no states: the numbers policy
+   * is pro-only and this kind has no pro caption. Receipts are NOT consumed —
+   * fetchReceiptsData is all-day-scoped and would describe the wrong board.
+   * Offset 9: distinct from every registered offset (0,2,3,4,5,6,7,11).
+   */
+  verify_midday: {
+    offset: 9,
+    realNumbers: false,
+    templates: [
+      c => `Same day, not tomorrow 🧾 This morning's Midday board — covered when it went up — graded against what drew, before the evening session. Watch the cover come off. (${c.reelMd})`,
+      c => `The gap, on tape: posted this morning, graded this afternoon. ${c.reelMd}'s Midday board, checked in the open. Pro reads every board first.`,
+      c => `Rare one. The Midday board you saw covered this morning just came back graded — same day, ${c.reelMd}. The reel is the receipt. 🧾`,
+    ],
+  },
   verify_public: {
     offset: 6,
     realNumbers: false,

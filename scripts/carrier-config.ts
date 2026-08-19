@@ -237,6 +237,18 @@ export const CARRIERS: Record<string, CarrierSpec> = {
     rest: ['verif_carrier_pt2.mp4'],
     restShort: ['verif_carrier_signoff_short.mp4'],
   },
+  // MKT-62 — SAME-DAY MIDDAY VERIFY. Single-part, set of ONE, and it must stay
+  // that way: "Now this is a rare one / this mornin's board — already checked
+  // against what drew / same day, not tomorrow" is FALSE on a routine reel,
+  // which is exactly why verify's own carriers were made time-neutral. Pinned
+  // to this kind by the same structure that keeps an All-Day carrier out of
+  // the Midday reel — no cross-kind lookup exists. Not in CARRIER_KINDS (a set
+  // of one cannot de-phase). VO 1.10–9.69s of a 10.005s preset → short-carrier
+  // path: hum-bed from the endcard's pre-crack window covers the tail.
+  verify_midday: {
+    set: [{ file: 'verif_carrier_sameday.mp4', label: 'same day, not tomorrow' }],
+    rest: [],
+  },
 };
 
 /**

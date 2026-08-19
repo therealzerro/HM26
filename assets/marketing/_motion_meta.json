@@ -78,5 +78,11 @@
     "bedRms": -32.1,
     "crackAt": 3.6,
     "derivedAt": "2026-08-03"
+  },
+  "endcard_motion_sameday.mp4": {
+    "bedUsable": true,
+    "bedRms": -24,
+    "crackAt": 3.8,
+    "derivedAt": "2026-08-19"
   }
 }

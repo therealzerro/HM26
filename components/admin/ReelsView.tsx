@@ -77,6 +77,11 @@ const KIND_UI: Record<ReelKind, { icon: string; label: string; defaultTarget: Ta
   // MKT-40 — the grading half of the public pair. Verify's contact sheet is 4
   // frames wide (open / board / hold / close), same as verify's.
   verify_public: { icon: '🧾', label: 'Verify · Public', defaultTarget: 'cross', sheetAspect: 4 * (270 / 480) },
+  // MKT-62 — the SAME-DAY midday verify. Default 'free' is the ruling, not a
+  // convenience: this kind exists to close the free member's covered-board loop
+  // the same afternoon; cross-post is barred (real digits + state attribution,
+  // no masked build). Contact sheet 5 frames (open / covered / lifted / hold / close).
+  verify_midday: { icon: '⏱️', label: 'Midday · Same-Day Verify', defaultTarget: 'free', sheetAspect: 5 * (270 / 480) },
 };
 
 /** A kind with no UI entry would crash the whole Reels tab on `ui.defaultTarget`

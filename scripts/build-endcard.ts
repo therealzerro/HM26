@@ -22,7 +22,7 @@ import { copyFileSync, existsSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import {
-  ENDCARD_MOTIONS, tierFor, builtEndcardName, readMotionMeta,
+  ENDCARD_MOTIONS, endcardMotionSetFor, tierFor, builtEndcardName, readMotionMeta,
   MOTION_META_FILE, type MotionVariant, type MotionMeta,
 } from './brand-motion';
 import { bedWindow, bedLevelReachable, BED_TARGET_RMS } from './reel-bed';
@@ -189,7 +189,8 @@ async function build(key: string, v: EndcardVariant, mv: MotionVariant): Promise
     // MKT-19: one built artifact per (variant x motion), tier-locked. Strategy
     // (a) — prebuild the matrix so the daily run, which is operator-triggered
     // before 08:30 ET and is the only trigger, pays nothing for rotation.
-    for (const mv of ENDCARD_MOTIONS[tierFor(k)]) await build(k, v, mv);
+    // MKT-62: pinned kinds build their one fixed motion, never the tier pool.
+    for (const mv of endcardMotionSetFor(k)) await build(k, v, mv);
   }
   // Merge rather than overwrite: building a single variant must not discard
   // verdicts derived for motions this run did not touch.

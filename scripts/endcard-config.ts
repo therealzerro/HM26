@@ -130,6 +130,19 @@ export const ENDCARDS: Record<string, EndcardVariant> = {
     lines: ['HITMASTER ZK6', 'PUBLISHED FIRST. CHECKED AFTER.', 'SEE THE FULL RECORD FREE'],
     line3Accent: '#FBBF24',
   },
+
+  // ── MKT-62 — verify_midday: the SAME-DAY MIDDAY VERIFY. FREE-GROUP ONLY
+  // (tier 2) by ruling, which is what makes the pricing line legal here and
+  // nowhere above it. Line 2 is the argument (true only because of the
+  // timestamp pair in the body), line 3 is the ask. Motion is PINNED
+  // (FIXED_ENDCARD_MOTION in brand-motion.ts) — never a tier pool. Gold
+  // accent: the verify identity carries to the same-day cut.
+  verify_midday: {
+    motion: 'endcard_motion_sameday.mp4',
+    out: 'verify_midday_endcard.mp4',
+    lines: ['HITMASTER ZK6', 'POSTED THIS MORNING · GRADED THIS AFTERNOON', 'ZK PRO READS EVERY BOARD FIRST · $2.49/MO'],
+    line3Accent: '#FBBF24',
+  },
 };
 
 // ── Brand-fixed layout ──────────────────────────────────────────────────────

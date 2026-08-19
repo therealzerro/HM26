@@ -146,6 +146,18 @@ export const PUBLIC_INTROS: string[] = [
 ];
 
 /**
+ * MKT-62 — the SAME-DAY MIDDAY VERIFY reel's fixed intro. The Anchor STANDS —
+ * the only beat in the pool where he leaves the chair — which is FALSE on a
+ * routine reel (the standing beat says "this one is different"). It must
+ * never enter INTRO_ROTATION, VERIFY_INTROS or PUBLIC_INTROS: pinned, not
+ * pooled, the way the seal is verify's fixed stinger. Trimmed IN 0.56 (audio
+ * onset) / OUT 6.45 (full smoke) = 5.89s from anchor_intro_rise_master_10s.
+ */
+export const VERIFY_MIDDAY_INTROS: string[] = [
+  'anchor_intro_rise.mp4',
+];
+
+/**
  * Which pinned set each non-rotating kind draws. Kinds sharing a set (by
  * reference — that identity is what defines the sharer group) spread across it
  * in declaration order, so on multi-member days the day's public reels open on
@@ -166,6 +178,9 @@ export const FIXED_INTRO: Record<string, string[]> = {
   verify_public: PUBLIC_INTROS,
   midday_public: PUBLIC_INTROS,
   evening_public: PUBLIC_INTROS,
+  // MKT-62: its own set of one — shares with no kind, so its position here
+  // cannot re-phase any sharer group (spread is per set reference).
+  verify_midday: VERIFY_MIDDAY_INTROS,
 };
 
 /** Today in ET, matching every other date-derived rotation in the pipeline. */

@@ -24,7 +24,7 @@ import { carrierCandidates } from './reel-carrier';
 import { INTRO_ROTATION, FIXED_INTRO, introCandidates } from './anchor-intros';
 import {
   STINGER_MOTIONS, ENDCARD_MOTIONS, SEAL_KINDS, liveSealMotions,
-  stingerMotionsFor, endcardMotionsFor, tierFor,
+  stingerMotionsFor, endcardMotionsFor, endcardMotionSetFor, tierFor,
 } from './brand-motion';
 import { REEL_SCOPES, SCOPES, reelKind } from './reel-scopes';
 
@@ -106,11 +106,11 @@ export const LANES: Lane[] = [
     },
     position(k, d) {
       const m = endcardMotionsFor(k, d)[0];
-      return m ? idx(ENDCARD_MOTIONS[tierFor(k)], x => x.tag === m.tag) : 0;
+      return m ? idx(endcardMotionSetFor(k), x => x.tag === m.tag) : 0;
     },
     // Unbedded: `needsBed` narrows the set on short-carrier days, but that is a
     // per-day runtime condition, not a property of the schedule.
-    poolSize: k => ENDCARD_MOTIONS[tierFor(k)].length,
+    poolSize: k => endcardMotionSetFor(k).length,
   },
   {
     name: 'carrier',

@@ -20,7 +20,7 @@ import { existsSync, statSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { resolveCarrier, undeclaredParts, carrierCandidates, audioDur, OVERLAP_EPSILON, carrierBoundarySlack, BOUNDARY_WARN_AT } from './reel-carrier';
-import { CARRIERS, allCarrierFiles, PART1_DUR_TOLERANCE } from './carrier-config';
+import { CARRIERS, CARRIER_KINDS, allCarrierFiles, PART1_DUR_TOLERANCE } from './carrier-config';
 import { bedWindow } from './reel-bed';
 import { available, sourcePath, builtPath, sha256, clearanceFor } from './reel-panels';
 import { PANELS, PANEL_W } from './panel-config';
@@ -28,14 +28,17 @@ import { MODAL_COUNT, PANEL_BUCKET, panelUrl, panelSequence, rotationDegenerate 
 import { STINGERS, STINGER_DUR, INTRO_XFADE, stingerFile } from './stinger-config';
 import { ENDCARDS } from './endcard-config';
 import {
-  stingerMotionSetFor, ENDCARD_MOTIONS, allMotionFiles, tierFor,
+  stingerMotionSetFor, ENDCARD_MOTIONS, allMotionFiles, tierFor, endcardMotionSetFor, FIXED_ENDCARD_MOTION,
+  ENDCARD_KINDS, STINGER_KINDS, SEAL_KINDS,
   builtEndcardName, builtStingerName, readMotionMeta, heldMotionReasons,
 } from './brand-motion';
 import { endcardCandidates } from './reel-endcard';
 import { stingerCandidates } from './reel-stinger';
-import { REEL_SCOPES, SCOPES, reelKind, captureModeFor } from './reel-scopes';
-import { allIntroFiles, introCandidates } from './anchor-intros';
+import { REEL_SCOPES, SCOPES, RETENTION_EXEMPT_KINDS, reelKind, captureModeFor } from './reel-scopes';
+import { allIntroFiles, introCandidates, INTRO_ROTATION, VERIFY_INTROS, PUBLIC_INTROS, VERIFY_MIDDAY_INTROS } from './anchor-intros';
 import { INTRO_MIN, INTRO_MAX } from './reel-intro';
+import { CHIP_LABELS } from './intro-chip-config';
+const CHIP_LABELS_HAS = (k: string): boolean => Boolean(CHIP_LABELS[k]);
 import { LANES, dailyKinds, laneReport, comboDistinct, PERIOD_WARN_BELOW } from './reel-rotation-health';
 
 // The app resolves panel URLs from EXPO_PUBLIC_SUPABASE_URL; load it so the
@@ -357,7 +360,7 @@ function checkStrays(): void {
     // `out` field — the SAME call the resolver uses — so the expected set cannot
     // disagree with what the assembler reads. Constructing these independently
     // is how checkStrays would start reporting phantom strays for verify.
-    for (const m of ENDCARD_MOTIONS[tierFor(kind)]) referenced.add(builtEndcardName(v.out, m.tag));
+    for (const m of endcardMotionSetFor(kind)) referenced.add(builtEndcardName(v.out, m.tag));
   }
   for (const m of allMotionFiles()) referenced.add(m);
   for (const [variant, cfg] of Object.entries(STINGERS)) {
@@ -410,7 +413,7 @@ function checkSlateEndcard(kind: string, carrierDur: number | null): void {
   if (!spec) return;
   const needsBed = carrierDur != null && carrierDur < voiceWindow() - 0.05;
   const meta = readMotionMeta(ASSETS);
-  const set = ENDCARD_MOTIONS[tierFor(kind)];
+  const set = endcardMotionSetFor(kind);   // MKT-62: pinned kinds check their one motion
   // Bed viability is a property of the MOTION and is what the resolver filters
   // on, so a build-up motion must not be failed for lacking a bed on a hum-bed
   // day — it correctly drops out. Only the motions the resolver could actually
@@ -589,6 +592,93 @@ function checkSlateCarrier(kind: string): number | null {
     add('WARN', name, `audio still active at the ${voiceSpan.toFixed(1)}s fade — narration may cut mid-phrase (script the VO to finish by ${(overlap ? voiceHardEnd() - 0.5 : voiceWindow() - 0.5).toFixed(1)}s of carrier)`);
   }
   return dur;
+}
+
+/**
+ * MKT-62 — the SAME-DAY MIDDAY VERIFY (`verify_midday`): a manual, rare kind
+ * with a FIXED set. What must hold, and is asserted here rather than trusted:
+ *   1. its three assets are present/usable and PINNED — none of them appears in
+ *      any rotation pool (intro rotation / verify / public sets, tier endcard
+ *      pools, any other kind's carrier set);
+ *   2. the kind itself sits in NO lane list (CARRIER_KINDS, ENDCARD_KINDS,
+ *      STINGER_KINDS, SEAL_KINDS) — registering it moved no live kind's offset;
+ *   3. it has NO stinger entry (ruling) and NO public variant;
+ *   4. the daily run cannot draw it (run-daily-reels.sh ORDER) and publish-reels
+ *      exempts it from both retention functions.
+ */
+function checkVerifyMidday(): void {
+  const K = 'verify_midday';
+  // 1. intro — pinned set of one, never in a pool
+  const intro = VERIFY_MIDDAY_INTROS[0];
+  const pooled = [...INTRO_ROTATION.map(v => v.file), ...VERIFY_INTROS, ...PUBLIC_INTROS];
+  if (pooled.includes(intro)) add('FAIL', intro, `MKT-62 pinned intro is ALSO in a rotation/fixed pool — the standing beat is false on a routine reel. Remove it from the pool.`);
+  else add('PASS', intro, 'pinned to verify_midday only — in no rotation or shared fixed set');
+  const ip = exists(intro);
+  if (ip) {
+    const st = streams(ip);
+    if (!st.hasAudio) add('FAIL', intro, 'no audio stream (intro audio is load-bearing pre-VO)');
+    else if (st.vDur < INTRO_MIN || st.vDur > INTRO_MAX) add('FAIL', intro, `video ${st.vDur.toFixed(2)}s outside the ${INTRO_MIN}–${INTRO_MAX}s intro contract`);
+    else add('PASS', intro, `video ${st.vDur.toFixed(2)}s · audio ${st.aDur.toFixed(2)}s — the Anchor stands; IN 0.56 / OUT 6.45 of the master`);
+    if (introCandidates(K, TODAY)[0]?.file !== intro) add('FAIL', `${K} intro selection`, `resolver does not put ${intro} first for ${K} — pin broken`);
+  }
+  // carrier — set of one, no continuation, file in no other kind's set
+  const cSpec = CARRIERS[K];
+  if (!cSpec) { add('FAIL', K, 'no carrier config — the assembler aborts at resolveCarrier'); }
+  else {
+    if (cSpec.set.length !== 1 || cSpec.rest.length) add('FAIL', K, `carrier must be a single-part set of ONE (is ${cSpec.set.length} part-1 + ${cSpec.rest.length} continuation) — "same day" lines are false anywhere else`);
+    const cf = cSpec.set[0].file;
+    const leak = Object.entries(CARRIERS).filter(([k, v]) => k !== K && (v.set.some(x => x.file === cf) || v.rest.includes(cf) || (v.restShort ?? []).includes(cf))).map(([k]) => k);
+    if (leak.length) add('FAIL', cf, `MKT-62 pinned carrier is referenced by other kind(s): ${leak.join(', ')}`);
+    else add('PASS', cf, 'referenced by verify_midday only');
+    const cp = exists(cf);
+    if (cp) {
+      const st = streams(cp);
+      if (!st.hasAudio) add('FAIL', cf, 'no audio stream — the carrier IS the VO');
+      else add('PASS', cf, `audio ${st.aDur.toFixed(2)}s — single-part; the body's closing holds play under the endcard audio (MKT-27/41 ruling, as on verify)`);
+    }
+    if (CARRIER_KINDS.includes(K)) add('FAIL', K, 'listed in CARRIER_KINDS — a set of one cannot de-phase and the lane order must not move');
+  }
+  // endcard — pinned motion, not in any tier pool; built file present
+  const fixed = FIXED_ENDCARD_MOTION[K];
+  if (!fixed) add('FAIL', K, 'no FIXED_ENDCARD_MOTION entry — the kind would fall into a tier pool');
+  else {
+    const inPool = [...ENDCARD_MOTIONS.pro, ...ENDCARD_MOTIONS.free].some(m => m.file === fixed.file);
+    if (inPool) add('FAIL', fixed.file, 'MKT-62 pinned endcard motion is ALSO in a tier pool — a routine reel could close on the rarity motion');
+    else add('PASS', fixed.file, 'pinned to verify_midday only — in neither tier pool');
+    const ec = ENDCARDS[K];
+    if (!ec) add('FAIL', K, 'no ENDCARDS entry');
+    else {
+      const built = builtEndcardName(ec.out, fixed.tag);
+      const bp = exists(built);
+      if (bp) {
+        const st = streams(bp);
+        if (!Number.isFinite(st.vDur) || st.vDur < 6.5) add('FAIL', built, `video ${st.vDur?.toFixed(1)}s < 6.5s outro window`);
+        else add('PASS', built, `video ${st.vDur.toFixed(1)}s · "${ec.lines[1]}" / "${ec.lines[2]}" (free-group only: pricing legal)`);
+      } else add('WARN', built, `not built — run npm run endcard:build ${K}`);
+    }
+    for (const tier of ['pro', 'free'] as const) {
+      if (ENDCARD_KINDS[tier].includes(K)) add('FAIL', K, `listed in ENDCARD_KINDS.${tier} — pinned kinds must not occupy a lane slot`);
+    }
+  }
+  // 3. no stinger, no public variant
+  if (STINGERS[K]) add('FAIL', K, 'has a STINGERS entry — NO STINGER on this kind by ruling (63.8% floor-day ratio; chip identifies at frame one)');
+  else add('PASS', `${K} stinger`, 'none by ruling (MKT-62 #2) — intro dissolves straight into the covered board');
+  if (STINGER_KINDS.includes(K) || SEAL_KINDS.includes(K)) add('FAIL', K, 'listed in a stinger lane');
+  if (CHIP_LABELS_HAS(K)) add('PASS', `${K} chip`, "TODAY'S MIDDAY · GRADED — chips TODAY (inverse of verify's rule)");
+  else add('FAIL', `${K} chip`, 'no CHIP_LABELS entry — the kind would assemble with no frame-one identification and it has no stinger to fall back on');
+  // 4. daily run cannot draw it; retention exempt
+  const daily = readFileSync(resolve('scripts/run-daily-reels.sh'), 'utf8');
+  const orderLine = daily.split('\n').find(l => /^ORDER=\(/.test(l)) ?? '';
+  if (/verify_midday/.test(orderLine)) add('FAIL', 'run-daily-reels.sh', `ORDER contains verify_midday — the same-day kind must NEVER be part of reel:daily (a midday verify built on a day with no midday grading is this kind's worst failure)`);
+  else add('PASS', 'run-daily-reels.sh', `ORDER=${orderLine.replace(/^ORDER=/, '')} — verify_midday absent; manual trigger only (npm run reel:verify-midday)`);
+  if (!RETENTION_EXEMPT_KINDS.includes(K)) add('FAIL', K, 'not in RETENTION_EXEMPT_KINDS — the 30d prune would delete it between runs');
+  else {
+    const pub = readFileSync(resolve('scripts/publish-reels.ts'), 'utf8');
+    const supersedeOk = /async function supersedeOlder[\s\S]{0,400}RETENTION_EXEMPT_KINDS\.includes/.test(pub);
+    const pruneOk = /async function prune[\s\S]{0,600}RETENTION_EXEMPT_KINDS/.test(pub);
+    if (supersedeOk && pruneOk) add('PASS', `${K} retention`, 'exempt in supersedeOlder() AND prune() (MKT-46 pattern — kind test at the top of both)');
+    else add('FAIL', `${K} retention`, `exemption missing from ${!supersedeOk ? 'supersedeOlder()' : ''}${!supersedeOk && !pruneOk ? ' and ' : ''}${!pruneOk ? 'prune()' : ''}`);
+  }
 }
 
 function checkVerify(): void {
@@ -915,7 +1005,7 @@ function checkScopes(): void {
       const ecSpec = ENDCARDS[kind];
       const hasEndcard = Boolean(ecSpec) && (
         existsSync(join(ASSETS, ecSpec.out)) ||
-        ENDCARD_MOTIONS[tierFor(kind)].some(m => existsSync(join(ASSETS, builtEndcardName(ecSpec.out, m.tag))))
+        endcardMotionSetFor(kind).some(m => existsSync(join(ASSETS, builtEndcardName(ecSpec.out, m.tag))))
       );
       if (!hasCarrier && !hasEndcard) {
         add('PASS', kind, `no assets delivered — dormant (npm run reel:${scope} would abort until a carrier + endcard land)`);
@@ -1054,6 +1144,7 @@ checkScopes();
 checkPublicGateRecords();
 checkStingers();
 checkVerify();
+checkVerifyMidday();
 checkPanels();
 checkStamp();
 checkRotationHealth();

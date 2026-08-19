@@ -45,6 +45,10 @@ const PURPOSES = {
   // verify's subject is the gold moment; every slate surface leads cyan).
   // The assembler keeps it up for the FULL body and fades it into the close.
   verify: { eyebrow: "YESTERDAY'S RECEIPTS", accent: '#FBBF24', top: 470 },
+  // MKT-62 — the same-day midday verify: TODAY, not yesterday (every string
+  // verify owns says YESTERDAY and every one of them is wrong on this kind).
+  // Same gold, same 470 ribbon placement (the body is the same screen).
+  verify_midday: { eyebrow: "TODAY'S MIDDAY · GRADED", accent: '#FBBF24', top: 470 },
 } as const;
 
 // MKT-14 — the brand string, ruled 2026-07-31. "ZK6", not the version-agnostic
@@ -58,7 +62,7 @@ const BRAND_STRING = 'HITMASTER ZK6';
 const [, , purposeArg, ymd, scopeArg, outArg] = process.argv;
 const purpose = PURPOSES[purposeArg as keyof typeof PURPOSES];
 if (!purpose || !/^\d{8}$/.test(ymd ?? '') || !scopeArg || !outArg) {
-  console.error('Usage: tsx scripts/render-reel-stamp.ts <drop|verify> <YYYYMMDD> <scope|-> <out.png>');
+  console.error('Usage: tsx scripts/render-reel-stamp.ts <drop|verify|verify_midday> <YYYYMMDD> <scope|-> <out.png>');
   process.exit(1);
 }
 const out = resolve(outArg);

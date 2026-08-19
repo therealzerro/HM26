@@ -22,7 +22,9 @@ export type ReelKind =
   | 'allday_pro' | 'allday_free' | 'verify'
   | 'midday_pro' | 'evening_pro'
   | 'midday_free' | 'evening_free'
-  | 'allday_public' | 'verify_public';
+  | 'allday_public' | 'verify_public'
+  // MKT-62 — the same-day midday verify (manual, rare, free group only).
+  | 'verify_midday';
 
 /**
  * WHICH ROOM EACH KIND'S STORED CAPTION WAS WRITTEN FOR — MKT-24.
@@ -55,4 +57,9 @@ export const REEL_KIND_AUDIENCE: Record<ReelKind, 'free' | 'pro' | 'public'> = {
   // MKT-40: same tier-1 discipline and funnel as allday_public — the grading
   // half of the public pair.
   verify_public: 'public',
+  // MKT-62: written for the FREE room and only that room — the body carries
+  // real posted/drawn digits with state attribution (fails Q1 honestly; no
+  // public variant exists by ruling). Pro may also receive it at the
+  // operator's discretion; the caption is free-room copy.
+  verify_midday: 'free',
 };

@@ -34,8 +34,8 @@ export const POSTING_SESSIONS: ScheduleSession[] = [
   },
   {
     time: '4:30 PM', title: 'Same-day midday verify',
-    kinds: [],
-    note: 'Conditional — not built yet. Highest-conversion slot when it exists.',
+    kinds: ['verify_midday'],
+    note: 'CONDITIONAL + MANUAL (MKT-62): only on days the midday ledger is imported and graded in time — npm run reel:verify-midday, never reel:daily. Free room; Pro at the operator\'s call. The highest-conversion slot in the system.',
   },
   {
     time: '5:30 PM', title: 'Evening pair',

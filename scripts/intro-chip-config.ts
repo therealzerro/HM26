@@ -66,4 +66,9 @@ export const CHIP_LABELS: Record<string, { text: string; accent: string }> = {
   allday_public:  { text: 'THE FULL BOARD',      accent: DROP },
   midday_public:  { text: 'THE FULL BOARD',      accent: DROP },
   evening_public: { text: 'THE FULL BOARD',      accent: DROP },
+  // MKT-62: the same-day midday verify chips TODAY, not yesterday — the inverse
+  // of verify's rule, and the reason it cannot inherit verify's chip. Plain
+  // language at frame one (there is no stinger on this kind by ruling, so the
+  // chip carries the whole identification job).
+  verify_midday:  { text: "TODAY'S MIDDAY · GRADED", accent: VERIFY },
 };

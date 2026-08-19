@@ -13,6 +13,14 @@
  *  · ALL digits must stay in TEXT nodes (no images/SVG numerals): the
  *    verify_public redaction sweep (MKT-30) masks text nodes only, and its
  *    abort is the last gate before a tier-1 surface.
+ *  · SANCTIONED EXCEPTION (MKT-62, operator ruling 2026-08-19): `&scope=
+ *    midday|evening|allday` seeds the scope filter — ONLY when capture=1.
+ *    The same-day midday verify reel needs today's MIDDAY rows alone, and
+ *    the scope pills are hidden under capture. Ruled in over a rig-side DOM
+ *    prune because a prune breaks SILENTLY on any layout change; this is
+ *    three explicit lines that are dead code for members (the param does
+ *    nothing without capture=1, so it cannot shape the member surface).
+ *    Recorded as a decision, not a violation — see MASTER_AUDIT MKT-62.
  */
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
@@ -96,11 +104,17 @@ export default function TrackRecordScreen() {
   const { colors } = useTheme();
   const s = useMemo(() => makeS(colors), [colors]);
   // MKT-51 capture contract: rigs pass ?capture=1 for deterministic frames.
-  const params = useLocalSearchParams<{ capture?: string }>();
+  const params = useLocalSearchParams<{ capture?: string; scope?: string }>();
   const captureMode = params.capture === '1';
+  // MKT-62 sanctioned exception (header): capture-gated scope seed. Without
+  // capture=1 the param is ignored entirely — members always start on 'all'.
+  const captureScope: ScopeFilter =
+    captureMode && (params.scope === 'midday' || params.scope === 'evening' || params.scope === 'allday')
+      ? params.scope
+      : 'all';
 
   const [windowDays, setWindowDays] = useState<number>(DEFAULT_WINDOW);
-  const [scopeFilter, setScopeFilter] = useState<ScopeFilter>('all');
+  const [scopeFilter, setScopeFilter] = useState<ScopeFilter>(captureScope);
   const { sinceDate, eraClamped } = useMemo(() => {
     const raw = getDaysAgoET(windowDays - 1);
     return raw < ERA_FLOOR ? { sinceDate: ERA_FLOOR, eraClamped: true } : { sinceDate: raw, eraClamped: false };

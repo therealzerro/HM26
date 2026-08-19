@@ -266,6 +266,22 @@ export function tierFor(kind: string): Tier {
   return PRO_KINDS.has(kind) ? 'pro' : 'free';
 }
 
+/**
+ * MKT-62 — PINNED endcard motions: kinds whose close is a FIXED motion that
+ * belongs to no tier pool. `endcardMotionsFor` returns exactly this one, so
+ * the kind never draws from ENDCARD_MOTIONS and — the property that matters —
+ * the pinned file never enters a rotation (it is NOT in ENDCARD_MOTIONS, so
+ * no pooled kind can reach it, and the kind is NOT in ENDCARD_KINDS, so no
+ * live lane's offset moves). `sameday`: gold sweeps inward and settles around
+ * an already-standing bolt — the standing bolt is the rarity framing; it must
+ * never imply an OUTCOME (the file was renamed off `_confirmed` for that
+ * reason). Shared 1240 band (MKT-45): bolt bottoms ~y1100, band smoke
+ * 13–16% >L40 / max L153 — same class as the free motions that ship there.
+ */
+export const FIXED_ENDCARD_MOTION: Record<string, MotionVariant> = {
+  verify_midday: { file: 'endcard_motion_sameday.mp4', tag: 'sameday', label: 'gold settles around the standing bolt (pinned, MKT-62)' },
+};
+
 // ── Derived metadata ────────────────────────────────────────────────────────
 /**
  * DERIVED vs AUTHORED — the distinction matters and is why they live apart.
@@ -384,11 +400,22 @@ export const STINGER_KINDS = [
  * A hard abort becomes graceful degradation, matching the missing-panel and
  * missing-intro patterns.
  */
+/** The motion SET a kind can ever close on: its pinned motion (MKT-62) or its
+ *  tier pool. Every enumerator (build, preflight, rotation health) goes through
+ *  this so a pinned kind is never iterated against a pool it cannot reach. */
+export function endcardMotionSetFor(kind: string): MotionVariant[] {
+  const fixed = FIXED_ENDCARD_MOTION[kind];
+  return fixed ? [fixed] : ENDCARD_MOTIONS[tierFor(kind)];
+}
+
 export function endcardMotionsFor(
   kind: string,
   dateISO: string,
   opts: { needsBed?: boolean; meta?: Record<string, MotionMeta> } = {},
 ): MotionVariant[] {
+  // MKT-62: pinned kinds return their one motion and touch no pool.
+  const fixed = FIXED_ENDCARD_MOTION[kind];
+  if (fixed) return [fixed];
   // Spread within the TIER, because the pool is tier-locked — indexing on a
   // global kind order collapses the pro tier (kinds 0,2,3,4) onto one motion.
   const tier = tierFor(kind);
@@ -411,6 +438,7 @@ export function allMotionFiles(): string[] {
     ...VERIFY_SEAL_MOTIONS.map(m => m.file),
     ...ENDCARD_MOTIONS.pro.map(m => m.file),
     ...ENDCARD_MOTIONS.free.map(m => m.file),
+    ...Object.values(FIXED_ENDCARD_MOTION).map(m => m.file),
   ])];
 }
 

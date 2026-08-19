@@ -33,6 +33,7 @@
     "check:edge-shared": "diff -q lib/engineCore.ts supabase/functions/_shared/engineCore.ts && diff -q lib/dateUtils.ts supabase/functions/_shared/dateUtils.ts && echo 'OK supabase/functions/_shared/ in sync with lib/'",
     "backfill:di": "tsx scripts/backfill/backfill-di.ts",
     "reel:verify": "tsx scripts/render-verification-reel.ts && tsx scripts/assemble-verification-reel.ts && tsx scripts/render-verification-reel.ts --public && tsx scripts/assemble-verification-reel.ts --variant=public && tsx scripts/publish-reels.ts verify",
+    "reel:verify-midday": "tsx scripts/render-verification-reel.ts --kind=verify_midday && tsx scripts/assemble-verification-reel.ts --kind=verify_midday && tsx scripts/publish-reels.ts verify_midday",
     "reel:allday": "tsx scripts/render-allday-body.ts && tsx scripts/render-allday-body.ts --redact --relabel && tsx scripts/assemble-allday-reels.ts && tsx scripts/publish-reels.ts allday",
     "reel:midday": "tsx scripts/render-allday-body.ts --scope=midday && tsx scripts/render-allday-body.ts --scope=midday --redact && tsx scripts/assemble-allday-reels.ts --scope=midday && tsx scripts/publish-reels.ts midday",
     "reel:evening": "tsx scripts/render-allday-body.ts --scope=evening && tsx scripts/render-allday-body.ts --scope=evening --redact && tsx scripts/assemble-allday-reels.ts --scope=evening && tsx scripts/publish-reels.ts evening",

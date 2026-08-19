@@ -246,3 +246,15 @@ export function parseVariantFlag(argv: string[]): Variant | null {
 export function positionals(argv: string[]): string[] {
   return argv.filter(a => !a.startsWith('--'));
 }
+
+/**
+ * MKT-62 — kinds that publish RARELY and on a MANUAL trigger. Two retention
+ * mechanisms in publish-reels must not touch them: `prune()` is kind-agnostic
+ * (reel_date < today−30) and would delete a same-day midday verify the first
+ * time any later daily publish ran after 30 days; `supersedeOlder()` is
+ * per-kind and already safe, but the exemption is stated in both (the MKT-46
+ * pattern — one test at the top of each function, not a convention). Lives
+ * here, not in publish-reels, so reel:check can import it without running a
+ * publish. reel:check asserts the list is honoured.
+ */
+export const RETENTION_EXEMPT_KINDS: readonly string[] = ['verify_midday'];

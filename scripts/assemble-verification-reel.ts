@@ -34,6 +34,7 @@ import { probeAnchorIntro, INTRO_DISSOLVE, INTRO_VO_LEAD } from './reel-intro';
 import { resolveCarrier, audioDur } from './reel-carrier';
 import { probeStinger, stingerAdds } from './reel-stinger';
 import { STINGER_DUR, INTRO_XFADE } from './stinger-config';
+import { COVER_LIFT_SECONDS } from './render-verify-slate';
 
 const ASSETS = resolve('assets/marketing');
 const REELS = join(ASSETS, 'verify_reels');
@@ -51,23 +52,35 @@ function yesterdayET(): string {
   now.setDate(now.getDate() - 1);
   return now.toLocaleDateString('en-CA').replace(/-/g, '');
 }
+function todayET(): string {
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  return now.toLocaleDateString('en-CA').replace(/-/g, '');
+}
 
 // MKT-40: `--variant=public` assembles the PUBLIC grading half — masked body,
 // public intro, its own endcard copy — sharing verify's carrier, stinger
 // (seal) and ribbon. Everything else in this file is common to both kinds.
 const PUBLIC = process.argv.includes('--variant=public');
-const KIND = PUBLIC ? 'verify_public' : 'verify';
-const stamp = process.argv.slice(2).find(a => !a.startsWith('--')) ?? yesterdayET();
-const ui = join(REELS, `ui_verify${PUBLIC ? '_public' : ''}_${stamp}.mp4`);
+// MKT-62 — `--kind=verify_midday`: the SAME-DAY MIDDAY VERIFY. A new KIND, not
+// a variant: today's date, its own FIXED set (rise intro / sameday carrier /
+// sameday endcard — pinned, never pooled), NO STINGER by ruling (the chip
+// identifies at frame one; the standing-Anchor beat lands straight into the
+// covered board; the 1-box floor day measured 63.8% with one = the number that
+// barred verify's stinger), free group only.
+const MIDDAY = process.argv.includes('--kind=verify_midday');
+if (MIDDAY && PUBLIC) { console.error('ABORT: verify_midday has no public variant (MKT-62 ruling).'); process.exit(1); }
+const KIND = MIDDAY ? 'verify_midday' : PUBLIC ? 'verify_public' : 'verify';
+const stamp = process.argv.slice(2).find(a => !a.startsWith('--')) ?? (MIDDAY ? todayET() : yesterdayET());
+const ui = join(REELS, MIDDAY ? `ui_verify_midday_${stamp}.mp4` : `ui_verify${PUBLIC ? '_public' : ''}_${stamp}.mp4`);
 if (!existsSync(ui)) {
-  console.error(`ABORT: ${ui} not found — run the render step first (npm run reel:verify).`);
+  console.error(`ABORT: ${ui} not found — run the render step first (${MIDDAY ? 'npm run reel:verify-midday' : 'npm run reel:verify'}).`);
   process.exit(1);
 }
 // MKT-18: the check above validates a FILENAME, not the pixels. Verify had the
 // identical gap as the slate assembler — a body copied to another day's name
 // would be stamped with that day's "✓ VERIFIED RESULTS" chip, which on a
 // receipts reel means publishing one day's outcomes as another's.
-assertBodyDate(ui, `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`, 'npm run reel:verify');
+assertBodyDate(ui, `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`, MIDDAY ? 'npm run reel:verify-midday' : 'npm run reel:verify');
 // MKT-40: a full-fidelity body posing as public would carry real digits onto
 // a public feed — the tag is written by the renderer's --public path only.
 if (PUBLIC) assertBodyPublic(ui, 'tsx scripts/render-verification-reel.ts --public');
@@ -77,10 +90,11 @@ if (PUBLIC) assertBodyPublic(ui, 'tsx scripts/render-verification-reel.ts --publ
 // soundtrack is verif_carrier), so needsBed is false.
 const vEndcard = resolveEndcard(ASSETS, KIND, `${stamp.slice(0,4)}-${stamp.slice(4,6)}-${stamp.slice(6,8)}`, false);
 console.log(`NOTE(${KIND}): endcard motion → ${vEndcard.motion.label} [${vEndcard.name}].`);
-const out = join(REELS, PUBLIC ? `verify_public_${stamp}.mp4` : `verify_reel_${stamp}.mp4`);
-const out1x1 = join(REELS, PUBLIC ? `verify_public_${stamp}_1x1.mp4` : `verify_reel_${stamp}_1x1.mp4`);
+const outBase = MIDDAY ? `verify_midday_${stamp}` : PUBLIC ? `verify_public_${stamp}` : `verify_reel_${stamp}`;
+const out = join(REELS, `${outBase}.mp4`);
+const out1x1 = join(REELS, `${outBase}_1x1.mp4`);
 const bolt = join(REELS, `_bolt_lockup.png`);
-const sheet = join(REELS, PUBLIC ? `verify_public_${stamp}_contact.png` : `verify_reel_${stamp}_contact.png`);
+const sheet = join(REELS, `${outBase}_contact.png`);
 const sh = (c: string) => execSync(c, { stdio: 'inherit' });
 
 // xfade P counts DOWN 1→0 — ease on q=(1-P) so the dissolve runs bolt→ui.
@@ -89,10 +103,15 @@ const EASED = `'st(0,(1-P)*(1-P)*(3-2*(1-P)));A*(1-ld(0))+B*ld(0)'`;
 // MKT-07 slate stamp: "✓ VERIFIED RESULTS" + yesterday's date, burned over the
 // UI segment (cross-scope page, so no scope tag). Overlay layer only — the
 // rotating carrier/endcard assets stay date-agnostic.
-const stampPng = join(REELS, `_stamp_${stamp}.png`);
-sh(`npx tsx scripts/render-reel-stamp.ts verify ${stamp} - "${stampPng}"`);
+// MKT-62: the same-day kind has its own ribbon purpose (TODAY'S MIDDAY ·
+// GRADED) — verify's YESTERDAY'S RECEIPTS is wrong on it. Own PNG name too, so
+// a same-stamp verify re-run never picks up the other kind's ribbon.
+const stampPng = join(REELS, MIDDAY ? `_stamp_midday_${stamp}.png` : `_stamp_${stamp}.png`);
+sh(`npx tsx scripts/render-reel-stamp.ts ${MIDDAY ? 'verify_midday' : 'verify'} ${stamp} - "${stampPng}"`);
 
 const uiDur = +parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${ui}"`).toString()).toFixed(2);
+// Board segment length — F_SLATE's 2.5s, plus the cover-lift on verify_midday.
+const BOARD_SEG = 2.5 + (MIDDAY ? COVER_LIFT_SECONDS : 0);
 // MKT-31 addendum: the outro takes the endcard's FIRST 6.5s (All-Day's proven
 // window) instead of its last 2.5s. 6.5 covers formation + text fade (4.5-5.2)
 // + a settled hold, and matches assemble-allday-reels' CARD.
@@ -116,7 +135,12 @@ const intro = probeAnchorIntro(ASSETS, KIND);
 // built stinger files (identical text "HITMASTER ZK6 / YESTERDAY'S RECEIPTS",
 // same seal pin, same headline-dominant layout). A per-kind build here would
 // duplicate byte-identical clips and widen the stray-scan surface for nothing.
-const sting = probeStinger(ASSETS, 'verify', `${stamp.slice(0,4)}-${stamp.slice(4,6)}-${stamp.slice(6,8)}`);
+// MKT-62: NO STINGER on verify_midday — a ruling, not a missing asset. Stated
+// here rather than as an absent STINGERS entry so nobody "fixes" it by adding
+// one: ratio (63.8% on the 1-box floor day = the barred number), the chip
+// already identifies at frame one, and intro → covered board reads better
+// direct than through a branded interstitial.
+const sting = MIDDAY ? null : probeStinger(ASSETS, 'verify', `${stamp.slice(0,4)}-${stamp.slice(4,6)}-${stamp.slice(6,8)}`);
 const openBase = intro ? intro.dur : 1.2;
 const openDur = +(openBase + stingerAdds(sting)).toFixed(2);
 const dissolve = intro ? INTRO_DISSOLVE : 1.2;
@@ -149,8 +173,9 @@ const carrierNeed = +(total - voiceStart).toFixed(2);
 // MKT-40: 'verify' for both kinds — the carrier pair is SHARED (Phase 0 free
 // win: the spoken lines transcribe Q2-clean at tier 1, so the public half
 // costs zero generation).
+// MKT-62: verify_midday resolves ITS OWN pinned carrier (set of one, no pt2).
 const verifCarrier = resolveCarrier(
-  ASSETS, 'verify', `${stamp.slice(0,4)}-${stamp.slice(4,6)}-${stamp.slice(6,8)}`, undefined, carrierNeed,
+  ASSETS, MIDDAY ? 'verify_midday' : 'verify', `${stamp.slice(0,4)}-${stamp.slice(4,6)}-${stamp.slice(6,8)}`, undefined, carrierNeed,
 );
 if (verifCarrier.joined) {
   console.log(`NOTE: carrier joined from ${verifCarrier.parts.length} parts (${verifCarrier.parts.map(p => p.split('/').pop()).join(' + ')}).`);
@@ -223,8 +248,12 @@ sh(
   `[4:v]format=rgba,split=2[st0][st1];` +
   `[st0]fade=t=in:st=${+(openDur - 0.3).toFixed(2)}:d=0.4:alpha=1[stA];` +
   `[st1]fade=t=out:st=${+(openDur + uiDur).toFixed(2)}:d=0.45:alpha=1[stB];` +
-  `[vraw][stA]overlay=0:-370:enable='lt(t,${+(openDur + 2.5).toFixed(2)})'[vbrd];` +
-  `[vbrd][stB]overlay=0:0:enable='gte(t,${+(openDur + 2.5).toFixed(2)})',format=yuv420p[vst];` +
+  // MKT-62: on the same-day kind the BOARD segment is longer by the cover-lift
+  // (covered hold + lift precede the graded board's 2.5s) — the ribbon stays
+  // at its board placement for the whole segment, then drops to spec at the
+  // board→summary cut exactly as on verify.
+  `[vraw][stA]overlay=0:-370:enable='lt(t,${+(openDur + BOARD_SEG).toFixed(2)})'[vbrd];` +
+  `[vbrd][stB]overlay=0:0:enable='gte(t,${+(openDur + BOARD_SEG).toFixed(2)})',format=yuv420p[vst];` +
   // MKT-22/MKT-35: chip rides the intro only — FULL OPACITY FROM FRAME ONE
   // (frame one is the camera-roll thumbnail; no fade-in by ruling), hold to
   // 2.65s, then the existing fade, out well before the crossfade.
@@ -278,9 +307,14 @@ void out1x1;
 // whole range, which is the frame most worth reviewing.
 // Fourth stamp: the settled close (text opaque from +5.2s of the outro), not
 // the formation smoke the old tail-window stamp landed on.
-const STAMPS = [0, openDur + 0.3, openDur + uiDur * 0.62, total - 0.7].map(t => +t.toFixed(1));
+// MKT-62: five frames on the same-day kind — open (frame one), the COVERED
+// board, the board after the lift (with the timestamp pair visible on the
+// next beat, so stamp 3 lands on the summary band), a featured hold, the close.
+const STAMPS = (MIDDAY
+  ? [0, openDur + 0.3, openDur + BOARD_SEG + 0.3, openDur + uiDur * 0.66, total - 0.7]
+  : [0, openDur + 0.3, openDur + uiDur * 0.62, total - 0.7]).map(t => +t.toFixed(1));
 STAMPS.forEach((t, i) => sh(`ffmpeg -y -loglevel error -ss ${t} -i "${out}" -frames:v 1 -vf "scale=270:480" "${join(REELS, `_cs${i}.png`)}"`));
-sh(`ffmpeg -y -loglevel error ${STAMPS.map((_, i) => `-i "${join(REELS, `_cs${i}.png`)}"`).join(' ')} -filter_complex "[0][1][2][3]hstack=4" "${sheet}"`);
+sh(`ffmpeg -y -loglevel error ${STAMPS.map((_, i) => `-i "${join(REELS, `_cs${i}.png`)}"`).join(' ')} -filter_complex "${STAMPS.map((_, i) => `[${i}]`).join('')}hstack=${STAMPS.length}" "${sheet}"`);
 
 const dur = execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${out}"`).toString().trim();
 console.log(`reel: ${out} · duration ${dur}s · contact sheet written (1:1 retired, MKT-39)`);

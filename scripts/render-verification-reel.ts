@@ -68,7 +68,9 @@ import { execSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { provenanceArgs } from './reel-provenance';
-import { renderSlateFrames } from './render-verify-slate';
+import { renderSlateFrames, renderCoverLiftFrames, F_COVER, F_LIFT, type BoardLabels } from './render-verify-slate';
+import { config as loadEnv } from 'dotenv';
+loadEnv({ path: resolve('.env'), quiet: true });
 
 const BASE = 'http://localhost:8081';
 // MKT-40: flags stripped so `--public` can't be mistaken for the outDir.
@@ -148,18 +150,81 @@ function yesterdayET(): string {
   return now.toLocaleDateString('en-CA');
 }
 
+/** Today in ET — the same-day kind's content date (MKT-62). */
+function todayET(): string {
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  return now.toLocaleDateString('en-CA');
+}
+/** "8:14 AM" in ET — how the timestamp pair renders. */
+function fmtET(d: Date): string {
+  return d.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' });
+}
+/** "8h 33m" — the elapsed gap, whole minutes. */
+function fmtGap(ms: number): string {
+  const m = Math.max(0, Math.round(ms / 60000));
+  return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`;
+}
+
 (async () => {
   // MKT-40 — the PUBLIC capture: digits masked upstream, match vocabulary
   // relabelled, sessions/states dropped, rollup reframed to structurally
   // two-digit stats, all asserted fail-closed before a single frame encodes.
   const PUBLIC = process.argv.includes('--public');
-  const dateISO = yesterdayET();
+  // MKT-62 — `--kind=verify_midday`: the SAME-DAY MIDDAY VERIFY. TODAY, not
+  // yesterday; MIDDAY rows only (capture-gated ?scope=midday, the sanctioned
+  // MKT-51 exception); the summary band becomes the TIMESTAMP PAIR; the board
+  // beat opens COVERED and the cover lifts. Never public (real digits + state
+  // attribution; no masked build exists by ruling).
+  const MIDDAY = process.argv.includes('--kind=verify_midday');
+  if (MIDDAY && PUBLIC) { console.error('ABORT: verify_midday has no public cut (MKT-62 ruling) — drop --public.'); process.exit(1); }
+  const dateISO = MIDDAY ? todayET() : yesterdayET();
   const stamp = dateISO.replace(/-/g, '');
-  const WORK = join(tmpdir(), `reel-frames-${PUBLIC ? 'public-' : ''}${stamp}`);
+  const WORK = join(tmpdir(), `reel-frames-${PUBLIC ? 'public-' : MIDDAY ? 'midday-' : ''}${stamp}`);
   rmSync(WORK, { recursive: true, force: true });
   mkdirSync(WORK, { recursive: true });
   mkdirSync(OUT_DIR, { recursive: true });
-  const outMp4 = join(OUT_DIR, `ui_verify${PUBLIC ? '_public' : ''}_${stamp}.mp4`);
+  const outMp4 = join(OUT_DIR, MIDDAY ? `ui_verify_midday_${stamp}.mp4` : `ui_verify${PUBLIC ? '_public' : ''}_${stamp}.mp4`);
+
+  // MKT-62 provenance — the reel's thesis is the GAP, and both ends of it are
+  // real timestamps, never the render clock:
+  //   PUBLISHED = marketing_reels.posted_at of today's midday_free row — the
+  //               moment the covered board went to the free room (abort if it
+  //               was never posted: no published board, no gap to prove);
+  //   GRADED    = max(result_at) over today's midday matched rows in
+  //               adaptive_tracking — the hit-detection clock.
+  let prov: { publishedAt: Date; gradedAt: Date; matches: number; straights: number } | null = null;
+  if (MIDDAY) {
+    const U = process.env.EXPO_PUBLIC_SUPABASE_URL, K = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+    if (!U || !K) { console.error('ABORT: EXPO_PUBLIC_SUPABASE_URL/_ANON_KEY missing — cannot read provenance.'); process.exit(1); }
+    const get = async <T,>(path: string): Promise<T> => {
+      const r = await fetch(`${U}${path}`, { headers: { apikey: K, Authorization: `Bearer ${K}` } });
+      if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+      return r.json() as Promise<T>;
+    };
+    const posted = await get<Array<{ posted_at: string | null; status: string }>>(
+      `/rest/v1/marketing_reels?reel_date=eq.${dateISO}&kind=eq.midday_free&select=posted_at,status&limit=1`);
+    if (!posted[0]?.posted_at) {
+      console.error(`ABORT: midday_free for ${dateISO} has no posted_at (${posted[0] ? `status ${posted[0].status}` : 'no row'}) — the covered board was never posted to the free room, so there is no gap to prove. No reel.`);
+      process.exit(1);
+    }
+    const rows = await get<Array<{ combo: string; matched_state: string; matched_session: string | null; hit_straight: boolean; result_at: string | null }>>(
+      `/rest/v1/adaptive_tracking?slate_date=eq.${dateISO}&scope=eq.midday&mode=eq.balanced&matched_state=not.is.null&or=(hit_box.eq.true,hit_straight.eq.true)&select=combo,matched_state,matched_session,hit_straight,result_at`);
+    const mid = rows.filter(r => (r.matched_session ?? '').toLowerCase() === 'midday');
+    const seen = new Set<string>();
+    const uniq = mid.filter(r => { const k = `${r.combo}|${r.matched_state}`; if (seen.has(k)) return false; seen.add(k); return true; });
+    const times = uniq.map(r => r.result_at ? Date.parse(r.result_at) : NaN).filter(Number.isFinite);
+    if (!uniq.length || !times.length) {
+      console.error(`ABORT: no midday-session matched rows (with result_at) for ${dateISO} — hit detection has not graded today's midday board yet, or it graded 0. No reel.`);
+      process.exit(1);
+    }
+    const publishedAt = new Date(posted[0].posted_at), gradedAt = new Date(Math.max(...times));
+    if (!(gradedAt.getTime() > publishedAt.getTime())) {
+      console.error(`ABORT: GRADED ${gradedAt.toISOString()} is not after PUBLISHED ${publishedAt.toISOString()} — provenance inconsistent. No reel.`);
+      process.exit(1);
+    }
+    prov = { publishedAt, gradedAt, matches: uniq.length, straights: uniq.filter(r => r.hit_straight).length };
+    console.log(`provenance: PUBLISHED ${fmtET(publishedAt)} · GRADED ${fmtET(gradedAt)} · elapsed ${fmtGap(gradedAt.getTime() - publishedAt.getTime())} · ${prov.matches} midday row(s), ${prov.straights} straight`);
+  }
   const fname = (i: number) => join(WORK, `frame_${String(i).padStart(4, '0')}.png`);
 
   const browser = await chromium.launch();
@@ -184,7 +249,7 @@ function yesterdayET(): string {
   // into the captured body. The screen also exposes nativeID anchors
   // (#tr-summary, #day-<date>) as a sturdier alternative to the geometric
   // scroller/day-group discovery below if it ever breaks.
-  await page.goto(BASE + '/track-record?capture=1', { waitUntil: 'networkidle', timeout: 180_000 });
+  await page.goto(BASE + '/track-record?capture=1' + (MIDDAY ? '&scope=midday' : ''), { waitUntil: 'networkidle', timeout: 180_000 });
   await page.getByText('Verified Track Record').waitFor({ timeout: 60_000 });
   await page.waitForTimeout(4_000);     // queries fully settle (count-up snaps under capture=1)
 
@@ -365,6 +430,48 @@ function yesterdayET(): string {
     }
     console.log('public sweep: rollup reframed, digits masked, vocabulary relabelled — audit clean.');
   }
+  // ── MKT-62: THE TIMESTAMP PAIR. On the same-day kind the summary band's
+  // 30-day rollup is the off-topic element and the elapsed gap is the headline
+  // (ruling 3). The four tiles become PUBLISHED / GRADED / ELAPSED / MATCHES
+  // (today's midday rows), values from the provenance above — never the render
+  // clock, never fabricated. Same setCell machinery as the public sweep: text
+  // REPLACED in place (no reflow; row tops measured above stay valid). The app
+  // is not modified. Fail-closed: every cell must be found and rewritten.
+  if (MIDDAY && prov) {
+    const vals = {
+      pub: fmtET(prov.publishedAt), grd: fmtET(prov.gradedAt),
+      gap: fmtGap(prov.gradedAt.getTime() - prov.publishedAt.getTime()),
+      n: String(prov.matches), sub: 'POSTED TO THE FREE ROOM COVERED · GRADED AGAINST TODAY\'S MIDDAY DRAWS',
+    };
+    const missing = await page.evaluate(`(() => {
+      const leaves = Array.from(document.querySelectorAll('*'))
+        .filter(e => e.children.length === 0 && (e.textContent || '').trim().length > 0);
+      const labelOf = t => leaves.find(e => (e.textContent || '').trim() === t);
+      const cellFor = label => (label && label.parentElement) || null;
+      const valueLeaf = (cell, label) => cell ? (Array.from(cell.children).find(c => c !== label) || null) : null;
+      const miss = [];
+      const setCell = (labelText, value, newLabel) => {
+        const label = labelOf(labelText);
+        const v = valueLeaf(cellFor(label), label);
+        if (!label || !v) { miss.push(labelText); return; }
+        v.textContent = value; label.textContent = newLabel;
+      };
+      setCell('MATCHES', ${JSON.stringify(vals.pub)}, 'PUBLISHED');
+      setCell('STRAIGHT', ${JSON.stringify(vals.grd)}, 'GRADED');
+      setCell('BOX', ${JSON.stringify(vals.gap)}, 'ELAPSED');
+      setCell('DAYS', ${JSON.stringify(vals.n)}, 'MIDDAY MATCHES');
+      const sub = leaves.find(e => /^Across \\d+ jurisdictions/.test((e.textContent || '').trim()));
+      if (sub) sub.textContent = ${JSON.stringify(vals.sub)}; else miss.push('sub-line');
+      return miss;
+    })()`) as string[];
+    if (missing.length) {
+      console.error(`ABORT: timestamp-pair injection incomplete — band cells not found: ${missing.join(', ')} (track-record layout changed?).`);
+      await browser.close();
+      process.exit(1);
+    }
+    console.log(`timestamp pair injected: PUBLISHED ${vals.pub} · GRADED ${vals.grd} · ELAPSED ${vals.gap} · ${vals.n} midday match(es).`);
+  }
+
   const L = layout as {
     scrollHeight: number; clientHeight: number; yTop: number; nextTop: number; rowCount: number;
     rows: Array<{ top: number; height: number; straight: boolean }>;
@@ -462,7 +569,10 @@ function yesterdayET(): string {
     : F_SETTLE;
   // Any frames lost to the floor divisions above land in the settle, so TOTAL is
   // exactly what gets captured.
-  const TOTAL = F_SLATE + F_SUMMARY + panFrames + ledgerFrames
+  // MKT-62: the board SEGMENT is the cover-lift (covered hold + lift) plus the
+  // graded board's push-in on the same-day kind; F_SLATE alone otherwise.
+  const F_BOARD = (MIDDAY ? F_COVER + F_LIFT : 0) + F_SLATE;
+  const TOTAL = F_BOARD + F_SUMMARY + panFrames + ledgerFrames
     + (panning ? 0 : F_PAN - spare * gaps);
 
   console.log(
@@ -471,7 +581,7 @@ function yesterdayET(): string {
   );
   console.log(
     `beat plan: ${TOTAL} frames = ${(TOTAL / FPS).toFixed(2)}s ` +
-    `(slate ${F_SLATE} + summary ${F_SUMMARY} + pan ${panFrames} + ledger ${ledgerFrames}) · ` +
+    `(board ${F_BOARD}${MIDDAY ? ` [cover ${F_COVER} + lift ${F_LIFT} + slate ${F_SLATE}]` : ''} + summary ${F_SUMMARY} + pan ${panFrames} + ledger ${ledgerFrames}) · ` +
     (panning
       ? `pan ${Math.round(panFrom)}→${Math.round(panTo)}px`
       : `pan DROPPED (only ${Math.round(panTo - panFrom)}px available) — travels widened to ${travelFrames}f`),
@@ -488,8 +598,28 @@ function yesterdayET(): string {
   // degrade: it does not depend on row detection, and it is the half that makes
   // the record mean anything, so losing it to a DOM change would be the worst
   // possible thing to drop. (MKT-25 rendered it only on the restaged path.)
-  const landed = await renderSlateFrames(WORK, fname, 0, F_SLATE, dateISO, 'allday', PUBLIC);
-  console.log(`slate segment: ${landed} of 6 landed — rendered f000-f${F_SLATE - 1}${PUBLIC ? ' (public cut: digits masked)' : ''}`);
+  let landed: number;
+  if (MIDDAY && prov) {
+    // MKT-62 — THE COVER COMING OFF (ruling 4, option a): the midday board as
+    // the free room saw it (covered, no results) → the cover lifts → graded.
+    // Labels are the kind's own — verify's "PUBLISHED <date>" is wrong here;
+    // the times are the provenance pair. Copy PROVISIONAL (content agent pass).
+    const pub = fmtET(prov.publishedAt), grd = fmtET(prov.gradedAt);
+    const covered: BoardLabels = {
+      eyebrow: `POSTED ${pub} · TODAY`,
+      sub: 'MIDDAY · SIX SIGNALS · COVERED, AS THE FREE ROOM SAW IT',
+      foot: `GRADED ${grd} · SAME DAY`,
+    };
+    const graded: BoardLabels = {
+      eyebrow: `GRADED ${grd} · TODAY`,
+      sub: 'MIDDAY · SIX SIGNALS · RANKED BEFORE THE DRAW',
+    };
+    landed = await renderCoverLiftFrames(WORK, fname, 0, F_COVER, F_LIFT, F_SLATE, dateISO, 'midday', covered, graded);
+    console.log(`board segment: cover-lift — ${landed} of 6 landed — rendered f000-f${F_BOARD - 1}`);
+  } else {
+    landed = await renderSlateFrames(WORK, fname, 0, F_SLATE, dateISO, 'allday', PUBLIC);
+    console.log(`slate segment: ${landed} of 6 landed — rendered f000-f${F_SLATE - 1}${PUBLIC ? ' (public cut: digits masked)' : ''}`);
+  }
 
   // ── summary band — held at the top of the page with a barely-there push, so
   // the totals land before any individual row is argued from.
@@ -500,14 +630,14 @@ function yesterdayET(): string {
   // the pan dropped those two beats are adjacent at the same scroll position,
   // where the pop is at its most obvious.
   const SUMMARY_ZOOM = 1.04;
-  for (let f = F_SLATE; f < F_SLATE + F_SUMMARY; f++) {
-    const raw = (f - F_SLATE) / (F_SUMMARY - 1);
+  for (let f = F_BOARD; f < F_BOARD + F_SUMMARY; f++) {
+    const raw = (f - F_BOARD) / (F_SUMMARY - 1);
     const t = easeInOut(raw < 0.5 ? raw * 2 : (1 - raw) * 2);
     await shoot(f, 0, 1 + (SUMMARY_ZOOM - 1) * t);
   }
 
   // ── one slow eased pan into the first featured row (when there is distance).
-  const panStart = F_SLATE + F_SUMMARY;
+  const panStart = F_BOARD + F_SUMMARY;
   for (let f = panStart; f < panStart + panFrames; f++) {
     const t = easeInOut((f - panStart) / (panFrames - 1));
     await shoot(f, panFrom + (panTo - panFrom) * t, 1);

@@ -40,7 +40,8 @@ import { config as loadEnv } from 'dotenv';
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
-import { buildReelCaption, fetchReceiptsData, shiftDate, kindNeedsReceipts, ReceiptsData, ReelCaptionKind } from './reel-captions';
+import { buildReelCaption, fetchReceiptsData, shiftDate, kindNeedsReceipts, ReceiptsData, ReelCaptionKind, SamedayCtx } from './reel-captions';
+import { fetchSamedayProvenance, fmtGap } from './reel-sameday';
 import { REEL_SCOPES, RETENTION_EXEMPT_KINDS, isScope, reelKind, parseVariantFlag, type Scope } from './reel-scopes';
 import { generateAndUploadCaptionsPdf } from './render-captions-pdf';
 
@@ -222,10 +223,27 @@ async function buildCaptions(kinds: Kind[]): Promise<Record<string, CaptionSet>>
       ? text.replace(/\{free_group_url\}/g, freeUrl)
       : text.replace(/[:\s]*\{free_group_url\}/g, '.').replace(/\.\./g, '.');
 
+  // MKT-62: the verify_midday family headlines the elapsed gap — fetched
+  // through the SAME join the renderer burns into the summary band
+  // (reel-sameday.ts), so the caption and the pixels cannot disagree. A
+  // failed or not-ok read (e.g. a --captions-only rerun after the evening
+  // ledger re-stamped result_at) degrades to the kind's gap-less fallback
+  // rather than blocking the upload.
+  let sameday: SamedayCtx | null = null;
+  if (kinds.includes('verify_midday')) {
+    try {
+      const sp = await fetchSamedayProvenance(sbGet, isoDate);
+      if (sp.ok) sameday = { elapsed: fmtGap(sp.gradedAt.getTime() - sp.publishedAt.getTime()), straights: sp.straights };
+      else console.warn(`[publish-reels] same-day provenance not ok (${sp.why}) — verify_midday caption uses the fallback.`);
+    } catch (e) {
+      console.warn('[publish-reels] same-day provenance fetch failed — verify_midday caption uses the fallback:', String(e).slice(0, 160));
+    }
+  }
+
   const out: Record<string, CaptionSet> = {};
   for (const k of kinds) {
     out[k] = {
-      caption: subUrl(buildReelCaption(k, isoDate, receipts)),
+      caption: subUrl(buildReelCaption(k, isoDate, receipts, k === 'verify_midday' ? sameday : null)),
       caption_pro: k === 'verify' ? buildReelCaption('verify_pro', isoDate, receipts) : null,
     };
   }

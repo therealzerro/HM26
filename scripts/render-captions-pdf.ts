@@ -48,6 +48,7 @@ const KIND_LABEL: Record<string, string> = {
   evening_free: '🌙 Evening · FREE',
   verify: '🧾 Verify — Receipts',
   verify_public: '🌐 Verify · PUBLIC (cross-post)',
+  verify_midday: '⏱️ Midday · Same-Day Verify',
 };
 
 /** Session a kind posts in, for the caption-card group headers. */

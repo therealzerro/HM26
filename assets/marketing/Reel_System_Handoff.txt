@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-19 · v4.5
+Content Agent Handoff · 2026-08-19 · v4.6
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-08-19 (CONSOLIDATED SNAPSHOT, current to v4.5 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-08-19 (CONSOLIDATED SNAPSHOT, current to v4.6 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -102,8 +102,10 @@ B. SLATE REEL ANATOMY (allday/midday/evening, all cuts; 1080×1920 60fps;
 C. VERIFY ANATOMY (group + public cuts; ~23–29s, data-adaptive): fixed intro
    → seal stinger ("YESTERDAY'S RECEIPTS", headline-dominant) → body 8.6–14.0s
    built from the row selection (slate 2.5 + summary 2.0 + pan 2.0 + holds:
-   2.0s straight / 1.6s box, ≤3 featured, straights first) with the persistent
-   gold date ribbon → endcard FIRST 6.5s on the shared band. Carrier =
+   2.0s straight / 1.6s box, ≤3 featured, straights first) with the gold date
+   ribbon on the BOARD segment ONLY (v4.6 ruling — was persistent across the
+   body; nothing may cross a featured row on any day) → endcard FIRST 6.5s on
+   the shared band. Carrier =
    verif_carrier (10.005s) + verif_carrier_pt2 (6.542s, MKT-43 pair) or
    signoff_short (~2.2s) or silence — resolved BY WINDOW, whole or not at all.
    Public half differs in exactly five ways (§3). The track-record screen is
@@ -160,9 +162,11 @@ C2. SAME-DAY MIDDAY VERIFY ANATOMY (`verify_midday`, MKT-62 — ~21–27s,
                 digits + state attribution — fails Q1 honestly; a masked build
                 would be a separate MKT). Pro may also receive it (operator's
                 call). Retention-EXEMPT (keep-current-only and the 30d prune
-                both skip it). Captions PROVISIONAL (3 operator lines, offset
-                9, no numbers) — the real family is yours, against the built
-                reel (work order item 11).
+                both skip it). Captions: the delivered EIGHT-line family is
+                REGISTERED (v4.6) — {elapsed} renders from the same provenance
+                join the reel burns into the band (reel-sameday.ts), #3's
+                STRAIGHT MATCH clause structurally gated, gap-less fallback
+                behind it; offset 9, no counts, no states.
      ⚠ DB CHECK: applied by the operator 8/19 (first cut PUBLISHED).
      ⛔ PRECONDITIONS — THE REEL CANNOT BE RUN UNLESS THE MIDDAY RESULTS
      HAVE BEEN IMPORTED (operator ruling 8/19). The kind sits at the END
@@ -264,9 +268,10 @@ G. OPEN / OWED — the standing list (everything else you may have read as
         whoever shipped it; not a reel asset.
     10. MKT-62 — THE MIDDAY VERIFY REEL: SHIPPED 8/19 (first cut published
         to Admin → Reels; operator posts by hand). MKT-62b WORK ORDER ISSUED
-        — see the v4.5 block and §8b. OWED: (a) the CAPTION FAMILY for `verify_midday`
-        (free-room voice; no numbers; 12 lines like the fleet) — write it
-        against the built reel + contact sheet; (b) a COPY PASS on the
+        — see the v4.5 block and §8b. OWED — (a) CLOSED at v4.6: the caption
+        family DELIVERED (eight lines, written against the built reel) and
+        REGISTERED verbatim; see the v4.6 block for what was wired
+        ({elapsed} = real provenance, straight clause gated); (b) a COPY PASS on the
         kind's provisional strings — covered board eyebrow/sub/foot ("POSTED
         h:mm · TODAY" / "MIDDAY · SIX SIGNALS · COVERED, AS THE FREE ROOM
         SAW IT" / "GRADED h:mm · SAME DAY"), graded board eyebrow ("GRADED
@@ -308,6 +313,55 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v4.6 (2026-08-19, night — VERIFY RIBBON RULING + your
+verify_midday caption family REGISTERED)
+  A. RULING (operator) — the v4.3-E open question is ANSWERED: on BOTH
+     verify kinds the gold ribbon rides the BOARD SEGMENT ONLY,
+     UNCONDITIONALLY. Not a collision-day conditional. The reasoning, as
+     ruled: the featured row IS the proof — digits, badge and attribution
+     are the one thing a viewer must read cleanly, and nothing may cross
+     it on ANY day. A conditional adds a branch that fires rarely, which
+     is exactly the shape of defect this system keeps discovering months
+     later (the straight-match classifier, the .mov extension, the
+     unpaired-carrier hum-bed); a uniform rule cannot silently mis-fire.
+     What is lost is small and already covered: after the board segment
+     the "Yesterday" header and the dated group carry the date, and the
+     chip carried it at frame one at full opacity — the ribbon's job is
+     identification during the opening beat, and it keeps doing that job.
+     Both verify kinds now share ONE ribbon rule: one less divergence.
+     In code (the assembler's fade-out lost its per-kind branch);
+     effective from the NEXT assembly — the posted 8/18 verify cut was
+     NOT re-encoded (cadence = dispatch, never encode). MKT-31 item 2's
+     every-body-frame span is superseded; MKT-35 P4's board placement
+     (y−370 in the reserved band) still holds for the segment the ribbon
+     rides.
+  B. YOUR CAPTION FAMILY IS REGISTERED (§G.10(a) CLOSED): all eight lines,
+     verbatim, replacing the three provisional ones. {elapsed} is REAL —
+     it renders from the same provenance join the reel burns into the
+     summary band (new shared module scripts/reel-sameday.ts feeds both
+     the renderer and publish), so the caption's gap and the pixels' can
+     never disagree. One structural gate added, per the fleet's own
+     precedent (verify-free #12): #3's "dead-on STRAIGHT MATCH" clause
+     renders ONLY when the graded board actually holds one — on a
+     box-only day the line closes cleanly at "Verified MATCH on the
+     board." Everything else stands exactly as written. Verified at
+     registration: all eight (both straight states) + the gap-less
+     fallback through the real tier-2 lint, clean; emoji ≤2 everywhere;
+     offset 9 → residue 1 mod 8, distinct from allday_public (4) and
+     verify_public (6). Pricing rides in five of eight — sanctioned, this
+     is the tier-2 surface. ONE FLAG, recorded but registered verbatim:
+     #8's "Eight hours, not twenty-four" headline is fixed rhetoric — on
+     a short-gap day (draw graded early) it overstates. If the operator
+     wants it honest by construction it takes an {elapsed} rewrite; say
+     the word and it ships in a minor bump.
+     NOTE: the already-published 8/19 row keeps its provisional caption —
+     re-captioning after tonight's evening ledger could consume a
+     re-stamped result_at and write a WRONG gap. The family takes effect
+     on the next verify_midday run, automatically.
+  C. STILL OWED (unchanged from v4.5): §G.10 (b) the copy pass on the
+     kind's provisional board/band strings; (c) optional sameday sign-off
+     continuation; (d) the MKT-62b deliverables (§8b).
 
 WHAT CHANGED IN v4.5 (2026-08-19, night — MKT-62b WORK ORDER to the content
 agent: OFFICIAL-RESULTS-PAGE RECEIPTS in the same-day midday verify)

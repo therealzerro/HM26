@@ -200,10 +200,26 @@ function makeQualCtx(r: ReceiptsData): QualCtx {
   };
 }
 
+/**
+ * MKT-62 — same-day provenance context for verify_midday, the kind whose
+ * caption headline IS the gap. Fed by publish-reels from the SAME join the
+ * renderer burns into the summary band (scripts/reel-sameday.ts), so the
+ * caption's elapsed figure and the pixels' cannot disagree. `straights` gates
+ * the STRAIGHT MATCH clause STRUCTURALLY (the verify-free #12 precedent:
+ * a false straight claim cannot render regardless of which day the rotation
+ * draws that template). Distinct from ReceiptsData on purpose —
+ * fetchReceiptsData is all-day-scoped and would describe the wrong board.
+ */
+export interface SamedayCtx {
+  elapsed: string;    // "8h 13m" — fmtGap(gradedAt − publishedAt)
+  straights: number;  // deduped midday matched rows with hit_straight
+}
+
 interface TemplateCtx {
   reelMd: string;        // the content date label, e.g. "7/27"
   pro: ProCtx | null;    // real-numbers context — ONLY for realNumbers kinds
   q: QualCtx | null;     // qualitative context — ONLY for qualitativeReceipts kinds
+  sd: SamedayCtx | null; // same-day gap context — ONLY for samedayProvenance kinds
   seed: number;
 }
 
@@ -211,6 +227,7 @@ interface KindSpec {
   offset: number;
   realNumbers: boolean;            // templates see counts/states (PRO surfaces only)
   qualitativeReceipts?: boolean;   // templates see descriptor words, never numbers
+  samedayProvenance?: boolean;     // templates see the same-day gap (verify_midday only)
   templates: ((c: TemplateCtx) => string)[];
   fallback?: (reelMd: string) => string;   // used when receipts are needed but unavailable
 }
@@ -509,21 +526,46 @@ const CAPTION_REGISTRY = {
    */
   /**
    * MKT-62 — verify_midday: the SAME-DAY MIDDAY VERIFY (free group only by
-   * ruling; manual trigger; rare). ⚠ PROVISIONAL — three operator-written
-   * lines so the kind can publish; the content agent writes the real family
-   * against the BUILT reel (work order item 11: "on request once the kind's
-   * shape is settled"). Qualitative, no counts, no states: the numbers policy
-   * is pro-only and this kind has no pro caption. Receipts are NOT consumed —
-   * fetchReceiptsData is all-day-scoped and would describe the wrong board.
-   * Offset 9: distinct from every registered offset (0,2,3,4,5,6,7,11).
+   * ruling; manual trigger; rare). The EIGHT DELIVERED templates (2026-08-19,
+   * written against the built 8/19 reel per work order item 11), registered
+   * verbatim — they REPLACE the three provisional operator lines. The
+   * headline datum is the ELAPSED GAP (`c.sd.elapsed`, "8h 13m"), fed by
+   * publish-reels from the renderer's own provenance join (reel-sameday.ts).
+   *
+   * FACTUAL GATES: #3's "dead-on STRAIGHT MATCH" clause renders ONLY when the
+   * graded board holds one (c.sd.straights — the structural-gate precedent
+   * from verify-free #12); every other match line is qualitative. The kind
+   * itself guarantees ≥1 match (renderer precondition 6), so "Verified MATCH"
+   * can stand unconditionally. No counts, no states: numbers stay pro-only
+   * and this kind has no pro caption.
+   *
+   * PRICING IS SANCTIONED (free group = tier 2, the one surface where it is)
+   * and carried in five of eight, matching the endcard's $2.49 line. Session
+   * word "Midday" is group-legal (strict tiers only bar it). Receipts are NOT
+   * consumed — fetchReceiptsData is all-day-scoped and would describe the
+   * wrong board; sd is this kind's whole data need.
+   *
+   * FALLBACK (sd unavailable — e.g. --captions-only after the window moved):
+   * the gap-less line below; never a literal "{elapsed}".
+   *
+   * Offset 9 → residue 1 mod 8: distinct within the 8-length family
+   * (allday_public 4, verify_public 6) — the rule is offset % templates.length
+   * (MKT-26 note above).
    */
   verify_midday: {
     offset: 9,
     realNumbers: false,
+    samedayProvenance: true,
+    fallback: () => `Same-day receipts 🧾 This morning's Midday board — covered when it went up — graded against today's results before the evening session. The reel is the receipt.`,
     templates: [
-      c => `Same day, not tomorrow 🧾 This morning's Midday board — covered when it went up — graded against what drew, before the evening session. Watch the cover come off. (${c.reelMd})`,
-      c => `The gap, on tape: posted this morning, graded this afternoon. ${c.reelMd}'s Midday board, checked in the open. Pro reads every board first.`,
-      c => `Rare one. The Midday board you saw covered this morning just came back graded — same day, ${c.reelMd}. The reel is the receipt. 🧾`,
+      c => `Posted this morning. Graded this afternoon. 🧾⚡\n${c.sd!.elapsed} between the board going up and the results coming in — and we checked it in the open, same day.\nThe Midday board goes up covered in here. Those digits come off the next morning for everybody. ZK Pro reads them before the draw, all three sessions. $2.49/mo.`,
+      c => `Same-day receipts 🧾\nYou saw this Midday board go up covered this morning. Here it is graded, ${c.sd!.elapsed} later — before the evening draw, not tomorrow.\nThat gap is the whole thing. ZK Pro closes it on every session. $2.49/mo.`,
+      c => `We didn't wait until tomorrow ⚡\nThis morning's Midday board, checked against the official results and posted back to you the same day. ${c.sd!.elapsed}, start to finish.\nVerified MATCH on the board${c.sd!.straights ? ' — with a dead-on STRAIGHT MATCH in there' : ''}. Check the timestamps yourself.`,
+      c => `The cover comes off early today 🧾⚡\nMidday board published this morning, graded this afternoon, ${c.sd!.elapsed} apart. Same six signals, same stamp, nothing edited in between.\nFree sees it now because it already drew. Pro saw the digits before it did. $2.49/mo.`,
+      c => `This is a rare one 🤠\nMost days you get yesterday's receipts. Today you get this morning's — graded ${c.sd!.elapsed} after it published, in the open, same as always.\nAnalysis first. Receipts after. Just faster.`,
+      c => `Timestamps don't lie 🧾\nPUBLISHED this morning · GRADED this afternoon · ${c.sd!.elapsed} between them. Every signal on that board went up before the draw and got checked after it.\nThe full method's free in here. The timing is what Pro buys. $2.49/mo.`,
+      c => `Extended receipts — Midday, same day ⚡\nThat board went up covered this morning. The draw happened. Here's the grading, ${c.sd!.elapsed} later, before the evening boards even land.\nVerified MATCH, checked against the official results.`,
+      () => `Eight hours, not twenty-four 🧾⚡\nThis morning's Midday board, graded and posted back the same day. You watched it go up covered — now you can see how it landed.\nZK Pro doesn't wait for the cover to come off. $2.49/mo.`,
     ],
   },
   verify_public: {
@@ -555,7 +597,7 @@ export function kindNeedsReceipts(kind: ReelCaptionKind): boolean {
   return Boolean(spec.realNumbers || spec.qualitativeReceipts);
 }
 
-export function buildReelCaption(kind: ReelCaptionKind, reelDate: string, receipts: ReceiptsData | null): string {
+export function buildReelCaption(kind: ReelCaptionKind, reelDate: string, receipts: ReceiptsData | null, sameday: SamedayCtx | null = null): string {
   const spec: KindSpec = CAPTION_REGISTRY[kind];
   const seed = dayOfYear(reelDate) + spec.offset;
   const reelMd = md(reelDate);
@@ -563,6 +605,11 @@ export function buildReelCaption(kind: ReelCaptionKind, reelDate: string, receip
   // No data, or a zero-match day (the verify assembler aborts on those, but a
   // stray --captions-only run must not fabricate match language) → fallback.
   if (needsReceipts && (!receipts || receipts.verifiedCount === 0)) {
+    return (spec.fallback ?? (m => m))(reelMd);
+  }
+  // MKT-62: the same-day family headlines the elapsed gap — no gap, no
+  // template; degrade to the gap-less fallback, never a literal "{elapsed}".
+  if (spec.samedayProvenance && !sameday) {
     return (spec.fallback ?? (m => m))(reelMd);
   }
   const pro: ProCtx | null = spec.realNumbers && receipts
@@ -578,5 +625,6 @@ export function buildReelCaption(kind: ReelCaptionKind, reelDate: string, receip
       }
     : null;
   const q: QualCtx | null = spec.qualitativeReceipts && receipts ? makeQualCtx(receipts) : null;
-  return spec.templates[seed % spec.templates.length]({ reelMd, pro, q, seed });
+  const sd: SamedayCtx | null = spec.samedayProvenance ? sameday : null;
+  return spec.templates[seed % spec.templates.length]({ reelMd, pro, q, sd, seed });
 }

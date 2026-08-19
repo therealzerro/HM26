@@ -234,32 +234,33 @@ sh(
   `[bolt][uix]xfade=transition=custom:expr=${EASED}:duration=${dissolve}:offset=${+(openDur - dissolve).toFixed(2)}[openbody];` +
   `[2:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=${CARD},setpts=PTS-STARTPTS[card];` +
   `[openbody][card]concat=n=2:v=1:a=0[vraw];` +
-  // MKT-31 item 2: the ribbon rides EVERY body frame a viewer could land on —
-  // fade-out now begins AT the endcard cut (was 0.5s before it), so the claim
-  // holds through the last hold and dissolves into the close.
-  // MKT-35 P4: PER-SEGMENT PLACEMENT. During the BOARD segment (the body's
-  // first 2.50s — F_SLATE=150 frames in render-verification-reel) the ribbon
-  // at its spec y=470 crossed the #1/#2 cards, so it rides at y-370 (plate
-  // y 100-220) inside the band the board renderer now reserves (clear y
-  // 0-300 through the push-in, measured). It returns to y=470 exactly at the
-  // board→summary hard cut — a position change on a scene cut reads as
-  // staging, not a glitch. The ledger segment keeps the spec placement; the
-  // ribbon must never cross a card, a digit or a badge.
+  // RIBBON RULE (operator ruling 2026-08-19, superseding MKT-31 item 2's
+  // every-body-frame span): on BOTH verify kinds the ribbon rides the BOARD
+  // SEGMENT ONLY, UNCONDITIONALLY — never a collision-day conditional. The
+  // featured row IS the proof — digits, badge and attribution are the one
+  // thing a viewer must read cleanly, and nothing may cross it on ANY day
+  // (verify_midday's first live build measured the spec y=470 ribbon covering
+  // "STRAIGHT · Midday / Drew 618 in NC" through the whole hold; the same
+  // geometry is latent on verify on first-row-featured days, 8/18's sheet
+  // shows it). A conditional that fires rarely is exactly the defect shape
+  // this system keeps discovering months later (the straight-match
+  // classifier, the .mov class, the unpaired-carrier hum-bed) — a uniform
+  // rule cannot silently mis-fire. What's lost is small and already covered:
+  // after the board the "Yesterday"/"Today" header and the dated group carry
+  // the date, and the chip carried it at frame one at full opacity. The
+  // ribbon's job is identification during the opening beat.
+  // MKT-35 P4: PER-SEGMENT PLACEMENT still holds for the segment the ribbon
+  // rides. During the BOARD segment the ribbon at its spec y=470 crossed the
+  // #1/#2 cards, so it rides at y-370 (plate y 100-220) inside the band the
+  // board renderer reserves (clear y 0-300 through the push-in, measured).
   `[4:v]format=rgba,split=2[st0][st1];` +
   `[st0]fade=t=in:st=${+(openDur - 0.3).toFixed(2)}:d=0.4:alpha=1[stA];` +
-  // MKT-62: on verify_midday the ribbon rides the BOARD segment only and fades
-  // at the board→summary cut. Measured on the first live build (8/19, one
-  // featured row in the first viewport → scroll clamps at 0): the spec y=470
-  // ribbon covered "STRAIGHT · Midday / Drew 618 in NC" for the whole hold —
-  // the proof line, on the reel whose point is the proof. After the board the
-  // claim is carried by the timestamp pair + the "Today" group header, so the
-  // ribbon is redundant there. (Same latent geometry exists on verify on
-  // first-row-featured days — reported for ruling, NOT changed here.)
-  `[st1]fade=t=out:st=${+(openDur + (MIDDAY ? BOARD_SEG : uiDur)).toFixed(2)}:d=0.45:alpha=1[stB];` +
-  // MKT-62: on the same-day kind the BOARD segment is longer by the cover-lift
-  // (covered hold + lift precede the graded board's 2.5s) — the ribbon stays
-  // at its board placement for the whole segment, then drops to spec at the
-  // board→summary cut exactly as on verify.
+  // The fade-out begins AT the board→summary/ledger cut on both kinds; the
+  // 0.45s dissolve tail rides at spec placement past the cut (the shipped
+  // verify_midday shape, measured and accepted 8/19). On verify_midday the
+  // BOARD segment is longer by the cover-lift (covered hold + lift precede
+  // the graded board's 2.5s).
+  `[st1]fade=t=out:st=${+(openDur + BOARD_SEG).toFixed(2)}:d=0.45:alpha=1[stB];` +
   `[vraw][stA]overlay=0:-370:enable='lt(t,${+(openDur + BOARD_SEG).toFixed(2)})'[vbrd];` +
   `[vbrd][stB]overlay=0:0:enable='gte(t,${+(openDur + BOARD_SEG).toFixed(2)})',format=yuv420p[vst];` +
   // MKT-22/MKT-35: chip rides the intro only — FULL OPACITY FROM FRAME ONE

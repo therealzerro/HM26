@@ -68,6 +68,7 @@ import { execSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { provenanceArgs } from './reel-provenance';
+import { fetchSamedayProvenance, fmtGap } from './reel-sameday';
 import { renderSlateFrames, renderCoverLiftFrames, F_COVER, F_LIFT, type BoardLabels } from './render-verify-slate';
 import { config as loadEnv } from 'dotenv';
 loadEnv({ path: resolve('.env'), quiet: true });
@@ -159,11 +160,8 @@ function todayET(): string {
 function fmtET(d: Date): string {
   return d.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' });
 }
-/** "8h 33m" — the elapsed gap, whole minutes. */
-function fmtGap(ms: number): string {
-  const m = Math.max(0, Math.round(ms / 60000));
-  return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`;
-}
+// fmtGap ("8h 33m") now lives in reel-sameday.ts — shared with publish-reels,
+// which writes the same gap into the caption's {elapsed}.
 
 (async () => {
   // MKT-40 — the PUBLIC capture: digits masked upstream, match vocabulary
@@ -267,29 +265,23 @@ function fmtGap(ms: number): string {
       console.error(`ABORT (precondition 4): the midday ledger is imported (${midRows} rows) but HIT DETECTION has not graded today's midday board (no result_at on its ${slateRows.length} tracking rows). Run hit detection (the import flow normally triggers it; Admin → detect), then re-run. No reel.`);
       process.exit(1);
     }
-    const posted = await get<Array<{ posted_at: string | null; status: string }>>(
-      `/rest/v1/marketing_reels?reel_date=eq.${dateISO}&kind=eq.midday_free&select=posted_at,status&limit=1`);
-    if (!posted[0]?.posted_at) {
-      console.error(`ABORT (precondition 5): midday_free for ${dateISO} has no posted_at (${posted[0] ? `status ${posted[0].status}` : 'no row'}) — the covered board was never posted to the free room, so there is no gap to prove. No reel.`);
+    // Preconditions 5 (posted) and 6 (≥1 match) plus the inversion check ride
+    // the SHARED provenance read (reel-sameday.ts) — publish-reels consumes
+    // the identical join for the caption's {elapsed}, so the two numbers
+    // cannot drift. Only the abort wording lives here.
+    const sp = await fetchSamedayProvenance(get, dateISO);
+    if (!sp.ok) {
+      if (sp.why === 'not-posted') {
+        console.error(`ABORT (precondition 5): midday_free for ${dateISO} has no posted_at (${sp.status ? `status ${sp.status}` : 'no row'}) — the covered board was never posted to the free room, so there is no gap to prove. No reel.`);
+      } else if (sp.why === 'zero-matches') {
+        console.error(`ABORT (precondition 6): today's midday board is graded and has ZERO midday-session matches for ${dateISO} — an honest zero; no gap to show. No reel.`);
+      } else {
+        console.error(`ABORT: GRADED ${sp.gradedAt.toISOString()} is not after PUBLISHED ${sp.publishedAt.toISOString()} — provenance inconsistent. No reel.`);
+      }
       process.exit(1);
     }
-    const rows = await get<Array<{ combo: string; matched_state: string; matched_session: string | null; hit_straight: boolean; result_at: string | null }>>(
-      `/rest/v1/adaptive_tracking?slate_date=eq.${dateISO}&scope=eq.midday&mode=eq.balanced&matched_state=not.is.null&or=(hit_box.eq.true,hit_straight.eq.true)&select=combo,matched_state,matched_session,hit_straight,result_at`);
-    const mid = rows.filter(r => (r.matched_session ?? '').toLowerCase() === 'midday');
-    const seen = new Set<string>();
-    const uniq = mid.filter(r => { const k = `${r.combo}|${r.matched_state}`; if (seen.has(k)) return false; seen.add(k); return true; });
-    const times = uniq.map(r => r.result_at ? Date.parse(r.result_at) : NaN).filter(Number.isFinite);
-    if (!uniq.length || !times.length) {
-      console.error(`ABORT (precondition 6): today's midday board is graded and has ZERO midday-session matches for ${dateISO} — an honest zero; no gap to show. No reel.`);
-      process.exit(1);
-    }
-    const publishedAt = new Date(posted[0].posted_at), gradedAt = new Date(Math.max(...times));
-    if (!(gradedAt.getTime() > publishedAt.getTime())) {
-      console.error(`ABORT: GRADED ${gradedAt.toISOString()} is not after PUBLISHED ${publishedAt.toISOString()} — provenance inconsistent. No reel.`);
-      process.exit(1);
-    }
-    prov = { publishedAt, gradedAt, matches: uniq.length, straights: uniq.filter(r => r.hit_straight).length };
-    console.log(`provenance: PUBLISHED ${fmtET(publishedAt)} · GRADED ${fmtET(gradedAt)} · elapsed ${fmtGap(gradedAt.getTime() - publishedAt.getTime())} · ${prov.matches} midday row(s), ${prov.straights} straight`);
+    prov = { publishedAt: sp.publishedAt, gradedAt: sp.gradedAt, matches: sp.matches, straights: sp.straights };
+    console.log(`provenance: PUBLISHED ${fmtET(prov.publishedAt)} · GRADED ${fmtET(prov.gradedAt)} · elapsed ${fmtGap(prov.gradedAt.getTime() - prov.publishedAt.getTime())} · ${prov.matches} midday row(s), ${prov.straights} straight`);
   }
   const fname = (i: number) => join(WORK, `frame_${String(i).padStart(4, '0')}.png`);
 

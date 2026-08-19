@@ -425,6 +425,18 @@ Tail parity checked against the pool rather than asserted: serving members SPLIT
 
 ---
 
+### MKT-61 — Slate intro additions: juggle REGISTERED (pool 9→10), coffee HELD for two rulings, reveal ungenerated ✅ PARTIAL (2026-08-19; handoff v3.9)
+
+**ID verified free** (audit 0 / code 0). Two 10.000/10.005s 720×1280 masters landed at exact lowercase names, no .mov/.MP4 strays, nothing overwritten.
+
+**juggle ✅:** IN 0.450 (audio onset — the master opens on 0.45s of silence over continuous picture) / OUT 6.650 → 6.208s v / 6.200s a (libx264 crf17, aac 192k; master kept as `anchor_intro_juggle_master_10s.mp4`). Full-frame smoke from ~5.9s of the master (bezel gone by 5.875), holds to ≥9.5s. **The gag holds: the visor never tracks the phone** (eye check 0.25–3.3s at 1/8s steps — head dead-straight through the arc, no-look catch at ~2.9s). Phone apex y≈497 at 1080×1920 (under the visor top ~500; 77px inside the 1:1 band y420–1500). Chip zone x520–1008/y500–700 ≤1.06% phone pixels through 2.65s. Open RMS −33.5dB (first 0.3s after IN). Wall: standard screen bank, chart smudges only at 2x, no glyphs. Registered in `INTRO_ROTATION` after `arrive` (live-kinds-first axis untouched). `reel:rotation`: intro lane 6 rotating · pool 10 · no full repeat inside 300d (was 186d at 9); pinned kinds unaffected by design. `reel:check` 0 FAIL / 102 WARN. First draws: evening_free 8/20, midday_free 8/21, evening_pro 8/22.
+
+**coffee ⏸ HELD (not trimmed, not registered; `UNREFERENCED_OK` carries the reason):** technically clean — mug plain white and unmarked at 2x, wall clean, chip zone clear (steam stays centre-left; ≤4.6% bright pixels in the zone = the screen bank), full-frame smoke from ~5.5s through ≥9.5s, open RMS −44.4dB at the onset. Two findings for the operator: **(1) the master is SILENT for its first 1.94s** (audio onset 1.94s) — the briefed ambience-from-frame-one did not generate, so the in-point rule (later of picture cut / audio onset) would put IN at 1.94s, INSIDE the mug-at-face hold; **(2) the hold measures ~0.65–0.8s** (mug reaches the face ~1.6–1.75s, lowering by ~2.45s) against the order's ~1.0s floor. Options written in the handoff §7: IN 0.0/OUT 6.2 (silent head, joke intact, 6.2s) · IN 1.94/OUT 7.6 (audio from frame one, opens mid-hold, 5.66s) · regenerate. **Generator lesson (second time today, with MKT-58's shutter): 10s-preset masters pace their beats to 10s.**
+
+**reveal:** not generated (budget) — §G.3 stays open at 10 → 12.
+
+---
+
 ### MKT-59 — Carrier rotation for two single-entry kinds: midday_pro 1→4, verify 1→3 (+1 held) ✅ SHIPPED (2026-08-19; handoff v3.8)
 
 **ID verified free** (audit 0 / code 0 before stamping). Six part-1 deliveries, NO pt2s (every variant joins the existing shared continuation — zero continuation cost). Incumbents stay entry 0 + fallback (evening_pro/MKT-48 shape).

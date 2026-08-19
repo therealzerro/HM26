@@ -82,6 +82,20 @@ export const INTRO_ROTATION: IntroVariant[] = [
   // Q1/Q2 ruling (the letterform is on the poster frame). IN 0.310 is the
   // AUDIO ONSET — the master opens on 0.31s of silence over the empty desk.
   { file: 'anchor_intro_arrive.mp4', label: 'arrive' },
+  // MKT-61 (2026-08-19). juggle — the Anchor tosses the phone hand to hand
+  // WITHOUT LOOKING (eye-checked 0.25-3.3s at 1/8s steps: the visor never
+  // tracks the arc), no-look catch, deadpan hold, then the raise and push-in.
+  // IN 0.450 = the AUDIO ONSET (the master opens on 0.45s of silence over
+  // continuous picture) / OUT 6.650 → 6.208s video / 6.200s audio. Full-frame
+  // smoke from ~5.9s of the master (bezel gone by 5.875), so the 0.5s dissolve
+  // bed is clean and the master stays smoke through ≥9.5s — any re-trim may
+  // push OUT later, never earlier than ~6.4. Phone apex y≈497 (1080×1920),
+  // under the visor top (~500) and 77px inside the 1:1 band (y420-1500); chip
+  // zone x520-1008/y500-700 max 1.06% phone pixels through 2.65s (clear).
+  // Open RMS −33.5dB over the first 0.3s after IN (mid-fleet). Wall: the
+  // standard screen bank, chart smudges only at 2x, no glyphs. Its sibling
+  // `coffee` from the same drop is HELD — see UNREFERENCED_OK.
+  { file: 'anchor_intro_juggle.mp4', label: 'juggle' },
 ];
 
 /** Fallback when the rotation is empty or every member is unusable. */

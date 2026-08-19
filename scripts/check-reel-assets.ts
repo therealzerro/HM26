@@ -259,6 +259,18 @@ function checkPartNaming(): void {
  * Remove an entry the moment its reason expires.
  */
 const UNREFERENCED_OK: Record<string, string> = {
+  // MKT-61 (2026-08-19) — coffee intro HELD for two operator rulings (see the
+  // handoff v3.9 / audit): (1) the master opens on 1.94s of SILENCE (audio
+  // onset 1.94s) against MKT-08's audio-from-frame-one rule, and the in-point
+  // rule (later of picture cut / audio onset) would put IN at 1.94 — INSIDE the
+  // mug-at-face hold that is the joke; (2) the hold itself measures ~0.65-0.8s
+  // (mug at face ~1.6/1.75 → lowering by 2.45) against the brief's ~1.0s
+  // floor. Trim candidates if accepted: IN 0.0/OUT 6.2 (silent head, joke
+  // intact) or IN 1.94/OUT 7.6 (audio from frame one, opens mid-hold, lift
+  // beat lost) — smoke is full-frame from ~5.5s through ≥9.5s so either OUT
+  // is clean. Mug plain white, unmarked at 2x; chip zone clear; wall clean.
+  'anchor_intro_coffee.mp4':
+    'MKT-61 HELD 2026-08-19 — 1.94s silent head (audio onset 1.94s) vs the audio-from-frame-one rule, and the in-point rule would cut into the mug hold; the hold measures ~0.65-0.8s vs the ~1.0s brief floor. Operator rules: accept a silent head (IN 0.0/OUT 6.2), open mid-hold (IN 1.94/OUT 7.6), or regenerate. Master kept as delivered (10.005s).',
   // MKT-59 (2026-08-19) — verify part-1 alternate HELD on the seam proxy
   // (exit f0 Δ12.3 vs pt2, non-overlapping IQR); registers with one line in
   // carrier-config.ts `verify.set` if the operator's cold listen passes it.

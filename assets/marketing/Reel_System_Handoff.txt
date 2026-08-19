@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-17 · v3.4
+Content Agent Handoff · 2026-08-19 · v3.5
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -16,6 +16,211 @@ Companion docs:
   - assets/marketing/AllDay_Reel_Endcard_Revision_Brief_2026-07-27.md (endcard contract)
   - docs/mkt15_phase2_copy_brief.md (public copy set — DELIVERED + the bolt request)
   - REEL_COMMANDS.txt (repo root — operator command reference)
+
+================================================================================
+STATE OF THE SYSTEM — 2026-08-19 (v3.5 CONSOLIDATED SNAPSHOT — READ THIS FIRST)
+================================================================================
+This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
+version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
+blocks beneath it are the era records and are never retro-edited. Where this
+block and an older note disagree, this block wins; where it and a § section
+disagree, the § section has been struck or is wrong — say so in your next
+audit and it will be fixed.
+
+A. DAILY OUTPUT (operator-triggered `npm run reel:daily`, never scheduled):
+   NINE reels, each auto-published to Admin → Reels with a drafted caption;
+   NOTHING auto-posts. Order: verify → allday → midday → evening.
+     verify          group cut, D−1 receipts (aborts on a zero-match day)
+     verify_public   masked public grading cut (same beat map; tier 1)
+     allday_pro · allday_free · allday_public
+     midday_pro · midday_free (redacted)
+     evening_pro · evening_free (redacted)
+   midday_public / evening_public are UNREGISTERED by ruling (no session
+   carriers; three daily public reels is a cadence risk) — do not propose
+   assets for them. Kind list is enforced by a DB CHECK + KIND_UI entry (§8).
+   Last three runs: 8/17 (first coffee-Home production day; allday+midday
+   re-published after MKT-57a), 8/18, 8/19 — all nine kinds, no aborts.
+   Retention is keep-current-only (MKT-38): yesterday's mp4 exists only in
+   git history.
+
+B. SLATE REEL ANATOMY (allday/midday/evening, all cuts; 1080×1920 60fps;
+   33.83–34.53s depending on the day's intro):
+     0.0–~5.6   INTRO — slate kinds rotate over INTRO_ROTATION (NINE: standard,
+                deadpan, arrival, monitors, powerup, board, guest, window,
+                arrive — MKT-54). Lane-spread: pro and free draw DIFFERENT
+                members the same day; the walk reshuffles per cycle (MKT-49).
+                Frame-one dated identity chip over the Anchor's shoulder
+                (MKT-22/35). verify draws VERIFY_INTROS (anchor_intro_verify),
+                public kinds draw PUBLIC_INTROS (anchor_intro_public) —
+                both are SETS of one and NEVER fall into the slate rotation.
+     ~5.3–8.3   STINGER — 3.0s, 0.3s crossfade into the intro smoke. FOUR
+                shared motions rotate (std/strike/circuit/fracture; imprint
+                retired); verify + verify_public draw the SEAL set instead.
+                Copy per kind (stinger-config.ts); lockup on the shared 1330
+                band (MKT-45 — no per-kind tucks, ever).
+     8.3–27.3   BODY 19.0s = 10.0s STATIC STILL of the COFFEE-MODE HOME
+                (MKT-57: scope switcher · "NEXT DRAW · Nh NNm" · 2×3 rank
+                tiles "#N / digits / ENERGY nn" · black space · tab bar) then
+                six Pick Detail Modals tapped in rank order, 1.5s each, hard
+                cuts (MKT-56). Body provenance tags: hm_reel_date,
+                hm_reel_redacted, hm_reel_public — the assembler asserts them.
+                MEMBER-LEGIBILITY LAYER on full-fidelity bodies ONLY (never on
+                redacted/public): tile digits embossed 1.25× with glow;
+                NOTATION BAND at the bottom of the black space ("EVENING · 6
+                SIGNALS · RANK ORDER" + #1…#6, mono, read back from the DOM —
+                abort unless six); "TODAY'S DATA DROP" stamp chip at y=1000
+                (above the band); HOLD TIMER draining along the bottom edge.
+                Capture-time DOM injection + encode filters — the APP IS NOT
+                MODIFIED by any of it. MKT-11 promo panels sit below the
+                "RESOLVED IN" card in every modal (app-wide product surface;
+                MKT-57a made Home's modal render them like Explore's).
+     27.3–33.8  OUTRO — the endcard's FIRST 6.5s. Endcard motions rotate per
+                TIER: pro = reveal/discharge/ignite/lock (MKT-47; reveal is
+                bed-INELIGIBLE), free = std/alt/tide/bloom/adopen (MKT-48;
+                public kinds are free-tier). Text on the shared 1240 band.
+     AUDIO      intro sting → stinger impact → carrier VO from 0.4s before the
+                dissolve completes (carrier-local t=0). Usable VO window =
+                bodyDur+0.4 = 19.4s, INDEPENDENT of intro length. Long carrier
+                (≥~19.4s) = wall-to-wall, fade at 20.5s bites first; short
+                (~10s) = hum-bed from the endcard's pre-crack window. −14 LUFS.
+     BEAT MAP   (carrier-local): 0–0.4 under the dissolve tail → 0.4–10.4 the
+                SIX TILES (still — members notate here; the VO may read the
+                board but must not say "tap in" before ~10.4) → 10.4–19.4 one
+                modal every 1.5s → long-form final line may ride the smoke
+                rise, never the bolt snap.
+
+C. VERIFY ANATOMY (group + public cuts; ~23–29s, data-adaptive): fixed intro
+   → seal stinger ("YESTERDAY'S RECEIPTS", headline-dominant) → body 8.6–14.0s
+   built from the row selection (slate 2.5 + summary 2.0 + pan 2.0 + holds:
+   2.0s straight / 1.6s box, ≤3 featured, straights first) with the persistent
+   gold date ribbon → endcard FIRST 6.5s on the shared band. Carrier =
+   verif_carrier (10.005s) + verif_carrier_pt2 (6.542s, MKT-43 pair) or
+   signoff_short (~2.2s) or silence — resolved BY WINDOW, whole or not at all.
+   Public half differs in exactly five ways (§3). The track-record screen is
+   verify's live set: `?capture=1` + `day-<date>` anchors + heading text are
+   RIG CONTRACT (MKT-51) — never change them without a work order.
+
+D. CARRIERS (your main deliverable; spec §2/§7): rotating sets —
+   allday_pro ×4, allday_free ×4, evening_pro ×4 (each joined to ONE shared
+   pt2); single-entry — midday_pro, midday_free, evening_free, allday_public,
+   verify. Ceiling on the JOIN ≤20.0s; pt2 last word by ~9.47s of pt2 (margin
+   floor +0.184s); generator emits 10.005s presets, trimming is the norm.
+   FREE BRIEF SPLITS BY SCOPE: All-Day free = pure value, no Pro pitch;
+   session free = NAMES the withholding, pricing ($2.49/mo) permitted there
+   and nowhere else; first-access framing barred below Pro.
+
+E. CAPTIONS (§5): template engine at publish, date-deterministic, 12 families
+   per kind (allday_public 8); kinds = allday_pro/free/public, verify (free
+   draft) + verify_pro, verify_public, midday_pro/free, evening_pro/free; YT
+   title/description/tags as a per-platform transform (MKT-37). Numbers policy
+   absolute: real counts/states ONLY on pro kinds. Telegram (tier 4) reshapes;
+   YouTube/TikTok/Reddit/X registered but DISABLED (operator-only flip, one at
+   a time); Instagram = do-not-build.
+
+F. PUBLIC CAPTURE (MKT-30/16/40/55): `--redact --relabel` = structural digit
+   masking (placeholder + gold bolt, never blurred real pixels) + eight copy
+   slots + HEAT_RELABEL 11 neutrals + prose-form pick→signal swap (MKT-55,
+   8/14) + "ENERGY N" carve-out (MKT-57), every rendered string linted at
+   tier 1 fail-closed; stored Q1/Q2 gate record REQUIRED or reel:check FAILS.
+   ⚠ Any product/design change to the Home tiles or the six modals is a
+   PUBLIC-CAPTURE surface change — new consumer copy must clear tier-1 lint
+   before the next morning run or the run aborts (MKT-55 lesson).
+
+G. OPEN / OWED — the standing list (everything else you may have read as
+   "open" is closed; see §9 for the closure record):
+     1. NATIVE 1080×1920 source assets — generator ceiling confirmed 4×;
+        upscale pilot is the only path; blocked on generation balance.
+     2. STINGER MOTIONS 4 → 7 (the binding rotation constraint: at 4, three
+        motions double up daily). Tier-neutral shared pool, NOT the seal set;
+        one transient before ~2.2s, dissolve bed at 3.0s; names must not
+        collide with std/strike/circuit/fracture, never reuse imprint.
+     3. INTRO REGEN QUEUE 9 → 12: coffee (the 1.4–2.6s pause IS the joke),
+        juggle (reject if the visor tracks the phone), reveal (trim ~OUT 7.4,
+        6.5s ceiling wins). Prompts held by the operator; budget-gated.
+     4. CARRIER ROTATION for the single-entry kinds (midday_pro, midday_free,
+        evening_free, allday_public, verify) — those rooms hear the identical
+        opening daily. Budget-gated. verify's two MKT-43 ear gates (seam;
+        signoff_short match) still unmeasured — operator ear only.
+     5. A SECOND PUBLIC INTRO (PUBLIC_INTROS) and/or a SEAL VARIANT
+        (VERIFY_SEAL_MOTIONS) — one-line registrations; public-clearance
+        FIRST, per file, evidenced.
+     6. MORE MKT-11 PANELS — product surface, copy bar is high; rotation
+        adapts with no code change.
+     7. MKT-15 operator DEVICE test of the social deep links — still owed.
+     8. MKT-53 audit entry (SocialBriefCard per-variant layout) — owed by
+        whoever shipped it; not a reel asset.
+     9. FIRST-APPEARANCE EYEBALLS owed on the rotation: `guest` served
+        allday_free on 8/19 (per `npm run reel:rotation` — the MKT-54 note's
+        "allday_pro 8/19" predated a reshuffle) — look at that cut; `arrive`
+        is group-tiers only (it drew midday_pro 8/19).
+   NOT COMING / REFUSE IF OFFERED: allday_free_carrier_pt2 raw, midday_free
+   _carrier_pt2 raw, the third 7/30 free pt2, the 7/29 seal take — each would
+   overwrite a serving file with a gate-failing take. `watermark_source.mp4`
+   is evidence only. The MKT-46 ad lane is PARKED (F3 glyphs; head trim
+   impossible — never re-attempt). The 1:1 cut is RETIRED.
+
+H. DELIVERY SPEC, SHORT FORM (full text §7): exact lowercase FINAL registry
+   name · .mp4 container (a .mov or .MP4 is invisible to the registry and the
+   stray scan — seventh failure class) · direct upload, NEVER a GitHub-web
+   rename (2-byte stubs, twice) · ffprobe on landing · 10.005s masters,
+   intros trimmed to 5.6–6.5s with IN = later of picture cut and audio
+   onset, end on clean full-frame smoke, chip zone clear at frame one · every
+   motion brief never-moves-first (travelling forms land unpredictably).
+   Write generator prompts as SCENE STATES, not negatives (negatives trigger
+   refusals); two-hander shots = every figure a machine.
+
+I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
+   lane; full-fidelity free session reels; captions moving numbers outside
+   pro; bypassing lint / Two-Question gates; combo-compare in verify
+   (classifier = renderer defect, MKT-35); per-kind lockup tucks (MKT-45);
+   re-populating the bands from a gap measurement; baking the brand domain
+   (hitmasterzk.com — secured, NOT wired) into any asset without a per-
+   surface tier ruling; Instagram.
+
+WHAT CHANGED IN v3.5 (2026-08-19 — MKT-57a Home modal panel; three production
+days on the coffee-Home body; FULL DOC RESYNC — the snapshot above is new)
+  A. MKT-57a (8/17, commit 0044ffb): the MKT-11 rotating panel was MISSING
+     from the coffee-Home modal captures on the first production run — the
+     app's Home mounts never passed `slateDate` to the Pick Detail Modal,
+     so the panel (which Explore rendered) did not render from Home. Fixed
+     in the app (both Home mounts now pass it — panels are APP-WIDE by the
+     MKT-11 ruling, so this is Home coming into line, not a capture hack).
+     8/17 verify/allday/midday shipped first WITHOUT the panel; allday +
+     midday were re-run and re-published after the daily run; evening
+     rendered after the fix. Panel copy is product surface — unchanged.
+  B. Production record: 8/17, 8/18, 8/19 all ran nine kinds on the coffee-
+     Home body with the re-laid legibility layer (v3.4 §B) — no aborts, no
+     operator corrections since MKT-57. The coffee body is the standing
+     capture; the Slates grid is HISTORICAL for reels. Any carrier/caption
+     line still describing signal bars, set labels, the Signals tab or
+     "Grid view" is scene-inaccurate (v3.4 §D stands).
+  C. DOC RESYNC (live text brought current; era notes untouched):
+       · NEW top block "STATE OF THE SYSTEM — 2026-08-19" — the one-pass
+         current picture, maintained in place from now on.
+       · §1 run descriptions rewritten for the coffee-Home body and the
+         nine-reel output; stale "All-Day signal board" wording struck.
+       · §2 beat map corrected to the 10.0s still + 1.5s modals (it still
+         read the 4.0s board / ~2s-per-signal cadence retired by MKT-56).
+       · §5 template count (8 → 12 per kind, allday_public 8 — MKT-37) and
+         kind list (allday_public, verify_public added) corrected.
+       · §9 retitled to 2026-08-19; BUILT list extended MKT-46 → MKT-57a;
+         DAILY OUTPUT paragraph rewritten to nine kinds; standing-ask list
+         annotated against snapshot §G.
+       · §10 retitled; its last block ("FREE-GROUP MIDDAY/EVENING REEL — not
+         a lane … PRO-ONLY ruling still stands") struck as HISTORICAL —
+         those reels have shipped redacted since MKT-26 (7/29) with their
+         own endcards and carriers.
+     Nothing in §3, §4, §6, §7, §8 was found wrong at the section level;
+     §7's per-asset entries remain the detail record (read them before
+     generating, the snapshot is not a substitute for the delivery spec).
+  D. Asks FOR the content agent this version: (1) confirm the 8/19
+     allday_free `guest` cut reads as intended (first full-pipeline
+     appearance — the schedule reshuffled it off allday_pro); (2) if
+     any carrier line in the rotating sets narrates the modals before
+     carrier-local ~10.4s, flag it — re-timing is a re-delivery, not an
+     edit; (3) the stinger 4→7 ask (snapshot §G.2) is the highest-value
+     generation spend when budget returns — confirm the three concepts
+     before generating so names and bed windows are agreed first.
 
 WHAT CHANGED IN v3.4 (2026-08-17 — MKT-57: THE BODY'S FIRST SCENE IS NOW THE
 COFFEE-MODE HOME, not the Slates grid; ruled 8/16, first full daily run 8/17)
@@ -820,18 +1025,25 @@ WHAT CHANGED IN v1.6 (six corrections; v1.5 is wrong on all six)
 A fully automated daily video pipeline. Two commands produce, assemble, upload,
 and stage everything; the operator posts from their phone with two taps.
 
-  npm run reel:allday   → TWO reels for TODAY (Pro variant + Free variant):
-                          Anchor intro + branded stinger + the All-Day signal
-                          board + all six signal detail modals, captured from
-                          the LIVE app with real data.
+  npm run reel:allday   → THREE reels for TODAY (Pro + Free + PUBLIC — the
+                          public cut since MKT-16, 7/30): Anchor intro +
+                          branded stinger + a 10.0s still of the COFFEE-MODE
+                          HOME (six ranked tiles — MKT-57, 8/17; ~~the All-Day
+                          signal board~~ HISTORICAL) + all six pick-detail
+                          modals, captured from the LIVE app with real data.
 
-  npm run reel:verify   → ONE reel for YESTERDAY (22.1-27.5s — VARIABLE, see
+  npm run reel:verify   → TWO reels for YESTERDAY (~23-29s — VARIABLE, see
                           §3): "Receipts" — yesterday's verification
-                          breakdown. Intentionally refuses to build on
-                          zero-match days (no receipts, no reel).
+                          breakdown, group cut + verify_public (MKT-40).
+                          Intentionally refuses to build on zero-match days
+                          (no receipts, no reel).
+  npm run reel:daily    → all of the above in order (verify → allday → midday
+                          → evening), detached; NINE reels. Operator-triggered
+                          only — never scheduled.
 
   npm run reel:midday   → TWO reels each: the PRO variant, plus a FREE variant
   npm run reel:evening    cut from a separate REDACTED capture (digits masked).
+                          Same coffee-Home body as All-Day (MKT-57).
                           Added 2026-07-28 (MKT-13), free half 2026-07-29
                           (MKT-26). ⚠ v1.7's "PRO ONLY" is retired — but the
                           bar it recorded still stands: a FULL-FIDELITY free
@@ -1113,10 +1325,14 @@ on the 6.33s members) and the reel runs up to 34.53s.
   - Target VO length: ~19.4s for wall-to-wall narration (preferred), or
     ~10s accepting the hum-bed remainder. Anything between works; the
     assembler adapts automatically and prints which mode it used.
-  - Write VO to the visual beat map, in CARRIER-LOCAL time: 0–0.4 lands
-    under the last of the dissolve → 0.4–4.4 the full board (six signals
-    on screen) → 4.4 onward, one signal detail roughly every 2s → if
-    long-form, final line can land over the smoke rise.
+  - Write VO to the visual beat map, in CARRIER-LOCAL time (⚠ re-timed
+    by MKT-56/57, 8/16-17): 0–0.4 lands under the last of the dissolve →
+    0.4–10.4 the SIX TILES of the coffee Home, a static still members
+    notate from (the VO may read the board; do not say "tap in" or
+    describe a modal before ~10.4) → 10.4–19.4 one pick-detail modal every
+    1.5s → if long-form, final line can land over the smoke rise.
+    ~~0.4–4.4 the full board → 4.4 onward, one signal detail roughly every
+    2s~~ HISTORICAL (the 4.0s push-in + 6×2.5s body, retired 2026-08-16).
   - Do NOT write VO for the intro. The Anchor beat is deliberately
     voiceless — it carries its own sting and the reel's first words land
     as the grid appears. The sting is present from frame 1 by design: the
@@ -1337,12 +1553,15 @@ There is deliberately NO public-page (API) lane for reels and NO auto-posting.
 Captions are generated at publish time by a template engine — not written
 per-day by hand, not AI-freestyled.
 
-  ROTATION — each content kind has 8 template families. The day's date picks
+  ROTATION — each content kind has 12 template families (allday_public 8;
+  grown from 8 by MKT-37, 7/31). The day's date picks
   the template deterministically: a different style every day, never the
   same style on two kinds the same day (protects the duplicate-caption
   rule), and re-running the same date reproduces the same caption exactly.
-  Kinds today: allday_pro, allday_free, verify (free draft), verify_pro,
-  midday_pro, evening_pro, midday_free, evening_free. The three PRO slate kinds
+  Kinds today: allday_pro, allday_free, allday_public, verify (free draft),
+  verify_pro, verify_public, midday_pro, evening_pro, midday_free,
+  evening_free. YouTube title/description/tags are a per-platform TRANSFORM
+  of the caption (MKT-37), not a separate pool. The three PRO slate kinds
   are spaced so they never
   draw the same template family on the same day — a subscriber who sees the
   Midday, Evening and All-Day posts reads three different messages.
@@ -2169,7 +2388,8 @@ per-day by hand, not AI-freestyled.
 
 
 --------------------------------------------------------------------------------
-9. WHERE THE SYSTEM STANDS (2026-07-29) — READ THIS FOR CURRENT STATE
+9. WHERE THE SYSTEM STANDS (2026-08-19, resynced by v3.5 — the top-of-file
+   STATE SNAPSHOT is the short form; this section is the closure record)
 --------------------------------------------------------------------------------
 BUILT AND RUNNING DAILY:
   MKT-01  UI ad-clip render rig + 30s ad assembly
@@ -2283,6 +2503,42 @@ BUILT AND RUNNING DAILY:
           strand gate DELETED rather than retuned. 45 stingers + 16
           endcards + 7 reels rebuilt. v2.7 notes A-E. ⚠ Read v2.7 A before
           acting on ANY geometry note elsewhere in this file.
+  MKT-46  AD REEL LANE (2026-08-01) — Phase 0 answered, Phase 1 authorised,
+          14 files probed clean; then PARKED: the "Covered vs Uncovered"
+          pair was pair-rejected on Q1 (F3 serif O/zero glyphs, 8/03) and
+          the head trim is IMPOSSIBLE — never re-attempt. ad_pro = 1 body.
+  MKT-47  PRO ENDCARD SET REPLACED WHOLESALE (2026-08-01) ✅ — reveal /
+          discharge / ignite / lock; three bed-viable, reveal bed-INELIGIBLE
+          (never force-bed). std/steady/lattice retired. v2.7/§7.
+  MKT-48  NINE-ASSET DROP (2026-08-03) — 5 registered (free endcards tide +
+          bloom + adopen → free pool 5; evening_pro carrier rotation landed/
+          dusk/last), 3 rejected (updraft; the ad pair), 1 tier ruling
+          (adopen free-shared). v2.9 note G.
+  MKT-49  ROTATION DE-CORRELATED (2026-08-06) ✅ — carrier lockstep fixed,
+          schedule reshuffled per cycle, `npm run reel:rotation` added,
+          reel:check warns on inside-a-week repeats; pinned lanes became
+          SETS (VERIFY_INTROS / PUBLIC_INTROS / VERIFY_SEAL_MOTIONS). v2.9.
+  MKT-50–53  SOCIAL-BRIEF / TRACK-RECORD lanes (8/07–8/09) — not reel
+          assets; MKT-51's track-record rig contract IS reel-adjacent
+          (verify live set). v3.1 note A ledger; MKT-53 audit entry owed.
+  MKT-54  SLATE INTRO POOL 6 → 9 (2026-08-13) ✅ — guest / window / arrive
+          registered; arrive's frame-one letterform ACCEPTED for group
+          tiers only; .mov = seventh delivery failure class. v3.0/v3.1.
+  MKT-55  RELABELER PROSE SWAP (2026-08-14) ✅ — DESIGN-03 modal prose
+          leaked "pick" into the tier-1 audit and the public render aborted
+          fail-closed; prose-form pick→signal swap added at the capture
+          layer (consumer UI untouched). Standing lesson: any Home-tile or
+          modal copy change must clear tier-1 lint before the next run.
+  MKT-56  BODY GRID = STATIC STILL (2026-08-16) ✅ — zoom removed, still
+          10.0s, modals 1.5s, body stays 19.0s; 56b member-legibility layer
+          (emboss · notation strip · hold timer) on full-fidelity bodies
+          only; 56c stamp/band positions — RETIRED with the surface by 57.
+          v3.3.
+  MKT-57  BODY CAPTURES THE COFFEE-MODE HOME (2026-08-16, first production
+          8/17) ✅ — scope switcher · NEXT DRAW · 2×3 tiles; notation band at
+          the bottom of the black space, stamp chip y=1000, DOM-read tile
+          centres, "ENERGY N" relabel carve-out. 57a (8/17): Home modal now
+          renders the MKT-11 panel (app fix, both Home mounts). v3.4/v3.5.
 
 IN FLIGHT, NOT BUILT — do not propose against these yet; §10 has the detail:
   MKT-14  ✅ SHIPPED 2026-07-31 — no longer parked. The slate stamp carries
@@ -2295,12 +2551,14 @@ IN FLIGHT, NOT BUILT — do not propose against these yet; §10 has the detail:
           moved out of this list by v2.3. Platforms unblockable, none
           flipped (operator-only, per-platform).
 
-DAILY OUTPUT TODAY: up to NINE reels — verify + verify_public (~23-29s
-each, variable by row count since MKT-27; the public half is the masked
-grading cut, live since 7/31 — reel:verify builds both), All-Day Pro + Free +
-PUBLIC (allday_public, 34.20s, live since 7/30 — reel:daily renders its body
-third), and Midday and Evening, each Pro + Free. Slate reels are 33.83-34.53s depending on the day's intro. All
-auto-publish to Admin → Reels with drafted captions. Nothing auto-posts, ever.
+DAILY OUTPUT TODAY (2026-08-19): NINE reels, every run since 7/31 — verify +
+verify_public (~23-29s each, variable by row count since MKT-27; the public
+half is the masked grading cut — reel:verify builds both), All-Day Pro + Free
++ PUBLIC (allday_public), and Midday and Evening, each Pro + Free (redacted).
+Slate reels are 33.83-34.53s depending on the day's intro; every slate body
+is the coffee-Home still + six modals (MKT-56/57). All auto-publish to Admin
+→ Reels with drafted captions. Nothing auto-posts, ever. Three production
+days on the current body (8/17-8/19) with no aborts and no corrections.
 
 ⚠ THE PRO-ONLY SESSION RULING IS SUPERSEDED (MKT-26, 2026-07-29) — BUT NOT
 REPEALED. Read the distinction before proposing anything against it:
@@ -2320,7 +2578,9 @@ REPEALED. Read the distinction before proposing anything against it:
   structure. Only the values are withheld. The methodology is the gift; the
   digits are the gap Pro closes.
 
-WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks):
+WHAT WOULD MOVE QUALITY MOST, IN ORDER (the standing asks — ⚠ v3.5: the
+CURRENT open list is the STATE SNAPSHOT §G at the top of the file; this list
+is kept as the closure record, most of it is ✅):
   1. NATIVE 1080×1920 SOURCE ASSETS. Every delivered motion file to date is
      720×1280 24fps and gets upscaled + frame-duplicated. ⚠ CONFIRMED A
      FOURTH TIME 2026-07-31: the MKT-36 public-intro regeneration was
@@ -2438,7 +2698,8 @@ WHAT IS DELIBERATELY NOT BUILT:
 
 
 --------------------------------------------------------------------------------
-10. IN FLIGHT — WHAT EXISTS AND WHAT DOES NOT (2026-07-31, resynced by v2.3)
+10. IN FLIGHT — WHAT EXISTS AND WHAT DOES NOT (2026-08-19, resynced by v3.5;
+    everything here is SHIPPED except the MKT-15 device test + platform flips)
 --------------------------------------------------------------------------------
 Added in v1.6 because three lanes are now partly delivered, and "an asset is in
 the repo" has been mistaken for "the pipeline reads it". Nothing in this section
@@ -2542,10 +2803,16 @@ MKT-14 — SLATE-STAMP BRAND ATTRIBUTION. ✅ SHIPPED 2026-07-31 (v2.7 note G;
   a mark there is buried on all of them. `watermark_source.mp4` is delivery
   evidence only, permanently unreferenced, deletable.
 
-FREE-GROUP MIDDAY / EVENING REEL — not a lane, and nothing is assumed.
+~~FREE-GROUP MIDDAY / EVENING REEL — not a lane, and nothing is assumed.
   It is the second payoff of the masked capture, but it is not registered
   anywhere (§9's PRO-ONLY ruling still stands until it is). When it is built
   it needs its OWN endcard and carrier — Pro CTA and $2.49 pricing, not the
   free-community CTA, and NOT inherited from the public set. Those have not
-  been written and will not be invented.
+  been written and will not be invented.~~
+  ⚠ HISTORICAL (struck v3.5 — this block outlived its subject by three
+  weeks): midday_free / evening_free SHIPPED 2026-07-29 (MKT-26) as REDACTED
+  cuts, with their own endcards (free motion set, $2.49 line sanctioned at
+  tier 2) and their own carriers (midday_free_carrier + pt2, evening_free_
+  carrier + pt2 — single-entry sets). They run daily. What remains true: a
+  FULL-FIDELITY free session reel is barred and the assembler refuses it.
 ================================================================================

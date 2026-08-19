@@ -44,7 +44,10 @@ export interface ReelPanel {
 // so no panel may carry pricing, an upgrade CTA, or a Pro pitch (SOCIAL-13).
 export const REEL_PANELS: ReelPanel[] = [
   { file: 'panel_brand.png',    label: 'Brand wordmark' },
-  { file: 'panel_signals.png',  label: 'Four signals' },
+  // MKT-60 (2026-08-19): panel_signals RETIRED — its message (the four
+  // components) is restated by panel_measures in the DESIGN-03 vocabulary;
+  // carrying both would be one idea wearing two filenames. Source kept under
+  // panels/retired/; bucket object deleted.
   { file: 'panel_coverage.png', label: 'Coverage map' },
   { file: 'panel_anchor.png',   label: 'The Data Desk' },
   // Filename kept: it is the clearance key, the bucket object name and the
@@ -53,6 +56,10 @@ export const REEL_PANELS: ReelPanel[] = [
   // changed 2026-07-29 from "THE APP IS COMING" to "SIX SIGNALS. EVERY MORNING."
   { file: 'panel_app.png',      label: 'Six signals' },
   { file: 'panel_zk30.png',     label: 'ZK30 teaser' },
+  // MKT-60 (2026-08-19) — two new members. Copy is tier-neutral, true in both
+  // rooms (reel viewer without the app / subscriber inside it), no numerals.
+  { file: 'panel_receipts.png', label: 'Published before the draw' },
+  { file: 'panel_measures.png', label: 'Four measures' },
 ];
 
 /** Modal segments in the All-Day body — one panel each. */

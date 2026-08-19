@@ -24,7 +24,7 @@ export interface PanelClearance {
 
 export const CLEARANCE: Record<string, PanelClearance> = {
   'panel_brand.png':    { cleared: '2026-07-27', sha256: '5a19e745edff220ef32b71b841fedcf945445f124416f1efddad765ec05e0689' },
-  'panel_signals.png':  { cleared: '2026-07-27', sha256: 'e1a13a10f3ddf7eaac363ea9b39fb77befd66d3c2faf94a79c2b9cb6a82461f9' },
+  // 'panel_signals.png' RETIRED 2026-08-19 (MKT-60) — replaced by panel_measures; last cleared sha e1a13a10….
   'panel_coverage.png': { cleared: '2026-07-27', sha256: 'd2131c7f441ddd31ac0372df56d2d5683eb0eb12066d238d6d31bb9376eb77dd' },
   'panel_anchor.png':   { cleared: '2026-07-27', sha256: 'c60f1d524bfc2f58dfdadfbb14348476d6153c27f906b646e6a3a14abe8f4565' },
   // ⚠ COPY IS STALE — awaiting regenerated artwork (content agent, 2026-07-28).
@@ -49,7 +49,27 @@ export const CLEARANCE: Record<string, PanelClearance> = {
   // PLAY inside "GOOGLE PLAY", which would have forced a linter exception on
   // any public surface. Reviewed by eye at tier 1 — no numerals at all (Q1),
   // and SIGNALS / RANKED / EXPLAINED / VERIFIED are all sanctioned (Q2).
-  'panel_app.png':      { cleared: '2026-07-29', sha256: '1af55fbb045c07400d1a29ff437aa469419c9d1ba434538652654c55677b8e22' },
+  // MKT-60 (2026-08-19): panel_app ARTWORK REGENERATED (ring-bolt + light waves)
+  // with IDENTICAL copy — "SIX SIGNALS. EVERY MORNING." / "RANKED · EXPLAINED ·
+  // VERIFIED". ⚠ FILENAME KEPT BY OPERATOR RULING: the slot name is HISTORICAL
+  // (it once read "THE APP IS COMING"); the label in reelPanels.ts tracks the
+  // copy. Cleared by eye from rendered pixels at modal size: strings exact
+  // incl. both periods and the middle dots, tier-neutral, true in both rooms,
+  // no numerals, no glyphs in the light, no watermark inside the band (band
+  // y294-732 of 1536x1024, 3.50:1). Previous source sha 1af55fb… (7/29 bars
+  // artwork) is in git history.
+  'panel_app.png':      { cleared: '2026-08-19', sha256: 'd0dfc723858440d295fe90a1a392194c7876d3906cc8a2dbb91e87c8b4ace143' },
+  // MKT-60 new members, cleared by eye from rendered pixels at modal size:
+  //   receipts — "PUBLISHED BEFORE THE DRAW." / "GRADED AFTER · IN THE OPEN";
+  //              plain gold ring round the bolt (no marks/lettering, 2x);
+  //              band y293-730, 3.51:1.
+  //   measures — "ENERGY · MOMENTUM" / "PATTERN · CONSISTENCY" / "FOUR MEASURES
+  //              BEHIND EVERY SIGNAL" (three lines; third line reads at the
+  //              ~1000px in-modal width); four gold rules are equal-length
+  //              PLAIN MARKS, not a chart (2x); band y285-735, 3.41:1.
+  //   Both tier-neutral, true in both rooms, no numerals ("FOUR" is a word).
+  'panel_receipts.png': { cleared: '2026-08-19', sha256: '745ce7613bf99eb2121a796ffdc60c5a79226bab35c82ec1e094d46fc9436021' },
+  'panel_measures.png': { cleared: '2026-08-19', sha256: 'cc518b0d09eb2d9472f9069c7d1da850f66c6c45dd71e135929f11348e60d8e0' },
   'panel_zk30.png':     { cleared: '2026-07-27', sha256: '6bdea3fa148fcf6ce5c3a2a25e57a4297d7f0045ca1afa8450be376473ed9723' },
 };
 

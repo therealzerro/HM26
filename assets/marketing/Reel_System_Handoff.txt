@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-19 · v3.9
+Content Agent Handoff · 2026-08-19 · v4.0
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -152,8 +152,14 @@ G. OPEN / OWED — the standing list (everything else you may have read as
      5. A SECOND PUBLIC INTRO (PUBLIC_INTROS) and/or a SEAL VARIANT
         (VERIFY_SEAL_MOTIONS) — one-line registrations; public-clearance
         FIRST, per file, evidenced.
-     6. MORE MKT-11 PANELS — product surface, copy bar is high; rotation
-        adapts with no code change.
+     6. MORE MKT-11 PANELS — PARTIALLY closed 8/19 (MKT-60): set is SEVEN
+        (brand, coverage, anchor, app[regenerated art], zk30, receipts,
+        measures; panel_signals RETIRED — measures restates it). Served from
+        the bucket, byte-verified. panel_cadence ("NEW BOARDS. EVERY DAY." /
+        "ALL-DAY · MIDDAY · EVENING") written, ungenerated: 7 → 8 open.
+        Two truth questions raised for the operator: panel_zk30's "COMING
+        SOON" vs the closed per-state path; panel_coverage's two-digit
+        numerals (cleared 7/27). Copy is still BAKED PIXELS (v4.0 §F).
      7. MKT-15 operator DEVICE test of the social deep links — still owed.
      8. MKT-53 audit entry (SocialBriefCard per-variant layout) — owed by
         whoever shipped it; not a reel asset.
@@ -186,6 +192,69 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v4.0 (2026-08-19, same day — MKT-60 EXECUTED on the amended
+order: panel set 6 → 7 — panel_app art REGENERATED, receipts + measures NEW,
+panel_signals RETIRED; served from the bucket and byte-verified)
+  A. RULINGS APPLIED (operator): panel_app KEEPS its filename (slot name is
+     historical — recorded in §7 and in panel-config); measures REPLACES
+     signals. Before the swap the old artwork was confirmed in git (sha
+     1af55fb…), so no manual backup was needed.
+  B. PHASE 1 — spec: all three ~3:2 (1536×1024), centred band detected as
+     the only content run (no watermark row inside or below the band),
+     aspects 3.50 / 3.51 / 3.41:1 against the briefed ~3.5:1 (serving set
+     2.97–4.40); feathered 10px on all four edges at build. LEGIBILITY at
+     the ~1000px in-modal width: every line reads, INCLUDING measures'
+     third line ("FOUR MEASURES BEHIND EVERY SIGNAL" — smaller gold caps,
+     comparable to the other panels' second lines). Not a regen candidate.
+  C. PHASE 2 — manual clearance from rendered pixels (the check lint cannot
+     make): all strings exact incl. periods and middle dots; tier-neutral
+     (no price/CTA/Pro pitch); TRUE IN BOTH ROOMS (a reel viewer without
+     the app and a subscriber inside it read the same true sentence); no
+     numerals ("SIX"/"FOUR" are words); no glyphs in the light; receipts'
+     ring is PLAIN; measures' four rules are equal-length plain marks, not a
+     chart. Pinned: app d0dfc723… · receipts 745ce761… · measures cc518b0d…
+     (cleared 2026-08-19).
+  D. PHASE 3 — built 7/7 and PUBLISHED to the app-panels bucket; served
+     bytes fetched back and compared: ALL SEVEN MATCH the local build
+     (panel_app served sha e8c4691a… — the old bd45a84b… object is gone);
+     panel_signals object DELETED from the bucket (fetch → 400); old
+     panel_app artwork exists only in git history. reel:check: "all 7
+     served from the app-panels bucket and byte-matching the local build",
+     0 FAIL.
+  E. PHASE 4 — rotation at 7 with 6 modals/day: distinct six per day, no
+     gap, no double-draw (simulated 8/19–8/26; it is a sliding window, so
+     day-to-day NEIGHBOURS persist — brand always follows measures etc.).
+     In-context proof: an allday pro body was rendered against the live
+     dev server (not assembled, not published — today's reels stand) and
+     100% crops of modals 3/5/6 with app / receipts / measures in place
+     below "RESOLVED IN" are at assets/marketing/panels/_mkt60_incontext_
+     20260819.png — all three read at rendered size.
+     ⚠ DEPLOYMENT NOTE: the CAPTURE reads REEL_PANELS from the dev server,
+     so tomorrow's reels carry the new set; SUBSCRIBER DEVICES read
+     REEL_PANELS from their installed/served app build — a release (or the
+     web redeploy) is what moves the in-app rotation from 6 to 7. Until
+     then devices keep requesting panel_signals.png, which the bucket no
+     longer serves → that slot falls back to whatever the component does
+     on a 400 (verify on device; re-uploading the retired file is a one-
+     line undo if it renders as a hole).
+  F. STANDING QUESTION (reported, not built): converting panel copy from
+     baked pixels to config strings = ReelPromoPanel renders the lines
+     from reelPanels.ts over TEXT-FREE art beds (the MKT-10 pattern);
+     clearance becomes lint-of-strings + one sha per art bed; every future
+     wording fix is a string edit. Cost: one component change, seven text-
+     free art regenerations (or crops of the current beds), a lint hook.
+  G. Two truth-in-both-rooms questions surfaced while reading all the copy
+     together, for the operator: panel_zk30 "SINGLE-STATE ENGINE · COMING
+     SOON" against the per-state path closed at ENG-PERSTATE-P0 (8/13); and
+     panel_coverage's two-digit numerals (39 / 40+) — cleared 7/27, Q1 is
+     about three-digit combinations, noted only.
+  ⚠ SIDE OBSERVATION (not this order): on the ASSEMBLED reel the "TODAY'S
+     DATA DROP" stamp chip (y=1000, MKT-57) persists through the MODAL
+     segments too and sits over the WHY THIS ORDER rows (seen on today's
+     allday_pro at 19.5s). It has shipped that way since 8/17; flagging so
+     the operator can rule whether the chip should fade at the still→modal
+     cut.
 
 WHAT CHANGED IN v3.9 (2026-08-19, same day — MKT-61 EXECUTED: juggle REGISTERED,
 pool 9 → 10; coffee HELD for two rulings; reveal ungenerated — §G.3 open 10 → 12)
@@ -2473,7 +2542,49 @@ per-day by hand, not AI-freestyled.
                                   `npm run endcard:build`. The untagged
                                   `<variant>_endcard.mp4` files remain as the
                                   resolver's last-resort fallback.
-    panels/panel_*.png            Rotating promo panels (6): brand, signals,
+    panels/panel_*.png            Rotating promo panels — SEVEN as of MKT-60
+                                  (2026-08-19); copy read from pixels, with
+                                  the sha256 clearance pins in panel-config:
+                                  brand    "HITMASTER ZK6" (7/27)
+                                  coverage "EVERY DRAW IN THE COUNTRY / 39
+                                           TRACKED FEEDS · 40+ STATES &
+                                           PROVINCES" (7/27)
+                                  anchor   "THE DATA DESK / HITMASTER ZK6"
+                                           (7/27)
+                                  app      "SIX SIGNALS. EVERY MORNING. /
+                                           RANKED · EXPLAINED · VERIFIED" —
+                                           ART REGENERATED 8/19 (ring-bolt +
+                                           light waves; was the bars art of
+                                           7/29), IDENTICAL copy; sha
+                                           d0dfc723…; band y294–732 of
+                                           1536×1024, 3.50:1 → 1080×309.
+                                           ⚠ FILENAME KEPT BY RULING — the
+                                           slot name is HISTORICAL (it once
+                                           read "THE APP IS COMING"); do not
+                                           infer content from "app".
+                                  zk30     "HITMASTER ZK30 / SINGLE-STATE
+                                           ENGINE · COMING SOON" (7/27)
+                                  receipts "PUBLISHED BEFORE THE DRAW. /
+                                           GRADED AFTER · IN THE OPEN" — NEW
+                                           8/19; plain gold ring round the
+                                           bolt (no marks, 2x); sha 745ce761…;
+                                           band y293–730, 3.51:1 → 1080×308.
+                                  measures "ENERGY · MOMENTUM / PATTERN ·
+                                           CONSISTENCY / FOUR MEASURES BEHIND
+                                           EVERY SIGNAL" — NEW 8/19; three
+                                           lines, the third reads at the
+                                           ~1000px in-modal width; four gold
+                                           rules = equal-length plain marks,
+                                           not a chart (2x); sha cc518b0d…;
+                                           band y285–735, 3.41:1 → 1080×317.
+                                  RETIRED 8/19: panel_signals ("FOUR SIGNALS.
+                                  ONE VERDICT. / FREQ · MOMO · PATTERN ·
+                                  CONSIST") — replaced by measures (same four
+                                  components in the DESIGN-03 vocabulary);
+                                  source moved to panels/retired/, bucket
+                                  object deleted. Rotation at 7: six distinct
+                                  per day, no gap, no double-draw (verified
+                                  8/19–8/26). ~~Rotating promo panels (6): brand, signals,~~
                                   coverage, anchor, app, zk30. Source art;
                                   panels/built/ is generated, not source.
 

@@ -116,6 +116,31 @@ export const STINGER_MOTIONS: MotionVariant[] = [
   // cannot see it, exactly as it cannot see `strike` (which ships daily). The
   // criterion is one hero beat with nothing after ~2.4s, not one detector hit.
   { file: 'stinger_motion_fracture.mp4', tag: 'fracture', label: 'fracture' },
+  // MKT-58 (2026-08-19) — the 4→7 ask; TWO of three landed. Briefed to the
+  // v3.6 spec (band y1300-1450 dark by 1.3s, one hero beat ~1.0-1.4s, smoke at
+  // both ends, file consumed 0-3.0s only). Measured on landing:
+  //   etch   band 2%@1.3 · 0%@1.6 · 0%@2.0 (L22/15/14) — hero −3.5dB@1.4s
+  //          (ramp, no 12dB prominence hit), late max −5.7@2.4 on −14.5dB
+  //          material; open −19.2dB; 4.0s master. Smoke both ends.
+  //   facet  band 0%@1.3 · 0%@1.6 · 4%@2.0 (L15/14/19), 37%@2.2 = the smoke
+  //          return arriving under the text-out — hero −5.0dB@1.0s; a 12dB
+  //          prominence hit at 2.4s (−4.0dB on −15.4dB material — the smoke-
+  //          return crest, early and sharp, NOT the circuit quiet-field class;
+  //          stinger:build will warn "uncovered transient at 2.4s" — ear-
+  //          check owed, no authored fade: it would silence the smoke return
+  //          the beat belongs to). Open −11.8dB; 10.0s master, 0-3.0 used.
+  //   shutter REJECTED, not registered: paced for its 10s master — smoke only
+  //          to 2.2s, the white bands 2.4-2.8s (full-frame L163-172, and the
+  //          bands read as letterforms — the exact risk the order named), the
+  //          bolt standing 3.0-5.0s, smoke back at ~6s. Inside the 0-3.0s
+  //          window: no hero beat, a white flash where the dissolve source
+  //          must be smoke, and a −64dB silence at 1.8s before the swell. No
+  //          in-point trim satisfies both ends (bolt-on-dark at 2.2-3.0 if the
+  //          event is pulled to ~1.0). Regenerate at the 4s preset.
+  // Pool is SIX: 1 same-day doubling, arrangement echo 36d (v3.6 Q7). The ask
+  // is NOT closed until a seventh member lands.
+  { file: 'stinger_motion_etch.mp4', tag: 'etch', label: 'inscribed outline' },
+  { file: 'stinger_motion_facet.mp4', tag: 'facet', label: 'hazed planes' },
   // ⛔ `imprint` RETIRED FROM THE ROTATION 2026-07-31 (MKT-42) — kept here as a
   // comment, not deleted, because the clip is fine and the reason is specific.
   //

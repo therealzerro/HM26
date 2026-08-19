@@ -259,6 +259,14 @@ function checkPartNaming(): void {
  * Remove an entry the moment its reason expires.
  */
 const UNREFERENCED_OK: Record<string, string> = {
+  // MKT-58 (2026-08-19) — stinger 4→7 drop: etch + facet REGISTERED; shutter
+  // REJECTED on pacing (10s master: smoke to 2.2s, white letterform-reading
+  // bands 2.4-2.8s, bolt standing 3.0-5.0s — inside the consumed 0-3.0s there
+  // is no hero beat and the dissolve source is a white flash; −64dB hole at
+  // 1.8s). Kept on disk so the 4s-preset regeneration lands AT THIS NAME and
+  // replaces it; delete this entry when it does.
+  'stinger_motion_shutter.mp4':
+    'MKT-58 REJECTED 2026-08-19 — paced for its 10s master (bands 2.4-2.8s, bolt 3.0-5.0s, smoke back ~6s); inside the 0-3.0s consumption: no hero beat, white full-frame flash where the dissolve source must be smoke, bands read as letterforms, −64dB audio hole at 1.8s then a quiet-field swell. Regenerate at the 4s preset under the SAME name; pool stays 6 until it lands.',
   // MKT-16 (2026-07-30): public_carrier.mp4 + _pt2 left this list — they are
   // registered under allday_public in carrier-config.ts and are now validated
   // like every other carrier pair.

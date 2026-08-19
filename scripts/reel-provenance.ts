@@ -59,6 +59,18 @@ export const REDACT_TAG = 'hm_reel_redacted';
 export const PUBLIC_TAG = 'hm_reel_public';
 
 /**
+ * MKT-63 — container tag carrying WHERE THE STRIKE LANDS: seconds into the
+ * BODY at which the first featured hold begins, written by the renderer ONLY
+ * when that hold is a STRAIGHT MATCH row. Same argument as the tags above —
+ * the offset is a property of the pixels (the beat plan varies day to day:
+ * the pan drops on first-viewport days, verify_midday adds the cover-lift),
+ * and only the body knows its own plan. Absent tag = no straight featured
+ * (or a pre-MKT-63 body) = no strike; the lenient direction is safe because
+ * the strike is an ornament, never data.
+ */
+export const STRIKE_TAG = 'hm_strike_at';
+
+/**
  * ffmpeg args that stamp `dateISO` into the output. Append before the path,
  * and do NOT pass a separate `-movflags` — this emits its own.
  *
@@ -72,10 +84,26 @@ export const PUBLIC_TAG = 'hm_reel_public';
  * here because movflags is one combined option; splitting it across two flags
  * means the last one wins and the other is lost.
  */
-export function provenanceArgs(dateISO: string, redacted = false, isPublic = false): string {
+export function provenanceArgs(dateISO: string, redacted = false, isPublic = false, strikeAt: number | null = null): string {
   return `-movflags +faststart+use_metadata_tags -metadata ${DATE_TAG}="${dateISO}"` +
     ` -metadata ${REDACT_TAG}="${redacted ? '1' : '0'}"` +
-    (isPublic ? ` -metadata ${PUBLIC_TAG}="1"` : '');
+    (isPublic ? ` -metadata ${PUBLIC_TAG}="1"` : '') +
+    (strikeAt != null ? ` -metadata ${STRIKE_TAG}="${strikeAt.toFixed(2)}"` : '');
+}
+
+/** Body-relative strike offset (seconds) recorded in `file`, or null (no
+ *  straight featured / pre-MKT-63 body / unreadable). Sanity-bounded: a body
+ *  is 8–17s, so anything outside (0, 30) is treated as absent, not trusted. */
+export function readStrikeAt(file: string): number | null {
+  try {
+    const out = execSync(
+      `ffprobe -v error -show_entries format_tags=${STRIKE_TAG} -of default=nw=1:nk=1 "${file}"`,
+    ).toString().trim();
+    const v = parseFloat(out);
+    return Number.isFinite(v) && v > 0 && v < 30 ? v : null;
+  } catch {
+    return null;
+  }
 }
 
 /** The capture date recorded in `file`, or null if it carries no tag. */

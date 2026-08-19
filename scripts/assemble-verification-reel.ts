@@ -26,7 +26,8 @@
 //   (defaults to yesterday ET; expects ui_verify_<stamp>.mp4 already rendered)
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { assertBodyDate, assertBodyPublic } from './reel-provenance';
+import { assertBodyDate, assertBodyPublic, readStrikeAt } from './reel-provenance';
+import { probeStrikeOverlay, strikeFilter } from './strike-config';
 import { resolveEndcard } from './reel-endcard';
 import { CHIP_LABELS } from './intro-chip-config';
 import { join, resolve } from 'node:path';
@@ -202,6 +203,24 @@ if (verifCarrier.joined) {
 const chipPng = intro && CHIP_LABELS[KIND] ? join(REELS, `_chip_${KIND}_${stamp}.png`) : null;
 if (chipPng) sh(`npx tsx scripts/render-intro-chip.ts ${KIND} "${chipPng}" ${stamp}`);
 
+// MKT-63 — THE STRIKE. Fires on ALL THREE verify kinds when (a) the overlay
+// resolves (probe refuses missing/defective/wrong-resolution — the reel then
+// assembles byte-identical to a strike-less day) and (b) the body carries the
+// renderer's STRIKE_TAG, written only when the FIRST hold is a STRAIGHT row.
+// Once per reel by construction: one overlay, one window, and straights-first
+// featuring makes the first straight the first hold. On the public cut the
+// strike carries no data (marks exact order visually over a masked row); the
+// asset's rendered-glyph risk is handled by the sparkle mask in strike-config
+// and asserted by preflight's checkStrikeOverlay.
+const strikeOv = probeStrikeOverlay(ASSETS);
+const bodyStrikeAt = strikeOv ? readStrikeAt(ui) : null;
+const strike = strikeOv && bodyStrikeAt != null
+  ? { path: strikeOv.path, t0: +(openDur + bodyStrikeAt).toFixed(2) }
+  : null;
+if (strike) console.log(`NOTE(${KIND}): STRAIGHT MATCH strike at ${strike.t0}s (first hold; once per reel — MKT-63).`);
+// ⚠ Input LAST so the sting/chip index arithmetic above stays untouched.
+const strikeIdx = 5 + (sting ? 1 : 0) + (chipPng ? 1 : 0);
+
 const msVoice = Math.round(voiceStart * 1000);
 
 // 1. Settled lockup frame from the endcard tail (legacy open only).
@@ -221,6 +240,7 @@ sh(
   // MKT-22: chip LAST, index computed — the stinger input is conditional, so a
   // hardcoded index would take the stinger's slot on a stinger-less build.
   (chipPng ? `-loop 1 -framerate 60 -t ${total} -i "${chipPng}" ` : ``) +
+  (strike ? `-i "${strike.path}" ` : ``) +                   // [strikeIdx] strike overlay (MKT-63; video only, audio NEVER mapped)
   `-filter_complex "` +
   (intro
     ? `[0:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=${openBase},setpts=PTS-STARTPTS[bolt0];`
@@ -234,6 +254,12 @@ sh(
   `[bolt][uix]xfade=transition=custom:expr=${EASED}:duration=${dissolve}:offset=${+(openDur - dissolve).toFixed(2)}[openbody];` +
   `[2:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=${CARD},setpts=PTS-STARTPTS[card];` +
   `[openbody][card]concat=n=2:v=1:a=0[vraw];` +
+  // MKT-63: the strike blends over the assembled timeline BEFORE the ribbon/
+  // chip layers (they are furniture; the strike is content-adjacent). Outside
+  // its window the padded top layer is true black and screen-with-black is
+  // identity — no enable= timeline, no EOF race. Strike-less days take the
+  // null path and the graph is byte-identical to pre-MKT-63.
+  (strike ? strikeFilter(strikeIdx, 'vraw', 'vsk', strike.t0, total) : `[vraw]null[vsk];`) +
   // RIBBON RULE (operator ruling 2026-08-19, superseding MKT-31 item 2's
   // every-body-frame span): on BOTH verify kinds the ribbon rides the BOARD
   // SEGMENT ONLY, UNCONDITIONALLY — never a collision-day conditional. The
@@ -261,7 +287,7 @@ sh(
   // BOARD segment is longer by the cover-lift (covered hold + lift precede
   // the graded board's 2.5s).
   `[st1]fade=t=out:st=${+(openDur + BOARD_SEG).toFixed(2)}:d=0.45:alpha=1[stB];` +
-  `[vraw][stA]overlay=0:-370:enable='lt(t,${+(openDur + BOARD_SEG).toFixed(2)})'[vbrd];` +
+  `[vsk][stA]overlay=0:-370:enable='lt(t,${+(openDur + BOARD_SEG).toFixed(2)})'[vbrd];` +
   `[vbrd][stB]overlay=0:0:enable='gte(t,${+(openDur + BOARD_SEG).toFixed(2)})',format=yuv420p[vst];` +
   // MKT-22/MKT-35: chip rides the intro only — FULL OPACITY FROM FRAME ONE
   // (frame one is the camera-roll thumbnail; no fade-in by ruling), hold to
@@ -319,9 +345,14 @@ void out1x1;
 // MKT-62: five frames on the same-day kind — open (frame one), the COVERED
 // board, the board after the lift (with the timestamp pair visible on the
 // next beat, so stamp 3 lands on the summary band), a featured hold, the close.
-const STAMPS = (MIDDAY
+// MKT-63: on strike days one extra stamp lands just after the bolt's peak
+// (~0.25s in), sorted into place — the frame the operator most needs to
+// eyeball on a NEW conditional mechanic.
+const stampTimes = MIDDAY
   ? [0, openDur + 0.3, openDur + BOARD_SEG + 0.3, openDur + uiDur * 0.66, total - 0.7]
-  : [0, openDur + 0.3, openDur + uiDur * 0.62, total - 0.7]).map(t => +t.toFixed(1));
+  : [0, openDur + 0.3, openDur + uiDur * 0.62, total - 0.7];
+if (strike) stampTimes.push(strike.t0 + 0.25);
+const STAMPS = stampTimes.sort((a, b) => a - b).map(t => +t.toFixed(1));
 STAMPS.forEach((t, i) => sh(`ffmpeg -y -loglevel error -ss ${t} -i "${out}" -frames:v 1 -vf "scale=270:480" "${join(REELS, `_cs${i}.png`)}"`));
 sh(`ffmpeg -y -loglevel error ${STAMPS.map((_, i) => `-i "${join(REELS, `_cs${i}.png`)}"`).join(' ')} -filter_complex "${STAMPS.map((_, i) => `[${i}]`).join('')}hstack=${STAMPS.length}" "${sheet}"`);
 

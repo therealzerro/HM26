@@ -67,7 +67,7 @@ import { mkdirSync, copyFileSync, rmSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { provenanceArgs } from './reel-provenance';
+import { provenanceArgs, STRIKE_TAG } from './reel-provenance';
 import { fetchSamedayProvenance, fmtGap } from './reel-sameday';
 import { renderSlateFrames, renderCoverLiftFrames, F_COVER, F_LIFT, type BoardLabels } from './render-verify-slate';
 import { config as loadEnv } from 'dotenv';
@@ -645,6 +645,21 @@ function fmtET(d: Date): string {
       : `pan DROPPED (only ${Math.round(panTo - panFrom)}px available) — travels widened to ${travelFrames}f`),
   );
 
+  // MKT-63: where the strike lands — the first hold's start, tagged into the
+  // body ONLY when that hold is a STRAIGHT row. Straights-first featuring
+  // (above) means "the first featured straight" IS the first hold whenever any
+  // straight exists, which is what makes once-per-reel a construction rather
+  // than a rule. Computed from THIS build's plan because the offset is not a
+  // constant: the pan drops on first-viewport days and verify_midday's board
+  // segment carries the cover-lift. `.straight` is detected BEFORE the public
+  // sweep relabels the DOM, so the tag is equally correct on the public cut.
+  const strikeAt = featured.length && featured[0].straight
+    ? +((F_BOARD + F_SUMMARY + panFrames) / FPS).toFixed(2)
+    : null;
+  console.log(strikeAt != null
+    ? `strike (MKT-63): first hold is a STRAIGHT — ${STRIKE_TAG}=${strikeAt}s into the body`
+    : `strike (MKT-63): ${featured.length ? 'no straight featured' : 'no rows'} — no strike tag`);
+
   const shoot = async (f: number, scroll: number, k: number) => {
     await setScroll(scroll);
     await setZoom(k);
@@ -755,7 +770,9 @@ function fmtET(d: Date): string {
     // had the identical gap (stamp from argv, existence check only).
     // MKT-40: the public body also carries PUBLIC_TAG so the assembler can
     // refuse a full-fidelity body posing as public (assertBodyPublic).
-    `${provenanceArgs(dateISO, false, PUBLIC)} "${outMp4}"`,
+    // MKT-63: STRIKE_TAG rides the same channel — the assembler reads the
+    // first-hold offset from the pixels' own file, never from re-derivation.
+    `${provenanceArgs(dateISO, false, PUBLIC, strikeAt)} "${outMp4}"`,
     { stdio: 'inherit' },
   );
   rmSync(WORK, { recursive: true, force: true });

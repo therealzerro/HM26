@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-19 · v4.6
+Content Agent Handoff · 2026-08-19 · v4.7
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-08-19 (CONSOLIDATED SNAPSHOT, current to v4.6 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-08-19 (CONSOLIDATED SNAPSHOT, current to v4.7 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -105,7 +105,10 @@ C. VERIFY ANATOMY (group + public cuts; ~23–29s, data-adaptive): fixed intro
    2.0s straight / 1.6s box, ≤3 featured, straights first) with the gold date
    ribbon on the BOARD segment ONLY (v4.6 ruling — was persistent across the
    body; nothing may cross a featured row on any day) → endcard FIRST 6.5s on
-   the shared band. Carrier =
+   the shared band. MKT-63 (v4.7): when the FIRST hold is a STRAIGHT row, a
+   lightning strike screen-blends over its opening ~1.13s at opacity 0.65 —
+   ONCE PER REEL (straights-first makes the first straight the first hold),
+   never on box rows, all three verify kinds, silent (carrier stays the bed). Carrier =
    verif_carrier (10.005s) + verif_carrier_pt2 (6.542s, MKT-43 pair) or
    signoff_short (~2.2s) or silence — resolved BY WINDOW, whole or not at all.
    Public half differs in exactly five ways (§3). The track-record screen is
@@ -313,6 +316,44 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v4.7 (2026-08-19/20, night — MKT-63: THE CONDITIONAL STRIKE,
+built on the scoping gate + "use your best judgement")
+  A. THE MECHANIC: when a verify reel's FIRST hold is a STRAIGHT MATCH row, a
+     lightning bolt (overlay_strike_straight.mp4, pure light on black,
+     screen-blended) strikes over the frame for ~1.13s at the hold's start.
+     Box rows: nothing. ONCE PER REEL, ruled and CONSTRUCTED: straights-first
+     featuring makes the first featured straight the first hold — one
+     overlay, one window, no per-row logic. All three verify kinds (on the
+     public cut the strike marks exact order visually over a masked row —
+     no data, and no glyph after B2 below). Opacity 0.65: at full strength
+     the peak crossed the badge + attribution (digits stayed clear); at 0.65
+     every line reads through the channel (measured on the 8/18 worst case).
+  B. THE DELIVERED ASSET, MEASURED (two floor defects + one audio deviation —
+     recorded so the next delivery is briefed properly):
+     1. floor Y≈16 = LIMITED-RANGE BLACK left untagged (not haze) — read as
+        tv-range + clamped; veil-free by measurement (diff vs source 0.4);
+     2. ⚠ a RENDERED SPARKLE GLYPH (Y=85, ~48px, bottom-right) rides EVERY
+        frame — generator ornament; masked (drawbox, source coords); the
+        played window is trimmed to 1.25s so the sparkle-bearing tail never
+        plays. ⚠ FUTURE DELIVERIES: any re-delivery must be re-measured —
+        the assembler's probe goes DORMANT (strike off, reel unharmed) if
+        the masked tail shows anything bright, and reel:check names it;
+     3. ⚠ the clip carries a BAKED CRACK (max −0.2 dB) against the
+        silent-by-design spec. Never mapped — the carrier VO is the bed
+        (ruling). If a crack is ever wanted it arrives as its OWN audio
+        asset and the assembler mixes it at a known offset, as its own
+        decision. Do not bake sound into overlay redeliveries.
+  C. PLUMBING (engineering record): renderer writes `hm_strike_at` (seconds
+     into the body of the first hold, only when it is a straight) into the
+     body's container tags — the offset is per-day (pan drops on
+     first-viewport days; verify_midday adds the cover-lift), so it travels
+     with the pixels like the MKT-18 date tag. Assembler reads it, composites
+     in the existing single pass (no second encode; strike-less days are
+     byte-identical to before). Strike days add one contact-sheet stamp at
+     the bolt's peak — EYEBALL THE FIRST LIVE ONE (new mechanic; pending the
+     next straight-featuring run). Pre-MKT-63 bodies carry no tag → no
+     strike on re-assembly, by design.
 
 WHAT CHANGED IN v4.6 (2026-08-19, night — VERIFY RIBBON RULING + your
 verify_midday caption family REGISTERED)

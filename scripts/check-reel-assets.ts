@@ -40,6 +40,7 @@ import { INTRO_MIN, INTRO_MAX } from './reel-intro';
 import { CHIP_LABELS } from './intro-chip-config';
 const CHIP_LABELS_HAS = (k: string): boolean => Boolean(CHIP_LABELS[k]);
 import { LANES, dailyKinds, laneReport, comboDistinct, PERIOD_WARN_BELOW } from './reel-rotation-health';
+import { STRIKE_OVERLAY, STRIKE_TRIM, STRIKE_SRC_W, STRIKE_SRC_H, STRIKE_TAIL_MAX, STRIKE_PEAK_MIN, strikeMaxLuma } from './strike-config';
 
 // The app resolves panel URLs from EXPO_PUBLIC_SUPABASE_URL; load it so the
 // bucket probe below checks the same origin the app will.
@@ -378,6 +379,9 @@ function checkStrays(): void {
   // now a stray here and a FAIL in checkCarrierSet.
   for (const f of allCarrierFiles()) referenced.add(f);
   for (const f of allIntroFiles()) referenced.add(f);
+  // MKT-63: the strike overlay — a source asset consumed by the verify
+  // assembler through strike-config; checkStrikeOverlay() owns its health.
+  referenced.add(STRIKE_OVERLAY);
 
   const known: string[] = [];
   for (const f of readdirSync(ASSETS)) {
@@ -606,6 +610,33 @@ function checkSlateCarrier(kind: string): number | null {
  *   4. the daily run cannot draw it (run-daily-reels.sh ORDER) and publish-reels
  *      exempts it from both retention functions.
  */
+// ── MKT-63: the strike overlay — a SOURCE asset (never pruned; retention only
+// touches marketing_reels rows + bucket objects). Everything here is WARN, not
+// FAIL: the assembler's probeStrikeOverlay runs the same floor gate and goes
+// DORMANT on any defect, so a bad overlay costs the strike, never the reel.
+function checkStrikeOverlay(): void {
+  const name = STRIKE_OVERLAY;
+  const p = join(ASSETS, name);
+  if (!existsSync(p)) { add('WARN', name, 'not delivered — the MKT-63 straight strike is dormant; assembly unaffected'); return; }
+  const s = streams(p);
+  if (s.w !== STRIKE_SRC_W || s.h !== STRIKE_SRC_H) {
+    add('WARN', name, `${s.w}x${s.h} — the sparkle mask is measured in ${STRIKE_SRC_W}x${STRIKE_SRC_H} source coords, so the assembler refuses this delivery (strike dormant). Re-measure STRIKE_MASK in strike-config for the new file.`);
+    return;
+  }
+  if (!(s.vDur >= STRIKE_TRIM)) { add('WARN', name, `video ${s.vDur.toFixed(2)}s < the ${STRIKE_TRIM}s played window — strike dormant`); return; }
+  // Action really is a strike (a black/wrong file composites as nothing).
+  const peak = strikeMaxLuma(p, 0, STRIKE_TRIM, true);
+  if (peak < STRIKE_PEAK_MIN) { add('WARN', name, `peak luma ${peak} in the played window (< ${STRIKE_PEAK_MIN}) — no strike action detected; the composite would be invisible`); return; }
+  // Floor outside the sparkle mask: the defect class that must never reach a
+  // board. The 8/19 delivery's un-masked sparkle measured Y=85 here.
+  const tail = s.vDur > STRIKE_TRIM + 0.2 ? strikeMaxLuma(p, STRIKE_TRIM, s.vDur, true) : -1;
+  if (tail > STRIKE_TAIL_MAX) {
+    add('WARN', name, `tail luma ${tail} OUTSIDE the sparkle mask (max ${STRIKE_TAIL_MAX}) — a moved/new glyph or real haze; the assembler's probe goes dormant on this. Re-measure the delivery before trusting the strike lane.`);
+    return;
+  }
+  add('PASS', name, `strike ${s.vDur.toFixed(2)}s @${s.w}x${s.h} · played window ${STRIKE_TRIM}s (peak ${peak}) · masked tail floor ${tail < 0 ? 'n/a' : tail} ≤ ${STRIKE_TAIL_MAX}${s.hasAudio ? ' · carries audio (baked crack, max −0.2 dB vs silent-by-design spec) — NEVER mapped: the carrier VO is the bed (MKT-63 ruling)' : ''}`);
+}
+
 function checkVerifyMidday(): void {
   const K = 'verify_midday';
   // 1. intro — pinned set of one, never in a pool
@@ -1145,6 +1176,7 @@ checkPublicGateRecords();
 checkStingers();
 checkVerify();
 checkVerifyMidday();
+checkStrikeOverlay();
 checkPanels();
 checkStamp();
 checkRotationHealth();

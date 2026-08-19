@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-19 · v3.7
+Content Agent Handoff · 2026-08-19 · v3.8
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -101,9 +101,11 @@ C. VERIFY ANATOMY (group + public cuts; ~23–29s, data-adaptive): fixed intro
    RIG CONTRACT (MKT-51) — never change them without a work order.
 
 D. CARRIERS (your main deliverable; spec §2/§7): rotating sets —
-   allday_pro ×4, allday_free ×4, evening_pro ×4 (each joined to ONE shared
-   pt2); single-entry — midday_pro, midday_free, evening_free, allday_public,
-   verify. Ceiling on the JOIN ≤20.0s; pt2 last word by ~9.47s of pt2 (margin
+   allday_pro ×4, allday_free ×4, evening_pro ×4, midday_pro ×4 (MKT-59,
+   8/19), verify ×3 (MKT-59 — a 4th, ledger, HELD on the seam proxy; see
+   v3.8) — each joined to ONE shared pt2 (verify: window-resolved chain);
+   single-entry — midday_free, evening_free, allday_public. Ceiling on the
+   JOIN ≤20.0s; pt2 last word by ~9.47s of pt2 (margin
    floor +0.184s); generator emits 10.005s presets, trimming is the norm.
    FREE BRIEF SPLITS BY SCOPE: All-Day free = pure value, no Pro pitch;
    session free = NAMES the withholding, pricing ($2.49/mo) permitted there
@@ -139,10 +141,12 @@ G. OPEN / OWED — the standing list (everything else you may have read as
      3. INTRO REGEN QUEUE 9 → 12: coffee (the 1.4–2.6s pause IS the joke),
         juggle (reject if the visor tracks the phone), reveal (trim ~OUT 7.4,
         6.5s ceiling wins). Prompts held by the operator; budget-gated.
-     4. CARRIER ROTATION for the single-entry kinds (midday_pro, midday_free,
-        evening_free, allday_public, verify) — those rooms hear the identical
-        opening daily. Budget-gated. verify's two MKT-43 ear gates (seam;
-        signoff_short match) still unmeasured — operator ear only.
+     4. CARRIER ROTATION — PARTIALLY closed 8/19 (MKT-59): midday_pro 1→4
+        and verify 1→3 now rotate. STILL single-entry: midday_free,
+        evening_free, allday_public — those rooms hear the identical opening
+        daily; unwritten, budget-gated. Owed to the operator's ear:
+        verif_carrier_ledger (held), facet's 2.4s crest (MKT-58), and the
+        two MKT-43 gates (seam; signoff_short).
      5. A SECOND PUBLIC INTRO (PUBLIC_INTROS) and/or a SEAL VARIANT
         (VERIFY_SEAL_MOTIONS) — one-line registrations; public-clearance
         FIRST, per file, evidenced.
@@ -178,6 +182,43 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v3.8 (2026-08-19, same day — MKT-59 EXECUTED: midday_pro 1→4
+and verify 1→3 carriers rotate; verif_carrier_ledger HELD on the seam proxy)
+  A. Six part-1 files landed, all real mp4, exact lowercase names, no
+     strays, incumbents untouched (July/Aug-1 mtimes). ⛔ FILE LAW: all six
+     10.000s video / 10.005s audio — same as every incumbent, so the joined
+     margin is set-invariant (+0.19s to the 20.01 fade for the midday join,
+     unchanged from the incumbent's +0.184) and the verify window boundary
+     does not move. No MKT-32 gap-tighten needed anywhere.
+  B. TRANSCRIPTS ARE NOW MEASURABLE IN-ENV: faster-whisper (small, int8) is
+     installed on the codespace — every carrier in this order was
+     transcribed and run through the real lintCaption at the tier it
+     serves. The lines you scripted match what the voice says (one
+     wording drift: "stamp for the draw" / "first looks yours" on `set` —
+     the read, not the copy). All clean; verify's three are tier-1 clean
+     (shared with verify_public), no "partners", no time-of-day words.
+  C. REGISTERED: midday_pro set/ahead/ready + verify record/checked.
+     HELD: verify `ledger` — seam f0 proxy Δ12.3 vs the pt2 open with
+     NON-overlapping IQRs (the exit drops to 87–93 Hz on "taken away";
+     pt2 opens 96–107). The MKT-48 accepted band was ≤~11 with overlapping
+     IQRs. It is a cadence, not a different voice (whole-file median 107.4
+     vs pt2 104.6) — which is exactly what an ear decides and a proxy
+     cannot. One line registers it if the operator's cold listen passes.
+  D. ROTATION (`reel:rotation`): carrier lane "5 rotating · pool 3/4";
+     depth midday_pro 163 → 257, verify 4 → 12 (verify_public shows 5 in
+     the table because the shared carrier is resolved under kind `verify` —
+     both halves draw the same file; the display does not count it). The
+     lane's pre-existing inside-a-week arrangement echo (6d) and the "1
+     repeat" lockstep note stand — they are set-POSITION echoes across
+     mixed pool sizes, not shared files. STILL SINGLE-ENTRY: midday_free,
+     evening_free, allday_public (snapshot §G.4 — partially closed).
+     First draws: 8/19 midday_pro would now draw `ahead` and verify
+     `record` (today's reels shipped this morning under the single-entry
+     sets — not re-run); 8/20 midday_pro = set, verify = checked.
+  E. reel:check 0 FAIL / 102 WARN (720×1280 class + the MKT-61 intros +
+     panels still pending). CARRIER_KINDS += midday_pro, verify (appended —
+     live-kinds-first; the three existing rotating kinds keep their index).
 
 WHAT CHANGED IN v3.7 (2026-08-19, same day — MKT-58 EXECUTED: etch + facet
 REGISTERED, shutter REJECTED; stinger pool 4 → 6; THE ASK IS NOT CLOSED)
@@ -2026,6 +2067,38 @@ per-day by hand, not AI-freestyled.
     allday_pro_endcard.mp4        Pro endcard (open frame + outro + audio)
     allday_free_endcard.mp4       Free endcard
     verif_carrier.mp4             Verify VO part 1 — 10.005s, ALL of it used.
+                                  ⚠ MKT-59 (2026-08-19): now the INCUMBENT +
+                                  fallback of a ROTATING set — see the two
+                                  entries below and the held third.
+    verif_carrier_record.mp4      ✅ MKT-59 members (tier-1 surface — SHARED
+    verif_carrier_checked.mp4     with verify_public; enter the same window-
+                                  resolved chain pt2 → signoff_short →
+                                  silence, boundary UNMOVED because the walk
+                                  keys on audio durations, identical across
+                                  the set: full pt2 when body ≥ ~9.87s, short
+                                  on a 1-box day). "Yesterday's board, back on
+                                  the table. Every signal checked against
+                                  what actually drew. Right or wrong, it goes
+                                  on the record." / "We posted these before
+                                  the draw. Here's how every one of them
+                                  graded. Same board, no edits." Both
+                                  10.000/10.005s; voice-ends 9.15 / 9.08
+                                  (incumbent 9.27). Transcribed + linted at
+                                  tiers 1/2/4: clean; no direct address, no
+                                  time-of-day words, no counts/states. Seam
+                                  f0 proxy vs pt2 open 103.2: Δ6.4 / Δ9.5,
+                                  IQRs touching/overlapping — in band.
+    verif_carrier_ledger.mp4      ⏸ HELD (not registered; UNREFERENCED_OK
+                                  carries the reason). "Here's the ledger
+                                  from yesterday. Every signal we published
+                                  checked in the open. Nothing added, nothing
+                                  taken away." — tier-1 clean, 10.005s,
+                                  voice-end 9.66. Seam proxy Δ12.3 with NON-
+                                  overlapping IQR (87–93 vs 96–107): a
+                                  falling sentence-final cadence, outside the
+                                  accepted band; whole-file median (107.4)
+                                  says same man. OPERATOR COLD LISTEN decides
+                                  — one line registers it. Not a regen ask.
                                   The day's read: board, summary, first holds.
                                   ⚠ REPLACED 2026-08-01 (MKT-43) — this is a
                                   NEW recording, not the 7/29 one. Head lead
@@ -2099,7 +2172,25 @@ per-day by hand, not AI-freestyled.
                                   requirement (b), re-measuring the tuck
                                   zone, is RETIRED with the tuck. See v2.7
                                   notes A/B.
-    midday_pro_carrier.mp4        Midday VO carrier (+ _pt2, auto-joined)
+    midday_pro_carrier.mp4        Midday VO carrier part 1 — the INCUMBENT and
+                                  fallback (+ shared _pt2, auto-joined).
+    midday_pro_carrier_set        ✅ MKT-59 rotation members (2026-08-19, part
+    midday_pro_carrier_ahead      1 only, all joined to the SAME pt2): "Midday
+    midday_pro_carrier_ready      board's set, partners…" / "Midday's up,
+                                  partners, well ahead of the draw…" / "Midday
+                                  board's ready, partners…". All 10.000s v /
+                                  10.005s a (file law); voice-ends 9.49 /
+                                  9.62 / 9.53 (incumbent 9.71) → tails 0.51 /
+                                  0.38 / 0.47s before the 0.35s breath; joined
+                                  margin set-invariant +0.19s (= incumbent).
+                                  Transcribed (faster-whisper) and linted
+                                  tier 4: clean; no price; first-access
+                                  framing present ("first look's yours" /
+                                  "reading it first" / "ahead of every other
+                                  room"); "Midday" spoken aloud (tripwire).
+                                  Seam f0 proxy vs pt2 open 111.9: Δ2.7 /
+                                  Δ8.0 / Δ9.3 — inside the MKT-48 band. No
+                                  gap-tighten needed. Cold listen = operator.
     evening_pro_carrier.mp4       Evening VO carrier part 1 — the INCUMBENT
                                   and fallback (+ shared _pt2, auto-joined).
     evening_pro_carrier_landed    MKT-48 rotation members (part 1 only):

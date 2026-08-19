@@ -259,6 +259,11 @@ function checkPartNaming(): void {
  * Remove an entry the moment its reason expires.
  */
 const UNREFERENCED_OK: Record<string, string> = {
+  // MKT-59 (2026-08-19) — verify part-1 alternate HELD on the seam proxy
+  // (exit f0 Δ12.3 vs pt2, non-overlapping IQR); registers with one line in
+  // carrier-config.ts `verify.set` if the operator's cold listen passes it.
+  'verif_carrier_ledger.mp4':
+    'MKT-59 HELD 2026-08-19 — transcript tier-1 clean, 10.005s, voice-end 9.66s; seam f0 proxy Δ12.3 (IQR 87-93 vs pt2 96-107, non-overlapping — falling cadence on "taken away") is outside the MKT-48 accepted band. Operator cold listen decides; one-line registration if it passes.',
   // MKT-58 (2026-08-19) — stinger 4→7 drop: etch + facet REGISTERED; shutter
   // REJECTED on pacing (10s master: smoke to 2.2s, white letterform-reading
   // bands 2.4-2.8s, bolt standing 3.0-5.0s — inside the consumed 0-3.0s there

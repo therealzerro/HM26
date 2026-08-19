@@ -105,9 +105,34 @@ export const CARRIERS: Record<string, CarrierSpec> = {
     ],
     rest: ['allday_free_carrier_pt2.mp4'],
   },
-  // Session kinds do not rotate: one carrier each, still stated explicitly.
+  // MKT-59 (2026-08-19) — midday_pro joins the rotation (All-Day shape:
+  // incumbent = entry 0 + last-resort fallback; three alternates; all join the
+  // EXISTING shared pt2 — no new continuation delivered or needed). Measured
+  // before registration: all four part 1s 10.000s video / 10.005s audio (the
+  // MKT-20 file-duration law holds, so the joined margin is set-invariant:
+  // join 20.360s, pt2 last word 19.82s, +0.19s to the 20.01 fade — identical
+  // to the incumbent's recorded +0.184). Part-1 voice-end (silencedetect
+  // −35dB/0.1s): incumbent 9.71 · set 9.49 · ahead 9.62 · ready 9.53 → tails
+  // 0.30/0.51/0.38/0.47s before the 0.35s breath. Transcripts (faster-whisper
+  // small, then lintCaption tier 4 — all clean): "Midday board's set,
+  // partners. Six signals, ranked, explained, stamped for the draw. First
+  // look's yours." · "Midday's up, partners, well ahead of the draw. Six
+  // signals, every measure showing. You're reading it first, same as
+  // always." · "Midday board's ready, partners. Six signals, ranked,
+  // explained, on the record. Yours ahead of every other room." — scope
+  // spoken aloud on all three (MKT-20 tripwire), no price, first-access
+  // framing present. Seam f0 proxy (exit 1.2s vs pt2's first 1.6s, pt2 open
+  // med 111.9): incumbent Δ0.0 · set Δ2.7 · ahead Δ8.0 · ready Δ9.3 (IQR
+  // 105-134, overlapping) — all inside the MKT-48 accepted band (≤~11,
+  // overlapping IQRs). The one-man-one-room cold listen remains the
+  // operator's (MKT-43 item-7 convention).
   midday_pro: {
-    set: [{ file: 'midday_pro_carrier.mp4', label: 'incumbent' }],
+    set: [
+      { file: 'midday_pro_carrier.mp4', label: 'incumbent' },
+      { file: 'midday_pro_carrier_set.mp4', label: "midday board's set" },
+      { file: 'midday_pro_carrier_ahead.mp4', label: 'well ahead of the draw' },
+      { file: 'midday_pro_carrier_ready.mp4', label: "midday board's ready" },
+    ],
     rest: ['midday_pro_carrier_pt2.mp4'],
   },
   // MKT-48 (2026-08-03) — evening_pro joins the rotation (All-Day shape: the
@@ -178,8 +203,37 @@ export const CARRIERS: Record<string, CarrierSpec> = {
   // closes the 0-straight gap. The short slot is declared below and is
   // budget-gated: sign-off only, "Signals first. Receipts after.", trimmed to
   // speech from its 10.005s master like verif_carrier_pt2 was.
+  // MKT-59 (2026-08-19) — verify joins the rotation: incumbent + TWO of the
+  // three delivered alternates. All part 1s 10.000/10.005s; the window walk
+  // (full pt2 → signoff_short → part 1 alone) keys on AUDIO durations, which
+  // are identical across the set, so the boundary does not move: full pt2
+  // join 16.815s fits when body ≥ ~9.87s (any featured-row day), signoff_short
+  // (join 12.827s) on a 1-box day (body ~9.0s), silence never in practice.
+  // Voice-end: incumbent 9.27 · record 9.15 · checked 9.08 · ledger 9.66.
+  // Transcripts (faster-whisper small → lintCaption tiers 1/2/4 — ALL clean;
+  // this carrier is SHARED with verify_public, so tier 1 is the bar): record
+  // "Yesterday's board, back on the table. Every signal checked against what
+  // actually drew. Right or wrong, it goes on the record." · checked "We
+  // posted these before the draw. Here's how every one of them graded. Same
+  // board, no edits." · ledger "Here's the ledger from yesterday. Every
+  // signal we published checked in the open. Nothing added, nothing taken
+  // away." No direct address, no time-of-day words, no counts/states.
+  // Seam f0 proxy vs pt2 open (med 103.2): incumbent Δ3.2 · record Δ6.4
+  // (IQR 107-112 vs 96-107, touching) · checked Δ9.5 (105-121, overlapping)
+  // · ⚠ ledger Δ12.3 with NON-overlapping IQR (87-93 vs 96-107 — a falling
+  // sentence-final cadence on "taken away"; whole-file median 107.4 says
+  // same man). Outside the accepted seam band → ledger HELD, NOT registered,
+  // pending the operator's cold listen; one line to add if it passes the
+  // ear. ⚠ Namespace: `_record/_checked/_ledger` are part-1 tags; the
+  // joiner's `_ptN` and the `restShort` slot are declared explicitly and
+  // untouched — confirmed by reel:check's stray scan naming all three as
+  // plain unreferenced files before registration.
   verify: {
-    set: [{ file: 'verif_carrier.mp4', label: 'incumbent' }],
+    set: [
+      { file: 'verif_carrier.mp4', label: 'incumbent' },
+      { file: 'verif_carrier_record.mp4', label: 'back on the table' },
+      { file: 'verif_carrier_checked.mp4', label: 'posted these before the draw' },
+    ],
     rest: ['verif_carrier_pt2.mp4'],
     restShort: ['verif_carrier_signoff_short.mp4'],
   },
@@ -216,7 +270,7 @@ export const CARRIERS: Record<string, CarrierSpec> = {
  * safe; INSERTING one re-phases every kind below it and changes which carrier
  * past dates resolve to.
  */
-export const CARRIER_KINDS = ['allday_pro', 'allday_free', 'evening_pro'];
+export const CARRIER_KINDS = ['allday_pro', 'allday_free', 'evening_pro', 'midday_pro', 'verify'];  // MKT-59: two more rotating kinds, appended (live-kinds-first; the order never reorders a live lane)
 
 /**
  * PART 1 FILES IN A SET MUST ALL BE THE SAME LENGTH, and preflight asserts it.

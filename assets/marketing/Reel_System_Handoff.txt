@@ -65,7 +65,10 @@ B. SLATE REEL ANATOMY (allday/midday/evening, all cuts; 1080×1920 60fps;
                 Copy per kind (stinger-config.ts); lockup on the shared 1330
                 band (MKT-45 — no per-kind tucks, ever).
      8.3–27.3   BODY 19.0s = 10.0s STATIC STILL of the COFFEE-MODE HOME
-                (MKT-57: scope switcher · "NEXT DRAW · Nh NNm" · 2×3 rank
+                (MKT-57: scope switcher · "GENERATED · ET / h:mm AM · MON D" — the
+                slate generation stamp; operator ruling 8/19 replaced the
+                NEXT DRAW countdown, which is frozen and meaningless in a
+                captured reel · 2×3 rank
                 tiles "#N / digits / ENERGY nn" · black space · tab bar) then
                 six Pick Detail Modals tapped in rank order, 1.5s each, hard
                 cuts (MKT-56). Body provenance tags: hm_reel_date,

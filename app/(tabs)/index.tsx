@@ -90,6 +90,19 @@ const STREAK_MILESTONES = [3, 7, 14, 30, 60, 90] as const;
 // Mode picker removed from consumer overflow sheet. The `mode` prop remains
 // threaded through the component tree for signature stability; always 'balanced'.
 
+/**
+ * "Aug 19, 7:11 AM" (useSnapshot.lastUpdate, ET) → "7:11 AM · AUG 19" for the
+ * coffee-mode header. Time FIRST on purpose: the public redaction assert
+ * (reel-redact assertNoDigits) flattens separators and looks for any 3-digit
+ * run — "AUG 19, 7:11" flattens to "197", a false combination; "7:11 AM · AUG
+ * 19" flattens to 7 / 11 / 19. The assert also carves out the clock shape now,
+ * but the display order keeps the stamp legible either way.
+ */
+function coffeeStamp(lastUpdate: string): string {
+  const m = lastUpdate.match(/^(.+?),\s*(.+)$/);
+  return m ? `${m[2]} · ${m[1]}`.toUpperCase() : lastUpdate.toUpperCase();
+}
+
 function useDrawCountdown(scope: string): string {
   const [text, setText] = React.useState('');
   React.useEffect(() => {
@@ -270,7 +283,7 @@ const makeOs = (colors: ColorTokens) => StyleSheet.create({
 export default function HomeScreen() {
   const { colors } = useTheme();
   const s = useMemo(() => makeS(colors), [colors]);
-  const { snapshot, refreshSnapshot, isLoading: snapshotLoading } = useSnapshot();
+  const { snapshot, refreshSnapshot, isLoading: snapshotLoading, lastUpdate } = useSnapshot();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { scope, setScope: setScopeRaw } = useScope();
@@ -680,10 +693,16 @@ export default function HomeScreen() {
         <ScrollView style={s.scroll} contentContainerStyle={{ paddingHorizontal: theme.layout.screenInset, paddingTop: 12, paddingBottom: 32 }}>
           {/* Scope segmented (shared ScopeSegment — design.md step 1) */}
           <ScopeSegment value={scope as any} onChange={setScope as any} size="tall" style={{ marginBottom: 14 }} />
-          {nextDrawIn && (
+          {/* Operator ruling 2026-08-19: coffee mode shows WHEN THE BOARD WAS
+              GENERATED (ET), not a countdown — this view is the reel capture
+              surface and a screenshot surface, where a countdown is frozen and
+              meaningless but a generation stamp is a claim a viewer can check.
+              The list-view Home keeps its countdown. ⚠ The renderer detects
+              coffee mode by the "GENERATED" label (render-allday-body.ts). */}
+          {lastUpdate && (
             <View style={{ alignItems: 'center', marginBottom: 14 }}>
-              <Text style={{ fontSize: 9, fontWeight: '900', color: colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold }}>NEXT DRAW</Text>
-              <Text style={{ fontSize: 22, fontWeight: '900', color: colors.purple, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 2 }}>{nextDrawIn}</Text>
+              <Text style={{ fontSize: 9, fontWeight: '900', color: colors.purple, letterSpacing: 1.5, fontFamily: theme.typography.fontFamily.monoBold }}>GENERATED · ET</Text>
+              <Text style={{ fontSize: 22, fontWeight: '900', color: colors.purple, fontFamily: theme.typography.fontFamily.monoBold, marginTop: 2 }}>{coffeeStamp(lastUpdate)}</Text>
             </View>
           )}
           {/* 6 K6 tiles — 2×3 grid */}

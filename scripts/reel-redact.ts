@@ -328,6 +328,11 @@ export async function assertNoDigits(page: Page, where: string): Promise<void> {
         .replace(/(^|\\s)\\d{1,3}\\s*\\u00d7/g, '$1')
         .replace(/(^|\\s)\\+\\d{1,3}(?=\\s|$)/g, '$1')
         .replace(/(^|\\s)ENERGY\\s+\\d{1,3}(?=\\s|$)/g, '$1')
+        // CLOCK SHAPE (2026-08-19): "7:11 AM" — a time is not a combination; a
+        // combination never renders with a colon. Anchored to h:mm + meridiem.
+        // Evidence: the coffee-mode GENERATED stamp "AUG 19, 7:11 AM" flattened
+        // to "197" and aborted the public capture.
+        .replace(/\\b\\d{1,2}:\\d{2}\\s*(AM|PM)\\b/g, '')
         .replace(/[\\s\\-·.,{}\\/]/g, '');
       if ((flat.match(/\\d+/g) || []).some(r => r.length === 3)) out.push('leaf: ' + t);
     }

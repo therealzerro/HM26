@@ -8,7 +8,7 @@
 // from the live HOME screen in COFFEE MODE (MKT-57, 2026-08-16 — was the Slates
 // screen GRID view; the operator ruled the Slates surface too complicated for
 // new members, so all three scopes now capture the ultra-minimal coffee Home:
-// scope switcher · NEXT DRAW · 2×3 pick tiles · black space), premium view:
+// scope switcher · GENERATED · ET stamp · 2×3 pick tiles · black space), premium view:
 //
 //   f0000-f0599  0.0-10.0s  coffee Home 2x3 pick grid — STATIC still, no motion.
 //                           MKT-56 (2026-08-16): members write the six picks
@@ -175,9 +175,11 @@ async function openCoffeeHome(page: import('playwright').Page) {
   // Home renders a hero band / banners / sparkline and no "NEXT DRAW" block.
   const coffee = await page.evaluate(() => {
     const t = document.body.innerText;
-    return t.includes('NEXT DRAW') && (t.match(/^#[1-6]$/gm) ?? []).length === 6;
+    // 2026-08-19: coffee mode's header is the GENERATED · ET stamp (operator
+    // ruling — the countdown was frozen/meaningless in a captured reel).
+    return t.includes('GENERATED') && (t.match(/^#[1-6]$/gm) ?? []).length === 6;
   });
-  if (!coffee) { console.error('ABORT: coffee-mode Home did not render (no NEXT DRAW block / six rank tiles) — capture surface is wrong.'); process.exit(1); }
+  if (!coffee) { console.error('ABORT: coffee-mode Home did not render (no GENERATED stamp / six rank tiles) — capture surface is wrong.'); process.exit(1); }
   if (RELABEL) {
     await assertPublicClean(page, `${SCOPE} coffee grid (pre-capture)`);
     console.log(`PUBLIC capture — relabelled and lint-audited clean before frame 0.`);

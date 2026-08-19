@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-19 · v4.1
+Content Agent Handoff · 2026-08-19 · v4.2
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -194,6 +194,87 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v4.2 (2026-08-19 — POST-BATCH REPORT to the content agent's
+fifteen questions; answers only, everything measured earlier today — the
+detail lives in v3.7/3.8/3.9/4.0 and the MKT-58/59/60/61 audit entries)
+  MKT-58 — 1. NOT closed. Pool is 6 (etch + facet in, shutter out):
+     reel:rotation = ONE same-day doubling every day (allday_pro ↔
+     allday_public), arrangement echo 36d, and the inside-a-week warning IS
+     gone (was 6d). Zero doublings / 119d needs the seventh. 2. Band
+     y1300–1450 %>L40 at 1.3/1.6/2.0/2.2: etch 2/0/0/15 · facet 0/0/4/37
+     (the 37 is the smoke return under the text-out; std itself reads 44 at
+     2.3) · shutter 43/29/25/27 — smoke, not a mark; nothing reproduced
+     imprint's 56–59 hold, but shutter is paced for its 10s master (bands
+     2.4–2.8, bolt 3.0–5.0) so inside 0–3.0s there is no hero beat and the
+     dissolve source is a white flash → REJECTED, regen at the 4s preset.
+     3. Hero: etch −3.5dB@1.4 (ramp) · facet −5.0@1.0 · shutter −9.1@1.0.
+     Circuit defect (isolated ≥2.4s into ≤−18dB): NONE of the two registered
+     — etch late max −5.7@2.4 on −14.5 material (crest); facet has a sharp
+     12dB rise at 2.4 (−4.0 on −15.4 material — build-flagged, not the
+     quiet-field class, no fade, ear owed). shutter: −64dB hole at 1.8 then a
+     swell to −6.2@2.9 = the attack-blind LISTEN class (moot, rejected).
+  MKT-59 — 4. All four per kind 10.000s video / 10.005s audio (midday
+     incumbent/set/ahead/ready; verify incumbent/record/checked/ledger) —
+     law holds. 5. Joined margin is set-invariant by the law: midday join
+     20.360, pt2 last word 19.82, +0.19 vs the 20.01 fade (= incumbent's
+     +0.184). Part-1 tails: set 0.51 / ahead 0.38 / ready 0.47 (incumbent
+     0.30); verify record 0.85 / checked 0.92 / ledger 0.34 (incumbent 0.73).
+     NOTHING salvaged, nothing unsalvageable — no gap-tighten needed.
+     6. Seam f0 proxy vs pt2 open (accepted band ≤~Δ11, overlapping IQR):
+     midday set Δ2.7 ✓ · ahead Δ8.0 ✓ · ready Δ9.3 ✓; verify record Δ6.4 ✓ ·
+     checked Δ9.5 ✓ · ledger Δ12.3 with NON-overlapping IQR (87–93 vs
+     96–107, falling cadence on "taken away") → HELD for the operator's cold
+     listen. ⛔ Tier-1 lint on REAL transcripts (faster-whisper, now in-env):
+     record / checked / ledger ALL CLEAN at tiers 1/2/4 — no direct address,
+     no time-of-day words, no counts/states. Midday three clean at tier 4,
+     "Midday" spoken aloud, no price, first-access framing present.
+     7. Window walk keys on AUDIO durations, identical across the set, so the
+     boundary is unmoved for every variant: full pt2 (join 16.815s) when
+     body ≥ ~9.87s — every featured-row day (e.g. 13.8s); signoff_short
+     (12.827s) on a 1-box day (body ~9.0s); silence never in practice. Chain
+     fires both directions for record and checked (and would for ledger).
+  MKT-60 — 8. app ("SIX SIGNALS. EVERY MORNING.") vs measures ("FOUR
+     MEASURES BEHIND EVERY SIGNAL") read as DISTINCT — six daily signals vs
+     the four measures inside each. The real duplicate was signals ↔
+     measures (same four components, old vs DESIGN-03 vocabulary) → operator
+     ruled measures REPLACES signals; set is SEVEN. 9. measures' third line
+     survives at the ~1000px in-modal width (smaller gold caps, comparable
+     to the others' second lines) — not a regen candidate. 10. Served bytes
+     vs local build: ALL SEVEN MATCH (brand c647e54f · coverage 11216978 ·
+     anchor 05ea4421 · app e8c4691a · zk30 9fa6e02a · receipts 97575e86 ·
+     measures ce2c3c86); old panel_app (bd45a84b) gone from the bucket, old
+     source/built replaced locally (git history only); panel_signals bucket
+     object deleted (fetch → 400). 11. Filename KEPT (operator ruling);
+     recorded as historical in §7 and panel-config. ⚠ Premise correction:
+     the "THE APP IS COMING" copy was NOT live anywhere since 7/29 — this
+     was an art swap with identical copy.
+  MKT-61 — 12. coffee: mug reaches the face ~1.6–1.75s, lowering by ~2.45s
+     → hold ≈ 0.65–0.8s, UNDER the ~1.0s floor → HELD, operator rules (also
+     a 1.94s SILENT head — ambience from frame one did not generate, so the
+     in-point rule would cut into the hold). juggle: the visor NEVER tracks
+     the phone (eye check 0.25–3.3s at 1/8s steps) → REGISTERED.
+     13. juggle IN 0.450 (audio onset; picture continuous) / OUT 6.650 =
+     6.208s; smoke from ~5.9s of the master; chip zone x520–1008/y500–700
+     ≤1.06% phone pixels from 0.0 through 2.65s; apex y≈497 — inside the
+     y420–1500 band by 77px; open RMS −33.5dB. coffee (untrimmed): onset
+     1.94s, chip zone clear across the hold (steam centre-left), mug plain,
+     smoke from ~5.5s; open RMS −44.4dB at the onset. Both masters
+     10.000/10.005s, no .mov/.MP4 strays.
+  ACROSS — 14. REGISTERED: stinger etch + facet; carriers midday set/ahead/
+     ready + verify record/checked; intro juggle; panels receipts +
+     measures + regenerated app. REJECTED: shutter (regen). HELD: verify
+     ledger (ear), coffee (ruling). RETIRED: panel_signals. Asks: §G.2
+     stingers PARTIAL (6 of 7) · §G.3 intros PARTIAL (10; coffee held,
+     reveal ungenerated → 12) · §G.4 carriers PARTIAL (midday_pro + verify
+     rotate; midday_free / evening_free / allday_public remain single-entry)
+     · §G.6 panels PARTIAL (7 served; cadence ungenerated → 8).
+     15. Strays: none unexplained — shutter / coffee / ledger carry
+     UNREFERENCED_OK reasons; the three 8/19 deliveries that registered
+     left the stray list. New warning classes: none beyond 720×1280 (+ the
+     24fps note juggle joins); facet's "uncovered transient at 2.4s" is the
+     existing build-time class; carrier lane's 6d arrangement-echo note is
+     pre-existing. reel:check 0 FAIL throughout.
 
 WHAT CHANGED IN v4.1 (2026-08-19, session close — ledger of the day, cleanup,
 and what is waiting on the operator)

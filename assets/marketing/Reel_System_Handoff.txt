@@ -315,9 +315,20 @@ built on the work order + six rulings; first live build waits on the ledger)
      13.2s (+2.5s cover-lift); PUBLISHED is ~8:14 AM in practice (fleet
      posts 8:12–8:16, not the schedule's 10:30) — the truth is the better
      claim (~8h gap). Full report: docs/mkt62_phase0_report.md.
-  E. WAITING: the DB CHECK migration (operator, SQL editor); today's ledger →
-     first live build (Phase 4 numbers + contact sheets appended to MKT-62);
-     your caption family + copy pass (§G.10).
+  E. FIRST LIVE BUILD DONE (ledger landed 20:27Z): 618 STRAIGHT in NC —
+     PUBLISHED 8:14 AM · GRADED 4:27 PM · ELAPSED 8h 13m. Body 11.30s,
+     total 23.77s, furniture 52.4% (the 1-row floor day), both devices in.
+     Contact sheet: verify_reels/verify_midday_20260819_contact.png. One
+     defect found + fixed ON THIS KIND: a first-viewport featured row sat
+     under the y=470 ribbon through the hold → verify_midday's ribbon now
+     rides the board segment only (the band + "Today" header carry the
+     claim after). ⚠ The same geometry is latent on VERIFY on first-row-
+     featured days (8/18's sheet shows it) — a ruling is owed: fade at the
+     summary cut there too, or move the ribbon on collision days.
+     WAITING: the DB CHECK migration (publish was rejected 23514 as
+     predicted; mp4 + sheet already in the bucket, row pending) → then
+     `npx tsx scripts/publish-reels.ts verify_midday 20260819`; your
+     caption family + copy pass (§G.10).
 
 WHAT CHANGED IN v4.2 (2026-08-19 — POST-BATCH REPORT to the content agent's
 fifteen questions; answers only, everything measured earlier today — the

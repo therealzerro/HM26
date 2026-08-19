@@ -251,10 +251,12 @@ async function upsertRow(row: Record<string, unknown>): Promise<void> {
     body: JSON.stringify(row),
   });
   if (!res.ok) {
-    const body = (await res.text()).slice(0, 300);
+    const full = await res.text();
+    const body = full.slice(0, 300);
     // MKT-62: the kind CHECK is the late-failure point (MKT-16/40 precedent).
     // Name the migration instead of leaving a bare 400 after a successful upload.
-    if (/marketing_reels_kind_check/.test(body)) {
+    // (23514 = check_violation; the constraint name sits past the 300-char cut.)
+    if (/marketing_reels_kind_check/.test(full) || /"code":"23514"/.test(full)) {
       throw new Error(`marketing_reels upsert rejected by marketing_reels_kind_check — apply scripts/migrations/2026_08_19_mkt62_verify_midday_kind.sql (operator step; no DDL path from this env), then re-run publish. ${body}`);
     }
     throw new Error(`marketing_reels upsert → HTTP ${res.status}: ${body}`);

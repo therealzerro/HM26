@@ -36,8 +36,14 @@ data-adaptive (~23-29s: body 8.6-14.0s from the row selection,
 plus the 6.5s endcard outro — MKT-31 addendum moved verify off
 the old static 2.5s tail window onto All-Day's formation window).
 MKT-31: verify has its own identity — seal stinger (FIXED, no
-rotation), receipts-dominant lockup, persistent gold date ribbon
-on the body, gold endcard CTA (tagged verif_endcard_<tag> builds).
+rotation), receipts-dominant lockup, gold date ribbon on the BOARD
+SEGMENT ONLY (8/19 ruling, both verify kinds — nothing may cross a
+featured row), gold endcard CTA (tagged verif_endcard_<tag> builds).
+MKT-63: when the FIRST hold is a STRAIGHT row, a lightning strike
+screen-blends over its opening ~1.13s — ONCE per reel, never on box
+rows, automatic (renderer tags hm_strike_at, assembler composites;
+overlay_strike_straight.mp4 missing/defective → strike silently off,
+reel unharmed; reel:check reports the overlay's health).
 NEW: the intro now ROTATES per reel kind, so slate reels are 33.83s
 OR 34.20s depending on the day's intro — no longer a flat 33.8s.
 reel:check validates all four scope/variant kinds, the stingers,

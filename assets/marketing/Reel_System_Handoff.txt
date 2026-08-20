@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-19 · v4.7
+Content Agent Handoff · 2026-08-20 · v4.8
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-08-19 (CONSOLIDATED SNAPSHOT, current to v4.7 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-08-20 (CONSOLIDATED SNAPSHOT, current to v4.8 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -316,6 +316,25 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v4.8 (2026-08-20 — MKT-63 FIRST LIVE STRIKES ACCEPTED)
+  A. Both first live strike builds were rebuilt for review and ACCEPTED by
+     the operator on sight ("seen, they are good"): verify 8/18 (a 3-straight
+     day — strike fires ONCE, at 12.83s on the first hold, and the other two
+     straight holds correctly get nothing) and verify_midday 8/19 (strike at
+     12.96s beside the 618 STRAIGHT · NC row, timestamp band legible through
+     the channel). The mechanic is now STANDING on all three verify kinds —
+     every future verify whose first featured row is a straight carries it
+     automatically; box-only days carry nothing.
+  B. NOT REPUBLISHED from this session: the operator ruled no posting that
+     day, so the bucket still serves the pre-strike 8/18/8/19 cuts; the
+     accepted builds live in the repo. The strike debuts publicly on the
+     next straight-featuring daily run (or a by-hand republish, operator's
+     call — the run order is in the chat log and REEL_COMMANDS).
+  C. These rebuilds were also the first cuts carrying the v4.6 ribbon rule
+     live (board-segment-only, both kinds) — visible on 8/18's sheet, the
+     first-viewport collision day that triggered the ruling. Reviewed under
+     the same acceptance.
 
 WHAT CHANGED IN v4.7 (2026-08-19/20, night — MKT-63: THE CONDITIONAL STRIKE,
 built on the scoping gate + "use your best judgement")

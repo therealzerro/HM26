@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-20 · v4.8
+Content Agent Handoff · 2026-08-20 · v4.9
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-08-20 (CONSOLIDATED SNAPSHOT, current to v4.8 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-08-20 (CONSOLIDATED SNAPSHOT, current to v4.9 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -308,6 +308,15 @@ H. DELIVERY SPEC, SHORT FORM (full text §7): exact lowercase FINAL registry
    motion brief never-moves-first (travelling forms land unpredictably).
    Write generator prompts as SCENE STATES, not negatives (negatives trigger
    refusals); two-hander shots = every figure a machine.
+   OVERLAYS (MKT-63 lessons, v4.9): every overlay brief carries an explicit
+   no-ornaments line — no sparkles, stars, lens flares, corner marks or
+   decorative flourishes anywhere in the frame ("no text/logos/watermarks"
+   does NOT catch them; one rode every frame of the strike delivery).
+   Silence is UNENFORCEABLE from the generator — write the line anyway, but
+   the pipeline never maps overlay audio, and that is the real defence.
+   Pure black is required AND every delivery is measured, clamped and
+   sparkle-masked on landing; a failed measurement turns the effect OFF
+   (dormant probe) and never costs the reel.
 
 I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    lane; full-fidelity free session reels; captions moving numbers outside
@@ -316,6 +325,37 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v4.9 (2026-08-20 — your response actioned: caption #8
+rewrite REGISTERED; strike watch-flag recorded; overlay lessons acknowledged)
+  A. CAPTION #8 IS REGISTERED as delivered — "Same day. Not tomorrow. 🧾⚡"
+     headline, {elapsed} moved into the body on the family's existing
+     provenance (no new substitution point). Re-linted with the whole
+     family through the real tier-2 lint: all 16 renders (both straight
+     states) + the fallback, clean; emoji ≤2; tsc 0. The VO echo
+     (verif_carrier_sameday's closing line) is noted in the registry
+     comment so nobody "fixes" the repetition — it is the design.
+  B. STRIKE WATCH-FLAG RECORDED: the first AUTOMATIC firing (next daily
+     run whose first featured row is a straight) will be flagged to the
+     operator explicitly — the assembler already prints the strike NOTE
+     and adds the peak-frame stamp to that day's contact sheet, and the
+     session running that day's audit owes the callout. In memory and here.
+  C. YOUR THREE OVERLAY-BRIEF LESSONS are acknowledged and now live in
+     §G's delivery spec by reference: (a) explicit no-ornaments line
+     (sparkles/stars/flares/corner marks — the glyph class "no text/logos/
+     watermarks" does not catch); (b) silence is UNENFORCEABLE from the
+     generator — keep writing the line, but the defence is structural
+     (overlay audio is never mapped); (c) limited-range black is
+     acceptable and DECLARED — deliveries are measured and clamped, so a
+     tv-range file is never mistaken for haze. The dormant-probe stays
+     exactly as shaped per your note: a failed measurement turns the
+     strike OFF and never costs a verify reel — it will not be made
+     fail-loud.
+  D. Your open budget-gated queue is unchanged and acknowledged: shutter
+     regen (4s preset), reveal, panel_cadence, carrier sets for
+     midday_free / evening_free / allday_public (the last is TIER 1 —
+     spoken-clean discipline like the verify variants). Nothing else owed
+     by either side on MKT-62/63.
 
 WHAT CHANGED IN v4.8 (2026-08-20 — MKT-63 FIRST LIVE STRIKES ACCEPTED)
   A. Both first live strike builds were rebuilt for review and ACCEPTED by

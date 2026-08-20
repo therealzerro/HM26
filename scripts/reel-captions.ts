@@ -565,7 +565,14 @@ const CAPTION_REGISTRY = {
       c => `This is a rare one 🤠\nMost days you get yesterday's receipts. Today you get this morning's — graded ${c.sd!.elapsed} after it published, in the open, same as always.\nAnalysis first. Receipts after. Just faster.`,
       c => `Timestamps don't lie 🧾\nPUBLISHED this morning · GRADED this afternoon · ${c.sd!.elapsed} between them. Every signal on that board went up before the draw and got checked after it.\nThe full method's free in here. The timing is what Pro buys. $2.49/mo.`,
       c => `Extended receipts — Midday, same day ⚡\nThat board went up covered this morning. The draw happened. Here's the grading, ${c.sd!.elapsed} later, before the evening boards even land.\nVerified MATCH, checked against the official results.`,
-      () => `Eight hours, not twenty-four 🧾⚡\nThis morning's Midday board, graded and posted back the same day. You watched it go up covered — now you can see how it landed.\nZK Pro doesn't wait for the cover to come off. $2.49/mo.`,
+      // #8 REWRITTEN (content agent, 2026-08-20): the delivered "Eight hours,
+      // not twenty-four" headline hardcoded a volatile stat — replaced with a
+      // headline that is honest by construction (the kind cannot run unless
+      // the same-day window is open, precondition 3) and that ECHOES
+      // verif_carrier_sameday's closing line, so a member hears it in the VO
+      // and then reads it. The figure moved into the body as {elapsed} — same
+      // provenance as the rest of the family, no new substitution point.
+      c => `Same day. Not tomorrow. 🧾⚡\nThis morning's Midday board, graded and posted back ${c.sd!.elapsed} later. You watched it go up covered — now you can see how it landed.\nZK Pro doesn't wait for the cover to come off. $2.49/mo.`,
     ],
   },
   verify_public: {

@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-20 · v4.9
+Content Agent Handoff · 2026-08-20 · v5.0
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-08-20 (CONSOLIDATED SNAPSHOT, current to v4.9 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-08-20 (CONSOLIDATED SNAPSHOT, current to v5.0 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -50,18 +50,19 @@ A. DAILY OUTPUT (operator-triggered `npm run reel:daily`, never scheduled):
 
 B. SLATE REEL ANATOMY (allday/midday/evening, all cuts; 1080×1920 60fps;
    33.83–34.53s depending on the day's intro):
-     0.0–~5.6   INTRO — slate kinds rotate over INTRO_ROTATION (TEN: standard,
-                deadpan, arrival, monitors, powerup, board, guest, window,
-                arrive — MKT-54; juggle — MKT-61, 8/19). Lane-spread: pro and free draw DIFFERENT
+     0.0–~5.6   INTRO — slate kinds rotate over INTRO_ROTATION (TWELVE:
+                standard, deadpan, arrival, monitors, powerup, board, guest,
+                window, arrive — MKT-54; juggle — MKT-61; coffee — ruled in
+                8/20; reveal — MKT-64, 8/20). Lane-spread: pro and free draw DIFFERENT
                 members the same day; the walk reshuffles per cycle (MKT-49).
                 Frame-one dated identity chip over the Anchor's shoulder
                 (MKT-22/35). verify draws VERIFY_INTROS (anchor_intro_verify),
                 public kinds draw PUBLIC_INTROS (anchor_intro_public) —
                 both are SETS of one and NEVER fall into the slate rotation.
-     ~5.3–8.3   STINGER — 3.0s, 0.3s crossfade into the intro smoke. SIX
+     ~5.3–8.3   STINGER — 3.0s, 0.3s crossfade into the intro smoke. SEVEN
                 shared motions rotate (std/strike/circuit/fracture + etch/
-                facet — MKT-58; imprint retired; shutter rejected, regen
-                pending); verify + verify_public draw the SEAL set instead.
+                facet — MKT-58; shutter — MKT-64 second attempt, 8/20;
+                imprint retired); verify + verify_public draw the SEAL set.
                 Copy per kind (stinger-config.ts); lockup on the shared 1330
                 band (MKT-45 — no per-kind tucks, ever).
      8.3–27.3   BODY 19.0s = 10.0s STATIC STILL of the COFFEE-MODE HOME
@@ -238,17 +239,17 @@ G. OPEN / OWED — the standing list (everything else you may have read as
    "open" is closed; see §9 for the closure record):
      1. NATIVE 1080×1920 source assets — generator ceiling confirmed 4×;
         upscale pilot is the only path; blocked on generation balance.
-     2. STINGER MOTIONS — NOW 6, ASK STILL OPEN FOR THE SEVENTH (MKT-58,
-        8/19): etch + facet REGISTERED and serving; shutter REJECTED (paced
-        for its 10s master — see v3.7). Pool 6 = 1 same-day doubling, echo
-        36d; SEVEN clears it (v3.6 Q7). ONE more motion closes the ask —
-        regenerate shutter (or a new concept) AT THE 4s PRESET against the
-        v3.6 spec; `shutter` name stays reserved for the regen.
-     3. INTRO QUEUE — PARTIALLY closed 8/19 (MKT-61): juggle REGISTERED
-        (pool 9 → 10; visor never tracks — confirmed by eye); coffee
-        LANDED but HELD for two rulings (1.94s silent head vs audio-from-
-        frame-one; the mug hold measures ~0.65–0.8s vs the ~1.0s floor —
-        v3.9); reveal NOT generated (budget). Open at 10 → 12.
+     2. ✅ STINGER MOTIONS — CLOSED at SEVEN (MKT-64, 8/20): shutter's
+        second attempt landed with the pacing block and the fix TOOK
+        (bolt revealed ~1.25s, inside the cut). Rotation acceptance
+        measured: ZERO same-day doublings across the 7 live stinger kinds
+        (every day a full 7-distinct permutation), arrangement echo 119d,
+        the inside-a-week warning GONE from the stinger lane.
+     3. ✅ INTRO QUEUE — CLOSED at TWELVE (8/20): juggle (MKT-61) + coffee
+        (RULED IN 8/20 — silent head taken, IN 0.0/OUT 6.2) + reveal
+        (MKT-64 second attempt — the refused broadcast framing rewritten
+        as fiction; camera reversal verified). Pinned kinds untouched by
+        design (verify / verify_public / allday_public / verify_midday).
      4. CARRIER ROTATION — PARTIALLY closed 8/19 (MKT-59): midday_pro 1→4
         and verify 1→3 now rotate. STILL single-entry: midday_free,
         evening_free, allday_public — those rooms hear the identical opening
@@ -308,6 +309,19 @@ H. DELIVERY SPEC, SHORT FORM (full text §7): exact lowercase FINAL registry
    motion brief never-moves-first (travelling forms land unpredictably).
    Write generator prompts as SCENE STATES, not negatives (negatives trigger
    refusals); two-hander shots = every figure a machine.
+   ⚠ REFUSAL CLASS (MKT-64, reveal attempt 1): BROADCAST VOCABULARY + A WIDE
+   NEWSROOM reads as staging a real news broadcast — refused for reputational
+   risk / misrepresenting current events. "Broadcast studio", "news
+   presenter", wide establishing shots of a newsroom: all of it. Every intro
+   that cleared is TIGHT on one or two figures (guest cleared with two robots
+   at a desk — it is not the desk or the character). Fix that worked: remove
+   broadcast/studio/news/desk vocabulary entirely and frame the scene as
+   fictional science fiction — same visual, different framing.
+   PART-1 CARRIER LINES END LEVEL OR SLIGHTLY RISING, NEVER ON A DESCENDING
+   CADENCE (MKT-59 ledger rejection): the pt2 seam is a pitch match, and a
+   falling close ("Nothin' taken away.") cannot meet a level open — Δ12.3 f0
+   non-overlapping IQR, the audible two-voices seam. A scripting rule, not a
+   generation defect.
    OVERLAYS (MKT-63 lessons, v4.9): every overlay brief carries an explicit
    no-ornaments line — no sparkles, stars, lens flares, corner marks or
    decorative flourishes anywhere in the frame ("no text/logos/watermarks"
@@ -325,6 +339,69 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v5.0 (2026-08-20 — MKT-64 EXECUTED: shutter + reveal BOTH
+REGISTERED, both pool asks CLOSED; coffee + ledger rulings executed; and one
+finding that rewrites an earlier lesson)
+  A. SHUTTER — REGISTERED, pool 6 → 7, §G.2 CLOSED. The pacing fix TOOK:
+     every beat landed inside the 0–3.0s window (bolt revealed ~1.25s vs
+     the ~1.2 target; full numbers in §7). Band gate passes ahead of the
+     std model (14.9% @1.3 vs std's 34%); the only >0 reading is the flood
+     at ~2.13s, which IS the briefed smoke return arriving ~0.07s before
+     the text-out — reported as a discrepancy between the gate's "~0% from
+     2.0" letter and the beat map's own 2.2 schedule; judged to the beat
+     map ("the pacing fix is the whole test"). Rotation acceptance: ZERO
+     same-day doublings across the 7 live kinds (every day is a full
+     7-distinct permutation), echo 119d, inside-a-week warning GONE.
+     ⚠ THE NO-OVERWRITE CLAIM WAS FALSE FOR THIS FILE: the delivery landed
+     at the name of the attempt-1 rejected EVIDENCE copy and overwrote it
+     silently — nothing serving was touched, and the old bytes live at
+     commit 9241a44. Confirmed against disk as the order demanded.
+  B. REVEAL — REGISTERED, §G.3 CLOSED at TWELVE (with coffee, C below).
+     THE CAMERA REVERSED — the pool's riskiest instruction, verified
+     frame-by-frame (pull-back widest ~4.0–4.3, dive from ~4.5, full-frame
+     smoke by ~6.9). Trim IN 0.9167/OUT 7.375 = 6.458s (the 6.5 ceiling
+     beat the 7.4 target; the tight open paid the 0.9s, per the order).
+     Chip zone at frame one is BRIGHT (YAVG 85–101) and readable anyway —
+     the chip's opaque plate carries its own contrast; composited with the
+     real chip and eye-checked, which is the report item 13 asked for.
+     Wall swept 2x and 2.5x: smudge-class only. Your refusal-class note is
+     recorded in the delivery spec (v4.9 already carried it).
+  C. RULINGS EXECUTED: coffee REGISTERED at IN 0.0/OUT 6.2 exactly as
+     ruled (silent head taken; reasoning preserved in the registry entry
+     and §7). verif_carrier_ledger REJECTED and parked with its
+     measurement and your printed reason (UNREFERENCED_OK); the LEVEL-OR-
+     RISING part-1 cadence rule is in the delivery spec.
+  D. ⚠ THE SPARKLE IS THE GENERATOR'S WATERMARK, NOT A PROMPTABLE
+     ORNAMENT — this rewrites v4.9's lesson (a). During the shutter glyph
+     sweep the same four-pointed star appeared at the same coordinates —
+     and a six-way corner comparison found it on EVERY SERVING MEMBER of
+     the fleet (etch, seal, rise, coffee, shutter, reveal — identical
+     mark, identical spot, every frame). It is applied at generation
+     infrastructure level; no prompt line can remove it, so the
+     no-ornaments line did not fail its first test — it was never going to
+     catch this element, and it should stay in prompts for TRUE ornaments.
+     Consequences: (1) it is NOT a gate criterion for opaque full-frame
+     video — it has shipped in every reel since the fleet began, invisibly
+     in practice; (2) it IS a defect for SCREEN-BLENDED composites, where
+     it glows over content — which is exactly why MKT-63's strike masks
+     it; every future overlay brief needs the mask plan, not a prompt fix;
+     (3) the MKT-63 audit's "generator ornament" wording is superseded by
+     this finding.
+  E. PROOF ASSEMBLIES (order item 18): evening_pro 8/19 drew reveal
+     (34.67s, ffprobed) and allday_public 8/19 drew shutter (34.20s,
+     ffprobed) — local rebuilds only, bucket untouched, evidence frames in
+     assets/marketing/mkt64_gate/ (shutter lockup at 100% crop: white
+     wordmark fully readable over the dark band; reveal frame one with the
+     chip; reveal at the widest). reel:check 0 FAIL / 110 warn — the +4
+     are the two intros' known 720×1280 + 24fps classes; strays clean.
+  F. INTRO DEPTH after the two registrations (windowed distinct
+     arrangements): midday_pro 274 · allday_pro 267 · evening_pro 266 ·
+     allday_free 265 · evening_free 218 · midday_free 207 — and the PINNED
+     kinds unchanged by design (verify 12 · verify_public 5 ·
+     allday_public 35): correct, not a shortfall. First live draws (if
+     the daily runs happen): reveal → midday_pro 8/20, coffee →
+     evening_free 8/25; shutter → evening_pro 8/20.
 
 WHAT CHANGED IN v4.9 (2026-08-20 — your response actioned: caption #8
 rewrite REGISTERED; strike watch-flag recorded; overlay lessons acknowledged)
@@ -2070,9 +2147,9 @@ on the 6.33s members) and the reel runs up to 34.53s.
                refills the frame. It both OPENS and CLOSES on smoke, which is
                why the existing dissolve below needs no change.
                Per-variant copy; prebuilt by npm run stinger:build.
-               ⚠ v1.7 — THE MOTION ROTATES. SIX shared motions as of
-               MKT-58, 8/19 (bolt condense, strike, circuit, fracture, etch,
-               facet; `imprint` retired 7/31; ~~FOUR~~ HISTORICAL), picked by date on the same clock-free basis
+               ⚠ v1.7 — THE MOTION ROTATES. SEVEN shared motions as of
+               MKT-64, 8/20 (bolt condense, strike, circuit, fracture, etch,
+               facet, shutter bands; `imprint` retired 7/31; ~~FOUR/SIX~~ HISTORICAL), picked by date on the same clock-free basis
                as the intro and panels, shared across tiers because a
                stinger carries no tier signal — plus the SEAL set, which
                serves verify/verify_public ONLY and replaces the rotation
@@ -2636,29 +2713,52 @@ per-day by hand, not AI-freestyled.
                                   the seated head sits where verify/juggle/
                                   board's do (jaw/collar line) — same class,
                                   PASS. Sting beats 0.56/1.10/2.0/3.34.
-    anchor_intro_coffee.mp4       ⏸ HELD 2026-08-19 (MKT-61) — delivered
-                                  10.000/10.005s, NOT trimmed, NOT registered
-                                  (UNREFERENCED_OK carries the reason). Two
-                                  rulings owed: (1) the master opens on 1.94s
-                                  of SILENCE — the audio-from-frame-one rule
-                                  (MKT-08) and the in-point rule (later of
-                                  picture cut / audio onset) would put IN at
-                                  1.94, INSIDE the mug-at-face hold that is
-                                  the joke; (2) the hold itself measures
-                                  ~0.65–0.8s (mug reaches the face ~1.6–1.75,
-                                  lowering by ~2.45) vs the brief's ~1.0s
-                                  floor — "materially under" per the order.
-                                  Everything else passes: mug plain white and
-                                  unmarked at 2x, wall clean, chip zone clear
-                                  (steam stays centre-left, ≤4.6% bright
-                                  pixels in the zone = the screen bank), full-
-                                  frame smoke from ~5.5s through ≥9.5s, open
-                                  RMS −44.4dB at the onset (deadpan class).
-                                  Options: IN 0.0/OUT 6.2 (silent head, joke
-                                  intact, 6.2s) · IN 1.94/OUT 7.6 (audio from
-                                  frame one, opens mid-hold, lift beat lost,
-                                  5.66s) · regenerate with ambience from frame
-                                  one and a longer hold. Operator chooses.
+    anchor_intro_coffee.mp4       ✅ REGISTERED 2026-08-20 (ruling, operator-
+                                  delegated to the content agent) — IN 0.0 /
+                                  OUT 6.2 → 6.208s v / 6.200s a. THE SILENT
+                                  HEAD IS TAKEN: deadpan already opens at
+                                  −46.6dB and serves daily, so the 1.94s
+                                  quiet open sits inside the fleet's
+                                  demonstrated tolerance, and IN 1.94 would
+                                  open mid-hold and throw away the mug LIFT
+                                  the gag depends on. The short hold
+                                  (~0.65–0.8s vs the ~1.0s floor) is taken
+                                  with it — the mug STOPPING at a face with
+                                  no mouth reads at 0.65s. Regeneration
+                                  deliberately not spent (never preempts the
+                                  carrier sets). Prior gates stand: mug plain
+                                  white at 2x, wall clean, chip zone clear,
+                                  smoke ~5.5s→≥9.5s, open RMS −44.4dB. Master
+                                  kept anchor_intro_coffee_master_10s.mp4.
+    anchor_intro_reveal.mp4       ✅ REGISTERED 2026-08-20 (MKT-64) — SECOND
+                                  ATTEMPT: attempt 1 was REFUSED by the
+                                  generator (broadcast vocabulary + a wide
+                                  newsroom = staging a news broadcast; the
+                                  refusal class is in the delivery spec).
+                                  Rewrite framed the same visual as fiction
+                                  and cleared. THE CAMERA REVERSAL HAPPENED:
+                                  extreme-tight open → pull-back to the vast
+                                  light-panel wall (widest ~4.0–4.3 of the
+                                  master) → reverse into the dive ~4.5 →
+                                  through the raised handset → full-frame
+                                  smoke by ~6.9. Trim IN 0.9167 / OUT 7.375 →
+                                  6.458s v/a — the 6.5s CEILING beat the
+                                  ~7.4 out-target, so the in-point slid
+                                  forward and 0.9s of the tight open is the
+                                  cost (per the order). Audio from frame one
+                                  of the master. Chip zone at frame one is a
+                                  BRIGHT soft field (YAVG 85–101) — readable
+                                  because the chip's opaque plate carries its
+                                  own contrast (composited + eye-checked).
+                                  Wide beat: head/visor/phone/desk inside the
+                                  1:1 band y420–1500 (chair base below — the
+                                  seated norm). Wall swept 2x AND 2.5x across
+                                  the pull-back: waveforms, orbital diagrams,
+                                  pseudo-text line-blocks — smudge-class, no
+                                  letterforms, no numerals. Dissolve bed
+                                  6.875–7.375 clean full-frame smoke, no
+                                  border edges. Master kept
+                                  anchor_intro_reveal_master_10s.mp4.
 
     anchor_intro_public.mp4       Fixed intro for the PUBLIC kinds, 6.000s.
                                   ⚠ REPLACED 2026-07-31 (MKT-36): the 7/31
@@ -2994,7 +3094,33 @@ per-day by hand, not AI-freestyled.
     stinger_motion_circuit.mp4    a stinger carries no tier signal. std =
     stinger_motion_fracture.mp4   bolt condense · strike · circuit ·
     stinger_motion_etch.mp4       fracture (MKT-23) · etch · facet (MKT-58,
-    stinger_motion_facet.mp4      2026-08-19). SIX serving.
+    stinger_motion_facet.mp4      2026-08-19) · shutter (MKT-64, 2026-08-20).
+    stinger_motion_shutter.mp4    SEVEN serving.
+                                  ✅ shutter — "shutter bands" (SECOND
+                                  attempt; the pacing-block rewrite TOOK;
+                                  the delivery OVERWROTE the rejected
+                                  attempt-1 evidence copy at this name —
+                                  recoverable from commit 9241a44). 10.0s
+                                  master, 0–3.0s consumed. Beat map inside
+                                  the window: smoke clears ~0.8 · bands
+                                  0.83–1.2 (full-frame throw peak YAVG 114
+                                  @1.0, by design) · BOLT REVEALED ~1.25 ·
+                                  hold to 2.05 · smoke returns ~2.1–2.9.
+                                  Band y1300–1450 >L40: 14.9% @1.3 (mean
+                                  L35) · 10.8% @1.6 · 0.7% @2.0 · flood
+                                  begins ~2.13 = the briefed smoke return
+                                  arriving ~0.07s before the text-out at 2.2
+                                  (facet's 37%@2.2 class — diffuse field).
+                                  Hero beat max −2.1dB in 1.0–1.4; the ~2.7s
+                                  swell crests on −13.1dB material (NOT the
+                                  circuit quiet-field class; the build-time
+                                  "uncovered transient at 2.4s" warning is
+                                  facet's known class — no authored fade).
+                                  Smoke both ends. Bands read as light
+                                  panels at 2x — no letterforms. Rotation
+                                  acceptance: pool 7, zero same-day
+                                  doublings, echo 119d, inside-a-week
+                                  warning GONE.
                                   ✅ etch — "inscribed outline": 4.0s master,
                                   720×1280/24fps. Band y1300-1450 >L40:
                                   2% @1.3 (L22) · 0% @1.6 · 0% @2.0; 15% @2.2

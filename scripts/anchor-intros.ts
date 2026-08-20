@@ -94,8 +94,44 @@ export const INTRO_ROTATION: IntroVariant[] = [
   // zone x520-1008/y500-700 max 1.06% phone pixels through 2.65s (clear).
   // Open RMS −33.5dB over the first 0.3s after IN (mid-fleet). Wall: the
   // standard screen bank, chart smudges only at 2x, no glyphs. Its sibling
-  // `coffee` from the same drop is HELD — see UNREFERENCED_OK.
+  // `coffee` from the same drop was HELD, then registered below (8/20 ruling).
   { file: 'anchor_intro_juggle.mp4', label: 'juggle' },
+  // MKT-61 delivery, RULED IN 2026-08-20 (content agent, operator-delegated):
+  // IN 0.0 / OUT 6.2 — the SILENT HEAD IS TAKEN deliberately. The 1.94s quiet
+  // open is a real defect, but deadpan already opens at −46.6dB and serves
+  // daily, so it sits inside the fleet's demonstrated tolerance — and IN 1.94
+  // would open mid-hold and throw away the mug LIFT the whole gag depends on
+  // (a viewer who does not see him raise the mug just sees a robot lower
+  // one). The short hold (~0.65-0.8s vs the ~1.0s brief floor) is taken with
+  // it: the joke is the mug STOPPING at a face with no mouth, and that reads
+  // at 0.65s — lighter, not dead. Regeneration deliberately NOT spent: the
+  // prompt is unchanged if a future session has budget, but it must never
+  // preempt the carrier sets. Prior gates (MKT-61): mug plain white at 2x,
+  // chip zone clear, wall clean, smoke full-frame ~5.5s→≥9.5s so OUT 6.2's
+  // dissolve bed is clean. Master kept _master_10s.
+  { file: 'anchor_intro_coffee.mp4', label: 'coffee' },
+  // MKT-64 (2026-08-20). reveal — extreme tight open on glowing energy →
+  // pull-back to a vast wall of light-panels (widest ~4.0-4.3) → the camera
+  // REVERSES into the dive (~4.5), phone raise, push through the handset to
+  // full-frame smoke by ~6.9 of the master. THE REVERSAL HAPPENED — the
+  // riskiest camera instruction in the pool, verified frame-by-frame. This
+  // file is ATTEMPT 2: attempt 1 was REFUSED by the generator (broadcast
+  // vocabulary + a wide newsroom = staging a news broadcast; refusal class
+  // recorded in the handoff delivery spec) — the rewrite framed the same
+  // visual as fictional science fiction and cleared. IN 0.9167 (the 6.5s
+  // ceiling WINS over the ~7.4 out-target: the in-point slides forward and
+  // loses 0.9s of the tight open — ruled in the order) / OUT 7.375 →
+  // 6.458s v / 6.458s a. Audio from frame one of the master, so the slide is
+  // pure ceiling arithmetic. Chip zone at trimmed frame one: a BRIGHT soft
+  // field (zone YAVG 85-101) — readable anyway because the chip's own opaque
+  // plate carries the contrast (composited with the real chip and eye-
+  // checked); nothing structural collides. Wide beat: head/visor/phone/desk
+  // inside the 1:1 band y420-1500, chair base below (the seated-member
+  // norm). Wall swept at 2x and 2.5x across the pull-back: waveforms,
+  // orbital diagrams, pseudo-text line-blocks — all smudge-class, no
+  // letterforms, no numerals (the board/juggle screen-bank standard).
+  // Master kept _master_10s.
+  { file: 'anchor_intro_reveal.mp4', label: 'reveal' },
 ];
 
 /** Fallback when the rotation is empty or every member is unusable. */

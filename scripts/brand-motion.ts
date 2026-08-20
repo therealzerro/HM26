@@ -129,16 +129,23 @@ export const STINGER_MOTIONS: MotionVariant[] = [
   //          stinger:build will warn "uncovered transient at 2.4s" — ear-
   //          check owed, no authored fade: it would silence the smoke return
   //          the beat belongs to). Open −11.8dB; 10.0s master, 0-3.0 used.
-  //   shutter REJECTED, not registered: paced for its 10s master — smoke only
-  //          to 2.2s, the white bands 2.4-2.8s (full-frame L163-172, and the
-  //          bands read as letterforms — the exact risk the order named), the
-  //          bolt standing 3.0-5.0s, smoke back at ~6s. Inside the 0-3.0s
-  //          window: no hero beat, a white flash where the dissolve source
-  //          must be smoke, and a −64dB silence at 1.8s before the swell. No
-  //          in-point trim satisfies both ends (bolt-on-dark at 2.2-3.0 if the
-  //          event is pulled to ~1.0). Regenerate at the 4s preset.
-  // Pool is SIX: 1 same-day doubling, arrangement echo 36d (v3.6 Q7). The ask
-  // is NOT closed until a seventh member lands.
+  //   shutter attempt 1 REJECTED (2026-08-19): paced for its 10s master — the
+  //          gag landed entirely outside the 0-3.0s cut (bands 2.4-2.8s, bolt
+  //          3.0-5.0s). Attempt 2 (MKT-64, 2026-08-20 — REGISTERED below)
+  //          landed with an explicit pacing block and the fix TOOK; the new
+  //          delivery OVERWROTE the rejected evidence copy under the same
+  //          name (recoverable from commit 9241a44). Measured on landing:
+  //          smoke clears ~0.8 · bands 0.83-1.2 (full-frame throw peak
+  //          YAVG 114 @1.0, by design) · bolt revealed ~1.25 · hold to 2.05 ·
+  //          smoke returns ~2.1-2.9. Band y1300-1450: 14.9%@1.3 (mean L35) ·
+  //          10.8%@1.6 · 0.7%@2.0 · flood begins ~2.13 = the BRIEFED smoke
+  //          return arriving ~0.07s before the text-out at 2.2 (same class as
+  //          facet's 37%@2.2, diffuse field, not a band artifact). Hero beat
+  //          −2.1dB in 1.0-1.4; the ~2.7s swell crests on −13.1dB material —
+  //          NOT the circuit quiet-field class, no authored fade needed.
+  //          Smoke both ends. Bands read as light panels at 2x, no letterforms.
+  { file: 'stinger_motion_shutter.mp4', tag: 'shutter', label: 'shutter bands' },
+  // Pool is SEVEN (MKT-64): the 4→7 ask is CLOSED.
   { file: 'stinger_motion_etch.mp4', tag: 'etch', label: 'inscribed outline' },
   { file: 'stinger_motion_facet.mp4', tag: 'facet', label: 'hazed planes' },
   // ⛔ `imprint` RETIRED FROM THE ROTATION 2026-07-31 (MKT-42) — kept here as a

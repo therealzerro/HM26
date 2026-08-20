@@ -263,31 +263,17 @@ function checkPartNaming(): void {
  * Remove an entry the moment its reason expires.
  */
 const UNREFERENCED_OK: Record<string, string> = {
-  // MKT-61 (2026-08-19) — coffee intro HELD for two operator rulings (see the
-  // handoff v3.9 / audit): (1) the master opens on 1.94s of SILENCE (audio
-  // onset 1.94s) against MKT-08's audio-from-frame-one rule, and the in-point
-  // rule (later of picture cut / audio onset) would put IN at 1.94 — INSIDE the
-  // mug-at-face hold that is the joke; (2) the hold itself measures ~0.65-0.8s
-  // (mug at face ~1.6/1.75 → lowering by 2.45) against the brief's ~1.0s
-  // floor. Trim candidates if accepted: IN 0.0/OUT 6.2 (silent head, joke
-  // intact) or IN 1.94/OUT 7.6 (audio from frame one, opens mid-hold, lift
-  // beat lost) — smoke is full-frame from ~5.5s through ≥9.5s so either OUT
-  // is clean. Mug plain white, unmarked at 2x; chip zone clear; wall clean.
-  'anchor_intro_coffee.mp4':
-    'MKT-61 HELD 2026-08-19 — 1.94s silent head (audio onset 1.94s) vs the audio-from-frame-one rule, and the in-point rule would cut into the mug hold; the hold measures ~0.65-0.8s vs the ~1.0s brief floor. Operator rules: accept a silent head (IN 0.0/OUT 6.2), open mid-hold (IN 1.94/OUT 7.6), or regenerate. Master kept as delivered (10.005s).',
+  // coffee's MKT-61 HELD entry left this list 2026-08-20 — RULED IN at
+  // IN 0.0 / OUT 6.2 (silent head taken; see the INTRO_ROTATION entry).
   // MKT-59 (2026-08-19) — verify part-1 alternate HELD on the seam proxy
   // (exit f0 Δ12.3 vs pt2, non-overlapping IQR); registers with one line in
   // carrier-config.ts `verify.set` if the operator's cold listen passes it.
   'verif_carrier_ledger.mp4':
-    'MKT-59 HELD 2026-08-19 — transcript tier-1 clean, 10.005s, voice-end 9.66s; seam f0 proxy Δ12.3 (IQR 87-93 vs pt2 96-107, non-overlapping — falling cadence on "taken away") is outside the MKT-48 accepted band. Operator cold listen decides; one-line registration if it passes.',
-  // MKT-58 (2026-08-19) — stinger 4→7 drop: etch + facet REGISTERED; shutter
-  // REJECTED on pacing (10s master: smoke to 2.2s, white letterform-reading
-  // bands 2.4-2.8s, bolt standing 3.0-5.0s — inside the consumed 0-3.0s there
-  // is no hero beat and the dissolve source is a white flash; −64dB hole at
-  // 1.8s). Kept on disk so the 4s-preset regeneration lands AT THIS NAME and
-  // replaces it; delete this entry when it does.
-  'stinger_motion_shutter.mp4':
-    'MKT-58 REJECTED 2026-08-19 — paced for its 10s master (bands 2.4-2.8s, bolt 3.0-5.0s, smoke back ~6s); inside the 0-3.0s consumption: no hero beat, white full-frame flash where the dissolve source must be smoke, bands read as letterforms, −64dB audio hole at 1.8s then a quiet-field swell. Regenerate at the 4s preset under the SAME name; pool stays 6 until it lands.',
+    'MKT-59 REJECTED 2026-08-20 (content agent, operator-delegated) — seam f0 proxy Δ12.3 with NON-OVERLAPPING IQR (87-93 vs pt2 96-107): two voices meeting at a seam, the defect class the MKT-43 lane exists for. Root cause is the SCRIPT: part-1 ends on a descending cadence ("Nothin\' added. Nothin\' taken away.") into a level pt2 open — the pitch could not match because it was written not to. Parked with its measurement; a third verify variant gets a RESCRIPT with a level ending, never a regeneration of these lines. Standing rule recorded (handoff delivery spec): PART-1 CARRIER LINES END LEVEL OR SLIGHTLY RISING, NEVER DESCENDING.',
+  // MKT-58's shutter attempt 1 was REJECTED here (paced for its 10s master);
+  // the MKT-64 second attempt landed AT THE SAME NAME 2026-08-20, passed every
+  // gate and is REGISTERED in STINGER_MOTIONS — entry deleted per its own
+  // instruction. Attempt-1 bytes: commit 9241a44.
   // MKT-16 (2026-07-30): public_carrier.mp4 + _pt2 left this list — they are
   // registered under allday_public in carrier-config.ts and are now validated
   // like every other carrier pair.

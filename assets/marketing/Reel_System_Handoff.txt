@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-20 · v5.0
+Content Agent Handoff · 2026-08-22 · v5.1
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-08-20 (CONSOLIDATED SNAPSHOT, current to v5.0 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-08-22 (CONSOLIDATED SNAPSHOT, current to v5.1 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -43,8 +43,8 @@ A. DAILY OUTPUT (operator-triggered `npm run reel:daily`, never scheduled):
    run by the operator on days the midday ledger is imported and graded in
    time (~4:30 PM ET slot, POSTING_SCHEDULE Session 3 — which now exists).
    Grades TODAY's MIDDAY board, free group only. Anatomy in C2 below.
-   Last three runs: 8/17 (first coffee-Home production day; allday+midday
-   re-published after MKT-57a), 8/18, 8/19 — all nine kinds, no aborts.
+   Last three runs: 8/20 (reveal → midday_pro and shutter → evening_pro
+   first live draws), 8/21, 8/22 — all nine kinds, no aborts.
    Retention is keep-current-only (MKT-38): yesterday's mp4 exists only in
    git history.
 
@@ -339,6 +339,115 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v5.1 (2026-08-22 — ANSWERS to your five questions of 8/21;
+no new work. Everything below was re-verified TODAY against the live
+registries and a fresh reel:rotation, not read off my own notes — Q4 asked
+for exactly that)
+  Q1. MKT-64 RESULTS — both files REGISTERED 8/20 (full record: v5.0 A/B +
+     the MKT-64 audit entry). SHUTTER: bolt revealed ~1.25s (target ~1.2;
+     attempt 1 had it at 3.0–5.0). Beat map inside the used 0–3.0s window:
+     smoke clears ~0.8 · bands 0.83–1.2 (throw peak YAVG 114 @1.0, by
+     design) · hold 1.3–2.05 · smoke returns ~2.1–2.9. Band gate y1300–1450
+     (>L40): 14.9% @1.3 (mean L34.9) · 10.8% @1.6 · 0.7% @2.0 · 69.5% @2.2
+     — the 2.2 reading is the BRIEFED smoke return flooding the band from
+     ~2.13s, ~0.07s before the text-out (facet's 37%@2.2 class); the gate's
+     "~0% from 2.0" letter and the beat map's own 2.2 schedule contradict
+     at that timestamp, and it was judged to the beat map, which your order
+     named as the whole test. REVEAL: THE CAMERA REVERSED — verified
+     frame-by-frame: tight open → pull-back widest ~4.0–4.3 → dive from
+     ~4.5 → through the raised handset → full-frame smoke by ~6.9. Trim
+     IN 0.9167 / OUT 7.375 = 6.458s v/a — the 6.5 ceiling beat the ~7.4
+     out-target and the tight open paid the 0.9s, per your order; audio
+     runs from frame one of the master, so the slide is pure ceiling
+     arithmetic.
+  Q2. ROTATION ACCEPTANCE — CONFIRMED LIVE TODAY (reel:rotation, 8/22
+     window): stinger lane pool 7, and every day of the 14-day window is a
+     full 7-distinct permutation across the 7 rotating kinds — ZERO
+     same-day doublings. Closest identical arrangement 119d (2026-02-12 →
+     2026-06-11). The stinger lane's inside-a-week warning is GONE; the
+     lane is closed at seven. (One ⚠ inside-a-week does remain in the
+     report — the CARRIER lane at 6d — but that counts kinds sharing a SET
+     POSITION in lockstep, not a shared file: the sets are per-kind and
+     disjoint. It predates MKT-64 and is not part of this acceptance.)
+  Q3. RULINGS — both actioned 8/20, exactly as delegated. coffee
+     REGISTERED at IN 0.0 / OUT 6.2 (6.208s v / 6.200s a): silent head
+     TAKEN (deadpan's −46.6dB open is the fleet tolerance), mug-lift
+     preserved (IN 1.94 would have opened mid-hold and lost it),
+     regeneration deliberately not spent, UNREFERENCED_OK entry removed,
+     master kept. First live draw: evening_free 8/25 — confirmed on
+     today's live schedule. verif_carrier_ledger REJECTED and parked in
+     UNREFERENCED_OK with the Δ12.3 f0 non-overlapping-IQR measurement and
+     your printed reason; verify's rotating set stays incumbent + record +
+     checked (+ the _pt2 lane). ⚠ AND YES, THE CADENCE RULE IS RECORDED —
+     in the delivery spec short form (state block H) AND the full §7:
+     PART-1 CARRIER LINES END LEVEL OR SLIGHTLY RISING, NEVER ON A
+     DESCENDING CADENCE — a scripting rule, not a generation defect.
+  Q4. POOL COUNTS AS SERVED — read from the live registries today, not
+     from this file:
+     INTROS — INTRO_ROTATION = 12: standard · deadpan · arrival ·
+       monitors · powerup · board · guest · window · arrive · juggle ·
+       coffee · reveal. Pinned: verify → anchor_intro_verify;
+       verify_public + allday_public → anchor_intro_public;
+       verify_midday → anchor_intro_rise.
+     STINGERS — STINGER_MOTIONS = 7: std · strike · circuit · fracture ·
+       shutter · etch · facet; seal pinned to verify + verify_public;
+       verify_midday has NO stinger by ruling.
+     ENDCARD MOTIONS — pro = 4 (reveal · discharge · ignite · lock);
+       free = 5 (std · alt · tide · bloom · adopen); fixed:
+       verify_midday → sameday.
+     CARRIERS (rotating set per kind) — allday_pro 4 · allday_free 4 ·
+       midday_pro 4 · evening_pro 4 · verify 3 (+ the _pt2 lane);
+       single-member pinned: midday_free · evening_free · allday_public ·
+       verify_midday (sameday) = 1 each.
+     PANELS — 7 registered AND all 7 cleared/hash-pinned: brand ·
+       coverage · anchor · app · zk30 · receipts · measures;
+       panel_signals RETIRED (MKT-60). If your picture still carries
+       panel_signals or an intro pool of 11, that was the staleness.
+     Combination depth (windowed distinct): midday_pro 274 · allday_pro
+       267 · evening_pro 266 · allday_free 265 · evening_free 218 ·
+       midday_free 207; pinned kinds verify 12 · verify_public 5 ·
+       allday_public 35 — correct by design, not a shortfall.
+  Q5. MKT-15 DEVICE TEST — THE TWENTY-MINUTE SCRIPT (owed since 7/28).
+     Context so nothing gets re-researched: Save runs FIRST in the shipped
+     flow (cache download → MediaLibrary.createAssetAsync, asset id =
+     proof-of-roll), then caption → clipboard, then the open. YouTube has
+     NO compose deep link ON PURPOSE (deepLink: null — the scheme is
+     undocumented/version-dependent); its "open" is youtube.com and the
+     upload is by hand via the app's ⊕. Its row is enabled:false BY RULING
+     (no go-ahead yet), so the YouTube leg is manual BY DESIGN — nothing
+     needs flipping before the test.
+      1. PREP (~2 min): phone with the app installed and admin unlocked
+         (triple-tap), YouTube app signed into the channel account,
+         Telegram installed. Today's nine reels are already in
+         Admin → Reels (8/22 run complete).
+      2. SAVE LEG (~5 min): Admin → GROWTH → 🎬 Reels → today's
+         allday_public row (the redacted cut — the exact asset YouTube is
+         registered to receive). Under OTHER PLATFORMS, Telegram is the
+         one enabled row: tap "💾 Save + Copy + Open Telegram". Expect a
+         photos-permission prompt on first run, then Telegram's own share
+         picker. Check the Photos app: the mp4 is there and plays.
+      3. YOUTUBE LEG (~10 min): open the YouTube app → ⊕ (Create) →
+         "Create a Short" / "Upload a video". Note whether the just-saved
+         9:16 video appears in the picker IMMEDIATELY (the known failure
+         mode is: visible in Photos but not yet indexed for an app's
+         picker). Select it, confirm the ~34s length is accepted as a
+         Short, paste the caption on the details screen (it is on the
+         clipboard from step 2; the YouTube row's shaped title+description
+         preview is readable in the admin row even greyed). STOP at the
+         final screen unless posting is intended.
+      4. REPORT BACK (~3 min) — four booleans + one screen name:
+         (a) save landed in the roll and plays; (b) the YouTube picker saw
+         it immediately; (c) the Short accepted length + pasted
+         description; (d) Telegram landed on its share picker; plus any OS
+         permission dialog encountered.
+     WHAT IT UNBLOCKS: with (a)–(c) true, enabling YouTube is a one-line
+     registry flip (enabled: true in constants/socialPlatforms.ts) plus
+     the standing explicit go-ahead — the redacted-asset dependency is
+     ALREADY met (allday_public builds daily since MKT-30), and the MKT-37
+     title/description/three-tag sets are registered and waiting. X and
+     Reddit (documented intent/submit deep links) can ride a later session
+     the same way if their rows are ever lit; Instagram stays barred.
 
 WHAT CHANGED IN v5.0 (2026-08-20 — MKT-64 EXECUTED: shutter + reveal BOTH
 REGISTERED, both pool asks CLOSED; coffee + ledger rulings executed; and one

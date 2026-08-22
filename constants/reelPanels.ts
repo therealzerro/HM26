@@ -60,6 +60,12 @@ export const REEL_PANELS: ReelPanel[] = [
   // rooms (reel viewer without the app / subscriber inside it), no numerals.
   { file: 'panel_receipts.png', label: 'Published before the draw' },
   { file: 'panel_measures.png', label: 'Four measures' },
+  // MKT-65 (2026-08-22) — eighth member. Copy is tier-neutral, true in both
+  // rooms, no numerals. ⚠ First panel whose copy carries session vocabulary
+  // (ALL-DAY · MIDDAY · EVENING); on the public cut that is the advisory
+  // session-label class (digits are masked there), the same class as the
+  // scope tabs already visible in the public grid — recorded in MKT-65.
+  { file: 'panel_cadence.png',  label: 'New boards every day' },
 ];
 
 /** Modal segments in the All-Day body — one panel each. */

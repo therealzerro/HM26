@@ -71,6 +71,21 @@ export const CLEARANCE: Record<string, PanelClearance> = {
   'panel_receipts.png': { cleared: '2026-08-19', sha256: '745ce7613bf99eb2121a796ffdc60c5a79226bab35c82ec1e094d46fc9436021' },
   'panel_measures.png': { cleared: '2026-08-19', sha256: 'cc518b0d09eb2d9472f9069c7d1da850f66c6c45dd71e135929f11348e60d8e0' },
   'panel_zk30.png':     { cleared: '2026-07-27', sha256: '6bdea3fa148fcf6ce5c3a2a25e57a4297d7f0045ca1afa8450be376473ed9723' },
+  // MKT-65 (2026-08-22) — eighth member, cleared by eye from rendered pixels
+  // at the ~1005px in-modal width AND 2x crops of both light fields + the
+  // bolt base: "NEW BOARDS. EVERY DAY." / "ALL-DAY · MIDDAY · EVENING" —
+  // strings exact incl. both periods, the ALL-DAY hyphen and the middle
+  // dots; tier-neutral; true in both rooms; no numerals; light fields are
+  // wave/filament smudge-class (no letterforms, no invented glyphs); no
+  // ornaments and no watermark inside the band (the video generator's
+  // four-point star class checked and absent — image source is a different
+  // generator, checked anyway); NO clock/dial/calendar/sundial/hourglass/
+  // sun/skyline — dawn is implied by the gold impact flare at the bolt's
+  // base only. Band y287-736 of 1536x1024, 3.41:1 (briefed ~3.5:1; serving
+  // range 2.97-4.40). Delivered via GitHub web upload+rename (fe4129e) —
+  // rename PRESERVED bytes this time (1,306,819 both sides), verified
+  // before pull; landed at assets/marketing/, moved to panels/ by git mv.
+  'panel_cadence.png':  { cleared: '2026-08-22', sha256: 'f1e6cf310ab792227901096231e2cad903909afa3d41ff06640cb128a92c276a' },
 };
 
 export { REEL_PANELS as PANELS };

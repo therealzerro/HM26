@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-22 · v5.1
+Content Agent Handoff · 2026-08-22 · v5.2
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-08-22 (CONSOLIDATED SNAPSHOT, current to v5.1 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-08-22 (CONSOLIDATED SNAPSHOT, current to v5.2 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -81,8 +81,8 @@ B. SLATE REEL ANATOMY (allday/midday/evening, all cuts; 1080×1920 60fps;
                 abort unless six); "TODAY'S DATA DROP" stamp chip at y=1000
                 (above the band); HOLD TIMER draining along the bottom edge.
                 Capture-time DOM injection + encode filters — the APP IS NOT
-                MODIFIED by any of it. MKT-11 promo panels (SEVEN as of
-                MKT-60 8/19, served from the app-panels bucket) sit below the
+                MODIFIED by any of it. MKT-11 promo panels (EIGHT as of
+                MKT-65 8/22, served from the app-panels bucket) sit below the
                 "RESOLVED IN" card in every modal (app-wide product surface;
                 MKT-57a made Home's modal render them like Explore's).
      27.3–33.8  OUTRO — the endcard's FIRST 6.5s. Endcard motions rotate per
@@ -259,15 +259,23 @@ G. OPEN / OWED — the standing list (everything else you may have read as
      5. A SECOND PUBLIC INTRO (PUBLIC_INTROS) and/or a SEAL VARIANT
         (VERIFY_SEAL_MOTIONS) — one-line registrations; public-clearance
         FIRST, per file, evidenced.
-     6. MORE MKT-11 PANELS — PARTIALLY closed 8/19 (MKT-60): set is SEVEN
-        (brand, coverage, anchor, app[regenerated art], zk30, receipts,
-        measures; panel_signals RETIRED — measures restates it). Served from
-        the bucket, byte-verified. panel_cadence ("NEW BOARDS. EVERY DAY." /
-        "ALL-DAY · MIDDAY · EVENING") written, ungenerated: 7 → 8 open.
-        Two truth questions raised for the operator: panel_zk30's "COMING
-        SOON" vs the closed per-state path; panel_coverage's two-digit
-        numerals (cleared 7/27). Copy is still BAKED PIXELS (v4.0 §F).
-     7. MKT-15 operator DEVICE test of the social deep links — still owed.
+     6. MORE MKT-11 PANELS — ✅ CLOSED AT EIGHT 8/22 (MKT-65): brand,
+        coverage, anchor, app[regenerated art], zk30, receipts, measures,
+        cadence (panel_signals RETIRED — measures restates it). All eight
+        served from the bucket, byte-verified (reel:check). Still standing:
+        the two truth questions raised for the operator — panel_zk30's
+        "COMING SOON" vs the closed per-state path; panel_coverage's
+        two-digit numerals (cleared 7/27) — and the MKT-65 session-vocab
+        note on cadence (§7). Copy is still BAKED PIXELS (v4.0 §F).
+     7. MKT-15 operator DEVICE test — PREPARED 8/22 (MKT-65 lane B):
+        preconditions verified (today's allday_public row live in
+        Admin → Reels; Telegram the one enabled row; nothing pre-flipped —
+        the manual YouTube path IS the test). ⚠ OPERATOR RULING RECORDED:
+        POSTING IS INTENDED — the script's YouTube leg ends in the POST,
+        not a stop; the post is the proof. Owed back: four booleans +
+        one screen name (v5.1 Q5 step 4). The YouTube enable flip is
+        READY (one line, constants/socialPlatforms.ts) and is NOT made
+        until the go-ahead lands in writing.
      8. MKT-53 audit entry (SocialBriefCard per-variant layout) — owed by
         whoever shipped it; not a reel asset.
     10. MKT-62 — THE MIDDAY VERIFY REEL: SHIPPED 8/19 (first cut published
@@ -339,6 +347,69 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v5.2 (2026-08-22 — MKT-65 LANE A EXECUTED: panel_cadence
+REGISTERED, pool 7 → 8, §G.6 CLOSED; lane B PREPARED, operator run owed)
+  A. DELIVERY FORENSICS FIRST, because the path was the risky part: the
+     file arrived on origin/main via GitHub web upload (6327784) THEN a
+     GitHub-WEB RENAME (fe4129e) — the twice-proven binary-destruction
+     class. Checked against the remote tree BEFORE pulling: this rename
+     PRESERVED the bytes (1,306,819 both sides — a rename straight after
+     upload, not an edit of a tracked binary; the ban stands, this one
+     got lucky). It landed at assets/marketing/, one level above the
+     panels/ source dir — moved by git mv. NO-OVERWRITE CONFIRMED against
+     disk: no panel_cadence existed anywhere (local, panels/, bucket).
+  B. CLEARANCE (A2/A3, read from rendered pixels, 2x sweeps of both light
+     fields + the bolt base + line-two closeup): strings EXACT — both
+     periods, the ALL-DAY hyphen, middle-dot separators; tier-neutral;
+     true in both rooms; no numerals; light fields are wave/filament
+     smudge-class, no letterforms; NO ornaments, NO watermark in-band
+     (your no-ornaments line HELD — and the four-point-star class was
+     checked anyway, absent); ⛔ A3 CLEAR: no clock, dial, calendar,
+     sundial, hourglass, sun disc or skyline — dawn arrives as the gold
+     impact flare at the bolt's base, exactly as briefed. Band y287–736
+     of 1536×1024 = 3.41:1 (briefed ~3.5, serving range 2.97–4.40),
+     single contiguous run — clean detection. A4: both lines read at the
+     measured ~1005px in-modal render width (line two comfortably).
+  C. A5 DISTINCTNESS, the direct answer to your concern: cadence vs app
+     is DISTINCT BUT ADJACENT — the headlines are sibling constructions
+     ("SIX SIGNALS. EVERY MORNING." / "NEW BOARDS. EVERY DAY.", both
+     daily-freshness claims) and the SECOND lines do the distinguishing
+     work: app names the product form (ranked · explained · verified),
+     cadence is the ONLY panel that tells a viewer there are three
+     sessions. Not one idea twice — but the margin lives in line two,
+     so a future panel touching daily cadence should start from a
+     different headline shape. No other pair overlaps at all.
+  D. ⚠ ONE FINDING TO RECORD, not a rejection: cadence is the FIRST
+     panel whose copy is session vocabulary, and panels ride the PUBLIC
+     body (verified in today's live allday_public frames). By the shipped
+     lint that is the ADVISORY session-label class on public (digits are
+     masked there) — the same class as the Midday/Evening/All-Day scope
+     tabs already visible in the public grid — and the MKT-22 "never a
+     session word" ruling is chip copy, so this registers. But it is now
+     the one panel affected if the operator ever extends that ruling to
+     artwork; the fix would be a public-scoped panel exclusion, a new
+     mechanism deliberately not built today. Flagged here so the choice
+     is the operator's, made once, not rediscovered.
+  E. BUILT + SERVING: panel:build 8/8, all eight uploaded; reel:check
+     0 FAIL / 110 warn (unchanged baseline) and its served-bytes probe:
+     ALL 8 BYTE-MATCHING the local build. Filtered tsc 0. Rotation at 8:
+     six distinct per day, no gap, no double-draw; the whole schedule
+     reshuffles from today (offset mod 8), each panel now leads 1 day in
+     8 and serves 6 of every 8 days (was 6 of 7) — the expected dilution
+     of adding a member, and the subset pattern cycles every 4 days
+     (rotationDegenerate(8) = false). Today's live sequence already drew
+     cadence in slot 2. sha pin f1e6cf31…, cleared 2026-08-22.
+  F. LANE B PREPARED (§G.7 updated): today's allday_public row is LIVE
+     in Admin → Reels (created 10:09Z, posted 10:56Z — posted state does
+     not affect the save flow); Telegram confirmed the ONE enabled row;
+     NOTHING pre-flipped (B2 honoured — the manual YouTube path IS the
+     test). ⚠ B4 RULING RECORDED: POSTING IS INTENDED — the v5.1 Q5
+     script's YouTube leg now ends in the POST, which is itself the
+     proof; ignore its "STOP at the final screen" line. Owed back: the
+     four booleans + one screen name. The YouTube enable flip is READY
+     (one line) and waits for the written go-ahead — operator-only, one
+     platform at a time.
 
 WHAT CHANGED IN v5.1 (2026-08-22 — ANSWERS to your five questions of 8/21;
 no new work. Everything below was re-verified TODAY against the live
@@ -3320,8 +3391,8 @@ per-day by hand, not AI-freestyled.
                                   `npm run endcard:build`. The untagged
                                   `<variant>_endcard.mp4` files remain as the
                                   resolver's last-resort fallback.
-    panels/panel_*.png            Rotating promo panels — SEVEN as of MKT-60
-                                  (2026-08-19); copy read from pixels, with
+    panels/panel_*.png            Rotating promo panels — EIGHT as of MKT-65
+                                  (2026-08-22); copy read from pixels, with
                                   the sha256 clearance pins in panel-config:
                                   brand    "HITMASTER ZK6" (7/27)
                                   coverage "EVERY DRAW IN THE COUNTRY / 39
@@ -3355,14 +3426,43 @@ per-day by hand, not AI-freestyled.
                                            rules = equal-length plain marks,
                                            not a chart (2x); sha cc518b0d…;
                                            band y285–735, 3.41:1 → 1080×317.
+                                  cadence  "NEW BOARDS. EVERY DAY. /
+                                           ALL-DAY · MIDDAY · EVENING" — NEW
+                                           8/22 (MKT-65); bolt with a gold
+                                           impact flare at its base (dawn by
+                                           light alone — no clock/sun/skyline,
+                                           swept 2x); both light fields
+                                           wave/filament smudge-class, no
+                                           ornaments, no watermark in-band;
+                                           sha f1e6cf31…; band y287–736 of
+                                           1536×1024, 3.41:1 → 1080×316; both
+                                           lines read at the ~1005px in-modal
+                                           width. ⚠ FIRST panel whose copy is
+                                           session vocabulary — on the public
+                                           cut that is the ADVISORY
+                                           session-label class (digits are
+                                           masked there), the same class as
+                                           the scope tabs already visible in
+                                           the public grid; the MKT-22 "never
+                                           a session word" ruling is CHIP
+                                           copy. Recorded in MKT-65 — if the
+                                           operator ever extends that ruling
+                                           to artwork, cadence is the one
+                                           member affected and the fix is a
+                                           public-scoped panel exclusion
+                                           (new mechanism, not built).
                                   RETIRED 8/19: panel_signals ("FOUR SIGNALS.
                                   ONE VERDICT. / FREQ · MOMO · PATTERN ·
                                   CONSIST") — replaced by measures (same four
                                   components in the DESIGN-03 vocabulary);
                                   source moved to panels/retired/, bucket
-                                  object deleted. Rotation at 7: six distinct
-                                  per day, no gap, no double-draw (verified
-                                  8/19–8/26). ~~Rotating promo panels (6): brand, signals,~~
+                                  object deleted. Rotation at 8 (MKT-65): six
+                                  distinct per day, no gap, no double-draw;
+                                  offsets stride 6 mod 8 so the subset
+                                  pattern cycles every 4 days (not
+                                  degenerate); each panel leads 1 day in 8
+                                  and serves 6 of every 8 days (was 6 of 7).
+                                  ~~Rotating promo panels (6): brand, signals,~~
                                   coverage, anchor, app, zk30. Source art;
                                   panels/built/ is generated, not source.
 

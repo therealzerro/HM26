@@ -4466,6 +4466,16 @@ Midday mostly survives because midday results import same-day. **Do not read `en
 
 ---
 
+### DATA-03 — 8/26 Midday Results Missing When 8/27 Workflow Ran ✅ FIXED (2026-08-27)
+
+**Problem.** The 2026-08-27 Daily Workflow ran with only the 8/26 **evening** results imported (42 `histories` rows; the 33 midday rows were absent — 8/25 by comparison had 33 midday + 42 evening). Everything the workflow computed for/from 8/26 used evening-only outcomes: hit detection (3 hits found instead of 6), `engine_daily_report` 8/26 (allday 2/6 instead of 4/6, midday 0/6 instead of 1/6), `signal_auc_per_day` 8/26 (all 3 scopes, written 10:23 UTC), and the 8/27 dataset rebuild/slate generation inputs. Operator noticed the board looked off.
+
+**Fix (same day).** Re-imported the full 8/26 day via `npm run import:results -- <file> --apply` (merge-duplicates upsert: 42 evening deduped, 33 midday inserted; MD/PR lines skipped by design per Tri-State convention). The import auto-triggered `run-hit-detection` for 8/26 → +3 hits (total 6: allday 4 box incl. 2 midday-matched, midday 1, evening 1; 0 straights, 0 supplements). Then re-ran `compute-daily-report` for 2026-08-26 (now midday 1/6, evening 1/6, allday 4/6 — matches `adaptive_tracking`/`daily_intelligence`) and `compute-daily-auc-zk6` for day=2026-08-26 (12 rows rewritten with full-day outcomes). Both are idempotent upserts.
+
+**Residual.** The 8/27 slates were generated from datasets missing the 8/26 midday draws (freshness only — engine reads national aggregate; also the 3-day post-hit rotation block couldn't see the not-yet-detected 8/26 midday hits). Per keep/no-regen policy the 8/27 slates and reels stand as built; the corrected `histories` are absorbed at the next Daily Workflow Step 1 rebuild (8/28). No code defect — process gap only: verify both sessions of D−1 are imported before clicking the workflow.
+
+---
+
 ### DATA-02 — Stale Jurisdiction Codes MSS/WC From Pre-5/6 Parser ✅ FIXED (2026-06-10)
 
 **Problem.** Two legacy jurisdiction codes survived in data from imports before the ~2026-05-05/06 parser cutover: `MSS` (38 `histories` rows, 2026-04-17 → 05-05; canonical `MS`) and `WC` (27 rows, 2026-04-09 → 05-05; canonical `W.Canada`). Date ranges were perfectly complementary with their canonical twins (`MS` 86 rows from 05-06 onward → 124 total; `W.Canada` 35 rows from 05-06 → 62 total), confirming rename-not-separate-jurisdiction. Stale codes had also been stamped into `daily_intelligence.hit_state` (MSS:7, WC:3) and `adaptive_tracking.matched_state` (MSS:2, WC:1). Effect: per-state footprints/leaderboards silently split one state's history across two keys (surfaced during a 2026-06-10 bet analysis when `MSS:1` appeared in a 90d footprint).

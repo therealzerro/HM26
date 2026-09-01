@@ -34,6 +34,13 @@
 
 import { dbGet } from '../backtest/data.js';
 
+// CALIB-02 refit (2026-09-01): optional --to <date> caps the pool at the last
+// COMPLETE draw day. Without it, same-day rows (slate written at morning
+// workflow, not yet graded) enter as false-labeled misses. Omit to reproduce
+// legacy uncapped behavior.
+const toArgIdx = process.argv.indexOf('--to');
+const TO_DATE: string | null = toArgIdx >= 0 ? (process.argv[toArgIdx + 1] ?? null) : null;
+
 interface Row {
   slate_date: string;
   scope: 'midday' | 'evening' | 'allday';
@@ -52,7 +59,7 @@ async function fetchRows(): Promise<Row[]> {
     const page = await dbGet<any[]>(
       `/daily_intelligence?select=slate_date,scope,signal_box,signal_pburst,signal_co,signal_dgc,hit_box,hit_straight` +
       `&mode=eq.balanced&on_slate=is.true&multiplicity=eq.singles` +
-      `&slate_date=gte.${FROM_DATE}&order=slate_date.asc,scope.asc,rank.asc` +
+      `&slate_date=gte.${FROM_DATE}${TO_DATE ? `&slate_date=lte.${TO_DATE}` : ''}&order=slate_date.asc,scope.asc,rank.asc` +
       `&limit=${pageSize}&offset=${offset}`,
     );
     const rows = Array.isArray(page) ? page : [];

@@ -197,6 +197,15 @@ export interface EngineConfig {
   stateStrWeightByScope?: Partial<Record<Scope, number>>;
   stateStrHalfLifeDays?: number;
   stateStrWindowDays?: number;
+  // ENG-DEEPSCOPE-01 P4 (2026-09-01): history-override date floor. When set,
+  // fetchHistoryRows floors its scan at max(minDate, replayDate − rollingDays)
+  // instead of scanning all of histories (the D8 unbounded fetch, 20k silent
+  // truncation ceiling). dsOverride is unchanged in practice (every comboset
+  // recurs well inside the window); the measured change is hitDatesMap → DGC.
+  // Production candidate: { minDate: '2026-04-01', rollingDays: 180 } —
+  // equals the SIGNAL-INFO-02 full-coverage boundary for all backtested dates,
+  // then becomes a bounded rolling window live.
+  historyFloor?: { minDate: string; rollingDays: number };
   // BESTORDER-SWEEP (2026-06-10): when true, each ReplayPick carries
   // orderVariants — alternative digit arrangements computed by candidate
   // orderers — and the CLI reports per-variant straight-conversion rates

@@ -72,20 +72,22 @@ async function fetchPairRows(scopeEnc: string): Promise<any[]> {
   return all;
 }
 
-async function fetchHistoryRows(date: string, scope: Scope): Promise<any[]> {
+async function fetchHistoryRows(date: string, scope: Scope, floorDate?: string | null): Promise<any[]> {
   // BUG-152: PostgREST caps responses at 1000 rows; paginate to get the full
   // intended window. Mirrors the production fix planned for engines/zk6.ts +
   // compute-slate-zk6 edge fn.
   // BUG-163: every paginated order in this file MUST carry a unique tiebreaker
   // (`,id`) — date_et alone has ~76-way ties, and unspecified tie order at page
   // boundaries drops/duplicates rows run-to-run (the ~1.7pp backtest noise).
+  // P4: optional date floor (see EngineConfig.historyFloor).
   const sessionClause = scope === 'allday' ? '' : `&session=eq.${scope}`;
+  const floorClause = floorDate ? `&date_et=gte.${floorDate}` : '';
   const all: any[] = [];
   const pageSize = 1000;
   for (let offset = 0; offset < 20000; offset += pageSize) {
     const page = await dbGet<any[]>(
       `/histories?select=result_digits,date_et,session` +
-      `&date_et=lt.${date}${sessionClause}&order=date_et.desc,id.desc&limit=${pageSize}&offset=${offset}`,
+      `&date_et=lt.${date}${sessionClause}${floorClause}&order=date_et.desc,id.desc&limit=${pageSize}&offset=${offset}`,
     );
     const rows = Array.isArray(page) ? page : [];
     all.push(...rows);
@@ -519,10 +521,20 @@ export async function computeSlateAsOf(
   // ENH-AUDIT v2 STATE_STR: per-scope weight resolution mirrors warming.
   const stateStrWeightForThisScope = config.stateStrWeightByScope?.[scope] ?? config.stateStrWeight ?? 0;
   const stateStrActive = stateStrWeightForThisScope > 0;
+  // P4: history floor = max(minDate, replayDate − rollingDays), matching the
+  // production formula so the replay measures exactly what would ship.
+  let historyFloorDate: string | null = null;
+  if (config.historyFloor) {
+    const d = new Date(date + 'T12:00:00');
+    d.setDate(d.getDate() - config.historyFloor.rollingDays);
+    const rolling = d.toISOString().split('T')[0];
+    historyFloorDate = rolling > config.historyFloor.minDate ? rolling : config.historyFloor.minDate;
+  }
+
   const [boxRows, pairRows, historyRows, todayHitComboSets, warmingHistory, stateHistory] = await Promise.all([
     fetchBoxRows(scopeEnc),
     fetchPairRows(scopeEnc),
-    fetchHistoryRows(date, scope),
+    fetchHistoryRows(date, scope, historyFloorDate),
     excludeYesterday ? fetchYesterdayResults(date, config.recentHitBlockDaysByScope?.[scope] ?? config.recentHitBlockDays ?? 1) : Promise.resolve(new Set<string>()),
     warmingActive ? fetchWarmingHistory(date, warmingWindowDays, scope, config.warmingScopeMatched === true) : Promise.resolve([] as { comboset_sorted: string; date_et: string }[]),
     stateStrActive ? fetchStateHistory(date, config.stateStrWindowDays ?? 60) : Promise.resolve([] as StateHistoryRow[]),

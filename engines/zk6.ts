@@ -533,17 +533,33 @@ async function fetchHistoryOverrides(scope: Scope): Promise<{
 }> {
   try {
     const sessionClause = scope === 'allday' ? '' : `&session=eq.${encodeURIComponent(scope)}`;
+    // ENG-DEEPSCOPE-01 P4 (2026-09-01, gate-passed): floor the scan at
+    // max(2026-04-01, todayET − 180d) instead of all of histories (D8: the
+    // unbounded fetch's silent 20k truncation ceiling would land ~Dec 2026 and
+    // quietly eat DGC's input tail). 2026-04-01 = the SIGNAL-INFO-02
+    // full-coverage boundary (Jan–Mar is ~1 feed/day and distorts DGC gap
+    // stats); the rolling term binds from ~2026-09-28 and bounds the scan
+    // permanently (~12.6k rows). Backtested 30d+60d vs live parity: neutral
+    // (worst cell evening pick −1.4pp/60d, inside noise; no slate regression;
+    // allday bit-identical). VERBATIM parity with compute-slate-zk6.
+    const floorAnchor = new Date(getTodayET() + 'T12:00:00');
+    floorAnchor.setDate(floorAnchor.getDate() - 180);
+    const rollingFloor = floorAnchor.toISOString().split('T')[0];
+    const floorDate = rollingFloor > '2026-04-01' ? rollingFloor : '2026-04-01';
     // BUG-152: PostgREST caps responses at 1000 rows regardless of client `limit`.
     // Paginate via offset until a page returns fewer than pageSize rows.
     const rows: any[] = [];
     const pageSize = 1000;
     for (let offset = 0; offset < 20000; offset += pageSize) {
       const page = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/histories?select=result_digits,date_et${sessionClause}&order=date_et.desc,id.desc&limit=${pageSize}&offset=${offset}`,
+        path: `/rest/v1/histories?select=result_digits,date_et${sessionClause}&date_et=gte.${floorDate}&order=date_et.desc,id.desc&limit=${pageSize}&offset=${offset}`,
       });
       const arr = Array.isArray(page) ? page : [];
       rows.push(...arr);
       if (arr.length < pageSize) break;
+    }
+    if (rows.length >= 20000) {
+      console.warn('[zk6v2] fetchHistoryOverrides hit the 20k pagination ceiling — history tail truncated; DGC input incomplete. Investigate row growth vs the P4 floor.');
     }
     if (rows.length === 0) return { dsOverride: new Map(), lsOverride: new Map(), hitDatesMap: new Map() };
     const dsOverride = new Map<string, number>();

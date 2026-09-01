@@ -3504,4 +3504,15 @@ export const CONFIGS: Record<string, EngineConfig> = {
   },
   // Allday cooldown widen probe (blocked allday sets ran −1.1z under baseline).
   get allday_cd30() { return { ...this.prod_parity_2026_08_02, recentHitCooldownByScope: { midday: 10, allday: 30 } }; },
+
+  // ENG-DEEPSCOPE-01 P4 (2026-09-01): history-override date floor. BASELINE =
+  // midday_rot (live parity). Floor = max(2026-04-01, date − 180d) — equal to
+  // the SIGNAL-INFO-02 full-coverage boundary for every backtested date; the
+  // rolling term only binds live from ~2026-09-28 and permanently defuses the
+  // D8 20k truncation ceiling (a STATIC 4/1 floor re-hits it ~Jan 2027 —
+  // Jan–Mar is only ~1 feed/day, the growth is all post-4/1). Changes DGC's
+  // input (live weight 10/11.25 midday/evening; allday DGC=0 → expected
+  // bit-identical there, an internal control). Expected neutral per
+  // SIGNAL-INFO-01; ships (if it ships) as measured-cost robustness.
+  get hist_floor() { return { ...this.midday_rot, historyFloor: { minDate: '2026-04-01', rollingDays: 180 } }; },
 };

@@ -3,7 +3,7 @@
 // Admin-only daily brief generator. Two modes:
 //  · Full Brief — the cross-scope morning brief (runbook 5-section layout):
 //    yesterday validation + reorder check, pre-flight, tier table with 90d
-//    jurisdiction strings, unit allocation (midday pos 1–2 rule), red flags.
+//    jurisdiction strings, unit allocation, red flags.
 //  · Scope Cards — per-scope card (Morning / Evening / All-Day).
 // Both share as PNG via react-native-view-shot + expo-sharing. Computation
 // is client-side + read-only (hooks/useBrief.ts → lib/brief/computeBrief.ts).
@@ -402,10 +402,10 @@ const FullBriefCard = React.forwardRef<View, { brief: BriefData }>(
         {/* [3] tier table (T1/T2 expanded) */}
         <CardSection title="3 · Strategic Picks (T1–T2)">
           {expanded.map((p, i) => (
-            <View key={i} style={{ paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: '#f0f3f8', backgroundColor: p.tierRank <= 2 ? '#fff7ed' : 'transparent', opacity: p.excluded ? 0.55 : 1 }}>
+            <View key={i} style={{ paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: '#f0f3f8', backgroundColor: p.tierRank <= 2 ? '#fff7ed' : 'transparent' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <CapText style={[cs.td, { width: 74, fontWeight: p.tierRank <= 2 ? '800' as const : '600' as const, color: p.tierRank <= 2 ? '#c2410c' : '#3a4a64' }]}>{p.tier}</CapText>
-                <CapText style={[cs.td, cs.mono, { width: 40, textDecorationLine: p.excluded ? 'line-through' : 'none' }]}>{p.combo}</CapText>
+                <CapText style={[cs.td, cs.mono, { width: 40 }]}>{p.combo}</CapText>
                 <CapText style={[cs.td, { width: 60 }]}>str <Mono>{p.bestOrder}</Mono></CapText>
                 <CapText style={[cs.td, { width: 48, textAlign: 'right', fontWeight: '700' as const }]}>90d {p.footprint90}</CapText>
                 <CapText style={[cs.td, { flex: 1, textAlign: 'right', fontWeight: '800' as const, color: p.pHit >= 7 ? C.HIT : C.ink }]}>{p.pHit}%</CapText>
@@ -414,7 +414,6 @@ const FullBriefCard = React.forwardRef<View, { brief: BriefData }>(
                 {SCOPE_SHORT[p.scope]} #{p.slatePos}
                 {p.convScopes.length > 1 ? ` · conv ${p.convScopes.map(x => SCOPE_SHORT[x]).join('+')}` : ''}
                 {p.topJx ? ` · ${p.topJx}` : ''}
-                {p.excluded ? ' · ✕ pos 1–2 rule' : ''}
               </CapText>
             </View>
           ))}
@@ -457,9 +456,9 @@ const FullBriefCard = React.forwardRef<View, { brief: BriefData }>(
 function PickRow({ p }: { p: BriefPick }) {
   const t1 = p.tierRank <= 2;
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 3, borderBottomWidth: 1, borderBottomColor: '#f0f3f8', backgroundColor: t1 ? '#fff7ed' : 'transparent', opacity: p.excluded ? 0.55 : 1 }}>
-      <CapText style={[cs.td, { flex: 1.5, fontWeight: t1 ? '800' as const : '500' as const, color: t1 ? '#c2410c' : '#3a4a64' }]}>{p.excluded ? `✕ ${p.tier}` : p.tier}</CapText>
-      <CapText style={[cs.td, cs.mono, { width: 40, textDecorationLine: p.excluded ? 'line-through' : 'none' }]}>{p.combo}</CapText>
+    <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 3, borderBottomWidth: 1, borderBottomColor: '#f0f3f8', backgroundColor: t1 ? '#fff7ed' : 'transparent' }}>
+      <CapText style={[cs.td, { flex: 1.5, fontWeight: t1 ? '800' as const : '500' as const, color: t1 ? '#c2410c' : '#3a4a64' }]}>{p.tier}</CapText>
+      <CapText style={[cs.td, cs.mono, { width: 40 }]}>{p.combo}</CapText>
       <CapText style={[cs.td, { width: 34, textAlign: 'right' }]}>#{p.slatePos}</CapText>
       <CapText style={[cs.td, { width: 34, textAlign: 'right', fontWeight: '700' as const }]}>{p.footprint90}</CapText>
       <CapText style={[cs.td, { width: 44, textAlign: 'right', fontWeight: '800' as const, color: p.pHit >= 7 ? C.HIT : C.ink }]}>{p.pHit}%</CapText>

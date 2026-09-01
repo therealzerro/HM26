@@ -155,10 +155,11 @@ export async function buildSocialBrief(today = getTodayET()): Promise<SocialBrie
   const yesterday = getYesterdayET();
   const [rc, brief, todayRes] = await Promise.all([
     fetchReportCardData(yesterday),
-    // MKT-50 (2026-08-07): published plays honor the same midday pos 1–2
-    // exclusion as the operator brief. Before this, 8 of the prior 14 days'
-    // published Daytime plays included positions the operator rule strikes.
-    computeBrief(today, { middayPosRule: true }),
+    // MKT-50 alignment: published plays come from the same computeBrief path
+    // as the operator brief. The former middayPosRule flag was retired with
+    // the pos 1–2 exclusion (ENG-MIDDAY-POS-02) — one unfiltered path for
+    // both audiences means the 8/7 divergence class cannot recur.
+    computeBrief(today),
     fetchTodayResolution(today),
   ]);
 

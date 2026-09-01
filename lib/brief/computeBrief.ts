@@ -18,19 +18,19 @@
 // brief and the committed PDF will disagree.
 //
 // Full-brief (cross-scope) layer on top: reorder validation, Daily-Workflow
-// freshness (engine_daily_report), midday pos 1–2 exclusion, unit allocation.
-// These are decision-layer only and have no PDF counterpart.
+// freshness (engine_daily_report), unit allocation. These are decision-layer
+// only and have no PDF counterpart.
+//
+// ENG-MIDDAY-POS-02 (2026-09-01): the midday pos 1–2 exclusion is RETIRED —
+// the inversion did not survive the rotation era (z −2.6 → +0.73; the band ran
+// below the excluded positions). Slate position is uninformative. Do not
+// re-add positional filters here without a fresh multi-window confirmation.
 
 import { fetchFromSupabase } from '@/lib/supabase';
 import { getTodayET } from '@/lib/dateUtils';
 
 export type Scope = 'midday' | 'evening' | 'allday';
 export const SCOPES: Scope[] = ['midday', 'evening', 'allday'];
-
-// Midday structural rank inversion — 4× confirmed (z≈2.6, deep scope 7/23):
-// slate positions 1–2 underperform 3–5. Excluded from play/allocation, flagged
-// in the tier table. Positions are slate JSON ordinality, not DI rank.
-export const MIDDAY_EXCLUDED_POS = new Set([1, 2]);
 
 export interface BriefPick {
   scope: Scope;
@@ -47,7 +47,6 @@ export interface BriefPick {
   convScopes: Scope[];   // scopes whose slate carries this set today
   tier: string;          // 'T1×Conv' | 'T1' | 'T2·Conv' | 'T2·Overdue' | 'T3' | 'T4'
   tierRank: number;      // 1..7 for sorting
-  excluded: boolean;     // midday pos 1–2 rule — never in play/allocation
 }
 
 export interface BriefAllocation {
@@ -149,14 +148,10 @@ function tierOf(footprint90: number, multiScope: boolean, tag: string): { tier: 
 }
 
 // ── main ─────────────────────────────────────────────────────────────────────
-// opts.middayPosRule: when true, midday slate positions 1–2 are excluded from
-// per-scope `play`. Both callers pass true — admin BriefView, and since MKT-50
-// (2026-08-07) buildSocialBrief too, so published subscriber plays honor the
-// same exclusion the operator brief enforces. Default stays false (explicit
-// opt-in) so a new caller can't silently inherit the rule without choosing it.
-// `excluded`/`allocation`/flags always honor the rule regardless.
-export async function computeBrief(date: string, opts: { middayPosRule?: boolean } = {}): Promise<BriefData> {
-  const middayPosRule = opts.middayPosRule ?? false;
+// The former opts.middayPosRule flag is gone with the rule (ENG-MIDDAY-POS-02);
+// admin BriefView and buildSocialBrief share this single unfiltered path, so
+// the MKT-50 operator/subscriber alignment holds by construction.
+export async function computeBrief(date: string): Promise<BriefData> {
   const YEST = addDays(date, -1);
   const win30Start = addDays(date, -30);
   const win90Start = addDays(date, -90);
@@ -291,12 +286,11 @@ export async function computeBrief(date: string, opts: { middayPosRule?: boolean
     const convScopes = (cs ? [...(convergence.get(cs) ?? [])] : []).sort() as Scope[];
     const fp = footprint.get(cs) ?? 0;
     const { tier, tierRank } = tierOf(fp, convScopes.length > 1, meta?.tag ?? '');
-    const excluded = scope === 'midday' && meta != null && MIDDAY_EXCLUDED_POS.has(meta.slatePos);
     allPicks.push({
       scope, slatePos: meta?.slatePos ?? Number(d.rank), combo: String(d.combo), comboSet: cs,
       bestOrder: meta?.bestOrder ?? d.best_order ?? d.combo, tag: meta?.tag ?? '', hits14d: meta?.hits14d ?? 0,
       multiplicity: d.multiplicity, pHit: round1(pHit * 100), footprint90: fp, topJx: topJxOf(cs),
-      convScopes, tier, tierRank, excluded,
+      convScopes, tier, tierRank,
     });
   }
 
@@ -336,10 +330,8 @@ export async function computeBrief(date: string, opts: { middayPosRule?: boolean
       .sort((a, b) => a.tierRank - b.tierRank || b.footprint90 - a.footprint90 || b.pHit - a.pHit || a.slatePos - b.slatePos);
 
     // recommended play: strongest evidence, singles only, top 2.
-    // Under the admin pos-rule, midday pos 1–2 never qualify (structural
-    // inversion, 4× confirmed).
     const play = [...picks]
-      .filter(p => p.multiplicity === 'singles' && (!middayPosRule || !p.excluded))
+      .filter(p => p.multiplicity === 'singles')
       .sort((a, b) => {
         const score = (p: BriefPick) => p.footprint90 + p.pHit + (p.convScopes.length > 1 ? 12 : 0) + p.hits14d;
         return score(b) - score(a);
@@ -348,10 +340,6 @@ export async function computeBrief(date: string, opts: { middayPosRule?: boolean
 
     // red flags
     const flags: string[] = [];
-    if (scope === 'midday' && picks.some(p => p.excluded)) {
-      const ex = picks.filter(p => p.excluded).map(p => `${p.combo} (#${p.slatePos})`).join(', ');
-      flags.push(`Midday structural inversion (4× confirmed, z≈2.6): positions 1–2 excluded from play — bet positions 3–5 only. Excluded today: ${ex}.`);
-    }
     if (d7.pct != null && d30.pct != null && d7.pct < d30.pct - 10) {
       flags.push(`7d slate rate ${d7.pct}% vs 30d ${d30.pct}% (${Math.round(d7.pct - d30.pct)}pp) — scope cooling.`);
     }
@@ -391,11 +379,11 @@ export async function computeBrief(date: string, opts: { middayPosRule?: boolean
     total: reorderScopes.length,
   };
 
-  // cross-scope allocation: singles, midday pos-rule respected, dedup by
-  // comboSet (a convergence set allocates once), top-down from T1 at 2/2/1 units
+  // cross-scope allocation: singles, dedup by comboSet (a convergence set
+  // allocates once), top-down from T1 at 2/2/1 units
   const bySet = new Map<string, BriefPick[]>();
   for (const p of allPicks) {
-    if (p.multiplicity !== 'singles' || p.excluded || !p.comboSet) continue;
+    if (p.multiplicity !== 'singles' || !p.comboSet) continue;
     if (!bySet.has(p.comboSet)) bySet.set(p.comboSet, []);
     bySet.get(p.comboSet)!.push(p);
   }
@@ -419,15 +407,9 @@ export async function computeBrief(date: string, opts: { middayPosRule?: boolean
   if (workflowStale) {
     globalFlags.push(`Daily Workflow hasn't run today (report ${reportUpdatedAt ? 'stale' : 'missing'}) — import results + click it before 8:30am ET. OPS-01: no background job will do this.`);
   }
-  if (scopes.midday.picks.some(p => p.excluded)) {
-    globalFlags.push('Midday: bet slate positions 3–5 only, never 1–2 (structural inversion, 4× confirmed z≈2.6). Excluded picks are struck in the tier table.');
-  }
   const ev7 = scopes.evening.rolling.d7.pct;
   if (ev7 != null && ev7 < 75) {
     globalFlags.push(`Evening 7d slate rate ${ev7}% — below the 75% tripwire (CO already at 10, lever spent; no config ship off a 7d window).`);
-  }
-  if (reorder.total > 0 && reorder.hit === 0) {
-    globalFlags.push(`Reorder check: 0/${reorder.total} pick #1s hit yesterday — consistent with the rank-1 inversion; headline #1 is not the strongest bet.`);
   }
   if (calibAgeDays != null && calibAgeDays > 14) {
     globalFlags.push(`Calibration ${calibAgeDays}d old — run npm run calibrate:picks and re-check the Brier gate before trusting P(hit).`);

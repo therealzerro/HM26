@@ -66,7 +66,8 @@ yesterday_perf AS (
     MAX(is_hit::int) AS slate_had_hit,
     MAX(combo) FILTER (WHERE slate_pos = 1) AS pick1_combo,
     CASE WHEN bool_or(is_hit AND slate_pos = 1) THEN 'HIT' ELSE 'MISS' END AS pick1_outcome,
-    -- which positions actually carried the day (feeds the position-inversion work)
+    -- which positions actually carried the day (descriptive only — positional
+    -- betting rules are retired, ENG-MIDDAY-POS-02)
     COALESCE(
       STRING_AGG(slate_pos::text || ':' || combo, ', ' ORDER BY slate_pos)
         FILTER (WHERE is_hit),
@@ -158,7 +159,7 @@ ORDER BY y.scope;
 
 **Interpret:**
 - `pick1_combo` / `pick1_outcome` are **slate position 1**, read from the snapshot — see the data-model note above. `pick1_outcome = HIT` → reorder sort working as designed
-- `hit_positions` lists `pos:combo` for every pick that matched. This is the feed for the midday position-inversion work — check whether hits keep landing at positions 3–6
+- `hit_positions` lists `pos:combo` for every pick that matched. Descriptive only — the midday position-inversion rule is RETIRED (ENG-MIDDAY-POS-02, 2026-09-01: the inversion did not survive the rotation era; position is uninformative). Never derive a positional bet restriction from this column without a fresh multi-window confirmation
 - `report_hits < pick_hits` AND report row fresh → Step 5 mis-aggregating (BUG-EDR lineage) — investigate
 - `report_updated_at` not on today's ET calendar date, or row missing → workflow not yet run today; the brief's hit numbers come from `daily_intelligence` and remain valid, but remind the operator to click Daily Workflow
 - Per-scope `rate_7d_pct` vs `rate_30d_pct`: if 7d trails 30d by > 10pp, scope is regressing

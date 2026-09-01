@@ -33,9 +33,13 @@ export async function buildLocalEngine() {
     alias: {
       'expo-constants': pathResolve(__dirname, 'shim-expo-constants.mjs'),
       'react-native':   pathResolve(__dirname, 'shim-empty.mjs'),
-      // SEC-05: engines/zk6 persistence now imports lib/adminOps →
-      // lib/subscriberAdminClient → AsyncStorage; shim it for the Node bundle
-      // (parity runs never execute the write path).
+      // SEC-05: engines/zk6 persistence imports lib/adminOps →
+      // lib/subscriberAdminClient → AsyncStorage. Parity DOES execute the
+      // write path (capture.ts diffs the written rows), so adminOps must be
+      // functional in the bundle: reroute the gateway to direct PostgREST
+      // with the harness's elevated key (see shim-admin-ops.mjs). The
+      // async-storage empty shim stays for subscriberAdminClient's import.
+      '@/lib/adminOps': pathResolve(__dirname, 'shim-admin-ops.mjs'),
       '@react-native-async-storage/async-storage': pathResolve(__dirname, 'shim-empty.mjs'),
     },
     tsconfigRaw: JSON.stringify({

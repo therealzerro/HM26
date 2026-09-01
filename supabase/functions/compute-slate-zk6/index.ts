@@ -13,6 +13,7 @@ import {
   computeBoxSignalDetailed, blendBoxDsRaw, getPairSignalFromMap,
   blendBoxTimesDrawn, blendPairTimesDrawn,
   bestOrderFor, intelligenceRowExtras, computeAdaptiveWeights,
+  computeWeightedScore,
   buildPressureScaleCtx,
   buildStateStrengthMap,
   type PairDataTree, type PairTimesDrawnTree,
@@ -1043,7 +1044,16 @@ async function computeSlate(params: {
     const ab = sortedPair(a, b), bc = sortedPair(b, c), ac2 = sortedPair(a, c);
     rawPburst[i] = (getPairSignal(ab, 2) + getPairSignal(bc, 3) + getPairSignal(ac2, 4)) / 3;
     let coSum = 0;
-    for (const cid of [5, 6, 7, 8, 9, 10, 11]) coSum += getPairSignal(ab, cid) + getPairSignal(bc, cid) + getPairSignal(ac2, cid);
+    // Term-at-a-time accumulation, identical grouping to engines/zk6.ts —
+    // float addition is non-associative, and the previous per-class grouped
+    // form (coSum += a + b + c) diverged from the client by ±1 ulp, flipping
+    // adaptive_tracking q75 quartile flags on boundary ties (zk6-parity
+    // 2026-09-01, scenario A midday rank 5).
+    for (const cid of [5, 6, 7, 8, 9, 10, 11]) {
+      for (const pk of [ab, bc, ac2]) {
+        coSum += getPairSignal(pk, cid);
+      }
+    }
     rawCo[i]  = coSum / 21;
     rawDgc[i] = dgcMap.get(normKey) ?? 0;
   }
@@ -1058,20 +1068,17 @@ async function computeSlate(params: {
   const normDgc        = maxNorm(Array.from(rawDgc),    true);
 
   // 5. Final scores
-  // ENG-AUDIT-02 (2026-06-06): attempted consolidation into the shared
-  // computeWeightedScore helper rolled back — Supabase CLI bundler v1.215.1
-  // could not resolve `../../../lib/engineCore.ts` for the newly-added
-  // import even though the import block as a whole has been deploying since
-  // v27 (2026-05-27). Inline body preserved here; bit-identical to the
-  // shared helper at default threshold (0.65) + minCount (2). Tracked for
-  // a future deploy session where we either pin the CLI or restructure
-  // the project to keep edge-fn deps within supabase/.
+  // ENG-AUDIT-02 closed (ENG-DEEPSCOPE-01 P5, 2026-09-01): the 6/06 rollback
+  // was a bundler failure importing from outside supabase/; the helper now
+  // lives in _shared (already imported above), so the inline copy is retired.
+  // Shared body is bit-identical at default threshold (0.65) + minCount (2).
   const finalScores = new Float64Array(1000);
   for (let i = 0; i < 1000; i++) {
     const multAdj = MULTIPLICITY_PRIORS[multiplicityOf(universe[i])];
-    finalScores[i] = weights.BOX * normBox[i] + weights.PBURST * normPburst[i] + weights.CO * normCo[i] + weights.DGC * normDgc[i] + multAdj;
-    if (synergyOn && [normBox[i], normPburst[i], normCo[i], normDgc[i]].filter(v => v >= 0.65).length >= 2)
-      finalScores[i] *= (1 + synergyWeight);
+    finalScores[i] = computeWeightedScore(
+      normBox[i], normPburst[i], normCo[i], normDgc[i],
+      weights, multAdj, synergyOn, synergyWeight,
+    );
   }
 
   // 5b. ENH-WARMING-2026-06-06: post-score additive boost. Build map from prior

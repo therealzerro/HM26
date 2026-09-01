@@ -171,6 +171,8 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 **ENG-DEEPSCOPE-01 remaining after this:** P4 (history-fetch date floor, gate-bound, ~Dec 2026 deadline) and P6 (DI row-count red flag, small, on order). P1/P2/P3/P5 all closed.
 
+**P6 CLOSED same day (operator-ordered):** `computeBrief.ts` now fetches the UNfiltered DI row count for the brief date (the existing DI fetch is on_slate-only) and raises a red flag — per-scope and a full-brief rollup — whenever a slate exists but `daily_intelligence` holds <30 rows for (date, scope, balanced), naming the D4 DELETE→INSERT failure window and prescribing a regen. Silent when healthy by construction (live 9/1 counts: midday 35 / evening 31 / allday 30 ≥ threshold); MISSING-slate scopes are exempt (0 DI rows is expected there, and the missing slate already flags). Read-only, admin surface, filtered tsc 0. **Deepscope ledger: only P4 remains.**
+
 ---
 
 ### CALIB-02b — Scheduled calibration refit (due ~8/7, run 9/1): REFIT FAILS ITS OWN GATE, live 7/24 payload verified still adequate and KEPT 📋 NO SHIP (2026-09-01)

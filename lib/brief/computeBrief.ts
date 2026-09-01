@@ -157,12 +157,19 @@ export async function computeBrief(date: string): Promise<BriefData> {
   const win90Start = addDays(date, -90);
 
   // --- fetches (read-only) ---
-  const [todaySlates, slates30, hist30, hist90, di, calRows, reportRows] = await Promise.all([
+  const [todaySlates, slates30, hist30, hist90, di, diAllRows, calRows, reportRows] = await Promise.all([
     fetchFromSupabase<any[]>({ path: `/rest/v1/slate_snapshots?select=scope,slate_date,top_k_straights_json,horizons_present_json,updated_at_et&deleted_at=is.null&mode=eq.balanced&slate_date=eq.${date}&order=scope.asc` }),
     paginate<any>(off => `/rest/v1/slate_snapshots?select=scope,slate_date,top_k_straights_json&deleted_at=is.null&mode=eq.balanced&slate_date=gte.${win30Start}&slate_date=lte.${YEST}&limit=1000&offset=${off}`),
     paginate<any>(off => `/rest/v1/histories?select=date_et,session,jurisdiction,comboset_sorted,result_digits&date_et=gte.${win30Start}&date_et=lte.${YEST}&order=date_et.desc&limit=1000&offset=${off}`),
     paginate<any>(off => `/rest/v1/histories?select=date_et,jurisdiction,comboset_sorted&date_et=gte.${win90Start}&date_et=lt.${date}&order=date_et.desc&limit=1000&offset=${off}`),
     fetchFromSupabase<any[]>({ path: `/rest/v1/daily_intelligence?select=scope,rank,combo,best_order,multiplicity,signal_box,signal_pburst,signal_co,signal_dgc&mode=eq.balanced&on_slate=is.true&slate_date=eq.${date}` }),
+    // ENG-DEEPSCOPE-01 P6: UNfiltered DI row count per scope (the fetch above
+    // is on_slate-only). The engine writes DI via DELETE→INSERT; if the INSERT
+    // fails after the DELETE (D4 window), the partition is left empty/partial
+    // and nothing else surfaces it. Normal write = 30 top-30 rows + off-top-30
+    // K6 extras + hit-orphans, so <30 rows where a slate exists means the
+    // write failed mid-flight. ~110 rows/day — well under the 1000 cap.
+    fetchFromSupabase<any[]>({ path: `/rest/v1/daily_intelligence?select=scope&mode=eq.balanced&slate_date=eq.${date}&limit=1000` }),
     fetchFromSupabase<any[]>({ path: `/rest/v1/app_config?select=value&key=eq.pick_prob_calibration` }),
     fetchFromSupabase<any[]>({ path: `/rest/v1/engine_daily_report?select=scope,updated_at&slate_date=eq.${YEST}` }),
   ]);
@@ -180,6 +187,13 @@ export async function computeBrief(date: string): Promise<BriefData> {
     ? new Date(reportUpdatedAt).toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
     : null;
   const workflowStale = date === getTodayET() && reportStampedET !== date;
+
+  // P6: DI rows per scope for this date, unfiltered (see fetch note above).
+  const diCountByScope = new Map<Scope, number>();
+  for (const r of (Array.isArray(diAllRows) ? diAllRows : [])) {
+    const s = r?.scope as Scope;
+    if (s) diCountByScope.set(s, (diCountByScope.get(s) ?? 0) + 1);
+  }
 
   const calib = calRows?.length ? (typeof calRows[0].value === 'string' ? JSON.parse(calRows[0].value) : calRows[0].value) : null;
   const calibFittedAt = calib?.fitted_at ?? null;
@@ -347,6 +361,13 @@ export async function computeBrief(date: string): Promise<BriefData> {
       flags.push(`Evening 7d (${d7.pct}%) trips the <75% CONFIG-15 trigger by the letter — but CO is already at 10 (CONFIG-18, lever spent). No config ship off a 7d window.`);
     }
     const pf = preflightByScope.get(scope);
+    // P6: a slate exists but daily_intelligence holds <30 rows → the
+    // DELETE→INSERT write failed mid-flight (D4). DI-derived numbers for this
+    // scope (top-30, signals, hit flags) are untrustworthy until regenerated.
+    const diCount = diCountByScope.get(scope) ?? 0;
+    if (pf && pf.status !== 'MISSING' && diCount < 30) {
+      flags.push(`⚠️ daily_intelligence has only ${diCount} rows for ${scope} (expected ≥30 with a slate present) — the DELETE→INSERT write likely failed mid-flight; regen this scope before trusting DI-derived numbers.`);
+    }
     if (pf?.pick1Tag === 'overdue') {
       flags.push(`Pick #1 ${pf.pick1Combo} is overdue-tagged — the convergence/footprint picks above usually carry stronger evidence than the headline #1.`);
     }
@@ -406,6 +427,12 @@ export async function computeBrief(date: string): Promise<BriefData> {
   const globalFlags: string[] = [];
   if (workflowStale) {
     globalFlags.push(`Daily Workflow hasn't run today (report ${reportUpdatedAt ? 'stale' : 'missing'}) — import results + click it before 8:30am ET. OPS-01: no background job will do this.`);
+  }
+  // P6 rollup: surface DI-underrun scopes in the full brief's red-flag section.
+  const diShort = SCOPES.filter(s =>
+    preflightByScope.get(s) && preflightByScope.get(s)!.status !== 'MISSING' && (diCountByScope.get(s) ?? 0) < 30);
+  if (diShort.length) {
+    globalFlags.push(`⚠️ daily_intelligence underrun (<30 rows with a slate present): ${diShort.map(s => `${s}=${diCountByScope.get(s) ?? 0}`).join(', ')} — D4 DELETE→INSERT failure window; regen affected scope(s).`);
   }
   const ev7 = scopes.evening.rolling.d7.pct;
   if (ev7 != null && ev7 < 75) {

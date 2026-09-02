@@ -236,6 +236,18 @@ export const PUBLIC_TAGS = '#DataAnalysis #PatternAnalysis';
 const tagged = <T,>(fns: ((c: T) => string)[]): ((c: T) => string)[] =>
   fns.map(f => (c: T) => `${f(c)}\n\n${PUBLIC_TAGS}`);
 
+/**
+ * MKT-68 (2026-09-02, operator) — the Pro CTA on the same-day midday verify.
+ * All eight verify_midday captions describe the cover coming off and none of
+ * them said where the UNCOVERED board lives. Free group = tier 2, where the
+ * price line is sanctioned (MKT-26). The truthful conversion line: the
+ * difference between free and Pro is WHEN you see the board, never a
+ * different board — never write "Pro signals vs free signals".
+ */
+export const MIDDAY_VERIFY_CTA = 'Pro reads this board uncovered at 8:30 AM, every session, before the draw. $2.49/mo — HitMaster ZK Pro.';
+const withProCta = <T,>(fns: ((c: T) => string)[]): ((c: T) => string)[] =>
+  fns.map(f => (c: T) => `${f(c)}\n\n${MIDDAY_VERIFY_CTA}`);
+
 interface KindSpec {
   offset: number;
   realNumbers: boolean;            // templates see counts/states (PRO surfaces only)
@@ -578,8 +590,8 @@ const CAPTION_REGISTRY = {
     offset: 9,
     realNumbers: false,
     samedayProvenance: true,
-    fallback: () => `Same-day receipts 🧾 This morning's Midday board — covered when it went up — graded against today's results before the evening session. The reel is the receipt.`,
-    templates: [
+    fallback: () => `Same-day receipts 🧾 This morning's Midday board — covered when it went up — graded against today's results before the evening session. The reel is the receipt.` + `\n\n${MIDDAY_VERIFY_CTA}`,
+    templates: withProCta([
       c => `Posted this morning. Graded this afternoon. 🧾⚡\n${c.sd!.elapsed} between the board going up and the results coming in — and we checked it in the open, same day.\nThe Midday board goes up covered in here. Those digits come off the next morning for everybody. ZK Pro reads them before the draw, all three sessions. $2.49/mo.`,
       c => `Same-day receipts 🧾\nYou saw this Midday board go up covered this morning. Here it is graded, ${c.sd!.elapsed} later — before the evening draw, not tomorrow.\nThat gap is the whole thing. ZK Pro closes it on every session. $2.49/mo.`,
       c => `We didn't wait until tomorrow ⚡\nThis morning's Midday board, checked against the official results and posted back to you the same day. ${c.sd!.elapsed}, start to finish.\nVerified MATCH on the board${c.sd!.straights ? ' — with a dead-on STRAIGHT MATCH in there' : ''}. Check the timestamps yourself.`,
@@ -595,7 +607,7 @@ const CAPTION_REGISTRY = {
       // and then reads it. The figure moved into the body as {elapsed} — same
       // provenance as the rest of the family, no new substitution point.
       c => `Same day. Not tomorrow. 🧾⚡\nThis morning's Midday board, graded and posted back ${c.sd!.elapsed} later. You watched it go up covered — now you can see how it landed.\nZK Pro doesn't wait for the cover to come off. $2.49/mo.`,
-    ],
+    ]),
   },
   verify_public: {
     offset: 6,

@@ -42,6 +42,24 @@ Popular hours: 8–10 AM (brief + boards) and 5–7 PM (evening board). Tuesday 
 
 The overdue scan (draws-since per pattern class, 41 states) is the same genre Lottery Post gives away free and carries no forward information (COHORT-01: overdue cohorts flat, 4× confirmed). It is undifferentiated top-of-funnel content in the exact vocabulary Meta classified as gambling-adjacent. Recommendation below.
 
+## Meta payouts (actual, from the Approximate-earnings export 4/15–9/2)
+
+| Month | Subscriptions (net) | Content + stars | Total |
+|---|---|---|---|
+| Apr (from 4/15) | $5.43 | $52.57 | $58.00 |
+| May | $36.63 | $4.45 | $41.08 |
+| Jun | $38.00 | $8.40 | $46.40 |
+| Jul | $33.50 | $0.88 | $34.38 |
+| Aug | $122.08 | $4.04 | $126.12 |
+| Sep (1–2) | $2.81 | $0.03 | $2.84 |
+| All-time | $238.45 | $70.36 | $308.81 |
+
+- Per-renewal amounts in the export are $1.74 and $0.69 = 70% of $2.49 and $0.99. The 70% net constant in the funnel table is confirmed against real payouts.
+- May–Jul subscriptions were flat at ~$35/mo ≈ 20 renewals — the May roster. August tripled on the 8/4–8/12 spurt ($85.73 in nine days).
+- Content monetization is ~$0.05/day; the April total is one $46.18 day (4/22). Not a revenue line.
+- Roster net MRR $118.52 vs last-30-day subscription payouts $122.46 — consistent; the roster is the right model.
+- **Renewal test:** the 49 August subscribers renew 9/4–9/23. September subscription payouts vs August's $122.08 is the first real churn number. Below ~$85 = the spurt cohort is leaving.
+
 ## Diagnosis
 
 Conversion is not the problem (14.5%). Two constraints:

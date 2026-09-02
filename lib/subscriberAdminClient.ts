@@ -157,6 +157,15 @@ export interface ContributorWithEngagement {
   }>;
 }
 
+export interface EarningsDay {
+  earn_date: string;
+  total_usd: number | string;
+  content_monetization_usd: number | string;
+  stars_usd: number | string;
+  subscriptions_usd: number | string;
+  imported_at: string | null;
+}
+
 export interface SubscriberListFilters {
   status?: string;
   acquisition_source?: string;
@@ -200,6 +209,12 @@ export const subscriberAdmin = {
 
   linkContributor: (p: { contributor_id: string; pro_subscriber_id: string; facebook_name: string }) =>
     callSubscriberAdmin('link_contributor', p),
+
+  listEarnings: (days = 120) =>
+    callSubscriberAdmin<EarningsDay[]>('list_earnings', { days }),
+
+  upsertEarnings: (rows: Array<{ earn_date: string; total_usd: number; content_monetization_usd: number; stars_usd: number; subscriptions_usd: number }>) =>
+    callSubscriberAdmin<{ created: number; updated: number }>('upsert_earnings', { rows }),
 };
 
 export function maskEmail(email: string): string {

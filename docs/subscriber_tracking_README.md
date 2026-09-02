@@ -15,6 +15,7 @@ Shipped under `ENH-FUNNEL-2026-05-19` (MASTER_AUDIT.md).
 | `fb_engagement_snapshots`      | Historical 28-day engagement counts per import.        |
 | `funnel_daily_snapshots`       | Daily page-followers + free-group + active-pro counts with auto-computed conversion rate, gross MRR, net MRR. |
 | `subscriber_import_history`    | Audit trail for every import action.                   |
+| `fb_earnings_daily`            | Meta "Approximate earnings" per day (total / content monetization / stars / subscriptions). Subscriptions are NET of Meta's cut. Added 2026-09-02. |
 
 All tables have RLS enabled with **no public policies**. Access is exclusively
 via the `subscriber-admin` Edge Function using the service-role key. The
@@ -118,6 +119,24 @@ Admin tab → **📧 Sub Import** → 🔥 Insights tab.
    2026-09-02 (BUG-172); TSV and multi-space still work.
 4. Commit. Each row UPSERTs into `fb_group_contributors` and appends a new
    `fb_engagement_snapshots` row for trend analysis.
+
+### Import Meta earnings
+
+Admin tab → **📧 Sub Import** → 💵 Earnings tab.
+
+1. Professional dashboard → Monetization → Earnings → export (CSV).
+2. Paste the whole file as-is — the `sep=,` line, the "Approximate
+   earnings" title, quoted cells and ISO timestamps are all handled.
+3. Commit. Rows UPSERT on date, so re-pasting an overlapping window
+   updates it in place. Logged to `subscriber_import_history` as
+   `earnings`.
+
+The Funnel dashboard shows a "Meta payouts" row: subscriptions last 30
+days, month to date, other income, all-time — and the ratio of actual
+30-day subscription payouts to the roster's Net MRR. Meta pays 70% of the
+$2.49 price ($1.74 per renewal; $0.69 per legacy $0.99 sub), which is the
+observed per-renewal amount in the export and confirms the 70% constant in
+`funnel_daily_snapshots`.
 
 ### Manual / comped subscribers
 

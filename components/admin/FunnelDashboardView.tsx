@@ -10,6 +10,7 @@ import {
   maskEmail,
   type FunnelSnapshot,
   type ProSubscriber,
+  type EarningsDay,
 } from '@/lib/subscriberAdminClient';
 
 function MetricTile({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
@@ -188,6 +189,7 @@ function FunnelDashboardInner() {
   const { colors } = useTheme();
   const [snaps, setSnaps] = useState<FunnelSnapshot[]>([]);
   const [subs, setSubs] = useState<ProSubscriber[]>([]);
+  const [earn, setEarn] = useState<EarningsDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -195,12 +197,14 @@ function FunnelDashboardInner() {
     setLoading(true);
     setErr(null);
     try {
-      const [s, p] = await Promise.all([
+      const [s, p, earnRows] = await Promise.all([
         subscriberAdmin.listSnapshots(30),
         subscriberAdmin.listSubscribers({}),
+        subscriberAdmin.listEarnings(120).catch(() => [] as EarningsDay[]),
       ]);
       setSnaps(s);
       setSubs(p);
+      setEarn(earnRows);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -214,6 +218,26 @@ function FunnelDashboardInner() {
   const previous = snaps[1];
 
   const activeNow = useMemo(() => subs.filter(s => s.status === 'active').length, [subs]);
+  const earnings = useMemo(() => {
+    const n = (v: number | string) => Number(v) || 0;
+    const sorted = earn.slice().sort((a, b) => (a.earn_date < b.earn_date ? 1 : -1));
+    const latest = sorted[0]?.earn_date;
+    if (!latest) return null;
+    const cutoff = new Date(latest + 'T00:00:00Z'); cutoff.setUTCDate(cutoff.getUTCDate() - 30);
+    const cut = cutoff.toISOString().slice(0, 10);
+    const last30 = sorted.filter(r => r.earn_date > cut && r.earn_date <= latest);
+    const month = latest.slice(0, 7);
+    const thisMonth = sorted.filter(r => r.earn_date.startsWith(month));
+    const sum = (rows: EarningsDay[], k: keyof EarningsDay) => rows.reduce((a, r) => a + n(r[k] as number | string), 0);
+    return {
+      latest,
+      subs30: sum(last30, 'subscriptions_usd'),
+      other30: sum(last30, 'content_monetization_usd') + sum(last30, 'stars_usd'),
+      subsMonth: sum(thisMonth, 'subscriptions_usd'),
+      month,
+      all: sum(sorted, 'total_usd'),
+    };
+  }, [earn]);
 
   if (loading) {
     return (
@@ -276,6 +300,24 @@ function FunnelDashboardInner() {
             sub="after 30% platform fee"
             color={colors.primary}
           />
+        </View>
+      )}
+
+      {earnings && (
+        <View>
+          <SectionTitle>Meta payouts (actual, net of platform cut)</SectionTitle>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <MetricTile label="SUBS · LAST 30D" value={`$${earnings.subs30.toFixed(2)}`} sub={`through ${earnings.latest}`} color={colors.success} />
+            <MetricTile label={`SUBS · ${earnings.month}`} value={`$${earnings.subsMonth.toFixed(2)}`} sub="month to date" color={colors.success} />
+            <MetricTile label="OTHER · LAST 30D" value={`$${earnings.other30.toFixed(2)}`} sub="content + stars" />
+            <MetricTile label="ALL-TIME" value={`$${earnings.all.toFixed(2)}`} sub="since 2026-04-15" color={colors.gold} />
+          </View>
+          {latest && (
+            <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 6 }}>
+              Net MRR above is the roster × $1.74 (Meta pays 70% of $2.49). Last-30-day subscription payouts vs that figure:{' '}
+              {((earnings.subs30 / Math.max(Number(latest.net_mrr), 0.01)) * 100).toFixed(0)}%.
+            </Text>
+          )}
         </View>
       )}
 

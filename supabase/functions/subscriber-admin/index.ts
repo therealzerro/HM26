@@ -357,6 +357,35 @@ async function linkContributor(payload: { contributor_id: string; pro_subscriber
 
 // ─── Dispatcher ──────────────────────────────────────────────────────────────
 
+// ─── fb_earnings_daily (Meta "Approximate earnings" export; 2026-09-02) ───────
+interface EarningsRowIn {
+  earn_date: string;
+  total_usd: number;
+  content_monetization_usd: number;
+  stars_usd: number;
+  subscriptions_usd: number;
+}
+
+async function listEarnings(days = 120) {
+  return sbGet(`/rest/v1/fb_earnings_daily?select=*&order=earn_date.desc&limit=${days}`);
+}
+
+async function upsertEarnings(rows: EarningsRowIn[]) {
+  if (!Array.isArray(rows) || rows.length === 0) return { created: 0, updated: 0 };
+  const dates = rows.map(r => r.earn_date);
+  const existing = await sbGet<Array<{ earn_date: string }>>(
+    `/rest/v1/fb_earnings_daily?select=earn_date&earn_date=in.(${dates.join(',')})`
+  );
+  const have = new Set(existing.map(e => e.earn_date));
+  await sbPost(
+    '/rest/v1/fb_earnings_daily?on_conflict=earn_date',
+    rows.map(r => ({ ...r, imported_at: new Date().toISOString() })),
+    'resolution=merge-duplicates,return=minimal'
+  );
+  const created = rows.filter(r => !have.has(r.earn_date)).length;
+  return { created, updated: rows.length - created };
+}
+
 interface ActionRequest {
   action: string;
   payload?: Record<string, unknown>;
@@ -389,6 +418,10 @@ async function handle(req: ActionRequest): Promise<unknown> {
       return upsertContributors(payload as unknown as UpsertContributorsPayload);
     case 'link_contributor':
       return linkContributor(payload as { contributor_id: string; pro_subscriber_id: string; facebook_name: string });
+    case 'list_earnings':
+      return listEarnings(typeof payload.days === 'number' ? payload.days : 120);
+    case 'upsert_earnings':
+      return upsertEarnings(payload.rows as EarningsRowIn[]);
     default:
       throw new Error(`Unknown action: ${action}`);
   }

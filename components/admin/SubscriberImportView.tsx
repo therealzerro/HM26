@@ -8,8 +8,9 @@ import { AdminKeyGate } from './AdminKeyGate';
 import { subscriberAdmin, maskEmail, type ImportRecord } from '@/lib/subscriberAdminClient';
 import { parseSubscriberEmailExport, type ParsedSubscriber } from '@/lib/subscriberEmailParser';
 import { parseGroupInsights, type ParsedContributor } from '@/lib/groupInsightsParser';
+import { parseEarningsExport } from '@/lib/earningsParser';
 
-type Tab = 'subscribers' | 'insights' | 'history';
+type Tab = 'subscribers' | 'insights' | 'earnings' | 'history';
 
 function SubscriberPasteTab({ onCommitted }: { onCommitted: () => void }) {
   const { colors } = useTheme();
@@ -273,6 +274,86 @@ function InsightsPasteTab({ onCommitted }: { onCommitted: () => void }) {
   );
 }
 
+function EarningsPasteTab({ onCommitted }: { onCommitted: () => void }) {
+  const { colors } = useTheme();
+  const st = useSt();
+  const [raw, setRaw] = useState('');
+  const [busy, setBusy] = useState(false);
+  const parsed = useMemo(() => parseEarningsExport(raw), [raw]);
+  const subsTotal = parsed.rows.reduce((a, r) => a + r.subscriptions_usd, 0);
+  const allTotal = parsed.rows.reduce((a, r) => a + r.total_usd, 0);
+  const first = parsed.rows.length ? parsed.rows.reduce((a, r) => (r.earn_date < a ? r.earn_date : a), parsed.rows[0].earn_date) : '—';
+  const last = parsed.rows.length ? parsed.rows.reduce((a, r) => (r.earn_date > a ? r.earn_date : a), parsed.rows[0].earn_date) : '—';
+
+  const commit = useCallback(async () => {
+    if (parsed.rows.length === 0) return;
+    setBusy(true);
+    try {
+      const res = await subscriberAdmin.upsertEarnings(parsed.rows);
+      await subscriberAdmin.recordImport({
+        import_type: 'earnings',
+        source_filename: `earnings_paste_${first}_${last}`,
+        records_processed: parsed.rows.length,
+        records_created: res.created,
+        records_updated: res.updated,
+        records_skipped: 0,
+        warnings: parsed.warnings,
+        errors: parsed.errors,
+      });
+      alertAsync('Import complete', `${res.created} new days, ${res.updated} updated. Subscriptions net $${subsTotal.toFixed(2)} over ${parsed.rows.length} days.`);
+      setRaw('');
+      onCommitted();
+    } catch (e) {
+      alertAsync('Import failed', e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }, [parsed, first, last, subsTotal, onCommitted]);
+
+  return (
+    <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <Text style={st.title}>Import Meta Earnings</Text>
+      <Text style={st.sub}>
+        Professional dashboard → Monetization → Earnings → export. Paste the whole file as-is
+        (the sep= line, the title, quotes and ISO dates are all handled). Re-pasting overlapping
+        dates updates them in place.
+      </Text>
+
+      <Card style={{ padding: 12, marginBottom: 14 }}>
+        <Text style={st.fieldLabel}>PASTE EXPORT</Text>
+        <TextInput
+          value={raw}
+          onChangeText={setRaw}
+          multiline
+          placeholder={'"Date","Primary","content_monetization","stars","subscriptions"\n"2026-08-06T00:00:00","23.936","0.566","0","23.37"'}
+          placeholderTextColor={colors.textTertiary}
+          style={st.csvInput}
+        />
+        <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 6 }}>
+          Parsed: {parsed.rows.length} days ({first} → {last}) · subscriptions ${subsTotal.toFixed(2)} · total ${allTotal.toFixed(2)} · {parsed.warnings.length} warnings
+        </Text>
+      </Card>
+
+      {parsed.warnings.length > 0 && (
+        <Card style={{ padding: 12, marginBottom: 14, borderColor: colors.gold + '55' }}>
+          <SectionTitle>Warnings</SectionTitle>
+          {parsed.warnings.slice(0, 10).map((w, i) => (
+            <Text key={i} style={{ fontSize: 10, color: colors.gold, marginVertical: 2 }}>• {w}</Text>
+          ))}
+        </Card>
+      )}
+
+      <TouchableOpacity
+        disabled={busy || parsed.rows.length === 0}
+        style={[st.btnPrimary, (busy || parsed.rows.length === 0) && { opacity: 0.5 }]}
+        onPress={commit}
+      >
+        <Text style={st.btnPrimaryText}>{busy ? 'Committing…' : `Commit ${parsed.rows.length} Days`}</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  );
+}
+
 function HistoryTab({ refreshKey }: { refreshKey: number }) {
   const { colors } = useTheme();
   const st = useSt();
@@ -331,16 +412,17 @@ function SubscriberImportInner() {
   return (
     <View style={{ flex: 1 }}>
       <View style={{ flexDirection: 'row', backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border, paddingHorizontal: 8, paddingVertical: 6, gap: 4 }}>
-        {(['subscribers', 'insights', 'history'] as Tab[]).map(t => (
+        {(['subscribers', 'insights', 'earnings', 'history'] as Tab[]).map(t => (
           <TouchableOpacity key={t} onPress={() => setTab(t)} style={[st.filterBtn, tab === t && st.filterBtnOn]}>
             <Text style={[st.filterBtnText, tab === t && { color: '#fff', fontWeight: '700' }]}>
-              {t === 'subscribers' ? '📧 Subscribers' : t === 'insights' ? '🔥 Insights' : '🗂 History'}
+              {t === 'subscribers' ? '📧 Subscribers' : t === 'insights' ? '🔥 Insights' : t === 'earnings' ? '💵 Earnings' : '🗂 History'}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
       {tab === 'subscribers' && <SubscriberPasteTab onCommitted={bump} />}
       {tab === 'insights' && <InsightsPasteTab onCommitted={bump} />}
+      {tab === 'earnings' && <EarningsPasteTab onCommitted={bump} />}
       {tab === 'history' && <HistoryTab refreshKey={refreshKey} />}
     </View>
   );

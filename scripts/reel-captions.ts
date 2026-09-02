@@ -483,6 +483,11 @@ const CAPTION_REGISTRY = {
    * All eight verified through the real lintCaption(…, 1) — MKT-24 recorded it,
    * re-run at registration.
    *
+   * MKT-66 (2026-09-02): every template now LEADS with the scale line — Meta's
+   * page analytics measured "40+ states" holding attention 3s longer than the
+   * "Analysis published before" opener, which was retired. Still eight, still
+   * static, still tier-1 (re-linted at registration).
+   *
    * STATIC BY DESIGN: no template renders the date or any receipt datum, so
    * there is no receipts dependency and no fallback path to get wrong. Rotation
    * still applies (dayOfYear + offset).
@@ -496,14 +501,14 @@ const CAPTION_REGISTRY = {
     offset: 4,
     realNumbers: false,
     templates: [
-      () => `Six signals, ranked and published before the first draw — then checked against the official results the next morning. That's the whole method. Full board's free in the community. ⚡`,
-      () => `We publish the analysis first and the receipts after. No guarantees, no rate claims, just a record you can check yourself. The full board is free in the community.`,
+      () => `40+ states & provinces, one board. Six signals ranked and published before the first draw — then checked against the official results the next morning. Full board's free in the community. ⚡`,
+      () => `Pattern analysis across 40+ states & provinces, every single day. We publish first and post the receipts after — no guarantees, no rate claims, a record you can check yourself. Free in the community.`,
       () => `Pattern analysis across 40+ states & provinces, every single day. Six signals ranked, each one explained. Full board lives free in the community. 🤠`,
-      () => `Everybody's got a method. Not everybody shows their work. Ours gets graded against official results every morning — and the full board is free.`,
-      () => `How pattern analysis works: score every combination, rank the top six, time-stamp them before the draw, then check them against what actually happened. Full walkthrough, free in the community.`,
-      () => `The engine runs overnight. Six signals come out ranked, explained, and stamped before the first draw — and nothing changes after. Come see the board. It's free.`,
-      () => `Analysis published before. Receipts published after. That order is the only thing that makes a record worth reading. Free in the community. ⚡`,
-      () => `No fees, no hype, no promises. Just the day's analysis and yesterday's receipts. If that's your kind of thing, the community's free.`,
+      () => `40+ states & provinces scored overnight. Everybody's got a method; not everybody shows their work. Ours gets graded against official results every morning — and the full board is free.`,
+      () => `How pattern analysis works across 40+ states & provinces: score every combination, rank the top six, time-stamp them before the draw, then check them against what actually happened. Full walkthrough, free in the community.`,
+      () => `The engine runs overnight across 40+ states & provinces. Six signals come out ranked, explained, and stamped before the first draw — and nothing changes after. Come see the board. It's free.`,
+      () => `40+ states & provinces on one board, graded in the open. Yesterday's result opens the reel; today's six follow. The whole record is free in the community. ⚡`,
+      () => `No fees, no hype, no promises. 40+ states & provinces of pattern analysis, plus yesterday's receipts, every morning. If that's your kind of thing, the community's free.`,
     ],
   },
   /**

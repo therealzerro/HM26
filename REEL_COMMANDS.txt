@@ -23,6 +23,18 @@ FREE SESSION REELS LIVE (2026-07-29): reel:midday and reel:evening
 each now build TWO reels — Pro, plus a FREE one cut from a REDACTED
 capture where every digit is masked.
 
+UPDATED 2026-09-02 (MKT-66) — PUBLIC COLD OPEN. allday_public no longer
+opens on the anchor intro + stinger: it opens on a 2.0s receipts hook
+card (YESTERDAY'S BOARD · "2 of 6" · SIGNALS VERIFIED · 40+ STATES &
+PROVINCES — counts recomputed from the All-Day board, tier-1 linted,
+fail-closed) and dissolves into the board at 2.0s (was 8.7s). Reel is
+~27.5s. Group cuts are unchanged. `_hook_allday_public_<stamp>.mp4/.png`
+are per-day intermediates in allday_reels/. Escape hatch:
+    npx tsx scripts/assemble-allday-reels.ts --variant=public --classic-open
+Re-render just the public cut (after a hook/caption change):
+    npx tsx scripts/assemble-allday-reels.ts <YYYYMMDD> --variant=public
+    npx tsx scripts/publish-reels.ts allday <YYYYMMDD> --variant=public
+
 PUBLIC REEL LIVE (2026-07-30, MKT-16): reel:allday now builds a
 THIRD cut — allday_public, from the --redact --relabel PUBLIC
 capture (digits masked AND tier-1 vocabulary swapped). EIGHT reels

@@ -42,6 +42,7 @@ import { REEL_SCOPES, parseScopeFlag, parseVariantFlag, positionals, reelKind, b
 import { assertBodyDate, assertBodyRedaction, assertBodyPublic } from './reel-provenance';
 import { resolveEndcard } from './reel-endcard';
 import { CHIP_LABELS } from './intro-chip-config';
+import { HOOK_DUR, HOOK_DISSOLVE } from './public-hook-config';
 
 const ASSETS = resolve('assets/marketing');
 /** MKT-22 intro chip window, revised by MKT-35: FULL OPACITY FROM FRAME ONE —
@@ -223,12 +224,31 @@ for (const v of VARIANTS) {
   // MKT-17: resolved per kind and per DATE (not "today"), so re-running an old
   // stamp reproduces that day's intro exactly, the same contract the caption
   // and panel rotations already honour.
-  const intro = probeAnchorIntro(ASSETS, kind, isoDate);
+  // MKT-66 (2026-09-02) — PUBLIC COLD OPEN. Meta's page analytics put average
+  // watch time at 5–8s while the public cut's board did not appear until 8.7s
+  // (6.0s anchor intro + 2.7s stinger): the median cold viewer never saw data.
+  // The public kind now opens on a 2.0s receipts hook card (yesterday's
+  // All-Day result, structural stats only, tier-1 linted fail-closed) and
+  // dissolves into the board at 2.0s. No anchor intro, no stinger, no shoulder
+  // chip — the brand lives on the stamp (whole body) and the endcard. The hook
+  // clip carries a silent audio track so it rides the UNCHANGED intro graph
+  // below: everything downstream (VO lead, stamp fades, outro) is untouched.
+  // Group cuts (pro/free) keep the full open — members open those on purpose.
+  // Escape hatch: --classic-open restores the intro+stinger public open.
+  const coldOpen = bodyMode === 'public' && !process.argv.includes('--classic-open');
+  let intro = coldOpen ? null : probeAnchorIntro(ASSETS, kind, isoDate);
+  let dissolve = intro ? INTRO_DISSOLVE : OPEN;
+  if (coldOpen) {
+    const hook = join(REELS, `_hook_${kind}_${stamp}.mp4`);
+    sh(`npx tsx scripts/render-public-hook.ts ${stamp} "${hook}"`);
+    intro = { path: hook, dur: HOOK_DUR, label: 'cold open · receipts hook (MKT-66)' };
+    dissolve = HOOK_DISSOLVE;
+    console.log(`NOTE(${v}): COLD OPEN — board on screen at ${HOOK_DUR}s (was intro + stinger ≈ 8.7s); no anchor intro, no stinger, no shoulder chip.`);
+  }
   const openBase = intro ? intro.dur : OPEN;
-  const dissolve = intro ? INTRO_DISSOLVE : OPEN;
   // MKT-12: prebuilt per-variant stinger. Missing/disabled → null and the reel
   // assembles exactly as before. Crossfaded into, so it adds dur − INTRO_XFADE.
-  const sting = probeStinger(ASSETS, kind, isoDate, FORCE_STING);
+  const sting = coldOpen ? null : probeStinger(ASSETS, kind, isoDate, FORCE_STING);
   const openDur = +(openBase + stingerAdds(sting)).toFixed(3);
   const total = +(openDur + bodyDur + CARD).toFixed(3);
   if (sting) console.log(`NOTE(${v}): stinger ${STINGERS[kind].lines[1]} — open ${openBase}s + ${stingerAdds(sting)}s = ${openDur}s, reel ${total}s.`);
@@ -326,7 +346,7 @@ for (const v of VARIANTS) {
   // MKT-35: the chip is DATED from the same provenance-asserted `stamp` as the
   // body — never the render clock. Per-day PNG name so a stale same-kind chip
   // from a prior day can never be picked up by -y overwrite races.
-  const chipPng = intro && CHIP_LABELS[kind] ? join(REELS, `_chip_${kind}_${stamp}.png`) : null;
+  const chipPng = intro && !coldOpen && CHIP_LABELS[kind] ? join(REELS, `_chip_${kind}_${stamp}.png`) : null;
   if (chipPng) sh(`npx tsx scripts/render-intro-chip.ts ${kind} "${chipPng}" ${stamp}`);
 
   const msVoice = Math.round(voiceStart * 1000);

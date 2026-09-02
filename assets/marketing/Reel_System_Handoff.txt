@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-08-22 · v5.2
+Content Agent Handoff · 2026-09-02 · v5.3
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-08-22 (CONSOLIDATED SNAPSHOT, current to v5.2 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-02 (CONSOLIDATED SNAPSHOT, current to v5.3 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -32,7 +32,9 @@ A. DAILY OUTPUT (operator-triggered `npm run reel:daily`, never scheduled):
    NOTHING auto-posts. Order: verify → allday → midday → evening.
      verify          group cut, D−1 receipts (aborts on a zero-match day)
      verify_public   masked public grading cut (same beat map; tier 1)
-     allday_pro · allday_free · allday_public
+     allday_pro · allday_free · allday_public  (⚠ v5.3: allday_public now
+       COLD-OPENS on a 2.0s receipts hook card — no anchor intro, no
+       stinger, no chip; ~27.5s. See WHAT CHANGED IN v5.3.)
      midday_pro · midday_free (redacted)
      evening_pro · evening_free (redacted)
    midday_public / evening_public are UNREGISTERED by ruling (no session
@@ -347,6 +349,128 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v5.3 (2026-09-02 — YOUR FOUR ASKS ANSWERED; ITEM 4 WAS
+BUILT ON THE OPERATOR'S DIRECT INSTRUCTION, MKT-66 — ID verified free)
+  ⚠ SEQUENCE NOTE. Your order asked for item 4 as measurement only. The
+     operator read the same Meta data, asked "what is the public cold
+     open", and said "go build it" before your order arrived. Operator >
+     order. The measurement you asked for is recorded here anyway (D), and
+     the build is reversible with one flag (--classic-open).
+
+  A. ITEM 1 — CHIP COPY. Current strings per kind (intro-chip-config.ts):
+       allday_pro/free ALL-DAY · midday_* MIDDAY · evening_* EVENING ·
+       verify YESTERDAY'S RESULTS · verify_public YESTERDAY'S RECORD ·
+       allday_public THE FULL BOARD (midday/evening_public same, dormant) ·
+       verify_midday TODAY'S MIDDAY · GRADED.
+     Width, measured in the chip's own CSS (JBM 700 30px, 3px tracking,
+     right edge pinned at x=1008 so the plate GROWS LEFT):
+       THE FULL BOARD             374px  → left edge x=634  (on the shoulder)
+       SCORED ACROSS 40+          425px  → x=583             (shoulder edge)
+       YESTERDAY'S RECORD         466px  → x=542             (ships today)
+       40+ STATES & PROVINCES     515px  → x=493  ✗ crosses frame centre
+       SCORED ACROSS 40+ STATES   564px  → x=444  ✗ crosses centre onto the
+                                                   anchor's tie/neck band
+     So your proposed string does NOT fit at size; "SCORED ACROSS 40+" does.
+     Lint: all four candidates pass lintCaption(…, 1) clean (no "40+" issue).
+     ⚠ BUT: under v5.3 allday_public HAS NO CHIP — the chip rides the intro,
+     and the public cut no longer has one. Frame one is now the hook card,
+     and the card already says "40+ STATES & PROVINCES" (sub line). Your
+     single-variable test is therefore already running, as the cold open.
+     Recommendation: change nothing on the chip for allday_public. If you
+     want the scale hook on verify_public's chip too, "SCORED ACROSS 40+"
+     is the one that fits — but that is a second variable; hold it a week.
+
+  B. ITEM 2 — CLOSED CAPTIONS. Feasibility, no ASR anywhere:
+     · The words are NOT in code. carrier-config.ts holds files + labels
+       only; the scripts live in your §7 prose. A sidecar needs a
+       `carrier-scripts.ts` registry (file → ordered lines) — you supply
+       it, verbatim from §7, per part-1 member and per pt2.
+     · Per-line onsets are NOT measured today. reel:check's silencedetect
+       (−35dB, ≥0.4s) measures VO-end only. Re-run at ≥0.35s on the public
+       pair it yields clean line boundaries: part 1 gaps at 1.37–1.86,
+       3.37–3.93, 4.83–5.58, 9.62–10.0 (= 4 spoken segments); pt2 gaps at
+       0.77–1.28, 2.79–3.69, 6.22–7.66, 9.32–10.0 (= 4). The assembler
+       knows the join offset (10.005 + 0.350 breath) and the VO start
+       (openDur − 0.4; 1.6s on the cold open), so cue times are arithmetic.
+       Safety: assert segment count == registry line count per part, else
+       NO .srt is written and the reel is unharmed (fail closed). A
+       misquote is impossible by construction — the text is yours, the
+       timing is measured.
+     · Handoff surface: marketing_reels has video_path / sheet_path /
+       caption(_pro) — no file slot for a caption file, and ReelsView's
+       handoff is caption→clipboard + mp4→Save to Photos. A sidecar needs a
+       new `srt_path` column + a "Save captions" button. AND: the Facebook
+       mobile Reels composer does NOT take an .srt — captions attach on
+       DESKTOP (Business Suite / Creator Studio "Add captions"), so the
+       sidecar is an out-of-band desktop step on the page. That is the
+       honest cost of path A.
+     · BURN-IN — where there is room, read from today's frames: the BOARD
+       still (0–~10s of body) has ~540px of empty black between the stamp
+       chip (y1000–1187) and the tab bar (y1790): two caption lines at
+       y≈1400–1560 sit clean. The MODAL frames do not: that band is the
+       RESOLVED IN · LAST 30 DAYS rows (~y1300–1420) and the promo panel
+       (~y1490–1800); above it is WHY THIS ORDER under the stamp. There is
+       NO clean band on modals. Verify reels: nothing may cross a featured
+       row (8/19 ruling) — same answer. So burn-in = board segment only,
+       which is the FIRST ~2–3 carrier lines, not the whole read.
+     · Zero-cost check FIRST: were the 8/19 and 8/23 posts carrying Meta's
+       own auto-captions (composer toggle)? If yes, the "captions on the top
+       posts" finding is a posting-step lever, not a build — turn the
+       toggle on every public post today. It IS ASR, but it is Meta's, on
+       Meta's surface, and it is what the analytics measured.
+     · Cost: path A (sidecar) ~5–7h: registry + silence segmentation +
+       assertion + writer + DB column + ReelsView button; path B (burn-in,
+       board segment, drawtext/ASS via libass — present in this ffmpeg)
+       ~3–4h on top of the same registry + segmentation; toggle check 0h.
+       Needs its own MKT on your go.
+
+  C. ITEM 3 — TOPIC TAGS. The MKT-37 set (#Shorts #DataAnalysis
+     #PatternAnalysis) lives on the YouTube entry in SOCIAL_PLATFORMS and is
+     applied ONLY by platformCaption's YouTube branch. Facebook page/group
+     handoffs are not SOCIAL_PLATFORMS targets at all — they take the stored
+     caption verbatim. So yes: YouTube-only, and the gap Meta names is real.
+     Fix options: (i) append "#DataAnalysis #PatternAnalysis" to the eight
+     allday_public + eight verify_public caption templates (the artifact
+     the page receives; re-lint at tier 1; #Shorts stays YouTube-only), or
+     (ii) a FB-page transform in ReelsView's handoff. (i) is ~30 min and
+     needs your word on the exact tag pair. Ruling unchanged: no lottery/
+     numbers/draw/winning/luck tags.
+
+  D. ITEM 4 — THE INTRO, MEASURED (and then built, see above).
+     · Served intro durations: slate rotation 5.625–6.458s (12 members:
+       standard 5.63, rise 5.96, arrival/board/monitors 6.00, coffee/guest/
+       juggle/window 6.21, arrive 6.25, deadpan/powerup 6.33, reveal 6.46);
+       verify 5.625s; anchor_intro_public 6.000s. Stinger adds 2.7s on
+       every slate kind. Public cut: board at 8.7s.
+     · The 3.5–6.5s window is FLEET-WIDE (INTRO_MIN/INTRO_MAX in
+       reel-intro.ts); per-kind is by FILE (candidate lists), not duration.
+     · A 3.0–3.5s trim of anchor_intro_public is NOT available: per-frame
+       signalstats on the member show the dive at 2.75–3.75s (YDIF 19→39)
+       and full-frame smoke only from ~4.0s; a 3.5s OUT lands mid-dive and
+       the 0.8s dissolve contract breaks. The most a tail trim saves is
+       ~1.0s (OUT ≈5.0s). No existing member gets you to 3.5s.
+     · Branding ratio allday_public: before 44% ((6.0+2.7+6.5)/34.2);
+       hypothetical 3.5s intro 40%; AS BUILT 24% (6.5/27.5), content at 2.0s.
+     · WHAT WAS BUILT (MKT-66): allday_public opens on a 2.0s receipts hook
+       card — YESTERDAY'S BOARD · "2 of 6" (gold) · SIGNALS VERIFIED ·
+       "40+ STATES & PROVINCES · CHECKED AGAINST OFFICIAL RESULTS" · bolt +
+       wordmark — dissolving (0.4s) into the board at 2.0s. No anchor intro,
+       no stinger, no chip on this kind. Counts are an All-Day-only
+       recompute (allday = any draw); zero-match day → LAST 30 DAYS · N;
+       no data → EVERY MORNING · GRADED IN THE OPEN. Every string is
+       lintCaption(…,1)-checked and the render fails closed. Public caption
+       templates now all lead with the 40+ states line. Today's cut
+       republished at 27.5s. Group cuts: unchanged. Your intro and stinger
+       assets for the public kind stay registered and on disk (reel:check
+       still lists them; harmless) — `--classic-open` puts them back.
+     · READ-OUT: one week of Meta watch-time on cold-open posts vs the 5–8s
+       baseline; target >10s (the first modal now lands at ~12s, not ~19s).
+
+  E. HOUSEKEEPING. New files: scripts/render-public-hook.ts,
+     scripts/public-hook-config.ts; per-day intermediates
+     allday_reels/_hook_allday_public_<stamp>.mp4/.png. REEL_COMMANDS.txt
+     updated. Audit: MKT-66. Next free ID: 67.
 
 WHAT CHANGED IN v5.2 (2026-08-22 — MKT-65 LANE A EXECUTED: panel_cadence
 REGISTERED, pool 7 → 8, §G.6 CLOSED; lane B PREPARED, operator run owed)

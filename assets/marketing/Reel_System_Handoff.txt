@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-02 · v5.4
+Content Agent Handoff · 2026-09-02 · v5.5
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-02 (CONSOLIDATED SNAPSHOT, current to v5.4 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-02 (CONSOLIDATED SNAPSHOT, current to v5.5 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -269,15 +269,14 @@ G. OPEN / OWED — the standing list (everything else you may have read as
         "COMING SOON" vs the closed per-state path; panel_coverage's
         two-digit numerals (cleared 7/27) — and the MKT-65 session-vocab
         note on cadence (§7). Copy is still BAKED PIXELS (v4.0 §F).
-     7. MKT-15 operator DEVICE test — PREPARED 8/22 (MKT-65 lane B):
-        preconditions verified (today's allday_public row live in
-        Admin → Reels; Telegram the one enabled row; nothing pre-flipped —
-        the manual YouTube path IS the test). ⚠ OPERATOR RULING RECORDED:
-        POSTING IS INTENDED — the script's YouTube leg ends in the POST,
-        not a stop; the post is the proof. Owed back: four booleans +
-        one screen name (v5.1 Q5 step 4). The YouTube enable flip is
-        READY (one line, constants/socialPlatforms.ts) and is NOT made
-        until the go-ahead lands in writing.
+     7. ✅ CLOSED 2026-09-02 — MKT-15 operator DEVICE test: RUN AND PASSED.
+        (a) save landed in the camera roll and plays ✓ (b) the YouTube
+        picker saw it IMMEDIATELY — no indexing delay, the scoped failure
+        mode did not occur ✓ (c) the Short accepted the ~34s length and
+        the pasted description ✓ (d) Telegram — NOT TESTED this session
+        (untested, not failed; its row is unchanged). Written go-ahead
+        received; YOUTUBE ENABLED (enabled: true + kinds: ['allday_public']
+        in constants/socialPlatforms.ts). Owed since 7/28 — stops here.
      8. MKT-53 audit entry (SocialBriefCard per-variant layout) — owed by
         whoever shipped it; not a reel asset.
     10. MKT-62 — THE MIDDAY VERIFY REEL: SHIPPED 8/19 (first cut published
@@ -349,6 +348,33 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v5.5 (2026-09-02 night — MKT-15 DEVICE TEST RUN AND PASSED;
+YOUTUBE ENABLED on the operator's written go-ahead)
+  A. THE BOOLEANS, as reported by the operator: (a) save landed in the
+     camera roll and plays ✓ · (b) the YouTube picker saw it IMMEDIATELY,
+     no indexing delay, no wait-and-retry — the failure mode we scoped for
+     did not occur ✓ · (c) the Short accepted the ~34s length and the
+     pasted description ✓ · (d) Telegram NOT TESTED this session — record
+     it as UNTESTED, never as failed; its row is unchanged.
+  B. THE FLIP: constants/socialPlatforms.ts youtube → enabled: true, plus a
+     new `kinds: ['allday_public']` allowlist enforced as a HARD BLOCK in
+     the Reels handoff card (verify_public and every group kind show
+     "takes allday_public only"). deepLink stays null — manual leg by
+     design; no compose scheme was or will be added. X/Reddit remain
+     disabled, Instagram barred; one platform at a time, operator-only.
+  C. ⚠ CONFIRMED — THE FLIP CHANGES NOTHING ABOUT THE DAILY RUN. `enabled`
+     is read in exactly one place: ReelsView's handoff card (`canSend`,
+     the dimmed/"disabled" pill). reel:daily, the assemblers and
+     publish-reels never read it. Nothing auto-publishes to YouTube, or
+     anywhere; the operator still taps Save + Copy + Open and posts by hand.
+  D. ⚠ LIVE TITLE SET: the YouTube transform reads YT_SHORTS_SETS at run
+     time from the app bundle, so the post-MKT-67 set (two retired, two
+     added) is what serves — PROVIDED the device has reloaded the app since
+     eca4a85. Reload once before the first scheduled post; the pre-67 set
+     cannot survive a reload.
+  E. Housekeeping: §G.7 closed, §10 MKT-15 line closed, Q5 annotated.
+     Audit: MKT-15 close under MKT-65 lane B. Next free ID: 68.
 
 WHAT CHANGED IN v5.4 (2026-09-02 evening — YOUR CONSOLIDATED ORDER: ITEM 5
 DELIVERED (MKT-67), ITEM 6 REPORTED; 1–4 stand as answered in v5.3)
@@ -657,6 +683,7 @@ for exactly that)
        midday_free 207; pinned kinds verify 12 · verify_public 5 ·
        allday_public 35 — correct by design, not a shortfall.
   Q5. MKT-15 DEVICE TEST — THE TWENTY-MINUTE SCRIPT (owed since 7/28).
+     ✅ RUN AND PASSED 2026-09-02 — see §G.7 and WHAT CHANGED IN v5.5.
      Context so nothing gets re-researched: Save runs FIRST in the shipped
      flow (cache download → MediaLibrary.createAssetAsync, asset id =
      proof-of-roll), then caption → clipboard, then the open. YouTube has
@@ -4260,7 +4287,9 @@ IN FLIGHT, NOT BUILT — do not propose against these yet; §10 has the detail:
           rulings given: that exact string, and board clearance solved by
           padding 328→375 rather than an offset shift). Moved out of this
           list by v2.7.
-  MKT-15  Social handoff buttons ....... Phase 1 SHIPPED · Phase 2 BLOCKED
+  MKT-15  Social handoff buttons ....... ✅ CLOSED 2026-09-02 — device test RUN
+          AND PASSED (a/b/c ✓, d untested); YouTube ENABLED, allday_public only,
+          manual leg. X/Reddit disabled, Instagram barred.
   MKT-16  ✅ SHIPPED 2026-07-30 (Phase 1+3) — allday_public LIVE end to end;
           moved out of this list by v2.3. Platforms unblockable, none
           flipped (operator-only, per-platform).
@@ -4413,7 +4442,8 @@ WHAT IS DELIBERATELY NOT BUILT:
 
 --------------------------------------------------------------------------------
 10. IN FLIGHT — WHAT EXISTS AND WHAT DOES NOT (2026-08-19, resynced by v3.5;
-    everything here is SHIPPED except the MKT-15 device test + platform flips)
+    everything here is SHIPPED; the MKT-15 device test PASSED 9/2 and YouTube
+    is the first flipped platform)
 --------------------------------------------------------------------------------
 Added in v1.6 because three lanes are now partly delivered, and "an asset is in
 the repo" has been mistaken for "the pipeline reads it". Nothing in this section

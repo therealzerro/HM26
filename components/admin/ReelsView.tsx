@@ -166,7 +166,11 @@ function PlatformHandoffRow({
   // block (the operator may have a reason); the 7/30-31 YouTube posts are
   // why this line exists.
   const kindMismatch = p.tier === 1 && !String(reel.kind).endsWith('_public');
-  const canSend = p.enabled && accepts.ok && !busy && gateOk && lint.ok && shaped.clipboard.trim().length > 0;
+  // MKT-15 close (2026-09-02): a platform may declare the reel kinds it takes.
+  // YouTube = allday_public ONLY by the operator's standing condition. This is
+  // a hard block (unlike kindMismatch's warn): the lane has one cut, one post.
+  const kindBarred = Array.isArray(p.kinds) && !p.kinds.includes(String(reel.kind));
+  const canSend = p.enabled && !kindBarred && accepts.ok && !busy && gateOk && lint.ok && shaped.clipboard.trim().length > 0;
   const link = platformLink(p, {
     text: shaped.clipboard, title: shaped.title, url: videoUrl,
   });
@@ -225,6 +229,10 @@ function PlatformHandoffRow({
 
       {!p.enabled ? (
         <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 6, lineHeight: 15 }}>{p.disabledReason}</Text>
+      ) : kindBarred ? (
+        <Text style={{ fontSize: 10, color: colors.orange, marginTop: 6, lineHeight: 15 }}>
+          🚫 {p.label} takes {p.kinds!.join(' / ')} only (operator ruling 2026-09-02). This row is {String(reel.kind)}.
+        </Text>
       ) : !accepts.ok ? (
         <Text style={{ fontSize: 10, color: colors.orange, marginTop: 6, lineHeight: 15 }}>
           🚫 {accepts.reason}

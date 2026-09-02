@@ -54,6 +54,13 @@ export interface SocialPlatform {
   allowsLinks: boolean;
   /** Two-Question NO/NO ack required before the handoff buttons unlock. */
   requiresTwoQuestion: boolean;
+  /**
+   * MKT-15 close (operator go-ahead 2026-09-02): reel kinds this platform may
+   * receive. Absent = any kind the tier rules allow. YouTube is allday_public
+   * ONLY by standing condition — no session publics, no verify_public on that
+   * lane without a separate ruling. Enforced in ReelsView (hard block, not a warn).
+   */
+  kinds?: string[];
   enabled: boolean;
   disabledReason?: string;
 }
@@ -117,8 +124,17 @@ export const SOCIAL_PLATFORMS: Record<PlatformId, SocialPlatform> = {
     hashtags: ['#Shorts', '#DataAnalysis', '#PatternAnalysis'],
     allowsLinks: true,
     requiresTwoQuestion: true,
-    enabled: false,
-    disabledReason: 'public surface — blocked on MKT-15 Phase 2 (Q2 vocabulary)',
+    // MKT-15 DEVICE TEST RUN AND PASSED 2026-09-02 (operator, written
+    // go-ahead): (a) save landed + plays, (b) YT picker saw it immediately,
+    // (c) Short accepted ~34s + pasted description. (d) Telegram NOT tested —
+    // untested, not failed. ENABLED on that go-ahead. Standing conditions:
+    // allday_public only (`kinds`), one post/day, MANUAL leg — deepLink stays
+    // null by design, never add a compose scheme. X/Reddit stay disabled,
+    // Instagram barred; one platform at a time, operator-only.
+    // The flag gates ONLY the Admin → Reels handoff card (`canSend`); nothing
+    // in reel:daily / publish-reels reads it — no auto-publish exists.
+    enabled: true,
+    kinds: ['allday_public'],
   },
   tiktok: {
     id: 'tiktok',

@@ -54,7 +54,9 @@ export function parseGroupInsights(rawText: string): GroupInsightsParseResult {
       continue;
     }
 
-    const cols = splitColumns(line);
+    // FB Group Insights CSV exports wrap every cell in double quotes ("Name","2","3","2");
+    // strip them so quoted rows parse identically to the TSV / multi-space paste (BUG-172).
+    const cols = splitColumns(line).map(c => c.replace(/^"(.*)"$/, '$1').trim());
     if (cols.length < 4) {
       result.warnings.push(`Skipped row with <4 columns: ${line.slice(0, 80)}`);
       continue;

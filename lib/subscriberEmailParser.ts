@@ -61,7 +61,22 @@ export function parseSubscriberEmailExport(rawText: string): ParseResult {
   const result: ParseResult = { subscribers: [], warnings: [], errors: [] };
   const seen = new Set<string>();
 
-  const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const rawLines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+  // BUG-173: Meta's export copies as VERTICAL pairs when pasted from the phone —
+  // the email on one line, its date on the next. Pair such lines back into one
+  // row before column parsing so both layouts import identically.
+  const lines: string[] = [];
+  for (let i = 0; i < rawLines.length; i++) {
+    const cur = rawLines[i];
+    const next = rawLines[i + 1];
+    if (EMAIL_RE.test(cur) && next !== undefined && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(next)) {
+      lines.push(`${cur}\t${next}`);
+      i++;
+    } else {
+      lines.push(cur);
+    }
+  }
 
   for (const line of lines) {
     const lower = line.toLowerCase();

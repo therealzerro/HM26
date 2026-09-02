@@ -79,8 +79,10 @@ If the operator changes the secret on the server side, the next call will
 
 Admin tab → **📧 Sub Import** → 📧 Subscribers tab.
 
-1. Paste the export into the textarea (tab-separated, comma-separated, and
-   multi-space all work).
+1. Paste the export into the textarea (tab-separated, comma-separated,
+   multi-space, and the phone's vertical layout — email on one line, date on
+   the next — all work since 2026-09-02, BUG-173). Every row needs a date;
+   an email-only list cannot be imported.
 2. Review the preview (parsed rows, warnings).
 3. Hit **Probe Potential Churns** — this lists any currently-active
    subscribers whose email is **not** in the new import. These are not
@@ -102,7 +104,8 @@ Admin tab → **📈 Funnel** → scroll to "Record Funnel Snapshot".
 Conversion rate, gross MRR, and net MRR are generated columns in Postgres,
 so they are always consistent with the inputs. Net MRR uses a 70% retention
 rate (30% platform fee placeholder; adjust in `funnel_daily_snapshots` DDL
-if the actual cut differs).
+if the actual cut differs). Price constant is $2.49 since the 2026-09-02
+migration (was the $0.99 launch price).
 
 ### Import Group Insights engagement
 
@@ -110,7 +113,9 @@ Admin tab → **📧 Sub Import** → 🔥 Insights tab.
 
 1. Select Free Group or Pro Group.
 2. Set the window-end date (defaults to today). Engagement is 28-day rolling.
-3. Paste 4-column data: name, posts, comments, reactions.
+3. Paste 4-column data: name, posts, comments, reactions. The raw Group
+   Insights CSV export (every cell double-quoted) pastes as-is since
+   2026-09-02 (BUG-172); TSV and multi-space still work.
 4. Commit. Each row UPSERTs into `fb_group_contributors` and appends a new
    `fb_engagement_snapshots` row for trend analysis.
 
@@ -119,6 +124,24 @@ Admin tab → **📧 Sub Import** → 🔥 Insights tab.
 Admin tab → **👥 Subscribers** → scroll to "Add Manual Subscriber". Use for
 comped beta access, partner accounts, or anything not yet flowing through
 the Facebook subscription export.
+
+## Roster state (2026-09-02)
+
+Roster refreshed 2026-09-02 from a 57-row supporter export (dates 4/30→8/23):
+70 active + 1 comped on file, of which 13 May-era actives were NOT in the
+export — churn candidates awaiting operator review (Sub Import → Probe
+Potential Churns lists them). The operator-reported Pro group count is 68;
+the 57 in the export are the paying base.
+
+Earlier the same day, before the export arrived:
+The 8/16 and 9/2 `funnel_daily_snapshots` rows were written with the
+operator count directly (service-role, notes column says so). **Until a
+fresh Meta Business Suite email export is imported, do not record a
+snapshot from the Funnel tab** — `upsert_snapshot` recomputes
+`active_pro_subscribers` from the roster and will write 21.
+`page_followers` on both rows is carried forward from 5/19 (14,037) and
+needs a Page Insights refresh. Generated MRR columns were regenerated at $2.49 on 2026-09-02
+(`supabase/migrations/2026-09-02_funnel_mrr_249.sql`, applied).
 
 ## Reconciliation gap (current state, 2026-05-19)
 

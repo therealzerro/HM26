@@ -4529,6 +4529,18 @@ Midday mostly survives because midday results import same-day. **Do not read `en
 
 ---
 
+### BUG-172 — `parseGroupInsights` rejects the real Facebook Group Insights CSV export (every cell double-quoted) — FIXED (2026-09-02)
+
+**Symptom:** pasting the raw Insights export (`"Victor Gadsden","2","3","2"`) into Sub Import → 🔥 Insights yielded 0 rows, every line warned "non-numeric counts". `toIntSafe` saw `"2"` with its quotes. The 5/19 seed had been pasted from the xlsx (unquoted), so the path was never exercised on the CSV.
+**Fix:** `lib/groupInsightsParser.ts` strips a single wrapping `"…"` from each cell after column split. Verified on the 9/2 Pro export: 24/24 rows, 0 warnings. TSV / multi-space unchanged. Names containing commas still split wrong (pre-existing, warned).
+**Discovered:** ENH-FUNNEL 2026-09-02 follow-up.
+
+### BUG-173 — `parseSubscriberEmailExport` cannot read the export as it pastes from the phone (email and date on alternating lines) — FIXED (2026-09-02)
+
+**Symptom:** operator reported "Sub Import is not working". The Meta Business Suite supporter-email list, copied on the phone, pastes as vertical pairs (`email⏎M/D/YYYY⏎`), and the parser only accepted email + date on ONE line, so every line was "Skipped malformed line" and the import produced 0 rows. An email-only paste (no dates) fails the same way and still does — the date is required by the schema.
+**Fix:** `lib/subscriberEmailParser.ts` pre-pass pairs a bare-email line with a following bare-date line before column parsing. Verified 57/57 on the 9/2 paste, 0 warnings. Single-line TSV/CSV/multi-space unchanged.
+**Discovered:** ENH-FUNNEL 2026-09-02 follow-up.
+
 ### OPS-01 — All pg_cron Jobs Removed: Daily Workflow Button Is the Only Trigger (2026-06-11)
 
 **Operator decision.** No background jobs may run on a schedule. The operational contract is: operator imports results + daily input and clicks **Daily Workflow before 8:30am ET** — that click is the only trigger for rebuilds, hit detection, slate regen, and the daily report. This supersedes the "08:00 UTC cron remains the safety net" language in BUG-EDR-01/02 and the cron-sequencing design they describe.
@@ -6609,6 +6621,16 @@ Email export shows 21 subscribers as of 5/19; free group UI shows 23–24 humans
 - When RevenueCat IAP ships, drive the migration list from `SELECT email FROM pro_subscribers WHERE status='active' AND ios_migration_invited_at IS NULL`.
 
 ---
+
+#### 2026-09-02 follow-up — first refresh since launch (operator-pasted Pro Group Insights 7/4–9/1 + counts 470 free / 68 Pro)
+
+- **Data written (service-role CLI, mirroring `subscriber-admin` semantics; audit rows in `subscriber_import_history`):** 24 Pro-group contributors upserted (`fb_group_contributors`, window end 2026-09-01) + 24 `fb_engagement_snapshots`; `funnel_daily_snapshots` rows for 2026-08-16 (440 / 67) and 2026-09-02 (470 / 68). Conversion 14.5%.
+- **Roster is stale:** `pro_subscribers` still holds the 21 actives from the 5/19 email import vs 68 operator-reported. Snapshots were written with the operator count directly. `upsert_snapshot` recomputes actives FROM THE ROSTER, so a Funnel-tab snapshot will write 21 until a fresh Meta Business Suite email export is imported (README "Roster staleness").
+- **`page_followers` carried forward** (14,037 from 5/19) on both rows — not measured; needs Page Insights refresh.
+- **MRR constant wrong:** generated `gross_mrr`/`net_mrr` still multiply by the $0.99 launch price (Pro is $2.49). Migration `supabase/migrations/2026-09-02_funnel_mrr_249.sql` APPLIED 2026-09-02 via the management API (MCP was down; `.env.backtest` SUPABASE_ACCESS_TOKEN is expired → 401, the MCP's token worked). Generated cols regenerated at 2.49; `pro_subscribers.monthly_price_usd` default → 2.49. Rows self-recomputed (9/2: 68 × 2.49 = $169.32 gross).
+- **Parser defects found:** BUG-172 (quoted Insights CSV rejected) and BUG-173 (vertical email/date paste rejected — the actual "Sub Import not working" cause).
+- **Roster refreshed 9/2 (service-role, later in the session):** operator pasted 57 supporter emails with subscribe dates (4/30→8/23). 8 already on file, 49 created, real dates applied, `monthly_price_usd` 2.49 on new rows. Roster now 70 active + 1 comped: the 57 listed + **13 May-era actives absent from the export** (masked list handed to operator; NOT auto-churned per README rule — Sub Import → Probe Potential Churns reproduces it). Operator's Pro-group count is 68; 57 paying in the export is the authoritative revenue base.
+- **Analysis + scaling proposals:** `docs/growth_checkpoint_2026-09-02.md` (aggregates only, no member names). Headline: conversion fine; top of funnel starved (public platforms off); Pro engagement −95% in 3 weeks = churn precursor.
 
 ### ENH-EVCO-2026-05-18 — Evening CO-Weight Cut Sweep (Retired 2026-05-22)
 

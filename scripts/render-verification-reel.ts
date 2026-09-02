@@ -68,7 +68,7 @@ import { execSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { provenanceArgs, STRIKE_TAG } from './reel-provenance';
-import { fetchSamedayProvenance, fmtGap } from './reel-sameday';
+import { fetchSamedayProvenance, fmtGap, type SamedayProvenance } from './reel-sameday';
 import { renderSlateFrames, renderCoverLiftFrames, F_COVER, F_LIFT, type BoardLabels } from './render-verify-slate';
 import { config as loadEnv } from 'dotenv';
 loadEnv({ path: resolve('.env'), quiet: true });
@@ -169,10 +169,22 @@ function fmtET(d: Date): string {
   // two-digit stats, all asserted fail-closed before a single frame encodes.
   const PUBLIC = process.argv.includes('--public');
   // MKT-62 — `--kind=verify_midday`: the SAME-DAY MIDDAY VERIFY. TODAY, not
-  // yesterday; MIDDAY rows only (capture-gated ?scope=midday, the sanctioned
-  // MKT-51 exception); the summary band becomes the TIMESTAMP PAIR; the board
-  // beat opens COVERED and the cover lifts. Never public (real digits + state
+  // yesterday; the summary band becomes the TIMESTAMP PAIR; the board beat
+  // opens COVERED and the cover lifts. Never public (real digits + state
   // attribution; no masked build exists by ruling).
+  // MKT-69 (operator, 2026-09-02): BOTH MORNING BOARDS, not Midday alone. The
+  // midday draws grade the Midday board AND the All-Day board, and the
+  // straight the free room must see sits on whichever board it landed (9/2:
+  // 485 IL STRAIGHT on All-Day; the Midday-only first cut showed two boxes).
+  // Shape, FIXED ORDER on every day (no straight-dependent branch — the
+  // ribbon ruling's "rare conditional = latent defect" lesson): Midday board
+  // cover-lift → All-Day board graded (it went to the room UNCOVERED, so no
+  // cover beat) → timestamp band → ledger, where the app's own straights-
+  // first ordering puts the straight in the first hold under the MKT-63
+  // bolt. Capture is the un-scoped track-record (?capture=1, scope 'all'):
+  // today's group then carries Midday + All-Day rows (Evening has none — the
+  // same-day window, precondition 3). The MKT-51 ?scope= seed stays in the
+  // app but is no longer read by this kind.
   const MIDDAY = process.argv.includes('--kind=verify_midday');
   if (MIDDAY && PUBLIC) { console.error('ABORT: verify_midday has no public cut (MKT-62 ruling) — drop --public.'); process.exit(1); }
   // `--date=YYYY-MM-DD` (verify_midday ONLY): re-run/test hook — builds the
@@ -197,7 +209,7 @@ function fmtET(d: Date): string {
   //               was never posted: no published board, no gap to prove);
   //   GRADED    = max(result_at) over today's midday matched rows in
   //               adaptive_tracking — the hit-detection clock.
-  let prov: { publishedAt: Date; gradedAt: Date; matches: number; straights: number } | null = null;
+  let prov: SamedayProvenance | null = null;
   if (MIDDAY) {
     const U = process.env.EXPO_PUBLIC_SUPABASE_URL, K = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
     if (!U || !K) { console.error('ABORT: EXPO_PUBLIC_SUPABASE_URL/_ANON_KEY missing — cannot read provenance.'); process.exit(1); }
@@ -259,11 +271,14 @@ function fmtET(d: Date): string {
       console.log(`WARN (precondition 3, overridden): ${msg}`);
     }
     // 4. graded: hit detection stamps result_at on EVERY row of the slate.
-    const slateRows = await get<Array<{ result_at: string | null }>>(`/rest/v1/adaptive_tracking?slate_date=eq.${dateISO}&scope=eq.midday&mode=eq.balanced&select=result_at&limit=50`);
-    if (!slateRows.length) { console.error(`ABORT (precondition 0): no midday slate rows in adaptive_tracking for ${dateISO} — was the morning workflow run? No reel.`); process.exit(1); }
-    if (!slateRows.some(r => r.result_at)) {
-      console.error(`ABORT (precondition 4): the midday ledger is imported (${midRows} rows) but HIT DETECTION has not graded today's midday board (no result_at on its ${slateRows.length} tracking rows). Run hit detection (the import flow normally triggers it; Admin → detect), then re-run. No reel.`);
-      process.exit(1);
+    // MKT-69: BOTH boards on the reel, so both must be graded.
+    for (const sc of ['midday', 'allday'] as const) {
+      const slateRows = await get<Array<{ result_at: string | null }>>(`/rest/v1/adaptive_tracking?slate_date=eq.${dateISO}&scope=eq.${sc}&mode=eq.balanced&select=result_at&limit=50`);
+      if (!slateRows.length) { console.error(`ABORT (precondition 0): no ${sc} slate rows in adaptive_tracking for ${dateISO} — was the morning workflow run? No reel.`); process.exit(1); }
+      if (!slateRows.some(r => r.result_at)) {
+        console.error(`ABORT (precondition 4): the midday ledger is imported (${midRows} rows) but HIT DETECTION has not graded today's ${sc} board (no result_at on its ${slateRows.length} tracking rows). Run hit detection (the import flow normally triggers it; Admin → detect), then re-run. No reel.`);
+        process.exit(1);
+      }
     }
     // Preconditions 5 (posted) and 6 (≥1 match) plus the inversion check ride
     // the SHARED provenance read (reel-sameday.ts) — publish-reels consumes
@@ -272,16 +287,22 @@ function fmtET(d: Date): string {
     const sp = await fetchSamedayProvenance(get, dateISO);
     if (!sp.ok) {
       if (sp.why === 'not-posted') {
-        console.error(`ABORT (precondition 5): midday_free for ${dateISO} has no posted_at (${sp.status ? `status ${sp.status}` : 'no row'}) — the covered board was never posted to the free room, so there is no gap to prove. No reel.`);
+        console.error(`ABORT (precondition 5): ${sp.kind} for ${dateISO} has no posted_at (${sp.status ? `status ${sp.status}` : 'no row'}) — that board was never flipped POSTED in Admin → Reels, so there is no gap to prove (MKT-69: BOTH morning boards must be posted). No reel.`);
       } else if (sp.why === 'zero-matches') {
-        console.error(`ABORT (precondition 6): today's midday board is graded and has ZERO midday-session matches for ${dateISO} — an honest zero; no gap to show. No reel.`);
+        console.error(`ABORT (precondition 6): today's Midday AND All-Day boards are graded and have ZERO midday-session matches for ${dateISO} — an honest zero; no gap to show. No reel.`);
       } else {
         console.error(`ABORT: GRADED ${sp.gradedAt.toISOString()} is not after PUBLISHED ${sp.publishedAt.toISOString()} — provenance inconsistent. No reel.`);
       }
       process.exit(1);
     }
-    prov = { publishedAt: sp.publishedAt, gradedAt: sp.gradedAt, matches: sp.matches, straights: sp.straights };
-    console.log(`provenance: PUBLISHED ${fmtET(prov.publishedAt)} · GRADED ${fmtET(prov.gradedAt)} · elapsed ${fmtGap(prov.gradedAt.getTime() - prov.publishedAt.getTime())} · ${prov.matches} midday row(s), ${prov.straights} straight`);
+    prov = sp;
+    const b = prov.boards;
+    console.log(
+      `provenance: PUBLISHED ${fmtET(prov.publishedAt)} (midday_free ${fmtET(b.midday.postedAt)} · allday_free ${fmtET(b.allday.postedAt)}) · ` +
+      `GRADED ${fmtET(prov.gradedAt)} · elapsed ${fmtGap(prov.gradedAt.getTime() - prov.publishedAt.getTime())} · ` +
+      `${prov.matches} midday-session row(s) [midday ${b.midday.matches}/${b.midday.straights} straight · allday ${b.allday.matches}/${b.allday.straights} straight] · ` +
+      `straight board: ${prov.straightBoard ?? 'none'}`,
+    );
   }
   const fname = (i: number) => join(WORK, `frame_${String(i).padStart(4, '0')}.png`);
 
@@ -307,7 +328,10 @@ function fmtET(d: Date): string {
   // into the captured body. The screen also exposes nativeID anchors
   // (#tr-summary, #day-<date>) as a sturdier alternative to the geometric
   // scroller/day-group discovery below if it ever breaks.
-  await page.goto(BASE + '/track-record?capture=1' + (MIDDAY ? '&scope=midday' : ''), { waitUntil: 'networkidle', timeout: 180_000 });
+  // MKT-69: verify_midday captures UN-SCOPED too — today's group must carry
+  // the Midday AND All-Day rows (the MKT-62 `&scope=midday` seed is retired
+  // for this kind; the app keeps the capture-gated param).
+  await page.goto(BASE + '/track-record?capture=1', { waitUntil: 'networkidle', timeout: 180_000 });
   await page.getByText('Verified Track Record').waitFor({ timeout: 60_000 });
   await page.waitForTimeout(4_000);     // queries fully settle (count-up snaps under capture=1)
 
@@ -499,7 +523,8 @@ function fmtET(d: Date): string {
     const vals = {
       pub: fmtET(prov.publishedAt), grd: fmtET(prov.gradedAt),
       gap: fmtGap(prov.gradedAt.getTime() - prov.publishedAt.getTime()),
-      n: String(prov.matches), sub: 'POSTED TO THE FREE ROOM COVERED · GRADED AGAINST TODAY\'S MIDDAY DRAWS',
+      // MKT-69: the count is BOTH boards' midday-session rows; sub-line says so.
+      n: String(prov.matches), sub: 'BOTH BOARDS POSTED THIS MORNING · GRADED AGAINST TODAY\'S MIDDAY DRAWS',
     };
     const missing = await page.evaluate(`(() => {
       const leaves = Array.from(document.querySelectorAll('*'))
@@ -629,7 +654,10 @@ function fmtET(d: Date): string {
   // exactly what gets captured.
   // MKT-62: the board SEGMENT is the cover-lift (covered hold + lift) plus the
   // graded board's push-in on the same-day kind; F_SLATE alone otherwise.
-  const F_BOARD = (MIDDAY ? F_COVER + F_LIFT : 0) + F_SLATE;
+  // MKT-69: plus the All-Day board's own push-in (a second F_SLATE) after the
+  // Midday board — fixed order, every day. The assembler's BOARD_SEG mirrors
+  // this exactly (2.5 + COVER_LIFT_SECONDS + 2.5).
+  const F_BOARD = (MIDDAY ? F_COVER + F_LIFT + F_SLATE : 0) + F_SLATE;
   const TOTAL = F_BOARD + F_SUMMARY + panFrames + ledgerFrames
     + (panning ? 0 : F_PAN - spare * gaps);
 
@@ -639,7 +667,7 @@ function fmtET(d: Date): string {
   );
   console.log(
     `beat plan: ${TOTAL} frames = ${(TOTAL / FPS).toFixed(2)}s ` +
-    `(board ${F_BOARD}${MIDDAY ? ` [cover ${F_COVER} + lift ${F_LIFT} + slate ${F_SLATE}]` : ''} + summary ${F_SUMMARY} + pan ${panFrames} + ledger ${ledgerFrames}) · ` +
+    `(board ${F_BOARD}${MIDDAY ? ` [cover ${F_COVER} + lift ${F_LIFT} + midday ${F_SLATE} + allday ${F_SLATE}]` : ''} + summary ${F_SUMMARY} + pan ${panFrames} + ledger ${ledgerFrames}) · ` +
     (panning
       ? `pan ${Math.round(panFrom)}→${Math.round(panTo)}px`
       : `pan DROPPED (only ${Math.round(panTo - panFrom)}px available) — travels widened to ${travelFrames}f`),
@@ -677,7 +705,9 @@ function fmtET(d: Date): string {
     // the free room saw it (covered, no results) → the cover lifts → graded.
     // Labels are the kind's own — verify's "PUBLISHED <date>" is wrong here;
     // the times are the provenance pair. Copy PROVISIONAL (content agent pass).
-    const pub = fmtET(prov.publishedAt), grd = fmtET(prov.gradedAt);
+    // MKT-69: the Midday board's eyebrow carries ITS OWN post time (the
+    // band's PUBLISHED is the later of the two boards).
+    const pub = fmtET(prov.boards.midday.postedAt), grd = fmtET(prov.gradedAt);
     const covered: BoardLabels = {
       eyebrow: `POSTED ${pub} · TODAY`,
       sub: 'MIDDAY · SIX SIGNALS · COVERED, AS THE FREE ROOM SAW IT',
@@ -688,7 +718,19 @@ function fmtET(d: Date): string {
       sub: 'MIDDAY · SIX SIGNALS · RANKED BEFORE THE DRAW',
     };
     landed = await renderCoverLiftFrames(WORK, fname, 0, F_COVER, F_LIFT, F_SLATE, dateISO, 'midday', covered, graded);
-    console.log(`board segment: cover-lift — ${landed} of 6 landed — rendered f000-f${F_BOARD - 1}`);
+    const midEnd = F_COVER + F_LIFT + F_SLATE;
+    console.log(`board segment (midday): cover-lift — ${landed} of 6 landed — rendered f0-f${midEnd - 1}`);
+    // MKT-69 — THE ALL-DAY BOARD, second, graded. It went to the free room
+    // UNCOVERED this morning (allday_free is the full drop), so there is no
+    // cover to lift: the standard push-in, its own post time in the eyebrow,
+    // the landed count in the default foot. Same renderer, same reserved
+    // ribbon band (clear y 0-300). Copy PROVISIONAL (content agent pass).
+    const alldayLabels: BoardLabels = {
+      eyebrow: `POSTED ${fmtET(prov.boards.allday.postedAt)} · GRADED ${grd}`,
+      sub: 'ALL-DAY · SIX SIGNALS · POSTED IN FULL THIS MORNING',
+    };
+    const landedA = await renderSlateFrames(WORK, fname, midEnd, F_SLATE, dateISO, 'allday', false, alldayLabels);
+    console.log(`board segment (allday): ${landedA} of 6 landed — rendered f${midEnd}-f${F_BOARD - 1}`);
   } else {
     landed = await renderSlateFrames(WORK, fname, 0, F_SLATE, dateISO, 'allday', PUBLIC);
     console.log(`slate segment: ${landed} of 6 landed — rendered f000-f${F_SLATE - 1}${PUBLIC ? ' (public cut: digits masked)' : ''}`);

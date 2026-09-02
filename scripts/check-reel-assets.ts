@@ -681,7 +681,7 @@ function checkVerifyMidday(): void {
   if (STINGERS[K]) add('FAIL', K, 'has a STINGERS entry — NO STINGER on this kind by ruling (63.8% floor-day ratio; chip identifies at frame one)');
   else add('PASS', `${K} stinger`, 'none by ruling (MKT-62 #2) — intro dissolves straight into the covered board');
   if (STINGER_KINDS.includes(K) || SEAL_KINDS.includes(K)) add('FAIL', K, 'listed in a stinger lane');
-  if (CHIP_LABELS_HAS(K)) add('PASS', `${K} chip`, "TODAY'S MIDDAY · GRADED — chips TODAY (inverse of verify's rule)");
+  if (CHIP_LABELS_HAS(K)) add('PASS', `${K} chip`, "TODAY'S MIDDAY DRAWS · GRADED — chips TODAY (MKT-69: both boards) (inverse of verify's rule)");
   else add('FAIL', `${K} chip`, 'no CHIP_LABELS entry — the kind would assemble with no frame-one identification and it has no stinger to fall back on');
   // 4. daily run cannot draw it; retention exempt
   const daily = readFileSync(resolve('scripts/run-daily-reels.sh'), 'utf8');

@@ -112,7 +112,10 @@ sh(`npx tsx scripts/render-reel-stamp.ts ${MIDDAY ? 'verify_midday' : 'verify'} 
 
 const uiDur = +parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${ui}"`).toString()).toFixed(2);
 // Board segment length — F_SLATE's 2.5s, plus the cover-lift on verify_midday.
-const BOARD_SEG = 2.5 + (MIDDAY ? COVER_LIFT_SECONDS : 0);
+// MKT-69: verify_midday carries TWO boards — Midday (cover-lift + 2.5s graded)
+// then All-Day (2.5s graded) — so its board segment is 2.5 + cover-lift + 2.5.
+// Mirrors the renderer's F_BOARD; the ribbon rides the whole segment.
+const BOARD_SEG = 2.5 + (MIDDAY ? COVER_LIFT_SECONDS + 2.5 : 0);
 // MKT-31 addendum: the outro takes the endcard's FIRST 6.5s (All-Day's proven
 // window) instead of its last 2.5s. 6.5 covers formation + text fade (4.5-5.2)
 // + a settled hold, and matches assemble-allday-reels' CARD.
@@ -348,8 +351,10 @@ void out1x1;
 // MKT-63: on strike days one extra stamp lands just after the bolt's peak
 // (~0.25s in), sorted into place — the frame the operator most needs to
 // eyeball on a NEW conditional mechanic.
+// MKT-69: SIX frames on the same-day kind — the All-Day board gets its own
+// stamp between the covered Midday board and the summary band.
 const stampTimes = MIDDAY
-  ? [0, openDur + 0.3, openDur + BOARD_SEG + 0.3, openDur + uiDur * 0.66, total - 0.7]
+  ? [0, openDur + 0.3, openDur + COVER_LIFT_SECONDS + 2.5 + 0.3, openDur + BOARD_SEG + 0.3, openDur + uiDur * 0.66, total - 0.7]
   : [0, openDur + 0.3, openDur + uiDur * 0.62, total - 0.7];
 if (strike) stampTimes.push(strike.t0 + 0.25);
 const STAMPS = stampTimes.sort((a, b) => a - b).map(t => +t.toFixed(1));

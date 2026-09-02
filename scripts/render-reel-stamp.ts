@@ -48,7 +48,10 @@ const PURPOSES = {
   // MKT-62 — the same-day midday verify: TODAY, not yesterday (every string
   // verify owns says YESTERDAY and every one of them is wrong on this kind).
   // Same gold, same 470 ribbon placement (the body is the same screen).
-  verify_midday: { eyebrow: "TODAY'S MIDDAY · GRADED", accent: '#FBBF24', top: 470 },
+  // MKT-69 (operator, 2026-09-02): "midday verify" = the midday DRAWS, graded
+  // across BOTH morning boards (Midday + All-Day) — the ribbon names the draws,
+  // not a board. Same string as the intro chip (intro-chip-config.ts).
+  verify_midday: { eyebrow: "TODAY'S MIDDAY DRAWS · GRADED", accent: '#FBBF24', top: 470 },
 } as const;
 
 // MKT-14 — the brand string, ruled 2026-07-31. "ZK6", not the version-agnostic

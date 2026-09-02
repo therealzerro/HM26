@@ -70,5 +70,7 @@ export const CHIP_LABELS: Record<string, { text: string; accent: string }> = {
   // of verify's rule, and the reason it cannot inherit verify's chip. Plain
   // language at frame one (there is no stinger on this kind by ruling, so the
   // chip carries the whole identification job).
-  verify_midday:  { text: "TODAY'S MIDDAY · GRADED", accent: VERIFY },
+  // MKT-69: the DRAWS, graded across both morning boards — same string as the
+  // ribbon (render-reel-stamp.ts).
+  verify_midday:  { text: "TODAY'S MIDDAY DRAWS · GRADED", accent: VERIFY },
 };

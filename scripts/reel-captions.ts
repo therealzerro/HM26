@@ -212,7 +212,8 @@ function makeQualCtx(r: ReceiptsData): QualCtx {
  */
 export interface SamedayCtx {
   elapsed: string;    // "8h 13m" — fmtGap(gradedAt − publishedAt)
-  straights: number;  // deduped midday matched rows with hit_straight
+  straights: number;  // deduped midday-session matched rows with hit_straight, BOTH boards (MKT-69)
+  straightBoard: 'midday' | 'allday' | 'both' | null; // where the straight(s) sit — the lead line's board word
 }
 
 interface TemplateCtx {
@@ -244,9 +245,31 @@ const tagged = <T,>(fns: ((c: T) => string)[]): ((c: T) => string)[] =>
  * difference between free and Pro is WHEN you see the board, never a
  * different board — never write "Pro signals vs free signals".
  */
-export const MIDDAY_VERIFY_CTA = 'Pro reads this board uncovered at 8:30 AM, every session, before the draw. $2.49/mo — HitMaster ZK Pro.';
+// MKT-69: "this board" → "the session boards" — the caption now describes two
+// boards (Midday covered, All-Day in full), and the Pro difference is still
+// WHEN, never WHAT.
+export const MIDDAY_VERIFY_CTA = 'Pro reads the session boards uncovered at 8:30 AM, every day, before the draw. $2.49/mo — HitMaster ZK Pro.';
 const withProCta = <T,>(fns: ((c: T) => string)[]): ((c: T) => string)[] =>
   fns.map(f => (c: T) => `${f(c)}\n\n${MIDDAY_VERIFY_CTA}`);
+
+/**
+ * MKT-69 (2026-09-02, operator: "the straight hit is always what's
+ * important") — THE STRAIGHT LEAD on the same-day family. When either morning
+ * board holds a STRAIGHT MATCH, every verify_midday caption OPENS on it,
+ * naming the board it landed on; with none, nothing is prepended. Structural
+ * gate on `c.sd.straights` (the verify-free #12 precedent) — a false straight
+ * claim cannot render whichever template the rotation draws. Tier-2 vocab:
+ * STRAIGHT MATCH / exact order; board names are group-legal.
+ */
+export function samedayStraightLead(sd: SamedayCtx | null): string {
+  if (!sd || !sd.straights) return '';
+  const where = sd.straightBoard === 'both' ? "both of this morning's boards"
+    : sd.straightBoard === 'allday' ? "this morning's All-Day board"
+    : "this morning's Midday board";
+  return `STRAIGHT MATCH ⚡ Exact order, on ${where} — graded the same afternoon.\n`;
+}
+const straightLed = (fns: ((c: TemplateCtx) => string)[]): ((c: TemplateCtx) => string)[] =>
+  fns.map(f => (c: TemplateCtx) => `${samedayStraightLead(c.sd)}${f(c)}`);
 
 interface KindSpec {
   offset: number;
@@ -590,24 +613,27 @@ const CAPTION_REGISTRY = {
     offset: 9,
     realNumbers: false,
     samedayProvenance: true,
-    fallback: () => `Same-day receipts 🧾 This morning's Midday board — covered when it went up — graded against today's results before the evening session. The reel is the receipt.` + `\n\n${MIDDAY_VERIFY_CTA}`,
-    templates: withProCta([
-      c => `Posted this morning. Graded this afternoon. 🧾⚡\n${c.sd!.elapsed} between the board going up and the results coming in — and we checked it in the open, same day.\nThe Midday board goes up covered in here. Those digits come off the next morning for everybody. ZK Pro reads them before the draw, all three sessions. $2.49/mo.`,
-      c => `Same-day receipts 🧾\nYou saw this Midday board go up covered this morning. Here it is graded, ${c.sd!.elapsed} later — before the evening draw, not tomorrow.\nThat gap is the whole thing. ZK Pro closes it on every session. $2.49/mo.`,
-      c => `We didn't wait until tomorrow ⚡\nThis morning's Midday board, checked against the official results and posted back to you the same day. ${c.sd!.elapsed}, start to finish.\nVerified MATCH on the board${c.sd!.straights ? ' — with a dead-on STRAIGHT MATCH in there' : ''}. Check the timestamps yourself.`,
-      c => `The cover comes off early today 🧾⚡\nMidday board published this morning, graded this afternoon, ${c.sd!.elapsed} apart. Same six signals, same stamp, nothing edited in between.\nFree sees it now because it already drew. Pro saw the digits before it did. $2.49/mo.`,
-      c => `This is a rare one 🤠\nMost days you get yesterday's receipts. Today you get this morning's — graded ${c.sd!.elapsed} after it published, in the open, same as always.\nAnalysis first. Receipts after. Just faster.`,
-      c => `Timestamps don't lie 🧾\nPUBLISHED this morning · GRADED this afternoon · ${c.sd!.elapsed} between them. Every signal on that board went up before the draw and got checked after it.\nThe full method's free in here. The timing is what Pro buys. $2.49/mo.`,
-      c => `Extended receipts — Midday, same day ⚡\nThat board went up covered this morning. The draw happened. Here's the grading, ${c.sd!.elapsed} later, before the evening boards even land.\nVerified MATCH, checked against the official results.`,
-      // #8 REWRITTEN (content agent, 2026-08-20): the delivered "Eight hours,
-      // not twenty-four" headline hardcoded a volatile stat — replaced with a
-      // headline that is honest by construction (the kind cannot run unless
-      // the same-day window is open, precondition 3) and that ECHOES
-      // verif_carrier_sameday's closing line, so a member hears it in the VO
-      // and then reads it. The figure moved into the body as {elapsed} — same
-      // provenance as the rest of the family, no new substitution point.
-      c => `Same day. Not tomorrow. 🧾⚡\nThis morning's Midday board, graded and posted back ${c.sd!.elapsed} later. You watched it go up covered — now you can see how it landed.\nZK Pro doesn't wait for the cover to come off. $2.49/mo.`,
-    ]),
+    // MKT-69 (2026-09-02, operator): the family REWRITTEN for TWO boards —
+    // the Midday board (went up COVERED) and the All-Day board (went up IN
+    // FULL), both graded against the midday draws the same afternoon — and
+    // every template OPENS on the STRAIGHT MATCH when one exists
+    // (`straightLed`, structurally gated). Same eight slots, same offset,
+    // same voice as the delivered 8/19 set; copy PROVISIONAL pending the
+    // content agent's pass (handoff v5.6 §G.10(c)). "Pro vs free signals"
+    // stays FALSE and unwritten: the difference is WHEN, never WHAT.
+    fallback: () => `Same-day receipts 🧾 This morning's boards — Midday covered, All-Day in full — graded against today's midday results before the evening session. The reel is the receipt.` + `\n\n${MIDDAY_VERIFY_CTA}`,
+    templates: withProCta(straightLed([
+      c => `Posted this morning. Graded this afternoon. 🧾⚡\n${c.sd!.elapsed} between the boards going up and the midday results coming in — and we checked them in the open, same day.\nThe Midday board goes up covered in here; the All-Day board goes up in full. Those covered digits come off the next morning for everybody. ZK Pro reads them before the draw, all three sessions. $2.49/mo.`,
+      c => `Same-day receipts 🧾\nYou saw this morning's boards go up — All-Day in full, Midday covered. Here they are, graded against the midday draws ${c.sd!.elapsed} later — before the evening draw, not tomorrow.\nThat gap is the whole thing. ZK Pro closes it on every session. $2.49/mo.`,
+      c => `We didn't wait until tomorrow ⚡\nThis morning's boards, checked against the official midday results and posted back to you the same day. ${c.sd!.elapsed}, start to finish.\nVerified MATCH on the boards${c.sd!.straights ? ' — with a dead-on STRAIGHT MATCH in there' : ''}. Check the timestamps yourself.`,
+      c => `The cover comes off early today 🧾⚡\nMidday board published covered this morning, All-Day board in full — both graded this afternoon, ${c.sd!.elapsed} apart. Same six signals per board, same stamp, nothing edited in between.\nFree sees the Midday digits now because it already drew. Pro saw them before it did. $2.49/mo.`,
+      c => `This is a rare one 🤠\nMost days you get yesterday's receipts. Today you get this morning's — both boards graded ${c.sd!.elapsed} after they published, in the open, same as always.\nAnalysis first. Receipts after. Just faster.`,
+      c => `Timestamps don't lie 🧾\nPUBLISHED this morning · GRADED this afternoon · ${c.sd!.elapsed} between them. Every signal on both boards went up before the draw and got checked after it.\nThe full method's free in here. The timing is what Pro buys. $2.49/mo.`,
+      c => `Extended receipts — midday draws, same day ⚡\nBoth boards went up this morning. The midday draws happened. Here's the grading, ${c.sd!.elapsed} later, before the evening boards even land.\nVerified MATCH, checked against the official results.`,
+      // #8 keeps the 8/20 content-agent headline (echoes the sameday
+      // carrier's closing VO line; the repetition is design).
+      c => `Same day. Not tomorrow. 🧾⚡\nThis morning's boards, graded and posted back ${c.sd!.elapsed} later. You watched the Midday board go up covered — now you can see how both landed.\nZK Pro doesn't wait for the cover to come off. $2.49/mo.`,
+    ])),
   },
   verify_public: {
     offset: 6,

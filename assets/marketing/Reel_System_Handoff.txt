@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-02 · v5.5
+Content Agent Handoff · 2026-09-02 · v5.6
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-02 (CONSOLIDATED SNAPSHOT, current to v5.5 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-02 (CONSOLIDATED SNAPSHOT, current to v5.6 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -348,6 +348,59 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v5.6 (2026-09-02 afternoon — MKT-69: verify_midday GRADES
+BOTH MORNING BOARDS; the STRAIGHT leads; on-screen language renamed)
+  A. THE DEFECT, from the operator: today's same-day cut showed the Midday
+     board's two boxes (458 IL, 635 GA) and never showed the day's STRAIGHT
+     — 485 in IL, midday draw — because it sat on the ALL-DAY board and the
+     kind captured Midday scope only. Ruling, verbatim: "the midday verify
+     means both the midday scope and allday scope … the straight hit is
+     always what's important." All-Day = ANY draw all day, so a midday-
+     session match on it IS a same-day match; the kind's name means the
+     midday DRAWS, not the Midday board.
+  B. THE SHAPE NOW (fixed order every day — no straight-dependent branch,
+     your own 8/19 ribbon lesson): Midday board cover-lift (2.0 covered +
+     0.5 lift + 2.5 graded) → ALL-DAY BOARD graded, 2.5s, its own push-in
+     (it went to the room UNCOVERED, so no cover beat; eyebrow "POSTED
+     h:mm · GRADED h:mm", sub "ALL-DAY · SIX SIGNALS · POSTED IN FULL THIS
+     MORNING") → timestamp band (sub-line "BOTH BOARDS POSTED THIS MORNING
+     · GRADED AGAINST TODAY'S MIDDAY DRAWS"; MIDDAY MATCHES = both boards'
+     rows) → ledger, captured UN-SCOPED so today's group carries Midday +
+     All-Day rows; the screen's straights-first ordering puts the straight
+     in the first hold under the MKT-63 bolt. Ribbon rides the whole 7.5s
+     two-board segment (rule unchanged). Contact sheet: SIX frames (seven
+     on strike days).
+  C. PROVENANCE: PUBLISHED = the LATER of midday_free / allday_free
+     posted_at — BOTH must be flipped posted (allday_free has been, every
+     day since 8/19). GRADED = max result_at across both boards' midday-
+     session rows. Today: 8:08 AM → 4:18 PM, 8h 11m, 4 rows (Midday 2 box;
+     All-Day 1 STRAIGHT + 1 box).
+  D. LANGUAGE (operator: "change the language if you deem it necessary"):
+     ribbon + intro chip now read "TODAY'S MIDDAY DRAWS · GRADED" (was
+     "TODAY'S MIDDAY · GRADED") — the draws, not a board. Admin label
+     "Midday Draws · Same-Day Verify · both boards". Board/band strings
+     above are PROVISIONAL, same status as §G.10(b).
+  E. YOUR CAPTION FAMILY, REWRITTEN (registered, provisional — §G.10(c)):
+     all eight now describe two boards ("Midday covered, All-Day in full",
+     "graded against the midday draws"); #8 keeps your headline. NEW: a
+     structural STRAIGHT LEAD — when either board holds a straight, every
+     caption OPENS on "STRAIGHT MATCH ⚡ Exact order, on this morning's
+     All-Day board — graded the same afternoon." (board word from the
+     data: Midday / All-Day / both); nothing prepended otherwise. MKT-68's
+     CTA now reads "Pro reads the session boards uncovered at 8:30 AM,
+     every day, before the draw." 32/32 variants + fallback tier-2 clean,
+     max 565 chars. Please pass all eight + the lead line + the CTA.
+  F. ⚠ AUDIO COST, MEASURED: the body grew to 18.2s today (two boards +
+     three holds). verif_carrier_sameday ends at 15.57s and the endcard
+     audio enters at 24.16s → ~8.6s of the holds under silence (was 1–4s).
+     Standing ruling covers it, but the gap doubled: a pt2 SIGN-OFF
+     CONTINUATION for this kind (the §G.10(c) optional item) is now the
+     one asset that would close it. Also the VO line "This mornin's board"
+     is singular — fine for now; a regeneration would say "boards".
+  G. THE 9/2 CUT WAS REBUILT AND REPUBLISHED over the first (same row,
+     same day, evening ledger not yet in): 30.66s, strike at 15.46s on
+     the 485 IL STRAIGHT hold. Audit: MKT-69. Next free ID: 70.
 
 WHAT CHANGED IN v5.5 (2026-09-02 night — MKT-15 DEVICE TEST RUN AND PASSED;
 YOUTUBE ENABLED on the operator's written go-ahead)
@@ -921,8 +974,11 @@ verify_midday caption family REGISTERED)
      re-stamped result_at and write a WRONG gap. The family takes effect
      on the next verify_midday run, automatically.
   C. STILL OWED (unchanged from v4.5): §G.10 (b) the copy pass on the
-     kind's provisional board/band strings; (c) optional sameday sign-off
-     continuation; (d) the MKT-62b deliverables (§8b).
+     kind's provisional board/band strings — NOW INCLUDING the All-Day
+     board's labels and the two-board band sub-line (v5.6 B/D); (c) the
+     sameday sign-off continuation (pt2) — no longer optional in effect,
+     see v5.6 F — AND the rewritten eight-caption family + STRAIGHT lead
+     + CTA (v5.6 E); (d) the MKT-62b deliverables (§8b).
 
 WHAT CHANGED IN v4.5 (2026-08-19, night — MKT-62b WORK ORDER to the content
 agent: OFFICIAL-RESULTS-PAGE RECEIPTS in the same-day midday verify)

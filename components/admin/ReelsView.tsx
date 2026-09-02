@@ -80,8 +80,10 @@ const KIND_UI: Record<ReelKind, { icon: string; label: string; defaultTarget: Ta
   // MKT-62 — the SAME-DAY midday verify. Default 'free' is the ruling, not a
   // convenience: this kind exists to close the free member's covered-board loop
   // the same afternoon; cross-post is barred (real digits + state attribution,
-  // no masked build). Contact sheet 5 frames (open / covered / lifted / hold / close).
-  verify_midday: { icon: '⏱️', label: 'Midday · Same-Day Verify', defaultTarget: 'free', sheetAspect: 5 * (270 / 480) },
+  // no masked build). MKT-69: grades BOTH morning boards (Midday + All-Day)
+  // against the midday draws. Contact sheet 6 frames (open / covered Midday /
+  // All-Day board / timestamp band / hold / close; 7 on strike days).
+  verify_midday: { icon: '⏱️', label: 'Midday Draws · Same-Day Verify · both boards', defaultTarget: 'free', sheetAspect: 6 * (270 / 480) },
 };
 
 /** A kind with no UI entry would crash the whole Reels tab on `ui.defaultTarget`

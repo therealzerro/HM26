@@ -233,7 +233,8 @@ async function buildCaptions(kinds: Kind[]): Promise<Record<string, CaptionSet>>
   if (kinds.includes('verify_midday')) {
     try {
       const sp = await fetchSamedayProvenance(sbGet, isoDate);
-      if (sp.ok) sameday = { elapsed: fmtGap(sp.gradedAt.getTime() - sp.publishedAt.getTime()), straights: sp.straights };
+      // MKT-69: straights + straightBoard now span BOTH morning boards.
+      if (sp.ok) sameday = { elapsed: fmtGap(sp.gradedAt.getTime() - sp.publishedAt.getTime()), straights: sp.straights, straightBoard: sp.straightBoard };
       else console.warn(`[publish-reels] same-day provenance not ok (${sp.why}) — verify_midday caption uses the fallback.`);
     } catch (e) {
       console.warn('[publish-reels] same-day provenance fetch failed — verify_midday caption uses the fallback:', String(e).slice(0, 160));

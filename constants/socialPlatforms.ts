@@ -351,6 +351,10 @@ export interface YtShortsSet { titles: string[]; descriptions: string[] }
  * describes it being graded, and rotating them against the wrong footage is a
  * caption that contradicts the video (content-agent ruling, recorded).
  */
+// MKT-67 (2026-09-02): allday_public titles REWEIGHTED on Meta's hook data —
+// 'Published first. Verified after.' (the measured 5–6s hook) and 'Our method,
+// start to finish' (process, no specificity) retired; 'Scored across 40+ states
+// & provinces' and 'Six signals a day, four measures each' added. Still eight.
 export const YT_SHORTS_SETS: Record<string, YtShortsSet> = {
   allday_public: {
     titles: [
@@ -359,9 +363,9 @@ export const YT_SHORTS_SETS: Record<string, YtShortsSet> = {
       'The board we publish before results come in',
       'Ranked, explained, and checked the next morning',
       'What pattern analysis actually looks like',
-      'Published first. Verified after.',
+      'Scored across 40+ states & provinces',
       'Six signals a day, across 40+ states & provinces',
-      'Our method, start to finish',
+      'Six signals a day, four measures each',
     ],
     descriptions: [
       `Every morning our engine scores combinations across 40+ states & provinces and publishes six ranked signals — before the first draw. The next morning we check every one against the official results and publish the record.\nThe full board is free in our community: {free_group_url}`,

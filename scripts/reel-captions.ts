@@ -496,6 +496,10 @@ const CAPTION_REGISTRY = {
    * All eight verified through the real lintCaption(…, 1) — MKT-24 recorded it,
    * re-run at registration.
    *
+   * MKT-67 (2026-09-02): content agent's REPLACEMENT family ("the concrete
+   * number goes in the first eight words") — supersedes MKT-16's set and the
+   * MKT-66 rewrite wholesale; {free_group_url} substituted at publish like
+   * verify_public. PUBLIC_TAGS still appended via tagged().
    * MKT-66 (2026-09-02): every template now LEADS with the scale line — Meta's
    * page analytics measured "40+ states" holding attention 3s longer than the
    * "Analysis published before" opener, which was retired. Still eight, still
@@ -514,14 +518,14 @@ const CAPTION_REGISTRY = {
     offset: 4,
     realNumbers: false,
     templates: tagged([
-      () => `40+ states & provinces, one board. Six signals ranked and published before the first draw — then checked against the official results the next morning. Full board's free in the community. ⚡`,
-      () => `Pattern analysis across 40+ states & provinces, every single day. We publish first and post the receipts after — no guarantees, no rate claims, a record you can check yourself. Free in the community.`,
-      () => `Pattern analysis across 40+ states & provinces, every single day. Six signals ranked, each one explained. Full board lives free in the community. 🤠`,
-      () => `40+ states & provinces scored overnight. Everybody's got a method; not everybody shows their work. Ours gets graded against official results every morning — and the full board is free.`,
-      () => `How pattern analysis works across 40+ states & provinces: score every combination, rank the top six, time-stamp them before the draw, then check them against what actually happened. Full walkthrough, free in the community.`,
-      () => `The engine runs overnight across 40+ states & provinces. Six signals come out ranked, explained, and stamped before the first draw — and nothing changes after. Come see the board. It's free.`,
-      () => `40+ states & provinces on one board, graded in the open. Yesterday's result opens the reel; today's six follow. The whole record is free in the community. ⚡`,
-      () => `No fees, no hype, no promises. 40+ states & provinces of pattern analysis, plus yesterday's receipts, every morning. If that's your kind of thing, the community's free.`,
+      () => `Six signals. 40+ states and provinces. Scored overnight, published before the first draw. Every one shows its reasoning — energy, momentum, pattern, consistency. The full board is free: {free_group_url}`,
+      () => `40+ states and provinces, scored every night. Six signals come out ranked, stamped before the draw. Nothing gets edited after. That's the whole discipline. Free to read: {free_group_url}`,
+      () => `Four measures. Six signals. Published before the draw, every single morning. Energy, momentum, pattern and consistency — scored across 40+ states and provinces. The full board is free: {free_group_url}`,
+      () => `Six ranked signals, out before the first draw of the day. Scored across 40+ states and provinces overnight, with the reasoning shown on every one. Free in our community: {free_group_url}`,
+      () => `Scored across 40+ states and provinces. Six signals, ranked, before anyone draws anything. Then graded against the official results the next morning, in public. Read it free: {free_group_url}`,
+      () => `Six signals a day. Four measures behind each one. 40+ states and provinces. Published before the draw and checked after it — that order is the method. Free: {free_group_url}`,
+      () => `This is what pattern analysis looks like at scale: 40+ states and provinces, scored nightly, six signals published before the draw. The full board is free: {free_group_url}`,
+      () => `Every night the engine reads 40+ states and provinces. Every morning six signals go up, ranked and stamped. The reasoning is shown on all six. Nothing is edited after. Free to check: {free_group_url}`,
     ]),
   },
   /**
@@ -597,14 +601,14 @@ const CAPTION_REGISTRY = {
     offset: 6,
     realNumbers: false,
     templates: tagged([
-      () => `Yesterday's board, graded against the official results — every signal we published before the draw, checked after it. The full record is free: {free_group_url}`,
-      () => `We publish six ranked signals every morning and check every one of them the next day, in public. Come read the record yourself: {free_group_url}`,
-      () => `This is what accountability looks like in pattern analysis: published first, graded after, nothing edited in between. Free to check: {free_group_url}`,
-      () => `Anyone can claim a method. We post ours before the draw and grade it after — same time, every day, across 40+ states & provinces. {free_group_url}`,
-      () => `Yesterday's signals, checked against what actually drew. The values are covered here — they're open in the community: {free_group_url}`,
-      () => `No edits, no retroactive claims. The board goes up before the draw and gets graded the next morning where anyone can see it. {free_group_url}`,
-      () => `Every morning we grade the day before. That's the whole product — the analysis, then the receipts. Read the record free: {free_group_url}`,
-      () => `Published before. Checked after. That order is the only thing that makes a record worth reading. See it in full: {free_group_url}`,
+      () => `40+ states and provinces, checked draw by draw. Yesterday's six signals, graded against the official results. Published before. Verified after. The full record is free: {free_group_url}`,
+      () => `Six signals published yesterday. Every one checked this morning against the official results, in public. Across 40+ states and provinces. Read the record free: {free_group_url}`,
+      () => `Scored across 40+ states and provinces. Published before the draw, graded the next morning where anyone can see it. That order is the only thing that makes a record worth reading: {free_group_url}`,
+      () => `Yesterday's board, checked draw by draw across 40+ states and provinces. Every signal we published, graded against what actually drew — including the ones that missed. Free to read: {free_group_url}`,
+      () => `Four measures, six signals, 40+ states and provinces — and a record checked every single morning. The values are covered here. They're open in the community: {free_group_url}`,
+      () => `We grade our own analysis in public, across 40+ states and provinces, every morning. No edits, no retroactive claims, misses included. See the full record free: {free_group_url}`,
+      () => `40+ states and provinces. Six signals a day. Every one checked the next morning against the official results. Most methods never show what happened next. Ours does: {free_group_url}`,
+      () => `Yesterday's six, graded. Scored across 40+ states and provinces, published before the draw, checked after it. The whole record is free: {free_group_url}`,
     ]),
   },
 } satisfies Record<string, KindSpec>;

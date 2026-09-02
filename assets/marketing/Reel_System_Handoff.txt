@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-02 · v5.3
+Content Agent Handoff · 2026-09-02 · v5.4
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-02 (CONSOLIDATED SNAPSHOT, current to v5.3 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-02 (CONSOLIDATED SNAPSHOT, current to v5.4 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -349,6 +349,52 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v5.4 (2026-09-02 evening — YOUR CONSOLIDATED ORDER: ITEM 5
+DELIVERED (MKT-67), ITEM 6 REPORTED; 1–4 stand as answered in v5.3)
+  ⚠ ID: your order said 65 was last claimed. 66 was claimed earlier today
+     (MKT-66 cold open + 66b tags). Item 5 is stamped MKT-67. Next free: 68.
+
+  A. ITEM 5 — CAPTION FAMILIES: REPLACED, NOT MERGED. Your 8 allday_public
+     + 8 verify_public templates are registered verbatim (from your message
+     of today — no re-paste needed). The MKT-16 originals and my MKT-66
+     rewrite are gone from rotation. {free_group_url} substitutes at
+     publish on both kinds (the MKT-40 path already covered every _public
+     kind, so allday gained the link for free). PUBLIC_TAGS (#DataAnalysis
+     #PatternAnalysis) still rides as the trailing line on all 16.
+     Offsets unchanged (allday 4 / verify 6), eight each.
+     LINT: 16/16 rendered captions clean at tier 1 — ZERO blocking, ZERO
+     advisory, all ≤600 chars with the real URL substituted. Nothing
+     tripped; nothing was edited. Today's two public rows republished.
+  B. ITEM 5 — YOUTUBE TITLES (allday_public): "Published first. Verified
+     after." and "Our method, start to finish" RETIRED; "Scored across 40+
+     states & provinces" and "Six signals a day, four measures each" ADDED.
+     Still eight, all ≤100 chars, tier-1 clean. verify_public titles
+     untouched (you named allday's losers only). YouTube remains DISABLED
+     (operator-only flip) — the set is ready for the day it flips.
+  C. ITEM 3 — TAGS, closed since v5.3's answer: MKT-66b appended the pair to
+     the public caption templates (Facebook's handoff takes the caption
+     verbatim, so the caption IS the transform). #Shorts stays on the
+     YouTube transform only.
+  D. ITEM 6 — THE PIN'S OPENING FRAME (report only). pin_free_upgrade and
+     the other pinned videos are NOT in the repo and NOT in the
+     marketing-reels bucket — they are baked OMNI deliveries posted
+     directly. The system composites text only on the reel pipeline: the
+     slate stamp, the intro chip, the MKT-63 strike, and now the MKT-66
+     hook card. So: EVERY FRAME OF THE PINS IS BAKED. A number-first opener
+     on a pin is a regeneration, not an edit. If you do generate one, the
+     hook card's copy shape (count · SIGNALS VERIFIED · 40+ STATES &
+     PROVINCES) is the reference that is now being measured live.
+  E. FOR THE RECORD — Facebook's "publish 5, paywall #1" is REJECTED and
+     recorded in MASTER_AUDIT (MKT-67) with your three reasons, so it does
+     not resurface. Any subscriber-only artifact must be ADDITIVE.
+  F. STANDING: item 2 (captions) waits on your carrier-scripts registry
+     (§7 lines → file, per member and pt2) and the zero-cost check of
+     whether the 8/19 and 8/23 posts carried Meta's own auto-captions.
+     Item 4 is built (MKT-66) and is the single variable under test for
+     one week. Chip copy for allday_public is moot (no chip on a cold
+     open); "SCORED ACROSS 40+" is the only candidate that fits if
+     verify_public ever takes it.
 
 WHAT CHANGED IN v5.3 (2026-09-02 — YOUR FOUR ASKS ANSWERED; ITEM 4 WAS
 BUILT ON THE OPERATOR'S DIRECT INSTRUCTION, MKT-66 — ID verified free)

@@ -436,6 +436,13 @@ BUILT ON THE OPERATOR'S DIRECT INSTRUCTION, MKT-66 — ID verified free)
      (ii) a FB-page transform in ReelsView's handoff. (i) is ~30 min and
      needs your word on the exact tag pair. Ruling unchanged: no lottery/
      numbers/draw/winning/luck tags.
+     ✅ DONE 2026-09-02 (operator: "add the tags to the public captions",
+     MKT-66b): PUBLIC_TAGS = '#DataAnalysis #PatternAnalysis' appended as a
+     trailing line on all 8 allday_public + 8 verify_public templates
+     (reel-captions.ts `tagged(...)`); #Shorts stays YouTube-only. 16/16
+     rendered captions lint clean at tier 1, all ≤600 chars; today's two
+     public rows republished with the tagged captions. A different pair is
+     ONE constant.
 
   D. ITEM 4 — THE INTRO, MEASURED (and then built, see above).
      · Served intro durations: slate rotation 5.625–6.458s (12 members:

@@ -223,6 +223,19 @@ interface TemplateCtx {
   seed: number;
 }
 
+/**
+ * MKT-66b (2026-09-02, operator) — the MKT-37 topic tags on the PUBLIC-KIND
+ * captions. MKT-37 registered #Shorts #DataAnalysis #PatternAnalysis on the
+ * YouTube entry only, and Facebook page handoffs take the stored caption
+ * verbatim — so the page never carried a tag while Meta's coaching was asking
+ * for "data or technology" tags. #Shorts stays YouTube-only (format tag).
+ * Ruling unchanged: no lottery / numbers / draw / winning / luck tags, ever.
+ * Appended as a trailing line so platformCaption's tag dedupe still sees them.
+ */
+export const PUBLIC_TAGS = '#DataAnalysis #PatternAnalysis';
+const tagged = <T,>(fns: ((c: T) => string)[]): ((c: T) => string)[] =>
+  fns.map(f => (c: T) => `${f(c)}\n\n${PUBLIC_TAGS}`);
+
 interface KindSpec {
   offset: number;
   realNumbers: boolean;            // templates see counts/states (PRO surfaces only)
@@ -500,7 +513,7 @@ const CAPTION_REGISTRY = {
   allday_public: {
     offset: 4,
     realNumbers: false,
-    templates: [
+    templates: tagged([
       () => `40+ states & provinces, one board. Six signals ranked and published before the first draw — then checked against the official results the next morning. Full board's free in the community. ⚡`,
       () => `Pattern analysis across 40+ states & provinces, every single day. We publish first and post the receipts after — no guarantees, no rate claims, a record you can check yourself. Free in the community.`,
       () => `Pattern analysis across 40+ states & provinces, every single day. Six signals ranked, each one explained. Full board lives free in the community. 🤠`,
@@ -509,7 +522,7 @@ const CAPTION_REGISTRY = {
       () => `The engine runs overnight across 40+ states & provinces. Six signals come out ranked, explained, and stamped before the first draw — and nothing changes after. Come see the board. It's free.`,
       () => `40+ states & provinces on one board, graded in the open. Yesterday's result opens the reel; today's six follow. The whole record is free in the community. ⚡`,
       () => `No fees, no hype, no promises. 40+ states & provinces of pattern analysis, plus yesterday's receipts, every morning. If that's your kind of thing, the community's free.`,
-    ],
+    ]),
   },
   /**
    * MKT-40 — verify_public: the grading half of the public pair. The eight
@@ -583,7 +596,7 @@ const CAPTION_REGISTRY = {
   verify_public: {
     offset: 6,
     realNumbers: false,
-    templates: [
+    templates: tagged([
       () => `Yesterday's board, graded against the official results — every signal we published before the draw, checked after it. The full record is free: {free_group_url}`,
       () => `We publish six ranked signals every morning and check every one of them the next day, in public. Come read the record yourself: {free_group_url}`,
       () => `This is what accountability looks like in pattern analysis: published first, graded after, nothing edited in between. Free to check: {free_group_url}`,
@@ -592,7 +605,7 @@ const CAPTION_REGISTRY = {
       () => `No edits, no retroactive claims. The board goes up before the draw and gets graded the next morning where anyone can see it. {free_group_url}`,
       () => `Every morning we grade the day before. That's the whole product — the analysis, then the receipts. Read the record free: {free_group_url}`,
       () => `Published before. Checked after. That order is the only thing that makes a record worth reading. See it in full: {free_group_url}`,
-    ],
+    ]),
   },
 } satisfies Record<string, KindSpec>;
 

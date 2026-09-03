@@ -28,6 +28,10 @@ import { lintCaption } from '../lib/social/brandLint';
 import { shiftDate } from './reel-captions';
 
 import { HOOK_DUR } from './public-hook-config';
+import { config as loadEnv } from 'dotenv';
+// Spawned via execSync from the assembler — under the detached reel:daily runner
+// nothing has exported .env, so load it here like the sibling renderers do.
+loadEnv({ path: resolve('.env'), quiet: true });
 
 const [, , ymd, outArg] = process.argv;
 if (!/^\d{8}$/.test(ymd ?? '') || !outArg) {

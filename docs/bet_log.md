@@ -22,7 +22,16 @@ Slate basis: 9/3 K6 (workflow run 12:29am ET, engine v2.1, edge v53). Boards are
 - EV framing: all products ≈ 90% RTP; selection chose *which* combos, not the rate. No positional filter (ENG-MIDDAY-POS-02 retired it 9/1).
 - Ride convention: max bet, ride until hit, max 3 days; a hit closes the leg. 385 and 146 are also explicitly live on tonight's Evening board if ridden.
 
-### Resolution (pending — reconcile after the 9/3 midday import)
+### Resolution (results imported; verified vs histories 2026-09-03 ~4:29pm ET — board ran 33 midday draws)
+
+| Leg | Result | Payout |
+|---|---|---|
+| 385 | 0 — {3,5,8} absent from all 33 midday draws | $0 |
+| 825 | 0 — {2,5,8} absent | $0 |
+| 146 | 0 — {1,4,6} absent | $0 |
+| 335 (double) | 0 — {3,3,5} absent | $0 |
+
+**0/4. Net = −(units × $8.25) — units still pending from the ticket.** The boards themselves: Midday K6 1/6 (r5 567 boxed NM 576), All-Day K6 1/6 (r4 **249 STRAIGHT** TN 249, engine best order) — 249 leg CLOSED by convention (it was never an operator leg; not re-bettable tonight under hit-closes-leg). All four operator legs unhit → eligible to ride into 9/3 evening (385 = Evening r2 + All-Day r1; 146 = Evening r6 + All-Day r6; 825 and 335 carry no evening-board presence). Blank session was priced at ~50% pre-placement (~45% any-box on the three singles ⊕ ~9% on the double) — ordinary-bad, not an anomaly.
 
 ## 2026-07-26 — evening session (Sunday board)
 

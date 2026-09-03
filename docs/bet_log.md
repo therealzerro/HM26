@@ -2,6 +2,28 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
+## 2026-09-03 — midday session (Thursday board, ~33 midday draws → $8.25/unit)
+
+Slate basis: 9/3 K6 (workflow run 12:29am ET, engine v2.1, edge v53). Boards are all singles on every scope; Midday ∩ All-Day share no set today, so the cross-reference comes from pairs and from the evening board. Prior night for context: 9/2 evening — operator's own picks 106 and 654 both boxed (SC 016, WI 645), 2 of 3; the evening K6 itself went 0/6 and the only board set to land was FL 236 (midday r6).
+
+### Positions — full midday board (~33 draws, $8.25/unit). Units not stated at log time — fill in from the ticket.
+
+| Combo (straight order) | Set | Provenance | Units | Cost |
+|---|---|---|---|---|
+| **385** | {3,5,8} | All-Day r1 (overdue) + Evening r2 = set-level convergence; pair {5,8} → midday 825, pair {3,5} → midday r1 354; 385 = engine best order on both boards | — | — |
+| **825** | {2,5,8} | Midday r4; its {5,8} pair is the only pair on Midday that also sits on two All-Day sets (385, 058); 6 midday draws in 30d (at expectation) | — | — |
+| **146** | {1,4,6} | All-Day r6 + Evening r6 = set-level convergence; digit spread vs a third 5-8 set; 146 = engine best order on both boards | — | — |
+| **335** (double) | {3,3,5} | Deep-scope doubles read (within-class): All-Day doubles #1 (z +2.4, PBURST flag), Midday DGC flag (z +2.3), 4th-longest midday gap (1228 draws, last 7/26 IN 533); all-session 27 vs 19.9 expected (1.36x); order 335:11 / 353:9 / 533:7 | — | — |
+
+### Session math (uniform baseline — standing BUG-162 / SIGNAL-INFO-01 truth)
+
+- Singles: ~18% P(≥1 box) each on 33 draws, ~3.2% straight; the three singles together ~45% any box / ~9% any straight.
+- Double 335: ~9.4% box / ~3.2% straight (3 of 1000 outcomes per draw). Book pays a 3-way box at its own rate — confirm before sizing.
+- EV framing: all products ≈ 90% RTP; selection chose *which* combos, not the rate. No positional filter (ENG-MIDDAY-POS-02 retired it 9/1).
+- Ride convention: max bet, ride until hit, max 3 days; a hit closes the leg. 385 and 146 are also explicitly live on tonight's Evening board if ridden.
+
+### Resolution (pending — reconcile after the 9/3 midday import)
+
 ## 2026-07-26 — evening session (Sunday board)
 
 Slate basis: 7/26 K6 (workflow run 9:28am ET, engine v2.1). Sunday board: TX (×2) + WV dark → **~39 evening draws, $9.75/unit**. Midday (27-draw Sunday board): midday K6 0/6 (2nd straight — tripwire watch if Monday repeats); allday r1 {1,4,6} boxed AZ midday 416 → **146 leg CLOSED by convention** (day 2, no payout — wager was evening-board only; same structural forfeit as {2,3,5} on 7/22).

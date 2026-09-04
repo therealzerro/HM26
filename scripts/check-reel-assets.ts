@@ -268,6 +268,15 @@ const UNREFERENCED_OK: Record<string, string> = {
   // MKT-59 (2026-08-19) — verify part-1 alternate HELD on the seam proxy
   // (exit f0 Δ12.3 vs pt2, non-overlapping IQR); registers with one line in
   // carrier-config.ts `verify.set` if the operator's cold listen passes it.
+  // MKT-62/69 v5.7 (2026-09-04) — verif_carrier_sameday TWO-PART PAIR, HELD
+  // pending the operator's two ear checks (seam; cross-kind narrator). Seam
+  // f0 proxy on the MKT-59 windows FAILS (Δ29.2), on the seam-adjacent
+  // windows passes (Δ2.2) — the measurement is split, so the ear decides.
+  // Registers via carrier-config `verify_midday` (set swap + rest) if it passes.
+  'verif_carrier_sameday_boards_20260904.mp4':
+    'MKT-62/69 v5.7 CANDIDATE part 1, HELD 2026-09-04 pending operator ear — "Now this is a rare one. / This mornin\'s boards — already checked against what drew. / Midday went up covered. All-Day, in full." 10.005s (law holds), speech 1.09–9.64s, last word 9.48s (≤~9.5), tail −61.8 dBFS RMS, transcript = copy, tier-2 lint clean. Seam vs the pt2 master: MKT-59 windows (last voiced 1.2s vs first 1.6s) 128.0 [108–139] vs 98.8 [92–109] = Δ29.2 FAIL; seam-adjacent (last 0.6s vs first 0.8s) 110.3 [108–122] vs 108.1 [97–115] = Δ2.2 pass. Landed as *_20260904,mp4.mp4 (comma) — CLI-renamed. Incumbent verif_carrier_sameday.mp4 untouched.',
+  'verif_carrier_sameday_signoff_master_10s.mp4':
+    'MKT-62/69 v5.7 CANDIDATE pt2 MASTER, HELD 2026-09-04 pending operator ear — "Graded against the midday draws — hours before the evenin\' ones land. / Same day. Not tomorrow." 10.005s; speech starts at 0.00s (no leading silence), last word 9.18s; trim-to-speech = 0–9.35s (last word 9.18 ≤ 9.47 of the trimmed file), tail −62.5 dBFS. Never register this raw master — the trimmed copy becomes verif_carrier_sameday_pt2.mp4 on a pass (name deliberately carries no _pt: preflight rejects any _pt outside _pt<N>.mp4).',
   'verif_carrier_ledger.mp4':
     'MKT-59 REJECTED 2026-08-20 (content agent, operator-delegated) — seam f0 proxy Δ12.3 with NON-OVERLAPPING IQR (87-93 vs pt2 96-107): two voices meeting at a seam, the defect class the MKT-43 lane exists for. Root cause is the SCRIPT: part-1 ends on a descending cadence ("Nothin\' added. Nothin\' taken away.") into a level pt2 open — the pitch could not match because it was written not to. Parked with its measurement; a third verify variant gets a RESCRIPT with a level ending, never a regeneration of these lines. Standing rule recorded (handoff delivery spec): PART-1 CARRIER LINES END LEVEL OR SLIGHTLY RISING, NEVER DESCENDING.',
   // MKT-58's shutter attempt 1 was REJECTED here (paced for its 10s master);

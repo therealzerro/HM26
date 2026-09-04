@@ -452,6 +452,64 @@ TWO-PART PAIR; §G.10(c) moves from OPTIONAL to ISSUED; prompts supplied)
   F. STILL PINNED, STILL A SET OF ONE. Nothing in this pair enters any
      rotation; "rare one" / "this mornin's" / "same day" remain false on
      every routine reel. §G.10(b) copy pass and (d) MKT-62b are unchanged.
+  G. GATE RESULTS (engineering, 2026-09-04 — the pair LANDED the same
+     morning, generated from YOUR prompts, not C/D: narrator block restored
+     verbatim, static-bolt scene kept; recorded here as load-bearing, see
+     your work order). Status: ⏳ HELD at Phase 2 — not registered, the
+     incumbent serves. The operator's two ear checks decide.
+     1. INTEGRITY: both real mp4 (h264 720×1280 + aac), 10.005s each.
+        Part 1 landed as `verif_carrier_sameday_boards_20260904,mp4.mp4`
+        (a comma) — CLI-renamed to the exact candidate name; the pt2
+        master name was exact. NEITHER touched a registered name:
+        verif_carrier_sameday.mp4 is byte-identical to HEAD. Preflight
+        name rule confirmed: `/_pt/i` anywhere except `_pt<N>.mp4` fails,
+        so both candidates pass and a `_pt2_master` shape would not.
+     2. PART 1 (measured): speech 1.09–9.64s (−40 dB gate); last word
+        "full." ends 9.48s — 20ms inside the ~9.5 line, no fallback cut
+        applied; tail −61.8 dBFS RMS / −44 peak (near-silent, not digital
+        zero; incumbent −68/−48). Transcript = copy verbatim. Voice ran
+        LONGER than the retired take per word (19 words to 9.48 vs 17 to
+        9.69) — the pacing block held it.
+     3. PT2 (measured): master 10.005s; speech starts at 0.00s — there is
+        NO leading silence to trim, "Graded" opens on frame one; last word
+        9.18s; trimmed-to-speech = 0–9.35s (last word 9.18 ≤ 9.47 ✓); tail
+        −62.5 dBFS. Raw master will not be registered.
+     4. LINT: all five lines + both transcripts clean at tier 2 and tier 4;
+        tier 1 flags only "Midday"/"midday" (advisory, and tier 1 is not
+        this kind's surface). No direct address, no counts, no states.
+        CONTENT TRUTH: MKT-69 fixed order (Midday cover-lift → All-Day
+        uncovered) unchanged since v5.6; C.1 chain (hand-off before the
+        evening import) unchanged — both lines still true.
+     5. ⚠ SEAM — SPLIT RESULT. On the MKT-59 definition (last voiced 1.2s
+        of part 1 vs first 1.6s of pt2): part 1 close 128.0 Hz [IQR
+        108–139] vs pt2 open 98.8 [92–109] = Δ29.2, IQRs overlapping by
+        ~1 Hz → FAILS the ≤~Δ11 bar by more than the ledger did (Δ12.3).
+        On the seam-adjacent windows (last 0.6s "…full." vs first 0.8s
+        "Graded against"): 110.3 [108–122] vs 108.1 [97–115] = Δ2.2,
+        overlapping → passes. Why they differ: the contour of part 1's
+        last second is NOT level — "in" rides 128–144 Hz, "full" drops to
+        ~98–109 and ticks back to ~123 at the release; pt2 opens 113–119
+        on "Graded" and falls to 86–105 through "the midday draws". So
+        the two voices MEET at a matched pitch, but the second before and
+        the second after are a fourth apart. Whole-file medians: part 1
+        115, pt2 96, incumbent sameday 116, verif_carrier 105, allday_pro
+        133. Method check: this tracker reads verif_carrier_pt2's open at
+        100.9 vs the recorded 103.2 and the verify incumbent's seam at
+        Δ6.5 vs the recorded Δ3.2 — same ballpark, same direction.
+     6. EAR CHECKS (operator, owed): five audition files handed over —
+        (1) seam butt-spliced, (2) seam with the 0.35s breath, (3) new
+        part 1 → verif_carrier, (4) new part 1 → allday_pro_carrier,
+        (5) incumbent → new part 1. Items 10 and 11 of your order are
+        these. On a pass: Phase 3 exactly as E.4 (swap, trim, rest[],
+        reel:check, first live draw + assembled-seam listen + the
+        silent-hold coverage report). On a fail: both candidates stay
+        parked at their names with these numbers (UNREFERENCED_OK carries
+        them now), incumbent keeps serving.
+     7. If the seam fails the ear, the fix is a pt2 REGENERATION that opens
+        higher and slower (its whole-file median 96 Hz is the lowest in
+        the fleet), not a part-1 cut — part 1 measured clean on every
+        other gate.
+
 
 WHAT CHANGED IN v5.6 (2026-09-02 afternoon — MKT-69: verify_midday GRADES
 BOTH MORNING BOARDS; the STRAIGHT leads; on-screen language renamed)
@@ -3405,6 +3463,16 @@ per-day by hand, not AI-freestyled.
                                   silence (verify's MKT-27/41 ruling) until
                                   the endcard audio — a sign-off continuation
                                   for this kind would close it.
+                                  ⏳ v5.7 PAIR (9/4) HELD pending the
+                                  operator's ear: candidates
+                                  verif_carrier_sameday_boards_20260904
+                                  (part 1, "boards", last word 9.48s)
+                                  + verif_carrier_sameday_signoff_master
+                                  _10s (pt2, trim 0–9.35s). Seam f0 split
+                                  — Δ29.2 on the MKT-59 windows / Δ2.2 at
+                                  the seam itself; every other gate
+                                  clean. Numbers in v5.7 G. Incumbent
+                                  serves until ruled.
     verif_carrier_ledger.mp4      ⏸ HELD (not registered; UNREFERENCED_OK
                                   carries the reason). "Here's the ledger
                                   from yesterday. Every signal we published

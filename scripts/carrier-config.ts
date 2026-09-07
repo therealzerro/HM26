@@ -243,11 +243,20 @@ export const CARRIERS: Record<string, CarrierSpec> = {
   // which is exactly why verify's own carriers were made time-neutral. Pinned
   // to this kind by the same structure that keeps an All-Day carrier out of
   // the Midday reel — no cross-kind lookup exists. Not in CARRIER_KINDS (a set
-  // of one cannot de-phase). VO 1.10–9.69s of a 10.005s preset → short-carrier
-  // path: hum-bed from the endcard's pre-crack window covers the tail.
+  // of one cannot de-phase).
+  // 2026-09-07 (MKT-62/69 v5.7 pair, REGISTERED under a delegated ear —
+  // handoff v6.0): part 1 is the 9/7 regeneration ("…boards…" / "Midday went
+  // up covered. All-Day, in full."; VO 1.13–9.66s, last voiced 9.51s) and a
+  // pt2 sign-off joins at the 10.005s file boundary ("Graded against the
+  // midday draws — hours before the evenin' ones land. / Same day. Not
+  // tomorrow."; trimmed to speech 0–9.41s, last word 9.37s). Seam Δ7.2 on the
+  // MKT-59 windows (fleet's accepted range Δ0.8–10.0). The 8/19 incumbent
+  // ("board" singular, ~8.6s of silent holds since MKT-69) is kept as
+  // verif_carrier_sameday_incumbent_backup.mp4. If the pt2 is ever missing,
+  // the short-carrier hum-bed path still covers the tail — do not remove it.
   verify_midday: {
     set: [{ file: 'verif_carrier_sameday.mp4', label: 'same day, not tomorrow' }],
-    rest: [],
+    rest: ['verif_carrier_sameday_pt2.mp4'],
   },
 };
 

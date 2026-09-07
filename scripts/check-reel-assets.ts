@@ -275,10 +275,23 @@ const UNREFERENCED_OK: Record<string, string> = {
   // VERDICT 2026-09-07 (ear delegated to the session, handoff v5.9 D): PAIR
   // REJECTED on the seam — re-measured Δ30.3 vs a calibrated fleet range of
   // Δ0.8–10.0 on every accepted pair (the ledger was rejected at Δ12.3).
-  // Part 1 alone reads as the fleet narrator (whole-take f0 115 Hz, timbre
-  // inside the same-narrator baseline) and stays the accepted part 1 for a
-  // pt2 REGENERATION at verif_carrier_sameday_signoff_20260907.mp4 (v5.9 E).
-  // Both 9/4 candidates stay parked here as evidence; the incumbent serves.
+  // Both 9/4 candidates stay parked here as evidence.
+  // SAME EVENING (handoff v6.0): the operator regenerated BOTH parts in one
+  // session from the v5.9 E/F prompts (narrator block verbatim, static bolt).
+  // They landed OVER the 9/4 candidate names; the new bytes were moved to the
+  // 20260907 candidate names and the 9/4 evidence restored from git. Gates:
+  // part 1 last voiced 9.51s / energy end 9.66s (seam gap 0.345s — inside the
+  // fleet's 0.305–0.355 on allday/midday/evening), pt2 speech 0.02–9.41 →
+  // trimmed 9.417s, last word 9.37; seam Δ7.2 [IQR overlap +5 Hz] on the
+  // MKT-59 windows; whole-take f0 117/110 Hz; timbre 0.007–0.030 vs every
+  // serving carrier (baseline 0.012–0.040). REGISTERED: part 1 →
+  // verif_carrier_sameday.mp4, trimmed pt2 → verif_carrier_sameday_pt2.mp4,
+  // incumbent → verif_carrier_sameday_incumbent_backup.mp4; carrier-config
+  // verify_midday.rest = [pt2]. First live draw owed on the next verify_midday.
+  'verif_carrier_sameday_incumbent_backup.mp4':
+    'MKT-62 INCUMBENT single-part sameday carrier (8/19–9/7), replaced 2026-09-07 by the v5.7 two-part pair — it says "board" singular (MKT-69 grades both) and left ~8.6s of holds silent. Kept as the rollback: copy back to verif_carrier_sameday.mp4 and set carrier-config verify_midday.rest to [] to restore.',
+  'verif_carrier_sameday_signoff_20260907.mp4':
+    'MKT-62/69 v5.7 pair — RAW pt2 MASTER of the 9/7 regeneration (10.005s; speech 0.02–9.41). The registered verif_carrier_sameday_pt2.mp4 is this file trimmed to speech (0–9.41). Kept as master/evidence; never register the raw 10s (name deliberately carries no _pt).',
   'verif_carrier_sameday_boards_20260904.mp4':
     'MKT-62/69 v5.7 CANDIDATE part 1, HELD 2026-09-04 pending operator ear — "Now this is a rare one. / This mornin\'s boards — already checked against what drew. / Midday went up covered. All-Day, in full." 10.005s (law holds), speech 1.09–9.64s, last word 9.48s (≤~9.5), tail −61.8 dBFS RMS, transcript = copy, tier-2 lint clean. Seam vs the pt2 master: MKT-59 windows (last voiced 1.2s vs first 1.6s) 128.0 [108–139] vs 98.8 [92–109] = Δ29.2 FAIL; seam-adjacent (last 0.6s vs first 0.8s) 110.3 [108–122] vs 108.1 [97–115] = Δ2.2 pass. Landed as *_20260904,mp4.mp4 (comma) — CLI-renamed. Incumbent verif_carrier_sameday.mp4 untouched.',
   'verif_carrier_sameday_signoff_master_10s.mp4':
@@ -653,20 +666,39 @@ function checkVerifyMidday(): void {
     else add('PASS', intro, `video ${st.vDur.toFixed(2)}s · audio ${st.aDur.toFixed(2)}s — the Anchor stands; IN 0.56 / OUT 6.45 of the master`);
     if (introCandidates(K, TODAY)[0]?.file !== intro) add('FAIL', `${K} intro selection`, `resolver does not put ${intro} first for ${K} — pin broken`);
   }
-  // carrier — set of one, no continuation, file in no other kind's set
+  // carrier — part 1 is a set of ONE (pinned, never rotates); since 2026-09-07
+  // (MKT-62/69 v5.7 pair) it may carry exactly ONE pinned continuation, which
+  // must be a `_pt<N>.mp4` referenced by no other kind. The "same day" lines
+  // stay false anywhere else, so both files are leak-checked against every
+  // other kind's set/rest/restShort.
   const cSpec = CARRIERS[K];
   if (!cSpec) { add('FAIL', K, 'no carrier config — the assembler aborts at resolveCarrier'); }
   else {
-    if (cSpec.set.length !== 1 || cSpec.rest.length) add('FAIL', K, `carrier must be a single-part set of ONE (is ${cSpec.set.length} part-1 + ${cSpec.rest.length} continuation) — "same day" lines are false anywhere else`);
+    if (cSpec.set.length !== 1) add('FAIL', K, `carrier part 1 must be a set of ONE (is ${cSpec.set.length}) — "same day" lines are false anywhere else`);
+    if (cSpec.rest.length > 1) add('FAIL', K, `carrier may carry at most ONE pinned continuation (has ${cSpec.rest.length})`);
+    const pinned = [cSpec.set[0].file, ...cSpec.rest];
+    for (const cf of pinned) {
+      const leak = Object.entries(CARRIERS).filter(([k, v]) => k !== K && (v.set.some(x => x.file === cf) || v.rest.includes(cf) || (v.restShort ?? []).includes(cf))).map(([k]) => k);
+      if (leak.length) add('FAIL', cf, `MKT-62 pinned carrier file is referenced by other kind(s): ${leak.join(', ')}`);
+      else add('PASS', cf, 'referenced by verify_midday only');
+    }
     const cf = cSpec.set[0].file;
-    const leak = Object.entries(CARRIERS).filter(([k, v]) => k !== K && (v.set.some(x => x.file === cf) || v.rest.includes(cf) || (v.restShort ?? []).includes(cf))).map(([k]) => k);
-    if (leak.length) add('FAIL', cf, `MKT-62 pinned carrier is referenced by other kind(s): ${leak.join(', ')}`);
-    else add('PASS', cf, 'referenced by verify_midday only');
     const cp = exists(cf);
     if (cp) {
       const st = streams(cp);
       if (!st.hasAudio) add('FAIL', cf, 'no audio stream — the carrier IS the VO');
-      else add('PASS', cf, `audio ${st.aDur.toFixed(2)}s — single-part; the body's closing holds play under the endcard audio (MKT-27/41 ruling, as on verify)`);
+      else if (cSpec.rest.length === 0) add('PASS', cf, `audio ${st.aDur.toFixed(2)}s — single-part; the body's closing holds play under the endcard audio (MKT-27/41 ruling, as on verify)`);
+      else {
+        const pt = cSpec.rest[0];
+        const pp = exists(pt);
+        if (!/_pt\d+\.mp4$/.test(pt)) add('FAIL', pt, 'continuation must be named _pt<N>.mp4 or the joiner never sees it');
+        else if (!pp) add('WARN', pt, 'declared continuation missing on disk — assembler falls back to the short-carrier hum-bed path (tail plays silent)');
+        else {
+          const ps = streams(pp);
+          if (!ps.hasAudio) add('FAIL', pt, 'continuation has no audio stream');
+          else add('PASS', cf, `audio ${st.aDur.toFixed(2)}s + ${pt} ${ps.aDur.toFixed(2)}s — two-part join (${(st.aDur + ps.aDur).toFixed(2)}s) covers the two-board body's holds (MKT-69 defect); hum-bed path remains the fallback`);
+        }
+      }
     }
     if (CARRIER_KINDS.includes(K)) add('FAIL', K, 'listed in CARRIER_KINDS — a set of one cannot de-phase and the lane order must not move');
   }

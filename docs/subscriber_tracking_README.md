@@ -127,6 +127,20 @@ Admin tab → **📧 Sub Import** → 🔥 Insights tab.
    The window-end date auto-fills to the last day of the daily series; the
    Contributors table pasted alone still works (set the date by hand). TSV,
    multi-space and the quoted CSV (BUG-172) all parse.
+
+   **Free group — two exports, both accepted (2026-09-07, BUG-176):**
+   - the *Group Insights download* ships a bare `Date` header with EMPTY
+     metric columns (no daily numbers at all), then Age Range, Top Cities,
+     country `Name,Value`, Contributors. The parser skips the empty daily
+     block with a warning and imports the Contributors; the demographic
+     tables are never stored. (This is the paste that "did not understand
+     this data" before 9/7 — the date rows were parsed as contributors.)
+   - the *Growth/Engagement export* carries the real daily series:
+     `Date, Joined, Posted or Commented, Viewed, Posts, Comments, Reactions`
+     → `fb_group_daily` with `joined`, `engaged_members`, and Viewed mapped
+     onto `active_members`; `total_members` stays NULL (the free export has
+     no member count — the funnel snapshot carries it).
+   Select **Free Group** before committing either one.
 3. Commit. The alert lists what landed; `subscriber_import_history` gets one
    `group_insights` row covering both blocks.
 

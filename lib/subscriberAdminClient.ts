@@ -177,7 +177,9 @@ export interface GroupDailyRow {
   posts: number;
   comments: number;
   reactions: number;
-  active_members: number;
+  active_members: number; // Pro export "Active Members"; free export "Viewed"
+  joined: number | null; // free export "Joined"; null on Pro rows
+  engaged_members: number | null; // free export "Posted or Commented"; null on Pro rows
   imported_at: string | null;
 }
 

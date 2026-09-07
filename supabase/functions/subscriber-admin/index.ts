@@ -406,6 +406,8 @@ interface GroupDailyRowIn {
   comments: number;
   reactions: number;
   active_members: number;
+  joined?: number | null;          // free-group export "Joined" (2026-09-07 columns)
+  engaged_members?: number | null; // free-group export "Posted or Commented"
 }
 
 async function listGroupDaily(group_type: 'free' | 'pro' = 'pro', days = 60) {
@@ -433,6 +435,8 @@ async function upsertGroupDaily(group_type: 'free' | 'pro', rows: GroupDailyRowI
       comments: r.comments ?? 0,
       reactions: r.reactions ?? 0,
       active_members: r.active_members ?? 0,
+      joined: r.joined ?? null,
+      engaged_members: r.engaged_members ?? null,
       imported_at: new Date().toISOString(),
     })),
     'resolution=merge-duplicates,return=minimal'

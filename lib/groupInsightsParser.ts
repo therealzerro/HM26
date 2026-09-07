@@ -37,14 +37,16 @@ export interface ParsedContributor {
 
 export interface ParsedGroupDay {
   day: string; // YYYY-MM-DD
-  total_members: number | null; // null when Insights reported 0 before the count existed
+  total_members: number | null; // null when Insights reported 0 before the count existed, or when the export has no such column (free group)
   pending_members: number;
   approved_requests: number;
   declined_requests: number;
   posts: number;
   comments: number;
   reactions: number;
-  active_members: number;
+  active_members: number; // Pro export "Active Members"; free export "Viewed"
+  joined: number | null; // free export "Joined" (new members that day); null on the Pro export
+  engaged_members: number | null; // free export "Posted or Commented"; null on the Pro export
 }
 
 export interface GroupInsightsParseResult {
@@ -116,7 +118,10 @@ export function parseGroupInsights(rawText: string): GroupInsightsParseResult {
     const lowerAll = cols.map(c => c.toLowerCase());
 
     // ── Section headers ──────────────────────────────────────────────────
-    if (first === 'date' && lowerAll.some(c => c.includes('total members'))) {
+    // Two daily-block shapes exist (2026-09-07): the PRO export has Total
+    // Members … Active Members; the FREE export has Joined · Posted or
+    // Commented · Viewed. Both start with "Date".
+    if (first === 'date' && lowerAll.some(c => c.includes('total members') || c === 'viewed' || c === 'joined')) {
       section = 'daily';
       sawHeader = true;
       dailyIdx = {};
@@ -129,7 +134,22 @@ export function parseGroupInsights(rawText: string): GroupInsightsParseResult {
         else if (c === 'comments') dailyIdx.comments = i;
         else if (c === 'reactions') dailyIdx.reactions = i;
         else if (c === 'active members') dailyIdx.active = i;
+        else if (c === 'viewed') dailyIdx.viewed = i;
+        else if (c === 'joined') dailyIdx.joined = i;
+        else if (c === 'posted or commented') dailyIdx.engaged = i;
       });
+      continue;
+    }
+    // The free group's "Group Insights" download (as opposed to its
+    // Growth/Engagement export) ships a daily block that is a bare "Date"
+    // header with EMPTY metric columns — nothing to store. Skip it and say so,
+    // rather than letting the date rows fall through as 4-column contributors
+    // (the pre-2026-09-07 failure: "the in-app import does not understand
+    // this data").
+    if (first === 'date') {
+      section = 'skip';
+      sawHeader = true;
+      result.warnings.push('Daily block has no metric columns in this export (bare "Date" header) — skipped. The daily series comes from the Growth/Engagement export (Joined · Posted or Commented · Viewed · Posts · Comments · Reactions).');
       continue;
     }
     if (first.includes('contributor') && (lowerAll.some(c => c.includes('post') || c.includes('comment') || c.includes('reaction') || c.includes('like')))) {
@@ -137,7 +157,18 @@ export function parseGroupInsights(rawText: string): GroupInsightsParseResult {
       sawHeader = true;
       continue;
     }
-    if (first.startsWith('popular ') || (first === 'posts' && lowerAll[1] === 'member')) {
+    // Everything else the download carries is skipped and never stored:
+    // Popular Days/Times, the Posts block (member names + post text), and the
+    // free export's Age Range / Top Cities / country and weekday "Name,Value"
+    // tables. A "Name,Value" header is only a section marker when it is the
+    // whole header row.
+    if (
+      first.startsWith('popular ') ||
+      (first === 'posts' && lowerAll[1] === 'member') ||
+      first === 'age range' ||
+      first === 'top cities' ||
+      (first === 'name' && lowerAll[1] === 'value' && lowerAll.slice(2).every(c => c === ''))
+    ) {
       section = 'skip';
       sawHeader = true;
       continue;
@@ -152,23 +183,30 @@ export function parseGroupInsights(rawText: string): GroupInsightsParseResult {
         section = 'skip';
         continue;
       }
-      const get = (k: string) => toIntSafe(dailyIdx[k] !== undefined ? cols[dailyIdx[k]] : '0');
+      const has = (k: string) => dailyIdx[k] !== undefined;
+      const get = (k: string) => toIntSafe(has(k) ? cols[dailyIdx[k]] : '0');
       const total = get('total'); const pending = get('pending'); const approved = get('approved'); const declined = get('declined');
-      const posts = get('posts'); const comments = get('comments'); const reactions = get('reactions'); const active = get('active');
-      if ([total, pending, approved, declined, posts, comments, reactions, active].some(v => v === null)) {
+      const posts = get('posts'); const comments = get('comments'); const reactions = get('reactions');
+      // Pro export: Active Members. Free export: Viewed plays that role.
+      const active = has('active') ? get('active') : get('viewed');
+      const joined = has('joined') ? get('joined') : null;
+      const engaged = has('engaged') ? get('engaged') : null;
+      if ([total, pending, approved, declined, posts, comments, reactions, active].some(v => v === null) || (has('joined') && joined === null) || (has('engaged') && engaged === null)) {
         result.warnings.push(`Skipped daily row with non-numeric counts: ${line.slice(0, 80)}`);
         continue;
       }
       // Rows before the group had any activity are all zeros — nothing to store.
-      if (total === 0 && posts === 0 && comments === 0 && reactions === 0 && active === 0 && pending === 0 && approved === 0 && declined === 0) continue;
+      if (total === 0 && posts === 0 && comments === 0 && reactions === 0 && active === 0 && pending === 0 && approved === 0 && declined === 0 && (joined ?? 0) === 0 && (engaged ?? 0) === 0) continue;
       if (seenDays.has(cols[0])) { result.warnings.push(`Duplicate day in input: ${cols[0]}`); continue; }
       seenDays.add(cols[0]);
       result.daily.push({
         day: cols[0],
-        // Insights reports 0 members on days before the member count existed; store NULL, not 0.
-        total_members: total === 0 ? null : total,
+        // Insights reports 0 members on days before the member count existed (and the
+        // free export has no member column at all); store NULL, not 0.
+        total_members: has('total') && total !== 0 ? total : null,
         pending_members: pending!, approved_requests: approved!, declined_requests: declined!,
         posts: posts!, comments: comments!, reactions: reactions!, active_members: active!,
+        joined, engaged_members: engaged,
       });
       continue;
     }

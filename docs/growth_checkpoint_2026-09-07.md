@@ -94,6 +94,31 @@ Popular days/times unchanged: 8–10 AM and 5–7 PM, Tuesday top, Wed/Thu lowes
 - **Funnel Intelligence** now shows: PRO GROUP (Insights members, as-of date) beside ACTIVE PRO (roster) with the gap called out; REAL CONVERSION (group members ÷ free group); an **Engagement pulse** card (last 7 days vs prior 7: posts, comments, reactions, active/day, active %, member Δ); a **Renewal wave** card (month-to-date subscription payouts vs the same days last month, and the last 7 days vs the same 7 days a month earlier).
 - **Pro Subscribers** shows a roster-vs-group banner when the roster exceeds the Insights count, pointing at Probe Potential Churns.
 
+## Free group (Growth/Engagement export 4/14–9/6 + Insights download, ingested 9/7 evening)
+
+Ingested: 139 daily rows into `fb_group_daily` (`group_type='free'`; columns Joined → `joined`, Posted or Commented → `engaged_members`, Viewed → `active_members`; no member count in either export), 20 contributors (window end 9/6, all already on file from the 5/19 import), one `group_insights` history row. The Insights *download* variant carries a bare "Date" header with empty metric columns — that is why the in-app import "did not understand" it; the parser now skips that block with a warning and reads the Growth/Engagement export for the series (BUG-176).
+
+**Intake (Joined, the free group's own count of new members):**
+
+| Period | Joined | /day | Viewed/day | Engaged/day | Comments/day |
+|---|---|---|---|---|---|
+| 6/15–6/30 (first reported) | 37 | 2.3 | 36 | 1.4 | 2.1 |
+| 7/1–7/28 | 12 | 0.4 | 19 | 0.3 | 0.0 |
+| 7/29–8/5 | 72 | 9.0 | 80 | 2.5 | 8.0 |
+| **8/6–8/12 spurt** | **142** | **20.3** | 202 | 5.6 | 13.7 |
+| 8/13–8/19 | 30 | 4.3 | 129 | 2.1 | 4.9 |
+| 8/20–8/26 | 8 | 1.1 | 80 | 1.3 | 1.1 |
+| 8/27–9/2 | 15 | 2.1 | 58 | 1.1 | 1.7 |
+| 8/31–9/6 | 24 | 3.4 | 69 | 1.6 | 3.6 |
+
+335 joins since 6/13; 172 of them in 8/4–8/12. Joined per day agrees with the funnel snapshots (3.0/day 9/2→9/7 vs 3.4 here) — the two sources reconcile. Viewed/day (members who opened the group) is 60–90 lately, i.e. **12–18% of the 485 members see the group on a given day**; the 8/6–8/12 peak reached ~200 (40%+). Comments 3.6/day this week, up from 1.1–1.7 the prior two weeks — the free room is currently more conversational than Pro (0.1/day).
+
+**Who they are (Insights download, aggregates only):** 55% women; 45–54 is the largest band (149 = 31%), then 35–44 (116) and 55–64 (95); 18–24 is 1.5%. Country: US 424 (88%), Bahamas 27, then single digits. Cities: New York 58, Nassau 19, Detroit 14, then a Mississippi cluster (Canton, Jackson, Starkville, Tupelo, Aberdeen, Cleveland, Columbia, Vicksburg… ≈35 combined), Georgia and the Carolinas. Weekday distribution is flat (16–19). Popular hours 8–11 AM and 5–7 PM — same as Pro.
+
+**What engaged (top posts):** the four highest-view posts are all pre-rebrand voice — "🚨 8/6 MIDDAY GIANT WIN IN CO" 1,054 views, "🎯 Direct Hit from the Midday Board in NC … Only in the Pro Group" 850, "STRAIGHT MATCH TODAY! From the … ALLDAY Picks" 727, "8/10 Early Evening Matches. Here's your reason to join the Pro Group" 662 — versus 45–165 for the templated drops. Top by comments: a member's "Hit Master stays on top with the 💰💰💰💰" (8c/15r), the 8/13 covered Midday drop (8c/8r — the covered board draws questions), two member intros (6c each), "Thank you for what you do!" (6c/8r). The START HERE FAQ pin (posted 9/7) is at 3c/2r/57 views. Members' own posts ("I'm ready to start winning", "Hopefully I can finally win something") carry the vocabulary the brand avoids — that is the audience talking, not the page, and it is tier 2 where it is legal.
+
+**Read:** the free group's outsized posts were the ones that named a state and a result in plain words ("WIN IN CO", "Direct Hit … NC"). That vocabulary is barred on tier 1 and the rebrand replaced it with MATCH / STRAIGHT MATCH in the free room too; views per post fell from 660–1,050 to 45–165 across the same period that intake fell from 20/day to 3/day. Correlation, not proof — the spurt itself was driven by the session-wave launch — but it is the one variable in the free room's history that moved with views. Not proposed: reverting vocabulary on any surface (brand law); worth a ruling: whether the *free* room's verify captions may name the state and the result in MATCH vocabulary ("STRAIGHT MATCH in NC this morning") rather than "from coast to coast".
+
 ## Actions (operator decisions)
 
 - **Reconcile the roster before the next funnel snapshot:** review the 13 churn candidates (Sub Import → Probe Potential Churns) and import a fresh supporter export after 9/23 so `active_pro_subscribers` stops reading 72 against a 63-member group.

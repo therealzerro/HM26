@@ -115,8 +115,8 @@ function SnapshotForm({ onSaved, latestActive }: { onSaved: () => void; latestAc
     <Card style={{ padding: 14 }}>
       <Text style={st.title}>Record Funnel Snapshot</Text>
       <Text style={st.sub}>
-        Pro count is auto-pulled from the subscriber roster ({latestActive} active). Enter today's
-        page followers and free group count.
+        Subscriber count is auto-pulled from the roster ({latestActive} active). Enter today&apos;s
+        page followers and free-group member count.
       </Text>
       <View style={{ gap: 10 }}>
         <View>
@@ -261,6 +261,91 @@ function VelocityCard({ snaps, pulse }: { snaps: FunnelSnapshot[]; pulse: Return
   );
 }
 
+/**
+ * Free group = MEMBERS (operator terminology 2026-09-07; Pro group = SUBSCRIBERS).
+ * The free group's Growth/Engagement export has no member count, so the
+ * headcount comes from the funnel snapshot and the series carries intake
+ * (Joined), reach (Viewed → active_members) and conversation (Posted or
+ * Commented → engaged_members, plus comments/reactions).
+ */
+function freePulse(rows: GroupDailyRow[]) {
+  if (!rows.length) return null;
+  const end = rows[0].day; // newest first
+  const inWin = (r: GroupDailyRow, from: string, to: string) => r.day > from && r.day <= to;
+  const w1 = rows.filter(r => inWin(r, shiftDays(end, -7), end));
+  const w0 = rows.filter(r => inWin(r, shiftDays(end, -14), shiftDays(end, -7)));
+  const sum = (xs: GroupDailyRow[], k: 'joined' | 'engaged_members' | 'active_members' | 'posts' | 'comments' | 'reactions') =>
+    xs.reduce((a, r) => a + (Number(r[k]) || 0), 0);
+  const stat = (xs: GroupDailyRow[]) => ({
+    days: 7,
+    joined: sum(xs, 'joined'),
+    viewed: sum(xs, 'active_members') / 7,
+    engaged: sum(xs, 'engaged_members') / 7,
+    posts: sum(xs, 'posts') / 7,
+    comments: sum(xs, 'comments') / 7,
+    reactions: sum(xs, 'reactions') / 7,
+  });
+  const since = rows[rows.length - 1].day;
+  return { asOf: end, since, now: stat(w1), prev: stat(w0), joinedTotal: sum(rows, 'joined'), days: rows.length };
+}
+
+function FreeMembersCard({ rows, members }: { rows: GroupDailyRow[]; members: number | null }) {
+  const { colors } = useTheme();
+  const p = useMemo(() => freePulse(rows), [rows]);
+  if (!p) return null;
+  const data = rows.slice().reverse().slice(-60); // oldest → newest, last 60 days
+  const joins = data.map(r => Number(r.joined) || 0);
+  const max = Math.max(1, ...joins);
+  const pct = (v: number) => (members ? `${((v / members) * 100).toFixed(0)}%` : '—');
+  const line = (label: string, a: number, b: number, fmt: (v: number) => string = v => v.toFixed(1), extra?: string) => (
+    <View key={label} style={{ flexDirection: 'row', paddingVertical: 4, borderTopWidth: 1, borderTopColor: colors.border, gap: 6 }}>
+      <Text style={{ flex: 2, fontSize: 11, color: colors.text }}>{label}{extra ? <Text style={{ color: colors.textTertiary }}> {extra}</Text> : null}</Text>
+      <Text style={{ width: 70, fontSize: 11, color: a < b * 0.7 ? colors.error : colors.text, textAlign: 'right', fontVariant: ['tabular-nums'], fontWeight: '700' }}>{fmt(a)}</Text>
+      <Text style={{ width: 70, fontSize: 11, color: colors.textSecondary, textAlign: 'right', fontVariant: ['tabular-nums'] }}>{fmt(b)}</Text>
+    </View>
+  );
+  return (
+    <Card style={{ padding: 12 }}>
+      <SectionTitle>{`Members · free group · through ${p.asOf}`}</SectionTitle>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+        <MetricTile label="JOINED · LAST 7D" value={String(p.now.joined)} sub={`${(p.now.joined / 7).toFixed(1)}/day · prior 7d ${p.prev.joined}`} color={colors.teal} />
+        <MetricTile label="VIEWED / DAY" value={p.now.viewed.toFixed(0)} sub={`${pct(p.now.viewed)} of members open the group daily`} color={colors.teal} />
+        <MetricTile label="POSTED OR COMMENTED / DAY" value={p.now.engaged.toFixed(1)} sub={`prior 7d ${p.prev.engaged.toFixed(1)}`} />
+        <MetricTile label="JOINED · SERIES" value={String(p.joinedTotal)} sub={`since ${p.since.slice(5)} · ${p.days} days on file`} />
+      </View>
+      <View style={{ flexDirection: 'row', paddingVertical: 4, gap: 6 }}>
+        <Text style={{ flex: 2, fontSize: 9, color: colors.textTertiary, letterSpacing: 1 }}>PER DAY</Text>
+        <Text style={{ width: 70, fontSize: 9, color: colors.textTertiary, letterSpacing: 1, textAlign: 'right' }}>LAST 7D</Text>
+        <Text style={{ width: 70, fontSize: 9, color: colors.textTertiary, letterSpacing: 1, textAlign: 'right' }}>PRIOR 7D</Text>
+      </View>
+      {line('Joined', p.now.joined / 7, p.prev.joined / 7)}
+      {line('Viewed', p.now.viewed, p.prev.viewed, v => v.toFixed(0), members ? `(${pct(p.now.viewed)} vs ${pct(p.prev.viewed)})` : undefined)}
+      {line('Posted or commented', p.now.engaged, p.prev.engaged)}
+      {line('Posts', p.now.posts, p.prev.posts)}
+      {line('Comments', p.now.comments, p.prev.comments)}
+      {line('Reactions', p.now.reactions, p.prev.reactions)}
+      <Text style={{ fontSize: 9, color: colors.textTertiary, letterSpacing: 1, marginTop: 10 }}>JOINED PER DAY · LAST {data.length} DAYS</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 60, gap: 1, paddingHorizontal: 4, marginTop: 4 }}>
+        {data.map((r, i) => (
+          <View key={r.day} style={{ flex: 1, alignItems: 'center' }}>
+            <View style={{ width: '100%', height: Math.max(2, (joins[i] / max) * 54), backgroundColor: colors.teal, borderRadius: 1 }} />
+          </View>
+        ))}
+      </View>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+        <Text style={{ fontSize: 9, color: colors.textTertiary }}>{data[0]?.day.slice(5)}</Text>
+        <Text style={{ fontSize: 9, color: colors.textTertiary }}>peak {max}/day</Text>
+        <Text style={{ fontSize: 9, color: colors.textTertiary }}>{data[data.length - 1]?.day.slice(5)}</Text>
+      </View>
+      <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 6 }}>
+        Members = the free group (the conversion funnel); subscribers = the Pro group. The free export carries no member
+        count — the headcount is the funnel snapshot&apos;s free-group number. Refresh by pasting the free group&apos;s
+        Growth/Engagement export into Sub Import → 🔥 Insights with Free Group selected.
+      </Text>
+    </Card>
+  );
+}
+
 function RecentConversions({ subs }: { subs: ProSubscriber[] }) {
   const { colors } = useTheme();
   const st = useSt();
@@ -322,6 +407,7 @@ function FunnelDashboardInner() {
   const [subs, setSubs] = useState<ProSubscriber[]>([]);
   const [earn, setEarn] = useState<EarningsDay[]>([]);
   const [groupDaily, setGroupDaily] = useState<GroupDailyRow[]>([]);
+  const [freeDaily, setFreeDaily] = useState<GroupDailyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -329,16 +415,18 @@ function FunnelDashboardInner() {
     setLoading(true);
     setErr(null);
     try {
-      const [s, p, earnRows, gd] = await Promise.all([
+      const [s, p, earnRows, gd, fd] = await Promise.all([
         subscriberAdmin.listSnapshots(30),
         subscriberAdmin.listSubscribers({}),
         subscriberAdmin.listEarnings(400).catch(() => [] as EarningsDay[]),
         subscriberAdmin.listGroupDaily('pro', 90).catch(() => [] as GroupDailyRow[]),
+        subscriberAdmin.listGroupDaily('free', 90).catch(() => [] as GroupDailyRow[]),
       ]);
       setSnaps(s);
       setSubs(p);
       setEarn(earnRows);
       setGroupDaily(gd);
+      setFreeDaily(fd);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -435,7 +523,7 @@ function FunnelDashboardInner() {
       <View>
         <Text style={{ fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 4 }}>Funnel Intelligence</Text>
         <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 12 }}>
-          Latest snapshot: {latest?.snapshot_date ?? '—'}
+          Latest snapshot: {latest?.snapshot_date ?? '—'} · Subscribers = Pro group · Members = free group
         </Text>
       </View>
 
@@ -447,22 +535,22 @@ function FunnelDashboardInner() {
             sub={previous ? `${(latest.page_followers - previous.page_followers >= 0 ? '+' : '')}${latest.page_followers - previous.page_followers} vs prev` : undefined}
           />
           <MetricTile
-            label="FREE GROUP"
+            label="MEMBERS · FREE GROUP"
             value={latest.free_group_members.toLocaleString()}
             sub={previous ? `${(latest.free_group_members - previous.free_group_members >= 0 ? '+' : '')}${latest.free_group_members - previous.free_group_members} vs prev` : undefined}
             color={colors.teal}
           />
           <MetricTile
-            label="ACTIVE PRO · ROSTER"
+            label="SUBSCRIBERS · ROSTER"
             value={String(latest.active_pro_subscribers)}
-            sub={`now: ${activeNow} in roster`}
+            sub={`now: ${activeNow} active on the roster`}
             color={colors.success}
           />
           {pulse && (
             <MetricTile
-              label="PRO GROUP · INSIGHTS"
+              label="SUBSCRIBERS · PRO GROUP"
               value={String(pulse.members)}
-              sub={`as of ${pulse.asOf.slice(5)}${pulse.membersWeekAgo != null ? ` · ${signed(pulse.members - pulse.membersWeekAgo)} in 7d` : ''}${rosterGap && rosterGap > 0 ? ` · roster +${rosterGap}` : ''}`}
+              sub={`Insights, as of ${pulse.asOf.slice(5)}${pulse.membersWeekAgo != null ? ` · ${signed(pulse.members - pulse.membersWeekAgo)} in 7d` : ''}${rosterGap && rosterGap > 0 ? ` · roster +${rosterGap}` : ''}`}
               color={rosterGap && rosterGap > 2 ? colors.gold : colors.success}
             />
           )}
@@ -476,7 +564,7 @@ function FunnelDashboardInner() {
             <MetricTile
               label="CONVERSION · REAL"
               value={`${((pulse.members / latest.free_group_members) * 100).toFixed(1)}%`}
-              sub="Insights members ÷ free group"
+              sub="subscribers (Pro group) ÷ members (free group)"
               color={colors.gold}
             />
           )}
@@ -614,6 +702,8 @@ function FunnelDashboardInner() {
           </Text>
         </Card>
       )}
+
+      <FreeMembersCard rows={freeDaily} members={latest ? latest.free_group_members : null} />
 
       {latest && Number(latest.active_pro_subscribers) !== activeNow && (
         <Card style={{ padding: 12, borderColor: colors.gold + '55' }}>

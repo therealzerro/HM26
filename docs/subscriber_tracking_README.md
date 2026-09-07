@@ -178,8 +178,20 @@ observed per-renewal amount in the export and confirms the 70% constant in
 
 ### Reading the Funnel dashboard (2026-09-07 layout)
 
-Three Pro numbers, deliberately side by side — they measure different things
-and drift apart exactly when it matters:
+Terminology (operator ruling 2026-09-07): **subscribers** = the Pro group;
+**members** = the free group. Tiles and cards use those words.
+
+**Members · free group card** (from the free group's Growth/Engagement
+export in `fb_group_daily`): JOINED last 7 days and per day vs the prior 7,
+VIEWED per day with the share of members who open the group daily (uses the
+snapshot's free-group headcount — the free export has no member count),
+POSTED OR COMMENTED per day, the series total of joins, a 7-day vs prior-7
+table (joined, viewed, engaged, posts, comments, reactions), and a 60-day
+joined-per-day bar strip. Refresh by pasting the Growth/Engagement export
+into Sub Import → 🔥 Insights with Free Group selected.
+
+Three subscriber numbers, deliberately side by side — they measure different
+things and drift apart exactly when it matters:
 
 | Tile | Source | What it is | When it lies |
 |---|---|---|---|

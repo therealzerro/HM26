@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-07 · v5.9
+Content Agent Handoff · 2026-09-07 · v6.0
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -351,6 +351,75 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
 
+WHAT CHANGED IN v6.0 (2026-09-07 night — MKT-62/69 TWO-PART PAIR REGISTERED.
+The operator regenerated BOTH parts in one session from v5.9 E/F within the
+hour; every engineering gate passed against the fleet calibration; the pair
+serves from the next verify_midday run. §G.10(c) CLOSES on the first live
+draw. No new ID; next free stays 74.)
+================================================================================
+  A. LANDING. ⚠ Both files were dropped OVER the 9/4 candidate names
+     (boards_20260904 / signoff_master_10s) rather than at the 20260907
+     names — a bypass of E's candidate naming. Not a serving-file overwrite
+     (verif_carrier_sameday.mp4 stayed byte-identical to HEAD), but the 9/4
+     evidence bytes were overwritten on disk. Resolved: new bytes MOVED to
+     verif_carrier_sameday_boards_20260907.mp4 / _signoff_20260907.mp4, the
+     9/4 evidence RESTORED from git (3c47c67), then gated. Lesson stands:
+     a delivery at any existing name overwrites it silently — candidate
+     names must be NEW names, every time.
+  B. GATES (same tracker and windows as v5.9 C, so the numbers compare):
+       integrity   both real mp4, h264 720×1280 + aac 48 kHz, 10.005s each
+       part 1      speech 1.13–9.66 · LAST VOICED FRAME 9.51s (the 9/4 take
+                   reads 9.46 on the same metric; the "~9.5" line holds) ·
+                   seam gap to pt2@10.005 = 0.345s, INSIDE the fleet's
+                   accepted 0.305–0.355 (midday/allday/evening pairs) ·
+                   tail −64 dBFS. Fallback cut NOT applied.
+       pt2         speech 0.02–9.41 · trimmed to speech → 9.417s file, last
+                   word 9.37 ≤ 9.47 ✓ · tail −62 dBFS. Raw master kept.
+       seam        MKT-59 windows: part 1 close 113.1 [102–119] vs pt2 open
+                   120.3 [114–132] → Δ7.2, IQR overlap +5 Hz → PASS (fleet
+                   accepted range Δ0.8–10.0; 9/4 pair was Δ30.3). Seam-
+                   adjacent Δ23.6 — the last 0.6s of part 1 dips to ~93 on
+                   "in" then lifts through "full" (119 → 156, a rising
+                   release); pt2 opens at 130. The register matches where the
+                   9/4 take's did not; the contour is the mirror image.
+                   Recorded so nobody reads the split as a defect.
+       narrator    whole-take f0 part 1 117 Hz, pt2 110 (fleet 103–133);
+                   timbre distance vs every serving carrier 0.007–0.030
+                   (same-narrator baseline 0.012–0.040); part 1 vs pt2 0.019
+                   → one man, both parts.
+       lint/truth  copy unchanged from v5.7 B → tiers 2 and 4 clean; MKT-69
+                   order and C.1 chain unchanged. Transcript not machine-
+                   verified (no STT in-env); copy was pasted from the prompt.
+  C. REGISTERED (v5.7 E.4, exactly):
+       verif_carrier_sameday.mp4                 ← 9/7 part 1 (was incumbent)
+       verif_carrier_sameday_pt2.mp4             ← 9/7 pt2 trimmed 0–9.41
+       verif_carrier_sameday_incumbent_backup.mp4 ← the 8/19 single-part take
+                                                    (rollback: copy back +
+                                                    rest → [])
+       verif_carrier_sameday_signoff_20260907.mp4 ← raw pt2 master, evidence
+       carrier-config verify_midday.rest: [] → ['verif_carrier_sameday_pt2.mp4']
+     Short-carrier hum-bed path untouched — a missing pt2 still degrades to
+     it (reel:check now WARNs on that case instead of failing).
+  D. reel:check: its verify_midday rule said "single-part set of ONE, no
+     continuation" and FAILED the registration on sight — the rule predates
+     this order. Rewritten: part 1 must be a set of ONE (unchanged), the
+     kind may carry AT MOST ONE continuation, named _pt<N>.mp4, and BOTH
+     files are leak-checked against every other kind's set/rest/restShort.
+     Result: "two-part join (19.41s) covers the two-board body's holds" ·
+     0 FAIL / 110 WARN (all pre-existing). Neither clip is reachable from
+     any pooled lane: verify_midday is not in CARRIER_KINDS and the resolver
+     has no cross-kind lookup — still pinned, still a set of one.
+  E. OWED — FIRST LIVE DRAW on the next verify_midday run (manual, operator):
+     contact sheet + a listen of the seam INSIDE the assembled reel, and the
+     answer to the question this order exists for — are the ~8.6s of silent
+     holds under the two-board body now covered? The raw pair says yes by
+     arithmetic (19.41s of VO against a body that ends ~24s before the
+     endcard audio); the assembled reel is the proof.
+  F. PROMPT DIVERGENCE, closed as fact: the block that produced BOTH
+     accepted takes (9/4 part 1, 9/7 pair) is the narrator block verbatim +
+     the static-bolt placeholder. §11 §4 is confirmed load-bearing.
+
+================================================================================
 WHAT CHANGED IN v5.9 (2026-09-07 evening — MKT-62/69 TWO-PART PAIR: VERDICT
 on the 9/4 candidates under a DELEGATED ear ("use your best judgement …
 continue to execute"), and the PT2 REGENERATION ASK with the prompt supplied.

@@ -272,7 +272,13 @@ const UNREFERENCED_OK: Record<string, string> = {
   // pending the operator's two ear checks (seam; cross-kind narrator). Seam
   // f0 proxy on the MKT-59 windows FAILS (Δ29.2), on the seam-adjacent
   // windows passes (Δ2.2) — the measurement is split, so the ear decides.
-  // Registers via carrier-config `verify_midday` (set swap + rest) if it passes.
+  // VERDICT 2026-09-07 (ear delegated to the session, handoff v5.9 D): PAIR
+  // REJECTED on the seam — re-measured Δ30.3 vs a calibrated fleet range of
+  // Δ0.8–10.0 on every accepted pair (the ledger was rejected at Δ12.3).
+  // Part 1 alone reads as the fleet narrator (whole-take f0 115 Hz, timbre
+  // inside the same-narrator baseline) and stays the accepted part 1 for a
+  // pt2 REGENERATION at verif_carrier_sameday_signoff_20260907.mp4 (v5.9 E).
+  // Both 9/4 candidates stay parked here as evidence; the incumbent serves.
   'verif_carrier_sameday_boards_20260904.mp4':
     'MKT-62/69 v5.7 CANDIDATE part 1, HELD 2026-09-04 pending operator ear — "Now this is a rare one. / This mornin\'s boards — already checked against what drew. / Midday went up covered. All-Day, in full." 10.005s (law holds), speech 1.09–9.64s, last word 9.48s (≤~9.5), tail −61.8 dBFS RMS, transcript = copy, tier-2 lint clean. Seam vs the pt2 master: MKT-59 windows (last voiced 1.2s vs first 1.6s) 128.0 [108–139] vs 98.8 [92–109] = Δ29.2 FAIL; seam-adjacent (last 0.6s vs first 0.8s) 110.3 [108–122] vs 108.1 [97–115] = Δ2.2 pass. Landed as *_20260904,mp4.mp4 (comma) — CLI-renamed. Incumbent verif_carrier_sameday.mp4 untouched.',
   'verif_carrier_sameday_signoff_master_10s.mp4':

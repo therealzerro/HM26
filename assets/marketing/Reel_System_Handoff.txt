@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-07 · v5.8
+Content Agent Handoff · 2026-09-07 · v5.9
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -351,6 +351,184 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
 
+WHAT CHANGED IN v5.9 (2026-09-07 evening — MKT-62/69 TWO-PART PAIR: VERDICT
+on the 9/4 candidates under a DELEGATED ear ("use your best judgement …
+continue to execute"), and the PT2 REGENERATION ASK with the prompt supplied.
+Tracked under MKT-62/69, no new ID; next free ID is 74 (MKT-70–73 were
+consumed by v5.8 and the captions-sheet build).)
+================================================================================
+  A. PHASE 0 — LOCATED AND VERIFIED (re-run 9/7, not inherited from 9/4).
+     Both candidates present at their candidate names; NEITHER touched a
+     registered name — verif_carrier_sameday.mp4 is byte-identical to HEAD,
+     no _pt2 exists, no .mov / .MP4 strays. ffprobe: real mp4, h264 + aac
+     48 kHz, 10.005s each (measured). Preflight rule confirmed in code:
+     /_pt/ anywhere but `_pt<N>.mp4` = FAIL, so `_signoff_master_10s` passes
+     and a `_pt2_master` shape would not.
+  B. PHASE 1 — MEASURED (−40 dB gate, d=0.25; word ends re-read at −30 dB).
+       part 1   file 10.005s (law met) · speech 1.11–9.62 · "full." ends
+                ~9.48, release to 9.62 · tail from 9.65: −64 dBFS RMS /
+                −45 peak. Inside the ~9.5 line → the "All-Day, uncovered."
+                fallback NOT applied.
+       pt2      master 10.005s · speech 0.00–9.35 (opens on frame one, no
+                leading silence to trim) · last word 9.32 · tail from 9.40:
+                −72 / −51. Trim-to-speech 0–9.35 → trimmed file 9.375s,
+                last word 9.32 ≤ 9.47 ✓. Trimmed copy exists in the session
+                scratch only — NOT in assets, NOT registered.
+       incumbent (reference) speech 1.10–9.69 · tail −78 / −64.
+     Tails are near-silent, not digital zero — same class as the incumbent.
+  C. PHASE 2 — GATES.
+     1. Lint: all five lines clean at tier 2 AND tier 4; tier 1 flags only
+        "Midday" (advisory; not this kind's surface). No direct address,
+        counts or state names. Content truth: no commit since 9/4 touched
+        the MKT-69 order chain or the C.1 precondition chain — both lines
+        still true.
+     2. Transcript: no speech-to-text exists in this environment. The 9/4
+        record (transcript = copy, verbatim) stands; not re-transcribed.
+     3. SEAM, re-measured independently (autocorrelation f0, −35 dB voiced
+        gate, 40 ms / 10 ms):
+          MKT-59 windows (last voiced 1.2s vs first 1.6s):
+            part 1 close 129.0 Hz [108–139] vs pt2 open 98.8 [92–109]
+            → Δ30.3, IQRs touching by ~1 Hz          → FAIL (bar ≤~Δ11)
+          seam-adjacent (last 0.6s vs first 0.8s): 109.6 vs 108.1 → Δ1.5 ✓
+        Contour: part 1 "in" rides ~137, "full" drops to ~108 and ticks
+        back to ~125 at the release — NOT the level/lifted close the copy
+        was scripted for; pt2 opens 114 for 0.4s then settles to ~95 for
+        the rest of the take.
+     4. ⚠ CALIBRATION — every ACCEPTED serving pair, same tracker:
+            verif_carrier          → verif_carrier_pt2        Δ 6.7
+            verif_carrier_record   → verif_carrier_pt2        Δ 6.9
+            verif_carrier_checked  → verif_carrier_pt2        Δ10.0
+            allday_pro_carrier     → allday_pro_carrier_pt2   Δ 0.8
+            midday_pro_carrier     → midday_pro_carrier_pt2   Δ 3.1
+            evening_pro_carrier    → evening_pro_carrier_pt2  Δ 7.7
+            verif_carrier_record   → verif_carrier_signoff_short Δ 3.2
+            CANDIDATE boards_20260904 → signoff_master_10s    Δ30.3
+        The fleet's accepted range is Δ0.8–10.0; the ledger was rejected
+        at Δ12.3; the candidate is 3× the worst accepted pair.
+     5. SECOND EAR (cross-kind narrator), instrumented: whole-take f0 —
+        new part 1 115 Hz · incumbent sameday 117 · verif_carrier_record
+        113 · verif_carrier 105 · verif_carrier_pt2 103 · allday_pro 133 ·
+        NEW PT2 98 (lowest in the fleet). Timbre (log-mel mean cosine
+        distance; fleet same-narrator baseline 0.012–0.040): new part 1 vs
+        every serving carrier 0.009–0.022 → inside the baseline. New pt2 vs
+        fleet 0.013–0.053 → mostly inside, one pair above.
+  D. VERDICT (delegated).
+     • PART 1: ACCEPTED as narrator-consistent — pitch and timbre inside
+       the fleet's own spread, clean on every gate of its own. It is not
+       registered alone: a part 1 without a pt2 recreates the ~8.6s silent
+       tail this order exists to fix, and the incumbent already does that
+       with a known, tolerated defect.
+     • PAIR: REJECTED on the seam. Δ30.3 on the bar the order named ("the
+       ledger was rejected at Δ12.3 — that is the bar"), against a fleet
+       that has never accepted above Δ10. I will not substitute my judgement
+       for a measurement that fails by that margin; the seam-adjacent pass
+       says the two takes MEET at one pitch, not that they sit in one
+       register. The 9/4 note (G.7) already named the fix: a pt2 that opens
+       higher and holds, not a part-1 cut.
+     • DISPOSITION: incumbent serves (it was never touched); both candidates
+       stay parked at their candidate names with these measurements
+       (UNREFERENCED_OK carries them); §G.10(c) stays OPEN.
+     • THE EAR FILES the operator can still audit (public bucket, 9/7):
+         …/marketing-reels/ear/20260907/ear1_seam_part1_then_pt2.mp4
+             (new part 1 → trimmed pt2, 19.4s)
+         …/marketing-reels/ear/20260907/ear2_newpart1_vs_serving_carriers.mp4
+             (new part 1 · 1s · verif_carrier_record · 1s · allday_pro, 32s)
+  E. THE ASK — REGENERATE PT2 ONLY, at a CANDIDATE name.
+     Same copy (17 words, v5.7 B), same voice, one change of direction: it
+     OPENS IN THE REGISTER PART 1 CLOSES IN (~120–130 Hz, "in full") and
+     HOLDS it; it must not settle into the low-90s body the 9/4 take did.
+     Target the MKT-59 window: first 1.6s median within ~Δ10 of 129 Hz.
+     Candidate name: verif_carrier_sameday_signoff_20260907.mp4 (no _pt).
+     Gates on landing exactly as v5.7 E.3; part 1 stays the accepted
+     boards_20260904 take, so ONLY the seam and the pt2's own gates re-run.
+     ⚠ SESSION CAVEAT: part 1 lives in a 9/4 session, so this pt2 cannot be
+     "same session". The narrator block below is what makes that survivable
+     — it is the block that produced the accepted part 1. If the landed pt2
+     fails the seam again, the fallback is F: regenerate BOTH as a pair in
+     one session, part 1 first, listen, accept, pt2 immediately.
+     PROMPT (paste as written — §11 discipline: pacing first, narrator block
+     verbatim, placeholder visual, negatives only in the closing paragraph):
+     ┌──────────────────────────────────────────────────────────────────┐
+     ⚠ CRITICAL PACING INSTRUCTION — READ FIRST: EVERY EVENT HAPPENS
+     WITHIN THE FIRST 7 SECONDS. Do not spread the speech across the full
+     clip length. The first word lands at 0.3s; two short lines with one
+     unhurried breath between them; the last word lands by 6.5s.
+     Everything after that is a still hold with silence in it.
+
+     The narrator: a man in his early sixties, American, from rural West
+     Texas. Deep chest-resonant voice with real gravel in it from decades
+     of use, not raspy or strained. An unhurried cowboy drawl — vowels
+     stretched long and lazy, consonants soft, g's dropped on -ing words.
+     Low volume, generous pauses, complete confidence, no performance and
+     no sales energy whatsoever. Close-mic, warm and intimate.
+
+     He is picking up a sentence he has just left hanging on a level,
+     slightly lifted note, and he opens in that same mid register — the
+     pitch of a man finishing the thought he was already in — and stays
+     there through both lines. Two lines, spoken exactly:
+     "Graded against the midday draws — hours before the evenin' ones
+     land."
+     "Same day. Not tomorrow."
+     The second line settles and closes.
+
+     Visual: a single dim glowing white lightning bolt on a deep purple
+     field, completely static. Placeholder visual — discarded in assembly.
+     All attention on the voice. Vertical 9:16, 720 × 1280, 10 seconds.
+
+     Exclusions: no young voice; no neutral or broadcast American accent;
+     no announcer or commercial VO delivery; no speeding up; no music, no
+     room effects, no second voice. No text, letters, numbers, logos or
+     watermarks in the frame. No ornaments, sparkles, stars, lens flares,
+     corner marks or decorative flourishes of any kind, anywhere in the
+     frame.
+     └──────────────────────────────────────────────────────────────────┘
+  F. FALLBACK — THE FULL PAIR IN ONE SESSION (only if E fails the seam).
+     Part 1 first; LISTEN AND ACCEPT the voice; then pt2 (E's prompt)
+     immediately. Candidate names: verif_carrier_sameday_boards_20260907
+     .mp4 and verif_carrier_sameday_signoff_20260907.mp4. Part 1 prompt:
+     ┌──────────────────────────────────────────────────────────────────┐
+     ⚠ CRITICAL PACING INSTRUCTION — READ FIRST: EVERY EVENT HAPPENS
+     WITHIN THE FIRST 9.2 SECONDS. Do not spread the speech across the
+     full clip length. The first word lands at 1.0s; three short lines
+     with a half-beat of breath between each; the last word lands by
+     9.2s. Everything after that is a still hold with silence in it.
+
+     The narrator: a man in his early sixties, American, from rural West
+     Texas. Deep chest-resonant voice with real gravel in it from decades
+     of use, not raspy or strained. An unhurried cowboy drawl — vowels
+     stretched long and lazy, consonants soft, g's dropped on -ing words.
+     Low volume, generous pauses, complete confidence, no performance and
+     no sales energy whatsoever. Close-mic, warm and intimate.
+
+     Three lines, spoken exactly:
+     "Now this is a rare one."
+     "This mornin's boards — already checked against what drew."
+     "Midday went up covered. All-Day, in full."
+     The last three words hold one level, slightly lifted pitch, as if
+     there is more to say — the voice does not fall on "full".
+
+     Visual: a single dim glowing white lightning bolt on a deep purple
+     field, completely static. Placeholder visual — discarded in assembly.
+     All attention on the voice. Vertical 9:16, 720 × 1280, 10 seconds.
+
+     Exclusions: no young voice; no neutral or broadcast American accent;
+     no announcer or commercial VO delivery; no speeding up; no music, no
+     room effects, no second voice. No text, letters, numbers, logos or
+     watermarks in the frame. No ornaments, sparkles, stars, lens flares,
+     corner marks or decorative flourishes of any kind, anywhere in the
+     frame.
+     └──────────────────────────────────────────────────────────────────┘
+     If part 1 overruns 9.5s on landing, the fixed fallback still applies:
+     line three becomes "All-Day, uncovered." and nothing else moves.
+  G. WHAT DOES NOT CHANGE. Still pinned, still a set of one — nothing here
+     enters any rotation. The short-carrier hum-bed path stays as the
+     fallback. The prompt divergence of 9/4 (narrator block verbatim +
+     static bolt instead of the speaking android) is RECORDED here as
+     load-bearing: it produced a part 1 that reads as the fleet's narrator
+     on pitch and timbre; the v5.7 C/D block would have produced a
+     different man.
+
+================================================================================
 WHAT CHANGED IN v5.8 (2026-09-07 — AUDIENCE READ, NOT A REEL CHANGE: the Pro
 group's Insights export (4/1–9/6) and Meta's earnings export (1/1–9/7) were
 ingested today. This block is the detailed summary of both, written for the

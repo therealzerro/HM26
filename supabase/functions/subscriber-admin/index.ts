@@ -25,6 +25,10 @@
  *   list_contributors        → SELECT fb_group_contributors
  *   upsert_contributors      → bulk UPSERT contributors + INSERT engagement snapshots
  *   link_contributor         → set pro_subscriber_id + facebook_name
+ *   list_earnings            → SELECT fb_earnings_daily (Meta payouts)
+ *   upsert_earnings          → UPSERT (earn_date key) from the earnings export
+ *   list_group_daily         → SELECT fb_group_daily (Group Insights daily series, no PII)
+ *   upsert_group_daily       → UPSERT ((group_type, day) key) from the Insights paste
  *   ping                     → health probe
  */
 
@@ -386,6 +390,57 @@ async function upsertEarnings(rows: EarningsRowIn[]) {
   return { created, updated: rows.length - created };
 }
 
+// ─── fb_group_daily (Group Insights daily series; ENH-FUNNEL follow-up 2026-09-07) ─
+// One row per group per day, no PII. The Insights paste now carries the whole
+// export; the daily block lands here, the contributors block in
+// fb_group_contributors. The Funnel dashboard reads the latest row for the
+// Pro-group headcount (the roster overstates it once members churn) and the
+// last 14 days for the engagement pulse.
+interface GroupDailyRowIn {
+  day: string;
+  total_members: number | null;
+  pending_members: number;
+  approved_requests: number;
+  declined_requests: number;
+  posts: number;
+  comments: number;
+  reactions: number;
+  active_members: number;
+}
+
+async function listGroupDaily(group_type: 'free' | 'pro' = 'pro', days = 60) {
+  return sbGet(`/rest/v1/fb_group_daily?select=*&group_type=eq.${group_type}&order=day.desc&limit=${days}`);
+}
+
+async function upsertGroupDaily(group_type: 'free' | 'pro', rows: GroupDailyRowIn[]) {
+  if (!Array.isArray(rows) || rows.length === 0) return { created: 0, updated: 0 };
+  if (group_type !== 'free' && group_type !== 'pro') throw new Error('group_type must be free|pro');
+  const days = rows.map(r => r.day);
+  const existing = await sbGet<Array<{ day: string }>>(
+    `/rest/v1/fb_group_daily?select=day&group_type=eq.${group_type}&day=in.(${days.join(',')})`
+  );
+  const have = new Set(existing.map(e => e.day));
+  await sbPost(
+    '/rest/v1/fb_group_daily?on_conflict=group_type,day',
+    rows.map(r => ({
+      group_type,
+      day: r.day,
+      total_members: r.total_members ?? null,
+      pending_members: r.pending_members ?? 0,
+      approved_requests: r.approved_requests ?? 0,
+      declined_requests: r.declined_requests ?? 0,
+      posts: r.posts ?? 0,
+      comments: r.comments ?? 0,
+      reactions: r.reactions ?? 0,
+      active_members: r.active_members ?? 0,
+      imported_at: new Date().toISOString(),
+    })),
+    'resolution=merge-duplicates,return=minimal'
+  );
+  const created = rows.filter(r => !have.has(r.day)).length;
+  return { created, updated: rows.length - created };
+}
+
 interface ActionRequest {
   action: string;
   payload?: Record<string, unknown>;
@@ -422,6 +477,13 @@ async function handle(req: ActionRequest): Promise<unknown> {
       return listEarnings(typeof payload.days === 'number' ? payload.days : 120);
     case 'upsert_earnings':
       return upsertEarnings(payload.rows as EarningsRowIn[]);
+    case 'list_group_daily':
+      return listGroupDaily(
+        (payload.group_type as 'free' | 'pro' | undefined) ?? 'pro',
+        typeof payload.days === 'number' ? payload.days : 60,
+      );
+    case 'upsert_group_daily':
+      return upsertGroupDaily(payload.group_type as 'free' | 'pro', payload.rows as GroupDailyRowIn[]);
     default:
       throw new Error(`Unknown action: ${action}`);
   }

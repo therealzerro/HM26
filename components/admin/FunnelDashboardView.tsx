@@ -11,7 +11,49 @@ import {
   type FunnelSnapshot,
   type ProSubscriber,
   type EarningsDay,
+  type GroupDailyRow,
 } from '@/lib/subscriberAdminClient';
+
+const DAY_MS = 86400000;
+const isoDay = (d: Date) => d.toISOString().slice(0, 10);
+const shiftDays = (day: string, n: number) => isoDay(new Date(new Date(day + 'T00:00:00Z').getTime() + n * DAY_MS));
+const money = (v: number) => `$${v.toFixed(2)}`;
+const signed = (v: number) => `${v >= 0 ? '+' : ''}${v}`;
+
+/**
+ * Pro-group headcount + engagement pulse from the Group Insights daily series
+ * (fb_group_daily, newest first). The roster counts paying emails; Insights
+ * counts who is actually in the group — once members churn the roster
+ * overstates Pro until the next email export is imported, so both are shown.
+ */
+function groupPulse(rows: GroupDailyRow[]) {
+  const withMembers = rows.filter(r => r.total_members != null);
+  const latest = withMembers[0];
+  if (!latest) return null;
+  const end = latest.day;
+  const inWindow = (r: GroupDailyRow, from: string, to: string) => r.day > from && r.day <= to;
+  const w1 = rows.filter(r => inWindow(r, shiftDays(end, -7), end));
+  const w0 = rows.filter(r => inWindow(r, shiftDays(end, -14), shiftDays(end, -7)));
+  const mean = (xs: GroupDailyRow[], k: 'posts' | 'comments' | 'reactions' | 'active_members') =>
+    xs.length ? xs.reduce((a, r) => a + (Number(r[k]) || 0), 0) / xs.length : 0;
+  const stat = (xs: GroupDailyRow[]) => ({
+    days: xs.length,
+    posts: mean(xs, 'posts'),
+    comments: mean(xs, 'comments'),
+    reactions: mean(xs, 'reactions'),
+    active: mean(xs, 'active_members'),
+  });
+  const weekAgo = withMembers.find(r => r.day <= shiftDays(end, -7));
+  const zeroCommentDays = w1.filter(r => (Number(r.comments) || 0) === 0).length;
+  return {
+    asOf: end,
+    members: Number(latest.total_members),
+    membersWeekAgo: weekAgo ? Number(weekAgo.total_members) : null,
+    now: stat(w1),
+    prev: stat(w0),
+    zeroCommentDays,
+  };
+}
 
 function MetricTile({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
   const { colors } = useTheme();
@@ -190,6 +232,7 @@ function FunnelDashboardInner() {
   const [snaps, setSnaps] = useState<FunnelSnapshot[]>([]);
   const [subs, setSubs] = useState<ProSubscriber[]>([]);
   const [earn, setEarn] = useState<EarningsDay[]>([]);
+  const [groupDaily, setGroupDaily] = useState<GroupDailyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -197,14 +240,16 @@ function FunnelDashboardInner() {
     setLoading(true);
     setErr(null);
     try {
-      const [s, p, earnRows] = await Promise.all([
+      const [s, p, earnRows, gd] = await Promise.all([
         subscriberAdmin.listSnapshots(30),
         subscriberAdmin.listSubscribers({}),
         subscriberAdmin.listEarnings(120).catch(() => [] as EarningsDay[]),
+        subscriberAdmin.listGroupDaily('pro', 60).catch(() => [] as GroupDailyRow[]),
       ]);
       setSnaps(s);
       setSubs(p);
       setEarn(earnRows);
+      setGroupDaily(gd);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -229,6 +274,18 @@ function FunnelDashboardInner() {
     const month = latest.slice(0, 7);
     const thisMonth = sorted.filter(r => r.earn_date.startsWith(month));
     const sum = (rows: EarningsDay[], k: keyof EarningsDay) => rows.reduce((a, r) => a + n(r[k] as number | string), 0);
+    // Renewal wave: Meta bills monthly on the subscribe date, so this month's
+    // subscription payouts vs the SAME calendar days last month is the churn
+    // readout for the cohort that joined a month ago (9/2 checkpoint: the
+    // 8/4–8/12 spurt renews 9/4–9/23).
+    const dayOfMonth = parseInt(latest.slice(8, 10), 10);
+    const prevMonthDate = new Date(latest + 'T00:00:00Z'); prevMonthDate.setUTCDate(1); prevMonthDate.setUTCMonth(prevMonthDate.getUTCMonth() - 1);
+    const prevMonth = prevMonthDate.toISOString().slice(0, 7);
+    const prevMonthSameDays = sorted.filter(r => r.earn_date.startsWith(prevMonth) && parseInt(r.earn_date.slice(8, 10), 10) <= dayOfMonth);
+    const prevMonthFull = sorted.filter(r => r.earn_date.startsWith(prevMonth));
+    const last7 = sorted.filter(r => r.earn_date > shiftDays(latest, -7) && r.earn_date <= latest);
+    const monthAgoEnd = (() => { const d = new Date(latest + 'T00:00:00Z'); d.setUTCMonth(d.getUTCMonth() - 1); return isoDay(d); })();
+    const last7MonthAgo = sorted.filter(r => r.earn_date > shiftDays(monthAgoEnd, -7) && r.earn_date <= monthAgoEnd);
     return {
       latest,
       subs30: sum(last30, 'subscriptions_usd'),
@@ -236,8 +293,18 @@ function FunnelDashboardInner() {
       subsMonth: sum(thisMonth, 'subscriptions_usd'),
       month,
       all: sum(sorted, 'total_usd'),
+      prevMonth,
+      subsPrevMonthSameDays: sum(prevMonthSameDays, 'subscriptions_usd'),
+      subsPrevMonthFull: sum(prevMonthFull, 'subscriptions_usd'),
+      subs7: sum(last7, 'subscriptions_usd'),
+      subs7MonthAgo: sum(last7MonthAgo, 'subscriptions_usd'),
+      monthAgoEnd,
+      dayOfMonth,
     };
   }, [earn]);
+
+  const pulse = useMemo(() => groupPulse(groupDaily), [groupDaily]);
+  const rosterGap = pulse ? activeNow - pulse.members : null;
 
   if (loading) {
     return (
@@ -278,17 +345,33 @@ function FunnelDashboardInner() {
             color={colors.teal}
           />
           <MetricTile
-            label="ACTIVE PRO"
+            label="ACTIVE PRO · ROSTER"
             value={String(latest.active_pro_subscribers)}
             sub={`now: ${activeNow} in roster`}
             color={colors.success}
           />
+          {pulse && (
+            <MetricTile
+              label="PRO GROUP · INSIGHTS"
+              value={String(pulse.members)}
+              sub={`as of ${pulse.asOf.slice(5)}${pulse.membersWeekAgo != null ? ` · ${signed(pulse.members - pulse.membersWeekAgo)} in 7d` : ''}${rosterGap && rosterGap > 0 ? ` · roster +${rosterGap}` : ''}`}
+              color={rosterGap && rosterGap > 2 ? colors.gold : colors.success}
+            />
+          )}
           <MetricTile
-            label="CONVERSION"
+            label="CONVERSION · ROSTER"
             value={`${(Number(latest.conversion_rate) * 100).toFixed(1)}%`}
             sub={previous ? `${((Number(latest.conversion_rate) - Number(previous.conversion_rate)) * 100).toFixed(2)}pp vs prev` : undefined}
             color={colors.gold}
           />
+          {pulse && latest.free_group_members > 0 && (
+            <MetricTile
+              label="CONVERSION · REAL"
+              value={`${((pulse.members / latest.free_group_members) * 100).toFixed(1)}%`}
+              sub="Insights members ÷ free group"
+              color={colors.gold}
+            />
+          )}
           <MetricTile
             label="GROSS MRR"
             value={`$${Number(latest.gross_mrr).toFixed(2)}`}
@@ -321,11 +404,91 @@ function FunnelDashboardInner() {
         </View>
       )}
 
+      {earnings && earnings.subsPrevMonthSameDays > 0 && (
+        <Card style={{ padding: 12 }}>
+          <SectionTitle>Renewal wave (subscription payouts)</SectionTitle>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <MetricTile
+              label={`${earnings.month} · DAYS 1–${earnings.dayOfMonth}`}
+              value={money(earnings.subsMonth)}
+              sub={`${earnings.prevMonth} same days: ${money(earnings.subsPrevMonthSameDays)}`}
+              color={colors.success}
+            />
+            <MetricTile
+              label="VS SAME DAYS LAST MONTH"
+              value={`${((earnings.subsMonth / earnings.subsPrevMonthSameDays) * 100).toFixed(0)}%`}
+              sub={`${earnings.prevMonth} full month: ${money(earnings.subsPrevMonthFull)}`}
+              color={earnings.subsMonth / earnings.subsPrevMonthSameDays < 0.85 ? colors.error : colors.success}
+            />
+            {earnings.subs7MonthAgo > 0 && (
+              <MetricTile
+                label="LAST 7D VS 7D A MONTH AGO"
+                value={`${((earnings.subs7 / earnings.subs7MonthAgo) * 100).toFixed(0)}%`}
+                sub={`${money(earnings.subs7)} vs ${money(earnings.subs7MonthAgo)} (to ${earnings.monthAgoEnd.slice(5)})`}
+                color={earnings.subs7 / earnings.subs7MonthAgo < 0.85 ? colors.error : colors.success}
+              />
+            )}
+          </View>
+          <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 6 }}>
+            Meta bills each subscriber monthly on their subscribe date, so this month&apos;s payouts on the same calendar
+            days as last month is the renewal rate of the cohort that joined a month earlier. Daily postings wobble
+            ±1 day — read the ratio over a week, not a day. Below ~85% the cohort is leaving. Paste a fresh earnings
+            export (Sub Import → 💵) to move the &quot;through&quot; date.
+          </Text>
+        </Card>
+      )}
+
+      {pulse && (
+        <Card style={{ padding: 12 }}>
+          <SectionTitle>{`Pro group engagement pulse · through ${pulse.asOf}`}</SectionTitle>
+          <View style={{ flexDirection: 'row', paddingVertical: 4, gap: 6 }}>
+            <Text style={{ flex: 2, fontSize: 9, color: colors.textTertiary, letterSpacing: 1 }}>PER DAY</Text>
+            <Text style={{ width: 70, fontSize: 9, color: colors.textTertiary, letterSpacing: 1, textAlign: 'right' }}>LAST 7D</Text>
+            <Text style={{ width: 70, fontSize: 9, color: colors.textTertiary, letterSpacing: 1, textAlign: 'right' }}>PRIOR 7D</Text>
+          </View>
+          {([
+            ['Posts', pulse.now.posts, pulse.prev.posts],
+            ['Member comments', pulse.now.comments, pulse.prev.comments],
+            ['Reactions', pulse.now.reactions, pulse.prev.reactions],
+            ['Active members', pulse.now.active, pulse.prev.active],
+          ] as Array<[string, number, number]>).map(([label, a, b]) => (
+            <View key={label} style={{ flexDirection: 'row', paddingVertical: 4, borderTopWidth: 1, borderTopColor: colors.border, gap: 6 }}>
+              <Text style={{ flex: 2, fontSize: 11, color: colors.text }}>{label}</Text>
+              <Text style={{ width: 70, fontSize: 11, color: a < b * 0.7 ? colors.error : colors.text, textAlign: 'right', fontVariant: ['tabular-nums'], fontWeight: '700' }}>{a.toFixed(1)}</Text>
+              <Text style={{ width: 70, fontSize: 11, color: colors.textSecondary, textAlign: 'right', fontVariant: ['tabular-nums'] }}>{b.toFixed(1)}</Text>
+            </View>
+          ))}
+          <View style={{ flexDirection: 'row', paddingVertical: 4, borderTopWidth: 1, borderTopColor: colors.border, gap: 6 }}>
+            <Text style={{ flex: 2, fontSize: 11, color: colors.text }}>Active share of members</Text>
+            <Text style={{ width: 70, fontSize: 11, color: colors.text, textAlign: 'right', fontWeight: '700' }}>{pulse.members ? `${((pulse.now.active / pulse.members) * 100).toFixed(0)}%` : '—'}</Text>
+            <Text style={{ width: 70, fontSize: 11, color: colors.textSecondary, textAlign: 'right' }}>{pulse.membersWeekAgo ? `${((pulse.prev.active / pulse.membersWeekAgo) * 100).toFixed(0)}%` : '—'}</Text>
+          </View>
+          <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 6 }}>
+            {pulse.zeroCommentDays} of the last {pulse.now.days} days had zero member comments.
+            {pulse.membersWeekAgo != null ? ` Members ${pulse.membersWeekAgo} → ${pulse.members} over the week.` : ''}
+            {' '}Every engagement peak in this group&apos;s history was a human thread (a question asked or answered), never a
+            templated drop; comments falling toward zero preceded both member slides (June–July and September).
+            Refresh by pasting the Group Insights download into Sub Import → 🔥 Insights.
+          </Text>
+        </Card>
+      )}
+
       {latest && Number(latest.active_pro_subscribers) !== activeNow && (
         <Card style={{ padding: 12, borderColor: colors.gold + '55' }}>
           <Text style={{ fontSize: 11, color: colors.gold, fontWeight: '700' }}>
             ⚠ Snapshot drift: roster has {activeNow} active subs, latest snapshot shows {latest.active_pro_subscribers}.
             Record a new snapshot to refresh.
+          </Text>
+        </Card>
+      )}
+
+      {rosterGap != null && rosterGap > 2 && pulse && (
+        <Card style={{ padding: 12, borderColor: colors.gold + '55' }}>
+          <Text style={{ fontSize: 11, color: colors.gold, fontWeight: '700' }}>
+            ⚠ Roster overstates Pro by {rosterGap}: {activeNow} active on the roster vs {pulse.members} members in the
+            group (Insights, {pulse.asOf}). Members who leave the group stop paying but stay &quot;active&quot; here until the
+            next supporter-email export is imported — run Sub Import → Probe Potential Churns against it, then mark the
+            leavers churned. Until then, MRR and conversion above are upper bounds; use the Insights count.
           </Text>
         </Card>
       )}

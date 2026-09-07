@@ -9,6 +9,7 @@ import {
   subscriberAdmin,
   maskEmail,
   type ProSubscriber,
+  type GroupDailyRow,
 } from '@/lib/subscriberAdminClient';
 
 const ACQ_SOURCES = ['reel', 'cross_post', 'free_group_organic', 'direct_referral', 'word_of_mouth', 'unknown'] as const;
@@ -242,13 +243,21 @@ function ProSubscribersInner() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [revealAll, setRevealAll] = useState(false);
+  // Latest Pro-group headcount from Group Insights (fb_group_daily). The roster
+  // counts paying emails; once members leave the group they stay "active" here
+  // until the next supporter-email export — surface the gap.
+  const [groupLatest, setGroupLatest] = useState<GroupDailyRow | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setErr(null);
     try {
-      const data = await subscriberAdmin.listSubscribers({});
+      const [data, gd] = await Promise.all([
+        subscriberAdmin.listSubscribers({}),
+        subscriberAdmin.listGroupDaily('pro', 14).catch(() => [] as GroupDailyRow[]),
+      ]);
       setRows(data);
+      setGroupLatest(gd.find(r => r.total_members != null) ?? null);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -289,6 +298,16 @@ function ProSubscribersInner() {
     <ScrollView contentContainerStyle={{ padding: 16 }}>
       <Text style={st.title}>Pro Subscribers</Text>
       <Text style={st.sub}>Source-of-truth roster from Meta Business Suite exports.</Text>
+
+      {groupLatest && groupLatest.total_members != null && totals.active - Number(groupLatest.total_members) > 2 && (
+        <Card style={{ padding: 12, marginBottom: 14, borderColor: colors.gold + '55' }}>
+          <Text style={{ fontSize: 11, color: colors.gold, fontWeight: '700' }}>
+            ⚠ Roster {totals.active} active vs {groupLatest.total_members} members in the Pro group (Insights, {groupLatest.day})
+            — {totals.active - Number(groupLatest.total_members)} likely churned and unrecorded. Import the latest supporter-email
+            export in Sub Import → 📧 and run Probe Potential Churns; mark the leavers churned so MRR stops counting them.
+          </Text>
+        </Card>
+      )}
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
         <Card style={{ padding: 10, flexGrow: 1, flexBasis: 100 }}>

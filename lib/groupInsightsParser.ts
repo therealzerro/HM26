@@ -1,13 +1,29 @@
 /**
- * groupInsightsParser — Parses Facebook Group Insights "Contributors" data
- * pasted or uploaded as TSV/CSV. Supports the common export shape:
+ * groupInsightsParser — Parses Facebook Group Insights exports pasted as
+ * TSV/CSV. Two things come out of one paste:
  *
- *   Contributor    Posts    Comments    Reactions
- *   Jane Doe       4        12          47
- *   John Smith     0        3           8
+ *   1. CONTRIBUTORS (28-day rolling window) — the legacy 4-column shape,
+ *      still accepted on its own:
  *
- * "Reactions" is treated as the likes count. Header detection is best-effort:
- * any header row containing "contributor" (any case) is skipped.
+ *        Contributor    Posts    Comments    Reactions
+ *        Jane Doe       4        12          47
+ *
+ *   2. DAILY SERIES (ENH-FUNNEL follow-up 2026-09-07) — the first block of the
+ *      full "Group Insights" CSV download, one row per day:
+ *
+ *        Date,Total Members,Pending Members,Approved Member Requests,
+ *        Declined Member Requests,Posts,Comments,Reactions,Active Members
+ *
+ *      Pasting the WHOLE download is now safe: the parser walks the file by
+ *      section header. Before this, every date row parsed as a "contributor"
+ *      named 2026-04-21 (the daily block has ≥4 numeric columns) and the
+ *      "Popular Days" / "Popular Times" / "Posts" blocks produced warnings.
+ *      Those blocks are skipped; the Posts block carries member names and
+ *      post text (PII) and is never stored.
+ *
+ * "Reactions" is treated as the likes count for contributors. Header
+ * detection is best-effort and case-insensitive. Cells wrapped in double
+ * quotes (the CSV download quotes every cell) are unwrapped (BUG-172).
  *
  * For the Pro group, set group_type='pro'; for the Free group, 'free'.
  */
@@ -19,76 +35,178 @@ export interface ParsedContributor {
   likes: number;
 }
 
+export interface ParsedGroupDay {
+  day: string; // YYYY-MM-DD
+  total_members: number | null; // null when Insights reported 0 before the count existed
+  pending_members: number;
+  approved_requests: number;
+  declined_requests: number;
+  posts: number;
+  comments: number;
+  reactions: number;
+  active_members: number;
+}
+
 export interface GroupInsightsParseResult {
   contributors: ParsedContributor[];
+  daily: ParsedGroupDay[];
   warnings: string[];
   errors: string[];
 }
 
-function splitColumns(line: string): string[] {
-  // Tab is the most reliable signal. Fall back to commas only if no tabs.
-  if (line.includes('\t')) {
-    return line.split('\t').map(s => s.trim());
-  }
-  // CSV: simple split. Names with commas (rare in Facebook) would break; we
-  // warn rather than try to fully parse CSV escapes.
-  return line.split(',').map(s => s.trim());
+type Section = 'auto' | 'daily' | 'contributors' | 'skip';
+
+const WEEKDAYS = new Set(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']);
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+function unquote(cell: string): string {
+  return cell.trim().replace(/^"(.*)"$/s, '$1').trim();
 }
 
-function toIntSafe(raw: string): number | null {
-  if (raw === '' || raw == null) return 0;
+/** Split one line into cells. Tabs win; otherwise a quote-aware comma split. */
+function splitColumns(line: string): string[] {
+  if (line.includes('\t')) {
+    return line.split('\t').map(unquote);
+  }
+  const out: string[] = [];
+  let cur = '';
+  let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      // doubled quote inside a quoted cell = literal quote
+      if (inQ && line[i + 1] === '"') { cur += '"'; i++; continue; }
+      inQ = !inQ;
+      continue;
+    }
+    if (ch === ',' && !inQ) { out.push(cur); cur = ''; continue; }
+    cur += ch;
+  }
+  out.push(cur);
+  return out.map(unquote);
+}
+
+function toIntSafe(raw: string | undefined): number | null {
+  if (raw === undefined || raw === '' || raw == null) return 0;
   const cleaned = raw.replace(/[, ]/g, '');
   if (!/^-?\d+$/.test(cleaned)) return null;
   return parseInt(cleaned, 10);
 }
 
+function isAllEmpty(cols: string[]): boolean {
+  return cols.every(c => c === '');
+}
+
 export function parseGroupInsights(rawText: string): GroupInsightsParseResult {
-  const result: GroupInsightsParseResult = { contributors: [], warnings: [], errors: [] };
-  const seen = new Set<string>();
+  const result: GroupInsightsParseResult = { contributors: [], daily: [], warnings: [], errors: [] };
+  const seenNames = new Set<string>();
+  const seenDays = new Set<string>();
 
   const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 
+  let section: Section = 'auto';
+  let sawHeader = false;
+  // Column indices for the daily block, resolved from its header row.
+  let dailyIdx: Record<string, number> = {};
+
   for (const line of lines) {
-    const lower = line.toLowerCase();
-    if (lower.includes('contributor') && (lower.includes('post') || lower.includes('comment') || lower.includes('reaction') || lower.includes('like'))) {
+    const cols = splitColumns(line);
+    if (isAllEmpty(cols)) continue;
+    const first = cols[0].toLowerCase();
+    const lowerAll = cols.map(c => c.toLowerCase());
+
+    // ── Section headers ──────────────────────────────────────────────────
+    if (first === 'date' && lowerAll.some(c => c.includes('total members'))) {
+      section = 'daily';
+      sawHeader = true;
+      dailyIdx = {};
+      lowerAll.forEach((c, i) => {
+        if (c === 'total members') dailyIdx.total = i;
+        else if (c === 'pending members') dailyIdx.pending = i;
+        else if (c.startsWith('approved')) dailyIdx.approved = i;
+        else if (c.startsWith('declined')) dailyIdx.declined = i;
+        else if (c === 'posts') dailyIdx.posts = i;
+        else if (c === 'comments') dailyIdx.comments = i;
+        else if (c === 'reactions') dailyIdx.reactions = i;
+        else if (c === 'active members') dailyIdx.active = i;
+      });
+      continue;
+    }
+    if (first.includes('contributor') && (lowerAll.some(c => c.includes('post') || c.includes('comment') || c.includes('reaction') || c.includes('like')))) {
+      section = 'contributors';
+      sawHeader = true;
+      continue;
+    }
+    if (first.startsWith('popular ') || (first === 'posts' && lowerAll[1] === 'member')) {
+      section = 'skip';
+      sawHeader = true;
       continue;
     }
 
-    // FB Group Insights CSV exports wrap every cell in double quotes ("Name","2","3","2");
-    // strip them so quoted rows parse identically to the TSV / multi-space paste (BUG-172).
-    const cols = splitColumns(line).map(c => c.replace(/^"(.*)"$/, '$1').trim());
+    // ── Rows ─────────────────────────────────────────────────────────────
+    if (section === 'skip') continue;
+
+    if (section === 'daily') {
+      if (!ISO_DAY.test(cols[0])) {
+        // The daily block ends at the first non-date row (usually blanks, already dropped).
+        section = 'skip';
+        continue;
+      }
+      const get = (k: string) => toIntSafe(dailyIdx[k] !== undefined ? cols[dailyIdx[k]] : '0');
+      const total = get('total'); const pending = get('pending'); const approved = get('approved'); const declined = get('declined');
+      const posts = get('posts'); const comments = get('comments'); const reactions = get('reactions'); const active = get('active');
+      if ([total, pending, approved, declined, posts, comments, reactions, active].some(v => v === null)) {
+        result.warnings.push(`Skipped daily row with non-numeric counts: ${line.slice(0, 80)}`);
+        continue;
+      }
+      // Rows before the group had any activity are all zeros — nothing to store.
+      if (total === 0 && posts === 0 && comments === 0 && reactions === 0 && active === 0 && pending === 0 && approved === 0 && declined === 0) continue;
+      if (seenDays.has(cols[0])) { result.warnings.push(`Duplicate day in input: ${cols[0]}`); continue; }
+      seenDays.add(cols[0]);
+      result.daily.push({
+        day: cols[0],
+        // Insights reports 0 members on days before the member count existed; store NULL, not 0.
+        total_members: total === 0 ? null : total,
+        pending_members: pending!, approved_requests: approved!, declined_requests: declined!,
+        posts: posts!, comments: comments!, reactions: reactions!, active_members: active!,
+      });
+      continue;
+    }
+
+    // contributors (explicit section) or legacy headerless paste (auto)
+    if (section === 'auto') {
+      // Guard the legacy path against the daily block pasted without its header.
+      if (ISO_DAY.test(cols[0]) || WEEKDAYS.has(first)) continue;
+    }
     if (cols.length < 4) {
       result.warnings.push(`Skipped row with <4 columns: ${line.slice(0, 80)}`);
       continue;
     }
-
     const [name, postsRaw, commentsRaw, likesRaw] = cols;
     if (!name || name.length < 2) {
       result.warnings.push(`Skipped row with empty/short name: ${line.slice(0, 80)}`);
       continue;
     }
-
     const posts = toIntSafe(postsRaw);
     const comments = toIntSafe(commentsRaw);
     const likes = toIntSafe(likesRaw);
-
     if (posts === null || comments === null || likes === null) {
       result.warnings.push(`Skipped row with non-numeric counts: ${line.slice(0, 80)}`);
       continue;
     }
-
     const key = name.toLowerCase();
-    if (seen.has(key)) {
+    if (seenNames.has(key)) {
       result.warnings.push(`Duplicate contributor in input: ${name}`);
       continue;
     }
-    seen.add(key);
-
+    seenNames.add(key);
     result.contributors.push({ facebook_name: name, posts, comments, likes });
   }
 
-  if (result.contributors.length === 0 && lines.length > 0) {
-    result.errors.push('No valid contributor rows parsed from input');
+  if (result.contributors.length === 0 && result.daily.length === 0 && lines.length > 0) {
+    result.errors.push(sawHeader
+      ? 'Recognised the export but found no contributor or daily rows'
+      : 'No valid contributor rows parsed from input');
   }
   return result;
 }

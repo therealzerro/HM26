@@ -166,6 +166,21 @@ export interface EarningsDay {
   imported_at: string | null;
 }
 
+/** One day of the Facebook Group Insights daily series (fb_group_daily; no PII). */
+export interface GroupDailyRow {
+  group_type: 'free' | 'pro';
+  day: string;
+  total_members: number | null;
+  pending_members: number | null;
+  approved_requests: number | null;
+  declined_requests: number | null;
+  posts: number;
+  comments: number;
+  reactions: number;
+  active_members: number;
+  imported_at: string | null;
+}
+
 export interface SubscriberListFilters {
   status?: string;
   acquisition_source?: string;
@@ -215,6 +230,13 @@ export const subscriberAdmin = {
 
   upsertEarnings: (rows: Array<{ earn_date: string; total_usd: number; content_monetization_usd: number; stars_usd: number; subscriptions_usd: number }>) =>
     callSubscriberAdmin<{ created: number; updated: number }>('upsert_earnings', { rows }),
+
+  /** Group Insights daily series, newest first (default 60 days, Pro group). */
+  listGroupDaily: (group_type: 'free' | 'pro' = 'pro', days = 60) =>
+    callSubscriberAdmin<GroupDailyRow[]>('list_group_daily', { group_type, days }),
+
+  upsertGroupDaily: (group_type: 'free' | 'pro', rows: Array<Omit<GroupDailyRow, 'group_type' | 'imported_at'>>) =>
+    callSubscriberAdmin<{ created: number; updated: number }>('upsert_group_daily', { group_type, rows }),
 };
 
 export function maskEmail(email: string): string {

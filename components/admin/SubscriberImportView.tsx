@@ -158,27 +158,44 @@ function InsightsPasteTab({ onCommitted }: { onCommitted: () => void }) {
   const [busy, setBusy] = useState(false);
 
   const parsed = useMemo(() => parseGroupInsights(raw), [raw]);
+  const nothing = parsed.contributors.length === 0 && parsed.daily.length === 0;
+  const dailyLast = parsed.daily.length ? parsed.daily.reduce((a, r) => (r.day > a.day ? r : a), parsed.daily[0]) : null;
+  const dailyFirst = parsed.daily.length ? parsed.daily.reduce((a, r) => (r.day < a.day ? r : a), parsed.daily[0]) : null;
+  // The 28-day contributors window ends on the export's last day when the daily block is present.
+  useEffect(() => { if (dailyLast) setSnapshotDate(dailyLast.day); }, [dailyLast]);
 
   const commit = useCallback(async () => {
-    if (parsed.contributors.length === 0) return;
+    if (nothing) return;
     setBusy(true);
     try {
-      const res = await subscriberAdmin.upsertContributors({
-        rows: parsed.contributors.map(c => ({ ...c, group_type: groupType })),
-        snapshot_date: snapshotDate,
-        source_filename: `paste_${groupType}_${snapshotDate}`,
-      });
+      const parts: string[] = [];
+      let created = 0, updated = 0;
+      if (parsed.contributors.length > 0) {
+        const res = await subscriberAdmin.upsertContributors({
+          rows: parsed.contributors.map(c => ({ ...c, group_type: groupType })),
+          snapshot_date: snapshotDate,
+          source_filename: `paste_${groupType}_${snapshotDate}`,
+        });
+        created += res.created; updated += res.updated;
+        parts.push(`${res.created} new contributors, ${res.updated} updated, ${res.snapshots_added} engagement snapshots added`);
+      }
+      if (parsed.daily.length > 0) {
+        const res = await subscriberAdmin.upsertGroupDaily(groupType, parsed.daily);
+        created += res.created; updated += res.updated;
+        parts.push(`${parsed.daily.length} daily rows (${dailyFirst?.day} → ${dailyLast?.day}): ${res.created} new, ${res.updated} updated` +
+          (dailyLast?.total_members != null ? ` — ${groupType} group ${dailyLast.total_members} members on ${dailyLast.day}` : ''));
+      }
       await subscriberAdmin.recordImport({
         import_type: 'group_insights',
-        source_filename: `paste_${groupType}_${snapshotDate}`,
-        records_processed: parsed.contributors.length,
-        records_created: res.created,
-        records_updated: res.updated,
+        source_filename: `paste_${groupType}_${snapshotDate}` + (parsed.daily.length ? `_daily${parsed.daily.length}` : ''),
+        records_processed: parsed.contributors.length + parsed.daily.length,
+        records_created: created,
+        records_updated: updated,
         records_skipped: 0,
         warnings: parsed.warnings,
         errors: parsed.errors,
       });
-      alertAsync('Import complete', `${res.created} new contributors, ${res.updated} updated, ${res.snapshots_added} engagement snapshots added.`);
+      alertAsync('Import complete', parts.join('\n'));
       setRaw('');
       onCommitted();
     } catch (e) {
@@ -186,14 +203,17 @@ function InsightsPasteTab({ onCommitted }: { onCommitted: () => void }) {
     } finally {
       setBusy(false);
     }
-  }, [parsed, groupType, snapshotDate, onCommitted]);
+  }, [parsed, nothing, groupType, snapshotDate, dailyFirst, dailyLast, onCommitted]);
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16 }}>
       <Text style={st.title}>Import Group Insights</Text>
       <Text style={st.sub}>
-        Paste the Contributors table from Facebook Group Insights. 4 columns expected:
-        name, posts, comments, reactions (28-day window).
+        Paste the whole Facebook Group Insights download as-is. The daily block (Total Members ·
+        Posts · Comments · Reactions · Active Members) feeds the Funnel dashboard&apos;s Pro-group headcount
+        and engagement pulse; the Contributors block (28-day window) updates the roster&apos;s engagement
+        view. Popular Days/Times and the Posts block are ignored — nothing from them is stored.
+        The Contributors table alone still works.
       </Text>
 
       <Card style={{ padding: 12, marginBottom: 14 }}>
@@ -221,9 +241,23 @@ function InsightsPasteTab({ onCommitted }: { onCommitted: () => void }) {
           style={st.csvInput}
         />
         <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 6 }}>
-          Parsed: {parsed.contributors.length} contributors · {parsed.warnings.length} warnings
+          Parsed: {parsed.contributors.length} contributors · {parsed.daily.length} daily rows · {parsed.warnings.length} warnings
         </Text>
       </Card>
+
+      {dailyLast && dailyFirst && (
+        <Card style={{ padding: 12, marginBottom: 14 }}>
+          <SectionTitle>Daily series</SectionTitle>
+          <Text style={{ fontSize: 11, color: colors.text }}>
+            {parsed.daily.length} days · {dailyFirst.day} → {dailyLast.day}
+            {dailyLast.total_members != null ? ` · ${groupType} group ${dailyLast.total_members} members on ${dailyLast.day}` : ''}
+            {` · ${dailyLast.active_members} active / ${dailyLast.posts} posts / ${dailyLast.comments} comments / ${dailyLast.reactions} reactions on the last day`}
+          </Text>
+          <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 4 }}>
+            Window-end date above was set to the last day of the series. Re-pasting an overlapping export updates in place.
+          </Text>
+        </Card>
+      )}
 
       {parsed.contributors.length > 0 && (
         <Card style={{ padding: 12, marginBottom: 14 }}>
@@ -264,11 +298,17 @@ function InsightsPasteTab({ onCommitted }: { onCommitted: () => void }) {
       )}
 
       <TouchableOpacity
-        disabled={busy || parsed.contributors.length === 0}
-        style={[st.btnPrimary, (busy || parsed.contributors.length === 0) && { opacity: 0.5 }]}
+        disabled={busy || nothing}
+        style={[st.btnPrimary, (busy || nothing) && { opacity: 0.5 }]}
         onPress={commit}
       >
-        <Text style={st.btnPrimaryText}>{busy ? 'Committing…' : `Commit ${parsed.contributors.length} ${groupType} Contributors`}</Text>
+        <Text style={st.btnPrimaryText}>
+          {busy ? 'Committing…'
+            : `Commit ${[
+                parsed.contributors.length ? `${parsed.contributors.length} contributors` : '',
+                parsed.daily.length ? `${parsed.daily.length} daily rows` : '',
+              ].filter(Boolean).join(' + ') || 'nothing'} (${groupType})`}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );

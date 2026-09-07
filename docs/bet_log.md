@@ -6,15 +6,15 @@ Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw p
 
 Slate basis: 9/7 K6 (workflow run 8:06am ET, engine v2.1, edge v53). All 32 midday DI rows are singles, so the double is sourced outside the board. Cross-scope read: {1,5,8} sits on ALL THREE boards today (third such triple overlap after 8/28 and 9/6; it boxed midday on 8/28); {1,3,6} is Midday pos 1 + All-Day pos 1; {3,5,6} is Midday pos 6 + All-Day pos 5. None of the six board sets (nor the double) drew anywhere 9/4–9/6 — every leg is clear of the 3-day post-hit window and no prior ride is closed by convention. Prior day: 9/6 midday K6 went 1/6 ({1,5,6}); 9/6 All-Day 2/6, all box.
 
-### Positions — full midday board (33 draws, $8.25/unit), every leg STRAIGHT + BOX. Units not stated at log time — fill in from the ticket.
+### Positions — full midday board (33 draws, $8.25/unit), every leg 2S + 3B ($41.25/leg), placed 9/7 AM — total $206.25
 
-| Combo (straight order) | Set | Provenance | Units | Cost |
-|---|---|---|---|---|
-| **518** | {1,5,8} | On all three boards (Mid pos 4 / All-Day pos 3 / Eve pos 5); midday history 158:9 / 185:9 / 518:5 — 518 is the engine midday best order; last midday 8/30 AZ, 6 state draws in 30d; p_hit 16.8% | S+B | — |
-| **316** | {1,3,6} | Mid pos 1 (overdue tag, 22 midday draws since 8/16 WI) + All-Day pos 1; cross-reference is the basis, overdue measured flat; midday orders 631:9 / 361:6 / 316:4; p_hit 16.5% | S+B | — |
-| **635** | {3,5,6} | Mid pos 6 + All-Day pos 5; last midday 9/3 AR (clear of block), 5 in 30d; strongest order skew on the board — 536 drew 13 of 37 midday (engine best order 635); p_hit 18.4% | S+B | — |
-| **682** | {2,6,8} | Mid pos 5, DI rank 1, indicator 0.942, most-drawn midday set over 180d (39; 7 in 30d), last 8/31 MS; caveat: TD 696 / CO 0.97 = the 6/6 popularity-ceiling quadrant (16%, n=25, hypothesis-grade); midday orders 862:14 / 628:8; p_hit 17.7% | S+B | — |
-| **118** (double) | {1,1,8} | Not on any board; built from the triple-overlap digits 1 and 8 (digit 1 in 3 of 6 midday sets); 18 midday draws in 180d (top third of 90 doubles), 7 in 30d (3rd among doubles), last midday 9/3, clear of block; drew evening 9/4–9/6 twice (LA 811, W.Canada 118); orders 118:8 / 181:6 / 811:4; doubles fallback p ≈ 7.8% (pre-halved scope base) | S+B | — |
+| Combo (straight order) | Set | Provenance | Units | Cost | If straight hits | If box-only hits |
+|---|---|---|---|---|---|---|
+| **518** | {1,5,8} | On all three boards (Mid pos 4 / All-Day pos 3 / Eve pos 5); midday history 158:9 / 185:9 / 518:5 — 518 is the engine midday best order; last midday 8/30 AZ, 6 state draws in 30d; p_hit 16.8% | 2S + 3B | $41.25 | $562.50 | $112.50 |
+| **316** | {1,3,6} | Mid pos 1 (overdue tag, 22 midday draws since 8/16 WI) + All-Day pos 1; cross-reference is the basis, overdue measured flat; midday orders 631:9 / 361:6 / 316:4; p_hit 16.5% | 2S + 3B | $41.25 | $562.50 | $112.50 |
+| **635** | {3,5,6} | Mid pos 6 + All-Day pos 5; last midday 9/3 AR (clear of block), 5 in 30d; strongest order skew on the board — 536 drew 13 of 37 midday (engine best order 635); p_hit 18.4% | 2S + 3B | $41.25 | $562.50 | $112.50 |
+| **682** | {2,6,8} | Mid pos 5, DI rank 1, indicator 0.942, most-drawn midday set over 180d (39; 7 in 30d), last 8/31 MS; caveat: TD 696 / CO 0.97 = the 6/6 popularity-ceiling quadrant (16%, n=25, hypothesis-grade); midday orders 862:14 / 628:8; p_hit 17.7% | 2S + 3B | $41.25 | $562.50 | $112.50 |
+| **118** (double) | {1,1,8} | Not on any board; built from the triple-overlap digits 1 and 8 (digit 1 in 3 of 6 midday sets); 18 midday draws in 180d (top third of 90 doubles), 7 in 30d (3rd among doubles), last midday 9/3, clear of block; drew evening 9/4–9/6 twice (LA 811, W.Canada 118); orders 118:8 / 181:6 / 811:4; doubles fallback p ≈ 7.8% (pre-halved scope base) | 2S + 3B | $41.25 | $675.00 | $225.00 |
 
 Alternates named at brief time (not placed): 473 {3,4,7} (Mid pos 3, p_hit 19.3%) in place of 682; 511 {1,1,5} as the double.
 
@@ -22,6 +22,7 @@ Alternates named at brief time (not placed): 473 {3,4,7} (Mid pos 3, p_hit 19.3%
 
 - Singles: ~18% P(≥1 box) each on 33 draws, ~3.2% straight. Double 118: ~9.5% box / ~3.2% straight (3 of 1000 outcomes per draw); book pays the 3-way box at $75/unit — confirm before sizing.
 - All five legs together: ~59% P(≥1 box), ~15% P(≥1 straight), ~41% blank session.
+- Staked: **$206.25** (5 legs × $41.25). Expected session ≈ −$21 at 90% RTP. A single box-only hit ($112.50) does not cover the ticket; a single straight ($562.50) or a boxed double plus any single does.
 - EV framing: all products ≈ 90% RTP; selection chose *which* combos, not the rate. No positional filter (ENG-MIDDAY-POS-02). Calibration payload = 7/24 fit (9/1 refit failed its gate, kept by ruling).
 - Ride convention: max bet, ride until hit, max 3 days; a hit closes the leg. 518, 316 and 635 are also live on tonight's boards (518 on Evening pos 5; 316/635 via All-Day) if ridden.
 

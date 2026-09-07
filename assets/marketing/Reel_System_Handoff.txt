@@ -421,25 +421,33 @@ E. WHAT THIS MEANS FOR CONTENT (rulings + asks — copy questions, not assets)
    1. NOTHING here changes the reel system. Cadence, kinds, public lane: as-is.
       The public lane is not the problem (free group intake doubled); the Pro
       group's conversation is.
-   2. The four confusion threads are the FAQ. ASK (MKT-70, copy): a 5-line
-      "how to read the board" text block in tier-3 vocabulary answering them
-      verbatim — which board is which; "all-state, run it where you play";
-      STRAIGHT vs BOX in one line each; when boards post and when they grade;
-      where receipts live. Destination: pinned Pro post + free-group pin. Pair
-      with the existing coffee-mode body (no new video).
+   2. The four confusion threads are the FAQ. MKT-70 — DONE BY THE OPERATOR
+      2026-09-07 (the "how to read the board" pin is up). No copy owed.
    3. ASK (MKT-71, copy, needs the MKT-15 ruling): ONE rotating question line
       appended to Pro/Free slate captions ("Which board are you on today?" /
       "Which state are you running it in?"). Templated captions get 0
       comments; human posts get 6–21. Tier-2/3 only, never on public kinds.
-   4. ASK (MKT-72, format): a Sunday "receipts thread" post template inviting
-      members to post their state's matched draws under it — crowd-sourced
-      verify, tier-3 vocabulary, MATCH / STRAIGHT MATCH only.
+      STILL OPEN — the caption line is a separate surface from item 4.
+   4. THE DAILY ANCHOR QUESTION + THE SUNDAY RECEIPTS THREAD ARE NOW
+      GENERATED, NOT ASKED (MKT-73, operator ruling 2026-09-07): the captions
+      sheet (captions/<YYYYMMDD>.pdf, Admin → Reels) carries, every day, the
+      ONE question to post as the first comment under the Morning Brief photo
+      plus a ChatGPT cover-image prompt (4:5, three text strings, safe-area
+      block, no digits, ornaments + standing-vocabulary exclusions); and on
+      Sundays the receipts-thread caption plus a Gemini Omni 8-SECOND video
+      prompt (pacing block first, fictional sci-fi framing, negatives only in
+      the closing paragraph, 720×1280). Pools: 16 questions / 7 cover scenes
+      / 4 Sunday captions / 3 Sunday videos, rotation deterministic on the ET
+      date, every line tier-4 lint-checked at build. Source:
+      scripts/anchor-thread.ts. The agent's former MKT-72 ask is closed by it.
+      Nothing is owed here unless the pools want a rewrite — propose edits to
+      the pool text, not new formats.
    5. NOT asked: anything that quotes a member count, a churn number, a payout,
       or a renewal date in group or public copy. Those live in the operator
       brief and the Funnel dashboard only.
    6. Timing: the renewal window runs to 9/23. Items 2–4 are the only levers
-      that act inside it. Anything that needs a new render can wait for the
-      9/24 payout read.
+      that act inside it; 2 and 4 are live as of 9/7. Anything that needs a
+      new render can wait for the 9/24 payout read.
 
 F. WHERE THE DATA LIVES (for the agent's own reference; no action)
    docs/growth_checkpoint_2026-09-07.md (this read, aggregates only) and
@@ -4888,4 +4896,209 @@ MKT-14 — SLATE-STAMP BRAND ATTRIBUTION. ✅ SHIPPED 2026-07-31 (v2.7 note G;
   tier 2) and their own carriers (midday_free_carrier + pt2, evening_free_
   carrier + pt2 — single-entry sets). They run daily. What remains true: a
   FULL-FIDELITY free session reel is barred and the assembler refuses it.
+================================================================================
+
+================================================================================
+11. PROMPT CONVENTIONS — HITMASTER ZK6 ASSET GENERATION (content agent →
+    Claude Code, 2026-09-05; recorded verbatim in v5.8 on the agent's request.
+    Reference document, not an order. Every new prompt this repo generates —
+    including the MKT-73 anchor-cover and Sunday-receipts prompts on the
+    captions sheet — is written to it.)
+================================================================================
+PROMPT CONVENTIONS — HITMASTER ZK6 ASSET GENERATION
+Content agent → Claude Code, 2026-09-05. Reference document, not an order.
+⚠ Record this in the handoff. These are hard-won — most were paid for with
+a rejected asset, and several are invisible until they cost a generation.
+
+GENERATORS: video = GEMINI OMNI (all reels, carriers, motions, overlays,
+pins). Images = ChatGPT (panels, covers, banners, profile art). ⚠ The
+"Higgsfield balance" in older notes is a naming error for the same Omni
+budget — corrected in v2.x, repeated here because the wrong name persists
+in search results.
+
+════════════════════════════════════════════════════════════
+1 · THE ONE THAT COSTS THE MOST — PACING
+════════════════════════════════════════════════════════════
+⛔ OMNI PACES ITS BEATS TO THE MASTER LENGTH, NOT TO THE REQUESTED OUTPUT.
+Ask for a 4-second stinger and get a 10s master with the hero beat at 3.0s
+— outside the 3.0s cut, so the gag never renders. This cost `shutter` a
+full regeneration and put a 1.94s silent head on `coffee`.
+
+THE FIX, and it must be at the TOP of the prompt in its own block, before
+the scene — the generator weights early instructions more heavily:
+
+  ⚠ CRITICAL PACING INSTRUCTION — READ FIRST: EVERY EVENT HAPPENS WITHIN
+  THE FIRST N SECONDS. Do not spread the action across the full clip
+  length. [state the key beat and its time]. Everything after that is a
+  still hold with nothing happening in it.
+
+Then script every beat against the CUT WINDOW, not the master:
+  stinger  → all action inside 0–3.0s, smoke back by ~2.9s
+  intro    → dive complete by ~5.6s (or ~6.8s for a long-reveal member)
+  endcard  → form settled by ~3.7s
+  carrier  → last word by ~9.2s inside the 10.005s file
+Shutter's second attempt landed its bolt at 1.25s against a 1.2s target
+with this block present. It works.
+
+════════════════════════════════════════════════════════════
+2 · REFUSAL CLASSES — three known, all paid for
+════════════════════════════════════════════════════════════
+a. ⛔ BROADCAST VOCABULARY + A WIDE NEWSROOM. "Broadcast studio" + "news
+   presenter" + a wide shot of a whole newsroom reads as staging a news
+   broadcast; `reveal` was refused for "reputational risk / misrepresenting
+   current events." Every intro that CLEARED is tight on one or two
+   figures. THE FIX: frame as "a fictional science-fiction scene," strip
+   broadcast/studio/news/desk vocabulary entirely, keep the same visual.
+   The rewrite generated first try.
+b. ⛔ A SECOND HUMAN. Three attempts at a human guest beside the Anchor
+   refused. The ALL-ROBOT version generated first try. The block was the
+   second HUMAN, not the two-shot. Robot guests, reaction shots and
+   two-hander comedy are OPEN; human guests are CLOSED.
+c. NEGATIVES IN THE SCENE BODY can trigger refusals. State what IS, not
+   what isn't — reserve negatives for the exclusion paragraph at the end.
+
+════════════════════════════════════════════════════════════
+3 · THE ANCHOR NEVER SPEAKS — the hardest-won rule, violated twice
+════════════════════════════════════════════════════════════
+He has no mouth. It is not enough to say so; the generator lip-syncs any
+front-facing figure while VO plays. Four layers, all required:
+  a. NARRATION RUNS ONLY over his back, silhouette, out-of-focus shots, or
+     shots he is not in. Never over a front-facing head.
+  b. ⛔ HIS GESTURES ARE NEVER TIMED TO THE NARRATION. A nod placed just
+     after a spoken line reads as a reply and gets animated as one.
+     Separate by ≥1s of silence, or give him no gesture in the VO window.
+  c. HIS FACE-ON BEATS ARE STILL AND SILENT. If a shot needs him
+     acknowledging the viewer, it happens from behind or not at all.
+  d. Frame the VO as "an unseen off-screen voice, like a documentary
+     voiceover" or "the studio's broadcast feed" — a voice belonging to
+     the room, never the machine. Plus a closing line: "The on-screen
+     figure never speaks and has no mouth."
+
+════════════════════════════════════════════════════════════
+4 · THE NARRATOR BLOCK IS LOAD-BEARING — copy it verbatim
+════════════════════════════════════════════════════════════
+⛔ Every carrier in the fleet was generated against ONE block. Loosening it
+produces a different man, and the seam gate cannot detect that — it only
+compares part 1 to pt2, so a CONSISTENTLY different voice passes and still
+sounds wrong beside every other reel:
+
+  The narrator: a man in his early sixties, American, from rural West
+  Texas. Deep chest-resonant voice with real gravel in it from decades of
+  use, not raspy or strained. An unhurried cowboy drawl — vowels stretched
+  long and lazy, consonants soft, g's dropped on -ing words. Low volume,
+  generous pauses, complete confidence, no performance and no sales energy
+  whatsoever. Close-mic, warm and intimate.
+
+Plus the standing exclusions: no young voice · no neutral or broadcast
+American accent · no announcer or commercial VO delivery · no speeding up.
+
+⚠ HE RUNS ~35% LONG AGAINST SCRIPT. Script to ~6.2–6.5s for a part 2 and
+~8.8–9.2s for a part 1 and expect ~9.3–9.5s actual.
+⚠ PART-1 LINES END LEVEL OR SLIGHTLY RISING, NEVER DESCENDING. The seam is
+a pitch match. `verif_carrier_ledger` was rejected at Δ12.3 with
+non-overlapping IQRs because I wrote it to close on a falling cadence.
+⚠ SAME-SESSION GENERATION for any pair: part 1 first, LISTEN AND ACCEPT
+the voice, then pt2 immediately. A matched pair of wrong voices is still
+wrong.
+⚠ CARRIERS USE A PLACEHOLDER VISUAL — "a single dim glowing white
+lightning bolt on a deep purple field, completely static. Placeholder
+visual — discarded in assembly. All attention on the voice." Video is
+discarded on the join; asking for a performing figure changes the
+generation task from disembodied VO to character performance and can shift
+the delivery.
+
+════════════════════════════════════════════════════════════
+5 · MOTION COMPOSITION — never-moves beats travelling
+════════════════════════════════════════════════════════════
+⚠ WEAK FORM ONLY, per v2.9: travelling forms land UNPREDICTABLY (four pro
+concepts settled HIGH twice; updraft settled LOW; anvil passed then
+dipped). Never-moves is the RELIABLE class, with one deviation (tide).
+So: brief never-moves-first, treat travelling concepts as gate-risk, and do
+NOT prompt-correct and retry expecting a different landing.
+
+THE COMPOSITION BLOCK, stated as its own paragraph near the top:
+  the form is centred just above the middle of the frame and NEVER MOVES
+  from that position · the entire LOWER THIRD stays completely dark, empty
+  and even — plain near-black with nothing luminous in it, no smoke bright
+  enough to see, no glow reaching down into it
+⚠ Percentages of frame height work; pixel coordinates do NOT. The
+generator has no concept of y1300.
+
+ENDCARD targets: content-bottom 50–53% at t=5.2s and 6.5s; text band
+y1150–1500 dark. STINGER targets: band y1300–1450 ≤~35% of pixels >L40 at
+1.3s, ~0% from 2.0s. A bright hero flash filling the frame at ~1.0–1.1s is
+BY DESIGN; the CLEARING RATE is what is measured. `imprint` was retired for
+holding 56–59%.
+
+════════════════════════════════════════════════════════════
+6 · EXCLUSIONS — the paragraph that catches what nothing else does
+════════════════════════════════════════════════════════════
+⛔ "NO TEXT, LETTERS, NUMBERS, LOGOS OR WATERMARKS" DOES NOT CATCH
+ORNAMENTS. The strike overlay carried a rendered four-point sparkle on
+every frame and nearly broke the mechanic. Every prompt now also carries:
+  No ornaments, sparkles, stars, lens flares, corner marks or decorative
+  flourishes of any kind, anywhere in the frame.
+
+⚠ SILENCE CANNOT BE REQUESTED. The overlay was specced "COMPLETELY SILENT ·
+pure digital silence" and came back with a −0.2 dB crack. The defence is
+never mapping the overlay's audio, not the spec. Keep writing the line;
+treat it as unenforceable.
+
+STANDING VOCABULARY EXCLUSIONS on every prompt: pick, picks, straight, box,
+play, hit, hits, win, winning, winner, lottery, bet, luck, lucky, jackpot.
+Plus per-asset: no prices where the tier bars them · no cash, tickets,
+dice, cards or gambling imagery, ever · no confetti, fireworks or
+celebration.
+
+CONCEPT-SPECIFIC GUARDS, each written after a near-miss:
+  bloom     → "never floral, never a literal flower"
+  tide      → "never ocean water, never waves with foam"
+  discharge → "never a storm, never clouds, never sky, no thunder"
+  ignite    → "never an explosion, never fire, no fireball, no embers"
+  facet     → "never ice, never frost, never a gemstone"
+  cadence   → "no clocks, clock faces, calendars, hourglasses, suns"
+  reveal    → "no faces or figures emerging from the particles"
+  zk30      → "no maps, borders, coastlines, flags or geographic shapes"
+The rule behind them: name the nearest wrong thing explicitly. The
+generator will find it otherwise.
+
+════════════════════════════════════════════════════════════
+7 · DELIVERY — seven failure classes, all real
+════════════════════════════════════════════════════════════
+⚠ Exact lowercase registry name · direct upload at the final name · NEVER a
+GitHub-web rename (destroyed binaries twice) · ffprobe on landing before
+drawing any conclusion — a 2-byte stub reports "delivered" convincingly.
+Wrong container extension (.mov) and wrong case (.MP4) are both INVISIBLE
+to the registry: nothing errors, the pool silently stays where it was.
+⚠ CANDIDATE NAMES for anything replacing a serving file — a delivery at a
+registered name overwrites it silently with no error.
+⚠ 720×1280 is the confirmed generator ceiling, hit five times. Requesting
+1080×1920 costs nothing but do not treat the return as a defect.
+
+════════════════════════════════════════════════════════════
+8 · IMAGE PROMPTS (ChatGPT) — different medium, same discipline
+════════════════════════════════════════════════════════════
+PANELS: 1536×1024 (3:2) with the artwork in a CENTRED HORIZONTAL BAND
+~1536×440; pure flat black above and below. Band aspect free (serving range
+2.97:1–4.40:1).
+⛔ PANEL COPY IS BAKED PIXELS, NOT CONFIG. A wording fix costs a
+regeneration. Spell every string exactly in the prompt, including periods,
+hyphens and middle dots, and clear it MANUALLY from the rendered pixels
+before pinning to sha256 — the old panel_app passed brand lint perfectly
+and was still wrong.
+⛔ LEGIBILITY AT RENDERED SIZE, not full resolution: panels appear inside a
+modal held 1.5s. Shrink to ~350px and confirm every line reads.
+⛔ DUAL-CONTEXT TEST: must read correctly to a reel viewer WITHOUT the app
+AND to a paying subscriber INSIDE it. That is the test panel_app failed.
+COVERS AND BANNERS: state the safe area in the prompt as its own block
+before the composition — YouTube's central 1546×423 is the constraint that
+broke the first banner, and generators spread text wide by default.
+
+--- end of the agent's document. Repo note (Claude Code, 2026-09-07): the
+generated MKT-73 prompts in scripts/anchor-thread.ts apply §1 (pacing block
+first, beats scripted inside the 8s cut), §2a/2c (fictional sci-fi framing,
+no broadcast/studio/news/desk vocabulary, negatives only in the closing
+paragraph), §6 (ornaments line + standing vocabulary + no cash/tickets/
+dice/cards + no confetti), §7 (720×1280 requested), and §8 (safe-area block
+before the composition, every string spelled with its middle dot). ---
 ================================================================================

@@ -285,6 +285,54 @@ function ProSubscribersInner() {
     mrr: rows.filter(r => r.status === 'active').reduce((s, r) => s + (Number(r.monthly_price_usd) || 0), 0),
   }), [rows]);
 
+  // Renewal calendar: Meta bills each subscriber monthly on their subscribe
+  // day-of-month, so the next renewal is the next occurrence of that day.
+  // During a churn window this is the list of who is about to decide.
+  const renewals = useMemo(() => {
+    const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+    const todayIso = today.toISOString().slice(0, 10);
+    const next = (dateSubscribed: string) => {
+      const dom = parseInt(dateSubscribed.slice(8, 10), 10);
+      for (let k = 0; k < 3; k++) {
+        const y = today.getUTCFullYear(); const m = today.getUTCMonth() + k;
+        const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+        const d = new Date(Date.UTC(y, m, Math.min(dom, last)));
+        const iso = d.toISOString().slice(0, 10);
+        if (iso >= todayIso) return iso;
+      }
+      return todayIso;
+    };
+    const items = rows
+      .filter(r => r.status === 'active')
+      .map(r => {
+        const due = next(r.date_subscribed);
+        const daysOut = Math.round((new Date(due + 'T00:00:00Z').getTime() - today.getTime()) / 86400000);
+        const months = Math.max(0, Math.floor((today.getTime() - new Date(r.date_subscribed + 'T00:00:00Z').getTime()) / (30.44 * 86400000)));
+        return { r, due, daysOut, months };
+      })
+      .sort((a, b) => a.due.localeCompare(b.due));
+    return {
+      next7: items.filter(i => i.daysOut <= 7),
+      next8to30: items.filter(i => i.daysOut > 7 && i.daysOut <= 30).length,
+      firstRenewal7: items.filter(i => i.daysOut <= 7 && i.months <= 1).length,
+    };
+  }, [rows]);
+
+  // Cohorts by subscribe month: how much of each intake is still paying.
+  const cohorts = useMemo(() => {
+    const m = new Map<string, { total: number; active: number; churned: number; other: number }>();
+    for (const r of rows) {
+      const k = r.date_subscribed.slice(0, 7);
+      const c = m.get(k) ?? { total: 0, active: 0, churned: 0, other: 0 };
+      c.total++;
+      if (r.status === 'active') c.active++;
+      else if (r.status === 'churned') c.churned++;
+      else c.other++;
+      m.set(k, c);
+    }
+    return Array.from(m.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
+  }, [rows]);
+
   const patchRow = useCallback(async (id: string, patch: Partial<ProSubscriber>) => {
     try {
       await subscriberAdmin.updateSubscriber({ id, ...patch } as any);
@@ -327,6 +375,52 @@ function ProSubscribersInner() {
           <Text style={{ fontSize: 22, fontWeight: '800', color: colors.gold }}>{totals.comped}</Text>
         </Card>
       </View>
+
+      {!loading && rows.length > 0 && (
+        <Card style={{ padding: 12, marginBottom: 14 }}>
+          <SectionTitle>{`Renewals due · next 7 days: ${renewals.next7.length} · days 8–30: ${renewals.next8to30}`}</SectionTitle>
+          <Text style={st.sub}>
+            Meta bills on the subscribe day each month. {renewals.firstRenewal7 > 0 ? `${renewals.firstRenewal7} of the next-7-day renewals are FIRST renewals (joined ≤1 month ago) — the cohort most likely to lapse. ` : ''}
+            After each renewal date passes, the earnings export shows whether it cleared (Funnel → Renewal wave).
+          </Text>
+          {renewals.next7.length === 0 ? (
+            <Text style={{ color: colors.textSecondary, fontSize: 11 }}>Nothing due in the next 7 days.</Text>
+          ) : renewals.next7.slice(0, 25).map(({ r, due, daysOut, months }) => (
+            <View key={r.id} style={{ flexDirection: 'row', paddingVertical: 4, borderTopWidth: 1, borderTopColor: colors.border, gap: 8, alignItems: 'center' }}>
+              <Text style={{ flex: 2, fontSize: 11, color: colors.text, fontFamily: theme.typography.fontFamily.mono }}>{revealAll ? r.email : maskEmail(r.email)}</Text>
+              <Text style={{ width: 80, fontSize: 11, color: daysOut <= 1 ? colors.gold : colors.textSecondary, textAlign: 'right' }}>{daysOut === 0 ? 'today' : daysOut === 1 ? 'tomorrow' : due.slice(5)}</Text>
+              <Text style={{ width: 54, fontSize: 10, color: months <= 1 ? colors.gold : colors.textTertiary, textAlign: 'right' }}>{months <= 1 ? '1st' : `${months}th`} renewal</Text>
+            </View>
+          ))}
+          {renewals.next7.length > 25 && <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 4 }}>… and {renewals.next7.length - 25} more</Text>}
+        </Card>
+      )}
+
+      {cohorts.length > 0 && (
+        <Card style={{ padding: 12, marginBottom: 14 }}>
+          <SectionTitle>Cohorts by subscribe month</SectionTitle>
+          <View style={{ flexDirection: 'row', paddingVertical: 4, gap: 6 }}>
+            <Text style={{ flex: 1.2, fontSize: 9, color: colors.textTertiary, letterSpacing: 1 }}>MONTH</Text>
+            <Text style={{ width: 50, fontSize: 9, color: colors.textTertiary, letterSpacing: 1, textAlign: 'right' }}>JOINED</Text>
+            <Text style={{ width: 50, fontSize: 9, color: colors.textTertiary, letterSpacing: 1, textAlign: 'right' }}>ACTIVE</Text>
+            <Text style={{ width: 56, fontSize: 9, color: colors.textTertiary, letterSpacing: 1, textAlign: 'right' }}>CHURNED</Text>
+            <Text style={{ width: 56, fontSize: 9, color: colors.textTertiary, letterSpacing: 1, textAlign: 'right' }}>RETAINED</Text>
+          </View>
+          {cohorts.map(([month, c]) => (
+            <View key={month} style={{ flexDirection: 'row', paddingVertical: 4, borderTopWidth: 1, borderTopColor: colors.border, gap: 6 }}>
+              <Text style={{ flex: 1.2, fontSize: 11, color: colors.text }}>{month}</Text>
+              <Text style={{ width: 50, fontSize: 11, color: colors.textSecondary, textAlign: 'right', fontVariant: ['tabular-nums'] }}>{c.total}</Text>
+              <Text style={{ width: 50, fontSize: 11, color: colors.success, textAlign: 'right', fontVariant: ['tabular-nums'], fontWeight: '700' }}>{c.active}</Text>
+              <Text style={{ width: 56, fontSize: 11, color: c.churned ? colors.error : colors.textTertiary, textAlign: 'right', fontVariant: ['tabular-nums'] }}>{c.churned}</Text>
+              <Text style={{ width: 56, fontSize: 11, color: colors.text, textAlign: 'right', fontVariant: ['tabular-nums'] }}>{c.total ? `${Math.round((c.active / c.total) * 100)}%` : '—'}</Text>
+            </View>
+          ))}
+          <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 6 }}>
+            RETAINED counts roster status, which only changes when you mark churns (Sub Import → Probe Potential Churns → Mark churned).
+            If it reads 100% while the Pro group shrinks, the roster is stale, not the cohort healthy.
+          </Text>
+        </Card>
+      )}
 
       <Card style={{ padding: 12, marginBottom: 14 }}>
         <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 8 }}>

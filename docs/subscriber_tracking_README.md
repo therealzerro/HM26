@@ -12,6 +12,7 @@ Shipped under `ENH-FUNNEL-2026-05-19` (MASTER_AUDIT.md).
 | ------------------------------ | ------------------------------------------------------ |
 | `pro_subscribers`              | One row per paying subscriber. Email is the unique key. PII. |
 | `fb_group_contributors`        | Engagement-active members from Group Insights exports. Name+group is the unique key. |
+| `fb_group_daily`               | Group Insights DAILY series (Total Members · Posts · Comments · Reactions · Active Members), one row per group per day, no PII. Added 2026-09-07; feeds the Funnel dashboard's Pro-group headcount, engagement pulse and member bars. |
 | `fb_engagement_snapshots`      | Historical 28-day engagement counts per import.        |
 | `funnel_daily_snapshots`       | Daily page-followers + free-group + active-pro counts with auto-computed conversion rate, gross MRR, net MRR. |
 | `subscriber_import_history`    | Audit trail for every import action.                   |
@@ -108,17 +109,40 @@ rate (30% platform fee placeholder; adjust in `funnel_daily_snapshots` DDL
 if the actual cut differs). Price constant is $2.49 since the 2026-09-02
 migration (was the $0.99 launch price).
 
-### Import Group Insights engagement
+### Import Group Insights (whole download, as-is — since 2026-09-07)
 
 Admin tab → **📧 Sub Import** → 🔥 Insights tab.
 
 1. Select Free Group or Pro Group.
-2. Set the window-end date (defaults to today). Engagement is 28-day rolling.
-3. Paste 4-column data: name, posts, comments, reactions. The raw Group
-   Insights CSV export (every cell double-quoted) pastes as-is since
-   2026-09-02 (BUG-172); TSV and multi-space still work.
-4. Commit. Each row UPSERTs into `fb_group_contributors` and appends a new
-   `fb_engagement_snapshots` row for trend analysis.
+2. Paste the **entire** Group Insights CSV download. The parser is
+   section-aware:
+   - the daily block (`Date, Total Members, …, Active Members`) → one row per
+     day in `fb_group_daily` (all-zero days before the group existed are
+     dropped; `total_members` is NULL on days Insights reported 0 members
+     because the count did not exist yet — Pro before 2026-06-10);
+   - the `Contributors` block (28-day window) → UPSERT into
+     `fb_group_contributors` + a `fb_engagement_snapshots` row per member;
+   - `Popular Days`, `Popular Times` and the `Posts` block are skipped and
+     never stored (the Posts block carries member names + post text).
+   The window-end date auto-fills to the last day of the daily series; the
+   Contributors table pasted alone still works (set the date by hand). TSV,
+   multi-space and the quoted CSV (BUG-172) all parse.
+3. Commit. The alert lists what landed; `subscriber_import_history` gets one
+   `group_insights` row covering both blocks.
+
+Read it back in **👥 Engagement** (same screen): every member ever listed,
+ranked by the latest window (score = posts×5 + comments×2 + reactions), Δ vs
+the previous imported window, and a dimmed "gone quiet" list of members who
+fell out of the window. Totals row compares the two most recent windows.
+
+### Marking churn in bulk
+
+📧 Subscribers tab → paste the current supporter export → **Probe Potential
+Churns** lists active roster rows missing from it. **Mark all N churned
+(today)** sets `status=churned, date_churned=today` on each (confirm dialog;
+reversible per row in Pro Subscribers) and logs a `manual` import row
+`bulk_churn_from_probe_<date>`. Only use it when the pasted export is the
+complete current list — a partial paste would churn paying members.
 
 ### Import Meta earnings
 
@@ -137,6 +161,38 @@ days, month to date, other income, all-time — and the ratio of actual
 $2.49 price ($1.74 per renewal; $0.69 per legacy $0.99 sub), which is the
 observed per-renewal amount in the export and confirms the 70% constant in
 `funnel_daily_snapshots`.
+
+### Reading the Funnel dashboard (2026-09-07 layout)
+
+Three Pro numbers, deliberately side by side — they measure different things
+and drift apart exactly when it matters:
+
+| Tile | Source | What it is | When it lies |
+|---|---|---|---|
+| ACTIVE PRO · ROSTER | `pro_subscribers` status=active | the billing list | between email imports (leavers stay "active") |
+| PRO GROUP · INSIGHTS | `fb_group_daily` latest `total_members` | who is actually in the group | only as fresh as the last Insights paste (as-of date shown) |
+| PAYING · 30D ÷ $1.74 | `fb_earnings_daily` last 30 days ÷ $1.74 | renewals that cleared | legacy $0.99 subs pay $0.69 and read as 0.4 of a renewal |
+
+Rule: quote the Insights count as the Pro headcount in briefs; treat roster
+MRR/conversion as upper bounds until the roster is reconciled (a gold banner
+appears on both Funnel and Pro Subscribers when roster − group > 2).
+CONVERSION · REAL = Insights members ÷ free group.
+
+Cards: **Renewal wave** — this month's subscription payouts vs the same
+calendar days last month (Meta bills on the subscribe date, so this is the
+renewal rate of last month's intake; <85% = the cohort is leaving; read over a
+week, daily postings wobble ±1 day) and last 7 days vs the same 7 days a month
+earlier. **Payouts by month** with ≈renewals. **Pro group engagement pulse** —
+last 7 days vs prior 7 (posts, member comments, reactions, active/day, active
+share, zero-comment days). **Pro group members** bars — the 90-day Insights
+series (red = down day); falls back to the roster snapshot bars when no series
+is loaded. **Growth velocity** — free group and page followers per day between
+snapshots, Pro group per day over 7 days, and the implied Pro ceiling.
+
+**Pro Subscribers** adds **Renewals due** (next 7 days list with "1st renewal"
+flags for members ≤1 month in; count for days 8–30) and **Cohorts by subscribe
+month** (joined / active / churned / retained — RETAINED only moves when churn
+is marked, so 100% beside a shrinking group means a stale roster).
 
 ### Manual / comped subscribers
 

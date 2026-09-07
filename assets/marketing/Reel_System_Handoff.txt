@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-04 · v5.7
+Content Agent Handoff · 2026-09-07 · v5.8
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -351,6 +351,107 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
 
+WHAT CHANGED IN v5.8 (2026-09-07 — AUDIENCE READ, NOT A REEL CHANGE: the Pro
+group's Insights export (4/1–9/6) and Meta's earnings export (1/1–9/7) were
+ingested today. This block is the detailed summary of both, written for the
+content side. No asset is requested by it; the asks at the end are copy/format
+questions that follow from the numbers. Internal file — member names are NOT
+in here and must never be; the numbers are aggregates.)
+================================================================================
+A. THE HEADCOUNT — three Pro numbers, one of them money
+   Roster (paying emails on file)        72   ← stale: moves only on an email import
+   Pro group Total Members (Insights)    63   on 9/6 (69 on 9/3 → 67 → 66 → 63)
+   Paying-equivalent (30d payouts ÷ $1.74) 49  (8/9–9/7 subscription payouts $85.55)
+   Free group 485 (+15 in 5 days = 3.0/day, up from 1.8/day) · page 14,185 (+1).
+   Real conversion = 63 ÷ 485 = 13.0% (the dashboard's 14.85% uses the roster).
+   Ruling for copy: NEVER quote a Pro member count in public or group copy; in
+   the operator brief use the Insights count. The roster is a billing list.
+
+B. CHURN IS NOW MEASURED, NOT PREDICTED
+   The 9/2 read said the 8/4–8/12 spurt cohort (49 first payments) renews
+   9/4–9/23 and that engagement decay was the precursor. On the first three
+   renewal days the group lost 6 members (−9%). Payout side, 4 days in:
+   Sep 4–7 subscription payouts $24.91 vs Aug 4–7 $48.29 → 52%; Sep 1–7 vs
+   Aug 1–7 → 59%. Meta posts renewals ±1 day, so read the ratio over a week,
+   not a day — but the direction agrees with the member count. Definitive
+   number: the September export on 9/24 vs August's $122.08 (below ~$85 = the
+   cohort is leaving). All-time: subscriptions $265.48, total $336.15; content
+   monetization is ~$0.05/day and is not a revenue line.
+
+C. ENGAGEMENT — the series now runs from the group's first day (4/21)
+   Period            members  posts/d  comments/d  reactions/d  active/d
+   4/21–4/30 launch    n/a      4.5       0.6         1.7         2.9
+   5/15–5/31           n/a      5.6       4.2         8.4        14.9
+   6/1–6/14             39      3.9       2.9         5.4        19.5 (50%)
+   6/15–6/30            33      1.8       0.7         0.9        12.8
+   7/1–7/28             21      0.0       0.0         0.1         1.2  ← 28 days silent
+   8/6–8/12 spurt       63      8.1      15.0        25.7        43.7 (69%)
+   8/13–8/19            69      5.1       3.1        10.4        46.9
+   8/20–8/26            69      4.4       1.3         7.4        35.9
+   8/27–9/2             68      3.7       0.6         1.9        29.7
+   8/31–9/6             63      4.0       0.1         1.7        27.7 (44%)
+   One member comment in the last seven days. 10 of the 18 days since 8/20 had
+   zero comments. The reels post 4/day into silence. Contributors in the 28-day
+   window: 24 → 18; member posts 8 → 6, comments 75 → 51, reactions 109 → 90.
+   Members reported only from 6/10; the member count is NULL before that.
+   In every era of this series, posting cadence and membership moved together
+   (June slide began at ~2 posts/day; July collapse = zero posts; August spurt
+   = 8/day + human threads). There is no era where members held with the feed
+   silent — and none where templated drops alone grew comments.
+
+D. WHAT ENGAGED (top posts, unchanged leaders)
+   1. Member confusion threads: "two different lists, which one?" (13 comments),
+      "does everyone understand box vs straight?" (11), "not state specific —
+      run it in as many states as you can?" (8), "playing from NY, is this
+      all-state?" (6). Onboarding gap, not a feature.
+   2. The human-written Morning Brief announcement with @everyone (6c/10r/51v).
+   3. New-member welcome posts (5–8 reactions).
+   4. Straight-match callouts with a state named (5–7 reactions).
+   5. Templated slate captions ("Six Evening signals for 8/25, straight from the
+      engine…"): 0–1 comments, 1–4 reactions, now 15–25 views (25–40% of
+      members; was 30–60 in mid-August).
+   The same-day midday verify post (MKT-69, the "8h 11m" STRAIGHT MATCH reel —
+   the format Meta's own recommendation asked for) drew 0 comments / 1 reaction
+   / 21 views inside Pro. It is doing its job as a receipt; it is not a
+   conversation starter, and it was never going to be.
+   Popular hours 8–10 AM and 5–7 PM, Tuesday top, Wed/Thu lowest — the 8:30 AM
+   / 5:00 PM drop cadence still matches; no schedule change.
+
+E. WHAT THIS MEANS FOR CONTENT (rulings + asks — copy questions, not assets)
+   1. NOTHING here changes the reel system. Cadence, kinds, public lane: as-is.
+      The public lane is not the problem (free group intake doubled); the Pro
+      group's conversation is.
+   2. The four confusion threads are the FAQ. ASK (MKT-70, copy): a 5-line
+      "how to read the board" text block in tier-3 vocabulary answering them
+      verbatim — which board is which; "all-state, run it where you play";
+      STRAIGHT vs BOX in one line each; when boards post and when they grade;
+      where receipts live. Destination: pinned Pro post + free-group pin. Pair
+      with the existing coffee-mode body (no new video).
+   3. ASK (MKT-71, copy, needs the MKT-15 ruling): ONE rotating question line
+      appended to Pro/Free slate captions ("Which board are you on today?" /
+      "Which state are you running it in?"). Templated captions get 0
+      comments; human posts get 6–21. Tier-2/3 only, never on public kinds.
+   4. ASK (MKT-72, format): a Sunday "receipts thread" post template inviting
+      members to post their state's matched draws under it — crowd-sourced
+      verify, tier-3 vocabulary, MATCH / STRAIGHT MATCH only.
+   5. NOT asked: anything that quotes a member count, a churn number, a payout,
+      or a renewal date in group or public copy. Those live in the operator
+      brief and the Funnel dashboard only.
+   6. Timing: the renewal window runs to 9/23. Items 2–4 are the only levers
+      that act inside it. Anything that needs a new render can wait for the
+      9/24 payout read.
+
+F. WHERE THE DATA LIVES (for the agent's own reference; no action)
+   docs/growth_checkpoint_2026-09-07.md (this read, aggregates only) and
+   docs/growth_checkpoint_2026-09-02.md (the diagnosis + ranked proposals).
+   Admin → Funnel: Pro-group headcount vs roster vs paying-equivalent, real
+   conversion, engagement pulse, renewal-wave ratio, payouts by month, growth
+   velocity, 90-day member bars. Admin → Sub Import → 👥 Engagement: the
+   contributors table with per-window Δ and who has gone quiet. Admin → Pro
+   Subscribers: renewals due next 7 days + cohort retention. The whole Group
+   Insights download now pastes as-is into Sub Import → 🔥 Insights.
+
+================================================================================
 WHAT CHANGED IN v5.7 (2026-09-04 — ASK: REGENERATE THE SAME-DAY CARRIER AS A
 TWO-PART PAIR; §G.10(c) moves from OPTIONAL to ISSUED; prompts supplied)
   A. THE ASK. Regenerate `verif_carrier_sameday` and add a same-session pt2

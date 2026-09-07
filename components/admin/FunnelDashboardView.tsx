@@ -172,6 +172,95 @@ function TrendBars({ snaps }: { snaps: FunnelSnapshot[] }) {
   );
 }
 
+/**
+ * Pro-group members by day from Group Insights (fb_group_daily) — the real
+ * headcount series. Replaces the roster-derived snapshot bars whenever the
+ * daily series is present (the roster only moves when an email export is
+ * imported, so its "trend" is a staircase of import days).
+ */
+function MembersTrend({ rows }: { rows: GroupDailyRow[] }) {
+  const { colors } = useTheme();
+  const data = rows.filter(r => r.total_members != null).slice().reverse(); // oldest → newest
+  if (data.length < 2) return null;
+  const vals = data.map(r => Number(r.total_members));
+  const max = Math.max(1, ...vals);
+  const min = Math.min(...vals);
+  const first = vals[0];
+  const last = vals[vals.length - 1];
+  const peak = Math.max(...vals);
+  const peakDay = data[vals.indexOf(peak)].day;
+  return (
+    <Card style={{ padding: 12 }}>
+      <SectionTitle>{`Pro group members · ${data.length} days (Insights)`}</SectionTitle>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 100, gap: 1, paddingHorizontal: 4 }}>
+        {data.map((r, i) => {
+          const v = vals[i];
+          const h = Math.max(4, (v / max) * 90);
+          const down = i > 0 && v < vals[i - 1];
+          return (
+            <View key={r.day} style={{ flex: 1, alignItems: 'center' }}>
+              <View style={{ width: '100%', height: h, backgroundColor: down ? colors.error : colors.primary, borderRadius: 1 }} />
+            </View>
+          );
+        })}
+      </View>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
+        <Text style={{ fontSize: 9, color: colors.textTertiary }}>{data[0].day.slice(5)} · {first}</Text>
+        <Text style={{ fontSize: 9, color: colors.textTertiary }}>peak {peak} on {peakDay.slice(5)} · low {min}</Text>
+        <Text style={{ fontSize: 9, color: colors.textTertiary }}>{data[data.length - 1].day.slice(5)} · {last}</Text>
+      </View>
+      <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 6 }}>
+        Red bars are down days. {signed(last - first)} over the window; {signed(last - peak)} from the peak.
+      </Text>
+    </Card>
+  );
+}
+
+/** Day-over-day growth between funnel snapshots (page + free group) and the Pro group series. */
+function VelocityCard({ snaps, pulse }: { snaps: FunnelSnapshot[]; pulse: ReturnType<typeof groupPulse> }) {
+  const { colors } = useTheme();
+  if (snaps.length < 2) return null;
+  const latest = snaps[0];
+  const prev = snaps[1];
+  const days = Math.max(1, Math.round((new Date(latest.snapshot_date).getTime() - new Date(prev.snapshot_date).getTime()) / DAY_MS));
+  const older = snaps.find(s => new Date(latest.snapshot_date).getTime() - new Date(s.snapshot_date).getTime() >= 14 * DAY_MS) ?? null;
+  const olderDays = older ? Math.max(1, Math.round((new Date(latest.snapshot_date).getTime() - new Date(older.snapshot_date).getTime()) / DAY_MS)) : null;
+  const rate = (a: number, b: number, d: number) => `${((a - b) / d >= 0 ? '+' : '')}${((a - b) / d).toFixed(1)}/day`;
+  const rows: Array<[string, string, string]> = [
+    ['Free group', rate(latest.free_group_members, prev.free_group_members, days), older && olderDays ? rate(latest.free_group_members, older.free_group_members, olderDays) : '—'],
+    ['Page followers', rate(latest.page_followers, prev.page_followers, days), older && olderDays ? rate(latest.page_followers, older.page_followers, olderDays) : '—'],
+  ];
+  if (pulse && pulse.membersWeekAgo != null) {
+    rows.push(['Pro group (Insights)', `${((pulse.members - pulse.membersWeekAgo) / 7 >= 0 ? '+' : '')}${((pulse.members - pulse.membersWeekAgo) / 7).toFixed(1)}/day`, '7d window']);
+  }
+  const needPerDay = latest.free_group_members > 0 && pulse
+    ? ((latest.free_group_members - prev.free_group_members) / days) * (pulse.members / latest.free_group_members)
+    : null;
+  return (
+    <Card style={{ padding: 12 }}>
+      <SectionTitle>Growth velocity</SectionTitle>
+      <View style={{ flexDirection: 'row', paddingVertical: 4, gap: 6 }}>
+        <Text style={{ flex: 2, fontSize: 9, color: colors.textTertiary, letterSpacing: 1 }}>SERIES</Text>
+        <Text style={{ width: 92, fontSize: 9, color: colors.textTertiary, letterSpacing: 1, textAlign: 'right' }}>{`LAST ${days}D`}</Text>
+        <Text style={{ width: 92, fontSize: 9, color: colors.textTertiary, letterSpacing: 1, textAlign: 'right' }}>{olderDays ? `LAST ${olderDays}D` : 'LONGER'}</Text>
+      </View>
+      {rows.map(([label, a, b]) => (
+        <View key={label} style={{ flexDirection: 'row', paddingVertical: 4, borderTopWidth: 1, borderTopColor: colors.border, gap: 6 }}>
+          <Text style={{ flex: 2, fontSize: 11, color: colors.text }}>{label}</Text>
+          <Text style={{ width: 92, fontSize: 11, color: colors.text, textAlign: 'right', fontVariant: ['tabular-nums'], fontWeight: '700' }}>{a}</Text>
+          <Text style={{ width: 92, fontSize: 11, color: colors.textSecondary, textAlign: 'right', fontVariant: ['tabular-nums'] }}>{b}</Text>
+        </View>
+      ))}
+      {needPerDay != null && (
+        <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 6 }}>
+          At the current free-group intake and real conversion, the Pro ceiling is ≈{needPerDay.toFixed(2)} new Pro members/day
+          — the top of the funnel sets the pace, not conversion.
+        </Text>
+      )}
+    </Card>
+  );
+}
+
 function RecentConversions({ subs }: { subs: ProSubscriber[] }) {
   const { colors } = useTheme();
   const st = useSt();
@@ -243,8 +332,8 @@ function FunnelDashboardInner() {
       const [s, p, earnRows, gd] = await Promise.all([
         subscriberAdmin.listSnapshots(30),
         subscriberAdmin.listSubscribers({}),
-        subscriberAdmin.listEarnings(120).catch(() => [] as EarningsDay[]),
-        subscriberAdmin.listGroupDaily('pro', 60).catch(() => [] as GroupDailyRow[]),
+        subscriberAdmin.listEarnings(400).catch(() => [] as EarningsDay[]),
+        subscriberAdmin.listGroupDaily('pro', 90).catch(() => [] as GroupDailyRow[]),
       ]);
       setSnaps(s);
       setSubs(p);
@@ -305,6 +394,25 @@ function FunnelDashboardInner() {
 
   const pulse = useMemo(() => groupPulse(groupDaily), [groupDaily]);
   const rosterGap = pulse ? activeNow - pulse.members : null;
+
+  // Payouts by calendar month (newest first) + the paying-equivalent headcount:
+  // Meta pays $1.74 per $2.49 renewal, so 30-day subscription payouts ÷ 1.74 is
+  // how many renewals actually cleared — the number the roster and the group
+  // count both drift away from.
+  const byMonth = useMemo(() => {
+    const n = (v: number | string) => Number(v) || 0;
+    const m = new Map<string, { subs: number; other: number; total: number }>();
+    for (const r of earn) {
+      const k = r.earn_date.slice(0, 7);
+      const cur = m.get(k) ?? { subs: 0, other: 0, total: 0 };
+      cur.subs += n(r.subscriptions_usd);
+      cur.other += n(r.content_monetization_usd) + n(r.stars_usd);
+      cur.total += n(r.total_usd);
+      m.set(k, cur);
+    }
+    return Array.from(m.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
+  }, [earn]);
+  const payingEquiv = earnings ? earnings.subs30 / 1.74 : null;
 
   if (loading) {
     return (
@@ -393,13 +501,47 @@ function FunnelDashboardInner() {
             <MetricTile label="SUBS · LAST 30D" value={`$${earnings.subs30.toFixed(2)}`} sub={`through ${earnings.latest}`} color={colors.success} />
             <MetricTile label={`SUBS · ${earnings.month}`} value={`$${earnings.subsMonth.toFixed(2)}`} sub="month to date" color={colors.success} />
             <MetricTile label="OTHER · LAST 30D" value={`$${earnings.other30.toFixed(2)}`} sub="content + stars" />
-            <MetricTile label="ALL-TIME" value={`$${earnings.all.toFixed(2)}`} sub="since 2026-04-15" color={colors.gold} />
+            <MetricTile label="ALL-TIME" value={`$${earnings.all.toFixed(2)}`} sub="since 2026-04-14" color={colors.gold} />
+            {payingEquiv != null && (
+              <MetricTile
+                label="PAYING · 30D ÷ $1.74"
+                value={payingEquiv.toFixed(0)}
+                sub={`renewals that cleared · roster ${activeNow}${pulse ? ` · group ${pulse.members}` : ''}`}
+                color={activeNow - payingEquiv > 5 ? colors.gold : colors.success}
+              />
+            )}
           </View>
           {latest && (
             <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 6 }}>
               Net MRR above is the roster × $1.74 (Meta pays 70% of $2.49). Last-30-day subscription payouts vs that figure:{' '}
               {((earnings.subs30 / Math.max(Number(latest.net_mrr), 0.01)) * 100).toFixed(0)}%.
+              {' '}The PAYING tile is the same payouts expressed as headcount — the only one of the three Pro numbers that is money.
             </Text>
+          )}
+          {byMonth.length > 0 && (
+            <Card style={{ padding: 12, marginTop: 10 }}>
+              <SectionTitle>Payouts by month</SectionTitle>
+              <View style={{ flexDirection: 'row', paddingVertical: 4, gap: 6 }}>
+                <Text style={{ flex: 1.2, fontSize: 9, color: colors.textTertiary, letterSpacing: 1 }}>MONTH</Text>
+                <Text style={{ width: 70, fontSize: 9, color: colors.textTertiary, letterSpacing: 1, textAlign: 'right' }}>SUBS</Text>
+                <Text style={{ width: 60, fontSize: 9, color: colors.textTertiary, letterSpacing: 1, textAlign: 'right' }}>OTHER</Text>
+                <Text style={{ width: 70, fontSize: 9, color: colors.textTertiary, letterSpacing: 1, textAlign: 'right' }}>TOTAL</Text>
+                <Text style={{ width: 62, fontSize: 9, color: colors.textTertiary, letterSpacing: 1, textAlign: 'right' }}>≈RENEWALS</Text>
+              </View>
+              {byMonth.map(([month, v]) => (
+                <View key={month} style={{ flexDirection: 'row', paddingVertical: 4, borderTopWidth: 1, borderTopColor: colors.border, gap: 6 }}>
+                  <Text style={{ flex: 1.2, fontSize: 11, color: colors.text }}>{month}{month === earnings.month ? ` (to ${earnings.dayOfMonth})` : ''}</Text>
+                  <Text style={{ width: 70, fontSize: 11, color: colors.success, textAlign: 'right', fontVariant: ['tabular-nums'], fontWeight: '700' }}>{money(v.subs)}</Text>
+                  <Text style={{ width: 60, fontSize: 11, color: colors.textSecondary, textAlign: 'right', fontVariant: ['tabular-nums'] }}>{money(v.other)}</Text>
+                  <Text style={{ width: 70, fontSize: 11, color: colors.text, textAlign: 'right', fontVariant: ['tabular-nums'] }}>{money(v.total)}</Text>
+                  <Text style={{ width: 62, fontSize: 11, color: colors.textSecondary, textAlign: 'right', fontVariant: ['tabular-nums'] }}>{(v.subs / 1.74).toFixed(0)}</Text>
+                </View>
+              ))}
+              <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 6 }}>
+                ≈RENEWALS = subscriptions ÷ $1.74 (legacy $0.99 subs pay $0.69, so early months read slightly high). OTHER =
+                content monetization + stars; the April spike is a single day.
+              </Text>
+            </Card>
           )}
         </View>
       )}
@@ -493,7 +635,11 @@ function FunnelDashboardInner() {
         </Card>
       )}
 
-      {snaps.length >= 2 && <TrendBars snaps={snaps} />}
+      {groupDaily.filter(r => r.total_members != null).length >= 2
+        ? <MembersTrend rows={groupDaily} />
+        : snaps.length >= 2 && <TrendBars snaps={snaps} />}
+
+      <VelocityCard snaps={snaps} pulse={pulse} />
 
       <RecentConversions subs={subs} />
 

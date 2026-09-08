@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-07 · v6.0
+Content Agent Handoff · 2026-09-08 · v6.1
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -227,6 +227,10 @@ E. CAPTIONS (§5): template engine at publish, date-deterministic, 12 families
    absolute: real counts/states ONLY on pro kinds. Telegram (tier 4) reshapes;
    YouTube/TikTok/Reddit/X registered but DISABLED (operator-only flip, one at
    a time); Instagram = do-not-build.
+   ⚠ v6.1: the free-group link is in EVERY public caption (both public
+   families) but as the LAST sentence — below the phone fold. Moving it to
+   line one is a template edit in reel-captions.ts, parked behind the
+   9/6–9/22 measurement window (see WHAT CHANGED IN v6.1 A).
 
 F. PUBLIC CAPTURE (MKT-30/16/40/55): `--redact --relabel` = structural digit
    masking (placeholder + gold bolt, never blurred real pixels) + eight copy
@@ -350,6 +354,110 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v6.1 (2026-09-08 — REPLY TO "THE FUNNEL PROBLEM" (your 9/8
+context document). Recorded as MASTER_AUDIT MKT-74. Report only — nothing
+built, nothing shipped. Next free ID: 75.)
+================================================================================
+  A. ITEM A — THE FREE-GROUP LINK IN THE PUBLIC CAPTIONS. ANSWER: YES, IT
+     IS THERE, AND IT IS BURIED.
+     · Both public families carry {free_group_url}: allday_public (8
+       templates, MKT-66 rewrite) and verify_public (8 templates, MKT-40).
+       Substituted at PUBLISH from app_config.social_free_group_url
+       (= facebook.com/groups/3851453614997541, set); on a fetch failure the
+       clause degrades to a clean sentence end, never a literal token.
+     · WHERE: the LAST sentence of every template, then a blank line and the
+       two MKT-66b tags. Measured on the stored 9/6–9/8 drafts: the URL
+       starts at character 149–178 of a 216–245-character caption — after
+       three to four sentences. Facebook's reel-description fold on a phone
+       shows roughly the first line; the link is below it on every public
+       caption we have ever posted.
+     · IT SURVIVES INTO THE PASTE: Admin → Reels "Copy caption" copies the
+       stored draft verbatim (URL already substituted), and the captions
+       sheet prints the full text. The per-platform transform
+       (platformCaption) strips URLs only where allowsLinks=false (TikTok,
+       Instagram); Facebook/Telegram/YouTube keep them.
+     · GROUP KINDS (allday_pro/free, midday, evening, verify): no link, by
+       design — tier 2/4, the viewer is already in the room.
+     · THE MOVE: the families are CODE, not app_config
+       (scripts/reel-captions.ts, the two public arrays), so "line one" =
+       a template edit — hoist the closing clause to a first line
+       ("Free board: <url>" ⏎ body), or your rewrite of the 16 strings, then
+       re-verify through lintCaption(…, 1) (the lint carries no URL rule; a
+       bare link passes). Small: under an hour once the copy is ruled.
+     · THREE THINGS BEFORE IT SHIPS (operator's call, not mine):
+       1. It is a FIFTH change inside your own 14-day window (9/6–9/8
+          changes → window closes ~9/22). Either it waits with B and C, or
+          it is declared the one lever and the window restarts with it in.
+       2. Line one makes the link SEEN and copyable; on most Reels surfaces
+          a description URL is still text, not a tap (your cause #1). So it
+          moves the viewer→visit leak by whatever "seen" is worth — that is
+          the measurement, not an assumption.
+       3. Tier-1 exposure: a public-page caption pointing straight into the
+          free group. Two-Question is an image filter and does not cover
+          this; the brand-law read is the operator's.
+  B. ITEM C — INTRO LENGTH. THE PREMISE IS STALE FOR allday_public, AND THE
+     MEASUREMENT YOU WANT IS ALREADY RUNNING.
+     · allday_public has had NO intro and NO stinger since 9/2 (MKT-66):
+       2.0s receipts hook card → 0.4s dissolve → board on screen at 2.0s.
+       The 6.2s-intro / 5–8s-watch comparison is the PRE-9/2 picture and
+       was exactly why MKT-66 was built. The single-variable read — Meta
+       watch time on allday_public, one week of cold-open cuts (9/2–9/8)
+       against the week before — is due NOW from the operator's Meta export.
+       That read answers "are they leaving before the content starts" on
+       the public cut directly. Nothing to build.
+     · WHAT STILL OPENS LONG: every GROUP cut (allday/midday/evening
+       pro+free) — intro 5.96–6.46s measured across the 12-member rotation
+       (rise 5.96 · arrival/board/monitors/public 6.00 · coffee/guest/
+       juggle/window 6.21 · arrive 6.25 · deadpan/powerup 6.33 · reveal
+       6.46) + 3.0s stinger − 0.3s crossfade → board at ~8.7–9.2s; verify
+       (fixed 5.63s intro) and verify_public (fixed public intro 6.0s +
+       stinger, board ~8.7s — verify_public did NOT get the cold open).
+     · PER-KIND CONFIGURABLE: yes. reel-intro.ts resolves the intro per
+       kind (slate kinds walk INTRO_ROTATION, verify and the public kinds
+       take a fixed file); the assembler shifts everything downstream by
+       (introDur − 1.2), so a shorter member needs no timing change.
+     · A 3.0–3.5s TRIM OF AN EXISTING MEMBER: the validator floor is
+       INTRO_MIN = 3.5s (ceiling 6.5s) — a 3.0s file is REJECTED at probe
+       and that day falls to the legacy lockup open; 3.5s passes. The
+       contract a cut must keep: (1) TAIL-anchored — the intro's final smoke
+       is what dissolves 0.8s into the body's frame 0, so the cut keeps the
+       last 3.5s, not the first; (2) the intro's own audio track must exist
+       (load-bearing pre-VO; the carrier VO enters 0.4s before the intro
+       ends); (3) the shoulder chip is full-opacity from frame one, so
+       frame one must be a readable frame, not a black-up. Nothing in the
+       dissolve graph breaks at 3.5s. What breaks is the PERFORMANCE — a
+       tail-anchored 3.5s of a 6s take starts mid-action (the arrive/walk-
+       in/juggle beats are in the first 2–3s), which is the MKT-46 head-
+       trim problem in a new coat. Source would be the *_master_10s.mp4
+       files, re-windowed, not the 6s serving files. Not built; not
+       proposed until the allday_public read is in.
+  C. THE 14-DAY BASELINE — CANNOT BE COMPUTED FROM ANYTHING WE HOLD.
+     · The database has NO page-level daily series. What exists:
+       fb_group_daily (free: joined/active/engaged per day; pro: members/
+       active), fb_earnings_daily, fb_engagement_snapshots, contributors.
+       Views / Viewers / Visits / Follows exist only in the operator's Meta
+       exports, which were read for your monthly table and never ingested.
+     · viewer→visit and visit→follow for 8/23–9/5 therefore need ONE thing:
+       a Page Insights DAILY export (Views, Reach or Viewers, Page visits,
+       Follows) covering 8/23–9/22. Send it and both ratios come back per
+       window, and the series gets ingested so this is never a gap again.
+     · What we DO hold for the pre-window, on the record now:
+         free group joins 8/23–9/5 = 29 (2.1/day; range 0–6/day)
+         free group joins 9/6 (day 1 of the changes) = 4; 9/7–9/8 not yet
+           imported — next Insights import fills them
+         page followers 14,184 → 14,185 (+1) across the 9/2→9/7 checkpoint
+         pro members 69 → 63 over 8/20→9/6 (renewal-window churn, MKT
+           growth log)
+     · Window: changes landed 9/6–9/8 → NOTHING ELSE moves until ~9/22.
+       B (chip string) and any C trim wait; their asks stay parked in G.
+  D. RECORDED, NOT ARGUED: the reframe itself (reach is not the problem;
+     0.25% viewer→follow; the compliant cut's ceiling is the question, not
+     April's; more reels/rotations/motions buy quality, not conversion) is
+     now MASTER_AUDIT MKT-74 and the reel system's stated purpose line.
+     hitmasterzk.com stays parked (brand_domain set, unwired, per-surface
+     tier ruling owed — unchanged).
+================================================================================
 
 WHAT CHANGED IN v6.0 (2026-09-07 night — MKT-62/69 TWO-PART PAIR REGISTERED.
 The operator regenerated BOTH parts in one session from v5.9 E/F within the

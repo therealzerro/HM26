@@ -2,11 +2,11 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
-## 2026-09-08 — evening session (Tuesday board, 42 evening draws / 39 jurisdictions → $10.50/unit) — PROPOSED 4-leg (3 singles + 1 double), All-Day lean; confirm placement + units from the ticket
+## 2026-09-08 — evening session (Tuesday board, 42 evening draws / 39 jurisdictions → $10.50/unit) — PLACED as proposed (operator confirmed ~5pm ET): 4-leg (3 singles + 1 double), 2S + 3B every leg, All-Day lean
 
 Slate basis: 9/8 K6 (workflow run 8:05am ET, engine v2.1, edge v53). All-Day K6 = 136 / 385 / 195 / 563 / 571 / 736; Evening K6 = 385 / 417 / 106 / 105 / 637 / 146; Midday K6 = 316 / 164 / 617 / 635 / 317 / 367. Midday 9/8 (33 draws, imported ~4:35pm): no straight on any board or operator leg; 635/{3,5,6} boxed (FL 365) and closed; Eve pos 3 {0,1,6} drew midday (IA 061) and is closed by convention. Cross-scope tonight: **{3,5,8} = Eve pos 1 (overdue tag, ds 13) + All-Day pos 2**; **{3,6,7} = all three boards** (Mid pos 6 / All-Day pos 6 / Eve pos 5) and evening DI #1; {1,4,6} = Eve pos 6 + Mid pos 2; {1,3,6} = Mid pos 1 + All-Day pos 1 (third day). Operator asked for an All-Day lean on the back of 9/7 All-Day going 4/6 (all box). Universe check on that lean (strict join, slates × histories, 8/25–9/7): All-Day board sets landing in the **evening half** = 22 of 84 (26.2%) vs Evening board 20 of 84 (23.8%) vs the 22.3% uniform per-set expectation on a 42-draw night — both boards sit at baseline, so the lean is a preference at no measured cost, not an edge (ENG-ALLDAY-RAND-01). Rides in: 367 (day 2, from 9/8 midday). 3-day block scan over all 220 sets: every leg below last drew anywhere on or before 9/4.
 
-### Positions — full evening board (42 draws, $10.50/unit), every leg 2S + 3B ($52.50/leg) — total $210.00
+### Positions — full evening board (42 draws, $10.50/unit), every leg 2S + 3B ($52.50/leg) — total $210.00 — LOGGED as placed, operator instruction 9/8 ~5pm ET
 
 | Combo (straight order) | Set | Provenance | Units | Cost | If straight hits | If box-only hits |
 |---|---|---|---|---|---|---|
@@ -25,7 +25,7 @@ Alternates (not placed): **571 {1,5,7}** (All-Day pos 5, All-Day DI 8, no evenin
 
 - Singles: ~22.3% P(≥1 box) each on 42 draws, ~4.1% straight. Double 335: ~11.9% box / ~4.1% straight (3 of 1000 outcomes per draw); book pays the 3-way box at $75/unit — confirm before sizing.
 - All four legs: ~59% P(≥1 box), ~15% P(≥1 straight), ~41% blank night.
-- Staked: **$210.00** (4 legs × $52.50). Expected night ≈ −$21 at 90% RTP. A single box-only hit ($112.50) does not cover the ticket; any straight ($562.50), the double boxing ($225) plus any single, or two single boxes do.
+- Staked: **$210.00** (4 legs × $52.50), 2S + 3B every leg as placed. Early-13 box on 195 (below) is NOT part of this ticket unless the operator adds it — log separately if placed. Expected night ≈ −$21 at 90% RTP. A single box-only hit ($112.50) does not cover the ticket; any straight ($562.50), the double boxing ($225) plus any single, or two single boxes do.
 - EV framing: all products ≈ 90% RTP; selection chose *which* combos, not the rate. No positional filter (ENG-MIDDAY-POS-02). Calibration payload = 7/24 fit (9/1 refit failed its gate, kept by ruling) — not quoted; everything sits at the uniform ~22%.
 - Ride convention: max bet, ride until hit, max 3 days; a hit closes the leg. 385, 195 and 335 are fresh legs (day 1); 367/637 is day 2. All four are clear of the 3-day post-hit window (last draws 8/26, 9/4, 9/2, 9/4).
 
@@ -37,6 +37,8 @@ Alternates (not placed): **571 {1,5,7}** (All-Day pos 5, All-Day DI 8, no evenin
 | 637 | — | — |
 | 195 | — | — |
 | 335 (double) | — | — |
+
+Settle at 2S + 3B per leg: single straight $562.50, single box-only $112.50, double straight $675.00, double box-only $225.00 (confirm the book's 3-way box rate).
 
 ## 2026-09-08 — midday session (Tuesday board, 33 midday draws → $8.25/unit per leg per bet type) — PROPOSED 5-leg (4 singles + 1 double); confirm placement + units from the ticket
 

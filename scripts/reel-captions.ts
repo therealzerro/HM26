@@ -238,6 +238,39 @@ const tagged = <T,>(fns: ((c: T) => string)[]): ((c: T) => string)[] =>
   fns.map(f => (c: T) => `${f(c)}\n\n${PUBLIC_TAGS}`);
 
 /**
+ * MKT-74 (2026-09-08, operator: "use your best judgement based on the data")
+ * — THE FREE-GROUP LINK GOES ON LINE ONE of every public caption.
+ *
+ * The content agent's funnel analysis measured 0.25% viewer→follow across
+ * ~176.7K 2026 viewers; the caption is the only link surface we control, and
+ * every delivered public template carried `{free_group_url}` as its LAST
+ * sentence — character 149–178 of a 216–245-character caption, below the
+ * phone fold on every public reel ever posted. This is a STRUCTURAL
+ * transform, not a rewrite: the delivered copy stays verbatim; the sentence
+ * that carries the token is lifted to line one, a blank line follows, then
+ * the body. Where that closing clause is long (>40 chars) or starts with a
+ * dangling pronoun ("They're …", "Ours …"), line one takes the family's
+ * canonical lead instead and the original sentence stays in the body with a
+ * period. Runs BEFORE tagged() so the tag line stays last. Tier-1 lint has no
+ * URL rule; re-verified across all 16 templates at registration (MKT-74).
+ */
+const LINK_TOKEN = '{free_group_url}';
+const linkFirst = <T,>(fns: ((c: T) => string)[], lead: string): ((c: T) => string)[] =>
+  fns.map(f => (c: T) => {
+    const s = f(c);
+    const at = s.indexOf(LINK_TOKEN);
+    if (at < 0) return s;
+    const pre = s.slice(0, at);
+    const cut = pre.lastIndexOf('. ');
+    const clause = cut >= 0 ? pre.slice(cut + 2) : pre;
+    const rest = (cut >= 0 ? pre.slice(0, cut + 1) : '').trim();
+    const usable = clause.length <= 40 && !/^(they|ours|it|that)\b/i.test(clause);
+    if (usable) return rest ? `${clause}${LINK_TOKEN}\n\n${rest}` : `${clause}${LINK_TOKEN}`;
+    const kept = clause.replace(/[:\s—-]*$/, '') + '.';
+    return `${lead}${LINK_TOKEN}\n\n${rest ? rest + ' ' : ''}${kept}`;
+  });
+
+/**
  * MKT-68 (2026-09-02, operator) — the Pro CTA on the same-day midday verify.
  * All eight verify_midday captions describe the cover coming off and none of
  * them said where the UNCOVERED board lives. Free group = tier 2, where the
@@ -552,7 +585,7 @@ const CAPTION_REGISTRY = {
   allday_public: {
     offset: 4,
     realNumbers: false,
-    templates: tagged([
+    templates: tagged(linkFirst([
       () => `Six signals. 40+ states and provinces. Scored overnight, published before the first draw. Every one shows its reasoning — energy, momentum, pattern, consistency. The full board is free: {free_group_url}`,
       () => `40+ states and provinces, scored every night. Six signals come out ranked, stamped before the draw. Nothing gets edited after. That's the whole discipline. Free to read: {free_group_url}`,
       () => `Four measures. Six signals. Published before the draw, every single morning. Energy, momentum, pattern and consistency — scored across 40+ states and provinces. The full board is free: {free_group_url}`,
@@ -561,7 +594,7 @@ const CAPTION_REGISTRY = {
       () => `Six signals a day. Four measures behind each one. 40+ states and provinces. Published before the draw and checked after it — that order is the method. Free: {free_group_url}`,
       () => `This is what pattern analysis looks like at scale: 40+ states and provinces, scored nightly, six signals published before the draw. The full board is free: {free_group_url}`,
       () => `Every night the engine reads 40+ states and provinces. Every morning six signals go up, ranked and stamped. The reasoning is shown on all six. Nothing is edited after. Free to check: {free_group_url}`,
-    ]),
+    ], 'The full board is free: ')),
   },
   /**
    * MKT-40 — verify_public: the grading half of the public pair. The eight
@@ -638,7 +671,7 @@ const CAPTION_REGISTRY = {
   verify_public: {
     offset: 6,
     realNumbers: false,
-    templates: tagged([
+    templates: tagged(linkFirst([
       () => `40+ states and provinces, checked draw by draw. Yesterday's six signals, graded against the official results. Published before. Verified after. The full record is free: {free_group_url}`,
       () => `Six signals published yesterday. Every one checked this morning against the official results, in public. Across 40+ states and provinces. Read the record free: {free_group_url}`,
       () => `Scored across 40+ states and provinces. Published before the draw, graded the next morning where anyone can see it. That order is the only thing that makes a record worth reading: {free_group_url}`,
@@ -647,7 +680,7 @@ const CAPTION_REGISTRY = {
       () => `We grade our own analysis in public, across 40+ states and provinces, every morning. No edits, no retroactive claims, misses included. See the full record free: {free_group_url}`,
       () => `40+ states and provinces. Six signals a day. Every one checked the next morning against the official results. Most methods never show what happened next. Ours does: {free_group_url}`,
       () => `Yesterday's six, graded. Scored across 40+ states and provinces, published before the draw, checked after it. The whole record is free: {free_group_url}`,
-    ]),
+    ], 'The full record is free: ')),
   },
 } satisfies Record<string, KindSpec>;
 

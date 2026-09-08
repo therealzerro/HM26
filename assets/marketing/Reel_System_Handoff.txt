@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-08 · v6.1
+Content Agent Handoff · 2026-09-08 · v6.2
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -227,10 +227,11 @@ E. CAPTIONS (§5): template engine at publish, date-deterministic, 12 families
    absolute: real counts/states ONLY on pro kinds. Telegram (tier 4) reshapes;
    YouTube/TikTok/Reddit/X registered but DISABLED (operator-only flip, one at
    a time); Instagram = do-not-build.
-   ⚠ v6.1: the free-group link is in EVERY public caption (both public
-   families) but as the LAST sentence — below the phone fold. Moving it to
-   line one is a template edit in reel-captions.ts, parked behind the
-   9/6–9/22 measurement window (see WHAT CHANGED IN v6.1 A).
+   ⚠ v6.2 (MKT-74): the free-group link is LINE ONE of every public caption
+   (both public families) via `linkFirst()` in reel-captions.ts — delivered
+   copy verbatim, link sentence lifted, tag line last. Was the LAST sentence
+   (below the phone fold) on every public reel before 9/8. Measurement
+   window 9/8 → 9/22; nothing else on the public kinds moves inside it.
 
 F. PUBLIC CAPTURE (MKT-30/16/40/55): `--redact --relabel` = structural digit
    masking (placeholder + gold bolt, never blurred real pixels) + eight copy
@@ -354,6 +355,49 @@ I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v6.2 (2026-09-08, same day — ITEM A SHIPPED. Operator ruling
+"use your best judgement based on the data": the free-group link is on LINE
+ONE of every public caption from today's rows forward. MKT-74 updated.)
+================================================================================
+  A. THE RULING AND WHY. The four operator changes landed 9/6–9/8; a fifth
+     landing on 9/8 is inside the same batch, not a mid-window contamination
+     — the window was never going to attribute among four changes anyway,
+     and the batch-level before/after read survives intact. Waiting 14 days
+     would have cost ~20K public viewers an invisible link (Aug ran ~1,600
+     viewers/day). Tier-1 exposure is unchanged: the link has been in every
+     public caption since MKT-40/66; only its position moved. THE WINDOW
+     RESTARTS TODAY: 9/8 → closes 9/22. B (chip string) and any C trim
+     still wait for it.
+  B. WHAT SHIPPED (scripts/reel-captions.ts, `linkFirst()`): a STRUCTURAL
+     transform, not a rewrite — your 16 delivered strings are untouched.
+     The sentence carrying {free_group_url} is lifted to line one, a blank
+     line, then the body verbatim, then the tag line. Where the closing
+     clause is long (>40 chars) or starts on a dangling pronoun, line one
+     takes the family's canonical lead ("The full board is free:" /
+     "The full record is free:") and the original sentence stays in the
+     body with a period. Three templates take the canonical lead:
+     verify_public #3 ("That order is the only thing … worth reading."),
+     #5 ("They're open in the community."), #7 ("Ours does."). All 16
+     re-linted at tier 1 — pass; URL starts at character 6–26 on every
+     one. Today's rows refreshed in place (allday_public 9/8, verify_public
+     9/7) and the captions sheet regenerated; nothing re-uploaded.
+  C. WHAT LINE ONE LOOKS LIKE NOW (allday_public 9/8):
+        The full board is free: https://www.facebook.com/groups/3851453614997541
+        ⏎
+        This is what pattern analysis looks like at scale: 40+ states and
+        provinces, scored nightly, six signals published before the draw.
+        ⏎
+        #DataAnalysis #PatternAnalysis
+     If you would rather the eight line-one leads read as ONE deliberate
+     family (they are currently your eight closing clauses, so they vary:
+     "Free:", "Read it free:", "Free to check:" …), send eight leads and
+     they drop in as the `lead` argument — no other change.
+  D. MEASUREMENT. The read that matters is viewer→visit on the public reels
+     (Views vs Page visits, daily) for 9/8–9/22 against 8/23–9/5. That is
+     the Page Insights DAILY export owed from v6.1 C — still owed; without
+     it this ships blind and the window closes with nothing to compare.
+================================================================================
 
 WHAT CHANGED IN v6.1 (2026-09-08 — REPLY TO "THE FUNNEL PROBLEM" (your 9/8
 context document). Recorded as MASTER_AUDIT MKT-74. Report only — nothing

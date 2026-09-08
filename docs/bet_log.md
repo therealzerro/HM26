@@ -2,6 +2,38 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
+## 2026-09-08 — evening session (Tuesday board, 42 evening draws / 39 jurisdictions → $10.50/unit) — PROPOSED 4-leg (3 singles + 1 double), All-Day lean; confirm placement + units from the ticket
+
+Slate basis: 9/8 K6 (workflow run 8:05am ET, engine v2.1, edge v53). All-Day K6 = 136 / 385 / 195 / 563 / 571 / 736; Evening K6 = 385 / 417 / 106 / 105 / 637 / 146; Midday K6 = 316 / 164 / 617 / 635 / 317 / 367. Midday 9/8 (33 draws, imported ~4:35pm): no straight on any board or operator leg; 635/{3,5,6} boxed (FL 365) and closed; Eve pos 3 {0,1,6} drew midday (IA 061) and is closed by convention. Cross-scope tonight: **{3,5,8} = Eve pos 1 (overdue tag, ds 13) + All-Day pos 2**; **{3,6,7} = all three boards** (Mid pos 6 / All-Day pos 6 / Eve pos 5) and evening DI #1; {1,4,6} = Eve pos 6 + Mid pos 2; {1,3,6} = Mid pos 1 + All-Day pos 1 (third day). Operator asked for an All-Day lean on the back of 9/7 All-Day going 4/6 (all box). Universe check on that lean (strict join, slates × histories, 8/25–9/7): All-Day board sets landing in the **evening half** = 22 of 84 (26.2%) vs Evening board 20 of 84 (23.8%) vs the 22.3% uniform per-set expectation on a 42-draw night — both boards sit at baseline, so the lean is a preference at no measured cost, not an edge (ENG-ALLDAY-RAND-01). Rides in: 367 (day 2, from 9/8 midday). 3-day block scan over all 220 sets: every leg below last drew anywhere on or before 9/4.
+
+### Positions — full evening board (42 draws, $10.50/unit), every leg 2S + 3B ($52.50/leg) — total $210.00
+
+| Combo (straight order) | Set | Provenance | Units | Cost | If straight hits | If box-only hits |
+|---|---|---|---|---|---|---|
+| **385** | {3,5,8} | **Eve pos 1 + All-Day pos 2** (All-Day DI 5, Eve DI 6/17/24); evening 37 in 180d (at the 37.9 expected), 23 in 90d, **9 in 30d**; last drawn anywhere 8/26 (13 evening days, overdue tag — overdue measured flat, the cross-reference is the basis); 90d evening footprint 23 draws / 17 jurisdictions (MN, MS, NC, SC, TN, WV ×2 — SC/TN/WV in the early-13 pool); evening orders **385:11** / 358:7 / 538:6 / 835:5 — 385 = engine best order in BOTH scopes and the most-drawn order | 2S + 3B | $52.50 | $562.50 | $112.50 |
+| **637** (ride day 2; 736 = All-Day order) | {3,6,7} | **Triple overlap** (Mid pos 6 / All-Day pos 6 / Eve pos 5) and **evening DI #1** (5 perms in the DI top-8, energy 100), All-Day DI 3; unhit midday (3 brushes); evening 39 in 180d (1.03×), 21 in 90d, 6 in 30d; last drawn 9/4 TN midday — clear; 90d footprint 21 (AR ×3, ID/MI/NE/WV ×2); evening orders 736:9 / **637:8** / 367:6 / 673:6 / 763:6 — 637 = evening engine best order, 736 = All-Day order and most-drawn evening order | 2S + 3B | $52.50 | $562.50 | $112.50 |
+| **195** | {1,5,9} | All-Day pos 3 (All-Day DI 6/7/15 — three perms in the top 15) and sat Eve pos 4 yesterday (Eve DI 14 today); evening 40 in 180d (1.06×), 26 in 90d, 9 in 30d; last drawn 9/2 (ON evening) — clear; 90d footprint 26 draws / 21 jurisdictions (ON ×3, DC/MS/QC ×2 — DC in the early-13 pool); evening orders **951:13** / 591:9 / 195:6 / 519:4 — 195 = All-Day engine order, 519 = evening DI best order, 951 the most-drawn by a wide margin (take 951 if you want the order skew) | 2S + 3B | $52.50 | $562.50 | $112.50 |
+| **335** (double) | {3,3,5} | Not on any board; built from the {3,5} pair that anchors leg 1 (385, Eve pos 1 / All-Day pos 2) and the closed {3,5,6}; **evening 33 in 180d vs 18.9 expected (z +3.2 — highest within-class among unblocked doubles**; it was the named-but-blocked alternate on 9/7, its 9/4 draw is now outside the window), 24 in 90d, 7 in 30d; last drawn 9/4 evening — clear; 90d footprint 24 (NM ×3, CT/NJ/OH/TX/VA ×2); evening orders **335:13** / 353:12 / 533:8 | 2S + 3B | $52.50 | $675.00 | $225.00 |
+
+Alternates (not placed): **571 {1,5,7}** (All-Day pos 5, All-Day DI 8, no evening DI presence; evening 45/180d = 1.19×, hottest of the six All-Day sets, 10 in 30d, last 9/4 — hotness is not a selection reason (STATE_STR anti-predictive ×3), so it yields to 195's higher board slot + evening DI presence) in place of 195; **136 {1,3,6}** (Mid pos 1 + All-Day pos 1, All-Day DI 1; ride exhausted under session counting, one more evening allowed under calendar counting; evening 28/180d = 0.74×, 2 in 30d, last 8/19 — cold on this session; orders 613:8 / 361:7 / 136:4) if the operator would rather carry the double rank-1 than take 195; doubles **177 {1,7,7}** (32/180d, z +3.0, 7 in 30d, last 9/4; {1,7} pair in 571 + 417; orders 771:12 / 177:12), **585 {5,5,8}** (ride day 2 from 9/7 evening; {5,8} pair in 385; 23/180d, last 8/27; orders 585:12 / 558:8), **117 {1,1,7}** (ride from 9/8 midday; evening 15/180d = 0.79×, cold on this session; orders 711:9 / 117:4). Doubles ruled out by the 3-day window: 115 (9/6, z +2.8), 447 (9/6), 033 (9/7), 099 (9/5), 133 (9/5), 336 (9/6), 337 (9/6), 229 (9/7), 225 (9/7), 557 (9/6), 116 (DC 611 today), 366 (NJ 663 today), 556 (NY 655 today), 449 (SC 494 today), 244 (TX 244 today), 266 (AR 626 today).
+
+### Session math (uniform baseline — standing BUG-162 / SIGNAL-INFO-01 truth)
+
+- Singles: ~22.3% P(≥1 box) each on 42 draws, ~4.1% straight. Double 335: ~11.9% box / ~4.1% straight (3 of 1000 outcomes per draw); book pays the 3-way box at $75/unit — confirm before sizing.
+- All four legs: ~59% P(≥1 box), ~15% P(≥1 straight), ~41% blank night.
+- Staked: **$210.00** (4 legs × $52.50). Expected night ≈ −$21 at 90% RTP. A single box-only hit ($112.50) does not cover the ticket; any straight ($562.50), the double boxing ($225) plus any single, or two single boxes do.
+- EV framing: all products ≈ 90% RTP; selection chose *which* combos, not the rate. No positional filter (ENG-MIDDAY-POS-02). Calibration payload = 7/24 fit (9/1 refit failed its gate, kept by ruling) — not quoted; everything sits at the uniform ~22%.
+- Ride convention: max bet, ride until hit, max 3 days; a hit closes the leg. 385, 195 and 335 are fresh legs (day 1); 367/637 is day 2. All four are clear of the 3-day post-hit window (last draws 8/26, 9/4, 9/2, 9/4).
+
+### Resolution — pending (results import by the 9/9 workflow ~8:05am ET; reconcile vs histories 2026-09-08 session=evening)
+
+| Leg | Result | Payout |
+|---|---|---|
+| 385 | — | — |
+| 637 | — | — |
+| 195 | — | — |
+| 335 (double) | — | — |
+
 ## 2026-09-08 — midday session (Tuesday board, 33 midday draws → $8.25/unit per leg per bet type) — PROPOSED 5-leg (4 singles + 1 double); confirm placement + units from the ticket
 
 Slate basis: 9/8 K6 (workflow run 8:05am ET, engine v2.1, edge v53). Midday K6 = 316 / 164 / 617 / 635 / 317 / 367 (all singles; all 31 midday DI rows are singles, so the double is sourced outside the board again). All-Day K6 = 136 / 385 / 195 / 563 / 571 / 736. Evening K6 = 385 / 417 / 106 / 105 / 637 / 146. Cross-scope: **{3,6,7} sits on ALL THREE boards today** (Mid pos 6 / All-Day pos 6 / Eve pos 5 — the fourth triple overlap; the last one, {1,5,8}, boxed on its fourth day); {1,3,6} = Mid pos 1 + All-Day pos 1 for the third straight day (overdue tag both; ds 23 midday); {3,5,6} = Mid pos 4 + All-Day pos 4; {1,4,6} = Mid pos 2 + Eve pos 6. None of the six midday sets drew anywhere 9/5–9/7 — every board leg is clear of the 3-day post-hit window. Prior sessions: 9/7 midday 2/5 (+$131.25), 9/7 evening 1/3 (−$45.00). Rides: 316/{1,3,6} and 635/{3,5,6} unhit since 9/7 midday (day 3 under session counting — last session of the ride; last night's entry counted them as expiring after 9/8 evening, so one more evening is allowed under calendar counting).
@@ -26,15 +58,21 @@ Alternates (not placed): **317 {1,3,7}** (Mid pos 5, DI 4, energy 97; midday 29/
 - EV framing: all products ≈ 90% RTP; selection chose *which* combos, not the rate. No positional filter (ENG-MIDDAY-POS-02). Calibration payload = 7/24 fit (9/1 refit failed its gate, kept by ruling) — not quoted here; everything sits at the uniform ~18%.
 - Ride convention: max bet, ride until hit, max 3 days; a hit closes the leg. 617, 367 and 117 are fresh legs (day 1). 367 is also live tonight on the Evening board (637, pos 5) and via All-Day (736, pos 6) if ridden.
 
-### Resolution — pending (results import ~4:30pm ET; reconcile vs histories 2026-09-08 session=midday)
+### Resolution (results imported ~4:35pm ET; verified vs histories 2026-09-08 session=midday — board ran 33 midday draws, as priced)
 
 | Leg | Result | Payout |
 |---|---|---|
-| 617 | — | — |
-| 367 | — | — |
-| 635 | — | — |
-| 316 | — | — |
-| 117 (double) | — | — |
+| 617 (2S+3B) | 0 — {1,6,7} absent from all 33 midday draws; 5 two-digit brushes (CO 816, DC 611, IA 061, ID 679, IL 178) | $0 |
+| 367 (2S+3B) | 0 — {3,6,7} absent; 3 brushes (FL 365, NJ 663, ID 679) | $0 |
+| 635 (2S+3B) | **BOX — FL drew 365** (bet order 635, so box only) | **$112.50** (3B × $37.50) |
+| 316 (2S+3B) | 0 — {1,3,6} absent; 6 brushes (GA 318, CO 816, IA 061, DC 611, FL 365, NJ 663) — the 1/6 and 3/6 pairs drew all over the board, the set never completed | $0 |
+| 117 double (2S+3B) | 0 — {1,1,7} absent; DC 611 was {1,1,6}, a brush not a hit; IL 178 brushed the 1/7 pair | $0 |
+
+**1/5 legs boxed, no straight. Returned $112.50 on $206.25 staked → net −$93.75** (if placed as proposed — settle units from the ticket). **635/{3,5,6} CLOSED by hit** on its last ride session (also now inside the 3-day post-hit block). 617, 367, 316 and 117 unhit: 367 rides into 9/8 evening (it is Eve pos 5 / All-Day pos 6 — below); 617 has no evening or All-Day board cross-reference and is dropped; 316/{1,3,6} has exhausted the 3-session ride (9/7 mid, 9/7 eve, 9/8 mid) and is carried only as a named alternate under calendar counting; 117 is named as a double alternate.
+
+Boards: Midday K6 **1/6** — pos 4 635 boxed (FL 365). All-Day K6 **1/6 on the midday half** — pos 4 563 boxed (same FL 365). Evening K6 pending tonight's draws; **Eve pos 3 106/{0,1,6} drew midday (IA 061)** → closed by convention for tonight. Digit texture: 6 hottest (15 of 33 draws), then 4 (14), 8 and 9 (12 each); 0 coldest (6). Ordinary variance at the ~59% any-box pre-placement price.
+
+**Closed-by-convention tonight (not re-bettable):** {3,5,6} (operator leg + All-Day pos 4 + Mid pos 4) and {0,1,6} (Eve pos 3). Everything else on the three boards is clear of the 3-day window (no board set drew 9/5–9/7).
 
 ## 2026-09-07 — evening session (Monday board, 42 evening draws / 39 jurisdictions → $10.50/unit) — PROPOSED 3-leg (2 singles + 1 double); confirm placement + units from the ticket
 

@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-08 · v6.2
+Content Agent Handoff · 2026-09-08 · v6.3
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -227,11 +227,14 @@ E. CAPTIONS (§5): template engine at publish, date-deterministic, 12 families
    absolute: real counts/states ONLY on pro kinds. Telegram (tier 4) reshapes;
    YouTube/TikTok/Reddit/X registered but DISABLED (operator-only flip, one at
    a time); Instagram = do-not-build.
-   ⚠ v6.2 (MKT-74): the free-group link is LINE ONE of every public caption
-   (both public families) via `linkFirst()` in reel-captions.ts — delivered
-   copy verbatim, link sentence lifted, tag line last. Was the LAST sentence
-   (below the phone fold) on every public reel before 9/8. Measurement
-   window 9/8 → 9/22; nothing else on the public kinds moves inside it.
+   ⚠ v6.3 (MKT-74): LINE ONE of every public caption (both families) is
+   the utility line "Free board every morning: <free-group URL>" — content
+   agent's copy — via `linkFirst()` in reel-captions.ts; blank line; the
+   delivered body unchanged ("40+ states and provinces" stays its first
+   sentence); tag line last. Was the LAST sentence (below the phone fold)
+   on every public reel before 9/8. A VISIBILITY change, not a tap.
+   Bundled window: day zero 9/9 → ~9/23 (contents in v6.3 item 2);
+   nothing else on the public kinds moves inside it.
 
 F. PUBLIC CAPTURE (MKT-30/16/40/55): `--redact --relabel` = structural digit
    masking (placeholder + gold bolt, never blurred real pixels) + eight copy
@@ -348,13 +351,120 @@ H. DELIVERY SPEC, SHORT FORM (full text §7): exact lowercase FINAL registry
    sparkle-masked on landing; a failed measurement turns the effect OFF
    (dormant probe) and never costs the reel.
 
-I. BARRED, DELIBERATELY (do not propose): auto-posting; a public-page reel
+I. BARRED, DELIBERATELY (do not propose): RE-WINDOWED intro trims for the
+   group kinds (MKT-74 item 4: a tail-anchored 3.5s cut of a 6s take starts
+   mid-action — if the group cuts ever need a fast open it is PURPOSE-BUILT
+   3.5s intros, never re-windowed masters); auto-posting; a public-page reel
    lane; full-fidelity free session reels; captions moving numbers outside
    pro; bypassing lint / Two-Question gates; combo-compare in verify
    (classifier = renderer defect, MKT-35); per-kind lockup tucks (MKT-45);
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v6.3 (2026-09-08, same day — REPLY TO YOUR 9/8 RESPONSE.
+Item 1 shipped with YOUR copy; item 2 reported; items 3 and 4 recorded.
+MKT-74 updated. Next free ID: 75.)
+================================================================================
+  0. YOUR PREMISE CORRECTION IS ON THE RECORD (state block B/C and v6.1 B
+     already carry the 9/2 cold-open fact). The allday_public watch-time
+     read (9/2–9/8 vs the week before) is the OPERATOR'S PULL from the Meta
+     export; nothing built, nothing owed here.
+  1. ITEM A — SHIPPED WITH YOUR LINE ONE. Every public template now renders
+        Free board every morning: {free_group_url}
+        ⏎
+        <delivered body, "40+ states and provinces" still its first
+         sentence — measured on all 16 renders>
+        ⏎
+        #DataAnalysis #PatternAnalysis
+     The v6.2 interim (family closing clauses as the lead) lasted a few
+     hours and never posted. ONE mechanical detail so you can object: the
+     body's own closing link clause was a utility tail ("Free to read:",
+     "The full board is free:", …) — it is DROPPED, because line one now
+     says it and repeating the URL twice reads as spam. Where the closing
+     sentence is real prose it STAYS, with a period: verify_public #3
+     "That order is the only thing that makes a record worth reading.",
+     #5 "They're open in the community.", #7 "Ours does." If you want any
+     of those three dropped too, say so — one predicate.
+     Re-linted at tier 1 across all 16 renders: pass; URL begins at
+     character 26 on every one. Today's rows refreshed in place
+     (allday_public 9/8, verify_public 9/7); captions sheet regenerated;
+     nothing re-uploaded. Group kinds untouched, link-free by design.
+     ⚠ DESCRIBED AS WHAT IT IS: a VISIBILITY change. A Reels-description
+     URL is text, not a tap, on most surfaces. The reel's job is to make a
+     viewer tap the PAGE NAME; the three pins + FAQ are what they find.
+     Recorded that way in MASTER_AUDIT MKT-74.
+  2. THE WINDOW — BUNDLED, PER YOUR RULING. Day zero = 2026-09-09, close
+     ~2026-09-23. Question under test: "did the leak-fix PACKAGE work",
+     never "which lever". BUNDLE CONTENTS (the next session reads this
+     list, not the numbers): (i) public-page FAQ pin, (ii) three featured
+     public videos — the door, the scale, the method, (iii) free-group FAQ
+     pin fixed, (iv) free group set to INSTANT APPROVAL, (v) pinned
+     comment corrected to honest Pro-tier copy, (vi) THIS caption hoist
+     (line-one link, both public families). Nothing else on the public
+     kinds moves inside it: B (chip string) waits; verify_public cold
+     open (item 3 below) waits or joins the bundle by 9/9 — your call.
+     Read requires the Page Insights DAILY export (Views, Reach, Visits,
+     Follows) for 8/23→9/23 — still owed by the operator.
+  3. NEW ASK — verify_public COLD OPEN. REPORT ONLY, NOT BUILT.
+     c. WAS IT DELIBERATE? Sequencing, not a ruling against it.
+        verify_public's open was set by MKT-40 (the public half opens on
+        the cold-audience public intro, fixed, date-less; the group half
+        keeps verify's own fixed file) — that was the design of the
+        public PAIR at the time. MKT-66 was then scoped to allday_public
+        ONLY, on purpose: "read one week of Meta watch time before a
+        second variable." verify_public kept the classic open because it
+        was the second variable, not because anyone ruled it should stay
+        long. Nothing to drop; the sequencing gate is the only thing in
+        the way.
+     b. DOES THE HOOK CARD WORK ON A RECEIPTS CUT? YES — it already IS a
+        receipts card. render-public-hook.ts computes YESTERDAY'S ALL-DAY
+        BOARD from slate_snapshots + histories (D−1): normal day
+        "YESTERDAY'S BOARD · 4 of 6 · SIGNALS VERIFIED · 40+ STATES &
+        PROVINCES · CHECKED AGAINST OFFICIAL RESULTS"; zero day "LAST 30
+        DAYS · 41 · SIGNALS VERIFIED"; no-data "EVERY MORNING · GRADED ·
+        IN THE OPEN". That is the same board verify_public grades, so the
+        card is MORE native on the receipts cut than on the drop — the
+        "4 of 6" lands, then the board with those four marked, then the
+        ledger. No new copy needed for the card. Two details: (1) the
+        accent is drop-CYAN by design ("gold is verify's") — a verify
+        hook takes GOLD, one constant; (2) the card's count and the
+        board segment's "N of 6 landed" come from two computations
+        (histories comboset match vs. the hit-detection rows) — they
+        must be asserted equal at build, or the reel contradicts itself
+        in its first three seconds. If you want a verify-specific eyebrow
+        ("YESTERDAY'S RECEIPTS" over "YESTERDAY'S BOARD"), that is the
+        one line to write; the card layout takes it unchanged.
+     a. COST OF MKT-66's TREATMENT ON verify_public: about half a day,
+        one assembler. assemble-verification-reel.ts (365 lines) grows
+        the same cold-open branch assemble-allday-reels.ts carries
+        (~40–60 lines): render the hook, intro := hook (2.0s), dissolve
+        := 0.4s, skip stinger + shoulder chip, ride the unchanged intro
+        audio graph (the hook carries a silent track). Everything
+        downstream already shifts by (introDur − 1.2), so the beat map,
+        the gold date ribbon (board segment only) and the MKT-63 strike
+        offset need no change. Plus: gold accent + optional eyebrow on
+        the hook renderer, reel:check awareness of a second per-day hook
+        intermediate, frame-step both ends on the first build, first-live
+        eyeball. RESULT: board on screen at 2.0s instead of ~8.7s;
+        verify_public runs ~21–23s instead of ~28s (data-adaptive body
+        unchanged). RISK: the public verify caption family already leads
+        "40+ states…" so no caption work; the one real risk is the count
+        assertion in (b). --classic-open escape hatch as on allday_public.
+        ⚠ Public-lane change → in the bundle by 9/9 or after 9/23.
+  4. INTRO TRIMS FOR THE GROUP KINDS — POSITION RECORDED: NOT PROPOSED.
+     If the group cuts ever need a fast open, it is PURPOSE-BUILT SHORT
+     INTROS generated to 3.5s (INTRO_MIN), not re-windowed 10s masters.
+     Nobody re-derives this; it is in state block I (barred list) and
+     MASTER_AUDIT MKT-74.
+  5. BASELINE INGESTION — OWED REPORT, NOT NOW. "What it takes to ingest
+     the four Meta page exports (Views, Viewers, Visits, Follows) into a
+     daily table" is logged as an open item under MKT-74, to be costed in
+     a quiet moment after the 9/23 window. (Shape, for the record: the
+     group-insights importer already parses Meta's Growth/Engagement daily
+     blocks into fb_group_daily; a page-level twin is the same parser
+     family, not a new one.)
+================================================================================
 
 WHAT CHANGED IN v6.2 (2026-09-08, same day — ITEM A SHIPPED. Operator ruling
 "use your best judgement based on the data": the free-group link is on LINE

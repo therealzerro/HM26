@@ -700,6 +700,9 @@ function fmtET(d: Date): string {
   // the record mean anything, so losing it to a DOM change would be the worst
   // possible thing to drop. (MKT-25 rendered it only on the restaged path.)
   let landed: number;
+  // MKT-75: the ALL-DAY board's landed count, written into the body's metadata
+  // (LANDED_TAG) so the cold-open assembler can assert the hook card agrees.
+  let landedAllday: number;
   if (MIDDAY && prov) {
     // MKT-62 — THE COVER COMING OFF (ruling 4, option a): the midday board as
     // the free room saw it (covered, no results) → the cover lifts → graded.
@@ -730,9 +733,11 @@ function fmtET(d: Date): string {
       sub: 'ALL-DAY · SIX SIGNALS · POSTED IN FULL THIS MORNING',
     };
     const landedA = await renderSlateFrames(WORK, fname, midEnd, F_SLATE, dateISO, 'allday', false, alldayLabels);
+    landedAllday = landedA;
     console.log(`board segment (allday): ${landedA} of 6 landed — rendered f${midEnd}-f${F_BOARD - 1}`);
   } else {
     landed = await renderSlateFrames(WORK, fname, 0, F_SLATE, dateISO, 'allday', PUBLIC);
+    landedAllday = landed;
     console.log(`slate segment: ${landed} of 6 landed — rendered f000-f${F_SLATE - 1}${PUBLIC ? ' (public cut: digits masked)' : ''}`);
   }
 
@@ -814,7 +819,8 @@ function fmtET(d: Date): string {
     // refuse a full-fidelity body posing as public (assertBodyPublic).
     // MKT-63: STRIKE_TAG rides the same channel — the assembler reads the
     // first-hold offset from the pixels' own file, never from re-derivation.
-    `${provenanceArgs(dateISO, false, PUBLIC, strikeAt)} "${outMp4}"`,
+    // MKT-75: LANDED_TAG — the All-Day board's "N of 6" as the pixels show it.
+    `${provenanceArgs(dateISO, false, PUBLIC, strikeAt, { landed: landedAllday, total: 6 })} "${outMp4}"`,
     { stdio: 'inherit' },
   );
   rmSync(WORK, { recursive: true, force: true });

@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-08 · v6.3
+Content Agent Handoff · 2026-09-08 · v6.4
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -103,6 +103,11 @@ B. SLATE REEL ANATOMY (allday/midday/evening, all cuts; 1080×1920 60fps;
                 rise, never the bolt snap.
 
 C. VERIFY ANATOMY (group + public cuts; ~23–29s, data-adaptive): fixed intro
+   ⚠ v6.4 (MKT-75): verify_public COLD-OPENS FROM 2026-09-24 — gold receipts
+   hook card (YESTERDAY'S RECEIPTS · N of 6 · SIGNALS VERIFIED) → board at
+   2.0s, no intro/stinger/chip, ~21s; HARD count gate (card = body's
+   N of 6, else no build). Until 9/24: the classic open below. Group verify
+   unchanged.
    → seal stinger ("YESTERDAY'S RECEIPTS", headline-dominant) → body 8.6–14.0s
    built from the row selection (slate 2.5 + summary 2.0 + pan 2.0 + holds:
    2.0s straight / 1.6s box, ≤3 featured, straights first) with the gold date
@@ -361,6 +366,69 @@ I. BARRED, DELIBERATELY (do not propose): RE-WINDOWED intro trims for the
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+WHAT CHANGED IN v6.4 (2026-09-08, same day — REPLY TO YOUR 9/8 RESPONSE (2).
+verify_public COLD OPEN BUILT, GATED, EYEBALLED, HELD — live 2026-09-24.
+Audit: MKT-75. Next free ID: 76.)
+================================================================================
+  1. PROSE CLOSINGS — KEPT, as shipped in v6.3. No change; recorded.
+  4. ITEM A AS SHIPPED — accepted, no change; the "visibility, not a
+     mechanic" record stands in MASTER_AUDIT MKT-74.
+  2/3. verify_public COLD OPEN — BUILT NOW, HELD TO 9/24, PER YOUR RULING.
+     · THE SWITCH: VERIFY_PUBLIC_COLD_OPEN_FROM = 2026-09-24 in
+       scripts/public-hook-config.ts. Until that date `npm run reel:verify`
+       builds the MKT-40 classic open exactly as today. From that date the
+       public half cold-opens automatically — a recorded switch date, not a
+       scheduler. `--classic-open` restores the old open after the flip;
+       `--cold-open` before it builds a PREVIEW (output suffixed
+       _coldopen_preview, never published, for gating and eyeballing).
+     · THE CARD (render-public-hook.ts --kind=verify_public): eyebrow
+       YESTERDAY'S RECEIPTS (your copy), accent GOLD throughout — eyebrow,
+       rule, bolt, background tint — the big "N of 6" was already gold; same
+       layout, SAME WEIGHTS as the drop's (eyebrow 500/40px, big 700/236px,
+       line 700/78px) — measured on the render, not assumed: the receipts
+       cut is frame-one distinguishable from the drop cut by colour, not by
+       being lighter. Sub line unchanged: 40+ STATES & PROVINCES · CHECKED
+       AGAINST OFFICIAL RESULTS. Tier-1 lint fail-closed on every string,
+       as on the drop card. The card grades verify's own stamp date (D−1
+       by design — no shift).
+     · ⛔ THE COUNT GATE — HARD, FAIL-CLOSED, AS RULED. The body now records
+       its own "N of 6" (hm_landed tag, written by the renderer from the
+       snapshot flags cross-checked against adaptive_tracking); the card
+       records hm_hook_verified / hm_hook_total (histories comboset match).
+       The assembler reads both and ABORTS with both figures if either is
+       missing or they differ. It is not a warning; a mismatch produces no
+       file. On a gate abort the morning ships the classic open
+       (--classic-open) and the mismatch is a data question for the day.
+       First run of the gate today: hook 4 of 6 = body 4 of 6 → PASS.
+       (Found and fixed on the way: the hook clip's custom mp4 tags had
+       never actually been written — the muxer drops them without
+       use_metadata_tags — so hm_hook_copy on allday_public was always
+       empty. Now written on both cards.)
+     · THE BUILD (assemble-verification-reel.ts): hook := intro (2.0s),
+       0.4s dissolve, NO stinger, NO shoulder chip, the intro audio graph
+       unchanged (silent track on the card). Gold date ribbon still rides
+       the board segment only; the MKT-63 strike offset is arithmetic off
+       openDur and needs nothing. verify (group) and verify_midday are
+       untouched.
+     · PREVIEW BUILT + EYEBALLED today on the 9/7 receipts (4 of 6, all
+       box, no strike): 21.30s (classic cut same day: 27.63s), h264
+       1080×1920, AAC to the last frame. Frame-stepped: 0.0 card · 1.0
+       card · 1.9 dissolve begins · 2.2 mid-dissolve (card ghosting through
+       the board, as designed) · 2.4 board with the gold YESTERDAY'S
+       RECEIPTS · MON · SEP 7 ribbon · 3.0 board settled, foot "4 OF 6
+       LANDED · RECEIPTS BELOW" — the card's number and the board's foot
+       agree on screen, which is what the gate is for. Close: endcard
+       settled on "PUBLISHED FIRST. CHECKED AFTER. · SEE THE FULL RECORD
+       FREE". The preview file and strip went to the operator; the preview
+       is NOT in git and NOT in the reels folder (held builds leave no
+       serving-name collision behind).
+     · OWED ON 9/24: the first LIVE build's eyeball (it is the first cold
+       open on a strike day whenever that lands — the bolt now fires over a
+       board that arrives at 2.0s; the timing is arithmetic, the look is
+       not yet seen). REEL_COMMANDS carries the flip, the preview and the
+       classic escape hatch.
+================================================================================
 
 WHAT CHANGED IN v6.3 (2026-09-08, same day — REPLY TO YOUR 9/8 RESPONSE.
 Item 1 shipped with YOUR copy; item 2 reported; items 3 and 4 recorded.

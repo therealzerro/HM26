@@ -17,8 +17,16 @@
 // assembler can consume it through the existing intro path unchanged (the
 // intro graph reads [0:v] and [0:a]).
 //
-// Usage: tsx scripts/render-public-hook.ts <YYYYMMDD> <out.mp4>
+// Usage: tsx scripts/render-public-hook.ts <YYYYMMDD> <out.mp4> [--kind=verify_public]
 //   <YYYYMMDD> is the DROP date (the reel's stamp); the card grades D−1.
+//   MKT-75: with --kind=verify_public the given date IS the receipts date
+//   (verify's stamp is yesterday by design — no shift), the eyebrow reads
+//   YESTERDAY'S RECEIPTS (verify's own language: its stinger and chip carry
+//   it), and the accent is verify's GOLD so the two public cuts are
+//   distinguishable at frame one. Same layout, same weights — the receipts
+//   cut is the stronger content and must not read as the lesser variant.
+//   The card also records hm_hook_verified / hm_hook_total so the assembler
+//   can assert the count against the body's own (fail-closed, MKT-75).
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -33,14 +41,16 @@ import { config as loadEnv } from 'dotenv';
 // nothing has exported .env, so load it here like the sibling renderers do.
 loadEnv({ path: resolve('.env'), quiet: true });
 
-const [, , ymd, outArg] = process.argv;
+const positional = process.argv.slice(2).filter(a => !a.startsWith('--'));
+const [ymd, outArg] = positional;
+const VERIFY = process.argv.includes('--kind=verify_public');
 if (!/^\d{8}$/.test(ymd ?? '') || !outArg) {
-  console.error('Usage: tsx scripts/render-public-hook.ts <YYYYMMDD> <out.mp4>');
+  console.error('Usage: tsx scripts/render-public-hook.ts <YYYYMMDD> <out.mp4> [--kind=verify_public]');
   process.exit(1);
 }
 const out = resolve(outArg);
 const dropISO = `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}`;
-const rcptISO = shiftDate(dropISO, -1);
+const rcptISO = VERIFY ? dropISO : shiftDate(dropISO, -1);
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const ANON = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
@@ -101,7 +111,7 @@ async function alldayReceipts(date: string): Promise<{ total: number; verified: 
  *   no data      → EVERY MORNING · GRADED IN THE OPEN (never a fabricated number) */
 function cardCopy(r: { total: number; verified: number; verified30d: number } | null) {
   if (r && r.total > 0 && r.verified > 0) {
-    return { eyebrow: "YESTERDAY'S BOARD", big: `${r.verified} of ${r.total}`, line: 'SIGNALS VERIFIED', sub: '40+ STATES & PROVINCES · CHECKED AGAINST OFFICIAL RESULTS' };
+    return { eyebrow: VERIFY ? "YESTERDAY'S RECEIPTS" : "YESTERDAY'S BOARD", big: `${r.verified} of ${r.total}`, line: 'SIGNALS VERIFIED', sub: '40+ STATES & PROVINCES · CHECKED AGAINST OFFICIAL RESULTS' };
   }
   if (r && r.verified30d > 0) {
     return { eyebrow: 'LAST 30 DAYS', big: `${r.verified30d}`, line: 'SIGNALS VERIFIED', sub: '40+ STATES & PROVINCES · CHECKED AGAINST OFFICIAL RESULTS' };
@@ -137,15 +147,19 @@ function cardCopy(r: { total: number; verified: number; verified30d: number } | 
   const boltSrc = resolve('assets/marketing/bolt_mark.svg');
   const boltPath = (readFileSync(boltSrc, 'utf8').match(/ d="([^"]+)"/) ?? [])[1];
   if (!boltPath) { console.error('ABORT(hook): bolt_mark.svg path not found.'); process.exit(1); }
-  const ACCENT = '#2bffcc'; // drop cyan — the reel is a data drop; gold is verify's
   const GOLD = '#FBBF24';   // the receipts number itself carries the results-desk gold
+  // drop cyan — the reel is a data drop; gold is verify's. MKT-75: on the
+  // verify_public card the accent (eyebrow, rule, bolt, background tint) is
+  // verify's gold — frame-one distinguishable from the drop cut.
+  const ACCENT = VERIFY ? GOLD : '#2bffcc';
+  const TINT = VERIFY ? 'rgba(251,191,36,0.10)' : 'rgba(43,255,204,0.10)';
 
   const html = `<!doctype html><html><head><style>
     @font-face { font-family: JBM; src: url('file://${mono700}'); font-weight: 700; }
     @font-face { font-family: JBM; src: url('file://${mono500}'); font-weight: 500; }
     * { margin: 0; padding: 0; }
     body { width: 1080px; height: 1920px; overflow: hidden; background: #080a16;
-           background-image: radial-gradient(ellipse 900px 700px at 50% 42%, rgba(43,255,204,0.10), rgba(8,10,22,0) 70%); }
+           background-image: radial-gradient(ellipse 900px 700px at 50% 42%, ${TINT}, rgba(8,10,22,0) 70%); }
     .wrap { position: absolute; left: 0; right: 0; top: 560px; display: flex; flex-direction: column; align-items: center; gap: 22px; }
     .eyebrow { font: 500 40px JBM; letter-spacing: 8px; color: ${ACCENT}; text-shadow: 0 0 22px ${ACCENT}66; }
     .big { font: 700 236px JBM; letter-spacing: -4px; line-height: 1; color: ${GOLD}; text-shadow: 0 0 60px ${GOLD}55; margin-top: 18px; }
@@ -182,7 +196,17 @@ function cardCopy(r: { total: number; verified: number; verified30d: number } | 
     `ffmpeg -y -loglevel error -loop 1 -framerate 60 -t ${HOOK_DUR} -i "${png}" ` +
     `-f lavfi -t ${HOOK_DUR} -i anullsrc=r=48000:cl=stereo ` +
     `-vf "format=yuv420p" -r 60 -c:v libx264 -profile:v high -crf 18 -pix_fmt yuv420p -c:a aac -ar 48000 -shortest ` +
-    `-metadata hm_hook_copy="${copy.eyebrow} | ${copy.big} | ${copy.line}" "${out}"`,
+    // ⚠ use_metadata_tags: without it mp4 muxing silently DROPS every custom
+    // key (hm_hook_copy never actually landed before MKT-75 — same trap
+    // reel-provenance documents). The count gate reads these, so they must exist.
+    `-movflags +faststart+use_metadata_tags ` +
+    `-metadata hm_hook_copy="${copy.eyebrow} | ${copy.big} | ${copy.line}" ` +
+    // MKT-75: the count as the card shows it, machine-readable, for the
+    // assembler's fail-closed equality gate. Absent on the 30d / no-data shapes.
+    (receipts && receipts.total > 0 && receipts.verified > 0
+      ? `-metadata hm_hook_verified="${receipts.verified}" -metadata hm_hook_total="${receipts.total}" `
+      : ``) +
+    `"${out}"`,
     { stdio: 'inherit' },
   );
   console.log(`NOTE(hook): ${out} · ${HOOK_DUR}s · "${copy.eyebrow} · ${copy.big} ${copy.line}"`);

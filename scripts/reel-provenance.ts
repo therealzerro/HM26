@@ -69,6 +69,13 @@ export const PUBLIC_TAG = 'hm_reel_public';
  * the strike is an ornament, never data.
  */
 export const STRIKE_TAG = 'hm_strike_at';
+/** MKT-75: the verify body's own landed count for the ALL-DAY board it shows,
+ *  as "N of M" (snapshot flags cross-checked against adaptive_tracking in
+ *  render-verify-slate). The cold-open assembler asserts it EQUALS the hook
+ *  card's independently computed count (histories comboset match) and refuses
+ *  to build otherwise — a receipts reel that contradicts itself in its first
+ *  three seconds is the worst defect this product can ship. */
+export const LANDED_TAG = 'hm_landed';
 
 /**
  * ffmpeg args that stamp `dateISO` into the output. Append before the path,
@@ -84,11 +91,28 @@ export const STRIKE_TAG = 'hm_strike_at';
  * here because movflags is one combined option; splitting it across two flags
  * means the last one wins and the other is lost.
  */
-export function provenanceArgs(dateISO: string, redacted = false, isPublic = false, strikeAt: number | null = null): string {
+export function provenanceArgs(dateISO: string, redacted = false, isPublic = false, strikeAt: number | null = null, landed: { landed: number; total: number } | null = null): string {
   return `-movflags +faststart+use_metadata_tags -metadata ${DATE_TAG}="${dateISO}"` +
     ` -metadata ${REDACT_TAG}="${redacted ? '1' : '0'}"` +
     (isPublic ? ` -metadata ${PUBLIC_TAG}="1"` : '') +
-    (strikeAt != null ? ` -metadata ${STRIKE_TAG}="${strikeAt.toFixed(2)}"` : '');
+    (strikeAt != null ? ` -metadata ${STRIKE_TAG}="${strikeAt.toFixed(2)}"` : '') +
+    (landed ? ` -metadata ${LANDED_TAG}="${landed.landed} of ${landed.total}"` : '');
+}
+
+/** MKT-75: the "N of M" landed count a verify body recorded for its All-Day
+ *  board, or null (pre-MKT-75 body / unreadable). */
+export function readLanded(file: string): { landed: number; total: number } | null {
+  try {
+    const out = execSync(
+      `ffprobe -v error -show_entries format_tags=${LANDED_TAG} -of default=nw=1:nk=1 "${file}"`,
+    ).toString().trim();
+    const m = out.match(/^(\d+) of (\d+)$/);
+    if (!m) return null;
+    const landed = parseInt(m[1], 10), total = parseInt(m[2], 10);
+    return Number.isFinite(landed) && Number.isFinite(total) && total > 0 && landed <= total ? { landed, total } : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Body-relative strike offset (seconds) recorded in `file`, or null (no

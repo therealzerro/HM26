@@ -26,7 +26,8 @@
 //   (defaults to yesterday ET; expects ui_verify_<stamp>.mp4 already rendered)
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { assertBodyDate, assertBodyPublic, readStrikeAt } from './reel-provenance';
+import { assertBodyDate, assertBodyPublic, readStrikeAt, readLanded } from './reel-provenance';
+import { HOOK_DUR, HOOK_DISSOLVE, VERIFY_PUBLIC_COLD_OPEN_FROM } from './public-hook-config';
 import { probeStrikeOverlay, strikeFilter } from './strike-config';
 import { resolveEndcard } from './reel-endcard';
 import { CHIP_LABELS } from './intro-chip-config';
@@ -72,6 +73,20 @@ const MIDDAY = process.argv.includes('--kind=verify_midday');
 if (MIDDAY && PUBLIC) { console.error('ABORT: verify_midday has no public variant (MKT-62 ruling).'); process.exit(1); }
 const KIND = MIDDAY ? 'verify_midday' : PUBLIC ? 'verify_public' : 'verify';
 const stamp = process.argv.slice(2).find(a => !a.startsWith('--')) ?? (MIDDAY ? todayET() : yesterdayET());
+// MKT-75 — verify_public COLD OPEN (MKT-66's treatment on the receipts cut).
+// Content agent ruling 2026-09-08: build during the 9/9→9/23 bundle window,
+// go live 2026-09-24 so its effect reads in isolation. Until the flip date the
+// public half keeps the MKT-40 classic open; `--cold-open` forces a PREVIEW
+// build (suffixed output, never published — for gating and eyeballing);
+// `--classic-open` restores the old open after the flip. Group verify and
+// verify_midday are untouched (members open those on purpose; MKT-62 has its
+// own open ruling).
+const FORCE_COLD = process.argv.includes('--cold-open');
+const CLASSIC = process.argv.includes('--classic-open');
+const flipped = todayET() >= VERIFY_PUBLIC_COLD_OPEN_FROM;
+const coldOpen = PUBLIC && !MIDDAY && !CLASSIC && (FORCE_COLD || flipped);
+const PREVIEW = coldOpen && !flipped;
+if (FORCE_COLD && !PUBLIC) { console.error('ABORT: --cold-open applies to --variant=public only (MKT-75).'); process.exit(1); }
 const ui = join(REELS, MIDDAY ? `ui_verify_midday_${stamp}.mp4` : `ui_verify${PUBLIC ? '_public' : ''}_${stamp}.mp4`);
 if (!existsSync(ui)) {
   console.error(`ABORT: ${ui} not found — run the render step first (${MIDDAY ? 'npm run reel:verify-midday' : 'npm run reel:verify'}).`);
@@ -91,7 +106,8 @@ if (PUBLIC) assertBodyPublic(ui, 'tsx scripts/render-verification-reel.ts --publ
 // soundtrack is verif_carrier), so needsBed is false.
 const vEndcard = resolveEndcard(ASSETS, KIND, `${stamp.slice(0,4)}-${stamp.slice(4,6)}-${stamp.slice(6,8)}`, false);
 console.log(`NOTE(${KIND}): endcard motion → ${vEndcard.motion.label} [${vEndcard.name}].`);
-const outBase = MIDDAY ? `verify_midday_${stamp}` : PUBLIC ? `verify_public_${stamp}` : `verify_reel_${stamp}`;
+const outBase = (MIDDAY ? `verify_midday_${stamp}` : PUBLIC ? `verify_public_${stamp}` : `verify_reel_${stamp}`) + (PREVIEW ? '_coldopen_preview' : '');
+if (PREVIEW) console.log(`NOTE(${KIND}): COLD-OPEN PREVIEW build — output suffixed _coldopen_preview; the registered cut is untouched. Live from ${VERIFY_PUBLIC_COLD_OPEN_FROM}.`);
 const out = join(REELS, `${outBase}.mp4`);
 const out1x1 = join(REELS, `${outBase}_1x1.mp4`);
 const bolt = join(REELS, `_bolt_lockup.png`);
@@ -132,7 +148,37 @@ const CARD = 6.5;
 // prevent, so verify now rotates like every other kind.
 // MKT-40: the public half opens on the cold-audience public intro; the group
 // half keeps verify's own fixed file. Both are FIXED_INTRO entries.
-const intro = probeAnchorIntro(ASSETS, KIND);
+let intro = coldOpen ? null : probeAnchorIntro(ASSETS, KIND);
+if (coldOpen) {
+  // The hook card: YESTERDAY'S RECEIPTS · "N of 6" · SIGNALS VERIFIED, gold,
+  // computed independently (histories comboset match) for the SAME All-Day
+  // board this body grades. verify's stamp IS the receipts date (no shift).
+  const hook = join(REELS, `_hook_${KIND}_${stamp}.mp4`);
+  sh(`npx tsx scripts/render-public-hook.ts ${stamp} "${hook}" --kind=verify_public`);
+  // ⛔ THE COUNT GATE — HARD, FAIL-CLOSED (content agent ruling 2026-09-08).
+  // The card's count and the board segment's "N OF 6 LANDED" come from two
+  // computations. If either is missing or they disagree, THE REEL MUST NOT
+  // BUILD: a verification reel that contradicts itself in its first three
+  // seconds is the worst defect this product can ship.
+  const tag = (k: string) => execSync(`ffprobe -v error -show_entries format_tags=${k} -of default=nw=1:nk=1 "${hook}"`).toString().trim();
+  const hookVerified = parseInt(tag('hm_hook_verified'), 10), hookTotal = parseInt(tag('hm_hook_total'), 10);
+  const body = readLanded(ui);
+  if (!Number.isFinite(hookVerified) || !Number.isFinite(hookTotal)) {
+    console.error(`ABORT(${KIND}): COUNT GATE — the hook card carries no count (30d/no-data shape or receipts fetch failed); a cold open needs "N of M" on both sides. Re-run with --classic-open, or fix the receipts read.`);
+    process.exit(1);
+  }
+  if (!body) {
+    console.error(`ABORT(${KIND}): COUNT GATE — the body carries no ${'hm_landed'} tag (pre-MKT-75 render). Re-run: tsx scripts/render-verification-reel.ts --public`);
+    process.exit(1);
+  }
+  if (hookVerified !== body.landed || hookTotal !== body.total) {
+    console.error(`ABORT(${KIND}): COUNT GATE — hook card says ${hookVerified} of ${hookTotal}, body says ${body.landed} of ${body.total} for ${stamp}. The reel would contradict itself; not building. Reconcile histories vs adaptive_tracking for this date first.`);
+    process.exit(1);
+  }
+  console.log(`NOTE(${KIND}): COUNT GATE PASS — hook ${hookVerified} of ${hookTotal} = body ${body.landed} of ${body.total}.`);
+  intro = { path: hook, dur: HOOK_DUR, label: 'cold open · receipts hook, gold (MKT-75)' };
+  console.log(`NOTE(${KIND}): COLD OPEN — board on screen at ${HOOK_DUR}s (classic open ≈ 8.7s); no anchor intro, no stinger, no shoulder chip.`);
+}
 // MKT-12 wired this; MKT-27 ENABLED it, once the readable-holds body made the
 // branding ratio defensible (64% → 44%). See stinger-config for the ordering.
 // MKT-40: DELIBERATELY 'verify' for both kinds — verify_public SHARES the
@@ -144,10 +190,12 @@ const intro = probeAnchorIntro(ASSETS, KIND);
 // one: ratio (63.8% on the 1-box floor day = the barred number), the chip
 // already identifies at frame one, and intro → covered board reads better
 // direct than through a branded interstitial.
-const sting = MIDDAY ? null : probeStinger(ASSETS, 'verify', `${stamp.slice(0,4)}-${stamp.slice(4,6)}-${stamp.slice(6,8)}`);
+// MKT-75: no stinger on the cold open either — the hook dissolves straight
+// into the board (same shape as allday_public's MKT-66 open).
+const sting = MIDDAY || coldOpen ? null : probeStinger(ASSETS, 'verify', `${stamp.slice(0,4)}-${stamp.slice(4,6)}-${stamp.slice(6,8)}`);
 const openBase = intro ? intro.dur : 1.2;
 const openDur = +(openBase + stingerAdds(sting)).toFixed(2);
-const dissolve = intro ? INTRO_DISSOLVE : 1.2;
+const dissolve = intro ? (coldOpen ? HOOK_DISSOLVE : INTRO_DISSOLVE) : 1.2;
 const total = +(openDur + uiDur + CARD).toFixed(2);
 const voiceStart = intro ? +(openDur - INTRO_VO_LEAD).toFixed(2) : 0;
 // uiDur + CARD + INTRO_VO_LEAD. ⚠ The wider window changes pt2 eligibility:
@@ -203,7 +251,8 @@ if (verifCarrier.joined) {
 // content date, provenance-asserted above), so the chip's date line agrees
 // with its own YESTERDAY'S RESULTS heading and distinguishes the save from
 // the same morning's All-Day drop in a camera roll.
-const chipPng = intro && CHIP_LABELS[KIND] ? join(REELS, `_chip_${KIND}_${stamp}.png`) : null;
+// MKT-75: no shoulder chip on the cold open — the card IS frame one.
+const chipPng = intro && !coldOpen && CHIP_LABELS[KIND] ? join(REELS, `_chip_${KIND}_${stamp}.png`) : null;
 if (chipPng) sh(`npx tsx scripts/render-intro-chip.ts ${KIND} "${chipPng}" ${stamp}`);
 
 // MKT-63 — THE STRIKE. Fires on ALL THREE verify kinds when (a) the overlay

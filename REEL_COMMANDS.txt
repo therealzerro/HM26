@@ -2,7 +2,7 @@
 HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
-changed. Every command has a description. (Last updated 2026-07-28 —
+changed. Every command has a description. (Last updated 2026-09-08 —
 UPDATED 2026-08-17 (MKT-57) — every slate reel body (allday/midday/evening,
 all cuts) now captures the coffee-mode HOME, not the Slates grid: 10.0s
 static still of the six tiles (emboss + notation band at the bottom of the
@@ -22,6 +22,23 @@ before showing the ledger. Details in the sections below.
 FREE SESSION REELS LIVE (2026-07-29): reel:midday and reel:evening
 each now build TWO reels — Pro, plus a FREE one cut from a REDACTED
 capture where every digit is masked.
+
+UPDATED 2026-09-08 (MKT-75) — verify_public COLD OPEN, BUILT AND HELD.
+The public receipts cut gets MKT-66's treatment: a 2.0s gold hook card
+(YESTERDAY'S RECEIPTS · "N of 6" · SIGNALS VERIFIED) dissolving into the
+board at 2.0s — no anchor intro, no stinger, no chip. LIVE FROM 2026-09-24
+automatically (VERIFY_PUBLIC_COLD_OPEN_FROM in scripts/public-hook-config.ts;
+a recorded switch date, not a scheduler); until then reel:verify keeps the
+classic open. ⛔ HARD COUNT GATE: the card's "N of 6" (histories) must equal
+the body's "N OF 6 LANDED" (snapshot flags, hm_landed tag) or the assembler
+ABORTS with both figures — never build a receipts reel that contradicts
+itself. On a gate abort, ship the classic open instead:
+    npx tsx scripts/assemble-verification-reel.ts --variant=public --classic-open
+    npx tsx scripts/publish-reels.ts verify
+Preview the cold open BEFORE the flip (suffixed _coldopen_preview, never
+published; run after the morning's reel:verify so the public body exists):
+    npx tsx scripts/assemble-verification-reel.ts --variant=public --cold-open
+    → assets/marketing/verify_reels/verify_public_<D-1>_coldopen_preview.mp4 (+ _contact.png)
 
 UPDATED 2026-09-02 (MKT-66) — PUBLIC COLD OPEN. allday_public no longer
 opens on the anchor intro + stinger: it opens on a 2.0s receipts hook

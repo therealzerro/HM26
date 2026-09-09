@@ -33,7 +33,7 @@ import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { probeAnchorIntro, INTRO_DISSOLVE, INTRO_VO_LEAD } from './reel-intro';
-import { resolveCarrier, OVERLAP_EPSILON, carrierBoundarySlack, BOUNDARY_WARN_AT } from './reel-carrier';
+import { resolveCarrier, carrierRest, OVERLAP_EPSILON, carrierBoundarySlack, BOUNDARY_WARN_AT } from './reel-carrier';
 import { MODAL_COUNT, GRID_DUR, MODAL_HOLD, modalWindow } from '../constants/reelPanels';
 import { probeStinger, stingerAdds } from './reel-stinger';
 import { bedWindow, BED_TARGET_RMS, BED_MIX_DB, MAX_BED_CORRECTION, type BedWindow } from './reel-bed';
@@ -42,7 +42,9 @@ import { REEL_SCOPES, parseScopeFlag, parseVariantFlag, positionals, reelKind, b
 import { assertBodyDate, assertBodyRedaction, assertBodyPublic } from './reel-provenance';
 import { resolveEndcard } from './reel-endcard';
 import { CHIP_LABELS } from './intro-chip-config';
-import { HOOK_DUR, HOOK_DISSOLVE } from './public-hook-config';
+import {
+  HOOK_DUR, HOOK_DISSOLVE, CTA_CUT_KINDS, CTA_BOARD_DUR, CTA_VO_LEAD, CTA_VOICE_DEFAULT, type CtaVoice,
+} from './public-hook-config';
 
 const ASSETS = resolve('assets/marketing');
 /** MKT-22 intro chip window, revised by MKT-35: FULL OPACITY FROM FRAME ONE —
@@ -109,6 +111,25 @@ const FORCE_CARD = flagVal('endcard-motion');
 const FORCE_CARRIER = flagVal('carrier');
 if (FORCE_STING || FORCE_CARD || FORCE_CARRIER) {
   console.log(`NOTE: rotation override — stinger=${FORCE_STING ?? 'rotation'} endcard=${FORCE_CARD ?? 'rotation'} carrier=${FORCE_CARRIER ?? 'rotation'}`);
+}
+// MKT-77 (2026-09-09) — FREE SESSION REELS AS CTA CUTS. midday_free and
+// evening_free assemble as: covered hook card (2.0s, silent) → the body's
+// covered grid STILL for CTA_BOARD_DUR (modals dropped) → the kind's CTA
+// endcard (6.5s). ~16.0s, ~53% furniture — correct for a CTA cut. The classic
+// ~34s anatomy is the ESCAPE HATCH (`--classic-cut`), required by the order so a
+// bad first morning falls back to today's cut. `--cta-preview` writes suffixed
+// outputs (never published) for gating. `--cta-voice=pt2|part1|bed` picks the
+// carrier audio (ruling pending; see public-hook-config.ts).
+const CLASSIC_CUT = process.argv.includes('--classic-cut');
+const CTA_PREVIEW = process.argv.includes('--cta-preview');
+const CTA_VOICE = (flagVal('cta-voice') ?? CTA_VOICE_DEFAULT) as CtaVoice;
+if (!['pt2', 'part1', 'bed'].includes(CTA_VOICE)) {
+  console.error(`ABORT: --cta-voice=${CTA_VOICE} — known: pt2 | part1 | bed.`);
+  process.exit(1);
+}
+if (CTA_BOARD_DUR > GRID_DUR) {
+  console.error(`ABORT: CTA_BOARD_DUR ${CTA_BOARD_DUR}s exceeds the body's grid still (${GRID_DUR}s) — the CTA cut would show modal frames.`);
+  process.exit(1);
 }
 /**
  * MKT-26 — THE BODY IS RESOLVED PER VARIANT, not once per scope.
@@ -208,14 +229,39 @@ if (VARIANTS.length === 0) {
 if (VARIANTS.some(v => captureModeFor(SCOPE, v) === 'public')) {
   sh(`npx tsx scripts/render-reel-stamp.ts drop ${stamp} - "${publicStampPng}"`);
 }
+// MKT-77: the CTA cut's stamp names the cover as deliberate on every body
+// frame ("COVERED UNTIL TOMORROW · <scope> · <date>") — the still has no
+// modals, no notation strip and no shoulder chip to carry that meaning.
+const coveredStampPng = join(REELS, `_stamp_covered_${stamp}.png`);
+const isCtaCut = (v: Variant): boolean =>
+  CTA_CUT_KINDS.includes(reelKind(SCOPE, v)) && captureModeFor(SCOPE, v) === 'redacted' && !CLASSIC_CUT;
+if (VARIANTS.some(isCtaCut)) {
+  sh(`npx tsx scripts/render-reel-stamp.ts covered ${stamp} ${SPEC.stampLabel} "${coveredStampPng}"`);
+}
 
 for (const v of VARIANTS) {
   const kind = reelKind(SCOPE, v);
   // MKT-26: per-variant body — see resolveBody. Pro and free session reels read
   // DIFFERENT captures (full-fidelity vs redacted); All-Day's variants both
   // resolve to the same unchanged file, so nothing about that path moves.
-  const { path: body, dur: bodyDur } = resolveBody(v);
+  const { path: body, dur: bodyDurFull } = resolveBody(v);
   const bodyMode = captureModeFor(SCOPE, v);
+  // MKT-77 — the CTA cut, bound to REDACTED free session bodies only. The mode
+  // check is the SOCIAL-13 guard: allday_free's body is 'full' (pure value, no
+  // Pro pitch), so even if its kind were ever listed the cut could not apply.
+  if (CTA_CUT_KINDS.includes(kind) && bodyMode !== 'redacted') {
+    console.error(`ABORT(${v}): ${kind} is a CTA-cut kind but its body mode is "${bodyMode}" — the CTA cut applies to REDACTED bodies only (SOCIAL-13).`);
+    process.exit(1);
+  }
+  const ctaCut = isCtaCut(v);
+  if (ctaCut && bodyDurFull < CTA_BOARD_DUR) {
+    console.error(`ABORT(${v}): body ${bodyDurFull}s is shorter than CTA_BOARD_DUR ${CTA_BOARD_DUR}s.`);
+    process.exit(1);
+  }
+  // The CTA body is the grid still ONLY: the first CTA_BOARD_DUR seconds of the
+  // redacted capture (GRID_DUR of static still precede the modals).
+  const bodyDur = ctaCut ? CTA_BOARD_DUR : bodyDurFull;
+  if (ctaCut) console.log(`NOTE(${v}): CTA CUT (MKT-77) — covered board ${CTA_BOARD_DUR}s (still only, modals dropped), voice=${CTA_VOICE}${CTA_PREVIEW ? ', PREVIEW output' : ''}. --classic-cut restores the full anatomy.`);
   if (bodyMode === 'redacted') {
     console.log(`NOTE(${v}): REDACTED body — ${body.split('/').pop()} (digits masked; tag verified).`);
   } else if (bodyMode === 'public') {
@@ -236,19 +282,22 @@ for (const v of VARIANTS) {
   // Group cuts (pro/free) keep the full open — members open those on purpose.
   // Escape hatch: --classic-open restores the intro+stinger public open.
   const coldOpen = bodyMode === 'public' && !process.argv.includes('--classic-open');
-  let intro = coldOpen ? null : probeAnchorIntro(ASSETS, kind, isoDate);
+  // MKT-77: the CTA cut opens on a hook card too — the same machinery, a
+  // different card (--kind=cta: fixed copy, tier-2 lint, drop cyan).
+  const hookOpen = coldOpen || ctaCut;
+  let intro = hookOpen ? null : probeAnchorIntro(ASSETS, kind, isoDate);
   let dissolve = intro ? INTRO_DISSOLVE : OPEN;
-  if (coldOpen) {
+  if (hookOpen) {
     const hook = join(REELS, `_hook_${kind}_${stamp}.mp4`);
-    sh(`npx tsx scripts/render-public-hook.ts ${stamp} "${hook}"`);
-    intro = { path: hook, dur: HOOK_DUR, label: 'cold open · receipts hook (MKT-66)' };
+    sh(`npx tsx scripts/render-public-hook.ts ${stamp} "${hook}"${ctaCut ? ' --kind=cta' : ''}`);
+    intro = { path: hook, dur: HOOK_DUR, label: ctaCut ? 'cold open · covered hook card (MKT-77)' : 'cold open · receipts hook (MKT-66)' };
     dissolve = HOOK_DISSOLVE;
     console.log(`NOTE(${v}): COLD OPEN — board on screen at ${HOOK_DUR}s (was intro + stinger ≈ 8.7s); no anchor intro, no stinger, no shoulder chip.`);
   }
   const openBase = intro ? intro.dur : OPEN;
   // MKT-12: prebuilt per-variant stinger. Missing/disabled → null and the reel
   // assembles exactly as before. Crossfaded into, so it adds dur − INTRO_XFADE.
-  const sting = coldOpen ? null : probeStinger(ASSETS, kind, isoDate, FORCE_STING);
+  const sting = hookOpen ? null : probeStinger(ASSETS, kind, isoDate, FORCE_STING);
   const openDur = +(openBase + stingerAdds(sting)).toFixed(3);
   const total = +(openDur + bodyDur + CARD).toFixed(3);
   if (sting) console.log(`NOTE(${v}): stinger ${STINGERS[kind].lines[1]} — open ${openBase}s + ${stingerAdds(sting)}s = ${openDur}s, reel ${total}s.`);
@@ -256,7 +305,8 @@ for (const v of VARIANTS) {
   // the built names are not uniform (verify's is `verif_endcard.mp4`). Whether
   // the day needs a bed is a property of the CARRIER, so it is decided below and
   // the endcard re-resolved if the narrowed set differs.
-  let ec = resolveEndcard(ASSETS, kind, isoDate, false, FORCE_CARD);
+  const ecCut = ctaCut ? 'cta' as const : undefined;
+  let ec = resolveEndcard(ASSETS, kind, isoDate, false, FORCE_CARD, ecCut);
   let endcard = ec.path;
   // MKT-09: a carrier delivered as parts is joined first.
   // MKT-20: keyed on the KIND, not a composed `${kind}_carrier` base — part 1
@@ -264,13 +314,28 @@ for (const v of VARIANTS) {
   // continuation from a rotating part-1 name resolves to nothing and degrades
   // into a published half-narration reel rather than an error.
   const carrierRes = resolveCarrier(ASSETS, kind, isoDate, FORCE_CARRIER);
-  const carrier = carrierRes.path;
-  if (carrierRes.joined) {
+  let carrier = carrierRes.path;
+  // MKT-77: the CTA cut voices ONE part, or none. The joined pair (~17s of VO)
+  // cannot fit a ~16s reel; pt2 alone is the gap-selling copy and matches the
+  // covered board on screen. `bed` = no voice at all, hum bed under the board.
+  let voiceOff = false;
+  if (ctaCut) {
+    if (CTA_VOICE === 'pt2') {
+      const rest = carrierRest(kind);
+      if (!rest.length) { console.error(`ABORT(${v}): --cta-voice=pt2 but ${kind} declares no continuation.`); process.exit(1); }
+      carrier = join(ASSETS, rest[0]);
+    } else if (CTA_VOICE === 'part1') {
+      carrier = carrierRes.parts[0];
+    } else {
+      voiceOff = true;
+    }
+    console.log(`NOTE(${v}): CTA voice = ${CTA_VOICE}${voiceOff ? ' (no voice — hum bed)' : ` [${basename(carrier)}]`}.`);
+  } else if (carrierRes.joined) {
     console.log(`NOTE(${v}): carrier joined from ${carrierRes.parts.length} parts (${carrierRes.parts.map(p => p.split('/').pop()).join(' + ')}).`);
   }
   // Voice spans min(carrier length, open+body); the endcard's hum (audio from
   // BED_SRC_START, after its crack) beds any remaining gap before the outro.
-  const carrierDur = parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${carrier}"`).toString());
+  const carrierDur = voiceOff ? 0 : parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${carrier}"`).toString());
   // OVERLAP MODE (long carriers): voice may finish naturally over the rising
   // smoke (up to 1.1s past the scene cut, always ending before the bolt snap);
   // the endcard's synced outro audio is MIXED in from the scene cut. Any
@@ -278,17 +343,19 @@ for (const v of VARIANTS) {
   // proven unreliable past their VO).
   // With the intro, the VO enters at (openDur − 0.4) instead of 0, so the
   // usable VO window is bodyDur+0.4 (+1.1 overlap allowance) — 17.5s ceiling.
-  const voiceStart = intro ? +(openDur - INTRO_VO_LEAD).toFixed(2) : 0;
+  // MKT-77: on the CTA cut the voice enters CTA_VO_LEAD before the dissolve
+  // completes — 0.8s into the silent card, over the words it is saying.
+  const voiceStart = intro ? +(openDur - (ctaCut ? CTA_VO_LEAD : INTRO_VO_LEAD)).toFixed(2) : 0;
   const voiceWindow = +(openDur + bodyDur - voiceStart).toFixed(2);
   // MKT-21: named epsilon, and exact equality resolves to OVERLAP by decision —
   // see OVERLAP_EPSILON. The slack is logged whenever it is thin, because a
   // silent flip to hum-bed mode halves the narration and nothing else reports it.
-  const overlap = carrierDur >= voiceWindow - OVERLAP_EPSILON;
+  const overlap = !voiceOff && carrierDur >= voiceWindow - OVERLAP_EPSILON;
   const slack = carrierBoundarySlack(carrierDur, voiceWindow);
-  if (Math.abs(slack) < BOUNDARY_WARN_AT) {
+  if (!voiceOff && Math.abs(slack) < BOUNDARY_WARN_AT) {
     console.log(`NOTE(${v}): carrier is ${slack >= 0 ? '' : '-'}${Math.abs(slack).toFixed(4)}s from the overlap/hum-bed boundary — mode "${overlap ? 'overlap' : 'hum-bed'}" is decided on a tie. A re-encode or a slightly longer body would flip it.`);
   }
-  const voiceSpan = overlap
+  const voiceSpan = voiceOff ? 0 : overlap
     ? +Math.min(carrierDur - 0.1, voiceWindow + 1.1).toFixed(2)
     : +Math.min(carrierDur - 0.2, voiceWindow).toFixed(2);
   const bedLen = overlap ? 0 : +(voiceWindow - voiceSpan).toFixed(2);
@@ -305,7 +372,7 @@ for (const v of VARIANTS) {
   // (no level-steady stretch — endcard_motion_pro_alt) drops out for the day
   // instead of aborting the run. On wall-to-wall days nothing changes.
   if (bedLen > 0.05) {
-    const bedEc = resolveEndcard(ASSETS, kind, isoDate, true, FORCE_CARD);
+    const bedEc = resolveEndcard(ASSETS, kind, isoDate, true, FORCE_CARD, ecCut);
     if (bedEc.path !== endcard) {
       console.log(`NOTE(${v}): short carrier needs a hum bed — endcard re-resolved ${ec.name} → ${bedEc.name} (${bedEc.motion.label}).`);
       ec = bedEc;
@@ -334,9 +401,12 @@ for (const v of VARIANTS) {
     console.log(`NOTE(${v}): carrier VO covers ${voiceStart}-${(voiceStart + voiceSpan).toFixed(1)}s; endcard hum beds to ${(openDur + bodyDur).toFixed(1)}s (modals after the VO). A full ~${total}s track would replace all reel audio.`);
   }
   const lockup = join(REELS, `_lockup_${v}.png`);
-  const out = join(REELS, `${kind}_${stamp}.mp4`);
+  // MKT-77: a preview build never lands on the serving name (the verify_public
+  // cold-open precedent — held builds leave no serving-name collision behind).
+  const outSuffix = ctaCut && CTA_PREVIEW ? '_cta_preview' : '';
+  const out = join(REELS, `${kind}_${stamp}${outSuffix}.mp4`);
   const out1x1 = join(REELS, `${kind}_${stamp}_1x1.mp4`);
-  const sheet = join(REELS, `${kind}_${stamp}_contact.png`);
+  const sheet = join(REELS, `${kind}_${stamp}${outSuffix}_contact.png`);
 
   if (!intro) sh(`ffmpeg -y -loglevel error -sseof -0.1 -i "${endcard}" -frames:v 1 -vf "scale=1080:1920:flags=lanczos" "${lockup}"`);
 
@@ -346,7 +416,7 @@ for (const v of VARIANTS) {
   // MKT-35: the chip is DATED from the same provenance-asserted `stamp` as the
   // body — never the render clock. Per-day PNG name so a stale same-kind chip
   // from a prior day can never be picked up by -y overwrite races.
-  const chipPng = intro && !coldOpen && CHIP_LABELS[kind] ? join(REELS, `_chip_${kind}_${stamp}.png`) : null;
+  const chipPng = intro && !hookOpen && CHIP_LABELS[kind] ? join(REELS, `_chip_${kind}_${stamp}.png`) : null;
   if (chipPng) sh(`npx tsx scripts/render-intro-chip.ts ${kind} "${chipPng}" ${stamp}`);
 
   const msVoice = Math.round(voiceStart * 1000);
@@ -358,7 +428,7 @@ for (const v of VARIANTS) {
       ? `-i "${intro.path}" -i "${body}" -i "${endcard}" `
       : `-loop 1 -framerate 60 -t ${OPEN} -i "${lockup}" -i "${body}" -i "${endcard}" `) +
     `-i "${carrier}" -i "${endcard}" ` +
-    `-loop 1 -framerate 60 -t ${total} -i "${bodyMode === 'public' ? publicStampPng : stampPng}" ` +
+    `-loop 1 -framerate 60 -t ${total} -i "${bodyMode === 'public' ? publicStampPng : ctaCut ? coveredStampPng : stampPng}" ` +
     // MKT-12: stinger takes input [6] — appended so [0]-[5] and every hardcoded
     // index in the graph below are undisturbed.
     (sting ? `-i "${sting.path}" ` : ``) +
@@ -380,7 +450,8 @@ for (const v of VARIANTS) {
     // Pad = dissolve only: xfade aligns input2's t=0 at `offset`, so the clone
     // covers exactly the crossfade window and real body motion starts at
     // openDur. Legacy (dissolve=OPEN, offset=0) is byte-identical to before.
-    `[1:v]tpad=start_duration=${dissolve}:start_mode=clone,format=yuv420p,setsar=1,fps=60,settb=AVTB[uix];` +
+    // MKT-77: the CTA cut trims the body to its grid still BEFORE the pad.
+    `[1:v]${ctaCut ? `trim=duration=${bodyDur},setpts=PTS-STARTPTS,` : ''}tpad=start_duration=${dissolve}:start_mode=clone,format=yuv420p,setsar=1,fps=60,settb=AVTB[uix];` +
     `[lk][uix]xfade=transition=custom:expr=${EASED}:duration=${dissolve}:offset=${+(openDur - dissolve).toFixed(2)}[openbody];` +
     `[2:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=${CARD},setpts=PTS-STARTPTS[cardv];` +
     `[openbody][cardv]concat=n=2:v=1:a=0[vraw];` +
@@ -410,14 +481,17 @@ for (const v of VARIANTS) {
             `afade=t=out:st=${(STINGER_DUR - 0.25).toFixed(2)}:d=0.25,` +
             `adelay=${Math.round((openBase - INTRO_XFADE) * 1000)}|${Math.round((openBase - INTRO_XFADE) * 1000)}[stgaud];`
           : ``) +
-        `[3:a]atrim=0:${voiceSpan},asetpts=PTS-STARTPTS,aresample=48000,` +
-        `afade=t=in:st=0:d=0.01,afade=t=out:st=${(voiceSpan - 0.25).toFixed(2)}:d=0.25,` +
-        `adelay=${msVoice}|${msVoice}[voice];` +
+        // MKT-77 `bed` voice: no [voice] stream at all — the hum bed spans the
+        // whole window and the mix drops one input.
+        (voiceOff ? `` :
+          `[3:a]atrim=0:${voiceSpan},asetpts=PTS-STARTPTS,aresample=48000,` +
+          `afade=t=in:st=0:d=0.01,afade=t=out:st=${(voiceSpan - 0.25).toFixed(2)}:d=0.25,` +
+          `adelay=${msVoice}|${msVoice}[voice];`) +
         (bed ? humBed('[4:a]', bedLen, `,adelay=${msBed}|${msBed}[bed];`, bed) : ``) +
         `[2:a]atrim=0:${CARD},asetpts=PTS-STARTPTS,aresample=48000,` +
         `afade=t=in:st=0:d=0.05,afade=t=out:st=${(CARD - 0.4).toFixed(2)}:d=0.4,` +
         `adelay=${msOutro}|${msOutro}[outroaud];` +
-        `[introaud]${sting ? '[stgaud]' : ''}[voice]${bedLen > 0.05 ? '[bed]' : ''}[outroaud]amix=inputs=${(bedLen > 0.05 ? 4 : 3) + (sting ? 1 : 0)}:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]" `
+        `[introaud]${sting ? '[stgaud]' : ''}${voiceOff ? '' : '[voice]'}${bedLen > 0.05 ? '[bed]' : ''}[outroaud]amix=inputs=${2 + (voiceOff ? 0 : 1) + (bedLen > 0.05 ? 1 : 0) + (sting ? 1 : 0)}:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11[a]" `
       : overlap
       ? `[3:a]atrim=0:${voiceSpan},asetpts=PTS-STARTPTS,aresample=48000,` +
         `afade=t=in:st=0:d=0.01,afade=t=out:st=${(voiceSpan - 0.25).toFixed(2)}:d=0.25[voice];` +
@@ -434,7 +508,11 @@ for (const v of VARIANTS) {
       ? `[voice][bed][cardaud]concat=n=3:v=0:a=1,loudnorm=I=-14:TP=-1.5:LRA=11[a]" `
       : `[voice][cardaud]concat=n=2:v=0:a=1,loudnorm=I=-14:TP=-1.5:LRA=11[a]" `)) +
     `-map "[vid]" -map "[a]" -t ${total} -r 60 -c:v libx264 -profile:v high -crf 18 -pix_fmt yuv420p ` +
-    `-c:a aac -ar 48000 -movflags +faststart "${out}"`,
+    // MKT-77: the CTA cut records itself in the final's container (hm_cut +
+    // the voice choice) so a published file can be told from a classic one.
+    `-c:a aac -ar 48000 -movflags +faststart${ctaCut ? '+use_metadata_tags' : ''} ` +
+    (ctaCut ? `-metadata hm_cut="cta" -metadata hm_cta_voice="${CTA_VOICE}" ` : ``) +
+    `"${out}"`,
   );
 
   // MKT-39 addendum (operator, 2026-07-31): the 1:1 feed cut is RETIRED from
@@ -454,15 +532,28 @@ for (const v of VARIANTS) {
   // only modals 1 and 4), so all six in-UI panel placements are verifiable in
   // one artifact. Intro + endcard bookend it, keeping the reel arc visible; the
   // grid tile was dropped as least informative — no panel, no stamp change.
-  const STAMPS = [
-    0,
-    ...Array.from({ length: MODAL_COUNT }, (_, i) => modalWindow(openDur, GRID_DUR, MODAL_HOLD, i)[0] + MODAL_HOLD / 2),
-    total - 0.4,
-  ].map(t => +t.toFixed(1));
+  // MKT-77: the CTA cut has no modals — sample the card (frame one + settled),
+  // the dissolve, the covered board (three points), the endcard's arrival and
+  // its settled lockup. Same 4x2 sheet geometry, so KIND_UI needs nothing.
+  const STAMPS = (ctaCut
+    ? [0, 1.0, openDur + 0.2, openDur + 0.8, openDur + bodyDur / 2, openDur + bodyDur - 0.3, total - 1.3, total - 0.4]
+    : [
+      0,
+      ...Array.from({ length: MODAL_COUNT }, (_, i) => modalWindow(openDur, GRID_DUR, MODAL_HOLD, i)[0] + MODAL_HOLD / 2),
+      total - 0.4,
+    ]).map(t => +t.toFixed(1));
   STAMPS.forEach((t, i) => sh(`ffmpeg -y -loglevel error -ss ${t} -i "${out}" -frames:v 1 -vf "scale=270:480" "${join(REELS, `_cs_${v}${i}.png`)}"`));
   const inputs = STAMPS.map((_, i) => `-i "${join(REELS, `_cs_${v}${i}.png`)}"`).join(' ');
   sh(`ffmpeg -y -loglevel error ${inputs} -filter_complex "[0][1][2][3]hstack=4[r0];[4][5][6][7]hstack=4[r1];[r0][r1]vstack=2" "${sheet}"`);
 
   const dur = execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${out}"`).toString().trim();
   console.log(`${kind.toUpperCase()} reel: ${out} · duration ${dur}s · contact sheet written (1:1 retired, MKT-39)`);
+  if (ctaCut) {
+    const furniture = HOOK_DUR + CARD;
+    console.log(
+      `NOTE(${v}): CTA CUT totals — card ${HOOK_DUR}s + board ${bodyDur}s + endcard ${CARD}s = ${total}s · ` +
+      `furniture ${furniture.toFixed(1)}s = ${((furniture / total) * 100).toFixed(1)}% (a CTA cut's number, not the 38–44% information band) · ` +
+      `voice ${voiceOff ? 'none (bed)' : `${voiceStart}–${(voiceStart + voiceSpan).toFixed(2)}s`}.`,
+    );
+  }
 }

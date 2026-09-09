@@ -70,8 +70,13 @@ export const REEL_PANELS: ReelPanel[] = [
 
 /** Modal segments in the All-Day body — one panel each. */
 export const MODAL_COUNT = 6;
-/** render-allday-body.ts segment plan, in seconds. */
-export const GRID_DUR = 4.0, MODAL_HOLD = 2.5;
+/** render-allday-body.ts segment plan, in seconds — MUST mirror GRID_FRAMES /
+ *  MODAL_HOLD there (600 / 90 frames @60fps since MKT-56, 2026-08-16).
+ *  ⚠ BUG-175 (2026-09-09): these sat at the pre-MKT-56 values (4.0 / 2.5) for
+ *  three weeks, so every slate contact sheet sampled the still three times
+ *  and missed modals — and the MKT-77 still-only guard tripped on a 7.5s
+ *  hold against a "4s" still. Cosmetic on the sheets, fatal on the guard. */
+export const GRID_DUR = 10.0, MODAL_HOLD = 1.5;
 
 /** Day index matching reel-captions' dayOfYear — clock-free UTC math. */
 export function dayIndex(iso: string): number {

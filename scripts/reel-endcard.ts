@@ -60,13 +60,20 @@ export function endcardCandidates(
   dateISO: string,
   needsBed = false,
   forceTag?: string,
+  /** MKT-77 — 'cta' reads the kind's second lockup (ENDCARDS[kind].cta.out).
+   *  Same motion walk, same rotation index: the motion is a property of the
+   *  kind and the date; only the words differ. No legacy fallback for it. */
+  cut?: 'cta',
 ): EndcardCandidate[] | null {
   const spec = ENDCARDS[kind];
   if (!spec) return null;
+  if (cut === 'cta' && !spec.cta) return null;
+  const outBase = cut === 'cta' ? spec.cta!.out : spec.out;
   const meta = readMotionMeta(assetsDir);
   const all = endcardMotionsFor(kind, dateISO, { needsBed, meta });
   const rotation = forceTag ? all.filter(m => m.tag === forceTag) : all;
-  const out: EndcardCandidate[] = rotation.map(mv => ({ name: builtEndcardName(spec.out, mv.tag), motion: mv }));
+  const out: EndcardCandidate[] = rotation.map(mv => ({ name: builtEndcardName(outBase, mv.tag), motion: mv }));
+  if (cut === 'cta') return out;
   // Last resort: the pre-MKT-19 unversioned build. Present only until the
   // matrix has been built at least once; it keeps a half-migrated tree
   // assembling rather than failing on a naming change alone. Excluded under a
@@ -91,10 +98,13 @@ export function resolveEndcard(
    * for re-assembling a specific combination for review.
    */
   forceTag?: string,
+  cut?: 'cta',
 ): ResolvedEndcard {
-  const candidates = endcardCandidates(assetsDir, kind, dateISO, needsBed, forceTag);
+  const candidates = endcardCandidates(assetsDir, kind, dateISO, needsBed, forceTag, cut);
   if (!candidates) {
-    console.error(`ABORT: no endcard config for kind "${kind}" — known: ${Object.keys(ENDCARDS).join(', ')}.`);
+    console.error(cut === 'cta'
+      ? `ABORT: kind "${kind}" has no ENDCARDS[kind].cta lockup — the CTA cut cannot close (MKT-77).`
+      : `ABORT: no endcard config for kind "${kind}" — known: ${Object.keys(ENDCARDS).join(', ')}.`);
     process.exit(1);
   }
   if (forceTag && !candidates.length) {
@@ -113,7 +123,7 @@ export function resolveEndcard(
   }
 
   console.error(
-    `ABORT(${kind}): no endcard could be resolved. Tried ${tried.join(', ')}.\n` +
+    `ABORT(${kind}): no ${cut === 'cta' ? 'CTA ' : ''}endcard could be resolved. Tried ${tried.join(', ')}.\n` +
     `       A reel cannot assemble without a close. Run: npm run endcard:build ${kind}`,
   );
   process.exit(1);

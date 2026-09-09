@@ -52,6 +52,11 @@ const PURPOSES = {
   // across BOTH morning boards (Midday + All-Day) — the ribbon names the draws,
   // not a board. Same string as the intro chip (intro-chip-config.ts).
   verify_midday: { eyebrow: "TODAY'S MIDDAY DRAWS · GRADED", accent: '#FBBF24', top: 470 },
+  // MKT-77 — the free session CTA cut: the stamp names the cover as DELIBERATE
+  // on every body frame (the board segment is a masked static still with no
+  // modals, no notation strip and no shoulder chip — without this line the
+  // covered tiles could read as a render fault). Drop cyan, drop placement.
+  covered: { eyebrow: 'COVERED UNTIL TOMORROW', accent: '#2bffcc', top: 1000 },
 } as const;
 
 // MKT-14 — the brand string, ruled 2026-07-31. "ZK6", not the version-agnostic
@@ -65,7 +70,7 @@ const BRAND_STRING = 'HITMASTER ZK6';
 const [, , purposeArg, ymd, scopeArg, outArg] = process.argv;
 const purpose = PURPOSES[purposeArg as keyof typeof PURPOSES];
 if (!purpose || !/^\d{8}$/.test(ymd ?? '') || !scopeArg || !outArg) {
-  console.error('Usage: tsx scripts/render-reel-stamp.ts <drop|verify|verify_midday> <YYYYMMDD> <scope|-> <out.png>');
+  console.error('Usage: tsx scripts/render-reel-stamp.ts <drop|verify|verify_midday|covered> <YYYYMMDD> <scope|-> <out.png>');
   process.exit(1);
 }
 const out = resolve(outArg);

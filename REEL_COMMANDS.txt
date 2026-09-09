@@ -2,7 +2,7 @@
 HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
-changed. Every command has a description. (Last updated 2026-09-08 —
+changed. Every command has a description. (Last updated 2026-09-09 — MKT-77 free session CTA cuts; previously 2026-09-08 —
 UPDATED 2026-08-17 (MKT-57) — every slate reel body (allday/midday/evening,
 all cuts) now captures the coffee-mode HOME, not the Slates grid: 10.0s
 static still of the six tiles (emboss + notation band at the bottom of the
@@ -350,6 +350,48 @@ npm run reel:evening
     all four signal percentages, heat badges, jurisdiction counts
     and the whole prose structure. The methodology is the gift;
     the digits are the gap Pro closes.
+
+    ⛔ MKT-77 (2026-09-09, content agent work order, live from the 9/10
+    morning run) — THE FREE SESSION REELS ARE NOW CTA CUTS. midday_free
+    and evening_free no longer assemble the ~34s anatomy. They are:
+        2.0s   covered HOOK CARD, silent ("COVERED UNTIL TOMORROW /
+               PRO IS READING THESE DIGITS NOW / BEFORE THE DRAW ·
+               40+ STATES & PROVINCES") — the MKT-66 card machinery,
+               --kind=cta, tier-2 lint, drop cyan
+        7.5s   the COVERED BOARD — the redacted body's static grid
+               still ONLY (modals dropped), stamp reads "COVERED
+               UNTIL TOMORROW · <SCOPE> · <date>" on every frame
+        6.5s   the CTA ENDCARD ("HITMASTER ZK6 / PRO READS THESE
+               DIGITS BEFORE THE DRAW / FREE READS THEM TOMORROW ·
+               $2.49/MO"), its own built matrix
+               (<kind>_cta_endcard_<motion>.mp4), same motion
+               rotation as the classic close
+      ≈16.0s total · furniture 8.5s ≈ 53% — CORRECT for a CTA cut
+      (the 38–44% band governs information reels). No anchor intro,
+      no stinger, no shoulder chip. Pro reels, allday_free (PURE
+      VALUE, SOCIAL-13), retention, rotation and the strike overlay
+      are UNTOUCHED. Captions unchanged.
+      VOICE: pt2 ALONE by default (the gap-selling continuation —
+      "Them digits are sittin' under that cover right now…" /
+      "That cover comes off at sunup…"), entering 0.8s into the
+      card. Part 1 is a scope announcement that names the modals
+      the cut drops (mismatched read). Override per run:
+        npx tsx scripts/assemble-allday-reels.ts --scope=midday --cta-voice=part1
+        npx tsx scripts/assemble-allday-reels.ts --scope=midday --cta-voice=bed   (no voice, hum bed)
+      ⛔ ESCAPE HATCH — a bad first morning falls back to the classic
+      anatomy WITHOUT a code change:
+        npx tsx scripts/assemble-allday-reels.ts --scope=midday --variant=free --classic-cut && npx tsx scripts/publish-reels.ts midday --variant=free
+        (same for --scope=evening). The classic endcards
+        (<kind>_endcard_<motion>.mp4) are still built and served.
+      PREVIEW (never published, suffixed *_cta_preview.mp4):
+        npx tsx scripts/assemble-allday-reels.ts 20260909 --scope=midday --variant=free --cta-preview
+      reel:check → checkCtaCut(): redacted-only binding, still-only
+      hold, CTA endcard matrix built + copy identical on both kinds
+      + tier-2 clean, pt2 last word inside the voice budget (and a
+      FAIL if a pt2 is re-delivered after its measurement —
+      CTA_PT2_LAST_WORD in scripts/public-hook-config.ts).
+      Endcard matrix rebuild after a copy change:
+        npm run endcard:build midday_free && npm run endcard:build evening_free
 
     ⚠ A FULL-FIDELITY FREE SESSION REEL IS STILL BARRED. What
     changed is that the redacted capture now exists — not the

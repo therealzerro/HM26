@@ -19,7 +19,10 @@ import { execSync } from 'node:child_process';
 import { existsSync, statSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { resolveCarrier, undeclaredParts, carrierCandidates, audioDur, OVERLAP_EPSILON, carrierBoundarySlack, BOUNDARY_WARN_AT } from './reel-carrier';
+import { resolveCarrier, undeclaredParts, carrierCandidates, carrierRest, audioDur, OVERLAP_EPSILON, carrierBoundarySlack, BOUNDARY_WARN_AT } from './reel-carrier';
+import { lintCaption } from '../lib/social/brandLint';
+import { HOOK_DUR, CTA_CUT_KINDS, CTA_BOARD_DUR, CTA_VO_LEAD, CTA_PT2_LAST_WORD, CTA_HOOK_COPY } from './public-hook-config';
+import { GRID_DUR } from '../constants/reelPanels';
 import { CARRIERS, CARRIER_KINDS, allCarrierFiles, PART1_DUR_TOLERANCE } from './carrier-config';
 import { bedWindow } from './reel-bed';
 import { available, sourcePath, builtPath, sha256, clearanceFor } from './reel-panels';
@@ -375,7 +378,11 @@ function checkStrays(): void {
     // `out` field — the SAME call the resolver uses — so the expected set cannot
     // disagree with what the assembler reads. Constructing these independently
     // is how checkStrays would start reporting phantom strays for verify.
-    for (const m of endcardMotionSetFor(kind)) referenced.add(builtEndcardName(v.out, m.tag));
+    for (const m of endcardMotionSetFor(kind)) {
+      referenced.add(builtEndcardName(v.out, m.tag));
+      // MKT-77: the CTA lockup is a second built matrix on the same motions.
+      if (v.cta) referenced.add(builtEndcardName(v.cta.out, m.tag));
+    }
   }
   for (const m of allMotionFiles()) referenced.add(m);
   for (const [variant, cfg] of Object.entries(STINGERS)) {
@@ -1201,6 +1208,68 @@ function checkRotationHealth(): void {
 
 // Intro FIRST — it sets INTRO_ACTIVE, which shifts the carrier VO window.
 INTRO_ACTIVE = checkIntros();
+/**
+ * MKT-77 (2026-09-09) — the free session CTA cut (midday_free / evening_free).
+ * Asserts the SOURCE-LEVEL invariants the assembler relies on, so the first
+ * morning fails here and not at 8:14 AM:
+ *   · every CTA kind is a REDACTED free session body (SOCIAL-13: allday_free is
+ *     pure value and must never be listed);
+ *   · the board hold shows the grid STILL only (CTA_BOARD_DUR ≤ GRID_DUR);
+ *   · the CTA endcard matrix is built for every free motion, and its copy is
+ *     IDENTICAL across the CTA kinds (a Midday/Evening divergence is the defect
+ *     nobody notices for weeks) and tier-2 clean;
+ *   · the pt2 voice fits WHOLE: last word + fade inside the voice window
+ *     (CTA_BOARD_DUR + CTA_VO_LEAD + the 1.1s overlap allowance), and the pt2
+ *     file has not been re-delivered since its last-word measurement;
+ *   · the hook-card copy is tier-2 clean.
+ */
+function checkCtaCut(): void {
+  const voiceBudget = +(CTA_BOARD_DUR + CTA_VO_LEAD + 1.1).toFixed(2);
+  if (CTA_BOARD_DUR > GRID_DUR) add('FAIL', 'CTA_BOARD_DUR', `${CTA_BOARD_DUR}s exceeds the grid still (${GRID_DUR}s) — the CTA cut would show modal frames`);
+  else add('PASS', 'CTA_BOARD_DUR', `${CTA_BOARD_DUR}s covered board ≤ ${GRID_DUR}s grid still · reel ≈ ${(HOOK_DUR + CTA_BOARD_DUR + 6.5).toFixed(1)}s · voice budget ${voiceBudget}s`);
+  for (const s of [CTA_HOOK_COPY.eyebrow, ...CTA_HOOK_COPY.big, CTA_HOOK_COPY.sub]) {
+    const bad = lintCaption(s, 2).violations.filter(x => x.blocking);
+    if (bad.length) add('FAIL', `cta hook "${s}"`, `tier-2 lint: ${bad.map(x => `${x.term} (${x.rule})`).join(', ')}`);
+  }
+  let ctaLinesRef: string | null = null;
+  for (const K of CTA_CUT_KINDS) {
+    const [scope, variant] = K.split('_');
+    const mode = captureModeFor(scope as any, variant as any);
+    if (mode !== 'redacted') add('FAIL', K, `CTA-cut kind but its body mode is "${mode}" — the cut applies to REDACTED bodies only (SOCIAL-13)`);
+    const ec = ENDCARDS[K];
+    if (!ec?.cta) { add('FAIL', K, 'no ENDCARDS[kind].cta lockup — the CTA cut cannot close'); continue; }
+    const sig = ec.cta.lines.join(' | ');
+    if (ctaLinesRef == null) ctaLinesRef = sig;
+    else if (sig !== ctaLinesRef) add('FAIL', K, `CTA endcard copy differs from the other CTA kind — the two must be IDENTICAL by order (MKT-77 item 5)`);
+    for (const line of ec.cta.lines) {
+      const bad = lintCaption(line, 2).violations.filter(x => x.blocking);
+      if (bad.length) add('FAIL', `${K} cta endcard "${line}"`, `tier-2 lint: ${bad.map(x => `${x.term} (${x.rule})`).join(', ')}`);
+    }
+    const missing = endcardMotionSetFor(K).map(m => builtEndcardName(ec.cta!.out, m.tag)).filter(n => !exists(n));
+    if (missing.length) add('FAIL', K, `CTA endcard(s) not built: ${missing.join(', ')} — run npm run endcard:build ${K}`);
+    else add('PASS', `${K} cta endcards`, `${endcardMotionSetFor(K).length} built (one per free motion)`);
+    // the pt2 voice
+    const rest = carrierRest(K);
+    const meas = CTA_PT2_LAST_WORD[K];
+    if (!rest.length) add('FAIL', K, 'declares no continuation — --cta-voice=pt2 (the default) cannot resolve');
+    else if (!meas || meas.file !== rest[0]) add('FAIL', K, `CTA_PT2_LAST_WORD has no measurement for ${rest[0]} — measure the last word and record it`);
+    else {
+      const p = exists(rest[0]);
+      if (!p) add('FAIL', rest[0], 'pt2 missing');
+      else {
+        const mtime = statSync(p).mtime.toISOString().slice(0, 10);
+        if (mtime > meas.measuredAt) add('FAIL', rest[0], `re-delivered ${mtime}, after the last-word measurement (${meas.measuredAt}) — re-measure and update CTA_PT2_LAST_WORD`);
+        const need = +(meas.lastWord + 0.3).toFixed(2);
+        if (need > voiceBudget) add('FAIL', rest[0], `last word ${meas.lastWord}s + 0.3s fade = ${need}s exceeds the ${voiceBudget}s voice budget — raise CTA_BOARD_DUR`);
+        else add('PASS', `${K} cta voice`, `pt2 last word ${meas.lastWord}s (+0.3 fade) inside the ${voiceBudget}s budget · margin ${(voiceBudget - need).toFixed(2)}s`);
+      }
+    }
+  }
+  // SOCIAL-13 binding, stated as a check rather than assumed.
+  if (CTA_CUT_KINDS.includes('allday_free')) add('FAIL', 'allday_free', 'listed in CTA_CUT_KINDS — the All-Day free drop is PURE VALUE (SOCIAL-13), never a CTA cut');
+  else add('PASS', 'allday_free', `not a CTA kind (SOCIAL-13 pure value; body mode ${captureModeFor('allday', 'free')})`);
+}
+
 checkPartNaming();
 checkStrays();
 checkMotions();
@@ -1209,6 +1278,7 @@ checkPublicGateRecords();
 checkStingers();
 checkVerify();
 checkVerifyMidday();
+checkCtaCut();
 checkStrikeOverlay();
 checkPanels();
 checkStamp();

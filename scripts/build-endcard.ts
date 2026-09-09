@@ -128,24 +128,33 @@ async function build(key: string, v: EndcardVariant, mv: MotionVariant): Promise
     console.log(`  preserved previous baked endcard → ${v.out.replace(/\.mp4$/, '_baked_backup.mp4')}`);
   }
 
-  const png = join(tmpdir(), `endcard-lockup-${key}.png`);
-  // MKT-44 — motion first: the strand is a property of the motion clip, not
-  // the reel kind. Keyed by FILE because endcard tags repeat across tiers.
-  await renderLockup(v.lines, png, v.line3Accent, ENDCARD_MOTION_LOCKUP[mv.file] ?? v.lockupTop);
+  // MKT-77: a kind may carry a second lockup (`cta`) — same motion, own copy,
+  // own built name. Both are composited from the same motion file in one pass.
+  const lockups: { lines: [string, string, string]; outName: string; tag: string }[] = [
+    { lines: v.lines, outName, tag: '' },
+    ...(v.cta ? [{ lines: v.cta.lines, outName: builtEndcardName(v.cta.out, mv.tag), tag: ' [cta]' }] : []),
+  ];
+  for (const L of lockups) {
+    const png = join(tmpdir(), `endcard-lockup-${key}${L.tag ? '-cta' : ''}.png`);
+    const outFile = join(ASSETS, L.outName);
+    // MKT-44 — motion first: the strand is a property of the motion clip, not
+    // the reel kind. Keyed by FILE because endcard tags repeat across tiers.
+    await renderLockup(L.lines, png, v.line3Accent, ENDCARD_MOTION_LOCKUP[mv.file] ?? v.lockupTop);
 
-  // Motion upscaled with lanczos: the sharpness that matters is the type, and
-  // that is native. An ML upscaler would add a heavy dependency to improve
-  // pixels (smoke, glow) where resampling is invisible — deliberately not used.
-  sh(
-    `ffmpeg -y -loglevel error -i "${motion}" -loop 1 -i "${png}" -filter_complex ` +
-      `"[0:v]scale=${OUT_W}:${OUT_H}:flags=lanczos,format=yuv420p,setsar=1[mot];` +
-      `[1:v]format=rgba,fade=t=in:st=${TEXT_FADE_IN}:d=${TEXT_FADE_DUR}:alpha=1[txt];` +
-      `[mot][txt]overlay=0:0:format=auto,format=yuv420p[v]" ` +
-      `-map "[v]" -map 0:a -c:v libx264 -profile:v high -crf 17 -pix_fmt yuv420p ` +
-      `-c:a copy -shortest -movflags +faststart "${out}"`,
-  );
-  const dur = execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${out}"`).toString().trim();
-  console.log(`  ✔ ${outName} · ${(+dur).toFixed(2)}s · text fades ${TEXT_FADE_IN}-${TEXT_FADE_IN + TEXT_FADE_DUR}s, opaque to final frame`);
+    // Motion upscaled with lanczos: the sharpness that matters is the type, and
+    // that is native. An ML upscaler would add a heavy dependency to improve
+    // pixels (smoke, glow) where resampling is invisible — deliberately not used.
+    sh(
+      `ffmpeg -y -loglevel error -i "${motion}" -loop 1 -i "${png}" -filter_complex ` +
+        `"[0:v]scale=${OUT_W}:${OUT_H}:flags=lanczos,format=yuv420p,setsar=1[mot];` +
+        `[1:v]format=rgba,fade=t=in:st=${TEXT_FADE_IN}:d=${TEXT_FADE_DUR}:alpha=1[txt];` +
+        `[mot][txt]overlay=0:0:format=auto,format=yuv420p[v]" ` +
+        `-map "[v]" -map 0:a -c:v libx264 -profile:v high -crf 17 -pix_fmt yuv420p ` +
+        `-c:a copy -shortest -movflags +faststart "${outFile}"`,
+    );
+    const dur = execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${outFile}"`).toString().trim();
+    console.log(`  ✔ ${L.outName}${L.tag} · ${(+dur).toFixed(2)}s · text fades ${TEXT_FADE_IN}-${TEXT_FADE_IN + TEXT_FADE_DUR}s, opaque to final frame`);
+  }
 
   // MKT-19: DERIVE the hum-bed verdict here, at build time, and cache it per
   // MOTION. The resolver has to know whether a motion can bed BEFORE it picks

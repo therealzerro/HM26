@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-09 · v6.5
+Content Agent Handoff · 2026-09-09 · v6.6
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-09 (CONSOLIDATED SNAPSHOT, current to v6.5 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-09 (CONSOLIDATED SNAPSHOT, current to v6.6 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -37,6 +37,11 @@ A. DAILY OUTPUT (operator-triggered `npm run reel:daily`, never scheduled):
        stinger, no chip; ~27.5s. See WHAT CHANGED IN v5.3.)
      midday_pro · midday_free (redacted)
      evening_pro · evening_free (redacted)
+       ⚠ v6.6 (MKT-77, LIVE FROM THE 9/10 RUN): midday_free and evening_free
+       are CTA CUTS — 2.0s covered hook card → 7.5s covered board (the
+       still only, no modals) → 6.5s CTA endcard = 16.0s, pt2 voice alone
+       by default (ruling owed), no intro / stinger / chip. Escape hatch
+       `--classic-cut` (REEL_COMMANDS). Pro cuts + allday_free untouched.
    midday_public / evening_public are UNREGISTERED by ruling (no session
    carriers; three daily public reels is a cadence risk) — do not propose
    assets for them. Kind list is enforced by a DB CHECK + KIND_UI entry (§8).
@@ -52,6 +57,10 @@ A. DAILY OUTPUT (operator-triggered `npm run reel:daily`, never scheduled):
 
 B. SLATE REEL ANATOMY (allday/midday/evening, all cuts; 1080×1920 60fps;
    33.83–34.53s depending on the day's intro):
+   ⚠ v6.6: this is the anatomy of the FOUR Pro/All-Day cuts and of the free
+   sessions' `--classic-cut` fallback. midday_free / evening_free ship the
+   MKT-77 CTA anatomy from 9/10 (card 2.0 → covered still 7.5 → CTA
+   endcard 6.5 = 16.0s; anatomy + rulings in the v6.6 block, §2 note).
      0.0–~5.6   INTRO — slate kinds rotate over INTRO_ROTATION (TWELVE:
                 standard, deadpan, arrival, monitors, powerup, board, guest,
                 window, arrive — MKT-54; juggle — MKT-61; coffee — ruled in
@@ -315,6 +324,14 @@ G. OPEN / OWED — the standing list (everything else you may have read as
         the upload path; third-party wording ruled before build).
         NOTHING in this kind enters a rotation — do not propose variants of
         rise / sameday / the carrier for pooled use.
+    11. MKT-77 — FREE SESSION CTA CUTS: BUILT + VERIFIED 9/9, LIVE 9/10.
+        OWED BY YOU: the carrier-voice ruling — pt2 alone (default, ships
+        9/10) / bed / part1 — and, when Omni budget allows, the (c)
+        purpose-written short VO (≤9.5s to the last word, opens over the
+        card, closes on the price line's fact; the pt2 copy is the brief;
+        registers as the kind's pt2 replacement). OWED BY THE OPERATOR:
+        9/10 eyeball of the first live pair + the ear on the seam. Fallback
+        = `--classic-cut` + republish (REEL_COMMANDS line).
      9. FIRST-APPEARANCE EYEBALLS owed on the rotation: `juggle` first draws
         evening_free 8/20 (then midday_free 8/21, evening_pro 8/22); etch /
         facet stingers 8/20 (v3.7); `guest` served
@@ -419,11 +436,195 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
       for that line.
    MKT-76 — THE RECEIPTS PHOTO LANE (supersedes the 62b reel-beat order):
       Phase 0 REPORTED 9/9 (docs/mkt76_phase0_report.md; summary in the
-      v6.5 block), BUILD HELD on your rulings; does not enter the 9/9–9/23
-      window either way. Engineering lean = your lean, (c) the two-image
-      carousel, and it is the CHEAPEST of the three options. Free + Pro
-      rooms only, expressible in three layers; never the page, never
-      cross-post.
+      v6.5 block); RULINGS RECEIVED same day (v6.6 block): (c) carousel;
+      ⛔ OFFICIAL STATE RESULTS ONLY at launch (the 9/9 loosening
+      withdrawn); wording (a)+(c); one post/day first; five captions
+      delivered. ⛔ RULED AND RECORDED: A PRODUCT FEATURE FOR THE ROOMS WE
+      ALREADY HAVE, NOT A GROWTH LEVER — never justify it from Finding 1.
+      BUILD HELD to after 9/23. Free + Pro rooms only, three layers;
+      never the page, never cross-post.
+   MKT-77 — FREE SESSION REELS AS CTA CUTS (9/9, live 9/10): rationale is
+      CONVERSION-FIT (the two lowest-information posts in the nine), NOT
+      the hides — those are page feedback and these are group kinds.
+      Success metric = Pro conversions, not reactions. Anatomy, carrier
+      texts, voice options and the escape hatch: the v6.6 block.
+
+WHAT CHANGED IN v6.6 (2026-09-09, same day — MKT-76 RULINGS RECORDED (six);
+MKT-77 FREE SESSION REELS AS CTA CUTS: PHASE 0 REPORTED, PHASE 1 BUILT,
+PHASE 2 VERIFIED ON TODAY'S DATA — READY FOR 9/10 with the classic anatomy as
+the escape hatch. One blocker-class item is a RULING, not a build (carrier
+voice, item 1 below) and a default ships if unruled. Audit: MKT-76 (rulings),
+MKT-77, BUG-175. Next free ID: 78.)
+================================================================================
+  MKT-76 RULINGS — recorded verbatim in MASTER_AUDIT MKT-76 and in §G.10(d):
+  (1) (c) carousel, confirmed. (2) ⛔ SOURCE = OFFICIAL STATE RESULTS ONLY AT
+  LAUNCH — the 8/19 ruling stands, the 9/9 loosening WITHDRAWN (aggregator
+  screenshots weaken "checked against the OFFICIAL results"); boards later
+  only after a ToS read, never automatically; both values stay in the CHECK
+  behind the code-side allowlist. Operator: 8/6 used LotteryPost — the
+  FORMAT reproduces, the SOURCE changes. (3) wording (a)+(c). (4) ⛔ ELEVATED
+  AND RECORDED PLAINLY: MKT-76 IS A PRODUCT FEATURE FOR THE ROOMS WE ALREADY
+  HAVE, NOT A GROWTH LEVER — Finding 1 is page data, real digits fail Q1
+  publicly, the format that works on the page cannot run on the page (the
+  April 0.66% trap, twice). Nobody may later read Finding 1 as its
+  justification. (5) one post/day first, operator rules after 9/23, two-week
+  read on active_members/day + reactions/post. (6) FIVE free captions +
+  the image-2 attribution line DELIVERED (below, verbatim); Pro = same set
+  minus pricing; MKT-71's question line may ride them (operator's call);
+  Two-Question record logged (Q1 by design tier 2/4 only, three layers;
+  Q2 authored strings lint-clean, third-party pixels by crop attestation).
+  The lane still HOLDS to after 9/23; nothing built for it today.
+    Attribution line (image 2): Official {state} results · {source_label}
+    1. {state} · {session} · {date}. We published this board before the
+       draw. Here's what officially drew. 🧾⚡
+       Signal {combo} — {match}. Swipe for the official result.
+    2. Published {published_at}. Drawn {elapsed} later. 🧾
+       {combo} on the {session} board, {match} in {state}. Official result
+       in image two — check it yourself.
+    3. Two images: what we posted before the draw, and what {state}
+       officially drew. That order is the whole method. ⚡
+       {combo} · {match} · {session} · {date}
+    4. This went up before the draw, stamped. {elapsed} later the official
+       {state} result came in. 🧾
+       {combo} — {match}. Both images, nothing edited.
+    5. {match} in {state}, {session} {date}. Our board first, the official
+       result second — the way we do it every day, landed or not. ⚡
+
+  ──────────────────────────────────────────────────────────────────────────
+  MKT-77 — FREE SESSION REELS AS CTA CUTS (midday_free + evening_free).
+  ⛔ CORRECTED RATIONALE, RECORDED SO THE WRONG REASON DOES NOT PERSIST: not
+  the hides (page feedback; these are group kinds — feed weight in the free
+  room is in no series we hold). The reason is CONVERSION-FIT: these are the
+  lowest-information posts in the nine, the digits are covered by design, a
+  member walked ~34s through a board they cannot read until tomorrow, and
+  the room is quiet (3.9 posts/day, 3.3 reactions/day, 60 active of 485).
+  SUCCESS METRIC = PRO CONVERSIONS, NOT REACTIONS.
+
+  PHASE 0 — REPORTED (the two blocker-class items first):
+  1. ⛔ THE CARRIER — BOTH PART-1 TEXTS VERBATIM (faster-whisper small,
+     word timestamps, 2026-09-09; both parts 10.005s):
+       midday_free_carrier.mp4 (part 1, last word 9.34s):
+         "Morning, partner. The midday board is up. Six signals, ranked.
+          Every reason behind them showing. Everything but the digits
+          themselves."
+       midday_free_carrier_pt2.mp4 (last word 9.30s):
+         "Them digits are sitting under that cover right now. Pros already
+          reading them for the draw while it counts. You'll see them
+          tomorrow. Your call, partner."
+       evening_free_carrier.mp4 (part 1, last word 9.40s):
+         "Evening partner, the evening board just landed. Six signals
+          ranked, the reasoning right there with them. Everything but the
+          digits."
+       evening_free_carrier_pt2.mp4 (last word 9.18s):
+         "That cover comes off at sunup for everybody. Pro ain't waitin'.
+          They're lookin' at tonight's board right now. Tonight's the one
+          that counts, partner."
+     YOUR PREMISE CORRECTED: part 1 alone does NOT fit a ~15.5s reel either
+     — the voice window on a 2.0s card + 7.0s board is 7.4s (+1.1s overlap
+     allowance = 8.5s), and every part 1 runs to 9.3–9.4s. And part 1 IS a
+     scope announcement: "every reason behind them showing" / "the
+     reasoning right there with them" describe the MODALS, which the cut
+     drops — a mismatched read on screen, and no Pro line in it.
+     THE OPTION YOUR LIST DID NOT HAVE, BUILT AS THE DEFAULT: (d) THE PT2
+     ALONE. It is the gap-selling copy you did not want to lose, it
+     matches the covered board it plays over, it references nothing the
+     cut dropped, it needs no generation, and it FITS WHOLE: the voice
+     enters 0.8s into the (silent) card and runs to 10.6s; last words at
+     9.30/9.18s land 1.3–1.4s before the fade. The window that makes it
+     fit is a 7.5s board (not 7.0): total 16.0s. Options as built,
+     switchable per run without a code change (--cta-voice=):
+       pt2   (DEFAULT) — as above.
+       part1 — mismatched read, no CTA in the voice; fits at 7.5s too.
+       bed   — no voice; the endcard's hum bed under card + board (every
+               free motion is bed-viable). Your stated fallback.
+       (c) purpose-written short VO — Omni budget, the follow-up; when it
+           lands it registers as the kind's pt2 replacement, nothing
+           else moves.
+     ⚠ RULING OWED: pt2 ships tomorrow unless you say bed or part1. Ear
+     confirmation on the assembled reel is the operator's (MKT-43 item 7).
+  2. THE OPEN — YES, the MKT-66 machinery takes it: render-public-hook.ts
+     --kind=cta renders YOUR card (COVERED UNTIL TOMORROW / PRO IS READING
+     THESE DIGITS NOW / BEFORE THE DRAW · 40+ STATES & PROVINCES), fixed
+     copy (no receipts fetch), tier-2 lint fail-closed, drop cyan, the big
+     line at 94px×2 (the 236px receipts number does not fit two words a
+     line). Cost: ~40 lines. Silent card, 0.4s dissolve, board at 2.0s.
+  3. BODY FLOOR — the board segment is the redacted body's STATIC grid
+     still (10.0s of it precede the modals), so any hold length reads as
+     the same frame; the visual floor is read time (~4s for six tiles),
+     and the real floor is THE VOICE: last word + 0.3s fade must land
+     inside (board + 1.2 lead + 1.1 allowance). 7.5s is the floor for pt2.
+     Deliberateness is carried by THREE things around the still, not the
+     still: the card before it, the stamp on every body frame (NEW purpose
+     `covered`: "COVERED UNTIL TOMORROW · WED · SEP 9 · MIDDAY", drop
+     placement), and the CTA endcard after it. The masked tiles alone
+     (••• glyphs) would not carry it — that is why the stamp changed.
+  4. MODIFIED KINDS, NOT NEW — cheaper by a wide margin (no DB CHECK, no
+     KIND_UI, no caption family, no retention/rotation entries, no
+     publish Kind union). ⛔ --classic-cut ESCAPE HATCH BUILT as required:
+     the classic endcards stay built and served, the full anatomy
+     assembles on the flag, publish is unchanged. REEL_COMMANDS carries
+     the exact fallback line.
+  CHIP — confirmed from intro-chip-config.ts: midday_free "MIDDAY" /
+  evening_free "EVENING", drop accent. NOT RENDERED on the CTA cut (no
+  intro to sit it on — the MKT-66 pattern); the brand rides the card's
+  wordmark, the covered stamp and the endcard. CAPTIONS: unchanged.
+
+  PHASE 1 — BUILT (both kinds IDENTICALLY by construction: one code path
+  keyed on CTA_CUT_KINDS + the REDACTED body mode; reel:check FAILS if the
+  two CTA endcard copies ever differ):
+   · scripts/public-hook-config.ts: CTA_CUT_KINDS, CTA_BOARD_DUR 7.5,
+     CTA_VO_LEAD 1.2, CTA_VOICE_DEFAULT 'pt2', CTA_PT2_LAST_WORD (measured
+     + dated; a re-delivered pt2 FAILS preflight until re-measured),
+     CTA_HOOK_COPY (yours, verbatim).
+   · render-public-hook.ts --kind=cta · render-reel-stamp.ts purpose
+     `covered` · endcard-config.ts `cta` lockups on both kinds (your copy,
+     verbatim, identical) · build-endcard.ts builds both lockups per
+     motion · reel-endcard.ts resolves the CTA lockup on the same
+     rotation index (the day's motion is unchanged; only the words).
+   · assemble-allday-reels.ts: the cut (card → trimmed still → CTA
+     endcard), voice selection, `--classic-cut`, `--cta-preview`
+     (suffixed, never published), hm_cut / hm_cta_voice tags on the
+     final, CTA contact-sheet beats, totals line.
+   · check-reel-assets.ts checkCtaCut(): redacted-only binding, still-only
+     hold, CTA matrix built, copy identical + tier-2 clean, pt2 fits +
+     not re-delivered, allday_free NOT a CTA kind.
+   ⛔ SOCIAL-13 BINDS BY CONSTRUCTION: the cut applies only where the body
+     mode is `redacted` — allday_free's body is `full` (pure value), so
+     even a listing error could not apply it; the assembler ABORTS if a
+     CTA kind ever arrives with a non-redacted body. Pro reels, retention,
+     rotation, strike overlay: untouched (no file they read changed
+     except the shared segment constants below).
+   · BUG-175 found on the way: constants/reelPanels GRID_DUR/MODAL_HOLD
+     had sat at the pre-MKT-56 4.0/2.5 since 8/16 (renderer: 10.0/1.5) —
+     every slate contact sheet sampled the still three times and missed
+     modals. Fixed; sheets sample the real modal midpoints from tomorrow.
+
+  PHASE 2 — VERIFIED ON TODAY'S (9/9) REDACTED BODIES, preview builds
+  (never published, not on the serving names):
+   · midday_free: 16.000s · h264 1080×1920 60fps · AAC to the last frame ·
+     card 2.0 + board 7.5 + endcard 6.5 · furniture 8.5s = 53.1% (the CTA
+     number, reported not judged) · voice pt2 0.8–10.6s · endcard drew
+     `bloom` · audio continuous 0–16s (no silent hold) · tags hm_cut=cta,
+     hm_cta_voice=pt2. FRAME-STEPPED at 0.0 (card) · 1.9 (card ghosting
+     through the board, as designed) · 2.2 (board + covered stamp) · 2.5 ·
+     6.0 · 9.4 (stamp fading before the cut) · 10.6 (endcard arriving) ·
+     14.9 (lockup settled, PRO READS THESE DIGITS BEFORE THE DRAW / FREE
+     READS THEM TOMORROW · $2.49/MO). ⛔ THE COVER READS DELIBERATE: six
+     masked tiles under "COVERED UNTIL TOMORROW", between the card that
+     says it and the endcard that prices it. Not rejected.
+   · evening_free: 16.000s · same anatomy, same numbers (card 2.0 + board 7.5 + endcard 6.5, furniture 53.1%, voice pt2 0.8–10.6s) · endcard drew `std` (blooming eddies) · audio continuous 0–16s · tags present · frame-stepped 0.0 / 2.2 / 6.0 / 9.4 / 10.6 / 14.9 — EVENING stamp, cover reads deliberate, not rejected.
+   · reel:check: 0 fail / 110 warn (the standing warnings; none new) — checkCtaCut PASS ×6: 7.5s ≤ 10s still · reel ≈ 16.0s · voice budget 9.8s · midday pt2 last word 9.30s margin 0.20s · evening 9.18s margin 0.32s · 5 CTA endcards built per kind · allday_free not a CTA kind (body mode full).
+  9/10: `npm run reel:daily` builds the CTA cuts for both free session
+  kinds automatically (same command, same publish, same captions). If
+  the operator's eye rejects the first live cut: the REEL_COMMANDS
+  fallback line rebuilds and republishes the classic cut in ~4 minutes.
+
+  §2 / §7 / §G updated. OWED BY YOU: the carrier-voice ruling (pt2 / bed /
+  part1), and the (c) purpose-written short VO when budget allows (spec:
+  ≤9.5s to the last word, opens over the card, closes on the price line's
+  fact — the pt2 copy is the brief). OWED BY THE OPERATOR: 9/10 eyeball
+  of the first live pair + the ear on the assembled seam.
+================================================================================
 
 WHAT CHANGED IN v6.5 (2026-09-09 — YOUR 9/9 BRIEFING + WORK ORDER: FINDINGS
 1–5 RECORDED IN THE BODY (block J); MKT-76 THE RECEIPTS PHOTO LANE — PHASE 0
@@ -3538,6 +3739,19 @@ of MKT-26) — they are the SAME reel built from a different board, so this one
 anatomy is the whole spec for all six. Variants differ in carrier (voiceover)
 and endcard/stinger copy.
 
+⚠ CHANGED 2026-09-09 (MKT-77) — THE TWO FREE SESSION CUTS LEFT THIS ANATOMY.
+midday_free and evening_free are CTA CUTS from the 9/10 run: a 2.0s silent
+covered hook card (render-public-hook.ts --kind=cta: COVERED UNTIL TOMORROW /
+PRO IS READING THESE DIGITS NOW / BEFORE THE DRAW · 40+ STATES & PROVINCES)
+→ 0.4s dissolve → the REDACTED body's static grid still for 7.5s (modals
+dropped; stamp purpose `covered` on every frame) → the kind's CTA endcard
+6.5s (HITMASTER ZK6 / PRO READS THESE DIGITS BEFORE THE DRAW / FREE READS
+THEM TOMORROW · $2.49/MO). 16.0s; furniture 8.5s = 53% — correct for a CTA
+cut. Voice = the pt2 continuation ALONE, entering 0.8s into the card (ruling
+pending; --cta-voice=part1|bed switch). No intro, stinger or chip. The
+anatomy below remains exact for the four Pro/All-Day cuts and is the free
+sessions' `--classic-cut` fallback. allday_free is NOT a CTA cut (SOCIAL-13).
+
 ⚠ CHANGED 2026-07-29 (MKT-26) — VARIANTS NO LONGER ALWAYS SHARE ONE BODY.
 v1.9 said "variants share one UI body render per scope". True for All-Day, where
 Pro and Free legitimately show the same board. NOT true for the sessions: their
@@ -4497,6 +4711,16 @@ per-day by hand, not AI-freestyled.
     evening_pro_endcard.mp4       endcard_motion_pro.mp4 with different copy,
                                   i.e. zero new video generation (MKT-10's
                                   whole payoff). Same for their stingers.
+    midday_free_cta_endcard.mp4   MKT-77 (2026-09-09) — the CTA-cut closes
+    evening_free_cta_endcard.mp4  (built matrix <kind>_cta_endcard_<motion>
+                                  over the SAME four free motions, same
+                                  rotation index as the classic close).
+                                  Copy IDENTICAL on both, delivered tier 2:
+                                  "PRO READS THESE DIGITS BEFORE THE DRAW" /
+                                  "FREE READS THEM TOMORROW · $2.49/MO".
+                                  reel:check FAILS if the two ever differ.
+                                  The classic closes below stay built —
+                                  they are the `--classic-cut` fallback.
     midday_free_endcard.mp4       MKT-26 — free session closes, built from
     evening_free_endcard.mp4      endcard_motion_free.mp4. Copy: "DIGITS
                                   COVERED HERE" / "FULL SIX IN PRO · $2.49/MO".

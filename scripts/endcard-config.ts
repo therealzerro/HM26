@@ -29,6 +29,12 @@ export interface EndcardVariant {
    *  background WITHOUT per-motion measurement; an override buys its
    *  placement with exactly that measurement, per motion, at build time. */
   lockupTop?: number;
+  /** MKT-77 — a SECOND lockup for the same kind, used by the free session CTA
+   *  cut (assembler `resolveEndcard(..., 'cta')`). Same motion set, same
+   *  rotation index (the motion is chosen once per kind per date; only the
+   *  words differ), its own built name so `--classic-cut` can still read the
+   *  classic lockup. Built by `npm run endcard:build <kind>` alongside `out`. */
+  cta?: { lines: [string, string, string]; out: string };
 }
 
 export const ENDCARDS: Record<string, EndcardVariant> = {
@@ -91,15 +97,21 @@ export const ENDCARDS: Record<string, EndcardVariant> = {
   // Pricing on the endcard is sanctioned because the free group is tier 2, the
   // only surface where brandLint §6 permits it (public/cross-post and Pro are
   // all barred). These endcards must never be reused on another tier.
+  // MKT-77 (2026-09-09) — `cta`: the CTA-cut close, copy DELIVERED tier 2 by
+  // the content agent ("the gap as FACT from both sides, checkable tomorrow —
+  // do not soften, do not hype"). IDENTICAL on both kinds by order: a
+  // Midday/Evening divergence is the defect nobody notices for weeks.
   midday_free: {
     motion: 'endcard_motion_free.mp4',
     out: 'midday_free_endcard.mp4',
     lines: ['HITMASTER ZK6', 'DIGITS COVERED HERE', 'FULL SIX IN PRO · $2.49/MO'],
+    cta: { lines: ['HITMASTER ZK6', 'PRO READS THESE DIGITS BEFORE THE DRAW', 'FREE READS THEM TOMORROW · $2.49/MO'], out: 'midday_free_cta_endcard.mp4' },
   },
   evening_free: {
     motion: 'endcard_motion_free.mp4',
     out: 'evening_free_endcard.mp4',
     lines: ['HITMASTER ZK6', 'DIGITS COVERED HERE', 'FULL SIX IN PRO · $2.49/MO'],
+    cta: { lines: ['HITMASTER ZK6', 'PRO READS THESE DIGITS BEFORE THE DRAW', 'FREE READS THEM TOMORROW · $2.49/MO'], out: 'evening_free_cta_endcard.mp4' },
   },
 
   // ── MKT-16 — the public kind. FREE-TIER MOTION SET (tierFor ruling in

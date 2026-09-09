@@ -207,21 +207,35 @@ async function buildCaptions(kinds: Kind[]): Promise<Record<string, CaptionSet>>
   // they surface (UI, captions PDF, handoff). Sourced from app_config, never
   // hardcoded; on a fetch failure the token-bearing tail degrades to a clean
   // sentence end rather than shipping a literal "{free_group_url}".
+  // MKT-77 addendum (2026-09-09): {pro_url} on the free SESSION kinds — line
+  // one of midday_free / evening_free is the Pro-group link (the free room's
+  // funnel), from app_config.social_pro_url. On a fetch failure the whole
+  // lead line is dropped rather than shipping a literal token.
   let freeUrl = '';
-  if (kinds.some((k) => k.endsWith('_public'))) {
+  let proUrl = '';
+  const needFree = kinds.some((k) => k.endsWith('_public'));
+  const needPro = kinds.some((k) => k === 'midday_free' || k === 'evening_free');
+  if (needFree || needPro) {
     try {
       const rows = await sbGet<{ key: string; value: string }[]>(
-        `/rest/v1/app_config?key=eq.social_free_group_url&select=key,value`,
+        `/rest/v1/app_config?key=in.(social_free_group_url,social_pro_url)&select=key,value`,
       );
-      freeUrl = String(rows?.[0]?.value ?? '').replace(/^"|"$/g, '').trim();
+      const val = (k: string) => String(rows?.find((r) => r.key === k)?.value ?? '').replace(/^"|"$/g, '').trim();
+      if (needFree) freeUrl = val('social_free_group_url');
+      if (needPro) proUrl = val('social_pro_url');
     } catch (e) {
-      console.warn('[publish-reels] social_free_group_url fetch failed — captions degrade:', String(e).slice(0, 120));
+      console.warn('[publish-reels] social_*_url fetch failed — captions degrade:', String(e).slice(0, 120));
     }
   }
-  const subUrl = (text: string): string =>
-    freeUrl
+  const subUrl = (text: string): string => {
+    let t = freeUrl
       ? text.replace(/\{free_group_url\}/g, freeUrl)
       : text.replace(/[:\s]*\{free_group_url\}/g, '.').replace(/\.\./g, '.');
+    t = proUrl
+      ? t.replace(/\{pro_url\}/g, proUrl)
+      : t.replace(/^[^\n]*\{pro_url\}[^\n]*\n\n?/m, '');   // drop the lead line whole
+    return t;
+  };
 
   // MKT-62: the verify_midday family headlines the elapsed gap — fetched
   // through the SAME join the renderer burns into the summary band

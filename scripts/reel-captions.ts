@@ -405,11 +405,28 @@ function sessionProKind(label: string, when: string, offset: number): KindSpec {
  * noun is signals, always — so the withheld values are digits, which is the
  * system's own term for them. Same correction the Phase 1 endcard copy carries.
  */
+/**
+ * MKT-77 addendum (operator, 2026-09-09): "the free midday and evening reels
+ * captions should have the correct funnel link." Inside the FREE room the
+ * funnel is Pro, so line one of every free SESSION caption is the Pro-group
+ * link, in the endcard's own delivered words ("PRO READS THESE DIGITS BEFORE
+ * THE DRAW"), then a blank line, then the delivered body verbatim — the
+ * MKT-74 shape (a link below the fold is invisible). `{pro_url}` is
+ * substituted at PUBLISH from app_config.social_pro_url (publish-reels), so a
+ * URL change never touches a template. Tier 2: the price stays legal here.
+ * ⛔ FREE SESSION KINDS ONLY — allday_free is PURE VALUE (SOCIAL-13, no Pro
+ * pitch) and must never take this lead; verify's free draft is not a drop.
+ */
+export const PRO_LINK_TOKEN = '{pro_url}';
+export const FREE_SESSION_LINK_LEAD = 'Pro reads these digits before the draw: ';
+const proLinkFirst = <T,>(fns: ((c: T) => string)[]): ((c: T) => string)[] =>
+  fns.map(f => (c: T) => `${FREE_SESSION_LINK_LEAD}${PRO_LINK_TOKEN}\n\n${f(c)}`);
+
 function sessionFreeKind(label: string, when: string, offset: number): KindSpec {
   return {
     offset,
     realNumbers: false,
-    templates: [
+    templates: proLinkFirst([
       c => `The ${label} board for ${c.reelMd} is up 🔆 You get the whole breakdown — signal strength, confidence, the reasoning behind each one. The digits stay covered here.`,
       c => `Six ${label} signals for ${c.reelMd}, methodology wide open and digits covered. Pro reads the same board in full at $2.49/mo.`,
       c => `Here's how the ${label} board reads for ${c.reelMd}: every signal's pattern breakdown, in the open. The digits themselves are the Pro side of the line 💎`,
@@ -424,7 +441,7 @@ function sessionFreeKind(label: string, when: string, offset: number): KindSpec 
       () => `You're seeing the whole method here: six signals, four measures each. The digits stay covered on this one — Pro has them now.`,
       () => `Everything but the digits. Cover comes off in the morning for everyone; Pro isn't waiting.`,
       () => `${label} signals ranked and explained. The values are the gap — that's what Pro closes. $2.49/mo.`,
-    ],
+    ]),
   };
 }
 

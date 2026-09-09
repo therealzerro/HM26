@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-09 · v6.7
+Content Agent Handoff · 2026-09-09 · v6.8
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-09 (CONSOLIDATED SNAPSHOT, current to v6.7 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-09 (CONSOLIDATED SNAPSHOT, current to v6.8 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -454,6 +454,56 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
       texts, voice options and the escape hatch: the v6.6 block. MKT-78
       (v6.7): the purpose-written CTA voice landed, gated and registered
       (--cta-voice=cta); default stays pt2 until the operator's ear.
+
+WHAT CHANGED IN v6.8 (2026-09-09, evening — OPERATOR RULING: the free session
+captions carry the FUNNEL LINK. Line one of midday_free / evening_free is now
+the Pro-group URL. And a standing answer recorded: the free session cuts are
+NOT a public-page surface. Audit: MKT-77 addendum. Next free ID: 79.)
+================================================================================
+  1. THE LINK (operator, 9/9 evening: "the free midday and evening reels
+     captions should have the correct funnel link"). Inside the free room
+     the funnel is PRO, so both free session families now open on
+       Pro reads these digits before the draw: {pro_url}
+     — the endcard's own delivered words, then a blank line, then your
+     body verbatim (the MKT-74 shape: a link below the fold is invisible).
+     `{pro_url}` is substituted at publish from app_config.social_pro_url
+     (currently the Pro group), never a template constant; on a fetch
+     failure the lead line is dropped whole, never a literal token. Tier-2
+     lint clean. ⛔ allday_free does NOT take it (SOCIAL-13 pure value) and
+     the Pro captions are untouched. Today's two rows were refreshed with
+     --captions-only (posted flags kept). Applies to every morning from
+     9/10. ⚠ Your copy question: the lead uses your endcard line; if you
+     want a different lead sentence, it is one constant
+     (FREE_SESSION_LINK_LEAD in reel-captions.ts).
+  2. ⛔ STANDING ANSWER — "shouldn't we post the free midday/evening reels
+     from the public page (and cross-post to the free group)?" NO, and it is
+     not a judgment call: the free session cut FAILS THE TWO-QUESTION FILTER
+     on its own pixels. Q1: the covered board carries "ENERGY 100" — a
+     three-digit run, and MKT-30 probed "100" as BLOCKING at tier 1 (the
+     public capture hides it structurally; the free capture does not). Q2:
+     MIDDAY / EVENING on the stamp and the tab bar (session words are on
+     the list), "PRO IS READING…" on the hook card (Pro language, barred on
+     public), and $2.49/MO on the endcard (pricing is tier-2 only). It is
+     a tier-2 asset by construction. The page's ONLY reels are the two
+     public kinds (allday_public, verify_public), built through the public
+     capture (--redact --relabel, HEAT relabel, state suppression, tier-1
+     lint fail-closed); midday_public / evening_public stay UNREGISTERED
+     by two rulings — no session carriers, and three daily public reels is
+     the cadence risk — now reinforced by Finding 4 (13 hides = a cadence
+     signal on the page). Cross-posting also runs the OTHER way in the tier
+     map: from the free group outward (tier 3), never page → group. The
+     free session reels are posted DIRECTLY in the free group, by hand,
+     from Admin → Reels. A public session cut would be a separate MKT with
+     its own capture mode, copy and cadence ruling — not proposed.
+  3. REVIEW PUBLISH (operator ask, 9/9 evening): both free session CTA
+     cuts (default pt2 voice) were assembled on the serving names and
+     published to Admin → Reels for the operator's review; the rows'
+     posted flags/timestamps were restored after the upsert (they feed the
+     verify_midday provenance join); the repo keeps the CLASSIC 9/9 finals
+     (git is the record of what was actually posted this morning). The
+     evening row was re-flipped posted at 18:56Z from the app during the
+     refresh — the operator's action, recorded.
+================================================================================
 
 WHAT CHANGED IN v6.7 (2026-09-09, same day — MKT-78 THE PURPOSE-WRITTEN CTA
 VOICE: RECEIVED, GATED, REGISTERED as --cta-voice=cta, PREVIEWED. Default
@@ -4322,6 +4372,11 @@ There is deliberately NO public-page (API) lane for reels and NO auto-posting.
 --------------------------------------------------------------------------------
 5. THE CAPTION SYSTEM (matters for any copy you propose)
 --------------------------------------------------------------------------------
+⚠ v6.8 (2026-09-09): midday_free / evening_free captions open on the Pro-group
+link ("Pro reads these digits before the draw: {pro_url}", substituted at
+publish from app_config.social_pro_url) — operator ruling, MKT-74 shape.
+Public kinds open on the FREE-group link; allday_free and every Pro kind carry
+no link. See the v6.8 block.
 Captions are generated at publish time by a template engine — not written
 per-day by hand, not AI-freestyled.
 

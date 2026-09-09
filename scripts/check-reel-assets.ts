@@ -21,7 +21,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { resolveCarrier, undeclaredParts, carrierCandidates, carrierRest, audioDur, OVERLAP_EPSILON, carrierBoundarySlack, BOUNDARY_WARN_AT } from './reel-carrier';
 import { lintCaption } from '../lib/social/brandLint';
-import { HOOK_DUR, CTA_CUT_KINDS, CTA_BOARD_DUR, CTA_VO_LEAD, CTA_PT2_LAST_WORD, CTA_HOOK_COPY } from './public-hook-config';
+import { HOOK_DUR, CTA_CUT_KINDS, CTA_BOARD_DUR, CTA_VO_LEAD, CTA_VOICE_FILES, CTA_VOICE_DEFAULT, CTA_HOOK_COPY } from './public-hook-config';
 import { GRID_DUR } from '../constants/reelPanels';
 import { CARRIERS, CARRIER_KINDS, allCarrierFiles, PART1_DUR_TOLERANCE } from './carrier-config';
 import { bedWindow } from './reel-bed';
@@ -297,6 +297,11 @@ const UNREFERENCED_OK: Record<string, string> = {
     'MKT-62/69 v5.7 pair — RAW pt2 MASTER of the 9/7 regeneration (10.005s; speech 0.02–9.41). The registered verif_carrier_sameday_pt2.mp4 is this file trimmed to speech (0–9.41). Kept as master/evidence; never register the raw 10s (name deliberately carries no _pt).',
   'verif_carrier_sameday_boards_20260904.mp4':
     'MKT-62/69 v5.7 CANDIDATE part 1, HELD 2026-09-04 pending operator ear — "Now this is a rare one. / This mornin\'s boards — already checked against what drew. / Midday went up covered. All-Day, in full." 10.005s (law holds), speech 1.09–9.64s, last word 9.48s (≤~9.5), tail −61.8 dBFS RMS, transcript = copy, tier-2 lint clean. Seam vs the pt2 master: MKT-59 windows (last voiced 1.2s vs first 1.6s) 128.0 [108–139] vs 98.8 [92–109] = Δ29.2 FAIL; seam-adjacent (last 0.6s vs first 0.8s) 110.3 [108–122] vs 108.1 [97–115] = Δ2.2 pass. Landed as *_20260904,mp4.mp4 (comma) — CLI-renamed. Incumbent verif_carrier_sameday.mp4 untouched.',
+  // MKT-78 (2026-09-09) — the purpose-written CTA voices, DELIVERED masters.
+  'midday_free_carrier_cta_master_20260909.mp4':
+    'MKT-78 DELIVERED MASTER (10.005s, 720x1280, aac 48k) — "Board\'s up. Six signals, ranked. / Digits are under that cover till mornin\'. / Pro\'s readin\' \'em right now — \'fore the draw. / Your call, partner." Whisper last word 9.46s (≤9.5 acceptance, margin 0.04s to the 9.8s budget); energy end 9.57s; tail room tone −59.6 dBFS. The registered midday_free_carrier_cta.mp4 is this file with the tail GATED to digital silence from 9.72s. Kept as master/evidence; never register the raw file.',
+  'evening_free_carrier_cta_master_20260909.mp4':
+    'MKT-78 DELIVERED MASTER (10.005s) — "Board\'s up. Six signals, ranked. / That cover comes off at sunup — for everybody. / Pro ain\'t waitin\'. They\'re readin\' \'em now. / Tonight\'s the one that counts, partner." Whisper last word 9.58s — OVER the 9.5s acceptance by 80 ms (energy end 9.68s) → the PRE-AGREED cut applied to the registered evening_free_carrier_cta.mp4: LINE ONE removed entirely (start 3.00s, the <−50 dBFS floor before line two\'s 3.02s onset), tail gated from 6.82s, padded to 10.005s; last word 6.60s on the serving file. Kept as master/evidence; never register the raw file.',
   'verif_carrier_sameday_signoff_master_10s.mp4':
     'MKT-62/69 v5.7 CANDIDATE pt2 MASTER, HELD 2026-09-04 pending operator ear — "Graded against the midday draws — hours before the evenin\' ones land. / Same day. Not tomorrow." 10.005s; speech starts at 0.00s (no leading silence), last word 9.18s; trim-to-speech = 0–9.35s (last word 9.18 ≤ 9.47 of the trimmed file), tail −62.5 dBFS. Never register this raw master — the trimmed copy becomes verif_carrier_sameday_pt2.mp4 on a pass (name deliberately carries no _pt: preflight rejects any _pt outside _pt<N>.mp4).',
   'verif_carrier_ledger.mp4':
@@ -385,6 +390,9 @@ function checkStrays(): void {
     }
   }
   for (const m of allMotionFiles()) referenced.add(m);
+  // MKT-78: registered CTA voice files (the pt2 entries are carrier parts
+  // already referenced through CARRIERS; the cta entries are standalone).
+  for (const kv of Object.values(CTA_VOICE_FILES)) for (const m of Object.values(kv)) if (m) referenced.add(m.file);
   for (const [variant, cfg] of Object.entries(STINGERS)) {
     // Disabled variants included deliberately: a prebuilt stinger for a kind
     // whose flag is currently off is intended to sit there, not a stray.
@@ -1248,21 +1256,24 @@ function checkCtaCut(): void {
     const missing = endcardMotionSetFor(K).map(m => builtEndcardName(ec.cta!.out, m.tag)).filter(n => !exists(n));
     if (missing.length) add('FAIL', K, `CTA endcard(s) not built: ${missing.join(', ')} — run npm run endcard:build ${K}`);
     else add('PASS', `${K} cta endcards`, `${endcardMotionSetFor(K).length} built (one per free motion)`);
-    // the pt2 voice
+    // the measured voices (MKT-77 pt2, MKT-78 cta) — every registered entry
+    // is checked, not only the default, so a switch never lands on a stale one.
     const rest = carrierRest(K);
-    const meas = CTA_PT2_LAST_WORD[K];
-    if (!rest.length) add('FAIL', K, 'declares no continuation — --cta-voice=pt2 (the default) cannot resolve');
-    else if (!meas || meas.file !== rest[0]) add('FAIL', K, `CTA_PT2_LAST_WORD has no measurement for ${rest[0]} — measure the last word and record it`);
-    else {
-      const p = exists(rest[0]);
-      if (!p) add('FAIL', rest[0], 'pt2 missing');
-      else {
-        const mtime = statSync(p).mtime.toISOString().slice(0, 10);
-        if (mtime > meas.measuredAt) add('FAIL', rest[0], `re-delivered ${mtime}, after the last-word measurement (${meas.measuredAt}) — re-measure and update CTA_PT2_LAST_WORD`);
-        const need = +(meas.lastWord + 0.3).toFixed(2);
-        if (need > voiceBudget) add('FAIL', rest[0], `last word ${meas.lastWord}s + 0.3s fade = ${need}s exceeds the ${voiceBudget}s voice budget — raise CTA_BOARD_DUR`);
-        else add('PASS', `${K} cta voice`, `pt2 last word ${meas.lastWord}s (+0.3 fade) inside the ${voiceBudget}s budget · margin ${(voiceBudget - need).toFixed(2)}s`);
-      }
+    const voices = CTA_VOICE_FILES[K] ?? {};
+    if (!rest.length) add('FAIL', K, 'declares no continuation — --cta-voice=pt2 cannot resolve');
+    if (!voices.pt2 || voices.pt2.file !== rest[0]) add('FAIL', K, `CTA_VOICE_FILES.pt2 missing or not ${rest[0]} — measure the last word and record it`);
+    if (!voices[CTA_VOICE_DEFAULT as 'pt2' | 'cta'] && (CTA_VOICE_DEFAULT === 'pt2' || CTA_VOICE_DEFAULT === 'cta')) add('FAIL', K, `CTA_VOICE_DEFAULT '${CTA_VOICE_DEFAULT}' has no registered file for this kind`);
+    for (const [opt, meas] of Object.entries(voices)) {
+      if (!meas) continue;
+      const p = exists(meas.file);
+      if (!p) { add('FAIL', meas.file, `${opt} voice missing`); continue; }
+      const mtime = statSync(p).mtime.toISOString().slice(0, 10);
+      if (mtime > meas.measuredAt) add('FAIL', meas.file, `re-delivered ${mtime}, after the last-word measurement (${meas.measuredAt}) — re-measure and update CTA_VOICE_FILES`);
+      const d = audioDur(p);
+      if (Math.abs(d - 10.005) > 0.02) add('WARN', meas.file, `${d.toFixed(3)}s — not the 10.005s master length (convention for standalone voices; the assembler discards past voiceSpan, but a SHORTER file pulls its own fade earlier: voiceSpan = min(dur − 0.1, budget))`);
+      const need = +(meas.lastWord + 0.3).toFixed(2);
+      if (need > voiceBudget) add('FAIL', meas.file, `last word ${meas.lastWord}s + 0.3s fade = ${need}s exceeds the ${voiceBudget}s voice budget`);
+      else add('PASS', `${K} cta voice [${opt}${opt === CTA_VOICE_DEFAULT ? ', DEFAULT' : ''}]`, `${meas.file} last word ${meas.lastWord}s (+0.3 fade) inside the ${voiceBudget}s budget · margin ${(voiceBudget - need).toFixed(2)}s`);
     }
   }
   // SOCIAL-13 binding, stated as a check rather than assumed.

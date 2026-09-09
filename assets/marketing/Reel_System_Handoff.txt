@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-09 · v6.6
+Content Agent Handoff · 2026-09-09 · v6.7
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-09 (CONSOLIDATED SNAPSHOT, current to v6.6 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-09 (CONSOLIDATED SNAPSHOT, current to v6.7 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -40,8 +40,10 @@ A. DAILY OUTPUT (operator-triggered `npm run reel:daily`, never scheduled):
        ⚠ v6.6 (MKT-77, LIVE FROM THE 9/10 RUN): midday_free and evening_free
        are CTA CUTS — 2.0s covered hook card → 7.5s covered board (the
        still only, no modals) → 6.5s CTA endcard = 16.0s, pt2 voice alone
-       by default (ruling owed), no intro / stinger / chip. Escape hatch
-       `--classic-cut` (REEL_COMMANDS). Pro cuts + allday_free untouched.
+       by default; the MKT-78 PURPOSE-WRITTEN voice is registered as
+       --cta-voice=cta and flips to default after the operator's ear
+       (v6.7). No intro / stinger / chip. Escape hatch `--classic-cut`
+       (REEL_COMMANDS). Pro cuts + allday_free untouched.
    midday_public / evening_public are UNREGISTERED by ruling (no session
    carriers; three daily public reels is a cadence risk) — do not propose
    assets for them. Kind list is enforced by a DB CHECK + KIND_UI entry (§8).
@@ -325,13 +327,15 @@ G. OPEN / OWED — the standing list (everything else you may have read as
         NOTHING in this kind enters a rotation — do not propose variants of
         rise / sameday / the carrier for pooled use.
     11. MKT-77 — FREE SESSION CTA CUTS: BUILT + VERIFIED 9/9, LIVE 9/10.
-        OWED BY YOU: the carrier-voice ruling — pt2 alone (default, ships
-        9/10) / bed / part1 — and, when Omni budget allows, the (c)
-        purpose-written short VO (≤9.5s to the last word, opens over the
-        card, closes on the price line's fact; the pt2 copy is the brief;
-        registers as the kind's pt2 replacement). OWED BY THE OPERATOR:
-        9/10 eyeball of the first live pair + the ear on the seam. Fallback
-        = `--classic-cut` + republish (REEL_COMMANDS line).
+        ✅ MKT-78 (same day): the (c) purpose-written CTA voice LANDED,
+        gated, registered as --cta-voice=cta — the (c) spec is CLOSED.
+        CTA_VOICE_DEFAULT stays pt2 (verified, ships 9/10). OWED BY THE
+        OPERATOR: ear on BOTH assembled cta-voice previews (delivered 9/9)
+        → the one-word default flip; 9/10 eyeball of the first live pair.
+        OWED BY YOU (ruling, not build): evening's line-one cut leaves
+        ~2.1s of silent board — keep pt2 on evening only, or a ~0.3s
+        tighter re-take of line four so the full script fits. Fallback =
+        `--classic-cut` + republish (REEL_COMMANDS line).
      9. FIRST-APPEARANCE EYEBALLS owed on the rotation: `juggle` first draws
         evening_free 8/20 (then midday_free 8/21, evening_pro 8/22); etch /
         facet stingers 8/20 (v3.7); `guest` served
@@ -447,7 +451,112 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
       CONVERSION-FIT (the two lowest-information posts in the nine), NOT
       the hides — those are page feedback and these are group kinds.
       Success metric = Pro conversions, not reactions. Anatomy, carrier
-      texts, voice options and the escape hatch: the v6.6 block.
+      texts, voice options and the escape hatch: the v6.6 block. MKT-78
+      (v6.7): the purpose-written CTA voice landed, gated and registered
+      (--cta-voice=cta); default stays pt2 until the operator's ear.
+
+WHAT CHANGED IN v6.7 (2026-09-09, same day — MKT-78 THE PURPOSE-WRITTEN CTA
+VOICE: RECEIVED, GATED, REGISTERED as --cta-voice=cta, PREVIEWED. Default
+STAYS pt2 until the operator's ear (your lean, taken). Evening took the
+pre-agreed LINE-ONE CUT (80 ms over). Audit: MKT-78. Next free ID: 79.)
+================================================================================
+  SHAPE, CONFIRMED THEN IMPROVED: v6.6 said a (c) delivery "registers as the
+  kind's pt2 replacement". Now that the files exist the cleaner shape is a
+  FOURTH VOICE OPTION, not a replacement: `--cta-voice=cta` beside pt2 /
+  part1 / bed, with every registered voice measured and checked. Reason:
+  the pt2s keep serving the CLASSIC anatomy behind --classic-cut, and a
+  "replacement" that rewired carrier-config rest[] would have touched the
+  file the escape hatch depends on. Two voices, two anatomies, both live;
+  the default flips with one word (CTA_VOICE_DEFAULT) after item 11.
+
+  PHASE 0 — INTEGRITY: both real mp4 (h264 720×1280 + aac 48k stereo),
+  exact lowercase names, 10.005s masters measured (not assumed); no .mov /
+  .MP4 / comma strays in the directory; ⛔ SERVING NAMES UNTOUCHED —
+  midday_free_carrier(.mp4/_pt2), evening_free_carrier(.mp4/_pt2) are
+  byte-identical to HEAD (git hash-object = HEAD blob), pt2 mtimes 7/30
+  and 7/31.
+
+  PHASE 1 — THE VOICE BUDGET (9.8s = board 7.5 + lead 1.2 + allowance 1.1):
+    midday_free_carrier_cta   whisper last word 9.46s (energy end −35 dBFS
+                              9.57s) → ≤9.5 ACCEPTED, margin to the fade
+                              0.04s — ⚠ THINNER than pt2's 0.20s. The
+                              margin (c) was meant to buy did not arrive on
+                              midday; it passes, it does not breathe.
+    evening_free_carrier_cta  whisper last word 9.58s (energy 9.68s) →
+                              ⛔ OVER by 80 ms. THE PRE-AGREED CUT APPLIED,
+                              nothing improvised: LINE ONE ("Board's up.
+                              Six signals, ranked.") removed entirely —
+                              start 3.00s (the <−50 dBFS floor before line
+                              two's 3.02s onset). Last word on the serving
+                              file 6.60s, margin 2.92s. COST, measured: the
+                              voice ends at reel 7.40s and the endcard
+                              audio enters at 9.50s → ~2.1s of SILENT
+                              covered board. Recorded, not hidden.
+    Both serving files: tail GATED to digital silence from the last word
+    (0.10s fade then true zero; AAC floor −115 dBFS), padded to 10.005s.
+    Masters preserved as *_master_20260909.mp4 (UNREFERENCED_OK, reasons
+    print). Words intact by re-transcript on both serving files.
+    ⛔ THE RE-DELIVERY GUARD, EXERCISED FOR THE FIRST TIME: registered
+    both with a stale measuredAt (9/8) on purpose → reel:check ⛔ ×2
+    "re-delivered 2026-09-09, after the last-word measurement (2026-09-08)"
+    → NOT SAFE TO ASSEMBLE. Re-dated → PASS. The guard fires.
+    THE 10.005s LAW, ANSWERED HONESTLY: for a standalone voice it is
+    inherited convention AND has one real tooth — the assembler's
+    voiceSpan = min(fileDur − 0.1, budget), so a file SHORTER than 9.9s
+    pulls its own fade earlier and can clip its last word. Longer never
+    hurts (content past voiceSpan is discarded). So: keep 10.005s, gate
+    the tail, never trim short. reel:check now WARNs on any registered
+    voice off the law by >0.02s.
+
+  PHASE 2 — THE EAR GATES (proxies measured; the ear is the operator's):
+   8. TRANSCRIPT + TIER-2 LINT: scripted lines all tier-2 clean ("Pro" not
+      flagged — correct at tier 2); no price spoken (asserted by regex on
+      the scripts and by transcript). Transcript = script on both, with
+      two whisper-level variances to LISTEN for: midday "for the draw" vs
+      the scripted "'fore the draw" (a homophone at this pace), and
+      "Pros reading" vs "Pro's readin'".
+   9. VOICE-FAMILY vs SERVING CARRIERS (autocorrelation f0 on voiced
+      frames, −40 dB gate; spectral centroid):
+        midday_cta   f0 median 98.8 Hz [IQR 89.9–111.1] · centroid 1145 Hz · 146 wpm
+        evening_cta  f0 median 103.2 Hz [90.4–111.1] · centroid 1228 Hz · 163 wpm
+        midday_pt2   98.8 [88.9–104.6] · 987 · 168 wpm
+        evening_pt2  102.9 [93.6–111.1] · 1146 · 157 wpm
+        verif        104.6 [97.0–111.9] · 1036 · 128 wpm
+        allday_pro   133.3 [119.4–145.5] · 1184 · 176 wpm  ← the outlier
+      Verdict by proxy: the new pair sits ON the free pt2s (medians within
+      0.3 Hz of each other's kind) and within 6 Hz of verif — same family.
+      ⚠ Side finding: allday_pro's SERVING carrier reads ~30 Hz higher than
+      every other serving carrier; not this order's question, recorded.
+  10. THE PAIR AGAINST EACH OTHER: 98.8 vs 103.2 Hz medians, overlapping
+      IQRs, 146 vs 163 wpm — one man by proxy.
+  11. OPERATOR EAR ON THE ASSEMBLED CUT — OWED. Previews delivered (below).
+
+  PHASE 3 — REGISTERED + VERIFIED:
+   · CTA_VOICE_FILES in public-hook-config.ts (supersedes CTA_PT2_LAST_WORD,
+     kept as a view): per kind {pt2, cta} with file · lastWord · measuredAt.
+     The assembler ABORTS on an unmeasured or non-fitting selection; reel:check
+     checks EVERY registered voice (fit, re-delivery date, 10.005s law), not
+     only the default.
+   · CTA_VOICE_DEFAULT = 'pt2' — unchanged, per your lean: the pt2 cut is
+     verified and ships 9/10; an unheard voice does not go on the first live
+     morning. Flip = one word, after item 11.
+   · Previews rebuilt on today's boards with --cta-voice=cta:
+     midday_free: 16.000s · voice enters 0.80s, last word at reel 10.26s (file 9.46), fade begins 10.35 → 0.09s to the fade · audio continuous 0–16s · endcard bloom · tags hm_cut=cta / hm_cta_voice=cta · frame-stepped 0.0 / 2.2 / 6.0 / 9.4 / 10.6 / 14.9 identical to the v6.6 picture (the voice is the only variable).
+     evening_free: 16.000s · voice enters 0.80s, last word at reel 7.40s (file 6.60), endcard audio at 9.50s → the 8s second measures −inf dBFS: the ~2.1s SILENT BOARD TAIL is real and audible on the assembled cut · endcard std · tags present · frames identical to v6.6.
+   · reel:check 0 fail / 110 warn — identical count to v6.6, no new stray or
+     warning class; six cta-voice PASS lines (both voices, both kinds).
+   · §7 carries both files with measured last words, margins and the
+     family verdicts; §2 note + §G.11 record the voice as PURPOSE-WRITTEN
+     with the (c) spec CLOSED, and the DESIGN REASON: the VO names only what
+     is on screen — a future session must not "restore" the pt2 copy for
+     consistency.
+  OWED: the operator's ear on both assembled previews (item 11) → then the
+  one-word default flip. ⚠ FOR YOUR RULING, not a build: evening now runs
+  a 2.1s silent board tail. If that reads wrong on the ear, the levers are
+  (i) keep pt2 on evening only (asymmetric voices, both measured), or
+  (ii) a re-take of evening line four ~0.3s tighter so the full script fits
+  — either is a ruling, neither is improvised here.
+================================================================================
 
 WHAT CHANGED IN v6.6 (2026-09-09, same day — MKT-76 RULINGS RECORDED (six);
 MKT-77 FREE SESSION REELS AS CTA CUTS: PHASE 0 REPORTED, PHASE 1 BUILT,
@@ -3747,10 +3856,16 @@ PRO IS READING THESE DIGITS NOW / BEFORE THE DRAW · 40+ STATES & PROVINCES)
 dropped; stamp purpose `covered` on every frame) → the kind's CTA endcard
 6.5s (HITMASTER ZK6 / PRO READS THESE DIGITS BEFORE THE DRAW / FREE READS
 THEM TOMORROW · $2.49/MO). 16.0s; furniture 8.5s = 53% — correct for a CTA
-cut. Voice = the pt2 continuation ALONE, entering 0.8s into the card (ruling
-pending; --cta-voice=part1|bed switch). No intro, stinger or chip. The
-anatomy below remains exact for the four Pro/All-Day cuts and is the free
-sessions' `--classic-cut` fallback. allday_free is NOT a CTA cut (SOCIAL-13).
+cut. Voice enters 0.8s into the card: pt2 continuation ALONE by default;
+MKT-78 (2026-09-09) added the PURPOSE-WRITTEN CTA voice (--cta-voice=cta,
+<kind>_carrier_cta.mp4) — written AGAINST the cut, it names only what is on
+screen (a board, six signals, covered digits), which is WHY it exists rather
+than the incumbent copy: part 1's "every reason behind them showing" names
+the modals this cut drops. No price spoken (pricing = endcard config). The
+(c) spec from MKT-77 Phase 0 is CLOSED by it. Default flips to cta after the
+operator's ear on the assembled cut. No intro, stinger or chip. The anatomy
+below remains exact for the four Pro/All-Day cuts and is the free sessions'
+`--classic-cut` fallback. allday_free is NOT a CTA cut (SOCIAL-13).
 
 ⚠ CHANGED 2026-07-29 (MKT-26) — VARIANTS NO LONGER ALWAYS SHARE ONE BODY.
 v1.9 said "variants share one UI body render per scope". True for All-Day, where
@@ -4721,6 +4836,38 @@ per-day by hand, not AI-freestyled.
                                   reel:check FAILS if the two ever differ.
                                   The classic closes below stay built —
                                   they are the `--classic-cut` fallback.
+    midday_free_carrier_cta.mp4   MKT-78 (2026-09-09) — the PURPOSE-WRITTEN
+    evening_free_carrier_cta.mp4  CTA voices, standalone (no _pt pairing;
+                                  the pt2s keep serving --classic-cut).
+                                  Masters *_master_20260909.mp4 preserved.
+                                  midday: "Board's up. Six signals, ranked.
+                                  / Digits are under that cover till
+                                  mornin'. / Pro's readin' 'em right now —
+                                  'fore the draw. / Your call, partner."
+                                  Last word 9.46s (energy end 9.57), margin
+                                  0.04s to the 9.8s budget (THINNER than
+                                  pt2's 0.20s); tail gated from 9.72s.
+                                  evening: delivered last word 9.58s = OVER
+                                  the 9.5s acceptance by 80 ms → PRE-AGREED
+                                  LINE-ONE CUT applied (start 3.00s):
+                                  serving copy "That cover comes off at
+                                  sunup — for everybody. / Pro ain't
+                                  waitin'. They're readin' 'em now. /
+                                  Tonight's the one that counts, partner."
+                                  last word 6.60s, margin 2.92s; COST ~2.1s
+                                  of silent board before the endcard audio.
+                                  Both 10.005s (law: keep long, gate the
+                                  tail — a file <9.9s pulls its own fade
+                                  earlier). Tier-2 clean, no price spoken.
+                                  VOICE FAMILY by proxy: f0 medians
+                                  98.8 / 103.2 Hz vs the free pt2s 98.8 /
+                                  102.9 and verif 104.6 — same narrator;
+                                  the pair overlaps on every measure. The
+                                  ear on the ASSEMBLED cut is the
+                                  operator's (owed). Design reason (why
+                                  this copy, not pt2's): the VO names only
+                                  what is on screen — never "restore" the
+                                  older copy for consistency.
     midday_free_endcard.mp4       MKT-26 — free session closes, built from
     evening_free_endcard.mp4      endcard_motion_free.mp4. Copy: "DIGITS
                                   COVERED HERE" / "FULL SIX IN PRO · $2.49/MO".

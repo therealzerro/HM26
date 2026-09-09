@@ -376,8 +376,23 @@ npm run reel:evening
       "That cover comes off at sunup…"), entering 0.8s into the
       card. Part 1 is a scope announcement that names the modals
       the cut drops (mismatched read). Override per run:
+        npx tsx scripts/assemble-allday-reels.ts --scope=midday --cta-voice=cta   (MKT-78 purpose-written voice)
         npx tsx scripts/assemble-allday-reels.ts --scope=midday --cta-voice=part1
         npx tsx scripts/assemble-allday-reels.ts --scope=midday --cta-voice=bed   (no voice, hum bed)
+      ⚠ MKT-78 (2026-09-09) — the PURPOSE-WRITTEN CTA voices landed:
+      midday_free_carrier_cta.mp4 / evening_free_carrier_cta.mp4 (masters
+      kept as *_master_20260909.mp4). Written AGAINST the cut: they name
+      only what is on screen (a board, six signals, covered digits) — the
+      incumbent part 1 describes the modals this cut drops. No price
+      spoken. Registered as --cta-voice=cta; CTA_VOICE_DEFAULT STAYS 'pt2'
+      until the operator's ear clears the ASSEMBLED cut (then flip the
+      constant in scripts/public-hook-config.ts — one word). Measured:
+      midday last word 9.46s (margin 0.04s to the 9.8s budget — thinner
+      than pt2's 0.20s); evening delivered at 9.58s = OVER the 9.5s
+      acceptance by 80 ms → the pre-agreed LINE-ONE CUT applied (start
+      3.00s), last word 6.60s, which leaves ~2.1s of silent board before
+      the endcard audio at 9.5s. Every registered voice is checked by
+      reel:check (fit, re-delivery date, 10.005s law).
       ⛔ ESCAPE HATCH — a bad first morning falls back to the classic
       anatomy WITHOUT a code change:
         npx tsx scripts/assemble-allday-reels.ts --scope=midday --variant=free --classic-cut && npx tsx scripts/publish-reels.ts midday --variant=free

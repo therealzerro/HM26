@@ -35,23 +35,51 @@ export const CTA_BOARD_DUR = 7.5;
  *  i.e. 0.8s into the (silent) hook card, over the words it is saying. Slate
  *  reels use INTRO_VO_LEAD=0.4 behind a 6s intro; the card is 2.0s and mute. */
 export const CTA_VO_LEAD = 1.2;
-/** Which carrier audio the CTA cut voices. Ruling pending (content agent):
- *   pt2   — the continuation ALONE ("Them digits are sittin' under that cover…"
- *           / "That cover comes off at sunup…"): the gap-selling copy, and it
- *           matches the covered board on screen. Default.
- *   part1 — part 1 alone (scope announcement; references the modals the cut
- *           drops — a mismatched read).
+/** Which carrier audio the CTA cut voices:
+ *   pt2   — the classic continuation ALONE ("Them digits are sittin' under
+ *           that cover…" / "That cover comes off at sunup…"): gap-selling
+ *           copy that matches the covered board. Verified + serving 9/10.
+ *   cta   — MKT-78 (2026-09-09): the PURPOSE-WRITTEN CTA voice
+ *           (<kind>_carrier_cta.mp4). Written AGAINST the cut, not adapted
+ *           to it: it names only what is on screen (a board, six signals,
+ *           covered digits) — the incumbent part 1's "every reason behind
+ *           them showing" describes the MODALS this cut drops. No price
+ *           spoken (pricing lives on the endcard, in config). ⚠ THIS IS WHY
+ *           IT EXISTS — do not "restore" the pt2 copy for consistency.
+ *   part1 — part 1 alone (scope announcement; mismatched read).
  *   bed   — no voice; the endcard's hum bed under the board.
- *  Override per run: --cta-voice=pt2|part1|bed. */
-export type CtaVoice = 'pt2' | 'part1' | 'bed';
+ *  Override per run: --cta-voice=pt2|cta|part1|bed. The default flips to
+ *  'cta' only after the operator's ear on the ASSEMBLED cut (MKT-78 §12). */
+export type CtaVoice = 'pt2' | 'cta' | 'part1' | 'bed';
 export const CTA_VOICE_DEFAULT: CtaVoice = 'pt2';
-/** Last-word timestamps of the pt2 files (faster-whisper small, 2026-09-09)
- *  + the measurement date. reel:check FAILS if a pt2 was re-delivered after
- *  the measurement (carrier re-deliveries are a standing failure class). */
-export const CTA_PT2_LAST_WORD: Record<string, { file: string; lastWord: number; measuredAt: string }> = {
-  midday_free:  { file: 'midday_free_carrier_pt2.mp4',  lastWord: 9.30, measuredAt: '2026-09-09' },
-  evening_free: { file: 'evening_free_carrier_pt2.mp4', lastWord: 9.18, measuredAt: '2026-09-09' },
+/** Measured voice files per kind and voice option: last-word timestamp
+ *  (faster-whisper small, word timestamps) + the measurement date.
+ *  reel:check FAILS if a registered file's mtime is later than its
+ *  measurement (re-deliveries are a standing failure class), or if
+ *  lastWord + 0.3s fade exceeds the voice budget
+ *  (CTA_BOARD_DUR + CTA_VO_LEAD + 1.1). The assembler ABORTS on an
+ *  unmeasured voice selection. Supersedes CTA_PT2_LAST_WORD (MKT-77). */
+export interface CtaVoiceFile { file: string; lastWord: number; measuredAt: string }
+export const CTA_VOICE_FILES: Record<string, Partial<Record<'pt2' | 'cta', CtaVoiceFile>>> = {
+  midday_free: {
+    pt2: { file: 'midday_free_carrier_pt2.mp4', lastWord: 9.30, measuredAt: '2026-09-09' },
+    // MKT-78 serving file = delivered master, tail GATED to digital silence
+    // from 9.72s (master kept as *_master_20260909.mp4). Whisper last word
+    // 9.46s; energy end (−35 dBFS) 9.57s.
+    cta: { file: 'midday_free_carrier_cta.mp4', lastWord: 9.46, measuredAt: '2026-09-09' },
+  },
+  evening_free: {
+    pt2: { file: 'evening_free_carrier_pt2.mp4', lastWord: 9.18, measuredAt: '2026-09-09' },
+    // MKT-78: the delivered master's last word was 9.58s — OVER the 9.5s
+    // acceptance by 80 ms — so the PRE-AGREED cut applied: LINE ONE
+    // ("Board's up. Six signals, ranked.") removed entirely (start 3.00s),
+    // tail gated from 6.82s, padded to 10.005s. Last word now 6.60s (re-measured on the serving file).
+    cta: { file: 'evening_free_carrier_cta.mp4', lastWord: 6.60, measuredAt: '2026-09-09' },
+  },
 };
+/** @deprecated MKT-78 — kept as a view for any reader; use CTA_VOICE_FILES. */
+export const CTA_PT2_LAST_WORD: Record<string, CtaVoiceFile> =
+  Object.fromEntries(Object.entries(CTA_VOICE_FILES).map(([k, v]) => [k, v.pt2!]));
 /** Hook-card copy, DELIVERED tier 2 (content agent, 2026-09-09). Linted at
  *  tier 2 fail-closed by the renderer. */
 export const CTA_HOOK_COPY = {

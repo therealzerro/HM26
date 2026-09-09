@@ -43,7 +43,7 @@ import { assertBodyDate, assertBodyRedaction, assertBodyPublic } from './reel-pr
 import { resolveEndcard } from './reel-endcard';
 import { CHIP_LABELS } from './intro-chip-config';
 import {
-  HOOK_DUR, HOOK_DISSOLVE, CTA_CUT_KINDS, CTA_BOARD_DUR, CTA_VO_LEAD, CTA_VOICE_DEFAULT, type CtaVoice,
+  HOOK_DUR, HOOK_DISSOLVE, CTA_CUT_KINDS, CTA_BOARD_DUR, CTA_VO_LEAD, CTA_VOICE_DEFAULT, CTA_VOICE_FILES, type CtaVoice,
 } from './public-hook-config';
 
 const ASSETS = resolve('assets/marketing');
@@ -123,8 +123,8 @@ if (FORCE_STING || FORCE_CARD || FORCE_CARRIER) {
 const CLASSIC_CUT = process.argv.includes('--classic-cut');
 const CTA_PREVIEW = process.argv.includes('--cta-preview');
 const CTA_VOICE = (flagVal('cta-voice') ?? CTA_VOICE_DEFAULT) as CtaVoice;
-if (!['pt2', 'part1', 'bed'].includes(CTA_VOICE)) {
-  console.error(`ABORT: --cta-voice=${CTA_VOICE} — known: pt2 | part1 | bed.`);
+if (!['pt2', 'cta', 'part1', 'bed'].includes(CTA_VOICE)) {
+  console.error(`ABORT: --cta-voice=${CTA_VOICE} — known: pt2 | cta | part1 | bed.`);
   process.exit(1);
 }
 if (CTA_BOARD_DUR > GRID_DUR) {
@@ -320,10 +320,16 @@ for (const v of VARIANTS) {
   // covered board on screen. `bed` = no voice at all, hum bed under the board.
   let voiceOff = false;
   if (ctaCut) {
-    if (CTA_VOICE === 'pt2') {
-      const rest = carrierRest(kind);
-      if (!rest.length) { console.error(`ABORT(${v}): --cta-voice=pt2 but ${kind} declares no continuation.`); process.exit(1); }
-      carrier = join(ASSETS, rest[0]);
+    if (CTA_VOICE === 'pt2' || CTA_VOICE === 'cta') {
+      // Measured voices only: a file with no last-word measurement cannot be
+      // proven to fit the window, so it does not assemble (MKT-78).
+      const m = CTA_VOICE_FILES[kind]?.[CTA_VOICE];
+      if (!m) { console.error(`ABORT(${v}): --cta-voice=${CTA_VOICE} has no CTA_VOICE_FILES entry for ${kind} — measure the last word and register it.`); process.exit(1); }
+      if (CTA_VOICE === 'pt2' && carrierRest(kind)[0] !== m.file) { console.error(`ABORT(${v}): CTA_VOICE_FILES.pt2 (${m.file}) disagrees with carrier-config rest[0] (${carrierRest(kind)[0]}).`); process.exit(1); }
+      carrier = join(ASSETS, m.file);
+      if (!existsSync(carrier)) { console.error(`ABORT(${v}): CTA voice file missing — ${m.file}.`); process.exit(1); }
+      const budget = +(CTA_BOARD_DUR + CTA_VO_LEAD + 1.1).toFixed(2);
+      if (m.lastWord + 0.3 > budget) { console.error(`ABORT(${v}): ${m.file} last word ${m.lastWord}s + 0.3s fade exceeds the ${budget}s voice budget.`); process.exit(1); }
     } else if (CTA_VOICE === 'part1') {
       carrier = carrierRes.parts[0];
     } else {

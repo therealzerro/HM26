@@ -29,16 +29,49 @@ Alternates (not placed): **571 {1,5,7}** (All-Day pos 5, All-Day DI 8, no evenin
 - EV framing: all products ≈ 90% RTP; selection chose *which* combos, not the rate. No positional filter (ENG-MIDDAY-POS-02). Calibration payload = 7/24 fit (9/1 refit failed its gate, kept by ruling) — not quoted; everything sits at the uniform ~22%.
 - Ride convention: max bet, ride until hit, max 3 days; a hit closes the leg. 385, 195 and 335 are fresh legs (day 1); 367/637 is day 2. All four are clear of the 3-day post-hit window (last draws 8/26, 9/4, 9/2, 9/4).
 
-### Resolution — pending (results import by the 9/9 workflow ~8:05am ET; reconcile vs histories 2026-09-08 session=evening)
+### Resolution (results imported by the 9/9 workflow 8:57am ET; verified vs histories 2026-09-08 session=evening — board ran 42 evening draws / 39 jurisdictions, as priced)
 
 | Leg | Result | Payout |
 |---|---|---|
-| 385 | — | — |
-| 637 | — | — |
-| 195 | — | — |
-| 335 (double) | — | — |
+| 385 (2S+3B) | 0 — {3,5,8} absent from all 42 evening draws; brushes GA 850, GA 503, TN 553, QC 958, MI 532, WI 253 | $0 |
+| 637 (2S+3B) | **BOX — NC drew 376** (bet order 637, so box only) | **$112.50** (3B × $37.50) |
+| 195 (2S+3B) | 0 — {1,5,9} absent; brushes TX 179, MO 919, KS 561, FL 695, QC 958, AZ 594 | $0 |
+| 335 double (2S+3B) | 0 — {3,3,5} absent; TN 553 was {3,5,5}, a brush not a hit; NJ 363 brushed the 3/3 pair | $0 |
 
-Settle at 2S + 3B per leg: single straight $562.50, single box-only $112.50, double straight $675.00, double box-only $225.00 (confirm the book's 3-way box rate).
+**1/4 legs boxed, no straight. Returned $112.50 on $210.00 staked → net −$97.50.** **637/{3,6,7} CLOSED by hit** on ride day 2 (the triple overlap landed on the evening half; now inside the 3-day post-hit block). 385 and 195 unhit → ride day 2 on 9/9 (both re-selected at the top of the 9/9 All-Day and Evening boards — below). 335 unhit, day 2 available as a double alternate only.
+
+Boards: Evening K6 **3/6** on the evening half (pos 5 637 boxed NC 376; pos 6 146 boxed SC 146; pos 2 417 boxed NM 417). All-Day K6 **2/6** for the day (563 midday FL 365, 736 evening NC 376). Ordinary variance at the ~59% any-box pre-placement price.
+
+## 2026-09-09 — ALL-DAY ride (Wednesday: 33 midday + 42 evening = 75 draws → $18.75/unit per leg per bet type) — PROPOSED 2 singles, both day-2 rides; confirm placement + units from the ticket
+
+Slate basis: 9/9 K6 (workflow run 8:57am ET, engine v2.1, edge v53). All-Day K6 = 385 / 195 / 571 / 485 / 573 / 469; Evening K6 = 385 / 469 / 195 / 105 / 573 / 458; Midday K6 = 632 / 746 / 617 / 458 / 571 / 317. Cross-scope: **{3,5,8} = All-Day pos 1 + Eve pos 1 (double rank-1, overdue tag, ds 14)**; **{1,5,9} = All-Day pos 2 + Eve pos 3**; {4,5,8} on ALL THREE boards (All-Day pos 4 / Eve pos 6 / Mid pos 4 — fifth triple overlap); {3,5,7} All-Day pos 5 + Eve pos 5 (Eve DI #2); {4,6,9} All-Day pos 6 + Eve pos 2 (DI #1 in both scopes, energy 100); {1,5,7} All-Day pos 3 + Mid pos 5. 3-day block scan (9/6–9/8, all sessions): every board set is clear — the closest are {4,5,8} / {3,5,7} / {4,6,9}, all last drawn 9/5 (window opens today). Operator asked for exactly 2 singles to ride every draw today.
+
+### Positions — full day, both sessions (75 draws, $18.75/unit), every leg 2S + 3B ($93.75/leg) — total $187.50 (midday half $41.25/leg, evening half $52.50/leg)
+
+| Combo (straight order) | Set | Provenance | Units | Cost | If straight hits | If box-only hits |
+|---|---|---|---|---|---|---|
+| **385** (ride day 2) | {3,5,8} | **All-Day pos 1 + Eve pos 1** — the only double rank-1 on the day; All-Day DI 7, Eve DI 6/17/27; 58 in 180d all sessions (0.87× the ~67 expected), evening 37 (at expectation, 9 in 30d), midday 21 (0.72×, 1 in 30d — cold on the midday half); last drawn anywhere 8/26 (NC 385 + WV 835, both evening) — 14 evening days, overdue tag (overdue measured flat; the cross-reference is the basis); 90d footprint evening 23 draws / 17 jurisdictions, midday 8 / 8; orders **385:15** (11 evening) / 835:10 / 853:10 / 358:8 / 583:8 / 538:7 — 385 = engine best order in BOTH scopes and the most-drawn order | 2S + 3B | $93.75 | $562.50 | $112.50 |
+| **195** (ride day 2; 951 if you want the order skew) | {1,5,9} | **All-Day pos 2 + Eve pos 3**; All-Day DI 9/10/20/26 (four perms in the top 30), Eve DI 15; 73 in 180d (1.09×), midday 33 (1.13×, 4 in 30d), evening 40 (1.06×, 9 in 30d); last drawn 9/2 (ME,NH,VT 591 evening) — clear; **widest footprint of any candidate**: 90d evening 25 draws / 20 jurisdictions, midday 22 / 14; orders **951:21** / 591:14 / 195:12 / 915:11 / 159:8 / 519:7 — 195 = All-Day engine order (the scope that governs an all-day ride), 519 = evening DI best order (least drawn), 951 the most-drawn by a wide margin | 2S + 3B | $93.75 | $562.50 | $112.50 |
+
+Alternates (not placed): **458/485 {4,5,8}** (all three boards but lower slots — All-Day pos 4 / Eve pos 6 / Mid pos 4; midday DI 7 with five perms in the midday top 19; 72/180d, 13 in 30d; last 9/5 DC 485 — first day out of the block; orders 854:17 / 845:12 / 458:12 / 485:12; engine order differs by scope — 485 All-Day, 458 Mid, 548 Eve) is the swap for 195 if the operator wants a midday-board anchor on the midday half; **469/694 {4,6,9}** (All-Day pos 6 + Eve pos 2, DI #1 in both scopes with four perms in the All-Day top 4; 73/180d; last 9/5; orders 469:17 / 496:13 / 649:13; engine 694 All-Day / 964 Eve) is the fresh-leg alternate on signal strength alone; **573 {3,5,7}** (All-Day pos 5 + Eve pos 5, Eve DI #2; 82/180d = 1.22×, hottest of the six — hotness is not a selection reason, STATE_STR anti-predictive ×3). Neither ride was displaced: both re-selected at the top of the All-Day board, and no candidate carries a measured edge over them (everything sits at the uniform rate).
+
+### Session math (uniform baseline — standing BUG-162 / SIGNAL-INFO-01 / ENG-ALLDAY-RAND-01 truth)
+
+- Per leg on 75 draws: ~36.3% P(≥1 box), ~7.2% P(≥1 straight). Midday half alone ~18%, evening half alone ~22%.
+- Both legs: ~59.5% P(≥1 box on either), ~13.9% P(≥1 straight on either), ~40.5% blank day.
+- Staked: **$187.50** (2 legs × $93.75) if both halves are placed up front. Expected day ≈ −$19 at 90% RTP. One box-only hit ($112.50) does not cover the ticket; any straight ($562.50) or two boxes do.
+- Placement mechanics: place the midday half now ($41.25/leg); after the ~4:35pm midday import, re-up only the UNHIT legs for the evening half ($52.50/leg) — a midday hit closes that leg by convention and the evening half of it is not placed.
+- EV framing: all products ≈ 90% RTP; selection chose *which* combos, not the rate. No positional filter (ENG-MIDDAY-POS-02). Calibration payload = 7/24 fit (9/1 refit failed its gate) — not quoted.
+- Ride convention: max bet, ride until hit, max 3 days; a hit closes the leg. Both legs are day 2 (placed 9/8 evening, unhit). If still unhit after tonight, 9/10 is the last ride day for both.
+
+### Resolution — pending (midday import ~4:35pm ET; evening by the 9/10 workflow; reconcile vs histories 2026-09-09)
+
+| Leg | Midday | Evening | Payout |
+|---|---|---|---|
+| 385 | — | — | — |
+| 195 | — | — | — |
+
+Settle at 2S + 3B per leg per hitting state: straight $562.50, box-only $112.50.
 
 ## 2026-09-08 — midday session (Tuesday board, 33 midday draws → $8.25/unit per leg per bet type) — PROPOSED 5-leg (4 singles + 1 double); confirm placement + units from the ticket
 

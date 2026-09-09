@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-08 · v6.4
+Content Agent Handoff · 2026-09-09 · v6.5
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-04 (CONSOLIDATED SNAPSHOT, current to v5.7 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-09 (CONSOLIDATED SNAPSHOT, current to v6.5 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -306,10 +306,13 @@ G. OPEN / OWED — the standing list (everything else you may have read as
         sameday carrier REGENERATED as a same-session PAIR — part 1 says
         "boards", pt2 sign-off closes the ~8.6s two-board tail; prompts,
         copy and candidate names in the v5.7 block, run when budget allows;
-        (d) MKT-62b — official-results-page screenshots as a RECEIPT beat:
-        follow-on work order, ruling recorded (results pages ONLY, never
-        payout/consequence content; source field + reviewed flag in the
-        upload path; third-party wording through the brand filter first).
+        (d) ~~MKT-62b — official-results-page screenshots as a RECEIPT beat~~
+        SUPERSEDED 9/9 by MKT-76 — THE RECEIPTS PHOTO LANE (standalone
+        photo posts, free + Pro rooms only, NOT a reel beat; Phase 0
+        REPORTED 9/9, build held — see block J and the v6.5 block). The
+        62b source ruling carries forward unchanged (results pages ONLY,
+        never payout/consequence content; source field + reviewed flag in
+        the upload path; third-party wording ruled before build).
         NOTHING in this kind enters a rotation — do not propose variants of
         rise / sameday / the carrier for pooled use.
      9. FIRST-APPEARANCE EYEBALLS owed on the rotation: `juggle` first draws
@@ -366,6 +369,199 @@ I. BARRED, DELIBERATELY (do not propose): RE-WINDOWED intro trims for the
    re-populating the bands from a gap measurement; baking the brand domain
    (hitmasterzk.com — secured, NOT wired) into any asset without a per-
    surface tier ruling; Instagram.
+
+J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
+   9/9 briefing (MKT-76 Phase 0). Live text: this is the standing read for
+   what future asset work is worth, so nobody re-derives it from a CSV.
+   1. ⛔ PHOTOS OUTPERFORM REELS PER POST ON THE PAGE, 2–2.6×. Page
+      Top_content_formats export, YTD: reels 378,920 views / 6,465
+      interactions / 150 published → 2,526 views · 43 interactions per
+      post. Photos (single 152,135 + multi 181,021 views; 1,294 + 3,001
+      interactions; 50 published in the single bucket) → 6,663 views · 86
+      interactions per post; conservative single-bucket-only read 3,043
+      views/post. Interaction RATE per view: multi-photo 1.66% · reels
+      1.71% · single photo 0.85% · links 0.47%. READ IT PRECISELY: the
+      photo advantage is DISTRIBUTION (views per post), not interaction
+      quality (multi-photo ≈ reels per view); multi-photo ≈ 2× single
+      photo. The export is PAGE data (150 reels YTD = the page's count; the
+      groups take ~9 reels/day) and the photo run carried real digits —
+      the surface and content the current rules bar. The reel system is
+      NOT changed by this; reels are free once built and 378,920 views are
+      real. It changes what NEW asset work is worth: a photo has no
+      generator cost, no rotation, no encode.
+   2. ⛔ CORRECTION — 8/6 WAS A FORMAT, NOT A VIRAL WINDOW. The year's best
+      engagement day (649 unique page engagements vs a ~40/day baseline)
+      was REALTIME RESULTS SCREENSHOTS POSTED AS PHOTOS through the day,
+      executed deliberately (operator). The content agent's earlier
+      "one viral payout window" reading is withdrawn; the format export
+      corroborates the operator. (The repo's growth checkpoints attribute
+      the same week's FREE-GROUP spurt to the session-wave launch — both
+      are true; page ≠ group.)
+   3. THE ENGAGEMENT CLIFF PRECEDED THE AGE FLAG. Daily unique page
+      engagements: 8/4–8/11 = 298 · 244 · 649 · 513 · 368 · 265 · 337 ·
+      226 (the photo run); 8/12 on = 94 · 104 · 73 · 70 · 59 · 39 · 37…;
+      September ≈ 40/day (one 97 on 9/8). The decline began 8/12, before
+      the late-August age flag; the flag landed on an already-quiet page.
+      Cause = the photo run ending + reduced cross-posting.
+      ⛔ ~40 UNIQUE ENGAGEMENTS/DAY IS THE BASELINE THE 9/9–9/23 BUNDLE
+      WINDOW IS MEASURED AGAINST.
+   4. NEGATIVE FEEDBACK = HIDES, ALL OF IT. 11 events in August, 2 in
+      September so far: 8/10 (1) · 8/19 (2) · 8/25 (3, against 32
+      engagements) · 8/28 (1) · 8/30 (2) · 8/31 (2) · 9/5 (2). Zero spam
+      reports, zero unlikes — every one "Hide this post". Plausible chain:
+      hides → negative distribution signal → age-appropriate review. It is
+      a CADENCE signal ("too much of this in my feed"), not a content-
+      quality signal; frequency on the PAGE is the risk. Any new lane's
+      first question is what it adds to the page's daily count.
+   5. PAGE CONTENT MONETIZATION IS NOT A REVENUE PATH: $1.30 Jun · $0.86
+      Jul · $4.01 Aug · $0.57 Sep; Stars zero throughout. Subscriptions did
+      $122 in August — 30× the page's ad share. Nothing is ever optimised
+      for that line.
+   MKT-76 — THE RECEIPTS PHOTO LANE (supersedes the 62b reel-beat order):
+      Phase 0 REPORTED 9/9 (docs/mkt76_phase0_report.md; summary in the
+      v6.5 block), BUILD HELD on your rulings; does not enter the 9/9–9/23
+      window either way. Engineering lean = your lean, (c) the two-image
+      carousel, and it is the CHEAPEST of the three options. Free + Pro
+      rooms only, expressible in three layers; never the page, never
+      cross-post.
+
+WHAT CHANGED IN v6.5 (2026-09-09 — YOUR 9/9 BRIEFING + WORK ORDER: FINDINGS
+1–5 RECORDED IN THE BODY (block J); MKT-76 THE RECEIPTS PHOTO LANE — PHASE 0
+REPORTED, NOTHING BUILT. Audit: MKT-76. Next free ID: 77.)
+================================================================================
+  FINDINGS — recorded as live text in block J of the STATE snapshot, not
+  only here: the format finding (photos 2–2.6× reels per post, page data,
+  distribution not interaction quality), the 8/6 CORRECTION (a deliberate
+  realtime-results photo format, not a viral window — your earlier reading
+  withdrawn on the record), the cliff dating (8/12, pre-flag; ~40/day = the
+  window's baseline), the hides (13, all "Hide this post", a cadence
+  signal), and the monetization line (never optimised for).
+
+  MKT-76 PHASE 0 — full report in docs/mkt76_phase0_report.md. The short
+  form, item by item:
+
+  THE DISCOVERY THAT RESHAPES THE BUILD: a photo pipeline ALREADY EXISTS.
+  Admin → Publish (SOCIAL-01…13) is the photo console: 1080×1920 client-
+  side captures, multi-image kits (slate + six cards + brief — every group
+  drop is already a multi-photo post), per-content allowed surfaces, its
+  own caption engine + tier lint, copy caption · download all in composer
+  order · open group, handoff log to social_posts, one-tap Pro chain, and
+  a Page-API photo path behind the Two-Question ack. Consequence: NO
+  assembler work, NO bucket for the composed output, NO Reels-card work.
+  The board image already exists too — render-verify-slate's graded board
+  card (six picks as published, landed ones marked "DREW 618 · NC ·
+  MIDDAY"), rendered from slate_snapshots and CROSS-CHECKED against
+  adaptive_tracking with a fatal abort on disagreement — i.e. it already
+  carries the item-9 discipline.
+
+  1. WHAT THE POST CONTAINS — costed:
+     (a) raw cropped screenshot as-is: ≈1 day (intake + review + handoff).
+         Proves nothing of ours in its own pixels; no assertion possible;
+         the whole surface is third-party wording. Note what 8/6 actually
+         was: PAGE photos with real digits — the surface and content the
+         rules now bar.
+     (b) branded card, our signal beside the official result: ≈2 days.
+         Data for the card is all held (signal, histories.result_digits as
+         imported, match kind by faithful join, PUBLISHED/GRADED via the
+         reel-sameday join). We cannot READ the screenshot — no OCR is
+         proposed — so the card asserts our record against our import; the
+         screenshot is the witness. Single-photo bucket unless paired.
+     (c) TWO-IMAGE CAROUSEL — our published board first, the official
+         result second: ≈1.5 days. THE CHEAPEST OF THE THREE: the board
+         still is a ~30-line single-frame export of an existing renderer
+         (or a ~15-line date parameter on the admin-only slate loader), no
+         new composition template. The method in the format's own shape.
+         Composer order is kept; the console already reverses camera-roll
+         saves so image 1 presents first on a phone.
+     ENGINEERING RECOMMENDATION: (c). It is your lean AND the cheapest —
+     no cost ruling is needed from the operator.
+  2. WHERE + TRIGGER: Admin → Publish, a sixth content kind `receipts`
+     (two sub-surfaces: receipt INTAKE — date/session/state/source/file →
+     thumbnail → REVIEWED tick with the attestation text on screen; then
+     COMPOSE + HAND OFF — gate → pair on the stage → Prep & Open → log →
+     Pro chain). NOT Admin → Reels (a video registry whose "posted" flag
+     feeds the verify_midday provenance join — a photo row there would
+     pollute the reel record). Trigger = operator-manual BY CONSTRUCTION:
+     nothing runs without a file chosen from the device in that session;
+     Groups have no publish API; the Page scheduling path is unreachable
+     for the kind (item 4). Same-day midday receipts need nothing new;
+     D−1 evening receipts need a date parameter on the ADMIN-ONLY slate
+     loader (lib/social — not a consumer data path) + the cross-check
+     ported from render-verify-slate.loadSlate.
+  3. STORAGE + SCHEMA: NEW table `marketing_receipts` (date · session ·
+     state · source CHECK · image_path · sha256 · reviewed/reviewed_at ·
+     crop_attested · linked hit key WRITTEN BY THE GATE, never by hand ·
+     per-room posted flips; UNIQUE date/session/state; RLS on, NO anon
+     read — unlike marketing_reels) + NEW PRIVATE bucket `marketing-
+     receipts` (signed upload URL from an admin-key edge action, signed
+     reads; nothing has a public URL). Migration ≈45 lines, applied via
+     the Supabase MCP (a DDL path exists now; the 8/19 "no DDL path" note
+     is stale). Client + edge ≈150 lines; reel:check probe ≈40.
+     RETENTION: NO KIND TEST NEEDED — supersede/prune are scoped to
+     marketing_reels + its bucket; a separate table/bucket never enters
+     their candidate set. Keep-forever by default (receipts are the
+     record). ⚠ SOURCE RULING CONFLICT to resolve in writing: 8/19 said
+     "no Lottery Post (ToS); official_state_results only"; 9/9 admits
+     "results boards such as LotteryPost". Both encoded in the CHECK,
+     compose gated on a code-side allowlist so the tighter rule needs no
+     migration; launch value = your ruling (engineering recommends
+     official-only at launch, boards admitted per source after one real
+     capture is seen).
+  4. TIER — FREE + PRO ONLY: EXPRESSIBLE, three layers. Type: the
+     content→surface map excludes public and cross. Server: the Page
+     photo action refuses kind=receipts regardless of any ack. Storage:
+     private bucket, no public URL to paste. Cross-post barred as with
+     verify_midday (real digits + state + someone else's pixels; --redact
+     --relabel works on OUR DOM, not on pixels). Said out loud: the
+     numbers in Finding 1 are PAGE data; the lane as tiered reproduces the
+     FORMAT on the GROUPS (485 / 63 members; free room 3.3 reactions/day,
+     60 active/day), not the surface where it was measured. The product
+     argument stands; the absolute number will be small.
+  5. CAPTION: its OWN small family (4–6), not a verify variant — one state,
+     one draw, one signal, two images in order. Slots held: {date}
+     {session} {state} {combo} {match} {published_at} {elapsed}
+     {source_label}. Tier-2 free / tier-4 Pro (no pricing). Registered in
+     lib/social/captions.ts (the Publish engine), NOT scripts/reel-
+     captions.ts. MKT-71's question line can ride it — your call. Also
+     owed: the image-2 attribution line; the Two-Question RECORD for the
+     pair (tier 2/4 — a record, not a gate).
+  6. CADENCE — COST AND RISK TOGETHER, NOTHING ENCODED. Supply (live,
+     8/10–9/8, deduped): midday 24/30 days with ≥1 match, median 2.5 rows
+     / 2.1 states, 6 straight days; evening 26/30, median 3 / 3.0 states,
+     10 straight days. Natural unit = one post per session (one state);
+     CEILING ≈2/day per room, floor 0 on ~20% of days; ≈5–6 min operator
+     time per post. What it stacks on (Group Insights 8/24–9/6): free room
+     3.9 posts/day (all ours), Pro 4.0 → two receipts ≈ +50% per room.
+     FINDING 4 READ AGAINST IT: the 13 hides are PAGE feedback; the lane
+     never touches the page, so the tier binding is also the cadence
+     shield for the surface under review — it cannot move the page's hide
+     count. The risk TRANSFERS to the groups, where the equivalent signals
+     (mute/leave/hide-from-feed) are in NO series we hold; the proxies are
+     active_members/day and reactions/post in fb_group_daily (Funnel
+     dashboard). If ruled on: engineering suggests ONE post/day first (the
+     straight's session, else evening), two-week read vs the 8/24–9/6
+     baseline, then the second. THE OPERATOR RULES FREQUENCY.
+  ITEM 9 (Phase 1 spec, recorded now): compose only when (1) the snapshot
+  exists and its hit flags cross-check against adaptive_tracking, (2) a
+  deduped matched row exists for (date, session, state) on the chosen
+  board, (3) histories has (date_et, session, jurisdiction) and its
+  comboset equals the matched pick's — the hm_hook_verified join. Any
+  miss → NO PAIR, both figures shown, no override. What the gate cannot
+  do is read the screenshot; the reviewed thumbnail sits beside our digits
+  at REVIEWED so a disagreeing import is seen by a human first.
+  THIRD-PARTY WORDING — options, not a choice: (a) crop to the draw line,
+  attested at REVIEWED (≈0 code, the thumbnail is the check); (b) a mask
+  over a declared header zone (≈100 lines, per-source table, fragile);
+  (c) a checklist ack at upload in the Two-Question shape (≈20 lines,
+  logged on the row). Engineering lean, offered only: (a)+(c).
+  WHAT IS NOT CHANGED: the reel system, its cadence, its kinds. This lane
+  is ADDITIVE and HELD — it does not enter the 9/9–9/23 window; the kind
+  is absent from the console until a flip, the verify_public pattern.
+  OWED BY YOU before Phase 1: item-1 ruling · source ruling in writing ·
+  wording ruling · attribution copy + caption family (or go-ahead for a
+  provisional linted set) · the Two-Question record. OWED BY THE OPERATOR:
+  the frequency ruling, after 9/23.
+================================================================================
 
 WHAT CHANGED IN v6.4 (2026-09-08, same day — REPLY TO YOUR 9/8 RESPONSE (2).
 verify_public COLD OPEN BUILT, GATED, EYEBALLED, HELD — live 2026-09-24.
@@ -4922,9 +5118,17 @@ per-day by hand, not AI-freestyled.
 
 
 --------------------------------------------------------------------------------
-8b. WORK ORDER — MKT-62b: OFFICIAL-RESULTS-PAGE RECEIPTS (issued 2026-08-19;
+8b. ⚠ SUPERSEDED 2026-09-09 BY MKT-76 — THE RECEIPTS PHOTO LANE. HISTORICAL
+    below this line. Finding 1 (block J) ruled the reel-beat build the wrong
+    build: receipts perform better STANDALONE AS PHOTO POSTS than embedded
+    in a reel, and need no assembler. The SOURCE RULING in this section
+    carries forward verbatim into MKT-76 (results pages only; never payout /
+    consequence content; source field + reviewed flag in the upload path);
+    the shape, phases and the renderer beat do not. Report:
+    docs/mkt76_phase0_report.md; status: block J + the v6.5 block.
+    ~~WORK ORDER — MKT-62b: OFFICIAL-RESULTS-PAGE RECEIPTS (issued 2026-08-19;
     discovery-first, escalation gates, diff before commit; ID 62b reserved
-    under MKT-62, no separate number — it is the same reel's receipt beat)
+    under MKT-62, no separate number — it is the same reel's receipt beat)~~
 --------------------------------------------------------------------------------
   WHY: the same-day midday verify (verify_midday) proves the GAP with the
   two timestamps. What it does not yet carry is INDEPENDENT verification —

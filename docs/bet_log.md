@@ -2,6 +2,29 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
+## 2026-09-10 — evening session (Thursday board) — EARLY-13 POOL READ ONLY, one box-only combo for the 6:25–7:45pm block (PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC, 13 draws → $3.25/unit) — LOGGED at operator instruction ~5pm ET
+
+Slate basis: 9/10 K6 (workflow run 5:54am ET, engine v2.1, edge v53). Evening K6 = 195 / 315 / 936 / 573 / 670 / 754; All-Day K6 = 136 / 590 / 764 / 752 / 573 / 706. Midday 9/10 (33 draws, imported 4:35pm ET, import 930d2686): operator legs 195 boxed twice (KY 591, ME,NH,VT 951) and 575 double straight (IA 575) — both closed; All-Day pos 4 {2,5,7} boxed (SC 275) — closed; Eve pos 1 {1,5,9} drew midday → closed by the same-day convention. Unhit midday legs 136 / 706 / 764 are ride-day-2 eligible but none beats the pick below in the early pool ({0,6,7} ranks 28th in the pool, {1,3,6} is 9 vs 14.3 with 0 in 30d). Standing truth: today's midday success does not move tonight's rate (STATE_STR anti-predictive ×3, ENG-ALLDAY-RAND-01); it only changed the candidate list. 3-day block scan (9/7–9/10 all sessions) over every board set: only {1,5,9} and {2,5,7} drew (today, midday) — every other board set is clear.
+
+### Early-13 pool pick — box only
+
+| Combo (straight order) | Set | Provenance | Units | Cost | If straight hits | If box-only hits |
+|---|---|---|---|---|---|---|
+| **573** (375 = All-Day order and most-drawn) | {3,5,7} | **Eve pos 4 + All-Day pos 5**; **evening DI #1** with five perms in the top 9 (573@1, 735@2, 375@3, 537@5, 753@9, energy 100) and **All-Day DI #2** (573@2, 375@8) — the most-stacked set on tonight's boards; early-13 pool evening draws **19 in 180d vs 14.3 expected** (1.33×), 7 in 90d, 2 in 30d, drawn in **11 of 13 early jurisdictions** (90d: DC MI OH PA SC WV) — pool rank 12 of 220 and #1 among clear board sets; full evening 54 in 180d vs 38.4 expected (1.41×), 29 in 90d, 8 in 30d (hotness is texture, not the selection reason); last drawn anywhere 9/5, last in the pool 9/4 DC — clear; evening orders 375:11 / 537:10 / 753:9 / 573:9 / 357:8 / 735:7 (flat) — 573 = evening engine + evening DI best order | 3B (+ optional 1S) | $9.75 box (+ $3.25 straight) | $225.00 | $112.50 |
+
+Runner-up (not placed): **936 {3,6,9}** — Eve pos 3, six perms in the evening DI top 15 (936@4, 396@6, 639@7), pool 18/180d with 11 in 90d (stronger recent pool presence, footprint 8 of 13 in 90d), last 9/6 — clear; orders 963/639/396/369 tied at 8, 936:4. Third: **706 {0,6,7}** triple overlap, ride day 2, pool 17/180d (rank 28). 3-day-blocked: {1,5,9}, {2,5,7}.
+
+### Session math (uniform baseline — standing BUG-162 / SIGNAL-INFO-01 truth)
+
+- One set across 13 draws: ~7.5% P(box), ~1.3% P(straight). Staked $9.75 at 3B ($13.00 with the straight unit). Expected ≈ −$1 at 90% RTP. The pool count and board stacking chose *which* set, not the rate.
+- Ride convention: this is a session-only early-pool read, not a ride leg. Unhit → no carry unless the operator names it on a later ticket.
+
+### Resolution — pending (evening import ~11:30pm ET; reconcile vs histories 2026-09-10 evening, early-13 jurisdictions only)
+
+| Leg | Result | Payout |
+|---|---|---|
+| 573 (3B) | — | — |
+
 ## 2026-09-10 — midday session (Thursday board, 33 midday draws / 31 jurisdictions → $8.25/unit per leg per bet type) — PROPOSED 5-leg (4 singles + 1 double), All-Day lean; confirm placement + units from the ticket
 
 Slate basis: 9/10 K6 (workflow run 5:54am ET, engine v2.1, edge v53). All-Day K6 = 136 / 590 / 764 / 752 / 573 / 706; Midday K6 = 316 / 632 / 764 / 783 / 706 / 571; Evening K6 = 195 / 315 / 936 / 573 / 670 / 754. All 18 slots are singles and every All-Day and Midday DI top-30 row is a single, so the double is sourced from the board's pair structure again. Operator asked for a 5-leg with one double for the midday draws, leaning on the All-Day board because the Midday board is not trusted (Midday board went 0/6 on 9/9, 1/5 on the 9/8 midday ticket; All-Day board landed {3,5,8} twice on 9/9). Standing truth: the lean is a preference at no measured cost, not an edge (ENG-ALLDAY-RAND-01 — All-Day and Midday boards both sit at the uniform per-set rate on the midday half). Cross-scope today: **{1,3,6} = All-Day pos 1 + Mid pos 1** (double rank-1 again, overdue tag, ds 22 All-Day / 25 midday — fifth day at the top of both boards); **{0,6,7} = ALL THREE boards** (All-Day pos 6 / Mid pos 5 / Eve pos 5 — sixth triple overlap; All-Day DI 5, Mid DI 3); **{4,6,7} = All-Day pos 3 + Mid pos 3**; {3,5,7} = All-Day pos 5 + Eve pos 4 (All-Day DI #2). 3-day block scan (9/7–9/9, all sessions): every board set is clear — the only board-adjacent set that drew was {3,5,8} (closed ride). Rides in: 195/{1,5,9} (day 3 — last ride day; unhit 9/8 evening, 9/9 midday, 9/9 evening; Eve pos 1 today, All-Day DI 3/4/13/22 = four perms in the All-Day top 30, not on the All-Day K6). Midday base: 4,916 midday draws in 180d → a single set expects 29.5, a double 14.7; 966 in 30d → 5.8 / 2.9.
@@ -26,17 +49,19 @@ Alternates (not placed): **590 {0,5,9}** (All-Day pos 2, All-Day DI 7; midday 31
 - EV framing: all products ≈ 90% RTP; selection chose *which* combos, not the rate. No positional filter (ENG-MIDDAY-POS-02). Calibration payload = 7/24 fit (9/1 refit failed its gate) — not quoted. Cross-scope overlap is texture, not a measured edge.
 - Ride convention: 195 is on its last ride session; the other four legs are day 1. A midday hit closes the leg; unhit All-Day-board legs may ride into 9/10 evening on the evening ticket.
 
-### Resolution — pending (midday import ~4:35pm ET; reconcile vs histories 2026-09-10 midday)
+### Resolution (midday imported 4:35pm ET, 33 draws; verified vs histories 2026-09-10 midday)
 
 | Leg | Result | Payout |
 |---|---|---|
-| 136 (2S+3B) | — | — |
-| 706 (2S+3B) | — | — |
-| 764 (2S+3B) | — | — |
-| 195 (2S+3B) | — | — |
-| 575 double (2S+3B) | — | — |
+| 136 (2S+3B) | 0 — {1,3,6} absent from all 33 midday draws | $0 |
+| 706 (2S+3B) | 0 — {0,6,7} absent from all 33 midday draws | $0 |
+| 764 (2S+3B) | 0 — {4,6,7} absent from all 33 midday draws | $0 |
+| 195 (2S+3B) | **BOX ×2** — KY 591, ME,NH,VT 951 (straight at Tri-State if the 951 order was placed) | $225.00 box-only ($675.00 if 951 straight + KY box) |
+| 575 double (2S+3B) | **STRAIGHT** — IA 575 | $675.00 |
 
 Settle at 2S + 3B per leg per hitting state: single straight $562.50 / box-only $112.50; double straight $675.00 / box-only $225.00.
+
+**Net: +$693.75** at the proposed $206.25 stake if 195 was placed in the 195 order ($900 returned: 575 straight $675 + 195 box ×2 $225); **+$1,143.75** if the 951 order was placed (Tri-State 951 straight $562.50 + KY box $112.50 + 575 straight $675 = $1,350). Confirm the placed order and units from the ticket. **195 and 575 legs CLOSED by hit** (convention; 195 was on its last ride day regardless). 136 / 706 / 764 unhit → ride day 2 eligible into 9/10 evening. Second positive session in the log.
 
 ## 2026-09-08 — evening session (Tuesday board, 42 evening draws / 39 jurisdictions → $10.50/unit) — PLACED as proposed (operator confirmed ~5pm ET): 4-leg (3 singles + 1 double), 2S + 3B every leg, All-Day lean
 

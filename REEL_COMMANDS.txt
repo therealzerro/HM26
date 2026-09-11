@@ -53,12 +53,13 @@ abort here never stops a slate kind).
         Writes record_reels/record_body_<stamp>.mp4 + record_public_<stamp>_feed.png
         (the resolved frame at feed width — the standing dim-tile eyeball).
     npx tsx scripts/assemble-record-reel.ts <YYYYMMDD> [--voice=bed|carrier] [--preview]
-        --voice=bed (DEFAULT) = hum bed only; --voice=carrier plays
-        record_public_carrier.mp4 from reel 0.0 ONLY once it is registered
-        in scripts/record-config.ts (RECORD_VOICE_FILE) after its gates
-        (ffprobe · trim to speech · last word ≤ 9.5s · silent tail · tier-1
-        transcript · voice family). Unregistered = abort; the reel never
-        waits on the voice. --preview = suffixed output, never published.
+        --voice=carrier (DEFAULT since 9/11 — record_public_carrier.mp4
+        landed the same session, cleared its gates: last word 9.26s ≤ 9.5,
+        silent tail, tier-1 transcript, f0 family; registered in
+        scripts/record-config.ts RECORD_VOICE_FILE) plays it from reel 0.0
+        over the hum bed. --voice=bed = the silent fallback (hum bed only).
+        A re-delivered carrier must be re-measured (reel:check mtime
+        guard). --preview = suffixed output, never published.
     npx tsx scripts/publish-reels.ts record <YYYYMMDD> [--preview|--captions-only]
         Captions: {days} {of} {exact} {juris} {range} read from the FINAL's
         own hm_record_* tags (the same source as the pixels). ⚠ The eight

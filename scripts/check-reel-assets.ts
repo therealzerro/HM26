@@ -399,6 +399,9 @@ function checkStrays(): void {
   // MKT-78: registered CTA voice files (the pt2 entries are carrier parts
   // already referenced through CARRIERS; the cta entries are standalone).
   for (const kv of Object.values(CTA_VOICE_FILES)) for (const m of Object.values(kv)) if (m) referenced.add(m.file);
+  // MKT-79: the record reel's single-part voice is registered in
+  // record-config (gated), not in CARRIERS — enumerate it here too.
+  if (RECORD_VOICE_FILE) referenced.add(RECORD_VOICE_FILE.file);
   for (const [variant, cfg] of Object.entries(STINGERS)) {
     // Disabled variants included deliberately: a prebuilt stinger for a kind
     // whose flag is currently off is intended to sit there, not a stray.

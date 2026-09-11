@@ -103,9 +103,38 @@ export const RECORD_STAT_MAX = 99;
 // the voice enters at reel 0.0 (carrier-local time == reel time). If the body
 // timing ever shifts, keep that alignment.
 export type RecordVoice = 'bed' | 'carrier';
-export const RECORD_VOICE_DEFAULT: RecordVoice = 'bed';
 export const RECORD_VOICE_START = 0.0;
 export const RECORD_VOICE_LAST_WORD_MAX = 9.5;
 export interface RecordVoiceFile { file: string; lastWord: number; measuredAt: string }
-/** null until the carrier clears its gates. */
-export const RECORD_VOICE_FILE: RecordVoiceFile | null = null;
+/**
+ * REGISTERED 2026-09-11 (landed upstream mid-build: "Add files via upload" +
+ * a GitHub web RENAME to record_public_carrier.mp4 — probed intact, not a
+ * stub). Gates, measured on landing:
+ *   · ffprobe: h264 720×1280 24fps 10.000s · aac 48k stereo 10.005s (the
+ *     10.005s law holds) · 610 KB (static bolt on purple compresses small).
+ *   · speech (faster-whisper small int8, word timestamps): "40 plus states,
+ *     30 days, every one of them checked, published for the draw, graded
+ *     after, and the misses stay on there." — the three scripted lines with
+ *     whisper-level variances ("for"/"'fore", "of them"/"of 'em"). First
+ *     word 0.00s, LAST WORD 9.26s ≤ 9.5 (scripted ≤ 8.8 — over by 0.46s,
+ *     inside acceptance). Tier-1 lint CLEAN: no session words, no state
+ *     names, no result counts spoken (40/30 are the two-digit scale words).
+ *   · silent tail: last 0.5s −80.8 dBFS RMS (digital silence from 9.30s);
+ *     no trim needed — speech starts at 0.00, so the file plays whole.
+ *   · voice family (autocorrelation f0, −40 dB gate): 121.2 Hz IQR
+ *     [106.8–132.2], centroid 936 Hz — vs public_carrier 115.1 [101.4–124.0]
+ *     /758, verif 105.3 [98.8–113.7]/872, midday cta 102.6 [94.7–111.9]/965.
+ *     IQRs overlap with every serving reference; reads ~6 Hz above the
+ *     public carrier and below allday_pro's 133. Same family by proxy; the
+ *     ear is the operator's (MKT-43 convention).
+ *   · ALIGNMENT: voice enters at reel 0.0, so line three ("and the misses…")
+ *     lands at reel 7.86s, not the scripted 6.9s — the count has resolved
+ *     (6.9) and the stats line is fading in; the dim tile has been on
+ *     screen since 2.9s. "Misses" is spoken at 8.18s with the miss visible,
+ *     which is the alignment's purpose. There is no leading silence to
+ *     trim, so the file cannot be pulled earlier; recorded, not corrected.
+ * Default flipped to 'carrier' on registration (the order: bed is the
+ * default UNTIL the carrier clears). --voice=bed remains the silent fallback.
+ */
+export const RECORD_VOICE_FILE: RecordVoiceFile | null = { file: 'record_public_carrier.mp4', lastWord: 9.26, measuredAt: '2026-09-11' };
+export const RECORD_VOICE_DEFAULT: RecordVoice = 'carrier';

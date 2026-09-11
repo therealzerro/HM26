@@ -260,13 +260,15 @@ C3. THE DAILY TRACK RECORD REEL ANATOMY (`record_public`, MKT-79 — 16.3s,
                 same-day doubling is forced; it pairs with allday_free,
                 different rooms): HITMASTER ZK6 / THE FULL RECORD IS FREE /
                 JOIN THE FREE COMMUNITY (gold line 3).
-     AUDIO      HUM BED from the endcard's own crack-free window under the
-                card + body (default --voice=bed), endcard audio from 9.4s,
-                −14 LUFS. The carrier (D below) enters at reel 0.0 when it
-                is registered — carrier-local time == reel time, so line
-                three ("And the misses stay on there.") lands at 6.9s as
-                the count resolves with the dim tiles on screen. Keep that
-                alignment if the body timing ever shifts.
+     AUDIO      record_public_carrier.mp4 (REGISTERED 9/11, default) enters
+                at reel 0.0 — carrier-local time == reel time — over a HUM
+                BED from the endcard's own crack-free window (card + body);
+                endcard audio from 9.4s; −14 LUFS. Measured: line three
+                ("and the misses stay on there") lands at 7.86s (scripted
+                6.9s; no leading silence to trim), "misses" at 8.18s with
+                the dim tile on screen; last word 9.26s. --voice=bed = the
+                silent fallback. Keep the misses-on-screen alignment if the
+                body timing ever shifts.
      RATIO      furniture 8.5s = 52.1% — the evidence-reel number.
      DATA       the track-record screen's OWN summary computation
                 (scripts/reel-record-stats.ts mirrors app/track-record.tsx:
@@ -420,19 +422,24 @@ G. OPEN / OWED — the standing list (everything else you may have read as
         the next relay (or straight into scripts/reel-captions.ts
         `record_public` / constants/socialPlatforms.ts YT_SHORTS_SETS.
         record_public — one array edit each; reel:check re-lints them).
-        OWED BY YOU — THE CARRIER: record_public_carrier.mp4 (single part,
-        no pt2; "Forty-plus states, thirty days — every one of 'em
-        checked." / "Published 'fore the draw. Graded after." / "And the
-        misses stay on there."; last word scripted ≤ 8.8s; line three
-        timed to land at reel 6.9s) had NOT landed by the build. When it
-        lands it is GATED (ffprobe · trim to speech · last word ≤ 9.5s ·
-        silent tail · tier-1 transcript lint — no session words, no state
-        names, no result counts spoken · voice-family check against a
-        serving carrier) and registered in scripts/record-config.ts
-        RECORD_VOICE_FILE; until then the reel ships SILENT with the hum
-        bed by design (--voice=bed is the default; the reel never waits on
-        the voice). Deliver to assets/marketing/record_public_carrier.mp4
-        — the stray scan will name it on landing.
+        ✅ THE CARRIER — CLOSED SAME SESSION: record_public_carrier.mp4
+        landed mid-build (upload + web rename — probed intact, 610 KB:
+        h264 720×1280 24fps 10.000s, aac 48k 10.005s). Gated: transcript
+        = your three lines ("40 plus states, 30 days, every one of them
+        checked, published for the draw, graded after, and the misses
+        stay on there." — whisper variances "for"/"'fore", "of them"/"of
+        'em"); LAST WORD 9.26s (≤ 9.5 gate; scripted ≤ 8.8, +0.46s —
+        inside acceptance); tail digital silence from 9.30s; tier-1 lint
+        clean; voice family by f0 proxy 121 Hz IQR [107–132] — overlaps
+        every serving carrier (public 115, verif 105, cta 103; allday_pro
+        133 above it). REGISTERED (record-config RECORD_VOICE_FILE),
+        DEFAULT = carrier, --voice=bed stays the silent fallback. ⚠ Line
+        three lands at reel 7.86s, not 6.9s: the file has no leading
+        silence so it cannot be pulled earlier; "misses" is spoken at
+        8.18s with the dim tile on screen (the alignment's purpose holds).
+        The 9/10-stamped cut was re-assembled WITH the voice and
+        re-published for the operator's smoke test. OWED BY THE OPERATOR:
+        the ear on the assembled cut (one-man-one-room, MKT-43 convention).
         OWED BY THE OPERATOR: the first live eyeball (7pm 9/12 or the
         first run) — if the dim tiles don't read at feed size, pull it and
         say so; the morning board is unaffected either way.
@@ -593,9 +600,11 @@ Audit: MASTER_AUDIT MKT-79. Next free ID: 80.)
      are the honesty. Nobody "cleans them up".
   F. YOUR DELIVERED COPY DID NOT ARRIVE (G.12): eight captions + the 6/3
      YouTube set are PROVISIONAL (build session's own, tier-1 clean) until
-     you paste the delivered sets. The carrier had not landed; the reel
-     ships silent with the hum bed by design (record-config.ts
-     RECORD_VOICE_FILE registers it after its gates; --voice=bed default).
+     you paste the delivered sets. THE CARRIER DID: it landed mid-build,
+     cleared every gate (last word 9.26s, silent tail, tier-1 transcript,
+     f0 family) and is REGISTERED as the default voice; the published cut
+     carries it. Line three lands 7.86s, not 6.9s (no leading silence to
+     trim) — recorded in G.12.
   G. PUBLISHED 9/11 on the operator's word ("publish the record reel when
      finished for my visual smoke test"): marketing_reels 2026-09-10 ·
      record_public · ready, 5.3MB final + 5-frame contact sheet; caption =
@@ -4632,12 +4641,15 @@ per-day by hand, not AI-freestyled.
                                   bed-viable (the record reel ALWAYS beds:
                                   std −29.3 · alt −24.5 · tide −32 · bloom
                                   −22.5 post-crack · adopen −32.1 dB).
-    record_public_carrier.mp4     SLOT — NOT LANDED as of 9/11. Single part,
-                                  no pt2; lines and gates in state block
-                                  G.12; registers in scripts/record-config.ts
-                                  RECORD_VOICE_FILE after the gates. Until
-                                  then --voice=bed (default). Voice enters at
-                                  reel 0.0; line three must land at 6.9s.
+    record_public_carrier.mp4     REGISTERED 9/11 (landed the same session).
+                                  Single part, no pt2; 10.000s video /
+                                  10.005s audio, 720×1280 24fps; last word
+                                  9.26s; tail silent from 9.30s; f0 121 Hz.
+                                  Default voice for record_public (record-
+                                  config RECORD_VOICE_FILE); enters at reel
+                                  0.0; line three lands 7.86s (see G.12).
+                                  Re-delivery = re-measure (reel:check
+                                  mtime guard).
     _hook_record_public_<stamp>.mp4/.png, record_body_<stamp>.mp4,
     record_public_<stamp>.mp4 / _contact.png / _feed.png — per-day
                                   intermediates + finals in record_reels/,

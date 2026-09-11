@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-09 · v6.8
+Content Agent Handoff · 2026-09-11 · v6.9
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-09 (CONSOLIDATED SNAPSHOT, current to v6.8 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-11 (CONSOLIDATED SNAPSHOT, current to v6.9 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -28,8 +28,16 @@ disagree, the § section has been struck or is wrong — say so in your next
 audit and it will be fixed.
 
 A. DAILY OUTPUT (operator-triggered `npm run reel:daily`, never scheduled):
-   NINE reels, each auto-published to Admin → Reels with a drafted caption;
-   NOTHING auto-posts. Order: verify → allday → midday → evening.
+   TEN reels (v6.9), each auto-published to Admin → Reels with a drafted
+   caption; NOTHING auto-posts. Order: verify → allday → midday → evening
+   → record.
+     record_public   ⚠ v6.9 (MKT-79, 9/11): THE DAILY TRACK RECORD REEL —
+       30-day strip of the Verified Track Record (dim tiles = the misses,
+       ON PURPOSE), public tier 1, ~16.3s cold open, the 7pm slot. RULED:
+       BOTH public cuts daily — allday_public keeps its morning slot,
+       verify_public stays registered and leaves the daily schedule. The
+       9/9→9/23 window confound is ACCEPTED BY THE OPERATOR. Anatomy in
+       C3 below; captions + YT set PROVISIONAL (E); carrier gated (D/G.12).
      verify          group cut, D−1 receipts (aborts on a zero-match day)
      verify_public   masked public grading cut (same beat map; tier 1)
      allday_pro · allday_free · allday_public  (⚠ v5.3: allday_public now
@@ -222,6 +230,65 @@ C2. SAME-DAY MIDDAY VERIFY ANATOMY (`verify_midday`, MKT-62 — ~21–27s,
      the evening import/draw. Never the other way round, never on a
      partial import, never after the evening ledger.
 
+C3. THE DAILY TRACK RECORD REEL ANATOMY (`record_public`, MKT-79 — 16.3s,
+   1080×1920 60fps; FIRST CUT PUBLISHED 9/11 for the operator's smoke test):
+     0.0–2.0    HOOK CARD (render-public-hook --kind=record, GOLD, silent,
+                tier-1 linted): 40+ STATES & PROVINCES / THE TRACK RECORD /
+                LAST 30 DAYS · CHECKED AGAINST OFFICIAL RESULTS.
+     1.6–2.0    0.4s eased dissolve into the body's frame 0.
+     2.4–2.9    THIRTY TILES appear together, ALL DIM, in a 10×3 GRID
+                (88px tiles — a single row of 30 is ~10px per tile at feed
+                width and the dim/gold distinction dies); range label above
+                (AUG 12 – SEP 10, from the body's own window tags, year-less
+                like verify_public's headers, never the render clock).
+     2.9–5.9    GOLD MARKS land on the MATCHED days left→right (row by row),
+                ~0.1s apart, each landing slightly large and settling.
+                ⛔ UNMATCHED DAYS STAY DIM AND VISIBLE — never hidden, never
+                removed. The misses on screen are the honesty. An all-gold
+                strip is a REJECT: the renderer ABORTS (operator override
+                --allow-all-matched for a genuine 30 of 30). Do not "clean
+                them up".
+     5.9–6.9    COUNT resolves large beneath: "29 OF 30 DAYS" (counts up,
+                gold numeral).
+     6.9–8.4    SECONDARY STATS, gold, one line: "18 EXACT-ORDER MATCHES ·
+                38 STATES & PROVINCES" (EXACT-ORDER = the shipped tier-1
+                relabel; "straight" cannot appear on this surface).
+     8.4–9.4    HOLD; the rightmost (last-day) tile carries a faint pulse.
+     9.4–9.8    0.4s dissolve into the endcard.
+     9.8–16.3   ENDCARD, free-tier motion set (rotates with the free pool —
+                which now serves SIX live kinds from FIVE motions, so one
+                same-day doubling is forced; it pairs with allday_free,
+                different rooms): HITMASTER ZK6 / THE FULL RECORD IS FREE /
+                JOIN THE FREE COMMUNITY (gold line 3).
+     AUDIO      HUM BED from the endcard's own crack-free window under the
+                card + body (default --voice=bed), endcard audio from 9.4s,
+                −14 LUFS. The carrier (D below) enters at reel 0.0 when it
+                is registered — carrier-local time == reel time, so line
+                three ("And the misses stay on there.") lands at 6.9s as
+                the count resolves with the dim tiles on screen. Keep that
+                alignment if the body timing ever shifts.
+     RATIO      furniture 8.5s = 52.1% — the evidence-reel number.
+     DATA       the track-record screen's OWN summary computation
+                (scripts/reel-record-stats.ts mirrors app/track-record.tsx:
+                query · scope gate · dedupe · summary) over the 30 COMPLETE
+                days ending D−1 (the screen's window includes today; the
+                reel needs a fixed "OF 30"). Stamp = reel_date = D−1.
+     GATES      three-digit assert (every stat < 100, value in the error);
+                COUNT GATE three-sided (tile flags vs DAYS before any frame;
+                DOM-painted gold tiles vs DAYS on the final frame; assembler
+                re-assert from the body's hm_record_* tags); tier-1 lint on
+                every string; 30-day window, not truncated. Caption slots
+                {days} {of} {exact} {juris} {range} are read from the FINAL's
+                tags — the same source as the pixels.
+     BINDING    public tier 1: page + YouTube (kinds allowlist widened) +
+                cross-post. Gate record stored (_public_gate_records.json).
+                Retention normal (keep-current-only). `record` runs LAST in
+                reel:daily — purely additive; if it aborts, allday_public
+                runs alone exactly as before.
+     ⚠ DB CHECK: applied 9/11 via MCP (2026_09_11_mkt79_record_public_kind).
+     ⚠ FIRST LIVE POST IS THE OPERATOR'S EYEBALL (7pm 9/12 or whenever the
+     first one runs). If the strip doesn't read, pull it and say so.
+
 D. CARRIERS (your main deliverable; spec §2/§7): rotating sets —
    allday_pro ×4, allday_free ×4, evening_pro ×4, midday_pro ×4 (MKT-59,
    8/19), verify ×3 (MKT-59 — a 4th, ledger, HELD on the seam proxy; see
@@ -238,8 +305,10 @@ D. CARRIERS (your main deliverable; spec §2/§7): rotating sets —
 E. CAPTIONS (§5): template engine at publish, date-deterministic, 12 families
    per kind (allday_public 8); kinds = allday_pro/free/public, verify (free
    draft) + verify_pro, verify_public, midday_pro/free, evening_pro/free,
-   verify_midday (PROVISIONAL ×3 — family owed, MKT-62); YT
-   title/description/tags as a per-platform transform (MKT-37). Numbers policy
+   verify_midday (PROVISIONAL ×3 — family owed, MKT-62), record_public
+   (v6.9: EIGHT + fallback, ⚠ PROVISIONAL — see G.12); YT
+   title/description/tags as a per-platform transform (MKT-37; record_public
+   has its own 6/3 set, ⚠ PROVISIONAL). Numbers policy
    absolute: real counts/states ONLY on pro kinds. Telegram (tier 4) reshapes;
    YouTube/TikTok/Reddit/X registered but DISABLED (operator-only flip, one at
    a time); Instagram = do-not-build.
@@ -336,6 +405,37 @@ G. OPEN / OWED — the standing list (everything else you may have read as
         ~2.1s of silent board — keep pt2 on evening only, or a ~0.3s
         tighter re-take of line four so the full script fits. Fallback =
         `--classic-cut` + republish (REEL_COMMANDS line).
+    12. MKT-79 — record_public, THE DAILY TRACK RECORD REEL: BUILT + GATED
+        9/11, FIRST CUT PUBLISHED to Admin → Reels for the operator's smoke
+        test, READY FOR THE 9/12 ASSEMBLY (runs last in reel:daily).
+        ⛔ OWED BY YOU — THE DELIVERED COPY DID NOT REACH THE BUILD: the
+        order says "the eight captions delivered in my previous message,
+        unchanged" and "the 6/3 YouTube set, unchanged", but neither was
+        in the message that reached the build session (the order text was
+        pasted twice, without them) and no copy exists in this file or the
+        repo. The build registered PROVISIONAL sets of its own (eight
+        captions to the slot spec {days} {of} {exact} {juris} {range}; six
+        titles / three descriptions), tier-1 clean, so the kind could ship
+        9/12 with a clean caption. PASTE THE DELIVERED EIGHT + 6/3 into
+        the next relay (or straight into scripts/reel-captions.ts
+        `record_public` / constants/socialPlatforms.ts YT_SHORTS_SETS.
+        record_public — one array edit each; reel:check re-lints them).
+        OWED BY YOU — THE CARRIER: record_public_carrier.mp4 (single part,
+        no pt2; "Forty-plus states, thirty days — every one of 'em
+        checked." / "Published 'fore the draw. Graded after." / "And the
+        misses stay on there."; last word scripted ≤ 8.8s; line three
+        timed to land at reel 6.9s) had NOT landed by the build. When it
+        lands it is GATED (ffprobe · trim to speech · last word ≤ 9.5s ·
+        silent tail · tier-1 transcript lint — no session words, no state
+        names, no result counts spoken · voice-family check against a
+        serving carrier) and registered in scripts/record-config.ts
+        RECORD_VOICE_FILE; until then the reel ships SILENT with the hum
+        bed by design (--voice=bed is the default; the reel never waits on
+        the voice). Deliver to assets/marketing/record_public_carrier.mp4
+        — the stray scan will name it on landing.
+        OWED BY THE OPERATOR: the first live eyeball (7pm 9/12 or the
+        first run) — if the dim tiles don't read at feed size, pull it and
+        say so; the morning board is unaffected either way.
      9. FIRST-APPEARANCE EYEBALLS owed on the rotation: `juggle` first draws
         evening_free 8/20 (then midday_free 8/21, evening_pro 8/22); etch /
         facet stingers 8/20 (v3.7); `guest` served
@@ -454,6 +554,69 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
       texts, voice options and the escape hatch: the v6.6 block. MKT-78
       (v6.7): the purpose-written CTA voice landed, gated and registered
       (--cta-voice=cta); default stays pt2 until the operator's ear.
+
+WHAT CHANGED IN v6.9 (2026-09-11 — MKT-79: `record_public`, THE DAILY TRACK
+RECORD REEL, built + gated + first cut PUBLISHED for the operator's smoke
+test; DB CHECK widened via MCP; BOTH public cuts daily by operator ruling.
+Audit: MASTER_AUDIT MKT-79. Next free ID: 80.)
+================================================================================
+  A. THE KIND. `record_public` — the 30-day strip of the Verified Track
+     Record as a 16.3s cold-open public reel (anatomy: state block C3).
+     Stats = the track-record screen's own summary computation (same
+     query, scope gate, dedupe, summary — scripts/reel-record-stats.ts
+     mirrors app/track-record.tsx; the screen is untouched), over the 30
+     complete days ending D−1. 9/11 build (window 8/12–9/10): 29 OF 30 ·
+     18 EXACT-ORDER · 38 STATES & PROVINCES; the one dim tile is 8/31.
+     Independently cross-checked by raw SQL: identical figures.
+  B. THE GATES, all built and all fail-closed: three-digit assert (every
+     stat < 100, value in the error); COUNT GATE three-sided (tile flags vs
+     DAYS before the first frame, DOM-painted gold tiles vs DAYS on the
+     final frame, assembler re-assert from the body's hm_record_* tags);
+     tier-1 lint on every string; window exactly 30 days, not truncated;
+     ALL-MATCHED = REJECT (abort without --allow-all-matched). Caption
+     slots read from the FINAL's own tags — the same source as the pixels.
+  C. STRIP vs GRID → GRID 10×3 (Phase 0 item 4): one row of 30 is ~10px per
+     tile at feed width; 88px tiles read. Eyeballed at ~380px: the dim tile
+     is unmistakable (record_public_<stamp>_feed.png is written on every
+     render as the standing eyeball). First render clipped the stats line
+     ("PROVINCES" off the right edge at 36px/3px tracking) — fixed to
+     30px/2px, one line, re-rendered before publishing.
+  D. DISPATCH — RULED (operator): both public cuts daily; allday_public
+     keeps its morning slot; record_public takes the 7pm slot; verify_public
+     stays registered, off the daily schedule (POSTING_SCHEDULE v1 Session
+     5 struck HISTORICAL). ⚠ Two public posts/day on a page carrying 13
+     hides — accepted with eyes open. The 9/9→9/23 window confound is
+     ACCEPTED BY THE OPERATOR and recorded. MKT-75's cold-open work is
+     kept as built (its hook machinery is this kind's card).
+  E. ⚠ DESIGN REASON, recorded: the dim tiles are rendered ON PURPOSE.
+     Unmatched days stay visible, never hidden, never removed — the misses
+     are the honesty. Nobody "cleans them up".
+  F. YOUR DELIVERED COPY DID NOT ARRIVE (G.12): eight captions + the 6/3
+     YouTube set are PROVISIONAL (build session's own, tier-1 clean) until
+     you paste the delivered sets. The carrier had not landed; the reel
+     ships silent with the hum bed by design (record-config.ts
+     RECORD_VOICE_FILE registers it after its gates; --voice=bed default).
+  G. PUBLISHED 9/11 on the operator's word ("publish the record reel when
+     finished for my visual smoke test"): marketing_reels 2026-09-10 ·
+     record_public · ready, 5.3MB final + 5-frame contact sheet; caption =
+     template 8 by rotation with the real figures. Not posted anywhere.
+  H. reel:check 0 fail / 117 warn (was 110): +5 fleet 24fps notes on the
+     new endcard matrix, +1 tide weak-transient note, +1 FORCED free-endcard
+     doubling — six live free kinds now draw from FIVE motions, so one pair
+     shares a close every day (it pairs with allday_free: different rooms).
+     A sixth free endcard motion is the only fix (asset, not arithmetic).
+     Two FALSE intro/stinger collisions on the first run were fixed in the
+     lane report (a cold-open kind has no such lanes), not suppressed.
+  I. Files: scripts/record-config.ts · reel-record-stats.ts ·
+     render-record-body.ts · assemble-record-reel.ts · render-public-hook
+     --kind=record · reel-provenance RECORD_TAGS · endcard-config
+     record_public (matrix ×5 built) · brand-motion ENDCARD_KINDS.free ·
+     reel-captions record_public · publish-reels mode `record` ·
+     reelKinds / ReelsView KIND_UI (📈) / socialPlatforms (YouTube kinds +
+     6/3 set) / render-captions-pdf · check-reel-assets checkRecordPublic +
+     gate record · _public_gate_records.json · package.json reel:record ·
+     run-daily-reels.sh ORDER (record LAST, additive) · migration
+     2026_09_11_mkt79_record_public_kind.sql (APPLIED) · REEL_COMMANDS.
 
 WHAT CHANGED IN v6.8 (2026-09-09, evening — OPERATOR RULING: the free session
 captions carry the FUNNEL LINK. Line one of midday_free / evening_free is now
@@ -3893,6 +4056,11 @@ and runs an in-frame vocabulary guard; any violation aborts the render.
 --------------------------------------------------------------------------------
 2. REEL ANATOMY — SLATE DROPS (33.83-34.53s @ 1080×1920 60fps)
 --------------------------------------------------------------------------------
+⚠ v6.9 (MKT-79): a TENTH kind, `record_public` (THE DAILY TRACK RECORD REEL),
+is NOT a slate drop and NOT a verify cut — its anatomy lives in state block
+C3 (16.3s cold open: hook card → 30-tile strip → count → stats → endcard;
+dim tiles = the misses, on purpose). Nothing below applies to it.
+
 Covers All-Day (Pro + Free) AND the Midday/Evening session drops (Pro + Free as
 of MKT-26) — they are the SAME reel built from a different board, so this one
 anatomy is the whole spec for all six. Variants differ in carrier (voiceover)
@@ -4456,6 +4624,24 @@ per-day by hand, not AI-freestyled.
 --------------------------------------------------------------------------------
 7. CURRENT ASSET INVENTORY (what you own / can replace)
 --------------------------------------------------------------------------------
+  ⚠ v6.9 (MKT-79) — record_public additions:
+    record_public_endcard_<std|alt|tide|bloom|adopen>.mp4  BUILT 9/11 from the
+                                  free motion set (HITMASTER ZK6 / THE FULL
+                                  RECORD IS FREE / JOIN THE FREE COMMUNITY,
+                                  gold line 3; shared 1240 band). Every one
+                                  bed-viable (the record reel ALWAYS beds:
+                                  std −29.3 · alt −24.5 · tide −32 · bloom
+                                  −22.5 post-crack · adopen −32.1 dB).
+    record_public_carrier.mp4     SLOT — NOT LANDED as of 9/11. Single part,
+                                  no pt2; lines and gates in state block
+                                  G.12; registers in scripts/record-config.ts
+                                  RECORD_VOICE_FILE after the gates. Until
+                                  then --voice=bed (default). Voice enters at
+                                  reel 0.0; line three must land at 6.9s.
+    _hook_record_public_<stamp>.mp4/.png, record_body_<stamp>.mp4,
+    record_public_<stamp>.mp4 / _contact.png / _feed.png — per-day
+                                  intermediates + finals in record_reels/,
+                                  swept by the next day's publish.
   assets/marketing/
     anchor_intro.mp4              THE ANCHOR intro, "standard" — rotation
                                   member AND the fallback every kind

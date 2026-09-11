@@ -266,7 +266,15 @@ export const ENDCARD_KINDS: Record<Tier, string[]> = {
   // evening_public later APPENDS to the live block's tail — no live kind
   // moves, which keeps the "registering them later is a no-op" promise above
   // (the promise the old order broke in spirit while keeping to the letter).
-  free: ['allday_free', 'midday_free', 'evening_free', 'allday_public', 'verify_public', 'midday_public', 'evening_public'],
+  //
+  // MKT-79 (2026-09-11): record_public INSERTED at the live block's tail
+  // (index 5), ahead of the two dormant publics — the rule above. Six live
+  // free kinds now draw from a pool of FIVE, so one same-day doubling is
+  // FORCED every day (index 5 ≡ 0 mod 5 → it pairs with allday_free's
+  // position: different rooms, the accepted class). reel:check reports it as
+  // "pool of 5 serving 6 kinds — forced"; the fix is a sixth free motion,
+  // not arithmetic.
+  free: ['allday_free', 'midday_free', 'evening_free', 'allday_public', 'verify_public', 'record_public', 'midday_public', 'evening_public'],
 };
 
 export function tierFor(kind: string): Tier {

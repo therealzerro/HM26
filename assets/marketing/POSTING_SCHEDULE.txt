@@ -64,13 +64,23 @@ SESSION 4 · 5:30 PM ET — the evening pair (2 handoffs)
 ────────────────────────────────────────────────────────────
 SESSION 5 · 7:00 PM ET — public (1 handoff)
 ────────────────────────────────────────────────────────────
-  PUBLIC  9. ONE cut, ALTERNATING DAILY: allday_public / verify_public
-          → YouTube Shorts + cross-post, same time every day.
+  ⚠ SUPERSEDED 2026-09-11 (MKT-79, operator ruling): BOTH public cuts
+  DAILY. allday_public keeps its MORNING slot (Session 1a, 9:00 AM — page
+  + YouTube + cross-post); record_public (THE DAILY TRACK RECORD REEL: the
+  30-day strip, dim tiles = the misses, on purpose) takes THIS 7pm slot.
+  verify_public stays REGISTERED and leaves the daily schedule. Two public
+  posts/day on a page carrying 13 hides — the risk is accepted with eyes
+  open and recorded (MASTER_AUDIT MKT-79). The v1 text below is HISTORICAL.
+  PUBLIC  9. record_public → page + YouTube Shorts + cross-post, 7pm.
+
+  ~~PUBLIC  9. ONE cut, ALTERNATING DAILY: allday_public / verify_public~~
+  ~~→ YouTube Shorts + cross-post, same time every day.~~ (HISTORICAL)
 
   ⚠ ONE PER DAY, NOT TWO. Two public cuts daily was flagged as a cadence
   risk at registration and it still is. Alternating gives one consistent
   slot, more variety across the week, and half the repetition risk on a
-  channel with no history.
+  channel with no history. (HISTORICAL — overridden by the MKT-79 ruling
+  above; the risk is the operator's accepted cost.)
   ⚠ 7 PM BECAUSE THE PUBLIC CUT HAS NO DEADLINE. It is masked — nothing in
   it expires at a draw time. So it should post when strangers scroll, which
   is evening, not when the board was generated.

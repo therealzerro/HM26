@@ -84,6 +84,12 @@ const KIND_UI: Record<ReelKind, { icon: string; label: string; defaultTarget: Ta
   // against the midday draws. Contact sheet 6 frames (open / covered Midday /
   // All-Day board / timestamp band / hold / close; 7 on strike days).
   verify_midday: { icon: '⏱️', label: 'Midday Draws · Same-Day Verify · both boards', defaultTarget: 'free', sheetAspect: 6 * (270 / 480) },
+  // MKT-79 — THE DAILY TRACK RECORD REEL: the 30-day strip, public tier 1,
+  // the 7pm attention-clock slot. Default 'cross' for the same reason as the
+  // other public kinds — written for strangers, tier-1 copy, the target class
+  // that forces the Two-Question ack. Contact sheet 5 frames (hook / dim grid
+  // / mid-fill / resolved count / endcard).
+  record_public: { icon: '📈', label: 'Track Record · Public', defaultTarget: 'cross', sheetAspect: 5 * (270 / 480) },
 };
 
 /** A kind with no UI entry would crash the whole Reels tab on `ui.defaultTarget`

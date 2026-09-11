@@ -78,6 +78,53 @@ export const STRIKE_TAG = 'hm_strike_at';
 export const LANDED_TAG = 'hm_landed';
 
 /**
+ * MKT-79 — the record reel's stats travel INSIDE the body (and are copied onto
+ * the final). Written by render-record-body from the ONE summary object that
+ * also drove the pixels, so the assembler's count gate and the publisher's
+ * caption slots read what was rendered, never a re-computation that could
+ * drift (a caption saying "29 of 30" over a strip showing 28 is the defect
+ * this closes). `hm_record_marks` is the number of gold tiles the renderer
+ * actually painted, counted from its own tile state — a SECOND render of the
+ * same source, asserted equal to `hm_record_days` (the count gate).
+ */
+export const RECORD_TAGS = {
+  days: 'hm_record_days', of: 'hm_record_of', exact: 'hm_record_exact',
+  juris: 'hm_record_juris', range: 'hm_record_range', marks: 'hm_record_marks',
+  since: 'hm_record_since', until: 'hm_record_until',
+} as const;
+
+export interface RecordStatsTags {
+  days: number; of: number; exact: number; juris: number; marks: number;
+  range: string; since: string; until: string;
+}
+
+/** ffmpeg -metadata args for the record tags (append with provenanceArgs). */
+export function recordTagArgs(t: RecordStatsTags): string {
+  return ` -metadata ${RECORD_TAGS.days}="${t.days}" -metadata ${RECORD_TAGS.of}="${t.of}"` +
+    ` -metadata ${RECORD_TAGS.exact}="${t.exact}" -metadata ${RECORD_TAGS.juris}="${t.juris}"` +
+    ` -metadata ${RECORD_TAGS.marks}="${t.marks}" -metadata ${RECORD_TAGS.range}="${t.range}"` +
+    ` -metadata ${RECORD_TAGS.since}="${t.since}" -metadata ${RECORD_TAGS.until}="${t.until}"`;
+}
+
+/** The record stats recorded in `file`, or null when any tag is missing or
+ *  malformed (a pre-MKT-79 file, or a muxer that dropped the tags). */
+export function readRecordStats(file: string): RecordStatsTags | null {
+  try {
+    const tag = (k: string) => execSync(
+      `ffprobe -v error -show_entries format_tags=${k} -of default=nw=1:nk=1 "${file}"`,
+    ).toString().trim();
+    const n = (k: string) => { const v = parseInt(tag(k), 10); return Number.isFinite(v) ? v : NaN; };
+    const days = n(RECORD_TAGS.days), of = n(RECORD_TAGS.of), exact = n(RECORD_TAGS.exact), juris = n(RECORD_TAGS.juris), marks = n(RECORD_TAGS.marks);
+    const range = tag(RECORD_TAGS.range), since = tag(RECORD_TAGS.since), until = tag(RECORD_TAGS.until);
+    if ([days, of, exact, juris, marks].some(v => !Number.isFinite(v))) return null;
+    if (!range || !/^\d{4}-\d{2}-\d{2}$/.test(since) || !/^\d{4}-\d{2}-\d{2}$/.test(until)) return null;
+    return { days, of, exact, juris, marks, range, since, until };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * ffmpeg args that stamp `dateISO` into the output. Append before the path,
  * and do NOT pass a separate `-movflags` — this emits its own.
  *

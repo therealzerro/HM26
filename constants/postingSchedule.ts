@@ -27,6 +27,11 @@ export const POSTING_SESSIONS: ScheduleSession[] = [
     note: 'Boards first, receipts after — the order is the brand line. verify posts twice: Pro room (full precision), then Free room (qualitative).',
   },
   {
+    time: '9:00 AM', title: 'Public board',
+    kinds: ['allday_public'],
+    note: 'MKT-79 ruling: allday_public keeps its MORNING slot — page + YouTube + cross-post (the caption\'s line one says "every morning").',
+  },
+  {
     time: '10:30 AM', title: 'Free contrast pair',
     kinds: ['allday_free', 'midday_free'],
     note: 'Back to back, THIS order — the full board, then the covered one.',
@@ -42,10 +47,16 @@ export const POSTING_SESSIONS: ScheduleSession[] = [
     kinds: ['evening_pro', 'evening_free'],
     deadline: 'live before ~6:30 PM ET — some jurisdictions cut early',
   },
+  // MKT-79 (operator ruling 2026-09-11): BOTH public cuts DAILY. allday_public
+  // keeps its MORNING slot ("Free board every morning" is line one of its
+  // caption); record_public takes the 7pm attention-clock slot verify_public
+  // was meant to fill. verify_public stays REGISTERED and leaves the daily
+  // schedule. Two public posts/day on a page carrying 13 hides — the risk is
+  // accepted with eyes open, recorded in MASTER_AUDIT MKT-79.
   {
-    time: '7:00 PM', title: 'Public',
-    kinds: ['allday_public', 'verify_public'],
-    note: 'ONE cut, ALTERNATING daily — never both. No deadline; posts when strangers scroll.',
+    time: '7:00 PM', title: 'Public · the track record',
+    kinds: ['record_public'],
+    note: 'MKT-79: the 30-day strip — page + YouTube + cross-post. No deadline; posts when strangers scroll. allday_public keeps its morning slot (Session 1a). verify_public is registered but off the daily schedule.',
   },
 ];
 

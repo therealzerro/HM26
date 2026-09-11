@@ -39,7 +39,10 @@ import { REEL_SCOPES, SCOPES, reelKind } from './reel-scopes';
  */
 export function dailyKinds(): string[] {
   const slate = SCOPES.flatMap(s => REEL_SCOPES[s].variants.map(v => reelKind(s, v)));
-  return ['verify', 'verify_public', ...slate];
+  // MKT-79: record_public is a daily kind outside the scope registry (its own
+  // renderer/assembler pair, like verify) — listed so its endcard draw is in
+  // the lane report; it has no intro/stinger/carrier lane by design.
+  return ['verify', 'verify_public', ...slate, 'record_public'];
 }
 
 export interface Lane {
@@ -69,21 +72,34 @@ const idx = <T>(set: readonly T[], match: (t: T) => boolean): number => {
   return i >= 0 ? i : 0;
 };
 
+/**
+ * MKT-79 — kinds that COLD-OPEN with no intro and no stinger lane at all
+ * (record_public: hook card → body → endcard). The resolvers would still
+ * return the shared rotation for an unknown kind, and this report would then
+ * print a same-day "collision" on a lane the kind never draws (it did, on
+ * 2026-09-11's first run: "arrival plays on allday_pro + record_public").
+ * Pool 0 = no lane, so the kind is neither rotating nor pinned here.
+ * (allday_public also cold-opens since MKT-66 but keeps its PUBLIC_INTROS
+ * fixed set registered for the --classic-open escape hatch, so it reports as
+ * pinned — unchanged.)
+ */
+const NO_OPEN_LANES = new Set(['record_public']);
+
 export const LANES: Lane[] = [
   {
     name: 'intro',
     sharedPool: true,
-    pick: (k, d) => introCandidates(k, d)[0]?.file ?? null,
+    pick: (k, d) => (NO_OPEN_LANES.has(k) ? null : introCandidates(k, d)[0]?.file ?? null),
     position(k, d) {
       const f = this.pick(k, d);
       return f ? idx(INTRO_ROTATION, v => v.file === f) : 0;
     },
-    poolSize: k => FIXED_INTRO[k]?.length ?? INTRO_ROTATION.length,
+    poolSize: k => (NO_OPEN_LANES.has(k) ? 0 : FIXED_INTRO[k]?.length ?? INTRO_ROTATION.length),
   },
   {
     name: 'stinger',
     sharedPool: true,
-    pick: (k, d) => stingerMotionsFor(k, d)[0]?.tag ?? null,
+    pick: (k, d) => (NO_OPEN_LANES.has(k) ? null : stingerMotionsFor(k, d)[0]?.tag ?? null),
     position(k, d) {
       const t = this.pick(k, d);
       return t ? idx(STINGER_MOTIONS, m => m.tag === t) : 0;
@@ -92,7 +108,7 @@ export const LANES: Lane[] = [
     // ruling, reported at the set's true size rather than treated as a defect.
     // While every member is held they draw the shared rotation (pre-seal
     // behaviour), so the pool is the rotation's in that state.
-    poolSize: k => (SEAL_KINDS.includes(k) && liveSealMotions().length ? liveSealMotions().length : STINGER_MOTIONS.length),
+    poolSize: k => (NO_OPEN_LANES.has(k) ? 0 : SEAL_KINDS.includes(k) && liveSealMotions().length ? liveSealMotions().length : STINGER_MOTIONS.length),
   },
   {
     name: 'endcard',

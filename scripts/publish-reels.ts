@@ -40,7 +40,9 @@ import { config as loadEnv } from 'dotenv';
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
-import { buildReelCaption, fetchReceiptsData, shiftDate, kindNeedsReceipts, ReceiptsData, ReelCaptionKind, SamedayCtx } from './reel-captions';
+import { buildReelCaption, fetchReceiptsData, shiftDate, kindNeedsReceipts, ReceiptsData, ReelCaptionKind, SamedayCtx, RecordCtx } from './reel-captions';
+import { readRecordStats } from './reel-provenance';
+import { RECORD_DIR, RECORD_KIND } from './record-config';
 import { fetchSamedayProvenance, fmtGap } from './reel-sameday';
 import { REEL_SCOPES, RETENTION_EXEMPT_KINDS, isScope, reelKind, parseVariantFlag, type Scope } from './reel-scopes';
 import { generateAndUploadCaptionsPdf } from './render-captions-pdf';
@@ -72,7 +74,7 @@ const ASSETS = resolve('assets/marketing');
  */
 type Kind = Extract<
   ReelCaptionKind,
-  'allday_pro' | 'allday_free' | 'verify' | 'midday_pro' | 'evening_pro' | 'midday_free' | 'evening_free' | 'allday_public' | 'verify_public' | 'verify_midday'
+  'allday_pro' | 'allday_free' | 'verify' | 'midday_pro' | 'evening_pro' | 'midday_free' | 'evening_free' | 'allday_public' | 'verify_public' | 'verify_midday' | 'record_public'
 >;
 
 
@@ -89,8 +91,12 @@ const mode = process.argv[2] ?? '';
 // run-daily-reels.sh's ORDER does not contain it, so a daily run cannot reach
 // this branch by accident.
 const MIDDAY_VERIFY = mode === 'verify_midday';
-if (mode !== 'verify' && !MIDDAY_VERIFY && !isScope(mode)) {
-  console.error('Usage: tsx scripts/publish-reels.ts <allday|midday|evening|verify|verify_midday> [YYYYMMDD] [--preview] [--captions-only]');
+// MKT-79: `record` is a MODE of its own — one kind (record_public), stamp D−1
+// (the window's last complete day, like verify), its own directory. Daily
+// (last in run-daily-reels.sh's ORDER), purely additive.
+const RECORD = mode === 'record';
+if (mode !== 'verify' && !MIDDAY_VERIFY && !RECORD && !isScope(mode)) {
+  console.error('Usage: tsx scripts/publish-reels.ts <allday|midday|evening|verify|verify_midday|record> [YYYYMMDD] [--preview] [--captions-only]');
   process.exit(1);
 }
 const restArgs = process.argv.slice(3);
@@ -113,16 +119,29 @@ if (MIDDAY_VERIFY && ONLY_VARIANT) {
   console.error('ABORT: verify_midday has no variants — free-group only by ruling (MKT-62). Drop --variant.');
   process.exit(1);
 }
+if (RECORD && ONLY_VARIANT) {
+  console.error('ABORT: record has no variants — record_public is the one kind (MKT-79). Drop --variant.');
+  process.exit(1);
+}
 const stampArg = restArgs.find((a) => !a.startsWith('--'));
 // verify grades D−1; verify_midday grades TODAY (the same-day cut) — its date
 // default is the one thing that must never be inherited from verify.
-const defaultIso = mode === 'verify' ? etDate(-1) : etDate(0);
+const defaultIso = mode === 'verify' || RECORD ? etDate(-1) : etDate(0);
 const stamp = stampArg ?? defaultIso.replace(/-/g, '');
 const isoDate = `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`;
 
 interface ReelFiles { kind: Kind; video: string; video1x1: string; sheet: string }
 
 function reelFiles(): ReelFiles[] {
+  if (RECORD) {
+    const dir = join(ASSETS, RECORD_DIR);
+    return [{
+      kind: RECORD_KIND as Kind,
+      video: join(dir, `${RECORD_KIND}_${stamp}.mp4`),
+      video1x1: join(dir, `${RECORD_KIND}_${stamp}_1x1.mp4`),
+      sheet: join(dir, `${RECORD_KIND}_${stamp}_contact.png`),
+    }];
+  }
   if (MIDDAY_VERIFY) {
     const dir = join(ASSETS, 'verify_reels');
     return [{
@@ -255,10 +274,22 @@ async function buildCaptions(kinds: Kind[]): Promise<Record<string, CaptionSet>>
     }
   }
 
+  // MKT-79: the record family's figures come from the FINAL's own container
+  // tags — the same summary object that painted the strip — never a
+  // re-computation. No final / no tags (a --preview before assembly, or a
+  // stray --captions-only against a missing file) → the figure-less fallback.
+  let record: RecordCtx | null = null;
+  if (kinds.includes(RECORD_KIND as Kind)) {
+    const video = reelFiles().find((t) => t.kind === RECORD_KIND)?.video ?? '';
+    const st = existsSync(video) ? readRecordStats(video) : null;
+    if (st) record = { days: st.days, of: st.of, exact: st.exact, juris: st.juris, range: st.range };
+    else console.warn(`[publish-reels] record_public: no hm_record_* tags readable from ${basename(video)} — caption uses the figure-less fallback.`);
+  }
+
   const out: Record<string, CaptionSet> = {};
   for (const k of kinds) {
     out[k] = {
-      caption: subUrl(buildReelCaption(k, isoDate, receipts, k === 'verify_midday' ? sameday : null)),
+      caption: subUrl(buildReelCaption(k, isoDate, receipts, k === 'verify_midday' ? sameday : null, k === RECORD_KIND ? record : null)),
       caption_pro: k === 'verify' ? buildReelCaption('verify_pro', isoDate, receipts) : null,
     };
   }
@@ -290,7 +321,7 @@ async function upsertRow(row: Record<string, unknown>): Promise<void> {
     // Name the migration instead of leaving a bare 400 after a successful upload.
     // (23514 = check_violation; the constraint name sits past the 300-char cut.)
     if (/marketing_reels_kind_check/.test(full) || /"code":"23514"/.test(full)) {
-      throw new Error(`marketing_reels upsert rejected by marketing_reels_kind_check — apply scripts/migrations/2026_08_19_mkt62_verify_midday_kind.sql (operator step; no DDL path from this env), then re-run publish. ${body}`);
+      throw new Error(`marketing_reels upsert rejected by marketing_reels_kind_check — apply the newest scripts/migrations/*_kind.sql (2026_09_11_mkt79_record_public_kind.sql; via the Supabase MCP or the SQL editor), then re-run publish. ${body}`);
     }
     throw new Error(`marketing_reels upsert → HTTP ${res.status}: ${body}`);
   }
@@ -477,7 +508,7 @@ async function main(): Promise<void> {
   }
 
   // MKT-38: local half. dir is common to every target in a run (one scope).
-  const dir = mode === 'verify' || MIDDAY_VERIFY ? join(ASSETS, 'verify_reels') : join(ASSETS, REEL_SCOPES[mode as Scope].dir);
+  const dir = mode === 'verify' || MIDDAY_VERIFY ? join(ASSETS, 'verify_reels') : RECORD ? join(ASSETS, RECORD_DIR) : join(ASSETS, REEL_SCOPES[mode as Scope].dir);
   // MKT-62: a verify_midday publish never sweeps the SHARED per-day artifacts
   // (ui_/stamp/chip) in verify_reels — the daily verify's D−1 body lives there.
   sweepLocal(dir, targets.map((t) => t.kind), stamp, !ONLY_VARIANT && !MIDDAY_VERIFY);

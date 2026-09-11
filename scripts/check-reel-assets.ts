@@ -23,6 +23,12 @@ import { resolveCarrier, undeclaredParts, carrierCandidates, carrierRest, audioD
 import { lintCaption } from '../lib/social/brandLint';
 import { HOOK_DUR, CTA_CUT_KINDS, CTA_BOARD_DUR, CTA_VO_LEAD, CTA_VOICE_FILES, CTA_VOICE_DEFAULT, CTA_HOOK_COPY } from './public-hook-config';
 import { GRID_DUR } from '../constants/reelPanels';
+import {
+  RECORD_KIND, RECORD_WINDOW_DAYS, RECORD_HOOK_COPY, RECORD_TOTAL, RECORD_FURNITURE, RECORD_BODY_DUR, RECORD_END_DISSOLVE, RECORD_CARD,
+  RECORD_VOICE_FILE, RECORD_VOICE_DEFAULT, RECORD_VOICE_LAST_WORD_MAX, RECORD_STAT_MAX,
+} from './record-config';
+import { buildReelCaption, shiftDate } from './reel-captions';
+import { YT_SHORTS_SETS } from '../constants/socialPlatforms';
 import { CARRIERS, CARRIER_KINDS, allCarrierFiles, PART1_DUR_TOLERANCE } from './carrier-config';
 import { bedWindow } from './reel-bed';
 import { available, sourcePath, builtPath, sha256, clearanceFor } from './reel-panels';
@@ -1121,6 +1127,10 @@ function checkPublicGateRecords(): void {
   // the one non-slate public kind ungated, which is precisely the
   // green-check-adjacent failure this check exists to prevent.
   publicKinds.push('verify_public');
+  // MKT-79: record_public is the third public kind, also outside the scope
+  // registry (its own renderer/assembler pair) — named explicitly for the
+  // same reason.
+  publicKinds.push(RECORD_KIND);
   if (publicKinds.length === 0) return;
   const p = join(ASSETS, GATE_RECORDS_FILE);
   let records: Record<string, { who?: string; density?: string; classes?: Record<string, string>; basis?: string }> = {};
@@ -1281,6 +1291,109 @@ function checkCtaCut(): void {
   else add('PASS', 'allday_free', `not a CTA kind (SOCIAL-13 pure value; body mode ${captureModeFor('allday', 'free')})`);
 }
 
+/**
+ * MKT-79 (2026-09-11) — record_public, THE DAILY TRACK RECORD REEL. Asserts
+ * the source-level invariants the renderer/assembler rely on, so the first
+ * 7pm post fails here and not at assembly:
+ *   · the anatomy adds up (card + body + dissolve + endcard = RECORD_TOTAL);
+ *   · the hook copy is tier-1 clean with no 3-digit run;
+ *   · the endcard entry exists, is FREE-tier, its matrix is built, a bed-
+ *     viable motion resolves today (the bed is always needed on this kind);
+ *   · the kind sits in ENDCARD_KINDS.free AHEAD of the dormant publics;
+ *   · every caption template AND the fallback lint tier-1 clean on a sample
+ *     context, with no 3-digit run; the YouTube 6/3 set is present;
+ *   · the registered voice (if any) exists, was measured after its last
+ *     delivery, and its last word is inside the budget — else "bed";
+ *   · run-daily-reels.sh ORDER contains `record` (daily by ruling);
+ *   · KIND_UI in ReelsView carries the kind (the MKT-13 crash class).
+ * The stat gates themselves (three-digit assert, count gate, all-matched
+ * reject) live in the renderer/assembler — they need the day's data.
+ */
+function checkRecordPublic(): void {
+  const K = RECORD_KIND;
+  const sum = +(HOOK_DUR + RECORD_BODY_DUR + RECORD_END_DISSOLVE + RECORD_CARD).toFixed(2);
+  if (sum !== RECORD_TOTAL) add('FAIL', K, `anatomy does not add up: ${HOOK_DUR}+${RECORD_BODY_DUR}+${RECORD_END_DISSOLVE}+${RECORD_CARD} = ${sum} ≠ RECORD_TOTAL ${RECORD_TOTAL}`);
+  else add('PASS', `${K} anatomy`, `card ${HOOK_DUR}s → body ${RECORD_BODY_DUR}s → dissolve ${RECORD_END_DISSOLVE}s → endcard ${RECORD_CARD}s = ${RECORD_TOTAL}s · furniture ${((RECORD_FURNITURE / RECORD_TOTAL) * 100).toFixed(1)}% (evidence-reel number) · window ${RECORD_WINDOW_DAYS} days · stats asserted ≤ ${RECORD_STAT_MAX}`);
+  if (RECORD_WINDOW_DAYS !== 30) add('FAIL', K, `RECORD_WINDOW_DAYS is ${RECORD_WINDOW_DAYS} — the hook card and the count line say 30`);
+  for (const str of [RECORD_HOOK_COPY.eyebrow, ...RECORD_HOOK_COPY.big, RECORD_HOOK_COPY.sub]) {
+    const bad = lintCaption(str, 1).violations.filter(x => x.blocking);
+    if (bad.length) add('FAIL', `${K} hook "${str}"`, `tier-1 lint: ${bad.map(x => `${x.term} (${x.rule})`).join(', ')}`);
+    if (/\d{3}/.test(str)) add('FAIL', `${K} hook "${str}"`, '3-digit run on a public card');
+  }
+  // endcard
+  const ec = ENDCARDS[K];
+  if (!ec) add('FAIL', K, 'no ENDCARDS entry — the assembler aborts at resolveEndcard');
+  else {
+    if (tierFor(K) !== 'free') add('FAIL', K, `tierFor = ${tierFor(K)} — public kinds are FREE-tier`);
+    for (const line of ec.lines) {
+      const bad = lintCaption(line, 1).violations.filter(x => x.blocking);
+      if (bad.length) add('FAIL', `${K} endcard "${line}"`, `tier-1 lint: ${bad.map(x => `${x.term} (${x.rule})`).join(', ')}`);
+    }
+    const meta = readMotionMeta(ASSETS);
+    for (const m of endcardMotionSetFor(K)) {
+      const built = builtEndcardName(ec.out, m.tag);
+      if (!existsSync(join(ASSETS, built))) { add('WARN', built, `not built — ${m.label} drops from ${K}'s rotation. Run npm run endcard:build ${K}`); continue; }
+      checkOneEndcard(K, built, meta[m.file]?.bedUsable !== false, meta[m.file]?.bedUsable === false ? m.label : null);
+    }
+    const cands = endcardCandidates(ASSETS, K, TODAY, true) ?? [];
+    const pick = cands.find(c => existsSync(join(ASSETS, c.name)));
+    add(pick ? 'PASS' : 'FAIL', `${K} endcard selection`, pick ? `today (${TODAY}): ${pick.name} [${pick.motion.label}] · bed-aware (the record reel always beds)` : `nothing bed-viable resolves — run npm run endcard:build ${K}`);
+    const free = ENDCARD_KINDS.free;
+    const i = free.indexOf(K);
+    const firstDormant = Math.min(...['midday_public', 'evening_public'].map(k => free.indexOf(k)).filter(x => x >= 0));
+    if (i < 0) add('FAIL', K, 'not in ENDCARD_KINDS.free — laneIndex would return 0 and it would shadow allday_free every day');
+    else if (Number.isFinite(firstDormant) && i > firstDormant) add('FAIL', K, `sits AFTER a dormant public in ENDCARD_KINDS.free (index ${i}) — live kinds first (MKT-49 finding 4)`);
+    else add('PASS', `${K} endcard lane`, `ENDCARD_KINDS.free index ${i}, ahead of the dormant publics (one same-day doubling on the 5-motion pool is forced with 6 live free kinds — different rooms, reported by rotation health)`);
+  }
+  // captions — every template + the fallback, tier 1, sample ctx
+  const rec = { days: 29, of: RECORD_WINDOW_DAYS, exact: 18, juris: 38, range: 'AUG 12 – SEP 10' };
+  const seen = new Set<string>();
+  for (let d = 0; d < 8; d++) seen.add(buildReelCaption(K as any, shiftDate('2026-09-10', d), null, null, rec));
+  seen.add(buildReelCaption(K as any, '2026-09-10', null, null, null));
+  let capFail = 0;
+  for (const cap of seen) {
+    const text = cap.replace(/\{free_group_url\}/g, 'https://example.invalid/g');
+    const bad = lintCaption(text, 1).violations.filter(x => x.blocking);
+    if (bad.length) { capFail++; add('FAIL', `${K} caption`, `tier-1 lint: ${bad.map(x => `${x.term} (${x.rule})`).join(', ')} — "${cap.slice(0, 70)}…"`); }
+    if (/\d{3}/.test(text.replace(/https?:\S+/g, ''))) { capFail++; add('FAIL', `${K} caption`, `3-digit run — "${cap.slice(0, 70)}…"`); }
+    if (/\{(days|of|exact|juris|range)\}/.test(cap)) { capFail++; add('FAIL', `${K} caption`, `unrendered slot — "${cap.slice(0, 70)}…"`); }
+  }
+  if (!capFail) add('PASS', `${K} captions`, `${seen.size - 1} templates + fallback tier-1 clean on the sample ctx (${rec.days} of ${rec.of} · ${rec.exact} · ${rec.juris}) · slots rendered · ⚠ PROVISIONAL family until the delivered eight are pasted (MKT-79)`);
+  const yt = YT_SHORTS_SETS[K];
+  if (!yt || yt.titles.length < 6 || yt.descriptions.length < 3) add('FAIL', K, 'YouTube set missing or short — the order names a 6/3 set');
+  else {
+    let ytBad = 0;
+    for (const str of [...yt.titles, ...yt.descriptions]) {
+      const bad = lintCaption(str.replace(/\{free_group_url\}/g, 'https://example.invalid/g'), 1).violations.filter(x => x.blocking);
+      if (bad.length) { ytBad++; add('FAIL', `${K} youtube "${str.slice(0, 50)}"`, `tier-1 lint: ${bad.map(x => `${x.term} (${x.rule})`).join(', ')}`); }
+    }
+    if (!ytBad) add('PASS', `${K} youtube set`, `${yt.titles.length} titles / ${yt.descriptions.length} descriptions tier-1 clean · ⚠ PROVISIONAL until the delivered 6/3 set is pasted`);
+  }
+  // voice
+  if (!RECORD_VOICE_FILE) add('PASS', `${K} voice`, `bed (default ${RECORD_VOICE_DEFAULT}) — no carrier registered; record_public_carrier.mp4 registers in record-config.ts when it clears its gates (last word ≤ ${RECORD_VOICE_LAST_WORD_MAX}s, silent tail, tier-1 transcript, voice family)`);
+  else {
+    const p = join(ASSETS, RECORD_VOICE_FILE.file);
+    if (!existsSync(p)) add('FAIL', RECORD_VOICE_FILE.file, 'registered record carrier is missing');
+    else {
+      const mtime = statSync(p).mtime.toISOString().slice(0, 10);
+      if (mtime > RECORD_VOICE_FILE.measuredAt) add('FAIL', RECORD_VOICE_FILE.file, `re-delivered ${mtime}, after the last-word measurement (${RECORD_VOICE_FILE.measuredAt}) — re-measure and update RECORD_VOICE_FILE`);
+      else if (RECORD_VOICE_FILE.lastWord > RECORD_VOICE_LAST_WORD_MAX) add('FAIL', RECORD_VOICE_FILE.file, `last word ${RECORD_VOICE_FILE.lastWord}s > ${RECORD_VOICE_LAST_WORD_MAX}s`);
+      else add('PASS', `${K} voice`, `${RECORD_VOICE_FILE.file} last word ${RECORD_VOICE_FILE.lastWord}s ≤ ${RECORD_VOICE_LAST_WORD_MAX}s (default ${RECORD_VOICE_DEFAULT})`);
+    }
+  }
+  if (CARRIERS[K]) add('FAIL', K, 'has a CARRIERS entry — the record voice is registered in record-config.ts (single part, no pt2, gated), not the carrier registry');
+  if (STINGERS[K]) add('FAIL', K, 'has a STINGERS entry — no stinger on this kind (cold open)');
+  if (CHIP_LABELS_HAS(K)) add('FAIL', K, 'has a CHIP_LABELS entry — no shoulder chip on this kind (cold open)');
+  const daily = readFileSync(resolve('scripts/run-daily-reels.sh'), 'utf8');
+  const orderLine = daily.split('\n').find(l => /^ORDER=\(/.test(l)) ?? '';
+  if (!/\brecord\b/.test(orderLine)) add('FAIL', 'run-daily-reels.sh', `ORDER lacks record — record_public is DAILY by ruling (both public cuts daily, MKT-79)`);
+  else if (!/record\)$/.test(orderLine)) add('WARN', 'run-daily-reels.sh', `record is not LAST in ORDER — it should be, so an abort on its own gates never stops a slate kind`);
+  else add('PASS', 'run-daily-reels.sh', `ORDER=${orderLine.replace(/^ORDER=/, '')} — record last (additive)`);
+  const ui = readFileSync(resolve('components/admin/ReelsView.tsx'), 'utf8');
+  if (!new RegExp(`^\\s*${K}:\\s*\\{`, 'm').test(ui)) add('FAIL', 'ReelsView.tsx', `KIND_UI has no ${K} entry (MKT-13: a kind without one crashed the Reels tab)`);
+  else add('PASS', 'ReelsView.tsx', `KIND_UI carries ${K}`);
+}
+
 checkPartNaming();
 checkStrays();
 checkMotions();
@@ -1290,6 +1403,7 @@ checkStingers();
 checkVerify();
 checkVerifyMidday();
 checkCtaCut();
+checkRecordPublic();
 checkStrikeOverlay();
 checkPanels();
 checkStamp();

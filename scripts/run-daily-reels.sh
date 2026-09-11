@@ -3,7 +3,7 @@
 # whatever session launched it. The pipelines run on the codespace VM either
 # way; this removes the last tether (the launching shell).
 #
-#   npm run reel:daily              # verify → allday → midday → evening
+#   npm run reel:daily              # verify → allday → midday → evening → record
 #   npm run reel:daily -- --from=midday   # resume after a partial run
 #   tail -f "$(ls -t ~/.hm26_reel_runs/*.log | head -1)"   # watch it
 #
@@ -13,7 +13,9 @@
 # click is the only automation trigger in this system).
 set -u
 
-ORDER=(verify allday midday evening)
+# MKT-79: `record` (record_public, the 30-day track record reel) runs LAST —
+# purely additive: if it aborts, everything before it has already published.
+ORDER=(verify allday midday evening record)
 ARG="${1:-}"                 # set -u: a bare $1 aborts the documented no-arg form
 FROM="${ARG#--from=}"
 [ "$FROM" = "$ARG" ] && FROM=""   # no --from given
@@ -47,9 +49,11 @@ for KIND in "${ORDER[@]}"; do
   npm run "reel:$KIND"
   RC=$?
   echo "EXIT($KIND):$RC"
-  if [ "$RC" -ne 0 ] && [ "$KIND" != "verify" ]; then
-    # verify legitimately aborts on a zero-match day; a slate kind failing is
-    # real. Stop so the log ends at the failure instead of burying it.
+  if [ "$RC" -ne 0 ] && [ "$KIND" != "verify" ] && [ "$KIND" != "record" ]; then
+    # verify legitimately aborts on a zero-match day; record aborts on its own
+    # gates (count gate, three-digit assert, all-matched reject) and is last
+    # anyway; a slate kind failing is real. Stop so the log ends at the
+    # failure instead of burying it.
     echo "=== STOPPED at $KIND (exit $RC) — resume with: npm run reel:daily -- --from=$KIND ==="
     exit "$RC"
   fi

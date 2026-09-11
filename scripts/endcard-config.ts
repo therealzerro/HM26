@@ -155,6 +155,19 @@ export const ENDCARDS: Record<string, EndcardVariant> = {
     lines: ['HITMASTER ZK6', 'POSTED THIS MORNING · GRADED THIS AFTERNOON', 'ZK PRO READS EVERY BOARD FIRST · $2.49/MO'],
     line3Accent: '#FBBF24',
   },
+
+  // ── MKT-79 — record_public: THE DAILY TRACK RECORD REEL. FREE-TIER motion
+  // set (tierFor: public kinds are free-tier). Copy from the work order
+  // (2026-09-11), tier-1 discipline: no pricing, no session word, no Pro
+  // language — the close is the community funnel and nothing else. Line 3
+  // keeps the results-desk gold: the evidence-reel family (verify_public).
+  // The assembler dissolves INTO this card over 0.4s and then holds it 6.5s.
+  record_public: {
+    motion: 'endcard_motion_free.mp4',
+    out: 'record_public_endcard.mp4',
+    lines: ['HITMASTER ZK6', 'THE FULL RECORD IS FREE', 'JOIN THE FREE COMMUNITY'],
+    line3Accent: '#FBBF24',
+  },
 };
 
 // ── Brand-fixed layout ──────────────────────────────────────────────────────

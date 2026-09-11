@@ -2,7 +2,7 @@
 HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
-changed. Every command has a description. (Last updated 2026-09-09 — MKT-77 free session CTA cuts; previously 2026-09-08 —
+changed. Every command has a description. (Last updated 2026-09-11 — MKT-79 record_public, THE DAILY TRACK RECORD REEL; previously 2026-09-09 — MKT-77 free session CTA cuts; 2026-09-08 —
 UPDATED 2026-08-17 (MKT-57) — every slate reel body (allday/midday/evening,
 all cuts) now captures the coffee-mode HOME, not the Slates grid: 10.0s
 static still of the six tiles (emboss + notation band at the bottom of the
@@ -22,6 +22,54 @@ before showing the ledger. Details in the sections below.
 FREE SESSION REELS LIVE (2026-07-29): reel:midday and reel:evening
 each now build TWO reels — Pro, plus a FREE one cut from a REDACTED
 capture where every digit is masked.
+
+UPDATED 2026-09-11 (MKT-79) — NEW DAILY KIND `record_public`: THE DAILY
+TRACK RECORD REEL. ~16.3s, cold open: 2.0s gold hook card (40+ STATES &
+PROVINCES / THE TRACK RECORD / LAST 30 DAYS · CHECKED AGAINST OFFICIAL
+RESULTS) → 0.4s dissolve → 7.4s body (thirty tiles, 10×3 grid, ALL DIM;
+gold marks land on the matched days left→right ~0.1s apart; "N OF 30
+DAYS" resolves; "E EXACT-ORDER MATCHES · J STATES & PROVINCES"; hold with
+the rightmost tile pulsing) → 0.4s dissolve → 6.5s endcard (free motions,
+HITMASTER ZK6 / THE FULL RECORD IS FREE / JOIN THE FREE COMMUNITY). No
+intro, no stinger, no chip. Furniture 52.1% (evidence-reel number).
+Stamp = D−1 = the window's last complete day (like verify); reel_date = D−1.
+⛔ THE DIM TILES ARE THE DESIGN — unmatched days stay visible on purpose.
+An all-gold strip ABORTS (renderer) unless --allow-all-matched.
+⛔ GATES (all fail-closed): three-digit assert (every stat < 100, value in
+the error) · COUNT GATE (gold tiles painted == "N OF 30", checked before
+the first frame, on the final frame's DOM, and again by the assembler from
+the body's hm_record_* tags) · tier-1 lint on every string · window must
+be exactly 30 days and not truncated. Stats = the track-record screen's
+own summary computation (scripts/reel-record-stats.ts mirrors
+app/track-record.tsx), over the 30 complete days ending D−1.
+DISPATCH (ruled): BOTH public cuts daily — allday_public keeps its morning
+slot, record_public takes the 7pm slot; verify_public stays registered,
+off the daily schedule. record is LAST in reel:daily's ORDER (additive: an
+abort here never stops a slate kind).
+    npm run reel:record                      # render → assemble → publish (stamp = yesterday ET)
+    npx tsx scripts/render-record-body.ts <YYYYMMDD> [--parity] [--allow-all-matched]
+        --parity also prints the SAME computation over the SCREEN's own
+        30d window so you can compare it with the app's summary band.
+        Writes record_reels/record_body_<stamp>.mp4 + record_public_<stamp>_feed.png
+        (the resolved frame at feed width — the standing dim-tile eyeball).
+    npx tsx scripts/assemble-record-reel.ts <YYYYMMDD> [--voice=bed|carrier] [--preview]
+        --voice=bed (DEFAULT) = hum bed only; --voice=carrier plays
+        record_public_carrier.mp4 from reel 0.0 ONLY once it is registered
+        in scripts/record-config.ts (RECORD_VOICE_FILE) after its gates
+        (ffprobe · trim to speech · last word ≤ 9.5s · silent tail · tier-1
+        transcript · voice family). Unregistered = abort; the reel never
+        waits on the voice. --preview = suffixed output, never published.
+    npx tsx scripts/publish-reels.ts record <YYYYMMDD> [--preview|--captions-only]
+        Captions: {days} {of} {exact} {juris} {range} read from the FINAL's
+        own hm_record_* tags (the same source as the pixels). ⚠ The eight
+        captions + the YouTube 6/3 set are PROVISIONAL (build session's
+        own) until the delivered sets are pasted into reel-captions.ts /
+        socialPlatforms.ts — one array edit each, re-lint via reel:check.
+    ESCAPE HATCH: nothing — the kind is purely additive. If it aborts,
+    allday_public runs alone exactly as before. To pull a published cut,
+    leave the row unposted in Admin → Reels; the next run supersedes it.
+    ⚠ KIND CHECK: applied 2026-09-11 via MCP
+    (scripts/migrations/2026_09_11_mkt79_record_public_kind.sql).
 
 UPDATED 2026-09-08 (MKT-75) — verify_public COLD OPEN, BUILT AND HELD.
 The public receipts cut gets MKT-66's treatment: a 2.0s gold hook card

@@ -134,7 +134,9 @@ export const SOCIAL_PLATFORMS: Record<PlatformId, SocialPlatform> = {
     // The flag gates ONLY the Admin → Reels handoff card (`canSend`); nothing
     // in reel:daily / publish-reels reads it — no auto-publish exists.
     enabled: true,
-    kinds: ['allday_public'],
+    // MKT-79 (2026-09-11, work order): record_public is a YouTube target too
+    // (page + YouTube + cross-post) — the second kind on this lane, by order.
+    kinds: ['allday_public', 'record_public'],
   },
   tiktok: {
     id: 'tiktok',
@@ -404,6 +406,25 @@ export const YT_SHORTS_SETS: Record<string, YtShortsSet> = {
       `Every morning we check the previous day's six signals against the official results and publish what happened. Nothing edited, nothing retroactive.\nThe full record is free in our community: {free_group_url}`,
       `We publish pattern analysis before the draw and grade it after. This is the grading half — the same board, checked in the open, across 40+ states & provinces.\nSee the full record free: {free_group_url}`,
       `Most methods never show what happened next. Ours gets checked every morning and the record stays public.\nFree to read: {free_group_url}`,
+    ],
+  },
+  // MKT-79 — record_public: ⚠ PROVISIONAL 6/3 set (build session, 2026-09-11).
+  // The order's delivered 6/3 set did not reach the build session (see the
+  // caption-family note in scripts/reel-captions.ts); these hold the slot,
+  // tier-1 clean, and are REPLACED verbatim when the delivered set is pasted.
+  record_public: {
+    titles: [
+      'Thirty days, checked against official results',
+      'The track record, misses included',
+      'Every day for thirty days, graded in public',
+      'Our last 30 days, on the record',
+      '40+ states & provinces, thirty days checked',
+      'What a public track record looks like',
+    ],
+    descriptions: [
+      `Thirty days of pattern analysis, every day checked against the official results across 40+ states & provinces — matched days in gold, the misses left on the board.\nThe full record is free in our community: {free_group_url}`,
+      `We publish six ranked signals before the draw and grade them after. This is the last thirty days of that record, checked in public, nothing edited.\nSee the full record free: {free_group_url}`,
+      `A record is only worth reading if the misses are on it. Ours are.\nFree to read: {free_group_url}`,
     ],
   },
 };

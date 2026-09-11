@@ -36,6 +36,7 @@ import { lintCaption } from '../lib/social/brandLint';
 import { shiftDate } from './reel-captions';
 
 import { HOOK_DUR, CTA_HOOK_COPY } from './public-hook-config';
+import { RECORD_HOOK_COPY } from './record-config';
 import { config as loadEnv } from 'dotenv';
 // Spawned via execSync from the assembler — under the detached reel:daily runner
 // nothing has exported .env, so load it here like the sibling renderers do.
@@ -47,8 +48,14 @@ const VERIFY = process.argv.includes('--kind=verify_public');
 // MKT-77 — the free session CTA cut's hook card: FIXED copy (no receipts
 // fetch, nothing data-driven), tier-2 lint (free-room kinds only), drop cyan.
 const CTA = process.argv.includes('--kind=cta');
+// MKT-79 — the record reel's hook card: FIXED copy (40+ STATES & PROVINCES /
+// THE TRACK RECORD / LAST 30 DAYS · CHECKED AGAINST OFFICIAL RESULTS), tier-1
+// lint (public surface), verify's GOLD — the evidence-reel family. No
+// receipts fetch: the body carries the numbers, the card carries the claim.
+const RECORD = process.argv.includes('--kind=record');
+const FIXED = CTA || RECORD;
 if (!/^\d{8}$/.test(ymd ?? '') || !outArg) {
-  console.error('Usage: tsx scripts/render-public-hook.ts <YYYYMMDD> <out.mp4> [--kind=verify_public|--kind=cta]');
+  console.error('Usage: tsx scripts/render-public-hook.ts <YYYYMMDD> <out.mp4> [--kind=verify_public|--kind=cta|--kind=record]');
   process.exit(1);
 }
 const out = resolve(outArg);
@@ -124,7 +131,7 @@ function cardCopy(r: { total: number; verified: number; verified30d: number } | 
 
 (async () => {
   let receipts: { total: number; verified: number; verified30d: number } | null = null;
-  if (!CTA) try {
+  if (!FIXED) try {
     receipts = await alldayReceipts(rcptISO);
     console.log(`NOTE(hook): All-Day receipts for ${rcptISO}: ${receipts.verified} of ${receipts.total} verified · 30d ${receipts.verified30d}.`);
   } catch (e) {
@@ -135,11 +142,14 @@ function cardCopy(r: { total: number; verified: number; verified30d: number } | 
   // leaves the free room (the assembler binds it to redacted free bodies).
   const copy = CTA
     ? { eyebrow: CTA_HOOK_COPY.eyebrow, big: `${CTA_HOOK_COPY.big[0]}<br>${CTA_HOOK_COPY.big[1]}`, line: '', sub: CTA_HOOK_COPY.sub }
+    : RECORD
+    ? { eyebrow: RECORD_HOOK_COPY.eyebrow, big: `${RECORD_HOOK_COPY.big[0]}<br>${RECORD_HOOK_COPY.big[1]}`, line: '', sub: RECORD_HOOK_COPY.sub }
     : cardCopy(receipts);
   const LINT_TIER = CTA ? 2 : 1;
+  const bigLines: string[] = CTA ? [...CTA_HOOK_COPY.big] : RECORD ? [...RECORD_HOOK_COPY.big] : [copy.big];
 
   // Fail-closed lint on every string the card shows (tier 1 public, tier 2 CTA).
-  for (const s of [copy.eyebrow, ...(CTA ? [...CTA_HOOK_COPY.big] : [copy.big]), copy.line, copy.sub].filter(Boolean)) {
+  for (const s of [copy.eyebrow, ...bigLines, copy.line, copy.sub].filter(Boolean)) {
     const res = lintCaption(s, LINT_TIER);
     const blocking = res.violations.filter(v => v.blocking);
     if (blocking.length) {
@@ -160,8 +170,9 @@ function cardCopy(r: { total: number; verified: number; verified30d: number } | 
   // drop cyan — the reel is a data drop; gold is verify's. MKT-75: on the
   // verify_public card the accent (eyebrow, rule, bolt, background tint) is
   // verify's gold — frame-one distinguishable from the drop cut.
-  const ACCENT = VERIFY ? GOLD : '#2bffcc';
-  const TINT = VERIFY ? 'rgba(251,191,36,0.10)' : 'rgba(43,255,204,0.10)';
+  // MKT-79: the record card is gold too — same evidence family as verify's.
+  const ACCENT = VERIFY || RECORD ? GOLD : '#2bffcc';
+  const TINT = VERIFY || RECORD ? 'rgba(251,191,36,0.10)' : 'rgba(43,255,204,0.10)';
 
   const html = `<!doctype html><html><head><style>
     @font-face { font-family: JBM; src: url('file://${mono700}'); font-weight: 700; }
@@ -173,6 +184,7 @@ function cardCopy(r: { total: number; verified: number; verified30d: number } | 
     .eyebrow { font: 500 40px JBM; letter-spacing: 8px; color: ${ACCENT}; text-shadow: 0 0 22px ${ACCENT}66; }
     .big { font: 700 236px JBM; letter-spacing: -4px; line-height: 1; color: ${GOLD}; text-shadow: 0 0 60px ${GOLD}55; margin-top: 18px; }
     .big.two { font-size: 94px; letter-spacing: 0px; line-height: 1.15; color: #ffffff; text-shadow: 0 0 40px ${ACCENT}55; }
+    .big.record { font-size: 150px; letter-spacing: -2px; line-height: 1.08; color: ${GOLD}; text-shadow: 0 0 60px ${GOLD}55; }
     .line { font: 700 78px JBM; letter-spacing: 8px; color: #ffffff; }
     .rule { width: 520px; height: 3px; background: ${ACCENT}66; margin: 26px 0 6px; }
     .sub { font: 500 30px JBM; letter-spacing: 3px; color: rgba(255,255,255,0.72); text-align: center; max-width: 900px; line-height: 1.5; }
@@ -182,7 +194,7 @@ function cardCopy(r: { total: number; verified: number; verified30d: number } | 
   </style></head><body>
     <div class="wrap">
       <div class="eyebrow">${copy.eyebrow}</div>
-      <div class="big${CTA ? ' two' : ''}">${copy.big}</div>
+      <div class="big${CTA ? ' two' : RECORD ? ' record' : ''}">${copy.big}</div>
       ${copy.line ? `<div class="line">${copy.line}</div>` : ''}
       <div class="rule"></div>
       <div class="sub">${copy.sub}</div>
@@ -211,7 +223,7 @@ function cardCopy(r: { total: number; verified: number; verified30d: number } | 
     // reel-provenance documents). The count gate reads these, so they must exist.
     `-movflags +faststart+use_metadata_tags ` +
     `-metadata hm_hook_copy="${copy.eyebrow} | ${copy.big.replace('<br>', ' / ')} | ${copy.line}" ` +
-    (CTA ? `-metadata hm_hook_kind="cta" ` : ``) +
+    (CTA ? `-metadata hm_hook_kind="cta" ` : RECORD ? `-metadata hm_hook_kind="record" ` : ``) +
     // MKT-75: the count as the card shows it, machine-readable, for the
     // assembler's fail-closed equality gate. Absent on the 30d / no-data shapes.
     (receipts && receipts.total > 0 && receipts.verified > 0
@@ -220,5 +232,5 @@ function cardCopy(r: { total: number; verified: number; verified30d: number } | 
     `"${out}"`,
     { stdio: 'inherit' },
   );
-  console.log(`NOTE(hook): ${out} · ${HOOK_DUR}s · "${copy.eyebrow} · ${copy.big.replace('<br>', ' / ')} ${copy.line}"${CTA ? ' · CTA card, tier-2 lint (MKT-77)' : ''}`);
+  console.log(`NOTE(hook): ${out} · ${HOOK_DUR}s · "${copy.eyebrow} · ${copy.big.replace('<br>', ' / ')} ${copy.line}"${CTA ? ' · CTA card, tier-2 lint (MKT-77)' : RECORD ? ' · record card, tier-1 lint, gold (MKT-79)' : ''}`);
 })().catch(e => { console.error('ABORT(hook):', e instanceof Error ? e.message : String(e)); process.exit(1); });

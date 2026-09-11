@@ -216,11 +216,28 @@ export interface SamedayCtx {
   straightBoard: 'midday' | 'allday' | 'both' | null; // where the straight(s) sit — the lead line's board word
 }
 
+/**
+ * MKT-79 — the record reel's stats context. Fed by publish-reels from the
+ * FINAL's own container tags (hm_record_*, written by render-record-body from
+ * the one summary object that drove the pixels), so {days} {of} {exact}
+ * {juris} {range} in the caption cannot disagree with the strip. Distinct
+ * from ReceiptsData on purpose: that is a per-day slate∩histories join; this
+ * is the track-record screen's 30-day summary (reel-record-stats.ts).
+ */
+export interface RecordCtx {
+  days: number;   // matched days
+  of: number;     // window length (30)
+  exact: number;  // exact-order matches
+  juris: number;  // states & provinces on the record
+  range: string;  // "AUG 12 – SEP 10"
+}
+
 interface TemplateCtx {
   reelMd: string;        // the content date label, e.g. "7/27"
   pro: ProCtx | null;    // real-numbers context — ONLY for realNumbers kinds
   q: QualCtx | null;     // qualitative context — ONLY for qualitativeReceipts kinds
   sd: SamedayCtx | null; // same-day gap context — ONLY for samedayProvenance kinds
+  rec: RecordCtx | null; // record stats — ONLY for recordStats kinds (MKT-79)
   seed: number;
 }
 
@@ -315,6 +332,7 @@ interface KindSpec {
   realNumbers: boolean;            // templates see counts/states (PRO surfaces only)
   qualitativeReceipts?: boolean;   // templates see descriptor words, never numbers
   samedayProvenance?: boolean;     // templates see the same-day gap (verify_midday only)
+  recordStats?: boolean;           // templates see the 30-day record stats (record_public only, MKT-79)
   templates: ((c: TemplateCtx) => string)[];
   fallback?: (reelMd: string) => string;   // used when receipts are needed but unavailable
 }
@@ -705,6 +723,49 @@ const CAPTION_REGISTRY = {
       () => `Yesterday's six, graded. Scored across 40+ states and provinces, published before the draw, checked after it. The whole record is free: {free_group_url}`,
     ])),
   },
+  /**
+   * MKT-79 — record_public: THE DAILY TRACK RECORD REEL (public, tier 1).
+   *
+   * ⚠ PROVISIONAL FAMILY. The work order says the eight delivered captions
+   * are to be registered UNCHANGED — but the message that carried them did
+   * not reach the build session (the order was pasted twice, without them),
+   * and no copy of them exists in the repo or the handoff. These eight are
+   * the build session's own, written to the order's slot spec and tier-1
+   * discipline, so the kind can ship 9/12 with a lint-clean caption; the
+   * delivered eight REPLACE them verbatim the moment they are pasted (one
+   * array edit, re-lint at registration). Recorded in MASTER_AUDIT MKT-79
+   * and handoff §G as OWED.
+   *
+   * Slots: {days} {of} {exact} {juris} {range} — wired from the FINAL's own
+   * container tags (the SAME source as the render), never re-computed here.
+   * Tier 1: no digits-as-values (every figure is a two-digit count in
+   * statistical context), no state names, no session words, no "straight"/
+   * "box" — EXACT-ORDER is the shipped tier-1 relabel. {free_group_url} via
+   * linkFirst (line one) + PUBLIC_TAGS via tagged(), like the other publics.
+   *
+   * FALLBACK (tags unavailable — e.g. --preview before assembly): a static
+   * line with no figures; never a literal "{days}".
+   *
+   * Offset 3 → residue 3 mod 8: distinct within the 8-length family
+   * (allday_public 4, verify_public 6, verify_midday 9→1). Coincides with
+   * allday_free (3 mod 12) — different family, the documented harmless class.
+   */
+  record_public: {
+    offset: 3,
+    realNumbers: false,
+    recordStats: true,
+    fallback: () => `Thirty days, checked against the official results across 40+ states and provinces — matched days in gold, the misses left on the board. The full record is free: {free_group_url}`,
+    templates: tagged(linkFirst([
+      c => `40+ states and provinces, thirty days, every one checked against the official results. ${c.rec!.range}: ${c.rec!.days} of ${c.rec!.of} days carried a verified match, ${c.rec!.exact} of them exact-order, across ${c.rec!.juris} states and provinces. The misses stay on the board. The full record is free: {free_group_url}`,
+      c => `${c.rec!.days} of ${c.rec!.of} days. That's the last thirty, ${c.rec!.range}, graded against the official results across 40+ states and provinces — ${c.rec!.exact} exact-order matches in ${c.rec!.juris} states and provinces. Published before the draw, checked after. See the full record free: {free_group_url}`,
+      c => `Thirty days on the record, ${c.rec!.range}. ${c.rec!.days} of ${c.rec!.of} showed a verified match; ${c.rec!.exact} were exact-order; ${c.rec!.juris} states and provinces are on the board. The dim days are the misses — they stay. Free to read: {free_group_url}`,
+      c => `We publish before the draw and grade after it, every day, across 40+ states and provinces. The last thirty days: ${c.rec!.days} of ${c.rec!.of} matched, ${c.rec!.exact} exact-order, ${c.rec!.juris} states and provinces. Nothing edited, misses included. The whole record is free: {free_group_url}`,
+      c => `A track record is only worth reading if the misses are on it. ${c.rec!.range}: ${c.rec!.days} of ${c.rec!.of} days matched, ${c.rec!.exact} exact-order, ${c.rec!.juris} states and provinces — and the days that didn't are right there in the strip. Read the full record free: {free_group_url}`,
+      c => `Last thirty days, 40+ states and provinces, checked against the official results: ${c.rec!.days} of ${c.rec!.of} days with a verified match, ${c.rec!.exact} exact-order, ${c.rec!.juris} states and provinces on the record. Grade us yourself: {free_group_url}`,
+      c => `${c.rec!.range}, in one strip. Gold is a day with a verified match; dim is a miss. ${c.rec!.days} of ${c.rec!.of}, ${c.rec!.exact} exact-order, ${c.rec!.juris} states and provinces. Same method every morning, checked in public. The full record is free: {free_group_url}`,
+      c => `Published first. Checked after. Thirty days of it, ${c.rec!.range}: ${c.rec!.days} of ${c.rec!.of} days matched, ${c.rec!.exact} exact-order, across ${c.rec!.juris} states and provinces. That order is the only thing that makes a record worth reading: {free_group_url}`,
+    ])),
+  },
 } satisfies Record<string, KindSpec>;
 
 export type ReelCaptionKind = keyof typeof CAPTION_REGISTRY;
@@ -720,7 +781,7 @@ export function kindNeedsReceipts(kind: ReelCaptionKind): boolean {
   return Boolean(spec.realNumbers || spec.qualitativeReceipts);
 }
 
-export function buildReelCaption(kind: ReelCaptionKind, reelDate: string, receipts: ReceiptsData | null, sameday: SamedayCtx | null = null): string {
+export function buildReelCaption(kind: ReelCaptionKind, reelDate: string, receipts: ReceiptsData | null, sameday: SamedayCtx | null = null, record: RecordCtx | null = null): string {
   const spec: KindSpec = CAPTION_REGISTRY[kind];
   const seed = dayOfYear(reelDate) + spec.offset;
   const reelMd = md(reelDate);
@@ -733,6 +794,11 @@ export function buildReelCaption(kind: ReelCaptionKind, reelDate: string, receip
   // MKT-62: the same-day family headlines the elapsed gap — no gap, no
   // template; degrade to the gap-less fallback, never a literal "{elapsed}".
   if (spec.samedayProvenance && !sameday) {
+    return (spec.fallback ?? (m => m))(reelMd);
+  }
+  // MKT-79: the record family renders the strip's own figures — no tags, no
+  // template; degrade to the figure-less fallback, never a literal "{days}".
+  if (spec.recordStats && !record) {
     return (spec.fallback ?? (m => m))(reelMd);
   }
   const pro: ProCtx | null = spec.realNumbers && receipts
@@ -749,5 +815,6 @@ export function buildReelCaption(kind: ReelCaptionKind, reelDate: string, receip
     : null;
   const q: QualCtx | null = spec.qualitativeReceipts && receipts ? makeQualCtx(receipts) : null;
   const sd: SamedayCtx | null = spec.samedayProvenance ? sameday : null;
-  return spec.templates[seed % spec.templates.length]({ reelMd, pro, q, sd, seed });
+  const rec: RecordCtx | null = spec.recordStats ? record : null;
+  return spec.templates[seed % spec.templates.length]({ reelMd, pro, q, sd, rec, seed });
 }

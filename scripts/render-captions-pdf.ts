@@ -56,6 +56,7 @@ const KIND_LABEL: Record<string, string> = {
   verify: '🧾 Verify — Receipts',
   verify_public: '🌐 Verify · PUBLIC (cross-post)',
   verify_midday: '⏱️ Midday · Same-Day Verify',
+  record_public: '📈 Track Record · PUBLIC (cross-post)',
 };
 
 /** Session a kind posts in, for the caption-card group headers. */

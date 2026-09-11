@@ -16,13 +16,13 @@
     "bedUsable": true,
     "bedRms": -29.3,
     "crackAt": 4.3,
-    "derivedAt": "2026-09-09"
+    "derivedAt": "2026-09-11"
   },
   "endcard_motion_free_alt.mp4": {
     "bedUsable": true,
     "bedRms": -24.5,
     "crackAt": 4.5,
-    "derivedAt": "2026-09-09"
+    "derivedAt": "2026-09-11"
   },
   "endcard_motion_pro_steady.mp4": {
     "bedUsable": true,
@@ -65,19 +65,19 @@
     "bedUsable": true,
     "bedRms": -32,
     "crackAt": 3.7,
-    "derivedAt": "2026-09-09"
+    "derivedAt": "2026-09-11"
   },
   "endcard_motion_free_bloom.mp4": {
     "bedUsable": true,
     "bedRms": -22.5,
     "crackAt": 2.2,
-    "derivedAt": "2026-09-09"
+    "derivedAt": "2026-09-11"
   },
   "endcard_motion_ad_open.mp4": {
     "bedUsable": true,
     "bedRms": -32.1,
     "crackAt": 3.6,
-    "derivedAt": "2026-09-09"
+    "derivedAt": "2026-09-11"
   },
   "endcard_motion_sameday.mp4": {
     "bedUsable": true,

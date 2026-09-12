@@ -2,6 +2,35 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
+## 2026-09-12 — evening session (Saturday board) — EARLY-13 POOL READ logged ~3:50pm ET (pre-midday-import): (A) #1 combo = **573 {3,5,7}** box (ride day 3 — last day); (B) top-4 STRAIGHTS for the 6:25–7:45pm block = **573 / 248 / 895 / 395**. Re-read owed ~4:50pm ET after the 9/12 midday import (same-day closes + block re-scan). Operator records the picks himself; nothing confirmed placed.
+
+Slate basis: 9/12 K6 (workflow run 4:53am ET, engine v2.1). Evening K6 = 573 {3,5,7} / 395 {3,5,9} / 196 {1,6,9} / 895 {5,8,9} / 659 {5,6,9} / 248 {2,4,8}; All-Day K6 = 125 / 764 / 573 / 490 / 460 / 248; Midday K6 = 632 / 054 / 746 / 617 / 357 / 460. All 18 slots singles. Cross-scope: **{3,5,7} = Eve pos 1 / All-Day pos 3 / Mid pos 5 — triple overlap (eighth in the log), Eve DI #1 for the third straight day**; {2,4,8} = Eve pos 6 + All-Day pos 6 (Eve DI 2/3/4/5/14/22 — six perms in the top 22); {4,6,7} = All-Day pos 2 + Mid pos 3; {0,4,6} = All-Day pos 5 + Mid pos 6. 3-day block scan (9/9–9/11, all sessions; 9/12 midday NOT yet imported): every set on all three K6 boards is clear. Post-hit blocks from 9/11: {1,5,8} (GA 851) and {3,4,9} (OK 943) closed → blocked 9/12–9/14. Rides in (last day, off every board): 706 {0,6,7} and 136 {1,3,6} — not carried into the pool read (706 pool 17 / 90d 11 but DI-only; 136 pool 9 vs 14.5, 0 in 30d). Bases: 6,483 evening draws in 180d (excl. PR/MD) → a single set expects 38.9; early-13 pool 2,416 draws → 14.5 (90d 1,404 → 8.4; 30d 467 → 2.8).
+
+### (A) Early-13 pool #1 — box (PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC, 13 draws → $3.25/unit)
+
+**573 {3,5,7} — ride day 3 (9/10 and 9/11 reads both blanked; the operator's own rule rides an unhit pick through day 3).** Today it carries the strongest engine backing it has had: **Eve pos 1 (overdue tag, ds 7) + All-Day pos 3 + Mid pos 5**, evening DI #1 with five perms in the top 19 (573@1, 735@6, 375@7, 537@11, 753@19, energy 100), All-Day DI 2/5/28, Mid DI 20/22/24. Pool 19 in 180d vs 14.5 expected (1.31×, z +1.2), 7 in 90d, 2 in 30d, drawn in **11 of the 13 early jurisdictions** (MI 4, SC/DC/PA/OH/DE 2) — the widest early footprint of any board set; last pool 9/4 MI 735, last anywhere 9/5 TX 735 — clear. Full evening 54 in 180d vs 38.9 (1.39×, z +2.4). Orders: evening 375:11 / 537:10 / 573:9 / 753:9; pool 735:5 / 573:4 — 573 = evening engine + Eve DI best order (375 = All-Day engine order).
+
+Alternate: **248 {2,4,8}** — yesterday's "named swap, no engine support" now HAS engine support (Eve pos 6 + All-Day pos 6, Eve DI 2/3/4/5). Pool **24 vs 14.5 (z +2.5, tied #1 single in the 220-set universe with 017)**, 15 in 90d (z +2.3), 2 in 30d, 9 jurisdictions (GA 5, DC 4, DE/TX 3); evening 67 in 180d (z +4.5) with 20 in 30d — but 18 of those 20 were late-pool draws; last 9/8 DC 248 — clear. Persistence test (9/11) says hot counts carry no forward rate (1.04×), so the tie-break went to engine depth: rank-1 triple overlap over rank-6 double overlap.
+
+### (B) Top-4 straight picks for the early-13 block — one order per set, no perm splits (DI order vs most-drawn measured equivalent 9/11)
+
+| # | Straight | Set | Evidence | Order swap |
+|---|---|---|---|---|
+| 1 | **573** | {3,5,7} | as (A) — engine + Eve DI order | 375 (All-Day engine order, most-drawn evening); 735 (most-drawn pool) |
+| 2 | **248** | {2,4,8} | Eve pos 6 + All-Day pos 6; Eve DI #2 (248) with 824/428/284 at 3/4/5; pool z +2.5, 90d 15 | 482 (most-drawn pool 7 of 24; evening 842:14 / 482:13) |
+| 3 | **895** | {5,8,9} | Eve pos 4 (engine order 895), Eve DI 10 (895) / 12 (985), All-Day DI 15; pool 20 vs 14.5 (z +1.45), **90d 16 = highest 90d pool count of any clear single, 30d 6 = highest 30d**; 10 jurisdictions (DC 4, GA 3); last pool 9/7 PA 598 + DC 859, last anywhere 9/8 QC 958 — clear | **958** (8 of 16 in the 90d pool — the most skewed order among the four) |
+| 4 | **395** | {3,5,9} | Eve pos 2 (strong tag, engine order 395), Eve DI 9 (395) / 27 (935); pool 18 (z +0.9), 90d 12, 30d 3; 10 jurisdictions (WV/SC/DE 3 each); last pool 9/2 DE 359, last anywhere 9/8 TN 539 — clear | 935 (most-drawn pool 7, evening 10) |
+
+Not taken: 196 {1,6,9} (Eve pos 3; pool 17, 4 in 30d, last pool 9/7 GA 169 — recent, hotness texture); 659 {5,6,9} (Eve pos 5; pool 18 / 90d 8, evening 13 in 30d = hot, last pool 8/31); 017 (pool z +2.5, off every board, All-Day DI 24 only); 125 (All-Day pos 1, pool 17); doubles 223 (universe #1, z +2.9, BLOCKED — DC 232 9/10) and 033 (z +2.5, clear, no engine backing).
+
+### Session math (uniform baseline — standing BUG-162 / SIGNAL-INFO-01 truth)
+
+- One set across 13 draws: ~7.5% P(box), ~1.3% P(straight); four straights ≈ 5.1% for any one to land. Box at 3B = $9.75 (pays $112.50); each straight unit $3.25 (pays $225). Expected ≈ −10% of stake at the book's RTP for every set — the pool count, footprint and board stacking chose *which* sets, not the rate. z ≈ 2 selected diffs occur routinely on noise.
+- Ride convention: 573 is day 3 of its early-pool ride; unhit tonight → the ride ends, no carry. Straights are session-only.
+
+### Post-midday re-read (~4:50pm ET, after the 9/12 midday import) — PENDING
+
+
 ## 2026-09-11 — evening session (Friday board, ~42 evening draws / 39 jurisdictions → ~$10.50/unit; confirm the count at placement) — POST-MIDDAY RE-ASK ~4:40pm ET from the tablet: (A) EARLY-13 POOL — is 573 still #1? YES, unchanged, now DI-only; (B) #1 PICK for the FULL evening session — 158 / 185 {1,5,8}; runner-up 670 / 706 {0,6,7}. Nothing placed from this session — the operator confirms units from the ticket.
 
 Slate basis: 9/11 K6 (workflow run 5:53am ET, engine v2.1, edge v53), unchanged since the morning. Evening K6 = 670 {0,6,7} / 745 {4,5,7} / 691 {1,6,9} / 421 {1,2,4} / 934 {3,4,9} / 158 {1,5,8}; All-Day K6 = 136 / 590 / 706 / 094 / 185 / 064. Closed today by the midday draws: All-Day pos 2 {0,5,9} (ME,NH,VT 059) and Eve pos 4 {1,2,4} (CA 142, same-day convention). Clear of the 9/9–9/11 block (all sessions, midday now imported): {3,5,7}, {0,6,7}, {4,5,7}, {1,6,9}, {3,4,9}, {1,5,8}, {1,3,6}, {0,4,9}, {0,4,6}. Rides in from the midday ticket: 706 and 136 (day 2, unhit — 9/12 is their last day), 518/158 (day 1, unhit). Evening base: 6,441 evening draws in 180d (excl. PR/MD) → a single set expects 38.6; early-13 pool 2,400 draws → 14.4.

@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-11 · v6.9
+Content Agent Handoff · 2026-09-12 · v7.0
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-11 (CONSOLIDATED SNAPSHOT, current to v6.9 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-12 (CONSOLIDATED SNAPSHOT, current to v7.0 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -562,6 +562,185 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
       (v6.7): the purpose-written CTA voice landed, gated and registered
       (--cta-voice=cta); default stays pt2 until the operator's ear.
 
+  AUDIENCE & REVENUE AS OF 9/12 (live line; the detail is the v7.0 block):
+      page 14,192 · free group 515 (+4–6/day) · Pro group 61 / subscribers
+      list 60 / paying-equivalent 59 (all three agree; roster 71 is stale) ·
+      real conversion 11.8% · Sep 1–12 subscription payouts $69.40 = 79% of
+      the same August days (August wave: 59% renewed) · Pro comments 0.7/day,
+      free comments 4.3/day · page-level views still not held (daily export
+      owed). None of it is quotable in copy.
+
+WHAT CHANGED IN v7.0 (2026-09-12, ~5:30pm ET — AUDIENCE + REVENUE READ, NOT A
+REEL CHANGE: the operator imported four fresh Meta exports this afternoon (the
+9/12 funnel snapshot, Pro and Free Group Insights through 9/11, the earnings
+export through 9/12) and, for the first time, Meta's SUBSCRIBERS LIST (display
+name + start date, 60 rows, 9/12). This block is the detailed picture of the
+whole audience — page, free group, Pro group, subscribers, money, output —
+written for the content side. Aggregates only; member names are NOT in here
+and must never be. No asset is requested. Next free MKT ID is still 80.)
+================================================================================
+  A. HEADLINE — every number, with its source and its date
+     Page followers                14,192   snapshot 9/12  (+7 since 9/7; +8 since 9/2;
+                                                             +155 since 8/16: 14,037)
+     Free group members               515   snapshot 9/12  (+30 since 9/7 = 6.0/day;
+                                                             485 on 9/7, 470 on 9/2, 440 on 8/16)
+     Free group joins (Insights)   4.2/day  9/6–9/11        (4,2,2,4,7,6; 3.4/day the week
+                                                             before; 2.1 the week before that)
+     Pro group Total Members           61   Insights 9/11   (63 on 9/6 → 62 → 60 → 61 → 61 → 61;
+                                                             bottomed 60 on 9/8, +1 on 9/9)
+     Meta SUBSCRIBERS list             60   export 9/12     NEW SOURCE — the people Meta is
+                                                             billing today, with start dates
+     Paying-equivalent                 59   trailing 30d subscription payouts 8/14–9/12
+                                                             $103.32 ÷ $1.74
+     App roster (billing emails)       71   after today's cleanup (a corrupt row that held
+                                                             57 addresses was deleted); STALE —
+                                                             moves only on an import
+     Real conversion                11.8%   61 ÷ 515 (13.0% on 9/7; the dashboard's 14.0%
+                                                             divides the stale roster by 515)
+     Three independent Pro numbers now AGREE: group 61 / subscribers list 60 /
+     paying-equivalent 59. That triangulation is new — before today the roster
+     (72) was the only billing view and it overstated Pro by 9–12. Ruling
+     unchanged: NEVER quote a Pro count in public or group copy; in the
+     operator brief quote the Insights members count.
+
+  B. THE SUBSCRIBERS LIST — what the 60 start dates say (new today)
+     By start month:  Apr 3 · May 10 · Jun 2 · Jul 2 · Aug 38 · Sep 5
+     vs the roster:   Apr 5 · May 20 · Jun 2 · Jul 1 · Aug 42 · Sep 1
+       → the roster's phantom actives are the MAY cohort (10 of 20 gone — the
+         "13 May-era churn candidates" flagged 9/2 are now measured, ~10 real)
+         plus 4 August; the roster is also MISSING 4 September joins.
+     September joins so far: 9/3, 9/5, 9/9, 9/12, 9/12 — five in twelve days
+       (0.4/day) against a free group growing 6/day. Conversion of NEW free
+       members this month is therefore ~1 in 15, well below the 13–15%
+       lifetime ratio — the lifetime number is carried by the August wave.
+     THE SPURT COHORT'S FIRST RENEWAL IS NOW FULLY IN: the 8/4–8/12 wave (49
+       first payments) had every renewal date fall 9/4–9/12. The list still
+       carries 29 of them → 59% retained, 41% did not renew. That is the
+       number the 9/2 and 9/7 reads were waiting for; the payout export (C)
+       says the same thing in dollars.
+     The list is now the roster's source of truth for headcount. Sub Import
+       reads it as pasted (name + "Sep 12, 2026", vertical pairs) and links
+       each name to its email row where the match is unambiguous (23 of 60
+       today) — see ENH-SUB-NAMES-01 in MASTER_AUDIT. Not committed yet;
+       the operator runs the commit.
+
+  C. MONEY — Meta payouts (export 1/1–9/12; subscriptions are the only line)
+     Month        Subscriptions   Content+stars   Total
+     Apr (4/14→)     $5.43          $52.58        $58.01
+     May            $36.63           $4.45        $41.08
+     Jun            $38.00           $8.40        $46.40
+     Jul            $33.50           $0.88        $34.38
+     Aug           $122.08           $4.04       $126.12
+     Sep 1–12       $69.40           $0.99        $70.39
+     All-time      $305.04          $71.33       $376.37
+     Renewal wave, now 9 days deep (was 4 on 9/7):
+       Sep 1–12 vs Aug 1–12 subscriptions  $69.40 vs $88.16 → 79%
+       Sep 4–12 vs Aug 4–12                $64.47 vs $85.73 → 75%
+       The 9/7 read (52%) was the ±1-day posting wobble; with nine days in,
+       the ratio has settled at three-quarters. Daily postings 9/6–9/12:
+       $11.80 · 6.43 · 8.10 · 9.83 · 6.35 · 6.36 · 6.35 — steady ~$6.4/day.
+       Projection for the 9/24 readout: Aug 13–31 was $33.92; at 75–79%
+       September lands ≈ $95–97 vs August $122.08 — ABOVE the ~$85 line that
+       would have meant "the cohort is leaving". Read it as: four in ten of
+       the August wave left, six in ten stayed and are paying. Definitive
+       number still 9/24.
+     Trailing-30-day subscription payouts $103.32 vs the roster's paper net
+       MRR $125.50 → the roster overstates money by ~20% (was 32% on 9/7;
+       the gap closed because the payouts rose, not because the roster moved).
+     Content monetization $0.08/day. Not a revenue line. Stars: $0 ever.
+
+  D. PRO GROUP — engagement (Insights daily series to 9/11)
+     Week           members  posts/d  comments/d  reactions/d  active/d  active%
+     8/27–9/2          68      3.7      0.6         1.9         29.7      44%
+     8/31–9/6          63      4.0      0.1         1.7         27.7      44%
+     9/3–9/9           61      4.4      0.3         2.0         27.1      44%
+     9/6–9/11 (6d)     61      4.8      0.7         2.3         29.0      48%
+     Comments ticked up from the 0.1/day floor (one on 9/6, one on 9/7, two
+     on 9/10) — the FAQ pin (MKT-70) and the daily anchor question (MKT-73)
+     went live 9/7; that is the first movement in the series since 8/20, and
+     it is small. Reactions 2–3/day, active members ~29/day = 48% of 61.
+     Contributors (28-day window, as imported): to 9/1 24 members / 8 posts /
+     75 comments / 109 reactions → to 9/6 18 / 6 / 51 / 90 → to 9/11 9 / 3 /
+     20 / 52. The active core has halved twice in ten days. Three names have
+     been the commenters all along; the window is now mostly them.
+     Popular hours unchanged (8–10 AM, 5–7 PM). No cadence change asked.
+
+  E. FREE GROUP — intake and engagement (Growth/Engagement export to 9/11)
+     Week           joined/d  viewed/d  engaged/d  posts/d  comments/d  reactions/d
+     8/27–9/2          2.1       58        1.1       3.9       1.7         3.0
+     8/31–9/6          3.4       69        1.6       4.6       3.6         4.0
+     9/3–9/9           3.1       63        1.7       4.7       4.0         6.1
+     9/6–9/11 (6d)     4.2       68        1.3       4.7       4.3         7.0
+     Intake is accelerating: 2.1 → 3.4 → 4.2 joins/day by Insights, 6.0/day by
+     the snapshot delta (the snapshot includes 9/12, Insights stops at 9/11 —
+     read them as one band, 4–6/day). This is the one number moving the right
+     way, and it moved without the page (+7 followers in 5 days): people are
+     arriving through the group link, not through page follows — consistent
+     with the MKT-74 "reach is not the problem" reframe and with line one of
+     every public caption now carrying the free-group URL.
+     Viewed/day 68 = 13% of 515 see the group on a given day (12–18% band
+     unchanged). Comments 4.3/day, reactions 7.0/day and rising — the free
+     room is six times more conversational than Pro and its reactions doubled
+     in three weeks. Contributors window to 9/11 as imported: 11 members /
+     4 posts / 16 comments / 13 likes (20 / 7 / 28 / 52 to 9/6) — the 28-day
+     window on this table also shrank; treat the contributor tables of both
+     groups as "as exported" until the next import confirms the shape.
+     Demographics unchanged from the 9/7 read (55% women, 45–54 largest, US
+     88%, NYC / Nassau / Detroit / Mississippi cluster).
+
+  F. VIEWS — what we hold and what we do not
+     We hold: free-group Viewed/day (above), Pro active/day (above), and the
+     per-post view counts read off the 9/7 exports (templated Pro slate posts
+     15–25 views = 25–40% of members; free-group templated drops 45–165; the
+     four pre-rebrand free-group posts 660–1,054). Nothing since 9/7 changes
+     those bands; no new per-post reads were taken today.
+     We do NOT hold page-level Views / Reach / Viewers / Page visits / Follows
+     as a daily series. That remains the one standing data ask (v6.1 §C):
+     a Page Insights DAILY export covering 8/23 → 9/22 gives the viewer→visit
+     and visit→follow ratios for the MKT-74 window and gets ingested so the
+     gap closes for good. Until it arrives, "views" in any brief means the
+     group-level numbers above, never a page number.
+
+  G. OUTPUT — the reel system's own count (marketing_reels, last 30 days)
+     311 cuts registered 8/13–9/12: 31 each of allday_free / allday_pro /
+     allday_public / midday_free / midday_pro / evening_free / evening_pro,
+     29 verify, 29 verify_public, 3 verify_midday, 2 record_public; 222 rows
+     carry a posted_at. Today's 9/12 run: nine posted (the six free/pro slate
+     cuts, allday_public, verify 9/11, record_public 9/11 — the second
+     record_public ever); verify_public 9/11 sits READY, not yet posted.
+     Retention is keep-current-only (older cuts archive on supersession) —
+     the table is not a history of every render.
+
+  H. WHAT THIS MEANS FOR CONTENT (no asks; rulings restated)
+     1. Nothing here changes the reel system. Cadence, kinds, lanes: as-is.
+        The MKT-74 bundled window runs to ~9/23; do not add a variable.
+     2. The story of the month in one line: the free room grows 4–6/day and
+        talks; Pro kept six in ten of its August wave and is quiet. The next
+        conversion lever is inside the free room (the covered-still CTA cuts
+        of MKT-77 are the live test; metric = Pro conversions, which are
+        0.4/day this month). Watch that number, not reactions.
+     3. Copy law unchanged: no member counts, churn numbers, payouts, renewal
+        dates or conversion rates in group or public copy — those live in the
+        operator brief and Admin → Funnel only. This block is INTERNAL.
+     4. Still owed to us (data, not assets): the Page Insights daily export
+        (F). Still owed by the operator: commit the 9/12 subscribers list in
+        Sub Import so the roster stops reading 71 against a 60-person list.
+     5. Readouts ahead: 9/24 September payouts vs $122.08 (C says ≈ $95–97);
+        first live eyeball of the MKT-75 cold open 9/24; MKT-77 conversion
+        read after the window.
+
+  I. WHERE THE DATA LIVES (for the agent's own reference; no action)
+     docs/growth_checkpoint_2026-09-12.md (this read, aggregates only) on top
+     of the 9/7 and 9/2 checkpoints. Admin → Funnel (headcount vs roster vs
+     paying-equivalent, real conversion, engagement pulse, renewal wave,
+     payouts by month, velocity, 90-day bars); Admin → Sub Import → Subscribers
+     (now reads the name + date list), 🔥 Insights, 👥 Engagement, 💵 Earnings;
+     Admin → Pro Subscribers (renewals due next 7 days, cohort retention,
+     roster-vs-group banner). Tables: funnel_daily_snapshots, fb_group_daily,
+     fb_earnings_daily, fb_group_contributors, fb_engagement_snapshots,
+     pro_subscribers (service-role only).
+
+================================================================================
 WHAT CHANGED IN v6.9 (2026-09-11 — MKT-79: `record_public`, THE DAILY TRACK
 RECORD REEL, built + gated + first cut PUBLISHED for the operator's smoke
 test; DB CHECK widened via MCP; BOTH public cuts daily by operator ruling.

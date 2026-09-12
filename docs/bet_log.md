@@ -39,13 +39,18 @@ Struck by the early 13: {1,5,8} only (GA 851). No late-pool candidate drew early
 
 Uniform truth: one set over 27 draws ≈ 15.0% to box / 2.7% straight; box unit EV $6.08 vs $6.75 cost (the book's ~10% edge), identical for every set — the read chooses WHICH set, not the rate. z ≈ 2 selected diffs occur routinely on noise (SIGNAL-INFO-01). Stake at 3B: $20.25 (+$6.75/straight unit); box pays $112.50, straight $225.
 
-### Resolution — pending (evening import; reconcile vs histories 2026-09-11 evening — and the DE row, which has been missing two nights running)
+### Resolution (results imported 2026-09-12 ~4:52am ET; verified vs histories 2026-09-11 evening — 42 rows, DE 889 PRESENT, DC/GA/TX carry their legitimate second draws, no duplicates)
 
 | Leg | Result | Payout |
 |---|---|---|
-| (A) 573 early-13 (3B) | **BLANK 12/13** (operator paste ~8:05pm ET: DE 889, GA 851, ME/NH/VT 336, MI 063, MN 655, OH 721, PA 141, SC 937, TN 183, TX 129, DC 766, WV 484; AR pending; MD 983 not ingested). Second straight early-pool blank. | −$9.75 if placed |
-| (B) 158/185 full board (if placed) | **BOX — GA 851** (early-13 block, operator-reported ~7:45pm ET 9/11; pending histories import). Order 851 was the 5th of six evening orders (851:5). Leg CLOSED on the hit; remaining ~29 draws still pay if placed. {1,5,8} now enters the 3-day post-hit block (9/12–9/14). | box $37.50/unit per hitting state vs $10.50/unit board → +$27.00/unit net on one hit; straight units on 185/158 miss (851 order) |
-| (B) 670/706 full board (if placed) | — | — |
+| (A) 573 early-13 (3B) | **BLANK 13/13** (AR 592 closed it) (operator paste ~8:05pm ET: DE 889, GA 851, ME/NH/VT 336, MI 063, MN 655, OH 721, PA 141, SC 937, TN 183, TX 129, DC 766, WV 484; AR pending; MD 983 not ingested). Second straight early-pool blank. | −$9.75 if placed |
+| (B) 158/185 full board (if placed) | **BOX — GA 851** (confirmed in histories; no {1,5,8} in the late 29). Order 851 was the 5th of six evening orders (851:5). Leg CLOSED on the hit; remaining ~29 draws still pay if placed. {1,5,8} now enters the 3-day post-hit block (9/12–9/14). | box $37.50/unit per hitting state vs $10.50/unit board → +$27.00/unit net on one hit; straight units on 185/158 miss (851 order) |
+| (B) 670/706 full board | NOT PLACED (operator 9/11 ~8:40pm: board picks not bet). {0,6,7} blank all 42 evening draws — ride day 2 blank; 9/12 is its last day. | — |
+| (C) 573/375 late pool (operator pick #1) | **BLANK** — no {3,5,7} in the late draws (nearest: FL 367, WA 346). | −$20.25 at 3B (−$27.00 with a straight unit) |
+| (C) 934/943 late pool (operator pick #2) | **OK 943 — BOX on 934 (DI order), STRAIGHT if the ticket read 943 (most-drawn order)**. Order placed not stated — confirm from the ticket. | box $112.50 at 3B; +$225 per straight unit if 943 |
+| named swap 248 (not taken) | blank all 42 | — |
+
+Evening K6 9/11 on the full session: **3 of 6 box** — 754 (CA 475), 934 (OK 943), 158 (GA 851); 142 drew CA midday (same-day). All-Day K6: 185 (GA 851) + 590 (Tri-State midday 059) = 2 of 6. Late-pool line: 1 of 2 operator picks landed on ~27 draws (uniform ≈ 15% each). Rides into 9/12 (last day): 706 {0,6,7}, 136 {1,3,6}; the 158/185 and 934 legs are closed.
 
 ## 2026-09-11 — midday session (Friday board, 33 midday draws / 31 jurisdictions → $8.25/unit per leg per bet type) — PROPOSED 4-leg (3 singles + 1 double), All-Day lean, every leg 2S + 3B — $165.00 — confirm placement + units from the ticket
 

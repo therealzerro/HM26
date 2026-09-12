@@ -2,7 +2,7 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
-## 2026-09-12 — evening session (Saturday board) — EARLY-13 POOL READ logged ~3:50pm ET (pre-midday-import): (A) #1 combo = **573 {3,5,7}** box (ride day 3 — last day); (B) top-4 STRAIGHTS for the 6:25–7:45pm block = **573 / 248 / 895 / 395**. Re-read owed ~4:50pm ET after the 9/12 midday import (same-day closes + block re-scan). Operator records the picks himself; nothing confirmed placed.
+## 2026-09-12 — evening session (Saturday board) — PLACED ~5:15pm ET, $75.25: 573 {3,5,7} 3B early-13 + 573 2S+3B full board + early-13 straights 573 / 248 / 895 / 395 (1S each, units to confirm). Read history: (A) early-13 #1 = 573 (3:50pm, re-confirmed 4:55pm post-midday); (B) full-session #1 = 573, runner-up 248.
 
 Slate basis: 9/12 K6 (workflow run 4:53am ET, engine v2.1). Evening K6 = 573 {3,5,7} / 395 {3,5,9} / 196 {1,6,9} / 895 {5,8,9} / 659 {5,6,9} / 248 {2,4,8}; All-Day K6 = 125 / 764 / 573 / 490 / 460 / 248; Midday K6 = 632 / 054 / 746 / 617 / 357 / 460. All 18 slots singles. Cross-scope: **{3,5,7} = Eve pos 1 / All-Day pos 3 / Mid pos 5 — triple overlap (eighth in the log), Eve DI #1 for the third straight day**; {2,4,8} = Eve pos 6 + All-Day pos 6 (Eve DI 2/3/4/5/14/22 — six perms in the top 22); {4,6,7} = All-Day pos 2 + Mid pos 3; {0,4,6} = All-Day pos 5 + Mid pos 6. 3-day block scan (9/9–9/11, all sessions; 9/12 midday NOT yet imported): every set on all three K6 boards is clear. Post-hit blocks from 9/11: {1,5,8} (GA 851) and {3,4,9} (OK 943) closed → blocked 9/12–9/14. Rides in (last day, off every board): 706 {0,6,7} and 136 {1,3,6} — not carried into the pool read (706 pool 17 / 90d 11 but DI-only; 136 pool 9 vs 14.5, 0 in 30d). Bases: 6,483 evening draws in 180d (excl. PR/MD) → a single set expects 38.9; early-13 pool 2,416 draws → 14.5 (90d 1,404 → 8.4; 30d 467 → 2.8).
 
@@ -32,6 +32,19 @@ Not taken: 196 {1,6,9} (Eve pos 3; pool 17, 4 in 30d, last pool 9/7 GA 169 — r
 | — | 895 / 395 / 659 / 196 | | Eve pos 4 / 2 / 5 / 3: evening 44 / 45 / 53 / 42 in 180d (1.1–1.4×); 659 has 13 in 30d (hot texture); none has a second-board slot or a top-5 DI rank. 125 / 764 (All-Day pos 1 / 2): 41 / 38, evening-flat. |
 
 Tie-break as on 9/11: DI rank stacking and cross-board depth decide (573: rank-1 triple overlap; 248: rank-6 double overlap); raw count is texture (STATE_STR ×3). Blocked from the board by the 9/11 hits: {1,5,8}, {3,4,9}. Uniform truth: one set across ~42 draws ≈ 22% to box / ~4% straight whichever is chosen; 3B = $31.50, straight unit $10.50; box pays $37.50/unit per hitting state, straight $225.
+
+### Positions — PLACED (logged ~5:15pm ET on the operator's word: "573 3B early-13, 573 2S+3B full board, & early straights"; straight units on the early pool not stated → logged at 1S each, confirm from the ticket)
+
+| Leg | Pool | Set | Units | Cost | If straight hits (per state) | If box-only hits (per state) |
+|---|---|---|---|---|---|---|
+| **573** | early-13 (13 draws, $3.25/unit) | {3,5,7} | 3B | $9.75 | — | $112.50 |
+| **573** | full evening board (~42 draws, $10.50/unit — confirm the count) | {3,5,7} | 2S + 3B | $52.50 | $450.00 + box $112.50 | $112.50 |
+| **573** | early-13 straight | {3,5,7} | 1S | $3.25 | $225.00 | — |
+| **248** | early-13 straight | {2,4,8} | 1S | $3.25 | $225.00 | — |
+| **895** | early-13 straight | {5,8,9} | 1S | $3.25 | $225.00 | — |
+| **395** | early-13 straight | {3,5,9} | 1S | $3.25 | $225.00 | — |
+
+**Total staked: $75.25** (early pool $22.75 + full board $52.50). Overlap noted before placement and accepted: the full-board 573 already covers the 13 early draws, so an early-pool 573 STRAIGHT at PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC pays on BOTH tickets (3S + 6B on those draws; 2S + 3B on the late 29). Straight orders as placed: 573 / 248 / 895 / 395. Rides: 573 full-board = day 1 (ride ≤3 days, a hit closes the leg); early-pool legs are session-only, no carry. Reconcile after the 9/13 workflow import (early 13 resolve by ~7:45pm ET; operator paste welcome).
 
 ### Session math (uniform baseline — standing BUG-162 / SIGNAL-INFO-01 truth)
 

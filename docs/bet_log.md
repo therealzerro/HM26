@@ -28,7 +28,12 @@ Not taken: 196 {1,6,9} (Eve pos 3; pool 17, 4 in 30d, last pool 9/7 GA 169 — r
 - One set across 13 draws: ~7.5% P(box), ~1.3% P(straight); four straights ≈ 5.1% for any one to land. Box at 3B = $9.75 (pays $112.50); each straight unit $3.25 (pays $225). Expected ≈ −10% of stake at the book's RTP for every set — the pool count, footprint and board stacking chose *which* sets, not the rate. z ≈ 2 selected diffs occur routinely on noise.
 - Ride convention: 573 is day 3 of its early-pool ride; unhit tonight → the ride ends, no carry. Straights are session-only.
 
-### Post-midday re-read (~4:50pm ET, after the 9/12 midday import) — PENDING
+### Post-midday re-read (~4:55pm ET, 9/12 midday imported: 33 draws / 31 jurisdictions) — READ STANDS, no change
+
+Same-day closes: **All-Day pos 5 {0,4,6} (KY 046 + VA 406)** and Midday pos 6 460 (same set, boxed twice); nothing on the evening K6 board drew midday. Block re-scan 9/10–9/12 all sessions: **573 / 248 / 895 / 395 all CLEAR**. Rides 706 {0,6,7} and 136 {1,3,6} blank at midday on their last day (706 has one evening board left if placed; 136 is off every board). Midday texture, not a lever: four sets boxed twice today — {5,6,7} (DC 567, OH 765), {3,4,6} (DE 463, GA 346), {0,4,6}, {3,3,9} (MI 933, PA 393) — none on any board, recent hotness anti-predictive ×3.
+
+**#1 early-13 combo unchanged: 573 {3,5,7} box (ride day 3). Straights unchanged: 573 / 248 / 895 / 395.** Midday draws only remove candidates; they never move the evening rate (STATE_STR ×3, ENG-ALLDAY-RAND-01).
+
 
 
 ## 2026-09-11 — evening session (Friday board, ~42 evening draws / 39 jurisdictions → ~$10.50/unit; confirm the count at placement) — POST-MIDDAY RE-ASK ~4:40pm ET from the tablet: (A) EARLY-13 POOL — is 573 still #1? YES, unchanged, now DI-only; (B) #1 PICK for the FULL evening session — 158 / 185 {1,5,8}; runner-up 670 / 706 {0,6,7}. Nothing placed from this session — the operator confirms units from the ticket.

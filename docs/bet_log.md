@@ -24,11 +24,24 @@ Uniform truth: any single set is ~7.5% to box across 13 draws (~1.3% straight); 
 
 Why 158/185 over 670/706 for the FULL board: both are triple overlaps and both are clear; the tie-breaks the log has used before — DI rank stacking (Eve 4 / All-Day 3 vs Eve 10 / All-Day 5) and the evening count (1.22× and 9 in 30d vs 1.01× and 6) — both go to {1,5,8}. 670/706 keeps Eve pos 1 and the better early-pool texture, which is why it is the board-backed alternative in (A). Hotness is texture, not the selection reason (STATE_STR anti-predictive ×3); one set across ~42 draws is ~22% to box / ~4% straight at uniform baseline, whichever is chosen. No positional filter (ENG-MIDDAY-POS-02). Calibration payload not quoted (9/1 refit failed its gate).
 
+### (C) LATE-POOL read ~8:05pm ET — top 2 for the remaining ~27 draws (26 late jurisdictions AZ CA CO CT FL IA ID IL IN KS KY LA MO MS NC NE NJ NM NY OK ON QC VA W.Canada WA WI = 26 on each of the last 4 Fridays, + TX Night 10:55) → ~$6.75/unit
+
+Struck by the early 13: {1,5,8} only (GA 851). No late-pool candidate drew early. Late-pool base: 4,041 late draws in 180d → a single set expects 24.2 (90d 2,327 → 14.0; 30d 754 → 4.5). TX Night cannot be separated from TX Evening in histories, so the pool counts below exclude TX.
+
+| Rank | Order | Set | Late-pool evidence |
+|---|---|---|---|
+| **#1** | **375** (most-drawn late order 9, and 3 of the 6 in 30d); 573 = Eve DI best order | {3,5,7} | Late 180d **35 vs 24.2 (z +2.19, 95th pctile of singles)**, 90d **22 vs 14.0 (z +2.16, 96th)**, 30d 6, 7d 1 (IN 753 9/5). Draws-since 147 late draws (~5.6 days) vs median gap 63. Footprint 19 late jurisdictions: CA 4, IN 4, NC 3, then ON/LA/OK/KS/WI/NE/AZ/WA ×2. Eve DI 1/3/5, All-Day DI 2/7. NOT on any K6 board. Clear since 9/5. |
+| **#2** | **943** (late 9, 2 in 30d); 934 = evening engine order | {3,4,9} | **Eve pos 5 + Eve DI 2/7/22.** Late 180d 30 (z +1.17, 86th), 90d 13 (flat), 30d 5, last 9/7 WA 943 + 9/3 OK 439. Draws-since 80 = its median gap. Footprint LA/IL/ON/NM ×3. Clear since 9/7. |
+| alt | 670 / 706 | {0,6,7} | Eve pos 1 triple overlap, ride day 2 — **but late-pool weak: 180d 22 (z −0.46), 90d 8 (3rd pctile)**; only 7d cluster (IL 067 9/5, WI 067 9/6, LA 760 9/6) is hotness texture, anti-predictive ×3. If placed on the full board it is already live in the late pool — do not double-buy. |
+| — | 457 / 169 / 049 | | Eve pos 2 / pos 3 / All-Day pos 4: late 28 / 25 / 27 — at expectation; 30d 3 / 3 / 5. 169 draws-since 292 (longest). 136 and 046 cold (90d 7 each, 0th pctile). |
+
+Uniform truth: one set over 27 draws ≈ 15.0% to box / 2.7% straight; box unit EV $6.08 vs $6.75 cost (the book's ~10% edge), identical for every set — the read chooses WHICH set, not the rate. z ≈ 2 selected diffs occur routinely on noise (SIGNAL-INFO-01). Stake at 3B: $20.25 (+$6.75/straight unit); box pays $112.50, straight $225.
+
 ### Resolution — pending (evening import; reconcile vs histories 2026-09-11 evening — and the DE row, which has been missing two nights running)
 
 | Leg | Result | Payout |
 |---|---|---|
-| (A) 573 early-13 (3B) | GA 851 — not 573; other 12 early draws pending import | — |
+| (A) 573 early-13 (3B) | **BLANK 12/13** (operator paste ~8:05pm ET: DE 889, GA 851, ME/NH/VT 336, MI 063, MN 655, OH 721, PA 141, SC 937, TN 183, TX 129, DC 766, WV 484; AR pending; MD 983 not ingested). Second straight early-pool blank. | −$9.75 if placed |
 | (B) 158/185 full board (if placed) | **BOX — GA 851** (early-13 block, operator-reported ~7:45pm ET 9/11; pending histories import). Order 851 was the 5th of six evening orders (851:5). Leg CLOSED on the hit; remaining ~29 draws still pay if placed. {1,5,8} now enters the 3-day post-hit block (9/12–9/14). | box $37.50/unit per hitting state vs $10.50/unit board → +$27.00/unit net on one hit; straight units on 185/158 miss (851 order) |
 | (B) 670/706 full board (if placed) | — | — |
 

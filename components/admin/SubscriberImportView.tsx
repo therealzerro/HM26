@@ -5,8 +5,9 @@ import { theme } from '@/constants/theme';
 import { useTheme } from '@/lib/theme';
 import { Card, Pill, SectionTitle, useSt, timeAgo } from './AdminShared';
 import { AdminKeyGate } from './AdminKeyGate';
-import { subscriberAdmin, maskEmail, type ImportRecord, type ContributorWithEngagement } from '@/lib/subscriberAdminClient';
-import { parseSubscriberEmailExport, type ParsedSubscriber } from '@/lib/subscriberEmailParser';
+import { subscriberAdmin, maskEmail, type ImportRecord, type ContributorWithEngagement, type ProSubscriber } from '@/lib/subscriberAdminClient';
+import { parseSubscriberEmailExport } from '@/lib/subscriberEmailParser';
+import { planNameLinks, identityLabel, PLACEHOLDER_EMAIL_DOMAIN, type LinkedRow } from '@/lib/subscriberNameLink';
 import { parseGroupInsights, type ParsedContributor } from '@/lib/groupInsightsParser';
 import { parseEarningsExport } from '@/lib/earningsParser';
 
@@ -18,33 +19,59 @@ function SubscriberPasteTab({ onCommitted }: { onCommitted: () => void }) {
   const [raw, setRaw] = useState('');
   const [busy, setBusy] = useState(false);
   const [potentialChurns, setPotentialChurns] = useState<Array<{ id: string; email: string; date_subscribed: string }>>([]);
+  // ENH-SUB-NAMES-01: the Meta "Subscribers" list pastes as display name + date
+  // (no email). Name rows are resolved against the roster before commit — see
+  // lib/subscriberNameLink.ts — so the roster is loaded once per tab mount.
+  const [roster, setRoster] = useState<ProSubscriber[] | null>(null);
+  const [rosterErr, setRosterErr] = useState<string | null>(null);
 
   const parsed = useMemo(() => parseSubscriberEmailExport(raw), [raw]);
+  const hasNameRows = parsed.format === 'name' || parsed.format === 'mixed';
+
+  useEffect(() => {
+    let cancelled = false;
+    subscriberAdmin.listSubscribers({}).then(rows => { if (!cancelled) setRoster(rows); })
+      .catch(e => { if (!cancelled) setRosterErr(e instanceof Error ? e.message : String(e)); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const plan = useMemo(() => planNameLinks(parsed.subscribers, roster ?? [], maskEmail), [parsed.subscribers, roster]);
+
+  /** Every row as it will be sent to upsert_subscribers (email-keyed). */
+  const rowsToCommit = useMemo(() => {
+    const emailRows = parsed.subscribers.filter(s => s.email).map(s => ({ email: s.email as string, date_subscribed: s.date_subscribed }));
+    const nameRows = plan.rows.map(r => ({ email: r.email, date_subscribed: r.date_subscribed, facebook_name: r.facebook_name }));
+    return [...emailRows, ...nameRows];
+  }, [parsed.subscribers, plan.rows]);
+  const rosterPending = hasNameRows && roster === null;
 
   const previewChurns = useCallback(async () => {
-    if (parsed.subscribers.length === 0) return;
+    if (rowsToCommit.length === 0) return;
     setBusy(true);
     try {
-      const churns = await subscriberAdmin.findPotentialChurns(parsed.subscribers.map(s => s.email));
+      const churns = await subscriberAdmin.findPotentialChurns(rowsToCommit.map(s => s.email));
       setPotentialChurns(churns);
     } catch (e) {
       alertAsync('Probe failed', e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
-  }, [parsed.subscribers]);
+  }, [rowsToCommit]);
 
   useEffect(() => { setPotentialChurns([]); }, [raw]);
 
   const commit = useCallback(async () => {
-    if (parsed.subscribers.length === 0) return;
+    if (rowsToCommit.length === 0) return;
     setBusy(true);
     try {
-      const res = await subscriberAdmin.upsertSubscribers(parsed.subscribers);
+      const res = await subscriberAdmin.upsertSubscribers(rowsToCommit);
+      const stamp = new Date().toISOString().slice(0, 16);
       await subscriberAdmin.recordImport({
         import_type: 'subscriber_emails',
-        source_filename: `paste_${new Date().toISOString().slice(0, 16)}`,
-        records_processed: parsed.subscribers.length,
+        source_filename: hasNameRows
+          ? `paste_names_${stamp}_link${plan.counts.exact + plan.counts.guessed}_new${plan.counts.new}`
+          : `paste_${stamp}`,
+        records_processed: rowsToCommit.length,
         records_created: res.created,
         records_updated: res.updated,
         records_skipped: res.skipped,
@@ -54,6 +81,7 @@ function SubscriberPasteTab({ onCommitted }: { onCommitted: () => void }) {
       alertAsync(
         'Import complete',
         `${res.created} new, ${res.updated} updated, ${res.skipped} skipped.` +
+          (hasNameRows ? `\n\nName rows: ${plan.counts.exact} already linked, ${plan.counts.guessed} linked to an email by name match, ${plan.counts.new} name-only rows created.` : '') +
           (potentialChurns.length ? `\n\n${potentialChurns.length} active subs not in this import (potential churns — review manually).` : ''),
       );
       setRaw('');
@@ -64,14 +92,18 @@ function SubscriberPasteTab({ onCommitted }: { onCommitted: () => void }) {
     } finally {
       setBusy(false);
     }
-  }, [parsed, potentialChurns, onCommitted]);
+  }, [rowsToCommit, parsed, plan, hasNameRows, potentialChurns, onCommitted]);
+
+  const kindLabel = (k: LinkedRow['kind']) => (k === 'exact' ? 'linked' : k === 'guessed' ? 'linked by name' : 'new · name-only');
+  const commitDisabled = busy || rowsToCommit.length === 0 || rosterPending;
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16 }}>
-      <Text style={st.title}>Import Subscriber Emails</Text>
+      <Text style={st.title}>Import Subscribers</Text>
       <Text style={st.sub}>
-        Paste the contents of Meta Business Suite → Supporter Email Addresses export.
-        Two columns: email + date subscribed. Tab, CSV, or multi-space all work.
+        {'Paste either Meta Business Suite list: Supporter Email Addresses (email + M/D/YYYY) or the Subscribers list ' +
+          '(display name + "Sep 12, 2026"). Tab, CSV, multi-space, or the phone\'s vertical name⏎date layout all work. ' +
+          'Name rows are matched to the email roster before commit; unmatched names become name-only rows.'}
       </Text>
 
       <Card style={{ padding: 12, marginBottom: 14 }}>
@@ -80,27 +112,59 @@ function SubscriberPasteTab({ onCommitted }: { onCommitted: () => void }) {
           value={raw}
           onChangeText={setRaw}
           multiline
-          placeholder={"email1@x.com\t5/19/2026\nemail2@x.com\t5/19/2026"}
+          placeholder={"Jane Doe\nSep 12, 2026\n\nemail1@x.com\t5/19/2026"}
           placeholderTextColor={colors.textTertiary}
           style={st.csvInput}
         />
         <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 6 }}>
           Parsed: {parsed.subscribers.length} subscribers · {parsed.warnings.length} warnings
+          {parsed.format !== 'none' ? ` · format: ${parsed.format}` : ''}
         </Text>
       </Card>
+
+      {hasNameRows && (
+        <Card style={{ padding: 12, marginBottom: 14 }}>
+          <SectionTitle>Name → roster link plan</SectionTitle>
+          {rosterErr ? (
+            <Text style={{ fontSize: 11, color: colors.error }}>Roster load failed: {rosterErr}. Reopen the tab to retry — name rows cannot be committed without it.</Text>
+          ) : roster === null ? (
+            <Text style={{ fontSize: 11, color: colors.textSecondary }}>Loading roster…</Text>
+          ) : (
+            <>
+              <Text style={{ fontSize: 11, color: colors.textSecondary }}>
+                {plan.counts.exact} already linked · {plan.counts.guessed} linked by name match (the name is saved on that row) · {plan.counts.new} new name-only rows
+              </Text>
+              <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 6 }}>
+                A name-only row has a placeholder address ending @{PLACEHOLDER_EMAIL_DOMAIN} and shows by name. If a new
+                name is really an existing email subscriber the matcher missed, cancel, set the name on that row in
+                Subscribers, then paste again — otherwise the churn probe will list the email row as lapsed.
+              </Text>
+            </>
+          )}
+        </Card>
+      )}
 
       {parsed.subscribers.length > 0 && (
         <Card style={{ padding: 12, marginBottom: 14 }}>
           <SectionTitle>Preview</SectionTitle>
-          {parsed.subscribers.slice(0, 20).map((s, i) => (
-            <View key={i} style={{ flexDirection: 'row', paddingVertical: 4, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border, gap: 10 }}>
-              <Text style={{ flex: 2, fontSize: 11, color: colors.text, fontFamily: theme.typography.fontFamily.mono }}>{maskEmail(s.email)}</Text>
+          {parsed.subscribers.filter(s => s.email).slice(0, 20).map((s, i) => (
+            <View key={`e${i}`} style={{ flexDirection: 'row', paddingVertical: 4, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.border, gap: 10 }}>
+              <Text style={{ flex: 2, fontSize: 11, color: colors.text, fontFamily: theme.typography.fontFamily.mono }}>{maskEmail(s.email as string)}</Text>
               <Text style={{ flex: 1, fontSize: 11, color: colors.textSecondary }}>{s.date_subscribed}</Text>
             </View>
           ))}
-          {parsed.subscribers.length > 20 && (
+          {plan.rows.slice(0, 60).map((r, i) => (
+            <View key={`n${i}`} style={{ flexDirection: 'row', paddingVertical: 4, borderTopWidth: 1, borderTopColor: colors.border, gap: 10, alignItems: 'center' }}>
+              <Text style={{ flex: 2, fontSize: 11, color: colors.text }} numberOfLines={1}>{r.facebook_name}</Text>
+              <Text style={{ flex: 1, fontSize: 11, color: colors.textSecondary }}>{r.date_subscribed}</Text>
+              <Text style={{ flex: 1.4, fontSize: 10, color: r.kind === 'new' ? colors.gold : colors.textTertiary }} numberOfLines={1}>
+                {kindLabel(r.kind)}{r.rosterEmailMasked ? ` → ${r.rosterEmailMasked}` : ''}
+              </Text>
+            </View>
+          ))}
+          {rowsToCommit.length > 80 && (
             <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 6 }}>
-              … and {parsed.subscribers.length - 20} more
+              … and {rowsToCommit.length - 80} more
             </Text>
           )}
         </Card>
@@ -117,11 +181,11 @@ function SubscriberPasteTab({ onCommitted }: { onCommitted: () => void }) {
 
       <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
         <TouchableOpacity
-          disabled={busy || parsed.subscribers.length === 0}
-          style={[st.btnGhost, { flex: 1 }, (busy || parsed.subscribers.length === 0) && { opacity: 0.5 }]}
+          disabled={commitDisabled}
+          style={[st.btnGhost, { flex: 1 }, commitDisabled && { opacity: 0.5 }]}
           onPress={previewChurns}
         >
-          <Text style={st.btnGhostText}>{busy ? '…' : `Probe Potential Churns (${parsed.subscribers.length})`}</Text>
+          <Text style={st.btnGhostText}>{busy ? '…' : `Probe Potential Churns (${rowsToCommit.length})`}</Text>
         </TouchableOpacity>
       </View>
 
@@ -132,10 +196,13 @@ function SubscriberPasteTab({ onCommitted }: { onCommitted: () => void }) {
             Active subs not present in this import. A supporter export lists everyone currently paying, so an active
             roster row missing from it has lapsed — unless the export was partial or the member is comped. Review, then
             mark them churned in one step (date = today) so MRR, conversion and the cohort table stop counting them.
+            {hasNameRows ? ' With a name paste, an email row can also be here because its name was not matched — link it first.' : ''}
           </Text>
           {potentialChurns.map(c => (
             <View key={c.id} style={{ flexDirection: 'row', paddingVertical: 4, borderTopWidth: 1, borderTopColor: colors.border, gap: 10 }}>
-              <Text style={{ flex: 2, fontSize: 11, color: colors.text, fontFamily: theme.typography.fontFamily.mono }}>{maskEmail(c.email)}</Text>
+              <Text style={{ flex: 2, fontSize: 11, color: colors.text, fontFamily: theme.typography.fontFamily.mono }}>
+                {identityLabel({ email: c.email, facebook_name: roster?.find(r => r.id === c.id)?.facebook_name ?? null }, maskEmail(c.email))}
+              </Text>
               <Text style={{ flex: 1, fontSize: 11, color: colors.textSecondary }}>since {c.date_subscribed}</Text>
             </View>
           ))}
@@ -182,11 +249,11 @@ function SubscriberPasteTab({ onCommitted }: { onCommitted: () => void }) {
       )}
 
       <TouchableOpacity
-        disabled={busy || parsed.subscribers.length === 0}
-        style={[st.btnPrimary, (busy || parsed.subscribers.length === 0) && { opacity: 0.5 }]}
+        disabled={commitDisabled}
+        style={[st.btnPrimary, commitDisabled && { opacity: 0.5 }]}
         onPress={commit}
       >
-        <Text style={st.btnPrimaryText}>{busy ? 'Committing…' : `Commit ${parsed.subscribers.length} Rows`}</Text>
+        <Text style={st.btnPrimaryText}>{busy ? 'Committing…' : rosterPending ? 'Loading roster…' : `Commit ${rowsToCommit.length} Rows`}</Text>
       </TouchableOpacity>
     </ScrollView>
   );

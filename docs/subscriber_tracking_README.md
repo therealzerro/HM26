@@ -72,27 +72,51 @@ If the operator changes the secret on the server side, the next call will
 
 ### Export subscribers from Meta Business Suite
 
-1. Open the Page in Meta Business Suite.
-2. Insights → Subscribers → Supporter email addresses → Download CSV (or
-   copy the table).
-3. Two columns: email + date subscribed (M/D/YYYY).
+Two lists exist and both import (ENH-SUB-NAMES-01, 2026-09-12):
+
+1. **Supporter Email Addresses** (Insights → Subscribers → Supporter email
+   addresses → Download CSV / copy the table): email + date subscribed
+   (M/D/YYYY). This is the roster's identity key.
+2. **Subscribers list** (the member list Meta shows since 9/2026): display
+   name + date in the `Sep 12, 2026` form, copied from the phone as vertical
+   pairs (`Name⏎Sep 12, 2026⏎blank⏎`). No email is present.
 
 ### Import in the app
 
 Admin tab → **📧 Sub Import** → 📧 Subscribers tab.
 
-1. Paste the export into the textarea (tab-separated, comma-separated,
-   multi-space, and the phone's vertical layout — email on one line, date on
-   the next — all work since 2026-09-02, BUG-173). Every row needs a date;
-   an email-only list cannot be imported.
-2. Review the preview (parsed rows, warnings).
-3. Hit **Probe Potential Churns** — this lists any currently-active
-   subscribers whose email is **not** in the new import. These are not
-   auto-churned; operator reviews them and manually marks status = 'churned'
-   in the Subscribers tab if confirmed.
-4. Hit **Commit N Rows**. New emails are inserted; existing emails are
-   updated in place (manual fields like `facebook_name`, `acquisition_source`
-   are preserved).
+1. Paste the export into the textarea. Tab, comma, multi-space, and the
+   phone's vertical layout all work for both lists; `M/D/YYYY`, `YYYY-MM-DD`
+   and `Mon D, YYYY` dates are accepted. Every row needs a date; a list with
+   no dates cannot be imported.
+2. Review the preview (parsed rows, warnings, and — for a name paste — the
+   **Name → roster link plan**). The roster is keyed on email
+   (`pro_subscribers.email` is UNIQUE NOT NULL), so every name row is
+   resolved before commit (`lib/subscriberNameLink.ts`):
+   - **linked** — a roster row already carries that Facebook name;
+   - **linked by name** — the name matches one email's local part strongly
+     enough (surname ≥4 letters plus first name / initial / same join date
+     ±1 day, or first name plus same date; exactly one candidate). The name
+     is saved on that row so the next paste links exactly. Validated on the
+     9/12 paste: 23 of 60 linked, 0 wrong, the "surname only, date off"
+     candidates were 4 of 5 wrong and are deliberately not linked;
+   - **new · name-only** — no match → a row keyed on a placeholder address
+     `<name-slug>@facebook-name.invalid` (RFC 2606 reserved TLD, never
+     deliverable). Name-only rows display by name everywhere in Admin.
+   If a "new" name is really an existing email subscriber the matcher
+   missed, cancel, type the name into that row's **Facebook Name** field in
+   the Subscribers tab, and paste again.
+3. Hit **Probe Potential Churns** — lists currently-active roster rows whose
+   email is **not** in the resolved import. With a name paste an email row
+   also lands here when its name was not matched, so link before churning.
+   Nothing is auto-churned.
+4. Hit **Commit N Rows**. New keys are inserted; existing keys are updated
+   in place (manual fields like `acquisition_source` are preserved;
+   `facebook_name` is written for linked name rows).
+
+**Manual add** (Subscribers tab → Add) takes exactly ONE email address since
+2026-09-12 (BUG-177: it used to accept any text with an "@", and a whole
+pasted export became one roster row).
 
 ### Record a funnel snapshot
 

@@ -11,6 +11,7 @@ import {
   type ProSubscriber,
   type GroupDailyRow,
 } from '@/lib/subscriberAdminClient';
+import { identityLabel, isPlaceholderEmail } from '@/lib/subscriberNameLink';
 
 const ACQ_SOURCES = ['reel', 'cross_post', 'free_group_organic', 'direct_referral', 'word_of_mouth', 'unknown'] as const;
 const STATUSES = ['active', 'churned', 'comped', 'paused', 'unknown'] as const;
@@ -61,9 +62,9 @@ function SubscriberRow({
       <TouchableOpacity onPress={onToggle} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10 }}>
         <View style={{ flex: 2 }}>
           <Text style={{ fontSize: 12, color: colors.text, fontFamily: theme.typography.fontFamily.mono }}>
-            {revealEmail ? row.email : maskEmail(row.email)}
+            {identityLabel(row, revealEmail ? row.email : maskEmail(row.email))}
           </Text>
-          {row.facebook_name && (
+          {row.facebook_name && !isPlaceholderEmail(row.email) && (
             <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 2 }}>{row.facebook_name}</Text>
           )}
         </View>
@@ -169,10 +170,17 @@ function AddManualForm({ onAdded }: { onAdded: () => void }) {
   const [busy, setBusy] = useState(false);
 
   const submit = useCallback(async () => {
-    if (!email.includes('@') || !date) return;
+    // BUG-177: this field accepted any text containing "@" — a whole pasted
+    // export landed as ONE roster row whose email was 57 addresses. Exactly one
+    // address, no whitespace; multi-line lists belong in Sub Import.
+    const one = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(one) || !date) {
+      alertAsync('One email only', 'Enter a single email address here. To add a list, use Sub Import → Subscribers.');
+      return;
+    }
     setBusy(true);
     try {
-      await subscriberAdmin.upsertSubscribers([{ email, date_subscribed: date, status }]);
+      await subscriberAdmin.upsertSubscribers([{ email: one, date_subscribed: date, status }]);
       await subscriberAdmin.recordImport({
         import_type: 'manual',
         source_filename: 'admin_ui_manual_add',
@@ -387,7 +395,7 @@ function ProSubscribersInner() {
             <Text style={{ color: colors.textSecondary, fontSize: 11 }}>Nothing due in the next 7 days.</Text>
           ) : renewals.next7.slice(0, 25).map(({ r, due, daysOut, months }) => (
             <View key={r.id} style={{ flexDirection: 'row', paddingVertical: 4, borderTopWidth: 1, borderTopColor: colors.border, gap: 8, alignItems: 'center' }}>
-              <Text style={{ flex: 2, fontSize: 11, color: colors.text, fontFamily: theme.typography.fontFamily.mono }}>{revealAll ? r.email : maskEmail(r.email)}</Text>
+              <Text style={{ flex: 2, fontSize: 11, color: colors.text, fontFamily: theme.typography.fontFamily.mono }}>{identityLabel(r, revealAll ? r.email : maskEmail(r.email))}</Text>
               <Text style={{ width: 80, fontSize: 11, color: daysOut <= 1 ? colors.gold : colors.textSecondary, textAlign: 'right' }}>{daysOut === 0 ? 'today' : daysOut === 1 ? 'tomorrow' : due.slice(5)}</Text>
               <Text style={{ width: 54, fontSize: 10, color: months <= 1 ? colors.gold : colors.textTertiary, textAlign: 'right' }}>{months <= 1 ? '1st' : `${months}th`} renewal</Text>
             </View>

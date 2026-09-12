@@ -3515,4 +3515,19 @@ export const CONFIGS: Record<string, EngineConfig> = {
   // bit-identical there, an internal control). Expected neutral per
   // SIGNAL-INFO-01; ships (if it ships) as measured-cost robustness.
   get hist_floor() { return { ...this.midday_rot, historyFloor: { minDate: '2026-04-01', rollingDays: 180 } }; },
+
+  // ENG-BLOCK-2D-01 (2026-09-12): operator ask — shorten the post-hit hard block by
+  // one day in every scope (3 → 2). BASELINE = hist_floor (live parity, pre-flight
+  // verified against app_config 9/12). Harness semantics: blockDays=N blocks
+  // [D-N, D-1] (production [D-N, today]; today is empty at morning gen). Expected
+  // hit-rate-neutral (flat universe, SIGNAL-INFO-01); the 6/22 table already had
+  // evening N=2 == N=3 (82.8%) and allday N=2 −3.4pp vs N=3 on a 29-day window.
+  get hitblock2_rot() {
+    return { ...this.hist_floor, recentHitBlockDaysByScope: { midday: 2, evening: 2, allday: 2 } };
+  },
+  // ENG-BLOCK-2D-01 follow-up (same session): widen instead — 4-day block, all scopes.
+  // 6/22 table had evening N=4 −3.4pp vs N=3, allday N=4 = baseline (29-day window).
+  get hitblock4_rot() {
+    return { ...this.hist_floor, recentHitBlockDaysByScope: { midday: 4, evening: 4, allday: 4 } };
+  },
 };

@@ -28,8 +28,8 @@ Why 158/185 over 670/706 for the FULL board: both are triple overlaps and both a
 
 | Leg | Result | Payout |
 |---|---|---|
-| (A) 573 early-13 (3B) | — | — |
-| (B) 158/185 full board (if placed) | — | — |
+| (A) 573 early-13 (3B) | GA 851 — not 573; other 12 early draws pending import | — |
+| (B) 158/185 full board (if placed) | **BOX — GA 851** (early-13 block, operator-reported ~7:45pm ET 9/11; pending histories import). Order 851 was the 5th of six evening orders (851:5). Leg CLOSED on the hit; remaining ~29 draws still pay if placed. {1,5,8} now enters the 3-day post-hit block (9/12–9/14). | box $37.50/unit per hitting state vs $10.50/unit board → +$27.00/unit net on one hit; straight units on 185/158 miss (851 order) |
 | (B) 670/706 full board (if placed) | — | — |
 
 ## 2026-09-11 — midday session (Friday board, 33 midday draws / 31 jurisdictions → $8.25/unit per leg per bet type) — PROPOSED 4-leg (3 singles + 1 double), All-Day lean, every leg 2S + 3B — $165.00 — confirm placement + units from the ticket

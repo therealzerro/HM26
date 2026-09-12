@@ -23,6 +23,16 @@ Alternate: **248 {2,4,8}** — yesterday's "named swap, no engine support" now H
 
 Not taken: 196 {1,6,9} (Eve pos 3; pool 17, 4 in 30d, last pool 9/7 GA 169 — recent, hotness texture); 659 {5,6,9} (Eve pos 5; pool 18 / 90d 8, evening 13 in 30d = hot, last pool 8/31); 017 (pool z +2.5, off every board, All-Day DI 24 only); 125 (All-Day pos 1, pool 17); doubles 223 (universe #1, z +2.9, BLOCKED — DC 232 9/10) and 033 (z +2.5, clear, no engine backing).
 
+### (B) #1 pick for the FULL evening session (~42 draws / 39 jurisdictions → ~$10.50/unit; asked ~5:05pm ET after the midday import)
+
+| Rank | Combo (straight order) | Set | Why |
+|---|---|---|---|
+| **#1** | **573** (evening engine + Eve DI order); 375 = All-Day engine order + most-drawn evening order (375:11 / 537:10 / 573:9 / 753:9) | {3,5,7} | **Triple overlap — Eve pos 1 (overdue tag) / All-Day pos 3 / Mid pos 5**; **Eve DI #1 for the third straight day** (573@1, 735@6, 375@7, 537@11, 753@19), All-Day DI 2/5/28, Mid DI 20/22/24 — the most engine-stacked set on today's boards by a wide margin; evening **54 in 180d vs 38.9 expected (1.39×, z +2.4)**, 29 in 90d, 8 in 30d; 90d footprint 19 jurisdictions; last anywhere 9/5 TX 735, clear of the 9/10–9/12 block (midday re-scan clean). Day 1 as a full-board leg (the 9/10–9/11 573 positions were early-pool session reads, not board legs). **Same set as the early-13 read — a full-board ticket already covers the 13 early draws; do not double-buy the pool.** |
+| #2 | **248** (evening engine + Eve DI #2 order); 842 = most-drawn evening order (842:14 / 482:13 / 824:11) | {2,4,8} | Eve pos 6 + All-Day pos 6; Eve DI 2/3/4/5/14/22 (six perms), All-Day DI 11/16/18/19; evening **67 in 180d (1.72×, z +4.5)** with 20 in 30d — the count leader of the whole board, but 18 of the 20 were late-pool draws and the 9/11 persistence test (1.04×) says the count carries no forward rate; last 9/8 DC 248 — clear. The named swap if the operator wants the count over the engine depth. |
+| — | 895 / 395 / 659 / 196 | | Eve pos 4 / 2 / 5 / 3: evening 44 / 45 / 53 / 42 in 180d (1.1–1.4×); 659 has 13 in 30d (hot texture); none has a second-board slot or a top-5 DI rank. 125 / 764 (All-Day pos 1 / 2): 41 / 38, evening-flat. |
+
+Tie-break as on 9/11: DI rank stacking and cross-board depth decide (573: rank-1 triple overlap; 248: rank-6 double overlap); raw count is texture (STATE_STR ×3). Blocked from the board by the 9/11 hits: {1,5,8}, {3,4,9}. Uniform truth: one set across ~42 draws ≈ 22% to box / ~4% straight whichever is chosen; 3B = $31.50, straight unit $10.50; box pays $37.50/unit per hitting state, straight $225.
+
 ### Session math (uniform baseline — standing BUG-162 / SIGNAL-INFO-01 truth)
 
 - One set across 13 draws: ~7.5% P(box), ~1.3% P(straight); four straights ≈ 5.1% for any one to land. Box at 3B = $9.75 (pays $112.50); each straight unit $3.25 (pays $225). Expected ≈ −10% of stake at the book's RTP for every set — the pool count, footprint and board stacking chose *which* sets, not the rate. z ≈ 2 selected diffs occur routinely on noise.

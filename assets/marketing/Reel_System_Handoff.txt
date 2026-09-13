@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-13 · v7.2
+Content Agent Handoff · 2026-09-13 · v7.3
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-13 (CONSOLIDATED SNAPSHOT, current to v7.2 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-13 (CONSOLIDATED SNAPSHOT, current to v7.3 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -448,17 +448,21 @@ G. OPEN / OWED — the standing list (everything else you may have read as
         OWED BY THE OPERATOR: the first live eyeball (7pm 9/12 or the
         first run) — if the dim tiles don't read at feed size, pull it and
         say so; the morning board is unaffected either way.
-        ⚠ v7.1 (9/13): THE HANDOFF LOG SAYS THE FIRST TWO LIVE record_public
-        CUTS WENT TO THE PRO GROUP (target 'pro group', tier 4, 9/12 05:46 ET
-        and 9/13 05:32 ET — the morning, two minutes after allday_public's
-        cross-post), NOT to the page at 7pm. Operator: confirm where they
-        actually landed (v7.1 block, item 1b). Until a page post exists there
-        is no record-vs-board retention pair to read.
+        ~~⚠ v7.1 (9/13): THE HANDOFF LOG SAYS THE FIRST TWO LIVE record_public
+        CUTS WENT TO THE PRO GROUP … Until a page post exists there is no
+        record-vs-board retention pair to read.~~ HISTORICAL — WRONG.
+        ✅ v7.3 (9/13, operator confirmation): BOTH cuts landed on the PAGE
+        as ruled. The 'pro group / tier 4' rows were the stale-bundle
+        fallback's MISLABEL (BUG-178's second defect), not the destination;
+        the four log rows are corrected. Retention pairs count from launch
+        (9/12); bar = ≥7 same-day pairs; reported with the 9/23 read.
     13. MKT-80 — RETENTION FINDING → STAMP HOOK BUILT + GATED (v7.1/v7.2):
         (a) 4s avg watch on the cold-open allday_public recorded; MKT-66's
         "front-load and they stay" hypothesis is DEAD; content-fit is the
-        working read. (b) record vs board retention: TOO EARLY and possibly
-        no page post yet (item 12 note; BUG-178 guard shipped v7.2). (c) ⛔
+        working read. (b) record vs board retention: page data since LAUNCH
+        9/12 (v7.3 correction — the "pro group" log rows were a mislabel);
+        bar ≥7 same-day pairs, reported with the 9/23 read; BUG-178 guard
+        shipped v7.2 and stands on its own merits. (c) ⛔
         NO reel metric (views / unique / watch time) is captured anywhere —
         operator-pulled only; blocks record-vs-board, joins/1,000 views,
         any ad read; when built, BOTH pulls at once, not before 9/23. (d)
@@ -598,6 +602,55 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.3 (2026-09-13, same day — OPERATOR CONFIRMATION: THE RECORD
+REEL HAS BEEN ON THE PAGE SINCE LAUNCH. v7.1 item 1b and the v7.2 item 1
+framing of a "dispatch defect" were WRONG. Correction recorded; the four
+mislabelled log rows fixed; BUG-178 stands on its own merits. No asset
+requested. Next free MKT ID: 81.)
+================================================================================
+  1. THE CORRECTION. Both live record_public cuts (9/12, 9/13) landed on
+     the PAGE, as MKT-79 ruled. The log's "pro group / tier 4" rows were
+     the stale-bundle fallback's MISLABEL (the app bundle predated the
+     record_public KIND_UI entry, resolved the kind through the fallback,
+     and logged the fallback's default target — not where the operator
+     posted). v7.1 read a log label as a destination and treated the
+     ambiguity as fact. Struck in G item 12 below; MASTER_AUDIT MKT-80
+     and BUG-178 carry the correction so the audit does not record a
+     defect that did not happen.
+     · LOG FIXED (four rows, old values kept in the audit): social_posts
+       63ba14e6… and 8e98e4e1… target 'pro group'/tier 4 → 'cross-post'/
+       tier 3 (image_meta.target_corrected notes why); marketing_reels
+       ae5780bd… and 8057fbcd… target_name 'pro group' → 'cross-post'.
+       The Reels tab's "posted where" and the funnel's per-target counts
+       now read the true destination.
+     · The posted_at times in the log (~05:45 ET) are the app's status
+       flip, not the page's publish time — they say nothing about the 7pm
+       slot either way.
+  2. WHAT IT CHANGES. record_public has real page data since 9/12, so the
+     record-vs-board retention pairs count from LAUNCH: 9/12, 9/13 today,
+     one more per day. THE BAR, stated now so the read is not argued
+     later: the same one-week rule MKT-66 used — at least SEVEN same-day
+     pairs of operator-pulled Meta numbers (views, unique, avg watch time,
+     both kinds) before any gap is called. That lands ~9/18; it will be
+     reported with the 9/23 window read (11–12 pairs), unless the
+     operator pulls earlier and pastes the pairs into this block. Noise
+     floor: with one post per kind per day and a 4s baseline, a gap
+     under ~2s on seven pairs is not a finding.
+  3. BUG-178 STANDS. The two guards are real defects independent of this
+     incident: a public kind on a group target raised no warning, and an
+     unknown kind defaulted to Pro Group labelled "Reel" — which is
+     exactly the mislabel that produced the wrong log rows here. The
+     fallback's suffix-derived default means a stale bundle now LOGS a
+     public kind as cross-post too, so this class of false positive is
+     closed at the source.
+  4. STAMP HOOK — ACCEPTED AS BUILT (hard cut ruling confirmed). Operator
+     eyeballs the preview before 9/24 (allday_public_20260913_stamphook_
+     preview.mp4, on disk, untracked). Flip 9/24 by recorded date; first
+     live eyeball 9/24.
+  5. NOTHING ELSE OWED. Next: the 9/23 window read (with the retention
+     pairs), then the 9/24 flip.
+
 WHAT CHANGED IN v7.2 (2026-09-13, same day — YOUR FIVE RULINGS ACTIONED. Built:
 the MKT-80 stamp hook (allday_public, board segment, HELD — flips 9/24 by
 recorded date) and BUG-178, the Reels-tab dispatch guard. Recorded: the chip

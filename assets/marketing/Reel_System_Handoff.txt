@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-12 · v7.0
+Content Agent Handoff · 2026-09-13 · v7.1
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-12 (CONSOLIDATED SNAPSHOT, current to v7.0 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-13 (CONSOLIDATED SNAPSHOT, current to v7.1 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -443,6 +443,25 @@ G. OPEN / OWED — the standing list (everything else you may have read as
         OWED BY THE OPERATOR: the first live eyeball (7pm 9/12 or the
         first run) — if the dim tiles don't read at feed size, pull it and
         say so; the morning board is unaffected either way.
+        ⚠ v7.1 (9/13): THE HANDOFF LOG SAYS THE FIRST TWO LIVE record_public
+        CUTS WENT TO THE PRO GROUP (target 'pro group', tier 4, 9/12 05:46 ET
+        and 9/13 05:32 ET — the morning, two minutes after allday_public's
+        cross-post), NOT to the page at 7pm. Operator: confirm where they
+        actually landed (v7.1 block, item 1b). Until a page post exists there
+        is no record-vs-board retention pair to read.
+    13. MKT-80 — RETENTION FINDING + CHIP-STRING PRE-FLIGHT (v7.1 block):
+        (a) 4s avg watch on the cold-open allday_public recorded; MKT-66's
+        "front-load and they stay" hypothesis is DEAD; content-fit is the
+        working read. (b) record vs board retention: TOO EARLY and possibly
+        no page post yet (item 12 note). (c) ⛔ NO reel metric (views /
+        unique / watch time) is captured anywhere in the pipeline —
+        operator-pulled from Meta only; same gap as the page Views series.
+        (d) Meta's overlay copy REJECTED (your ruling, recorded). (e)
+        "SCORED ACROSS 40+ STATES": tier-1 lint CLEAN; ⛔ allday_public HAS
+        NO CHIP (v5.3) — the string needs a SURFACE RULING (hook eyebrow /
+        hook sub / body stamp eyebrow; engineering lean = stamp eyebrow,
+        the only surface on screen at the 4s exit). HELD TO 9/23; with the
+        surface ruled, 9/24 is a same-morning ship.
      9. FIRST-APPEARANCE EYEBALLS owed on the rotation: `juggle` first draws
         evening_free 8/20 (then midday_free 8/21, evening_pro 8/22); etch /
         facet stingers 8/20 (v3.7); `guest` served
@@ -569,6 +588,144 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
       the same August days (August wave: 59% renewed) · Pro comments 0.7/day,
       free comments 4.3/day · page-level views still not held (daily export
       owed). None of it is quotable in copy.
+
+================================================================================
+WHAT CHANGED IN v7.1 (2026-09-13 — REPLY TO YOUR 9/12 "RETENTION FINDING + THREE
+ASKS". Two reports and one pre-flight; NOTHING BUILT, NOTHING SHIPPED, no asset
+requested. MKT-80 stamped = the retention finding + the chip-string pre-flight,
+held to 9/23. Next free MKT ID: 81.)
+================================================================================
+  0. THE FINDING, RECORDED (MASTER_AUDIT MKT-80). Meta on the 9/12
+     allday_public, ~9h after posting: 1,188 views · 643 unique · AVERAGE
+     WATCH 4s on a 28s reel that has had the board on screen at 2.0s since
+     MKT-66 (9/2). The MKT-66 read is therefore IN: the cold open did not
+     move retention; "front-load the content and they will stay" is DEAD
+     and nothing rests on it any more (MKT-74 item C, the intro-length
+     question, closes with it). Working read, yours, adopted: the covered
+     board holds no cold attention because a non-member cannot use it —
+     content fit, not anatomy. Nobody proposes another trim.
+     ⚠ Sample caveat, said plainly: it is ONE post's nine-hour read. The
+     only watch-time numbers this file has ever held are 5–8s (9/2, the
+     pre-cold-open baseline) and 4s (9/12). Both operator-pulled (item 1c).
+
+  1. RECORD vs allday_public RETENTION — TOO EARLY, AND POSSIBLY NOT ON THE
+     PAGE AT ALL.
+     a. Same-day pairs that exist: 9/12 and 9/13 — record_public's first two
+        live handoffs (the 9/11 smoke-test cut, reel_date 9/10, never
+        posted). Two pairs cannot carry a watch-time comparison at any
+        sample size; no number is reported because none could carry weight.
+     b. ⚠ THE HANDOFF LOG SAYS record_public WENT TO THE PRO GROUP, NOT THE
+        PAGE. social_posts + marketing_reels record target 'pro group',
+        tier 4, for BOTH live handoffs — 9/12 05:46 ET and 9/13 05:32 ET,
+        the morning slot, two minutes after allday_public's cross-post (which
+        logs 'cross-post', tier 3, as designed). Not 7pm. Two readings:
+        (i) the operator chose the Pro room on purpose (a private-room smoke
+        test), or (ii) the Reels tab fell back to its default target —
+        record_public's KIND_UI entry (default 'cross') landed 9/11 20:53
+        UTC, and a bundle loaded before that resolves the kind through
+        FALLBACK_KIND_UI, whose default is 'pro'. Either way: IF Facebook
+        matches the log, record_public has ZERO page posts, the 7pm public
+        slot has not run yet, and there is nothing to compare. OPERATOR:
+        confirm where the two record cuts actually landed. If they are in
+        the Pro room, the first page pair is the next run, and the Reels
+        card must show "Track Record · Public / 🔁 Cross-Post" before the
+        tap (if it shows "Reel" / Pro Group, reload the app first).
+     c. INSTRUMENTATION — the answer is NO. Nothing in the pipeline captures
+        watch time, views or unique viewers for any reel. marketing_reels
+        holds paths, duration, caption, status, posted_at, target_name;
+        social_posts is the handoff log (target, tier, caption hash, kind,
+        date); the fb_* tables are GROUP Insights (members, joins, posts,
+        comments, reactions, engaged) and earnings. There is no page-level
+        series and no per-post series. Watch time is OPERATOR-PULLED FROM
+        META ONLY — recorded here alongside the page Views gap (MKT-74 G):
+        the daily Page Insights export covers Views/Reach/Visits/Follows,
+        and per-post retention (views, unique, avg watch) is a SECOND,
+        separate pull. Until either is ingested, the numbers survive only
+        if they are pasted into this file — paste each pair under a "1e"
+        line here when you have it; ingestion is a later cost, quoted on
+        request.
+     d. THE STRATEGY QUESTION ("if the record holds longer, the public lane
+        is the record, and allday_public's SLOT is what to reconsider") is
+        recorded as MKT-80's open ruling. Not acted on. It needs page-side
+        pairs first (1b).
+
+  2. THE MANUAL FIRST COMMENT — WHAT EXISTS (report only, nothing built).
+     The free-group URL lives in app_config.social_free_group_url and
+     reaches the operator's hand at post time in exactly ONE way: inside the
+     copied caption. Every public-kind handoff button — Save to Photos +
+     Open Group, Share…, Download mp4, and the platform rows' Copy caption —
+     puts the WHOLE caption on the clipboard, and its line one is
+     `Free board every morning: <url>` (MKT-74). So the link is already on
+     the clipboard at the moment of posting, but as part of a ~250-char
+     caption, never alone. There is NO standalone one-tap copy of the URL
+     anywhere: Admin → Reels has "↗ Group" (OPENS the group, does not copy,
+     and is hidden on cross-post targets — i.e. on every public kind);
+     Admin → Publish shows the URL in an editable destination field
+     (selectable text, no copy button). Closest paste-and-go today: paste
+     the caption into the comment box and delete everything after line
+     one. A "📋 Copy free-group link" ghost button on the public kinds'
+     card would be ~10 lines; not built, not proposed — say the word.
+     (The pinned-comment limit stands as established 9/8: it hardwires the
+     /subscribenow URL; nothing here can change it.)
+
+  3. THE CHIP STRING — PRE-FLIGHT DONE; ONE DECISION REMAINS, AND IT IS NOT
+     THE STRING.
+     a. RULING RECORDED: Meta's overlay copy ("6 signals scored across 40+
+        states. Tap the link in the first comment for today's free board!")
+        is REJECTED on your two grounds — a directional claim we do not
+        control (Facebook orders comments) and a promise ("today's free
+        board") that lands on a covered midday board. Never re-proposed.
+     b. TIER-1 LINT: "SCORED ACROSS 40+ STATES", "40+ STATES & PROVINCES",
+        "SCORED ACROSS 40+", "40+ STATES" (and the long form) all pass
+        lintCaption(…, 1) with ZERO violations, blocking or advisory; no
+        3-digit run. Nothing to decide on lint.
+     c. ⛔ allday_public HAS NO CHIP — v5.3 (9/2) removed the intro from the
+        public cut and the identity chip rides the intro; the 9/2 reply
+        said so ("change nothing on the chip for allday_public"). "It is a
+        config string" assumes a surface that is not there. For the record,
+        in the chip's own geometry (JBM 700 30px, 3px tracking, plate =
+        text + 67px, right edge pinned at x=1008 — the 9/2 method; its
+        numbers reproduce):
+          SCORED ACROSS 40+ STATES   plate 571px → left x=437  ✗ crosses centre
+          40+ STATES & PROVINCES     plate 529px → left x=479  ✗ crosses centre
+          SCORED ACROSS 40+          plate 424px → left x=584  ✓ (9/2: 425)
+          40+ STATES                 plate 277px → left x=731  ✓
+        Same verdict as 9/2 — and moot on this kind.
+     d. THE SURFACES allday_public ACTUALLY HAS, each measured with the real
+        face for "SCORED ACROSS 40+ STATES":
+        · HOOK CARD EYEBROW (JBM 500 40px, 8px tracking, centred): 768px of
+          1080 → FITS. Cost: it replaces "YESTERDAY'S BOARD", the receipts
+          framing above the count; the card's meaning changes.
+        · HOOK CARD SUB LINE (500 30px, 3px, max-width 900, wraps): 504px →
+          one line, FITS. But today's sub already reads "40+ STATES &
+          PROVINCES · CHECKED AGAINST OFFICIAL RESULTS" — the scale claim is
+          ALREADY on the card at 2.0s; this would be a rewrite, not an
+          addition, and the card is on screen for 2.4s total.
+        · BODY STAMP EYEBROW (render-reel-stamp `drop`, 500 27px, 5px,
+          centred plate at y=1000 in the empty black band): 504px vs today's
+          "TODAY'S DATA DROP" 357px → FITS; the plate widens ~147px
+          symmetrically, covers nothing. On screen for the WHOLE board
+          segment (2.0s → ~21s).
+        ⚠ THE 4-SECOND EXIT HAPPENS ON THE BOARD, NOT THE CARD. The card is
+        gone at 2.4s; at 4s the viewer is looking at the board and the
+        stamp. If the string is meant to be in front of the viewer who is
+        about to leave, the stamp eyebrow is the only surface that is.
+        ENGINEERING LEAN: stamp eyebrow, allday_public ONLY — a new
+        PURPOSES entry (`drop_public`: eyebrow SCORED ACROSS 40+ STATES,
+        drop cyan, top 1000) + the assembler's public stamp call = ~5 lines,
+        pro/free stamps untouched; NOT a config string, and said so.
+        RULING OWED (yours): which surface. Fallback chain, for the record:
+        40+ STATES & PROVINCES ✗ (does not fit the chip geometry either) →
+        SCORED ACROSS 40+ ✓ → 40+ STATES ✓; on the three real surfaces the
+        full string fits and no fallback is needed.
+     e. TIMING: HOLD TO 9/23 STANDS. Nothing moves in the window. With the
+        surface ruled, 9/24 is a same-morning ship (edit → re-render the
+        public cut → republish; the REEL_COMMANDS re-render line exists).
+
+  4. HOUSEKEEPING. MASTER_AUDIT MKT-80 written (finding, the log discrepancy,
+     the instrumentation gap, the ruling, the measurements). No code, no
+     config, no asset changed. MKT-76 remains held; your three standing
+     metrics stand; the 9/23 window read is next. Next free MKT ID: 81.
 
 WHAT CHANGED IN v7.0 (2026-09-12, ~5:30pm ET — AUDIENCE + REVENUE READ, NOT A
 REEL CHANGE: the operator imported four fresh Meta exports this afternoon (the

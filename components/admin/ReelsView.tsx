@@ -94,7 +94,21 @@ const KIND_UI: Record<ReelKind, { icon: string; label: string; defaultTarget: Ta
 
 /** A kind with no UI entry would crash the whole Reels tab on `ui.defaultTarget`
  *  rather than degrading to one unrenderable card. Fall back instead. */
+// MKT-80 / BUG-178 (2026-09-13): the fallback used to default EVERY unknown
+// kind to 'pro' — so a public kind reaching a bundle older than its KIND_UI
+// entry was handed to the Pro room by the operator's habitual tap (the two
+// record_public handoffs of 9/12–9/13 logged 'pro group', tier 4). The
+// default is now derived from the kind's tier suffix — `_public` → cross,
+// `_free` → free — and the label says the kind is unregistered so the
+// operator reloads instead of posting.
 const FALLBACK_KIND_UI = { icon: '🎬', label: 'Reel', defaultTarget: 'pro' as Target, sheetAspect: 6 * (270 / 480) };
+const fallbackKindUi = (kind: string) => ({
+  ...FALLBACK_KIND_UI,
+  label: `${kind} · UNREGISTERED in this build — reload`,
+  defaultTarget: (kind.endsWith('_public') ? 'cross' : kind.endsWith('_free') ? 'free' : 'pro') as Target,
+});
+/** Public-registry kinds: tier-1 cuts written for surfaces we do not own. */
+const isPublicKind = (kind: string): boolean => kind.endsWith('_public');
 
 // Daily posting schedule — data shared with the captions PDF's page-1 card
 // via constants/postingSchedule.ts (structured mirror of the canonical
@@ -320,10 +334,17 @@ function ReelCard({ reel, urls, onPosted, expanded, onToggle }: {
 }) {
   const { colors } = useTheme();
   const st = useSt();
-  const ui = KIND_UI[reel.kind] ?? FALLBACK_KIND_UI;
+  const unregistered = !KIND_UI[reel.kind];
+  const ui = KIND_UI[reel.kind] ?? fallbackKindUi(String(reel.kind));
 
   const [caption, setCaption] = useState(reel.caption);
   const [target, setTarget] = useState<Target>(ui.defaultTarget);
+  // MKT-80 / BUG-178: a PUBLIC kind aimed at a group room. WARN, not block
+  // (the MKT-37 class — the inverse guard): the Pro room already has the
+  // record in the app, the free room has fuller cuts, and a group handoff of a
+  // public kind logs tier 4 against a tier-1 reel. It is almost always a
+  // mis-tap, and the class of defect that runs for weeks unnoticed.
+  const publicToGroup = isPublicKind(String(reel.kind)) && target !== 'cross';
   const [q1No, setQ1No] = useState(false);
   const [q2No, setQ2No] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -536,6 +557,16 @@ function ReelCard({ reel, urls, onPosted, expanded, onToggle }: {
       {reel.caption_pro != null && (
         <Text style={{ fontSize: 9, color: colors.textTertiary, marginBottom: 6, marginTop: -2 }}>
           This reel has two caption drafts — switching Free/Pro loads the matching one (Pro carries the real numbers).
+        </Text>
+      )}
+      {unregistered && (
+        <Text style={{ fontSize: 9, color: colors.orange, marginBottom: 6, lineHeight: 14 }}>
+          ⚠ {String(reel.kind)} is not registered in this build of the Reels tab — the target above is a guess from its name. Reload the app before posting.
+        </Text>
+      )}
+      {publicToGroup && (
+        <Text style={{ fontSize: 9, color: colors.orange, marginBottom: 6, lineHeight: 14 }}>
+          ⚠ {String(reel.kind)} is the PUBLIC cut — registered for 🔁 Cross-Post (the page). The group rooms have fuller cuts of the same content and the Pro room already sees the record in the app; a group handoff logs tier {SURFACE_TIER[target]} against a tier-1 reel. Switch to Cross-Post unless this is deliberate.
         </Text>
       )}
 

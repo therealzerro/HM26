@@ -101,6 +101,22 @@ Re-render just the public cut (after a hook/caption change):
     npx tsx scripts/assemble-allday-reels.ts <YYYYMMDD> --variant=public
     npx tsx scripts/publish-reels.ts allday <YYYYMMDD> --variant=public
 
+MKT-80 STAMP HOOK (built 2026-09-13, HELD — LIVE FROM 2026-09-24 automatically,
+PUBLIC_STAMP_HOOK_FROM in scripts/public-hook-config.ts; no cron): from that
+morning allday_public's BOARD SEGMENT (the 10.0s grid still) carries the stamp
+eyebrow "SCORED ACROSS 40+ STATES" (drop_public purpose, tier-1 linted
+fail-closed); the modal segment keeps the standard "TODAY'S DATA DROP" stamp —
+hard eyebrow cut at the grid→modal boundary (a crossfade smeared the two
+strings; date + brand lines are identical on both plates). allday_public ONLY — not
+verify_public, not record_public, not the group kinds. Final carries
+hm_stamp_hook in its container tags. `_stamp_public_hook_<stamp>.png` is a
+per-day intermediate. reel:check lints the string every run.
+Preview before the flip (suffixed _stamphook_preview, NEVER published):
+    npx tsx scripts/assemble-allday-reels.ts <YYYYMMDD> --variant=public --stamp-hook
+Escape hatch after the flip (classic stamp on the whole body):
+    npx tsx scripts/assemble-allday-reels.ts <YYYYMMDD> --variant=public --classic-stamp
+    npx tsx scripts/publish-reels.ts allday <YYYYMMDD> --variant=public
+
 PUBLIC REEL LIVE (2026-07-30, MKT-16): reel:allday now builds a
 THIRD cut — allday_public, from the --redact --relabel PUBLIC
 capture (digits masked AND tier-1 vocabulary swapped). EIGHT reels

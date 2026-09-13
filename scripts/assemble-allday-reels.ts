@@ -44,6 +44,7 @@ import { resolveEndcard } from './reel-endcard';
 import { CHIP_LABELS } from './intro-chip-config';
 import {
   HOOK_DUR, HOOK_DISSOLVE, CTA_CUT_KINDS, CTA_BOARD_DUR, CTA_VO_LEAD, CTA_VOICE_DEFAULT, CTA_VOICE_FILES, type CtaVoice,
+  PUBLIC_STAMP_HOOK_FROM, PUBLIC_STAMP_HOOK_EYEBROW,
 } from './public-hook-config';
 
 const ASSETS = resolve('assets/marketing');
@@ -131,6 +132,20 @@ if (CTA_BOARD_DUR > GRID_DUR) {
   console.error(`ABORT: CTA_BOARD_DUR ${CTA_BOARD_DUR}s exceeds the body's grid still (${GRID_DUR}s) — the CTA cut would show modal frames.`);
   process.exit(1);
 }
+// MKT-80 (2026-09-13) — THE HOOK ON THE BODY STAMP, allday_public only, HELD
+// to 9/23. From PUBLIC_STAMP_HOOK_FROM the public cut's BOARD SEGMENT (the
+// GRID_DUR still) carries a stamp whose eyebrow is the measured scale hook
+// ("SCORED ACROSS 40+ STATES"); the modal segment keeps the standard public
+// drop stamp (date + brand, "TODAY'S DATA DROP"), crossfaded at the grid→modal
+// boundary. Before the date `--stamp-hook` = PREVIEW build (suffixed output,
+// never published); after it `--classic-stamp` = escape hatch. Recorded switch
+// date, not a scheduler (OPS-01) — the MKT-75 pattern.
+const FORCE_STAMP_HOOK = process.argv.includes('--stamp-hook');
+const CLASSIC_STAMP = process.argv.includes('--classic-stamp');
+const todayET = (): string =>
+  new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })).toLocaleDateString('en-CA').replace(/-/g, '');
+const stampHookFlipped = todayET() >= PUBLIC_STAMP_HOOK_FROM;
+if (FORCE_STAMP_HOOK && CLASSIC_STAMP) { console.error('ABORT: --stamp-hook and --classic-stamp are mutually exclusive (MKT-80).'); process.exit(1); }
 /**
  * MKT-26 — THE BODY IS RESOLVED PER VARIANT, not once per scope.
  *
@@ -229,6 +244,15 @@ if (VARIANTS.length === 0) {
 if (VARIANTS.some(v => captureModeFor(SCOPE, v) === 'public')) {
   sh(`npx tsx scripts/render-reel-stamp.ts drop ${stamp} - "${publicStampPng}"`);
 }
+// MKT-80: the board-segment hook stamp for the public cut — rendered only when
+// a public variant will use it (flipped, or forced for a preview). Tier-1
+// linted fail-closed inside the renderer.
+const publicHookStampPng = join(REELS, `_stamp_public_hook_${stamp}.png`);
+const wantsStampHook = (v: Variant): boolean =>
+  captureModeFor(SCOPE, v) === 'public' && !CLASSIC_STAMP && !process.argv.includes('--classic-open') && (FORCE_STAMP_HOOK || stampHookFlipped);
+if (VARIANTS.some(wantsStampHook)) {
+  sh(`npx tsx scripts/render-reel-stamp.ts drop_public ${stamp} - "${publicHookStampPng}"`);
+}
 // MKT-77: the CTA cut's stamp names the cover as deliberate on every body
 // frame ("COVERED UNTIL TOMORROW · <scope> · <date>") — the still has no
 // modals, no notation strip and no shoulder chip to carry that meaning.
@@ -294,6 +318,15 @@ for (const v of VARIANTS) {
     dissolve = HOOK_DISSOLVE;
     console.log(`NOTE(${v}): COLD OPEN — board on screen at ${HOOK_DUR}s (was intro + stinger ≈ 8.7s); no anchor intro, no stinger, no shoulder chip.`);
   }
+  // MKT-80: the board-segment hook stamp rides the COLD-OPEN public cut only
+  // (the classic open keeps the classic stamp — one variable at a time).
+  const stampHook = coldOpen && wantsStampHook(v);
+  const STAMP_HOOK_PREVIEW = stampHook && !stampHookFlipped;
+  if (stampHook && bodyDur <= GRID_DUR) {
+    console.error(`ABORT(${v}): body ${bodyDur}s has no modal segment after the ${GRID_DUR}s grid still — the MKT-80 stamp swap has nowhere to land.`);
+    process.exit(1);
+  }
+  if (stampHook) console.log(`NOTE(${v}): STAMP HOOK (MKT-80) — board segment (${GRID_DUR}s) stamped "${PUBLIC_STAMP_HOOK_EYEBROW}", modals keep the drop stamp${STAMP_HOOK_PREVIEW ? `; PREVIEW output (live from ${PUBLIC_STAMP_HOOK_FROM})` : ''}.`);
   const openBase = intro ? intro.dur : OPEN;
   // MKT-12: prebuilt per-variant stinger. Missing/disabled → null and the reel
   // assembles exactly as before. Crossfaded into, so it adds dur − INTRO_XFADE.
@@ -409,7 +442,7 @@ for (const v of VARIANTS) {
   const lockup = join(REELS, `_lockup_${v}.png`);
   // MKT-77: a preview build never lands on the serving name (the verify_public
   // cold-open precedent — held builds leave no serving-name collision behind).
-  const outSuffix = ctaCut && CTA_PREVIEW ? '_cta_preview' : '';
+  const outSuffix = ctaCut && CTA_PREVIEW ? '_cta_preview' : STAMP_HOOK_PREVIEW ? '_stamphook_preview' : '';
   const out = join(REELS, `${kind}_${stamp}${outSuffix}.mp4`);
   const out1x1 = join(REELS, `${kind}_${stamp}_1x1.mp4`);
   const sheet = join(REELS, `${kind}_${stamp}${outSuffix}_contact.png`);
@@ -442,6 +475,10 @@ for (const v of VARIANTS) {
     // input above is conditional — a hardcoded [7] would silently become the
     // stinger's slot on a stinger-less kind and overlay the wrong stream.
     (chipPng ? `-loop 1 -framerate 60 -t ${total} -i "${chipPng}" ` : ``) +
+    // MKT-80: hook stamp appended LAST, index computed like the chip's — the
+    // stinger and chip inputs above are both conditional (and both null on the
+    // cold-open public cut, but the index is derived, not assumed).
+    (stampHook ? `-loop 1 -framerate 60 -t ${total} -i "${publicHookStampPng}" ` : ``) +
     `-filter_complex "` +
     (intro
       ? `[0:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=${openBase},setpts=PTS-STARTPTS[lk0];`
@@ -463,8 +500,18 @@ for (const v of VARIANTS) {
     `[openbody][cardv]concat=n=2:v=1:a=0[vraw];` +
     // Stamp rides the body only: in as the open dissolve settles, out before
     // the endcard cut so the lockup stays clean.
-    `[5:v]format=rgba,fade=t=in:st=${+(openDur - 0.1).toFixed(2)}:d=0.45:alpha=1,fade=t=out:st=${(openDur + bodyDur - 0.55).toFixed(2)}:d=0.5:alpha=1[stmp];` +
-    `[vraw][stmp]overlay=0:0,format=yuv420p[vidst];` +
+    // MKT-80: on the public cut the BOARD SEGMENT (openDur → openDur+GRID_DUR)
+    // carries the hook stamp and the drop stamp takes over at the grid→modal
+    // boundary. HARD CUT (2 frames), not a crossfade: the two plates share the
+    // date and brand lines, only the eyebrow differs, and a 0.3s alpha cross
+    // superimposed the two eyebrows into an unreadable smear (seen on the
+    // 9/13 preview). The eyebrow snaps where the body content snaps.
+    (stampHook
+      ? `[5:v]format=rgba,fade=t=in:st=${(openDur + GRID_DUR).toFixed(2)}:d=0.034:alpha=1,fade=t=out:st=${(openDur + bodyDur - 0.55).toFixed(2)}:d=0.5:alpha=1[stmp];` +
+        `[${6 + (sting ? 1 : 0) + (chipPng ? 1 : 0)}:v]format=rgba,fade=t=in:st=${+(openDur - 0.1).toFixed(2)}:d=0.45:alpha=1,fade=t=out:st=${(openDur + GRID_DUR - 0.034).toFixed(3)}:d=0.034:alpha=1[hstmp];` +
+        `[vraw][hstmp]overlay=0:0[vidh];[vidh][stmp]overlay=0:0,format=yuv420p[vidst];`
+      : `[5:v]format=rgba,fade=t=in:st=${+(openDur - 0.1).toFixed(2)}:d=0.45:alpha=1,fade=t=out:st=${(openDur + bodyDur - 0.55).toFixed(2)}:d=0.5:alpha=1[stmp];` +
+        `[vraw][stmp]overlay=0:0,format=yuv420p[vidst];`) +
     // MKT-22/MKT-35: chip rides the INTRO only — FULL OPACITY FROM FRAME ONE
     // (frame one is the thumbnail; no fade-in by ruling), out well before the
     // intro→stinger crossfade at openBase−0.3 so it can never ghost through
@@ -516,8 +563,11 @@ for (const v of VARIANTS) {
     `-map "[vid]" -map "[a]" -t ${total} -r 60 -c:v libx264 -profile:v high -crf 18 -pix_fmt yuv420p ` +
     // MKT-77: the CTA cut records itself in the final's container (hm_cut +
     // the voice choice) so a published file can be told from a classic one.
-    `-c:a aac -ar 48000 -movflags +faststart${ctaCut ? '+use_metadata_tags' : ''} ` +
+    `-c:a aac -ar 48000 -movflags +faststart${ctaCut || stampHook ? '+use_metadata_tags' : ''} ` +
     (ctaCut ? `-metadata hm_cut="cta" -metadata hm_cta_voice="${CTA_VOICE}" ` : ``) +
+    // MKT-80: the final records the stamp hook so a published file can be told
+    // from a classic-stamp one (same reason as hm_cut).
+    (stampHook ? `-metadata hm_stamp_hook="${PUBLIC_STAMP_HOOK_EYEBROW}" ` : ``) +
     `"${out}"`,
   );
 

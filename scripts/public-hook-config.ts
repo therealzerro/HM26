@@ -14,6 +14,21 @@ export const HOOK_DISSOLVE = 0.4;   // card → board first frame
 // after the flip. This is a recorded switch date, not a scheduler (OPS-01).
 export const VERIFY_PUBLIC_COLD_OPEN_FROM = '20260924';
 
+// MKT-80 (2026-09-13, content agent ruling) — THE HOOK ON THE BODY STAMP,
+// allday_public ONLY, HELD to 9/23. Meta: 4s average watch on the cold-open
+// public cut — the hook card is gone at 2.4s, so at the 4s exit the body stamp
+// is the ONLY branded surface in front of the viewer. The ruled string
+// ("SCORED ACROSS 40+ STATES" — measured 8s vs 5–6s for process framing in two
+// rounds of Meta analytics) replaces the drop stamp's eyebrow on the BOARD
+// SEGMENT ONLY (the grid still, GRID_DUR); the modal segment keeps the standard
+// public drop stamp. Not verify_public, not record_public, not the group kinds
+// — single variable. Same recorded-switch-date pattern as MKT-75 (not a cron,
+// OPS-01): before this date `--stamp-hook` = PREVIEW build only (suffixed,
+// never published); after it `--classic-stamp` = escape hatch. The chip
+// proposal it replaces was WITHDRAWN 9/13 — allday_public has no chip.
+export const PUBLIC_STAMP_HOOK_FROM = '20260924';
+export const PUBLIC_STAMP_HOOK_EYEBROW = 'SCORED ACROSS 40+ STATES';
+
 // MKT-77 (2026-09-09, content agent work order) — FREE SESSION REELS AS CTA CUTS.
 // midday_free / evening_free are the lowest-information posts in the daily nine
 // (digits covered by design), so their only honest job is conversion, and a

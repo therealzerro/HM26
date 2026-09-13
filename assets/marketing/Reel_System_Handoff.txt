@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-13 · v7.1
+Content Agent Handoff · 2026-09-13 · v7.2
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-13 (CONSOLIDATED SNAPSHOT, current to v7.1 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-13 (CONSOLIDATED SNAPSHOT, current to v7.2 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -43,6 +43,11 @@ A. DAILY OUTPUT (operator-triggered `npm run reel:daily`, never scheduled):
      allday_pro · allday_free · allday_public  (⚠ v5.3: allday_public now
        COLD-OPENS on a 2.0s receipts hook card — no anchor intro, no
        stinger, no chip; ~27.5s. See WHAT CHANGED IN v5.3.)
+       ⚠ v7.2 (MKT-80, HELD — LIVE FROM 2026-09-24 by recorded date): the
+       BOARD SEGMENT (10.0s grid still) carries the stamp eyebrow "SCORED
+       ACROSS 40+ STATES" (drop_public); the modal segment keeps the
+       standard drop stamp. allday_public ONLY. Preview `--stamp-hook`,
+       hatch `--classic-stamp`. See WHAT CHANGED IN v7.2.
      midday_pro · midday_free (redacted)
      evening_pro · evening_free (redacted)
        ⚠ v6.6 (MKT-77, LIVE FROM THE 9/10 RUN): midday_free and evening_free
@@ -449,19 +454,21 @@ G. OPEN / OWED — the standing list (everything else you may have read as
         cross-post), NOT to the page at 7pm. Operator: confirm where they
         actually landed (v7.1 block, item 1b). Until a page post exists there
         is no record-vs-board retention pair to read.
-    13. MKT-80 — RETENTION FINDING + CHIP-STRING PRE-FLIGHT (v7.1 block):
+    13. MKT-80 — RETENTION FINDING → STAMP HOOK BUILT + GATED (v7.1/v7.2):
         (a) 4s avg watch on the cold-open allday_public recorded; MKT-66's
         "front-load and they stay" hypothesis is DEAD; content-fit is the
         working read. (b) record vs board retention: TOO EARLY and possibly
-        no page post yet (item 12 note). (c) ⛔ NO reel metric (views /
-        unique / watch time) is captured anywhere in the pipeline —
-        operator-pulled from Meta only; same gap as the page Views series.
-        (d) Meta's overlay copy REJECTED (your ruling, recorded). (e)
-        "SCORED ACROSS 40+ STATES": tier-1 lint CLEAN; ⛔ allday_public HAS
-        NO CHIP (v5.3) — the string needs a SURFACE RULING (hook eyebrow /
-        hook sub / body stamp eyebrow; engineering lean = stamp eyebrow,
-        the only surface on screen at the 4s exit). HELD TO 9/23; with the
-        surface ruled, 9/24 is a same-morning ship.
+        no page post yet (item 12 note; BUG-178 guard shipped v7.2). (c) ⛔
+        NO reel metric (views / unique / watch time) is captured anywhere —
+        operator-pulled only; blocks record-vs-board, joins/1,000 views,
+        any ad read; when built, BOTH pulls at once, not before 9/23. (d)
+        Meta's overlay copy REJECTED; the 9/2 chip proposal WITHDRAWN (no
+        chip on this kind). (e) ✅ RULED + BUILT v7.2: "SCORED ACROSS 40+
+        STATES" on allday_public's BODY STAMP EYEBROW, BOARD SEGMENT ONLY,
+        hard cut to the drop stamp at the modals; PUBLIC_STAMP_HOOK_FROM =
+        20260924 (recorded date, not a cron); preview verified on the 9/13
+        cut. OWED: operator eyeball of the preview (optional) + the first
+        live eyeball 9/24; the read = Meta avg watch from 9/24 vs 4s.
      9. FIRST-APPEARANCE EYEBALLS owed on the rotation: `juggle` first draws
         evening_free 8/20 (then midday_free 8/21, evening_pro 8/22); etch /
         facet stingers 8/20 (v3.7); `guest` served
@@ -590,6 +597,110 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
       owed). None of it is quotable in copy.
 
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.2 (2026-09-13, same day — YOUR FIVE RULINGS ACTIONED. Built:
+the MKT-80 stamp hook (allday_public, board segment, HELD — flips 9/24 by
+recorded date) and BUG-178, the Reels-tab dispatch guard. Recorded: the chip
+withdrawal, the instrumentation triple-block, the first-comment close-out.
+Next free MKT ID: 81.)
+================================================================================
+  1. RECORD REEL DISPATCH — REPORT + GUARD (BUG-178, shipped).
+     a. IS THE DEFAULT CORRECT IN CODE? YES. KIND_UI.record_public =
+        defaultTarget 'cross' (Track Record · Public), tier 3 — since
+        commit 3abde6a, 9/11 20:53 UTC, i.e. BEFORE both handoffs (9/12
+        05:46 ET, 9/13 05:32 ET). A current bundle opens that card on
+        Cross-Post with the Two-Question checklist showing.
+     b. COULD A PUBLIC KIND BE HANDED TO A GROUP WITHOUT A WARNING? YES,
+        two ways, both now closed:
+        · The target row is three free-choice buttons; nothing warned when
+          a `_public` kind was aimed at Free or Pro. MKT-37 guards the
+          INVERSE (a group cut aimed at cross-post) — the public→group
+          direction had no guard at all. NOW: an orange warning under the
+          target row whenever a `_public` kind's target is not Cross-Post
+          ("…registered for Cross-Post (the page)… a group handoff logs
+          tier N against a tier-1 reel. Switch to Cross-Post unless this
+          is deliberate."). WARN, not block — the MKT-37 class.
+        · A kind the running bundle does not know (a stale app open across
+          a deploy) fell to FALLBACK_KIND_UI, whose default was 'pro' for
+          EVERY unknown kind — so a public kind on a stale bundle opened on
+          Pro Group, labelled just "Reel", and the habitual tap sent it
+          there. NOW: the fallback derives the default from the kind's
+          suffix (`_public` → cross, `_free` → free, else pro), labels the
+          card "<kind> · UNREGISTERED in this build — reload", and shows a
+          second warning ("the target above is a guess from its name.
+          Reload the app before posting"). Not proof of what happened on
+          9/12 — the log cannot distinguish a mis-tap from a stale bundle
+          — but both readings are guarded now.
+     c. The operator's confirmation of where the two cuts landed is still
+        the fact that matters for item 1 of v7.1; nothing here changes it.
+
+  2. CHIP STRING — WITHDRAWN, RECORDED. The 9/2 proposal ("SCORED ACROSS
+     40+ STATES" on allday_public's chip) is closed as MOOT: the kind has
+     no chip (v5.3). MASTER_AUDIT MKT-80 carries the withdrawal so it is
+     never revived; the chip-geometry measurements stay on file only as
+     the reason.
+
+  3. THE HOOK ON THE BODY STAMP — BUILT, GATED, HELD. Your ruling verbatim
+     in code: allday_public ONLY; BOARD SEGMENT ONLY; string "SCORED
+     ACROSS 40+ STATES"; hold to 9/23, live 9/24.
+     · Mechanism: a new stamp purpose `drop_public` (render-reel-stamp.ts:
+       eyebrow from PUBLIC_STAMP_HOOK_EYEBROW, drop cyan, same y=1000
+       plate; tier-1 lint FAIL-CLOSED in the renderer, plus a 3-digit-run
+       check). The assembler overlays it for the GRID_DUR (10.0s) board
+       still only; at the grid→modal boundary the standard public drop
+       stamp ("TODAY'S DATA DROP · date · brand") takes over for the
+       modals. Nothing rides a ledger segment — allday_public has none;
+       verify_public / record_public / group kinds are untouched by
+       construction (the branch is keyed on the cold-open public body).
+     · The swap is a HARD CUT (2 frames), not a crossfade: the first
+       preview used a 0.3s alpha cross and the two eyebrows superimposed
+       into an unreadable smear mid-fade. Date and brand lines are
+       identical on both plates, so only the eyebrow snaps — where the
+       body content snaps anyway. Rebuilt and re-checked.
+     · Gate: PUBLIC_STAMP_HOOK_FROM = '20260924' (public-hook-config.ts)
+       — a recorded switch date, the MKT-75 pattern, not a cron. Before
+       it, `--stamp-hook` builds a PREVIEW (suffixed _stamphook_preview,
+       never published — publish-reels reads exact filenames). After it,
+       `--classic-stamp` is the escape hatch. `--classic-open` also keeps
+       the classic stamp (one variable at a time).
+     · Verified on TODAY'S 9/13 public cut as a preview: 27.500s, 1080×1920
+       60fps, container tag hm_stamp_hook="SCORED ACROSS 40+ STATES";
+       frame 6.0s = hook stamp over the board; 11.95s hook / 12.05s drop
+       stamp over modal one — clean both sides; the LIVE 9/13 final is
+       untouched (mtime 08:32 UTC). Rendered plate spans x 208–872, y
+       962–1225 — inside the empty black band, covers nothing. reel:check
+       now lints the string every run ("stamp hook (MKT-80)" PASS) so the
+       flip morning is not the first check. Filtered tsc unchanged (67).
+     · Two stills are with the operator (board 6s, modal 14s). OWED BY THE
+       OPERATOR: an eyeball of the preview before 9/24 if wanted — it is
+       on disk as allday_public_20260913_stamphook_preview.mp4 (untracked,
+       never published). OWED 9/24: first live eyeball of the flipped cut.
+     · Measurement: the read is Meta average watch time on allday_public
+       from 9/24 vs the 4s of 9/12 — operator-pulled (item 4). Same
+       single-variable discipline as MKT-66: nothing else on the public
+       cut moves until that read is in.
+
+  4. INSTRUMENTATION — RECORDED AS A TRIPLE BLOCK. Operator-pulled watch
+     time / views now blocks (a) record-vs-board retention, (b) joins per
+     1,000 views, (c) any future ad read. Not prioritised over the 9/23
+     window; WHEN built, both pulls together — the page daily series
+     (Views/Reach/Visits/Follows) and per-post retention (views, unique,
+     avg watch) — one ingest, one table set. Cost to be quoted after
+     9/23. Until then the numbers live in this file when you paste them.
+
+  5. MANUAL FIRST COMMENT — CLOSED. Operator pastes the caption and
+     deletes past line one. The ten-line button is noted, not requested,
+     not built.
+
+  6. HOUSEKEEPING. Files: scripts/public-hook-config.ts (constants),
+     scripts/render-reel-stamp.ts (drop_public + lint), scripts/
+     assemble-allday-reels.ts (gate, graph, tag), scripts/check-reel-
+     assets.ts (lint line), components/admin/ReelsView.tsx (BUG-178
+     guard + fallback), REEL_COMMANDS.txt (MKT-80 block). MASTER_AUDIT:
+     MKT-80 updated (rulings, withdrawal, build, verification), BUG-178
+     new. MKT-76 remains held; the 9/23 window read is next. Next free
+     MKT ID: 81.
+
 WHAT CHANGED IN v7.1 (2026-09-13 — REPLY TO YOUR 9/12 "RETENTION FINDING + THREE
 ASKS". Two reports and one pre-flight; NOTHING BUILT, NOTHING SHIPPED, no asset
 requested. MKT-80 stamped = the retention finding + the chip-string pre-flight,

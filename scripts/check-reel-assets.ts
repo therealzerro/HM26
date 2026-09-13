@@ -21,7 +21,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { resolveCarrier, undeclaredParts, carrierCandidates, carrierRest, audioDur, OVERLAP_EPSILON, carrierBoundarySlack, BOUNDARY_WARN_AT } from './reel-carrier';
 import { lintCaption } from '../lib/social/brandLint';
-import { HOOK_DUR, CTA_CUT_KINDS, CTA_BOARD_DUR, CTA_VO_LEAD, CTA_VOICE_FILES, CTA_VOICE_DEFAULT, CTA_HOOK_COPY } from './public-hook-config';
+import { HOOK_DUR, CTA_CUT_KINDS, CTA_BOARD_DUR, CTA_VO_LEAD, CTA_VOICE_FILES, CTA_VOICE_DEFAULT, CTA_HOOK_COPY, PUBLIC_STAMP_HOOK_EYEBROW, PUBLIC_STAMP_HOOK_FROM } from './public-hook-config';
 import { GRID_DUR } from '../constants/reelPanels';
 import {
   RECORD_KIND, RECORD_WINDOW_DAYS, RECORD_HOOK_COPY, RECORD_TOTAL, RECORD_FURNITURE, RECORD_BODY_DUR, RECORD_END_DISSOLVE, RECORD_CARD,
@@ -1251,6 +1251,15 @@ function checkCtaCut(): void {
   for (const s of [CTA_HOOK_COPY.eyebrow, ...CTA_HOOK_COPY.big, CTA_HOOK_COPY.sub]) {
     const bad = lintCaption(s, 2).violations.filter(x => x.blocking);
     if (bad.length) add('FAIL', `cta hook "${s}"`, `tier-2 lint: ${bad.map(x => `${x.term} (${x.rule})`).join(', ')}`);
+  }
+  // MKT-80: the public board-segment stamp eyebrow is a TIER-1 string that
+  // ships automatically from PUBLIC_STAMP_HOOK_FROM — lint it every run so the
+  // flip morning cannot be the first time it is checked.
+  {
+    const bad = lintCaption(PUBLIC_STAMP_HOOK_EYEBROW, 1).violations.filter(x => x.blocking);
+    if (bad.length || /\d{3}/.test(PUBLIC_STAMP_HOOK_EYEBROW)) add('FAIL', `stamp hook "${PUBLIC_STAMP_HOOK_EYEBROW}"`, `tier-1 lint: ${bad.map(x => `${x.term} (${x.rule})`).join(', ') || '3-digit run'}`);
+    else if (!/^\d{8}$/.test(PUBLIC_STAMP_HOOK_FROM)) add('FAIL', 'PUBLIC_STAMP_HOOK_FROM', `"${PUBLIC_STAMP_HOOK_FROM}" is not YYYYMMDD — the stamp hook would never flip (or flip immediately)`);
+    else add('PASS', 'stamp hook (MKT-80)', `"${PUBLIC_STAMP_HOOK_EYEBROW}" tier-1 clean · allday_public board segment from ${PUBLIC_STAMP_HOOK_FROM}`);
   }
   let ctaLinesRef: string | null = null;
   for (const K of CTA_CUT_KINDS) {

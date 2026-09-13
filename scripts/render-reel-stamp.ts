@@ -27,6 +27,8 @@ import { chromium } from 'playwright';
 import { existsSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { lintCaption } from '../lib/social/brandLint';
+import { PUBLIC_STAMP_HOOK_EYEBROW } from './public-hook-config';
 
 const PURPOSES = {
   // MKT-56c (2026-08-16) — `top` per purpose. The drop chip used to sit at
@@ -57,6 +59,10 @@ const PURPOSES = {
   // modals, no notation strip and no shoulder chip — without this line the
   // covered tiles could read as a render fault). Drop cyan, drop placement.
   covered: { eyebrow: 'COVERED UNTIL TOMORROW', accent: '#2bffcc', top: 1000 },
+  // MKT-80 — allday_public's BOARD-SEGMENT stamp from 2026-09-24: the measured
+  // scale hook in the eyebrow slot, drop cyan, drop placement. Tier-1 linted
+  // fail-closed below (public surface). The modal segment keeps `drop`.
+  drop_public: { eyebrow: PUBLIC_STAMP_HOOK_EYEBROW, accent: '#2bffcc', top: 1000 },
 } as const;
 
 // MKT-14 — the brand string, ruled 2026-07-31. "ZK6", not the version-agnostic
@@ -70,10 +76,19 @@ const BRAND_STRING = 'HITMASTER ZK6';
 const [, , purposeArg, ymd, scopeArg, outArg] = process.argv;
 const purpose = PURPOSES[purposeArg as keyof typeof PURPOSES];
 if (!purpose || !/^\d{8}$/.test(ymd ?? '') || !scopeArg || !outArg) {
-  console.error('Usage: tsx scripts/render-reel-stamp.ts <drop|verify|verify_midday|covered> <YYYYMMDD> <scope|-> <out.png>');
+  console.error('Usage: tsx scripts/render-reel-stamp.ts <drop|verify|verify_midday|covered|drop_public> <YYYYMMDD> <scope|-> <out.png>');
   process.exit(1);
 }
 const out = resolve(outArg);
+// MKT-80: the public hook eyebrow is a tier-1 string — a stamp that cannot
+// pass the lint does not get rendered (same fail-closed rule as the hook card).
+if (purposeArg === 'drop_public') {
+  const bad = lintCaption(purpose.eyebrow, 1).violations.filter(v => v.blocking);
+  if (bad.length || /\d{3}/.test(purpose.eyebrow)) {
+    console.error(`ABORT(stamp): "${purpose.eyebrow}" fails the tier-1 lint: ${bad.map(v => `${v.term} (${v.rule})`).join(', ') || '3-digit run'}.`);
+    process.exit(1);
+  }
+}
 
 // MKT-14 — the bolt, inlined from assets/marketing/bolt_mark.svg (tracked since
 // MKT-17). Inlined rather than <img src="file://...">: the mark has to take the

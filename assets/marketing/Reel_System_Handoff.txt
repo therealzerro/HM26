@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-13 · v7.3
+Content Agent Handoff · 2026-09-13 · v7.4
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-13 (CONSOLIDATED SNAPSHOT, current to v7.3 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-13 (CONSOLIDATED SNAPSHOT, current to v7.4 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -43,7 +43,8 @@ A. DAILY OUTPUT (operator-triggered `npm run reel:daily`, never scheduled):
      allday_pro · allday_free · allday_public  (⚠ v5.3: allday_public now
        COLD-OPENS on a 2.0s receipts hook card — no anchor intro, no
        stinger, no chip; ~27.5s. See WHAT CHANGED IN v5.3.)
-       ⚠ v7.2 (MKT-80, HELD — LIVE FROM 2026-09-24 by recorded date): the
+       ⚠ v7.2 (MKT-80) · ⛔ v7.4 OPERATOR OVERRIDE: LIVE FROM THE 9/14
+       ASSEMBLY (was held to 9/24 — your ruling; overridden 9/13 pm): the
        BOARD SEGMENT (10.0s grid still) carries the stamp eyebrow "SCORED
        ACROSS 40+ STATES" (drop_public); the modal segment keeps the
        standard drop stamp. allday_public ONLY. Preview `--stamp-hook`,
@@ -470,9 +471,10 @@ G. OPEN / OWED — the standing list (everything else you may have read as
         chip on this kind). (e) ✅ RULED + BUILT v7.2: "SCORED ACROSS 40+
         STATES" on allday_public's BODY STAMP EYEBROW, BOARD SEGMENT ONLY,
         hard cut to the drop stamp at the modals; PUBLIC_STAMP_HOOK_FROM =
-        20260924 (recorded date, not a cron); preview verified on the 9/13
-        cut. OWED: operator eyeball of the preview (optional) + the first
-        live eyeball 9/24; the read = Meta avg watch from 9/24 vs 4s.
+        20260914 — ⛔ OPERATOR OVERRIDE v7.4 (was 20260924, your hold);
+        preview verified on the 9/13 cut. OWED: the operator's first live
+        eyeball on the 9/14 cut; the read = Meta avg watch from 9/14 vs 4s,
+        one week (≥7 posts) before any second variable on this kind.
      9. FIRST-APPEARANCE EYEBALLS owed on the rotation: `juggle` first draws
         evening_free 8/20 (then midday_free 8/21, evening_pro 8/22); etch /
         facet stingers 8/20 (v3.7); `guest` served
@@ -603,6 +605,47 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.4 (2026-09-13, evening — OPERATOR OVERRIDE: THE STAMP HOOK
+GOES LIVE ON THE 9/14 ASSEMBLY, not 9/24. Your hold-to-9/23 is overridden by the
+operator's written instruction ("stamp hook live tomorrow, execute"). One
+constant changed; nothing else moves. Next free MKT ID: 81.)
+================================================================================
+  1. THE OVERRIDE, RECORDED. PUBLIC_STAMP_HOOK_FROM 20260924 → 20260914
+     (scripts/public-hook-config.ts; comment carries the override and the
+     old value). Reason: operator instruction, same class as the MKT-79
+     window-confound acceptance — the change lands INSIDE the 9/9→9/23
+     bundle window, and the operator accepts the confound on the window
+     read. Rollback condition: if the operator's first live eyeball
+     rejects the cut, or the 9/14–9/20 Meta average watch on allday_public
+     reads BELOW the 4s of 9/12 across ≥7 posts → `--classic-stamp` +
+     republish (REEL_COMMANDS), constant back to a future date. Review:
+     with the 9/23 window read (9–10 posts by then).
+  2. WHAT TOMORROW'S RUN DOES. `npm run reel:daily`, unchanged command,
+     ~4:30 ET: the allday step assembles allday_public with the hook
+     stamp on the 10.0s board segment and the drop stamp on the modals
+     (the exact path the 9/13 preview exercised — 27.5s, tag
+     hm_stamp_hook present, board frame 6s / modal frame 14s both
+     verified; the only difference is the unsuffixed filename). reel:check
+     prints "stamp hook (MKT-80) … from 20260914" PASS; filtered tsc 67.
+     Pro / free / verify / record cuts are untouched by construction.
+  3. WHAT THE OPERATOR SHOULD SEE 9/14 MORNING. Admin → Reels, All-Day ·
+     Public card: contact sheet frame 2 (the board) shows the plate
+     reading SCORED ACROSS 40+ STATES above the date; frames 3–5 (modals)
+     show TODAY'S DATA DROP. If frame 2 still reads TODAY'S DATA DROP, the
+     gate did not flip (clock/date) — run the REEL_COMMANDS re-render line
+     with `--stamp-hook` and republish. ⚠ Reload the app first so the
+     Reels tab carries BUG-178's guards (the same reload that ends the
+     fallback mislabel on record_public).
+  4. THE READ. Meta average watch time on allday_public from 9/14, against
+     the 4s of 9/12, ≥7 posts before it is called — operator-pulled, paste
+     the daily numbers under this block. Nothing else on the public cut
+     moves until that read is in (MKT-66's single-variable rule). The
+     record-vs-board pairs (v7.3 item 2) run in parallel and are
+     unaffected — record_public does not carry the hook.
+  5. NOTHING ELSE OWED. Next: 9/14 first live eyeball, then the 9/23
+     window read.
+
 WHAT CHANGED IN v7.3 (2026-09-13, same day — OPERATOR CONFIRMATION: THE RECORD
 REEL HAS BEEN ON THE PAGE SINCE LAUNCH. v7.1 item 1b and the v7.2 item 1
 framing of a "dispatch defect" were WRONG. Correction recorded; the four

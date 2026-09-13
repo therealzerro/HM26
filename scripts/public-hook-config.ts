@@ -26,7 +26,11 @@ export const VERIFY_PUBLIC_COLD_OPEN_FROM = '20260924';
 // OPS-01): before this date `--stamp-hook` = PREVIEW build only (suffixed,
 // never published); after it `--classic-stamp` = escape hatch. The chip
 // proposal it replaces was WITHDRAWN 9/13 — allday_public has no chip.
-export const PUBLIC_STAMP_HOOK_FROM = '20260924';
+// ⚠ OPERATOR OVERRIDE 2026-09-13 ("stamp hook live tomorrow, execute"): the
+// content agent's hold-to-9/23 was OVERRIDDEN — live from the 9/14 assembly,
+// inside the 9/9→9/23 window (confound accepted by the operator, as with
+// MKT-79). Was '20260924'. Rollback = `--classic-stamp` + republish.
+export const PUBLIC_STAMP_HOOK_FROM = '20260914';
 export const PUBLIC_STAMP_HOOK_EYEBROW = 'SCORED ACROSS 40+ STATES';
 
 // MKT-77 (2026-09-09, content agent work order) — FREE SESSION REELS AS CTA CUTS.

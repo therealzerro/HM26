@@ -17,7 +17,7 @@ Slate basis: 9/13 K6 (workflow run ~3:58am ET, engine v2.1) — unchanged since 
 
 **Net: −$22.50** at the logged $135.00 stake, if placed as proposed (a 2-leg 632 + 706 ticket would have been +$45.00). **632 leg CLOSED by hit** (Mid pos 2 and Mid DI #1 — rank texture, not evidence). Named swap 316/136 {1,3,6}: blank. Boards at midday: Mid K6 1/6 (pos 2 632), All-Day K6 1/6 (pos 2 563 — KY 536), Eve K6 pending; two Eve-board sets drew at midday — AZ 894 {4,8,9} (Eve pos 2) and FL 538 {3,5,8} (Eve pos 6) — so both enter the 3-day post-hit block for the evening ticket. Rides: 706 / 618 / 248 unhit at day 1. 618 and 248 carry to the evening (both hold evening K6 slots); 706 has no evening or All-Day K6 slot (All-Day DI 14 only) — its day-2 ride is the operator's call and is not on the proposed ticket.
 
-### (A) Early pool — SUNDAY = 11 draws (PA SC ME,NH,VT GA TN MI MN DE OH AR DC → $2.75/unit; TX and WV are the only early-pool jurisdictions dark on Sunday — GA and DC each keep their early draw, their second draw is late; 8/30 + 9/6 both confirm 11) — asked ~5:00pm ET for ONE straight + ONE box; deep-scope study below
+### (A) Early pool — SUNDAY = 11 draws (PA SC ME,NH,VT GA TN MI MN DE OH AR DC → $2.75/unit; TX and WV are the only early-pool jurisdictions dark on Sunday — GA and DC each keep their early draw, their second draw is late; 8/30 + 9/6 both confirm 11) — PLACED ~5:20pm ET on the operator's word: **469 2S ($5.50) + 248 3B ($8.25) = $13.75** (bet order 469; 248 boxed); session-only, no carry; reconcile against the 11 early draws (~7:45pm ET). Deep-scope study below
 
 **Proposed: STRAIGHT 469 {4,6,9} · BOX {2,4,8} (any order).** Same-set flip (box {4,6,9} + straight 248) is equal on the rate; the pairing is decided by order evidence, not set strength — see the tie-break.
 
@@ -36,6 +36,19 @@ Slate basis: 9/13 K6 (workflow run ~3:58am ET, engine v2.1) — unchanged since 
 - Engine sets in the pool: {4,6,9} 11 (flat); {0,3,8} 12 / 4 in 90d (flat, 038:5 leads); {1,6,8} 9 / 5 (below, 816:3 leads); {0,6,7} 16 / 10 (Mid pos 4 today, blank at midday; Eve DI absent today, fading 8 → 10 → 17 → out); {5,7,9} 13 / 6 (All-Day pos 4 only); {1,3,6} 7 / 4 / 0 in 30d (cold, All-Day pos 1 seventh day); {0,5,8} 12 / 3 (Eve DI 13/25/26/28, off K6). Blocked by today's midday: {4,8,9} (AZ 894), {3,5,8} (FL 538), {2,3,6} (CA 236, leg closed), {3,5,6} (KY 536).
 - Cross-check on {4,6,9}: it was the 9/9 DI #1 on both boards and boxed that night — the same pattern 632 showed this morning (Mid DI #1 with six perms → boxed at CA). Two observations, not a rate; rank-1 DI is a selection basis, not an edge claim.
 - No positional filter applied (ENG-MIDDAY-POS-02); no per-state targeting (ENG-PERSTATE-P0) — jurisdiction footprints above are evidence for *which set*, never for a state bet.
+
+**Positions — PLACED (early pool, 11 draws, $2.75/unit)**
+
+| Leg | Set | Units | Cost | If straight hits (per state) | If box-only hits (per state) |
+|---|---|---|---|---|---|
+| **469** | {4,6,9} | 2S | $5.50 | $450.00 | — |
+| **248** | {2,4,8} | 3B | $8.25 | — | $112.50 |
+
+**Total staked: $13.75.** Straight-only on 469 (a 469 box-order draw such as 496 or 694 pays nothing on this ticket); box-only on {2,4,8} (any order pays $112.50 per hitting state).
+
+### (B) #1 BOX pick for the FULL Sunday evening session (39 draws → $9.75/unit; 3B = $29.25, pays $112.50 per hitting state) — asked ~5:20pm ET
+
+**{4,6,9}** — the same set as the early straight, now as a box across all 39. DI #1 on both the Evening and All-Day boards with all six perms in the top 30 (the only double rank-1 DI set today), Eve pos 5 + All-Day pos 5; evening 46 in 180d vs 39.1 (1.18×), 25 in 90d with 23 on Sunday-live jurisdictions (AZ 3, WA 3, CO/IN/NM 2 — 17 jurisdictions), 8 in 30d; last anywhere 9/9 evening — clear of 9/10–9/13. Overlap accepted: on the early 11 this box stacks with the 469 straight (a 469 draw there pays both tickets; a 496/694/etc. draw pays the box only). Runner-up {2,4,8} (already boxed on the early 11; Eve pos 4 + Mid pos 6, Eve DI 3, evening count leader 67/180d — texture); {0,3,8} (Eve pos 1 + All-Day pos 6, Eve DI 9 six perms, evening 0.95×). Tie-break as all week: rank stacking over raw count. Uniform truth: one set across 39 draws ≈ 20.9% to box whichever is chosen (BUG-162 / SIGNAL-INFO-01). Not confirmed placed until the operator says so.
 
 **Pricing on the Sunday early 11 (per unit $2.75):** straight pays $225/unit per hitting state, box $37.50/unit. Shape suggestion matching the full-board legs: 2S on 469 ($5.50) + 3B on {2,4,8} ($8.25) = $13.75; units are the operator's. If the full-board 4-leg ticket above is also placed, both sets are already covered on these 11 draws as part of the 39 — the early-pool tickets stack on top (as 573 did on 9/12: a pool straight would pay on both).
 

@@ -2,7 +2,7 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
-## 2026-09-15 — EVENING session (Tuesday full board 42 draws → $10.50/unit; early-13 pool $3.25/unit; late-29 $7.25/unit) — asked ~2:45pm ET, BEFORE the 9/15 midday close (no 9/15 midday rows in histories at ask time) — 1 STRAIGHT + 1 BOX on the early-13, 1 STRAIGHT + 1 BOX on the full board — **PLACED ~3:15pm ET on the operator's word ("log these"): full board 637 2S ($21.00) + {4,6,9} 3B ($31.50); early-13 637 2S ($6.50) + {3,6,7} 3B ($9.75) = $68.75 at the recent 2S + 3B sizing — confirm units from the ticket**; MIDDAY RECONCILED ~3:40pm: {4,6,9} DREW at ID 964 → leg closed, amend rule → {2,4,9} box if the book allows the move
+## 2026-09-15 — EVENING session (Tuesday full board 42 draws → $10.50/unit; early-13 pool $3.25/unit; late-29 $7.25/unit) — asked ~2:45pm ET, BEFORE the 9/15 midday close (no 9/15 midday rows in histories at ask time) — 1 STRAIGHT + 1 BOX on the early-13, 1 STRAIGHT + 1 BOX on the full board — **NOT YET PLACED as of ~3:50pm ET (the 3:15pm "log these" was a log request, not a placement — corrected).** MIDDAY RECONCILED ~3:40pm: {4,6,9} DREW at ID 964 → dropped before placement. **FINAL TICKET TO PLACE: full board STRAIGHT 637 + BOX {2,4,9}; early-13 STRAIGHT 637 + BOX {3,6,7}** — 2S + 3B = $68.75; confirm units from the ticket
 
 Slate basis: 9/15 K6 (workflow run 7:58am ET, engine v2.1). Snapshot orders as stored: All-Day K6 = 125 / 249 / 485 / 415 / 758 / 736; Evening K6 = 795 / 196 / 805 / 973 / 924 / 637; Midday K6 = 054 / 617 / 571 / 618 / 742 / 458. All 18 slots singles; no double in any DI top-30. Cross-scope today: **{3,6,7} = All-Day pos 6 + Eve pos 6, DI in all three scopes (Eve DI #2 with all six perms 2/3/6/9/15/16, energy 100; All-Day DI 13/14; Mid DI 16)**; **{2,4,9} = All-Day pos 2 + Eve pos 5** (All-Day DI 10, Eve DI 18/24); {4,5,8} = All-Day pos 3 + Mid pos 6 (Mid DI #1, six perms) — midday-side only; {1,6,8} = Mid pos 4 only, DI all three scopes (ride leg); **{4,6,9} is OFF all three K6 boards (stale2 rotation after 9/13 + 9/14) but is DI #1 on BOTH All-Day (1/2/3/5/15/23, energy 100) and Evening (1/4/14/17/19/27) for the THIRD consecutive day** — ride day 3 (final). 3-day block scan (9/12–9/14, all sessions): {3,6,7} last 9/11 evening (FL 367 + CT 736), {4,6,9} last 9/9 evening (WA 496 + W.Canada 694), {2,4,9} last 9/11 — all clear. Blocked tonight (drew 9/12–9/14): {0,1,4} ×3, {2,4,8}, {0,4,9}, {4,5,6}, {6,7,8}, {6,7,9}, {2,6,8}, {1,3,7}, {0,4,8} among others — none on tonight's boards.
 
@@ -19,7 +19,7 @@ Slate basis: 9/15 K6 (workflow run 7:58am ET, engine v2.1). Snapshot orders as s
 
 ### Board read, last 14 days (strict join picks × histories, same date + session-compatible + comboset — BUG-162 rule): Evening K6 ≥1 hit on 12 of 14 days, 27 of 84 picks boxed (32%), 4 straight; All-Day ≥1 hit every day, 33 of 84 (39%); Midday 8 of 14 days, 11 of 84 (13%). The boards are running at or above their pinned rates — the blank operator sessions are selection variance inside a 6-slot board, exactly what SIGNAL-INFO-01 predicts (no lever picks the hitting slot).
 
-### Positions — PLACED ~3:15pm ET (2S + 3B assumed on every instrument; units from the ticket)
+### Positions — PROPOSED pre-midday (NOT placed); superseded by the post-midday FINAL ticket below
 
 **Full evening board (42 draws, $10.50/unit):**
 
@@ -41,7 +41,7 @@ Slate basis: 9/15 K6 (workflow run 7:58am ET, engine v2.1). Snapshot orders as s
 
 | Set | Midday result | Consequence |
 |---|---|---|
-| **{4,6,9}** (full-board BOX 3B, ride day 3) | **DREW — ID 964** (the evening best_order, exactly) | **Leg CLOSED by hit at midday — no payout (evening-only ticket; the 7/22 structural forfeit again).** Amend rule fires: **full-board box → {2,4,9}** if the book lets the placed 3B be moved before the first evening draw (~6:25pm ET); if not, the placed {4,6,9} box stands as-is. Operator's call — EV-neutral either way. |
+| **{4,6,9}** (proposed full-board BOX, ride day 3) | **DREW — ID 964** (the evening best_order, exactly) | **Ride closed by hit at midday, nothing was placed → no payout, no cost.** Amend rule fires: **full-board box → {2,4,9}**. |
 | {3,6,7} (637 S full board + early-13; {3,6,7} B early-13) | absent (KY 396 / WI 307 nearest) | stands — opens day 1 |
 | {2,4,9} (named swap) | absent (NJ 424 / NC 245 nearest) | available as the swap |
 | {1,6,8} (ride day 2, not carried) | absent (AZ 581 / IN 818 nearest) | ride stays open, still not on tonight's ticket |
@@ -50,6 +50,17 @@ Slate basis: 9/15 K6 (workflow run 7:58am ET, engine v2.1). Snapshot orders as s
 Boards at midday: Mid K6 **1/6** (pos 2 617 boxed — ME,NH,VT 176), All-Day K6 **2/6** (pos 4 415 → CA 145; pos 5 758 → VA 578), Eve K6 0/6 at the midday, but **Eve pos 3 {0,5,8} drew TWICE at midday (IL 850, TN 508)** → closed by convention tonight (never an operator leg). The 9/14 pattern ({0,1,4} closed at midday, then drew twice in the evening) is texture — recent hotness is anti-predictive (STATE_STR ×3), so the convention is applied as a rule, not as a read.
 
 **Ride ledger after midday:** 469 CLOSED (hit, day 3); 681 day 2 unhit; 759 day 2 unhit; {3,6,7} day 1 (opens tonight).
+
+### FINAL TICKET (post-midday, to be placed before the first evening draw ~6:25pm ET)
+
+| Pool | Instrument | Play | Cost at 2S / 3B |
+|---|---|---|---|
+| Full board (42 draws, $10.50/u) | STRAIGHT | **637** {3,6,7} | 2S = $21.00 |
+| Full board | BOX | **{2,4,9}** (any order) — Eve pos 5 (924) + All-Day pos 2 (249); All-Day DI 10, Eve DI 18/24; clear at midday; 70 in 180d (1.01×), 41 in 90d, 15 in 30d; last 9/11 — clear of the block | 3B = $31.50 |
+| Early-13 (13 draws, $3.25/u) | STRAIGHT | **637** | 2S = $6.50 |
+| Early-13 | BOX | **{3,6,7}** (any order) | 3B = $9.75 |
+
+Total $68.75 at 2S + 3B. Rates unchanged: ~22.3% box / ~4.1% straight per set on 42; ~7.5% / ~1.3% on the early 13. Placement + units to be confirmed by the operator.
 
 ### Session math (uniform baseline — standing BUG-162 / SIGNAL-INFO-01 / ENG-ALLDAY-RAND-01 truth)
 

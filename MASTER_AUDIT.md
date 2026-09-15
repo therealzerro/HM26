@@ -177,6 +177,20 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 ---
 
+### ENG-REVIEW-01 — Year-one engine enhancement review: "any enhancement to achieve more matches?" 📋 MEASURED ON THE LONGEST CLEAN WINDOW — NO ACCURACY LEVER EXISTS; only coverage (K, stake spread) moves match counts (2026-09-15)
+
+**Trigger (operator, 9/15 ~4:30pm ET):** "we have been working for over a year, can we deep dive and see if there are any enhancements to be made to the engine to help achieve more matches?"
+
+**Fresh tests (read-only, full report `docs/engine_enhancement_review_2026-09-15.md`):**
+1. **Universe stratified AUC 6/10→9/14 (97 days)** via `scripts/intel-tuning/universe-auc-stratified.ts`: singles-stratum BOX/PBURST/CO all 0.49–0.52 (|t| ≤ 2.4) in every scope; DGC 0.482 midday (t −2.53) / 0.486 allday (t −2.70) = the known unexploitable anti-information. Pooled 0.55–0.61 = multiplicity confound. Same null as SIGNAL-INFO-01/02, now on the longest clean window.
+2. **Per-jurisdiction positional-digit chi-square 4/1→9/15** (11,683 draws, 216 tests, avg n=162/cell): 13 > 95% (exp ~10.8), 1 > 99% (exp ~2.2), 0 > 99.9%. Uniform. Closes the "long-horizon per-state mechanical bias" door SIGNAL-INFO-01 left open; re-confirms ENG-PERSTATE-P0 on 27% more data.
+3. **Same-day repeat, singles, universe** (n=3,273 midday set-days): drew again the same evening 21.51% vs 21.70% unconditional. Flat — the "hit closes the leg" bet convention is rate-neutral either way; only an unreplaced drop costs coverage.
+4. Draw mix 71.7 / 27.5 / 0.8 singles/doubles/triples vs 72 / 27 / 1 i.i.d.
+
+**Verdict:** no engine accuracy enhancement is available; the verdict ledger (weights, freshness, overdue, pressure, hotness, per-state, synergy/doubles, cooldown, post-hit block, rotation, AFL, position band, bestOrder, calibration-as-selector) stands and is the pre-flight checklist for any future proposal. **Match count moves only through coverage:** (a) product K (evening slate 78.0% at K6 → 86.7% K8 → 92.1% K10; per-pick unchanged; Grid-view-6 / reels / 5 hardcoded rail mirrors make this a design bill), (b) operator stake spread (same $63 on 42 draws: 2 sets × 3B = 39.6% P(≥1 box) / 0.50 exp. matches / $112.50 per state; 6 sets × 1B = 78.0% / 1.51 / $37.50; EV −10% in every row). Nothing shipped; no config touched.
+
+---
+
 ### ENG-BLOCK-2D-01 — Post-hit hard block shortened 3→2 days (all scopes): gate-v2 sweep, plus a 4-day widen probe ⛔ 2-DAY REFUTED (sign-consistent loss both windows) · 4-DAY = NOISE (sign flip) — NO SHIP, engine untouched (2026-09-12)
 
 **Trigger (operator, 9/12 ~4pm ET):** "change the blocker that blocks previously matched combinations, reduce by 1 day in the engine, carefully scope this" → then "run back test on 2 day blocker and see if it fairs better than 3 day blocker" → then "backtest 4 day blocker to see if it fairs better than 3 day blocker".

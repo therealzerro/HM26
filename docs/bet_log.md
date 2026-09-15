@@ -2,7 +2,7 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
-## 2026-09-15 — EVENING session (Tuesday full board 42 draws → $10.50/unit; early-13 pool $3.25/unit; late-29 $7.25/unit) — asked ~2:45pm ET, BEFORE the 9/15 midday close (no 9/15 midday rows in histories at ask time) — 1 STRAIGHT + 1 BOX on the early-13, 1 STRAIGHT + 1 BOX on the full board — **NOT YET PLACED as of ~3:50pm ET (the 3:15pm "log these" was a log request, not a placement — corrected).** MIDDAY RECONCILED ~3:40pm: {4,6,9} DREW at ID 964 → dropped before placement. **FINAL TICKET TO PLACE: full board STRAIGHT 637 + BOX {2,4,9}; early-13 STRAIGHT 637 + BOX {3,6,7}** — 2S + 3B = $68.75; confirm units from the ticket
+## 2026-09-15 — EVENING session (Tuesday full board 42 draws → $10.50/unit; early-13 pool $3.25/unit; late-29 $7.25/unit) — asked ~2:45pm ET, BEFORE the 9/15 midday close (no 9/15 midday rows in histories at ask time) — 1 STRAIGHT + 1 BOX on the early-13, 1 STRAIGHT + 1 BOX on the full board — MIDDAY RECONCILED ~3:40pm: {4,6,9} DREW at ID 964 → dropped before placement. **PLACED ~4:00pm ET at 2S + 3B on every instrument: full board STRAIGHT 637 2S ($21.00) + BOX {2,4,9} 3B ($31.50); early-13 STRAIGHT 637 2S ($6.50) + BOX {3,6,7} 3B ($9.75) = $68.75**
 
 Slate basis: 9/15 K6 (workflow run 7:58am ET, engine v2.1). Snapshot orders as stored: All-Day K6 = 125 / 249 / 485 / 415 / 758 / 736; Evening K6 = 795 / 196 / 805 / 973 / 924 / 637; Midday K6 = 054 / 617 / 571 / 618 / 742 / 458. All 18 slots singles; no double in any DI top-30. Cross-scope today: **{3,6,7} = All-Day pos 6 + Eve pos 6, DI in all three scopes (Eve DI #2 with all six perms 2/3/6/9/15/16, energy 100; All-Day DI 13/14; Mid DI 16)**; **{2,4,9} = All-Day pos 2 + Eve pos 5** (All-Day DI 10, Eve DI 18/24); {4,5,8} = All-Day pos 3 + Mid pos 6 (Mid DI #1, six perms) — midday-side only; {1,6,8} = Mid pos 4 only, DI all three scopes (ride leg); **{4,6,9} is OFF all three K6 boards (stale2 rotation after 9/13 + 9/14) but is DI #1 on BOTH All-Day (1/2/3/5/15/23, energy 100) and Evening (1/4/14/17/19/27) for the THIRD consecutive day** — ride day 3 (final). 3-day block scan (9/12–9/14, all sessions): {3,6,7} last 9/11 evening (FL 367 + CT 736), {4,6,9} last 9/9 evening (WA 496 + W.Canada 694), {2,4,9} last 9/11 — all clear. Blocked tonight (drew 9/12–9/14): {0,1,4} ×3, {2,4,8}, {0,4,9}, {4,5,6}, {6,7,8}, {6,7,9}, {2,6,8}, {1,3,7}, {0,4,8} among others — none on tonight's boards.
 
@@ -51,7 +51,7 @@ Boards at midday: Mid K6 **1/6** (pos 2 617 boxed — ME,NH,VT 176), All-Day K6 
 
 **Ride ledger after midday:** 469 CLOSED (hit, day 3); 681 day 2 unhit; 759 day 2 unhit; {3,6,7} day 1 (opens tonight).
 
-### FINAL TICKET (post-midday, to be placed before the first evening draw ~6:25pm ET)
+### FINAL TICKET — PLACED ~4:00pm ET, 2S + 3B confirmed by the operator
 
 | Pool | Instrument | Play | Cost at 2S / 3B |
 |---|---|---|---|
@@ -60,7 +60,7 @@ Boards at midday: Mid K6 **1/6** (pos 2 617 boxed — ME,NH,VT 176), All-Day K6 
 | Early-13 (13 draws, $3.25/u) | STRAIGHT | **637** | 2S = $6.50 |
 | Early-13 | BOX | **{3,6,7}** (any order) | 3B = $9.75 |
 
-Total $68.75 at 2S + 3B. Rates unchanged: ~22.3% box / ~4.1% straight per set on 42; ~7.5% / ~1.3% on the early 13. Placement + units to be confirmed by the operator.
+Total staked **$68.75**. Rates: ~22.3% box / ~4.1% straight per set on 42; ~7.5% / ~1.3% on the early 13. If straight 637 hits: $450 per hitting state on the full board (+$450 early if inside the early 13); box {2,4,9} $112.50 per hitting state; early box {3,6,7} $112.50 per hitting state. Expected night ≈ −$6.90 at 90% RTP.
 
 ### Session math (uniform baseline — standing BUG-162 / SIGNAL-INFO-01 / ENG-ALLDAY-RAND-01 truth)
 

@@ -38,6 +38,19 @@ Total **$68.75** (same as 9/15). Rates uniform: ~22.3% box / ~4.1% straight per 
 
 Not taken: 754 {4,5,7} (Eve pos 3, Eve DI 12/19, All-Day DI 17/26; single K6 board); 105 {0,1,5} (Eve pos 5, Eve DI 10/23/25; single board); 315 {1,3,5} (Eve pos 6 + Mid pos 4; Eve DI 16/18; evening rank 6 = lowest indicator); 136 {1,3,6} (All-Day pos 1 + Mid pos 1, both overdue-tagged, 1 draw in 30d — no evening board/DI presence; overdue flat); 460 {0,4,6} (All-Day pos 6, All-Day DI 7/15, Mid DI 14/20/28, Eve DI 30 — DI in all three scopes but no evening K6 slot).
 
+### Early-13 STRAIGHT quad — asked ~afternoon 9/16 ("4 straight picks for the early 13, own judgement, doubles/triples allowed") — PROPOSED, NOT placed
+
+Method (stated so it can be reconciled, not because it carries edge — straight-level P is 1/1000 per draw for every combo; the method chooses *which* four): (1) one pick per structurally different source so the four never share a set; (2) order = the engine's slot order when the boards agree, the early-13 evening footprint (180d, 13 jurisdictions) as tie-break when they disagree; (3) 3-day block (9/13–9/16 incl. today's midday) + not a set already on tonight's early-13 instruments; (4) the fourth slot is a double built from the top pair carried by the most K6 slots tonight ("pair carry": 13 in 3 of 18 slots — All-Day 136, Mid 316, Eve 315), doubled digit = the more slot-present digit of the pair (1 in 9/18 slots vs 3 in 6/18).
+
+| # | Straight | Set | Source | Order basis |
+|---|---|---|---|---|
+| 1 | **681** | {1,6,8} | ride day 3 FINAL + top convergence (Eve pos 1, All-Day pos 3, Mid DI #1, all three DI top-30s) | Eve K6 slot = All-Day slot = All-Day best_order (681); dissent 861 Eve best_order / 618 Mid DI. Early-13 180d: 10 (DC:3), orders 816:3 / 186:2 / 861:2 / 681:1 — flat, engine order stands |
+| 2 | **924** | {2,4,9} | open full-board BOX leg (day 2) — adds straight premium on the early pool | engine orders disagree (Eve slot 924 / Eve best_order 429 / All-Day 249) → early-13 footprint tie-break: 924:4 / 942:4 / 429:3 / 249:2 (180d, 16 draws, PA:3 TX:3) |
+| 3 | **105** | {0,1,5} | Eve pos 5 (ds 4, Eve DI 10/23/25); the heaviest early-13 footprint of tonight's sets (20 in 180d, GA:6 TN:3); widens set coverage beyond the placed legs | Eve slot = Eve best_order (105); footprint 510:6 / 501:5 / 051:4 / 105:3 — flat, engine order stands. Last 9/12 — clear |
+| 4 | **113** | {1,1,3} double | pair-carry double (pair 13 ×3 slots; 16-pair doubles {1,1,6}/{1,6,6} both blocked — 9/14, MI 661 today) | early-13 365d orders 113:3 / 131:2 / 311:1; 35 in 180d (≈0.86× the 40.5 expected for a double set), last 9/7 — clear. Alternate if a 6-heavy double is preferred: 336 ({3,3,6}, pair 36 ×2, last 9/11) |
+
+{3,6,7} deliberately NOT in the quad — 637 S + {3,6,7} B already sit on tonight's early-13 instruments if the proposed ticket is placed. Cost 4 × $3.25 = **$13.00 per unit** ($26.00 at 2S). Payout $225/unit per hitting state. P(≥1 of the four straight in 13 draws) ≈ 5.1%; expected ≈ −$1.30/unit at 90% RTP. Doubles+triples = 408 of 1,404 early-13 evening draws in 90d (29.1%, uniform share) — the double is structure, not a read.
+
 **Amend rule after the evening paste/import:** any hit on {3,6,7} or {2,4,9} closes that leg (day 2); {1,6,8} expires after tonight either way; unhit legs ride into 9/17 as day 3 (final).
 
 Reconcile after the 9/17 workflow import (or the operator's evening paste).

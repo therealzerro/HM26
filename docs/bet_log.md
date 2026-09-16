@@ -2,7 +2,7 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
-## 2026-09-16 — EVENING session (Wednesday full board 42 draws → $10.50/unit; early-13 pool $3.25/unit; late-29 $7.25/unit) — 9/16 midday IMPORTED (33 rows, 31 jurisdictions; hit-detection ran, 1 hit stamped) — PROPOSED, NOT PLACED
+## 2026-09-16 — EVENING session (Wednesday full board 42 draws → $10.50/unit; early-13 pool $3.25/unit; late-29 $7.25/unit) — 9/16 midday IMPORTED (33 rows, 31 jurisdictions; hit-detection ran, 1 hit stamped) — **PLACED ~afternoon ET (operator: "placed at 2S — quad plus the main ticket"): main ticket full board 637 2S ($21.00) + {2,4,9} 3B ($31.50), early-13 637 2S ($6.50) + {3,6,7} 3B ($9.75) = $68.75; early-13 STRAIGHT quad 681 / 924 / 105 / 113 at 2S = $26.00. TOTAL STAKED $94.75** (if the main-ticket boxes were also 2 units: main $55.00, total $81.00 — operator to correct)
 
 Slate basis: 9/16 K6 (workflow run 9:20am ET, engine v2.1). Snapshot orders as stored: All-Day K6 = 136 / 125 / 681 / 249 / 736 / 460; Evening K6 = 681 / 924 / 754 / 637 / 105 / 315; Midday K6 = 316 / 206 / 267 / 315 / 615 / 742. All 18 slots singles. Cross-scope tonight: **{1,6,8} = Eve pos 1 (681, overdue ds 8) + All-Day pos 3 (681) + Mid DI #1 (618, six perms 1/6/7/11/16/27) + All-Day DI 2/4/16 + Eve DI 3/6/15/17 — the only set on two K6 boards AND all three DI top-30s**; **{3,6,7} = Eve pos 4 (637) + All-Day pos 5 (736) + Eve DI #1 (six perms 1/2/4/5/8/9, energy 100) + All-Day DI 5/6/20/22/24 + Mid DI 5/18/19/23/26/30**; **{2,4,9} = Eve pos 2 (924) + All-Day pos 4 (249) + All-Day DI 3/18/23 + Eve DI 11/13**; {1,3,6} = All-Day pos 1 (136, overdue ds 28) + Mid pos 1 (316, overdue ds 31), All-Day DI 1/9/11 — no evening presence (overdue is flat, COHORT-01: texture); {1,3,5} = Eve pos 6 + Mid pos 4 (Eve DI 16/18). 3-day block scan (9/13–9/15, all sessions): {1,6,8} last 9/9, {3,6,7} last 9/11, {2,4,9} last 9/11, {1,3,6} last 8/19 — all clear. Blocked (drew 9/12–9/15): {0,5,8} ×4, {0,4,8} ×5, {6,7,8} ×5, {0,1,4} ×4, {1,3,7} ×4, {2,6,8} ×4, {2,5,7} ×3, {3,4,9} ×3 among others — none on tonight's boards.
 
@@ -21,7 +21,7 @@ Boards at midday: Mid K6 **1/6** (pos 5 615 boxed — IN 156), All-Day K6 **0/6*
 
 **Ride ledger after the 9/16 midday:** {3,6,7} day 2 (live, placed 9/15); {2,4,9} day 2 (live, placed 9/15); {1,6,8} day 3 FINAL (never carried past the 9/14 late-29); 759 CLOSED (hit 9/15 evening, never placed — forfeit); 469 CLOSED (hit 9/15 midday, never placed).
 
-### Positions — PROPOSED (NOT placed; operator confirms placement + units)
+### Positions — PLACED at 2S / 3B (operator confirmed; re-placed unchanged from 9/15; {1,6,8} final-day add NOT taken on the main ticket — it rides as straight 681 in the quad instead)
 
 Default under the ride convention = **re-place last night's ticket unchanged** (both legs unhit, day 2 of 3):
 
@@ -38,7 +38,7 @@ Total **$68.75** (same as 9/15). Rates uniform: ~22.3% box / ~4.1% straight per 
 
 Not taken: 754 {4,5,7} (Eve pos 3, Eve DI 12/19, All-Day DI 17/26; single K6 board); 105 {0,1,5} (Eve pos 5, Eve DI 10/23/25; single board); 315 {1,3,5} (Eve pos 6 + Mid pos 4; Eve DI 16/18; evening rank 6 = lowest indicator); 136 {1,3,6} (All-Day pos 1 + Mid pos 1, both overdue-tagged, 1 draw in 30d — no evening board/DI presence; overdue flat); 460 {0,4,6} (All-Day pos 6, All-Day DI 7/15, Mid DI 14/20/28, Eve DI 30 — DI in all three scopes but no evening K6 slot).
 
-### Early-13 STRAIGHT quad — asked ~afternoon 9/16 ("4 straight picks for the early 13, own judgement, doubles/triples allowed") — PROPOSED, NOT placed
+### Early-13 STRAIGHT quad — asked ~afternoon 9/16 ("4 straight picks for the early 13, own judgement, doubles/triples allowed") — **PLACED at 2S = $26.00** (4 × 2 × $3.25); straight pays $450 per hitting state per pick
 
 Method (stated so it can be reconciled, not because it carries edge — straight-level P is 1/1000 per draw for every combo; the method chooses *which* four): (1) one pick per structurally different source so the four never share a set; (2) order = the engine's slot order when the boards agree, the early-13 evening footprint (180d, 13 jurisdictions) as tie-break when they disagree; (3) 3-day block (9/13–9/16 incl. today's midday) + not a set already on tonight's early-13 instruments; (4) the fourth slot is a double built from the top pair carried by the most K6 slots tonight ("pair carry": 13 in 3 of 18 slots — All-Day 136, Mid 316, Eve 315), doubled digit = the more slot-present digit of the pair (1 in 9/18 slots vs 3 in 6/18).
 
@@ -51,7 +51,7 @@ Method (stated so it can be reconciled, not because it carries edge — straight
 
 {3,6,7} deliberately NOT in the quad — 637 S + {3,6,7} B already sit on tonight's early-13 instruments if the proposed ticket is placed. Cost 4 × $3.25 = **$13.00 per unit** ($26.00 at 2S). Payout $225/unit per hitting state. P(≥1 of the four straight in 13 draws) ≈ 5.1%; expected ≈ −$1.30/unit at 90% RTP. Doubles+triples = 408 of 1,404 early-13 evening draws in 90d (29.1%, uniform share) — the double is structure, not a read.
 
-**Amend rule after the evening paste/import:** any hit on {3,6,7} or {2,4,9} closes that leg (day 2); {1,6,8} expires after tonight either way; unhit legs ride into 9/17 as day 3 (final).
+**Reconcile after the evening paste/import (9/17 workflow):** main ticket — any hit on {3,6,7} or {2,4,9} closes that leg (day 2), unhit legs ride into 9/17 as day 3 (final); {1,6,8} expires after tonight either way (its straight 681 sits in the quad). Quad — each pick is a one-night straight on the early 13 (PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC; note histories lumps GA/TX/DC night rows with evening, so check draw time on any GA/TX/DC match). Night at risk: **$94.75**; expected ≈ −$9.50 at 90% RTP. Log running total after 9/14 + 9/15 placed tickets: −$105.00 going in.
 
 Reconcile after the 9/17 workflow import (or the operator's evening paste).
 

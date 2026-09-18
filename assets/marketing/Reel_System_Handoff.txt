@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-13 · v7.4
+Content Agent Handoff · 2026-09-18 · v7.5
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-13 (CONSOLIDATED SNAPSHOT, current to v7.4 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-18 (CONSOLIDATED SNAPSHOT, current to v7.5 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -605,6 +605,62 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.5 (2026-09-18 — MKT-81 PHASE 0 REPORTED: hitmasterzk.com,
+the owned funnel. NOTHING BUILT. Three rulings owed. A NEW LANE, not a reel
+change — no kind, no registry, no daily run touched; outside the 9/9–9/23
+window. Next free MKT ID: 82.)
+================================================================================
+  Full report: docs/mkt81_phase0_report.md (the audit's MKT-81 is the summary).
+  1. ⛔ STANDING LAW, RECORDED: hitmasterzk.com is a TIER-1 SURFACE. Meta
+     reviews the ad's destination ("destination (landing) pages that contain
+     promotions for online gambling or games, even if there is no opportunity
+     to gamble … on that page"). Q1/Q2 in full on every rendered string, stat
+     and image. Your 9/2 live Track Record embed is WITHDRAWN per your own
+     correction: the page carries the FOUR TWO-DIGIT SUMMARY STATS ONLY, baked
+     from the record_public final's hm_record_* container tags (the count-gated
+     figures) — never a live query, so page and reel cannot disagree. Gate
+     record will live in _public_gate_records.json like a public kind.
+  2. DISCOVERY: greenfield (no page, no pixel, no leads, no ESP; brand_domain
+     read by nothing). DNS: GoDaddy NS, @ A = the two parking IPs, www → @,
+     NO MX (no mail to break), default DMARC; HTTPS fails, HTTP 403 today.
+  3. HOSTING — RULING OWED (item 1). Recommend (d)+(b): Cloudflare Pages ($0,
+     automatic SSL) + a `lead-capture` edge function + `web_leads` table in the
+     existing Supabase project. AWS rejected (most moving parts, highest
+     upkeep); Vercel rejected (Hobby is non-commercial → Pro $20/mo); GitHub
+     Pages rejected (ToS); Netlify = fallback only (credit-exhaustion pauses
+     the site mid-campaign). Your Phase-Three reasoning HOLDS: the list joins
+     pro_subscribers.email in one query; the static host is irrelevant to it.
+  4. DNS — exact records in the report §2. Path B (recommended): delete the
+     GoDaddy forwarding first (it locks @ A), move nameservers to Cloudflare,
+     @ and www CNAME → <project>.pages.dev, keep DMARC, add the Meta
+     facebook-domain-verification TXT. Path A fallback keeps GoDaddy NS (www
+     CNAME + 301 root→www; root stays HTTP-only).
+  5. EMAIL LIST — RULING OWED (item 3). web_leads: email UNIQUE lower-cased ·
+     source · campaign/asset (UTM) · fbclid · consent + consent_text_v +
+     consent_at · ip_hash (never raw IP) · touches · status. RLS on, zero
+     policies, service-role only — the pro_subscribers posture. Consent = the
+     visible sentence at submit, version stored per row (your copy). Export =
+     one action on the subscriber-admin gateway (admin tab + CLI CSV). Sending
+     NOT built; what it needs is listed (ESP, SPF/DKIM, unsubscribe endpoint).
+  6. PIXEL: PageView + Lead (no value/currency) + ONE registered custom event
+     `CommunityClick` on the group CTA. ⚠ EVENT NAMES, PARAMS AND UTM VALUES
+     ARE TIER-1 STRINGS — the pixel sends the full URL, so a campaign named
+     with a forbidden word puts it in every event Meta receives. Name campaigns
+     from the allowed vocabulary. Advanced Matching off.
+  7. STRIPE — RULING OWED (item 5): "Lotteries" and "Sports forecasting or
+     odds-making with a monetary or material prize" are PROHIBITED, not
+     Restricted → no due-diligence path exists; no Stripe position on analysis
+     services; Paddle/Lemon Squeezy prohibit the category by name. Recommend
+     the operator asks Stripe support IN WRITING before opening any account.
+     The unambiguously permitted rail is Apple/Google IAP (the parked cutover).
+  8. Pre-answered for Phase 1: group link ALONGSIDE the email, not gated;
+     380px first; Phase Two judged on LTV (~60 free joins/$100, ~7 Pro over
+     time), not month one; PHASE THREE NOT AUTHORISED (recorded with reasons).
+  9. YOUR COPY IS OWED against the Q1/Q2 constraint once item 1 is ruled:
+     hero line, the four measures, the order, what it isn't, the ask, footer.
+     The consent sentence is part of that copy set.
+
 ================================================================================
 WHAT CHANGED IN v7.4 (2026-09-13, evening — OPERATOR OVERRIDE: THE STAMP HOOK
 GOES LIVE ON THE 9/14 ASSEMBLY, not 9/24. Your hold-to-9/23 is overridden by the

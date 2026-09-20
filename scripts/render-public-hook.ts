@@ -49,7 +49,7 @@ const VERIFY = process.argv.includes('--kind=verify_public');
 // fetch, nothing data-driven), tier-2 lint (free-room kinds only), drop cyan.
 const CTA = process.argv.includes('--kind=cta');
 // MKT-79 — the record reel's hook card: FIXED copy (40+ STATES & PROVINCES /
-// THE TRACK RECORD / LAST 30 DAYS · CHECKED AGAINST OFFICIAL RESULTS), tier-1
+// THE TRACK RECORD / LAST 30 DAYS · CHECKED AGAINST THE DRAW RESULTS), tier-1
 // lint (public surface), verify's GOLD — the evidence-reel family. No
 // receipts fetch: the body carries the numbers, the card carries the claim.
 const RECORD = process.argv.includes('--kind=record');
@@ -121,10 +121,10 @@ async function alldayReceipts(date: string): Promise<{ total: number; verified: 
  *   no data      → EVERY MORNING · GRADED IN THE OPEN (never a fabricated number) */
 function cardCopy(r: { total: number; verified: number; verified30d: number } | null) {
   if (r && r.total > 0 && r.verified > 0) {
-    return { eyebrow: VERIFY ? "YESTERDAY'S RECEIPTS" : "YESTERDAY'S BOARD", big: `${r.verified} of ${r.total}`, line: 'SIGNALS VERIFIED', sub: '40+ STATES & PROVINCES · CHECKED AGAINST OFFICIAL RESULTS' };
+    return { eyebrow: VERIFY ? "YESTERDAY'S RECEIPTS" : "YESTERDAY'S BOARD", big: `${r.verified} of ${r.total}`, line: 'SIGNALS VERIFIED', sub: '40+ STATES & PROVINCES · CHECKED AGAINST THE DRAW RESULTS' };
   }
   if (r && r.verified30d > 0) {
-    return { eyebrow: 'LAST 30 DAYS', big: `${r.verified30d}`, line: 'SIGNALS VERIFIED', sub: '40+ STATES & PROVINCES · CHECKED AGAINST OFFICIAL RESULTS' };
+    return { eyebrow: 'LAST 30 DAYS', big: `${r.verified30d}`, line: 'SIGNALS VERIFIED', sub: '40+ STATES & PROVINCES · CHECKED AGAINST THE DRAW RESULTS' };
   }
   return { eyebrow: 'EVERY MORNING', big: 'GRADED', line: 'IN THE OPEN', sub: '40+ STATES & PROVINCES · PUBLISHED BEFORE THE DRAW' };
 }

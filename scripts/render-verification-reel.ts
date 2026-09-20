@@ -465,7 +465,7 @@ function fmtET(d: Date): string {
       // standing. Setting textContent on the LEAF collapses all of them.
       for (const e of leaves) {
         if (/^Drew\\b/.test((e.textContent || '').trim())) {
-          e.textContent = 'Drew \\u2022\\u2022\\u2022 \\u00b7 verified against the official draw';
+          e.textContent = 'Drew \\u2022\\u2022\\u2022 \\u00b7 verified against the draw results';
         }
       }
       // 2b. Text-node sweep: digits -> dots, match vocabulary -> public set,
@@ -481,7 +481,7 @@ function fmtET(d: Date): string {
         if (!s.trim()) continue;
         const iso = s.trim().match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
         if (iso) { t.textContent = MONTHS[+iso[2] - 1] + ' ' + (+iso[3]); continue; }
-        if (/^Drew\\b/.test(s.trim())) { t.textContent = 'Drew \\u2022\\u2022\\u2022 \\u00b7 verified against the official draw'; continue; }
+        if (/^Drew\\b/.test(s.trim())) { t.textContent = 'Drew \\u2022\\u2022\\u2022 \\u00b7 verified against the draw results'; continue; }
         if (/^\\d{3}$/.test(s.trim())) { t.textContent = '\\u2022\\u2022\\u2022'; continue; }
         const out = s
           .replace(/\\bSTRAIGHT\\b/g, 'EXACT ORDER')

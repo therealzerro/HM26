@@ -81,7 +81,7 @@ export const RECORD_GRID = { cols: 10, rows: 3, tile: 88, gap: 12, top: 640 } as
 export const RECORD_HOOK_COPY = {
   eyebrow: '40+ STATES & PROVINCES',
   big: ['THE TRACK', 'RECORD'] as const,
-  sub: 'LAST 30 DAYS · CHECKED AGAINST OFFICIAL RESULTS',
+  sub: 'LAST 30 DAYS · CHECKED AGAINST THE DRAW RESULTS',
 };
 
 // ── Three-digit assert (Phase 0 item 2) — NON-NEGOTIABLE ───────────────────

@@ -4908,7 +4908,27 @@ Midday mostly survives because midday results import same-day. **Do not read `en
 **Fix:** `lib/subscriberEmailParser.ts` pre-pass pairs a bare-email line with a following bare-date line before column parsing. Verified 57/57 on the 9/2 paste, 0 warnings. Single-line TSV/CSV/multi-space unchanged.
 **Discovered:** ENH-FUNNEL 2026-09-02 follow-up.
 
-### BUG-180 — Admin "Remove duplicate snapshots" SELECTS ON OUTCOME: keeps the snapshot "with hits, if any", so the LIVE board is chosen by whether it matched — OPEN, ⛔ FIX HELD (filed 2026-09-20, STAT-01 side-filing 2)
+### BUG-181 — Public copy asserted a results SOURCE we do not have ("checked against OFFICIAL results") — ✅ FIXED on the marketing surfaces 2026-09-20 evening (content-agent ruling, operator-approved) · ⚠ ONE consumer string flagged, hands-off
+
+**What was wrong:** every `histories` row is a manual paste from Lottery Post (an aggregator; operator-confirmed 2026-09-20; ARCH-09 = no provenance column). Yet the record hook card sub `CHECKED AGAINST OFFICIAL RESULTS` ran on every `record_public` since 9/11, and the same claim sat in the verify/record hook subs, the public ledger relabel, eleven caption strings and seven YouTube strings. That is a truthfulness defect independent of any statistical result, so the content agent pulled it off the STAT-01 Phase 6 list and ruled it immediately.
+
+**Rule (content agent, 2026-09-20 evening):** delete "official" wherever it describes the results source. Where the sentence needs a noun, the noun is "the draw results" (or "the draws" where width forces it). "Verified" and "checked" STAY — they describe our grading step, which is real. Tier-1 lint: "draw / draws / draw results" is not on the forbidden list.
+
+**Applied (24 lines, 5 files; every changed line re-linted at tiers 1 and 2 → 0 blocking; `check:brand-voice` clean):**
+- `scripts/record-config.ts:84` — `LAST 30 DAYS · CHECKED AGAINST THE DRAW RESULTS` (same character count as before; width fallback if ever needed: `CHECKED AGAINST THE DRAWS`).
+- `scripts/render-public-hook.ts:124,127` (+ the comment at :52) — `40+ STATES & PROVINCES · CHECKED AGAINST THE DRAW RESULTS`.
+- `scripts/render-verification-reel.ts:468,484` — public ledger relabel `Drew ••• · verified against the draw results`.
+- `scripts/reel-captions.ts` :522 :634 :702 :706 :716 :717 :722 :757 :759 :760 :764 — "checked/graded against the official results" → "… against the draw results"; :702 "checked against the official midday results" → "checked against the midday draw results".
+- `constants/socialPlatforms.ts` :389 :390 :392 :401 :406 :417 :425 — YouTube titles/descriptions, same substitution.
+- Effective from the next daily reel run (strings are read at assembly; nothing already published is re-cut).
+
+**NOT changed — flagged to the operator, hands-off consumer surface:** `app/(tabs)/index.tsx:831` Home meta `verified vs official draws` → recommended `verified vs the draw results`. Operator's call, separate approval. `app/(tabs)/learn.tsx` "state-run" describes the game, not our source — left as is.
+
+**Root cause / prevention:** the strings were written before anyone asked where the draw rows come from. ARCH-09 (provenance column) and CONFIG-19 (weekly spot-check) are the structural fixes; until an official feed exists (MKT-81 backend item) no public string may name a source. Added to the Two-Question pre-publication filter as a third check for results-source claims.
+
+---
+
+### BUG-180 — Admin "Remove duplicate snapshots" SELECTS ON OUTCOME: keeps the snapshot "with hits, if any", so the LIVE board is chosen by whether it matched — OPEN · HOLD LIFTED 2026-09-20 evening (ledger hash committed; content agent recommends approval) · ⏳ AWAITING OPERATOR APPROVAL TO APPLY (filed 2026-09-20, STAT-01 side-filing 2)
 
 **Where:** `components/admin/HitTrackingView.tsx:771-805` — groups active `slate_snapshots` by (slate_date, scope, mode), ranks each group by `snapHitCount` (count of `hitType` annotations in `top_k_straights_json`) DESC, then `updated_at_et` DESC, and soft-deletes everything but the first. The confirm copy says it plainly: "Keep 1 most recent per scope/mode/date (the one with hits, if any)."
 

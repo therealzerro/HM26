@@ -386,10 +386,10 @@ export const YT_SHORTS_SETS: Record<string, YtShortsSet> = {
       'Six signals a day, four measures each',
     ],
     descriptions: [
-      `Every morning our engine scores combinations across 40+ states & provinces and publishes six ranked signals — before the first draw. The next morning we check every one against the official results and publish the record.\nThe full board is free in our community: {free_group_url}`,
-      `This is pattern analysis, not prediction. Six signals ranked by four measures — energy, momentum, pattern and consistency — published and time-stamped before the draw, then graded against official results the following morning.\nFull board, free: {free_group_url}`,
+      `Every morning our engine scores combinations across 40+ states & provinces and publishes six ranked signals — before the first draw. The next morning we check every one against the draw results and publish the record.\nThe full board is free in our community: {free_group_url}`,
+      `This is pattern analysis, not prediction. Six signals ranked by four measures — energy, momentum, pattern and consistency — published and time-stamped before the draw, then graded against the draw results the following morning.\nFull board, free: {free_group_url}`,
       `No fees, no promises. We publish the analysis first and the receipts after, every day, across 40+ states & provinces. You can check every one of them yourself.\nJoin free: {free_group_url}`,
-      `Most methods never show their work. Ours publishes six ranked signals before the draw, explains the reasoning behind each, then grades them against the official results in the open.\nThe whole method is free in our community: {free_group_url}`,
+      `Most methods never show their work. Ours publishes six ranked signals before the draw, explains the reasoning behind each, then grades them against the draw results in the open.\nThe whole method is free in our community: {free_group_url}`,
     ],
   },
   // MKT-40 — delivered 2026-07-31 (docs/verify_public_copy_delivery_2026-07-31.md).
@@ -398,12 +398,12 @@ export const YT_SHORTS_SETS: Record<string, YtShortsSet> = {
       'We grade yesterday’s signals in public',
       'Published before the draw. Checked after.',
       'What happens the morning after we post',
-      'Our record, checked against official results',
+      'Our record, checked against the draw results',
       'How we grade our own pattern analysis',
       'The receipts, every single morning',
     ],
     descriptions: [
-      `Every morning we check the previous day's six signals against the official results and publish what happened. Nothing edited, nothing retroactive.\nThe full record is free in our community: {free_group_url}`,
+      `Every morning we check the previous day's six signals against the draw results and publish what happened. Nothing edited, nothing retroactive.\nThe full record is free in our community: {free_group_url}`,
       `We publish pattern analysis before the draw and grade it after. This is the grading half — the same board, checked in the open, across 40+ states & provinces.\nSee the full record free: {free_group_url}`,
       `Most methods never show what happened next. Ours gets checked every morning and the record stays public.\nFree to read: {free_group_url}`,
     ],
@@ -414,7 +414,7 @@ export const YT_SHORTS_SETS: Record<string, YtShortsSet> = {
   // tier-1 clean, and are REPLACED verbatim when the delivered set is pasted.
   record_public: {
     titles: [
-      'Thirty days, checked against official results',
+      'Thirty days, checked against the draw results',
       'The track record, misses included',
       'Every day for thirty days, graded in public',
       'Our last 30 days, on the record',
@@ -422,7 +422,7 @@ export const YT_SHORTS_SETS: Record<string, YtShortsSet> = {
       'What a public track record looks like',
     ],
     descriptions: [
-      `Thirty days of pattern analysis, every day checked against the official results across 40+ states & provinces — matched days in gold, the misses left on the board.\nThe full record is free in our community: {free_group_url}`,
+      `Thirty days of pattern analysis, every day checked against the draw results across 40+ states & provinces — matched days in gold, the misses left on the board.\nThe full record is free in our community: {free_group_url}`,
       `We publish six ranked signals before the draw and grade them after. This is the last thirty days of that record, checked in public, nothing edited.\nSee the full record free: {free_group_url}`,
       `A record is only worth reading if the misses are on it. Ours are.\nFree to read: {free_group_url}`,
     ],

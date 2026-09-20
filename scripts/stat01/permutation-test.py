@@ -276,7 +276,7 @@ def main():
 
     # ── 5. SANITY NULLS FIRST (reported as data before the real result is looked at) ──
     log('sanity (a): random-board input ×%d' % a.sanity_runs)
-    pa = []
+    pa = []; t_a = time.time()
     for s in range(1, a.sanity_runs + 1):
         rb = np.random.default_rng(s)
         fake = Boards.__new__(Boards); fake.__dict__.update(bd.__dict__)
@@ -290,7 +290,7 @@ def main():
         fake.classes = cls
         o, _, _, Snull = run_harness(fake, a.r, seed=SEED + s, want_straight=False, want_jur=False)
         pa.append(o['p_one_sided'])
-        if s % 20 == 0: log(f'  run {s}: p={o["p_one_sided"]:.4f}')
+        if s % 5 == 0 or s == 1: log(f'  run {s}/{a.sanity_runs}: p={o["p_one_sided"]:.4f}  t={time.time() - t_a:.0f}s')
     pa = np.array(pa)
     result['sanity_a_random_board_p_distribution'] = dict(runs=len(pa), seeds='1..N (board generation), null seed 20260919+s', min=float(pa.min()), median=float(np.median(pa)), max=float(pa.max()),
                                                           decile_histogram=np.histogram(pa, bins=np.linspace(0, 1, 11))[0].tolist(), ks_uniform_D=float(np.max(np.abs(np.sort(pa) - (np.arange(1, len(pa) + 1) / len(pa))))), p_values=[round(float(x), 5) for x in pa])

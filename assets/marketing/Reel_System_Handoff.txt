@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-20 · v7.6
+Content Agent Handoff · 2026-09-20 · v7.7
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-20 (CONSOLIDATED SNAPSHOT, current to v7.6 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-20 (CONSOLIDATED SNAPSHOT, current to v7.7 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -243,7 +243,7 @@ C3. THE DAILY TRACK RECORD REEL ANATOMY (`record_public`, MKT-79 — 16.3s,
    1080×1920 60fps; FIRST CUT PUBLISHED 9/11 for the operator's smoke test):
      0.0–2.0    HOOK CARD (render-public-hook --kind=record, GOLD, silent,
                 tier-1 linted): 40+ STATES & PROVINCES / THE TRACK RECORD /
-                LAST 30 DAYS · CHECKED AGAINST OFFICIAL RESULTS.
+                LAST 30 DAYS · CHECKED AGAINST THE DRAW RESULTS (⚠ v7.7 / BUG-181: "OFFICIAL" DELETED 9/20 pm).
      1.6–2.0    0.4s eased dissolve into the body's frame 0.
      2.4–2.9    THIRTY TILES appear together, ALL DIM, in a 10×3 GRID
                 (88px tiles — a single row of 30 is ~10px per tile at feed
@@ -609,6 +609,99 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+WHAT CHANGED IN v7.7 (2026-09-20, evening — YOUR PHASE 3 GATE MESSAGE EXECUTED:
+G7/G8/G9 BUILT IN AND COMMITTED, "OFFICIAL" STRINGS DELETED (BUG-181), PHASE 3
+RUN ONCE. ⚠ FIRST LINE, PER §3 OF YOUR MESSAGE: p = 0.668, LIFT 0.984, 95% CI
+0.90–1.07. NULL. Engine untouched. No copy changed by the report. Era record —
+never retro-edited.)
+================================================================================
+  Report: docs/stat01/phase3_report.md · data: docs/stat01/phase3_result.json
+  · pre-reg: docs/stat01/preregistration_v1.md at commit
+  96561d092835834c37c44e0319d91aaf57e33899 (harness log-only follow-up 39c545f).
+  0. YOUR CORRECTION (§0) IS RECORDED in MASTER_AUDIT STAT-01 and in the
+     9/23 read annotation (bare string 9/14→9/20 am; "& PROVINCES" from 9/20
+     pm). Counting-rule text and 42 are in pre-reg §9 verbatim.
+  1. "OFFICIAL" STRINGS — DONE, commit c887b1f, filed as BUG-181 (its own
+     bug, not under STAT-01), effective from the next daily run. Line by
+     line (24 lines, 5 files; every changed line re-linted tiers 1+2 → 0
+     blocking; check:brand-voice clean):
+       record-config.ts:84   "LAST 30 DAYS · CHECKED AGAINST THE DRAW RESULTS"
+                             (same character count; fallback "…THE DRAWS"
+                             recorded, not needed)
+       render-public-hook.ts:124,127  "40+ STATES & PROVINCES · CHECKED
+                             AGAINST THE DRAW RESULTS" (+ the :52 comment)
+       render-verification-reel.ts:468,484  "Drew ••• · verified against the
+                             draw results"
+       reel-captions.ts :522 :634 :702 :706 :716 :717 :722 :757 :759 :760
+                             :764 — "checked/graded against the official
+                             results" → "… against the draw results"; :702
+                             "checked against the official midday results" →
+                             "checked against the midday draw results"
+       socialPlatforms.ts :389 :390 :392 :401 :406 :417 :425 (YouTube set) —
+                             same substitution; :401/:417 titles "Our record,
+                             checked against the draw results" / "Thirty
+                             days, checked against the draw results"
+     "Verified" and "checked" untouched everywhere, as ruled. ⚠ index.tsx:831
+     Home meta "verified vs official draws" = HANDS-OFF; flagged to the
+     operator with "verified vs the draw results" recommended — his call.
+     learn.tsx "state-run" left.
+  2. G7 — the file now carries every checklist item (map in pre-reg §11;
+     yes/no table in the report: 9/9 YES; item i is "as carried into the
+     rulings" — your order is not a repo artifact, so verbatim equality is
+     yours to confirm). Also written in before commit: the S_obs-known
+     statement in your words; bootstrap over DATES (your wording; the draft
+     said board-days; nothing had run); G9 acceptance; frozen row counts.
+  3. G8 — draws-since only. Deciles within stratum, six-way primary, doubles
+     secondary, triples descriptive. THE ENGINE'S OWN THRESHOLD: live
+     pressure_threshold = 100 on the legacy curve (no scale-mode row) → the
+     row is DS ≥ 100. Input = a frozen histories snapshot 4/9→9/19 (12,010
+     rows, sha256 02abe5c8…) because ledger.csv holds board rows only.
+  4. SANITY NULLS FIRST, as data (written before the primary ran):
+     (a) 100 random-board runs at R=100,000: p median 0.427, min 0.012,
+         max 0.997, deciles 11·12·16·8·14·8·7·9·8·7, KS D 0.119 (crit
+         0.136) — uniform. (b) null-path grading of our boards = 632 = S_obs
+         exactly (the "≈0.5" is the mid-p; ≥ rule gives 1.0 — stated).
+     (c) planted +12 matches on 19 board-days: injected lift 1.0035,
+         recovered 1.0035, p 0.47 — the plant is ~2% by your construction,
+         so it tests tracking, not rejection. All three PASS.
+  5. PRIMARY (once, seed 20260919, R=100,000): S_obs 632 · null mean 642.5
+     (sd 25.0; analytic 642.6) · p 0.668 (10k prefix 0.675) · lift 0.984,
+     CI 0.900–1.067 · excess −10.5 · 34.6 vs 35.2 per 1,000 draws · S_obs
+     at the null's 34th percentile. NULL.
+  6. SECONDARIES (descriptive, two-sided): All-Day 1.023 (0.92–1.12, p .70)
+     · Midday 0.828 (0.69–0.97, p .042 — one of nine uncorrected, the same
+     0.83 as crude Phase 2, engine-WORSE direction; not a finding) ·
+     Evening 1.031 (0.88–1.19, p .68) · straights 110 vs 109.4, lift 1.006
+     (0.83–1.19, p .98) · days-with-≥1 at the null on every board · ANY
+     BOARD PER CALENDAR DAY 124 of 128 vs 125.9 expected (p .29) — "29 of
+     30 days" is the chance baseline, now formally · per-jurisdiction 0 of
+     39 pass BH q=.05 (min p .0068 = KS, 7 vs 17.7). Corroborated window
+     7/23→9/19: pooled 329 vs 312.9, lift 1.052 (0.92–1.19, p .18) —
+     windows agree in kind.
+  7. DUE-01, six-way pooled, top decile first: 0.963 (0.91–1.02) · 0.976 ·
+     0.999 · 0.975 · 0.965 · 1.002 · 0.989 · 1.016 · 0.996 · D10 1.057
+     (1.00–1.11) · unseen 1.037. Two of forty six-way decile CIs exclude
+     1.0, both AGAINST the axiom (most-overdue 0.96, least-overdue 1.06).
+     Doubles flat (0.957 … 0.952). ⛔ THE THRESHOLD ROW IS EMPTY: no
+     six-way or double class reached DS ≥ 100 anywhere in the window (0
+     cells, all three scopes; 42 triple cells only). With 32–74 draws a
+     day the engine's "overdue" point is not on the calendar; the pressure
+     channel runs on its first branch (ENG-OBS-05, now shown on the draws
+     themselves). Live weight +0.40 All-Day / −0.40 sessions (CONFIG-02):
+     neither sign has anything to act on. Per-scope tables in the JSON.
+  8. DISCLOSURES (in the report): an R=2,000 smoke run printed a primary
+     line to stderr while the harness was being built, before the pre-reg
+     commit (lift 0.985, p 0.67 — the crude picture); statistic, null,
+     window, exclusions unchanged after it. The real run executed the
+     sanity nulls first. Stated so the sequence reads as it happened.
+  9. NOT DONE / OWED: BUG-180 fix — your hold is lifted and you recommend
+     approval, but a forwarded ruling is not the operator's approval; it
+     waits for his word (fix = keep latest pre-cutoff, G4 rule). Phase 6
+     copy (record-reel body, "29 of 30" framing, "verified"/"30-day record"
+     families, Home meta) — untouched, your one-pass ruling now that the
+     CI and DUE-01 are in front of the operator. Nothing on the 9/23–9/24
+     schedule paused. Next STAT ID 02; next MKT ID 82.
+
 WHAT CHANGED IN v7.6 (2026-09-20 — STAT-01 "DOES THE ENGINE BEAT CHANCE?":
 YOUR 9/19 ORDER, PHASE 0 REPORTED; YOUR 9/20 G1–G6 RULINGS + ADDITIONS A–C +
 ADDENDUM EXECUTED; PHASE 1+2 REPORTED. ⚠ FIRST LINE, PER §4a OF YOUR ORDER:

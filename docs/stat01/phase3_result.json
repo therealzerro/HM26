@@ -1,0 +1,2209 @@
+{
+ "study": "STAT-01",
+ "phase": 3,
+ "run_at": "2026-09-20T22:17:28.897683+00:00",
+ "ledger_sha256": "ccf04b08af359fdd910de55be00d5dbf27d25a102749e69f6ff819fbef4e7525",
+ "histories_snapshot_sha256": "02abe5c8b76682fa8c34d657820d8af15f845698f29051c09a2a2b29cf29c00b",
+ "R": 100000,
+ "seed": 20260919,
+ "rng": "numpy default_rng (PCG64)",
+ "sanity_a_random_board_p_distribution": {
+  "runs": 100,
+  "seeds": "1..N (board generation), null seed 20260919+s",
+  "min": 0.012349876501234988,
+  "median": 0.42715072849271507,
+  "max": 0.997080029199708,
+  "decile_histogram": [
+   11,
+   12,
+   16,
+   8,
+   14,
+   8,
+   7,
+   9,
+   8,
+   7
+  ],
+  "ks_uniform_D": 0.11919500804991945,
+  "p_values": [
+   0.75296,
+   0.05978,
+   0.64135,
+   0.7657,
+   0.59768,
+   0.04091,
+   0.65442,
+   0.49998,
+   0.31527,
+   0.15708,
+   0.56403,
+   0.14373,
+   0.17792,
+   0.41766,
+   0.85114,
+   0.76733,
+   0.48597,
+   0.95534,
+   0.1423,
+   0.28605,
+   0.35686,
+   0.43552,
+   0.46847,
+   0.12486,
+   0.74108,
+   0.99268,
+   0.10969,
+   0.874,
+   0.64008,
+   0.19131,
+   0.25795,
+   0.41879,
+   0.02356,
+   0.25952,
+   0.82201,
+   0.20215,
+   0.48437,
+   0.86193,
+   0.54556,
+   0.59635,
+   0.80195,
+   0.17753,
+   0.37458,
+   0.9742,
+   0.0175,
+   0.37292,
+   0.45112,
+   0.10079,
+   0.05498,
+   0.99708,
+   0.77673,
+   0.24757,
+   0.97709,
+   0.53073,
+   0.03419,
+   0.5008,
+   0.22207,
+   0.43802,
+   0.01235,
+   0.37302,
+   0.21191,
+   0.05049,
+   0.9095,
+   0.66928,
+   0.65702,
+   0.30221,
+   0.26016,
+   0.70038,
+   0.59534,
+   0.2006,
+   0.34541,
+   0.92879,
+   0.43703,
+   0.86399,
+   0.66807,
+   0.08214,
+   0.24937,
+   0.86189,
+   0.49935,
+   0.21144,
+   0.49991,
+   0.70126,
+   0.13992,
+   0.11494,
+   0.30146,
+   0.26281,
+   0.40695,
+   0.62789,
+   0.24884,
+   0.08795,
+   0.21097,
+   0.20278,
+   0.53198,
+   0.02576,
+   0.24785,
+   0.87834,
+   0.70087,
+   0.15052,
+   0.70176,
+   0.48439
+  ]
+ },
+ "sanity_b_self_test": {
+  "null_path_S_of_our_boards": 632,
+  "equals_S_obs": true,
+  "p_ge_rule": 1.0,
+  "p_strict_rule": 9.99990000099999e-06,
+  "mid_p": 0.5000049999500005,
+  "note": "S* \u2261 S_obs by construction: the \u2265 rule gives 1.0, the strict rule \u22480, the mid-p (ties counted half) is the \u22480.5 the pre-registration refers to. The substantive check is that the null-path grading of our own boards reproduces S_obs exactly."
+ },
+ "sanity_c_planted_edge": {
+  "boards_planted": 19,
+  "S_planted": 644,
+  "S_obs_original": 632,
+  "injected_extra_matches": 12,
+  "injected_lift_analytic": 1.0034669471387947,
+  "recovered_lift": 1.0035217223574215,
+  "recovered_lift_ci95": [
+   0.9192244295704244,
+   1.0909195838331593
+  ],
+  "p_one_sided": 0.46835531644683553,
+  "null_mean": 641.73997
+ },
+ "primary": {
+  "R": 100000,
+  "seed": 20260919,
+  "S_obs": 632,
+  "S_null_mean": 642.52351,
+  "S_null_sd": 24.95969124969097,
+  "E_analytic": 642.6388888888889,
+  "p_one_sided": 0.6681233187668123,
+  "p_one_sided_R10k": 0.674932506749325,
+  "lift": 0.9836215954183529,
+  "lift_ci95_dates": [
+   0.8999143261527248,
+   1.0667967658319992
+  ],
+  "excess_matches": -10.523509999999987,
+  "graded_draws": 18264,
+  "per_1000_draws_obs": 34.6035917652212,
+  "per_1000_draws_null": 35.17978044240035,
+  "null_quantiles": {
+   "1": 585.0,
+   "5": 602.0,
+   "25": 626.0,
+   "50": 642.0,
+   "75": 659.0,
+   "95": 684.0,
+   "99": 701.0
+  }
+ },
+ "secondaries_primary_window": {
+  "allday": {
+   "boards": 123,
+   "S_obs": 326,
+   "null_mean": 318.68574,
+   "lift": 1.022951325026341,
+   "lift_ci95_dates": [
+    0.9239154275113667,
+    1.123654795138698
+   ],
+   "p_two_sided": 0.6952130478695213
+  },
+  "midday": {
+   "boards": 123,
+   "S_obs": 114,
+   "null_mean": 137.61223,
+   "lift": 0.8284147419164706,
+   "lift_ci95_dates": [
+    0.6930816873364293,
+    0.968836025701274
+   ],
+   "p_two_sided": 0.04217957820421796
+  },
+  "evening": {
+   "boards": 128,
+   "S_obs": 192,
+   "null_mean": 186.22554,
+   "lift": 1.0310078843106054,
+   "lift_ci95_dates": [
+    0.8816882638733418,
+    1.1857034330676144
+   ],
+   "p_two_sided": 0.6818931810681893
+  },
+  "straights_all_boards": {
+   "S_obs": 110,
+   "null_mean": 109.3624,
+   "lift": 1.0058301573484123,
+   "lift_ci95_dates": [
+    0.8281110579893648,
+    1.1856665599131149
+   ],
+   "p_two_sided": 0.977930220697793,
+   "per_scope": {
+    "allday": {
+     "S_obs": 56,
+     "null_mean": 54.12329,
+     "p_two_sided": 0.8366116338836611
+    },
+    "midday": {
+     "S_obs": 17,
+     "null_mean": 23.47746,
+     "p_two_sided": 0.21657783422165777
+    },
+    "evening": {
+     "S_obs": 37,
+     "null_mean": 31.76165,
+     "p_two_sided": 0.3937360626393736
+    }
+   }
+  },
+  "days_with_ge1_match": {
+   "allday": {
+    "boards": 123,
+    "obs_days": 112,
+    "null_mean": 113.80309,
+    "lift": 0.9841560541106573,
+    "p_two_sided": 0.6248937510624893
+   },
+   "midday": {
+    "boards": 123,
+    "obs_days": 79,
+    "null_mean": 82.464,
+    "lift": 0.9579937912301125,
+    "p_two_sided": 0.5593744062559375
+   },
+   "evening": {
+    "boards": 128,
+    "obs_days": 96,
+    "null_mean": 98.65586,
+    "lift": 0.9730795514833077,
+    "p_two_sided": 0.6374336256637434
+   },
+   "any_board_per_calendar_day": {
+    "dates": 128,
+    "obs_days": 124,
+    "null_mean": 125.87622,
+    "lift": 0.9850947224185791,
+    "p_two_sided": 0.2908370916290837
+   }
+  },
+  "per_jurisdiction_box": {
+   "m": 39,
+   "bh_q": 0.05,
+   "significant": [],
+   "min_p": 0.006799932000679993,
+   "table": [
+    {
+     "jurisdiction": "KS",
+     "S_obs": 7,
+     "null_mean": 17.67808,
+     "lift": 0.39597060314242266,
+     "p_two_sided": 0.006799932000679993,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "ID",
+     "S_obs": 25,
+     "null_mean": 17.12287,
+     "lift": 1.460035613188677,
+     "p_two_sided": 0.07787922120778792,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "MN",
+     "S_obs": 14,
+     "null_mean": 9.03618,
+     "lift": 1.5493272599704744,
+     "p_two_sided": 0.14193858061419387,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "IN",
+     "S_obs": 10,
+     "null_mean": 15.86737,
+     "lift": 0.6302241644330472,
+     "p_two_sided": 0.15633843661563385,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "TN",
+     "S_obs": 17,
+     "null_mean": 23.00063,
+     "lift": 0.739110189590459,
+     "p_two_sided": 0.23285767142328576,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "IA",
+     "S_obs": 13,
+     "null_mean": 18.21371,
+     "lift": 0.7137480502324898,
+     "p_two_sided": 0.25283747162528375,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "WI",
+     "S_obs": 22,
+     "null_mean": 17.24856,
+     "lift": 1.2754687927571924,
+     "p_two_sided": 0.2931970680293197,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "NC",
+     "S_obs": 24,
+     "null_mean": 19.04058,
+     "lift": 1.2604658051382889,
+     "p_two_sided": 0.2955770442295577,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "NE",
+     "S_obs": 14,
+     "null_mean": 10.30569,
+     "lift": 1.3584728436426867,
+     "p_two_sided": 0.3069169308306917,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "SC",
+     "S_obs": 21,
+     "null_mean": 16.74426,
+     "lift": 1.2541611274550204,
+     "p_two_sided": 0.34277657223427765,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "LA",
+     "S_obs": 7,
+     "null_mean": 10.23727,
+     "lift": 0.6837760457622002,
+     "p_two_sided": 0.3864961350386496,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "OH",
+     "S_obs": 14,
+     "null_mean": 18.0241,
+     "lift": 0.7767378121515083,
+     "p_two_sided": 0.3999360006399936,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "CT",
+     "S_obs": 21,
+     "null_mean": 17.17784,
+     "lift": 1.2225052742370404,
+     "p_two_sided": 0.4044959550404496,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "ON",
+     "S_obs": 13,
+     "null_mean": 16.8288,
+     "lift": 0.7724852633580528,
+     "p_two_sided": 0.4133558664413356,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "FL",
+     "S_obs": 14,
+     "null_mean": 17.76809,
+     "lift": 0.7879293722622972,
+     "p_two_sided": 0.4334556654433456,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "KY",
+     "S_obs": 21,
+     "null_mean": 17.68683,
+     "lift": 1.1873241276135973,
+     "p_two_sided": 0.4788552114478855,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "DE",
+     "S_obs": 15,
+     "null_mean": 18.08242,
+     "lift": 0.8295349848084493,
+     "p_two_sided": 0.5453745462545374,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "VA",
+     "S_obs": 20,
+     "null_mean": 17.32579,
+     "lift": 1.1543485174413401,
+     "p_two_sided": 0.5737542624573754,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "MI",
+     "S_obs": 15,
+     "null_mean": 17.81896,
+     "lift": 0.8417999703686411,
+     "p_two_sided": 0.5914540854591455,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "OK",
+     "S_obs": 11,
+     "null_mean": 9.18297,
+     "lift": 1.197869534584127,
+     "p_two_sided": 0.6261937380626194,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "NY",
+     "S_obs": 20,
+     "null_mean": 17.65432,
+     "lift": 1.1328671962443189,
+     "p_two_sided": 0.6311536884631154,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "QC",
+     "S_obs": 7,
+     "null_mean": 9.01235,
+     "lift": 0.7767119563709799,
+     "p_two_sided": 0.6332736672633273,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "MS",
+     "S_obs": 15,
+     "null_mean": 17.32368,
+     "lift": 0.8658668366074644,
+     "p_two_sided": 0.6772932270677293,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "WV",
+     "S_obs": 9,
+     "null_mean": 7.6038,
+     "lift": 1.183618716957311,
+     "p_two_sided": 0.7026329736702633,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "TX",
+     "S_obs": 29,
+     "null_mean": 31.81529,
+     "lift": 0.9115114147945846,
+     "p_two_sided": 0.7051129488705113,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "DC",
+     "S_obs": 28,
+     "null_mean": 25.8643,
+     "lift": 1.082573276678665,
+     "p_two_sided": 0.7191728082719173,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "AR",
+     "S_obs": 14,
+     "null_mean": 15.76249,
+     "lift": 0.888184544446975,
+     "p_two_sided": 0.7699523004769953,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "ME,NH,VT",
+     "S_obs": 15,
+     "null_mean": 13.89056,
+     "lift": 1.0798700700331736,
+     "p_two_sided": 0.8354716452835471,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "NJ",
+     "S_obs": 16,
+     "null_mean": 17.41515,
+     "lift": 0.9187402922168342,
+     "p_two_sided": 0.8531914680853191,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "AZ",
+     "S_obs": 16,
+     "null_mean": 14.97899,
+     "lift": 1.068162806704591,
+     "p_two_sided": 0.8604913950860491,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "GA",
+     "S_obs": 24,
+     "null_mean": 25.26029,
+     "lift": 0.9501078570356872,
+     "p_two_sided": 0.8966310336896631,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "CA",
+     "S_obs": 19,
+     "null_mean": 18.11329,
+     "lift": 1.0489535584093228,
+     "p_two_sided": 0.8975710242897571,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "PA",
+     "S_obs": 16,
+     "null_mean": 16.95854,
+     "lift": 0.94347744558199,
+     "p_two_sided": 0.9401905980940191,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "IL",
+     "S_obs": 18,
+     "null_mean": 17.37931,
+     "lift": 1.0357143062641727,
+     "p_two_sided": 0.946790532094679,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "NM",
+     "S_obs": 18,
+     "null_mean": 17.49167,
+     "lift": 1.029061261732013,
+     "p_two_sided": 0.965950340496595,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "W.Canada",
+     "S_obs": 8,
+     "null_mean": 8.73998,
+     "lift": 0.9153339023659094,
+     "p_two_sided": 0.976730232697673,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "CO",
+     "S_obs": 17,
+     "null_mean": 17.50069,
+     "lift": 0.9713902708978904,
+     "p_two_sided": 1.0,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "MO",
+     "S_obs": 17,
+     "null_mean": 17.00164,
+     "lift": 0.9999035387174414,
+     "p_two_sided": 1.0,
+     "bh_significant_q05": false
+    },
+    {
+     "jurisdiction": "WA",
+     "S_obs": 8,
+     "null_mean": 8.36617,
+     "lift": 0.9562320631782524,
+     "p_two_sided": 1.0,
+     "bh_significant_q05": false
+    }
+   ]
+  }
+ },
+ "secondary_window_2026-07-23_to_09-19": {
+  "primary_statistic_descriptive": {
+   "R": 100000,
+   "seed": 20260919,
+   "S_obs": 329,
+   "S_null_mean": 312.85001,
+   "S_null_sd": 17.361392599670683,
+   "E_analytic": 312.9,
+   "p_one_sided": 0.18355816441835582,
+   "p_one_sided_R10k": 0.18268173182681732,
+   "lift": 1.0516221495406057,
+   "lift_ci95_dates": [
+    0.9185597868826675,
+    1.1917616463347216
+   ],
+   "excess_matches": 16.149990000000003,
+   "graded_draws": 8712,
+   "per_1000_draws_obs": 37.764003673094585,
+   "per_1000_draws_null": 35.9102398989899,
+   "null_quantiles": {
+    "1": 273.0,
+    "5": 285.0,
+    "25": 301.0,
+    "50": 313.0,
+    "75": 325.0,
+    "95": 342.0,
+    "99": 354.0
+   }
+  },
+  "secondaries": {
+   "allday": {
+    "boards": 59,
+    "S_obs": 168,
+    "null_mean": 156.41015,
+    "lift": 1.0740990913952835,
+    "lift_ci95_dates": [
+     0.9180104866471838,
+     1.2365783734248217
+    ],
+    "p_two_sided": 0.36593634063659364
+   },
+   "midday": {
+    "boards": 59,
+    "S_obs": 61,
+    "null_mean": 68.36074,
+    "lift": 0.8923250391964743,
+    "lift_ci95_dates": [
+     0.6922484266797873,
+     1.1077844311377243
+    ],
+    "p_two_sided": 0.4033559664403356
+   },
+   "evening": {
+    "boards": 59,
+    "S_obs": 100,
+    "null_mean": 88.07912,
+    "lift": 1.1353428599195814,
+    "lift_ci95_dates": [
+     0.911712167495091,
+     1.3615560640732263
+    ],
+    "p_two_sided": 0.21389786102138977
+   },
+   "straights_all_boards": {
+    "S_obs": 51,
+    "null_mean": 52.15796,
+    "lift": 0.9777989783342753,
+    "lift_ci95_dates": [
+     0.7107730136775781,
+     1.2545763587436325
+    ],
+    "p_two_sided": 0.947030529694703,
+    "per_scope": {
+     "allday": {
+      "S_obs": 24,
+      "null_mean": 26.06971,
+      "p_two_sided": 0.7802321976780232
+     },
+     "midday": {
+      "S_obs": 8,
+      "null_mean": 11.40415,
+      "p_two_sided": 0.3934360656393436
+     },
+     "evening": {
+      "S_obs": 19,
+      "null_mean": 14.6841,
+      "p_two_sided": 0.3146168538314617
+     }
+    }
+   },
+   "days_with_ge1_match": {
+    "allday": {
+     "boards": 59,
+     "obs_days": 54,
+     "null_mean": 54.84594,
+     "lift": 0.9845760688940695,
+     "p_two_sided": 0.8021719782802172
+    },
+    "midday": {
+     "boards": 59,
+     "obs_days": 40,
+     "null_mean": 40.44307,
+     "lift": 0.9890446002244637,
+     "p_two_sided": 0.997070029299707
+    },
+    "evening": {
+     "boards": 59,
+     "obs_days": 46,
+     "null_mean": 45.96589,
+     "lift": 1.0007420720016516,
+     "p_two_sided": 1.0
+    },
+    "any_board_per_calendar_day": {
+     "dates": 59,
+     "obs_days": 58,
+     "null_mean": 58.6859,
+     "lift": 0.9883123544156263,
+     "p_two_sided": 0.5413945860541395
+    }
+   }
+  }
+ },
+ "due01": {
+  "allday": {
+   "dates": 155,
+   "graded_draws": 11388,
+   "strata": {
+    "sixway": {
+     "rows": [
+      {
+       "bin": "D1",
+       "observed": 788,
+       "expected": 819.94,
+       "lift": 0.9611,
+       "ci95": [
+        0.9003,
+        1.0238
+       ]
+      },
+      {
+       "bin": "D2",
+       "observed": 757,
+       "expected": 819.49,
+       "lift": 0.9237,
+       "ci95": [
+        0.863,
+        0.9845
+       ]
+      },
+      {
+       "bin": "D3",
+       "observed": 809,
+       "expected": 818.68,
+       "lift": 0.9882,
+       "ci95": [
+        0.9229,
+        1.0552
+       ]
+      },
+      {
+       "bin": "D4",
+       "observed": 798,
+       "expected": 819.94,
+       "lift": 0.9732,
+       "ci95": [
+        0.9081,
+        1.0394
+       ]
+      },
+      {
+       "bin": "D5",
+       "observed": 792,
+       "expected": 819.49,
+       "lift": 0.9665,
+       "ci95": [
+        0.8991,
+        1.0352
+       ]
+      },
+      {
+       "bin": "D6",
+       "observed": 874,
+       "expected": 819.49,
+       "lift": 1.0665,
+       "ci95": [
+        0.9984,
+        1.1333
+       ]
+      },
+      {
+       "bin": "D7",
+       "observed": 797,
+       "expected": 819.94,
+       "lift": 0.972,
+       "ci95": [
+        0.9085,
+        1.0374
+       ]
+      },
+      {
+       "bin": "D8",
+       "observed": 835,
+       "expected": 818.68,
+       "lift": 1.0199,
+       "ci95": [
+        0.9595,
+        1.081
+       ]
+      },
+      {
+       "bin": "D9",
+       "observed": 823,
+       "expected": 819.49,
+       "lift": 1.0043,
+       "ci95": [
+        0.941,
+        1.0694
+       ]
+      },
+      {
+       "bin": "D10",
+       "observed": 870,
+       "expected": 819.94,
+       "lift": 1.0611,
+       "ci95": [
+        0.9978,
+        1.124
+       ]
+      },
+      {
+       "bin": "unseen as of d-1",
+       "observed": 5,
+       "expected": 4.28,
+       "lift": 1.1671,
+       "ci95": [
+        0.0,
+        2.2523
+       ]
+      },
+      {
+       "bin": "engine threshold DS>=100",
+       "observed": 0,
+       "expected": 0.0,
+       "lift": null,
+       "ci95": null
+      }
+     ],
+     "cells_ds_ge100": 0
+    },
+    "double": {
+     "rows": [
+      {
+       "bin": "D1",
+       "observed": 296,
+       "expected": 306.4,
+       "lift": 0.966,
+       "ci95": [
+        0.8611,
+        1.0729
+       ]
+      },
+      {
+       "bin": "D2",
+       "observed": 327,
+       "expected": 305.96,
+       "lift": 1.0688,
+       "ci95": [
+        0.9492,
+        1.1882
+       ]
+      },
+      {
+       "bin": "D3",
+       "observed": 307,
+       "expected": 306.19,
+       "lift": 1.0027,
+       "ci95": [
+        0.8934,
+        1.1145
+       ]
+      },
+      {
+       "bin": "D4",
+       "observed": 331,
+       "expected": 306.18,
+       "lift": 1.0811,
+       "ci95": [
+        0.9619,
+        1.2053
+       ]
+      },
+      {
+       "bin": "D5",
+       "observed": 305,
+       "expected": 304.64,
+       "lift": 1.0012,
+       "ci95": [
+        0.8866,
+        1.1209
+       ]
+      },
+      {
+       "bin": "D6",
+       "observed": 310,
+       "expected": 305.98,
+       "lift": 1.0131,
+       "ci95": [
+        0.9025,
+        1.1253
+       ]
+      },
+      {
+       "bin": "D7",
+       "observed": 344,
+       "expected": 306.18,
+       "lift": 1.1235,
+       "ci95": [
+        1.0128,
+        1.2382
+       ]
+      },
+      {
+       "bin": "D8",
+       "observed": 310,
+       "expected": 306.19,
+       "lift": 1.0125,
+       "ci95": [
+        0.9084,
+        1.1136
+       ]
+      },
+      {
+       "bin": "D9",
+       "observed": 307,
+       "expected": 305.95,
+       "lift": 1.0034,
+       "ci95": [
+        0.8898,
+        1.1241
+       ]
+      },
+      {
+       "bin": "D10",
+       "observed": 294,
+       "expected": 306.4,
+       "lift": 0.9595,
+       "ci95": [
+        0.8479,
+        1.0791
+       ]
+      },
+      {
+       "bin": "unseen as of d-1",
+       "observed": 15,
+       "expected": 14.68,
+       "lift": 1.0221,
+       "ci95": [
+        0.5605,
+        1.3554
+       ]
+      },
+      {
+       "bin": "engine threshold DS>=100",
+       "observed": 0,
+       "expected": 0.0,
+       "lift": null,
+       "ci95": null
+      }
+     ],
+     "cells_ds_ge100": 0
+    },
+    "triple": {
+     "rows": [
+      {
+       "bin": "D1",
+       "observed": 3,
+       "expected": 10.96,
+       "lift": 0.2738,
+       "ci95": [
+        0.0,
+        0.6349
+       ]
+      },
+      {
+       "bin": "D2",
+       "observed": 12,
+       "expected": 11.09,
+       "lift": 1.0816,
+       "ci95": [
+        0.5278,
+        1.7723
+       ]
+      },
+      {
+       "bin": "D3",
+       "observed": 6,
+       "expected": 10.87,
+       "lift": 0.5517,
+       "ci95": [
+        0.1815,
+        1.0129
+       ]
+      },
+      {
+       "bin": "D4",
+       "observed": 13,
+       "expected": 11.02,
+       "lift": 1.1799,
+       "ci95": [
+        0.5667,
+        1.8775
+       ]
+      },
+      {
+       "bin": "D5",
+       "observed": 9,
+       "expected": 11.03,
+       "lift": 0.8159,
+       "ci95": [
+        0.3584,
+        1.3594
+       ]
+      },
+      {
+       "bin": "D6",
+       "observed": 11,
+       "expected": 10.96,
+       "lift": 1.0036,
+       "ci95": [
+        0.451,
+        1.6568
+       ]
+      },
+      {
+       "bin": "D7",
+       "observed": 12,
+       "expected": 11.24,
+       "lift": 1.0678,
+       "ci95": [
+        0.53,
+        1.6871
+       ]
+      },
+      {
+       "bin": "D8",
+       "observed": 3,
+       "expected": 10.65,
+       "lift": 0.2816,
+       "ci95": [
+        0.0,
+        0.6456
+       ]
+      },
+      {
+       "bin": "D9",
+       "observed": 8,
+       "expected": 10.87,
+       "lift": 0.7356,
+       "ci95": [
+        0.2758,
+        1.2924
+       ]
+      },
+      {
+       "bin": "D10",
+       "observed": 10,
+       "expected": 11.18,
+       "lift": 0.8947,
+       "ci95": [
+        0.3514,
+        1.6094
+       ]
+      },
+      {
+       "bin": "unseen as of d-1",
+       "observed": 7,
+       "expected": 4.0,
+       "lift": 1.7504,
+       "ci95": [
+        0.6491,
+        3.1513
+       ]
+      },
+      {
+       "bin": "engine threshold DS>=100",
+       "observed": 1,
+       "expected": 0.66,
+       "lift": 1.5083,
+       "ci95": [
+        0.0,
+        5.0167
+       ]
+      }
+     ],
+     "cells_ds_ge100": 9
+    }
+   }
+  },
+  "midday": {
+   "dates": 155,
+   "graded_draws": 4946,
+   "strata": {
+    "sixway": {
+     "rows": [
+      {
+       "bin": "D1",
+       "observed": 357,
+       "expected": 353.7,
+       "lift": 1.0093,
+       "ci95": [
+        0.9081,
+        1.1165
+       ]
+      },
+      {
+       "bin": "D2",
+       "observed": 363,
+       "expected": 352.96,
+       "lift": 1.0285,
+       "ci95": [
+        0.9305,
+        1.1298
+       ]
+      },
+      {
+       "bin": "D3",
+       "observed": 344,
+       "expected": 353.33,
+       "lift": 0.9736,
+       "ci95": [
+        0.8782,
+        1.0725
+       ]
+      },
+      {
+       "bin": "D4",
+       "observed": 361,
+       "expected": 353.89,
+       "lift": 1.0201,
+       "ci95": [
+        0.924,
+        1.1202
+       ]
+      },
+      {
+       "bin": "D5",
+       "observed": 314,
+       "expected": 353.11,
+       "lift": 0.8893,
+       "ci95": [
+        0.786,
+        0.9981
+       ]
+      },
+      {
+       "bin": "D6",
+       "observed": 330,
+       "expected": 352.21,
+       "lift": 0.9369,
+       "ci95": [
+        0.8355,
+        1.0383
+       ]
+      },
+      {
+       "bin": "D7",
+       "observed": 345,
+       "expected": 353.73,
+       "lift": 0.9753,
+       "ci95": [
+        0.8797,
+        1.0749
+       ]
+      },
+      {
+       "bin": "D8",
+       "observed": 345,
+       "expected": 353.5,
+       "lift": 0.976,
+       "ci95": [
+        0.8767,
+        1.0816
+       ]
+      },
+      {
+       "bin": "D9",
+       "observed": 353,
+       "expected": 353.12,
+       "lift": 0.9997,
+       "ci95": [
+        0.9065,
+        1.0951
+       ]
+      },
+      {
+       "bin": "D10",
+       "observed": 380,
+       "expected": 353.54,
+       "lift": 1.0748,
+       "ci95": [
+        0.9689,
+        1.1818
+       ]
+      },
+      {
+       "bin": "unseen as of d-1",
+       "observed": 29,
+       "expected": 28.04,
+       "lift": 1.0343,
+       "ci95": [
+        0.7302,
+        1.3972
+       ]
+      },
+      {
+       "bin": "engine threshold DS>=100",
+       "observed": 0,
+       "expected": 0.0,
+       "lift": null,
+       "ci95": null
+      }
+     ],
+     "cells_ds_ge100": 0
+    },
+    "double": {
+     "rows": [
+      {
+       "bin": "D1",
+       "observed": 123,
+       "expected": 129.38,
+       "lift": 0.9507,
+       "ci95": [
+        0.7882,
+        1.1204
+       ]
+      },
+      {
+       "bin": "D2",
+       "observed": 135,
+       "expected": 129.3,
+       "lift": 1.0441,
+       "ci95": [
+        0.8723,
+        1.2233
+       ]
+      },
+      {
+       "bin": "D3",
+       "observed": 123,
+       "expected": 128.35,
+       "lift": 0.9583,
+       "ci95": [
+        0.8051,
+        1.1175
+       ]
+      },
+      {
+       "bin": "D4",
+       "observed": 142,
+       "expected": 129.49,
+       "lift": 1.0966,
+       "ci95": [
+        0.93,
+        1.2683
+       ]
+      },
+      {
+       "bin": "D5",
+       "observed": 154,
+       "expected": 127.9,
+       "lift": 1.2041,
+       "ci95": [
+        1.008,
+        1.4109
+       ]
+      },
+      {
+       "bin": "D6",
+       "observed": 129,
+       "expected": 129.39,
+       "lift": 0.997,
+       "ci95": [
+        0.8235,
+        1.1802
+       ]
+      },
+      {
+       "bin": "D7",
+       "observed": 132,
+       "expected": 129.68,
+       "lift": 1.0179,
+       "ci95": [
+        0.8489,
+        1.1942
+       ]
+      },
+      {
+       "bin": "D8",
+       "observed": 133,
+       "expected": 128.15,
+       "lift": 1.0378,
+       "ci95": [
+        0.8733,
+        1.2059
+       ]
+      },
+      {
+       "bin": "D9",
+       "observed": 125,
+       "expected": 129.11,
+       "lift": 0.9682,
+       "ci95": [
+        0.7984,
+        1.1434
+       ]
+      },
+      {
+       "bin": "D10",
+       "observed": 136,
+       "expected": 129.58,
+       "lift": 1.0496,
+       "ci95": [
+        0.8748,
+        1.2353
+       ]
+      },
+      {
+       "bin": "unseen as of d-1",
+       "observed": 49,
+       "expected": 45.1,
+       "lift": 1.0864,
+       "ci95": [
+        0.8514,
+        1.3255
+       ]
+      },
+      {
+       "bin": "engine threshold DS>=100",
+       "observed": 0,
+       "expected": 0.0,
+       "lift": null,
+       "ci95": null
+      }
+     ],
+     "cells_ds_ge100": 0
+    },
+    "triple": {
+     "rows": [
+      {
+       "bin": "D1",
+       "observed": 2,
+       "expected": 4.05,
+       "lift": 0.4935,
+       "ci95": [
+        0.0,
+        1.2601
+       ]
+      },
+      {
+       "bin": "D2",
+       "observed": 5,
+       "expected": 2.73,
+       "lift": 1.8322,
+       "ci95": [
+        0.3436,
+        3.9399
+       ]
+      },
+      {
+       "bin": "D3",
+       "observed": 5,
+       "expected": 3.54,
+       "lift": 1.4116,
+       "ci95": [
+        0.2903,
+        2.7518
+       ]
+      },
+      {
+       "bin": "D4",
+       "observed": 2,
+       "expected": 4.08,
+       "lift": 0.4896,
+       "ci95": [
+        0.0,
+        1.2585
+       ]
+      },
+      {
+       "bin": "D5",
+       "observed": 4,
+       "expected": 2.63,
+       "lift": 1.5198,
+       "ci95": [
+        0.3478,
+        3.1433
+       ]
+      },
+      {
+       "bin": "D6",
+       "observed": 3,
+       "expected": 2.83,
+       "lift": 1.0619,
+       "ci95": [
+        0.0,
+        2.4171
+       ]
+      },
+      {
+       "bin": "D7",
+       "observed": 2,
+       "expected": 4.12,
+       "lift": 0.4858,
+       "ci95": [
+        0.0,
+        1.2435
+       ]
+      },
+      {
+       "bin": "D8",
+       "observed": 5,
+       "expected": 3.51,
+       "lift": 1.4245,
+       "ci95": [
+        0.2898,
+        2.791
+       ]
+      },
+      {
+       "bin": "D9",
+       "observed": 3,
+       "expected": 2.7,
+       "lift": 1.1123,
+       "ci95": [
+        0.0,
+        2.5021
+       ]
+      },
+      {
+       "bin": "D10",
+       "observed": 4,
+       "expected": 4.08,
+       "lift": 0.9792,
+       "ci95": [
+        0.2351,
+        2.0085
+       ]
+      },
+      {
+       "bin": "unseen as of d-1",
+       "observed": 9,
+       "expected": 15.19,
+       "lift": 0.5927,
+       "ci95": [
+        0.2133,
+        1.0362
+       ]
+      },
+      {
+       "bin": "engine threshold DS>=100",
+       "observed": 0,
+       "expected": 0.0,
+       "lift": null,
+       "ci95": null
+      }
+     ],
+     "cells_ds_ge100": 0
+    }
+   }
+  },
+  "evening": {
+   "dates": 155,
+   "graded_draws": 6442,
+   "strata": {
+    "sixway": {
+     "rows": [
+      {
+       "bin": "D1",
+       "observed": 430,
+       "expected": 462.34,
+       "lift": 0.9301,
+       "ci95": [
+        0.8447,
+        1.0184
+       ]
+      },
+      {
+       "bin": "D2",
+       "observed": 474,
+       "expected": 461.6,
+       "lift": 1.0269,
+       "ci95": [
+        0.9358,
+        1.1189
+       ]
+      },
+      {
+       "bin": "D3",
+       "observed": 478,
+       "expected": 461.35,
+       "lift": 1.0361,
+       "ci95": [
+        0.9378,
+        1.1385
+       ]
+      },
+      {
+       "bin": "D4",
+       "observed": 435,
+       "expected": 461.86,
+       "lift": 0.9419,
+       "ci95": [
+        0.8582,
+        1.0286
+       ]
+      },
+      {
+       "bin": "D5",
+       "observed": 471,
+       "expected": 461.83,
+       "lift": 1.0199,
+       "ci95": [
+        0.9327,
+        1.107
+       ]
+      },
+      {
+       "bin": "D6",
+       "observed": 434,
+       "expected": 462.34,
+       "lift": 0.9387,
+       "ci95": [
+        0.8518,
+        1.0272
+       ]
+      },
+      {
+       "bin": "D7",
+       "observed": 475,
+       "expected": 461.6,
+       "lift": 1.029,
+       "ci95": [
+        0.94,
+        1.1193
+       ]
+      },
+      {
+       "bin": "D8",
+       "observed": 480,
+       "expected": 461.6,
+       "lift": 1.0399,
+       "ci95": [
+        0.956,
+        1.1263
+       ]
+      },
+      {
+       "bin": "D9",
+       "observed": 452,
+       "expected": 461.86,
+       "lift": 0.9787,
+       "ci95": [
+        0.8929,
+        1.0697
+       ]
+      },
+      {
+       "bin": "D10",
+       "observed": 478,
+       "expected": 462.08,
+       "lift": 1.0344,
+       "ci95": [
+        0.9488,
+        1.1222
+       ]
+      },
+      {
+       "bin": "unseen as of d-1",
+       "observed": 20,
+       "expected": 19.78,
+       "lift": 1.0113,
+       "ci95": [
+        0.7722,
+        1.3228
+       ]
+      },
+      {
+       "bin": "engine threshold DS>=100",
+       "observed": 0,
+       "expected": 0.0,
+       "lift": null,
+       "ci95": null
+      }
+     ],
+     "cells_ds_ge100": 0
+    },
+    "double": {
+     "rows": [
+      {
+       "bin": "D1",
+       "observed": 161,
+       "expected": 170.0,
+       "lift": 0.9471,
+       "ci95": [
+        0.8003,
+        1.1009
+       ]
+      },
+      {
+       "bin": "D2",
+       "observed": 149,
+       "expected": 169.23,
+       "lift": 0.8805,
+       "ci95": [
+        0.7497,
+        1.0189
+       ]
+      },
+      {
+       "bin": "D3",
+       "observed": 189,
+       "expected": 169.87,
+       "lift": 1.1126,
+       "ci95": [
+        0.9522,
+        1.2806
+       ]
+      },
+      {
+       "bin": "D4",
+       "observed": 196,
+       "expected": 170.23,
+       "lift": 1.1514,
+       "ci95": [
+        0.9957,
+        1.3038
+       ]
+      },
+      {
+       "bin": "D5",
+       "observed": 165,
+       "expected": 169.75,
+       "lift": 0.972,
+       "ci95": [
+        0.8352,
+        1.1119
+       ]
+      },
+      {
+       "bin": "D6",
+       "observed": 191,
+       "expected": 169.38,
+       "lift": 1.1276,
+       "ci95": [
+        0.9746,
+        1.2884
+       ]
+      },
+      {
+       "bin": "D7",
+       "observed": 158,
+       "expected": 170.23,
+       "lift": 0.9282,
+       "ci95": [
+        0.783,
+        1.0807
+       ]
+      },
+      {
+       "bin": "D8",
+       "observed": 203,
+       "expected": 169.87,
+       "lift": 1.1951,
+       "ci95": [
+        1.0471,
+        1.349
+       ]
+      },
+      {
+       "bin": "D9",
+       "observed": 175,
+       "expected": 169.23,
+       "lift": 1.0341,
+       "ci95": [
+        0.8807,
+        1.1917
+       ]
+      },
+      {
+       "bin": "D10",
+       "observed": 147,
+       "expected": 170.0,
+       "lift": 0.8647,
+       "ci95": [
+        0.7273,
+        1.0091
+       ]
+      },
+      {
+       "bin": "unseen as of d-1",
+       "observed": 31,
+       "expected": 41.57,
+       "lift": 0.7458,
+       "ci95": [
+        0.4361,
+        1.082
+       ]
+      },
+      {
+       "bin": "engine threshold DS>=100",
+       "observed": 0,
+       "expected": 0.0,
+       "lift": null,
+       "ci95": null
+      }
+     ],
+     "cells_ds_ge100": 0
+    },
+    "triple": {
+     "rows": [
+      {
+       "bin": "D1",
+       "observed": 3,
+       "expected": 6.15,
+       "lift": 0.4876,
+       "ci95": [
+        0.0,
+        1.1281
+       ]
+      },
+      {
+       "bin": "D2",
+       "observed": 6,
+       "expected": 6.11,
+       "lift": 0.982,
+       "ci95": [
+        0.3236,
+        1.8221
+       ]
+      },
+      {
+       "bin": "D3",
+       "observed": 3,
+       "expected": 5.99,
+       "lift": 0.5006,
+       "ci95": [
+        0.0,
+        1.1649
+       ]
+      },
+      {
+       "bin": "D4",
+       "observed": 8,
+       "expected": 6.16,
+       "lift": 1.2995,
+       "ci95": [
+        0.4873,
+        2.2432
+       ]
+      },
+      {
+       "bin": "D5",
+       "observed": 1,
+       "expected": 2.99,
+       "lift": 0.3348,
+       "ci95": [
+        0.0,
+        1.0977
+       ]
+      },
+      {
+       "bin": "D6",
+       "observed": 5,
+       "expected": 6.03,
+       "lift": 0.8297,
+       "ci95": [
+        0.1665,
+        1.626
+       ]
+      },
+      {
+       "bin": "D7",
+       "observed": 5,
+       "expected": 6.2,
+       "lift": 0.8067,
+       "ci95": [
+        0.1619,
+        1.6008
+       ]
+      },
+      {
+       "bin": "D8",
+       "observed": 6,
+       "expected": 5.95,
+       "lift": 1.0082,
+       "ci95": [
+        0.3307,
+        1.8519
+       ]
+      },
+      {
+       "bin": "D9",
+       "observed": 2,
+       "expected": 6.07,
+       "lift": 0.3296,
+       "ci95": [
+        0.0,
+        0.8364
+       ]
+      },
+      {
+       "bin": "D10",
+       "observed": 3,
+       "expected": 6.19,
+       "lift": 0.4843,
+       "ci95": [
+        0.0,
+        1.1189
+       ]
+      },
+      {
+       "bin": "unseen as of d-1",
+       "observed": 8,
+       "expected": 6.59,
+       "lift": 1.2149,
+       "ci95": [
+        0.515,
+        1.9138
+       ]
+      },
+      {
+       "bin": "engine threshold DS>=100",
+       "observed": 1,
+       "expected": 1.37,
+       "lift": 0.7305,
+       "ci95": [
+        0.0,
+        2.3383
+       ]
+      }
+     ],
+     "cells_ds_ge100": 33
+    }
+   }
+  },
+  "pooled_three_scopes": {
+   "sixway": {
+    "rows": [
+     {
+      "bin": "D1",
+      "observed": 1575,
+      "expected": 1635.97,
+      "lift": 0.9627,
+      "ci95": [
+       0.9087,
+       1.0189
+      ]
+     },
+     {
+      "bin": "D2",
+      "observed": 1594,
+      "expected": 1634.05,
+      "lift": 0.9755,
+      "ci95": [
+       0.9302,
+       1.0219
+      ]
+     },
+     {
+      "bin": "D3",
+      "observed": 1631,
+      "expected": 1633.37,
+      "lift": 0.9986,
+      "ci95": [
+       0.9488,
+       1.0483
+      ]
+     },
+     {
+      "bin": "D4",
+      "observed": 1594,
+      "expected": 1635.68,
+      "lift": 0.9745,
+      "ci95": [
+       0.9271,
+       1.0221
+      ]
+     },
+     {
+      "bin": "D5",
+      "observed": 1577,
+      "expected": 1634.43,
+      "lift": 0.9649,
+      "ci95": [
+       0.9181,
+       1.0129
+      ]
+     },
+     {
+      "bin": "D6",
+      "observed": 1638,
+      "expected": 1634.04,
+      "lift": 1.0024,
+      "ci95": [
+       0.9587,
+       1.0467
+      ]
+     },
+     {
+      "bin": "D7",
+      "observed": 1617,
+      "expected": 1635.27,
+      "lift": 0.9888,
+      "ci95": [
+       0.941,
+       1.0355
+      ]
+     },
+     {
+      "bin": "D8",
+      "observed": 1660,
+      "expected": 1633.78,
+      "lift": 1.016,
+      "ci95": [
+       0.9729,
+       1.0589
+      ]
+     },
+     {
+      "bin": "D9",
+      "observed": 1628,
+      "expected": 1634.47,
+      "lift": 0.996,
+      "ci95": [
+       0.947,
+       1.0456
+      ]
+     },
+     {
+      "bin": "D10",
+      "observed": 1728,
+      "expected": 1635.56,
+      "lift": 1.0565,
+      "ci95": [
+       1.002,
+       1.1136
+      ]
+     },
+     {
+      "bin": "unseen as of d-1",
+      "observed": 54,
+      "expected": 52.1,
+      "lift": 1.0365,
+      "ci95": [
+       0.8674,
+       1.2629
+      ]
+     },
+     {
+      "bin": "engine threshold DS>=100",
+      "observed": 0,
+      "expected": 0.0,
+      "lift": null,
+      "ci95": null
+     }
+    ]
+   },
+   "double": {
+    "rows": [
+     {
+      "bin": "D1",
+      "observed": 580,
+      "expected": 605.78,
+      "lift": 0.9574,
+      "ci95": [
+       0.8671,
+       1.0486
+      ]
+     },
+     {
+      "bin": "D2",
+      "observed": 611,
+      "expected": 604.48,
+      "lift": 1.0108,
+      "ci95": [
+       0.9292,
+       1.0923
+      ]
+     },
+     {
+      "bin": "D3",
+      "observed": 619,
+      "expected": 604.4,
+      "lift": 1.0242,
+      "ci95": [
+       0.9438,
+       1.1058
+      ]
+     },
+     {
+      "bin": "D4",
+      "observed": 669,
+      "expected": 605.9,
+      "lift": 1.1041,
+      "ci95": [
+       1.027,
+       1.1833
+      ]
+     },
+     {
+      "bin": "D5",
+      "observed": 624,
+      "expected": 602.29,
+      "lift": 1.036,
+      "ci95": [
+       0.9479,
+       1.1267
+      ]
+     },
+     {
+      "bin": "D6",
+      "observed": 630,
+      "expected": 604.75,
+      "lift": 1.0418,
+      "ci95": [
+       0.9589,
+       1.126
+      ]
+     },
+     {
+      "bin": "D7",
+      "observed": 634,
+      "expected": 606.1,
+      "lift": 1.046,
+      "ci95": [
+       0.9708,
+       1.1226
+      ]
+     },
+     {
+      "bin": "D8",
+      "observed": 646,
+      "expected": 604.2,
+      "lift": 1.0692,
+      "ci95": [
+       0.9979,
+       1.1425
+      ]
+     },
+     {
+      "bin": "D9",
+      "observed": 607,
+      "expected": 604.29,
+      "lift": 1.0045,
+      "ci95": [
+       0.914,
+       1.096
+      ]
+     },
+     {
+      "bin": "D10",
+      "observed": 577,
+      "expected": 605.98,
+      "lift": 0.9522,
+      "ci95": [
+       0.8554,
+       1.0558
+      ]
+     },
+     {
+      "bin": "unseen as of d-1",
+      "observed": 95,
+      "expected": 101.35,
+      "lift": 0.9374,
+      "ci95": [
+       0.7236,
+       1.1523
+      ]
+     },
+     {
+      "bin": "engine threshold DS>=100",
+      "observed": 0,
+      "expected": 0.0,
+      "lift": null,
+      "ci95": null
+     }
+    ]
+   },
+   "triple": {
+    "rows": [
+     {
+      "bin": "D1",
+      "observed": 8,
+      "expected": 21.16,
+      "lift": 0.378,
+      "ci95": [
+       0.1385,
+       0.6903
+      ]
+     },
+     {
+      "bin": "D2",
+      "observed": 23,
+      "expected": 19.93,
+      "lift": 1.1538,
+      "ci95": [
+       0.5936,
+       1.8292
+      ]
+     },
+     {
+      "bin": "D3",
+      "observed": 14,
+      "expected": 20.41,
+      "lift": 0.6859,
+      "ci95": [
+       0.3519,
+       1.0483
+      ]
+     },
+     {
+      "bin": "D4",
+      "observed": 23,
+      "expected": 21.26,
+      "lift": 1.0819,
+      "ci95": [
+       0.6211,
+       1.5891
+      ]
+     },
+     {
+      "bin": "D5",
+      "observed": 14,
+      "expected": 16.65,
+      "lift": 0.8408,
+      "ci95": [
+       0.4275,
+       1.2729
+      ]
+     },
+     {
+      "bin": "D6",
+      "observed": 19,
+      "expected": 19.81,
+      "lift": 0.9591,
+      "ci95": [
+       0.5469,
+       1.427
+      ]
+     },
+     {
+      "bin": "D7",
+      "observed": 19,
+      "expected": 21.55,
+      "lift": 0.8815,
+      "ci95": [
+       0.5015,
+       1.343
+      ]
+     },
+     {
+      "bin": "D8",
+      "observed": 14,
+      "expected": 20.12,
+      "lift": 0.696,
+      "ci95": [
+       0.3495,
+       1.0987
+      ]
+     },
+     {
+      "bin": "D9",
+      "observed": 13,
+      "expected": 19.64,
+      "lift": 0.6619,
+      "ci95": [
+       0.3024,
+       1.0919
+      ]
+     },
+     {
+      "bin": "D10",
+      "observed": 17,
+      "expected": 21.46,
+      "lift": 0.7923,
+      "ci95": [
+       0.3241,
+       1.364
+      ]
+     },
+     {
+      "bin": "unseen as of d-1",
+      "observed": 24,
+      "expected": 25.77,
+      "lift": 0.9314,
+      "ci95": [
+       0.5155,
+       1.3733
+      ]
+     },
+     {
+      "bin": "engine threshold DS>=100",
+      "observed": 2,
+      "expected": 2.03,
+      "lift": 0.9843,
+      "ci95": [
+       0.0,
+       3.088
+      ]
+     }
+    ]
+   }
+  },
+  "note": "D1 = most overdue decile (largest draws-since), D10 = least; deciles formed within stratum over classes seen as-of d-1; unseen bin separate; DS>=100 = the live engine threshold (pressure_threshold=100, legacy curve peak). Times-drawn ranking not reconstructible as-of-date (no history stored) \u2014 not run (G8)."
+ }
+}

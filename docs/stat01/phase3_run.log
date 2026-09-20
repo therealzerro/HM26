@@ -1,0 +1,40 @@
+boards=374 rows=18264 S_obs(box)=632 straights=110 E_analytic=642.6
+sanity (a): random-board input ×100
+  run 1/100: p=0.7530  t=43s
+  run 5/100: p=0.5977  t=203s
+  run 10/100: p=0.1571  t=399s
+  run 15/100: p=0.8511  t=595s
+  run 20/100: p=0.2860  t=790s
+  run 25/100: p=0.7411  t=985s
+  run 30/100: p=0.1913  t=1179s
+  run 35/100: p=0.8220  t=1374s
+  run 40/100: p=0.5964  t=1569s
+  run 45/100: p=0.0175  t=1797s
+  run 50/100: p=0.9971  t=2013s
+  run 55/100: p=0.0342  t=2221s
+  run 60/100: p=0.3730  t=2427s
+  run 65/100: p=0.6570  t=2635s
+  run 70/100: p=0.2006  t=2843s
+  run 75/100: p=0.6681  t=3051s
+  run 80/100: p=0.2114  t=3259s
+  run 85/100: p=0.3015  t=3466s
+  run 90/100: p=0.0879  t=3674s
+  run 95/100: p=0.2478  t=3881s
+  run 100/100: p=0.4844  t=4088s
+sanity (b): self-test
+sanity (c): planted edge
+  planted: S=644 lift=1.004 p=0.46836
+PRIMARY run (R=100000, seed 20260919)
+  replicates 500/100000  1s
+  replicates 20500/100000  20s
+  replicates 40500/100000  39s
+  replicates 60500/100000  58s
+  replicates 80500/100000  76s
+PRIMARY: S_obs=632 null mean=642.5 lift=0.984 CI=(0.8999143261527248, 1.0667967658319992) p=0.66812
+  replicates 500/100000  0s
+  replicates 20500/100000  4s
+  replicates 40500/100000  8s
+  replicates 60500/100000  12s
+  replicates 80500/100000  15s
+DUE-01
+wrote docs/stat01/phase3_result.json

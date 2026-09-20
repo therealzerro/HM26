@@ -1,0 +1,351 @@
+{
+  "ledger_sha256": "ccf04b08af359fdd910de55be00d5dbf27d25a102749e69f6ff819fbef4e7525",
+  "class_p": {
+    "sixway": 0.006,
+    "double": 0.003,
+    "triple": 0.001
+  },
+  "surviving_boards": 374,
+  "surviving_picks": 2241,
+  "bestOrder_ne_combo": 450,
+  "primary": {
+    "label": "PRIMARY 2026-04-18 → 2026-09-19",
+    "rows": 18264,
+    "per_scope": {
+      "allday": {
+        "graded_draw_events": 9029,
+        "board_days": 123,
+        "distinct_dates": 123,
+        "draws_per_board_day": 73.407,
+        "mean_board_p_per_draw": 0.035322000000000006,
+        "box": {
+          "observed": 326,
+          "expected": 318.924,
+          "lift": 1.022,
+          "crude_poisson_z_DO_NOT_QUOTE": 0.396,
+          "per_1000_draws_observed": 36.106,
+          "per_1000_draws_expected": 35.322
+        },
+        "straight": {
+          "observed": 56,
+          "expected": 54.1,
+          "lift": 1.035,
+          "crude_poisson_z_DO_NOT_QUOTE": 0.258,
+          "observed_if_graded_against_combo_not_bestOrder": 57
+        },
+        "days_with_ge1_box": {
+          "observed": 112,
+          "expected": 114.078,
+          "of": 123
+        },
+        "days_with_ge1_straight": {
+          "observed": 46,
+          "expected": 43.858,
+          "of": 123
+        }
+      },
+      "midday": {
+        "graded_draw_events": 3923,
+        "board_days": 123,
+        "distinct_dates": 123,
+        "draws_per_board_day": 31.894,
+        "mean_board_p_per_draw": 0.03522,
+        "box": {
+          "observed": 114,
+          "expected": 138.168,
+          "lift": 0.825,
+          "crude_poisson_z_DO_NOT_QUOTE": -2.056,
+          "per_1000_draws_observed": 29.059,
+          "per_1000_draws_expected": 35.22
+        },
+        "straight": {
+          "observed": 17,
+          "expected": 23.505,
+          "lift": 0.723,
+          "crude_poisson_z_DO_NOT_QUOTE": -1.342,
+          "observed_if_graded_against_combo_not_bestOrder": 18
+        },
+        "days_with_ge1_box": {
+          "observed": 79,
+          "expected": 83.611,
+          "of": 123
+        },
+        "days_with_ge1_straight": {
+          "observed": 17,
+          "expected": 21.445,
+          "of": 123
+        }
+      },
+      "evening": {
+        "graded_draw_events": 5312,
+        "board_days": 128,
+        "distinct_dates": 128,
+        "draws_per_board_day": 41.5,
+        "mean_board_p_per_draw": 0.0351,
+        "box": {
+          "observed": 192,
+          "expected": 186.453,
+          "lift": 1.03,
+          "crude_poisson_z_DO_NOT_QUOTE": 0.406,
+          "per_1000_draws_observed": 36.145,
+          "per_1000_draws_expected": 35.1
+        },
+        "straight": {
+          "observed": 37,
+          "expected": 31.832,
+          "lift": 1.162,
+          "crude_poisson_z_DO_NOT_QUOTE": 0.916,
+          "observed_if_graded_against_combo_not_bestOrder": 34
+        },
+        "days_with_ge1_box": {
+          "observed": 96,
+          "expected": 98.768,
+          "of": 128
+        },
+        "days_with_ge1_straight": {
+          "observed": 34,
+          "expected": 28.254,
+          "of": 128
+        }
+      }
+    },
+    "pooled_three_boards": {
+      "graded_draw_events": 18264,
+      "board_days": 374,
+      "distinct_dates": 128,
+      "draws_per_board_day": 48.834,
+      "mean_board_p_per_draw": 0.035235999999999996,
+      "box": {
+        "observed": 632,
+        "expected": 643.545,
+        "lift": 0.982,
+        "crude_poisson_z_DO_NOT_QUOTE": -0.455,
+        "per_1000_draws_observed": 34.604,
+        "per_1000_draws_expected": 35.236
+      },
+      "straight": {
+        "observed": 110,
+        "expected": 109.437,
+        "lift": 1.005,
+        "crude_poisson_z_DO_NOT_QUOTE": 0.054,
+        "observed_if_graded_against_combo_not_bestOrder": 109
+      },
+      "days_with_ge1_box": {
+        "observed": 287,
+        "expected": 296.458,
+        "of": 374
+      },
+      "days_with_ge1_straight": {
+        "observed": 97,
+        "expected": 93.557,
+        "of": 374
+      }
+    },
+    "any_board_per_calendar_day": {
+      "dates": 128,
+      "straight": {
+        "expected_per_day": 0.855,
+        "expected_days_with_ge1": 73.1,
+        "observed_days_with_ge1": 73
+      },
+      "box": {
+        "expected_per_day": 5.028,
+        "expected_days_with_ge1": 126.1,
+        "observed_days_with_ge1": 124
+      }
+    }
+  },
+  "secondary": {
+    "label": "SECONDARY (corroborated era) 2026-07-23 → 2026-09-19",
+    "rows": 8712,
+    "per_scope": {
+      "allday": {
+        "graded_draw_events": 4356,
+        "board_days": 59,
+        "distinct_dates": 59,
+        "draws_per_board_day": 73.831,
+        "mean_board_p_per_draw": 0.036,
+        "box": {
+          "observed": 168,
+          "expected": 156.816,
+          "lift": 1.071,
+          "crude_poisson_z_DO_NOT_QUOTE": 0.893,
+          "per_1000_draws_observed": 38.567,
+          "per_1000_draws_expected": 36
+        },
+        "straight": {
+          "observed": 24,
+          "expected": 26.136,
+          "lift": 0.918,
+          "crude_poisson_z_DO_NOT_QUOTE": -0.418,
+          "observed_if_graded_against_combo_not_bestOrder": 28
+        },
+        "days_with_ge1_box": {
+          "observed": 54,
+          "expected": 55.035,
+          "of": 59
+        },
+        "days_with_ge1_straight": {
+          "observed": 20,
+          "expected": 21.159,
+          "of": 59
+        }
+      },
+      "midday": {
+        "graded_draw_events": 1898,
+        "board_days": 59,
+        "distinct_dates": 59,
+        "draws_per_board_day": 32.169,
+        "mean_board_p_per_draw": 0.036,
+        "box": {
+          "observed": 61,
+          "expected": 68.328,
+          "lift": 0.893,
+          "crude_poisson_z_DO_NOT_QUOTE": -0.887,
+          "per_1000_draws_observed": 32.139,
+          "per_1000_draws_expected": 36
+        },
+        "straight": {
+          "observed": 8,
+          "expected": 11.388,
+          "lift": 0.702,
+          "crude_poisson_z_DO_NOT_QUOTE": -1.004,
+          "observed_if_graded_against_combo_not_bestOrder": 9
+        },
+        "days_with_ge1_box": {
+          "observed": 40,
+          "expected": 40.807,
+          "of": 59
+        },
+        "days_with_ge1_straight": {
+          "observed": 8,
+          "expected": 10.381,
+          "of": 59
+        }
+      },
+      "evening": {
+        "graded_draw_events": 2458,
+        "board_days": 59,
+        "distinct_dates": 59,
+        "draws_per_board_day": 41.661,
+        "mean_board_p_per_draw": 0.036,
+        "box": {
+          "observed": 100,
+          "expected": 88.488,
+          "lift": 1.13,
+          "crude_poisson_z_DO_NOT_QUOTE": 1.224,
+          "per_1000_draws_observed": 40.683,
+          "per_1000_draws_expected": 36
+        },
+        "straight": {
+          "observed": 19,
+          "expected": 14.748,
+          "lift": 1.288,
+          "crude_poisson_z_DO_NOT_QUOTE": 1.107,
+          "observed_if_graded_against_combo_not_bestOrder": 18
+        },
+        "days_with_ge1_box": {
+          "observed": 46,
+          "expected": 46.181,
+          "of": 59
+        },
+        "days_with_ge1_straight": {
+          "observed": 17,
+          "expected": 13.083,
+          "of": 59
+        }
+      }
+    },
+    "pooled_three_boards": {
+      "graded_draw_events": 8712,
+      "board_days": 177,
+      "distinct_dates": 59,
+      "draws_per_board_day": 49.22,
+      "mean_board_p_per_draw": 0.036,
+      "box": {
+        "observed": 329,
+        "expected": 313.632,
+        "lift": 1.049,
+        "crude_poisson_z_DO_NOT_QUOTE": 0.868,
+        "per_1000_draws_observed": 37.764,
+        "per_1000_draws_expected": 36
+      },
+      "straight": {
+        "observed": 51,
+        "expected": 52.272,
+        "lift": 0.976,
+        "crude_poisson_z_DO_NOT_QUOTE": -0.176,
+        "observed_if_graded_against_combo_not_bestOrder": 55
+      },
+      "days_with_ge1_box": {
+        "observed": 140,
+        "expected": 142.023,
+        "of": 177
+      },
+      "days_with_ge1_straight": {
+        "observed": 45,
+        "expected": 44.623,
+        "of": 177
+      }
+    },
+    "any_board_per_calendar_day": {
+      "dates": 59,
+      "straight": {
+        "expected_per_day": 0.886,
+        "expected_days_with_ge1": 34.7,
+        "observed_days_with_ge1": 32
+      },
+      "box": {
+        "expected_per_day": 5.316,
+        "expected_days_with_ge1": 58.7,
+        "observed_days_with_ge1": 58
+      }
+    }
+  },
+  "record_reel_window": {
+    "window": "2026-08-20 → 2026-09-18 (the 9/18 record_public reel)",
+    "reel_rendered": {
+      "matches": 159,
+      "split": {
+        "allday": 75,
+        "evening": 55,
+        "midday": 29
+      },
+      "exact": 15,
+      "days": 29,
+      "juris": 38,
+      "source": "adaptive_tracking stored flags, live boards, dedupe (date|scope|combo|state)"
+    },
+    "ledger_regraded": {
+      "ledger_grain_matches_pooled": 163,
+      "reel_key_dedupe_pooled": 163,
+      "per_scope": {
+        "allday": {
+          "ledger_grain_matches": 79,
+          "reel_key_dedupe": 79,
+          "straights": 6
+        },
+        "midday": {
+          "ledger_grain_matches": 29,
+          "reel_key_dedupe": 29,
+          "straights": 1
+        },
+        "evening": {
+          "ledger_grain_matches": 55,
+          "reel_key_dedupe": 55,
+          "straights": 9
+        }
+      },
+      "straights_pooled": 16,
+      "straights_reel_key_dedupe": 16,
+      "days_with_ge1_any_board": 29,
+      "of_days": 30,
+      "distinct_jurisdictions_matched": 39,
+      "expected_box_pooled_crude": 159.1,
+      "expected_straight_pooled_crude": 26.5,
+      "expected_days_with_ge1_any_board_crude": 29.9,
+      "boards_in_window_surviving": 90
+    }
+  },
+  "caption": "ALL z VALUES ARE CRUDE (independent-draws, unconditional null) — Phase 3 replaces them. Never quote."
+}

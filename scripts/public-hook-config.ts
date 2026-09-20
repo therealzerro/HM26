@@ -30,8 +30,15 @@ export const VERIFY_PUBLIC_COLD_OPEN_FROM = '20260924';
 // content agent's hold-to-9/23 was OVERRIDDEN — live from the 9/14 assembly,
 // inside the 9/9→9/23 window (confound accepted by the operator, as with
 // MKT-79). Was '20260924'. Rollback = `--classic-stamp` + republish.
+// ⛔ STAT-01 G6 (content agent ruling 2026-09-20): the bare "40+ STATES" form
+// is RETIRED everywhere — the graded set is 37 states (34 codes + ME/NH/VT)
+// + 5 provinces (ON, QC, and WCLC's AB/SK/MB; BC is BCLC, not WCLC, not
+// graded) = 42 members, DC and territories not counted. "40+" is only true
+// with "& PROVINCES". Live from the 9/20 re-assembly (was 'SCORED ACROSS
+// 40+ STATES', 9/14→9/20 morning). Width fallback, if the chip ever fails
+// the 1:1 keep band: '40+ STATES & PROVINCES' — never the bare form.
 export const PUBLIC_STAMP_HOOK_FROM = '20260914';
-export const PUBLIC_STAMP_HOOK_EYEBROW = 'SCORED ACROSS 40+ STATES';
+export const PUBLIC_STAMP_HOOK_EYEBROW = 'SCORED ACROSS 40+ STATES & PROVINCES';
 
 // MKT-77 (2026-09-09, content agent work order) — FREE SESSION REELS AS CTA CUTS.
 // midday_free / evening_free are the lowest-information posts in the daily nine

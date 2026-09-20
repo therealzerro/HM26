@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-18 · v7.5
+Content Agent Handoff · 2026-09-20 · v7.6
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-18 (CONSOLIDATED SNAPSHOT, current to v7.5 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-20 (CONSOLIDATED SNAPSHOT, current to v7.6 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -46,9 +46,12 @@ A. DAILY OUTPUT (operator-triggered `npm run reel:daily`, never scheduled):
        ⚠ v7.2 (MKT-80) · ⛔ v7.4 OPERATOR OVERRIDE: LIVE FROM THE 9/14
        ASSEMBLY (was held to 9/24 — your ruling; overridden 9/13 pm): the
        BOARD SEGMENT (10.0s grid still) carries the stamp eyebrow "SCORED
-       ACROSS 40+ STATES" (drop_public); the modal segment keeps the
-       standard drop stamp. allday_public ONLY. Preview `--stamp-hook`,
-       hatch `--classic-stamp`. See WHAT CHANGED IN v7.2.
+       ACROSS 40+ STATES & PROVINCES" (drop_public; ⛔ v7.6 / STAT-01 G6:
+       the bare "40+ STATES" form is RETIRED — it ran 9/14→9/20 am; the
+       graded set is 37 states + 5 provinces = 42, so "40+" is only true
+       with "& PROVINCES"); the modal segment keeps the standard drop
+       stamp. allday_public ONLY. Preview `--stamp-hook`, hatch
+       `--classic-stamp`. See WHAT CHANGED IN v7.2 and v7.6.
      midday_pro · midday_free (redacted)
      evening_pro · evening_free (redacted)
        ⚠ v6.6 (MKT-77, LIVE FROM THE 9/10 RUN): midday_free and evening_free
@@ -605,6 +608,114 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.6 (2026-09-20 — STAT-01 "DOES THE ENGINE BEAT CHANCE?":
+YOUR 9/19 ORDER, PHASE 0 REPORTED; YOUR 9/20 G1–G6 RULINGS + ADDITIONS A–C +
+ADDENDUM EXECUTED; PHASE 1+2 REPORTED. ⚠ FIRST LINE, PER §4a OF YOUR ORDER:
+OBSERVED SITS AT EXPECTATION. Engine untouched. ONE copy change, the one you
+authorised: the stamp-hook eyebrow. Next free MKT ID: 82 (unused; this is
+STAT-01, new category). Era record — never retro-edited.)
+================================================================================
+  Reports: docs/stat01_phase0_report.md · docs/stat01/phase1_2_report.md ·
+  docs/stat01/preregistration_v1.md (DRAFT — not approved, not run).
+  0. THE CORRECTION YOU OWED (§0), CLOSED WITH DATA: "148" was a THREE-BOARD
+     POOLED count. The record reel's own query for 8/20→9/18 gives 159 =
+     All-Day 75 · Evening 55 · Midday 29 (stored flags); the study ledger
+     gives 163 (79/29/55 — the +4 are same-day multi-state matches where
+     adaptive_tracking keeps only ONE state, plus the 8/27 G4 substitution).
+     The crude three-board expectation for that window is 159.1 box matches,
+     26.5 straights, 29.9 of 30 days. Your envelope figure (~157, lift 1.02)
+     was right in kind. All-Day alone runs ~half the pooled number.
+  1. BASE-RATE ARITHMETIC (§2), RE-DERIVED: 220 = 120 + 90 + 10; 720 + 270 +
+     10 = 1000; 6 six-way vs one draw = 0.036 exactly (disjoint classes). Your
+     figures reproduce; only the input "70 draws/day" was the ambiguity.
+     ACTUAL pools from the ledger: midday 31.9 · evening 41.5 · All-Day 73.4
+     per board-day (Sundays lower). Mean published-board p/draw = 0.0352
+     (composition 82% pure six-way boards, zero triples ever).
+  2. STRIKE-OVERLAY SMOKE TEST (0.5): fired on 14 of 31 verify run-days
+     8/20→9/20 (0.452); adaptive-flag cross-check 0.43–0.52. Your 34%
+     reference was mis-specified (the reel features rows from all three
+     boards; 18 ordered picks): the ledger's own reference is 0.57–0.59
+     (73.1 expected any-board-straight days of 128; observed 73). The
+     instrument is honest; it is AT the reference. No conclusion drawn.
+  3. PHASE 1 LEDGER (R3): sha256 ccf04b08af359fdd910de55be00d5dbf27d25a102749
+     e69f6ff819fbef4e7525, byte-identical on two builds. 22,776 rows in ·
+     4,512 excluded (no_board_stored 3,844 = 26 backfill-only dates × 3
+     boards, G1; timestamp_after_draw 668 = 13 boards with no pre-cutoff
+     snapshot; every other reason 0) · 18,264 surviving. 374 boards survive
+     of 465 keys (58 taken from soft-deleted pre-cutoff originals per G4,
+     incl. all three 5/1 boards the live store lacks). G4 margin = 4 boards
+     (5/17 + 5/18 midday/All-Day, written 10:06/10:53 ET — pre-draw in
+     reality, excluded by the fixed cutoff; the cost you asked to see).
+  4. PHASE 2 (crude, ⚠ NOT A RESULT, never to be quoted): primary window
+     4/18→9/19, box obs / exp / lift — All-Day 326 / 318.9 / 1.02 · Midday
+     114 / 138.2 / 0.83 · Evening 192 / 186.5 / 1.03 · POOLED 632 / 643.5 /
+     0.98 (crude z −0.5). Straights pooled 110 / 109.4 (1.00), two-sided;
+     the record window's "15 exact vs ~26" is a 30-day slice of a series at
+     1.00, and combo-vs-bestOrder grading moves it by ONE (109 vs 110) —
+     explained, not interpreted. Days-with-≥1: at expectation on every
+     board. Secondary window 7/23→9/19: pooled 1.05; windows agree in kind.
+     Consistent with ENG-ALLDAY-RAND-01 (×1.00) and ENG-REVIEW-01 (AUC 0.50).
+     ⛔ Your §4c stands on this: "29 of 30 days" IS the chance baseline
+     (29.9 expected). Copy is untouched until you rule at the Phase 3 gate.
+  5. YOUR RULINGS, AS BUILT: G1 backfills excluded · G2 (board, draw_event)
+     rows, own pools, pooled S, per-board split law recorded in the audit ·
+     G3 histories = the draw set, addendum caveat verbatim ("manually
+     transcribed from Lottery Post"), histories_unique under-count
+     pre-registered · G4 latest-pre-cutoff, deleted_at ignored, both guards ·
+     G5 whole history + 7/23 corroborated era · G6 below.
+  6. G6 — THE COUNT, VERIFIED: 39 graded codes = 34 US states + DC + the
+     ME,NH,VT bundle + ON + QC + W.Canada. WCLC = Alberta, Saskatchewan,
+     Manitoba (territories as associates). British Columbia is BCLC —
+     separate since 1985 — NOT in the W.Canada draw, not graded. HONEST
+     COUNT = 37 STATES + 5 PROVINCES = 42 (your "32 US states" was an
+     under-count: it is 34 + the three Tri-State). So "40+ STATES &
+     PROVINCES" is legal; bare "40+ STATES" is false (37) and is RETIRED.
+     ⚠ R6 CORRECTION TO YOU: the eyebrow is not a 9/24 flip. It has been
+     LIVE DAILY SINCE 9/14 by the operator's override (v7.4), so the bare
+     string ran on seven public cuts (9/14→9/20 am). Executed now, under
+     your "effective now": PUBLIC_STAMP_HOOK_EYEBROW = "SCORED ACROSS 40+
+     STATES & PROVINCES" (chip measured 916 px wide, 82 px margins, inside
+     the 1:1 keep band — the width fallback was not needed); today's
+     allday_public RE-ASSEMBLED and RE-PUBLISHED with it (supersedes the
+     morning cut). The record hook card already read "40+ STATES &
+     PROVINCES". Your 9/23 retention read now straddles two strings.
+  7. YOUR ADDENDUM ITEM 3 — "official" GREP, report only, nothing edited.
+     Describing the RESULTS SOURCE (false as of the operator's 9/20
+     confirmation): record hook card sub "CHECKED AGAINST OFFICIAL RESULTS"
+     (record-config.ts:82-84, on every record_public); verify_public/record
+     hook subs (render-public-hook.ts:124,127); caption families in
+     reel-captions.ts — verify pro :522, allday_public :634, verify_midday
+     :702/:706, verify_public :716/:717/:722, record_public :757/:759/
+     :760/:764; the YouTube set (socialPlatforms.ts :389/:390/:392/:401/
+     :406/:417/:425); the public ledger relabel "verified against the
+     official draw" (render-verification-reel.ts:468/484); the consumer
+     Home meta "verified vs official draws" (index.tsx:831, hands-off
+     surface). NOT source claims: learn.tsx (describes the game as
+     state-run), internal docs, the gate records, this file. All on the
+     Phase 6 list; you rule, the operator approves.
+  8. SIDE-FILINGS (outside STAT-01): BUG-180 = the duplicate-cleanup rule
+     "keep the one with hits" (HitTrackingView.tsx:771-805) — filed, FIX
+     HELD as you ruled until the ledger hash was committed (it is, this
+     commit); fix = keep latest pre-cutoff, the G4 rule; operator approval
+     needed. file_meta dead code was ALREADY BUG-179 (9/16). ARCH-09 =
+     histories.source enum ('lotterypost_manual' default, 'official_<state>'
+     reserved) + import_id, no retro-labelling. CONFIG-19 = the weekly
+     10-row spot-check protocol, scoped not built. Official-feed ingestion
+     noted under MKT-81 as a backend item. DUE-01 is pre-registered on the
+     engine's own draws-since definition (rebuild-datasets-zk6/index.ts:
+     126-150, engines/zk6.ts:240-247) — ⚠ times-drawn has NO as-of history
+     in the store, so that ranking is not reconstructible without inventing
+     a definition (your G8).
+  9. ⛔ WHAT YOU OWE AT THE PHASE 3 GATE: G7 approve preregistration_v1.md
+     as written (S = pooled box matches, S_obs = 632; R = 100,000, seed
+     20260919; sanity nulls a/b/c first, (a) as a 100-run distribution;
+     lift + bootstrap CI beside every p) · G8 DUE-01 draws-since only, or a
+     stand-in for times-drawn · G9 accept the ledger with the 13 exclusions
+     + 4-board margin frozen · confirm the "& PROVINCES" strings against
+     the verified 42. Phase 3 does not run until the pre-reg commit hash is
+     reported back to you. Nothing else on the 9/23–9/24 schedule paused.
+
 ================================================================================
 WHAT CHANGED IN v7.5 (2026-09-18 — MKT-81 PHASE 0 REPORTED: hitmasterzk.com,
 the owned funnel. NOTHING BUILT. Three rulings owed. A NEW LANE, not a reel

@@ -135,7 +135,8 @@ if (CTA_BOARD_DUR > GRID_DUR) {
 // MKT-80 (2026-09-13) — THE HOOK ON THE BODY STAMP, allday_public only, HELD
 // to 9/23. From PUBLIC_STAMP_HOOK_FROM the public cut's BOARD SEGMENT (the
 // GRID_DUR still) carries a stamp whose eyebrow is the measured scale hook
-// ("SCORED ACROSS 40+ STATES"); the modal segment keeps the standard public
+// ("SCORED ACROSS 40+ STATES & PROVINCES" since 9/20, STAT-01 G6; the bare
+// "40+ STATES" form is retired); the modal segment keeps the standard public
 // drop stamp (date + brand, "TODAY'S DATA DROP"), crossfaded at the grid→modal
 // boundary. Before the date `--stamp-hook` = PREVIEW build (suffixed output,
 // never published); after it `--classic-stamp` = escape hatch. Recorded switch

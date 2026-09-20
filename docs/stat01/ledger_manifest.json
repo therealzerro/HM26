@@ -1,0 +1,72 @@
+{
+  "study": "STAT-01",
+  "phase": 1,
+  "built_at": "2026-09-20T10:09:58.556Z",
+  "window": {
+    "start": "2026-04-18",
+    "end": "2026-09-19",
+    "secondary_start": "2026-07-23"
+  },
+  "cutoff_et_hour": {
+    "midday": 10,
+    "allday": 10,
+    "evening": 18
+  },
+  "et_offset_hours": 4,
+  "sources": {
+    "slate_snapshots_rows_fetched": 1513,
+    "histories_rows_fetched": 11388
+  },
+  "ledger_sha256": "ccf04b08af359fdd910de55be00d5dbf27d25a102749e69f6ff819fbef4e7525",
+  "ledger_rows": 22776,
+  "rows": {
+    "rows_in": 22776,
+    "rows_excluded": 4512,
+    "rows_surviving": 18264
+  },
+  "rows_excluded_by_reason": {
+    "no_board_stored": 3844,
+    "timestamp_missing": 0,
+    "timestamp_after_draw": 668,
+    "non_official_source": 0,
+    "grading_era_change": 0,
+    "jurisdiction_gap": 0
+  },
+  "boards": {
+    "keys_in_window": 465,
+    "keys_with_no_draws_in_pool": 0,
+    "surviving": 374,
+    "surviving_taken_from_soft_deleted_snapshot": 58,
+    "excluded_by_reason": {
+      "no_board_stored": 78,
+      "timestamp_missing": 0,
+      "timestamp_after_draw": 13,
+      "non_official_source": 0,
+      "grading_era_change": 0,
+      "jurisdiction_gap": 0
+    },
+    "g4_margin_excluded_by_fixed_cutoff_only_snapshot_within_60min_after_cutoff": 4,
+    "excluded_by_data_guard_only": 0,
+    "surviving_composition_histogram": {
+      "4/2/0": 25,
+      "5/1/0": 37,
+      "3/3/0": 2,
+      "5/0/0": 3,
+      "6/0/0": 307
+    }
+  },
+  "draw_store_anomalies": {
+    "bad_session": 0,
+    "bad_digits": 0,
+    "comboset_mismatch": 0
+  },
+  "pick_anomalies": [],
+  "pick_anomaly_count": 0,
+  "notes": [
+    "histories_unique = (jurisdiction, game, date_et, session, result_digits): two draws of the same digits in the same bucket/day collapse to one row; graded as one event here, exactly as production grades them (known under-count, affects observed and null alike).",
+    "result_at is empty: the draw store records no draw time; imported_at is the only per-row timestamp.",
+    "Stored hit flags (adaptive_tracking, daily_intelligence, snapshot hitType) were not read (BUG-162).",
+    "Provenance: draw rows were manually transcribed from Lottery Post (aggregator); provenance is uniform but unverified per row; observed and null are graded against the same rows."
+  ],
+  "duration_ms": 5126
+}

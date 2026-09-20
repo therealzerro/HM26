@@ -105,8 +105,11 @@ MKT-80 STAMP HOOK (built 2026-09-13; LIVE FROM THE 2026-09-14 ASSEMBLY by operat
 override of the content agent's 9/23 hold — PUBLIC_STAMP_HOOK_FROM in
 scripts/public-hook-config.ts, was 20260924; no cron): from that
 morning allday_public's BOARD SEGMENT (the 10.0s grid still) carries the stamp
-eyebrow "SCORED ACROSS 40+ STATES" (drop_public purpose, tier-1 linted
-fail-closed); the modal segment keeps the standard "TODAY'S DATA DROP" stamp —
+eyebrow "SCORED ACROSS 40+ STATES & PROVINCES" (drop_public purpose, tier-1
+linted fail-closed; ⛔ was "SCORED ACROSS 40+ STATES" 9/14→9/20 am — the bare
+form is RETIRED by STAT-01 G6 on 9/20: 37 states + 5 provinces = 42 graded,
+"40+" is only true with "& PROVINCES"; width fallback "40+ STATES & PROVINCES",
+never the bare form); the modal segment keeps the standard "TODAY'S DATA DROP" stamp —
 hard eyebrow cut at the grid→modal boundary (a crossfade smeared the two
 strings; date + brand lines are identical on both plates). allday_public ONLY — not
 verify_public, not record_public, not the group kinds. Final carries

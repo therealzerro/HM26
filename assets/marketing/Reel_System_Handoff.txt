@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-21 · v7.10
+Content Agent Handoff · 2026-09-21 · v7.11
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.10 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.11 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -41,8 +41,10 @@ A. DAILY OUTPUT (operator-triggered `npm run reel:daily`, never scheduled):
        42 STATES & PROVINCES; caption + YT families replaced (no counts).
        ⚠ v7.9 (evening): P2-LINT LIVE — the body line flips to "POSTED
        BEFORE THE DRAW" by itself once every window board is pre-cutoff
-       (today only 8/27 allday+midday fail; clears on the 9/27 run or on
-       restore). Stage 2 three-row strip BUILT behind --three-row, PREVIEW
+       ⚠ v7.11: the 8/27 originals are RESTORED (item 1 executed) —
+       P2-LINT is 90/90 on both windows; the 9/22 run's record body
+       takes "POSTED BEFORE THE DRAW" by itself. Item 2 (58 keys) is
+       reported, not executed; AT/DI re-grade for 8/27 held. Stage 2 three-row strip BUILT behind --three-row, PREVIEW
        ONLY until RECORD_THREE_ROW_FROM is set on the operator's eyeball
        (9/20 preview + feed still committed). ⛔ v7.10: verify_public
        zero day = NO REEL. Your ruling 1 (the miss-day hook) was built
@@ -624,6 +626,59 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
       free comments 4.3/day · page-level views still not held (daily export
       owed). None of it is quotable in copy.
 
+================================================================================
+================================================================================
+================================================================================
+================================================================================
+WHAT CHANGED IN v7.11 (2026-09-21, late — E-2 RETRO PASS: item 1 executed,
+item 2 reported and HELD for the operator's go. Era record — never
+retro-edited.)
+================================================================================
+  1. ITEM 1 — DONE. 8/27 allday (25861362, 06:23 ET) and 8/27 midday
+     (f484e796, 06:23 ET) are live again; the 17:46 ET regens (7279071a,
+     4f674b73) are demoted: deleted_at set, post_cutoff=true; two
+     audit_logs rows. P2-LINT AFTER, same computation as the renderer:
+     8/22→9/20 = 90 keys, 0 post-cutoff, 0 duplicates; 8/23→9/21 = 90 /
+     0 / 0. The next record render takes the "POSTED BEFORE THE DRAW"
+     form automatically — no flag, no re-run needed.
+  2. ITEM 2 — REPORTED, NOT EXECUTED. The DB reconciles to your ledger's
+     58 keys exactly. Per-key diff (old live → new live, ids, times,
+     picks, AT rows) is committed at docs/stat01/e2_retro_pass_plan.csv.
+     Shape: 42 post→pre (2 done = 8/27), 13 pre→pre where a LATER pre-
+     cutoff board was soft-deleted in April and an earlier one is live
+     (rule = latest pre-cutoff; these are NOT flagged post_cutoff), 3
+     with no live board at all (5/1 ×3, restore only). Picks identical on
+     16, different on 39. The pass touches 107 slate_snapshots flips + 56
+     audit rows and nothing else; every flip reversible.
+  3. RECORD STRIP BEFORE/AFTER (8/27 is the only in-window key, so item 1
+     already produced AFTER; the SQL reproduces the 9/20 body's tags
+     exactly — 29/30 · 15 exact · 38 juris; rows 26/6 · 19/1 · 24/8):
+       8/22→9/20, three-row (histories re-grade of the live board):
+         All-Day 26 lit / 6 straight-days → 26 / 7
+         Midday 19 / 1 → unchanged; Evening 24 / 8 → unchanged
+         any-board 29 → 29; exact draws 15 → 16; juris 38 → 39
+       8/22→9/20, classic (adaptive_tracking, what the SERVING body
+         reads): 29 / 151 / 15 / 38 → UNCHANGED until AT is re-graded
+         (then 29 / 151 / 16 / 39)
+       8/23→9/21 (next run; 9/21 draws incomplete): All-Day 25/6 → 25/7;
+         any-board 28 → 28; exact 15 → 16; juris 37 → 38
+     The whole delta is the one pick that differed: 709 (original; ON
+     709 EXACT) vs 071 (regen; AR/TX/DE box). Nothing beyond the per-key
+     diff moves. Stop condition not triggered.
+  4. HELD — the irreversible half. adaptive_tracking is slate_hash-keyed
+     and holds only the regen's rows for 8/27 allday, including 071 box
+     DE — a post-draw pick that the track-record screen and the classic
+     strip currently show as a verified match. The original has no AT
+     rows; DI for 8/27 allday is the regen's top-30. Re-grade = hit
+     detection for 8/27 (additive) + DELETE the regen's 7 AT rows
+     (irreversible) + backfill:di --apply for 8/27 allday. I have NOT
+     done this. My recommendation: 8/27 only; April–July snapshot-only
+     (their AT predates the DATA-01 6/3 re-anchor and holds hit rows
+     only). Operator's go needed on (a) item 2's 107 flips and (b) the
+     8/27 AT/DI re-grade, separately.
+  5. BUG-180 prediction: 0 keys have more than one live board anywhere in
+     the table, so Clean Duplicates should print "No duplicate active
+     snapshots found" and change nothing. Confirm with the printed text.
 ================================================================================
 ================================================================================
 ================================================================================

@@ -1326,7 +1326,7 @@ function checkRecordPublic(): void {
   const sum = +(HOOK_DUR + RECORD_BODY_DUR + RECORD_END_DISSOLVE + RECORD_CARD).toFixed(2);
   if (sum !== RECORD_TOTAL) add('FAIL', K, `anatomy does not add up: ${HOOK_DUR}+${RECORD_BODY_DUR}+${RECORD_END_DISSOLVE}+${RECORD_CARD} = ${sum} ≠ RECORD_TOTAL ${RECORD_TOTAL}`);
   else add('PASS', `${K} anatomy`, `card ${HOOK_DUR}s → body ${RECORD_BODY_DUR}s → dissolve ${RECORD_END_DISSOLVE}s → endcard ${RECORD_CARD}s = ${RECORD_TOTAL}s · furniture ${((RECORD_FURNITURE / RECORD_TOTAL) * 100).toFixed(1)}% (evidence-reel number) · window ${RECORD_WINDOW_DAYS} days · stats asserted ≤ ${RECORD_STAT_MAX}`);
-  if (RECORD_WINDOW_DAYS !== 30) add('FAIL', K, `RECORD_WINDOW_DAYS is ${RECORD_WINDOW_DAYS} — the hook card and the count line say 30`);
+  if (RECORD_WINDOW_DAYS !== 30) add('FAIL', K, `RECORD_WINDOW_DAYS is ${RECORD_WINDOW_DAYS} — the hook card says 30 DAYS and the strip has 30 tiles`);
   for (const str of [RECORD_HOOK_COPY.eyebrow, ...RECORD_HOOK_COPY.big, RECORD_HOOK_COPY.sub]) {
     const bad = lintCaption(str, 1).violations.filter(x => x.blocking);
     if (bad.length) add('FAIL', `${K} hook "${str}"`, `tier-1 lint: ${bad.map(x => `${x.term} (${x.rule})`).join(', ')}`);

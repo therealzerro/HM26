@@ -544,7 +544,13 @@ export const [DataIngestionProvider, useDataIngestion] = createContextHook<DataI
             date_et: dateEt,
             session: entry.session,
             result_digits: entry.result_digits,
-            comboset_sorted: `{${entry.result_digits.split('').sort().join(',')}}`
+            comboset_sorted: `{${entry.result_digits.split('').sort().join(',')}}`,
+            // ARCH-09 (2026-09-21): provenance. Every ledger paste is a
+            // Lottery Post transcription (operator-confirmed 9/20); the
+            // CHECK reserves official_<state> for feeds. import_id ties the
+            // row to its imports record (column existed, was never written).
+            source: 'lotterypost_manual',
+            import_id: importRecId,
           });
         }
 

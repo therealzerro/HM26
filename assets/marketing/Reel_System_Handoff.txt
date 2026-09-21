@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-20 · v7.7
+Content Agent Handoff · 2026-09-21 · v7.8
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-20 (CONSOLIDATED SNAPSHOT, current to v7.7 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.8 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -33,7 +33,13 @@ A. DAILY OUTPUT (operator-triggered `npm run reel:daily`, never scheduled):
    → record.
      record_public   ⚠ v6.9 (MKT-79, 9/11): THE DAILY TRACK RECORD REEL —
        30-day strip of the Verified Track Record (dim tiles = the misses,
-       ON PURPOSE), public tier 1, ~16.3s cold open, the 7pm slot. RULED:
+       ON PURPOSE), public tier 1, ~16.3s cold open, the 7pm slot.
+       ⚠ v7.8 (STAT-01 Phase 6, 9/21 — LIVE FROM THE NEXT RUN): hook =
+       30 DAYS / THE RECORD / EVERY MATCH · EVERY MISS · CHECKED AGAINST
+       THE DRAW RESULTS; the "N OF 30 DAYS" count and the stats line are
+       RETIRED (R-A) — body line = SIX SIGNALS · GRADED THE SAME DAY /
+       42 STATES & PROVINCES; caption + YT families replaced (no counts).
+       Stage 2 three-row strip SCOPED, awaits the operator. RULED:
        BOTH public cuts daily — allday_public keeps its morning slot,
        verify_public stays registered and leaves the daily schedule. The
        9/9→9/23 window confound is ACCEPTED BY THE OPERATOR. Anatomy in
@@ -242,8 +248,9 @@ C2. SAME-DAY MIDDAY VERIFY ANATOMY (`verify_midday`, MKT-62 — ~21–27s,
 C3. THE DAILY TRACK RECORD REEL ANATOMY (`record_public`, MKT-79 — 16.3s,
    1080×1920 60fps; FIRST CUT PUBLISHED 9/11 for the operator's smoke test):
      0.0–2.0    HOOK CARD (render-public-hook --kind=record, GOLD, silent,
-                tier-1 linted): 40+ STATES & PROVINCES / THE TRACK RECORD /
-                LAST 30 DAYS · CHECKED AGAINST THE DRAW RESULTS (⚠ v7.7 / BUG-181: "OFFICIAL" DELETED 9/20 pm).
+                tier-1 linted): 30 DAYS / THE RECORD / EVERY MATCH ·
+                EVERY MISS · CHECKED AGAINST THE DRAW RESULTS (⚠ v7.8 /
+                STAT-01 Phase 6, 9/21; v7.7 / BUG-181 deleted "OFFICIAL").
      1.6–2.0    0.4s eased dissolve into the body's frame 0.
      2.4–2.9    THIRTY TILES appear together, ALL DIM, in a 10×3 GRID
                 (88px tiles — a single row of 30 is ~10px per tile at feed
@@ -257,11 +264,12 @@ C3. THE DAILY TRACK RECORD REEL ANATOMY (`record_public`, MKT-79 — 16.3s,
                 strip is a REJECT: the renderer ABORTS (operator override
                 --allow-all-matched for a genuine 30 of 30). Do not "clean
                 them up".
-     5.9–6.9    COUNT resolves large beneath: "29 OF 30 DAYS" (counts up,
-                gold numeral).
-     6.9–8.4    SECONDARY STATS, gold, one line: "18 EXACT-ORDER MATCHES ·
-                38 STATES & PROVINCES" (EXACT-ORDER = the shipped tier-1
-                relabel; "straight" cannot appear on this surface).
+     5.9–6.9    HOLD (⚠ v7.8: the "29 OF 30 DAYS" count-up is RETIRED —
+                STAT-01 Phase 6 R-A; no aggregate count on the surface).
+     6.9–8.4    BODY LINE, gold, two rows: "SIX SIGNALS · GRADED THE SAME
+                DAY" / "42 STATES & PROVINCES" (⚠ v7.8; the "N EXACT-ORDER
+                MATCHES · J STATES & PROVINCES" stats line is RETIRED;
+                "POSTED BEFORE THE DRAW" waits on the E-2 P2-LINT).
      8.4–9.4    HOLD; the rightmost (last-day) tile carries a faint pulse.
      9.4–9.8    0.4s dissolve into the endcard.
      9.8–16.3   ENDCARD, free-tier motion set (rotates with the free pool —
@@ -609,6 +617,146 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+WHAT CHANGED IN v7.8 (2026-09-21 — YOUR PHASE 6 RULINGS + ADDENDUM EXECUTED:
+STAT-01 CLOSED (NULL, accepted as run); the copy rule is LAW and LINTED; the
+record reel's Stage 1 copy SHIPS ON THE NEXT DAILY RUN; Stage 2 SCOPED with
+the fit report; BUG-180 fixed; ARCH-09 + CONFIG-19 built; E-1/E-2 filed to
+the engine lane. Nothing re-rendered, nothing re-posted. Era record — never
+retro-edited.)
+================================================================================
+  R5 — THE FINDING OF RECORD, verbatim (MASTER_AUDIT STAT-01, same words):
+    "Over 374 stored boards (4/18→9/19, 18,264 graded draw events), the
+     engine's published boards matched at the rate of a random board of
+     the same class composition (lift 0.98, 95% CI 0.90–1.07). Draws-since
+     deciles show no overdue effect. The engine's pressure threshold
+     (DS 100) was never reached in the window."
+    DUE-01: flat (the two decile CIs off 1.0 = 2 of 20 at 95%, noise, both
+    against the axiom). DS-100: 0 six-way/double cells in five months —
+    the channel is dormant (ENG-PRESSURE-DORMANT-01, observation only).
+    THE RULE (all tiers, all surfaces, permanent):
+      R-A no aggregate match count is a hook / headline / eyebrow / selling
+          line — a count lives INSIDE a record as what happened, never as
+          what it proves;
+      R-B no copy states or implies the six are likelier to draw — edge,
+          advantage, odds, favored, due, overdue, pressure, hot, cold, trend
+          are LINTED (universal, blocking) with streak / in a row / this
+          month / so far and the rolled-up count shapes;
+      R-C what stands = posted before the draw · graded the same day · 42
+          states & provinces · every match and every miss on the record ·
+          same six for everyone. Canonical line as you wrote it.
+  0. YOUR §4 FLAG AND D-1 ARE RECORDED: "signals" stays, with the public
+     definition verbatim in the audit (your FAQ / site surfaces, not repo);
+     the single "pick" exception is scoped to that sentence (hash-whitelist
+     if the lint ever meets FAQ text). Reassess at the app-release
+     milestone. Standing rule (D-1c): never lead with the null, never
+     contradict it; Phase 3 report on request.
+  1. RECORD REEL — STAGE 1, SHIPS ON THE NEXT `reel:daily` (record-config.ts,
+     render-record-body.ts, reel-captions.ts, socialPlatforms.ts):
+       hook   30 DAYS / THE RECORD / EVERY MATCH · EVERY MISS · CHECKED
+              AGAINST THE DRAW RESULTS
+              ⚠ slot mapping, recorded: the card has eyebrow/big/sub; the
+              eyebrow is 40px + 8px tracking (~32px/char), so your 33-char
+              "30 DAYS · EVERY MATCH · EVERY MISS" cannot sit there (~1,056px
+              on a 1080 frame). "30 DAYS" is the eyebrow, the rest joins
+              the results line in the sub (two wrapped rows, the same
+              footprint the 9/11 sub already had). Every word you ruled is
+              on the card; if you want a different split, say which.
+       body   the "N OF 30 DAYS" count-up (196px numeral) and "E EXACT-ORDER
+              MATCHES · J STATES & PROVINCES" are GONE. Body line = SIX
+              SIGNALS · GRADED THE SAME DAY / 42 STATES & PROVINCES, two
+              rows of 34px gold mono (one row ≈ 1,200px — would clip; the
+              9/11 lesson). "POSTED BEFORE THE DRAW" waits for the E-2
+              P2-LINT, exactly as you ruled. The strip, the dim tiles, the
+              count GATE (tiles painted vs DAYS) and the hm_record_* tags
+              are unchanged — metadata, never copy.
+       captions  the "{days} of {of} days" family RETIRED; 8 templates in
+              the record family, #1 = your line verbatim, no figures, no
+              range. Tier-1 lint 0 blocking on all 8 + fallback.
+       YouTube   record_public titles ×6 + descriptions ×3 = same family.
+     C3 below is edited in place to match; the AUDIO note ("misses" at
+     8.18s with the dim tile on screen) still holds — body timing unchanged.
+  2. THE OTHER FAMILIES, line by line (every changed line re-linted at its
+     tier, 0 blocking; check:brand-voice clean; filtered tsc 0):
+       reel-captions.ts  verify_pro #3 "That's N over the last 30 days" →
+              "Graded the same way every day, misses included"; #5 "30-day
+              record: N verified" → "Every day goes on the record, match or
+              miss"; #11 "30-day total now N" → "On the record, like every
+              day"; credLine's zero-match branch no longer reaches for the
+              30-day total ("Yesterday's board went on the record with no
+              match — the misses stay on it, same as the matches").
+       lib/social/captions.ts  Admin → Publish report card: public "N
+              verified matches over the last 30 days. Methodology working
+              as designed." → "Every day goes on the record, match or
+              miss."; free/Pro "N verified matches in the last 30 days." →
+              "On the record, like every day."
+       render-public-hook.ts  the ZERO-DAY hook shape was LAST 30 DAYS ·
+              "41" · SIGNALS VERIFIED — a rolling count as the headline.
+              Retired → the process card (EVERY MORNING / GRADED / IN THE
+              OPEN). ⚠ RULING OWED: a "0 of 6" hook is the honest
+              alternative on a miss day. Your call; recorded, not built.
+       verify / verify_midday / verify_public families: reviewed — one
+              day's grading, no streak or rollup line anywhere → PASS,
+              unchanged. Your :358/:537/:563 refs: :358 was the credLine
+              (done); :537 allday_free and :563 allday_pro carry "40+
+              states & provinces", not a count → unchanged, as you ruled
+              for the stamp eyebrow. allday_public eyebrow: unchanged.
+       NOT TOUCHED  Home meta index.tsx:831 (hands-off consumer surface,
+              still flagged to the operator); MKT-46 drafts (void by rule);
+              MKT-81 copy (yours; rule noted in its audit entry).
+  3. D-2 STAGE 2 — THE THREE-ROW STRIP — SCOPED, FIT REPORTED (MASTER_AUDIT
+     STAT-01), NOT BUILT, awaits the operator:
+       · keep band = y 420–1500. A single 30×3 matrix needs ≤28px tiles →
+         ~10px at feed width = the layout the 9/11 measurement rejected.
+         NOT viable.
+       · Viable: three stacked 10×3 blocks (tile 60 / gap 8 = 672×196 each,
+         row-by-row date order as today) with a 30px scope label above
+         each; stack ~784px; eyebrow 440 / range 480 / blocks 530→1314 /
+         body line (two rows) 1350→1458 — all inside the band. 60px tiles
+         ≈ 21px at feed width: above the kill line, below today's 31px —
+         the operator eyeballs a feed-width still before build.
+       · Landing: 90 tiles at 0.1s = 9s does not fit 2.9–5.9 → land per
+         DAY (a column of three tiles per beat, 30 beats = 3.0s), which
+         also reads as the calendar.
+       · ⚠ DATA: the "2+ = bright" tier is NOT available from stored flags
+         (adaptive_tracking keeps ONE state per pick — the 159-vs-163
+         delta). Stage 2 re-grades from histories with the STAT-01 ledger
+         grader, not the screen's summary. Three count gates, per-scope
+         tags. Caption family unchanged.
+       · "50–53% content-bottom gate": no layout gate by that name exists
+         in code. The 52.1% in the system is RECORD_FURNITURE (hook +
+         endcard time ÷ 16.3s), unchanged unless the body duration
+         changes. If you meant a layout rule, name it and I will measure.
+  4. CLOSE-OUT ITEMS: BUG-180 FIXED in code (keeper = latest PRE-CUTOFF
+     board per key, DST-safe cutoff from the zone; a key with no pre-cutoff
+     board keeps its earliest; the retired "with hits" rule is computed
+     only to PRINT the keeper diff in the dialog + console) — NOT YET RUN:
+     it fires when the operator taps Clean Duplicates; the diff goes into
+     the audit then. ⚠ It acts on ACTIVE duplicates only — the 58 keys
+     whose pre-cutoff original is soft-deleted need the E-2 retroactive
+     pass. ARCH-09 BUILT: histories.source (default lotterypost_manual,
+     CHECK reserves official_<state>); discovery — import_id already
+     existed on the table and had NEVER been written (0 of 12,243 rows);
+     both ledger writers now set source + import_id. CONFIG-19 BUILT:
+     `npm run spot-check:draws` — 10 rows / last 7 days, seeded by ISO week
+     (same ten on re-run), --verify / --discrepancy write verified_at /
+     discrepancy via the CLI's service-role client (same as import:results;
+     never anon). First dry run: 2026-W39, 439 rows, 0 verified. The
+     operator runs it after the Sunday import; no cron.
+  5. E-1 filed as ENG-PRESSURE-DORMANT-01 (observation; any change = ENG
+     gate + a forward STAT-02, never a tune toward the ledger). E-2 filed
+     as ENG-BOARD-FREEZE-01, SCOPED: post_cutoff column; the regen path
+     (compute-slate-zk6:1335 soft-deletes the live board on EVERY regen)
+     keeps a pre-cutoff board and writes the regen as post_cutoff=true;
+     graded/published readers filter it; retroactive restore pass for the
+     58 keys; P2-LINT in the record renderer (all 90 window boards
+     pre-cutoff → "POSTED BEFORE THE DRAW", else the same-day form
+     automatically, tagged hm_record_p2). Operator approves; first
+     P2-clean window ≈ 30 days after it lands.
+  6. 9/23–9/24: nothing paused. The record hook changes on the first run
+     after this commit — annotate the record-vs-board retention pair the
+     same way as the eyebrow's two-string note. Next STAT ID 02 (reserved
+     for any forward engine test, ever); next MKT ID 82.
+
 WHAT CHANGED IN v7.7 (2026-09-20, evening — YOUR PHASE 3 GATE MESSAGE EXECUTED:
 G7/G8/G9 BUILT IN AND COMMITTED, "OFFICIAL" STRINGS DELETED (BUG-181), PHASE 3
 RUN ONCE. ⚠ FIRST LINE, PER §3 OF YOUR MESSAGE: p = 0.668, LIFT 0.984, 95% CI

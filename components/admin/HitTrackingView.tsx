@@ -768,12 +768,20 @@ export default function HitTrackingView() {
       if (!Array.isArray(snaps) || snaps.length === 0) {
         alertAsync('No Duplicates', 'No snapshots found.'); return;
       }
-      // Phase 2 (B4 fix): keep 1 most recent per (slate_date, scope, mode).
-      // Duplicates are bugs left over from race conditions in older regen
-      // paths — there's no valid reason to have 2+ active snapshots for
-      // the same logical slate. The previous "keep 3" was supplemental-slate
-      // legacy that no longer applies post-BUG-127.
+      // Phase 2 (B4 fix): keep 1 per (slate_date, scope, mode). Duplicates are
+      // bugs left over from race conditions in older regen paths — there's no
+      // valid reason to have 2+ active snapshots for the same logical slate.
+      // The previous "keep 3" was supplemental-slate legacy (post-BUG-127).
       // Phase 2 (B5 fix): group by slate_date, not updated_at_et.split('T')[0].
+      // BUG-180 (fixed 2026-09-21, operator approval via the content agent's
+      // STAT-01 Phase 6 message): the keeper is the LATEST snapshot written
+      // BEFORE THE CUTOFF — the STAT-01 G4 rule (10:00 ET midday/allday,
+      // 18:00 ET evening) — NEVER a hit-count tiebreak. The old rule kept
+      // "the one with hits, if any", so a post-draw regen won liveness
+      // whenever it matched and the public record was biased upward by
+      // construction. A key with NO pre-cutoff snapshot keeps its EARLIEST
+      // one (closest to the draw, least post-hoc). The dialog reports how
+      // many keys change keeper versus the old rule so the run is auditable.
       const groups = new Map<string, any[]>();
       for (const snap of snaps) {
         const date = snap.slate_date ?? (snap.updated_at_et ?? '').split('T')[0];
@@ -782,27 +790,43 @@ export default function HitTrackingView() {
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key)!.push(snap);
       }
-      // Within each group: prefer the snapshot with the most hit annotations
-      // (the slate that actually recorded hits beats a post-regen empty one).
-      // Ties broken by most-recent updated_at_et.
+      const CUTOFF_ET_HOUR: Record<string, number> = { midday: 10, allday: 10, evening: 18 };
+      const cutoffUtcMs = (scope: string, date: string): number => {
+        // ET offset for that calendar day (4 in EDT, 5 in EST), read from the zone itself.
+        const noonUtc = Date.parse(`${date}T12:00:00Z`);
+        const etHour = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }).format(new Date(noonUtc)));
+        const offset = 12 - (etHour % 24);
+        return Date.parse(`${date}T00:00:00Z`) + ((CUTOFF_ET_HOUR[scope] ?? 10) + offset) * 3600_000;
+      };
+      const writtenMs = (s: any) => { const t = Date.parse(s.updated_at_et ?? ''); return Number.isFinite(t) ? t : Number.POSITIVE_INFINITY; };
+      // The retired rule, computed ONLY to report the diff (never to choose).
       const snapHitCount = (s: any) =>
         Array.isArray(s.top_k_straights_json)
           ? s.top_k_straights_json.filter((p: any) => p?.hitType).length
           : 0;
       const toDelete: string[] = [];
-      for (const group of groups.values()) {
+      let keeperChanged = 0;
+      const changedKeys: string[] = [];
+      for (const [key, group] of groups.entries()) {
         if (group.length <= 1) continue;
-        const ranked = group.slice().sort((a, b) => {
+        const [date, scope] = [group[0].slate_date ?? (group[0].updated_at_et ?? '').split('T')[0], group[0].scope];
+        const cutoff = cutoffUtcMs(scope, date);
+        const pre = group.filter((s: any) => writtenMs(s) < cutoff).sort((a: any, b: any) => writtenMs(b) - writtenMs(a));
+        const keeper = pre[0] ?? group.slice().sort((a: any, b: any) => writtenMs(a) - writtenMs(b))[0];
+        const oldKeeper = group.slice().sort((a: any, b: any) => {
           const ha = snapHitCount(a), hb = snapHitCount(b);
           if (hb !== ha) return hb - ha;
           return (b.updated_at_et ?? '').localeCompare(a.updated_at_et ?? '');
-        });
-        toDelete.push(...ranked.slice(1).map((s: any) => s.id));
+        })[0];
+        if (oldKeeper.id !== keeper.id) { keeperChanged++; changedKeys.push(key); }
+        toDelete.push(...group.filter((s: any) => s.id !== keeper.id).map((s: any) => s.id));
       }
       if (toDelete.length === 0) {
         alertAsync('No Duplicates', 'No duplicate active snapshots found.'); return;
       }
-      if (await confirmAsync('Soft-delete duplicates?', `Found ${toDelete.length} duplicate snapshot(s). Keep 1 most recent per scope/mode/date (the one with hits, if any).`, { confirmLabel: 'Remove', destructive: true })) {
+      if (keeperChanged > 0) console.log(`[BUG-180] keeper differs from the retired hit-count rule on ${keeperChanged} key(s): ${changedKeys.join(', ')}`);
+      const diffLine = keeperChanged > 0 ? ` ${keeperChanged} key(s) keep a different board than the old "with hits" rule would have (listed in the console) — record them in MASTER_AUDIT BUG-180.` : ' Same keepers as the old rule would have chosen.';
+      if (await confirmAsync('Soft-delete duplicates?', `Found ${toDelete.length} duplicate snapshot(s). Keeps the latest board written BEFORE the cutoff (10:00 ET midday/all-day, 18:00 ET evening) per scope/mode/date — never the one that matched.${diffLine}`, { confirmLabel: 'Remove', destructive: true })) {
         let deleted = 0;
         let failed = 0;
         for (const id of toDelete) {

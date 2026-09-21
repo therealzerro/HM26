@@ -136,9 +136,9 @@ function reportCard(d: CaptionData, surface: Surface, variant: number): string {
       '',
       `Of ${total} signals across our daily intelligence reports, ${verified} aligned with observed outcomes across ${jx} jurisdiction${jx === 1 ? '' : 's'}.`,
     ];
-    if (d.verified30d != null) {
-      lines.push('', `${d.verified30d} verified matches over the last 30 days. Methodology working as designed.`);
-    }
+    // STAT-01 Phase 6 (2026-09-21, R-A): the 30-day total is no longer a
+    // selling line on any surface. One day's grading is a record entry.
+    lines.push('', 'Every day goes on the record, match or miss.');
     lines.push('', pick(CTA_FREE, seed, variant).replace('link in bio.', 'full daily intelligence drops inside.'));
     return lines.join('\n');
   }
@@ -154,7 +154,9 @@ function reportCard(d: CaptionData, surface: Surface, variant: number): string {
     lines.push(`• ${m.exact ? 'STRAIGHT MATCH' : 'BOX MATCH'} — ${m.jurisdiction}`);
   }
   if ((d.matches?.length ?? 0) > 10) lines.push(`• …and ${d.matches!.length - 10} more`);
-  if (d.verified30d != null) lines.push('', `${d.verified30d} verified matches in the last 30 days.`);
+  // STAT-01 Phase 6 (2026-09-21, R-A): no rolling count. `verified30d` stays
+  // on the data shape for the admin readout; captions never print it.
+  lines.push('', 'On the record, like every day.');
   if (surface === 'free') return lines.join('\n') + proCta(d);
   lines.push('', 'You saw it here first. 🛠️'); // PRO: first-access, no pricing (§6)
   return lines.join('\n');

@@ -412,18 +412,20 @@ export const YT_SHORTS_SETS: Record<string, YtShortsSet> = {
   // The order's delivered 6/3 set did not reach the build session (see the
   // caption-family note in scripts/reel-captions.ts); these hold the slot,
   // tier-1 clean, and are REPLACED verbatim when the delivered set is pasted.
+  // STAT-01 Phase 6 (content agent, 2026-09-21): the record family — no
+  // aggregate count anywhere (R-A), process claims only (R-C).
   record_public: {
     titles: [
-      'Thirty days, checked against the draw results',
-      'The track record, misses included',
-      'Every day for thirty days, graded in public',
-      'Our last 30 days, on the record',
-      '40+ states & provinces, thirty days checked',
-      'What a public track record looks like',
+      'Thirty days on the record, every match and every miss',
+      'The record, misses included',
+      'Six signals a day, graded the same day',
+      'Posted before the draw, graded the same day',
+      '42 states & provinces, thirty days on the record',
+      'What a public record looks like',
     ],
     descriptions: [
-      `Thirty days of pattern analysis, every day checked against the draw results across 40+ states & provinces — matched days in gold, the misses left on the board.\nThe full record is free in our community: {free_group_url}`,
-      `We publish six ranked signals before the draw and grade them after. This is the last thirty days of that record, checked in public, nothing edited.\nSee the full record free: {free_group_url}`,
+      `30 days on the record. Six signals, posted before the draw, graded the same day across 42 states and provinces. Every match and every miss is on the strip.\nThe full record is free in our community: {free_group_url}`,
+      `Six signals a day. Posted before the draw. Graded the same day across 42 states and provinces. Every match and every miss on the record.\nSee the full record free: {free_group_url}`,
       `A record is only worth reading if the misses are on it. Ours are.\nFree to read: {free_group_url}`,
     ],
   },

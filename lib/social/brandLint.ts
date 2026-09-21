@@ -70,6 +70,32 @@ const UNIVERSAL_VOCAB: { re: RegExp; rule: string; suggestion: string }[] = [
   // approved labels are MATCH / BOX MATCH (box) and STRAIGHT MATCH (exact).
   { re: /\bpartial match\b/gi, rule: 'vocab-law', suggestion: 'BOX MATCH' },
   { re: /\bhits?\b/gi, rule: 'vocab-law', suggestion: 'MATCH / verified match' },
+  // STAT-01 Phase 6 (content agent, 2026-09-21) — R-B, permanent, ALL tiers:
+  // no copy states or implies the signals are likelier than other combinations
+  // to draw. Phase 3 measured the boards at chance (lift 0.98, CI 0.90–1.07).
+  // "due to" is ordinary English and is excluded from the "due" match.
+  { re: /\bedge\b/gi, rule: 'no-edge-claim', suggestion: '(remove — the record is the claim, R-B)' },
+  { re: /\badvantage\b/gi, rule: 'no-edge-claim', suggestion: '(remove — R-B)' },
+  { re: /\bodds\b/gi, rule: 'no-edge-claim', suggestion: '(remove — R-B)' },
+  { re: /\bfavou?red\b/gi, rule: 'no-edge-claim', suggestion: '(remove — R-B)' },
+  { re: /\b(over)?due\b(?!\s+to\b)/gi, rule: 'no-edge-claim', suggestion: '(remove — no overdue framing, R-B)' },
+  { re: /\bpressure\b/gi, rule: 'no-edge-claim', suggestion: '(remove — R-B)' },
+  { re: /\bhot\b/gi, rule: 'no-edge-claim', suggestion: '(remove — R-B)' },
+  { re: /\bcold\b/gi, rule: 'no-edge-claim', suggestion: '(remove — R-B)' },
+  { re: /\btrend(s|ing|y)?\b/gi, rule: 'no-edge-claim', suggestion: '(remove — R-B)' },
+  // STAT-01 Phase 6 §3 — a day's grading is a record entry, never rolled into
+  // a streak or a running total.
+  { re: /\bstreak\b/gi, rule: 'no-streak', suggestion: '(remove — one day is a record entry, never a streak)' },
+  { re: /\bin a row\b/gi, rule: 'no-streak', suggestion: '(remove — no streaks)' },
+  { re: /\bthis month\b/gi, rule: 'no-streak', suggestion: '(remove — no running totals)' },
+  { re: /\bso far\b/gi, rule: 'no-streak', suggestion: '(remove — no running totals)' },
+  // STAT-01 Phase 6 — R-A: no aggregate match count as a hook, headline or
+  // selling line. A count may sit INSIDE a record (a day's receipts); these
+  // shapes are the rolled-up forms the 9/21 ruling retired.
+  { re: /\b\d+\s+of\s+\d+\s+days\b/gi, rule: 'no-aggregate-count', suggestion: '(remove — "N of 30 days" is retired, R-A)' },
+  { re: /\b\d+\s+(verified|matches|matched|signals)[^.\n]{0,40}\b(last|past)\s+\d+\s+days\b/gi, rule: 'no-aggregate-count', suggestion: '(remove — no rolling counts, R-A)' },
+  { re: /\b\d+-day\s+(record|total|count)\b/gi, rule: 'no-aggregate-count', suggestion: '(remove — no rolling counts, R-A)' },
+  { re: /\b(total|record)\s+(is\s+)?now\s+\d+\b/gi, rule: 'no-aggregate-count', suggestion: '(remove — no running totals, R-A)' },
 ];
 
 /** US state abbreviations — for PUBLIC/cross-post attribution detection (§6).
@@ -124,8 +150,10 @@ export function lintCaption(caption: string, tier: SocialTier): LintResult {
   }
 
   // 3-digit numbers in a Tier-1/3 caption. Pick-formatted digits are blocking;
-  // a count in statistical context ("131 verified matches over 30 days") is
-  // the brief's sanctioned "clearly statistical" usage → advisory only.
+  // a count followed by a word ("131 draws graded") is the brief's "clearly
+  // statistical" usage → advisory only. (⚠ 9/21: the rolled-up example this
+  // comment used to cite — "131 verified matches over 30 days" — is now
+  // BLOCKED by the no-aggregate-count rule above, R-A.)
   if (strict) {
     const pickFormatted = caption.match(/\d\s*[-·.]\s*\d\s*[-·.]\s*\d|\{\s*\d\s*,\s*\d\s*,\s*\d\s*\}/);
     if (pickFormatted) {

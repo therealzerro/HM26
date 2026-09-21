@@ -133,6 +133,9 @@ if (!apply) {
       session: r.session,
       result_digits: r.result_digits,
       comboset_sorted: r.comboset_sorted,
+      // ARCH-09 (2026-09-21): provenance — same values the app path writes.
+      source: 'lotterypost_manual',
+      import_id: importId,
     }));
     for (let i = 0; i < payload.length; i += BATCH_SIZE) {
       const chunk = payload.slice(i, i + BATCH_SIZE);

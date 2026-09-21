@@ -64,7 +64,7 @@ assertBodyPublic(body, rerun);
 const st = readRecordStats(body);
 if (!st) { console.error(`ABORT(${RECORD_KIND}): the body carries no hm_record_* tags — not a render-record-body output, or the muxer dropped them. Re-render: ${rerun}`); process.exit(1); }
 if (st.marks !== st.days) {
-  console.error(`ABORT(${RECORD_KIND}): COUNT GATE — the strip painted ${st.marks} gold tiles but the count line says ${st.days} OF ${st.of}. The reel would contradict itself; not building.`);
+  console.error(`ABORT(${RECORD_KIND}): COUNT GATE — the strip painted ${st.marks} gold tiles but the body's DAYS tag says ${st.days} OF ${st.of} (metadata only since 9/21 — no count line renders). The strip would contradict its own record; not building.`);
   process.exit(1);
 }
 for (const [k, v] of Object.entries({ days: st.days, of: st.of, exact: st.exact, juris: st.juris })) {

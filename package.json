@@ -23,6 +23,7 @@
     "backfill:gaps": "tsx scripts/backfill/detect-gaps.ts",
     "backfill:slate": "tsx scripts/backfill/backfill-slate.ts",
     "import:results": "tsx scripts/imports/import-results.ts",
+    "spot-check:draws": "tsx scripts/spot-check-draws.ts",
     "calibrate:picks": "tsx scripts/calibration/fit_pick_probability.ts",
     "verify:hits": "tsx scripts/intel-tuning/verify-hits.ts",
     "cohort:overdue": "tsx scripts/cohort/overdue-cohort.ts",

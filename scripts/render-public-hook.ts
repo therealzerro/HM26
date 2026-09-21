@@ -115,16 +115,16 @@ async function alldayReceipts(date: string): Promise<{ total: number; verified: 
   return { total, verified, verified30d };
 }
 
-/** Card copy. Three shapes, all count-only (no rate, no digits, no states):
+/** Card copy. Two shapes, count-only (no rate, no digits, no states):
  *   normal day   → YESTERDAY'S BOARD · "2 of 6" · SIGNALS VERIFIED
- *   zero day     → LAST 30 DAYS · "41" · SIGNALS VERIFIED
- *   no data      → EVERY MORNING · GRADED IN THE OPEN (never a fabricated number) */
+ *   zero day / no data → EVERY MORNING · GRADED IN THE OPEN (never a fabricated number)
+ * STAT-01 Phase 6 (2026-09-21, R-A): the zero-day shape was LAST 30 DAYS ·
+ * "41" · SIGNALS VERIFIED — a rolling count as the headline. Retired; a zero
+ * day now takes the process card. (A "0 of 6" hook is the honest alternative
+ * and is the content agent's call — recorded in MASTER_AUDIT STAT-01.) */
 function cardCopy(r: { total: number; verified: number; verified30d: number } | null) {
   if (r && r.total > 0 && r.verified > 0) {
     return { eyebrow: VERIFY ? "YESTERDAY'S RECEIPTS" : "YESTERDAY'S BOARD", big: `${r.verified} of ${r.total}`, line: 'SIGNALS VERIFIED', sub: '40+ STATES & PROVINCES · CHECKED AGAINST THE DRAW RESULTS' };
-  }
-  if (r && r.verified30d > 0) {
-    return { eyebrow: 'LAST 30 DAYS', big: `${r.verified30d}`, line: 'SIGNALS VERIFIED', sub: '40+ STATES & PROVINCES · CHECKED AGAINST THE DRAW RESULTS' };
   }
   return { eyebrow: 'EVERY MORNING', big: 'GRADED', line: 'IN THE OPEN', sub: '40+ STATES & PROVINCES · PUBLISHED BEFORE THE DRAW' };
 }

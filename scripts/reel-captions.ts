@@ -355,8 +355,9 @@ function credLine(c: ProCtx, seed: number): string {
     ];
     return opts[seed % opts.length];
   }
-  if (c.v30 > 0) return `The last 30 days: ${c.v30} verified signals, all on the record.`;
-  return `Every signal gets graded against observed outcomes — the record is public.`;
+  // STAT-01 Phase 6 (2026-09-21, R-A): the zero-match day no longer reaches
+  // for the 30-day total — a miss day says so and points at the record.
+  return `Yesterday's board went on the record with no match — the misses stay on it, same as the matches.`;
 }
 
 /**
@@ -501,7 +502,7 @@ const CAPTION_REGISTRY = {
     ],
   },
   // PRO verify draft — the same reel, full precision: counts, states,
-  // STRAIGHT MATCH attributions, 30-day totals.
+  // STRAIGHT MATCH attributions. (30-day totals RETIRED 9/21 — STAT-01 Phase 6 R-A.)
   verify_pro: {
     offset: 2,
     realNumbers: true,
@@ -509,9 +510,9 @@ const CAPTION_REGISTRY = {
     templates: [
       c => `Pro receipts, full detail: ${c.pro!.v} of ${c.pro!.t} signals verified on ${c.pro!.rcptMd} across ${c.pro!.jxCount} ${plural(c.pro!.jxCount, 'state', 'states')}${straightLine(c.pro!)}. 🧾`,
       c => `${c.pro!.rcptMd}, graded: ${c.pro!.v} verified ${plural(c.pro!.v, 'MATCH', 'MATCHES')} — ${listJx(c.pro!.jxAll)}${straightLine(c.pro!)}. The tape's in the reel.`,
-      c => `Numbers on the table: ${c.pro!.v}/${c.pro!.t} verified in ${listJx(c.pro!.jxAll)}${straightLine(c.pro!)}. That's ${c.pro!.v30} over the last 30 days. 💎`,
+      c => `Numbers on the table: ${c.pro!.v}/${c.pro!.t} verified in ${listJx(c.pro!.jxAll)}${straightLine(c.pro!)}. Graded the same way every day, misses included. 💎`,
       c => `${c.pro!.rcptMd} closed at ${c.pro!.v} verified across ${c.pro!.jxCount} ${plural(c.pro!.jxCount, 'state', 'states')}${straightLine(c.pro!)}. Full breakdown, board by board.`,
-      c => `Your receipts: ${c.pro!.v} of ${c.pro!.t} signals matched on ${c.pro!.rcptMd}${straightLine(c.pro!)}. 30-day record: ${c.pro!.v30} verified. 💎`,
+      c => `Your receipts: ${c.pro!.v} of ${c.pro!.t} signals matched on ${c.pro!.rcptMd}${straightLine(c.pro!)}. Every day goes on the record, match or miss. 💎`,
       c => `On the record for ${c.pro!.rcptMd}: ${c.pro!.v} verified in ${listJx(c.pro!.jxAll)}${straightLine(c.pro!)}. Watch it graded in the open.`,
       c => `Graded in full: ${c.pro!.v} ${plural(c.pro!.v, 'MATCH', 'MATCHES')} across ${c.pro!.jxCount} ${plural(c.pro!.jxCount, 'state', 'states')} on ${c.pro!.rcptMd}${straightLine(c.pro!)}. 🧾`,
       c => `${c.pro!.v} verified, ${c.pro!.jxCount} ${plural(c.pro!.jxCount, 'state', 'states')}, zero spin${straightLine(c.pro!)} — ${c.pro!.rcptMd}'s tape inside.`,
@@ -520,7 +521,7 @@ const CAPTION_REGISTRY = {
       // sentence no receipts caption should ever say.
       c => `Graded in full: ${c.pro!.v} ${plural(c.pro!.v, 'MATCH', 'MATCHES')} across ${c.pro!.jxCount} ${plural(c.pro!.jxCount, 'state', 'states')} on ${c.pro!.rcptMd}${c.pro!.straightJx.length ? `, including ${c.pro!.straightJx.length} STRAIGHT` : ''}. Draw by draw below. 🧾`,
       c => `${c.pro!.rcptMd} receipts: ${c.pro!.v} ${plural(c.pro!.v, 'MATCH', 'MATCHES')} on the board we published the morning before. Every row checked against the draw results.`,
-      c => `Yesterday's record — ${c.pro!.v} ${plural(c.pro!.v, 'MATCH', 'MATCHES')} across ${c.pro!.jxCount} ${plural(c.pro!.jxCount, 'state', 'states')}${c.pro!.straightJx.length ? `, ${c.pro!.straightJx.length} of them dead-on` : ''}. 30-day total now ${c.pro!.v30}.`,
+      c => `Yesterday's record — ${c.pro!.v} ${plural(c.pro!.v, 'MATCH', 'MATCHES')} across ${c.pro!.jxCount} ${plural(c.pro!.jxCount, 'state', 'states')}${c.pro!.straightJx.length ? `, ${c.pro!.straightJx.length} of them dead-on` : ''}. On the record, like every day.`,
       c => `Published first, graded after. ${c.pro!.rcptMd}: ${c.pro!.v} ${plural(c.pro!.v, 'MATCH', 'MATCHES')}${c.pro!.straightJx.length ? `, ${c.pro!.straightJx.length} STRAIGHT` : ''}, all attributed. ⚡`,
     ],
   },
@@ -750,20 +751,31 @@ const CAPTION_REGISTRY = {
    * (allday_public 4, verify_public 6, verify_midday 9→1). Coincides with
    * allday_free (3 mod 12) — different family, the documented harmless class.
    */
+  // STAT-01 Phase 6 (content agent, 2026-09-21) — THE RECORD FAMILY, re-ruled
+  // after the NULL result. The "{days} of {of} days matched" family is
+  // RETIRED: no aggregate match count is ever a hook, headline or selling
+  // line (R-A), and no line implies the six are likelier to draw (R-B). What
+  // stands (R-C): posted before the draw · graded the same day · 42 states &
+  // provinces · every match and every miss on the record · same six for
+  // everyone. Template 1 is the agent's line verbatim; the rest vary it
+  // under the same rule. No figures, no range — the strip carries the record.
+  // recordStats stays true so the caption step still asserts the FINAL's
+  // hm_record_* tags exist (the same source as the pixels), even though no
+  // template prints them.
   record_public: {
     offset: 3,
     realNumbers: false,
     recordStats: true,
-    fallback: () => `Thirty days, checked against the draw results across 40+ states and provinces — matched days in gold, the misses left on the board. The full record is free: {free_group_url}`,
+    fallback: () => `Thirty days on the record. Six signals, posted before the draw, graded the same day across 42 states and provinces. Every match and every miss is on the strip. The full record is free: {free_group_url}`,
     templates: tagged(linkFirst([
-      c => `40+ states and provinces, thirty days, every one checked against the draw results. ${c.rec!.range}: ${c.rec!.days} of ${c.rec!.of} days carried a verified match, ${c.rec!.exact} of them exact-order, across ${c.rec!.juris} states and provinces. The misses stay on the board. The full record is free: {free_group_url}`,
-      c => `${c.rec!.days} of ${c.rec!.of} days. That's the last thirty, ${c.rec!.range}, graded against the draw results across 40+ states and provinces — ${c.rec!.exact} exact-order matches in ${c.rec!.juris} states and provinces. Published before the draw, checked after. See the full record free: {free_group_url}`,
-      c => `Thirty days on the record, ${c.rec!.range}. ${c.rec!.days} of ${c.rec!.of} showed a verified match; ${c.rec!.exact} were exact-order; ${c.rec!.juris} states and provinces are on the board. The dim days are the misses — they stay. Free to read: {free_group_url}`,
-      c => `We publish before the draw and grade after it, every day, across 40+ states and provinces. The last thirty days: ${c.rec!.days} of ${c.rec!.of} matched, ${c.rec!.exact} exact-order, ${c.rec!.juris} states and provinces. Nothing edited, misses included. The whole record is free: {free_group_url}`,
-      c => `A track record is only worth reading if the misses are on it. ${c.rec!.range}: ${c.rec!.days} of ${c.rec!.of} days matched, ${c.rec!.exact} exact-order, ${c.rec!.juris} states and provinces — and the days that didn't are right there in the strip. Read the full record free: {free_group_url}`,
-      c => `Last thirty days, 40+ states and provinces, checked against the draw results: ${c.rec!.days} of ${c.rec!.of} days with a verified match, ${c.rec!.exact} exact-order, ${c.rec!.juris} states and provinces on the record. Grade us yourself: {free_group_url}`,
-      c => `${c.rec!.range}, in one strip. Gold is a day with a verified match; dim is a miss. ${c.rec!.days} of ${c.rec!.of}, ${c.rec!.exact} exact-order, ${c.rec!.juris} states and provinces. Same method every morning, checked in public. The full record is free: {free_group_url}`,
-      c => `Published first. Checked after. Thirty days of it, ${c.rec!.range}: ${c.rec!.days} of ${c.rec!.of} days matched, ${c.rec!.exact} exact-order, across ${c.rec!.juris} states and provinces. That order is the only thing that makes a record worth reading: {free_group_url}`,
+      () => `30 days on the record. Six signals, posted before the draw, graded the same day across 42 states and provinces. Every match and every miss is on the strip. The full record is free: {free_group_url}`,
+      () => `Six signals a day. Posted before the draw. Graded the same day across 42 states and provinces. Every match and every miss on the record. Read it free: {free_group_url}`,
+      () => `The last thirty days, one strip. Gold is a day with a match; dim is a miss, and the misses stay. Six signals, posted before the draw, graded the same day. The full record is free: {free_group_url}`,
+      () => `We post six signals before the draw and grade them the same day, across 42 states and provinces. Nothing edited after. This is the last thirty days of that record, misses included: {free_group_url}`,
+      () => `A record is only worth reading if the misses are on it. Thirty days, six signals a day, graded the same day across 42 states and provinces — every match and every miss on the strip. Free to read: {free_group_url}`,
+      () => `Same six for everyone. Posted before the draw, graded the same day, 42 states and provinces. Thirty days of it in one strip, the dim days left exactly where they fell. The full record is free: {free_group_url}`,
+      () => `Posted first. Graded the same day. Thirty days on the record across 42 states and provinces, every match and every miss on the strip. That order is the whole method: {free_group_url}`,
+      () => `Thirty days, six signals each, graded the same day across 42 states and provinces. The strip shows what happened — matches and misses alike. Grade us yourself, free: {free_group_url}`,
     ])),
   },
 } satisfies Record<string, KindSpec>;

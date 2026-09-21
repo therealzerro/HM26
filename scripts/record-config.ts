@@ -8,7 +8,10 @@
 // was the proof half and goes unposted because a receipts reel with masked
 // receipts is unsatisfying. This kind shows proof that needs no masking: the
 // last 30 graded days as a strip of tiles, gold on matched days, DIM on the
-// misses, and the three structural stats beneath. Cold viewers never saw it.
+// misses, and the process line beneath (⚠ STAT-01 Phase 6, 2026-09-21: the
+// three structural stats were RETIRED — no aggregate match count is a
+// headline, R-A; the strip is what happened, never what it proves).
+// Cold viewers never saw it.
 //
 // ⛔ THE DIM TILES ARE THE DESIGN. Unmatched days are rendered on purpose,
 // stay visible, are never hidden and never removed. The misses on screen are
@@ -44,8 +47,8 @@ export const RECORD_WINDOW_DAYS = 30;
 //   [2.0–2.4]   dissolve (HOOK_DISSOLVE) — body frame 0 cloned under it
 //   [2.4–2.9]   thirty tiles appear together, DIM; range label above
 //   [2.9–5.9]   gold marks land on matched days left→right, ~0.1s apart
-//   [5.9–6.9]   count resolves large beneath:  N OF 30 DAYS
-//   [6.9–8.4]   secondary stats, gold:  E EXACT-ORDER MATCHES · J STATES & PROVINCES
+//   [5.9–6.9]   (retired 9/21 — the "N OF 30 DAYS" count; beat kept as a hold)
+//   [6.9–8.4]   body line, gold, two rows:  SIX SIGNALS · GRADED THE SAME DAY / 42 STATES & PROVINCES
 //   [8.4–9.4]   hold; rightmost tile carries a faint pulse
 //   [9.4–9.8]   dissolve into the endcard
 //   [9.8–16.3]  endcard, free-tier motion set (6.5s after the dissolve)
@@ -58,7 +61,7 @@ export const RECORD_BEATS = {
   marksFrom: 0.9,                    // reel 2.9
   markStep: 0.1,                     // one matched day per ~0.1s, left→right
   marksTo: 3.9,                      // reel 5.9 — the last mark must have landed by here
-  countIn: [3.9, 4.9] as const,      // reel 5.9–6.9
+  countIn: [3.9, 4.9] as const,      // reel 5.9–6.9 (count RETIRED 9/21, STAT-01 Phase 6 — a hold beat now)
   statsIn: [4.9, 6.4] as const,      // reel 6.9–8.4
   pulseFrom: 6.4,                    // reel 8.4 — the rightmost tile's faint pulse
 } as const;
@@ -78,11 +81,27 @@ export const RECORD_RENDER_FPS = 30;
 export const RECORD_GRID = { cols: 10, rows: 3, tile: 88, gap: 12, top: 640 } as const;
 
 // ── Hook card copy (fixed; tier-1 lint fail-closed in render-public-hook) ──
+// STAT-01 Phase 6 (content agent, 2026-09-21) — re-ruled after the NULL
+// result: main "THE RECORD" · "30 DAYS · EVERY MATCH · EVERY MISS" ·
+// "CHECKED AGAINST THE DRAW RESULTS". The card has three slots (eyebrow /
+// big / sub); the eyebrow is 40px + 8px tracking (~32px per char), so the
+// 33-char line cannot sit there — it goes in the sub with the results line
+// (two wrapped rows inside the 900px max-width, the same footprint as the
+// 9/11 sub). "40+ STATES & PROVINCES" leaves the card for the body line.
 export const RECORD_HOOK_COPY = {
-  eyebrow: '40+ STATES & PROVINCES',
-  big: ['THE TRACK', 'RECORD'] as const,
-  sub: 'LAST 30 DAYS · CHECKED AGAINST THE DRAW RESULTS',
+  eyebrow: '30 DAYS',
+  big: ['THE', 'RECORD'] as const,
+  sub: 'EVERY MATCH · EVERY MISS · CHECKED AGAINST THE DRAW RESULTS',
 };
+
+// ── Body line (STAT-01 Phase 6, R-A/R-C) ────────────────────────────────────
+// Replaces "N OF 30 DAYS" + "E EXACT-ORDER MATCHES · J STATES & PROVINCES".
+// No aggregate count is ever a headline (R-A). "42" is the G6 verified count
+// (37 states + 5 provinces, MASTER_AUDIT STAT-01), a constant, not a stat.
+// ⚠ "POSTED BEFORE THE DRAW" is a P2 claim and ships ONLY behind the E-2
+// P2-LINT (every board in the strip pre-cutoff, asserted at render time);
+// until that lint exists the line is the "GRADED THE SAME DAY" form.
+export const RECORD_BODY_LINES = ['SIX SIGNALS · GRADED THE SAME DAY', '42 STATES & PROVINCES'] as const;
 
 // ── Three-digit assert (Phase 0 item 2) — NON-NEGOTIABLE ───────────────────
 // Every stat the body renders (days, of, exact, juris) must be < 100. Days

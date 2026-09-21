@@ -6,8 +6,8 @@
 //   0.0      2.0    frame 0 (black field, brand) — cloned under the dissolve
 //   0.4–0.9  2.4–2.9  thirty tiles appear together, ALL DIM; range label above
 //   0.9–3.9  2.9–5.9  gold marks land on the MATCHED days, left→right, ~0.1s apart
-//   3.9–4.9  5.9–6.9  the count resolves large beneath:  N OF 30 DAYS
-//   4.9–6.4  6.9–8.4  secondary stats, gold:  E EXACT-ORDER MATCHES · J STATES & PROVINCES
+//   3.9–4.9  5.9–6.9  hold (the "N OF 30 DAYS" count-up was RETIRED 9/21 — STAT-01 Phase 6 R-A)
+//   4.9–6.4  6.9–8.4  body line, gold, two rows:  SIX SIGNALS · GRADED THE SAME DAY / 42 STATES & PROVINCES
 //   6.4–7.4  8.4–9.4  hold; the rightmost tile carries a faint pulse
 //
 // ⛔ UNMATCHED DAYS STAY DIM AND VISIBLE. Never hidden, never removed. The
@@ -42,6 +42,7 @@ import {
 } from './reel-record-stats';
 import {
   RECORD_DIR, RECORD_WINDOW_DAYS, RECORD_BODY_DUR, RECORD_BEATS, RECORD_GRID, RECORD_STAT_MAX, RECORD_RENDER_FPS,
+  RECORD_BODY_LINES,
 } from './record-config';
 
 loadEnv({ path: resolve('.env'), quiet: true });
@@ -124,14 +125,20 @@ const GOLD = '#FBBF24';
 
   // ── Strings on the body — tier-1 linted, fail-closed ─────────────────────
   const range = rangeLabel(sum.since, sum.until);
+  // STAT-01 Phase 6 (2026-09-21, content agent, one pass): the count line
+  // ("N OF 30 DAYS") and the stats line ("E EXACT-ORDER MATCHES · J STATES &
+  // PROVINCES") are RETIRED — no aggregate match count is a headline (R-A).
+  // The strip shows what happened; the body line states the process (R-C).
+  // The count GATE (tiles painted vs DAYS) is structural and stays; the
+  // hm_record_* tags stay as metadata (assembler re-assert, never copy).
   const strings = {
     eyebrow: 'LAST 30 DAYS',
     range,
-    count: `${sum.days} OF ${sum.windowDays} DAYS`,
-    // One line at 30px mono + 2px tracking: 45 chars ≈ 900px, inside 1080
-    // with margins (36px + wide separators clipped "PROVINCES" on the first
-    // render — measured at feed width, 2026-09-11).
-    stats: `${sum.straights} EXACT-ORDER ${sum.straights === 1 ? 'MATCH' : 'MATCHES'} · ${sum.juris} STATES & PROVINCES`,
+    // Two rows at 34px mono + 2px tracking (~22px/char): 33 chars ≈ 730px and
+    // 21 chars ≈ 460px, both inside 1080 with margins. The ruled line is one
+    // sentence; at one row it would be ~1,200px and clip (the 9/11 lesson).
+    line1: RECORD_BODY_LINES[0],
+    line2: RECORD_BODY_LINES[1],
     brand: 'HITMASTER ZK6',
   };
   for (const s of Object.values(strings)) {
@@ -177,10 +184,7 @@ const GOLD = '#FBBF24';
     .tile { width: ${G.tile}px; height: ${G.tile}px; border-radius: 12px; box-sizing: border-box;
             background: rgba(255,255,255,0.13); border: 2px solid rgba(255,255,255,0.40); }
     .tile.gold.on { background: ${GOLD}; border-color: ${GOLD}; box-shadow: 0 0 26px ${GOLD}88; }
-    .count { position: absolute; left: 0; right: 0; top: ${G.top + gridH + 78}px; text-align: center; white-space: nowrap; }
-    .count .n { font: 700 196px JBM; letter-spacing: -6px; color: ${GOLD}; text-shadow: 0 0 60px ${GOLD}55; vertical-align: baseline; }
-    .count .of { font: 700 66px JBM; letter-spacing: 6px; color: #ffffff; margin-left: 22px; vertical-align: baseline; }
-    .stats { position: absolute; left: 0; right: 0; top: ${G.top + gridH + 78 + 250}px; text-align: center; font: 500 30px JBM; letter-spacing: 2px; color: ${GOLD}; white-space: nowrap; }
+    .stats { position: absolute; left: 0; right: 0; top: ${G.top + gridH + 110}px; text-align: center; font: 500 34px JBM; letter-spacing: 2px; color: ${GOLD}; white-space: nowrap; line-height: 1.9; }
     .brand { position: absolute; left: 0; right: 0; bottom: 250px; display: flex; justify-content: center; align-items: center; gap: 12px;
              font: 700 34px JBM; letter-spacing: 4px; color: rgba(255,255,255,0.85); }
     .bolt { width: 34px; height: 34px; }
@@ -188,13 +192,11 @@ const GOLD = '#FBBF24';
     <div class="eyebrow" id="eyebrow">${strings.eyebrow}</div>
     <div class="range" id="range">${strings.range}</div>
     <div class="grid" id="grid">${tilesHtml}</div>
-    <div class="count" id="count"><span class="n" id="n">0</span><span class="of">OF ${sum.windowDays} DAYS</span></div>
-    <div class="stats" id="stats">${strings.stats.replace(/&/g, '&amp;')}</div>
+    <div class="stats" id="stats">${strings.line1.replace(/&/g, '&amp;')}<br>${strings.line2.replace(/&/g, '&amp;')}</div>
     <div class="brand"><svg class="bolt" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="${boltPath}" fill="${GOLD}"/></svg>${strings.brand}</div>
     <script>
       // Every frame is a pure function of t. No transitions, no timers.
       const BEATS = ${JSON.stringify(B)};
-      const N = ${sum.days};
       const ease = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
       const span = (t, a, b) => ease((t - a) / (b - a));
       window.__setT = function (t) {
@@ -224,13 +226,8 @@ const GOLD = '#FBBF24';
           }
           el.style.transform = 'scale(' + s.toFixed(4) + ')';
         }
-        // Count: resolves over countIn — counts up 0→N with ease-out, opacity in.
-        const cIn = span(t, BEATS.countIn[0], BEATS.countIn[1]);
-        const count = document.getElementById('count');
-        count.style.opacity = Math.min(1, cIn * 2.5).toFixed(3);
-        count.style.transform = 'translateY(' + ((1 - cIn) * 18).toFixed(2) + 'px)';
-        document.getElementById('n').textContent = String(Math.round(N * cIn));
-        // Stats: fade in over the first 0.5s of statsIn, hold.
+        // (countIn is a hold beat since 9/21 — the count-up was retired.)
+        // Body line: fade in over the first 0.5s of statsIn, hold.
         const sIn = span(t, BEATS.statsIn[0], BEATS.statsIn[0] + 0.5);
         const stats = document.getElementById('stats');
         stats.style.opacity = sIn.toFixed(3);
@@ -278,5 +275,5 @@ const GOLD = '#FBBF24';
   );
   rmSync(framesDir, { recursive: true, force: true });
   const dur = execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${out}"`).toString().trim();
-  console.log(`record body: ${out} · ${dur}s · ${nFrames} frames @${fps}fps · "${strings.count}" · "${strings.stats}" · range "${range}" · feed preview ${feedPng.split('/').pop()}`);
+  console.log(`record body: ${out} · ${dur}s · ${nFrames} frames @${fps}fps · "${strings.line1} / ${strings.line2}" · range "${range}" · feed preview ${feedPng.split('/').pop()}`);
 })().catch(e => { console.error('ABORT(record):', e instanceof Error ? e.message : String(e)); process.exit(1); });

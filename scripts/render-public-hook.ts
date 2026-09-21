@@ -117,26 +117,19 @@ async function alldayReceipts(date: string): Promise<{ total: number; verified: 
 
 /** Card copy. Three shapes, count-only (no rate, no digits, no states):
  *   normal day   → YESTERDAY'S BOARD · "2 of 6" · SIGNALS VERIFIED
- *   miss day (verify_public ONLY) → YESTERDAY'S RECEIPTS · NO MATCHES ·
- *                  ALL SIX MISSED · STILL ON THE RECORD
- *   zero day (allday_public) / no data → EVERY MORNING · GRADED IN THE OPEN
+ *   zero day / no data → EVERY MORNING · GRADED IN THE OPEN (process card)
  * STAT-01 Phase 6 (2026-09-21, R-A): the zero-day shape was LAST 30 DAYS ·
  * "41" · SIGNALS VERIFIED — a rolling count as the headline. Retired.
- * Content agent ruling 1 (9/21 close): the MISS-DAY HOOK — a single day's
- * zero is a record entry, not an aggregate; R-A permits it and a miss shown
- * on purpose is the most credible frame on a public surface. House style
- * spells numbers at tier 1 ("SIX", never "0 of 6"). verify_public only; the
- * allday_public zero day keeps the process card. The card still carries
- * hm_hook_verified=0 / hm_hook_total so the assembler's count gate holds it
- * to the body's "0 OF 6 LANDED". */
+ * ⛔ The content agent's close ruling 1 (9/21) — a MISS-DAY HOOK for
+ * verify_public (NO MATCHES / ALL SIX MISSED · STILL ON THE RECORD) — was
+ * built and then OVERRIDDEN BY THE OPERATOR the same evening: "the operator
+ * will never post a verify that shows a no match day." Removed. The zero-day
+ * verify_public is now not built at all (assemble-verification-reel.ts
+ * skips it before the hook renders); this card only ever sees a zero day on
+ * allday_public, where the process card stands and no count tag is written. */
 function cardCopy(r: { total: number; verified: number; verified30d: number } | null) {
   if (r && r.total > 0 && r.verified > 0) {
     return { eyebrow: VERIFY ? "YESTERDAY'S RECEIPTS" : "YESTERDAY'S BOARD", big: `${r.verified} of ${r.total}`, line: 'SIGNALS VERIFIED', sub: '40+ STATES & PROVINCES · CHECKED AGAINST THE DRAW RESULTS' };
-  }
-  if (VERIFY && r && r.total > 0 && r.verified === 0) {
-    // Two lines at the record card's 150px (a single 236px "NO MATCHES" is
-    // ~1,400px wide and clips — measured 9/21).
-    return { eyebrow: "YESTERDAY'S RECEIPTS", big: 'NO<br>MATCHES', line: '', sub: 'ALL SIX MISSED · STILL ON THE RECORD' };
   }
   return { eyebrow: 'EVERY MORNING', big: 'GRADED', line: 'IN THE OPEN', sub: '40+ STATES & PROVINCES · PUBLISHED BEFORE THE DRAW' };
 }
@@ -159,7 +152,8 @@ function cardCopy(r: { total: number; verified: number; verified30d: number } | 
     : cardCopy(receipts);
   const LINT_TIER = CTA ? 2 : 1;
   const bigLines: string[] = CTA ? [...CTA_HOOK_COPY.big] : RECORD ? [...RECORD_HOOK_COPY.big] : copy.big.split('<br>');
-  // Miss-day card (ruling 1, 9/21): two-line big → the record card's 150px style.
+  // Two-line big → the record card's 150px style (record/CTA cards; a receipts
+  // card never splits since the miss-day shape was removed 9/21).
   const TWO_LINE_GOLD = !CTA && !RECORD && copy.big.includes('<br>');
 
   // Fail-closed lint on every string the card shows (tier 1 public, tier 2 CTA).
@@ -240,9 +234,7 @@ function cardCopy(r: { total: number; verified: number; verified30d: number } | 
     (CTA ? `-metadata hm_hook_kind="cta" ` : RECORD ? `-metadata hm_hook_kind="record" ` : ``) +
     // MKT-75: the count as the card shows it, machine-readable, for the
     // assembler's fail-closed equality gate. Absent on the 30d / no-data shapes.
-    // Miss-day card (verify_public, ruling 1 9/21): 0 of N, so the gate can
-    // hold the card to a body that landed nothing.
-    (receipts && receipts.total > 0 && (receipts.verified > 0 || VERIFY)
+    (receipts && receipts.total > 0 && receipts.verified > 0
       ? `-metadata hm_hook_verified="${receipts.verified}" -metadata hm_hook_total="${receipts.total}" `
       : ``) +
     `"${out}"`,

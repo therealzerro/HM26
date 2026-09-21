@@ -25,7 +25,7 @@
 // Usage: tsx scripts/assemble-verification-reel.ts [YYYYMMDD]
 //   (defaults to yesterday ET; expects ui_verify_<stamp>.mp4 already rendered)
 import { execSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, rmSync } from 'node:fs';
 import { assertBodyDate, assertBodyPublic, readStrikeAt, readLanded } from './reel-provenance';
 import { HOOK_DUR, HOOK_DISSOLVE, VERIFY_PUBLIC_COLD_OPEN_FROM } from './public-hook-config';
 import { probeStrikeOverlay, strikeFilter } from './strike-config';
@@ -97,6 +97,26 @@ if (!existsSync(ui)) {
 // would be stamped with that day's "✓ VERIFIED RESULTS" chip, which on a
 // receipts reel means publishing one day's outcomes as another's.
 assertBodyDate(ui, `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`, MIDDAY ? 'npm run reel:verify-midday' : 'npm run reel:verify');
+// ⛔ OPERATOR RULING 2026-09-21 (overrides the content agent's close ruling 1,
+// the "miss-day hook"): THE OPERATOR WILL NEVER POST A VERIFY THAT SHOWS A
+// NO-MATCH DAY. So a verify_public whose All-Day board landed 0 of N is not
+// built at all — classic open or cold open. This is a SKIP (exit 0), not an
+// abort: `reel:verify` is an &&-chain and the group verify (which has its own
+// rows on such a day — 9/20 had one) must still reach publish-reels, which is
+// existsSync-filtered and registers verify alone. Any earlier same-stamp
+// public final is removed so a re-run can never publish a stale zero-day cut.
+// Group verify is untouched: a day with zero matches on EVERY board already
+// aborts at the renderer (no confirmed matches → no reel).
+if (PUBLIC && !MIDDAY) {
+  const landed0 = readLanded(ui);
+  if (landed0 && landed0.landed === 0) {
+    for (const stale of [join(REELS, `verify_public_${stamp}.mp4`), join(REELS, `verify_public_${stamp}_contact.png`), join(REELS, `verify_public_${stamp}_1x1.mp4`)]) {
+      if (existsSync(stale)) { rmSync(stale, { force: true }); console.log(`NOTE(${KIND}): removed stale ${stale} (zero-day cut must not be published).`); }
+    }
+    console.log(`SKIP(${KIND}): the All-Day board landed ${landed0.landed} of ${landed0.total} for ${stamp} — OPERATOR RULING 9/21: a verify that shows a no-match day is never posted, so it is never built. Group verify continues; no verify_public today.`);
+    process.exit(0);
+  }
+}
 // MKT-40: a full-fidelity body posing as public would carry real digits onto
 // a public feed — the tag is written by the renderer's --public path only.
 if (PUBLIC) assertBodyPublic(ui, 'tsx scripts/render-verification-reel.ts --public');

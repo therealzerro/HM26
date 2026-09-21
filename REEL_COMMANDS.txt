@@ -958,5 +958,6 @@ GOOD TO KNOW
 # "GRADED THE SAME DAY" form with the failing keys in a NOTE (never an abort).
 npx tsx scripts/render-record-body.ts 20260920 --three-row            # Stage 2 three-row body (one row per board, histories re-grade) → record_body_<stamp>_three_row.mp4 + _three_row_feed.png
 npx tsx scripts/assemble-record-reel.ts 20260920 --three-row --preview # Stage 2 preview cut → record_public_<stamp>_three_row_preview.mp4 (+ contact sheet); NON-preview aborts until RECORD_THREE_ROW_FROM is set in record-config.ts
-npx tsx scripts/render-public-hook.ts 20260920 /tmp/hook.mp4 --kind=verify_public  # miss-day hook fires by itself on an All-Day 0-of-6 day (NO MATCHES / ALL SIX MISSED · STILL ON THE RECORD)
+# ⛔ OPERATOR RULING 9/21 (late): a verify that shows a NO-MATCH day is NEVER posted → never built. `assemble-verification-reel.ts --variant=public` SKIPS (exit 0) when the body's hm_landed is "0 of N"; group verify still registers. The miss-day hook (NO MATCHES / ALL SIX MISSED) was built and removed the same evening — do not re-add.
+npx tsx scripts/render-public-hook.ts 20260920 /tmp/hook.mp4 --kind=verify_public  # on an All-Day 0-of-6 day this now renders the process card with NO count tag (the assembler never reaches it on such a day)
 npm run spot-check:draws                                               # CONFIG-19 weekly draw-row sample (not a reel command; listed so the Sunday routine is in one place)

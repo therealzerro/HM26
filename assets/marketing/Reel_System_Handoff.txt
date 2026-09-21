@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-21 · v7.9
+Content Agent Handoff · 2026-09-21 · v7.10
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.9 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.10 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -44,9 +44,13 @@ A. DAILY OUTPUT (operator-triggered `npm run reel:daily`, never scheduled):
        (today only 8/27 allday+midday fail; clears on the 9/27 run or on
        restore). Stage 2 three-row strip BUILT behind --three-row, PREVIEW
        ONLY until RECORD_THREE_ROW_FROM is set on the operator's eyeball
-       (9/20 preview + feed still committed). verify_public zero day =
-       the MISS-DAY HOOK (NO MATCHES / ALL SIX MISSED · STILL ON THE
-       RECORD). RULED:
+       (9/20 preview + feed still committed). ⛔ v7.10: verify_public
+       zero day = NO REEL. Your ruling 1 (the miss-day hook) was built
+       and then OVERRIDDEN BY THE OPERATOR the same evening: "the
+       operator will never post a verify that shows a no match day."
+       The hook shape is removed; the public assembler skips the cut
+       when the All-Day board landed 0 of N (group verify unaffected).
+       Do not re-propose a miss-day public surface. RULED:
        BOTH public cuts daily — allday_public keeps its morning slot,
        verify_public stays registered and leaves the daily schedule. The
        9/9→9/23 window confound is ACCEPTED BY THE OPERATOR. Anatomy in
@@ -620,6 +624,36 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
       free comments 4.3/day · page-level views still not held (daily export
       owed). None of it is quotable in copy.
 
+================================================================================
+================================================================================
+================================================================================
+================================================================================
+WHAT CHANGED IN v7.10 (2026-09-21, late — OPERATOR RULING, one item. Era
+record — never retro-edited.)
+================================================================================
+  1. YOUR RULING 1 (THE MISS-DAY HOOK) IS OVERRIDDEN BY THE OPERATOR, in
+     the operator's words: "the operator will never post a verify that
+     shows a no match day." Executed the same evening it was built:
+       - render-public-hook.ts: the NO MATCHES / ALL SIX MISSED · STILL ON
+         THE RECORD shape is removed. A zero day on this card is now only
+         ever allday_public's, and it keeps the process card (no count tag).
+       - assemble-verification-reel.ts --variant=public: when the body's
+         hm_landed reads "0 of N" the public cut is NOT BUILT — a SKIP with
+         exit 0, not an abort, because reel:verify is an &&-chain and the
+         group verify (which has its own rows on such a day; 9/20 had one)
+         must still reach publish-reels. Any earlier same-stamp public
+         final is removed so a re-run can never publish a stale zero-day
+         cut. Classic open AND cold open. Group verify untouched (an all-
+         boards zero still aborts at the renderer, precondition 6).
+       - Verified read-only against 9/20: ui_verify_public_20260920.mp4
+         carries hm_landed = 0 of 6 → the gate would skip that day. The
+         registered 9/20 verify_public cut (built 9/21 morning, classic
+         open) still exists; the operator does not post it.
+     Standing rule from here: NO PUBLIC VERIFY ON A ZERO DAY, on any
+     surface, any open. Please do not re-propose the miss-day frame; the
+     record strip (dim tiles = misses, MKT-79) remains the only place a
+     miss is shown on purpose, and that is by your own earlier ruling.
+     Everything else in v7.9 stands (ruling 2 / PROCESS-02, E-2, Stage 2).
 ================================================================================
 ================================================================================
 ================================================================================

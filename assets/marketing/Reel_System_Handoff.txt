@@ -654,6 +654,19 @@ record — never retro-edited.)
      record strip (dim tiles = misses, MKT-79) remains the only place a
      miss is shown on purpose, and that is by your own earlier ruling.
      Everything else in v7.9 stands (ruling 2 / PROCESS-02, E-2, Stage 2).
+  2. STRIP GUARD — CONFIRMED IN CODE (your ask, 9/21 late). The record
+     body never looks at which verify cuts were built. render-record-body
+     .ts enumerates all 30 calendar dates from the window start (a for-
+     loop over RECORD_WINDOW_DAYS, no gaps possible), then paints each
+     tile from the ledger: the classic strip from adaptive_tracking via
+     the track-record screen's own query + summarize (gold = any graded
+     match that day, else dim); the --three-row strip re-grades every
+     board straight from histories. marketing_reels / verify_reels are
+     not read by either path. A zero-match day therefore always occupies
+     its tile, dim, and the render side count gate (gold tiles = DAYS)
+     plus the all-matched REJECT keep it that way. Proof on the 9/20
+     body: hm_record_of=30, marks 29, one dim tile, window AUG 22 – SEP 20
+     — rendered the same morning the 9/20 verify_public went unposted.
 ================================================================================
 ================================================================================
 ================================================================================

@@ -102,6 +102,36 @@ export const RECORD_HOOK_COPY = {
 // P2-LINT (every board in the strip pre-cutoff, asserted at render time);
 // until that lint exists the line is the "GRADED THE SAME DAY" form.
 export const RECORD_BODY_LINES = ['SIX SIGNALS · GRADED THE SAME DAY', '42 STATES & PROVINCES'] as const;
+/** ENG-BOARD-FREEZE-01 P2-LINT (9/21, approved): when EVERY board in the
+ *  30-day window (3 scopes × 30 days) has a pre-cutoff timestamp, the body
+ *  line takes this form automatically; any failure falls back to
+ *  RECORD_BODY_LINES with the failing keys in a NOTE. Never an abort. */
+export const RECORD_BODY_LINES_P2 = ['SIX SIGNALS · POSTED BEFORE THE DRAW', '42 STATES & PROVINCES'] as const;
+/** The G4 cutoff (10:00 ET midday/allday, 18:00 ET evening). */
+export const RECORD_CUTOFF_ET_HOUR: Record<string, number> = { midday: 10, allday: 10, evening: 18 };
+
+// ── STAGE 2 — THE THREE-ROW STRIP (content agent D-2, 9/21; APPROVED behind a
+// preview flag; the operator eyeballs a feed-width still before it goes live).
+// One row per board (ALL-DAY / MIDDAY / EVENING), 30 tiles each, brightness =
+// that board's BOX matches that day (0 dim · 1 lit · 2+ bright), a small
+// marker for a straight, no digits. Layout = three stacked 10×3 blocks (a
+// single 30-column matrix needs ≤28px tiles → ~10px at feed width, the layout
+// the 9/11 measurement rejected). Tiles land per DAY (a column of three per
+// beat) so the 2.9–5.9 window still holds 30 beats.
+// ⛔ DATA: per-board per-day COUNTS are re-graded from `histories` with the
+// STAT-01 ledger semantics (each board vs its own session pool; All-Day vs
+// every draw) — `adaptive_tracking` keeps ONE state per pick and cannot give
+// the 2+ tier. The screen's summary is still fetched and reported for parity.
+export const RECORD_THREE_ROW = {
+  cols: 10, rows: 3, tile: 60, gap: 8,
+  blockTop: 560, blockPitch: 262,        // three blocks: 560 / 822 / 1084 → last block ends 1280 (labels at 520/782/1044; range line ends ~508)
+  label: 26,                             // scope label above each block
+  scopes: ['allday', 'midday', 'evening'] as const,
+  labels: { allday: 'ALL-DAY', midday: 'MIDDAY', evening: 'EVENING' } as Record<string, string>,
+} as const;
+/** YYYYMMDD from which `--three-row` may build a NON-preview (publishable)
+ *  cut; null = preview only. Flip only on the operator's eyeball. */
+export const RECORD_THREE_ROW_FROM: string | null = null;
 
 // ── Three-digit assert (Phase 0 item 2) — NON-NEGOTIABLE ───────────────────
 // Every stat the body renders (days, of, exact, juris) must be < 100. Days

@@ -28,12 +28,12 @@ import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { HOOK_DUR, HOOK_DISSOLVE } from './public-hook-config';
-import { assertBodyDate, assertBodyPublic, readRecordStats, recordTagArgs, DATE_TAG, PUBLIC_TAG } from './reel-provenance';
+import { assertBodyDate, assertBodyPublic, readRecordStats, recordTagArgs, readRecordExtras, recordExtraTagArgs, DATE_TAG, PUBLIC_TAG } from './reel-provenance';
 import { resolveEndcard } from './reel-endcard';
 import { bedWindow, BED_TARGET_RMS, BED_MIX_DB, MAX_BED_CORRECTION, type BedWindow } from './reel-bed';
 import {
   RECORD_KIND, RECORD_DIR, RECORD_BODY_DUR, RECORD_END_DISSOLVE, RECORD_CARD, RECORD_TOTAL, RECORD_FURNITURE,
-  RECORD_STAT_MAX, RECORD_VOICE_DEFAULT, RECORD_VOICE_FILE, RECORD_VOICE_START, RECORD_VOICE_LAST_WORD_MAX, type RecordVoice,
+  RECORD_STAT_MAX, RECORD_VOICE_DEFAULT, RECORD_VOICE_FILE, RECORD_VOICE_START, RECORD_VOICE_LAST_WORD_MAX, RECORD_THREE_ROW_FROM, type RecordVoice,
 } from './record-config';
 
 const ASSETS = resolve('assets/marketing');
@@ -54,10 +54,17 @@ const flagVal = (name: string): string | undefined => process.argv.find(a => a.s
 const VOICE = (flagVal('voice') ?? RECORD_VOICE_DEFAULT) as RecordVoice;
 if (VOICE !== 'bed' && VOICE !== 'carrier') { console.error(`ABORT(${RECORD_KIND}): --voice=${VOICE} — known: bed | carrier.`); process.exit(1); }
 const PREVIEW = process.argv.includes('--preview');
+// Stage 2 (D-2, 9/21): the three-row body. Preview-only until RECORD_THREE_ROW_FROM
+// is set (the operator's eyeball flips it); a non-preview build before that aborts.
+const THREE_ROW = process.argv.includes('--three-row');
+if (THREE_ROW && !PREVIEW && (!RECORD_THREE_ROW_FROM || stamp < RECORD_THREE_ROW_FROM)) {
+  console.error(`ABORT(${RECORD_KIND}): --three-row is PREVIEW-ONLY (RECORD_THREE_ROW_FROM=${RECORD_THREE_ROW_FROM ?? 'null'}). Add --preview, or set RECORD_THREE_ROW_FROM in record-config.ts after the operator's eyeball.`);
+  process.exit(1);
+}
 
 // ── Body: existence, provenance, the count gate ─────────────────────────────
-const body = join(REELS, `record_body_${stamp}.mp4`);
-const rerun = `npx tsx scripts/render-record-body.ts ${stamp}`;
+const body = join(REELS, `record_body_${stamp}${THREE_ROW ? '_three_row' : ''}.mp4`);
+const rerun = `npx tsx scripts/render-record-body.ts ${stamp}${THREE_ROW ? ' --three-row' : ''}`;
 if (!existsSync(body)) { console.error(`ABORT(${RECORD_KIND}): ${body} not found — run the body render first (${rerun}).`); process.exit(1); }
 assertBodyDate(body, isoDate, rerun);
 assertBodyPublic(body, rerun);
@@ -72,6 +79,11 @@ for (const [k, v] of Object.entries({ days: st.days, of: st.of, exact: st.exact,
 }
 if (st.days === st.of) console.log(`NOTE(${RECORD_KIND}): ⚠ all ${st.of} tiles gold — the renderer was run with --allow-all-matched; there is no dim tile on this cut.`);
 console.log(`NOTE(${RECORD_KIND}): COUNT GATE PASS — ${st.marks} gold tiles = ${st.days} OF ${st.of} · ${st.exact} exact-order · ${st.juris} states & provinces · ${st.range}.`);
+// 9/21: P2-LINT + layout tags travel with the body; re-asserted here and copied onto the final.
+const extras = readRecordExtras(body);
+if (!extras) { console.error(`ABORT(${RECORD_KIND}): the body carries no hm_record_p2 / hm_record_layout tags — pre-9/21 render. Re-render: ${rerun}`); process.exit(1); }
+if ((extras.layout === 'three_row') !== THREE_ROW) { console.error(`ABORT(${RECORD_KIND}): body layout is ${extras.layout} but this build is ${THREE_ROW ? 'three-row' : 'classic'}. Re-render: ${rerun}`); process.exit(1); }
+console.log(`NOTE(${RECORD_KIND}): P2-LINT ${extras.p2 === '1' ? 'PASS — body line "POSTED BEFORE THE DRAW"' : `FAIL (${extras.p2fail || 'keys not recorded'}) — body line "GRADED THE SAME DAY"`} · layout ${extras.layout}${extras.rows ? ` · rows ${extras.rows}` : ''}.`);
 const bodyDur = parseFloat(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${body}"`).toString());
 if (Math.abs(bodyDur - RECORD_BODY_DUR) > 0.1) { console.error(`ABORT(${RECORD_KIND}): body is ${bodyDur.toFixed(2)}s, expected ${RECORD_BODY_DUR}s.`); process.exit(1); }
 
@@ -123,7 +135,7 @@ function humBed(inLabel: string, len: number, outLabel: string, b: BedWindow): s
   return f + `[bl]atrim=0:${len.toFixed(2)},asetpts=PTS-STARTPTS,volume=${(correction + BED_MIX_DB).toFixed(2)}dB,afade=t=in:st=0:d=0.6,afade=t=out:st=${(len - RECORD_END_DISSOLVE).toFixed(2)}:d=${RECORD_END_DISSOLVE}${outLabel}`;
 }
 
-const outBase = `${RECORD_KIND}_${stamp}${PREVIEW ? '_preview' : ''}`;
+const outBase = `${RECORD_KIND}_${stamp}${THREE_ROW ? '_three_row' : ''}${PREVIEW ? '_preview' : ''}`;
 const out = join(REELS, `${outBase}.mp4`);
 const sheet = join(REELS, `${outBase}_contact.png`);
 const msCard = Math.round(cardAt * 1000);
@@ -151,7 +163,7 @@ sh(
   `-map "[v]" -map "[a]" -t ${total} -r 60 -c:v libx264 -profile:v high -crf 18 -pix_fmt yuv420p ` +
   `-c:a aac -ar 48000 -movflags +faststart+use_metadata_tags ` +
   `-metadata ${DATE_TAG}="${isoDate}" -metadata ${PUBLIC_TAG}="1" -metadata hm_cut="record" -metadata hm_record_voice="${VOICE}" ` +
-  recordTagArgs(st) + ` "${out}"`,
+  recordTagArgs(st) + recordExtraTagArgs(extras) + ` "${out}"`,
 );
 
 // Contact sheet — frame one, the dim strip, mid-fill, the resolved count + stats, the settled endcard.

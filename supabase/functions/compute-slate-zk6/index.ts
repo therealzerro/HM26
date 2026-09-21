@@ -34,6 +34,17 @@ const svcHeaders = () => ({
   'Content-Type':  'application/json',
 });
 
+/** ENG-BOARD-FREEZE-01: the STAT-01 G4 cutoff for a (scope, ET calendar day)
+ *  as a UTC instant. 10:00 ET midday/allday, 18:00 ET evening. The ET offset
+ *  is read from the zone for that day (4 in EDT, 5 in EST) — never fixed. */
+const CUTOFF_ET_HOUR: Record<string, number> = { midday: 10, allday: 10, evening: 18 };
+function cutoffUtcMs(scope: string, dateEt: string): number {
+  const noonUtc = Date.parse(`${dateEt}T12:00:00Z`);
+  const etHour = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }).format(new Date(noonUtc)));
+  const offset = 12 - (etHour % 24);
+  return Date.parse(`${dateEt}T00:00:00Z`) + ((CUTOFF_ET_HOUR[scope] ?? 10) + offset) * 3600_000;
+}
+
 async function sbGet<T>(path: string): Promise<T> {
   const r = await fetch(SUPABASE_URL + path, { headers: svcHeaders() });
   if (!r.ok) throw new Error(r.status + ': ' + await r.text());
@@ -1324,12 +1335,40 @@ async function computeSlate(params: {
     ...(is_supplement ? { file_meta: JSON.stringify({ is_supplement: true, supplement_reason: 'post_hit_refresh', excluded_combo_sets: excludeComboSets }) } : {}),
   };
 
+  // ENG-BOARD-FREEZE-01 (2026-09-21, STAT-01 §5 E-2, operator-approved): a
+  // regen AFTER THE CUTOFF (10:00 ET midday/allday, 18:00 ET evening — the
+  // STAT-01 G4 rule) NEVER replaces a board that was written before it. The
+  // pre-cutoff board stays live (subscribers keep what they were shown; the
+  // grader grades what was published); the regen is written as its own row
+  // with post_cutoff=true AND deleted_at=now — born non-live, so every reader
+  // that filters deleted_at IS NULL (run-hit-detection, useSnapshot, the
+  // track record, backfills, the STAT ledger) ignores it without a change.
+  // daily_intelligence / adaptive_tracking are not rewritten for a frozen
+  // regen either. A key with NO pre-cutoff active board (first generation of
+  // the day, late workflow) behaves exactly as before.
+  const cutoffMs = cutoffUtcMs(scope, effectiveDate);
+  let frozen = false;
+  if (!is_supplement && Date.parse(now) >= cutoffMs) {
+    try {
+      const active = await sbGet<Array<{ id: string; updated_at_et: string | null }>>(
+        `/rest/v1/slate_snapshots?scope=eq.${encodeURIComponent(scope)}&slate_date=eq.${effectiveDate}&deleted_at=is.null&mode=neq.zk30&select=id,updated_at_et&order=updated_at_et.desc&limit=10`,
+      );
+      frozen = Array.isArray(active) && active.some(r => r.updated_at_et != null && Date.parse(r.updated_at_et) < cutoffMs);
+    } catch (e) { console.warn('[edge-zk6] freeze check failed (treating as not frozen):', String(e)); }
+  }
+  if (frozen) {
+    payload.post_cutoff = true;
+    payload.deleted_at = now;
+    console.log(`[edge-zk6] ENG-BOARD-FREEZE-01: ${scope} ${effectiveDate} regen at ${now} is after the cutoff and a pre-cutoff board is live — written as post_cutoff, NOT live.`);
+  }
+
   // Soft-delete prior same-scope snapshot for the slate's effective date
-  // (non-supplement only). Filtering on slate_date matches engines/zk6.ts and
-  // correctly handles past-date regens (e.g. backfilling yesterday's slate).
-  // Prior implementation used a UTC+4h window on updated_at_et which only
-  // worked for "today" and was off by an hour during EST (Nov–Mar).
-  if (!is_supplement) {
+  // (non-supplement only, and never when the regen is frozen). Filtering on
+  // slate_date matches engines/zk6.ts and correctly handles past-date regens
+  // (e.g. backfilling yesterday's slate). Prior implementation used a UTC+4h
+  // window on updated_at_et which only worked for "today" and was off by an
+  // hour during EST (Nov–Mar).
+  if (!is_supplement && !frozen) {
     try {
       await sbPatch(
         `/rest/v1/slate_snapshots?scope=eq.${encodeURIComponent(scope)}&slate_date=eq.${effectiveDate}&deleted_at=is.null`,
@@ -1379,7 +1418,9 @@ async function computeSlate(params: {
     }
   }
 
-  // Write daily_intelligence (non-supplement only). on_slate is embedded in the
+  // Write daily_intelligence (non-supplement only; skipped for a FROZEN
+  // post-cutoff regen — ENG-BOARD-FREEZE-01 — so the published top-30 and the
+  // K6 primary adaptive_tracking rows stay those of the live board). on_slate is embedded in the
   // INSERT — no separate PATCH needed. Any K6 combo that didn't make top30 (because
   // pass-5 cooldown relaxation can pick combos outside the top30) gets appended as
   // an extra row past rank 30 so the Intelligence screen still finds it.
@@ -1402,7 +1443,7 @@ async function computeSlate(params: {
   // their box-set was excluded by the today-hit filter) get appended past the
   // top30 + extra-K6 ranks so the Track Record band's hit_box=true count and the
   // Intel screen's "hit chip" still find them.
-  if (!is_supplement) {
+  if (!is_supplement && !frozen) {
     try {
       const k6ComboSet = new Set(k6.map(x => x.combo));
       const top30Combos = new Set(top30PreRail.map(p => p.combo));
@@ -1532,6 +1573,9 @@ async function computeSlate(params: {
 
   return {
     id: savedId, scope,
+    // ENG-BOARD-FREEZE-01: true when this regen was written non-live because a
+    // pre-cutoff board is already published for the key.
+    post_cutoff_frozen: frozen,
     horizons_present_json: horizonsMeta,
     weights_json: { ...weights, _mode: weightsKey },
     top_k_straights_json: topKStraights,

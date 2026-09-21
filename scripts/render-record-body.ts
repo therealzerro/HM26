@@ -25,10 +25,20 @@
 // Deterministic: every frame is a pure function of (stats, t). No CSS
 // animations, no clocks — frame f is `setT(f / fps)` then a screenshot.
 //
-// Usage: tsx scripts/render-record-body.ts [YYYYMMDD] [--allow-all-matched] [--parity]
+// Usage: tsx scripts/render-record-body.ts [YYYYMMDD] [--allow-all-matched] [--parity] [--three-row]
 //   YYYYMMDD = the window's LAST day = the reel's stamp (default: yesterday ET).
 //   --parity prints the same computation over the SCREEN's own 30d window
 //   (today−29..today) so the operator can compare it with the app's band.
+//   --three-row (Stage 2, D-2 9/21, PREVIEW): one row per board, brightness =
+//   that board's BOX matches that day, re-graded from histories; writes
+//   record_body_<stamp>_three_row.mp4 + a feed-width still, never the serving
+//   body. See RECORD_THREE_ROW in record-config.ts.
+//
+// P2-LINT (ENG-BOARD-FREEZE-01, always on): every live board in the window is
+// checked against its cutoff (10:00 ET midday/allday, 18:00 ET evening). All
+// pre-cutoff → the body line reads "POSTED BEFORE THE DRAW"; any failure →
+// the "GRADED THE SAME DAY" form with the failing keys in a NOTE. Never an
+// abort; the result travels in hm_record_p2 / hm_record_p2_fail.
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -36,13 +46,13 @@ import { join, resolve } from 'node:path';
 import { chromium } from 'playwright';
 import { config as loadEnv } from 'dotenv';
 import { lintCaption } from '../lib/social/brandLint';
-import { provenanceArgs, recordTagArgs } from './reel-provenance';
+import { provenanceArgs, recordTagArgs, recordExtraTagArgs } from './reel-provenance';
 import {
   fetchTrackRecordSummary, recordWindow, rangeLabel, screenWindow, screenDaysDenominator,
 } from './reel-record-stats';
 import {
   RECORD_DIR, RECORD_WINDOW_DAYS, RECORD_BODY_DUR, RECORD_BEATS, RECORD_GRID, RECORD_STAT_MAX, RECORD_RENDER_FPS,
-  RECORD_BODY_LINES,
+  RECORD_BODY_LINES, RECORD_BODY_LINES_P2, RECORD_CUTOFF_ET_HOUR, RECORD_THREE_ROW,
 } from './record-config';
 
 loadEnv({ path: resolve('.env'), quiet: true });
@@ -59,10 +69,22 @@ function etDate(offsetDays: number): string {
 }
 const positional = process.argv.slice(2).filter(a => !a.startsWith('--'));
 const stamp = positional[0] ?? etDate(-1).replace(/-/g, '');
-if (!/^\d{8}$/.test(stamp)) { console.error('Usage: tsx scripts/render-record-body.ts [YYYYMMDD] [--allow-all-matched] [--parity]'); process.exit(1); }
+if (!/^\d{8}$/.test(stamp)) { console.error('Usage: tsx scripts/render-record-body.ts [YYYYMMDD] [--allow-all-matched] [--parity] [--three-row]'); process.exit(1); }
 const untilISO = `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`;
 const ALLOW_ALL = process.argv.includes('--allow-all-matched');
 const PARITY = process.argv.includes('--parity');
+const THREE_ROW = process.argv.includes('--three-row');
+
+/** The G4 cutoff for (scope, ET day) as a UTC instant; ET offset read from the zone. */
+function cutoffUtcMs(scope: string, dateEt: string): number {
+  const noonUtc = Date.parse(`${dateEt}T12:00:00Z`);
+  const etHour = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }).format(new Date(noonUtc)));
+  return Date.parse(`${dateEt}T00:00:00Z`) + ((RECORD_CUTOFF_ET_HOUR[scope] ?? 10) + (12 - (etHour % 24))) * 3600_000;
+}
+const toComboSet = (d: string) => '{' + d.split('').sort().join(',') + '}';
+interface Pick { combo: string; bestOrder: string | null; comboSet: string }
+interface Board { scope: string; date: string; writtenMs: number; picks: Pick[] }
+interface Draw { id: string; date_et: string; session: string; jurisdiction: string; result_digits: string; comboset_sorted: string }
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const ANON = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
@@ -80,6 +102,47 @@ const GOLD = '#FBBF24';
 (async () => {
   const win = recordWindow(untilISO, RECORD_WINDOW_DAYS);
   const sum = await fetchTrackRecordSummary(sbGet, win.since, win.until);
+
+  // ── Boards in the window (P2-LINT input; three-row grading input) ────────
+  // The LIVE board per (scope, date) = latest active balanced national snapshot,
+  // the same rows the app and the grader read (anon + RLS).
+  const snapRows = await sbGet<Array<{ scope: string; slate_date: string; updated_at_et: string | null; top_k_straights_json: any }>>(
+    `/rest/v1/slate_snapshots?select=scope,slate_date,updated_at_et,top_k_straights_json&deleted_at=is.null&mode=eq.balanced&jurisdiction=is.null` +
+    `&scope=in.(midday,evening,allday)&slate_date=gte.${win.since}&slate_date=lte.${win.until}&order=slate_date.asc,scope.asc,updated_at_et.desc&limit=1000`,
+  );
+  const boards = new Map<string, Board>();   // `${scope}|${date}` → live board
+  for (const s of Array.isArray(snapRows) ? snapRows : []) {
+    const key = `${s.scope}|${s.slate_date}`;
+    if (boards.has(key)) continue;           // ordered updated_at_et DESC → first = latest
+    const picks: Pick[] = [];
+    for (const p of Array.isArray(s.top_k_straights_json) ? s.top_k_straights_json : []) {
+      const combo = String(p?.combo ?? '');
+      if (!/^\d{3}$/.test(combo)) continue;
+      const bestOrder = typeof p?.bestOrder === 'string' && /^\d{3}$/.test(p.bestOrder) ? p.bestOrder : null;
+      picks.push({ combo, bestOrder, comboSet: String(p?.comboSet ?? p?.normKey ?? toComboSet(combo)) });
+    }
+    const writtenMs = s.updated_at_et ? Date.parse(s.updated_at_et) : NaN;
+    boards.set(key, { scope: s.scope, date: s.slate_date, writtenMs, picks });
+  }
+
+  // ── P2-LINT (ENG-BOARD-FREEZE-01) — never an abort ───────────────────────
+  const p2Fail: string[] = [];
+  {
+    const d0 = new Date(win.since + 'T12:00:00Z');
+    for (let i = 0; i < sum.windowDays; i++) {
+      const d = new Date(d0); d.setUTCDate(d.getUTCDate() + i);
+      const date = d.toISOString().slice(0, 10);
+      for (const scope of ['allday', 'midday', 'evening']) {
+        const b = boards.get(`${scope}|${date}`);
+        if (!b) { p2Fail.push(`${scope}/${date}:no_board`); continue; }
+        if (!Number.isFinite(b.writtenMs) || b.writtenMs >= cutoffUtcMs(scope, date)) p2Fail.push(`${scope}/${date}:after_cutoff`);
+      }
+    }
+  }
+  const p2Pass = p2Fail.length === 0;
+  console.log(p2Pass
+    ? `NOTE(record): P2-LINT PASS — every live board in ${win.since} → ${win.until} was written before its cutoff; body line = "${RECORD_BODY_LINES_P2[0]}".`
+    : `NOTE(record): P2-LINT FAIL on ${p2Fail.length} key(s): ${p2Fail.join(', ')} — body line stays "${RECORD_BODY_LINES[0]}" (ENG-BOARD-FREEZE-01: restore the pre-cutoff originals or wait for the window to roll).`);
   console.log(`NOTE(record): window ${sum.since} → ${sum.until} (${sum.windowDays} days) · matches ${sum.matches} · exact-order ${sum.straights} · days ${sum.days}/${sum.windowDays} · jurisdictions ${sum.juris}${sum.truncated ? ' · TRUNCATED' : ''}`);
 
   if (PARITY) {
@@ -137,10 +200,11 @@ const GOLD = '#FBBF24';
     // Two rows at 34px mono + 2px tracking (~22px/char): 33 chars ≈ 730px and
     // 21 chars ≈ 460px, both inside 1080 with margins. The ruled line is one
     // sentence; at one row it would be ~1,200px and clip (the 9/11 lesson).
-    line1: RECORD_BODY_LINES[0],
-    line2: RECORD_BODY_LINES[1],
+    line1: (p2Pass ? RECORD_BODY_LINES_P2 : RECORD_BODY_LINES)[0],
+    line2: (p2Pass ? RECORD_BODY_LINES_P2 : RECORD_BODY_LINES)[1],
     brand: 'HITMASTER ZK6',
   };
+  const extraTags = { p2: p2Pass ? '1' as const : '0' as const, p2fail: p2Fail.join(' ').slice(0, 900), layout: THREE_ROW ? 'three_row' as const : 'classic' as const, rows: '' };
   for (const s of Object.values(strings)) {
     const res = lintCaption(s, 1);
     const blocking = res.violations.filter(v => v.blocking);
@@ -171,27 +235,109 @@ const GOLD = '#FBBF24';
   const tilesHtml = dates.map((d, i) =>
     `<div class="tile${matched[i] ? ' gold' : ' dim'}${i === dates.length - 1 ? ' last' : ''}" data-i="${i}" data-land="${landAt[i] ?? ''}"></div>`).join('');
 
+  // ── STAGE 2 — three-row grading from histories (ledger semantics) ────────
+  // Each board vs its OWN pool: midday board vs midday draws, evening vs
+  // evening, All-Day vs every draw that day. BOX = comboset equality, STRAIGHT
+  // = digits equal bestOrder ?? combo. Count = draw EVENTS matched (the 2+ tier
+  // that stored flags cannot give — adaptive_tracking keeps one state per pick).
+  const T = RECORD_THREE_ROW;
+  type Cell = { count: number; straight: boolean; noBoard: boolean };
+  const cells = new Map<string, Cell>();        // `${scope}|${date}`
+  const rowLit: Record<string, number> = { allday: 0, midday: 0, evening: 0 };
+  const rowStraight: Record<string, number> = { allday: 0, midday: 0, evening: 0 };
+  let anyDays = 0, exact3 = 0;
+  const juris3 = new Set<string>();
+  let landStep3 = 0;
+  let expectedOn = 0;
+  if (THREE_ROW) {
+    const draws: Draw[] = [];
+    for (let offset = 0; ; offset += 1000) {
+      const page = await sbGet<Draw[]>(`/rest/v1/histories?select=id,date_et,session,jurisdiction,result_digits,comboset_sorted&date_et=gte.${win.since}&date_et=lte.${win.until}&order=date_et.asc,id.asc&limit=1000&offset=${offset}`);
+      if (!Array.isArray(page) || page.length === 0) break;
+      draws.push(...page);
+      if (page.length < 1000) break;
+    }
+    const byDate = new Map<string, Draw[]>();
+    for (const d of draws) (byDate.get(d.date_et) ?? byDate.set(d.date_et, []).get(d.date_et)!).push(d);
+    for (const date of dates) {
+      let any = false;
+      for (const scope of T.scopes) {
+        const b = boards.get(`${scope}|${date}`);
+        const cell: Cell = { count: 0, straight: false, noBoard: !b };
+        if (b) {
+          const pool = (byDate.get(date) ?? []).filter(d => scope === 'allday' || d.session === scope);
+          const sets = new Set(b.picks.map(p => p.comboSet));
+          const straights = new Set(b.picks.map(p => p.bestOrder ?? p.combo));
+          for (const d of pool) {
+            if (sets.has(d.comboset_sorted)) { cell.count++; juris3.add(d.jurisdiction); }
+            if (straights.has(d.result_digits)) { cell.straight = true; exact3++; }
+          }
+        }
+        cells.set(`${scope}|${date}`, cell);
+        if (cell.count > 0) { rowLit[scope]++; any = true; expectedOn++; }
+        if (cell.straight) rowStraight[scope]++;
+      }
+      if (any) anyDays++;
+    }
+    landStep3 = Math.min(B.markStep, (B.marksTo - B.marksFrom - 0.25) / (dates.length - 1));
+    const noBoardKeys = [...cells.entries()].filter(([, c]) => c.noBoard).map(([k]) => k);
+    console.log(`NOTE(record/three-row): draws ${draws.length} · rows lit allday ${rowLit.allday} · midday ${rowLit.midday} · evening ${rowLit.evening} of ${dates.length} · any-board days ${anyDays} · straights ${exact3} · jurisdictions ${juris3.size}${noBoardKeys.length ? ` · NO BOARD on ${noBoardKeys.join(', ')}` : ''}.`);
+    console.log(`PARITY(record/three-row): screen summary says days ${sum.days} · straights ${sum.straights} · juris ${sum.juris}; histories re-grade says days ${anyDays} · straights ${exact3} · juris ${juris3.size} (stored flags keep ONE state per pick — the delta is the BUG-162 class, expected).`);
+    if (anyDays === dates.length && !ALLOW_ALL) { console.error(`ABORT(record/three-row): every day has a lit tile in some row — no fully dim day. Pass --allow-all-matched for a genuine 30 of 30.`); process.exit(1); }
+    if (anyDays < 1) { console.error('ABORT(record/three-row): no lit tile anywhere — nothing to show.'); process.exit(1); }
+    for (const [k, v] of Object.entries({ days: anyDays, exact: exact3, juris: juris3.size })) {
+      if (v > RECORD_STAT_MAX) { console.error(`ABORT(record/three-row): THREE-DIGIT ASSERT — "${k}" = ${v}.`); process.exit(1); }
+    }
+    for (const lbl of Object.values(T.labels)) {
+      const bad = lintCaption(lbl, 1).violations.filter(v => v.blocking);
+      if (bad.length) { console.error(`ABORT(record/three-row): label "${lbl}" fails the tier-1 lint: ${bad.map(v => `${v.term} (${v.rule})`).join(', ')}.`); process.exit(1); }
+    }
+    extraTags.rows = T.scopes.map(s => `${s}:${rowLit[s]}/${rowStraight[s]}`).join('|');
+  }
+  const blockW = T.cols * T.tile + (T.cols - 1) * T.gap;
+  const blockH = T.rows * T.tile + (T.rows - 1) * T.gap;
+  const blockLeft = Math.round((1080 - blockW) / 2);
+  const blocksHtml = THREE_ROW ? T.scopes.map((scope, r) => {
+    const top = T.blockTop + r * T.blockPitch;
+    const tiles = dates.map((date, i) => {
+      const c = cells.get(`${scope}|${date}`)!;
+      const cls = c.noBoard ? ' nb' : c.count === 0 ? ' dim' : c.count === 1 ? ' lit' : ' bright';
+      return `<div class="tile${cls}${c.straight ? ' st' : ''}${i === dates.length - 1 ? ' last' : ''}" data-i="${i}" data-land="${+(B.marksFrom + i * landStep3).toFixed(3)}"></div>`;
+    }).join('');
+    return `<div class="rowlabel" style="top:${top - T.label - 14}px">${T.labels[scope]}</div><div class="block" id="block_${scope}" style="top:${top}px">${tiles}</div>`;
+  }).join('') : '';
+
   const html = `<!doctype html><html><head><style>
     @font-face { font-family: JBM; src: url('file://${mono700}'); font-weight: 700; }
     @font-face { font-family: JBM; src: url('file://${mono500}'); font-weight: 500; }
     * { margin: 0; padding: 0; }
     body { width: 1080px; height: 1920px; overflow: hidden; background: #080a16;
            background-image: radial-gradient(ellipse 900px 700px at 50% 44%, rgba(251,191,36,0.08), rgba(8,10,22,0) 70%); }
-    .eyebrow { position: absolute; left: 0; right: 0; top: 500px; text-align: center; font: 500 30px JBM; letter-spacing: 7px; color: ${GOLD}; text-shadow: 0 0 18px ${GOLD}55; }
-    .range { position: absolute; left: 0; right: 0; top: 552px; text-align: center; font: 700 40px JBM; letter-spacing: 5px; color: rgba(255,255,255,0.78); }
+    .eyebrow { position: absolute; left: 0; right: 0; top: ${THREE_ROW ? 428 : 500}px; text-align: center; font: 500 30px JBM; letter-spacing: 7px; color: ${GOLD}; text-shadow: 0 0 18px ${GOLD}55; }
+    .range { position: absolute; left: 0; right: 0; top: ${THREE_ROW ? 462 : 552}px; text-align: center; font: 700 40px JBM; letter-spacing: 5px; color: rgba(255,255,255,0.78); }
+    /* Stage 2 three-row: three stacked blocks, one per board. 0 = dim, 1 = lit, 2+ = bright; a straight carries a small marker; no board = dashed. */
+    .rowlabel { position: absolute; left: 0; right: 0; text-align: center; font: 500 ${T.label}px JBM; letter-spacing: 6px; color: rgba(255,255,255,0.62); }
+    .block { position: absolute; left: ${blockLeft}px; width: ${blockW}px; height: ${blockH}px;
+             display: grid; grid-template-columns: repeat(${T.cols}, ${T.tile}px); grid-auto-rows: ${T.tile}px; gap: ${T.gap}px; }
+    .block .tile { width: ${T.tile}px; height: ${T.tile}px; border-radius: 9px; }
+    .block .tile.nb { border-style: dashed; background: rgba(255,255,255,0.05); }
+    .block .tile.lit.on { background: rgba(251,191,36,0.58); border-color: rgba(251,191,36,0.75); box-shadow: 0 0 10px rgba(251,191,36,0.35); }
+    .block .tile.bright.on { background: ${GOLD}; border-color: ${GOLD}; box-shadow: 0 0 22px ${GOLD}99; }
+    .block .tile.st.on::after { content: ''; position: absolute; right: 6px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 6px #ffffffaa; }
+    .block .tile { position: relative; }
     .grid { position: absolute; left: ${left}px; top: ${G.top}px; width: ${gridW}px; height: ${gridH}px;
             display: grid; grid-template-columns: repeat(${G.cols}, ${G.tile}px); grid-auto-rows: ${G.tile}px; gap: ${G.gap}px; }
     .tile { width: ${G.tile}px; height: ${G.tile}px; border-radius: 12px; box-sizing: border-box;
             background: rgba(255,255,255,0.13); border: 2px solid rgba(255,255,255,0.40); }
     .tile.gold.on { background: ${GOLD}; border-color: ${GOLD}; box-shadow: 0 0 26px ${GOLD}88; }
-    .stats { position: absolute; left: 0; right: 0; top: ${G.top + gridH + 110}px; text-align: center; font: 500 34px JBM; letter-spacing: 2px; color: ${GOLD}; white-space: nowrap; line-height: 1.9; }
+    .stats { position: absolute; left: 0; right: 0; top: ${THREE_ROW ? 1350 : G.top + gridH + 110}px; text-align: center; font: 500 ${THREE_ROW ? 30 : 34}px JBM; letter-spacing: 2px; color: ${GOLD}; white-space: nowrap; line-height: ${THREE_ROW ? 1.8 : 1.9}; }
     .brand { position: absolute; left: 0; right: 0; bottom: 250px; display: flex; justify-content: center; align-items: center; gap: 12px;
              font: 700 34px JBM; letter-spacing: 4px; color: rgba(255,255,255,0.85); }
     .bolt { width: 34px; height: 34px; }
   </style></head><body>
     <div class="eyebrow" id="eyebrow">${strings.eyebrow}</div>
     <div class="range" id="range">${strings.range}</div>
-    <div class="grid" id="grid">${tilesHtml}</div>
+    ${THREE_ROW ? blocksHtml : `<div class="grid" id="grid">${tilesHtml}</div>`}
     <div class="stats" id="stats">${strings.line1.replace(/&/g, '&amp;')}<br>${strings.line2.replace(/&/g, '&amp;')}</div>
     <div class="brand"><svg class="bolt" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="${boltPath}" fill="${GOLD}"/></svg>${strings.brand}</div>
     <script>
@@ -203,13 +349,15 @@ const GOLD = '#FBBF24';
         const tilesIn = span(t, BEATS.tilesIn[0], BEATS.tilesIn[1]);
         document.getElementById('eyebrow').style.opacity = tilesIn;
         document.getElementById('range').style.opacity = tilesIn;
-        const grid = document.getElementById('grid');
-        grid.style.opacity = tilesIn;
-        grid.style.transform = 'translateY(' + ((1 - tilesIn) * 14).toFixed(2) + 'px)';
-        for (const el of grid.children) {
+        const containers = Array.from(document.querySelectorAll('#grid, .block, .rowlabel'));
+        for (const c of containers) { c.style.opacity = tilesIn; if (!c.classList.contains('rowlabel')) c.style.transform = 'translateY(' + ((1 - tilesIn) * 14).toFixed(2) + 'px)'; }
+        const tiles = Array.from(document.querySelectorAll('.tile'));
+        for (const el of tiles) {
           const land = el.dataset.land === '' ? null : parseFloat(el.dataset.land);
           let s = 1, on = false;
-          if (land !== null && t >= land) {
+          // Classic: a data-land tile is a matched day. Three-row: every tile
+          // has a land time (per-day column), but only lit/bright tiles turn on.
+          if (land !== null && t >= land && !el.classList.contains('dim') && !el.classList.contains('nb')) {
             on = true;
             const p = span(t, land, land + 0.25);
             s = 1.18 - 0.18 * p;               // lands slightly large, settles to 1
@@ -232,7 +380,7 @@ const GOLD = '#FBBF24';
         const stats = document.getElementById('stats');
         stats.style.opacity = sIn.toFixed(3);
         stats.style.transform = 'translateY(' + ((1 - sIn) * 12).toFixed(2) + 'px)';
-        return Array.from(grid.children).filter(e => e.classList.contains('on')).length;
+        return tiles.filter(e => e.classList.contains('on')).length;
       };
     </script>
   </body></html>`;
@@ -257,20 +405,32 @@ const GOLD = '#FBBF24';
   }
   // COUNT GATE, pixel side: the tiles the page actually painted gold on the
   // final frame — read back from the DOM, not from the flags array.
-  if (lastOn !== sum.days) { await browser.close(); console.error(`ABORT(record): COUNT GATE — final frame paints ${lastOn} gold tiles, DAYS says ${sum.days}.`); process.exit(1); }
+  if (!THREE_ROW && lastOn !== sum.days) { await browser.close(); console.error(`ABORT(record): COUNT GATE — final frame paints ${lastOn} gold tiles, DAYS says ${sum.days}.`); process.exit(1); }
+  if (THREE_ROW) {
+    // Three gates — one per row — plus the total, all from the DOM.
+    if (lastOn !== expectedOn) { await browser.close(); console.error(`ABORT(record/three-row): COUNT GATE — final frame paints ${lastOn} lit tiles, the grade says ${expectedOn}.`); process.exit(1); }
+    for (const scope of T.scopes) {
+      const painted = await page.evaluate(`document.querySelectorAll('#block_${scope} .tile.on').length`) as number;
+      if (painted !== rowLit[scope]) { await browser.close(); console.error(`ABORT(record/three-row): ROW GATE — ${scope} paints ${painted} lit tiles, the grade says ${rowLit[scope]}.`); process.exit(1); }
+    }
+    console.log(`NOTE(record/three-row): ROW GATES PASS — allday ${rowLit.allday} · midday ${rowLit.midday} · evening ${rowLit.evening} lit tiles painted = graded.`);
+  }
   // The feed-size eyeball: the resolved frame at ~380px wide (Phase 2 item 9).
-  const feedPng = join(REELS, `record_public_${stamp}_feed.png`);
+  const feedPng = join(REELS, `record_public_${stamp}${THREE_ROW ? '_three_row' : ''}_feed.png`);
   await page.screenshot({ path: join(framesDir, 'final.png'), type: 'png' });
   await browser.close();
   rmSync(tmpHtml, { force: true });
   sh(`ffmpeg -y -loglevel error -i "${join(framesDir, 'final.png')}" -vf "scale=380:-1:flags=lanczos" "${feedPng}"`);
 
-  const out = join(REELS, `record_body_${stamp}.mp4`);
+  const out = join(REELS, `record_body_${stamp}${THREE_ROW ? '_three_row' : ''}.mp4`);
   sh(
     `ffmpeg -y -loglevel error -framerate ${fps} -i "${join(framesDir, 'f%04d.png')}" ` +
     `-vf "format=yuv420p" -c:v libx264 -profile:v high -crf 18 -pix_fmt yuv420p ` +
     provenanceArgs(sum.until, false, true) +
-    recordTagArgs({ days: sum.days, of: sum.windowDays, exact: sum.straights, juris: sum.juris, marks, range, since: sum.since, until: sum.until }) +
+    (THREE_ROW
+      ? recordTagArgs({ days: anyDays, of: sum.windowDays, exact: exact3, juris: juris3.size, marks: anyDays, range, since: sum.since, until: sum.until })
+      : recordTagArgs({ days: sum.days, of: sum.windowDays, exact: sum.straights, juris: sum.juris, marks, range, since: sum.since, until: sum.until })) +
+    recordExtraTagArgs(extraTags) +
     ` "${out}"`,
   );
   rmSync(framesDir, { recursive: true, force: true });

@@ -93,6 +93,31 @@ export const RECORD_TAGS = {
   since: 'hm_record_since', until: 'hm_record_until',
 } as const;
 
+/** 9/21 additions (ENG-BOARD-FREEZE-01 P2-LINT + Stage 2 three-row):
+ *  p2 = "1" when every board in the window was written before its cutoff (the
+ *  body line took its "POSTED BEFORE THE DRAW" form), "0" otherwise with the
+ *  failing keys in p2fail; layout = "classic" | "three_row"; rows = the
+ *  per-board lit-day / straight counts ("allday:27/4|midday:19/1|evening:21/2")
+ *  on a three-row body. Copied onto the final by recordExtraTagArgs. */
+export const RECORD_EXTRA_TAGS = {
+  p2: 'hm_record_p2', p2fail: 'hm_record_p2_fail', layout: 'hm_record_layout', rows: 'hm_record_rows',
+} as const;
+export interface RecordExtraTags { p2: '1' | '0'; p2fail: string; layout: 'classic' | 'three_row'; rows: string }
+export function recordExtraTagArgs(t: RecordExtraTags): string {
+  const esc = (v: string) => v.replace(/"/g, '');
+  return ` -metadata ${RECORD_EXTRA_TAGS.p2}="${t.p2}" -metadata ${RECORD_EXTRA_TAGS.p2fail}="${esc(t.p2fail)}"` +
+    ` -metadata ${RECORD_EXTRA_TAGS.layout}="${t.layout}" -metadata ${RECORD_EXTRA_TAGS.rows}="${esc(t.rows)}"`;
+}
+export function readRecordExtras(file: string): RecordExtraTags | null {
+  try {
+    const tag = (k: string) => execSync(`ffprobe -v error -show_entries format_tags=${k} -of default=nw=1:nk=1 "${file}"`).toString().trim();
+    const p2 = tag(RECORD_EXTRA_TAGS.p2), layout = tag(RECORD_EXTRA_TAGS.layout);
+    if (p2 !== '1' && p2 !== '0') return null;
+    if (layout !== 'classic' && layout !== 'three_row') return null;
+    return { p2, p2fail: tag(RECORD_EXTRA_TAGS.p2fail), layout, rows: tag(RECORD_EXTRA_TAGS.rows) };
+  } catch { return null; }
+}
+
 export interface RecordStatsTags {
   days: number; of: number; exact: number; juris: number; marks: number;
   range: string; since: string; until: string;

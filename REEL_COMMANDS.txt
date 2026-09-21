@@ -951,3 +951,12 @@ GOOD TO KNOW
 - Uploaded reels auto-delete from storage after 30 days.
 - Captions rotate style automatically every day; re-running the
   same day gives the same caption.
+
+# ── 9/21 — STAT-01 Phase 6 close: record reel Stage 2 preview + P2-LINT ──────
+# P2-LINT runs inside every record body render (no flag): all 90 window boards
+# pre-cutoff → body line "SIX SIGNALS · POSTED BEFORE THE DRAW", else the
+# "GRADED THE SAME DAY" form with the failing keys in a NOTE (never an abort).
+npx tsx scripts/render-record-body.ts 20260920 --three-row            # Stage 2 three-row body (one row per board, histories re-grade) → record_body_<stamp>_three_row.mp4 + _three_row_feed.png
+npx tsx scripts/assemble-record-reel.ts 20260920 --three-row --preview # Stage 2 preview cut → record_public_<stamp>_three_row_preview.mp4 (+ contact sheet); NON-preview aborts until RECORD_THREE_ROW_FROM is set in record-config.ts
+npx tsx scripts/render-public-hook.ts 20260920 /tmp/hook.mp4 --kind=verify_public  # miss-day hook fires by itself on an All-Day 0-of-6 day (NO MATCHES / ALL SIX MISSED · STILL ON THE RECORD)
+npm run spot-check:draws                                               # CONFIG-19 weekly draw-row sample (not a reel command; listed so the Sunday routine is in one place)

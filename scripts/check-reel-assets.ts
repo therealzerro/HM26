@@ -25,6 +25,7 @@ import { HOOK_DUR, CTA_CUT_KINDS, CTA_BOARD_DUR, CTA_VO_LEAD, CTA_VOICE_FILES, C
 import { GRID_DUR } from '../constants/reelPanels';
 import {
   RECORD_KIND, RECORD_WINDOW_DAYS, RECORD_HOOK_COPY, RECORD_TOTAL, RECORD_FURNITURE, RECORD_BODY_DUR, RECORD_END_DISSOLVE, RECORD_CARD,
+  RECORD_BODY_LINES, RECORD_BODY_LINES_P2, RECORD_THREE_ROW,
   RECORD_VOICE_FILE, RECORD_VOICE_DEFAULT, RECORD_VOICE_LAST_WORD_MAX, RECORD_STAT_MAX,
 } from './record-config';
 import { buildReelCaption, shiftDate } from './reel-captions';
@@ -1332,6 +1333,15 @@ function checkRecordPublic(): void {
     if (bad.length) add('FAIL', `${K} hook "${str}"`, `tier-1 lint: ${bad.map(x => `${x.term} (${x.rule})`).join(', ')}`);
     if (/\d{3}/.test(str)) add('FAIL', `${K} hook "${str}"`, '3-digit run on a public card');
   }
+  // 9/21 — the body line in both P2 forms, and the three-row scope labels.
+  for (const str of [...RECORD_BODY_LINES, ...RECORD_BODY_LINES_P2, ...Object.values(RECORD_THREE_ROW.labels)]) {
+    const bad = lintCaption(str, 1).violations.filter(x => x.blocking);
+    if (bad.length) add('FAIL', `${K} body "${str}"`, `tier-1 lint: ${bad.map(x => `${x.term} (${x.rule})`).join(', ')}`);
+    if (/\d{3}/.test(str)) add('FAIL', `${K} body "${str}"`, '3-digit run on a public body');
+  }
+  const stackBottom = RECORD_THREE_ROW.blockTop + 2 * RECORD_THREE_ROW.blockPitch + RECORD_THREE_ROW.rows * RECORD_THREE_ROW.tile + (RECORD_THREE_ROW.rows - 1) * RECORD_THREE_ROW.gap;
+  if (RECORD_THREE_ROW.blockTop - RECORD_THREE_ROW.label - 14 < 420 || stackBottom > 1500) add('FAIL', `${K} three-row`, `stack ${RECORD_THREE_ROW.blockTop}→${stackBottom} leaves the 1:1 keep band (420–1500)`);
+  else add('PASS', `${K} three-row fit`, `blocks ${RECORD_THREE_ROW.blockTop}→${stackBottom} inside the keep band · tile ${RECORD_THREE_ROW.tile}px (≈${Math.round(RECORD_THREE_ROW.tile * 380 / 1080)}px at feed width)`);
   // endcard
   const ec = ENDCARDS[K];
   if (!ec) add('FAIL', K, 'no ENDCARDS entry — the assembler aborts at resolveEndcard');

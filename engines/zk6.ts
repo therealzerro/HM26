@@ -1068,7 +1068,33 @@ async function saveSlateSnapshot(snapshot: SlateSnapshot, extraFields?: Record<s
       return !!(parsed as any)?.is_supplement;
     } catch { return false; }
   })();
+  // ENG-BOARD-FREEZE-01 (2026-09-21) — parity with compute-slate-zk6: a regen
+  // after the cutoff (10:00 ET midday/allday, 18:00 ET evening) never replaces
+  // a pre-cutoff live board; it is written post_cutoff=true + deleted_at (born
+  // non-live). This path is dormant behind EXPO_PUBLIC_USE_EDGE_ZK6=true; the
+  // rule is mirrored so a flag flip cannot re-open the hole.
+  let frozen = false;
   if (!isSupplementSave) {
+    try {
+      const effectiveSd = snapshot.slate_date ?? getTodayET();
+      const CUTOFF_ET_HOUR: Record<string, number> = { midday: 10, allday: 10, evening: 18 };
+      const noonUtc = Date.parse(`${effectiveSd}T12:00:00Z`);
+      const etHour = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }).format(new Date(noonUtc)));
+      const cutoffMs = Date.parse(`${effectiveSd}T00:00:00Z`) + ((CUTOFF_ET_HOUR[snapshot.scope] ?? 10) + (12 - (etHour % 24))) * 3600_000;
+      if (Date.now() >= cutoffMs) {
+        const active = await fetchFromSupabase<any[]>({
+          path: `/rest/v1/slate_snapshots?scope=eq.${encodeURIComponent(snapshot.scope)}&slate_date=eq.${effectiveSd}&deleted_at=is.null&mode=neq.zk30&select=id,updated_at_et&order=updated_at_et.desc&limit=10`,
+        });
+        frozen = Array.isArray(active) && active.some(r => r?.updated_at_et && Date.parse(r.updated_at_et) < cutoffMs);
+      }
+    } catch (e) { console.warn('[zk6v2] freeze check warn (treating as not frozen):', String(e)); }
+  }
+  if (frozen) {
+    payload.post_cutoff = true;
+    payload.deleted_at = new Date().toISOString();
+    console.log('[zk6v2] ENG-BOARD-FREEZE-01: post-cutoff regen written NOT live (pre-cutoff board stays).');
+  }
+  if (!isSupplementSave && !frozen) {
     try {
       const effectiveSd = snapshot.slate_date ?? getTodayET();
       await adminOpsFetch<any>({

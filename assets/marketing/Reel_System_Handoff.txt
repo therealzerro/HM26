@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-21 · v7.8
+Content Agent Handoff · 2026-09-21 · v7.9
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.8 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.9 — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -39,7 +39,14 @@ A. DAILY OUTPUT (operator-triggered `npm run reel:daily`, never scheduled):
        THE DRAW RESULTS; the "N OF 30 DAYS" count and the stats line are
        RETIRED (R-A) — body line = SIX SIGNALS · GRADED THE SAME DAY /
        42 STATES & PROVINCES; caption + YT families replaced (no counts).
-       Stage 2 three-row strip SCOPED, awaits the operator. RULED:
+       ⚠ v7.9 (evening): P2-LINT LIVE — the body line flips to "POSTED
+       BEFORE THE DRAW" by itself once every window board is pre-cutoff
+       (today only 8/27 allday+midday fail; clears on the 9/27 run or on
+       restore). Stage 2 three-row strip BUILT behind --three-row, PREVIEW
+       ONLY until RECORD_THREE_ROW_FROM is set on the operator's eyeball
+       (9/20 preview + feed still committed). verify_public zero day =
+       the MISS-DAY HOOK (NO MATCHES / ALL SIX MISSED · STILL ON THE
+       RECORD). RULED:
        BOTH public cuts daily — allday_public keeps its morning slot,
        verify_public stays registered and leaves the daily schedule. The
        9/9→9/23 window confound is ACCEPTED BY THE OPERATOR. Anatomy in
@@ -617,6 +624,74 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+WHAT CHANGED IN v7.9 (2026-09-21, evening — YOUR CLOSE MESSAGE EXECUTED: the
+miss-day hook BUILT; E-2 board freeze + P2-LINT BUILT AND DEPLOYED; Stage 2
+three-row strip BUILT behind --three-row with the 9/20 preview rendered for
+the operator's eyeball; your correction recorded in a ledger. Era record —
+never retro-edited.)
+================================================================================
+  1. RULING 1 — MISS-DAY HOOK (render-public-hook.ts, verify_public ONLY):
+     YESTERDAY'S RECEIPTS / NO / MATCHES / ALL SIX MISSED · STILL ON THE
+     RECORD. "NO MATCHES" on one 236px line measured ~1,400px and clipped,
+     so the big uses the record card's two-line 150px gold style — your
+     words unchanged. Tier-1 lint PASS on all three strings. Rendered
+     against 9/20 (Sunday; All-Day 0 of 6): tags NO / MATCHES · verified 0
+     · total 6. ⚠ One fact you should know: before tonight the zero-day
+     card carried NO count tag, so the cold-open count gate ABORTED the
+     reel — the miss-day cold open could never have built. It carries
+     0 / 6 now and the gate holds it to the body's 0 OF 6 LANDED. It still
+     only fires when the verification body itself builds (a day with zero
+     matches on EVERY board aborts at precondition 6, unchanged).
+     allday_public's zero day keeps the process card, as you ruled.
+  2. RULING 2 — recorded as MASTER_AUDIT PROCESS-02, a corrections ledger
+     (8/02 · 9/8 · 9/13 · 9/20 · 9/21) with the rule in your words at the
+     top. Composition authorities as you restated them: keep band, text-
+     band darkness check, the 1330/1240 lockup bands. Nothing else.
+  3. E-2 — BUILT + DEPLOYED (compute-slate-zk6 v54 via CLI, verify_jwt
+     true; slate_snapshots.post_cutoff column live). A regen after the
+     cutoff while a pre-cutoff board is live is now written post_cutoff=
+     true AND deleted_at set — born non-live — and skips the top-30 /
+     adaptive_tracking rewrites; the response says post_cutoff_frozen.
+     Because it is born deleted, every reader already ignores it with no
+     change (the one simplification vs the scope). Client engine path
+     mirrored (dormant). P2-LINT is LIVE in the record renderer: all 90
+     window boards pre-cutoff → "POSTED BEFORE THE DRAW" automatically;
+     else the same-day form with the keys in a NOTE, never an abort; tags
+     hm_record_p2 / hm_record_p2_fail travel to the final and reel:check
+     lints both forms. TODAY: FAIL on exactly two keys — 8/27 allday +
+     midday (a 17:46 ET regen replaced 06:23 ET originals). The P2 line
+     arrives by itself on the 9/27 run (8/27 leaves the window), or sooner
+     if the operator restores those two originals (ids in the audit).
+     The retroactive pass for the 58 historical keys is NOT run — the
+     operator's call.
+  4. STAGE 2 — BUILT behind `--three-row`, PREVIEW ONLY (RECORD_THREE_ROW_FROM
+     = null; a non-preview --three-row build aborts):
+       render-record-body.ts --three-row · assemble-record-reel.ts
+       --three-row --preview
+     Re-grades every window board from histories (each board vs its own
+     pool; All-Day vs every draw), three stacked 10×3 blocks (tile 60 /
+     gap 8), labels ALL-DAY / MIDDAY / EVENING, blocks 560→1280 inside the
+     keep band (reel:check asserts the fit; 60px ≈ 21px at feed width),
+     0 dim / 1 lit / 2+ bright, white dot = straight, dashed = no board,
+     tiles land per DAY (30 beats in 2.9–5.9), three ROW GATES + the total
+     read from the DOM, hm_record_layout / hm_record_rows tags.
+     FIRST RENDER (window 8/22→9/20): allday 26 · midday 19 · evening 24
+     lit of 30 · any-board 29 · straights 15 · juris 38 — the histories
+     re-grade equals the screen summary exactly on this window. The
+     strip finally has texture: the midday row is two-thirds dim.
+     FOR THE OPERATOR'S EYEBALL (committed):
+       assets/marketing/record_reels/record_public_20260920_three_row_preview.mp4
+       assets/marketing/record_reels/record_public_20260920_three_row_feed.png
+     Two layout notes from the first frame: the ALL-DAY label collided
+     with the range line at blockTop 530 → moved to 560 (labels 520/782/
+     1044, range ends ~508); the 1-match "lit" tier is gold at 58% so
+     "bright" (2+) reads as the full gold — if lit reads too olive at feed
+     width, say so and I raise it. Caption family unchanged. The flip is
+     one constant (RECORD_THREE_ROW_FROM=YYYYMMDD) after the eyeball.
+  5. BUG-180: waits for the operator's one tap + the printed key-diff.
+     CONFIG-19: the W39 ten are the operator's this week. Nothing on the
+     9/23–9/24 schedule paused. Next STAT ID 02; next MKT ID 82.
+
 WHAT CHANGED IN v7.8 (2026-09-21 — YOUR PHASE 6 RULINGS + ADDENDUM EXECUTED:
 STAT-01 CLOSED (NULL, accepted as run); the copy rule is LAW and LINTED; the
 record reel's Stage 1 copy SHIPS ON THE NEXT DAILY RUN; Stage 2 SCOPED with

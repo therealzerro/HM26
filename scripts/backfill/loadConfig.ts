@@ -58,6 +58,12 @@ function baseConfig(): EngineConfig {
     // by draws_since desc + per-scope tiebreak before persisting. Mirror it so
     // the written snapshot's rank order (and rank-1) matches production.
     modelDisplayReorder: true,
+    // PARITY: ENG-DEEPSCOPE-01 P4 (edge v53, 2026-09-01) floors the histories
+    // scan feeding dsOverride/hitDatesMap (→ DGC) at max(2026-04-01, today − 180d).
+    // Hardcoded in the edge fn, not app_config. Without this mirror the writer's
+    // DGC diverged from production (BUG-182: 9/25 gate FAIL, midday DGC-only
+    // drift; BOX/PBURST/CO matched to 4dp).
+    historyFloor: { minDate: '2026-04-01', rollingDays: 180 },
   };
 }
 

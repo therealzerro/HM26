@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-09-21 · v7.11
+Content Agent Handoff · 2026-10-01 · v7.12
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.11 — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.11; v7.12 = one asset edit, see its block — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -626,6 +626,49 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
       free comments 4.3/day · page-level views still not held (daily export
       owed). None of it is quotable in copy.
 
+================================================================================
+================================================================================
+================================================================================
+================================================================================
+WHAT CHANGED IN v7.12 (2026-10-01 — SAMEDAY CARRIER pt2 STUTTER, operator
+ear on the 4th live verify_midday cut. Salvaged by EDIT. Era record — never
+retro-edited.)
+================================================================================
+  1. THE DEFECT. The operator posted the 10/1 verify_midday cut and heard a
+     stutter at "graded against the…". Measured: the 9/7 pt2 delivery
+     (verif_carrier_sameday_signoff_20260907.mp4, your v5.9 F regeneration)
+     opens with a FALSE START — "Graded against the— / Graded against the
+     midday draws" — 0.00–1.05s is the generator's first attempt at the
+     phrase, then a −49…−61 dB floor, then the full clean read from 1.09s.
+     It shipped in the 9/18 and 10/1 cuts. Not the seam (0.35s inserted gap
+     intact), not the join cache, not the assembler: the bytes in the
+     delivery. The 9/4 pt2 master (signoff_master_10s) does NOT have it.
+  2. WHY THE 9/7 GATE MISSED IT. Whole-file whisper collapsed the two
+     attempts into one "Graded" (0.00) with a 1.4s gap before "midday"
+     (2.12) — a word-timing oddity that read as a slow delivery, not a
+     repeat. Only a seam-WINDOW transcript (13.5–19.5s of the final) shows
+     "graded against them, graded against the midday". New gate rule,
+     recorded in check-reel-assets.ts: transcribe the FIRST 3s of every
+     delivered carrier on its own, as well as the whole file.
+  3. THE FIX (MKT-32 rule: salvage by EDIT, never regenerate). The
+     registered verif_carrier_sameday_pt2.mp4 is now the 9/7 master cut
+     from 1.05s to speech end: 8.379s, last word 8.16s, 20 ms fade-in (no
+     click, max sample 37), transcript once-clean ("Graded against the
+     midday draws, hours before the evening ones land. Same day, not
+     tomorrow."). Seam f0 proxy vs part 1 IMPROVED: Δ5.9 → Δ1.6 Hz with
+     IQR overlap (113.5 [96–120] vs 115.1 [105–125]). reel:check 0 fail.
+     The raw master stays parked as evidence. No new file names; the
+     registered slot took the edited bytes (same convention as the
+     evening_free CTA line-one cut).
+  4. THE 10/1 CUT WAS RE-ASSEMBLED AND RE-PUBLISHED (26.27s, same body,
+     VO now covers 24.30s with the endcard's own audio carrying the last
+     1.96s — MKT-41). The free-group post the operator already made
+     carries the stuttered version; the operator swaps it and re-flips
+     posted in Admin → Reels (re-publish resets the row to ready by
+     design — the MKT-26 upsert behaviour, not a defect).
+  5. NOTHING ASKED OF YOU. No regeneration. If you ever re-deliver a
+     sameday pt2, the narrator block stays load-bearing (v5.7 lesson) and
+     the first 3s get their own transcript before anything else.
 ================================================================================
 ================================================================================
 ================================================================================

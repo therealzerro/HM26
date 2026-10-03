@@ -250,6 +250,35 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 ---
 
+### ENG-REVIEW-02 — External literature scan (academic + practitioner) → untested draw-side hypotheses run on the Pick 3 universe ✅ CLOSED 10/3 — NO ENGINE CHANGE (operator asked for any necessary adjustments: none are warranted — nothing passed step 1 of the engine gate, so no sweep, no config, no code) · ALL FLAT — NO ACCURACY LEVER; two draw-machine anomalies recorded (DC defect confirmed in our data; NC evening no-repeat run, ended 9/25) (2026-10-03)
+
+**Trigger (operator, 10/3):** gather agents, scan the web for the latest Pick 3 literature, then scan our Pick 3 universe for anything we are missing. Payout-side findings explicitly NOT wanted (that agent was stopped).
+
+**Literature (two agents, web):** academic 2023–2026 = no documented persistent departure from uniformity in US digit games; every ML predictor paper found is junk-grade (no chance baseline / no out-of-sample). Practitioner canon (mirrors, rundowns 111/123/317, vtracs, sums/root sums, followers, neighbours, carryover, tic-tac-toe, travelling numbers, date sums, key digits, skip charts) = relabels of already-refuted overdue/hot-cold/pair signals OR counting identities true under uniformity, plus a small set of never-tested lag-1 / calendar formulations — run below.
+
+**Universe tests (read-only SQL on `histories`, 4/1→10/2, 39 jurisdictions, 12,159 draws; lag = previous draw same jurisdiction+session, n=12,087):**
+1. **Lag-1 digit-wise difference vector, 1,000 cells** (decides mirrors, every rundown, neighbours, exact repeat in one test): chi² 1107.1 / df 999, z +2.42 pooled; midday +1.30, evening +1.04; **split halves +1.35 (Apr–Jun) / −0.57 (Jul–Oct) → not stable = noise.** Named cells at null: mirror `555` 13 vs 12.1; rundown-111 108, -123 111, -317 95 vs 108.8; exact straight repeat 19 vs 12.1 (17 different streams, no clustering → no stuck RNG).
+2. **Carryover / followers:** digits-carried distribution 38.80 / 42.09 / 17.03 / 2.08 % vs null 39.25 / 42.36 / 16.23 / 2.16 (the k=2 cell z +2.4 pooled = +2.80 H1 / +0.65 H2, not stable); positional match ≥1 27.28% vs 27.10; ±1 neighbour 49.42% vs 48.80; mirror digit 60.83% vs 60.75; sum repeat 5.06% vs 5.29; box repeat 70 vs 62.1 exp; last-3-draws union 24.76% vs 24.72. Per-position 10×10 transition chi² 86.5 / 94.0 / 113.6 (df 99, 95% crit 123.2).
+3. **Calendar:** root-sum = date-root 1,348 vs 1,349.6; box = M-D-D digits 61 vs 66.1; digit×day-of-week chi² 51.3 / 62.3 / 45.6 (df 54); digit×day-of-month 295.2 / 255.7 / 276.7 (df 270); per-state day-of-week 117 tests: 8 > 95% (exp 5.9), 2 > 99% (exp 1.2).
+4. **Cross-state lead-lag (box, pair counts):** same-day midday→evening 978 vs 1,026.8 (z −1.5); same-session same-day 1,076 vs 1,058.2; next-day 4,235 vs 4,143.7 (z +1.4).
+
+**Verdict: REFUTED as accuracy levers — never re-propose** mirrors, rundowns, followers/carryover, neighbours, sum repeat, tic-tac-toe union, date-sum/calendar, day-of-week, cross-state travelling.
+
+**Draw-machine anomalies (not signals — data-quality notes):**
+- **DC no-repeated-digit defect** (DC Lottery newsroom: vendor configuration error 3/31→4/21/2026, backup system from 4/22). Our DC rows start 4/9: **26 of 26 draws 4/9→4/21 have no repeated digit** (chance 0.72²⁶ ≈ 0.0002). Confirmed in `histories`; 26 rows of ~12k, immaterial to every universe test above. DC overall since: 27.4% repeat-digit (null 28%).
+- **NC evening 8/4→9/24: 1 repeat-digit draw in 52** (`266` on 8/24; chance ≈ 8×10⁻⁷ for a fixed window, roughly 10⁻³–10⁻² after scanning all 78 streams; next-lowest stream minimum is 5 in 52). NC midday same window 13/52 (normal); NC evening outside the window 40/125 (normal). **Ended:** 788 on 9/25, 996 on 9/30, 779 on 10/1. Post-hoc, no published incident found, the 8/24 double rules out a DC-style absolute defect → logged as an unexplained outlier, NOT acted on. No other stream shows anything similar.
+
+**Addendum (same day) — draw-method stratification, RUN.** Operator supplied a per-game draw-method table (Lottery Post "True Lottery Drawings" report card, captured 10/3 from screenshots; third-party, not re-verified against official sites). Mapping onto `histories` streams — **ball (4,804 draws):** CT, FL, GA, IN, MI, NC, NJ, NY, OH, SC, TX, VA, WV, `ME,NH,VT`, PA evening. **RNG (7,355):** AR, AZ, CA, CO, DC, DE, IA, ID, IL, KS, KY, LA, MN, MO, MS, NE, NM, OK, ON, QC, TN, W.Canada, WA, WI, PA midday (PA is the one mixed state → method is per game+session, not per state). Analysis only; no `draw_method` column added.
+- **Flat in both cohorts:** repeat-digit rate 27.98% ball / 28.14% RNG (null 28%); 1,000-straight frequency chi² z −0.3 / −0.3; lag-1 difference-vector z +0.8 / +1.35; carryover k=2 17.0% / 17.0%; box repeat 26 vs 23.1 / 44 vs 39.0; positional digit chi² (df 9, crit 16.9) ball 10.3 / 5.8 / 5.9, RNG 10.1 / 5.1 / 18.1 (pos-3 RNG = 7.0 H1 / 15.9 H2, not stable). Ball straight repeat 9 vs 4.8 = 6 vs 2.2 H1 / 3 vs 2.6 H2, not stable.
+- **WATCH ITEM — RNG triples deficit:** triples (000…999) **RNG 52 vs 73.6 expected (z −2.53; H1 26 vs 34.4, H2 26 vs 39.2 — same sign both halves); ball 48 vs 48.0 (exactly at chance).** Diffuse across RNG states (DE 0/3.5, TN 0/3.3, WA 0/1.8, most others 1–2 vs 3.5; KS 6), not one stream; DC defect window explains only −0.26. One of ~20 cohort cells examined → p≈0.01 uncorrected is hypothesis-grade, NOT a finding. This is where ENG-REVIEW-01's "0.8% triples vs 1%" came from. Not a lever either way (triples = 1% of mass). **Pre-registered re-check:** RNG-cohort triples on draws dated ≥ 2026-10-03 only, once ≥ 5,000 new RNG draws exist (~4 months); real if z ≤ −2 on the fresh data alone, otherwise close as noise.
+- **NC evening no-repeat run (above) is a BALL-machine stream** per this table → a software "no repeated digit" defect is not an available explanation; stays an unexplained outlier.
+
+**Closure (operator, 10/3):** case closed with the engine untouched — `engines/zk6.ts`, `lib/engineCore.ts`, the edge function and `app_config` are unchanged. Draw method is NOT wired into scoring or selection (both cohorts are at chance; a triples rail change would be a config ship with no measured win). The only carry-forward is the pre-registered RNG-triples re-check above, read-only, on fresh draws.
+
+**Still not run (needs external data, low prior):** Texas ball-set / machine-ID covariate and pre-test draws.
+
+---
+
 ### ENG-REVIEW-01 — Year-one engine enhancement review: "any enhancement to achieve more matches?" 📋 MEASURED ON THE LONGEST CLEAN WINDOW — NO ACCURACY LEVER EXISTS; only coverage (K, stake spread) moves match counts (2026-09-15)
 
 **Trigger (operator, 9/15 ~4:30pm ET):** "we have been working for over a year, can we deep dive and see if there are any enhancements to be made to the engine to help achieve more matches?"

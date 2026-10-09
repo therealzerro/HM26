@@ -459,7 +459,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
         ];
         return (
           <Card style={{ padding: 12, marginBottom: 8 }}>
-            <Text style={{ fontSize: 10, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1, marginBottom: 8 }}>TODAY'S IMPORTS</Text>
+            <Text style={{ fontSize: 10, fontWeight: '800', color: colors.textTertiary, letterSpacing: 1, marginBottom: 8 }}>TODAY&apos;S IMPORTS</Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {items.map(({ label, ok }) => (
                 <View key={label} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: ok ? colors.successLight : colors.errorLight, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 6 }}>
@@ -822,7 +822,7 @@ export default function DashboardView({ setView, imports, healthMetrics, regener
         </View>
       </Card>
 
-      <SectionTitle>TODAY'S IMPORT CHECKLIST</SectionTitle>
+      <SectionTitle>TODAY&apos;S IMPORT CHECKLIST</SectionTitle>
       <Card style={{ padding: 0, marginBottom: 4 }}>
         {checklistLoading ? (
           <View style={{ padding: 16, alignItems: 'center' }}>

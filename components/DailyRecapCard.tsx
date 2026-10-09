@@ -88,13 +88,13 @@ export function DailyRecapCard() {
         activeOpacity={0.85}
       >
         <View style={s.headerRow}>
-          <Text style={[s.label, { color: colors.purple }]}>🌙 DAY'S DONE</Text>
+          <Text style={[s.label, { color: colors.purple }]}>🌙 DAY&apos;S DONE</Text>
           <Text style={s.chev}>›</Text>
         </View>
         <Text style={s.line1}>
           <Text style={s.bold}>0</Text> verified hits today
         </Text>
-        <Text style={s.line3}>Tomorrow's slate is fresh after the evening import lands.</Text>
+        <Text style={s.line3}>Tomorrow&apos;s slate is fresh after the evening import lands.</Text>
       </TouchableOpacity>
     );
   }
@@ -120,7 +120,7 @@ export function DailyRecapCard() {
       activeOpacity={0.85}
     >
       <View style={s.headerRow}>
-        <Text style={s.label}>📊 TODAY'S RECAP</Text>
+        <Text style={s.label}>📊 TODAY&apos;S RECAP</Text>
         <Text style={s.chev}>›</Text>
       </View>
       <Text style={s.line1}>
@@ -131,7 +131,7 @@ export function DailyRecapCard() {
       <Text style={s.line2}>
         Top: <Text style={s.bold}>{top.combo}</Text> {top.hit_straight ? 'STRAIGHT' : 'BOX'} in {top.hit_state || '??'} {top.hit_session || ''}
       </Text>
-      <Text style={s.line3}>Tomorrow's slate is fresh after the evening import lands.</Text>
+      <Text style={s.line3}>Tomorrow&apos;s slate is fresh after the evening import lands.</Text>
     </TouchableOpacity>
   );
 }

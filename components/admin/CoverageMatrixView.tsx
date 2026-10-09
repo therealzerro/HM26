@@ -409,7 +409,7 @@ export default function CoverageMatrixView({ setView }: { setView: (v: string) =
           {!yesterdayHasResults && (
             <Card style={{ padding: 12, marginBottom: 12, backgroundColor: colors.error + '15', borderColor: colors.error + '40' }}>
               <Text style={{ fontSize: 12, fontWeight: '700', color: colors.error }}>
-                ⚠️ Yesterday's results not imported — hit tracking unavailable
+                ⚠️ Yesterday&apos;s results not imported — hit tracking unavailable
               </Text>
             </Card>
           )}

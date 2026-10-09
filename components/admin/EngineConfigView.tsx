@@ -900,7 +900,7 @@ export default function EngineConfigView({ regenerateSlate, onOpenProposals }: {
         </View>
         <Text style={{ fontSize: 10, color: colors.textTertiary, marginBottom: 10, lineHeight: 14 }}>
           Rolling 30-day per-signal AUC from signal_auc_per_day. When enabled, base weights are
-          adjusted toward signals that predicted well in this scope's recent history. Flag is currently
+          adjusted toward signals that predicted well in this scope&apos;s recent history. Flag is currently
           OFF — 30-day backtest 2026-05-27 showed insufficient lift across all α ∈ [0.5, 1.5] (see
           MASTER_AUDIT.md ENH-AFL ship entry).
         </Text>

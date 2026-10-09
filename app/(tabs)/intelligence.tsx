@@ -677,7 +677,7 @@ function IntelligenceScreen() {
         >
           <View style={s.todayHeader}>
             <Text style={s.todayDate}>{getTodayET()}</Text>
-            <Text style={s.todayTitle}>Today's Intelligence</Text>
+            <Text style={s.todayTitle}>Today&apos;s Intelligence</Text>
           </View>
 
           {/* §4.6 — combo lookup */}
@@ -711,8 +711,8 @@ function IntelligenceScreen() {
               if (!found) {
                 return (
                   <Text style={s.lookupResult}>
-                    <Text style={s.lookupBold}>{target}</Text> · box-set <Text style={s.lookupBold}>{targetSet}</Text> · not in today's top 30 for {SCOPE_LABEL_INLINE[slateScope]}.{'\n'}
-                    <Text style={s.lookupSub}>Below the engine's top-30 indicator threshold.</Text>
+                    <Text style={s.lookupBold}>{target}</Text> · box-set <Text style={s.lookupBold}>{targetSet}</Text> · not in today&apos;s top 30 for {SCOPE_LABEL_INLINE[slateScope]}.{'\n'}
+                    <Text style={s.lookupSub}>Below the engine&apos;s top-30 indicator threshold.</Text>
                   </Text>
                 );
               }
@@ -778,14 +778,14 @@ function IntelligenceScreen() {
 
           {isYesterdayFallback && !slateLoading && (
             <View style={{ backgroundColor: colors.amber + '22', borderRadius: 8, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: colors.amber + '55' }}>
-              <Text style={{ fontSize: 11, color: colors.amber, fontWeight: '700' }}>⚠ Showing yesterday's data — no slate generated for today yet</Text>
+              <Text style={{ fontSize: 11, color: colors.amber, fontWeight: '700' }}>⚠ Showing yesterday&apos;s data — no slate generated for today yet</Text>
             </View>
           )}
 
           {slateLoading ? (
             <View style={s.center}>
               <ActivityIndicator color={colors.primary} />
-              <Text style={s.loadingText}>Loading today's picks…</Text>
+              <Text style={s.loadingText}>Loading today&apos;s picks…</Text>
             </View>
           ) : slateRows.length === 0 ? (
             <EmptyState
@@ -849,7 +849,7 @@ function IntelligenceScreen() {
 
           {/* Header row */}
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 }}>
-            <Text style={s.headerTitle}>Today's Hidden 30</Text>
+            <Text style={s.headerTitle}>Today&apos;s Hidden 30</Text>
             <View style={{ flex: 1 }} />
             {slateRows.length > 0 && (
               <Text style={{ fontSize: 11, color: colors.textTertiary, fontFamily: theme.typography.fontFamily.mono }}>
@@ -1036,7 +1036,7 @@ function IntelligenceScreen() {
         <SectionHeader title="I — Signal Synergy Matrix" />
         <View style={s.card}>
           <Text style={s.insightBadge}>
-            Combinations with ROI {'>'} 20% represent "Super Signals"
+            Combinations with ROI {'>'} 20% represent &quot;Super Signals&quot;
           </Text>
           {d.synergyCombos.map(combo => (
             <RateBar 

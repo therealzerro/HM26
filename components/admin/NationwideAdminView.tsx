@@ -25,7 +25,7 @@ export default function NationwideAdminView() {
       <Text style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 16 }}>Configure the secret Pro feature — legal nationwide lottery access</Text>
       <Card style={{ padding: 14, marginBottom: 14, backgroundColor: colors.successLight, borderColor: colors.success + '33' }}>
         <Text style={{ fontSize: 13, fontWeight: '700', color: colors.success, marginBottom: 6 }}>ℹ️ What This Feature Does</Text>
-        <Text style={{ fontSize: 12, color: colors.textSecondary, lineHeight: 19 }}>Pro subscribers gain access to a curated guide showing how to legally play Pick 3 across multiple US states. Third-party lottery concierge services purchase tickets on the player's behalf.</Text>
+        <Text style={{ fontSize: 12, color: colors.textSecondary, lineHeight: 19 }}>Pro subscribers gain access to a curated guide showing how to legally play Pick 3 across multiple US states. Third-party lottery concierge services purchase tickets on the player&apos;s behalf.</Text>
       </Card>
       <Card style={{ padding: 14, marginBottom: 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>

@@ -225,7 +225,7 @@ export function ZK30PickDetailModal({ pick, onClose, brandBlue, slateDate = '' }
                 <View style={{ flex: 1, gap: 4 }}>
                   <Text style={[s.bigNum, { color: tierColor }]}>{energy}</Text>
                   <Text style={[s.tierLabel, { color: tierColor }]}>{tierLabel}</Text>
-                  <Text style={s.hint}>Percentile rank within the slate's 1000-combo score pool.</Text>
+                  <Text style={s.hint}>Percentile rank within the slate&apos;s 1000-combo score pool.</Text>
                 </View>
               </View>
             </View>

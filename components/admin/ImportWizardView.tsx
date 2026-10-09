@@ -609,7 +609,7 @@ export default function ImportWizardView({ setView, importHistory, importLedger,
                       📋 Expected date: {config.import_date} · scope: {config.scope}
                     </Text>
                     <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 2 }}>
-                      A warning will appear if parsed results don't match this date.
+                      A warning will appear if parsed results don&apos;t match this date.
                     </Text>
                   </Card>
                 )}

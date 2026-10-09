@@ -494,7 +494,7 @@ export default function SlatesScreen() {
           <Text style={s.sectionTitle}>Live draw ticker</Text>
           <DrawTicker scope={scope} />
 
-          <Text style={[s.sectionTitle, { marginTop: 16 }]}>Today's matches</Text>
+          <Text style={[s.sectionTitle, { marginTop: 16 }]}>Today&apos;s matches</Text>
           {slateHitItems.length === 0 ? (
             <View style={s.emptyCard}>
               <Text style={s.emptyEmoji}>⏳</Text>
@@ -576,7 +576,7 @@ export default function SlatesScreen() {
             <Text style={{ fontSize: 20 }}>📖</Text>
             <View style={{ flex: 1 }}>
               <Text style={s.bigActionTitle}>{slateSavedMsg ? '✓ Saved' : savingSlate ? 'Saving…' : isFree ? 'Save (Pro only)' : 'Save current slate'}</Text>
-              <Text style={s.bigActionSub}>Bookmark today's signals for later review</Text>
+              <Text style={s.bigActionSub}>Bookmark today&apos;s signals for later review</Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity
@@ -588,7 +588,7 @@ export default function SlatesScreen() {
             <Text style={{ fontSize: 20 }}>📅</Text>
             <View style={{ flex: 1 }}>
               <Text style={s.bigActionTitle}>Replay past slates</Text>
-              <Text style={s.bigActionSub}>Yesterday's K6 signals vs actual draws · last 7 days</Text>
+              <Text style={s.bigActionSub}>Yesterday&apos;s K6 signals vs actual draws · last 7 days</Text>
             </View>
             <Text style={{ fontSize: 18, color: colors.textTertiary }}>›</Text>
           </TouchableOpacity>
@@ -601,7 +601,7 @@ export default function SlatesScreen() {
             <Text style={{ fontSize: 20 }}>🔎</Text>
             <View style={{ flex: 1 }}>
               <Text style={s.bigActionTitle}>Pattern Explorer</Text>
-              <Text style={s.bigActionSub}>Any pattern's appearance history · observed vs expected</Text>
+              <Text style={s.bigActionSub}>Any pattern&apos;s appearance history · observed vs expected</Text>
             </View>
             <Text style={{ fontSize: 18, color: colors.textTertiary }}>›</Text>
           </TouchableOpacity>

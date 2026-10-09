@@ -419,7 +419,7 @@ export function PickDetailModal({ pick, scope, isPro, onClose, onHeatCheck, slat
     <View style={ct.pad}>
       <Text style={ct.sectionTitle}>POSITION PAIR STRENGTH</Text>
       <Text style={ct.subtitle}>
-        Measured share of this pick's strongest position pair · {scope.toUpperCase()} dataset · 1-year window
+        Measured share of this pick&apos;s strongest position pair · {scope.toUpperCase()} dataset · 1-year window
       </Text>
 
       <View style={ct.matrixCard}>

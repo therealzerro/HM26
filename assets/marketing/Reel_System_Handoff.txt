@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-01 · v7.12
+Content Agent Handoff · 2026-10-09 · v7.13
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -31,6 +31,14 @@ A. DAILY OUTPUT (operator-triggered `npm run reel:daily`, never scheduled):
    TEN reels (v6.9), each auto-published to Admin → Reels with a drafted
    caption; NOTHING auto-posts. Order: verify → allday → midday → evening
    → record.
+     ⚠ v7.13 (OPS-07, 10/9): reel:daily now GATES before it detaches —
+       scripts/reel-preflight.ts checks D−1 ledger (both sessions, ≥70% of
+       the same weekday a week earlier), D−1 graded on all three scopes,
+       D boards live ×3; any failure = nothing launched. Read-only, never
+       regenerates. `--skip-preflight` and `--allow-all-matched` (record's
+       30-of-30 override) pass through the runner, operator-stated per run,
+       both recorded in the log header. Closes the OPS-05 hole (9/26 midday
+       gap ran half a day through verify with no gate).
      record_public   ⚠ v6.9 (MKT-79, 9/11): THE DAILY TRACK RECORD REEL —
        30-day strip of the Verified Track Record (dim tiles = the misses,
        ON PURPOSE), public tier 1, ~16.3s cold open, the 7pm slot.

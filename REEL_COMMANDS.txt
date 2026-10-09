@@ -2,7 +2,7 @@
 HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
-changed. Every command has a description. (Last updated 2026-09-11 — MKT-79 record_public, THE DAILY TRACK RECORD REEL; previously 2026-09-09 — MKT-77 free session CTA cuts; 2026-09-08 —
+changed. Every command has a description. (Last updated 2026-10-09 — OPS-07 reel:daily pre-flight gate + --skip-preflight / --allow-all-matched passthrough; previously 2026-09-11 — MKT-79 record_public, THE DAILY TRACK RECORD REEL; 2026-09-09 — MKT-77 free session CTA cuts; 2026-09-08 —
 UPDATED 2026-08-17 (MKT-57) — every slate reel body (allday/midday/evening,
 all cuts) now captures the coffee-mode HOME, not the Slates grid: 10.0s
 static still of the six tiles (emboss + notation band at the bottom of the
@@ -202,7 +202,30 @@ STEP 3 — TERMINAL B: build + publish the day's reels
 
 npm run reel:daily
 npm run reel:daily -- --from=midday      (resume a partial run)
+npm run reel:daily -- --skip-preflight   (bypass the data gate — operator-stated only)
+npm run reel:daily -- --allow-all-matched  (record_public may render a 30-of-30 strip — operator-stated only)
     (verify_midday is NOT in this run — manual only; see its own block.)
+
+    PRE-FLIGHT GATE (OPS-07, 2026-10-09) — runs BEFORE the run detaches,
+    read-only, fail-closed. reel:daily never had one; the 9/26 midday
+    ledger gap (OPS-05) ran half a day through verify because of it.
+        npx tsx scripts/reel-preflight.ts [YYYYMMDD]   (D−1 stamp; default yesterday ET)
+    Three checks, any failure = nothing launched, exit 2:
+      1. LEDGER — histories for D−1 has BOTH sessions, each ≥ 70% of the
+         same weekday one week earlier (Sundays/light Saturdays compare
+         against their own kind, not a fixed 33/42).
+      2. GRADED — adaptive_tracking for D−1 carries result_at on every
+         scope (the Daily Workflow has graded yesterday).
+      3. BOARDS — slate_snapshots has a live board for D on all three scopes.
+    It prints what it saw (ledger counts + baseline, graded n/n per scope,
+    boards + newest timestamp) so a PASS is also the morning pre-flight
+    record. It never writes and never regenerates — fix the data (import
+    the missing session / click the Daily Workflow) and relaunch.
+    --skip-preflight exists for a day the operator has judged by hand;
+    the log header records that it was skipped.
+    --allow-all-matched is the ONLY way to carry the record renderer's
+    all-gold override through the daily run (npm run reel:record cannot
+    take flags); the log header records it. Still operator-stated per run.
 
     Runs verify → allday → midday → evening DETACHED (setsid +
     nohup): closing the terminal, dropping the connection, or the

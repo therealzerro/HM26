@@ -16,6 +16,7 @@
    would require react-native-view-shot under an EAS dev build; see audit
    ENH-EXPORT-2026-05-23.
    ============================================================================ */
+import { MEMBER_SESSION_LABELS, sessionLabel } from '@/lib/social/sessionLabels';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image as RNImage } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -47,11 +48,9 @@ import {
 } from '@/lib/captureExportImage';
 
 const SESSIONS: ExportSession[] = ['midday', 'evening', 'allday'];
-const SESSION_LABELS: Record<ExportSession, string> = {
-  midday:  'Midday',
-  evening: 'Evening',
-  allday:  'All-Day',
-};
+// MKT-82 R4 (2026-10-10): operator-facing status text uses the member words;
+// the captured composite picks its words by tier (public → §6 translation).
+const SESSION_LABELS: Record<ExportSession, string> = MEMBER_SESSION_LABELS;
 
 // Mobile-viewport rendering. The stage outer is 1080×1920 (the actual PNG
 // output size). Inside, we render at a logical mobile width (390px — close
@@ -503,7 +502,7 @@ export default function AdminImageExportScreen() {
               <View style={styles.slateHeader}>
                 <Text style={styles.slateBrand}>HITMASTER <Text style={{ color: colors.cyan }}>ZK6</Text></Text>
                 <Text style={styles.slateMeta}>
-                  {SESSION_LABELS[session].toUpperCase()} · {stageSlateDate}
+                  {sessionLabel(session, isPublic ? 1 : 4).toUpperCase()} · {stageSlateDate}
                 </Text>
               </View>
               <View style={styles.slateGrid}>
@@ -515,7 +514,7 @@ export default function AdminImageExportScreen() {
                   </View>
                 ))}
               </View>
-              <Text style={styles.slateFooter}>Intelligence is your edge. Use it.</Text>
+              {/* footer line removed 2026-10-10 (MKT-82 R3 — "edge" is R-B on every tier) */}
             </View>
             {isPublic && (
               <>

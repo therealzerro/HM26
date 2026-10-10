@@ -1,205 +1,105 @@
 /**
  * socialBrief — data for the publishable, brand-safe consumer brief (SOCIAL-01).
  *
- * DISTINCT from the admin BriefCard (which is operator-only and full of
- * "picks/hits/box/straight/P(hit)/tiers"). This assembles a consumer-facing
- * brief in two surface variants governed by the 2026-06-29 §6 discipline:
- *   PUBLIC  — aggregate only: counts + jurisdiction COUNT, no digits, no state
- *             codes, no attribution, no pricing.  (passes Two-Question)
- *   GROUP   — yesterday's outcome per session with STRAIGHT MATCH / BOX MATCH
- *             vocab (§4a) + resolved intraday outcomes. The UNRESOLVED-session
- *             pair (todayPlays digits) renders for the PRO tier only (MKT-50
- *             addendum); free sees a locked teaser. Gating lives in the card —
- *             the data here is tier-independent and cached across tiers.
- *
- * Reuses faithful, read-only sources: reportCard (slate∩histories aggregate)
- * and computeBrief (per-scope plays + yesterday). Never stored hit flags.
+ * MKT-82 Phase 1 (2026-10-10) rebuilt this layer on the engine's own outputs:
+ *   · TODAY  = each scope's published board (slate_snapshots, the same six the
+ *              app shows), in slate order, exact order + box set. No decision-
+ *              layer selection — the former `computeBrief().play` (a footprint /
+ *              P(hit) / convergence score) and `allocation` (the operator's
+ *              stake units + three-day ride rule, shown as "where the model
+ *              concentrates") are GONE from every member surface. The engine
+ *              has neither.
+ *   · YESTERDAY and TODAY are graded by ONE law (lib/social/briefResolve.ts):
+ *              slate ∩ histories, straight = result_digits === bestOrder (F1 —
+ *              the old yesterday row called a rank-1 BOX match a STRAIGHT MATCH).
+ *   · Aggregates (yesterday's signals aligned / jurisdictions) come from
+ *              reportCard as before. `verified30d` is no longer carried: no
+ *              rolling count on any tier (STAT-01 R-A).
+ * Variants (public / free / pro) are decided in the card; this data is
+ * tier-independent and cached across tiers by the Reels exporter.
+ * Session labels are NOT in the data — the card picks them by tier
+ * (lib/social/sessionLabels.ts, R4).
  */
 
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
-import { computeBrief, Scope, SCOPES } from '@/lib/brief/computeBrief';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { fetchReportCardData } from './reportCard';
+import {
+  parseBoard, resolveDraws, fmtDigits, setDigits,
+  type DrawRow, type Resolution, type ResolveScope,
+} from './briefResolve';
 
-export interface SocialBriefPlay {
-  combo: string;       // sorted-set digits, e.g. "159"
-  bestOrder: string;   // straight best-order, e.g. "1-5-9"
-  multiplicity: string;
+export type Scope = ResolveScope;
+export const SCOPES: Scope[] = ['midday', 'evening', 'allday'];
+
+export interface SocialBriefSignal {
+  digits: string;   // exact order for display, "4-8-5"
+  set: string;      // sorted set digits, "458"
 }
 
 export interface SocialBriefScope {
   scope: Scope;
-  label: string;                 // Daytime / Nighttime / Continuous
-  todayPlays: SocialBriefPlay[]; // 1-2 strongest by evidence (shown when NOT yet resolved)
-  ySlateHit: boolean;
-  yHittingCombos: string[];      // sorted-set digit strings that matched yesterday
-  yPick1Straight: boolean;       // was yesterday's #1 an exact (straight) match
-  // Intraday live-results (SOCIAL-06): once today's session draws, show its
-  // actual outcome instead of stale recommended plays.
-  todayResolved: boolean;        // today's draw for this session is in
-  todayLive: boolean;            // allday only: partially resolved (one session drawn, day not done)
-  todaySlateHit: boolean;        // a today pick matched a today draw (faithful join)
-  todayHittingCombos: string[];  // digit strings that matched today
-  todayStraight: boolean;        // any today match was an exact (best-order) match
-}
-
-// MKT-50 Pro-variant depth (2026-08-07). Observation language only — model
-// concentration is DESCRIBED (what the model did), never prescribed (what a
-// member should do). Weightings mirror the operator brief's 2/2/1 allocation,
-// which always honors the midday pos 1–2 exclusion.
-export interface SocialBriefConcentration {
-  weight: number;          // model concentration weighting (2/2/1)
-  digits: string;          // exact-order display form, e.g. "0-5-8"
-  comboSet: string;        // sorted-set digits, e.g. "058"
-  exactOrder: boolean;     // strongest leg also carries the exact-order form
-  scopeLabels: string[];   // consumer labels: Daytime / Nighttime / Continuous
-  footprint90: number;     // 90d appearances across top-10 active jurisdictions
-  stateFootprint: string;  // "CT:3, MI:3" — recent activity, NOT a recommendation
-}
-
-export interface SocialBriefProInsights {
-  concentration: SocialBriefConcentration[];
-  rank1Matched: number;    // yesterday's rank-1 outcomes across sessions…
-  rank1Total: number;      // …evidence line for the Daytime structural note
-  daytimeNote: boolean;    // Daytime session live today → show the inversion note
+  todaySignals: SocialBriefSignal[];  // the published board, slate order (6)
+  yesterday: Resolution;
+  today: Resolution;
 }
 
 export interface SocialBriefData {
-  todayLabel: string;            // "7/9"
-  yesterdayLabel: string;        // "7/8"
-  // PUBLIC aggregate
+  todayLabel: string;        // "10/10"
+  yesterdayLabel: string;    // "10/9"
+  // yesterday's aggregate (reportCard, faithful)
   totalSignals: number;
   verifiedCount: number;
   jurisdictionCount: number;
-  verified30d: number;
-  // GROUP detail
   scopes: SocialBriefScope[];
-  // PRO detail (rendered only by the pro group tier)
-  pro: SocialBriefProInsights;
 }
-
-const SCOPE_LABEL: Record<Scope, string> = {
-  midday: 'Daytime',
-  evening: 'Nighttime',
-  allday: 'Continuous',
-};
 
 function md(iso: string): string {
   const [, m, d] = iso.split('-');
   return `${parseInt(m, 10)}/${parseInt(d, 10)}`;
 }
 
-function fmtBestOrder(s: string): string {
-  const digits = (s ?? '').replace(/\D/g, '');
-  return digits.length === 3 ? digits.split('').join('-') : (s ?? '');
-}
+interface DayBoards { boards: Record<Scope, ReturnType<typeof parseBoard>>; draws: DrawRow[] }
 
-function setToDigits(comboSet: string): string {
-  return comboSet.replace(/[{}\s]/g, '').split(',').join('');
-}
-
-function parsePicks(json: any): { comboSet: string; bestOrder: string }[] {
-  const arr = typeof json === 'string' ? (() => { try { return JSON.parse(json); } catch { return []; } })() : json;
-  if (!Array.isArray(arr)) return [];
-  return arr
-    .map((p: any) => ({ comboSet: String(p?.comboSet ?? p?.combo_set ?? ''), bestOrder: String(p?.bestOrder ?? p?.best_order ?? '') }))
-    .filter(p => p.comboSet);
-}
-
-interface TodayRes { resolved: boolean; live: boolean; slateHit: boolean; hittingCombos: string[]; straight: boolean }
-
-/**
- * Faithful intraday resolution: for each scope, has today's session drawn yet,
- * and if so did today's slate match today's draws (slate ∩ histories — never
- * stored flags). midday/evening resolve when that session's draws are in;
- * allday resolves as soon as ANY draw lands and is "live" until both sessions
- * have drawn.
- */
-async function fetchTodayResolution(today: string): Promise<Record<Scope, TodayRes>> {
+/** Latest non-deleted ZK6 snapshot per scope for a date + that date's draws. */
+async function fetchDay(date: string): Promise<DayBoards> {
   const [slateRows, histRows] = await Promise.all([
     fetchFromSupabase<any[]>({
-      path: `/rest/v1/slate_snapshots?select=scope,updated_at_et,top_k_straights_json&slate_date=eq.${today}&deleted_at=is.null&or=(mode.is.null,mode.neq.zk30)&order=updated_at_et.desc&limit=60`,
+      path: `/rest/v1/slate_snapshots?select=scope,updated_at_et,top_k_straights_json&slate_date=eq.${date}&deleted_at=is.null&or=(mode.is.null,mode.neq.zk30)&order=updated_at_et.desc&limit=60`,
     }).catch(() => []),
     fetchFromSupabase<any[]>({
-      path: `/rest/v1/histories?select=session,comboset_sorted,result_digits&date_et=eq.${today}&limit=1000`,
+      path: `/rest/v1/histories?select=session,comboset_sorted,result_digits&date_et=eq.${date}&limit=1000`,
     }).catch(() => []),
   ]);
-  const latestSlate: Record<string, any> = {};
-  for (const r of (slateRows ?? [])) if (!latestSlate[r.scope]) latestSlate[r.scope] = r;
-  const hist = histRows ?? [];
-  const sessionsDrawn = new Set(hist.map((h: any) => h.session));
-
-  const out = {} as Record<Scope, TodayRes>;
-  for (const sc of SCOPES) {
-    const draws = hist.filter((h: any) => sc === 'allday' || h.session === sc);
-    const resolved = draws.length > 0;
-    const live = sc === 'allday' && resolved && !(sessionsDrawn.has('midday') && sessionsDrawn.has('evening'));
-    const hitting = new Set<string>();
-    let slateHit = false, straight = false;
-    if (resolved) {
-      for (const p of parsePicks(latestSlate[sc]?.top_k_straights_json)) {
-        const matched = draws.filter((h: any) => h.comboset_sorted === p.comboSet);
-        if (matched.length) {
-          slateHit = true;
-          hitting.add(setToDigits(p.comboSet));
-          if (matched.some((m: any) => m.result_digits === p.bestOrder)) straight = true;
-        }
-      }
-    }
-    out[sc] = { resolved, live, slateHit, hittingCombos: [...hitting], straight };
+  const latest: Partial<Record<Scope, any>> = {};
+  for (const r of (slateRows ?? [])) {
+    const sc = r.scope as Scope;
+    if (SCOPES.includes(sc) && !latest[sc]) latest[sc] = r;
   }
-  return out;
+  const boards = {} as DayBoards['boards'];
+  for (const sc of SCOPES) boards[sc] = parseBoard(latest[sc]?.top_k_straights_json);
+  const draws: DrawRow[] = (histRows ?? []).map((h: any) => ({
+    session: String(h.session ?? ''),
+    comboset_sorted: String(h.comboset_sorted ?? ''),
+    result_digits: String(h.result_digits ?? ''),
+  }));
+  return { boards, draws };
 }
 
 export async function buildSocialBrief(today = getTodayET()): Promise<SocialBriefData> {
   const yesterday = getYesterdayET();
-  const [rc, brief, todayRes] = await Promise.all([
+  const [rc, todayDay, yDay] = await Promise.all([
     fetchReportCardData(yesterday),
-    // MKT-50 alignment: published plays come from the same computeBrief path
-    // as the operator brief. The former middayPosRule flag was retired with
-    // the pos 1–2 exclusion (ENG-MIDDAY-POS-02) — one unfiltered path for
-    // both audiences means the 8/7 divergence class cannot recur.
-    computeBrief(today),
-    fetchTodayResolution(today),
+    fetchDay(today),
+    fetchDay(yesterday),
   ]);
 
-  const scopes: SocialBriefScope[] = SCOPES.map((sc) => {
-    const sb = brief.scopes[sc];
-    const tr = todayRes[sc];
-    const plays = (sb?.play ?? []).slice(0, 2).map((p) => ({
-      combo: p.combo,
-      bestOrder: fmtBestOrder(p.bestOrder ?? p.combo),
-      multiplicity: p.multiplicity,
-    }));
-    return {
-      scope: sc,
-      label: SCOPE_LABEL[sc],
-      todayPlays: plays,
-      ySlateHit: sb?.yesterday?.slateHit ?? false,
-      yHittingCombos: sb?.yesterday?.hittingCombos ?? [],
-      yPick1Straight: !!(sb?.yesterday?.pick1Hit && sb?.preflight),
-      todayResolved: tr.resolved,
-      todayLive: tr.live,
-      todaySlateHit: tr.slateHit,
-      todayHittingCombos: tr.hittingCombos,
-      todayStraight: tr.straight,
-    };
-  });
-
-  const pro: SocialBriefProInsights = {
-    concentration: (brief.allocation ?? []).map((a) => ({
-      weight: a.units,
-      digits: fmtBestOrder(a.bestOrder ?? a.combo),
-      comboSet: setToDigits(a.comboSet),
-      exactOrder: a.withStraight,
-      scopeLabels: a.scopes.map((s) => SCOPE_LABEL[s]),
-      footprint90: a.footprint90,
-      stateFootprint: a.topJx ?? '',
-    })),
-    rank1Matched: brief.reorder.hit,
-    rank1Total: brief.reorder.total,
-    daytimeNote: brief.scopes.midday?.preflight?.status !== 'MISSING',
-  };
+  const scopes: SocialBriefScope[] = SCOPES.map((sc) => ({
+    scope: sc,
+    todaySignals: todayDay.boards[sc].map(p => ({ digits: fmtDigits(p.bestOrder), set: setDigits(p.comboSet) })),
+    today: resolveDraws(todayDay.boards[sc], todayDay.draws, sc),
+    yesterday: resolveDraws(yDay.boards[sc], yDay.draws, sc),
+  }));
 
   return {
     todayLabel: md(today),
@@ -207,8 +107,6 @@ export async function buildSocialBrief(today = getTodayET()): Promise<SocialBrie
     totalSignals: rc.totalSignals,
     verifiedCount: rc.verifiedCount,
     jurisdictionCount: rc.jurisdictionCount,
-    verified30d: rc.verified30d,
     scopes,
-    pro,
   };
 }

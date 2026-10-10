@@ -12,6 +12,8 @@
 import React, { forwardRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme, type ColorTokens } from '@/lib/theme';
+import { sessionLabel } from '@/lib/social/sessionLabels';
+import type { SocialTier } from '@/lib/social/brandLint';
 import { SlatePosterCard } from '@/components/SlatePosterCard';
 import { PickPosterCard } from '@/components/PickPosterCard';
 import { PublicExportBanner } from '@/components/PublicExportBanner';
@@ -25,9 +27,8 @@ import {
   logicalPosterHeight, type SocialSession,
 } from '@/lib/social/publishImages';
 
-const SESSION_LABELS: Record<SocialSession, string> = {
-  midday: 'Daytime', evening: 'Nighttime', allday: 'Continuous',
-};
+// MKT-82 R4 (2026-10-10): session words are tier-keyed — member tiers say
+// MIDDAY · EVENING · ALL-DAY, public/cross keep the §6 translation.
 
 export interface PublishStageProps {
   mode: 'slate' | 'pick';
@@ -40,10 +41,12 @@ export interface PublishStageProps {
   /** Banner copy when redacting: 'public' (JOIN FREE) for public/cross,
    *  'pro_upsell' for the free group's redacted session drops (SOCIAL-13). */
   bannerVariant?: 'public' | 'pro_upsell';
+  /** Audience tier of the surface being captured — picks the session words (R4). */
+  tier?: SocialTier;
 }
 
 export const PublishStage = forwardRef<View, PublishStageProps>(function PublishStage(
-  { mode, picks, pick, pairScores, session, slateDate, redact, bannerVariant = 'public' }, ref,
+  { mode, picks, pick, pairScores, session, slateDate, redact, bannerVariant = 'public', tier }, ref,
 ) {
   const { colors } = useTheme();
   const s = makeStyles(colors);
@@ -60,7 +63,7 @@ export const PublishStage = forwardRef<View, PublishStageProps>(function Publish
           <View style={{ width: STAGE_LOGICAL_WIDTH, height: posterH, padding: 14, backgroundColor: colors.background }}>
             <View style={s.slateHeader}>
               <Text style={s.slateBrand}>HITMASTER <Text style={{ color: colors.cyan }}>ZK6</Text></Text>
-              <Text style={s.slateMeta}>{SESSION_LABELS[session].toUpperCase()} · {slateDate}</Text>
+              <Text style={s.slateMeta}>{sessionLabel(session, tier ?? (redact ? 1 : 2)).toUpperCase()} · {slateDate}</Text>
             </View>
             <View style={s.slateGrid}>
               {[0, 1, 2].map(row => (
@@ -71,7 +74,7 @@ export const PublishStage = forwardRef<View, PublishStageProps>(function Publish
                 </View>
               ))}
             </View>
-            <Text style={s.slateFooter}>Intelligence is your edge. Use it.</Text>
+            {/* footer line removed 2026-10-10 (MKT-82 R3 — "edge" is R-B on every tier) */}
           </View>
           {redact && (
             <>
@@ -128,6 +131,5 @@ const makeStyles = (colors: ColorTokens) => StyleSheet.create({
   slateMeta: { color: colors.cyan, fontSize: 8, fontWeight: '800', letterSpacing: 1, fontFamily: theme.typography.fontFamily.mono },
   slateGrid: { flex: 1, gap: 6 },
   slateRow: { flexDirection: 'row', gap: 6, flex: 1 },
-  slateFooter: { color: colors.textTertiary, fontSize: 9, fontWeight: '700', textAlign: 'center', marginTop: 8 },
   safeBuffer: { width: '100%', backgroundColor: colors.background },
 });

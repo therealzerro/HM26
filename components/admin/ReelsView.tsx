@@ -35,7 +35,9 @@ import {
 } from '@/lib/marketingReels';
 import { Pill, SectionTitle, Card, useSt, timeAgo } from './AdminShared';
 import { buildSocialBrief, type SocialBriefData } from '@/lib/social/socialBrief';
-import { SocialBriefCard } from '@/components/social/SocialBriefCard';
+import { SocialBriefCard, type BriefFit } from '@/components/social/SocialBriefCard';
+import { buildBriefModel } from '@/lib/social/briefCopy';
+import { lintBrief, formatBriefLint } from '@/lib/social/briefLint';
 import { raf, waitFonts } from '@/lib/social/publishImages';
 import {
   captureAvailable, captureNodeToPngNatural, downloadDataUrl, resolveWebNode,
@@ -826,7 +828,7 @@ function CaptionsPdfExport({ url, filename }: { url: string; filename: string })
   );
 }
 
-function SocialBriefExport() {
+export function SocialBriefExport() {
   const { colors } = useTheme();
   const st = useSt();
   const [open, setOpen] = useState(false);
@@ -836,6 +838,7 @@ function SocialBriefExport() {
   const [render, setRender] = useState<{ variant: 'public' | 'group'; groupTier?: 'free' | 'pro' } | null>(null);
   const [img, setImg] = useState<{ label: string; filename: string; dataUrl: string } | null>(null);
   const briefRef = useRef<View | null>(null);
+  const fitRef = useRef<BriefFit | null>(null);
   const canShare = useMemo(() => shareToPhotosAvailable(), []);
 
   const generate = useCallback(async (t: BriefTier, fresh?: SocialBriefData | null) => {
@@ -847,9 +850,18 @@ function SocialBriefExport() {
       // ↻ button rebuilds when draws have landed since.
       const data = fresh ?? briefData ?? await buildSocialBrief();
       setBriefData(data);
+      // MKT-82 1.5: the brief does not render if it fails the lint — refused
+      // here, before anything is captured, with the violation on the line.
+      const lint = lintBrief(buildBriefModel(data, t.variant, t.groupTier));
+      if (!lint.ok) throw new Error(`refused — ${formatBriefLint(lint)}`);
+      fitRef.current = null;
       setRender({ variant: t.variant, groupTier: t.groupTier });
-      setMsg('Rendering card…');
+      setMsg(`Rendering card… (${formatBriefLint(lint)})`);
       await raf(); await waitFonts(); await raf();
+      for (let i = 0; i < 30 && !fitRef.current; i++) await raf();
+      const fit = fitRef.current as BriefFit | null;
+      if (!fit) throw new Error('refused — layout fit was never reported');
+      if (!fit.ok) throw new Error(`refused — layout defect: content does not fit (${Math.round(fit.contentH)} > ${Math.round(fit.bandH)} pt) — never shrink`);
       const node = Platform.OS === 'web' ? resolveWebNode(briefRef) : briefRef.current;
       if (!node) throw new Error('Brief capture stage not mounted');
       const dataUrl = await captureNodeToPngNatural(node, 2);
@@ -857,13 +869,13 @@ function SocialBriefExport() {
       setImg({ label: t.label, filename, dataUrl });
       if (Platform.OS === 'web') {
         downloadDataUrl(dataUrl, filename);
-        setMsg(`✅ ${t.label} brief downloaded — ${filename}. Save / Share hands the same PNG to the OS sheet.`);
+        setMsg(`✅ ${t.label} brief downloaded — ${filename} · ${formatBriefLint(lint)} · fit ${Math.round(fit.contentH)}/${Math.round(fit.bandH)} pt.`);
       } else {
         // AWAITED, unlike downloadDataUrl's fire-and-forget native branch: a
         // denied Photos permission used to console.warn while the operator was
         // told "saved to Photos". The claim now matches what actually happened.
         await saveDataUrlToPhotos(dataUrl, filename);
-        setMsg(`✅ ${t.label} brief saved to Photos — or tap Share… to hand it straight to Facebook.`);
+        setMsg(`✅ ${t.label} brief saved to Photos — or tap Share… to hand it straight to Facebook. ${formatBriefLint(lint)} · fit ${Math.round(fit.contentH)}/${Math.round(fit.bandH)} pt.`);
       }
     } catch (e: any) {
       setMsg(`❌ ${String(e?.message ?? e)}`);
@@ -884,9 +896,8 @@ function SocialBriefExport() {
         <View style={{ marginTop: 8 }}>
           <Text style={{ fontSize: 9, color: colors.textTertiary, lineHeight: 13, marginBottom: 8 }}>
             Same card the Publish console builds — tap a tier to capture it, then save or hand it
-            to the OS share sheet.
-            Pro carries the MKT-50 depth panels; Free adds the Pro CTA footer; Public is
-            aggregate-only (no digits, no state codes) and is the only cut safe outside the groups.
+            to the OS share sheet. MKT-82: every string is linted before capture (R-A/R-B, all
+            tiers) and the layout must fit — a refused card says why on this line.
           </Text>
           <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
             {BRIEF_TIERS.map(t => (
@@ -949,7 +960,7 @@ function SocialBriefExport() {
       {/* hidden capture stage — mirrors PublishView's brief stage */}
       {render && briefData && (
         <View style={{ position: 'absolute', top: 0, left: 0, transform: [{ translateX: 5000 }] as any, pointerEvents: 'none' }} collapsable={false}>
-          <SocialBriefCard ref={briefRef} data={briefData} variant={render.variant} groupTier={render.groupTier} />
+          <SocialBriefCard ref={briefRef} data={briefData} variant={render.variant} groupTier={render.groupTier} onFit={f => { fitRef.current = f; }} />
         </View>
       )}
     </Card>

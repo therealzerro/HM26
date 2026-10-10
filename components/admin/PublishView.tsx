@@ -32,7 +32,10 @@ import * as Linking from 'expo-linking';
 import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
-import { lintCaption, LintResult } from '@/lib/social/brandLint';
+import { lintCaption, LintResult, type SocialTier } from '@/lib/social/brandLint';
+import { buildBriefModel } from '@/lib/social/briefCopy';
+import { lintBrief, formatBriefLint } from '@/lib/social/briefLint';
+import type { BriefFit } from '@/components/social/SocialBriefCard';
 import {
   generateCaption, ContentKind, CaptionData,
   SURFACE_TIER, CONTENT_SURFACES, SURFACE_LABELS, CONTENT_LABELS,
@@ -178,9 +181,11 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
   const [stageSession, setStageSession] = useState<SocialSession>('midday');
   const [stageRedact, setStageRedact] = useState(false);
   const [stageBannerVariant, setStageBannerVariant] = useState<'public' | 'pro_upsell'>('public');
+  const [stageTier, setStageTier] = useState<SocialTier>(2);
 
   // brief stage
   const briefRef = useRef<View | null>(null);
+  const briefFitRef = useRef<BriefFit | null>(null);
   const [briefData, setBriefData] = useState<SocialBriefData | null>(null);
   const [briefRender, setBriefRender] = useState<{ variant: 'public' | 'group'; groupTier?: 'free' | 'pro' } | null>(null);
 
@@ -263,7 +268,6 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
       data.verifiedCount = rc.verifiedCount;
       data.jurisdictionCount = rc.jurisdictionCount;
       data.matches = rc.matches;
-      data.verified30d = rc.verified30d;
     }
     return { text: generateCaption(cnt, srf, data, v), data };
   }, [urls]);
@@ -423,9 +427,18 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
     const data = await buildSocialBrief();
     setBriefData(data);
     // §6: Pro footer only on the FREE variant; PRO surface gets no commercial framing.
-    setBriefRender({ variant: briefVariant, groupTier: briefVariant === 'group' ? (srf === 'pro' ? 'pro' : 'free') : undefined });
+    const groupTier = briefVariant === 'group' ? (srf === 'pro' ? 'pro' as const : 'free' as const) : undefined;
+    // MKT-82 1.5: the brief does not render if it fails the lint.
+    const lint = lintBrief(buildBriefModel(data, briefVariant, groupTier));
+    if (!lint.ok) throw new Error(`Brief refused — ${formatBriefLint(lint)}`);
+    briefFitRef.current = null;
+    setBriefRender({ variant: briefVariant, groupTier });
     setImgProgress('Rendering brief card…');
     await raf(); await waitFonts(); await raf();
+    for (let i = 0; i < 30 && !briefFitRef.current; i++) await raf();
+    const fit = briefFitRef.current as BriefFit | null;
+    if (!fit) { setBriefRender(null); throw new Error('Brief refused — layout fit was never reported'); }
+    if (!fit.ok) { setBriefRender(null); throw new Error(`Brief refused — layout defect: content does not fit (${Math.round(fit.contentH)} > ${Math.round(fit.bandH)} pt) — never shrink`); }
     const node = getStageNode(briefRef as any);
     if (!node) throw new Error('Brief capture stage not mounted');
     const dataUrl = await captureNodeToPngNatural(node, 2);
@@ -439,6 +452,7 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
     setStageRedact(redact);
     // Free-group redacted session drops upsell PRO; public/cross keep JOIN FREE.
     setStageBannerVariant(srf === 'free' ? 'pro_upsell' : 'public');
+    setStageTier(SURFACE_TIER[srf]);
     setStageSession(sess);
     setImgProgress(`Loading ${sess} slate…`);
     const { picks, slateDate } = await loadSlatePicks(sess);
@@ -1208,12 +1222,13 @@ function PublishInner({ initialPreset, onPresetConsumed }: PublishInnerProps) {
       slateDate={stageSlateDate}
       redact={stageRedact}
       bannerVariant={stageBannerVariant}
+      tier={stageTier}
     />
     {briefRender && briefData && (
       /* translate (not extreme offset) keeps the node painted — extreme offsets
          get paint-culled and the capture comes back blank */
       <View style={{ position: 'absolute', top: 0, left: 0, transform: [{ translateX: 5000 }] as any, pointerEvents: 'none' }} collapsable={false}>
-        <SocialBriefCard ref={briefRef} data={briefData} variant={briefRender.variant} groupTier={briefRender.groupTier} />
+        <SocialBriefCard ref={briefRef} data={briefData} variant={briefRender.variant} groupTier={briefRender.groupTier} onFit={f => { briefFitRef.current = f; }} />
       </View>
     )}
     </View>

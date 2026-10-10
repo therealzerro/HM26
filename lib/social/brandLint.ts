@@ -61,7 +61,7 @@ const STRICT_VOCAB: { re: RegExp; suggestion: string }[] = [
 ];
 
 /** Universal rules — apply to EVERY tier (brief: Tier 2/4 still ban these). */
-const UNIVERSAL_VOCAB: { re: RegExp; rule: string; suggestion: string }[] = [
+export const UNIVERSAL_VOCAB: { re: RegExp; rule: string; suggestion: string }[] = [
   { re: /\bguaranteed( wins?| results?)?\b/gi, rule: 'no-guarantees', suggestion: '(remove — never imply guaranteed outcomes)' },
   { re: /\bdon'?t miss out\b/gi, rule: 'no-urgency-hype', suggestion: 'calm, measured framing' },
   { re: /\blast chance\b/gi, rule: 'no-urgency-hype', suggestion: 'calm, measured framing' },
@@ -187,14 +187,21 @@ export function lintCaption(caption: string, tier: SocialTier): LintResult {
     }
   }
 
-  // §6 PRO discipline: NO commercial/pricing on the Pro group (paying members
-  // already bought — first-access framing only). FREE is the only surface
-  // where pricing is allowed.
+  // §6 PRO discipline, as re-ruled by MKT-82 F4 (2026-10-10): "Pro is never
+  // commercial — no pricing, no sales lines, no first-access framing." FREE is
+  // the only surface where pricing is allowed. ⚠ The first-access / inner-
+  // circle shapes are ENFORCED on the brief (lib/social/briefLint.ts) and
+  // advisory here, because the pro caption and reel-caption families still
+  // carry "first access" wording (captions.ts, reel-captions.ts, endcard-
+  // config.ts) — flipping it to blocking here would stop the daily run until
+  // that family is rewritten under its own order.
   if (tier === 4) {
     const pricing = caption.match(/\$\s?\d|\/mo\b/i);
-    if (pricing) violations.push({ term: pricing[0], rule: 'pro-no-pricing', suggestion: 'no pricing on the Pro group (§6) — first-access framing only', blocking: true });
+    if (pricing) violations.push({ term: pricing[0], rule: 'pro-no-pricing', suggestion: 'no pricing on the Pro group (§6) — Pro is never commercial', blocking: true });
     const upgrade = caption.match(/\bupgrade\b|\bsubscribe now\b/i);
     if (upgrade) violations.push({ term: upgrade[0], rule: 'pro-no-commercial', suggestion: 'no commercial framing on the Pro group (§6)', blocking: true });
+    const firstAccess = caption.match(/first[- ]access|inner[- ]circle/i);
+    if (firstAccess) violations.push({ term: firstAccess[0], rule: 'pro-no-commercial', suggestion: 'Pro is never commercial — no pricing, no sales lines, no first-access framing (MKT-82 F4)', blocking: false });
   }
 
   // Emoji cap (brief §5: >3 is too many; quality gate says 1-3)

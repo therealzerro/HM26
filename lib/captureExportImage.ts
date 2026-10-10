@@ -241,7 +241,15 @@ export async function captureNodeToPngNatural(node: HTMLElement | unknown, pixel
     throw new Error(`Capture node has zero dimensions (${rect.width}×${rect.height}).`);
   }
   const { toPng } = await import('html-to-image');
-  return toPng(el, { cacheBust: true, pixelRatio, backgroundColor: '#ffffff' });
+  // html-to-image APPLIES `backgroundColor` to the cloned ROOT node, replacing
+  // the node's own background (apply-style.js) — a dark card captured with the
+  // old '#ffffff' default came back with a WHITE card ground and its white
+  // wordmark + footer invisible (found 2026-10-10 on the MKT-82 brief). Use
+  // the node's computed background when it is opaque; white only as the
+  // fallback for a transparent root.
+  const own = typeof getComputedStyle === 'function' ? getComputedStyle(el).backgroundColor : '';
+  const transparent = !own || own === 'transparent' || /^rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*0\s*\)$/.test(own);
+  return toPng(el, { cacheBust: true, pixelRatio, backgroundColor: transparent ? '#ffffff' : own });
 }
 
 /**

@@ -35,6 +35,7 @@
 
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { UNIVERSAL_VOCAB } from '../lib/social/brandLint';
 
 const ROOT = process.cwd();
 
@@ -80,7 +81,38 @@ const IN_SCOPE: string[] = [
   // group deliverable) generated from shared code — lint it like consumer UI.
   'components/social/SocialBriefCard.tsx',
   'lib/social/socialBrief.ts',
+  // MKT-82 Phase 1 (2026-10-10): the brief's copy + model + lint live here now,
+  // and the slate composites (R3) join the scope with their poster cards.
+  'lib/social/briefCopy.ts',
+  'lib/social/briefLint.ts',
+  'lib/social/sessionLabels.ts',
+  'components/social/PublishStage.tsx',
+  'app/admin-image-export.tsx',
+  'components/SlatePosterCard.tsx',
 ];
+
+// MKT-82 Phase 1: the STAT-01 Phase 6 UNIVERSAL classes (R-A / R-B /
+// no-streak — lib/social/brandLint.ts UNIVERSAL_VOCAB, one source) scanned
+// statically over the DISPLAY TEXT of the brief + composite files: quoted
+// string literals and JSX text only, so identifiers like `pressure` or
+// `trend` in code never trip it. The runtime gate is lintBrief(); this is the
+// backstop that fails `npm run check:brand-voice` before a commit.
+const UNIVERSAL_SCOPE = new Set<string>([
+  'components/social/SocialBriefCard.tsx',
+  'lib/social/socialBrief.ts',
+  'lib/social/briefCopy.ts',
+  'lib/social/sessionLabels.ts',
+  'components/social/PublishStage.tsx',
+  'app/admin-image-export.tsx',
+  'components/SlatePosterCard.tsx',
+]);
+
+function displayText(line: string): string[] {
+  const out: string[] = [];
+  for (const m of line.matchAll(/'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"|`((?:[^`\\]|\\.)*)`/g)) out.push(m[1] ?? m[2] ?? m[3] ?? '');
+  for (const m of line.matchAll(/>([^<>{}]+)</g)) out.push(m[1]);
+  return out.map(t => t.trim()).filter(t => t.length > 2);
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // Forbidden vocabulary (phrase-level, case-insensitive)
@@ -88,7 +120,7 @@ const IN_SCOPE: string[] = [
 interface ForbiddenRule {
   pattern: RegExp;
   why: string;
-  source: 'CLAUDE.md' | 'v2-brief' | 'BRAND-03' | 'BRAND-05' | 'MKT-03';
+  source: 'CLAUDE.md' | 'v2-brief' | 'BRAND-03' | 'BRAND-05' | 'MKT-03' | 'STAT-01';
 }
 
 const FORBIDDEN: ForbiddenRule[] = [
@@ -196,6 +228,16 @@ function scanFile(rel: string): Finding[] {
         findings.push({ file: rel, line: i + 1, text: codeOnly.trim(), rule });
       }
     }
+    if (UNIVERSAL_SCOPE.has(rel)) {
+      for (const text of displayText(codeOnly)) {
+        for (const u of UNIVERSAL_VOCAB) {
+          u.re.lastIndex = 0;
+          if (u.re.test(text)) {
+            findings.push({ file: rel, line: i + 1, text, rule: { pattern: u.re, why: `${u.rule} — ${u.suggestion}`, source: 'STAT-01' } });
+          }
+        }
+      }
+    }
   }
   return findings;
 }
@@ -227,6 +269,7 @@ if (allFindings.length === 0) {
 
 console.error(`[check-brand-voice] ❌ ${allFindings.length} finding(s):\n`);
 for (const f of allFindings) {
+  f.rule.pattern.lastIndex = 0;
   const match = f.rule.pattern.exec(f.text);
   const hit = match ? match[0] : '?';
   console.error(`  ${f.file}:${f.line}`);

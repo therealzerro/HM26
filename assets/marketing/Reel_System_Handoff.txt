@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-10 · v7.14
+Content Agent Handoff · 2026-10-10 · v7.15
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.11; v7.12 = one asset edit, v7.13 = the reel:daily gate, v7.14 = MKT-82 PRO BRIEF PHASE 0 (not a reel; your 10/10 order answered — see its block) — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.11; v7.12 = one asset edit, v7.13 = the reel:daily gate, v7.14 = MKT-82 PRO BRIEF PHASE 0, v7.15 = MKT-82 PHASE 1 SHIPPED (not a reel; see its block) — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -638,6 +638,87 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+WHAT CHANGED IN v7.15 (2026-10-10, same day — MKT-82 PHASE 1 SHIPPED on your
+acceptance + rulings R1–R4, F1/F2/F4. Commit 183f410. Engine untouched. The
+three REAL captures for the operator's eyeball:
+https://claude.ai/artifact/4ZBdkr5CFwrVWMvS338Udk )
+================================================================================
+  A. STRING DIFF (Pro; full table in MASTER_AUDIT MKT-82 Phase 1):
+     REMOVED  "Intelligence is your edge. Use it." (every variant + both
+              slate composites, R2/R3) · "First access — inner circle" ·
+              the 30d tile (every tier, R-A) · WHERE THE MODEL CONCENTRATES
+              and all of its lines (×2/×1, 3-DAY WINDOW, 90-DAY ACTIVITY,
+              state footprints, legend) · ANALYST NOTES (Daytime structure,
+              Rank-1 check, "maximise match probability … odds") · the
+              SGL/DBL chip · the 1–2 "strongest" plays.
+     CHANGED  INNER-CIRCLE BRIEF → PRO BRIEF (F4) · Daytime/Nighttime/
+              Continuous → Midday/Evening/All-Day on tiers 2+4 (R4; tier 1
+              keeps the translation) · TODAY now shows each session's
+              PUBLISHED BOARD, six signals in slate order, exact order over
+              box set (the same six as the app — "ranked by the engine" is
+              now literally what is on the card).
+     ADDED    one footer line, every tier, YOUR R1 TEXT VERBATIM — ran
+              through lintBrief tier 4: PASS. (Your first draft would have
+              blocked on "odds", as reported.)
+     0.5, recorded verbatim in the audit: "The 'Where the model
+     concentrates' panel displayed the operator's personal stake-unit
+     allocation and three-day ride rule as model output. The engine has
+     neither. Removed 2026-10-10 (MKT-82)."
+  B. F1 — THE LINE THAT MATTERED. Yesterday's STRAIGHT MATCH was a rank-1
+     BOX test from SOCIAL-05 (7/09) to today. Now one pure law for
+     yesterday AND today (lib/social/briefResolve.ts): straight =
+     result_digits === bestOrder. Unit test: a box-only day MUST render
+     BOX MATCH (25 tests green). Defect range recorded: 2026-07-09 →
+     2026-10-10.
+  C. THE GATE (1.5): the card renders from a MODEL (briefCopy.ts) and the
+     lint lints the same model — a string cannot reach the PNG unlinted.
+     lintBrief = your R-A/R-B classes + brief-specific ones (bare "N · 30d",
+     probability, underperform, pattern confirmed, concentrat, N-day
+     window/activity, carries them; tier 4: first access / inner circle /
+     pricing). BOTH capture paths refuse before capture; the status line
+     says why. Results today: Pro PASS (32 strings) · Free PASS (20) ·
+     Public PASS (12). R2 public case: the hero is YESTERDAY'S OWN DAY
+     (7/18 · 6 jurisdictions), not a multi-day total → not R-A → the public
+     button stays ENABLED. check:brand-voice now scans the brief +
+     composite files for the universal classes over display text: 42
+     files, 0 findings.
+  D. F2 — fit assert IS the rule: band clipped, natural content height
+     measured, "layout defect: content does not fit (N > M pt) — never
+     shrink" refuses the capture. ⚠ The operator's PHONE refused Pro at
+     778 > 759 pt within the hour (headless Chrome had slack) — platform
+     font metrics. Hardened with explicit lineHeights on every text style
+     and a tighter rhythm; NO digit shrunk (28 pt mono, your F6 floor).
+     Headless natural fit now Pro 703 / Free 579 / Public 674 of 764 pt;
+     the ✅ line prints the phone's own "fit N/M pt" so you can read it.
+  E. FOUND ON THE REAL PIXELS, not by any lint: the capture helper handed
+     html-to-image backgroundColor '#ffffff', which that library applies to
+     the ROOT node — the dark card came back on a WHITE ground with its
+     white wordmark and footer invisible. Fixed (node's own background).
+     This is why the eyeball step exists.
+  F. F4: brandLint tier-4 text is now "Pro is never commercial — no
+     pricing, no sales lines, no first-access framing." ENFORCED on the
+     brief; ADVISORY in the caption linter, because the pro caption + reel
+     caption families still say "first access" (captions.ts 108/109/161/
+     266, reel-captions.ts 383/552, endcard-config.ts 43 "FIRST ACCESS.
+     ALWAYS.") — blocking there would stop the daily run. Owed: your order
+     on that family.
+  G. HEADLESS PROOF PATH (new, operator tooling): /brief-capture (admin
+     role, READ-ONLY, outside the SEC-05 write gate — the ops key is a
+     server secret, not on the box) mounts the same exporter;
+     scripts/render-social-brief.ts drives it and keeps the app's own
+     downloads. That is how the three PNGs above were made.
+  H. FRAMES, SECOND DELIVERY: arrived SWAPPED vs your upload-order
+     convention (1st = standing POINTER, 2nd = seated PRESENTER) — content
+     won, as the law says. point PASSES everything (single border,
+     standing, rect 7.3–92.6 % × 9.4–49.4 %, no intrusion). present FAILS
+     AGAIN: its screen was not moved (same rect as delivery 1) and the
+     helmet crown enters 21 px. Both screens now share one position. First
+     delivery parked in assets/marketing/_rejected/ with the gate lines.
+     Phase 2 waits on a passing present frame.
+  I. PROCESS-02 gained your two 10/10 corrections (0.4 live-lever framing;
+     the R1 line written against your own rule).
+================================================================================
+
 WHAT CHANGED IN v7.14 (2026-10-10 — YOUR "DAILY PRO BRIEF" ORDER: ASSET INTAKE
 DONE, PHASE 0 REPORTED, NOTHING ELSE BUILT. ID FILED AS **MKT-82** (verified
 free in the audit, code and this file; next free = 83). Full report:

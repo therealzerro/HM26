@@ -19,8 +19,8 @@ import { resolve, join } from 'node:path';
 const BASE = 'http://localhost:8081';
 const args = process.argv.slice(2);
 const OUT = resolve(args.find(a => !a.startsWith('--')) ?? 'assets/marketing/brief_previews');
-const TIERS = (args.find(a => a.startsWith('--tiers='))?.slice(8) ?? 'pro,free,public').split(',');
-const LABEL: Record<string, string> = { pro: '💎 Pro', free: '👥 Free', public: '📡 Public' };
+const TIERS = (args.find(a => a.startsWith('--tiers='))?.slice(8) ?? 'pro_point,pro_present,pro_classic,free,public').split(',');
+const LABEL: Record<string, string> = { pro: '💎 Pro', pro_framed: '🖼 Pro · framed', pro_point: '🖼 Pro · point', pro_present: '🖼 Pro · present', pro_classic: '🗂 Pro · classic', free: '👥 Free', public: '📡 Public' };
 
 function todayET(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -62,7 +62,7 @@ async function main() {
         file = join(OUT, `hm-brief-${key}-${todayET()}.png`);
         await d.saveAs(file);
       }
-    }
+    } else { await dl; }
     results[key] = { file, message: message.trim(), ok };
     console.log(`${ok ? 'OK  ' : 'FAIL'} ${key}: ${message.trim()}${file ? ` → ${file}` : ''}`);
     // let the exporter settle before the next tier (it clears render state in finally)

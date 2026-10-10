@@ -37,6 +37,9 @@ import { Pill, SectionTitle, Card, useSt, timeAgo } from './AdminShared';
 import { buildSocialBrief, type SocialBriefData } from '@/lib/social/socialBrief';
 import { SocialBriefCard, type BriefFit } from '@/components/social/SocialBriefCard';
 import { buildBriefModel } from '@/lib/social/briefCopy';
+import { BriefFrameCard } from '@/components/social/BriefFrameCard';
+import { BRIEF_FRAME_FROM, frameForDate, frameByKey } from '@/lib/social/briefFrames';
+import { tagPngDataUrl } from '@/lib/captureExportImage';
 import { lintBrief, formatBriefLint } from '@/lib/social/briefLint';
 import { raf, waitFonts } from '@/lib/social/publishImages';
 import {
@@ -707,9 +710,16 @@ function ReelCard({ reel, urls, onPosted, expanded, onToggle }: {
  * (not extreme offset) keeps the node painted so the PNG isn't blank.
  */
 const BRIEF_TIERS = [
-  { key: 'pro', label: '💎 Pro', variant: 'group', groupTier: 'pro' },
-  { key: 'free', label: '👥 Free', variant: 'group', groupTier: 'free' },
-  { key: 'public', label: '📡 Public', variant: 'public', groupTier: undefined },
+  // MKT-82 Phase 2: from BRIEF_FRAME_FROM the Pro button is the FRAMED cut
+  // (anchor presents the brief); 'pro_framed' previews it before the flip and
+  // 'pro_classic' is the hatch (--classic-brief) after it.
+  { key: 'pro', label: '💎 Pro', variant: 'group', groupTier: 'pro', framed: 'auto' },
+  { key: 'pro_framed', label: '🖼 Pro · framed', variant: 'group', groupTier: 'pro', framed: 'yes' },
+  { key: 'pro_point', label: '🖼 Pro · point', variant: 'group', groupTier: 'pro', framed: 'yes', frameKey: 'point' },
+  { key: 'pro_present', label: '🖼 Pro · present', variant: 'group', groupTier: 'pro', framed: 'yes', frameKey: 'present' },
+  { key: 'pro_classic', label: '🗂 Pro · classic', variant: 'group', groupTier: 'pro', framed: 'no' },
+  { key: 'free', label: '👥 Free', variant: 'group', groupTier: 'free', framed: 'no' },
+  { key: 'public', label: '📡 Public', variant: 'public', groupTier: undefined, framed: 'no' },
 ] as const;
 type BriefTier = (typeof BRIEF_TIERS)[number];
 
@@ -835,7 +845,7 @@ export function SocialBriefExport() {
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [briefData, setBriefData] = useState<SocialBriefData | null>(null);
-  const [render, setRender] = useState<{ variant: 'public' | 'group'; groupTier?: 'free' | 'pro' } | null>(null);
+  const [render, setRender] = useState<{ variant: 'public' | 'group'; groupTier?: 'free' | 'pro'; frame?: ReturnType<typeof frameForDate> } | null>(null);
   const [img, setImg] = useState<{ label: string; filename: string; dataUrl: string } | null>(null);
   const briefRef = useRef<View | null>(null);
   const fitRef = useRef<BriefFit | null>(null);
@@ -854,8 +864,12 @@ export function SocialBriefExport() {
       // here, before anything is captured, with the violation on the line.
       const lint = lintBrief(buildBriefModel(data, t.variant, t.groupTier));
       if (!lint.ok) throw new Error(`refused — ${formatBriefLint(lint)}`);
+      const today = getTodayET();
+      const frame = t.framed === 'no' ? null : ((t as any).frameKey ? frameByKey((t as any).frameKey) : frameForDate(today));
+      const useFrame = t.framed === 'yes' ? !!frame : t.framed === 'auto' ? (!!frame && today >= BRIEF_FRAME_FROM) : false;
+      if (t.framed === 'yes' && !frame) throw new Error('refused — no ACTIVE anchor frame in BRIEF_FRAMES (all parked)');
       fitRef.current = null;
-      setRender({ variant: t.variant, groupTier: t.groupTier });
+      setRender({ variant: t.variant, groupTier: t.groupTier, frame: useFrame ? frame : null });
       setMsg(`Rendering card… (${formatBriefLint(lint)})`);
       await raf(); await waitFonts(); await raf();
       for (let i = 0; i < 30 && !fitRef.current; i++) await raf();
@@ -864,8 +878,10 @@ export function SocialBriefExport() {
       if (!fit.ok) throw new Error(`refused — layout defect: content does not fit (${Math.round(fit.contentH)} > ${Math.round(fit.bandH)} pt) — never shrink`);
       const node = Platform.OS === 'web' ? resolveWebNode(briefRef) : briefRef.current;
       if (!node) throw new Error('Brief capture stage not mounted');
-      const dataUrl = await captureNodeToPngNatural(node, 2);
-      const filename = `hm-brief-${t.key}-${getTodayET()}.png`;
+      let dataUrl = await captureNodeToPngNatural(node, 2);
+      // 2.7: tags in the PNG metadata — frame used, date, lint pass.
+      if (Platform.OS === 'web') dataUrl = tagPngDataUrl(dataUrl, { 'hm:brief_tier': t.groupTier ?? t.variant, 'hm:brief_frame': useFrame && frame ? frame.key : 'none', 'hm:brief_date': today, 'hm:brief_lint': formatBriefLint(lint) });
+      const filename = `hm-brief-${t.key}-${useFrame && frame ? `framed-${frame.key}-` : ''}${today}.png`;
       setImg({ label: t.label, filename, dataUrl });
       if (Platform.OS === 'web') {
         downloadDataUrl(dataUrl, filename);
@@ -960,7 +976,9 @@ export function SocialBriefExport() {
       {/* hidden capture stage — mirrors PublishView's brief stage */}
       {render && briefData && (
         <View style={{ position: 'absolute', top: 0, left: 0, transform: [{ translateX: 5000 }] as any, pointerEvents: 'none' }} collapsable={false}>
-          <SocialBriefCard ref={briefRef} data={briefData} variant={render.variant} groupTier={render.groupTier} onFit={f => { fitRef.current = f; }} />
+          {render.frame
+            ? <BriefFrameCard ref={briefRef} data={briefData} frame={render.frame} dateISO={getTodayET()} onFit={f => { fitRef.current = f; }} />
+            : <SocialBriefCard ref={briefRef} data={briefData} variant={render.variant} groupTier={render.groupTier} onFit={f => { fitRef.current = f; }} />}
         </View>
       )}
     </Card>

@@ -446,3 +446,45 @@ export async function shareDataUrlsToApps(
   }
   await nav.share({ files, title });
 }
+
+// ── PNG tEXt tags (MKT-82 2.7) ──────────────────────────────────────────────
+// Inserts tEXt chunks after IHDR of a PNG data URL (web only). Keys are ASCII,
+// values Latin-1-safe; non-ASCII is dropped. Pure byte work — no library.
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+  return t;
+})();
+function crc32(bytes: Uint8Array): number {
+  let c = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+function textChunk(key: string, value: string): Uint8Array {
+  const ascii = (s: string) => Array.from(s).map(ch => ch.charCodeAt(0)).filter(code => code > 0 && code < 256);
+  const body = new Uint8Array([...ascii('tEXt'), ...ascii(key), 0, ...ascii(value)]);
+  const len = body.length - 4;
+  const out = new Uint8Array(4 + body.length + 4);
+  const dv = new DataView(out.buffer);
+  dv.setUint32(0, len); out.set(body, 4); dv.setUint32(4 + body.length, crc32(body));
+  return out;
+}
+export function tagPngDataUrl(dataUrl: string, tags: Record<string, string>): string {
+  const m = /^data:image\/png;base64,(.+)$/.exec(dataUrl);
+  if (!m || typeof atob !== 'function' || typeof btoa !== 'function') return dataUrl;
+  const bin = atob(m[1]);
+  const src = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) src[i] = bin.charCodeAt(i);
+  // signature 8 + IHDR (4 len + 4 type + 13 data + 4 crc) = 33
+  if (src.length < 33) return dataUrl;
+  const chunks = Object.entries(tags).map(([k, v]) => textChunk(k, v));
+  const extra = chunks.reduce((n, c) => n + c.length, 0);
+  const out = new Uint8Array(src.length + extra);
+  out.set(src.subarray(0, 33), 0);
+  let off = 33;
+  for (const c of chunks) { out.set(c, off); off += c.length; }
+  out.set(src.subarray(33), off);
+  let s = '';
+  for (let i = 0; i < out.length; i += 0x8000) s += String.fromCharCode.apply(null, Array.from(out.subarray(i, i + 0x8000)));
+  return 'data:image/png;base64,' + btoa(s);
+}

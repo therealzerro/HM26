@@ -18,7 +18,7 @@
 
 import type { SocialTier } from './brandLint';
 import type { SocialBriefData, SocialBriefScope, SocialBriefSignal } from './socialBrief';
-import { matchTag, type Resolution } from './briefResolve';
+import { matchTag, fmtDigits, type Resolution, type PickMatch } from './briefResolve';
 import { sessionLabel } from './sessionLabels';
 
 export type BriefVariant = 'public' | 'group';
@@ -62,16 +62,25 @@ export function briefTier(variant: BriefVariant, groupTier?: GroupTier): SocialT
   return groupTier === 'pro' ? 4 : 2;
 }
 
+/** One matched pick as a chip. A STRAIGHT chip shows the exact order in gold
+ *  ("6-9-1"); a BOX chip shows the set in green ("{1,6,8}") — so a row with
+ *  four chips never reads as four straights (operator, 10/10). */
+export interface BriefChip { text: string; straight: boolean }
+
+export function chipsFor(matches: PickMatch[]): BriefChip[] {
+  return matches.map(m => m.straight ? { text: fmtDigits(m.bestOrder), straight: true } : { text: setBraces(m.set), straight: false });
+}
+
 export interface BriefRow {      // one yesterday row
   scopeLabel: string;
   tag: ReturnType<typeof matchTag>;
-  chips: string[];               // "{4,5,8}" display sets
+  chips: BriefChip[];
 }
 
 export interface BriefSession {  // one today block
   scopeLabel: string;
   state: string | null;          // ● LIVE / ✓ RESOLVED / null
-  resolved?: { tag: 'STRAIGHT MATCH' | 'BOX MATCH'; chips: string[] };
+  resolved?: { tag: 'STRAIGHT MATCH' | 'BOX MATCH'; chips: BriefChip[] };
   miss?: string;
   signals?: SocialBriefSignal[]; // pro, unresolved: the board
   locked?: string;               // free, unresolved
@@ -103,7 +112,7 @@ function rowFor(s: SocialBriefScope, tier: SocialTier): BriefRow {
   return {
     scopeLabel: sessionLabel(s.scope, tier),
     tag: matchTag(s.yesterday),
-    chips: s.yesterday.slateHit ? s.yesterday.hittingCombos.map(setBraces) : [],
+    chips: s.yesterday.slateHit ? chipsFor(s.yesterday.matches) : [],
   };
 }
 
@@ -114,7 +123,7 @@ function sessionFor(s: SocialBriefScope, tier: SocialTier, locked: boolean): Bri
     state: t.resolved ? (t.live ? BRIEF_COPY.stateLive : BRIEF_COPY.stateResolved) : null,
   };
   if (t.resolved) {
-    if (t.slateHit) return { ...base, resolved: { tag: t.straight ? 'STRAIGHT MATCH' : 'BOX MATCH', chips: t.hittingCombos.map(setBraces) } };
+    if (t.slateHit) return { ...base, resolved: { tag: t.straight ? 'STRAIGHT MATCH' : 'BOX MATCH', chips: chipsFor(t.matches) } };
     return { ...base, miss: t.live ? BRIEF_COPY.missLive : BRIEF_COPY.missDone };
   }
   if (locked) return { ...base, locked: BRIEF_COPY.lockText };
@@ -181,11 +190,11 @@ export function briefModelStrings(m: BriefModel): { where: string; text: string 
     add('yesterday', m.yesterdayLabel);
     for (const s of m.stats) add('stat', `${s.value} ${s.label}`);
   }
-  for (const r of m.yesterdayRows ?? []) add('yesterday.row', [r.scopeLabel, ...r.chips, r.tag].join(' '));
+  for (const r of m.yesterdayRows ?? []) add('yesterday.row', [r.scopeLabel, ...r.chips.map(c => c.text), r.tag].join(' '));
   if (m.sessions) add('today', m.todayLabel);
   for (const s of m.sessions ?? []) {
     add('session.head', [s.scopeLabel.toUpperCase(), s.state].filter(Boolean).join(' '));
-    if (s.resolved) add('session.resolved', [s.resolved.tag, ...s.resolved.chips].join(' '));
+    if (s.resolved) add('session.resolved', [s.resolved.tag, ...s.resolved.chips.map(c => c.text)].join(' '));
     add('session.miss', s.miss);
     add('session.locked', s.locked);
     add('session.none', s.none);

@@ -20,7 +20,7 @@ import React, { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Image, Platform, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { Asset } from 'expo-asset';
 import type { SocialBriefData } from '@/lib/social/socialBrief';
-import { buildBriefModel, BRIEF_COPY, setBraces, type BriefRow, type BriefSession } from '@/lib/social/briefCopy';
+import { buildBriefModel, BRIEF_COPY, setBraces, type BriefRow, type BriefSession, type BriefChip } from '@/lib/social/briefCopy';
 import { BRIEF_FRAME_IMAGES, outputRect, type BriefFrame } from '@/lib/social/briefFrames';
 import type { BriefFit } from '@/components/social/SocialBriefCard';
 
@@ -45,6 +45,16 @@ export function headerDate(dateISO: string): string {
   const wd = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
   const mo = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
   return `${wd} · ${mo} ${d.getDate()}`;
+}
+
+function Chips({ chips }: { chips: BriefChip[] }) {
+  return (
+    <Text numberOfLines={1}>
+      {chips.map((c, i) => (
+        <Text key={i} style={[styles.chip, { color: c.straight ? C.goldSoft : C.green }]}>{i ? '  ' : ''}{c.text}</Text>
+      ))}
+    </Text>
+  );
 }
 
 function tagColor(tag: BriefRow['tag']): string {
@@ -110,7 +120,7 @@ export const BriefFrameCard = forwardRef<View, BriefFrameCardProps>(function Bri
             <View key={i} style={styles.yRow}>
               <Text style={styles.yScope}>{row.scopeLabel}</Text>
               <Text style={[styles.yTag, { color: tagColor(row.tag) }]}>{row.tag}</Text>
-              <Text style={styles.yChips} numberOfLines={1}>{row.chips.join('  ')}</Text>
+              <View style={{ flex: 1 }}><Chips chips={row.chips} /></View>
             </View>
           ))}
 
@@ -133,7 +143,7 @@ function Session({ s }: { s: BriefSession }) {
         {s.state && <Text style={[styles.sessionState, { color: s.resolved ? (s.resolved.tag === 'STRAIGHT MATCH' ? C.goldSoft : C.green) : C.cyanSoft }]}>{s.state}</Text>}
       </View>
       {s.resolved ? (
-        <Text style={[styles.resolved, { color: s.resolved.tag === 'STRAIGHT MATCH' ? C.goldSoft : C.green }]}>{s.resolved.tag}  <Text style={styles.resolvedChips}>{s.resolved.chips.join('  ')}</Text></Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 1 }}><Text style={[styles.resolved, { color: s.resolved.tag === 'STRAIGHT MATCH' ? C.goldSoft : C.green }]}>{s.resolved.tag}</Text><Chips chips={s.resolved.chips} /></View>
       ) : s.miss || s.none ? (
         <Text style={styles.miss}>{s.miss ?? s.none}</Text>
       ) : (
@@ -177,13 +187,12 @@ const styles = StyleSheet.create({
   digits: { color: C.text, fontSize: 17, lineHeight: 19, fontWeight: '900', fontFamily: MONO, letterSpacing: 1.2 },
   set: { color: C.textFaint, fontSize: 7, lineHeight: 8, fontFamily: MONO },
   resolved: { fontSize: 9, lineHeight: 12, fontWeight: '900', fontFamily: MONO, letterSpacing: 0.4, marginTop: 1 },
-  resolvedChips: { color: C.green, fontWeight: '700' },
   miss: { color: C.textFaint, fontSize: 8, lineHeight: 11, fontStyle: 'italic', marginTop: 1 },
 
   yRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 0.5, borderTopWidth: 0.5, borderTopColor: C.hair },
   yScope: { width: 42, color: C.purpleSoft, fontSize: 8, lineHeight: 11, fontWeight: '800' },
   yTag: { width: 78, fontSize: 7.5, lineHeight: 11, fontWeight: '900', letterSpacing: 0.4, fontFamily: MONO },
-  yChips: { flex: 1, color: C.green, fontSize: 7.5, lineHeight: 11, fontFamily: MONO, fontWeight: '700' },
+  chip: { fontSize: 7.5, lineHeight: 11, fontFamily: MONO, fontWeight: '700' },
 
   footer: { color: C.textFaint, fontSize: 6, lineHeight: 8.5, fontWeight: '700', marginTop: 3 },
 });

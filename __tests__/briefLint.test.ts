@@ -10,14 +10,14 @@ const data: SocialBriefData = {
   totalSignals: 18, verifiedCount: 3, jurisdictionCount: 5,
   scopes: [
     { scope: 'midday', todaySignals: [{ digits: '4-8-5', set: '458' }, { digits: '7-1-6', set: '167' }],
-      yesterday: { resolved: true, live: false, slateHit: true, straight: false, hittingCombos: ['458'] },
-      today: { resolved: true, live: false, slateHit: true, straight: true, hittingCombos: ['167'] } },
+      yesterday: { resolved: true, live: false, slateHit: true, straight: false, hittingCombos: ['458'], matches: [{ set: '458', bestOrder: '485', straight: false }] },
+      today: { resolved: true, live: false, slateHit: true, straight: true, hittingCombos: ['167'], matches: [{ set: '167', bestOrder: '716', straight: true }] } },
     { scope: 'evening', todaySignals: [{ digits: '3-2-5', set: '235' }],
-      yesterday: { resolved: true, live: false, slateHit: false, straight: false, hittingCombos: [] },
-      today: { resolved: false, live: false, slateHit: false, straight: false, hittingCombos: [] } },
+      yesterday: { resolved: true, live: false, slateHit: false, straight: false, hittingCombos: [], matches: [] },
+      today: { resolved: false, live: false, slateHit: false, straight: false, hittingCombos: [], matches: [] } },
     { scope: 'allday', todaySignals: [{ digits: '0-5-9', set: '059' }],
-      yesterday: { resolved: true, live: false, slateHit: true, straight: true, hittingCombos: ['059'] },
-      today: { resolved: true, live: true, slateHit: false, straight: false, hittingCombos: [] } },
+      yesterday: { resolved: true, live: false, slateHit: true, straight: true, hittingCombos: ['059'], matches: [{ set: '059', bestOrder: '059', straight: true }] },
+      today: { resolved: true, live: true, slateHit: false, straight: false, hittingCombos: [], matches: [] } },
   ],
 };
 
@@ -51,6 +51,9 @@ describe('lintBrief — live variants pass', () => {
     expect(rows[0].tag).toBe('BOX MATCH');
     expect(rows[1].tag).toBe('no match');
     expect(rows[2].tag).toBe('STRAIGHT MATCH');
+    // chips carry their own type: box = set in braces, straight = exact order
+    expect(rows[0].chips).toEqual([{ text: '{4,5,8}', straight: false }]);
+    expect(rows[2].chips).toEqual([{ text: '0-5-9', straight: true }]);
   });
 });
 

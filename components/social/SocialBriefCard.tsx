@@ -37,7 +37,7 @@
 import React, { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import type { SocialBriefData } from '@/lib/social/socialBrief';
-import { buildBriefModel, BRIEF_COPY, setBraces, type BriefModel, type BriefSession, type BriefRow, type BriefVariant, type GroupTier } from '@/lib/social/briefCopy';
+import { buildBriefModel, BRIEF_COPY, setBraces, type BriefModel, type BriefSession, type BriefRow, type BriefChip, type BriefVariant, type GroupTier } from '@/lib/social/briefCopy';
 
 const C = {
   bg: '#0A0A0F',
@@ -68,6 +68,14 @@ export interface SocialBriefCardProps {
   showProFooter?: boolean;
   /** F2 fit assert — called once both the band and its content have laid out. */
   onFit?: (fit: BriefFit) => void;
+}
+
+function Chip({ c }: { c: BriefChip }) {
+  return (
+    <View style={[styles.yChip, c.straight && styles.yChipStraight]}>
+      <Text style={[styles.yChipText, c.straight && { color: C.goldSoft }]}>{c.text}</Text>
+    </View>
+  );
 }
 
 function tagColor(tag: BriefRow['tag']): string {
@@ -212,7 +220,7 @@ function YesterdayRow({ r }: { r: BriefRow }) {
       <View style={styles.yCombos}>
         {chips.length > 0 ? (
           <>
-            {chips.map((c, i) => <View key={i} style={styles.yChip}><Text style={styles.yChipText}>{c}</Text></View>)}
+            {chips.map((c, i) => <Chip key={i} c={c} />)}
             {overflow > 0 && <Text style={styles.yMore}>+{overflow}</Text>}
           </>
         ) : <Text style={styles.yDash}>—</Text>}
@@ -235,7 +243,7 @@ function ProSession({ s, last }: { s: BriefSession; last: boolean }) {
         <View style={styles.resolvedRow}>
           <Text style={[styles.resolvedTag, { color: s.resolved.tag === 'STRAIGHT MATCH' ? C.goldSoft : C.green }]}>{s.resolved.tag}</Text>
           <View style={styles.yCombos}>
-            {s.resolved.chips.slice(0, 4).map((c, i) => <View key={i} style={styles.yChip}><Text style={styles.yChipText}>{c}</Text></View>)}
+            {s.resolved.chips.slice(0, 4).map((c, i) => <Chip key={i} c={c} />)}
           </View>
         </View>
       ) : s.miss ? (
@@ -269,7 +277,7 @@ function FreeSession({ s }: { s: BriefSession }) {
         <View style={{ marginTop: 10 }}>
           <Text style={[styles.resolvedTag, { color: s.resolved.tag === 'STRAIGHT MATCH' ? C.goldSoft : C.green }]}>{s.resolved.tag}</Text>
           <View style={[styles.yCombos, { marginTop: 8 }]}>
-            {s.resolved.chips.slice(0, 3).map((c, i) => <View key={i} style={styles.yChip}><Text style={styles.yChipText}>{c}</Text></View>)}
+            {s.resolved.chips.slice(0, 3).map((c, i) => <Chip key={i} c={c} />)}
           </View>
         </View>
       ) : s.miss ? (
@@ -344,6 +352,7 @@ const styles = StyleSheet.create({
   yScope: { width: 130, color: C.purpleSoft, fontSize: 17, lineHeight: 22, fontWeight: '800' },
   yCombos: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
   yChip: { backgroundColor: 'rgba(52,211,153,0.12)', borderRadius: 8, paddingHorizontal: 9, paddingVertical: 3 },
+  yChipStraight: { backgroundColor: 'rgba(251,191,36,0.14)', borderWidth: 1, borderColor: C.gold + '66' },
   yChipText: { color: C.green, fontSize: 14, lineHeight: 18, fontFamily: MONO, fontWeight: '700' },
   yMore: { color: C.textFaint, fontSize: 13, fontFamily: MONO, fontWeight: '700' },
   yDash: { color: C.textFaint, fontSize: 16 },

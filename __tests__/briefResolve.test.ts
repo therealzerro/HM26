@@ -42,6 +42,22 @@ describe('resolveDraws — one law for yesterday and today', () => {
     expect(matchTag(ad)).toBe('STRAIGHT MATCH');
   });
 
+  it('10/9 evening: two straights and two boxes are typed per pick, not per row', () => {
+    const b = parseBoard([
+      { comboSet: '{1,6,8}', bestOrder: '861' }, { comboSet: '{0,1,4}', bestOrder: '104' },
+      { comboSet: '{1,6,9}', bestOrder: '691' }, { comboSet: '{1,4,8}', bestOrder: '148' },
+    ]);
+    const r = resolveDraws(b, [
+      { session: 'evening', comboset_sorted: '{1,6,8}', result_digits: '618' },
+      { session: 'evening', comboset_sorted: '{1,6,8}', result_digits: '186' },
+      { session: 'evening', comboset_sorted: '{0,1,4}', result_digits: '041' },
+      { session: 'evening', comboset_sorted: '{1,6,9}', result_digits: '691' },
+      { session: 'evening', comboset_sorted: '{1,4,8}', result_digits: '148' },
+    ], 'evening');
+    expect(matchTag(r)).toBe('STRAIGHT MATCH');
+    expect(r.matches.map(m => m.straight)).toEqual([false, false, true, true]);
+  });
+
   it('no match on a resolved session', () => {
     const r = resolveDraws(board, [{ session: 'midday', comboset_sorted: '{0,0,9}', result_digits: '009' }], 'midday');
     expect(matchTag(r)).toBe('no match');

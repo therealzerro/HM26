@@ -25,12 +25,20 @@ export interface DrawRow {
   result_digits: string;    // "485"
 }
 
+export interface PickMatch {
+  set: string;              // sorted-set digits, "169"
+  bestOrder: string;        // the pick's exact order, "691"
+  straight: boolean;        // some draw equalled bestOrder exactly
+}
+
 export interface Resolution {
   resolved: boolean;        // at least one draw for the scope has landed
   live: boolean;            // allday only: one session drawn, the other not yet
   slateHit: boolean;        // any pick matched (box)
   straight: boolean;        // any matched pick matched in exact order
   hittingCombos: string[];  // sorted-set digit strings of the matched picks, slate order
+  matches: PickMatch[];     // per matched pick, slate order — the chip law (10/10: a
+                            // row-level label over four chips read as "four straights")
 }
 
 export function digitsOnly(s: string | null | undefined): string {
@@ -73,6 +81,7 @@ export function resolveDraws(picks: BoardPick[], draws: DrawRow[], scope: Resolv
   const resolved = scoped.length > 0;
   const live = scope === 'allday' && resolved && !(sessions.has('midday') && sessions.has('evening'));
   const hitting: string[] = [];
+  const matches: PickMatch[] = [];
   let slateHit = false;
   let straight = false;
   if (resolved) {
@@ -82,11 +91,12 @@ export function resolveDraws(picks: BoardPick[], draws: DrawRow[], scope: Resolv
       const matched = scoped.filter(d => setDigits(d.comboset_sorted) === set);
       if (!matched.length) continue;
       slateHit = true;
-      if (!hitting.includes(set)) hitting.push(set);
-      if (best.length === 3 && matched.some(d => digitsOnly(d.result_digits) === best)) straight = true;
+      const exact = best.length === 3 && matched.some(d => digitsOnly(d.result_digits) === best);
+      if (exact) straight = true;
+      if (!hitting.includes(set)) { hitting.push(set); matches.push({ set, bestOrder: best, straight: exact }); }
     }
   }
-  return { resolved, live, slateHit, straight, hittingCombos: hitting };
+  return { resolved, live, slateHit, straight, hittingCombos: hitting, matches };
 }
 
 /** The label law for a graded row — shared by yesterday and today. */

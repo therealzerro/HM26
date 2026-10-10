@@ -713,13 +713,19 @@ const BRIEF_TIERS = [
   // MKT-82 Phase 2: from BRIEF_FRAME_FROM the Pro button is the FRAMED cut
   // (anchor presents the brief); 'pro_framed' previews it before the flip and
   // 'pro_classic' is the hatch (--classic-brief) after it.
+  // 10/10 operator: ALL THREE tiers are framed. 'auto' = framed from
+  // BRIEF_FRAME_FROM (rotation), '🖼' = framed today, '🗂' = the classic hatch.
   { key: 'pro', label: '💎 Pro', variant: 'group', groupTier: 'pro', framed: 'auto' },
+  { key: 'free', label: '👥 Free', variant: 'group', groupTier: 'free', framed: 'auto' },
+  { key: 'public', label: '📡 Public', variant: 'public', groupTier: undefined, framed: 'auto' },
   { key: 'pro_framed', label: '🖼 Pro · framed', variant: 'group', groupTier: 'pro', framed: 'yes' },
+  { key: 'free_framed', label: '🖼 Free · framed', variant: 'group', groupTier: 'free', framed: 'yes' },
+  { key: 'public_framed', label: '🖼 Public · framed', variant: 'public', groupTier: undefined, framed: 'yes' },
   { key: 'pro_point', label: '🖼 Pro · point', variant: 'group', groupTier: 'pro', framed: 'yes', frameKey: 'point' },
   { key: 'pro_present', label: '🖼 Pro · present', variant: 'group', groupTier: 'pro', framed: 'yes', frameKey: 'present' },
   { key: 'pro_classic', label: '🗂 Pro · classic', variant: 'group', groupTier: 'pro', framed: 'no' },
-  { key: 'free', label: '👥 Free', variant: 'group', groupTier: 'free', framed: 'no' },
-  { key: 'public', label: '📡 Public', variant: 'public', groupTier: undefined, framed: 'no' },
+  { key: 'free_classic', label: '🗂 Free · classic', variant: 'group', groupTier: 'free', framed: 'no' },
+  { key: 'public_classic', label: '🗂 Public · classic', variant: 'public', groupTier: undefined, framed: 'no' },
 ] as const;
 type BriefTier = (typeof BRIEF_TIERS)[number];
 
@@ -881,7 +887,7 @@ export function SocialBriefExport() {
       let dataUrl = await captureNodeToPngNatural(node, 2);
       // 2.7: tags in the PNG metadata — frame used, date, lint pass.
       if (Platform.OS === 'web') dataUrl = tagPngDataUrl(dataUrl, { 'hm:brief_tier': t.groupTier ?? t.variant, 'hm:brief_frame': useFrame && frame ? frame.key : 'none', 'hm:brief_date': today, 'hm:brief_lint': formatBriefLint(lint) });
-      const filename = `hm-brief-${t.key}-${useFrame && frame ? `framed-${frame.key}-` : ''}${today}.png`;
+      const filename = `hm-brief-${t.groupTier ?? t.variant}-${useFrame && frame ? `framed-${frame.key}` : 'classic'}-${today}.png`;
       setImg({ label: t.label, filename, dataUrl });
       if (Platform.OS === 'web') {
         downloadDataUrl(dataUrl, filename);
@@ -977,7 +983,7 @@ export function SocialBriefExport() {
       {render && briefData && (
         <View style={{ position: 'absolute', top: 0, left: 0, transform: [{ translateX: 5000 }] as any, pointerEvents: 'none' }} collapsable={false}>
           {render.frame
-            ? <BriefFrameCard ref={briefRef} data={briefData} frame={render.frame} dateISO={getTodayET()} onFit={f => { fitRef.current = f; }} />
+            ? <BriefFrameCard ref={briefRef} data={briefData} frame={render.frame} variant={render.variant} groupTier={render.groupTier} dateISO={getTodayET()} onFit={f => { fitRef.current = f; }} />
             : <SocialBriefCard ref={briefRef} data={briefData} variant={render.variant} groupTier={render.groupTier} onFit={f => { fitRef.current = f; }} />}
         </View>
       )}

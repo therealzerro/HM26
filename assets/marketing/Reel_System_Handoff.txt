@@ -670,6 +670,11 @@ Commits 6981880, bbdc9db + the data-URL fix. Engine untouched.)
      point→point 0.4, present→present 0.4, cross 17.
   D. THE OPERATOR'S PAGE (the real Reels output, five cuts):
      https://claude.ai/artifact/4ZBdkr5CFwrVWMvS338Udk
+  E3. SAME EVENING, operator order: FREE and PUBLIC are framed too (the Pro
+     cut carries all three boards, so it can no longer stand in for the free
+     or public post). Free on the glass = locks + yesterday rows + Pro CTA;
+     Public = the §6 aggregate hero only (tier-1 lint PASS, no digits). All
+     three tier buttons auto-frame from 10/11; classic hatches stay.
   E2. SAME EVENING, operator order: the daily ChatGPT cover-image prompt is
      RETIRED from the captions PDF (the framed Pro brief is the Morning Brief
      photo). The anchor-thread question card and the Sunday receipts card +

@@ -19,8 +19,8 @@ import { resolve, join } from 'node:path';
 const BASE = 'http://localhost:8081';
 const args = process.argv.slice(2);
 const OUT = resolve(args.find(a => !a.startsWith('--')) ?? 'assets/marketing/brief_previews');
-const TIERS = (args.find(a => a.startsWith('--tiers='))?.slice(8) ?? 'pro_point,pro_present,pro_classic,free,public').split(',');
-const LABEL: Record<string, string> = { pro: '💎 Pro', pro_framed: '🖼 Pro · framed', pro_point: '🖼 Pro · point', pro_present: '🖼 Pro · present', pro_classic: '🗂 Pro · classic', free: '👥 Free', public: '📡 Public' };
+const TIERS = (args.find(a => a.startsWith('--tiers='))?.slice(8) ?? 'pro_point,pro_present,free_framed,public_framed,pro_classic,free_classic,public_classic').split(',');
+const LABEL: Record<string, string> = { pro: '💎 Pro', pro_framed: '🖼 Pro · framed', free_framed: '🖼 Free · framed', public_framed: '🖼 Public · framed', free_classic: '🗂 Free · classic', public_classic: '🗂 Public · classic', pro_point: '🖼 Pro · point', pro_present: '🖼 Pro · present', pro_classic: '🗂 Pro · classic', free: '👥 Free', public: '📡 Public' };
 
 function todayET(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());

@@ -20,7 +20,7 @@ import React, { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Image, Platform, StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { Asset } from 'expo-asset';
 import type { SocialBriefData } from '@/lib/social/socialBrief';
-import { buildBriefModel, BRIEF_COPY, setBraces, type BriefRow, type BriefSession, type BriefChip } from '@/lib/social/briefCopy';
+import { buildBriefModel, BRIEF_COPY, setBraces, type BriefRow, type BriefSession, type BriefChip, type BriefVariant, type GroupTier } from '@/lib/social/briefCopy';
 import { BRIEF_FRAME_IMAGES, outputRect, type BriefFrame } from '@/lib/social/briefFrames';
 import type { BriefFit } from '@/components/social/SocialBriefCard';
 
@@ -35,6 +35,9 @@ const LOGICAL_W = 540, LOGICAL_H = 675;   // ×2 = 1080×1350
 export interface BriefFrameCardProps {
   data: SocialBriefData;
   frame: BriefFrame;
+  /** Which brief goes on the glass (10/10 operator: free and public are framed too). */
+  variant?: BriefVariant;
+  groupTier?: GroupTier;
   /** ET date "YYYY-MM-DD" for the header ("SAT · OCT 10"). */
   dateISO: string;
   onFit?: (fit: BriefFit) => void;
@@ -63,8 +66,8 @@ function tagColor(tag: BriefRow['tag']): string {
   return C.textFaint;
 }
 
-export const BriefFrameCard = forwardRef<View, BriefFrameCardProps>(function BriefFrameCard({ data, frame, dateISO, onFit }, ref) {
-  const model = useMemo(() => buildBriefModel(data, 'group', 'pro'), [data]);
+export const BriefFrameCard = forwardRef<View, BriefFrameCardProps>(function BriefFrameCard({ data, frame, dateISO, onFit, variant = 'group', groupTier = 'pro' }, ref) {
+  const model = useMemo(() => buildBriefModel(data, variant, groupTier), [data, variant, groupTier]);
   // html-to-image embeds <img> sources by URL and kept serving the FIRST
   // frame's pixels for a second frame captured in the same page (10/10, even
   // with a per-frame query string). On web the frame is therefore decoded to
@@ -108,23 +111,46 @@ export const BriefFrameCard = forwardRef<View, BriefFrameCardProps>(function Bri
         <View style={styles.content} onLayout={(e: LayoutChangeEvent) => setContentH(e.nativeEvent.layout.height)}>
           <View style={styles.header}>
             <Text style={styles.brand}>{BRIEF_COPY.brand} <Text style={{ color: C.cyan }}>{BRIEF_COPY.brandAccent}</Text></Text>
-            <Text style={styles.kicker}>{BRIEF_COPY.kickerPro}</Text>
+            <Text style={styles.kicker}>{model.kicker.split(' · ')[0]}</Text>
             <Text style={styles.date}>{headerDate(dateISO)}</Text>
           </View>
 
-          <Text style={styles.section}>{model.todayLabel}</Text>
-          {(model.sessions ?? []).map((s, i) => <Session key={i} s={s} />)}
-
-          <Text style={[styles.section, { marginTop: 3 }]}>{model.yesterdayLabel}</Text>
-          {(model.yesterdayRows ?? []).map((row, i) => (
-            <View key={i} style={styles.yRow}>
-              <Text style={styles.yScope}>{row.scopeLabel}</Text>
-              <Text style={[styles.yTag, { color: tagColor(row.tag) }]}>{row.tag}</Text>
-              <View style={{ flex: 1 }}><Chips chips={row.chips} /></View>
+          {model.publicHero ? (
+            /* §6 PUBLIC on the glass: yesterday's own-day counts, no digits, no states */
+            <View style={styles.hero}>
+              <Text style={styles.section}>{model.yesterdayLabel}</Text>
+              <View style={styles.heroFigure}>
+                <Text style={styles.heroNum}>{model.publicHero.num}</Text>
+                <Text style={styles.heroSlash}>/</Text>
+                <Text style={styles.heroDen}>{model.publicHero.den}</Text>
+              </View>
+              <Text style={styles.heroCaption}>{model.publicHero.caption}</Text>
+              <View style={styles.heroMetaRow}>
+                <Text style={styles.heroMeta}><Text style={styles.heroMetaValue}>{model.publicHero.juris}</Text>  {model.publicHero.jurisLabel}</Text>
+                <Text style={styles.heroMeta}><Text style={styles.heroMetaValue}>{model.publicHero.tracked}</Text>  {model.publicHero.trackedLabel}</Text>
+              </View>
+              <Text style={styles.publicBody}>{model.publicHero.body}</Text>
+              <Text style={styles.publicCta}>{model.publicHero.cta}</Text>
             </View>
-          ))}
+          ) : (
+            <>
+              <Text style={styles.section}>{model.todayLabel}</Text>
+              {(model.sessions ?? []).map((s, i) => <Session key={i} s={s} />)}
+
+              <Text style={[styles.section, { marginTop: 3 }]}>{model.yesterdayLabel}</Text>
+              {(model.yesterdayRows ?? []).map((row, i) => (
+                <View key={i} style={styles.yRow}>
+                  <Text style={styles.yScope}>{row.scopeLabel}</Text>
+                  <Text style={[styles.yTag, { color: tagColor(row.tag) }]}>{row.tag}</Text>
+                  <View style={{ flex: 1 }}><Chips chips={row.chips} /></View>
+                </View>
+              ))}
+              {model.release && <Text style={styles.release}>💎 {model.release.title} — {model.release.sub}</Text>}
+            </>
+          )}
 
           <Text style={styles.footer}>{model.footer}</Text>
+          {model.footerCta ? <Text style={styles.footerCta}>{model.footerCta}</Text> : null}
         </View>
         {/* 2.5: faint scanlines so it reads as ON the screen — 4% lines, no contrast loss */}
         <View style={styles.scanlines} pointerEvents="none">
@@ -146,6 +172,8 @@ function Session({ s }: { s: BriefSession }) {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 1 }}><Text style={[styles.resolved, { color: s.resolved.tag === 'STRAIGHT MATCH' ? C.goldSoft : C.green }]}>{s.resolved.tag}</Text><Chips chips={s.resolved.chips} /></View>
       ) : s.miss || s.none ? (
         <Text style={styles.miss}>{s.miss ?? s.none}</Text>
+      ) : s.locked ? (
+        <Text style={styles.locked}>🔒 {s.locked}</Text>
       ) : (
         <View style={styles.signalRow}>
           {(s.signals ?? []).map((g, i) => (
@@ -195,4 +223,19 @@ const styles = StyleSheet.create({
   chip: { fontSize: 7.5, lineHeight: 11, fontFamily: MONO, fontWeight: '700' },
 
   footer: { color: C.textFaint, fontSize: 6, lineHeight: 8.5, fontWeight: '700', marginTop: 3 },
+  footerCta: { color: C.gold, fontSize: 7, lineHeight: 10, fontWeight: '800', marginTop: 2 },
+  locked: { color: C.goldSoft, fontSize: 8, lineHeight: 11, fontWeight: '800', marginTop: 1 },
+  release: { color: C.goldSoft, fontSize: 7, lineHeight: 10, fontWeight: '800', marginTop: 4 },
+  // ── public hero on the glass ──
+  hero: { alignItems: 'center', paddingTop: 4 },
+  heroFigure: { flexDirection: 'row', alignItems: 'baseline', marginTop: 2 },
+  heroNum: { color: C.green, fontSize: 48, lineHeight: 54, fontWeight: '900', fontFamily: MONO },
+  heroSlash: { color: C.textFaint, fontSize: 28, lineHeight: 54, fontWeight: '900', fontFamily: MONO, marginHorizontal: 4 },
+  heroDen: { color: C.text, fontSize: 28, lineHeight: 54, fontWeight: '900', fontFamily: MONO },
+  heroCaption: { color: C.text, fontSize: 8, lineHeight: 11, fontWeight: '800', letterSpacing: 1.6, textAlign: 'center', marginTop: 2 },
+  heroMetaRow: { flexDirection: 'row', gap: 18, marginTop: 6 },
+  heroMeta: { color: C.textFaint, fontSize: 7, lineHeight: 10, fontWeight: '800', letterSpacing: 1.2 },
+  heroMetaValue: { color: C.cyanSoft, fontSize: 12, fontWeight: '900', fontFamily: MONO },
+  publicBody: { color: C.text, fontSize: 8, lineHeight: 11, textAlign: 'center', marginTop: 8, maxWidth: 360 },
+  publicCta: { color: C.goldSoft, fontSize: 8.5, lineHeight: 12, fontWeight: '900', textAlign: 'center', marginTop: 6 },
 });

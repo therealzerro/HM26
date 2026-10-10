@@ -34,6 +34,8 @@ import {
 const ASSETS = resolve('assets/marketing');
 const sh = (c: string) => execSync(c, { stdio: 'inherit' });
 
+/** Minimum clear margin either side of any lockup line (MKT-82 F4 width guard). */
+const LOCKUP_SIDE_MARGIN = 72;
 /** Outro window the bed must be found within — mirrors the assembler's CARD. */
 const CARD_WINDOW = 6.5;
 /** Date-only stamp; no clock, so a rebuild of the same day is reproducible. */
@@ -102,8 +104,26 @@ async function renderLockup(lines: [string, string, string], out: string, line3A
           `line 3 would be sliced in the square cutdown. Shorten the copy or raise LOCKUP_TOP.`,
       );
     }
+    // MKT-82 F4 (2026-10-10): measure each line's laid-out TEXT width (the
+    // divs are full-width, so the range is the only honest measurement) and
+    // refuse a line that would run past the side margin — a copy change must
+    // fail here, with the width in the message, not ship clipped. The config
+    // entry names the shorter fallback to use when this throws.
+    const widths = await page.evaluate(() =>
+      ['.l1', '.l2', '.l3'].map(sel => {
+        const r = document.createRange();
+        r.selectNodeContents(document.querySelector(sel) as HTMLElement);
+        return Math.round(r.getBoundingClientRect().width);
+      }),
+    );
+    const maxTextW = OUT_W - 2 * LOCKUP_SIDE_MARGIN;
+    widths.forEach((w, i) => {
+      if (w > maxTextW) {
+        throw new Error(`lockup line ${i + 1} "${lines[i]}" measures ${w}px wide — over the ${maxTextW}px text width (${LOCKUP_SIDE_MARGIN}px side margins). Use the shorter fallback copy.`);
+      }
+    });
     await page.screenshot({ path: out, omitBackground: true });
-    console.log(`  lockup rendered natively at ${OUT_W}x${OUT_H} · block ends y=${Math.round(bottom)} (crop line ${CROP_SAFE_BOTTOM})`);
+    console.log(`  lockup rendered natively at ${OUT_W}x${OUT_H} · block ends y=${Math.round(bottom)} (crop line ${CROP_SAFE_BOTTOM}) · line widths ${widths.join('/')}px (max ${maxTextW})`);
   } finally {
     await browser.close();
     rmSync(tmpHtml, { force: true });

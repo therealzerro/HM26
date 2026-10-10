@@ -26,7 +26,8 @@
  * "partial match", emoji cap) — every template is written clean against
  * them, and the in-app Reels view still runs the full brandLint engine
  * before anything leaves the app. Free All-Day = pure value, no Pro pitch
- * (SOCIAL-13); Pro = first-access framing, never pricing.
+ * (SOCIAL-13); Pro = never commercial — no pricing, no first-access framing
+ * (MKT-82 F4, 2026-10-10).
  */
 
 export interface ReceiptsData {
@@ -380,7 +381,7 @@ function sessionProKind(label: string, when: string, offset: number): KindSpec {
   return {
     offset,
     realNumbers: true,
-    fallback: m => `First access: the ${m} ${label} board. Six signals straight from the engine, in full detail. 📊`,
+    fallback: m => `The ${m} ${label} board, posted before the draw. Six signals straight from the engine, in full detail. 📊`,
     templates: [
       c => `Pro first look 💎 The ${label} board for ${c.reelMd} is on your screen before ${when}. ${credLine(c.pro!, c.seed)}`,
       c => `${c.reelMd} ${label}: six signals, full detail, posted early as always. ${credLine(c.pro!, c.seed)}`,
@@ -545,11 +546,12 @@ const CAPTION_REGISTRY = {
       () => `Every signal shows why it ranked where it did. That's the part most methods never show. ⚡`,
     ],
   },
-  // The ONLY realNumbers kind: first-access framing, never pricing.
+  // The ONLY realNumbers kind: never commercial — no pricing, no first-access
+  // framing (MKT-82 F4, 2026-10-10; brandLint tier-4 rule is BLOCKING).
   allday_pro: {
     offset: 5,
     realNumbers: true,
-    fallback: m => `First access: the ${m} All-Day board. Six signals straight from the engine, in full detail. 📊`,
+    fallback: m => `The ${m} All-Day board, posted before the draw. Six signals straight from the engine, in full detail. 📊`,
     templates: [
       c => `Pro first look 💎 ${c.reelMd}'s All-Day six are on your board before anywhere else. ${credLine(c.pro!, c.seed)}`,
       c => `You see it first: the ${c.reelMd} All-Day board, all six signals in full detail. ${credLine(c.pro!, c.seed)}`,

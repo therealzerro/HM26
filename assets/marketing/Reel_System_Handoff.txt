@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-10 · v7.16
+Content Agent Handoff · 2026-10-10 · v7.17
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -340,7 +340,8 @@ D. CARRIERS (your main deliverable; spec §2/§7): rotating sets —
    floor +0.184s); generator emits 10.005s presets, trimming is the norm.
    FREE BRIEF SPLITS BY SCOPE: All-Day free = pure value, no Pro pitch;
    session free = NAMES the withholding, pricing ($2.49/mo) permitted there
-   and nowhere else; first-access framing barred below Pro.
+   and nowhere else; first-access framing barred below Pro — and, since
+   v7.17 (F4), barred ON Pro too: tier 4 is never commercial.
 
 E. CAPTIONS (§5): template engine at publish, date-deterministic, 12 families
    per kind (allday_public 8); kinds = allday_pro/free/public, verify (free
@@ -638,6 +639,93 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+WHAT CHANGED IN v7.17 (2026-10-10, evening — your v7.16 close EXECUTED: F4
+first-access family + both operator approvals (b) 8/27 re-grade and (a) the
+58-key retro pass. MKT-82 CLOSED as you ruled; next free MKT = 83. Engine
+untouched; no scoring code, no config.)
+================================================================================
+  A. F4 — TIER REPORT FIRST, AS ORDERED. "FIRST ACCESS. ALWAYS." rendered on
+     ONE kind: allday_pro (tier 4, Pro group). midday_pro / evening_pro close
+     on "AHEAD OF THE … DRAW", verify on "THE RECORD, DRAW BY DRAW". Tier 2
+     (midday_free / evening_free + their CTA cuts) carries its own "PRO READS
+     THESE DIGITS BEFORE THE DRAW · … $2.49/MO" — kept, as you said. Public
+     kinds never carried it. Only tier 4 changed.
+  B. ENDCARD: allday_pro line 2 → "EVERY BOARD. BEFORE THE DRAW." Rebuilt on
+     all four pro motions (reveal / discharge / ignite / lock), 1080×1920,
+     10.0 s, audio untouched. Width fallback "BEFORE THE DRAW." recorded in
+     the config entry, NOT needed: the line measures 587 px of 936 usable.
+     build-endcard now measures every lockup line and refuses one past the
+     side margin, so a future copy change fails loudly instead of clipping.
+  C. CAPTIONS — THE DIFF, LINE BY LINE (pre-edit line numbers):
+     captions.ts:108  "inner-circle drop — live."
+                   →  "full board — posted before the draw."
+     captions.ts:109  "first-access report — live."
+                   →  "the whole board, before the draw."
+     captions.ts:161  "You saw it here first. 🛠️"
+                   →  "Posted before the draw, graded after. 🛠️"
+     captions.ts:266  Pro brief caption — ALREADY rewritten in v7.16 E5
+                      ("Pro brief — posted. …"); nothing further.
+     captions.ts:294  admin surface label "first-access framing, NO pricing"
+                   →  "never commercial: no pricing, no first-access framing"
+     reel-captions.ts:383  "First access: the {md} {label} board. Six …"
+                   →  "The {md} {label} board, posted before the draw. Six …"
+     reel-captions.ts:552  "First access: the {md} All-Day board. Six …"
+                   →  "The {md} All-Day board, posted before the draw. Six …"
+     endcard-config.ts:43  "FIRST ACCESS. ALWAYS."
+                   →  "EVERY BOARD. BEFORE THE DRAW."
+  D. LINTER: the tier-4 first-access / inner-circle rule is now BLOCKING.
+     Proof it cannot stop the daily run: 1,648 generated tier-4 captions
+     (allday_pro / midday_pro / evening_pro / verify × 400 dates, plus every
+     Pro social caption × 6 variants) → 0 blocking. brand-voice 42 files
+     clean. verify_midday is tier 2 and was not linted at 4.
+  E. ⚠ RULING OWED — FRAMING BY MEANING. Twelve Pro reel-caption TEMPLATES
+     still say first access without the words: reel-captions.ts 386 "Pro
+     first look 💎 … before {when}", 391 + 560 "First in, as always", 396
+     "First look, same as always", 556 "Pro first look 💎 … before anywhere
+     else", 557 "You see it first", 558 "Early access delivered", 559 "yours
+     before the crowd", 562 "Your head start … posted here first", 563
+     "Before the rest of the room sees the board", 566 "You see them first",
+     568 "first look yours". They are your copy (the MKT-37 set among them)
+     and were not in your enumerated list, so they stand. Two ways to close:
+     you deliver replacements (factual, "posted before the draw" register),
+     or I widen the regex and they fall back to the fallback line until you
+     do. Say which. Also still saying "first access": the ai-content edge
+     prompt for PRO (not redeployed) and POSTING_SCHEDULE.txt lines 5/15.
+  F. (b) 8/27 ALL-DAY RE-GRADE — DONE in your order. Regen's 7 AT rows
+     deleted (071 DE box, 594 LA, 594 SC, 758 ID, three misses). Hit
+     detection on the original board: 709 ON STRAIGHT (evening), 594 LA,
+     594 SC, 758 ID. backfill:di REFUSED to anchor (12 attempts) → two-row
+     SQL repair under its own rules (071 off the slate and unstamped; 709
+     appended on-slate, straight). NUMBERS, classic lens (what the screen
+     and the strip read), BEFORE → AFTER:
+       8/22→9/20 window:  151 matches · 15 exact · 38 juris · 29 days
+                       →  151 · 16 · 39 · 29  (exactly the 9/21 prediction)
+       8/27 alone:        7 · 1 · 5  →  7 · 2 · 5
+       screen 30d (9/11→10/10): 140 · 20 · 38 · 29 — unchanged (8/27 outside)
+       screen 90d (7/13→10/10): 462 · 73 · 39 · 88 → 462 · 74 · 39 · 88
+       record strip 9/10→10/9:  142 · 20 · 38 · 30 — unchanged (8/27 outside)
+     The 8/27 original has hit rows only (no miss rows exist for it) — the
+     track record and strip are unaffected; sample-size counts see 4 not 7.
+  G. (a) 58-KEY RETRO PASS — DONE, snapshot flips only, no April–July AT
+     re-grade. 56 restored, 53 demoted (40 flagged post_cutoff, 13 pre→pre
+     NOT flagged, per the rule), 3 restore-only, 56 audit rows. Count
+     correction: the 9/21 note said 107 flips; it is 109 (56 + 53). After:
+     528 keys since 4/18, every one exactly one live board, zero live
+     post-cutoff rows.
+  H. ⚠ FINDING YOU NEED BEFORE THE 10/11 RUN. The premise "P2-LINT is 90/90"
+     is stale. The CURRENT record window (9/10→10/9, record_public_20261009)
+     carries hm_record_p2=0: TEN keys fail — 9/22 and 9/23 (afternoon runs,
+     16:47 / 15:59 ET) and 9/24 + 9/29 (no-run days, backfilled the next
+     morning). First-generation boards cannot be frozen by E-2, so a late or
+     backfilled day fails P2 by construction. The record body has read
+     "GRADED THE SAME DAY" since the 9/23 run and heals by itself on 10/30.
+     The new endcard line shipped as you ordered. Read strictly ("every
+     board in the record") it is not true this month; read as the Pro
+     all-day reel's own board (cut that morning, never posted on a no-run
+     day) it is. OPERATOR'S CALL — rollback is one line in endcard-config
+     (the fallback "BEFORE THE DRAW." or the old copy) + endcard:build.
+================================================================================
+
 WHAT CHANGED IN v7.16 (2026-10-10, same afternoon — MKT-82 PHASE 2 SHIPPED ON
 THE OPERATOR'S ORDER, ahead of your sequencing. Two operator rulings, verbatim:
 "WHERE ARE THE BRIEF FRAMES … all of that work was to have an anchor branded

@@ -12,7 +12,8 @@
  *            (SOCIAL-13): the All-Day drop is FULL (and pure value — no Pro
  *            pitch); Midday/Evening drops are DIGIT-REDACTED — the unredacted
  *            session drops are the Pro tier's conversion frame.
- *   PRO    — full unredacted, first-access framing, NO commercial/pricing.
+ *   PRO    — full unredacted, NEVER commercial: no pricing, no sales lines, no
+ *            first-access framing (MKT-82 F4, 2026-10-10).
  *   CROSS  — public-strict vocabulary + admin-respectful framing + variation.
  *
  * Vocab law (§4a, LOCKED): match labels are MATCH / BOX MATCH / STRAIGHT MATCH.
@@ -105,8 +106,10 @@ const CROSS_VALUE = [
   'cross-jurisdictional insights',
 ];
 const PRO_OPENERS = [
-  'inner-circle drop — live.',
-  'first-access report — live.',
+  // MKT-82 F4 (2026-10-10): tier 4 is never commercial — factual openers only,
+  // no first-access / inner-circle framing (brandLint tier-4 rule is BLOCKING).
+  'full board — posted before the draw.',
+  'the whole board, before the draw.',
   'the full-fidelity set is in.',
 ];
 
@@ -158,7 +161,7 @@ function reportCard(d: CaptionData, surface: Surface, variant: number): string {
   // on the data shape for the admin readout; captions never print it.
   lines.push('', 'On the record, like every day.');
   if (surface === 'free') return lines.join('\n') + proCta(d);
-  lines.push('', 'You saw it here first. 🛠️'); // PRO: first-access, no pricing (§6)
+  lines.push('', 'Posted before the draw, graded after. 🛠️'); // PRO: factual close, never commercial (MKT-82 F4)
   return lines.join('\n');
 }
 
@@ -291,7 +294,7 @@ export function generateCaption(content: ContentKind, surface: Surface, data: Ca
 export const SURFACE_LABELS: Record<Surface, { label: string; icon: string; desc: string; lane: 'api' | 'assist' }> = {
   public: { label: 'Public Page', icon: '📣', desc: 'Classifier scrutiny — aggregate only, no digits/states/pricing. Direct API.', lane: 'api' },
   free: { label: 'Free Group', icon: '👥', desc: 'Opted-in — All-Day FULL (pure value); Midday/Evening redacted + Pro CTA (SOCIAL-13).', lane: 'assist' },
-  pro: { label: 'Pro Group', icon: '💎', desc: 'Paying members — full fidelity, first-access framing, NO pricing.', lane: 'assist' },
+  pro: { label: 'Pro Group', icon: '💎', desc: 'Paying members — full fidelity, never commercial: no pricing, no first-access framing (F4).', lane: 'assist' },
   cross: { label: 'Cross-Post', icon: '🔁', desc: 'Other groups — redacted assets, admin-respectful, vary captions.', lane: 'assist' },
 };
 

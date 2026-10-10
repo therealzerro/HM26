@@ -40,7 +40,10 @@ export interface EndcardVariant {
 export const ENDCARDS: Record<string, EndcardVariant> = {
   allday_pro: {
     motion: 'endcard_motion_pro.mp4',
-    lines: ['HITMASTER ZK6', 'FIRST ACCESS. ALWAYS.', 'VERIFIED TOMORROW MORNING'],
+    // MKT-82 F4 (2026-10-10): tier 4 is never commercial — the first-access
+    // line is gone. Line 2 is a P2 claim (P2-LINT 90/90, E-2 freezes boards at
+    // the cutoff). Width fallback if a motion ever needs it: 'BEFORE THE DRAW.'
+    lines: ['HITMASTER ZK6', 'EVERY BOARD. BEFORE THE DRAW.', 'VERIFIED TOMORROW MORNING'],
     out: 'allday_pro_endcard.mp4',
   },
   allday_free: {

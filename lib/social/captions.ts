@@ -261,11 +261,12 @@ function briefCaption(d: CaptionData, surface: Surface, variant: number): string
       'Yesterday\'s verification and today\'s full outlook in one card.',
     ].join('\n') + proCta(d);
   }
-  // PRO
+  // PRO — never commercial, no first-access framing (MKT-82 F4, 2026-10-10).
+  // Rides with the framed Pro brief (all three boards on the glass).
   return [
-    `${e} ${d.dateLabel} inner-circle brief — first access.`,
+    `${e} ${d.dateLabel} Pro brief — posted.`,
     '',
-    'Full verification detail and today\'s complete outlook. You see it before anyone.',
+    'Today\'s three boards, six signals each, exact order with box sets. Yesterday graded the same day across 42 states & provinces.',
   ].join('\n');
 }
 

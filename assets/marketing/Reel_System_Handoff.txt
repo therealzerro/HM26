@@ -670,6 +670,10 @@ Commits 6981880, bbdc9db + the data-URL fix. Engine untouched.)
      point→point 0.4, present→present 0.4, cross 17.
   D. THE OPERATOR'S PAGE (the real Reels output, five cuts):
      https://claude.ai/artifact/4ZBdkr5CFwrVWMvS338Udk
+  E5. Captions sheet now carries the three SOCIAL BRIEF CAPTIONS (Pro / Free /
+     Public, lint-checked at build) above the anchor thread; the Pro brief
+     caption no longer says inner-circle / first access (F4). Sheet
+     re-published 10/10 evening.
   E4. Operator ruling: per-frame override (point / present) is NOT on the
      Reels page — only `scripts/render-social-brief.ts --frame=…`. The row is
      the three tier buttons (auto-frame from 10/11) + framed previews +

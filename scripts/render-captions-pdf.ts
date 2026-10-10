@@ -26,6 +26,50 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { POSTING_SESSIONS, SCHEDULE_SKIP_ORDER, postingOrder } from '../constants/postingSchedule';
 import { buildAnchorThread, buildSundayReceipts } from './anchor-thread';
+import { generateCaption, SURFACE_TIER, type CaptionData } from '../lib/social/captions';
+import { lintCaption } from '../lib/social/brandLint';
+
+// MKT-82 (2026-10-10, operator ask): the SOCIAL BRIEF CAPTIONS ride on the
+// sheet — one per tier, for the framed brief PNGs from Admin → Reels (Pro
+// group / free group / public page). Same generator as the Publish console
+// (lib/social/captions.ts 'brief'), variant deterministic on the date,
+// tier-lint-checked at build; a blocking violation prints on the card.
+interface BriefCfg { freeGroupUrl?: string; proUrl?: string; proPrice?: string }
+async function fetchBriefCfg(url: string, key: string): Promise<BriefCfg> {
+  const r = await fetch(`${url}/rest/v1/app_config?key=in.(social_free_group_url,social_pro_url,social_pro_price)&select=key,value`,
+    { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+  const cfg: BriefCfg = {};
+  if (!r.ok) return cfg;
+  for (const row of (await r.json()) as { key: string; value: any }[]) {
+    const v = typeof row.value === 'string' ? row.value.replace(/^"|"$/g, '') : String(row.value ?? '');
+    if (row.key === 'social_free_group_url') cfg.freeGroupUrl = v;
+    if (row.key === 'social_pro_url') cfg.proUrl = v;
+    if (row.key === 'social_pro_price') cfg.proPrice = v;
+  }
+  return cfg;
+}
+function briefCaptionCards(dayISO: string, cfg: BriefCfg): string {
+  const [y, m, d] = dayISO.split('-').map(n => parseInt(n, 10));
+  const variant = Math.floor(Date.UTC(y, m - 1, d) / 86_400_000) % 3;
+  const data: CaptionData = { dateLabel: `${m}/${d}`, ...cfg };
+  const tiers: { surface: 'pro' | 'free' | 'public'; label: string; img: string }[] = [
+    { surface: 'pro', label: 'PRO GROUP — with the framed 💎 Pro brief', img: 'hm-brief-pro-framed-…png' },
+    { surface: 'free', label: 'FREE GROUP — with the framed 👥 Free brief', img: 'hm-brief-free-framed-…png' },
+    { surface: 'public', label: 'PUBLIC PAGE — with the framed 📡 Public brief', img: 'hm-brief-public-framed-…png' },
+  ];
+  const blocks = tiers.map(t => {
+    const text = generateCaption('brief', t.surface, data, variant);
+    const lint = lintCaption(text, SURFACE_TIER[t.surface]);
+    const bad = lint.violations.filter(v => v.blocking);
+    const note = bad.length ? `<div class="tag" style="color:#b91c1c">⛔ LINT BLOCK (tier ${SURFACE_TIER[t.surface]}): ${esc(bad.map(v => `${v.rule}:"${v.term}"`).join(' · '))} — do not post as-is</div>` : '';
+    console.log(`[captions-pdf] brief caption ${t.surface} (tier ${SURFACE_TIER[t.surface]}): ${bad.length ? 'BLOCK ' + bad.map(v => v.term).join(',') : 'lint PASS'}`);
+    return `<div class="tag">${esc(t.label)} · ${esc(t.img)}</div>${note}<pre>${esc(text)}</pre>`;
+  }).join('\n');
+  return `<section class="thread">
+      <h2>📰 Social brief captions <span class="meta">· Admin → 🎬 Reels → 📰 Social brief: tap the tier, Save / Share the PNG, paste the matching caption · one per tier, never cross-post the Pro text</span></h2>
+      ${blocks}
+    </section>`;
+}
 
 // MKT-73 (2026-09-07): the sheet also carries the day's ANCHOR THREAD — the
 // one question posted under the Morning Brief photo — and, on Sundays, the
@@ -92,7 +136,7 @@ const etNow = () =>
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-function buildHtml(rows: Row[], dayISO: string): string {
+function buildHtml(rows: Row[], dayISO: string, briefCfg: BriefCfg = {}): string {
   // ── Page 1: the schedule card. One page, large type, times ET. ──────────
   const sessions = POSTING_SESSIONS.map((s) => {
     const reels = s.kinds.length
@@ -142,7 +186,8 @@ function buildHtml(rows: Row[], dayISO: string): string {
   // thing the operator posts and the question rides under its photo. ───────
   const anchor = buildAnchorThread(dayISO);
   const sunday = buildSundayReceipts(dayISO);
-  const anchorCard = `<div class="sesshead">🕐 8:30 AM — Morning Brief · ANCHOR THREAD (Pro group)</div>
+  const anchorCard = `<div class="sesshead">🕐 8:30 AM — Morning Brief · the FRAMED BRIEF (Admin → Reels) + ANCHOR THREAD (Pro group)</div>
+    ${briefCaptionCards(dayISO, briefCfg)}
     <section class="thread">
       <h2>💬 Daily anchor question <span class="meta">· post it as the FIRST COMMENT under the Morning Brief photo (the framed Pro brief from Admin → Reels), then reply to every answer${anchor.lintNote ? ' · ⚠ ' + esc(anchor.lintNote) : ''}</span></h2>
       <div class="tag">QUESTION — COPY AS-IS</div><pre class="big">${esc(anchor.question)}</pre>
@@ -242,7 +287,7 @@ export async function generateAndUploadCaptionsPdf(dayISO?: string): Promise<voi
   const stamp = today.replace(/-/g, '');
   const htmlPath = join(tmpdir(), `hm_captions_${stamp}.html`);
   const pdfPath = join(tmpdir(), `hm_captions_${stamp}.pdf`);
-  writeFileSync(htmlPath, buildHtml(rows, today));
+  writeFileSync(htmlPath, buildHtml(rows, today, await fetchBriefCfg(url, key)));
 
   const { chromium } = await import('playwright'); // lazy — publish imports this module
   const browser = await chromium.launch();

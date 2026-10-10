@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-09 · v7.13
+Content Agent Handoff · 2026-10-10 · v7.14
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.11; v7.12 = one asset edit, see its block — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.11; v7.12 = one asset edit, v7.13 = the reel:daily gate, v7.14 = MKT-82 PRO BRIEF PHASE 0 (not a reel; your 10/10 order answered — see its block) — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -638,6 +638,142 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+WHAT CHANGED IN v7.14 (2026-10-10 — YOUR "DAILY PRO BRIEF" ORDER: ASSET INTAKE
+DONE, PHASE 0 REPORTED, NOTHING ELSE BUILT. ID FILED AS **MKT-82** (verified
+free in the audit, code and this file; next free = 83). Full report:
+docs/mkt82_phase0_report.md; audit entry MKT-82. Engine untouched.)
+================================================================================
+  A. ASSET INTAKE (commit 7bb0d5d, pushed). Your two uploads were the GitHub-web
+     commit 8116195 "Add files via upload" (10/10 07:25 ET): IMG_6479.jpeg and
+     IMG_6480.jpeg, both JPEG 928×1152 (0.806:1, ≈4:5). Verified BY CONTENT:
+       6479 = seated, left palm up, presenting   → brief_frame_present.png
+       6480 = index finger raised, pointing      → brief_frame_point.png
+     Content and upload order AGREE on the gesture. ⚠ One deviation: the
+     pointing anchor is SEATED at the desk (right hand on the desk, desk
+     reflection), not standing. The gesture names the frame; "standing" was
+     not delivered. Converted JPEG → PNG at full res, originals removed in the
+     same commit. Not registered anywhere (no BRIEF_FRAMES yet — Phase 2);
+     reel:check scans only .mp4 strays so they sit clean.
+  B. 2.3 SCREEN GATE, READ-ONLY, RUN NOW — BOTH FAIL, same reason:
+       present: single glow line, outer rect x67 y108 w793 h463 (7.2–92.6 %
+                wide, 9.4–49.5 % tall). Axis ≤2 px PASS. Interior median lum
+                15.6 / std 7.3 PASS (faint top glow fall-off, no texture).
+                4:5 crop PASS (L64 / R65 px margins). ✗ INTRUSION: the helmet
+                crown enters the screen 21 px above the inner bottom edge
+                (x455–533, y546–560, specular 251) and occludes the border.
+       point:   DOUBLE border line (two strokes 11 px apart), outer rect x42
+                y124 w844 h508 (4.5–95.4 % wide, 10.8–54.8 % tall). Axis PASS
+                (≤1 px). Interior median 14.8 / std 6.3 PASS. Crop PASS (39 px
+                margins). ✗ INTRUSION: helmet crown enters 33 px (x691–783,
+                y586–612).
+     REGENERATE BOTH with the screen's bottom edge clear of the helmet by a
+     margin (screen higher / ending higher, or the anchor lower / further
+     back). Carry into the prompts: present's screen ends at 49.5 % height
+     (you asked ~64 %); point's screen is wider than 7–93 % and double-
+     bordered; the two screens are NOT in the same position (inner 788×458
+     vs 818×484, aspect 1.72 vs 1.69 — a per-frame screenRect in the registry
+     absorbs that, but "same position by design" was not met).
+  C. PHASE 0 ANSWERS — 0.3 AND 0.4 VERBATIM FROM THE REPORT:
+     0.3 "Not a rename of the scopes. The scopes are midday | evening |
+         allday everywhere in code, data, reels and the app. The three
+         words come from the Brand Rehab Skill Brief v2 §6 translation
+         table (line 350): 'Midday / Evening / All-Day (with numbers) →
+         Daytime / Nighttime / Continuous (or omit …)' — a TIER-1 (public)
+         rule. SOCIAL-01 (2026-07-09) applied the public translation to ALL
+         variants of the card (socialBrief.ts:81–85), i.e. to the free and
+         Pro groups where the rule does not apply. Other surfaces carrying
+         them: exactly one — the Publish-console slate composite header
+         (PublishStage.tsx:28–30). Reel bodies, Home, track record and all
+         captions say Midday / Evening / All-Day. SGL as rendered = the
+         multiplicity badge: SGL singles / DBL doubles / TRP triples — the
+         engine's rail class, not a session; the box set already shows it,
+         so members do not need the badge (2.4: omit)." Nothing renamed.
+     0.4 "No. The engine never did; the brief layer did, and stopped on
+         2026-09-01; the sentence has been false on every Pro brief since.
+         Engine files contain no rank/position exclusion. History (decision
+         layer, computeBrief.ts): ENG-MIDDAY-POS-01 (7/23, z≈2.6) → MKT-50
+         applied middayPosRule to the Pro brief plays (8/07) → RETIRED
+         2026-09-01 by ENG-MIDDAY-POS-02 (rotation era 8/3→8/31: pos 1–2
+         19.0 % vs band 13.8 %, inversion z +0.73 — 'rank position is
+         uninformative'; the same-day addendum stripped the exclusion, the
+         flag and the inversion flags; one unfiltered path since). What was
+         not done on 9/1: the card's note text was left in place, gated only
+         by 'a midday slate exists today', so 'The combinations above
+         already reflect that exclusion' has been untrue for 40 days
+         (9/1→10/10). STAT-01: midday 0.83 / p 0.042 = one of nine
+         uncorrected tests, not a finding. Nothing is live → no new ENG
+         item and no STAT-02 test are needed; the note is removed in Phase
+         1 and the audit records the stale window."
+     0.1 The brief is NOT a reel and NOT in reel:daily. It is
+         components/social/SocialBriefCard.tsx (960×960 → 1920×1920 PNG),
+         produced ON A TAP from Admin → Reels "📰 Social brief — PNG" or
+         the Publish console, data built live at tap time, and posted BY
+         HAND to the Pro group as the Morning Brief photo. Pro variant is
+         Pro-only by surface; the same component serves free and public,
+         and the "edge" footer renders on all three.
+     0.2 25 strings tabled with file:line in the report. Authors (by audit
+         — the repo is shallow, blame cannot reach them): base card
+         SOCIAL-01/05 (7/09); concentration panel + Daytime note + Rank-1
+         check + "What the ranking means" = MKT-50 Rulings 1–2 (8/07: the
+         operator brief's RECOMMENDED PLAY / stake units / ride footer
+         relabelled to "observation language"); 960×960 = MKT-50 add. 3;
+         two-column layout = MKT-53 (8/09, still no audit entry). None
+         went through you.
+     0.5 The panel = computeBrief().allocation: today's SINGLES across the
+         three slates, tier ladder (footprint90 ≥ 10 → T1, engine 'overdue'
+         tag → T2 …), top 3 get UNITS [2,2,1]. ×2/×1 = STAKE UNITS. "3-DAY
+         WINDOW / carries them up to 3 days; a match closes that leg" = the
+         operator's personal ride rule — NOT IN CODE: the allocation is
+         recomputed from today's slates only; no carry state, no window, no
+         leg anywhere in the engine or brief. "90-DAY ACTIVITY n" = box
+         appearances in 90 d in the top-10 jurisdictions by 30 d box
+         correlation; state codes = top-5 of those; "+ EXACT ORDER" is
+         always the first row by construction. A recency-first ladder — the
+         class DUE-01 measured flat. Members see it NOWHERE else.
+     0.6 Half-inside. The two brief files are in check-brand-voice's scope
+         (MKT-50) and that gate is GREEN today with every breach present —
+         it carries only the gambling-vocab phrases, none of your 9/21
+         classes. lintCaption (the R-A/R-B engine) runs on captions and on
+         script-rendered reel text; the card's rendered strings are never
+         linted and nothing gates the capture. Measured, tier-4 lintCaption
+         over the Pro strings: BLOCK on "edge" and "odds" only — the 30d
+         tile, "maximise match probability", the Daytime note and the whole
+         concentration panel pass lexically. So 1.5 = structural removal +
+         brief-specific rules in a lintBrief() both capture paths call
+         before capture, not a pipe through lintCaption.
+  D. FOUND ON THE WAY (report §F): F1 the YESTERDAY "STRAIGHT MATCH" label
+     is a rank-1 BOX test (today's rows use true exact order) — Phase 1
+     makes the kept labels true. F2 the overlap: the column band has no
+     overflow clip and the grow panels do not shrink, so a long right column
+     overflows and the footer paints over it; MKT-50's "overflow hidden on
+     the band" is gone from the current styles — Phase 1 restores it AND
+     asserts fit (overflow fails the render, never shrinks). F3 "Intelligence
+     is your edge. Use it." is ALSO the slate-composite footer on the slate
+     drops (PublishStage.tsx:74, admin-image-export.tsx:518) — same R-B
+     breach, outside this order. F4 brandLint still calls "first-access
+     framing" the Pro rule — aligned when 1.1 ships. F6 digit floor for 2.4:
+     "4-8-5" = 2.92 % of frame width → ≥31.5 px at 1080; fits the present
+     frame's ~923×536 screen at ≈410–450 px, tight.
+  E. ⚠ RULINGS OWED BY YOU BEFORE PHASE 1 SHIPS:
+     R1  YOUR 1.3 LINE FAILS YOUR OWN LINT. "…No ranking changes the odds."
+         — "odds" is blocked at every tier by brandLint no-edge-claim (R-B,
+         your 9/21 list). Under 1.5 the verbatim line would never render.
+         Reword the last sentence without a listed word (e.g. "No ranking
+         changes what the draw will do." / "No ranking makes any combination
+         likelier.") — recommended over an exact-sentence allowlist on the
+         one surface that just failed the lint. Phase 1 ships with the
+         sentence you return.
+     R2  The "edge" footer is on the FREE and PUBLIC briefs too. Proposed:
+         remove it on all three (it is R-B everywhere), leave the free CTA,
+         touch nothing else outside Pro. Say no → Pro-only.
+     R3  F3's slate-composite footer: under this ID in Phase 1 (one line,
+         two files) or its own order.
+  F. NOT DONE, BY DESIGN: no string changed, no engine/ranking/board touch,
+     no BRIEF_FRAMES registry, no preview flag. Phase 1 plan is report §P1;
+     Phase 2 does not start until Phase 1 is live and both frames pass the
+     gate. Your queued straight-match carrier lines: not touched, noted.
+================================================================================
+
 WHAT CHANGED IN v7.12 (2026-10-01 — SAMEDAY CARRIER pt2 STUTTER, operator
 ear on the 4th live verify_midday cut. Salvaged by EDIT. Era record — never
 retro-edited.)

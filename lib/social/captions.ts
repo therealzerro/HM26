@@ -246,12 +246,16 @@ function briefCaption(d: CaptionData, surface: Surface, variant: number): string
   const seed = `br-${surface}-${d.dateLabel}`;
   const e = pick(LIVE_EMOJI, seed, variant);
   if (surface === 'public') {
+    // MKT-74 law: the public caption's LINE ONE is the free-group link, so a
+    // stranger lands on the board without hunting a bio (operator, 10/10).
+    const link = d.freeGroupUrl ? `Full reports, free: ${d.freeGroupUrl}` : null;
     return [
+      ...(link ? [link, ''] : []),
       `${e} ${d.dateLabel} daily brief — published.`,
       '',
       `Yesterday verified, today's analysis live. The methodology, working in the open.`,
       '',
-      pick(CTA_FREE, seed, variant),
+      link ? `👇 ${d.freeGroupUrl}` : pick(CTA_FREE, seed, variant),
     ].join('\n');
   }
   if (surface === 'free') {

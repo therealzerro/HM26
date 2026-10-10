@@ -718,11 +718,12 @@ const BRIEF_TIERS = [
   { key: 'pro', label: '💎 Pro', variant: 'group', groupTier: 'pro', framed: 'auto' },
   { key: 'free', label: '👥 Free', variant: 'group', groupTier: 'free', framed: 'auto' },
   { key: 'public', label: '📡 Public', variant: 'public', groupTier: undefined, framed: 'auto' },
+  // 🖼 framed previews (framed today, before the flip). The per-frame override
+  // (point / present) lives ONLY in scripts/render-social-brief.ts (operator
+  // ruling 10/10: "keep per frame override in headless script").
   { key: 'pro_framed', label: '🖼 Pro · framed', variant: 'group', groupTier: 'pro', framed: 'yes' },
   { key: 'free_framed', label: '🖼 Free · framed', variant: 'group', groupTier: 'free', framed: 'yes' },
   { key: 'public_framed', label: '🖼 Public · framed', variant: 'public', groupTier: undefined, framed: 'yes' },
-  { key: 'pro_point', label: '🖼 Pro · point', variant: 'group', groupTier: 'pro', framed: 'yes', frameKey: 'point' },
-  { key: 'pro_present', label: '🖼 Pro · present', variant: 'group', groupTier: 'pro', framed: 'yes', frameKey: 'present' },
   { key: 'pro_classic', label: '🗂 Pro · classic', variant: 'group', groupTier: 'pro', framed: 'no' },
   { key: 'free_classic', label: '🗂 Free · classic', variant: 'group', groupTier: 'free', framed: 'no' },
   { key: 'public_classic', label: '🗂 Public · classic', variant: 'public', groupTier: undefined, framed: 'no' },
@@ -871,7 +872,9 @@ export function SocialBriefExport() {
       const lint = lintBrief(buildBriefModel(data, t.variant, t.groupTier));
       if (!lint.ok) throw new Error(`refused — ${formatBriefLint(lint)}`);
       const today = getTodayET();
-      const frame = t.framed === 'no' ? null : ((t as any).frameKey ? frameByKey((t as any).frameKey) : frameForDate(today));
+      const forced = Platform.OS === 'web' ? new URLSearchParams(globalThis.location?.search ?? '').get('hmframe') : null;   // headless rig only
+      const frame = t.framed === 'no' ? null : (forced ? frameByKey(forced) : frameForDate(today));
+      if (forced && !frame) throw new Error(`refused — ?hmframe=${forced} is not an ACTIVE frame`);
       const useFrame = t.framed === 'yes' ? !!frame : t.framed === 'auto' ? (!!frame && today >= BRIEF_FRAME_FROM) : false;
       if (t.framed === 'yes' && !frame) throw new Error('refused — no ACTIVE anchor frame in BRIEF_FRAMES (all parked)');
       fitRef.current = null;

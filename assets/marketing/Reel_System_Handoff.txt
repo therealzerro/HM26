@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-10 · v7.15
+Content Agent Handoff · 2026-10-10 · v7.16
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.11; v7.12 = one asset edit, v7.13 = the reel:daily gate, v7.14 = MKT-82 PRO BRIEF PHASE 0, v7.15 = MKT-82 PHASE 1 SHIPPED (not a reel; see its block) — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.11; v7.12 = one asset edit, v7.13 = the reel:daily gate, v7.14 = MKT-82 PRO BRIEF PHASE 0, v7.15 = MKT-82 PHASE 1 SHIPPED, v7.16 = MKT-82 PHASE 2 SHIPPED BY OPERATOR ORDER (not a reel; see its block) — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -638,6 +638,45 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+WHAT CHANGED IN v7.16 (2026-10-10, same afternoon — MKT-82 PHASE 2 SHIPPED ON
+THE OPERATOR'S ORDER, ahead of your sequencing. Two operator rulings, verbatim:
+"WHERE ARE THE BRIEF FRAMES … all of that work was to have an anchor branded
+nice looking social brief to download and post from the reels page" and "use
+the frames with helmet as is, there will be no 3rd regen". Executed as said.
+Commits 6981880, bbdc9db + the data-URL fix. Engine untouched.)
+================================================================================
+  A. WHAT IS LIVE: Admin → 🎬 Reels → 📰 Social brief now has 🖼 Pro · framed
+     (rotation), 🖼 Pro · point, 🖼 Pro · present, 🗂 Pro · classic, 👥 Free,
+     📡 Public. FLIP: from 2026-10-11 (BRIEF_FRAME_FROM) the 💎 Pro button IS
+     the framed cut; classic stays as the hatch. Output 1080×1350 (4:5), the
+     frame drawn at the gate's crop, the brief rendered by code into the
+     measured screenRect — header HITMASTER ZK6 · PRO BRIEF · "SAT · OCT 10",
+     TODAY 3 × six signals at 34 px (≥ your 31.5 floor) with box sets,
+     YESTERDAY compact rows, your R1 footer. Scanline/tint treatment, no
+     contrast loss. Same model, same lintBrief (PASS), same fit assert (first
+     cut refused 244 > 243/231; tightened, digits untouched → 217/251 point,
+     217/239 present). PNG tEXt tags: hm:brief_tier / _frame / _date / _lint.
+  B. FRAMES — BOTH ACTIVE. point: gate PASS. present: gate FAIL on record
+     (helmet 21 px) — ACTIVE BY OPERATOR OVERRIDE; the usable rect's bottom
+     edge sits above the crown (y542 vs 546), so no text is ever drawn over
+     the helmet. Rotation alternates daily (never the same frame two days
+     running). Registry = lib/social/briefFrames.ts, measured values only.
+  C. TWO MORE DEFECTS ONLY THE REAL PIXELS SHOWED: html-to-image keeps
+     embedded images BY URL for the page's life — the second frame captured
+     in a session came out wearing the FIRST frame's anchor, and a per-frame
+     query string did not clear it. The frame is now decoded to a data URL
+     before mount and the capture waits for the image's onLoad (a phone can
+     never capture an empty or stale frame). Proof: capture-vs-source diff
+     point→point 0.4, present→present 0.4, cross 17.
+  D. THE OPERATOR'S PAGE (the real Reels output, five cuts):
+     https://claude.ai/artifact/4ZBdkr5CFwrVWMvS338Udk
+  E. NOT BUILT: the 2.3 gate as a TS port into check-reel-assets (the Python
+     gate scripts/brief-frame-gate.py is the measuring tool of record); the
+     "--brief-frame" CLI flag — the brief is tap-produced, so the preview
+     lives as buttons, not a flag. Your queued straight-match carrier lines:
+     untouched.
+================================================================================
+
 WHAT CHANGED IN v7.15 (2026-10-10, same day — MKT-82 PHASE 1 SHIPPED on your
 acceptance + rulings R1–R4, F1/F2/F4. Commit 183f410. Engine untouched. The
 three REAL captures for the operator's eyeball:

@@ -55,15 +55,27 @@ function tagColor(tag: BriefRow['tag']): string {
 
 export const BriefFrameCard = forwardRef<View, BriefFrameCardProps>(function BriefFrameCard({ data, frame, dateISO, onFit }, ref) {
   const model = useMemo(() => buildBriefModel(data, 'group', 'pro'), [data]);
-  // html-to-image caches embedded images BY URL for the life of the page, so
-  // two frames captured back to back came out with the FIRST frame's pixels
-  // (found 10/10). On web each frame gets its own URL (?hmframe=key).
-  const frameSource = useMemo(() => {
-    const mod = BRIEF_FRAME_IMAGES[frame.key];
-    if (Platform.OS !== 'web') return mod;
-    const uri = Asset.fromModule(mod).uri;
-    return { uri: `${uri}${uri.includes('?') ? '&' : '?'}hmframe=${frame.key}` };
+  // html-to-image embeds <img> sources by URL and kept serving the FIRST
+  // frame's pixels for a second frame captured in the same page (10/10, even
+  // with a per-frame query string). On web the frame is therefore decoded to
+  // a DATA URL first — nothing to cache, nothing to fetch at capture time —
+  // and the fit is only reported once the image has actually loaded, so a
+  // phone never captures an empty frame.
+  const [frameUri, setFrameUri] = useState<string | null>(null);
+  const [frameLoaded, setFrameLoaded] = useState(Platform.OS !== 'web');
+  useEffect(() => {
+    let alive = true;
+    setFrameUri(null); setFrameLoaded(Platform.OS !== 'web');
+    if (Platform.OS !== 'web') return;
+    const uri = Asset.fromModule(BRIEF_FRAME_IMAGES[frame.key]).uri;
+    fetch(`${uri}${uri.includes('?') ? '&' : '?'}hmframe=${frame.key}&t=${Date.now()}`, { cache: 'no-store' })
+      .then(r => r.blob())
+      .then(b => new Promise<string>((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(b); }))
+      .then(d => { if (alive) setFrameUri(d); })
+      .catch(() => { if (alive) setFrameUri(null); });
+    return () => { alive = false; };
   }, [frame.key]);
+  const frameSource = Platform.OS === 'web' ? (frameUri ? { uri: frameUri } : null) : BRIEF_FRAME_IMAGES[frame.key];
   const r = outputRect(frame);
   const screen = { left: r.x / 2, top: r.y / 2, width: r.w / 2, height: r.h / 2 };
 
@@ -73,12 +85,13 @@ export const BriefFrameCard = forwardRef<View, BriefFrameCardProps>(function Bri
   useEffect(() => {
     if (bandH == null || contentH == null) return;
     if (naturalRef.current == null) naturalRef.current = contentH;
+    if (!frameLoaded) return;   // the frame pixels must be on screen before a capture is allowed
     onFit?.({ ok: naturalRef.current <= bandH + 0.5, contentH: naturalRef.current, bandH });
-  }, [bandH, contentH, onFit]);
+  }, [bandH, contentH, frameLoaded, onFit]);
 
   return (
     <View ref={ref} collapsable={false} style={styles.card}>
-      <Image source={frameSource} style={styles.frame} resizeMode="cover" />
+      {frameSource ? <Image source={frameSource} style={styles.frame} resizeMode="cover" onLoad={() => setFrameLoaded(true)} /> : null}
       {/* the glass: measured rect, clipped, slightly inset from the glow line */}
       <View style={[styles.screen, screen]} onLayout={(e: LayoutChangeEvent) => setBandH(e.nativeEvent.layout.height - 2 * PAD)}>
         <View style={styles.glassTint} pointerEvents="none" />

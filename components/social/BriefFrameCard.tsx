@@ -17,7 +17,8 @@
    ============================================================================ */
 
 import React, { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, Image, StyleSheet, type LayoutChangeEvent } from 'react-native';
+import { View, Text, Image, Platform, StyleSheet, type LayoutChangeEvent } from 'react-native';
+import { Asset } from 'expo-asset';
 import type { SocialBriefData } from '@/lib/social/socialBrief';
 import { buildBriefModel, BRIEF_COPY, setBraces, type BriefRow, type BriefSession } from '@/lib/social/briefCopy';
 import { BRIEF_FRAME_IMAGES, outputRect, type BriefFrame } from '@/lib/social/briefFrames';
@@ -54,6 +55,15 @@ function tagColor(tag: BriefRow['tag']): string {
 
 export const BriefFrameCard = forwardRef<View, BriefFrameCardProps>(function BriefFrameCard({ data, frame, dateISO, onFit }, ref) {
   const model = useMemo(() => buildBriefModel(data, 'group', 'pro'), [data]);
+  // html-to-image caches embedded images BY URL for the life of the page, so
+  // two frames captured back to back came out with the FIRST frame's pixels
+  // (found 10/10). On web each frame gets its own URL (?hmframe=key).
+  const frameSource = useMemo(() => {
+    const mod = BRIEF_FRAME_IMAGES[frame.key];
+    if (Platform.OS !== 'web') return mod;
+    const uri = Asset.fromModule(mod).uri;
+    return { uri: `${uri}${uri.includes('?') ? '&' : '?'}hmframe=${frame.key}` };
+  }, [frame.key]);
   const r = outputRect(frame);
   const screen = { left: r.x / 2, top: r.y / 2, width: r.w / 2, height: r.h / 2 };
 
@@ -68,7 +78,7 @@ export const BriefFrameCard = forwardRef<View, BriefFrameCardProps>(function Bri
 
   return (
     <View ref={ref} collapsable={false} style={styles.card}>
-      <Image source={BRIEF_FRAME_IMAGES[frame.key]} style={styles.frame} resizeMode="cover" />
+      <Image source={frameSource} style={styles.frame} resizeMode="cover" />
       {/* the glass: measured rect, clipped, slightly inset from the glow line */}
       <View style={[styles.screen, screen]} onLayout={(e: LayoutChangeEvent) => setBandH(e.nativeEvent.layout.height - 2 * PAD)}>
         <View style={styles.glassTint} pointerEvents="none" />

@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-11 · v7.18
+Content Agent Handoff · 2026-10-11 · v7.19
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -638,6 +638,28 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.19 (2026-10-11, midday — MKT-83 SUNDAY RECEIPTS WEEKLY RECAP
+IMAGE: PHASE 0 REPORTED, NOTHING BUILT, your rulings owed)
+================================================================================
+  Your scope order is answered in docs/mkt83_phase0_report.md (audit MKT-83).
+  Short form: (0.1) the "Sunday receipts card" is caption + Omni prompt only
+  (anchor-thread.ts:181-231, captions PDF :196-203) — no results anywhere, so
+  this IS the first recap image. (0.2) 8 weeks graded through briefResolve:
+  0 of 168 cells without a board, 0 without draws; Sundays draw 27 midday /
+  38–39 evening → recommend Sun–Sat, 7 rows; max 4 matched picks in a cell.
+  (0.4) Measured grid at the MKT-82 digit size: tiers 2/4 need a screen of
+  ≥ 912 × 846 px on the 1080 × 1350 canvas (423 pt tall = 63 % of height);
+  4:5 HOLDS IT, 9:16 not needed; the MKT-82 frames' screens (250/263 pt) do
+  NOT — new WEEKLY frame set as you anticipated, inner edge ≥ 779 × 361 in
+  the 928 × 1152 source, anchor below y≈460, nothing crossing the glass.
+  Tier 1 fits the existing screen. (0.5) carries: frames registry + gate,
+  lint rules, fit assert, PNG tags, tiers, capture fixes, rig, Reels row;
+  small changes: frame-set field in briefFrames, lint strings-core; new:
+  weekly builder, grid card, exporter kind. Rulings owed: window, no-draw
+  cell display, tier-1 column words vs glyphs, classic hatch yes/no.
+  Next free MKT = 84.
+
 ================================================================================
 WHAT CHANGED IN v7.18 (2026-10-11, morning — BUG-183: the framed social brief
 refused on its own flip day; one fix, no reel, no engine, no copy)

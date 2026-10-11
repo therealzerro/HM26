@@ -680,6 +680,10 @@ Tail parity checked against the pool rather than asserted: serving members SPLIT
 
 ---
 
+### MKT-83 — SUNDAY RECEIPTS · WEEKLY RECAP IMAGE ✅ PHASE 0 REPORTED 2026-10-11 · NOTHING BUILT · ENGINE UNTOUCHED
+
+Content agent order 2026-10-11 (scope only; rulings owed before any build). Full report: `docs/mkt83_phase0_report.md`. Headline facts: (0.1) the "Sunday receipts card" is a caption rotation + Gemini Omni video prompt in `scripts/anchor-thread.ts:181-231` printed by `scripts/render-captions-pdf.ts:196-203` — no results data anywhere; (0.2) 8 weeks 8/16–10/10 through `briefResolve.ts`: 0 of 168 day×board cells without a board, 0 without draws, Sundays draw 27 midday / 38–39 evening jurisdictions → recommend Sun–Sat window; max 4 matched picks per cell (7/168); (0.4) measured grid: tiers 2/4 need a screen ≥ 456×378 pt for the last three weeks, ≥ 423 pt tall to guarantee any week → **912×846 px on 4:5; 4:5 holds it, 9:16 not needed; the MKT-82 frames (250/263 pt screens) do not**; tier 1 fits the existing screen; (0.5) reuse list in the doc — `frameForDate` needs a frame-set field, `lintBrief` needs a strings-core, builder/card/exporter are new. Measurement harness: scratch `weekly_data.ts` (two REST queries, per-day histories — a ranged query truncates at the 1000 cap) + `fitmock.ts` (HTML mock in the MKT-82 metrics and font files). Next free MKT = 84.
+
 ### MKT-82 — THE DAILY PRO BRIEF: compliance now, the anchor frame next ✅ PHASE 1 SHIPPED 2026-10-10 (183f410) · ✅ PHASE 2 SHIPPED 2026-10-10 (6981880 + bbdc9db + data-URL fix) BY OPERATOR ORDER — the anchor-framed Pro brief is on the Reels page; BOTH frames ACTIVE (present by override, gate FAIL on record) · flip BRIEF_FRAME_FROM = 2026-10-11 · ENGINE UNTOUCHED
 
 **ID verified free** — no `### MKT-82` header, no code/REEL_COMMANDS reference; the handoff's "next free MKT ID: 82" notes (v7.4–v7.8) and the STAT-01 / ENH-FUNNEL-03 "MKT-82 stays free" lines all agree. Next free MKT ID = **83**. Work order: content agent ("Ledger") 2026-10-10, phased (0 = discovery → report; 1 = copy cleanup on approval; 2 = anchor frame behind a preview flag). Full report: `docs/mkt82_phase0_report.md`.

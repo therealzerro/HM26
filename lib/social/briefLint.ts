@@ -59,9 +59,10 @@ export const BRIEF_RULES: BriefRule[] = [
 /** The one sentence where "likelier" is a denial, not a claim (R1, verbatim). */
 const LIKELIER_DENIAL = /no ranking makes any combination likelier\./i;
 
-export function lintBrief(model: BriefModel): BriefLintResult {
-  const tier = model.tier;
-  const strings = briefModelStrings(model);
+/** The strings-core (MKT-83, 2026-10-11): every card model is linted through
+ *  this — the daily brief via `lintBrief`, the weekly receipts via
+ *  `lintWeekly` (lib/social/weeklyReceipts.ts). Same rules, same tiers. */
+export function lintStrings(tier: SocialTier, strings: { where: string; text: string }[]): BriefLintResult {
   const violations: BriefLintViolation[] = [];
   for (const { where, text } of strings) {
     const r = lintCaption(text, tier);
@@ -79,6 +80,10 @@ export function lintBrief(model: BriefModel): BriefLintResult {
     }
   }
   return { ok: violations.length === 0, tier, checked: strings.length, violations };
+}
+
+export function lintBrief(model: BriefModel): BriefLintResult {
+  return lintStrings(model.tier, briefModelStrings(model));
 }
 
 export function formatBriefLint(r: BriefLintResult): string {

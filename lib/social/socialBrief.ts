@@ -59,10 +59,12 @@ function md(iso: string): string {
   return `${parseInt(m, 10)}/${parseInt(d, 10)}`;
 }
 
-interface DayBoards { boards: Record<Scope, ReturnType<typeof parseBoard>>; draws: DrawRow[] }
+export interface DayBoards { boards: Record<Scope, ReturnType<typeof parseBoard>>; draws: DrawRow[] }
 
-/** Latest non-deleted ZK6 snapshot per scope for a date + that date's draws. */
-async function fetchDay(date: string): Promise<DayBoards> {
+/** Latest non-deleted ZK6 snapshot per scope for a date + that date's draws.
+ *  Exported for the weekly receipts builder (MKT-83) — one call per day, so
+ *  every query stays under the PostgREST 1000-row cap. */
+export async function fetchDay(date: string): Promise<DayBoards> {
   const [slateRows, histRows] = await Promise.all([
     fetchFromSupabase<any[]>({
       path: `/rest/v1/slate_snapshots?select=scope,updated_at_et,top_k_straights_json&slate_date=eq.${date}&deleted_at=is.null&or=(mode.is.null,mode.neq.zk30)&order=updated_at_et.desc&limit=60`,

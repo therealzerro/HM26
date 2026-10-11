@@ -18,10 +18,10 @@
 
 import React, { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Image, Platform, StyleSheet, type LayoutChangeEvent } from 'react-native';
-import { Asset } from 'expo-asset';
 import type { SocialBriefData } from '@/lib/social/socialBrief';
 import { buildBriefModel, BRIEF_COPY, setBraces, type BriefRow, type BriefSession, type BriefChip, type BriefVariant, type GroupTier } from '@/lib/social/briefCopy';
-import { BRIEF_FRAME_IMAGES, outputRect, type BriefFrame } from '@/lib/social/briefFrames';
+import { outputRect, type BriefFrame } from '@/lib/social/briefFrames';
+import { useFrameImage } from '@/components/social/useFrameImage';
 import type { BriefFit } from '@/components/social/SocialBriefCard';
 
 const C = {
@@ -77,31 +77,10 @@ function tagColor(tag: BriefRow['tag']): string {
 
 export const BriefFrameCard = forwardRef<View, BriefFrameCardProps>(function BriefFrameCard({ data, frame, dateISO, onFit, variant = 'group', groupTier = 'pro' }, ref) {
   const model = useMemo(() => buildBriefModel(data, variant, groupTier), [data, variant, groupTier]);
-  // html-to-image embeds <img> sources by URL and kept serving the FIRST
-  // frame's pixels for a second frame captured in the same page (10/10, even
-  // with a per-frame query string). On web the frame is therefore decoded to
-  // a DATA URL first — nothing to cache, nothing to fetch at capture time —
-  // and the fit is only reported once the image has actually loaded, so a
-  // phone never captures an empty frame.
-  const [frameUri, setFrameUri] = useState<string | null>(null);
-  const [frameLoaded, setFrameLoaded] = useState(Platform.OS !== 'web');
-  // 10/11: a fetch/decode failure is REPORTED (frameError on the fit) rather
-  // than swallowed — the exporter used to time out with "layout fit was never
-  // reported" and the operator could not tell a slow network from a 404.
-  const [frameError, setFrameError] = useState<string | null>(null);
-  useEffect(() => {
-    let alive = true;
-    setFrameUri(null); setFrameLoaded(Platform.OS !== 'web'); setFrameError(null);
-    if (Platform.OS !== 'web') return;
-    const uri = Asset.fromModule(BRIEF_FRAME_IMAGES[frame.key]).uri;
-    fetch(`${uri}${uri.includes('?') ? '&' : '?'}hmframe=${frame.key}&t=${Date.now()}`, { cache: 'no-store' })
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status} fetching ${frame.file}`); return r.blob(); })
-      .then(b => new Promise<string>((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = () => rej(new Error(`decode failed for ${frame.file}`)); fr.readAsDataURL(b); }))
-      .then(d => { if (alive) setFrameUri(d); })
-      .catch((e: any) => { if (alive) { setFrameUri(null); setFrameError(String(e?.message ?? e)); } });
-    return () => { alive = false; };
-  }, [frame.key, frame.file]);
-  const frameSource = Platform.OS === 'web' ? (frameUri ? { uri: frameUri } : null) : BRIEF_FRAME_IMAGES[frame.key];
+  // Frame decoded to a data URL + capture gated on load + fetch failures
+  // reported — the BUG-183 lane, shared with WeeklyReceiptsCard (MKT-83).
+  const img = useFrameImage(frame);
+  const frameSource = img.source; const frameLoaded = img.loaded; const frameError = img.error;
   const r = outputRect(frame);
   const screen = { left: r.x / 2, top: r.y / 2, width: r.w / 2, height: r.h / 2 };
 
@@ -118,7 +97,7 @@ export const BriefFrameCard = forwardRef<View, BriefFrameCardProps>(function Bri
 
   return (
     <View ref={ref} collapsable={false} style={styles.card}>
-      {frameSource ? <Image source={frameSource} style={styles.frame} resizeMode="cover" onLoad={() => setFrameLoaded(true)} /> : null}
+      {frameSource ? <Image source={frameSource} style={styles.frame} resizeMode="cover" onLoad={img.onLoad} /> : null}
       {/* the glass: measured rect, clipped, slightly inset from the glow line */}
       <View style={[styles.screen, screen]} onLayout={(e: LayoutChangeEvent) => setBandH(e.nativeEvent.layout.height - 2 * PAD)}>
         <View style={styles.glassTint} pointerEvents="none" />

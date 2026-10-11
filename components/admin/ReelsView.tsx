@@ -38,6 +38,8 @@ import { buildSocialBrief, type SocialBriefData } from '@/lib/social/socialBrief
 import { SocialBriefCard, type BriefFit } from '@/components/social/SocialBriefCard';
 import { buildBriefModel } from '@/lib/social/briefCopy';
 import { BriefFrameCard } from '@/components/social/BriefFrameCard';
+import { WeeklyReceiptsCard } from '@/components/social/WeeklyReceiptsCard';
+import { buildWeeklyReceipts, buildWeeklyModel, lintWeekly, lastCompleteWeek, type WeeklyReceiptsData } from '@/lib/social/weeklyReceipts';
 import { BRIEF_FRAME_FROM, frameForDate, frameByKey } from '@/lib/social/briefFrames';
 import { tagPngDataUrl } from '@/lib/captureExportImage';
 import { lintBrief, formatBriefLint } from '@/lib/social/briefLint';
@@ -1006,6 +1008,149 @@ export function SocialBriefExport() {
   );
 }
 
+
+/* ============================================================================
+ * MKT-83 (2026-10-11) — SUNDAY RECEIPTS: the weekly recap image, same lane as
+ * the daily brief exporter above (lint → render → fit assert → capture via the
+ * BUG-183 path → PNG tags → download / Photos / share). Defaults to the last
+ * COMPLETE Sun–Sat week. Buttons: 💎 Pro · 👥 Free · 📡 Public (framed once a
+ * WEEKLY frame is ACTIVE in briefFrames, classic until then) + the classic
+ * hatches. Kept as a sibling of SocialBriefExport rather than a parameter of
+ * it: the daily exporter is the shipped Morning Brief lane and stays untouched.
+ * ==========================================================================*/
+const WEEKLY_TIERS = [
+  { key: 'wk_pro', label: '💎 Pro', variant: 'group', groupTier: 'pro', framed: 'auto' },
+  { key: 'wk_free', label: '👥 Free', variant: 'group', groupTier: 'free', framed: 'auto' },
+  { key: 'wk_public', label: '📡 Public', variant: 'public', groupTier: undefined, framed: 'auto' },
+  { key: 'wk_pro_classic', label: '🗂 Pro · classic', variant: 'group', groupTier: 'pro', framed: 'no' },
+  { key: 'wk_free_classic', label: '🗂 Free · classic', variant: 'group', groupTier: 'free', framed: 'no' },
+  { key: 'wk_public_classic', label: '🗂 Public · classic', variant: 'public', groupTier: undefined, framed: 'no' },
+] as const;
+type WeeklyTier = (typeof WEEKLY_TIERS)[number];
+
+export function WeeklyReceiptsExport() {
+  const { colors } = useTheme();
+  const st = useSt();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [data, setData] = useState<WeeklyReceiptsData | null>(null);
+  const [render, setRender] = useState<{ variant: 'public' | 'group'; groupTier?: 'free' | 'pro'; frame: ReturnType<typeof frameForDate> } | null>(null);
+  const [img, setImg] = useState<{ label: string; filename: string; dataUrl: string } | null>(null);
+  const cardRef = useRef<View | null>(null);
+  const fitRef = useRef<BriefFit | null>(null);
+  const canShare = useMemo(() => shareToPhotosAvailable(), []);
+  const week = useMemo(() => lastCompleteWeek(), []);
+
+  const generate = useCallback(async (t: WeeklyTier) => {
+    if (busy) return;
+    if (!captureAvailable()) { setMsg('❌ Image capture is unavailable in this runtime.'); return; }
+    setBusy(t.key); setImg(null); setMsg(`Grading the week ${week.start} → ${week.end}…`);
+    try {
+      const d = data ?? await buildWeeklyReceipts(week);
+      setData(d);
+      const model = buildWeeklyModel(d, t.variant, t.groupTier);
+      const lint = lintWeekly(model);
+      if (!lint.ok) throw new Error(`refused — ${formatBriefLint(lint)}`);
+      const today = getTodayET();
+      const forced = Platform.OS === 'web' ? new URLSearchParams(globalThis.location?.search ?? '').get('hmframe') : null;   // headless rig only
+      const frame = t.framed === 'no' ? null : (forced ? frameByKey(forced, 'weekly') : frameForDate(today, 'weekly'));
+      if (forced && t.framed !== 'no' && !frame) throw new Error(`refused — ?hmframe=${forced} is not an ACTIVE weekly frame`);
+      const useFrame = t.framed === 'auto' && !!frame;
+      fitRef.current = null;
+      await waitFonts();
+      setRender({ variant: t.variant, groupTier: t.groupTier, frame: useFrame ? frame : null });
+      setMsg(`Rendering ${useFrame ? 'framed' : 'classic'} card… (${formatBriefLint(lint)})`);
+      await raf(); await waitFonts(); await raf();
+      const deadline = Date.now() + (useFrame ? 20_000 : 5_000);
+      for (let i = 0; !fitRef.current && Date.now() < deadline; i++) {
+        if (useFrame && i === 60) setMsg(`Rendering card… loading weekly frame "${frame?.key}"`);
+        await raf();
+      }
+      const fit = fitRef.current as BriefFit | null;
+      if (!fit) throw new Error(useFrame ? `refused — weekly frame "${frame?.key}" did not load within 20 s` : 'refused — layout fit was never reported');
+      if (fit.frameError) throw new Error(`refused — weekly frame "${frame?.key}" failed to load: ${fit.frameError}`);
+      if (!fit.ok) throw new Error(`refused — layout defect: content does not fit (${Math.round(fit.contentH)} > ${Math.round(fit.bandH)} pt) — never shrink`);
+      const node = Platform.OS === 'web' ? resolveWebNode(cardRef) : cardRef.current;
+      if (!node) throw new Error('Receipts capture stage not mounted');
+      let dataUrl = await captureNodeToPngNatural(node, 2);
+      if (Platform.OS === 'web') dataUrl = tagPngDataUrl(dataUrl, { 'hm:weekly_tier': t.groupTier ?? t.variant, 'hm:weekly_frame': useFrame && frame ? frame.key : 'none', 'hm:weekly_week': model.weekKey, 'hm:weekly_lint': formatBriefLint(lint) });
+      const filename = `hm-receipts-${t.groupTier ?? t.variant}-${useFrame && frame ? `framed-${frame.key}` : 'classic'}-${model.weekKey}.png`;
+      setImg({ label: t.label, filename, dataUrl });
+      const fitTxt = `fit ${Math.round(fit.contentH)}/${Math.round(fit.bandH)} pt`;
+      if (Platform.OS === 'web') {
+        downloadDataUrl(dataUrl, filename);
+        setMsg(`✅ ${t.label} receipts downloaded — ${filename} · ${formatBriefLint(lint)} · ${fitTxt}.`);
+      } else {
+        await saveDataUrlToPhotos(dataUrl, filename);
+        setMsg(`✅ ${t.label} receipts saved to Photos — or tap Share…. ${formatBriefLint(lint)} · ${fitTxt}.`);
+      }
+    } catch (e: any) {
+      setMsg(`❌ ${String(e?.message ?? e)}`);
+    } finally {
+      setRender(null);
+      setBusy(null);
+    }
+  }, [busy, data, week]);
+
+  return (
+    <Card style={{ padding: 10, marginBottom: 10 }}>
+      <TouchableOpacity onPress={() => setOpen(o => !o)} accessibilityRole="button">
+        <Text style={{ fontSize: 11, fontWeight: '800', color: colors.text }}>
+          🧾 Sunday receipts — PNG {open ? '▾' : '▸'}
+        </Text>
+      </TouchableOpacity>
+      {open && (
+        <View style={{ marginTop: 8 }}>
+          <Text style={{ fontSize: 9, color: colors.textTertiary, lineHeight: 13, marginBottom: 8 }}>
+            The week {week.start} → {week.end} (last complete Sun–Sat), every board graded by the brief&apos;s law.
+            MKT-83: every string is linted before capture and the grid must fit — a refused card says why on this line.
+            Framed cuts appear once a weekly frame is ACTIVE; classic until then.
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            {WEEKLY_TIERS.map(t => (
+              <TouchableOpacity key={t.key} style={[st.btnGhost, busy === t.key && { opacity: 0.5 }]} disabled={!!busy} onPress={() => generate(t)}>
+                <Text style={st.btnGhostText}>{busy === t.key ? '⏳' : '⬇'} {t.label}</Text>
+              </TouchableOpacity>
+            ))}
+            {data && (
+              <TouchableOpacity style={[st.btnGhost, !!busy && { opacity: 0.5 }]} disabled={!!busy} onPress={() => { setData(null); setImg(null); setMsg('Week data cleared — next tap re-grades from live tables.'); }}>
+                <Text style={st.btnGhostText}>↻ Rebuild week</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          {img && (
+            <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+              {Platform.OS === 'web' ? (
+                <TouchableOpacity style={st.btnGhost} onPress={() => downloadDataUrl(img.dataUrl, img.filename)}>
+                  <Text style={st.btnGhostText}>⬇ Download again</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={st.btnGhost} onPress={() => saveDataUrlToPhotos(img.dataUrl, img.filename).then(() => setMsg(`💾 ${img.label} receipts saved to Photos — ${img.filename}`)).catch((e: any) => setMsg(`❌ Save to Photos failed: ${String(e?.message ?? e)}`))}>
+                  <Text style={st.btnGhostText}>📲 Save to Photos</Text>
+                </TouchableOpacity>
+              )}
+              {canShare && (
+                <TouchableOpacity style={st.btnGhost} onPress={() => shareDataUrlToApps(img.dataUrl, img.filename).catch((e: any) => { if (e?.name !== 'AbortError') setMsg(`❌ Share failed: ${String(e?.message ?? e)}`); })}>
+                  <Text style={st.btnGhostText}>{Platform.OS === 'web' ? '📤 Save / Share' : '📤 Share…'}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+          {msg && <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 6 }}>{msg}</Text>}
+        </View>
+      )}
+      {/* hidden capture stage — same off-screen lane as the brief */}
+      {render && data && (
+        <View style={{ position: 'absolute', top: 0, left: 0, transform: [{ translateX: 5000 }] as any, pointerEvents: 'none' }} collapsable={false}>
+          <WeeklyReceiptsCard ref={cardRef} model={buildWeeklyModel(data, render.variant, render.groupTier)} frame={render.frame} onFit={f => { fitRef.current = f; }} />
+        </View>
+      )}
+    </Card>
+  );
+}
+
+
 export default function ReelsView() {
   const { colors } = useTheme();
   const st = useSt();
@@ -1189,6 +1334,7 @@ export default function ReelsView() {
         <CaptionsPdfExport url={captionsPdfUrl} filename={`hm-captions-${todayET}.pdf`} />
       )}
       <SocialBriefExport />
+      <WeeklyReceiptsExport />
 
       {/* Key includes updated_at: a server-side caption refresh (pipeline
           --captions-only, re-publish) must remount the card so the editor

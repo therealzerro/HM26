@@ -9,6 +9,7 @@
 // app's own message and exits 1.
 //
 // Usage: tsx scripts/render-social-brief.ts [outDir] [--tiers=pro_framed,…] [--frame=point|present]
+//        tsx scripts/render-social-brief.ts [outDir] --weekly [--tiers=wk_pro,…]   (MKT-83 Sunday receipts row)
 //   outDir default: assets/marketing/brief_previews (gitignored? no — commit
 //   deliberately or point it at a scratch dir).
 
@@ -19,11 +20,12 @@ import { resolve, join } from 'node:path';
 const BASE = 'http://localhost:8081';
 const args = process.argv.slice(2);
 const OUT = resolve(args.find(a => !a.startsWith('--')) ?? 'assets/marketing/brief_previews');
-const TIERS = (args.find(a => a.startsWith('--tiers='))?.slice(8) ?? 'pro_framed,free_framed,public_framed,pro_classic,free_classic,public_classic').split(',');
+const WEEKLY = args.includes('--weekly');
+const TIERS = (args.find(a => a.startsWith('--tiers='))?.slice(8) ?? (WEEKLY ? 'wk_pro,wk_free,wk_public,wk_pro_classic,wk_free_classic,wk_public_classic' : 'pro_framed,free_framed,public_framed,pro_classic,free_classic,public_classic')).split(',');
 // Per-frame override (operator ruling 10/10: lives here, not on the Reels page):
 //   --frame=point | --frame=present   → the exporter reads ?hmframe=<key> on web.
 const FRAME = args.find(a => a.startsWith('--frame='))?.slice(8) ?? '';
-const LABEL: Record<string, string> = { pro: '💎 Pro', pro_framed: '🖼 Pro · framed', free_framed: '🖼 Free · framed', public_framed: '🖼 Public · framed', free_classic: '🗂 Free · classic', public_classic: '🗂 Public · classic', pro_point: '🖼 Pro · point', pro_present: '🖼 Pro · present', pro_classic: '🗂 Pro · classic', free: '👥 Free', public: '📡 Public' };
+const LABEL: Record<string, string> = { wk_pro: '💎 Pro', wk_free: '👥 Free', wk_public: '📡 Public', wk_pro_classic: '🗂 Pro · classic', wk_free_classic: '🗂 Free · classic', wk_public_classic: '🗂 Public · classic', pro: '💎 Pro', pro_framed: '🖼 Pro · framed', free_framed: '🖼 Free · framed', public_framed: '🖼 Public · framed', free_classic: '🗂 Free · classic', public_classic: '🗂 Public · classic', pro_point: '🖼 Pro · point', pro_present: '🖼 Pro · present', pro_classic: '🗂 Pro · classic', free: '👥 Free', public: '📡 Public' };
 
 function todayET(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -43,18 +45,21 @@ async function main() {
   });
   page.on('console', m => { if (m.type() === 'error') console.log('[page]', m.text().slice(0, 200)); });
   await page.goto(BASE + '/brief-capture' + (FRAME ? `?hmframe=${encodeURIComponent(FRAME)}` : ''), { waitUntil: 'networkidle', timeout: 240_000 });
-  const toggle = page.getByText('📰 Social brief — PNG', { exact: false }).first();
+  const toggle = page.getByText(WEEKLY ? '🧾 Sunday receipts — PNG' : '📰 Social brief — PNG', { exact: false }).first();
   await toggle.waitFor({ timeout: 120_000 });
   await toggle.click();
 
   const results: Record<string, { file?: string; message: string; ok: boolean }> = {};
   for (const key of TIERS) {
-    const btn = page.getByText(LABEL[key], { exact: false }).first();
+    // the weekly row is mounted BELOW the daily one; scope the button to its card
+    const scope = WEEKLY ? page.locator('text=🧾 Sunday receipts — PNG').locator('xpath=ancestor::*[contains(@style,"padding")][1]') : page;
+    const btn = (WEEKLY ? page.getByText(LABEL[key], { exact: false }).last() : page.getByText(LABEL[key], { exact: false }).first());
+    void scope;
     await btn.waitFor({ timeout: 30_000 });
     const dl = page.waitForEvent('download', { timeout: 120_000 }).catch(() => null);
     await btn.click();
     // The exporter's status line ends in ✅ (saved) or ❌ (refused/failed).
-    const status = page.getByText(/^(✅|❌)/).first();
+    const status = WEEKLY ? page.getByText(/^(✅|❌)/).last() : page.getByText(/^(✅|❌)/).first();
     await status.waitFor({ timeout: 120_000 });
     const message = (await status.textContent()) ?? '';
     const ok = message.startsWith('✅');
@@ -62,7 +67,7 @@ async function main() {
     if (ok) {
       const d = await dl;
       if (d) {
-        file = join(OUT, `hm-brief-${key}${FRAME ? `-${FRAME}` : ''}-${todayET()}.png`);
+        file = join(OUT, `${WEEKLY ? 'hm-receipts' : 'hm-brief'}-${key}${FRAME ? `-${FRAME}` : ''}-${todayET()}.png`);
         await d.saveAs(file);
       }
     } else { await dl; }
@@ -71,7 +76,7 @@ async function main() {
     // let the exporter settle before the next tier (it clears render state in finally)
     await page.waitForTimeout(800);
   }
-  writeFileSync(join(OUT, `brief_capture_${todayET()}.json`), JSON.stringify(results, null, 2));
+  writeFileSync(join(OUT, `${WEEKLY ? 'receipts' : 'brief'}_capture_${todayET()}.json`), JSON.stringify(results, null, 2));
   await browser.close();
   if (Object.values(results).some(r => !r.ok)) process.exit(1);
 }

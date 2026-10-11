@@ -13,7 +13,7 @@
 import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { useAuth } from '@/hooks/useAuth';
-import { SocialBriefExport } from '@/components/admin/ReelsView';
+import { SocialBriefExport, WeeklyReceiptsExport } from '@/components/admin/ReelsView';
 
 export default function BriefCaptureScreen() {
   const { user } = useAuth();
@@ -30,6 +30,7 @@ export default function BriefCaptureScreen() {
         SOCIAL BRIEF — CAPTURE HARNESS (same exporter as Admin → Reels)
       </Text>
       <SocialBriefExport />
+      <WeeklyReceiptsExport />
     </ScrollView>
   );
 }

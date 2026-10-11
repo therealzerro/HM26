@@ -261,6 +261,11 @@ prompt (9:16, 720×1280; ffprobe on landing). Both rotate deterministically
 on the date and are tier-4 lint-checked at build. Pro group only.
 
     npm run reel:captions-pdf              (rebuild + re-upload TODAY's sheet by hand)
+    SUNDAY RECEIPTS IMAGE (MKT-83, 10/11): Admin → 🎬 Reels → 🧾 Sunday receipts
+    → tap 💎 Pro / 👥 Free / 📡 Public (last complete Sun–Sat; classic until a
+    weekly frame is ACTIVE). Captions for it are on the Sunday sheet (public +
+    free, verbatim from the content agent). Headless proof:
+    npx tsx scripts/render-social-brief.ts <outDir> --weekly
     npx tsx scripts/anchor-thread.ts       (print today's question + prompts, no upload;
                                             --day=YYYY-MM-DD previews another day — a
                                             Sunday shows the receipts card)

@@ -28,6 +28,7 @@ import { POSTING_SESSIONS, SCHEDULE_SKIP_ORDER, postingOrder } from '../constant
 import { buildAnchorThread, buildSundayReceipts } from './anchor-thread';
 import { generateCaption, SURFACE_TIER, type CaptionData } from '../lib/social/captions';
 import { lintCaption } from '../lib/social/brandLint';
+import { WEEKLY_CAPTIONS } from '../lib/social/weeklyCaptions';
 
 // MKT-82 (2026-10-10, operator ask): the SOCIAL BRIEF CAPTIONS ride on the
 // sheet — one per tier, for the framed brief PNGs from Admin → Reels (Pro
@@ -193,6 +194,23 @@ function buildHtml(rows: Row[], dayISO: string, briefCfg: BriefCfg = {}): string
       <div class="tag">QUESTION — COPY AS-IS</div><pre class="big">${esc(anchor.question)}</pre>
       <div class="why">Why this exists: every engagement peak in the Pro group's history was a human question or answer, never a templated drop (growth checkpoint 9/7). One question, every day, under the brief. Pro group only — do not cross-post the thread.</div>
     </section>`;
+  // MKT-83 (2026-10-11): the SUNDAY RECEIPTS image family — the weekly recap
+  // PNG from Admin → 🎬 Reels → 🧾 Sunday receipts, with the content agent's
+  // two verbatim captions (public, free), lint-checked at build. Pro caption
+  // not supplied — the Pro image posts with the receipts thread below.
+  const weeklyBlocks = sunday ? WEEKLY_CAPTIONS.map(c => {
+    const text = c.build({ freeGroupUrl: briefCfg.freeGroupUrl, proUrl: briefCfg.proUrl });
+    const lint = lintCaption(text, c.tier);
+    const bad = lint.violations.filter(v => v.blocking);
+    const note = bad.length ? `<div class="tag" style="color:#b91c1c">⛔ LINT BLOCK (tier ${c.tier}): ${esc(bad.map(v => `${v.rule}:"${v.term}"`).join(' · '))} — do not post</div>` : '';
+    console.log(`[captions-pdf] weekly receipts caption ${c.surface} (tier ${c.tier}): ${bad.length ? 'BLOCK ' + bad.map(v => v.term).join(',') : 'lint PASS'}`);
+    return `<div class="tag">${esc(c.label)} · ${esc(c.img)}</div>${note}<pre>${esc(text)}</pre>`;
+  }).join('\n') : '';
+  const weeklyCard = sunday ? `<div class="sesshead">🕐 SUNDAY — RECEIPTS IMAGE (weekly recap · Admin → 🎬 Reels → 🧾 Sunday receipts)</div>
+    <section class="thread">
+      <h2>🧾 Sunday receipts image captions <span class="meta">· tap the tier, Save / Share the PNG (last complete Sun–Sat), paste the matching caption · Pro posts the 💎 Pro image above the receipts thread</span></h2>
+      ${weeklyBlocks}
+    </section>` : '';
   const sundayCard = sunday ? `<div class="sesshead">🕐 SUNDAY — RECEIPTS THREAD (Pro group · weekly)</div>
     <section class="thread sunday">
       <h2>🧾 Sunday receipts thread <span class="meta">· post after the Morning stack · pin for the day · members reply with their state's matched rows${sunday.lintNote ? ' · ⚠ ' + esc(sunday.lintNote) : ''}</span></h2>
@@ -240,6 +258,7 @@ function buildHtml(rows: Row[], dayISO: string, briefCfg: BriefCfg = {}): string
     <h1>HITMASTER ZK6 — DAY CAPTIONS</h1>
     <div class="sub">Run day ${esc(dayISO)} · generated ${esc(etNow())} ET · ${rows.length} caption set${rows.length === 1 ? '' : 's'} + anchor thread${sunday ? ' + Sunday receipts thread' : ''} · internal operator sheet — captions are the lint-gated drafts on the registered rows, in posting order</div>
     ${anchorCard}
+    ${weeklyCard}
     ${sundayCard}
     ${cards}
   </body></html>`;

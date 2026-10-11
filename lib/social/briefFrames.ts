@@ -14,11 +14,16 @@
  * that frame every day, by construction (status says why).
  */
 
-export type BriefFrameKind = 'present' | 'point';
+export type BriefFrameKind = 'present' | 'point' | 'receipts';
 export type BriefFrameStatus = 'active' | 'parked';
+/** MKT-83 (2026-10-11): the DAILY brief and the WEEKLY receipts image draw
+ *  from separate frame sets — the rotations never cross. Every lookup below
+ *  takes the set and defaults to 'daily' so the daily callers are unchanged. */
+export type BriefFrameSet = 'daily' | 'weekly';
 
 export interface BriefFrame {
   key: string;
+  set: BriefFrameSet;
   kind: BriefFrameKind;
   file: string;                       // under assets/marketing/
   source: { w: number; h: number };
@@ -37,6 +42,7 @@ const SCALE = BRIEF_OUT_W / (BRIEF_FRAME_SOURCE_W - 2 * CROP_X);   // 1.1714
 export const BRIEF_FRAMES: BriefFrame[] = [
   {
     key: 'point',
+    set: 'daily',
     kind: 'point',
     file: 'brief_frame_point.png',
     source: { w: 928, h: 1152 },
@@ -48,6 +54,7 @@ export const BRIEF_FRAMES: BriefFrame[] = [
   },
   {
     key: 'present',
+    set: 'daily',
     kind: 'present',
     file: 'brief_frame_present.png',
     source: { w: 928, h: 1152 },
@@ -61,23 +68,42 @@ export const BRIEF_FRAMES: BriefFrame[] = [
     status: 'active',
     gate: 'FAIL 2026-10-10 (helmet crown intrudes 21 px, x458–534 y546–560) — ACTIVE by operator override, rect bottom raised above the crown',
   },
+  {
+    // MKT-83 weekly frame (IMG_0490, upload 6005fb0 → weekly_frame_receipts.png).
+    // Gate 2026-10-11: outer glow x68 y107 w792 h462, axis ≤1 px, single
+    // border, crop survives (margins 65/65). FAIL on the governing requirement:
+    // the usable screen is 918×532 px on the 1080×1350 canvas against the
+    // ≥ 912×846 the weekly grid needs (short 314 px); helmet crown intrudes
+    // 5 px (x471–515, y549–553). PARKED until the operator rules; the classic
+    // card ships without it. screenRect = inner edge 4 px inside the glow,
+    // bottom raised above the crown (y545) so a text line never crosses it.
+    key: 'receipts',
+    set: 'weekly',
+    kind: 'receipts',
+    file: 'weekly_frame_receipts.png',
+    source: { w: 928, h: 1152 },
+    screenRect: { x: 75, y: 114, w: 779, h: 431 },
+    status: 'parked',
+    gate: 'FAIL 2026-10-11 — screen 918×532 px on canvas vs ≥912×846 required (short 314 px); helmet crown intrudes 5 px (x471–515, y549–553); axis ≤1 px, single border, crop survives',
+  },
 ];
 
 /** The flip date: from this ET date the FRAMED Pro brief is the default Pro
  *  capture; before it the framed cut is the preview button only (2.6). */
 export const BRIEF_FRAME_FROM = '2026-10-11';
 
-export function activeBriefFrames(): BriefFrame[] {
-  return BRIEF_FRAMES.filter(f => f.status === 'active');
+export function activeBriefFrames(set: BriefFrameSet = 'daily'): BriefFrame[] {
+  return BRIEF_FRAMES.filter(f => f.status === 'active' && f.set === set);
 }
 
-export function frameByKey(key: string): BriefFrame | null {
-  return BRIEF_FRAMES.find(f => f.key === key && f.status === 'active') ?? null;
+export function frameByKey(key: string, set: BriefFrameSet = 'daily'): BriefFrame | null {
+  return BRIEF_FRAMES.find(f => f.key === key && f.status === 'active' && f.set === set) ?? null;
 }
 
-/** Day-indexed rotation over the active frames (ET date "YYYY-MM-DD"). */
-export function frameForDate(dateISO: string): BriefFrame | null {
-  const active = activeBriefFrames();
+/** Day-indexed rotation over the active frames of a set (ET date "YYYY-MM-DD").
+ *  The weekly set rotates on the same day index — one frame per Sunday. */
+export function frameForDate(dateISO: string, set: BriefFrameSet = 'daily'): BriefFrame | null {
+  const active = activeBriefFrames(set);
   if (!active.length) return null;
   const [y, m, d] = dateISO.split('-').map(n => parseInt(n, 10));
   const dayIndex = Math.floor(Date.UTC(y, m - 1, d) / 86_400_000);
@@ -98,4 +124,5 @@ export function outputRect(f: BriefFrame): { x: number; y: number; w: number; h:
 export const BRIEF_FRAME_IMAGES: Record<string, number> = {
   point: require('@/assets/marketing/brief_frame_point.png'),
   present: require('@/assets/marketing/brief_frame_present.png'),
+  receipts: require('@/assets/marketing/weekly_frame_receipts.png'),
 };

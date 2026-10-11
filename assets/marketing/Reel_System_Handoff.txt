@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-11 · v7.19
+Content Agent Handoff · 2026-10-11 · v7.20
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -638,6 +638,48 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.20 (2026-10-11, afternoon — MKT-83 RULINGS EXECUTED: frame
+intake (FAIL, parked), CLASSIC SUNDAY RECEIPTS IMAGE SHIPPED, §D reported;
+engine untouched)
+================================================================================
+  B. FRAME: IMG_0490.jpeg found (upload 6005fb0, 928×1152 JPEG) → verified by
+     content (blank screen, small seated anchor, glasses on visor, plain mug)
+     → assets/marketing/weekly_frame_receipts.png (lossless, original removed,
+     b7ec9ce). GATE FAIL on the governing figure: usable screen 918 × 532 px on
+     the canvas vs ≥ 912 × 846 (short 314 px — the screen is 40 % of the frame
+     height); helmet crown intrudes 5 px (x471–515, y549–553). Axis ≤ 1 px,
+     single border, crop survives, no mug text. PARKED in briefFrames (set
+     'weekly', verdict verbatim); your/operator ruling flips it. Reconciliation:
+     v7.19's "≥ 779 × 361 / anchor below y≈460" was MY slip (points divided by
+     the scale as pixels); correct source figures are ≥ 779 × 722, anchor
+     below y ≈ 800. The canvas figure stood and governs.
+  C. BUILT (classic first, as ruled): Admin → 🎬 Reels → 🧾 Sunday receipts —
+     💎 Pro · 👥 Free · 📡 Public (classic until a weekly frame is ACTIVE) +
+     🗂 classic hatches; last complete Sun–Sat; one weekly model from
+     briefResolve (7 per-day fetches); lint on every string (weekly strings
+     through the new strings-core), fit assert (refuse, never shrink), digits
+     34 px, BUG-183 capture path, tags hm:weekly_*. Cell law exactly as ruled
+     (empty = nothing). Tier 1: DAYTIME · NIGHTTIME · CONTINUOUS, EXACT ORDER /
+     ANY ORDER, no digits, words at 11 pt. Captions sheet: SUNDAY RECEIPTS
+     IMAGE family (your two captions verbatim, [PRO LINK] = social_pro_url),
+     lint PASS at build; today's sheet rebuilt. Tests 33 green; tsc 0; brand
+     voice 0. ⚠ No Pro caption — you supplied PUBLIC and FREE only.
+     EYEBALL: assets/marketing/weekly_receipts/hm-receipts-{pro,free,public}-
+     classic-2026-10-04_2026-10-10.png (Pro = Free by ruling, both show digits).
+     Rig: Pro/Free fit 520/639 pt, Public 236/639.
+     ⚠ MEASURED: with the ruled chip law (box chip = {0,4,6}) one chip fits per
+     line, so the framed screen must be ≥ 912 × 1064 px for last week's Pro —
+     taller than the 846 the Phase 0 mock measured with digit-only chips. Gate
+     any weekly frame against 1064, or rule a narrower box chip.
+  D. REPORTED ONLY: docs/mkt83_weekly_straights_reel_report.md — porch clip is
+     NOT in the repo (deliver it as lowercase .mp4, verify_midday is the
+     one-pinned-intro precedent, gates 3.5–6.5 s + audio); straights per week
+     as DISTINCT draw events 6/4/5/2/4/3/5/7 over 8/16→10/10; pacing table
+     (~16 s quiet / ~26 s busy at 2.0 s holds — rule fixed holds vs fixed
+     window); map beat = nothing exists today; new-kind cost list. Next free
+     MKT = 84.
+
 ================================================================================
 WHAT CHANGED IN v7.19 (2026-10-11, midday — MKT-83 SUNDAY RECEIPTS WEEKLY RECAP
 IMAGE: PHASE 0 REPORTED, NOTHING BUILT, your rulings owed)

@@ -29,7 +29,16 @@ const C = {
   text: '#FFFFFF', textDim: 'rgba(255,255,255,0.70)', textFaint: 'rgba(255,255,255,0.45)', hair: 'rgba(255,255,255,0.10)',
   glass: 'rgba(10,8,22,0.55)', tile: 'rgba(168,85,247,0.14)', tileEdge: 'rgba(168,85,247,0.35)',
 };
-const MONO = 'monospace';
+// 10/11 (BUG-183b): the card is typeset in the fonts the app LOADS (Inter /
+// JetBrains Mono, served by the dev server) — never the browser default sans
+// or the generic 'monospace'. Default fonts differ per device, so the footer
+// line wrapped on the operator's phone but not on the rig and the Pro card
+// (7 pt headroom on the present frame) failed its own fit gate there. Same
+// font files everywhere → the rig's fit number IS the operator's fit number.
+// Weight lives in the family name (Expo Google Fonts convention): no
+// fontWeight on these styles, so no engine-specific synthetic bold.
+const SANS = 'Inter_400Regular', SANS_B = 'Inter_700Bold';
+const MONO = 'JetBrainsMono_400Regular', MONO_B = 'JetBrainsMono_700Bold';
 const LOGICAL_W = 540, LOGICAL_H = 675;   // ×2 = 1080×1350
 
 export interface BriefFrameCardProps {
@@ -205,42 +214,42 @@ const styles = StyleSheet.create({
   scanline: { height: 1, backgroundColor: 'rgba(255,255,255,0.04)' },
 
   header: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 2 },
-  brand: { color: C.text, fontSize: 11, lineHeight: 14, fontWeight: '900', letterSpacing: 0.8 },
-  kicker: { color: C.purpleSoft, fontSize: 7.5, lineHeight: 10, fontWeight: '800', letterSpacing: 2 },
-  date: { color: C.textDim, fontSize: 7.5, lineHeight: 10, fontWeight: '800', letterSpacing: 1.5, fontFamily: MONO },
-  section: { color: C.textFaint, fontSize: 6.5, lineHeight: 8, fontWeight: '800', letterSpacing: 2, marginBottom: 1 },
+  brand: { color: C.text, fontFamily: SANS_B, fontSize: 11, lineHeight: 14, letterSpacing: 0.8 },
+  kicker: { color: C.purpleSoft, fontFamily: SANS_B, fontSize: 7.5, lineHeight: 10, letterSpacing: 2 },
+  date: { color: C.textDim, fontSize: 7.5, lineHeight: 10, letterSpacing: 1.5, fontFamily: MONO_B },
+  section: { color: C.textFaint, fontFamily: SANS_B, fontSize: 6.5, lineHeight: 8, letterSpacing: 2, marginBottom: 1 },
 
   session: { marginBottom: 2 },
   sessionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sessionScope: { color: C.cyanSoft, fontSize: 7, lineHeight: 9, fontWeight: '900', letterSpacing: 1.6 },
-  sessionState: { fontSize: 6.5, lineHeight: 9, fontWeight: '900', letterSpacing: 0.8, fontFamily: MONO },
+  sessionScope: { color: C.cyanSoft, fontFamily: SANS_B, fontSize: 7, lineHeight: 9, letterSpacing: 1.6 },
+  sessionState: { fontSize: 6.5, lineHeight: 9, letterSpacing: 0.8, fontFamily: MONO_B },
   signalRow: { flexDirection: 'row', gap: 3, marginTop: 1 },
   signal: { flex: 1, alignItems: 'center', backgroundColor: C.tile, borderWidth: 0.5, borderColor: C.tileEdge, borderRadius: 4, paddingVertical: 1 },
   // 17 pt logical = 34 px at 1080 ≥ the 31.5 px floor (F6)
-  digits: { color: C.text, fontSize: 17, lineHeight: 19, fontWeight: '900', fontFamily: MONO, letterSpacing: 1.2 },
+  digits: { color: C.text, fontSize: 17, lineHeight: 19, fontFamily: MONO_B, letterSpacing: 1.2 },
   set: { color: C.textFaint, fontSize: 7, lineHeight: 8, fontFamily: MONO },
-  resolved: { fontSize: 9, lineHeight: 12, fontWeight: '900', fontFamily: MONO, letterSpacing: 0.4, marginTop: 1 },
-  miss: { color: C.textFaint, fontSize: 8, lineHeight: 11, fontStyle: 'italic', marginTop: 1 },
+  resolved: { fontSize: 9, lineHeight: 12, fontFamily: MONO_B, letterSpacing: 0.4, marginTop: 1 },
+  miss: { color: C.textFaint, fontFamily: SANS, fontSize: 8, lineHeight: 11, fontStyle: 'italic', marginTop: 1 },
 
   yRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 0.5, borderTopWidth: 0.5, borderTopColor: C.hair },
-  yScope: { width: 42, color: C.purpleSoft, fontSize: 8, lineHeight: 11, fontWeight: '800' },
-  yTag: { width: 78, fontSize: 7.5, lineHeight: 11, fontWeight: '900', letterSpacing: 0.4, fontFamily: MONO },
-  chip: { fontSize: 7.5, lineHeight: 11, fontFamily: MONO, fontWeight: '700' },
+  yScope: { width: 42, color: C.purpleSoft, fontFamily: SANS_B, fontSize: 8, lineHeight: 11 },
+  yTag: { width: 78, fontSize: 7.5, lineHeight: 11, letterSpacing: 0.4, fontFamily: MONO_B },
+  chip: { fontSize: 7.5, lineHeight: 11, fontFamily: MONO_B },
 
-  footer: { color: C.textFaint, fontSize: 6, lineHeight: 8.5, fontWeight: '700', marginTop: 3 },
-  footerCta: { color: C.gold, fontSize: 7, lineHeight: 10, fontWeight: '800', marginTop: 2 },
-  locked: { color: C.goldSoft, fontSize: 8, lineHeight: 11, fontWeight: '800', marginTop: 1 },
-  release: { color: C.goldSoft, fontSize: 7, lineHeight: 10, fontWeight: '800', marginTop: 4 },
+  footer: { color: C.textFaint, fontFamily: SANS_B, fontSize: 6, lineHeight: 8.5, marginTop: 3 },
+  footerCta: { color: C.gold, fontFamily: SANS_B, fontSize: 7, lineHeight: 10, marginTop: 2 },
+  locked: { color: C.goldSoft, fontFamily: SANS_B, fontSize: 8, lineHeight: 11, marginTop: 1 },
+  release: { color: C.goldSoft, fontFamily: SANS_B, fontSize: 7, lineHeight: 10, marginTop: 4 },
   // ── public hero on the glass ──
   hero: { alignItems: 'center', paddingTop: 4 },
   heroFigure: { flexDirection: 'row', alignItems: 'baseline', marginTop: 2 },
-  heroNum: { color: C.green, fontSize: 48, lineHeight: 54, fontWeight: '900', fontFamily: MONO },
-  heroSlash: { color: C.textFaint, fontSize: 28, lineHeight: 54, fontWeight: '900', fontFamily: MONO, marginHorizontal: 4 },
-  heroDen: { color: C.text, fontSize: 28, lineHeight: 54, fontWeight: '900', fontFamily: MONO },
-  heroCaption: { color: C.text, fontSize: 8, lineHeight: 11, fontWeight: '800', letterSpacing: 1.6, textAlign: 'center', marginTop: 2 },
+  heroNum: { color: C.green, fontSize: 48, lineHeight: 54, fontFamily: MONO_B },
+  heroSlash: { color: C.textFaint, fontSize: 28, lineHeight: 54, fontFamily: MONO_B, marginHorizontal: 4 },
+  heroDen: { color: C.text, fontSize: 28, lineHeight: 54, fontFamily: MONO_B },
+  heroCaption: { color: C.text, fontFamily: SANS_B, fontSize: 8, lineHeight: 11, letterSpacing: 1.6, textAlign: 'center', marginTop: 2 },
   heroMetaRow: { flexDirection: 'row', gap: 18, marginTop: 6 },
-  heroMeta: { color: C.textFaint, fontSize: 7, lineHeight: 10, fontWeight: '800', letterSpacing: 1.2 },
-  heroMetaValue: { color: C.cyanSoft, fontSize: 12, fontWeight: '900', fontFamily: MONO },
-  publicBody: { color: C.text, fontSize: 8, lineHeight: 11, textAlign: 'center', marginTop: 8, maxWidth: 360 },
-  publicCta: { color: C.goldSoft, fontSize: 8.5, lineHeight: 12, fontWeight: '900', textAlign: 'center', marginTop: 6 },
+  heroMeta: { color: C.textFaint, fontFamily: SANS_B, fontSize: 7, lineHeight: 10, letterSpacing: 1.2 },
+  heroMetaValue: { color: C.cyanSoft, fontSize: 12, fontFamily: MONO_B },
+  publicBody: { color: C.text, fontFamily: SANS, fontSize: 8, lineHeight: 11, textAlign: 'center', marginTop: 8, maxWidth: 360 },
+  publicCta: { color: C.goldSoft, fontFamily: SANS_B, fontSize: 8.5, lineHeight: 12, textAlign: 'center', marginTop: 6 },
 });

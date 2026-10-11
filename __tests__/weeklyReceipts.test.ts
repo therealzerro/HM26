@@ -80,7 +80,7 @@ describe('weekly receipts — week window', () => {
 });
 
 describe('weekly receipts — caption family lint-clean', () => {
-  it('public (tier 1) and free (tier 2) captions carry no blocking term', () => {
-    expect(lintWeeklyCaptions({ freeGroupUrl: 'https://www.facebook.com/groups/3851453614997541', proUrl: 'https://www.facebook.com/groups/hitmasterzk' })).toEqual({ public: [], free: [] });
+  it('pro (4), free (2) and public (1) captions carry no blocking term', () => {
+    expect(lintWeeklyCaptions({ freeGroupUrl: 'https://www.facebook.com/groups/3851453614997541', proUrl: 'https://www.facebook.com/groups/hitmasterzk' })).toEqual({ pro: [], free: [], public: [] });
   });
 });

@@ -1,8 +1,7 @@
 /**
  * weeklyCaptions — the SUNDAY RECEIPTS caption family for the captions sheet
- * (MKT-83, content agent 2026-10-11, verbatim). Two surfaces were ruled;
- * the Pro caption is NOT written here — the agent supplied PUBLIC and FREE
- * only, and copy is never invented in code. `[PRO LINK]` is the same Pro URL
+ * (MKT-83, content agent 2026-10-11, verbatim; the Pro caption arrived with
+ * the MKT-85 close the same evening). Copy is never invented in code. `[PRO LINK]` is the same Pro URL
  * the Pro pinned comment uses (app_config.social_pro_url).
  */
 import { lintCaption, type SocialTier } from './brandLint';
@@ -27,9 +26,18 @@ export function weeklyFreeCaption(cfg: WeeklyCaptionCfg): string {
   ].join('\n\n');
 }
 
-export const WEEKLY_CAPTIONS: { surface: 'public' | 'free'; tier: SocialTier; label: string; img: string; build: (cfg: WeeklyCaptionCfg) => string }[] = [
-  { surface: 'public', tier: 1, label: 'PUBLIC PAGE — with the 📡 Public receipts image', img: 'hm-receipts-public-…png', build: weeklyPublicCaption },
+/** Tier 4 — content agent, 2026-10-11 (MKT-85 close), verbatim. Never commercial. */
+export function weeklyProCaption(_cfg: WeeklyCaptionCfg): string {
+  return [
+    'Sunday receipts 💎 Your whole week on one card — every board, every match, every miss, graded the same day across 42 states & provinces.',
+    'Which day did your state come up this week? 👇',
+  ].join('\n\n');
+}
+
+export const WEEKLY_CAPTIONS: { surface: 'public' | 'free' | 'pro'; tier: SocialTier; label: string; img: string; build: (cfg: WeeklyCaptionCfg) => string }[] = [
+  { surface: 'pro', tier: 4, label: 'PRO GROUP — with the 💎 Pro receipts image', img: 'hm-receipts-pro-…png', build: weeklyProCaption },
   { surface: 'free', tier: 2, label: 'FREE GROUP — with the 👥 Free receipts image', img: 'hm-receipts-free-…png', build: weeklyFreeCaption },
+  { surface: 'public', tier: 1, label: 'PUBLIC PAGE — with the 📡 Public receipts image', img: 'hm-receipts-public-…png', build: weeklyPublicCaption },
 ];
 
 /** Blocking violations per surface (empty = clean). Used at sheet build and in tests. */

@@ -196,8 +196,7 @@ function buildHtml(rows: Row[], dayISO: string, briefCfg: BriefCfg = {}): string
     </section>`;
   // MKT-83 (2026-10-11): the SUNDAY RECEIPTS image family — the weekly recap
   // PNG from Admin → 🎬 Reels → 🧾 Sunday receipts, with the content agent's
-  // two verbatim captions (public, free), lint-checked at build. Pro caption
-  // not supplied — the Pro image posts with the receipts thread below.
+  // three verbatim captions (pro, free, public), lint-checked at build.
   const weeklyBlocks = sunday ? WEEKLY_CAPTIONS.map(c => {
     const text = c.build({ freeGroupUrl: briefCfg.freeGroupUrl, proUrl: briefCfg.proUrl });
     const lint = lintCaption(text, c.tier);
@@ -208,7 +207,7 @@ function buildHtml(rows: Row[], dayISO: string, briefCfg: BriefCfg = {}): string
   }).join('\n') : '';
   const weeklyCard = sunday ? `<div class="sesshead">🕐 SUNDAY — RECEIPTS IMAGE (weekly recap · Admin → 🎬 Reels → 🧾 Sunday receipts)</div>
     <section class="thread">
-      <h2>🧾 Sunday receipts image captions <span class="meta">· tap the tier, Save / Share the PNG (last complete Sun–Sat), paste the matching caption · Pro posts the 💎 Pro image above the receipts thread</span></h2>
+      <h2>🧾 Sunday receipts image captions <span class="meta">· tap the tier, Save / Share the PNG (last complete Sun–Sat), paste the matching caption · the 💎 Pro image goes above the receipts thread</span></h2>
       ${weeklyBlocks}
     </section>` : '';
   const sundayCard = sunday ? `<div class="sesshead">🕐 SUNDAY — RECEIPTS THREAD (Pro group · weekly)</div>

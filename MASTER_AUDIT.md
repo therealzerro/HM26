@@ -690,6 +690,8 @@ Tail parity checked against the pool rather than asserted: serving members SPLIT
 
 **Verify (rig, week 10/4–10/10, Chromium):** Pro classic ✅ fit 520/639 pt, Free classic ✅ 520/639 (identical image to Pro — tiers 2 and 4 both show digits by ruling), Public classic ✅ 236/639; lint PASS tier 4/2/1 (54/54/36 strings). Previews for the operator's eyeball: `assets/marketing/weekly_receipts/hm-receipts-{pro,free,public}-classic-2026-10-04_2026-10-10.png`. **Measured consequence for the frame:** with the ruled chip law (box = `{0,4,6}` set chip, 7 chars) a cell holds ONE chip per line at 17 pt, so last week's Pro content is 520 pt — the framed screen would need **≥ 912 × 1064 px** (532 pt + inset) for that week, not the 846 the Phase 0 mock (digit-only chips) measured. Any weekly frame must be gated against the chip-law number.
 
+**Frame prompt v2 (operator request, 10/11):** `docs/mkt83_weekly_frame_prompt.md` — Gemini Omni, anchor reference attached, written to the chip-law requirement (inner edge ≥ 779 × 908 source px = 8–92 % × 5–85 % of the frame; anchor in the bottom 14 %; helmet ≥ 12 px below the glow line). Gate the delivery with `scripts/brief-frame-gate.py` before registering.
+
 **D. Weekly straights reel — REPORT ONLY:** `docs/mkt83_weekly_straights_reel_report.md`. Porch opener NOT in the repo (only IMG_0490 landed); registration path = `verify_midday` precedent; straights per week as distinct draw events 6/4/5/2/4/3/5/7 (8/16→10/10, 21 jurisdictions); pacing table; map beat = nothing exists; new-kind cost list. Rulings owed. Next free MKT = 84.
 
 

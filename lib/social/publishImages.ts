@@ -116,11 +116,28 @@ export function raf(): Promise<void> {
   });
 }
 
-export async function waitFonts(): Promise<void> {
+/** The families the capture cards are typeset in (app/_layout.tsx loads them). */
+export const CAPTURE_FONT_FAMILIES = ['Inter_400Regular', 'Inter_700Bold', 'JetBrainsMono_400Regular', 'JetBrainsMono_700Bold'];
+
+/**
+ * Resolves once the capture fonts are LOADED, not merely registered. Browsers
+ * fetch a web font lazily, on the first element that uses it: on /brief-capture
+ * nothing used Inter before the brief card mounted, so WebKit (iOS Safari, every
+ * iOS browser) mounted the card, started the fetch, and html-to-image captured
+ * it inside the font-display block period — frame drawn, NO text (BUG-183c,
+ * 2026-10-11). `fonts.ready` alone resolves immediately when nothing is pending.
+ * `fonts.load()` forces the fetch; call this BEFORE mounting a capture card and
+ * again before capturing.
+ */
+export async function waitFonts(families: string[] = CAPTURE_FONT_FAMILIES): Promise<void> {
   try {
     const docAny = globalThis as unknown as { document?: any };
     const fonts = docAny.document?.fonts;
-    if (fonts?.ready) await fonts.ready;
+    if (!fonts) return;
+    if (typeof fonts.load === 'function') {
+      await Promise.all(families.map((f) => Promise.resolve(fonts.load(`12px "${f}"`)).catch(() => null)));
+    }
+    if (fonts.ready) await fonts.ready;
   } catch { /* fonts API absent — proceed */ }
 }
 

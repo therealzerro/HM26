@@ -187,6 +187,7 @@ export async function captureNodeToPng(node: HTMLElement | unknown, filename: st
     height: EXPORT_HEIGHT,
     pixelRatio: 1,
     cacheBust: true,
+    includeQueryParams: true,   // BUG-183c — see captureNodeToPngNatural
     // Neutralize the wrapper's translate (which sits the original off-screen)
     // so the captured PNG starts at (0,0) of the output canvas. Without these
     // overrides the painted content lands +5000px on the X axis — i.e. fully
@@ -249,7 +250,25 @@ export async function captureNodeToPngNatural(node: HTMLElement | unknown, pixel
   // fallback for a transparent root.
   const own = typeof getComputedStyle === 'function' ? getComputedStyle(el).backgroundColor : '';
   const transparent = !own || own === 'transparent' || /^rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*0\s*\)$/.test(own);
-  return toPng(el, { cacheBust: true, pixelRatio, backgroundColor: transparent ? '#ffffff' : own });
+  // BUG-183c: html-to-image caches every fetched resource by URL WITHOUT its
+  // query string unless includeQueryParams is set. Expo web serves every
+  // font as /assets/?unstable_path=<file> — same path, different query — so
+  // the embedded @font-face rules all carried the FIRST font's bytes (three
+  // rules, one payload). Chromium masked it by reusing the page's own loaded
+  // fonts inside the SVG image; WebKit used the embedded bytes and set the
+  // whole card in one face (or, on iOS, no text). Same root cause as the 10/10
+  // "second frame captured with the first frame's anchor".
+  const opts = { cacheBust: true, includeQueryParams: true, pixelRatio, backgroundColor: transparent ? '#ffffff' : own };
+  // BUG-183c (2026-10-11): WebKit (iOS Safari / every iOS browser) fires the
+  // SVG image's onload BEFORE the @font-face data URLs embedded in the
+  // foreignObject are decoded, so the first draw of a card set in the app's
+  // web fonts (Inter / JetBrains Mono) comes back with the frame and NO text.
+  // The known html-to-image workaround: render once to warm WebKit's font
+  // cache, settle, then render again and keep the second. Chromium is
+  // unaffected and pays ~1 s. Verified on the rig under Playwright WebKit.
+  await toPng(el, opts);
+  await new Promise<void>(r => setTimeout(r, 300));
+  return toPng(el, opts);
 }
 
 /**

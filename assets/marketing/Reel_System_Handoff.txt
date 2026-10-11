@@ -662,6 +662,16 @@ refused on its own flip day; one fix, no reel, no engine, no copy)
   — same metrics everywhere, so a rig PASS is a phone PASS. Look unchanged
   in substance (brand font instead of the device sans); sizes, line heights
   and copy untouched.
+  PART c (same morning): Pro framed then downloaded on the phone with the
+  frame and NO TEXT. Reproduced under Playwright WebKit (iPhone profile).
+  Root cause: html-to-image cached every fetched font under one key (Expo
+  serves fonts as /assets/?unstable_path=… — same path, different query)
+  so every @font-face in the captured image carried the SAME font bytes;
+  Chromium hid it by reusing the page's fonts, iOS Safari did not. Fixed
+  with includeQueryParams on both capture calls, a warm-up render before
+  the kept one (WebKit draws before embedded resources decode), and the
+  four capture fonts force-loaded before the card mounts. WebKit capture
+  now matches Chromium's. Full entry: MASTER_AUDIT BUG-183 part c.
 
 ================================================================================
 WHAT CHANGED IN v7.17 (2026-10-10, evening — your v7.16 close EXECUTED: F4

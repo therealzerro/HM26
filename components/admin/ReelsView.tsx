@@ -878,6 +878,9 @@ export function SocialBriefExport() {
       const useFrame = t.framed === 'yes' ? !!frame : t.framed === 'auto' ? (!!frame && today >= BRIEF_FRAME_FROM) : false;
       if (t.framed === 'yes' && !frame) throw new Error('refused — no ACTIVE anchor frame in BRIEF_FRAMES (all parked)');
       fitRef.current = null;
+      // BUG-183c: fonts LOADED before the card mounts — its first layout (the
+      // fit of record) must be in Inter / JetBrains Mono, not a fallback.
+      await waitFonts();
       setRender({ variant: t.variant, groupTier: t.groupTier, frame: useFrame ? frame : null });
       setMsg(`Rendering card… (${formatBriefLint(lint)})`);
       await raf(); await waitFonts(); await raf();

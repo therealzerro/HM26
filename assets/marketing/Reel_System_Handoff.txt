@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-11 · v7.21
+Content Agent Handoff · 2026-10-11 · v7.22
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -638,6 +638,35 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.22 (2026-10-11, evening — CAPTION SYSTEM v2: PHASE 0
+REPORTED as MKT-85, NOTHING BUILT; your rulings owed)
+================================================================================
+  docs/mkt85_caption_v2_phase0_report.md answers a–e. Short form:
+  · ID = MKT-85 (84 is "the MKT-84 rule" in your own spec + reserved).
+  · (a) Four sources mapped line by line. Watch-outs: allday_free keeps an
+    EMPTY CTA slot (SOCIAL-13); public reel sets still say "40+" (R-C = 42);
+    verify_midday needs a same-day fact form; the Pro receipts caption is
+    still unwritten.
+  · (b) Every hook, CTA, question and member fact line PASSES its tier.
+    FE1 + FX1 trip the tier-1 state-code rule under the CURRENT lint —
+    OPERATOR RULED 10/11: captions may name states for matches, so the
+    build carves the FACT slot out of that rule (match lines only).
+    BY MEANING, not reworded: P2 "First look is yours" + P4 "before the
+    free group sees it" = first-access on tier 4 (F4 class); Q5/Q6/Q14/
+    Q15/Q18 say "numbers" (§5). Two-Question filter is image-only; its
+    caption analogue is the tier-1 lint and every tier-1 hook passes.
+  · (c) All 42 hooks ≤ 80 chars (V1 is 71).
+  · (d) Distinct-draw counts are computable at caption time on every
+    receipts kind with one key change ((session, jurisdiction)) in
+    fetchReceiptsData; static public kinds need the fetch switched on;
+    silence stays the fallback.
+  · (e) Banks = constants/captionBanks.v2.json (lexicon pattern, stable ids,
+    linted at build); ids = marketing_reels.caption_meta jsonb (one column,
+    both drafts), sheet + log_assist carry ids for row-less posts; Admin
+    shows "hook V3 · cta C2 · q Q7 · fact straight" under the draft.
+  Build starts on your ruling. Next free MKT = 86.
+
 ================================================================================
 WHAT CHANGED IN v7.21 (2026-10-11, late afternoon — MKT-83 NEW METHOD
 EXECUTED: anchor strip + code-drawn screen; FRAMED weekly receipts LIVE)

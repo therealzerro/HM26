@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-11 · v7.22
+Content Agent Handoff · 2026-10-11 · v7.23
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -638,6 +638,25 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.23 (2026-10-11, night — SAVE POINT: operator device dying.
+MKT-85 build 1/4 landed; §D rulings recorded; Pro receipts caption on sheet)
+================================================================================
+  · MKT-83: your Pro Sunday-receipts caption is on the sheet verbatim (tier 4
+    PASS); 10/11 sheet rebuilt with all three receipts captions.
+  · MKT-85 BUILD 1/4 (ce91bc4): banks JSON v2.0.0 (incl. W1–W4, C6/C7,
+    same-day facts, -pub questions — all PASS), loader + bank lint with the
+    FACT-slot state carve-out, pure assembler (anatomy, rotation, meta ids),
+    13 tests. NOT YET: facts from fetchReceiptsData, caption_meta column,
+    publish-reels wiring + live_kinds, Admin readout, sheet ids, reel:check
+    bank lint. live_kinds is EMPTY — nothing ships on v2 until wired and
+    eyeballed. ⚠ allday_free has no hook bank in your spec — needs lines.
+  · §D RULINGS RECORDED in MASTER_AUDIT MKT-83 (opener = anchor_intro_
+    receipts.mp4 on landing; pacing (a); strike once; zero-straight = no
+    reel; map by code from public-domain outlines; two new kinds; manual
+    reel:weekly). NOTHING BUILT YET under §D — cards/map/assembler are next
+    after MKT-85 builds 2–4.
+
 ================================================================================
 WHAT CHANGED IN v7.22 (2026-10-11, evening — CAPTION SYSTEM v2: PHASE 0
 REPORTED as MKT-85, NOTHING BUILT; your rulings owed)

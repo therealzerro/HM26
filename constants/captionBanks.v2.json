@@ -1,0 +1,129 @@
+{
+  "banks_version": "2.0.0",
+  "owner": "content agent (Ledger) — spec 2026-10-11; stored and versioned by Claude Code (MKT-85). Ids are stable forever; a retired line keeps its id with a `retired` date. Changing a line changes every FUTURE caption; it never touches a published row.",
+  "rules": {
+    "hook_max_chars": 80,
+    "no_same_hook_consecutive_days": true,
+    "question_once_per_day": true,
+    "question_cooldown_days": 7,
+    "cta_no_consecutive_days": true,
+    "fact_omit_when_incomplete": true,
+    "fact_slot_state_names_allowed_all_tiers": "operator ruling 2026-10-11 — captions may name states for matches; the tier-1 state-code rule is carved out for the FACT slot only"
+  },
+  "live_kinds": [],
+  "hooks": {
+    "verify": { "tiers": [2, 4], "lines": [
+      { "id": "V1", "text": "Yesterday's board, checked against every draw in 42 states & provinces." },
+      { "id": "V2", "text": "Receipts for {weekday}. Nothing edited, nothing hidden." },
+      { "id": "V3", "text": "Here's how yesterday's six held up." },
+      { "id": "V4", "text": "{weekday}'s board met the draws. Here's what happened." },
+      { "id": "V5", "text": "Graded overnight. The whole record, matches and misses." },
+      { "id": "V6", "text": "Same six for everyone yesterday. Here's how they did." },
+      { "id": "V7", "text": "Yesterday, on the record. Every board, every draw." },
+      { "id": "V8", "text": "The part most pages skip: checking the board after." }
+    ] },
+    "verify_midday": { "tiers": [2], "lines": [
+      { "id": "M1", "text": "Graded the same afternoon. No waiting till tomorrow." },
+      { "id": "M2", "text": "The cover's off. Here's how this morning's board did." },
+      { "id": "M3", "text": "This morning's board, checked against today's midday draws." },
+      { "id": "M4", "text": "Same day, not tomorrow. Here's the midday record." },
+      { "id": "M5", "text": "Posted this morning, graded this afternoon." }
+    ] },
+    "session_free": { "tiers": [2], "kinds": ["midday_free", "evening_free"], "lines": [
+      { "id": "F1", "text": "Covered until it draws. Pro already has it." },
+      { "id": "F2", "text": "The cover comes off after the draw. Pro reads it now." },
+      { "id": "F3", "text": "Same six for everyone. Pro just sees them first." },
+      { "id": "F4", "text": "Here's today's board, under the cover." },
+      { "id": "F5", "text": "What's under the cover? Pro found out at 8:30." },
+      { "id": "F6", "text": "The board is up. The digits stay covered until the draw." }
+    ] },
+    "pro": { "tiers": [4], "kinds": ["allday_pro", "midday_pro", "evening_pro"], "lines": [
+      { "id": "P1", "text": "Today's board, the whole thing, uncovered. 💎" },
+      { "id": "P2", "text": "Your six for {weekday}. First look is yours.", "note": "first-look wording allowed on tier 4 — operator rule 2 (v7.17 close), confirmed by the agent 2026-10-11" },
+      { "id": "P3", "text": "Coffee's on. Board's up. 💎" },
+      { "id": "P4", "text": "Here's the full board before the free group sees it.", "note": "see P2" },
+      { "id": "P5", "text": "Every signal, uncovered, for {weekday}." },
+      { "id": "P6", "text": "Morning, Pro. Here's the board." }
+    ] },
+    "allday_public": { "tiers": [1], "lines": [
+      { "id": "A1", "text": "Every day, the same six for everyone. Here's today's." },
+      { "id": "A2", "text": "Ever wonder what a graded board looks like?" },
+      { "id": "A3", "text": "One board a day, scored across 42 states & provinces." },
+      { "id": "A4", "text": "Today's board is up. Here's how it's built." },
+      { "id": "A5", "text": "The board, the stamp, and nothing changed after." }
+    ] },
+    "record_public": { "tiers": [1], "lines": [
+      { "id": "R1", "text": "30 days. Every match and every miss. Nothing deleted." },
+      { "id": "R2", "text": "The dim tiles are the misses. We leave them on." },
+      { "id": "R3", "text": "Most pages only show the good days. This is all of them." },
+      { "id": "R4", "text": "A month of boards, graded the same day." },
+      { "id": "R5", "text": "Here's the whole month, quiet days included." }
+    ] },
+    "brief": { "tiers": [4], "lines": [
+      { "id": "B1", "text": "Pro brief 💎 Today's boards and yesterday's results, one card." },
+      { "id": "B2", "text": "Morning brief 💎 Everything on one card." },
+      { "id": "B3", "text": "Your brief for {weekday}. 💎" }
+    ] },
+    "weekly_straights": { "tiers": [1, 2], "kinds": ["weekly_straights_free", "weekly_straights_public"], "lines": [
+      { "id": "W1", "text": "This week's exact-order matches, one by one." },
+      { "id": "W2", "text": "Every exact-order match from the week, and where they landed." },
+      { "id": "W3", "text": "Did your state come up in exact order this week?" },
+      { "id": "W4", "text": "Sunday's highlight roll: exact order, every one of them." }
+    ] },
+    "sunday": { "tiers": [1, 2, 4], "lines": [
+      { "id": "S1", "text": "", "verbatim": "lib/social/weeklyCaptions.ts — the approved 10/11 public / free / Pro captions, kept whole; not assembled" },
+      { "id": "S2", "text": "Sunday receipts. The whole week, nothing left off." },
+      { "id": "S3", "text": "Seven days, three boards a day, every result on one card." }
+    ] }
+  },
+  "ctas": {
+    "2": [
+      { "id": "C1", "text": "Pro reads every board uncovered before the draw. $2.49/mo → {link_pro}" },
+      { "id": "C2", "text": "Want the whole board at 8:30? Pro is $2.49/mo → {link_pro}" },
+      { "id": "C3", "text": "Pro members had these digits this morning. $2.49/mo → {link_pro}" },
+      { "id": "C4", "text": "Same six, no cover, every morning. Pro, $2.49/mo → {link_pro}" },
+      { "id": "C5", "text": "Tired of waiting for the cover to come off? → {link_pro}" },
+      { "id": "C6", "text": "Pro adds Midday and Evening, uncovered, every morning. $2.49/mo → {link_pro}", "kinds": ["allday_free"] },
+      { "id": "C7", "text": "You've got All-Day. Pro has all three boards. $2.49/mo → {link_pro}", "kinds": ["allday_free"] }
+    ],
+    "4": [
+      { "id": "K1", "text": "Tell us which state you're checking from 👇" },
+      { "id": "K2", "text": "Share the board with someone who'd want it." },
+      { "id": "K3", "text": "", "note": "none — the question carries it" }
+    ],
+    "1": []
+  },
+  "facts": {
+    "straight_one": { "tiers": [2, 4], "text": "One straight match yesterday — exact order, {state}." },
+    "straight_many": { "tiers": [2, 4], "text": "{N_word} straight matches yesterday: {states}." },
+    "exact_public": { "tiers": [1], "text": "Came up in exact order yesterday in {states}." },
+    "states": { "tiers": [1, 2, 4], "text": "Came up yesterday in {states}." },
+    "sameday_one": { "tiers": [2], "kinds": ["verify_midday"], "text": "One straight match at midday today — exact order, {state}." },
+    "sameday_many": { "tiers": [2], "kinds": ["verify_midday"], "text": "{N_word} straight matches at midday today: {states}." },
+    "sameday_states": { "tiers": [2], "kinds": ["verify_midday"], "text": "Came up at midday today in {states}." },
+    "max_states_named": 4,
+    "more_suffix": "and more"
+  },
+  "questions": [
+    { "id": "Q1", "text": "What state are you checking from today?" },
+    { "id": "Q2", "text": "Coffee or tea while you look over the board? ☕" },
+    { "id": "Q3", "text": "Do you keep a notebook of past draws?" },
+    { "id": "Q4", "text": "Morning check or evening check — which are you?" },
+    { "id": "Q5", "text": "Who got you into the daily numbers?", "public": { "id": "Q5-pub", "text": "Who got you into checking the daily draws?" } },
+    { "id": "Q6", "text": "Do you go with your own numbers, or look at the board first?", "public": { "id": "Q6-pub", "text": "Do you go with your own combination, or look at the board first?" } },
+    { "id": "Q7", "text": "What's the first thing you do on a Sunday morning?" },
+    { "id": "Q8", "text": "Did your state come up yesterday?" },
+    { "id": "Q9", "text": "Do you use a dream book? Which one?" },
+    { "id": "Q10", "text": "Which day of the week do you like checking most?" },
+    { "id": "Q11", "text": "Do you share the board with anyone — a spouse, a sister, a friend?" },
+    { "id": "Q12", "text": "What time do you usually check the results?" },
+    { "id": "Q13", "text": "Exact order or any order — which do you watch for?" },
+    { "id": "Q14", "text": "How long have you followed the daily numbers?", "public": { "id": "Q14-pub", "text": "How long have you followed the daily draws?" } },
+    { "id": "Q15", "text": "Tag someone who checks the numbers every morning.", "public": { "id": "Q15-pub", "text": "Tag someone who checks the draws every morning." } },
+    { "id": "Q16", "text": "Which state should we shout out next week?" },
+    { "id": "Q17", "text": "Porch, kitchen table, or recliner — where do you read the board?" },
+    { "id": "Q18", "text": "Do you remember the first time one of your numbers came up exact?", "public": { "id": "Q18-pub", "text": "Do you remember the first time yours came up in exact order?" } },
+    { "id": "Q19", "text": "Paper notebook or phone — how do you keep track?" },
+    { "id": "Q20", "text": "What's one thing you'd want to see on the board?" }
+  ]
+}

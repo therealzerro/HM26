@@ -3,9 +3,17 @@
  * 2026-10-11). 1080 × 1350 (logical 540 × 675, pixelRatio-2 capture).
  *
  *   classic  (no frame)  — the grid on the brand ground; ships first.
- *   framed   (frame set 'weekly') — the grid on the frame's measured screen
- *            rectangle, like BriefFrameCard. Parked until the frame passes
- *            its gate or the operator rules.
+ *   framed   (frame set 'weekly'):
+ *              layout 'strip' (the shipped method, 2026-10-11) — the image is
+ *              the ANCHOR ONLY; this card DRAWS THE GLASS PANEL (≥ 912×846 px
+ *              plus margin, one thin violet glow line, flat near-black, the
+ *              daily tint + scanlines), sizes it to the grid, and seats the
+ *              strip in the band below it with the helmet ≥ 24 px clear of
+ *              the panel edge, its top and side edges feathered into a canvas
+ *              painted the strip's own background colour (no seam).
+ *              layout 'screen' — the grid on the frame's measured screen
+ *              rectangle, like BriefFrameCard (the retired generated-screen
+ *              method; kept for a frame that ever passes the gate).
  *
  * Draws ONLY the WeeklyModel (lib/social/weeklyReceipts.ts) — the same model
  * `lintWeekly` lints before capture. Cell law: none → dim dash; box → chip;
@@ -22,6 +30,7 @@
  */
 import React, { forwardRef, useEffect, useRef, useState } from 'react';
 import { View, Text, Image, StyleSheet, type LayoutChangeEvent } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { WeeklyModel, WeeklyModelCell } from '@/lib/social/weeklyReceipts';
 import { BRIEF_COPY } from '@/lib/social/briefCopy';
 import { outputRect, type BriefFrame } from '@/lib/social/briefFrames';
@@ -39,6 +48,13 @@ const MONO_B = 'JetBrainsMono_700Bold';
 const LOGICAL_W = 540, LOGICAL_H = 675;
 const PAD = 6;            // glass inset (framed)
 const CLASSIC_PAD = 18;   // card inset (classic)
+// ── strip layout (logical pt; ×2 = canvas px) ──
+const STRIP_PANEL_X = 16, STRIP_PANEL_TOP = 16;                 // panel 508 pt wide = 1016 px ≥ 912
+const STRIP_PANEL_MIN_H = 423 + 2 * PAD;                        // 846 px minimum inner + inset
+const STRIP_CLEAR = 12;                                          // 24 px helmet clearance
+const STRIP_BAND_MIN = 110;                                      // the anchor never gets less than this
+const STRIP_PANEL_MAX_H = LOGICAL_H - STRIP_PANEL_TOP - STRIP_CLEAR - STRIP_BAND_MIN;   // 537
+const FEATHER = 44;
 
 export interface WeeklyReceiptsCardProps {
   model: WeeklyModel;
@@ -48,15 +64,32 @@ export interface WeeklyReceiptsCardProps {
 
 export const WeeklyReceiptsCard = forwardRef<View, WeeklyReceiptsCardProps>(function WeeklyReceiptsCard({ model, frame, onFit }, ref) {
   const img = useFrameImage(frame ?? null);
+  const strip = frame?.layout === 'strip' ? frame : null;
+  // strip layout: the panel grows to the grid (two-pass — measured, then
+  // sized) between the 846 px minimum and the point where the anchor band
+  // would drop below STRIP_BAND_MIN. Beyond that the fit assert refuses.
+  const [panelH, setPanelH] = useState<number>(STRIP_PANEL_MIN_H);
   // tier 1 draws words only (no digits) — the chip words ARE the content, so
   // they get the reading size the digits get on member tiers (11 pt = 22 px).
   const pub = model.tier === 1 || model.tier === 3;
   const framed = !!frame;
-  const r = framed ? outputRect(frame!) : null;
-  const screen = framed
+  const r = framed && !strip ? outputRect(frame!) : null;
+  const screen = strip
+    ? { left: STRIP_PANEL_X, top: STRIP_PANEL_TOP, width: LOGICAL_W - 2 * STRIP_PANEL_X, height: panelH }
+    : framed
     ? { left: r!.x / 2, top: r!.y / 2, width: r!.w / 2, height: r!.h / 2 }
     : { left: CLASSIC_PAD, top: CLASSIC_PAD, width: LOGICAL_W - 2 * CLASSIC_PAD, height: LOGICAL_H - 2 * CLASSIC_PAD };
   const pad = framed ? PAD : 0;
+  // strip geometry: scale so the figure spans the band exactly (helmet top at
+  // the band's top edge, strip bottom at the canvas bottom), centred.
+  const bandTop = STRIP_PANEL_TOP + panelH + STRIP_CLEAR;
+  const anchorBandH = LOGICAL_H - bandTop;
+  const sScale = strip ? anchorBandH / (strip.source.h - strip.strip!.figure.y) : 1;
+  const stripW = strip ? strip.source.w * sScale : 0;
+  const stripH = strip ? strip.source.h * sScale : 0;
+  const stripLeft = (LOGICAL_W - stripW) / 2;
+  const stripTop = bandTop - (strip ? strip.strip!.figure.y * sScale : 0);
+  const canvasBg = strip ? strip.strip!.bg : C.bg;
 
   const [bandH, setBandH] = useState<number | null>(null);
   const [contentH, setContentH] = useState<number | null>(null);
@@ -64,19 +97,32 @@ export const WeeklyReceiptsCard = forwardRef<View, WeeklyReceiptsCardProps>(func
   useEffect(() => {
     if (bandH == null || contentH == null) return;
     if (naturalRef.current == null) naturalRef.current = contentH;
+    if (strip) {
+      const want = Math.min(Math.max(naturalRef.current + 2 * PAD, STRIP_PANEL_MIN_H), STRIP_PANEL_MAX_H);
+      if (Math.abs(want - panelH) > 0.5) { setPanelH(want); return; }   // second pass: the panel re-sizes, bandH re-measures
+    }
     if (framed && img.error) { onFit?.({ ok: false, contentH: naturalRef.current, bandH, frameError: img.error }); return; }
     if (framed && !img.loaded) return;   // frame pixels must be on screen before a capture is allowed
     onFit?.({ ok: naturalRef.current <= bandH + 0.5, contentH: naturalRef.current, bandH });
-  }, [bandH, contentH, framed, img.loaded, img.error, onFit]);
+  }, [bandH, contentH, framed, strip, panelH, img.loaded, img.error, onFit]);
 
   return (
-    <View ref={ref} collapsable={false} style={styles.card}>
-      {framed && img.source ? <Image source={img.source} style={styles.frame} resizeMode="cover" onLoad={img.onLoad} /> : null}
+    <View ref={ref} collapsable={false} style={[styles.card, { backgroundColor: canvasBg }]}>
+      {framed && !strip && img.source ? <Image source={img.source} style={styles.frame} resizeMode="cover" onLoad={img.onLoad} /> : null}
+      {strip && img.source ? (
+        <View style={{ position: 'absolute', left: stripLeft, top: stripTop, width: stripW, height: stripH }} pointerEvents="none">
+          <Image source={img.source} style={{ width: stripW, height: stripH }} resizeMode="stretch" onLoad={img.onLoad} />
+          {/* feather: the strip's top and side edges dissolve into the canvas (same colour as its background) */}
+          <LinearGradient colors={[canvasBg, 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: FEATHER }} />
+          <LinearGradient colors={['transparent', canvasBg]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: FEATHER }} />
+          <LinearGradient colors={[canvasBg, 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: Math.max(FEATHER, strip.strip!.figure.y * sScale - 2) }} />
+        </View>
+      ) : null}
       <View
-        style={[styles.screen, framed ? { padding: PAD, borderRadius: 2 } : styles.classicPanel, screen]}
+        style={[styles.screen, strip ? styles.drawnPanel : framed ? { padding: PAD, borderRadius: 2 } : styles.classicPanel, screen]}
         onLayout={(e: LayoutChangeEvent) => setBandH(e.nativeEvent.layout.height - 2 * pad)}
       >
-        {framed && <View style={styles.glassTint} pointerEvents="none" />}
+        {framed && !strip && <View style={styles.glassTint} pointerEvents="none" />}
         <View style={styles.content} onLayout={(e: LayoutChangeEvent) => setContentH(e.nativeEvent.layout.height)}>
           <View style={styles.header}>
             <Text style={styles.brand}>{BRIEF_COPY.brand} <Text style={{ color: C.cyan }}>{BRIEF_COPY.brandAccent}</Text></Text>
@@ -128,6 +174,11 @@ const styles = StyleSheet.create({
   screen: { position: 'absolute', overflow: 'hidden' },
   // classic: the grid sits vertically centred in the panel (the band is still
   // the fit reference — content taller than the band is refused, never shrunk)
+  // the code-drawn glass (strip layout): flat near-black, one thin violet glow
+  // line (border + soft shadow), the daily tint/scanline treatment on top
+  // the grid is vertically centred when the panel sits at its 846 px minimum
+  // (short public grids); a grid that sets the panel height fills it anyway
+  drawnPanel: { padding: PAD, backgroundColor: '#0B0914', borderWidth: 1.5, borderColor: '#A855F7', borderRadius: 2, boxShadow: '0 0 6px 1px rgba(168,85,247,0.55)', justifyContent: 'center' } as any,
   classicPanel: { backgroundColor: C.panel, borderRadius: 12, borderWidth: 1, borderColor: C.panelEdge, padding: 12, justifyContent: 'center' },
   glassTint: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: C.glass },
   content: { flexShrink: 0 },

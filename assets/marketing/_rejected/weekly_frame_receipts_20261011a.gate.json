@@ -1,0 +1,127 @@
+{
+ "file": "assets/marketing/_rejected/weekly_frame_receipts_20261011a.png",
+ "size": [
+  928,
+  1152
+ ],
+ "row_lines": [
+  [
+   107,
+   110
+  ],
+  [
+   566,
+   568
+  ]
+ ],
+ "col_lines": [
+  [
+   68,
+   70
+  ],
+  [
+   857,
+   859
+  ]
+ ],
+ "screenRect_outer": {
+  "x": 68,
+  "y": 107,
+  "w": 792,
+  "h": 462
+ },
+ "screenRect_pct": {
+  "x": 7.3,
+  "y": 9.3,
+  "x2": 92.6,
+  "y2": 49.3
+ },
+ "edge_samples": {
+  "top": [
+   106,
+   106,
+   107,
+   107,
+   107,
+   107,
+   107,
+   107,
+   107
+  ],
+  "bottom": [
+   566,
+   566,
+   566,
+   566,
+   566,
+   566,
+   566,
+   566
+  ],
+  "left": [
+   67,
+   67,
+   67,
+   68,
+   68,
+   68,
+   68,
+   68,
+   68
+  ],
+  "right": [
+   857,
+   857,
+   857,
+   857,
+   857,
+   857,
+   857,
+   856,
+   856
+  ]
+ },
+ "edge_deviation_px": {
+  "top": 1,
+  "bottom": 0,
+  "left": 1,
+  "right": 1
+ },
+ "axis_aligned_2px": true,
+ "interior_inset": {
+  "x": 82,
+  "y": 122,
+  "w": 763,
+  "h": 432
+ },
+ "interior_lum": {
+  "mean": 18.6,
+  "std": 6.4,
+  "p99": 39.3,
+  "max": 250.0
+ },
+ "intrusion_threshold": 90.0,
+ "intrusion_px": 158,
+ "intrusion_bbox": {
+  "x": 471,
+  "y": 549,
+  "x2": 515,
+  "y2": 553
+ },
+ "interior_uniform_dark": false,
+ "crop_4_5": {
+  "x": 3,
+  "y": 0,
+  "w": 922,
+  "h": 1152,
+  "scale_to_1080x1350": 1.1714
+ },
+ "rect_survives_crop": true,
+ "rect_margin_to_crop_px": {
+  "left": 65,
+  "right": 65,
+  "top": 107,
+  "bottom": 583
+ },
+ "status": "FAIL"
+}

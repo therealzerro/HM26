@@ -14,7 +14,11 @@
  * that frame every day, by construction (status says why).
  */
 
-export type BriefFrameKind = 'present' | 'point' | 'receipts';
+export type BriefFrameKind = 'present' | 'point' | 'receipts' | 'strip';
+/** 'screen' = the frame image carries the glass (daily frames, measured by the
+ *  gate); 'strip' = the image is the ANCHOR ONLY and CODE DRAWS THE SCREEN
+ *  (MKT-83 new method, 2026-10-11). */
+export type BriefFrameLayout = 'screen' | 'strip';
 export type BriefFrameStatus = 'active' | 'parked';
 /** MKT-83 (2026-10-11): the DAILY brief and the WEEKLY receipts image draw
  *  from separate frame sets — the rotations never cross. Every lookup below
@@ -27,7 +31,11 @@ export interface BriefFrame {
   kind: BriefFrameKind;
   file: string;                       // under assets/marketing/
   source: { w: number; h: number };
-  screenRect: { x: number; y: number; w: number; h: number };   // source px, inner edge
+  layout?: BriefFrameLayout;          // default 'screen'
+  screenRect?: { x: number; y: number; w: number; h: number };  // source px, inner edge ('screen' only)
+  /** 'strip' only: the measured figure box (source px) and the background
+   *  colour the canvas is painted so the feathered edges vanish. */
+  strip?: { figure: { x: number; y: number; w: number; h: number }; bg: string };
   status: BriefFrameStatus;
   gate: string;                       // the measured verdict, verbatim
 }
@@ -69,7 +77,32 @@ export const BRIEF_FRAMES: BriefFrame[] = [
     gate: 'FAIL 2026-10-10 (helmet crown intrudes 21 px, x458–534 y546–560) — ACTIVE by operator override, rect bottom raised above the crown',
   },
   {
+    // MKT-83 NEW METHOD (content agent, 2026-10-11): the anchor STRIP —
+    // IMG_0492 (upload 9972526, 1376×768 JPEG) → weekly_anchor_strip.png.
+    // Gate 2026-10-11: figure box x312–1031 y144–767 (720×624), 144 px of
+    // empty background above the helmet, no contact with the top/left/right
+    // edges (bottom = chest cut, by design); background #09060c, luminance
+    // std ≈ 2 across the top 18 % and both side quarters (p99 ≤ 15; mild
+    // vignette 6.5 → 12 corner-to-centre, hidden by the feather); no
+    // foreground pixel outside the figure box; mug plain. The helmet bolt is
+    // the anchor's own design (daily frames carry it). PASS → ACTIVE.
+    // The CARD draws the glass panel (912×846 px minimum plus margin) and
+    // seats this strip below it, helmet ≥ 24 px clear of the panel edge.
+    key: 'strip',
+    set: 'weekly',
+    kind: 'strip',
+    layout: 'strip',
+    file: 'weekly_anchor_strip.png',
+    source: { w: 1376, h: 768 },
+    strip: { figure: { x: 312, y: 144, w: 720, h: 624 }, bg: '#09060c' },
+    status: 'active',
+    gate: 'PASS 2026-10-11 — anchor only, uncut helmet/shoulders/mug, 144 px clear above the helmet, background uniform (lum std ≈ 2), no marks',
+  },
+  {
     // MKT-83 weekly frame (IMG_0490, upload 6005fb0 → weekly_frame_receipts.png).
+    // RETIRED 2026-10-11 by the content agent (generated-screen method dropped
+    // for the weekly set); file moved to _rejected/weekly_frame_receipts_20261011a.png
+    // with its gate JSON. Entry kept parked for the record.
     // Gate 2026-10-11: outer glow x68 y107 w792 h462, axis ≤1 px, single
     // border, crop survives (margins 65/65). FAIL on the governing requirement:
     // the usable screen is 918×532 px on the 1080×1350 canvas against the
@@ -80,7 +113,7 @@ export const BRIEF_FRAMES: BriefFrame[] = [
     key: 'receipts',
     set: 'weekly',
     kind: 'receipts',
-    file: 'weekly_frame_receipts.png',
+    file: '_rejected/weekly_frame_receipts_20261011a.png',
     source: { w: 928, h: 1152 },
     screenRect: { x: 75, y: 114, w: 779, h: 431 },
     status: 'parked',
@@ -112,6 +145,7 @@ export function frameForDate(dateISO: string, set: BriefFrameSet = 'daily'): Bri
 
 /** screenRect in OUTPUT pixels (1080×1350) for the 4:5 crop + scale. */
 export function outputRect(f: BriefFrame): { x: number; y: number; w: number; h: number } {
+  if (!f.screenRect) throw new Error(`frame "${f.key}" has no screenRect (layout ${f.layout ?? 'screen'})`);
   return {
     x: Math.round((f.screenRect.x - CROP_X) * SCALE),
     y: Math.round(f.screenRect.y * SCALE),
@@ -124,5 +158,5 @@ export function outputRect(f: BriefFrame): { x: number; y: number; w: number; h:
 export const BRIEF_FRAME_IMAGES: Record<string, number> = {
   point: require('@/assets/marketing/brief_frame_point.png'),
   present: require('@/assets/marketing/brief_frame_present.png'),
-  receipts: require('@/assets/marketing/weekly_frame_receipts.png'),
+  strip: require('@/assets/marketing/weekly_anchor_strip.png'),
 };

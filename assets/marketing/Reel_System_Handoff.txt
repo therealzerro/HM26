@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-11 · v7.20
+Content Agent Handoff · 2026-10-11 · v7.21
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -638,6 +638,30 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.21 (2026-10-11, late afternoon — MKT-83 NEW METHOD
+EXECUTED: anchor strip + code-drawn screen; FRAMED weekly receipts LIVE)
+================================================================================
+  Your new-method order is done end to end. IMG_0492.jpeg (upload 9972526,
+  1376×768) verified by content → assets/marketing/weekly_anchor_strip.png
+  (lossless). STRIP GATE PASS: figure 720×624 with 144 px clear above the
+  helmet, no top/side edge contact, background #09060c with luminance std ≈ 2
+  on the top and both sides (feathers cleanly), no marks (the helmet bolt is
+  his design). Registered ACTIVE in the WEEKLY set (layout 'strip').
+  IMG_0490 → _rejected/weekly_frame_receipts_20261011a.png + its gate JSON.
+  THE CARD DRAWS THE SCREEN: 1016 px wide panel, height sized to the grid
+  (846 px minimum), one thin violet glow line, flat near-black, the daily
+  scanlines; the strip sits below it, helmet ≥ 24 px clear, edges feathered
+  into a canvas painted the strip's own background — no seam (measured:
+  edge luminance 7.1 = canvas 7.1). Rig, week 10/4–10/10: Pro/Free panel
+  1016×988, clearance 27 px; Public 1016×870, clearance 28 px. All six
+  buttons ✅, daily brief regression ✅, tests green, tsc 0.
+  💎 Pro · 👥 Free · 📡 Public are now FRAMED by default; 🗂 classic hatches
+  stay. EYEBALL (framed): assets/marketing/weekly_receipts/hm-receipts-
+  {pro,free,public}-framed-strip-2026-10-04_2026-10-10.png. The frame
+  prompt v2 (docs/mkt83_weekly_frame_prompt.md) is superseded; kept on file.
+  Still owed by you: the Pro caption for the receipts image; §D rulings.
+
 ================================================================================
 WHAT CHANGED IN v7.20 (2026-10-11, afternoon — MKT-83 RULINGS EXECUTED: frame
 intake (FAIL, parked), CLASSIC SUNDAY RECEIPTS IMAGE SHIPPED, §D reported;

@@ -759,6 +759,20 @@ Free: 30d tile removed, release band sub-line drops "multiplicity", lock/CTA kep
 
 ---
 
+### BUG-183 — Social brief PNGs "not loading" on the flip day (2026-10-11): framed capture waited ~0.5 s for a 300 KB anchor frame ✅ FIXED 2026-10-11
+
+**Symptom (operator, 10/11 morning):** Admin → 🎬 Reels → 📰 Social brief — every tier button ends in `❌ refused — layout fit was never reported`; no PNG. 10/10 the same buttons worked.
+
+**Cause (reproduced, not inferred):** `BRIEF_FRAME_FROM = 2026-10-11` flipped all three default tier buttons to the FRAMED card. On web `BriefFrameCard` fetches the anchor frame (`brief_frame_present.png`, 365 KB) to a data URL and reports its fit only after `onLoad`. `SocialBriefExport.generate` waited `30 × raf` ≈ 0.5 s for that fit. Localhost (the headless rig) delivers the frame in ms, so `render-social-brief.ts` passed every time; the operator's browser reaches :8081 through the codespace port forward, where the frame takes >0.5 s, so every framed tier refused. Classic hatches (no image) were unaffected. Verified with Playwright `page.route` delaying the frame: 1.5 s and 4 s → refused on the old bundle, ✅ on the fix.
+
+**Second finding:** the dev server launched 09:09 had `CI=1` in its environment → "Metro is running in CI mode, reloads are disabled": file edits were never rebundled (every request logged `Bundled … (1 module)`), and the tunnel URL answered 502. Restarted with `env -u CI npm run start-tunnel` (log `devserver_20261011_105900.log`); no CI-mode line, bundle rebuilds on edit. If a future launch logs "CI mode", the shell that started it had `CI` set — unset and relaunch.
+
+**Fix (3 files):**
+- `components/admin/ReelsView.tsx` — fit wait is a clock, not a frame count: 20 s when framed, 5 s classic; after ~1 s the status line says `loading anchor frame "<key>"`; the timeout message names the frame; a reported `frameError` is surfaced verbatim.
+- `components/social/BriefFrameCard.tsx` — non-2xx fetch and decode failures are caught into `frameError` and reported through `onFit` instead of being swallowed (forced 404 → `❌ refused — anchor frame "present" failed to load: HTTP 404 fetching brief_frame_present.png`, 0.9 s).
+- `components/social/SocialBriefCard.tsx` — `BriefFit.frameError?: string`.
+`PublishView` uses only the classic `SocialBriefCard` — untouched. Filtered tsc clean. Headless rig 10/11 after the fix: all six tiers ✅ (pro/free/public framed on `present`, fit 232/198/184 of 239; classics 707/583/674 of 764). Engine untouched.
+
 ### MKT-81 — hitmasterzk.com: THE OWNED FUNNEL, PHASE ONE ✅ PHASE 0 REPORTED 2026-09-18 · NOTHING BUILT · RULINGS OWED on items 1, 3, 5 · ⛔ THE DOMAIN IS A TIER-1 SURFACE
 
 **ID verified free** (audit: only "Next free MKT ID: 81" hits; code: zero). Work order: content agent 2026-09-18 ("THE OWNED FUNNEL, PHASE ONE" — Phase 0 items 1–5 then GATE). Pattern: discovery-first, gates, diff before commit. **New lane, not a reel change** — touches no kind, registry or daily run; outside the 9/9–9/23 window. Full report: `docs/mkt81_phase0_report.md`. Handoff v7.5.

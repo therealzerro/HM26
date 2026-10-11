@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-10 · v7.17
+Content Agent Handoff · 2026-10-11 · v7.18
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -638,6 +638,23 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.18 (2026-10-11, morning — BUG-183: the framed social brief
+refused on its own flip day; one fix, no reel, no engine, no copy)
+================================================================================
+  Every 📰 Social brief tier ended "refused — layout fit was never reported"
+  on 10/11 — the day BRIEF_FRAME_FROM made all three default buttons FRAMED.
+  The framed card waits for the anchor frame image (≈300 KB) before it reports
+  its fit; the exporter gave it ~0.5 s. Fine on localhost (why the headless rig
+  never saw it), never enough through the codespace port forward. Now: 20 s
+  on a clock, the status line says it is loading the frame, and a real fetch
+  failure is reported by name ("anchor frame "present" failed to load: HTTP
+  404 …"). Verified: delayed-frame 1.5 s / 4 s → ✅; forced 404 → the named
+  error; all six tiers ✅ on the rig. Also: the 09:09 dev server was in Metro
+  CI mode (CI=1 inherited) so edits never rebundled — relaunched with CI unset.
+  If "Metro is running in CI mode" ever appears in the devserver log, that is
+  why a fix "did nothing". Full entry: MASTER_AUDIT BUG-183.
+
 ================================================================================
 WHAT CHANGED IN v7.17 (2026-10-10, evening — your v7.16 close EXECUTED: F4
 first-access family + both operator approvals (b) 8/27 re-grade and (a) the

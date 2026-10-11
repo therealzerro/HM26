@@ -57,7 +57,11 @@ const C = {
   hair: 'rgba(255,255,255,0.08)',
 };
 
-export interface BriefFit { ok: boolean; contentH: number; bandH: number }
+export interface BriefFit {
+  ok: boolean; contentH: number; bandH: number;
+  /** BriefFrameCard only: the anchor frame image could not be fetched/decoded (web). */
+  frameError?: string;
+}
 
 export interface SocialBriefCardProps {
   data: SocialBriefData;

@@ -76,18 +76,22 @@ export const BriefFrameCard = forwardRef<View, BriefFrameCardProps>(function Bri
   // phone never captures an empty frame.
   const [frameUri, setFrameUri] = useState<string | null>(null);
   const [frameLoaded, setFrameLoaded] = useState(Platform.OS !== 'web');
+  // 10/11: a fetch/decode failure is REPORTED (frameError on the fit) rather
+  // than swallowed — the exporter used to time out with "layout fit was never
+  // reported" and the operator could not tell a slow network from a 404.
+  const [frameError, setFrameError] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
-    setFrameUri(null); setFrameLoaded(Platform.OS !== 'web');
+    setFrameUri(null); setFrameLoaded(Platform.OS !== 'web'); setFrameError(null);
     if (Platform.OS !== 'web') return;
     const uri = Asset.fromModule(BRIEF_FRAME_IMAGES[frame.key]).uri;
     fetch(`${uri}${uri.includes('?') ? '&' : '?'}hmframe=${frame.key}&t=${Date.now()}`, { cache: 'no-store' })
-      .then(r => r.blob())
-      .then(b => new Promise<string>((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(b); }))
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status} fetching ${frame.file}`); return r.blob(); })
+      .then(b => new Promise<string>((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = () => rej(new Error(`decode failed for ${frame.file}`)); fr.readAsDataURL(b); }))
       .then(d => { if (alive) setFrameUri(d); })
-      .catch(() => { if (alive) setFrameUri(null); });
+      .catch((e: any) => { if (alive) { setFrameUri(null); setFrameError(String(e?.message ?? e)); } });
     return () => { alive = false; };
-  }, [frame.key]);
+  }, [frame.key, frame.file]);
   const frameSource = Platform.OS === 'web' ? (frameUri ? { uri: frameUri } : null) : BRIEF_FRAME_IMAGES[frame.key];
   const r = outputRect(frame);
   const screen = { left: r.x / 2, top: r.y / 2, width: r.w / 2, height: r.h / 2 };
@@ -98,9 +102,10 @@ export const BriefFrameCard = forwardRef<View, BriefFrameCardProps>(function Bri
   useEffect(() => {
     if (bandH == null || contentH == null) return;
     if (naturalRef.current == null) naturalRef.current = contentH;
+    if (frameError) { onFit?.({ ok: false, contentH: naturalRef.current, bandH, frameError }); return; }
     if (!frameLoaded) return;   // the frame pixels must be on screen before a capture is allowed
     onFit?.({ ok: naturalRef.current <= bandH + 0.5, contentH: naturalRef.current, bandH });
-  }, [bandH, contentH, frameLoaded, onFit]);
+  }, [bandH, contentH, frameLoaded, frameError, onFit]);
 
   return (
     <View ref={ref} collapsable={false} style={styles.card}>

@@ -881,9 +881,18 @@ export function SocialBriefExport() {
       setRender({ variant: t.variant, groupTier: t.groupTier, frame: useFrame ? frame : null });
       setMsg(`Rendering card… (${formatBriefLint(lint)})`);
       await raf(); await waitFonts(); await raf();
-      for (let i = 0; i < 30 && !fitRef.current; i++) await raf();
+      // 10/11: the FRAMED card reports its fit only once the anchor frame
+      // (≈300 KB, fetched to a data URL on web) has loaded. 30 frames (~0.5 s)
+      // was enough on localhost and never enough through the codespace port
+      // forward — every framed tier refused on the flip day. Wait on a clock.
+      const deadline = Date.now() + (useFrame ? 20_000 : 5_000);
+      for (let i = 0; !fitRef.current && Date.now() < deadline; i++) {
+        if (useFrame && i === 60) setMsg(`Rendering card… loading anchor frame "${frame?.key}" (${formatBriefLint(lint)})`);
+        await raf();
+      }
       const fit = fitRef.current as BriefFit | null;
-      if (!fit) throw new Error('refused — layout fit was never reported');
+      if (!fit) throw new Error(useFrame ? `refused — anchor frame "${frame?.key}" did not load within 20 s (check the dev server / network and retry)` : 'refused — layout fit was never reported');
+      if (fit.frameError) throw new Error(`refused — anchor frame "${frame?.key}" failed to load: ${fit.frameError}`);
       if (!fit.ok) throw new Error(`refused — layout defect: content does not fit (${Math.round(fit.contentH)} > ${Math.round(fit.bandH)} pt) — never shrink`);
       const node = Platform.OS === 'web' ? resolveWebNode(briefRef) : briefRef.current;
       if (!node) throw new Error('Brief capture stage not mounted');

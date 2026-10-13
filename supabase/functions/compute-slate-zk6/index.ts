@@ -1533,11 +1533,12 @@ async function computeSlate(params: {
 
     // ─── E1+E2+E5: adaptive_tracking K6 primary rows (mirrors engines/zk6.ts) ───
     // Idempotency: skip INSERT if primary rows already exist for this
-    // (slate_hash, mode). Same slate_hash → same picks → no new data to
-    // record. Prevents duplicate accumulation across regens.
+    // (slate_hash, mode, slate_date). Same slate_hash on the SAME date → same
+    // picks → no new data to record. Prevents duplicate accumulation across regens.
+    // ENG-AT-KEY-01 (2026-10-13): keyed on (slate_hash, mode, slate_date) — the hash excludes the date, so an identical board on a later day (possible on D+2 under stale2; seen live 6/11+6/12 evening, 6/16+6/17 allday) must still get its own primary rows.
     try {
       const existing = await sbGet<any[]>(
-        `/rest/v1/adaptive_tracking?slate_hash=eq.${encodeURIComponent(hash)}&mode=eq.${encodeURIComponent(weightsKey)}&matched_state=is.null&select=id&limit=1`,
+        `/rest/v1/adaptive_tracking?slate_hash=eq.${encodeURIComponent(hash)}&mode=eq.${encodeURIComponent(weightsKey)}&slate_date=eq.${effectiveDate}&matched_state=is.null&select=id&limit=1`,
       );
       if (Array.isArray(existing) && existing.length > 0) {
         console.log('[edge-zk6] adaptive_tracking: slate_hash already has primary rows, skipping');

@@ -186,9 +186,11 @@ async function recordHitInAdaptiveTracking(
   // re-runs are no-ops on already-recorded matches; (2) caller in runForDate
   // now awaits AT writes serially per-pick so PATCH happens before the next
   // IS-NULL lookup.
+  // ENG-AT-KEY-01 (2026-10-13): keyed on (slate_hash, mode, slate_date) — the hash excludes the date, so an identical board on a later day (possible on D+2 under stale2; seen live 6/11+6/12 evening, 6/16+6/17 allday) must still get its own primary rows.
   // Layer 1: idempotency — exact state+session already recorded → no-op.
   const dup = await sbGet<{ id: string }[]>(
     `/rest/v1/adaptive_tracking?slate_hash=eq.${encodeURIComponent(slateHash)}` +
+    `&slate_date=eq.${date}` +
     `&rank=eq.${pick.rank}&combo=eq.${encodeURIComponent(pick.combo)}` +
     `&mode=eq.${encodeURIComponent(mode)}` +
     `&matched_state=eq.${encodeURIComponent(result.jurisdiction)}` +
@@ -197,9 +199,10 @@ async function recordHitInAdaptiveTracking(
   );
   if (Array.isArray(dup) && dup.length > 0) return;
 
-  // PATCH the un-stamped primary row if one exists.
+  // PATCH the un-stamped primary row if one exists (same slate_date only — ENG-AT-KEY-01).
   const existing = await sbGet<{ id: string }[]>(
     `/rest/v1/adaptive_tracking?slate_hash=eq.${encodeURIComponent(slateHash)}` +
+    `&slate_date=eq.${date}` +
     `&rank=eq.${pick.rank}&combo=eq.${encodeURIComponent(pick.combo)}` +
     `&mode=eq.${encodeURIComponent(mode)}&matched_state=is.null&select=id&limit=1`,
   );
@@ -423,6 +426,7 @@ async function runForDate(date: string, scope: string | null, skipSupplements: b
       try {
         await sbPatch(
           `/rest/v1/adaptive_tracking?slate_hash=eq.${encodeURIComponent(snapshot.hash)}` +
+          `&slate_date=eq.${date}` + // ENG-AT-KEY-01: never stamp another day's rows that share the hash
           `&matched_state=is.null&result_at=is.null`,
           { result_at: new Date().toISOString() },
         );

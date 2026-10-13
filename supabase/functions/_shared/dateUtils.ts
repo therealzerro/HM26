@@ -10,6 +10,13 @@ export function getTomorrowET(): string {
   return new Date(Date.now() + 86400000).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 }
 
+// ENG-TARGETDATE-01 (2026-10-13): N calendar days from a YYYY-MM-DD string.
+// Pure UTC arithmetic on the date part, so it is DST-safe and timezone-free —
+// use it to derive windows from an EFFECTIVE date instead of from `now`.
+export function shiftDateStr(dateStr: string, days: number): string {
+  return new Date(new Date(dateStr + 'T00:00:00Z').getTime() + days * 86400000).toISOString().split('T')[0];
+}
+
 // N calendar days before today, ET. getDaysAgoET(1) === getYesterdayET().
 export function getDaysAgoET(n: number): string {
   return new Date(Date.now() - n * 86400000).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });

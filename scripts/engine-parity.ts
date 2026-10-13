@@ -25,6 +25,7 @@
  * Usage: npm run engine:parity   (exit 0 = all pass; exit 1 = any failure)
  */
 import { createHash } from 'node:crypto';
+import { shiftDateStr, getTodayET, getDaysAgoET } from '../lib/dateUtils';
 import { readFileSync } from 'node:fs';
 import {
   toComboSet, sortedPair, multiplicityOf, topPairOf, buildUniverse,
@@ -178,6 +179,10 @@ const collide = resolvePairRowCollisions([
 check('pair collisions: count', collide.collisions, 2);
 check('pair collisions: winners + order', collide.rows.map(r => `${r.horizon_label}|${r.class_id}|${r.key_pair}|${r.ds_raw}`),
   ['H01Y|2|05|3', 'H01Y|3|07|12', 'H02Y|2|05|9']);
+// ENG-TARGETDATE-01: date-string shifting is pure calendar arithmetic (DST-safe) and equals getDaysAgoET for today.
+check('shiftDateStr across DST', shiftDateStr('2026-03-09', -1), '2026-03-08');
+check('shiftDateStr month edge', shiftDateStr('2026-10-01', -3), '2026-09-28');
+check('shiftDateStr == getDaysAgoET(3) for today', shiftDateStr(getTodayET(), -3), getDaysAgoET(3));
 check('DI extras null-context', intelligenceRowExtras('123', '{1,2,3}', null, null, null),
   { draws_since: null, times_drawn: 0, best_order: '123' });
 

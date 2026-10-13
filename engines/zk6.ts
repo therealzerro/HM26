@@ -12,7 +12,7 @@
  */
 
 import { Scope, SlateSnapshot, SlateDataStats, EngineMetadata } from '@/types/core';
-import { getTodayET, getDaysAgoET } from '@/lib/dateUtils';
+import { getTodayET, getDaysAgoET, shiftDateStr } from '@/lib/dateUtils';
 import { K6_QUOTAS, PAIR_REPETITION_CAP } from '@/constants/zk6';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { adminOpsFetch } from '@/lib/adminOps';
@@ -532,7 +532,7 @@ async function fetchRecentSlateMatchRates(
   }
 }
 
-async function fetchHistoryOverrides(scope: Scope): Promise<{
+async function fetchHistoryOverrides(scope: Scope, asOf: string): Promise<{
   dsOverride: Map<string, number>;
   lsOverride: Map<string, string>;
   hitDatesMap: Map<string, number[]>;
@@ -548,7 +548,7 @@ async function fetchHistoryOverrides(scope: Scope): Promise<{
     // permanently (~12.6k rows). Backtested 30d+60d vs live parity: neutral
     // (worst cell evening pick −1.4pp/60d, inside noise; no slate regression;
     // allday bit-identical). VERBATIM parity with compute-slate-zk6.
-    const floorAnchor = new Date(getTodayET() + 'T12:00:00');
+    const floorAnchor = new Date(asOf + 'T12:00:00'); // ENG-TARGETDATE-01: as-of anchor
     floorAnchor.setDate(floorAnchor.getDate() - 180);
     const rollingFloor = floorAnchor.toISOString().split('T')[0];
     const floorDate = rollingFloor > '2026-04-01' ? rollingFloor : '2026-04-01';
@@ -558,7 +558,7 @@ async function fetchHistoryOverrides(scope: Scope): Promise<{
     const pageSize = 1000;
     for (let offset = 0; offset < 20000; offset += pageSize) {
       const page = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/histories?select=result_digits,date_et${sessionClause}&date_et=gte.${floorDate}&order=date_et.desc,id.desc&limit=${pageSize}&offset=${offset}`,
+        path: `/rest/v1/histories?select=result_digits,date_et${sessionClause}&date_et=gte.${floorDate}&date_et=lte.${asOf}&order=date_et.desc,id.desc&limit=${pageSize}&offset=${offset}`,
       });
       const arr = Array.isArray(page) ? page : [];
       rows.push(...arr);
@@ -577,7 +577,7 @@ async function fetchHistoryOverrides(scope: Scope): Promise<{
     // incremented at 8PM ET — this map feeds the cooldown gate AND the K6
     // reorder's primary sort key (ds desc), so an evening run on this fallback
     // path could order the same six picks differently than the edge.
-    const todayMs = new Date(getTodayET() + 'T00:00:00').getTime();
+    const todayMs = new Date(asOf + 'T00:00:00').getTime(); // ENG-TARGETDATE-01: days-since are relative to asOf
     rows.forEach((row) => {
       if (typeof row?.result_digits !== 'string' || !/^\d{3}$/.test(row.result_digits)) return;
       const cs = toComboSet(row.result_digits);
@@ -1245,12 +1245,12 @@ export async function computeSlate({
   const stateStrActive = (cfg.effectiveStateStrWeight ?? 0) > 0;
   const [ds, { dsOverride, lsOverride, hitDatesMap }, warmingRows, stateAggMap, slateMatchRates, stateStrRows] = await Promise.all([
     fetchDatasets(scope),
-    fetchHistoryOverrides(scope),
+    fetchHistoryOverrides(scope, effectiveDate),
     warmingActive
-      ? fetchWarmingHistory(todayEt, cfg.warmingWindowDays)
+      ? fetchWarmingHistory(effectiveDate, cfg.warmingWindowDays)
       : Promise.resolve([] as { comboset_sorted: string; date_et: string }[]),
-    fetchStateAggregation(todayEt, STATE_AGG_WINDOW_DAYS),
-    fetchRecentSlateMatchRates(scope, todayEt),
+    fetchStateAggregation(effectiveDate, STATE_AGG_WINDOW_DAYS),
+    fetchRecentSlateMatchRates(scope, effectiveDate),
     stateStrActive
       ? fetchStateStrengthHistory(effectiveDate, cfg.stateStrWindowDays)
       : Promise.resolve([] as StateHistoryRow[]),
@@ -1316,7 +1316,13 @@ export async function computeSlate({
   // any K6 pass. CAVEAT: this only rotates combos that HIT; never-hitting overdue
   // repeaters (923/298) need the separate staleness lever (ENG-STALE-01, in progress).
   const RECENT_HIT_BLOCK_DAYS: Record<string, number> = { midday: 3, evening: 3, allday: 3 };
-  const blockFromEt = getDaysAgoET(RECENT_HIT_BLOCK_DAYS[scope] ?? 1);
+// ENG-TARGETDATE-01 (2026-10-13): every date-relative window below is derived from
+// effectiveDate (= targetDate ?? today), not from the wall-clock day. Before, only
+// STATE_STR used effectiveDate; the hit block, staleness, history overrides, warming,
+// state aggregation and match rates all used real today — so the admin "tomorrow"
+// option blocked one day too old and ignored today's board for staleness, and the
+// parity sandbox dates inherited today's hit block.
+  const blockFromEt = shiftDateStr(effectiveDate, -(RECENT_HIT_BLOCK_DAYS[scope] ?? 1));
   const todayHitComboSets = new Set<string>();
   const effectiveExcluded = new Set<string>(excludedCombos);
 
@@ -1327,7 +1333,7 @@ export async function computeSlate({
     const pageSize = 1000;
     for (let offset = 0; offset < 10000; offset += pageSize) {
       const recentWinners = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/histories?date_et=gte.${blockFromEt}&date_et=lte.${todayEt}&select=result_digits` +
+        path: `/rest/v1/histories?date_et=gte.${blockFromEt}&date_et=lte.${effectiveDate}&select=result_digits` +
           `&order=date_et.desc,id.desc&limit=${pageSize}&offset=${offset}`,
       });
       const arr = Array.isArray(recentWinners) ? recentWinners : [];
@@ -1347,7 +1353,7 @@ export async function computeSlate({
   // supplemental slates where hit detection ran on earlier-session picks)
   try {
     const diHits = await fetchFromSupabase<any[]>({
-      path: `/rest/v1/daily_intelligence?slate_date=gte.${blockFromEt}&slate_date=lte.${todayEt}&or=(hit_box.eq.true,hit_straight.eq.true)&select=combo_set,hit_result&limit=500`,
+      path: `/rest/v1/daily_intelligence?slate_date=gte.${blockFromEt}&slate_date=lte.${effectiveDate}&or=(hit_box.eq.true,hit_straight.eq.true)&select=combo_set,hit_result&limit=500`,
     });
     if (Array.isArray(diHits)) {
       diHits.forEach(row => {
@@ -1383,7 +1389,7 @@ export async function computeSlate({
   if (staleN > 0) {
     try {
       const prior = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/slate_snapshots?scope=eq.${scope}&deleted_at=is.null&mode=neq.zk30&slate_date=lt.${todayEt}&select=slate_date,top_k_boxes_json,top_k_straights_json,updated_at_et&order=slate_date.desc,updated_at_et.desc&limit=20`,
+        path: `/rest/v1/slate_snapshots?scope=eq.${scope}&deleted_at=is.null&mode=neq.zk30&slate_date=lt.${effectiveDate}&select=slate_date,top_k_boxes_json,top_k_straights_json,updated_at_et&order=slate_date.desc,updated_at_et.desc&limit=20`,
       });
       const byDate = new Map<string, string[]>();
       if (Array.isArray(prior)) for (const r of prior) {

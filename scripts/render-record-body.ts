@@ -165,7 +165,11 @@ const GOLD = '#FBBF24';
   }
   if (sum.days > sum.windowDays) { console.error(`ABORT(record): days ${sum.days} > window ${sum.windowDays}.`); process.exit(1); }
   // ⛔ ALL-MATCHED = REJECT (the honesty beat has nothing to show).
-  if (sum.days === sum.windowDays && !ALLOW_ALL) {
+  // Classic-strip gate (content agent 2026-10-13 rule c: UNCHANGED). It applies to the
+  // classic single strip only — a --three-row build carries its own reject (rule ii,
+  // all three rows 30 of 30) further down; applying this one too had blocked the
+  // three-row strip on every "any row lit every day" window, i.e. the expected case.
+  if (!THREE_ROW && sum.days === sum.windowDays && !ALLOW_ALL) {
     console.error(`ABORT(record): every one of the ${sum.windowDays} tiles would be gold — no dim tile on screen. The order treats an all-matched render as a REJECT. If the record genuinely reads ${sum.days} of ${sum.windowDays}, re-run with --allow-all-matched (operator decision, stated).`);
     process.exit(1);
   }
@@ -283,7 +287,14 @@ const GOLD = '#FBBF24';
     const noBoardKeys = [...cells.entries()].filter(([, c]) => c.noBoard).map(([k]) => k);
     console.log(`NOTE(record/three-row): draws ${draws.length} · rows lit allday ${rowLit.allday} · midday ${rowLit.midday} · evening ${rowLit.evening} of ${dates.length} · any-board days ${anyDays} · straights ${exact3} · jurisdictions ${juris3.size}${noBoardKeys.length ? ` · NO BOARD on ${noBoardKeys.join(', ')}` : ''}.`);
     console.log(`PARITY(record/three-row): screen summary says days ${sum.days} · straights ${sum.straights} · juris ${sum.juris}; histories re-grade says days ${anyDays} · straights ${exact3} · juris ${juris3.size} (stored flags keep ONE state per pick — the delta is the BUG-162 class, expected).`);
-    if (anyDays === dates.length && !ALLOW_ALL) { console.error(`ABORT(record/three-row): every day has a lit tile in some row — no fully dim day. Pass --allow-all-matched for a genuine 30 of 30.`); process.exit(1); }
+    // Content agent 2026-10-13 (v7.24 reply), rule (ii): the three-row strip rejects
+    // an all-matched render ONLY when ALL THREE rows read 30 of 30. Under chance a
+    // day lights in SOME row ~99.5% of the time, so "any row lit every day" is the
+    // EXPECTED case (13 of the last 30 windows) — it was the classic gate copied
+    // across, and it would have blocked the strip forever. The classic single-strip
+    // gate above is UNCHANGED (rule c): it stays the hatch.
+    const allRowsFull = T.scopes.every(s => rowLit[s] === dates.length);
+    if (allRowsFull && !ALLOW_ALL) { console.error(`ABORT(record/three-row): all three rows read ${dates.length} of ${dates.length} — no dim tile anywhere. Pass --allow-all-matched for a genuine three-row 30 of 30 (operator decision, stated).`); process.exit(1); }
     if (anyDays < 1) { console.error('ABORT(record/three-row): no lit tile anywhere — nothing to show.'); process.exit(1); }
     for (const [k, v] of Object.entries({ days: anyDays, exact: exact3, juris: juris3.size })) {
       if (v > RECORD_STAT_MAX) { console.error(`ABORT(record/three-row): THREE-DIGIT ASSERT — "${k}" = ${v}.`); process.exit(1); }

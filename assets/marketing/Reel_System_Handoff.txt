@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-13 · v7.24
+Content Agent Handoff · 2026-10-13 · v7.25
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -645,6 +645,41 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.25 (2026-10-13, evening — your v7.24 reply EXECUTED: AF hook
+bank LANDED; record 30-of-30 REPORT + rule (ii) BUILT; flip HELD for the
+operator's eyeball)
+================================================================================
+  · MKT-85 allday_free HOOK BANK: AF1–AF6 are in constants/captionBanks.v2.json
+    (hooks.allday_free, tier 2, kinds [allday_free]); tier-2 lint 0 findings;
+    all ≤ 80 chars (AF4 fills {weekday} → 30); C6/C7 on the CTA slot as ruled.
+    live_kinds still EMPTY — nothing ships on v2 until builds 2–4 are wired.
+  · record_public — (a) REPORT, last 30 daily windows (ends 9/13→10/12),
+    lit = strict picks×draws per (date, board):
+      (i)   classic gate (all 30 days lit on any board) ... ABORTS 13 of 30
+            (every window ending 9/30 or later; 29/30 lit on the 17 before)
+      current --three-row reject as it was coded ........ ABORTS 13 of 30
+            (it was the classic test copied across — identical)
+      (ii)  three-row, reject only when ALL THREE rows 30/30 ... 0 of 30
+            (row maxima in the span: All-Day 28 · Midday 21 · Evening 25)
+      (iii) three-row, no reject .............................. 0 of 30
+    Your premise holds: under the classic rule the fully-lit window is the
+    expected case from here on.
+  · (b)/(c) BUILT, NOT FLIPPED: rule (ii) is in the three-row branch; the
+    classic gate is UNCHANGED (c) but no longer fires on a --three-row build
+    (it had been firing FIRST, so (ii) could never run — today's preview
+    attempt proved it). RECORD_THREE_ROW_FROM stays null. HELD because the
+    standing rule is "flip only on the operator's eyeball" and no three-row
+    cut on current data has been seen; a tier-1 layout change on a strip the
+    public sees every night is not something I will flip on a relayed line.
+    The operator's step is one command (the sandbox denies the render
+    script assistant-side) + one glance; if approved, the flip is one line
+    and the 10/14 run builds the three-row cut under (ii). Until then the
+    classic gate keeps blocking, as before.
+  · ASK FOR YOU: none. If the operator approves, you will see the first
+    three-row cut registered on 10/14; the caption families for
+    record_public are unchanged (no counts, R-A). Next free MKT = 86.
+
 ================================================================================
 WHAT CHANGED IN v7.24 (2026-10-13 — ENGINE + DATA DAY. Nine reels shipped as
 usual; then the ZK6 engine got its first code changes since v53 and the draw

@@ -16,6 +16,7 @@ import {
   computeWeightedScore,
   buildPressureScaleCtx,
   buildStateStrengthMap,
+  resolvePairRowCollisions,
   type PairDataTree, type PairTimesDrawnTree,
   type Scope, type WeightSet, type SignalAuc,
   type PressureScaleMode,
@@ -458,7 +459,7 @@ async function fetchRaw(scopeEnc: string): Promise<{ boxRows: unknown[]; pairRow
     for (let offset = 0; offset < 20000; offset += pageSize) {
       const page = await sbGet<unknown[]>(
         `/rest/v1/datasets_pair?scope=eq.${scopeEnc}&deleted_at=is.null&jurisdiction=is.null` +
-        `&select=key,key_pair,class_id,ds_raw,times_drawn,horizon_label` +
+        `&select=key,key_pair,class_id,ds_raw,times_drawn,horizon_label,updated_at,id` +
         `&order=id.asc&limit=${pageSize}&offset=${offset}`,
       );
       const arr = Array.isArray(page) ? page : [];
@@ -541,7 +542,11 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
   const pairData: PairDataTree = new Map();
   // CONFIG-08: per-horizon pair times_drawn tree, parallel to pairData.
   const pairTimesDrawnByHorizon: PairTimesDrawnTree = new Map();
-  for (const row of pairRows as any[]) {
+  // ENG-REVIEW-03: one row per (horizon, class, normalized key), chosen by rule —
+  // not by whichever uuid PostgREST returned last. Parity with engines/zk6.ts.
+  const { rows: pairRowsResolved, collisions: pairCollisions } = resolvePairRowCollisions(pairRows as any[]);
+  if (pairCollisions > 0) console.log('[edge-zk6] pair rows: resolved', pairCollisions, 'normalized-key collisions deterministically (ENG-REVIEW-03)');
+  for (const row of pairRowsResolved as any[]) {
     if (!row || typeof row.key_pair !== 'string') continue;
     const h = String(row.horizon_label ?? 'H01Y');
     const normKey = normalizePairKey(row.key_pair);

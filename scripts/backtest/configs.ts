@@ -3530,4 +3530,11 @@ export const CONFIGS: Record<string, EngineConfig> = {
   get hitblock4_rot() {
     return { ...this.hist_floor, recentHitBlockDaysByScope: { midday: 4, evening: 4, allday: 4 } };
   },
+
+  // ENG-REVIEW-03 (2026-10-13): pair-row collision fix. BASELINE = hist_floor with the
+  // legacy (uuid-order last-wins) rule = production before the fix; CANDIDATE = the
+  // deterministic rule (newest updated_at → canonical key). Expected neutral (pair
+  // signals at AUC 0.50 per SIGNAL-INFO-01); ships as correctness/determinism.
+  get prod_parity_2026_10_13() { return { ...this.hist_floor, pairCollisionRule: 'legacy' as const }; },
+  get pair_dedupe() { return { ...this.hist_floor, pairCollisionRule: 'deterministic' as const }; },
 };

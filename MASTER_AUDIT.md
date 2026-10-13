@@ -250,6 +250,33 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 ---
 
+### ENG-PAIR-01 — Pair-row collision fix: deterministic merge in all three engines + rebuild non-canonical reporting 🔨 CODE LANDED 2026-10-13, ⛔ NOT DEPLOYED, NOT DATA-REPAIRED — gate v2 measured, verdict = NOT an accuracy win (slate lens down inside/at the floor both windows, pick lens flat-to-up); ships ONLY as correctness with the cost explicitly accepted by the operator
+
+**Order.** Operator 10/13: "fix the pair key semantics and make the merge deterministic" (ENG-REVIEW-03 §A). Design choice stated at the time: the engine has ALWAYS normalized pair keys to sorted form (parity 9/9 on that semantic), so the fix makes the data layer consistent with the engine rather than inventing a positional signal.
+
+**What landed (commit after this entry):**
+- `lib/engineCore.ts` (+ byte-identical `_shared/` copy): `resolvePairRowCollisions(rows)` — one row per (horizon, class, normalizedKey) by rule: newest `updated_at` → canonical (already-sorted) `key_pair` → lexicographic `key_pair` → `id`; output sorted by slot so downstream last-wins loops are order-independent. Golden vector added (engine:parity 57/57).
+- `engines/zk6.ts` + `compute-slate-zk6/index.ts`: pair SELECT adds `updated_at,id`; the pair map builders iterate the resolved rows; collision count logged.
+- `scripts/backtest/{replay,types,configs}.ts`: `pairCollisionRule: 'legacy' | 'deterministic'` (default legacy = production-before-fix); presets `prod_parity_2026_10_13` (= hist_floor + legacy) and `pair_dedupe` (= + deterministic).
+- `rebuild-pair-datasets-zk6/index.ts`: counts `nonCanonical` (descending key_pair that `pairsForDraw` can never match) per scope/horizon, in the response and the audit_logs row — the 810-row drift is visible from now on instead of silent.
+- Pre-flight: live app_config = `hist_floor` (verified 10/13 AM). Typecheck filtered clean; `check:edge-shared` OK.
+
+**Gate v2 (same-run, `--end-date 2026-10-12`, BASELINE `prod_parity_2026_10_13` vs CANDIDATE `pair_dedupe`):**
+| window | lens | overall B→C | midday | evening | allday |
+|---|---|---|---|---|---|
+| 30d | slate (≥1 hit) | 78.9 → 77.8 (−1.1) | 70.0 → 66.7 (−3.3) | 73.3 → 70.0 (−3.3) | 93.3 → 96.7 (+3.3) |
+| 30d | pick | 23.1 → 24.6 (+1.5) | 17.2 → 16.7 (−0.5) | 20.0 → 20.0 (0) | 32.2 → 37.2 (+5.0) |
+| 60d | slate (≥1 hit) | 81.1 → 78.3 (−2.8) | 73.3 → 68.3 (−5.0) | 76.7 → 73.3 (−3.3) | 93.3 → 93.3 (0) |
+| 60d | pick | 25.4 → 25.8 (+0.4) | 17.2 → 17.2 (0) | 23.3 → 21.9 (−1.4) | 35.6 → 38.3 (+2.7) |
+Any-hit accounting (`total_hits`). CSVs: `scripts/backtest/output/replay-2026-10-13T15-08-57.csv` (30d) + the 60d file written the same session.
+**Verdict:** not Eligible (slate lens < baseline). Overall slate Δ inside the 3.3pp floor both windows but sign-consistent negative; midday slate −5.0 on 60d exceeds the floor; allday pick +5.0/+2.7 sign-consistent positive. Expected given SIGNAL-INFO-01 (pair channel at AUC 0.50): the fix changes WHICH picks, not how often they hit. **Ship path = correctness/determinism with measured cost stated — requires the operator's explicit acceptance (CLAUDE.md ship rule, "neutral" is not assumable).**
+
+**Still to do ON OPERATOR WORD (nothing below executed):**
+1. Deploy `compute-slate-zk6` via CLI (operator-run, sandbox blocks it): `SUPABASE_ACCESS_TOKEN=$(cat ~/.supabase/access-token) supabase functions deploy compute-slate-zk6 --project-ref tgagarhwqbdcwoqhpapi`, then `rebuild-pair-datasets-zk6` the same way; verify `verify_jwt=true` on both after; run `npm run zk6:parity` (sandbox 2099 dates) expecting 9/9.
+2. Data hygiene (reversible, soft-delete): `UPDATE datasets_pair SET deleted_at = now() WHERE jurisdiction IS NULL AND deleted_at IS NULL AND class_id IN (2,3,4) AND substr(key_pair,1,1) > substr(key_pair,2,1);` → 810 rows. With the deterministic rule live this is cosmetic (those rows lose every collision); WITHOUT the deploy it is NOT cosmetic — it would flip production to candidate behaviour immediately via the legacy last-wins path. Order therefore: deploy first, then delete. Rollback of the delete: `SET deleted_at = NULL` on the same predicate.
+3. Takes effect at the next Daily Workflow run — no slate regen ([[feedback_no_slate_regen_without_ask]]).
+**Rollback (code):** `git revert` the ENG-PAIR-01 commit + redeploy; the harness preset `pair_dedupe` stays for reproducibility. **Review:** none owed if accepted as a correctness ship ([[feedback_no_review_window_for_neutral_changes]]); the measured cost above is the record.
+
 ### ENG-REVIEW-03 — Deep scan: ZK6 engine code + all historic draw data (errors + robustness enhancements) 📋 MEASURED 2026-10-13 — NOTHING CHANGED (read-only; operator asked for a scan + suggestions) · ONE ENGINE-DATA DEFECT (pair rebuild key semantics) · FIVE HISTORIES INTEGRITY CLUSTERS · 17 CODE FINDINGS (2 confirmed live) · NO ACCURACY LEVER PROPOSED (per ENG-REVIEW-01/02, SIGNAL-INFO-01/02)
 
 **Method.** Live SQL over `histories` (13,863 rows, 2026-01-01→10-12, 39 jurisdictions), `datasets_box`/`datasets_pair`, `slate_snapshots`, `adaptive_tracking`, `daily_intelligence`, `app_config`, `imports`, `hit_detection_runs`; independent read-only code review (engines/zk6.ts, lib/engineCore.ts, constants/zk6.ts, compute-slate-zk6, both rebuild fns, run-hit-detection, scripts/backtest) with its two top claims re-verified by hand. Parity pre-flight: live `app_config` matches `hist_floor` exactly.

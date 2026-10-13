@@ -206,6 +206,11 @@ export interface EngineConfig {
   // equals the SIGNAL-INFO-02 full-coverage boundary for all backtested dates,
   // then becomes a bounded rolling window live.
   historyFloor?: { minDate: string; rollingDays: number };
+  // ENG-REVIEW-03 (2026-10-13): how normalized-key collisions in datasets_pair are
+  // resolved when building pair maps. 'legacy' (default) = production-before-fix:
+  // last row in uuid order wins. 'deterministic' = resolvePairRowCollisions
+  // (newest updated_at → canonical key → key → id), the production rule from the fix.
+  pairCollisionRule?: 'legacy' | 'deterministic';
   // BESTORDER-SWEEP (2026-06-10): when true, each ReplayPick carries
   // orderVariants — alternative digit arrangements computed by candidate
   // orderers — and the CLI reports per-variant straight-conversion rates

@@ -79,6 +79,51 @@ export function normalizePairKey(raw: string): string {
   return digits[0] <= digits[1] ? digits : digits[1] + digits[0];
 }
 
+/**
+ * ENG-REVIEW-03 (2026-10-13): deterministic pair-row collision resolution.
+ *
+ * datasets_pair classes 2–4 were imported with 100 ORDERED keys ("05" AND "50"),
+ * but every reader normalizes keys to sorted form, so two DB rows can land on one
+ * (horizon, class, normKey) slot. The downstream map builders are last-wins and
+ * the fetch order was uuid order — the winner was arbitrary, and the descending
+ * rows (never refreshed by rebuild-pair-datasets-zk6, frozen at import) won on
+ * roughly half the slots. This picks exactly ONE row per slot by a stated rule:
+ * newest updated_at → canonical (already-sorted) key_pair → lexicographic key_pair
+ * → id. Output is sorted by slot so any remaining last-wins loop is order-independent.
+ */
+export interface PairRowLike {
+  id?: unknown; key?: unknown; key_pair?: unknown; class_id?: unknown;
+  horizon_label?: unknown; updated_at?: unknown; [k: string]: unknown;
+}
+function pairRowPreferred(a: PairRowLike, b: PairRowLike): boolean {
+  const ua = typeof a.updated_at === 'string' ? a.updated_at : '';
+  const ub = typeof b.updated_at === 'string' ? b.updated_at : '';
+  if (ua !== ub) return ua > ub;
+  const ka = String(a.key_pair ?? a.key ?? ''), kb = String(b.key_pair ?? b.key ?? '');
+  const ca = ka === normalizePairKey(ka), cb = kb === normalizePairKey(kb);
+  if (ca !== cb) return ca;
+  if (ka !== kb) return ka < kb;
+  return String(a.id ?? '') < String(b.id ?? '');
+}
+export function resolvePairRowCollisions<T extends PairRowLike>(rows: T[]): { rows: T[]; collisions: number } {
+  const best = new Map<string, T>();
+  let collisions = 0;
+  for (const row of rows) {
+    if (!row) continue;
+    const rawKey = typeof row.key_pair === 'string' ? row.key_pair : (typeof row.key === 'string' ? row.key : '');
+    if (!rawKey) continue;
+    const classId = typeof row.class_id === 'number' ? row.class_id : parseInt(String(row.class_id ?? ''), 10);
+    if (!Number.isFinite(classId)) continue;
+    const slot = `${String(row.horizon_label ?? 'H01Y')}|${classId}|${normalizePairKey(rawKey)}`;
+    const cur = best.get(slot);
+    if (!cur) { best.set(slot, row); continue; }
+    collisions++;
+    if (pairRowPreferred(row, cur)) best.set(slot, row);
+  }
+  const out = [...best.entries()].sort((x, y) => (x[0] < y[0] ? -1 : x[0] > y[0] ? 1 : 0)).map(e => e[1]);
+  return { rows: out, collisions };
+}
+
 // ─── DGC signal ───────────────────────────────────────────────────────────────
 
 /** Draw-gap consistency: 0 = chaotic, 1 = perfectly regular. */

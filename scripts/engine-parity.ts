@@ -34,7 +34,7 @@ import {
   computePairSignal, blendBoxDsRaw, blendPairAcrossHorizons, bestOrderFor,
   computeWeightedScore, computeAdaptiveWeights, computeSlateHash,
   computeConfidenceScore, buildWarmingMap, buildStateStrengthMap,
-  intelligenceRowExtras,
+  intelligenceRowExtras, resolvePairRowCollisions,
 } from '../lib/engineCore';
 
 let failures = 0;
@@ -167,6 +167,17 @@ const ssRows = [
   ...Array.from({ length: 2 }, () => ({ comboset_sorted: '{1,2,3}', jurisdiction: 'RI', date_et: '2026-08-13' })),
 ];
 check('state strength (min-draws gate)', buildStateStrengthMap(ssRows as any, '2026-08-13').get('{1,2,3}'), 0.25);
+// ENG-REVIEW-03: pair-row collision resolution — freshest wins, canonical key breaks ties, output sorted by slot.
+const collide = resolvePairRowCollisions([
+  { id: 'b', key_pair: '50', class_id: 2, horizon_label: 'H01Y', ds_raw: 456, updated_at: '2026-06-24T00:00:00Z' },
+  { id: 'a', key_pair: '05', class_id: 2, horizon_label: 'H01Y', ds_raw: 3,   updated_at: '2026-10-13T00:00:00Z' },
+  { id: 'c', key_pair: '05', class_id: 2, horizon_label: 'H02Y', ds_raw: 9,   updated_at: '2026-10-13T00:00:00Z' },
+  { id: 'd', key_pair: '70', class_id: 3, horizon_label: 'H01Y', ds_raw: 0,   updated_at: '2026-06-24T00:00:00Z' },
+  { id: 'e', key_pair: '07', class_id: 3, horizon_label: 'H01Y', ds_raw: 12,  updated_at: '2026-06-24T00:00:00Z' },
+]);
+check('pair collisions: count', collide.collisions, 2);
+check('pair collisions: winners + order', collide.rows.map(r => `${r.horizon_label}|${r.class_id}|${r.key_pair}|${r.ds_raw}`),
+  ['H01Y|2|05|3', 'H01Y|3|07|12', 'H02Y|2|05|9']);
 check('DI extras null-context', intelligenceRowExtras('123', '{1,2,3}', null, null, null),
   { draws_since: null, times_drawn: 0, best_order: '123' });
 

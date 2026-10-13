@@ -17,7 +17,7 @@
 
 import { dbGet } from './data.js';
 import {
-  toComboSet, normalizePairKey, normalizeBoxKey, buildUniverse,
+  toComboSet, normalizePairKey, normalizeBoxKey, buildUniverse, resolvePairRowCollisions,
   multiplicityOf, topPairOf, sortedPair,
   computeBoxSignal, maxNorm, percentileRankOf,
   MULTIPLICITY_PRIORS, H_ALL, HORIZON_WEIGHTS,
@@ -62,7 +62,7 @@ async function fetchPairRows(scopeEnc: string): Promise<any[]> {
   for (let offset = 0; offset < 20000; offset += pageSize) {
     const page = await dbGet<any[]>(
       `/datasets_pair?scope=eq.${scopeEnc}&deleted_at=is.null&jurisdiction=is.null` +
-      `&select=key,key_pair,class_id,ds_raw,times_drawn,horizon_label` +
+      `&select=key,key_pair,class_id,ds_raw,times_drawn,horizon_label,updated_at,id` +
       `&order=id.asc&limit=${pageSize}&offset=${offset}`,
     );
     const arr = Array.isArray(page) ? page : [];
@@ -206,7 +206,10 @@ async function fetchYesterdayResults(date: string, blockDays = 1): Promise<Set<s
 
 // ── Dataset builder ───────────────────────────────────────────────────────────
 
-function buildDatasets(boxRows: any[], pairRows: any[]) {
+function buildDatasets(boxRows: any[], pairRowsRaw: any[], pairCollisionRule: 'legacy' | 'deterministic' = 'legacy') {
+  // ENG-REVIEW-03: 'legacy' reproduces production-before-fix (uuid-order last-wins on
+  // normalized-key collisions); 'deterministic' applies resolvePairRowCollisions.
+  const pairRows = pairCollisionRule === 'deterministic' ? resolvePairRowCollisions(pairRowsRaw).rows : pairRowsRaw;
   const timesDrawnMap = new Map<string, number>();
   const dsRawMap = new Map<string, number>();       // H01Y preferred, used for BOX scoring
   const drawsSinceMap = new Map<string, number>();  // will be corrected by dsOverride
@@ -540,7 +543,7 @@ export async function computeSlateAsOf(
     stateStrActive ? fetchStateHistory(date, config.stateStrWindowDays ?? 60) : Promise.resolve([] as StateHistoryRow[]),
   ]);
 
-  const { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap, boxByHorizon, pairData, boxTimesDrawnByHorizon, pairTimesDrawnByHorizon } = buildDatasets(boxRows, pairRows);
+  const { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap, boxByHorizon, pairData, boxTimesDrawnByHorizon, pairTimesDrawnByHorizon } = buildDatasets(boxRows, pairRows, config.pairCollisionRule ?? 'legacy');
   // ENH-HW: horizon weights for BOX dsRaw blend. Config overrides default
   // HORIZON_WEIGHTS const when present. Decimals summing to ~1.0.
   const horizonWeights: Record<string, number> = config.horizonWeights ?? HORIZON_WEIGHTS;

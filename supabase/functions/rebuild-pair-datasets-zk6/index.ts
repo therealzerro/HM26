@@ -134,7 +134,7 @@ function daysBetween(today: Date, dateStr: string): number {
   return Math.max(0, Math.round((today.getTime() - d.getTime()) / 86400000));
 }
 
-interface PairResult { scope: string; horizon: string; checked: number; updated: number; failed: number; error?: string }
+interface PairResult { scope: string; horizon: string; checked: number; updated: number; failed: number; nonCanonical: number; error?: string }
 
 async function rebuildScopeHorizon(
   scope: string,
@@ -164,9 +164,14 @@ async function rebuildScopeHorizon(
   const existing = await fetchExistingPairs(scope, horizon);
   const updates: Array<{ id: string; newDsRaw: number }> = [];
   let checked = 0;
+  // ENG-REVIEW-03: pairsForDraw emits SORTED keys for every class, so a descending
+  // key_pair ("50") can never match and never refreshes. Count them so the drift is
+  // visible in the response/audit row instead of silent (810 such rows on 10/13).
+  let nonCanonical = 0;
   for (const r of existing) {
     if (!CLASSES.includes(r.class_id)) continue;
     checked++;
+    if (typeof r.key_pair === 'string' && r.key_pair.length === 2 && r.key_pair !== sp(r.key_pair[0], r.key_pair[1])) { nonCanonical++; continue; }
     const recent = mostRecent.get(keyOf(r.class_id, r.key_pair));
     if (!recent) continue;
     const newDsRaw = daysBetween(todayUtc, recent);
@@ -175,7 +180,7 @@ async function rebuildScopeHorizon(
   }
 
   if (!apply) {
-    return { scope, horizon, checked, updated: updates.length, failed: 0 };
+    return { scope, horizon, checked, updated: updates.length, failed: 0, nonCanonical };
   }
 
   let ok = 0, failed = 0;
@@ -191,7 +196,7 @@ async function rebuildScopeHorizon(
       }
     }));
   }
-  return { scope, horizon, checked, updated: ok, failed };
+  return { scope, horizon, checked, updated: ok, failed, nonCanonical };
 }
 
 Deno.serve(async (req) => {
@@ -235,7 +240,7 @@ Deno.serve(async (req) => {
         perPair.push(res);
       } catch (e) {
         errors.push(`rebuild ${scope}/${horizon}: ${String(e).slice(0, 200)}`);
-        perPair.push({ scope, horizon, checked: 0, updated: 0, failed: 0, error: String(e).slice(0, 200) });
+        perPair.push({ scope, horizon, checked: 0, updated: 0, failed: 0, nonCanonical: 0, error: String(e).slice(0, 200) });
       }
     }
   }
@@ -243,6 +248,7 @@ Deno.serve(async (req) => {
   const totalChecked = perPair.reduce((a, p) => a + p.checked, 0);
   const totalUpdated = perPair.reduce((a, p) => a + p.updated, 0);
   const totalFailed = perPair.reduce((a, p) => a + p.failed, 0);
+  const totalNonCanonical = perPair.reduce((a, p) => a + p.nonCanonical, 0);
   const durationMs = Date.now() - startedAt;
 
   const response = {
@@ -254,6 +260,7 @@ Deno.serve(async (req) => {
     totalChecked,
     totalUpdated,
     totalFailed,
+    totalNonCanonical,
     durationMs,
     perPair,
     errors,
@@ -267,6 +274,7 @@ Deno.serve(async (req) => {
       totalChecked,
       totalUpdated,
       totalFailed,
+      totalNonCanonical,
       durationMs,
       errorCount: errors.length,
     },

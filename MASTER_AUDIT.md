@@ -268,7 +268,9 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 **STAT-01 note:** the 4/18→9/19 window's draw set changed (+45 Tri-State draws, −53 wrong/duplicate rows) and 20 April/May date-cells gained grades. STAT-01 is CLOSED; this is recorded, not re-run (next STAT ID 02 is reserved for a forward test).
 
-**Still owed by the operator (data, not code):** Tri-State Evening 5/8–5/12; GA 9/20 Night; TX 9/21 Night; DC/GA/TN second draws 4/9–4/17 (+ TN 4/23). Paste → same path (`import:results` dry → `--apply`).
+**Second paste (same session) — gaps filled, 24 draws:** Tri-State Evening 5/8–5/12 (5); GA Night 9/20 (473; 858 was the Evening); DC 11:30pm 4/9–4/17 (9) and GA Night 4/9–4/17 (9). Classified in SQL BEFORE import: 24 MISSING, 27 ALREADY stored identically (no-ops), **0 conflicts**. Imported via `import:results` (`docs/repairs/2026-10-13_gaps_tristate_eve_ga_tx_apr.txt`, import `c3c9f5ec-db63-4d60-83ae-4c37b04036c8`; the upsert also re-stamped `import_id` on the 27 unchanged rows — cosmetic). TX 9/21 Night = 526 = the stored Evening → BUG-148 same-digits collapse, nothing to insert. TN: the pasted Morning draws 4/9–4/23 were ALL already stored — TN's single midday row on those days IS the Morning draw; **what TN is missing on 4/9–4/17 and 4/23 is the Cash 3 MIDDAY (12:53pm) draw** (the only gap left). Re-grade of the 15 touched dates (4/9–4/17, 5/8–5/12, 9/20): 18 boards checked, 0 new matches, 0 late secondaries, 0 errors. After: rows 13,839; dups 0; 3+-row sessions 0; DC/GA 4/9–4/17 = 2 evening rows each; Tri-State missing days 4/17→10/12 = none.
+
+**Still owed (optional):** TN Cash 3 Midday for 4/9–4/17 and 4/23 (10 draws). Paste → same path.
 
 ### HARNESS-NIT-01 — Parity + backtest harness nits from ENG-REVIEW-03 ✅ SHIPPED 2026-10-13 on operator order ("fix the harness nits too"): zk6:parity reads a TRUE 9/9 PASS for the first time since 9/20; replay harness ports ENG-TRIPLES-LEAK-01; scorer attribution is straight-first and order-independent; dead morning/night map removed; CSV writers quote cells (pre-existing column-shift bug on Tri-State rows). No deploy (client-side + scripts only)
 

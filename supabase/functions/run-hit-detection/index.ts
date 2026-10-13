@@ -140,12 +140,15 @@ async function updateDailyIntelligenceHit(
   );
 }
 
+// ENG-HITDET-LATE-01 (2026-10-13): returns what it did so callers can count late
+// secondaries without inflating hitsFound. 'noop' = this (state, session) was
+// already recorded for the pick.
 async function recordHitInAdaptiveTracking(
   pick: any,
   result: HistoryRow,
   snap: SnapshotRow,
   date: string,
-): Promise<void> {
+): Promise<'noop' | 'patched' | 'inserted'> {
   const boxS    = pick.box    ?? pick.signals?.BOX    ?? 0;
   const pburstS = pick.pburst ?? pick.signals?.PBURST ?? 0;
   const coS     = pick.co     ?? pick.signals?.CO     ?? 0;
@@ -197,7 +200,7 @@ async function recordHitInAdaptiveTracking(
     `&matched_session=eq.${encodeURIComponent(result.session)}` +
     `&select=id&limit=1`,
   );
-  if (Array.isArray(dup) && dup.length > 0) return;
+  if (Array.isArray(dup) && dup.length > 0) return 'noop';
 
   // PATCH the un-stamped primary row if one exists (same slate_date only — ENG-AT-KEY-01).
   const existing = await sbGet<{ id: string }[]>(
@@ -208,7 +211,7 @@ async function recordHitInAdaptiveTracking(
   );
   if (Array.isArray(existing) && existing.length > 0) {
     await sbPatch(`/rest/v1/adaptive_tracking?id=eq.${existing[0].id}`, outcomeFields);
-    return;
+    return 'patched';
   }
   await sbPost('/rest/v1/adaptive_tracking', {
     slate_date: date,
@@ -225,6 +228,7 @@ async function recordHitInAdaptiveTracking(
     mode,
     ...outcomeFields,
   });
+  return 'inserted';
 }
 
 async function generateSupplementalSlate(
@@ -259,12 +263,13 @@ async function generateSupplementalSlate(
 
 // ─── Per-date runner ──────────────────────────────────────────────────────────
 
-interface RunResult { hitsFound: number; scopesChecked: number; supplementsGenerated: number; errors: string[] }
+interface RunResult { hitsFound: number; scopesChecked: number; supplementsGenerated: number; lateSecondaries: number; errors: string[] }
 
 async function runForDate(date: string, scope: string | null, skipSupplements: boolean): Promise<RunResult> {
   const errors: string[] = [];
   let totalHits = 0;
   let supplementsGenerated = 0;
+  let lateSecondaries = 0; // ENG-HITDET-LATE-01: AT rows recorded for picks that were already stamped
 
   // BUG-147 (2026-05-15): pair snapshots to draws strictly by `slate_date`.
   // The prior implementation bucketed snapshots by `updated_at_et` (a UTC
@@ -303,13 +308,13 @@ async function runForDate(date: string, scope: string | null, skipSupplements: b
     skipAllday  ? Promise.resolve([] as SnapshotRow[]) : resolveSnaps(alldaySnaps),
   ]);
   const snapshots = [...resolvedMidday, ...resolvedEvening, ...resolvedAllday];
-  if (snapshots.length === 0) return { hitsFound: 0, scopesChecked: 0, supplementsGenerated: 0, errors };
+  if (snapshots.length === 0) return { hitsFound: 0, scopesChecked: 0, supplementsGenerated: 0, lateSecondaries: 0, errors };
 
   const results = await sbGet<HistoryRow[]>(
     `/rest/v1/histories?date_et=eq.${date}&select=result_digits,comboset_sorted,jurisdiction,session`,
   );
   if (!Array.isArray(results) || results.length === 0) {
-    return { hitsFound: 0, scopesChecked: snapshots.length, supplementsGenerated: 0, errors };
+    return { hitsFound: 0, scopesChecked: snapshots.length, supplementsGenerated: 0, lateSecondaries: 0, errors };
   }
 
   const scopesChecked = new Set<string>();
@@ -345,7 +350,7 @@ async function runForDate(date: string, scope: string | null, skipSupplements: b
     const diWrites: Promise<void>[] = [];
 
     const updatedPicks = picks.map((pick: any) => {
-      if (pick.hitType) return pick;
+      const alreadyStamped = !!pick.hitType;
       const comboSet = pick.comboSet ?? pick.normKey;
       // BUG-155 (2026-05-23): straight match must compare against
       // pick.bestOrder (the user-facing recommended straight), not
@@ -370,6 +375,27 @@ async function runForDate(date: string, scope: string | null, skipSupplements: b
         if (boxHit || straightHit) matches.push({ result, straightHit, boxHit });
       }
       if (matches.length === 0) return pick;
+
+      // ENG-HITDET-LATE-01 (2026-10-13): a pick stamped on an earlier run used to
+      // `return pick` before matches were built, so a state whose ledger landed
+      // LATER (routine after a pre-flight repair) never got its AT secondary and
+      // jurisdiction counts undercounted. Now: still record every match in AT
+      // (Layer-1 dedupe + the date key make already-recorded ones no-ops) but
+      // leave the snapshot annotation, the DI stamp and hitsFound untouched —
+      // the first stamp stays the record; this only completes the AT ledger.
+      if (alreadyStamped) {
+        pickPasses.push((async () => {
+          for (const m of matches) {
+            try {
+              const r = await recordHitInAdaptiveTracking(pick, m.result, snapshot, date);
+              if (r !== 'noop') lateSecondaries++;
+            } catch (e) {
+              errors.push(`AT-late ${snapshot.scope}/${pick.combo}/${m.result.jurisdiction}: ${String(e).slice(0, 120)}`);
+            }
+          }
+        })());
+        return pick;
+      }
 
       matches.sort((a, b) => (b.straightHit ? 1 : 0) - (a.straightHit ? 1 : 0));
       const primary = matches[0];
@@ -459,7 +485,7 @@ async function runForDate(date: string, scope: string | null, skipSupplements: b
     }
   }
 
-  return { hitsFound: totalHits, scopesChecked: scopesChecked.size, supplementsGenerated, errors };
+  return { hitsFound: totalHits, scopesChecked: scopesChecked.size, supplementsGenerated, lateSecondaries, errors };
 }
 
 // ─── HTTP handler ─────────────────────────────────────────────────────────────
@@ -487,8 +513,8 @@ Deno.serve(async (req: Request) => {
     ? body.scope : null;
   const skipSupplements = body.skipSupplements === true;
 
-  let totalHits = 0, totalScopes = 0, totalSupplements = 0;
-  const perDate: Record<string, { hitsFound: number; scopesChecked: number; supplementsGenerated: number; errors: string[] }> = {};
+  let totalHits = 0, totalScopes = 0, totalSupplements = 0, totalLate = 0;
+  const perDate: Record<string, { hitsFound: number; scopesChecked: number; supplementsGenerated: number; lateSecondaries: number; errors: string[] }> = {};
   const allErrors: string[] = [];
 
   for (const d of dateList) {
@@ -499,11 +525,12 @@ Deno.serve(async (req: Request) => {
       totalHits        += dateRes.hitsFound;
       totalScopes      += dateRes.scopesChecked;
       totalSupplements += dateRes.supplementsGenerated;
+      totalLate        += dateRes.lateSecondaries;
       perDate[d] = dateRes;
       allErrors.push(...dateRes.errors);
     } catch (e) {
       const msg = String(e instanceof Error ? e.message : e).slice(0, 200);
-      dateRes = { hitsFound: 0, scopesChecked: 0, supplementsGenerated: 0, errors: [msg] };
+      dateRes = { hitsFound: 0, scopesChecked: 0, supplementsGenerated: 0, lateSecondaries: 0, errors: [msg] };
       perDate[d] = dateRes;
       allErrors.push(`${d}: ${msg}`);
     }
@@ -537,6 +564,7 @@ Deno.serve(async (req: Request) => {
     hitsFound: totalHits,
     scopesChecked: totalScopes,
     supplementsGenerated: totalSupplements,
+    lateSecondaries: totalLate, // ENG-HITDET-LATE-01: AT secondaries recorded for already-stamped picks (late-posting states)
     perDate,
     errors: allErrors.slice(0, 30),
     errorCount: allErrors.length,

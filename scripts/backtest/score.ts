@@ -29,11 +29,11 @@ export interface HitSummary {
   hitsByPick: boolean[];
 }
 
+// HARNESS-NIT (2026-10-13): histories.session is strictly midday|evening since the
+// 2026-05-17 CHECK constraint (BUG-148); the morning/night rows were dead.
 const SESSION_SCOPE: Record<string, Scope[]> = {
   midday:  ['midday',  'allday'],
   evening: ['evening', 'allday'],
-  morning: ['midday',  'allday'],
-  night:   ['evening', 'allday'],
 };
 
 /** Results whose session is compatible with the given scope — the exact
@@ -46,7 +46,9 @@ export function filterResultsForScope(results: DrawResult[], scope: Scope): Draw
 
 export async function fetchDrawResults(date: string): Promise<DrawResult[]> {
   const rows = await dbGet<DrawResult[]>(
-    `/histories?date_et=eq.${date}&select=result_digits,comboset_sorted,session,jurisdiction`,
+    // HARNESS-NIT (2026-10-13): deterministic order so attribution never depends on
+    // PostgREST's physical order (BUG-163 class).
+    `/histories?date_et=eq.${date}&select=result_digits,comboset_sorted,session,jurisdiction&order=session.asc,jurisdiction.asc,result_digits.asc`,
   );
   return Array.isArray(rows) ? rows : [];
 }
@@ -226,18 +228,24 @@ export function scorePicksVsResults(
     // enumeration `combo`. Fall through to `combo` only when bestOrder is
     // absent (legacy callers / pre-extension data).
     const pickStraightKey = pick.bestOrder ?? pick.combo;
+    // HARNESS-NIT (2026-10-13): production (run-hit-detection) collects EVERY
+    // matching draw for the pick and sorts straight-first before stamping the
+    // primary. The harness used to take the FIRST matching row in fetch order,
+    // so the straight-vs-box split depended on row order when a pick straight-
+    // matched one state and box-matched another. Any-hit (totalHits) unchanged.
+    let anyStraight = false, anyBox = false;
     for (const result of scopeResults) {
       const dbComboSet = result.comboset_sorted || toComboSet(result.result_digits);
       const straight = result.result_digits === pickStraightKey;
       const box = dbComboSet === pickComboSet;
-      if (straight || box) {
-        if (straight) hitsStraight++;
-        else hitsBox++;
-        if (!hittingCombos.includes(pick.combo)) hittingCombos.push(pick.combo);
-        if (!hittingJurisdictions.includes(result.jurisdiction)) hittingJurisdictions.push(result.jurisdiction);
-        hitsByPick[i] = true;
-        break; // one result per pick
-      }
+      if (!(straight || box)) continue;
+      if (straight) anyStraight = true; else anyBox = true;
+      if (!hittingJurisdictions.includes(result.jurisdiction)) hittingJurisdictions.push(result.jurisdiction);
+    }
+    if (anyStraight || anyBox) {
+      if (anyStraight) hitsStraight++; else hitsBox++;
+      if (!hittingCombos.includes(pick.combo)) hittingCombos.push(pick.combo);
+      hitsByPick[i] = true;
     }
   }
 

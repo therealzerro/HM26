@@ -164,6 +164,14 @@ function printLiftByPeriod(rows: ReportRow[]): void {
 
 // ── Report (Mode A) ───────────────────────────────────────────────────────────
 
+// HARNESS-NIT (2026-10-13): RFC-4180 quoting. `hitting_jurisdictions` can contain
+// "ME,NH,VT" (the Tri-State jurisdiction code) — unquoted, it shifted every later
+// column on that row in both report and replay CSVs.
+function csvCell(v: unknown): string {
+  const str = String(v ?? '');
+  return /[",\n\r]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
+}
+
 export function writeReportCSV(rows: ReportRow[]): string {
   ensureOutputDir();
   const ts = isoTs();
@@ -180,7 +188,7 @@ export function writeReportCSV(rows: ReportRow[]): string {
       r.picksSingles, r.picksDoubles, r.picksTriples,
       r.railMatchedExpectedPickHits.toFixed(4),
       r.railMatchedSlateHitProb.toFixed(6),
-    ].join(','),
+    ].map(csvCell).join(','),
   );
   writeFileSync(path, [header, ...lines].join('\n') + '\n');
   return path;
@@ -289,7 +297,7 @@ export function writeReplayCSV(hits: HitResult[]): string {
       nS, nD, nT,
       r.railMatchedExpectedPickHits.toFixed(4),
       r.railMatchedSlateHitProb.toFixed(6),
-    ].join(',');
+    ].map(csvCell).join(',');
   });
   writeFileSync(path, [header, ...lines].join('\n') + '\n');
   return path;

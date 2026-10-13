@@ -380,10 +380,14 @@ function runK6Selection(
     // ENG-STALE-01: non-relaxable staleness block (never relaxed by any pass).
     if (staleComboSets.size > 0 && staleComboSets.has(normKey)) return false;
 
+    // ENG-TRIPLES-LEAK-01 port (HARNESS-NIT, 2026-10-13): triplesOn=false is a
+    // hard invariant in production — never relaxed, even in Pass 6. The harness
+    // kept it inside the relax guard, so a replayed Pass 6 could admit a triple
+    // production never would.
+    if (mult === 'triples' && !rails.triplesOn) return false;
     if (!relaxMultCaps) {
       if (mult === 'singles' && singles >= rails.singlesMax) return false;
       if (mult === 'doubles' && doubles >= rails.doublesMax) return false;
-      if (mult === 'triples' && !rails.triplesOn) return false;
     }
 
     const tp = topPairOf(combo);

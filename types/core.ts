@@ -140,6 +140,9 @@ export interface SlateDataStats {
 }
 
 export interface SlateSnapshot {
+  /** HARNESS-NIT (2026-10-13): mirrors compute-slate-zk6's response field — true when the
+   *  regen was written post-cutoff and NOT live (ENG-BOARD-FREEZE-01). Not persisted. */
+  post_cutoff_frozen?: boolean;
   id: string;
   scope: Scope;
   horizons_present_json: EngineMetadata;

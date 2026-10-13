@@ -1028,7 +1028,7 @@ async function loadRollingAuc(scope: Scope): Promise<SignalAuc | null> {
 
 // ─── saveSlateSnapshot ────────────────────────────────────────────────────────
 
-async function saveSlateSnapshot(snapshot: SlateSnapshot, extraFields?: Record<string, unknown>): Promise<string> {
+async function saveSlateSnapshot(snapshot: SlateSnapshot, extraFields?: Record<string, unknown>): Promise<{ id: string; frozen: boolean }> {
   console.log('[zk6v2] Saving snapshot:', {
     id: snapshot.id, scope: snapshot.scope,
     hash: snapshot.hash?.slice(0, 8),
@@ -1141,12 +1141,12 @@ async function saveSlateSnapshot(snapshot: SlateSnapshot, extraFields?: Record<s
         console.warn('[zk6v2] retire prior snapshots warn (new board is live, an older one may still be too):', String(patchErr));
       }
     }
-    return dbId ?? snapshot.id;
+    return { id: dbId ?? snapshot.id, frozen };
   } catch (err) {
     const msg = String(err instanceof Error ? err.message : err);
     const isRls = /42501|row-level security|RLS|violates row-level security/i.test(msg);
     console.log('[zk6v2] Save error:', { msg: msg.slice(0, 200), isRls });
-    if (isRls) { await saveToAuditFallback(msg); return snapshot.id; }
+    if (isRls) { await saveToAuditFallback(msg); return { id: snapshot.id, frozen }; }
     throw err instanceof Error ? err : new Error('Failed to save slate snapshot');
   }
 }
@@ -1988,10 +1988,13 @@ export async function computeSlate({
   });
 
   // ENG-SUPP-RETIRE-01: no file_meta extra (column does not exist; supplements retired).
-  const savedId = await saveSlateSnapshot(snapshot, undefined);
-  if (typeof savedId === 'string' && savedId.length > 0) {
-    snapshot.id = savedId;
+  const saved = await saveSlateSnapshot(snapshot, undefined);
+  if (typeof saved.id === 'string' && saved.id.length > 0) {
+    snapshot.id = saved.id;
   }
+  // HARNESS-NIT (2026-10-13): mirror the edge response field so zk6:parity's
+  // return-object diff reads PASS again (the v54 edge deploy added it, the client never did).
+  snapshot.post_cutoff_frozen = saved.frozen;
 
   // ENH-08: engine_runs telemetry — one row per slate generation capturing the
   // effective post-override config used. Parity with compute-slate-zk6/index.ts.

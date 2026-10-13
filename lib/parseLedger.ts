@@ -28,6 +28,9 @@ export interface ParsedLedgerRow {
 export interface ParseLedgerResult {
   rows: ParsedLedgerRow[];
   skipped: string[];         // human-readable skip reasons
+  // PARSER-HARDEN-01: rows that were KEPT but look wrong (evening-only state
+  // with a midday row). Surfaces in the CLI parse report; the wizard may ignore.
+  warnings: string[];
 }
 
 // ─── State → Abbreviation Map ────────────────────────────────────────────────────
@@ -92,7 +95,25 @@ const STATE_MAP: Record<string, string> = {
   // Legacy alternate spellings still supported
   'Maine, New Hampshire & Vermont': 'ME,NH,VT',
   'ME, NH & VT': 'ME,NH,VT',
+  // PARSER-HARDEN-01 (2026-10-13): the header the operator's source actually
+  // prints for the shared drawing. Missing until the DATA-06 repair, when a
+  // paste with this header parsed 0 rows.
+  'Tri-State (ME, NH & VT)': 'ME,NH,VT',
+  'Tri-State': 'ME,NH,VT',
+  'Tri-State Pick 3': 'ME,NH,VT',
+  'ME, NH, VT': 'ME,NH,VT',
 };
+
+// PARSER-HARDEN-01: jurisdictions whose sessions legitimately hold TWO draws
+// each (Morning+Day → midday, Evening+Night → evening). Everything else has
+// one draw per session, except an explicitly tagged "Double Draw" bonus drawing
+// (NJ Green Ball, MI Red Ball, NC Double Draw — ruled official, DATA-06).
+const MULTI_DRAW_PER_SESSION = new Set(['TX', 'GA', 'DC', 'TN']);
+// Evening-only jurisdictions as observed in histories (0 midday rows ever). A
+// midday row for one of these is the DATA-06 LA/NE class — a header mapped to
+// the wrong state — so it is WARNED loudly (kept, not dropped, in case a
+// jurisdiction adds a midday draw the way AZ did in June).
+const EVENING_ONLY = new Set(['LA', 'NE', 'MN', 'OK', 'QC', 'WA', 'W.Canada', 'WV']);
 
 // States that are explicitly excluded from import *results* by the parser.
 // This is a first pass; final exclusion logic will also check the 'drawings' table.
@@ -102,17 +123,24 @@ const EXCLUDE_STATES_FROM_PARSING = new Set(['Maryland', 'Puerto Rico']); // Pue
 // Maps jurisdiction → allowed cleaned game names (case-insensitive exact match).
 // Rows whose cleaned game does not appear in this list are skipped.
 // Jurisdictions absent from this map accept any game name.
+// PARSER-HARDEN-01 (2026-10-13): complete, from the one label per jurisdiction
+// observed in histories after the DATA-06 cleanup. Matching is on the
+// alphanumeric skeleton ("Pick3" / "pick3" / "PICK 3" all match "Pick 3") and the
+// row is written with THIS spelling — label variants used to defeat the
+// histories unique key (TX "pick3" twins, FL/NY/OH "Pick3" rows). A game that
+// is not listed for its jurisdiction is skipped with a visible reason (a stray
+// Pick 4 / Cash 4 line, or a new label the operator must add here).
 const GAME_VALID_MAP: Record<string, ReadonlyArray<string>> = {
-  MI: ['Pick 3', 'Daily 3'], // Added common variations
-  IN: ['Pick 3', 'Daily 3'],
-  GA: ['Cash 3'],
-  AR: ['Cash 3'],
-  MS: ['Cash 3'], // Mississippi should use Cash 3
-  TN: ['Cash 3'],
-  CT: ['Play 3'],
-  DE: ['Play 3'],
-  NY: ['Numbers'],
+  AR: ['Cash 3'], AZ: ['Pick 3'], CA: ['Daily 3'], CO: ['Pick 3'], CT: ['Play 3'],
+  DC: ['DC-3'], DE: ['Play 3'], FL: ['Pick 3'], GA: ['Cash 3'], IA: ['Pick 3'],
+  ID: ['Pick 3'], IL: ['Pick 3'], IN: ['Pick 3', 'Daily 3'], KS: ['Pick 3'], KY: ['Pick 3'],
+  LA: ['Pick 3'], 'ME,NH,VT': ['Pick 3'], MI: ['Pick 3', 'Daily 3'], MN: ['Pick 3'],
+  MO: ['Pick 3'], MS: ['Cash 3'], NC: ['Pick 3'], NE: ['Pick 3'], NJ: ['Pick 3'],
+  NM: ['Pick 3'], NY: ['Numbers'], OH: ['Pick 3'], OK: ['Pick 3'], ON: ['Pick 3'],
+  PA: ['Pick 3'], QC: ['Quotidienne 3'], SC: ['Pick 3'], TN: ['Cash 3'], TX: ['Pick 3'],
+  VA: ['Pick 3'], 'W.Canada': ['Pick 3'], WA: ['Pick 3'], WI: ['Pick 3'], WV: ['Daily 3'],
 };
+const gameSkeleton = (g: string) => g.toLowerCase().replace(/[^a-z0-9]/g, '');
 
 // ─── Month map ────────────────────────────────────────────────────────────────
 
@@ -241,9 +269,12 @@ export function normalizeVerticalFormat(text: string): string {
 export function parseRawLedgerData(rawText: string): ParseLedgerResult {
   const rows: ParsedLedgerRow[] = [];
   const skipped: string[] = [];
+  const warnings: string[] = [];
+  // PARSER-HARDEN-01: rows whose source line is tagged as a Double Draw bonus drawing.
+  const doubleDraw = new WeakSet<ParsedLedgerRow>();
 
   try {
-    if (!rawText || !rawText.trim()) return { rows, skipped };
+    if (!rawText || !rawText.trim()) return { rows, skipped, warnings };
 
     // Accept both the tab-separated and vertical (Game/Date/Result triple-line)
     // lottery-post export shapes — normalization is a no-op on tab input.
@@ -352,26 +383,37 @@ export function parseRawLedgerData(rawText: string): ParseLedgerResult {
       // Use the determined abbreviation/code as the primary jurisdiction identifier for now.
       // The application logic will later map this to the full name and check against DRAWINGS.
       const jurisdiction = currentAbbr;
-      const game = cleanGame(rawGame);
+      let game = cleanGame(rawGame);
 
-      // Game validation — skip rows whose game name isn't in the allowed list for this jurisdiction
+      // Game validation + canonicalisation (PARSER-HARDEN-01): match on the
+      // alphanumeric skeleton, write the canonical spelling from the list.
       const validGames = GAME_VALID_MAP[jurisdiction];
       if (validGames) {
-        const lower = game.toLowerCase();
-        if (!validGames.some(v => v.toLowerCase() === lower)) {
-          skipped.push(`Line ${i + 1}: ${jurisdiction} game "${game}" not in allowed list`);
+        const skel = gameSkeleton(game);
+        const canonical = validGames.find(v => gameSkeleton(v) === skel);
+        if (!canonical) {
+          skipped.push(`Line ${i + 1}: ${jurisdiction} game "${game}" not in allowed list (${validGames.join(' | ')})`);
           continue;
         }
+        game = canonical;
+      } else {
+        game = game.replace(/\s+/g, ' ').trim();
       }
 
-      rows.push({
+      const session = parseSession(rawGame); // Session detection remains based on game name keywords/times
+      const row: ParsedLedgerRow = {
         jurisdiction,
         game,
         date_et,
-        session:         parseSession(rawGame), // Session detection remains based on game name keywords/times
+        session,
         result_digits,
         comboset_sorted: makeComboSet(result_digits),
-      });
+      };
+      if (/double\s*draw/i.test(rawResult) || /double\s*draw/i.test(rawGame)) doubleDraw.add(row);
+      if (EVENING_ONLY.has(jurisdiction) && session === 'midday') {
+        warnings.push(`SUSPECT: ${jurisdiction} has never had a midday draw in histories, but "${rawGame}" on ${date_et} (${result_digits}) parsed as midday — KEPT. If ${jurisdiction} did not add a midday draw, the state header above this line is wrong (DATA-06 LA/NE class).`);
+      }
+      rows.push(row);
     }
   } catch (e: any) {
     // Catch any unexpected errors during parsing
@@ -407,5 +449,30 @@ export function parseRawLedgerData(rawText: string): ParseLedgerResult {
     return false;
   });
 
-  return { rows: dedupedTriState, skipped };
+  // PARSER-HARDEN-01: within-batch draw-count guard. One draw per (jurisdiction,
+  // date, session) unless the jurisdiction is a known two-draw-per-session state
+  // or the extra line is tagged "Double Draw". A second, DIFFERENT result for a
+  // one-draw slot is the DATA-06 "two results for one draw" class — the first
+  // line wins, the rest are dropped LOUDLY. Identical repeats are dropped quietly
+  // (same draw pasted twice).
+  const slotRows = new Map<string, ParsedLedgerRow[]>();
+  const guarded: ParsedLedgerRow[] = [];
+  for (const row of dedupedTriState) {
+    const key = `${row.jurisdiction}|${row.date_et}|${row.session}`;
+    const prior = slotRows.get(key) ?? [];
+    if (prior.some(p => p.result_digits === row.result_digits)) {
+      skipped.push(`DUPLICATE: ${row.jurisdiction} ${row.date_et} ${row.session} ${row.result_digits} appears twice in this paste — second copy dropped`);
+      continue;
+    }
+    const allowance = MULTI_DRAW_PER_SESSION.has(row.jurisdiction) ? 2 : 1;
+    if (prior.length >= allowance && !doubleDraw.has(row)) {
+      skipped.push(`CONFLICT: ${row.jurisdiction} ${row.date_et} ${row.session} already has ${prior.map(p => p.result_digits).join('/')} in this paste; dropped a different result ${row.result_digits}. ${allowance === 1 ? 'One draw per session for this jurisdiction' : 'Two draws per session for this jurisdiction'} — if this is a bonus drawing the line must say "Double Draw"; otherwise check the state header above it.`);
+      continue;
+    }
+    prior.push(row);
+    slotRows.set(key, prior);
+    guarded.push(row);
+  }
+
+  return { rows: guarded, skipped, warnings };
 }

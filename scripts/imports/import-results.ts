@@ -44,11 +44,11 @@ if (files.length === 0) usage();
 // parseRawLedgerData (lib/parseLedger.ts, IMPORT-REHAB-01) — shared with the
 // app's import screens, so both accept either lottery-post export shape.
 
-interface FileReport { file: string; rows: ParsedLedgerRow[]; skipped: string[] }
+interface FileReport { file: string; rows: ParsedLedgerRow[]; skipped: string[]; warnings: string[] }
 
 const reports: FileReport[] = files.map((f) => {
-  const { rows, skipped } = parseRawLedgerData(readFileSync(f, 'utf8'));
-  return { file: basename(f), rows, skipped };
+  const { rows, skipped, warnings } = parseRawLedgerData(readFileSync(f, 'utf8'));
+  return { file: basename(f), rows, skipped, warnings };
 });
 
 // Cross-file dedupe on the histories unique key — the same key the upsert
@@ -81,6 +81,9 @@ for (const rep of reports) {
   console.log(`${rep.file}: ${rep.rows.length} rows parsed, ${rep.skipped.length} lines skipped`);
   for (const s of rep.skipped.slice(0, 5)) console.log(`   skip: ${s}`);
   if (rep.skipped.length > 5) console.log(`   … ${rep.skipped.length - 5} more skips`);
+  // PARSER-HARDEN-01: CONFLICT / DUPLICATE skips and SUSPECT warnings are always shown in full.
+  for (const s of rep.skipped.slice(5)) if (/^(CONFLICT|DUPLICATE)/.test(s)) console.log(`   skip: ${s}`);
+  for (const w of rep.warnings) console.log(`   WARN: ${w}`);
 }
 if (crossFileDupes > 0) console.log(`cross-file duplicates dropped: ${crossFileDupes}`);
 console.log(`total unique rows: ${rows.length}`);

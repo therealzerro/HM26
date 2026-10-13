@@ -457,7 +457,7 @@ async function fetchRaw(scopeEnc: string): Promise<{ boxRows: unknown[]; pairRow
     sbGet<unknown[]>(
       `/rest/v1/datasets_box?class_id=eq.1&scope=eq.${scopeEnc}` +
       `&horizon_label=eq.${h}&deleted_at=is.null&jurisdiction=is.null` +
-      `&select=key,ds_raw,times_drawn,last_seen,horizon_label&limit=1100`,
+      `&select=key,ds_raw,times_drawn,last_seen,horizon_label&order=key.asc&limit=1100`, // HARNESS-NIT-02: structural order (last-wins map)
     ).then(r => Array.isArray(r) ? r : []),
   );
   // BUG-153: PostgREST caps single REST responses at 1000 rows regardless of
@@ -830,6 +830,7 @@ interface K6Item {
   freqS: number; pressureS: number;
   boxS: number; pburstS: number; coS: number; dgcS: number;
   energy: number; multiplicity: 'singles'|'doubles'|'triples'; topPair: string;
+  k6Pass: number; // ENG-K6PASS-01
 }
 
 async function computeSlate(params: {
@@ -1206,6 +1207,8 @@ async function computeSlate(params: {
   const selectedCS = new Set<string>();
   const excCSSet   = new Set(excludeComboSets);
 
+  // ENG-K6PASS-01 (2026-10-13): which selection pass admitted each pick (1–6). Parity with engines/zk6.ts.
+  let k6Pass = 1;
   const tryAdd = (idx: number, rx = false, rp = false, rc = false, rm = false): boolean => {
     if (k6.length >= 6) return false;
     const combo = universe[idx], nk = toComboSet(combo);
@@ -1235,7 +1238,7 @@ async function computeSlate(params: {
     k6.push({ combo, normKey: nk, indicator: finalScores[idx],
       freqS: rawFreq[idx], pressureS: rawPressure[idx],
       boxS: normBox[idx], pburstS: normPburst[idx], coS: normCo[idx], dgcS: normDgc[idx],
-      energy, multiplicity: mult, topPair: tp });
+      energy, multiplicity: mult, topPair: tp, k6Pass });
     if (mult === 'singles') singles++; else if (mult === 'doubles') doubles++; else triples++;
     pairCounts[tp] = (pairCounts[tp] ?? 0) + 1;
     selectedCS.add(nk);
@@ -1243,12 +1246,12 @@ async function computeSlate(params: {
   };
 
   const all = [...realIdx, ...placeholderIdx];
-  for (const i of realIdx)      { if (k6.length >= 6) break; tryAdd(i); }
-  if (k6.length < 6) for (const i of placeholderIdx) { if (k6.length >= 6) break; tryAdd(i); }
-  if (k6.length < 6) for (const i of all) { if (k6.length >= 6) break; tryAdd(i, true); }
-  if (k6.length < 6) for (const i of all) { if (k6.length >= 6) break; tryAdd(i, true, true); }
-  if (k6.length < 6) for (const i of all) { if (k6.length >= 6) break; tryAdd(i, true, true, true); }
-  if (k6.length < 6) for (const i of all) { if (k6.length >= 6) break; tryAdd(i, true, true, true, true); }
+  k6Pass = 1; for (const i of realIdx)      { if (k6.length >= 6) break; tryAdd(i); }
+  if (k6.length < 6) { k6Pass = 2; for (const i of placeholderIdx) { if (k6.length >= 6) break; tryAdd(i); } }
+  if (k6.length < 6) { k6Pass = 3; for (const i of all) { if (k6.length >= 6) break; tryAdd(i, true); } }
+  if (k6.length < 6) { k6Pass = 4; for (const i of all) { if (k6.length >= 6) break; tryAdd(i, true, true); } }
+  if (k6.length < 6) { k6Pass = 5; for (const i of all) { if (k6.length >= 6) break; tryAdd(i, true, true, true); } }
+  if (k6.length < 6) { k6Pass = 6; for (const i of all) { if (k6.length >= 6) break; tryAdd(i, true, true, true, true); } }
 
   // Sort final K6 by indicator desc — selection happens pass-by-pass, so the array
   // can interleave low-indicator pass-1 picks ahead of higher-indicator pass-5 picks
@@ -1309,6 +1312,7 @@ async function computeSlate(params: {
       box: x.boxS, pburst: x.pburstS, co: x.coS,
       signals: { BOX: x.boxS, PBURST: x.pburstS, CO: x.coS, DGC: x.dgcS },
       multiplicity: x.multiplicity, topPair: x.topPair, energy: x.energy, temperature: x.energy,
+      k6Pass: x.k6Pass, // ENG-K6PASS-01
       rank: idx + 1,
       // Position-pair maximised arrangement (engineCore.bestOrderFor). Parity with engines/zk6.ts.
       bestOrder: bestOrderFor(x.combo, ds.pairData, horizonWeights),

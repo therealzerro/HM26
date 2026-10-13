@@ -2,12 +2,15 @@ export function getTodayET(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 }
 
+// HARNESS-NIT-02 (2026-10-13): yesterday/tomorrow/N-days-ago are CALENDAR
+// shifts of the ET day (shiftDateStr), not now±86400000 ms formatted in ET —
+// the ms form was one day wide for the hour after a spring-forward midnight.
 export function getYesterdayET(): string {
-  return new Date(Date.now() - 86400000).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  return shiftDateStr(getTodayET(), -1);
 }
 
 export function getTomorrowET(): string {
-  return new Date(Date.now() + 86400000).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  return shiftDateStr(getTodayET(), 1);
 }
 
 // ENG-TARGETDATE-01 (2026-10-13): N calendar days from a YYYY-MM-DD string.
@@ -19,7 +22,7 @@ export function shiftDateStr(dateStr: string, days: number): string {
 
 // N calendar days before today, ET. getDaysAgoET(1) === getYesterdayET().
 export function getDaysAgoET(n: number): string {
-  return new Date(Date.now() - n * 86400000).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  return shiftDateStr(getTodayET(), -n);
 }
 
 export function getETHour(): number {

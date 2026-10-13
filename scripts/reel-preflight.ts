@@ -105,13 +105,42 @@ async function main() {
   const newest = boards.map(b => b.updated_at_et).sort().pop();
   notes.push(`boards ${d}: ${boards.map(b => b.scope).sort().join(', ') || 'none'}${newest ? ` · newest ${newest}` : ''}`);
 
+  // 4. INTEGRITY (DATA-06 classes, last 7 days) — PARSER-HARDEN-01 companion.
+  // Fail-closed on the unambiguous classes; warn on 2-row sessions in one-draw
+  // states (Double Draw bonus drawings are legitimate, ruled DATA-06).
+  const from7 = shift(dMinus1, -6);
+  const hist = await get<{ jurisdiction: string; game: string; date_et: string; session: string; result_digits: string }[]>(
+    `/rest/v1/histories?date_et=gte.${from7}&date_et=lte.${dMinus1}&select=jurisdiction,game,date_et,session,result_digits&order=date_et.asc,jurisdiction.asc&limit=1000`);
+  if (hist.length >= 1000) fails.push(`INTEGRITY: ${hist.length} rows in ${from7}→${dMinus1} hit the 1000-row page — widen the query before trusting this check`);
+  const KNOWN = new Set(['AR','AZ','CA','CO','CT','DC','DE','FL','GA','IA','ID','IL','IN','KS','KY','LA','ME,NH,VT','MI','MN','MO','MS','NC','NE','NJ','NM','NY','OH','OK','ON','PA','QC','SC','TN','TX','VA','W.Canada','WA','WI','WV']);
+  const MULTI = new Set(['TX','GA','DC','TN']);
+  const EVE_ONLY = new Set(['LA','NE','MN','OK','QC','WA','W.Canada','WV']);
+  const slots = new Map<string, string[]>();
+  const labels = new Map<string, Set<string>>();
+  for (const r of hist) {
+    if (!KNOWN.has(r.jurisdiction)) fails.push(`INTEGRITY: unknown jurisdiction "${r.jurisdiction}" on ${r.date_et} — a state header mapped to a code the system does not know`);
+    const k = `${r.jurisdiction}|${r.date_et}|${r.session}`;
+    slots.set(k, [...(slots.get(k) ?? []), r.result_digits]);
+    labels.set(r.jurisdiction, new Set([...(labels.get(r.jurisdiction) ?? []), r.game]));
+    if (EVE_ONLY.has(r.jurisdiction) && r.session === 'midday') fails.push(`INTEGRITY: ${r.jurisdiction} ${r.date_et} has a MIDDAY row (${r.result_digits}) — evening-only jurisdiction; a header above it mapped to the wrong state (DATA-06 LA/NE class)`);
+  }
+  for (const [j, set] of labels) if (set.size > 1) fails.push(`INTEGRITY: ${j} carries ${set.size} game labels in the window (${[...set].join(' | ')}) — label variants defeat the histories unique key`);
+  const twoRow: string[] = [];
+  for (const [k, digits] of slots) {
+    const [j, d, s] = k.split('|');
+    const max = MULTI.has(j) ? 2 : 1;
+    if (digits.length > max + (MULTI.has(j) ? 0 : 1)) fails.push(`INTEGRITY: ${j} ${d} ${s} has ${digits.length} rows (${digits.join('/')}) — more than ${max}${MULTI.has(j) ? '' : ' + one Double Draw'} is a bad paste`);
+    else if (!MULTI.has(j) && digits.length === 2) twoRow.push(`${j} ${d} ${s} ${digits.join('/')}`);
+  }
+  notes.push(`integrity ${from7}→${dMinus1}: ${hist.length} rows · ${twoRow.length ? `2-row one-draw sessions (Double Draw expected): ${twoRow.join(', ')}` : 'no 2-row one-draw sessions'}`);
+
   for (const n of notes) console.log(`preflight: ${n}`);
   if (fails.length) {
     for (const f of fails) console.error(`ABORT(preflight): ${f}`);
     console.error('preflight: fix the data (import the missing session / run the Daily Workflow), then relaunch npm run reel:daily. Escape hatch, operator-stated only: npm run reel:daily -- --skip-preflight');
     process.exit(2);
   }
-  console.log('preflight: PASS — ledger complete, D−1 graded on all scopes, D boards live');
+  console.log('preflight: PASS — ledger complete, D−1 graded on all scopes, D boards live, 7-day integrity clean');
 }
 
 main().catch(e => { console.error(`ABORT(preflight): ${e instanceof Error ? e.message : String(e)}`); process.exit(2); });

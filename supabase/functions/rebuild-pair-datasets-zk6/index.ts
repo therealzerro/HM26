@@ -128,10 +128,19 @@ async function fetchHistoriesForScope(scope: string, sinceDate: string): Promise
 }
 
 async function fetchExistingPairs(scope: string, horizon: string): Promise<Array<{ id: string; key_pair: string; class_id: number; ds_raw: number }>> {
-  const rows = await sbGet<any[]>(
-    `/rest/v1/datasets_pair?scope=eq.${scope}&horizon_label=eq.${horizon}&deleted_at=is.null&jurisdiction=is.null&select=id,key_pair,class_id,ds_raw&limit=5000`,
-  );
-  return Array.isArray(rows) ? rows : [];
+  // HARNESS-NIT-02 (2026-10-13): paginated with a unique order — the old single
+  // `limit=5000` GET was silently capped at 1000 rows by PostgREST.
+  const rows: any[] = [];
+  const PAGE = 1000;
+  for (let from = 0; from < 20000; from += PAGE) {
+    const chunk = await sbGet<any[]>(
+      `/rest/v1/datasets_pair?scope=eq.${scope}&horizon_label=eq.${horizon}&deleted_at=is.null&jurisdiction=is.null&select=id,key_pair,class_id,ds_raw&order=id.asc&limit=${PAGE}&offset=${from}`,
+    );
+    if (!Array.isArray(chunk) || chunk.length === 0) break;
+    rows.push(...chunk);
+    if (chunk.length < PAGE) break;
+  }
+  return rows;
 }
 
 function daysBetween(today: Date, dateStr: string): number {

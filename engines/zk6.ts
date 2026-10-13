@@ -143,7 +143,7 @@ async function fetchRaw(scopeEnc: string): Promise<{ boxRows: any[]; pairRows: a
     fetchFromSupabase<any[]>({
       path: `/rest/v1/datasets_box?class_id=eq.1&scope=eq.${scopeEnc}` +
             `&horizon_label=eq.${h}&deleted_at=is.null&jurisdiction=is.null` +
-            `&select=key,ds_raw,times_drawn,last_seen,horizon_label&limit=1100`,
+            `&select=key,ds_raw,times_drawn,last_seen,horizon_label&order=key.asc&limit=1100`, // HARNESS-NIT-02: structural order (last-wins map)
     }).then(rows => Array.isArray(rows) ? rows : []),
   );
 
@@ -184,20 +184,25 @@ async function fetchRaw(scopeEnc: string): Promise<{ boxRows: any[]; pairRows: a
 async function fetchDatasets(scope: Scope): Promise<Datasets> {
   const normalized = normalizeScope(scope);
   const enc = encodeURIComponent(normalized);
-  const timeout = new Promise<never>((_, r) =>
-    setTimeout(() => r(new Error('ZK6 fetch timeout (20s)')), 20000),
-  );
+  // HARNESS-NIT-02 (2026-10-13): per-call timeout that is CLEARED when the fetch
+  // settles — the old shared 20 s promise was never cleared (late unhandled
+  // rejection) and the allday fallback re-raced against the same, half-consumed timer.
+  const withTimeout = <T>(p: Promise<T>, ms = 20000): Promise<T> => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const t = new Promise<never>((_, r) => { timer = setTimeout(() => r(new Error(`ZK6 fetch timeout (${ms / 1000}s)`)), ms); });
+    return Promise.race([p, t]).finally(() => { if (timer) clearTimeout(timer); }) as Promise<T>;
+  };
 
   console.log('[zk6v2] Fetching all horizons for scope:', normalized);
 
-  let { boxRows, pairRows } = await Promise.race([fetchRaw(enc), timeout]);
+  let { boxRows, pairRows } = await withTimeout(fetchRaw(enc));
   let usingFallback = false;
 
   if (boxRows.length < 50 && normalized !== 'allday') {
     console.log('[zk6v2] Sparse data for', normalized, '(', boxRows.length, 'rows) — falling back to allday');
     lastScopeFallback = normalized;
     usingFallback = true;
-    const fb = await Promise.race([fetchRaw(encodeURIComponent('allday')), timeout]);
+    const fb = await withTimeout(fetchRaw(encodeURIComponent('allday')));
     boxRows = fb.boxRows;
     pairRows = fb.pairRows;
   } else {
@@ -1677,6 +1682,7 @@ export async function computeSlate({
     freqS: number; pressureS: number;
     boxS: number; pburstS: number; coS: number; dgcS: number;
     energy: number; multiplicity: 'singles' | 'doubles' | 'triples'; topPair: string;
+    k6Pass: number; // ENG-K6PASS-01
   }
 
   const k6: K6Item[] = [];
@@ -1692,6 +1698,9 @@ export async function computeSlate({
   // relaxCooldown         — ignore recentHitCooldown suppression
   // relaxMultCaps         — ignore singles/doubles/triples quotas (last resort)
   // Hard blocks never relaxed: selectedComboSets (no dupe picks) + todayHitComboSets (recent winners over the per-scope block window, per ENG-BLOCK-PERSCOPE-01)
+  // ENG-K6PASS-01 (2026-10-13): which selection pass admitted each pick (1–6),
+  // persisted on the pick so rail behaviour is auditable without re-deriving it.
+  let k6Pass = 1;
   const tryAdd = (
     idx: number,
     relaxExcludeComboSets = false,
@@ -1728,6 +1737,7 @@ export async function computeSlate({
     if (!relaxCooldown && recentHitCooldown > 0 && dsOverride.has(normKey) &&
       (ds.timesDrawnMap.get(normKey) ?? 0) > 0 && recentDs < recentHitCooldown) return false;
     k6.push({
+      k6Pass,
       combo, normKey,
       indicator: finalScores[idx],
       freqS: rawFreq[idx], pressureS: rawPressure[idx],
@@ -1745,6 +1755,7 @@ export async function computeSlate({
   const allIdx = [...realIdx, ...placeholderIdx];
 
   // Pass 1: real data only, all rails enforced
+  k6Pass = 1;
   for (const idx of realIdx) {
     if (k6.length >= 6) break;
     tryAdd(idx);
@@ -1753,6 +1764,7 @@ export async function computeSlate({
   // Pass 2: fill remaining slots with placeholder combos (zero-history — data gap)
   if (k6.length < 6) {
     console.warn('[zk6v2] Pass 1 yielded only', k6.length, 'picks — filling with zero-history combos (import data may be incomplete)');
+    k6Pass = 2;
     for (const idx of placeholderIdx) {
       if (k6.length >= 6) break;
       tryAdd(idx);
@@ -1762,6 +1774,7 @@ export async function computeSlate({
   // Pass 3: relax yesterday-exclusion
   if (k6.length < 6) {
     console.log('[zk6v2] Pass 2 yielded', k6.length, '— pass 3: relax excludeComboSets');
+    k6Pass = 3;
     for (const idx of allIdx) {
       if (k6.length >= 6) break;
       tryAdd(idx, true);
@@ -1771,6 +1784,7 @@ export async function computeSlate({
   // Pass 4: also relax pairRepCap
   if (k6.length < 6) {
     console.log('[zk6v2] Pass 3 yielded', k6.length, '— pass 4: relax pairRepCap');
+    k6Pass = 4;
     for (const idx of allIdx) {
       if (k6.length >= 6) break;
       tryAdd(idx, true, true);
@@ -1780,6 +1794,7 @@ export async function computeSlate({
   // Pass 5: also relax cooldown
   if (k6.length < 6) {
     console.log('[zk6v2] Pass 4 yielded', k6.length, '— pass 5: relax cooldown');
+    k6Pass = 5;
     for (const idx of allIdx) {
       if (k6.length >= 6) break;
       tryAdd(idx, true, true, true);
@@ -1791,6 +1806,7 @@ export async function computeSlate({
   // Only hard blocks remaining: no duplicate comboSets + no recent winners (today/yesterday).
   if (k6.length < 6) {
     console.log('[zk6v2] Pass 5 yielded', k6.length, '— pass 6: relax mult caps (DB quota < 6)');
+    k6Pass = 6;
     for (const idx of allIdx) {
       if (k6.length >= 6) break;
       tryAdd(idx, true, true, true, true);
@@ -1902,6 +1918,7 @@ export async function computeSlate({
       topPair: x.topPair,
       energy: x.energy,
       temperature: x.energy,        // backward compat
+      k6Pass: x.k6Pass,             // ENG-K6PASS-01: selection pass that admitted this pick (1–6)
       rank: idx + 1,
       bestOrder: bestOrderFor(x.combo, ds.pairData, horizonWeights),
       confidence: Math.round(scopeConfidence * 100),

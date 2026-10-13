@@ -2,7 +2,12 @@
 HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
-changed. Every command has a description. (Last updated 2026-10-09 — OPS-07 reel:daily pre-flight gate + --skip-preflight / --allow-all-matched passthrough; previously 2026-09-11 — MKT-79 record_public, THE DAILY TRACK RECORD REEL; 2026-09-09 — MKT-77 free session CTA cuts; 2026-09-08 —
+changed. Every command has a description. (Last updated 2026-10-13 — the reel:daily
+pre-flight gate now ALSO runs a 7-day DATA INTEGRITY check on histories (PARSER-HARDEN-01):
+fails closed on 3+ rows in one session, a game-label variant, a midday row for an
+evening-only state, or an unknown jurisdiction; lists 2-row one-draw sessions as a
+note (Double Draw bonus drawings are legitimate). Same escape hatch: --skip-preflight,
+operator-stated only; previously 2026-10-09 — OPS-07 reel:daily pre-flight gate + --skip-preflight / --allow-all-matched passthrough; previously 2026-09-11 — MKT-79 record_public, THE DAILY TRACK RECORD REEL; 2026-09-09 — MKT-77 free session CTA cuts; 2026-09-08 —
 UPDATED 2026-08-17 (MKT-57) — every slate reel body (allday/midday/evening,
 all cuts) now captures the coffee-mode HOME, not the Slates grid: 10.0s
 static still of the six tiles (emboss + notation band at the bottom of the

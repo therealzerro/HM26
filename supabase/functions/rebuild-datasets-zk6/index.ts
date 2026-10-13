@@ -101,9 +101,18 @@ async function fetchHistoriesForScope(scope: string, sinceDate: string): Promise
 }
 
 async function fetchExistingDataset(scope: string, horizon: string): Promise<Map<string, { ds_raw: number; id: string }>> {
-  const rows = await sbGet<Array<{ id: string; key: string; ds_raw: number }>>(
-    `/rest/v1/datasets_box?class_id=eq.1&scope=eq.${scope}&horizon_label=eq.${horizon}&deleted_at=is.null&jurisdiction=is.null&select=id,key,ds_raw&limit=5000`,
-  );
+  // HARNESS-NIT-02 (2026-10-13): paginated with a unique order — the old single
+  // `limit=5000` GET was silently capped at 1000 rows by PostgREST.
+  const rows: Array<{ id: string; key: string; ds_raw: number }> = [];
+  const PAGE = 1000;
+  for (let from = 0; from < 20000; from += PAGE) {
+    const chunk = await sbGet<Array<{ id: string; key: string; ds_raw: number }>>(
+      `/rest/v1/datasets_box?class_id=eq.1&scope=eq.${scope}&horizon_label=eq.${horizon}&deleted_at=is.null&jurisdiction=is.null&select=id,key,ds_raw&order=id.asc&limit=${PAGE}&offset=${from}`,
+    );
+    if (!Array.isArray(chunk) || chunk.length === 0) break;
+    rows.push(...chunk);
+    if (chunk.length < PAGE) break;
+  }
   const m = new Map<string, { ds_raw: number; id: string }>();
   if (Array.isArray(rows)) for (const r of rows) m.set(r.key, { ds_raw: r.ds_raw, id: r.id });
   return m;

@@ -46,7 +46,7 @@ async function fetchBoxRows(scopeEnc: string): Promise<any[]> {
       dbGet<any[]>(
         `/datasets_box?class_id=eq.1&scope=eq.${scopeEnc}&horizon_label=eq.${h}` +
         `&deleted_at=is.null&jurisdiction=is.null` +
-        `&select=key,ds_raw,times_drawn,last_seen,horizon_label&limit=1100`,
+        `&select=key,ds_raw,times_drawn,last_seen,horizon_label&order=key.asc&limit=1100`,
       ).then(r => (Array.isArray(r) ? r : [])),
     ),
   );

@@ -21,6 +21,8 @@
  *     errors: string[] }
  */
 
+import { getTodayET } from '../_shared/dateUtils.ts';
+
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SVC_KEY      = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -84,8 +86,11 @@ async function fetchHistoriesForScope(scope: string, sinceDate: string): Promise
   const rows: HistoryRow[] = [];
   let from = 0;
   while (true) {
+    // ENG-REBUILD-01: id.desc tiebreaker — up to 77 rows share a date_et, and without a unique
+    // secondary order PostgREST may hand back ties in a different order per page, dropping or
+    // doubling rows across the 1000-row page edge (BUG-163/166 class; the engine fetches already had it).
     const chunk = await sbGet<HistoryRow[]>(
-      `/rest/v1/histories?date_et=gte.${sinceDate}${sessionClause}&select=result_digits,date_et,session&order=date_et.desc&limit=${PAGE}&offset=${from}`,
+      `/rest/v1/histories?date_et=gte.${sinceDate}${sessionClause}&select=result_digits,date_et,session&order=date_et.desc,id.desc&limit=${PAGE}&offset=${from}`,
     );
     if (!Array.isArray(chunk) || chunk.length === 0) break;
     rows.push(...chunk);
@@ -186,7 +191,11 @@ Deno.serve(async (req) => {
   const apply = body.dryRun !== true;
   const scopeFilter = body.scope ?? '';
   const horizonFilter = body.horizon ?? '';
-  const todayUtc = new Date(new Date().toISOString().split('T')[0] + 'T00:00:00Z');
+  // ENG-REBUILD-01 (2026-10-13): anchor on the EASTERN calendar day, like the engine
+  // (getTodayET), not the UTC day — a run between 20:00 and 24:00 ET used to shift every
+  // in-window ds_raw by +1 and the horizon boundary by a day vs a morning run of the same
+  // data. Kept as a UTC-midnight Date so daysBetween/horizon arithmetic is unchanged.
+  const todayUtc = new Date(getTodayET() + 'T00:00:00Z');
 
   const errors: string[] = [];
   const perPair: PairResult[] = [];
@@ -231,7 +240,8 @@ Deno.serve(async (req) => {
   const response = {
     success: errors.length === 0,
     dryRun: !apply,
-    todayUtc: todayUtc.toISOString().split('T')[0],
+    todayUtc: todayUtc.toISOString().split('T')[0], // ENG-REBUILD-01: this is the ET calendar day (field name kept for lib/rebuildTrigger.ts)
+    anchor: 'ET',
     scopesProcessed: scopesToProcess.length,
     horizonsProcessed: perPair.length / Math.max(1, scopesToProcess.length),
     totalChecked,

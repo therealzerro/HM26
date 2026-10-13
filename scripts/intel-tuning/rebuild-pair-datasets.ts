@@ -31,6 +31,7 @@
  */
 
 import { dbGet } from '../backtest/data.js';
+import { getTodayET } from '../../lib/dateUtils';
 
 const URL = process.env.SUPABASE_URL!;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -82,7 +83,7 @@ async function fetchHistoriesForScope(scope: string, sinceDate: string): Promise
   const PAGE = 1000;
   while (true) {
     const chunk = await dbGet<any[]>(
-      `/histories?date_et=gte.${sinceDate}${sessionClause}&select=result_digits,date_et&order=date_et.desc&limit=${PAGE}&offset=${from}`,
+      `/histories?date_et=gte.${sinceDate}${sessionClause}&select=result_digits,date_et&order=date_et.desc,id.desc&limit=${PAGE}&offset=${from}`,
     );
     if (!Array.isArray(chunk) || chunk.length === 0) break;
     rows.push(...chunk);
@@ -166,7 +167,8 @@ async function main() {
   const apply = args.apply === 'true';
   const scopeFilter = args.scope ?? '';
   const horizonFilter = args.horizon ?? '';
-  const today = new Date(new Date().toISOString().split('T')[0] + 'T00:00:00Z');
+  // ENG-REBUILD-01 (2026-10-13): ET calendar-day anchor, mirroring the edge rebuilds.
+  const today = new Date(getTodayET() + 'T00:00:00Z');
 
   console.log(`\n═══════════════════════════════════════════════════════════`);
   console.log(`  REBUILD datasets_pair.ds_raw FROM histories`);

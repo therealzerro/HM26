@@ -762,7 +762,17 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     const rows = await fetchFromSupabase<any[]>({
       path: '/rest/v1/app_config?key=in.(' + keyList.join(',') + ')&select=key,value',
     });
-    if (!Array.isArray(rows) || rows.length === 0) return DEFAULT_ENGINE_CONFIG;
+    // ENG-CONFIG-GUARD-01 (2026-10-13): never build a live board on DEFAULT_ENGINE_CONFIG.
+    // The defaults differ materially from live (singles 4 vs 6, min_energy 0 vs 70,
+    // pressure_threshold 250 vs 100, +0.40 pressure everywhere, global weights
+    // instead of per-scope) — a transient app_config failure used to persist a
+    // CONFIG-01-class degraded board silently. Fail loudly; the workflow shows it.
+    if (!Array.isArray(rows) || rows.length === 0) {
+      throw new Error('CONFIG-GUARD: app_config returned 0 rows for the engine key list — refusing to build a board on hard-coded defaults (ENG-CONFIG-GUARD-01)');
+    }
+    if (!rows.some(r => r && r.key === 'engine_weights_balanced')) {
+      throw new Error(`CONFIG-GUARD: app_config returned ${rows.length} rows but no engine_weights_balanced — partial config, refusing to build (ENG-CONFIG-GUARD-01)`);
+    }
 
     const presets: WeightPresets = {
       balanced: { ...DEFAULT_WEIGHTS.balanced },
@@ -979,8 +989,9 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       stateStrHalfLifeDays,
       stateStrWindowDays,
     };
-  } catch {
-    return DEFAULT_ENGINE_CONFIG;
+  } catch (e) {
+    // ENG-CONFIG-GUARD-01: propagate instead of silently degrading to DEFAULT_ENGINE_CONFIG.
+    throw new Error('app_config load failed — no board built (ENG-CONFIG-GUARD-01): ' + String((e as any)?.message ?? e));
   }
 }
 

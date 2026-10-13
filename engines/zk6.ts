@@ -1162,6 +1162,11 @@ export async function computeSlate({
   excludeComboSets = [],
   is_supplement = false,
 }: ComputeSlateParams): Promise<SlateSnapshot> {
+  // ENG-SUPP-RETIRE-01 (2026-10-13): supplemental slates are retired (mirrors
+  // compute-slate-zk6). The remaining `!is_supplement` guards are now always true.
+  if (is_supplement) {
+    throw new Error('supplemental slates are retired (ENG-SUPP-RETIRE-01) — is_supplement:true is rejected');
+  }
   // Feature flag: delegate to Edge Function when enabled.
   // Flip EXPO_PUBLIC_USE_EDGE_ZK6=true after parity verification (Step 6).
   if (process.env.EXPO_PUBLIC_USE_EDGE_ZK6 === 'true') {
@@ -1976,14 +1981,8 @@ export async function computeSlate({
     dataStats,
   });
 
-  const supplementExtra = is_supplement ? {
-    file_meta: JSON.stringify({
-      is_supplement: true,
-      supplement_reason: 'post_hit_refresh',
-      excluded_combo_sets: excludeComboSets,
-    }),
-  } : undefined;
-  const savedId = await saveSlateSnapshot(snapshot, supplementExtra);
+  // ENG-SUPP-RETIRE-01: no file_meta extra (column does not exist; supplements retired).
+  const savedId = await saveSlateSnapshot(snapshot, undefined);
   if (typeof savedId === 'string' && savedId.length > 0) {
     snapshot.id = savedId;
   }

@@ -22,7 +22,8 @@
  * Supplemental slate generation: when a snapshot gets a new hit, the
  * matching comboSets are excluded and a supplemental slate is regenerated
  * via internal HTTP call to compute-slate-zk6. Same behavior as the prior
- * client-side path. Set body.skipSupplements=true to disable.
+ * client-side path. ENG-SUPP-RETIRE-01 (2026-10-13): supplements RETIRED —
+ *   body.skipSupplements is accepted and ignored; supplementsGenerated is always 0.
  *
  * POST body:
  *   {
@@ -231,44 +232,22 @@ async function recordHitInAdaptiveTracking(
   return 'inserted';
 }
 
-async function generateSupplementalSlate(
-  scope: string,
-  mode: 'balanced',
-  excludeComboSets: string[],
-): Promise<boolean> {
-  // Internal call to compute-slate-zk6. Service-role auth so the request is
-  // treated as trusted. The slate function persists its own snapshot.
-  try {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/compute-slate-zk6`, {
-      method: 'POST',
-      headers: svcHeaders(),
-      body: JSON.stringify({
-        scope,
-        weightsKey: mode,
-        excludeComboSets,
-        is_supplement: true,
-      }),
-    });
-    if (!res.ok) {
-      console.warn('[run-hit-detection] supplement call', res.status, (await res.text()).slice(0, 200));
-      return false;
-    }
-    const json = await res.json();
-    return Array.isArray(json?.top_k_straights_json) && json.top_k_straights_json.length > 0;
-  } catch (e) {
-    console.warn('[run-hit-detection] supplement error:', String(e).slice(0, 200));
-    return false;
-  }
-}
+// ENG-SUPP-RETIRE-01 (2026-10-13): generateSupplementalSlate REMOVED. Post-hit
+// supplemental slates had been dead since at least 9/1 (slate_snapshots has no
+// file_meta column → every supplement INSERT was rejected and swallowed; 156 runs,
+// supplements_generated 0) and reviving them would regenerate boards after a hit —
+// against the no-regen-without-ask rule and ENG-BOARD-FREEZE-01. `skipSupplements`
+// is still accepted for caller compatibility and ignored; supplementsGenerated is
+// always 0 (field kept for the hit_detection_runs schema and the response shape).
 
 // ─── Per-date runner ──────────────────────────────────────────────────────────
 
 interface RunResult { hitsFound: number; scopesChecked: number; supplementsGenerated: number; lateSecondaries: number; errors: string[] }
 
-async function runForDate(date: string, scope: string | null, skipSupplements: boolean): Promise<RunResult> {
+async function runForDate(date: string, scope: string | null, _skipSupplements: boolean): Promise<RunResult> {
   const errors: string[] = [];
   let totalHits = 0;
-  let supplementsGenerated = 0;
+  const supplementsGenerated = 0; // ENG-SUPP-RETIRE-01: always 0
   let lateSecondaries = 0; // ENG-HITDET-LATE-01: AT rows recorded for picks that were already stamped
 
   // BUG-147 (2026-05-15): pair snapshots to draws strictly by `slate_date`.
@@ -470,18 +449,7 @@ async function runForDate(date: string, scope: string | null, skipSupplements: b
         errors.push(`snapshot PATCH ${snapshot.id}: ${String(e).slice(0, 120)}`);
       }
 
-      if (!skipSupplements) {
-        const hitComboSets = updatedPicks
-          .filter((p: any) => p.hitType)
-          .map((p: any) => p.comboSet ?? p.normKey)
-          .filter(Boolean) as string[];
-        const excludeList = [...new Set(hitComboSets)];
-        const scope = (snapshot.scope ?? 'allday');
-        // SCRUB-02 (2026-06-09): production is balanced-only.
-        const mode = 'balanced' as const;
-        const ok = await generateSupplementalSlate(scope, mode, excludeList);
-        if (ok) supplementsGenerated++;
-      }
+      // ENG-SUPP-RETIRE-01: no post-hit supplemental slate is generated (retired).
     }
   }
 

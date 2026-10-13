@@ -123,7 +123,7 @@ await fetchFromSupabase({ path: '/rest/v1/table?id=eq.123', method: 'PATCH', bod
 All auth via `EXPO_PUBLIC_SUPABASE_ANON_KEY` env var. The `Prefer: return=minimal` header suppresses response bodies on mutations.
 
 ### Key Tables
-- `slate_snapshots` — persisted engine outputs. `top_k_straights_json` holds the pick array. `file_meta.is_supplement` marks supplemental slates.
+- `slate_snapshots` — persisted engine outputs. `top_k_straights_json` holds the pick array. (Supplemental slates were retired 2026-10-13, ENG-SUPP-RETIRE-01 — there is no `file_meta` column; `is_supplement:true` is rejected with 400.)
 - `daily_intelligence` — top-30 combos with hit tracking (`hit_box`, `hit_straight`).
 - `adaptive_tracking` — per-pick hit history for engine feedback.
 - `histories` — draw results (`result_digits`, `comboset_sorted`, `jurisdiction`, `session`, `date_et`).

@@ -846,6 +846,14 @@ async function computeSlate(params: {
     throw new Error(`unknown scope "${String(params.scope)}" — expected midday | evening | allday`);
   }
   const scope = strictScope;
+  // ENG-SUPP-RETIRE-01 (2026-10-13): supplemental slates are retired. slate_snapshots
+  // has no file_meta column (every supplement INSERT was rejected since at least 9/1)
+  // and auto-regenerating a board after a hit contradicts the no-regen-without-ask
+  // rule + ENG-BOARD-FREEZE-01. The remaining `!is_supplement` guards below are now
+  // always true; kept verbatim so the diff is auditable.
+  if (is_supplement) {
+    throw new Error('supplemental slates are retired (ENG-SUPP-RETIRE-01) — is_supplement:true is rejected');
+  }
   const now   = new Date().toISOString();
   const todayEt = getTodayET();
   const effectiveDate = targetDate || todayEt;
@@ -1348,7 +1356,7 @@ async function computeSlate(params: {
     components_json: componentsJson,
     updated_at_et: now, slate_date: effectiveDate,
     snapshot_hash: hash, hash, admin_published: true,
-    ...(is_supplement ? { file_meta: JSON.stringify({ is_supplement: true, supplement_reason: 'post_hit_refresh', excluded_combo_sets: excludeComboSets }) } : {}),
+    // ENG-SUPP-RETIRE-01: file_meta write removed (column does not exist; supplements retired).
   };
 
   // ENG-BOARD-FREEZE-01 (2026-09-21, STAT-01 §5 E-2, operator-approved): a
@@ -1637,6 +1645,12 @@ Deno.serve(async (req) => {
     // read or write happens. computeSlate re-checks (defense in depth).
     if (!normalizeScopeStrict(body?.scope)) {
       const msg = `unknown scope "${String(body?.scope)}" — expected midday | evening | allday`;
+      console.error('[edge-zk6] rejected:', msg);
+      return new Response(JSON.stringify({ error: msg }), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } });
+    }
+    // ENG-SUPP-RETIRE-01: supplements are retired — caller error, before any read or write.
+    if (body?.is_supplement === true) {
+      const msg = 'supplemental slates are retired (ENG-SUPP-RETIRE-01) — is_supplement:true is rejected';
       console.error('[edge-zk6] rejected:', msg);
       return new Response(JSON.stringify({ error: msg }), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } });
     }

@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-11 · v7.23
+Content Agent Handoff · 2026-10-13 · v7.24
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.11; v7.12 = one asset edit, v7.13 = the reel:daily gate, v7.14 = MKT-82 PRO BRIEF PHASE 0, v7.15 = MKT-82 PHASE 1 SHIPPED, v7.16 = MKT-82 PHASE 2 SHIPPED BY OPERATOR ORDER (not a reel; see its block) — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.11; v7.24 = 10/13 ENGINE + DATA DAY, read its block first; v7.12 = one asset edit, v7.13 = the reel:daily gate, v7.14 = MKT-82 PRO BRIEF PHASE 0, v7.15 = MKT-82 PHASE 1 SHIPPED, v7.16 = MKT-82 PHASE 2 SHIPPED BY OPERATOR ORDER (not a reel; see its block) — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -39,6 +39,13 @@ A. DAILY OUTPUT (operator-triggered `npm run reel:daily`, never scheduled):
        30-of-30 override) pass through the runner, operator-stated per run,
        both recorded in the log header. Closes the OPS-05 hole (9/26 midday
        gap ran half a day through verify with no gate).
+     ⚠ v7.24 (10/13): the same gate now ALSO runs a 7-day DATA INTEGRITY
+       sweep on histories before anything launches — fails closed on 3+
+       rows in one session, a game-label variant, a midday row for an
+       evening-only state, or an unknown jurisdiction; lists 2-row
+       one-draw sessions as a note (Double Draw bonus drawings are
+       legitimate — ruled 10/13, see the v7.24 block). First live run:
+       514 rows, clean. A bad paste now surfaces before any reel renders.
      record_public   ⚠ v6.9 (MKT-79, 9/11): THE DAILY TRACK RECORD REEL —
        30-day strip of the Verified Track Record (dim tiles = the misses,
        ON PURPOSE), public tier 1, ~16.3s cold open, the 7pm slot.
@@ -638,6 +645,54 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.24 (2026-10-13 — ENGINE + DATA DAY. Nine reels shipped as
+usual; then the ZK6 engine got its first code changes since v53 and the draw
+table was repaired against official results. Read this before you touch any
+receipts number.)
+================================================================================
+  · 10/13 REELS: the full daily run shipped nine cuts (verify 10/12 3 of 6,
+    one STRAIGHT at 12.83s Pro / 6.5s public, hook COUNT GATE PASS 3=3;
+    All-Day ×3, Midday ×2, Evening ×2). record_public ABORTED on its own
+    30-of-30 gate for the third day; OPERATOR RULED "no record reel needed
+    today" — the 10/9 record cut stays live. Dispatch unchanged.
+  · ENGINE TOUCHED — TEN CORRECTNESS FIXES, ZERO ACCURACY CHANGE (operator
+    ordered each; MASTER_AUDIT ENG-REVIEW-03 → ENG-PAIR-01, ENG-AT-KEY-01,
+    ENG-REBUILD-01, ENG-CONFIG-GUARD-01, ENG-HITDET-LATE-01, ENG-PERSIST-
+    ORDER-01, ENG-SUPP-RETIRE-01, ENG-TARGETDATE-01, HARNESS-NIT-01/02,
+    ENG-K6PASS-01). compute-slate-zk6 v54→v61, run-hit-detection v15→v18,
+    both rebuilds v7→v9. The engine is still at the uniform baseline (no
+    new accuracy claim exists — R-A/R-B/R-C stand). Measured cost of the
+    one pick-reshuffling fix was inside the noise floor and accepted by
+    the operator. 10/14 is the first workflow on all of it. Boards may
+    look different; nothing in any caption, hook or lint changes.
+  · DATA: histories REPAIRED against results the operator pasted from the
+    official feed (DATA-06): 47 Tri-State draws that had been filed under
+    LA/NE/MS relabelled, 6 wrong 4/14 rows deleted, 40 TX duplicates
+    deleted, 82 missing draws added — the table has NO gaps 4/17→10/12.
+    ⚠ RULING YOU MUST KNOW: NJ "Green Ball Double Draw", MI "Red Ball
+    Double Draw" and NC "Double Draw" are OFFICIAL SECOND DRAWINGS and
+    COUNT as matches (same as TX/GA/DC/TN second draws). "Checked against
+    the draw results" remains literally true; no copy change needed.
+  · GRADING LEDGER COMPLETE 4/18→10/12: hit detection used to skip a pick
+    once stamped, so a state whose ledger landed later never got its row;
+    fixed (v17) and the whole history re-run. 66 missing state rows added,
+    61 never-graded picks on retro-pass-restored boards graded. EFFECT
+    ON YOUR SURFACES: the record reel's "STATES & PROVINCES" and matches
+    may read HIGHER from the 10/14 cut than the 10/9 cut — a correction,
+    not a regression; say nothing about it in copy. P2-LINT / "POSTED
+    BEFORE THE DRAW" UNAFFECTED — verified: no historical board timestamp
+    moved today (0 of 528 keys).
+  · PRE-FLIGHT GATE (see A. above): 7-day data-integrity sweep added.
+  · PARSER HARDENED for the usual paste shapes (label variants can no
+    longer slip in; a second result for a one-draw slot is dropped LOUDLY
+    unless tagged Double Draw). 16 parser tests; jest 8/8 suites green.
+  · DECLINED, never re-propose: refreshing the Box/Pair CSV frequency
+    tables (DATA-07) — no accuracy reason, cosmetic only, huge manual cost.
+  · NOTHING OWED FROM YOU for any of this. Your standing items are
+    unchanged: MKT-85 builds 2–4 (live_kinds still EMPTY) and the §D
+    weekly build after them. Next free MKT ID = 86.
+
 ================================================================================
 WHAT CHANGED IN v7.23 (2026-10-11, night — SAVE POINT: operator device dying.
 MKT-85 build 1/4 landed; §D rulings recorded; Pro receipts caption on sheet)

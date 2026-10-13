@@ -1111,20 +1111,9 @@ async function saveSlateSnapshot(snapshot: SlateSnapshot, extraFields?: Record<s
     payload.deleted_at = new Date().toISOString();
     console.log('[zk6v2] ENG-BOARD-FREEZE-01: post-cutoff regen written NOT live (pre-cutoff board stays).');
   }
-  if (!isSupplementSave && !frozen) {
-    try {
-      const effectiveSd = snapshot.slate_date ?? getTodayET();
-      await adminOpsFetch<any>({
-        path: `/rest/v1/slate_snapshots?scope=eq.${encodeURIComponent(snapshot.scope)}&slate_date=eq.${effectiveSd}&deleted_at=is.null`,
-        method: 'PATCH',
-        prefer: 'return=minimal',
-        body: { deleted_at: new Date().toISOString() },
-      });
-    } catch (patchErr) {
-      console.warn('[zk6v2] soft-delete prior snapshots warn:', String(patchErr));
-    }
-  }
-
+  // ENG-PERSIST-ORDER-01 (2026-10-13): INSERT FIRST, then retire the prior live
+  // board(s) — mirrors compute-slate-zk6. A rejected POST now leaves the prior
+  // board live instead of leaving the (scope, date) with no live board at all.
   try {
     const res = await adminOpsFetch<any>({
       path: '/rest/v1/slate_snapshots',
@@ -1135,6 +1124,23 @@ async function saveSlateSnapshot(snapshot: SlateSnapshot, extraFields?: Record<s
     const dbId = Array.isArray(res) && res.length > 0
       ? (res[0]?.id as string | undefined) : undefined;
     console.log('[zk6v2] Snapshot saved:', { scope: snapshot.scope, dbId });
+
+    if (!isSupplementSave && !frozen) {
+      try {
+        const effectiveSd = snapshot.slate_date ?? getTodayET();
+        const exclude = dbId
+          ? `&id=neq.${encodeURIComponent(dbId)}`
+          : `&updated_at_et=lt.${encodeURIComponent(String(payload.updated_at_et ?? new Date().toISOString()))}`;
+        await adminOpsFetch<any>({
+          path: `/rest/v1/slate_snapshots?scope=eq.${encodeURIComponent(snapshot.scope)}&slate_date=eq.${effectiveSd}&deleted_at=is.null${exclude}`,
+          method: 'PATCH',
+          prefer: 'return=minimal',
+          body: { deleted_at: new Date().toISOString() },
+        });
+      } catch (patchErr) {
+        console.warn('[zk6v2] retire prior snapshots warn (new board is live, an older one may still be too):', String(patchErr));
+      }
+    }
     return dbId ?? snapshot.id;
   } catch (err) {
     const msg = String(err instanceof Error ? err.message : err);

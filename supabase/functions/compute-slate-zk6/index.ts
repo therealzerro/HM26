@@ -1384,17 +1384,27 @@ async function computeSlate(params: {
   // (e.g. backfilling yesterday's slate). Prior implementation used a UTC+4h
   // window on updated_at_et which only worked for "today" and was off by an
   // hour during EST (Nov–Mar).
-  if (!is_supplement && !frozen) {
-    try {
-      await sbPatch(
-        `/rest/v1/slate_snapshots?scope=eq.${encodeURIComponent(scope)}&slate_date=eq.${effectiveDate}&deleted_at=is.null`,
-        { deleted_at: now },
-      );
-    } catch { /* non-fatal */ }
-  }
-
+  // ENG-PERSIST-ORDER-01 (2026-10-13): INSERT FIRST, then retire the prior live
+  // board(s). The old order (PATCH deleted_at → POST) left the (scope, date)
+  // with NO live board whenever the POST was rejected — subscribers and the
+  // grader saw nothing until the next regen (D4 class). Now a rejected POST
+  // leaves the prior board live; a successful one is followed by retiring every
+  // OTHER live row for the key (id≠new, or older updated_at_et if no id came back).
   const res = await sbPost('/rest/v1/slate_snapshots', payload) as any[];
   const savedId = Array.isArray(res) && res.length > 0 ? String(res[0]?.id ?? '') : `zk6-${scope}-${Date.now()}`;
+  const savedRowId = Array.isArray(res) && res.length > 0 && res[0]?.id ? String(res[0].id) : null;
+
+  if (!is_supplement && !frozen) {
+    try {
+      const exclude = savedRowId
+        ? `&id=neq.${encodeURIComponent(savedRowId)}`
+        : `&updated_at_et=lt.${encodeURIComponent(now)}`;
+      await sbPatch(
+        `/rest/v1/slate_snapshots?scope=eq.${encodeURIComponent(scope)}&slate_date=eq.${effectiveDate}&deleted_at=is.null${exclude}`,
+        { deleted_at: now },
+      );
+    } catch (e) { console.warn('[edge-zk6] retire prior snapshots warn (new board is live, an older one may still be too):', String(e)); }
+  }
 
   // ENH-08 (2026-05-15): engine_runs telemetry row per slate generation.
   // Captures the EFFECTIVE config used at gen time (post per-scope overrides) so

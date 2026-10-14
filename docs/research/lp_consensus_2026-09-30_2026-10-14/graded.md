@@ -16,11 +16,27 @@
 
 The operator lifted the standing "no automated access to Lottery Post" rule for this STAT research
 on 2026-10-14 (chat ruling). The site refuses non-browser clients at the edge, as the 2026-07-25 scope
-also found. The only remaining path is pages saved from the operator's own browser, fed to
-`scripts/research/lp_consensus/parse_lp_pages.py` (unvalidated against live markup until a first
-saved page exists). Full coverage is 1 statistics page + one page per (state, day): roughly 45 states ×
-15 days ≈ 675 saves, which is not a reasonable manual ask; a reduced manual set (e.g. the statistics
-page plus a handful of states for the 14 days) would answer part B for those states only.
+also found. **Stop accepted by the content agent the same day:** no attempt will ever be made to pass
+the challenge (no headless solving, no alternate user agents, no proxies, no retries). Lottery Post's
+no to automated reading stands.
+
+**Small-scale lane (ruled 10/14):** the operator may save a few state prediction pages from his own
+browser into `research_local/lp_saved/` (gitignored) as Safari Web Archive or HTML (preferred) or PDF
+(text only, weaker), named `{state}_{yyyy-mm-dd}.{ext}` plus `top.{ext}` for the statistics page.
+`parse_lp_pages.py` reads them (member extraction unvalidated until a first real page);
+`consensus.py --consensus-only` writes L1/L2/L3 counts. With a handful of pages the report is
+consensus only: no grading claims, and the sample is stated as too small to grade. Nothing has been
+provided as of this version.
+
+## Required outputs — status
+
+| output (brief §5) | status |
+|---|---|
+| `consensus_L1.csv` / `L2` / `L3` | absent — no Lottery Post picks obtained; written by `consensus.py` when saved pages exist |
+| `graded.md` A, B, C | this file — A: HitMaster column only; B: not obtained; C: histories side only |
+| `today.md` | present — not obtained, snapshot time stated |
+| raw `picks.csv` (local) | not produced — no pages |
+| run report (pages, refusals, runtime, dropped lines, members per pool) | table above |
 
 ## A. Consensus boards vs HitMaster, same pool
 
@@ -79,7 +95,8 @@ events on a full day, 64–66 on Sundays). Lottery Post regions known from the 2
 
 ## Caveats
 
-14 days is a small sample; the HitMaster CI above is ±0.2 wide and spans 1.0. Nothing here is a
+14 days is a small sample. The HitMaster box-lift CI runs from 0.92 to 1.32, a width of 0.39, and spans
+1.0 on both sides; a 14-day window cannot be narrower than this. Nothing here is a
 finding. Any future lift whose CI excludes 1.0 would be a hypothesis for a pre-registered forward
 test (STAT-02), decided separately by the operator; no copy, board, engine or product change follows
 from this document.

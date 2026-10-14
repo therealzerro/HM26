@@ -25,17 +25,19 @@ browser into `research_local/lp_saved/` (gitignored) as Safari Web Archive or HT
 (text only, weaker), named `{state}_{yyyy-mm-dd}.{ext}` plus `top.{ext}` for the statistics page.
 `parse_lp_pages.py` reads them (member extraction unvalidated until a first real page);
 `consensus.py --consensus-only` writes L1/L2/L3 counts. With a handful of pages the report is
-consensus only: no grading claims, and the sample is stated as too small to grade. Nothing has been
-provided as of this version.
+consensus only: no grading claims, and the sample is stated as too small to grade. **Provided 10/14
+16:52 ET: 7 state pages for 2026-10-14** (uploaded to GitHub by mistake, moved out of the tree in
+2c34c00; they remain in history at 80fa014). Parsed and counted — see `today.md`. One day × seven
+states is too small to grade; parts A and B stay as above.
 
 ## Required outputs — status
 
 | output (brief §5) | status |
 |---|---|
-| `consensus_L1.csv` / `L2` / `L3` | absent — no Lottery Post picks obtained; written by `consensus.py` when saved pages exist |
+| `consensus_L1.csv` / `L2` / `L3` | present for **2026-10-14 only, 7 states (FL GA MI NY OH TX DC), ALL pool** — operator-saved pages; counts only. No past-date pages → no past-date consensus |
 | `graded.md` A, B, C | this file — A: HitMaster column only; B: not obtained; C: histories side only |
-| `today.md` | present — not obtained, snapshot time stated |
-| raw `picks.csv` (local) | not produced — no pages |
+| `today.md` | present — ALL consensus board from the 7 saved pages (ungraded; TOP pools empty, statistics page not saved) |
+| raw `picks.csv` (local) | `research_local/lp_saved/picks.csv` — 16,875 rows, 70 members, local only |
 | run report (pages, refusals, runtime, dropped lines, members per pool) | table above |
 
 ## A. Consensus boards vs HitMaster, same pool

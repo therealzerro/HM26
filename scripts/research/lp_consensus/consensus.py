@@ -61,6 +61,7 @@ def main(picks_csv, hist_json, out_dir, today, consensus_only=False):
     os.makedirs(out_dir, exist_ok=True)
     rows = load_picks(picks_csv); draws = load_draws(hist_json)
     past = [r for r in rows if r['date'] < today]; todays = [r for r in rows if r['date'] == today]
+    if consensus_only: past = rows   # consensus-only: count every provided date (today included); nothing is graded
     L = {}
     for pool in ('TOP-LIFE', 'ALL'):
         L[pool] = {'L1': levels(past, pool, lambda r: (r['date'], r['state'], r['session'])),

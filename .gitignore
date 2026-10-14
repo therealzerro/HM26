@@ -38,3 +38,4 @@ assets/marketing/_carrier_joined/
 
 # LP consensus research (2026-10-14): raw member-level picks stay local, never committed
 research_local/
+__pycache__/

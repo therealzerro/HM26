@@ -9,9 +9,14 @@ pick extraction below is a best-effort text walk. Expect to adjust `split_member
 after the first real saved page; the counting rules downstream (consensus.py) do not
 depend on it.
 
-Input folder layout (filenames carry what the page does not reliably):
-  top.html                           /predictions/statistics/top  (4 Top-50 tables)
-  {state}_{yyyy}-{mm}-{dd}.html      /predictions/{state}/{yyyy}/{mm}/{dd}
+Input folder (default research_local/lp_saved/, gitignored). Accepted formats:
+  .html / .htm   browser "Save as… HTML only"               (best)
+  .webarchive    Safari "Web Archive" (main resource HTML)   (best — same as HTML)
+  .pdf           Safari/Chrome "Export as PDF"              (weaker: text only, member
+                 blocks found by a text heuristic, no anchors)
+Filenames carry what the page does not reliably:
+  top.{ext}                          /predictions/statistics/top  (4 Top-50 tables)
+  {state}_{yyyy-mm-dd}.{ext}         /predictions/{state}/{yyyy}/{mm}/{dd}   e.g. ca_2026-10-13.webarchive
 Output: picks.csv (member, pool, date, state, session, combo, exact, box) with pool
 ∈ {TOP-HOT, TOP-LIFE, ALL} — a member appears once per pool they belong to — and a
 JSON summary of pages, members per pool and dropped lines.
@@ -20,6 +25,23 @@ Only 3-digit lines are kept; anything else is dropped and counted.
 import csv, json, os, re, sys
 from collections import defaultdict
 from bs4 import BeautifulSoup
+import plistlib, subprocess
+
+def load_page(path):
+    """Return ('html', str) or ('text', str) for .html/.htm/.webarchive/.pdf."""
+    ext = os.path.splitext(path)[1].lower()
+    if ext in ('.html', '.htm'):
+        return 'html', open(path, encoding='utf-8', errors='replace').read()
+    if ext == '.webarchive':
+        pl = plistlib.load(open(path, 'rb'))
+        data = pl['WebMainResource']['WebResourceData']
+        enc = pl['WebMainResource'].get('WebResourceTextEncodingName') or 'utf-8'
+        return 'html', data.decode(enc, errors='replace')
+    if ext == '.pdf':
+        out = subprocess.run(['pdftotext', '-layout', path, '-'], capture_output=True, text=True, check=True).stdout
+        return 'text', out
+    raise ValueError(f'unsupported format: {path}')
+EXTS = ('.html', '.htm', '.webarchive', '.pdf')
 
 GAME_RX = re.compile(r'\b(pick\s*3|cash\s*3|daily\s*3|play\s*3|numbers|dc-3|quotidienne\s*3|pick-3)\b', re.I)
 SESSION_RX = re.compile(r'\b(midday|evening|day|night|noon|matin|soir)\b', re.I)
@@ -59,9 +81,32 @@ def split_members(soup):
             if len(lines) > 400: break
         yield name, lines
 
-def parse_day(html, state, date):
-    soup, _ = text_lines(html); rows = []; dropped = 0; session = None
-    for name, lines in split_members(soup):
+def split_members_text(text):
+    """PDF fallback: a block starts at a line that is neither a 3-digit pick, a game/session
+    header, a number-like token nor a known furniture word; everything until the next such
+    line belongs to it. Heuristic — review the summary's member count against the page."""
+    FURN = re.compile(r'^(lottery post|predictions?|member|game|box|straight|date|page \d+|\d+ of \d+|login|sign in|home)\b', re.I)
+    blocks = []; name = None; lines = []
+    for raw in text.split('\n'):
+        ln = raw.strip()
+        if not ln: continue
+        parts = [p for p in re.split(r'\s{2,}', ln) if p]           # -layout columns
+        for pt in parts:
+            if re.fullmatch(r'\d{3}', pt) or GAME_RX.search(pt) or re.fullmatch(r'[\d\s\-+/]+', pt) or FURN.search(pt):
+                if name is not None: lines.append(pt)
+                continue
+            if name is not None: blocks.append((name, lines))
+            name, lines = pt, []
+    if name is not None: blocks.append((name, lines))
+    return blocks
+
+def parse_day(page, state, date):
+    kind, body = page; rows = []; dropped = 0
+    if kind == 'html':
+        soup, _ = text_lines(body); blocks = split_members(soup)
+    else:
+        blocks = split_members_text(body)
+    for name, lines in blocks:
         sess = None
         for s in lines:
             m = SESSION_RX.search(s)
@@ -73,14 +118,19 @@ def parse_day(html, state, date):
 
 def main(folder, out_csv, summary_path):
     pools = {'TOP-HOT': set(), 'TOP-LIFE': set()}
-    top = os.path.join(folder, 'top.html')
-    if os.path.exists(top): pools = parse_top(open(top, encoding='utf-8', errors='replace').read())
+    for ext in EXTS:
+        top = os.path.join(folder, 'top' + ext)
+        if os.path.exists(top):
+            kind, body = load_page(top)
+            if kind == 'html': pools = parse_top(body)
+            else: print('top page as PDF: Top-50 tables need the HTML/webarchive save; pools left empty', file=sys.stderr)
+            break
     seen = set(); rows = []; pages = 0; dropped = 0; members = set()
     for fn in sorted(os.listdir(folder)):
-        m = re.fullmatch(r'([a-z]{2,3})_(\d{4}-\d{2}-\d{2})\.html', fn)
+        m = re.fullmatch(r'([a-z]{2,3})_(\d{4}-\d{2}-\d{2})\.(html|htm|webarchive|pdf)', fn, re.I)
         if not m: continue
         pages += 1
-        r, d = parse_day(open(os.path.join(folder, fn), encoding='utf-8', errors='replace').read(), m.group(1).upper(), m.group(2))
+        r, d = parse_day(load_page(os.path.join(folder, fn)), m.group(1).upper(), m.group(2))
         dropped += d
         for name, date, state, sess, combo in r:
             key = (name, date, state, sess, ''.join(sorted(combo)), combo)
@@ -96,4 +146,6 @@ def main(folder, out_csv, summary_path):
     json.dump(summary, open(summary_path, 'w'), indent=1); print(json.dumps(summary, indent=1))
 
 if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2], sys.argv[3])
+    a = sys.argv[1:] or ['research_local/lp_saved']
+    folder = a[0]; out = a[1] if len(a) > 1 else os.path.join(folder, 'picks.csv'); summ = a[2] if len(a) > 2 else os.path.join(folder, 'parse_summary.json')
+    main(folder, out, summ)

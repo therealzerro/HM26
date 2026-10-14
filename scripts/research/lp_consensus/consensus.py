@@ -10,7 +10,9 @@ A. consensus board per past date = top 6 box sets by L2 distinct members (ties �
 B. state-level agreement: (date,state,session) sets backed by ≥2 TOP-LIFE members (≥3 for
    ALL) vs that state's that-session draw; observed vs expected (.006/.003/.001 box, .001 exact).
 C. coverage: LP state codes with picks that histories does not carry.
-Usage: consensus.py picks.csv histories.json out_dir today=YYYY-MM-DD
+Usage: consensus.py picks.csv histories.json out_dir today=YYYY-MM-DD [--consensus-only]
+  --consensus-only: a handful of saved pages — write L1/L2/L3 counts and today's boards only,
+  no grading, no lift (the sample is too small to grade; ruled 2026-10-14).
 Writes consensus_L1/L2/L3.csv (counts only, no member names), graded.json, today.json.
 """
 import csv, json, os, sys
@@ -55,7 +57,7 @@ def board_for(l2_box, date):
         if len(out) == 6: break
     return out
 
-def main(picks_csv, hist_json, out_dir, today):
+def main(picks_csv, hist_json, out_dir, today, consensus_only=False):
     os.makedirs(out_dir, exist_ok=True)
     rows = load_picks(picks_csv); draws = load_draws(hist_json)
     past = [r for r in rows if r['date'] < today]; todays = [r for r in rows if r['date'] == today]
@@ -68,7 +70,7 @@ def main(picks_csv, hist_json, out_dir, today):
     write_level(f'{out_dir}/consensus_L2.csv', {p: L[p]['L2'] for p in L}, ['date'])
     write_level(f'{out_dir}/consensus_L3.csv', {p: L[p]['L3'] for p in L}, ['window'])
     result = {'A': {}, 'B': {}, 'C': {}}
-    for pool in ('TOP-LIFE', 'ALL'):
+    for pool in ([] if consensus_only else ('TOP-LIFE', 'ALL')):
         boards = {d: board_for(L[pool]['L2']['box'], d) for d in sorted({r['date'] for r in past})}
         boards = {d: b for d, b in boards.items() if len(b) == 6 and d in draws}
         result['A'][pool] = grade(boards, draws) if boards else {'note': 'no complete boards'}
@@ -93,13 +95,15 @@ def main(picks_csv, hist_json, out_dir, today):
     result['C'] = {'lp_codes_seen': sorted(lp_states), 'histories_codes': sorted(hist_j),
                    'lp_codes_not_in_histories': sorted(lp_states - hist_j),
                    'picks_ungradeable': sum(r['state'] not in hist_j for r in past)}
+    if consensus_only: result = {'note': 'consensus only — sample too small to grade; no lift computed', 'C': result['C']}
     json.dump(result, open(f'{out_dir}/graded.json', 'w'), indent=1, default=str)
     tod = {}
     for pool in ('TOP-HOT', 'TOP-LIFE', 'ALL'):
         l2 = levels(todays, pool, lambda r: r['date'])['box']
         tod[pool] = board_for(l2, today)
     json.dump(tod, open(f'{out_dir}/today.json', 'w'), indent=1)
-    print(json.dumps({'A': {p: {k: v for k, v in result['A'][p].items() if k not in ('per_date', 'boards')} for p in result['A']}, 'B': result['B'], 'C': result['C']}, indent=1, default=str))
+    print(json.dumps({k: ({p: {kk: vv for kk, vv in v[p].items() if kk not in ('per_date', 'boards')} for p in v} if k == 'A' else v) for k, v in result.items()}, indent=1, default=str))
 
 if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4].split('=')[-1])
+    args = [x for x in sys.argv[1:] if not x.startswith('--')]
+    main(args[0], args[1], args[2], args[3].split('=')[-1], consensus_only='--consensus-only' in sys.argv)

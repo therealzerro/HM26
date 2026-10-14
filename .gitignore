@@ -35,3 +35,6 @@ assets/supporter_emails_*.tsv
 
 # MKT-09: generated multi-part carrier joins (derived from the delivered parts)
 assets/marketing/_carrier_joined/
+
+# LP consensus research (2026-10-14): raw member-level picks stay local, never committed
+research_local/

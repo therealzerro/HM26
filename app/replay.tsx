@@ -144,7 +144,12 @@ export default function ReplayScreen() {
 
       let cardTotalMatches = 0;
       const cardPicks = picks.slice(0, 6).map((p: any, i: number) => {
-        const combo = String(p.combo ?? '');
+        // BUG-184: render and grade the POSTED straight (bestOrder), not the
+        // engine enumeration index (combo). Every other surface moved under
+        // BUG-155/158; this screen still read combo, so pills showed digits
+        // that were never on the slate and straights were starred against
+        // the wrong permutation. combo stays as legacy fallback only.
+        const combo = String(p.bestOrder ?? p.combo ?? '');
         const set = toComboSet(combo);
         const matches = drawsBySet.get(set) ?? [];
         // For the pick pill: prefer a straight hit as the displayed marker;

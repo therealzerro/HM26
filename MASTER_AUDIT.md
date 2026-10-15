@@ -250,6 +250,18 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 ---
 
+### BUG-184 — Replay screen rendered and graded the engine enumeration index (`combo`) instead of the POSTED straight (`bestOrder`) ✅ FIXED 2026-10-15
+
+**Report (operator, 10/15):** the Replay for 10/15 midday showed `871 / 158 / 716 / 317 / 621 / 840` while the slate posted `781 / 518 / 167 / 137 / 621 / 048` — "a giant error". Same session: 9/30 midday #1 read as a BOX match on `178` when VA drew `178`.
+
+**Trace:** `app/replay.tsx` built each pill from `p.combo` and starred straights on `result_digits === combo`. Per BUG-155, `combo` is the `000..999` enumeration index (never posted) and `bestOrder` is the permutation on the slate, cards and reels (`explore.tsx:257`, `PickCard.tsx:334` both render `bestOrder ?? combo`). Replay was the one surface never moved. Two consequences: (1) pills showed digits that were never on the slate whenever `combo ≠ bestOrder` (5 of 6 picks on 10/15 midday); (2) straights were starred against the wrong permutation — 9/30 midday #1 (`combo 178 / bestOrder 718`, VA drew 178) would star ⭐ STRAIGHT in Replay while hit detection correctly stamped BOX. Stored data (`slate_snapshots`, `adaptive_tracking`, `daily_intelligence`) is correct; the 30-day grading agreement recorded in ENG-REVIEW-03 stands.
+
+**Fix:** `app/replay.tsx` pick mapper reads `String(p.bestOrder ?? p.combo ?? '')` — one line, display + straight comparison + straightCount all flow from it; `combo` stays as the legacy fallback for pre-bestOrder snapshots. Filtered tsc 0 on the file. No deploy (client-only screen).
+
+**The 9/30 "178 box" question is NOT a bug:** the slate posted 718; VA's 178 is a box against 718. The track-record row shows `adaptive_tracking.combo` for box matches (BUG-158 rule), which on 9/30 happened to equal the drawn digits, so the row reads "178 · BOX · drew 178". AT does not store `bestOrder`; showing the posted order on box rows would need a snapshot join — open, operator's call (consumer surface, hands-off until asked).
+
+**Next BUG ID: 185.**
+
 ### MKT-79 / RECORD-GATE-01 — record_public 30-of-30 abort: the report the content agent asked for, rule (ii) BUILT behind --three-row, classic gate UNCHANGED, flip HELD for the operator's eyeball (2026-10-13)
 
 **Content agent (v7.24 reply):** under chance a day lights on the classic strip ~99.5% of the time, so a fully lit 30-day window is the EXPECTED case and the all-matched reject will keep blocking the reel. Asked for (a) a 30-window report under three rules, (b) the flip to the three-row strip with rule (ii), (c) no loosening of the classic gate.

@@ -28,6 +28,7 @@ import { config as loadEnv } from 'dotenv';
 import { writeFileSync, rmSync, copyFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { jurisdictionNameUpper } from '../lib/jurisdictionNames';
 
 loadEnv({ path: resolve('.env'), quiet: true });
 const URL_BASE = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -172,9 +173,20 @@ function html(picks: SlatePick[], dateISO: string, publicCut = false, covered = 
       ? `<div class="res"><div class="rlab">${drewLab}</div><div class="rval">${drewVal}</div>
          ${publicCut ? '' : `<div class="rwhere">${(p.hitState ?? '').toUpperCase()} · ${(p.hitSession ?? '').toUpperCase()}</div>`}</div>`
       : `<div class="res pending"><div class="rlab">NO MATCH</div></div>`;
+    // MKT-86 (operator, 2026-10-15): a STRAIGHT on the graded, non-public board
+    // gets an EXAGGERATED gold stamp naming the state in full, rotated across
+    // the row's middle (over the box-set chip, which a straight makes
+    // redundant) — the rank, the digits, DREW and the attribution stay clear.
+    // Never on the public cut (tier 1: no state names, no STRAIGHT) and never
+    // on the covered layer (nothing is graded in that frame).
+    const stampName = straight && hit && !masked && p.hitState ? jurisdictionNameUpper(p.hitState) : '';
+    const stampCls = stampName.length > 14 ? ' long' : stampName.length > 9 ? ' mid' : '';
+    const stampEl = stampName
+      ? `<div class="stamp${stampCls}"><div class="plate"><span class="sm">STRAIGHT MATCH</span><span class="sn">${stampName}</span></div></div>`
+      : '';
     return `<div class="row ${hit ? 'hit' : ''}${straight ? ' straight' : ''}">
       <div class="rank">#${p.rank}</div><div class="digits">${digits}</div>
-      <div class="set">${setChip}</div>${right}</div>`;
+      <div class="set">${setChip}</div>${right}${stampEl}</div>`;
   }).join('');
   return `<!doctype html><html><head><style>
     @font-face{font-family:JBM;src:url('file://${FONT}/700Bold/JetBrainsMono_700Bold.ttf');font-weight:700}
@@ -223,6 +235,22 @@ function html(picks: SlatePick[], dateISO: string, publicCut = false, covered = 
     .rval{font-weight:700;font-size:42px;letter-spacing:5px}
     .rwhere{font-weight:500;font-size:20px;color:#8a90a6;letter-spacing:2px}
     .res.pending .rlab{color:#454b60}
+    /* MKT-86 — the straight state stamp. Absolute inside the row (the row is
+       the positioning context), spanning the band between the digits column
+       (ends ~x320 in row coordinates) and the result column (starts ~x640),
+       centred and rotated. The plate is opaque so it reads over the set chip;
+       it never reaches the digits or the DREW column. */
+    .row{position:relative}
+    .stamp{position:absolute;left:300px;right:250px;top:50%;transform:translateY(-50%);
+           display:flex;justify-content:center;pointer-events:none}
+    .stamp .plate{display:flex;flex-direction:column;align-items:center;gap:2px;
+           padding:10px 22px 12px;border-radius:12px;background:rgba(26,21,13,.94);
+           border:5px solid #fbbf24;box-shadow:0 0 0 3px #07080f,0 0 36px #fbbf2466;
+           transform:rotate(-7deg);white-space:nowrap}
+    .stamp .sm{font-weight:700;font-size:22px;letter-spacing:6px;color:#fbbf24;text-shadow:0 0 14px #fbbf2488}
+    .stamp .sn{font-weight:700;font-size:44px;letter-spacing:3px;color:#fff;text-shadow:0 0 18px #fbbf2466}
+    .stamp.mid .sn{font-size:34px;letter-spacing:2px}
+    .stamp.long .sn{font-size:26px;letter-spacing:1px}
     .foot{margin-top:8px;font-weight:500;font-size:28px;color:#6f7590;letter-spacing:3px;text-align:center}
   </style></head><body>
     <div class="board" ${layerId ? `id="${layerId}"` : ''}>

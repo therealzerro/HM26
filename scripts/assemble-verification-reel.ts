@@ -26,7 +26,7 @@
 //   (defaults to yesterday ET; expects ui_verify_<stamp>.mp4 already rendered)
 import { execSync } from 'node:child_process';
 import { existsSync, rmSync } from 'node:fs';
-import { assertBodyDate, assertBodyPublic, readStrikeAt, readLanded } from './reel-provenance';
+import { assertBodyDate, assertBodyPublic, readStrikeAt, readLanded, readStraightState } from './reel-provenance';
 import { HOOK_DUR, HOOK_DISSOLVE, VERIFY_PUBLIC_COLD_OPEN_FROM } from './public-hook-config';
 import { probeStrikeOverlay, strikeFilter } from './strike-config';
 import { resolveEndcard } from './reel-endcard';
@@ -293,6 +293,25 @@ if (strike) console.log(`NOTE(${KIND}): STRAIGHT MATCH strike at ${strike.t0}s (
 // ⚠ Input LAST so the sting/chip index arithmetic above stays untouched.
 const strikeIdx = 5 + (sting ? 1 : 0) + (chipPng ? 1 : 0);
 
+// MKT-86 — THE STRAIGHT STATE STAMP (operator order 2026-10-15). On verify and
+// verify_midday ONLY: when the strike fires AND the body names the state of
+// that first straight hold (STRAIGHT_STATE_TAG, written beside the strike
+// offset by the renderer), an exaggerated "STRAIGHT MATCH · <STATE>" plate is
+// rendered per build (like the chip) and composited over the hold from
+// 0.35s after the bolt to the hold's end. Never on the public cut — tier 1
+// forbids state names and the STRAIGHT word (MKT-30/MKT-40) — and never
+// without the strike, so the two conditional beats can only land together.
+const straightState = strike && !PUBLIC ? readStraightState(ui) : null;
+const stateStampPng = straightState ? join(REELS, `_straight_${KIND}_${stamp}.png`) : null;
+if (stateStampPng) sh(`npx tsx scripts/render-straight-stamp.ts "${straightState}" "${stateStampPng}"`);
+const stateStamp = stateStampPng && strike
+  ? { path: stateStampPng, a: +(strike.t0 + 0.35).toFixed(2), b: +(strike.t0 + 2.0).toFixed(2) }
+  : null;
+if (strike && !PUBLIC && !stateStamp) console.log(`NOTE(${KIND}): strike fires but the body carries no state for the first hold — no state stamp (MKT-86).`);
+if (stateStamp) console.log(`NOTE(${KIND}): STRAIGHT MATCH state stamp "${straightState}" over the first hold ${stateStamp.a}–${stateStamp.b}s (MKT-86).`);
+// Input after the strike (which is itself input LAST above): index = strikeIdx + 1.
+const stateIdx = strikeIdx + 1;
+
 const msVoice = Math.round(voiceStart * 1000);
 
 // 1. Settled lockup frame from the endcard tail (legacy open only).
@@ -313,6 +332,7 @@ sh(
   // hardcoded index would take the stinger's slot on a stinger-less build.
   (chipPng ? `-loop 1 -framerate 60 -t ${total} -i "${chipPng}" ` : ``) +
   (strike ? `-i "${strike.path}" ` : ``) +                   // [strikeIdx] strike overlay (MKT-63; video only, audio NEVER mapped)
+  (stateStamp ? `-loop 1 -framerate 60 -t ${total} -i "${stateStamp.path}" ` : ``) + // [stateIdx] straight state stamp (MKT-86)
   `-filter_complex "` +
   (intro
     ? `[0:v]scale=1080:1920:flags=lanczos,format=yuv420p,setsar=1,fps=60,settb=AVTB,trim=duration=${openBase},setpts=PTS-STARTPTS[bolt0];`
@@ -332,6 +352,13 @@ sh(
   // identity — no enable= timeline, no EOF race. Strike-less days take the
   // null path and the graph is byte-identical to pre-MKT-63.
   (strike ? strikeFilter(strikeIdx, 'vraw', 'vsk', strike.t0, total) : `[vraw]null[vsk];`) +
+  // MKT-86: the state stamp rides AFTER the strike (content-adjacent, like the
+  // bolt) and BEFORE the ribbon/chip furniture; alpha fade in 0.15s at its
+  // window start, out 0.2s before the hold ends, enable= bounds the window.
+  (stateStamp
+    ? `[${stateIdx}:v]format=rgba,fade=t=in:st=${stateStamp.a}:d=0.15:alpha=1,fade=t=out:st=${+(stateStamp.b - 0.2).toFixed(2)}:d=0.2:alpha=1[sst];` +
+      `[vsk][sst]overlay=0:0:enable='between(t,${stateStamp.a},${stateStamp.b})',format=yuv420p[vss];`
+    : `[vsk]null[vss];`) +
   // RIBBON RULE (operator ruling 2026-08-19, superseding MKT-31 item 2's
   // every-body-frame span): on BOTH verify kinds the ribbon rides the BOARD
   // SEGMENT ONLY, UNCONDITIONALLY — never a collision-day conditional. The
@@ -359,7 +386,7 @@ sh(
   // BOARD segment is longer by the cover-lift (covered hold + lift precede
   // the graded board's 2.5s).
   `[st1]fade=t=out:st=${+(openDur + BOARD_SEG).toFixed(2)}:d=0.45:alpha=1[stB];` +
-  `[vsk][stA]overlay=0:-370:enable='lt(t,${+(openDur + BOARD_SEG).toFixed(2)})'[vbrd];` +
+  `[vss][stA]overlay=0:-370:enable='lt(t,${+(openDur + BOARD_SEG).toFixed(2)})'[vbrd];` +
   `[vbrd][stB]overlay=0:0:enable='gte(t,${+(openDur + BOARD_SEG).toFixed(2)})',format=yuv420p[vst];` +
   // MKT-22/MKT-35: chip rides the intro only — FULL OPACITY FROM FRAME ONE
   // (frame one is the camera-roll thumbnail; no fade-in by ruling), hold to
@@ -426,6 +453,8 @@ const stampTimes = MIDDAY
   ? [0, openDur + 0.3, openDur + COVER_LIFT_SECONDS + 2.5 + 0.3, openDur + BOARD_SEG + 0.3, openDur + uiDur * 0.66, total - 0.7]
   : [0, openDur + 0.3, openDur + uiDur * 0.62, total - 0.7];
 if (strike) stampTimes.push(strike.t0 + 0.25);
+// MKT-86: one frame with the state stamp fully up, for the operator's eyeball.
+if (stateStamp) stampTimes.push(strike!.t0 + 0.9);
 const STAMPS = stampTimes.sort((a, b) => a - b).map(t => +t.toFixed(1));
 STAMPS.forEach((t, i) => sh(`ffmpeg -y -loglevel error -ss ${t} -i "${out}" -frames:v 1 -vf "scale=270:480" "${join(REELS, `_cs${i}.png`)}"`));
 sh(`ffmpeg -y -loglevel error ${STAMPS.map((_, i) => `-i "${join(REELS, `_cs${i}.png`)}"`).join(' ')} -filter_complex "${STAMPS.map((_, i) => `[${i}]`).join('')}hstack=${STAMPS.length}" "${sheet}"`);

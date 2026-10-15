@@ -67,7 +67,7 @@ import { mkdirSync, copyFileSync, rmSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { provenanceArgs, STRIKE_TAG } from './reel-provenance';
+import { provenanceArgs, STRIKE_TAG, STRAIGHT_STATE_TAG } from './reel-provenance';
 import { fetchSamedayProvenance, fmtGap, type SamedayProvenance } from './reel-sameday';
 import { renderSlateFrames, renderCoverLiftFrames, F_COVER, F_LIFT, type BoardLabels } from './render-verify-slate';
 import { config as loadEnv } from 'dotenv';
@@ -374,7 +374,7 @@ function fmtET(d: Date): string {
     // see at all. The COMBO is the stable anchor: a 3-digit leaf ~23px tall,
     // one per row, and semantically the thing the row is about.
     const groupEnd = after[0]?.top ?? scroller.scrollHeight;
-    const rows: Array<{ top: number; height: number; straight: boolean }> = [];
+    const rows: Array<{ top: number; height: number; straight: boolean; state: string | null }> = [];
     const all = Array.from(document.querySelectorAll('*')) as HTMLElement[];
     const combos = all.filter(d => d.children.length === 0 && /^\d{3}$/.test((d.textContent ?? '').trim()));
     for (const leaf of combos) {
@@ -396,7 +396,12 @@ function fmtET(d: Date): string {
       if (rows.some(x => Math.abs(x.top - top) < 20)) continue;
       // STRAIGHT is read from the row's full text, which DOES include the
       // nested span even though the span is not itself selectable as a div.
-      rows.push({ top, height: r.height, straight: /\bSTRAIGHT\b/.test((target.textContent ?? '').trim()) });
+      // MKT-86: the STATE comes from the same text — the row's attribution
+      // reads "Drew 054 in WI midday" ("in ME,NH,VT evening", "in W.Canada
+      // evening"); read BEFORE any public sweep rewrites it.
+      const rowText = (target.textContent ?? '').trim();
+      const stateM = rowText.match(/\bin ((?:[A-Z]{2}(?:,[A-Z]{2})*)|W\.Canada)\b/);
+      rows.push({ top, height: r.height, straight: /\bSTRAIGHT\b/.test(rowText), state: stateM ? stateM[1] : null });
     }
     rows.sort((a, b) => a.top - b.top);
     return {
@@ -557,7 +562,7 @@ function fmtET(d: Date): string {
 
   const L = layout as {
     scrollHeight: number; clientHeight: number; yTop: number; nextTop: number; rowCount: number;
-    rows: Array<{ top: number; height: number; straight: boolean }>;
+    rows: Array<{ top: number; height: number; straight: boolean; state: string | null }>;
   };
 
   const setScroll = (px: number) =>
@@ -687,6 +692,13 @@ function fmtET(d: Date): string {
   console.log(strikeAt != null
     ? `strike (MKT-63): first hold is a STRAIGHT — ${STRIKE_TAG}=${strikeAt}s into the body`
     : `strike (MKT-63): ${featured.length ? 'no straight featured' : 'no rows'} — no strike tag`);
+  // MKT-86: the state of that same first hold rides beside the strike offset so
+  // the assembler can name it on the stamp. Public cut: tagged too (the layout
+  // read precedes the sweep); the assembler never renders it there.
+  const straightState = strikeAt != null ? (featured[0].state ?? null) : null;
+  if (strikeAt != null) console.log(straightState
+    ? `straight stamp (MKT-86): ${STRAIGHT_STATE_TAG}=${straightState}`
+    : 'straight stamp (MKT-86): first hold is a STRAIGHT but its state could not be read from the row — no stamp tag');
 
   const shoot = async (f: number, scroll: number, k: number) => {
     await setScroll(scroll);
@@ -820,7 +832,7 @@ function fmtET(d: Date): string {
     // MKT-63: STRIKE_TAG rides the same channel — the assembler reads the
     // first-hold offset from the pixels' own file, never from re-derivation.
     // MKT-75: LANDED_TAG — the All-Day board's "N of 6" as the pixels show it.
-    `${provenanceArgs(dateISO, false, PUBLIC, strikeAt, { landed: landedAllday, total: 6 })} "${outMp4}"`,
+    `${provenanceArgs(dateISO, false, PUBLIC, strikeAt, { landed: landedAllday, total: 6 }, straightState)} "${outMp4}"`,
     { stdio: 'inherit' },
   );
   rmSync(WORK, { recursive: true, force: true });

@@ -69,6 +69,16 @@ export const PUBLIC_TAG = 'hm_reel_public';
  * the strike is an ornament, never data.
  */
 export const STRIKE_TAG = 'hm_strike_at';
+/**
+ * MKT-86 — container tag naming the STATE of the first featured hold when that
+ * hold is a STRAIGHT row (the same condition as STRIKE_TAG; written together).
+ * The verify assembler renders the "STRAIGHT MATCH · <STATE>" stamp from it on
+ * verify / verify_midday and IGNORES it on the public cut (tier 1 forbids
+ * state names). Read from the ledger row's own attribution text ("Drew 054 in
+ * WI midday") at layout time, before any public sweep. Absent = no straight
+ * featured / pre-MKT-86 body = no stamp.
+ */
+export const STRAIGHT_STATE_TAG = 'hm_straight_state';
 /** MKT-75: the verify body's own landed count for the ALL-DAY board it shows,
  *  as "N of M" (snapshot flags cross-checked against adaptive_tracking in
  *  render-verify-slate). The cold-open assembler asserts it EQUALS the hook
@@ -163,12 +173,29 @@ export function readRecordStats(file: string): RecordStatsTags | null {
  * here because movflags is one combined option; splitting it across two flags
  * means the last one wins and the other is lost.
  */
-export function provenanceArgs(dateISO: string, redacted = false, isPublic = false, strikeAt: number | null = null, landed: { landed: number; total: number } | null = null): string {
+export function provenanceArgs(dateISO: string, redacted = false, isPublic = false, strikeAt: number | null = null, landed: { landed: number; total: number } | null = null, straightState: string | null = null): string {
   return `-movflags +faststart+use_metadata_tags -metadata ${DATE_TAG}="${dateISO}"` +
     ` -metadata ${REDACT_TAG}="${redacted ? '1' : '0'}"` +
     (isPublic ? ` -metadata ${PUBLIC_TAG}="1"` : '') +
     (strikeAt != null ? ` -metadata ${STRIKE_TAG}="${strikeAt.toFixed(2)}"` : '') +
+    // MKT-86: only with a strike (same condition), only a code-shaped value.
+    (strikeAt != null && straightState && /^[A-Za-z.,]{2,12}$/.test(straightState) ? ` -metadata ${STRAIGHT_STATE_TAG}="${straightState}"` : '') +
     (landed ? ` -metadata ${LANDED_TAG}="${landed.landed} of ${landed.total}"` : '');
+}
+
+/** MKT-86: the jurisdiction code of the first featured STRAIGHT hold recorded
+ *  in `file`, or null (no straight featured / pre-MKT-86 body / unreadable).
+ *  Shape-checked: a code is 2–12 chars of letters, dots and commas
+ *  ("WI", "ME,NH,VT", "W.Canada"); anything else is treated as absent. */
+export function readStraightState(file: string): string | null {
+  try {
+    const out = execSync(
+      `ffprobe -v error -show_entries format_tags=${STRAIGHT_STATE_TAG} -of default=nw=1:nk=1 "${file}"`,
+    ).toString().trim();
+    return /^[A-Za-z.,]{2,12}$/.test(out) ? out : null;
+  } catch {
+    return null;
+  }
 }
 
 /** MKT-75: the "N of M" landed count a verify body recorded for its All-Day

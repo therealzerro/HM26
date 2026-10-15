@@ -24,9 +24,9 @@ export interface HitToPickInput {
   hit_box?: boolean | null;
   hit_straight?: boolean | null;
   hit_result?: string | null;
-  /** BUG-185: the permutation actually posted on the slate (snapshot
-   *  pick.bestOrder), resolved by the caller. adaptive_tracking does not
-   *  store it; `combo` there is the engine enumeration index. */
+  /** BUG-185 / ENG-AT-POSTED-01: the permutation actually posted on the slate
+   *  (adaptive_tracking.posted_order = snapshot pick.bestOrder). `combo` is the
+   *  engine enumeration index, never the posted order. */
   posted_order?: string | null;
   signal_box?: number | null;
   signal_pburst?: number | null;
@@ -72,18 +72,18 @@ export function formatHitContext(p: {
 }
 
 export function hitRowToPickItem(h: HitToPickInput): PickItem {
-  const sortedCombo = h.combo ?? '';
-  // adaptive_tracking.combo is the sorted-canonical comboSet key (per BUG-155),
-  // not the order actually predicted. For a STRAIGHT hit, the engine's
-  // bestOrder matched the draw exactly, so hit_result IS that bestOrder.
-  // Surfacing the sorted key here would render "019 → 910" on a straight match.
-  // BUG-185: for a BOX hit, prefer the posted order when the caller resolved
-  // it from the snapshot; the enumeration index is the fallback only.
-  const orderedCombo = h.hit_straight && h.hit_result ? h.hit_result : (h.posted_order ?? sortedCombo);
+  const enumCombo = h.combo ?? '';
+  // adaptive_tracking.combo is the engine's 000..999 ENUMERATION INDEX (BUG-155)
+  // — it is NOT sorted (10/15 midday carried combo 871 for set {1,7,8}) and it
+  // is never the order posted on the slate. For a STRAIGHT hit the posted order
+  // equals the draw, so hit_result IS it (BUG-158). For a BOX hit use the
+  // posted order (adaptive_tracking.posted_order since ENG-AT-POSTED-01, or a
+  // snapshot-resolved value); the enumeration index is the fallback only.
+  const orderedCombo = h.hit_straight && h.hit_result ? h.hit_result : (h.posted_order ?? enumCombo);
   return {
     rank: h.rank ?? 1,
     combo: orderedCombo,
-    comboSet: h.combo_set ?? toComboSet(sortedCombo),
+    comboSet: h.combo_set ?? toComboSet(enumCombo),
     bestOrder: orderedCombo,
     energy: typeof h.energy === 'number' ? Math.round(h.energy) : 0,
     signals: {

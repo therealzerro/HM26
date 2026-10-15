@@ -97,7 +97,7 @@ function PerformanceRow({
           method: 'GET',
         }),
         fetchFromSupabase<any[]>({
-          path: `/rest/v1/adaptive_tracking?slate_date=eq.${row.slate_date}&scope=eq.${row.scope}&select=rank,combo,combo_set,signal_box,signal_pburst,signal_co,signal_burst,energy_score,mode,hit_box,hit_straight,actual_result,matched_state,matched_session,dominant_signal,box_top_quartile,pburst_top_quartile,co_top_quartile,burst_top_quartile&limit=100`,
+          path: `/rest/v1/adaptive_tracking?slate_date=eq.${row.slate_date}&scope=eq.${row.scope}&select=rank,combo,combo_set,signal_box,signal_pburst,signal_co,signal_burst,energy_score,mode,hit_box,hit_straight,actual_result,matched_state,matched_session,dominant_signal,box_top_quartile,pburst_top_quartile,co_top_quartile,burst_top_quartile,posted_order&limit=100`,
           method: 'GET',
         }),
       ]);
@@ -537,7 +537,8 @@ function PerformanceRow({
                         const cs = res.comboset_sorted ?? ('{' + (res.result_digits ?? '').split('').sort().join(',') + '}');
                         const track = csToTrack.get(cs);
                         const matched = !!track;
-                        const isStraight = !!track && track.combo === res.result_digits;
+                        // BUG-155/185: a straight is posted-order == draw, never combo == draw.
+                        const isStraight = !!track && (track.posted_order ?? track.combo) === res.result_digits;
                         const pickRank = csToRank.get(cs);
                         return (
                           <View key={ri} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 }}>

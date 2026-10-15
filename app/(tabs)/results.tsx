@@ -407,6 +407,7 @@ export default function ResultsScreen() {
     hit_box: !!r.hit_box,
     hit_straight: !!r.hit_straight,
     actual_result: r.actual_result ?? undefined,
+    posted_order: r.posted_order ?? undefined, // ENG-AT-POSTED-01
     signal_box: r.signal_box,
     signal_pburst: r.signal_pburst,
     signal_co: r.signal_co,
@@ -415,10 +416,10 @@ export default function ResultsScreen() {
   });
 
   const { data: hits, refetch: refetchHits } = useQuery<HitRow[]>({
-    queryKey: ['adaptive_tracking_hits_v2', selectedDate, followedStates.join(',')],
+    queryKey: ['adaptive_tracking_hits_v3', selectedDate, followedStates.join(',')],
     queryFn: async () => {
       const res = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/adaptive_tracking?select=slate_date,scope,mode,rank,combo,combo_set,energy_score,signal_box,signal_pburst,signal_co,signal_burst,actual_result,matched_state,matched_session,hit_box,hit_straight&slate_date=in.(${selectedDate},${nextDay})&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${matchedStateFilter}&order=rank.asc.nullslast&limit=500`,
+        path: `/rest/v1/adaptive_tracking?select=slate_date,scope,mode,rank,combo,combo_set,energy_score,signal_box,signal_pburst,signal_co,signal_burst,actual_result,matched_state,matched_session,hit_box,hit_straight,posted_order&slate_date=in.(${selectedDate},${nextDay})&or=(hit_box.eq.true,hit_straight.eq.true)&mode=in.(balanced,conservative,aggressive)${matchedStateFilter}&order=rank.asc.nullslast&limit=500`,
         method: 'GET',
       });
       return Array.isArray(res) ? res.map(remapToHitRow) : [];
@@ -436,7 +437,7 @@ export default function ResultsScreen() {
     queryKey: ['adaptive_tracking_on_slate_v2', selectedDate],
     queryFn: async () => {
       const res = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/adaptive_tracking?select=slate_date,scope,mode,rank,combo,combo_set,energy_score,signal_box,signal_pburst,signal_co,signal_burst,actual_result,matched_state,matched_session,hit_box,hit_straight&slate_date=in.(${selectedDate},${nextDay})&mode=in.(balanced,conservative,aggressive)&order=rank.asc.nullslast&limit=1000`,
+        path: `/rest/v1/adaptive_tracking?select=slate_date,scope,mode,rank,combo,combo_set,energy_score,signal_box,signal_pburst,signal_co,signal_burst,actual_result,matched_state,matched_session,hit_box,hit_straight,posted_order&slate_date=in.(${selectedDate},${nextDay})&mode=in.(balanced,conservative,aggressive)&order=rank.asc.nullslast&limit=1000`,
         method: 'GET',
       });
       const rows = Array.isArray(res) ? res : [];

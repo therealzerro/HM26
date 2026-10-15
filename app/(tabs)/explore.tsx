@@ -312,7 +312,8 @@ export default function SlatesScreen() {
         id: 'slate_' + Date.now(),
         name: `ZK6 Signals · ${SCOPE_LABELS[scope]} · ${todayEt}`,
         scope, type: 'saved_slate', savedAt: new Date().toISOString(),
-        combos: rawItems.filter(p => p.combo !== '---').map(p => ({ combo: p.combo, energy: p.energy })),
+        // BUG-186: store what the board shows (bestOrder), not the enumeration index.
+        combos: rawItems.filter(p => p.combo !== '---').map(p => ({ combo: p.bestOrder ?? p.combo, energy: p.energy })),
       };
       const existing = await storage.getItem('saved_slates');
       const slates = existing ? JSON.parse(existing) : [];

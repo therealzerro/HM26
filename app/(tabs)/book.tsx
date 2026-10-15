@@ -279,6 +279,38 @@ export default function NumberBookScreen() {
         const raw = await storage.getItem('saved_slates');
         if (raw) saved = JSON.parse(raw);
       } catch {}
+      // BUG-186 one-time repair: saved slates written before 2026-10-15 stored
+      // the engine enumeration index (pick.combo), not the order the board
+      // showed (pick.bestOrder). Each saved slate names its date and carries
+      // its scope, so the posted order is recoverable from that day's live
+      // snapshot. Rewrites only digits that match a pick's enumeration index;
+      // anything else (user edits) is left alone. Flagged per list so it runs
+      // once; a failed fetch leaves the flag unset and retries next open.
+      try {
+        const pending = saved.filter((l: any) => l.type === 'saved_slate' && !l.postedOrderMigrated);
+        if (pending.length > 0) {
+          let changed = false;
+          for (const l of pending as any[]) {
+            const date = /(\d{4}-\d{2}-\d{2})/.exec(l.name ?? '')?.[1];
+            const scope = l.scope;
+            if (!date || !scope) { l.postedOrderMigrated = true; changed = true; continue; }
+            const rows = await fetchFromSupabase<any[]>({
+              path: `/rest/v1/slate_snapshots?slate_date=eq.${date}&scope=eq.${encodeURIComponent(scope)}&mode=eq.balanced&deleted_at=is.null&select=top_k_straights_json&order=updated_at_et.desc&limit=1`,
+            });
+            const raw = rows?.[0]?.top_k_straights_json;
+            const picks: any[] = typeof raw === 'string' ? JSON.parse(raw) : (Array.isArray(raw) ? raw : []);
+            const byEnum = new Map<string, string>();
+            for (const pk of picks) if (pk?.combo && pk?.bestOrder) byEnum.set(String(pk.combo), String(pk.bestOrder));
+            l.combos = (l.combos ?? []).map((c: any) => {
+              const posted = byEnum.get(c.combo);
+              return posted && posted !== c.combo ? { ...c, combo: posted } : c;
+            });
+            l.postedOrderMigrated = true;
+            changed = true;
+          }
+          if (changed) await storage.setItem('saved_slates', JSON.stringify(saved));
+        }
+      } catch {}
       const existingIds = new Set(custom.map((l: BookList) => l.id));
       setLists([...custom, ...saved.filter((s: BookList) => !existingIds.has(s.id))]);
       setListsLoaded(true);

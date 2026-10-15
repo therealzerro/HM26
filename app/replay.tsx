@@ -149,13 +149,13 @@ export default function ReplayScreen() {
         // BUG-155/158; this screen still read combo, so pills showed digits
         // that were never on the slate and straights were starred against
         // the wrong permutation. combo stays as legacy fallback only.
-        const combo = String(p.bestOrder ?? p.combo ?? '');
-        const set = toComboSet(combo);
+        const posted = String(p.bestOrder ?? p.combo ?? '');
+        const set = toComboSet(posted);
         const matches = drawsBySet.get(set) ?? [];
         // For the pick pill: prefer a straight hit as the displayed marker;
         // otherwise show the first box match. The total-count badge below
         // surfaces the full multi-state count.
-        const straightMatch = matches.find(m => m.result_digits === combo);
+        const straightMatch = matches.find(m => m.result_digits === posted);
         const matched = straightMatch ?? matches[0];
         const hit = matches.length === 0 ? null : (straightMatch ? 'straight' as const : 'box' as const);
         // A box-set can match in multiple jurisdictions on one day; some of those
@@ -163,12 +163,12 @@ export default function ReplayScreen() {
         // the two counts SEPARATELY so the pill doesn't render the total
         // box-match count next to the straight star (which read as "straight ×N"
         // when really it was 1 straight + N-1 box — e.g. 6/15 midday {1,5,8}).
-        const straightCount = matches.filter(m => m.result_digits === combo).length;
+        const straightCount = matches.filter(m => m.result_digits === posted).length;
         const boxOnlyCount = matches.length - straightCount;
         cardTotalMatches += matches.length;
         return {
           rank: p.rank ?? i + 1,
-          combo,
+          combo: posted,
           comboSet: set,
           hit,
           hitState: matched?.jurisdiction,

@@ -192,6 +192,7 @@ function buildAtRows(date: string, scope: Scope, k6: ReplayPick[], top30: Replay
     return {
       slate_date: date, scope, slate_hash: hash,
       rank: idx + 1, combo: x.combo, combo_set: x.comboSet,
+      posted_order: x.bestOrder ?? x.combo, // ENG-AT-POSTED-01
       signal_box: bs, signal_pburst: ps, signal_co: cs, signal_burst: ds,
       energy_score: x.energy, mode: MODE,
       box_top_quartile: bs >= boxQ75, pburst_top_quartile: ps >= pburstQ75,

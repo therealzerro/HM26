@@ -168,6 +168,7 @@ export default function TrackRecordScreen() {
     slate_date: string; scope: string; combo: string; combo_set: string | null; rank: number;
     matched_state: string | null; matched_session: string | null;
     hit_box: boolean; hit_straight: boolean; actual_result: string | null;
+    posted_order: string | null;
     signal_box: number | null; signal_pburst: number | null;
     signal_co: number | null; signal_burst: number | null;
     energy_score: number | null;
@@ -178,10 +179,10 @@ export default function TrackRecordScreen() {
     // this screen would have shown "verified" matches from slates no
     // subscriber ever saw. (Verified 2026-08-07: all rows were balanced, so
     // pinning changes nothing displayed today.)
-    queryKey: ['verified_track_record_adaptive_v3', sinceDate, followed.join(',')],
+    queryKey: ['verified_track_record_adaptive_v4', sinceDate, followed.join(',')],
     queryFn: async () => {
       const rows = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/adaptive_tracking?slate_date=gte.${sinceDate}&matched_state=not.is.null&or=(hit_box.eq.true,hit_straight.eq.true)&mode=eq.balanced${atStateFilter}&select=slate_date,scope,combo,combo_set,rank,matched_state,matched_session,hit_box,hit_straight,actual_result,signal_box,signal_pburst,signal_co,signal_burst,energy_score&order=slate_date.desc&limit=${FETCH_LIMIT}`,
+        path: `/rest/v1/adaptive_tracking?slate_date=gte.${sinceDate}&matched_state=not.is.null&or=(hit_box.eq.true,hit_straight.eq.true)&mode=eq.balanced${atStateFilter}&select=slate_date,scope,combo,combo_set,rank,matched_state,matched_session,hit_box,hit_straight,actual_result,posted_order,signal_box,signal_pburst,signal_co,signal_burst,energy_score&order=slate_date.desc&limit=${FETCH_LIMIT}`,
       });
       return Array.isArray(rows) ? rows : [];
     },
@@ -189,38 +190,10 @@ export default function TrackRecordScreen() {
   });
   const truncated = hitRows.length >= FETCH_LIMIT;
 
-  // BUG-185: adaptive_tracking.combo is the engine enumeration index, NOT the
-  // permutation posted on the slate (snapshot pick.bestOrder — BUG-155). For
-  // STRAIGHT rows the posted order == the draw, so hit_result already shows
-  // it; BOX rows read `combo` and could show digits never on the slate (9/30
-  // midday: posted 718, VA drew 178, row read "178 · BOX · drew 178"). Resolve
-  // the posted order from the live balanced snapshots over the same window
-  // (join key = date|scope|combo, per the AT data model — never slate_hash).
-  // Same source and window as the Replay screen. Missing/retired snapshot ⇒
-  // undefined ⇒ the row falls back to `combo` as before.
-  const { data: postedOrders } = useQuery<Map<string, string>>({
-    queryKey: ['verified_track_record_posted_orders_v1', sinceDate],
-    queryFn: async () => {
-      const snaps = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/slate_snapshots?mode=eq.balanced&deleted_at=is.null&slate_date=gte.${sinceDate}&top_k_straights_json=not.is.null&select=slate_date,scope,top_k_straights_json&order=slate_date.desc&limit=${FETCH_LIMIT}`,
-      });
-      const map = new Map<string, string>();
-      for (const snap of Array.isArray(snaps) ? snaps : []) {
-        const raw = snap?.top_k_straights_json;
-        let picks: any[] = [];
-        try { picks = typeof raw === 'string' ? JSON.parse(raw) : (Array.isArray(raw) ? raw : []); } catch { picks = []; }
-        for (const p of picks) {
-          const combo = p?.combo != null ? String(p.combo) : '';
-          const best = p?.bestOrder != null ? String(p.bestOrder) : '';
-          if (!combo || !best) continue;
-          map.set(`${snap.slate_date}|${snap.scope}|${combo}`, best);
-        }
-      }
-      return map;
-    },
-    enabled: hitRows.length > 0,
-    staleTime: 5 * 60 * 1000,
-  });
+  // BUG-185 / ENG-AT-POSTED-01: adaptive_tracking.combo is the engine
+  // enumeration index, NOT the permutation posted on the slate. The posted
+  // order is now a column on the row (`posted_order`, written by the engine
+  // and by hit detection, backfilled 2026-10-15), so no snapshot join here.
 
   // Same scope-validity gate as Results (BUG-132 defense in depth). De-dupe
   // by (date, scope, combo, matched_state) so true duplicates collapse but
@@ -240,7 +213,7 @@ export default function TrackRecordScreen() {
         hit_state: m.matched_state, hit_session: m.matched_session ?? '',
         hit_box: m.hit_box, hit_straight: m.hit_straight,
         hit_result: m.actual_result ?? '',
-        posted_order: postedOrders?.get(`${m.slate_date}|${m.scope}|${m.combo}`),
+        posted_order: m.posted_order ?? undefined,
         signal_box:    m.signal_box    ?? undefined,
         signal_pburst: m.signal_pburst ?? undefined,
         signal_co:     m.signal_co     ?? undefined,
@@ -249,7 +222,7 @@ export default function TrackRecordScreen() {
       });
     }
     return merged;
-  }, [hitRows, postedOrders]);
+  }, [hitRows]);
 
   // MKT-51 Tier A: scope chips filter client-side — summary and stream both
   // reflect the filter so the numbers never disagree with the rows shown.

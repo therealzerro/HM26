@@ -127,6 +127,7 @@ async function main() {
       const row: Record<string, unknown> = {
         slate_date: s.slate_date,
         scope, slate_hash: slateHash, rank, combo,
+        posted_order: p.bestOrder ?? combo, // ENG-AT-POSTED-01
         combo_set: p.comboSet ?? `{${[...combo].sort().join(',')}}`,
         // adaptive_tracking stores DGC in signal_burst (legacy column name)
         signal_box: bs, signal_pburst: ps, signal_co: cs, signal_burst: ds,

@@ -169,6 +169,9 @@ async function recordHitInAdaptiveTracking(
   const outcomeFields = {
     hit_box: isBox || isStraight,
     hit_straight: isStraight,
+    // ENG-AT-POSTED-01: persist the posted permutation alongside the outcome so
+    // readers never have to recover it from the snapshot JSON.
+    posted_order: straightCombo,
     actual_result: result.result_digits,
     actual_set: result.comboset_sorted,
     matched_state: result.jurisdiction,

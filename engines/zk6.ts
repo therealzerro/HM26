@@ -2240,6 +2240,9 @@ export async function computeSlate({
           rank: idx + 1,
           combo: x.combo,
           combo_set: x.normKey,
+          // ENG-AT-POSTED-01: the permutation posted on the slate (bestOrder).
+          // combo is the enumeration index and part of the AT idempotency key.
+          posted_order: topKStraights[idx]?.bestOrder ?? x.combo,
           signal_box:    bs,
           signal_pburst: ps,
           signal_co:     cs,

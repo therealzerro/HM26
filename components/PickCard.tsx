@@ -205,8 +205,11 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
         lists.unshift(newList);
       }
       const list = lists.find(l => l.type !== 'saved_slate')!;
-      if (list.combos.some(c => c.combo === pick.combo)) return;
-      list.combos.unshift({ combo: pick.combo, note: `ZK6 Pick #${pick.rank}`, starred: false, energy: pick.energy });
+      // BUG-186: save the order the card SHOWS (bestOrder), never the engine
+      // enumeration index — the Book grades straights against what is saved.
+      const posted = pick.bestOrder ?? pick.combo;
+      if (list.combos.some(c => c.combo === posted)) return;
+      list.combos.unshift({ combo: posted, note: `ZK6 Pick #${pick.rank}`, starred: false, energy: pick.energy });
       await storage.setItem('number_book_lists', JSON.stringify(lists));
     } catch { /* ignore */ }
   }, [pick]);
@@ -214,7 +217,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
   const handleShare = async () => {
     try {
       const r = await shareTextSafe(
-        `🎯 Today's ZK6 signal: ${pick.combo} (Energy ${pick.energy}/100)\n` +
+        `🎯 Today's ZK6 signal: ${pick.bestOrder ?? pick.combo} (Energy ${pick.energy}/100)\n` +
         `Powered by HitMaster ZK6™ Intelligence\n` +
         `Get your daily signals: hitmaster.app\n` +
         `#HitMaster #ZK6 #DataIntelligence`);
@@ -272,7 +275,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
         delayLongPress={600}
         activeOpacity={0.85}
         accessibilityRole="button"
-        accessibilityLabel={`Signal ${pick.rank}, combo ${pick.combo.split('').join(' ')}, energy ${pick.energy} ${heat.label}${isHit ? `, match — ${pick.hitType === 'straight' ? 'straight' : 'box'}${pick.hitResult ? ` ${pick.hitResult}` : ''}` : ''}`}
+        accessibilityLabel={`Signal ${pick.rank}, combo ${(pick.bestOrder ?? pick.combo).split('').join(' ')}, energy ${pick.energy} ${heat.label}${isHit ? `, match — ${pick.hitType === 'straight' ? 'straight' : 'box'}${pick.hitResult ? ` ${pick.hitResult}` : ''}` : ''}`}
         accessibilityHint="Double tap to open signal details. Long press to share."
       >
         {/* ── HIT banner ── */}
@@ -489,7 +492,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
             style={s.explainBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityRole="button"
-            accessibilityLabel={`How was signal ${pick.combo} made? Opens explainer.`}
+            accessibilityLabel={`How was signal ${pick.bestOrder ?? pick.combo} made? Opens explainer.`}
           >
             <Text style={s.explainBtnText}>❓ Why this signal?</Text>
           </TouchableOpacity>
@@ -498,7 +501,7 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
             style={s.shareBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityRole="button"
-            accessibilityLabel={`Share pick ${pick.combo}`}
+            accessibilityLabel={`Share pick ${pick.bestOrder ?? pick.combo}`}
           >
             <Text style={s.shareBtnText}>📤 Share</Text>
           </TouchableOpacity>

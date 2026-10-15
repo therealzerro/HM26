@@ -1600,6 +1600,8 @@ async function computeSlate(params: {
           return {
             slate_date: effectiveDate, scope, slate_hash: hash,
             rank: idx + 1, combo: x.combo, combo_set: x.normKey,
+            // ENG-AT-POSTED-01: posted permutation (bestOrder); parity with engines/zk6.ts.
+            posted_order: topKStraights[idx]?.bestOrder ?? x.combo,
             // adaptive_tracking uses signal_burst as the DGC slot (legacy name).
             signal_box: bs, signal_pburst: ps, signal_co: cs, signal_burst: ds,
             energy_score: x.energy, mode: weightsKey,

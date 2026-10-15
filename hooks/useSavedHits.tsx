@@ -89,7 +89,9 @@ export function useSavedHits(combos: string[]): SavedHitsResult {
       if (!matches) continue;
       for (const combo of matches) {
         hitsByCombo.set(combo, (hitsByCombo.get(combo) ?? 0) + 1);
-        const isStraight = draw.result_digits === combo;
+        // Saved digits are the user's own order (BUG-186: cards save bestOrder).
+        const saved = combo;
+        const isStraight = draw.result_digits === saved;
         if (isStraight) totalStraight++;
         totalHits++;
         if (!lastHitByCombo.has(combo)) {

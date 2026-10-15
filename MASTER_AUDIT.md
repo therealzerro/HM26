@@ -250,6 +250,32 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 ---
 
+### ENG-AT-POSTED-01 — `adaptive_tracking.posted_order`: the posted permutation is now a column, written by both engines and by hit detection, backfilled from the snapshots ✅ SHIPPED 2026-10-15 (operator order: "fix 1-5") · compute-slate-zk6 v61→**v62**, run-hit-detection v18→**v19** (CLI, verify_jwt=true both, verified via list_edge_functions)
+
+**Why:** BUG-155/158/184/185 all came from the same split — `combo` is the engine's 000..999 enumeration index (part of the AT idempotency key, never rewritten), `bestOrder` is what the slate posts — and after BUG-185 four surfaces were each rebuilding a `date|scope|combo → bestOrder` map from snapshot JSON to recover one field. Hit detection and both engines hold the posted order at the moment they write the row.
+
+**Schema:** migration `adaptive_tracking_posted_order` — `alter table adaptive_tracking add column posted_order text` (+ column comment). Nullable; no key change; RLS/grants untouched (service-role writers only).
+
+**Writers:** `engines/zk6.ts` AT primary rows `posted_order: topKStraights[idx]?.bestOrder ?? x.combo`; `compute-slate-zk6/index.ts` mirror; `run-hit-detection/index.ts` adds `posted_order: straightCombo` to `outcomeFields`, so the primary PATCH and every multi-state secondary INSERT carry it; `scripts/backfill/backfill-slate.ts` and `scripts/intel-tuning/backfill-adaptive-tracking.ts` write it too. `_shared/` untouched (check:edge-shared OK).
+
+**Backfill (SQL, 2026-10-15):** pass 1 by exact `(slate_hash, slate_date, scope, mode, combo)` against every snapshot (live preferred) → 3,274 of 3,512 rows; pass 2 by `(slate_date, scope, mode, combo)` against live snapshots → +13. **0 NULL rows on/after the 6/11 era floor**; the 225 still-NULL rows are pre-era retired hashes and fall back to `combo` on read. **0 straight rows disagree** (`hit_straight ∧ posted_order ≠ actual_result` = 0).
+
+**Readers switched to the column:** `app/track-record.tsx` (its BUG-185 snapshot query REMOVED; reads `posted_order`; queryKey v4), `app/(tabs)/results.tsx` (both AT selects + `remapToHitRow`; the snapshot map it already had stays as fallback; queryKey v3), `components/admin/HitTrackingView.tsx` (select + the straight compare — item 2 of the operator's list: `(track.posted_order ?? track.combo) === result_digits`).
+
+**Gate:** not a scoring/selection change (persistence field only) — same class as ENG-AT-KEY-01 / ENG-PERSIST-ORDER-01. Evidence: `npm run zk6:parity` **9/9 PASS** post-deploy (client vs edge, 3 scenarios × 3 scopes, AT rows diffed with the new column); sandbox AT rows `posted_order` = snapshot `bestOrder` 54/54 before cleanup. Filtered tsc 0; eslint 0 errors.
+
+**Guard (item 4):** `scripts/check-posted-order.ts` → `npm run check:posted-order` — scans app/components/hooks/lib/engines/supabase/functions/scripts for any `result_digits === …combo` / `…combo === …result_digits`; self-tested (2 planted findings caught, 2 correct comparisons passed); live tree 300 files, 0 findings. `__tests__/hitToPickItem.test.ts` (6 tests) pins the STRAIGHT→hit_result / BOX→posted_order / fallback→combo contract. Locals in `app/replay.tsx` and `hooks/useSavedHits.tsx` renamed (`posted`, `saved`) so the guard reads clean without exceptions.
+
+**Comment fix (item 5):** `lib/hitToPickItem.ts` no longer calls `combo` the "sorted comboSet key" — it is the enumeration index and is not sorted (10/15 midday carried `871` for `{1,7,8}`); variable renamed `enumCombo`.
+
+### BUG-186 — Book save and share sheet wrote the engine enumeration index, not the digits the card showed ✅ FIXED 2026-10-15 (operator order: "fix 1-5", item 1)
+
+**Defect:** `components/PickCard.tsx` renders the hero digits from `bestOrder` but its save-to-Book (`list.combos.unshift({ combo: pick.combo … })`), its dedupe check, the share text and three accessibility labels all used `pick.combo`. A subscriber looking at **781** saved **871** to "My Numbers"; `hooks/useSavedHits.tsx` then graded straights against 871. `app/(tabs)/explore.tsx::handleSaveSlate` (saved_slate lists) had the same write. Subscriber-facing: it changed what was saved and shared, not just what was read.
+
+**Fix:** PickCard uses `pick.bestOrder ?? pick.combo` for the save, the dedupe, the share line and the a11y labels; explore's saved slate stores `p.bestOrder ?? p.combo`. **One-time repair of existing saved slates** on Book load (`app/(tabs)/book.tsx`): each `saved_slate` list names its date and carries its scope → fetch that day's live balanced snapshot → rewrite only combos equal to a pick's enumeration index to that pick's `bestOrder`; flagged `postedOrderMigrated` per list; a failed fetch leaves the flag unset and retries. **Not repairable:** entries in custom lists saved from a card (`note: "ZK6 Pick #N"`) carry no date, so they cannot be mapped deterministically; left as saved — the operator may want a Book note. Filtered tsc 0; eslint 0 errors.
+
+**Next BUG ID: 187.**
+
 ### BUG-185 — Verified Track Record showed the engine enumeration index on BOX rows, not the permutation posted on the slate ✅ FIXED 2026-10-15 (operator order: "fix the track record too")
 
 **Report:** 9/30 midday #1 read "178 · 🎯 BOX · Drew 178 in VA" — looks like a mislabeled straight. The slate posted **718**; VA's 178 is a box against 718. Grading was correct (BUG-155); the row showed `adaptive_tracking.combo` (enumeration index, never posted), which on 9/30 happened to equal the draw.
@@ -260,7 +286,7 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 **Results tab — FIXED in the same pass (operator order: "fix the results tab too"):** `app/(tabs)/results.tsx` builds a `date|scope|combo → bestOrder` map from the snapshot rows it already fetches (no new query). All three hit tiers carry `posted_order`: Tier 1 AT rows via `withPosted`, Tier 2 AT on-slate rows via `withPosted`, Tier 3 straight from the snapshot pick's `bestOrder`. `flattenHits` (→ `HitHeroBand` / `HitSummary`) BOX rows show the posted order; both PickDetailModal hookups pass `posted_order`; the inline row `HitReplay` "WE SIGNALED" now shows the draw on a straight and the posted order on a box (it had been passing raw `combo` on BOTH branches — a BUG-158 leftover on the E2 inline replay). **Tier 2 straight inference corrected too:** it tested `combo === result_digits` (the BUG-155 defect in client-side form) and now tests `(posted_order ?? combo) === result_digits`. Filtered tsc 0, eslint clean on all three files.
 
-**Next BUG ID: 186.**
+**Next BUG ID: 187 (186 = Book/share, above).**
 
 ### BUG-184 — Replay screen rendered and graded the engine enumeration index (`combo`) instead of the POSTED straight (`bestOrder`) ✅ FIXED 2026-10-15
 

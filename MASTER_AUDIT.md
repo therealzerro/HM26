@@ -250,6 +250,18 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 ---
 
+### BUG-185 — Verified Track Record showed the engine enumeration index on BOX rows, not the permutation posted on the slate ✅ FIXED 2026-10-15 (operator order: "fix the track record too")
+
+**Report:** 9/30 midday #1 read "178 · 🎯 BOX · Drew 178 in VA" — looks like a mislabeled straight. The slate posted **718**; VA's 178 is a box against 718. Grading was correct (BUG-155); the row showed `adaptive_tracking.combo` (enumeration index, never posted), which on 9/30 happened to equal the draw.
+
+**Measured (SQL, 9/15→10/14, balanced, matched rows):** 148 hit rows; 148/148 join a live snapshot pick on `(slate_date, scope, combo)`; **38 BOX rows** were showing a permutation that was never on the slate; 0 straights disagree with snapshot `bestOrder`.
+
+**Fix (client only, no deploy):** `app/track-record.tsx` adds a second query over the same window — live balanced `slate_snapshots` (`deleted_at is null`), picks flattened into a `date|scope|combo → bestOrder` map (same source and window as Replay; join key per the AT data model, never `slate_hash`). Each `HitRow` carries `posted_order`; the row and its accessibility label render STRAIGHT ⇒ `hit_result` (BUG-158, unchanged), BOX ⇒ `posted_order ?? combo` (retired/missing snapshot falls back to the old behaviour). `lib/hitToPickItem.ts` gains optional `posted_order` and uses it for the BOX branch, so the PickDetailModal opened from the row shows the same digits as the row. Stored `combo` untouched (AT idempotency key, BUG-155). Filtered tsc 0 on both files; no tests reference the helper.
+
+**Not touched (consumer surface, not asked):** `app/(tabs)/results.tsx::flattenHits` → `HitHeroBand` / `HitSummary` has the same BOX-row read of `combo`; same two-line pattern applies if ruled.
+
+**Next BUG ID: 186.**
+
 ### BUG-184 — Replay screen rendered and graded the engine enumeration index (`combo`) instead of the POSTED straight (`bestOrder`) ✅ FIXED 2026-10-15
 
 **Report (operator, 10/15):** the Replay for 10/15 midday showed `871 / 158 / 716 / 317 / 621 / 840` while the slate posted `781 / 518 / 167 / 137 / 621 / 048` — "a giant error". Same session: 9/30 midday #1 read as a BOX match on `178` when VA drew `178`.
@@ -260,7 +272,7 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 **The 9/30 "178 box" question is NOT a bug:** the slate posted 718; VA's 178 is a box against 718. The track-record row shows `adaptive_tracking.combo` for box matches (BUG-158 rule), which on 9/30 happened to equal the drawn digits, so the row reads "178 · BOX · drew 178". AT does not store `bestOrder`; showing the posted order on box rows would need a snapshot join — open, operator's call (consumer surface, hands-off until asked).
 
-**Next BUG ID: 185.**
+**Next BUG ID: 186 (185 = Track Record posted order, above).**
 
 ### MKT-79 / RECORD-GATE-01 — record_public 30-of-30 abort: the report the content agent asked for, rule (ii) BUILT behind --three-row, classic gate UNCHANGED, flip HELD for the operator's eyeball (2026-10-13)
 

@@ -24,6 +24,10 @@ export interface HitToPickInput {
   hit_box?: boolean | null;
   hit_straight?: boolean | null;
   hit_result?: string | null;
+  /** BUG-185: the permutation actually posted on the slate (snapshot
+   *  pick.bestOrder), resolved by the caller. adaptive_tracking does not
+   *  store it; `combo` there is the engine enumeration index. */
+  posted_order?: string | null;
   signal_box?: number | null;
   signal_pburst?: number | null;
   signal_co?: number | null;
@@ -73,7 +77,9 @@ export function hitRowToPickItem(h: HitToPickInput): PickItem {
   // not the order actually predicted. For a STRAIGHT hit, the engine's
   // bestOrder matched the draw exactly, so hit_result IS that bestOrder.
   // Surfacing the sorted key here would render "019 → 910" on a straight match.
-  const orderedCombo = h.hit_straight && h.hit_result ? h.hit_result : sortedCombo;
+  // BUG-185: for a BOX hit, prefer the posted order when the caller resolved
+  // it from the snapshot; the enumeration index is the fallback only.
+  const orderedCombo = h.hit_straight && h.hit_result ? h.hit_result : (h.posted_order ?? sortedCombo);
   return {
     rank: h.rank ?? 1,
     combo: orderedCombo,

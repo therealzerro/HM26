@@ -68,6 +68,9 @@ interface HitRow {
   hit_box: boolean;
   hit_straight: boolean;
   hit_result: string;
+  /** BUG-185: posted straight (snapshot pick.bestOrder) for this row, when
+   *  the live snapshot was found; undefined falls back to `combo`. */
+  posted_order?: string;
   signal_box?: number;
   signal_pburst?: number;
   signal_co?: number;
@@ -186,6 +189,39 @@ export default function TrackRecordScreen() {
   });
   const truncated = hitRows.length >= FETCH_LIMIT;
 
+  // BUG-185: adaptive_tracking.combo is the engine enumeration index, NOT the
+  // permutation posted on the slate (snapshot pick.bestOrder — BUG-155). For
+  // STRAIGHT rows the posted order == the draw, so hit_result already shows
+  // it; BOX rows read `combo` and could show digits never on the slate (9/30
+  // midday: posted 718, VA drew 178, row read "178 · BOX · drew 178"). Resolve
+  // the posted order from the live balanced snapshots over the same window
+  // (join key = date|scope|combo, per the AT data model — never slate_hash).
+  // Same source and window as the Replay screen. Missing/retired snapshot ⇒
+  // undefined ⇒ the row falls back to `combo` as before.
+  const { data: postedOrders } = useQuery<Map<string, string>>({
+    queryKey: ['verified_track_record_posted_orders_v1', sinceDate],
+    queryFn: async () => {
+      const snaps = await fetchFromSupabase<any[]>({
+        path: `/rest/v1/slate_snapshots?mode=eq.balanced&deleted_at=is.null&slate_date=gte.${sinceDate}&top_k_straights_json=not.is.null&select=slate_date,scope,top_k_straights_json&order=slate_date.desc&limit=${FETCH_LIMIT}`,
+      });
+      const map = new Map<string, string>();
+      for (const snap of Array.isArray(snaps) ? snaps : []) {
+        const raw = snap?.top_k_straights_json;
+        let picks: any[] = [];
+        try { picks = typeof raw === 'string' ? JSON.parse(raw) : (Array.isArray(raw) ? raw : []); } catch { picks = []; }
+        for (const p of picks) {
+          const combo = p?.combo != null ? String(p.combo) : '';
+          const best = p?.bestOrder != null ? String(p.bestOrder) : '';
+          if (!combo || !best) continue;
+          map.set(`${snap.slate_date}|${snap.scope}|${combo}`, best);
+        }
+      }
+      return map;
+    },
+    enabled: hitRows.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Same scope-validity gate as Results (BUG-132 defense in depth). De-dupe
   // by (date, scope, combo, matched_state) so true duplicates collapse but
   // multi-state matches stay distinct — pick 916 hitting in WI and ME,NH,VT
@@ -204,6 +240,7 @@ export default function TrackRecordScreen() {
         hit_state: m.matched_state, hit_session: m.matched_session ?? '',
         hit_box: m.hit_box, hit_straight: m.hit_straight,
         hit_result: m.actual_result ?? '',
+        posted_order: postedOrders?.get(`${m.slate_date}|${m.scope}|${m.combo}`),
         signal_box:    m.signal_box    ?? undefined,
         signal_pburst: m.signal_pburst ?? undefined,
         signal_co:     m.signal_co     ?? undefined,
@@ -212,7 +249,7 @@ export default function TrackRecordScreen() {
       });
     }
     return merged;
-  }, [hitRows]);
+  }, [hitRows, postedOrders]);
 
   // MKT-51 Tier A: scope chips filter client-side — summary and stream both
   // reflect the filter so the numbers never disagree with the rows shown.
@@ -360,6 +397,10 @@ export default function TrackRecordScreen() {
                 const tint = scopeAccent(h.scope, colors);
                 const sessIcon = SESSION_ICON[(h.hit_session ?? '').toLowerCase()] ?? '◈';
                 const isStraight = !!h.hit_straight;
+                // BUG-158: STRAIGHT ⇒ the posted order IS the draw (hit_result).
+                // BUG-185: BOX ⇒ the posted order from the snapshot, never the
+                // enumeration index unless the snapshot is gone.
+                const shownCombo = isStraight && h.hit_result ? h.hit_result : (h.posted_order ?? h.combo);
                 return (
                   <TouchableOpacity
                     key={`${h.combo}-${h.hit_state}-${h.hit_session}-${i}`}
@@ -367,13 +408,10 @@ export default function TrackRecordScreen() {
                     onPress={() => setDetail(hitRowToPickItem(h))}
                     activeOpacity={0.85}
                     accessibilityRole="button"
-                    accessibilityLabel={`${isStraight ? 'Straight' : 'Box'} match on ${h.combo} in ${h.hit_state}, tap for details`}
+                    accessibilityLabel={`${isStraight ? 'Straight' : 'Box'} match on ${shownCombo} in ${h.hit_state}, tap for details`}
                   >
                     <Text style={s.hitSessIcon}>{sessIcon}</Text>
-                    {/* h.combo is the sorted comboSet key; for STRAIGHT, the
-                        predicted order equals the draw — render hit_result so
-                        the digits match what was actually predicted. */}
-                    <Text style={s.hitCombo}>{isStraight && h.hit_result ? h.hit_result : h.combo}</Text>
+                    <Text style={s.hitCombo}>{shownCombo}</Text>
                     <View style={{ flex: 1 }}>
                       <Text style={s.hitMain}>
                         <Text style={[s.hitTypeLabel, { color: isStraight ? colors.gold : colors.cyan }]}>

@@ -11,12 +11,14 @@ Ingested 10/15: `fb_earnings_daily` 9/17→10/14 (28 rows, upsert on `earn_date`
 | | 9/12 | **10/15** | Read |
 |---|---|---|---|
 | Page followers | 14,192 (9/12); 14,197 (9/15 snapshot) | — (not in paste) | +61 new follows in the 28d window |
-| Free group | 515 (9/12); 530 (9/15 snapshot) | — (not in paste) | group export not included |
+| Free group | 515 (9/12); 530 (9/15 snapshot) | **633** (Insights age/gender total, 10/14) | +103 in a month; 112 joins in 27 days (4.1/day) |
 | Meta Subscribers (page Insights, current) | list 60 | **52** (10/13; 10/14 = 0 is a partial-day artifact, stored NULL) | −8 since the 9/12 list; series 61 (9/17) → 52 (10/13) |
 | Paying-equivalent (trailing 30d subs ÷ $1.74) | 59 ($103.32) | **52** ($90.87, 9/15–10/14 with the 4-day gap) | Insights 52 / paying-equiv 52 — the two live Pro numbers agree |
-| Pro group Total Members (Insights) | 61 (9/11) | — (group export not included) | stale until the next Pro group paste |
+| Pro group Total Members (Insights) | 61 (9/11) | **54** (10/14; 62 peak 9/27–28) | −8 since the peak; flat at 54 for 10/11–10/14 |
 | Sep subscription payouts | $69.40 (1–12) | **$91.73 (26/30 days known)** | vs Aug $122.08 → ≥75%, likely ~80% with the gap filled |
 | Oct subscription payouts 1–14 | — | **$68.54** | Oct 1–12 $62.94 vs Sep 1–12 $69.40 = 91% |
+
+Three Pro numbers 10/15: **group 54 (10/14) / page Subscribers 52 (10/13) / paying-equivalent 52** — within two of each other, the tightest agreement yet. Real conversion (Pro group ÷ free group) = 54 ÷ 633 = **8.5%** (11.8% on 9/12, 13.0% on 9/7, 14.5% on 9/2): the free room grows ~4/day, the Pro room does not.
 
 Meta's own 28-day counters in the Subscribers block read **gained 12 / canceled 14** (net −2) while the daily headcount series falls 61 → 52 (−9). Different windows or definitions on Meta's side; the headcount series is the number to quote.
 
@@ -79,11 +81,44 @@ Contrast with the free group (9/7 import): 88% US, 55% women, 45–54 largest. T
 - **Content:** reels do the engagement work; links do the reach work. No change proposed to either.
 - **Audience:** 30% non-US on the page is a ceiling on page-level conversion that the group does not have.
 
+## Pro group (Insights download 9/17–10/14, ingested to `fb_group_daily`)
+
+| Week | Members (end) | Posts/d | Comments/d | Reactions/d | Active/d | Active % |
+|---|---|---|---|---|---|---|
+| 9/17–9/23 | 60 | 4.7 | 1.1 | 2.7 | 24.0 | 40% |
+| 9/24–9/30 | 59 | **2.3** | 1.6 | 1.4 | 22.1 | 38% |
+| 10/1–10/7 | 56 | 4.6 | 0.9 | 3.1 | 19.3 | 34% |
+| 10/8–10/14 | 54 | 5.6 | 1.6 | 2.4 | 18.4 | 34% |
+
+Members: 61 (9/17) → 62 (9/27–28) → **53 (10/10) → 54 (10/11–10/14, four flat days)**. Eleven single-member drop days; the slide is concentrated **9/29–10/10 (62 → 53)**. Pending/approved/declined requests 0 all window — nobody is joining the Pro group through the group door; subscriptions arrive via the page. One post removed by admin.
+
+Member-authored posts in the room, in date order: "Are todays numbers posted 23 Sept?" (4 comments, 33 views — the most-discussed post in the window), "Todays numbers are not posted yet 24th Sept", "where are today's numbers?", "Where's the numbers", "Another day and no numbers! I'd appreciate better communication." — plus one new-member introduction (3 reactions). Boards were not posted on 9/22, 9/24, 9/25, 9/27, 9/29 and 9/30 per `marketing_reels.posted_at`; the membership slide begins 9/29. Active % fell from 44–48% (September checkpoints) to 34%.
+
+Popular times: 8–9 AM dominates every day (the 8:30 drop), Saturday is the busiest day (12 interactions), Monday the quietest (5).
+
+## Free group (Growth/Engagement export 9/17–10/13, ingested to `fb_group_daily`)
+
+| Week | Joined/d | Viewed/d | Engaged/d | Posts/d | Comments/d | Reactions/d |
+|---|---|---|---|---|---|---|
+| 9/17–9/23 | **5.6** | 134 | 2.7 | 14.6 | 3.4 | 7.7 |
+| 9/24–9/30 | 3.6 | 151 | 1.9 | 12.1 | **0.6** | 4.4 |
+| 10/1–10/7 | 3.6 | 155 | 2.3 | 13.6 | 0.9 | 7.4 |
+| 10/8–10/13 (6d) | 3.8 | 149 | 3.3 | 16.5 | 3.8 | 6.0 |
+
+112 joins in 27 days (4.1/day; 14 on 9/18, the day of the WI straight-match post). **Viewed 147/day = 23% of 633** — up from 68/day = 13% of 515 at the 9/12 checkpoint; the room is read twice as much as a month ago. Comments 2.1/day over the window (0.6/day in the thin week, 3.8/day last week), reactions 6.4/day. Popular days Friday (30) and Monday (25); popular hours 8–10 AM.
+
+Top posts (views): the 9/18 match announcements naming the state (527, 538), the 10/12 welcome post (630) and a pre-window "Direct Hit … NC" post (1,245) lead; templated drops run 20–180. Same observation as 9/7 — state-named match posts out-view templated drops 3–5× — and the same standing rule: never propose reverting vocabulary; the ruling question (state + result in MATCH vocab on free verify captions) stays open.
+
+**Member-posted content to rule on:** roughly a third of the listed top posts come from one member account posting daily emoji "GOOD for ALL States" pick charts with links to its own group and YouTube channel, and twice soliciting payment for picks inside the room ("Cash app, Chime or apple pay only!!! Inbox me"). Those posts draw 30–165 views and 0–4 comments. They are gambling-vocabulary content on a brand-rehab surface and a funnel leak; moderation is the operator's call. A second member posts raw daily results lists ("From alldraw fill in the blank pattern").
+
+Audience (633): **64.5% women**; 45–54 = 31.6% (largest), 35–54 = 57%, 45+ = 60%; **US 87.4%**, Bahamas 6.2% (Nassau 29 + Freeport 7 — a real cluster), Nigeria 8, South Africa 7; non-US 12.6%. Cities: New York 72, Nassau 29, Detroit 21, a Mississippi cluster of 51 across 17 towns (Jackson 9, Canton 6, Tupelo 6), Atlanta 7, Houston 6. Versus the page (70% US, 60% women, 65+ women largest): the free group is more US, more 35–54, and the Bahamas cluster is group-only.
+
 ## Still owed
 
 - Earnings 9/13–9/16 (closes September).
-- Pro + Free Group Insights exports since 9/11 (group headcounts, joins, engagement) — the group series stop at 9/11.
+- Group series 9/12–9/16 (5 days) — the 9/12 import ended 9/11 and these pastes start 9/17. Pro group 10/14 is in; free group 10/14 was blank in the export.
 - Page followers total (funnel snapshot last typed 9/15 = 14,197).
+- A ruling on the member account selling picks in the free group (above).
 - Sub Import has no paste parser for the page-level export yet (this checkpoint went in by SQL); ENH-FUNNEL-03 `fb_page_daily` now exists with the scoped column names, so an API pull or a parser lands in place.
 
 Not proposed (standing rulings): per-state lists, accuracy levers, scheduled posting, Instagram, scope distinctness, quoting any of these numbers in copy.

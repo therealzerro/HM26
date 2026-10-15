@@ -256,7 +256,9 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 **Put:** `docs/growth_checkpoint_2026-10-15.md` + memory. Headline: Meta Subscribers 52 (10/13) = paying-equivalent 52 ($90.87 trailing) — agree; renewal waves Aug $85.73 → Sep $64.47 (75%) → **Oct $60.13 (93%)**; Sep subs known $91.73 over 26/30 days (**earnings 9/13–9/16 missing in every import — owed**); page viewers 1,682/day avg, last week 2,136/day (window best), 61 follows/28d, 3,735 interactions; the 9/24–9/30 week (three unposted days per `marketing_reels.posted_at`) halved reach/interactions/follows, recovered on resumption; reels = 53% of views / 89% of interactions; page audience 70% US / 60% women / 65+ women largest cell vs free group 88% US.
 
-**Standing rulings honoured:** no automation proposed; no accuracy levers; no copy quoting these numbers; ENH-FUNNEL-03 remains SCOPED (table only, no API).
+**Groups (second paste, same day):** `fb_group_daily` free +27 rows (9/17–10/13) / pro +28 rows (9/17–10/14) via SQL upsert (Posts/Top Posts blocks NOT stored — PII rule). Pro 54 (10/14; 62 → 53 slide 9/29–10/10, flat since); free 633 (+103/month, 4.1 joins/day); real conversion 8.5% (11.8% on 9/12); free Viewed 23% of members (13% on 9/12); Pro active 34% (44–48% in Sept); member "where are the numbers" posts 9/23–9/30 line up with the unposted days. **Open ruling for the operator:** a free-group member account selling picks in-room (emoji charts + "Cash app / Inbox me") — gambling-vocabulary content on the rehab surface; moderation not taken here. Gap 9/12–9/16 in both group series.
+
+**Standing rulings honoured:** no automation proposed; no accuracy levers; no copy quoting these numbers; ENH-FUNNEL-03 remains SCOPED (table only, no API); no member names committed.
 
 ### BUG-187 — Slates tab "today's matches" chips showed the engine enumeration index ✅ FIXED 2026-10-15 (operator order: "fix all") · + Book-save provenance · + guard chained into `npm run lint` · + Expo patch alignment
 

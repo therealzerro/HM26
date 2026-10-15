@@ -250,6 +250,14 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 ---
 
+### GROWTH-2026-10-15 — Page-level Insights ingested (earnings 9/17–10/14 + NEW `fb_page_daily`), checkpoint written ✅ 2026-10-15 (operator: "ingest and put")
+
+**Ingest:** `fb_earnings_daily` +28 rows (upsert on `earn_date`; 255 → 283, 1/1→10/14). NEW table **`fb_page_daily`** (migration `fb_page_daily`, file `supabase/migrations/2026_10_15_fb_page_daily.sql`): ENH-FUNNEL-03's scoped column set, RLS on, anon/authenticated revoked, service-role only, no PII; 28 rows `viewers_unique / content_interactions / follows_new / subscribers_total` (10/14 subscribers = 0 in the export = partial day → stored NULL). Paste went in by SQL — Sub Import has no page-export parser (owed, optional).
+
+**Put:** `docs/growth_checkpoint_2026-10-15.md` + memory. Headline: Meta Subscribers 52 (10/13) = paying-equivalent 52 ($90.87 trailing) — agree; renewal waves Aug $85.73 → Sep $64.47 (75%) → **Oct $60.13 (93%)**; Sep subs known $91.73 over 26/30 days (**earnings 9/13–9/16 missing in every import — owed**); page viewers 1,682/day avg, last week 2,136/day (window best), 61 follows/28d, 3,735 interactions; the 9/24–9/30 week (three unposted days per `marketing_reels.posted_at`) halved reach/interactions/follows, recovered on resumption; reels = 53% of views / 89% of interactions; page audience 70% US / 60% women / 65+ women largest cell vs free group 88% US.
+
+**Standing rulings honoured:** no automation proposed; no accuracy levers; no copy quoting these numbers; ENH-FUNNEL-03 remains SCOPED (table only, no API).
+
 ### BUG-187 — Slates tab "today's matches" chips showed the engine enumeration index ✅ FIXED 2026-10-15 (operator order: "fix all") · + Book-save provenance · + guard chained into `npm run lint` · + Expo patch alignment
 
 **BUG-187:** `app/(tabs)/explore.tsx` read adaptive_tracking twice (feed chips, scoped chips) and rendered `h.combo` with no straight/box branch — the last consumer surface on the raw index after BUG-184/185/186. Both selects now carry `posted_order`; the chip shows the draw on a straight and `posted_order ?? combo` on a box. Filtered tsc 0; check:posted-order 0 findings; eslint 0 errors.

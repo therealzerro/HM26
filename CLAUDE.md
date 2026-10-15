@@ -125,6 +125,6 @@ All auth via `EXPO_PUBLIC_SUPABASE_ANON_KEY` env var. The `Prefer: return=minima
 ### Key Tables
 - `slate_snapshots` — persisted engine outputs. `top_k_straights_json` holds the pick array. (Supplemental slates were retired 2026-10-13, ENG-SUPP-RETIRE-01 — there is no `file_meta` column; `is_supplement:true` is rejected with 400.)
 - `daily_intelligence` — top-30 combos with hit tracking (`hit_box`, `hit_straight`).
-- `adaptive_tracking` — per-pick hit history for engine feedback.
+- `adaptive_tracking` — per-pick hit history for engine feedback. `combo` is the engine's 000..999 enumeration index (NOT sorted, never posted, part of the idempotency key — never rewrite it). `posted_order` is the permutation actually shown on the slate (snapshot `bestOrder`; ENG-AT-POSTED-01, 2026-10-15) — read it for any display or straight comparison; never rebuild it from snapshot JSON. A straight is `result_digits === posted_order`, never `=== combo` (BUG-155/158/184/185/186/187). `npm run check:posted-order` (also part of `npm run lint`) fails on violations.
 - `histories` — draw results (`result_digits`, `comboset_sorted`, `jurisdiction`, `session`, `date_et`).
 - `app_config` — engine rail parameters (`k6_singles_max`, `k6_doubles_max`, etc.).

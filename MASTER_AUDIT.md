@@ -250,6 +250,18 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 ---
 
+### BUG-187 — Slates tab "today's matches" chips showed the engine enumeration index ✅ FIXED 2026-10-15 (operator order: "fix all") · + Book-save provenance · + guard chained into `npm run lint` · + Expo patch alignment
+
+**BUG-187:** `app/(tabs)/explore.tsx` read adaptive_tracking twice (feed chips, scoped chips) and rendered `h.combo` with no straight/box branch — the last consumer surface on the raw index after BUG-184/185/186. Both selects now carry `posted_order`; the chip shows the draw on a straight and `posted_order ?? combo` on a box. Filtered tsc 0; check:posted-order 0 findings; eslint 0 errors.
+
+**Book-save provenance (BUG-186 follow-up):** PickCard's save note is now `ZK6 Pick #N · <slate date> <scope>` (`pick.hitDate ?? getTodayET()`, `pick.snapshotScope` — explore sets it), so a card-saved entry can be traced to its board from now on; pre-10/15 card entries remain undated and unrepairable (stated in BUG-186).
+
+**Guard wiring:** `"lint": "expo lint && tsx scripts/check-posted-order.ts"` — the guard runs whenever lint runs; no scheduled job (ops_no_auto_crons).
+
+**Expo patch alignment:** `npx expo install --fix` (bun-backed, bun.lock only — OPS-LOCKFILE-01 honoured, no package-lock.json created): expo 54.0.36→**54.0.37**, expo-constants 18.0.13→**18.0.14**, expo-file-system 19.0.23→**19.0.24**, jest-expo 54.0.17→**54.0.18**. Jest 9/9 suites, 97/97 tests after the bump. The running dev server exited when bun swapped node_modules (watcher on a `.old-*` dir) — restarted.
+
+**Next BUG ID: 188.**
+
 ### ENG-AT-POSTED-01 — `adaptive_tracking.posted_order`: the posted permutation is now a column, written by both engines and by hit detection, backfilled from the snapshots ✅ SHIPPED 2026-10-15 (operator order: "fix 1-5") · compute-slate-zk6 v61→**v62**, run-hit-detection v18→**v19** (CLI, verify_jwt=true both, verified via list_edge_functions)
 
 **Why:** BUG-155/158/184/185 all came from the same split — `combo` is the engine's 000..999 enumeration index (part of the AT idempotency key, never rewritten), `bestOrder` is what the slate posts — and after BUG-185 four surfaces were each rebuilding a `date|scope|combo → bestOrder` map from snapshot JSON to recover one field. Hit detection and both engines hold the posted order at the moment they write the row.

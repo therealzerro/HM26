@@ -8,6 +8,7 @@ import { useTheme, heatTier, type ColorTokens, type ShadowTokens } from '@/lib/t
 import { SignalBar } from './SignalBar';
 import { EnergyMeter } from './EnergyMeter';
 import { storage } from '@/lib/storage';
+import { getTodayET } from '@/lib/dateUtils';
 import { useReduceMotion } from '@/hooks/useReduceMotion';
 import { useEnergyBandHitRates, bandFor } from '@/hooks/useEnergyBandHitRates';
 import { PickExplainerModal } from './PickExplainerModal';
@@ -209,7 +210,11 @@ export function PickCard({ pick, onTap, onUnlock }: PickCardProps) {
       // enumeration index — the Book grades straights against what is saved.
       const posted = pick.bestOrder ?? pick.combo;
       if (list.combos.some(c => c.combo === posted)) return;
-      list.combos.unshift({ combo: posted, note: `ZK6 Pick #${pick.rank}`, starred: false, energy: pick.energy });
+      // BUG-186 follow-up: stamp provenance (slate date + scope) so a saved
+      // card entry can be traced to its board later; card-saved entries
+      // before 2026-10-15 carry no date and could not be repaired.
+      const prov = [pick.hitDate ?? getTodayET(), pick.snapshotScope].filter(Boolean).join(' ');
+      list.combos.unshift({ combo: posted, note: `ZK6 Pick #${pick.rank} · ${prov}`, starred: false, energy: pick.energy });
       await storage.setItem('number_book_lists', JSON.stringify(lists));
     } catch { /* ignore */ }
   }, [pick]);

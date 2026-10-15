@@ -128,11 +128,11 @@ export default function SlatesScreen() {
   //      (today: 916 box-set {1,6,9} hit BOTH WI 619 AND ME,NH,VT 196).
   //      daily_intelligence has 1 row per pick; adaptive_tracking has one
   //      row per (pick × matched_state) so secondaries surface naturally.
-  const { data: feedHits = [] } = useQuery<Array<{ scope: string; combo: string; rank: number; matched_state: string; matched_session: string; hit_box: boolean; hit_straight: boolean; actual_result: string | null }>>({
+  const { data: feedHits = [] } = useQuery<Array<{ scope: string; combo: string; posted_order: string | null; rank: number; matched_state: string; matched_session: string; hit_box: boolean; hit_straight: boolean; actual_result: string | null }>>({
     queryKey: ['hit_feed_today_adaptive', todayStr, followedStates.join(',')],
     queryFn: async () => {
       const rows = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/adaptive_tracking?slate_date=eq.${todayStr}&hit_box=eq.true&mode=eq.balanced${matchedStateFilter}&select=scope,combo,rank,matched_state,matched_session,hit_box,hit_straight,actual_result&order=matched_session.asc&limit=200`,
+        path: `/rest/v1/adaptive_tracking?slate_date=eq.${todayStr}&hit_box=eq.true&mode=eq.balanced${matchedStateFilter}&select=scope,combo,posted_order,rank,matched_state,matched_session,hit_box,hit_straight,actual_result&order=matched_session.asc&limit=200`,
       });
       return Array.isArray(rows) ? rows : [];
     },
@@ -160,11 +160,11 @@ export default function SlatesScreen() {
   // the user's currently-selected scope. Surfaces hits even after a slate
   // regen produced different picks (regenerated slates don't carry the
   // hit annotations from the prior slate_hash).
-  const { data: scopedHits = [] } = useQuery<Array<{ combo: string; rank: number; matched_state: string; matched_session: string; hit_box: boolean; hit_straight: boolean; actual_result: string | null }>>({
+  const { data: scopedHits = [] } = useQuery<Array<{ combo: string; posted_order: string | null; rank: number; matched_state: string; matched_session: string; hit_box: boolean; hit_straight: boolean; actual_result: string | null }>>({
     queryKey: ['hits_today_scope', todayStr, scope, followedStates.join(',')],
     queryFn: async () => {
       const rows = await fetchFromSupabase<any[]>({
-        path: `/rest/v1/adaptive_tracking?slate_date=eq.${todayStr}&scope=eq.${encodeURIComponent(scope)}&hit_box=eq.true&mode=eq.balanced${matchedStateFilter}&select=combo,rank,matched_state,matched_session,hit_box,hit_straight,actual_result&order=rank.asc&limit=50`,
+        path: `/rest/v1/adaptive_tracking?slate_date=eq.${todayStr}&scope=eq.${encodeURIComponent(scope)}&hit_box=eq.true&mode=eq.balanced${matchedStateFilter}&select=combo,posted_order,rank,matched_state,matched_session,hit_box,hit_straight,actual_result&order=rank.asc&limit=50`,
       });
       return Array.isArray(rows) ? rows : [];
     },
@@ -532,7 +532,9 @@ export default function SlatesScreen() {
                 return (
                   <View key={`${h.scope}-${h.combo}-${h.matched_state}-${h.matched_session}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, backgroundColor: tint + '0E', borderRadius: 8, borderLeftWidth: 3, borderLeftColor: tint }}>
                     <Text style={{ fontSize: 14 }}>{sessIcon}</Text>
-                    <Text style={{ fontSize: 16, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 3, color: colors.text, minWidth: 56 }}>{h.combo}</Text>
+                    {/* BUG-187: show what the board posted — the draw on a straight,
+                        posted_order on a box; combo is the enumeration index. */}
+                    <Text style={{ fontSize: 16, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold, letterSpacing: 3, color: colors.text, minWidth: 56 }}>{isStraight && h.actual_result ? h.actual_result : (h.posted_order ?? h.combo)}</Text>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 11, color: colors.textSecondary }}>
                         <Text style={{ color: tint, fontWeight: '900', fontFamily: theme.typography.fontFamily.monoBold }}>{h.scope}</Text>

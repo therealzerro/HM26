@@ -29,6 +29,149 @@ import { buildAnchorThread, buildSundayReceipts } from './anchor-thread';
 import { generateCaption, SURFACE_TIER, type CaptionData } from '../lib/social/captions';
 import { lintCaption } from '../lib/social/brandLint';
 import { WEEKLY_CAPTIONS } from '../lib/social/weeklyCaptions';
+import { CAPTION_BANKS } from '../lib/social/captionBanks';
+
+// ─── MKT-86 (2026-10-15) — the PRO ROOM section (content agent order §2) ────
+// Four cards the operator works by hand in the Pro group / free group: today's
+// Pro question (2.1), who is due an onboarding touch (2.2, COUNTS ONLY — this
+// sheet lands on a public bucket, names and ticks live in Admin → Pro
+// Subscribers → Onboarding), the Monday featured Pro post for the free group
+// (2.3), and a one-time setup block (2.4) that drops off after its date.
+// Every line is the agent's copy VERBATIM (placeholders filled), tier-linted at
+// build like the brief cards: Pro group = tier 4, free group = tier 2.
+const SETUP_BLOCK_UNTIL = '2026-10-17'; // 2.4 prints while dayISO <= this; bump if the run slips
+const PRO_ROOM_TEMPLATES = {
+  day1: `Welcome to Pro, {name} 💎 Your boards land here every morning — All-Day, Midday and Evening, every signal uncovered. Quick question to get you started: which state are you checking from?`,
+  day3: `{name}, here's the quick guide to reading your board 👉 it's pinned at the top of the group. Ask anything in the comments; we read every one.`,
+  day21: `{name}, three weeks in 💎 Glad you're here. Anything you'd like to see on the board or in the brief? Tell us; we read every reply.`,
+};
+const FEATURED_PRO_POST: Record<'A' | 'B' | 'C', string> = {
+  A: `💎 Want the whole board? In here you get All-Day in full, with Midday and Evening covered until they draw. Pro gets all three boards uncovered every morning, the Pro brief, and a smaller room where every question gets answered. $2.49/mo → {link_pro}
+Same six for everyone. Graded the same day across 42 states & provinces. Every match and every miss stays on the record.`,
+  B: `💎 Pro members had this morning's Midday and Evening digits before the draws. All three boards, uncovered, every morning, plus the Pro brief. $2.49/mo → {link_pro}`,
+  C: `💎 Curious what's under the cover? That's Pro: every board uncovered each morning and a room that answers your questions. $2.49/mo → {link_pro}
+Every match and every miss stays on the record.`,
+};
+const PINNED_GUIDE = `HOW TO READ YOUR BOARD 💎
+• Three boards a day: All-Day, Midday and Evening. Six signals each.
+• The big digits are the exact order. The small set beside them is the same three digits in any order.
+• Every board is graded the same day across 42 states & provinces. STRAIGHT MATCH = exact order. BOX MATCH = any order.
+• Yesterday's results are on the morning Pro brief.
+• Same six for everyone. A signal is a combination on the record, not a prediction: no signal is more likely to draw than any other combination. What you get is every board early, and an honest record.
+• Questions? Comment below; we read every one.`;
+const GROUP_RULES = `1. Be kind. This is a friendly room.
+2. No selling, no soliciting, no asking members for money — for numbers or anything else.
+3. No links to outside groups, channels or sites.
+4. Keep it to the daily boards and the draws.
+Posts that break these are removed. Repeat breaks mean removal from the group.`;
+
+const dayNumber = (dayISO: string) => { const [y, m, d] = dayISO.split('-').map(n => parseInt(n, 10)); return Math.floor(Date.UTC(y, m - 1, d) / 86_400_000); };
+const addDays = (dayISO: string, n: number) => new Date((dayNumber(dayISO) + n) * 86_400_000).toISOString().slice(0, 10);
+const weekdayOf = (dayISO: string) => new Date(dayISO + 'T12:00:00Z').getUTCDay(); // 0 = Sunday
+function isoWeek(dayISO: string): number {
+  const d = new Date(dayISO + 'T12:00:00Z');
+  const day = (d.getUTCDay() + 6) % 7; // Monday = 0
+  d.setUTCDate(d.getUTCDate() - day + 3); // Thursday of this week
+  const firstThu = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  return 1 + Math.round(((d.getTime() - firstThu.getTime()) / 86_400_000 - 3 + ((firstThu.getUTCDay() + 6) % 7)) / 7);
+}
+
+/** 2.1 — one question from the v2 bank, walked by day so it cannot repeat
+ *  inside 7 days (the bank holds 20 ids), never today's anchor question. The
+ *  free-group v2 question slot is not live yet (live_kinds is empty) and its
+ *  pick depends on runtime rotation memory, so there is nothing deterministic
+ *  to exclude against today — noted on the card. */
+function pickProQuestion(dayISO: string, anchorQuestion: string): { id: string; text: string } {
+  const pool = CAPTION_BANKS.questions.filter(q => q.text && !q.retired);
+  let i = dayNumber(dayISO) % pool.length;
+  if (pool[i].text.trim() === anchorQuestion.trim()) i = (i + 1) % pool.length;
+  return { id: pool[i].id, text: pool[i].text };
+}
+
+interface OnboardingCounts { day1: number; day3: number; day21: number; known: number }
+/** 2.2 — counts only. Rows whose note says the start date is unknown (the
+ *  10/15 email-only import) are excluded: a fake day-1 would tag the wrong people. */
+async function fetchOnboardingCounts(url: string, key: string, dayISO: string): Promise<OnboardingCounts | null> {
+  try {
+    const r = await fetch(`${url}/rest/v1/pro_subscribers?status=eq.active&select=date_subscribed,notes&limit=2000`,
+      { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+    if (!r.ok) return null;
+    const rows = (await r.json()) as { date_subscribed: string; notes: string | null }[];
+    const known = rows.filter(x => x.date_subscribed && !/unknown real start/i.test(x.notes ?? ''));
+    const at = (n: number) => known.filter(x => addDays(x.date_subscribed.slice(0, 10), n) === dayISO).length;
+    return { day1: at(1), day3: at(3), day21: at(21), known: known.length };
+  } catch { return null; }
+}
+
+function lintTag(text: string, tier: 1 | 2 | 3 | 4, label: string): string {
+  const bad = lintCaption(text, tier).violations.filter(v => v.blocking);
+  console.log(`[captions-pdf] pro-room ${label} (tier ${tier}): ${bad.length ? 'BLOCK ' + bad.map(v => `${v.rule}:${v.term}`).join(',') : 'lint PASS'}`);
+  return bad.length
+    ? `<div class="tag" style="color:#b91c1c">⛔ LINT BLOCK (tier ${tier}): ${esc(bad.map(v => `${v.rule}:"${v.term}"`).join(' · '))} — do not post as-is</div>`
+    : '';
+}
+
+function proRoomCards(dayISO: string, cfg: BriefCfg, anchorQuestion: string, onboarding: OnboardingCounts | null): string {
+  // 2.1
+  const q = pickProQuestion(dayISO, anchorQuestion);
+  const qCard = `<section class="thread">
+      <h2>💬 Today's Pro question <span class="meta">· post in the PRO group at the 8–9 AM peak · one question, the bank's ${esc(q.id)} · never the same question within 7 days · not the same question the free group gets today (the free-group question slot is not live yet)</span></h2>
+      ${lintTag(q.text, 4, `question ${q.id}`)}
+      <div class="tag">QUESTION — COPY AS-IS · ${esc(q.id)}</div><pre class="big">${esc(q.text)}</pre>
+      <div class="why">Answer replies for five minutes.</div>
+    </section>`;
+  // 2.2
+  const lintName = (t: string) => t.replace(/\{name\}/g, 'Dana');
+  const counts = onboarding
+    ? `<pre class="big">Day 1: ${onboarding.day1} · Day 3: ${onboarding.day3} · Day 21: ${onboarding.day21}</pre>
+       <div class="why">${onboarding.known} active members have a known join date. Roster dates can be wrong — check the Pro group's new-member list before tagging. Member names and ticks live in Admin → Pro Subscribers → Onboarding (this sheet is a shared file).</div>`
+    : `<pre class="big">Roster unavailable at build — use the templates on members you see joining.</pre>
+       <div class="why">Roster dates can be wrong — check the Pro group's new-member list before tagging. Member names and ticks live in Admin → Pro Subscribers → Onboarding (this sheet is a shared file).</div>`;
+  const tmpl = (label: string, key: keyof typeof PRO_ROOM_TEMPLATES, note = '') =>
+    `${lintTag(lintName(PRO_ROOM_TEMPLATES[key]), 4, `onboarding ${key}`)}<div class="tag">${esc(label)} — tag the member · {name} = first name as shown in the group</div><pre>${esc(PRO_ROOM_TEMPLATES[key])}</pre>${note}`;
+  const obCard = `<section class="thread">
+      <h2>🤝 Onboarding — who's due today <span class="meta">· day 1 welcome · day 3 guide · day 21 check-in · each one a tagged comment in the PRO group</span></h2>
+      ${counts}
+      ${tmpl('DAY 1 — WELCOME COMMENT', 'day1')}
+      ${tmpl('DAY 3 — POINT THEM TO THE GUIDE', 'day3')}
+      ${tmpl('DAY 21 — THE PERSONAL CHECK-IN', 'day21', '<div class="why">⛔ The day-21 touch never mentions billing, renewal or price.</div>')}
+    </section>`;
+  // 2.3
+  const wk = isoWeek(dayISO);
+  const variant = (['A', 'B', 'C'] as const)[wk % 3];
+  const dow = weekdayOf(dayISO);
+  const link = cfg.proUrl || '{link_pro}';
+  let featCard: string;
+  if (dow === 1) {
+    const text = FEATURED_PRO_POST[variant].replace(/\{link_pro\}/g, link);
+    featCard = `<section class="thread">
+      <h2>📌 Featured Pro post — this week's variant ${variant} <span class="meta">· ISO week ${wk} · rotates A → B → C weekly</span></h2>
+      ${lintTag(text, 2, `featured ${variant}`)}
+      <div class="tag">FREE GROUP (tier 2) — COPY AS-IS</div><pre>${esc(text)}</pre>
+      <div class="why">Post Monday 8–10 AM in the FREE group and mark it Featured (replace last week's).</div>
+    </section>`;
+  } else {
+    const nextMon = addDays(dayISO, ((8 - dow) % 7) || 7);
+    const nextVariant = (['A', 'B', 'C'] as const)[isoWeek(nextMon) % 3];
+    featCard = `<section class="thread">
+      <h2>📌 Featured Pro post <span class="meta">· Mondays only — next variant ${nextVariant} on ${esc(nextMon)}</span></h2>
+    </section>`;
+  }
+  // 2.4
+  const setupCard = dayISO <= SETUP_BLOCK_UNTIL ? `<section class="thread sunday">
+      <h2>🛠 ONE-TIME SETUP — do once, then this block disappears from the sheet <span class="meta">· prints through ${esc(SETUP_BLOCK_UNTIL)}</span></h2>
+      ${lintTag(PINNED_GUIDE, 4, 'pinned guide')}
+      <div class="tag">a. PRO GROUP — PINNED GUIDE (pin once, at the top of the Pro group)</div><pre>${esc(PINNED_GUIDE)}</pre>
+      ${lintTag(GROUP_RULES, 2, 'group rules')}
+      <div class="tag">b. GROUP RULES (free group AND Pro group, in the group's Rules section)</div><pre>${esc(GROUP_RULES)}</pre>
+    </section>` : '';
+  return `<div class="sesshead">🕐 8–9 AM — 💎 PRO ROOM (post by hand · question · onboarding touches · Monday featured post)</div>
+    ${qCard}
+    ${obCard}
+    ${featCard}
+    ${setupCard}`;
+}
+
 
 // MKT-82 (2026-10-10, operator ask): the SOCIAL BRIEF CAPTIONS ride on the
 // sheet — one per tier, for the framed brief PNGs from Admin → Reels (Pro
@@ -137,7 +280,7 @@ const etNow = () =>
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-function buildHtml(rows: Row[], dayISO: string, briefCfg: BriefCfg = {}): string {
+function buildHtml(rows: Row[], dayISO: string, briefCfg: BriefCfg = {}, onboarding: OnboardingCounts | null = null): string {
   // ── Page 1: the schedule card. One page, large type, times ET. ──────────
   const sessions = POSTING_SESSIONS.map((s) => {
     const reels = s.kinds.length
@@ -159,7 +302,7 @@ function buildHtml(rows: Row[], dayISO: string, briefCfg: BriefCfg = {}): string
       <div class="sub">all times EASTERN · v1 · canonical prose: assets/marketing/POSTING_SCHEDULE.txt</div>
     </div>
     ${sessions}
-    <div class="skip">${esc(SCHEDULE_SKIP_ORDER)}</div>
+    <div class="skip">${esc(SCHEDULE_SKIP_ORDER)}<div class="fallback">⚡ FALLBACK — MINIMUM PRO DAY · If the full run can't happen: Admin → 🎬 Reels → 📰 Social brief → 💎 Pro (framed) → Save/Share into the Pro group, plus today's Pro question (next page). Or: <b>npm run brief:pro</b></div></div>
   </div>`;
 
   // ── Caption cards, sorted into POSTING ORDER and grouped by session. ────
@@ -187,6 +330,7 @@ function buildHtml(rows: Row[], dayISO: string, briefCfg: BriefCfg = {}): string
   // thing the operator posts and the question rides under its photo. ───────
   const anchor = buildAnchorThread(dayISO);
   const sunday = buildSundayReceipts(dayISO);
+  const proRoomCard = proRoomCards(dayISO, briefCfg, anchor.question, onboarding);
   const anchorCard = `<div class="sesshead">🕐 8:30 AM — Morning Brief · the FRAMED BRIEF (Admin → Reels) + ANCHOR THREAD (Pro group)</div>
     ${briefCaptionCards(dayISO, briefCfg)}
     <section class="thread">
@@ -233,7 +377,8 @@ function buildHtml(rows: Row[], dayISO: string, briefCfg: BriefCfg = {}): string
     .sched { page-break-after: always; }
     .schedhead h1 { font-size: 34px; margin: 6px 0 3px; }
     .schedhead .sub { font-size: 13px; margin-bottom: 16px; }
-    .sess { display: flex; gap: 20px; padding: 24px 2px; border-bottom: 2px solid #eee; }
+    .sess { display: flex; gap: 20px; padding: 14px 2px; border-bottom: 2px solid #eee; } /* MKT-86: 24→14 so six sessions + the footer box hold one Letter page */
+    .schedhead .sub { margin-bottom: 8px; }
     .sess.dim { opacity: 0.5; }
     .sess .t { flex: 0 0 152px; font-size: 31px; font-weight: 800; letter-spacing: -0.5px; }
     .sess .title { font-size: 20px; font-weight: 700; margin-bottom: 7px; }
@@ -243,6 +388,8 @@ function buildHtml(rows: Row[], dayISO: string, briefCfg: BriefCfg = {}): string
     .sess .dl { font-size: 16.5px; font-weight: 800; color: #b91c1c; margin-top: 7px; }
     .sess .note { font-size: 13.5px; color: #555; line-height: 1.45; margin-top: 6px; }
     .skip { font-size: 15px; font-weight: 700; margin-top: 20px; padding: 14px 16px; background: #f4f4f5; border-radius: 8px; }
+    .skip { margin-top: 14px; padding: 10px 14px; }
+    .fallback { font-size: 11px; font-weight: 600; line-height: 1.35; margin-top: 8px; padding-top: 8px; border-top: 2px solid #b91c1c; color: #7f1d1d; }
     .sesshead { font-size: 13px; font-weight: 800; letter-spacing: 0.5px; margin: 14px 0 6px; color: #444; }
     /* MKT-73 thread cards: the question is the largest type on the page — it is
        the one line the operator types by hand on a phone; the prompts are small
@@ -255,8 +402,9 @@ function buildHtml(rows: Row[], dayISO: string, briefCfg: BriefCfg = {}): string
   </style></head><body>
     ${schedulePage}
     <h1>HITMASTER ZK6 — DAY CAPTIONS</h1>
-    <div class="sub">Run day ${esc(dayISO)} · generated ${esc(etNow())} ET · ${rows.length} caption set${rows.length === 1 ? '' : 's'} + anchor thread${sunday ? ' + Sunday receipts thread' : ''} · internal operator sheet — captions are the lint-gated drafts on the registered rows, in posting order</div>
+    <div class="sub">Run day ${esc(dayISO)} · generated ${esc(etNow())} ET · ${rows.length} caption set${rows.length === 1 ? '' : 's'} + anchor thread + Pro room${sunday ? ' + Sunday receipts thread' : ''} · internal operator sheet — captions are the lint-gated drafts on the registered rows, in posting order</div>
     ${anchorCard}
+    ${proRoomCard}
     ${weeklyCard}
     ${sundayCard}
     ${cards}
@@ -305,7 +453,7 @@ export async function generateAndUploadCaptionsPdf(dayISO?: string): Promise<voi
   const stamp = today.replace(/-/g, '');
   const htmlPath = join(tmpdir(), `hm_captions_${stamp}.html`);
   const pdfPath = join(tmpdir(), `hm_captions_${stamp}.pdf`);
-  writeFileSync(htmlPath, buildHtml(rows, today, await fetchBriefCfg(url, key)));
+  writeFileSync(htmlPath, buildHtml(rows, today, await fetchBriefCfg(url, key), await fetchOnboardingCounts(url, key, today)));
 
   const { chromium } = await import('playwright'); // lazy — publish imports this module
   const browser = await chromium.launch();

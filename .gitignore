@@ -39,3 +39,6 @@ assets/marketing/_carrier_joined/
 # LP consensus research (2026-10-14): raw member-level picks stay local, never committed
 research_local/
 __pycache__/
+
+# E1 MINIMUM PRO DAY (MKT-86): daily framed Pro brief PNG from `npm run brief:pro`
+assets/marketing/brief_today/

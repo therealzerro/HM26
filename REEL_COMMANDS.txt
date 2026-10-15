@@ -2,12 +2,41 @@
 HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
-changed. Every command has a description. (Last updated 2026-10-13 — the reel:daily
+changed. Every command has a description. (Last updated 2026-10-15 — MKT-86:
+NEW `npm run brief:pro` (MINIMUM PRO DAY, below), the captions sheet's 💎 PRO
+ROOM section, and the automatic STRAIGHT STATE STAMP on verify/verify_midday;
+previously 2026-10-13 — the reel:daily
 pre-flight gate now ALSO runs a 7-day DATA INTEGRITY check on histories (PARSER-HARDEN-01):
 fails closed on 3+ rows in one session, a game-label variant, a midday row for an
 evening-only state, or an unknown jurisdiction; lists 2-row one-draw sessions as a
 note (Double Draw bonus drawings are legitimate). Same escape hatch: --skip-preflight,
 operator-stated only; previously 2026-10-09 — OPS-07 reel:daily pre-flight gate + --skip-preflight / --allow-all-matched passthrough; previously 2026-09-11 — MKT-79 record_public, THE DAILY TRACK RECORD REEL; 2026-09-09 — MKT-77 free session CTA cuts; 2026-09-08 —
+MINIMUM PRO DAY (MKT-86 E1, 2026-10-15) — the fastest path to a Pro post:
+    npm run brief:pro
+  Captures ONLY the framed 💎 Pro brief PNG (tier 4, lint-gated, fit-asserted) into
+  assets/marketing/brief_today/ (gitignored, overwritten daily). Dev server on :8081
+  required, same rig as render-social-brief. Post it to the Pro group with today's
+  Pro question from the captions sheet. Use on any day the full reel:daily cannot run.
+  In the app: Admin → 🎬 Reels → 📰 Social brief → 💎 Pro (framed) → Save/Share.
+  Admin shows a red "Pro not posted today" banner after 9:30 AM ET until something
+  Pro is marked posted (reminder only — nothing is scheduled).
+
+CAPTIONS SHEET — 💎 PRO ROOM section (MKT-86 §2, 2026-10-15): every sheet now
+  carries today's Pro question (bank id shown), onboarding due-today COUNTS + the
+  day-1/3/21 templates (names and ticks live in Admin → Pro Subscribers → Onboarding;
+  the sheet is a shared file), the Monday featured Pro post (variant A/B/C by ISO
+  week), and until 2026-10-17 a one-time setup block (pinned guide + group rules).
+  Page 1 carries the MINIMUM PRO DAY fallback line.
+    npm run reel:captions-pdf [-- --day=YYYY-MM-DD]
+
+STRAIGHT STATE STAMP (MKT-86, 2026-10-15) — automatic, no new command. On
+  verify and verify_midday, when the first ledger hold is a STRAIGHT MATCH the
+  board row carries a gold "STRAIGHT MATCH · <STATE>" plate and the ledger hold
+  gets the same plate slammed above the row 0.35s after the bolt (contact sheet
+  gets a frame at bolt+0.9s). Never on verify_public (tier 1: no state names).
+  Re-render a stamp by hand:
+    npx tsx scripts/render-straight-stamp.ts WI out.png     (optional --bottom=880)
+
 UPDATED 2026-08-17 (MKT-57) — every slate reel body (allday/midday/evening,
 all cuts) now captures the coffee-mode HOME, not the Slates grid: 10.0s
 static still of the six tiles (emboss + notation band at the bottom of the

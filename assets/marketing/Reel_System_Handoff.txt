@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-13 · v7.25
+Content Agent Handoff · 2026-10-15 · v7.26
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.11; v7.24 = 10/13 ENGINE + DATA DAY, read its block first; v7.12 = one asset edit, v7.13 = the reel:daily gate, v7.14 = MKT-82 PRO BRIEF PHASE 0, v7.15 = MKT-82 PHASE 1 SHIPPED, v7.16 = MKT-82 PHASE 2 SHIPPED BY OPERATOR ORDER (not a reel; see its block) — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.11; v7.26 = 10/15 YOUR PRO GROWTH ORDER EXECUTED + THE STRAIGHT STATE STAMP, read its block first; v7.24 = 10/13 ENGINE + DATA DAY; v7.12 = one asset edit, v7.13 = the reel:daily gate, v7.14 = MKT-82 PRO BRIEF PHASE 0, v7.15 = MKT-82 PHASE 1 SHIPPED, v7.16 = MKT-82 PHASE 2 SHIPPED BY OPERATOR ORDER (not a reel; see its block) — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -645,6 +645,104 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.26 (2026-10-15 — YOUR "PRO GROWTH" ORDER EXECUTED (§2 built,
+E1–E3 built and demonstrated, E4–E6 scoped) + THE STRAIGHT STATE STAMP, operator
+order: "an exaggerated stamp naming the state in the body of the verify reels")
+================================================================================
+  ID: MKT-86 (next free = 87). Engine untouched. Nothing auto-posts.
+
+  RULINGS RECORDED (yours, 10/15, accepted by the operator's "execute"):
+  · Free-group (tier 2) verify captions MAY name the state and the result of a
+    match. Tier 1 unchanged (no state names in an image or caption outside the
+    MKT-85 FACT-slot carve-out).
+  · Meta's current subscriber list = Pro headcount truth; monthly reconcile,
+    absent from Meta's active list = churned on the reconcile date. APPLIED
+    10/15 on the operator's word: 37 roster rows churned, roster 45 vs
+    Insights 52/54 (the ~7 gap = subscribers who hide their email). Quote
+    52–54.
+
+  §2 PRO ROOM ON THE SHEET (built as ordered): the captions PDF carries a
+  💎 PRO ROOM group right after the Morning Brief cards —
+    2.1 today's Pro question from the v2 bank (id printed; walked by day over
+        20 ids so no repeat inside 7; never the day's anchor question).
+        10/15 = Q2 "Coffee or tea while you look over the board? ☕" + "Answer
+        replies for five minutes." ⚠ Two questions now land in the Pro room
+        each morning (anchor + 2.1) — your order asks for it; say if not.
+        "Never the free group's question": the free v2 question slot is not
+        live (live_kinds empty) and its picker uses rotation memory, so the
+        exclusion is STATED on the card, not computed, until v2 ships.
+    2.2 onboarding due-today as COUNTS + your three templates verbatim. The
+        sheet lives on a PUBLIC storage bucket, so no member names ever ride
+        it — names and ticks are in Admin (E3). 10/15: day 1/3/21 = 0/0/0;
+        34 active members have a known join date; the 11 rows from the
+        email-only export are dated by import and excluded from scheduling
+        (⛔ ask for the supporter export WITH dates next month).
+    2.3 the Monday featured Pro post rotating A/B/C by ISO week ({link_pro}
+        from app_config); non-Mondays print "next variant X on <date>" —
+        10/15 reads "next variant B on 2026-10-19". Operator marks Featured.
+    2.4 the pinned guide (tier 4) + group rules (tier 2) print through
+        2026-10-17 then disappear (SETUP_BLOCK_UNTIL constant, bump if the
+        run slips).
+    LINT at build, every line, tiers as you set them: Q2 PASS · day1/day3/
+    day21 PASS (tier 4) · pinned guide PASS (tier 4) · group rules PASS
+    (tier 2) · featured A/B/C lint on Mondays (tier 2; $2.49 + URL allowed).
+    Nothing rewritten. Sheet for 10/15 rendered and uploaded (4 pages).
+
+  E1 BUILT — MINIMUM PRO DAY: `npm run brief:pro` captures ONLY the framed
+    💎 Pro brief PNG (tier 4, lint-gated, fit-asserted) into
+    assets/marketing/brief_today/ (gitignored). Demonstrated 10/15: fit
+    232/239 pt, lint PASS, 32 strings. Top of REEL_COMMANDS + page 1 of the
+    sheet as the FALLBACK line. In-app path: Admin → 🎬 Reels → 📰 Social
+    brief → 💎 Pro (framed) → Save/Share.
+  E2 BUILT — PRO NOT-POSTED BANNER (Admin, all views): after 9:30 AM ET, if
+    no Pro reel is marked posted today and no Pro social post is logged
+    today, a red banner sits above the Admin view with one tap to Reels →
+    📰 Social brief. "Dismiss for today" silences it per device. A reminder,
+    never a scheduler.
+  E3 BUILT — ONBOARDING TICKS (Admin → Pro Subscribers → 💎 Onboarding):
+    day 1/3/21 since the roster join date, DUE TODAY then UPCOMING (≤30d);
+    one dated tick per member per touch (pro_onboarding_touches, service-
+    role only; subscriber-admin v15); 📋 copies the verbatim comment with
+    {name} filled from the display name when the roster has one. The all-
+    three-vs-not first-renewal comparison is the data's purpose, not yet a
+    readout (needs a cohort past day 30).
+  E4–E6 SCOPED, not built: docs/mkt86_scopes_e4_e6.md — what fills
+    automatically vs what the operator pastes, costs, and the order I would
+    build them in if asked (E6 roster reconcile → E4 weekly readout → E5
+    conversion trace; E5 needs MKT-85 build 2's caption_meta first).
+
+  THE STRAIGHT STATE STAMP (operator add-on, same day):
+  · Two surfaces, one condition. BOARD SEGMENT: a graded STRAIGHT row now
+    carries a rotated gold plate "STRAIGHT MATCH / <FULL STATE NAME>" across
+    its middle (over the box-set chip — redundant on a straight); rank,
+    digits, DREW and attribution untouched. LEDGER HOLD: when the first hold
+    is a STRAIGHT (the MKT-63 strike condition), the same plate lands 0.35s
+    after the bolt and rides to the hold's end, pinned ABOVE the row (bottom
+    edge y=880) because the row drifts under the push-in on first-viewport
+    days — digits, badge, "Drew … in WI midday" stay readable every frame.
+  · Plumbing: the renderer reads the state from the row's own attribution
+    text and writes hm_straight_state beside hm_strike_at; the assembler
+    renders _straight_<kind>_<stamp>.png per build (like the chip) and
+    composites it after the strike, before the ribbon/chip furniture.
+  · NEVER on verify_public — tier 1 forbids state names and STRAIGHT; the
+    public cut assembles byte-identical to v7.25. Box-only days: nothing.
+  · Verified on the 2026-10-13 same-day build (WI 054 straight): contact
+    sheet now carries a frame at bolt+0.9s for the eyeball. Tri-State reads
+    "TRI-STATE", W.Canada "WESTERN CANADA", DC "DISTRICT OF COLUMBIA" (type
+    scales down for long names; a name that would overflow the frame aborts).
+    Open: the plate sits ABOVE the row, not on it — on a straight that parks
+    as the first row under a day header the plate lands over the header
+    band; moving it onto the row means a per-frame render in the renderer.
+    Say if you want that.
+
+  STANDING ASKS FOR YOU (survive the relay):
+  · Confirm two questions per morning in the Pro room (anchor + 2.1) is
+    intended, or name which one stays.
+  · The free-group member selling picks in-room: group rules (2.4) are on
+    the sheet; moderation remains the operator's.
+  · Supporter export WITH dates next month, so E3 schedules real members.
+
 ================================================================================
 WHAT CHANGED IN v7.25 (2026-10-13, evening — your v7.24 reply EXECUTED: AF hook
 bank LANDED; record 30-of-30 REPORT + rule (ii) BUILT; flip HELD for the

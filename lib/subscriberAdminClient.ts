@@ -203,6 +203,16 @@ export interface PageDailyRow {
   imported_at: string | null;
 }
 
+/** One onboarding tick (MKT-86 E3): the operator posted the day-1/3/21 comment for this member. */
+export interface OnboardingTouch {
+  id: string;
+  subscriber_id: string;
+  touch: 'day1' | 'day3' | 'day21';
+  done_on: string;
+  note: string | null;
+  created_at: string;
+}
+
 export interface SubscriberListFilters {
   status?: string;
   acquisition_source?: string;
@@ -259,6 +269,14 @@ export const subscriberAdmin = {
 
   upsertGroupDaily: (group_type: 'free' | 'pro', rows: Array<Omit<GroupDailyRow, 'group_type' | 'imported_at'>>) =>
     callSubscriberAdmin<{ created: number; updated: number }>('upsert_group_daily', { group_type, rows }),
+
+  /** MKT-86 E3: every onboarding tick, newest first. */
+  listOnboarding: () =>
+    callSubscriberAdmin<OnboardingTouch[]>('list_onboarding'),
+
+  /** done=true ticks (upsert, done_on = today ET); done=false unticks (delete). */
+  setOnboarding: (p: { subscriber_id: string; touch: 'day1' | 'day3' | 'day21'; done: boolean; note?: string | null }) =>
+    callSubscriberAdmin<{ ok: boolean; done: boolean; done_on?: string }>('set_onboarding', p),
 
   /** Page Insights daily series, newest first (default 90 days). */
   listPageDaily: (days = 90) =>

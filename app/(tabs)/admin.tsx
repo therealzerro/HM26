@@ -34,6 +34,7 @@ import BriefView from '@/components/admin/BriefView';
 import AnalyticsView from '@/components/admin/AnalyticsView';
 import PublishView, { PublishDeepLinkPreset } from '@/components/admin/PublishView';
 import ReelsView from '@/components/admin/ReelsView';
+import { ProNotPostedBanner } from '@/components/admin/ProNotPostedBanner';
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
 // DESIGN-02 T2/T3: four labeled domains in one horizontal scroller. Every id is
@@ -189,6 +190,9 @@ function AdminScreen() {
           required everywhere; enter it once per device and it's stored. */}
       <AdminKeyGate>
       <View style={{ flex: 1 }}>
+        {/* MKT-86 E2: after 9:30 AM ET, a red reminder when nothing Pro is marked
+            posted today — one tap to the Social brief. Reminder only; never schedules. */}
+        <ProNotPostedBanner onOpenReels={() => setView('reels')} />
         {view === 'dashboard' && <DashboardView setView={setView} imports={imports ?? []} healthMetrics={healthMetrics} regenerateSlate={regenerateSlate} checkSlateLock={checkSlateLock} onOpenZK30Import={(type) => { setWizardPreset({ type, jurisdiction: 'TX' }); setView('wizard'); }} />}
         {view === 'brief' && <ErrorBoundary fallback="Brief view error"><BriefView /></ErrorBoundary>}
         {view === 'publish' && <ErrorBoundary fallback="Publish view error"><PublishView initialPreset={publishPreset} onPresetConsumed={() => setPublishPreset(null)} /></ErrorBoundary>}

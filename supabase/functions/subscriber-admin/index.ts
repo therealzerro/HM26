@@ -29,6 +29,8 @@
  *   upsert_earnings          → UPSERT (earn_date key) from the earnings export
  *   list_group_daily         → SELECT fb_group_daily (Group Insights daily series, no PII)
  *   upsert_group_daily       → UPSERT ((group_type, day) key) from the Insights paste
+ *   list_onboarding          → SELECT pro_onboarding_touches (MKT-86 E3; day1/day3/day21 ticks)
+ *   set_onboarding           → tick (upsert on (subscriber_id, touch), done_on = today ET) or untick (delete)
  *   list_page_daily          → SELECT fb_page_daily (Page Insights daily series, no PII; ENH-FUNNEL-04)
  *   upsert_page_daily        → UPSERT (day key) from the Page Insights paste — only the columns pasted
  *   ping                     → health probe
@@ -412,6 +414,39 @@ interface GroupDailyRowIn {
   engaged_members?: number | null; // free-group export "Posted or Commented"
 }
 
+// ─── pro_onboarding_touches (MKT-86 E3, 2026-10-15) ────────────────────────────
+// One row per (subscriber, touch). The operator ticks day 1 / day 3 / day 21 in
+// Admin → Pro Subscribers after posting the matching comment in the Pro group.
+// Later: first-renewal rate for members with all three vs not. Service-role
+// only; nothing here leaves the app.
+interface SetOnboardingPayload { subscriber_id: string; touch: 'day1' | 'day3' | 'day21'; done: boolean; note?: string | null }
+
+function todayET(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+}
+
+async function listOnboarding() {
+  return sbGet('/rest/v1/pro_onboarding_touches?select=id,subscriber_id,touch,done_on,note,created_at&order=created_at.desc&limit=2000');
+}
+
+async function setOnboarding(p: SetOnboardingPayload) {
+  if (!p?.subscriber_id || !['day1', 'day3', 'day21'].includes(p.touch)) throw new Error('subscriber_id and touch (day1|day3|day21) required');
+  if (p.done) {
+    await sbPost(
+      '/rest/v1/pro_onboarding_touches?on_conflict=subscriber_id,touch',
+      [{ subscriber_id: p.subscriber_id, touch: p.touch, done_on: todayET(), note: p.note ?? null }],
+      'resolution=merge-duplicates,return=minimal',
+    );
+    return { ok: true, done: true, done_on: todayET() };
+  }
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/pro_onboarding_touches?subscriber_id=eq.${encodeURIComponent(p.subscriber_id)}&touch=eq.${p.touch}`,
+    { method: 'DELETE', headers: svcHeaders('return=minimal') },
+  );
+  if (!r.ok) throw new Error(`DELETE onboarding → ${r.status}: ${await r.text()}`);
+  return { ok: true, done: false };
+}
+
 async function listGroupDaily(group_type: 'free' | 'pro' = 'pro', days = 60) {
   return sbGet(`/rest/v1/fb_group_daily?select=*&group_type=eq.${group_type}&order=day.desc&limit=${days}`);
 }
@@ -539,6 +574,10 @@ async function handle(req: ActionRequest): Promise<unknown> {
       );
     case 'upsert_group_daily':
       return upsertGroupDaily(payload.group_type as 'free' | 'pro', payload.rows as GroupDailyRowIn[]);
+    case 'list_onboarding':
+      return listOnboarding();
+    case 'set_onboarding':
+      return setOnboarding(payload as unknown as SetOnboardingPayload);
     case 'list_page_daily':
       return listPageDaily(typeof payload.days === 'number' ? payload.days : 90);
     case 'upsert_page_daily':

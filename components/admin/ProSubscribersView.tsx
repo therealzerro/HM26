@@ -12,6 +12,135 @@ import {
   type GroupDailyRow,
 } from '@/lib/subscriberAdminClient';
 import { identityLabel, isPlaceholderEmail } from '@/lib/subscriberNameLink';
+import * as Clipboard from 'expo-clipboard';
+import { getTodayET } from '@/lib/dateUtils';
+import { PRO_ONBOARDING_TEMPLATES, ONBOARDING_DUE_DAYS, ONBOARDING_TOUCH_LABEL, fillName, type OnboardingTouchKey } from '@/lib/social/proOnboarding';
+import type { OnboardingTouch } from '@/lib/subscriberAdminClient';
+
+const TOUCHES: OnboardingTouchKey[] = ['day1', 'day3', 'day21'];
+const UNKNOWN_START_MARK = 'unknown real start';
+
+/**
+ * MKT-86 E3 — ONBOARDING TICKS. One tick per member per touch (day 1 / day 3 /
+ * day 21 since date_subscribed), recorded with the date, so a later pass can
+ * compare first-renewal rates for members who got all three vs not. The copy
+ * buttons hand the operator the verbatim Pro-room comment with {name} filled
+ * from the member's display name when known. Nothing here leaves the app.
+ */
+function OnboardingCard({
+  rows, touches, revealAll, onToggle,
+}: {
+  rows: ProSubscriber[];
+  touches: OnboardingTouch[];
+  revealAll: boolean;
+  onToggle: (subscriber_id: string, touch: OnboardingTouchKey, done: boolean) => void;
+}) {
+  const { colors } = useTheme();
+  const st = useSt();
+  const [showUpcoming, setShowUpcoming] = useState(true);
+  const today = getTodayET();
+  const todayMs = new Date(today + 'T00:00:00Z').getTime();
+  const daysSince = (r: ProSubscriber) => Math.round((todayMs - new Date(r.date_subscribed + 'T00:00:00Z').getTime()) / 86400000);
+  const byMember = useMemo(() => {
+    const m = new Map<string, Partial<Record<OnboardingTouchKey, OnboardingTouch>>>();
+    for (const t of touches) {
+      const cur = m.get(t.subscriber_id) ?? {};
+      cur[t.touch] = t;
+      m.set(t.subscriber_id, cur);
+    }
+    return m;
+  }, [touches]);
+
+  const active = useMemo(() => rows.filter(r => r.status === 'active'), [rows]);
+  const unknownStart = useMemo(() => active.filter(r => (r.notes ?? '').includes(UNKNOWN_START_MARK)), [active]);
+  const known = useMemo(() => active.filter(r => !(r.notes ?? '').includes(UNKNOWN_START_MARK)), [active]);
+  const dueToday = useMemo(() => known
+    .map(r => ({ r, d: daysSince(r), due: TOUCHES.filter(t => ONBOARDING_DUE_DAYS[t] === daysSince(r)) }))
+    .filter(x => x.due.length > 0), [known]); // eslint-disable-line react-hooks/exhaustive-deps
+  const upcoming = useMemo(() => known
+    .map(r => ({ r, d: daysSince(r) }))
+    .filter(x => x.d >= 0 && x.d <= 30 && !dueToday.some(y => y.r.id === x.r.id))
+    .sort((a, b) => a.d - b.d), [known, dueToday]); // eslint-disable-line react-hooks/exhaustive-deps
+  const allThree = useMemo(() => active.filter(r => { const t = byMember.get(r.id); return !!(t?.day1 && t?.day3 && t?.day21); }).length, [active, byMember]);
+
+  const copy = useCallback(async (r: ProSubscriber, t: OnboardingTouchKey) => {
+    const text = fillName(PRO_ONBOARDING_TEMPLATES[t], r.facebook_name);
+    try {
+      await Clipboard.setStringAsync(text);
+      alertAsync('Copied', `${ONBOARDING_TOUCH_LABEL[t]} comment on the clipboard${/\{name\}/.test(text) ? ' — {name} is still a placeholder (no display name on the roster); type it before posting.' : '.'}`);
+    } catch (e) {
+      alertAsync('Copy failed', e instanceof Error ? e.message : String(e));
+    }
+  }, []);
+
+  const MemberLine = ({ r, d }: { r: ProSubscriber; d: number | null }) => {
+    const t = byMember.get(r.id) ?? {};
+    const done = TOUCHES.filter(k => t[k]).length;
+    return (
+      <View style={{ paddingVertical: 6, borderTopWidth: 1, borderTopColor: colors.border, gap: 4 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={{ flex: 1, fontSize: 11, color: colors.text, fontFamily: theme.typography.fontFamily.mono }} numberOfLines={1}>
+            {identityLabel(r, revealAll ? r.email : maskEmail(r.email))}
+          </Text>
+          <Text style={{ fontSize: 10, color: colors.textSecondary }}>{d == null ? 'join date unknown' : `day ${d}`}</Text>
+          <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: done === 3 ? colors.success + '22' : colors.border }}>
+            <Text style={{ fontSize: 10, fontWeight: '800', color: done === 3 ? colors.success : colors.textSecondary }}>{done}/3</Text>
+          </View>
+        </View>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          {TOUCHES.map(k => {
+            const tick = t[k];
+            const dueNow = d != null && ONBOARDING_DUE_DAYS[k] === d;
+            return (
+              <View key={k} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <TouchableOpacity
+                  onPress={() => onToggle(r.id, k, !tick)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${tick ? 'Untick' : 'Tick'} ${ONBOARDING_TOUCH_LABEL[k]}`}
+                  style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: tick ? colors.success : dueNow ? colors.gold : colors.border, backgroundColor: tick ? colors.success + '22' : dueNow ? colors.gold + '18' : 'transparent' }}
+                >
+                  <Text style={{ fontSize: 10, fontWeight: '800', color: tick ? colors.success : dueNow ? colors.gold : colors.textSecondary }}>
+                    {tick ? `✓ ${ONBOARDING_TOUCH_LABEL[k]} · ${tick.done_on.slice(5)}` : ONBOARDING_TOUCH_LABEL[k]}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => copy(r, k)} accessibilityRole="button" accessibilityLabel={`Copy the ${ONBOARDING_TOUCH_LABEL[k]} comment`} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
+                  <Text style={{ fontSize: 10, color: colors.primary }}>📋</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <Card style={{ padding: 12, marginBottom: 14 }}>
+      <SectionTitle>{`💎 Onboarding · due today: ${dueToday.length}`}</SectionTitle>
+      <Text style={st.sub}>
+        Members with all three touches: {allThree} · first-renewal comparison available once a cohort passes day 30.
+        {' '}Tick after you post the comment in the Pro group; 📋 copies it with the member&apos;s name filled when the roster has one.
+        {' '}Roster dates can be wrong — check the Pro group&apos;s new-member list before tagging.
+      </Text>
+      <Text style={{ fontSize: 9, color: colors.textTertiary, letterSpacing: 1, marginTop: 8 }}>DUE TODAY · {today}</Text>
+      {dueToday.length === 0
+        ? <Text style={{ fontSize: 11, color: colors.textSecondary, marginVertical: 4 }}>No member is at day 1, 3 or 21 today.</Text>
+        : dueToday.map(({ r, d }) => <MemberLine key={r.id} r={r} d={d} />)}
+      <TouchableOpacity onPress={() => setShowUpcoming(v => !v)} style={{ marginTop: 8 }}>
+        <Text style={{ fontSize: 9, color: colors.textTertiary, letterSpacing: 1 }}>UPCOMING · JOINED ≤ 30 DAYS · {upcoming.length} {showUpcoming ? '▾' : '▸'}</Text>
+      </TouchableOpacity>
+      {showUpcoming && (upcoming.length === 0
+        ? <Text style={{ fontSize: 11, color: colors.textSecondary, marginVertical: 4 }}>No member with a known join date in the last 30 days.</Text>
+        : upcoming.map(({ r, d }) => <MemberLine key={r.id} r={r} d={d} />))}
+      {unknownStart.length > 0 && (
+        <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 8 }}>
+          {unknownStart.length} active member{unknownStart.length === 1 ? '' : 's'} joined on an unknown date (email-only export, dated on import) and cannot be scheduled — tick them from their row below when you see them in the group.
+        </Text>
+      )}
+    </Card>
+  );
+}
+
 
 const ACQ_SOURCES = ['reel', 'cross_post', 'free_group_organic', 'direct_referral', 'word_of_mouth', 'unknown'] as const;
 const STATUSES = ['active', 'churned', 'comped', 'paused', 'unknown'] as const;
@@ -255,17 +384,21 @@ function ProSubscribersInner() {
   // counts paying emails; once members leave the group they stay "active" here
   // until the next supporter-email export — surface the gap.
   const [groupLatest, setGroupLatest] = useState<GroupDailyRow | null>(null);
+  // MKT-86 E3: onboarding ticks (day 1 / 3 / 21) per member.
+  const [touches, setTouches] = useState<OnboardingTouch[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setErr(null);
     try {
-      const [data, gd] = await Promise.all([
+      const [data, gd, ob] = await Promise.all([
         subscriberAdmin.listSubscribers({}),
         subscriberAdmin.listGroupDaily('pro', 14).catch(() => [] as GroupDailyRow[]),
+        subscriberAdmin.listOnboarding().catch(() => [] as OnboardingTouch[]),
       ]);
       setRows(data);
       setGroupLatest(gd.find(r => r.total_members != null) ?? null);
+      setTouches(ob);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -274,6 +407,21 @@ function ProSubscribersInner() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Optimistic tick/untick; the server is the truth on the next load.
+  const toggleTouch = useCallback(async (subscriber_id: string, touch: OnboardingTouchKey, done: boolean) => {
+    const today = getTodayET();
+    setTouches(prev => {
+      const rest = prev.filter(t => !(t.subscriber_id === subscriber_id && t.touch === touch));
+      return done ? [{ id: `tmp-${subscriber_id}-${touch}`, subscriber_id, touch, done_on: today, note: null, created_at: new Date().toISOString() }, ...rest] : rest;
+    });
+    try {
+      await subscriberAdmin.setOnboarding({ subscriber_id, touch, done });
+    } catch (e) {
+      alertAsync('Tick failed', e instanceof Error ? e.message : String(e));
+      try { setTouches(await subscriberAdmin.listOnboarding()); } catch { /* keep optimistic state */ }
+    }
+  }, []);
 
   const filtered = useMemo(() => {
     return rows.filter(r => {
@@ -383,6 +531,10 @@ function ProSubscribersInner() {
           <Text style={{ fontSize: 22, fontWeight: '800', color: colors.gold }}>{totals.comped}</Text>
         </Card>
       </View>
+
+      {!loading && rows.length > 0 && (
+        <OnboardingCard rows={rows} touches={touches} revealAll={revealAll} onToggle={toggleTouch} />
+      )}
 
       {!loading && rows.length > 0 && (
         <Card style={{ padding: 12, marginBottom: 14 }}>

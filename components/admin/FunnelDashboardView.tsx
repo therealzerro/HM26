@@ -12,6 +12,7 @@ import {
   type ProSubscriber,
   type EarningsDay,
   type GroupDailyRow,
+  type PageDailyRow,
 } from '@/lib/subscriberAdminClient';
 
 const DAY_MS = 86400000;
@@ -346,6 +347,78 @@ function FreeMembersCard({ rows, members }: { rows: GroupDailyRow[]; members: nu
   );
 }
 
+/**
+ * Page-level reach from the Page Insights daily series (fb_page_daily, newest
+ * first; ENH-FUNNEL-04). Viewers / interactions / new follows over the last 7
+ * days vs the 7 before, 28-day totals, and the latest page Subscribers count —
+ * the fourth Pro number (page-side headcount) next to group / roster / paying.
+ */
+function pagePulse(rows: PageDailyRow[]) {
+  const sorted = rows.slice().sort((a, b) => (a.day < b.day ? 1 : -1));
+  if (sorted.length === 0) return null;
+  const asOf = sorted[0].day;
+  const n = (v: number | null | undefined) => (typeof v === 'number' ? v : 0);
+  const has = (v: number | null | undefined) => typeof v === 'number';
+  const win = (from: number, to: number) => sorted.slice(from, to);
+  const avg = (rs: PageDailyRow[], k: 'viewers_unique') => { const xs = rs.filter(r => has(r[k])); return xs.length ? xs.reduce((a, r) => a + n(r[k]), 0) / xs.length : null; };
+  const sum = (rs: PageDailyRow[], k: 'content_interactions' | 'follows_new') => rs.reduce((a, r) => a + n(r[k]), 0);
+  const now7 = win(0, 7), prev7 = win(7, 14), d28 = win(0, 28);
+  const subsRow = sorted.find(r => has(r.subscribers_total));
+  const subsWeekAgo = sorted.find(r => has(r.subscribers_total) && r.day <= shiftDays(subsRow?.day ?? asOf, -7));
+  return {
+    asOf,
+    days: sorted.length,
+    viewers7: avg(now7, 'viewers_unique'), viewersPrev7: avg(prev7, 'viewers_unique'), viewers28: avg(d28, 'viewers_unique'),
+    inter7: sum(now7, 'content_interactions'), interPrev7: sum(prev7, 'content_interactions'), inter28: sum(d28, 'content_interactions'),
+    follows7: sum(now7, 'follows_new'), followsPrev7: sum(prev7, 'follows_new'), follows28: sum(d28, 'follows_new'),
+    subs: subsRow ? { value: n(subsRow.subscribers_total), day: subsRow.day } : null,
+    subsWeekAgo: subsWeekAgo ? n(subsWeekAgo.subscribers_total) : null,
+    strip: d28.slice().reverse(),
+  };
+}
+
+function PageReachCard({ rows }: { rows: PageDailyRow[] }) {
+  const { colors } = useTheme();
+  const p = useMemo(() => pagePulse(rows), [rows]);
+  if (!p) return null;
+  const maxV = Math.max(1, ...p.strip.map(r => r.viewers_unique ?? 0));
+  const ratio = (a: number | null, b: number | null) => (a != null && b != null && b > 0 ? `${((a / b) * 100).toFixed(0)}% of prior 7d` : undefined);
+  const tone = (a: number | null, b: number | null) => (a != null && b != null && b > 0 && a / b < 0.7 ? colors.error : colors.teal);
+  return (
+    <Card style={{ padding: 12 }}>
+      <SectionTitle>{`Page reach · through ${p.asOf} (Insights)`}</SectionTitle>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        <MetricTile label="VIEWERS / DAY · 7D" value={p.viewers7 != null ? Math.round(p.viewers7).toLocaleString() : '—'} sub={ratio(p.viewers7, p.viewersPrev7) ?? (p.viewers28 != null ? `28d avg ${Math.round(p.viewers28).toLocaleString()}` : undefined)} color={tone(p.viewers7, p.viewersPrev7)} />
+        <MetricTile label="INTERACTIONS · 7D" value={p.inter7.toLocaleString()} sub={ratio(p.inter7, p.interPrev7) ?? `28d ${p.inter28.toLocaleString()}`} color={tone(p.inter7, p.interPrev7)} />
+        <MetricTile label="NEW FOLLOWS · 7D" value={String(p.follows7)} sub={`${p.follows28} in 28d · prior 7d ${p.followsPrev7}`} color={tone(p.follows7, p.followsPrev7)} />
+        {p.subs && (
+          <MetricTile label="SUBSCRIBERS · PAGE" value={String(p.subs.value)} sub={`Insights, ${p.subs.day.slice(5)}${p.subsWeekAgo != null ? ` · ${signed(p.subs.value - p.subsWeekAgo)} in 7d` : ''}`} color={colors.success} />
+        )}
+      </View>
+      {p.strip.length >= 7 && (
+        <View style={{ marginTop: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 44 }}>
+            {p.strip.map(r => (
+              <View key={r.day} style={{ flex: 1, height: Math.max(2, Math.round(((r.viewers_unique ?? 0) / maxV) * 44)), backgroundColor: (r.viewers_unique ?? 0) < (p.viewers28 ?? 0) * 0.6 ? colors.error + '99' : colors.teal, borderRadius: 2 }} />
+            ))}
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
+            <Text style={{ fontSize: 9, color: colors.textTertiary }}>{p.strip[0].day.slice(5)}</Text>
+            <Text style={{ fontSize: 9, color: colors.textTertiary }}>viewers / day · red = under 60% of the 28d average</Text>
+            <Text style={{ fontSize: 9, color: colors.textTertiary }}>{p.strip[p.strip.length - 1].day.slice(5)}</Text>
+          </View>
+        </View>
+      )}
+      <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 6 }}>
+        Page viewers, interactions and follows track posting volume day for day (10/15 checkpoint: the week with
+        three unposted days ran at half). SUBSCRIBERS · PAGE is Meta&apos;s own count of paying subscribers — the
+        fourth Pro number beside group, roster and paying-equivalent. Refresh by pasting the page exports into
+        Sub Import → 📄 Page.
+      </Text>
+    </Card>
+  );
+}
+
 function RecentConversions({ subs }: { subs: ProSubscriber[] }) {
   const { colors } = useTheme();
   const st = useSt();
@@ -408,6 +481,7 @@ function FunnelDashboardInner() {
   const [earn, setEarn] = useState<EarningsDay[]>([]);
   const [groupDaily, setGroupDaily] = useState<GroupDailyRow[]>([]);
   const [freeDaily, setFreeDaily] = useState<GroupDailyRow[]>([]);
+  const [pageDaily, setPageDaily] = useState<PageDailyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -415,18 +489,20 @@ function FunnelDashboardInner() {
     setLoading(true);
     setErr(null);
     try {
-      const [s, p, earnRows, gd, fd] = await Promise.all([
+      const [s, p, earnRows, gd, fd, pd] = await Promise.all([
         subscriberAdmin.listSnapshots(30),
         subscriberAdmin.listSubscribers({}),
         subscriberAdmin.listEarnings(400).catch(() => [] as EarningsDay[]),
         subscriberAdmin.listGroupDaily('pro', 90).catch(() => [] as GroupDailyRow[]),
         subscriberAdmin.listGroupDaily('free', 90).catch(() => [] as GroupDailyRow[]),
+        subscriberAdmin.listPageDaily(90).catch(() => [] as PageDailyRow[]),
       ]);
       setSnaps(s);
       setSubs(p);
       setEarn(earnRows);
       setGroupDaily(gd);
       setFreeDaily(fd);
+      setPageDaily(pd);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -501,6 +577,10 @@ function FunnelDashboardInner() {
     return Array.from(m.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
   }, [earn]);
   const payingEquiv = earnings ? earnings.subs30 / 1.74 : null;
+  const pageSubs = useMemo(() => {
+    const r = pageDaily.slice().sort((a, b) => (a.day < b.day ? 1 : -1)).find(x => typeof x.subscribers_total === 'number');
+    return r ? { value: r.subscribers_total as number, day: r.day } : null;
+  }, [pageDaily]);
 
   if (loading) {
     return (
@@ -594,7 +674,7 @@ function FunnelDashboardInner() {
               <MetricTile
                 label="PAYING · 30D ÷ $1.74"
                 value={payingEquiv.toFixed(0)}
-                sub={`renewals that cleared · roster ${activeNow}${pulse ? ` · group ${pulse.members}` : ''}`}
+                sub={`renewals that cleared · roster ${activeNow}${pulse ? ` · group ${pulse.members}` : ''}${pageSubs ? ` · page ${pageSubs.value}` : ''}`}
                 color={activeNow - payingEquiv > 5 ? colors.gold : colors.success}
               />
             )}
@@ -704,6 +784,8 @@ function FunnelDashboardInner() {
       )}
 
       <FreeMembersCard rows={freeDaily} members={latest ? latest.free_group_members : null} />
+
+      <PageReachCard rows={pageDaily} />
 
       {latest && Number(latest.active_pro_subscribers) !== activeNow && (
         <Card style={{ padding: 12, borderColor: colors.gold + '55' }}>

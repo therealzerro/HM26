@@ -125,7 +125,7 @@ export interface FunnelSnapshot {
 
 export interface ImportRecord {
   id: string;
-  import_type: 'subscriber_emails' | 'group_insights' | 'manual' | 'snapshot';
+  import_type: 'subscriber_emails' | 'group_insights' | 'manual' | 'snapshot' | 'earnings' | 'page_insights';
   source_filename: string | null;
   import_date: string;
   records_processed: number;
@@ -180,6 +180,26 @@ export interface GroupDailyRow {
   active_members: number; // Pro export "Active Members"; free export "Viewed"
   joined: number | null; // free export "Joined"; null on Pro rows
   engaged_members: number | null; // free export "Posted or Commented"; null on Pro rows
+  imported_at: string | null;
+}
+
+/** One day of the Facebook PAGE Insights daily series (fb_page_daily; no PII; ENH-FUNNEL-04). */
+export interface PageDailyRow {
+  day: string;
+  media_views: number | null;
+  media_views_from_followers: number | null;
+  viewers_unique: number | null;
+  page_visits: number | null;
+  follows_total: number | null;
+  follows_new: number | null;
+  unfollows: number | null;
+  video_views: number | null;
+  video_view_time_s: number | null;
+  content_interactions: number | null;
+  subscribers_total: number | null;
+  earnings_approx_usd: number | string | null;
+  earnings_content_usd: number | string | null;
+  source: string;
   imported_at: string | null;
 }
 
@@ -239,6 +259,14 @@ export const subscriberAdmin = {
 
   upsertGroupDaily: (group_type: 'free' | 'pro', rows: Array<Omit<GroupDailyRow, 'group_type' | 'imported_at'>>) =>
     callSubscriberAdmin<{ created: number; updated: number }>('upsert_group_daily', { group_type, rows }),
+
+  /** Page Insights daily series, newest first (default 90 days). */
+  listPageDaily: (days = 90) =>
+    callSubscriberAdmin<PageDailyRow[]>('list_page_daily', { days }),
+
+  /** Only the columns present on each row are merged; absent columns are left as stored. */
+  upsertPageDaily: (rows: Array<{ day: string } & Partial<Omit<PageDailyRow, 'day' | 'source' | 'imported_at'>>>) =>
+    callSubscriberAdmin<{ created: number; updated: number }>('upsert_page_daily', { rows }),
 };
 
 export function maskEmail(email: string): string {

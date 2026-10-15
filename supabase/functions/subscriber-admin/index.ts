@@ -29,6 +29,8 @@
  *   upsert_earnings          → UPSERT (earn_date key) from the earnings export
  *   list_group_daily         → SELECT fb_group_daily (Group Insights daily series, no PII)
  *   upsert_group_daily       → UPSERT ((group_type, day) key) from the Insights paste
+ *   list_page_daily          → SELECT fb_page_daily (Page Insights daily series, no PII; ENH-FUNNEL-04)
+ *   upsert_page_daily        → UPSERT (day key) from the Page Insights paste — only the columns pasted
  *   ping                     → health probe
  */
 
@@ -445,6 +447,55 @@ async function upsertGroupDaily(group_type: 'free' | 'pro', rows: GroupDailyRowI
   return { created, updated: rows.length - created };
 }
 
+// ─── fb_page_daily (Page-level Insights daily series; ENH-FUNNEL-04 2026-10-15) ──
+// One row per day, no PII. The Page tab in Sub Import pastes one or more of the
+// Meta page exports (Viewers / Content interactions / Facebook follows /
+// Subscribers daily); each paste may carry a different subset of columns, so
+// rows are grouped by key set and only the pasted columns are merged —
+// a Viewers-only paste never blanks follows_new.
+const PAGE_DAILY_COLS = new Set([
+  'media_views', 'media_views_from_followers', 'viewers_unique', 'page_visits', 'follows_total',
+  'follows_new', 'unfollows', 'video_views', 'video_view_time_s', 'content_interactions',
+  'subscribers_total', 'earnings_approx_usd', 'earnings_content_usd',
+]);
+type PageDailyRowIn = { day: string } & Record<string, number | null | string>;
+
+async function listPageDaily(days = 90) {
+  return sbGet(`/rest/v1/fb_page_daily?select=*&order=day.desc&limit=${days}`);
+}
+
+async function upsertPageDaily(rows: PageDailyRowIn[]) {
+  if (!Array.isArray(rows) || rows.length === 0) return { created: 0, updated: 0 };
+  const clean = rows
+    .filter(r => typeof r.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.day))
+    .map(r => {
+      const out: Record<string, unknown> = { day: r.day };
+      for (const [k, v] of Object.entries(r)) if (PAGE_DAILY_COLS.has(k) && v !== undefined) out[k] = v;
+      return out;
+    });
+  if (clean.length === 0) throw new Error('No valid rows (day must be YYYY-MM-DD)');
+  const days = clean.map(r => r.day as string);
+  const existing = await sbGet<Array<{ day: string }>>(`/rest/v1/fb_page_daily?select=day&day=in.(${days.join(',')})`);
+  const have = new Set(existing.map(e => e.day));
+  // PostgREST bulk upsert needs one key set per request — group by it.
+  const groups = new Map<string, Record<string, unknown>[]>();
+  for (const r of clean) {
+    const k = Object.keys(r).sort().join(',');
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k)!.push(r);
+  }
+  const stamp = new Date().toISOString();
+  for (const g of groups.values()) {
+    await sbPost(
+      '/rest/v1/fb_page_daily?on_conflict=day',
+      g.map(r => ({ ...r, source: 'paste', imported_at: stamp })),
+      'resolution=merge-duplicates,return=minimal',
+    );
+  }
+  const created = days.filter(d => !have.has(d)).length;
+  return { created, updated: days.length - created };
+}
+
 interface ActionRequest {
   action: string;
   payload?: Record<string, unknown>;
@@ -488,6 +539,10 @@ async function handle(req: ActionRequest): Promise<unknown> {
       );
     case 'upsert_group_daily':
       return upsertGroupDaily(payload.group_type as 'free' | 'pro', payload.rows as GroupDailyRowIn[]);
+    case 'list_page_daily':
+      return listPageDaily(typeof payload.days === 'number' ? payload.days : 90);
+    case 'upsert_page_daily':
+      return upsertPageDaily(payload.rows as PageDailyRowIn[]);
     default:
       throw new Error(`Unknown action: ${action}`);
   }

@@ -10,8 +10,9 @@ import { parseSubscriberEmailExport } from '@/lib/subscriberEmailParser';
 import { planNameLinks, identityLabel, PLACEHOLDER_EMAIL_DOMAIN, type LinkedRow } from '@/lib/subscriberNameLink';
 import { parseGroupInsights, type ParsedContributor } from '@/lib/groupInsightsParser';
 import { parseEarningsExport } from '@/lib/earningsParser';
+import { parsePageInsights } from '@/lib/pageInsightsParser';
 
-type Tab = 'subscribers' | 'insights' | 'engagement' | 'earnings' | 'history';
+type Tab = 'subscribers' | 'insights' | 'engagement' | 'earnings' | 'page' | 'history';
 
 function SubscriberPasteTab({ onCommitted }: { onCommitted: () => void }) {
   const { colors } = useTheme();
@@ -527,6 +528,119 @@ function EarningsPasteTab({ onCommitted }: { onCommitted: () => void }) {
 }
 
 /**
+ * Page — the PAGE-level Insights exports (ENH-FUNNEL-04, 2026-10-15). Paste any
+ * of Viewers / Content interactions / Facebook follows / Subscribers / Approximate
+ * earnings, one at a time or all together; daily series land in fb_page_daily
+ * (only the pasted columns are merged), a full earnings block lands in
+ * fb_earnings_daily. Audience and content-type blocks are recognised and skipped.
+ */
+function PagePasteTab({ onCommitted }: { onCommitted: () => void }) {
+  const { colors } = useTheme();
+  const st = useSt();
+  const [raw, setRaw] = useState('');
+  const [busy, setBusy] = useState(false);
+  const parsed = useMemo(() => parsePageInsights(raw), [raw]);
+  const first = parsed.days[0]?.day ?? parsed.earnings[0]?.earn_date ?? '—';
+  const last = parsed.days[parsed.days.length - 1]?.day ?? parsed.earnings[parsed.earnings.length - 1]?.earn_date ?? '—';
+  const nothing = parsed.days.length === 0 && parsed.earnings.length === 0;
+  const sum = (k: 'viewers_unique' | 'content_interactions' | 'follows_new') =>
+    parsed.days.reduce((a, d) => a + (typeof d[k] === 'number' ? (d[k] as number) : 0), 0);
+  const lastSubs = [...parsed.days].reverse().find(d => typeof d.subscribers_total === 'number');
+
+  const commit = useCallback(async () => {
+    if (nothing) return;
+    setBusy(true);
+    try {
+      let created = 0, updated = 0;
+      if (parsed.days.length > 0) {
+        const r = await subscriberAdmin.upsertPageDaily(parsed.days);
+        created += r.created; updated += r.updated;
+      }
+      let earnMsg = '';
+      if (parsed.earnings.length > 0) {
+        const r = await subscriberAdmin.upsertEarnings(parsed.earnings);
+        earnMsg = ` Earnings: ${r.created} new, ${r.updated} updated.`;
+      }
+      await subscriberAdmin.recordImport({
+        import_type: 'page_insights',
+        source_filename: `page_paste_${first}_${last}`,
+        records_processed: parsed.days.length + parsed.earnings.length,
+        records_created: created,
+        records_updated: updated,
+        records_skipped: parsed.skipped.length,
+        warnings: parsed.warnings,
+        errors: parsed.errors,
+      });
+      alertAsync('Import complete', `${created} new days, ${updated} updated (${parsed.metrics.join(', ') || 'no series'}).${earnMsg}`);
+      setRaw('');
+      onCommitted();
+    } catch (e) {
+      alertAsync('Import failed', e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }, [parsed, nothing, first, last, onCommitted]);
+
+  return (
+    <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <Text style={st.title}>Import Page Insights</Text>
+      <Text style={st.sub}>
+        Professional dashboard → Insights → export: Viewers, Content interactions, Facebook follows, Subscribers,
+        and the full Approximate earnings file. Paste one or all of them as-is. Only the series you paste are
+        updated; audience and content-type tables are recognised and skipped (nothing personal is stored).
+      </Text>
+
+      <Card style={{ padding: 12, marginBottom: 14 }}>
+        <Text style={st.fieldLabel}>PASTE EXPORT(S)</Text>
+        <TextInput
+          value={raw}
+          onChangeText={setRaw}
+          multiline
+          placeholder={'"Viewers"\n"Date","Primary"\n"2026-10-14T00:00:00","2371"'}
+          placeholderTextColor={colors.textTertiary}
+          style={st.csvInput}
+        />
+        <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 6 }}>
+          Parsed: {parsed.days.length} days ({first} → {last}) · series: {parsed.metrics.join(', ') || '—'} · earnings rows: {parsed.earnings.length} · skipped: {parsed.skipped.length} · {parsed.warnings.length} warnings
+        </Text>
+      </Card>
+
+      {parsed.days.length > 0 && (
+        <Card style={{ padding: 12, marginBottom: 14 }}>
+          <SectionTitle>Preview</SectionTitle>
+          {parsed.metrics.includes('viewers_unique') && <Text style={{ fontSize: 11, color: colors.text }}>Viewers: {sum('viewers_unique').toLocaleString()} over {parsed.days.filter(d => typeof d.viewers_unique === 'number').length} days ({Math.round(sum('viewers_unique') / Math.max(1, parsed.days.filter(d => typeof d.viewers_unique === 'number').length)).toLocaleString()}/day)</Text>}
+          {parsed.metrics.includes('content_interactions') && <Text style={{ fontSize: 11, color: colors.text }}>Content interactions: {sum('content_interactions').toLocaleString()}</Text>}
+          {parsed.metrics.includes('follows_new') && <Text style={{ fontSize: 11, color: colors.text }}>New follows: {sum('follows_new')}</Text>}
+          {lastSubs && <Text style={{ fontSize: 11, color: colors.text }}>Subscribers (latest full day): {lastSubs.subscribers_total} on {lastSubs.day}</Text>}
+          {parsed.summary.subscribers != null && (
+            <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 4 }}>
+              Meta summary counters: {parsed.summary.subscribers} current · gained {parsed.summary.gained ?? '—'} · canceled {parsed.summary.canceled ?? '—'} (window counters, not stored)
+            </Text>
+          )}
+          {parsed.skipped.length > 0 && <Text style={{ fontSize: 10, color: colors.textTertiary, marginTop: 4 }}>Skipped blocks: {parsed.skipped.join(' · ')}</Text>}
+        </Card>
+      )}
+
+      {(parsed.warnings.length > 0 || parsed.errors.length > 0) && (
+        <Card style={{ padding: 12, marginBottom: 14, borderColor: colors.gold + '55' }}>
+          <SectionTitle>Warnings</SectionTitle>
+          {parsed.errors.map((w, i) => <Text key={`e${i}`} style={{ fontSize: 10, color: colors.error, marginVertical: 2 }}>• {w}</Text>)}
+          {parsed.warnings.slice(0, 10).map((w, i) => <Text key={i} style={{ fontSize: 10, color: colors.gold, marginVertical: 2 }}>• {w}</Text>)}
+        </Card>
+      )}
+
+      <TouchableOpacity
+        disabled={busy || nothing}
+        style={[st.btnPrimary, (busy || nothing) && { opacity: 0.5 }]}
+        onPress={commit}
+      >
+        <Text style={st.btnPrimaryText}>{busy ? 'Committing…' : `Commit ${parsed.days.length} Days${parsed.earnings.length ? ` + ${parsed.earnings.length} Earnings` : ''}`}</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  );
+}
+
+/**
  * Engagement — the contributors table nobody could see until now: every member
  * the Insights export has ever listed, ranked by the latest 28-day window, with
  * the change vs the previous window and who has gone quiet. Admin surface
@@ -719,10 +833,10 @@ function SubscriberImportInner() {
   return (
     <View style={{ flex: 1 }}>
       <View style={{ flexDirection: 'row', backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border, paddingHorizontal: 8, paddingVertical: 6, gap: 4 }}>
-        {(['subscribers', 'insights', 'engagement', 'earnings', 'history'] as Tab[]).map(t => (
+        {(['subscribers', 'insights', 'engagement', 'earnings', 'page', 'history'] as Tab[]).map(t => (
           <TouchableOpacity key={t} onPress={() => setTab(t)} style={[st.filterBtn, tab === t && st.filterBtnOn]}>
             <Text style={[st.filterBtnText, tab === t && { color: '#fff', fontWeight: '700' }]}>
-              {t === 'subscribers' ? '📧 Subscribers' : t === 'insights' ? '🔥 Insights' : t === 'engagement' ? '👥 Engagement' : t === 'earnings' ? '💵 Earnings' : '🗂 History'}
+              {t === 'subscribers' ? '📧 Subscribers' : t === 'insights' ? '🔥 Insights' : t === 'engagement' ? '👥 Engagement' : t === 'earnings' ? '💵 Earnings' : t === 'page' ? '📄 Page' : '🗂 History'}
             </Text>
           </TouchableOpacity>
         ))}
@@ -731,6 +845,7 @@ function SubscriberImportInner() {
       {tab === 'insights' && <InsightsPasteTab onCommitted={bump} />}
       {tab === 'engagement' && <EngagementTab refreshKey={refreshKey} />}
       {tab === 'earnings' && <EarningsPasteTab onCommitted={bump} />}
+      {tab === 'page' && <PagePasteTab onCommitted={bump} />}
       {tab === 'history' && <HistoryTab refreshKey={refreshKey} />}
     </View>
   );

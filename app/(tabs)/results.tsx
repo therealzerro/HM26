@@ -62,6 +62,9 @@ interface HitRow {
   combo_set?: string;
   hit_state: string; hit_session: string; hit_box: boolean; hit_straight: boolean;
   actual_result?: string;
+  /** BUG-185: the permutation posted on the slate (snapshot pick.bestOrder).
+   *  `combo` on every tier is the engine enumeration index (BUG-155). */
+  posted_order?: string;
   signal_box?: number; signal_pburst?: number; signal_co?: number; signal_dgc?: number;
   energy?: number;
 }
@@ -186,6 +189,8 @@ interface HitSummaryItem {
   /** Actual drawn digits — used by HitHeroBand for the WE-PICKED → DRAWN replay. */
   hitResult?: string;
   rank?: number;
+  /** BUG-185: posted straight for the detail modal's BOX branch. */
+  postedOrder?: string;
   // Optional pass-through fields used by callers that wire onTap → PickDetailModal.
   comboSet?: string;
   signalBox?: number;
@@ -199,13 +204,15 @@ function flattenHits(processed: ProcessedEntry[]): HitSummaryItem[] {
   for (const row of processed) {
     for (const h of row.hits ?? []) {
       // For a STRAIGHT hit, the predicted bestOrder matched the draw exactly,
-      // so the row's result_digits IS the order we picked. h.combo (the
-      // sorted comboSet key, per BUG-155) would render in the wrong order.
+      // so the row's result_digits IS the order we picked (BUG-158). For a
+      // BOX hit, show the order actually posted on the slate (BUG-185);
+      // h.combo is the engine enumeration index and is the fallback only.
       const displayCombo = h.hit_straight && row.result_digits
         ? row.result_digits
-        : (h.combo ?? '');
+        : (h.posted_order ?? h.combo ?? '');
       out.push({
         combo: displayCombo,
+        postedOrder: h.posted_order,
         scope: h.scope ?? '',
         jurisdiction: h.hit_state || row.jurisdiction || '',
         session: h.hit_session || row.session || '',
@@ -335,6 +342,7 @@ export default function ResultsScreen() {
       hit_box: true,
       hit_straight: h.hitType === 'STRAIGHT',
       hit_result: h.hitResult ?? null,
+      posted_order: h.postedOrder ?? null,
       signal_box:    h.signalBox    ?? null,
       signal_pburst: h.signalPburst ?? null,
       signal_co:     h.signalCo     ?? null,
@@ -498,6 +506,26 @@ export default function ResultsScreen() {
     }
     return out;
   }, [snapshotRows]);
+  // BUG-185: date|scope|combo → posted straight (pick.bestOrder), from the
+  // same snapshot rows. adaptive_tracking rows carry the enumeration index
+  // in `combo`; this is how every tier recovers what the slate actually showed.
+  const postedOrderMap = useMemo<Map<string, string>>(() => {
+    const map = new Map<string, string>();
+    for (const row of snapshotRows ?? []) {
+      let picks: any[] = [];
+      try {
+        picks = typeof row.top_k_straights_json === 'string'
+          ? JSON.parse(row.top_k_straights_json)
+          : (row.top_k_straights_json ?? []);
+      } catch { continue; }
+      for (const p of picks) {
+        const combo = p?.combo != null ? String(p.combo) : '';
+        const best  = p?.bestOrder != null ? String(p.bestOrder) : '';
+        if (combo && best) map.set(`${row.slate_date}|${row.scope}|${combo}`, best);
+      }
+    }
+    return map;
+  }, [snapshotRows]);
 
   // E3/E4/E5 derived from weekHits.
   // hitsByDate: how many K6 hits per day in the last 7 days (dotted tabs, miss-day trend)
@@ -571,6 +599,12 @@ export default function ResultsScreen() {
       csMap.get(cs)!.push(h);
     }
 
+    // BUG-185: attach the posted straight to an AT-derived row.
+    const withPosted = (h: HitRow): HitRow => ({
+      ...h,
+      posted_order: h.posted_order ?? postedOrderMap.get(`${h.slate_date?.split('T')[0]}|${h.scope}|${h.combo}`),
+    });
+
     // Tier 3: snapshot hitType picks (all scopes). hitDate filter narrows to selectedDate.
     const snapMap = new Map<string, HitRow[]>();
     for (const p of (snapshotHitPicks as any[])) {
@@ -584,6 +618,7 @@ export default function ResultsScreen() {
         mode: 'balanced',
         rank: p.rank ?? 0,
         combo: p.combo ?? '',
+        posted_order: p.bestOrder != null ? String(p.bestOrder) : undefined,
         hit_state: '',
         hit_session: '',
         hit_box: true,
@@ -633,16 +668,18 @@ export default function ResultsScreen() {
         }
         return [...seen.values()];
       })();
-      if (dbHitsDedup.length > 0) return { ...row, hits: dbHitsDedup };
+      if (dbHitsDedup.length > 0) return { ...row, hits: dbHitsDedup.map(withPosted) };
 
       // Tier 2: daily_intelligence box-match (backfill not yet run).
       // scopeMatches enforces midday-pick→midday-draw, etc.
       const diHits = (csMap.get(rowSet) || [])
         .filter(h => scopeMatches(h.scope, row.session))
+        .map(withPosted)
         .map(h => ({
           ...h,
           hit_box: true,
-          hit_straight: h.combo === row.result_digits,
+          // BUG-155/185: a straight is posted-order == draw, never combo == draw.
+          hit_straight: (h.posted_order ?? h.combo) === row.result_digits,
           hit_state: row.jurisdiction,
           hit_session: row.session,
         }));
@@ -659,7 +696,7 @@ export default function ResultsScreen() {
         }));
       return { ...row, hits: snapHits };
     });
-  }, [ledger, hits, onSlatePicks, snapshotHitPicks, selectedDate]);
+  }, [ledger, hits, onSlatePicks, snapshotHitPicks, postedOrderMap, selectedDate]);
 
   const filtered = useMemo(() => {
     let rows = processed;
@@ -760,6 +797,7 @@ export default function ResultsScreen() {
                       hit_box: !!hit.hit_box,
                       hit_straight: !!hit.hit_straight,
                       hit_result: hit.actual_result || row.result_digits || null,
+                      posted_order: hit.posted_order ?? null,
                       signal_box:    hit.signal_box    ?? null,
                       signal_pburst: hit.signal_pburst ?? null,
                       signal_co:     hit.signal_co     ?? null,
@@ -834,7 +872,11 @@ export default function ResultsScreen() {
             >
               <HitReplay
                 pick={{
-                  combo: hit.combo,
+                  // BUG-158/185: WE SIGNALED shows the posted order — the draw
+                  // itself on a straight, the snapshot bestOrder on a box.
+                  combo: hit.hit_straight
+                    ? (hit.actual_result || row.result_digits)
+                    : (hit.posted_order ?? hit.combo),
                   hitResult: row.result_digits,
                   hitType: hit.hit_straight ? 'straight' : 'box',
                   hitState: row.jurisdiction,

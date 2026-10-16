@@ -3,11 +3,11 @@ HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
 changed. Every command has a description. (Last updated 2026-10-16 — MKT-90:
-THE PRO ROOM SEAL on every Pro cut (violet chip PRO ROOM · <scope>, stinger
-MEMBERS' BOARD, body stamp PRO ROOM ONLY · EVERY MORNING, caption line) from the
-2026-10-17 run, and NEW `npm run reel:guest -- --scope=midday|evening` — THE GUEST
-PASS cut for the days the Pro board is loaned to the free room; see PRO ROOM
-SEAL + GUEST PASS below. Earlier the same day MKT-89:
+THE PRO ROOM SEAL on the MIDDAY and EVENING Pro cuts from the 2026-10-17 run —
+violet brand line on the coffee-mode strip, chip PRO ROOM · <scope>, stinger
+MEMBERS' BOARD, body stamp PRO ROOM ONLY · EVERY MORNING, caption room line; NO
+new reel kind (the guest-pass lane built earlier the same evening was REMOVED on
+the operator's note); see PRO ROOM SEAL below. Earlier the same day MKT-89:
 the same-day verify (reel:verify-midday) now closes every caption on a HARD
 Pro-group sell with the Pro link, escalated on a STRAIGHT day, and the captions
 sheet's ⏱️ Same-Day Verify card carries a red 💎 PRO PUSH block (first comment +
@@ -48,40 +48,29 @@ CAPTIONS SHEET — 💎 PRO ROOM section (MKT-86 §2, 2026-10-15): every sheet n
   Page 1 carries the MINIMUM PRO DAY fallback line.
     npm run reel:captions-pdf [-- --day=YYYY-MM-DD]
 
-PRO ROOM SEAL (MKT-90, 2026-10-16) — automatic on every PRO cut from the
-  2026-10-17 run (allday_pro / midday_pro / evening_pro). The operator's rule:
-  "the pro reels need to explicitly represent that they can only be seen
-  daily by being a member of the facebook pro group." VIOLET is the Pro
-  room's colour (cyan = the drop, gold = a DRAWN straight, ember = the triple).
+PRO ROOM SEAL (MKT-90, 2026-10-16) — automatic on the MIDDAY and EVENING PRO
+  cuts from the 2026-10-17 run (midday_pro / evening_pro — the two boards only
+  the Pro room sees in full; allday_pro is NOT sealed because its body is the
+  free room's full board too). The operator's rule: "the pro reels need to
+  explicitly represent that they can only be seen daily by being a member of
+  the facebook pro group … just the midday and evening reels and coffee mode
+  to explicitly state that it is the Pro boards with branding." VIOLET is the
+  Pro room's colour (cyan = the drop, gold = a DRAWN straight, ember = the
+  triple). No new reel, no new command — the existing cut carries it:
+    · coffee-mode body (the capture): violet brand line on the notation strip
+                                              HITMASTER ZK6 PRO · MEMBERS' BOARD
     · intro chip (frame one, the thumbnail):  PRO ROOM · MIDDAY   (violet)
     · stinger headline:                       MIDDAY · MEMBERS' BOARD
     · body stamp, whole body:                 PRO ROOM ONLY · EVERY MORNING
     · caption, last line:  Members' board. It's posted in the Pro room every
                            morning, and only there.
   Tier 4 throughout: no price, no upgrade word, no first-access phrase (the
-  stamp lints fail-closed). Wherever the file lands, the pixels say whose
+  stamp and the strip lint fail-closed). Wherever the file lands — the Pro
+  room, or the free room on a day you loan the board — the pixels say whose
   board it is. Preview before the date: add --pro-seal to the assembler
   (suffixed output, never published). Rollback after: --classic-pro on the
-  assembler + republish (drop stamp again; chip/stinger need the config
-  reverted + stinger:build).
-
-npm run reel:guest -- --scope=midday         (MKT-90, 2026-10-16 — ON DEMAND)
-npm run reel:guest -- --scope=evening
-
-    THE GUEST PASS — for the days you loan the Pro Midday or Evening board
-    to the FREE room. Do NOT post the Pro row there (its caption is tier 4:
-    no price, no link; Admin warns orange if you try). Run this AFTER the
-    morning reel:<scope> (it reuses that run's FULL body — nothing is
-    re-captured): the Pro cut's own intro, stinger and voice ON LOAN, a
-    violet GUEST PASS · PRO BOARD · TODAY ONLY body stamp, a GUEST PASS ·
-    MIDDAY chip, the free-tier close "THE PRO BOARD · UNCOVERED TODAY ONLY /
-    EVERY MORNING IN PRO · $2.49/MO", and a tier-2 caption whose line one is
-    the Pro-group link ("This board lives in the Pro room every morning:").
-    Registers as midday_guest / evening_guest (🎟️ in Admin → Reels, default
-    target Free Group) and lands on the captions sheet. Never part of
-    reel:daily; allday has no guest (allday_free is already the full board).
-    Output: assets/marketing/<scope>_reels/<scope>_guest_<stamp>.mp4 +
-    contact sheet. Extra assembler flags pass through (--carrier=, …).
+  assembler + republish (drop stamp again); chip/stinger/strip = revert the
+  config + stinger:build.
 
 STRAIGHT STATE STAMP (MKT-86, 2026-10-15) — automatic, no new command. On
   verify and verify_midday, when the first ledger hold is a STRAIGHT MATCH the

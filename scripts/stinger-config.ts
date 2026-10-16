@@ -81,13 +81,12 @@ export const MOTION_LOCKUP: Record<string, number> = {
   // composition needs it. See ENDCARD_MOTION_LOCKUP for the parallel ruling.
 };
 
-// MKT-90 (2026-10-16): the three Pro kinds' headline is MEMBERS' BOARD — the
-// room's identity, not a first-look promise (FIRST LOOK was the by-meaning
-// first-access framing MKT-82 left unruled). The guest cut borrows the Pro
-// stinger unchanged: it is the members' board, on loan. Rebuilt the same day
+// MKT-90 (2026-10-16): the two session Pro kinds' headline is MEMBERS' BOARD —
+// the room's identity, not a first-look promise. allday_pro keeps FIRST LOOK:
+// its board is the free room's full board too. Rebuilt the same day
 // (npm run stinger:build <kind>).
 export const STINGERS: Record<string, StingerVariant> = {
-  allday_pro:  { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', "ALL-DAY · MEMBERS' BOARD"], enabled: true },
+  allday_pro:  { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', 'ALL-DAY · FIRST LOOK'], enabled: true },
   allday_free: { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', 'ALL-DAY · FULL DROP'], enabled: true },
   // ⚠ APPROVED, NOT YET FLIPPED — and the ORDER is the operator's condition.
   //

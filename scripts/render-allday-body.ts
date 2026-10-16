@@ -40,6 +40,7 @@ import { provenanceArgs } from './reel-provenance';
 import { installRedaction, assertNoDigits } from './reel-redact';
 import { installRelabel, assertPublicClean, RELABEL_SLOTS } from './reel-relabel';
 import { installNotation, removeNotation, notationTimerFilter } from './reel-notation';
+import { PRO_BOARD_BRAND_LINE } from './pro-room-config';
 import { fetchTriple, installTripleFire, setFirePhase, removeTripleBand, installTripleFireModal, removeTripleFireModal } from './reel-triple';
 import { FIRE_PHASES, firePhaseAt, tripleTagValue, NO_TRIPLE, TRIPLE_RING } from './reel-triple-core';
 
@@ -268,7 +269,10 @@ async function coffeeTileCenters(page: import('playwright').Page): Promise<Array
   // thing being withheld. Read back from the rendered grid, so it cannot
   // disagree with the tiles; abort if it does not find exactly six.
   if (!REDACT) {
-    const combos = await installNotation(page, SPEC.stampLabel);
+    // MKT-90: the session full capture is the Pro room's board — brand it on
+    // the strip (never allday: that full body is the free room's too).
+    const combos = await installNotation(page, SPEC.stampLabel, { proBoard: SCOPE !== 'allday' });
+    if (SCOPE !== 'allday') console.log(`NOTE: coffee-mode brand line "${PRO_BOARD_BRAND_LINE}" on the strip (MKT-90, session Pro board).`);
     if (combos.length !== 6) { console.error(`ABORT: notation layer read ${combos.length} combos from the grid (expected 6).`); process.exit(1); }
     await page.waitForTimeout(150);
     console.log(`notation layer installed · ${combos.join(' ')}`);

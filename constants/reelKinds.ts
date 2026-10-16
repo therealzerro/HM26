@@ -26,9 +26,7 @@ export type ReelKind =
   // MKT-62 — the same-day midday verify (manual, rare, free group only).
   | 'verify_midday'
   // MKT-79 — the daily track record reel (public, tier 1, 7pm slot).
-  | 'record_public'
-  // MKT-90 — the GUEST PASS: the Pro board on loan to the free room for a day.
-  | 'midday_guest' | 'evening_guest';
+  | 'record_public';
 
 /**
  * WHICH ROOM EACH KIND'S STORED CAPTION WAS WRITTEN FOR — MKT-24.
@@ -69,7 +67,4 @@ export const REEL_KIND_AUDIENCE: Record<ReelKind, 'free' | 'pro' | 'public'> = {
   // MKT-79: written for tier 1 — strict-lint copy, funnel-to-Free only, the
   // same discipline and funnel as the other two public kinds.
   record_public: 'public',
-  // MKT-90 — guest pass: audience FREE by construction (tier-2 caption, price on the close).
-  midday_guest: 'free',
-  evening_guest: 'free',
 };

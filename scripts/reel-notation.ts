@@ -28,16 +28,34 @@
 // Vocabulary on the strip is member-tier safe ("SIGNALS", "RANK ORDER") —
 // no "picks", no match-status words — so it needs no relabel pass.
 import type { Page } from 'playwright';
+import { PRO_BOARD_BRAND_LINE, VIOLET, lintProRoomStrings } from './pro-room-config';
 
 export const NOTATION_ID = 'hm-notation-strip';
 
 /** Install emboss + strip. Returns the six combos read from the grid, rank order. */
-export async function installNotation(page: Page, scopeLabel: string): Promise<string[]> {
+// MKT-90 (2026-10-16, operator: "coffee mode to explicitly state that it is
+// the Pro boards with branding") — on the SESSION full-fidelity capture
+// (midday / evening: the boards only the Pro room sees in full) the strip
+// opens on a violet brand line, "HITMASTER ZK6 PRO · MEMBERS' BOARD", above
+// the existing head. Never on allday (its full body is the free room's board
+// too) and structurally never on a redacted/public capture (the strip refuses
+// masked leaves). The strip grows upward by BRAND_EXTRA; the date chip at
+// y=1000px (assembly) stays well above it. Tier-4 linted fail-closed.
+export interface NotationOpts { proBoard?: boolean }
+const BRAND_EXTRA = 24;
+export async function installNotation(page: Page, scopeLabel: string, opts: NotationOpts = {}): Promise<string[]> {
+  if (opts.proBoard) {
+    const lint = lintProRoomStrings();
+    if (!lint.ok) throw new Error(`ABORT(notation): Pro brand line fails the tier-4 lint — ${lint.problems.join(' · ')}`);
+  }
   // Passed as a STRING (see reel-redact.ts: tsx's `__name` helper does not
   // exist in the page context, so a real function literal dies there).
   const src = String.raw`(() => {
     const ID = ${JSON.stringify(NOTATION_ID)};
     const LABEL = ${JSON.stringify(scopeLabel)};
+    const BRAND = ${JSON.stringify(opts.proBoard ? PRO_BOARD_BRAND_LINE : '')};
+    const VIOLET = ${JSON.stringify(VIOLET)};
+    const EXTRA = ${opts.proBoard ? BRAND_EXTRA : 0};
     const leaves = Array.from(document.querySelectorAll('*')).filter(e => !e.children.length);
     if (leaves.some(e => (e.textContent || '').trim() === '•••')) return [];   // masked capture — refuse
     // A tile's digit row is EITHER one leaf "6 8 1" (digits + separators —
@@ -96,10 +114,17 @@ export async function installNotation(page: Page, scopeLabel: string): Promise<s
     // Operator ruling: the band lives at the BOTTOM of that black space,
     // above the tab bar; the date chip (assembly stamp, y=1000px) sits above
     // it. (MKT-56c had it over the Slates tab row — that surface is retired.)
-    strip.style.cssText = 'position:fixed;left:16px;right:16px;bottom:84px;height:112px;z-index:2147483647;' +
+    strip.style.cssText = 'position:fixed;left:16px;right:16px;bottom:84px;height:' + (112 + EXTRA) + 'px;z-index:2147483647;' +
       'background:#0a0714;border-radius:18px;' +
       'border:1px solid rgba(255,255,255,0.16);box-sizing:border-box;padding:12px 16px 10px;' +
       'font-family:' + font + ';color:#fff;display:flex;flex-direction:column;justify-content:center;';
+    if (BRAND) {
+      const brand = document.createElement('div');
+      brand.textContent = BRAND;
+      brand.style.cssText = 'font-size:12px;font-weight:800;letter-spacing:2.5px;color:' + VIOLET + ';text-align:center;margin-bottom:8px;line-height:1;' +
+        'text-shadow:0 0 10px ' + VIOLET + '99;';
+      strip.appendChild(brand);
+    }
     const head = document.createElement('div');
     head.textContent = LABEL.toUpperCase() + ' · 6 SIGNALS · RANK ORDER';
     head.style.cssText = 'font-size:11px;letter-spacing:2px;color:rgba(255,255,255,0.62);text-align:center;margin-bottom:10px;line-height:1;';

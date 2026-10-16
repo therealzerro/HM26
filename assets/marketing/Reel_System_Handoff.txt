@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-16 · v7.32
+Content Agent Handoff · 2026-10-16 · v7.33
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -645,6 +645,43 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.33 (2026-10-16, later that evening — operator note: "i
+dont want more reels, just the midday and evening reels and coffee mode to
+explicitly state that it is the Pro boards with branding")
+================================================================================
+  ID: still MKT-90 (next free = 91). Engine untouched. Nothing auto-posts.
+
+  NARROWED. The v7.32 GUEST PASS lane (new kinds, new command, guest stamp /
+  chip / close / captions, Admin entries) is REMOVED — no new reels. The
+  allday_pro seal is WITHDRAWN too: that body is the free room's full board
+  (SOCIAL-13), so "Pro board" branding on it would be false. What stands,
+  on the EXISTING midday_pro and evening_pro cuts only, live from the
+  10/17 run:
+    coffee-mode body (the capture itself): a violet brand line on the
+        notation strip, above the scope/rank head —
+        HITMASTER ZK6 PRO · MEMBERS' BOARD
+        (full session capture only; structurally never on a redacted or
+        public capture, never on allday)
+    intro chip (frame one = thumbnail)   PRO ROOM · MIDDAY        violet
+    stinger headline                     MIDDAY · MEMBERS' BOARD
+    body stamp, whole body               PRO ROOM ONLY · EVERY MORNING
+    caption, last line                   Members' board. It's posted in the
+                                         Pro room every morning, and only
+                                         there.
+  Tier 4 throughout (no price / upgrade / first-access; stamp and strip
+  lint fail-closed; 24 session renders tier-4 clean in the unit test).
+  When the operator loans a Pro board to the free room, THIS cut goes —
+  the pixels say whose board it is and where it lives daily; no separate
+  cut, no price close (the free room's funnel line stays in the caption
+  the operator pastes, at their call).
+
+  STATE AT PAUSE: code complete (jest 135/135, tsc clean); the two session
+  stingers still need `stinger:build` with the new line, and the strip
+  brand line + seal preview still need an eyeball (the 10/17 morning run is
+  the first live one). ASKS unchanged from v7.32 (a)–(c), minus the guest
+  strings.
+
 ================================================================================
 WHAT CHANGED IN v7.32 (2026-10-16, evening — operator: "the pro reels need to
 explicitly represent that they can only be seen daily by being a member of

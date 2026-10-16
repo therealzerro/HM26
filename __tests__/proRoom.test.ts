@@ -1,30 +1,29 @@
-// MKT-90 (2026-10-16) — THE PRO ROOM SEAL + THE GUEST PASS. The seal strings
-// are tier 4 (the Pro room is never commercial — MKT-82 F4), the guest strings
-// tier 2 (the free room; price and the Pro link sanctioned). Every rendered
-// Pro caption ends on the room's line; every guest caption opens on the Pro
-// link and never leaks a literal token.
+// MKT-90 (2026-10-16) — THE PRO ROOM SEAL on the session Pro cuts. Every seal
+// string is tier 4 (the Pro room is never commercial — MKT-82 F4); midday_pro
+// and evening_pro carry the room on chip + stinger and end every caption on
+// the room's line; allday_pro carries NONE of it (its body is allday_free's
+// full board, SOCIAL-13).
 import { lintCaption } from '../lib/social/brandLint';
-import { buildReelCaption, GUEST_LINK_LEAD } from '../scripts/reel-captions';
-import { lintProRoomStrings, PRO_ROOM_CAPTION_LINE, PRO_ROOM_STAMP_EYEBROW, GUEST_STAMP_EYEBROW, guestFurnitureKind, GUEST_KINDS } from '../scripts/pro-room-config';
+import { buildReelCaption } from '../scripts/reel-captions';
+import { lintProRoomStrings, PRO_ROOM_CAPTION_LINE, PRO_ROOM_STAMP_EYEBROW, PRO_BOARD_BRAND_LINE, SEALED_KINDS, isSealedKind } from '../scripts/pro-room-config';
 import { CHIP_LABELS } from '../scripts/intro-chip-config';
 import { STINGERS } from '../scripts/stinger-config';
-import { ENDCARDS } from '../scripts/endcard-config';
-import { REEL_KIND_AUDIENCE } from '../constants/reelKinds';
 
-const URL = 'https://www.facebook.com/groups/hitmasterzk';
-const sub = (t: string) => t.replace(/\{pro_url\}/g, URL);
 const DATES = Array.from({ length: 12 }, (_, i) => `2026-10-${String(17 + i).padStart(2, '0')}`);
 const receipts = { date: '2026-10-16', totalSignals: 18, verifiedCount: 7, straightJx: ['NC'], boxJx: ['IA', 'IN'], verified30d: 90 };
 
 describe('MKT-90 Pro Room seal', () => {
-  test('seal, guest and caption strings lint at their tiers', () => {
+  test('seal strings lint at tier 4 and never sell', () => {
     expect(lintProRoomStrings()).toEqual({ ok: true, problems: [] });
-    expect(lintCaption(PRO_ROOM_STAMP_EYEBROW, 4).violations.filter(v => v.blocking)).toEqual([]);
-    expect(lintCaption(GUEST_STAMP_EYEBROW, 2).violations.filter(v => v.blocking)).toEqual([]);
-    expect(/\$|\/mo|upgrade|first[- ]access/i.test(PRO_ROOM_CAPTION_LINE + PRO_ROOM_STAMP_EYEBROW)).toBe(false);
+    for (const s of [PRO_ROOM_STAMP_EYEBROW, PRO_BOARD_BRAND_LINE, PRO_ROOM_CAPTION_LINE]) {
+      expect(lintCaption(s, 4).violations.filter(v => v.blocking)).toEqual([]);
+      expect(/\$|\/mo|upgrade|first[- ]access|inner[- ]circle/i.test(s)).toBe(false);
+    }
   });
-  test('every Pro kind chips PRO ROOM, stings MEMBERS\' BOARD, and stays tier-4 clean with the room line', () => {
-    for (const k of ['allday_pro', 'midday_pro', 'evening_pro'] as const) {
+  test('midday_pro and evening_pro chip PRO ROOM, sting MEMBERS\' BOARD, and end every caption on the room line, tier-4 clean', () => {
+    expect([...SEALED_KINDS]).toEqual(['midday_pro', 'evening_pro']);
+    for (const k of ['midday_pro', 'evening_pro'] as const) {
+      expect(isSealedKind(k)).toBe(true);
       expect(CHIP_LABELS[k].text).toMatch(/^PRO ROOM · /);
       expect(STINGERS[k].lines[1]).toMatch(/MEMBERS' BOARD$/);
       for (const d of DATES) {
@@ -35,26 +34,10 @@ describe('MKT-90 Pro Room seal', () => {
       }
     }
   });
-});
-
-describe('MKT-90 Guest pass', () => {
-  test('guest kinds are free-audience, chip GUEST PASS, borrow the Pro furniture, and close with the price', () => {
-    for (const k of GUEST_KINDS) {
-      expect(REEL_KIND_AUDIENCE[k as keyof typeof REEL_KIND_AUDIENCE]).toBe('free');
-      expect(CHIP_LABELS[k].text).toMatch(/^GUEST PASS · /);
-      expect(guestFurnitureKind(k)).toMatch(/_pro$/);
-      expect(ENDCARDS[k].lines[2]).toMatch(/\$2\.49\/MO$/);
-      expect(ENDCARDS[k].motion).toBe('endcard_motion_free.mp4');
-    }
-    expect(ENDCARDS.midday_guest.lines).toEqual(ENDCARDS.evening_guest.lines);
-  });
-  test('every guest caption opens on the Pro link, is tier-2 clean, ≤ 3 emoji, no token leak', () => {
-    for (const k of GUEST_KINDS) for (const d of DATES) {
-      const t = sub(buildReelCaption(k as any, d, null));
-      expect(t.startsWith(`${GUEST_LINK_LEAD}${URL}`)).toBe(true);
-      expect(t).not.toContain('{pro_url}');
-      const bad = lintCaption(t, 2).violations.filter(v => v.blocking);
-      expect({ k, d, bad }).toEqual({ k, d, bad: [] });
-    }
+  test('allday_pro carries none of it (its body is the free room\'s full board)', () => {
+    expect(isSealedKind('allday_pro')).toBe(false);
+    expect(CHIP_LABELS.allday_pro.text).toBe('ALL-DAY');
+    expect(STINGERS.allday_pro.lines[1]).not.toMatch(/MEMBERS' BOARD/);
+    for (const d of DATES) expect(buildReelCaption('allday_pro', d, receipts)).not.toContain(PRO_ROOM_CAPTION_LINE);
   });
 });

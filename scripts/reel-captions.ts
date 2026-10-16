@@ -331,10 +331,26 @@ export function samedayProCta(sd: SamedayCtx | null): string {
   if (!sd || !sd.straights) {
     return `Pro reads all three boards uncovered at 8:30 AM, every day, before the draw. Free waits for the cover to come off.\n${close}`;
   }
-  const open = sd.straightBoard === 'allday'
-    ? `That exact order went up in full this morning, for everyone. The Midday and Evening boards did not: they went up covered, and Pro read them uncovered at 8:30, hours before the draw.`
-    : `That exact order went up COVERED in here this morning. Pro read it uncovered at 8:30, hours before it drew.`;
-  return `${open}\nTomorrow's boards go up at 8:30 AM. Pro reads every one of them before the draw. Free waits for the cover to come off.\n${close}`;
+  const n = sd.straights;
+  const N = cap(numWord(n));
+  let open: string;
+  if (n === 1) {
+    open = sd.straightBoard === 'allday'
+      ? `That exact order went up in full this morning, for everyone. The Midday and Evening boards did not: they went up covered, and Pro read them uncovered at 8:30, hours before the draw.`
+      : `That exact order went up COVERED in here this morning. Pro read it uncovered at 8:30, hours before it drew.`;
+  } else if (sd.straightBoard === 'both') {
+    open = n === 2
+      ? `Two exact orders today, one on each board. The Midday one went up COVERED in here this morning; Pro read it uncovered at 8:30, hours before it drew. The All-Day one went up in full, for everyone.`
+      : `${N} exact orders today, across both boards. The Midday board went up COVERED in here this morning; Pro read it uncovered at 8:30, hours before the draw. The All-Day board went up in full, for everyone.`;
+  } else if (sd.straightBoard === 'allday') {
+    open = `${N} exact orders on this morning's All-Day board, in full, for everyone. The Midday and Evening boards did not go up that way: they went up covered, and Pro read them uncovered at 8:30, hours before the draw.`;
+  } else {
+    open = `${N} exact orders on one board this morning, and the free room saw every one of them COVERED. Pro read them uncovered at 8:30, hours before they drew.`;
+  }
+  const next = n === 1
+    ? `Tomorrow's boards go up at 8:30 AM. Pro reads every one of them before the draw. Free waits for the cover to come off.`
+    : `Tomorrow's boards go up at 8:30 AM, same six for everyone. Pro reads every one of them before the draw. Free waits for the cover to come off, again.`;
+  return `${open}\n${next}\n${close}`;
 }
 const withProCta = (fns: ((c: TemplateCtx) => string)[]): ((c: TemplateCtx) => string)[] =>
   fns.map(f => (c: TemplateCtx) => `${f(c)}\n\n${samedayProCta(c.sd)}`);
@@ -348,12 +364,31 @@ const withProCta = (fns: ((c: TemplateCtx) => string)[]): ((c: TemplateCtx) => s
  * claim cannot render whichever template the rotation draws. Tier-2 vocab:
  * STRAIGHT MATCH / exact order; board names are group-legal.
  */
+// MKT-89b (2026-10-16, operator: "creatively account for multiple midday verify
+// straight matches also in the captions cta") — `straights` counts the deduped
+// (board, combo, state) straight rows across BOTH boards (reel-sameday.ts), so
+// one exact order drawn in one state that sits on both boards counts TWO: one
+// per board. The lead and the CTA read that count: number WORDS, never digits
+// (tier 2 has no three-digit rule, but a bare "2" beside "exact order" reads
+// like a result); the count is a day's record of what happened, inside the
+// line, never a hook or a running total (R-A).
+export const NUM_WORD = ['', 'one', 'two', 'three', 'four', 'five', 'six'] as const;
+export const numWord = (n: number): string => NUM_WORD[n] ?? String(n);
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 export function samedayStraightLead(sd: SamedayCtx | null): string {
   if (!sd || !sd.straights) return '';
-  const where = sd.straightBoard === 'both' ? "both of this morning's boards"
-    : sd.straightBoard === 'allday' ? "this morning's All-Day board"
-    : "this morning's Midday board";
-  return `STRAIGHT MATCH ⚡ Exact order, on ${where} — graded the same afternoon.\n`;
+  const n = sd.straights;
+  if (n === 1) {
+    const where = sd.straightBoard === 'both' ? "both of this morning's boards"
+      : sd.straightBoard === 'allday' ? "this morning's All-Day board"
+      : "this morning's Midday board";
+    return `STRAIGHT MATCH ⚡ Exact order, on ${where} — graded the same afternoon.\n`;
+  }
+  const where = sd.straightBoard === 'both'
+    ? (n === 2 ? "one on each of this morning's boards" : "across both of this morning's boards")
+    : sd.straightBoard === 'allday' ? "on this morning's All-Day board"
+    : "on this morning's Midday board";
+  return `STRAIGHT MATCH ×${n} ⚡ ${cap(numWord(n))} exact orders, ${where} — graded the same afternoon.\n`;
 }
 const straightLed = (fns: ((c: TemplateCtx) => string)[]): ((c: TemplateCtx) => string)[] =>
   fns.map(f => (c: TemplateCtx) => `${samedayStraightLead(c.sd)}${f(c)}`);
@@ -732,7 +767,7 @@ const CAPTION_REGISTRY = {
     templates: withProCta(straightLed([
       c => `Posted this morning. Graded this afternoon. 🧾⚡\n${c.sd!.elapsed} between the boards going up and the midday results coming in — and we checked them in the open, same day.\nThe Midday board goes up covered in here; the All-Day board goes up in full. Those covered digits come off the next morning for everybody. ZK Pro reads them before the draw, all three sessions. $2.49/mo.`,
       c => `Same-day receipts 🧾\nYou saw this morning's boards go up — All-Day in full, Midday covered. Here they are, graded against the midday draws ${c.sd!.elapsed} later — before the evening draw, not tomorrow.\nThat gap is the whole thing. ZK Pro closes it on every session. $2.49/mo.`,
-      c => `We didn't wait until tomorrow ⚡\nThis morning's boards, checked against the midday draw results and posted back to you the same day. ${c.sd!.elapsed}, start to finish.\nVerified MATCH on the boards${c.sd!.straights ? ' — with a dead-on STRAIGHT MATCH in there' : ''}. Check the timestamps yourself.`,
+      c => `We didn't wait until tomorrow ⚡\nThis morning's boards, checked against the midday draw results and posted back to you the same day. ${c.sd!.elapsed}, start to finish.\nVerified MATCH on the boards${c.sd!.straights > 1 ? ` — with ${numWord(c.sd!.straights)} dead-on STRAIGHT MATCHES in there` : c.sd!.straights ? ' — with a dead-on STRAIGHT MATCH in there' : ''}. Check the timestamps yourself.`,
       c => `The cover comes off early today 🧾⚡\nMidday board published covered this morning, All-Day board in full — both graded this afternoon, ${c.sd!.elapsed} apart. Same six signals per board, same stamp, nothing edited in between.\nFree sees the Midday digits now because it already drew. Pro saw them before it did. $2.49/mo.`,
       c => `This is a rare one 🤠\nMost days you get yesterday's receipts. Today you get this morning's — both boards graded ${c.sd!.elapsed} after they published, in the open, same as always.\nAnalysis first. Receipts after. Just faster.`,
       c => `Timestamps don't lie 🧾\nPUBLISHED this morning · GRADED this afternoon · ${c.sd!.elapsed} between them. Every signal on both boards went up before the draw and got checked after it.\nThe full method's free in here. The timing is what Pro buys. $2.49/mo.`,

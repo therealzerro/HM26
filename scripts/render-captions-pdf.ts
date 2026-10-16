@@ -30,6 +30,8 @@ import { generateCaption, SURFACE_TIER, type CaptionData } from '../lib/social/c
 import { lintCaption } from '../lib/social/brandLint';
 import { WEEKLY_CAPTIONS } from '../lib/social/weeklyCaptions';
 import { CAPTION_BANKS } from '../lib/social/captionBanks';
+import { numWord } from './reel-captions';
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // ─── MKT-86 (2026-10-15) — the PRO ROOM section (content agent order §2) ────
 // Four cards the operator works by hand in the Pro group / free group: today's
@@ -292,17 +294,30 @@ const esc = (s: string) =>
 // exact order's board; the sell is still WHEN, never WHAT. No emoji, no
 // urgency-hype phrase, no likelihood word (R-B), no count-led line (R-A).
 function proPushBlock(r: Row, cfg: BriefCfg): string {
-  const straight = /^STRAIGHT MATCH/.test(r.caption);
+  // MKT-89b: the lead line carries the count ("STRAIGHT MATCH ×2") and the
+  // board; both are read back from the stored caption, never recomputed.
+  const lead = /^STRAIGHT MATCH(?: ×(\d+))?/.exec(r.caption.split('\n')[0] ?? '');
+  const straight = !!lead;
+  const n = lead?.[1] ? parseInt(lead[1], 10) : straight ? 1 : 0;
   const link = cfg.proUrl || '{link_pro}';
-  const board = /on this morning's All-Day board/.test(r.caption) ? 'allday'
-    : /on both of this morning's boards/.test(r.caption) ? 'both' : 'midday';
-  const first = straight
-    ? (board === 'allday'
-      ? `That exact order was on this morning's All-Day board, in full, for everyone. The Midday and Evening boards went up covered. Pro read them uncovered at 8:30, hours before the draw.\nTomorrow's boards go up at 8:30 AM. Pro reads all three before the draw: ${link}\n$2.49/mo. Same six for everyone. Pro just stops waiting.`
-      : `That exact order was on the board at 8:30 this morning, covered in here. Pro read it uncovered. Hours before it drew.\nTomorrow's boards go up at 8:30 AM. Pro reads all three before the draw: ${link}\n$2.49/mo. Same six for everyone. Pro just stops waiting.`)
-    : `Both of this morning's boards, graded the same afternoon, in the open. Pro read the covered one uncovered at 8:30, before the draw.\nTomorrow's boards go up at 8:30 AM. Pro reads all three before the draw: ${link}\n$2.49/mo. Same six for everyone. Pro just stops waiting.`;
+  const board = /All-Day board/.test(r.caption.split('\n')[0] ?? '') ? 'allday'
+    : /(both of|each of) this morning's boards/.test(r.caption.split('\n')[0] ?? '') ? 'both' : 'midday';
+  const N = n >= 2 ? cap(numWord(n)) : '';
+  const tail = `Tomorrow's boards go up at 8:30 AM. Pro reads all three before the draw: ${link}\n$2.49/mo. Same six for everyone. Pro just stops waiting.`;
+  const openLine = !straight
+    ? `Both of this morning's boards, graded the same afternoon, in the open. Pro read the covered one uncovered at 8:30, before the draw.`
+    : n === 1
+      ? (board === 'allday'
+        ? `That exact order was on this morning's All-Day board, in full, for everyone. The Midday and Evening boards went up covered. Pro read them uncovered at 8:30, hours before the draw.`
+        : `That exact order was on the board at 8:30 this morning, covered in here. Pro read it uncovered. Hours before it drew.`)
+      : board === 'both'
+        ? `${N} exact orders today, one on each board. The Midday one was covered in here at 8:30; Pro read it uncovered, hours before it drew. The All-Day one went up in full, for everyone.`
+        : board === 'allday'
+          ? `${N} exact orders on this morning's All-Day board, in full, for everyone. The Midday and Evening boards went up covered. Pro read them uncovered at 8:30, hours before the draw.`
+          : `${N} exact orders on one board this morning, every one of them covered in here. Pro read them uncovered at 8:30. Hours before they drew.`;
+  const first = `${openLine}\n${tail}`;
   const reply = `Pro reads tomorrow's boards uncovered at 8:30 AM, before the draw: ${link} — $2.49/mo.`;
-  return `<div class="pushhead">${straight ? '⚡ STRAIGHT DAY — ' : ''}💎 PRO PUSH · the reel's caption above already closes on the Pro link; these two lines are posted BY HAND</div>
+  return `<div class="pushhead">${straight ? (n >= 2 ? `⚡ STRAIGHT DAY ×${n} — ` : '⚡ STRAIGHT DAY — ') : ''}💎 PRO PUSH · the reel's caption above already closes on the Pro link; these two lines are posted BY HAND</div>
       ${lintTag(first, 2, 'push first comment')}
       <div class="tag">FIRST COMMENT — pin it under the reel the second it is up (free group)</div><pre class="big">${esc(first)}</pre>
       ${lintTag(reply, 2, 'push reply line')}

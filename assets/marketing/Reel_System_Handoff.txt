@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-16 · v7.30
+Content Agent Handoff · 2026-10-16 · v7.31
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -645,6 +645,46 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.31 (2026-10-16, minutes later — operator: "creatively
+account for multiple midday verify straight matches also in the captions cta")
+================================================================================
+  ID: MKT-89b (addendum; next free = 90). Engine untouched. Nothing auto-posts.
+
+  THE COUNT. `straights` on the same-day join counts deduped (board, combo,
+  state) straight rows across BOTH boards — one exact order drawn in one
+  state that sits on both boards counts TWO, one per board. The caption now
+  reads that count everywhere, as number WORDS (never a digit beside "exact
+  order"), inside the day's record, never as a hook (R-A):
+    lead (N ≥ 2):  STRAIGHT MATCH ×2 ⚡ Two exact orders, one on each of this
+                   morning's boards — graded the same afternoon.
+                   (×3+ on both boards: "across both of this morning's
+                   boards"; one board: "on this morning's Midday board")
+    CTA (both/2):  Two exact orders today, one on each board. The Midday one
+                   went up COVERED in here this morning; Pro read it
+                   uncovered at 8:30, hours before it drew. The All-Day one
+                   went up in full, for everyone.
+    CTA (midday/N): N exact orders on one board this morning, and the free
+                   room saw every one of them COVERED. Pro read them
+                   uncovered at 8:30, hours before they drew.
+    CTA (allday/N): N exact orders on this morning's All-Day board, in full,
+                   for everyone. The Midday and Evening boards did not go up
+                   that way: they went up covered, and Pro read them
+                   uncovered at 8:30, hours before the draw.
+    then:          Tomorrow's boards go up at 8:30 AM, same six for everyone.
+                   Pro reads every one of them before the draw. Free waits
+                   for the cover to come off, again.
+                   Join the Pro room: <link>
+                   $2.49/mo — HitMaster ZK Pro. Same six for everyone. Pro
+                   just stops waiting.
+  Template #3's clause pluralises ("two dead-on STRAIGHT MATCHES"). The
+  sheet's PRO PUSH reads the count and the board BACK from the stored lead
+  line (header "⚡ STRAIGHT DAY ×2 — 💎 PRO PUSH"); its first comment
+  branches the same way. Today (10/16) is expected to be the both/2 case.
+
+  TESTS: samedayProCta.test.ts 4 (9 contexts × 8 dates tier-2 clean; no
+  digit before "exact orders"; 0 emoji in the tail); jest 132/132.
+
 ================================================================================
 WHAT CHANGED IN v7.30 (2026-10-16, afternoon — operator: "there is a straight
 match on today's midday board, prepare to run the midday verify in 1 hour, be

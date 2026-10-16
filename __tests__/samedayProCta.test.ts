@@ -15,6 +15,10 @@ const CTXS: (SamedayCtx | null)[] = [
   { elapsed: '7h 51m', straights: 1, straightBoard: 'midday' },
   { elapsed: '7h 51m', straights: 1, straightBoard: 'allday' },
   { elapsed: '7h 51m', straights: 2, straightBoard: 'both' },
+  { elapsed: '7h 51m', straights: 3, straightBoard: 'both' },
+  { elapsed: '7h 51m', straights: 2, straightBoard: 'midday' },
+  { elapsed: '7h 51m', straights: 2, straightBoard: 'allday' },
+  { elapsed: '7h 51m', straights: 4, straightBoard: 'midday' },
   null, // fallback
 ];
 
@@ -42,5 +46,18 @@ describe('MKT-89 same-day verify Pro CTA', () => {
     expect(samedayProCta({ elapsed: '1h', straights: 1, straightBoard: 'allday' })).toMatch(/in full this morning, for everyone/);
     expect(samedayProCta({ elapsed: '1h', straights: 0, straightBoard: null })).not.toMatch(/exact order/);
     expect(samedayProCta(null)).toContain(PRO_URL_TOKEN);
+  });
+  test('MKT-89b: multiple straights read as number words in the lead and the CTA, never digits', () => {
+    const two = buildReelCaption('verify_midday', '2026-10-16', null, { elapsed: '1h', straights: 2, straightBoard: 'both' });
+    expect(two.startsWith('STRAIGHT MATCH ×2 ⚡ Two exact orders, one on each of this morning\'s boards')).toBe(true);
+    expect(two).toMatch(/Two exact orders today, one on each board/);
+    expect(samedayProCta({ elapsed: '1h', straights: 2, straightBoard: 'midday' })).toMatch(/^Two exact orders on one board/);
+    expect(samedayProCta({ elapsed: '1h', straights: 3, straightBoard: 'allday' })).toMatch(/^Three exact orders on this morning's All-Day board/);
+    expect(samedayProCta({ elapsed: '1h', straights: 3, straightBoard: 'both' })).toMatch(/^Three exact orders today, across both boards/);
+    for (const sd of CTXS) if (sd && sd.straights > 1) {
+      const t = samedayProCta(sd);
+      expect(t).not.toMatch(/\b\d+ exact orders/);
+      expect((t.match(/\p{Extended_Pictographic}/gu) ?? []).length).toBe(0);
+    }
   });
 });

@@ -4,7 +4,8 @@ HITMASTER REEL COMMANDS — copy/paste reference
 Rule: this file is ALWAYS updated when a reel command is added or
 changed. Every command has a description. (Last updated 2026-10-16 — MKT-88:
 TRIPLE BOARD SIGNAL now BURNS on the allday/midday/evening reels (automatic, see
-the note under reel:allday); earlier the same day MKT-87: TRIPLE BOARD SIGNAL
+the note under reel:allday), RING-ONLY tease on the redacted free session cuts,
+a caption line on triple days, and the Pro brief's triple is ember (not gold); earlier the same day MKT-87: TRIPLE BOARD SIGNAL
 note under MINIMUM PRO DAY; previously 2026-10-15 — MKT-86:
 NEW `npm run brief:pro` (MINIMUM PRO DAY, below), the captions sheet's 💎 PRO
 ROOM section, and the automatic STRAIGHT STATE STAMP on verify/verify_midday;
@@ -249,10 +250,23 @@ STEP 3 — TERMINAL B: build + publish the day's reels
   free session cuts or allday_public (the band shows the digits). The body
   carries hm_triple=5-7-3 in its container; the assembler logs
   "NOTE(pro): TRIPLE BOARD SIGNAL (MKT-88) — body burns 5-7-3". The render
-  ABORTS if the DB's triple rank and the captured tile disagree. First day:
-  10/16 (5-7-3 = allday #6, midday #6, evening #5); the 10/16 finals were
-  already published before this shipped, so the first LIVE burning reels are
-  the next triple day.
+  ABORTS if the DB's triple rank and the captured tile disagree.
+  RING-ONLY TEASE (operator, same day): midday_free / evening_free (the
+  redacted cuts) burn the masked tile — ring, flames, "ALL THREE BOARDS"
+  plate — with NO band and NO digits anywhere (tag hm_triple=ring). allday_
+  public never carries it.
+  CAPTION LINE (operator, same day): publish appends one trailing line on a
+  triple day, read from the body's own tag — Pro kinds + allday_free:
+  "TRIPLE BOARD SIGNAL: 5-7-3 is posted in the same exact order on all three
+  of today's boards."; midday_free / evening_free: the digit-free tease
+  ("…one of today's six… Pro reads which one."); public: nothing. Linted at
+  the kind's tier; a block drops the line, never the upload.
+  First day: 10/16 (5-7-3 = allday #6, midday #6, evening #5). The evening
+  lane was RE-RUN twice that afternoon by operator order (the morning finals
+  superseded in place — same storage paths, x-upsert); allday/midday 10/16
+  finals stayed as posted.
+  THE PRO BRIEF'S triple is EMBER too since MKT-88 (brief:pro) — gold on the
+  brief means a DRAWN straight, same as everywhere else.
 
     Run in that order (receipts first, then today's drops).
     SUCCESS = each command ends with "✔ registered — visible in

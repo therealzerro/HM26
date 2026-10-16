@@ -26,6 +26,9 @@ import type { BriefFit } from '@/components/social/SocialBriefCard';
 
 const C = {
   purpleSoft: '#C084FC', gold: '#FBBF24', goldSoft: '#FCD34D', cyan: '#06B6D4', cyanSoft: '#67E8F9', green: '#34D399',
+  // MKT-88 (operator, 10/16): gold is reserved for a STRAIGHT MATCH that was DRAWN; the
+  // triple (a before-the-draw fact) is EMBER here as on the reels (hue ≤ 28°).
+  ember: '#FF6A1A', emberSoft: '#FF8A4A',
   text: '#FFFFFF', textDim: 'rgba(255,255,255,0.70)', textFaint: 'rgba(255,255,255,0.45)', hair: 'rgba(255,255,255,0.10)',
   glass: 'rgba(10,8,22,0.55)', tile: 'rgba(168,85,247,0.14)', tileEdge: 'rgba(168,85,247,0.35)',
 };
@@ -177,8 +180,8 @@ function Session({ s }: { s: BriefSession }) {
         <View style={styles.signalRow}>
           {(s.signals ?? []).map((g, i) => (
             <View key={i} style={[styles.signal, g.triple && styles.signalTriple]}>
-              <Text style={[styles.digits, g.triple && { color: C.goldSoft }]}>{g.digits}</Text>
-              <Text style={[styles.set, g.triple && { color: C.gold }]}>{setBraces(g.set)}</Text>
+              <Text style={[styles.digits, g.triple && { color: C.emberSoft }]}>{g.digits}</Text>
+              <Text style={[styles.set, g.triple && { color: C.ember }]}>{setBraces(g.set)}</Text>
             </View>
           ))}
         </View>
@@ -210,9 +213,10 @@ const styles = StyleSheet.create({
   sessionState: { fontSize: 6.5, lineHeight: 9, letterSpacing: 0.8, fontFamily: MONO_B },
   signalRow: { flexDirection: 'row', gap: 3, marginTop: 1 },
   signal: { flex: 1, alignItems: 'center', backgroundColor: C.tile, borderWidth: 0.5, borderColor: C.tileEdge, borderRadius: 4, paddingVertical: 1 },
-  // TRIPLE BOARD SIGNAL (MKT-87): same box, gold — borderWidth unchanged so the row height is identical
-  signalTriple: { backgroundColor: 'rgba(251,191,36,0.16)', borderColor: C.gold },
-  tripleLine: { color: C.goldSoft, fontFamily: SANS_B, fontSize: 6.5, lineHeight: 8, letterSpacing: 1.6 },
+  // TRIPLE BOARD SIGNAL (MKT-87): same box — borderWidth unchanged so the row height is identical.
+  // MKT-88: EMBER, not gold (gold = a drawn straight).
+  signalTriple: { backgroundColor: 'rgba(255,106,26,0.16)', borderColor: C.ember },
+  tripleLine: { color: C.emberSoft, fontFamily: SANS_B, fontSize: 6.5, lineHeight: 8, letterSpacing: 1.6 },
   // 17 pt logical = 34 px at 1080 ≥ the 31.5 px floor (F6)
   digits: { color: C.text, fontSize: 17, lineHeight: 19, fontFamily: MONO_B, letterSpacing: 1.2 },
   set: { color: C.textFaint, fontSize: 7, lineHeight: 8, fontFamily: MONO },

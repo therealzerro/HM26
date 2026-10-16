@@ -87,15 +87,30 @@ const STYLE = String.raw`
  * DOM layer found (1-based, visual order) — the renderer asserts they equal
  * the DB's ranks, so the pixels and the data cannot disagree.
  */
-export async function installTripleFire(page: Page, triples: { digits: string }[]): Promise<number[]> {
+export interface TripleFireOpts {
+  /** RING-ONLY TEASE (operator, 2026-10-16) for the REDACTED free session cuts:
+   *  the tile is found by RANK (its digits are masked), gets the ring + flames
+   *  + the digit-free plate, and NO band is added — the fact is shown, the
+   *  digits stay on the Pro side. */
+  ring?: boolean;
+  ranks?: number[];
+}
+
+export async function installTripleFire(page: Page, triples: { digits: string }[], opts: TripleFireOpts = {}): Promise<number[]> {
   const keys = triples.map(t => tripleKey(t.digits));
+  const RING = !!opts.ring;
+  const RANKS = opts.ranks ?? [];
   const src = String.raw`(() => {
     const ID = ${JSON.stringify(FIRE_ID)};
     const KEYS = ${JSON.stringify(keys)};
+    const RING = ${JSON.stringify(RING)};
+    const RANKS = ${JSON.stringify(RANKS)};
     const COPY = ${JSON.stringify(TRIPLE_FIRE_COPY)};
     const DIGITS = ${JSON.stringify(triples.map(t => t.digits).join('  ·  '))};
     const leaves = Array.from(document.querySelectorAll('*')).filter(e => !e.children.length);
-    if (leaves.some(e => (e.textContent || '').trim() === '•••')) return { ranks: [], masked: true };
+    const masked = leaves.some(e => (e.textContent || '').trim() === '•••');
+    if (masked && !RING) return { ranks: [], masked: true };
+    if (RING && !masked) return { ranks: [], unmasked: true };
     if (document.getElementById(ID)) return { ranks: [], dup: true };
     const style = document.createElement('style'); style.id = ID + '-style'; style.textContent = ${JSON.stringify(STYLE)};
     document.head.appendChild(style);
@@ -125,10 +140,14 @@ export async function installTripleFire(page: Page, triples: { digits: string }[
     };
     for (const t of tiles) {
       if (!t.card) continue;
-      const under = Array.from(t.card.querySelectorAll('*')).filter(e => !e.children.length);
-      const row = under.find(e => /^\d[\s\-·.]+\d[\s\-·.]+\d$/.test((e.textContent || '').trim()));
-      const key = row ? (row.textContent || '').replace(/\D/g, '') : '';
-      if (!key || !KEYS.includes(key)) continue;
+      if (RING) {
+        if (!RANKS.includes(t.rank)) continue;
+      } else {
+        const under = Array.from(t.card.querySelectorAll('*')).filter(e => !e.children.length);
+        const row = under.find(e => /^\d[\s\-·.]+\d[\s\-·.]+\d$/.test((e.textContent || '').trim()));
+        const key = row ? (row.textContent || '').replace(/\D/g, '') : '';
+        if (!key || !KEYS.includes(key)) continue;
+      }
       ranks.push(t.rank);
       t.card.style.overflow = 'visible';
       t.card.style.position = t.card.style.position || 'relative';
@@ -140,6 +159,7 @@ export async function installTripleFire(page: Page, triples: { digits: string }[
       t.card.appendChild(plate);
     }
     if (!ranks.length) { style.remove(); document.documentElement.removeAttribute('data-hm-fire'); return { ranks: [] }; }
+    if (RING) return { ranks };   // ring-only: no band, no digits anywhere
     // THE BAND — black space between the chip (ends CSS 590) and the strip (765).
     const band = document.createElement('div');
     band.id = ID; band.setAttribute('aria-hidden', 'true');
@@ -163,8 +183,9 @@ export async function installTripleFire(page: Page, triples: { digits: string }[
     document.body.appendChild(band);
     return { ranks };
   })()`;
-  const r: { ranks: number[]; masked?: boolean; dup?: boolean } = await page.evaluate(src);
-  if (r.masked) throw new Error('installTripleFire: refused — the capture is masked (digits withheld); the fire layer is full-fidelity only.');
+  const r: { ranks: number[]; masked?: boolean; unmasked?: boolean; dup?: boolean } = await page.evaluate(src);
+  if (r.masked) throw new Error('installTripleFire: refused — the capture is masked (digits withheld) and ring mode was not requested.');
+  if (r.unmasked) throw new Error('installTripleFire: refused — ring mode on an UNMASKED capture (the full cut takes the band).');
   if (r.dup) throw new Error('installTripleFire: already installed.');
   return r.ranks;
 }

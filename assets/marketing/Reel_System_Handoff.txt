@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-16 · v7.28
+Content Agent Handoff · 2026-10-16 · v7.29
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.11; v7.28 = 10/16 TRIPLE BOARD SIGNAL BURNS ON THE SLATE REELS (operator order, read its block — the no-gold rule is in it); v7.27 = 10/16 TRIPLE BOARD SIGNAL on the Pro brief (operator order, small, read its block); v7.26 = 10/15 YOUR PRO GROWTH ORDER EXECUTED + THE STRAIGHT STATE STAMP, read its block first; v7.24 = 10/13 ENGINE + DATA DAY; v7.12 = one asset edit, v7.13 = the reel:daily gate, v7.14 = MKT-82 PRO BRIEF PHASE 0, v7.15 = MKT-82 PHASE 1 SHIPPED, v7.16 = MKT-82 PHASE 2 SHIPPED BY OPERATOR ORDER (not a reel; see its block) — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.11; v7.29 = 10/16 the three TRIPLE follow-ups ORDERED and built: ring-only tease on the redacted cuts, caption line, brief → ember (read its block); v7.28 = 10/16 TRIPLE BOARD SIGNAL BURNS ON THE SLATE REELS (operator order, read its block — the no-gold rule is in it); v7.27 = 10/16 TRIPLE BOARD SIGNAL on the Pro brief (operator order, small, read its block); v7.26 = 10/15 YOUR PRO GROWTH ORDER EXECUTED + THE STRAIGHT STATE STAMP, read its block first; v7.24 = 10/13 ENGINE + DATA DAY; v7.12 = one asset edit, v7.13 = the reel:daily gate, v7.14 = MKT-82 PRO BRIEF PHASE 0, v7.15 = MKT-82 PHASE 1 SHIPPED, v7.16 = MKT-82 PHASE 2 SHIPPED BY OPERATOR ORDER (not a reel; see its block) — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -645,6 +645,63 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.29 (2026-10-16, later the same day — the v7.28 ASKS ANSWERED,
+operator: "yes ring only tease in redacted. yes caption line, use your best
+judgement on the pro brief card" + "rerun the evening reel for today then delete
+earlier version that was ran today")
+================================================================================
+  ID: still MKT-88 (addendum; next free = 89). Engine untouched. Nothing
+  auto-posts. All three asks from v7.28 are now BUILT:
+
+  (a) BRIEF → EMBER (my call, as asked): the framed and classic Pro brief
+      cards paint the triple tile, the TODAY label line and the classic band
+      in EMBER (#FF6A1A / #FF8A4A), not gold. Reason: the brief sits in the
+      same Pro room as the reels; a gold triple there and an ember one in the
+      reel would teach the room two meanings for the colour the operator
+      reserved for a DRAWN straight. 10/16 re-rendered: yesterday's STRAIGHT
+      MATCH row is gold, today's 5-7-3 tile is ember, on one card — the two
+      meanings sit side by side. Lint PASS, fit 232/251 unchanged.
+  (b) RING-ONLY TEASE on the REDACTED free session cuts (midday_free,
+      evening_free): the masked tile gets the ember ring, the small flames
+      and the plate — NO band, NO modal plate, NO digits anywhere. The plate
+      now reads "ALL THREE BOARDS" on every cut (the old "ALL 3 BOARDS" had a
+      digit the redaction observer would have masked to "ALL ••• BOARDS").
+      The redacted body's tag is hm_triple=ring (a free-group file on a
+      public bucket names no digits). The DOM layer finds the tile by RANK
+      in ring mode (its digits are "•••") and refuses ring mode on an
+      unmasked capture, and vice versa. allday_public: still nothing.
+  (c) CAPTION LINE on a triple day — publish-reels appends ONE trailing
+      line, read from the BODY'S OWN hm_triple tag (never recomputed, so
+      caption and pixels cannot disagree — the same rule as the verify_midday
+      gap). Pro kinds + allday_free (it sees the all-day board in full):
+        TRIPLE BOARD SIGNAL: 5-7-3 is posted in the same exact order on all
+        three of today's boards.
+      midday_free / evening_free (digit-free tease, tier 2):
+        TRIPLE BOARD SIGNAL: one of today's six is posted in the same exact
+        order on all three boards. Pro reads which one.
+      Public kinds: no line. Linted through lintCaption at the kind's tier
+      before it ships (and in the unit test); a block DROPS THE LINE and
+      warns, never the upload. Factual, no likelihood word (R-B).
+
+  THE EVENING RE-RUN (operator order): `npm run reel:evening` was run TWICE
+  on 10/16 — first with the fire (Pro burning, Free unchanged), then again
+  once (b)+(c) landed so the Free cut carries the ring and both captions
+  carry their line. "Delete the earlier version" = the system's own
+  supersession: storage paths are kind/date/filename with x-upsert, so each
+  run OVERWRITES the morning's objects and re-upserts the row — nothing
+  older survives in the bucket or on disk. ⚠ The re-upsert RESETS the row to
+  'ready' and clears posted_at (the MKT-26 upsert trap, by design): the
+  morning's evening_pro (posted 08:43 ET) and evening_free (08:53 ET) marks
+  are gone — if the operator re-posts the new cuts, mark them posted again
+  in Admin → Reels. allday / midday 10/16 finals were NOT re-run (not
+  ordered); they predate the fire.
+
+  TESTS: reelTriple.test.ts now 16 (badge has no digit · caption line per
+  kind · lint at tiers 2/4 · ring tag round-trip); jest 128/128; tsc clean.
+
+  ASKS (none blocking): none new. The brief-gold question is closed by (a).
+
 ================================================================================
 WHAT CHANGED IN v7.28 (2026-10-16 — TRIPLE BOARD SIGNAL ON THE SLATE REELS,
 operator order: "on days when there are triple board straight picks i also

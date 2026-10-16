@@ -296,7 +296,9 @@ for (const v of VARIANTS) {
   // the triple's modal plate, flicker included); nothing is composited here.
   // The tag is how the build log says which finals carry it.
   const triple = readTriple(body);
-  if (triple.length) console.log(`NOTE(${v}): TRIPLE BOARD SIGNAL (MKT-88) — body burns ${triple.join(' · ')} (ember tile + band on the still, plate on its modal; never gold).`);
+  if (triple.length) console.log(triple[0] === 'ring'
+    ? `NOTE(${v}): TRIPLE BOARD SIGNAL (MKT-88) — RING-ONLY tease on the masked tile (no band, no digits).`
+    : `NOTE(${v}): TRIPLE BOARD SIGNAL (MKT-88) — body burns ${triple.join(' · ')} (ember tile + band on the still, plate on its modal; never gold).`);
   // MKT-17: resolved per kind and per DATE (not "today"), so re-running an old
   // stamp reproduces that day's intro exactly, the same contract the caption
   // and panel rotations already honour.

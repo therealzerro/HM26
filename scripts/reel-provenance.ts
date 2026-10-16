@@ -189,7 +189,9 @@ export function provenanceArgs(dateISO: string, redacted = false, isPublic = fal
     (strikeAt != null ? ` -metadata ${STRIKE_TAG}="${strikeAt.toFixed(2)}"` : '') +
     // MKT-86: only with a strike (same condition), only a code-shaped value.
     (strikeAt != null && straightState && /^[A-Za-z.,]{2,12}$/.test(straightState) ? ` -metadata ${STRAIGHT_STATE_TAG}="${straightState}"` : '') +
-    (triple && !redacted && !isPublic && /^\d-\d-\d(\|\d-\d-\d)*$/.test(triple) ? ` -metadata ${TRIPLE_TAG}="${triple}"` : '') +
+    // MKT-88: digits only on a full-fidelity body; a redacted body may carry
+    // the lone "ring" (tile burns, digits withheld); a public body never.
+    (triple && !isPublic && (redacted ? triple === 'ring' : /^\d-\d-\d(\|\d-\d-\d)*$/.test(triple)) ? ` -metadata ${TRIPLE_TAG}="${triple}"` : '') +
     (landed ? ` -metadata ${LANDED_TAG}="${landed.landed} of ${landed.total}"` : '');
 }
 
@@ -246,6 +248,7 @@ export function readTriple(file: string): string[] {
     const out = execSync(
       `ffprobe -v error -show_entries format_tags=${TRIPLE_TAG} -of default=nw=1:nk=1 "${file}"`,
     ).toString().trim();
+    if (out === 'ring') return ['ring'];
     const parts = out ? out.split('|') : [];
     return parts.length && parts.every(p => /^\d-\d-\d$/.test(p)) ? parts : [];
   } catch {

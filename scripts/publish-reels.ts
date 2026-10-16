@@ -41,7 +41,10 @@ import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { buildReelCaption, fetchReceiptsData, shiftDate, kindNeedsReceipts, ReceiptsData, ReelCaptionKind, SamedayCtx, RecordCtx } from './reel-captions';
-import { readRecordStats } from './reel-provenance';
+import { readRecordStats, readTriple } from './reel-provenance';
+import { tripleCaptionLine } from './reel-triple-core';
+import { bodyFile } from './reel-scopes';
+import { lintCaption } from '../lib/social/brandLint';
 import { RECORD_DIR, RECORD_KIND } from './record-config';
 import { fetchSamedayProvenance, fmtGap } from './reel-sameday';
 import { REEL_SCOPES, RETENTION_EXEMPT_KINDS, isScope, reelKind, parseVariantFlag, type Scope } from './reel-scopes';
@@ -289,11 +292,36 @@ async function buildCaptions(kinds: Kind[]): Promise<Record<string, CaptionSet>>
   const out: Record<string, CaptionSet> = {};
   for (const k of kinds) {
     out[k] = {
-      caption: subUrl(buildReelCaption(k, isoDate, receipts, k === 'verify_midday' ? sameday : null, k === RECORD_KIND ? record : null)),
+      caption: subUrl(buildReelCaption(k, isoDate, receipts, k === 'verify_midday' ? sameday : null, k === RECORD_KIND ? record : null)) + tripleCaptionSuffix(k),
       caption_pro: k === 'verify' ? buildReelCaption('verify_pro', isoDate, receipts) : null,
     };
   }
   return out;
+}
+
+/**
+ * MKT-88 (operator, 2026-10-16: "yes caption line") — on a triple day the
+ * slate-reel captions carry one trailing line, read from the BODY'S OWN
+ * hm_triple tag (the pixels' truth, never a re-computation): Pro kinds and
+ * allday_free name the digits; the redacted free session kinds get the
+ * digit-free tease; public kinds get nothing. Linted at the kind's tier
+ * before it ships — a block drops the line and says so, never the upload.
+ */
+function tripleCaptionSuffix(kind: string): string {
+  const m = /^(allday|midday|evening)_(pro|free)$/.exec(kind);
+  if (!m || !isScope(m[1])) return '';
+  const body = join(resolve('assets/marketing', REEL_SCOPES[m[1]].dir), bodyFile(m[1], m[2] as 'pro' | 'free', stamp));
+  if (!existsSync(body)) return '';
+  const line = tripleCaptionLine(kind, readTriple(body));
+  if (!line) return '';
+  const tier = m[2] === 'pro' ? 4 : 2;
+  const lint = lintCaption(line, tier);
+  if (lint.violations.some((v) => v.blocking)) {
+    console.warn(`[publish-reels] ${kind}: triple caption line BLOCKED by tier-${tier} lint (${lint.violations.filter((v) => v.blocking).map((v) => v.rule).join(', ')}) — line dropped.`);
+    return '';
+  }
+  console.log(`  🔥 ${kind}: triple caption line appended (from ${basename(body)} hm_triple).`);
+  return `\n\n${line}`;
 }
 
 async function uploadFile(localPath: string, storagePath: string, contentType: string): Promise<void> {

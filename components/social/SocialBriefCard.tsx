@@ -48,6 +48,9 @@ const C = {
   purpleSoft: '#C084FC',
   gold: '#FBBF24',
   goldSoft: '#FCD34D',
+  // MKT-88 (operator, 10/16): gold = a DRAWN straight; the triple is ember, as on the reels.
+  ember: '#FF6A1A',
+  emberSoft: '#FF8A4A',
   cyan: '#06B6D4',
   cyanSoft: '#67E8F9',
   green: '#34D399',
@@ -269,8 +272,8 @@ function ProSession({ s, last }: { s: BriefSession; last: boolean }) {
         <View style={styles.signalRow}>
           {(s.signals ?? []).map((g, i) => (
             <View key={i} style={[styles.signal, g.triple && styles.signalTriple]}>
-              <Text style={[styles.signalDigits, g.triple && { color: C.goldSoft }]}>{g.digits}</Text>
-              <Text style={[styles.signalSet, g.triple && { color: C.gold }]}>{setBraces(g.set)}</Text>
+              <Text style={[styles.signalDigits, g.triple && { color: C.emberSoft }]}>{g.digits}</Text>
+              <Text style={[styles.signalSet, g.triple && { color: C.ember }]}>{setBraces(g.set)}</Text>
             </View>
           ))}
         </View>
@@ -387,14 +390,14 @@ const styles = StyleSheet.create({
   signal: { flex: 1, alignItems: 'center', backgroundColor: 'rgba(168,85,247,0.10)', borderRadius: 12, borderWidth: 1, borderColor: C.purple + '33', paddingVertical: 8 },
   signalDigits: { color: C.text, fontSize: 28, lineHeight: 34, fontWeight: '900', fontFamily: MONO, letterSpacing: 2.5 },
   signalSet: { color: C.textFaint, fontSize: 14, lineHeight: 18, fontFamily: MONO, marginTop: 2 },
-  // TRIPLE BOARD SIGNAL (MKT-87): the tile posted on all three boards, gold
-  signalTriple: { backgroundColor: 'rgba(251,191,36,0.14)', borderColor: C.gold, borderWidth: 2 },
-  tripleBand: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(251,191,36,0.10)', borderRadius: 12, borderWidth: 1, borderColor: C.gold + '88', paddingHorizontal: 14, paddingVertical: 4, marginBottom: 4 },
+  // TRIPLE BOARD SIGNAL (MKT-87): the tile posted on all three boards — EMBER since MKT-88 (gold = a drawn straight)
+  signalTriple: { backgroundColor: 'rgba(255,106,26,0.14)', borderColor: C.ember, borderWidth: 2 },
+  tripleBand: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,106,26,0.10)', borderRadius: 12, borderWidth: 1, borderColor: C.ember + '88', paddingHorizontal: 14, paddingVertical: 4, marginBottom: 4 },
   tripleIcon: { fontSize: 18, lineHeight: 22 },
   tripleText: { flex: 1, lineHeight: 22 },
-  tripleTitle: { color: C.goldSoft, fontSize: 14, lineHeight: 22, fontWeight: '900', letterSpacing: 2 },
+  tripleTitle: { color: C.emberSoft, fontSize: 14, lineHeight: 22, fontWeight: '900', letterSpacing: 2 },
   tripleSub: { color: C.textDim, fontSize: 12, lineHeight: 22, fontWeight: '700' },
-  tripleDigits: { color: C.goldSoft, fontSize: 22, lineHeight: 26, fontWeight: '900', fontFamily: MONO, letterSpacing: 2.5 },
+  tripleDigits: { color: C.emberSoft, fontSize: 22, lineHeight: 26, fontWeight: '900', fontFamily: MONO, letterSpacing: 2.5 },
 
   footer: { marginTop: 10, minHeight: 42, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 },
   footerLine: { flex: 1, color: C.textFaint, fontSize: 15, lineHeight: 21, fontWeight: '700' },

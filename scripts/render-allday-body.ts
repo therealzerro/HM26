@@ -41,7 +41,7 @@ import { installRedaction, assertNoDigits } from './reel-redact';
 import { installRelabel, assertPublicClean, RELABEL_SLOTS } from './reel-relabel';
 import { installNotation, removeNotation, notationTimerFilter } from './reel-notation';
 import { fetchTriple, installTripleFire, setFirePhase, removeTripleBand, installTripleFireModal, removeTripleFireModal } from './reel-triple';
-import { FIRE_PHASES, firePhaseAt, tripleTagValue, NO_TRIPLE } from './reel-triple-core';
+import { FIRE_PHASES, firePhaseAt, tripleTagValue, NO_TRIPLE, TRIPLE_RING } from './reel-triple-core';
 
 const BASE = 'http://localhost:8081';
 const ARGS = positionals(process.argv.slice(2));
@@ -218,14 +218,16 @@ async function coffeeTileCenters(page: import('playwright').Page): Promise<Array
   }
   // MKT-88: TRIPLE BOARD SIGNAL — an exact order posted on all three of the
   // day's boards (law: lib/social/briefResolve.ts findTripleBoard). On such a
-  // day the full-fidelity body BURNS that tile (scripts/reel-triple.ts); the
-  // masked cuts never carry it (the band shows the digits; tier 1 vocabulary).
-  const TRI = REDACT ? NO_TRIPLE : await fetchTriple(dateISO, SCOPE);
+  // day the full-fidelity body BURNS that tile (scripts/reel-triple.ts). The
+  // REDACTED free session cut gets the RING ONLY (operator, 10/16: ring, flames
+  // and the digit-free plate on the masked tile; no band, no modal plate). The
+  // PUBLIC cut never carries it (tier 1 vocabulary).
+  const TRI = RELABEL ? NO_TRIPLE : await fetchTriple(dateISO, SCOPE);
   if (TRI.triples.length && !TRI.ranks.length) {
     console.error(`ABORT: ${dateISO} has a triple (${TRI.triples.map(t => t.digits).join(', ')}) but it is not on the ${SPEC.stampLabel} board — by law a triple sits on all three; the boards changed under us.`);
     process.exit(1);
   }
-  if (TRI.triples.length) console.log(`TRIPLE BOARD SIGNAL · ${TRI.triples.map(t => t.digits).join(' · ')} · ${SPEC.stampLabel} rank${TRI.ranks.length > 1 ? 's' : ''} #${TRI.ranks.join(' #')} — the tile burns (MKT-88).`);
+  if (TRI.triples.length) console.log(`TRIPLE BOARD SIGNAL · ${REDACT ? 'ring only (digits withheld)' : TRI.triples.map(t => t.digits).join(' · ')} · ${SPEC.stampLabel} rank${TRI.ranks.length > 1 ? 's' : ''} #${TRI.ranks.join(' #')} — the tile burns (MKT-88).`);
 
   const WORK = join(tmpdir(), `${SCOPE}-frames-${stamp}`);
   rmSync(WORK, { recursive: true, force: true });
@@ -289,8 +291,8 @@ async function coffeeTileCenters(page: import('playwright').Page): Promise<Array
     for (let f = 0; f < frames; f++) copyFileSync(phaseFile(tag, firePhaseAt(f)), fname(base + f));
   };
   let gridBurns = false;
-  if (!REDACT && TRI.triples.length) {
-    const found = await installTripleFire(page, TRI.triples);
+  if (TRI.triples.length) {
+    const found = await installTripleFire(page, TRI.triples, REDACT ? { ring: true, ranks: TRI.ranks } : {});
     const want = [...TRI.ranks].sort().join(','), got = [...found].sort().join(',');
     if (want !== got) {
       console.error(`ABORT: the DB says the triple sits at rank(s) #${want || '—'} on the ${SPEC.stampLabel} board but the captured grid burned #${got || '—'} — the pixels and the data disagree; no body rendered.`);
@@ -301,8 +303,8 @@ async function coffeeTileCenters(page: import('playwright').Page): Promise<Array
   }
   await captureHold('grid', 0, GRID_FRAMES, gridBurns);   // 1080x1920, no zoom headroom needed
   if (!REDACT) await removeNotation(page);     // the modals must not carry the strip
-  if (gridBurns) await removeTripleBand(page); // nor the fire band (the tile keeps burning under them)
-  console.log(`captured grid still hold (${GRID_FRAMES} frames, ${(GRID_FRAMES / FPS).toFixed(1)}s, ${gridBurns ? `${FIRE_PHASES}-phase fire flicker` : 'static'})`);
+  if (gridBurns && !REDACT) await removeTripleBand(page); // nor the fire band (the tile keeps burning under them)
+  console.log(`captured grid still hold (${GRID_FRAMES} frames, ${(GRID_FRAMES / FPS).toFixed(1)}s, ${gridBurns ? `${FIRE_PHASES}-phase fire flicker${REDACT ? ' · ring only' : ''}` : 'static'})`);
 
   // Tile centers (CSS px, read from the DOM — MKT-57) and the modal close button.
   const TILES = await coffeeTileCenters(page);
@@ -372,10 +374,10 @@ async function coffeeTileCenters(page: import('playwright').Page): Promise<Array
     // MKT-88: a burning body says so in its container (hm_triple) — the
     // assembler NOTEs it; masked cuts never carry the tag (provenanceArgs
     // drops it on redacted/public even if handed one).
-    `${provenanceArgs(dateISO, REDACT, RELABEL, null, null, null, REDACT ? null : tripleTagValue(TRI.triples))} "${outMp4}"`,
+    `${provenanceArgs(dateISO, REDACT, RELABEL, null, null, null, REDACT ? (TRI.triples.length ? TRIPLE_RING : null) : tripleTagValue(TRI.triples))} "${outMp4}"`,
     { stdio: 'inherit' },
   );
   rmSync(WORK, { recursive: true, force: true });
   const dur = execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${outMp4}"`).toString().trim();
-  console.log(`${SCOPE} body: ${outMp4} · date ${dateISO} · grid still 10.0s (6 picks, no zoom)+six modals 1.5s · ${dur}s${TRI.triples.length && !REDACT ? ` · TRIPLE BOARD SIGNAL ${TRI.triples.map(t => t.digits).join('|')} burning (hm_triple)` : ''}`);
+  console.log(`${SCOPE} body: ${outMp4} · date ${dateISO} · grid still 10.0s (6 picks, no zoom)+six modals 1.5s · ${dur}s${TRI.triples.length ? (REDACT ? ' · TRIPLE BOARD SIGNAL ring only (hm_triple=ring)' : ` · TRIPLE BOARD SIGNAL ${TRI.triples.map(t => t.digits).join('|')} burning (hm_triple)`) : ''}`);
 })();

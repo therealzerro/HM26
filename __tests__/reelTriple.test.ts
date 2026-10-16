@@ -5,11 +5,13 @@
 // may read as gold (hue ≤ 28°). Copy must pass tier 2 (allday's full body is
 // the free group's too) and tier 4.
 import { lintStrings } from '../lib/social/briefLint';
+import { lintCaption } from '../lib/social/brandLint';
 import { findTripleBoard } from '../lib/social/socialBrief';
 import { findTripleBoard as law } from '../lib/social/briefResolve';
 import {
   FIRE, FIRE_PATTERN, FIRE_PHASES, FIRE_STEP_FRAMES, TRIPLE_FIRE_COPY,
   firePhaseAt, hexHue, parseTripleTag, tripleForScope, tripleRankMap, tripleTagValue, tripleKey, NO_TRIPLE,
+  TRIPLE_CAPTION, TRIPLE_RING, tripleCaptionLine,
 } from '../scripts/reel-triple-core';
 
 const board = (orders: string[]) => orders.map(o => ({ comboSet: o.split('').sort().join(''), bestOrder: o }));
@@ -51,6 +53,32 @@ describe('copy', () => {
   });
   it('carries no likelihood word and no count-led hook', () => {
     for (const { text } of strings) expect(text).not.toMatch(/likel|probab|edge|hot|overdue|trend|win|lotto|lottery/i);
+  });
+  it('the tile badge carries no digit (it rides the redacted cuts, whose observer masks digits)', () => {
+    expect(TRIPLE_FIRE_COPY.tileBadge).not.toMatch(/\d/);
+  });
+});
+
+describe('caption line (operator 10/16)', () => {
+  it('Pro kinds + allday_free name the digits; redacted free session kinds tease; public gets nothing', () => {
+    expect(tripleCaptionLine('allday_pro', ['5-7-3'])).toBe(TRIPLE_CAPTION.withDigits(['5-7-3']));
+    expect(tripleCaptionLine('midday_pro', ['5-7-3'])).toContain('5-7-3');
+    expect(tripleCaptionLine('evening_pro', ['5-7-3', '1-2-3'])).toContain('5-7-3 and 1-2-3 are');
+    expect(tripleCaptionLine('allday_free', ['5-7-3'])).toContain('5-7-3');
+    expect(tripleCaptionLine('midday_free', [TRIPLE_RING])).toBe(TRIPLE_CAPTION.tease);
+    expect(tripleCaptionLine('evening_free', [TRIPLE_RING])).toBe(TRIPLE_CAPTION.tease);
+    expect(tripleCaptionLine('evening_free', ['5-7-3'])).toBe(TRIPLE_CAPTION.tease);   // never the digits on a free session cut
+    expect(tripleCaptionLine('allday_public', ['5-7-3'])).toBeNull();
+    expect(tripleCaptionLine('verify', ['5-7-3'])).toBeNull();
+    expect(tripleCaptionLine('allday_pro', [])).toBeNull();
+    expect(tripleCaptionLine('allday_pro', [TRIPLE_RING])).toBeNull();   // a ring tag on a full kind names nothing
+  });
+  it('passes the universal caption lint at the tier it ships on', () => {
+    const blocking = (t: string, tier: 2 | 4) => lintCaption(t, tier).violations.filter(v => v.blocking).map(v => v.rule);
+    expect(blocking(TRIPLE_CAPTION.withDigits(['5-7-3']), 4)).toEqual([]);
+    expect(blocking(TRIPLE_CAPTION.withDigits(['5-7-3']), 2)).toEqual([]);
+    expect(blocking(TRIPLE_CAPTION.tease, 2)).toEqual([]);
+    expect(TRIPLE_CAPTION.tease).not.toMatch(/\d/);
   });
 });
 
@@ -98,6 +126,8 @@ describe('container tag', () => {
     expect(tripleTagValue([{ digits: '5-7-3' }, { digits: '1-2-3' }])).toBe('5-7-3|1-2-3');
     expect(parseTripleTag('5-7-3|1-2-3')).toEqual(['5-7-3', '1-2-3']);
     expect(parseTripleTag('573')).toEqual([]);
+    expect(parseTripleTag('ring')).toEqual(['ring']);
+    expect(parseTripleTag('ring|5-7-3')).toEqual([]);
     expect(parseTripleTag('')).toEqual([]);
     expect(parseTripleTag('5-7-3|x')).toEqual([]);
   });

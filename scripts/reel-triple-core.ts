@@ -36,8 +36,30 @@ export const FIRE = {
 export const TRIPLE_FIRE_COPY = {
   title: 'TRIPLE BOARD SIGNAL',
   sub: 'ONE EXACT ORDER ON ALL THREE BOARDS',
-  tileBadge: 'ALL 3 BOARDS',
+  // No digit in the badge: it also rides the REDACTED free session cuts (ring-only
+  // tease, operator 10/16), where the redaction observer re-masks any digit it sees.
+  tileBadge: 'ALL THREE BOARDS',
 } as const;
+
+/** Caption line on a triple day (operator 10/16), appended by publish-reels
+ *  from the BODY'S OWN hm_triple tag — caption and pixels cannot disagree.
+ *  Factual (R-B): the order is posted on three boards; nothing about odds. */
+export const TRIPLE_CAPTION = {
+  withDigits: (digits: string[]) =>
+    `TRIPLE BOARD SIGNAL: ${digits.join(' and ')} ${digits.length > 1 ? 'are' : 'is'} posted in the same exact order on all three of today's boards.`,
+  tease: 'TRIPLE BOARD SIGNAL: one of today\'s six is posted in the same exact order on all three boards. Pro reads which one.',
+} as const;
+
+/** Which kinds get which line. Full-fidelity kinds (Pro + allday_free, which
+ *  sees the all-day board in full) name the digits; the redacted free session
+ *  kinds get the digit-free tease; public kinds get nothing (tier 1). */
+export function tripleCaptionLine(kind: string, tag: string[]): string | null {
+  if (!tag.length) return null;
+  const digits = tag.filter(t => /^\d-\d-\d$/.test(t));
+  if (/^(allday|midday|evening)_pro$/.test(kind) || kind === 'allday_free') return digits.length ? TRIPLE_CAPTION.withDigits(digits) : null;
+  if (kind === 'midday_free' || kind === 'evening_free') return TRIPLE_CAPTION.tease;
+  return null;
+}
 
 /** Flame phases captured per hold. Four reads as fire; two reads as a blink. */
 export const FIRE_PHASES = 4;
@@ -105,15 +127,20 @@ export interface TripleForScope {
 
 export const NO_TRIPLE: TripleForScope = { triples: [], ranks: [], byRank: new Map() };
 
+/** The REDACTED cut's tag value: the tile burns (ring-only tease) but the
+ *  container names no digits — a free-group file on a public bucket. */
+export const TRIPLE_RING = 'ring';
+
 /** Container-tag value: "5-7-3" (or "5-7-3|1-2-3" on a two-triple day). */
 export function tripleTagValue(triples: { digits: string }[]): string | null {
   if (!triples.length) return null;
   return triples.map(t => t.digits).filter(d => /^\d-\d-\d$/.test(d)).join('|') || null;
 }
 
-/** Parse the tag back. Strict — anything that is not n-n-n(|n-n-n) is absent. */
+/** Parse the tag back. Strict — n-n-n(|n-n-n), or the lone "ring"; anything else is absent. */
 export function parseTripleTag(v: string | null | undefined): string[] {
   if (!v) return [];
+  if (v === TRIPLE_RING) return [TRIPLE_RING];
   const parts = v.split('|');
   return parts.every(p => /^\d-\d-\d$/.test(p)) ? parts : [];
 }

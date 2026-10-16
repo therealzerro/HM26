@@ -264,7 +264,12 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 **Demonstrated 10/16 (scratch, not published — the 10/16 finals were already live):** allday / midday / evening bodies 19.000s each with `hm_triple=5-7-3`, flicker verified (phase frames differ), tile tongues clear of the tile above's ENERGY line, modal plate over chrome only; `--redact` midday body renders with no tag and no fire. First live burning reels = the next triple day's `reel:daily` (automatic).
 
-**Not built (not asked):** caption line on triple days; ring-only tease on the redacted free session cuts; brief colour flip. All offered in handoff v7.28 asks.
+**Addendum 2026-10-16 (later; operator: "yes ring only tease in redacted. yes caption line, use your best judgement on the pro brief card") — all three BUILT, handoff v7.29:**
+- **Ring-only tease** on `midday_free` / `evening_free`: the masked tile gets the ember ring + flames + a digit-free "ALL THREE BOARDS" plate (label changed on every cut — the old "ALL 3 BOARDS" carried a digit the redaction observer masks); no band, no modal plate, no digits; tag `hm_triple=ring`. Ring mode finds the tile by rank and refuses an unmasked capture (and the full mode refuses a masked one). `allday_public` unchanged.
+- **Caption line** (`scripts/publish-reels.ts` `tripleCaptionSuffix`, copy in `reel-triple-core.ts` `TRIPLE_CAPTION`): read from the body's own tag (pixels = caption). Pro kinds + `allday_free`: "TRIPLE BOARD SIGNAL: 5-7-3 is posted in the same exact order on all three of today's boards." Redacted free session kinds: digit-free tease ("…Pro reads which one."). Public: none. `lintCaption` at the kind's tier at publish + in the unit test; a block drops the line, never the upload.
+- **Pro brief → ember** (my call): `BriefFrameCard` + `SocialBriefCard` triple tile/label/band now `#FF6A1A`/`#FF8A4A`; a gold triple beside the reels' ember one would have given the Pro room two meanings for the colour reserved for a drawn straight. 10/16 re-rendered: STRAIGHT MATCH row gold, 5-7-3 tile ember on one card; lint PASS, fit 232/251.
+- **Evening re-run (operator order "rerun the evening reel for today then delete earlier version"):** `reel:evening` run twice on 10/16 — the morning finals superseded in place (storage paths kind/date/file, x-upsert; row re-upserted → status reset to `ready`, posted_at cleared by design — re-mark in Admin if re-posted). allday/midday finals untouched.
+- Tests: `reelTriple.test.ts` 16/16; jest 128/128; filtered tsc clean.
 
 ---
 

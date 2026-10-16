@@ -127,7 +127,13 @@ export const BriefFrameCard = forwardRef<View, BriefFrameCardProps>(function Bri
             </View>
           ) : (
             <>
-              <Text style={styles.section}>{model.todayLabel}</Text>
+              {/* TRIPLE BOARD SIGNAL (MKT-87): rides the TODAY section label — zero
+                  added height (the present frame has ~7 pt headroom); the gold
+                  tiles below carry the digits at the F6 floor size. */}
+              <Text style={styles.section}>
+                {model.todayLabel}
+                {model.triple ? <Text style={styles.tripleLine}>  ·  ⚡ {model.triple.line}</Text> : null}
+              </Text>
               {(model.sessions ?? []).map((s, i) => <Session key={i} s={s} />)}
 
               <Text style={[styles.section, { marginTop: 3 }]}>{model.yesterdayLabel}</Text>
@@ -170,9 +176,9 @@ function Session({ s }: { s: BriefSession }) {
       ) : (
         <View style={styles.signalRow}>
           {(s.signals ?? []).map((g, i) => (
-            <View key={i} style={styles.signal}>
-              <Text style={styles.digits}>{g.digits}</Text>
-              <Text style={styles.set}>{setBraces(g.set)}</Text>
+            <View key={i} style={[styles.signal, g.triple && styles.signalTriple]}>
+              <Text style={[styles.digits, g.triple && { color: C.goldSoft }]}>{g.digits}</Text>
+              <Text style={[styles.set, g.triple && { color: C.gold }]}>{setBraces(g.set)}</Text>
             </View>
           ))}
         </View>
@@ -204,6 +210,9 @@ const styles = StyleSheet.create({
   sessionState: { fontSize: 6.5, lineHeight: 9, letterSpacing: 0.8, fontFamily: MONO_B },
   signalRow: { flexDirection: 'row', gap: 3, marginTop: 1 },
   signal: { flex: 1, alignItems: 'center', backgroundColor: C.tile, borderWidth: 0.5, borderColor: C.tileEdge, borderRadius: 4, paddingVertical: 1 },
+  // TRIPLE BOARD SIGNAL (MKT-87): same box, gold — borderWidth unchanged so the row height is identical
+  signalTriple: { backgroundColor: 'rgba(251,191,36,0.16)', borderColor: C.gold },
+  tripleLine: { color: C.goldSoft, fontFamily: SANS_B, fontSize: 6.5, lineHeight: 8, letterSpacing: 1.6 },
   // 17 pt logical = 34 px at 1080 ≥ the 31.5 px floor (F6)
   digits: { color: C.text, fontSize: 17, lineHeight: 19, fontFamily: MONO_B, letterSpacing: 1.2 },
   set: { color: C.textFaint, fontSize: 7, lineHeight: 8, fontFamily: MONO },

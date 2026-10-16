@@ -19,6 +19,7 @@ const data: SocialBriefData = {
       yesterday: { resolved: true, live: false, slateHit: true, straight: true, hittingCombos: ['059'], matches: [{ set: '059', bestOrder: '059', straight: true }] },
       today: { resolved: true, live: true, slateHit: false, straight: false, hittingCombos: [], matches: [] } },
   ],
+  tripleBoard: [],
 };
 
 describe('lintBrief — live variants pass', () => {

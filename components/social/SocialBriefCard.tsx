@@ -197,6 +197,17 @@ function GroupBody({ m }: { m: BriefModel }) {
 
       <View style={[styles.panel, styles.todayPanel]}>
         <Text style={styles.panelLabel}>{m.todayLabel}</Text>
+        {m.triple && (
+          /* TRIPLE BOARD SIGNAL (MKT-87): one exact order on all three boards — Pro only */
+          <View style={styles.tripleBand}>
+            <Text style={styles.tripleIcon}>⚡</Text>
+            <Text style={styles.tripleText} numberOfLines={1}>
+              <Text style={styles.tripleTitle}>{m.triple.title}</Text>
+              <Text style={styles.tripleSub}>  ·  {m.triple.sub}</Text>
+            </Text>
+            <Text style={styles.tripleDigits}>{m.triple.digits.join('  ')}</Text>
+          </View>
+        )}
         {isPro
           ? (m.sessions ?? []).map((s, i) => <ProSession key={i} s={s} last={i === (m.sessions!.length - 1)} />)
           : <View style={styles.sessionGrid}>{(m.sessions ?? []).map((s, i) => <FreeSession key={i} s={s} />)}</View>}
@@ -257,9 +268,9 @@ function ProSession({ s, last }: { s: BriefSession; last: boolean }) {
       ) : (
         <View style={styles.signalRow}>
           {(s.signals ?? []).map((g, i) => (
-            <View key={i} style={styles.signal}>
-              <Text style={styles.signalDigits}>{g.digits}</Text>
-              <Text style={styles.signalSet}>{setBraces(g.set)}</Text>
+            <View key={i} style={[styles.signal, g.triple && styles.signalTriple]}>
+              <Text style={[styles.signalDigits, g.triple && { color: C.goldSoft }]}>{g.digits}</Text>
+              <Text style={[styles.signalSet, g.triple && { color: C.gold }]}>{setBraces(g.set)}</Text>
             </View>
           ))}
         </View>
@@ -376,6 +387,14 @@ const styles = StyleSheet.create({
   signal: { flex: 1, alignItems: 'center', backgroundColor: 'rgba(168,85,247,0.10)', borderRadius: 12, borderWidth: 1, borderColor: C.purple + '33', paddingVertical: 8 },
   signalDigits: { color: C.text, fontSize: 28, lineHeight: 34, fontWeight: '900', fontFamily: MONO, letterSpacing: 2.5 },
   signalSet: { color: C.textFaint, fontSize: 14, lineHeight: 18, fontFamily: MONO, marginTop: 2 },
+  // TRIPLE BOARD SIGNAL (MKT-87): the tile posted on all three boards, gold
+  signalTriple: { backgroundColor: 'rgba(251,191,36,0.14)', borderColor: C.gold, borderWidth: 2 },
+  tripleBand: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(251,191,36,0.10)', borderRadius: 12, borderWidth: 1, borderColor: C.gold + '88', paddingHorizontal: 14, paddingVertical: 4, marginBottom: 4 },
+  tripleIcon: { fontSize: 18, lineHeight: 22 },
+  tripleText: { flex: 1, lineHeight: 22 },
+  tripleTitle: { color: C.goldSoft, fontSize: 14, lineHeight: 22, fontWeight: '900', letterSpacing: 2 },
+  tripleSub: { color: C.textDim, fontSize: 12, lineHeight: 22, fontWeight: '700' },
+  tripleDigits: { color: C.goldSoft, fontSize: 22, lineHeight: 26, fontWeight: '900', fontFamily: MONO, letterSpacing: 2.5 },
 
   footer: { marginTop: 10, minHeight: 42, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 },
   footerLine: { flex: 1, color: C.textFaint, fontSize: 15, lineHeight: 21, fontWeight: '700' },

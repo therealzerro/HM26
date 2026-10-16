@@ -55,6 +55,11 @@ export const BRIEF_COPY = {
   publicTracked: 'SIGNALS TRACKED',
   publicBody: "Today's cross-jurisdictional analysis is published. Real-time signal processing across the full national dataset.",
   publicCta: 'Full intelligence drops in the free community 👇',
+  // TRIPLE BOARD SIGNAL (MKT-87, 2026-10-16) — Pro only. Factual: the same
+  // exact order sits on all three boards. No likelihood word (R-B).
+  tripleTitle: 'TRIPLE BOARD SIGNAL',
+  tripleSub: 'One exact order posted on all three boards today.',
+  tripleLine: 'TRIPLE BOARD SIGNAL · ONE EXACT ORDER ON ALL THREE BOARDS',
 } as const;
 
 export function briefTier(variant: BriefVariant, groupTier?: GroupTier): SocialTier {
@@ -99,6 +104,11 @@ export interface BriefModel {
   stats?: { value: string; label: string }[];
   yesterdayRows?: BriefRow[];
   sessions?: BriefSession[];
+  /** TRIPLE BOARD SIGNAL (MKT-87) — Pro only, present only on a day it fires.
+   *  `digits` are the exact orders ("5-7-3"); `line` is the one-line form the
+   *  framed glass draws on the TODAY section label (no digits — the gold
+   *  tiles carry them at the F6 floor size). */
+  triple?: { title: string; sub: string; line: string; digits: string[] };
   release?: { title: string; sub: string };
   footer: string;
   footerCta?: string;
@@ -161,6 +171,14 @@ export function buildBriefModel(data: SocialBriefData, variant: BriefVariant, gr
   ];
   model.yesterdayRows = data.scopes.map(s => rowFor(s, tier));
   model.sessions = data.scopes.map(s => sessionFor(s, tier, !isPro));
+  if (isPro && data.tripleBoard?.length) {
+    model.triple = {
+      title: BRIEF_COPY.tripleTitle,
+      sub: BRIEF_COPY.tripleSub,
+      line: BRIEF_COPY.tripleLine,
+      digits: data.tripleBoard.map(t => t.digits),
+    };
+  }
   if (!isPro) {
     model.release = { title: BRIEF_COPY.releaseTitle, sub: BRIEF_COPY.releaseSub };
     model.footerCta = BRIEF_COPY.freeCta;
@@ -192,6 +210,12 @@ export function briefModelStrings(m: BriefModel): { where: string; text: string 
   }
   for (const r of m.yesterdayRows ?? []) add('yesterday.row', [r.scopeLabel, ...r.chips.map(c => c.text), r.tag].join(' '));
   if (m.sessions) add('today', m.todayLabel);
+  if (m.triple) {
+    add('triple.title', m.triple.title);
+    add('triple.digits', m.triple.digits.join(' '));
+    add('triple.sub', m.triple.sub);
+    add('triple.line', m.triple.line);
+  }
   for (const s of m.sessions ?? []) {
     add('session.head', [s.scopeLabel.toUpperCase(), s.state].filter(Boolean).join(' '));
     if (s.resolved) add('session.resolved', [s.resolved.tag, ...s.resolved.chips.map(c => c.text)].join(' '));

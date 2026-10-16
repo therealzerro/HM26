@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-15 · v7.26
+Content Agent Handoff · 2026-10-16 · v7.27
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.11; v7.26 = 10/15 YOUR PRO GROWTH ORDER EXECUTED + THE STRAIGHT STATE STAMP, read its block first; v7.24 = 10/13 ENGINE + DATA DAY; v7.12 = one asset edit, v7.13 = the reel:daily gate, v7.14 = MKT-82 PRO BRIEF PHASE 0, v7.15 = MKT-82 PHASE 1 SHIPPED, v7.16 = MKT-82 PHASE 2 SHIPPED BY OPERATOR ORDER (not a reel; see its block) — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.11; v7.27 = 10/16 TRIPLE BOARD SIGNAL on the Pro brief (operator order, small, read its block); v7.26 = 10/15 YOUR PRO GROWTH ORDER EXECUTED + THE STRAIGHT STATE STAMP, read its block first; v7.24 = 10/13 ENGINE + DATA DAY; v7.12 = one asset edit, v7.13 = the reel:daily gate, v7.14 = MKT-82 PRO BRIEF PHASE 0, v7.15 = MKT-82 PHASE 1 SHIPPED, v7.16 = MKT-82 PHASE 2 SHIPPED BY OPERATOR ORDER (not a reel; see its block) — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -645,6 +645,46 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.27 (2026-10-16 — TRIPLE BOARD SIGNAL on the Pro brief,
+operator order: "create a new signal = triple board signal. today the pick 573
+is in straight order across all 3 boards. also highlight this in the pro
+social brief image")
+================================================================================
+  ID: MKT-87 (next free = 88). Engine untouched. Nothing auto-posts. No reel
+  changed. No caption changed.
+
+  THE SIGNAL: an exact order that is IDENTICAL on all three of the day's
+  boards (midday, evening, all-day). The law is the POSTED order, not the
+  box set — 10/16 had {3,7,9} on two boards as 9-3-7 and 7-3-9 (not a
+  triple) and 5-7-3 on all three as 5-7-3 (the first triple). Any board
+  missing → nothing. It is the operator's standing cross-reference habit
+  (a pick showing on several boards) made visible — NOT a likelihood claim.
+  The copy is factual and tier-4 lint PASS:
+    title  TRIPLE BOARD SIGNAL
+    sub    One exact order posted on all three boards today.
+    line   TRIPLE BOARD SIGNAL · ONE EXACT ORDER ON ALL THREE BOARDS
+  Pro only (tier 4). Free and public briefs do not carry it (free's today
+  panel is the lock; public has no digits).
+
+  WHERE IT SHOWS:
+  · Framed Pro brief (the one the operator posts, npm run brief:pro / Admin →
+    Reels → Social brief → Pro framed): the TODAY label on the glass reads
+    "TODAY · ⚡ TRIPLE BOARD SIGNAL · ONE EXACT ORDER ON ALL THREE BOARDS" in
+    gold, and the triple's tile is gold on every row. ZERO added height
+    (fit 232/251 pt unchanged) — the present frame has ~7 pt headroom, so the
+    digits are not repeated in the small label; the 17 pt tiles carry them
+    (F6 floor respected).
+  · Classic 960² Pro card: a one-row gold band under TODAY (⚡ title · sub ·
+    5-7-3) + gold tiles. Fit 753/764.
+  10/16 image rendered: assets/marketing/brief_today/hm-brief-pro_framed-
+  2026-10-16.png · lint PASS · 36 strings · fit 232/251.
+
+  ASKS (yours, none blocking): if you want a caption line for a triple day
+  (e.g. in the Pro Room section of the sheet), say the words — nothing was
+  written. If you want it on the free brief as a locked tease, say so; it is
+  Pro-only by my reading of "pro social brief image".
+
 ================================================================================
 WHAT CHANGED IN v7.26 (2026-10-15 — YOUR "PRO GROWTH" ORDER EXECUTED (§2 built,
 E1–E3 built and demonstrated, E4–E6 scoped) + THE STRAIGHT STATE STAMP, operator

@@ -2,7 +2,8 @@
 HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
-changed. Every command has a description. (Last updated 2026-10-15 — MKT-86:
+changed. Every command has a description. (Last updated 2026-10-16 — MKT-87:
+TRIPLE BOARD SIGNAL note under MINIMUM PRO DAY; previously 2026-10-15 — MKT-86:
 NEW `npm run brief:pro` (MINIMUM PRO DAY, below), the captions sheet's 💎 PRO
 ROOM section, and the automatic STRAIGHT STATE STAMP on verify/verify_midday;
 previously 2026-10-13 — the reel:daily
@@ -18,6 +19,12 @@ MINIMUM PRO DAY (MKT-86 E1, 2026-10-15) — the fastest path to a Pro post:
   required, same rig as render-social-brief. Post it to the Pro group with today's
   Pro question from the captions sheet. Use on any day the full reel:daily cannot run.
   In the app: Admin → 🎬 Reels → 📰 Social brief → 💎 Pro (framed) → Save/Share.
+  TRIPLE BOARD SIGNAL (MKT-87, 2026-10-16) — automatic, no new command: on a
+  day one exact order sits on ALL THREE boards (posted order identical, not
+  just the box set), the Pro brief's TODAY label turns gold with
+  "⚡ TRIPLE BOARD SIGNAL · ONE EXACT ORDER ON ALL THREE BOARDS" and that
+  tile is gold on every row (classic 960² Pro card: a gold band + 5-7-3).
+  Pro only; free/public briefs unchanged. First one: 5-7-3 on 10/16.
   Admin shows a red "Pro not posted today" banner after 9:30 AM ET until something
   Pro is marked posted (reminder only — nothing is scheduled).
 

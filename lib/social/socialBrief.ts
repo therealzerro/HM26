@@ -35,6 +35,9 @@ export const SCOPES: Scope[] = ['midday', 'evening', 'allday'];
 export interface SocialBriefSignal {
   digits: string;   // exact order for display, "4-8-5"
   set: string;      // sorted set digits, "458"
+  /** TRIPLE BOARD SIGNAL (MKT-87, 2026-10-16): this exact order is posted on
+   *  ALL THREE boards today. Pro surfaces highlight the tile. */
+  triple?: boolean;
 }
 
 export interface SocialBriefScope {
@@ -52,6 +55,9 @@ export interface SocialBriefData {
   verifiedCount: number;
   jurisdictionCount: number;
   scopes: SocialBriefScope[];
+  /** TRIPLE BOARD SIGNAL (MKT-87): every exact order that sits on all three of
+   *  today's boards, in allday slate order. Usually empty. Pro-only on the card. */
+  tripleBoard: SocialBriefSignal[];
 }
 
 function md(iso: string): string {
@@ -88,6 +94,26 @@ export async function fetchDay(date: string): Promise<DayBoards> {
   return { boards, draws };
 }
 
+/** TRIPLE BOARD SIGNAL (MKT-87, 2026-10-16) — the exact orders posted on ALL
+ *  THREE boards for the day. Law: the posted order (`bestOrder`, the digits
+ *  the slate shows) must be IDENTICAL on midday, evening and allday — a shared
+ *  box set with different orders does not qualify (10/16: {3,7,9} sat on two
+ *  boards as 9-3-7 and 7-3-9 — not a triple; 5-7-3 sat on all three as 5-7-3
+ *  — the first triple). Any board missing → empty. Pure; unit-tested. */
+export function findTripleBoard(boards: DayBoards['boards']): SocialBriefSignal[] {
+  if (SCOPES.some(sc => !boards[sc]?.length)) return [];
+  const orders = (sc: Scope) => new Set(boards[sc].map(p => fmtDigits(p.bestOrder)).filter(d => d.length === 5));
+  const mid = orders('midday'), eve = orders('evening');
+  const out: SocialBriefSignal[] = [];
+  for (const p of boards.allday) {
+    const digits = fmtDigits(p.bestOrder);
+    if (digits.length !== 5 || !mid.has(digits) || !eve.has(digits)) continue;
+    if (out.some(o => o.digits === digits)) continue;
+    out.push({ digits, set: setDigits(p.comboSet), triple: true });
+  }
+  return out;
+}
+
 export async function buildSocialBrief(today = getTodayET()): Promise<SocialBriefData> {
   const yesterday = getYesterdayET();
   const [rc, todayDay, yDay] = await Promise.all([
@@ -96,9 +122,17 @@ export async function buildSocialBrief(today = getTodayET()): Promise<SocialBrie
     fetchDay(yesterday),
   ]);
 
+  const tripleBoard = findTripleBoard(todayDay.boards);
+  const tripleDigits = new Set(tripleBoard.map(t => t.digits));
+
   const scopes: SocialBriefScope[] = SCOPES.map((sc) => ({
     scope: sc,
-    todaySignals: todayDay.boards[sc].map(p => ({ digits: fmtDigits(p.bestOrder), set: setDigits(p.comboSet) })),
+    todaySignals: todayDay.boards[sc].map(p => {
+      const digits = fmtDigits(p.bestOrder);
+      const sig: SocialBriefSignal = { digits, set: setDigits(p.comboSet) };
+      if (tripleDigits.has(digits)) sig.triple = true;
+      return sig;
+    }),
     today: resolveDraws(todayDay.boards[sc], todayDay.draws, sc),
     yesterday: resolveDraws(yDay.boards[sc], yDay.draws, sc),
   }));
@@ -110,5 +144,6 @@ export async function buildSocialBrief(today = getTodayET()): Promise<SocialBrie
     verifiedCount: rc.verifiedCount,
     jurisdictionCount: rc.jurisdictionCount,
     scopes,
+    tripleBoard,
   };
 }

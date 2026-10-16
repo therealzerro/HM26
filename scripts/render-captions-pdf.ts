@@ -280,6 +280,36 @@ const etNow = () =>
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+// MKT-89 (2026-10-16, operator: "up the captions pdf with extreme cta for
+// viewers to join the pro group") — THE PRO PUSH under the same-day verify
+// card. The reel's own caption already closes on the hard sell (reel-captions
+// samedayProCta); this block hands the operator the two lines they post BY
+// HAND around it: the FIRST COMMENT (pinned under the reel the second it is
+// up) and the one-line REPLY for every comment that follows. Both are tier-2
+// (free group), linted at build like every other card, and carry the Pro-group
+// link from app_config.social_pro_url. On a STRAIGHT day (the row's caption
+// opens on the MKT-69 lead line) the card goes red and the copy names the
+// exact order's board; the sell is still WHEN, never WHAT. No emoji, no
+// urgency-hype phrase, no likelihood word (R-B), no count-led line (R-A).
+function proPushBlock(r: Row, cfg: BriefCfg): string {
+  const straight = /^STRAIGHT MATCH/.test(r.caption);
+  const link = cfg.proUrl || '{link_pro}';
+  const board = /on this morning's All-Day board/.test(r.caption) ? 'allday'
+    : /on both of this morning's boards/.test(r.caption) ? 'both' : 'midday';
+  const first = straight
+    ? (board === 'allday'
+      ? `That exact order was on this morning's All-Day board, in full, for everyone. The Midday and Evening boards went up covered. Pro read them uncovered at 8:30, hours before the draw.\nTomorrow's boards go up at 8:30 AM. Pro reads all three before the draw: ${link}\n$2.49/mo. Same six for everyone. Pro just stops waiting.`
+      : `That exact order was on the board at 8:30 this morning, covered in here. Pro read it uncovered. Hours before it drew.\nTomorrow's boards go up at 8:30 AM. Pro reads all three before the draw: ${link}\n$2.49/mo. Same six for everyone. Pro just stops waiting.`)
+    : `Both of this morning's boards, graded the same afternoon, in the open. Pro read the covered one uncovered at 8:30, before the draw.\nTomorrow's boards go up at 8:30 AM. Pro reads all three before the draw: ${link}\n$2.49/mo. Same six for everyone. Pro just stops waiting.`;
+  const reply = `Pro reads tomorrow's boards uncovered at 8:30 AM, before the draw: ${link} — $2.49/mo.`;
+  return `<div class="pushhead">${straight ? '⚡ STRAIGHT DAY — ' : ''}💎 PRO PUSH · the reel's caption above already closes on the Pro link; these two lines are posted BY HAND</div>
+      ${lintTag(first, 2, 'push first comment')}
+      <div class="tag">FIRST COMMENT — pin it under the reel the second it is up (free group)</div><pre class="big">${esc(first)}</pre>
+      ${lintTag(reply, 2, 'push reply line')}
+      <div class="tag">REPLY — paste under EVERY comment the reel gets today</div><pre class="big">${esc(reply)}</pre>
+      <div class="why">Why: the same-day verify is the free room's highest-conversion slot (MKT-68) and a STRAIGHT day is its best case. The sell is WHEN, never WHAT: Pro saw the same six uncovered at 8:30, before the draw. Never write "Pro signals vs free signals".</div>`;
+}
+
 function buildHtml(rows: Row[], dayISO: string, briefCfg: BriefCfg = {}, onboarding: OnboardingCounts | null = null): string {
   // ── Page 1: the schedule card. One page, large type, times ET. ──────────
   const sessions = POSTING_SESSIONS.map((s) => {
@@ -320,9 +350,10 @@ function buildHtml(rows: Row[], dayISO: string, briefCfg: BriefCfg = {}, onboard
       ? `<div class="sesshead">🕐 ${esc(sessKey)}</div>`
       : '';
     lastSession = sessKey;
-    return `${header}<section>
+    const push = r.kind === 'verify_midday' ? proPushBlock(r, briefCfg) : '';
+    return `${header}<section${push ? ' class="push"' : ''}>
       <h2>${esc(label)} <span class="meta">· board date ${esc(r.reel_date)} · ${esc(r.status)}</span></h2>
-      ${freeTag}<pre>${esc(r.caption)}</pre>${pro}
+      ${freeTag}<pre>${esc(r.caption)}</pre>${pro}${push}
     </section>`;
   }).join('\n');
   // ── MKT-73: anchor thread (daily) + receipts thread (Sundays). Both sit at
@@ -399,6 +430,11 @@ function buildHtml(rows: Row[], dayISO: string, briefCfg: BriefCfg = {}, onboard
     pre.big { font-size: 15px; font-weight: 700; line-height: 1.4; margin: 4px 0 8px; }
     pre.prompt { font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 8.5px; line-height: 1.4; color: #333; background: #fff; border: 1px solid #e5e5e5; border-radius: 6px; padding: 8px 10px; }
     .why { font-size: 9.5px; color: #666; margin-top: 8px; line-height: 1.4; }
+    /* MKT-89: the same-day verify card carries the PRO PUSH — red frame so it
+       cannot be missed on a phone; the first-comment copy is pre.big like the
+       anchor question (typed/pasted by hand). */
+    section.push { border: 2px solid #b91c1c; background: #fff7f7; }
+    .pushhead { font-size: 12.5px; font-weight: 800; color: #b91c1c; margin: 12px 0 2px; letter-spacing: 0.3px; }
   </style></head><body>
     ${schedulePage}
     <h1>HITMASTER ZK6 — DAY CAPTIONS</h1>

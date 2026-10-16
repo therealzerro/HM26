@@ -306,8 +306,38 @@ const linkFirst = <T,>(fns: ((c: T) => string)[], lead: string = PUBLIC_LINK_LEA
 // boards (Midday covered, All-Day in full), and the Pro difference is still
 // WHEN, never WHAT.
 export const MIDDAY_VERIFY_CTA = 'Pro reads the session boards uncovered at 8:30 AM, every day, before the draw. $2.49/mo — HitMaster ZK Pro.';
-const withProCta = <T,>(fns: ((c: T) => string)[]): ((c: T) => string)[] =>
-  fns.map(f => (c: T) => `${f(c)}\n\n${MIDDAY_VERIFY_CTA}`);
+
+/**
+ * MKT-89 (2026-10-16, operator: "up the captions pdf with extreme cta for
+ * viewers to join the pro group") — THE HARD SELL on the same-day verify.
+ * Replaces the MKT-68 one-liner as the tail of every verify_midday caption:
+ * names the Pro-group link (`{pro_url}`, substituted by publish-reels from
+ * app_config.social_pro_url — the MKT-77 token; on a fetch failure the link
+ * line is dropped WHOLE, never a literal token) and ESCALATES on a straight
+ * day, naming the board the exact order sat on (structural gate on
+ * `sd.straights` + `sd.straightBoard`, the same gate as the lead line — a
+ * false claim cannot render). The truth it sells is still WHEN, never WHAT:
+ * Pro saw the same six uncovered at 8:30, hours before the draw; an All-Day
+ * straight went up in full for everyone, so that branch sells the covered
+ * session boards instead of pretending free never saw it. Discipline: no
+ * urgency-hype phrases (`no-urgency-hype` is universal and blocking), no
+ * likelihood words (R-B), NO EMOJI (the lead + body already spend the cap of
+ * three), no count-led line (R-A). Tier 2 — the free group, where the price
+ * and the Pro word are sanctioned (MKT-26).
+ */
+export const PRO_URL_TOKEN = '{pro_url}';
+export function samedayProCta(sd: SamedayCtx | null): string {
+  const close = `Join the Pro room: ${PRO_URL_TOKEN}\n$2.49/mo — HitMaster ZK Pro. Same six for everyone. Pro just stops waiting.`;
+  if (!sd || !sd.straights) {
+    return `Pro reads all three boards uncovered at 8:30 AM, every day, before the draw. Free waits for the cover to come off.\n${close}`;
+  }
+  const open = sd.straightBoard === 'allday'
+    ? `That exact order went up in full this morning, for everyone. The Midday and Evening boards did not: they went up covered, and Pro read them uncovered at 8:30, hours before the draw.`
+    : `That exact order went up COVERED in here this morning. Pro read it uncovered at 8:30, hours before it drew.`;
+  return `${open}\nTomorrow's boards go up at 8:30 AM. Pro reads every one of them before the draw. Free waits for the cover to come off.\n${close}`;
+}
+const withProCta = (fns: ((c: TemplateCtx) => string)[]): ((c: TemplateCtx) => string)[] =>
+  fns.map(f => (c: TemplateCtx) => `${f(c)}\n\n${samedayProCta(c.sd)}`);
 
 /**
  * MKT-69 (2026-09-02, operator: "the straight hit is always what's
@@ -698,7 +728,7 @@ const CAPTION_REGISTRY = {
     // same voice as the delivered 8/19 set; copy PROVISIONAL pending the
     // content agent's pass (handoff v5.6 §G.10(c)). "Pro vs free signals"
     // stays FALSE and unwritten: the difference is WHEN, never WHAT.
-    fallback: () => `Same-day receipts 🧾 This morning's boards — Midday covered, All-Day in full — graded against today's midday results before the evening session. The reel is the receipt.` + `\n\n${MIDDAY_VERIFY_CTA}`,
+    fallback: () => `Same-day receipts 🧾 This morning's boards — Midday covered, All-Day in full — graded against today's midday results before the evening session. The reel is the receipt.` + `\n\n${samedayProCta(null)}`,
     templates: withProCta(straightLed([
       c => `Posted this morning. Graded this afternoon. 🧾⚡\n${c.sd!.elapsed} between the boards going up and the midday results coming in — and we checked them in the open, same day.\nThe Midday board goes up covered in here; the All-Day board goes up in full. Those covered digits come off the next morning for everybody. ZK Pro reads them before the draw, all three sessions. $2.49/mo.`,
       c => `Same-day receipts 🧾\nYou saw this morning's boards go up — All-Day in full, Midday covered. Here they are, graded against the midday draws ${c.sd!.elapsed} later — before the evening draw, not tomorrow.\nThat gap is the whole thing. ZK Pro closes it on every session. $2.49/mo.`,

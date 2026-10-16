@@ -2,7 +2,11 @@
 HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
-changed. Every command has a description. (Last updated 2026-10-16 — MKT-88:
+changed. Every command has a description. (Last updated 2026-10-16 — MKT-89:
+the same-day verify (reel:verify-midday) now closes every caption on a HARD
+Pro-group sell with the Pro link, escalated on a STRAIGHT day, and the captions
+sheet's ⏱️ Same-Day Verify card carries a red 💎 PRO PUSH block (first comment +
+reply line); see the note under reel:verify-midday. Earlier the same day MKT-88:
 TRIPLE BOARD SIGNAL now BURNS on the allday/midday/evening reels (automatic, see
 the note under reel:allday), RING-ONLY tease on the redacted free session cuts,
 a caption line on triple days, and the Pro brief's triple is ember (not gold); earlier the same day MKT-87: TRIPLE BOARD SIGNAL
@@ -460,6 +464,18 @@ npm run reel:verify-midday            (MKT-62, 2026-08-19 — MANUAL ONLY)
     Output: assets/marketing/verify_reels/verify_midday_<stamp>.mp4
     + 6-frame contact sheet (open / covered Midday / All-Day board /
     timestamp band / hold / close; +1 on strike days).
+    PRO PUSH (MKT-89, 2026-10-16) — automatic, no new command. Every
+    verify_midday caption now ENDS on the hard sell: the Pro-group link
+    (app_config.social_pro_url), "$2.49/mo — HitMaster ZK Pro. Same six
+    for everyone. Pro just stops waiting." On a STRAIGHT day the sell
+    escalates and names the board the exact order sat on (covered Midday
+    → "Pro read it uncovered at 8:30, hours before it drew"; All-Day →
+    it went up in full for everyone, so the line sells the covered
+    session boards instead). The captions sheet's ⏱️ Same-Day Verify
+    card gets a RED 💎 PRO PUSH block: the FIRST COMMENT to pin under
+    the reel + the one-line REPLY for every comment. Both tier-2 linted
+    at build. The sell is WHEN, never WHAT — never "Pro signals vs free
+    signals". Rebuild the sheet by hand: npm run reel:captions-pdf
     ⚠ FIRST PUBLISH needs the DB CHECK widened (operator step —
     scripts/migrations/2026_08_19_mkt62_verify_midday_kind.sql in
     the Supabase SQL editor); publish names that file if the

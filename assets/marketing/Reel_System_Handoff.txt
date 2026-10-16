@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-16 · v7.29
+Content Agent Handoff · 2026-10-16 · v7.30
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -645,6 +645,57 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.30 (2026-10-16, afternoon — operator: "there is a straight
+match on today's midday board, prepare to run the midday verify in 1 hour, be
+sure the highlight stamp is updated, also up the captions pdf with extreme cta
+for viewers to join the pro group")
+================================================================================
+  ID: MKT-89 (next free = 90). Engine untouched. Nothing auto-posts.
+
+  (a) THE HARD SELL on verify_midday (scripts/reel-captions.ts
+      samedayProCta): every same-day verify caption now ENDS on the Pro-group
+      link + "$2.49/mo — HitMaster ZK Pro. Same six for everyone. Pro just
+      stops waiting." On a STRAIGHT day it escalates and names the board the
+      exact order sat on — covered Midday: "That exact order went up COVERED
+      in here this morning. Pro read it uncovered at 8:30, hours before it
+      drew."; All-Day: it went up in full for everyone, so the line sells the
+      covered session boards instead (honest). Structural gate = the same
+      sd.straights/straightBoard join as the lead line, so a false straight
+      claim cannot render. No urgency-hype phrase (universal lint block), no
+      R-B likelihood word, no emoji (lead + body already spend the cap of 3),
+      no count-led line (R-A). Tier 2. Rendered straight-day caption ≈720
+      chars (length lint is advisory). The MKT-68 one-liner is retired from
+      the family (string kept exported).
+  (b) THE CAPTIONS SHEET — ⏱️ Same-Day Verify card now carries a RED
+      💎 PRO PUSH block (render-captions-pdf proPushBlock): the FIRST COMMENT
+      to pin under the reel the second it is up, and the one-line REPLY for
+      every comment the reel gets. Header reads "⚡ STRAIGHT DAY — 💎 PRO
+      PUSH" when the row's caption opens on the MKT-69 lead. Both lines
+      tier-2 linted at build (lint PASS logged like the Pro-room cards),
+      link from app_config.social_pro_url. Proof render: the 10/12 sheet
+      (captions/20261012.pdf) was re-uploaded with the block.
+  (c) THE STAMP — nothing changed, by design: the MKT-86 STRAIGHT STATE
+      STAMP is automatic (renderer tags hm_straight_state from the first
+      STRAIGHT hold → assembler renders "STRAIGHT MATCH · <STATE>" and slams
+      it bolt+0.35s). The build session re-read both ends of the wiring; the
+      state is confirmed from the body tag after the render, before publish.
+  (d) THE RUN — the 10/16 midday ledger was NOT imported at 3:28 PM ET
+      (0 rows), so the chain cannot start (renderer precondition 1). :8081
+      brought up detached. A waiter polls histories (≥29 midday rows) +
+      adaptive_tracking (all 12 Midday/All-Day rows graded after the last
+      import) + 0 evening rows, then runs npm run reel:verify-midday itself
+      (hard stop 6:30 PM ET). Run notes land in the audit + this file once
+      the cut exists.
+
+  TESTS: __tests__/samedayProCta.test.ts (3); jest 131/131; tsc clean on
+  the touched files.
+
+  ASKS (none blocking): the eight verify_midday bodies still carry the
+  PROVISIONAL copy from §G.10(c); the new tail is build-session copy at the
+  operator's "extreme CTA" order — a content-agent pass on the tail is
+  welcome, the gate (no hype phrase, no emoji, WHEN-never-WHAT) stays.
+
 ================================================================================
 WHAT CHANGED IN v7.29 (2026-10-16, later the same day — the v7.28 ASKS ANSWERED,
 operator: "yes ring only tease in redacted. yes caption line, use your best

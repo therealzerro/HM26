@@ -236,7 +236,8 @@ async function buildCaptions(kinds: Kind[]): Promise<Record<string, CaptionSet>>
   let freeUrl = '';
   let proUrl = '';
   const needFree = kinds.some((k) => k.endsWith('_public'));
-  const needPro = kinds.some((k) => k === 'midday_free' || k === 'evening_free');
+  // MKT-89 (2026-10-16): verify_midday's hard-sell CTA carries the same token.
+  const needPro = kinds.some((k) => k === 'midday_free' || k === 'evening_free' || k === 'verify_midday');
   if (needFree || needPro) {
     try {
       const rows = await sbGet<{ key: string; value: string }[]>(

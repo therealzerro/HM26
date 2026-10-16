@@ -25,7 +25,7 @@ import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { fetchReportCardData } from './reportCard';
 import {
-  parseBoard, resolveDraws, fmtDigits, setDigits,
+  parseBoard, resolveDraws, fmtDigits, setDigits, findTripleBoard as findTripleBoardLaw,
   type DrawRow, type Resolution, type ResolveScope,
 } from './briefResolve';
 
@@ -94,25 +94,10 @@ export async function fetchDay(date: string): Promise<DayBoards> {
   return { boards, draws };
 }
 
-/** TRIPLE BOARD SIGNAL (MKT-87, 2026-10-16) — the exact orders posted on ALL
- *  THREE boards for the day. Law: the posted order (`bestOrder`, the digits
- *  the slate shows) must be IDENTICAL on midday, evening and allday — a shared
- *  box set with different orders does not qualify (10/16: {3,7,9} sat on two
- *  boards as 9-3-7 and 7-3-9 — not a triple; 5-7-3 sat on all three as 5-7-3
- *  — the first triple). Any board missing → empty. Pure; unit-tested. */
-export function findTripleBoard(boards: DayBoards['boards']): SocialBriefSignal[] {
-  if (SCOPES.some(sc => !boards[sc]?.length)) return [];
-  const orders = (sc: Scope) => new Set(boards[sc].map(p => fmtDigits(p.bestOrder)).filter(d => d.length === 5));
-  const mid = orders('midday'), eve = orders('evening');
-  const out: SocialBriefSignal[] = [];
-  for (const p of boards.allday) {
-    const digits = fmtDigits(p.bestOrder);
-    if (digits.length !== 5 || !mid.has(digits) || !eve.has(digits)) continue;
-    if (out.some(o => o.digits === digits)) continue;
-    out.push({ digits, set: setDigits(p.comboSet), triple: true });
-  }
-  return out;
-}
+/** TRIPLE BOARD SIGNAL (MKT-87) — the law lives in briefResolve.ts (pure, tsx-
+ *  importable since MKT-88 so the reel renderer shares it); re-exported here so
+ *  every existing caller and test keeps its import. */
+export const findTripleBoard = findTripleBoardLaw;
 
 export async function buildSocialBrief(today = getTodayET()): Promise<SocialBriefData> {
   const yesterday = getYesterdayET();

@@ -2,8 +2,10 @@
 HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
-changed. Every command has a description. (Last updated 2026-10-16 — MKT-87:
-TRIPLE BOARD SIGNAL note under MINIMUM PRO DAY; previously 2026-10-15 — MKT-86:
+changed. Every command has a description. (Last updated 2026-10-16 — MKT-88:
+TRIPLE BOARD SIGNAL now BURNS on the allday/midday/evening reels (automatic, see
+the note under reel:allday); earlier the same day MKT-87: TRIPLE BOARD SIGNAL
+note under MINIMUM PRO DAY; previously 2026-10-15 — MKT-86:
 NEW `npm run brief:pro` (MINIMUM PRO DAY, below), the captions sheet's 💎 PRO
 ROOM section, and the automatic STRAIGHT STATE STAMP on verify/verify_midday;
 previously 2026-10-13 — the reel:daily
@@ -231,6 +233,26 @@ STEP 3 — TERMINAL B: build + publish the day's reels
                                 reel, so it takes about twice as
                                 long as reel:allday)
     npm run reel:evening     (optional — same, Evening board)
+
+  TRIPLE BOARD SIGNAL ON THE REELS (MKT-88, 2026-10-16) — automatic, no new
+  command, no flag. On a day one exact order sits on ALL THREE boards (the
+  MKT-87 law: posted order identical, not just the box set), every FULL-
+  FIDELITY slate body renders ON FIRE: the triple's grid tile gets an ember
+  ring + flames + an "ALL 3 BOARDS" plate, a "TRIPLE BOARD SIGNAL · 5-7-3 ·
+  ONE EXACT ORDER ON ALL THREE BOARDS" band sits in the black space between
+  the date chip and the notation strip, and the triple's own modal carries
+  an ember plate over the Generated row + tab strip. The still FLICKERS (four
+  flame phases cycled across the hold). Ember red → orange → white-hot ONLY —
+  gold / yellow is reserved for a STRAIGHT MATCH that was DRAWN (operator
+  rule 10/16) and is never used here. Which reels: allday_pro + allday_free
+  (they share the full body), midday_pro, evening_pro. NEVER the redacted
+  free session cuts or allday_public (the band shows the digits). The body
+  carries hm_triple=5-7-3 in its container; the assembler logs
+  "NOTE(pro): TRIPLE BOARD SIGNAL (MKT-88) — body burns 5-7-3". The render
+  ABORTS if the DB's triple rank and the captured tile disagree. First day:
+  10/16 (5-7-3 = allday #6, midday #6, evening #5); the 10/16 finals were
+  already published before this shipped, so the first LIVE burning reels are
+  the next triple day.
 
     Run in that order (receipts first, then today's drops).
     SUCCESS = each command ends with "✔ registered — visible in

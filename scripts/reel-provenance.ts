@@ -79,6 +79,15 @@ export const STRIKE_TAG = 'hm_strike_at';
  * featured / pre-MKT-86 body = no stamp.
  */
 export const STRAIGHT_STATE_TAG = 'hm_straight_state';
+/**
+ * MKT-88 — container tag carrying the day's TRIPLE BOARD SIGNAL digits
+ * ("5-7-3", or "5-7-3|1-2-3" on a two-triple day) on a full-fidelity slate
+ * body whose grid still and triple modal BURN (scripts/reel-triple.ts).
+ * Written beside the date tag by render-allday-body.ts, never on a redacted
+ * or public capture. The assembler only NOTEs it (no overlay rides on it) —
+ * the fire is in the pixels; the tag is how a body says it carries them.
+ */
+export const TRIPLE_TAG = 'hm_triple';
 /** MKT-75: the verify body's own landed count for the ALL-DAY board it shows,
  *  as "N of M" (snapshot flags cross-checked against adaptive_tracking in
  *  render-verify-slate). The cold-open assembler asserts it EQUALS the hook
@@ -173,13 +182,14 @@ export function readRecordStats(file: string): RecordStatsTags | null {
  * here because movflags is one combined option; splitting it across two flags
  * means the last one wins and the other is lost.
  */
-export function provenanceArgs(dateISO: string, redacted = false, isPublic = false, strikeAt: number | null = null, landed: { landed: number; total: number } | null = null, straightState: string | null = null): string {
+export function provenanceArgs(dateISO: string, redacted = false, isPublic = false, strikeAt: number | null = null, landed: { landed: number; total: number } | null = null, straightState: string | null = null, triple: string | null = null): string {
   return `-movflags +faststart+use_metadata_tags -metadata ${DATE_TAG}="${dateISO}"` +
     ` -metadata ${REDACT_TAG}="${redacted ? '1' : '0'}"` +
     (isPublic ? ` -metadata ${PUBLIC_TAG}="1"` : '') +
     (strikeAt != null ? ` -metadata ${STRIKE_TAG}="${strikeAt.toFixed(2)}"` : '') +
     // MKT-86: only with a strike (same condition), only a code-shaped value.
     (strikeAt != null && straightState && /^[A-Za-z.,]{2,12}$/.test(straightState) ? ` -metadata ${STRAIGHT_STATE_TAG}="${straightState}"` : '') +
+    (triple && !redacted && !isPublic && /^\d-\d-\d(\|\d-\d-\d)*$/.test(triple) ? ` -metadata ${TRIPLE_TAG}="${triple}"` : '') +
     (landed ? ` -metadata ${LANDED_TAG}="${landed.landed} of ${landed.total}"` : '');
 }
 
@@ -226,6 +236,20 @@ export function readStrikeAt(file: string): number | null {
     return Number.isFinite(v) && v > 0 && v < 30 ? v : null;
   } catch {
     return null;
+  }
+}
+
+/** MKT-88: the triple digits recorded in `file` ("5-7-3"…), or [] (no triple
+ *  that day / redacted or public body / pre-MKT-88 body / unreadable). */
+export function readTriple(file: string): string[] {
+  try {
+    const out = execSync(
+      `ffprobe -v error -show_entries format_tags=${TRIPLE_TAG} -of default=nw=1:nk=1 "${file}"`,
+    ).toString().trim();
+    const parts = out ? out.split('|') : [];
+    return parts.length && parts.every(p => /^\d-\d-\d$/.test(p)) ? parts : [];
+  } catch {
+    return [];
   }
 }
 

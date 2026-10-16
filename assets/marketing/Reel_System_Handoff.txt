@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-16 · v7.27
+Content Agent Handoff · 2026-10-16 · v7.28
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -18,7 +18,7 @@ Companion docs:
   - REEL_COMMANDS.txt (repo root — operator command reference)
 
 ================================================================================
-STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.11; v7.27 = 10/16 TRIPLE BOARD SIGNAL on the Pro brief (operator order, small, read its block); v7.26 = 10/15 YOUR PRO GROWTH ORDER EXECUTED + THE STRAIGHT STATE STAMP, read its block first; v7.24 = 10/13 ENGINE + DATA DAY; v7.12 = one asset edit, v7.13 = the reel:daily gate, v7.14 = MKT-82 PRO BRIEF PHASE 0, v7.15 = MKT-82 PHASE 1 SHIPPED, v7.16 = MKT-82 PHASE 2 SHIPPED BY OPERATOR ORDER (not a reel; see its block) — READ THIS FIRST)
+STATE OF THE SYSTEM — 2026-09-21 (CONSOLIDATED SNAPSHOT, current to v7.11; v7.28 = 10/16 TRIPLE BOARD SIGNAL BURNS ON THE SLATE REELS (operator order, read its block — the no-gold rule is in it); v7.27 = 10/16 TRIPLE BOARD SIGNAL on the Pro brief (operator order, small, read its block); v7.26 = 10/15 YOUR PRO GROWTH ORDER EXECUTED + THE STRAIGHT STATE STAMP, read its block first; v7.24 = 10/13 ENGINE + DATA DAY; v7.12 = one asset edit, v7.13 = the reel:daily gate, v7.14 = MKT-82 PRO BRIEF PHASE 0, v7.15 = MKT-82 PHASE 1 SHIPPED, v7.16 = MKT-82 PHASE 2 SHIPPED BY OPERATOR ORDER (not a reel; see its block) — READ THIS FIRST)
 ================================================================================
 This block is the one-pass current picture. It is REWRITTEN IN PLACE at every
 version (it is live text, not an era record); the "WHAT CHANGED IN vX.Y"
@@ -645,6 +645,93 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.28 (2026-10-16 — TRIPLE BOARD SIGNAL ON THE SLATE REELS,
+operator order: "on days when there are triple board straight picks i also
+want that fact highlighted in the allday, midday and evening reels, creatively
+signifying fire. the color yellow is reserved for straight mats DRAWN in the
+reels")
+================================================================================
+  ID: MKT-88 (next free = 89). Engine untouched. Nothing auto-posts. No
+  caption changed. No new command, no flag — it fires by itself on a triple
+  day (the MKT-87 law: one exact POSTED order on all three boards).
+
+  THE RULE YOU MUST KEEP (operator, 10/16): YELLOW / GOLD IS RESERVED FOR A
+  STRAIGHT MATCH THAT WAS DRAWN. The grid's straight stamp, the verify stamps
+  (MKT-86 "STRAIGHT MATCH · WISCONSIN") and the MKT-63 strike own that colour.
+  The triple is a BEFORE-the-draw fact, so it burns in EMBER — red → orange →
+  white-hot, every hue ≤ 28° (unit-tested: __tests__/reelTriple.test.ts pins
+  the palette and shows gold at 40°+). The 🔥 emoji is NOT used (its glyph
+  has a yellow core); the flames are CSS tongues. ⚠ The Pro BRIEF (v7.27)
+  still paints the triple in GOLD — it is an image, not a reel, and the
+  operator's sentence says "in the reels"; if you read the rule as global,
+  say so and the brief flips to ember in one edit (BriefFrameCard /
+  SocialBriefCard colour constant).
+
+  WHAT BURNS (scripts/reel-triple.ts, DOM injection on the coffee Home — the
+  app is untouched, same technique as the notation layer):
+  · THE TILE — ember ring with a white-hot inner stroke, nine small flame
+    tongues along its top border (sized so they never reach the tile above's
+    ENERGY line: 8px row gap + 14px padding = 22px of clearance, tongues ≤
+    17px), and a rotated "ALL 3 BOARDS" plate on the border.
+  · THE BAND — in the black space between the date chip (ends y 1180 on the
+    1920 frame) and the notation strip (starts 1530): "TRIPLE BOARD SIGNAL"
+    (hot orange, 52px) / "5-7-3" (white-hot, 68px) / "ONE EXACT ORDER ON ALL
+    THREE BOARDS" (22px). Thirteen bigger tongues along its top edge. The
+    chip and the strip are untouched.
+  · THE MODAL — when the triple's OWN modal opens, an ember plate lands over
+    the "Generated" row + the INTEL/PAIRS/ACTION tab strip (chrome only:
+    rank, digits, energy, box set, signal breakdown all stay readable).
+    The other five modals are unchanged.
+  · THE FLICKER — the still is captured in FOUR flame phases (tongue height /
+    lean / ring breath) and the hold's 600 frames cycle through them on an
+    irregular 7-frame step (≈8.6 steps/s, inside the 6–10 Hz candle band;
+    not a 0-1-2-3 strobe). Same for the triple's modal hold. No video asset,
+    no per-frame capture — four screenshots per hold.
+
+  WHICH REELS: every FULL-FIDELITY slate body — allday_pro AND allday_free
+  (they share one capture; the free group gets the all-day board in full by
+  standing ruling, so the copy passed the TIER-2 lint as well as tier 4),
+  midday_pro, evening_pro. NEVER midday_free / evening_free (redacted) or
+  allday_public: the band shows the digits and the public cut is tier 1. The
+  renderer gates on !REDACT, the module refuses on a masked leaf, and
+  provenanceArgs drops the tag on a redacted/public body even if handed one.
+
+  THE TAG: the body carries hm_triple="5-7-3" (two triples → "5-7-3|1-2-3")
+  beside hm_reel_date. The assembler composites NOTHING new (the fire is in
+  the pixels) — it reads the tag and logs
+    NOTE(pro): TRIPLE BOARD SIGNAL (MKT-88) — body burns 5-7-3 (…)
+  so a build log says which finals carry it.
+
+  FAIL-LOUD, two ways: (1) the DB says the triple is at rank #N on this
+  scope's board, the DOM layer burns the tile whose digits match — if the
+  two rank sets differ the render ABORTS (pixels vs data); (2) a triple that
+  exists but is missing from THIS board (impossible by law unless the boards
+  changed mid-run) ABORTS.
+
+  THE LAW MOVED, NOT CHANGED: findTripleBoard now lives in
+  lib/social/briefResolve.ts (pure; tsx can import it — socialBrief.ts pulls
+  the Supabase client → react-native, which tsx cannot transform) and
+  socialBrief.ts re-exports the SAME function (test asserts identity). Brief
+  and reels cannot disagree about what a triple is.
+
+  DEMONSTRATED 10/16 (scratch renders, NOT published — the 10/16 finals were
+  already up before this shipped): allday (5-7-3 = #6), midday (#6), evening
+  (#5), each 19.000s with hm_triple=5-7-3; midday --redact renders with NO
+  tag and no fire. The first LIVE burning reels are the next triple day's
+  reel:daily — nothing to do, it fires by itself.
+
+  TESTS: __tests__/reelTriple.test.ts (law identity · palette hue ≤ 28° ·
+  copy lint tiers 2 + 4 · flicker pattern · ranks per scope on the 10/16
+  boards · tag round-trip) — 13 tests; tripleBoard.test.ts still 6/6.
+
+  ASKS (yours, none blocking): (a) the brief-gold question above; (b) if you
+  want a caption line on a triple day, say the words — none was written
+  (R-B: it stays factual, "one exact order on all three boards today", never
+  a likelihood claim); (c) the redacted free session cuts could carry the
+  RING ONLY (no band, no digits) as a tease — not built, Pro-only by my
+  reading, one word turns it on.
+
 ================================================================================
 WHAT CHANGED IN v7.27 (2026-10-16 — TRIPLE BOARD SIGNAL on the Pro brief,
 operator order: "create a new signal = triple board signal. today the pick 573

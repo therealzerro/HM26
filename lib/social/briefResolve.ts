@@ -71,6 +71,36 @@ export function parseBoard(json: unknown): BoardPick[] {
 }
 
 /**
+ * TRIPLE BOARD SIGNAL (MKT-87, 2026-10-16) — the exact orders posted on ALL
+ * THREE boards for the day. Law: the posted order (`bestOrder`, the digits the
+ * slate shows) must be IDENTICAL on midday, evening and allday — a shared box
+ * set with different orders does not qualify (10/16: {3,7,9} sat on two boards
+ * as 9-3-7 and 7-3-9 — not a triple; 5-7-3 sat on all three as 5-7-3 — the
+ * first triple). Any board missing → empty. Pure; unit-tested.
+ *
+ * Lives here (not in socialBrief.ts) since MKT-88 (2026-10-16) so the reel
+ * renderer can import the ONE law under tsx: socialBrief.ts pulls in the
+ * Supabase client → react-native, which tsx cannot transform. socialBrief
+ * re-exports it; every caller sees the same function.
+ */
+export interface TripleSignal { digits: string; set: string; triple: true }
+
+export function findTripleBoard(boards: Partial<Record<ResolveScope, BoardPick[]>>): TripleSignal[] {
+  const SC: ResolveScope[] = ['midday', 'evening', 'allday'];
+  if (SC.some(sc => !boards[sc]?.length)) return [];
+  const orders = (sc: ResolveScope) => new Set(boards[sc]!.map(p => fmtDigits(p.bestOrder)).filter(d => d.length === 5));
+  const mid = orders('midday'), eve = orders('evening');
+  const out: TripleSignal[] = [];
+  for (const p of boards.allday!) {
+    const digits = fmtDigits(p.bestOrder);
+    if (digits.length !== 5 || !mid.has(digits) || !eve.has(digits)) continue;
+    if (out.some(o => o.digits === digits)) continue;
+    out.push({ digits, set: setDigits(p.comboSet), triple: true });
+  }
+  return out;
+}
+
+/**
  * Grade one scope's board against the day's draws. midday/evening look at
  * their own session only; allday looks at every draw and is "live" until both
  * sessions have drawn.

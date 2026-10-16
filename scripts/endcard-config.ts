@@ -117,6 +117,22 @@ export const ENDCARDS: Record<string, EndcardVariant> = {
     cta: { lines: ['HITMASTER ZK6', 'PRO READS THESE DIGITS BEFORE THE DRAW', 'FREE READS THEM TOMORROW · $2.49/MO'], out: 'evening_free_cta_endcard.mp4' },
   },
 
+  // ── MKT-90 — THE GUEST PASS close. Free-tier motion (tierFor: a guest kind
+  // is a free-room kind), price sanctioned (tier 2). Line 2 states what the
+  // viewer just watched; line 3 says where it lives every other morning.
+  // IDENTICAL on both kinds by the MKT-77 rule (a Midday/Evening divergence
+  // is the defect nobody notices for weeks). Widths measured by build-endcard.
+  midday_guest: {
+    motion: 'endcard_motion_free.mp4',
+    out: 'midday_guest_endcard.mp4',
+    lines: ['HITMASTER ZK6', 'THE PRO BOARD · UNCOVERED TODAY ONLY', 'EVERY MORNING IN PRO · $2.49/MO'],
+  },
+  evening_guest: {
+    motion: 'endcard_motion_free.mp4',
+    out: 'evening_guest_endcard.mp4',
+    lines: ['HITMASTER ZK6', 'THE PRO BOARD · UNCOVERED TODAY ONLY', 'EVERY MORNING IN PRO · $2.49/MO'],
+  },
+
   // ── MKT-16 — the public kind. FREE-TIER MOTION SET (tierFor ruling in
   // brand-motion.ts: public kinds are free-tier — a pro motion on a public
   // close would carry first-access grammar to strangers). Copy is tier-1

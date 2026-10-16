@@ -38,7 +38,8 @@ import { MODAL_COUNT, GRID_DUR, MODAL_HOLD, modalWindow } from '../constants/ree
 import { probeStinger, stingerAdds } from './reel-stinger';
 import { bedWindow, BED_TARGET_RMS, BED_MIX_DB, MAX_BED_CORRECTION, type BedWindow } from './reel-bed';
 import { STINGERS, STINGER_DUR, INTRO_XFADE } from './stinger-config';
-import { REEL_SCOPES, parseScopeFlag, parseVariantFlag, positionals, reelKind, bodyFile, captureModeFor, type Variant } from './reel-scopes';
+import { REEL_SCOPES, parseScopeFlag, parseVariantFlag, positionals, reelKind, bodyFile, captureModeFor, type Variant, variantsForRun } from './reel-scopes';
+import { PRO_ROOM_FROM, PRO_ROOM_STAMP_EYEBROW, GUEST_STAMP_EYEBROW, guestFurnitureKind } from './pro-room-config';
 import { assertBodyDate, assertBodyRedaction, assertBodyPublic, readTriple } from './reel-provenance';
 import { resolveEndcard } from './reel-endcard';
 import { CHIP_LABELS } from './intro-chip-config';
@@ -147,6 +148,19 @@ const todayET = (): string =>
   new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })).toLocaleDateString('en-CA').replace(/-/g, '');
 const stampHookFlipped = todayET() >= PUBLIC_STAMP_HOOK_FROM;
 if (FORCE_STAMP_HOOK && CLASSIC_STAMP) { console.error('ABORT: --stamp-hook and --classic-stamp are mutually exclusive (MKT-80).'); process.exit(1); }
+// MKT-90 (2026-10-16) — THE PRO ROOM SEAL on every Pro cut from PRO_ROOM_FROM:
+// violet body stamp "PRO ROOM ONLY · EVERY MORNING" for the whole body, the
+// PRO ROOM chip on the intro (frame one) and the MEMBERS' BOARD stinger (the
+// latter two are config + prebuilt assets, not gated here). Before the date
+// `--pro-seal` = PREVIEW build (suffixed, never published); after it
+// `--classic-pro` = escape hatch (drop stamp, as before). THE GUEST PASS is
+// the on-demand `--variant=guest` build of the same full body: guest stamp,
+// guest chip, free-tier close with the price, the Pro cut's intro/stinger/
+// voice on loan (scripts/pro-room-config.ts).
+const FORCE_PRO_SEAL = process.argv.includes('--pro-seal');
+const CLASSIC_PRO = process.argv.includes('--classic-pro');
+const proSealFlipped = todayET() >= PRO_ROOM_FROM;
+if (FORCE_PRO_SEAL && CLASSIC_PRO) { console.error('ABORT: --pro-seal and --classic-pro are mutually exclusive (MKT-90).'); process.exit(1); }
 /**
  * MKT-26 — THE BODY IS RESOLVED PER VARIANT, not once per scope.
  *
@@ -237,7 +251,8 @@ const publicStampPng = join(REELS, `_stamp_public_${stamp}.png`);
 // one-off assembly of a single sibling must not rebuild the others' finals
 // (and then tempt a full re-publish, which resets their posted rows).
 const ONLY_VARIANT = parseVariantFlag(process.argv);
-const VARIANTS = ONLY_VARIANT ? SPEC.variants.filter(v => v === ONLY_VARIANT) : SPEC.variants;
+// MKT-90: on-demand variants (guest) only build when named — never in the daily set.
+const VARIANTS = variantsForRun(SCOPE, ONLY_VARIANT);
 if (VARIANTS.length === 0) {
   console.error(`ABORT: scope "${SCOPE}" declares no "${ONLY_VARIANT}" variant.`);
   process.exit(1);
@@ -263,9 +278,26 @@ const isCtaCut = (v: Variant): boolean =>
 if (VARIANTS.some(isCtaCut)) {
   sh(`npx tsx scripts/render-reel-stamp.ts covered ${stamp} ${SPEC.stampLabel} "${coveredStampPng}"`);
 }
+// MKT-90: the seal (Pro cuts) and the guest pass (guest cut) — rendered only
+// when a variant in this run will wear them; each lints fail-closed inside the
+// renderer at its own tier (4 / 2).
+const proSealStampPng = join(REELS, `_stamp_pro_${stamp}.png`);
+const guestStampPng = join(REELS, `_stamp_guest_${stamp}.png`);
+const isGuest = (v: Variant): boolean => v === 'guest';
+const wantsProSeal = (v: Variant): boolean => v === 'pro' && !CLASSIC_PRO && (FORCE_PRO_SEAL || proSealFlipped);
+if (VARIANTS.some(wantsProSeal)) sh(`npx tsx scripts/render-reel-stamp.ts pro_room ${stamp} ${SPEC.stampLabel} "${proSealStampPng}"`);
+if (VARIANTS.some(isGuest)) sh(`npx tsx scripts/render-reel-stamp.ts guest ${stamp} ${SPEC.stampLabel} "${guestStampPng}"`);
 
 for (const v of VARIANTS) {
   const kind = reelKind(SCOPE, v);
+  // MKT-90: the guest cut borrows the PRO cut's rotating furniture (intro,
+  // stinger, carrier) — it is the members' board on loan, and should sound
+  // and open like it. Its stamp, chip, endcard and caption are its own.
+  const fk = isGuest(v) ? guestFurnitureKind(kind) : kind;
+  const proSeal = wantsProSeal(v);
+  const PRO_SEAL_PREVIEW = proSeal && !proSealFlipped;
+  if (proSeal) console.log(`NOTE(${v}): PRO ROOM SEAL (MKT-90) — body stamp "${PRO_ROOM_STAMP_EYEBROW}", violet${PRO_SEAL_PREVIEW ? `; PREVIEW output (live from ${PRO_ROOM_FROM})` : ''}. --classic-pro restores the drop stamp.`);
+  if (isGuest(v)) console.log(`NOTE(${v}): GUEST PASS (MKT-90) — the ${fk} cut on loan to the free room: guest stamp "${GUEST_STAMP_EYEBROW}", guest chip, free-tier close with the price; intro/stinger/voice from ${fk}.`);
   // MKT-26: per-variant body — see resolveBody. Pro and free session reels read
   // DIFFERENT captures (full-fidelity vs redacted); All-Day's variants both
   // resolve to the same unchanged file, so nothing about that path moves.
@@ -317,7 +349,7 @@ for (const v of VARIANTS) {
   // MKT-77: the CTA cut opens on a hook card too — the same machinery, a
   // different card (--kind=cta: fixed copy, tier-2 lint, drop cyan).
   const hookOpen = coldOpen || ctaCut;
-  let intro = hookOpen ? null : probeAnchorIntro(ASSETS, kind, isoDate);
+  let intro = hookOpen ? null : probeAnchorIntro(ASSETS, fk, isoDate);
   let dissolve = intro ? INTRO_DISSOLVE : OPEN;
   if (hookOpen) {
     const hook = join(REELS, `_hook_${kind}_${stamp}.mp4`);
@@ -338,10 +370,10 @@ for (const v of VARIANTS) {
   const openBase = intro ? intro.dur : OPEN;
   // MKT-12: prebuilt per-variant stinger. Missing/disabled → null and the reel
   // assembles exactly as before. Crossfaded into, so it adds dur − INTRO_XFADE.
-  const sting = hookOpen ? null : probeStinger(ASSETS, kind, isoDate, FORCE_STING);
+  const sting = hookOpen ? null : probeStinger(ASSETS, fk, isoDate, FORCE_STING);
   const openDur = +(openBase + stingerAdds(sting)).toFixed(3);
   const total = +(openDur + bodyDur + CARD).toFixed(3);
-  if (sting) console.log(`NOTE(${v}): stinger ${STINGERS[kind].lines[1]} — open ${openBase}s + ${stingerAdds(sting)}s = ${openDur}s, reel ${total}s.`);
+  if (sting) console.log(`NOTE(${v}): stinger ${STINGERS[fk].lines[1]} — open ${openBase}s + ${stingerAdds(sting)}s = ${openDur}s, reel ${total}s.`);
   // MKT-19: resolved through the shared resolver, never composed from `kind` —
   // the built names are not uniform (verify's is `verif_endcard.mp4`). Whether
   // the day needs a bed is a property of the CARRIER, so it is decided below and
@@ -354,7 +386,7 @@ for (const v of VARIANTS) {
   // rotates and its continuation is looked up explicitly, because deriving the
   // continuation from a rotating part-1 name resolves to nothing and degrades
   // into a published half-narration reel rather than an error.
-  const carrierRes = resolveCarrier(ASSETS, kind, isoDate, FORCE_CARRIER);
+  const carrierRes = resolveCarrier(ASSETS, fk, isoDate, FORCE_CARRIER);
   let carrier = carrierRes.path;
   // MKT-77: the CTA cut voices ONE part, or none. The joined pair (~17s of VO)
   // cannot fit a ~16s reel; pt2 alone is the gap-selling copy and matches the
@@ -450,7 +482,7 @@ for (const v of VARIANTS) {
   const lockup = join(REELS, `_lockup_${v}.png`);
   // MKT-77: a preview build never lands on the serving name (the verify_public
   // cold-open precedent — held builds leave no serving-name collision behind).
-  const outSuffix = ctaCut && CTA_PREVIEW ? '_cta_preview' : STAMP_HOOK_PREVIEW ? '_stamphook_preview' : '';
+  const outSuffix = ctaCut && CTA_PREVIEW ? '_cta_preview' : STAMP_HOOK_PREVIEW ? '_stamphook_preview' : PRO_SEAL_PREVIEW ? '_proseal_preview' : '';
   const out = join(REELS, `${kind}_${stamp}${outSuffix}.mp4`);
   const out1x1 = join(REELS, `${kind}_${stamp}_1x1.mp4`);
   const sheet = join(REELS, `${kind}_${stamp}${outSuffix}_contact.png`);
@@ -475,7 +507,7 @@ for (const v of VARIANTS) {
       ? `-i "${intro.path}" -i "${body}" -i "${endcard}" `
       : `-loop 1 -framerate 60 -t ${OPEN} -i "${lockup}" -i "${body}" -i "${endcard}" `) +
     `-i "${carrier}" -i "${endcard}" ` +
-    `-loop 1 -framerate 60 -t ${total} -i "${bodyMode === 'public' ? publicStampPng : ctaCut ? coveredStampPng : stampPng}" ` +
+    `-loop 1 -framerate 60 -t ${total} -i "${bodyMode === 'public' ? publicStampPng : ctaCut ? coveredStampPng : isGuest(v) ? guestStampPng : proSeal ? proSealStampPng : stampPng}" ` +
     // MKT-12: stinger takes input [6] — appended so [0]-[5] and every hardcoded
     // index in the graph below are undisturbed.
     (sting ? `-i "${sting.path}" ` : ``) +
@@ -571,7 +603,11 @@ for (const v of VARIANTS) {
     `-map "[vid]" -map "[a]" -t ${total} -r 60 -c:v libx264 -profile:v high -crf 18 -pix_fmt yuv420p ` +
     // MKT-77: the CTA cut records itself in the final's container (hm_cut +
     // the voice choice) so a published file can be told from a classic one.
-    `-c:a aac -ar 48000 -movflags +faststart${ctaCut || stampHook ? '+use_metadata_tags' : ''} ` +
+    `-c:a aac -ar 48000 -movflags +faststart${ctaCut || stampHook || proSeal || isGuest(v) ? '+use_metadata_tags' : ''} ` +
+    // MKT-90: the final records the seal / the guest pass so a published file
+    // can be told from a classic one (the hm_cut / hm_stamp_hook rule).
+    (proSeal ? `-metadata hm_pro_seal="${PRO_ROOM_STAMP_EYEBROW}" ` : ``) +
+    (isGuest(v) ? `-metadata hm_guest="${GUEST_STAMP_EYEBROW}" ` : ``) +
     (ctaCut ? `-metadata hm_cut="cta" -metadata hm_cta_voice="${CTA_VOICE}" ` : ``) +
     // MKT-80: the final records the stamp hook so a published file can be told
     // from a classic-stamp one (same reason as hm_cut).

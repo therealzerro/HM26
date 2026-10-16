@@ -81,8 +81,13 @@ export const MOTION_LOCKUP: Record<string, number> = {
   // composition needs it. See ENDCARD_MOTION_LOCKUP for the parallel ruling.
 };
 
+// MKT-90 (2026-10-16): the three Pro kinds' headline is MEMBERS' BOARD — the
+// room's identity, not a first-look promise (FIRST LOOK was the by-meaning
+// first-access framing MKT-82 left unruled). The guest cut borrows the Pro
+// stinger unchanged: it is the members' board, on loan. Rebuilt the same day
+// (npm run stinger:build <kind>).
 export const STINGERS: Record<string, StingerVariant> = {
-  allday_pro:  { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', 'ALL-DAY · FIRST LOOK'], enabled: true },
+  allday_pro:  { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', "ALL-DAY · MEMBERS' BOARD"], enabled: true },
   allday_free: { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', 'ALL-DAY · FULL DROP'], enabled: true },
   // ⚠ APPROVED, NOT YET FLIPPED — and the ORDER is the operator's condition.
   //
@@ -120,8 +125,8 @@ export const STINGERS: Record<string, StingerVariant> = {
   // which is the whole point of rendering the lockup natively. Pro-only by
   // content strategy (scripts/reel-scopes.ts), so there is no *_free entry to
   // add here: a free session reel would need a redacted capture, not a headline.
-  midday_pro:  { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', 'MIDDAY · FIRST LOOK'], enabled: true },
-  evening_pro: { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', 'EVENING · FIRST LOOK'], enabled: true },
+  midday_pro:  { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', "MIDDAY · MEMBERS' BOARD"], enabled: true },
+  evening_pro: { motion: 'stinger_motion.mp4', lines: ['HITMASTER ZK6', "EVENING · MEMBERS' BOARD"], enabled: true },
   // MKT-26 free-group session kinds. COPY SIGNED OFF 2026-07-29 as written —
   // these two were already the agreed lines, so only the endcard copy moved.
   // Session vocabulary is retained deliberately: the free group is tier 2, where

@@ -1,3 +1,4 @@
+import { PRO_ROOM_CAPTION_LINE } from './pro-room-config';
 /**
  * reel-captions — MKT-05: data-driven daily captions for the reel pipeline.
  *
@@ -442,12 +443,51 @@ function credLine(c: ProCtx, seed: number): string {
  * labels as strict-tier only (public page / cross-posts), and these are group
  * captions. Real numbers are allowed because this is a pro surface.
  */
+/**
+ * MKT-90 (2026-10-16, operator: "the pro reels need to explicitly represent
+ * that they can only be seen daily by being a member of the facebook pro
+ * group") — THE ROOM'S LINE closes every Pro caption. Identity, not a sale:
+ * no price, no upgrade word, no first-access phrase (tier 4, MKT-82 F4). The
+ * same cut sometimes lands in the free room on loan; the line still reads
+ * true there, which is the point. Appended after the credLine so the delivered
+ * bodies stay verbatim.
+ */
+const withProRoomLine = (fns: ((c: TemplateCtx) => string)[]): ((c: TemplateCtx) => string)[] =>
+  fns.map(f => (c: TemplateCtx) => `${f(c)}\n\n${PRO_ROOM_CAPTION_LINE}`);
+
+/**
+ * MKT-90 — THE GUEST PASS caption family (free room, tier 2). Line one is the
+ * Pro-group link under its own lead (the free-session rule, MKT-77 addendum),
+ * then a body that says exactly what the viewer is looking at: the Pro
+ * board, uncovered, for ONE day, and where it lives every other morning. The
+ * sell is WHEN (every morning, before the draw), never WHAT (same six). No
+ * urgency-hype phrase, no likelihood word (R-B), ≤ 2 emoji per body.
+ */
+export const GUEST_LINK_LEAD = 'This board lives in the Pro room every morning: ';
+const guestLinkFirst = (fns: ((c: TemplateCtx) => string)[]): ((c: TemplateCtx) => string)[] =>
+  fns.map(f => (c: TemplateCtx) => `${GUEST_LINK_LEAD}${PRO_LINK_TOKEN}\n\n${f(c)}`);
+function sessionGuestKind(label: string, when: string, offset: number): KindSpec {
+  return {
+    offset,
+    realNumbers: false,
+    fallback: m => `${GUEST_LINK_LEAD}${PRO_LINK_TOKEN}\n\nGuest pass 🎟️ The ${m} ${label} board as the Pro room saw it this morning — digits uncovered, one day only. Every other morning it's posted in the Pro room, and only there. $2.49/mo.`,
+    templates: guestLinkFirst([
+      c => `Guest pass 🎟️ Today's Pro ${label} board is open in the free room — digits uncovered, nothing masked. One day only. Every other morning it's posted in the Pro room, and only there. $2.49/mo.`,
+      c => `The cover's off today. This is the ${label} board for ${c.reelMd} exactly as the Pro room read it this morning, before ${when}. Tomorrow the cover goes back on in here. $2.49/mo keeps it off.`,
+      c => `Guest pass for ${c.reelMd}: the Pro ${label} board, uncovered, in the free room. Pro members read a board like this every morning. Today you do too. 🎟️`,
+      c => `Same six the Pro room read this morning, uncovered here for one day 🎟️ Every morning it lives behind the Pro door. $2.49/mo opens it.`,
+      c => `This is what Pro looks like: the ${label} board for ${c.reelMd}, all six digits, posted before ${when}. Today it's in here on a guest pass. Tomorrow it's back in the Pro room.`,
+      c => `One-day guest pass 🎟️ The Pro ${label} board, uncovered, for ${c.reelMd}. The room that sees this every morning is $2.49/mo.`,
+    ]),
+  };
+}
+
 function sessionProKind(label: string, when: string, offset: number): KindSpec {
   return {
     offset,
     realNumbers: true,
-    fallback: m => `The ${m} ${label} board, posted before the draw. Six signals straight from the engine, in full detail. 📊`,
-    templates: [
+    fallback: m => `The ${m} ${label} board, posted before the draw. Six signals straight from the engine, in full detail. 📊` + `\n\n${PRO_ROOM_CAPTION_LINE}`,
+    templates: withProRoomLine([
       c => `Pro first look 💎 The ${label} board for ${c.reelMd} is on your screen before ${when}. ${credLine(c.pro!, c.seed)}`,
       c => `${c.reelMd} ${label}: six signals, full detail, posted early as always. ${credLine(c.pro!, c.seed)}`,
       c => `Your ${label} board is live — all six signals for ${c.reelMd}, nothing held back. ${credLine(c.pro!, c.seed)}`,
@@ -461,7 +501,7 @@ function sessionProKind(label: string, when: string, offset: number): KindSpec {
       () => `${label}: six signals, four measures behind each. First look, same as always.`,
       () => `Published before the ${label} draw, graded at sunup. That order is the whole method. ⚡`,
       () => `${label} board's live — ranked, explained, on the record.`,
-    ],
+    ]),
   };
 }
 
@@ -613,11 +653,12 @@ const CAPTION_REGISTRY = {
   },
   // The ONLY realNumbers kind: never commercial — no pricing, no first-access
   // framing (MKT-82 F4, 2026-10-10; brandLint tier-4 rule is BLOCKING).
+  // MKT-90: every Pro caption ends on the room's line (withProRoomLine).
   allday_pro: {
     offset: 5,
     realNumbers: true,
-    fallback: m => `The ${m} All-Day board, posted before the draw. Six signals straight from the engine, in full detail. 📊`,
-    templates: [
+    fallback: m => `The ${m} All-Day board, posted before the draw. Six signals straight from the engine, in full detail. 📊` + `\n\n${PRO_ROOM_CAPTION_LINE}`,
+    templates: withProRoomLine([
       c => `Pro first look 💎 ${c.reelMd}'s All-Day six are on your board before anywhere else. ${credLine(c.pro!, c.seed)}`,
       c => `You see it first: the ${c.reelMd} All-Day board, all six signals in full detail. ${credLine(c.pro!, c.seed)}`,
       c => `Early access delivered — six All-Day signals for ${c.reelMd}, straight from the engine. ${credLine(c.pro!, c.seed)}`,
@@ -631,12 +672,16 @@ const CAPTION_REGISTRY = {
       () => `Today's six are live — energy, momentum, pattern and consistency scored across 40+ states & provinces. You see them first.`,
       () => `Ranked, explained, locked. Nothing changes after the stamp — that's the whole point of publishing early.`,
       () => `The engine ran overnight. Six signals out, first look yours. 🤠`,
-    ],
+    ]),
   },
   // MKT-13 session wave — offsets 7 and 11 keep all three pro kinds (5/7/11) on
   // different templates the same day.
   midday_pro: sessionProKind('Midday', 'the daytime boards run', 7),
   evening_pro: sessionProKind('Evening', 'tonight’s boards run', 11),
+  // MKT-90 — THE GUEST PASS (free room, tier 2): the Pro session board on loan
+  // for one day. Offsets 13 / 17 keep the two guest kinds off each other.
+  midday_guest: sessionGuestKind('Midday', 'the daytime boards run', 13),
+  evening_guest: sessionGuestKind('Evening', 'tonight’s boards run', 17),
   // MKT-26 free-group session wave.
   //
   // ⚠ WHAT ACTUALLY HAS TO BE DISTINCT IS `offset % templates.length`, not the

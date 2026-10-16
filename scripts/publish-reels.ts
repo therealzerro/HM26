@@ -43,7 +43,7 @@ import { basename, join, resolve } from 'node:path';
 import { buildReelCaption, fetchReceiptsData, shiftDate, kindNeedsReceipts, ReceiptsData, ReelCaptionKind, SamedayCtx, RecordCtx } from './reel-captions';
 import { readRecordStats, readTriple } from './reel-provenance';
 import { tripleCaptionLine } from './reel-triple-core';
-import { bodyFile } from './reel-scopes';
+import { bodyFile, variantsForRun } from './reel-scopes';
 import { lintCaption } from '../lib/social/brandLint';
 import { RECORD_DIR, RECORD_KIND } from './record-config';
 import { fetchSamedayProvenance, fmtGap } from './reel-sameday';
@@ -78,6 +78,7 @@ const ASSETS = resolve('assets/marketing');
 type Kind = Extract<
   ReelCaptionKind,
   'allday_pro' | 'allday_free' | 'verify' | 'midday_pro' | 'evening_pro' | 'midday_free' | 'evening_free' | 'allday_public' | 'verify_public' | 'verify_midday' | 'record_public'
+  | 'midday_guest' | 'evening_guest'
 >;
 
 
@@ -176,7 +177,8 @@ function reelFiles(): ReelFiles[] {
   }
   const spec = REEL_SCOPES[mode as Scope];
   const dir = join(ASSETS, spec.dir);
-  const variants = ONLY_VARIANT ? spec.variants.filter((v) => v === ONLY_VARIANT) : spec.variants;
+  // MKT-90: the guest cut is on-demand — present only when --variant=guest names it.
+  const variants = variantsForRun(spec.scope, ONLY_VARIANT);
   if (variants.length === 0) {
     console.error(`ABORT: scope "${mode}" declares no "${ONLY_VARIANT}" variant.`);
     process.exit(1);
@@ -237,7 +239,7 @@ async function buildCaptions(kinds: Kind[]): Promise<Record<string, CaptionSet>>
   let proUrl = '';
   const needFree = kinds.some((k) => k.endsWith('_public'));
   // MKT-89 (2026-10-16): verify_midday's hard-sell CTA carries the same token.
-  const needPro = kinds.some((k) => k === 'midday_free' || k === 'evening_free' || k === 'verify_midday');
+  const needPro = kinds.some((k) => k === 'midday_free' || k === 'evening_free' || k === 'verify_midday' || k.endsWith('_guest'));
   if (needFree || needPro) {
     try {
       const rows = await sbGet<{ key: string; value: string }[]>(

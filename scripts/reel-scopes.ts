@@ -38,7 +38,7 @@
 // reel remains barred — that part of the ruling never lifted.
 
 export type Scope = 'allday' | 'midday' | 'evening';
-export type Variant = 'pro' | 'free' | 'public';
+export type Variant = 'pro' | 'free' | 'public' | 'guest';
 
 export interface ReelScopeSpec {
   scope: Scope;
@@ -77,6 +77,9 @@ export interface ReelScopeSpec {
    * tier-1 vocabulary onto a public feed.
    */
   publicVariants?: Variant[];
+  /** MKT-90: on-demand variants — NEVER built by the daily run, only by an
+   *  explicit --variant=<v> (the guest pass lane). Full-fidelity body. */
+  onDemandVariants?: Variant[];
   /** assets/marketing subdirectory for the body render and the finals. */
   dir: string;
 }
@@ -116,6 +119,7 @@ export const REEL_SCOPES: Record<Scope, ReelScopeSpec> = {
     // flag. This flag is the last one turned, never the first.
     variants: ['pro', 'free'],
     redactedVariants: ['free'],
+    onDemandVariants: ['guest'],
     dir: 'midday_reels',
   },
   evening: {
@@ -125,6 +129,7 @@ export const REEL_SCOPES: Record<Scope, ReelScopeSpec> = {
     // See the midday note above — same state, same switch, enabled together.
     variants: ['pro', 'free'],
     redactedVariants: ['free'],
+    onDemandVariants: ['guest'],
     dir: 'evening_reels',
   },
 };
@@ -235,14 +240,24 @@ export function parseVariantFlag(argv: string[]): Variant | null {
   const flag = argv.find(a => a.startsWith('--variant='));
   if (!flag) return null;
   const val = flag.slice('--variant='.length).trim().toLowerCase();
-  if (val !== 'pro' && val !== 'free' && val !== 'public') {
-    console.error(`ABORT: unknown --variant=${val} — expected pro | free | public.`);
+  if (val !== 'pro' && val !== 'free' && val !== 'public' && val !== 'guest') {
+    console.error(`ABORT: unknown --variant=${val} — expected pro | free | public | guest.`);
     process.exit(1);
   }
   return val;
 }
 
 /** Positional args with every --flag stripped, so flags can go anywhere. */
+/** MKT-90: the variants a run may build for a scope — the daily set, or an
+ *  on-demand one named explicitly. An on-demand variant never appears without
+ *  the flag, so reel:daily cannot grow a guest cut by accident. */
+export function variantsForRun(scope: Scope, only: Variant | null): Variant[] {
+  const spec = REEL_SCOPES[scope];
+  if (!only) return spec.variants;
+  if (spec.variants.includes(only)) return [only];
+  if ((spec.onDemandVariants ?? []).includes(only)) return [only];
+  return [];
+}
 export function positionals(argv: string[]): string[] {
   return argv.filter(a => !a.startsWith('--'));
 }

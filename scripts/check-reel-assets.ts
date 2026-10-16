@@ -48,6 +48,7 @@ import { REEL_SCOPES, SCOPES, RETENTION_EXEMPT_KINDS, reelKind, captureModeFor }
 import { allIntroFiles, introCandidates, INTRO_ROTATION, VERIFY_INTROS, PUBLIC_INTROS, VERIFY_MIDDAY_INTROS } from './anchor-intros';
 import { INTRO_MIN, INTRO_MAX } from './reel-intro';
 import { CHIP_LABELS } from './intro-chip-config';
+import { lintProRoomStrings, PRO_ROOM_STAMP_EYEBROW, GUEST_STAMP_EYEBROW, PRO_ROOM_FROM, GUEST_KINDS } from './pro-room-config';
 const CHIP_LABELS_HAS = (k: string): boolean => Boolean(CHIP_LABELS[k]);
 import { LANES, dailyKinds, laneReport, comboDistinct, PERIOD_WARN_BELOW } from './reel-rotation-health';
 import { STRIKE_OVERLAY, STRIKE_TRIM, STRIKE_SRC_W, STRIKE_SRC_H, STRIKE_TAIL_MAX, STRIKE_PEAK_MIN, strikeMaxLuma } from './strike-config';
@@ -1066,6 +1067,28 @@ function checkOneStinger(variant: string, cfg: (typeof STINGERS)[string], file: 
  * nobody has yet. A scope with SOME assets is checked in full, so a half
  * delivery is still a loud FAIL rather than a silent half-reel.
  */
+// MKT-90 — THE PRO ROOM SEAL + THE GUEST PASS: the strings lint at their
+// tiers, every Pro kind carries the room on chip + stinger, and each guest
+// kind has its own chip, endcard config and a built close (the free-tier
+// matrix) — a guest build that cannot close would abort after the operator
+// asked for it, on a loan day.
+function checkProRoom(): void {
+  const lint = lintProRoomStrings();
+  if (lint.ok) add('PASS', 'pro-room', `seal "${PRO_ROOM_STAMP_EYEBROW}" (tier 4) · guest "${GUEST_STAMP_EYEBROW}" (tier 2) · caption line (tier 4) — lint clean; live from ${PRO_ROOM_FROM}`);
+  else add('FAIL', 'pro-room', `string lint: ${lint.problems.join(' · ')}`);
+  for (const k of ['allday_pro', 'midday_pro', 'evening_pro']) {
+    if (!/^PRO ROOM · /.test(CHIP_LABELS[k]?.text ?? '')) add('FAIL', `${k} chip`, 'MKT-90: the Pro chip must open PRO ROOM · (the thumbnail names the room)');
+    if (!/MEMBERS' BOARD$/.test(STINGERS[k]?.lines[1] ?? '')) add('FAIL', `${k} stinger`, "MKT-90: the Pro stinger headline is MEMBERS' BOARD");
+  }
+  for (const k of GUEST_KINDS) {
+    if (!CHIP_LABELS_HAS(k)) add('FAIL', `${k} chip`, 'no CHIP_LABELS entry — the guest cut would open unidentified');
+    const ec = ENDCARDS[k];
+    if (!ec) { add('FAIL', k, 'no ENDCARDS entry — the guest cut cannot close'); continue; }
+    const built = endcardMotionSetFor(k).some(m => existsSync(join(ASSETS, builtEndcardName(ec.out, m.tag)))) || existsSync(join(ASSETS, ec.out));
+    add(built ? 'PASS' : 'WARN', k, built ? `guest close built (${ec.lines[2]})` : `guest close NOT built — npm run endcard:build ${k} before a loan day`);
+  }
+}
+
 function checkScopes(): void {
   for (const scope of SCOPES) {
     for (const v of REEL_SCOPES[scope].variants) {
@@ -1420,6 +1443,7 @@ checkPartNaming();
 checkStrays();
 checkMotions();
 checkScopes();
+checkProRoom();
 checkPublicGateRecords();
 checkStingers();
 checkVerify();

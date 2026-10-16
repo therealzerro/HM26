@@ -249,6 +249,8 @@ const KIND_LABEL: Record<string, string> = {
   verify_public: '🌐 Verify · PUBLIC (cross-post)',
   verify_midday: '⏱️ Midday · Same-Day Verify',
   record_public: '📈 Track Record · PUBLIC (cross-post)',
+  midday_guest: '🎟️ Midday · GUEST PASS (Pro board, free room, one day)',
+  evening_guest: '🎟️ Evening · GUEST PASS (Pro board, free room, one day)',
 };
 
 /** Session a kind posts in, for the caption-card group headers. */

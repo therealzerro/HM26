@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-16 · v7.31
+Content Agent Handoff · 2026-10-16 · v7.32
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -645,6 +645,79 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.32 (2026-10-16, evening — operator: "the pro reels need to
+explicitly represent that they can only be seen daily by being a member of
+the facebook pro group. deep think, some days i do post pro midday and
+evening boards in the free group. so i want the pro boards/reels to
+creatively distinguish this. deep think be creative")
+================================================================================
+  ID: MKT-90 (next free = 91). Engine untouched. Nothing auto-posts.
+
+  THE IDEA. Two devices, one colour. VIOLET (#c084fc) now belongs to the Pro
+  room alone — the fleet's fourth colour after cyan (the drop), gold (a
+  DRAWN straight) and ember (the triple). A viewer learns it the same way.
+
+  (1) THE PRO ROOM SEAL — every Pro cut (allday_pro, midday_pro,
+      evening_pro), LIVE FROM THE 2026-10-17 ASSEMBLY, carries the room on
+      the three surfaces a scroller actually reads:
+        intro chip (frame one = thumbnail)   PRO ROOM · MIDDAY        violet
+        stinger headline                     MIDDAY · MEMBERS' BOARD
+        body stamp, whole body               PRO ROOM ONLY · EVERY MORNING
+        caption, last line                   Members' board. It's posted in
+                                             the Pro room every morning, and
+                                             only there.
+      Tier 4 throughout — identity, not a sale: no price, no upgrade word,
+      no first-access phrase (the stamp lints fail-closed at tier 4; the
+      caption line is in the unit test at tier 4 across all 36 Pro
+      renders). Wherever the file lands — the Pro room, or the free room on
+      a loan day — the pixels say whose board it is and where it lives
+      daily. The stinger's FIRST LOOK (the by-meaning first-access phrase
+      v7.17 left unruled) is retired by this; MEMBERS' BOARD names the room
+      instead of promising a head start.
+      Preview tonight: `--pro-seal` on the assembler (suffixed, never
+      published; today's midday_pro preview built). Hatch after the date:
+      `--classic-pro` + republish.
+
+  (2) THE GUEST PASS — the on-demand cut for the loan days:
+        npm run reel:guest -- --scope=midday|evening
+      Assembled from the morning's FULL body (nothing re-captured) with the
+      Pro cut's own intro, stinger and VOICE ON LOAN — it should open and
+      sound like the members' board, because it is — plus:
+        body stamp      GUEST PASS · PRO BOARD · TODAY ONLY     violet
+        chip            GUEST PASS · MIDDAY                     violet
+        close           THE PRO BOARD · UNCOVERED TODAY ONLY /
+                        EVERY MORNING IN PRO · $2.49/MO   (free-tier motion)
+        caption (tier 2, 6 per kind) — line one is the Pro link under its
+        own lead, "This board lives in the Pro room every morning: <link>",
+        then e.g. "Guest pass 🎟️ Today's Pro Midday board is open in the
+        free room — digits uncovered, nothing masked. One day only. Every
+        other morning it's posted in the Pro room, and only there. $2.49/mo."
+      Registers as midday_guest / evening_guest (🎟️ in Admin → Reels,
+      default target Free Group, audience free) so the Pro row's tier-4
+      caption is never pasted into the free room by habit — Admin now WARNS
+      orange when a _pro session cut is aimed at Free and names the command.
+      Never in reel:daily; allday has no guest (allday_free already IS the
+      full board, SOCIAL-13). DB kind check widened (MCP).
+
+  WHY NOT one cut for both rooms: the two rooms need different closes. The
+  Pro room may never see a price (F4); the free room must, and must get the
+  link on line one (MKT-74/77). The seal makes the Pro cut say whose board
+  it is anywhere; the guest pass is the cut that is ALLOWED to sell.
+
+  TESTS: proRoom.test.ts 4 (strings at tier, 36 Pro renders tier-4 clean and
+  ending on the room line, 24 guest renders tier-2 clean opening on the
+  link, guest close identical on both kinds); jest 136/136; tsc clean.
+  reel:check gained checkProRoom (strings at tier, chip/stinger rule, guest
+  close built).
+
+  ASKS: (a) the 12 by-meaning first-access Pro templates (v7.17 open item)
+  still stand — with the room line now closing every Pro caption they read
+  as room identity, but a pass is yours; (b) the seal eyebrow and the guest
+  line set are build-session copy at the operator's order — swap in your
+  own strings if you prefer, the gates (tier 4 / tier 2, no digits) stay;
+  (c) first live eyeball of the sealed Pro cuts = the 10/17 morning run.
+
 ================================================================================
 WHAT CHANGED IN v7.31 (2026-10-16, minutes later — operator: "creatively
 account for multiple midday verify straight matches also in the captions cta")

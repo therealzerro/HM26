@@ -29,6 +29,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { lintCaption } from '../lib/social/brandLint';
 import { PUBLIC_STAMP_HOOK_EYEBROW } from './public-hook-config';
+import { PRO_ROOM_STAMP_EYEBROW, GUEST_STAMP_EYEBROW, VIOLET } from './pro-room-config';
 
 const PURPOSES = {
   // MKT-56c (2026-08-16) — `top` per purpose. The drop chip used to sit at
@@ -63,6 +64,11 @@ const PURPOSES = {
   // scale hook in the eyebrow slot, drop cyan, drop placement. Tier-1 linted
   // fail-closed below (public surface). The modal segment keeps `drop`.
   drop_public: { eyebrow: PUBLIC_STAMP_HOOK_EYEBROW, accent: '#2bffcc', top: 1000 },
+  // MKT-90 — THE PRO ROOM SEAL: every Pro cut's body stamp, violet, drop
+  // placement, whole body. Tier-4 linted fail-closed (never commercial).
+  pro_room: { eyebrow: PRO_ROOM_STAMP_EYEBROW, accent: VIOLET, top: 1000 },
+  // MKT-90 — THE GUEST PASS: the loan cut's body stamp. Tier 2 (free room).
+  guest: { eyebrow: GUEST_STAMP_EYEBROW, accent: VIOLET, top: 1000 },
 } as const;
 
 // MKT-14 — the brand string, ruled 2026-07-31. "ZK6", not the version-agnostic
@@ -76,16 +82,20 @@ const BRAND_STRING = 'HITMASTER ZK6';
 const [, , purposeArg, ymd, scopeArg, outArg] = process.argv;
 const purpose = PURPOSES[purposeArg as keyof typeof PURPOSES];
 if (!purpose || !/^\d{8}$/.test(ymd ?? '') || !scopeArg || !outArg) {
-  console.error('Usage: tsx scripts/render-reel-stamp.ts <drop|verify|verify_midday|covered|drop_public> <YYYYMMDD> <scope|-> <out.png>');
+  console.error('Usage: tsx scripts/render-reel-stamp.ts <drop|verify|verify_midday|covered|drop_public|pro_room|guest> <YYYYMMDD> <scope|-> <out.png>');
   process.exit(1);
 }
 const out = resolve(outArg);
 // MKT-80: the public hook eyebrow is a tier-1 string — a stamp that cannot
 // pass the lint does not get rendered (same fail-closed rule as the hook card).
-if (purposeArg === 'drop_public') {
-  const bad = lintCaption(purpose.eyebrow, 1).violations.filter(v => v.blocking);
+// MKT-90: the seal is tier 4 (the Pro room is never commercial) and the guest
+// stamp is tier 2 — each lints at the tier of the room it lands in.
+const STAMP_LINT_TIER: Partial<Record<keyof typeof PURPOSES, 1 | 2 | 4>> = { drop_public: 1, pro_room: 4, guest: 2 };
+const lintTier = STAMP_LINT_TIER[purposeArg as keyof typeof PURPOSES];
+if (lintTier) {
+  const bad = lintCaption(purpose.eyebrow, lintTier).violations.filter(v => v.blocking);
   if (bad.length || /\d{3}/.test(purpose.eyebrow)) {
-    console.error(`ABORT(stamp): "${purpose.eyebrow}" fails the tier-1 lint: ${bad.map(v => `${v.term} (${v.rule})`).join(', ') || '3-digit run'}.`);
+    console.error(`ABORT(stamp): "${purpose.eyebrow}" fails the tier-${lintTier} lint: ${bad.map(v => `${v.term} (${v.rule})`).join(', ') || '3-digit run'}.`);
     process.exit(1);
   }
 }

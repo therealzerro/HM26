@@ -20,7 +20,11 @@
  *  given reel agree about what kind of reel it is. */
 // MKT-31 item 4: verify's accent is GOLD — it must track the verify stamp
 // (render-reel-stamp PURPOSES), which moved to #FBBF24 with the date ribbon.
+import { VIOLET } from './pro-room-config';
 const DROP = '#2bffcc', VERIFY = '#FBBF24';
+// MKT-90: PRO = violet, the Pro room's own colour. The chip is frame one —
+// the thumbnail — so the room's name is the first thing a scroller reads on
+// a Pro cut, wherever it was posted. The guest cut says what it is the same way.
 
 /**
  * MKT-35 Phase 3 — the DATED identity chip. The chip carries a second line
@@ -43,10 +47,12 @@ export const datedChipExcluded = (kind: string): boolean =>
   kind === 'ad' || kind.startsWith('ad_');
 
 export const CHIP_LABELS: Record<string, { text: string; accent: string }> = {
-  allday_pro:     { text: 'ALL-DAY',             accent: DROP },
+  allday_pro:     { text: 'PRO ROOM · ALL-DAY',  accent: VIOLET },
   allday_free:    { text: 'ALL-DAY',             accent: DROP },
-  midday_pro:     { text: 'MIDDAY',              accent: DROP },
-  evening_pro:    { text: 'EVENING',             accent: DROP },
+  midday_pro:     { text: 'PRO ROOM · MIDDAY',   accent: VIOLET },
+  evening_pro:    { text: 'PRO ROOM · EVENING',  accent: VIOLET },
+  midday_guest:   { text: 'GUEST PASS · MIDDAY', accent: VIOLET },
+  evening_guest:  { text: 'GUEST PASS · EVENING', accent: VIOLET },
   // MKT-26 free session kinds. Same text as their pro siblings, exactly as
   // `allday_free` mirrors `allday_pro` — the chip names the SCOPE, and session
   // vocabulary is sanctioned at tier 2 (only PUBLIC must drop it, which is what

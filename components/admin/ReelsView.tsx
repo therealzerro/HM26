@@ -97,6 +97,13 @@ const KIND_UI: Record<ReelKind, { icon: string; label: string; defaultTarget: Ta
   // that forces the Two-Question ack. Contact sheet 5 frames (hook / dim grid
   // / mid-fill / resolved count / endcard).
   record_public: { icon: '📈', label: 'Track Record · Public', defaultTarget: 'cross', sheetAspect: 5 * (270 / 480) },
+  // MKT-90 — THE GUEST PASS: the Pro session board on loan to the free room
+  // for one day (npm run reel:guest -- --scope=midday|evening). Default
+  // 'free' IS the point: this cut exists so the Pro row's tier-4 caption is
+  // never pasted into the free room by habit — the guest cut carries the
+  // guest stamp, the free-tier close with the price and a tier-2 caption.
+  midday_guest: { icon: '🎟️', label: 'Midday · Guest Pass (Pro board → free room)', defaultTarget: 'free', sheetAspect: 6 * (270 / 480) },
+  evening_guest: { icon: '🎟️', label: 'Evening · Guest Pass (Pro board → free room)', defaultTarget: 'free', sheetAspect: 6 * (270 / 480) },
 };
 
 /** A kind with no UI entry would crash the whole Reels tab on `ui.defaultTarget`
@@ -352,6 +359,11 @@ function ReelCard({ reel, urls, onPosted, expanded, onToggle }: {
   // public kind logs tier 4 against a tier-1 reel. It is almost always a
   // mis-tap, and the class of defect that runs for weeks unnoticed.
   const publicToGroup = isPublicKind(String(reel.kind)) && target !== 'cross';
+  // MKT-90: a PRO session cut aimed at the FREE room. WARN, not block — the
+  // operator loans the Pro board on purpose some days — but the free room
+  // should get the GUEST PASS cut (guest stamp, price close, tier-2 caption),
+  // not the Pro row with its tier-4 caption.
+  const proToFree = /^(midday|evening)_pro$/.test(String(reel.kind)) && target === 'free';
   const [q1No, setQ1No] = useState(false);
   const [q2No, setQ2No] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -569,6 +581,11 @@ function ReelCard({ reel, urls, onPosted, expanded, onToggle }: {
       {unregistered && (
         <Text style={{ fontSize: 9, color: colors.orange, marginBottom: 6, lineHeight: 14 }}>
           ⚠ {String(reel.kind)} is not registered in this build of the Reels tab — the target above is a guess from its name. Reload the app before posting.
+        </Text>
+      )}
+      {proToFree && (
+        <Text style={{ fontSize: 9, color: colors.orange, marginBottom: 6, lineHeight: 14 }}>
+          ⚠ {String(reel.kind)} is the PRO cut (tier-4 caption, no price, no link). Loaning the board to the free room? Build the 🎟️ GUEST PASS cut instead — npm run reel:guest -- --scope={String(reel.kind).replace('_pro', '')} — it carries the guest stamp, the price close and a tier-2 caption with the Pro link (MKT-90).
         </Text>
       )}
       {publicToGroup && (

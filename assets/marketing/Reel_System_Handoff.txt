@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-16 · v7.33
+Content Agent Handoff · 2026-10-17 · v7.34
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -645,6 +645,35 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.34 (2026-10-17, morning — MKT-90 resumed and LIVE)
+================================================================================
+  ID: MKT-90 CLOSED (next free = 91). Engine untouched. Nothing auto-posts.
+
+  THE SEAL IS LIVE. The two owed items from v7.33 are done and the first live
+  run has been eyeballed:
+    stingers      midday_pro ×7 / evening_pro ×7 rebuilt with the MEMBERS'
+                  BOARD line (3.00s, 1080x1920) — commit 6f1820d.
+    eyeball       reel:daily 2026-10-17 08:57 UTC → midday_pro 34.42s:
+                  strip HITMASTER ZK6 PRO · MEMBERS' BOARD (violet) on the
+                  live grid; chip PRO ROOM · MIDDAY on frame one; stamp
+                  PRO ROOM ONLY · EVERY MORNING across all six modals;
+                  stinger MIDDAY · MEMBERS' BOARD. The 7-3-6 triple burned
+                  ember beside it — violet and ember read as two different
+                  things, as intended. midday_free (redacted) carries none
+                  of it. evening_pro 34.67s read the same way (chip PRO
+                  ROOM · EVENING, stinger EVENING · MEMBERS' BOARD).
+  NOTE for anyone re-capturing an OLD day: render-allday-body's date
+  argument fakes the browser clock but the app still renders the NEWEST
+  board; once the next day's slate exists the triple guard aborts the
+  capture (pixels vs DB). That is the guard working — do not --skip it.
+
+  Same run: reel:verify fail-closed on a stale BOX stamp for 10/16 allday
+  #3 (937 — PA evening drew it STRAIGHT after CA midday had boxed it; the
+  late-hit branch completes the AT ledger but by design cannot upgrade
+  the snapshot/DI stamp). Data repaired by SQL, verify re-run after the
+  chain; audit BUG-188. Not a reel-system defect; the gate did its job.
+
 ================================================================================
 WHAT CHANGED IN v7.33 (2026-10-16, later that evening — operator note: "i
 dont want more reels, just the midday and evening reels and coffee mode to

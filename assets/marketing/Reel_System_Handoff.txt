@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-17 · v7.34
+Content Agent Handoff · 2026-10-17 · v7.35
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -645,6 +645,28 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
 ================================================================================
 ================================================================================
 ================================================================================
+================================================================================
+WHAT CHANGED IN v7.35 (2026-10-17, later that morning — operator: "i dont
+want the triple signal … in every single caption, prioritize and tune down
+by 70%")
+================================================================================
+  ID: MKT-88b (next free = 91). Engine untouched. Nothing auto-posts.
+
+  THE TRIPLE CAPTION LINE RIDES ONE CUT PER ROOM. On a triple day the
+  TRIPLE BOARD SIGNAL caption line used to close all six slate captions.
+  Now (scripts/reel-triple-core.ts TRIPLE_CAPTION_KINDS):
+    Pro room    allday_pro      "TRIPLE BOARD SIGNAL: 7-3-6 is posted in the
+                                same exact order on all three of today's
+                                boards."  (digits — first Pro cut of the day)
+    free room   midday_free     the digit-free tease ending "Pro reads which
+                                one."  (the redacted cut — the line sells)
+    everything else             no line. midday_pro / evening_pro / allday_free
+                                / evening_free captions end as before MKT-88.
+  The tile still BURNS on every full body and RINGS on the redacted ones —
+  pixels unchanged; only the caption repetition is gone. 10/17's stored
+  captions were trimmed to match and captions/20261017.pdf re-uploaded.
+  To move the line to a different cut, edit the set — one line of code.
+
 ================================================================================
 WHAT CHANGED IN v7.34 (2026-10-17, morning — MKT-90 resumed and LIVE)
 ================================================================================

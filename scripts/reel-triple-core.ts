@@ -50,11 +50,21 @@ export const TRIPLE_CAPTION = {
   tease: 'TRIPLE BOARD SIGNAL: one of today\'s six is posted in the same exact order on all three boards. Pro reads which one.',
 } as const;
 
-/** Which kinds get which line. Full-fidelity kinds (Pro + allday_free, which
- *  sees the all-day board in full) name the digits; the redacted free session
- *  kinds get the digit-free tease; public kinds get nothing (tier 1). */
+/** MKT-88b (operator 2026-10-17: "i dont want the triple signal … in every
+ *  single caption, prioritize and tune down by 70%"): the line rides ONE cut
+ *  per room per day, not all six. Pro room → allday_pro (the morning's first
+ *  Pro cut, digits named — the session Pro captions already carry the room
+ *  line and the pixels burn the tile). Free room → midday_free (the redacted
+ *  tease with the Pro sell — the one place the line earns a conversion;
+ *  allday_free's body shows the burning tile in full, so its caption needs no
+ *  line). 2 of 6 = a 67% cut. Public kinds get nothing (tier 1). Change the
+ *  list, not the function. */
+export const TRIPLE_CAPTION_KINDS: ReadonlySet<string> = new Set(['allday_pro', 'midday_free']);
+
+/** Which kinds get which line: the prioritised Pro kind names the digits;
+ *  the prioritised redacted free kind gets the digit-free tease. */
 export function tripleCaptionLine(kind: string, tag: string[]): string | null {
-  if (!tag.length) return null;
+  if (!tag.length || !TRIPLE_CAPTION_KINDS.has(kind)) return null;
   const digits = tag.filter(t => /^\d-\d-\d$/.test(t));
   if (/^(allday|midday|evening)_pro$/.test(kind) || kind === 'allday_free') return digits.length ? TRIPLE_CAPTION.withDigits(digits) : null;
   if (kind === 'midday_free' || kind === 'evening_free') return TRIPLE_CAPTION.tease;

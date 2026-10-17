@@ -62,12 +62,15 @@ describe('copy', () => {
 describe('caption line (operator 10/16)', () => {
   it('Pro kinds + allday_free name the digits; redacted free session kinds tease; public gets nothing', () => {
     expect(tripleCaptionLine('allday_pro', ['5-7-3'])).toBe(TRIPLE_CAPTION.withDigits(['5-7-3']));
-    expect(tripleCaptionLine('midday_pro', ['5-7-3'])).toContain('5-7-3');
-    expect(tripleCaptionLine('evening_pro', ['5-7-3', '1-2-3'])).toContain('5-7-3 and 1-2-3 are');
-    expect(tripleCaptionLine('allday_free', ['5-7-3'])).toContain('5-7-3');
+    expect(tripleCaptionLine('allday_pro', ['5-7-3', '1-2-3'])).toContain('5-7-3 and 1-2-3 are');
     expect(tripleCaptionLine('midday_free', [TRIPLE_RING])).toBe(TRIPLE_CAPTION.tease);
-    expect(tripleCaptionLine('evening_free', [TRIPLE_RING])).toBe(TRIPLE_CAPTION.tease);
-    expect(tripleCaptionLine('evening_free', ['5-7-3'])).toBe(TRIPLE_CAPTION.tease);   // never the digits on a free session cut
+    expect(tripleCaptionLine('midday_free', ['5-7-3'])).toBe(TRIPLE_CAPTION.tease);   // never the digits on a free session cut
+    // MKT-88b (operator 10/17): one line per room per day — the other four slate kinds carry nothing.
+    expect(tripleCaptionLine('midday_pro', ['5-7-3'])).toBeNull();
+    expect(tripleCaptionLine('evening_pro', ['5-7-3', '1-2-3'])).toBeNull();
+    expect(tripleCaptionLine('allday_free', ['5-7-3'])).toBeNull();
+    expect(tripleCaptionLine('evening_free', [TRIPLE_RING])).toBeNull();
+    expect(tripleCaptionLine('evening_free', ['5-7-3'])).toBeNull();
     expect(tripleCaptionLine('allday_public', ['5-7-3'])).toBeNull();
     expect(tripleCaptionLine('verify', ['5-7-3'])).toBeNull();
     expect(tripleCaptionLine('allday_pro', [])).toBeNull();

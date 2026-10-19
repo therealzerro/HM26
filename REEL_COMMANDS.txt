@@ -2,7 +2,11 @@
 HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
-changed. Every command has a description. (Last updated 2026-10-16 — MKT-90:
+changed. Every command has a description. (Last updated 2026-10-19 — MKT-91:
+THE PUBLIC RECEIPTS FLOOR — verify_public and allday_public are built ONLY when
+yesterday's All-Day board verified 3 or more; 0/1/2 of 6 = SKIP, group cuts
+unaffected, nothing to type; see PUBLIC RECEIPTS FLOOR below. Previously
+2026-10-16 — MKT-90:
 THE PRO ROOM SEAL on the MIDDAY and EVENING Pro cuts from the 2026-10-17 run —
 violet brand line on the coffee-mode strip, chip PRO ROOM · <scope>, stinger
 MEMBERS' BOARD, body stamp PRO ROOM ONLY · EVERY MORNING, caption room line; NO
@@ -47,6 +51,26 @@ CAPTIONS SHEET — 💎 PRO ROOM section (MKT-86 §2, 2026-10-15): every sheet n
   week), and until 2026-10-17 a one-time setup block (pinned guide + group rules).
   Page 1 carries the MINIMUM PRO DAY fallback line.
     npm run reel:captions-pdf [-- --day=YYYY-MM-DD]
+
+PUBLIC RECEIPTS FLOOR (MKT-91, 2026-10-19) — automatic, no new command.
+  OPERATOR RULING: "in the verify public and allday public reels, only
+  assemble if yesterday's board had 3 or more verified signals. 2 or less —
+  do not assemble." Both public cuts open on yesterday's All-Day board
+  ("N of 6 SIGNALS VERIFIED"). When that N is 0, 1 or 2 the assembler SKIPS
+  the cut (exit 0 on verify_public; `continue` past allday_public) and removes
+  any same-stamp public final, so reel:daily registers verify + allday_free +
+  allday_pro and no public cut. The log line to look for:
+      SKIP(verify_public): yesterday's All-Day board verified 2 of 6 — below the floor of 3 …
+      SKIP(public): yesterday's All-Day board verified 2 of 6 — below the floor of 3 …
+  and on a counted day:
+      NOTE(…): PUBLIC RECEIPTS FLOOR PASS (MKT-91) — … verified 4 of 6 ≥ 3.
+  A card with no count (no-data shape, receipts fetch failed) is BELOW the
+  floor — fail-closed. The number lives in scripts/public-hook-config.ts
+  (PUBLIC_MIN_VERIFIED = 3); there is no flag, the floor is a ruling. It
+  supersedes the 9/21 zero-day rule (same mechanism, floor was 1). Group cuts
+  (verify, allday_pro, allday_free, midday/evening) and record_public never
+  see this gate. Admin → Reels simply shows no public row for that date; the
+  previous public cut stays registered until the next counted day supersedes it.
 
 PRO ROOM SEAL (MKT-90, 2026-10-16) — automatic on the MIDDAY and EVENING PRO
   cuts from the 2026-10-17 run (midday_pro / evening_pro — the two boards only
@@ -121,7 +145,9 @@ own summary computation (scripts/reel-record-stats.ts mirrors
 app/track-record.tsx), over the 30 complete days ending D−1.
 DISPATCH (ruled): BOTH public cuts daily — allday_public keeps its morning
 slot, record_public takes the 7pm slot; verify_public stays registered,
-off the daily schedule. record is LAST in reel:daily's ORDER (additive: an
+off the daily schedule. ⚠ MKT-91 (2026-10-19): allday_public and
+verify_public exist only on a 3-or-more day (PUBLIC RECEIPTS FLOOR); on a
+below-floor morning record_public is the page's only cut. record is LAST in reel:daily's ORDER (additive: an
 abort here never stops a slate kind).
     npm run reel:record                      # render → assemble → publish (stamp = yesterday ET)
     npx tsx scripts/render-record-body.ts <YYYYMMDD> [--parity] [--allow-all-matched]
@@ -1109,6 +1135,6 @@ GOOD TO KNOW
 # "GRADED THE SAME DAY" form with the failing keys in a NOTE (never an abort).
 npx tsx scripts/render-record-body.ts 20260920 --three-row            # Stage 2 three-row body (one row per board, histories re-grade) → record_body_<stamp>_three_row.mp4 + _three_row_feed.png
 npx tsx scripts/assemble-record-reel.ts 20260920 --three-row --preview # Stage 2 preview cut → record_public_<stamp>_three_row_preview.mp4 (+ contact sheet); NON-preview aborts until RECORD_THREE_ROW_FROM is set in record-config.ts
-# ⛔ OPERATOR RULING 9/21 (late): a verify that shows a NO-MATCH day is NEVER posted → never built. `assemble-verification-reel.ts --variant=public` SKIPS (exit 0) when the body's hm_landed is "0 of N"; group verify still registers. The miss-day hook (NO MATCHES / ALL SIX MISSED) was built and removed the same evening — do not re-add.
+# ⛔ OPERATOR RULING 9/21 (late) — SUPERSEDED 2026-10-19 by MKT-91 (floor is now 3 of 6, same SKIP, also on allday_public): a verify that shows a NO-MATCH day is NEVER posted → never built. `assemble-verification-reel.ts --variant=public` SKIPS (exit 0) when the body's hm_landed is "0 of N"; group verify still registers. The miss-day hook (NO MATCHES / ALL SIX MISSED) was built and removed the same evening — do not re-add.
 npx tsx scripts/render-public-hook.ts 20260920 /tmp/hook.mp4 --kind=verify_public  # on an All-Day 0-of-6 day this now renders the process card with NO count tag (the assembler never reaches it on such a day)
 npm run spot-check:draws                                               # CONFIG-19 weekly draw-row sample (not a reel command; listed so the Sunday routine is in one place)

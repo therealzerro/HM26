@@ -1,6 +1,6 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-17 · v7.35
+Content Agent Handoff · 2026-10-19 · v7.36
 ================================================================================
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
@@ -641,6 +641,53 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
       the same August days (August wave: 59% renewed) · Pro comments 0.7/day,
       free comments 4.3/day · page-level views still not held (daily export
       owed). None of it is quotable in copy.
+
+================================================================================
+================================================================================
+================================================================================
+================================================================================
+WHAT CHANGED IN v7.36 (2026-10-19 — operator: "new rule: in the verify
+public and allday public reels, only assemble if yesterdays board if there
+were 3 or more verified signals. 2 or less- do not assemble")
+================================================================================
+  ID: MKT-91 (next free = 92). Engine untouched. Nothing auto-posts.
+
+  THE PUBLIC RECEIPTS FLOOR. The two public cuts — verify_public and
+  allday_public — are the only reels that open on yesterday's All-Day board
+  ("YESTERDAY'S RECEIPTS / YESTERDAY'S BOARD · N of 6 · SIGNALS VERIFIED").
+  From this morning they are BUILT ONLY WHEN N ≥ 3. On a 0-, 1- or 2-of-6
+  day the assembler skips the cut outright:
+    · assemble-verification-reel.ts --variant=public → SKIP, exit 0 (the
+      group verify in the same && chain still publishes);
+    · assemble-allday-reels.ts → the public variant `continue`s past the
+      loop (allday_free / allday_pro build as always; publish-reels is
+      existsSync-filtered and registers two cuts).
+  Either path removes any same-stamp public final first, so a re-run can
+  never publish a below-floor cut. The count is read from the cut's OWN
+  pixels' source of record — verify_public's body tag hm_landed, the
+  allday_public hook card's hm_hook_verified (the card is now rendered
+  before the open decision, classic open included) — never a second
+  computation. No count at all (no-data card, receipts read failed) is
+  below the floor, fail-closed. Shared decision: scripts/public-hook-config.ts
+  PUBLIC_MIN_VERIFIED = 3 + publicReceiptsGate(); no flag — it is a ruling,
+  not a lever. Pinned by __tests__/publicReceiptsGate.test.ts (6 tests).
+
+  WHY: a "2 of 6" card is a weak receipt on a cold feed; the page (tier 1,
+  brand only, de-recommended twice) should carry the board only on days
+  the number sells itself. This generalises the 9/21 zero-day rule (which
+  was a floor of 1 on verify_public alone) to both public kinds at 3.
+
+  WHAT IT MEANS FOR DISPATCH: on a below-floor morning the page's only cut
+  is record_public (7pm slot; its own 30/30 guard is unchanged). The free
+  and Pro rooms see nothing different. Admin → Reels shows no public row for
+  that date; the prior public cut stays registered (keep-current-only
+  supersedes per kind on the next counted day).
+
+  FIRST DAY: 2026-10-19 ran BEFORE the rule (10/18 board = 2 of 6), so
+  verify_public 10/18 and allday_public 10/19 ARE registered this morning;
+  the smoke test afterwards SKIPped both correctly. Posting them is the
+  operator's call. Recent counts: 10/16 = 4 of 6 (would build), 10/17 and
+  10/18 = 2 of 6 (would skip).
 
 ================================================================================
 ================================================================================

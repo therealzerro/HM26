@@ -30,7 +30,7 @@
 //
 // Usage: tsx scripts/assemble-allday-reels.ts [YYYYMMDD] [--scope=…]  (default today ET, allday)
 import { execSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, rmSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { probeAnchorIntro, INTRO_DISSOLVE, INTRO_VO_LEAD } from './reel-intro';
 import { resolveCarrier, carrierRest, OVERLAP_EPSILON, carrierBoundarySlack, BOUNDARY_WARN_AT } from './reel-carrier';
@@ -40,12 +40,12 @@ import { bedWindow, BED_TARGET_RMS, BED_MIX_DB, MAX_BED_CORRECTION, type BedWind
 import { STINGERS, STINGER_DUR, INTRO_XFADE } from './stinger-config';
 import { REEL_SCOPES, parseScopeFlag, parseVariantFlag, positionals, reelKind, bodyFile, captureModeFor, type Variant } from './reel-scopes';
 import { PRO_ROOM_FROM, PRO_ROOM_STAMP_EYEBROW, isSealedKind } from './pro-room-config';
-import { assertBodyDate, assertBodyRedaction, assertBodyPublic, readTriple } from './reel-provenance';
+import { assertBodyDate, assertBodyRedaction, assertBodyPublic, readTriple, readHookCount } from './reel-provenance';
 import { resolveEndcard } from './reel-endcard';
 import { CHIP_LABELS } from './intro-chip-config';
 import {
   HOOK_DUR, HOOK_DISSOLVE, CTA_CUT_KINDS, CTA_BOARD_DUR, CTA_VO_LEAD, CTA_VOICE_DEFAULT, CTA_VOICE_FILES, type CtaVoice,
-  PUBLIC_STAMP_HOOK_FROM, PUBLIC_STAMP_HOOK_EYEBROW,
+  PUBLIC_STAMP_HOOK_FROM, PUBLIC_STAMP_HOOK_EYEBROW, PUBLIC_MIN_VERIFIED, publicReceiptsGate,
 } from './public-hook-config';
 
 const ASSETS = resolve('assets/marketing');
@@ -333,6 +333,31 @@ for (const v of VARIANTS) {
   // below: everything downstream (VO lead, stamp fades, outro) is untouched.
   // Group cuts (pro/free) keep the full open — members open those on purpose.
   // Escape hatch: --classic-open restores the intro+stinger public open.
+  // ⛔ MKT-91 (OPERATOR RULING 2026-10-19) — THE PUBLIC RECEIPTS FLOOR. The
+  // public cut opens on yesterday's All-Day receipts; on a day that board
+  // verified fewer than PUBLIC_MIN_VERIFIED (3) the cut is NOT BUILT. The hook
+  // card is rendered first (classic open included — the card is the count's
+  // source of record, the same number the viewer would see) and its own tag
+  // is read back; a card with no count (no-data / process shape, receipts
+  // fetch failed) is below the floor. This is a SKIP of the variant
+  // (`continue`), never an abort: allday_free / allday_pro in the same loop
+  // must still build, and publish-reels is existsSync-filtered so the chain
+  // registers two cuts instead of three. Any same-stamp public final is
+  // removed so a re-run can never publish a below-floor cut.
+  const publicHook = bodyMode === 'public' ? join(REELS, `_hook_${kind}_${stamp}.mp4`) : null;
+  if (publicHook) {
+    sh(`npx tsx scripts/render-public-hook.ts ${stamp} "${publicHook}"`);
+    const count = readHookCount(publicHook);
+    const gate = publicReceiptsGate(count?.verified ?? null, count?.total ?? null);
+    if (!gate.ok) {
+      for (const stale of [join(REELS, `${kind}_${stamp}.mp4`), join(REELS, `${kind}_${stamp}_contact.png`), join(REELS, `${kind}_${stamp}_1x1.mp4`)]) {
+        if (existsSync(stale)) { rmSync(stale, { force: true }); console.log(`NOTE(${v}): removed stale ${stale} (a below-floor cut must not be published).`); }
+      }
+      console.log(`SKIP(${v}): ${gate.why} — OPERATOR RULING 2026-10-19 (MKT-91): ${kind} is built only on a ${PUBLIC_MIN_VERIFIED}-or-more day. Group cuts continue; no ${kind} today.`);
+      continue;
+    }
+    console.log(`NOTE(${v}): PUBLIC RECEIPTS FLOOR PASS (MKT-91) — ${gate.why}.`);
+  }
   const coldOpen = bodyMode === 'public' && !process.argv.includes('--classic-open');
   // MKT-77: the CTA cut opens on a hook card too — the same machinery, a
   // different card (--kind=cta: fixed copy, tier-2 lint, drop cyan).
@@ -341,7 +366,9 @@ for (const v of VARIANTS) {
   let dissolve = intro ? INTRO_DISSOLVE : OPEN;
   if (hookOpen) {
     const hook = join(REELS, `_hook_${kind}_${stamp}.mp4`);
-    sh(`npx tsx scripts/render-public-hook.ts ${stamp} "${hook}"${ctaCut ? ' --kind=cta' : ''}`);
+    // The public receipts card was already rendered (and read) by the MKT-91
+    // floor above — same file; only the CTA card is rendered here.
+    if (ctaCut) sh(`npx tsx scripts/render-public-hook.ts ${stamp} "${hook}" --kind=cta`);
     intro = { path: hook, dur: HOOK_DUR, label: ctaCut ? 'cold open · covered hook card (MKT-77)' : 'cold open · receipts hook (MKT-66)' };
     dissolve = HOOK_DISSOLVE;
     console.log(`NOTE(${v}): COLD OPEN — board on screen at ${HOOK_DUR}s (was intro + stinger ≈ 8.7s); no anchor intro, no stinger, no shoulder chip.`);

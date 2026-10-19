@@ -113,3 +113,31 @@ export const CTA_HOOK_COPY = {
   big: ['PRO IS READING', 'THESE DIGITS NOW'] as const,
   sub: 'BEFORE THE DRAW · 40+ STATES & PROVINCES',
 };
+
+// MKT-91 (2026-10-19, OPERATOR RULING: "in the verify public and allday public
+// reels, only assemble if yesterday's board had 3 or more verified signals.
+// 2 or less — do not assemble") — THE PUBLIC RECEIPTS FLOOR. The two public
+// kinds open on yesterday's All-Day board ("N of 6 SIGNALS VERIFIED" — the
+// hook card, and verify_public's board segment). A 1-of-6 or 2-of-6 card is a
+// weak receipt on a cold feed, so the page does not get one: the assembler
+// SKIPS (exit 0 / `continue`, never an abort — the group cuts in the same
+// chain must still publish) and removes any same-stamp public final so a
+// re-run can never publish a below-floor cut. Supersedes the 9/21 zero-day
+// rule (floor was effectively 1); that rule's reasoning stands, the number
+// moved. The count is read from the rendered hook card's own tag
+// (hm_hook_verified) — the same number the viewer would have seen — and from
+// verify's body tag (hm_landed); a missing count (no-data card, fetch
+// failure) is BELOW the floor, fail-closed. Group kinds (verify, allday_pro,
+// allday_free, the session cuts) and record_public are untouched. No flag:
+// the floor is a ruling, not a lever — change the number here, re-run.
+export const PUBLIC_MIN_VERIFIED = 3;
+export const PUBLIC_RECEIPTS_GATE_KINDS: readonly string[] = ['verify_public', 'allday_public'];
+/** The floor decision for one public cut. `verified` = yesterday's All-Day
+ *  landed count as the cut would show it, or null when no count exists. */
+export function publicReceiptsGate(verified: number | null | undefined, total?: number | null): { ok: boolean; why: string } {
+  const n = typeof verified === 'number' && Number.isFinite(verified) ? verified : null;
+  const of = typeof total === 'number' && Number.isFinite(total) && total > 0 ? ` of ${total}` : '';
+  if (n === null) return { ok: false, why: `yesterday's All-Day board carries no verified count (no-data card or receipts read failed) — below the floor of ${PUBLIC_MIN_VERIFIED}, fail-closed` };
+  if (n < PUBLIC_MIN_VERIFIED) return { ok: false, why: `yesterday's All-Day board verified ${n}${of} — below the floor of ${PUBLIC_MIN_VERIFIED}` };
+  return { ok: true, why: `yesterday's All-Day board verified ${n}${of} ≥ ${PUBLIC_MIN_VERIFIED}` };
+}

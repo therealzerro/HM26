@@ -210,6 +210,19 @@ export function readStraightState(file: string): string | null {
   }
 }
 
+/** MKT-91: the receipts count a public hook card recorded (hm_hook_verified /
+ *  hm_hook_total, written by render-public-hook only on a counted card), or
+ *  null (no-data / process card, fetch failure, unreadable). */
+export function readHookCount(file: string): { verified: number; total: number } | null {
+  try {
+    const tag = (k: string) => execSync(`ffprobe -v error -show_entries format_tags=${k} -of default=nw=1:nk=1 "${file}"`).toString().trim();
+    const verified = parseInt(tag('hm_hook_verified'), 10), total = parseInt(tag('hm_hook_total'), 10);
+    return Number.isFinite(verified) && Number.isFinite(total) && total > 0 && verified <= total ? { verified, total } : null;
+  } catch {
+    return null;
+  }
+}
+
 /** MKT-75: the "N of M" landed count a verify body recorded for its All-Day
  *  board, or null (pre-MKT-75 body / unreadable). */
 export function readLanded(file: string): { landed: number; total: number } | null {

@@ -2,7 +2,7 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
-## 2026-10-20 — EVENING session (TUESDAY, 42 draws: early-13 $3.25/u · late-29 $7.25/u) — **TWO-STAGE CLOCK — NOT YET PLACED (operator correction ~4:35pm ET: "bets not yet placed"; an earlier "placed" was retracted).** Stage 1 = 6 boxes 1B $19.50 + STRAIGHT 639 1S $3.25 = $22.75, amended below; stage 2 at the 8:24pm readout. Scope: `docs/tuesday_10-20_evening_scope.md` §6. Built BEFORE the 10/20 midday import (due ~4:50pm ET); amend rule below.
+## 2026-10-20 — EVENING session (TUESDAY, 42 draws: early-13 $3.25/u · late-29 $7.25/u) — **TWO-STAGE CLOCK — STAGE 1 PLACED ~4:40pm ET (operator: "placed"): 6 boxes 1B $19.50 + STRAIGHT 639 1S $3.25 = $22.75** (amended set list below — {2,6,8} in for {4,6,9}); stage 2 at the 8:24pm readout. Scope: `docs/tuesday_10-20_evening_scope.md` §6. Built BEFORE the 10/20 midday import (due ~4:50pm ET); amend rule below.
 
 Slate basis: 10/20 K6 (workflow 12:36 UTC). Snapshot orders as stored: Evening 639 / 320 / 604 / 824 / 694 / 634; All-Day 286 / 604 / 831 / 369 / 824 / 694; Midday 587 / 682 / 706 / 657 / 581 / 813. Same posted order on Eve + All-Day: 604, 824, 694 (convergence tested flat 10/20 — chooses which, not the rate).
 

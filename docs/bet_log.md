@@ -2,6 +2,37 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
+## 2026-10-18 — EVENING session (SUNDAY: TX ×2 + WV dark → early pool 11 draws $2.75/unit; late pool 28 draws $7.00/unit) — 10/18 midday IMPORTED (27 rows; TN/TX/SC/AR midday-dark) — **EARLY-11 POOL PLACED (operator: "placed all three at 3B"): BOX {3,6,7} 3B ($8.25) + BOX {0,6,7} 3B ($8.25) + BOX {2,4,5} 3B ($8.25) = $24.75.** Cutoff 7:46pm ET, results ~8:24pm ET. Scope doc: `docs/sunday_10-18_early_scope.md`.
+
+Slate basis: 10/18 K6 (workflow run 9:07am ET). Snapshot orders as stored: Evening 985 / 352 / 524 / 763 / 760 / 839; All-Day 352 / 736 / 750 / 286 / 536 / 760; Midday 563 / 736 / 057 / 532 / 286 / 732. Midday 10/18: {2,3,5} drew NJ 235 (Eve 2 + AD 1 + Mid 4 — closed by convention); {2,3,7} drew IA 237 (Mid 6).
+
+| Pool | Instrument | Play | Why | Cost at 3B |
+|---|---|---|---|---|
+| Early-11 ($2.75/u) | BOX | **{3,6,7}** | triple board (Eve 4 / AD 2 / Mid 2) + DI #1 Evening and All-Day; last early 10/13 | $8.25 |
+| Early-11 | BOX | **{0,6,7}** | Eve 5 + AD 6; #24 overall 90d; Sunday-early leader (8, small-sample tie-break); last early 10/14 | $8.25 |
+| Early-11 | BOX | **{2,4,5}** | Eve 3; #6 overall 90d (50); last early 10/13 | $8.25 |
+
+Rates fair-draw (early pool measured fair, 1,888 unambiguous draws; every selector tested flat): 6.4% per set on 11 draws; ≥1 of 3 = 18.0%; ≥2 = 1.2%. One box landing at 3B returns $112.50. Expected ≈ −$2.50 at 90% RTP. Ride ledger: all three open day 1 (10/18). Reconcile after the 10/19 import — early-pool rows only (PA SC ME,NH,VT GA TN MI MN DE OH AR DC; check draw time on any GA/DC match).
+
+### Early-11 STRAIGHT add — PROPOSED, NOT PLACED
+| Instrument | Play | Why | Cost |
+|---|---|---|---|
+| STRAIGHT (early-11, $2.75/u) | **763** {3,6,7} | Evening posted order on the triple-board set already boxed; 763 leads the set's early-pool orders (5 of 22 full history) and all-draw 90d orders (10); sits on top of the {3,6,7} box so an exact hit pays both ($225 + $37.50 per unit) | 2S = $5.50 |
+
+Fair-draw on 11: exact 1.1% (order edge measured zero, 16.6% vs 16.7% chance). Alternate: 389 {3,8,9} (strongest early-order lead, 8 of 16, but the set is not on the early ticket and 389 ≠ the Eve posted order 839).
+
+### Late-pool ticket (28 draws, $7.00/u) — PROPOSED, NOT PLACED — `docs/sunday_10-18_late_scope.md`
+| Instrument | Play | Why | Cost at 2S / 3B |
+|---|---|---|---|
+| STRAIGHT | **524** {2,4,5} | Eve 3; #6 overall 90d; posted order 524 = leading late order (11/39). Amend at 8:24 if {2,4,5} lands early → **750** {0,5,7} | 2S = $14.00 |
+| BOX | **{3,8,9}** | Eve 6; late-90d #4 / late-full #3; orders scattered → box; last late 10/12 | 3B = $21.00 |
+
+Fair-draw on 28: box 15.5%, straight 2.8%, anything 17.8%. Expected ≈ −$3.50 at 90% RTP. Carry early→late flat (0.956×); no amend except the convention swap above.
+
+### 10/17 late-pool scope reconciled (NOT placed): {2,8,9} drew **LA 289** in the late pool (10:25pm) — would have landed; 736 did not draw. $0.
+
+### 10/18 RECONCILED (10/19 import, 41 evening rows — IA missing): early-11 ticket **blank −$24.75** ({3,6,7} / {0,6,7} / {2,4,5} absent from PA SC ME,NH,VT GA TN MI MN DE OH AR DC). Late-28 proposal (not placed) blank. Boards at the evening: Eve 0/6, All-Day 1/6 ({3,5,6} ×2 KS 356 / AZ 653), Mid 1/6. **10/19 (no ticket logged):** ride day 2 — {3,8,9} drew NJ 398 (late), {3,6,7} drew GA 673 (early/night ambiguous), {0,5,7} (amend alt) drew NC 075; {2,4,5} closed at 10/19 midday. Running total 10/18 placed: −$24.75. See `docs/tuesday_10-20_evening_scope.md`.
+
 ## 2026-09-16 — EVENING session (Wednesday full board 42 draws → $10.50/unit; early-13 pool $3.25/unit; late-29 $7.25/unit) — 9/16 midday IMPORTED (33 rows, 31 jurisdictions; hit-detection ran, 1 hit stamped) — **PLACED ~afternoon ET (operator: "placed at 2S — quad plus the main ticket"): main ticket full board 637 2S ($21.00) + {2,4,9} 3B ($31.50), early-13 637 2S ($6.50) + {3,6,7} 3B ($9.75) = $68.75; early-13 STRAIGHT quad 681 / 924 / 105 / 113 at 2S = $26.00. TOTAL STAKED $94.75** (if the main-ticket boxes were also 2 units: main $55.00, total $81.00 — operator to correct)
 
 Slate basis: 9/16 K6 (workflow run 9:20am ET, engine v2.1). Snapshot orders as stored: All-Day K6 = 136 / 125 / 681 / 249 / 736 / 460; Evening K6 = 681 / 924 / 754 / 637 / 105 / 315; Midday K6 = 316 / 206 / 267 / 315 / 615 / 742. All 18 slots singles. Cross-scope tonight: **{1,6,8} = Eve pos 1 (681, overdue ds 8) + All-Day pos 3 (681) + Mid DI #1 (618, six perms 1/6/7/11/16/27) + All-Day DI 2/4/16 + Eve DI 3/6/15/17 — the only set on two K6 boards AND all three DI top-30s**; **{3,6,7} = Eve pos 4 (637) + All-Day pos 5 (736) + Eve DI #1 (six perms 1/2/4/5/8/9, energy 100) + All-Day DI 5/6/20/22/24 + Mid DI 5/18/19/23/26/30**; **{2,4,9} = Eve pos 2 (924) + All-Day pos 4 (249) + All-Day DI 3/18/23 + Eve DI 11/13**; {1,3,6} = All-Day pos 1 (136, overdue ds 28) + Mid pos 1 (316, overdue ds 31), All-Day DI 1/9/11 — no evening presence (overdue is flat, COHORT-01: texture); {1,3,5} = Eve pos 6 + Mid pos 4 (Eve DI 16/18). 3-day block scan (9/13–9/15, all sessions): {1,6,8} last 9/9, {3,6,7} last 9/11, {2,4,9} last 9/11, {1,3,6} last 8/19 — all clear. Blocked (drew 9/12–9/15): {0,5,8} ×4, {0,4,8} ×5, {6,7,8} ×5, {0,1,4} ×4, {1,3,7} ×4, {2,6,8} ×4, {2,5,7} ×3, {3,4,9} ×3 among others — none on tonight's boards.

@@ -76,3 +76,25 @@ All eight clear of the 3-day block (10/17–10/19, all sessions). **Amend after 
 - IA evening row missing again 10/18 (41-row night); 10/19 has IA (528). Fill 10/15–10/18 on a future import.
 - GA/DC/TX evening vs night rows share a label and a `created_at`; pool membership of GA 673 on 10/19 cannot be recovered from the stored row.
 - Reconcile after the 10/21 import. Only mark PLACED on the operator's word.
+
+---
+
+## 6. Free-rein plan (operator: "do your own thinking, create your own style") — TWO-STAGE CLOCK, $55.75 max
+
+Principle: the draws are fair (every pool, every selector, every carry measured at the null), so the expected loss is 10% of whatever is staked and no pick changes it. The one thing in this game that is NOT fair-draw is the clock: the early-13 pays out at ~8:24pm and the late-29 cannot be bet until 8:45. That gap turns one $60 bet into a sequential decision. Stage 1 is sized so that a single hit locks a positive night; stage 2 is sized by what stage 1 did.
+
+**Stage 1 — early-13 (cutoff 7:46pm), $19.50:** box the whole Evening board at 1 unit each ($3.25/u): {3,6,9} {0,2,3} {0,4,6} {2,4,8} {4,6,9} {3,4,6}. 13 draws × 6 sets: P(≥1 hit) **37.4%**, P(≥2) 7.9%. One hit = +$37.50 → stage 1 nets **+$18.00**.
+
+**Stage 2, decided 8:24–8:45pm:**
+
+| Stage 1 result | Stage 2 | Night outcomes |
+|---|---|---|
+| **1 hit** (+$18.00) | PRESS: straight **824** 2S late-29 = $14.50 (house money) | blank → **+$3.50**; exact → **+$453.50** (2.9%) |
+| **2+ hits** (+$55.50) | PRESS: 824 2S ($14.50) + {2,4,8} box 2B ($14.50) | blank → +$26.50; box → +$101.50; exact → +$476.50 |
+| **blank** (−$19.50) | 4 boxes 1B late-29 ($29.00) + 824 straight 1S ($7.25) = $36.25: {2,4,8} {4,6,9} {3,6,9} {0,2,3} | 0 hits → **−$55.75** (42%); 1 box → −$18.25 (37%); 2 boxes → +$19.25; exact 824 → +$169.25 or better |
+
+Whole plan: **P(night positive) ≈ 49%** (37.4% from stage 1 alone, plus 0.626 × ~18% from the blank branch); P(worst case −$55.75) ≈ 26%; expected ≈ −$5. Compare the operator-style ticket in §4: 25.5% positive, 74.5% blank at −$52.50, expected ≈ −$5.25. Same expectation, different shape: this plan wins small often and keeps a straight on the table every night; §4 waits for the big one.
+
+Why these sets and no others: with fair draws the six sets can only be chosen by convention, so they are the six the room sees (the Evening board), all clear of the 3-day block, singles only (a double halves the hit count in a plan that needs hits, and pays the same per dollar). The late four drop {0,4,6} and {3,4,6} — the two with the thinnest late-pool footprint (8 and 12 in 90d, tie-break only). 824 is the straight because it is the posted order on two boards; 842 (the most-drawn order, 10 of 42) is equally good.
+
+Amend after the 10/20 midday import: an Evening-board set drawing at midday closes that leg by convention — replace it with {2,6,8} (All-Day 1 + Mid 2) at the same unit. Reconcile after the 10/21 import; only mark PLACED on the operator's word.

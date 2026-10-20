@@ -2,20 +2,20 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
-## 2026-10-20 — EVENING session (TUESDAY, 42 draws: early-13 $3.25/u · late-29 $7.25/u) — **TWO-STAGE CLOCK — STAGE 1 PLACED ~4:30pm ET (operator: "placed all 6 boxes and 639 at 1 unit"): 6 boxes 1B $19.50 + STRAIGHT 639 1S $3.25 = $22.75.** Stage 2 pending the 8:24pm readout. Scope: `docs/tuesday_10-20_evening_scope.md` §6. Built BEFORE the 10/20 midday import (due ~4:50pm ET); amend rule below.
+## 2026-10-20 — EVENING session (TUESDAY, 42 draws: early-13 $3.25/u · late-29 $7.25/u) — **TWO-STAGE CLOCK — NOT YET PLACED (operator correction ~4:35pm ET: "bets not yet placed"; an earlier "placed" was retracted).** Stage 1 = 6 boxes 1B $19.50 + STRAIGHT 639 1S $3.25 = $22.75, amended below; stage 2 at the 8:24pm readout. Scope: `docs/tuesday_10-20_evening_scope.md` §6. Built BEFORE the 10/20 midday import (due ~4:50pm ET); amend rule below.
 
 Slate basis: 10/20 K6 (workflow 12:36 UTC). Snapshot orders as stored: Evening 639 / 320 / 604 / 824 / 694 / 634; All-Day 286 / 604 / 831 / 369 / 824 / 694; Midday 587 / 682 / 706 / 657 / 581 / 813. Same posted order on Eve + All-Day: 604, 824, 694 (convergence tested flat 10/20 — chooses which, not the rate).
 
 | Stage | Pool | Instrument | Play | Cost |
 |---|---|---|---|---|
-| 1 (in by 7:46pm, readout ~8:24pm) | Early-13 ($3.25/u) | BOX ×6 at 1B | {3,6,9} {0,2,3} {0,4,6} {2,4,8} {4,6,9} {3,4,6} — the whole Evening board | **$19.50** |
+| 1 (in by 7:46pm, readout ~8:24pm) | Early-13 ($3.25/u) | BOX ×6 at 1B | {3,6,9} {0,2,3} {0,4,6} {2,4,8} **{2,6,8}** {3,4,6} — the Evening board with {4,6,9} swapped out after it drew at midday (MI 964), {2,6,8} in (AD 1 + Mid 2) | **$19.50** |
 | 2a — stage 1 ONE hit (+$18.00) | Late-29 ($7.25/u) | STRAIGHT 2S | **824** | $14.50 (night floor +$3.50) |
 | 2b — stage 1 TWO+ hits (+$55.50) | Late-29 | STRAIGHT 2S + BOX 2B | 824 + {2,4,8} | $29.00 (floor +$26.50) |
 | 2c — stage 1 BLANK (−$19.50) | Late-29 | BOX ×4 at 1B + STRAIGHT 1S | {2,4,8} {4,6,9} {3,6,9} {0,2,3} + 824 | $36.25 (max night −$55.75) |
 
-| 1 add | Early-13 | STRAIGHT 1S | **639** ({3,6,9} — Eve 1 + AD 4; 639 = most-drawn evening order of the set, 8/26 in 90d; stacks on the {3,6,9} box) | $3.25 (PLACED) |
+| 1 add | Early-13 | STRAIGHT 1S | **639** ({3,6,9} — Eve 1 + AD 4; 639 = most-drawn evening order of the set, 8/26 in 90d; stacks on the {3,6,9} box) | $3.25 |
 
-**10/20 MIDDAY RECONCILED (imported ~4:20pm ET, 33 rows; graded 4:24pm):** Midday board **581 STRAIGHT at TX** (rank 5); All-Day **694 box at MI 964** (rank 6). Of the six stage-1 sets, **{4,6,9} drew at midday (MI 964)** — already placed on the early-13, so the leg stands as bought; **by convention it is dropped from stage-2 branch 2c and replaced with {2,6,8}** (All-Day 1 + Mid 2, last drawn 10/13, clear). Branch 2c is now: {2,4,8} {3,6,9} {0,2,3} {2,6,8} at 1B + 824 1S = $36.25. No other ticket set drew at midday. Carry measured flat (0.978×) — this is convention, not information.
+**10/20 MIDDAY RECONCILED (imported ~4:20pm ET, 33 rows; graded 4:24pm):** Midday board **581 STRAIGHT at TX** (rank 5); All-Day **694 box at MI 964** (rank 6). Of the six stage-1 sets, **{4,6,9} drew at midday (MI 964)** — nothing placed yet, so **by convention it is dropped from BOTH stage 1 and stage-2 branch 2c and replaced with {2,6,8}** (All-Day 1 + Mid 2, last drawn 10/13, clear). Branch 2c is now: {2,4,8} {3,6,9} {0,2,3} {2,6,8} at 1B + 824 1S = $36.25. No other ticket set drew at midday. Carry measured flat (0.978×) — this is convention, not information.
 
 Rates fair-draw: stage 1 P(≥1 hit) 37.4%; whole plan P(night positive) ≈ 49%; expected ≈ −$5 at 90% RTP. Amend after the 10/20 midday import: an Evening-board set drawing at midday closes that leg by convention → replace with {2,6,8} at the same unit. Ride ledger: boxes are one-night at 1B; 824 / {2,4,8} open day 1 if stage 2 is placed. Mark each stage PLACED only on the operator's word; reconcile early rows at the 8:24 readout, late rows after the 10/21 import.
 

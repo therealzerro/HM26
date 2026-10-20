@@ -2,6 +2,19 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
+## 2026-10-20 — EVENING session (TUESDAY, 42 draws: early-13 $3.25/u · late-29 $7.25/u) — **TWO-STAGE CLOCK — operator chose it 10/20 ~2:50pm ET ("lets do the 2 stage clock"); NOT YET PLACED.** Scope: `docs/tuesday_10-20_evening_scope.md` §6. Built BEFORE the 10/20 midday import (due ~4:50pm ET); amend rule below.
+
+Slate basis: 10/20 K6 (workflow 12:36 UTC). Snapshot orders as stored: Evening 639 / 320 / 604 / 824 / 694 / 634; All-Day 286 / 604 / 831 / 369 / 824 / 694; Midday 587 / 682 / 706 / 657 / 581 / 813. Same posted order on Eve + All-Day: 604, 824, 694 (convergence tested flat 10/20 — chooses which, not the rate).
+
+| Stage | Pool | Instrument | Play | Cost |
+|---|---|---|---|---|
+| 1 (in by 7:46pm, readout ~8:24pm) | Early-13 ($3.25/u) | BOX ×6 at 1B | {3,6,9} {0,2,3} {0,4,6} {2,4,8} {4,6,9} {3,4,6} — the whole Evening board | **$19.50** |
+| 2a — stage 1 ONE hit (+$18.00) | Late-29 ($7.25/u) | STRAIGHT 2S | **824** | $14.50 (night floor +$3.50) |
+| 2b — stage 1 TWO+ hits (+$55.50) | Late-29 | STRAIGHT 2S + BOX 2B | 824 + {2,4,8} | $29.00 (floor +$26.50) |
+| 2c — stage 1 BLANK (−$19.50) | Late-29 | BOX ×4 at 1B + STRAIGHT 1S | {2,4,8} {4,6,9} {3,6,9} {0,2,3} + 824 | $36.25 (max night −$55.75) |
+
+Rates fair-draw: stage 1 P(≥1 hit) 37.4%; whole plan P(night positive) ≈ 49%; expected ≈ −$5 at 90% RTP. Amend after the 10/20 midday import: an Evening-board set drawing at midday closes that leg by convention → replace with {2,6,8} at the same unit. Ride ledger: boxes are one-night at 1B; 824 / {2,4,8} open day 1 if stage 2 is placed. Mark each stage PLACED only on the operator's word; reconcile early rows at the 8:24 readout, late rows after the 10/21 import.
+
 ## 2026-10-18 — EVENING session (SUNDAY: TX ×2 + WV dark → early pool 11 draws $2.75/unit; late pool 28 draws $7.00/unit) — 10/18 midday IMPORTED (27 rows; TN/TX/SC/AR midday-dark) — **EARLY-11 POOL PLACED (operator: "placed all three at 3B"): BOX {3,6,7} 3B ($8.25) + BOX {0,6,7} 3B ($8.25) + BOX {2,4,5} 3B ($8.25) = $24.75.** Cutoff 7:46pm ET, results ~8:24pm ET. Scope doc: `docs/sunday_10-18_early_scope.md`.
 
 Slate basis: 10/18 K6 (workflow run 9:07am ET). Snapshot orders as stored: Evening 985 / 352 / 524 / 763 / 760 / 839; All-Day 352 / 736 / 750 / 286 / 536 / 760; Midday 563 / 736 / 057 / 532 / 286 / 732. Midday 10/18: {2,3,5} drew NJ 235 (Eve 2 + AD 1 + Mid 4 — closed by convention); {2,3,7} drew IA 237 (Mid 6).

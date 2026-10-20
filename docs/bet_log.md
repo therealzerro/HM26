@@ -15,6 +15,16 @@ Slate basis: 10/20 K6 (workflow 12:36 UTC). Snapshot orders as stored: Evening 6
 
 | 1 add | Early-13 | STRAIGHT 1S | **639** ({3,6,9} — Eve 1 + AD 4; 639 = most-drawn evening order of the set, 8/26 in 90d; stacks on the {3,6,9} box) | $3.25 |
 
+### Stage 1 ADD — +$35 early-13 budget (operator ~4:50pm ET) — PROPOSED, NOT PLACED — $32.50
+Method: with the six singles at 1B a hit pays $37.50 against a $55.25 stage-1 stake — not positive. Two instruments fix that: (i) lift all six singles to 2B (+$19.50) so any box hit pays $75; (ii) four DOUBLES at 1B (+$13.00) — a double box pays $75/unit (300:1 assumed; CONFIRM at the book — if doubles pay 150:1 replace them with singles {1,3,8} {1,5,9} {1,4,7} {5,7,8} at 1B). Doubles chosen by pair-carry from tonight's eight board sets (pair 4-6 in three sets, 3-6 / 6-9 / 2-4 in two), doubled digit = the more board-present digit, 3-day block applied ({2,2,8} {2,8,8} {3,3,6} {6,9,9} {4,4,8} {4,8,8} {2,4,4} all drew 10/17–10/20).
+
+| Instrument | Play | Cost |
+|---|---|---|
+| BOX +1B on each placed single | {3,6,9} {0,2,3} {0,4,6} {2,4,8} {2,6,8} {3,4,6} → 2B each | $19.50 |
+| BOX 1B doubles | **{4,6,6} {3,6,6} {6,6,9} {2,2,4}** | $13.00 |
+
+Stage 1 total if placed: $55.25 (6 singles 2B + 4 doubles 1B + 639 1S). Fair-draw on 13: any single-set hit 37.4% (+$19.75), any double hit 14.4% (+$19.75), 639 exact 1.3% (+$244.75); **P(stage 1 positive) ≈ 47%**. Stage 2 unchanged in shape: hit → press 824 2S ($14.50, floor +$5.25); blank → {2,4,8} {3,6,9} {0,2,3} {2,6,8} 1B + 824 1S ($36.25; worst night −$91.50 on the $95 budget).
+
 **10/20 MIDDAY RECONCILED (imported ~4:20pm ET, 33 rows; graded 4:24pm):** Midday board **581 STRAIGHT at TX** (rank 5); All-Day **694 box at MI 964** (rank 6). Of the six stage-1 sets, **{4,6,9} drew at midday (MI 964)** — nothing placed yet, so **by convention it is dropped from BOTH stage 1 and stage-2 branch 2c and replaced with {2,6,8}** (All-Day 1 + Mid 2, last drawn 10/13, clear). Branch 2c is now: {2,4,8} {3,6,9} {0,2,3} {2,6,8} at 1B + 824 1S = $36.25. No other ticket set drew at midday. Carry measured flat (0.978×) — this is convention, not information.
 
 Rates fair-draw: stage 1 P(≥1 hit) 37.4%; whole plan P(night positive) ≈ 49%; expected ≈ −$5 at 90% RTP. Amend after the 10/20 midday import: an Evening-board set drawing at midday closes that leg by convention → replace with {2,6,8} at the same unit. Ride ledger: boxes are one-night at 1B; 824 / {2,4,8} open day 1 if stage 2 is placed. Mark each stage PLACED only on the operator's word; reconcile early rows at the 8:24 readout, late rows after the 10/21 import.

@@ -98,3 +98,18 @@ Whole plan: **P(night positive) ≈ 49%** (37.4% from stage 1 alone, plus 0.626 
 Why these sets and no others: with fair draws the six sets can only be chosen by convention, so they are the six the room sees (the Evening board), all clear of the 3-day block, singles only (a double halves the hit count in a plan that needs hits, and pays the same per dollar). The late four drop {0,4,6} and {3,4,6} — the two with the thinnest late-pool footprint (8 and 12 in 90d, tie-break only). 824 is the straight because it is the posted order on two boards; 842 (the most-drawn order, 10 of 42) is equally good.
 
 Amend after the 10/20 midday import: an Evening-board set drawing at midday closes that leg by convention — replace it with {2,6,8} (All-Day 1 + Mid 2) at the same unit. Reconcile after the 10/21 import; only mark PLACED on the operator's word.
+
+## 7. Pair data, tested directly (operator asked 10/20 ~3pm: "are we not utilizing our pair data?")
+
+Walk-forward on `histories` 4/1 → 10/19 (14,210 rows), expectation computed over the uniform 1,000-combo universe for each night's actual pair set:
+
+| Test | Obs | Exp | Ratio | z |
+|---|---|---|---|---|
+| Trailing-90d top-5 pairs → tonight's evening draw contains one | 1,102 | 1,118.7 | 0.985 | −0.57 |
+| Trailing-90d top-10 pairs → same | 2,012 | 1,985.3 | 1.013 | +0.79 |
+| Pairs drawn 2+ times at TODAY's midday → tonight's evening | 6,451 | 6,474.1 | 0.996 | −0.65 |
+| Pairs drawn 2+ times LAST evening → tonight | 7,202 | 7,175.6 | 1.004 | +0.94 |
+| Pair-score selector: top-6 sets by summed 90d pair counts → evening box hits (111 nights) | 176 | 166.5 | 1.057 | +0.75 |
+| Same-day midday SET → evening (sanity) | 1,176 | 1,203.1 | 0.978 | −0.85 |
+
+Pair data carries nothing an evening ticket can use: trailing pair frequency, same-day midday pair repeats, last-night pair repeats and a pair-score set selector all sit inside ±1z of fair draw. The engine already consumes pair data (PBURST + CO signals) and lands at AUC 0.50 for the same reason. The midday import therefore changes the ticket only by convention (close a leg that drew), not by information.

@@ -25,6 +25,17 @@ Method: with the six singles at 1B a hit pays $37.50 against a $55.25 stage-1 st
 
 Stage 1 total if placed: $55.25 (6 singles 2B + 4 doubles 1B + 639 1S). Fair-draw on 13: any single-set hit 37.4% (+$19.75), any double hit 14.4% (+$19.75), 639 exact 1.3% (+$244.75); **P(stage 1 positive) ≈ 47%**. Stage 2 unchanged in shape: hit → press 824 2S ($14.50, floor +$5.25); blank → {2,4,8} {3,6,9} {0,2,3} {2,6,8} 1B + 824 1S ($36.25; worst night −$91.50 on the $95 budget).
 
+**10/20 EARLY-13 RECONCILED at the 8:24 readout (operator paste; 13 draws complete, Tri-State 789 ×1, MD 605 excluded):** AR 780 · DE **634** · GA 144 · Tri-State 789 · MI 106 · MN 453 · OH 091 · PA 156 · SC 623 · TN 400 · TX 402 · DC 209 · WV 576. **Stage 1 = ONE hit: {3,4,6} boxed at DE 634** (Eve pos 6, 1B → $37.50). 639 straight blank; {3,6,9} {0,2,3} {0,4,6} {2,4,8} {2,6,8} blank. **Stage 1 net +$14.75** on $22.75 (if the +$35 ADD was placed: {3,4,6} at 2B = $75.00, no double drew → net +$19.75 on $55.25). Leg {3,4,6} CLOSED by hit. 3-day block re-scan 10/17–10/20 on the live sets: only {4,6,9} drew (10/20 midday) — {2,4,8} {3,6,9} {0,2,3} {2,6,8} {0,4,6} {1,3,8} all clear and absent from tonight's early pool.
+
+### Stage 2 — late-29 ($7.25/u), operator budget $80 → 11 units = $79.75 — PROPOSED, NOT PLACED (operator widened branch 2a from $14.50 to $80)
+| Instrument | Play | Why | Cost |
+|---|---|---|---|
+| STRAIGHT 3S | **824** {2,4,8} | the plan's press pick; same posted order Eve 4 + AD 5 (convergence chooses which, not the rate); sits on the {2,4,8} box so an exact pays both | $21.75 |
+| BOX 4B | **{2,4,8}** | Eve 4 + AD 5; clear since before 10/17 | $29.00 |
+| BOX 4B | **{3,6,9}** | Eve 1 + AD 4; stage-1 box did not land early — the late 29 are fresh draws (carry flat); clear | $29.00 |
+
+Fair-draw on 29: 16.0% per box set, 2.9% per straight. P(≥1 of the two boxes) 29.4%; both 2.6%. Night (with stage 1 at +$14.75): stage 2 blank → **−$65.00** (≈70%); one box → **+$85.00**; both boxes → +$235.00; 824 exact → **+$760.00**. Expected ≈ −$8 at 90% RTP. Alternates stated: all-in {2,4,8} (824 4S + {2,4,8} 7B, 16.0%, box → +$197.25); or coverage (six live boxes 1B + 824 3S + {2,4,8}/{3,6,9} 2B, ≥1 box 65% but one 1B hit still loses net). Ride ledger if placed: {2,4,8} and {3,6,9} open day 1 (10/20). Reconcile late rows after the 10/21 import; mark PLACED only on the operator's word.
+
 **10/20 MIDDAY RECONCILED (imported ~4:20pm ET, 33 rows; graded 4:24pm):** Midday board **581 STRAIGHT at TX** (rank 5); All-Day **694 box at MI 964** (rank 6). Of the six stage-1 sets, **{4,6,9} drew at midday (MI 964)** — nothing placed yet, so **by convention it is dropped from BOTH stage 1 and stage-2 branch 2c and replaced with {2,6,8}** (All-Day 1 + Mid 2, last drawn 10/13, clear). Branch 2c is now: {2,4,8} {3,6,9} {0,2,3} {2,6,8} at 1B + 824 1S = $36.25. No other ticket set drew at midday. Carry measured flat (0.978×) — this is convention, not information.
 
 Rates fair-draw: stage 1 P(≥1 hit) 37.4%; whole plan P(night positive) ≈ 49%; expected ≈ −$5 at 90% RTP. Amend after the 10/20 midday import: an Evening-board set drawing at midday closes that leg by convention → replace with {2,6,8} at the same unit. Ride ledger: boxes are one-night at 1B; 824 / {2,4,8} open day 1 if stage 2 is placed. Mark each stage PLACED only on the operator's word; reconcile early rows at the 8:24 readout, late rows after the 10/21 import.

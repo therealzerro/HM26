@@ -2,6 +2,21 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
+## 2026-10-22 — EVENING session (THURSDAY, 42 draws: early-13 $3.25/u · late-29 $7.25/u) — **TWO-STAGE CLOCK, $60 cap — PROPOSED, NOT PLACED.** Scope: `docs/thursday_10-22_evening_scope.md`. Built ~5:45pm ET AFTER the 10/22 midday import (33 rows; Mid 458 box SC 584, AD 408 STRAIGHT ON; {0,4,8} {4,5,8} closed by convention; no Evening-board set drew).
+
+Slate basis: 10/22 K6 (workflow 10:18 UTC). Snapshot orders as stored: Evening 076 / 046 / 650 / 916 / 410 / 753; All-Day 076 / 046 / 975 / 408 / 753 / 253; Midday 187 / 146 / 753 / 824 / 458 / 253. **753 on all three boards, same order** (convergence chooses which, not the rate).
+
+| Stage | Pool | Instrument | Play | Cost |
+|---|---|---|---|---|
+| 1 (in by 7:46pm, readout ~8:24pm) | Early-13 ($3.25/u) | BOX ×6 at 1B + STRAIGHT 1S | {0,6,7} {0,4,6} {0,5,6} {1,6,9} {0,1,4} {3,5,7} + **753** | **$22.75** |
+| 2a — stage 1 ONE hit (+$14.75) | Late-29 ($7.25/u) | STRAIGHT 1S + BOX 1B | 753 + {3,5,7} | $14.50 (floor +$0.25) |
+| 2b — stage 1 TWO+ hits (+$55.50) | Late-29 | STRAIGHT 2S + BOX 1B + BOX 1B | 753 + {3,5,7} + {2,4,8} | $29.00 (floor +$26.50) |
+| 2c — stage 1 BLANK (−$22.75) | Late-29 | BOX ×4 at 1B + STRAIGHT 1S | {2,4,8} {3,5,7} {1,6,9} {0,1,4} + 753 | $36.25 (max night −$59.00) |
+
+Fair-draw: stage 1 P(≥1 box) 37.4%; whole plan P(night positive) ≈ 46%; expected ≈ −$5.50 at 90% RTP; max at risk $59.00. Amend at 8:24: a landed stage-1 box is closed (not re-boxed late); if {3,5,7} lands early the late straight becomes 842 + {2,4,8} box. Ride ledger: **{2,4,8} day 3 FINAL tonight** (opened 10/20 stage 2; absent 10/21 mid/eve + 10/22 mid); **{3,6,9} CLOSED 10/22 midday (VA 963)**; {3,4,6} closed by hit 10/20. Reconcile early rows at the readout, late rows after the 10/23 import; only mark PLACED on the operator's word.
+
+### 10/20 STAGE 2 RECONCILED (10/21 import, 42 evening rows): **824 3S + {2,4,8} 4B + {3,6,9} 4B all blank → −$79.75** (nearest: VA 839 {3,8,9}; AZ 024 / TX 402 {0,2,4}). **10/20 night net −$65.00** on $102.50 staked. Boards 10/20 at the evening: Eve 1/6 ({3,4,6} DE 634), All-Day 0/6. **10/21 (no scope): Eve 0/6, All-Day 0/6 at the evening**; ride day 2 {2,4,8} / {3,6,9} both absent (not known to be placed). Running total 10/18 + 10/20 placed: −$89.75.
+
 ## 2026-10-20 — EVENING session (TUESDAY, 42 draws: early-13 $3.25/u · late-29 $7.25/u) — **TWO-STAGE CLOCK — STAGE 1 PLACED ~4:40pm ET (operator: "placed"): 6 boxes 1B $19.50 + STRAIGHT 639 1S $3.25 = $22.75** (amended set list below — {2,6,8} in for {4,6,9}); stage 2 at the 8:24pm readout. Scope: `docs/tuesday_10-20_evening_scope.md` §6. Built BEFORE the 10/20 midday import (due ~4:50pm ET); amend rule below.
 
 Slate basis: 10/20 K6 (workflow 12:36 UTC). Snapshot orders as stored: Evening 639 / 320 / 604 / 824 / 694 / 634; All-Day 286 / 604 / 831 / 369 / 824 / 694; Midday 587 / 682 / 706 / 657 / 581 / 813. Same posted order on Eve + All-Day: 604, 824, 694 (convergence tested flat 10/20 — chooses which, not the rate).

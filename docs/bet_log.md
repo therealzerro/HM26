@@ -2,6 +2,19 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
+## 2026-10-23 — ALL OF TODAY'S DRAWINGS (FRIDAY: midday 33 + evening 42 = 75 draws → $18.75/unit full day; midday-only $8.25/u, evening-only $10.50/u) — **1 STRAIGHT + 1 BOX — PROPOSED, NOT PLACED.** Built ~9:50am ET, BEFORE the 10/23 midday draws, from the 10/23 K6 (workflow 12:33 UTC).
+
+Snapshot posted orders: All-Day 628 / 640 / 824 / 397 / 352 / 410; Evening 460 / 824 / 793 / 916 / 410 / 416; Midday 614 / 482 / 865 / 268 / 253 / 705. **{2,4,8} on all three boards** (824 same posted order on All-Day 3 + Evening 2; Midday 2 = 482). {0,1,4} same order 410 on All-Day 6 + Evening 5. {2,6,8} = All-Day 1 + Midday 4, DI #1 on both scopes (six perms). 3-day block scan 10/20–10/22: none of the ten board sets drew — all clear. Ride ledger going in: EMPTY ({2,4,8} day 3 FINAL expired 10/22 unhit; {3,6,9} closed 10/22 midday; 10/22 clock never placed).
+
+| Instrument | Play | Why | Per unit (75 draws) | Operator sizing |
+|---|---|---|---|---|
+| STRAIGHT | **824** {2,4,8} | triple-board set; 824 is the posted order on two boards (convergence chooses which, not the rate); last drawn 10/16; 90d 57 draws (tied #1, tie-break only); orders 842:14 862:— 428:10 248:10 284:8 482:8 824:7 | $18.75 | 2S = $37.50 |
+| BOX | **{2,6,8}** | All-Day rank 1 (628) + Midday rank 4 (268), DI #1 on both; 10 draws since 10/13; touches the Midday board where the straight does not | $18.75 | 3B = $56.25 |
+
+Full-day 2S + 3B = **$93.75**; 1S + 1B = $37.50. Alternate box: {0,1,4} (410 on All-Day 6 + Evening 5, DI Evening #1). Fair-draw per set on 75 draws: box 36.3%, straight 7.2%; P(≥1 of the two) ≈ 41%; expected ≈ −10% of stake at 90% RTP. Payout per hitting state: straight $225/unit, box $37.50/unit. Amend after the 10/23 midday import (~4:20pm ET): if the ticket is bought in two legs, a {2,6,8} midday draw closes the box leg by hit (evening box → {0,1,4}); a bought full-day ticket just rides. Rides open day 1 (10/23) if placed; ride ≤3 days, a hit closes the leg. Only mark PLACED on the operator's word; reconcile midday at the import, evening after the 10/24 import.
+
+### 10/22 TWO-STAGE CLOCK RECONCILED (10/23 import, 42 evening rows) — **NEVER PLACED, $0.** Would-have: stage 1 **{0,6,7} boxed at DC 076** (also the Evening 1 / All-Day 1 posted order = STRAIGHT at DC on the boards; DC evening vs night row ambiguous in histories) → +$14.75; branch 2a 753 1S + {3,5,7} 1B → **{3,5,7} boxed W.Canada 573** (late) → stage 2 +$23.00; 753 straight blank everywhere; hypothetical night ≈ +$37.75. Boards 10/22 at the evening: **Evening 2/6** (076 DC STRAIGHT, 753 box W.Canada), **All-Day 3/6** (408 ON STRAIGHT midday, 076 DC STRAIGHT, 753 box), Midday 1/6 (458 SC box). {2,4,8} ride day 3 FINAL absent 10/22 evening → expired. Running total on PLACED tickets (10/18 + 10/20): −$89.75, unchanged.
+
 ## 2026-10-22 — EVENING session (THURSDAY, 42 draws: early-13 $3.25/u · late-29 $7.25/u) — **TWO-STAGE CLOCK, $60 cap — PROPOSED, NOT PLACED.** Scope: `docs/thursday_10-22_evening_scope.md`. Built ~5:45pm ET AFTER the 10/22 midday import (33 rows; Mid 458 box SC 584, AD 408 STRAIGHT ON; {0,4,8} {4,5,8} closed by convention; no Evening-board set drew).
 
 Slate basis: 10/22 K6 (workflow 10:18 UTC). Snapshot orders as stored: Evening 076 / 046 / 650 / 916 / 410 / 753; All-Day 076 / 046 / 975 / 408 / 753 / 253; Midday 187 / 146 / 753 / 824 / 458 / 253. **753 on all three boards, same order** (convergence chooses which, not the rate).

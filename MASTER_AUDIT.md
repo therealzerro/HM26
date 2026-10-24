@@ -357,6 +357,16 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 **Standing rulings honoured:** no automation proposed; no accuracy levers; no copy quoting these numbers; ENH-FUNNEL-03 remains SCOPED (table only, no API); no member names committed.
 
+### BUG-189 — Public allday cut leaked a state code through the same-day MATCH stamp context ("10/24 DC Midday") → `reel:daily` STOPPED at allday (2026-10-24 16:45 ET run) ✅ FIXED 2026-10-24 (relabel suppression extended; audit caught it fail-closed)
+
+**Symptom.** `npm run reel:daily` 2026-10-24 20:45 UTC (operator ran it in the afternoon, after the midday import): verify published (verify_public FLOOR PASS 3 of 6), then `reel:allday` ABORTED at the public cut — `ABORT (allday modal #4): public relabel incomplete — "10/24 DC Midday" — DC (public-no-state-code)` (`scripts/reel-relabel.ts:388`). Runner stopped at allday; midday / evening / record not rendered.
+
+**Cause (verified in code + log).** All-Day pick #4 posted `410`; DC midday drew `140` (box). The 10/24 midday import + hit-detection ran at ~16:20 ET, so by 16:45 the pick carried a hit stamp, and `PickDetailModal` renders `formatHitContext()` = `"10/24 DC Midday"` under it (`components/PickDetailModal.tsx:615`, `lib/hitToPickItem.ts`). The redaction already masks the stamp's result digits (`140` → MASK, bare three-digit rule), but the relabel's state suppression only knew the resolution-trail shape (`XX N×`), so the context line kept its state code and the tier-1 audit (`lintCaption` public-no-state-code) refused the capture — correctly. Every earlier public allday cut ran in the morning (10/23: 08:38 ET) before any same-day stamp could exist, so the shape had never been captured.
+
+**Fix.** `scripts/reel-relabel.ts` `swapStr`: one more suppression, same ruling as the trail (footprint stays, attribution goes) — `M/D <STATE> <Session>` → `M/D` (state suppressed; session word dropped per the slot-6 ruling); covers two-letter codes, the Tri-State leaf `ME,NH,VT` and `W.Canada`. The audit half is unchanged (it is what caught this). Resume: `npm run reel:daily -- --from=allday`. No consumer UI touched.
+
+**Note.** This is timing-exposed: any run after the midday import on a day the All-Day board has a midday match will render the stamp in the public cut (MATCH + masked digits + date only). Midday/evening free cuts are redacted but not relabelled (tier 2 — state codes permitted), so they are unaffected.
+
 ### BUG-188 — Late STRAIGHT could not upgrade an earlier BOX stamp: snapshot + DI froze at box while adaptive_tracking recorded the straight → verify reel fail-closed (2026-10-17 morning run) ✅ DATA REPAIRED 2026-10-17 · code gap OPEN (operator ruling)
 
 **Symptom.** `npm run reel:daily` 2026-10-17 08:57 UTC: `reel:verify` ABORTED — `match TYPE disagreement for 937 (2026-10-16/allday): snapshot says box, adaptive_tracking says straight. Fix the data, do not render.` (`scripts/render-verify-slate.ts:87`). The runner continued (verify never stops the chain) — allday/midday/evening assembled; verify owed a re-run.

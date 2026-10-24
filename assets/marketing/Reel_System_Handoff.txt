@@ -715,6 +715,31 @@ by 70%")
   To move the line to a different cut, edit the set — one line of code.
 
 ================================================================================
+WHAT CHANGED IN v7.35 (2026-10-24, afternoon — BUG-189 public relabel gap)
+================================================================================
+  ID: BUG-189 FIXED. Engine untouched. Nothing auto-posts. No consumer UI touched.
+
+  FIRST AFTERNOON reel:daily (20:45 UTC, after the midday import) hit a shape
+  the public relabel had never seen: All-Day pick #4 (410) had boxed at DC
+  midday, so PickDetailModal rendered its same-day MATCH stamp with the
+  formatHitContext line "10/24 DC Midday". The redaction already MASKs the
+  result digits; the relabel's state suppression only knew the "XX N×" trail
+  chip, so the state code survived and assertPublicClean refused modal #4
+  (public-no-state-code) — fail-closed, as designed. Run STOPPED at allday.
+
+  FIX (scripts/reel-relabel.ts swapStr): "M/D <STATE> <Session>" → "M/D".
+  State suppressed (same ruling as the trail: footprint stays, attribution
+  goes); session word dropped per the slot-6 ruling; date kept. Covers
+  two-letter codes, "ME,NH,VT" and "W.Canada". Audit half unchanged.
+  Resume was `npm run reel:daily -- --from=allday`.
+
+  WHY YOU NEVER SAW IT: every earlier public allday cut ran in the morning
+  (10/23: 08:38 ET) before any same-day stamp could exist. Any afternoon run
+  on a day the All-Day board matched at midday now ships the stamp as
+  MATCH + masked digits + date on the public cut. Midday/evening free cuts
+  are redacted but not relabelled (tier 2) — unaffected.
+
+================================================================================
 WHAT CHANGED IN v7.34 (2026-10-17, morning — MKT-90 resumed and LIVE)
 ================================================================================
   ID: MKT-90 CLOSED (next free = 91). Engine untouched. Nothing auto-posts.

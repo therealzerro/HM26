@@ -172,6 +172,16 @@ export async function installRelabel(page: Page): Promise<void> {
       // State codes in the resolution trail: suppressed, counts kept — the
       // jurisdiction FOOTPRINT is methodology, the attribution is the risk.
       t = t.replace(/\\b[A-Z]{2}(?=\\s*\\d{1,3}\\s*\\u00d7)/g, '').replace(/\\u00d7\\s{2,}/g, '\\u00d7 ');
+      // BUG-189 (2026-10-24) — the same-day MATCH stamp in PickDetailModal
+      // carries formatHitContext(): "10/24 DC Midday". It only renders when the
+      // run goes AFTER the midday import (every earlier public cut ran in the
+      // morning), so the shape was never captured before. Same ruling as the
+      // trail above: the state is attribution and goes; the session word is
+      // dropped too (slot 6 ruling — session words do not ship on the public
+      // cut); the date stays. Covers two-letter codes, the Tri-State leaf
+      // "ME,NH,VT" and "W.Canada". The digits beside it are already MASKed by
+      // the redaction's bare-three-digit rule.
+      t = t.replace(/\\b(\\d{1,2}\\/\\d{1,2})\\s+(?:[A-Z]{2}(?:,[A-Z]{2})*|W\\.Canada)\\s+(?:Morning|Midday|Evening|Night|All Day)\\b/g, '$1');
       // Heat vocabulary — longest phrase first so BLAZING SIGNAL wins over BLAZING.
       for (const [from, to] of HEAT) {
         if (t.includes(from)) t = t.split(from).join(to);

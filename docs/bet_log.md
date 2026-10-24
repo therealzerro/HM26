@@ -2,7 +2,7 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
-## 2026-10-24 — EVENING EARLY-13 POOL (SATURDAY; pool = PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC = 13 draws, $3.25/unit; in by 7:46pm ET, readout ~8:24pm) — **$30 BUDGET → 9 units = $29.25 — PROPOSED, NOT PLACED.** Built ~4:50pm ET AFTER the 10/24 midday import (33 rows). Early pool only; no late-29 leg funded.
+## 2026-10-24 — EVENING EARLY-13 POOL (SATURDAY; pool = PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC = 13 draws, $3.25/unit; in by 7:46pm ET, readout ~8:24pm) — **$30 BUDGET → 9 units = $29.25 — PLACED ~5:15pm ET (operator: "placed all 9 units"): 824 1S + {2,4,8} 2B + {5,7,9} 2B + {3,7,9} 2B + {4,6,7} 1B + {0,3,4} 1B, as tabled below.** Built ~4:50pm ET AFTER the 10/24 midday import (33 rows). Early pool only; no late-29 leg funded. Rides opened day 1 (10/24): {5,7,9}, {3,7,9}, {4,6,7}, {0,3,4}; 824/{2,4,8} continues day 2. Running total on PLACED tickets after tonight: −$71.00 ± result (−$100.25 on a blank).
 
 Slate basis: 10/24 K6 (workflow 08:36 UTC). Snapshot posted orders: Evening 795 / 428 / 043 / 793 / 146 / 746; All-Day 428 / 739 / 759 / 410 / 705 / 764; Midday 792 / 685 / 254 / 723 / 451 / 750. **Four sets sit on BOTH Evening and All-Day: {2,4,8} (428 same posted order, Eve 2 + AD 1, All-Day DI #1, Evening DI #8), {5,7,9} (Eve 1 / AD 3, All-Day DI #2), {3,7,9} (Eve 4 / AD 2, Evening DI #9), {4,6,7} (Eve 6 / AD 6).** No triple-board set today; all 18 slots singles.
 

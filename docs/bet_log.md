@@ -2,6 +2,37 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
+## 2026-10-24 — EVENING EARLY-13 POOL (SATURDAY; pool = PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC = 13 draws, $3.25/unit; in by 7:46pm ET, readout ~8:24pm) — **$30 BUDGET → 9 units = $29.25 — PROPOSED, NOT PLACED.** Built ~4:50pm ET AFTER the 10/24 midday import (33 rows). Early pool only; no late-29 leg funded.
+
+Slate basis: 10/24 K6 (workflow 08:36 UTC). Snapshot posted orders: Evening 795 / 428 / 043 / 793 / 146 / 746; All-Day 428 / 739 / 759 / 410 / 705 / 764; Midday 792 / 685 / 254 / 723 / 451 / 750. **Four sets sit on BOTH Evening and All-Day: {2,4,8} (428 same posted order, Eve 2 + AD 1, All-Day DI #1, Evening DI #8), {5,7,9} (Eve 1 / AD 3, All-Day DI #2), {3,7,9} (Eve 4 / AD 2, Evening DI #9), {4,6,7} (Eve 6 / AD 6).** No triple-board set today; all 18 slots singles.
+
+**10/24 midday (33 rows): convention closures — {1,4,6} drew NC 641 (Evening slot 5) and {0,1,4} drew DC 140 (All-Day slot 4, Evening DI #1 / #2) → both CLOSED tonight.** Midday board 0/6 at the midday; All-Day 1/6 (140 box); Evening 1/6 at the midday (641 box). 3-day block scan 10/21→10/24 midday, all sessions: every other board set clear. Carry midday→early measured flat (10/18, 10/20: 0.96–1.05×) — closures are convention, not information.
+
+| Instrument | Play | Why (chooses which, never the rate) | Units | Cost |
+|---|---|---|---|---|
+| STRAIGHT | **824** {2,4,8} | **RIDE day 2 of 3** (opened 10/23, absent all 75 draws); same ticket order kept. Today's posted order on both boards is **428** — equal chance (order edge measured zero), swap if the operator prefers the room's order | 1S | $3.25 |
+| BOX | **{2,4,8}** | the ride set; Eve 2 + AD 1 same order + All-Day DI #1; last 10/16; sits under the straight so an exact pays both | 2B | $6.50 |
+| BOX | **{5,7,9}** | Eve 1 + AD 3 + All-Day DI #2; last 10/17 | 2B | $6.50 |
+| BOX | **{3,7,9}** | Eve 4 + AD 2 + Evening DI #9; early-pool 90d 14 (thickest on the board — tie-break only, the 90d rule is dead); last 10/17 | 2B | $6.50 |
+| BOX | **{4,6,7}** | Eve 6 + AD 6; last 10/20 | 1B | $3.25 |
+| BOX | **{0,3,4}** | Eve 3 (the remaining live Evening slot); last 10/20 | 1B | $3.25 |
+
+**Total 9 units = $29.25.** Fair-draw on 13 draws: 7.5% box per set, 1.3% straight. **P(≥1 box across the five sets) = 32.4%** (≥2 = 4.9%). Outcomes: blank **−$29.25** (67.6%); a 2B set lands (20.9%) → **+$45.75**; a 1B set lands (14.5%) → **+$8.25**; two sets → +$45.75 to +$120.75; **824 exact (1.3%) → +$270.75** ($225 + $75 box). Expected ≈ −$2.90 at 90% RTP — identical for every shape below; the shape only moves the payout distribution.
+
+Shapes considered, same $30 (any single box hit clears the whole stake in every shape because 1B pays $37.50 > $29.25):
+| Shape | Lines | P(positive) | Typical win | Max win (824 exact) |
+|---|---|---|---|---|
+| **A — this plan** (ride 2B + two double-board sets 2B + two 1B + 824 1S) | 6 | 32.4% | +$45.75 / +$8.25 | +$270.75 |
+| B — operator style (824 2S + {2,4,8} 3B + {5,7,9} 3B = $26.00) | 3 | 14.5% | +$86.50 | +$536.50 |
+| C — 10/20 stage-1 coverage (six live Eve+AD sets 1B + {2,4,8} +1B + 824 1S = $29.25) | 8 | 37.5% | +$8.25 (+$45.75 on {2,4,8}) | +$495.75 |
+Variant of A with the straight at the usual 2S: drop {0,3,4} → 824 2S; P(positive) 26.9%, exact +$495.75.
+
+Amend rules: nothing drew in the pool yet (0 evening rows at build time). If the operator places after any early state posts, a set already drawn in the pool is dropped by convention and replaced with {0,5,7} (AD 5 + Mid 6, 705/750; last 10/19) at the same unit. At the 8:24 readout a landed box is CLOSED (not re-boxed late); 824/{2,4,8} unhit → **ride day 3 FINAL tomorrow 10/25 (Sunday: TX ×2 + WV dark → early pool 11 draws, $2.75/u)**. GA/TX/DC rows in `histories` lump evening and night — check draw time on any GA/TX/DC match before counting it in the pool. Reconcile at the 8:24 paste; only mark PLACED on the operator's word.
+
+Ride ledger going in: **824 / {2,4,8} day 2 of 3** (opened 10/23). **{2,6,8} CLOSED by hit 10/23** (IA 826). {1,4,6}, {0,1,4} closed by convention 10/24 midday. Running total on PLACED tickets before tonight: **−$71.00**.
+
+### 10/23 FULL-DAY TICKET RECONCILED (10/24 import: midday 33 + evening 42 = 75 draws, as priced) — **PLACED $93.75 → +$18.75.** **BOX {2,6,8} landed at IA 826 (evening, late pool)** → 3B × $37.50 = $112.50; **824 straight blank** ({2,4,8} absent from all 75 draws). Net **+$18.75** — third positive session in the log (7/26 +$13.50, 9/7 +$131.25). Leg {2,6,8} CLOSED by hit. Boards 10/23 at the evening: Evening 1/6 (**460 STRAIGHT CT** — slot 1, not an operator leg), All-Day 3/6 ({2,6,8} IA 826, {0,4,6}, {2,3,5}), Midday 1/6 ({2,3,5}). **10/23 EARLY-13 ADD {0,1,4} — NOT PLACED, would have been blank, $0** ({0,1,4} absent from the pool; it drew DC 140 at the 10/24 midday instead). Running total on PLACED tickets (10/18 + 10/20 + 10/23): −$89.75 + $18.75 = **−$71.00**.
+
 ## 2026-10-23 — ALL OF TODAY'S DRAWINGS (FRIDAY: midday 33 + evening 42 = 75 draws → $18.75/unit full day; midday-only $8.25/u, evening-only $10.50/u) — **1 STRAIGHT + 1 BOX — PLACED ~9:55am ET (operator: "placed at 2S 3B full day"): STRAIGHT 824 2S ($37.50) + BOX {2,6,8} 3B ($56.25) = $93.75, one full-day ticket (midday + evening).** Built ~9:50am ET, BEFORE the 10/23 midday draws, from the 10/23 K6 (workflow 12:33 UTC).
 
 Snapshot posted orders: All-Day 628 / 640 / 824 / 397 / 352 / 410; Evening 460 / 824 / 793 / 916 / 410 / 416; Midday 614 / 482 / 865 / 268 / 253 / 705. **{2,4,8} on all three boards** (824 same posted order on All-Day 3 + Evening 2; Midday 2 = 482). {0,1,4} same order 410 on All-Day 6 + Evening 5. {2,6,8} = All-Day 1 + Midday 4, DI #1 on both scopes (six perms). 3-day block scan 10/20–10/22: none of the ten board sets drew — all clear. Ride ledger going in: EMPTY ({2,4,8} day 3 FINAL expired 10/22 unhit; {3,6,9} closed 10/22 midday; 10/22 clock never placed).

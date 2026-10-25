@@ -357,6 +357,16 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 **Standing rulings honoured:** no automation proposed; no accuracy levers; no copy quoting these numbers; ENH-FUNNEL-03 remains SCOPED (table only, no API); no member names committed.
 
+### BRIEF-FP-01 — Brief-tab footprint tiers (T1 ≥10 / T3 6–9 / T4 <6, 90d top-10-jurisdiction count) graded as a universe cohort (operator 2026-10-25: "test the brief tabs footprint tiers") · ✅ MEASURED · verdict: **FLAT, sign slightly inverted — tiers carry no information** · nothing changed
+
+**Report:** `docs/research/brief_footprint_tiers_2026-10-25.md`. Feature replicated exactly from `lib/brief/computeBrief.ts` (top-10 JX by 30d box correlation with the slate, 90d count inside them). 116 days 7/1→10/24 × 3 scopes × 220 sets, hits recomputed from `histories`, singles stratum = fair test.
+
+**Singles:** T1 at/below base in every scope (midday 17.37 vs 17.46 z −0.20; evening 21.68 vs 22.13 z −0.93; allday 35.29 vs 35.65 z −0.64); T4 at/above (z +0.68 / +1.17 / +1.39). Per-day AUC of footprint as a ranker: 0.4995 / 0.4885 / 0.4941 (t −0.07 / −1.76 / −1.10). The assumed ordering T1 > T3 > T4 does not exist. Consistent with WARMING, STATE_STR, ENG-REVIEW-02, COHORT-02.
+
+**Doubles T1 blip:** one cell |z| 2.09 (midday), same 429 set-days (29–32 persistent sets) scored three ways; split-half H2 collapses to base (allday z ≈ +0.7). Hypothesis-grade, not replicated; slate carries no doubles anyway. Do not re-propose.
+
+**Action:** none. Brief tier labels are descriptive, operator-internal, not an engine input. Rename/remove = one-line ruling if wanted. This closes the last untested pattern number in SYS-INV-01.
+
 ### SYS-INV-01 — Analytics / intelligence surfaces inventory (operator 2026-10-25: "are we utilizing pattern analytics? footprint? pattern intelligence? analysis? watch list? top 30? learning? performance? is there anything to gain?") · 📋 MEASURED, nothing changed · verdict: **no accuracy lever in any of them; one live config-safety defect (F1); one garbage-in analysis view (F2); three dormant subsystems (F3)**
 
 **Report:** `docs/research/systems_inventory_2026-10-25.md` (one-table inventory, findings, re-runnable SQL). Read-only; three parallel code traces, claims re-verified by hand; live state from Supabase.

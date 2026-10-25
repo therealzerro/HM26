@@ -245,13 +245,14 @@ async function recordHitInAdaptiveTracking(
 
 // ─── Per-date runner ──────────────────────────────────────────────────────────
 
-interface RunResult { hitsFound: number; scopesChecked: number; supplementsGenerated: number; lateSecondaries: number; errors: string[] }
+interface RunResult { hitsFound: number; scopesChecked: number; supplementsGenerated: number; lateSecondaries: number; lateUpgrades: number; errors: string[] }
 
 async function runForDate(date: string, scope: string | null, _skipSupplements: boolean): Promise<RunResult> {
   const errors: string[] = [];
   let totalHits = 0;
   const supplementsGenerated = 0; // ENG-SUPP-RETIRE-01: always 0
   let lateSecondaries = 0; // ENG-HITDET-LATE-01: AT rows recorded for picks that were already stamped
+  let lateUpgrades = 0;    // BUG-188: box stamps upgraded to straight by a later pass
 
   // BUG-147 (2026-05-15): pair snapshots to draws strictly by `slate_date`.
   // The prior implementation bucketed snapshots by `updated_at_et` (a UTC
@@ -290,13 +291,13 @@ async function runForDate(date: string, scope: string | null, _skipSupplements: 
     skipAllday  ? Promise.resolve([] as SnapshotRow[]) : resolveSnaps(alldaySnaps),
   ]);
   const snapshots = [...resolvedMidday, ...resolvedEvening, ...resolvedAllday];
-  if (snapshots.length === 0) return { hitsFound: 0, scopesChecked: 0, supplementsGenerated: 0, lateSecondaries: 0, errors };
+  if (snapshots.length === 0) return { hitsFound: 0, scopesChecked: 0, supplementsGenerated: 0, lateSecondaries: 0, lateUpgrades: 0, errors };
 
   const results = await sbGet<HistoryRow[]>(
     `/rest/v1/histories?date_et=eq.${date}&select=result_digits,comboset_sorted,jurisdiction,session`,
   );
   if (!Array.isArray(results) || results.length === 0) {
-    return { hitsFound: 0, scopesChecked: snapshots.length, supplementsGenerated: 0, lateSecondaries: 0, errors };
+    return { hitsFound: 0, scopesChecked: snapshots.length, supplementsGenerated: 0, lateSecondaries: 0, lateUpgrades: 0, errors };
   }
 
   const scopesChecked = new Set<string>();
@@ -376,6 +377,33 @@ async function runForDate(date: string, scope: string | null, _skipSupplements: 
             }
           }
         })());
+        // BUG-188 (2026-10-25): a late STRAIGHT upgrades an earlier BOX stamp.
+        // Same-pass matches sort straight-first (below), so the intended record
+        // is straight > box; the late branch used to freeze the first stamp at
+        // box while adaptive_tracking recorded the straight, and the verify reel
+        // then failed closed on the type disagreement (10/16 allday 937: CA 739
+        // box in the midday pass, PA 937 straight in the next morning's pass).
+        // A late BOX against any existing stamp stays a no-op. hitsFound is not
+        // incremented (the pick was already counted when first stamped).
+        const lateStraight = pick.hitType === 'box' ? matches.find(m => m.straightHit) : undefined;
+        if (lateStraight) {
+          hasNewHit = true;
+          lateUpgrades++;
+          diWrites.push(
+            updateDailyIntelligenceHit(pick, lateStraight.result, date, { scope: snapshot.scope, mode: snapshot.mode })
+              .catch(e => {
+                errors.push(`DI-upgrade ${snapshot.scope}/${pick.combo}: ${String(e).slice(0, 120)}`);
+              }),
+          );
+          return {
+            ...pick,
+            hitType: 'straight',
+            hitState: lateStraight.result.jurisdiction,
+            hitSession: lateStraight.result.session,
+            hitDate: date,
+            hitResult: lateStraight.result.result_digits,
+          };
+        }
         return pick;
       }
 
@@ -456,7 +484,7 @@ async function runForDate(date: string, scope: string | null, _skipSupplements: 
     }
   }
 
-  return { hitsFound: totalHits, scopesChecked: scopesChecked.size, supplementsGenerated, lateSecondaries, errors };
+  return { hitsFound: totalHits, scopesChecked: scopesChecked.size, supplementsGenerated, lateSecondaries, lateUpgrades, errors };
 }
 
 // ─── HTTP handler ─────────────────────────────────────────────────────────────
@@ -484,8 +512,8 @@ Deno.serve(async (req: Request) => {
     ? body.scope : null;
   const skipSupplements = body.skipSupplements === true;
 
-  let totalHits = 0, totalScopes = 0, totalSupplements = 0, totalLate = 0;
-  const perDate: Record<string, { hitsFound: number; scopesChecked: number; supplementsGenerated: number; lateSecondaries: number; errors: string[] }> = {};
+  let totalHits = 0, totalScopes = 0, totalSupplements = 0, totalLate = 0, totalUpgrades = 0;
+  const perDate: Record<string, { hitsFound: number; scopesChecked: number; supplementsGenerated: number; lateSecondaries: number; lateUpgrades: number; errors: string[] }> = {};
   const allErrors: string[] = [];
 
   for (const d of dateList) {
@@ -497,11 +525,12 @@ Deno.serve(async (req: Request) => {
       totalScopes      += dateRes.scopesChecked;
       totalSupplements += dateRes.supplementsGenerated;
       totalLate        += dateRes.lateSecondaries;
+      totalUpgrades    += dateRes.lateUpgrades;
       perDate[d] = dateRes;
       allErrors.push(...dateRes.errors);
     } catch (e) {
       const msg = String(e instanceof Error ? e.message : e).slice(0, 200);
-      dateRes = { hitsFound: 0, scopesChecked: 0, supplementsGenerated: 0, lateSecondaries: 0, errors: [msg] };
+      dateRes = { hitsFound: 0, scopesChecked: 0, supplementsGenerated: 0, lateSecondaries: 0, lateUpgrades: 0, errors: [msg] };
       perDate[d] = dateRes;
       allErrors.push(`${d}: ${msg}`);
     }
@@ -536,6 +565,7 @@ Deno.serve(async (req: Request) => {
     scopesChecked: totalScopes,
     supplementsGenerated: totalSupplements,
     lateSecondaries: totalLate, // ENG-HITDET-LATE-01: AT secondaries recorded for already-stamped picks (late-posting states)
+    lateUpgrades: totalUpgrades, // BUG-188: box stamps upgraded to straight by a later pass
     perDate,
     errors: allErrors.slice(0, 30),
     errorCount: allErrors.length,

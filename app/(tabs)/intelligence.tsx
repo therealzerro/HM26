@@ -11,6 +11,7 @@ import { theme } from '@/constants/theme';
 import { useTheme, heatColor, type ColorTokens, type ShadowTokens } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { adminOpsFetch } from '@/lib/adminOps';
+import { confirmAsync, alertAsync } from '@/lib/confirm';
 import { backfillIntelHits, BackfillProgress } from '@/lib/backfillIntelHits';
 import { getTodayET, getYesterdayET } from '@/lib/dateUtils';
 import { useScope } from '@/hooks/useScope';
@@ -540,17 +541,71 @@ function IntelligenceScreen() {
     }
   }, [load]);
 
+  // SYS-INV-01 F1 (2026-10-25): this used to PATCH app_config on a single tap
+  // with no confirm, no audit row and no per-scope awareness — the CONFIG-01
+  // incident class. Now: read the live value + any per-scope override keys
+  // that would shadow a global write, confirm with the operator (web-safe —
+  // Alert.alert's button dialog is a no-op on RN Web), PATCH, then write a
+  // config_change audit_logs row mirroring EngineConfigView's E8 pattern.
+  // The suggestion math itself is on-slate-only stored flags (SYS-INV-01 F2);
+  // the gate exists so nothing changes engine behaviour without a trail.
   const applySuggestion = useCallback(async (key: string, value: string) => {
     try {
+      const enc = encodeURIComponent(key);
+      const rows = await fetchFromSupabase<{ key: string; value: any }[]>({
+        path: `/rest/v1/app_config?select=key,value&or=(key.eq.${enc},key.eq.${enc}_midday,key.eq.${enc}_evening,key.eq.${enc}_allday)`,
+      });
+      const list = Array.isArray(rows) ? rows : [];
+      const current = list.find(r => r.key === key);
+      const currentStr = current == null ? '(not set)' : String(typeof current.value === 'string' ? current.value : JSON.stringify(current.value));
+      const shadows = list.filter(r => r.key !== key).map(r => r.key);
+      const lines = [
+        `Key: ${key}`,
+        `Current: ${currentStr}`,
+        `New: ${String(value)}`,
+        '',
+        shadows.length
+          ? `⚠ Per-scope overrides exist (${shadows.join(', ')}). Those scopes will keep their own value; this write only affects scopes without an override.`
+          : 'No per-scope override — this is a GLOBAL change and takes effect on the next Daily Workflow run.',
+        '',
+        'Engine config changes require a backtest and a CONFIG-XX audit entry (CLAUDE.md). A config_change row will be written to audit_logs.',
+      ];
+      const ok = await confirmAsync('Apply engine config change?', lines.join('\n'), { confirmLabel: 'Apply', destructive: true });
+      if (!ok) return;
+
       await adminOpsFetch({
-        path: `/rest/v1/app_config?key=eq.${encodeURIComponent(key)}`,
+        path: `/rest/v1/app_config?key=eq.${enc}`,
         method: 'PATCH',
         prefer: 'return=minimal',
         body: { value: String(value) },
       });
-      Alert.alert('Applied ✓', 'Engine config updated. Regenerate slates to apply.');
+
+      // Best-effort audit trail — never fail the apply if audit_logs is unreachable.
+      try {
+        await adminOpsFetch({
+          path: '/rest/v1/audit_logs',
+          method: 'POST',
+          prefer: 'return=minimal',
+          body: {
+            actor_id: null,
+            action: 'config_change',
+            target: 'engine_config',
+            payload_meta: {
+              source: 'intelligence_suggestion',
+              key,
+              old: current == null ? null : current.value,
+              new: String(value),
+              shadowed_by: shadows,
+            },
+          },
+        });
+      } catch (e) {
+        console.warn('[intelligence] audit_logs write failed:', e);
+      }
+
+      alertAsync('Applied ✓', `${key} updated (logged to audit_logs). Takes effect on the next Daily Workflow run.`);
     } catch (e: any) {
-      Alert.alert('Error', e.message ?? 'Save failed');
+      alertAsync('Error', e.message ?? 'Save failed');
     }
   }, []);
 

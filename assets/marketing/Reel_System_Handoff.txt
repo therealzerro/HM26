@@ -1,7 +1,15 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-25 · v7.37
+Content Agent Handoff · 2026-10-25 · v7.38
 ================================================================================
+v7.38 (2026-10-25) — MKT-85 CAPTION SYSTEM v2, builds 2–4 LANDED (wiring only,
+NOTHING SHIPS ON v2): publish-reels now reads the last 8 days of
+marketing_reels.caption_meta as rotation memory, drafts a kind with the v2
+assembler ONLY if that kind is on captionBanks.v2.json `live_kinds`, writes
+caption_meta (the bank ids) on the row when v2 drafted it (NULL otherwise), and
+`--preview` prints the ids under each draft. live_kinds is EMPTY — every kind
+still runs the old caption family unchanged. Read the v7.38 block.
+
 v7.37 (2026-10-25) — FAULT-MON-01: reel:daily's pre-flight prints a 5th section,
 "fault-monitor · FLAG n · WATCH n" + top e-values, from lib/faultMonitor.ts. It is
 READ-ONLY and FAIL-OPEN — it never aborts a run and changes no reel. A ⚠ FLAG line
@@ -647,6 +655,71 @@ J. WHAT THE FORMAT DATA SAYS — recorded 2026-09-09 from the content agent's
       the same August days (August wave: 59% renewed) · Pro comments 0.7/day,
       free comments 4.3/day · page-level views still not held (daily export
       owed). None of it is quotable in copy.
+
+================================================================================
+================================================================================
+================================================================================
+================================================================================
+WHAT CHANGED IN v7.38 (2026-10-25 — MKT-85 CAPTION SYSTEM v2, builds 2–4)
+================================================================================
+  ID: MKT-85 (build 1/4 = ce91bc4, 10/11; allday_free hook bank 10/13).
+  Engine untouched. No reel rendered, nothing posted. live_kinds is EMPTY.
+
+  WHAT LANDED (wiring only — the captions you see today are unchanged):
+    BUILD 2 · facts. scripts/reel-captions.ts fetchReceiptsData now also
+      exposes `straightEvents` — exact-order matches as DISTINCT DRAW EVENTS
+      keyed on (session, jurisdiction), the "MKT-84 rule": a draw matched
+      straight by two boards is ONE event, one state straight in both
+      sessions is TWO, never a row count — plus `matchJx` (every state with
+      any match). Every existing field (straightJx, boxJx, counts) is
+      untouched; the old families read exactly what they read before.
+      verify_midday's SAME-DAY facts come from `histories` (today's midday
+      draws against both morning boards), never from stored flags.
+    BUILD 3 · storage. marketing_reels.caption_meta jsonb (applied live
+      10/25; supabase/migrations/2026_10_25_mkt85_marketing_reels_caption_meta.sql).
+      Shape: { free: {v, hook, cta, q, fact}, pro: {...} } — `free` is the
+      `caption` column's provenance, `pro` is `caption_pro`'s (verify rows
+      carry both). NULL on every old-family row, i.e. every row today.
+    BUILD 4 · wiring (scripts/reel-caption-v2.ts + publish-reels.ts).
+      · GATE: a kind is drafted by v2 ONLY while it is listed in
+        constants/captionBanks.v2.json `live_kinds`. verify's Pro draft is
+        its own kind name, `verify_pro`. Any other kind runs the old family,
+        byte-for-byte as before. A v2 refusal (no bank, a slot lint block,
+        a missing link) is logged and the kind falls back — never a blocked
+        upload.
+      · MEMORY: the last 8 days of caption_meta, read at publish. The
+        assembler applies the rules (no same hook / CTA two days running,
+        a question once per day across kinds and once per 7 days per kind).
+        The memory key is the POST day: verify / record rows are dated D−1
+        so their caption day is reel_date + 1.
+      · META: caption_meta written on the upsert and on --captions-only
+        when v2 drafted the row; NULL otherwise.
+      · --preview prints, under each draft, either
+          ↳ caption v2 · v2.0.0 · hook V3 · cta C2 · q Q7 · fact straight
+        or
+          ↳ old family (<kind> not on live_kinds)
+      · Admin → 🎬 Reels: one small line under the caption box on a row
+        that carries caption_meta (Free/Pro side follows the target).
+      · Captions sheet (PDF): the same ids line under a draft, only when
+        the row has caption_meta.
+      · npm run reel:check: new section `captionBanks.v2` — every bank
+        line linted at every tier it claims, hooks ≤ 80 chars; a finding
+        is a FAIL; the line also prints live_kinds so a kind cannot go
+        live unnoticed, and FAILs a live kind that has no hook bank.
+    Tests: __tests__/captionV2Wiring.test.ts (10) — distinct-event counting,
+      memory read-back, EMPTY live_kinds → old family on every kind, a stub
+      live kind → v2 with meta, refusal → fallback. All 17 suites green.
+
+  HOW A KIND GOES LIVE (operator word, one kind at a time): add its name to
+  `live_kinds` in constants/captionBanks.v2.json, run `npm run reel:publish --
+  <mode> --preview` for a week and eyeball the four parts, then let the next
+  publish write it. Nothing else changes. Remove the name to roll back; rows
+  already written keep their caption_meta for the record.
+
+  NOT YET: verify_public has no hook bank in the spec (the verify bank serves
+  verify + verify_pro only) — listing it would log a refusal and run the old
+  family; the brief and the Sunday receipts image have no reel row, so their
+  ids wait on the captions-sheet v2 path (brief via v2 when live).
 
 ================================================================================
 ================================================================================

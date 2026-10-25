@@ -21,6 +21,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { resolveCarrier, undeclaredParts, carrierCandidates, carrierRest, audioDur, OVERLAP_EPSILON, carrierBoundarySlack, BOUNDARY_WARN_AT } from './reel-carrier';
 import { lintCaption } from '../lib/social/brandLint';
+import { CAPTION_BANKS, lintBanks } from '../lib/social/captionBanks';
 import { HOOK_DUR, CTA_CUT_KINDS, CTA_BOARD_DUR, CTA_VO_LEAD, CTA_VOICE_FILES, CTA_VOICE_DEFAULT, CTA_HOOK_COPY, PUBLIC_STAMP_HOOK_EYEBROW, PUBLIC_STAMP_HOOK_FROM } from './public-hook-config';
 import { GRID_DUR } from '../constants/reelPanels';
 import {
@@ -1431,6 +1432,24 @@ function checkRecordPublic(): void {
   else add('PASS', 'ReelsView.tsx', `KIND_UI carries ${K}`);
 }
 
+/**
+ * MKT-85 — CAPTION SYSTEM v2 banks (constants/captionBanks.v2.json): every
+ * hook / CTA / fact / question line linted at every tier it claims (the FACT
+ * slot carries the operator's state-name carve-out), hooks ≤ 80 chars. A
+ * finding is a FAIL — a line that fails is never assembled. live_kinds is
+ * reported so a kind cannot go live unnoticed.
+ */
+function checkCaptionBanks(): void {
+  const f = lintBanks();
+  for (const x of f) add('FAIL', `captionBanks.v2 ${x.where}`, `tier ${x.tier}: ${x.violations.join(' · ')} — "${x.text.slice(0, 60)}"`);
+  const lines = Object.values(CAPTION_BANKS.hooks).reduce((n, b) => n + b.lines.filter(l => l.text && !l.retired).length, 0)
+    + Object.values(CAPTION_BANKS.ctas).reduce((n, b) => n + b.filter(l => l.text && !l.retired).length, 0)
+    + CAPTION_BANKS.questions.filter(q => !q.retired).length;
+  const live = CAPTION_BANKS.live_kinds;
+  if (!f.length) add('PASS', 'captionBanks.v2', `v${CAPTION_BANKS.banks_version}: ${lines} lines lint-clean at every claimed tier · live_kinds ${live.length ? live.join(', ') : 'EMPTY (every kind on the old family)'}`);
+  for (const k of live) if (!Object.values(CAPTION_BANKS.hooks).some(b => b.kinds?.includes(k) || Object.prototype.hasOwnProperty.call(CAPTION_BANKS.hooks, k))) add('FAIL', 'captionBanks.v2 live_kinds', `${k} is live but has no hook bank — v2 would refuse and the old family would run`);
+}
+
 checkPartNaming();
 checkStrays();
 checkMotions();
@@ -1446,6 +1465,7 @@ checkStrikeOverlay();
 checkPanels();
 checkStamp();
 checkRotationHealth();
+checkCaptionBanks();
 
 const ICON = { PASS: '✅', WARN: '⚠️ ', FAIL: '⛔' } as const;
 for (const f of findings) console.log(`${ICON[f.level]} ${f.asset} — ${f.msg}`);

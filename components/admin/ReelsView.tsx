@@ -25,6 +25,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useTheme } from '@/lib/theme';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { lintCaption } from '@/lib/social/brandLint';
+import { formatCaptionMeta } from '@/lib/social/captionAssembler';
 import { SURFACE_TIER } from '@/lib/social/captions';
 import { fbPublish } from '@/lib/social/fbPublishClient';
 import {
@@ -589,6 +590,16 @@ function ReelCard({ reel, urls, onPosted, expanded, onToggle }: {
         <Pill label={`tier ${tier}`} color={colors.textTertiary} />
         <Pill label={lint.ok ? '✓ lint clean' : `${lint.violations.filter(v => v.blocking).length} blocking`} color={lint.ok ? colors.success : colors.error} />
       </View>
+      {/* MKT-85: v2 caption provenance — the bank ids behind the draft shown
+          (free side = caption, pro side = caption_pro). Operator-only; absent
+          on old-family rows (caption_meta NULL). */}
+      {(() => {
+        const side = target === 'pro' && reel.caption_pro != null ? 'pro' : 'free';
+        const meta = reel.caption_meta?.[side];
+        return meta ? (
+          <Text style={{ fontSize: 9, color: colors.textTertiary, marginTop: 4 }}>caption v2 · {formatCaptionMeta(meta)}</Text>
+        ) : null;
+      })()}
       {lint.violations.length > 0 && (
         <Card style={{ padding: 8, marginTop: 6, backgroundColor: colors.errorLight, borderColor: colors.error + '33' }}>
           {lint.violations.map((v, i) => (

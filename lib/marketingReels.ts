@@ -13,6 +13,7 @@ import Constants from 'expo-constants';
 import { fetchFromSupabase } from '@/lib/supabase';
 import { adminOpsFetch } from '@/lib/adminOps';
 import type { ReelKind } from '@/constants/reelKinds';
+import type { CaptionMeta } from '@/lib/social/captionAssembler';
 
 const extra = Constants.expoConfig?.extra || {};
 const SUPABASE_URL = extra.supabaseUrl ?? process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -40,6 +41,13 @@ export interface MarketingReel {
   duration_s: number | null;
   caption: string;              // free-group draft
   caption_pro: string | null;   // pro-group draft (verify rows only — MKT-05b)
+  /**
+   * MKT-85 Caption System v2 provenance — the bank ids behind each draft:
+   * `free` = the `caption` column, `pro` = the `caption_pro` column. NULL when
+   * the old caption family wrote the row (every kind until it is listed in
+   * captionBanks.v2.json `live_kinds`).
+   */
+  caption_meta: { free?: CaptionMeta; pro?: CaptionMeta } | null;
   status: ReelStatus;
   posted_at: string | null;
   target_name: string | null;

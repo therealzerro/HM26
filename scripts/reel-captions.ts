@@ -1,4 +1,5 @@
 import { PRO_ROOM_CAPTION_LINE } from './pro-room-config';
+import type { CaptionFacts, StraightEvent } from '../lib/social/captionAssembler';
 /**
  * reel-captions — MKT-05: data-driven daily captions for the reel pipeline.
  *
@@ -38,6 +39,15 @@ export interface ReceiptsData {
   straightJx: string[];    // jurisdictions with an exact-order match
   boxJx: string[];         // jurisdictions with set-order matches only
   verified30d: number;     // rolling 30-day verified total (window ends at date)
+  /**
+   * MKT-85 build 2 — the "MKT-84 rule": exact-order matches as DISTINCT DRAW
+   * EVENTS keyed on (session, jurisdiction). A draw matched straight by two
+   * boards (midday + allday) is ONE event; a jurisdiction straight in both
+   * sessions is TWO. Never a row count. Sorted session,jurisdiction.
+   */
+  straightEvents: StraightEvent[];
+  /** every jurisdiction with ANY match (box or straight) — straightJx ∪ boxJx, sorted */
+  matchJx: string[];
 }
 
 type SbGet = <T = any>(path: string) => Promise<T>;
@@ -117,7 +127,58 @@ export async function fetchReceiptsData(date: string, sbGet: SbGet): Promise<Rec
   for (const [jx, exact] of [...jxBest.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
     (exact ? straightJx : boxJx).push(jx);
   }
-  return { date, totalSignals, verifiedCount, straightJx, boxJx, verified30d };
+  const ev = drawEvents(slates.filter(s => s.slate_date === date), histByDate.get(date) ?? []);
+  return { date, totalSignals, verifiedCount, straightJx, boxJx, verified30d, straightEvents: ev.straightEvents, matchJx: ev.matchJx };
+}
+
+/**
+ * MKT-85 build 2 — the distinct-draw-event join (the "MKT-84 rule"). One
+ * draw = one (session, jurisdiction) key on the day; a pick on two boards
+ * matching the same draw is ONE event, the same jurisdiction straight in two
+ * sessions is TWO. Shared by the receipts join above and the same-day reader
+ * below so the two cannot count differently. Pure.
+ */
+export function drawEvents(slates: SlateRow[], draws: HistRow[]): { straightEvents: StraightEvent[]; matchJx: string[] } {
+  const straight = new Map<string, StraightEvent>();
+  const matchJx = new Set<string>();
+  for (const s of slates) {
+    for (const p of parsePicks(s.top_k_straights_json)) {
+      for (const h of draws) {
+        const session = String(h.session).toLowerCase();
+        if (h.comboset_sorted !== p.comboSet || !sessionMatches(s.scope, session)) continue;
+        matchJx.add(h.jurisdiction);
+        if (h.result_digits === p.bestOrder) straight.set(`${session}|${h.jurisdiction}`, { session, jurisdiction: h.jurisdiction });
+      }
+    }
+  }
+  const straightEvents = [...straight.values()].sort((a, b) => a.session.localeCompare(b.session) || a.jurisdiction.localeCompare(b.jurisdiction));
+  return { straightEvents, matchJx: [...matchJx].sort((a, b) => a.localeCompare(b)) };
+}
+
+/** The receipts join as the v2 assembler's fact input ("yesterday" frame). null in → null out (silence). */
+export function receiptsToFacts(r: ReceiptsData | null): CaptionFacts | null {
+  if (!r) return null;
+  return { straightEvents: r.straightEvents, matchJurisdictions: r.matchJx, frame: 'yesterday' };
+}
+
+/**
+ * MKT-85 build 2 — verify_midday's SAME-DAY facts, from `histories` (the
+ * ledger — never adaptive_tracking's stored flags, BUG-162): today's
+ * midday-session draws against BOTH morning boards (midday + allday; MKT-69),
+ * as distinct (session, jurisdiction) events. Frame 'sameday' selects the
+ * same-day fact forms. A read failure is the caller's cue for silence.
+ */
+export async function fetchSamedayFacts(date: string, sbGet: SbGet): Promise<CaptionFacts> {
+  const slates = await sbGet<SlateRow[]>(
+    `/rest/v1/slate_snapshots?select=scope,slate_date,top_k_straights_json&slate_date=eq.${date}&scope=in.(midday,allday)` +
+    `&deleted_at=is.null&or=(mode.is.null,mode.neq.zk30)&order=id.asc&limit=20`,
+  );
+  const hist = await sbGet<HistRow[]>(
+    `/rest/v1/histories?select=date_et,session,jurisdiction,comboset_sorted,result_digits&date_et=eq.${date}&order=id.asc&limit=1000`,
+  );
+  const midday = (Array.isArray(hist) ? hist : []).filter(h => String(h.session).toLowerCase() === 'midday');
+  const ev = drawEvents(Array.isArray(slates) ? slates : [], midday);
+  return { straightEvents: ev.straightEvents, matchJurisdictions: ev.matchJx, frame: 'sameday' };
 }
 
 // ── formatting helpers ────────────────────────────────────────────────────────

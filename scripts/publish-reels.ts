@@ -40,7 +40,9 @@ import { config as loadEnv } from 'dotenv';
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
-import { buildReelCaption, fetchReceiptsData, shiftDate, kindNeedsReceipts, ReceiptsData, ReelCaptionKind, SamedayCtx, RecordCtx } from './reel-captions';
+import { buildReelCaption, fetchReceiptsData, fetchSamedayFacts, receiptsToFacts, shiftDate, kindNeedsReceipts, ReceiptsData, ReelCaptionKind, SamedayCtx, RecordCtx } from './reel-captions';
+import { fetchCaptionMetaRows, v2Draft, isV2Live, captionDayFor, captionMetaFor, type CaptionMetaRow, type CaptionMetaPair } from './reel-caption-v2';
+import { formatCaptionMeta, tierForKind, type CaptionFacts } from '../lib/social/captionAssembler';
 import { readRecordStats, readTriple } from './reel-provenance';
 import { tripleCaptionLine } from './reel-triple-core';
 import { bodyFile } from './reel-scopes';
@@ -212,11 +214,21 @@ async function sbGet<T = any>(path: string): Promise<T> {
  * Verify rows carry TWO drafts (MKT-05b): `caption` = free group,
  * `caption_pro` = pro group. Allday rows are already split per variant.
  */
-interface CaptionSet { caption: string; caption_pro: string | null }
+/**
+ * MKT-85 build 4: `caption_meta` carries the v2 bank ids behind each draft
+ * (`free` = caption, `pro` = caption_pro) and is NULL when the old family
+ * wrote the draft. --preview reads it to name the source under each draft.
+ */
+interface CaptionSet { caption: string; caption_pro: string | null; caption_meta: CaptionMetaPair | null }
 
 async function buildCaptions(kinds: Kind[]): Promise<Record<string, CaptionSet>> {
+  // MKT-85: a kind on captionBanks.v2.json live_kinds is drafted by the v2
+  // assembler (verify's pro draft is its own kind, verify_pro); everything
+  // else runs the old family below, unchanged. live_kinds is EMPTY until the
+  // operator has eyeballed a week of previews per kind.
+  const v2Kinds = kinds.flatMap((k) => (k === 'verify' ? [k, 'verify_pro'] : [k])).filter((k) => isV2Live(k));
   let receipts: ReceiptsData | null = null;
-  if (kinds.some(kindNeedsReceipts)) {
+  if (kinds.some(kindNeedsReceipts) || v2Kinds.length) {
     const receiptsDate = mode === 'verify' || MIDDAY_VERIFY ? isoDate : shiftDate(isoDate, -1);
     try {
       receipts = await fetchReceiptsData(receiptsDate, sbGet);
@@ -235,9 +247,10 @@ async function buildCaptions(kinds: Kind[]): Promise<Record<string, CaptionSet>>
   // lead line is dropped rather than shipping a literal token.
   let freeUrl = '';
   let proUrl = '';
-  const needFree = kinds.some((k) => k.endsWith('_public'));
+  // MKT-85: a live v2 kind needs {link_free} on tier 1 and {link_pro} on tier 2.
+  const needFree = kinds.some((k) => k.endsWith('_public')) || v2Kinds.some((k) => tierForKind(k) === 1);
   // MKT-89 (2026-10-16): verify_midday's hard-sell CTA carries the same token.
-  const needPro = kinds.some((k) => k === 'midday_free' || k === 'evening_free' || k === 'verify_midday');
+  const needPro = kinds.some((k) => k === 'midday_free' || k === 'evening_free' || k === 'verify_midday') || v2Kinds.some((k) => tierForKind(k) === 2);
   if (needFree || needPro) {
     try {
       const rows = await sbGet<{ key: string; value: string }[]>(
@@ -290,11 +303,43 @@ async function buildCaptions(kinds: Kind[]): Promise<Record<string, CaptionSet>>
     else console.warn(`[publish-reels] record_public: no hm_record_* tags readable from ${basename(video)} — caption uses the figure-less fallback.`);
   }
 
+  // MKT-85 build 4: the v2 memory (last 8 days of caption_meta) and facts.
+  // Facts = the receipts join as distinct draw events ("yesterday" relative to
+  // the post day: verify grades its reel date, slate kinds the day before);
+  // verify_midday's same-day facts come from `histories`, never stored flags.
+  // Any read failure → facts null → the fact line is omitted (silence is safe).
+  let metaRows: CaptionMetaRow[] = [];
+  let samedayFacts: CaptionFacts | null = null;
+  if (v2Kinds.length) {
+    try {
+      metaRows = await fetchCaptionMetaRows(sbGet, captionDayFor(v2Kinds[0], isoDate));
+    } catch (e) {
+      console.warn('[publish-reels] caption_meta read failed — v2 rotation runs without memory:', String(e).slice(0, 160));
+    }
+    if (v2Kinds.includes('verify_midday')) {
+      try {
+        samedayFacts = await fetchSamedayFacts(isoDate, sbGet);
+      } catch (e) {
+        console.warn('[publish-reels] same-day facts read failed — verify_midday v2 fact line omitted:', String(e).slice(0, 160));
+      }
+    }
+  }
+  const inRun: string[] = [];   // question ids drafted earlier in THIS run (once-per-day across the run's kinds)
+  const links = { free: freeUrl || undefined, pro: proUrl || undefined };
+  const v2 = (k: string) => {
+    const d = v2Draft({ kind: k, reelDate: isoDate, facts: k === 'verify_midday' ? samedayFacts : receiptsToFacts(receipts), links, rows: metaRows, inRun, warn: (m) => console.warn(`[publish-reels] ${m}`) });
+    if (d) inRun.push(d.meta.q);
+    return d;
+  };
+
   const out: Record<string, CaptionSet> = {};
   for (const k of kinds) {
+    const free = v2(k);
+    const pro = k === 'verify' ? v2('verify_pro') : null;
     out[k] = {
-      caption: subUrl(buildReelCaption(k, isoDate, receipts, k === 'verify_midday' ? sameday : null, k === RECORD_KIND ? record : null)) + tripleCaptionSuffix(k),
-      caption_pro: k === 'verify' ? buildReelCaption('verify_pro', isoDate, receipts) : null,
+      caption: (free ? free.text : subUrl(buildReelCaption(k, isoDate, receipts, k === 'verify_midday' ? sameday : null, k === RECORD_KIND ? record : null))) + tripleCaptionSuffix(k),
+      caption_pro: k === 'verify' ? (pro ? pro.text : buildReelCaption('verify_pro', isoDate, receipts)) : null,
+      caption_meta: captionMetaFor(free?.meta, pro?.meta),
     };
   }
   return out;
@@ -462,7 +507,7 @@ async function updateCaptionOnly(kind: Kind, set: CaptionSet): Promise<void> {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/marketing_reels?reel_date=eq.${isoDate}&kind=eq.${kind}`, {
     method: 'PATCH',
     headers: svcHeaders({ 'Content-Type': 'application/json', Prefer: 'return=representation' }),
-    body: JSON.stringify({ caption: set.caption, caption_pro: set.caption_pro, updated_at: new Date().toISOString() }),
+    body: JSON.stringify({ caption: set.caption, caption_pro: set.caption_pro, caption_meta: set.caption_meta, updated_at: new Date().toISOString() }),
   });
   if (!res.ok) throw new Error(`caption update ${kind} → HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const rows = await res.json();
@@ -476,9 +521,13 @@ async function main(): Promise<void> {
   const captions = await buildCaptions(kinds);
 
   if (PREVIEW) {
+    // MKT-85: the meta ids ride next to each draft — `v2.0.0 · hook V3 · cta C2 · q Q7 · fact straight`,
+    // or the reason the old family ran (not on live_kinds).
+    const metaLine = (k: string, m: CaptionMetaPair | null, side: 'free' | 'pro') =>
+      m?.[side] ? `   ↳ caption v2 · ${formatCaptionMeta(m[side])}` : `   ↳ old family (${k} not on live_kinds)`;
     for (const k of kinds) {
-      console.log(`\n── ${k} · ${isoDate} ──\n${captions[k].caption}`);
-      if (captions[k].caption_pro) console.log(`\n── ${k} (PRO draft) · ${isoDate} ──\n${captions[k].caption_pro}`);
+      console.log(`\n── ${k} · ${isoDate} ──\n${captions[k].caption}\n${metaLine(k, captions[k].caption_meta, 'free')}`);
+      if (captions[k].caption_pro) console.log(`\n── ${k} (PRO draft) · ${isoDate} ──\n${captions[k].caption_pro}\n${metaLine('verify_pro', captions[k].caption_meta, 'pro')}`);
     }
     return;
   }
@@ -526,6 +575,7 @@ async function main(): Promise<void> {
       duration_s: Number.isFinite(duration) ? +duration.toFixed(2) : null,
       caption: captions[t.kind].caption,
       caption_pro: captions[t.kind].caption_pro,
+      caption_meta: captions[t.kind].caption_meta,   // MKT-85: NULL unless v2 drafted it
       status: 'ready',
       posted_at: null,
       target_name: null,

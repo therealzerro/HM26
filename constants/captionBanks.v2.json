@@ -17,6 +17,10 @@
         2,
         4
       ],
+      "kinds": [
+        "verify",
+        "verify_pro"
+      ],
       "lines": [
         {
           "id": "V1",

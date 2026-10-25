@@ -10,7 +10,7 @@ import { CHIP_LABELS } from '../scripts/intro-chip-config';
 import { STINGERS } from '../scripts/stinger-config';
 
 const DATES = Array.from({ length: 12 }, (_, i) => `2026-10-${String(17 + i).padStart(2, '0')}`);
-const receipts = { date: '2026-10-16', totalSignals: 18, verifiedCount: 7, straightJx: ['NC'], boxJx: ['IA', 'IN'], verified30d: 90 };
+const receipts = { date: '2026-10-16', totalSignals: 18, verifiedCount: 7, straightJx: ['NC'], boxJx: ['IA', 'IN'], verified30d: 90, straightEvents: [{ session: 'midday', jurisdiction: 'NC' }], matchJx: ['IA', 'IN', 'NC'] };
 
 describe('MKT-90 Pro Room seal', () => {
   test('seal strings lint at tier 4 and never sell', () => {

@@ -45,6 +45,12 @@ export interface CaptionMeta {
 }
 export interface AssembledCaption { text: string; meta: CaptionMeta }
 
+/** One-line readout of a draft's provenance — Admin row, captions sheet, --preview: `v2.0.0 · hook V3 · cta C2 · q Q7 · fact straight`. */
+export function formatCaptionMeta(m: CaptionMeta | null | undefined): string {
+  if (!m) return '';
+  return `v${m.v} · hook ${m.hook} · cta ${m.cta ?? '—'} · q ${m.q} · fact ${m.fact?.on ? m.fact.type ?? 'on' : 'off'}`;
+}
+
 const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const N_WORD = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
 

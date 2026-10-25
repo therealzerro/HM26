@@ -28,6 +28,7 @@ import { POSTING_SESSIONS, SCHEDULE_SKIP_ORDER, postingOrder } from '../constant
 import { buildAnchorThread, buildSundayReceipts } from './anchor-thread';
 import { generateCaption, SURFACE_TIER, type CaptionData } from '../lib/social/captions';
 import { lintCaption } from '../lib/social/brandLint';
+import { formatCaptionMeta, type CaptionMeta } from '../lib/social/captionAssembler';
 import { WEEKLY_CAPTIONS } from '../lib/social/weeklyCaptions';
 import { CAPTION_BANKS } from '../lib/social/captionBanks';
 import { numWord } from './reel-captions';
@@ -260,6 +261,7 @@ function sessionOf(kind: string): { time: string; title: string } | null {
 interface Row {
   reel_date: string; kind: string; caption: string; caption_pro: string | null;
   status: string; updated_at: string;
+  caption_meta: { free?: CaptionMeta; pro?: CaptionMeta } | null;   // MKT-85: v2 ids, NULL on old-family rows
 }
 
 function creds(): { url: string; key: string } {
@@ -355,8 +357,10 @@ function buildHtml(rows: Row[], dayISO: string, briefCfg: BriefCfg = {}, onboard
   let lastSession = '';
   const cards = ordered.map((r) => {
     const label = KIND_LABEL[r.kind] ?? `🎬 ${r.kind}`;
+    // MKT-85: the v2 ids line prints ONLY when the row carries caption_meta.
+    const ids = (side: 'free' | 'pro') => r.caption_meta?.[side] ? `<div class="meta">caption v2 · ${esc(formatCaptionMeta(r.caption_meta[side]))}</div>` : '';
     const pro = r.caption_pro
-      ? `<div class="tag">PRO GROUP DRAFT</div><pre>${esc(r.caption_pro)}</pre>`
+      ? `<div class="tag">PRO GROUP DRAFT</div><pre>${esc(r.caption_pro)}</pre>${ids('pro')}`
       : '';
     const freeTag = r.caption_pro ? '<div class="tag">FREE GROUP DRAFT</div>' : '';
     const sess = sessionOf(r.kind);
@@ -368,7 +372,7 @@ function buildHtml(rows: Row[], dayISO: string, briefCfg: BriefCfg = {}, onboard
     const push = r.kind === 'verify_midday' ? proPushBlock(r, briefCfg) : '';
     return `${header}<section${push ? ' class="push"' : ''}>
       <h2>${esc(label)} <span class="meta">· board date ${esc(r.reel_date)} · ${esc(r.status)}</span></h2>
-      ${freeTag}<pre>${esc(r.caption)}</pre>${pro}${push}
+      ${freeTag}<pre>${esc(r.caption)}</pre>${ids('free')}${pro}${push}
     </section>`;
   }).join('\n');
   // ── MKT-73: anchor thread (daily) + receipts thread (Sundays). Both sit at
@@ -493,7 +497,7 @@ async function pruneOldPdfs(url: string, key: string): Promise<void> {
 export async function generateAndUploadCaptionsPdf(dayISO?: string): Promise<void> {
   const { url, key } = creds();
   const res = await fetch(
-    `${url}/rest/v1/marketing_reels?status=neq.archived&select=reel_date,kind,caption,caption_pro,status,updated_at&order=kind.asc&limit=50`,
+    `${url}/rest/v1/marketing_reels?status=neq.archived&select=reel_date,kind,caption,caption_pro,status,updated_at,caption_meta&order=kind.asc&limit=50`,
     { headers: { apikey: key, Authorization: `Bearer ${key}` } },
   );
   if (!res.ok) throw new Error(`marketing_reels read → HTTP ${res.status}`);

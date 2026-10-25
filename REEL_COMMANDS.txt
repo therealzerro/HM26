@@ -934,6 +934,14 @@ npm run reel:publish -- allday --preview
 
     PRINTS today's All-Day Pro + Free captions without writing
     or uploading anything. Use it to see what will ship.
+    MKT-85 (10/25): under each draft, one line names the caption
+    source — `↳ caption v2 · v2.0.0 · hook V3 · cta C2 · q Q7 ·
+    fact straight` when the kind is on captionBanks.v2.json
+    live_kinds, else `↳ old family (<kind> not on live_kinds)`.
+    live_kinds is EMPTY — every kind prints the old-family line
+    until the operator lists it (one kind at a time, after a
+    week of eyeballed previews). npm run reel:check lints every
+    v2 bank line (section captionBanks.v2) and prints live_kinds.
 
 
 npm run reel:publish -- verify --preview

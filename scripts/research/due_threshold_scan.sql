@@ -96,3 +96,14 @@ select case ndist when 3 then 'singles' when 2 then 'doubles' else 'triples' end
        round(1000.0 * sum(i.event) filter (where i.len between b.lo and b.hi) / nullif(sum(least(i.len, b.hi) - b.lo + 1) filter (where i.len >= b.lo),0), 2) hazard_per_1000,
        case ndist when 3 then 6.0 when 2 then 3.0 else 1.0 end fair_per_1000
 from intervals i cross join buckets b group by 1,2, ndist order by 1,2;
+
+-- ===== 6. Hold-until-hit cycles: buy one single set at 1B full board daily until it draws anywhere (payout $37.50/state), repeat =====
+with draws as (select date_et d, comboset_sorted cs from histories where date_et between '2026-04-01' and '2026-10-24'),
+day_n as (select d, count(*) n from draws group by d),
+singles as (select cs from (select distinct cs from draws) s where array_length(array(select distinct unnest(string_to_array(trim(both '{}' from cs), ','))),1)=3),
+grid as (select dn.d, dn.n, s.cs, (select count(*) from draws x where x.cs=s.cs and x.d=dn.d) k from day_n dn cross join singles s),
+g3 as (select *, coalesce(sum(case when k>0 then 1 else 0 end) over (partition by cs order by d rows between unbounded preceding and 1 preceding),0) cyc from grid),
+cycles as (select cs, cyc, count(*) days, sum(n)*0.25 cost, sum(k)*37.5 payout, bool_or(k>0) closed from g3 group by cs, cyc)
+select count(*) closed_cycles, round(avg(days),2) mean_days, percentile_cont(0.5) within group (order by days) p50, percentile_cont(0.9) within group (order by days) p90,
+       max(days) max_days, round(100.0*avg((payout>cost)::int),1) pct_positive, round(avg(payout-cost),2) mean_net, round(min(payout-cost),2) worst, round(sum(payout)/sum(cost),3) rtp
+from cycles where closed;

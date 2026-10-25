@@ -53,3 +53,17 @@ The hazard is flat at the fair rate across the whole observable range — a set 
 **What this means for the ticket:** the 220 sets are interchangeable on any given day. Coverage (how many sets, 1B each) and stake size are the only levers — exactly what 10/20–10/24 showed in practice.
 
 **Reproduce:** the five SQL blocks are in `scripts/research/due_threshold_scan.sql` (national gap scan; days-absent ladder; frequency quintiles; pair recency; per-state hazard). Run against `histories`; adjust the date window as the ledger grows.
+
+## 6. Addendum — "target combos that are inevitable" (operator, 10/25 ~6am ET): hold-until-hit, every single set, every start day
+Strategy simulated on the ledger: buy ONE single set at 1B across the full national board every day ($0.25 × that day's draws, ≈$18.75) until it draws anywhere, bank $37.50 per state that drew it, then start the next cycle. All 120 singles × all cycles 4/1→10/24 = **8,488 closed cycles.**
+
+| | |
+|---|---|
+| mean days to the hit | 2.89 (median 2, p90 6, p99 11, max 33) |
+| cycles that end positive | **56.2%** |
+| mean net per cycle | **−$4.86** |
+| best / worst cycle | +$168.75 / −$568.75 (the 33-day drought) |
+| return on stake | **0.905** |
+| total net, all cycles | −$41,226 |
+
+Inevitability is real — a single set draws somewhere within a week 90% of the time — and it is exactly priced: every day you wait costs 111% of that day's expected payout. The strategy FEELS like it works (56% of cycles close in profit) while losing 9.5% of everything staked; the droughts carry the loss. Same 90% RTP as covering many sets for one night — only the variance shape differs. SQL in `scripts/research/due_threshold_scan.sql` §6.

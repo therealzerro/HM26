@@ -24,9 +24,16 @@
 //                 stale or empty Home.
 // Nothing here writes. Nothing here regenerates — slate regen stays an
 // explicit operator ask (feedback_no_slate_regen_without_ask).
+//   5. FAULT    — FAULT-MON-01 (2026-10-25): the gross-fault monitor from
+//                 ENG-REVIEW-04 runs over the trailing 120 days of every
+//                 jurisdiction×session stream and prints FLAG / WATCH lines.
+//                 READ-ONLY and FAIL-OPEN: it never stops the run — a FLAG is
+//                 information for the operator (that state's draw is not
+//                 uniform), a fetch error is a one-line 'skipped'.
 
 import { config as loadEnv } from 'dotenv';
 import { resolve } from 'node:path';
+import { scanFaults, formatFaultReport } from '../lib/faultMonitor';
 
 loadEnv({ path: resolve('.env'), quiet: true });
 
@@ -133,6 +140,22 @@ async function main() {
     else if (!MULTI.has(j) && digits.length === 2) twoRow.push(`${j} ${d} ${s} ${digits.join('/')}`);
   }
   notes.push(`integrity ${from7}→${dMinus1}: ${hist.length} rows · ${twoRow.length ? `2-row one-draw sessions (Double Draw expected): ${twoRow.join(', ')}` : 'no 2-row one-draw sessions'}`);
+
+  // 5. FAULT MONITOR (FAULT-MON-01) — read-only, fail-open; see lib/faultMonitor.ts
+  try {
+    const from120 = shift(dMinus1, -119);
+    const rows: { jurisdiction: string; session: string; date_et: string; result_digits: string; created_at: string }[] = [];
+    for (let offset = 0; offset < 50_000; offset += 1000) {
+      const page = await get<typeof rows>(
+        `/rest/v1/histories?date_et=gte.${from120}&date_et=lte.${dMinus1}&select=jurisdiction,session,date_et,result_digits,created_at&order=date_et.asc,created_at.asc,id.asc&limit=1000&offset=${offset}`);
+      rows.push(...page);
+      if (page.length < 1000) break;
+    }
+    const scan = scanFaults(rows.map(r => ({ stream: `${r.jurisdiction}|${r.session}`, date: r.date_et, digits: r.result_digits, order: r.created_at })), { from: from120, asOf: dMinus1 });
+    for (const line of formatFaultReport(scan, { from: from120, asOf: dMinus1, top: 3 })) notes.push(line.replace(/^fault-monitor: /, 'fault-monitor · '));
+  } catch (e) {
+    notes.push(`fault-monitor · skipped — ${e instanceof Error ? e.message : String(e)} (fail-open; run npm run monitor:fault by hand)`);
+  }
 
   for (const n of notes) console.log(`preflight: ${n}`);
   if (fails.length) {

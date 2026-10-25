@@ -2,7 +2,9 @@
 HITMASTER REEL COMMANDS — copy/paste reference
 ================================================================
 Rule: this file is ALWAYS updated when a reel command is added or
-changed. Every command has a description. (Last updated 2026-10-19 — MKT-91:
+changed. Every command has a description. (Last updated 2026-10-25 — FAULT-MON-01:
+the gross-fault monitor is a 5th, fail-open preflight section + `npm run monitor:fault`;
+see FAULT MONITOR under the PRE-FLIGHT GATE. Previously 2026-10-19 — MKT-91:
 THE PUBLIC RECEIPTS FLOOR — verify_public and allday_public are built ONLY when
 yesterday's All-Day board verified 3 or more; 0/1/2 of 6 = SKIP, group cuts
 unaffected, nothing to type; see PUBLIC RECEIPTS FLOOR below. Previously
@@ -359,6 +361,20 @@ npm run reel:daily -- --allow-all-matched  (record_public may render a 30-of-30 
     the missing session / click the Daily Workflow) and relaunch.
     --skip-preflight exists for a day the operator has judged by hand;
     the log header records that it was skipped.
+    FAULT MONITOR (FAULT-MON-01, 2026-10-25) — a 5th preflight section,
+    READ-ONLY and FAIL-OPEN (it never stops the run). Scans the trailing
+    120 days of every jurisdiction×session stream for a NON-UNIFORM draw —
+    the only edge this game has ever had (ENG-REVIEW-04: DC 3/31–4/21/2026
+    could not draw repeated digits; single-set box paid 1.25 there). Lines:
+        preflight: fault-monitor · FLAG 0 · WATCH 0
+        preflight: fault-monitor · top class-mix e-values: …
+    A ⚠ FLAG line means that state's draw is not uniform right now —
+    confirm against the official draw list, then it is a bet, not a reel
+    matter. Stand-alone, any date:
+        npm run monitor:fault                        (coverage era → today)
+        npm run monitor:fault -- --as-of 2026-04-21  (replay a past date)
+        npm run monitor:fault -- --json | --strict   (machine output / exit 3 on FLAG)
+    Nothing is scheduled; the operator's reel:daily click is when it runs.
     --allow-all-matched is the ONLY way to carry the record renderer's
     all-gold override through the daily run (npm run reel:record cannot
     take flags); the log header records it. Still operator-stated per run.

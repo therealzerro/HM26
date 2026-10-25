@@ -1,7 +1,13 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-19 · v7.36
+Content Agent Handoff · 2026-10-25 · v7.37
 ================================================================================
+v7.37 (2026-10-25) — FAULT-MON-01: reel:daily's pre-flight prints a 5th section,
+"fault-monitor · FLAG n · WATCH n" + top e-values, from lib/faultMonitor.ts. It is
+READ-ONLY and FAIL-OPEN — it never aborts a run and changes no reel. A ⚠ FLAG line
+is operator information (a state's draw is not uniform), not a content instruction;
+never mention a flag in any caption or reel. Stand-alone: npm run monitor:fault.
+
 ⚠ THIS FILE WAS RENAMED on 2026-07-28. It was
 `assets/marketing/Reel_System_Handoff_2026-07-27.txt`; it is now
 `assets/marketing/Reel_System_Handoff.txt`. The old name carried its CREATION

@@ -357,6 +357,23 @@ The earlier gap in this same block — preflight probing file existence rather t
 
 **Standing rulings honoured:** no automation proposed; no accuracy levers; no copy quoting these numbers; ENH-FUNNEL-03 remains SCOPED (table only, no API); no member names committed.
 
+### FAULT-MON-01 — Gross-fault draw monitor (the ENG-REVIEW-04 proposal) · ✅ SHIPPED 2026-10-25 (operator: "build the fault monitor") · read-only · fail-open · operator-triggered · zero engine change
+
+**What it is.** The only edge this game has ever produced came from a NON-UNIFORM DRAW (PA 1980 rig; AZ 2013 RNG bug excluding digits 55 days; AZ 2017 seed fault; DC 2026-03-31→04-21 Smartplay no-repeat bug = single-set box paid 1.25 for 3 weeks, visible in our own ledger as 13/13 DC midday singles, nobody looking). `lib/faultMonitor.ts` (pure, 0 I/O) scans every jurisdiction×session stream of `histories`; `scripts/monitor/fault-monitor.ts` = `npm run monitor:fault [-- --as-of D | --from D | --json | --strict]`; `scripts/reel-preflight.ts` §5 prints the same scan (trailing 120 d) every morning the operator runs `reel:daily` — it NEVER aborts the run (fail-open) and a fetch error is a one-line "skipped". Nothing scheduled (OPS-01). Tests: `__tests__/faultMonitor.test.ts` 12/12.
+
+**Detectors / thresholds (set for the multiplicity in play — ≈70 streams, 210 position cells, 2,100 digit cells, ≈7 monthly anchors/yr).**
+| | statistic | WATCH | FLAG |
+|---|---|---|---|
+| A class mix | anytime-valid e-process from fixed monthly anchors: ½ point alternative "no repeated digits" (per-draw 1/.72; DC class) + ½ Dirichlet(1,1,1)-multinomial vs .72/.27/.01 | e ≥ 100 (17th consecutive single) | e ≥ 1,000 (24th) |
+| B digit position | Dirichlet(1¹⁰)-multinomial e-process vs uniform, per position, same anchors (AZ-2013 slow burn; catches an excluded digit by ≈300 draws) | e ≥ 1,000 | e ≥ 10,000 |
+| C digit absence | current run of draws a digit has missed a position; e=(10/9)^run (fast excluded-digit detector) | run ≥ 90 (P 7.6e-5 ×2,100 cells ≈ .17 at any instant) | run ≥ 120 (≈ .007; ≈ .3 false/yr) |
+| D zero doubles | no double/triple in trailing 20 (P .0014) | WATCH | — |
+| E exact repeat | back-to-back exact repeat twice in 14 d, trailing 60 d | WATCH | — |
+
+**Validation on the real ledger.** `--as-of 2026-04-21`: DC midday e=36 (13/13 singles) — rising, below WATCH; MI evening and CO midday sat at the same 13/13 that day (a 1-in-70 run with 69 streams live), which is exactly why WATCH sits at 17. Had DC been ingested from 3/31 (22 fault draws/session) the midday stream reads WATCH on 4/16; FLAG would have needed draw 24. The fault hit midday AND evening — two streams rising together is the operator's cue to read the top-e list, not only the FLAG line. Today (4/1→10/25, 14,585 draws, 70 streams): **FLAG 0 · WATCH 1** (TX evening digit 0 absent from position 1 for 90 draws — the TX evening stream is 2 draws/day so 45 days; P 7.6e-5 per cell, ≈ .17 expected across cells → noise until 120).
+
+**Positive effect, stated honestly.** When quiet (almost always): nothing, costs nothing, changes nothing. When a class-A FLAG fires in a state: every draw there is a single → covering all 120 singles box at 1B costs $30 and pays $37.50 **guaranteed** (+25%/draw); straight-covering the 720 singles costs $180 and pays $225 (+25%). DC's 44 fault draws (22 midday + 22 evening) = +$330/unit box or +$1,980/unit straight-cover from day one; detected at the 17th draw ≈ 10 draws left ≈ +$75 / +$450 per unit. Frequency: a few per decade across ~40 games. Known limits: GA/TX/DC evening+night and TX/TN two-row middays share one stream (a fault in only one of the two draws is diluted ~½); the ledger starts 4/1 so pre-April faults are invisible; the book may cap stakes. No Admin UI surface (CLI + preflight only) — add one only if the operator asks.
+
 ### COHORT-02 — "Is any box combo ever DUE?" — full threshold scan, 220-set universe × 5 history-feature families (operator ask 2026-10-25: "pair data, time drawn, times since drawn, and all other history data … a certain threshold telling us that a box combo is due?") · ✅ COMPLETE · verdict: **no threshold exists** · research only, nothing built
 
 **Window** `histories` 2026-04-01→2026-10-24 (207 days, full-coverage era), 220 sets scored by class (singles/doubles/triples separately — base rates 6:3:1 per draw), outcome = drawn anywhere on day D. Doc: `docs/research/due_threshold_scan_2026-10-25.md`; SQL: `scripts/research/due_threshold_scan.sql` (5 blocks, re-runnable).

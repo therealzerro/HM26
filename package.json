@@ -27,6 +27,7 @@
     "calibrate:picks": "tsx scripts/calibration/fit_pick_probability.ts",
     "verify:hits": "tsx scripts/intel-tuning/verify-hits.ts",
     "cohort:overdue": "tsx scripts/cohort/overdue-cohort.ts",
+    "monitor:fault": "tsx scripts/monitor/fault-monitor.ts",
     "rls:smoke": "tsx scripts/rls-smoke.ts",
     "zk6:parity": "tsx scripts/zk6-parity/run.ts",
     "check:brand-voice": "tsx scripts/check-brand-voice.ts",

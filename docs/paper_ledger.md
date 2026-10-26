@@ -1,6 +1,6 @@
 # Paper Ledger — assistant's virtual book (operator: "$200 daily virtual budget starting now until Wednesday, use your own judgement, place your own paper bets, brief report every time we speak" — 2026-10-25 ~4:30pm ET)
 
-**Rules of this book (mirrors `docs/bet_log.md` pricing):** $0.25 per jurisdiction-draw per unit; straight pays 900:1 = **$225/unit** per hitting state; 6-way box 150:1 = **$37.50/unit**; a straight also collects its box units. Full session boards only (operator's board convention), timing pools allowed, no state picks. Budget **$200 per calendar day — ALL of it staked, every day (operator rule 10/26: unspent budget is never a result)**; nothing rolls. Convention closures honoured: a set that already drew earlier today is dropped and replaced. Reconciled from `histories` after each import (never stored flags — BUG-162). **Standing truth:** no set is likelier than another (SIGNAL-INFO-01, COHORT-02, BRIEF-FP-01); RTP ≈ 0.90 on every product, so the expected result of every ticket is −10% of stake. Judgment = stake structure + discipline. Nothing here is a real placement.
+**Rules of this book (mirrors `docs/bet_log.md` pricing):** $0.25 per jurisdiction-draw per unit; straight pays 900:1 = **$225/unit** per hitting state; 6-way box 150:1 = **$37.50/unit**; a straight also collects its box units. Full session boards only (operator's board convention), timing pools allowed, no state picks. Budget **$400 per day — $200 midday + $200 evening (or $400 all-day) — ALL of it staked (operator rule 10/26, final form: must be spent; day total 400)**; nothing rolls; a remainder smaller than one unit in one session moves to the other session. Convention closures honoured: a set that already drew earlier today is dropped and replaced. Reconciled from `histories` after each import (never stored flags — BUG-162). **Standing truth:** no set is likelier than another (SIGNAL-INFO-01, COHORT-02, BRIEF-FP-01); RTP ≈ 0.90 on every product, so the expected result of every ticket is −10% of stake. Judgment = stake structure + discipline. Nothing here is a real placement.
 
 **Window:** Sun 10/25 evening → Wed 10/28 (midday strike day). Running PAPER total: see the bottom line of each day.
 
@@ -87,4 +87,23 @@ One 2B late box → −$26.50 on the leg; two → +$48.50; 831 exact → +$348.5
 
 **Day 2 honest odds at $200:** all three legs blank ≈ 10%; most non-blank days are still negative because one box pays $37.50–$75 against a $200 stake; a positive day needs a straight or three or more boxes, roughly one day in four. EV −$20.00. Reconcile A at the midday import, stage 1 at the 8:24 paste, stage 2 from the 10/27 import.
 
-**Running PAPER total (placed tickets): −$204.75 → Day 2 at risk −$200.00.**
+### Day 2 AMENDED AGAIN 7:15am ET — OPERATOR RULE (10/26, final form): "**200 midday, 200 evening, or 400 allday, must be spent**" / "**day total 400**." Budget is **$400 per day, all staked**. Placed before any 10/26 draw; supersedes both earlier Day 2 tables.
+
+**MIDDAY — 24 units = $198.00** (33 draws → $8.25/unit; $200 is not a whole number of units, so the $2.00 remainder moves to the evening leg to keep the day at $400). All six Midday-board sets covered:
+| Set | Why | Box | Straight | Cost |
+|---|---|---|---|---|
+| {1,3,8} | triple board (318 / 138 / 831) | 5B | 318 2S | $57.75 |
+| {3,5,6} | Mid 2 + AD 4 | 3B | 653 1S | $33.00 |
+| {5,6,8} | Mid 3 + AD 1 | 3B | 658 1S | $33.00 |
+| {0,3,7} | Mid 6 + Eve 2 | 3B | 073 1S | $33.00 |
+| {1,7,8} | Mid 1 (single board) | 2B | 718 1S | $24.75 |
+| {2,3,4} | Mid 4 (single board) | 2B | — | $16.50 |
+P(≥1 box across six sets, 33 draws) = 70.6%; P(≥1 straight across five orders) = 15.2%. One 2B box → −$123.00; one 3B → −$85.50; {1,3,8} box → −$10.50; any 1S straight → ≥ +$102; 318 exact → +$439.50; blank −$198.00. Positive midday ≈ 22% (a straight, or {1,3,8} plus any other box, or three boxes).
+
+**EVENING — $202.00 exactly = early-13 22 units ($71.50) + late-29 18 units ($130.50)** (13e + 29l = 808 → e 22 / l 18; the clock stays: the 8:24 readout sets the late composition, never its size).
+*Stage 1, early-13 ($3.25/u), 22 units:* {1,3,8} 4B · {4,6,9} 3B · {0,3,7} 3B · {0,5,8} 3B · {1,6,9} 2B · {4,5,6} 2B (17) + **831 3S · 946 1S · 703 1S** (5). Midday amend: a set drawn at midday is CLOSED and its box + straight units move to the next set from {5,6,8} → {1,4,5} → {0,3,4} → {3,5,6} (skipping anything drawn), straight in that set's All-Day order. One 2B box → +$3.50; one 3B → +$41.00; {1,3,8} box → +$78.50; 831 exact → +$753.50 + box; blank −$71.50.
+*Stage 2, late-29 ($7.25/u), 18 units FIXED:* blank early → {4,6,9} 3B · {1,3,8} 3B · {0,3,7} 2B · {0,5,8} 2B · {1,6,9} 2B · {4,5,6} 2B (14) + 831 2S · 946 1S · 703 1S (4). Early hit → the landed set is closed; its units move to the next priority set as above. One 3B late box → −$18.00 on the leg; one 2B → −$55.50; two boxes → positive; 831 exact → +$319.50 + box; blank −$130.50.
+
+**Day 2 staked: $400.00** ($198.00 midday + $202.00 evening). Blank-day odds ≈ 29.4% × 62.6% × 35.1% ≈ 6.5%; a positive day needs a straight or three-plus boxes, roughly one day in four. EV −$40.00. Reconcile midday at the ~4:20pm import, stage 1 at the 8:24 paste, stage 2 from the 10/27 import.
+
+**Running PAPER total (placed tickets): −$204.75 → Day 2 at risk −$400.00.**

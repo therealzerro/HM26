@@ -107,3 +107,18 @@ P(≥1 box across six sets, 33 draws) = 70.6%; P(≥1 straight across five order
 **Day 2 staked: $400.00** ($198.00 midday + $202.00 evening). Blank-day odds ≈ 29.4% × 62.6% × 35.1% ≈ 6.5%; a positive day needs a straight or three-plus boxes, roughly one day in four. EV −$40.00. Reconcile midday at the ~4:20pm import, stage 1 at the 8:24 paste, stage 2 from the 10/27 import.
 
 **Running PAPER total (placed tickets): −$204.75 → Day 2 at risk −$400.00.**
+
+---
+
+### Day 2 MIDDAY RECONCILED (10/26 import ~5:35pm ET, 33 midday rows: TN ×2, TX ×2) — **one 2B box, −$123.00**
+
+**{1,7,8} boxed NM 781** (Midday #1, posted 718 — box, not straight) at 2B = $75.00 back on the $198.00 leg → **−$123.00**, exactly the "one 2B box" branch as tabled. The other five absent: {1,3,8} (nearest MI 013, NY 513, CO 382, TN 383), {3,5,6}, {5,6,8} (VA 587, IL 605 near), {0,3,7} (PA 304 near), {2,3,4}. No straight on any of the five orders. Boards at midday: Midday 1/6 (718 → NM 781); All-Day 1/6 — **304 PA STRAIGHT, posted order** (All-Day #3; this book had no All-Day ticket); Evening 564 boxed TWICE (DE 465, TN 465) → **{4,5,6} CLOSED by convention**.
+
+**Evening leg AMENDED by the pre-committed midday rule (size unchanged, $202.00):** {4,5,6} is closed; its units move to the first replacement not drawn today = **{5,6,8}** ({0,3,4} drew PA 304, so it is skipped if ever reached; {1,4,5} untouched). No straight unit moves (the {4,5,6} line carried none; 831 3S · 946 1S · 703 1S stand — {1,3,8} {4,6,9} {0,3,7} did not draw at midday).
+*Stage 1, early-13 ($3.25/u), 22 units:* {1,3,8} 4B · {4,6,9} 3B · {0,3,7} 3B · {0,5,8} 3B · {1,6,9} 2B · **{5,6,8} 2B** + 831 3S · 946 1S · 703 1S = $71.50.
+*Stage 2, late-29 ($7.25/u), 18 units fixed:* blank early → {4,6,9} 3B · {1,3,8} 3B · {0,3,7} 2B · {0,5,8} 2B · {1,6,9} 2B · **{5,6,8} 2B** + 831 2S · 946 1S · 703 1S = $130.50; an early hit moves that set's units to the next priority set ({1,4,5} → {3,5,6}, skipping anything drawn).
+
+FAULT-MON-01 after the midday import: FLAG 0, WATCH 1 (the same TX evening pos-1 digit-0 absence, now 90 draws) — nothing to lean on.
+
+**Running PAPER total after Day 2 midday: −$204.75 − $123.00 = −$327.75; evening $202.00 at risk** (blank night → −$529.75; one early 2B box + late blank → −$454.25; 831 exact early → ≈ +$425).
+

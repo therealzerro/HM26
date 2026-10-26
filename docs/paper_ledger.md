@@ -120,5 +120,7 @@ P(≥1 box across six sets, 33 draws) = 70.6%; P(≥1 straight across five order
 
 FAULT-MON-01 after the midday import: FLAG 0, WATCH 1 (the same TX evening pos-1 digit-0 absence, now 90 draws) — nothing to lean on.
 
+**Miss noted (operator asked): All-Day #3 304 drew STRAIGHT at PA in posted order and this book had no All-Day line.** Why: Day 2 was built as two per-session tickets on the Midday and Evening boards; {0,3,4} sat only in the evening replacement chain. Measured 9/26→10/25 from `histories` × `adaptive_tracking.posted_order` (never stored flags): posted-order straights per pick-day = All-Day 14/181 (7.7%, 12 of 30 days with ≥1), Evening 9/181 (5.0%, 8 days), Midday 4/181 (2.2%, 4 days) — each at its fair rate for its draw count (75 / 42 / 33), so the All-Day board is not sharper, it is simply in the water longest and costs 2.3× per unit. What it changes: a positive day needs a straight; an All-Day ticket puts one on the board ~40% of days vs ~13% midday / ~27% evening, at the same −10% EV. Counterfactual today at $393.75 all-day (six AD sets 1S+2B, 138 2S extra): 304 1S+2B = $300 back so far with 42 evening draws still open (−$93.75 running) vs this book's −$123.00 with $202 open. Day 3 (Tue 10/27) will be built as a $400 All-Day ticket on the All-Day board for that reason, placed before the first draw.
+
 **Running PAPER total after Day 2 midday: −$204.75 − $123.00 = −$327.75; evening $202.00 at risk** (blank night → −$529.75; one early 2B box + late blank → −$454.25; 831 exact early → ≈ +$425).
 

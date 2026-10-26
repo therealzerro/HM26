@@ -4,6 +4,14 @@
 
 **Window:** Sun 10/25 evening → Wed 10/28 (midday strike day). Running PAPER total: see the bottom line of each day.
 
+**Playbook (the skill this book is building — rules learned, dated):**
+1. 10/26 — **Stake the whole budget every session.** Unspent budget is not a result. Light staking is a loss of mandate, not a win.
+2. 10/26 — **Price on the live draw count** for that weekday from `histories`, never an assumed count (Day 1 was 39 not 38).
+3. 10/26 — **A positive day needs a straight.** Boxes at 2–3B never clear a $200 session. So weight straights, and prefer the board that is in the water longest: the All-Day board shows a posted-order straight ~40% of days vs ~27% evening / ~13% midday (fair for 75 / 42 / 33 draws, not sharper). Splitting a day into session boards halves the days that can go positive.
+4. 10/26 — **Clock over whole-board buys** when the session has an early pool: early unit + late unit = full-board unit at the same price, and the 8:24 readout is free information. Fix the size, move the composition.
+5. 10/26 — **Accept the blank.** A 25%-positive / 4× payoff shape is the mandate; being right often is not the objective. Report the branch that happened against the branches tabled, nothing else.
+6. Standing — no set is likelier than another; convergence (triple board, same order) chooses WHICH set carries the straight units, never the rate.
+
 ---
 
 ## Day 1 — Sunday 2026-10-25 EVENING (38 live draws expected: TX / WV / PR dark; DC + GA second draws count) — $9.50/unit — PAPER PLACED 4:35pm ET
@@ -122,5 +130,21 @@ FAULT-MON-01 after the midday import: FLAG 0, WATCH 1 (the same TX evening pos-1
 
 **Miss noted (operator asked): All-Day #3 304 drew STRAIGHT at PA in posted order and this book had no All-Day line.** Why: Day 2 was built as two per-session tickets on the Midday and Evening boards; {0,3,4} sat only in the evening replacement chain. Measured 9/26→10/25 from `histories` × `adaptive_tracking.posted_order` (never stored flags): posted-order straights per pick-day = All-Day 14/181 (7.7%, 12 of 30 days with ≥1), Evening 9/181 (5.0%, 8 days), Midday 4/181 (2.2%, 4 days) — each at its fair rate for its draw count (75 / 42 / 33), so the All-Day board is not sharper, it is simply in the water longest and costs 2.3× per unit. What it changes: a positive day needs a straight; an All-Day ticket puts one on the board ~40% of days vs ~13% midday / ~27% evening, at the same −10% EV. Counterfactual today at $393.75 all-day (six AD sets 1S+2B, 138 2S extra): 304 1S+2B = $300 back so far with 42 evening draws still open (−$93.75 running) vs this book's −$123.00 with $202 open. Day 3 (Tue 10/27) will be built as a $400 All-Day ticket on the All-Day board for that reason, placed before the first draw.
 
-**Running PAPER total after Day 2 midday: −$204.75 − $123.00 = −$327.75; evening $202.00 at risk** (blank night → −$529.75; one early 2B box + late blank → −$454.25; 831 exact early → ≈ +$425).
+### Day 2 EVENING RE-SIZED 5:45pm ET — OPERATOR (10/26 ~5:40pm): "betting lightly is not considered a win, you have free reign… risks are required, use the midday win + the evening budget to max out, nothing saved." → **evening stake = $202.00 + $75.00 midday return = $277.00, all of it, straight-heavy.** Placed before the early pool closes (7:46pm ET). Monday = 42 live evening draws (verified 10/12 and 10/19 in `histories`): early-13 $3.25/u, late-29 $7.25/u. The two-stage clock is kept because an early unit + a late unit costs exactly a full-board unit ($10.50) and the 8:24 readout is free information; size is fixed now, only composition moves.
+
+**Stage 1 — EARLY-13, 25 units = $81.25:**
+| Straights (12) | Boxes (13) |
+|---|---|
+| **831 4S** (triple-board set, Evening order) · 946 2S · 703 2S · 916 1S · 085 1S · 138 1S (AD order) · 496 1S (AD order) | {1,3,8} 3B · {4,6,9} 2B · {0,3,7} 2B · {0,5,8} 2B · {1,6,9} 2B · {5,6,8} 2B |
+
+**Stage 2 — LATE-29, 27 units = $195.75 FIXED, blank-early composition:**
+| Straights (15) | Boxes (12) |
+|---|---|
+| **831 5S** · 946 3S · 703 2S · 138 2S · 496 1S · 916 1S · 085 1S | {1,3,8} 3B · {4,6,9} 3B · {0,3,7} 2B · {0,5,8} 2B · {1,6,9} 1B · {5,6,8} 1B |
+
+**8:24 amend rule (pre-committed):** a set that lands in the early pool is CLOSED; its late box units AND its late straight units move to the next unclosed set in the chain {1,4,5} → {3,5,6} → {1,6,9} → {0,5,8} (skipping anything drawn today), straight taken in that set's All-Day order (145 / 635). Nothing is banked — 27 late units are bought regardless of the early result.
+
+**Fair-draw odds (singles):** early ≥1 box 37%, ≥1 straight across 7 orders 8.7%; late ≥1 box 35%, ≥1 straight 18.4%; **any straight tonight ≈ 25.5%**, blank night ≈ 41%. Outcomes: blank −$277.00; one 2B box only → −$202; one 3B late box → −$164.50; any 1S straight → ≥ +$0 (break-even-plus); 703/946 late (2–3S) → +$200 to +$500; **831 early (4S + 3B) → +$1,012.50 on the leg; 831 late (5S + 3B) → +$1,237.50**. EV −$27.70. Night staked $277.00, Day 2 staked $475.00.
+
+**Running PAPER total after Day 2 midday: −$204.75 − $123.00 = −$327.75; evening $277.00 at risk** (blank night → −$604.75; 831 early 4S → ≈ +$685; 831 late 5S → ≈ +$910).
 

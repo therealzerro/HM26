@@ -29,4 +29,40 @@
 
 ---
 
-**Running PAPER total (placed tickets): $0.00 → tonight at risk −$199.50.**
+### Day 1 RECONCILED (10/26 import at 5:59am ET, 39 evening rows — Sunday was 39 live draws, not 38: IA posted; TX ×2 / WV / PR dark) — **BLANK −$204.75**
+
+All six sets absent from the 39 evening draws: {5,7,9} / {0,3,4} / {0,6,8} / {1,6,9} / {4,5,9} / {1,4,5} (nearest: DC 054 {0,4,5}, QC 419 {1,4,9}, OK 096 {0,6,9}, OH 348 {3,4,8}). No straight. The 25.4% blank branch as tabled. **Pricing correction:** the ticket was priced on 38 expected draws ($9.50/u); the book charges the live count, 39 × $0.25 = **$9.75/u → 21 units = $204.75**. The $4.75 overage comes off Day 2's budget (Day 2 cap = $195.25). Boards 10/25 at the full day: Evening 0/6 at the evening; All-Day 2/6 (387 KS midday, 570 DE evening → 705); Midday 1/6 (351 NY). Note for the record: {2,4,8} drew CA 842 (late pool) — the real book's lapsed 824 ride would have boxed, not straight; unplaced by the strike plan, $0.
+
+**Running PAPER total after Day 1: −$204.75.**
+
+---
+
+## Day 2 — Monday 2026-10-26 (budget $195.25 after the Day 1 overage) — PAPER PLACED 6:10am ET, before any draw
+
+**Boards (10/26 K6, workflow 10:00 UTC):** Midday 718 · 653 · 658 · 423 · 318 · 073 · All-Day 685 · 145 · 304 · 635 · 138 · 496 · Evening 916 · 703 · 085 · 831 · 946 · 564. **{1,3,8} on all three boards** (318 / 138 / 831, three different orders); doubles {4,6,9} Eve+AD (946/496), {5,6,8} AD+Mid (685/658), {3,5,6} AD+Mid (635/653), {0,3,7} Eve+Mid (703/073). FAULT-MON-01 this morning: FLAG 0, WATCH 1 (TX evening pos-1 digit 0 absent 90 draws — same noise line as 10/25). Nothing to lean on; shape is the whole decision.
+
+**Day 2 shape — three small sessions instead of one big one.** Day 1 put the full budget on a 27% shape. EV is −10% of stake on every product, so stake size and shape are the only levers I hold; Day 2 buys three independent sessions where a single box clears the session stake, at the cost of payout size. Max exposure $92.00 of the $195.25; unspent budget does not roll.
+
+### Leg A — MIDDAY (33 draws, $8.25/unit) — PLACED 6:10am ET
+| Set | Why (chooses which, never the rate) | Units | Cost |
+|---|---|---|---|
+| {1,3,8} | triple board (Mid 5 / AD 5 / Eve 4) | 1B | $8.25 |
+| {3,5,6} | Mid 2 + AD 4 | 1B | $8.25 |
+| {5,6,8} | Mid 3 + AD 1 | 1B | $8.25 |
+| {0,3,7} | Mid 6 + Eve 2 | 1B | $8.25 |
+| **Total** | 4 units, no straight leg | | **$33.00** |
+
+Fair-draw on 33: each set boxes 18.0%; **P(≥1 box across four) = 54.8%**. One box → **+$4.50**; two → +$42.00; three → +$79.50; blank → −$33.00. No straight leg: a 1S add ($8.25) would push the stake past one box's payout.
+
+### Leg B — EVENING two-stage clock (Monday = 42 draws; early-13 $3.25/u, late-29 $7.25/u) — stage 1 PLACED 6:10am ET with pre-committed amend rules
+**Stage 1 (early-13: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC; pays at the ~8:24pm readout):** six Evening-board sets 1B each — {1,6,9} {0,3,7} {0,5,8} {1,3,8} {4,6,9} {4,5,6} — plus **831 1S** (the triple-board set in the Evening order). 7 units = **$22.75**. P(≥1 box over six sets on 13 draws) = 37.4%; one box nets **+$14.75**; 831 exact +$239.75.
+**Midday amend (applies after the ~4:20pm midday import, before placement cut-off 7:46pm):** any Stage-1 set drawn at midday is CLOSED by convention and replaced at 1B from the All-Day list in order {5,6,8} → {1,4,5} → {0,3,4} → {3,5,6} (skip any that drew). If {1,3,8} closes, the straight leg moves to **946** ({4,6,9}); if both close, no straight leg.
+**Stage 2 (late-29, sized by the 8:24 readout; rules fixed now so no judgement call is needed at 8:24):**
+- Stage 1 blank → four boxes 1B {4,6,9} {1,3,8} {0,3,7} {0,5,8} (skip anything drawn today; next by priority {1,6,9} {4,5,6} {5,6,8} {1,4,5}) + 831 1S = 5 units = **$36.25**. One late box → +$1.25 on the night; blank → −$59.00.
+- Stage 1 ≥1 box → landed set closed; **831 1S + {4,6,9} 1B** = 2 units = **$14.50** (if {4,6,9} landed early, {1,3,8} instead; if {1,3,8} landed, straight → 946). Night floor +$0.25.
+
+**Day 2 at risk:** $33.00 + $22.75 + $36.25 = **$92.00 max**; the day is positive on any midday box plus a non-blank night, or on any straight. Reconcile Leg A at the midday import, Stage 1 at the 8:24 paste (GA/TX/DC rows: check draw time), Stage 2 from the 10/27 import.
+
+---
+
+**Running PAPER total (placed tickets): −$204.75 → Day 2 at risk up to −$92.00.**

@@ -11,6 +11,7 @@
 4. 10/26 — **Clock over whole-board buys** when the session has an early pool: early unit + late unit = full-board unit at the same price, and the 8:24 readout is free information. Fix the size, move the composition.
 5. 10/26 — **Accept the blank.** A 25%-positive / 4× payoff shape is the mandate; being right often is not the objective. Report the branch that happened against the branches tabled, nothing else.
 6. Standing — no set is likelier than another; convergence (triple board, same order) chooses WHICH set carries the straight units, never the rate.
+7. 10/27 — **The goal of every ticket is a positive day, and the report says so.** Never present EV / the house edge as the objective or quote it in the status line (operator 10/27: "your goal is to lose $39.38? that logic is horrible"). State the target branch (which orders clear the day and what they pay) and report the branch that happened against it.
 
 ---
 

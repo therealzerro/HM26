@@ -208,3 +208,20 @@ Strike-plan monitoring line 10/27 morning: FAULT-MON-01 FLAG 0, WATCH 2 (TX even
 **Running PAPER total, interim: −$529.75 − $281.25 = −$811.00** (final from the 10/28 ~4:40am evening import).
 
 Strike-plan monitoring line 10/27 midday: FLAG 0 · WATCH 2 WATCH [digit-absence] TX|evening: digit 0 has not appeared in position 1 for 92 draws (fair P = 6.2e-5; e=(10/9)^92=1.6e+4) — AZ-2013 excluded-digit class WATCH [digit-absence] W.Canada|evening: digit 0 has not appeared in position 3 for 90 draws (fair P = 7.6e-5; e=(10/9)^90=1.3e+4) — AZ-2013 excluded-digit class . IN 824 at midday — the third {2,4,8} draw in three days (CA 842 10/25 eve, TX 842 10/26 eve, IN 824 10/27 mid); the real book's 824 ride is lapsed under the strike plan, $0.
+
+### Day 3 EVENING ADD — OPERATOR (10/27 ~4:58pm ET): "max bet the midday win amount on the 1st 13." PAPER PLACED 5:00pm ET, before the early pool closes (7:46pm). Early-13 pool (PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) = $3.25/unit. Midday return $112.50 → **34 units = $110.50**, all of it; the $2.00 remainder cannot buy a unit. Rides on top of the All-Day ticket (its 21 units stay live for all 42 evening draws).
+
+| Set | Why (chooses which, never the rate) | Box | Straight (order) | Cost |
+|---|---|---|---|---|
+| **{0,3,8}** | All-Day #4 + Evening #4, **same order 803** on both; boxed TX 308 at midday | 2B | **803 8S** | $32.50 |
+| **{1,3,8}** | triple board; boxed WI 381 at midday | 2B | **138 5S** (Evening order) + **318 3S** (All-Day/Midday order) | $32.50 |
+| {4,6,9} | Evening #3 + All-Day #3 | 2B | 946 3S + 496 1S | $19.50 |
+| {2,3,9} | All-Day #6 + Midday #4, same order 329 | 1B | 329 2S | $9.75 |
+| {0,5,8} | Evening #1 | 1B | 085 1S | $6.50 |
+| {4,5,7} | Evening #6 | 1B | 745 1S | $6.50 |
+| {0,5,9} | Evening #5 | — | 095 1S | $3.25 |
+| **Total** | 9B + 25S = 34 units | | | **$110.50** |
+
+**Target:** 803 exact in any of the 13 early states → +$1,764.50 on the leg (8S + 2B). 138 exact → +$1,089.50; 318 exact → +$639.50; 946 exact → +$639.50; 329 exact → +$377.00; 496 / 085 / 745 / 095 exact → +$152.00 to +$189.50. A box only: 2B set → −$35.50, 1B set → −$73.00. Blank → −$110.50.
+
+**Day 3 staked: $393.75 + $110.50 = $504.25.** Reconcile the early-13 from the ~8:24pm paste if one comes, otherwise from the 10/28 ~4:40am import together with the All-Day ticket.

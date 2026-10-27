@@ -148,3 +148,14 @@ FAULT-MON-01 after the midday import: FLAG 0, WATCH 1 (the same TX evening pos-1
 
 **Running PAPER total after Day 2 midday: −$204.75 − $123.00 = −$327.75; evening $277.00 at risk** (blank night → −$604.75; 831 early 4S → ≈ +$685; 831 late 5S → ≈ +$910).
 
+
+### Day 2 EVENING STAGE 1 RECONCILED (operator paste 8:17pm ET, 13 early-pool draws: AR DE GA Tri-State MI MN OH PA SC TN TX DC WV; MD and the duplicate Multi-State row not in the pool) — **one 2B box, −$6.25 on the stage**
+
+**{1,6,9} boxed AR 961** (Evening #1, posted 916 — box, not straight) at 2B = $75.00 back on the $81.25 stage → **−$6.25**. The other five absent: {1,3,8} (nearest SC 618, PA 851), {4,6,9}, {0,3,7}, {0,5,8} (TN 098 near), {5,6,8} (MI 567, MN 576 near). No straight on any of the seven orders (831 / 946 / 703 / 916 / 085 / 138 / 496). The 37% "early box" branch as tabled; the early straights (8.7%) did not come.
+
+**Stage 2 AMENDED by the pre-committed 8:24 rule (27 units = $195.75, size unchanged):** {1,6,9} is CLOSED; its late units move to the first unclosed set in the chain = **{1,4,5}** (not drawn today at midday or in the early pool; verified in `histories`), straight in its All-Day order **145**.
+| Straights (15) | Boxes (12) |
+|---|---|
+| **831 5S** · 946 3S · 703 2S · 138 2S · 496 1S · **145 1S** · 085 1S | {1,3,8} 3B · {4,6,9} 3B · {0,3,7} 2B · {0,5,8} 2B · **{1,4,5} 1B** · {5,6,8} 1B |
+
+Late-29 pool still open (NY NJ CT MA RI VA NC FL IL IN KY MO WI KS NE OK CO AZ ID WA OR CA QC ON LA IA GA-night DC-late PR-dark/TX-2nd per schedule). Night so far: −$277.00 + $75.00 = **−$202.00 with $195.75 of late units in the water**. Late branches: blank → night −$202.00 (day −$325.00, running −$529.75); one 2B/3B late box → −$127 / −$89.50; any late 1S straight → ≥ +$23 on the night; 946 (3S) → +$473 + box; **831 (5S + 3B) → +$1,035.50 on the night**. Reconcile stage 2 from the 10/27 ~4:40am import.

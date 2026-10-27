@@ -198,3 +198,13 @@ Strike-plan monitoring line 10/27 morning: FAULT-MON-01 FLAG 0, WATCH 2 (TX even
 **Reconcile:** at the ~4:20pm midday import (interim) and the 10/28 ~4:40am evening import (final). Day 3 at risk −$393.75 → blank-day running total would be −$923.50.
 
 **Running PAPER total (placed tickets): −$529.75; Day 3 $393.75 in the water.**
+
+### Day 3 MIDDAY RECONCILED (10/27 import 4:56pm ET, 33 midday rows: TN ×2, TX ×2) — **two boxes, $112.50 back, no straight; −$281.25 interim with the 42 evening draws open**
+
+**{1,3,8} boxed WI 381** (ticket order 318 — box, not straight) at 2B = $75.00. **{0,3,8} boxed TX 308** (ticket order 803 — box, not straight) at 1B = $37.50. The other four absent at midday: {2,3,9} (AZ 928, CT 929 near), {4,6,9} (MI 464 near), {5,6,8} (AR 683, OH 866 near), {2,6,8} (IN 824, DE 274 near). None of the six orders drew exactly; the 318 and 803 orders both came up scrambled. Boards at midday: All-Day 2/6 box (381 WI, 308 TX); Midday 1/6 box (318 → WI 381); Evening-board sets 138 and 803 drew at midday (graded against evening draws only).
+
+**Ticket so far: −$393.75 + $112.50 = −$281.25.** All 21 units stay in the water for the 42 evening draws (one all-day ticket; a set that boxed at midday pays again if it draws tonight). Night branches against the ticket as placed: blank → day −$281.25; another 1B box → −$243.75; {1,3,8} again → −$206.25; 496 / 865 / 286 exact → −$18.75 (+ box); **803 or 329 exact → +$431.25; 318 exact → +$918.75**.
+
+**Running PAPER total, interim: −$529.75 − $281.25 = −$811.00** (final from the 10/28 ~4:40am evening import).
+
+Strike-plan monitoring line 10/27 midday: FLAG 0 · WATCH 2 WATCH [digit-absence] TX|evening: digit 0 has not appeared in position 1 for 92 draws (fair P = 6.2e-5; e=(10/9)^92=1.6e+4) — AZ-2013 excluded-digit class WATCH [digit-absence] W.Canada|evening: digit 0 has not appeared in position 3 for 90 draws (fair P = 7.6e-5; e=(10/9)^90=1.3e+4) — AZ-2013 excluded-digit class . IN 824 at midday — the third {2,4,8} draw in three days (CA 842 10/25 eve, TX 842 10/26 eve, IN 824 10/27 mid); the real book's 824 ride is lapsed under the strike plan, $0.

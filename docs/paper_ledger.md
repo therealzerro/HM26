@@ -159,3 +159,41 @@ FAULT-MON-01 after the midday import: FLAG 0, WATCH 1 (the same TX evening pos-1
 | **831 5S** · 946 3S · 703 2S · 138 2S · 496 1S · **145 1S** · 085 1S | {1,3,8} 3B · {4,6,9} 3B · {0,3,7} 2B · {0,5,8} 2B · **{1,4,5} 1B** · {5,6,8} 1B |
 
 Late-29 pool still open (NY NJ CT MA RI VA NC FL IL IN KY MO WI KS NE OK CO AZ ID WA OR CA QC ON LA IA GA-night DC-late PR-dark/TX-2nd per schedule). Night so far: −$277.00 + $75.00 = **−$202.00 with $195.75 of late units in the water**. Late branches: blank → night −$202.00 (day −$325.00, running −$529.75); one 2B/3B late box → −$127 / −$89.50; any late 1S straight → ≥ +$23 on the night; 946 (3S) → +$473 + box; **831 (5S + 3B) → +$1,035.50 on the night**. Reconcile stage 2 from the 10/27 ~4:40am import.
+
+### Day 2 EVENING STAGE 2 RECONCILED (10/27 import landed 10:32am ET — 42 evening rows, Monday live count as priced; the morning import was the 10/26 EVENING pool, no 10/27 midday rows exist yet) — **late-29 BLANK, −$195.75**
+
+Late-29 pool (AZ CA CO CT DC-late FL GA-night IA ID IL IN KS KY LA MO MS NC NE NJ NM NY OK ON QC TX-2nd VA W.Canada WA WI): none of the six sets and none of the seven orders. {1,3,8} absent (nearest CT 836, KY 852); {4,6,9} absent (NY 686, WI 465 near); {0,3,7} absent (CO 970, AZ 760 near); {0,5,8} absent (WA 501, IA 055 near); {1,4,5} absent (VA 531, ON 146, IL 147 near); {5,6,8} absent (NY 686 near). No straight on 831 / 946 / 703 / 138 / 496 / 145 / 085. The 41% "blank night" branch as tabled (the one early box kept the night off the full −$277).
+
+**Night: −$277.00 + $75.00 = −$202.00. Day 2: −$123.00 − $202.00 = −$325.00 on $475.00 staked.** Boards 10/26 at the full day: Midday 1/6 (718 → NM 781 box); All-Day 1/6 (304 PA STRAIGHT, midday); Evening 2/6 (564 → DE/TN 465 at midday, 916 → AR 961 box) — no evening-session straight on any board.
+
+**Running PAPER total after Day 2: −$204.75 − $325.00 = −$529.75.**
+
+Strike-plan monitoring line 10/27 morning: FAULT-MON-01 FLAG 0, WATCH 2 (TX evening pos-1 digit 0 absent 92 draws; W.Canada evening pos-3 digit 0 absent 90 draws — both the AZ-2013 excluded-digit class, both still inside noise at the WATCH line). TX 842 drew in the 10/26 early pool — the second {2,4,8} draw in two nights (CA 842 on 10/25); the real book's 824 ride is lapsed under the strike plan, $0 either way.
+
+---
+
+## Day 3 — Tuesday 2026-10-27 — one ALL-DAY ticket, PAPER PLACED 10:40am ET, before the first midday draw (earliest is TX morning ~11:00am ET; no 10/27 draw in `histories` at placement)
+
+**Placement note (fact, not excuse):** this ticket should have been written after the ~4:40am import; it was not. Nothing had drawn when it was placed, so it is a pre-draw ticket with no information advantage — but a later-than-promised placement is recorded as the lapse it is.
+
+**Boards (10/27 K6):** All-Day **865 · 318 · 496 · 803 · 286 · 329** · Midday 658 · 826 · 234 · 329 · 326 · 318 · Evening 085 · 138 · 946 · 803 · 095 · 745. Every All-Day set is on a second board: {1,3,8} on all three (AD #2 318 = Mid #6 318, same order; Eve #2 138); {0,3,8} AD #4 + Eve #4, **same order 803**; {2,3,9} AD #6 + Mid #4, **same order 329**; {4,6,9} AD #3 496 + Eve #3 946; {5,6,8} AD #1 865 + Mid #1 658; {2,6,8} AD #5 286 + Mid #2 826. Convergence chooses WHICH order carries the straight units, never the rate (Playbook 6).
+
+**Pricing:** Tuesday = 33 midday + 42 evening = **75 live draws** (verified 10/13 and 10/20 in `histories`) → **$18.75/unit**. $400 is not a whole number of units: **21 units = $393.75**; the $6.25 remainder cannot buy a unit and there is no second session to move it to — recorded as unstaked, not as a saving.
+
+| Set | Why (chooses which, never the rate) | Box | Straight (order) | Cost |
+|---|---|---|---|---|
+| **{1,3,8}** | triple board, AD + Mid in the same order 318 | 2B | **318 5S** | $131.25 |
+| **{0,3,8}** | AD + Eve, same order 803 | 1B | **803 3S** | $75.00 |
+| **{2,3,9}** | AD + Mid, same order 329 | 1B | **329 3S** | $75.00 |
+| {4,6,9} | AD + Eve (496 / 946) | 1B | 496 1S | $37.50 |
+| {5,6,8} | AD + Mid (865 / 658) | 1B | 865 1S | $37.50 |
+| {2,6,8} | AD + Mid (286 / 826) | 1B | 286 1S | $37.50 |
+| **Total** | 7B + 14S = 21 units | | | **$393.75** |
+
+**Shape:** straight-heavy on operator word (10/26) and Playbook 3 — at $393.75 a single 1S straight (+$225 + box) does not clear the ticket, so the straight units are stacked on three orders where an exact draw is a positive day, and the other three orders ride at 1S so the board is fully in the water.
+
+**Fair-draw odds (75 draws):** P(≥1 box across six sets) = 93.6%; P(≥1 straight across six orders) = 36.3%; **P(positive day) = P(318, 803 or 329 drawn exactly) = 20.2%**. Outcomes: blank −$393.75 (6.4%); one 1B box → −$356.25; {1,3,8} box → −$318.75; two boxes ≈ −$300; 496 / 865 / 286 exact → −$131.25 (+ further boxes); **803 or 329 exact → +$318.75**; **318 exact → +$806.25**; two straights → +$500 and up. EV −$39.38. Convention closures do not apply inside one all-day ticket (a set that draws at midday stays live for the evening — the ticket is the whole day).
+
+**Reconcile:** at the ~4:20pm midday import (interim) and the 10/28 ~4:40am evening import (final). Day 3 at risk −$393.75 → blank-day running total would be −$923.50.
+
+**Running PAPER total (placed tickets): −$529.75; Day 3 $393.75 in the water.**

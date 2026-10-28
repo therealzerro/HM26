@@ -6,6 +6,26 @@ Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw p
 
 Operator: **no bet will be placed until Wednesday 10/28.** Objective between now and then is close monitoring, so a strike is ready for the **Wednesday 10/28 MIDDAY** session, **regardless of the boards and regardless of the 3-day ride rule**, incorporating **pair data** and **any anomalies** (FAULT-MON-01 WATCH/FLAG lines, ledger gaps, class-mix drift). Rides are NOT carried on paper tonight: 824/{2,4,8} day 3 FINAL expires unplaced 10/25; {5,7,9} {3,7,9} {0,3,4} day 2 lapse. Running PLACED total stays **−$99.00**. Daily between now and Wednesday: import, record boards + pair repeats + fault-monitor output here as a monitoring line (no proposal, no sizing). Wednesday build = midday 33 draws ($8.25/u) unless the operator says otherwise.
 
+## 2026-10-28 — MIDDAY STRIKE (WEDNESDAY; midday = 33 live draws, TN ×2 / TX ×2, verified 10/14 + 10/21 → $8.25/unit) — **1 STRAIGHT + 1 BOX — BUILT ~7:55am ET on operator word ("build the midday strike ticket"), BEFORE any 10/28 draw (no 10/28 row in `histories`). PROPOSED, NOT PLACED — only on the operator's word.**
+
+**STRAIGHT 573** — {3,5,7} is on all three 10/28 boards in the **same posted order 573** (Midday #6, All-Day #5, Evening #6). **BOX {1,5,7}** — on all three boards (Midday #5 751, All-Day #6 571, Evening #5 571). Convergence chooses WHICH, never the rate.
+
+| Instrument | Operator sizing 2S + 3B | 1S + 1B |
+|---|---|---|
+| STRAIGHT 573 | 2 units = $16.50 | $8.25 |
+| BOX {1,5,7} | 3 units = $24.75 | $8.25 |
+| **Ticket** | **$41.25** | $16.50 |
+
+**What pays (per hitting state, 2S + 3B):** 573 exact → $450.00 (+$408.75 on the ticket); {1,5,7} any order → $112.50 (+$71.25 alone); both → +$521.25; {3,5,7} drawn in another order → $0 on the straight ticket. Blank → −$41.25.
+
+**Pair data (tie-break only, measured flat as a lever):** 10/27 midday repeats 03 ×7, 26 ×7, 68 / 02 / 66 ×5, 38 / 29 / 13 ×4; 10/27 evening 36 ×7, 27 / 12 ×6, 16 / 67 ×5. By that tie-break the box alternates are **{1,3,6}** (Midday #3 136 + All-Day #2 361; pair 13 ×4 midday, 16 ×5 + 36 ×7 evening) and **{2,3,9}** (Midday #1 932 + All-Day #4 239; 29 ×4 midday). The straight has no pair support (57 ×0 both sessions) — it is carried by the triple-board order alone.
+
+**Block scan 10/25–10/27 (all sessions):** none of the six Midday-board sets drew — {2,3,9} {2,3,6} {1,3,6} {1,4,8} {1,5,7} {3,5,7} all clean three days. Earlier: {3,5,7} drew five times 10/22–10/24 (**573 exact at W.Canada 10/22 eve and MS 10/24 eve**, plus NC 753, LA 735, MS 537); {1,5,7} three times through 10/24 (NM 175, VA 715, DE 517); {2,3,9} NE 932 10/22 + W.Canada 392 10/23. The 3-day ride rule is waived by the plan; nothing is in the ride ledger.
+
+**Anomalies folded in:** FAULT-MON-01 FLAG 0, WATCH 1 — the one WATCH line is W.Canada EVENING (not a midday stream); no midday stream above noise. Ledger complete through 10/27 (33 / 42). Nothing to act on.
+
+**Reconcile** at the ~4:20pm midday import (33 rows). Running PLACED total before today **−$99.00**. Mark PLACED only when the operator says placed, with the units.
+
 ## STRIKE-PLAN MONITORING — 2026-10-26 evening → 2026-10-27 full day, reconciled at the 10/28 import (7:38am ET; 42 evening rows, Tuesday count) — NO BET, nothing proposed; **TODAY 10/28 = STRIKE DAY, awaiting operator word**
 
 Boards 10/26 at the full day: Midday 1/6 (718 → NM 781); All-Day 1/6 (304 PA STRAIGHT, midday); Evening 2/6 (564 → DE/TN 465 midday, 916 → AR 961 early pool), no evening straight. Boards 10/27 at the full day: All-Day 4/6 box (381 WI + 308 TX midday, 568 PA + 826 MO evening), no straight; Evening 1/6 (085 → KY 850, late pool); Midday 1/6 (318 → WI 381). Sets drawn twice 10/27 evening: {1,4,5} {5,7,8} {0,3,6} {0,3,5}; pair repeats across the 42: 36 ×7, 27 ×6, 12 ×6, 16 ×5, 67 ×5 (tie-break material only). {2,4,8}: IN 824 at the 10/27 midday = third {2,4,8} draw in three days (CA 842 10/25 eve, TX 842 10/26 eve); absent 10/27 evening; lapsed ride, $0. Ledger: 10/27 midday 33 / evening 42, no gaps. FAULT-MON-01 (10/28 run, 14,801 draws, 70 streams): **FLAG 0, WATCH 1** — W.Canada evening pos-3 digit 0 absent 91 draws (e = 1.5e4, AZ-2013 class, inside noise); the TX evening pos-1 line cleared (TX 022 / 211 on 10/27). **10/28 boards (workflow 07:39am ET, posted order):** Midday 932 / 632 / 136 / 481 / 751 / 573; All-Day 193 / 361 / 312 / 239 / 573 / 571; Evening 095 / 490 / 958 / 754 / 571 / 573 — **{3,5,7} on all three boards in the same order 573; {1,5,7} on all three (571 / 571 / 751)**; {2,3,9} AD 239 + Mid 932; {1,3,6} AD 361 + Mid 136. Wednesday = 33 midday ($8.25/u) + 42 evening ($10.50/u); full day 75 ($18.75/u). Running PLACED total unchanged **−$99.00**. (Assistant's paper book Day 3 final −$316.75, running −$846.50; Day 4 placed — `docs/paper_ledger.md`.)

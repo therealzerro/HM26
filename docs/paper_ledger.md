@@ -263,3 +263,13 @@ Strike-plan monitoring line 10/27 midday: FLAG 0 · WATCH 2 WATCH [digit-absence
 **Running PAPER total (placed tickets): −$846.50; Day 4 $393.75 in the water (blank day → −$1,240.25).**
 
 Strike-plan monitoring line 10/28 morning: FAULT-MON-01 FLAG 0, WATCH 1 (W.Canada evening pos-3 digit 0 absent 91 draws, AZ-2013 class, inside noise; the TX pos-1 line cleared — TX drew 022 / 211). Real book: strike day per the 10/25 plan; nothing placed, nothing proposed here.
+
+---
+
+### Day 4 RECONCILED — FINAL (10/29 import 7:12am UTC / 3:12am ET: 10/28 midday 33 rows + evening 42 rows = 75 live draws, as priced) — **three 1B boxes, $112.50 back, no straight; Day 4 −$281.25 on $393.75 — WINDOW CLOSED**
+
+Branch that happened vs the target (573 / 571 / 239 / 361 exact): **none of the four clearing orders was drawn.** What landed: **{2,3,9} NJ 293 midday (1B → $37.50)**; **{1,3,6} NE 316 + QC 316 evening (1B × 2 states → $75.00)**. {1,3,9} drew TX 913 (midday) and OH 319 (evening) — ticket order 193 was 1S straight-only, no box units → $0. {3,5,7} (6S+2B) absent all 75 draws; {1,5,7} (4S+1B) absent; {1,2,3} absent. Boards 10/28 at the full day: All-Day 3/6 box (239, 361, 193), no straight; Evening 0/6 at the evening; Midday 1/6 (932 → NJ 293). Straight match of the day was KS at the 10/28 evening against the Evening DI (verify reel), not a K6 order on this ticket.
+
+**Day 4: $112.50 back on $393.75 = −$281.25.**
+
+**Running PAPER total: −$846.50 − $281.25 = −$1,127.75.** Window total (10/25 eve → 10/28): $1,773.00 staked, $645.25 back, eight boxes (1B/2B), zero straights, zero positive days. Book closed per the operator's 10/27 word ("continue your paper tickets until Wednesday").

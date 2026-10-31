@@ -111,3 +111,46 @@ select b.slate_date, b.boards,
           and h.jurisdiction in ('PA','SC','WV','ME,NH,VT','TX','GA','TN','MI','MN','DE','OH','AR','DC')) pool_draws_157
 from b order by 1;
 ```
+
+---
+
+## Follow-up — "which combo from our boards is showing the best positive pattern for the 1st 13?"
+
+Ten distinct sets on tonight's Evening ∪ All-Day boards, each scored over the pool evening rows (4/01 → 10/30 = 3,186 draws; 60d = 9/01 → = 934; 30d = 10/01 → = 468). Expected box = draws × 6/1000; expected straight = draws × (posted orders) / 1000. "≥2 digits 30d" = pool draws in October carrying two of the set's digits (exp 70.2). Sorted by 60d box excess. **{3,4,9} drew TN 943 at the 10/31 midday → closed by convention.**
+
+| Set | Board(s) | Box all / 19.1 | 60d / 5.6 | 30d / 2.8 | Posted-order straight / 3.2 | States drawn | Last 6 (pool) | ≥2 digits 30d / 70.2 |
+|---|---|---|---|---|---|---|---|---|
+| **{1,5,9}** | Eve 159 | **28** | **11** | 4 | **5** | **13 / 13** | TN 915 10-17, DE 915 10-13, PA 951 10-10, MN 951 10-06, WV 951 09-24, TN 159 09-18 | 72 |
+| {1,4,6} | Eve 614 | 24 | 10 | 4 | 3 | 9 | DC 146 10-18, AR 416 10-12, TX 416 10-07, DC 641 10-02, TN 416 09-29, DC 641 09-21 | 73 |
+| {1,3,4} | AD 413 | 22 | 9 | 4 | 5 | 12 | TX 134 10-16, PA 314 10-14, SC 341 10-09, OH 143 10-08, WV 143 09-28, MN 431 09-25 | 64 |
+| {2,8,9} | Eve 289 + AD 289 | 20 | 8 | 4 | 4 | 10 | DC 829 10-22, TX 982 10-21, SC 298 10-11, MI 289 10-03, PA 892 09-25, ME,NH,VT 892 09-23 | 61 |
+| {3,4,9} — CLOSED midday (TN 943) | Eve 349 | 16 | 7 | 1 | 3 | 11 | TN 493 10-01, ME,NH,VT 394 09-30, DE 493 09-27 | 66 |
+| {1,5,7} | AD 175 | 15 | 6 | **5** | 0 | 9 | DE 517 10-24, GA 715 10-18, WV 715 10-16, ME,NH,VT 715 10-15, GA 517 10-08 | 77 |
+| {0,5,8} | Eve 805 + AD 805 | 21 | 5 | 2 | 1 | 7 | SC 850 10-19, DC 085 10-09, TX 850 09-15, GA 850 09-08 | **80** |
+| {3,4,6} | Eve 436 | 18 | 5 | 1 | 1 | 10 | DE 634 10-20, WV 634 09-19, MI 643 09-15 | 65 |
+| {2,6,8} | AD 268 | 14 | 4 | 1 | 1 | 8 | MI 628 10-04, ME,NH,VT 862 09-24, DC 628 09-13 | 66 |
+| {1,4,5} | AD 415 | 16 | 3 | 3 | 3 | 7 | DC 451 10-27, TX 145 10-14, TN 514 10-13 | 78 |
+
+Per-state leaders for the top sets: {1,5,9} — TN 4 / 1.23 (60d 2, last 10-17), PA 3 / 1.23 (60d 2, last 10-10), TX 3, ME,NH,VT 3, DC 3; {1,4,6} — TX 6 / 2.10, DE 6 / 1.22 (last 09-17), TN 4 / 1.23 (60d 2), DC 3 (60d 3, last 10-18); {1,3,4} — PA 5 / 1.23 (last 10-14), DC 4; {2,8,9} — PA 5 / 1.23, MI 3, SC 2 (60d 2).
+
+**Answer as the table reads it:** **{1,5,9} (Evening board, posted 159)** — above expectation in every window (28 / 19.1 all, 11 / 5.6 in 60d, 4 / 2.8 in 30d), the only tonight set drawn in all 13 pool states, posted-order 159 drawn straight 5× vs 3.2, most recently TN 915 10/17 and DE 915 10/13. {1,4,6} (Eve 614) is second on the same lenses. {1,5,7} (AD 175) has the most October pool draws (5 / 2.8) but sits under expectation on the full window. Frequency-selected sets measured at the fair rate in the 10/4–10/17 walk-forward (dead rule); this is a pattern read, not a lever. Nothing proposed.
+
+```sql
+-- tonight's sets over the pool, three windows + posted-order straights
+with sets as (select distinct combo_set, string_agg(distinct scope||' '||posted_order, ', ') boards, string_agg(distinct posted_order, ',') orders
+              from adaptive_tracking where slate_date='2026-10-31' and scope in ('evening','allday') group by combo_set),
+d as (select jurisdiction, date_et, result_digits, comboset_sorted from histories where session='evening'
+      and jurisdiction in ('PA','SC','WV','ME,NH,VT','TX','GA','TN','MI','MN','DE','OH','AR','DC')
+      and date_et between '2026-04-01' and '2026-10-30'),
+tot as (select count(*) n, sum((date_et>='2026-09-01')::int) n60, sum((date_et>='2026-10-01')::int) n30 from d)
+select * from (
+select s.combo_set, s.boards,
+  sum((d.comboset_sorted=s.combo_set)::int) box_all, round((select n from tot)*6/1000.0,1) exp_all,
+  sum((d.comboset_sorted=s.combo_set and d.date_et>='2026-09-01')::int) box_60d, round((select n60 from tot)*6/1000.0,1) exp_60d,
+  sum((d.comboset_sorted=s.combo_set and d.date_et>='2026-10-01')::int) box_30d, round((select n30 from tot)*6/1000.0,1) exp_30d,
+  sum((d.result_digits = any(string_to_array(s.orders,',')))::int) str_posted, round((select n from tot)*array_length(string_to_array(s.orders,','),1)/1000.0,1) exp_str,
+  count(distinct d.jurisdiction) filter (where d.comboset_sorted=s.combo_set) states_drawn,
+  (select string_agg(x.jurisdiction||' '||x.result_digits||' '||to_char(x.date_et,'MM-DD'), ', ' order by x.date_et desc) from (select * from d where comboset_sorted=s.combo_set order by date_et desc limit 6) x) last6,
+  (select string_agg(jurisdiction||' '||result_digits, ', ') from histories h where h.session='midday' and h.date_et='2026-10-31' and h.comboset_sorted=s.combo_set) midday_1031
+from sets s cross join d group by s.combo_set, s.boards, s.orders) q order by box_60d - exp_60d desc, box_all desc;
+```

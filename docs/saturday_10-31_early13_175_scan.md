@@ -154,3 +154,29 @@ select s.combo_set, s.boards,
   (select string_agg(jurisdiction||' '||result_digits, ', ') from histories h where h.session='midday' and h.date_et='2026-10-31' and h.comboset_sorted=s.combo_set) midday_1031
 from sets s cross join d group by s.combo_set, s.boards, s.orders) q order by box_60d - exp_60d desc, box_all desc;
 ```
+
+---
+
+## Follow-up — "which state in the 1st 13 matches 159 best?"
+
+Same lenses as §1, for {1,5,9} / 159 (sum 15, expectation 73/1000). Evening rows 4/01 → 10/30. Sorted by {1,5,9} box excess.
+
+| State | Draws | {1,5,9} box / exp | 60d / exp | 159 straight / exp | Draws of {1,5,9} (draws since) | ≥2 of 1/5/9 / exp | last-30 / 4.5 | all-odd singles / exp | sum 15 / exp |
+|---|---|---|---|---|---|---|---|---|---|
+| **TN** | 205 | **4 / 1.23** | **2 / 0.36** | **2 / 0.21** | 915 04-19, 159 05-31, 159 09-18, **915 10-17 (13)** | 35 / 30.8 | 5 | 11 / 12.3 | 14 / 15.0 |
+| **PA** | 205 | 3 / 1.23 | **2 / 0.36** | 0 / 0.21 | 591 08-02, 195 09-14, **951 10-10 (20)** | **43 / 30.8** | **10** | **20 / 12.3** | **19 / 15.0** |
+| ME,NH,VT | 197 | 3 / 1.18 | 1 / 0.36 | 0 / 0.20 | 951 05-07, 591 05-23, 591 09-02 (58) | 27 / 29.6 | 3 | 12 / 11.8 | 13 / 14.4 |
+| WV | 176 | 2 / 1.06 | 2 / 0.31 | 1 / 0.18 | 159 09-12, 951 09-24 (31) | 27 / 26.4 | 6 | 14 / 10.6 | 13 / 12.8 |
+| TX (2/day) | 350 | 3 / 2.10 | 1 / 0.62 | 1 / 0.35 | 951 04-15, 951 07-21, 159 09-18 (71) | 52 / 52.5 | 4 | 18 / 21.0 | 26 / 25.6 |
+| DE | 204 | 2 / 1.22 | 1 / 0.35 | 0 / 0.20 | 951 05-10, 915 10-13 (17) | 33 / 30.6 | 6 | 17 / 12.2 | 15 / 14.9 |
+| MN | 205 | 2 / 1.23 | 1 / 0.36 | 0 / 0.21 | 915 08-01, 951 10-06 (24) | 32 / 30.8 | 3 | 10 / 12.3 | 15 / 15.0 |
+| AR | 205 | 2 / 1.23 | 0 / 0.36 | 1 / 0.21 | 195 04-10, 159 06-23 (129) | 42 / 30.8 | 7 | 10 / 12.3 | 8 / 15.0 |
+| DC (2/day) | 410 | 3 / 2.46 | 1 / 0.72 | 0 / 0.41 | 951 05-31, 195 08-23, 951 09-01 (118) | 70 / 61.5 | 6 | 29 / 24.6 | 32 / 29.9 |
+| OH | 205 | 1 / 1.23 | 0 | 0 | 195 08-11 (80) | 30 / 30.8 | 4 | 15 / 12.3 | 16 / 15.0 |
+| SC | 205 | 1 / 1.23 | 0 | 0 | 591 07-08 (114) | 30 / 30.8 | 3 | 13 / 12.3 | 15 / 15.0 |
+| MI | 209 | 1 / 1.25 | 0 | 0 | 951 05-10 (177) | 25 / 31.4 | 3 | 16 / 12.5 | 20 / 15.3 |
+| GA (2/day) | 410 | 1 / 2.46 | 0 | 0 | 951 06-26 (252) | 49 / 61.5 | 3 | 20 / 24.6 | 23 / 29.9 |
+
+Board lens: {1,5,9} has been on an Evening or All-Day board 30 days since 5/27 (Evening 915 in May–June, All-Day 195 through October, Evening 195 on 10/30, Evening 159 tonight). Pool draws on those days: TN 159 + DC 951 (5/31), SC 591 (7/08), WV 951 (9/24), MN 951 (10/06), PA 951 (10/10). None in posted order.
+
+**Answer as the table reads it:** **TN** matches the set itself best — {1,5,9} drawn 4× vs 1.23 (two in 60d), the exact order **159 drawn twice** (5/31, 9/18) against 0.21 expected, most recent 915 on 10/17 (13 draws ago). Its digit lenses sit at expectation. **PA** matches the broader 159 pattern best — 3 / 1.23 with two in 60d (last 951 on 10/10), the pair lens far above expectation (43 / 30.8 full window, 10 / 4.5 in its last 30), all-odd singles 20 / 12.3, sum-15 19 / 15.0, and the general board-match stat positive in both windows (60d z +1.98, 30d z +1.78). Nothing proposed.

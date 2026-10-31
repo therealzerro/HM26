@@ -180,3 +180,56 @@ Same lenses as §1, for {1,5,9} / 159 (sum 15, expectation 73/1000). Evening row
 Board lens: {1,5,9} has been on an Evening or All-Day board 30 days since 5/27 (Evening 915 in May–June, All-Day 195 through October, Evening 195 on 10/30, Evening 159 tonight). Pool draws on those days: TN 159 + DC 951 (5/31), SC 591 (7/08), WV 951 (9/24), MN 951 (10/06), PA 951 (10/10). None in posted order.
 
 **Answer as the table reads it:** **TN** matches the set itself best — {1,5,9} drawn 4× vs 1.23 (two in 60d), the exact order **159 drawn twice** (5/31, 9/18) against 0.21 expected, most recent 915 on 10/17 (13 draws ago). Its digit lenses sit at expectation. **PA** matches the broader 159 pattern best — 3 / 1.23 with two in 60d (last 951 on 10/10), the pair lens far above expectation (43 / 30.8 full window, 10 / 4.5 in its last 30), all-odd singles 20 / 12.3, sum-15 19 / 15.0, and the general board-match stat positive in both windows (60d z +1.98, 30d z +1.78). Nothing proposed.
+
+---
+
+## Follow-up — "is there positive pair data on combo 159 for the 1st 13?"
+
+Pair data computed from the pool's own evening rows (4/01 → 10/30), not the national engine pair tables (those are `jurisdiction IS NULL`, no pool slice). Co-occurrence pair = both digits anywhere in the draw (expectation 54/1000 per pair, 150/1000 for any of the three). Positional pair = the posted order 159's front 15, back 59, split 1_9 (10/1000 each). Exact 159 = 1/1000.
+
+### Pool
+
+| Window | Draws | co {1,5} / {1,9} / {5,9} vs exp each | front 15 / back 59 / split 1_9 vs exp each | exact 159 / exp |
+|---|---|---|---|---|
+| all | 3,186 | 180 / 178 / 193 vs 172.0 | 28 / 34 / 41 vs 31.9 | 5 / 3.19 |
+| 60d | 934 | 54 / 51 / 51 vs 50.4 | 10 / 10 / 12 vs 9.3 | 3 / 0.93 |
+| 30d | 468 | 28 / 26 / 26 vs 25.3 | 4 / 5 / 4 vs 4.7 | 0 / 0.47 |
+| 14d | 218 | 12 / 13 / 10 vs 11.8 | 2 / 3 / 3 vs 2.2 | 0 / 0.22 |
+
+Pool-level: every pair lens sits at expectation in every window. The only pool figure above the noise floor is exact 159 in 60d (3 vs 0.93: TN 159 9/18, TX 159 9/18, WV 159 9/12), none in October.
+
+### Per state (sorted by October any-pair excess)
+
+| State | co {1,5} / {1,9} / {5,9} vs exp each | any pair / exp | Oct any pair / exp | front 15 / back 59 / split 1_9 vs exp | October pair draws (newest first) |
+|---|---|---|---|---|---|
+| **PA** | **14 / 18 / 17 vs 11.1** | **43 / 30.8** | **10 / 4.5** | **4** / 1 / 3 vs 2.1 | 595 10-28, 851 10-26, 156 10-20, 593 10-17, 495 10-15, 931 10-13, 165 10-12, 951 10-10 |
+| DC (2/day) | 21 / 20 / **35** vs 22.1 | 70 / 61.5 | 12 / 9.0 | 2 / **10** / 4 vs 4.1 | 451 10-27, 150 10-26, 921 10-23, 359 10-21, 059 10-18, 459 10-17, 955 10-14, 954 10-12 |
+| AR | 11 / **18** / **17** vs 11.1 | **42 / 30.8** | 7 / 4.5 | 1 / **5** / **5** vs 2.1 | 516 10-29, 961 10-26, 179 10-23, 199 10-16, 819 10-11, 954 10-10, 941 10-04 |
+| DE | 13 / 7 / 17 vs 11.0 | 33 / 30.6 | 6 / 4.5 | 4 / 3 / 2 vs 2.0 | 517 10-24, 215 10-23, 915 10-13, 153 10-09, 391 10-08, 059 10-02 |
+| WV | 8 / 11 / 12 vs 9.5 | 27 / 26.4 | 5 / 3.9 | 1 / 2 / 1 vs 1.8 | 529 10-24, 251 10-22, 715 10-16, 971 10-10, 912 10-01 |
+| TN | **19** / 15 / 9 vs 11.1 | 35 / 30.8 | 5 / 4.5 | **5** / 2 / 3 vs 2.1 | 914 10-29, 961 10-18, 915 10-17, 514 10-13, 919 10-04 |
+| OH | 9 / 13 / 10 | 30 / 30.8 | 4 / 4.5 | 1 / 1 / 1 | 319 10-28, 593 10-26, 091 10-20, 851 10-05 |
+| MN | 11 / 15 / 10 | 32 / 30.8 | 3 / 4.5 | 2 / 1 / 3 | 911 10-18, 951 10-06, 569 10-04 |
+| SC | 11 / 12 / 9 | 30 / 30.8 | 3 / 4.5 | 2 / 3 / 6 | 169 10-27, 695 10-17, 158 10-15 |
+| ME,NH,VT | 14 / 10 / 9 | 27 / 29.6 | 3 / 4.5 | 1 / 1 / 3 | 119 10-27, 715 10-15, 531 10-07 |
+| MI | 9 / 6 / 12 | 25 / 31.4 | 3 / 4.5 | 1 / 0 / 1 | 095 10-15, 691 10-05, 985 10-01 |
+| TX (2/day) | 20 / 21 / 17 vs 18.9 | 52 / 52.5 | 6 / 7.8 | 1 / 2 / 6 vs 3.5 | 815 10-28, 219 10-19, 619 10-17, 145 10-14, 501 10-02, 559 10-02 |
+| GA (2/day) | 20 / 12 / 19 vs 22.1 | 49 / 61.5 | 5 / 9.0 | 3 / 3 / 3 vs 4.1 | 953 10-30, 315 10-27, 715 10-18, 517 10-08, 579 10-03 |
+
+**Answer as the table reads it:** at pool level, no — the 159 pairs run at expectation in every window. Per state, **PA** is the one with positive pair data on all three pairs at once (43 / 30.8 full window, 10 / 4.5 in October, eight October draws carrying a 159 pair, front-pair 15 4 / 2.1). **DC** is positive on the back pair 59 only (co-occurrence 35 / 22.1, positional 59 10 / 4.1, two draws a night). **AR** is positive on {1,9} and {5,9} with back 59 and split 1_9 each 5 / 2.1. **TN** carries the front pair 15 (5 / 2.1, co-occurrence 19 / 11.1) but {5,9} is under. Standing verdict (10/20): pair data as a ticket lever measured flat, |z| < 1 — this is a pattern read, not a lever. Nothing proposed.
+
+```sql
+-- pool windows
+with d as (select jurisdiction, date_et, result_digits r from histories where session='evening'
+      and jurisdiction in ('PA','SC','WV','ME,NH,VT','TX','GA','TN','MI','MN','DE','OH','AR','DC')
+      and date_et between '2026-04-01' and '2026-10-30'),
+win as (select 'all' w, date '2026-04-01' s union all select '60d', date '2026-09-01' union all select '30d', date '2026-10-01' union all select '14d', date '2026-10-17')
+select w.w, count(*) draws,
+  sum((position('1' in r)>0 and position('5' in r)>0)::int) co_15,
+  sum((position('1' in r)>0 and position('9' in r)>0)::int) co_19,
+  sum((position('5' in r)>0 and position('9' in r)>0)::int) co_59, round(count(*)*0.054,1) exp_co_each,
+  sum((substr(r,1,2)='15')::int) front_15, sum((substr(r,2,2)='59')::int) back_59, sum((substr(r,1,1)='1' and substr(r,3,1)='9')::int) split_1x9, round(count(*)*0.01,1) exp_pos_each,
+  sum((r='159')::int) exact_159, round(count(*)*0.001,2) exp_exact
+from d join win w on d.date_et >= w.s group by 1 order by 2 desc;
+-- per state: same sums grouped by jurisdiction, plus any-pair (exp 0.150) overall and for date_et >= '2026-10-01'
+```

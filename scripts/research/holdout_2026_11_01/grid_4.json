@@ -1,0 +1,558 @@
+{
+ "singles_only": {
+  "modelDisplayReorder": true,
+  "presets": {
+   "balanced": {
+    "BOX": 0.495,
+    "PBURST": 0.27,
+    "CO": 0.135,
+    "DGC": 0.1
+   },
+   "conservative": {
+    "BOX": 0.495,
+    "PBURST": 0.27,
+    "CO": 0.135,
+    "DGC": 0.1
+   },
+   "aggressive": {
+    "BOX": 0.495,
+    "PBURST": 0.27,
+    "CO": 0.135,
+    "DGC": 0.1
+   }
+  },
+  "rails": {
+   "singlesMax": 6,
+   "doublesMax": 0,
+   "triplesOn": false,
+   "pairRepCap": 2
+  },
+  "pressureThreshold": 100,
+  "minEnergyThreshold": 70,
+  "recentHitCooldown": 20,
+  "recentHitCooldownByScope": {
+   "midday": 10
+  },
+  "synergyOn": false,
+  "synergyWeight": 0.15,
+  "excludeYesterdayHits": true,
+  "boxFreqWeightByScope": {
+   "midday": 0.6,
+   "evening": 0.6,
+   "allday": 0.6
+  },
+  "boxPressureWeightByScope": {
+   "midday": -0.4,
+   "evening": -0.4,
+   "allday": 0.4
+  },
+  "horizonWeights": {
+   "H01Y": 0.6,
+   "H02Y": 0.4,
+   "H03Y": 0,
+   "H04Y": 0,
+   "H05Y": 0,
+   "H06Y": 0,
+   "H07Y": 0,
+   "H08Y": 0,
+   "H09Y": 0,
+   "H10Y": 0
+  },
+  "presetByScope": {
+   "midday": {
+    "balanced": {
+     "BOX": 0.208,
+     "PBURST": 0.052,
+     "CO": 0.64,
+     "DGC": 0.1
+    },
+    "conservative": {
+     "BOX": 0.208,
+     "PBURST": 0.052,
+     "CO": 0.64,
+     "DGC": 0.1
+    },
+    "aggressive": {
+     "BOX": 0.208,
+     "PBURST": 0.052,
+     "CO": 0.64,
+     "DGC": 0.1
+    }
+   },
+   "evening": {
+    "balanced": {
+     "BOX": 0.50625,
+     "PBURST": 0.28125,
+     "CO": 0.1,
+     "DGC": 0.1125
+    },
+    "conservative": {
+     "BOX": 0.50625,
+     "PBURST": 0.28125,
+     "CO": 0.1,
+     "DGC": 0.1125
+    },
+    "aggressive": {
+     "BOX": 0.50625,
+     "PBURST": 0.28125,
+     "CO": 0.1,
+     "DGC": 0.1125
+    }
+   },
+   "allday": {
+    "balanced": {
+     "BOX": 0.647,
+     "PBURST": 0.353,
+     "CO": 0,
+     "DGC": 0
+    },
+    "conservative": {
+     "BOX": 0.647,
+     "PBURST": 0.353,
+     "CO": 0,
+     "DGC": 0
+    },
+    "aggressive": {
+     "BOX": 0.647,
+     "PBURST": 0.353,
+     "CO": 0,
+     "DGC": 0
+    }
+   }
+  },
+  "timesDrawnHorizonBlend": true,
+  "recentHitBlockDaysByScope": {
+   "midday": 3,
+   "evening": 3,
+   "allday": 3
+  },
+  "slateStalenessThresholdByScope": {
+   "midday": 2,
+   "evening": 2,
+   "allday": 2
+  },
+  "historyFloor": {
+   "minDate": "2026-04-01",
+   "rollingDays": 180
+  },
+  "pairCollisionRule": "deterministic"
+ },
+ "doubles3": {
+  "modelDisplayReorder": true,
+  "presets": {
+   "balanced": {
+    "BOX": 0.495,
+    "PBURST": 0.27,
+    "CO": 0.135,
+    "DGC": 0.1
+   },
+   "conservative": {
+    "BOX": 0.495,
+    "PBURST": 0.27,
+    "CO": 0.135,
+    "DGC": 0.1
+   },
+   "aggressive": {
+    "BOX": 0.495,
+    "PBURST": 0.27,
+    "CO": 0.135,
+    "DGC": 0.1
+   }
+  },
+  "rails": {
+   "singlesMax": 3,
+   "doublesMax": 3,
+   "triplesOn": false,
+   "pairRepCap": 2
+  },
+  "pressureThreshold": 100,
+  "minEnergyThreshold": 70,
+  "recentHitCooldown": 20,
+  "recentHitCooldownByScope": {
+   "midday": 10
+  },
+  "synergyOn": false,
+  "synergyWeight": 0.15,
+  "excludeYesterdayHits": true,
+  "boxFreqWeightByScope": {
+   "midday": 0.6,
+   "evening": 0.6,
+   "allday": 0.6
+  },
+  "boxPressureWeightByScope": {
+   "midday": -0.4,
+   "evening": -0.4,
+   "allday": 0.4
+  },
+  "horizonWeights": {
+   "H01Y": 0.6,
+   "H02Y": 0.4,
+   "H03Y": 0,
+   "H04Y": 0,
+   "H05Y": 0,
+   "H06Y": 0,
+   "H07Y": 0,
+   "H08Y": 0,
+   "H09Y": 0,
+   "H10Y": 0
+  },
+  "presetByScope": {
+   "midday": {
+    "balanced": {
+     "BOX": 0.208,
+     "PBURST": 0.052,
+     "CO": 0.64,
+     "DGC": 0.1
+    },
+    "conservative": {
+     "BOX": 0.208,
+     "PBURST": 0.052,
+     "CO": 0.64,
+     "DGC": 0.1
+    },
+    "aggressive": {
+     "BOX": 0.208,
+     "PBURST": 0.052,
+     "CO": 0.64,
+     "DGC": 0.1
+    }
+   },
+   "evening": {
+    "balanced": {
+     "BOX": 0.50625,
+     "PBURST": 0.28125,
+     "CO": 0.1,
+     "DGC": 0.1125
+    },
+    "conservative": {
+     "BOX": 0.50625,
+     "PBURST": 0.28125,
+     "CO": 0.1,
+     "DGC": 0.1125
+    },
+    "aggressive": {
+     "BOX": 0.50625,
+     "PBURST": 0.28125,
+     "CO": 0.1,
+     "DGC": 0.1125
+    }
+   },
+   "allday": {
+    "balanced": {
+     "BOX": 0.647,
+     "PBURST": 0.353,
+     "CO": 0,
+     "DGC": 0
+    },
+    "conservative": {
+     "BOX": 0.647,
+     "PBURST": 0.353,
+     "CO": 0,
+     "DGC": 0
+    },
+    "aggressive": {
+     "BOX": 0.647,
+     "PBURST": 0.353,
+     "CO": 0,
+     "DGC": 0
+    }
+   }
+  },
+  "timesDrawnHorizonBlend": true,
+  "recentHitBlockDaysByScope": {
+   "midday": 3,
+   "evening": 3,
+   "allday": 3
+  },
+  "slateStalenessThresholdByScope": {
+   "midday": 2,
+   "evening": 2,
+   "allday": 2
+  },
+  "historyFloor": {
+   "minDate": "2026-04-01",
+   "rollingDays": 180
+  },
+  "pairCollisionRule": "deterministic"
+ },
+ "cooldown_off": {
+  "modelDisplayReorder": true,
+  "presets": {
+   "balanced": {
+    "BOX": 0.495,
+    "PBURST": 0.27,
+    "CO": 0.135,
+    "DGC": 0.1
+   },
+   "conservative": {
+    "BOX": 0.495,
+    "PBURST": 0.27,
+    "CO": 0.135,
+    "DGC": 0.1
+   },
+   "aggressive": {
+    "BOX": 0.495,
+    "PBURST": 0.27,
+    "CO": 0.135,
+    "DGC": 0.1
+   }
+  },
+  "rails": {
+   "singlesMax": 6,
+   "doublesMax": 2,
+   "triplesOn": false,
+   "pairRepCap": 2
+  },
+  "pressureThreshold": 100,
+  "minEnergyThreshold": 70,
+  "recentHitCooldown": 0,
+  "recentHitCooldownByScope": {
+   "midday": 0,
+   "evening": 0,
+   "allday": 0
+  },
+  "synergyOn": false,
+  "synergyWeight": 0.15,
+  "excludeYesterdayHits": true,
+  "boxFreqWeightByScope": {
+   "midday": 0.6,
+   "evening": 0.6,
+   "allday": 0.6
+  },
+  "boxPressureWeightByScope": {
+   "midday": -0.4,
+   "evening": -0.4,
+   "allday": 0.4
+  },
+  "horizonWeights": {
+   "H01Y": 0.6,
+   "H02Y": 0.4,
+   "H03Y": 0,
+   "H04Y": 0,
+   "H05Y": 0,
+   "H06Y": 0,
+   "H07Y": 0,
+   "H08Y": 0,
+   "H09Y": 0,
+   "H10Y": 0
+  },
+  "presetByScope": {
+   "midday": {
+    "balanced": {
+     "BOX": 0.208,
+     "PBURST": 0.052,
+     "CO": 0.64,
+     "DGC": 0.1
+    },
+    "conservative": {
+     "BOX": 0.208,
+     "PBURST": 0.052,
+     "CO": 0.64,
+     "DGC": 0.1
+    },
+    "aggressive": {
+     "BOX": 0.208,
+     "PBURST": 0.052,
+     "CO": 0.64,
+     "DGC": 0.1
+    }
+   },
+   "evening": {
+    "balanced": {
+     "BOX": 0.50625,
+     "PBURST": 0.28125,
+     "CO": 0.1,
+     "DGC": 0.1125
+    },
+    "conservative": {
+     "BOX": 0.50625,
+     "PBURST": 0.28125,
+     "CO": 0.1,
+     "DGC": 0.1125
+    },
+    "aggressive": {
+     "BOX": 0.50625,
+     "PBURST": 0.28125,
+     "CO": 0.1,
+     "DGC": 0.1125
+    }
+   },
+   "allday": {
+    "balanced": {
+     "BOX": 0.647,
+     "PBURST": 0.353,
+     "CO": 0,
+     "DGC": 0
+    },
+    "conservative": {
+     "BOX": 0.647,
+     "PBURST": 0.353,
+     "CO": 0,
+     "DGC": 0
+    },
+    "aggressive": {
+     "BOX": 0.647,
+     "PBURST": 0.353,
+     "CO": 0,
+     "DGC": 0
+    }
+   }
+  },
+  "timesDrawnHorizonBlend": true,
+  "recentHitBlockDaysByScope": {
+   "midday": 1,
+   "evening": 1,
+   "allday": 1
+  },
+  "slateStalenessThresholdByScope": {
+   "midday": 0,
+   "evening": 0,
+   "allday": 0
+  },
+  "historyFloor": {
+   "minDate": "2026-04-01",
+   "rollingDays": 180
+  },
+  "pairCollisionRule": "deterministic"
+ },
+ "cooldown_wide": {
+  "modelDisplayReorder": true,
+  "presets": {
+   "balanced": {
+    "BOX": 0.495,
+    "PBURST": 0.27,
+    "CO": 0.135,
+    "DGC": 0.1
+   },
+   "conservative": {
+    "BOX": 0.495,
+    "PBURST": 0.27,
+    "CO": 0.135,
+    "DGC": 0.1
+   },
+   "aggressive": {
+    "BOX": 0.495,
+    "PBURST": 0.27,
+    "CO": 0.135,
+    "DGC": 0.1
+   }
+  },
+  "rails": {
+   "singlesMax": 6,
+   "doublesMax": 2,
+   "triplesOn": false,
+   "pairRepCap": 2
+  },
+  "pressureThreshold": 100,
+  "minEnergyThreshold": 70,
+  "recentHitCooldown": 40,
+  "recentHitCooldownByScope": {
+   "midday": 40,
+   "evening": 40,
+   "allday": 40
+  },
+  "synergyOn": false,
+  "synergyWeight": 0.15,
+  "excludeYesterdayHits": true,
+  "boxFreqWeightByScope": {
+   "midday": 0.6,
+   "evening": 0.6,
+   "allday": 0.6
+  },
+  "boxPressureWeightByScope": {
+   "midday": -0.4,
+   "evening": -0.4,
+   "allday": 0.4
+  },
+  "horizonWeights": {
+   "H01Y": 0.6,
+   "H02Y": 0.4,
+   "H03Y": 0,
+   "H04Y": 0,
+   "H05Y": 0,
+   "H06Y": 0,
+   "H07Y": 0,
+   "H08Y": 0,
+   "H09Y": 0,
+   "H10Y": 0
+  },
+  "presetByScope": {
+   "midday": {
+    "balanced": {
+     "BOX": 0.208,
+     "PBURST": 0.052,
+     "CO": 0.64,
+     "DGC": 0.1
+    },
+    "conservative": {
+     "BOX": 0.208,
+     "PBURST": 0.052,
+     "CO": 0.64,
+     "DGC": 0.1
+    },
+    "aggressive": {
+     "BOX": 0.208,
+     "PBURST": 0.052,
+     "CO": 0.64,
+     "DGC": 0.1
+    }
+   },
+   "evening": {
+    "balanced": {
+     "BOX": 0.50625,
+     "PBURST": 0.28125,
+     "CO": 0.1,
+     "DGC": 0.1125
+    },
+    "conservative": {
+     "BOX": 0.50625,
+     "PBURST": 0.28125,
+     "CO": 0.1,
+     "DGC": 0.1125
+    },
+    "aggressive": {
+     "BOX": 0.50625,
+     "PBURST": 0.28125,
+     "CO": 0.1,
+     "DGC": 0.1125
+    }
+   },
+   "allday": {
+    "balanced": {
+     "BOX": 0.647,
+     "PBURST": 0.353,
+     "CO": 0,
+     "DGC": 0
+    },
+    "conservative": {
+     "BOX": 0.647,
+     "PBURST": 0.353,
+     "CO": 0,
+     "DGC": 0
+    },
+    "aggressive": {
+     "BOX": 0.647,
+     "PBURST": 0.353,
+     "CO": 0,
+     "DGC": 0
+    }
+   }
+  },
+  "timesDrawnHorizonBlend": true,
+  "recentHitBlockDaysByScope": {
+   "midday": 3,
+   "evening": 3,
+   "allday": 3
+  },
+  "slateStalenessThresholdByScope": {
+   "midday": 2,
+   "evening": 2,
+   "allday": 2
+  },
+  "historyFloor": {
+   "minDate": "2026-04-01",
+   "rollingDays": 180
+  },
+  "pairCollisionRule": "deterministic"
+ }
+}

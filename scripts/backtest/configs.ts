@@ -3547,4 +3547,10 @@ export const CONFIGS: Record<string, EngineConfig> = {
   get pairrep_010() { return { ...this.pair_dedupe, pairRepWeight: 0.10 }; },
   get pairrep_020() { return { ...this.pair_dedupe, pairRepWeight: 0.20 }; },
   get pairrep_040() { return { ...this.pair_dedupe, pairRepWeight: 0.40 }; },
+  // LIVE PARITY since 2026-11-03 21:41 UTC (CONFIG-20 / ENG-PAIRREP-01, operator
+  // override): app_config pair_rep_weight=0, _evening=0.20, _allday=0.20,
+  // _midday=0.05 on top of pair_dedupe. Spread new candidates from THIS preset.
+  get prod_parity_2026_11_03() {
+    return { ...this.pair_dedupe, pairRepWeight: 0, pairRepWeightByScope: { evening: 0.20, allday: 0.20, midday: 0.05 } };
+  },
 };

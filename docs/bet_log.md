@@ -55,6 +55,28 @@ Target branch: either early set drawn in any order in the 13 clears that box, 61
 
 **11/03 MIDDAY — PARTIAL 2, operator paste ~4:35pm ET: AR 803.** **{0,3,8} CLOSED** by convention (it was next in line for both pools). Tickets unchanged: EARLY-13 = {1,6,9}/619 + {1,3,4}/314; LATE-29 = {1,6,9}/619 + {0,1,5}/501. Next in line now: early {1,4,5}/541 (AD 2 + Mid 2), late {3,7,9}/937 (Eve 2 + AD 3). Three of the nine Eve/AD sets drew at midday so far (SC 375, NY 506, AR 803).
 
+**11/03 ~5:15pm ET — operator: "deep scope, deep think, drill down and give me 5 straight and 5 box for the 1st 13 drawings, then give me the top 2 box" — DEEP-SCOPE EARLY-13 TICKET, boards ignored, NOT PLACED.** Lens widened from the 4:50 list: every set (220) and every exact order (1,000) scored over the early-13 pool evening rows 4/01 → 11/02 (3,231 draws; 60d since 9/04 = 931; 30d since 10/04 = 465; Tuesdays 465) with a composite of three z-scores, z = (count − expected)/√expected on all + 60d + 30d, class-correct expectations (single-set box 6/1000, double 3/1000, exact 1/1000). Added drill columns: state breadth, pool draws since last, order spread (all / 60d), pair support from the 11/02 evening repeats, same-set count nationwide last 7 days (all jurisdictions, both sessions, 10/27 → 11/02), and the set's midday count in the 13 states (30d). Sets drawn at the 11/03 midday so far excluded ({3,5,7} SC 375, {0,5,6} NY 506, {0,3,8} AR 803; import still not in `histories`). Box five restricted to singles (the decoded $37.50 box payout is the 6-way price) and to sets not used by a straight. The composite ranks WHICH, never the rate.
+
+| Straight | Set | Composite | Exact all / 3.23 | 60d / 0.93 | 30d / 0.47 | States | Pool draws since | Last four |
+|---|---|---|---|---|---|---|---|---|
+| **271** | {1,2,7} | +11.4 | **12** | 5 | 2 | 8 | 0 (GA 271 last night) | TN 09-17 · MI 09-29 · MN 10-27 · GA 11-02 |
+| **749** | {4,7,9} | +10.6 | 8 | 5 | **3** | 7 | 199 | SC 10-03 · ME,NH,VT 10-06 · DE 10-12 · AR 10-21 |
+| **898** | {8,8,9} | +10.0 | 7 | 5 | **3** | 4 | 4 | GA 10-03 · OH 10-23 · TX 10-23 · SC 11-02 |
+| **951** | {1,5,9} | +8.7 | 11 | 3 | 2 | 9 | 358 | DC 09-01 · WV 09-24 · MN 10-06 · PA 10-10 |
+| **467** | {4,6,7} | +8.6 | 7 | 5 | 2 | 6 | 41 | TX 09-28 · DC 10-01 · MN 10-24 · MI 10-31 |
+
+| Box | Composite | All / 19.4 | 60d / 5.6 | 30d / 2.8 | Tue / 2.8 | States | Pool draws since | Nat. 7d | Pair support 11/02 | Orders 60d |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **{5,6,7}** | **+10.2** | 27 | **14** | **11** | 4 | 11 | 24 | 4 | 10 (67 ×6, 56 ×2, 57 ×2) | 675 / 567 / 756 / 576 ×3, 657 ×2 (all-window 657 ×8) |
+| **{0,4,8}** | +4.7 | 26 | 10 | 5 | 0 | 11 | 2 | 3 | 11 (48 ×5, 04 ×4, 08 ×2) | 804 ×3, 840 / 084 / 480 ×2, 408 ×1 (all 840 ×7) |
+| {3,6,9} | +4.6 | 28 | 10 | 4 | 3 | 11 | 1 | 6 | 15 (39 ×7, 69 ×5, 36 ×3) | 936 / 639 ×3, 693 ×2 — drew 3× in the pool last night (DC 693, GA 396, DE 639) |
+| {0,1,2} | +4.3 | 21 | 9 | **7** | 4 | **13** | 73 | 5 | 6 (12 ×4, 02 ×2) | 012 ×4, 201 ×2 |
+| {1,5,8} | +4.2 | 22 | 11 | 5 | 2 | 10 | 3 | 8 | 11 (15 ×4, 18 ×4, 58 ×3) | 851 ×4, 815 ×4, 158 ×3 |
+
+**TOP 2 BOX = {5,6,7} and {0,4,8}.** **{5,6,7}** — highest composite of all 220 sets by a wide margin (+10.2 vs next single +4.7): 30d 11 vs 2.8, 60d 14 vs 5.6, all 27 vs 19.4, 11 of 13 states; 60d states SC 3 (657 10-28, 576 11-01), GA 3, DC 2 (675 11-01), PA 2; orders in 60d spread evenly (675 / 567 / 756 / 576 ×3 each), all-window leader 657 ×8; 24 pool draws since (SC 576 + DC 675 on 11/01; also NE 576 late that night — Midday board #2 on 11/01); nationwide 4 in the last 7 days; pair 67 ×6 in last night's 42. Not on any 11/03 board. **{0,4,8}** — 60d 10 vs 5.6, 30d 5 vs 2.8, all 26 vs 19.4, 11 states; 60d states ME,NH,VT 3 (408 10-08, 084 10-11, 840 11-02), DE 2; 2 pool draws since (ME,NH,VT 840 last night); orders 804 ×3 in 60d, 840 ×7 all-window; pair 48 ×5 + 04 ×4 in last night's 42; Tuesdays 0 vs 2.8 (the one under lens). Doubles leaders by the same composite, listed not ticketed: {0,0,1} +6.9 (60d 7 vs 2.8, none in the pool since GA 010 10-26), {5,6,6} +6.2 (656 ×4 in 60d), {3,8,8} +5.6 (883 ×4 in 60d, AR 883 10-28). Straight next in line: 563, 012, 656; box next in line: {3,6,9}, {0,1,2}.
+
+Per unit on the 13 draws: 5 straights $16.25 + 5 boxes $16.25 = **$32.50 per unit** (top-2 box alone $6.50 per unit); exact pays $225 per unit per hitting state, box $37.50. Target branch: any of the five sets drawn in any order in the 13 clears a box; 271 / 749 / 898 / 951 / 467 exact clears a straight on top. Same-day closure: any set drawn in the remaining 11/03 midday rows closes by convention. Placement cutoff 7:46pm ET, readout ~8:24pm. Mark PLACED only on the operator's word, with units.
+
 **11/03 ~4:50pm ET — operator: "what 10 straights do you see for the 1st 13 regardless of boards?" then ~5:00pm "edit that 5 straights, 5 box picks for the 1st 13" — 5 EXACT ORDERS + 5 BOX SETS, boards ignored, NOT PLACED.** Lens: early-13 pool evening rows 4/01 → 11/02 (3,231 draws), ranked by 30d (since 10/04, 465 draws) → 60d (since 9/04, 931) → all. Expected per exact order 0.47 · 0.93 · 3.23; per single set box 2.8 · 5.6 · 19.4. Sets drawn at the 11/03 midday so far (SC 375, NY 506, AR 803) excluded; the box five exclude the straight sets so the ticket covers ten different sets. "Block" = the set drew somewhere 10/31 → 11/02 (engine 3-day convention, shown not applied).
 
 | Straight | Set | Exact 30d / 0.47 | 60d / 0.93 | All / 3.23 | States | Last four | Block |

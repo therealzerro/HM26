@@ -2,6 +2,59 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
+## 2026-11-03 (Tuesday) — EVENING PREP: EARLY-13 (PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC → 13 draws, $3.25/unit; placement cutoff 7:46pm ET, readout ~8:24pm) + LATE-29 (26 jurisdictions + GA/TX/DC night → $7.25/unit; AZ opens 8:45pm ET) — **PREPPED ~3:40pm ET on the operator's "prep the pick for evening 1st 13 and late evening also await midday results in 1 hour"; midday reconcile PENDING (import expected ~4:30pm ET); NOT PLACED.**
+
+Boards (posted order, workflow 2:39pm ET / 19:39 UTC — single snapshot per scope): Evening 380 · 937 · 501 · 619 · 056 · 573; All-Day 314 · 541 · 937 · 753 · 325 · 380; Midday 732 · 541 · 753 · 671 · 362 · 325. Nine Eve ∪ AD sets: **{3,5,7} on ALL THREE boards — TRIPLE BOARD** (Eve 6 **573**, AD 4 **753**, Mid 3 **753**; AD + Mid same order); {0,3,8} Eve 1 + AD 6 **same order 380**; {3,7,9} Eve 2 + AD 3 **same order 937**; {1,4,5} AD 2 + Mid 2 same order 541; {2,3,5} AD 5 + Mid 6 same order 325; {0,1,5} Eve 3 (501); {1,6,9} Eve 4 (619); {0,5,6} Eve 5 (056); {1,3,4} AD 1 (314). **Block scan 10/31 → 11/02, all sessions: none of the nine drew — all clear** (nearest: {3,5,7} DE 357 + DC 753 on 10/30 evening).
+
+**Early-13 table (evening rows of the 13 pool states, 4/01 → 11/02 = 3,231 draws; GA/TX/DC carry two rows per date so the night draw is inside their counts; expected box 19.4 all · 5.6 60d (since 9/04, 931) · 2.8 30d (since 10/04, 465) · 2.8 Tuesdays (465); expected posted exact 3.23; no stored hit flags):**
+
+| Set | Boards | Box all / 19.4 | 60d / 5.6 | 30d / 2.8 | Tue / 2.8 | Posted exact all / 3.23 · 60d | States (of 13) | Last early |
+|---|---|---|---|---|---|---|---|---|
+| **{1,6,9}** | Eve 4 (619) | 24 | 7 | **5** | **5** | 619: 5 · 1 | 11 | SC 169 10-27 |
+| **{0,5,6}** | Eve 5 (056) | 23 | **9** | 4 | 2 | 056: 4 · 2 | 11 | PA 560 10-30 |
+| {1,3,4} | AD 1 (314) | 22 | 8 | 4 | 1 | 314: 3 · 1 | **12** | TX 134 10-16 |
+| {0,3,8} | Eve 1 + AD 6, both 380 | 19 | 5 | 4 | 0 | 380: 2 · 0 | 9 | DE 830 10-29 |
+| {1,4,5} | AD 2 + Mid 2, both 541 | 16 | 3 | 3 | **6** | 541: 1 · 0 | 7 | DC 451 10-27 |
+| {0,1,5} | Eve 3 (501) | 24 | 6 | 2 | 3 | 501: **6** · 2 | 9 | DC 150 10-26 |
+| {3,5,7} | Eve 6 573 + AD 4 753 + Mid 3 753 | 24 | 5 | 2 | 1 | 573: 4 · 0 — 753: 4 · 1 | 11 | DE 357 / DC 753 10-30 |
+| {3,7,9} | Eve 2 + AD 3, both 937 | **29** | 8 | 1 | 2 | 937: **7** · **3** | 11 | PA 937 10-16 (exact) |
+| {2,3,5} | AD 5 + Mid 6, both 325 | 20 | 3 | 1 | **6** | 325: 4 · 1 | 9 | OH 352 10-12 |
+
+**EARLY-13 Set 1 — {1,6,9}, posted 619 (Eve 4).** Leads the nine on 30d (5 vs 2.8) and Tuesdays (5 vs 2.8), 60d 7 vs 5.6, all 24 vs 19.4, 11 of 13 states. Orders 619 ×5 (TX 10/17 the one in 60d), 961 ×5, 169 ×5, 916 ×4, 691 ×4; recent: SC 169 10/27, AR 961 10/26, TN 961 10/18, TX 619 10/17, MI 691 10/05. States: SC 3 / 1.25 (2 in 60d; 6 draws since), TX 3 / 2.12, ME,NH,VT 3 / 1.20 (none since 8/09), AR 2 (961 10/26), TN 2 (961 10/18); never DE, OH. Pair 69 ×5 and 16 / 19 in last night's evening repeats. **EARLY-13 Set 2 — {0,5,6}, posted 056 (Eve 5).** Highest 60d of the nine (9 vs 5.6), 30d 4 vs 2.8, all 23 vs 19.4, 11 states; Tuesdays 2 vs 2.8. Orders 605 ×9, 650 / 056 ×4 (056 twice in 60d: DC 9/14 + …), 560 ×2 (both in 60d: MI 10/17, PA 10/30); recent PA 560 10/30, MI 560 10/17, SC 605 10/16, OH 065 10/15. States: DC 4 / 2.50 (2 in 60d), WV 3 / 1.07, PA 2 (both in 60d, 3 draws since), SC 2, OH 2; never MN, AR. Runner-ups: **{1,3,4}/314** (AD 1; 60d 8 vs 5.6, 30d 4, most states 12 of 13, PA 5 / 1.25 incl. 314 exact 10/14) and **{0,3,8}/380** (the Eve 1 + AD 6 same-order set; 30d 4 vs 2.8 — DE 830 10/29, ME,NH,VT 038 10/16, SC 038 10/14, DE 083 10/04 — but 60d 5 vs 5.6, Tuesdays 0, 380 exact 0 in 60d). The triple-board {3,5,7} sits at expectation in the early pool (24 / 19.4 all, 5 / 5.6 60d, 2 / 2.8 30d; 573 exact 0 in 60d, 753 exact DC 10/30).
+
+**Late-26 table (evening rows of the 26 late jurisdictions, 4/01 → 11/02 = 5,408 draws; expected box 32.4 all · 9.3 60d (1,551) · 4.6 30d (773) · 4.5 Tuesdays (756); expected posted exact 5.41; GA/TX/DC night rows excluded):**
+
+| Set | Boards | Box all / 32.4 | 60d / 9.3 | 30d / 4.6 | Tue / 4.5 | Posted exact all / 5.41 · 60d | States (of 26) | Last late |
+|---|---|---|---|---|---|---|---|---|
+| **{3,5,7}** | **Eve 6 573 + AD 4 753 + Mid 3 753 (TRIPLE)** | **43** | 9 | **7** | **9** | 753: **8** · **3** — 573: 7 · 2 | 21 | MS 573 10-24 (exact) |
+| **{1,6,9}** | Eve 4 (619) | 34 | 9 | 6 | 1 | 619: 5 · 0 | 19 | NE 196 10-30 |
+| {0,1,5} | Eve 3 (501) | 28 | **12** | 4 | 1 | 501: 6 · 1 | 16 | WI 510 10-29 |
+| {0,3,8} | Eve 1 + AD 6, both 380 | 30 | 9 | 4 | 3 | 380: **9** · 2 | 16 | NM 083 10-28 |
+| {3,7,9} | Eve 2 + AD 3, both 937 | 35 | 6 | 3 | 3 | 937: 5 · 2 | 19 | OK 739 10-29 |
+| {1,3,4} | AD 1 (314) | 25 | 6 | 3 | 3 | 314: 3 · 1 | 15 | ID 413 10-07 |
+| {1,4,5} | AD 2 + Mid 2, both 541 | 33 | 8 | 2 | 2 | 541: 7 · 2 | **23** | AZ 514 10-27 |
+| {2,3,5} | AD 5 + Mid 6, both 325 | 35 | 9 | 1 | 5 | 325: 7 · 1 | 18 | IN 253 10-25 |
+| {0,5,6} | Eve 5 (056) | 29 | 5 | 1 | 4 | 056: 4 · 0 | 17 | OK 605 10-09 |
+
+**LATE-29 Set 1 — {3,5,7}, posted 753 (AD 4 + Mid 3, same order) / 573 (Eve 6).** The triple-board set leads the late pool on all (43 vs 32.4, most of the nine), 30d (7 vs 4.6), Tuesdays (9 vs 4.5, double the next); 60d 9 vs 9.3; 21 of 26 states. Posted 753 exact 8 vs 5.41 with 3 in 60d (NC 10/23, ID 10/11, IN 9/05); 573 exact 7 with 2 in 60d (MS 10/24, W.Canada 10/22). Orders 375 ×10, 537 ×8, 753 ×8, 573 ×7, 735 ×5, 357 ×5; recent MS 573 10/24, NC 753 10/23, LA 735 10/23, W.Canada 573 10/22, QC 375 10/18, ID 753 10/11. States: NC 5 / 1.28 (753 10/23; 10 since), IN 4, CA 4 (none since 7/16), LA 3 (735 10/23), W.Canada / ID / CT 2 each with one in 60d, MS 1 (573 exact 10/24; 9 since); never FL IL MO NY VA. Last drew anywhere DE 357 + DC 753 on 10/30 (early pool). **LATE-29 Set 2 — {1,6,9}, posted 619 (Eve 4).** 30d 6 vs 4.6 (second), 60d 9 vs 9.3, all 34 vs 32.4, 19 states; Tuesdays 1 vs 4.5. Orders 961 ×7, 196 / 916 ×6, 619 / 691 / 169 ×5 (619 exact none in 60d); recent NE 196 10/30, WA 169 10/14, MS 916 10/11, CT 961 10/10, ID 691 10/09, NM 916 10/04. States: WA 4 / 1.25 (2 in 60d), W.Canada 3, CA 3 (none since 8/09), ID / CT / NM / FL 2 each with one in 60d, NE 1 (196 10/30; 3 since); never CO IL IN NJ ON VA WI. Same set as early-13 Set 1 — if it draws in the early pool it is closed by convention for the late 29. Runner-up **{0,1,5}/501** (Eve 3): highest 60d of the nine (12 vs 9.3), 30d 4, 16 states, recent WI 510 10/29, LA 510 10/28, WA 501 10/26 (the one 501 exact in 60d). {0,3,8}/380 (same order on both boards) sits at 60d 9 / 30d 4 with 380 exact 9 vs 5.41 (2 in 60d, WA 9/21 latest).
+
+**Pair tie-break (flat lever; 11/02 evening, 42 rows):** 39 ×7, 28 ×7, 27 / 26 / 67 ×6, 48 / 69 / 24 ×5, 18 / 15 / 12 / 04 / 49 ×4. {1,6,9} carries 69 (×5); {0,1,5} carries 15 (×4); {3,5,7} (35 / 37 / 57), {0,5,6} (05 / 06 / 56) and {0,3,8} (03 / 08 / 38) none at ×4. 11/03 midday pairs added at the import. Selection is the counts-vs-expected tie-break across the Eve/AD boards (order by 30d, then 60d — the 11/01 method) — it chooses WHICH, never the rate; nothing tonight is past the noise floor (highest 60d: {0,1,5} 12 vs 9.3 late; {0,5,6} 9 vs 5.6 early).
+
+**Ticket shape (operator style, NOT placed):**
+
+| Pool | Instrument | Posted order | Per unit | Pays per hitting state |
+|---|---|---|---|---|
+| Early-13 | STRAIGHT 619 / BOX {1,6,9} | Eve 4 | $3.25 | exact $225.00 / box $37.50 per unit |
+| Early-13 | STRAIGHT 056 / BOX {0,5,6} | Eve 5 | $3.25 | exact $225.00 / box $37.50 per unit |
+| Late-29 | STRAIGHT 753 (or 573) / BOX {3,5,7} | AD 4 + Mid 3 (Eve 6) | $7.25 | exact $225.00 / box $37.50 per unit |
+| Late-29 | STRAIGHT 619 / BOX {1,6,9} | Eve 4 | $7.25 | exact $225.00 / box $37.50 per unit |
+
+Target branch: either early set drawn in any order in the 13 clears that box, 619 or 056 exact clears the straight on top; same for the late 29 with {3,5,7} / {1,6,9}. **Sequence:** (1) 11/03 midday import (~4:30pm ET) → close any Eve/AD set drawn at midday by convention (next in line early: {1,3,4}/314 then {0,3,8}/380; late: {0,1,5}/501 then {0,3,8}/380), add the midday pair repeats, restate; (2) early-13 placement by 7:46pm ET; (3) 8:24pm readout → a set drawn early is closed for the late 29; (4) late-29 by 8:45pm ET. Reconcile both pools at the 11/04 import (GA/TX/DC night rows share the evening label). Running PLACED total **−$140.25**. Mark PLACED only on the operator's word, with units.
+
+**11/02 LATE-29 RECONCILED (11/03 import, 42 evening rows): {0,5,7} DREW — MO 075 (late pool, box order; posted 750 / 705 not exact). {0,1,4}/401 blank in all 29.** Runner-up {3,6,9}/369 drew three times in the EARLY pool — DE 639, GA 396, DC 693 (GA/DC rows may be the night draw) — so it would have been closed at the 8:24 readout (no readout was logged 11/02); {1,6,8} drew ON 681 late. Boards 11/02 at the full evening, any order: Evening 2/6 (369 ×3, 168 → ON 681), All-Day 3/6 (705 → MO 075, 369 ×3, 861 → ON 681), no straights. **NOT PLACED → $0; running PLACED −$140.25 unchanged; no open rides** ({0,5,7} closed by the MO hit). At 1 unit box, {0,5,7} would have paid $37.50 on $7.25 staked; the 750 / 705 straight ticket $0.
+
+Method = the 11/01 late scan (`docs/sunday_11-01_late_scope.md` §1–§4 SQL) re-run with 11/03 dates (60d ≥ 9/04, 30d ≥ 10/04, dow = Tuesday) over a REST pull of `histories` (Supabase MCP down this session), applied twice — once over the 13 early-pool states (the 10/29 / 10/31 early-13 lens), once over the 26 late jurisdictions; candidate list = the nine 11/03 Eve ∪ AD sets.
+
 ## 2026-11-02 (Monday) — LATE POOL (29 draws: 26 jurisdictions + GA/TX/DC night → $7.25/unit; AZ opens 8:45pm ET) — **2 SETS NAMED ~7:10pm ET on the operator's "what do you see for the late draws tonite (after 7:45pm)", NOT PLACED.** Boards (posted order, workflow 11:05 UTC): Evening 401 · 574 · 640 · 168 · 937 · 369; All-Day 705 · 640 · 401 · 973 · 369 · 861; Midday 750 · 571 · 731 · 716 · 261 · 816. Eve/AD sets: {0,1,4} Eve 1 + AD 3 **same order 401**; {0,4,6} Eve 3 + AD 2 **same order 640**; {3,6,9} Eve 6 + AD 5 **same order 369**; {3,7,9} Eve 5 937 + AD 4 973; {1,6,8} on all three boards (168 / 861 / 816, three orders); {0,5,7} AD 1 705 + Mid 1 750; {4,5,7} Eve 2 only.
 
 **11/02 MIDDAY RECONCILED (import 7:03pm ET, 33 rows): {0,5,7}/750 and {3,6,9}/369 BLANK; runner-ups {1,3,7}/731 and {1,6,8} blank. NOT PLACED → $0.** Boards at the midday: Midday 1/6 (571 → TN 157 box), All-Day 0/6, Evening 1/6 (574 → NY 745 box). **Convention closure for tonight: {4,5,7} (Eve 2) drew NY 745 at midday → CLOSED.** Block scan 10/30 → 11/02 midday, all sessions: the other six Eve/AD sets clear.

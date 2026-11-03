@@ -133,3 +133,134 @@ Per-state walk-forward of the pair term (reference = previous evening + same-day
 | **Pool** | 2,897 | 81 / 64.0 (+2.12) | 150 / 129.4 (+1.81) | 0.500 | 27 / 20.5 (+1.45) | 54 / 41.7 (+1.91) |
 
 MN and GA are the two states above expectation on both windows and both K (MN top-5 8 vs 4.1 full, 3 vs 1.3 in 60d — 394 9/15, 004 10/10, 576 10/26; GA 13 vs 8.2 full, 5 vs 2.6 in 60d — 297 9/24, 763 9/29, 554 10/13, 715 10/18). DE and MI carry the full window but are at or under in the last 60 days. ME,NH,VT and OH are 60d-only. PA is the top-10 leader in 60d (6 vs 2.7) with top-5 under. DC is under on every lens. No state's whole-ranking percentile moves off 0.50 (range 0.479–0.529), so within a state the term orders only the top handful. 13 states × 2 windows × 2 K = 52 cells; the largest z (+2.02 PA 60d top-10) is inside what 52 null cells produce.
+
+## 9. "Flat" levers as composite terms — walk-forward (operator ask, 11/03 ~5:10pm ET)
+
+Same harness as §6/§7 (`flat_terms.py`, `combined_terms.py`): each term scores the 220 sets per slate day, class-standardized; top-5 / top-10 hits vs class-correct expectation; anti-5 = bottom five; IS = 7/01→11/02, OOS = 5/01→6/30. Reference block = previous evening + same-day midday (evening) / previous evening + previous midday (midday). Raw tables in the two logs (`flat_terms.log`, `combined_terms.log`, copied below).
+
+### 9a. Single terms (top-5 z, IS / OOS; anti-5 z over both)
+
+| Term | Early-13 eve | All midday | All evening | Read |
+|---|---|---|---|---|
+| pair (base, §6) | +1.98 / +0.87; anti −1.84 | +1.36 / +0.43 | +1.04 / +1.48 | adopted |
+| pair, prev-evening half only | −0.16 / +0.97 | +1.10 / −0.08 | +0.47 / +1.51 | flips |
+| pair, same-day-midday half only | +0.97 / +1.39; anti −0.10 | −0.83 / −1.06 | −0.27 / +1.46 | the early-13 signal sits in the same-day midday half |
+| pair over last 2d / 3d / 7d | −0.64 / −0.35 · +1.22 / −1.12 · −0.28 / −0.23 | mixed | mixed | longer windows dilute; dead |
+| digit carryover | +1.15 / +0.61; anti **+0.98** | −0.05 / +1.38 | +0.37 / +2.32 | both ends over on early-13 |
+| exact set repeat | −1.70 / +0.48; pct 0.543 | +0.41 / +0.28 | −2.07 / +0.01 | anti-orders (drawn sets rank LOW) — the post-hit block, confirmed |
+| mirror pairs / mirror sets | −0.61 / 0.00 · −1.10 / +0.91 | flat | flat | dead |
+| rundown ±1 | +0.54 / +0.13 | −1.95 / −1.13 | −0.34 / −0.81 | dead |
+| digit sum / root sum | −0.97 / −0.65 · 0.00 / +0.24 | flips | flips | dead |
+| followers (set→next-day sets) | −1.53 / +1.60 | +0.12 / +0.54 | +0.08 / +0.81 | flips |
+| overdue (days since drawn) | +0.77 / +0.88; anti **+1.54** | +0.55 / +0.01 | −0.44 / −0.43 | both ends over; dead (COHORT-02 stands) |
+| hot 7d / hot 14d | −1.15 / **+3.03** · −2.67 / +1.88 | +0.89 / −0.43 · −0.80 / +0.68 | +0.05 / +1.73 · −1.33 / +1.59 | sign flips between halves (STATE_STR verdict stands) |
+| weekday count | +0.45 / +0.98; top-10 −0.35 / +1.65 | −0.17 / +0.04 | +0.43 / +1.67 | weak, top-10 flips |
+
+Only digit carryover and weekday keep the top-5 sign across both windows on early-13; neither keeps it on top-10 with a negative anti-5. Everything else flips, is flat, or scores both ends of the ranking up.
+
+### 9b. Combined scorers (top-5 z IS / OOS; anti-5 IS / OOS)
+
+| Variant | Early-13 eve | All midday | All evening |
+|---|---|---|---|
+| composite alone | +0.08 / −0.11; anti −0.64 / +0.05 | +0.03 / +0.73 | +1.45 / −0.43 |
+| composite + pair (tonight's rule) | +0.48 / +0.04; top-10 +1.60 / +0.16 | −0.65 / −0.14 | +1.80 / +1.45 |
+| composite + pair + digit | +1.13 / −0.43; anti **+1.15** / +0.28 | −0.34 / −0.33 | +1.01 / +1.24 |
+| composite + pair + weekday | +0.93 / −0.26; top-10 +0.36 / −0.67 | −0.40 / +0.95 | +1.48 / +1.03 |
+| composite + pair + digit + weekday | +0.96 / +0.12 | +0.66 / +0.40 | +1.88 / +1.03 |
+| composite + digit | −0.41 / −0.55 | +0.19 / +0.25 | +2.34 / +0.62 |
+| **pair + digit (no composite)** | **+2.20 / +0.99**; anti −0.06 / −0.55; top-10 +1.21 / +0.72 | +1.99 / −0.52 | +1.70 / +2.23; top-10 +1.58 / +2.20 |
+| composite + pair + same-day-midday pair (double weight) | +1.99 / +0.43 | −0.43 / −0.21 | +1.60 / +1.27 |
+
+**Findings.** (1) On the early-13 pool the composite is dead weight: composite alone is 41/40.5 and 22/22.5; adding it to the pair term pulls the pair's +1.98 / +0.87 down to +0.48 / +0.04. (2) No candidate term improves composite + pair on top-5, top-10 and anti together across both windows. (3) The one combination above the pair term alone is **pair + digit, without the composite**: early-13 +2.20 / +0.99 (vs +1.98 / +0.87), all evening +1.70 / +2.23 (vs +1.04 / +1.48), anti negative on both; it flips on midday (+1.99 / −0.52). Digit carryover is the same reference block as the pair term (its 1-digit marginal), so this is a re-weighting of one signal, not a second signal. (4) Exact-set repeat anti-orders on every pool (drawn sets rank at the 0.54 percentile): the engine's post-hit block is measured in the right direction. All of §9 is hypothesis-grade by the §6 rule (selected-pick diffs); nothing here is a ship candidate without the universe/backtest gate.
+
+```
+term                 pool          | IS top5 h/e (z)        IS top10 (z)     | OOS top5 (z)         OOS top10 (z)    | anti5 IS+OOS (z)   pct
+pair_ref(base)       EARLY-13 eve  |  56/ 43.0 (+1.98)       99/ 86.7 (+1.32) |  25/ 21.0 (+0.87)     51/ 42.7 (+1.27) |  56/ 71.6 (-1.84)     0.499
+pair_ref(base)       ALL midday    | 100/ 87.3 (+1.36)      201/180.3 (+1.54) |  44/ 41.2 (+0.43)     74/ 84.5 (-1.14) | 144/145.0 (-0.08)     0.495
+pair_ref(base)       ALL evening   | 126/114.9 (+1.04)      244/231.6 (+0.82) |  67/ 56.0 (+1.48)    136/113.7 (+2.09) | 175/190.9 (-1.15)     0.493
+pair_prevEve_only    EARLY-13 eve  |  42/ 43.0 (-0.16)       77/ 86.4 (-1.01) |  25/ 20.6 (+0.97)     40/ 42.5 (-0.38) |  70/ 75.3 (-0.62)     0.499
+pair_prevEve_only    ALL midday    |  99/ 88.6 (+1.10)      194/177.9 (+1.21) |  41/ 41.5 (-0.08)     76/ 85.6 (-1.04) | 141/154.0 (-1.05)     0.496
+pair_prevEve_only    ALL evening   | 120/115.0 (+0.47)      228/230.8 (-0.18) |  66/ 54.8 (+1.51)    110/113.2 (-0.30) | 197/201.1 (-0.29)     0.492
+pair_sameMid_only    EARLY-13 eve  |  49/ 42.7 (+0.97)       93/ 85.3 (+0.84) |  27/ 20.7 (+1.39)     52/ 41.2 (+1.68) |  78/ 78.9 (-0.10)     0.494
+pair_sameMid_only    ALL midday    |  80/ 87.8 (-0.83)      165/176.0 (-0.83) |  35/ 41.9 (-1.06)     77/ 83.0 (-0.66) | 155/161.9 (-0.54)     0.495
+pair_sameMid_only    ALL evening   | 111/113.9 (-0.27)      215/227.8 (-0.85) |  66/ 55.2 (+1.46)    129/109.8 (+1.83) | 207/210.8 (-0.26)     0.497
+pair_2d              EARLY-13 eve  |  39/ 43.2 (-0.64)       90/ 86.8 (+0.34) |  20/ 21.6 (-0.35)     44/ 42.7 (+0.19) |  63/ 68.9 (-0.72)     0.499
+pair_2d              ALL midday    | 103/ 90.3 (+1.34)      188/179.7 (+0.62) |  45/ 43.2 (+0.28)     81/ 85.9 (-0.53) | 149/141.1 (+0.67)     0.495
+pair_2d              ALL evening   | 119/115.4 (+0.34)      248/231.9 (+1.06) |  63/ 57.6 (+0.71)    125/113.9 (+1.04) | 167/184.0 (-1.25)     0.493
+pair_3d              EARLY-13 eve  |  51/ 43.0 (+1.22)       97/ 86.6 (+1.12) |  16/ 21.2 (-1.12)     39/ 42.6 (-0.56) |  57/ 67.4 (-1.27)     0.497
+pair_3d              ALL midday    |  78/ 89.5 (-1.22)      192/182.2 (+0.72) |  42/ 42.8 (-0.12)     77/ 85.4 (-0.91) | 148/140.4 (+0.64)     0.495
+pair_3d              ALL evening   | 118/114.8 (+0.30)      252/231.2 (+1.37) |  61/ 56.4 (+0.61)    118/113.7 (+0.40) | 155/180.0 (-1.87)     0.494
+pair_7d              EARLY-13 eve  |  41/ 42.9 (-0.28)       85/ 87.5 (-0.27) |  21/ 22.1 (-0.23)     39/ 43.0 (-0.61) |  56/ 68.3 (-1.48)     0.494
+pair_7d              ALL midday    |  83/ 88.4 (-0.57)      167/180.3 (-0.99) |  42/ 44.2 (-0.34)     87/ 88.2 (-0.12) | 134/139.1 (-0.43)     0.494
+pair_7d              ALL evening   | 104/114.5 (-0.98)      249/233.8 (+0.99) |  61/ 58.9 (+0.28)    126/114.5 (+1.07) | 163/182.2 (-1.42)     0.493
+digit_ref            EARLY-13 eve  |  53/ 45.3 (+1.15)      100/ 87.0 (+1.40) |  25/ 22.2 (+0.61)     52/ 42.8 (+1.40) |  80/ 71.7 (+0.98)     0.490
+digit_ref            ALL midday    |  90/ 90.5 (-0.05)      187/178.3 (+0.65) |  54/ 44.8 (+1.38)     96/ 86.1 (+1.06) | 144/146.8 (-0.23)     0.495
+digit_ref            ALL evening   | 125/120.9 (+0.37)      236/232.2 (+0.25) |  77/ 59.1 (+2.32)    139/114.3 (+2.31) | 199/191.3 (+0.55)     0.494
+set_repeat_ref       EARLY-13 eve  |  33/ 44.3 (-1.70)       80/ 96.0 (-1.63) |  24/ 21.7 (+0.48)     43/ 47.3 (-0.62) |  87/ 85.9 (+0.12)     0.543
+set_repeat_ref       ALL midday    |  94/ 90.1 (+0.41)      206/197.8 (+0.58) |  44/ 42.2 (+0.28)     93/ 94.7 (-0.17) | 191/177.3 (+1.03)     0.536
+set_repeat_ref       ALL evening   |  96/118.5 (-2.07)      239/256.1 (-1.07) |  58/ 57.9 (+0.01)    125/126.0 (-0.09) | 215/229.2 (-0.94)     0.536
+mirror_pair_ref      EARLY-13 eve  |  39/ 43.0 (-0.61)       89/ 86.7 (+0.24) |  21/ 21.0 (+0.00)     39/ 42.7 (-0.56) |  70/ 71.6 (-0.18)     0.508
+mirror_pair_ref      ALL midday    |  94/ 87.3 (+0.71)      186/180.3 (+0.42) |  37/ 41.2 (-0.66)     80/ 84.5 (-0.49) | 143/145.0 (-0.17)     0.503
+mirror_pair_ref      ALL evening   | 112/114.9 (-0.27)      232/231.6 (+0.03) |  62/ 56.0 (+0.81)    115/113.7 (+0.12) | 183/190.9 (-0.57)     0.501
+mirror_set_ref       EARLY-13 eve  |  37/ 44.3 (-1.10)       82/ 96.0 (-1.42) |  26/ 21.7 (+0.91)     53/ 47.3 (+0.83) |  84/ 85.9 (-0.20)     0.531
+mirror_set_ref       ALL midday    |  85/ 90.1 (-0.54)      194/197.8 (-0.27) |  51/ 42.2 (+1.35)     89/ 94.7 (-0.58) | 168/177.3 (-0.70)     0.536
+mirror_set_ref       ALL evening   | 116/118.5 (-0.23)      257/256.1 (+0.06) |  61/ 57.9 (+0.40)    133/126.0 (+0.63) | 214/229.2 (-1.01)     0.533
+rundown±1_ref        EARLY-13 eve  |  48/ 44.4 (+0.54)       97/ 89.2 (+0.83) |  22/ 21.4 (+0.13)     48/ 42.9 (+0.79) |  81/ 84.2 (-0.35)     0.506
+rundown±1_ref        ALL midday    |  72/ 90.5 (-1.95)      159/181.9 (-1.70) |  36/ 43.5 (-1.13)     70/ 85.8 (-1.70) | 181/176.8 (+0.32)     0.511
+rundown±1_ref        ALL evening   | 115/118.7 (-0.34)      252/238.2 (+0.90) |  51/ 57.1 (-0.81)    112/114.3 (-0.21) | 231/224.7 (+0.42)     0.510
+sum_ref              EARLY-13 eve  |  23/ 28.2 (-0.97)       67/ 75.4 (-0.97) |  12/ 14.5 (-0.65)     27/ 37.9 (-1.76) |  71/ 79.6 (-0.97)     0.501
+sum_ref              ALL midday    |  55/ 58.1 (-0.41)      142/158.1 (-1.28) |  36/ 28.8 (+1.33)     89/ 73.8 (+1.77) | 176/162.7 (+1.04)     0.494
+sum_ref              ALL evening   |  84/ 75.2 (+1.02)      191/201.2 (-0.72) |  41/ 38.6 (+0.38)     89/100.9 (-1.18) | 172/212.5 (-2.78)     0.497
+rootsum_ref          EARLY-13 eve  |  46/ 46.0 (+0.00)      103/ 94.8 (+0.84) |  22/ 20.9 (+0.24)     37/ 43.7 (-1.01) |  49/ 55.2 (-0.83)     0.494
+rootsum_ref          ALL midday    |  82/ 92.1 (-1.05)      177/193.0 (-1.15) |  47/ 40.3 (+1.05)     99/ 85.6 (+1.45) | 122/112.8 (+0.87)     0.504
+rootsum_ref          ALL evening   | 120/122.6 (-0.24)      258/253.0 (+0.31) |  45/ 55.9 (-1.46)     99/116.7 (-1.64) | 121/146.9 (-2.14)     0.497
+follower             EARLY-13 eve  |  36/ 46.5 (-1.53)       65/ 90.3 (-2.67) |  30/ 22.4 (+1.60)     57/ 42.9 (+2.15) |  69/ 64.2 (+0.60)     0.502
+follower             ALL midday    |  96/ 94.8 (+0.12)      184/184.4 (-0.03) |  48/ 44.4 (+0.54)     84/ 86.9 (-0.31) | 132/131.9 (+0.01)     0.507
+follower             ALL evening   | 125/124.1 (+0.08)      244/241.4 (+0.17) |  66/ 59.7 (+0.81)    129/114.4 (+1.37) | 180/171.3 (+0.66)     0.499
+overdue_days         EARLY-13 eve  |  48/ 43.0 (+0.77)       94/ 85.3 (+0.94) |  26/ 21.9 (+0.88)     47/ 42.3 (+0.72) |  71/ 59.2 (+1.54)     0.498
+overdue_days         ALL midday    |  93/ 87.8 (+0.55)      179/175.1 (+0.29) |  44/ 43.9 (+0.01)     93/ 86.2 (+0.74) |  94/ 85.3 (+0.94)     0.501
+overdue_days         ALL evening   | 110/114.7 (-0.44)      227/227.8 (-0.06) |  55/ 58.3 (-0.43)     99/112.8 (-1.30) | 181/158.1 (+1.82)     0.504
+hot7                 EARLY-13 eve  |  36/ 43.6 (-1.15)       68/ 84.9 (-1.83) |  34/ 20.3 (+3.03)     54/ 40.9 (+2.06) | 108/ 83.5 (+2.68)     0.497
+hot7                 ALL midday    |  98/ 89.6 (+0.89)      187/175.5 (+0.87) |  38/ 40.8 (-0.43)     78/ 82.1 (-0.45) | 171/172.2 (-0.09)     0.504
+hot7                 ALL evening   | 117/116.5 (+0.05)      230/226.8 (+0.21) |  67/ 54.3 (+1.73)    121/108.9 (+1.16) | 231/223.0 (+0.53)     0.495
+hot14                EARLY-13 eve  |  25/ 42.4 (-2.67)       66/ 85.9 (-2.14) |  28/ 19.7 (+1.88)     54/ 41.1 (+2.01) |  82/ 72.0 (+1.18)     0.498
+hot14                ALL midday    |  80/ 87.5 (-0.80)      170/177.3 (-0.55) |  43/ 38.7 (+0.68)     80/ 84.9 (-0.53) | 133/146.0 (-1.07)     0.505
+hot14                ALL evening   |  99/113.1 (-1.33)      218/229.4 (-0.75) |  64/ 52.5 (+1.59)    127/109.5 (+1.67) | 182/192.3 (-0.74)     0.491
+weekday              EARLY-13 eve  |  50/ 46.9 (+0.45)       83/ 86.3 (-0.35) |  26/ 21.5 (+0.98)     53/ 42.3 (+1.65) |  78/ 79.1 (-0.13)     0.502
+weekday              ALL midday    |  92/ 93.7 (-0.17)      194/184.8 (+0.68) |  42/ 41.7 (+0.04)     85/ 86.4 (-0.15) | 165/167.4 (-0.19)     0.505
+weekday              ALL evening   | 130/125.2 (+0.43)      229/230.4 (-0.09) |  70/ 57.3 (+1.67)    136/112.8 (+2.18) | 217/211.1 (+0.41)     0.497
+
+
+== EARLY-13 eve ==
+variant                  | IS top5 (z)        IS top10 (z)       IS anti5       | OOS top5 (z)       OOS top10 (z)      OOS anti5     
+comp                     |  41/ 40.5 (+0.08)   84/ 86.6 (-0.28)   45/ 49.5 (-0.64) |  22/ 22.5 (-0.11)   49/ 44.2 (+0.73)   26/ 25.8 (+0.05)
+comp+pair                |  45/ 41.9 (+0.48)  101/ 86.1 (+1.60)   44/ 47.1 (-0.46) |  22/ 21.8 (+0.04)   45/ 44.0 (+0.16)   23/ 22.6 (+0.09)
+comp+pair+digit          |  51/ 43.5 (+1.13)   96/ 88.0 (+0.86)   53/ 45.3 (+1.15) |  20/ 22.0 (-0.43)   48/ 43.5 (+0.68)   23/ 21.7 (+0.28)
+comp+pair+wkday          |  48/ 42.0 (+0.93)   91/ 87.7 (+0.36)   40/ 45.7 (-0.84) |  20/ 21.2 (-0.26)   39/ 43.4 (-0.67)   24/ 22.2 (+0.38)
+comp+pair+digit+wkday    |  50/ 43.6 (+0.96)   94/ 87.3 (+0.72)   46/ 44.8 (+0.18) |  22/ 21.5 (+0.12)   43/ 43.6 (-0.09)   26/ 21.4 (+0.99)
+comp+digit               |  39/ 41.7 (-0.41)   93/ 86.2 (+0.73)   46/ 46.6 (-0.09) |  19/ 21.6 (-0.55)   47/ 43.7 (+0.49)   25/ 21.9 (+0.67)
+pair+digit               |  59/ 44.4 (+2.20)  100/ 88.7 (+1.21)   48/ 48.4 (-0.06) |  26/ 21.4 (+0.99)   48/ 43.3 (+0.72)   21/ 23.7 (-0.55)
+comp+pair+midpair        |  56/ 43.0 (+1.99)  100/ 87.5 (+1.33)   45/ 45.9 (-0.14) |  24/ 22.0 (+0.43)   48/ 43.3 (+0.71)   22/ 21.4 (+0.12)
+
+== ALL midday ==
+variant                  | IS top5 (z)        IS top10 (z)       IS anti5       | OOS top5 (z)       OOS top10 (z)      OOS anti5     
+comp                     |  86/ 85.7 (+0.03)  184/177.3 (+0.50)   90/ 94.0 (-0.42) |  45/ 40.4 (+0.73)   77/ 80.4 (-0.38)   52/ 50.3 (+0.24)
+comp+pair                |  78/ 83.9 (-0.65)  173/176.3 (-0.25)   80/ 93.5 (-1.40) |  40/ 40.9 (-0.14)   82/ 81.0 (+0.11)   49/ 49.0 (+0.00)
+comp+pair+digit          |  83/ 86.1 (-0.34)  180/177.6 (+0.18)   87/ 93.4 (-0.66) |  39/ 41.1 (-0.33)   80/ 82.9 (-0.32)   40/ 49.5 (-1.35)
+comp+pair+wkday          |  83/ 86.7 (-0.40)  195/175.7 (+1.46)   93/ 92.6 (+0.04) |  47/ 40.9 (+0.95)   88/ 80.9 (+0.79)   46/ 48.1 (-0.30)
+comp+pair+digit+wkday    |  94/ 87.8 (+0.66)  187/175.7 (+0.85)   92/ 91.3 (+0.08) |  44/ 41.4 (+0.40)   93/ 81.8 (+1.24)   45/ 48.1 (-0.45)
+comp+digit               |  87/ 85.2 (+0.19)  179/175.0 (+0.30)   82/ 94.0 (-1.24) |  43/ 41.4 (+0.25)   82/ 81.7 (+0.04)   49/ 48.7 (+0.04)
+pair+digit               | 111/ 91.9 (+1.99)  210/182.3 (+2.05)   98/100.2 (-0.22) |  40/ 43.5 (-0.52)   81/ 86.4 (-0.58)   40/ 47.5 (-1.09)
+comp+pair+midpair        |  82/ 85.9 (-0.43)  161/174.0 (-0.99)   90/ 92.7 (-0.28) |  39/ 40.4 (-0.21)   90/ 82.8 (+0.80)   43/ 47.1 (-0.60)
+
+== ALL evening ==
+variant                  | IS top5 (z)        IS top10 (z)       IS anti5       | OOS top5 (z)       OOS top10 (z)      OOS anti5     
+comp                     | 124/108.8 (+1.45)  267/226.8 (+2.67)  115/117.3 (-0.21) |  50/ 53.1 (-0.43)  118/112.4 (+0.53)   61/ 57.1 (+0.52)
+comp+pair                | 130/111.0 (+1.80)  257/229.4 (+1.82)  114/118.8 (-0.44) |  65/ 54.3 (+1.45)  117/113.6 (+0.31)   50/ 56.1 (-0.82)
+comp+pair+digit          | 124/113.2 (+1.01)  257/229.3 (+1.83)  110/116.6 (-0.61) |  65/ 55.7 (+1.24)  124/114.9 (+0.85)   50/ 57.2 (-0.95)
+comp+pair+wkday          | 129/113.2 (+1.48)  254/231.0 (+1.51)   96/115.6 (-1.83) |  63/ 55.3 (+1.03)  125/113.5 (+1.08)   55/ 56.2 (-0.16)
+comp+pair+digit+wkday    | 134/114.0 (+1.88)  249/231.8 (+1.13)  114/114.8 (-0.07) |  63/ 55.3 (+1.03)  125/114.2 (+1.01)   52/ 56.8 (-0.63)
+comp+digit               | 134/109.5 (+2.34)  252/227.2 (+1.64)  116/116.3 (-0.03) |  59/ 54.4 (+0.62)  114/112.3 (+0.16)   52/ 57.2 (-0.68)
+pair+digit               | 137/118.5 (+1.70)  261/236.7 (+1.58)  126/129.3 (-0.29) |  74/ 57.1 (+2.23)  139/115.3 (+2.20)   59/ 63.1 (-0.51)
+comp+pair+midpair        | 131/114.0 (+1.60)  256/231.6 (+1.60)  110/118.1 (-0.75) |  65/ 55.5 (+1.27)  124/115.7 (+0.77)   52/ 55.6 (-0.49)
+```

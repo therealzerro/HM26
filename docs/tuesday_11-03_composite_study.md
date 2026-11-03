@@ -67,3 +67,27 @@ Early-13 pool, same sweep: composite +0.10 / +0.08 / −0.28 / +0.46; anti-compo
 ## 5. Result
 
 For the early-13 pool the composite's top-5 matched 41 draws against 40.5 expected over 125 days (ratio 1.01), top-2 16 / 15.6, and the ranking's percentile of drawn sets is 0.505. No variant tested beats expectation sign-consistently across the two halves and the three universes. The one cluster of z > 2 (all-evening recency scorers, full window) is a July–August run of three sets and is absent from September–November. Per the ship rule nothing here is an eligible change to how the ticket is chosen; the composite remains a tie-break that chooses WHICH sets to list. Prior verdicts this agrees with: ENG-REVIEW-01 (AUC 0.500), STATE_STR (recent hotness), COHORT-02 (no due threshold), post-hit block 2-day/3-day, ENG-REVIEW-06 hold-out (nothing carries May–Aug → Sep–Oct).
+
+## 6. Pair term added (operator: "add the pair term and run the walk-forward", ~4:30pm ET)
+
+**Term:** for each set, pair support = how many of its three digit pairs appear among the pairs of a reference block of draws (every draw contributes its three unordered pairs); z(pair) = (support − class mean) / class sd across the 220 sets for that day. Three references, all nationwide: the previous evening (41–42 draws); the previous evening + the same day's midday (for a midday target: the previous day's two sessions); the last 3 days both sessions. Scorers: the pair term alone, composite + z(pair), composite + 2·z(pair), anti-pair. Scripts `pair_study.py <start> <end> <K>`, `pair_perm.py <n>`.
+
+| Top-5, 7/01 → 11/02 | Early-13 hits / exp (z) | All evening (z) | All midday (z) |
+|---|---|---|---|
+| composite (reference) | 41 / 40.5 (+0.08) | 124 / 108.8 (+1.45) | 86 / 85.7 (+0.03) |
+| pair, prev evening only | 42 / 43.0 (−0.16) | 120 / 115.0 (+0.47) | 99 / 88.6 (+1.10) |
+| **pair, prev evening + same-day midday** | **56 / 43.0 (+1.98)** | 126 / 114.9 (+1.04) | 100 / 87.3 (+1.36) |
+| pair, last 3 days | 45 / 43.5 (+0.23) | 128 / 116.1 (+1.11) | 78 / 89.5 (−1.22) |
+| composite + pair (prev eve) | 47 / 41.9 (+0.79) | 132 / 111.2 (+1.97) | 93 / 83.8 (+1.01) |
+| composite + pair (prev eve + mid) | 45 / 41.9 (+0.48) | 130 / 111.0 (+1.80) | 78 / 83.9 (−0.65) |
+| composite + 2× pair (prev eve + mid) | 57 / 43.4 (+2.06) | 135 / 114.1 (+1.96) | 87 / 85.0 (+0.22) |
+| composite + pair (3d) | 32 / 41.6 (−1.49) | 116 / 110.6 (+0.51) | 80 / 83.4 (−0.38) |
+| anti-pair (prev eve + mid) | 49 / 48.0 (+0.15) | 119 / 128.1 (−0.80) | 95 / 98.8 (−0.38) |
+
+Split halves, pair (prev eve + mid) alone: early-13 +1.63 / +1.17; all evening +1.66 / −0.19; all midday +0.24 / +1.67. Composite + 2× pair: early-13 +0.37 / +2.57; evening +2.82 / −0.00; midday +0.48 / −0.17. Anti-pair on early-13 Jul–Aug: +1.29 (both the pair and its inverse above expectation in the same half).
+
+K sweep, pair (prev eve + mid) alone, early-13: K=2 +1.09 · K=5 +1.98 · K=10 +1.32 · K=20 +1.74; rank percentile of drawn sets 0.498 at every K. Composite + 2× pair, early-13: +0.29 · +2.06 · +1.32 · +0.75.
+
+**Permutation null (200 shuffles, each day's pair reference replaced by a random other date's same block):** early-13 real z +1.98 vs null mean +0.29, sd 0.97, 95th percentile +1.91 → P(null ≥ real) = 9/200. All midday real +1.36 → 23/200. All evening real +1.04 → 36/200. The null mean is above zero (+0.29 on early-13) because a top-5 built from any day's repeated pairs leans to high-frequency sets.
+
+**Reading:** the prev-evening + same-day-midday pair term is the one variant positive in all six half × universe cells but one (evening Sep–Nov −0.19), with the early-13 full-window number at the edge of the shuffle null (9 of 200) after a 9-scorer × 3-reference search. The ranking-wide percentile is 0.498–0.505 everywhere: whatever the top-5 lift is, the ordering below the top-5 carries nothing. Adding it to the composite does not help consistently (composite + pair is below the pair term alone on early-13 and flips sign on midday). Under the ship rule: not sign-consistent across both halves on all three universes, |Δ| ≈ 13 pick-hits over 125 days on the early-13 pool ≈ 1 extra match per 10 days; recorded as hypothesis-grade, not a change to the ticket method. Re-test on request after another 60 days of draws (9/04 → 11/02 is the only window where it is positive on every universe).

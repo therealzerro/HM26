@@ -55,22 +55,25 @@ Target branch: either early set drawn in any order in the 13 clears that box, 61
 
 **11/03 MIDDAY — PARTIAL 2, operator paste ~4:35pm ET: AR 803.** **{0,3,8} CLOSED** by convention (it was next in line for both pools). Tickets unchanged: EARLY-13 = {1,6,9}/619 + {1,3,4}/314; LATE-29 = {1,6,9}/619 + {0,1,5}/501. Next in line now: early {1,4,5}/541 (AD 2 + Mid 2), late {3,7,9}/937 (Eve 2 + AD 3). Three of the nine Eve/AD sets drew at midday so far (SC 375, NY 506, AR 803).
 
-**11/03 ~4:50pm ET — operator: "what 10 straights do you see for the 1st 13 regardless of boards?" — 10 EXACT ORDERS, NOT PLACED.** All 1,000 exact orders ranked over the early-13 pool evening rows (4/01 → 11/02, 3,231 draws; expected per exact order: 0.47 in 30d (since 10/04, 465 draws), 0.93 in 60d (since 9/04, 931), 3.23 all) — order by exact 30d, then exact 60d, then all, then the set's box 30d / 60d. Boards ignored; none of the ten belongs to a set drawn at the 11/03 midday so far (SC 375, NY 506, AR 803). "Block" = the set drew somewhere 10/31 → 11/02 (the engine's 3-day convention, shown, not applied).
+**11/03 ~4:50pm ET — operator: "what 10 straights do you see for the 1st 13 regardless of boards?" then ~5:00pm "edit that 5 straights, 5 box picks for the 1st 13" — 5 EXACT ORDERS + 5 BOX SETS, boards ignored, NOT PLACED.** Lens: early-13 pool evening rows 4/01 → 11/02 (3,231 draws), ranked by 30d (since 10/04, 465 draws) → 60d (since 9/04, 931) → all. Expected per exact order 0.47 · 0.93 · 3.23; per single set box 2.8 · 5.6 · 19.4. Sets drawn at the 11/03 midday so far (SC 375, NY 506, AR 803) excluded; the box five exclude the straight sets so the ticket covers ten different sets. "Block" = the set drew somewhere 10/31 → 11/02 (engine 3-day convention, shown not applied).
 
-| # | Straight | Set | Exact 30d / 0.47 | 60d / 0.93 | All / 3.23 | Tue | States | Last four | Set box 30d / 2.8 · 60d / 5.6 | Block |
-|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | **749** | {4,7,9} | 3 | 5 | 8 | 2 | 7 | SC 10-03 · ME,NH,VT 10-06 · DE 10-12 · AR 10-21 | 5 · 8 | yes |
-| 2 | **898** | {8,8,9} | 3 | 5 | 7 | 0 | 4 | GA 10-03 · OH 10-23 · TX 10-23 · SC 11-02 | 4 · 7 | yes |
-| 3 | **012** | {0,1,2} | 3 | 4 | 6 | 1 | 6 | WV 09-08 · MI 10-16 · AR 10-19 · TN 10-23 | 7 · 9 | yes |
-| 4 | **563** | {3,5,6} | 3 | 4 | 6 | 4 | 6 | DE 09-22 · DC 10-13 · MI 10-30 · ME,NH,VT 11-01 | 3 · 6 | yes |
-| 5 | **940** | {0,4,9} | 3 | 4 | 4 | 0 | 4 | DE 09-28 · ME,NH,VT 10-04 · WV 10-07 · TX 10-23 | 4 · 5 | yes |
-| 6 | **715** | {1,5,7} | 3 | 3 | 7 | 0 | 6 | SC 08-26 · ME,NH,VT 10-15 · WV 10-16 · GA 10-18 | 5 · 6 | yes |
-| 7 | **576** | {5,6,7} | 3 | 3 | 4 | 1 | 4 | OH 07-05 · WV 10-20 · MN 10-26 · SC 11-01 | 11 · 14 | yes |
-| 8 | **271** | {1,2,7} | 2 | 5 | 12 | 4 | 8 | TN 09-17 · MI 09-29 · MN 10-27 · GA 11-02 | 4 · 10 | yes |
-| 9 | **467** | {4,6,7} | 2 | 5 | 7 | 0 | 6 | TX 09-28 · DC 10-01 · MN 10-24 · MI 10-31 | 5 · 10 | yes |
-| 10 | **656** | {5,6,6} | 2 | 4 | 8 | 0 | 5 | GA 09-30 · SC 10-02 · MI 10-08 · TN 10-19 | 3 · 8 | yes |
+| Straight | Set | Exact 30d / 0.47 | 60d / 0.93 | All / 3.23 | States | Last four | Block |
+|---|---|---|---|---|---|---|---|
+| **749** | {4,7,9} | 3 | 5 | 8 | 7 | SC 10-03 · ME,NH,VT 10-06 · DE 10-12 · AR 10-21 | yes |
+| **898** | {8,8,9} | 3 | 5 | 7 | 4 | GA 10-03 · OH 10-23 · TX 10-23 · SC 11-02 | yes |
+| **012** | {0,1,2} | 3 | 4 | 6 | 6 | WV 09-08 · MI 10-16 · AR 10-19 · TN 10-23 | yes |
+| **563** | {3,5,6} | 3 | 4 | 6 | 6 | DE 09-22 · DC 10-13 · MI 10-30 · ME,NH,VT 11-01 | yes |
+| **940** | {0,4,9} | 3 | 4 | 4 | 4 | DE 09-28 · ME,NH,VT 10-04 · WV 10-07 · TX 10-23 | yes |
 
-Next in line: 883 (2 · 4 · 7, no block), 416, 815, 851, 063 (no block). Early-13 straight = 13 draws × $0.25 = $3.25 per unit per order; ten orders = $32.50 per unit; exact pays $225 per unit per hitting state. Same-day closure: any of the ten whose set is drawn in the remaining 11/03 midday rows closes by convention. Mark PLACED only on the operator's word, with units.
+| Box | Box 30d / 2.8 | 60d / 5.6 | All / 19.4 | Tue | States | Last four | Block |
+|---|---|---|---|---|---|---|---|
+| **{5,6,7}** | **11** | **14** | 27 | 4 | 11 | MI 567 10-26 · SC 657 10-28 · SC 576 11-01 · DC 675 11-01 | yes |
+| **{6,7,8}** | 6 | 7 | 18 | 4 | 10 | TN 867 10-06 · GA 786 10-10 · DC 867 10-16 · TN 876 10-21 | yes |
+| **{1,5,8}** | 5 | 11 | 22 | 2 | 10 | SC 158 10-15 · PA 851 10-26 · TX 815 10-28 · MN 815 11-02 | yes |
+| **{0,4,8}** | 5 | 10 | 26 | 0 | 11 | ME,NH,VT 084 10-11 · SC 804 10-23 · MN 480 10-25 · ME,NH,VT 840 11-02 | yes |
+| **{4,6,7}** | 5 | 10 | 22 | 1 | 9 | MN 467 10-24 · GA 746 10-28 · AR 764 10-30 · MI 467 10-31 | yes |
+
+Straights next in line: 715, 576, 271. Box next in line: {2,3,7} (5 · 9 · 20, no block), {0,1,3}, {1,6,8}. Per unit on the 13 draws: $3.25 per order or set → 5 straights $16.25 + 5 boxes $16.25 = **$32.50 per unit**; exact pays $225 per unit per hitting state, box $37.50. Same-day closure: any set drawn in the remaining 11/03 midday rows closes by convention. Mark PLACED only on the operator's word, with units.
 
 **11/02 LATE-29 RECONCILED (11/03 import, 42 evening rows): {0,5,7} DREW — MO 075 (late pool, box order; posted 750 / 705 not exact). {0,1,4}/401 blank in all 29.** Runner-up {3,6,9}/369 drew three times in the EARLY pool — DE 639, GA 396, DC 693 (GA/DC rows may be the night draw) — so it would have been closed at the 8:24 readout (no readout was logged 11/02); {1,6,8} drew ON 681 late. Boards 11/02 at the full evening, any order: Evening 2/6 (369 ×3, 168 → ON 681), All-Day 3/6 (705 → MO 075, 369 ×3, 861 → ON 681), no straights. **NOT PLACED → $0; running PLACED −$140.25 unchanged; no open rides** ({0,5,7} closed by the MO hit). At 1 unit box, {0,5,7} would have paid $37.50 on $7.25 staked; the 750 / 705 straight ticket $0.
 

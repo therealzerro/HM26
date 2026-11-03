@@ -77,6 +77,18 @@ Target branch: either early set drawn in any order in the 13 clears that box, 61
 
 Per unit on the 13 draws: 5 straights $16.25 + 5 boxes $16.25 = **$32.50 per unit** (top-2 box alone $6.50 per unit); exact pays $225 per unit per hitting state, box $37.50. Target branch: any of the five sets drawn in any order in the 13 clears a box; 271 / 749 / 898 / 951 / 467 exact clears a straight on top. Same-day closure: any set drawn in the remaining 11/03 midday rows closes by convention. Placement cutoff 7:46pm ET, readout ~8:24pm. Mark PLACED only on the operator's word, with units.
 
+**11/03 ~4:10pm ET — operator: "we need a drill down, release the box 5 single restriction" — BOX FIVE RESTATED, all classes, pure composite order (closed sets excluded), NOT PLACED.** Straights unchanged (271 · 749 · 898 · 951 · 467).
+
+| Box | Class | Composite | All / exp | 60d / exp | 30d / exp | Tue / exp | States | Pool draws since | Nat. 7d | Orders (all → 60d) | Last five |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| **{5,6,7}** | single | **+10.2** | 27 / 19.4 | 14 / 5.6 | 11 / 2.8 | 4 / 2.8 | 11 | 24 | 4 | 657 ×8, 567 ×5, 675 / 756 / 576 ×4 → 675 / 567 / 756 / 576 ×3 | MN 576 10-26 · MI 567 10-26 · SC 657 10-28 · SC 576 11-01 · DC 675 11-01 |
+| **{0,0,1}** | double | +6.9 | 19 / 9.7 | 7 / 2.8 | 3 / 1.4 | 3 / 1.4 | 9 | 118 | 1 | 100 ×7, 001 ×7, 010 ×5 → 010 ×4 | TN 100 09-14 · OH 010 09-19 · GA 001 10-14 · DC 100 10-21 · GA 010 10-26 |
+| {5,6,6} | double | +6.2 | 15 / 9.7 | 8 / 2.8 | 3 / 1.4 | 1 / 1.4 | 10 | 231 | 1 | 656 ×8, 566 ×4, 665 ×3 → 656 ×4 | GA 656 09-30 · SC 656 10-02 · MI 656 10-08 · GA 566 10-16 · TN 656 10-19 |
+| {8,8,9} | double | +5.8 | 13 / 9.7 | 7 / 2.8 | 4 / 1.4 | 0 / 1.4 | 9 | 4 | 1 | 898 ×7, 889 ×6 → 898 ×5 | GA 898 10-03 · OH 898 10-23 · TX 898 10-23 · PA 889 10-24 · SC 898 11-02 |
+| {3,8,8} | double | +5.6 | 17 / 9.7 | 6 / 2.8 | 3 / 1.4 | 4 / 1.4 | 11 | 85 | 1 | 388 ×8, 883 ×7 → 883 ×4 | DC 883 09-16 · AR 883 09-22 · OH 388 10-21 · TX 883 10-22 · AR 883 10-28 |
+
+{8,8,9} is also the set under straight 898. Next singles in line: {0,4,8} +4.7, {3,6,9} +4.6. **TOP 2 BOX = {5,6,7} and {0,0,1}.** {0,0,1}: 60d 7 vs 2.8 (GA 4 of the 7: 001 10-14, 010 10-26 among them), 30d 3 vs 1.4, Tuesdays 3 vs 1.4, 9 of 13 states; 118 pool draws since GA 010 on 10/26; orders 100 and 001 ×7 each all-window, 010 ×4 of the 7 in 60d; midday-13 30d 2. Price note: the decoded book price is the 6-way box ($37.50 per unit per hitting state); the 3-way (double) box payout has not been decoded in this log — confirm before sizing. Same-day closure, cutoff 7:46pm ET, PLACED only on the operator's word with units, as above.
+
 **11/03 ~3:35pm ET — operator: "what 10 straights do you see for the 1st 13 regardless of boards?" then ~3:37pm "edit that 5 straights, 5 box picks for the 1st 13" — 5 EXACT ORDERS + 5 BOX SETS, boards ignored, NOT PLACED.** Lens: early-13 pool evening rows 4/01 → 11/02 (3,231 draws), ranked by 30d (since 10/04, 465 draws) → 60d (since 9/04, 931) → all. Expected per exact order 0.47 · 0.93 · 3.23; per single set box 2.8 · 5.6 · 19.4. Sets drawn at the 11/03 midday so far (SC 375, NY 506, AR 803) excluded; the box five exclude the straight sets so the ticket covers ten different sets. "Block" = the set drew somewhere 10/31 → 11/02 (engine 3-day convention, shown not applied).
 
 | Straight | Set | Exact 30d / 0.47 | 60d / 0.93 | All / 3.23 | States | Last four | Block |

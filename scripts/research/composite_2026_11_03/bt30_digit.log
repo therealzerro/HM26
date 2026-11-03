@@ -1,0 +1,215 @@
+
+> hitmaster@2.0.0 backtest:replay
+> tsx scripts/backtest/cli.ts replay --days 30 --end-date 2026-11-02 --config pair_dedupe,prod_parity_2026_11_03,digitrep_010,digitrep_020,digitrep_040,pairdigit_heavy
+
+◇ injected env (3) from .env.backtest // tip: ⌘ suppress logs { quiet: true }
+[backtest] Replay mode — 30 days, configs: [pair_dedupe, prod_parity_2026_11_03, digitrep_010, digitrep_020, digitrep_040, pairdigit_heavy], modes: [balanced]
+[backtest] Dates: 2026-10-04 → 2026-11-02
+[backtest] Progress: 10/540 slates replayed…[backtest] Progress: 20/540 slates replayed…[backtest] Progress: 30/540 slates replayed…[backtest] Progress: 40/540 slates replayed…[backtest] Progress: 50/540 slates replayed…[backtest] Progress: 60/540 slates replayed…[backtest] Progress: 70/540 slates replayed…[backtest] Progress: 80/540 slates replayed…[backtest] Progress: 90/540 slates replayed…[backtest] Progress: 100/540 slates replayed…[backtest] Progress: 110/540 slates replayed…[backtest] Progress: 120/540 slates replayed…[backtest] Progress: 130/540 slates replayed…[backtest] Progress: 140/540 slates replayed…[backtest] Progress: 150/540 slates replayed…[backtest] Progress: 160/540 slates replayed…[backtest] Progress: 170/540 slates replayed…[backtest] Progress: 180/540 slates replayed…[backtest] Progress: 190/540 slates replayed…[backtest] Progress: 200/540 slates replayed…[backtest] Progress: 210/540 slates replayed…[backtest] Progress: 220/540 slates replayed…[backtest] Progress: 230/540 slates replayed…[backtest] Progress: 240/540 slates replayed…[backtest] Progress: 250/540 slates replayed…[backtest] Progress: 260/540 slates replayed…[backtest] Progress: 270/540 slates replayed…[backtest] Progress: 280/540 slates replayed…[backtest] Progress: 290/540 slates replayed…[backtest] Progress: 300/540 slates replayed…[backtest] Progress: 310/540 slates replayed…[backtest] Progress: 320/540 slates replayed…[backtest] Progress: 330/540 slates replayed…[backtest] Progress: 340/540 slates replayed…[backtest] Progress: 350/540 slates replayed…[backtest] Progress: 360/540 slates replayed…[backtest] Progress: 370/540 slates replayed…[backtest] Progress: 380/540 slates replayed…[backtest] Progress: 390/540 slates replayed…[backtest] Progress: 400/540 slates replayed…[backtest] Progress: 410/540 slates replayed…[backtest] Progress: 420/540 slates replayed…[backtest] Progress: 430/540 slates replayed…[backtest] Progress: 440/540 slates replayed…[backtest] Progress: 450/540 slates replayed…[backtest] Progress: 460/540 slates replayed…[backtest] Progress: 470/540 slates replayed…[backtest] Progress: 480/540 slates replayed…[backtest] Progress: 490/540 slates replayed…[backtest] Progress: 500/540 slates replayed…[backtest] Progress: 510/540 slates replayed…[backtest] Progress: 520/540 slates replayed…[backtest] Progress: 530/540 slates replayed…[backtest] Progress: 540/540 slates replayed…
+[backtest] Replay complete: 540 slates
+
+═══════════════════════════════════════════════════════════
+  BACKTEST REPLAY — Engine Re-run Hit Rate Comparison
+═══════════════════════════════════════════════════════════
+
+── Config: pair_dedupe ─────────────────────────────────────
+  Overall: 83.3% [74.3%–89.6%] (n=90 slates, 133 pick-hits)
+  midday  : 70.0% [52.1%–83.3%] (n=30)
+  evening : 86.7% [70.3%–94.7%] (n=30)
+  allday  : 93.3% [78.7%–98.2%] (n=30)
+
+── Per-rank hit rate (% slates where rank-R pick hit) ──
+   scope     r1      r2      r3      r4      r5      r6      n
+   midday    10.0%   16.7%   20.0%   16.7%   20.0%   20.0%   30
+   evening   30.0%   33.3%   10.0%   16.7%   26.7%   20.0%   30
+   allday    36.7%   36.7%   26.7%   36.7%   23.3%   43.3%   30
+   ⚠️  midday: rank-1 10.0% < rank-2 16.7% — engine mis-orders top of slate
+   ⚠️  evening: rank-1 30.0% < rank-2 33.3% — engine mis-orders top of slate
+
+── Lift vs uniform-random 6-pick baseline ──────────────────
+  Baseline: closed-form analytic, no rail constraints.
+  lift > 1.0 ⇒ engine beats no-information picker.
+
+  Overall                pick:  24.6% vs  22.0% (×1.12)   slate:  83.3% vs  74.8% (×1.11)   n=90
+  midday                 pick:  17.2% vs  15.1% (×1.14)   slate:  70.0% vs  62.4% (×1.12)   n=30
+  evening                pick:  22.8% vs  19.3% (×1.18)   slate:  86.7% vs  72.3% (×1.20)   n=30
+  allday                 pick:  33.9% vs  31.5% (×1.08)   slate:  93.3% vs  89.6% (×1.04)   n=30
+
+── Lift vs rail-matched baseline (engine pick-mix preserved) ──
+  Baseline: random pickers constrained to the engine's singles/doubles/triples mix.
+  More honest: removes the "engine is penalised for picking doubles" caveat.
+
+  Overall                pick:  24.6% vs  25.2% (×0.98)   slate:  83.3% vs  79.4% (×1.05)   n=90
+  midday                 pick:  17.2% vs  17.3% (×1.00)   slate:  70.0% vs  67.6% (×1.04)   n=30
+  evening                pick:  22.8% vs  22.4% (×1.02)   slate:  86.7% vs  77.9% (×1.11)   n=30
+  allday                 pick:  33.9% vs  35.8% (×0.95)   slate:  93.3% vs  92.8% (×1.01)   n=30
+
+── Config: prod_parity_2026_11_03 ─────────────────────────────────────
+  Overall: 82.2% [73.1%–88.8%] (n=90 slates, 141 pick-hits)
+  midday  : 70.0% [52.1%–83.3%] (n=30)
+  evening : 83.3% [66.4%–92.7%] (n=30)
+  allday  : 93.3% [78.7%–98.2%] (n=30)
+
+── Per-rank hit rate (% slates where rank-R pick hit) ──
+   scope     r1      r2      r3      r4      r5      r6      n
+   midday     6.7%   16.7%   16.7%   23.3%   20.0%   23.3%   30
+   evening   16.7%   26.7%   23.3%   20.0%   33.3%   23.3%   30
+   allday    33.3%   33.3%   43.3%   36.7%   26.7%   46.7%   30
+   ⚠️  midday: rank-1 6.7% < rank-2 16.7% — engine mis-orders top of slate
+   ⚠️  evening: rank-1 16.7% < rank-2 26.7% — engine mis-orders top of slate
+
+── Lift vs uniform-random 6-pick baseline ──────────────────
+  Baseline: closed-form analytic, no rail constraints.
+  lift > 1.0 ⇒ engine beats no-information picker.
+
+  Overall                pick:  26.1% vs  22.0% (×1.19)   slate:  82.2% vs  74.8% (×1.10)   n=90
+  midday                 pick:  17.8% vs  15.1% (×1.18)   slate:  70.0% vs  62.4% (×1.12)   n=30
+  evening                pick:  23.9% vs  19.3% (×1.24)   slate:  83.3% vs  72.3% (×1.15)   n=30
+  allday                 pick:  36.7% vs  31.5% (×1.17)   slate:  93.3% vs  89.6% (×1.04)   n=30
+
+── Lift vs rail-matched baseline (engine pick-mix preserved) ──
+  Baseline: random pickers constrained to the engine's singles/doubles/triples mix.
+  More honest: removes the "engine is penalised for picking doubles" caveat.
+
+  Overall                pick:  26.1% vs  25.2% (×1.04)   slate:  82.2% vs  79.4% (×1.04)   n=90
+  midday                 pick:  17.8% vs  17.3% (×1.03)   slate:  70.0% vs  67.6% (×1.04)   n=30
+  evening                pick:  23.9% vs  22.4% (×1.07)   slate:  83.3% vs  77.9% (×1.07)   n=30
+  allday                 pick:  36.7% vs  35.8% (×1.02)   slate:  93.3% vs  92.8% (×1.01)   n=30
+
+── Config: digitrep_010 ─────────────────────────────────────
+  Overall: 78.9% [69.4%–86.0%] (n=90 slates, 126 pick-hits)
+  midday  : 66.7% [48.8%–80.8%] (n=30)
+  evening : 76.7% [59.1%–88.2%] (n=30)
+  allday  : 93.3% [78.7%–98.2%] (n=30)
+
+── Per-rank hit rate (% slates where rank-R pick hit) ──
+   scope     r1      r2      r3      r4      r5      r6      n
+   midday     6.7%   16.7%    6.7%   26.7%    6.7%   24.1%   30
+   evening   10.0%   16.7%   23.3%   26.7%   20.0%   20.0%   30
+   allday    26.7%   30.0%   53.3%   26.7%   36.7%   43.3%   30
+   ⚠️  midday: rank-1 6.7% < rank-2 16.7% — engine mis-orders top of slate
+   ⚠️  evening: rank-1 10.0% < rank-2 16.7% — engine mis-orders top of slate
+   ⚠️  allday: rank-1 26.7% < rank-2 30.0% — engine mis-orders top of slate
+
+── Lift vs uniform-random 6-pick baseline ──────────────────
+  Baseline: closed-form analytic, no rail constraints.
+  lift > 1.0 ⇒ engine beats no-information picker.
+
+  Overall                pick:  23.4% vs  22.0% (×1.06)   slate:  78.9% vs  74.8% (×1.06)   n=90
+  midday                 pick:  14.5% vs  15.2% (×0.96)   slate:  66.7% vs  62.4% (×1.07)   n=30
+  evening                pick:  19.4% vs  19.3% (×1.01)   slate:  76.7% vs  72.3% (×1.06)   n=30
+  allday                 pick:  36.1% vs  31.5% (×1.15)   slate:  93.3% vs  89.6% (×1.04)   n=30
+
+── Lift vs rail-matched baseline (engine pick-mix preserved) ──
+  Baseline: random pickers constrained to the engine's singles/doubles/triples mix.
+  More honest: removes the "engine is penalised for picking doubles" caveat.
+
+  Overall                pick:  23.4% vs  25.2% (×0.93)   slate:  78.9% vs  79.4% (×0.99)   n=90
+  midday                 pick:  14.5% vs  17.3% (×0.84)   slate:  66.7% vs  67.4% (×0.99)   n=30
+  evening                pick:  19.4% vs  22.4% (×0.87)   slate:  76.7% vs  77.9% (×0.98)   n=30
+  allday                 pick:  36.1% vs  35.8% (×1.01)   slate:  93.3% vs  92.8% (×1.01)   n=30
+
+── Config: digitrep_020 ─────────────────────────────────────
+  Overall: 81.1% [71.8%–87.9%] (n=90 slates, 134 pick-hits)
+  midday  : 70.0% [52.1%–83.3%] (n=30)
+  evening : 80.0% [62.7%–90.5%] (n=30)
+  allday  : 93.3% [78.7%–98.2%] (n=30)
+
+── Per-rank hit rate (% slates where rank-R pick hit) ──
+   scope     r1      r2      r3      r4      r5      r6      n
+   midday    10.0%   20.0%   10.0%   13.3%   10.0%   30.0%   30
+   evening   13.3%   20.0%   26.7%   16.7%   23.3%   23.3%   30
+   allday    30.0%   30.0%   36.7%   50.0%   40.0%   43.3%   30
+   ⚠️  midday: rank-1 10.0% < rank-2 20.0% — engine mis-orders top of slate
+   ⚠️  evening: rank-1 13.3% < rank-2 20.0% — engine mis-orders top of slate
+
+── Lift vs uniform-random 6-pick baseline ──────────────────
+  Baseline: closed-form analytic, no rail constraints.
+  lift > 1.0 ⇒ engine beats no-information picker.
+
+  Overall                pick:  24.8% vs  22.0% (×1.13)   slate:  81.1% vs  74.8% (×1.08)   n=90
+  midday                 pick:  15.6% vs  15.1% (×1.03)   slate:  70.0% vs  62.4% (×1.12)   n=30
+  evening                pick:  20.6% vs  19.3% (×1.06)   slate:  80.0% vs  72.3% (×1.11)   n=30
+  allday                 pick:  38.3% vs  31.5% (×1.22)   slate:  93.3% vs  89.6% (×1.04)   n=30
+
+── Lift vs rail-matched baseline (engine pick-mix preserved) ──
+  Baseline: random pickers constrained to the engine's singles/doubles/triples mix.
+  More honest: removes the "engine is penalised for picking doubles" caveat.
+
+  Overall                pick:  24.8% vs  25.1% (×0.99)   slate:  81.1% vs  79.3% (×1.02)   n=90
+  midday                 pick:  15.6% vs  17.1% (×0.91)   slate:  70.0% vs  67.3% (×1.04)   n=30
+  evening                pick:  20.6% vs  22.3% (×0.92)   slate:  80.0% vs  77.8% (×1.03)   n=30
+  allday                 pick:  38.3% vs  35.7% (×1.07)   slate:  93.3% vs  92.7% (×1.01)   n=30
+
+── Config: digitrep_040 ─────────────────────────────────────
+  Overall: 80.0% [70.6%–87.0%] (n=90 slates, 129 pick-hits)
+  midday  : 60.0% [42.3%–75.4%] (n=30)
+  evening : 90.0% [74.4%–96.5%] (n=30)
+  allday  : 90.0% [74.4%–96.5%] (n=30)
+
+── Per-rank hit rate (% slates where rank-R pick hit) ──
+   scope     r1      r2      r3      r4      r5      r6      n
+   midday    10.0%   10.0%   20.0%    6.7%    6.7%   30.0%   30
+   evening   16.7%   16.7%   20.0%   26.7%   16.7%   33.3%   30
+   allday    16.7%   33.3%   50.0%   33.3%   43.3%   40.0%   30
+   ⚠️  allday: rank-1 16.7% < rank-2 33.3% — engine mis-orders top of slate
+
+── Lift vs uniform-random 6-pick baseline ──────────────────
+  Baseline: closed-form analytic, no rail constraints.
+  lift > 1.0 ⇒ engine beats no-information picker.
+
+  Overall                pick:  23.9% vs  22.0% (×1.09)   slate:  80.0% vs  74.8% (×1.07)   n=90
+  midday                 pick:  13.9% vs  15.1% (×0.92)   slate:  60.0% vs  62.4% (×0.96)   n=30
+  evening                pick:  21.7% vs  19.3% (×1.12)   slate:  90.0% vs  72.3% (×1.24)   n=30
+  allday                 pick:  36.1% vs  31.5% (×1.15)   slate:  90.0% vs  89.6% (×1.00)   n=30
+
+── Lift vs rail-matched baseline (engine pick-mix preserved) ──
+  Baseline: random pickers constrained to the engine's singles/doubles/triples mix.
+  More honest: removes the "engine is penalised for picking doubles" caveat.
+
+  Overall                pick:  23.9% vs  23.8% (×1.00)   slate:  80.0% vs  77.5% (×1.03)   n=90
+  midday                 pick:  13.9% vs  15.7% (×0.89)   slate:  60.0% vs  64.0% (×0.94)   n=30
+  evening                pick:  21.7% vs  21.8% (×0.99)   slate:  90.0% vs  76.9% (×1.17)   n=30
+  allday                 pick:  36.1% vs  34.1% (×1.06)   slate:  90.0% vs  91.7% (×0.98)   n=30
+
+── Config: pairdigit_heavy ─────────────────────────────────────
+  Overall: 84.4% [75.6%–90.5%] (n=90 slates, 131 pick-hits)
+  midday  : 76.7% [59.1%–88.2%] (n=30)
+  evening : 80.0% [62.7%–90.5%] (n=30)
+  allday  : 96.7% [83.3%–99.4%] (n=30)
+
+── Per-rank hit rate (% slates where rank-R pick hit) ──
+   scope     r1      r2      r3      r4      r5      r6      n
+   midday     6.7%   20.0%   10.0%    6.7%   16.7%   33.3%   30
+   evening   10.0%   16.7%   23.3%   16.7%   20.0%   33.3%   30
+   allday    16.7%   36.7%   43.3%   50.0%   33.3%   43.3%   30
+   ⚠️  midday: rank-1 6.7% < rank-2 20.0% — engine mis-orders top of slate
+   ⚠️  evening: rank-1 10.0% < rank-2 16.7% — engine mis-orders top of slate
+   ⚠️  allday: rank-1 16.7% < rank-2 36.7% — engine mis-orders top of slate
+
+── Lift vs uniform-random 6-pick baseline ──────────────────
+  Baseline: closed-form analytic, no rail constraints.
+  lift > 1.0 ⇒ engine beats no-information picker.
+
+  Overall                pick:  24.3% vs  22.0% (×1.10)   slate:  84.4% vs  74.8% (×1.13)   n=90
+  midday                 pick:  15.6% vs  15.1% (×1.03)   slate:  76.7% vs  62.4% (×1.23)   n=30
+  evening                pick:  20.0% vs  19.3% (×1.04)   slate:  80.0% vs  72.3% (×1.11)   n=30
+  allday                 pick:  37.2% vs  31.5% (×1.18)   slate:  96.7% vs  89.6% (×1.08)   n=30
+
+── Lift vs rail-matched baseline (engine pick-mix preserved) ──
+  Baseline: random pickers constrained to the engine's singles/doubles/triples mix.
+  More honest: removes the "engine is penalised for picking doubles" caveat.
+
+  Overall                pick:  24.3% vs  23.0% (×1.06)   slate:  84.4% vs  76.3% (×1.11)   n=90
+  midday                 pick:  15.6% vs  15.1% (×1.03)   slate:  76.7% vs  62.6% (×1.23)   n=30
+  evening                pick:  20.0% vs  20.9% (×0.96)   slate:  80.0% vs  75.4% (×1.06)   n=30
+  allday                 pick:  37.2% vs  33.0% (×1.13)   slate:  96.7% vs  90.9% (×1.06)   n=30
+
+── Side-by-side (slate hit rate = % slates with ≥1 hit) ────
+  Scope     pair_dedupe prod_parity_2026_11_03digitrep_010digitrep_020digitrep_040pairdigit_heavy
+  midday    70.0%       70.0%       66.7%       70.0%       60.0%       76.7%       
+  evening   86.7%       83.3%       76.7%       80.0%       90.0%       80.0%       
+  allday    93.3%       93.3%       93.3%       93.3%       90.0%       96.7%       
+  ALL       83.3%       82.2%       78.9%       81.1%       80.0%       84.4%       
+
+[backtest] CSV written: /workspaces/HM26/scripts/backtest/output/replay-2026-11-03T22-37-53.csv

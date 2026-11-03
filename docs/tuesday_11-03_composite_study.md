@@ -264,3 +264,7 @@ comp+digit               | 134/109.5 (+2.34)  252/227.2 (+1.64)  116/116.3 (-0.0
 pair+digit               | 137/118.5 (+1.70)  261/236.7 (+1.58)  126/129.3 (-0.29) |  74/ 57.1 (+2.23)  139/115.3 (+2.20)   59/ 63.1 (-0.51)
 comp+pair+midpair        | 131/114.0 (+1.60)  256/231.6 (+1.60)  110/118.1 (-0.75) |  65/ 55.5 (+1.27)  124/115.7 (+0.77)   52/ 55.6 (-0.49)
 ```
+
+### 9c. Engine gate for "pair + digit" — REFUTED (harness 30d/60d, MASTER_AUDIT ENG-DIGITREP-01)
+
+Operator asked to carry §9b into the engine. Harness-only digit channel (same reference block, same normalization as PAIRREP) at 0.10 / 0.20 / 0.40 on top of live parity, plus pair 0.40 + digit 0.40: every variant is below the live baseline on pick rate AND slate rate in BOTH windows (60d: baseline 298 pick-hits / 27.6% / 83.3%; digit 0.10 270 / 25.0 / 77.8; 0.20 266 / 24.7 / 76.7; 0.40 252 / 23.3 / 74.4; heavy 248 / 23.0 / 76.7). Midday pays most (60d slate 76.7 → 55–65). The ticket-side lift does not transfer: in the engine the digit term is the 1-digit marginal of the pair block already in the score. Logs: `bt30_digit.log`, `bt60_digit.log`. Ticket-side use of pair + digit (tonight's late-29 re-rank) is unaffected by this verdict.

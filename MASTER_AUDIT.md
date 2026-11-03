@@ -3904,6 +3904,31 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
+### ENG-DIGITREP-01 — Digit-carryover post-score channel — **REFUTED 2026-11-03 (harness-only probe; no engine/edge code, no config row)**
+
+**Ask.** Operator 11/03 ~5:30pm ET after study §9b ("pair + digit, no composite" was the only ticket-side scorer above the pair term alone: early-13 top-5 +2.20 / +0.99 IS/OOS): "should we make this change in the entire engine? this is positive change." Walk-forward ticket diffs are hypothesis-grade; the engine gate is the harness.
+
+**Build.** `digitRepWeight` / `digitRepWeightByScope` in `scripts/backtest/{types,replay,configs}.ts` only (a98617c): same reference block as PAIRREP (prev-day evening + same-day midday for evening; prev-day evening + prev-day midday for midday/allday), raw support = count of the comboSet's three digits among all reference digits, class-standardized, floored at 0, max-normed, additive. Presets `digitrep_010/020/040` from `prod_parity_2026_11_03`; `pairdigit_heavy` = pair 0.40 + digit 0.40 in every scope (closest config analogue of §9b; the four base signals cannot be zeroed by config — energy threshold and posted order derive from them, so "no composite" has no engine analogue).
+
+**Harness, `--end-date 2026-11-02`, BASELINE = prod_parity_2026_11_03 (live since 21:41 UTC):**
+
+| Window | Config | Pick-hits | Pick % | Slate % | Midday pick / slate | Evening pick / slate | Allday pick / slate |
+|---|---|---|---|---|---|---|---|
+| 30d (90) | pair_dedupe (pre-CONFIG-20) | 133 | 24.6 | 83.3 | 17.2 / 70.0 | 22.8 / 86.7 | 33.9 / 93.3 |
+| 30d | **prod_parity_2026_11_03** | **141** | **26.1** | **82.2** | 17.8 / 70.0 | 23.9 / 83.3 | 36.7 / 93.3 |
+| 30d | digitrep_010 | 126 | 23.4 | 78.9 | 14.5 / 66.7 | 19.4 / 76.7 | 36.1 / 93.3 |
+| 30d | digitrep_020 | 134 | 24.8 | 81.1 | 15.6 / 70.0 | 20.6 / 80.0 | 38.3 / 93.3 |
+| 30d | digitrep_040 | 129 | 23.9 | 80.0 | 13.9 / 60.0 | 21.7 / 90.0 | 36.1 / 90.0 |
+| 30d | pairdigit_heavy | 131 | 24.3 | 84.4 | 15.6 / 76.7 | 20.0 / 80.0 | 37.2 / 96.7 |
+| 60d (180) | pair_dedupe | 266 | 24.6 | 83.3 | 17.2 / 73.3 | 20.3 / 80.0 | 36.4 / 96.7 |
+| 60d | **prod_parity_2026_11_03** | **298** | **27.6** | **83.3** | 18.9 / 76.7 | 25.0 / 78.3 | 38.9 / 95.0 |
+| 60d | digitrep_010 | 270 | 25.0 | 77.8 | 15.6 / 61.7 | 22.8 / 78.3 | 36.7 / 93.3 |
+| 60d | digitrep_020 | 266 | 24.7 | 76.7 | 14.7 / 60.0 | 22.2 / 75.0 | 37.0 / 95.0 |
+| 60d | digitrep_040 | 252 | 23.3 | 74.4 | 13.9 / 55.0 | 21.4 / 80.0 | 34.7 / 88.3 |
+| 60d | pairdigit_heavy | 248 | 23.0 | 76.7 | 13.9 / 65.0 | 20.6 / 75.0 | 34.5 / 90.0 |
+
+**Verdict: REFUTED.** Every digit candidate is below the live baseline on BOTH lenses in BOTH windows (best case digit 0.20: −1.3pp / −2.9pp pick, −1.1pp / −6.6pp slate; 60d slate losses of 5.5–8.9pp are past the 3.3pp floor). Midday is the scope that pays (60d slate 76.7 → 55.0–65.0). Rail-matched lift of the live baseline is ×1.04 / ×1.10 (30d / 60d); every digit variant is ×0.93–1.00 / ×0.96–1.00. The §9b ticket-side result does not transfer because the engine already carries the pair signal and the digit term is its 1-digit marginal over the same block — in the engine it double-counts and displaces BOX/PBURST-ranked picks. Never re-propose a digit-carryover channel; cite this entry. Side note from the same run: the per-scope CONFIG-20 mix (evening 0.20 / allday 0.20 / midday 0.05) replays at 298 pick-hits on 60d, above the uniform-0.20 preset's 288 recorded in CONFIG-20 — the per-scope choice measured better than any single global weight.
+
 ### ENG-PAIRREP-01 / CONFIG-20 — Pair-repeat post-score channel (PAIRREP) — OPERATOR OVERRIDE 2026-11-03 ("use the pair term as primary ranking tonight, operator override to adopt the entire engine") — CODE SHIPPED b5f5a0a (weight 0 = bit-identical); edge deploy + config rows PENDING operator (classifier blocked the CLI deploy)
 
 **What it is.** A fifth, post-score additive channel (WARMING / STATE_STR pattern): for each comboSet, the count of its three unordered digit pairs among the pairs of a reference block — the previous day's evening draws + the same day's midday draws for an evening slate; the previous day's evening + previous day's midday for midday/allday — standardized within multiplicity class across the 220 sets (`buildPairRepMap` in `lib/engineCore.ts`, synced to `_shared`), negatives floored at 0, max-normed, `finalScore += w × normPairRep`. Keys: `pair_rep_weight` (global, default 0) and `pair_rep_weight_<scope>` (override wins). App engine `engines/zk6.ts` §5d + `fetchPairRepReference`; edge `compute-slate-zk6/index.ts` mirror; harness `pairRepWeight` / `pairRepWeightByScope`, presets `pairrep_005/010/020/040` from `pair_dedupe`. Nothing dated after the slate's own session is read (no leak: midday draws complete before any evening draw). `check:edge-shared` OK, `check:posted-order` OK, filtered tsc clean.

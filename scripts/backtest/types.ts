@@ -197,6 +197,14 @@ export interface EngineConfig {
   stateStrWeightByScope?: Partial<Record<Scope, number>>;
   stateStrHalfLifeDays?: number;
   stateStrWindowDays?: number;
+  // ENG-PAIRREP-01 (2026-11-03, operator override): pair-repeat channel, post-score
+  // additive (warming pattern): finalScore += w × maxNorm(max(z,0)) where z is the
+  // class-standardized count of the comboSet's digit pairs among the reference
+  // block (prev-day evening + same-day midday for evening; prev-day evening +
+  // prev-day midday for midday/allday). 0/undefined ⇒ bit-identical. Study:
+  // docs/tuesday_11-03_composite_study.md §6–§7.
+  pairRepWeight?: number;
+  pairRepWeightByScope?: Partial<Record<Scope, number>>;
   // ENG-DEEPSCOPE-01 P4 (2026-09-01): history-override date floor. When set,
   // fetchHistoryRows floors its scan at max(minDate, replayDate − rollingDays)
   // instead of scanning all of histories (the D8 unbounded fetch, 20k silent

@@ -3537,4 +3537,14 @@ export const CONFIGS: Record<string, EngineConfig> = {
   // signals at AUC 0.50 per SIGNAL-INFO-01); ships as correctness/determinism.
   get prod_parity_2026_10_13() { return { ...this.hist_floor, pairCollisionRule: 'legacy' as const }; },
   get pair_dedupe() { return { ...this.hist_floor, pairCollisionRule: 'deterministic' as const }; },
+
+  // ENG-PAIRREP-01 (2026-11-03, operator override): pair-repeat channel sweep.
+  // BASELINE = pair_dedupe (live parity, app_config verified 11/03: evening
+  // 50.625/28.125/10/11.25, midday 20.8/5.2/64/10, allday 64.7/35.3/0/0, cooldown
+  // 20 / midday 10, pair_rep_cap 2, warming 0). CANDIDATES add the post-score
+  // pair-repeat boost at four weights, all scopes.
+  get pairrep_005() { return { ...this.pair_dedupe, pairRepWeight: 0.05 }; },
+  get pairrep_010() { return { ...this.pair_dedupe, pairRepWeight: 0.10 }; },
+  get pairrep_020() { return { ...this.pair_dedupe, pairRepWeight: 0.20 }; },
+  get pairrep_040() { return { ...this.pair_dedupe, pairRepWeight: 0.40 }; },
 };

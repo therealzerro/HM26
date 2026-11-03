@@ -16,6 +16,8 @@ import {
   computeWeightedScore,
   buildPressureScaleCtx,
   buildStateStrengthMap,
+  buildPairRepMap,
+  type PairRepRefRow,
   resolvePairRowCollisions,
   type PairDataTree, type PairTimesDrawnTree,
   type Scope, type WeightSet, type SignalAuc,
@@ -122,6 +124,9 @@ interface EngineConfig {
   effectiveStateStrWeight?: number;
   stateStrHalfLifeDays: number;
   stateStrWindowDays: number;
+  // ENG-PAIRREP-01 (2026-11-03): pair-repeat post-score channel. Mirror of engines/zk6.ts.
+  pairRepWeight: number;
+  effectivePairRepWeight?: number;
 }
 interface Datasets {
   boxByHorizon: BoxByHorizon;
@@ -170,6 +175,7 @@ const DEFAULT_CFG: EngineConfig = {
   stateStrWeight: 0,
   stateStrHalfLifeDays: 14,
   stateStrWindowDays: 60,
+  pairRepWeight: 0,
 };
 
 // ─── Config loader ────────────────────────────────────────────────────────────
@@ -193,6 +199,8 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     const scopeWarmingKey = scope ? `warming_weight_${scope}` : null;
     // ENH-AUDIT v2 STATE_STR: per-scope override key.
     const scopeStateStrKey = scope ? `state_str_weight_${scope}` : null;
+    // ENG-PAIRREP-01: per-scope override key.
+    const scopePairRepKey = scope ? `pair_rep_weight_${scope}` : null;
     const keyList = [
       'engine_weights_balanced',
       'k6_singles_max', 'k6_doubles_max', 'k6_triples_on', 'pair_rep_cap',
@@ -206,6 +214,8 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       'pressure_scale_mode',
       'state_str_weight', 'state_str_half_life_days', 'state_str_window_days',
       ...(scopeStateStrKey ? [scopeStateStrKey] : []),
+      'pair_rep_weight',
+      ...(scopePairRepKey ? [scopePairRepKey] : []),
       ...(scopeCooldownKey ? [scopeCooldownKey] : []),
       ...(scopeBoxFreqKey  ? [scopeBoxFreqKey]  : []),
       ...(scopeBoxPressKey ? [scopeBoxPressKey] : []),
@@ -235,6 +245,7 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     let scopeMinEnergyOverride: number | null = null;
     let scopeWarmingOverride: number | null = null;
     let scopeStateStrOverride: number | null = null;
+    let scopePairRepOverride: number | null = null;
     for (const row of rows) {
       try {
         if (row.key === 'k6_singles_max')       { const v = parseInt(row.value,10); if (!isNaN(v)) cfg.rails.singlesMax = v; continue; }
@@ -331,6 +342,16 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
           }
           continue;
         }
+        if (row.key === 'pair_rep_weight') {
+          const v = parseFloat(row.value);
+          if (!isNaN(v) && v >= 0 && v <= 1) cfg.pairRepWeight = v;
+          continue;
+        }
+        if (scopePairRepKey && row.key === scopePairRepKey) {
+          const v = parseFloat(row.value);
+          if (!isNaN(v) && v >= 0 && v <= 1) scopePairRepOverride = v;
+          continue;
+        }
         if (row.key === 'synergy_boost_on')     { cfg.synergyOn = row.value === 'true'; continue; }
         if (row.key === 'synergy_boost_weight') { const v = parseFloat(row.value); if (!isNaN(v) && v >= 0) cfg.synergyWeight = v; continue; }
         if (row.key === 'horizon_weights') {
@@ -392,6 +413,10 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     cfg.effectiveStateStrWeight = scopeStateStrOverride ?? cfg.stateStrWeight;
     if ((cfg.effectiveStateStrWeight ?? 0) > 0) {
       console.log(`[edge-zk6] STATE_STR active: scope=${scope ?? 'global'} weight=${cfg.effectiveStateStrWeight} halfLife=${cfg.stateStrHalfLifeDays}d window=${cfg.stateStrWindowDays}d`);
+    }
+    cfg.effectivePairRepWeight = scopePairRepOverride ?? cfg.pairRepWeight;
+    if ((cfg.effectivePairRepWeight ?? 0) > 0) {
+      console.log(`[edge-zk6] PAIRREP active: scope=${scope ?? 'global'} weight=${cfg.effectivePairRepWeight}`);
     }
     return cfg;
   } catch (e) {
@@ -596,6 +621,30 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
     horizonsPresent, horizonsLoaded, usingFallback,
     boxRowCount: boxRows.length, pairRowCount: pairRows.length, rawBoxRows,
   };
+}
+
+/**
+ * ENG-PAIRREP-01 (2026-11-03): reference block for the pair-repeat channel.
+ * Mirror of engines/zk6.ts::fetchPairRepReference. evening → prev-day evening
+ * + same-day midday; midday/allday → prev-day evening + prev-day midday.
+ * Fetched only when the effective weight is non-zero; failure → [] (no boost).
+ */
+async function fetchPairRepReference(effectiveDate: string, scope: string): Promise<PairRepRefRow[]> {
+  try {
+    const prev = shiftDateStr(effectiveDate, -1);
+    const midDate = scope === 'evening' ? effectiveDate : prev;
+    const [eve, mid] = await Promise.all([
+      sbGet<any[]>(`/rest/v1/histories?select=result_digits&date_et=eq.${prev}&session=eq.evening&jurisdiction=not.is.null&limit=1000`),
+      sbGet<any[]>(`/rest/v1/histories?select=result_digits&date_et=eq.${midDate}&session=eq.midday&jurisdiction=not.is.null&limit=1000`),
+    ]);
+    const out: PairRepRefRow[] = [];
+    for (const r of [...(Array.isArray(eve) ? eve : []), ...(Array.isArray(mid) ? mid : [])]) {
+      if (r && typeof r.result_digits === 'string') out.push({ result_digits: r.result_digits });
+    }
+    return out;
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -893,7 +942,9 @@ async function computeSlate(params: {
   // ENG-SLATE-METRICS-06 (2026-06-09): parallel recent slate match rates.
   const STATE_AGG_WINDOW_DAYS = 14;
   const stateStrActive = (cfg.effectiveStateStrWeight ?? 0) > 0;
-  const [ds, { dsOverride, lsOverride, hitDatesMap }, warmingRows, stateAggMap, slateMatchRates, stateStrRows] = await Promise.all([
+  // ENG-PAIRREP-01: reference block fetched only when the weight is non-zero.
+  const pairRepActive = (cfg.effectivePairRepWeight ?? 0) > 0;
+  const [ds, { dsOverride, lsOverride, hitDatesMap }, warmingRows, stateAggMap, slateMatchRates, stateStrRows, pairRepRef] = await Promise.all([
     fetchDatasets(scope),
     fetchHistoryOverrides(scope, effectiveDate),
     warmingActive
@@ -904,6 +955,9 @@ async function computeSlate(params: {
     stateStrActive
       ? fetchStateStrengthHistory(effectiveDate, cfg.stateStrWindowDays)
       : Promise.resolve([] as StateHistoryRow[]),
+    pairRepActive
+      ? fetchPairRepReference(effectiveDate, scope)
+      : Promise.resolve([] as PairRepRefRow[]),
   ]);
   if (warmingActive) {
     console.log(`[edge-zk6] WARMING fetched ${warmingRows.length} rows over ${cfg.warmingWindowDays}d window`);
@@ -1175,6 +1229,24 @@ async function computeSlate(params: {
       finalScores[i] += ssWeight * normStateStr[i];
     }
     console.log(`[edge-zk6] STATE_STR applied: weight=${ssWeight} comboSetsWithStrength=${strengthMap.size} rows=${stateStrRows.length}`);
+  }
+
+  // 5d. ENG-PAIRREP-01: pair-repeat post-score additive boost. Mirror of
+  // engines/zk6.ts §5d. Bit-identical when weight=0.
+  if (pairRepActive) {
+    const zMap = buildPairRepMap(pairRepRef);
+    const rawPairRep = new Float64Array(1000);
+    for (let i = 0; i < 1000; i++) {
+      const zv = zMap.get(toComboSet(universe[i])) ?? 0;
+      rawPairRep[i] = zv > 0 ? zv : 0;
+    }
+    const normPairRep = maxNorm(Array.from(rawPairRep), true);
+    const prWeight = cfg.effectivePairRepWeight ?? 0;
+    for (let i = 0; i < 1000; i++) {
+      finalScores[i] += prWeight * normPairRep[i];
+    }
+    const above = Array.from(rawPairRep).filter(v => v > 0).length;
+    console.log(`[edge-zk6] PAIRREP applied: weight=${prWeight} refRows=${pairRepRef.length} combosAboveMean=${above}`);
   }
 
   // 6. K6 selection (6 passes)

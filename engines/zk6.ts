@@ -45,6 +45,8 @@ import {
   buildWarmingMap,
   buildPressureScaleCtx,
   buildStateStrengthMap,
+  buildPairRepMap,
+  type PairRepRefRow,
   resolvePairRowCollisions,
   type PairTimesDrawnTree,
   type SignalAuc,
@@ -358,6 +360,34 @@ async function fetchDatasets(scope: Scope): Promise<Datasets> {
  * config sets a non-zero warming weight; returns empty array on error
  * (engine falls back to no boost — bit-identical to pre-WARMING behavior).
  */
+/**
+ * ENG-PAIRREP-01 (2026-11-03): reference block for the pair-repeat channel.
+ * evening scope → previous day's evening rows + the SAME day's midday rows
+ * (midday draws complete before any evening draw); midday/allday → previous
+ * day's evening + previous day's midday. All jurisdictions. Nothing dated
+ * after the slate's own session is read. Fetched only when the effective
+ * weight is non-zero; failure returns [] (no boost, bit-identical).
+ */
+async function fetchPairRepReference(effectiveDate: string, scope: string): Promise<PairRepRefRow[]> {
+  try {
+    const d = new Date(effectiveDate + 'T12:00:00');
+    d.setDate(d.getDate() - 1);
+    const prev = d.toISOString().split('T')[0];
+    const midDate = scope === 'evening' ? effectiveDate : prev;
+    const [eve, mid] = await Promise.all([
+      fetchFromSupabase<any[]>({ path: `/rest/v1/histories?select=result_digits&date_et=eq.${prev}&session=eq.evening&jurisdiction=not.is.null&limit=1000` }),
+      fetchFromSupabase<any[]>({ path: `/rest/v1/histories?select=result_digits&date_et=eq.${midDate}&session=eq.midday&jurisdiction=not.is.null&limit=1000` }),
+    ]);
+    const out: PairRepRefRow[] = [];
+    for (const r of [...(Array.isArray(eve) ? eve : []), ...(Array.isArray(mid) ? mid : [])]) {
+      if (r && typeof r.result_digits === 'string') out.push({ result_digits: r.result_digits });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 async function fetchWarmingHistory(
   todayEt: string,
   windowDays: number,
@@ -690,6 +720,13 @@ interface EngineConfig {
   effectiveStateStrWeight?: number;
   stateStrHalfLifeDays: number;
   stateStrWindowDays: number;
+  // ENG-PAIRREP-01 (2026-11-03, operator override): pair-repeat channel, post-score
+  // additive (warming pattern). Keys: pair_rep_weight (global), pair_rep_weight_${scope}
+  // (override). Weight 0 (default) = bit-identical engine. Reference block = prev-day
+  // evening + same-day midday (evening scope) or prev-day evening + prev-day midday
+  // (midday/allday). Study: docs/tuesday_11-03_composite_study.md §6–§7.
+  pairRepWeight: number;
+  effectivePairRepWeight?: number;
 }
 
 const DEFAULT_ENGINE_CONFIG: EngineConfig = {
@@ -712,6 +749,7 @@ const DEFAULT_ENGINE_CONFIG: EngineConfig = {
   stateStrWeight: 0,
   stateStrHalfLifeDays: 14,
   stateStrWindowDays: 60,
+  pairRepWeight: 0,
 };
 
 async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
@@ -744,6 +782,8 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     const scopeWarmingKey = scope ? `warming_weight_${scope}` : null;
     // ENH-AUDIT v2 STATE_STR (2026-06-10): same per-scope override pattern.
     const scopeStateStrKey = scope ? `state_str_weight_${scope}` : null;
+    // ENG-PAIRREP-01: same per-scope override pattern.
+    const scopePairRepKey = scope ? `pair_rep_weight_${scope}` : null;
     const keyList = [
       'engine_weights_balanced',
       'k6_singles_max', 'k6_doubles_max', 'k6_triples_on', 'pair_rep_cap',
@@ -757,6 +797,8 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       'pressure_scale_mode',
       'state_str_weight', 'state_str_half_life_days', 'state_str_window_days',
       ...(scopeStateStrKey ? [scopeStateStrKey] : []),
+      'pair_rep_weight',
+      ...(scopePairRepKey ? [scopePairRepKey] : []),
       ...(scopeCooldownKey ? [scopeCooldownKey] : []),
       ...(scopeBoxFreqKey  ? [scopeBoxFreqKey]  : []),
       ...(scopeBoxPressKey ? [scopeBoxPressKey] : []),
@@ -807,6 +849,8 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     let stateStrHalfLifeDays = 14;
     let stateStrWindowDays = 60;
     let scopeStateStrOverride: number | null = null;
+    let pairRepWeight = 0;
+    let scopePairRepOverride: number | null = null;
 
     for (const row of rows) {
       try {
@@ -906,6 +950,16 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
           if (!isNaN(v) && v >= 0 && v <= 1) scopeStateStrOverride = v;
           continue;
         }
+        if (row.key === 'pair_rep_weight') {
+          const v = parseFloat(row.value);
+          if (!isNaN(v) && v >= 0 && v <= 1) pairRepWeight = v;
+          continue;
+        }
+        if (scopePairRepKey && row.key === scopePairRepKey) {
+          const v = parseFloat(row.value);
+          if (!isNaN(v) && v >= 0 && v <= 1) scopePairRepOverride = v;
+          continue;
+        }
         if (row.key === 'synergy_boost_on')     { synergyOn = row.value === 'true'; continue; }
         if (row.key === 'synergy_boost_weight') { const v = parseFloat(row.value); if (!isNaN(v) && v >= 0) synergyWeight = v; continue; }
         if (row.key === 'horizon_weights') {
@@ -975,6 +1029,10 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
     if (effectiveStateStrWeight > 0) {
       console.log(`[zk6v2] STATE_STR active: scope=${scope ?? 'global'} weight=${effectiveStateStrWeight} halfLife=${stateStrHalfLifeDays}d window=${stateStrWindowDays}d`);
     }
+    const effectivePairRepWeight = scopePairRepOverride ?? pairRepWeight;
+    if (effectivePairRepWeight > 0) {
+      console.log(`[zk6v2] PAIRREP active: scope=${scope ?? 'global'} weight=${effectivePairRepWeight}`);
+    }
     return {
       presets, rails, pressureThreshold,
       minEnergyThreshold: effectiveMinEnergyThreshold,
@@ -993,6 +1051,8 @@ async function loadEngineConfig(scope?: Scope): Promise<EngineConfig> {
       effectiveStateStrWeight,
       stateStrHalfLifeDays,
       stateStrWindowDays,
+      pairRepWeight,
+      effectivePairRepWeight,
     };
   } catch (e) {
     // ENG-CONFIG-GUARD-01: propagate instead of silently degrading to DEFAULT_ENGINE_CONFIG.
@@ -1248,7 +1308,9 @@ export async function computeSlate({
   const STATE_AGG_WINDOW_DAYS = 14;
   // ENH-AUDIT v2 STATE_STR: per-jurisdiction window fetched only when active.
   const stateStrActive = (cfg.effectiveStateStrWeight ?? 0) > 0;
-  const [ds, { dsOverride, lsOverride, hitDatesMap }, warmingRows, stateAggMap, slateMatchRates, stateStrRows] = await Promise.all([
+  // ENG-PAIRREP-01: reference block fetched only when the weight is non-zero.
+  const pairRepActive = (cfg.effectivePairRepWeight ?? 0) > 0;
+  const [ds, { dsOverride, lsOverride, hitDatesMap }, warmingRows, stateAggMap, slateMatchRates, stateStrRows, pairRepRef] = await Promise.all([
     fetchDatasets(scope),
     fetchHistoryOverrides(scope, effectiveDate),
     warmingActive
@@ -1259,6 +1321,9 @@ export async function computeSlate({
     stateStrActive
       ? fetchStateStrengthHistory(effectiveDate, cfg.stateStrWindowDays)
       : Promise.resolve([] as StateHistoryRow[]),
+    pairRepActive
+      ? fetchPairRepReference(effectiveDate, scope)
+      : Promise.resolve([] as PairRepRefRow[]),
   ]);
   if (warmingActive) {
     console.log(`[zk6v2] WARMING fetched ${warmingRows.length} rows over ${cfg.warmingWindowDays}d window`);
@@ -1611,6 +1676,26 @@ export async function computeSlate({
       finalScores[i] += ssWeight * normStateStr[i];
     }
     console.log(`[zk6v2] STATE_STR applied: weight=${ssWeight} comboSetsWithStrength=${strengthMap.size} rows=${stateStrRows.length}`);
+  }
+
+  // ── 5d. ENG-PAIRREP-01 pair-repeat post-score boost ─────────────────────────
+  // z per comboSet from the reference block (class-standardized), negatives
+  // floored at 0, max-normed, added as effectivePairRepWeight × normPairRep.
+  // Skipped when weight is 0 — bit-identical engine.
+  if (pairRepActive) {
+    const zMap = buildPairRepMap(pairRepRef);
+    const rawPairRep = new Float64Array(1000);
+    for (let i = 0; i < 1000; i++) {
+      const zv = zMap.get(toComboSet(universe[i])) ?? 0;
+      rawPairRep[i] = zv > 0 ? zv : 0;
+    }
+    const normPairRep = maxNorm(Array.from(rawPairRep), true);
+    const prWeight = cfg.effectivePairRepWeight ?? 0;
+    for (let i = 0; i < 1000; i++) {
+      finalScores[i] += prWeight * normPairRep[i];
+    }
+    const above = Array.from(rawPairRep).filter(v => v > 0).length;
+    console.log(`[zk6v2] PAIRREP applied: weight=${prWeight} refRows=${pairRepRef.length} combosAboveMean=${above}`);
   }
 
   // ── 6. Two-pass K6 selection ──────────────────────────────────────────────────

@@ -191,6 +191,54 @@ export function buildWarmingMap(
   return m;
 }
 
+// ─── PAIRREP signal (ENG-PAIRREP-01, 2026-11-03, operator override) ───────────
+//
+// Pair-repeat term from the 11/03 composite study §6–§7: for each comboSet, how
+// many of its three unordered digit pairs appear among the pairs of a reference
+// block of draws (previous day's evening + the same day's midday for an evening
+// slate; previous day's evening + previous day's midday for midday/allday),
+// standardized WITHIN multiplicity class across the 220 sets (singles, doubles,
+// triples each get their own mean/sd so the small-expectation classes do not
+// dominate). Returns Map<comboSet, z>. Applied as a post-score additive channel
+// (warming pattern): finalScore += w × maxNorm(max(z, 0)). Weight 0 = bit-identical.
+
+export interface PairRepRefRow { result_digits: string }
+
+function unorderedPairsOfDigits(d: string): string[] {
+  const s = (a: string, b: string) => (a <= b ? a + b : b + a);
+  return [s(d[0], d[1]), s(d[0], d[2]), s(d[1], d[2])];
+}
+
+export function buildPairRepMap(refRows: PairRepRefRow[]): Map<string, number> {
+  const pc = new Map<string, number>();
+  for (const r of refRows) {
+    const rd = (r.result_digits ?? '').toString();
+    if (rd.length !== 3) continue;
+    for (const p of unorderedPairsOfDigits(rd)) pc.set(p, (pc.get(p) ?? 0) + 1);
+  }
+  // support per comboSet over the 220 sets
+  const sets: { cs: string; cls: number; sup: number }[] = [];
+  for (let a = 0; a <= 9; a++) for (let b = a; b <= 9; b++) for (let c = b; c <= 9; c++) {
+    const d = `${a}${b}${c}`;
+    const cs = `{${a},${b},${c}}`;
+    const cls = new Set([a, b, c]).size; // 3 single, 2 double, 1 triple
+    let sup = 0;
+    for (const p of unorderedPairsOfDigits(d)) sup += pc.get(p) ?? 0;
+    sets.push({ cs, cls, sup });
+  }
+  const out = new Map<string, number>();
+  for (const k of [3, 2, 1]) {
+    const grp = sets.filter(s => s.cls === k);
+    const n = grp.length;
+    if (n === 0) continue;
+    const mu = grp.reduce((acc, s) => acc + s.sup, 0) / n;
+    const varc = grp.reduce((acc, s) => acc + (s.sup - mu) * (s.sup - mu), 0) / n;
+    const sd = Math.sqrt(varc) || 1;
+    for (const s of grp) out.set(s.cs, (s.sup - mu) / sd);
+  }
+  return out;
+}
+
 // ─── STATE_STR signal (ENH-AUDIT-2026-05-19 v2, built 2026-06-10) ─────────────
 //
 // Per-state pattern strength — the first channel that sees WHICH jurisdictions

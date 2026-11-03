@@ -33,6 +33,8 @@ import {
   buildStateStrengthMap,
   blendPairAcrossHorizons,
   type StateHistoryRow,
+  buildPairRepMap,
+  type PairRepRefRow,
 } from '../../lib/engineCore.js';
 import type { EngineConfig, ReplayPick, Scope } from './types.js';
 
@@ -483,6 +485,24 @@ async function fetchRollingAucAsOf(date: string, scope: Scope): Promise<SignalAu
   }
 }
 
+
+/**
+ * ENG-PAIRREP-01 (2026-11-03): reference block for the pair-repeat channel.
+ * evening scope → previous day's evening rows + the SAME day's midday rows
+ * (midday draws are complete before any evening draw); midday/allday scope →
+ * previous day's evening + previous day's midday. All jurisdictions. Nothing
+ * dated after the slate's session is ever read (no leak).
+ */
+async function fetchPairRepReference(date: string, scope: Scope): Promise<PairRepRefRow[]> {
+  const d = new Date(date + 'T12:00:00');
+  d.setDate(d.getDate() - 1);
+  const prev = d.toISOString().split('T')[0];
+  const eve = await dbGet<any[]>(`/histories?select=result_digits&date_et=eq.${prev}&session=eq.evening&jurisdiction=not.is.null&limit=1000`);
+  const midDate = scope === 'evening' ? date : prev;
+  const mid = await dbGet<any[]>(`/histories?select=result_digits&date_et=eq.${midDate}&session=eq.midday&jurisdiction=not.is.null&limit=1000`);
+  return [...(Array.isArray(eve) ? eve : []), ...(Array.isArray(mid) ? mid : [])];
+}
+
 export async function computeSlateAsOf(
   date: string,
   scope: Scope,
@@ -528,6 +548,9 @@ export async function computeSlateAsOf(
   // ENH-AUDIT v2 STATE_STR: per-scope weight resolution mirrors warming.
   const stateStrWeightForThisScope = config.stateStrWeightByScope?.[scope] ?? config.stateStrWeight ?? 0;
   const stateStrActive = stateStrWeightForThisScope > 0;
+  // ENG-PAIRREP-01: per-scope weight resolution mirrors warming/state_str.
+  const pairRepWeightForThisScope = config.pairRepWeightByScope?.[scope] ?? config.pairRepWeight ?? 0;
+  const pairRepActive = pairRepWeightForThisScope > 0;
   // P4: history floor = max(minDate, replayDate − rollingDays), matching the
   // production formula so the replay measures exactly what would ship.
   let historyFloorDate: string | null = null;
@@ -538,13 +561,14 @@ export async function computeSlateAsOf(
     historyFloorDate = rolling > config.historyFloor.minDate ? rolling : config.historyFloor.minDate;
   }
 
-  const [boxRows, pairRows, historyRows, todayHitComboSets, warmingHistory, stateHistory] = await Promise.all([
+  const [boxRows, pairRows, historyRows, todayHitComboSets, warmingHistory, stateHistory, pairRepRef] = await Promise.all([
     fetchBoxRows(scopeEnc),
     fetchPairRows(scopeEnc),
     fetchHistoryRows(date, scope, historyFloorDate),
     excludeYesterday ? fetchYesterdayResults(date, config.recentHitBlockDaysByScope?.[scope] ?? config.recentHitBlockDays ?? 1) : Promise.resolve(new Set<string>()),
     warmingActive ? fetchWarmingHistory(date, warmingWindowDays, scope, config.warmingScopeMatched === true) : Promise.resolve([] as { comboset_sorted: string; date_et: string }[]),
     stateStrActive ? fetchStateHistory(date, config.stateStrWindowDays ?? 60) : Promise.resolve([] as StateHistoryRow[]),
+    pairRepActive ? fetchPairRepReference(date, scope) : Promise.resolve([] as PairRepRefRow[]),
   ]);
 
   const { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap, boxByHorizon, pairData, boxTimesDrawnByHorizon, pairTimesDrawnByHorizon } = buildDatasets(boxRows, pairRows, config.pairCollisionRule ?? 'legacy');
@@ -773,6 +797,22 @@ export async function computeSlateAsOf(
     const normStateStr = maxNorm(Array.from(rawStateStr), true);
     for (let i = 0; i < 1000; i++) {
       finalScores[i] += stateStrWeightForThisScope * normStateStr[i];
+    }
+  }
+
+  // ENG-PAIRREP-01 (2026-11-03): pair-repeat post-score additive boost (warming
+  // pattern). z per comboSet from the reference block; negatives floored at 0;
+  // max-normed; finalScore += w × normPairRep. Skipped when weight is 0.
+  if (pairRepActive) {
+    const zMap = buildPairRepMap(pairRepRef);
+    const rawPairRep = new Float64Array(1000);
+    for (let i = 0; i < 1000; i++) {
+      const zv = zMap.get(toComboSet(universe[i])) ?? 0;
+      rawPairRep[i] = zv > 0 ? zv : 0;
+    }
+    const normPairRep = maxNorm(Array.from(rawPairRep), true);
+    for (let i = 0; i < 1000; i++) {
+      finalScores[i] += pairRepWeightForThisScope * normPairRep[i];
     }
   }
 

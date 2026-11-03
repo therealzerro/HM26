@@ -268,3 +268,202 @@ comp+pair+midpair        | 131/114.0 (+1.60)  256/231.6 (+1.60)  110/118.1 (-0.7
 ### 9c. Engine gate for "pair + digit" — REFUTED (harness 30d/60d, MASTER_AUDIT ENG-DIGITREP-01)
 
 Operator asked to carry §9b into the engine. Harness-only digit channel (same reference block, same normalization as PAIRREP) at 0.10 / 0.20 / 0.40 on top of live parity, plus pair 0.40 + digit 0.40: every variant is below the live baseline on pick rate AND slate rate in BOTH windows (60d: baseline 298 pick-hits / 27.6% / 83.3%; digit 0.10 270 / 25.0 / 77.8; 0.20 266 / 24.7 / 76.7; 0.40 252 / 23.3 / 74.4; heavy 248 / 23.0 / 76.7). Midday pays most (60d slate 76.7 → 55–65). The ticket-side lift does not transfer: in the engine the digit term is the 1-digit marginal of the pair block already in the score. Logs: `bt30_digit.log`, `bt60_digit.log`. Ticket-side use of pair + digit (tonight's late-29 re-rank) is unaffected by this verdict.
+
+## 10. Draws-since drill-down (operator ask, 11/03 ~6:05pm ET) — `draws_since_drill.py`
+
+Four lenses, 5/01→11/02, histories ≥4/01, evaluated per slate session with everything before that session consumed. Bucket = expected hits elapsed since the set last drew (gap × class/1000), so classes are comparable. COHORT-02 (10/25) already scanned national draws-since, days absent, frequency, pair recency, per-state gap — lens A reproduces it as a control; B, C and E are new.
+
+| Lens | Early-13 eve | All evening | All midday |
+|---|---|---|---|
+| A. national any-session draws-since (control) | flat; 0.5–1 bucket 555/506 (+2.16) isolated, no gradient | flat (3–5 bucket −1.57) | flat |
+| E. same-session draws-since (gap in this session's draws only) | flat (all six buckets within ±0.9) | flat | flat |
+| C. straight-level (ordered 000–999) draws-since | flat | flat (<0.5 +1.89, 0.5–1 −1.67; no gradient) | flat |
+| **B. inside pair+digit top-10: recently drawn vs overdue** | **due<1 103/81.9 = 1.26 (+2.34); due2+ 22/27.7 = 0.79** | **due<1 265/218.9 = 1.21 (+3.12); due2+ 67/73.7 = 0.91** | due<1 1.06, due2+ 1.06 (flat) |
+
+**B in three disjoint windows** (top-10, obs/exp; "due<1" = the set drew within the last expected cycle, ≈ under 2.2 days for a single; "due2+" = absent for 2+ expected cycles):
+
+| Window | Early-13 due<1 | Early-13 due2+ | All eve due<1 | All eve due2+ | Midday due<1 / due2+ |
+|---|---|---|---|---|---|
+| 5/01→6/30 | 30/25.7 = 1.17 | 9/9.7 = 0.93 | 84/68.7 = 1.22 | 28/25.8 = 1.08 | 0.91 / 0.81 |
+| 7/01→9/01 | 34/28.8 = 1.18 | 6/8.8 = 0.68 | 90/77.3 = 1.16 | 18/23.3 = 0.77 | 1.06 / 1.20 |
+| 9/02→11/02 | 39/27.4 = 1.43 | 7/9.2 = 0.76 | 91/72.9 = 1.25 | 21/24.6 = 0.85 | 1.20 / 1.15 |
+
+**Findings.** (1) Draws-since on its own is flat on every lens, including the two not previously scanned (same-session gap, straight-level gap) — COHORT-02 stands. (2) The positive data is an *interaction*, and it runs the opposite way to a due thesis: among the ten sets the pair + digit scorer ranks highest, the ones that drew within the last expected cycle hit 1.16–1.43× expectation in all three windows on both evening pools, while the ones absent for 2+ cycles hit 0.68–0.93× on early-13 in all three windows (all-evening 0.77–1.08). Midday is incoherent. Over the full window that is 103 vs 81.9 (early-13) and 265 vs 218.9 (all evening). (3) Read: the pair + digit lift concentrates in sets that are both pair-supported by yesterday's block AND recently drawn themselves; the overdue members of the same top-10 carry none of it. Post-hoc split (6 cells × 3 pools), hypothesis-grade; sign-consistent across three windows is the only reason it is written up. Not a reason to re-open due/overdue as a selector; if used, it is a *filter within the top-10* ("drop the overdue members"), not a ranking.
+
+```
+
+[EARLY-13 eve] A. national any-session draws-since, bucket = expected hits elapsed (gap × class/1000) — COHORT-02 control
+bucket           hits      exp  obs/exp      z
+<0.5              628    641.1     0.98  -0.52
+0.5–1             555    506.3     1.10  +2.16
+1–2               723    746.5     0.97  -0.86
+2–3               436    442.5     0.99  -0.31
+3–5               357    370.1     0.96  -0.68
+5+                198    190.5     1.04  +0.54
+
+[EARLY-13 eve] E. SAME-SESSION draws-since (gap counted in this session's national draws only)
+bucket           hits      exp  obs/exp      z
+<0.5             1166   1134.9     1.03  +0.92
+0.5–1             675    689.2     0.98  -0.54
+1–2               649    668.7     0.97  -0.76
+2–3               251    253.8     0.99  -0.18
+3–5               133    128.2     1.04  +0.42
+5+                 23     22.2     1.04  +0.18
+
+[EARLY-13 eve] C. STRAIGHT (ordered 000–999) national draws-since, bucket = gap/1000; hits = exact-order matches
+bucket           hits      exp  obs/exp      z
+<0.5              705    695.9     1.01  +0.34
+0.5–1             506    528.2     0.96  -0.97
+1–2               760    758.2     1.00  +0.07
+2–3               438    434.8     1.01  +0.15
+3–5               367    350.5     1.05  +0.88
+5+                121    129.4     0.93  -0.74
+
+[EARLY-13 eve] B. pair+digit top-K × national draws-since
+bucket           hits      exp  obs/exp      z
+top10 due<1       103     81.9     1.26  +2.34
+top10 due1–2       23     22.3     1.03  +0.15
+top10 due2+        22     27.7     0.79  -1.09
+top20 due<1       171    149.7     1.14  +1.74
+top20 due1–2       67     50.1     1.34  +2.38
+top20 due2+        63     64.1     0.98  -0.14
+
+[ALL evening] A. national any-session draws-since, bucket = expected hits elapsed (gap × class/1000) — COHORT-02 control
+bucket           hits      exp  obs/exp      z
+<0.5             1736   1712.0     1.01  +0.58
+0.5–1            1401   1352.0     1.04  +1.33
+1–2              1976   1990.9     0.99  -0.33
+2–3              1183   1181.5     1.00  +0.04
+3–5               939    988.4     0.95  -1.57
+5+                498    508.3     0.98  -0.46
+
+[ALL evening] E. SAME-SESSION draws-since (gap counted in this session's national draws only)
+bucket           hits      exp  obs/exp      z
+<0.5             3095   3030.0     1.02  +1.18
+0.5–1            1833   1838.3     1.00  -0.12
+1–2              1760   1786.4     0.99  -0.63
+2–3               656    676.8     0.97  -0.80
+3–5               332    342.3     0.97  -0.56
+5+                 57     59.3     0.96  -0.30
+
+[ALL evening] C. STRAIGHT (ordered 000–999) national draws-since, bucket = gap/1000; hits = exact-order matches
+bucket           hits      exp  obs/exp      z
+<0.5             1939   1857.6     1.04  +1.89
+0.5–1            1347   1409.8     0.96  -1.67
+1–2              2022   2023.9     1.00  -0.04
+2–3              1130   1160.5     0.97  -0.90
+3–5               957    935.6     1.02  +0.70
+5+                338    345.7     0.98  -0.41
+
+[ALL evening] B. pair+digit top-K × national draws-since
+bucket           hits      exp  obs/exp      z
+top10 due<1       265    218.9     1.21  +3.12
+top10 due1–2       68     59.4     1.14  +1.11
+top10 due2+        67     73.7     0.91  -0.78
+top20 due<1       450    400.0     1.13  +2.50
+top20 due1–2      156    133.9     1.17  +1.91
+top20 due2+       162    170.7     0.95  -0.67
+
+[ALL midday] A. national any-session draws-since, bucket = expected hits elapsed (gap × class/1000) — COHORT-02 control
+bucket           hits      exp  obs/exp      z
+<0.5             1061   1031.8     1.03  +0.91
+0.5–1             853    852.5     1.00  +0.02
+1–2              1325   1366.4     0.97  -1.12
+2–3              1005    990.5     1.01  +0.46
+3–5               959    983.5     0.98  -0.78
+5+                722    700.4     1.03  +0.82
+
+[ALL midday] E. SAME-SESSION draws-since (gap counted in this session's national draws only)
+bucket           hits      exp  obs/exp      z
+<0.5             2342   2326.3     1.01  +0.33
+0.5–1            1357   1420.2     0.96  -1.68
+1–2              1407   1391.1     1.01  +0.43
+2–3               534    508.0     1.05  +1.15
+3–5               255    254.4     1.00  +0.04
+5+                 30     25.0     1.20  +1.00
+
+[ALL midday] C. STRAIGHT (ordered 000–999) national draws-since, bucket = gap/1000; hits = exact-order matches
+bucket           hits      exp  obs/exp      z
+<0.5             1053   1118.0     0.94  -1.94
+0.5–1             931    925.6     1.01  +0.18
+1–2              1485   1477.1     1.01  +0.20
+2–3               951    974.2     0.98  -0.74
+3–5              1006    945.3     1.06  +1.98
+5+                499    484.7     1.03  +0.65
+
+[ALL midday] B. pair+digit top-K × national draws-since
+bucket           hits      exp  obs/exp      z
+top10 due<1       143    135.0     1.06  +0.69
+top10 due1–2       55     45.7     1.20  +1.37
+top10 due2+        93     88.0     1.06  +0.54
+top20 due<1       258    258.6     1.00  -0.04
+top20 due1–2      111     99.0     1.12  +1.21
+top20 due2+       172    181.3     0.95  -0.69
+
+=== WINDOW 2026-05-01 2026-06-30
+[EARLY-13 eve] B. pair+digit top-K × national draws-since
+top10 due<1        30     25.7     1.17  +0.84
+top10 due1–2        9      7.8     1.15  +0.43
+top10 due2+         9      9.7     0.93  -0.23
+top20 due<1        53     47.0     1.13  +0.87
+top20 due1–2       25     18.0     1.39  +1.64
+top20 due2+        27     21.6     1.25  +1.17
+[ALL evening] B. pair+digit top-K × national draws-since
+top10 due<1        84     68.7     1.22  +1.85
+top10 due1–2       27     20.9     1.29  +1.35
+top10 due2+        28     25.8     1.08  +0.43
+top20 due<1       151    125.5     1.20  +2.28
+top20 due1–2       58     48.2     1.20  +1.41
+top20 due2+        63     57.4     1.10  +0.74
+[ALL midday] B. pair+digit top-K × national draws-since
+top10 due<1        39     42.8     0.91  -0.57
+top10 due1–2       19     15.3     1.25  +0.96
+top10 due2+        23     28.4     0.81  -1.01
+top20 due<1        77     84.5     0.91  -0.82
+top20 due1–2       35     33.0     1.06  +0.34
+top20 due2+        45     55.6     0.81  -1.42
+=== WINDOW 2026-07-01 2026-09-01
+[EARLY-13 eve] B. pair+digit top-K × national draws-since
+top10 due<1        34     28.8     1.18  +0.97
+top10 due1–2        4      7.1     0.56  -1.17
+top10 due2+         6      8.8     0.68  -0.94
+top20 due<1        49     52.7     0.93  -0.51
+top20 due1–2       19     16.7     1.14  +0.57
+top20 due2+        17     20.7     0.82  -0.81
+[ALL evening] B. pair+digit top-K × national draws-since
+top10 due<1        90     77.3     1.16  +1.44
+top10 due1–2       17     19.0     0.90  -0.45
+top10 due2+        18     23.3     0.77  -1.10
+top20 due<1       141    141.3     1.00  -0.03
+top20 due1–2       46     44.6     1.03  +0.20
+top20 due2+        50     55.0     0.91  -0.68
+[ALL midday] B. pair+digit top-K × national draws-since
+top10 due<1        50     47.2     1.06  +0.41
+top10 due1–2       21     15.4     1.36  +1.43
+top10 due2+        36     29.9     1.20  +1.11
+top20 due<1        90     89.0     1.01  +0.11
+top20 due1–2       43     32.8     1.31  +1.79
+top20 due2+        70     63.3     1.11  +0.84
+=== WINDOW 2026-09-02 2026-11-02
+[EARLY-13 eve] B. pair+digit top-K × national draws-since
+top10 due<1        39     27.4     1.43  +2.23
+top10 due1–2       10      7.4     1.36  +0.97
+top10 due2+         7      9.2     0.76  -0.74
+top20 due<1        69     50.0     1.38  +2.69
+top20 due1–2       23     15.4     1.49  +1.93
+top20 due2+        19     21.9     0.87  -0.61
+[ALL evening] B. pair+digit top-K × national draws-since
+top10 due<1        91     72.9     1.25  +2.12
+top10 due1–2       24     19.6     1.22  +0.99
+top10 due2+        21     24.6     0.85  -0.72
+top20 due<1       158    133.2     1.19  +2.15
+top20 due1–2       52     41.0     1.27  +1.71
+top20 due2+        49     58.3     0.84  -1.22
+[ALL midday] B. pair+digit top-K × national draws-since
+top10 due<1        54     45.1     1.20  +1.33
+top10 due1–2       15     15.1     0.99  -0.02
+top10 due2+        34     29.7     1.15  +0.80
+top20 due<1        91     85.1     1.07  +0.64
+top20 due1–2       33     33.2     0.99  -0.03
+top20 due2+        57     62.4     0.91  -0.69
+```

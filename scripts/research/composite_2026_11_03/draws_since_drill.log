@@ -1,0 +1,108 @@
+
+[EARLY-13 eve] A. national any-session draws-since, bucket = expected hits elapsed (gap × class/1000) — COHORT-02 control
+bucket           hits      exp  obs/exp      z
+<0.5              628    641.1     0.98  -0.52
+0.5–1             555    506.3     1.10  +2.16
+1–2               723    746.5     0.97  -0.86
+2–3               436    442.5     0.99  -0.31
+3–5               357    370.1     0.96  -0.68
+5+                198    190.5     1.04  +0.54
+
+[EARLY-13 eve] E. SAME-SESSION draws-since (gap counted in this session's national draws only)
+bucket           hits      exp  obs/exp      z
+<0.5             1166   1134.9     1.03  +0.92
+0.5–1             675    689.2     0.98  -0.54
+1–2               649    668.7     0.97  -0.76
+2–3               251    253.8     0.99  -0.18
+3–5               133    128.2     1.04  +0.42
+5+                 23     22.2     1.04  +0.18
+
+[EARLY-13 eve] C. STRAIGHT (ordered 000–999) national draws-since, bucket = gap/1000; hits = exact-order matches
+bucket           hits      exp  obs/exp      z
+<0.5              705    695.9     1.01  +0.34
+0.5–1             506    528.2     0.96  -0.97
+1–2               760    758.2     1.00  +0.07
+2–3               438    434.8     1.01  +0.15
+3–5               367    350.5     1.05  +0.88
+5+                121    129.4     0.93  -0.74
+
+[EARLY-13 eve] B. pair+digit top-K × national draws-since
+bucket           hits      exp  obs/exp      z
+top10 due<1       103     81.9     1.26  +2.34
+top10 due1–2       23     22.3     1.03  +0.15
+top10 due2+        22     27.7     0.79  -1.09
+top20 due<1       171    149.7     1.14  +1.74
+top20 due1–2       67     50.1     1.34  +2.38
+top20 due2+        63     64.1     0.98  -0.14
+
+[ALL evening] A. national any-session draws-since, bucket = expected hits elapsed (gap × class/1000) — COHORT-02 control
+bucket           hits      exp  obs/exp      z
+<0.5             1736   1712.0     1.01  +0.58
+0.5–1            1401   1352.0     1.04  +1.33
+1–2              1976   1990.9     0.99  -0.33
+2–3              1183   1181.5     1.00  +0.04
+3–5               939    988.4     0.95  -1.57
+5+                498    508.3     0.98  -0.46
+
+[ALL evening] E. SAME-SESSION draws-since (gap counted in this session's national draws only)
+bucket           hits      exp  obs/exp      z
+<0.5             3095   3030.0     1.02  +1.18
+0.5–1            1833   1838.3     1.00  -0.12
+1–2              1760   1786.4     0.99  -0.63
+2–3               656    676.8     0.97  -0.80
+3–5               332    342.3     0.97  -0.56
+5+                 57     59.3     0.96  -0.30
+
+[ALL evening] C. STRAIGHT (ordered 000–999) national draws-since, bucket = gap/1000; hits = exact-order matches
+bucket           hits      exp  obs/exp      z
+<0.5             1939   1857.6     1.04  +1.89
+0.5–1            1347   1409.8     0.96  -1.67
+1–2              2022   2023.9     1.00  -0.04
+2–3              1130   1160.5     0.97  -0.90
+3–5               957    935.6     1.02  +0.70
+5+                338    345.7     0.98  -0.41
+
+[ALL evening] B. pair+digit top-K × national draws-since
+bucket           hits      exp  obs/exp      z
+top10 due<1       265    218.9     1.21  +3.12
+top10 due1–2       68     59.4     1.14  +1.11
+top10 due2+        67     73.7     0.91  -0.78
+top20 due<1       450    400.0     1.13  +2.50
+top20 due1–2      156    133.9     1.17  +1.91
+top20 due2+       162    170.7     0.95  -0.67
+
+[ALL midday] A. national any-session draws-since, bucket = expected hits elapsed (gap × class/1000) — COHORT-02 control
+bucket           hits      exp  obs/exp      z
+<0.5             1061   1031.8     1.03  +0.91
+0.5–1             853    852.5     1.00  +0.02
+1–2              1325   1366.4     0.97  -1.12
+2–3              1005    990.5     1.01  +0.46
+3–5               959    983.5     0.98  -0.78
+5+                722    700.4     1.03  +0.82
+
+[ALL midday] E. SAME-SESSION draws-since (gap counted in this session's national draws only)
+bucket           hits      exp  obs/exp      z
+<0.5             2342   2326.3     1.01  +0.33
+0.5–1            1357   1420.2     0.96  -1.68
+1–2              1407   1391.1     1.01  +0.43
+2–3               534    508.0     1.05  +1.15
+3–5               255    254.4     1.00  +0.04
+5+                 30     25.0     1.20  +1.00
+
+[ALL midday] C. STRAIGHT (ordered 000–999) national draws-since, bucket = gap/1000; hits = exact-order matches
+bucket           hits      exp  obs/exp      z
+<0.5             1053   1118.0     0.94  -1.94
+0.5–1             931    925.6     1.01  +0.18
+1–2              1485   1477.1     1.01  +0.20
+2–3               951    974.2     0.98  -0.74
+3–5              1006    945.3     1.06  +1.98
+5+                499    484.7     1.03  +0.65
+
+[ALL midday] B. pair+digit top-K × national draws-since
+bucket           hits      exp  obs/exp      z
+top10 due<1       143    135.0     1.06  +0.69
+top10 due1–2       55     45.7     1.20  +1.37
+top10 due2+        93     88.0     1.06  +0.54
+top20 due<1       258    258.6     1.00  -0.04
+top20 due1–2      111     99.0     1.12  +1.21
+top20 due2+       172    181.3     0.95  -0.69

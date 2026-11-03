@@ -3553,4 +3553,11 @@ export const CONFIGS: Record<string, EngineConfig> = {
   get prod_parity_2026_11_03() {
     return { ...this.pair_dedupe, pairRepWeight: 0, pairRepWeightByScope: { evening: 0.20, allday: 0.20, midday: 0.05 } };
   },
+  // ENG-DIGITREP-01 (2026-11-03, harness-only probe): digit-carryover channel on top
+  // of live parity (study §9b). BASELINE = prod_parity_2026_11_03.
+  get digitrep_010() { return { ...this.prod_parity_2026_11_03, digitRepWeight: 0.10 }; },
+  get digitrep_020() { return { ...this.prod_parity_2026_11_03, digitRepWeight: 0.20 }; },
+  get digitrep_040() { return { ...this.prod_parity_2026_11_03, digitRepWeight: 0.40 }; },
+  // pair + digit both heavy, every scope (closest config analogue of the §9b scorer).
+  get pairdigit_heavy() { return { ...this.pair_dedupe, pairRepWeight: 0.40, pairRepWeightByScope: {}, digitRepWeight: 0.40 }; },
 };

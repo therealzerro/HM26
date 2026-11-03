@@ -551,6 +551,8 @@ export async function computeSlateAsOf(
   // ENG-PAIRREP-01: per-scope weight resolution mirrors warming/state_str.
   const pairRepWeightForThisScope = config.pairRepWeightByScope?.[scope] ?? config.pairRepWeight ?? 0;
   const pairRepActive = pairRepWeightForThisScope > 0;
+  const digitRepWeightForThisScope = config.digitRepWeightByScope?.[scope] ?? config.digitRepWeight ?? 0;
+  const digitRepActive = digitRepWeightForThisScope > 0;
   // P4: history floor = max(minDate, replayDate − rollingDays), matching the
   // production formula so the replay measures exactly what would ship.
   let historyFloorDate: string | null = null;
@@ -568,7 +570,7 @@ export async function computeSlateAsOf(
     excludeYesterday ? fetchYesterdayResults(date, config.recentHitBlockDaysByScope?.[scope] ?? config.recentHitBlockDays ?? 1) : Promise.resolve(new Set<string>()),
     warmingActive ? fetchWarmingHistory(date, warmingWindowDays, scope, config.warmingScopeMatched === true) : Promise.resolve([] as { comboset_sorted: string; date_et: string }[]),
     stateStrActive ? fetchStateHistory(date, config.stateStrWindowDays ?? 60) : Promise.resolve([] as StateHistoryRow[]),
-    pairRepActive ? fetchPairRepReference(date, scope) : Promise.resolve([] as PairRepRefRow[]),
+    (pairRepActive || digitRepActive) ? fetchPairRepReference(date, scope) : Promise.resolve([] as PairRepRefRow[]),
   ]);
 
   const { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap, boxByHorizon, pairData, boxTimesDrawnByHorizon, pairTimesDrawnByHorizon } = buildDatasets(boxRows, pairRows, config.pairCollisionRule ?? 'legacy');
@@ -813,6 +815,38 @@ export async function computeSlateAsOf(
     const normPairRep = maxNorm(Array.from(rawPairRep), true);
     for (let i = 0; i < 1000; i++) {
       finalScores[i] += pairRepWeightForThisScope * normPairRep[i];
+    }
+  }
+
+  // ENG-DIGITREP-01 (2026-11-03, harness-only probe): digit-carryover additive
+  // boost over the same reference block. Study §9b "pair + digit".
+  if (digitRepActive) {
+    const dc = new Map<string, number>();
+    for (const r of pairRepRef) {
+      const rd = (r.result_digits ?? '').toString();
+      if (rd.length !== 3) continue;
+      for (const ch of rd) dc.set(ch, (dc.get(ch) ?? 0) + 1);
+    }
+    const sets: { cs: string; cls: number; sup: number }[] = [];
+    for (let a = 0; a <= 9; a++) for (let b = a; b <= 9; b++) for (let c = b; c <= 9; c++) {
+      const sup = (dc.get(String(a)) ?? 0) + (dc.get(String(b)) ?? 0) + (dc.get(String(c)) ?? 0);
+      sets.push({ cs: `{${a},${b},${c}}`, cls: new Set([a, b, c]).size, sup });
+    }
+    const zMapD = new Map<string, number>();
+    for (const k of [3, 2, 1]) {
+      const grp = sets.filter(s => s.cls === k);
+      const mu = grp.reduce((acc, s) => acc + s.sup, 0) / grp.length;
+      const sd = Math.sqrt(grp.reduce((acc, s) => acc + (s.sup - mu) * (s.sup - mu), 0) / grp.length) || 1;
+      for (const s of grp) zMapD.set(s.cs, (s.sup - mu) / sd);
+    }
+    const rawD = new Float64Array(1000);
+    for (let i = 0; i < 1000; i++) {
+      const zv = zMapD.get(toComboSet(universe[i])) ?? 0;
+      rawD[i] = zv > 0 ? zv : 0;
+    }
+    const normD = maxNorm(Array.from(rawD), true);
+    for (let i = 0; i < 1000; i++) {
+      finalScores[i] += digitRepWeightForThisScope * normD[i];
     }
   }
 

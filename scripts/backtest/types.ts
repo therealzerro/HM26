@@ -205,6 +205,12 @@ export interface EngineConfig {
   // docs/tuesday_11-03_composite_study.md §6–§7.
   pairRepWeight?: number;
   pairRepWeightByScope?: Partial<Record<Scope, number>>;
+  // ENG-DIGITREP-01 (2026-11-03, HARNESS-ONLY probe, operator ask after study §9):
+  // digit-carryover channel, same reference block as pairRep; raw support = count
+  // of the comboSet's three digits (with multiplicity) among all reference digits,
+  // class-standardized, floored at 0, max-normed, finalScore += w × norm. 0 ⇒ off.
+  digitRepWeight?: number;
+  digitRepWeightByScope?: Partial<Record<Scope, number>>;
   // ENG-DEEPSCOPE-01 P4 (2026-09-01): history-override date floor. When set,
   // fetchHistoryRows floors its scan at max(minDate, replayDate − rollingDays)
   // instead of scanning all of histories (the D8 unbounded fetch, 20k silent

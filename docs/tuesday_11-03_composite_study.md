@@ -91,3 +91,22 @@ K sweep, pair (prev eve + mid) alone, early-13: K=2 +1.09 · K=5 +1.98 · K=10 +
 **Permutation null (200 shuffles, each day's pair reference replaced by a random other date's same block):** early-13 real z +1.98 vs null mean +0.29, sd 0.97, 95th percentile +1.91 → P(null ≥ real) = 9/200. All midday real +1.36 → 23/200. All evening real +1.04 → 36/200. The null mean is above zero (+0.29 on early-13) because a top-5 built from any day's repeated pairs leans to high-frequency sets.
 
 **Reading:** the prev-evening + same-day-midday pair term is the one variant positive in all six half × universe cells but one (evening Sep–Nov −0.19), with the early-13 full-window number at the edge of the shuffle null (9 of 200) after a 9-scorer × 3-reference search. The ranking-wide percentile is 0.498–0.505 everywhere: whatever the top-5 lift is, the ordering below the top-5 carries nothing. Adding it to the composite does not help consistently (composite + pair is below the pair term alone on early-13 and flips sign on midday). Under the ship rule: not sign-consistent across both halves on all three universes, |Δ| ≈ 13 pick-hits over 125 days on the early-13 pool ≈ 1 extra match per 10 days; recorded as hypothesis-grade, not a change to the ticket method. Re-test on request after another 60 days of draws (9/04 → 11/02 is the only window where it is positive on every universe).
+
+## 7. Out-of-sample test of the pair term (operator: "can you do a back test and test this?", ~4:40pm ET)
+
+The pair term was chosen on 7/01 → 11/02. May–June (5/01 → 6/30, 61 days) was not looked at while choosing it, so it is the held-out test. Same scorers, same code (`pair_study.py 2026-05-01 2026-06-30 <K>`, `pair_perm_oos.py`).
+
+| Top-5, 5/01 → 6/30 (held out) | Early-13 hits / exp (z) | All evening (z) | All midday (z) |
+|---|---|---|---|
+| composite | 22 / 22.5 (−0.11) | 50 / 53.1 (−0.43) | 45 / 40.4 (+0.73) |
+| pair, prev eve + same-day midday | 25 / 21.0 (+0.87) | 67 / 56.0 (+1.48) | 44 / 41.2 (+0.43) |
+| pair, prev eve only | 25 / 20.6 (+0.97) | 66 / 54.8 (+1.51) | 41 / 41.5 (−0.08) |
+| composite + pair (eve + mid) | 22 / 21.8 (+0.04) | 65 / 54.3 (+1.45) | 40 / 40.9 (−0.14) |
+| composite + 2× pair | 22 / 21.8 (+0.05) | 57 / 55.3 (+0.23) | 46 / 40.5 (+0.86) |
+| anti-pair | 14 / 23.6 (−1.97) | 60 / 62.8 (−0.36) | 45 / 46.2 (−0.18) |
+
+K sweep, pair (eve + mid) alone, held out: early-13 K=2 −0.70 · K=5 +0.87 · K=10 +1.27; all evening −0.71 · +1.48 · +2.09; all midday −0.44 · +0.43 · −1.14. Shuffle null on the held-out window: early-13 P = 34/200, midday 80/200, evening 22/200.
+
+Combined 5/01 → 11/02 (186 days), top-5, pair (eve + mid) alone: early-13 81 / 64.0 (+2.12, ratio 1.27), all evening 193 / 170.9 (+1.69), all midday 144 / 128.5 (+1.36); anti-pair −1.01 / −0.86 / −0.42; rank percentile 0.500 / 0.505 / 0.505. Composite alone over the same 186 days: −0.01 / +0.95 / +0.43.
+
+**Reading:** held out, the pair term is positive on all three universes at top-5 (+0.87 / +1.48 / +0.43) and the anti-pair is negative on all three, but none of the three clears its own shuffle null (34, 80, 22 of 200) and the sign flips at K=2 on every universe. Over the full 186 days the early-13 top-5 is 81 vs 64 expected — about 17 extra matches in 186 days (one per 11 days) — with the whole-ranking percentile still 0.500. Status: the direction survived the held-out window; the size did not clear the noise floor in it. Stays hypothesis-grade; the standing re-test is the next 60 days (11/03 → 1/01) scored before anyone looks at them, with the pass line written now: early-13 top-5 ratio ≥ 1.15 AND anti-pair ≤ 1.00 on that window.

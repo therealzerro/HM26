@@ -3904,6 +3904,35 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
+### ENG-PAIRREP-01 / CONFIG-20 — Pair-repeat post-score channel (PAIRREP) — OPERATOR OVERRIDE 2026-11-03 ("use the pair term as primary ranking tonight, operator override to adopt the entire engine") — CODE SHIPPED b5f5a0a (weight 0 = bit-identical); edge deploy + config rows PENDING operator (classifier blocked the CLI deploy)
+
+**What it is.** A fifth, post-score additive channel (WARMING / STATE_STR pattern): for each comboSet, the count of its three unordered digit pairs among the pairs of a reference block — the previous day's evening draws + the same day's midday draws for an evening slate; the previous day's evening + previous day's midday for midday/allday — standardized within multiplicity class across the 220 sets (`buildPairRepMap` in `lib/engineCore.ts`, synced to `_shared`), negatives floored at 0, max-normed, `finalScore += w × normPairRep`. Keys: `pair_rep_weight` (global, default 0) and `pair_rep_weight_<scope>` (override wins). App engine `engines/zk6.ts` §5d + `fetchPairRepReference`; edge `compute-slate-zk6/index.ts` mirror; harness `pairRepWeight` / `pairRepWeightByScope`, presets `pairrep_005/010/020/040` from `pair_dedupe`. Nothing dated after the slate's own session is read (no leak: midday draws complete before any evening draw). `check:edge-shared` OK, `check:posted-order` OK, filtered tsc clean.
+
+**Origin.** `docs/tuesday_11-03_composite_study.md` §6–§8 + `scripts/research/composite_2026_11_03/`: walk-forward 7/01→11/02 of a ticket-selection scorer; the prev-evening + same-day-midday pair term alone, top-5 of 220 sets: early-13 pool 56/43.0 (+1.98; halves +1.63 / +1.17; 200-shuffle null P = 9/200), all midday 100/87.3 (+1.36), all evening 126/114.9 (+1.04; halves +1.66 / −0.19). Held-out May–June (untouched when chosen): +0.87 / +1.48 / +0.43, anti-pair negative on all three; combined 186d early-13 81/64.0 (+2.12). Ranking-wide percentile 0.50 everywhere (only the top of the ranking carries anything). Recorded as hypothesis-grade under the study's own rule; the override is the operator's call.
+
+**Pre-flight (step 0).** Live `app_config` 11/03 verified = `pair_dedupe` preset: evening 50.625/28.125/10/11.25, midday 20.8/5.2/64/10, allday 64.7/35.3/0/0, cooldown 20 / midday 10, pair_rep_cap 2, warming 0.
+
+**Harness (step 2), `--end-date 2026-11-02`, BASELINE = pair_dedupe, both lenses, rail-matched baseline in parentheses:**
+
+| Window | Config | Pick-hits | Pick % (rail base) | Slate % | Midday pick / slate | Evening pick / slate | Allday pick / slate |
+|---|---|---|---|---|---|---|---|
+| 30d (90 slates) | pair_dedupe | 133 | 24.6 (25.2) | 83.3 | 17.2 / 70.0 | 22.8 / 86.7 | 33.9 / 93.3 |
+| 30d | pairrep_005 | 133 | 24.6 | 83.3 | 17.8 / 70.0 | 22.2 / 86.7 | 33.9 / 93.3 |
+| 30d | pairrep_010 | 127 | 23.5 | 77.8 | 15.0 / 63.3 | 20.6 / 76.7 | 35.0 / 93.3 |
+| 30d | pairrep_020 | 139 | 25.9 | 83.3 | 16.9 / 73.3 | 23.9 / 83.3 | 36.7 / 93.3 |
+| 30d | pairrep_040 | 145 | 27.0 | 81.1 | 18.4 / 66.7 | 23.3 / 80.0 | 39.3 / 96.7 |
+| 60d (180 slates) | pair_dedupe | 266 | 24.6 (25.1) | 83.3 | 17.2 / 73.3 | 20.3 / 80.0 | 36.4 / 96.7 |
+| 60d | pairrep_005 | 279 | 25.8 | 83.9 | 18.9 / 76.7 | 22.2 / 80.0 | 36.4 / 95.0 |
+| 60d | pairrep_010 | 286 | 26.5 | 82.2 | 17.5 / 73.3 | 23.1 / 78.3 | 38.9 / 95.0 |
+| 60d | pairrep_020 | 288 | 26.7 | 81.1 | 16.2 / 70.0 | 25.0 / 78.3 | 38.9 / 95.0 |
+| 60d | pairrep_040 | 290 | 26.9 | 81.1 | 18.7 / 70.0 | 23.3 / 78.3 | 38.8 / 95.0 |
+
+**Ship-rule read (step 3).** No weight is *eligible* (≥ baseline on BOTH lenses, both windows): every weight ≥ 0.10 is below parity on slate rate in at least one window. Pick rate: 0.20 is +1.3pp / +2.1pp (sign-consistent, 60d past the 1.7pp floor); 0.40 is +2.4pp / +2.3pp (both past the floor) with slate −2.2pp / −2.2pp (inside the 3.3pp floor, consistently negative). Per scope: **allday** 0.20 pick +2.8 / +2.5pp, slate 0 / −1.7pp; **evening** 0.20 pick +1.1 / +4.7pp, slate −3.4 / −1.7pp; **midday** 0.05 pick +0.6 / +1.7pp, slate 0 / +3.4pp, while 0.20 flips (−0.3 / −1.0pp pick, +3.3 / −3.3pp slate). Rail-matched pick lift: parity ×0.98 both windows → 0.20 ×1.03 / ×1.06, 0.40 ×1.09 / ×1.09.
+
+**Decision (operator override, per-scope override > global):** `pair_rep_weight_allday = 0.20`, `pair_rep_weight_evening = 0.20`, `pair_rep_weight_midday = 0.05`, global `pair_rep_weight = 0`. **Measured cost stated:** evening slate rate −3.4pp (30d) / −1.7pp (60d) ≈ up to one slate per 30 days with no match, against +1.1 / +4.7pp pick rate; allday slate 0 / −1.7pp against +2.8 / +2.5pp pick. Midday at 0.05 has no measured cost. Actor: operator (override), applied by Claude Code. **Rollback:** delete the three per-scope rows (or set 0) — bit-identical to pair_dedupe; the code path is weight-gated. **Review date: 2027-01-02** (same as the ticket-side override; the pre-registered re-test in the study §7 scores 11/03 → 1/01 untouched; pass = early-13 top-5 ratio ≥ 1.15 AND anti-pair ≤ 1.00; harness re-run 30d/60d at review with both lenses). Era rule: count the days actually live from the deploy, not from 11/03.
+
+**Status 11/03 ~4:45pm ET:** code committed (b5f5a0a). CLI deploy of `compute-slate-zk6` was blocked by the session's permission classifier → handed to the operator as a `!` command (verify `verify_jwt=true` after). Config rows to be written AFTER the deploy (old edge ignores the new keys; writing first would leave a half-state). Takes effect at the next Daily Workflow run; no regen is triggered.
+
 ### ENG-BLOCK-PERSCOPE-01 — Recent-hit block restored for MIDDAY ONLY (regression fix for ENG-BLOCK-NARROW-01) (2026-06-20)
 
 **Trigger (operator):** "the same 3-4 picks have been in every slate since Fable 5; slates had a decent hit rate before that without the same picks every day." Investigation traced the symptom to commit `7a8fef4` **ENG-BLOCK-NARROW-01** (Opus 4.7, 2026-06-09 21:14 UTC) — the recent-hit hard block was narrowed from `date_et ∈ [yesterday, today]` to `today only` **for all scopes**. At morning slate-gen "today" is empty → block empty → Pass 1 re-selects the same top-indicator combos (923/298) every day, because the only other rotation guard (the cooldown rail) is unit-broken (`days` vs `draws_since`, `zk6.ts:1153-1156`/`:1549-1551`) AND relaxed by Pass 5. First bit on the 6/10 slate — matches the operator's "since Fable 5" timing (the narrowing was the Opus 4.7 sweep the night before the Fable 5 session, NOT a Fable 5 change, and NOT triggered by a morning-brief request). See HIT-PERSIST-01 below for the prior (superseded) diagnosis.

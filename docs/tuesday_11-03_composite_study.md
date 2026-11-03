@@ -110,3 +110,26 @@ K sweep, pair (eve + mid) alone, held out: early-13 K=2 −0.70 · K=5 +0.87 · 
 Combined 5/01 → 11/02 (186 days), top-5, pair (eve + mid) alone: early-13 81 / 64.0 (+2.12, ratio 1.27), all evening 193 / 170.9 (+1.69), all midday 144 / 128.5 (+1.36); anti-pair −1.01 / −0.86 / −0.42; rank percentile 0.500 / 0.505 / 0.505. Composite alone over the same 186 days: −0.01 / +0.95 / +0.43.
 
 **Reading:** held out, the pair term is positive on all three universes at top-5 (+0.87 / +1.48 / +0.43) and the anti-pair is negative on all three, but none of the three clears its own shuffle null (34, 80, 22 of 200) and the sign flips at K=2 on every universe. Over the full 186 days the early-13 top-5 is 81 vs 64 expected — about 17 extra matches in 186 days (one per 11 days) — with the whole-ranking percentile still 0.500. Status: the direction survived the held-out window; the size did not clear the noise floor in it. Stays hypothesis-grade; the standing re-test is the next 60 days (11/03 → 1/01) scored before anyone looks at them, with the pass line written now: early-13 top-5 ratio ≥ 1.15 AND anti-pair ≤ 1.00 on that window.
+
+## 8. Which early-13 state follows the pair pattern (operator ask, 11/03 ~4:40pm ET)
+
+Per-state walk-forward of the pair term (reference = previous evening + same-day midday, nationwide; top-5 / top-10 of the 220 sets), scored on each state's own evening draws. Expected = that state's draws × class/1000 summed over the top-K. `pair_by_state.py <start>`.
+
+| State | Draws 5/01→11/02 | Top-5 hits / exp (z) | Top-10 hits / exp (z) | Rank pct of drawn | 60d top-5 / exp (z) | 60d top-10 / exp (z) |
+|---|---|---|---|---|---|---|
+| MN | 186 | 8 / 4.1 (+1.92) | 12 / 8.3 (+1.28) | 0.481 | 3 / 1.3 (+1.46) | 5 / 2.7 (+1.41) |
+| GA (2 rows/day) | 372 | 13 / 8.2 (+1.67) | 21 / 16.6 (+1.08) | 0.487 | 5 / 2.6 (+1.45) | 9 / 5.4 (+1.57) |
+| DE | 185 | 7 / 4.1 (+1.44) | 13 / 8.3 (+1.65) | 0.510 | 1 / 1.3 (−0.26) | 2 / 2.6 (−0.39) |
+| MI | 190 | 7 / 4.2 (+1.37) | 9 / 8.5 (+0.18) | 0.529 | 2 / 1.3 (+0.59) | 2 / 2.7 (−0.42) |
+| ME,NH,VT | 186 | 6 / 4.1 (+0.93) | 8 / 8.3 (−0.10) | 0.490 | 3 / 1.3 (+1.46) | 5 / 2.7 (+1.41) |
+| TX (2 rows/day) | 317 | 9 / 7.0 (+0.76) | 16 / 14.2 (+0.47) | 0.503 | 3 / 2.2 (+0.53) | 6 / 4.5 (+0.69) |
+| TN | 186 | 5 / 4.1 (+0.44) | 10 / 8.3 (+0.59) | 0.511 | 1 / 1.3 (−0.28) | 3 / 2.7 (+0.19) |
+| OH | 186 | 5 / 4.1 (+0.44) | 7 / 8.3 (−0.45) | 0.505 | 3 / 1.3 (+1.46) | 3 / 2.7 (+0.19) |
+| WV | 159 | 4 / 3.5 (+0.26) | 7 / 7.1 (−0.05) | 0.479 | 1 / 1.1 (−0.11) | 3 / 2.3 (+0.47) |
+| SC | 186 | 4 / 4.1 (−0.05) | 11 / 8.3 (+0.94) | 0.499 | 1 / 1.3 (−0.28) | 3 / 2.7 (+0.19) |
+| AR | 186 | 4 / 4.1 (−0.05) | 7 / 8.3 (−0.45) | 0.498 | 2 / 1.3 (+0.59) | 3 / 2.7 (+0.19) |
+| PA | 186 | 3 / 4.1 (−0.55) | 12 / 8.3 (+1.28) | 0.505 | 1 / 1.3 (−0.28) | 6 / 2.7 (+2.02) |
+| DC (2 rows/day) | 372 | 6 / 8.2 (−0.77) | 17 / 16.6 (+0.10) | 0.505 | 1 / 2.6 (−1.01) | 4 / 5.4 (−0.59) |
+| **Pool** | 2,897 | 81 / 64.0 (+2.12) | 150 / 129.4 (+1.81) | 0.500 | 27 / 20.5 (+1.45) | 54 / 41.7 (+1.91) |
+
+MN and GA are the two states above expectation on both windows and both K (MN top-5 8 vs 4.1 full, 3 vs 1.3 in 60d — 394 9/15, 004 10/10, 576 10/26; GA 13 vs 8.2 full, 5 vs 2.6 in 60d — 297 9/24, 763 9/29, 554 10/13, 715 10/18). DE and MI carry the full window but are at or under in the last 60 days. ME,NH,VT and OH are 60d-only. PA is the top-10 leader in 60d (6 vs 2.7) with top-5 under. DC is under on every lens. No state's whole-ranking percentile moves off 0.50 (range 0.479–0.529), so within a state the term orders only the top handful. 13 states × 2 windows × 2 K = 52 cells; the largest z (+2.02 PA 60d top-10) is inside what 52 null cells produce.

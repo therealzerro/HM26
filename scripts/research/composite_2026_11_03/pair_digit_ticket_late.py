@@ -1,6 +1,6 @@
 import json,sys,datetime as dt,math,statistics as st
 from collections import defaultdict,Counter
-rows=json.load(open(sys.argv[1])); mid=json.load(open(sys.argv[2]))
+rows=json.load(open(sys.argv[1])); mid=json.load(open(sys.argv[2])); early=json.load(open(sys.argv[3])) if len(sys.argv)>3 else []
 EXTRA=[{'jurisdiction':'SC','result_digits':'375','comboset_sorted':'{3,5,7}'},{'jurisdiction':'NY','result_digits':'506','comboset_sorted':'{0,5,6}'},{'jurisdiction':'AR','result_digits':'803','comboset_sorted':'{0,3,8}'}]
 if not mid: mid=EXTRA; print("MIDDAY REFERENCE = operator paste only (3 rows) — PROVISIONAL")
 else: print(f"MIDDAY REFERENCE = imported {len(mid)} rows")
@@ -10,11 +10,11 @@ def cls(cs): return {3:6,2:3,1:1}[len(set(cs[1::2]))]
 SP={cs:[''.join(sorted(cs[1::2][a]+cs[1::2][b])) for a,b in ((0,1),(0,2),(1,2))] for cs in ALLSETS}
 def drawpairs(s): return [''.join(sorted(s[a]+s[b])) for a,b in ((0,1),(0,2),(1,2))]
 prevEve=[r for r in rows if r['date_et']=='2026-11-02' and r['session']=='evening']
-ref=prevEve+mid
+ref=prevEve+mid+early
 pc=Counter()
 for r in ref:
     for p in drawpairs(r['result_digits']): pc[p]+=1
-print(f"reference block: {len(prevEve)} evening 11/02 + {len(mid)} midday 11/03 = {len(ref)} draws; pair repeats ≥4: {[(p,c) for p,c in pc.most_common() if c>=4]}")
+print(f"reference block: {len(prevEve)} evening 11/02 + {len(mid)} midday 11/03 + {len(early)} early-13 11/03 = {len(ref)} draws; pair repeats ≥4: {[(p,c) for p,c in pc.most_common() if c>=4]}")
 sup={cs:sum(pc[p] for p in SP[cs]) for cs in ALLSETS}; zp={}
 for k in (6,3,1):
     vals=[sup[cs] for cs in ALLSETS if cls(cs)==k]; mu=st.mean(vals); sd=st.pstdev(vals) or 1
@@ -28,7 +28,7 @@ for k in (6,3,1):
         if cls(cs)==k: zd[cs]=(dsup[cs]-mu)/sd
 print(f"digit counts in reference: {dict(sorted(dc.items()))}")
 zpd={cs:zp[cs]+zd[cs] for cs in ALLSETS}
-closed={r['comboset_sorted'] for r in mid}|{'{3,5,7}','{0,5,6}','{0,3,8}'}
+closed={r['comboset_sorted'] for r in mid}|{r['comboset_sorted'] for r in early}|{'{3,5,7}','{0,5,6}','{0,3,8}'}
 # pool stats for drill columns
 D60='2026-09-04'; D30='2026-10-04'
 d=[r for r in rows if r['session']=='evening' and r['jurisdiction'] in EARLY and r['date_et']<='2026-11-02']

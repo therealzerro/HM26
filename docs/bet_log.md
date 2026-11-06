@@ -31,6 +31,33 @@ Pays per hitting state per unit: exact $225.00; {0,3,9} any order (6-way) $37.50
 
 **Amend rule at the 8:24 readout:** if {0,3,9} draws in the early 13 it is closed by convention for the late 29 → next in line **{1,3,9} / 931** (late lead 931 ×10 all, ×4 60d; MO 139 11-03), then {0,9,9} / 099, {3,9,9} / 939. Re-run `pd_late.py … early.json` with the 13 rows added before the late placement. Cutoff early 7:46pm ET; reconcile early at the readout paste, late at the 11/07 import. Session-only, no rides. Mark PLACED only on the operator's word, with units.
 
+**11/06 ~5:50pm ET — operator: "deep scope, give me 20 straight picks for the 1st 13" — EARLY-13 20-STRAIGHT LIST, pair + digit ranks 1–20 (same 76-draw reference, same closures), each set's lead order in the early pool (60d first, then all-window). 20 × $3.25 = **$65.00/unit**; exact pays $225.00 per unit per hitting state (one exact → +$160.00, two → +$385.00, blank → −$65.00). NOT PLACED.**
+
+| # | Set | P+D | STRAIGHT | Order basis (all → 60d) | Last in pool |
+|---|---|---|---|---|---|
+| 1 | {0,3,9} | +4.46 | **390** | 903 ×6, 390 ×4 → 390 ×2 | DC 390 11-05 |
+| 2 | {1,3,9} | +4.22 | **319** | 319 ×6, 139 ×5 → 391 / 319 ×2 (tie → all-window) | OH 319 10-28 |
+| 3 | {0,9,9} | +4.06 | **099** | 909 ×5, 099 ×3 → 099 ×1 | TN 099 11-05 |
+| 4 | {3,9,9} | +4.06 | **399** | 399 ×4 → 399 ×4 | MI 399 11-05 |
+| 5 | {1,3,3} | +3.66 | **133** | 133 ×5 → 313 / 133 ×1 | MN 133 10-05 |
+| 6 | {3,3,6} | +3.56 | **336** | 336 ×6 → 336 ×2 | TN 336 10-07 |
+| 7 | {3,5,9} | +3.41 | **593** | 935 ×8, 593 ×7 → 593 ×2 | GA 953 10-30 |
+| 8 | {0,3,6} | +3.32 | **063** | 360 / 063 ×5 → 063 ×4 | GA 603 11-03 |
+| 9 | {0,5,9} | +3.23 | **059** | 059 ×8 → 059 ×2 | DC 059 10-18 |
+| 10 | {3,6,6} | +3.05 | **636** | 636 ×4 → 636 / 663 ×1 | GA 663 09-27 |
+| 11 | {3,3,9} | +3.05 | **393** | 393 ×6 → 393 ×3 | TX 393 10-24 |
+| 12 | {3,3,4} | +2.95 | **433** | 433 ×4 → 433 / 343 ×1 | OH 343 10-22 |
+| 13 | {0,3,3} | +2.85 | **330** | 330 ×8 → 330 ×3 | GA 330 11-01 |
+| 14 | {0,3,5} | +2.80 | **350** | 350 ×5 → 350 / 305 ×2 | ME,NH,VT 305 10-13 |
+| 15 | {1,3,5} | +2.80 | **153** | 315 ×6, 153 ×4 → 153 ×2 | GA 153 11-03 |
+| 16 | {6,9,9} | +2.75 | **996** | 969 / 996 ×4 → 996 ×1 | DC 996 09-27 |
+| 17 | {0,1,3} | +2.66 | **130** | 130 ×5 → 130 ×3 | DC 013 11-01 |
+| 18 | {5,6,9} | +2.46 | **695** | 695 ×6 → 956 / 569 / 695 ×1 | GA 659 10-31 |
+| 19 | {3,4,9} | +2.37 | **493** | 934 / 943 / 349 ×3 → 493 ×3 | WV 493 11-03 |
+| 20 | {0,0,9} | +2.25 | **009** | 900 ×3 → 009 ×1 | DC 009 10-04 |
+
+**LIST: 390 · 319 · 099 · 399 · 133 · 336 · 593 · 063 · 059 · 636 · 393 · 433 · 330 · 350 · 153 · 996 · 130 · 695 · 493 · 009.** Ranks 1–20 are 9 singles + 11 doubles, no triples. Next in line: {0,0,3}/030 +2.04, {2,3,6}/362, {3,4,5}/435, {2,3,9}/239. The 1S+1B ticket above (390 + {0,3,9}) is rank 1 of this list. Cutoff 7:46pm ET, readout ~8:24pm; reconcile at the readout paste. Mark PLACED only on the operator's word, with units.
+
 ## 2026-11-04 (Wednesday) — EARLY-13 (PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC → 13 draws, $3.25/unit; placement cutoff 7:46pm ET, readout ~8:24pm) — **7 STRAIGHT + 7 BOX PREPPED ~3:15pm ET on the operator's "deep think and deep scope, prepare 7 straight and 7 box for tonights 1st 13, also await midday results in 1 hour" — PROVISIONAL (reference = 11/03 evening only; the 11/04 midday import is awaited and the ticket is re-run on it), NOT PLACED.**
 
 Boards (posted order, workflow 05:06 UTC / 12:06am ET): Evening 134 · 640 · 273 · 569 · 085 · 637; All-Day 134 · 640 · 326 · 237 · 637 · 601; Midday 452 · 732 · 451 · 134 · 367 · 362. {1,3,4} TRIPLE BOARD, same order 134 on all three (Eve 1 / AD 1 / Mid 4); {0,4,6} Eve 2 + AD 2 same order 640; {3,6,7} Eve 6 637 + AD 5 637 + Mid 5 367; {2,3,7} Eve 3 273 / AD 4 237; {2,3,6} AD 3 326 / Mid 6 362. Boards are shown, not used — the ticket is the pair + digit scorer (study §9b, the 11/03 late method), boards ignored.

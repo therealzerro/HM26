@@ -2,6 +2,20 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
+## 2026-11-07 (Saturday) — LATE-29: 1 BOX (pair + digit), NOT PLACED
+
+**11/07 ~7:50pm ET — operator: "deep think and give me 1 box pick for tonights late drawings" — PAIR + DIGIT (study §9b), reference = 11/06 evening 42 + 11/07 midday 33 = 75 draws (early-13 not yet drawn → PROVISIONAL); midday-drawn sets closed (31 sets), previous-evening draws kept in (11/04 ruling); box = top non-triple. `pd_late.py hist.json 2026-11-06 2026-11-07` (hist pulled 7:48pm, 15,570 rows through 11/07 midday). NOT PLACED.**
+
+Reference block pairs: 29 / 89 ×11 · 24 ×10 · 04 / 39 ×8 · 27 / 49 ×7; digits 9 ×34, 4 ×32, 2 ×26, 0 ×24. Rank (P+D): 1 **{2,9,9}** +4.71 (pair +2.68 digit +2.02; 29 ×11 · 99 ×4) · 2 {8,9,9} +3.94 (LA 998 + NY 899 last night) · 3 {0,4,9} +3.91 · 4 {4,8,9} +3.70 · 5 {9,9,9} +3.48 (triple) · 6 {4,4,9} +3.41 · 7 {0,2,4} +3.27 · 8 {4,5,9} +3.27 · 9 {2,2,4} +3.23 · 10 {3,9,9} +2.95.
+
+| Pool | BOX | Set stats (late-26 pool 4/01→11/06, 5,513 rows) | Lead order | Last in pool | National last · due |
+|---|---|---|---|---|---|
+| **LATE-29** (29 draws, $7.25/unit per instrument; AZ opens 8:45pm) | **{2,9,9}** (3-way double) | 20 / 16.5 all · 5 / 4.7 60d · 3 / 2.3 30d | 299 (all 299 ×9, 992 ×7, 929 ×4 → 60d 299 ×3) | AZ 929 10-16 · VA 299 10-21 | CO 299 11-01 mid · gap 419 · due 1.26 |
+
+Pays per hitting state per unit: {2,9,9} any order at the book's 3-way price (slip). 1u: one box → +(3-way payout − $7.25); blank → −$7.25.
+
+**Amend rule at the 8:24 readout:** if {2,9,9} draws in the early 13 it is closed by convention → next in line **{8,9,9} / 899**, then {0,4,9} / 049, {4,8,9} / 984. Re-run `pd_late.py … early.json` with the 13 rows added before the late placement. Reconcile late rows at the 11/08 import. Session-only, no ride. Mark PLACED only on the operator's word, with units.
+
 ## 2026-11-06 (Friday) — EVENING: 1 STRAIGHT + 1 BOX early-13 and late-29 (pair + digit), NOT PLACED; midday scans earlier
 
 **11/06 ~6:40am ET — operator: "for todays midday draws, which state is following the pattern for combos 048 and 569?" — PER-STATE MIDDAY WALK-FORWARD of the pair + digit scorer (ref = previous day midday + evening, nationwide; boxes = top-K non-triple; each midday state scored on its own midday rows; `scripts/research/composite_2026_11_03/pdm_by_state.py hist.json 2026-05-01 2026-11-05 "{0,4,8};{5,6,9}"`) + per-state landings of the two sets.** 11/06 midday not yet drawn/imported at run time; histories through 11/05 evening (15,462 rows). Boards 11/06 (posted order): Midday 273 · 382 · 186 · 724 · 758 · **804**; Evening 312 · 530 · 539 · 980 · 103 · **408**; All-Day 350 · **569** · 130 · 312 · **840** · 681 — {0,4,8} is a triple-board set (Mid 6 / Eve 6 / AD 5, three different orders); {5,6,9} = AD 2 (Eve 5 / AD 4 on 11/05, Eve 4 on 11/04).

@@ -467,3 +467,18 @@ top20 due<1        91     85.1     1.07  +0.64
 top20 due1–2       33     33.2     0.99  -0.03
 top20 due2+        57     62.4     0.91  -0.69
 ```
+
+### §7b — Pass line scored on all data held (operator 11/07 ~10:50pm ET: "why are we waiting until 1/01, use the data we have with backtest")
+
+`pair_study.py hist.json <start> <end> 5`, scorer = pair term (prev evening + same-day midday), top-5 of 220 sets; all-draws = ALL evening + ALL midday hits and expectations summed. Pass line (amended 11/07): early-13 ≥ 1.15 AND all-draws ≥ 1.15 AND anti-pair ≤ 1.00 on both.
+
+| window | early-13 hits / exp (ratio) | all-draws hits / exp (ratio) | anti early-13 | anti all-draws | pass? |
+|---|---|---|---|---|---|
+| full 5/01→11/07 | 83 / 65.3 (1.27, +2.19) | 342 / 306.0 (1.12, +2.06) | 0.86 | 0.94 | NO (all-draws < 1.15) |
+| May–Jun (held out in §7) | 25 / 21.0 (1.19) | 111 / 97.2 (1.14) | 0.59 | 0.96 | NO (all-draws 1.14) |
+| Jul–Aug (term chosen here) | 29 / 21.5 (1.35) | 115 / 100.8 (1.14) | 1.26 | 1.01 | NO (anti > 1, all-draws 1.14) |
+| Sep–Nov 7 | 29 / 22.9 (1.27) | 116 / 108.0 (1.07) | 0.74 | 0.86 | NO (all-draws 1.07) |
+| 11/03→11/07 (re-test so far) | 2 / 1.3 | 5 / 6.6 (0.76) | 0.00 | 0.60 | too small |
+
+Early-13 clears 1.15 on every window (1.19–1.35); all-draws clears on none (1.07–1.14); rank percentile of the drawn set 0.500–0.506 everywhere. Under the amended line the pair term FAILS on every window held. The 11/03→1/01 window still runs for the record; the verdict on existing data is recorded here.
+

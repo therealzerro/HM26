@@ -100,6 +100,26 @@ for i, r in enumerate(rows, 1):
     print(f"{i:2} {r['set']:8} {k:3} {ov}{'+'.join(r['boards']):11} {r['z']:+6.2f} {b['all']:4}/{b['e_all']:6.1f} {b['c60']:3}/{b['e60']:5.1f} {b['c30']:3}/{b['e30']:5.1f}  {r['straight']} ({r['why']:<22}) lead {b['lead']} {b['o60'] or b['oa']} · {b['last']}{flag}")
 print("\n* = on both boards.  Posted orders:", {r['set']: r['orders'] for r in rows})
 
+# ── per-pair detail (operator ask 11/08: "more data points") ────────────────
+srcs = {}
+if a.block == 'midday': srcs = {'prev mid': byds[(PREV, 'midday')], 'prev eve': byds[(PREV, 'evening')]}
+else: srcs = {'prev eve': byds[(PREV, 'evening')], 'today mid': byds[(D, 'midday')], 'early/extra': extra}
+dpairs = lambda s: set(H.pairs(s))
+src_cnt = {k: Counter(p for r in v for p in dpairs(r['result_digits'])) for k, v in srcs.items()}
+blk60 = [r for r in blk if r['date_et'] >= D60]
+pc60 = Counter(p for r in blk60 for p in dpairs(r['result_digits']))
+pair_base = {True: 0.028, False: 0.054}  # P(draw contains doubled pair) / mixed pair
+recent = [r for r in hist if r['date_et'] > (dt.date.fromisoformat(D) - dt.timedelta(7)).isoformat()] + extra
+print("\nPER-PAIR DETAIL · reference counts by source · block 60d count vs expectation · 7-day national scan of the set")
+for r in rows:
+    cs = r['set']; parts = []
+    for p in sorted(set(SP[cs])):
+        dbl = p[0] == p[1]; e60 = len(blk60) * pair_base[dbl]
+        src = ' '.join(f"{k.split()[0][:3]}{src_cnt[k][p]}" for k in srcs)
+        parts.append(f"{p}: ref {sum(src_cnt[k][p] for k in srcs)} ({src}) · blk60 {pc60[p]}/{e60:.0f}")
+    hits7 = [f"{x['jurisdiction']} {x['result_digits']} {x['date_et'][5:]}{x['session'][:1]}" for x in recent if x['comboset_sorted'] == cs]
+    print(f"  {cs} {r['straight']}: " + ' | '.join(parts) + f" | 7d set draws: {', '.join(hits7) or 'none'}")
+
 # loud universe
 open_sets = [cs for cs in H.ALLSETS if cs not in drawn_today and H.cls(cs) > 1]
 uni = sorted(open_sets, key=lambda cs: (-z[cs], cs))

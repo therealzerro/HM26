@@ -11,7 +11,7 @@ pair+digit score AND block 60d count >= expectation).
 Rank key (in order):
   1. not yet drawn today (drawn-today sets stay listed, at the bottom)
   2. on BOTH boards (overlap) before single-board
-  3. pair+digit z on the reference block (prev evening + today's midday [+ --extra rows];
+  3. pair+digit z on the reference block, DISTINCT pair counting (prev evening + today's midday [+ --extra rows];
      for `midday`: prev-day midday + prev-day evening)
   4. block 60d count minus expectation
 Straight order = posted order when both boards agree; else the posted order that
@@ -42,8 +42,9 @@ for sc, ps in boards.items():
 byds = defaultdict(list)
 for r in hist: byds[(r['date_et'], r['session'])].append(r)
 ref = (byds[(PREV, 'midday')] + byds[(PREV, 'evening')]) if a.block == 'midday' else (byds[(PREV, 'evening')] + byds[(D, 'midday')] + extra)
-pc = Counter(p for r in ref for p in H.pairs(r['result_digits'])); dc = Counter(ch for r in ref for ch in r['result_digits'])
-SP = {cs: H.pairs(H.digs(cs)) for cs in H.ALLSETS}
+# DISTINCT pair counting (operator 11/08): a pair counts once per draw (858 -> 58 x1, 88 x1); a set's doubled pair scores once too.
+pc = Counter(p for r in ref for p in set(H.pairs(r['result_digits']))); dc = Counter(ch for r in ref for ch in r['result_digits'])
+SP = {cs: sorted(set(H.pairs(H.digs(cs)))) for cs in H.ALLSETS}
 def zstd(val):
     out = {}
     for k in (6, 3, 1):

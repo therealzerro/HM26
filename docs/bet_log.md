@@ -2,6 +2,16 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
+## 2026-11-08 (Sunday) — 11/07 late box RECONCILED; board-leaning pick rule + landing tracker built
+
+**11/08 ~7:50pm ET — 11/07 LATE-29 BOX {2,9,9} RECONCILED BLANK −$7.25** (11/07 evening = 41 rows in histories, no {2,9,9}; AZ 929 was 10-16). **Running PLACED −$370.50 + MN box (slip).** Nothing placed 11/08.
+
+**Operator rule (11/08, logic session):** (1) "picks for drawing X" = the All-Day board; (2) early-13 / late-29 / a single block = All-Day board + the session board (Midday board for midday blocks, Evening board for evening blocks), ordered by that block's own data; the universe only enters when it is LOUD; (3) a set on both boards outranks a single-board set; (4) prefer sets not yet drawn today (drawn sets stay listed, at the bottom — the 11/04 "drawn sets stay in" ruling still holds); (5) a pick that misses its day but lands D+1 / D+2 is tracked, not written off. Built: `scripts/picks/board_lean.py` (block picks: `--block early13|late29|midday|evening --date D [--extra early.json]`), `scripts/picks/track_landings.py` (D / D+1 / D+2 landings for every board pick since 4/18 and every row of `docs/operator_picks.csv`, vs exact uniform expectation; prints OPEN RIDES), `docs/operator_picks.csv` (seeded from this log, 10/18→11/07).
+
+**Tracker through 11/07 (board picks, any draw; 1,223 picks per scope):** box same day / by D+1 / by D+2 = Mid 34.3 / 56.5 / 71.0% (exp 35.3 / 58.0 / 72.8), Eve 33.5 / 57.6 / 71.9% (exp 35.2 / 58.0 / 72.7), All-Day 35.8 / 58.3 / 72.6% (exp 35.3 / 58.1 / 72.8); straight by D+2 Mid 18.7% (z −0.9), Eve 21.8% (z +1.6), All-Day 20.3% (z +0.4). Operator placed picks (36 rows): box same day 5 / 4.1 exp, by D+2 25 / 21.0 (z +1.4); straight by D+2 3 / 5.4. Every cell inside ±2 z.
+
+**11/08 late-29 board-lean (provisional, early-13 not in; 68-draw reference = 11/07 eve 41 + 11/08 mid 27):** 1 {4,5,9} +3.94 (AD6+EV3, straight 945 by All-Day order; late lead 549) · 2 {4,5,8} +3.62 (AD3+EV5, 854 both boards) · 3 {0,4,9} +2.56 (AD5+EV4, 940) · 4 {3,5,7} −0.31 · 5 {3,7,9} −1.31 · 6 {0,5,8} +2.34 (EV6 only) · 7 {0,2,5} −1.14 (AD1 only). Loud universe: {4,5,5} +3.91 (universe #3; late 60d 7/4.7, 30d 6/2.3; CO 554 11/07). Sunday late block = 25 draws → $6.25/unit. NOT proposed, NOT placed; re-run with `--extra early.json` at the 8:24 readout on request.
+
 ## 2026-11-07 (Saturday) — LATE-29: 1 BOX {2,9,9} PLACED 1 unit $7.25 (pair + digit)
 
 **11/07 ~7:50pm ET — operator: "deep think and give me 1 box pick for tonights late drawings" — PAIR + DIGIT (study §9b), reference = 11/06 evening 42 + 11/07 midday 33 = 75 draws (early-13 not yet drawn → PROVISIONAL); midday-drawn sets closed (31 sets), previous-evening draws kept in (11/04 ruling); box = top non-triple. `pd_late.py hist.json 2026-11-06 2026-11-07` (hist pulled 7:48pm, 15,570 rows through 11/07 midday). NOT PLACED.**

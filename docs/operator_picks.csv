@@ -40,8 +40,8 @@ date,block,set,order,type,units,placed,note
 2026-11-06,late29,"{0,3,9}",903,S,1,no,
 2026-11-06,late29,"{0,3,9}",039,B,1,no,
 2026-11-07,late29,"{2,9,9}",299,B,1,yes,PLACED 1u $7.25
-2026-11-08,late29,"{4,5,9}",945,S,,no,11/08 late-29 board-lean #1 (AD6+EV3) proposed 7:55pm provisional
-2026-11-08,late29,"{4,5,9}",459,B,,no,
+2026-11-08,late29,"{4,5,9}",945,S,1,yes,11/08 late-29 board-lean #1 (AD6+EV3); PLACED 1S+1B $12.50 ~8:05pm
+2026-11-08,late29,"{4,5,9}",459,B,1,yes,
 2026-11-08,late29,"{4,5,8}",854,S,,no,board-lean #2 (AD3+EV5 same order)
 2026-11-08,late29,"{4,5,8}",458,B,,no,
 2026-11-08,late29,"{0,4,9}",940,S,,no,board-lean #3 (AD5+EV4)

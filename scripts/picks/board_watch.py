@@ -52,6 +52,17 @@ if a.list:
         for p in S['picks']:
             m = [f"{r['jurisdiction']} {r['result_digits']} {r['date_et'][5:]} {r['session'][:3]}" for r in win if r['comboset_sorted'] == p['set']]
             print(f"  {p['n']} {p['set']:8} {p['source']:22} " + ('BOX MATCH ' + ', '.join(m) if m else '· open'))
+        if S.get('straights'):   # straights riding with the boxes (11/10): $225 per unit per hitting state
+            su = S['straights']['units_each']; sp = S['straights']['picks']; scost = len(win) * 0.25 * su * len(sp); spaid = 0
+            for p in sp:
+                m = [f"{r['jurisdiction']} {r['date_et'][5:]} {r['session'][:3]}" for r in win if r['result_digits'] == p['order']]; spaid += len(m) * 225 * su
+                o = [f"{r['jurisdiction']} {r['result_digits']} {r['date_et'][5:]}" for r in win if r['comboset_sorted'] == p['set'] and r['result_digits'] != p['order']]
+                print(f"  S {p['order']} {p['set']:8} {su}S " + ('STRAIGHT MATCH ' + ', '.join(m) if m else '· open') + (f"  | set drew in another order: {', '.join(o)}" if o else ''))
+            print(f"  straights staked ${scost:.2f} · paid ${spaid:.2f} | WHOLE TICKET staked ${cost + scost:.2f} · paid ${paid + spaid:.2f} · net ${paid + spaid - cost - scost:+.2f}")
+            for d in sorted({r['date_et'] for r in win}):
+                dw = [r for r in win if r['date_et'] == d]; dc = len(dw) * 0.25 * (u * len(S['picks']) + su * len(sp))
+                dp = sum({6: 37.5, 3: 75.0}[H.cls(r['comboset_sorted'])] * u for r in dw if r['comboset_sorted'] in sets) + sum(225 * su for r in dw for p in sp if r['result_digits'] == p['order'])
+                print(f"    {d}: {len(dw)} draws · staked ${dc:.2f} · paid ${dp:.2f} · net ${dp - dc:+.2f}")
     else: print(f"\nSTRIKE LIST {a.list.rsplit('/', 1)[-1]} · window {w0}→{w1} · {len(win)} draws in so far · STRAIGHT matches {len(ex)}")
     for p in ([] if BOX else S['picks']):
         m = [r for r in win if r['comboset_sorted'] == p['set']]

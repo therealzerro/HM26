@@ -3912,6 +3912,28 @@ Going forward, every change to `app_config` keys affecting engine behavior gets 
 
 Engine-affecting keys (non-exhaustive): `engine_weights_*`, `pressure_threshold`, `recent_hit_cooldown`, `min_energy_threshold`, `pair_rep_cap`, `k6_singles_max`, `k6_doubles_max`, `k6_triples_on`, `synergy_boost_on`, `synergy_boost_weight`.
 
+### ENG-DOUBLES-BOARD-01 — Doubles on the boards (the 11/10 strike-ticket "doubles method") — **REFUTED 2026-11-10 (board-swap probe; no engine/edge code, no config row)**
+
+- **Ask (operator, 11/10):** "can you back test your new doubles method to see if this should be added to our boards?" The method is a TICKET shape (three 3-way boxes at 6B: one match pays $450 and clears a $337.50 day → positive on 47.3% of days vs 37.0% for three 6-way boxes, same average net). It is a dollars-per-day property of a stake, not a match-rate property.
+- **Probe:** `scripts/picks/doubles_board_test.py --to 2026-11-09` — histories × live balanced snapshots (never stored hit flags), 162 board days 6/01→11/09. CANDIDATE = the posted board with its last N picks swapped for the top 60-day doubles not already on it. Live rails unchanged (`k6_doubles_max=2`, `k6_singles_max=6`); the boards posted 3 doubles in 2,916 picks.
+- **Universe / selector:** top-3 doubles by 60-day count, walk-forward: 114 matches / 107.4 exp (ratio 1.062, z +0.64) — the selection adds nothing measurable; a double matches at half a single's rate per draw by construction (3 orders vs 6).
+- **Both lenses, both windows (BASELINE → swap 1 / swap 2 / swap 3 / all six):**
+
+| Scope | Window | Pick % | Slate % |
+|---|---|---|---|
+| All-Day | 30d | 38.9 → 35.6 / 30.0 / 26.7 / 14.4 | 96.7 → 96.7 / 96.7 / 93.3 / 66.7 |
+| All-Day | 60d | 36.1 → 33.9 / 29.7 / 26.1 / 18.1 | 95.0 → 95.0 / 91.7 / 86.7 / 66.7 |
+| All-Day | 162d | 36.3 → 32.8 / 31.2 / 27.8 / 21.2 | 94.4 → 93.2 / 92.0 / 89.5 / 74.1 |
+| Evening | 30d | 18.9 → 13.9 / 12.2 / 13.3 / 10.6 | 76.7 → 56.7 / 53.3 / 60.0 / 53.3 |
+| Evening | 60d | 20.8 → 17.5 / 14.7 / 14.4 / 11.1 | 76.7 → 61.7 / 61.7 / 61.7 / 48.3 |
+| Evening | 162d | 20.7 → 17.9 / 17.0 / 16.4 / 13.2 | 74.1 → 64.8 / 66.0 / 63.6 / 56.8 |
+| Midday | 30d | 18.9 → 16.1 / 13.9 / 11.7 / 4.4 | 80.0 → 73.3 / 63.3 / 56.7 / 23.3 |
+| Midday | 60d | 17.2 → 15.6 / 14.4 / 12.5 / 7.8 | 75.0 → 70.0 / 65.0 / 61.7 / 36.7 |
+| Midday | 162d | 16.9 → 15.9 / 14.9 / 12.9 / 9.0 | 69.8 → 67.3 / 63.6 / 58.0 / 41.4 |
+
+- **Dollars at 1B per pick on every draw of the scope (162d):** All-Day −$1,693.50 baseline vs −$2,143.50 / −$1,506.00 / −$1,993.50 / −$718.50; Evening −$1,372.50 vs −$1,710.00 / −$1,410.00 / −$847.50 / +$315.00; Midday −$996.00 vs −$846.00 / −$433.50 / −$1,033.50 / −$1,033.50 — no ordering; the 3-way payout offsets the halved match rate, so money is a wash while both board lenses fall.
+- **Verdict: REFUTED for the boards.** CANDIDATE < BASELINE on pick % in every scope, both windows, every swap depth (−2.2 to −5.0pp at one swap, past the 1.7pp floor), and on slate % everywhere it moves (Evening −10 to −20pp at ONE swap). Never re-propose doubles as a board-composition lever (joins the doubles-floor and doublesTopN verdicts). The doubles shape stays an operator TICKET choice only (`docs/bet_log.md` 11/10).
+
 ### ENG-DIGITREP-01 — Digit-carryover post-score channel — **REFUTED 2026-11-03 (harness-only probe; no engine/edge code, no config row)**
 
 **Ask.** Operator 11/03 ~5:30pm ET after study §9b ("pair + digit, no composite" was the only ticket-side scorer above the pair term alone: early-13 top-5 +2.20 / +0.99 IS/OOS): "should we make this change in the entire engine? this is positive change." Walk-forward ticket diffs are hypothesis-grade; the engine gate is the harness.

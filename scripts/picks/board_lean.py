@@ -14,6 +14,10 @@ Rank key (in order):
   3. pair+digit z on the reference block, DISTINCT pair counting (prev evening + today's midday [+ --extra rows];
      for `midday`: prev-day midday + prev-day evening)
   4. block 60d count minus expectation
+`--block allday` (operator 11/10, "a match for tomorrow from the allday drawings"): pool = the All-Day board
+ALONE; a set also posted on the Midday / Evening board is marked and ranks first (more boards first); the
+block is every draw of the day; reference = the whole previous day (midday + evening [+ --extra rows of
+that day not yet imported]).
 Straight order = posted order when both boards agree; else the posted order that
 matches the block's lead order; else the All-Day posted order.
 """
@@ -27,21 +31,24 @@ ap.add_argument('--cache'); ap.add_argument('--top', type=int, default=3); a = a
 D = a.date; PREV = (dt.date.fromisoformat(D) - dt.timedelta(1)).isoformat()
 hist = H.histories(a.cache); snaps = H.snapshots(a.cache)
 extra = json.load(open(a.extra)) if a.extra else []
-for r in extra:
-    r.setdefault('session', 'evening'); r['date_et'] = D; r['comboset_sorted'] = H.setof(r['result_digits'])
 sess, pool, sboard = H.BLOCKS[a.block]
+AD = a.block == 'allday'
+for r in extra:
+    r.setdefault('session', 'evening'); r['date_et'] = PREV if AD else D; r['comboset_sorted'] = H.setof(r['result_digits'])
 
 # boards
-boards = {sc: sorted([p for p in snaps if p['date'] == D and p['scope'] == sc], key=lambda p: p['rank']) for sc in ('allday', sboard)}
-if not boards['allday'] or not boards[sboard]: sys.exit(f"no live boards for {D} (allday={len(boards['allday'])}, {sboard}={len(boards[sboard])})")
+boards = {sc: sorted([p for p in snaps if p['date'] == D and p['scope'] == sc], key=lambda p: p['rank']) for sc in (('allday', 'midday', 'evening') if AD else ('allday', sboard))}
+if not boards['allday'] or (not AD and not boards[sboard]): sys.exit(f"no live boards for {D} (allday={len(boards['allday'])}, {sboard}={len(boards.get(sboard, []))})")
 cand = {}
 for sc, ps in boards.items():
-    for p in ps: cand.setdefault(p['set'], {'orders': {}, 'boards': []}); cand[p['set']]['orders'][sc] = p['order']; cand[p['set']]['boards'].append(f"{sc[:2].upper()}{p['rank']}")
+    for p in ps:
+        if AD and sc != 'allday' and p['set'] not in cand: continue   # allday block: session boards only mark overlap
+        cand.setdefault(p['set'], {'orders': {}, 'boards': []}); cand[p['set']]['orders'][sc] = p['order']; cand[p['set']]['boards'].append(f"{sc[:2].upper()}{p['rank']}")
 
 # reference block for pair+digit (same convention as pd_early / pd_late)
 byds = defaultdict(list)
 for r in hist: byds[(r['date_et'], r['session'])].append(r)
-ref = (byds[(PREV, 'midday')] + byds[(PREV, 'evening')]) if a.block == 'midday' else (byds[(PREV, 'evening')] + byds[(D, 'midday')] + extra)
+ref = (byds[(PREV, 'midday')] + byds[(PREV, 'evening')] + (extra if AD else [])) if a.block in ('midday', 'allday') else (byds[(PREV, 'evening')] + byds[(D, 'midday')] + extra)
 # DISTINCT pair counting (operator 11/08): a pair counts once per draw (858 -> 58 x1, 88 x1); a set's doubled pair scores once too.
 pc = Counter(p for r in ref for p in set(H.pairs(r['result_digits']))); dc = Counter(ch for r in ref for ch in r['result_digits'])
 SP = {cs: sorted(set(H.pairs(H.digs(cs)))) for cs in H.ALLSETS}
@@ -55,7 +62,7 @@ zp = zstd({cs: sum(pc[p] for p in SP[cs]) for cs in H.ALLSETS}); zd = zstd({cs: 
 z = {cs: zp[cs] + zd[cs] for cs in H.ALLSETS}
 
 # drawn today (any session) incl. extra rows
-today = byds[(D, 'midday')] + byds[(D, 'evening')] + extra
+today = byds[(D, 'midday')] + byds[(D, 'evening')] + ([] if AD else extra)
 drawn_today = defaultdict(list)
 for r in today: drawn_today[r['comboset_sorted']].append(f"{r['jurisdiction']} {r['result_digits']} {r['session'][:3]}")
 
@@ -79,16 +86,17 @@ ndraws = len([r for r in blk if r['date_et'] == same_wd[-1]]) if same_wd else 0
 
 rows = []
 for cs, c in cand.items():
-    b = bstat(cs); ov = len(c['orders']) == 2; orders = c['orders']
+    b = bstat(cs); ov = len(c['orders']) >= 2; orders = c['orders']
     if ov and len(set(orders.values())) == 1: straight = orders['allday']; why = 'both boards same order'
     elif b['lead'] in orders.values(): straight = b['lead']; why = 'posted order = block lead'
     else: straight = orders.get('allday') or next(iter(orders.values())); why = 'All-Day posted order'
-    rows.append(dict(set=cs, drawn=cs in drawn_today, overlap=ov, z=z[cs], d60=b['c60'] - b['e60'], b=b, straight=straight, why=why, orders=orders, boards=c['boards']))
-rows.sort(key=lambda r: (r['drawn'], not r['overlap'], -r['z'], -r['d60'], r['set']))
+    rows.append(dict(set=cs, drawn=cs in drawn_today, overlap=ov, nb=len(orders), z=z[cs], d60=b['c60'] - b['e60'], b=b, straight=straight, why=why, orders=orders, boards=c['boards']))
+rows.sort(key=lambda r: (r['drawn'], -r['nb'], -r['z'], -r['d60'], r['set']))
 
-print(f"BOARD-LEAN · block {a.block} ({sess}{'' if pool is None else f', {len(pool)} jurisdictions'}) · target {D} · boards All-Day + {sboard}")
-print(f"reference block for pair+digit: {len(ref)} draws ({'prev midday+evening' if a.block=='midday' else f'{PREV} evening {len(byds[(PREV,'evening')])} + {D} midday {len(byds[(D,'midday')])} + extra {len(extra)}'})"
-      + ('  — PROVISIONAL (today midday not imported)' if a.block != 'midday' and not byds[(D, 'midday')] else ''))
+print(f"BOARD-LEAN · block {a.block} ({sess or 'midday + evening'}{'' if pool is None else f', {len(pool)} jurisdictions'}) · target {D} · boards {'All-Day (Midday / Evening overlap marked)' if AD else 'All-Day + ' + sboard}")
+print(f"reference block for pair+digit: {len(ref)} draws ({f'{PREV} midday {len(byds[(PREV,"midday")])} + evening {len(byds[(PREV,"evening")])} + extra {len(extra) if AD else 0}' if a.block in ('midday','allday') else f'{PREV} evening {len(byds[(PREV,'evening')])} + {D} midday {len(byds[(D,'midday')])} + extra {len(extra)}'})"
+      + ('  — PROVISIONAL (today midday not imported)' if a.block not in ('midday', 'allday') and not byds[(D, 'midday')] else '')
+      + (f'  — PROVISIONAL ({PREV} evening not imported)' if AD and not byds[(PREV, 'evening')] and not extra else ''))
 print(f"block history 4/01→{PREV}: {n} draws (60d {n60}, 30d {n30}); last same-weekday block = {ndraws} draws → ${ndraws*0.25:.2f}/unit")
 print(f"pair repeats ≥4: {[(p,c) for p,c in pc.most_common() if c>=4]} · digits: {dict(dc.most_common(5))}")
 print(f"drawn today so far: {sum(1 for r in today)} rows, {len(drawn_today)} sets\n")
@@ -99,11 +107,11 @@ for i, r in enumerate(rows, 1):
     flag = ' DRAWN TODAY ' + '; '.join(drawn_today[r['set']]) if r['drawn'] else ''
     ov = '*' if r['overlap'] else ' '
     print(f"{i:2} {r['set']:8} {k:3} {ov}{'+'.join(r['boards']):11} {r['z']:+6.2f} {b['all']:4}/{b['e_all']:6.1f} {b['c60']:3}/{b['e60']:5.1f} {b['c30']:3}/{b['e30']:5.1f}  {r['straight']} ({r['why']:<22}) lead {b['lead']} {b['o60'] or b['oa']} · {b['last']}{flag}")
-print("\n* = on both boards.  Posted orders:", {r['set']: r['orders'] for r in rows})
+print("\n* = on " + ("the All-Day board AND a session board." if AD else "both boards.") + "  Posted orders:", {r['set']: r['orders'] for r in rows})
 
 # ── per-pair detail (operator ask 11/08: "more data points") ────────────────
 srcs = {}
-if a.block == 'midday': srcs = {'prev mid': byds[(PREV, 'midday')], 'prev eve': byds[(PREV, 'evening')]}
+if a.block in ('midday', 'allday'): srcs = {'prev mid': byds[(PREV, 'midday')], 'prev eve': byds[(PREV, 'evening')], **({'early/extra': extra} if AD else {})}
 else: srcs = {'prev eve': byds[(PREV, 'evening')], 'today mid': byds[(D, 'midday')], 'early/extra': extra}
 dpairs = lambda s: set(H.pairs(s))
 src_cnt = {k: Counter(p for r in v for p in dpairs(r['result_digits'])) for k, v in srcs.items()}

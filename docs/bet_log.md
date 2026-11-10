@@ -2,6 +2,18 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
+## 2026-11-10 (Tuesday) — DAY WATCH for an 11/11 All-Day match; 11/09 late RECONCILED BLANK
+
+**11/10 ~10:00am ET — 11/09 LATE 895 S + {5,8,9} B RECONCILED BLANK** (11/09 evening = 42 rows in histories, no {5,8,9} in any draw of the day). Stake per slip (−$13.00 if the full 26-draw block; slip figure still owed). **Running PLACED −$383.50 at the full-block figure + MN box.** Ride {5,8,9} day 2 today (All-Day #4 985 + Evening #3 859 today).
+
+**11/10 ~10:00am ET — operator: "we need a great match for tomorrow, from the allday drawings … monitor all patterns and picks on the boards today to prepare to strike tomorrow".** Nothing proposed, nothing placed. Built:
+- `scripts/picks/board_watch.py --date D [--extra rows.json]` — today's three boards vs today's draws (landed / open), today's pair + digit tally (= tomorrow's reference block), the carry list (All-Day picks still open, ride day 2 / day 3 tomorrow), board persistence. Re-run at the midday import, the 8:24 paste, the evening import.
+- `scripts/picks/board_lean.py --block allday --date D` — pool = the All-Day board alone; a set also on the Midday / Evening board ranks first (three boards before two before one); block = all 75 draws ($18.75/unit Wed); reference = the whole previous day.
+
+**Baseline before any 11/10 draw.** Boards: All-Day 573 · 837 · 410 · 985 · 408 · 637; Midday 617 · 852 · 854 · 408 · 637 · 325; Evening 594 · 401 · 859 · 637 · 408 · 394. **408 {0,4,8} and 637 {3,6,7} on all three boards, same order** (TRIPLE BOARD SIGNAL); {5,8,9} and {0,1,4} on All-Day + Evening (orders differ). Open rides into today: {0,4,9} 940, {3,7,8} 837, {5,8,9}, {0,1,9} 901 (11/09 All-Day, day 2); {4,5,8} 854, {3,5,7} (11/08, day 3 final today). Board persistence 4/18→11/09: an All-Day pick whose set did not draw is on the next day's All-Day board 469 of 794 (59.1%); a set that drew, 13 of 441 (2.9%).
+
+**The 11/11 pick is built 11/11 after the Daily Workflow posts the All-Day board:** `python3 scripts/picks/board_lean.py --block allday --date 2026-11-11` (needs the full 11/10 day imported; an unimported evening → `--extra` paste).
+
 ## 2026-11-09 (Monday) — LATE: 895 S + {5,8,9} B PLACED 1 unit each (post-9:15pm draws); early-13 readout
 
 **11/09 ~10:07pm ET — PLACED (operator: "placed 1 unit 895 straight and 589 box late"):** late pool, **895 STRAIGHT 1S + {5,8,9} BOX 1B**, draws after 9:15pm. Stake = $0.25 × draws on the slip × 2 instruments ($13.00 if the full 26-draw block; fewer draws after 9:15 → less — slip figure owed). Pays per hitting state: straight $225, box $37.50 (895 exact pays both). Picks 2–3 (901 / {0,1,9}, 308 / {0,3,8}) NOT placed. Ride {5,8,9} opens day 1 (11/09). Reconcile at the 11/10 import. Running PLACED before tonight −$370.50 + MN box.

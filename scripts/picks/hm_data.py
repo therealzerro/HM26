@@ -59,6 +59,7 @@ BLOCKS = {  # block -> (session, jurisdictions or None=all, session board scope)
     'early13': ('evening', EARLY13, 'evening'),
     'late29':  ('evening', LATE26,  'evening'),
     'evening': ('evening', None,    'evening'),
+    'allday':  (None,      None,    None),   # 11/10: every draw of the day; pool = the All-Day board alone
 }
 ALLSETS = sorted({'{' + ','.join(sorted(f"{i:03d}")) + '}' for i in range(1000)})
 def digs(cs): return cs[1::2]
@@ -67,4 +68,4 @@ def setof(d): return '{' + ','.join(sorted(d)) + '}'
 def pairs(s): return [''.join(sorted(s[a] + s[b])) for a, b in ((0, 1), (0, 2), (1, 2))]
 def in_block(r, block):
     sess, pool, _ = BLOCKS[block]
-    return r['session'] == sess and (pool is None or r['jurisdiction'] in pool)
+    return (sess is None or r['session'] == sess) and (pool is None or r['jurisdiction'] in pool)

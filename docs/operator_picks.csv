@@ -73,3 +73,6 @@ date,block,set,order,type,units,placed,note
 2026-11-10,allday,"{5,8,9}",895,S,,no,strike list #18 tier B (AD-rank10) — window 11/10+11/11
 2026-11-10,allday,"{5,8,9}",958,S,,no,strike list #19 tier B (AD-rank2) — window 11/10+11/11
 2026-11-10,allday,"{0,4,9}",940,S,,no,strike list #20 tier C (11/09 AD ride d2) — window 11/10+11/11
+2026-11-10,allday,"{5,8,9}",589,B,2,no,strike plan v2: 3 boxes at 2B = 6 bets $1.50/draw (AD4 985 + EV3 859) — window 11/10+11/11; supersedes the 20-straight list
+2026-11-10,allday,"{3,6,7}",367,B,2,no,strike plan v2: 3 boxes at 2B = 6 bets $1.50/draw (AD6+MD5+EV4 637) — window 11/10+11/11; supersedes the 20-straight list
+2026-11-10,allday,"{0,1,4}",014,B,2,no,strike plan v2: 3 boxes at 2B = 6 bets $1.50/draw (AD3 410 + EV2 401) — window 11/10+11/11; supersedes the 20-straight list

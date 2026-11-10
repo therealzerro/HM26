@@ -45,8 +45,15 @@ if a.list:
     S = json.load(open(a.list)); w0, w1 = S['window']; win = [r for r in hist if w0 <= r['date_et'] <= min(w1, D)]
     orders = {p['order'] for p in S['picks']}
     ex = [r for r in win if r['result_digits'] in orders]
-    print(f"\nSTRIKE LIST {a.list.rsplit('/', 1)[-1]} · window {w0}→{w1} · {len(win)} draws in so far · STRAIGHT matches {len(ex)}")
-    for p in S['picks']:
+    BOX = S.get('type') == 'B'; sets = {p['set'] for p in S['picks']}; u = S.get('units_each', 1)
+    if BOX:
+        bh = [r for r in win if r['comboset_sorted'] in sets]; cost = len(win) * 0.25 * u * len(S['picks']); paid = len(bh) * 37.5 * u
+        print(f"\nSTRIKE LIST {a.list.rsplit('/', 1)[-1]} · BOX ×{len(S['picks'])} at {u}B · window {w0}→{w1} · {len(win)} draws in so far · BOX matches {len(bh)} · staked ${cost:.2f} · paid ${paid:.2f} · net ${paid - cost:+.2f} (if on every draw)")
+        for p in S['picks']:
+            m = [f"{r['jurisdiction']} {r['result_digits']} {r['date_et'][5:]} {r['session'][:3]}" for r in win if r['comboset_sorted'] == p['set']]
+            print(f"  {p['n']} {p['set']:8} {p['source']:22} " + ('BOX MATCH ' + ', '.join(m) if m else '· open'))
+    else: print(f"\nSTRIKE LIST {a.list.rsplit('/', 1)[-1]} · window {w0}→{w1} · {len(win)} draws in so far · STRAIGHT matches {len(ex)}")
+    for p in ([] if BOX else S['picks']):
         m = [r for r in win if r['comboset_sorted'] == p['set']]
         st_ = [f"{r['jurisdiction']} {r['date_et'][5:]} {r['session'][:3]}" for r in m if r['result_digits'] == p['order']]
         bx = [f"{r['jurisdiction']} {r['result_digits']} {r['date_et'][5:]} {r['session'][:3]}" for r in m if r['result_digits'] != p['order']]

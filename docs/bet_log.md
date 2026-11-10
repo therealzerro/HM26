@@ -1,6 +1,6 @@
 # Operator Bet Log
 
-Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
+Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. **3-way box (double) 300:1 = $75.00/unit** (operator 11/10). Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
 ## 2026-11-10 (Tuesday) — DAY WATCH for an 11/11 All-Day match; 11/09 late RECONCILED BLANK
 
@@ -9,6 +9,8 @@ Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw p
 **11/10 ~10:00am ET — operator: "we need a great match for tomorrow, from the allday drawings … monitor all patterns and picks on the boards today to prepare to strike tomorrow".** Nothing proposed, nothing placed. Built:
 - `scripts/picks/board_watch.py --date D [--extra rows.json]` — today's three boards vs today's draws (landed / open), today's pair + digit tally (= tomorrow's reference block), the carry list (All-Day picks still open, ride day 2 / day 3 tomorrow), board persistence. Re-run at the midday import, the 8:24 paste, the evening import.
 - `scripts/picks/board_lean.py --block allday --date D` — pool = the All-Day board alone; a set also on the Midday / Evening board ranks first (three boards before two before one); block = all 75 draws ($18.75/unit Wed); reference = the whole previous day.
+
+**11/10 ~11:10am ET — 3-WAY BOX PAYOUT (operator: "3way box pays $75 per $.25 unit (state match)").** {4,4,6} at 6B pays **$450.00 per hitting state**; {4,6,9} / {4,5,6} $225.00. Added to the pricing line at the top of this log and to `board_watch.py`'s net. Supersedes the "slip figure owed" note in the 11:05 entry.
 
 **11/10 ~11:05am ET — STRIKE PLAN FINAL SETS (operator: "use the universe three") — PROPOSED, NOT PLACED.** **BOX {4,6,9} · BOX {4,4,6} · BOX {4,5,6}, 6B each, all states, every draw, window 11/10 + 11/11.** $4.50 per draw → $337.50 per 75-draw day, $675.00 both days. {4,6,9} and {4,5,6} are 6-way boxes: $225.00 per hitting state at 6B. **{4,4,6} is a 3-way box — the book's 3-way payout is not decoded in this log (only the 6-way $37.50/unit is); slip figure owed before any net is computed for it.** The named three ({5,8,9} · {3,6,7} · {0,1,4}) are superseded (kept in the json under `superseded_boxes`; csv rows marked). Watch: `board_watch.py --date <day> --list docs/strike_2026_11_10.json` after each import / paste. Mark PLACED only on the operator's word.
 

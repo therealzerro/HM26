@@ -47,8 +47,8 @@ if a.list:
     ex = [r for r in win if r['result_digits'] in orders]
     BOX = S.get('type') == 'B'; sets = {p['set'] for p in S['picks']}; u = S.get('units_each', 1)
     if BOX:
-        bh = [r for r in win if r['comboset_sorted'] in sets]; cost = len(win) * 0.25 * u * len(S['picks']); paid = sum(37.5 * u for r in bh if H.cls(r['comboset_sorted']) == 6); n3 = sum(H.cls(r['comboset_sorted']) == 3 for r in bh)
-        print(f"\nSTRIKE LIST {a.list.rsplit('/', 1)[-1]} · BOX ×{len(S['picks'])} at {u}B · window {w0}→{w1} · {len(win)} draws in so far · BOX matches {len(bh)} · staked ${cost:.2f} · paid ${paid:.2f} · net ${paid - cost:+.2f} (if on every draw)" + (f" + {n3} three-way box match(es) NOT priced (book 3-way payout owed)" if n3 else '') + (" · 3-way boxes pay at the book's 3-way rate, not in this net" if any(H.cls(p['set']) == 3 for p in S['picks']) else ''))
+        bh = [r for r in win if r['comboset_sorted'] in sets]; cost = len(win) * 0.25 * u * len(S['picks']); paid = sum({6: 37.5, 3: 75.0}[H.cls(r['comboset_sorted'])] * u for r in bh)   # per $0.25 unit per hitting state: 6-way $37.50, 3-way $75.00 (operator 11/10)
+        print(f"\nSTRIKE LIST {a.list.rsplit('/', 1)[-1]} · BOX ×{len(S['picks'])} at {u}B · window {w0}→{w1} · {len(win)} draws in so far · BOX matches {len(bh)} · staked ${cost:.2f} · paid ${paid:.2f} · net ${paid - cost:+.2f} (if on every draw)")
         for p in S['picks']:
             m = [f"{r['jurisdiction']} {r['result_digits']} {r['date_et'][5:]} {r['session'][:3]}" for r in win if r['comboset_sorted'] == p['set']]
             print(f"  {p['n']} {p['set']:8} {p['source']:22} " + ('BOX MATCH ' + ', '.join(m) if m else '· open'))

@@ -1544,3 +1544,5 @@ Branch plan agreed ~6pm:
 - **Near-miss texture:** AR 615 {1,5,6} brushed three of four core combos 2-of-3. Core sets averaged ~6–7 two-digit brushes each across 43 draws — normal density, feels closer than it is.
 - **Digit skew:** 8 tied for hottest digit (in 17/43 draws); none of the 8 bet combos contained an 8. Not predictable ex-ante, just explains the texture.
 - **Base rates intact:** evening 0/6 slates occurred 3 of the last 8 days (7/16, 7/19, 7/22); allday has ≥1 hit every day this week. No tripwire condition met.
+
+- **11/10 midday check (33 of 33 midday draws in the ledger, same states as last Tuesday):** strike ticket — 0 matches on all five lines. {6,8,8} open · {4,8,8} open · {6,6,7} open · 012 open (set drew in another order: NY 210) · 725 open. At every-draw sizing: staked $181.50, paid $0.00, net −$181.50 through midday (slip figure owed). Boards: All-Day 1 of 6 (MO 804 box on 408), Midday 1 of 6 (same), Evening not drawn yet. Ticket stays live into the evening draws.

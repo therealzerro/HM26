@@ -7,28 +7,28 @@
  "type": "B",
  "units_each": 6,
  "per_draw": 5.5,
- "rule": "operator 11/10 'create your own thinking and method': ticket SHAPE, not set prediction \u2014 three 3-way (double) boxes at 6B, all states, every draw; one match ($450) clears a full day's stake ($337.50). Tie-break among the 90 doubles = highest 60-day count. + two straights at 2S on OTHER sets (operator 11/10 'use your own thinking for 2 straight picks'): every line pays $450 per hitting state, any one hit clears the $412.50 day. Tie-break = highest 60-day exact-order count.",
+ "rule": "operator 11/10 'create your own thinking and method': ticket SHAPE, not set prediction — three 3-way (double) boxes at 6B, all states, every draw; one match ($450) clears a full day's stake ($337.50). Tie-break among the 90 doubles = highest 60-day count. + two straights at 2S on OTHER sets (operator 11/10 'use your own thinking for 2 straight picks'): every line pays $450 per hitting state, any one hit clears the $412.50 day. Tie-break = highest 60-day exact-order count.",
  "picks": [
   {
    "n": 1,
    "order": "688",
    "set": "{6,8,8}",
    "tier": "DBL",
-   "source": "3-way \u00b7 60d 22/13.2 \u00b7 all 58/47.3"
+   "source": "3-way · 60d 22/13.2 · all 58/47.3"
   },
   {
    "n": 2,
    "order": "488",
    "set": "{4,8,8}",
    "tier": "DBL",
-   "source": "3-way \u00b7 60d 21/13.2 \u00b7 all 61/47.3"
+   "source": "3-way · 60d 21/13.2 · all 61/47.3"
   },
   {
    "n": 3,
    "order": "667",
    "set": "{6,6,7}",
    "tier": "DBL",
-   "source": "3-way \u00b7 60d 21/13.2 \u00b7 all 56/47.3"
+   "source": "3-way · 60d 21/13.2 · all 56/47.3"
   }
  ],
  "superseded": {
@@ -349,17 +349,25 @@
   "units_each": 2,
   "picks": [
    {
-    "order": "012",
-    "set": "{0,1,2}",
-    "source": "60d 12/4.4 \u00b7 30d 6 \u00b7 all 23/15.8"
+    "order": "576",
+    "set": "{5,6,7}",
+    "source": "60d 11/4.4 · 30d 8 · all 20/15.8 · replaces 012 from the 11/10 evening draws · PROPOSED, not placed"
    },
    {
     "order": "725",
     "set": "{2,5,7}",
-    "source": "60d 12/4.4 \u00b7 30d 7 \u00b7 all 28/15.8"
+    "source": "60d 12/4.4 · 30d 7 · all 28/15.8"
    }
   ]
  },
- "placed": "2026-11-10 ~10:52am ET \u2014 operator: \"placed all five lines\"",
- "settle_rule": "operator 11/10: if any line hits on 11/10, the ticket closes with that day and a NEW five (same method: three 3-way boxes 6B + two outside straights 2S, 60-day tie-break through 11/10) is built for 11/11; no hit on 11/10 = these five ride 11/11"
+ "placed": "2026-11-10 ~10:52am ET — operator: \"placed all five lines\"",
+ "settle_rule": "operator 11/10: if any line hits on 11/10, the ticket closes with that day and a NEW five (same method: three 3-way boxes 6B + two outside straights 2S, 60-day tie-break through 11/10) is built for 11/11; no hit on 11/10 = these five ride 11/11",
+ "superseded_straights": [
+  {
+   "order": "012",
+   "set": "{0,1,2}",
+   "source": "60d 12/4.4 · 30d 6 · all 23/15.8",
+   "note": "PLACED 11/10 ~10:52am, ran the 33 midday draws blank (NY 210 = other order); operator 11/10 after midday: \"replace 012 straight pick\""
+  }
+ ]
 }

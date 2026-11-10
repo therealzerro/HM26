@@ -10,6 +10,7 @@ Re-run after each import / paste (midday import, 8:24 early-13 paste, evening im
      plus open rides from the previous two days' All-Day boards (day 3 / day 2 tomorrow)
   4. board persistence 4/18→yesterday: how often an All-Day pick is on the next day's All-Day board,
      split by whether its set drew that day (what tomorrow's pool usually keeps)
+`--list docs/strike_YYYY_MM_DD.json` adds the strike list: every straight, exact matches and other-order draws of its set across the list's window.
 `--extra` = JSON list of rows drawn today not yet imported (jurisdiction, result_digits[, session]).
 Rates from `histories` only (BUG-162).
 """
@@ -17,7 +18,7 @@ import argparse, datetime as dt, json, statistics as st, sys
 from collections import Counter, defaultdict
 sys.path.insert(0, __file__.rsplit('/', 1)[0]); import hm_data as H
 
-ap = argparse.ArgumentParser(); ap.add_argument('--date', required=True); ap.add_argument('--extra'); ap.add_argument('--cache'); a = ap.parse_args()
+ap = argparse.ArgumentParser(); ap.add_argument('--date', required=True); ap.add_argument('--extra'); ap.add_argument('--cache'); ap.add_argument('--list', help='strike list json (docs/strike_*.json): status of every straight over its window'); a = ap.parse_args()
 D = a.date; day = lambda n: (dt.date.fromisoformat(D) + dt.timedelta(n)).isoformat()
 hist = H.histories(a.cache); snaps = H.snapshots(a.cache)
 extra = json.load(open(a.extra)) if a.extra else []
@@ -38,6 +39,18 @@ for sc in ('allday', 'midday', 'evening'):
     b = board(D, sc); hit = sum(bool(land(p, rows)) for p in b)
     print(f"\n{sc.upper()} board — {hit} of {len(b)} landed" + ('' if rows else ' (no draws in yet)'))
     for p in b: print(f"  {p['rank']} {p['order']} {p['set']:8} {land(p, rows) or '· open'}")
+
+# 1b. strike list (operator 11/10: 20 straights watched across a two-day window)
+if a.list:
+    S = json.load(open(a.list)); w0, w1 = S['window']; win = [r for r in hist if w0 <= r['date_et'] <= min(w1, D)]
+    orders = {p['order'] for p in S['picks']}
+    ex = [r for r in win if r['result_digits'] in orders]
+    print(f"\nSTRIKE LIST {a.list.rsplit('/', 1)[-1]} · window {w0}→{w1} · {len(win)} draws in so far · STRAIGHT matches {len(ex)}")
+    for p in S['picks']:
+        m = [r for r in win if r['comboset_sorted'] == p['set']]
+        st_ = [f"{r['jurisdiction']} {r['date_et'][5:]} {r['session'][:3]}" for r in m if r['result_digits'] == p['order']]
+        bx = [f"{r['jurisdiction']} {r['result_digits']} {r['date_et'][5:]} {r['session'][:3]}" for r in m if r['result_digits'] != p['order']]
+        print(f"  {p['n']:2} {p['order']} {p['set']:8} {p['tier']} {p['source']:16} " + ('STRAIGHT ' + ', '.join(st_) if st_ else '· no straight') + (f"  | set drew in another order: {', '.join(bx)}" if bx else ''))
 
 # 2. today's tally = tomorrow's reference
 pc = Counter(p for r in today for p in set(H.pairs(r['result_digits']))); dc = Counter(ch for r in today for ch in r['result_digits'])

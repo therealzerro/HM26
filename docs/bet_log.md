@@ -10,6 +10,23 @@ Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw p
 - `scripts/picks/board_watch.py --date D [--extra rows.json]` — today's three boards vs today's draws (landed / open), today's pair + digit tally (= tomorrow's reference block), the carry list (All-Day picks still open, ride day 2 / day 3 tomorrow), board persistence. Re-run at the midday import, the 8:24 paste, the evening import.
 - `scripts/picks/board_lean.py --block allday --date D` — pool = the All-Day board alone; a set also on the Midday / Evening board ranks first (three boards before two before one); block = all 75 draws ($18.75/unit Wed); reference = the whole previous day.
 
+**11/10 ~10:20am ET — operator: "deep scope for 20 straight picks, monitored allday today and allday tomorrow, that is the strike plan" — 20-STRAIGHT STRIKE LIST, window 11/10 + 11/11, PROPOSED NOT PLACED.** Saved `docs/strike_2026_11_10.json`; 20 rows in `docs/operator_picks.csv` (block allday, placed=no). Built before any 11/10 draw; board-leaning rule. A = every posted order on today's three boards (14) · B = All-Day engine ranks 1–18, further orders not on a slate (5) · C = top open All-Day ride from 11/09 by pair+digit (1; 901 {0,1,9} was next, left out).
+
+| # | Straight | Set | Source | # | Straight | Set | Source |
+|---|---|---|---|---|---|---|---|
+| 1 | **408** | {0,4,8} | All-Day 5 + Midday 4 + Evening 5 | 11 | 854 | {4,5,8} | Midday 3 |
+| 2 | **637** | {3,6,7} | All-Day 6 + Midday 5 + Evening 4 | 12 | 617 | {1,6,7} | Midday 1 |
+| 3 | 985 | {5,8,9} | All-Day 4 | 13 | 852 | {2,5,8} | Midday 2 |
+| 4 | 410 | {0,1,4} | All-Day 3 | 14 | 325 | {2,3,5} | Midday 6 |
+| 5 | 859 | {5,8,9} | Evening 3 | 15 | 673 | {3,6,7} | All-Day rank 11 |
+| 6 | 401 | {0,1,4} | Evening 2 | 16 | 589 | {5,8,9} | All-Day rank 4 |
+| 7 | 837 | {3,7,8} | All-Day 2 | 17 | 598 | {5,8,9} | All-Day rank 5 |
+| 8 | 573 | {3,5,7} | All-Day 1 | 18 | 895 | {5,8,9} | All-Day rank 10 |
+| 9 | 594 | {4,5,9} | Evening 1 | 19 | 958 | {5,8,9} | All-Day rank 2 |
+| 10 | 394 | {3,4,9} | Evening 6 | 20 | 940 | {0,4,9} | 11/09 All-Day 2, ride day 2 |
+
+All six orders of {5,8,9} are on the list (pair+digit +2.97 on the 11/09 reference: 59 ×7 · 58 ×6 · 89 ×6; set last drew WV 598 11/05) — any {5,8,9} draw in the window is a straight. {3,6,7} carries two orders, {0,1,4} two. Exact-order counts 4/01→11/09 run 8–22 against 15.8 expected (60d 1–7 against 4.4). Price: 20 straights × $0.25 × draws on the slip = **$375.00 per unit for a full 75-draw day**, $750.00 per unit for both days; a straight pays $225 per unit per hitting state. Watch: `python3 scripts/picks/board_watch.py --date <day> --list docs/strike_2026_11_10.json [--extra rows.json]` after each import / paste, both days. The list is fixed for the window (11/11's boards are tracked beside it, not swapped in, unless the operator says so). Mark PLACED only on the operator's word with units and which draws.
+
 **Baseline before any 11/10 draw.** Boards: All-Day 573 · 837 · 410 · 985 · 408 · 637; Midday 617 · 852 · 854 · 408 · 637 · 325; Evening 594 · 401 · 859 · 637 · 408 · 394. **408 {0,4,8} and 637 {3,6,7} on all three boards, same order** (TRIPLE BOARD SIGNAL); {5,8,9} and {0,1,4} on All-Day + Evening (orders differ). Open rides into today: {0,4,9} 940, {3,7,8} 837, {5,8,9}, {0,1,9} 901 (11/09 All-Day, day 2); {4,5,8} 854, {3,5,7} (11/08, day 3 final today). Board persistence 4/18→11/09: an All-Day pick whose set did not draw is on the next day's All-Day board 469 of 794 (59.1%); a set that drew, 13 of 441 (2.9%).
 
 **The 11/11 pick is built 11/11 after the Daily Workflow posts the All-Day board:** `python3 scripts/picks/board_lean.py --block allday --date 2026-11-11` (needs the full 11/10 day imported; an unimported evening → `--extra` paste).

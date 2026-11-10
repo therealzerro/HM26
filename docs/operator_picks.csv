@@ -53,3 +53,23 @@ date,block,set,order,type,units,placed,note
 2026-11-09,late29,"{0,1,9}",019,B,,no,
 2026-11-09,late29,"{0,3,8}",308,S,,no,board-lean #3 (AD4+EV4)
 2026-11-09,late29,"{0,3,8}",038,B,,no,
+2026-11-10,allday,"{0,4,8}",408,S,,no,strike list #1 tier A (AD5+MD4+EV5) — window 11/10+11/11
+2026-11-10,allday,"{3,6,7}",637,S,,no,strike list #2 tier A (AD6+MD5+EV4) — window 11/10+11/11
+2026-11-10,allday,"{5,8,9}",985,S,,no,strike list #3 tier A (AD4) — window 11/10+11/11
+2026-11-10,allday,"{0,1,4}",410,S,,no,strike list #4 tier A (AD3) — window 11/10+11/11
+2026-11-10,allday,"{5,8,9}",859,S,,no,strike list #5 tier A (EV3) — window 11/10+11/11
+2026-11-10,allday,"{0,1,4}",401,S,,no,strike list #6 tier A (EV2) — window 11/10+11/11
+2026-11-10,allday,"{3,7,8}",837,S,,no,strike list #7 tier A (AD2) — window 11/10+11/11
+2026-11-10,allday,"{3,5,7}",573,S,,no,strike list #8 tier A (AD1) — window 11/10+11/11
+2026-11-10,allday,"{4,5,9}",594,S,,no,strike list #9 tier A (EV1) — window 11/10+11/11
+2026-11-10,allday,"{3,4,9}",394,S,,no,strike list #10 tier A (EV6) — window 11/10+11/11
+2026-11-10,allday,"{4,5,8}",854,S,,no,strike list #11 tier A (MD3) — window 11/10+11/11
+2026-11-10,allday,"{1,6,7}",617,S,,no,strike list #12 tier A (MD1) — window 11/10+11/11
+2026-11-10,allday,"{2,5,8}",852,S,,no,strike list #13 tier A (MD2) — window 11/10+11/11
+2026-11-10,allday,"{2,3,5}",325,S,,no,strike list #14 tier A (MD6) — window 11/10+11/11
+2026-11-10,allday,"{3,6,7}",673,S,,no,strike list #15 tier B (AD-rank11) — window 11/10+11/11
+2026-11-10,allday,"{5,8,9}",589,S,,no,strike list #16 tier B (AD-rank4) — window 11/10+11/11
+2026-11-10,allday,"{5,8,9}",598,S,,no,strike list #17 tier B (AD-rank5) — window 11/10+11/11
+2026-11-10,allday,"{5,8,9}",895,S,,no,strike list #18 tier B (AD-rank10) — window 11/10+11/11
+2026-11-10,allday,"{5,8,9}",958,S,,no,strike list #19 tier B (AD-rank2) — window 11/10+11/11
+2026-11-10,allday,"{0,4,9}",940,S,,no,strike list #20 tier C (11/09 AD ride d2) — window 11/10+11/11

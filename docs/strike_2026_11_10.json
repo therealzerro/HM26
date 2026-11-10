@@ -1,5 +1,5 @@
 {
- "built": "2026-11-10 ~12:00pm ET, before any 11/10 draw was imported",
+ "built": "2026-11-10 ~12:30pm ET",
  "window": [
   "2026-11-10",
   "2026-11-11"
@@ -7,28 +7,28 @@
  "type": "B",
  "units_each": 6,
  "per_draw": 4.5,
- "rule": "operator 11/10 \"lets go with the 60 day data\": 3 boxes = most drawn vs expectation over the 60 days to 11/09 (compare_selectors DRAWN 60d), 6 units each (.50 per draw), all states, every draw",
+ "rule": "operator 11/10 'create your own thinking and method': ticket SHAPE, not set prediction \u2014 three 3-way (double) boxes at 6B, all states, every draw; one match ($450) clears a full day's stake ($337.50). Tie-break among the 90 doubles = highest 60-day count.",
  "picks": [
   {
    "n": 1,
-   "order": "567",
-   "set": "{5,6,7}",
-   "tier": "D60",
-   "source": "most drawn 60d 40/26.4"
+   "order": "688",
+   "set": "{6,8,8}",
+   "tier": "DBL",
+   "source": "3-way \u00b7 60d 22/13.2 \u00b7 all 58/47.3"
   },
   {
    "n": 2,
-   "order": "688",
-   "set": "{6,8,8}",
-   "tier": "D60",
-   "source": "most drawn 60d 22/13.2 (double)"
+   "order": "488",
+   "set": "{4,8,8}",
+   "tier": "DBL",
+   "source": "3-way \u00b7 60d 21/13.2 \u00b7 all 61/47.3"
   },
   {
    "n": 3,
-   "order": "158",
-   "set": "{1,5,8}",
-   "tier": "D60",
-   "source": "most drawn 60d 38/26.4"
+   "order": "667",
+   "set": "{6,6,7}",
+   "tier": "DBL",
+   "source": "3-way \u00b7 60d 21/13.2 \u00b7 all 56/47.3"
   }
  ],
  "superseded": {
@@ -320,6 +320,29 @@
    "set": "{4,5,6}",
    "tier": "U",
    "source": "universe #3 P+D +4.23"
+  }
+ ],
+ "superseded_drawn60": [
+  {
+   "n": 1,
+   "order": "567",
+   "set": "{5,6,7}",
+   "tier": "D60",
+   "source": "most drawn 60d 40/26.4"
+  },
+  {
+   "n": 2,
+   "order": "688",
+   "set": "{6,8,8}",
+   "tier": "D60",
+   "source": "most drawn 60d 22/13.2 (double)"
+  },
+  {
+   "n": 3,
+   "order": "158",
+   "set": "{1,5,8}",
+   "tier": "D60",
+   "source": "most drawn 60d 38/26.4"
   }
  ]
 }

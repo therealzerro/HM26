@@ -79,6 +79,9 @@ date,block,set,order,type,units,placed,note
 2026-11-10,allday,"{4,6,9}",469,B,,no,SUPERSEDED by the 60-day three · universe scan #1 (pair+digit on 11/09 full day; 60d >= exp) — not on a board
 2026-11-10,allday,"{4,4,6}",446,B,,no,SUPERSEDED by the 60-day three · universe scan #2 (pair+digit on 11/09 full day; 60d >= exp) — not on a board
 2026-11-10,allday,"{4,5,6}",456,B,,no,SUPERSEDED by the 60-day three · universe scan #3 (pair+digit on 11/09 full day; 60d >= exp) — not on a board
-2026-11-10,allday,"{5,6,7}",567,B,6,no,STRIKE PLAN (operator: go with the 60 day data) 6B all states · most drawn 60d 40/26.4 — window 11/10+11/11
-2026-11-10,allday,"{6,8,8}",688,B,6,no,STRIKE PLAN (operator: go with the 60 day data) 6B all states · most drawn 60d 22/13.2 double — window 11/10+11/11
-2026-11-10,allday,"{1,5,8}",158,B,6,no,STRIKE PLAN (operator: go with the 60 day data) 6B all states · most drawn 60d 38/26.4 — window 11/10+11/11
+2026-11-10,allday,"{5,6,7}",567,B,,no,SUPERSEDED by the three doubles · (operator: go with the 60 day data) · most drawn 60d 40/26.4 — window 11/10+11/11
+2026-11-10,allday,"{6,8,8}",688,B,,no,SUPERSEDED by the three doubles · (operator: go with the 60 day data) · most drawn 60d 22/13.2 double — window 11/10+11/11
+2026-11-10,allday,"{1,5,8}",158,B,,no,SUPERSEDED by the three doubles · (operator: go with the 60 day data) · most drawn 60d 38/26.4 — window 11/10+11/11
+2026-11-10,allday,"{6,8,8}",688,B,6,no,STRIKE PLAN (own method: three 3-way boxes; tie-break 60d count 22/13.2) 6B all states — window 11/10+11/11
+2026-11-10,allday,"{4,8,8}",488,B,6,no,STRIKE PLAN (own method: three 3-way boxes; tie-break 60d count 21/13.2) 6B all states — window 11/10+11/11
+2026-11-10,allday,"{6,6,7}",667,B,6,no,STRIKE PLAN (own method: three 3-way boxes; tie-break 60d count 21/13.2) 6B all states — window 11/10+11/11

@@ -360,5 +360,6 @@
    }
   ]
  },
- "placed": "2026-11-10 ~10:52am ET \u2014 operator: \"placed all five lines\""
+ "placed": "2026-11-10 ~10:52am ET \u2014 operator: \"placed all five lines\"",
+ "settle_rule": "operator 11/10: if any line hits on 11/10, the ticket closes with that day and a NEW five (same method: three 3-way boxes 6B + two outside straights 2S, 60-day tie-break through 11/10) is built for 11/11; no hit on 11/10 = these five ride 11/11"
 }

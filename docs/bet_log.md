@@ -2,7 +2,10 @@
 
 Pricing model (decoded 2026-07-22): book charges **$0.25 per jurisdiction-draw per unit**; payouts per hitting state: straight 900:1 = **$225/unit**, 6-way box 150:1 = **$37.50/unit**. **3-way box (double) 300:1 = $75.00/unit** (operator 11/10). Full evening board tonight = 42 live draws → $10.50/unit. Early-13 pool (pre-8:44pm ET: PA SC WV ME,NH,VT TX GA TN MI MN DE OH AR DC) → $3.25/unit. Late-29 pool → $7.25/unit.
 
-## 2026-11-10 (Tuesday) — DAY WATCH for an 11/11 All-Day match; 11/09 late RECONCILED BLANK
+## 2026-11-10 (Tuesday) — STRIKE TICKET PLACED: 3 double boxes 6B + 2 straights 2S, all states, 11/10 + 11/11; 11/09 late RECONCILED BLANK
+
+**11/10 ~10:52am ET — PLACED (operator: "placed all five lines").** BOX {6,8,8} 6B · BOX {4,8,8} 6B · BOX {6,6,7} 6B · STRAIGHT 012 2S · STRAIGHT 725 2S, all states, window 11/10 + 11/11. Plan figure $5.50 per draw = $412.50 per 75-draw day, $825.00 both days; **slip figure owed** (draws already closed at placement, and whether 11/11 is on this slip or re-placed tomorrow, change the stake). Every line pays $450.00 per hitting state. Reconcile 11/10 midday at the import, evening at the 8:24 paste / 11/11 import, 11/11 the same way. Running PLACED before this ticket −$383.50 (11/09 at the full-block figure) + MN box.
+
 
 **11/10 ~10:00am ET — 11/09 LATE 895 S + {5,8,9} B RECONCILED BLANK** (11/09 evening = 42 rows in histories, no {5,8,9} in any draw of the day). Stake per slip (−$13.00 if the full 26-draw block; slip figure still owed). **Running PLACED −$383.50 at the full-block figure + MN box.** Ride {5,8,9} day 2 today (All-Day #4 985 + Evening #3 859 today).
 

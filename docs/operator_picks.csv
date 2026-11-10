@@ -82,8 +82,8 @@ date,block,set,order,type,units,placed,note
 2026-11-10,allday,"{5,6,7}",567,B,,no,SUPERSEDED by the three doubles · (operator: go with the 60 day data) · most drawn 60d 40/26.4 — window 11/10+11/11
 2026-11-10,allday,"{6,8,8}",688,B,,no,SUPERSEDED by the three doubles · (operator: go with the 60 day data) · most drawn 60d 22/13.2 double — window 11/10+11/11
 2026-11-10,allday,"{1,5,8}",158,B,,no,SUPERSEDED by the three doubles · (operator: go with the 60 day data) · most drawn 60d 38/26.4 — window 11/10+11/11
-2026-11-10,allday,"{6,8,8}",688,B,6,no,STRIKE PLAN (own method: three 3-way boxes; tie-break 60d count 22/13.2) 6B all states — window 11/10+11/11
-2026-11-10,allday,"{4,8,8}",488,B,6,no,STRIKE PLAN (own method: three 3-way boxes; tie-break 60d count 21/13.2) 6B all states — window 11/10+11/11
-2026-11-10,allday,"{6,6,7}",667,B,6,no,STRIKE PLAN (own method: three 3-way boxes; tie-break 60d count 21/13.2) 6B all states — window 11/10+11/11
-2026-11-10,allday,"{0,1,2}",012,S,2,no,STRIKE PLAN straight add (own method: 2S so one hit = $450 clears the day; tie-break 60d exact count 12/4.4) all states — window 11/10+11/11
-2026-11-10,allday,"{2,5,7}",725,S,2,no,STRIKE PLAN straight add (own method: 2S so one hit = $450 clears the day; tie-break 60d exact count 12/4.4) all states — window 11/10+11/11
+2026-11-10,allday,"{6,8,8}",688,B,6,yes,STRIKE PLAN (own method: three 3-way boxes; tie-break 60d count 22/13.2) 6B all states — window 11/10+11/11
+2026-11-10,allday,"{4,8,8}",488,B,6,yes,STRIKE PLAN (own method: three 3-way boxes; tie-break 60d count 21/13.2) 6B all states — window 11/10+11/11
+2026-11-10,allday,"{6,6,7}",667,B,6,yes,STRIKE PLAN (own method: three 3-way boxes; tie-break 60d count 21/13.2) 6B all states — window 11/10+11/11
+2026-11-10,allday,"{0,1,2}",012,S,2,yes,STRIKE PLAN straight add (own method: 2S so one hit = $450 clears the day; tie-break 60d exact count 12/4.4) all states — window 11/10+11/11
+2026-11-10,allday,"{2,5,7}",725,S,2,yes,STRIKE PLAN straight add (own method: 2S so one hit = $450 clears the day; tie-break 60d exact count 12/4.4) all states — window 11/10+11/11

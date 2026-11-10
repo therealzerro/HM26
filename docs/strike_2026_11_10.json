@@ -1,5 +1,5 @@
 {
- "built": "2026-11-10 ~11:05am ET, before any 11/10 draw",
+ "built": "2026-11-10 ~12:00pm ET, before any 11/10 draw was imported",
  "window": [
   "2026-11-10",
   "2026-11-11"
@@ -7,28 +7,28 @@
  "type": "B",
  "units_each": 6,
  "per_draw": 4.5,
- "rule": "operator 11/10 \"use the universe three\": 3 box picks from the universe scan, 6 units each ($1.50 per draw per box, $4.50 per draw), all states, every draw",
+ "rule": "operator 11/10 \"lets go with the 60 day data\": 3 boxes = most drawn vs expectation over the 60 days to 11/09 (compare_selectors DRAWN 60d), 6 units each (.50 per draw), all states, every draw",
  "picks": [
   {
    "n": 1,
-   "order": "469",
-   "set": "{4,6,9}",
-   "tier": "U",
-   "source": "universe #1 P+D +5.27"
+   "order": "567",
+   "set": "{5,6,7}",
+   "tier": "D60",
+   "source": "most drawn 60d 40/26.4"
   },
   {
    "n": 2,
-   "order": "446",
-   "set": "{4,4,6}",
-   "tier": "U",
-   "source": "universe #2 P+D +5.01 (double)"
+   "order": "688",
+   "set": "{6,8,8}",
+   "tier": "D60",
+   "source": "most drawn 60d 22/13.2 (double)"
   },
   {
    "n": 3,
-   "order": "456",
-   "set": "{4,5,6}",
-   "tier": "U",
-   "source": "universe #3 P+D +4.23"
+   "order": "158",
+   "set": "{1,5,8}",
+   "tier": "D60",
+   "source": "most drawn 60d 38/26.4"
   }
  ],
  "superseded": {
@@ -297,6 +297,29 @@
    "set": "{0,1,4}",
    "tier": "B",
    "source": "AD3 410 + EV2 401"
+  }
+ ],
+ "superseded_universe_pairs": [
+  {
+   "n": 1,
+   "order": "469",
+   "set": "{4,6,9}",
+   "tier": "U",
+   "source": "universe #1 P+D +5.27"
+  },
+  {
+   "n": 2,
+   "order": "446",
+   "set": "{4,4,6}",
+   "tier": "U",
+   "source": "universe #2 P+D +5.01 (double)"
+  },
+  {
+   "n": 3,
+   "order": "456",
+   "set": "{4,5,6}",
+   "tier": "U",
+   "source": "universe #3 P+D +4.23"
   }
  ]
 }

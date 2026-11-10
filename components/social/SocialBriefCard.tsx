@@ -13,8 +13,9 @@
               are the tier-1 translation (sessionLabels.ts).
      group    free | pro — yesterday per session (STRAIGHT MATCH / BOX MATCH /
               no match, chips) + today's board per session. Pro sees the six
-              signals in slate order, exact order + box set; free sees a lock
-              and the resolved outcomes. Member session words (MIDDAY ·
+              signals in slate order, exact order + box set, on all three
+              boards; free sees the ALL-DAY six in full (2026-11-10) and a
+              lock on Midday / Evening, plus the resolved outcomes. Member session words (MIDDAY ·
               EVENING · ALL-DAY — R4).
 
    MKT-82 Phase 1 (2026-10-10): the Pro two-column layout, the concentration
@@ -213,7 +214,13 @@ function GroupBody({ m }: { m: BriefModel }) {
         )}
         {isPro
           ? (m.sessions ?? []).map((s, i) => <ProSession key={i} s={s} last={i === (m.sessions!.length - 1)} />)
-          : <View style={styles.sessionGrid}>{(m.sessions ?? []).map((s, i) => <FreeSession key={i} s={s} />)}</View>}
+          : (
+            /* FREE (2026-11-10): the All-Day six across the panel, then the two covered session tiles */
+            <>
+              {(m.sessions ?? []).filter(s => s.wide).map((s, i) => <ProSession key={i} s={s} last={false} />)}
+              <View style={[styles.sessionGrid, { marginTop: 12 }]}>{(m.sessions ?? []).filter(s => !s.wide).map((s, i) => <FreeSession key={i} s={s} />)}</View>
+            </>
+          )}
       </View>
 
       {m.release && (
@@ -282,7 +289,7 @@ function ProSession({ s, last }: { s: BriefSession; last: boolean }) {
   );
 }
 
-/* Free: a 3-up tile per session — resolved outcome, or the lock. */
+/* Free: a tile per covered session (Midday / Evening) — resolved outcome, or the lock. */
 function FreeSession({ s }: { s: BriefSession }) {
   const stateColor = s.state === BRIEF_COPY.stateLive ? C.cyanSoft : s.resolved ? (s.resolved.tag === 'STRAIGHT MATCH' ? C.goldSoft : C.green) : C.textFaint;
   return (

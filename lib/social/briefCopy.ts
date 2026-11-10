@@ -48,8 +48,10 @@ export const BRIEF_COPY = {
   noBoard: '— no signals published —',
   lockText: 'releases in Pro first',
   freeCta: 'Pro members see it first ⚡',   // tier 2 only (R2)
-  releaseTitle: "Today's combinations release in Pro first",
-  releaseSub: 'Exact order + set for every session, before the draw.',
+  // 2026-11-10 (operator): the free brief carries the All-Day six in full —
+  // only Midday and Evening stay covered, so the release line names those two.
+  releaseTitle: 'Midday + Evening boards release in Pro first',
+  releaseSub: 'Exact order + set for both sessions, before the draw.',
   publicHeroCaption: 'SIGNALS ALIGNED WITH OBSERVED OUTCOMES',
   publicJuris: 'JURISDICTIONS',
   publicTracked: 'SIGNALS TRACKED',
@@ -87,8 +89,9 @@ export interface BriefSession {  // one today block
   state: string | null;          // ● LIVE / ✓ RESOLVED / null
   resolved?: { tag: 'STRAIGHT MATCH' | 'BOX MATCH'; chips: BriefChip[] };
   miss?: string;
-  signals?: SocialBriefSignal[]; // pro, unresolved: the board
-  locked?: string;               // free, unresolved
+  signals?: SocialBriefSignal[]; // unresolved: the board (pro — all three; free — All-Day only)
+  locked?: string;               // free, unresolved Midday / Evening
+  wide?: boolean;                // free: the All-Day block spans the panel (six tiles across)
   none?: string;                 // no board published
 }
 
@@ -170,7 +173,19 @@ export function buildBriefModel(data: SocialBriefData, variant: BriefVariant, gr
     { value: `${data.jurisdictionCount}`, label: BRIEF_COPY.statJuris },
   ];
   model.yesterdayRows = data.scopes.map(s => rowFor(s, tier));
-  model.sessions = data.scopes.map(s => sessionFor(s, tier, !isPro));
+  if (isPro) {
+    model.sessions = data.scopes.map(s => sessionFor(s, tier, false));
+  } else {
+    // FREE (operator, 2026-11-10): the All-Day six are the free room's board —
+    // shown in full, first, in slate order. Midday and Evening stay covered.
+    // The triple flag is stripped: TRIPLE BOARD SIGNAL is Pro-only on the brief (MKT-87).
+    const order = [...data.scopes].sort((a, b) => Number(b.scope === 'allday') - Number(a.scope === 'allday'));
+    model.sessions = order.map(s => {
+      if (s.scope !== 'allday') return sessionFor(s, tier, true);
+      const open = sessionFor({ ...s, todaySignals: s.todaySignals.map(({ triple: _t, ...g }) => g) }, tier, false);
+      return { ...open, wide: true };
+    });
+  }
   if (isPro && data.tripleBoard?.length) {
     model.triple = {
       title: BRIEF_COPY.tripleTitle,

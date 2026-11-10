@@ -5,9 +5,9 @@
   "2026-11-11"
  ],
  "type": "B",
- "units_each": 2,
- "per_draw": 1.5,
- "rule": "operator-named: 3 box picks, minimum 6 bets ($1.50) per draw = 2 units per box",
+ "units_each": 6,
+ "per_draw": 4.5,
+ "rule": "operator-named: 3 box picks, 6 units each ($1.50 per draw per box, $4.50 per draw for the three), all states, every draw",
  "picks": [
   {
    "n": 1,

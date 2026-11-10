@@ -73,9 +73,9 @@ date,block,set,order,type,units,placed,note
 2026-11-10,allday,"{5,8,9}",895,S,,no,strike list #18 tier B (AD-rank10) — window 11/10+11/11
 2026-11-10,allday,"{5,8,9}",958,S,,no,strike list #19 tier B (AD-rank2) — window 11/10+11/11
 2026-11-10,allday,"{0,4,9}",940,S,,no,strike list #20 tier C (11/09 AD ride d2) — window 11/10+11/11
-2026-11-10,allday,"{5,8,9}",589,B,6,no,strike plan v2: 3 boxes at 6B each = $1.50/draw per box · all states (AD4 985 + EV3 859) — window 11/10+11/11; supersedes the 20-straight list
-2026-11-10,allday,"{3,6,7}",367,B,6,no,strike plan v2: 3 boxes at 6B each = $1.50/draw per box · all states (AD6+MD5+EV4 637) — window 11/10+11/11; supersedes the 20-straight list
-2026-11-10,allday,"{0,1,4}",014,B,6,no,strike plan v2: 3 boxes at 6B each = $1.50/draw per box · all states (AD3 410 + EV2 401) — window 11/10+11/11; supersedes the 20-straight list
-2026-11-10,allday,"{4,6,9}",469,B,,no,universe scan #1 (pair+digit on 11/09 full day; 60d >= exp) — not on a board
-2026-11-10,allday,"{4,4,6}",446,B,,no,universe scan #2 (pair+digit on 11/09 full day; 60d >= exp) — not on a board
-2026-11-10,allday,"{4,5,6}",456,B,,no,universe scan #3 (pair+digit on 11/09 full day; 60d >= exp) — not on a board
+2026-11-10,allday,"{5,8,9}",589,B,,no,SUPERSEDED by the universe three · strike plan v2: 3 boxes at 6B each = $1.50/draw per box · all states (AD4 985 + EV3 859) — window 11/10+11/11; supersedes the 20-straight list
+2026-11-10,allday,"{3,6,7}",367,B,,no,SUPERSEDED by the universe three · strike plan v2: 3 boxes at 6B each = $1.50/draw per box · all states (AD6+MD5+EV4 637) — window 11/10+11/11; supersedes the 20-straight list
+2026-11-10,allday,"{0,1,4}",014,B,,no,SUPERSEDED by the universe three · strike plan v2: 3 boxes at 6B each = $1.50/draw per box · all states (AD3 410 + EV2 401) — window 11/10+11/11; supersedes the 20-straight list
+2026-11-10,allday,"{4,6,9}",469,B,6,no,STRIKE PLAN (operator: use the universe three) 6B all states · universe scan #1 (pair+digit on 11/09 full day; 60d >= exp) — not on a board
+2026-11-10,allday,"{4,4,6}",446,B,6,no,STRIKE PLAN (operator: use the universe three) 6B all states · universe scan #2 (pair+digit on 11/09 full day; 60d >= exp) — not on a board
+2026-11-10,allday,"{4,5,6}",456,B,6,no,STRIKE PLAN (operator: use the universe three) 6B all states · universe scan #3 (pair+digit on 11/09 full day; 60d >= exp) — not on a board

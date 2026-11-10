@@ -1,5 +1,5 @@
 {
- "built": "2026-11-10 ~10:35am ET, before any 11/10 draw (operator plan change; supersedes the 20-straight list, kept under \"superseded\")",
+ "built": "2026-11-10 ~11:05am ET, before any 11/10 draw",
  "window": [
   "2026-11-10",
   "2026-11-11"
@@ -7,28 +7,28 @@
  "type": "B",
  "units_each": 6,
  "per_draw": 4.5,
- "rule": "operator-named: 3 box picks, 6 units each ($1.50 per draw per box, $4.50 per draw for the three), all states, every draw",
+ "rule": "operator 11/10 \"use the universe three\": 3 box picks from the universe scan, 6 units each ($1.50 per draw per box, $4.50 per draw), all states, every draw",
  "picks": [
   {
    "n": 1,
-   "order": "589",
-   "set": "{5,8,9}",
-   "tier": "B",
-   "source": "AD4 985 + EV3 859"
+   "order": "469",
+   "set": "{4,6,9}",
+   "tier": "U",
+   "source": "universe #1 P+D +5.27"
   },
   {
    "n": 2,
-   "order": "367",
-   "set": "{3,6,7}",
-   "tier": "B",
-   "source": "AD6+MD5+EV4 637"
+   "order": "446",
+   "set": "{4,4,6}",
+   "tier": "U",
+   "source": "universe #2 P+D +5.01 (double)"
   },
   {
    "n": 3,
-   "order": "014",
-   "set": "{0,1,4}",
-   "tier": "B",
-   "source": "AD3 410 + EV2 401"
+   "order": "456",
+   "set": "{4,5,6}",
+   "tier": "U",
+   "source": "universe #3 P+D +4.23"
   }
  ],
  "superseded": {
@@ -275,5 +275,28 @@
     "set_last": "DC 094 11-03"
    }
   ]
- }
+ },
+ "superseded_boxes": [
+  {
+   "n": 1,
+   "order": "589",
+   "set": "{5,8,9}",
+   "tier": "B",
+   "source": "AD4 985 + EV3 859"
+  },
+  {
+   "n": 2,
+   "order": "367",
+   "set": "{3,6,7}",
+   "tier": "B",
+   "source": "AD6+MD5+EV4 637"
+  },
+  {
+   "n": 3,
+   "order": "014",
+   "set": "{0,1,4}",
+   "tier": "B",
+   "source": "AD3 410 + EV2 401"
+  }
+ ]
 }

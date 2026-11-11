@@ -11,24 +11,24 @@
  "picks": [
   {
    "n": 1,
-   "order": "488",
-   "set": "{4,8,8}",
-   "tier": "DBL",
-   "source": "3-way · 60d 22/13.2 · all 62"
-  },
-  {
-   "n": 2,
    "order": "688",
    "set": "{6,8,8}",
    "tier": "DBL",
    "source": "3-way · 60d 22/13.2 · all 58"
   },
   {
-   "n": 3,
+   "n": 2,
    "order": "499",
    "set": "{4,9,9}",
    "tier": "DBL",
-   "source": "3-way · 60d 20/13.2 · 30d 13 · all 49 · tied at 20 with {2,7,7} (30d 11)"
+   "source": "3-way · 60d 20/13.2 · 30d 13 · all 49"
+  },
+  {
+   "n": 3,
+   "order": "277",
+   "set": "{2,7,7}",
+   "tier": "DBL",
+   "source": "3-way · 60d 20/13.2 · 30d 11 · all 52 · replaces {4,8,8} (operator 11/11: \"swap 488\")"
   }
  ],
  "straights": {
@@ -46,5 +46,15 @@
    }
   ]
  },
- "placed": "PROPOSED, NOT PLACED — only {4,9,9} is new vs the 11/10 ticket ({6,6,7} fell to 19 in 60d)"
+ "placed": "PROPOSED, NOT PLACED",
+ "superseded_boxes": [
+  {
+   "n": 1,
+   "order": "488",
+   "set": "{4,8,8}",
+   "tier": "DBL",
+   "source": "3-way · 60d 22/13.2 · all 62",
+   "note": "drew 11/10 evening (FL 488, the hit that closed the 11/10 ticket); operator 11/11: \"swap 488\""
+  }
+ ]
 }

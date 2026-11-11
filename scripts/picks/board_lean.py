@@ -14,6 +14,11 @@ Rank key (in order):
   3. pair+digit z on the reference block, DISTINCT pair counting (prev evening + today's midday [+ --extra rows];
      for `midday`: prev-day midday + prev-day evening)
   4. block 60d count minus expectation
+`--block early13 | midday | evening` (operator 11/11, "use E+M as the rank key", then "switch midday and evening to
+the new rank too"): key 3 = STAB = P+D + long evening z + long midday z (all-history box counts pasted 11/11,
+hm_data.long_z(); midday = all-day minus evening). Later the same day: "switch allday and late 29 to the new
+rank too" -> every block ranks on STAB.
+Loud universe stays on P+D.
 `--block allday` (operator 11/10, "a match for tomorrow from the allday drawings"): pool = the All-Day board
 ALONE; a set also posted on the Midday / Evening board is marked and ranks first (more boards first); the
 block is every draw of the day; reference = the whole previous day (midday + evening [+ --extra rows of
@@ -60,6 +65,8 @@ def zstd(val):
     return out
 zp = zstd({cs: sum(pc[p] for p in SP[cs]) for cs in H.ALLSETS}); zd = zstd({cs: sum(dc[ch] for ch in H.digs(cs)) for cs in H.ALLSETS})
 z = {cs: zp[cs] + zd[cs] for cs in H.ALLSETS}
+STAB = True; zE, zM = H.long_z()   # every block ranks on STAB (operator 11/11)
+key = {cs: z[cs] + zE.get(cs, 0) + zM.get(cs, 0) for cs in H.ALLSETS}
 
 # drawn today (any session) incl. extra rows
 today = byds[(D, 'midday')] + byds[(D, 'evening')] + ([] if AD else extra)
@@ -91,7 +98,7 @@ for cs, c in cand.items():
     elif b['lead'] in orders.values(): straight = b['lead']; why = 'posted order = block lead'
     else: straight = orders.get('allday') or next(iter(orders.values())); why = 'All-Day posted order'
     rows.append(dict(set=cs, drawn=cs in drawn_today, overlap=ov, nb=len(orders), z=z[cs], d60=b['c60'] - b['e60'], b=b, straight=straight, why=why, orders=orders, boards=c['boards']))
-rows.sort(key=lambda r: (r['drawn'], -r['nb'], -r['z'], -r['d60'], r['set']))
+rows.sort(key=lambda r: (r['drawn'], -r['nb'], -key[r['set']], -r['d60'], r['set']))
 
 print(f"BOARD-LEAN · block {a.block} ({sess or 'midday + evening'}{'' if pool is None else f', {len(pool)} jurisdictions'}) · target {D} · boards {'All-Day (Midday / Evening overlap marked)' if AD else 'All-Day + ' + sboard}")
 print(f"reference block for pair+digit: {len(ref)} draws ({f'{PREV} midday {len(byds[(PREV,"midday")])} + evening {len(byds[(PREV,"evening")])} + extra {len(extra) if AD else 0}' if a.block in ('midday','allday') else f'{PREV} evening {len(byds[(PREV,'evening')])} + {D} midday {len(byds[(D,'midday')])} + extra {len(extra)}'})"
@@ -100,13 +107,13 @@ print(f"reference block for pair+digit: {len(ref)} draws ({f'{PREV} midday {len(
 print(f"block history 4/01→{PREV}: {n} draws (60d {n60}, 30d {n30}); last same-weekday block = {ndraws} draws → ${ndraws*0.25:.2f}/unit")
 print(f"pair repeats ≥4: {[(p,c) for p,c in pc.most_common() if c>=4]} · digits: {dict(dc.most_common(5))}")
 print(f"drawn today so far: {sum(1 for r in today)} rows, {len(drawn_today)} sets\n")
-hdr = f"{'#':>2} {'set':8} {'cls':3} {'boards':12} {'P+D':>6} {'block all':>11} {'60d':>9} {'30d':>9}  straight (why)                 lead-order / last in block"
+hdr = f"{'#':>2} {'set':8} {'cls':3} {'boards':12} {'P+D':>6} {'eve z  mid z   STAB ' if STAB else ''}{'block all':>11} {'60d':>9} {'30d':>9}  straight (why)                 lead-order / last in block"
 print(hdr); print('-' * len(hdr))
 for i, r in enumerate(rows, 1):
     b = r['b']; k = {6: 'S', 3: 'D', 1: 'T'}[H.cls(r['set'])]
     flag = ' DRAWN TODAY ' + '; '.join(drawn_today[r['set']]) if r['drawn'] else ''
     ov = '*' if r['overlap'] else ' '
-    print(f"{i:2} {r['set']:8} {k:3} {ov}{'+'.join(r['boards']):11} {r['z']:+6.2f} {b['all']:4}/{b['e_all']:6.1f} {b['c60']:3}/{b['e60']:5.1f} {b['c30']:3}/{b['e30']:5.1f}  {r['straight']} ({r['why']:<22}) lead {b['lead']} {b['o60'] or b['oa']} · {b['last']}{flag}")
+    print(f"{i:2} {r['set']:8} {k:3} {ov}{'+'.join(r['boards']):11} {r['z']:+6.2f} {f"{zE[r['set']]:+5.2f} {zM[r['set']]:+6.2f} {key[r['set']]:+6.2f} " if STAB else ''}{b['all']:4}/{b['e_all']:6.1f} {b['c60']:3}/{b['e60']:5.1f} {b['c30']:3}/{b['e30']:5.1f}  {r['straight']} ({r['why']:<22}) lead {b['lead']} {b['o60'] or b['oa']} · {b['last']}{flag}")
 print("\n* = on " + ("the All-Day board AND a session board." if AD else "both boards.") + "  Posted orders:", {r['set']: r['orders'] for r in rows})
 
 # ── per-pair detail (operator ask 11/08: "more data points") ────────────────
@@ -137,4 +144,5 @@ print(f"\nLOUD UNIVERSE (open universe top-3 by P+D, not on a board, block 60d �
 for cs in loud:
     b = bstat(cs); print(f"   {cs} P+D {z[cs]:+.2f} (universe #{uni.index(cs)+1}) block {b['all']}/{b['e_all']:.1f} · 60d {b['c60']}/{b['e60']:.1f} · 30d {b['c30']}/{b['e30']:.1f} · lead {b['lead']} · last {b['last']}")
 top = [r for r in rows if not r['drawn']][:a.top]
+if STAB: print("\nRank key = STAB (P+D + long evening z + long midday z), operator 11/11.")
 print(f"\nTOP {a.top} (undrawn, overlap first): " + ' · '.join(f"{r['straight']} S / {r['set']} B" for r in top))

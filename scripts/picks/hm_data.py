@@ -69,3 +69,15 @@ def pairs(s): return [''.join(sorted(s[a] + s[b])) for a, b in ((0, 1), (0, 2), 
 def in_block(r, block):
     sess, pool, _ = BLOCKS[block]
     return (sess is None or r['session'] == sess) and (pool is None or r['jurisdiction'] in pool)
+
+# ── long-history stabilizer (operator pastes 2026-11-11: all-history box counts, 220 sets) ──
+# data/long_evening_box.txt + data/long_allday_box.txt: "combo times_drawn draws_since" per line.
+# Returns (zE, zM): count vs expected in sd for the evening history and the midday remainder (all-day − evening).
+def long_z():
+    import math
+    d = Path(__file__).resolve().parent / 'data'
+    ld = lambda f: {setof(l.split()[0]): int(l.split()[1]) for l in (d / f).read_text().splitlines() if l.strip()}
+    E = ld('long_evening_box.txt'); A = ld('long_allday_box.txt'); M = {c: A[c] - E[c] for c in A}
+    def z(T):
+        N = sum(T.values()); return {c: (T[c] - N * cls(c) / 1000) / math.sqrt(N * cls(c) / 1000 * (1 - cls(c) / 1000)) for c in T}
+    return z(E), z(M)

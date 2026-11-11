@@ -1,8 +1,7 @@
 {
  "built": "2026-11-10 ~12:30pm ET",
  "window": [
-  "2026-11-10",
-  "2026-11-11"
+  "2026-11-10"
  ],
  "type": "B",
  "units_each": 6,
@@ -369,5 +368,6 @@
    "source": "60d 12/4.4 · 30d 6 · all 23/15.8",
    "note": "PLACED 11/10 ~10:52am, ran the 33 midday draws blank (NY 210 = other order); operator 11/10 after midday: \"replace 012 straight pick\""
   }
- ]
+ ],
+ "closed": "2026-11-11 ~8:45am ET — CLOSED BY HIT under the settle rule: FL 488 11/10 evening = box match on {4,8,8} (6B, 3-way, $450). 11/10 at every-draw sizing: 76 draws, staked $418.00, paid $450.00, net +$32.00 (slip figure owed). Successor: docs/strike_2026_11_11.json"
 }

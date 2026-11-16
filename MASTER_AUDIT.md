@@ -4217,7 +4217,7 @@ tsc/eslint delta 0.
 
 **Verification:** `npx tsc --noEmit` — 5 errors in touched files, all reproduced on HEAD (pre-existing prop-typing debt), delta 0. `eslint` on touched files — 3 errors, all reproduced on HEAD, delta 0. CLI dry-run parse regression exact (742/742). New view queried live (30 box + 300 pair rows, correct counts).
 
-### OPS-08 — 2026-11-14 NO-RUN DAY → slates + AT + DI + report BACKFILLED via ENG-BACKFILL-01/02 (2026-11-15 ET) — ✅ 11/14 complete · two backfill-mirror gaps from CONFIG-20 fixed (BUG-BACKFILL-PAIRREP-MIRROR-01)
+### OPS-08 — 2026-11-14 + 11/15 NO-RUN DAYS → slates + AT + DI + report BACKFILLED via ENG-BACKFILL-01/02 (2026-11-15 ET) — ✅ 11/14 + 11/15 complete · two backfill-mirror gaps from CONFIG-20 fixed (BUG-BACKFILL-PAIRREP-MIRROR-01)
 
 **State found (11/15 ~23:20 ET):** `histories` 11/13 = 33 midday / 42 evening, 11/14 = 33 / 42 (11/13 evening + both 11/14 sessions imported 11/16 04:18–04:19 UTC). `slate_snapshots` / `adaptive_tracking` / `daily_intelligence` empty for 11/14, all three scopes. 10/14 (the date as typed in the ask) was verified intact — all 3 scopes, draws present.
 
@@ -4235,7 +4235,13 @@ tsc/eslint delta 0.
 | evening | {1,2,8} {0,4,9} {0,3,8} {3,7,9} {4,5,6} {1,6,9} | 1 of 6 | 0 / 1 (NM) |
 | allday | {0,4,9} {1,2,8} {0,6,7} {0,3,8} {2,3,9} {2,7,8} | 3 of 6 | 1 / 2 (VA, NM, AR) |
 
-**Open:** 11/15 has no draws imported and no boards (gap scan). Needs the 11/15 ledger paste before anything can be written.
+**11/15 (also a no-run day) — closed same session, 11/15 23:52 ET.** Operator imported the 11/15 ledger (27 midday / 40 evening; prior Sunday 11/08 = 27 / 39). `backfill:slate --apply` gate 3/3 exact vs the 11/14 boards → 3 snapshots + 18 AT rows, hit detection 0 errors; `backfill:di --apply` → 93 DI rows (32/31/30); `compute-daily-report` re-run for 11/14 and 11/15. Gap scan clean through 11/15.
+
+| 11/15 scope | board (posted rank order) | matched | straight / box |
+|---|---|---|---|
+| midday | {1,2,8} {0,6,7} {2,4,7} {1,5,6} {1,4,8} {3,5,6} | 2 of 6 | 0 / 2 (DE, GA) |
+| evening | {0,5,6} {0,6,7} {3,6,9} {0,6,8} {1,6,9} {0,3,4} | 1 of 6 | 0 / 1 (IN) |
+| allday | {1,4,9} {1,7,8} {3,5,6} {3,6,9} {1,6,8} {4,6,7} | 2 of 6 | 0 / 2 (GA, DC) |
 
 **Files:** `scripts/backfill/loadConfig.ts`, `scripts/backtest/replay.ts`, `scripts/backfill/backfill-slate.ts`, `scripts/backfill/backfill-di.ts`, `scripts/backfill/parity-check.ts`.
 

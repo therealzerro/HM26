@@ -4217,6 +4217,28 @@ tsc/eslint delta 0.
 
 **Verification:** `npx tsc --noEmit` — 5 errors in touched files, all reproduced on HEAD (pre-existing prop-typing debt), delta 0. `eslint` on touched files — 3 errors, all reproduced on HEAD, delta 0. CLI dry-run parse regression exact (742/742). New view queried live (30 box + 300 pair rows, correct counts).
 
+### OPS-08 — 2026-11-14 NO-RUN DAY → slates + AT + DI + report BACKFILLED via ENG-BACKFILL-01/02 (2026-11-15 ET) — ✅ 11/14 complete · two backfill-mirror gaps from CONFIG-20 fixed (BUG-BACKFILL-PAIRREP-MIRROR-01)
+
+**State found (11/15 ~23:20 ET):** `histories` 11/13 = 33 midday / 42 evening, 11/14 = 33 / 42 (11/13 evening + both 11/14 sessions imported 11/16 04:18–04:19 UTC). `slate_snapshots` / `adaptive_tracking` / `daily_intelligence` empty for 11/14, all three scopes. 10/14 (the date as typed in the ask) was verified intact — all 3 scopes, draws present.
+
+**Writer gate failed first — two mirror gaps, both from ENG-PAIRREP-01 / CONFIG-20 (edge v63, 11/03). This was the first backfill since that ship.**
+1. `scripts/backfill/loadConfig.ts` never read `pair_rep_weight` / `pair_rep_weight_<scope>` → writer computed with the channel off. Gate 0/3 (11/13: midday 5/6, evening 3/6, allday 3/6 membership). Fixed: both keys added, same bounds as the edge fn (0..1), scope override wins. Gate → 2/3 (midday + allday exact).
+2. Evening reference block. Edge `fetchPairRepReference` asks for prev-day evening + SAME-day midday for the evening scope. The Daily Workflow builds all three boards in the morning (11/11 13:32 UTC, 11/12 07:11, 11/13 11:59; 11/13 midday draws landed 22:31 UTC), so that same-day-midday query returns zero rows and the live evening reference is prev-day evening only. `scripts/backtest/replay.ts::fetchPairRepReference` always loaded the same-day midday. Fixed: opt-in `morningBuild` on `computeSlateAsOf` (default false — replay behaviour unchanged), passed by `backfill-slate.ts` (gate + writer), `backfill-di.ts`, `parity-check.ts`. Gate → 3/3 exact.
+
+**Harness note for the CONFIG-20 review (2027-01-02):** every replay number recorded for the evening pair-repeat weight (11/03 sweep, `prod_parity_2026_11_03`) was computed with the same-day midday block in the evening reference. The live morning build does not have that block. Evening replay under that preset is therefore not a parity replay of the live evening board; midday and allday are unaffected (their block is prev-day only). No engine code or `app_config` changed here.
+
+**Writes (11/14):** `backfill:slate --apply` gate 3/3 exact → 3 snapshots (`_source=backfill`) + 18 AT rows; `run-hit-detection` 6 found, 0 errors. `backfill:di --parity` on 11/13 = 3/3 EXACT field-for-field, then `--apply` → 91 DI rows (31/30/30). `compute-daily-report` re-run for 11/13 and 11/14.
+
+| 11/14 scope | board (posted rank order) | matched | straight / box |
+|---|---|---|---|
+| midday | {2,3,6} {2,4,7} {1,7,8} {1,3,5} {1,5,7} {1,5,6} | 2 of 6 | 0 / 2 (CT, DE) |
+| evening | {1,2,8} {0,4,9} {0,3,8} {3,7,9} {4,5,6} {1,6,9} | 1 of 6 | 0 / 1 (NM) |
+| allday | {0,4,9} {1,2,8} {0,6,7} {0,3,8} {2,3,9} {2,7,8} | 3 of 6 | 1 / 2 (VA, NM, AR) |
+
+**Open:** 11/15 has no draws imported and no boards (gap scan). Needs the 11/15 ledger paste before anything can be written.
+
+**Files:** `scripts/backfill/loadConfig.ts`, `scripts/backtest/replay.ts`, `scripts/backfill/backfill-slate.ts`, `scripts/backfill/backfill-di.ts`, `scripts/backfill/parity-check.ts`.
+
 ### OPS-07 — reel:daily PRE-FLIGHT GATE (ledger both sessions · D−1 graded · D boards live) — SHIPPED 2026-10-09 · + runner flag passthrough (`--skip-preflight`, `--allow-all-matched`) · same-session housekeeping: lint 32→0
 
 **Why:** `reel:daily` had NO data gate. OPS-05 (9/27) showed the failure: the 9/26 midday ledger was never imported, the morning run graded half a day, verify / allday_public / record_public under-counted receipts, and only a manual `histories` query at reel time caught it. The memory rule since then was "query histories for D−1 by session before every run" — a human step with no enforcement.

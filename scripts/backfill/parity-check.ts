@@ -116,7 +116,7 @@ async function main() {
     const cfg = await loadBackfillConfig(scope);
     applyNewRotationRules(cfg); // match the writer's rotation overlay
     const recentSlateSets = await fetchRecentSlateSets(scope, date, 2);
-    const picks = await computeSlateAsOf(date, scope, cfg, 'balanced', { asOfBoxPressure: true, recentSlateSets });
+    const picks = await computeSlateAsOf(date, scope, cfg, 'balanced', { asOfBoxPressure: true, morningBuild: true, recentSlateSets });
     const computed = picks.map(p => p.comboSet);
 
     const storedSet = new Set(stored);

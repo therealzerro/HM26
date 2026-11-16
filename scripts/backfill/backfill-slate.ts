@@ -136,7 +136,7 @@ async function parityGate(refDate: string): Promise<boolean> {
     const cfg = await loadBackfillConfig(scope);
     applyNewRotationRules(cfg);
     const recentSlateSets = await fetchRecentSlateSets(scope, refDate, 2);
-    const picks = await computeSlateAsOf(refDate, scope, cfg, MODE, { asOfBoxPressure: true, recentSlateSets });
+    const picks = await computeSlateAsOf(refDate, scope, cfg, MODE, { asOfBoxPressure: true, morningBuild: true, recentSlateSets });
     const computed = picks.map(p => p.comboSet);
     const exact = stored.length === computed.length && stored.every((c, i) => c === computed[i]);
     console.log(`  ${scope.padEnd(8)} ${exact ? '✅ exact' : '❌ differs'}`);
@@ -263,7 +263,7 @@ async function main() {
     applyNewRotationRules(cfg); // ENG-BLOCK-PERSCOPE-02 + ENG-STALE-01 (shared w/ parity gate)
     const recentSlateSets = await fetchRecentSlateSets(scope, date, 2);
     const top30: ReplayPick[] = [];
-    const k6 = await computeSlateAsOf(date, scope, cfg, MODE, { asOfBoxPressure: true, emitRich: true, outTop30: top30, recentSlateSets });
+    const k6 = await computeSlateAsOf(date, scope, cfg, MODE, { asOfBoxPressure: true, morningBuild: true, emitRich: true, outTop30: top30, recentSlateSets });
     if (k6.length === 0) { console.warn(`  ${scope}: engine returned 0 picks, skipping`); continue; }
 
     const hash = computeSlateHash(scope, MODE, k6.map(p => p.combo), { ...Object.fromEntries(H_ALL.map(h => [h, true])) });

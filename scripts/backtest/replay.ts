@@ -493,13 +493,20 @@ async function fetchRollingAucAsOf(date: string, scope: Scope): Promise<SignalAu
  * previous day's evening + previous day's midday. All jurisdictions. Nothing
  * dated after the slate's session is ever read (no leak).
  */
-async function fetchPairRepReference(date: string, scope: Scope): Promise<PairRepRefRow[]> {
+// morningBuild (OPS-08, 2026-11-15): the live Daily Workflow builds all three
+// boards in the morning, before the day's midday draw exists, so the edge fn's
+// same-day-midday query for the EVENING block returns no rows and the live
+// reference is prev-day evening only. The backfill writer passes morningBuild
+// to reproduce that; default (false) keeps the replay's as-of-evening block.
+async function fetchPairRepReference(date: string, scope: Scope, morningBuild = false): Promise<PairRepRefRow[]> {
   const d = new Date(date + 'T12:00:00');
   d.setDate(d.getDate() - 1);
   const prev = d.toISOString().split('T')[0];
   const eve = await dbGet<any[]>(`/histories?select=result_digits&date_et=eq.${prev}&session=eq.evening&jurisdiction=not.is.null&limit=1000`);
   const midDate = scope === 'evening' ? date : prev;
-  const mid = await dbGet<any[]>(`/histories?select=result_digits&date_et=eq.${midDate}&session=eq.midday&jurisdiction=not.is.null&limit=1000`);
+  const mid = (scope === 'evening' && morningBuild)
+    ? []
+    : await dbGet<any[]>(`/histories?select=result_digits&date_et=eq.${midDate}&session=eq.midday&jurisdiction=not.is.null&limit=1000`);
   return [...(Array.isArray(eve) ? eve : []), ...(Array.isArray(mid) ? mid : [])];
 }
 
@@ -508,7 +515,7 @@ export async function computeSlateAsOf(
   scope: Scope,
   config: EngineConfig,
   mode: 'balanced' | 'conservative' | 'aggressive' = 'balanced',
-  opts: { asOfBoxPressure?: boolean; emitRich?: boolean; outTop30?: ReplayPick[]; recentSlateSets?: string[][] } = {},
+  opts: { asOfBoxPressure?: boolean; emitRich?: boolean; outTop30?: ReplayPick[]; recentSlateSets?: string[][]; morningBuild?: boolean } = {},
 ): Promise<ReplayPick[]> {
   const scopeEnc = encodeURIComponent(scope);
 
@@ -570,7 +577,7 @@ export async function computeSlateAsOf(
     excludeYesterday ? fetchYesterdayResults(date, config.recentHitBlockDaysByScope?.[scope] ?? config.recentHitBlockDays ?? 1) : Promise.resolve(new Set<string>()),
     warmingActive ? fetchWarmingHistory(date, warmingWindowDays, scope, config.warmingScopeMatched === true) : Promise.resolve([] as { comboset_sorted: string; date_et: string }[]),
     stateStrActive ? fetchStateHistory(date, config.stateStrWindowDays ?? 60) : Promise.resolve([] as StateHistoryRow[]),
-    (pairRepActive || digitRepActive) ? fetchPairRepReference(date, scope) : Promise.resolve([] as PairRepRefRow[]),
+    (pairRepActive || digitRepActive) ? fetchPairRepReference(date, scope, opts.morningBuild === true) : Promise.resolve([] as PairRepRefRow[]),
   ]);
 
   const { timesDrawnMap, dsRawMap, drawsSinceMap, pairMetaMap, boxByHorizon, pairData, boxTimesDrawnByHorizon, pairTimesDrawnByHorizon } = buildDatasets(boxRows, pairRows, config.pairCollisionRule ?? 'legacy');

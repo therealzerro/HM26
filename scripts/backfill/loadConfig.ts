@@ -100,6 +100,7 @@ export async function loadBackfillConfig(scope: Scope): Promise<EngineConfig> {
     minEnergy: `min_energy_threshold_${scope}`,
     warming:   `warming_weight_${scope}`,
     stateStr:  `state_str_weight_${scope}`,
+    pairRep:   `pair_rep_weight_${scope}`,
   };
 
   const keyList = [
@@ -114,6 +115,9 @@ export async function loadBackfillConfig(scope: Scope): Promise<EngineConfig> {
     'warming_weight', 'warming_window_days',
     'pressure_scale_mode',
     'state_str_weight', 'state_str_half_life_days', 'state_str_window_days',
+    // PARITY: ENG-PAIRREP-01 / CONFIG-20 (edge v63, 2026-11-03). Missing from this
+    // mirror until 11/15 → 11/14 backfill gate FAIL 0/3 (OPS-08).
+    'pair_rep_weight', k.pairRep,
     k.stateStr, k.cooldown, k.boxFreq, k.boxPress, k.balanced, k.minEnergy, k.warming,
   ];
 
@@ -129,6 +133,7 @@ export async function loadBackfillConfig(scope: Scope): Promise<EngineConfig> {
   let scopeMinEnergy: number | null = null;
   let scopeWarming: number | null = null;
   let scopeStateStr: number | null = null;
+  let scopePairRep: number | null = null;
 
   for (const row of rows) {
     try {
@@ -169,6 +174,8 @@ export async function loadBackfillConfig(scope: Scope): Promise<EngineConfig> {
       if (key === 'state_str_half_life_days') { const v = parseInt(val, 10); if (!isNaN(v) && v >= 1 && v <= 90) cfg.stateStrHalfLifeDays = v; continue; }
       if (key === 'state_str_window_days')    { const v = parseInt(val, 10); if (!isNaN(v) && v >= 7 && v <= 365) cfg.stateStrWindowDays = v; continue; }
       if (key === k.stateStr) { const v = parseFloat(val); if (!isNaN(v) && v >= 0 && v <= 1) scopeStateStr = v; continue; }
+      if (key === 'pair_rep_weight') { const v = parseFloat(val); if (!isNaN(v) && v >= 0 && v <= 1) cfg.pairRepWeight = v; continue; }
+      if (key === k.pairRep)         { const v = parseFloat(val); if (!isNaN(v) && v >= 0 && v <= 1) scopePairRep = v; continue; }
       if (key === 'pressure_scale_mode') {
         if (val === 'legacy' || val === 'p95ramp' || val === 'percentile') cfg.pressureScaleMode = val;
         continue;
@@ -204,6 +211,7 @@ export async function loadBackfillConfig(scope: Scope): Promise<EngineConfig> {
   if (scopeMinEnergy !== null) cfg.minEnergyThreshold = scopeMinEnergy;
   if (scopeWarming !== null)   cfg.warmingWeight = scopeWarming;
   if (scopeStateStr !== null)  cfg.stateStrWeight = scopeStateStr;
+  if (scopePairRep !== null)   cfg.pairRepWeight = scopePairRep;
 
   // PARITY: yesterday-hit hard block is per-scope (ENG-BLOCK-PERSCOPE-01, edge
   // fn line 864). MIDDAY blocks D-1; evening + allday block today-only, which is

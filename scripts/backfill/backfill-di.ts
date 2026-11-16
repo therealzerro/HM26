@@ -169,7 +169,7 @@ async function anchoredCompute(date: string, scope: Scope, attempts: number):
   const recentSlateSets = await fetchRecentSlateSets(scope, date, 2);
   for (let i = 1; i <= attempts; i++) {
     const top30: ReplayPick[] = [];
-    const k6 = await computeSlateAsOf(date, scope, cfg, MODE, { asOfBoxPressure: true, emitRich: true, outTop30: top30, recentSlateSets });
+    const k6 = await computeSlateAsOf(date, scope, cfg, MODE, { asOfBoxPressure: true, morningBuild: true, emitRich: true, outTop30: top30, recentSlateSets });
     const computed = k6.map(p => p.comboSet);
     const anchored = stored.length === computed.length && stored.every((c, j) => c === computed[j]);
     if (anchored) {

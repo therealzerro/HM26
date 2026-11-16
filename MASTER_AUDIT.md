@@ -4243,6 +4243,8 @@ tsc/eslint delta 0.
 | evening | {0,5,6} {0,6,7} {3,6,9} {0,6,8} {1,6,9} {0,3,4} | 1 of 6 | 0 / 1 (IN) |
 | allday | {1,4,9} {1,7,8} {3,5,6} {3,6,9} {1,6,8} {4,6,7} | 2 of 6 | 0 / 2 (GA, DC) |
 
+**11/16 Daily Workflow — run headlessly on operator ask, 11/16 00:00–00:02 ET (mirror of `DashboardView.tsx::handleFullWorkflow`, anon key).** Box rebuild 3298/3300 updated, pair rebuild 6590/6600, 0 failed; `compute-daily-auc-zk6` day 11/15, 12 rows; `run-hit-detection` 11/15 + 11/16, 0 errors; `compute-slate-zk6` ×3 `targetDate=2026-11-16`, all `post_cutoff=false`; `compute-daily-report` 11/15 + 11/16. Boards (posted order): midday 671 730 812 568 541 268 · evening 369 925 793 907 307 154 · allday 196 186 480 154 286 709. Gap scan clean through 11/16.
+
 **Files:** `scripts/backfill/loadConfig.ts`, `scripts/backtest/replay.ts`, `scripts/backfill/backfill-slate.ts`, `scripts/backfill/backfill-di.ts`, `scripts/backfill/parity-check.ts`.
 
 ### OPS-07 — reel:daily PRE-FLIGHT GATE (ledger both sessions · D−1 graded · D boards live) — SHIPPED 2026-10-09 · + runner flag passthrough (`--skip-preflight`, `--allow-all-matched`) · same-session housekeeping: lint 32→0

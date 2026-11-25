@@ -28,3 +28,7 @@ verify_jwt = true
 
 [functions.send-push]
 verify_jwt = true
+
+# OPS-09: operator's Start-reel-run button → GitHub workflow_dispatch. X-Admin-Key gated.
+[functions.reel-run]
+verify_jwt = true

@@ -35,6 +35,7 @@ import {
   shareAssetToApps, fetchAssetBlob, canWebSharePdf, webShareFile, downloadBlobWeb,
 } from '@/lib/marketingReels';
 import { Pill, SectionTitle, Card, useSt, timeAgo } from './AdminShared';
+import { fetchReelRunStatus, startReelRun, isReelRunActive, REEL_RUN_KINDS, type ReelRun, type ReelRunKind } from '@/lib/reelRun';
 import { buildSocialBrief, type SocialBriefData } from '@/lib/social/socialBrief';
 import { SocialBriefCard, type BriefFit } from '@/components/social/SocialBriefCard';
 import { buildBriefModel } from '@/lib/social/briefCopy';
@@ -1162,6 +1163,114 @@ export function WeeklyReceiptsExport() {
 }
 
 
+/**
+ * OPS-09 — start the daily reel run on a GitHub runner from this screen.
+ * One press = one run (two taps: Start, then Confirm). Nothing here starts a
+ * run on its own: the timer below only READS the state of a run already going.
+ * Each kind registers in the list below as it publishes, so `onProgress`
+ * reloads the list on every poll while a run is active.
+ */
+function ReelRunCard({ onProgress }: { onProgress: () => void }) {
+  const { colors } = useTheme();
+  const st = useSt();
+  const [configured, setConfigured] = useState<boolean | null>(null);
+  const [run, setRun] = useState<ReelRun | null>(null);
+  const [from, setFrom] = useState<ReelRunKind>('verify');
+  const [armed, setArmed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  // A dispatch takes a few seconds to appear as a run; keep polling until it does.
+  const [awaiting, setAwaiting] = useState(false);
+  const wasActive = useRef(false);
+
+  const refresh = useCallback(async () => {
+    try {
+      const s = await fetchReelRunStatus();
+      setConfigured(s.configured);
+      setRun(s.run);
+      const active = isReelRunActive(s.run);
+      if (active) { setAwaiting(false); onProgress(); }
+      if (wasActive.current && !active) onProgress();
+      wasActive.current = active;
+    } catch (e: any) {
+      setMsg(`❌ Status check failed: ${String(e?.message ?? e)}`);
+    }
+  }, [onProgress]);
+
+  useEffect(() => { void refresh(); }, [refresh]);
+
+  const active = isReelRunActive(run);
+  useEffect(() => {
+    if (!active && !awaiting) return;
+    const t = setInterval(() => { void refresh(); }, awaiting ? 5000 : 20000);
+    return () => clearInterval(t);
+  }, [active, awaiting, refresh]);
+
+  const start = async () => {
+    if (!armed) { setArmed(true); return; }
+    setArmed(false);
+    setBusy(true);
+    setMsg(null);
+    try {
+      await startReelRun(from);
+      setAwaiting(true);
+      setMsg(`▶ Run requested (${from === 'verify' ? 'full run' : `from ${from}`}) — a runner picks it up in under a minute.`);
+    } catch (e: any) {
+      setMsg(`❌ ${String(e?.message ?? e)}`);
+      void refresh();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const line = (() => {
+    if (configured === null) return 'Checking the runner…';
+    if (!configured) return 'Not set up yet — run scripts/setup-reel-button.sh once on the codespace.';
+    if (!run) return 'No button run yet.';
+    const when = timeAgo(run.created_at);
+    if (run.status !== 'completed') return `⏳ Run #${run.run_number} ${run.status.replace('_', ' ')} — started ${when}. Reels appear below as each kind publishes.`;
+    if (run.conclusion === 'success') return `✅ Run #${run.run_number} finished — started ${when}.`;
+    return `❌ Run #${run.run_number} ${run.conclusion ?? 'ended'} — started ${when}. Open the log, then restart from the kind that stopped.`;
+  })();
+  const lineColor = run?.status === 'completed' && run.conclusion !== 'success' ? colors.error : colors.textSecondary;
+  const canStart = configured === true && !active && !awaiting && !busy;
+
+  return (
+    <Card style={{ padding: 10, marginBottom: 10 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <TouchableOpacity style={[st.btnPrimary, { opacity: canStart ? 1 : 0.5 }]} disabled={!canStart} onPress={start}>
+          <Text style={st.btnPrimaryText}>
+            {busy ? '⏳ …' : armed ? `Confirm — start ${from === 'verify' ? 'full run' : `from ${from}`}` : '▶ Start reel run'}
+          </Text>
+        </TouchableOpacity>
+        {armed && (
+          <TouchableOpacity style={st.btnGhost} onPress={() => setArmed(false)}>
+            <Text style={st.btnGhostText}>Cancel</Text>
+          </TouchableOpacity>
+        )}
+        {run && (
+          <TouchableOpacity style={st.btnGhost} onPress={() => openInNewTab(run.html_url)}>
+            <Text style={st.btnGhostText}>↗ Run log</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity style={st.btnGhost} onPress={() => { setMsg(null); void refresh(); }}>
+          <Text style={st.btnGhostText}>↻</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 8 }}>
+        <Text style={{ fontSize: 9, color: colors.textTertiary, marginRight: 2 }}>Start at:</Text>
+        {REEL_RUN_KINDS.map(k => (
+          <TouchableOpacity key={k} disabled={!canStart} onPress={() => { setFrom(k); setArmed(false); }}>
+            <Pill label={k === 'verify' ? 'full run' : k} color={from === k ? colors.primary : colors.textTertiary} />
+          </TouchableOpacity>
+        ))}
+      </View>
+      <Text style={{ fontSize: 10, color: lineColor, marginTop: 8, lineHeight: 14 }}>{line}</Text>
+      {msg && <Text style={{ fontSize: 10, color: msg.startsWith('❌') ? colors.error : colors.textSecondary, marginTop: 4, lineHeight: 14 }}>{msg}</Text>}
+    </Card>
+  );
+}
+
 export default function ReelsView() {
   const { colors } = useTheme();
   const st = useSt();
@@ -1262,6 +1371,8 @@ export default function ReelsView() {
         dated yesterday by design: it grades yesterday’s board.) Tap a row to open or close it;
         the next unposted reel opens automatically.
       </Text>
+
+      <ReelRunCard onProgress={load} />
 
       {reels === null && <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 30 }} />}
       {error && (

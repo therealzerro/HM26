@@ -1,7 +1,13 @@
 ================================================================================
 HITMASTER ZK6 — DAILY REEL SYSTEM
-Content Agent Handoff · 2026-10-25 · v7.38
+Content Agent Handoff · 2026-11-25 · v7.39
 ================================================================================
+v7.39 (2026-11-25) — OPS-09: the daily reel run can now be started from a button
+(Admin → Reels → ▶ Start reel run). It runs the SAME reel:daily chain on a GitHub
+runner instead of the codespace. No reel, caption, rotation or gate changed —
+this is where the run executes, nothing else. It is operator-pressed only; nothing
+is scheduled. Commands: REEL_COMMANDS.txt, "THE BUTTON".
+
 v7.38 (2026-10-25) — MKT-85 CAPTION SYSTEM v2, builds 2–4 LANDED (wiring only,
 NOTHING SHIPS ON v2): publish-reels now reads the last 8 days of
 marketing_reels.caption_meta as rotation memory, drafts a kind with the v2

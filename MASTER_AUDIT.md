@@ -4217,6 +4217,22 @@ tsc/eslint delta 0.
 
 **Verification:** `npx tsc --noEmit` — 5 errors in touched files, all reproduced on HEAD (pre-existing prop-typing debt), delta 0. `eslint` on touched files — 3 errors, all reproduced on HEAD, delta 0. CLI dry-run parse regression exact (742/742). New view queried live (30 box + 300 pair rows, correct counts).
 
+### OPS-09 — "Start reel run" button in Admin → Reels → GitHub runner (2026-11-25) — 🟡 BUILT, edge fn deployed; awaiting one-time token setup + first eyeballed run
+
+**Why:** the daily reel run lived only on the codespace. On 11/25 the codespace stopped mid-run (midday_free left truncated, no moov atom) and the run had to be finished by hand. The operator asked for a button in the operator dashboard; option B (GitHub runner, works with the codespace asleep) was chosen over a codespace-side watcher.
+
+**What was built:**
+- `.github/workflows/reel-daily.yml` — `workflow_dispatch` ONLY (no `schedule:` — OPS-01 stands). Same chain as `npm run reel:daily`: `reel-preflight.ts` (OPS-07) → `scripts/run-daily-reels.sh` in its foreground mode (`HM26_REELS_DETACHED=1`), input `from` = verify|allday|midday|evening|record. Installs ffmpeg + Playwright 1.60.0 Chromium `--with-deps` (Playwright is NOT in package.json/bun.lock — the version is pinned in the workflow and must track the codespace), writes `.env` / `.env.backtest` from repo secrets `REEL_SUPABASE_URL` / `REEL_SUPABASE_ANON_KEY` / `REEL_SUPABASE_SERVICE_ROLE_KEY`, starts `expo start` on :8081, warms the bundle, ffprobes finals, commits the five reel folders back to `main`. `concurrency: reel-daily`.
+- `supabase/functions/reel-run` (v1, verify_jwt=true, X-Admin-Key gate like admin-ops/fb-publish) — actions `status` (newest run) and `start` (refuses with 409 while a run is queued/in progress, else dispatches). Secret `REEL_GH_TOKEN` (fine-grained PAT, Actions RW); the token never reaches the app bundle.
+- `lib/reelRun.ts` + `ReelRunCard` in `components/admin/ReelsView.tsx` — two-tap Start (Start → Confirm), "start at" kind chips for resume, status line, run-log link. The only timer is a status READ while a run is active; it reloads the reel list so kinds appear as they publish.
+- `scripts/setup-reel-button.sh` — one-time: asks for the PAT (hidden), sets the three repo secrets and the edge function secret.
+
+**Verified 11/25:** edge fn deployed ACTIVE v1; no-JWT → 401; anon JWT without admin key → 401; `tsc` clean on the touched files. **NOT yet verified:** an end-to-end runner render (blocked on the token setup — the codespace token cannot write repo secrets). The first runner finals are from a different machine than every reel to date: eyeball them against a codespace render before trusting the button for a posting day.
+
+**Known limits:** `--skip-preflight` and `--allow-all-matched` are NOT on the button (operator-stated CLI flags only). The repo is public, so the Actions run log (which prints the day's boards) is public — the same exposure class as the Pro mp4s already committed here. After a button run the codespace is behind `main` by one commit: `git pull` before the next local reel run.
+
+**Rollback:** delete `.github/workflows/reel-daily.yml` (button then reports the dispatch error), or unset `REEL_GH_TOKEN` (button shows "Not set up yet"). `npm run reel:daily` on the codespace is unchanged.
+
 ### OPS-08 — 2026-11-14 + 11/15 NO-RUN DAYS → slates + AT + DI + report BACKFILLED via ENG-BACKFILL-01/02 (2026-11-15 ET) — ✅ 11/14 + 11/15 complete · two backfill-mirror gaps from CONFIG-20 fixed (BUG-BACKFILL-PAIRREP-MIRROR-01)
 
 **State found (11/15 ~23:20 ET):** `histories` 11/13 = 33 midday / 42 evening, 11/14 = 33 / 42 (11/13 evening + both 11/14 sessions imported 11/16 04:18–04:19 UTC). `slate_snapshots` / `adaptive_tracking` / `daily_intelligence` empty for 11/14, all three scopes. 10/14 (the date as typed in the ask) was verified intact — all 3 scopes, draws present.
